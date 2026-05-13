@@ -1,0 +1,12 @@
+/* Shared fog background for all pages */
+.bg-fog-shared{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;opacity:1}
+.bg-fog-shared::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;background:radial-gradient(circle at 18% 18%, rgba(96,165,250,0.06), transparent 30%), radial-gradient(circle at 82% 62%, rgba(59,130,246,0.04), transparent 30%)}
+.fog-blob-shared{position:absolute;border-radius:50%;filter:blur(60px);opacity:.36;transform:translate3d(0,0,0)}
+.fog-blob-shared.b1{width:560px;height:560px;left:-12%;top:-12%;background:rgba(96,165,250,0.32);animation:drift1 18s ease-in-out infinite}
+.fog-blob-shared.b2{width:480px;height:480px;right:-6%;top:12%;background:rgba(59,130,246,0.26);animation:drift2 22s ease-in-out infinite}
+.fog-blob-shared.b3{width:720px;height:720px;left:12%;bottom:-22%;background:rgba(96,165,250,0.18);animation:drift3 26s ease-in-out infinite}
+@keyframes drift1{0%{transform:translateY(0) scale(1)}50%{transform:translateY(18px) scale(1.03)}100%{transform:translateY(0) scale(1)}}
+@keyframes drift2{0%{transform:translateY(0) scale(1)}50%{transform:translateY(-12px) scale(1.02)}100%{transform:translateY(0) scale(1)}}
+@keyframes drift3{0%{transform:translateX(0) scale(1)}50%{transform:translateX(-18px) scale(1.01)}100%{transform:translateX(0) scale(1)}}
+/* ensure main content stacks above fog when needed */
+.page-above-fog{position:relative;z-index:10}

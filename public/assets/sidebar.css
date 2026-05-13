@@ -1,0 +1,338 @@
+/* ═══════════════════════════════════════════════════════
+   sidebar.css — componente global · CRM Jurídico YURIS
+   Paleta Premium Institucional Jurídico
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Layout principal ── */
+.page-layout {
+  display: flex !important;
+  gap: 28px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ══════════════════════════════════
+   SIDEBAR
+   ══════════════════════════════════ */
+
+.sidebar {
+  width: 268px !important;
+  min-width: 268px !important;
+  max-width: 268px !important;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  max-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  background: transparent !important;
+  border: none !important;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 16px;
+  box-sizing: border-box;
+}
+.sidebar::-webkit-scrollbar { display: none; }
+
+/* ── Bloco de marca ── */
+.sidebar-brand {
+  margin-bottom: 12px;
+  padding: 4px 6px 0;
+}
+
+.sidebar-brand h1 {
+  font-size: 3.5rem !important;
+  font-weight: 900 !important;
+  color: #D8E4F0 !important;
+  line-height: 1 !important;
+  margin: 0 0 2px !important;
+  font-family: Inter, 'Poppins', inherit !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+}
+.sidebar-brand h1 span {
+  display: inline-block;
+}
+.sidebar-brand h1::after { content: none; }
+
+.sidebar-brand p {
+  font-size: .82rem !important;
+  font-weight: 500 !important;
+  color: #6B7887 !important;
+  margin: 0 !important;
+  letter-spacing: .01em;
+  white-space: nowrap;
+}
+
+/* ── Card do usuário logado ── */
+.sidebar-user {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 10px 12px !important;
+  margin: 0 0 10px !important;
+  border-radius: 11px !important;
+  background: rgba(30,58,95,0.22) !important;
+  border: 1px solid rgba(191,199,213,0.12) !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+}
+
+.sidebar-user-avatar {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #1A3A5C, #244E7A) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  font-size: .85rem !important;
+  font-weight: 700 !important;
+  color: #D8E4F0 !important;
+  text-transform: uppercase !important;
+  letter-spacing: .02em !important;
+  line-height: 1 !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35) !important;
+}
+
+.sidebar-user-info {
+  flex: 1 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+}
+
+.sidebar-user-name {
+  font-size: .82rem !important;
+  font-weight: 600 !important;
+  color: #E8EDF5 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  line-height: 1.2 !important;
+}
+
+.sidebar-user-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  font-size: .62rem !important;
+  font-weight: 600 !important;
+  padding: 2px 7px !important;
+  border-radius: 999px !important;
+  text-transform: uppercase !important;
+  letter-spacing: .05em !important;
+  line-height: 1.4 !important;
+  width: fit-content !important;
+}
+
+.sidebar-user-badge--admin {
+  background: rgba(30,58,95,0.40) !important;
+  color: #BFC7D5 !important;
+  border: 1px solid rgba(191,199,213,0.25) !important;
+}
+
+.sidebar-user-badge--user {
+  background: rgba(46,125,94,0.20) !important;
+  color: #5ecfa0 !important;
+  border: 1px solid rgba(46,125,94,0.35) !important;
+}
+
+.sidebar-user-badge--manager {
+  background: rgba(139,105,20,0.20) !important;
+  color: #d4a942 !important;
+  border: 1px solid rgba(139,105,20,0.35) !important;
+}
+
+.sidebar-user-badge--default {
+  background: rgba(138,150,168,0.15) !important;
+  color: #8A96A8 !important;
+  border: 1px solid rgba(138,150,168,0.25) !important;
+}
+
+/* ── Status (última atualização) ── */
+.sidebar-status {
+  font-size: .64rem !important;
+  font-weight: 500 !important;
+  color: #8A96A8 !important;
+  margin: 0 !important;
+  padding: 0 6px !important;
+  line-height: 1.35 !important;
+  display: block !important;
+  width: 100% !important;
+  transition: color .2s;
+}
+
+/* ── Nav: container ── */
+.sidebar nav {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* ── Nav: item base — cada link é um card ── */
+.sidebar nav a {
+  display: flex !important;
+  align-items: center !important;
+  gap: 11px !important;
+  padding: 10px 13px !important;
+  border-radius: 11px !important;
+  color: #6B7887 !important;
+  text-decoration: none !important;
+  font-size: .88rem !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+  box-sizing: border-box;
+  background: rgba(30,58,95,0.22) !important;
+  border: 1px solid rgba(191,199,213,0.12) !important;
+}
+
+/* ── Nav: ícone ── */
+.sidebar nav a .icon {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  opacity: 1;
+  transition: opacity .15s ease;
+}
+.sidebar nav a .icon svg {
+  stroke: #6B7887;
+}
+
+.sidebar nav a .icon svg {
+  width: 20px !important;
+  height: 20px !important;
+  display: block;
+}
+
+/* ── Nav: rótulo ── */
+.sidebar nav a .label {
+  font-size: .9rem !important;
+  font-weight: 600 !important;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Nav: hover ── */
+.sidebar nav a:hover {
+  background: rgba(20,50,90,0.45) !important;
+  color: #A8BDD4 !important;
+  border-color: rgba(191,199,213,0.25) !important;
+}
+
+.sidebar nav a:hover .icon { opacity: 1; }
+.sidebar nav a:hover .icon svg { stroke: #A8BDD4; }
+
+/* ── Nav: ativo ── */
+.sidebar nav a.active {
+  background: linear-gradient(90deg, rgba(20,58,100,0.55), rgba(15,40,75,0.35)) !important;
+  color: #D8E4F0 !important;
+  font-weight: 600 !important;
+  border-color: rgba(168,189,212,0.35) !important;
+  box-shadow: inset 0 0 20px rgba(30,58,95,0.10) !important;
+}
+
+.sidebar nav a.active .icon { opacity: 1 !important; }
+.sidebar nav a.active .icon svg { stroke: #A8BDD4; }
+
+/* ── Sair — card flutuante independente ── */
+.sidebar-logout-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 11px !important;
+  padding: 12px 13px !important;
+  border-radius: 11px !important;
+  background: rgba(30,58,95,0.22) !important;
+  border: 1px solid rgba(191,199,213,0.12) !important;
+  color: #6B7887 !important;
+  text-decoration: none !important;
+  font-size: .9rem !important;
+  font-weight: 600 !important;
+  transition: background .15s, color .15s;
+}
+.sidebar-logout-card .icon {
+  width: 20px !important; height: 20px !important; min-width: 20px !important;
+  display: inline-flex !important; align-items: center !important; justify-content: center !important;
+}
+.sidebar-logout-card .icon svg,
+.sidebar-logout-card span svg { width: 20px !important; height: 20px !important; stroke: #6B7887; display:block; }
+.sidebar-logout-card:hover {
+  background: rgba(139,38,53,0.18) !important;
+  color: #C07080 !important;
+  border-color: rgba(139,38,53,0.25) !important;
+}
+.sidebar-logout-card:hover .icon svg { stroke: #C07080; }
+
+/* ══════════════════════════════════
+   MOBILE — bottom tabbar
+   ══════════════════════════════════ */
+
+.mobile-tabbar { display: none !important; }
+
+@media (max-width: 900px) {
+  .page-layout { display: block !important; }
+  .sidebar { display: none !important; }
+  .main-content { padding-bottom: 84px; }
+
+  .mobile-tabbar {
+    display: flex !important;
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    height: 64px;
+    background: #070F1C;
+    border-top: 1px solid rgba(191,199,213,0.10);
+    align-items: center;
+    justify-content: space-around;
+    z-index: 90;
+    padding: 0 4px;
+  }
+
+  .mobile-tabbar a {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    flex: 1;
+    padding: 6px 4px;
+    border-radius: 8px;
+    color: #8A96A8;
+    text-decoration: none;
+    font-size: 10px;
+    font-weight: 500;
+    font-family: Inter, Poppins, inherit;
+    transition: color .15s;
+  }
+
+  .mobile-tabbar a.active { color: #BFC7D5; }
+
+  .mobile-tabbar a .mob-icon {
+    width: 22px; height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-tabbar a .mob-icon svg { width: 22px; height: 22px; display: block; }
+}

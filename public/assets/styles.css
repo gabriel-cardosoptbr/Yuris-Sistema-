@@ -1,0 +1,4 @@
+/* Estilos mínimos para o projeto Inovaize */
+:root{--brand:#084779}
+body{font-family:Inter,system-ui,Arial,sans-serif}
+.card{border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.08)}

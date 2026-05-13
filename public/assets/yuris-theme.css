@@ -1,0 +1,680 @@
+/* Importa o Design System v1.0 — componentes y-* e tokens y-* */
+@import url('./design-system.css');
+
+/* ═══════════════════════════════════════════════════════════════
+   yuris-theme.css — Design System Global · CRM Jurídico YURIS
+   Premium Institucional Jurídico — Refinamento Visual Avançado
+
+   REGRA DE USO:
+   Este arquivo é a ÚNICA fonte de verdade para variáveis de cor.
+   Todas as abas (dashboard, processos, juridico, financas, etc.)
+   importam este arquivo e NÃO devem redefinir estas variáveis
+   com valores diferentes.
+
+   Variáveis de gráfico (--chart-*) devem ser usadas em todos os
+   arquivos JS que instanciam Chart.js para garantir paleta unificada.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Variáveis de Cor ── */
+:root {
+  /* ── Fundos ── */
+  --yuris-bg-deep:    #070F1C;   /* fundo mais escuro (body) */
+  --yuris-bg-base:    #090F1A;
+  --yuris-bg-card:    #0D1C30;   /* fundo de cards/panels */
+  --yuris-bg-input:   #081220;   /* fundo de campos de formulário */
+
+  /* ── Azul institucional jurídico ── */
+  --yuris-primary:    #1A3A5C;   /* azul profundo */
+  --yuris-accent:     #244E7A;   /* azul médio — cor principal de botões */
+  --yuris-blue-deep:  #0D2540;   /* azul noturno */
+  --yuris-blue-steel: #1A3A5C;   /* azul aço escuro */
+  --yuris-blue-mid:   #244E7A;   /* azul aço médio */
+  --yuris-blue-light: #3D6A96;   /* azul aço claro */
+
+  /* ── Prata / metálico ── */
+  --yuris-silver:        #B0BCCB;
+  --yuris-silver-dim:    #6B7887;
+  --yuris-silver-bright: #C8D4E0;
+
+  /* ── Bordas ── */
+  --yuris-border:    rgba(160,180,210,0.08);
+  --yuris-border-md: rgba(160,180,210,0.14);
+  --yuris-border-lg: rgba(160,180,210,0.28);
+
+  /* ── Texto ── */
+  --yuris-text:        #D8E4F0;  /* texto principal */
+  --yuris-text-dim:    #7A8898;  /* texto secundário / muted */
+  --yuris-text-muted:  #4A5568;  /* texto muito apagado */
+  --yuris-text-accent: #A8BDD4;  /* texto de destaque azul claro */
+
+  /* ── Status sóbrios (backgrounds de cards) ── */
+  --yuris-success:  #1E4A3A;
+  --yuris-warning:  #3D3010;
+  --yuris-danger:   #3A1020;
+
+  /* ── Aliases de compatibilidade com CSS legado ──
+     Estas variáveis curtas são usadas por processsos.php, juridico.php, etc.
+     IMPORTANTE: devem sempre refletir os valores acima — não alterar independentemente. */
+  --bg-main:     #070F1C;
+  --panel:       #0D1C30;
+  --panel-soft:  #0E1F36;
+  --line:        rgba(160,180,210,0.08);
+  --line-strong: rgba(160,180,210,0.14);
+  --text:        #D8E4F0;
+  --muted:       #7A8898;
+  --primary:     #244E7A;
+  --ok:          #1E4A3A;
+  --warn:        #3D3010;
+  --danger:      #3A1020;
+
+  /* ── Alias brand ── */
+  --brand: #6898C0;
+
+  /* ── Ícones ── */
+  --icon-color: #7EB8F6;
+
+  /* ── Paleta de gráficos Chart.js — azul metálico institucional ──
+     Usada por: juridico_charts.js, dashboard.php (embedded JS), dre.js.
+     Ordem: do azul mais escuro/profundo ao mais claro/luminoso.
+     Objetivo: visual premium jurídico — marcante mas sem neon excessivo.    */
+  --chart-c1: #1E5FA8;   /* azul aço primário */
+  --chart-c2: #2878C8;   /* azul petróleo médio */
+  --chart-c3: #1A4A8A;   /* azul profundo */
+  --chart-c4: #3A90C4;   /* azul claro metálico */
+  --chart-c5: #4AAAD8;   /* azul aço claro */
+  --chart-c6: #2050A0;   /* azul naval escuro */
+  --chart-c7: #5BBCE0;   /* azul aço luminoso */
+  --chart-c8: #0F3060;   /* azul noturno */
+
+  /* ── Cores de eixo/grade dos gráficos ── */
+  --chart-grid:  rgba(160,180,210,0.09);
+  --chart-tick:  #6B7887;
+  --chart-border:rgba(7,15,28,0.95);   /* fundo de bordas do donut */
+
+  /* ── Cores semânticas de urgência nos gráficos ── */
+  --chart-hoje:   #8A3050;   /* barras de "hoje" — vinho escuro */
+  --chart-urgente:#9A7020;   /* barras de 1-3 dias — âmbar escuro */
+  --chart-normal: #1E5FA8;   /* barras de 4-7 dias — azul metálico */
+}
+
+/* ── Box-sizing global ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* ── Remove text-shadow neon em todos os elementos — padrão sóbrio/institucional ── */
+* {
+  text-shadow: none !important;
+}
+
+/*
+  Fundo global com gradientes radiais — textura visual da identidade YURIS.
+  Aplicado em body e .page-layout para cobrir o layout completo.
+  Os gradientes criam profundidade sutil sem poluir o conteúdo.
+*/
+body, .page-layout {
+  font-family: Inter, Poppins, system-ui, -apple-system, sans-serif !important;
+  background-color: #070F1C;
+  background-image:
+    radial-gradient(ellipse 120% 80% at 15% 40%, rgba(20,50,90,0.18) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 60% at 85% 20%, rgba(30,60,100,0.12) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 50% 90%, rgba(10,30,60,0.15) 0%, transparent 60%);
+  background-attachment: fixed;
+  color: #D8E4F0;
+  min-height: 100vh;
+  margin: 0;
+  color-scheme: dark;
+}
+
+/* ── Scrollbar elegante ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: rgba(7,15,28,0.6); }
+::-webkit-scrollbar-thumb { background: rgba(160,180,210,0.18); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(160,180,210,0.32); }
+* { scrollbar-width: thin; scrollbar-color: rgba(160,180,210,0.18) rgba(7,15,28,0.6); }
+
+/* ── Oculta fog blobs globalmente — efeito visual desativado para performance ──
+   Mantém seletores específicos para não afetar a classe page-above-fog usada em dashboard. */
+.fog-blob, .fog-blob-shared,
+.bg-fog, .bg-fog-shared,
+#sharedFog { display: none !important; }
+
+/* ══════════════════════════════════
+   SIDEBAR — navegação lateral fixa
+   Usada em todas as abas via includes/sidebar.php.
+   Gradiente do topo (azul médio-escuro) → base (quase preto).
+   ══════════════════════════════════ */
+
+.sidebar {
+  background: linear-gradient(180deg, #0B1827 0%, #060E18 80%, #050C15 100%) !important;
+  border-right: 1px solid rgba(160,180,210,0.08) !important;
+  position: relative;
+}
+.sidebar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 200% 100% at 50% 0%, rgba(30,58,95,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Nav links refinados */
+.sidebar nav a {
+  color: #6B7887 !important;
+  border-left: 3px solid transparent !important;
+}
+.sidebar nav a:hover {
+  background: rgba(20,50,90,0.35) !important;
+  color: #A8BDD4 !important;
+  border-left-color: rgba(160,180,210,0.15) !important;
+}
+.sidebar nav a.active {
+  background: linear-gradient(90deg, rgba(20,58,100,0.50), rgba(15,40,75,0.30)) !important;
+  color: #D8E4F0 !important;
+  border-left-color: #A8BDD4 !important;
+  box-shadow: inset 0 0 20px rgba(30,58,95,0.10) !important;
+}
+.sidebar nav a .icon svg { stroke: currentColor !important; }
+
+/* ══════════════════════════════════
+   PAINÉIS / CARDS — containers de conteúdo
+   Cobre todos os tipos de painel do sistema:
+   .dash-panel (dashboard), .proc-panel (processos), .jur-panel (jurídico),
+   .dre-panel (finanças), .cfg-panel (configurações), .usr-panel (usuários).
+   ══════════════════════════════════ */
+
+.dash-panel, .proc-panel, .yuris-card, .card, [class*="-panel"],
+.jur-panel, .dre-panel, .cfg-panel, .usr-panel, .card-shell {
+  background: linear-gradient(145deg, #0D1C30 0%, #09131F 100%) !important;
+  border-color: rgba(160,180,210,0.10) !important;
+}
+
+/* ── Card base premium ── */
+.yuris-card {
+  background: linear-gradient(145deg, #0D1C30 0%, #09131F 100%);
+  border: 1px solid rgba(160,180,210,0.10);
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.28), inset 0 1px 0 rgba(160,180,210,0.04);
+  padding: 20px;
+}
+
+/* ══════════════════════════════════
+   BOTÕES
+   ══════════════════════════════════ */
+
+/* Botão primário — azul aço fosco */
+.proc-btn-primary, .yuris-btn-primary, .btn-primary,
+button[class*="primary"], .cfg-btn-primary, .usr-btn-primary,
+.jur-btn-primary {
+  background: linear-gradient(135deg, #1A3A5C 0%, #244E7A 100%) !important;
+  border: 1px solid rgba(160,180,210,0.20) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35) !important;
+  color: #C8D4E0 !important;
+}
+.proc-btn-primary:hover, .yuris-btn-primary:hover, .btn-primary:hover,
+.cfg-btn-primary:hover, .usr-btn-primary:hover, .jur-btn-primary:hover {
+  background: linear-gradient(135deg, #244E7A 0%, #2E6090 100%) !important;
+  box-shadow: 0 4px 14px rgba(20,58,100,0.40) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Botão secundário prata */
+.yuris-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  background: rgba(160,180,210,0.08);
+  border: 1px solid rgba(160,180,210,0.20);
+  color: #B0BCCB;
+  font-family: Inter, Poppins, system-ui, sans-serif;
+  font-size: .875rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .15s ease, color .15s ease;
+}
+.yuris-btn-secondary:hover {
+  background: rgba(160,180,210,0.14);
+  color: #D8E4F0;
+}
+
+/* Botão danger — vinho fosco */
+.btn-del, .cfg-btn-danger, .tbl-btn.btn-del,
+button[class*="danger"], button[class*="del"] {
+  background: linear-gradient(135deg, #3A1020 0%, #4A1828 100%) !important;
+  border: 1px solid rgba(176,96,112,0.25) !important;
+  color: #B06070 !important;
+  box-shadow: none !important;
+}
+.btn-del:hover, .cfg-btn-danger:hover, .tbl-btn.btn-del:hover {
+  background: linear-gradient(135deg, #4A1828 0%, #5A202E 100%) !important;
+  opacity: 1 !important;
+}
+
+/* Botão edit — azul aço */
+.btn-edit, .tbl-btn.btn-edit {
+  background: linear-gradient(135deg, #1A3A5C 0%, #244E7A 100%) !important;
+  border: 1px solid rgba(160,180,210,0.18) !important;
+  color: #A8BDD4 !important;
+}
+.btn-edit:hover, .tbl-btn.btn-edit:hover {
+  background: linear-gradient(135deg, #244E7A 0%, #2E6090 100%) !important;
+  opacity: 1 !important;
+}
+
+/* Botão ghost */
+.btn-ghost, .cfg-btn-secondary, .usr-btn-secondary,
+.jur-btn-secondary, .btn-manage {
+  background: rgba(160,180,210,0.06) !important;
+  border: 1px solid rgba(160,180,210,0.18) !important;
+  color: #7A8898 !important;
+}
+.btn-ghost:hover, .cfg-btn-secondary:hover, .usr-btn-secondary:hover,
+.jur-btn-secondary:hover, .btn-manage:hover {
+  background: rgba(160,180,210,0.12) !important;
+  color: #A8BDD4 !important;
+}
+
+/* ══════════════════════════════════
+   KPI CARDS — sem glow neon, visual sóbrio
+   Shared por todas as abas: dashboard, processos, juridico, financas.
+   Variantes coloridas: .kpi-ok (verde), .kpi-warn (âmbar), .kpi-danger (vermelho).
+   ══════════════════════════════════ */
+
+.kpi-card {
+  background: linear-gradient(145deg, #0C1A2C, #081020) !important;
+  border-color: rgba(160,180,210,0.10) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.30) !important;
+}
+.kpi-card:hover {
+  border-color: rgba(160,180,210,0.22) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.40) !important;
+  transform: translateY(-2px) !important;
+}
+.kpi-card.kpi-ok     { border-color: rgba(122,189,160,0.18) !important; }
+.kpi-card.kpi-ok:hover { border-color: rgba(122,189,160,0.32) !important; box-shadow: 0 8px 24px rgba(0,0,0,0.40) !important; }
+.kpi-card.kpi-warn   { border-color: rgba(196,160,64,0.18) !important; }
+.kpi-card.kpi-warn:hover { border-color: rgba(196,160,64,0.32) !important; box-shadow: 0 8px 24px rgba(0,0,0,0.40) !important; }
+.kpi-card.kpi-danger { border-color: rgba(176,96,112,0.18) !important; }
+.kpi-card.kpi-danger:hover { border-color: rgba(176,96,112,0.32) !important; box-shadow: 0 8px 24px rgba(0,0,0,0.40) !important; }
+
+/* Dots de status — sem glow */
+.dot-ok      { background: #4A9078 !important; box-shadow: none !important; }
+.dot-warn    { background: #9A7B28 !important; box-shadow: none !important; }
+.dot-danger  { background: #8A4050 !important; box-shadow: none !important; }
+.dot-neutral { background: #3A4858 !important; box-shadow: none !important; }
+.dot-primary { background: #3A6090 !important; box-shadow: none !important; }
+
+/* ══════════════════════════════════
+   BADGES DE STATUS SÓBRIOS
+   ══════════════════════════════════ */
+
+.badge-danger, [class*="badge-danger"],
+.badge-del, .tbadge-despesa {
+  background: rgba(58,16,32,0.60) !important;
+  color: #B06070 !important;
+  border: 1px solid rgba(176,96,112,0.25) !important;
+}
+.badge-warn, [class*="badge-warn"],
+.tbadge-variavel {
+  background: rgba(61,48,16,0.60) !important;
+  color: #C4A040 !important;
+  border: 1px solid rgba(196,160,64,0.25) !important;
+}
+.badge-ok, [class*="badge-ok"], .badge-success,
+.tbadge-receita {
+  background: rgba(30,74,58,0.60) !important;
+  color: #7ABDA0 !important;
+  border: 1px solid rgba(122,189,160,0.25) !important;
+}
+.badge-info, [class*="badge-info"],
+.tbadge-fixa {
+  background: rgba(14,40,69,0.70) !important;
+  color: #6898C0 !important;
+  border: 1px solid rgba(104,152,192,0.25) !important;
+}
+.badge-neutral, [class*="badge-neutral"],
+.badge-inactive, .badge-other {
+  background: rgba(30,40,55,0.70) !important;
+  color: #6B7887 !important;
+  border: 1px solid rgba(107,120,135,0.20) !important;
+}
+
+/* Badge admin — azul aço sóbrio */
+.badge-admin {
+  background: rgba(26,58,92,0.50) !important;
+  color: #6898C0 !important;
+  border: 1px solid rgba(104,152,192,0.25) !important;
+}
+/* Badge user ativo — verde escuro fosco */
+.badge-user, .badge-active,
+.sidebar-user-badge--user {
+  background: rgba(30,74,58,0.45) !important;
+  color: #7ABDA0 !important;
+  border: 1px solid rgba(122,189,160,0.22) !important;
+}
+/* Badge manager — âmbar escuro */
+.sidebar-user-badge--manager {
+  background: rgba(61,48,16,0.45) !important;
+  color: #C4A040 !important;
+  border: 1px solid rgba(196,160,64,0.22) !important;
+}
+
+/* KPI badges dentro de cards */
+.kpi-badge { display: inline-flex; align-items: center; gap: 3px; font-size: .63rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; margin-top: 5px; }
+
+/* ══════════════════════════════════
+   INPUTS / SELECTS
+   ══════════════════════════════════ */
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]),
+select, textarea,
+.yuris-input, .field-control, .field-input,
+.usr-search, .usr-select, .proc-select,
+.form-group input, .form-group select {
+  background: #081220 !important;
+  border-color: rgba(160,180,210,0.14) !important;
+  color: #D8E4F0 !important;
+  color-scheme: dark !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus, textarea:focus,
+.yuris-input:focus, .field-control:focus,
+.usr-search:focus, .usr-select:focus, .proc-select:focus {
+  border-color: rgba(160,180,210,0.32) !important;
+  box-shadow: 0 0 0 2px rgba(30,58,95,0.25) !important;
+  outline: none !important;
+}
+input::placeholder, textarea::placeholder { color: #4A5568 !important; }
+
+/* Autofill dark override */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 100px #081220 inset !important;
+  -webkit-text-fill-color: #D8E4F0 !important;
+}
+
+/* Toggle switches — azul aço em vez de neon */
+.toggle-wrap input:checked + .toggle-slider { background: #244E7A !important; }
+
+/* ══════════════════════════════════
+   TABELAS
+   ══════════════════════════════════ */
+
+.dre-table tbody tr:hover,
+.usr-table tbody tr:hover,
+.cols-table tbody tr:hover {
+  background: rgba(26,58,92,0.12) !important;
+}
+
+/* ══════════════════════════════════
+   BARRAS DE PROGRESSO
+   ══════════════════════════════════ */
+
+.resp-bar {
+  background: linear-gradient(90deg, #1A3A5C, #3D6A96) !important;
+}
+.resp-bar-wrap {
+  background: rgba(26,58,92,0.18) !important;
+}
+
+/* ══════════════════════════════════
+   FAIXAS COLORIDAS KPI (top stripe)
+   ══════════════════════════════════ */
+
+.kpi-card.receita::before   { background: linear-gradient(90deg, #1A3A5C, #3D6A96) !important; }
+.kpi-card.despesa::before   { background: linear-gradient(90deg, #3A1020, #5A2030) !important; }
+.kpi-card.lucro::before     { background: linear-gradient(90deg, #1A3A5C, #244E7A) !important; }
+.kpi-card.margem::before    { background: linear-gradient(90deg, #244E7A, #3D6A96) !important; }
+.kpi-card.honorarios::before{ background: linear-gradient(90deg, #2A3A18, #3A5020) !important; }
+.kpi-card.resultado::before { background: linear-gradient(90deg, #1A3A5C, #507090) !important; }
+.kpi-card.imposto::before   { background: linear-gradient(90deg, #3D3010, #5A4818) !important; }
+
+/* ══════════════════════════════════
+   HEALTH BAR FINANÇAS
+   ══════════════════════════════════ */
+
+.health-ok     { background: rgba(30,74,58,0.25) !important; border: 1px solid rgba(122,189,160,0.25) !important; color: #7ABDA0 !important; }
+.health-warn   { background: rgba(61,48,16,0.25) !important; border: 1px solid rgba(196,160,64,0.25) !important;  color: #C4A040 !important; }
+.health-danger { background: rgba(58,16,32,0.25) !important; border: 1px solid rgba(176,96,112,0.25) !important; color: #B06070 !important; }
+
+/* ══════════════════════════════════
+   VALORES COLORIDOS NAS TABELAS
+   ══════════════════════════════════ */
+
+.val-receita { color: #7ABDA0 !important; }
+.val-despesa  { color: #B06070 !important; }
+
+/* ══════════════════════════════════
+   CLASSE DE TABS/NAV
+   ══════════════════════════════════ */
+
+.cfg-tab {
+  border-color: rgba(160,180,210,0.12) !important;
+  color: #6B7887 !important;
+}
+.cfg-tab:hover {
+  background: rgba(26,58,92,0.18) !important;
+  color: #A8BDD4 !important;
+  border-color: rgba(160,180,210,0.25) !important;
+}
+.cfg-tab.active {
+  background: rgba(26,58,92,0.30) !important;
+  color: #D8E4F0 !important;
+  border-color: rgba(160,180,210,0.35) !important;
+}
+
+/* Cfg section headers */
+.cfg-section-title {
+  color: #7A8898 !important;
+  background: rgba(20,40,70,0.18) !important;
+  border-bottom-color: rgba(160,180,210,0.08) !important;
+}
+
+/* Link cards */
+.link-card {
+  background: rgba(8,18,32,0.55) !important;
+  border-color: rgba(160,180,210,0.10) !important;
+  color: #A8BDD4 !important;
+}
+.link-card:hover {
+  border-color: rgba(160,180,210,0.24) !important;
+  background: rgba(26,58,92,0.14) !important;
+}
+
+/* ══════════════════════════════════
+   MODAIS
+   ══════════════════════════════════ */
+
+.modal-panel, .modal-box, .usr-modal, .alert-modal-box {
+  background: linear-gradient(160deg, #0C1A2E 0%, #080F1C 100%) !important;
+  border-color: rgba(160,180,210,0.14) !important;
+}
+.modal-header, .usr-modal-header, .alert-modal-header {
+  border-bottom-color: rgba(160,180,210,0.08) !important;
+  background: rgba(8,15,26,0.55) !important;
+}
+.alert-modal-footer, .modal-footer {
+  border-top-color: rgba(160,180,210,0.08) !important;
+  background: rgba(8,15,26,0.40) !important;
+}
+
+/* ════════════════════════════════════════════════════
+   PAGE HEADER — cabeçalho padronizado para todas as abas
+   Aplicar como classe ADICIONAL ao panel existente de cada página:
+     <div class="dash-panel page-header"> ... </div>
+     <div class="jur-panel page-header">  ... </div>
+     etc.
+   O panel existente continua fornecendo background, border e shadow.
+   Esta classe padroniza: padding, estrutura flex, tamanho de fonte.
+
+   Estrutura esperada:
+     .page-header
+       .page-header-inner
+         .page-header-text
+           h2.page-header-title
+           p.page-header-subtitle
+         .page-header-actions  (opcional — botões à direita)
+   ════════════════════════════════════════════════════ */
+
+.page-header {
+  /* Visual autocontido — cores hex opacas garantem contraste em qualquer fundo de página */
+  padding:       18px 22px !important;
+  background:    linear-gradient(165deg, #0D1C30 0%, #09131F 100%) !important;
+  border:        1px solid rgba(160,180,210,0.18) !important;
+  border-radius: 14px !important;
+  box-shadow:    0 14px 40px rgba(2,6,23,.45) !important;
+}
+
+/* Linha flex: texto à esquerda, ações à direita */
+.page-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  min-height: 42px; /* altura mínima consistente mesmo sem subtítulo ou ações */
+}
+
+/* Bloco de texto — ocupa o espaço restante */
+.page-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Título padronizado — mesmo tamanho em todas as abas */
+.page-header-title {
+  font-size: 1.5rem   !important;
+  font-weight: 700    !important;
+  color: #dbeafe      !important;
+  line-height: 1.2    !important;
+  margin: 0           !important;
+}
+
+/* Subtítulo padronizado */
+.page-header-subtitle {
+  margin: 3px 0 0 0            !important;
+  color: var(--muted, #7A8898) !important;
+  font-size: .84rem             !important;
+  line-height: 1.45             !important;
+}
+
+/* Área de ações — botões alinhados à direita, não encolhem */
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Mobile: empilha verticalmente */
+@media (max-width: 640px) {
+  .page-header-inner   { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .page-header-actions { width: 100%; }
+}
+
+/* ══════════════════════════════════
+   UTILITÁRIOS
+   ══════════════════════════════════ */
+
+.yuris-divider {
+  border: none;
+  border-top: 1px solid rgba(160,180,210,0.08);
+  margin: 12px 0;
+}
+
+.yuris-label {
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #6B7887;
+}
+
+.yuris-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #D8E4F0;
+}
+
+/* ══════════════════════════════════
+   BOTÕES GLOBAIS — padrão Yuris
+   ══════════════════════════════════ */
+
+.btn-yuris {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(126,184,246,.35);
+  background: rgba(126,184,246,.12);
+  color: #7EB8F6;
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background .15s, border-color .15s, color .15s;
+  line-height: 1;
+}
+.btn-yuris:hover {
+  background: rgba(126,184,246,.22);
+  border-color: rgba(126,184,246,.55);
+  color: #a8d4ff;
+}
+.btn-yuris svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+.btn-yuris-sm {
+  padding: 4px 9px;
+  font-size: .74rem;
+  border-radius: 6px;
+}
+
+.btn-yuris-danger {
+  border-color: rgba(239,68,68,.35);
+  background: rgba(239,68,68,.1);
+  color: #fca5a5;
+}
+.btn-yuris-danger:hover {
+  background: rgba(239,68,68,.2);
+  border-color: rgba(239,68,68,.55);
+  color: #fecaca;
+}
+
+.btn-yuris-ghost {
+  background: transparent;
+  border-color: rgba(126,184,246,.2);
+}
+.btn-yuris-ghost:hover {
+  background: rgba(126,184,246,.1);
+}
+
+/* ══════════════════════════════════
+   ÍCONES GLOBAIS — tema escuro
+   ══════════════════════════════════ */
+
+/* Ícones SVG inline e classes .icon herdam a cor da variável */
+.icon svg,
+button svg,
+a svg,
+.btn svg,
+.sidebar svg,
+.page-header svg {
+  color: var(--icon-color, #7EB8F6);
+  stroke: currentColor;
+}
+
+/* Ícone de calendário — coberto pelo design-system.css */
+
+/* Select nativo: remove aparência padrão onde customizado */
+select.field-input,
+select.form-input {
+  color-scheme: dark;
+}

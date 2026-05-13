@@ -1,0 +1,29 @@
+# Dependências
+/vendor/
+/node_modules/
+
+# Configurações locais com credenciais
+/app/Config/config.local.php
+*.env
+.env
+.env.*
+
+# Uploads e arquivos gerados
+/public/uploads/
+/storage/
+
+# Logs
+*.log
+/logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+Thumbs.db
+.DS_Store
+
+# Cache
+/cache/
+*.cache

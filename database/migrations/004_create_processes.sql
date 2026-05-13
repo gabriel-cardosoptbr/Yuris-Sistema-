@@ -1,0 +1,21 @@
+-- Migration: create processos table
+
+CREATE TABLE IF NOT EXISTS processos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  numero VARCHAR(255) DEFAULT NULL,
+  cliente_nome VARCHAR(255) DEFAULT NULL,
+  parte_contraria VARCHAR(255) DEFAULT NULL,
+  tipo_acao VARCHAR(255) DEFAULT NULL,
+  vara_comarca VARCHAR(255) DEFAULT NULL,
+  responsavel_user_id INT DEFAULT NULL,
+  status VARCHAR(50) DEFAULT 'ativo',
+  data_inicio DATE DEFAULT NULL,
+  proximo_prazo DATE DEFAULT NULL,
+  ultima_movimentacao DATETIME DEFAULT NULL,
+  observacoes TEXT DEFAULT NULL,
+  anexos JSON DEFAULT NULL,
+  alerts JSON DEFAULT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

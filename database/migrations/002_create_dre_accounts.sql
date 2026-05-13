@@ -1,0 +1,12 @@
+-- Migration: create dre_accounts table
+CREATE TABLE IF NOT EXISTS `dre_accounts` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `codigo` VARCHAR(64) DEFAULT NULL,
+  `nome` VARCHAR(191) NOT NULL,
+  `tipo` ENUM('receita','despesa') NOT NULL DEFAULT 'despesa',
+  `valor_fixo` DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  `ativo` TINYINT(1) NOT NULL DEFAULT 1,
+  `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+)
+ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
