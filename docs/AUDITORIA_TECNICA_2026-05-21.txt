@@ -1,0 +1,902 @@
+================================================================================
+RELATÓRIO TÉCNICO DE AUDITORIA — SISTEMA YURIS
+================================================================================
+Data: 21/05/2026
+Auditor: Arquiteto sênior multi-perfil (segurança + SaaS + DBA + arquitetura)
+Modo: Read-only — NENHUM arquivo foi alterado
+Escopo: Todo o codebase (133 arquivos PHP/JS/CSS, ~42.500 linhas) + DB local
+================================================================================
+
+
+================================================================================
+1. RESUMO EXECUTIVO
+================================================================================
+
+O Yuris é um sistema PHP 8 / MariaDB / Apache (XAMPP) rodando em
+C:\xampp\htdocs\sistema_vendas.
+
+- 133 arquivos PHP+JS+CSS (~42.500 linhas)
+- 48 tabelas no banco
+- 41 endpoints REST
+- 15 telas
+- 36 migrations sequenciadas
+- Suite de testes e2e passa 12/12
+
+Está em transição avançada para arquitetura multi-tenant:
+- accounts (matriz/filial) já existem
+- AccountContext + TenantGuard chamados em 39/41 endpoints
+- Resource shares com granularidade (card/processo/contato/módulo)
+- codigo_advogado (ADV-XXXXXX) único global
+
+O isolamento multi-tenant funciona em 95% dos fluxos, mas tem
+dependência frágil de herança via parent_id em 18 tabelas filhas
+(processo_history, task_comments, etc) que NÃO têm account_id direto —
+só não vazam porque o backend sempre chama TenantGuard antes.
+Qualquer endpoint novo que esqueça o guard = vazamento garantido.
+
+O sistema tem 5 vulnerabilidades CRÍTICAS que precisam ser corrigidas
+ANTES de qualquer evolução para SaaS público — sendo a mais grave
+users.senha_texto armazenando senhas em texto plano
+(8 de 9 usuários afetados — violação LGPD/GDPR direta).
+
+Para Painel Master e billing, o esqueleto está parcial:
+- accounts.plano (string) existe
+- accounts.status (enum) existe
+- account_audit_log (tabela) existe
+
+Mas FALTAM:
+- plans
+- subscriptions
+- invoices
+- feature_flags
+- usage_limits
+- super_admins
+- E gravíssimo: accounts.status NÃO é verificado no login
+  (conta suspended ainda entra normalmente)
+
+Escala atual: 2 accounts, 9 users, 1.353 mensagens WhatsApp, 63 processos.
+
+
+================================================================================
+2. DIAGNÓSTICO GERAL
+================================================================================
+
+| Dimensão                        | Estado                                    | Nota |
+|--------------------------------|-------------------------------------------|------|
+| Estrutura geral                | OK, MVC implícito (sem Controllers)      | 7/10 |
+| Isolamento multi-tenant        | Funcional mas frágil em filhas           | 6/10 |
+| Segurança autenticação         | CRÍTICA (senha texto + debug + webhook)  | 3/10 |
+| Banco de dados                 | FKs faltando, soft-delete inconsistente  | 5/10 |
+| Qualidade de código            | Aceitável, mas duplicações e arq grandes | 6/10 |
+| Preparação SaaS / billing      | NÃO PRONTO                                | 2/10 |
+| Documentação                   | Multi-tenancy ok, API/ARCH stale         | 5/10 |
+
+VEREDITO GERAL: PARCIALMENTE SAUDÁVEL — RISCO ALTO em segurança.
+
+Funcional em produção pequena (atual: 2 accounts, 9 users, 1.353 msgs,
+63 processos). Pré-requisitos críticos antes de Painel Master + Planos
++ Gateway.
+
+
+================================================================================
+3. ESTRUTURA ENCONTRADA
+================================================================================
+
+sistema_vendas/
+├── app/
+│   ├── Controllers/      → APENAS AuthController.php (108 linhas)
+│   │                       ❌ controllers ausentes para outros módulos
+│   ├── Helpers/          → AccountContext, TenantGuard, ProcessoAudit,
+│   │                       TaskAudit (4 helpers)
+│   ├── Models/           → 26 models (Account, User, Processo, Card,
+│   │                       Task* família, DRE*, WhatsApp*)
+│   └── Services/         → EvolutionApiService, WebhookDispatcher,
+│                           RecurrenceCronService
+├── config/
+│   └── database.php      → ❌ credenciais HARDCODED, sem .env
+├── database/
+│   ├── migrations/       → 36 .sql sequenciais + 1 cleanup (028b —
+│   │                       inconsistência de naming)
+│   └── seeds/
+├── docs/                 → 8 .md (MULTITENANCY/SCHEMA atualizados;
+│                           API/ARCHITECTURE stale 27 dias)
+├── public/
+│   ├── *.php             → 18 telas (login, dashboard, processos,
+│   │                       prospeccao, chat, financas, …)
+│   ├── api/              → 41 endpoints REST
+│   │   ├── chat/         → 3 endpoints chat interno
+│   │   └── whatsapp/     → 16 endpoints (1 legacy: opcache_clear)
+│   ├── assets/           → CSS/JS (yuris-theme.css = 2.723 linhas)
+│   └── debug_chat.php    → ❌ debug page exposta
+├── scripts/              → seed_admin com senha fixa 'senha123'
+├── storage/
+│   ├── login_debug.log   → 🔴 22 KB com IPs+emails+hashes em texto
+│   └── recurrence_cron.lock
+├── Imagens/              → 3 PNGs (3.1 MB total) — não otimizados
+├── js_lines.txt          → 🗑️ sobra de análise antiga (29 KB)
+├── js_out.txt            → 🗑️ sobra (13 KB)
+├── metrics.json          → 🗑️ sobra
+└── CLAUDE.md             → instruções pro assistente
+
+STACK IDENTIFICADO:
+- PHP 8.x
+- MariaDB (49 tabelas, InnoDB, utf8mb4)
+- Apache (XAMPP)
+- Chart.js
+- Tailwind 2.2 (CDN)
+- Inter/Poppins (Google Fonts)
+- SEM framework PHP (não usa Laravel/Symfony/Slim)
+- Arquitetura caseira: request → require_once Models → query → echo JSON
+
+
+================================================================================
+4. BANCO DE DADOS
+================================================================================
+
+49 tabelas (InnoDB / utf8mb4). 26 FK constraints.
+
+Tamanho atual:
+- 2 accounts
+- 9 users
+- 63 processos
+- 30 tasks
+- 25 cards
+- 1.353 whatsapp_messages
+- 98 processo_history
+
+ESTADO DE TENANT_ID POR TABELA
+------------------------------
+
+✅ Tabelas com account_id direto (20):
+   accounts, account_audit_log, account_notifications, users, cards,
+   processos, contatos, pipeline_columns, goals, dre_accounts, dre_codes,
+   taxes, webhooks, teams, task_boards, whatsapp_instances,
+   whatsapp_settings, chat_conversas.
+
+⚠️ Tabelas filhas SEM account_id (18) — herdam via parent_id:
+   card_checklist_items, card_history, processo_history, processo_prazos,
+   processo_tarefas, tasks, task_attachments, task_board_members,
+   task_checklist_items, task_columns, task_comments, task_history,
+   task_links, task_recurrences, task_reminders, task_time_entries,
+   chat_mensagens, chat_participantes, chat_mencoes, contato_vinculos,
+   webhook_logs.
+
+🔴 Tabelas SEM account_id direto E SEM FK pra ancestral (vazamento real):
+   whatsapp_messages (1.353 registros!), whatsapp_chats, whatsapp_contacts,
+   whatsapp_chat_processos, user_permissions.
+
+PROBLEMAS ESTRUTURAIS CRÍTICOS
+-------------------------------
+
+1. 5 FKs faltam em colunas óbvias:
+   - cards.coluna_id → pipeline_columns.id
+   - cards.contato_id → contatos.id
+   - processos.contato_id → contatos.id
+   - processos.card_id → cards.id
+   - card_checklist_items.card_id → cards.id
+   - processo_history.processo_id → processos.id
+
+   Estas relações são confiadas no código, sem garantia no DB.
+
+2. ON DELETE CASCADE em 12 FKs do módulo task.
+   Risco: deletar um user_id apaga comments/attachments/time_entries de
+   todas as tasks. Audit trail destruída sem aviso.
+
+3. Soft-delete INCONSISTENTE:
+   - Presente em: accounts, cards, processos, users, webhooks, teams,
+     chat_conversas
+   - AUSENTE em: contatos, tasks, processo_history, card_history,
+     task_history
+   Perda definitiva de auditoria possível.
+
+4. Tipos inconsistentes:
+   - status é ENUM em 8 tabelas e VARCHAR em 3 (cards/processos/users)
+   - JSONs sem CHECK constraint: accounts.configuracoes,
+     task_recurrences.dias_semana, webhooks.eventos
+
+5. Índices faltam em:
+   - processo_history.processo_id (98 registros)
+   - processo_prazos.processo_id
+   - processo_tarefas.processo_id
+   - card_history.card_id
+   - card_checklist_items.card_id
+   - webhook_logs.webhook_id
+
+6. 1 contato órfão (account_id IS NULL)
+
+
+================================================================================
+5. SEGURANÇA — POR GRAVIDADE
+================================================================================
+
+🔴 CRÍTICAS (5)
+---------------
+
+C1 - SENHA EM TEXTO PLANO
+   Local: tabela users, coluna senha_texto
+   Status: 8 de 9 users (88,9%) têm senha_texto populado
+   Impacto: LGPD/GDPR violação direta. Vazamento do DB expõe todas
+            as senhas.
+
+C2 - storage/login_debug.log
+   Status: 22 KB com IPs, emails e hashes em texto
+   Última escrita: 21/05 03:56
+   Impacto: Forense reverso, auxilia ataque de força bruta offline.
+
+C3 - WEBHOOK WHATSAPP SEM AUTH OBRIGATÓRIA
+   Local: public/api/whatsapp/webhook.php linha ~60
+   Bug: `if ($configuredKey)` torna a apikey opcional
+   Impacto: Qualquer um pode enviar eventos falsos, criar contatos,
+            fingir mensagens.
+
+C4 - CREDENCIAIS DB HARDCODED
+   Local: config/database.php linha 6
+   Conteúdo: 'pass' => '' (senha vazia hardcoded)
+   Impacto: Inaceitável pra produção; nenhum suporte a getenv().
+
+C5 - accounts.status NÃO CHECADO NO LOGIN
+   Local: app/Controllers/AuthController.php
+   Bug: accounts.status='suspended'/'cancelled' ainda entram
+   Impacto: Não é possível "suspender" conta sem trabalho manual.
+
+
+🟠 ALTOS (5)
+------------
+
+A1 - Sem rate limiting no login
+   Local: public/login.php, AuthController::attemptLogin
+
+A2 - Cookies de sessão SEM HttpOnly, Secure, SameSite
+   Local: AuthController.php
+
+A3 - opcache_clear.php exposto a qualquer logado
+   Local: public/api/whatsapp/opcache_clear.php
+
+A4 - Sem timeout de sessão (session.gc_maxlifetime default)
+   Local: php.ini
+
+A5 - Sem session_regenerate_id periódico (só no login)
+   Local: AuthController.php
+
+
+🟡 MÉDIOS (6)
+-------------
+
+M1 - users.php?id=X retornava senha_plain (sanar junto com C1)
+M2 - Uploads (task_attachments.php) aceitam .php.jpg (double ext)
+M3 - json_encode() sem JSON_HEX_TAG | JSON_HEX_AMP (XSS via JSON-in-HTML)
+M4 - Sem .htaccess bloqueando /config/, /storage/, /app/
+M5 - processo_history sem deleted_at (audit pode ser apagada)
+M6 - debug_chat.php em /public (valida sessão mas expõe estrutura)
+
+
+🟢 BAIXOS / OBS
+---------------
+
+B1 - scripts/seed_admin.php cria admin com senha fixa 'senha123'
+B2 - Tailwind 2.2 via CDN (sem SRI integrity)
+B3 - Sem CSP header
+
+
+✅ PONTOS FORTES DE SEGURANÇA
+-----------------------------
+
++ Prepared statements em 100% das queries (PDO com placeholders)
++ CSRF token gerado por sessão e validado em POST/PUT/DELETE
++ session_regenerate_id(true) após login bem-sucedido
++ password_hash(PASSWORD_BCRYPT) para criar hash
++ TenantGuard cobre endpoints críticos
++ 39 de 41 endpoints validam sessão
+
+
+================================================================================
+6. MULTI-TENANT
+================================================================================
+
+✅ JÁ PRONTO
+------------
+
++ Tabela accounts com tipo ENUM('matriz','filial') + matriz_id
++ AccountContext::fromSession() extrai account_id, user_id, role
++ AccountContext::getAccessibleAccountIds($module) retorna matriz +
+  filiais ativas + accounts que compartilharam módulos
++ account_vinculos com status='active' controla M→F
++ resource_shares permite compartilhamento granular com permission_level
+  e revogação
++ codigo_advogado (ADV-XXXXXX) UNIQUE global pra identidade externa
++ e2e test passa 12/12 cenários
+
+
+⚠️ PARCIAL / FRÁGIL
+------------------
+
+* 18 tabelas filhas sem account_id direto — herança via parent_id.
+  Funciona porque TenantGuard checa o pai, MAS:
+  - Cada endpoint novo precisa lembrar de chamar assertXAcessivel
+  - Esquecimento = vazamento direto
+  - Não há proteção no DB
+
+* Processo::find(), Card::find(), Task::findById() retornam dados sem
+  validar tenant. Confiam que o endpoint validou.
+  Não é defesa em profundidade.
+
+
+🔴 NÃO PRONTO
+-------------
+
+- whatsapp_messages (1.353 registros) sem account_id — depende de
+  instance_name. Se 2 accounts usarem mesma instance Evolution,
+  vazamento direto.
+- whatsapp_chats, whatsapp_contacts, whatsapp_chat_processos — sem
+  account_id
+- user_permissions — sem account_id, sem FK
+- chat_mensagens, chat_participantes, chat_mencoes — sem account_id
+  (só chat_conversas tem)
+- accounts.status existe mas NUNCA é verificado no login ou em runtime
+  — suspensão é decorativa
+- Sem super_admin global (cada tenant tem seu owner — ótimo pra
+  segurança, ruim pra operações de billing/SaaS)
+
+
+TABELA RESUMO DE ISOLAMENTO
+---------------------------
+
+| Risco                                                  | Mitigação antes de SaaS                |
+|--------------------------------------------------------|----------------------------------------|
+| Cross-tenant via WhatsApp se mesma instance Evolution | Adicionar account_id + FK + migrar     |
+| Esquecimento de TenantGuard em endpoint novo (18 tbls) | account_id + FK em todas; refatorar    |
+|                                                        | Processo::find aceitar $accountIds     |
+| Conta suspended/cancelled ainda logam                  | Verificar accounts.status='active'     |
+
+
+================================================================================
+7. AUTENTICAÇÃO E PERMISSÕES
+================================================================================
+
+LOGIN (AuthController::attemptLogin)
+------------------------------------
+✓ Valida CSRF
+✓ password_verify($senha, $hash)
+✓ session_regenerate_id(true)
+✗ NÃO verifica accounts.status='active'
+✗ NÃO faz rate limiting
+✗ Escreve login_debug.log com email+IP+hash 🔴
+
+SESSÃO
+------
+Padrão PHP, sem cookie flags customizadas, sem timeout explícito.
+
+PERMISSÕES
+----------
+- Dual system:
+  - users.perfil ENUM('admin','user') (legacy)
+  - users.role VARCHAR (atual: owner/admin/manager/user/viewer)
+  Os dois coexistem — fonte de confusão.
+- user_permissions (tabela) existe mas pouco usada, sem account_id.
+- AccountContext::isOwnerOrAdmin() valida só dentro do mesmo tenant ✅
+- Não existe super_admin separado.
+
+
+================================================================================
+8. FUNCIONALIDADES (15 telas)
+================================================================================
+
+| Tela          | Login | Tenant       | Permissões | Riscos                              |
+|---------------|-------|--------------|------------|-------------------------------------|
+| login         | púb   | —            | —          | Sem rate limit, log de debug        |
+| dashboard     | ✅    | ✅           | ok         | OK                                  |
+| prospecção    | ✅    | ✅           | ok         | OK                                  |
+| processos     | ✅    | ✅           | ok         | processo_prazos/tarefas/history     |
+|               |       |              |            | sem account_id direto               |
+| jurídico      | ✅    | ✅           | ok         | OK                                  |
+| financeiro    | ✅    | ✅           | ok         | OK                                  |
+| tarefas       | ✅    | ⚠️ herdado   | ok         | task_* família toda sem account_id  |
+| chat WA       | ✅    | ⚠️ via inst  | parcial    | whatsapp_messages SEM account_id 🔴 |
+| chat_interno  | ✅    | ⚠️ parcial   | parcial    | chat_mensagens/participantes SEM    |
+|               |       |              |            | account_id                          |
+| usuarios      | ✅adm | ✅           | ok         | Retorna senha_texto 🔴              |
+| escritórios   | ✅adm | ✅           | ok         | OK                                  |
+| configurações | ✅adm | ✅           | ok         | OK                                  |
+| agente (IA)   | ✅    | ⚠️ user only | parcial    | agent_settings.php sem AccountCtx   |
+| webhooks      | ✅adm | ✅           | ok         | webhook_logs sem account_id         |
+| planejamento  | ✅    | ✅           | ok         | OK                                  |
+| debug_chat    | ✅qq  | —            | —          | ❌ Expor estrutura interna           |
+
+
+================================================================================
+9. ROTAS E ENDPOINTS
+================================================================================
+
+41 endpoints REST em public/api/
+
+ROTAS PÚBLICAS: apenas public/login.php e public/logout.php
+
+ROTAS PRIVADAS (39): chamam AccountContext::fromSession() que aborta 401
+
+ROTA DEPRECATED: advogado_convites.php retorna HTTP 410 ✅
+
+ROTAS SEM AUTH TENANT (⚠️ médio):
+- agent_settings.php (só checa $_SESSION['user_id'], não tenant)
+- dashboard_settings.php
+
+ROTAS CRON INTERNAS:
+- tasks_recurrence_tick.php (cron via token)
+- whatsapp/webhook.php (apikey OPCIONAL 🔴)
+
+ROTAS ADMINISTRATIVAS:
+- accounts.php, accounts_lookup.php, users.php, account_vinculos.php,
+  advogado_convites.php
+
+
+================================================================================
+10. PROBLEMAS CRÍTICOS (corrigir IMEDIATAMENTE)
+================================================================================
+
+1. DROP COLUMN users.senha_texto e zerar todos os registros
+   — viola LGPD
+
+2. Deletar storage/login_debug.log e remover código que loga
+   senhas/hashes
+
+3. Tornar apikey OBRIGATÓRIA em whatsapp/webhook.php
+   (remover `if ($configuredKey)`)
+
+4. Migrar config/database.php para .env com getenv() fallback
+
+5. Adicionar check accounts.status='active' no login
+   — bloqueia suspended/cancelled
+
+6. Adicionar account_id em whatsapp_messages (1.353 registros — popular
+   via JOIN com whatsapp_instances)
+   — vazamento real se 2 contas usarem mesma instance
+
+7. Remover senha_plain do retorno de /api/users.php
+
+
+================================================================================
+11. PROBLEMAS ALTOS
+================================================================================
+
+8.  Rate limiting no login (tabela login_attempts ou Redis)
+9.  Cookies de sessão com HttpOnly, Secure, SameSite=Lax
+10. opcache_clear.php restrito a admin
+11. Timeout de sessão (session.gc_maxlifetime=1800)
+12. Adicionar account_id em chat_mensagens, chat_participantes,
+    chat_mencoes
+13. Adicionar account_id em user_permissions
+14. Validar uploads contra whitelist de extensões (não só MIME)
+15. Refatorar Processo::find / Card::find / Task::findById para aceitar
+    $accountIds OBRIGATÓRIO
+
+
+================================================================================
+12. PROBLEMAS MÉDIOS
+================================================================================
+
+16. FKs ausentes (5 relações principais):
+    - cards.coluna_id
+    - cards.contato_id
+    - processos.contato_id
+    - processos.card_id
+    - card_checklist_items.card_id
+
+17. Soft-delete em:
+    - contatos
+    - tasks
+    - processo_history
+    - card_history
+    - task_history
+
+18. Índices faltando em:
+    - processo_history.processo_id
+    - processo_prazos.processo_id
+    - processo_tarefas.processo_id
+    - card_history.card_id
+    - card_checklist_items.card_id
+
+19. Padronizar resposta de API para ['ok' => true/false, 'data' => ...]
+    (hoje misturado com ['success' => ...])
+
+20. JSON_HEX_TAG | JSON_HEX_AMP em todos json_encode
+
+21. .htaccess bloqueando /config/, /storage/, /app/
+
+22. Substituir users.perfil (legacy) por só users.role
+
+
+================================================================================
+13. PROBLEMAS BAIXOS
+================================================================================
+
+23. Remover js_lines.txt, js_out.txt, metrics.json, planos.html
+    (duplicata de planos.php)
+
+24. Mover CSS :root duplicado em 12 PHPs para
+    assets/css-variables.css
+
+25. Mover yuris_theme_boot inline (15 cópias) para
+    assets/theme-boot.js
+
+26. Atualizar docs/API.md e docs/ARCHITECTURE.md (27 dias desatualizados)
+
+27. Renomear 028b_cleanup_recorrencia_duplicatas.sql → 029
+    (resequenciar)
+
+28. Tornar migrations 001–020 idempotentes (IF NOT EXISTS)
+
+29. Otimizar PNGs em /Imagens (converter pra WebP, -60% tamanho)
+
+30. Versionamento automático de assets com filemtime() ou git hash
+
+
+================================================================================
+14. INCONSISTÊNCIAS DE BANCO
+================================================================================
+
+- 1 contato órfão (account_id IS NULL)
+- 8 users com senha_texto != NULL (devem ser zerados)
+- 12 colunas que deveriam ser FK não têm constraint
+- 26 FKs com ON DELETE CASCADE em task_* (perigoso — uma exclusão de
+  user apaga 8 tabelas filhas)
+- status é ENUM em 8 tabelas e VARCHAR em 3 — JS faz string compare
+  em todas
+- JSON longtext (accounts.configuracoes, task_recurrences.dias_semana,
+  webhooks.eventos) sem CHECK constraint
+
+
+================================================================================
+15. RISCOS PARA O FUTURO PAINEL MASTER
+================================================================================
+
+Painel Master = um usuário "deus" que vê TODOS os tenants.
+
+O QUE PODE DAR ERRADO SE CRIAR AGORA:
+-------------------------------------
+
+1. Não há role super_admin separado — adicionar tipo "super_admin"
+   em users.role mistura com tenant roles
+
+2. AccountContext::fromSession() sempre puxa um account_id —
+   super_admin não pertence a 1 conta. Refatorar pra
+   accountId=NULL + flag separada
+
+3. Modelos chamam Processo::find sem $accountIds — super_admin precisa
+   de método separado (findGlobally) ou bypass explícito
+
+4. Sem audit trail centralizado de ações cross-tenant —
+   account_audit_log é por conta, não tem visão global
+
+5. getAccessibleAccountIds() retorna [meu account + filiais + shares]
+   — super_admin precisa retornar TODOS os accounts ativos.
+   Bypass não está modelado.
+
+6. Modais auto-open por ?open=ID — super_admin pode quebrar isolamento
+   se navegar com URL antiga
+
+7. Login não diferencia tipo de conta — UI única, super_admin entraria
+   no dashboard normal
+
+
+ORDEM SEGURA PRA PAINEL MASTER:
+-------------------------------
+
+1. Resolver críticos C1–C5 primeiro
+2. Criar tabela super_admins (separada de users) ou flag
+   users.is_super_admin TINYINT
+3. Refatorar AccountContext:
+   - isSuperAdmin() retorna bool
+   - getAccessibleAccountIds() retorna 'ALL' quando super admin
+     (e os modelos interpretam)
+4. Modelos com método separado findById($id, $accountIds = null)
+   onde null só é aceito se isSuperAdmin()
+5. Sidebar / menu mostra "Painel Master" só pra super admins
+6. Roteamento separado /master/* com middleware exclusivo
+
+
+================================================================================
+16. RISCOS PARA PLANOS E PAGAMENTOS
+================================================================================
+
+HOJE: accounts.plano VARCHAR(50) default 'basico'. Apenas decorativo.
+
+O QUE PRECISA EXISTIR ANTES DE IMPLEMENTAR PLANOS/BILLING:
+---------------------------------------------------------
+
+1. Tabela plans:
+   (id, slug, nome, preco_mensal_centavos, preco_anual_centavos,
+    ativo, ordem)
+
+2. Tabela plan_features:
+   (plan_id, feature_key, limit_value)
+   Ex: max_users=10, max_processes=500
+
+3. Tabela subscriptions:
+   (id, account_id, plan_id, status ENUM, started_at,
+    current_period_end, cancel_at_period_end, payment_method_id)
+
+4. Tabela invoices:
+   (id, subscription_id, account_id, amount_cents, status, due_date,
+    paid_at, gateway_invoice_id)
+
+5. Tabela payment_methods:
+   (id, account_id, gateway, gateway_token, last4, exp_month, exp_year)
+
+6. Tabela usage_counters:
+   (account_id, key, count, period) — quem precisa de limite por feature
+
+7. Helper BillingGuard::canAddProcess($accountId) chamado em endpoints
+   de criação
+
+8. accounts.status verificado em RUNTIME (não só no login) — middleware
+   global
+
+SEM ISSO, PLANOS SÃO APENAS TAGS.
+
+
+================================================================================
+17. RISCOS PARA GATEWAY FUTURO
+================================================================================
+
+Para integrar com Stripe / Mercado Pago / Pagar.me / Asaas:
+
+1. Adapter pattern em App\Services\Billing\GatewayInterface
+   (Stripe, MercadoPago, etc)
+
+2. Webhook receiver com idempotency keys
+   (Stripe envia o mesmo evento múltiplas vezes)
+
+3. Reconciliation diária (gateway_invoice_id vs invoices.status)
+
+4. Sandbox / production toggle via config/billing.php
+
+5. PCI compliance: NUNCA armazenar PAN/CVV — só gateway_token
+
+6. Tabela gateway_events_received (event_id, processed_at) pra evitar
+   reprocessamento
+
+7. Re-tentativas com backoff exponencial em falhas de cobrança
+
+8. Email transactional service (SendGrid/SES/Postmark) — hoje NÃO HÁ
+   sistema de email no codebase
+
+
+================================================================================
+18. ORDEM SEGURA DE CORREÇÃO
+================================================================================
+
+FASE 0 — EMERGÊNCIA (24h)
+-------------------------
+1. ALTER TABLE users DROP COLUMN senha_texto
+2. UPDATE users SET senha_texto = NULL (caso DROP exija)
+3. Remover/sanitizar storage/login_debug.log
+4. Tornar apikey obrigatória em whatsapp/webhook.php
+5. Mover credenciais para .env
+6. Adicionar check de accounts.status='active' no login
+
+
+FASE 1 — ESTABILIZAÇÃO MULTI-TENANT (1–2 semanas)
+-------------------------------------------------
+7.  ALTER TABLE whatsapp_messages ADD COLUMN account_id INT NOT NULL
+    + popular via JOIN
+8.  Mesmo para whatsapp_chats, whatsapp_contacts,
+    whatsapp_chat_processos, chat_mensagens, chat_participantes
+9.  Adicionar FKs faltando (cards/processos relations)
+10. Refatorar Processo::find, Card::find, Task::findById exigindo
+    $accountIds
+11. Indexar processo_history.processo_id, etc.
+
+
+FASE 2 — HARDENING DE SEGURANÇA (1 semana)
+------------------------------------------
+12. Rate limiting no login
+13. Cookies HttpOnly/Secure/SameSite
+14. Session timeout
+15. .htaccess em /config, /storage, /app
+16. Whitelist de extensões em uploads
+
+
+FASE 3 — PREPARAÇÃO SAAS (2–3 semanas)
+--------------------------------------
+17. Criar super_admins table + refactor AccountContext
+18. Criar plans, plan_features, subscriptions, invoices,
+    payment_methods
+19. Implementar BillingGuard + usage_counters
+20. Criar app/Controllers/ com Controllers reais
+21. Criar app/Helpers/ApiResponse.php (padronizar ok/fail)
+
+
+FASE 4 — PAINEL MASTER (1–2 semanas)
+------------------------------------
+22. Tela /master/dashboard (visão global)
+23. CRUD de planos
+24. Suspender/reativar accounts
+25. Logs cross-tenant
+
+
+FASE 5 — GATEWAY (2 semanas)
+----------------------------
+26. Stripe/MP integration
+27. Webhook receiver com idempotency
+28. Email service
+
+
+FASE 6 — REFINOS (paralelo)
+---------------------------
+29. Limpeza de arquivos mortos
+30. Atualização da documentação
+31. Refator dos arquivos > 1500 linhas
+
+
+================================================================================
+19. ARQUIVOS PRIORITÁRIOS PRA CORREÇÃO
+================================================================================
+
+1. config/database.php
+   — credenciais (CRÍTICO)
+
+2. app/Controllers/AuthController.php
+   — check status, rate limit, debug log (CRÍTICO)
+
+3. public/api/whatsapp/webhook.php
+   — apikey obrigatória (CRÍTICO)
+
+4. public/api/users.php
+   — remover retorno de senha_texto (CRÍTICO)
+
+5. app/Models/Processo.php / Card.php / Task.php
+   — find() exigir $accountIds (ALTO)
+
+6. app/Helpers/AccountContext.php
+   — suportar super_admin (pré-painel master)
+
+7. public/debug_chat.php
+   — restringir ou remover (BAIXO)
+
+8. Migrations 001–020
+   — idempotência (BAIXO)
+
+
+================================================================================
+20. TABELAS PRIORITÁRIAS PRA CORREÇÃO
+================================================================================
+
+1. users
+   — DROP senha_texto, considerar consolidar perfil vs role
+
+2. whatsapp_messages
+   — ADD account_id NOT NULL + FK + index
+     (1.353 registros pra migrar)
+
+3. whatsapp_chats, whatsapp_contacts, whatsapp_chat_processos
+   — ADD account_id
+
+4. chat_mensagens, chat_participantes, chat_mencoes
+   — ADD account_id (derivar de chat_conversas)
+
+5. user_permissions
+   — ADD account_id ou repensar modelo
+
+6. processo_history / prazos / tarefas
+   — ADD index + FK pro processo
+
+7. task_* família
+   — considerar ADD account_id denormalizado pra simplicidade
+     (hoje herda 3 níveis)
+
+8. contatos
+   — ADD deleted_at (soft delete)
+
+9. accounts
+   — adicionar tabelas relacionadas plans/subscriptions/invoices
+
+
+================================================================================
+21. RECOMENDAÇÕES DE ARQUITETURA
+================================================================================
+
+1. CAMADA CONTROLLER REAL
+   Hoje só existe AuthController.php. Cada módulo deveria ter seu
+   próprio Controller (CardController, ProcessoController, etc)
+   extraindo lógica das APIs.
+
+2. BOOTSTRAP CENTRALIZADO
+   Criar app/bootstrap.php que faz session_start, autoload, conexão
+   DB, error handlers. Cada endpoint só
+   require __DIR__.'/../app/bootstrap.php'
+
+3. HELPER GLOBAL DE RESPOSTA
+   App\Helpers\ApiResponse::ok($data), ::fail($msg, $code),
+   ::unauthorized(). Hoje 9 cópias do function ok().
+
+4. REPOSITORY PATTERN PARCIAL
+   Processo::find() aceitando $accountIds é um repository light.
+   Tornar OBRIGATÓRIO em todos os models críticos.
+
+5. MIDDLEWARE ANTES DE CADA API
+   Função requireAuth(), requireRole($r), requireTenant().
+   Hoje cada endpoint repete AccountContext::fromSession() +
+   isOwnerOrAdmin().
+
+6. MIGRATION FRAMEWORK
+   Algo como Phinx ou um runner próprio que registra qual migration
+   já rodou (tabela migrations). Hoje é manual.
+
+7. TESTS
+   Só há scripts/test_multitenancy_e2e.php (12 cenários).
+   Adicionar testes unitários por Model (PHPUnit ou Pest).
+
+8. BUILD PIPELINE
+   Versionamento automático de assets (filemtime), minificação CSS/JS
+   pra produção, agregação dos <style> inline em :root global.
+
+9. .ENV + DOTENV
+   Biblioteca vlucas/phpdotenv ou parser simples.
+   Senhas, gateway keys, cron tokens fora do código.
+
+10. LOGGING ESTRUTURADO
+    Substituir error_log() por Monolog (file/syslog/sentry).
+    Hoje audit trail é em account_audit_log (DB) mas debug é em
+    arquivos texto.
+
+11. EMAIL SERVICE
+    Não existe. Imprescindível pra SaaS (confirmação de cadastro,
+    recuperação de senha, cobrança).
+
+12. TABELA FEATURE_FLAGS
+    Pra rolagem progressiva de features pro Painel Master sem deploy.
+
+
+================================================================================
+22. CONCLUSÃO
+================================================================================
+
+NÃO RECOMENDO SEGUIR DIRETO PRO PAINEL MASTER.
+
+O sistema tem bases sólidas e o trabalho recente em multi-tenancy é de
+boa qualidade — mas existem 5 vulnerabilidades críticas que tornam um
+lançamento SaaS público IRRESPONSÁVEL sem correção:
+
+1. Senhas em texto plano (LGPD)
+2. Log de debug expondo credenciais
+3. Webhook sem autenticação
+4. Credenciais hardcoded
+5. Status de conta não verificado
+
+
+CAMINHO RECOMENDADO:
+--------------------
+- 1–2 semanas de hardening (Fases 0 + 1 + 2)
+- 2–3 semanas para preparar base SaaS (Fase 3)
+- Aí sim Painel Master + Planos
+
+
+PRA CONTINUAR EVOLUINDO O CÓDIGO SEM QUEBRAR NADA
+(sem fazer SaaS público ainda), é possível seguir adicionando features
+incrementalmente DESDE QUE:
+
+- Toda nova tabela tenha account_id NOT NULL desde o primeiro dia
+- Todo novo endpoint use AccountContext::fromSession() +
+  TenantGuard::assertXAcessivel
+- Não exponha mais nada pra public que não passe pelo middleware atual
+- Não armazene senha em texto plano
+
+
+JANELA PERFEITA AGORA:
+----------------------
+Sistema usado por 2 accounts + 9 usuários atualmente — escala muito
+pequena. Janela perfeita pra fazer a refatoração estrutural agora
+(Fases 0–3) antes que a base cresça e migração fique mais cara.
+
+
+PRÓXIMOS PASSOS SUGERIDOS:
+--------------------------
+Sinaliza qual Fase quer começar, e eu executo o plano de correção
+(com testes e validação a cada step).
+
+Hoje NENHUM ARQUIVO FOI ALTERADO — esse relatório é só diagnóstico,
+conforme combinado.
+
+
+================================================================================
+FIM DO RELATÓRIO
+================================================================================

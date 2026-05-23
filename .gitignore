@@ -7,6 +7,7 @@
 *.env
 .env
 .env.*
+!.env.example
 
 # Uploads e arquivos gerados
 /public/uploads/

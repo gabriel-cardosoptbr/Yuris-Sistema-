@@ -1,0 +1,9 @@
+# Bloqueia acesso direto via HTTP a Controllers/Models/Helpers/Services.
+# Esses arquivos devem ser apenas required pelo PHP, nunca servidos.
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Deny from all
+</IfModule>
