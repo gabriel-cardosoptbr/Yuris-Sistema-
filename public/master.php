@@ -40,11 +40,14 @@ $saLevel = $ctx->getSuperAdminLevel() ?: 'operator';
   <style>
     html, body { margin:0; padding:0; }
     body { font-family: Inter, system-ui, sans-serif; background:#070F1C; color:#D8E4F0; min-height:100vh; overflow-x:hidden; }
-    .mst-content { padding:24px 32px; max-width:100%; box-sizing:border-box; }
-    .mst-exit { position:absolute; top:18px; right:32px; padding:7px 14px; border-radius:7px; border:1px solid rgba(160,180,210,.20); background:rgba(8,22,44,.6); color:#A8BDD4; text-decoration:none; font-size:.78rem; font-weight:600; transition:all .15s; z-index:5; }
+    .mst-content { padding:8px 32px 24px; max-width:100%; box-sizing:border-box; }
+    .mst-topbar-exit { display:flex; justify-content:flex-end; align-items:center; padding:10px 32px 0; border-bottom:1px solid rgba(96,165,250,.08); background:rgba(5,15,30,.4); }
+    .mst-exit { padding:6px 13px; border-radius:7px; border:1px solid rgba(160,180,210,.20); background:rgba(8,22,44,.6); color:#A8BDD4; text-decoration:none; font-size:.76rem; font-weight:600; transition:all .15s; margin-bottom:8px; }
     .mst-exit:hover { background:rgba(37,99,235,.16); color:#FFFFFF; border-color:rgba(96,165,250,.4); }
     html[data-theme="light"] body { background:#F8FAFC; color:#0F1F36; }
-    html[data-theme="light"] .mst-exit { background:#fff; color:#0F1F36; border-color:#E2E8F0; }
+    html[data-theme="light"] .mst-topbar-exit { background:#fff; border-color:#E2E8F0; }
+    html[data-theme="light"] .mst-exit { background:#F1F5F9; color:#0F1F36; border-color:#E2E8F0; }
+    html[data-theme="light"] .mst-exit:hover { background:rgba(37,99,235,.10); border-color:rgba(37,99,235,.30); color:#1E4A8A; }
     .mst-header { margin-bottom:20px; display:flex; align-items:flex-start; justify-content:space-between; gap:20px; flex-wrap:wrap; }
     .mst-title-block { flex:1; min-width:280px; }
     .mst-title { font-size:1.7rem; font-weight:800; color:#FFFFFF; letter-spacing:.01em; margin:0 0 4px; }
@@ -192,7 +195,9 @@ $saLevel = $ctx->getSuperAdminLevel() ?: 'operator';
   </style>
 </head>
 <body>
-<a href="/sistema_vendas/public/dashboard.php" class="mst-exit" title="Voltar ao app">← Sair do Master</a>
+<div class="mst-topbar-exit">
+  <a href="/sistema_vendas/public/dashboard.php" class="mst-exit" title="Voltar ao app">← Sair do Master</a>
+</div>
 
 <main class="mst-content">
   <div class="mst-header">
@@ -314,10 +319,13 @@ $saLevel = $ctx->getSuperAdminLevel() ?: 'operator';
   <!-- ── Planos ── -->
   <section class="mst-section" id="msec-plans">
     <div class="mst-card" style="padding:0; overflow:hidden">
-      <div style="padding:14px 18px; font-weight:700; border-bottom:1px solid rgba(160,180,210,.10)">Planos Cadastrados</div>
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid rgba(160,180,210,.10)">
+        <div style="font-weight:700">Planos Cadastrados</div>
+        <button class="btn-mst btn-mst-primary" onclick="openPlanModal()">+ Novo Plano</button>
+      </div>
       <table class="mst-tbl">
-        <thead><tr><th>Slug</th><th>Nome</th><th>Mensal</th><th>Anual</th><th>Trial</th><th>Ativo</th><th>Assinaturas</th><th>Features</th></tr></thead>
-        <tbody id="plansBody"><tr><td colspan="8" class="empty">Carregando…</td></tr></tbody>
+        <thead><tr><th>Slug</th><th>Nome</th><th>Mensal</th><th>Anual</th><th>Trial</th><th>Ativo</th><th>Assinaturas</th><th>Features</th><th>Ações</th></tr></thead>
+        <tbody id="plansBody"><tr><td colspan="9" class="empty">Carregando…</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -581,6 +589,124 @@ $saLevel = $ctx->getSuperAdminLevel() ?: 'operator';
       </div>
       <div class="mst-modal-foot">
         <button type="button" class="btn-mst" onclick="closeModal('modalPay')">Cancelar</button>
+        <button type="submit" class="btn-mst btn-mst-primary">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Editar/Criar Plano -->
+<div class="mst-modal-backdrop" id="modalPlan" onclick="if(event.target===this)closeModal('modalPlan')">
+  <div class="mst-modal lg">
+    <div class="mst-modal-header">
+      <h3 class="mst-modal-title" id="planModalTitle">Editar Plano</h3>
+      <button class="mst-modal-close" onclick="closeModal('modalPlan')">×</button>
+    </div>
+    <form id="formPlan" onsubmit="submitPlan(event)">
+      <input type="hidden" name="id" id="planId">
+      <div class="mst-modal-body">
+        <div class="mst-form-section">Identificação</div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Slug *</label><input name="slug" id="planSlug" class="mst-form-input" required placeholder="ex: basico, profissional"></div>
+          <div><label class="mst-form-label">Nome *</label><input name="nome" id="planNome" class="mst-form-input" required></div>
+        </div>
+        <div class="mst-form-row full">
+          <div><label class="mst-form-label">Descrição</label><textarea name="descricao" id="planDesc" class="mst-form-textarea"></textarea></div>
+        </div>
+
+        <div class="mst-form-section">Preços & Período</div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Mensal (R$)</label><input name="preco_mensal" id="planPM" class="mst-form-input" type="number" step="0.01" min="0" placeholder="149.00"></div>
+          <div><label class="mst-form-label">Anual (R$)</label><input name="preco_anual" id="planPA" class="mst-form-input" type="number" step="0.01" min="0" placeholder="1490.00"></div>
+          <div><label class="mst-form-label">Trial (dias)</label><input name="trial_dias" id="planTrial" class="mst-form-input" type="number" min="0"></div>
+          <div><label class="mst-form-label">Ordem</label><input name="ordem" id="planOrdem" class="mst-form-input" type="number" min="0"></div>
+        </div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Status</label>
+            <select name="ativo" id="planAtivo" class="mst-form-select">
+              <option value="1">Ativo</option>
+              <option value="0">Inativo</option>
+            </select>
+          </div>
+          <div><label class="mst-form-label">Destaque</label>
+            <select name="destaque" id="planDestaque" class="mst-form-select">
+              <option value="0">Não</option>
+              <option value="1">Sim (estrela)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mst-form-section">Limites (deixe vazio = ilimitado · 0 = desabilitado)</div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Max usuários</label><input id="feat_max_users" class="mst-form-input" type="number" min="0"></div>
+          <div><label class="mst-form-label">Max processos</label><input id="feat_max_processos" class="mst-form-input" type="number" min="0"></div>
+          <div><label class="mst-form-label">Max cards (CRM)</label><input id="feat_max_cards" class="mst-form-input" type="number" min="0"></div>
+          <div><label class="mst-form-label">Max filiais</label><input id="feat_max_filiais" class="mst-form-input" type="number" min="0"></div>
+        </div>
+
+        <div class="mst-form-section">Módulos liberados</div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">WhatsApp</label>
+            <select id="feat_whatsapp_enabled" class="mst-form-select"><option value="1">Sim</option><option value="0">Não</option></select>
+          </div>
+          <div><label class="mst-form-label">Chat interno</label>
+            <select id="feat_chat_interno" class="mst-form-select"><option value="1">Sim</option><option value="0">Não</option></select>
+          </div>
+          <div><label class="mst-form-label">Webhooks</label>
+            <select id="feat_webhooks" class="mst-form-select"><option value="1">Sim</option><option value="0">Não</option></select>
+          </div>
+          <div><label class="mst-form-label">API externa</label>
+            <select id="feat_integracoes_api" class="mst-form-select"><option value="1">Sim</option><option value="0">Não</option></select>
+          </div>
+        </div>
+      </div>
+      <div class="mst-modal-foot">
+        <button type="button" class="btn-mst" onclick="closeModal('modalPlan')">Cancelar</button>
+        <button type="submit" class="btn-mst btn-mst-primary">Salvar Plano</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Editar Assinatura -->
+<div class="mst-modal-backdrop" id="modalSub" onclick="if(event.target===this)closeModal('modalSub')">
+  <div class="mst-modal">
+    <div class="mst-modal-header">
+      <h3 class="mst-modal-title">Editar Assinatura</h3>
+      <button class="mst-modal-close" onclick="closeModal('modalSub')">×</button>
+    </div>
+    <form id="formSub" onsubmit="submitSub(event)">
+      <input type="hidden" name="subscription_id" id="subId">
+      <div class="mst-modal-body">
+        <div class="mst-detail-item" id="subAccountInfo" style="margin-bottom:14px"><div class="label">Conta</div><div class="value">—</div></div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Plano</label>
+            <select name="plan_id" id="subPlanId" class="mst-form-select"></select>
+          </div>
+          <div><label class="mst-form-label">Status</label>
+            <select name="status" id="subStatus" class="mst-form-select">
+              <option value="trialing">trialing</option>
+              <option value="active">active</option>
+              <option value="past_due">past_due</option>
+              <option value="canceled">canceled</option>
+              <option value="unpaid">unpaid</option>
+              <option value="incomplete">incomplete</option>
+            </select>
+          </div>
+          <div><label class="mst-form-label">Ciclo</label>
+            <select name="billing_cycle" id="subCycle" class="mst-form-select">
+              <option value="monthly">Mensal</option>
+              <option value="yearly">Anual</option>
+            </select>
+          </div>
+        </div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Fim do trial</label><input name="trial_ends_at" id="subTrialEnd" class="mst-form-input" type="date"></div>
+          <div><label class="mst-form-label">Fim do período atual</label><input name="current_period_end" id="subPeriodEnd" class="mst-form-input" type="date"></div>
+        </div>
+      </div>
+      <div class="mst-modal-foot">
+        <button type="button" class="btn-mst" onclick="closeModal('modalSub')">Cancelar</button>
         <button type="submit" class="btn-mst btn-mst-primary">Salvar</button>
       </div>
     </form>
@@ -1067,12 +1193,14 @@ document.getElementById('filterAcc').addEventListener('input', () => clearTimeou
 document.getElementById('filterAccStatus').addEventListener('change', loadAccounts);
 document.getElementById('filterAccTipo').addEventListener('change', loadAccounts);
 
+let _plansCache = [];
 async function loadPlans() {
   const r = await fj(`${API}/plans.php`);
   if (!r.ok) return notifyErr(r.error);
+  _plansCache = r.data.plans || [];
   const tb = document.getElementById('plansBody');
-  if (!r.data.plans.length) { tb.innerHTML='<tr><td colspan="8" class="empty">Sem planos</td></tr>'; return; }
-  tb.innerHTML = r.data.plans.map(p => `
+  if (!_plansCache.length) { tb.innerHTML='<tr><td colspan="9" class="empty">Sem planos</td></tr>'; return; }
+  tb.innerHTML = _plansCache.map(p => `
     <tr>
       <td><code>${esc(p.slug)}</code></td>
       <td><strong>${esc(p.nome)}</strong>${p.destaque==1?' ⭐':''}</td>
@@ -1082,15 +1210,158 @@ async function loadPlans() {
       <td>${p.ativo==1?pill('active'):pill('cancelled')}</td>
       <td>${p.subscriptions_count}</td>
       <td>${p.features ? p.features.length : 0} features</td>
+      <td><button class="btn-mst" onclick="openPlanModal(${p.id})">Editar</button></td>
     </tr>`).join('');
+}
+
+// ── Plan modal (criar / editar) ──────────────────────────────────────────
+const _FEATURE_KEYS = ['max_users','max_processos','max_cards','max_filiais','whatsapp_enabled','chat_interno','webhooks','integracoes_api'];
+
+function openPlanModal(id) {
+  const form = document.getElementById('formPlan');
+  form.reset();
+  document.getElementById('planId').value = id || '';
+  document.getElementById('planModalTitle').textContent = id ? 'Editar Plano' : 'Novo Plano';
+
+  if (id) {
+    const p = _plansCache.find(x => x.id == id);
+    if (!p) return notifyErr('Plano não encontrado em cache — recarregue a página');
+    document.getElementById('planSlug').value     = p.slug || '';
+    document.getElementById('planNome').value     = p.nome || '';
+    document.getElementById('planDesc').value     = p.descricao || '';
+    document.getElementById('planPM').value       = (Number(p.preco_mensal_cents||0)/100).toFixed(2);
+    document.getElementById('planPA').value       = (Number(p.preco_anual_cents||0)/100).toFixed(2);
+    document.getElementById('planTrial').value    = p.trial_dias || 0;
+    document.getElementById('planOrdem').value    = p.ordem || 0;
+    document.getElementById('planAtivo').value    = p.ativo == 1 ? '1' : '0';
+    document.getElementById('planDestaque').value = p.destaque == 1 ? '1' : '0';
+
+    // Pré-carrega features
+    const featMap = {};
+    (p.features || []).forEach(f => { featMap[f.feature_key] = f; });
+    _FEATURE_KEYS.forEach(k => {
+      const el = document.getElementById('feat_' + k);
+      if (!el) return;
+      const f = featMap[k];
+      if (k === 'whatsapp_enabled' || k === 'chat_interno' || k === 'webhooks' || k === 'integracoes_api') {
+        el.value = (f && f.is_enabled == 1) ? '1' : '0';
+      } else {
+        el.value = (f && f.limit_value !== null && f.limit_value !== undefined) ? f.limit_value : '';
+      }
+    });
+  } else {
+    // Defaults pra novo plano
+    document.getElementById('planAtivo').value = '1';
+    document.getElementById('planDestaque').value = '0';
+    document.getElementById('planTrial').value = 14;
+    document.getElementById('planOrdem').value = 99;
+    _FEATURE_KEYS.forEach(k => {
+      const el = document.getElementById('feat_' + k);
+      if (el) el.value = (k === 'whatsapp_enabled' || k === 'chat_interno') ? '1' : (k === 'webhooks' || k === 'integracoes_api') ? '0' : '';
+    });
+  }
+  openModal('modalPlan');
+}
+
+async function submitPlan(ev) {
+  ev.preventDefault();
+  const id   = document.getElementById('planId').value;
+  const isEdit = !!id;
+  const pm = Math.round(parseFloat(document.getElementById('planPM').value || 0) * 100);
+  const pa = Math.round(parseFloat(document.getElementById('planPA').value || 0) * 100);
+
+  // Monta lista de features
+  const features = _FEATURE_KEYS.map(k => {
+    const el = document.getElementById('feat_' + k);
+    const isBool = (k === 'whatsapp_enabled' || k === 'chat_interno' || k === 'webhooks' || k === 'integracoes_api');
+    return {
+      feature_key: k,
+      limit_value: isBool ? null : (el.value === '' ? null : parseInt(el.value, 10)),
+      is_enabled:  isBool ? (el.value == '1') : true,
+    };
+  });
+
+  const body = {
+    csrf_token: CSRF,
+    slug:               document.getElementById('planSlug').value.trim(),
+    nome:               document.getElementById('planNome').value.trim(),
+    descricao:          document.getElementById('planDesc').value.trim(),
+    preco_mensal_cents: pm,
+    preco_anual_cents:  pa,
+    trial_dias:         parseInt(document.getElementById('planTrial').value || 0, 10),
+    ordem:              parseInt(document.getElementById('planOrdem').value || 99, 10),
+    ativo:              parseInt(document.getElementById('planAtivo').value, 10),
+    destaque:           parseInt(document.getElementById('planDestaque').value, 10),
+    features,
+  };
+  if (isEdit) body.id = parseInt(id, 10);
+
+  const r = await fj(`${API}/plans.php`, {
+    method: isEdit ? 'PATCH' : 'POST',
+    headers: {'Content-Type':'application/json', 'X-CSRF-Token': CSRF},
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) return notifyErr(r.error || 'Falha ao salvar plano');
+  closeModal('modalPlan');
+  notifyOk(isEdit ? 'Plano atualizado' : 'Plano criado');
+  loadPlans();
+}
+
+// ── Subscription modal (editar) ──────────────────────────────────────────
+let _subsCache = [];
+async function openSubModal(id) {
+  const s = _subsCache.find(x => x.id == id);
+  if (!s) return notifyErr('Assinatura não encontrada');
+
+  // Popular select de planos
+  const sel = document.getElementById('subPlanId');
+  sel.innerHTML = '';
+  if (!_plansCache.length) await loadPlans();
+  _plansCache.forEach(p => {
+    const o = document.createElement('option');
+    o.value = p.id; o.textContent = `${p.nome} (${p.slug})`;
+    if (p.id == s.plan_id) o.selected = true;
+    sel.appendChild(o);
+  });
+
+  document.getElementById('subId').value = s.id;
+  document.getElementById('subAccountInfo').querySelector('.value').textContent = s.account_nome + ' (#' + s.account_id + ')';
+  document.getElementById('subStatus').value = s.status;
+  document.getElementById('subCycle').value  = s.billing_cycle || 'monthly';
+  document.getElementById('subTrialEnd').value  = s.trial_ends_at ? s.trial_ends_at.substring(0,10) : '';
+  document.getElementById('subPeriodEnd').value = s.current_period_end ? s.current_period_end.substring(0,10) : '';
+  openModal('modalSub');
+}
+
+async function submitSub(ev) {
+  ev.preventDefault();
+  const body = {
+    csrf_token: CSRF,
+    subscription_id: parseInt(document.getElementById('subId').value, 10),
+    plan_id:         parseInt(document.getElementById('subPlanId').value, 10),
+    status:          document.getElementById('subStatus').value,
+    billing_cycle:   document.getElementById('subCycle').value,
+    trial_ends_at:   document.getElementById('subTrialEnd').value || null,
+    current_period_end: document.getElementById('subPeriodEnd').value || null,
+  };
+  const r = await fj(`${API}/billing.php`, {
+    method: 'PATCH',
+    headers: {'Content-Type':'application/json', 'X-CSRF-Token': CSRF},
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) return notifyErr(r.error || 'Falha ao salvar assinatura');
+  closeModal('modalSub');
+  notifyOk('Assinatura atualizada');
+  loadBilling();
 }
 
 async function loadBilling() {
   const r = await fj(`${API}/billing.php`);
   if (!r.ok) return notifyErr(r.error);
+  _subsCache = r.data.subscriptions || [];
   const tb = document.getElementById('subsBody');
-  if (!r.data.subscriptions.length) { tb.innerHTML='<tr><td colspan="7" class="empty">Nenhuma assinatura</td></tr>'; return; }
-  tb.innerHTML = r.data.subscriptions.map(s => `
+  if (!_subsCache.length) { tb.innerHTML='<tr><td colspan="7" class="empty">Nenhuma assinatura</td></tr>'; return; }
+  tb.innerHTML = _subsCache.map(s => `
     <tr>
       <td>${esc(s.account_nome)}</td>
       <td>${esc(s.plan_nome)} <small style="color:#9ab0c9">(${esc(s.plan_slug)})</small></td>
@@ -1099,9 +1370,10 @@ async function loadBilling() {
       <td>${fmtDate(s.trial_ends_at)}</td>
       <td>${fmtDate(s.current_period_end)}</td>
       <td>
+        <button class="btn-mst" onclick="openSubModal(${s.id})">Editar</button>
         ${s.status==='active' || s.status==='trialing'
           ? `<button class="btn-mst btn-mst-danger" onclick="cancelSub(${s.id})">Cancelar</button>`
-          : '—'}
+          : ''}
       </td>
     </tr>`).join('');
 }

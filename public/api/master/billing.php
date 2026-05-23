@@ -12,9 +12,11 @@ require_once __DIR__ . '/../../../app/Models/Account.php';
 require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
+require_once __DIR__ . '/../../../app/Helpers/MasterAudit.php';
 
 use App\Helpers\AccountContext;
 use App\Helpers\ApiResponse;
+use App\Helpers\MasterAudit;
 use App\Models\Database;
 
 session_start();
@@ -52,11 +54,72 @@ if ($method === 'GET') {
 }
 
 if ($method === 'PATCH') {
-    $subId    = (int)($input['subscription_id'] ?? 0);
-    $newPlan  = (int)($input['plan_id'] ?? 0);
-    if (!$subId || !$newPlan) ApiResponse::badRequest('subscription_id e plan_id obrigatórios');
-    $pdo->prepare('UPDATE subscriptions SET plan_id = :pid WHERE id = :sid')
-        ->execute(['pid' => $newPlan, 'sid' => $subId]);
+    $subId = (int)($input['subscription_id'] ?? 0);
+    if (!$subId) ApiResponse::badRequest('subscription_id obrigatório');
+
+    // Carrega estado anterior pra audit log
+    $before = $pdo->prepare("SELECT * FROM subscriptions WHERE id = :id LIMIT 1");
+    $before->execute(['id' => $subId]);
+    $prev = $before->fetch(\PDO::FETCH_ASSOC);
+    if (!$prev) ApiResponse::notFound('Assinatura não encontrada');
+
+    $sets = []; $params = ['id' => $subId];
+
+    if (isset($input['plan_id'])) {
+        $pid = (int) $input['plan_id'];
+        $check = $pdo->prepare("SELECT id FROM plans WHERE id = :id LIMIT 1");
+        $check->execute(['id' => $pid]);
+        if (!$check->fetchColumn()) ApiResponse::badRequest('Plano não encontrado');
+        $sets[] = 'plan_id = :plan_id'; $params['plan_id'] = $pid;
+    }
+    if (isset($input['status'])) {
+        $valid = ['trialing','active','past_due','canceled','unpaid','incomplete'];
+        if (!in_array($input['status'], $valid, true)) ApiResponse::badRequest('status inválido');
+        $sets[] = 'status = :status'; $params['status'] = $input['status'];
+        if ($input['status'] === 'canceled' && empty($prev['canceled_at'])) {
+            $sets[] = 'canceled_at = NOW()';
+        }
+    }
+    if (isset($input['billing_cycle'])) {
+        if (!in_array($input['billing_cycle'], ['monthly','yearly'], true)) {
+            ApiResponse::badRequest('billing_cycle inválido');
+        }
+        $sets[] = 'billing_cycle = :bc'; $params['bc'] = $input['billing_cycle'];
+    }
+    if (array_key_exists('trial_ends_at', $input)) {
+        $sets[] = 'trial_ends_at = :te';
+        $params['te'] = $input['trial_ends_at'] ?: null;
+    }
+    if (array_key_exists('current_period_end', $input)) {
+        $sets[] = 'current_period_end = :pe';
+        $params['pe'] = $input['current_period_end'] ?: null;
+    }
+    if (isset($input['cancel_at_period_end'])) {
+        $sets[] = 'cancel_at_period_end = :cape';
+        $params['cape'] = $input['cancel_at_period_end'] ? 1 : 0;
+    }
+
+    if (empty($sets)) ApiResponse::badRequest('Nada para atualizar');
+
+    $pdo->prepare('UPDATE subscriptions SET ' . implode(', ', $sets) . ' WHERE id = :id')
+        ->execute($params);
+
+    MasterAudit::log(
+        'subscription.update',
+        'subscription',
+        $subId,
+        "Assinatura #{$subId} editada via Painel Master",
+        [
+            'antes' => [
+                'plan_id' => $prev['plan_id'],
+                'status'  => $prev['status'],
+                'billing_cycle' => $prev['billing_cycle'],
+            ],
+            'depois' => array_intersect_key($input, array_flip([
+                'plan_id','status','billing_cycle','trial_ends_at','current_period_end','cancel_at_period_end'
+            ])),
+        ]
+    );
     ApiResponse::ok(['updated' => true]);
 }
 
@@ -71,6 +134,10 @@ if ($method === 'POST' && !empty($_GET['cancel'])) {
         $pdo->prepare('UPDATE subscriptions SET status="canceled", canceled_at=NOW() WHERE id = :id')
             ->execute(['id' => $subId]);
     }
+    MasterAudit::log('subscription.cancel', 'subscription', $subId,
+        $atEnd ? "Assinatura #{$subId} agendada para cancelar no fim do período"
+               : "Assinatura #{$subId} cancelada imediatamente",
+        ['at_period_end' => $atEnd]);
     ApiResponse::ok(['canceled' => true, 'at_period_end' => $atEnd]);
 }
 

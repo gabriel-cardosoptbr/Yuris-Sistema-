@@ -7,9 +7,11 @@ require_once __DIR__ . '/../../../app/Models/Account.php';
 require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
+require_once __DIR__ . '/../../../app/Helpers/MasterAudit.php';
 
 use App\Helpers\AccountContext;
 use App\Helpers\ApiResponse;
+use App\Helpers\MasterAudit;
 use App\Models\Database;
 
 session_start();
@@ -56,7 +58,10 @@ if ($method === 'POST') {
         'ds'   => !empty($input['destaque']) ? 1 : 0,
         'or'   => (int)($input['ordem'] ?? 99),
     ]);
-    ApiResponse::ok(['id' => (int) $pdo->lastInsertId()]);
+    $newId = (int) $pdo->lastInsertId();
+    MasterAudit::log('plan.create', 'plan', $newId, "Plano '{$nome}' ({$slug}) criado",
+        ['slug' => $slug, 'preco_mensal_cents' => (int)($input['preco_mensal_cents'] ?? 0)]);
+    ApiResponse::ok(['id' => $newId]);
 }
 
 if ($method === 'PATCH') {
@@ -91,6 +96,8 @@ if ($method === 'PATCH') {
             ]);
         }
     }
+    MasterAudit::log('plan.update', 'plan', $id, "Plano #{$id} editado",
+        ['campos' => array_keys($input)]);
     ApiResponse::ok(['updated' => true]);
 }
 
