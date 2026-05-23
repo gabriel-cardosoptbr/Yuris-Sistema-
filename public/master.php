@@ -473,7 +473,15 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
   <!-- ── Faturas ── -->
   <section class="mst-section" id="msec-invoices">
     <div class="mst-card" style="padding:0; overflow:hidden">
-      <div style="padding:14px 18px; font-weight:700; border-bottom:1px solid rgba(160,180,210,.10)">Faturas Recentes</div>
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid rgba(160,180,210,.10)">
+        <div>
+          <div style="font-weight:700">Faturas Recentes</div>
+          <div style="font-size:.74rem; color:#9ab0c9; margin-top:3px">
+            Geradas automaticamente quando o gateway processa cobranças · OU criadas manualmente abaixo
+          </div>
+        </div>
+        <button class="btn-mst btn-mst-primary" onclick="openNewInvoiceModal()">+ Nova Cobrança</button>
+      </div>
       <table class="mst-tbl">
         <thead><tr><th>#</th><th>Conta</th><th>Valor</th><th>Status</th><th>Vencimento</th><th>Pago em</th><th>Gateway</th></tr></thead>
         <tbody id="invoicesBody"><tr><td colspan="7" class="empty">Carregando…</td></tr></tbody>
@@ -485,7 +493,12 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
   <section class="mst-section" id="msec-payments">
     <div class="mst-card" style="padding:0; overflow:hidden">
       <div style="display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid rgba(160,180,210,.10); flex-wrap:wrap">
-        <div style="font-weight:700; margin-right:auto">Pagamentos / Gestão Manual</div>
+        <div style="margin-right:auto">
+          <div style="font-weight:700">Pagamentos / Gestão Manual</div>
+          <div style="font-size:.74rem; color:#9ab0c9; margin-top:3px">
+            Mesma fonte que Faturas · aqui você marca pago, ajusta vencimento, adiciona observações de cobrança
+          </div>
+        </div>
         <select id="filterPayStatus" class="mst-form-select" style="width:auto; padding:6px 11px; font-size:.82rem">
           <option value="">Todos status</option>
           <option value="open">Em aberto</option>
@@ -494,6 +507,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
           <option value="void">Anuladas</option>
         </select>
         <button class="btn-mst" onclick="payFilterOverdue()">Só vencidas</button>
+        <button class="btn-mst btn-mst-primary" onclick="openNewInvoiceModal()">+ Nova Cobrança</button>
       </div>
       <table class="mst-tbl">
         <thead><tr><th>#</th><th>Conta</th><th>Plano</th><th>Valor</th><th>Status</th><th>Vencimento</th><th>Pago em</th><th>Obs.</th><th>Ações</th></tr></thead>
@@ -560,7 +574,12 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
   <section class="mst-section" id="msec-audit">
     <div class="mst-card" style="padding:0; overflow:hidden">
       <div style="display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid rgba(160,180,210,.10); flex-wrap:wrap">
-        <div style="font-weight:700; margin-right:auto">Log de Auditoria</div>
+        <div style="margin-right:auto">
+          <div style="font-weight:700">Log de Auditoria</div>
+          <div style="font-size:.74rem; color:#9ab0c9; margin-top:3px">
+            Preenchido <strong>automaticamente</strong> quando super_admin executa ações no painel · não é editável (write-only, compliance)
+          </div>
+        </div>
         <input id="filterAuditAcao" placeholder="Filtrar por ação (ex: account.create)..." style="padding:6px 11px; border-radius:7px; background:rgba(5,18,39,.6); border:1px solid rgba(160,180,210,.18); color:#D8E4F0; font-size:.82rem; width:280px">
       </div>
       <table class="mst-tbl">
@@ -743,7 +762,52 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
   </div>
 </div>
 
-<!-- Modal: Marcar pagamento manual -->
+<!-- Modal: Criar Nova Cobrança (invoice manual) -->
+<div class="mst-modal-backdrop" id="modalNewInvoice" onclick="if(event.target===this)closeModal('modalNewInvoice')">
+  <div class="mst-modal lg">
+    <div class="mst-modal-header">
+      <h3 class="mst-modal-title">Nova Cobrança</h3>
+      <button class="mst-modal-close" onclick="closeModal('modalNewInvoice')">×</button>
+    </div>
+    <form id="formNewInvoice" onsubmit="submitNewInvoice(event)">
+      <div class="mst-modal-body">
+        <div class="mst-form-section">Destinatário</div>
+        <div class="mst-form-row">
+          <div>
+            <label class="mst-form-label">Conta *</label>
+            <select name="account_id" id="newInvAccount" class="mst-form-select" required></select>
+          </div>
+          <div>
+            <label class="mst-form-label">Assinatura (opcional)</label>
+            <select name="subscription_id" id="newInvSub" class="mst-form-select"><option value="">— vincular a uma assinatura —</option></select>
+            <div class="mst-form-help">Se vincular, a fatura fica associada à subscription.</div>
+          </div>
+        </div>
+
+        <div class="mst-form-section">Valor & Vencimento</div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Valor (R$) *</label><input name="valor" id="newInvValor" class="mst-form-input" type="number" step="0.01" min="0.01" required></div>
+          <div><label class="mst-form-label">Vencimento *</label><input name="due_date" id="newInvDue" class="mst-form-input" type="date" required></div>
+          <div><label class="mst-form-label">Número (opcional)</label><input name="numero" id="newInvNumero" class="mst-form-input" placeholder="ex: FAT-001"></div>
+        </div>
+
+        <div class="mst-form-section">Descrição</div>
+        <div class="mst-form-row full">
+          <div><label class="mst-form-label">Descrição</label><input name="descricao" id="newInvDescricao" class="mst-form-input" placeholder="ex: Plano Básico — mensalidade junho/2026"></div>
+        </div>
+        <div class="mst-form-row full">
+          <div><label class="mst-form-label">Observações</label><textarea name="observacoes" id="newInvObs" class="mst-form-textarea" placeholder="anotações internas de cobrança..."></textarea></div>
+        </div>
+      </div>
+      <div class="mst-modal-foot">
+        <button type="button" class="btn-mst" onclick="closeModal('modalNewInvoice')">Cancelar</button>
+        <button type="submit" class="btn-mst btn-mst-primary">Criar Cobrança</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Marcar pagamento manual (edit invoice existing) -->
 <div class="mst-modal-backdrop" id="modalPay" onclick="if(event.target===this)closeModal('modalPay')">
   <div class="mst-modal">
     <div class="mst-modal-header">
@@ -1858,7 +1922,14 @@ async function loadInvoices() {
   const r = await fj(`${API}/billing.php?invoices=1`);
   if (!r.ok) return notifyErr(r.error);
   const tb = document.getElementById('invoicesBody');
-  if (!r.data.invoices.length) { tb.innerHTML='<tr><td colspan="7" class="empty">Nenhuma fatura</td></tr>'; return; }
+  if (!r.data.invoices.length) {
+    tb.innerHTML = `<tr><td colspan="7" class="empty">
+      Nenhuma fatura ainda. As faturas aparecem aqui quando você cria uma
+      cobrança no botão acima, ou quando um gateway de pagamento (Stripe / Mercado Pago)
+      processa uma transação real (ainda não plugado).
+    </td></tr>`;
+    return;
+  }
   tb.innerHTML = r.data.invoices.map(i => `
     <tr>
       <td>${esc(i.numero||('#'+i.id))}</td>
@@ -1881,7 +1952,13 @@ async function loadPayments() {
   const r = await fj(`${API}/payments.php` + (params.toString() ? '?'+params.toString() : ''));
   if (!r.ok) return notifyErr(r.error);
   const tb = document.getElementById('paymentsBody');
-  if (!r.data.invoices.length) { tb.innerHTML='<tr><td colspan="9" class="empty">Nenhuma fatura</td></tr>'; return; }
+  if (!r.data.invoices.length) {
+    tb.innerHTML = `<tr><td colspan="9" class="empty">
+      Nenhuma cobrança encontrada com esses filtros. Clique em "+ Nova Cobrança"
+      pra criar manualmente, ou ajuste os filtros acima.
+    </td></tr>`;
+    return;
+  }
   tb.innerHTML = r.data.invoices.map(i => `
     <tr>
       <td>${esc(i.numero||('#'+i.id))}</td>
@@ -1903,6 +1980,76 @@ function openPayModal(id) {
   document.getElementById('formPay').reset();
   document.getElementById('payId').value = id;
   openModal('modalPay');
+}
+
+// ── Nova Cobrança (criar invoice manualmente) ────────────────────────────
+async function openNewInvoiceModal() {
+  // Carrega contas no select
+  const r = await fj(`${API}/accounts.php`);
+  const selA = document.getElementById('newInvAccount');
+  selA.innerHTML = '';
+  if (r.ok && r.data.accounts) {
+    r.data.accounts.forEach(a => {
+      const o = document.createElement('option');
+      o.value = a.id;
+      o.textContent = `${a.nome} (${a.tipo} · #${a.id})`;
+      selA.appendChild(o);
+    });
+  }
+  // Reset form
+  document.getElementById('formNewInvoice').reset();
+  // Pré-popula vencimento = 30 dias
+  const d = new Date(); d.setDate(d.getDate() + 30);
+  document.getElementById('newInvDue').value = d.toISOString().slice(0,10);
+  // Quando muda conta, recarrega subscriptions disponíveis
+  selA.onchange = loadNewInvoiceSubscriptions;
+  if (selA.value) loadNewInvoiceSubscriptions();
+  openModal('modalNewInvoice');
+}
+
+async function loadNewInvoiceSubscriptions() {
+  const accId = document.getElementById('newInvAccount').value;
+  const selS  = document.getElementById('newInvSub');
+  selS.innerHTML = '<option value="">— vincular a uma assinatura —</option>';
+  if (!accId) return;
+  const r = await fj(`${API}/billing.php`);
+  if (!r.ok) return;
+  (r.data.subscriptions || []).filter(s => s.account_id == accId).forEach(s => {
+    const o = document.createElement('option');
+    o.value = s.id;
+    o.textContent = `#${s.id} · ${s.plan_nome} (${s.status})`;
+    selS.appendChild(o);
+  });
+}
+
+async function submitNewInvoice(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  const body = {
+    csrf_token: CSRF,
+    account_id:      parseInt(f.account_id.value, 10),
+    subscription_id: f.subscription_id.value ? parseInt(f.subscription_id.value, 10) : undefined,
+    amount_cents:    Math.round(parseFloat(f.valor.value || 0) * 100),
+    due_date:        f.due_date.value,
+    numero:          f.numero.value.trim(),
+    descricao:       f.descricao.value.trim(),
+    observacoes:     f.observacoes.value.trim(),
+  };
+  Object.keys(body).forEach(k => body[k] === undefined && delete body[k]);
+
+  const r = await fj(`${API}/payments.php`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRF-Token':CSRF},
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) return notifyErr(r.error || 'Falha ao criar cobrança');
+  closeModal('modalNewInvoice');
+  notifyOk('Cobrança criada com sucesso');
+  // Recarrega a tab atual (faturas ou pagamentos)
+  loadInvoices();
+  loadPayments();
+  loadOverview();
+  loadDashboard();
 }
 
 async function submitPay(ev) {
@@ -1935,7 +2082,14 @@ async function loadAudit() {
   const r = await fj(`${API}/audit.php` + (params.toString() ? '?'+params.toString() : ''));
   if (!r.ok) return notifyErr(r.error);
   const tb = document.getElementById('auditBody');
-  if (!r.data.entries.length) { tb.innerHTML='<tr><td colspan="6" class="empty">Nenhum registro</td></tr>'; return; }
+  if (!r.data.entries.length) {
+    tb.innerHTML = `<tr><td colspan="6" class="empty">
+      Nenhum registro ainda. O log é preenchido automaticamente quando você
+      executa ações no Painel Master (criar/editar conta, alterar plano,
+      cancelar assinatura, etc.). Faça uma ação e ela aparece aqui em tempo real.
+    </td></tr>`;
+    return;
+  }
   tb.innerHTML = r.data.entries.map(e => `
     <tr>
       <td>${fmtDateTime(e.created_at)}</td>
