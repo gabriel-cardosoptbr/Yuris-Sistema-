@@ -5,7 +5,11 @@ require_once __DIR__ . '/../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../app/Helpers/AccountContext.php';
 
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /sistema_vendas/public/login.php'); exit; }
+// Não logado → manda pro portal dedicado (não pro login regular)
+if (empty($_SESSION['user_id'])) {
+    header('Location: /sistema_vendas/public/master_login.php');
+    exit;
+}
 
 use App\Helpers\AccountContext;
 
@@ -22,6 +26,14 @@ if (!$ctx->isSuperAdmin()) {
 $activePage = 'master';
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 $saLevel = $ctx->getSuperAdminLevel() ?: 'operator';
+
+// Detecta se a sessão veio pelo portal isolado (master_login) ou pelo app regular.
+// Influencia o botão "Sair": logout total OU volta pro app.
+$inMasterMode = !empty($_SESSION['master_mode']);
+$exitHref     = $inMasterMode ? '/sistema_vendas/public/master_logout.php'
+                              : '/sistema_vendas/public/dashboard.php';
+$exitLabel    = $inMasterMode ? '← Sair (logout)' : '← Sair do Master';
+$exitTitle    = $inMasterMode ? 'Logout do Painel Master' : 'Voltar ao app normal';
 ?>
 <!doctype html>
 <html lang="pt-BR">
@@ -196,7 +208,7 @@ $saLevel = $ctx->getSuperAdminLevel() ?: 'operator';
 </head>
 <body>
 <div class="mst-topbar-exit">
-  <a href="/sistema_vendas/public/dashboard.php" class="mst-exit" title="Voltar ao app">← Sair do Master</a>
+  <a href="<?= htmlspecialchars($exitHref) ?>" class="mst-exit" title="<?= htmlspecialchars($exitTitle) ?>"><?= htmlspecialchars($exitLabel) ?></a>
 </div>
 
 <main class="mst-content">
