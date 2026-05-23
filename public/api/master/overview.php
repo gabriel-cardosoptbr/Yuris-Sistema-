@@ -32,11 +32,13 @@ $subsActive   = (int) $pdo->query("SELECT COUNT(*) FROM subscriptions WHERE stat
 $subsPastDue  = (int) $pdo->query("SELECT COUNT(*) FROM subscriptions WHERE status='past_due'")->fetchColumn();
 $subsCanceled = (int) $pdo->query("SELECT COUNT(*) FROM subscriptions WHERE status='canceled'")->fetchColumn();
 
+// MRR PROJETADO (inclui trial — convém pra SaaS em estágio inicial onde
+// a maioria está em trial; representa o run rate quando convertem).
 $mrrCents = (int) $pdo->query(
     "SELECT COALESCE(SUM(CASE WHEN s.billing_cycle='monthly' THEN p.preco_mensal_cents ELSE ROUND(p.preco_anual_cents/12) END),0)
      FROM subscriptions s
      INNER JOIN plans p ON p.id=s.plan_id
-     WHERE s.status IN ('active','past_due')"
+     WHERE s.status IN ('trialing','active','past_due')"
 )->fetchColumn();
 
 $invoicesOpen = (int) $pdo->query("SELECT COUNT(*) FROM invoices WHERE status='open'")->fetchColumn();

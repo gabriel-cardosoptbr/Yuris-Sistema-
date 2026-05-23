@@ -36,8 +36,22 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') ApiResponse::methodNotAllowed();
 
 $pdo = Database::getConnection();
 
-// ─── MRR atual ───────────────────────────────────────────────────────────────
-$mrrCents = (int) $pdo->query(
+// ─── MRR PROJETADO (todas as subs vivas: trial + active + past_due) ─────────
+// Representa o RUN RATE — quanto entra se todos os trials converterem.
+$mrrProjCents = (int) $pdo->query(
+    "SELECT COALESCE(SUM(
+        CASE WHEN s.billing_cycle = 'monthly'
+             THEN p.preco_mensal_cents
+             ELSE ROUND(p.preco_anual_cents / 12)
+        END
+     ), 0)
+     FROM subscriptions s
+     INNER JOIN plans p ON p.id = s.plan_id
+     WHERE s.status IN ('trialing','active','past_due')"
+)->fetchColumn();
+
+// ─── MRR REALIZADO (subs efetivamente pagando agora: active + past_due) ─────
+$mrrRealCents = (int) $pdo->query(
     "SELECT COALESCE(SUM(
         CASE WHEN s.billing_cycle = 'monthly'
              THEN p.preco_mensal_cents
@@ -49,8 +63,20 @@ $mrrCents = (int) $pdo->query(
      WHERE s.status IN ('active','past_due')"
 )->fetchColumn();
 
-// ─── Despesa mês corrente ────────────────────────────────────────────────────
+// ─── Mês corrente ────────────────────────────────────────────────────────────
 $mesAtual = date('Y-m');
+
+// ─── Receita Realizada do mês = invoices PAGAS este mês ─────────────────────
+$stRecMes = $pdo->prepare(
+    "SELECT COALESCE(SUM(amount_cents), 0)
+     FROM invoices
+     WHERE status = 'paid'
+       AND DATE_FORMAT(paid_at, '%Y-%m') = :mm"
+);
+$stRecMes->execute(['mm' => $mesAtual]);
+$receitaRealMesCents = (int) $stRecMes->fetchColumn();
+
+// ─── Despesa mês corrente ────────────────────────────────────────────────────
 $stDesp = $pdo->prepare(
     "SELECT COALESCE(SUM(valor_cents), 0)
      FROM master_expenses
@@ -60,7 +86,9 @@ $stDesp = $pdo->prepare(
 $stDesp->execute(['mm' => $mesAtual]);
 $despMesCents = (int) $stDesp->fetchColumn();
 
-$lucroMesCents = $mrrCents - $despMesCents;
+// Dois lucros: REAL (caixa) e PROJETADO (potencial)
+$lucroRealCents = $receitaRealMesCents - $despMesCents;
+$lucroProjCents = $mrrProjCents - $despMesCents;
 
 // ─── Série MRR últimos 12 meses (somatório de subscriptions ativas em cada mês) ──
 // Como subscriptions tem created_at, calculamos quantas estavam ativas em cada mês
@@ -154,13 +182,29 @@ $stCat = $pdo->prepare(
 $stCat->execute(['mm' => $mesAtual]);
 $despesasPorCategoria = $stCat->fetchAll(\PDO::FETCH_ASSOC);
 
+$fmt = fn(int $c) => number_format($c / 100, 2, ',', '.');
+
 ApiResponse::ok([
-    'mrr_atual_cents'        => $mrrCents,
-    'mrr_atual_brl'          => number_format($mrrCents / 100, 2, ',', '.'),
+    // Visão DUPLA: projetada (potencial) vs realizada (caixa)
+    'mrr_projetado_cents'    => $mrrProjCents,
+    'mrr_projetado_brl'      => $fmt($mrrProjCents),
+    'mrr_realizado_cents'    => $mrrRealCents,
+    'mrr_realizado_brl'      => $fmt($mrrRealCents),
+    'receita_real_mes_cents' => $receitaRealMesCents,
+    'receita_real_mes_brl'   => $fmt($receitaRealMesCents),
     'despesa_mes_cents'      => $despMesCents,
-    'despesa_mes_brl'        => number_format($despMesCents / 100, 2, ',', '.'),
-    'lucro_mes_cents'        => $lucroMesCents,
-    'lucro_mes_brl'          => number_format($lucroMesCents / 100, 2, ',', '.'),
+    'despesa_mes_brl'        => $fmt($despMesCents),
+    'lucro_real_cents'       => $lucroRealCents,
+    'lucro_real_brl'         => $fmt($lucroRealCents),
+    'lucro_projetado_cents'  => $lucroProjCents,
+    'lucro_projetado_brl'    => $fmt($lucroProjCents),
+
+    // Aliases de compatibilidade (não quebra código antigo que lê 'mrr_atual_*')
+    'mrr_atual_cents'        => $mrrProjCents,
+    'mrr_atual_brl'          => $fmt($mrrProjCents),
+    'lucro_mes_cents'        => $lucroProjCents,
+    'lucro_mes_brl'          => $fmt($lucroProjCents),
+
     'mrr_serie_12m'          => $mrrSerie,
     'despesas_serie_12m'     => $despSerie,
     'contas_serie_12m'       => $contasSerie,

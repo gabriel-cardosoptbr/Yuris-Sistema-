@@ -341,11 +341,12 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
 
   <!-- ── Dashboard (Gráficos) ── -->
   <section class="mst-section" id="msec-dashboard">
-    <div class="mst-grid-5" style="grid-template-columns:repeat(3,1fr); margin-bottom:18px">
+    <!-- Linha 1: Caixa REAL (o que efetivamente entrou e saiu) -->
+    <div class="mst-grid-5" style="grid-template-columns:repeat(3,1fr); margin-bottom:14px">
       <div class="mst-card" style="border-left:3px solid #4ade80">
-        <div class="mst-kpi-label">Receita Mensal (MRR)</div>
-        <div class="mst-kpi-value" id="finMrr" style="color:#4ade80">R$ —</div>
-        <div class="mst-kpi-foot">subscriptions ativas + past_due</div>
+        <div class="mst-kpi-label">Receita Realizada (mês)</div>
+        <div class="mst-kpi-value" id="finReceitaReal" style="color:#4ade80">R$ —</div>
+        <div class="mst-kpi-foot">faturas pagas neste mês (caixa real)</div>
       </div>
       <div class="mst-card" style="border-left:3px solid #fca5a5">
         <div class="mst-kpi-label">Despesas (mês)</div>
@@ -353,9 +354,27 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
         <div class="mst-kpi-foot" id="finMesRef">—</div>
       </div>
       <div class="mst-card" style="border-left:3px solid #c084fc">
-        <div class="mst-kpi-label">Lucro Líquido (mês)</div>
-        <div class="mst-kpi-value" id="finLucro" style="color:#c084fc">R$ —</div>
-        <div class="mst-kpi-foot">MRR − Despesas</div>
+        <div class="mst-kpi-label">Lucro Real (caixa)</div>
+        <div class="mst-kpi-value" id="finLucroReal" style="color:#c084fc">R$ —</div>
+        <div class="mst-kpi-foot">Receita Realizada − Despesas</div>
+      </div>
+    </div>
+    <!-- Linha 2: Projeção (potencial baseado em MRR) -->
+    <div class="mst-grid-5" style="grid-template-columns:repeat(3,1fr); margin-bottom:18px">
+      <div class="mst-card" style="border-left:3px solid rgba(74,222,128,.5); opacity:.92">
+        <div class="mst-kpi-label">MRR Projetado</div>
+        <div class="mst-kpi-value" id="finMrrProj" style="color:#86efac">R$ —</div>
+        <div class="mst-kpi-foot">run rate · inclui trial · active · past_due</div>
+      </div>
+      <div class="mst-card" style="border-left:3px solid rgba(74,222,128,.5); opacity:.92">
+        <div class="mst-kpi-label">MRR Realizado</div>
+        <div class="mst-kpi-value" id="finMrrReal" style="color:#86efac">R$ —</div>
+        <div class="mst-kpi-foot">só pagantes · active + past_due</div>
+      </div>
+      <div class="mst-card" style="border-left:3px solid rgba(192,132,252,.5); opacity:.92">
+        <div class="mst-kpi-label">Lucro Projetado (mês)</div>
+        <div class="mst-kpi-value" id="finLucroProj" style="color:#c4b5fd">R$ —</div>
+        <div class="mst-kpi-foot">MRR Projetado − Despesas</div>
       </div>
     </div>
 
@@ -1950,13 +1969,21 @@ async function loadDashboard() {
   const d = r.data;
   const cols = _chartColors();
 
-  // KPIs do topo
-  document.getElementById('finMrr').textContent     = 'R$ ' + d.mrr_atual_brl;
-  document.getElementById('finDespesa').textContent = 'R$ ' + d.despesa_mes_brl;
-  document.getElementById('finLucro').textContent   = 'R$ ' + d.lucro_mes_brl;
-  document.getElementById('finMesRef').textContent  = 'referência ' + d.mes_referencia;
-  // Cor do lucro: verde se positivo, vermelho se negativo
-  document.getElementById('finLucro').style.color = d.lucro_mes_cents >= 0 ? '#4ade80' : '#fca5a5';
+  // ── Linha 1: caixa REAL ──
+  document.getElementById('finReceitaReal').textContent = 'R$ ' + d.receita_real_mes_brl;
+  document.getElementById('finDespesa').textContent     = 'R$ ' + d.despesa_mes_brl;
+  document.getElementById('finLucroReal').textContent   = 'R$ ' + d.lucro_real_brl;
+  document.getElementById('finMesRef').textContent      = 'referência ' + d.mes_referencia;
+  // Cor do lucro real: verde se positivo, vermelho se negativo
+  document.getElementById('finLucroReal').style.color =
+    d.lucro_real_cents >= 0 ? '#4ade80' : '#fca5a5';
+
+  // ── Linha 2: projeção ──
+  document.getElementById('finMrrProj').textContent  = 'R$ ' + d.mrr_projetado_brl;
+  document.getElementById('finMrrReal').textContent  = 'R$ ' + d.mrr_realizado_brl;
+  document.getElementById('finLucroProj').textContent = 'R$ ' + d.lucro_projetado_brl;
+  document.getElementById('finLucroProj').style.color =
+    d.lucro_projetado_cents >= 0 ? '#86efac' : '#fca5a5';
 
   const baseOpts = (extra = {}) => ({
     responsive: true,
