@@ -16,20 +16,42 @@ require_once __DIR__ . '/../../app/Models/TaskRecurrence.php';
 require_once __DIR__ . '/../../app/Models/TaskReminder.php';
 require_once __DIR__ . '/../../app/Models/TaskLink.php';
 require_once __DIR__ . '/../../app/Models/ResourceShare.php';
+require_once __DIR__ . '/../../app/Helpers/EnvLoader.php';
 require_once __DIR__ . '/../../app/Helpers/ProcessoAudit.php';
 require_once __DIR__ . '/../../app/Helpers/TaskAudit.php';
 
+// P1 LGPD (2A.4): carrega .env explicitamente — getenv() não funciona sem isso
+\App\Helpers\EnvLoader::load();
+
+// ─── LGPD P1 (2A.4): CRON_TOKEN obrigatório, sem fallback hardcoded ──────────
+// Antes desta correção, o fallback era 'yuris_cron_token_change_me' (token
+// público no código). Se .env esquecido em prod, qualquer um disparava o cron
+// e podia criar tarefas/enviar WhatsApp em massa (DoS de notificações + spam).
+// Agora: exige CRON_TOKEN definido (config/app.php OU env var), aborta se não.
 $configFile = __DIR__ . '/../../config/app.php';
 $config     = file_exists($configFile) ? (require $configFile) : [];
-$cronToken  = $config['cron_token'] ?? getenv('CRON_TOKEN') ?: 'yuris_cron_token_change_me';
+$envToken   = \App\Helpers\EnvLoader::get('CRON_TOKEN', '');
+$cronToken  = $config['cron_token'] ?? ($envToken !== '' ? $envToken : null);
 
 header('Content-Type: application/json; charset=utf-8');
+
+// Bloqueia se token não configurado OU se é o legado inseguro
+if (!$cronToken || $cronToken === '' || $cronToken === 'yuris_cron_token_change_me') {
+    http_response_code(503);
+    error_log('[tasks_recurrence_tick] CRON_TOKEN não configurado ou usando default inseguro');
+    echo json_encode([
+        'ok' => false,
+        'error' => 'Cron endpoint não configurado. Defina CRON_TOKEN no .env (gere com: openssl rand -hex 24).'
+    ]);
+    exit;
+}
 
 if (($_GET['token'] ?? '') !== $cronToken) {
     http_response_code(403);
     echo json_encode(['ok' => false, 'error' => 'Forbidden']);
     exit;
 }
+// ────────────────────────────────────────────────────────────────────────────
 
 use App\Models\Task;
 use App\Models\TaskColumn;

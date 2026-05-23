@@ -24,9 +24,14 @@ $input  = json_decode(file_get_contents('php://input'), true) ?? [];
 function fail(string $msg, int $c = 400): void { http_response_code($c); echo json_encode(['ok'=>false,'error'=>$msg]); exit; }
 function ok(mixed $d = null): void { echo json_encode(['ok'=>true,'data'=>$d]); exit; }
 
-// mime-types permitidos (sem executáveis)
+// mime-types permitidos (sem executáveis).
+// LGPD P1 (2A.2): SVG removido — SVG pode conter <script> e executa JS
+// no domínio quando aberto inline. Mesmo com .htaccess Deny all (sub-etapa
+// 1.6) o download via /api/task_attachments.php?action=download poderia
+// servir como inline se Content-Type estivesse errado. Defesa em camadas.
+// Se for necessário aceitar SVG futuramente, sanitizar com lib (ex: enshrined/svg-sanitize).
 const ALLOWED_MIME = [
-    'image/jpeg','image/png','image/gif','image/webp','image/svg+xml',
+    'image/jpeg','image/png','image/gif','image/webp',
     'application/pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',

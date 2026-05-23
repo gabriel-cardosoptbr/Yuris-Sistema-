@@ -115,14 +115,27 @@ if ($method === 'GET') {
         $stmt->execute(['id' => $id] + $_whParams);
         $row = $stmt->fetch();
         if ($row) {
-            $row['eventos']     = json_decode($row['eventos'] ?? '[]', true);
-            $row['total_logs']  = (int)$pdo->prepare("SELECT COUNT(*) FROM webhook_logs WHERE webhook_id = ?")->execute([$id]) ? $pdo->query("SELECT COUNT(*) FROM webhook_logs WHERE webhook_id = $id")->fetchColumn() : 0;
-            $row['success_rate']= null;
-            $cnt = $pdo->query("SELECT COUNT(*) FROM webhook_logs WHERE webhook_id = $id")->fetchColumn();
+            // ─── LGPD P1 (2A.1): SQLi fix ─────────────────────────────────────
+            // Antes desta correção, $id (de $_GET['id']) era concatenado direto
+            // em "SELECT ... WHERE webhook_id = $id". Trocado por prepared
+            // statements com placeholder. Também limpo a lógica quebrada do
+            // total_logs (prepare+execute retornava bool, sempre caía no query
+            // concatenado — copy-paste antigo).
+            $row['eventos']      = json_decode($row['eventos'] ?? '[]', true);
+
+            $stCnt = $pdo->prepare("SELECT COUNT(*) FROM webhook_logs WHERE webhook_id = ?");
+            $stCnt->execute([$id]);
+            $cnt = (int)$stCnt->fetchColumn();
+            $row['total_logs'] = $cnt;
+
+            $row['success_rate'] = null;
             if ($cnt > 0) {
-                $ok  = $pdo->query("SELECT COUNT(*) FROM webhook_logs WHERE webhook_id = $id AND success = 1")->fetchColumn();
+                $stOk = $pdo->prepare("SELECT COUNT(*) FROM webhook_logs WHERE webhook_id = ? AND success = 1");
+                $stOk->execute([$id]);
+                $ok = (int)$stOk->fetchColumn();
                 $row['success_rate'] = round(($ok / $cnt) * 100);
             }
+            // ───────────────────────────────────────────────────────────────────
         }
         echo json_encode(['data' => $row ?: null]);
         exit;
