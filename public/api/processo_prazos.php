@@ -108,7 +108,11 @@ try {
             'desc'  => "Prazo criado: {$descricao}" . (isset($input['data_limite']) ? " (vence em {$input['data_limite']})" : ''),
         ]);
 
-        WebhookDispatcher::fire('processo.prazo_created', WebhookDispatcher::buildPayload('processo.prazo_created', [
+        // P0 LGPD: dispara apenas para webhooks do tenant DONO do processo
+        $procAcc = $pdo->prepare("SELECT account_id FROM processos WHERE id = ? LIMIT 1");
+        $procAcc->execute([$processoId]);
+        $ownerAcc = (int)($procAcc->fetchColumn() ?: $ctx->getAccountId());
+        WebhookDispatcher::fire($ownerAcc, 'processo.prazo_created', WebhookDispatcher::buildPayload('processo.prazo_created', [
             'entity' => 'prazo', 'entity_id' => $newId, 'processo_id' => $processoId,
             'data' => ['id' => $newId, 'descricao' => $descricao, 'data_limite' => $input['data_limite'] ?? null, 'prioridade' => $input['prioridade'] ?? 'media'],
         ]));
@@ -184,7 +188,11 @@ try {
 
         $eventKey = (isset($input['status']) && $input['status'] === 'concluido')
             ? 'processo.prazo_completed' : 'processo.prazo_updated';
-        WebhookDispatcher::fire($eventKey, WebhookDispatcher::buildPayload($eventKey, [
+        // P0 LGPD: tenant dono do processo (não da sessão)
+        $procAcc = $pdo->prepare("SELECT account_id FROM processos WHERE id = ? LIMIT 1");
+        $procAcc->execute([(int)$prevPrazo['processo_id']]);
+        $ownerAcc = (int)($procAcc->fetchColumn() ?: $ctx->getAccountId());
+        WebhookDispatcher::fire($ownerAcc, $eventKey, WebhookDispatcher::buildPayload($eventKey, [
             'entity' => 'prazo', 'entity_id' => $id, 'processo_id' => $prevPrazo['processo_id'] ?? null,
             'data' => array_merge($prevPrazo ?? [], $input), 'previous_data' => $prevPrazo,
         ]));

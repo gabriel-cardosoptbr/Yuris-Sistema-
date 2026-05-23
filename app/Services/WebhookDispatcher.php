@@ -172,12 +172,36 @@ class WebhookDispatcher
         ];
     }
 
-    // ── Fire event — call this from any module ────────────────────────────────
-    public static function fire(string $eventKey, array $payload): void
+    /**
+     * Dispara um evento para os webhooks subscritos.
+     *
+     * P0 LGPD (Fase 1) — assinatura alterada para INCLUIR o accountId do tenant
+     * que originou o evento. Antes desta correção, a query era global
+     * (SELECT * FROM webhooks WHERE ativo = 1), o que entregava cada evento
+     * de QUALQUER tenant para os webhooks de TODOS os outros tenants —
+     * vazamento estrutural de dados pessoais cross-tenant.
+     *
+     * Agora:
+     *   • $accountId é OBRIGATÓRIO conceitualmente; passe int.
+     *   • $accountId = null mantém a porta legada para eventos sistêmicos
+     *     que NÃO podem ser atribuídos a um tenant específico (raro). Emite
+     *     warning em error_log para auditar usos remanescentes.
+     *
+     * @param int|null $accountId Tenant originador do evento. Null = global (legado).
+     */
+    public static function fire(?int $accountId, string $eventKey, array $payload): void
     {
         try {
-            $pdo   = Database::getConnection();
-            $stmt  = $pdo->query("SELECT * FROM webhooks WHERE ativo = 1 AND deleted_at IS NULL");
+            $pdo = Database::getConnection();
+            if ($accountId === null) {
+                error_log("[WebhookDispatcher] WARNING: fire(null, '{$eventKey}') — entrega global. Identifique o accountId apropriado.");
+                $stmt = $pdo->query("SELECT * FROM webhooks WHERE ativo = 1 AND deleted_at IS NULL");
+            } else {
+                $stmt = $pdo->prepare(
+                    "SELECT * FROM webhooks WHERE ativo = 1 AND deleted_at IS NULL AND account_id = ?"
+                );
+                $stmt->execute([$accountId]);
+            }
             $hooks = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             foreach ($hooks as $hook) {
                 $eventos = json_decode($hook['eventos'] ?? '[]', true) ?: [];

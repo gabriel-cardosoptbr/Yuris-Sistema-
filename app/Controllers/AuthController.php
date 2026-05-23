@@ -145,7 +145,9 @@ class AuthController
         self::clearFailedAttempts($ip, $login);
 
         require_once __DIR__ . '/../Services/WebhookDispatcher.php';
-        WebhookDispatcher::fire('usuario.login', WebhookDispatcher::buildPayload('usuario.login', [
+        // P0 LGPD: passa account_id do usuário que logou, não global
+        $loginAcc = isset($user['account_id']) ? (int)$user['account_id'] : null;
+        WebhookDispatcher::fire($loginAcc, 'usuario.login', WebhookDispatcher::buildPayload('usuario.login', [
             'entity' => 'usuario', 'entity_id' => $user['id'],
             'data' => ['id' => $user['id'], 'nome' => $user['nome'], 'perfil' => $user['perfil'], 'ip' => $ip],
         ]));

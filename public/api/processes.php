@@ -72,7 +72,7 @@ try {
             'Processo criado',
             'Processo ' . ($p['numero'] ?? '#'.$id) . ' cadastrado no sistema'
         );
-        WebhookDispatcher::fire('processo.created', WebhookDispatcher::buildPayload('processo.created', [
+        WebhookDispatcher::fire($accountId, 'processo.created', WebhookDispatcher::buildPayload('processo.created', [
             'entity' => 'processo', 'entity_id' => $id, 'processo_id' => $id,
             'cliente_id' => $p['contato_id'] ?? null, 'data' => $p,
         ]));
@@ -104,7 +104,9 @@ try {
             } elseif (isset($input['etapa']) && ($prev['etapa'] ?? null) !== $input['etapa']) {
                 $eventKey = 'processo.etapa_changed';
             }
-            WebhookDispatcher::fire($eventKey, WebhookDispatcher::buildPayload($eventKey, [
+            // Usa account_id do processo (preserva ownership em shares)
+            $ownerAcc = (int)($updated['account_id'] ?? $prev['account_id'] ?? $accountId);
+            WebhookDispatcher::fire($ownerAcc, $eventKey, WebhookDispatcher::buildPayload($eventKey, [
                 'entity' => 'processo', 'entity_id' => (int)$id, 'processo_id' => (int)$id,
                 'cliente_id' => $updated['contato_id'] ?? null,
                 'data' => $updated, 'previous_data' => $prev,
@@ -132,7 +134,8 @@ try {
                 'Processo excluído',
                 'Processo ' . ($prev['numero'] ?? '#'.$id) . ' removido (soft-delete)'
             );
-            WebhookDispatcher::fire('processo.deleted', WebhookDispatcher::buildPayload('processo.deleted', [
+            $ownerAcc = (int)($prev['account_id'] ?? $accountId);
+            WebhookDispatcher::fire($ownerAcc, 'processo.deleted', WebhookDispatcher::buildPayload('processo.deleted', [
                 'entity' => 'processo', 'entity_id' => (int)$id, 'processo_id' => (int)$id,
                 'cliente_id' => $prev['contato_id'] ?? null, 'data' => $prev,
             ]));

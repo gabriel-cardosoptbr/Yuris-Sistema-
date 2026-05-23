@@ -108,7 +108,11 @@ try {
             'desc'  => "Tarefa criada: {$titulo}",
         ]);
 
-        WebhookDispatcher::fire('processo.tarefa_created', WebhookDispatcher::buildPayload('processo.tarefa_created', [
+        // P0 LGPD: tenant dono do processo
+        $procAcc = $pdo->prepare("SELECT account_id FROM processos WHERE id = ? LIMIT 1");
+        $procAcc->execute([$processoId]);
+        $ownerAcc = (int)($procAcc->fetchColumn() ?: $ctx->getAccountId());
+        WebhookDispatcher::fire($ownerAcc, 'processo.tarefa_created', WebhookDispatcher::buildPayload('processo.tarefa_created', [
             'entity' => 'tarefa', 'entity_id' => $newId, 'processo_id' => $processoId,
             'data' => ['id' => $newId, 'titulo' => $titulo, 'prioridade' => $input['prioridade'] ?? 'media'],
         ]));
@@ -180,7 +184,11 @@ try {
             $eventKey = null; // silent for minor updates (order changes, etc.)
         }
         if ($eventKey) {
-            WebhookDispatcher::fire($eventKey, WebhookDispatcher::buildPayload($eventKey, [
+            // P0 LGPD: tenant dono do processo
+            $procAcc = $pdo->prepare("SELECT account_id FROM processos WHERE id = ? LIMIT 1");
+            $procAcc->execute([(int)$prevTarefa['processo_id']]);
+            $ownerAcc = (int)($procAcc->fetchColumn() ?: $ctx->getAccountId());
+            WebhookDispatcher::fire($ownerAcc, $eventKey, WebhookDispatcher::buildPayload($eventKey, [
                 'entity' => 'tarefa', 'entity_id' => $id, 'processo_id' => $prevTarefa['processo_id'] ?? null,
                 'data' => array_merge($prevTarefa ?? [], $input), 'previous_data' => $prevTarefa,
             ]));

@@ -160,7 +160,8 @@ if ($method === 'POST') {
             'entity_id' => $id,
             'data'      => ['mensagem' => 'Este é um evento de teste do Yuris CRM', 'webhook_nome' => $hook['nome']],
         ]);
-        WebhookDispatcher::fire('webhook.test', $payload);
+        // P0 LGPD: dispara só para o próprio tenant dono do webhook testado
+        WebhookDispatcher::fire((int)$hook['account_id'], 'webhook.test', $payload);
         echo json_encode(['success' => true, 'message' => 'Evento de teste enviado']);
         exit;
     }

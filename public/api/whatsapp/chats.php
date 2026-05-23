@@ -107,7 +107,7 @@ try {
                 if ($teamId !== null) $linkData['team_id'] = $teamId;
 
                 $msgModel->linkChat($instanceId, $jid, $linkData);
-                WebhookDispatcher::fire('whatsapp.vinculo', WebhookDispatcher::buildPayload('whatsapp.vinculo', [
+                WebhookDispatcher::fire($accountId, 'whatsapp.vinculo', WebhookDispatcher::buildPayload('whatsapp.vinculo', [
                     'entity' => 'whatsapp_chat', 'entity_id' => null,
                     'card_id' => $payload['card_id'] ?? null,
                     'data' => [

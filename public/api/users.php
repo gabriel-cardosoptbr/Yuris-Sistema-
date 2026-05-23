@@ -175,7 +175,7 @@ if ($method === 'POST') {
                 }
             } catch (\Throwable $e) { /* tabela pode não existir */ }
         }
-        WebhookDispatcher::fire('usuario.created', WebhookDispatcher::buildPayload('usuario.created', [
+        WebhookDispatcher::fire($accountId, 'usuario.created', WebhookDispatcher::buildPayload('usuario.created', [
             'entity' => 'usuario', 'entity_id' => $newId,
             'data' => ['id' => $newId, 'nome' => $nome, 'email' => $email, 'perfil' => $perfil],
         ]));
@@ -283,7 +283,7 @@ if ($method === 'PUT' || $method === 'PATCH') {
     }
     $wRow = $pdo->prepare('SELECT id, nome, login AS email, perfil FROM users WHERE id = ? LIMIT 1');
     $wRow->execute([$id]);
-    WebhookDispatcher::fire($wEventKey, WebhookDispatcher::buildPayload($wEventKey, [
+    WebhookDispatcher::fire($accountId, $wEventKey, WebhookDispatcher::buildPayload($wEventKey, [
         'entity' => 'usuario', 'entity_id' => (int)$id,
         'data' => $wRow->fetch(PDO::FETCH_ASSOC),
     ]));
@@ -330,7 +330,7 @@ if ($method === 'DELETE') {
     $stmt = $pdo->prepare('UPDATE users SET deleted_at = NOW() WHERE id = :id AND account_id = :acc');
     $ok = $stmt->execute(['id' => $id, 'acc' => $accountId]);
     if ($ok && $prevUser) {
-        WebhookDispatcher::fire('usuario.deleted', WebhookDispatcher::buildPayload('usuario.deleted', [
+        WebhookDispatcher::fire($accountId, 'usuario.deleted', WebhookDispatcher::buildPayload('usuario.deleted', [
             'entity' => 'usuario', 'entity_id' => (int)$id, 'data' => $prevUser,
         ]));
     }

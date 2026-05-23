@@ -246,7 +246,13 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
 
     // Fire webhook only for inbound messages (received from contacts)
     if (!$fromMe) {
-        \App\Services\WebhookDispatcher::fire('whatsapp.mensagem', \App\Services\WebhookDispatcher::buildPayload('whatsapp.mensagem', [
+        // P0 LGPD: resolve account_id da instância para não vazar evento cross-tenant
+        $pdoInst = \App\Models\Database::getConnection();
+        $instAccStmt = $pdoInst->prepare('SELECT account_id FROM whatsapp_instances WHERE id = ? LIMIT 1');
+        $instAccStmt->execute([$instanceId]);
+        $instAcc = $instAccStmt->fetchColumn();
+        $ownerAcc = $instAcc !== false && $instAcc !== null ? (int)$instAcc : null;
+        \App\Services\WebhookDispatcher::fire($ownerAcc, 'whatsapp.mensagem', \App\Services\WebhookDispatcher::buildPayload('whatsapp.mensagem', [
             'entity'    => 'whatsapp_message',
             'entity_id' => $savedId,
             'data' => [

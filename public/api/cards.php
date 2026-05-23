@@ -111,7 +111,7 @@ if ($method === 'POST') {
     $data['valor_fechado_final'] = isset($data['valor_fechado_final']) ? normalize_money($data['valor_fechado_final']) : 0;
     $id = Card::create($data);
     $createdCard = Card::find($id);
-    WebhookDispatcher::fire('card.created', WebhookDispatcher::buildPayload('card.created', [
+    WebhookDispatcher::fire($accountId, 'card.created', WebhookDispatcher::buildPayload('card.created', [
         'entity' => 'card', 'entity_id' => $id, 'card_id' => $id, 'data' => $createdCard,
     ]));
     echo json_encode(['success'=>true,'id'=>$id]);
@@ -147,7 +147,9 @@ if ($method === 'PUT' || $method === 'PATCH') {
         $prevCard = Card::find($id);
         $ok = Card::move($id, (int)$input['coluna_id'], (int)$input['ordem_na_coluna'], $user_id);
         if ($ok) {
-            WebhookDispatcher::fire('card.stage_changed', WebhookDispatcher::buildPayload('card.stage_changed', [
+            // Usa account_id do card afetado (não da sessão) — preserva ownership em shares
+            $ownerAcc = (int)($prevCard['account_id'] ?? $accountId);
+            WebhookDispatcher::fire($ownerAcc, 'card.stage_changed', WebhookDispatcher::buildPayload('card.stage_changed', [
                 'entity' => 'card', 'entity_id' => $id, 'card_id' => $id,
                 'data' => Card::find($id), 'previous_data' => $prevCard,
             ]));
@@ -169,7 +171,8 @@ if ($method === 'PUT' || $method === 'PATCH') {
         } elseif (isset($input['responsavel_user_id']) && ($prevCard['responsavel_user_id'] ?? null) != $input['responsavel_user_id']) {
             $eventKey = 'card.responsavel_changed';
         }
-        WebhookDispatcher::fire($eventKey, WebhookDispatcher::buildPayload($eventKey, [
+        $ownerAcc = (int)($updatedCard['account_id'] ?? $prevCard['account_id'] ?? $accountId);
+        WebhookDispatcher::fire($ownerAcc, $eventKey, WebhookDispatcher::buildPayload($eventKey, [
             'entity' => 'card', 'entity_id' => $id, 'card_id' => $id,
             'data' => $updatedCard, 'previous_data' => $prevCard,
         ]));
@@ -191,7 +194,8 @@ if ($method === 'DELETE') {
     $prevCard = Card::find((int)$id);
     $ok = Card::softDelete((int)$id, $user_id);
     if ($ok) {
-        WebhookDispatcher::fire('card.deleted', WebhookDispatcher::buildPayload('card.deleted', [
+        $ownerAcc = (int)($prevCard['account_id'] ?? $accountId);
+        WebhookDispatcher::fire($ownerAcc, 'card.deleted', WebhookDispatcher::buildPayload('card.deleted', [
             'entity' => 'card', 'entity_id' => (int)$id, 'card_id' => (int)$id, 'data' => $prevCard,
         ]));
     }
