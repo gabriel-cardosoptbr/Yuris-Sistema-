@@ -60,7 +60,11 @@ $_svg = [
     'config'    => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06A2 2 0 1 1 2.27 17.8l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09c.7 0 1.27-.43 1.51-1a1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 6.3 2.27l.06.06c.5.5 1.2.75 1.82.33.56-.32 1.28-.32 1.82-.32H12a2 2 0 1 1 0 4h-.09c-.7 0-1.27.43-1.51 1a1.65 1.65 0 0 0 .33 1.82l.06.06A2 2 0 1 1 17.73 6.2l-.06.06c-.5.5-.75 1.2-.33 1.82.32.56.32 1.28.32 1.82V12a2 2 0 1 1 4 0v.09c0 .7.43 1.27 1 1.51z"/></svg>',
     'sair'      => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
 ];
+$_uiLibPath  = __DIR__ . '/../assets/yuris-ui.js';
+$_uiLibVer   = file_exists($_uiLibPath) ? @filemtime($_uiLibPath) : '1';
 ?>
+<!-- Yuris UI lib (notify/confirm/prompt sem "localhost diz"). Auto-polyfills window.alert. -->
+<script src="/sistema_vendas/public/assets/yuris-ui.js?v=<?= $_uiLibVer ?>"></script>
 <aside class="sidebar" role="complementary" aria-label="Menu lateral">
 
   <!-- ── Marca ── -->
@@ -178,6 +182,32 @@ $_svg = [
     <a href="escritorios.php"<?= $_ap === 'escritorios' ? ' class="active" aria-current="page"' : '' ?>>
       <span class="icon" aria-hidden="true"><?= $_svg['escritorios'] ?></span>
       <span class="label">Escritórios</span>
+    </a>
+    <?php endif; ?>
+
+    <?php
+    /* Painel Master — só aparece pra super_admins. Check leve consultando
+       super_admins direto (idempotente; falha silenciosa se tabela ausente). */
+    $_isSuper = false;
+    if (!empty($_SESSION['is_super_admin'])) {
+        $_isSuper = true;
+    } else if (!empty($_SESSION['user_id'])) {
+        try {
+            $_pdoSa = \App\Models\Database::getConnection();
+            $_sa = $_pdoSa->prepare('SELECT 1 FROM super_admins WHERE user_id = :uid AND ativo = 1 LIMIT 1');
+            $_sa->execute(['uid' => $_SESSION['user_id']]);
+            $_isSuper = (bool) $_sa->fetchColumn();
+            if ($_isSuper) $_SESSION['is_super_admin'] = true;
+        } catch (\Throwable $_e) { /* tabela ainda não criada — silencioso */ }
+    }
+    ?>
+    <?php if ($_isSuper): ?>
+    <a href="master.php"<?= $_ap === 'master' ? ' class="active" aria-current="page"' : '' ?>
+       style="<?= $_ap === 'master' ? '' : 'border:1px solid rgba(168,85,247,0.30);background:rgba(168,85,247,0.08);' ?>">
+      <span class="icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+      </span>
+      <span class="label">Painel Master</span>
     </a>
     <?php endif; ?>
 

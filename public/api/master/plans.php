@@ -1,0 +1,105 @@
+<?php
+/**
+ * Painel Master — CRUD de planos e features.
+ */
+require_once __DIR__ . '/../../../app/Models/Database.php';
+require_once __DIR__ . '/../../../app/Models/Account.php';
+require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
+require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
+
+use App\Helpers\AccountContext;
+use App\Helpers\ApiResponse;
+use App\Models\Database;
+
+session_start();
+$ctx = AccountContext::fromSession();
+$ctx->assertSuperAdmin();
+
+$pdo    = Database::getConnection();
+$method = $_SERVER['REQUEST_METHOD'];
+$input  = json_decode(file_get_contents('php://input'), true) ?? [];
+
+if (in_array($method, ['POST','PUT','PATCH','DELETE'], true)) {
+    $csrf = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? $_POST['csrf_token'] ?? ($input['csrf_token'] ?? null);
+    if (!$csrf || $csrf !== ($_SESSION['csrf_token'] ?? '')) ApiResponse::badRequest('CSRF inválido');
+}
+
+if ($method === 'GET') {
+    $plans = $pdo->query("SELECT * FROM plans ORDER BY ordem, id")->fetchAll(\PDO::FETCH_ASSOC);
+    foreach ($plans as &$p) {
+        $stmt = $pdo->prepare("SELECT feature_key, limit_value, is_enabled FROM plan_features WHERE plan_id = :pid");
+        $stmt->execute(['pid' => $p['id']]);
+        $p['features'] = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $stmtN = $pdo->prepare("SELECT COUNT(*) FROM subscriptions WHERE plan_id = :pid");
+        $stmtN->execute(['pid' => $p['id']]);
+        $p['subscriptions_count'] = (int) $stmtN->fetchColumn();
+    }
+    ApiResponse::ok(['plans' => $plans]);
+}
+
+if ($method === 'POST') {
+    $slug = trim($input['slug'] ?? '');
+    $nome = trim($input['nome'] ?? '');
+    if ($slug === '' || $nome === '') ApiResponse::badRequest('slug e nome são obrigatórios');
+
+    $pdo->prepare(
+        'INSERT INTO plans (slug, nome, descricao, preco_mensal_cents, preco_anual_cents, trial_dias, ativo, destaque, ordem)
+         VALUES (:slug, :nome, :desc, :pm, :pa, :td, :at, :ds, :or)'
+    )->execute([
+        'slug' => $slug, 'nome' => $nome,
+        'desc' => $input['descricao'] ?? '',
+        'pm'   => (int)($input['preco_mensal_cents'] ?? 0),
+        'pa'   => (int)($input['preco_anual_cents']  ?? 0),
+        'td'   => (int)($input['trial_dias']         ?? 0),
+        'at'   => !empty($input['ativo']) ? 1 : 1,
+        'ds'   => !empty($input['destaque']) ? 1 : 0,
+        'or'   => (int)($input['ordem'] ?? 99),
+    ]);
+    ApiResponse::ok(['id' => (int) $pdo->lastInsertId()]);
+}
+
+if ($method === 'PATCH') {
+    $id = (int)($input['id'] ?? 0);
+    if (!$id) ApiResponse::badRequest('id obrigatório');
+
+    $allowed = ['slug','nome','descricao','preco_mensal_cents','preco_anual_cents','trial_dias','ativo','destaque','ordem'];
+    $sets = []; $params = ['id' => $id];
+    foreach ($allowed as $k) {
+        if (array_key_exists($k, $input)) {
+            $sets[]      = "{$k} = :{$k}";
+            $params[$k]  = $input[$k];
+        }
+    }
+    if (empty($sets)) ApiResponse::badRequest('nada a atualizar');
+    $pdo->prepare('UPDATE plans SET ' . implode(', ', $sets) . ' WHERE id = :id')->execute($params);
+
+    // Sincroniza features se enviadas
+    if (isset($input['features']) && is_array($input['features'])) {
+        $pdo->prepare('DELETE FROM plan_features WHERE plan_id = :pid')->execute(['pid' => $id]);
+        $ins = $pdo->prepare(
+            'INSERT INTO plan_features (plan_id, feature_key, limit_value, is_enabled)
+             VALUES (:pid, :fk, :lv, :ie)'
+        );
+        foreach ($input['features'] as $f) {
+            if (empty($f['feature_key'])) continue;
+            $ins->execute([
+                'pid' => $id,
+                'fk'  => $f['feature_key'],
+                'lv'  => isset($f['limit_value']) && $f['limit_value'] !== '' ? (int)$f['limit_value'] : null,
+                'ie'  => !empty($f['is_enabled']) ? 1 : 0,
+            ]);
+        }
+    }
+    ApiResponse::ok(['updated' => true]);
+}
+
+if ($method === 'DELETE') {
+    $id = (int)($_GET['id'] ?? $input['id'] ?? 0);
+    if (!$id) ApiResponse::badRequest('id obrigatório');
+    // Soft: marca ativo=0 (nunca apaga pra não quebrar foreign keys históricas)
+    $pdo->prepare('UPDATE plans SET ativo = 0 WHERE id = :id')->execute(['id' => $id]);
+    ApiResponse::ok(['deactivated' => true]);
+}
+
+ApiResponse::methodNotAllowed();
