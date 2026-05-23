@@ -296,7 +296,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
   <main class="ml-card">
     <div class="ml-brand">
-      <div class="ml-brand-ico">🛰️</div>
+      <div class="ml-brand-ico">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+      </div>
       <h1 class="ml-title">Painel Master</h1>
       <div class="ml-sub">Acesso restrito · Super Admin</div>
       <div class="ml-warn">Este portal é separado do app principal. Suas tentativas são auditadas.</div>

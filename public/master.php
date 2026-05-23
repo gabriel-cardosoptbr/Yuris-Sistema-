@@ -225,7 +225,10 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
 <main class="mst-content">
   <div class="mst-header">
     <div class="mst-title-block">
-      <h1 class="mst-title">🛰️ Painel Master</h1>
+      <h1 class="mst-title" style="display:flex;align-items:center;gap:10px">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:#c084fc"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span>Painel Master</span>
+      </h1>
       <p class="mst-sub">
         Visão global cross-tenant ·
         <span class="mst-badge mst-badge-<?=htmlspecialchars($saLevel)?>"><?=htmlspecialchars($saLevel)?></span>
@@ -245,13 +248,13 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
 
   <div class="mst-tabs">
     <button class="mst-tab active" data-mtab="overview">Visão Geral</button>
-    <button class="mst-tab" data-mtab="dashboard">📊 Dashboard</button>
+    <button class="mst-tab" data-mtab="dashboard"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-2px;margin-right:5px"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Dashboard</button>
     <button class="mst-tab" data-mtab="accounts">Contas</button>
     <button class="mst-tab" data-mtab="plans">Planos</button>
     <button class="mst-tab" data-mtab="billing">Assinaturas</button>
     <button class="mst-tab" data-mtab="invoices">Faturas</button>
     <button class="mst-tab" data-mtab="payments">Pagamentos</button>
-    <button class="mst-tab" data-mtab="expenses">💰 Despesas</button>
+    <button class="mst-tab" data-mtab="expenses"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-2px;margin-right:5px"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>Despesas</button>
     <button class="mst-tab" data-mtab="audit">Auditoria</button>
   </div>
 
@@ -317,7 +320,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
     </div>
   </section>
 
-  <!-- ── 📊 Dashboard (Gráficos) ── -->
+  <!-- ── Dashboard (Gráficos) ── -->
   <section class="mst-section" id="msec-dashboard">
     <div class="mst-grid-5" style="grid-template-columns:repeat(3,1fr); margin-bottom:18px">
       <div class="mst-card" style="border-left:3px solid #4ade80">
@@ -461,7 +464,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
     </div>
   </section>
 
-  <!-- ── 💰 Despesas (CRUD) ── -->
+  <!-- ── Despesas (CRUD) ── -->
   <section class="mst-section" id="msec-expenses">
     <div class="mst-grid-5" style="grid-template-columns:repeat(3,1fr); margin-bottom:18px">
       <div class="mst-card">
@@ -894,7 +897,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
               <option value="filial">Filial</option>
               <option value="advogado">Advogado (Solo)</option>
             </select>
-            <div class="mst-form-help">⚠️ Mudar tipo é arriscado — use só se sabe o que está fazendo.</div>
+            <div class="mst-form-help" style="color:#fbbf24">Atenção — mudar tipo é arriscado. Use só se sabe o que está fazendo.</div>
           </div>
           <div><label class="mst-form-label">Status</label>
             <select name="status" id="editAccStatus" class="mst-form-select">
@@ -932,15 +935,15 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
         <div class="mst-form-row">
           <div><label class="mst-form-label">Categoria *</label>
             <select name="categoria" id="expCategoria" class="mst-form-select" required>
-              <option value="servidor">🖥️ Servidor / Hosting</option>
-              <option value="pessoas">👥 Pessoas / Salários</option>
-              <option value="apis">🔌 APIs externas</option>
-              <option value="marketing">📢 Marketing / Anúncios</option>
-              <option value="infraestrutura">🏗️ Infraestrutura</option>
-              <option value="impostos">💸 Impostos</option>
-              <option value="software">📦 Software / Licenças</option>
-              <option value="juridico">⚖️ Jurídico / Contábil</option>
-              <option value="outros">📌 Outros</option>
+              <option value="servidor">Servidor / Hosting</option>
+              <option value="pessoas">Pessoas / Salários</option>
+              <option value="apis">APIs externas</option>
+              <option value="marketing">Marketing / Anúncios</option>
+              <option value="infraestrutura">Infraestrutura</option>
+              <option value="impostos">Impostos</option>
+              <option value="software">Software / Licenças</option>
+              <option value="juridico">Jurídico / Contábil</option>
+              <option value="outros">Outros</option>
             </select>
           </div>
           <div><label class="mst-form-label">Fornecedor</label><input name="fornecedor" id="expFornecedor" class="mst-form-input" placeholder="ex: DigitalOcean, Stripe, etc."></div>
@@ -1065,6 +1068,44 @@ const fmtDate = v => v ? new Date((v+'').replace(' ','T')).toLocaleDateString('p
 const fmtDateTime = v => v ? new Date((v+'').replace(' ','T')).toLocaleString('pt-BR') : '—';
 const pill = (s) => `<span class="pill pill-${s||'cancel'}">${s||'?'}</span>`;
 const esc  = (s) => (s == null ? '' : String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]));
+
+// ── Biblioteca de ícones SVG (Lucide-like) ───────────────────────────────
+// Sem emoji em nenhum lugar do Painel Master — padrão SaaS limpo.
+const _ICO = {
+  building:   '<path d="M3 21h18"/><path d="M5 21V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M9 9h.01"/><path d="M9 13h.01"/><path d="M9 17h.01"/><path d="M15 9h.01"/><path d="M15 13h.01"/><path d="M15 17h.01"/>',
+  store:      '<path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.41.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/>',
+  scale:      '<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',
+  server:     '<rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/>',
+  users:      '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  plug:       '<path d="M9 2v6"/><path d="M15 2v6"/><path d="M6 8h12v3a6 6 0 0 1-12 0Z"/><path d="M12 14v8"/>',
+  megaphone:  '<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
+  hardhat:    '<rect x="2" y="18" width="20" height="4" rx="1"/><path d="M5 18v-4a7 7 0 0 1 14 0v4"/><path d="M10 8V5h4v3"/>',
+  receipt:    '<path d="M4 2v20l2-2 2 2 2-2 2 2 2-2 2 2 2-2 2 2V2l-2 2-2-2-2 2-2-2-2 2-2-2-2 2Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17V7"/>',
+  package:    '<path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
+  pin:        '<line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/>',
+  refresh:    '<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
+  calendar:   '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+  alert:      '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+};
+function ico(key, opts = {}) {
+  const path = _ICO[key];
+  if (!path) return '';
+  const size = opts.size || 14;
+  const color = opts.color || 'currentColor';
+  const style = opts.style || 'display:inline;vertical-align:-2px';
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="${style}">${path}</svg>`;
+}
+// Mapa: chave categoria → ícone
+const _EXP_CAT_ICO = {
+  servidor:'server', pessoas:'users', apis:'plug', marketing:'megaphone',
+  infraestrutura:'hardhat', impostos:'receipt', software:'package',
+  juridico:'scale', outros:'pin'
+};
+const _EXP_CAT_LBL = {
+  servidor:'Servidor', pessoas:'Pessoas', apis:'APIs', marketing:'Marketing',
+  infraestrutura:'Infra', impostos:'Impostos', software:'Software',
+  juridico:'Jurídico', outros:'Outros'
+};
 
 async function fj(url, opts={}) {
   const r = await fetch(url, {credentials:'same-origin', ...opts});
@@ -1304,7 +1345,7 @@ async function viewAcc(id) {
   const isMatriz = d.tipo === 'matriz';
 
   document.getElementById('detalheTitle').innerHTML =
-    `${isMatriz ? '🏢' : '🏬'} ${esc(d.nome)} <span class="pill pill-${esc(d.tipo)}" style="margin-left:8px;font-size:.6rem">${esc(d.tipo)}</span> ${pill(d.status)}`;
+    `${ico(isMatriz ? 'building' : 'store', {size:18, style:'display:inline;vertical-align:-3px;margin-right:6px;color:'+(isMatriz?'#60a5fa':'#c084fc')})}${esc(d.nome)} <span class="pill pill-${esc(d.tipo)}" style="margin-left:8px;font-size:.6rem">${esc(d.tipo)}</span> ${pill(d.status)}`;
 
   let sub = d.subscription || {};
   let html = '';
@@ -1395,7 +1436,7 @@ async function viewAdvogado(id) {
   const d = r.data;
 
   document.getElementById('detalheTitle').innerHTML =
-    `⚖️ ${esc(d.nome)} <span class="pill pill-advogado" style="margin-left:8px;font-size:.6rem">advogado</span> ${pill(d.status)}`;
+    `${ico('scale', {size:18, style:'display:inline;vertical-align:-3px;margin-right:6px;color:#86efac'})}${esc(d.nome)} <span class="pill pill-advogado" style="margin-left:8px;font-size:.6rem">advogado</span> ${pill(d.status)}`;
 
   document.getElementById('detalheBody').innerHTML = `
     <div class="mst-detail-grid">
@@ -1869,7 +1910,7 @@ async function loadAudit() {
 }
 document.getElementById('filterAuditAcao').addEventListener('input', () => clearTimeout(window._fa) || (window._fa = setTimeout(loadAudit, 300)));
 
-// ── 📊 Dashboard (Chart.js) ──────────────────────────────────────────────
+// ── Dashboard (Chart.js) ─────────────────────────────────────────────────
 let _charts = {};
 function _isLight() { return document.documentElement.getAttribute('data-theme') === 'light'; }
 function _chartColors() {
@@ -2053,7 +2094,7 @@ async function loadDashboard() {
   });
 }
 
-// ── 💰 Despesas ──────────────────────────────────────────────────────────
+// ── Despesas ─────────────────────────────────────────────────────────────
 let _expensesCache = [];
 async function loadExpenses() {
   const params = new URLSearchParams();
@@ -2091,21 +2132,24 @@ async function loadExpenses() {
   const tb = document.getElementById('expensesBody');
   if (!_expensesCache.length) { tb.innerHTML = '<tr><td colspan="9" class="empty">Nenhuma despesa</td></tr>'; return; }
   tb.innerHTML = _expensesCache.map(e => {
-    const catLabels = {
-      servidor:'🖥️ Servidor', pessoas:'👥 Pessoas', apis:'🔌 APIs',
-      marketing:'📢 Marketing', infraestrutura:'🏗️ Infra',
-      impostos:'💸 Impostos', software:'📦 Software',
-      juridico:'⚖️ Jurídico', outros:'📌 Outros'
-    };
-    const recIco = e.recorrencia === 'mensal' ? '🔁' : (e.recorrencia === 'anual' ? '🗓️' : '—');
+    const catIcoKey = _EXP_CAT_ICO[e.categoria] || 'pin';
+    const catLbl    = _EXP_CAT_LBL[e.categoria] || e.categoria;
+    const recIco    = e.recorrencia === 'mensal'
+        ? ico('refresh',  {size:13, color:'#86efac', style:'display:inline;vertical-align:-2px'}) + ' <small style="color:#86efac">mensal</small>'
+        : (e.recorrencia === 'anual'
+            ? ico('calendar', {size:13, color:'#93c5fd', style:'display:inline;vertical-align:-2px'}) + ' <small style="color:#93c5fd">anual</small>'
+            : '<small style="color:#7a8898">—</small>');
     const vencidoFlag = (e.status === 'pendente' && e.vencimento && e.vencimento < hoje);
+    const vencidoBadge = vencidoFlag
+        ? ' ' + ico('alert', {size:12, color:'#fca5a5', style:'display:inline;vertical-align:-2px;margin-left:4px'})
+        : '';
     return `<tr ${vencidoFlag?'style="background:rgba(220,38,38,.05)"':''}>
-      <td><small>${catLabels[e.categoria] || e.categoria}</small></td>
+      <td><span style="display:inline-flex;align-items:center;gap:6px">${ico(catIcoKey, {size:13, style:'flex-shrink:0;color:#9ab0c9'})}<small>${esc(catLbl)}</small></span></td>
       <td><strong>${esc(e.descricao)}</strong></td>
       <td>${esc(e.fornecedor||'—')}</td>
       <td>R$ ${(Number(e.valor_cents)/100).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
       <td>${fmtDate(e.data_competencia)}</td>
-      <td>${e.vencimento ? fmtDate(e.vencimento) + (vencidoFlag?' ⚠️':'') : '—'}</td>
+      <td>${e.vencimento ? fmtDate(e.vencimento) + vencidoBadge : '—'}</td>
       <td>${pill(e.status)}</td>
       <td>${recIco}</td>
       <td>

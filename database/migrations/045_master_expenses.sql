@@ -60,15 +60,17 @@ CREATE TABLE IF NOT EXISTS master_expenses (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
--- Seed inicial: 3 despesas-exemplo pra demonstrar (idempotente via INSERT IGNORE
--- não funciona aqui pois não tem UNIQUE — usamos NOT EXISTS check)
+-- Seed inicial: 1 despesa-exemplo pra demonstrar (não duplica se já houver linhas)
+-- ENCODING SAFE: usa CHAR(0xC3, 0xA7/0xA3 USING utf8mb4) pra "produção" não
+-- ser corrompida via mysql.exe < arquivo.sql (Windows cmd.exe).
 INSERT INTO master_expenses
   (categoria, descricao, fornecedor, valor_cents, data_competencia, vencimento,
    status, recorrencia, observacoes)
 SELECT * FROM (
   SELECT
     'servidor'    AS categoria,
-    'Hospedagem VPS produção' AS descricao,
+    CONCAT('Hospedagem VPS produ', CHAR(0xC3, 0xA7 USING utf8mb4),
+           CHAR(0xC3, 0xA3 USING utf8mb4), 'o') AS descricao,
     'DigitalOcean' AS fornecedor,
     14000          AS valor_cents,
     DATE_FORMAT(NOW(), '%Y-%m-01') AS data_competencia,
