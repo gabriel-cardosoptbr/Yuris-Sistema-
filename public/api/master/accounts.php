@@ -112,6 +112,12 @@ if ($method === 'PATCH') {
     $id = (int) ($input['id'] ?? 0);
     if (!$id) ApiResponse::badRequest('id obrigatório');
 
+    // Captura snapshot anterior pra audit
+    $stPrev = $pdo->prepare("SELECT * FROM accounts WHERE id = :id LIMIT 1");
+    $stPrev->execute(['id' => $id]);
+    $prev = $stPrev->fetch(\PDO::FETCH_ASSOC);
+    if (!$prev) ApiResponse::notFound('Conta não encontrada');
+
     $fields = [];
     $params = ['id' => $id];
 
@@ -119,22 +125,30 @@ if ($method === 'PATCH') {
         if (!in_array($input['status'], ['active','trial','overdue','suspended','cancelled','inactive'], true)) {
             ApiResponse::badRequest('status inválido');
         }
-        $fields[] = 'status = :status';
-        $params['status'] = $input['status'];
+        $fields[] = 'status = :status'; $params['status'] = $input['status'];
     }
-    if (isset($input['plano'])) {
-        $fields[] = 'plano = :plano';
-        $params['plano'] = $input['plano'];
+    if (isset($input['tipo'])) {
+        if (!in_array($input['tipo'], ['matriz','filial','advogado'], true)) {
+            ApiResponse::badRequest('tipo inválido');
+        }
+        $fields[] = 'tipo = :tipo'; $params['tipo'] = $input['tipo'];
     }
-    if (isset($input['nome'])) {
-        $fields[] = 'nome = :nome';
-        $params['nome'] = trim($input['nome']);
-    }
+    if (isset($input['plano']))        { $fields[] = 'plano = :plano';        $params['plano']        = $input['plano']; }
+    if (isset($input['nome']))         { $fields[] = 'nome = :nome';          $params['nome']         = trim($input['nome']); }
+    if (isset($input['razao_social'])) { $fields[] = 'razao_social = :rs';    $params['rs']           = trim($input['razao_social']) ?: null; }
+    if (isset($input['cnpj']))         { $fields[] = 'cnpj = :cnpj';          $params['cnpj']         = preg_replace('/\D/', '', $input['cnpj']) ?: null; }
+    if (isset($input['email']))        { $fields[] = 'email = :email';        $params['email']        = trim($input['email']) ?: null; }
+    if (isset($input['telefone']))     { $fields[] = 'telefone = :tel';       $params['tel']          = trim($input['telefone']) ?: null; }
+    if (isset($input['cidade']))       { $fields[] = 'cidade = :ci';          $params['ci']           = trim($input['cidade']) ?: null; }
+    if (isset($input['estado']))       { $fields[] = 'estado = :uf';          $params['uf']           = strtoupper(trim($input['estado'])) ?: null; }
+
     if (empty($fields)) ApiResponse::badRequest('Nenhum campo pra atualizar');
 
-    $pdo->prepare('UPDATE accounts SET ' . implode(', ', $fields) . ' WHERE id = :id')->execute($params);
+    $pdo->prepare('UPDATE accounts SET ' . implode(', ', $fields) . ', updated_at = NOW() WHERE id = :id')
+        ->execute($params);
 
-    _audit($pdo, $ctx->getUserId(), 'account.update', 'account', $id, json_encode($input));
+    _audit($pdo, $ctx->getUserId(), 'account.update', 'account', $id,
+        "Conta '{$prev['nome']}' editada. Campos: " . implode(', ', array_keys($input)));
     ApiResponse::ok(['updated' => true]);
 }
 

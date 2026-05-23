@@ -724,6 +724,119 @@ $saLevel = $ctx->getSuperAdminLevel() ?: 'operator';
   </div>
 </div>
 
+<!-- Modal: Editar Conta (matriz/filial/advogado) -->
+<div class="mst-modal-backdrop" id="modalEditAccount" onclick="if(event.target===this)closeModal('modalEditAccount')">
+  <div class="mst-modal lg">
+    <div class="mst-modal-header">
+      <h3 class="mst-modal-title">Editar Conta</h3>
+      <button class="mst-modal-close" onclick="closeModal('modalEditAccount')">×</button>
+    </div>
+    <form id="formEditAccount" onsubmit="submitEditAccount(event)">
+      <input type="hidden" name="id" id="editAccId">
+      <div class="mst-modal-body">
+        <div class="mst-form-section">Identificação</div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Nome *</label><input name="nome" id="editAccNome" class="mst-form-input" required></div>
+          <div><label class="mst-form-label">Razão Social</label><input name="razao_social" id="editAccRazao" class="mst-form-input"></div>
+        </div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">CNPJ / CPF</label><input name="cnpj" id="editAccCnpj" class="mst-form-input"></div>
+          <div><label class="mst-form-label">E-mail</label><input name="email" id="editAccEmail" class="mst-form-input" type="email"></div>
+          <div><label class="mst-form-label">Telefone</label><input name="telefone" id="editAccTel" class="mst-form-input"></div>
+        </div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Cidade</label><input name="cidade" id="editAccCidade" class="mst-form-input"></div>
+          <div><label class="mst-form-label">UF</label><input name="estado" id="editAccUf" class="mst-form-input" maxlength="2" style="text-transform:uppercase"></div>
+        </div>
+
+        <div class="mst-form-section">Status & Plano</div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Tipo</label>
+            <select name="tipo" id="editAccTipo" class="mst-form-select">
+              <option value="matriz">Matriz</option>
+              <option value="filial">Filial</option>
+              <option value="advogado">Advogado (Solo)</option>
+            </select>
+            <div class="mst-form-help">⚠️ Mudar tipo é arriscado — use só se sabe o que está fazendo.</div>
+          </div>
+          <div><label class="mst-form-label">Status</label>
+            <select name="status" id="editAccStatus" class="mst-form-select">
+              <option value="active">Active</option>
+              <option value="trial">Trial</option>
+              <option value="overdue">Overdue</option>
+              <option value="suspended">Suspended</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+          <div><label class="mst-form-label">Plano (slug cache)</label><input name="plano" id="editAccPlano" class="mst-form-input"><div class="mst-form-help">String legada. Plano real é via Assinaturas.</div></div>
+        </div>
+      </div>
+      <div class="mst-modal-foot">
+        <button type="button" class="btn-mst btn-mst-danger" onclick="deleteAccount()" style="margin-right:auto">Excluir conta…</button>
+        <button type="button" class="btn-mst" onclick="closeModal('modalEditAccount')">Cancelar</button>
+        <button type="submit" class="btn-mst btn-mst-primary">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Editar Usuário -->
+<div class="mst-modal-backdrop" id="modalEditUser" onclick="if(event.target===this)closeModal('modalEditUser')">
+  <div class="mst-modal">
+    <div class="mst-modal-header">
+      <h3 class="mst-modal-title">Editar Usuário</h3>
+      <button class="mst-modal-close" onclick="closeModal('modalEditUser')">×</button>
+    </div>
+    <form id="formEditUser" onsubmit="submitEditUser(event)">
+      <input type="hidden" name="id" id="editUserId">
+      <div class="mst-modal-body">
+        <div class="mst-detail-item" style="margin-bottom:14px"><div class="label">Conta</div><div class="value" id="editUserAccountInfo">—</div></div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Nome *</label><input name="nome" id="editUserNome" class="mst-form-input" required></div>
+          <div><label class="mst-form-label">E-mail (login) *</label><input name="email" id="editUserEmail" class="mst-form-input" type="email" required></div>
+        </div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Telefone</label><input name="telefone" id="editUserTel" class="mst-form-input"></div>
+          <div><label class="mst-form-label">Role</label>
+            <select name="role" id="editUserRole" class="mst-form-select">
+              <option value="owner">owner</option>
+              <option value="admin">admin</option>
+              <option value="manager">manager</option>
+              <option value="user">user</option>
+              <option value="viewer">viewer</option>
+            </select>
+          </div>
+          <div><label class="mst-form-label">Status</label>
+            <select name="status" id="editUserStatus" class="mst-form-select">
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+        <div class="mst-form-row" id="editUserAdvRow" style="display:none">
+          <div><label class="mst-form-label">OAB</label><input name="oab" id="editUserOab" class="mst-form-input"></div>
+          <div><label class="mst-form-label">UF da OAB</label><input name="oab_uf" id="editUserOabUf" class="mst-form-input" maxlength="2" style="text-transform:uppercase"></div>
+          <div><label class="mst-form-label">Código</label><input id="editUserCodAdv" class="mst-form-input" readonly></div>
+        </div>
+        <div class="mst-form-row">
+          <div>
+            <label class="mst-form-label">Nova senha (opcional)</label>
+            <input name="nova_senha" id="editUserNewPass" class="mst-form-input" type="text" placeholder="deixe vazio pra não alterar">
+            <div class="mst-form-help">Ou use o botão "Reset senha" pra gerar uma automaticamente.</div>
+          </div>
+        </div>
+      </div>
+      <div class="mst-modal-foot">
+        <button type="button" class="btn-mst btn-mst-danger" onclick="deleteUser()" style="margin-right:auto">Excluir user</button>
+        <button type="button" class="btn-mst" onclick="resetUserPassword()">Reset senha</button>
+        <button type="button" class="btn-mst" onclick="closeModal('modalEditUser')">Cancelar</button>
+        <button type="submit" class="btn-mst btn-mst-primary">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
 const CSRF = '<?=htmlspecialchars($csrf)?>';
 const API  = '/sistema_vendas/public/api/master';
@@ -1006,9 +1119,18 @@ async function viewAcc(id) {
 
   if (d.users && d.users.length) {
     html += `<div class="mst-form-section">Usuários (${d.users.length})</div>
-    <table class="mst-tbl"><thead><tr><th>Nome</th><th>E-mail</th><th>Role</th><th>Status</th></tr></thead><tbody>`;
+    <table class="mst-tbl"><thead><tr><th>Nome</th><th>E-mail</th><th>Role</th><th>Status</th><th>Ações</th></tr></thead><tbody>`;
     d.users.forEach(u => {
-      html += `<tr><td>${esc(u.nome)}</td><td>${esc(u.email)}</td><td>${esc(u.role||u.perfil)}</td><td>${pill(u.status)}</td></tr>`;
+      html += `<tr>
+        <td>${esc(u.nome)}</td>
+        <td>${esc(u.email)}</td>
+        <td>${esc(u.role||u.perfil)}</td>
+        <td>${pill(u.status)}</td>
+        <td>
+          <button class="btn-mst" onclick="openEditUser(${u.id})">Editar</button>
+          <button class="btn-mst" onclick="quickResetPassword(${u.id})">Reset senha</button>
+        </td>
+      </tr>`;
     });
     html += `</tbody></table>`;
   }
@@ -1225,6 +1347,7 @@ async function loadAccounts() {
       <td>${a.sub_status?pill(a.sub_status):'—'}</td>
       <td>
         <button class="btn-mst" onclick="viewAcc(${a.id})">Detalhes</button>
+        <button class="btn-mst" onclick="openEditAccount(${a.id})">Editar</button>
         ${a.status==='active' || a.status==='trial' ? `<button class="btn-mst btn-mst-danger" onclick="setStatus(${a.id},'suspended')">Suspender</button>` : ''}
         ${a.status==='suspended' ? `<button class="btn-mst btn-mst-success" onclick="setStatus(${a.id},'active')">Reativar</button>` : ''}
       </td>
@@ -1523,6 +1646,162 @@ async function loadAudit() {
     </tr>`).join('');
 }
 document.getElementById('filterAuditAcao').addEventListener('input', () => clearTimeout(window._fa) || (window._fa = setTimeout(loadAudit, 300)));
+
+// ── Editar Conta (modal) ─────────────────────────────────────────────────
+async function openEditAccount(id) {
+  const r = await fj(`${API}/accounts.php?id=${id}`);
+  if (!r.ok) return notifyErr(r.error);
+  const d = r.data;
+  document.getElementById('editAccId').value     = d.id;
+  document.getElementById('editAccNome').value   = d.nome || '';
+  document.getElementById('editAccRazao').value  = d.razao_social || '';
+  document.getElementById('editAccCnpj').value   = d.cnpj || '';
+  document.getElementById('editAccEmail').value  = d.email || '';
+  document.getElementById('editAccTel').value    = d.telefone || '';
+  document.getElementById('editAccCidade').value = d.cidade || '';
+  document.getElementById('editAccUf').value     = d.estado || '';
+  document.getElementById('editAccTipo').value   = d.tipo || 'matriz';
+  document.getElementById('editAccStatus').value = d.status || 'active';
+  document.getElementById('editAccPlano').value  = d.plano || '';
+  openModal('modalEditAccount');
+}
+
+async function submitEditAccount(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  const id = parseInt(f.id.value, 10);
+  const body = {
+    csrf_token: CSRF, id,
+    nome:         f.nome.value.trim(),
+    razao_social: f.razao_social.value.trim(),
+    cnpj:         f.cnpj.value.trim(),
+    email:        f.email.value.trim(),
+    telefone:     f.telefone.value.trim(),
+    cidade:       f.cidade.value.trim(),
+    estado:       f.estado.value.trim().toUpperCase(),
+    tipo:         f.tipo.value,
+    status:       f.status.value,
+    plano:        f.plano.value.trim(),
+  };
+  const r = await fj(`${API}/accounts.php`, {
+    method: 'PATCH',
+    headers: {'Content-Type':'application/json','X-CSRF-Token':CSRF},
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) return notifyErr(r.error || 'Falha ao salvar');
+  closeModal('modalEditAccount');
+  notifyOk('Conta atualizada');
+  loadAccounts();
+  loadOverview();
+}
+
+async function deleteAccount() {
+  const id = parseInt(document.getElementById('editAccId').value, 10);
+  if (!id) return;
+  const nome = document.getElementById('editAccNome').value;
+  if (!(await Yuris.confirm(`Excluir a conta "${nome}"? Isso é um soft-delete (status vira "cancelled" e deleted_at preenchido). Não apaga dados de processos/cards.`, {danger:true, okLabel:'Excluir conta'}))) return;
+  const r = await fj(`${API}/accounts.php?id=${id}`, {
+    method:'DELETE',
+    headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},
+    body: JSON.stringify({csrf_token: CSRF, id}),
+  });
+  if (!r.ok) return notifyErr(r.error);
+  closeModal('modalEditAccount');
+  notifyOk('Conta excluída (soft-delete)');
+  loadAccounts();
+}
+
+// ── Editar Usuário (modal) ───────────────────────────────────────────────
+async function openEditUser(id) {
+  const r = await fj(`${API}/users.php?id=${id}`);
+  if (!r.ok) return notifyErr(r.error);
+  const u = r.data;
+  document.getElementById('editUserId').value    = u.id;
+  document.getElementById('editUserNome').value  = u.nome || '';
+  document.getElementById('editUserEmail').value = u.email || '';
+  document.getElementById('editUserTel').value   = u.telefone || '';
+  document.getElementById('editUserRole').value  = u.role || 'user';
+  document.getElementById('editUserStatus').value= u.status || 'active';
+  document.getElementById('editUserNewPass').value = '';
+  document.getElementById('editUserAccountInfo').textContent =
+    (u.account_nome || '—') + ' · ' + (u.account_tipo || '—') + ' (#' + u.account_id + ')';
+
+  // Adv fields aparecem só se for advogado
+  const isAdv = !!u.is_advogado;
+  document.getElementById('editUserAdvRow').style.display = isAdv ? '' : 'none';
+  if (isAdv) {
+    document.getElementById('editUserOab').value    = u.oab || '';
+    document.getElementById('editUserOabUf').value  = u.oab_uf || '';
+    document.getElementById('editUserCodAdv').value = u.codigo_advogado || '';
+  }
+  openModal('modalEditUser');
+}
+
+async function submitEditUser(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  const id = parseInt(f.id.value, 10);
+  const body = {
+    csrf_token: CSRF, id,
+    nome:     f.nome.value.trim(),
+    email:    f.email.value.trim(),
+    telefone: f.telefone.value.trim(),
+    role:     f.role.value,
+    status:   f.status.value,
+  };
+  if (f.nova_senha.value) body.nova_senha = f.nova_senha.value;
+  const oab    = document.getElementById('editUserOab').value;
+  const oab_uf = document.getElementById('editUserOabUf').value;
+  if (oab    || oab_uf) { body.oab    = oab.trim();    body.oab_uf = oab_uf.trim().toUpperCase(); }
+
+  const r = await fj(`${API}/users.php`, {
+    method: 'PATCH',
+    headers: {'Content-Type':'application/json','X-CSRF-Token':CSRF},
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) return notifyErr(r.error);
+  closeModal('modalEditUser');
+  notifyOk('Usuário atualizado');
+}
+
+async function resetUserPassword() {
+  const id = parseInt(document.getElementById('editUserId').value, 10);
+  if (!id) return;
+  if (!(await Yuris.confirm('Gerar nova senha temporária pra este usuário?', {okLabel:'Resetar'}))) return;
+  const r = await fj(`${API}/users.php?reset_password=1`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRF-Token':CSRF},
+    body: JSON.stringify({csrf_token: CSRF, id}),
+  });
+  if (!r.ok) return notifyErr(r.error);
+  Yuris.notify(`Nova senha: ${r.data.senha_gerada}`, {type:'success', duration:18000});
+}
+
+async function quickResetPassword(id) {
+  if (!(await Yuris.confirm('Resetar a senha deste usuário? Vai gerar uma nova senha temporária.', {okLabel:'Resetar'}))) return;
+  const r = await fj(`${API}/users.php?reset_password=1`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRF-Token':CSRF},
+    body: JSON.stringify({csrf_token: CSRF, id}),
+  });
+  if (!r.ok) return notifyErr(r.error);
+  Yuris.notify(`Nova senha: ${r.data.senha_gerada}`, {type:'success', duration:18000});
+}
+
+async function deleteUser() {
+  const id = parseInt(document.getElementById('editUserId').value, 10);
+  if (!id) return;
+  const nome = document.getElementById('editUserNome').value;
+  if (!(await Yuris.confirm(`Excluir o usuário "${nome}"? Soft-delete: a sessão dele expira na próxima navegação.`, {danger:true, okLabel:'Excluir'}))) return;
+  const r = await fj(`${API}/users.php?id=${id}`, {
+    method: 'DELETE',
+    headers: {'Content-Type':'application/json','X-CSRF-Token':CSRF},
+    body: JSON.stringify({csrf_token: CSRF, id}),
+  });
+  if (!r.ok) return notifyErr(r.error);
+  closeModal('modalEditUser');
+  notifyOk('Usuário removido');
+}
 
 // ── Init ─────────────────────────────────────────────────────────────────
 const initialHash = (window.location.hash || '').replace('#','') || 'overview';
