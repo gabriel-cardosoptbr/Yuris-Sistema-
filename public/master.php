@@ -11,14 +11,25 @@ if (empty($_SESSION['user_id'])) {
     exit;
 }
 
+// ISOLAMENTO TOTAL: o Painel Master só é acessível via portal master_login.
+// Mesmo super_admin que logou pelo /login.php normal NÃO entra direto aqui —
+// precisa fazer login explícito em /master_login.php pra ter master_mode=true.
+// Isso evita que uma sessão sequestrada do app abra o painel master.
+if (empty($_SESSION['master_mode'])) {
+    header('Location: /sistema_vendas/public/master_login.php');
+    exit;
+}
+
 use App\Helpers\AccountContext;
 
 $ctx = AccountContext::fromSession();
 if (!$ctx->isSuperAdmin()) {
+    // Não é super_admin → derruba sessão master (foi promovida indevidamente?) e bloqueia
+    unset($_SESSION['master_mode']);
     http_response_code(403);
-    echo '<html><body style="font-family:sans-serif;padding:40px;background:#0a1830;color:#dbe7f5">';
+    echo '<html><body style="font-family:sans-serif;padding:40px;background:#0a0418;color:#dbe7f5">';
     echo '<h1>Acesso negado</h1><p>Apenas super administradores podem acessar o Painel Master.</p>';
-    echo '<a href="/sistema_vendas/public/dashboard.php" style="color:#60a5fa">← Voltar ao Dashboard</a>';
+    echo '<a href="/sistema_vendas/public/master_login.php" style="color:#c084fc">← Voltar ao portal master</a>';
     echo '</body></html>';
     exit;
 }
@@ -27,13 +38,11 @@ $activePage = 'master';
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 $saLevel = $ctx->getSuperAdminLevel() ?: 'operator';
 
-// Detecta se a sessão veio pelo portal isolado (master_login) ou pelo app regular.
-// Influencia o botão "Sair": logout total OU volta pro app.
-$inMasterMode = !empty($_SESSION['master_mode']);
-$exitHref     = $inMasterMode ? '/sistema_vendas/public/master_logout.php'
-                              : '/sistema_vendas/public/dashboard.php';
-$exitLabel    = $inMasterMode ? '← Sair (logout)' : '← Sair do Master';
-$exitTitle    = $inMasterMode ? 'Logout do Painel Master' : 'Voltar ao app normal';
+// Botão "Sair" sempre faz logout do master e volta pro portal isolado.
+// (chegou até aqui = master_mode obrigatoriamente true, asserted acima)
+$exitHref  = '/sistema_vendas/public/master_logout.php';
+$exitLabel = '← Sair (logout)';
+$exitTitle = 'Encerrar sessão e voltar ao portal master';
 ?>
 <!doctype html>
 <html lang="pt-BR">

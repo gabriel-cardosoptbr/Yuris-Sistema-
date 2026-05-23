@@ -186,30 +186,12 @@ $_uiLibVer   = file_exists($_uiLibPath) ? @filemtime($_uiLibPath) : '1';
     <?php endif; ?>
 
     <?php
-    /* Painel Master — só aparece pra super_admins. Check leve consultando
-       super_admins direto (idempotente; falha silenciosa se tabela ausente). */
-    $_isSuper = false;
-    if (!empty($_SESSION['is_super_admin'])) {
-        $_isSuper = true;
-    } else if (!empty($_SESSION['user_id'])) {
-        try {
-            $_pdoSa = \App\Models\Database::getConnection();
-            $_sa = $_pdoSa->prepare('SELECT 1 FROM super_admins WHERE user_id = :uid AND ativo = 1 LIMIT 1');
-            $_sa->execute(['uid' => $_SESSION['user_id']]);
-            $_isSuper = (bool) $_sa->fetchColumn();
-            if ($_isSuper) $_SESSION['is_super_admin'] = true;
-        } catch (\Throwable $_e) { /* tabela ainda não criada — silencioso */ }
-    }
+    /* Painel Master — REMOVIDO da sidebar do app normal.
+     * Acesso EXCLUSIVO via portal isolado: /sistema_vendas/public/master_login.php
+     * Mesmo super_admins não vêem link aqui. Garantia de "qualquer outra conta
+     * não deve ter acesso ao painel master nunca" — não há trilha visual.
+     */
     ?>
-    <?php if ($_isSuper): ?>
-    <a href="master.php"<?= $_ap === 'master' ? ' class="active" aria-current="page"' : '' ?>
-       style="<?= $_ap === 'master' ? '' : 'border:1px solid rgba(168,85,247,0.30);background:rgba(168,85,247,0.08);' ?>">
-      <span class="icon" aria-hidden="true">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-      </span>
-      <span class="label">Painel Master</span>
-    </a>
-    <?php endif; ?>
 
   </nav>
 
