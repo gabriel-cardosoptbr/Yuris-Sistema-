@@ -1,10 +1,11 @@
 <?php
 /**
- * Painel Master — criação atômica de nova conta (matriz).
+ * Painel Master — criação atômica de nova conta (matriz OU advogado-solo).
  *
  * Cria em UMA transação:
- *   1. accounts (tipo=matriz)
- *   2. users (admin da matriz com role=owner)
+ *   1. accounts (tipo='matriz' ou 'advogado')
+ *   2. users (admin da conta com role=owner)
+ *      - Se tipo='advogado': também is_advogado=1, oab/oab_uf, codigo_advogado
  *   3. subscriptions (status=trialing ou active, conforme plano)
  *
  * Se qualquer passo falhar, faz ROLLBACK completo.
@@ -14,6 +15,7 @@
  * POST body (JSON):
  *   {
  *     csrf_token: "...",
+ *     tipo?: "matriz"|"advogado",   // default: matriz
  *     account: {
  *       nome: "...",
  *       razao_social?: "...",
@@ -28,7 +30,9 @@
  *       nome: "...",
  *       email: "...",
  *       senha?: "...",     // se ausente, gera senha aleatória
- *       telefone?: "..."
+ *       telefone?: "...",
+ *       oab?: "...",       // obrigatório quando tipo='advogado'
+ *       oab_uf?: "SP",     // obrigatório quando tipo='advogado'
  *     },
  *     subscription: {
  *       plan_id: 1,
@@ -38,7 +42,8 @@
  *   }
  *
  * Retorna:
- *   { ok: true, data: { account_id, user_id, subscription_id, senha_gerada? } }
+ *   { ok: true, data: { account_id, user_id, subscription_id, codigo_vinculo,
+ *                       senha_gerada?, codigo_advogado? } }
  */
 require_once __DIR__ . '/../../../app/Models/Database.php';
 require_once __DIR__ . '/../../../app/Models/Account.php';
@@ -67,6 +72,11 @@ if (!$csrf || $csrf !== ($_SESSION['csrf_token'] ?? '')) {
 $acc  = $input['account']      ?? [];
 $adm  = $input['admin']        ?? [];
 $sub  = $input['subscription'] ?? [];
+$tipo = trim($input['tipo'] ?? 'matriz');
+if (!in_array($tipo, ['matriz','advogado'], true)) {
+    ApiResponse::badRequest("tipo inválido (use 'matriz' ou 'advogado')");
+}
+$isAdvogado = ($tipo === 'advogado');
 
 // ─── Validações básicas ─────────────────────────────────────────────────────
 $nome = trim($acc['nome'] ?? '');
@@ -79,6 +89,18 @@ if ($admNome === '' || $admEmail === '') {
 }
 if (!filter_var($admEmail, FILTER_VALIDATE_EMAIL)) {
     ApiResponse::badRequest('Email do admin inválido');
+}
+
+// Quando tipo='advogado', OAB e UF são obrigatórios
+$advOab    = trim($adm['oab']    ?? '');
+$advOabUf  = strtoupper(trim($adm['oab_uf'] ?? ''));
+if ($isAdvogado) {
+    if ($advOab === '' || $advOabUf === '') {
+        ApiResponse::badRequest('OAB e UF da OAB são obrigatórios pra advogado solo');
+    }
+    if (strlen($advOabUf) !== 2) {
+        ApiResponse::badRequest('UF da OAB deve ter 2 letras');
+    }
 }
 
 $planId = (int) ($sub['plan_id'] ?? 0);
@@ -110,6 +132,15 @@ if ($cnpj) {
     }
 }
 
+// ─── OAB duplicada (apenas pra tipo advogado) ───────────────────────────────
+if ($isAdvogado && $advOab !== '') {
+    $dupO = $pdo->prepare("SELECT id FROM users WHERE oab = :o AND deleted_at IS NULL LIMIT 1");
+    $dupO->execute(['o' => $advOab]);
+    if ($dupO->fetchColumn()) {
+        ApiResponse::badRequest('Já existe um advogado cadastrado com esta OAB');
+    }
+}
+
 // ─── Status & senha ─────────────────────────────────────────────────────────
 $accStatus = in_array($acc['status'] ?? 'trial', ['trial','active','suspended'], true)
     ? $acc['status']
@@ -131,18 +162,32 @@ $cycle     = in_array($sub['billing_cycle'] ?? 'monthly', ['monthly','yearly'], 
     : 'monthly';
 $subStatus = $accStatus === 'active' ? 'active' : 'trialing';
 
+// ─── Gera código ADV-XXXXXX único quando for advogado solo ──────────────────
+$codigoAdvogado = null;
+if ($isAdvogado) {
+    for ($i = 0; $i < 12; $i++) {
+        $cand = 'ADV-' . str_pad((string) random_int(1, 999999), 6, '0', STR_PAD_LEFT);
+        $ck = $pdo->prepare("SELECT id FROM users WHERE codigo_advogado = :c LIMIT 1");
+        $ck->execute(['c' => $cand]);
+        if (!$ck->fetchColumn()) { $codigoAdvogado = $cand; break; }
+    }
+    if ($codigoAdvogado === null) {
+        $codigoAdvogado = 'ADV-' . bin2hex(random_bytes(3));
+    }
+}
+
 // ─── Transação atômica ──────────────────────────────────────────────────────
 try {
     $pdo->beginTransaction();
 
-    // 1. INSERT accounts
+    // 1. INSERT accounts (tipo dinâmico: matriz ou advogado)
     $stmtA = $pdo->prepare(
         "INSERT INTO accounts
            (nome, razao_social, cnpj, email, telefone, cidade, estado,
             tipo, codigo_vinculo, plano, status, created_at, updated_at)
          VALUES
            (:nome, :rs, :cnpj, :em, :tel, :ci, :uf,
-            'matriz', :codigo, :plano, :status, NOW(), NOW())"
+            :tipo, :codigo, :plano, :status, NOW(), NOW())"
     );
     $codigo = implode('-', str_split(bin2hex(random_bytes(8)), 4));
     $stmtA->execute([
@@ -153,26 +198,48 @@ try {
         'tel'    => trim($acc['telefone'] ?? '') ?: null,
         'ci'     => trim($acc['cidade'] ?? '') ?: null,
         'uf'     => trim($acc['estado'] ?? '') ?: null,
+        'tipo'   => $tipo,
         'codigo' => $codigo,
         'plano'  => $plano['slug'],
         'status' => $accStatus,
     ]);
     $accountId = (int) $pdo->lastInsertId();
 
-    // 2. INSERT users (admin)
-    $stmtU = $pdo->prepare(
-        "INSERT INTO users
-           (account_id, nome, login, senha_hash, perfil, role, status, telefone, created_at, updated_at)
-         VALUES
-           (:aid, :nome, :login, :sh, 'admin', 'owner', 'active', :tel, NOW(), NOW())"
-    );
-    $stmtU->execute([
-        'aid'   => $accountId,
-        'nome'  => $admNome,
-        'login' => $admEmail,
-        'sh'    => $senhaHash,
-        'tel'   => trim($adm['telefone'] ?? '') ?: null,
-    ]);
+    // 2. INSERT users (admin) — para advogado solo, também é_advogado=1, oab, oab_uf
+    if ($isAdvogado) {
+        $stmtU = $pdo->prepare(
+            "INSERT INTO users
+               (account_id, nome, login, senha_hash, perfil, role, status, telefone,
+                oab, oab_uf, codigo_advogado, is_advogado, created_at, updated_at)
+             VALUES
+               (:aid, :nome, :login, :sh, 'admin', 'owner', 'active', :tel,
+                :oab, :uf, :codAdv, 1, NOW(), NOW())"
+        );
+        $stmtU->execute([
+            'aid'    => $accountId,
+            'nome'   => $admNome,
+            'login'  => $admEmail,
+            'sh'     => $senhaHash,
+            'tel'    => trim($adm['telefone'] ?? '') ?: null,
+            'oab'    => $advOab,
+            'uf'     => $advOabUf,
+            'codAdv' => $codigoAdvogado,
+        ]);
+    } else {
+        $stmtU = $pdo->prepare(
+            "INSERT INTO users
+               (account_id, nome, login, senha_hash, perfil, role, status, telefone, created_at, updated_at)
+             VALUES
+               (:aid, :nome, :login, :sh, 'admin', 'owner', 'active', :tel, NOW(), NOW())"
+        );
+        $stmtU->execute([
+            'aid'   => $accountId,
+            'nome'  => $admNome,
+            'login' => $admEmail,
+            'sh'    => $senhaHash,
+            'tel'   => trim($adm['telefone'] ?? '') ?: null,
+        ]);
+    }
     $userId = (int) $pdo->lastInsertId();
 
     // 3. INSERT subscriptions
@@ -200,8 +267,9 @@ try {
         'account.create',
         'account',
         $accountId,
-        "Conta '{$nome}' criada via Painel Master",
+        "Conta '{$nome}' (tipo: {$tipo}) criada via Painel Master",
         [
+            'tipo'         => $tipo,
             'plano'        => $plano['slug'],
             'status'       => $accStatus,
             'admin_email'  => $admEmail,
@@ -209,6 +277,7 @@ try {
             'billing_cycle'=> $cycle,
             'subscription_id' => $subId,
             'user_id'      => $userId,
+            'oab'          => $isAdvogado ? "{$advOab}/{$advOabUf}" : null,
         ]
     );
 
@@ -219,8 +288,10 @@ try {
         'user_id'         => $userId,
         'subscription_id' => $subId,
         'codigo_vinculo'  => $codigo,
+        'tipo'            => $tipo,
     ];
-    if ($senhaGerada) $payload['senha_gerada'] = $senhaTexto;
+    if ($senhaGerada)    $payload['senha_gerada']    = $senhaTexto;
+    if ($codigoAdvogado) $payload['codigo_advogado'] = $codigoAdvogado;
 
     ApiResponse::ok($payload);
 } catch (\Throwable $e) {

@@ -37,6 +37,7 @@ $kpis = [
         'total'      => (int) $pdo->query("SELECT COUNT(*) FROM accounts WHERE deleted_at IS NULL")->fetchColumn(),
         'matriz'     => (int) $pdo->query("SELECT COUNT(*) FROM accounts WHERE deleted_at IS NULL AND tipo = 'matriz'")->fetchColumn(),
         'filial'     => (int) $pdo->query("SELECT COUNT(*) FROM accounts WHERE deleted_at IS NULL AND tipo = 'filial'")->fetchColumn(),
+        'advogado'   => (int) $pdo->query("SELECT COUNT(*) FROM accounts WHERE deleted_at IS NULL AND tipo = 'advogado'")->fetchColumn(),
         'active'     => (int) $pdo->query("SELECT COUNT(*) FROM accounts WHERE deleted_at IS NULL AND status = 'active'")->fetchColumn(),
         'trial'      => (int) $pdo->query("SELECT COUNT(*) FROM accounts WHERE deleted_at IS NULL AND status = 'trial'")->fetchColumn(),
         'overdue'    => (int) $pdo->query("SELECT COUNT(*) FROM accounts WHERE deleted_at IS NULL AND status = 'overdue'")->fetchColumn(),

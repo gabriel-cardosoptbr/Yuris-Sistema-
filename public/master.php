@@ -214,9 +214,9 @@ $saLevel = $ctx->getSuperAdminLevel() ?: 'operator';
         <input id="globalSearch" class="mst-search" placeholder="Buscar matriz, filial, advogado, e-mail, CNPJ, OAB..." autocomplete="off">
         <div id="searchResults" class="mst-search-results"></div>
       </div>
-      <button class="mst-action-btn" onclick="openModalAccount()">+ Nova Conta</button>
+      <button class="mst-action-btn" onclick="openModalAccount('matriz')">+ Matriz</button>
       <button class="mst-action-btn mst-action-btn-secondary" onclick="openModalFilial()">+ Filial</button>
-      <button class="mst-action-btn mst-action-btn-secondary" onclick="openModalAdvogado()">+ Advogado</button>
+      <button class="mst-action-btn mst-action-btn-secondary" onclick="openModalAccount('advogado')">+ Advogado</button>
     </div>
   </div>
 
@@ -243,9 +243,13 @@ $saLevel = $ctx->getSuperAdminLevel() ?: 'operator';
     <div class="mst-grid-5">
       <div class="mst-card"><div class="mst-kpi-label">Matrizes</div><div class="mst-kpi-value" id="kpiMatriz">—</div></div>
       <div class="mst-card"><div class="mst-kpi-label">Filiais</div><div class="mst-kpi-value" id="kpiFilial">—</div></div>
-      <div class="mst-card"><div class="mst-kpi-label">Advogados</div><div class="mst-kpi-value" id="kpiAdv">—</div></div>
-      <div class="mst-card"><div class="mst-kpi-label">Usuários ativos</div><div class="mst-kpi-value" id="kpiUsersActive">—</div></div>
+      <div class="mst-card"><div class="mst-kpi-label">Adv. Solo (contas)</div><div class="mst-kpi-value" id="kpiAccAdv">—</div><div class="mst-kpi-foot">tenants tipo advogado</div></div>
+      <div class="mst-card"><div class="mst-kpi-label">Advogados (users)</div><div class="mst-kpi-value" id="kpiAdv">—</div><div class="mst-kpi-foot">users com OAB</div></div>
       <div class="mst-card"><div class="mst-kpi-label">Faturas vencidas</div><div class="mst-kpi-value" id="kpiInvOverdue">—</div></div>
+    </div>
+    <div class="mst-grid-5" style="grid-template-columns:repeat(2,1fr)">
+      <div class="mst-card"><div class="mst-kpi-label">Usuários ativos</div><div class="mst-kpi-value" id="kpiUsersActive">—</div></div>
+      <div class="mst-card"><div class="mst-kpi-label">Usuários inativos</div><div class="mst-kpi-value" id="kpiUsersInactive">—</div></div>
     </div>
 
     <div class="mst-card" style="padding:0; overflow:hidden; margin-bottom:18px">
@@ -303,9 +307,10 @@ $saLevel = $ctx->getSuperAdminLevel() ?: 'operator';
           <option value="inactive">Inactive</option>
         </select>
         <select id="filterAccTipo" class="mst-form-select" style="width:auto; padding:6px 11px; font-size:.82rem">
-          <option value="">Matriz e Filial</option>
+          <option value="">Todos tipos</option>
           <option value="matriz">Só Matriz</option>
           <option value="filial">Só Filial</option>
+          <option value="advogado">Só Advogado</option>
         </select>
         <input id="filterAcc" placeholder="Buscar nome..." style="padding:6px 11px; border-radius:7px; background:rgba(5,18,39,.6); border:1px solid rgba(160,180,210,.18); color:#D8E4F0; font-size:.82rem; width:240px">
       </div>
@@ -392,22 +397,23 @@ $saLevel = $ctx->getSuperAdminLevel() ?: 'operator';
      MODAIS
 ─────────────────────────────────────────────────────────────────────── -->
 
-<!-- Modal: Nova Conta -->
+<!-- Modal: Nova Conta (matriz ou advogado-solo) -->
 <div class="mst-modal-backdrop" id="modalAccount" onclick="if(event.target===this)closeModal('modalAccount')">
   <div class="mst-modal lg">
     <div class="mst-modal-header">
-      <h3 class="mst-modal-title">Nova Conta (Matriz)</h3>
+      <h3 class="mst-modal-title" id="accountModalTitle">Nova Matriz</h3>
       <button class="mst-modal-close" onclick="closeModal('modalAccount')">×</button>
     </div>
     <form id="formAccount" onsubmit="submitAccount(event)">
+      <input type="hidden" name="tipo" id="accountTipo" value="matriz">
       <div class="mst-modal-body">
-        <div class="mst-form-section">Dados da Matriz</div>
+        <div class="mst-form-section" id="accountDataSection">Dados da Matriz</div>
         <div class="mst-form-row">
           <div><label class="mst-form-label">Nome *</label><input name="account_nome" class="mst-form-input" required></div>
-          <div><label class="mst-form-label">Razão Social</label><input name="account_razao" class="mst-form-input"></div>
+          <div><label class="mst-form-label" id="accountRazaoLabel">Razão Social</label><input name="account_razao" class="mst-form-input"></div>
         </div>
         <div class="mst-form-row">
-          <div><label class="mst-form-label">CNPJ</label><input name="account_cnpj" class="mst-form-input" placeholder="apenas dígitos"></div>
+          <div><label class="mst-form-label" id="accountCnpjLabel">CNPJ</label><input name="account_cnpj" class="mst-form-input" placeholder="apenas dígitos"></div>
           <div><label class="mst-form-label">E-mail</label><input name="account_email" class="mst-form-input" type="email"></div>
           <div><label class="mst-form-label">Telefone</label><input name="account_tel" class="mst-form-input"></div>
         </div>
@@ -422,11 +428,16 @@ $saLevel = $ctx->getSuperAdminLevel() ?: 'operator';
           </div>
         </div>
 
-        <div class="mst-form-section">Administrador da Conta</div>
+        <div class="mst-form-section" id="adminSection">Administrador da Conta</div>
         <div class="mst-form-row">
-          <div><label class="mst-form-label">Nome *</label><input name="adm_nome" class="mst-form-input" required></div>
+          <div><label class="mst-form-label" id="admNomeLabel">Nome *</label><input name="adm_nome" class="mst-form-input" required></div>
           <div><label class="mst-form-label">E-mail (login) *</label><input name="adm_email" class="mst-form-input" type="email" required></div>
           <div><label class="mst-form-label">Telefone</label><input name="adm_tel" class="mst-form-input"></div>
+        </div>
+        <!-- OAB: aparece apenas quando tipo='advogado' -->
+        <div class="mst-form-row" id="oabRow" style="display:none">
+          <div><label class="mst-form-label">OAB *</label><input name="adm_oab" class="mst-form-input" placeholder="ex: 123456"></div>
+          <div><label class="mst-form-label">UF da OAB *</label><input name="adm_oab_uf" class="mst-form-input" maxlength="2" style="text-transform:uppercase" placeholder="ex: SP"></div>
         </div>
         <div class="mst-form-row">
           <div>
@@ -763,7 +774,8 @@ window.addEventListener('hashchange', () => activateTab((location.hash||'').repl
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
-async function openModalAccount() {
+async function openModalAccount(tipo) {
+  tipo = tipo || 'matriz';
   // Carrega lista de planos
   const r = await fj(`${API}/plans.php`);
   const sel = document.getElementById('selPlan');
@@ -773,10 +785,26 @@ async function openModalAccount() {
       const o = document.createElement('option');
       o.value = p.id;
       o.textContent = `${p.nome} — ${fmtBRL(p.preco_mensal_cents)}/mês`;
+      // Sugere "Teste Grátis" como default pra advogado
+      if (tipo === 'advogado' && p.slug === 'teste_gratis') o.selected = true;
       sel.appendChild(o);
     });
   }
   document.getElementById('formAccount').reset();
+  document.getElementById('accountTipo').value = tipo;
+
+  const isAdv = (tipo === 'advogado');
+  document.getElementById('accountModalTitle').textContent = isAdv ? 'Novo Advogado (Conta Própria)' : 'Nova Matriz';
+  document.getElementById('accountDataSection').textContent = isAdv ? 'Dados do Escritório / Advogado Solo' : 'Dados da Matriz';
+  document.getElementById('accountRazaoLabel').textContent = isAdv ? 'Razão Social / Nome Completo' : 'Razão Social';
+  document.getElementById('accountCnpjLabel').textContent = isAdv ? 'CNPJ / CPF' : 'CNPJ';
+  document.getElementById('adminSection').textContent = isAdv ? 'Dados do Advogado' : 'Administrador da Conta';
+  document.getElementById('admNomeLabel').textContent = isAdv ? 'Nome do Advogado *' : 'Nome *';
+  document.getElementById('oabRow').style.display = isAdv ? '' : 'none';
+  // tipo dirige obrigatoriedade dos campos OAB no DOM
+  document.querySelector('[name="adm_oab"]').required    = isAdv;
+  document.querySelector('[name="adm_oab_uf"]').required = isAdv;
+
   openModal('modalAccount');
 }
 
@@ -819,8 +847,10 @@ async function openModalAdvogado(accountId) {
 async function submitAccount(ev) {
   ev.preventDefault();
   const f = ev.target;
+  const tipo = f.tipo.value || 'matriz';
   const body = {
     csrf_token: CSRF,
+    tipo,
     account: {
       nome:         f.account_nome.value.trim(),
       razao_social: f.account_razao.value.trim(),
@@ -843,6 +873,11 @@ async function submitAccount(ev) {
       trial_dias:    f.sub_trial_dias.value ? parseInt(f.sub_trial_dias.value, 10) : undefined,
     }
   };
+  // OAB obrigatório quando é advogado-solo
+  if (tipo === 'advogado') {
+    body.admin.oab    = f.adm_oab.value.trim();
+    body.admin.oab_uf = f.adm_oab_uf.value.trim().toUpperCase();
+  }
   const r = await fj(`${API}/create_account.php`, {
     method: 'POST',
     headers: {'Content-Type': 'application/json', 'X-CSRF-Token': CSRF},
@@ -850,9 +885,12 @@ async function submitAccount(ev) {
   });
   if (!r.ok) return notifyErr(r.error || 'Falha ao criar conta');
   closeModal('modalAccount');
-  notifyOk('Conta criada com sucesso!');
+  notifyOk(tipo === 'advogado' ? 'Advogado solo criado!' : 'Matriz criada com sucesso!');
   if (r.data.senha_gerada) {
     Yuris.notify(`Senha temporária gerada: ${r.data.senha_gerada}`, {type:'info', duration:12000});
+  }
+  if (r.data.codigo_advogado) {
+    Yuris.notify(`Código do advogado: ${r.data.codigo_advogado}`, {type:'info', duration:10000});
   }
   loadTab('accounts');
   activateTab('accounts');
@@ -990,7 +1028,7 @@ async function viewAcc(id) {
   let foot = '';
   if (isMatriz) {
     foot += `<button class="btn-mst" onclick="openModalFilial(${d.id})">+ Filial</button>`;
-    foot += `<button class="btn-mst" onclick="openModalAdvogado(${d.id})">+ Advogado</button>`;
+    foot += `<button class="btn-mst" onclick="openModalAdvogado(${d.id})">+ Advogado nesta conta</button>`;
   }
   if (d.status === 'active' || d.status === 'trial') {
     foot += `<button class="btn-mst btn-mst-danger" onclick="setStatus(${d.id},'suspended')">Suspender</button>`;
@@ -1116,8 +1154,11 @@ async function loadOverview() {
   document.getElementById('kpiMrr').textContent        = 'R$ ' + d.mrr_brl;
   document.getElementById('kpiMatriz').textContent     = k.accounts.matriz;
   document.getElementById('kpiFilial').textContent     = k.accounts.filial;
+  document.getElementById('kpiAccAdv').textContent     = k.accounts.advogado || 0;
   document.getElementById('kpiAdv').textContent        = k.users.advogados;
   document.getElementById('kpiUsersActive').textContent= k.users.active;
+  const kpiUsersInactive = document.getElementById('kpiUsersInactive');
+  if (kpiUsersInactive) kpiUsersInactive.textContent = k.users.inactive;
   document.getElementById('kpiInvOverdue').textContent = k.invoices.overdue;
 
   // recentes
