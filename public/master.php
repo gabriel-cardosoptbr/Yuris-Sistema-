@@ -38,6 +38,16 @@ $activePage = 'master';
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 $saLevel = $ctx->getSuperAdminLevel() ?: 'operator';
 
+// LGPD P0 (1.9): banner pede pra configurar 2FA se ainda não habilitado.
+// Modo opt-in — não bloqueia login, apenas chama atenção.
+$mfaEnabled = false;
+try {
+    $pdoMfa = \App\Models\Database::getConnection();
+    $sMfa = $pdoMfa->prepare('SELECT mfa_enabled FROM super_admins WHERE user_id = :uid AND ativo = 1 LIMIT 1');
+    $sMfa->execute(['uid' => $ctx->getUserId()]);
+    $mfaEnabled = (int)$sMfa->fetchColumn() === 1;
+} catch (\Throwable $_) { /* tabela pré-migration 047 — silencioso */ }
+
 // Botão "Sair" sempre faz logout do master e volta pro portal isolado.
 // (chegou até aqui = master_mode obrigatoriamente true, asserted acima)
 $exitHref  = '/sistema_vendas/public/master_logout.php';
@@ -221,6 +231,20 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
 <div class="mst-topbar-exit">
   <a href="<?= htmlspecialchars($exitHref) ?>" class="mst-exit" title="<?= htmlspecialchars($exitTitle) ?>"><?= htmlspecialchars($exitLabel) ?></a>
 </div>
+
+<?php if (!$mfaEnabled): ?>
+<div style="background:linear-gradient(90deg,rgba(245,158,11,.18),rgba(245,158,11,.06));border-bottom:1px solid rgba(245,158,11,.40);padding:10px 32px;display:flex;align-items:center;justify-content:space-between;gap:14px;color:#fde68a;font-size:.86rem">
+  <div style="display:flex;align-items:center;gap:10px">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <strong>2FA não configurado.</strong>
+    <span>O Painel Master tem acesso cross-tenant total — proteja com autenticação em dois fatores.</span>
+  </div>
+  <a href="/sistema_vendas/public/master_mfa_setup.php"
+     style="padding:6px 14px;background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;text-decoration:none;border-radius:6px;font-weight:600;font-size:.82rem;white-space:nowrap;">
+    Configurar agora →
+  </a>
+</div>
+<?php endif; ?>
 
 <main class="mst-content">
   <div class="mst-header">
