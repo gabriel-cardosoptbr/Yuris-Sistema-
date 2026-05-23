@@ -123,7 +123,7 @@
   }
 
   function attachRowButtons(){
-    document.querySelectorAll('.delActionBtn').forEach(b=>{ b.onclick = function(){ if (!confirm('Excluir tipo de ação?')) return; const id = this.getAttribute('data-id'); let list = getList(); list = list.filter(it=> it.id != id); saveList(list); renderTable(); populateSelect(); } });
+    document.querySelectorAll('.delActionBtn').forEach(b=>{ b.onclick = async function(){ if (!(await Yuris.confirm('Excluir tipo de ação?', { danger: true, okLabel: 'Excluir' }))) return; const id = this.getAttribute('data-id'); let list = getList(); list = list.filter(it=> it.id != id); saveList(list); renderTable(); populateSelect(); } });
     document.querySelectorAll('.editActionBtn').forEach(b=>{ b.onclick = function(){ const id = this.getAttribute('data-id'); const list = getList(); const it = list.find(x=> x.id == id); if (!it) return; document.getElementById('newActionCode').value = it.code||''; document.getElementById('newActionName').value = it.name||''; const addBtn = document.getElementById('addActionBtn'); addBtn.dataset.editId = id; addBtn.textContent = 'Atualizar'; document.getElementById('cancelEditActionBtn').style.display='inline-block'; } });
   }
 

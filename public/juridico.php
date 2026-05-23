@@ -14,7 +14,8 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
   <link rel="icon" type="image/png" sizes="192x192" href="/sistema_vendas/public/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css">
+  <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=27">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=8">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
@@ -134,14 +135,40 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
     .badge-ok      { background: rgba(30,74,58,0.60);  color: #7ABDA0; border: 1px solid rgba(122,189,160,0.25); }
     .badge-info    { background: rgba(14,40,69,0.70);  color: #6898C0; border: 1px solid rgba(104,152,192,0.25); }
 
-    /* ── Distribuição por responsável ── */
-    .resp-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid rgba(96,165,250,.08); }
-    .resp-row:last-child { border-bottom: none; }
-    .resp-name  { flex: 0 0 140px; font-size: .83rem; font-weight: 600; color: #d6e8fa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .resp-bar-wrap { flex: 1; height: 6px; background: rgba(26,58,92,0.18); border-radius: 999px; overflow: hidden; }
+    /* ── Distribuição por responsável (formato CARD vertical) ──
+       Cada item vira mini-card: nome completo no topo + linha de baixo
+       (barra de progresso + contagem + porcentagem). Evita truncar nomes. */
+    .resp-row {
+      display: flex; flex-direction: column; gap: 6px;
+      padding: 11px 12px;
+      margin-bottom: 8px;
+      background: rgba(15,33,60,.55);
+      border: 1px solid rgba(96,165,250,.10);
+      border-radius: 9px;
+      transition: border-color .15s, background .15s;
+    }
+    .resp-row:hover {
+      border-color: rgba(96,165,250,.22);
+      background: rgba(15,33,60,.75);
+    }
+    .resp-row:last-child { margin-bottom: 0; }
+    .resp-name {
+      font-size: .85rem; font-weight: 600;
+      color: #d6e8fa;
+      line-height: 1.3;
+      /* nome completo, com quebra se necessário */
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+      word-break: break-word;
+    }
+    .resp-stats {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .resp-bar-wrap { flex: 1; height: 6px; background: rgba(26,58,92,0.22); border-radius: 999px; overflow: hidden; }
     .resp-bar  { height: 100%; background: linear-gradient(90deg, #1A3A5C, #3D6A96); border-radius: 999px; transition: width .6s ease; }
-    .resp-count { flex: 0 0 50px; text-align: right; font-size: .8rem; font-weight: 700; color: #6898C0; }
-    .resp-pct   { flex: 0 0 42px; text-align: right; font-size: .72rem; color: var(--muted); }
+    .resp-count { flex: 0 0 auto; min-width: 32px; text-align: right; font-size: .82rem; font-weight: 700; color: #6898C0; }
+    .resp-pct   { flex: 0 0 auto; min-width: 38px; text-align: right; font-size: .73rem; color: var(--muted); }
 
     /* ── List rows (legacy sections) ── */
     .list-row { padding: 9px 11px; border-radius: 7px; margin-bottom: 6px; background: rgba(15,33,60,.75); border: 1px solid rgba(59,130,246,.1); font-size: .82rem; }
@@ -227,6 +254,55 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
       .prox-grid  { grid-template-columns: 1fr !important; }
       .charts-grid-3 { grid-template-columns: 1fr !important; }
     }
+
+    /* ──────────────────────────────────────────────────────────────────────
+       TEMA CLARO — overrides para a aba Jurídico.
+       Princípio: fundo claro → texto escuro; mantém identidade da cor.
+       ────────────────────────────────────────────────────────────────────── */
+    html[data-theme="light"] .jur-panel {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      box-shadow: 0 1px 3px rgba(15,23,42,.04);
+    }
+    html[data-theme="light"] .jur-title         { color: #0F172A; }
+    html[data-theme="light"] .jur-subtitle      { color: #64748B; }
+    html[data-theme="light"] .jur-section-title { color: #0F172A; }
+
+    /* Distribuição por Responsável — formato card no tema claro */
+    html[data-theme="light"] .resp-row {
+      background: #F8FAFC;
+      border-color: #E2E8F0;
+    }
+    html[data-theme="light"] .resp-row:hover {
+      background: #F1F5F9;
+      border-color: #CBD5E1;
+    }
+    html[data-theme="light"] .resp-name  { color: #0F172A; }
+    html[data-theme="light"] .resp-bar-wrap {
+      background: #E2E8F0;
+    }
+    html[data-theme="light"] .resp-bar {
+      background: linear-gradient(90deg, #1D4ED8, #3B82F6);
+    }
+    html[data-theme="light"] .resp-count { color: #1D4ED8; }
+    html[data-theme="light"] .resp-pct   { color: #64748B; }
+
+    /* Prazos desta semana (list-row) */
+    html[data-theme="light"] .list-row {
+      background: #F8FAFC;
+      border-color: #E2E8F0;
+      color: #1E3A5F;
+    }
+    html[data-theme="light"] .list-row [style*="color:#e2f0ff"],
+    html[data-theme="light"] .list-row [style*="color: #e2f0ff"] { color: #0F172A !important; }
+    html[data-theme="light"] .list-row [style*="color:var(--muted)"] { color: #64748B !important; }
+
+    /* Alertas de Prazos (toggle rows) */
+    html[data-theme="light"] .alert-row {
+      border-bottom-color: #EDF2F7;
+    }
+    html[data-theme="light"] .alert-label    { color: #0F172A; }
+    html[data-theme="light"] .alert-sublabel { color: #64748B; }
   </style>
 </head>
 <body>
@@ -498,7 +574,7 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
   </div>
 
   <script src="/sistema_vendas/public/assets/juridico.js?v=<?= filemtime(__DIR__ . '/assets/juridico.js') ?>"></script>
-  <script src="/sistema_vendas/public/assets/juridico_charts.js?v=<?= filemtime(__DIR__ . '/assets/juridico_charts.js') ?>"></script>
+  <script src="/sistema_vendas/public/assets/juridico_charts.js?v=3<?= filemtime(__DIR__ . '/assets/juridico_charts.js') ?>"></script>
   <script src="/sistema_vendas/public/assets/fog.js"></script>
   <script>
     // Dashboard status mirror

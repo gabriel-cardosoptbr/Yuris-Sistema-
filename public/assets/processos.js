@@ -22,6 +22,36 @@ document.addEventListener('DOMContentLoaded', ()=>{
     setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(),300); }, timeout);
   }
 
+  // ── Origin strip helpers ───────────────────────────────────────────────────
+  // Gera HTML da faixa "MATRIZ" / "FILIAL — Nome" no topo do card de processo.
+  // Só renderiza quando há múltiplas contas visíveis (matriz com filiais).
+  // Espera p.origin_account_tipo e p.origin_account_nome vindo do backend.
+  function _escapeAttr(s){
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+      .replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function buildOriginStripHtml(p){
+    if (!window.YURIS_SHOW_ORIGIN_STRIP) return '';
+    const tipo = String(p && p.origin_account_tipo || '').toLowerCase();
+    if (!tipo) return '';
+    const nome  = _escapeAttr(p.origin_account_nome || '');
+    const cls   = tipo === 'matriz' ? 'is-matriz' : 'is-filial';
+    const label = tipo === 'matriz' ? 'MATRIZ'   : 'FILIAL';
+    return '<div class="proc-card-origin-strip ' + cls + '">' +
+             '<span class="org-label">' + label + '</span>' +
+             '<span class="org-name" title="' + nome + '">' + nome + '</span>' +
+           '</div>';
+  }
+  // Aplica os atributos data-origin-* no elemento card (usado pra abrir padding-top via CSS)
+  function applyOriginAttrs(el, p){
+    if (!window.YURIS_SHOW_ORIGIN_STRIP) return;
+    const tipo = String(p && p.origin_account_tipo || '').toLowerCase();
+    if (!tipo) return;
+    el.setAttribute('data-origin-tipo', tipo);
+    el.setAttribute('data-origin-id',   String(p.origin_account_id || ''));
+  }
+
   // ── Date helpers ───────────────────────────────────────────────────────────
   // Aceita Date, ISO string YYYY-MM-DD ou formato livre; retorna null para valores inválidos
   function parseProcessDate(value){
@@ -155,7 +185,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const wrap  = document.createElement('div');
     wrap.className = 'proc-card ' + urg.cardClass;
     wrap.setAttribute('data-id', p.id);
+    applyOriginAttrs(wrap, p);
     wrap.innerHTML =
+      buildOriginStripHtml(p) +
       `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:2px">` +
         `<div class="proc-card-num">${p.numero||'-'}</div>${badge}` +
       `</div>` +
@@ -187,7 +219,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       showModal(j);
     });
     if (del) del.addEventListener('click', async e=>{
-      if (!confirm('Excluir processo?')) return;
+      if (!(await Yuris.confirm('Excluir processo?', { danger: true, okLabel: 'Excluir' }))) return;
       const id = e.target.dataset.id;
       const r  = await fetch(api+'?id='+id, {method:'DELETE'});
       const j  = await r.json();
@@ -278,9 +310,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
         if (newRow){ requestAnimationFrame(()=>newRow.style.opacity='1'); }
       }catch(e){ console.warn('forceInsert agenda failed',e); }
 
-      // Insert into board columns
+      // Insert into board columns — usa proximo_prazo se houver, senão data_inicio
       if (!columnsWrapper){ console.warn('no columnsWrapper'); return; }
-      const parsedDate = parseProcessDate(created.proximo_prazo);
+      const parsedDate = parseProcessDate(created.proximo_prazo) || parseProcessDate(created.data_inicio);
       const monthIndex = parsedDate ? parsedDate.getMonth() : 'nodate';
       let col = columnsWrapper.querySelector('.proc-col[data-month="'+monthIndex+'"]');
       if (!col){
@@ -307,6 +339,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   // ── Modal ──────────────────────────────────────────────────────────────────
   let _originalProcessData = {}; // armazena valores originais para detectar mudanças reais no histórico
+
+  // Aviso visual quando status final (encerrado/arquivado) é combinado com prazo futuro
+  function _updateStatusPrazoHint(){
+    const st   = document.getElementById('statusProcessoInput');
+    const pz   = document.getElementById('proximoPrazoInput');
+    const hint = document.getElementById('statusPrazoHint');
+    if (!st || !pz || !hint){ return; }
+    const isFinal = (st.value === 'encerrado' || st.value === 'arquivado');
+    const today   = new Date(); today.setHours(0,0,0,0);
+    const prazoFuturo = pz.value && parseProcessDate(pz.value) > today;
+    hint.style.display = (isFinal && prazoFuturo) ? 'block' : 'none';
+  }
 
   // Preenche o formulário do modal com os dados do processo ou reseta para criação
   function showModal(data=null){
@@ -347,6 +391,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     form.data_inicio.value    = data.data_inicio ? data.data_inicio.split(' ')[0] : '';
     form.proximo_prazo.value  = data.proximo_prazo        || '';
     form.observacoes.value    = data.observacoes          || '';
+    _updateStatusPrazoHint();  // recalcula aviso ao popular o form
     // Seta responsável no select após já estar populado
     const selResp = document.getElementById('selectResponsavelProcesso');
     if (selResp) selResp.value = data.responsavel_user_id || '';
@@ -372,6 +417,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('modalCloseX')?.addEventListener('click', hideModal);
   document.addEventListener('keydown', e=>{ if (e.key === 'Escape' && !modal.classList.contains('hidden')) hideModal(); });
 
+  // Reavalia aviso de "status final + prazo futuro" ao alterar qualquer um dos dois campos
+  document.getElementById('statusProcessoInput')?.addEventListener('change', _updateStatusPrazoHint);
+  document.getElementById('proximoPrazoInput')?.addEventListener('change', _updateStatusPrazoHint);
+
   // ── Form submit ────────────────────────────────────────────────────────────
   form.addEventListener('submit', async e=>{
     e.preventDefault();
@@ -385,22 +434,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
         if (!res.ok){ const txt=await res.text(); let msg=txt; try{msg=JSON.parse(txt).error||txt;}catch(e){} throw new Error(msg||'Erro no servidor'); }
         const j = await res.json();
         if (j.success){
-          // Registra histórico apenas com campos que REALMENTE mudaram (comparando com original)
-          const _trackFields = {
-            status: 'Status',
-            responsavel_user_id: 'Responsável',
-            proximo_prazo: 'Próximo prazo',
-            cliente_nome: 'Cliente',
-            numero: 'Número do processo',
-            vara_comarca: 'Vara/Comarca',
-            setor_id: 'Setor',
-          };
-          const _realChanges = Object.entries(_trackFields)
-            .filter(([k]) => String(payload[k]||'') !== String(_originalProcessData[k]||'') && (payload[k]||'') !== '')
-            .map(([, label]) => label);
-          if (_realChanges.length > 0) {
-            fetch('/sistema_vendas/public/api/processo_history.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({processo_id:payload.id,acao:'Processo atualizado',descricao:`Alterações: ${_realChanges.join(', ')}`})});
-          }
+          // Histórico de "Processo atualizado" agora é gravado server-side
+          // por ProcessoAudit::logChanges() em /api/processes.php (PUT).
+          // Mais confiável: não depende do client-side e detecta mudanças reais comparando prev/new.
           hideModal(); form.reset(); await loadColumnsForYear(yearFilter.value); await loadUpcoming(yearFilter.value); showToast('Atualizado','success');
         }
         else throw new Error(j.error||'Erro desconhecido');
@@ -410,8 +446,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
         const j = await res.json();
         if (j.success){
           const created = Object.assign({},payload,j.data||{},{id:(j.data&&j.data.id)||j.id});
-          // Registra criação no histórico processual
-          if (created.id) fetch('/sistema_vendas/public/api/processo_history.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({processo_id:created.id,acao:'Processo criado',descricao:`Processo ${created.numero||''} cadastrado no sistema`})});
+          // Histórico de "Processo criado" agora é gravado server-side em /api/processes.php (POST).
+          // Mais confiável: garantido mesmo se o usuário fechar o modal rápido ou a rede cair aqui.
           hideModal(); form.reset();
           showToast('Processo cadastrado','success');
           const selYear    = parseInt(yearFilter.value,10);
@@ -431,17 +467,29 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // Carrega e exibe os processos ordenados por prazo ascendente (vencidos primeiro)
   async function loadUpcoming(year=null){
     try{
-      const url = new URL(api, window.location.origin);
-      if (year){ url.searchParams.set('from',year+'-01-01'); url.searchParams.set('to',year+'-12-31'); }
-      url.searchParams.set('_ts',Date.now());
-      const res = await fetch(url.toString(),{credentials:'same-origin',cache:'no-store'});
+      // Sempre busca TODOS os processos do tenant — KPIs e Resumo refletem o panorama completo
+      // (consistente com dashboard/jurídico). O filtro de ano é aplicado client-side só para a
+      // Agenda Jurídica Prioritária (mesma lógica do Calendário Processual).
+      const urlAll = new URL(api, window.location.origin);
+      urlAll.searchParams.set('_ts',Date.now());
+      const res = await fetch(urlAll.toString(),{credentials:'same-origin',cache:'no-store'});
       if (!res.ok){ const txt=await res.text(); let msg=txt; try{msg=JSON.parse(txt).error||txt;}catch(e){} throw new Error(msg||'Erro no servidor'); }
-      const j    = await res.json();
-      const data = j.data||[];
+      const j       = await res.json();
+      const allData = j.data||[];
 
-      // Update KPIs and summary from this data
-      updateKPIs(data);
-      updateResumo(data);
+      // KPIs e Resumo: sempre o total do tenant, sem filtro de ano
+      updateKPIs(allData);
+      updateResumo(allData);
+
+      // Agenda: aplica filtro de ano client-side (proximo_prazo OU data_inicio no ano)
+      const selYear = year ? parseInt(year, 10) : null;
+      const data = selYear
+        ? allData.filter(p => {
+            const yp = getProcessYear(p);
+            const yi = p.data_inicio ? parseProcessDate(p.data_inicio)?.getFullYear() : null;
+            return yp === selYear || yi === selYear;
+          })
+        : allData.slice();
 
       // Sort by deadline ascending (vencidos first, then by proximity)
       data.sort((a,b)=>{
@@ -488,7 +536,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         const id=e.target.dataset.id; const r=await fetch(api+'?id='+id); const j=await r.json(); showModal(j);
       }));
       upcoming.querySelectorAll('.delBtn').forEach(b=>b.addEventListener('click', async e=>{
-        if(!confirm('Excluir processo?')) return;
+        if(!(await Yuris.confirm('Excluir processo?', { danger: true, okLabel: 'Excluir' }))) return;
         const id=e.target.dataset.id; const r=await fetch(api+'?id='+id,{method:'DELETE'}); const j=await r.json();
         if(j.success){ loadUpcoming(yearFilter.value); showToast('Excluído','success'); }
         else showToast('Erro ao excluir','error');
@@ -503,12 +551,15 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // ── Render month columns ───────────────────────────────────────────────────
   const monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
-  // Constrói o kanban de 12 meses + coluna "Sem prazo" a partir do array de processos
+  // Constrói o kanban de 12 meses + coluna "Sem prazo" a partir do array de processos.
+  // Agrupamento: usa proximo_prazo quando definido; senão cai pra data_inicio
+  // (que sempre é preenchida com a data de abertura). Processo só vai pra "Sem prazo"
+  // se ambas estiverem nulas.
   function renderColumns(processes){
     const groups     = Array.from({length:12},()=>[]);
     const noDateGroup= [];
     processes.forEach(p=>{
-      const d = parseProcessDate(p.proximo_prazo);
+      const d = parseProcessDate(p.proximo_prazo) || parseProcessDate(p.data_inicio);
       if (d){ groups[d.getMonth()].push(p); return; }
       noDateGroup.push(p);
     });
@@ -525,12 +576,23 @@ document.addEventListener('DOMContentLoaded', ()=>{
         html += '<div class="proc-empty">Nenhum processo<br>neste mês</div>';
       } else {
         grp.forEach(p=>{
-          const prazo = formatProcessDate(p.proximo_prazo);
-          const dt    = parseProcessDate(p.proximo_prazo);
-          const urg   = getUrgencyInfo(dt, p.status);
-          const badge = urg.text ? `<span class="proc-badge ${urg.badgeClass}">${urg.text}</span>` : '';
+          // Se não tem proximo_prazo, mostra "Aberto em DD/MM" da data_inicio (não confunde)
+          const temPrazo = !!parseProcessDate(p.proximo_prazo);
+          const prazo    = temPrazo
+            ? formatProcessDate(p.proximo_prazo)
+            : (p.data_inicio ? 'Aberto ' + formatProcessDate(p.data_inicio) : 'Sem prazo');
+          const dt       = parseProcessDate(p.proximo_prazo);
+          const urg      = getUrgencyInfo(dt, p.status);
+          const badge    = urg.text
+            ? `<span class="proc-badge ${urg.badgeClass}">${urg.text}</span>`
+            : (!temPrazo ? `<span class="proc-badge badge-neutral">Sem prazo</span>` : '');
+          // data-origin-tipo abre o padding-top via CSS quando há faixa
+          const otipo = window.YURIS_SHOW_ORIGIN_STRIP && p.origin_account_tipo
+            ? ` data-origin-tipo="${String(p.origin_account_tipo).toLowerCase()}"`
+            : '';
           html +=
-            `<div class="proc-card ${urg.cardClass}" data-id="${p.id}">` +
+            `<div class="proc-card ${urg.cardClass}" data-id="${p.id}"${otipo}>` +
+              buildOriginStripHtml(p) +
               `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:2px">` +
                 `<div class="proc-card-num">${p.numero||'-'}</div>${badge}` +
               `</div>` +
@@ -538,7 +600,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
               (p.setor_nome   ? `<div class="proc-card-meta">${p.setor_nome}</div>` : '') +
               (p.vara_comarca ? `<div class="proc-card-meta">${p.vara_comarca}</div>` : '') +
               `<div class="proc-card-footer">` +
-                `<div class="proc-card-date">${prazo}</div>` +
+                `<div class="proc-card-date"${!temPrazo ? ' style="color:var(--muted)"' : ''}>${prazo}</div>` +
                 `<div class="proc-card-actions">` +
                   `<button data-id="${p.id}" class="editBtn proc-btn-sm btn-edit">Editar</button>` +
                   `<button data-id="${p.id}" class="delBtn proc-btn-sm btn-del">Excluir</button>` +
@@ -556,8 +618,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
       html += `<div class="proc-col-header"><span class="proc-col-month">Sem prazo</span><span class="proc-col-count">${noDateGroup.length}</span></div>`;
       html += `<div class="proc-cards-list" id="month-nodate">`;
       noDateGroup.forEach(p=>{
+        const otipo = window.YURIS_SHOW_ORIGIN_STRIP && p.origin_account_tipo
+          ? ` data-origin-tipo="${String(p.origin_account_tipo).toLowerCase()}"`
+          : '';
         html +=
-          `<div class="proc-card" data-id="${p.id}">` +
+          `<div class="proc-card" data-id="${p.id}"${otipo}>` +
+            buildOriginStripHtml(p) +
             `<div class="proc-card-num">${p.numero||'-'}</div>` +
             `<div class="proc-card-client">${p.cliente_nome||'—'}</div>` +
             `<div class="proc-card-footer">` +
@@ -579,7 +645,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const id=e.target.dataset.id; const r=await fetch(api+'?id='+id); const j=await r.json(); showModal(j);
     }));
     columnsWrapper.querySelectorAll('.delBtn').forEach(b=>b.addEventListener('click', async e=>{
-      if(!confirm('Excluir processo?')) return;
+      if(!(await Yuris.confirm('Excluir processo?', { danger: true, okLabel: 'Excluir' }))) return;
       const id=e.target.dataset.id; const r=await fetch(api+'?id='+id,{method:'DELETE'}); const j=await r.json();
       if(j.success){ loadColumnsForYear(yearFilter.value); loadUpcoming(yearFilter.value); showToast('Excluído','success'); }
       else showToast('Erro ao excluir','error');
@@ -624,10 +690,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // ── Sistema de busca e filtros ─────────────────────────────────────────────
   let _allProcessesCache = []; // cache de todos os processos carregados
 
-  // Popula o select de responsável com os usuários do sistema
+  // Popula o select de responsável (filtro da barra) com agrupamento por conta.
+  // Mantém o <option value=""> "Todos os responsáveis" já presente no HTML.
   (function _initFilterResp() {
     const sel = document.getElementById('procFilterResp');
     if (!sel || !window._SYSTEM_USERS) return;
+    if (window.Yuris && typeof Yuris.populateUserSelect === 'function') {
+      // Marca o option "Todos" pra ele sobreviver ao re-render do helper
+      const allOpt = sel.querySelector('option[value=""]');
+      if (allOpt) allOpt.setAttribute('data-keep', '1');
+      Yuris.populateUserSelect(sel, window._SYSTEM_USERS, { allowEmpty: false });
+      return;
+    }
     window._SYSTEM_USERS.forEach(u => {
       const opt = document.createElement('option');
       opt.value = u.id; opt.textContent = u.nome;
@@ -642,17 +716,26 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   // Aplica os filtros da barra ao array de processos e retorna o filtrado
   function _applyFilters(procs) {
-    const txt  = _norm(document.getElementById('procSearchText')?.value || '');
-    const stat = document.getElementById('procFilterStatus')?.value || '';
-    const resp = document.getElementById('procFilterResp')?.value || '';
-    const from = document.getElementById('procFilterDateFrom')?.value || '';
-    const to   = document.getElementById('procFilterDateTo')?.value || '';
+    const txt    = _norm(document.getElementById('procSearchText')?.value || '');
+    const stat   = document.getElementById('procFilterStatus')?.value || '';
+    const resp   = document.getElementById('procFilterResp')?.value || '';
+    const from   = document.getElementById('procFilterDateFrom')?.value || '';
+    const to     = document.getElementById('procFilterDateTo')?.value || '';
+    const origin = document.getElementById('procFilterOrigin')?.value || '';
     return procs.filter(p => {
       if (txt && !_norm(p.numero).includes(txt) && !_norm(p.cliente_nome).includes(txt) && !_norm(p.setor_nome).includes(txt) && !_norm(p.parte_contraria).includes(txt)) return false;
       if (stat && p.status !== stat) return false;
       if (resp && String(p.responsavel_user_id) !== resp) return false;
       if (from && p.proximo_prazo && p.proximo_prazo < from) return false;
       if (to   && p.proximo_prazo && p.proximo_prazo > to)   return false;
+      // Filtro de origem: __matriz__ / __filiais__ / id-específico
+      if (origin) {
+        const tipo = String(p.origin_account_tipo || '').toLowerCase();
+        const oid  = String(p.origin_account_id || '');
+        if (origin === '__matriz__'  && tipo !== 'matriz') return false;
+        if (origin === '__filiais__' && tipo !== 'filial') return false;
+        if (origin !== '__matriz__' && origin !== '__filiais__' && oid !== origin) return false;
+      }
       return true;
     });
   }
@@ -695,14 +778,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
   };
 
   // Eventos dos campos de filtro
-  ['procSearchText','procFilterStatus','procFilterResp','procFilterDateFrom','procFilterDateTo'].forEach(id => {
+  ['procSearchText','procFilterStatus','procFilterResp','procFilterDateFrom','procFilterDateTo','procFilterOrigin'].forEach(id => {
     document.getElementById(id)?.addEventListener('input', _applyAndRender);
     document.getElementById(id)?.addEventListener('change', _applyAndRender);
   });
 
   // Botão limpar filtros
   document.getElementById('procFilterClear')?.addEventListener('click', () => {
-    const ids = ['procSearchText','procFilterStatus','procFilterResp','procFilterDateFrom','procFilterDateTo'];
+    const ids = ['procSearchText','procFilterStatus','procFilterResp','procFilterDateFrom','procFilterDateTo','procFilterOrigin'];
     ids.forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
     _applyAndRender();
   });
@@ -752,7 +835,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(_procId) _loadPrazos(_procId);
   };
   window._deletePrazo = async (id) => {
-    if(!confirm('Remover este prazo?')) return;
+    if(!(await Yuris.confirm('Remover este prazo?', { danger: true, okLabel: 'Remover' }))) return;
     await fetch(`/sistema_vendas/public/api/processo_prazos.php?id=${id}`,{method:'DELETE',credentials:'same-origin'});
     if(_procId) _loadPrazos(_procId);
   };
@@ -844,7 +927,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(_procId){_loadTarefas(_procId);_loadHistorico(_procId);}
   };
   window._deleteTarefa = async (id) => {
-    if(!confirm('Remover esta tarefa?')) return;
+    if(!(await Yuris.confirm('Remover esta tarefa?', { danger: true, okLabel: 'Remover' }))) return;
     await fetch(`/sistema_vendas/public/api/processo_tarefas.php?id=${id}`,{method:'DELETE',credentials:'same-origin'});
     if(_procId) _loadTarefas(_procId);
   };
@@ -910,9 +993,21 @@ document.addEventListener('DOMContentLoaded', ()=>{
       el.innerHTML = items.length ? items.map(h=>{
         const dt=new Date(h.created_at);
         const s=dt.toLocaleDateString('pt-BR')+', '+dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-        return `<div class="timeline-entry"><div class="timeline-dot"></div><div class="timeline-content"><div class="timeline-action">${h.descricao||h.acao}</div><div class="timeline-meta">${h.user_email||'sistema'} · ${s}</div></div></div>`;
+        // Badge de origem (MATRIZ/FILIAL) — pequeno, no topo do card, antes da ação.
+        const tipo = String(h.author_account_tipo || '').toLowerCase();
+        const nome = String(h.author_account_nome || '');
+        let originBadge = '';
+        if (tipo && nome) {
+          const cls   = tipo === 'matriz' ? 'is-matriz' : 'is-filial';
+          const label = tipo === 'matriz' ? 'MATRIZ'   : 'FILIAL';
+          originBadge = `<div class="timeline-origin ${cls}" title="${escapeAttr(nome)}">${label} · ${escapeAttr(nome)}</div>`;
+        }
+        return `<div class="timeline-entry"><div class="timeline-dot"></div><div class="timeline-content">${originBadge}<div class="timeline-action">${h.descricao||h.acao}</div><div class="timeline-meta">${h.user_email||'sistema'} · ${s}</div></div></div>`;
       }).join('') : '<div style="color:#9ab0c9;font-size:.8rem">Nenhum registro ainda</div>';
     } catch(e){}
+  }
+  function escapeAttr(s) {
+    return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
   // ── Vínculo com cliente (Card) ────────────────────────────────────────────
@@ -1058,14 +1153,38 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // Pré-carrega setores ao iniciar
   _loadSetores().then(() => _fillSetorSelect());
 
+  // Popula selects "por nome" (legado: alguns formulários gravavam o nome em vez do id).
+  // Quando o helper Yuris.populateUserSelect está disponível, usa <optgroup> por conta.
   function _fillUserSelect(selId, selectedName='') {
     const sel = document.getElementById(selId); if(!sel) return;
+    if (window.Yuris && typeof Yuris.populateUserSelect === 'function') {
+      // Adapta: o helper usa id como value; aqui o select histórico usa nome.
+      // Renderiza pelo helper e DEPOIS reescreve value=nome (mantém o agrupamento visual).
+      Yuris.populateUserSelect(sel, _usuariosList, { placeholder: '— Selecionar —' });
+      sel.querySelectorAll('option[value]').forEach(o => {
+        if (!o.value) return;
+        const u = _usuariosList.find(x => String(x.id) === o.value);
+        if (u) {
+          o.value = u.nome;
+          if (u.nome === selectedName) o.selected = true;
+        }
+      });
+      return;
+    }
+    // Fallback (sem helper): lista chapada
     sel.innerHTML = '<option value="">— Selecionar —</option>' +
       _usuariosList.map(u=>`<option value="${u.nome}"${u.nome===selectedName?' selected':''}>${u.nome}</option>`).join('');
   }
 
   function _fillUserSelectById(selId, selectedId='') {
     const sel = document.getElementById(selId); if(!sel) return;
+    if (window.Yuris && typeof Yuris.populateUserSelect === 'function') {
+      Yuris.populateUserSelect(sel, _usuariosList, {
+        placeholder: '— Selecionar responsável —',
+        selected:    selectedId || null
+      });
+      return;
+    }
     sel.innerHTML = '<option value="">— Selecionar responsável —</option>' +
       _usuariosList.map(u=>`<option value="${u.id}"${String(u.id)===String(selectedId)?' selected':''}>${u.nome}</option>`).join('');
   }

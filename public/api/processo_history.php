@@ -1,16 +1,20 @@
 <?php
 require_once __DIR__ . '/../../app/Models/Database.php';
+require_once __DIR__ . '/../../app/Models/Account.php';
+require_once __DIR__ . '/../../app/Models/ResourceShare.php';
+require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
+
+use App\Models\Database;
+use App\Helpers\AccountContext;
+use App\Helpers\TenantGuard;
+
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
-if (empty($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized']);
-    exit;
-}
-
-use App\Models\Database;
+$ctx       = AccountContext::fromSession();
+$tenantIds = $ctx->getAccessibleAccountIds('processos');
 
 $pdo = Database::getConnection();
 
@@ -25,41 +29,46 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS processo_history (
     INDEX(processo_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-$method = $_SERVER['REQUEST_METHOD'];
+$method      = $_SERVER['REQUEST_METHOD'];
 $userDisplay = $_SESSION['user_nome'] ?? $_SESSION['user_email'] ?? 'sistema';
 
 try {
     if ($method === 'GET') {
         $processoId = (int)($_GET['processo_id'] ?? 0);
-        if (!$processoId) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Missing processo_id']);
-            exit;
-        }
+        if (!$processoId) { http_response_code(400); echo json_encode(['error' => 'Missing processo_id']); exit; }
+        TenantGuard::assertProcessoAcessivel($ctx, $processoId);
 
         $stmt = $pdo->prepare(
             "SELECT * FROM processo_history WHERE processo_id = :pid ORDER BY created_at DESC LIMIT 50"
         );
         $stmt->execute(['pid' => $processoId]);
-        $history = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        echo json_encode(['data' => $history]);
+        echo json_encode(['data' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
         exit;
     }
 
     if ($method === 'POST') {
-        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+        $input      = json_decode(file_get_contents('php://input'), true) ?? [];
         $processoId = (int)($input['processo_id'] ?? 0);
-        $acao = trim($input['acao'] ?? '');
-        $descricao = trim($input['descricao'] ?? '');
-        if (!$processoId || !$acao) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Missing fields']);
-            exit;
-        }
+        $acao       = trim($input['acao'] ?? '');
+        $descricao  = trim($input['descricao'] ?? '');
+        if (!$processoId || !$acao) { http_response_code(400); echo json_encode(['error' => 'Missing fields']); exit; }
+        TenantGuard::assertProcessoAcessivel($ctx, $processoId);
+
+        // Inclui snapshot da conta do autor pra renderizar badge MATRIZ/FILIAL
         $pdo->prepare(
-            "INSERT INTO processo_history (processo_id, user_email, acao, descricao) VALUES (:pid, :user, :acao, :desc)"
-        )->execute([':pid' => $processoId, ':user' => $userDisplay, ':acao' => $acao, ':desc' => $descricao]);
+            "INSERT INTO processo_history
+               (processo_id, user_email, acao, descricao,
+                author_account_id, author_account_tipo, author_account_nome)
+             VALUES (:pid, :user, :acao, :desc, :aid, :atipo, :anome)"
+        )->execute([
+            ':pid'   => $processoId,
+            ':user'  => $userDisplay,
+            ':acao'  => $acao,
+            ':desc'  => $descricao,
+            ':aid'   => isset($_SESSION['account_id']) ? (int)$_SESSION['account_id'] : null,
+            ':atipo' => $_SESSION['account_tipo'] ?? null,
+            ':anome' => $_SESSION['account_nome'] ?? null,
+        ]);
         echo json_encode(['success' => true]);
         exit;
     }

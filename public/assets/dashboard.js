@@ -1,3 +1,17 @@
+// ── Tema-aware chart colors ───────────────────────────────────────────────
+// Lidos uma vez no carregamento. Após trocar tema, F5 reaplica.
+const _IS_LIGHT = document.documentElement.getAttribute('data-theme') === 'light';
+const CHART_TICK   = _IS_LIGHT ? '#5A6B7E'              : '#8FAFC8';
+const CHART_GRID   = _IS_LIGHT ? 'rgba(15,31,54,0.10)'  : 'rgba(96,165,250,0.06)';
+const CHART_LEGEND = _IS_LIGHT ? '#0F1F36'              : '#A8BDD4';
+// Aplica como defaults pra qualquer chart criado depois desta linha
+if (typeof Chart !== 'undefined' && Chart.defaults) {
+  Chart.defaults.color = CHART_LEGEND;
+  if (Chart.defaults.plugins && Chart.defaults.plugins.legend && Chart.defaults.plugins.legend.labels) {
+    Chart.defaults.plugins.legend.labels.color = CHART_LEGEND;
+  }
+}
+
 const _projCanvas = document.getElementById('projectionChart');
 const ctx = _projCanvas ? _projCanvas.getContext('2d') : null;
 
@@ -71,10 +85,15 @@ async function loadDashboard(start, end){
     const statusEl = document.getElementById('dashboardStatus');
     if (statusEl) { statusEl.textContent = 'Carregando dados...'; statusEl.style.color = '#6B7887'; }
     let url = '/sistema_vendas/public/api/dashboard.php';
-    if (start || end) {
+    // Propaga filtro de origem (matriz/filial) lido da URL — mantém API sincronizada
+    // com a seleção exibida no header (ver dashboard.php → dashFilterOrigin).
+    const pageQs = new URLSearchParams(window.location.search);
+    const origin = pageQs.get('origin') || '';
+    if (start || end || origin) {
       const qs = new URLSearchParams();
       if (start) qs.set('start', start);
       if (end) qs.set('end', end);
+      if (origin) qs.set('origin', origin);
       url += '?' + qs.toString();
     }
     const res = await fetch(url, { credentials: 'same-origin' });
@@ -244,8 +263,8 @@ async function loadDashboard(start, end){
           responsive: true,
           interaction: { mode: 'index', intersect: false },
           animation: { duration: 700, easing: 'easeOutQuart' },
-          scales: { x: { ticks: { color: '#6B7887' } }, y: { beginAtZero: true, ticks: { callback: v => currency.format(v), color: '#6B7887' } } },
-          plugins: { legend: { labels: { color: '#A8BDD4' } }, tooltip: { callbacks: { label: ctx => currency.format(ctx.parsed.y) } } }
+          scales: { x: { ticks: { color: CHART_TICK } }, y: { beginAtZero: true, ticks: { callback: v => currency.format(v), color: CHART_TICK } } },
+          plugins: { legend: { labels: { color: CHART_LEGEND } }, tooltip: { callbacks: { label: ctx => currency.format(ctx.parsed.y) } } }
         }
       };
       if (ctx) {
@@ -689,8 +708,8 @@ async function renderDiffChart(periods, closedData, goalsData){
         responsive: true,
         interaction: { mode: 'index', intersect: false },
         animation: { duration: 700, easing: 'easeOutQuart' },
-        scales: { x: { ticks: { color: '#e6f6ff' } }, y: { beginAtZero: true, ticks: { callback: v => currency.format(v), color: '#e6f6ff' } } },
-        plugins: { legend: { labels: { color: '#e6f6ff' } }, tooltip: { callbacks: { label: function(ctx){ return ctx.dataset.label + ': ' + currency.format(ctx.parsed.y); } } } }
+        scales: { x: { ticks: { color: CHART_TICK } }, y: { beginAtZero: true, ticks: { callback: v => currency.format(v), color: CHART_TICK } } },
+        plugins: { legend: { labels: { color: CHART_TICK } }, tooltip: { callbacks: { label: function(ctx){ return ctx.dataset.label + ': ' + currency.format(ctx.parsed.y); } } } }
       }
     };
     if (window._diffChart) try{ window._diffChart.destroy(); } catch(e){}
@@ -987,8 +1006,8 @@ function renderRevenueChart(periods, closedData, metaValue){
         animation: { duration: 900, easing: 'easeOutQuart' },
         interaction: { mode: 'index', intersect: false },
         scales: {
-          x: { ticks: { color: '#8FAFC8', font: { size: 11 } }, grid: { color: 'rgba(96,165,250,0.06)' } },
-          y: { beginAtZero: true, ticks: { callback: v => currency.format(v), color: '#8FAFC8', font: { size: 11 } }, grid: { color: 'rgba(96,165,250,0.06)' } }
+          x: { ticks: { color: CHART_TICK, font: { size: 11 } }, grid: { color: CHART_GRID } },
+          y: { beginAtZero: true, ticks: { callback: v => currency.format(v), color: CHART_TICK, font: { size: 11 } }, grid: { color: CHART_GRID } }
         },
         plugins: {
           legend: {

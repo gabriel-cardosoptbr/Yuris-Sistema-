@@ -340,7 +340,7 @@ const CI = (() => {
   async function deleteConv() {
     qs('#ciOptionsMenu')?.classList.remove('open');
     if (!state.convId) return;
-    if (!confirm('Excluir esta conversa? Esta ação não pode ser desfeita.')) return;
+    if (!(await Yuris.confirm('Excluir esta conversa?\n\nEsta ação não pode ser desfeita.', { danger: true, okLabel: 'Excluir conversa' }))) return;
     try {
       const r = await apiFetch(CI_API.conversas, 'POST', {
         _csrf: CI_CSRF, action: 'delete', conversa_id: state.convId

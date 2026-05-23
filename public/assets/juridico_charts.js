@@ -56,11 +56,22 @@
     '#0F3060', // azul noturno
   ];
 
-  // Grades e ticks dos eixos — neutro escuro para não poluir o gráfico
-  const GRID   = 'rgba(160,180,210,0.09)';
-  const TICK   = '#6B7887';
-  // Cor de fundo das bordas do canvas (opaco escuro para separar fatias do donut)
-  const BORDER = 'rgba(7,15,28,0.95)';
+  // Grades e ticks dos eixos — adapta automaticamente ao tema (claro/escuro)
+  // Lê de var CSS para que troca de tema com F5 atualize as cores corretas.
+  const _isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  const GRID   = _isLight ? 'rgba(15,31,54,0.10)' : 'rgba(160,180,210,0.09)';
+  const TICK   = _isLight ? '#5A6B7E'             : '#6B7887';
+  // Cor de fundo das bordas do canvas (separa fatias do donut)
+  const BORDER = _isLight ? 'rgba(247,249,252,0.95)' : 'rgba(7,15,28,0.95)';
+  // Cor dos labels da legenda (Chart.js plugin "legend")
+  const LEGEND_COLOR = _isLight ? '#0F1F36' : '#D8E4F0';
+  // Aplica globalmente nos defaults do Chart.js (se já carregado)
+  if (typeof Chart !== 'undefined' && Chart.defaults) {
+    Chart.defaults.color = LEGEND_COLOR;
+    if (Chart.defaults.plugins && Chart.defaults.plugins.legend && Chart.defaults.plugins.legend.labels) {
+      Chart.defaults.plugins.legend.labels.color = LEGEND_COLOR;
+    }
+  }
 
   // Resolve código de tipo de ação → nome legível via localStorage (populado por process_codes.js)
   function resolveActionName(code) {

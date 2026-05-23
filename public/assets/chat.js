@@ -187,7 +187,15 @@ const ChatApp = (() => {
   function chatConfirm(msg) {
     return new Promise(resolve => {
       const overlay = document.getElementById('chatConfirmOverlay');
-      if (!overlay) { resolve(window.confirm(msg)); return; }
+      if (!overlay) {
+        // Fallback: usa Yuris.confirm (sem "localhost diz")
+        if (window.Yuris && typeof Yuris.confirm === 'function') {
+          Yuris.confirm(msg).then(resolve);
+        } else {
+          resolve(window.confirm(msg));
+        }
+        return;
+      }
       document.getElementById('chatConfirmMsg').textContent = msg;
       overlay.style.display = 'flex';
       const yes = document.getElementById('chatConfirmYes');
@@ -1024,11 +1032,11 @@ const ChatApp = (() => {
   }
 
   // ── Excluir conversa ─────────────────────────────────────────
-  function confirmDeleteChat() {
+  async function confirmDeleteChat() {
     closeMoreMenu();
     if (!state.currentJid) return;
     const name = state.currentName || state.currentJid;
-    if (!confirm(`Excluir a conversa com "${name}"?\n\nTodas as mensagens locais serão removidas. Esta ação não pode ser desfeita.`)) return;
+    if (!(await Yuris.confirm(`Excluir a conversa com "${name}"?\n\nTodas as mensagens locais serão removidas. Esta ação não pode ser desfeita.`, { danger: true, okLabel: 'Excluir conversa' }))) return;
     deleteChat();
   }
 

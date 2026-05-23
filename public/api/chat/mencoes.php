@@ -65,7 +65,8 @@ if ($showProcessos) {
     );
     $s->execute([$like, $like]);
     foreach ($s->fetchAll() as $row) {
-        $display = $row['numero'] ?: ('Processo #' . $row['id']);
+        // Sempre mostra valor humano. ID interno só fica na URL (técnico, invisível).
+        $display = $row['numero'] ?: ($row['cliente_nome'] ?: 'Processo sem número');
         $result[] = [
             'tipo'    => 'processo',
             'id'      => (int)$row['id'],
@@ -86,7 +87,8 @@ if ($showCards) {
     );
     $s->execute([$like, $like]);
     foreach ($s->fetchAll() as $row) {
-        $display = 'Card #' . $row['id'] . ' — ' . ($row['cliente_nome'] ?: $row['empresa_nome'] ?: '');
+        // Display sempre humano: cliente OU empresa, sem ID interno.
+        $display = $row['cliente_nome'] ?: ($row['empresa_nome'] ?: 'Lead sem nome');
         $result[] = [
             'tipo'    => 'card',
             'id'      => (int)$row['id'],

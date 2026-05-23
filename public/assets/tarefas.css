@@ -196,6 +196,54 @@
 .tk-card.dragging { opacity: .45; transform: rotate(2deg); }
 .tk-card.drag-over { border-color: rgba(91,155,213,0.5); background: rgba(18,42,76,.9); }
 
+/* ── Faixa de Origem (MATRIZ / FILIAL — Nome) ─────────────────────────
+   Mostra a procedência da tarefa pra evitar confusão quando a matriz
+   enxerga tarefas das filiais. Renderizado pelo JS via data-origin-tipo. */
+.tk-card[data-origin-tipo] { padding-top: 28px; }
+.tk-card-origin-strip {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 11px;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  border-top-left-radius: 9px;
+  border-top-right-radius: 9px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  pointer-events: none;
+}
+.tk-card-origin-strip.is-matriz {
+  background: linear-gradient(90deg, rgba(37,99,235,.32), rgba(37,99,235,.16));
+  color: #93c5fd;
+}
+.tk-card-origin-strip.is-filial {
+  background: linear-gradient(90deg, rgba(168,85,247,.32), rgba(168,85,247,.14));
+  color: #d8b4fe;
+}
+.tk-card-origin-strip .org-name {
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: .9;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+html[data-theme="light"] .tk-card-origin-strip.is-matriz {
+  background: linear-gradient(90deg, rgba(37,99,235,.22), rgba(37,99,235,.10));
+  color: #1e40af;
+}
+html[data-theme="light"] .tk-card-origin-strip.is-filial {
+  background: linear-gradient(90deg, rgba(126,34,206,.22), rgba(126,34,206,.10));
+  color: #6b21a8;
+}
+
 /* faixa de prioridade */
 .tk-card[data-prioridade="baixa"]   { border-left-color: #475569; }
 .tk-card[data-prioridade="media"]   { border-left-color: #3b82f6; }

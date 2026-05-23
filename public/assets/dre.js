@@ -251,7 +251,7 @@
     // delete handlers
     document.querySelectorAll('.delCodeBtn').forEach(b => {
       b.onclick = async function(){
-        if (!confirm('Excluir código?')) return;
+        if (!(await Yuris.confirm('Excluir código?', { danger: true, okLabel: 'Excluir' }))) return;
         const id = this.getAttribute('data-id');
         const res = await fetch(codesApi+'?id='+encodeURIComponent(id), {method:'DELETE', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf}, body: JSON.stringify({id:id, csrf_token: csrf})});
         const j = await res.json(); if (j && j.success) { loadCodes(); }
@@ -281,7 +281,7 @@
   function attachButtons(){
     document.querySelectorAll('.delBtn').forEach(b => {
       b.onclick = async function(){
-        if (!confirm('Excluir conta fixa?')) return;
+        if (!(await Yuris.confirm('Excluir conta fixa?', { danger: true, okLabel: 'Excluir' }))) return;
         const id = this.getAttribute('data-id');
         const res = await fetch(api, {method:'DELETE', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf}, body: JSON.stringify({id:id, csrf_token: csrf})});
         const j = await res.json(); if (j && j.success) { load(); }

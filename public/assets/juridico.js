@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
   /**
    * Calcula KPIs ESTRATÉGICOS a partir do array de processos.
    * Estes indicadores são diferentes dos operacionais de processos.js:
-   *   - active_count   : total de processos com status 'ativo'
+   *   - active_count   : total NÃO encerrado/arquivado (inclui 'ativo','concluido','suspenso',NULL)
    *   - encerrados     : total com status 'encerrado' ou 'arquivado'
    *   - novos_mes      : abertos no mês corrente (usa created_at ou data_inicio)
    *   - vencidos       : ativos com proximo_prazo < hoje (risco crítico)
@@ -177,11 +177,14 @@ document.addEventListener('DOMContentLoaded', () => {
     el.innerHTML = byLawyer.slice(0, 10).map(r => {
       const cnt = Number(r.total || 0);
       const pct = Math.round((cnt / total) * 100);
+      // Layout em card vertical: nome completo no topo + estatísticas embaixo
       return `<div class="resp-row">` +
-        `<div class="resp-name" title="${r.nome || 'Sem responsável'}">${r.nome || 'Sem responsável'}</div>` +
-        `<div class="resp-bar-wrap"><div class="resp-bar" style="width:${pct}%"></div></div>` +
-        `<div class="resp-count">${cnt}</div>` +
-        `<div class="resp-pct">${pct}%</div>` +
+        `<div class="resp-name">${r.nome || 'Sem responsável'}</div>` +
+        `<div class="resp-stats">` +
+          `<div class="resp-bar-wrap"><div class="resp-bar" style="width:${pct}%"></div></div>` +
+          `<div class="resp-count">${cnt}</div>` +
+          `<div class="resp-pct">${pct}%</div>` +
+        `</div>` +
       `</div>`;
     }).join('');
   }

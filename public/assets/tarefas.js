@@ -59,7 +59,15 @@ function tkConfirm(msg, { confirmLabel = 'Excluir', confirmColor = '#dc2626', ic
     const yesBtn  = document.getElementById('tkConfirmYes');
     const noBtn   = document.getElementById('tkConfirmNo');
     const iconEl  = document.getElementById('tkConfirmIcon');
-    if (!overlay) { resolve(window.confirm(msg)); return; }
+    if (!overlay) {
+      // Fallback: usa Yuris.confirm (sem "localhost diz")
+      if (window.Yuris && typeof Yuris.confirm === 'function') {
+        Yuris.confirm(msg).then(resolve);
+      } else {
+        resolve(window.confirm(msg));
+      }
+      return;
+    }
 
     const icons = {
       warn:    `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
@@ -187,15 +195,37 @@ async function loadTasks() {
 }
 
 /* ── Views ────────────────────────────────────────────────────────────────── */
+// Filtro de Origem (Matriz / Filiais / específica) — aplicado client-side
+// porque o backend não tem param dedicado e o conjunto já é pequeno.
+function _applyOriginFilter(arr) {
+  const origin = (filters && filters.origin) || '';
+  if (!origin) return arr;
+  return arr.filter(t => {
+    const tipo = String(t.origin_account_tipo || '').toLowerCase();
+    const oid  = String(t.origin_account_id || '');
+    if (origin === '__matriz__'  && tipo !== 'matriz') return false;
+    if (origin === '__filiais__' && tipo !== 'filial') return false;
+    if (origin !== '__matriz__' && origin !== '__filiais__' && oid !== origin) return false;
+    return true;
+  });
+}
+
 function renderView() {
   document.getElementById('tkKanban').style.display     = currentView === 'kanban'    ? 'flex'           : 'none';
   document.getElementById('tkLista').style.display      = currentView === 'lista'     ? 'flex'           : 'none';
   document.getElementById('tkCalendario').style.display = currentView === 'calendario'? 'flex'           : 'none';
   document.getElementById('tkLista').style.flexDirection= 'column';
 
-  if (currentView === 'kanban')    renderKanban();
-  if (currentView === 'lista')     renderLista();
-  if (currentView === 'calendario')renderCalendario();
+  // Aplica filtro de origem sobre tasks ANTES de cada view (sem reload no server).
+  const _all = tasks;
+  tasks = _applyOriginFilter(_all);
+  try {
+    if (currentView === 'kanban')    renderKanban();
+    if (currentView === 'lista')     renderLista();
+    if (currentView === 'calendario')renderCalendario();
+  } finally {
+    tasks = _all; // restaura array original (drag/drop e edits precisam dele inteiro)
+  }
 }
 
 /* ── Kanban ───────────────────────────────────────────────────────────────── */
@@ -260,7 +290,24 @@ function buildCard(t) {
     ? `<span class="tk-rec-badge" title="Tarefa recorrente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></span>`
     : '';
 
+  // Faixa de Origem (MATRIZ / FILIAL — Nome) — só quando há múltiplas contas
+  // visíveis (matriz com filiais). data-origin-tipo abre padding via CSS.
+  let originStripHtml = '';
+  if (window.YURIS_SHOW_ORIGIN_STRIP && t.origin_account_tipo) {
+    const tipo  = String(t.origin_account_tipo).toLowerCase();
+    const nome  = String(t.origin_account_nome || '');
+    const cls   = tipo === 'matriz' ? 'is-matriz' : 'is-filial';
+    const label = tipo === 'matriz' ? 'MATRIZ'   : 'FILIAL';
+    el.setAttribute('data-origin-tipo', tipo);
+    el.setAttribute('data-origin-id',   String(t.origin_account_id || ''));
+    originStripHtml = `<div class="tk-card-origin-strip ${cls}">
+      <span>${label}</span>
+      <span class="org-name" title="${esc(nome)}">${esc(nome)}</span>
+    </div>`;
+  }
+
   el.innerHTML = `
+    ${originStripHtml}
     <div class="tk-card-title">${esc(t.titulo)}${recIcon}</div>
     <div class="tk-card-meta">
       <span class="tk-badge tk-badge-${t.prioridade}">${labelPrioridade(t.prioridade)}</span>
@@ -1118,6 +1165,9 @@ function bindTopbar() {
   document.getElementById('fltResponsavel').addEventListener('change', e => { filters.responsavel_id = e.target.value; loadTasks(); });
   document.getElementById('fltPrioridade').addEventListener('change',  e => { filters.prioridade     = e.target.value; loadTasks(); });
   document.getElementById('fltPrazo').addEventListener('change',       e => { filters.prazo          = e.target.value; loadTasks(); });
+  // Filtro de Origem (matriz/filial) — só existe se o select foi renderizado pelo PHP.
+  // Aplica client-side via renderView() sem refetch.
+  document.getElementById('fltOrigin')?.addEventListener('change', e => { filters.origin = e.target.value; renderView(); });
   let searchTimer;
   document.getElementById('fltBusca').addEventListener('input', e => {
     clearTimeout(searchTimer);

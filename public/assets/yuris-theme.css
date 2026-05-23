@@ -392,6 +392,37 @@ select:focus, textarea:focus,
 }
 input::placeholder, textarea::placeholder { color: #4A5568 !important; }
 
+/* ──────────────────────────────────────────────────────────────────────
+   SELECT — chevron global de "lista suspensa"
+   --------------------------------------------------------------------
+   Como o tema força `appearance: none` em todos os <select>, a setinha
+   nativa do browser some. Aqui devolvemos um chevron SVG via background.
+   Exceções: `.y-select` (design-system.css) já tem o próprio chevron e
+   é preservado via `:not(.y-select)`.
+   ────────────────────────────────────────────────────────────────────── */
+select:not(.y-select),
+select.field-input, select.field-control, select.yuris-input,
+select.usr-select, select.proc-select,
+select.tk-board-select, select.tk-filter-select,
+select.form-select, select.form-control,
+.form-group select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ab0c9' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 10px center !important;
+  background-size: 14px !important;
+  padding-right: 32px !important;
+}
+select:not(.y-select):hover,
+.form-group select:hover {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237EB8F6' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
+}
+select:disabled {
+  opacity: .6 !important;
+  cursor: not-allowed !important;
+}
+/* IE/Edge legacy: esconde a seta nativa */
+select::-ms-expand { display: none !important; }
+
 /* Autofill dark override */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
@@ -678,3 +709,2015 @@ select.field-input,
 select.form-input {
   color-scheme: dark;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   YURIS DAY — Tema Claro Premium · Platinum + Azul Institucional
+   --------------------------------------------------------------------
+   Ativado via <html data-theme="light"> (boot script no <head>).
+   Paleta baseada na logo: fundo navy #081526 + balança prata #BFC7D5.
+   No modo claro INVERTEMOS: fundo prata/platinum + acentos azul navy.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+html[data-theme="light"] {
+  /* Fundos — silver/platinum (NÃO branco puro) */
+  --yuris-bg-deep:    #DDE3EC;   /* fundo da página — silver platinum */
+  --yuris-bg-base:    #E6EAF1;
+  --yuris-bg-card:    #F7F9FC;   /* cards quase brancos com toque silvery */
+  --yuris-bg-input:   #FFFFFF;   /* inputs brancos para legibilidade máxima */
+
+  /* Azuis — saturados, casam com o fundo claro */
+  --yuris-primary:    #1E4A8A;
+  --yuris-accent:     #2563EB;
+  --yuris-blue-deep:  #0F2F66;
+  --yuris-blue-steel: #1E4A8A;
+  --yuris-blue-mid:   #2563EB;
+  --yuris-blue-light: #3B82F6;
+
+  /* Prata — agora funciona como cinza-médio de apoio */
+  --yuris-silver:        #7C8BA0;
+  --yuris-silver-dim:    #98A4B5;
+  --yuris-silver-bright: #BFC7D5;   /* a cor EXATA da balança da logo */
+
+  /* Bordas — navy translúcido sutil */
+  --yuris-border:    rgba(15,31,54,0.10);
+  --yuris-border-md: rgba(15,31,54,0.18);
+  --yuris-border-lg: rgba(15,31,54,0.32);
+
+  /* Texto — navy escuro para contraste alto */
+  --yuris-text:        #0F1F36;   /* casa com o fundo da logo */
+  --yuris-text-dim:    #5A6B7E;
+  --yuris-text-muted:  #8B97A8;
+  --yuris-text-accent: #1E4A8A;
+
+  /* Status vivos (fundo claro permite saturação maior) */
+  --yuris-success:  #DCFCE7;       /* fundo verde claro */
+  --yuris-warning:  #FEF3C7;
+  --yuris-danger:   #FEE2E2;
+
+  /* Aliases legacy */
+  --bg-main:     #DDE3EC;
+  --panel:       #F7F9FC;
+  --panel-soft:  #EEF1F6;
+  --line:        rgba(15,31,54,0.10);
+  --line-strong: rgba(15,31,54,0.18);
+  --text:        #0F1F36;
+  --muted:       #5A6B7E;
+  --primary:     #2563EB;
+  --ok:          #DCFCE7;
+  --warn:        #FEF3C7;
+  --danger:      #FEE2E2;
+  --brand:       #1E4A8A;
+  --icon-color:  #1E4A8A;
+
+  /* Gráficos — paleta clara mais saturada (fundo branco-claro tolera) */
+  --chart-c1: #1E4A8A;
+  --chart-c2: #2563EB;
+  --chart-c3: #0F2F66;
+  --chart-c4: #3B82F6;
+  --chart-c5: #60A5FA;
+  --chart-c6: #1E40AF;
+  --chart-c7: #93C5FD;
+  --chart-c8: #1E3A8A;
+  --chart-grid: rgba(15,31,54,0.08);
+  --chart-tick: #5A6B7E;
+  --chart-border: rgba(247,249,252,0.95);
+  --chart-hoje:    #DC2626;
+  --chart-urgente: #D97706;
+  --chart-normal:  #2563EB;
+
+  color-scheme: light;
+}
+
+/* ── Body & layout ── */
+html[data-theme="light"] body,
+html[data-theme="light"] .page-layout {
+  background-color: #DDE3EC !important;
+  background-image:
+    radial-gradient(ellipse 120% 80% at 15% 40%, rgba(191,199,213,0.55) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 60% at 85% 20%, rgba(218,225,235,0.55) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 50% 90%, rgba(176,188,203,0.40) 0%, transparent 60%) !important;
+  color: #0F1F36 !important;
+  color-scheme: light !important;
+}
+
+/* ── Scrollbar ── */
+html[data-theme="light"] ::-webkit-scrollbar-track { background: rgba(221,227,236,0.6); }
+html[data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(15,31,54,0.22); }
+html[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: rgba(15,31,54,0.35); }
+html[data-theme="light"] * { scrollbar-color: rgba(15,31,54,0.22) rgba(221,227,236,0.6); }
+
+/* ── Sidebar ── */
+html[data-theme="light"] .sidebar {
+  background: linear-gradient(180deg, #F7F9FC 0%, #EAEEF4 80%, #DDE3EC 100%) !important;
+  border-right: 1px solid rgba(15,31,54,0.10) !important;
+}
+html[data-theme="light"] .sidebar::before {
+  background: radial-gradient(ellipse 200% 100% at 50% 0%, rgba(37,99,235,0.06) 0%, transparent 70%);
+}
+html[data-theme="light"] .sidebar nav a { color: #5A6B7E !important; border-left-color: transparent !important; }
+html[data-theme="light"] .sidebar nav a:hover {
+  background: rgba(37,99,235,0.08) !important;
+  color: #1E4A8A !important;
+  border-left-color: rgba(15,31,54,0.20) !important;
+}
+html[data-theme="light"] .sidebar nav a.active {
+  background: linear-gradient(90deg, rgba(37,99,235,0.14), rgba(30,74,138,0.08)) !important;
+  color: #0F1F36 !important;
+  border-left-color: #1E4A8A !important;
+  box-shadow: inset 0 0 20px rgba(37,99,235,0.06) !important;
+}
+
+/* ── Painéis e cards ── */
+html[data-theme="light"] .dash-panel,
+html[data-theme="light"] .proc-panel,
+html[data-theme="light"] .yuris-card,
+html[data-theme="light"] .card,
+html[data-theme="light"] [class*="-panel"],
+html[data-theme="light"] .jur-panel,
+html[data-theme="light"] .dre-panel,
+html[data-theme="light"] .cfg-panel,
+html[data-theme="light"] .usr-panel,
+html[data-theme="light"] .card-shell {
+  background: linear-gradient(145deg, #FFFFFF 0%, #F4F7FB 100%) !important;
+  border-color: rgba(15,31,54,0.12) !important;
+  box-shadow: 0 1px 3px rgba(15,31,54,0.04), 0 4px 12px rgba(15,31,54,0.04) !important;
+}
+
+/* ── KPI cards ── */
+html[data-theme="light"] .kpi-card {
+  background: linear-gradient(145deg, #FFFFFF 0%, #F4F7FB 100%) !important;
+  border: 1px solid rgba(15,31,54,0.10) !important;
+  box-shadow: 0 1px 4px rgba(15,31,54,0.05) !important;
+}
+html[data-theme="light"] .kpi-label { color: #5A6B7E !important; }
+html[data-theme="light"] .kpi-value { color: #0F1F36 !important; }
+html[data-theme="light"] .kpi-foot  { color: #8B97A8 !important; }
+
+/* ── Inputs & selects ──
+   IMPORTANTE: usar `background-color` (longhand) em vez de `background` shorthand.
+   O shorthand reseta background-image/repeat/position/size, e isso quebrava o
+   chevron customizado dos <select> (que ficava tiled através do campo). */
+html[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]),
+html[data-theme="light"] select,
+html[data-theme="light"] textarea,
+html[data-theme="light"] .yuris-input,
+html[data-theme="light"] .field-control,
+html[data-theme="light"] .field-input,
+html[data-theme="light"] .usr-search,
+html[data-theme="light"] .usr-select,
+html[data-theme="light"] .proc-select,
+html[data-theme="light"] .form-group input,
+html[data-theme="light"] .form-group select,
+html[data-theme="light"] .form-input,
+html[data-theme="light"] .form-select,
+html[data-theme="light"] .form-textarea {
+  background-color: #FFFFFF !important;
+  border-color: rgba(15,31,54,0.18) !important;
+  color: #0F1F36 !important;
+  color-scheme: light !important;
+}
+html[data-theme="light"] input:focus,
+html[data-theme="light"] select:focus,
+html[data-theme="light"] textarea:focus {
+  border-color: rgba(37,99,235,0.50) !important;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.12) !important;
+}
+html[data-theme="light"] input::placeholder,
+html[data-theme="light"] textarea::placeholder { color: #98A4B5 !important; }
+
+/* ── Chevron do select no tema claro — reafirma TODAS as propriedades de background
+   (não só image) pra garantir que não fique tiled mesmo se outra regra usar shorthand. */
+html[data-theme="light"] select:not(.y-select),
+html[data-theme="light"] .form-group select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235A6B7E' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 10px center !important;
+  background-size: 14px !important;
+  padding-right: 32px !important;
+}
+html[data-theme="light"] select:not(.y-select):hover {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231E4A8A' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 10px center !important;
+  background-size: 14px !important;
+}
+
+/* ── Autofill claro ── */
+html[data-theme="light"] input:-webkit-autofill,
+html[data-theme="light"] input:-webkit-autofill:hover,
+html[data-theme="light"] input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 100px #FFFFFF inset !important;
+  -webkit-text-fill-color: #0F1F36 !important;
+}
+
+/* ── Headers / títulos genéricos ── */
+html[data-theme="light"] h1, html[data-theme="light"] h2, html[data-theme="light"] h3,
+html[data-theme="light"] h4, html[data-theme="light"] h5, html[data-theme="light"] h6 {
+  color: #0F1F36 !important;
+}
+
+/* ── Tabelas ── */
+html[data-theme="light"] table { background: transparent !important; color: #0F1F36 !important; }
+html[data-theme="light"] thead th { background: rgba(37,99,235,0.06) !important; color: #1E4A8A !important; border-bottom: 1px solid rgba(15,31,54,0.14) !important; }
+html[data-theme="light"] tbody tr { border-bottom: 1px solid rgba(15,31,54,0.06) !important; }
+html[data-theme="light"] tbody tr:hover { background: rgba(37,99,235,0.04) !important; }
+
+/* ── Botões padrões ── */
+html[data-theme="light"] .btn-primary,
+html[data-theme="light"] .proc-btn-primary,
+html[data-theme="light"] button.primary {
+  background: #1E4A8A !important;
+  color: #FFFFFF !important;
+  border-color: #1E4A8A !important;
+}
+html[data-theme="light"] .btn-primary:hover,
+html[data-theme="light"] .proc-btn-primary:hover {
+  background: #2563EB !important;
+  border-color: #2563EB !important;
+}
+
+/* ── Modais ── */
+html[data-theme="light"] .modal-content,
+html[data-theme="light"] .proc-modal,
+html[data-theme="light"] .proc-modal-content,
+html[data-theme="light"] [class*="modal-content"] {
+  background: #F7F9FC !important;
+  color: #0F1F36 !important;
+  border: 1px solid rgba(15,31,54,0.18) !important;
+}
+html[data-theme="light"] .proc-modal-section,
+html[data-theme="light"] .modal-header,
+html[data-theme="light"] .modal-footer {
+  background: rgba(37,99,235,0.04) !important;
+  border-color: rgba(15,31,54,0.10) !important;
+}
+
+/* ── Status dots & badges ── */
+html[data-theme="light"] .dot-ok      { background: #16A34A !important; }
+html[data-theme="light"] .dot-warn    { background: #D97706 !important; }
+html[data-theme="light"] .dot-danger  { background: #DC2626 !important; }
+html[data-theme="light"] .dot-primary { background: #2563EB !important; }
+html[data-theme="light"] .dot-neutral { background: #7C8BA0 !important; }
+
+html[data-theme="light"] .badge-info     { background: rgba(37,99,235,0.12); color: #1E4A8A; border-color: rgba(37,99,235,0.30); }
+html[data-theme="light"] .badge-warn     { background: rgba(217,119,6,0.12);  color: #B45309; border-color: rgba(217,119,6,0.30); }
+html[data-theme="light"] .badge-danger   { background: rgba(220,38,38,0.12);  color: #B91C1C; border-color: rgba(220,38,38,0.30); }
+html[data-theme="light"] .badge-ok       { background: rgba(22,163,74,0.12);  color: #15803D; border-color: rgba(22,163,74,0.30); }
+html[data-theme="light"] .badge-neutral  { background: rgba(124,139,160,0.12); color: #5A6B7E; border-color: rgba(124,139,160,0.30); }
+
+/* ── Page header / sub-titles ── */
+html[data-theme="light"] .page-header { background: linear-gradient(145deg, #FFFFFF 0%, #F4F7FB 100%) !important; border-color: rgba(15,31,54,0.10) !important; }
+html[data-theme="light"] .page-title  { color: #0F1F36 !important; }
+html[data-theme="light"] .page-subtitle, html[data-theme="light"] .proc-subtitle { color: #5A6B7E !important; }
+html[data-theme="light"] .section-title { color: #1E4A8A !important; }
+
+/* ── Text muted/dim em todo lugar ── */
+html[data-theme="light"] .text-muted, html[data-theme="light"] [class*="muted"] { color: #5A6B7E !important; }
+
+/* ── Kanban / colunas / cards de tarefas ── */
+html[data-theme="light"] .tk-col, html[data-theme="light"] .proc-col, html[data-theme="light"] [class*="-col-card"] {
+  background: #F7F9FC !important;
+  border-color: rgba(15,31,54,0.10) !important;
+}
+html[data-theme="light"] .tk-card, html[data-theme="light"] .proc-card {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(15,31,54,0.10) !important;
+  box-shadow: 0 1px 2px rgba(15,31,54,0.04) !important;
+  color: #0F1F36 !important;
+}
+html[data-theme="light"] .tk-card:hover, html[data-theme="light"] .proc-card:hover {
+  box-shadow: 0 4px 12px rgba(37,99,235,0.10) !important;
+  border-color: rgba(37,99,235,0.30) !important;
+}
+
+/* ── Toggle switch ── */
+html[data-theme="light"] .toggle-slider { background: #BFC7D5 !important; }
+html[data-theme="light"] .toggle-wrap input:checked + .toggle-slider { background: #1E4A8A !important; }
+
+/* ── Tooltip / popover ── */
+html[data-theme="light"] [role="tooltip"], html[data-theme="light"] .tooltip {
+  background: #0F1F36 !important; color: #F7F9FC !important;
+}
+
+/* ── Page header SVG: cor de ícones ── */
+html[data-theme="light"] .page-header svg { color: #1E4A8A !important; }
+
+/* ── Date picker icon (browser-rendered) ── */
+html[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator,
+html[data-theme="light"] input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.3) sepia(0.5) saturate(2) hue-rotate(195deg);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   YURIS DAY — Patches específicos por tela
+   --------------------------------------------------------------------
+   Os PHPs têm <style> inline com cores hardcoded (rgba navy escuro).
+   Esses overrides vencem a especificidade por usar !important e o seletor
+   html[data-theme="light"] ANTES da classe (specificity 0,2,1).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Dashboard ────────────────────────────────────────────────────── */
+html[data-theme="light"] .dash-panel,
+html[data-theme="light"] .chart-card,
+html[data-theme="light"] #projectionPanel,
+html[data-theme="light"] #funnelPanel {
+  background: linear-gradient(165deg, #FFFFFF 0%, #F4F7FB 100%) !important;
+  border: 1px solid rgba(15,31,54,0.10) !important;
+  color: #0F1F36 !important;
+  box-shadow: 0 1px 3px rgba(15,31,54,0.04), 0 4px 14px rgba(15,31,54,0.04) !important;
+}
+html[data-theme="light"] .exec-summary,
+html[data-theme="light"] .meta-widget,
+html[data-theme="light"] .prox-card,
+html[data-theme="light"] .prox-row {
+  background: rgba(247,249,252,0.92) !important;
+  border: 1px solid rgba(15,31,54,0.10) !important;
+  color: #0F1F36 !important;
+}
+html[data-theme="light"] .filter-btn {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(15,31,54,0.18) !important;
+  color: #1E4A8A !important;
+}
+html[data-theme="light"] .filter-btn:hover { background: rgba(37,99,235,0.06) !important; }
+html[data-theme="light"] .filter-btn.active,
+html[data-theme="light"] .filter-btn[aria-pressed="true"] {
+  background: #1E4A8A !important;
+  color: #FFFFFF !important;
+  border-color: #1E4A8A !important;
+}
+html[data-theme="light"] .prox-row-client { color: #0F1F36 !important; }
+html[data-theme="light"] .prox-row-meta   { color: #5A6B7E !important; }
+html[data-theme="light"] .prox-empty      { color: #8B97A8 !important; }
+
+/* ── Planejamento ─────────────────────────────────────────────────── */
+html[data-theme="light"] .goal-indicator,
+html[data-theme="light"] .funnel-column,
+html[data-theme="light"] .conversion-item,
+html[data-theme="light"] .summary-box,
+html[data-theme="light"] .sim-card,
+html[data-theme="light"] .exec-item {
+  background: rgba(247,249,252,0.92) !important;
+  border: 1px solid rgba(15,31,54,0.10) !important;
+  color: #0F1F36 !important;
+}
+/* funnel-shape AGORA é branco com texto navy (igual aos outros cards) */
+html[data-theme="light"] .funnel-shape {
+  background: linear-gradient(145deg, #FFFFFF 0%, #F4F7FB 100%) !important;
+  border: 1px solid rgba(15,31,54,0.10) !important;
+  color: #0F1F36 !important;
+  box-shadow: 0 1px 3px rgba(15,31,54,0.04), 0 4px 14px rgba(15,31,54,0.04) !important;
+}
+html[data-theme="light"] .funnel-stage.is-bottleneck .funnel-shape {
+  border: 2px solid rgba(37,99,235,0.55) !important;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.14), 0 4px 14px rgba(37,99,235,0.14) !important;
+  background: linear-gradient(145deg, #FFFFFF 0%, #F0F4FB 100%) !important;
+}
+/* Título da etapa "Leads qualificados", "Consultas comerciais", etc. */
+html[data-theme="light"] .funnel-name { color: #0F1F36 !important; font-weight: 700 !important; font-size: 1rem !important; }
+/* Valor numérico (442, 147, 88, 35) — herda de .section-subtitle mas precisa ficar navy escuro */
+html[data-theme="light"] .funnel-head .section-subtitle { color: #0F1F36 !important; font-weight: 700 !important; font-size: .95rem !important; }
+/* Porcentagem grande à direita (100%, 33%, 20%, 8%) — Tailwind text-blue-100 já era escurecido,
+   mas aqui força explicitamente como AZUL institucional */
+html[data-theme="light"] .funnel-head .text-blue-100,
+html[data-theme="light"] .funnel-head [class*="font-semibold"] { color: #1E4A8A !important; font-weight: 700 !important; }
+/* Métricas inferiores ("% do topo: 100%", "Conversão p/ próxima: 33.3%") */
+html[data-theme="light"] .funnel-metrics {
+  background: rgba(247,249,252,.85) !important;
+  border-top: 1px solid rgba(15,31,54,0.08) !important;
+  color: #5A6B7E !important;
+}
+html[data-theme="light"] .funnel-metrics span { color: #5A6B7E !important; }
+html[data-theme="light"] .funnel-metrics strong { color: #1E4A8A !important; font-weight: 700 !important; }
+/* Título da coluna "Funil comercial" / "Funil simulado" */
+html[data-theme="light"] .funnel-column-title { color: #0F1F36 !important; font-weight: 700 !important; }
+/* Container externo do funil-stage — sem fundo extra */
+html[data-theme="light"] .funnel-stage { background: transparent !important; border: none !important; }
+html[data-theme="light"] .summary-box strong { color: #1E4A8A !important; }
+
+/* ── Prospecção (Kanban comercial) ────────────────────────────────── */
+html[data-theme="light"] .card-shell,
+html[data-theme="light"] .kpi-card,
+html[data-theme="light"] .modal-panel,
+html[data-theme="light"] .form-section {
+  background: linear-gradient(165deg, #FFFFFF 0%, #F4F7FB 100%) !important;
+  border: 1px solid rgba(15,31,54,0.12) !important;
+  color: #0F1F36 !important;
+}
+html[data-theme="light"] .btn.soft {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(15,31,54,0.18) !important;
+  color: #1E4A8A !important;
+}
+html[data-theme="light"] .btn.ghost {
+  background: #F4F7FB !important;
+  border: 1px solid rgba(15,31,54,0.18) !important;
+  color: #5A6B7E !important;
+  font-weight: 600 !important;
+}
+html[data-theme="light"] .btn.soft:hover {
+  background: rgba(37,99,235,0.08) !important;
+  border-color: rgba(37,99,235,0.40) !important;
+  color: #1E4A8A !important;
+}
+html[data-theme="light"] .btn.ghost:hover {
+  background: #EAEEF4 !important;
+  border-color: rgba(15,31,54,0.30) !important;
+  color: #0F1F36 !important;
+}
+html[data-theme="light"] .field-control {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(15,31,54,0.18) !important;
+  color: #0F1F36 !important;
+}
+
+/* Kanban — colunas e cards individuais */
+html[data-theme="light"] .kanban-col {
+  background: linear-gradient(170deg, #EEF1F6 0%, #E5EAF1 100%) !important;
+  border: 1px solid rgba(15,31,54,0.10) !important;
+  color: #0F1F36 !important;
+}
+html[data-theme="light"] .col-pill {
+  background: rgba(37,99,235,0.14) !important;
+  color: #1E4A8A !important;
+  border: 1px solid rgba(37,99,235,0.28) !important;
+}
+html[data-theme="light"] .card-mini {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(15,31,54,0.12) !important;
+  color: #0F1F36 !important;
+  box-shadow: 0 1px 3px rgba(15,31,54,0.05) !important;
+}
+html[data-theme="light"] .card-mini:hover {
+  border-color: rgba(37,99,235,0.40) !important;
+  box-shadow: 0 4px 14px rgba(37,99,235,0.12) !important;
+}
+html[data-theme="light"] .chat-link-btn {
+  background: rgba(37,99,235,0.10) !important;
+  color: #1E4A8A !important;
+  border: 1px solid rgba(37,99,235,0.28) !important;
+}
+html[data-theme="light"] .chat-link-btn:hover {
+  background: rgba(37,99,235,0.18) !important;
+  border-color: #2563EB !important;
+}
+
+/* WhatsApp button — verde mais visível em fundo claro */
+html[data-theme="light"] [class*="whatsapp"] {
+  background: rgba(34,197,94,0.14) !important;
+  color: #15803D !important;
+  border: 1px solid rgba(34,197,94,0.30) !important;
+}
+
+/* ── Textos genéricos dentro de cards ─────────────────────────────── */
+html[data-theme="light"] .card-shell *,
+html[data-theme="light"] .dash-panel *,
+html[data-theme="light"] .chart-card *,
+html[data-theme="light"] .card-mini *,
+html[data-theme="light"] .kanban-col *,
+html[data-theme="light"] .modal-panel * {
+  text-shadow: none !important;
+}
+
+/* Spans e divs com cores legacy navy claro → escurecer */
+html[data-theme="light"] [style*="color:#dbeafe"],
+html[data-theme="light"] [style*="color: #dbeafe"],
+html[data-theme="light"] [style*="color:#d8e4f0"],
+html[data-theme="light"] [style*="color: #d8e4f0"],
+html[data-theme="light"] [style*="color:#a8bdd4"],
+html[data-theme="light"] [style*="color: #a8bdd4"],
+html[data-theme="light"] [style*="color:#93c5fd"],
+html[data-theme="light"] [style*="color: #93c5fd"],
+html[data-theme="light"] [style*="color:#9ab0c9"],
+html[data-theme="light"] [style*="color: #9ab0c9"],
+html[data-theme="light"] [style*="color:#7a8898"],
+html[data-theme="light"] [style*="color: #7a8898"] {
+  color: #0F1F36 !important;
+}
+
+/* Ícones inline SVG com stroke azul brilhante → escurecer pra ficar legível */
+html[data-theme="light"] svg[stroke="#7EB8F6"],
+html[data-theme="light"] svg[stroke="#93c5fd"],
+html[data-theme="light"] svg[stroke="#A8BDD4"],
+html[data-theme="light"] svg[stroke="#D8E4F0"] {
+  stroke: #1E4A8A !important;
+}
+html[data-theme="light"] [style*="stroke:#7EB8F6"] *,
+html[data-theme="light"] [style*="stroke: #7EB8F6"] * { stroke: #1E4A8A !important; }
+
+/* Headers internos */
+html[data-theme="light"] .section-title,
+html[data-theme="light"] .proc-section-title,
+html[data-theme="light"] .jur-section-title,
+html[data-theme="light"] .dre-section-title {
+  color: #1E4A8A !important;
+}
+
+/* Top-bar com filtros em dashboard/planejamento (a barra branca do topo) */
+html[data-theme="light"] .filter-bar,
+html[data-theme="light"] .top-filters,
+html[data-theme="light"] .proc-topbar {
+  background: linear-gradient(165deg, #FFFFFF 0%, #F4F7FB 100%) !important;
+  border: 1px solid rgba(15,31,54,0.10) !important;
+}
+
+/* Meta widget (card meta no topo do dashboard) */
+html[data-theme="light"] .meta-widget .meta-label,
+html[data-theme="light"] .meta-widget [class*="meta"] { color: #5A6B7E !important; }
+html[data-theme="light"] .meta-widget .meta-value { color: #0F1F36 !important; }
+
+/* Eixos dos gráficos Chart.js (ticks/labels) — não dá pra estilizar via CSS,
+   é controlado por JS. Mas a cor `--chart-tick` já foi atualizada para #5A6B7E. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   YURIS DAY — Ícones em botões com fundo escuro
+   --------------------------------------------------------------------
+   Botões com fundo navy sólido precisam que o ícone (SVG) seja BRANCO
+   pra ficar legível. Como muitos SVGs usam stroke="currentColor", basta
+   garantir que o color do botão pai seja branco — mas alguns têm stroke
+   fixo, então forçamos explicitamente abaixo.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Botões primários — fundo navy sólido → ícone E texto brancos */
+html[data-theme="light"] .cfg-btn-primary,
+html[data-theme="light"] .btn-primary,
+html[data-theme="light"] .proc-btn-primary,
+html[data-theme="light"] button.primary,
+html[data-theme="light"] .btn.primary,
+html[data-theme="light"] [class*="btn-primary"]:not([class*="ghost"]):not([class*="outline"]),
+html[data-theme="light"] .cta-primary,
+html[data-theme="light"] .yuris-btn-primary {
+  color: #FFFFFF !important;
+}
+html[data-theme="light"] .cfg-btn-primary svg,
+html[data-theme="light"] .cfg-btn-primary svg *,
+html[data-theme="light"] .btn-primary svg,
+html[data-theme="light"] .btn-primary svg *,
+html[data-theme="light"] .proc-btn-primary svg,
+html[data-theme="light"] .proc-btn-primary svg *,
+html[data-theme="light"] button.primary svg,
+html[data-theme="light"] button.primary svg *,
+html[data-theme="light"] .btn.primary svg,
+html[data-theme="light"] .btn.primary svg *,
+html[data-theme="light"] .cta-primary svg,
+html[data-theme="light"] .yuris-btn-primary svg,
+html[data-theme="light"] [class*="btn-primary"]:not([class*="ghost"]):not([class*="outline"]) svg,
+html[data-theme="light"] [class*="btn-primary"]:not([class*="ghost"]):not([class*="outline"]) svg * {
+  stroke: #FFFFFF !important;
+  color: #FFFFFF !important;
+}
+/* SVGs com fill (não só stroke) também */
+html[data-theme="light"] .cfg-btn-primary svg[fill],
+html[data-theme="light"] .btn-primary svg[fill],
+html[data-theme="light"] .proc-btn-primary svg[fill] { fill: #FFFFFF !important; }
+
+/* Aba ativa de cfg (que vira navy sólido) já cobre stroke do svg no patch
+   anterior, mas reforçamos genericamente: qualquer elemento com fundo
+   navy escuro e cor branca propaga p/ ícones filhos */
+html[data-theme="light"] .cfg-tab.active svg,
+html[data-theme="light"] .cfg-tab.active svg * { stroke: #FFFFFF !important; color: #FFFFFF !important; }
+
+/* Filter button ativo do dashboard */
+html[data-theme="light"] .filter-btn.active svg,
+html[data-theme="light"] .filter-btn[aria-pressed="true"] svg { stroke: #FFFFFF !important; }
+
+/* Botão "Compartilhar", "Editar", "Calcular" (em fundos azul sólido) */
+html[data-theme="light"] .meta-edit-btn svg,
+html[data-theme="light"] .meta-calc-btn svg,
+html[data-theme="light"] [class*="-share-btn"]:not([class*="ghost"]) svg { stroke: #FFFFFF !important; }
+
+/* Genérico: qualquer botão com color: white força svg branco */
+html[data-theme="light"] button[style*="color:#fff"] svg,
+html[data-theme="light"] button[style*="color: #fff"] svg,
+html[data-theme="light"] button[style*="color:#FFFFFF"] svg,
+html[data-theme="light"] button[style*="color: #FFFFFF"] svg { stroke: #FFFFFF !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   YURIS DAY — Sidebar refinada
+   --------------------------------------------------------------------
+   Tira o RETÂNGULO GRANDE de fundo da sidebar inteira (gradiente prata).
+   MANTÉM os card-buttons individuais de cada item (logo / user / nav /
+   logout) com seu próprio fundo branco e sombra sutil — dá sensação de
+   cards flutuando direto no fundo da página.
+   Item ATIVO fica azul sólido com ícone e texto BRANCOS.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Sidebar container — totalmente transparente (sem retângulo de fundo) */
+html[data-theme="light"] .sidebar {
+  background: transparent !important;
+  background-image: none !important;
+  border-right: none !important;
+  box-shadow: none !important;
+}
+html[data-theme="light"] .sidebar::before { display: none !important; }
+
+/* Logo + Brand — caixa branca discreta com borda suave */
+html[data-theme="light"] .sidebar-brand {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(15,31,54,0.10) !important;
+  border-radius: 11px !important;
+  box-shadow: 0 2px 6px rgba(15,31,54,0.06) !important;
+  padding: 8px !important;
+}
+html[data-theme="light"] .sidebar-brand h1,
+html[data-theme="light"] .sidebar-brand p { color: #0F1F36 !important; }
+
+/* User card (Gabriel Monteiro / ADMIN) — caixa branca */
+html[data-theme="light"] .sidebar-user {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(15,31,54,0.10) !important;
+  box-shadow: 0 2px 6px rgba(15,31,54,0.06) !important;
+}
+html[data-theme="light"] .sidebar-user-name { color: #0F1F36 !important; }
+html[data-theme="light"] .sidebar-user-avatar {
+  background: linear-gradient(135deg, #1E4A8A, #2563EB) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(30,74,138,.25) !important;
+}
+html[data-theme="light"] .sidebar-user-badge--admin   { background: rgba(37,99,235,.16) !important;  color: #1E4A8A !important; border: 1px solid rgba(37,99,235,.30) !important; }
+html[data-theme="light"] .sidebar-user-badge--user    { background: rgba(124,139,160,.16) !important; color: #5A6B7E !important; border: 1px solid rgba(124,139,160,.30) !important; }
+html[data-theme="light"] .sidebar-user-badge--manager { background: rgba(217,119,6,.14) !important;  color: #B45309 !important; border: 1px solid rgba(217,119,6,.30) !important; }
+
+/* "Última atualização" — texto solto, sem caixa (fica entre os blocos) */
+html[data-theme="light"] .sidebar-status,
+html[data-theme="light"] #dashboardStatus {
+  color: #5A6B7E !important;
+  background: transparent !important;
+  border: none !important;
+  padding-left: 4px !important;
+}
+
+/* Nav items INATIVOS — caixa branca (card individual), texto navy, ícone navy */
+html[data-theme="light"] .sidebar nav a {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(15,31,54,0.10) !important;
+  color: #0F1F36 !important;
+  box-shadow: 0 1px 3px rgba(15,31,54,0.04) !important;
+}
+html[data-theme="light"] .sidebar nav a .icon svg,
+html[data-theme="light"] .sidebar nav a .icon svg * { stroke: #1E4A8A !important; }
+
+/* Nav HOVER — destaca com azul translúcido */
+html[data-theme="light"] .sidebar nav a:hover {
+  background: rgba(37,99,235,.08) !important;
+  color: #1E4A8A !important;
+  border-color: rgba(37,99,235,.40) !important;
+  box-shadow: 0 2px 8px rgba(37,99,235,.10) !important;
+}
+html[data-theme="light"] .sidebar nav a:hover .icon svg,
+html[data-theme="light"] .sidebar nav a:hover .icon svg * { stroke: #1E4A8A !important; }
+
+/* Nav ATIVO — azul sólido vibrante, texto e ícone BRANCOS (igual "Adicionar coluna") */
+html[data-theme="light"] .sidebar nav a.active {
+  background: linear-gradient(135deg, #1E4A8A 0%, #2563EB 100%) !important;
+  color: #FFFFFF !important;
+  border-color: #1E4A8A !important;
+  box-shadow: 0 4px 14px rgba(30,74,138,.28) !important;
+  font-weight: 700 !important;
+}
+html[data-theme="light"] .sidebar nav a.active .icon svg,
+html[data-theme="light"] .sidebar nav a.active .icon svg * { stroke: #FFFFFF !important; }
+html[data-theme="light"] .sidebar nav a.active .label { color: #FFFFFF !important; }
+
+/* Logout card — card branco com texto vermelho */
+html[data-theme="light"] .sidebar-logout-card {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(15,31,54,0.10) !important;
+  color: #B91C1C !important;
+  box-shadow: 0 1px 3px rgba(15,31,54,0.04) !important;
+}
+html[data-theme="light"] .sidebar-logout-card .icon svg,
+html[data-theme="light"] .sidebar-logout-card span svg { stroke: #B91C1C !important; }
+html[data-theme="light"] .sidebar-logout-card:hover {
+  background: rgba(220,38,38,.06) !important;
+  border-color: rgba(220,38,38,.30) !important;
+}
+html[data-theme="light"] .sidebar-logout-card:hover .icon svg { stroke: #DC2626 !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   YURIS DAY — Textos em CARDS BRANCOS (escurece tudo que era claro)
+   --------------------------------------------------------------------
+   Toda escrita que era branca/azul-claro dentro de cards (chart titles,
+   labels de KPI, títulos de modal, strong de summary, etc.) precisa virar
+   navy escuro pra ser legível no fundo branco.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Títulos de gráfico (dashboard, jurídico, finanças) */
+html[data-theme="light"] .chart-title { color: #0F1F36 !important; font-weight: 700 !important; }
+
+/* Títulos internos de seção dos painéis */
+html[data-theme="light"] .agt-section-title,
+html[data-theme="light"] .dre-section-title,
+html[data-theme="light"] .jur-section-title,
+html[data-theme="light"] .usr-section-title {
+  color: #1E4A8A !important;
+  background: rgba(37,99,235,.06) !important;
+  border-bottom-color: rgba(15,31,54,.10) !important;
+}
+
+/* KPI labels (uppercase silver dim) — escurecer pra navy médio */
+html[data-theme="light"] .kpi-label { color: #5A6B7E !important; }
+html[data-theme="light"] .kpi-value { color: #0F1F36 !important; }
+html[data-theme="light"] .kpi-foot  { color: #8B97A8 !important; }
+
+/* Modal title text */
+html[data-theme="light"] .modal-title-text,
+html[data-theme="light"] .modal-title { color: #0F1F36 !important; }
+
+/* Summary box / exec summary — texto navy */
+html[data-theme="light"] .summary-box,
+html[data-theme="light"] .exec-summary {
+  background: rgba(247,249,252,.95) !important;
+  border: 1px solid rgba(15,31,54,.10) !important;
+  color: #0F1F36 !important;
+}
+html[data-theme="light"] .summary-box strong,
+html[data-theme="light"] .exec-summary strong { color: #1E4A8A !important; }
+
+/* Alerts informativos */
+html[data-theme="light"] .alert-info    { background: rgba(37,99,235,.10) !important; color: #1E4A8A !important; border: 1px solid rgba(37,99,235,.30) !important; }
+html[data-theme="light"] .alert-warn    { background: rgba(217,119,6,.10) !important;  color: #B45309 !important; border: 1px solid rgba(217,119,6,.30) !important; }
+html[data-theme="light"] .alert-danger  { background: rgba(220,38,38,.10) !important;  color: #B91C1C !important; border: 1px solid rgba(220,38,38,.30) !important; }
+html[data-theme="light"] .alert-ok      { background: rgba(22,163,74,.10) !important;  color: #15803D !important; border: 1px solid rgba(22,163,74,.30) !important; }
+
+/* Table headers (cols-table, listing tables) */
+html[data-theme="light"] .cols-table th,
+html[data-theme="light"] table th { color: #1E4A8A !important; background: rgba(37,99,235,.06) !important; }
+
+/* Legenda do Chart.js (quando renderizada via DOM, não canvas) */
+html[data-theme="light"] .chart-legend,
+html[data-theme="light"] [class*="-legend"] { color: #0F1F36 !important; }
+html[data-theme="light"] .chart-legend-item,
+html[data-theme="light"] [class*="legend-item"] { color: #0F1F36 !important; }
+
+/* Receita Mensal, Meta × Fechados, Projeção, etc. — qualquer h2/h3/h4 em chart cards */
+html[data-theme="light"] .chart-card h2,
+html[data-theme="light"] .chart-card h3,
+html[data-theme="light"] .chart-card h4,
+html[data-theme="light"] .dash-panel h2,
+html[data-theme="light"] .dash-panel h3,
+html[data-theme="light"] .dash-panel h4 { color: #0F1F36 !important; font-weight: 700 !important; }
+
+/* Texto dentro do donut central (número grande tipo "55") */
+html[data-theme="light"] .donut-center,
+html[data-theme="light"] .donut-label,
+html[data-theme="light"] [class*="donut-center"] { color: #0F1F36 !important; }
+
+/* Genérico pra qualquer chart-card cobra o color base */
+html[data-theme="light"] .chart-card { color: #0F1F36 !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   YURIS DAY — Paleta de gráficos suavizada (harmonia com prata/platinum)
+   --------------------------------------------------------------------
+   Substitui o azul vibrante saturado por TONS DE AÇO (steel-blue) que
+   conversam visualmente com o fundo prata da página. Mantém hierarquia
+   (escuro→claro) sem agressividade. Bem mais "premium".
+   ═══════════════════════════════════════════════════════════════════════ */
+html[data-theme="light"] {
+  --chart-c1: #4A6FA8;   /* steel blue médio (cor primária) */
+  --chart-c2: #6A8DBE;   /* steel blue claro */
+  --chart-c3: #2C5085;   /* steel blue escuro */
+  --chart-c4: #8AA7C7;   /* steel blue suave */
+  --chart-c5: #5C7EB0;   /* steel blue intermediário */
+  --chart-c6: #A8BED6;   /* quase prata */
+  --chart-c7: #3A5F98;   /* azul aço profundo */
+  --chart-c8: #B4C5D7;   /* prata azulado */
+  --chart-grid:   rgba(15,31,54,0.08);
+  --chart-tick:   #5A6B7E;
+  --chart-border: rgba(247,249,252,0.95);
+  --chart-hoje:    #B85540;   /* terracota discreto (era vermelho saturado) */
+  --chart-urgente: #B8841F;   /* ouro escuro discreto */
+  --chart-normal:  #4A6FA8;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   YURIS DAY — Headers de "Processos Próximos" (HOJE / 7 / 15 / 30 dias)
+   --------------------------------------------------------------------
+   Inline style original (style="color:#fca5a5"...) cria texto pálido
+   invisível em fundo claro. Sobrescrevemos com !important.
+   Cada card mantém sua cor temática (vermelho/âmbar/azul/verde) mas
+   com contraste forte: fundo discreto + texto saturado escuro.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* HOJE — vermelho */
+html[data-theme="light"] .prox-card:nth-child(1) .prox-card-hdr {
+  background: rgba(220,38,38,.10) !important;
+  border-bottom: 1px solid rgba(220,38,38,.30) !important;
+}
+html[data-theme="light"] .prox-card:nth-child(1) .prox-card-lbl { color: #B91C1C !important; font-weight: 800 !important; }
+html[data-theme="light"] .prox-card:nth-child(1) .prox-card-cnt { color: #B91C1C !important; font-weight: 800 !important; }
+
+/* 7 DIAS — âmbar */
+html[data-theme="light"] .prox-card:nth-child(2) .prox-card-hdr {
+  background: rgba(217,119,6,.10) !important;
+  border-bottom: 1px solid rgba(217,119,6,.30) !important;
+}
+html[data-theme="light"] .prox-card:nth-child(2) .prox-card-lbl { color: #B45309 !important; font-weight: 800 !important; }
+html[data-theme="light"] .prox-card:nth-child(2) .prox-card-cnt { color: #B45309 !important; font-weight: 800 !important; }
+
+/* 15 DIAS — azul */
+html[data-theme="light"] .prox-card:nth-child(3) .prox-card-hdr {
+  background: rgba(37,99,235,.10) !important;
+  border-bottom: 1px solid rgba(37,99,235,.30) !important;
+}
+html[data-theme="light"] .prox-card:nth-child(3) .prox-card-lbl { color: #1E4A8A !important; font-weight: 800 !important; }
+html[data-theme="light"] .prox-card:nth-child(3) .prox-card-cnt { color: #1E4A8A !important; font-weight: 800 !important; }
+
+/* 30 DIAS — verde */
+html[data-theme="light"] .prox-card:nth-child(4) .prox-card-hdr {
+  background: rgba(22,163,74,.10) !important;
+  border-bottom: 1px solid rgba(22,163,74,.30) !important;
+}
+html[data-theme="light"] .prox-card:nth-child(4) .prox-card-lbl { color: #15803D !important; font-weight: 800 !important; }
+html[data-theme="light"] .prox-card:nth-child(4) .prox-card-cnt { color: #15803D !important; font-weight: 800 !important; }
+
+/* Texto uppercase fica MAIS forte */
+html[data-theme="light"] .prox-card-lbl { text-transform: uppercase !important; letter-spacing: .05em !important; font-size: .82rem !important; }
+html[data-theme="light"] .prox-card-cnt { font-size: 1.1rem !important; }
+
+/* Seção eyebrow "PROCESSOS PRÓXIMOS" */
+html[data-theme="light"] .section-eyebrow {
+  color: #1E4A8A !important;
+  font-weight: 700 !important;
+  letter-spacing: .06em !important;
+}
+
+/* Lista interna do card de prazos */
+html[data-theme="light"] .prox-card { background: #FFFFFF !important; border: 1px solid rgba(15,31,54,0.10) !important; box-shadow: 0 1px 3px rgba(15,31,54,0.04) !important; }
+html[data-theme="light"] .prox-card-list .prox-row { background: rgba(247,249,252,.6) !important; border: 1px solid rgba(15,31,54,0.06) !important; }
+html[data-theme="light"] .prox-card-list .prox-row-client { color: #0F1F36 !important; font-weight: 600 !important; }
+html[data-theme="light"] .prox-card-list .prox-row-meta   { color: #5A6B7E !important; }
+html[data-theme="light"] .prox-card-list .prox-empty       { color: #8B97A8 !important; font-style: italic; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   YURIS DAY — SWEEP GLOBAL · textos claros → navy escuro
+   --------------------------------------------------------------------
+   Catch-all que pega TODA cor de texto clara hardcoded (em inline styles
+   ou em classes) e força navy escuro no tema claro. Cobre os 19 valores
+   mais usados no sistema (planejamento, agente, configurações, dashboard,
+   processos, jurídico, finanças, usuários, chat, escritórios, webhooks).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* — Inline styles com cores claras — */
+html[data-theme="light"] [style*="color:#93c5fd"],
+html[data-theme="light"] [style*="color: #93c5fd"],
+html[data-theme="light"] [style*="color:#D8E4F0"],
+html[data-theme="light"] [style*="color: #D8E4F0"],
+html[data-theme="light"] [style*="color:#d8e4f0"],
+html[data-theme="light"] [style*="color: #d8e4f0"],
+html[data-theme="light"] [style*="color:#dbeafe"],
+html[data-theme="light"] [style*="color: #dbeafe"],
+html[data-theme="light"] [style*="color:#d6eaff"],
+html[data-theme="light"] [style*="color: #d6eaff"],
+html[data-theme="light"] [style*="color:#A8BDD4"],
+html[data-theme="light"] [style*="color: #A8BDD4"],
+html[data-theme="light"] [style*="color:#a8bdd4"],
+html[data-theme="light"] [style*="color:#9ab0c9"],
+html[data-theme="light"] [style*="color: #9ab0c9"],
+html[data-theme="light"] [style*="color:#a5b4fc"],
+html[data-theme="light"] [style*="color: #a5b4fc"],
+html[data-theme="light"] [style*="color:#7a96b4"],
+html[data-theme="light"] [style*="color: #7a96b4"],
+html[data-theme="light"] [style*="color:#a8c2df"],
+html[data-theme="light"] [style*="color: #a8c2df"],
+html[data-theme="light"] [style*="color:#d0e8ff"],
+html[data-theme="light"] [style*="color: #d0e8ff"],
+html[data-theme="light"] [style*="color:#C8D4E0"],
+html[data-theme="light"] [style*="color: #C8D4E0"],
+html[data-theme="light"] [style*="color:#c8d4e0"],
+html[data-theme="light"] [style*="color:#d1e6ff"],
+html[data-theme="light"] [style*="color: #d1e6ff"],
+html[data-theme="light"] [style*="color:#f0f8ff"],
+html[data-theme="light"] [style*="color: #f0f8ff"],
+html[data-theme="light"] [style*="color:#e6f6ff"],
+html[data-theme="light"] [style*="color: #e6f6ff"],
+html[data-theme="light"] [style*="color:#7EB8F6"],
+html[data-theme="light"] [style*="color: #7EB8F6"] {
+  color: #0F1F36 !important;
+}
+
+/* Status colors em inline style — escurece pra ser legível */
+html[data-theme="light"] [style*="color:#fca5a5"],
+html[data-theme="light"] [style*="color: #fca5a5"] { color: #B91C1C !important; }
+html[data-theme="light"] [style*="color:#fcd34d"],
+html[data-theme="light"] [style*="color: #fcd34d"] { color: #B45309 !important; }
+html[data-theme="light"] [style*="color:#6ee7b7"],
+html[data-theme="light"] [style*="color: #6ee7b7"] { color: #15803D !important; }
+html[data-theme="light"] [style*="color:#f87171"],
+html[data-theme="light"] [style*="color: #f87171"] { color: #B91C1C !important; }
+html[data-theme="light"] [style*="color:#4ade80"],
+html[data-theme="light"] [style*="color: #4ade80"] { color: #15803D !important; }
+html[data-theme="light"] [style*="color:#7ABDA0"],
+html[data-theme="light"] [style*="color: #7ABDA0"] { color: #15803D !important; }
+
+/* — Classes comuns de label/hint/subtítulo em FORMULÁRIOS — */
+html[data-theme="light"] .field-label,
+html[data-theme="light"] .form-label,
+html[data-theme="light"] .label-text,
+html[data-theme="light"] label,
+html[data-theme="light"] .input-label {
+  color: #1E4A8A !important;
+  font-weight: 600 !important;
+}
+html[data-theme="light"] .field-hint,
+html[data-theme="light"] .form-hint,
+html[data-theme="light"] .field-help,
+html[data-theme="light"] .hint-text,
+html[data-theme="light"] .help-text {
+  color: #5A6B7E !important;
+}
+
+/* — Subtítulos de seção (textos descritivos abaixo de h3) — */
+html[data-theme="light"] .section-subtitle,
+html[data-theme="light"] .proc-subtitle,
+html[data-theme="light"] .panel-subtitle,
+html[data-theme="light"] .dash-subtitle,
+html[data-theme="light"] .page-subtitle {
+  color: #5A6B7E !important;
+}
+
+/* — Section titles (h3 "Parâmetros da meta", "Resultado esperado", etc.) — */
+html[data-theme="light"] h3.section-title,
+html[data-theme="light"] .panel-title,
+html[data-theme="light"] .card-title,
+html[data-theme="light"] .dash-title,
+html[data-theme="light"] .proc-title,
+html[data-theme="light"] .agt-title { color: #0F1F36 !important; font-weight: 700 !important; }
+
+/* — Goal/meta widgets (textos "Topo do funil...", "Receita desejada...") — */
+html[data-theme="light"] .meta-label,
+html[data-theme="light"] .goal-label,
+html[data-theme="light"] .stat-label { color: #5A6B7E !important; }
+html[data-theme="light"] .meta-value,
+html[data-theme="light"] .goal-value,
+html[data-theme="light"] .stat-value { color: #0F1F36 !important; font-weight: 700 !important; }
+
+/* — Texto base dentro de painéis claros (default fallback) — */
+html[data-theme="light"] .dash-panel,
+html[data-theme="light"] .proc-panel,
+html[data-theme="light"] .jur-panel,
+html[data-theme="light"] .dre-panel,
+html[data-theme="light"] .cfg-panel,
+html[data-theme="light"] .usr-panel,
+html[data-theme="light"] .agt-panel,
+html[data-theme="light"] .card,
+html[data-theme="light"] .yuris-card,
+html[data-theme="light"] [class*="-panel"]:not(.tk-panel) { color: #0F1F36 !important; }
+
+/* — Parágrafos comuns — */
+html[data-theme="light"] .cfg-section-body p,
+html[data-theme="light"] .dash-panel p,
+html[data-theme="light"] .proc-panel p,
+html[data-theme="light"] .agt-panel p { color: #5A6B7E !important; }
+
+/* — Texto pequeno legacy (small, .text-sm) em cards claros — */
+html[data-theme="light"] .card small,
+html[data-theme="light"] .yuris-card small,
+html[data-theme="light"] [class*="-panel"] small { color: #5A6B7E !important; }
+
+/* — Strong em cards: azul institucional pra destaque — */
+html[data-theme="light"] .card strong,
+html[data-theme="light"] .dash-panel strong,
+html[data-theme="light"] .proc-panel strong,
+html[data-theme="light"] [class*="-panel"] strong { color: #1E4A8A !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   YURIS DAY — Big values & inner cards (catch-all definitivo)
+   --------------------------------------------------------------------
+   Pega cores branco-quase (#f0f8ff, #f2f8ff, #d7e9ff) que aparecem em
+   números grandes de cards, labels uppercase de exec/kpi, pílulas
+   destacadas, e overrides do Tailwind text-blue-* (50/100/200/300).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* — Inline styles com brancos azulados — */
+html[data-theme="light"] [style*="color:#f0f8ff"],
+html[data-theme="light"] [style*="color: #f0f8ff"],
+html[data-theme="light"] [style*="color:#f2f8ff"],
+html[data-theme="light"] [style*="color: #f2f8ff"],
+html[data-theme="light"] [style*="color:#d7e9ff"],
+html[data-theme="light"] [style*="color: #d7e9ff"],
+html[data-theme="light"] [style*="color:#b8d5f4"],
+html[data-theme="light"] [style*="color: #b8d5f4"] { color: #0F1F36 !important; }
+
+/* — KPI / EXEC / METRIC big values — */
+html[data-theme="light"] .kpi-value,
+html[data-theme="light"] .exec-item-value,
+html[data-theme="light"] .exec-value,
+html[data-theme="light"] .metric-value,
+html[data-theme="light"] .indicator-value,
+html[data-theme="light"] .prox-card-cnt,
+html[data-theme="light"] .prox-card-count,
+html[data-theme="light"] .alert-block-count,
+html[data-theme="light"] .meta-widget .meta-val,
+html[data-theme="light"] .meta-val,
+html[data-theme="light"] .panel-value,
+html[data-theme="light"] .stat-num,
+html[data-theme="light"] .big-number,
+html[data-theme="light"] [class*="-value"]:not(input):not(textarea):not(select) {
+  color: #0F1F36 !important;
+  font-weight: 700 !important;
+}
+
+/* — KPI / EXEC labels uppercase — */
+html[data-theme="light"] .kpi-label,
+html[data-theme="light"] .exec-item-label,
+html[data-theme="light"] .exec-label,
+html[data-theme="light"] .exec-title,
+html[data-theme="light"] .metric-label,
+html[data-theme="light"] .indicator-label,
+html[data-theme="light"] .panel-label,
+html[data-theme="light"] .alert-block-title,
+html[data-theme="light"] .stat-label,
+html[data-theme="light"] [class*="-label"]:not(input):not(textarea):not(select):not(label) {
+  color: #5A6B7E !important;
+}
+
+/* — Notas / textos de apoio em exec-summary — */
+html[data-theme="light"] .exec-note,
+html[data-theme="light"] .exec-summary-note,
+html[data-theme="light"] .panel-note { color: #5A6B7E !important; }
+
+/* — Inner cards de exec/goal — fundo branco com borda sutil — */
+html[data-theme="light"] .exec-item,
+html[data-theme="light"] .goal-indicator,
+html[data-theme="light"] .conversion-item,
+html[data-theme="light"] .sim-card {
+  background: rgba(247,249,252,.95) !important;
+  border: 1px solid rgba(15,31,54,.10) !important;
+  color: #0F1F36 !important;
+}
+
+/* — Pílulas de status (Desafiadora, Tranquila, Crítica) — */
+html[data-theme="light"] .goal-pill.is-ok      { background: rgba(22,163,74,.16) !important; color: #15803D !important; border: 1px solid rgba(22,163,74,.32) !important; }
+html[data-theme="light"] .goal-pill.is-warn    { background: rgba(217,119,6,.16) !important; color: #B45309 !important; border: 1px solid rgba(217,119,6,.32) !important; }
+html[data-theme="light"] .goal-pill.is-danger  { background: rgba(220,38,38,.16) !important; color: #B91C1C !important; border: 1px solid rgba(220,38,38,.32) !important; }
+html[data-theme="light"] .goal-pill { color: #0F1F36 !important; font-weight: 700 !important; }
+
+/* — Tailwind text-blue-* (claros) → navy — */
+html[data-theme="light"] .text-blue-50,
+html[data-theme="light"] .text-blue-100,
+html[data-theme="light"] .text-blue-200,
+html[data-theme="light"] .text-blue-300,
+html[data-theme="light"] .text-indigo-100,
+html[data-theme="light"] .text-indigo-200,
+html[data-theme="light"] .text-indigo-300,
+html[data-theme="light"] .text-sky-100,
+html[data-theme="light"] .text-sky-200,
+html[data-theme="light"] .text-sky-300 { color: #1E4A8A !important; }
+
+/* — Tailwind text-blue-400 e text-blue-500 (médios) → mantém com tom escuro — */
+html[data-theme="light"] .text-blue-400,
+html[data-theme="light"] .text-blue-500,
+html[data-theme="light"] .text-sky-400,
+html[data-theme="light"] .text-sky-500 { color: #1E4A8A !important; }
+
+/* — Tailwind text-white em containers claros — */
+html[data-theme="light"] .text-white { color: #0F1F36 !important; }
+
+/* — Tailwind text-gray-* claros — */
+html[data-theme="light"] .text-gray-100,
+html[data-theme="light"] .text-gray-200,
+html[data-theme="light"] .text-gray-300,
+html[data-theme="light"] .text-gray-400,
+html[data-theme="light"] .text-slate-100,
+html[data-theme="light"] .text-slate-200,
+html[data-theme="light"] .text-slate-300,
+html[data-theme="light"] .text-slate-400 { color: #5A6B7E !important; }
+
+/* — Tailwind text-red/yellow/green claros → versões escuras — */
+html[data-theme="light"] .text-red-100,
+html[data-theme="light"] .text-red-200,
+html[data-theme="light"] .text-red-300,
+html[data-theme="light"] .text-red-400 { color: #B91C1C !important; }
+html[data-theme="light"] .text-yellow-100,
+html[data-theme="light"] .text-yellow-200,
+html[data-theme="light"] .text-yellow-300,
+html[data-theme="light"] .text-amber-100,
+html[data-theme="light"] .text-amber-200,
+html[data-theme="light"] .text-amber-300 { color: #B45309 !important; }
+html[data-theme="light"] .text-green-100,
+html[data-theme="light"] .text-green-200,
+html[data-theme="light"] .text-green-300,
+html[data-theme="light"] .text-emerald-100,
+html[data-theme="light"] .text-emerald-200,
+html[data-theme="light"] .text-emerald-300 { color: #15803D !important; }
+
+/* — Funil / etapas (planejamento) — */
+html[data-theme="light"] .funnel-column,
+html[data-theme="light"] .funnel-stage,
+html[data-theme="light"] [class*="funnel-"]:not(.funnel-shape) {
+  background: rgba(247,249,252,.95) !important;
+  border: 1px solid rgba(15,31,54,.10) !important;
+  color: #0F1F36 !important;
+}
+html[data-theme="light"] .funnel-column .funnel-label,
+html[data-theme="light"] .funnel-stage-label,
+html[data-theme="light"] .funnel-value { color: #0F1F36 !important; }
+
+/* — Tooltip/footnote final do exec-summary — */
+html[data-theme="light"] .exec-summary p,
+html[data-theme="light"] .exec-summary div { color: #0F1F36 !important; }
+html[data-theme="light"] .exec-summary strong { color: #1E4A8A !important; }
+
+/* — Texto "DISTRIBUIÇÃO POR RESPONSÁVEL" (uppercase letterspaced) — */
+html[data-theme="light"] [class*="distribuicao"],
+html[data-theme="light"] [class*="-uppercase"],
+html[data-theme="light"] .uppercase-label { color: #5A6B7E !important; font-weight: 700 !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   YURIS DAY — Painel "Resumo do aumento necessário" (gap analysis)
+   --------------------------------------------------------------------
+   O tema escuro usa amber/laranja saturado (alerta visual de "bottleneck").
+   No tema claro o amber translúcido + texto amarelo claro vira ilegível.
+   Convertemos pra branco com detalhe azul (mesma estética dos cards Funil).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+html[data-theme="light"] .funnel-gap-full {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(15,31,54,0.10) !important;
+  border-style: solid !important;
+  box-shadow: 0 1px 3px rgba(15,31,54,0.04), 0 4px 14px rgba(15,31,54,0.04) !important;
+}
+html[data-theme="light"] .gap-title { color: #1E4A8A !important; font-weight: 700 !important; }
+html[data-theme="light"] .gap-item {
+  background: rgba(247,249,252,.95) !important;
+  border: 1px solid rgba(15,31,54,0.10) !important;
+}
+html[data-theme="light"] .gap-item-label { color: #5A6B7E !important; font-weight: 600 !important; text-transform: uppercase; letter-spacing: .03em; }
+html[data-theme="light"] .gap-item-value { color: #0F1F36 !important; font-weight: 700 !important; }
+html[data-theme="light"] .gap-item-sub   { color: #5A6B7E !important; }
+html[data-theme="light"] .gap-footer     { color: #5A6B7E !important; border-top: 1px dashed rgba(15,31,54,0.15) !important; }
+html[data-theme="light"] .gap-footer strong { color: #1E4A8A !important; }
+
+/* Bottleneck-note (texto "Gargalo atual: Leads → Consultas") */
+html[data-theme="light"] .bottleneck-note {
+  background: rgba(37,99,235,.06) !important;
+  border: 1px dashed rgba(37,99,235,.30) !important;
+  color: #1E4A8A !important;
+  font-weight: 600 !important;
+}
+html[data-theme="light"] .bottleneck-note strong { color: #0F1F36 !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   YURIS DAY — Cards do funil (Leads / Consultas / Propostas / Contratos)
+   --------------------------------------------------------------------
+   Cada etapa do funil é um card que no escuro tem fundo navy translúcido
+   e texto branco. No claro precisa virar fundo branco + texto navy +
+   destaque azul institucional.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+html[data-theme="light"] .funnel-stage,
+html[data-theme="light"] .funnel-card,
+html[data-theme="light"] [class*="funnel-stage"] {
+  background: linear-gradient(145deg, #FFFFFF 0%, #F4F7FB 100%) !important;
+  border: 1px solid rgba(15,31,54,0.10) !important;
+  color: #0F1F36 !important;
+}
+html[data-theme="light"] .funnel-stage-title,
+html[data-theme="light"] .funnel-card-title { color: #0F1F36 !important; font-weight: 700 !important; }
+html[data-theme="light"] .funnel-stage-value,
+html[data-theme="light"] .funnel-card-value { color: #0F1F36 !important; }
+html[data-theme="light"] .funnel-stage-pct,
+html[data-theme="light"] .funnel-card-pct { color: #1E4A8A !important; font-weight: 700 !important; }
+html[data-theme="light"] .funnel-stage-meta,
+html[data-theme="light"] .funnel-card-meta { color: #5A6B7E !important; }
+html[data-theme="light"] .funnel-stage-meta strong,
+html[data-theme="light"] .funnel-card-meta strong { color: #1E4A8A !important; }
+
+/* Card destacado (gargalo / bottleneck atual) — borda AZUL institucional (não mais amber) */
+html[data-theme="light"] .funnel-stage.is-bottleneck,
+html[data-theme="light"] .funnel-card.is-bottleneck,
+html[data-theme="light"] [class*="bottleneck"]:not(.bottleneck-note) {
+  border: 2px solid rgba(37,99,235,0.50) !important;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.12), 0 4px 14px rgba(37,99,235,0.10) !important;
+  background: linear-gradient(145deg, #FFFFFF 0%, #F0F4FB 100%) !important;
+}
+
+/* Funnel headers (Funil comercial / Funil simulado) */
+html[data-theme="light"] .funnel-header,
+html[data-theme="light"] [class*="funnel-title"] { color: #0F1F36 !important; font-weight: 700 !important; }
+
+/* Texto descritivo dentro de card de etapa ("% do topo", "Conversão p/ próxima") */
+html[data-theme="light"] .funnel-stage-info,
+html[data-theme="light"] .stage-info-text,
+html[data-theme="light"] [class*="funnel"] small { color: #5A6B7E !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   YURIS DAY — Prospecção (Kanban + Modal "Gestão Completa do Lead")
+   --------------------------------------------------------------------
+   Form sections (Bloco 1/2/3/4), labels, e cards Kanban com cold state.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Modal — seções (Bloco 1 — Dados principais, Bloco 2 — Comercial, etc.) */
+html[data-theme="light"] .form-section {
+  background-color: #FFFFFF !important;
+  background-image: none !important;
+  border: 1px solid rgba(15,31,54,0.10) !important;
+  box-shadow: 0 1px 3px rgba(15,31,54,0.04) !important;
+}
+html[data-theme="light"] .form-section-title {
+  color: #1E4A8A !important;
+  font-weight: 700 !important;
+}
+html[data-theme="light"] .form-label {
+  color: #1E4A8A !important;
+  font-weight: 600 !important;
+}
+html[data-theme="light"] .form-hint,
+html[data-theme="light"] .form-help { color: #5A6B7E !important; }
+
+/* Cards "fechados/frios/perdidos" no Kanban — texto cinza médio (não invisível!) */
+html[data-theme="light"] .card-mini.is-cold,
+html[data-theme="light"] .card-mini.is-frio,
+html[data-theme="light"] .card-mini.is-faded,
+html[data-theme="light"] .card-mini[data-temp="frio"],
+html[data-theme="light"] .card-mini[data-temp="perdido"],
+html[data-theme="light"] .card-mini.is-perdido {
+  opacity: 0.85 !important;
+  color: #5A6B7E !important;
+}
+html[data-theme="light"] .card-mini.is-cold *,
+html[data-theme="light"] .card-mini.is-frio *,
+html[data-theme="light"] .card-mini[data-temp="frio"] *,
+html[data-theme="light"] .card-mini[data-temp="perdido"] *,
+html[data-theme="light"] .card-mini.is-perdido * {
+  color: #5A6B7E !important;
+}
+
+/* Garantir que TODOS os card-mini tenham texto navy escuro */
+html[data-theme="light"] .card-mini { color: #0F1F36 !important; }
+html[data-theme="light"] .card-mini .card-title,
+html[data-theme="light"] .card-mini h3,
+html[data-theme="light"] .card-mini h4,
+html[data-theme="light"] .card-mini .lead-name { color: #0F1F36 !important; font-weight: 700 !important; }
+html[data-theme="light"] .card-mini .card-meta,
+html[data-theme="light"] .card-mini .lead-meta,
+html[data-theme="light"] .card-mini small,
+html[data-theme="light"] .card-mini .text-xs,
+html[data-theme="light"] .card-mini .text-sm { color: #5A6B7E !important; }
+html[data-theme="light"] .card-mini strong,
+html[data-theme="light"] .card-mini b { color: #1E4A8A !important; }
+
+/* Badges de "temperatura" do lead (Morno / Frio / Quente / Aguardando retorno) */
+html[data-theme="light"] [class*="badge-temp-morno"],
+html[data-theme="light"] [class*="badge-morno"],
+html[data-theme="light"] .temp-morno {
+  background: rgba(217,119,6,.16) !important;
+  color: #B45309 !important;
+  border: 1px solid rgba(217,119,6,.32) !important;
+}
+html[data-theme="light"] [class*="badge-temp-frio"],
+html[data-theme="light"] [class*="badge-frio"],
+html[data-theme="light"] .temp-frio {
+  background: rgba(124,139,160,.16) !important;
+  color: #5A6B7E !important;
+  border: 1px solid rgba(124,139,160,.32) !important;
+}
+html[data-theme="light"] [class*="badge-temp-quente"],
+html[data-theme="light"] [class*="badge-quente"],
+html[data-theme="light"] .temp-quente {
+  background: rgba(220,38,38,.16) !important;
+  color: #B91C1C !important;
+  border: 1px solid rgba(220,38,38,.32) !important;
+}
+html[data-theme="light"] [class*="badge-aguardando"],
+html[data-theme="light"] [class*="aguardando-retorno"] {
+  background: rgba(124,139,160,.16) !important;
+  color: #5A6B7E !important;
+  border: 1px solid rgba(124,139,160,.32) !important;
+}
+
+/* Header da coluna do Kanban (Leads em atendimento / Proposta enviada / Negociação) */
+html[data-theme="light"] .kanban-col-header,
+html[data-theme="light"] .kanban-col-title,
+html[data-theme="light"] [class*="col-header"] { color: #0F1F36 !important; font-weight: 700 !important; }
+html[data-theme="light"] .kanban-col-subtitle,
+html[data-theme="light"] [class*="col-subtitle"] { color: #5A6B7E !important; }
+
+/* Texto de instrução "Arraste os cards entre etapas..." */
+html[data-theme="light"] .kanban-instructions,
+html[data-theme="light"] [class*="instructions"] { color: #5A6B7E !important; }
+
+/* Page-header de Prospecção ("Central de Prospecção Jurídica") */
+html[data-theme="light"] .page-header h1,
+html[data-theme="light"] .page-header h2,
+html[data-theme="light"] .page-header .page-title { color: #0F1F36 !important; font-weight: 700 !important; }
+html[data-theme="light"] .page-header p,
+html[data-theme="light"] .page-header .page-subtitle { color: #5A6B7E !important; }
+
+/* "Processos do Cliente" — sub-header dentro da modal */
+html[data-theme="light"] .lead-processos-title,
+html[data-theme="light"] .modal-subsection-title { color: #1E4A8A !important; font-weight: 700 !important; }
+
+/* Card de processo vinculado dentro da modal */
+html[data-theme="light"] .lead-proc-card,
+html[data-theme="light"] .processo-vinculado-card {
+  background: rgba(247,249,252,.95) !important;
+  border: 1px solid rgba(15,31,54,0.10) !important;
+  color: #0F1F36 !important;
+}
+
+/* Filter / search labels */
+html[data-theme="light"] .filter-label,
+html[data-theme="light"] .search-label,
+html[data-theme="light"] [class*="filter-label"] { color: #1E4A8A !important; font-weight: 600 !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   YURIS DAY — Card Kanban (.card-mini) · textos visíveis no fundo branco
+   --------------------------------------------------------------------
+   Os títulos do lead (.card-client) usavam #f4f9ff (quase branco) e
+   ficavam invisíveis no tema claro. Mesma coisa com card-meta strong e
+   meta-strong. Force navy escuro em todos.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+html[data-theme="light"] .card-client {
+  color: #0F1F36 !important;
+  font-weight: 700 !important;
+}
+html[data-theme="light"] .card-company {
+  color: #5A6B7E !important;
+}
+html[data-theme="light"] .card-meta {
+  color: #5A6B7E !important;
+}
+html[data-theme="light"] .card-meta strong,
+html[data-theme="light"] .meta-strong {
+  color: #1E4A8A !important;
+  font-weight: 700 !important;
+}
+
+/* "Clique para abrir" hint dentro do card */
+html[data-theme="light"] .card-mini .open-hint,
+html[data-theme="light"] .card-mini [class*="open"],
+html[data-theme="light"] .card-mini .clique-abrir {
+  color: #5A6B7E !important;
+}
+
+/* Card "is-overdue" (atrasado) — destaque sutil */
+html[data-theme="light"] .card-mini.is-overdue {
+  border-left: 3px solid #B91C1C !important;
+}
+html[data-theme="light"] .card-mini.is-overdue .card-client { color: #0F1F36 !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   YURIS DAY — Badges/Tags do Kanban (Morno / Frio / Quente / Aguardando)
+   --------------------------------------------------------------------
+   Estilo "outline" — sem fundo preenchido, só o anel colorido, texto
+   na cor semântica e SEM negrito. Visual minimalista.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+html[data-theme="light"] .badge {
+  background: transparent !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.02em !important;
+  border-width: 1.5px !important;
+}
+
+html[data-theme="light"] .badge-hot,
+html[data-theme="light"] .badge-urgent {
+  background: transparent !important;
+  color: #B91C1C !important;
+  border-color: rgba(185,28,28,0.55) !important;
+}
+
+html[data-theme="light"] .badge-warm {
+  background: transparent !important;
+  color: #B45309 !important;
+  border-color: rgba(180,83,9,0.55) !important;
+}
+
+html[data-theme="light"] .badge-cold {
+  background: transparent !important;
+  color: #1E4A8A !important;
+  border-color: rgba(30,74,138,0.45) !important;
+}
+
+html[data-theme="light"] .badge-waiting {
+  background: transparent !important;
+  color: #5A6B7E !important;
+  border-color: rgba(90,107,126,0.45) !important;
+}
+
+/* Outras variações comuns que aparecem em outros lugares do sistema */
+html[data-theme="light"] .badge-success,
+html[data-theme="light"] .badge-ok {
+  background: transparent !important;
+  color: #15803D !important;
+  border-color: rgba(21,128,61,0.50) !important;
+  font-weight: 500 !important;
+}
+html[data-theme="light"] .badge-info {
+  background: transparent !important;
+  color: #1E4A8A !important;
+  border-color: rgba(30,74,138,0.45) !important;
+  font-weight: 500 !important;
+}
+html[data-theme="light"] .badge-danger {
+  background: transparent !important;
+  color: #B91C1C !important;
+  border-color: rgba(185,28,28,0.55) !important;
+  font-weight: 500 !important;
+}
+html[data-theme="light"] .badge-warn {
+  background: transparent !important;
+  color: #B45309 !important;
+  border-color: rgba(180,83,9,0.55) !important;
+  font-weight: 500 !important;
+}
+html[data-theme="light"] .badge-neutral {
+  background: transparent !important;
+  color: #5A6B7E !important;
+  border-color: rgba(90,107,126,0.45) !important;
+  font-weight: 500 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   YURIS DAY — Cards inline-styled em "Processos do Cliente" e "Conversa WhatsApp"
+   --------------------------------------------------------------------
+   Esses cards são gerados via innerHTML com style="..." inline (background
+   rgba navy escuro). Pra vencer inline style precisa de !important + seletor
+   mais específico (parent#id + child div).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Processos do Cliente — cada card de processo vinculado */
+html[data-theme="light"] #processosClienteList > div {
+  background: linear-gradient(145deg, #FFFFFF 0%, #F4F7FB 100%) !important;
+  border: 1px solid rgba(15,31,54,0.10) !important;
+  color: #0F1F36 !important;
+  box-shadow: 0 1px 3px rgba(15,31,54,0.04) !important;
+}
+html[data-theme="light"] #processosClienteList > div > div > div:first-child { color: #0F1F36 !important; font-weight: 700 !important; }
+html[data-theme="light"] #processosClienteList > div > div > div:nth-child(2) { color: #5A6B7E !important; }
+html[data-theme="light"] #processosClienteList > div a[href*="processos.php"] { color: #1E4A8A !important; font-weight: 600 !important; }
+html[data-theme="light"] #processosClienteList > div a[href*="processos.php"]:hover { color: #2563EB !important; text-decoration: underline; }
+html[data-theme="light"] #processosClienteList > div button[onclick*="_desvincular"] {
+  background: transparent !important;
+  border: 1px solid rgba(185,28,28,0.30) !important;
+  color: #B91C1C !important;
+}
+html[data-theme="light"] #processosClienteList > div button[onclick*="_desvincular"]:hover {
+  background: rgba(220,38,38,0.10) !important;
+  border-color: rgba(220,38,38,0.55) !important;
+}
+/* Mensagem "Nenhum processo vinculado..." */
+html[data-theme="light"] #processosClienteList > div[style*="color:#9ab0c9"] { color: #5A6B7E !important; }
+
+/* Conversa WhatsApp — card inline-styled */
+html[data-theme="light"] #chatVinculoCard > div {
+  background: linear-gradient(145deg, #FFFFFF 0%, #F4FCF6 100%) !important;
+  border: 1px solid rgba(22,163,74,0.30) !important;
+  color: #0F1F36 !important;
+  box-shadow: 0 1px 3px rgba(15,31,54,0.04) !important;
+}
+html[data-theme="light"] #chatVinculoCard span[style*="color:#6ee7b7"] { color: #15803D !important; font-weight: 600 !important; }
+html[data-theme="light"] #chatVinculoCard div[style*="color:#9ab0c9"] { color: #5A6B7E !important; }
+html[data-theme="light"] #chatVinculoCard a[href*="chat.php"] {
+  background: rgba(22,163,74,0.12) !important;
+  color: #15803D !important;
+  border: 1px solid rgba(22,163,74,0.45) !important;
+}
+html[data-theme="light"] #chatVinculoCard a[href*="chat.php"]:hover {
+  background: rgba(22,163,74,0.20) !important;
+}
+
+/* Container "Nenhuma conversa vinculada" placeholder */
+html[data-theme="light"] #chatVinculoCard > div[style*="color:#9ab0c9"] { color: #5A6B7E !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   YURIS DAY — Modal "Vincular Processo ao Cliente" (#modalVincularProcesso)
+   --------------------------------------------------------------------
+   Modal escuro inline-styled. Override via #id + filhos com !important.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Overlay do modal — escurecer menos (não preto pesado) */
+html[data-theme="light"] #modalVincularProcesso {
+  background: rgba(15,31,54,0.45) !important;
+}
+
+/* Card central do modal (o painel branco) */
+html[data-theme="light"] #modalVincularProcesso > div {
+  background: linear-gradient(165deg, #FFFFFF 0%, #F4F7FB 100%) !important;
+  border: 1px solid rgba(15,31,54,0.14) !important;
+  box-shadow: 0 24px 60px rgba(15,31,54,0.20) !important;
+  color: #0F1F36 !important;
+}
+
+/* Header do modal (com título + botão fechar) */
+html[data-theme="light"] #modalVincularProcesso > div > div:first-child {
+  border-bottom: 1px solid rgba(15,31,54,0.10) !important;
+  background: rgba(37,99,235,0.04) !important;
+}
+html[data-theme="light"] #modalVincularProcesso span[style*="color:#dbeafe"] {
+  color: #0F1F36 !important;
+}
+
+/* Botão Fechar — outline */
+html[data-theme="light"] #btnFecharVincularProcesso {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(15,31,54,0.18) !important;
+  color: #5A6B7E !important;
+}
+html[data-theme="light"] #btnFecharVincularProcesso:hover {
+  background: rgba(220,38,38,0.08) !important;
+  border-color: rgba(220,38,38,0.40) !important;
+  color: #B91C1C !important;
+}
+
+/* Input de busca */
+html[data-theme="light"] #processoSearchInput {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(15,31,54,0.18) !important;
+  color: #0F1F36 !important;
+}
+html[data-theme="light"] #processoSearchInput::placeholder {
+  color: #8B97A8 !important;
+}
+
+/* Cada item de processo na lista */
+html[data-theme="light"] #processoListaModal > div {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(15,31,54,0.10) !important;
+  color: #0F1F36 !important;
+  box-shadow: 0 1px 2px rgba(15,31,54,0.03) !important;
+}
+html[data-theme="light"] #processoListaModal > div:hover {
+  background: rgba(37,99,235,0.06) !important;
+  border-color: rgba(37,99,235,0.30) !important;
+  box-shadow: 0 2px 8px rgba(37,99,235,0.10) !important;
+}
+
+/* Título do processo (número + tipo de ação) */
+html[data-theme="light"] #processoListaModal > div div[style*="color:#e2f0ff"] {
+  color: #0F1F36 !important;
+  font-weight: 700 !important;
+}
+
+/* Meta do processo (cliente, status, prazo) */
+html[data-theme="light"] #processoListaModal > div div[style*="color:#9ab0c9"] {
+  color: #5A6B7E !important;
+}
+
+/* Link "Vincular →" */
+html[data-theme="light"] #processoListaModal > div span[style*="color:#93c5fd"] {
+  color: #1E4A8A !important;
+  font-weight: 700 !important;
+}
+
+/* Badge "✓ Vinculado" (verde) */
+html[data-theme="light"] #processoListaModal > div span[style*="color:#6ee7b7"] {
+  color: #15803D !important;
+  background: rgba(22,163,74,0.12) !important;
+  border-color: rgba(22,163,74,0.32) !important;
+}
+
+/* Card de processo JÁ VINCULADO (estado verde) */
+html[data-theme="light"] #processoListaModal > div[style*="rgba(16,185,129,.3)"],
+html[data-theme="light"] #processoListaModal > div[style*="rgba(16,185,129,.08)"] {
+  background: rgba(22,163,74,0.04) !important;
+  border-color: rgba(22,163,74,0.30) !important;
+}
+
+/* Botão Excluir no rodapé (vermelho) — manter visível mas mais suave */
+html[data-theme="light"] #deleteCard {
+  background: rgba(220,38,38,0.10) !important;
+  border: 1px solid rgba(220,38,38,0.40) !important;
+  color: #B91C1C !important;
+}
+html[data-theme="light"] #deleteCard:hover {
+  background: rgba(220,38,38,0.20) !important;
+  border-color: rgba(220,38,38,0.60) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FIX layout · Botão "Fechar" do modal Vincular Processo
+   --------------------------------------------------------------------
+   O botão usa style inline sem flexbox, então o ícone X renderiza acima
+   do texto. Força display:inline-flex + align-items + gap pra ficar lado
+   a lado. Aplica em AMBOS os temas (claro e escuro).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+#btnFecharVincularProcesso {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  white-space: nowrap !important;
+}
+#btnFecharVincularProcesso svg {
+  display: inline-block !important;
+  flex-shrink: 0 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   YURIS DAY — Finanças (DRE / Impostos / Custos fixos / Variáveis)
+   --------------------------------------------------------------------
+   Tabela DRE com texto verde/vermelho claro (invisível em fundo claro),
+   barra de "saúde financeira", badges de receita/despesa/fixa/variavel,
+   botões editar/excluir. Tudo no padrão branco+azul.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Tabela DRE (Custos fixos mensais + Custos variáveis) ── */
+html[data-theme="light"] .dre-table thead th {
+  color: #1E4A8A !important;
+  background: rgba(37,99,235,.06) !important;
+  border-bottom: 1px solid rgba(15,31,54,0.14) !important;
+  font-weight: 700 !important;
+}
+html[data-theme="light"] .dre-table tbody tr {
+  border-bottom: 1px solid rgba(15,31,54,0.06) !important;
+}
+html[data-theme="light"] .dre-table tbody tr:hover {
+  background: rgba(37,99,235,.05) !important;
+}
+html[data-theme="light"] .dre-table tbody td {
+  color: #0F1F36 !important;
+}
+html[data-theme="light"] .val-receita {
+  color: #15803D !important;
+  font-weight: 700 !important;
+}
+html[data-theme="light"] .val-despesa {
+  color: #B91C1C !important;
+  font-weight: 700 !important;
+}
+html[data-theme="light"] .empty-row td {
+  color: #8B97A8 !important;
+}
+
+/* ── Badges da tabela DRE (Receita/Despesa/Fixa/Variável) — estilo outline ── */
+html[data-theme="light"] .tbadge {
+  background: transparent !important;
+  font-weight: 600 !important;
+  border-width: 1.5px !important;
+}
+html[data-theme="light"] .tbadge-receita {
+  color: #15803D !important;
+  border-color: rgba(21,128,61,0.55) !important;
+  background: transparent !important;
+}
+html[data-theme="light"] .tbadge-despesa {
+  color: #B91C1C !important;
+  border-color: rgba(185,28,28,0.55) !important;
+  background: transparent !important;
+}
+html[data-theme="light"] .tbadge-fixa {
+  color: #1E4A8A !important;
+  border-color: rgba(30,74,138,0.55) !important;
+  background: transparent !important;
+}
+html[data-theme="light"] .tbadge-variavel {
+  color: #B45309 !important;
+  border-color: rgba(180,83,9,0.55) !important;
+  background: transparent !important;
+}
+
+/* ── Barra "Saúde financeira: Saudável" ── */
+html[data-theme="light"] .health-bar {
+  font-weight: 600 !important;
+}
+html[data-theme="light"] .health-ok {
+  background: rgba(22,163,74,0.10) !important;
+  border: 1px solid rgba(22,163,74,0.40) !important;
+  color: #15803D !important;
+}
+html[data-theme="light"] .health-warn {
+  background: rgba(217,119,6,0.10) !important;
+  border: 1px solid rgba(217,119,6,0.40) !important;
+  color: #B45309 !important;
+}
+html[data-theme="light"] .health-danger {
+  background: rgba(220,38,38,0.10) !important;
+  border: 1px solid rgba(220,38,38,0.40) !important;
+  color: #B91C1C !important;
+}
+
+/* ── Painel "Impostos sobre a Receita" — converter cream/amber para azul ── */
+html[data-theme="light"] .tax-summary,
+html[data-theme="light"] [class*="tax-summary"],
+html[data-theme="light"] [class*="impostos-summary"] {
+  background: rgba(37,99,235,0.04) !important;
+  border: 1px solid rgba(37,99,235,0.20) !important;
+}
+html[data-theme="light"] .tax-name { color: #0F1F36 !important; font-weight: 600 !important; }
+html[data-theme="light"] .tax-pct  { color: #B45309 !important; }
+html[data-theme="light"] .tax-val  { color: #B91C1C !important; }
+
+/* Header laranja do bloco "Impostos sobre a Receita" — converter pra azul */
+html[data-theme="light"] [class*="tax-summary"] > div:first-child,
+html[data-theme="light"] [style*="background:linear-gradient"][style*="rgba(245,158,11"] {
+  background: linear-gradient(90deg, rgba(37,99,235,0.06), rgba(37,99,235,0.02)) !important;
+}
+html[data-theme="light"] [class*="tax-summary"] [style*="color:#fca5a5"],
+html[data-theme="light"] [class*="tax-summary"] [style*="color:#fcd34d"] { color: #1E4A8A !important; }
+
+/* ── Botões Editar / Excluir / Manage (no rodapé das linhas) ── */
+html[data-theme="light"] .btn-edit {
+  background: linear-gradient(135deg, #1E4A8A, #2563EB) !important;
+  color: #FFFFFF !important;
+  border: 1px solid #1E4A8A !important;
+}
+html[data-theme="light"] .btn-edit:hover {
+  background: #2563EB !important;
+}
+html[data-theme="light"] .btn-del {
+  background: rgba(220,38,38,0.10) !important;
+  color: #B91C1C !important;
+  border: 1px solid rgba(220,38,38,0.40) !important;
+}
+html[data-theme="light"] .btn-del:hover {
+  background: rgba(220,38,38,0.20) !important;
+  border-color: rgba(220,38,38,0.60) !important;
+}
+html[data-theme="light"] .btn-manage {
+  background: #FFFFFF !important;
+  color: #1E4A8A !important;
+  border: 1px solid rgba(15,31,54,0.18) !important;
+}
+html[data-theme="light"] .btn-manage:hover {
+  background: rgba(37,99,235,0.06) !important;
+  border-color: rgba(37,99,235,0.40) !important;
+}
+
+/* ── Chart titles em finanças ── */
+html[data-theme="light"] .chart-title { color: #0F1F36 !important; }
+
+/* ── Form inputs específicos da página ── */
+html[data-theme="light"] .form-group select option {
+  background: #FFFFFF !important;
+  color: #0F1F36 !important;
+}
+
+/* ── Botões primários/ghost ── */
+html[data-theme="light"] .btn-primary {
+  background: linear-gradient(135deg, #1E4A8A, #2563EB) !important;
+  color: #FFFFFF !important;
+  border: 1px solid #1E4A8A !important;
+}
+html[data-theme="light"] .btn-ghost {
+  background: #F4F7FB !important;
+  color: #5A6B7E !important;
+  border: 1px solid rgba(15,31,54,0.18) !important;
+  font-weight: 600 !important;
+}
+html[data-theme="light"] .btn-ghost:hover {
+  background: #EAEEF4 !important;
+  color: #0F1F36 !important;
+  border-color: rgba(15,31,54,0.30) !important;
+}
+
+/* ── Panel-title em finanças ("Custos fixos mensais", "Custos variáveis") ── */
+html[data-theme="light"] .panel-title { color: #0F1F36 !important; font-weight: 700 !important; }
+
+/* ── Cards de KPI no topo (Receita/Custos/Impostos/Lucro/Margem/Honorários/Lançamentos) ── */
+/* Mantém a borda colorida no topo (verde/vermelho/âmbar/azul), mas garante texto navy */
+html[data-theme="light"] [class*="kpi-card"] .kpi-label { color: #5A6B7E !important; }
+html[data-theme="light"] [class*="kpi-card"] .kpi-value { color: #0F1F36 !important; }
+html[data-theme="light"] [class*="kpi-card"] [class*="kpi-tag"] { font-weight: 600 !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   YURIS DAY — Chart boxes da página Finanças
+   --------------------------------------------------------------------
+   .chart-box tem fundo navy hardcoded — converter pra branco com sombra
+   azul sutil (igual aos outros painéis do tema claro).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+html[data-theme="light"] .chart-box {
+  background: linear-gradient(150deg, #FFFFFF 0%, #F4F7FB 100%) !important;
+  border: 1px solid rgba(15,31,54,0.10) !important;
+  color: #0F1F36 !important;
+  box-shadow: 0 1px 3px rgba(15,31,54,0.04), 0 4px 14px rgba(15,31,54,0.04) !important;
+}
+
+/* Legenda do donut (lateral direita) */
+html[data-theme="light"] #donutLegend,
+html[data-theme="light"] #donutLegend > div,
+html[data-theme="light"] #donutLegend span {
+  color: #0F1F36 !important;
+}
+html[data-theme="light"] #donutLegend strong { color: #1E4A8A !important; }
+
+/* Tooltip do Chart.js (quando renderizada via DOM, e fallback geral) */
+html[data-theme="light"] .chart-tooltip,
+html[data-theme="light"] [class*="chartjs-tooltip"] {
+  background: #FFFFFF !important;
+  color: #0F1F36 !important;
+  border: 1px solid rgba(15,31,54,0.18) !important;
+  box-shadow: 0 4px 14px rgba(15,31,54,0.10) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   YURIS DAY — Sweep adicional · cores claras que escaparam
+   --------------------------------------------------------------------
+   Inclui cores que apareciam em inline styles (donut legends, etc) e
+   não estavam na primeira passagem.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+html[data-theme="light"] [style*="color:#c8e0f8"],
+html[data-theme="light"] [style*="color: #c8e0f8"],
+html[data-theme="light"] [style*="color:#cde4ff"],
+html[data-theme="light"] [style*="color: #cde4ff"],
+html[data-theme="light"] [style*="color:#d4eaff"],
+html[data-theme="light"] [style*="color: #d4eaff"],
+html[data-theme="light"] [style*="color:#e2f0ff"],
+html[data-theme="light"] [style*="color: #e2f0ff"],
+html[data-theme="light"] [style*="color:#e8f4ff"],
+html[data-theme="light"] [style*="color: #e8f4ff"],
+html[data-theme="light"] [style*="color:#edf6ff"],
+html[data-theme="light"] [style*="color: #edf6ff"],
+html[data-theme="light"] [style*="color:#edf7ff"],
+html[data-theme="light"] [style*="color: #edf7ff"],
+html[data-theme="light"] [style*="color:#ffe2b3"],
+html[data-theme="light"] [style*="color:#ffe8bf"],
+html[data-theme="light"] [style*="color:#ffd9a1"],
+html[data-theme="light"] [style*="color:#ffdd9d"],
+html[data-theme="light"] [style*="color:#fff2d2"],
+html[data-theme="light"] [style*="color:#f7d39d"],
+html[data-theme="light"] [style*="color:#ffcccc"],
+html[data-theme="light"] [style*="color:#cfe5ff"] {
+  color: #0F1F36 !important;
+}
+
+/* Cores muted secundárias (valores em destaque, etc) → cinza navy */
+html[data-theme="light"] [style*="color:#9ab8d5"],
+html[data-theme="light"] [style*="color: #9ab8d5"],
+html[data-theme="light"] [style*="color:#8FAFC8"],
+html[data-theme="light"] [style*="color: #8FAFC8"],
+html[data-theme="light"] [style*="color:#a8bdd4"],
+html[data-theme="light"] [style*="color: #a8bdd4"],
+html[data-theme="light"] [style*="color:#7a9cbe"],
+html[data-theme="light"] [style*="color: #7a9cbe"],
+html[data-theme="light"] [style*="color:#7EB8F6"],
+html[data-theme="light"] [style*="color:#7EB8F7"],
+html[data-theme="light"] [style*="color:#6898C0"],
+html[data-theme="light"] [style*="color: #6898C0"],
+html[data-theme="light"] [style*="color:#C4A040"] {
+  color: #5A6B7E !important;
+}
+
+/* Donut legend específico — items com inline style com cores claras */
+html[data-theme="light"] #donutLegend > div > div > div:first-child {
+  color: #0F1F36 !important;
+  font-weight: 700 !important;
+}
+html[data-theme="light"] #donutLegend > div > div > div:nth-child(2) {
+  color: #5A6B7E !important;
+  font-weight: 600 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   YURIS DAY — Processos (Calendário + Modal completo)
+   --------------------------------------------------------------------
+   Cards do calendário processual e TODAS as seções dentro do modal de
+   processo: Vínculo com cliente, Prazos, Tarefas, Vínculos, Histórico.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Calendário Processual: cards mensais (.proc-card) ── */
+html[data-theme="light"] .proc-card {
+  background: linear-gradient(165deg, #FFFFFF 0%, #F4F7FB 100%) !important;
+  border: 1px solid rgba(15,31,54,0.10) !important;
+  box-shadow: 0 1px 3px rgba(15,31,54,0.04) !important;
+}
+html[data-theme="light"] .proc-card:hover {
+  border-color: rgba(37,99,235,0.30) !important;
+  box-shadow: 0 4px 14px rgba(37,99,235,0.10) !important;
+}
+html[data-theme="light"] .proc-card-num    { color: #1E4A8A !important; font-weight: 700 !important; }
+html[data-theme="light"] .proc-card-client { color: #0F1F36 !important; font-weight: 600 !important; }
+html[data-theme="light"] .proc-card-meta   { color: #5A6B7E !important; }
+html[data-theme="light"] .proc-card-date   { color: #5A6B7E !important; }
+html[data-theme="light"] .proc-card.is-urgent { border-left-color: #B91C1C !important; }
+html[data-theme="light"] .proc-card.is-warn   { border-left-color: #B45309 !important; }
+html[data-theme="light"] .proc-card.is-ok     { border-left-color: #15803D !important; }
+
+/* ── Header da coluna do calendário (Janeiro, Fevereiro, etc.) ── */
+html[data-theme="light"] .proc-col-month { color: #0F1F36 !important; font-weight: 700 !important; }
+html[data-theme="light"] .proc-col-count {
+  background: rgba(37,99,235,0.14) !important;
+  color: #1E4A8A !important;
+  border: 1px solid rgba(37,99,235,0.30) !important;
+  font-weight: 700 !important;
+}
+
+/* ── "Nenhum processo" placeholder ── */
+html[data-theme="light"] .proc-empty {
+  border: 2px dashed rgba(15,31,54,0.12) !important;
+  color: #8B97A8 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Modal de Processo — seções internas
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Container da seção (VÍNCULO COM CLIENTE, PRAZOS, TAREFAS, etc.) */
+html[data-theme="light"] .proc-section {
+  background: linear-gradient(145deg, #FFFFFF 0%, #F4F7FB 100%) !important;
+  border: 1px solid rgba(15,31,54,0.10) !important;
+  box-shadow: 0 1px 3px rgba(15,31,54,0.04) !important;
+}
+html[data-theme="light"] .proc-section-title {
+  color: #1E4A8A !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+}
+
+/* ── "Cliente vinculado" — card de exibição do cliente ── */
+html[data-theme="light"] #proc_card_selected_name {
+  background: rgba(247,249,252,0.95) !important;
+  border: 1px solid rgba(15,31,54,0.12) !important;
+  color: #0F1F36 !important;
+}
+html[data-theme="light"] #proc_card_selected_label {
+  color: #5A6B7E !important;
+}
+/* Quando tem cliente selecionado, mostra navy escuro */
+html[data-theme="light"] #proc_card_selected_label:not(:empty) {
+  color: #0F1F36 !important;
+  font-weight: 600 !important;
+}
+/* "✓ Diego Ferreira Cavalcanti" — quando o cliente foi vinculado */
+html[data-theme="light"] #proc_card_selected_name[style*="rgba(16,185,129"],
+html[data-theme="light"] #proc_card_selected_name span[style*="color:#34d399"],
+html[data-theme="light"] #proc_card_selected_name [style*="color:#6ee7b7"] {
+  color: #15803D !important;
+}
+
+/* "Ver ficha do cliente na Prospecção →" link */
+html[data-theme="light"] a[href*="prospeccao.php?open"],
+html[data-theme="light"] a[href*="prospeccao.php?contato"] {
+  color: #1E4A8A !important;
+  font-weight: 600 !important;
+}
+html[data-theme="light"] a[href*="prospeccao.php?open"]:hover { color: #2563EB !important; text-decoration: underline; }
+
+/* ── Botão "+ Adicionar Prazo" (dashed) ── */
+html[data-theme="light"] #btnAddPrazo {
+  background: rgba(37,99,235,0.04) !important;
+  border: 1.5px dashed rgba(37,99,235,0.40) !important;
+  color: #1E4A8A !important;
+  font-weight: 600 !important;
+}
+html[data-theme="light"] #btnAddPrazo:hover {
+  background: rgba(37,99,235,0.10) !important;
+  border-color: #2563EB !important;
+}
+
+/* ── "Salve o processo primeiro..." e "Nenhum prazo cadastrado" placeholders ── */
+html[data-theme="light"] #prazosContainer > div[style*="color:#9ab0c9"],
+html[data-theme="light"] #tarefasContainer > div[style*="color:#9ab0c9"],
+html[data-theme="light"] .proc-section-body > div[style*="color:#9ab0c9"],
+html[data-theme="light"] .proc-section-body > div:not([class]):not([id]) { color: #5A6B7E !important; }
+
+/* ── Botão "Adicionar" tarefas (azul) ── */
+html[data-theme="light"] #btnAddTarefa {
+  background: linear-gradient(135deg, #1E4A8A, #2563EB) !important;
+  border: 1px solid #1E4A8A !important;
+  color: #FFFFFF !important;
+  font-weight: 600 !important;
+}
+html[data-theme="light"] #btnAddTarefa:hover {
+  background: #2563EB !important;
+}
+
+/* ── Botão "+ Adicionar vínculo" ── */
+html[data-theme="light"] #btnAddVinculoProc {
+  background: linear-gradient(135deg, #1E4A8A, #2563EB) !important;
+  border: 1px solid #1E4A8A !important;
+  color: #FFFFFF !important;
+  font-weight: 600 !important;
+}
+html[data-theme="light"] #btnAddVinculoProc:hover {
+  background: #2563EB !important;
+}
+
+/* ── "0% concluído (0/0)" e barra de progresso ── */
+html[data-theme="light"] #tarefasProgress { color: #5A6B7E !important; font-weight: 600 !important; }
+html[data-theme="light"] #tarefasProgressBar { background: linear-gradient(90deg, #1E4A8A, #2563EB) !important; }
+
+/* ── Inputs/selects dentro das seções da modal (Nova tarefa, data, select) ── */
+html[data-theme="light"] .proc-section input,
+html[data-theme="light"] .proc-section select,
+html[data-theme="light"] .proc-section textarea {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(15,31,54,0.18) !important;
+  color: #0F1F36 !important;
+}
+
+/* ── Cards dentro do container de prazos (cada prazo cadastrado) ── */
+html[data-theme="light"] #prazosContainer > div:not([style*="color:#9ab0c9"]),
+html[data-theme="light"] #tarefasContainer > div:not([style*="color:#9ab0c9"]) {
+  background: rgba(247,249,252,0.95) !important;
+  border: 1px solid rgba(15,31,54,0.10) !important;
+  color: #0F1F36 !important;
+}
+
+/* ── Lista de Histórico Processual (#processoHistoryList) ── */
+html[data-theme="light"] #processoHistoryList .history-entry,
+html[data-theme="light"] #processoHistoryList > div {
+  background: rgba(247,249,252,0.95) !important;
+  border: 1px solid rgba(15,31,54,0.08) !important;
+  color: #0F1F36 !important;
+}
+html[data-theme="light"] #processoHistoryList .history-meta,
+html[data-theme="light"] #processoHistoryList small { color: #5A6B7E !important; }
+html[data-theme="light"] #processoHistoryList .history-action,
+html[data-theme="light"] #processoHistoryList strong { color: #1E4A8A !important; font-weight: 700 !important; }
