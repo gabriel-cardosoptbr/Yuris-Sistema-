@@ -1,6 +1,15 @@
 <?php
 namespace App\Helpers;
 
+// Auto-loads das dependências internas — qualquer endpoint que use
+// AccountContext NÃO precisa requirir Account/ResourceShare manualmente.
+// Era a causa raiz do bug: a matriz não puxava processos/cards da filial
+// quando o endpoint esquecia o require, porque listFiliaisVinculadas
+// lançava "Class Account not found" e o try/catch silenciava.
+require_once __DIR__ . '/../Models/Database.php';
+require_once __DIR__ . '/../Models/Account.php';
+require_once __DIR__ . '/../Models/ResourceShare.php';
+
 use App\Models\Database;
 use App\Models\ResourceShare;
 use App\Models\Account;
@@ -31,6 +40,9 @@ class AccountContext
     private string $accountTipo;   // 'matriz' | 'filial'
     private string $role;          // 'owner' | 'admin' | 'manager' | 'user' | 'viewer'
     private int    $userId;
+
+    /** Cache do conjunto de account_ids acessíveis (próprio + filiais se matriz), por módulo */
+    private array $cachedAccessibleIdsByModule = [];
 
     private function __construct(int $accountId, string $accountTipo, string $role, int $userId)
     {
@@ -78,6 +90,82 @@ class AccountContext
     public function isMatriz(): bool       { return $this->accountTipo === 'matriz'; }
     public function isFilial(): bool       { return $this->accountTipo === 'filial'; }
 
+    /**
+     * Verifica o status atual da conta no banco (não da sessão).
+     * Se a conta estiver suspended/cancelled/inactive, força logout
+     * destruindo a sessão e redirecionando para /login.
+     *
+     * Para super_admin (Painel Master), nunca bloqueia — ele tem que poder
+     * acessar mesmo quando há contas em qualquer estado.
+     *
+     * Uso típico no topo de telas autenticadas:
+     *   AccountContext::fromSession()->assertAccountActive();
+     *
+     * Comportamento:
+     *   - active / trial / overdue → libera (overdue ainda vê o sistema; só limita)
+     *   - suspended / cancelled / inactive → destrói sessão + redirect/401
+     *
+     * Cacheia o status na sessão por 60s pra não bater no DB a cada request.
+     */
+    public function assertAccountActive(): void
+    {
+        // Super admin nunca é bloqueado por status de tenant
+        if ($this->isSuperAdmin()) return;
+
+        // Cache leve (60s) — evita N queries por request
+        $cacheKey = '_acc_status_cache_ts';
+        $cacheVal = '_acc_status_cache_val';
+        $now      = time();
+        if (!empty($_SESSION[$cacheKey])
+            && ($now - (int)$_SESSION[$cacheKey] < 60)
+            && !empty($_SESSION[$cacheVal])) {
+            $status = $_SESSION[$cacheVal];
+        } else {
+            try {
+                $pdo  = Database::getConnection();
+                $stmt = $pdo->prepare("SELECT status FROM accounts WHERE id = :id LIMIT 1");
+                $stmt->execute(['id' => $this->accountId]);
+                $status = (string) $stmt->fetchColumn();
+            } catch (\Throwable $_e) {
+                return; // DB indisponível — não derruba sessão
+            }
+            $_SESSION[$cacheKey] = $now;
+            $_SESSION[$cacheVal] = $status;
+        }
+
+        // Estados que NÃO bloqueiam acesso
+        if (in_array($status, ['active','trial','overdue',''], true)) return;
+
+        // Estados bloqueantes: suspended / cancelled / inactive
+        $msg = match ($status) {
+            'suspended' => 'Conta suspensa. Entre em contato com o suporte.',
+            'cancelled' => 'Conta cancelada. Acesso negado.',
+            'inactive'  => 'Conta inativa.',
+            default     => 'Acesso bloqueado.',
+        };
+
+        // Destrói a sessão (igual logout)
+        foreach (array_keys($_SESSION) as $k) unset($_SESSION[$k]);
+        if (ini_get('session.use_cookies')) {
+            $params = session_get_cookie_params();
+            setcookie(session_name(), '', time() - 42000,
+                $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+        }
+        session_destroy();
+
+        // Resposta: JSON pra APIs, redirect pra telas
+        $isApi = str_contains($_SERVER['REQUEST_URI'] ?? '', '/api/')
+              || str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json');
+        if ($isApi) {
+            http_response_code(401);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['ok' => false, 'error' => $msg, 'code' => 'ACCOUNT_BLOCKED']);
+            exit;
+        }
+        header('Location: /sistema_vendas/public/login.php?msg=' . urlencode($msg));
+        exit;
+    }
+
     public function isOwnerOrAdmin(): bool
     {
         return in_array($this->role, ['owner', 'admin']);
@@ -86,6 +174,295 @@ class AccountContext
     public function isOwner(): bool
     {
         return $this->role === 'owner';
+    }
+
+    /**
+     * Retorna o account_id "dono" do pipeline de prospecção para esta sessão.
+     *
+     * Regra de negócio (Opção 2 — pipeline único da matriz):
+     *  - Matriz                      → próprio account_id (define o pipeline)
+     *  - Filial vinculada (active)   → matriz_account_id  (herda)
+     *  - Filial isolada              → próprio account_id (vira sua própria matriz)
+     *
+     * IMPORTANTE: a herança só acontece quando o vínculo está active.
+     * Se o vínculo for suspended/pending/rejected, filial volta a usar o próprio.
+     * O flag sync_cards NÃO afeta o pipeline (a herança das colunas é estrutural;
+     * sync_cards controla a VISIBILIDADE dos leads, não o esquema).
+     */
+    public function getPipelineAccountId(): int
+    {
+        if ($this->isMatriz()) return $this->accountId;
+
+        // Cache simples (consulta DB só uma vez por request)
+        if (isset($this->_cachedPipelineAccountId)) return $this->_cachedPipelineAccountId;
+
+        try {
+            $pdo  = Database::getConnection();
+            $stmt = $pdo->prepare(
+                "SELECT matriz_account_id FROM account_vinculos
+                 WHERE filial_account_id = :acc AND status = 'active'
+                 LIMIT 1"
+            );
+            $stmt->execute(['acc' => $this->accountId]);
+            $matrizId = (int) $stmt->fetchColumn();
+            return $this->_cachedPipelineAccountId = ($matrizId > 0 ? $matrizId : $this->accountId);
+        } catch (\Throwable $e) {
+            return $this->_cachedPipelineAccountId = $this->accountId;
+        }
+    }
+
+    /**
+     * Indica se esta sessão herda o pipeline de outra conta (= filial vinculada).
+     * Usado pelo frontend pra desabilitar o botão "Alterar Colunas".
+     */
+    public function isPipelineInherited(): bool
+    {
+        return $this->getPipelineAccountId() !== $this->accountId;
+    }
+
+    /** @var int|null */
+    private ?int $_cachedPipelineAccountId = null;
+
+    /**
+     * Verifica se o usuário logado é super_admin (Painel Master).
+     * Lê de $_SESSION['is_super_admin'] (populado no AuthController),
+     * com fallback consultando a tabela super_admins.
+     *
+     * NÃO altera o comportamento dos métodos existentes — isto é
+     * checagem ADICIONAL pra rotas do Painel Master.
+     */
+    public function isSuperAdmin(): bool
+    {
+        // Sessão já marcou? (atalho rápido)
+        if (isset($_SESSION['is_super_admin']) && $_SESSION['is_super_admin']) {
+            return true;
+        }
+        // Fallback DB (caso a sessão seja antiga, pré-fase3)
+        try {
+            $pdo = Database::getConnection();
+            $stmt = $pdo->prepare(
+                "SELECT 1 FROM super_admins WHERE user_id = :uid AND ativo = 1 LIMIT 1"
+            );
+            $stmt->execute(['uid' => $this->userId]);
+            $is = (bool) $stmt->fetchColumn();
+            if ($is) $_SESSION['is_super_admin'] = true;
+            return $is;
+        } catch (\Throwable $_e) {
+            return false;
+        }
+    }
+
+    /**
+     * Nível do super admin: 'viewer' | 'operator' | 'super' | null
+     */
+    public function getSuperAdminLevel(): ?string
+    {
+        if (!$this->isSuperAdmin()) return null;
+        if (!empty($_SESSION['super_admin_level'])) {
+            return (string) $_SESSION['super_admin_level'];
+        }
+        try {
+            $pdo = Database::getConnection();
+            $stmt = $pdo->prepare("SELECT nivel FROM super_admins WHERE user_id = :uid AND ativo = 1 LIMIT 1");
+            $stmt->execute(['uid' => $this->userId]);
+            $lvl = $stmt->fetchColumn();
+            if ($lvl) $_SESSION['super_admin_level'] = $lvl;
+            return $lvl ?: null;
+        } catch (\Throwable $_e) {
+            return null;
+        }
+    }
+
+    /**
+     * Aborta com 403 se a sessão atual não for super_admin.
+     * Use no início de qualquer endpoint /api/master/*.
+     */
+    public function assertSuperAdmin(): void
+    {
+        if (!$this->isSuperAdmin()) {
+            $this->_forbidden('Apenas super administradores podem acessar este recurso.');
+        }
+    }
+
+    /**
+     * Retorna os account_ids que esta sessão tem acesso AUTOMÁTICO.
+     *
+     * Regra de negócio (matriz herda filiais):
+     *   - Matriz → [matriz_id, ...filiais_ativas_ids]   (vê tudo das filiais vinculadas)
+     *   - Filial → [filial_id]                          (NÃO vê a matriz)
+     *
+     * Quando $module é informado, INCLUI também as contas que liberaram esse
+     * módulo via resource_shares (resource_type='module', module_key=$module).
+     *
+     * Sincronização granular (account_vinculos.sync_*):
+     *   - sync_enabled    — toggle mestre da filial (se 0, a filial é invisível)
+     *   - sync_cards      — visível em /api/cards.php e tela /prospeccao.php
+     *   - sync_processos  — visível em /api/processes.php e telas afins
+     *   - sync_tarefas    — visível em /api/tasks.php, /api/task_boards.php
+     *
+     * Mapeamento $module → flag:
+     *   'prospeccao'    → sync_cards
+     *   'processos'     → sync_processos
+     *   'juridico'      → sync_processos (jurídico = processos)
+     *   'tarefas'       → sync_tarefas
+     *   'dashboard'     → só sync_enabled (KPIs agregam tudo)
+     *   null / outros   → só sync_enabled
+     *
+     * Compartilhamentos pontuais de RECURSO (resource_shares com resource_id)
+     * continuam sendo checados separadamente nos filtros das listagens.
+     */
+    public function getAccessibleAccountIds(?string $module = null): array
+    {
+        $cacheKey = $module ?? '__base__';
+        if (isset($this->cachedAccessibleIdsByModule[$cacheKey])) {
+            return $this->cachedAccessibleIdsByModule[$cacheKey];
+        }
+
+        $ids = [$this->accountId];
+        if ($this->isMatriz()) {
+            try {
+                $filiais = Account::listFiliaisVinculadas($this->accountId);
+                // Determina qual flag por-módulo deve ser checada além do toggle mestre
+                $moduleFlag = self::_syncFlagForModule($module);
+                foreach ($filiais as $f) {
+                    $fid = (int) $f['id'];
+                    if ($fid <= 0 || in_array($fid, $ids, true)) continue;
+
+                    // Toggle mestre desligado → filial 100% invisível
+                    if (array_key_exists('sync_enabled', $f) && (int)$f['sync_enabled'] === 0) continue;
+
+                    // Flag específica do módulo (se aplicável) também desligada → pula esta filial neste módulo
+                    if ($moduleFlag !== null
+                        && array_key_exists($moduleFlag, $f)
+                        && (int)$f[$moduleFlag] === 0) {
+                        continue;
+                    }
+
+                    $ids[] = $fid;
+                }
+            } catch (\Throwable $e) {
+                error_log('[AccountContext::getAccessibleAccountIds] ' . $e->getMessage());
+            }
+        }
+
+        // Inclui contas que liberaram este módulo para mim (account ou user)
+        if ($module !== null && $module !== '') {
+            try {
+                $pdo = Database::getConnection();
+                $stmt = $pdo->prepare(
+                    "SELECT DISTINCT from_account_id
+                     FROM resource_shares
+                     WHERE resource_type = 'module'
+                       AND module_key    = :mk
+                       AND status        = 'active'
+                       AND (to_account_id = :acc OR to_user_id = :uid)"
+                );
+                $stmt->execute(['mk' => $module, 'acc' => $this->accountId, 'uid' => $this->userId]);
+                foreach ($stmt->fetchAll(\PDO::FETCH_COLUMN) as $aid) {
+                    $aid = (int) $aid;
+                    if ($aid > 0 && !in_array($aid, $ids, true)) $ids[] = $aid;
+                }
+            } catch (\Throwable $e) {
+                error_log('[AccountContext::getAccessibleAccountIds:module] ' . $e->getMessage());
+            }
+        }
+
+        return $this->cachedAccessibleIdsByModule[$cacheKey] = $ids;
+    }
+
+    /**
+     * Helper para SQL: gera placeholders + params para a cláusula
+     *   {alias}.account_id IN (:k0, :k1, ...)
+     *
+     * Uso típico em endpoints/models:
+     *   $f = $ctx->buildAccountInClause('p', 'pacc');
+     *   $sql = "SELECT * FROM processos p WHERE {$f['sql']} AND p.deleted_at IS NULL";
+     *   $stmt->execute($f['params'] + [...]);
+     */
+    public function buildAccountInClause(string $tableAlias, string $paramPrefix = 'ctx_acc'): array
+    {
+        $ids = $this->getAccessibleAccountIds();
+        $placeholders = [];
+        $params       = [];
+        foreach ($ids as $i => $aid) {
+            $key            = "{$paramPrefix}_{$i}";
+            $placeholders[] = ":{$key}";
+            $params[$key]   = (int) $aid;
+        }
+        return [
+            'sql'    => "{$tableAlias}.account_id IN (" . implode(',', $placeholders) . ")",
+            'params' => $params,
+        ];
+    }
+
+    /**
+     * Mapeia um módulo para o flag de sincronização granular correspondente
+     * na tabela account_vinculos. Retorna null quando o módulo não tem flag
+     * específico (cai apenas no sync_enabled mestre).
+     */
+    private static function _syncFlagForModule(?string $module): ?string
+    {
+        switch ($module) {
+            case 'prospeccao':         return 'sync_cards';
+            case 'cards':              return 'sync_cards';
+            case 'processos':          return 'sync_processos';
+            case 'juridico':           return 'sync_processos';
+            case 'tarefas':            return 'sync_tarefas';
+            // dashboard / financas / chat / null → só sync_enabled
+            default:                   return null;
+        }
+    }
+
+    /**
+     * Retorna os usuários acessíveis à sessão atual, com info de tenant
+     * pronta para renderizar selects agrupados.
+     *
+     * Filtra por todos os account_ids acessíveis (matriz + filiais vinculadas).
+     * Cada linha inclui: id, nome, account_id, account_nome, account_tipo.
+     *
+     * Ordenação: matriz primeiro, depois filiais (alfabético), e dentro de cada
+     * conta os usuários em ordem alfabética. Usuários soft-deletados/inativos
+     * são omitidos.
+     *
+     * @param bool $onlyActive  Se true (default), exclui usuários com status != 'active'
+     * @return array<int, array{id:int,nome:string,account_id:int,account_nome:string,account_tipo:string}>
+     */
+    public function getAccessibleUsers(bool $onlyActive = true): array
+    {
+        $accountIds = $this->getAccessibleAccountIds();
+        if (empty($accountIds)) return [];
+
+        try {
+            $pdo = Database::getConnection();
+            $ph  = [];
+            $params = [];
+            foreach ($accountIds as $i => $aid) {
+                $key            = "uacc_{$i}";
+                $ph[]           = ":{$key}";
+                $params[$key]   = (int) $aid;
+            }
+            $statusFilter = $onlyActive ? "AND u.status = 'active'" : '';
+            $sql =
+                "SELECT u.id, u.nome,
+                        u.account_id,
+                        a.nome AS account_nome,
+                        a.tipo AS account_tipo
+                 FROM users u
+                 INNER JOIN accounts a ON a.id = u.account_id
+                 WHERE u.deleted_at IS NULL
+                   {$statusFilter}
+                   AND u.account_id IN (" . implode(',', $ph) . ")
+                 ORDER BY
+                   CASE WHEN a.tipo = 'matriz' THEN 0 ELSE 1 END,
+                   a.nome ASC,
+                   u.nome ASC";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
+            error_log('[AccountContext::getAccessibleUsers] ' . $e->getMessage());
+            return [];
+        }
     }
 
     /**
@@ -166,22 +543,27 @@ class AccountContext
      */
     public function buildResourceFilter(string $tableAlias, string $resourceType): array
     {
-        $accountId = $this->accountId;
-        $sql = "({$tableAlias}.account_id = :ctx_account_id
+        // Acesso por dono — inclui filiais quando a sessão é matriz
+        $inOwn   = $this->buildAccountInClause($tableAlias, 'ctx_own');
+        // Acesso via share — também aceita compartilhamento direcionado a qualquer
+        // account_id acessível (ex: share para a filial é visível pela matriz)
+        $inShare = $this->buildAccountInClause('rs_to_alias', 'ctx_shr');
+
+        // Reescreve cláusula do share substituindo o alias temporário pelo campo real
+        $shareInSql = str_replace('rs_to_alias.account_id', 'rs.to_account_id', $inShare['sql']);
+
+        $sql = "({$inOwn['sql']}
                  OR EXISTS (
                    SELECT 1 FROM resource_shares rs
                    WHERE rs.resource_type = :ctx_rtype
                      AND rs.resource_id   = {$tableAlias}.id
                      AND rs.status        = 'active'
-                     AND (rs.to_account_id = :ctx_account_id2 OR rs.to_account_id IS NULL)
+                     AND ({$shareInSql} OR rs.to_account_id IS NULL)
                  ))";
+
         return [
             'sql'    => $sql,
-            'params' => [
-                'ctx_account_id'  => $accountId,
-                'ctx_rtype'       => $resourceType,
-                'ctx_account_id2' => $accountId,
-            ],
+            'params' => $inOwn['params'] + $inShare['params'] + ['ctx_rtype' => $resourceType],
         ];
     }
 
@@ -203,10 +585,12 @@ class AccountContext
 
         $pdo = Database::getConnection();
         try {
+            // Inclui as filiais quando a sessão é matriz (acesso herdado)
+            $inClause = $this->buildAccountInClause('t', 'rba');
             $stmt = $pdo->prepare(
-                "SELECT 1 FROM {$table} WHERE id = :id AND account_id = :acc LIMIT 1"
+                "SELECT 1 FROM {$table} t WHERE t.id = :id AND {$inClause['sql']} LIMIT 1"
             );
-            $stmt->execute(['id' => $resourceId, 'acc' => $this->accountId]);
+            $stmt->execute(['id' => $resourceId] + $inClause['params']);
             return (bool) $stmt->fetch();
         } catch (\Throwable $e) {
             // coluna account_id não existe — single-tenant, acesso liberado

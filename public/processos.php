@@ -1,21 +1,46 @@
 ﻿<?php
 require_once __DIR__ . '/../app/Models/Database.php';
 require_once __DIR__ . '/../app/Models/Processo.php';
+require_once __DIR__ . '/../app/Models/Account.php';
+require_once __DIR__ . '/../app/Models/ResourceShare.php';
+require_once __DIR__ . '/../app/Helpers/AccountContext.php';
 session_start();
 if (empty($_SESSION['user_id'])) {
     header('Location: /sistema_vendas/public/login.php');
     exit;
 }
+// HARDENING: bloqueia acesso de contas suspensas/canceladas/inativas
+\App\Helpers\AccountContext::fromSession()->assertAccountActive();
 $activePage = 'processos';
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 
-// Carrega usuários no servidor para disponibilizar imediatamente no JS (sem fetch async)
-$system_users = [];
+// Carrega usuários do tenant (matriz + filiais vinculadas) já com info de conta
+// para agrupamento visual no JS via Yuris.populateUserSelect.
+// HARDENING: antes a query era global e vazava usuários cross-tenant.
+$system_users    = [];
+$origin_accounts = [];   // contas acessíveis (própria + filiais ativas) — alimenta filtro de Origem
+$origin_self     = ['id' => 0, 'tipo' => 'matriz', 'nome' => ''];
 try {
-    $pdo_u = App\Models\Database::getConnection();
-    $system_users = $pdo_u->query(
-        "SELECT id, nome FROM users WHERE deleted_at IS NULL ORDER BY nome ASC"
-    )->fetchAll(PDO::FETCH_ASSOC);
+    $ctx_users    = \App\Helpers\AccountContext::fromSession();
+    $system_users = $ctx_users->getAccessibleUsers();
+
+    $origin_self = [
+        'id'   => $ctx_users->getAccountId(),
+        'tipo' => $ctx_users->getAccountTipo(),
+        'nome' => $_SESSION['account_nome'] ?? '',
+    ];
+    if ($ctx_users->isMatriz()) {
+        $pdo_o = \App\Models\Database::getConnection();
+        $stmt_o = $pdo_o->prepare(
+            "SELECT id, nome, tipo
+             FROM accounts
+             WHERE deleted_at IS NULL AND status = 'active'
+               AND (id = :self OR matriz_id = :self)
+             ORDER BY CASE WHEN tipo = 'matriz' THEN 0 ELSE 1 END, nome ASC"
+        );
+        $stmt_o->execute(['self' => $ctx_users->getAccountId()]);
+        $origin_accounts = $stmt_o->fetchAll(PDO::FETCH_ASSOC);
+    }
 } catch (Exception $e) {}
 ?>
 <!doctype html>
@@ -27,7 +52,8 @@ try {
   <link rel="icon" type="image/png" sizes="192x192" href="/sistema_vendas/public/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css">
+  <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=27">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=8">
   <style>
@@ -172,11 +198,59 @@ try {
 
     /* ── Process card (board) ── */
     .proc-card {
+      position: relative;
       background: linear-gradient(165deg, rgba(20,42,78,.92), rgba(13,28,52,.94));
       border: 1px solid rgba(96,165,250,.16);
       border-radius: 10px; padding: 11px 12px;
       transition: border-color .18s, box-shadow .18s, transform .15s;
       cursor: pointer;
+    }
+
+    /* ── Faixa de Origem (MATRIZ / FILIAL — Nome) ─────────────────────────
+       Mostra a procedência do processo pra evitar confusão quando a matriz
+       enxerga registros das filiais no mesmo board. */
+    .proc-card[data-origin-tipo] { padding-top: 28px; }
+    .proc-card-origin-strip {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 11px;
+      font-size: .68rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      border-top-left-radius: 9px;
+      border-top-right-radius: 9px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .proc-card-origin-strip.is-matriz {
+      background: linear-gradient(90deg, rgba(37,99,235,.32), rgba(37,99,235,.16));
+      color: #93c5fd;
+    }
+    .proc-card-origin-strip.is-filial {
+      background: linear-gradient(90deg, rgba(168,85,247,.32), rgba(168,85,247,.14));
+      color: #d8b4fe;
+    }
+    .proc-card-origin-strip .org-name {
+      font-weight: 600;
+      text-transform: none;
+      letter-spacing: 0;
+      opacity: .9;
+      max-width: 60%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    html[data-theme="light"] .proc-card-origin-strip.is-matriz {
+      background: linear-gradient(90deg, rgba(37,99,235,.22), rgba(37,99,235,.10));
+      color: #1e40af;
+    }
+    html[data-theme="light"] .proc-card-origin-strip.is-filial {
+      background: linear-gradient(90deg, rgba(126,34,206,.22), rgba(126,34,206,.10));
+      color: #6b21a8;
     }
     .proc-card:hover { transform: translateY(-2px); border-color: rgba(96,165,250,.36); box-shadow: 0 6px 18px rgba(2,6,23,.45); }
     .proc-card.is-urgent { border-left: 3px solid var(--danger); }
@@ -449,6 +523,111 @@ try {
       .kpi-grid-6 { grid-template-columns: repeat(2,1fr) !important; }
       .proc-modal-fields { grid-template-columns: 1fr !important; }
     }
+
+    /* ── Histórico Processual (timeline) — sem CSS dedicado antes,
+       então fica ilegível em tema claro. Defino aqui pra ambos os temas. */
+    .timeline-entry {
+      position: relative;
+      padding: 8px 0 8px 18px;
+      border-bottom: 1px solid rgba(160,180,210,.10);
+    }
+    .timeline-entry:last-child { border-bottom: none; }
+    .timeline-dot {
+      position: absolute; left: 2px; top: 14px;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,.18);
+    }
+    .timeline-action { font-size: .85rem; font-weight: 600; color: #dbe9ff; margin-bottom: 2px; }
+    .timeline-meta   { font-size: .74rem; color: #9ab0c9; }
+    /* Badge de origem do autor (MATRIZ · Nome / FILIAL · Nome) — micro,
+       no topo do card de histórico antes do título. Dark + Light. */
+    .timeline-origin {
+      display: inline-block;
+      padding: 1px 6px;
+      margin: 0 0 3px;
+      border-radius: 4px;
+      font-size: .58rem;
+      font-weight: 700;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+      line-height: 1.4;
+      border: 1px solid transparent;
+      white-space: nowrap;
+      max-width: 240px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .timeline-origin.is-matriz { background: rgba(37,99,235,.16);  color: #93c5fd; border-color: rgba(37,99,235,.32); }
+    .timeline-origin.is-filial { background: rgba(168,85,247,.16); color: #d8b4fe; border-color: rgba(168,85,247,.32); }
+    html[data-theme="light"] .timeline-origin.is-matriz { background: rgba(37,99,235,.08);  color: #1D4ED8; border-color: rgba(37,99,235,.28); }
+    html[data-theme="light"] .timeline-origin.is-filial { background: rgba(126,34,206,.08); color: #6B21A8; border-color: rgba(126,34,206,.28); }
+
+    /* ──────────────────────────────────────────────────────────────────────
+       TEMA CLARO — overrides para o modal de processo e histórico.
+       ────────────────────────────────────────────────────────────────────── */
+    html[data-theme="light"] .proc-modal {
+      background: #FFFFFF;
+      border-color: #E2E8F0;
+      box-shadow: 0 24px 60px rgba(15,23,42,.18);
+    }
+    html[data-theme="light"] .proc-modal-header {
+      background: #F8FAFC;
+      border-bottom-color: #E2E8F0;
+    }
+    html[data-theme="light"] .proc-modal-title { color: #0F172A; }
+    html[data-theme="light"] .proc-modal-section { border-color: #E2E8F0; }
+    html[data-theme="light"] .proc-modal-section-title {
+      background: #EFF6FF;
+      color: #1D4ED8;
+    }
+    html[data-theme="light"] .proc-modal-footer {
+      background: #F8FAFC;
+      border-top-color: #E2E8F0;
+    }
+    html[data-theme="light"] .proc-modal-body { color: #1E3A5F; }
+
+    /* Labels e inputs do modal */
+    html[data-theme="light"] .field-label { color: #475569; }
+    html[data-theme="light"] .field-input {
+      background: #FFFFFF;
+      border-color: #CBD5E1;
+      color: #0F172A;
+    }
+    html[data-theme="light"] .field-input::placeholder { color: #94A3B8; }
+    html[data-theme="light"] .field-input:focus {
+      border-color: #2563EB;
+      box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+    }
+
+    /* Botão Fechar (proc-btn-cancel) — texto azul invisível em fundo branco */
+    html[data-theme="light"] .proc-btn-cancel {
+      background: #FFFFFF;
+      border-color: #CBD5E1;
+      color: #1D4ED8;
+    }
+    html[data-theme="light"] .proc-btn-cancel:hover { background: #EFF6FF; }
+
+    /* Botão Salvar — manter identidade azul */
+    html[data-theme="light"] .proc-btn-save { color: #FFFFFF; }
+
+    /* Histórico Processual no tema claro */
+    html[data-theme="light"] .timeline-entry {
+      border-bottom-color: #E2E8F0;
+    }
+    html[data-theme="light"] .timeline-dot {
+      background: #2563EB;
+      box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+    }
+    html[data-theme="light"] .timeline-action { color: #0F172A; }
+    html[data-theme="light"] .timeline-meta   { color: #64748B; }
+
+    /* Auxiliares: divs com inline style="color:#9ab0c9" dentro do modal */
+    html[data-theme="light"] .proc-modal-body [style*="color:#9ab0c9"],
+    html[data-theme="light"] .proc-modal-body [style*="color: #9ab0c9"] { color: #64748B !important; }
+    html[data-theme="light"] .proc-modal-body [style*="color:#93c5fd"],
+    html[data-theme="light"] .proc-modal-body [style*="color: #93c5fd"] { color: #1D4ED8 !important; }
   </style>
 </head>
 <body>
@@ -505,6 +684,19 @@ try {
               <span style="font-size:.78rem;color:#9ab0c9">e</span>
               <input id="procFilterDateTo" type="date" class="proc-select" style="padding:0 8px;min-width:130px">
             </div>
+            <?php if (count($origin_accounts) > 1): /* só matriz com pelo menos 1 filial */ ?>
+            <!-- Filtro por origem (Matriz / Filiais) — visível só para matriz -->
+            <select id="procFilterOrigin" class="proc-select" style="min-width:160px" title="Filtrar por origem do processo">
+              <option value="">Todas as origens</option>
+              <option value="__matriz__">Apenas Matriz</option>
+              <option value="__filiais__">Apenas Filiais</option>
+              <optgroup label="Filial específica">
+                <?php foreach ($origin_accounts as $oa): if ($oa['tipo'] === 'matriz') continue; ?>
+                  <option value="<?=htmlspecialchars((string)$oa['id'])?>"><?=htmlspecialchars($oa['nome'])?></option>
+                <?php endforeach; ?>
+              </optgroup>
+            </select>
+            <?php endif; ?>
             <!-- Limpar -->
             <button id="procFilterClear" style="display:inline-flex;align-items:center;gap:5px;padding:8px 14px;border-radius:8px;background:transparent;border:1px solid rgba(96,165,250,.2);color:#9ab0c9;cursor:pointer;font-size:.82rem;white-space:nowrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Limpar</button>
             <!-- Separador -->
@@ -533,7 +725,7 @@ try {
             <div class="kpi-dot dot-neutral"></div>
             <div class="kpi-label">Processos Ativos</div>
             <div class="kpi-value" id="kpiAtivos">—</div>
-            <div class="kpi-foot">no período selecionado</div>
+            <div class="kpi-foot">total cadastrado ativo</div>
           </div>
           <div class="kpi-card kpi-danger">
             <div class="kpi-dot dot-danger"></div>
@@ -627,8 +819,10 @@ try {
               <div class="field-group">
                 <label class="field-label">Parte contrária</label>
                 <input name="parte_contraria" class="field-input" placeholder="Nome da parte adversa">
-                <input name="cpf_cnpj_parte_contraria" class="field-input" placeholder="CPF ou CNPJ da parte contrária"
-                       style="margin-top:6px"
+              </div>
+              <div class="field-group">
+                <label class="field-label">CPF / CNPJ da parte contrária</label>
+                <input name="cpf_cnpj_parte_contraria" class="field-input" placeholder="000.000.000-00 ou 00.000.000/0000-00"
                        oninput="this.value=this.value.replace(/[^0-9.\/\-]/g,'')">
               </div>
               <div class="field-group">
@@ -656,11 +850,14 @@ try {
               </div>
               <div class="field-group">
                 <label class="field-label">Status processual</label>
-                <select name="status" class="field-input">
+                <select name="status" id="statusProcessoInput" class="field-input">
                   <option value="ativo">Ativo</option>
-                  <option value="arquivado">Arquivado</option>
+                  <option value="suspenso">Suspenso</option>
+                  <option value="concluido">Concluído</option>
                   <option value="encerrado">Encerrado</option>
+                  <option value="arquivado">Arquivado</option>
                 </select>
+                <div id="statusPrazoHint" style="display:none;font-size:.7rem;color:#fbbf24;margin-top:3px">⚠ Processos encerrados/arquivados não devem ter prazo futuro ativo.</div>
               </div>
               <div class="field-group">
                 <label class="field-label">Data de início</label>
@@ -743,6 +940,18 @@ try {
             </div>
           </div>
 
+          <!-- Bloco — Vínculos do Processo -->
+          <div class="proc-section">
+            <div class="proc-section-title" style="display:flex;justify-content:space-between;align-items:center">
+              <span>Vínculos do Processo</span>
+              <button type="button" id="btnAddVinculoProc" style="padding:6px 12px;border-radius:6px;background:rgba(37,99,235,.25);border:1px solid rgba(96,165,250,.3);color:#93c5fd;cursor:pointer;font-size:.78rem">+ Adicionar vínculo</button>
+            </div>
+            <div class="proc-section-body">
+              <div id="vinculosProcessoHint" style="font-size:.78rem;color:#9ab0c9">Salve o processo primeiro para adicionar vínculos.</div>
+              <div id="vinculosProcessoList" style="display:none;flex-direction:column;gap:6px"></div>
+            </div>
+          </div>
+
           <!-- Bloco — Histórico Processual -->
           <div class="proc-section">
             <div class="proc-section-title">Histórico Processual</div>
@@ -800,9 +1009,18 @@ try {
   </div>
 
   <script>
-    // Usuários pré-carregados via PHP — disponível imediatamente sem fetch async
+    // Usuários pré-carregados via PHP — disponível imediatamente sem fetch async.
+    // Cada item tem: id, nome, account_id, account_nome, account_tipo
+    // → permite agrupar visualmente em <optgroup> via Yuris.populateUserSelect.
     window._SYSTEM_USERS = <?= json_encode($system_users, JSON_UNESCAPED_UNICODE) ?>;
+
+    // Identifica origem do registro (matriz/filial) — faixa SEMPRE visível
+    // (mesmo em filial isolada ou matriz sem filiais).
+    window.YURIS_ACCOUNT_SELF      = <?= json_encode($origin_self, JSON_UNESCAPED_UNICODE) ?>;
+    window.YURIS_ORIGIN_ACCOUNTS   = <?= json_encode($origin_accounts, JSON_UNESCAPED_UNICODE) ?>;
+    window.YURIS_SHOW_ORIGIN_STRIP = true;
   </script>
+  <script src="/sistema_vendas/public/assets/user_select.js?v=<?= filemtime(__DIR__ . '/assets/user_select.js') ?>"></script>
   <script src="/sistema_vendas/public/assets/processos.js?v=<?= filemtime(__DIR__ . '/assets/processos.js') ?>"></script>
   <script src="/sistema_vendas/public/assets/process_codes.js"></script>
   <script src="/sistema_vendas/public/assets/fog.js"></script>
@@ -813,11 +1031,36 @@ try {
       const params   = new URLSearchParams(location.search);
       const openId   = params.get('open');
       const newCardId = params.get('new_card_id');
+
+      // Detecta se a navegação foi um reload (F5/Ctrl+R)
+      function _isPageReload() {
+        try {
+          const nav = (performance.getEntriesByType('navigation') || [])[0];
+          if (nav && nav.type) return nav.type === 'reload';
+          return performance.navigation && performance.navigation.type === 1;
+        } catch (e) { return false; }
+      }
+
+      // Limpa os params da URL — chamada SEMPRE que houver params (mesmo em reload)
+      function _cleanUrlParams() {
+        try {
+          const u = new URL(location.href);
+          u.searchParams.delete('open');
+          u.searchParams.delete('new_card_id');
+          const qs = u.searchParams.toString();
+          history.replaceState(null, '', u.pathname + (qs ? '?' + qs : '') + u.hash);
+        } catch (e) {}
+      }
+
+      const isReload = _isPageReload();
+      if (openId || newCardId) _cleanUrlParams();
+      if (isReload) return; // F5 não auto-abre modal
+
       setTimeout(() => { // aguarda processos.js inicializar
         if (openId) {
           fetch(`/sistema_vendas/public/api/processes.php?id=${openId}`, {credentials:'same-origin'})
             .then(r => r.json())
-            .then(data => { const proc = data.data || data; if (proc && proc.id) showModal(proc); })
+            .then(data => { const proc = data.data || data; if (proc && proc.id) { showModal(proc); } })
             .catch(() => {});
         } else if (newCardId) {
           // Abre modal de novo processo com o cliente pré-selecionado
@@ -868,7 +1111,221 @@ try {
         if (el) { el.textContent = e.newValue; el.style.color = '#4ade80'; }
       });
     } catch(e) { console.warn('mirror dashboard status failed', e); }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Vínculos do Processo — busca única por código (conta ou advogado)
+    // ─────────────────────────────────────────────────────────────────────────
+    (function(){
+      const CSRF = <?= json_encode($_SESSION['csrf_token'] ?? '') ?>;
+      let currentProcId = null;
+      let lookupResult = null;
+
+      async function carregarVinculos(procId) {
+        currentProcId = procId;
+        const hint = document.getElementById('vinculosProcessoHint');
+        const list = document.getElementById('vinculosProcessoList');
+        if (!procId) {
+          hint.style.display = 'block';
+          hint.textContent = 'Salve o processo primeiro para adicionar vínculos.';
+          list.style.display = 'none';
+          list.innerHTML = '';
+          return;
+        }
+        hint.style.display = 'none';
+        list.style.display = 'flex';
+        list.innerHTML = '<div style="color:#9ab0c9;font-size:.8rem">Carregando...</div>';
+        try {
+          const r = await fetch(`/sistema_vendas/public/api/resource_shares.php?resource_type=processo&resource_id=${procId}`, {credentials:'same-origin'}).then(x=>x.json());
+          const shares = (r.data || []).filter(s => s.status === 'active');
+          if (!shares.length) {
+            list.innerHTML = '<div style="color:#6b7887;font-size:.78rem;padding:8px 0">Nenhum vínculo. Clique em "+ Adicionar vínculo" para liberar acesso a uma matriz, filial ou advogado.</div>';
+            return;
+          }
+          list.innerHTML = shares.map(s => {
+            const alvo = s.to_user_nome
+              ? `Advogado: <strong>${s.to_user_nome}</strong>`
+              : (s.to_account_nome ? `Conta: <strong>${s.to_account_nome}</strong>` : `Conta #${s.to_account_id}`);
+            return `
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:8px;background:rgba(5,18,39,.6);border:1px solid rgba(96,165,250,.15);font-size:.82rem">
+                <div style="color:#d6eaff">${alvo} <span style="color:#6b7887;margin-left:6px">(${s.permission_level})</span></div>
+                <button onclick="revogarVinculoProc(${s.id})" style="padding:3px 10px;border-radius:6px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#fca5a5;cursor:pointer;font-size:.74rem">Revogar</button>
+              </div>`;
+          }).join('');
+        } catch(e) {
+          list.innerHTML = '<div style="color:#fca5a5;font-size:.78rem">Erro ao carregar vínculos.</div>';
+        }
+      }
+
+      window.revogarVinculoProc = async function(id) {
+        if (!(await Yuris.confirm('Revogar este vínculo?', { danger: true, okLabel: 'Revogar' }))) return;
+        const r = await fetch(`/sistema_vendas/public/api/resource_shares.php?id=${id}`, {
+          method: 'DELETE',
+          headers: {'X-CSRF-Token': CSRF, 'Content-Type': 'application/json'},
+          credentials: 'same-origin',
+        }).then(x=>x.json());
+        if (r.success || r.ok) {
+          carregarVinculos(currentProcId);
+        } else {
+          alert(r.error || 'Erro ao revogar');
+        }
+      };
+
+      // Override do showModal para carregar vínculos ao abrir
+      // window.showModal é definido pelo processos.js dentro de DOMContentLoaded,
+      // então fazemos retry até encontrar (evita race condition).
+      function installShowModalHook() {
+        if (window.__vinculosHookInstalled) return;
+        const orig = window.showModal;
+        if (typeof orig !== 'function') {
+          setTimeout(installShowModalHook, 50);
+          return;
+        }
+        window.__vinculosHookInstalled = true;
+        window.showModal = function(data) {
+          orig(data);
+          carregarVinculos(data?.id || null);
+          resetModalVinculo();
+        };
+        // Caso o modal já esteja aberto agora (ex: ?open=ID), tenta puxar o id já preenchido
+        try {
+          const f = document.getElementById('processForm');
+          const id = f && f.id ? parseInt(f.id.value, 10) : 0;
+          if (id) carregarVinculos(id);
+        } catch (e) {}
+      }
+      installShowModalHook();
+
+      // Botão "+ Adicionar vínculo" — lê o id direto do form como fallback
+      document.addEventListener('DOMContentLoaded', function(){
+        const btn = document.getElementById('btnAddVinculoProc');
+        if (btn) btn.addEventListener('click', function(){
+          if (!currentProcId) {
+            const f = document.getElementById('processForm');
+            const id = f && f.id ? parseInt(f.id.value, 10) : 0;
+            if (id) {
+              currentProcId = id;
+              carregarVinculos(id);
+            }
+          }
+          if (!currentProcId) { alert('Salve o processo primeiro.'); return; }
+          document.getElementById('modalVinculoProc').style.display = 'flex';
+          resetModalVinculo();
+        });
+      });
+
+      function resetModalVinculo() {
+        lookupResult = null;
+        const c = document.getElementById('vincCodigo');           if (c) c.value = '';
+        const r = document.getElementById('vincResultado');        if (r) { r.style.display='none'; r.innerHTML=''; }
+        const p = document.getElementById('vincPermSection');      if (p) p.style.display='none';
+        const b = document.getElementById('vincConfirmBtn');       if (b) b.style.display='none';
+      }
+      window.resetModalVinculo = resetModalVinculo;
+
+      window.buscarCodigoVinculo = async function() {
+        const codigo = document.getElementById('vincCodigo').value.trim();
+        const res    = document.getElementById('vincResultado');
+        if (!codigo) { alert('Cole o código primeiro.'); return; }
+        res.style.display = 'block';
+        res.style.background = 'rgba(30,50,80,.4)';
+        res.style.border = '1px solid rgba(96,165,250,.1)';
+        res.style.color  = '#9ab0c9';
+        res.innerHTML = 'Buscando...';
+        const r = await fetch(`/sistema_vendas/public/api/lookup.php?codigo=${encodeURIComponent(codigo)}`, {credentials:'same-origin'}).then(x=>x.json()).catch(()=>({error:'Erro de rede'}));
+        if (r.tipo === 'conta') {
+          lookupResult = { kind: 'conta', accountId: r.data.id, nome: r.data.nome };
+          res.style.background = 'rgba(34,197,94,.08)';
+          res.style.border = '1px solid rgba(34,197,94,.25)';
+          res.style.color = '#86efac';
+          res.innerHTML = `✓ <strong>${r.data.nome}</strong> <span style="opacity:.7">(${r.data.tipo})</span> — toda a conta terá acesso a este processo`;
+          document.getElementById('vincPermSection').style.display = 'block';
+          document.getElementById('vincConfirmBtn').style.display = 'inline-flex';
+        } else if (r.tipo === 'advogado') {
+          lookupResult = { kind: 'advogado', userId: r.data.user_id, accountId: r.data.account_id, nome: r.data.nome };
+          res.style.background = 'rgba(34,197,94,.08)';
+          res.style.border = '1px solid rgba(34,197,94,.25)';
+          res.style.color = '#86efac';
+          res.innerHTML = `✓ Advogado: <strong>${r.data.nome}</strong> <span style="opacity:.7">(${r.data.codigo_advogado})</span> — apenas ele terá acesso a este processo`;
+          document.getElementById('vincPermSection').style.display = 'block';
+          document.getElementById('vincConfirmBtn').style.display = 'inline-flex';
+        } else {
+          lookupResult = null;
+          res.style.background = 'rgba(239,68,68,.08)';
+          res.style.border = '1px solid rgba(239,68,68,.3)';
+          res.style.color = '#fca5a5';
+          res.innerHTML = `✗ ${r.error || 'Código não encontrado'}`;
+          document.getElementById('vincPermSection').style.display = 'none';
+          document.getElementById('vincConfirmBtn').style.display = 'none';
+        }
+      };
+
+      window.confirmarVinculoProc = async function() {
+        if (!lookupResult || !currentProcId) return;
+        const perm = document.getElementById('vincPermissao').value;
+        const payload = {
+          resource_type:    'processo',
+          resource_id:      parseInt(currentProcId),
+          permission_level: perm,
+          csrf_token:       CSRF,
+        };
+        if (lookupResult.kind === 'conta') {
+          payload.to_account_id = lookupResult.accountId;
+        } else {
+          payload.to_user_id  = lookupResult.userId;
+          payload.to_account_id = lookupResult.accountId;
+        }
+        const r = await fetch('/sistema_vendas/public/api/resource_shares.php', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json', 'X-CSRF-Token': CSRF},
+          credentials: 'same-origin',
+          body: JSON.stringify(payload),
+        }).then(x=>x.json());
+        if (r.success || r.ok) {
+          document.getElementById('modalVinculoProc').style.display = 'none';
+          carregarVinculos(currentProcId);
+        } else {
+          alert(r.error || 'Erro ao criar vínculo');
+        }
+      };
+
+      window.fecharModalVinculoProc = function() {
+        document.getElementById('modalVinculoProc').style.display = 'none';
+      };
+    })();
   </script>
+
+  <!-- Modal Adicionar Vínculo (Processo) -->
+  <div id="modalVinculoProc" style="display:none;position:fixed;inset:0;background:rgba(2,6,23,.8);z-index:3500;align-items:center;justify-content:center">
+    <div style="background:linear-gradient(165deg,rgba(10,24,46,.99),rgba(7,18,36,.99));border:1px solid rgba(96,165,250,.25);border-radius:14px;width:520px;max-width:95vw;box-shadow:0 24px 60px rgba(0,0,0,.7)">
+      <div style="padding:18px 20px;border-bottom:1px solid rgba(96,165,250,.12);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:1rem;font-weight:700;color:#dbeafe">Adicionar vínculo ao processo</span>
+        <button onclick="fecharModalVinculoProc()" style="background:transparent;border:1px solid rgba(96,165,250,.3);color:#93c5fd;border-radius:8px;padding:4px 12px;cursor:pointer;font-size:.82rem">Fechar</button>
+      </div>
+      <div style="padding:20px">
+        <p style="font-size:.83rem;color:#9ab0c9;margin:0 0 12px">Cole o código de vínculo de uma matriz/filial, OU o código do advogado (ADV-XXXXXX).</p>
+        <div style="display:flex;gap:8px;align-items:flex-end">
+          <div style="flex:1">
+            <label style="font-size:.78rem;color:#9ab0c9;display:block;margin-bottom:4px">Código *</label>
+            <input id="vincCodigo" type="text" placeholder="Ex: 4799-7d7c... ou ADV-3504EB" style="width:100%;padding:10px 12px;border-radius:8px;background:rgba(5,18,39,.85);border:1px solid rgba(96,165,250,.2);color:#d6eaff;font-size:.85rem;box-sizing:border-box">
+          </div>
+          <button onclick="buscarCodigoVinculo()" style="padding:10px 16px;border-radius:8px;background:rgba(37,99,235,.25);border:1px solid rgba(96,165,250,.3);color:#93c5fd;cursor:pointer;font-size:.82rem;white-space:nowrap;height:40px">Buscar</button>
+        </div>
+        <div id="vincResultado" style="display:none;margin-top:10px;padding:10px 14px;border-radius:8px;font-size:.84rem"></div>
+        <div id="vincPermSection" style="display:none;margin-top:14px">
+          <label style="font-size:.78rem;color:#9ab0c9;display:block;margin-bottom:4px">Permissão</label>
+          <select id="vincPermissao" style="width:100%;padding:10px 12px;border-radius:8px;background:rgba(5,18,39,.85);border:1px solid rgba(96,165,250,.2);color:#d6eaff;font-size:.85rem">
+            <option value="view">Visualizar</option>
+            <option value="edit">Editar</option>
+            <option value="full">Acesso total</option>
+          </select>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
+          <button onclick="fecharModalVinculoProc()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(96,165,250,.3);background:transparent;color:#93c5fd;cursor:pointer;font-size:.82rem">Cancelar</button>
+          <button id="vincConfirmBtn" onclick="confirmarVinculoProc()" style="display:none;padding:8px 18px;border-radius:8px;border:none;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-weight:700;cursor:pointer;font-size:.82rem">Confirmar vínculo</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 

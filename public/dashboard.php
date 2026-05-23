@@ -1,12 +1,63 @@
 ﻿<?php
 require_once __DIR__ . '/../app/Models/Database.php';
 require_once __DIR__ . '/../app/Models/User.php';
+require_once __DIR__ . '/../app/Models/Account.php';
+require_once __DIR__ . '/../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../app/Models/DREAccount.php';
+require_once __DIR__ . '/../app/Helpers/AccountContext.php';
 use App\Models\Database;
 use App\Models\DREAccount;
+use App\Helpers\AccountContext;
 session_start();
 if (empty($_SESSION['user_id'])) { header('Location: /sistema_vendas/public/login.php'); exit; }
 $activePage = 'dashboard';
+
+// Contexto de tenant — obrigatório para evitar vazamento entre contas.
+$ctx       = AccountContext::fromSession();
+$ctx->assertAccountActive(); // bloqueia conta suspensa/cancelada/inativa
+$tenantIds = $ctx->getAccessibleAccountIds('dashboard');
+// Guard: array vazio quebraria SQL IN (). Garante pelo menos o próprio account_id (0 = nenhum match).
+if (empty($tenantIds)) $tenantIds = [0];
+
+// Contas acessíveis com info de tipo (matriz/filial) — alimenta filtro de Origem
+$origin_accounts = [];
+$origin_self     = [
+    'id'   => $ctx->getAccountId(),
+    'tipo' => $ctx->getAccountTipo(),
+    'nome' => $_SESSION['account_nome'] ?? '',
+];
+if ($ctx->isMatriz()) {
+    try {
+        $pdo_oa = Database::getConnection();
+        $stmt_oa = $pdo_oa->prepare(
+            "SELECT id, nome, tipo
+             FROM accounts
+             WHERE deleted_at IS NULL AND status = 'active'
+               AND (id = :self OR matriz_id = :self)
+             ORDER BY CASE WHEN tipo = 'matriz' THEN 0 ELSE 1 END, nome ASC"
+        );
+        $stmt_oa->execute(['self' => $ctx->getAccountId()]);
+        $origin_accounts = $stmt_oa->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Throwable $e) {}
+}
+
+// Filtro de Origem (?origin=__matriz__|__filiais__|<id>) — recorta $tenantIds.
+// Restringe ao conjunto ACESSÍVEL — qualquer id fora dele é ignorado (segurança).
+$selected_origin = isset($_GET['origin']) ? trim((string)$_GET['origin']) : '';
+if ($selected_origin !== '' && count($origin_accounts) > 1) {
+    $matrizIds  = array_map(fn($a) => (int)$a['id'], array_filter($origin_accounts, fn($a) => $a['tipo'] === 'matriz'));
+    $filiaisIds = array_map(fn($a) => (int)$a['id'], array_filter($origin_accounts, fn($a) => $a['tipo'] === 'filial'));
+    if ($selected_origin === '__matriz__') {
+        $tenantIds = $matrizIds ?: [0];
+    } elseif ($selected_origin === '__filiais__') {
+        $tenantIds = $filiaisIds ?: [0];
+    } else {
+        $sid = (int)$selected_origin;
+        // Só permite ids que pertencem ao conjunto acessível
+        $allowed = array_map(fn($a) => (int)$a['id'], $origin_accounts);
+        $tenantIds = (in_array($sid, $allowed, true) && $sid > 0) ? [$sid] : [0];
+    }
+}
 
 // Popup de prazos: aparece somente na primeira visita após login.
 // O logout (session_destroy) limpa o flag automaticamente.
@@ -14,16 +65,74 @@ $show_deadline_popup = empty($_SESSION['deadline_popup_shown']);
 $_SESSION['deadline_popup_shown'] = true;
 
 // ── DRE summary (server-side) ────────────────────────────────────────────────
+// Renderizado direto no HTML para evitar "flash" de dados antigos durante o load do JS.
+// Filtrado por account_id IN (tenantIds) — uma conta nova vê tudo zerado.
+// Se houver período persistido em sessão, também aplica para não mostrar valores fora do range.
 $dre_receita = $dre_despesa = $dre_lucro = $dre_margem = 0;
 try {
-    $dre_summary = DREAccount::summary();
     $pdo_dre = Database::getConnection();
-    $st_dre  = $pdo_dre->query("SELECT COALESCE(SUM(COALESCE(NULLIF(valor_fechado_final,0), NULLIF(valor_proposta,0), IFNULL(valor_estimado,0))),0) as ct FROM cards WHERE deleted_at IS NULL AND (status='fechado' OR (data_fechamento IS NOT NULL AND data_fechamento>'0000-00-00'))");
+
+    // Monta cláusula IN(tenantIds)
+    $ph = []; $tenantParams = [];
+    foreach ($tenantIds as $i => $aid) { $k = "dpsacc_{$i}"; $ph[] = ":{$k}"; $tenantParams[$k] = (int)$aid; }
+    $inSql = '(' . implode(',', $ph) . ')';
+
+    // Período persistido na sessão (definido pelo dashboard_settings.php)
+    $ds_start = !empty($_SESSION['dashboard_start']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_SESSION['dashboard_start']) ? $_SESSION['dashboard_start'] : null;
+    $ds_end   = !empty($_SESSION['dashboard_end'])   && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_SESSION['dashboard_end'])   ? $_SESSION['dashboard_end']   : null;
+
+    // ── Cards fechados (no período se houver, senão tudo)
+    $cardsWhere = "WHERE deleted_at IS NULL
+                     AND (status='fechado' OR (data_fechamento IS NOT NULL AND data_fechamento>'0000-00-00'))
+                     AND account_id IN $inSql";
+    $cardsParams = $tenantParams;
+    if ($ds_start) { $cardsWhere .= ' AND data_fechamento >= :ds_start'; $cardsParams['ds_start'] = $ds_start; }
+    if ($ds_end)   { $cardsWhere .= ' AND data_fechamento <= :ds_end';   $cardsParams['ds_end']   = $ds_end; }
+    $st_dre = $pdo_dre->prepare(
+        "SELECT COALESCE(SUM(COALESCE(NULLIF(valor_fechado_final,0), NULLIF(valor_proposta,0), IFNULL(valor_estimado,0))),0) AS ct
+         FROM cards $cardsWhere"
+    );
+    $st_dre->execute($cardsParams);
     $row_dre = $st_dre->fetch(PDO::FETCH_ASSOC);
-    $dre_receita = (float)($dre_summary['receita'] ?? 0) + (float)($row_dre['ct'] ?? 0);
-    $dre_despesa = (float)($dre_summary['despesa'] ?? 0);
-    $dre_lucro   = $dre_receita - $dre_despesa;
-    $dre_margem  = $dre_receita > 0 ? round(($dre_lucro / $dre_receita) * 100, 1) : 0;
+    $closed_total = (float)($row_dre['ct'] ?? 0);
+
+    // ── DRE accounts (lógica de recorrência: fixa = a partir de data_referencia; avulsa = só no range)
+    if ($ds_start || $ds_end) {
+        $dreWhere  = "WHERE ativo = 1 AND account_id IN $inSql";
+        $dreParams = $tenantParams;
+        if ($ds_start && $ds_end) {
+            $dreWhere .= "
+                AND (
+                  (recorrencia = 'fixa' AND (data_referencia IS NULL OR data_referencia <= :ds_end))
+                  OR
+                  (recorrencia <> 'fixa' AND data_referencia BETWEEN :ds_start AND :ds_end)
+                )";
+            $dreParams['ds_start'] = $ds_start;
+            $dreParams['ds_end']   = $ds_end;
+        } elseif ($ds_end) {
+            $dreWhere .= " AND (recorrencia = 'fixa' AND (data_referencia IS NULL OR data_referencia <= :ds_end))
+                           OR (recorrencia <> 'fixa' AND data_referencia <= :ds_end)";
+            $dreParams['ds_end'] = $ds_end;
+        } else { // só ds_start
+            $dreWhere .= " AND (recorrencia = 'fixa' OR (recorrencia <> 'fixa' AND data_referencia >= :ds_start))";
+            $dreParams['ds_start'] = $ds_start;
+        }
+        $st = $pdo_dre->prepare("SELECT tipo, COALESCE(SUM(valor_fixo),0) AS total FROM dre_accounts $dreWhere GROUP BY tipo");
+        $st->execute($dreParams);
+        $dre_receita = $dre_despesa = 0.0;
+        foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            if ($r['tipo'] === 'receita') $dre_receita = (float)$r['total'];
+            if ($r['tipo'] === 'despesa') $dre_despesa = (float)$r['total'];
+        }
+    } else {
+        $dre_summary = DREAccount::summary(['account_ids' => $tenantIds]);
+        $dre_receita = (float)($dre_summary['receita'] ?? 0);
+        $dre_despesa = (float)($dre_summary['despesa'] ?? 0);
+    }
+
+    $dre_receita += $closed_total;
+    $dre_lucro    = $dre_receita - $dre_despesa;
+    $dre_margem   = $dre_receita > 0 ? round(($dre_lucro / $dre_receita) * 100, 1) : 0;
 } catch(Exception $e) { /* silently use zeros */ }
 
 function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
@@ -37,7 +146,8 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
   <link rel="icon" type="image/png" sizes="192x192" href="/sistema_vendas/public/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css">
+  <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=27">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=8">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
@@ -235,8 +345,41 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
           <div class="page-header-text">
             <h2 class="page-header-title">Dashboard Executivo</h2>
             <p class="page-header-subtitle">Visão completa — Comercial · Financeiro · Jurídico · Operacional</p>
+            <?php if (count($origin_accounts) > 1):
+              // Indicador visual do escopo ativo (matriz com filiais)
+              $scope_label = '';
+              if ($selected_origin === '__matriz__') $scope_label = 'Apenas Matriz';
+              elseif ($selected_origin === '__filiais__') $scope_label = 'Apenas Filiais';
+              elseif ($selected_origin !== '') {
+                  $found = array_filter($origin_accounts, fn($a) => (string)$a['id'] === $selected_origin);
+                  $first = $found ? reset($found) : null;
+                  if ($first) $scope_label = ($first['tipo'] === 'matriz' ? 'Matriz: ' : 'Filial: ') . $first['nome'];
+              } else {
+                  $scope_label = 'Todas as origens (Matriz + ' . (count($origin_accounts) - 1) . ' filial' . (count($origin_accounts) - 1 === 1 ? '' : 'is') . ')';
+              }
+            ?>
+            <div style="margin-top:6px;font-size:.74rem;color:#93c5fd;display:inline-flex;align-items:center;gap:6px">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:.7"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+              <span>Escopo: <strong style="color:#dbe9ff"><?=htmlspecialchars($scope_label)?></strong></span>
+            </div>
+            <?php endif; ?>
           </div>
-          <div class="page-header-actions">
+          <div class="page-header-actions" style="display:flex;align-items:center;gap:10px">
+            <?php if (count($origin_accounts) > 1): ?>
+            <!-- Filtro de Origem (matriz/filial) — visível só para matriz com filiais.
+                 Recarrega a página com ?origin=... porque o cálculo é server-side. -->
+            <select id="dashFilterOrigin"
+                    style="height:36px;padding:0 12px;border-radius:9px;border:1px solid rgba(96,165,250,.28);background:rgba(5,18,39,.85);color:#d6eaff;font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer">
+              <option value="">Todas as origens</option>
+              <option value="__matriz__"  <?=$selected_origin==='__matriz__'?'selected':''?>>Apenas Matriz</option>
+              <option value="__filiais__" <?=$selected_origin==='__filiais__'?'selected':''?>>Apenas Filiais</option>
+              <optgroup label="Filial específica">
+                <?php foreach ($origin_accounts as $oa): if ($oa['tipo'] === 'matriz') continue; ?>
+                  <option value="<?=htmlspecialchars((string)$oa['id'])?>" <?=$selected_origin===(string)$oa['id']?'selected':''?>><?=htmlspecialchars($oa['nome'])?></option>
+                <?php endforeach; ?>
+              </optgroup>
+            </select>
+            <?php endif; ?>
             <button id="reportDashboardBtn" style="display:inline-flex;align-items:center;gap:6px;padding:0 14px;height:36px;border-radius:9px;border:1px solid rgba(96,165,250,.28);background:transparent;color:#93c5fd;font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer;transition:background .18s" onmouseover="this.style.background='rgba(37,99,235,.15)'" onmouseout="this.style.background='transparent'">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exportar relatório
@@ -595,7 +738,7 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
 </script>
 
 <!-- ── Scripts ── -->
-<script src="assets/dashboard.js?v=10"></script>
+<script src="assets/dashboard.js?v=12"></script>
 <script src="/sistema_vendas/public/assets/fog.js"></script>
 
 <!-- ── Dashboard extended: jurídico + resumo + alertas ── -->
@@ -666,10 +809,12 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
     if (_dreState.lucro > 0)    parts.push(`<strong>${currency.format(_dreState.lucro)}</strong> de lucro líquido (margem ${_dreState.margem}%)`);
     if (jurKPIs.ativos > 0)    parts.push(`<strong>${jurKPIs.ativos}</strong> processo${jurKPIs.ativos!==1?'s':''} ativo${jurKPIs.ativos!==1?'s':''}`);
     if (jurKPIs.semana > 0)    parts.push(`<strong>${jurKPIs.semana}</strong> prazo${jurKPIs.semana!==1?'s':''} nesta semana`);
-    if (closedValue > 0 && metaValue > 0){
-      const pct = Math.round((closedValue/metaValue)*100);
-      parts.push(`meta mensal em <strong>${pct}%</strong> de execução`);
+    if (metaValue > 0){
+      const pct = Math.round(((closedValue || 0)/metaValue)*100);
+      if (closedValue > 0) parts.push(`meta mensal em <strong>${pct}%</strong> de execução`);
       setEl('metaProgresso', pct + '% da meta');
+    } else {
+      setEl('metaProgresso', '0% da meta');
     }
     el.innerHTML = 'Hoje o escritório possui ' + (parts.length ? parts.join(', ') : 'dados sendo carregados') + '.';
   }
@@ -868,17 +1013,22 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
       const t=new Date(); const today=new Date(t.getFullYear(),t.getMonth(),t.getDate());
       return processes.filter(p=>{ const d=parseDate(p.proximo_prazo); return d&&new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime()===today.getTime(); });
     })();
-    const prox7  = (metricsData.deadlines_7||metricsData.deadlines_week||[]).length ? (metricsData.deadlines_7||metricsData.deadlines_week) : (() => {
+    // Faixas EXCLUSIVAS (sem sobreposição) — alinhadas com api/juridico_metrics.php:
+    //   Hoje:          d == today
+    //   Próximos 7d:   today < d <= today+7   (EXCLUI hoje)
+    //   Próximos 15d:  today+7 < d <= today+15
+    //   Próximos 30d:  today+15 < d <= today+30
+    const prox7  = (metricsData.deadlines_7||[]).length ? metricsData.deadlines_7 : (() => {
       const t=new Date(); const today=new Date(t.getFullYear(),t.getMonth(),t.getDate()); const t7=addDays(today,7);
-      return processes.filter(p=>{ const d=parseDate(p.proximo_prazo); return d&&new Date(d.getFullYear(),d.getMonth(),d.getDate())>=today&&new Date(d.getFullYear(),d.getMonth(),d.getDate())<=t7; });
+      return processes.filter(p=>{ const d=parseDate(p.proximo_prazo); if(!d) return false; const dd=new Date(d.getFullYear(),d.getMonth(),d.getDate()); return dd>today&&dd<=t7; });
     })();
     const prox15 = (metricsData.deadlines_15||[]).length ? metricsData.deadlines_15 : (() => {
-      const t=new Date(); const today=new Date(t.getFullYear(),t.getMonth(),t.getDate()); const t15=addDays(today,15);
-      return processes.filter(p=>{ const d=parseDate(p.proximo_prazo); return d&&new Date(d.getFullYear(),d.getMonth(),d.getDate())>=today&&new Date(d.getFullYear(),d.getMonth(),d.getDate())<=t15; });
+      const t=new Date(); const today=new Date(t.getFullYear(),t.getMonth(),t.getDate()); const t7=addDays(today,7); const t15=addDays(today,15);
+      return processes.filter(p=>{ const d=parseDate(p.proximo_prazo); if(!d) return false; const dd=new Date(d.getFullYear(),d.getMonth(),d.getDate()); return dd>t7&&dd<=t15; });
     })();
     const prox30 = (metricsData.deadlines_30||[]).length ? metricsData.deadlines_30 : (() => {
-      const t=new Date(); const today=new Date(t.getFullYear(),t.getMonth(),t.getDate()); const t30=addDays(today,30);
-      return processes.filter(p=>{ const d=parseDate(p.proximo_prazo); return d&&new Date(d.getFullYear(),d.getMonth(),d.getDate())>=today&&new Date(d.getFullYear(),d.getMonth(),d.getDate())<=t30; });
+      const t=new Date(); const today=new Date(t.getFullYear(),t.getMonth(),t.getDate()); const t15=addDays(today,15); const t30=addDays(today,30);
+      return processes.filter(p=>{ const d=parseDate(p.proximo_prazo); if(!d) return false; const dd=new Date(d.getFullYear(),d.getMonth(),d.getDate()); return dd>t15&&dd<=t30; });
     })();
 
     renderProxList('dashProxHoje','dashProxHojeCnt', proxHoje);
@@ -965,6 +1115,19 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
     };
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ setTimeout(doCapture,160); }).catch(function(){ setTimeout(doCapture,300); });
     else setTimeout(doCapture,300);
+  });
+})();
+
+// Filtro de Origem (Matriz / Filiais / específica) — recarrega a página
+// porque o cálculo do dashboard é server-side. Preserva ?origin= no querystring.
+(function(){
+  var sel = document.getElementById('dashFilterOrigin');
+  if (!sel) return;
+  sel.addEventListener('change', function(){
+    var u = new URL(window.location.href);
+    if (sel.value) u.searchParams.set('origin', sel.value);
+    else u.searchParams.delete('origin');
+    window.location.href = u.toString();
   });
 })();
 </script>

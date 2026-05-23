@@ -1,28 +1,59 @@
 ﻿<?php
 require_once __DIR__ . '/../app/Models/Database.php';
 require_once __DIR__ . '/../app/Models/PipelineColumn.php';
+require_once __DIR__ . '/../app/Models/Account.php';
+require_once __DIR__ . '/../app/Models/ResourceShare.php';
+require_once __DIR__ . '/../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../app/Helpers/UserOptions.php';
 
 use App\Models\Database;
 use App\Models\PipelineColumn;
+use App\Helpers\AccountContext;
+use App\Helpers\UserOptions;
 
 session_start();
 if (empty($_SESSION['user_id'])) {
     header('Location: /sistema_vendas/public/login.php');
     exit;
 }
+// HARDENING: bloqueia acesso de contas suspensas/canceladas/inativas
+AccountContext::fromSession()->assertAccountActive();
 $activePage = 'prospeccao';
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 $columns = PipelineColumn::listAll();
 
-$pdo = Database::getConnection();
-$stmt = $pdo->prepare('SELECT id, nome FROM users WHERE deleted_at IS NULL AND status = :status ORDER BY nome');
-$stmt->execute(['status' => 'active']);
-$users = $stmt->fetchAll();
-
+// Usuários do tenant (matriz + filiais vinculadas) com info de conta
+// → permite agrupamento visual em <optgroup>.
+// HARDENING: antes a query era global e vazava usuários cross-tenant.
+$users = [];
 $usersMap = [];
-foreach ($users as $u) {
-    $usersMap[(string)$u['id']] = $u['nome'];
-}
+$origin_accounts = [];   // contas acessíveis (própria + filiais se matriz) — alimenta o filtro de Origem
+$origin_self     = ['id' => 0, 'tipo' => 'matriz', 'nome' => ''];
+try {
+    $ctx_p   = AccountContext::fromSession();
+    $users   = $ctx_p->getAccessibleUsers();
+    foreach ($users as $u) {
+        $usersMap[(string)$u['id']] = $u['nome'];
+    }
+    // Filtro de Origem: somente matriz precisa do filtro (filial vê só si mesma).
+    $origin_self = [
+        'id'   => $ctx_p->getAccountId(),
+        'tipo' => $ctx_p->getAccountTipo(),
+        'nome' => $_SESSION['account_nome'] ?? '',
+    ];
+    if ($ctx_p->isMatriz()) {
+        $pdo_o = Database::getConnection();
+        $stmt_o = $pdo_o->prepare(
+            "SELECT id, nome, tipo
+             FROM accounts
+             WHERE deleted_at IS NULL AND status = 'active'
+               AND (id = :self OR matriz_id = :self)
+             ORDER BY CASE WHEN tipo = 'matriz' THEN 0 ELSE 1 END, nome ASC"
+        );
+        $stmt_o->execute(['self' => $ctx_p->getAccountId()]);
+        $origin_accounts = $stmt_o->fetchAll(PDO::FETCH_ASSOC);
+    }
+} catch (\Throwable $e) { /* fallback vazio */ }
 
 function normalize_stage_label(string $text): string
 {
@@ -73,7 +104,8 @@ function column_display_name(array $col): string
   <link rel="icon" type="image/png" sizes="192x192" href="/sistema_vendas/public/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css">
+  <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=27">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=8">
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
@@ -175,6 +207,29 @@ function column_display_name(array $col): string
     .btn.ghost {
       background: rgba(8,18,32,0.42);
       border-color: rgba(160,180,210,0.14);
+    }
+
+    /* ── Estado "Vinculado à matriz" para botões readonly informativos ────
+       Usado no botão "Alterar Colunas" quando o pipeline é herdado.
+       Não é desabilitado — é informativo (ainda clicável para mostrar info). */
+    .btn.is-inherited {
+      background: linear-gradient(135deg, rgba(37,99,235,0.18), rgba(37,99,235,0.10)) !important;
+      border: 1px solid rgba(96,165,250,0.50) !important;
+      color: #93c5fd !important;
+      cursor: help !important;
+      opacity: 1 !important;
+    }
+    .btn.is-inherited:hover {
+      background: linear-gradient(135deg, rgba(37,99,235,0.28), rgba(37,99,235,0.18)) !important;
+      border-color: rgba(96,165,250,0.70) !important;
+    }
+    html[data-theme="light"] .btn.is-inherited {
+      background: linear-gradient(135deg, rgba(37,99,235,0.12), rgba(37,99,235,0.06)) !important;
+      border-color: rgba(37,99,235,0.40) !important;
+      color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] .btn.is-inherited:hover {
+      background: linear-gradient(135deg, rgba(37,99,235,0.20), rgba(37,99,235,0.10)) !important;
     }
 
     .filters-grid {
@@ -338,6 +393,7 @@ function column_display_name(array $col): string
     }
 
     .card-mini {
+      position: relative;
       border-radius: 10px;
       border: 1px solid rgba(96, 165, 250, 0.22);
       background: linear-gradient(150deg, rgba(23, 48, 84, 0.96), rgba(17, 33, 64, 0.96));
@@ -349,6 +405,56 @@ function column_display_name(array $col): string
       -webkit-user-select: none;
       -ms-user-select: none;
       transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+
+    /* ── Faixa de Origem (MATRIZ / FILIAL — Nome) ─────────────────────────
+       Mostra a procedência do card pra evitar confusão quando a matriz
+       enxerga leads das filiais no mesmo board. Renderizado pelo JS via
+       data-origin-tipo + data-origin-nome no <div class="card-mini">. */
+    .card-mini[data-origin-tipo] { padding-top: 26px; }      /* abre espaço pra faixa */
+    .card-origin-strip {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: .68rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      border-top-left-radius: 9px;
+      border-top-right-radius: 9px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .card-origin-strip.is-matriz {
+      background: linear-gradient(90deg, rgba(37,99,235,.32), rgba(37,99,235,.16));
+      color: #93c5fd;
+    }
+    .card-origin-strip.is-filial {
+      background: linear-gradient(90deg, rgba(168,85,247,.32), rgba(168,85,247,.14));
+      color: #d8b4fe;
+    }
+    .card-origin-strip .org-name {
+      font-weight: 600;
+      text-transform: none;
+      letter-spacing: 0;
+      opacity: .9;
+      max-width: 60%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Tema claro: contraste forte sem perder identidade da cor */
+    html[data-theme="light"] .card-origin-strip.is-matriz {
+      background: linear-gradient(90deg, rgba(37,99,235,.22), rgba(37,99,235,.10));
+      color: #1e40af;
+    }
+    html[data-theme="light"] .card-origin-strip.is-filial {
+      background: linear-gradient(90deg, rgba(126,34,206,.22), rgba(126,34,206,.10));
+      color: #6b21a8;
     }
 
     .card-drag-handle {
@@ -991,9 +1097,7 @@ function column_display_name(array $col): string
                   <span class="field-label">Responsável</span>
                   <select id="filterResponsible" class="field-control">
                     <option value="">Todos os responsáveis</option>
-                    <?php foreach ($users as $u): ?>
-                      <option value="<?=htmlspecialchars((string)$u['id'])?>"><?=htmlspecialchars($u['nome'])?></option>
-                    <?php endforeach; ?>
+                    <?= UserOptions::renderGrouped($users, null, null) ?>
                   </select>
                 </label>
                 <label class="field-group">
@@ -1009,6 +1113,21 @@ function column_display_name(array $col): string
                   <span class="field-label">Data prevista</span>
                   <input id="filterDate" class="field-control" type="date">
                 </label>
+                <?php if (count($origin_accounts) > 1): /* só matriz com pelo menos 1 filial */ ?>
+                <label class="field-group">
+                  <span class="field-label">Origem</span>
+                  <select id="filterOrigin" class="field-control">
+                    <option value="">Todas as origens</option>
+                    <option value="__matriz__">Apenas Matriz</option>
+                    <option value="__filiais__">Apenas Filiais</option>
+                    <optgroup label="Filial específica">
+                      <?php foreach ($origin_accounts as $oa): if ($oa['tipo'] === 'matriz') continue; ?>
+                        <option value="<?=htmlspecialchars((string)$oa['id'])?>"><?=htmlspecialchars($oa['nome'])?></option>
+                      <?php endforeach; ?>
+                    </optgroup>
+                  </select>
+                </label>
+                <?php endif; ?>
               </div>
             </div>
 
@@ -1064,9 +1183,7 @@ function column_display_name(array $col): string
               <label class="form-group">
                 <span class="form-label">Responsável</span>
                 <select name="responsavel_user_id" class="form-select">
-                  <?php foreach ($users as $u): ?>
-                    <option value="<?=htmlspecialchars((string)$u['id'])?>" <?=(($u['id'] == ($_SESSION['user_id'] ?? '')) ? 'selected' : '')?>><?=htmlspecialchars($u['nome'])?></option>
-                  <?php endforeach; ?>
+                  <?= UserOptions::renderGrouped($users, $_SESSION['user_id'] ?? null, '— Selecionar —') ?>
                 </select>
               </label>
             </div>
@@ -1145,9 +1262,7 @@ function column_display_name(array $col): string
               <label class="form-group">
                 <span class="form-label">Responsável</span>
                 <select name="responsavel_user_id" class="form-select">
-                  <?php foreach ($users as $u): ?>
-                    <option value="<?=htmlspecialchars((string)$u['id'])?>"><?=htmlspecialchars($u['nome'])?></option>
-                  <?php endforeach; ?>
+                  <?= UserOptions::renderGrouped($users, null, '— Selecionar —') ?>
                 </select>
               </label>
             </div>
@@ -1288,6 +1403,15 @@ function column_display_name(array $col): string
     const csrf = '<?=htmlspecialchars($csrf)?>';
     const usersMap = <?=json_encode($usersMap, JSON_UNESCAPED_UNICODE)?>;
     let columnsCache = <?=json_encode($columns, JSON_UNESCAPED_UNICODE)?>;
+
+    // Identifica origem do registro (matriz/filial) — controla:
+    // 1) faixa visual no topo do card (renderCards) — SEMPRE visível, mesmo
+    //    em filial isolada ou matriz sem filiais (decisão produto/UX)
+    // 2) filtro "Origem" visível só pra matriz com filiais vinculadas
+    window.YURIS_ACCOUNT_SELF       = <?=json_encode($origin_self, JSON_UNESCAPED_UNICODE)?>;
+    window.YURIS_ORIGIN_ACCOUNTS    = <?=json_encode($origin_accounts, JSON_UNESCAPED_UNICODE)?>;
+    window.YURIS_SHOW_ORIGIN_STRIP  = true;   // faixa sempre visível
+
     const cardsCacheByColumn = {};
     const sortableByColumn = {};
     let columnsSortable = null;
@@ -1487,12 +1611,30 @@ function column_display_name(array $col): string
         div.setAttribute('data-id', card.id);
         div.setAttribute('data-coluna-id', colId);
 
+        // Faixa de Origem — só renderiza quando o cliente é matriz com filiais
+        // (mostrar pra filial isolada seria ruído). Sessão MATRIZ vê MATRIZ/FILIAL.
+        let originStripHtml = '';
+        const originTipo = String(card.origin_account_tipo || '').toLowerCase();
+        const originNome = String(card.origin_account_nome || '');
+        if (window.YURIS_SHOW_ORIGIN_STRIP && originTipo) {
+          div.setAttribute('data-origin-tipo', originTipo);
+          div.setAttribute('data-origin-id',   String(card.origin_account_id || ''));
+          const cls   = originTipo === 'matriz' ? 'is-matriz' : 'is-filial';
+          const label = originTipo === 'matriz' ? 'MATRIZ' : 'FILIAL';
+          originStripHtml =
+            '<div class="card-origin-strip ' + cls + '">' +
+              '<span class="org-label">' + label + '</span>' +
+              '<span class="org-name" title="' + escapeHtml(originNome) + '">' + escapeHtml(originNome) + '</span>' +
+            '</div>';
+        }
+
         const badgeHtml = [
           '<span class="badge ' + temp.cls + '">' + temp.label + '</span>',
           follow ? '<span class="badge ' + follow.cls + '">' + follow.label + '</span>' : ''
         ].join('');
 
         div.innerHTML =
+          originStripHtml +
           '<div class="card-drag-handle">' +
             '<svg viewBox="0 0 18 10" xmlns="http://www.w3.org/2000/svg"><rect y="0" width="18" height="2" rx="1"/><rect y="4" width="18" height="2" rx="1"/><rect y="8" width="18" height="2" rx="1"/></svg>' +
           '</div>' +
@@ -1522,14 +1664,23 @@ function column_display_name(array $col): string
     }
 
     function isFilterActive() {
-      return Boolean(byId('filterSearch').value.trim() || byId('filterResponsible').value || byId('filterStage').value || byId('filterDate').value);
+      const orig = byId('filterOrigin');
+      return Boolean(
+        byId('filterSearch').value.trim() ||
+        byId('filterResponsible').value ||
+        byId('filterStage').value ||
+        byId('filterDate').value ||
+        (orig && orig.value)
+      );
     }
 
     function matchesFilters(card, colId) {
-      const search = normalizeText(byId('filterSearch').value.trim());
+      const search      = normalizeText(byId('filterSearch').value.trim());
       const responsible = byId('filterResponsible').value;
-      const stage = byId('filterStage').value;
-      const date = byId('filterDate').value;
+      const stage       = byId('filterStage').value;
+      const date        = byId('filterDate').value;
+      const origEl      = byId('filterOrigin');
+      const origin      = origEl ? origEl.value : '';
 
       if (search) {
         const haystack = normalizeText((card.cliente_nome || '') + ' ' + (card.empresa_nome || ''));
@@ -1538,6 +1689,15 @@ function column_display_name(array $col): string
       if (responsible && String(card.responsavel_user_id || '') !== String(responsible)) return false;
       if (stage && String(colId) !== String(stage)) return false;
       if (date && String(card.data_prevista_fechamento || '') !== String(date)) return false;
+
+      // Filtro de origem: pseudo-valores __matriz__ / __filiais__ ou account_id específico
+      if (origin) {
+        const tipo = String(card.origin_account_tipo || '').toLowerCase();
+        const oid  = String(card.origin_account_id || '');
+        if (origin === '__matriz__'  && tipo !== 'matriz') return false;
+        if (origin === '__filiais__' && tipo !== 'filial') return false;
+        if (origin !== '__matriz__' && origin !== '__filiais__' && oid !== origin) return false;
+      }
       return true;
     }
 
@@ -1791,11 +1951,16 @@ function column_display_name(array $col): string
       return el;
     }
 
+    // Indica se o pipeline desta sessão é HERDADO da matriz (filial vinculada).
+    // Atualizado por refreshColumnHeaders. Usado pra bloquear "Alterar Colunas".
+    let _pipelineInherited = false;
+
     async function refreshColumnHeaders() {
       try {
         const res = await fetch('/sistema_vendas/public/api/columns.php');
         const json = await res.json();
         columnsCache = json.data || [];
+        _pipelineInherited = !!json.inherited;
 
         const board = byId('board');
         board.innerHTML = '';
@@ -1813,6 +1978,45 @@ function column_display_name(array $col): string
         renderStageFilterOptions();
         renderColumnSelectOptions('createColunaId');
         renderColumnSelectOptions('editColunaId');
+
+        // Atualiza estado do botão "Novo Lead": disabled + tooltip se não tem coluna
+        const btnNew = document.getElementById('btnNewCard');
+        if (btnNew) {
+          if (columnsCache.length === 0) {
+            btnNew.classList.add('is-disabled');
+            btnNew.setAttribute('disabled', 'disabled');
+            btnNew.setAttribute('title', 'Crie pelo menos uma coluna no pipeline antes de cadastrar um lead');
+            btnNew.style.opacity   = '0.55';
+            btnNew.style.cursor    = 'not-allowed';
+          } else {
+            btnNew.classList.remove('is-disabled');
+            btnNew.removeAttribute('disabled');
+            btnNew.removeAttribute('title');
+            btnNew.style.opacity   = '';
+            btnNew.style.cursor    = '';
+          }
+        }
+
+        // Botão "Alterar Colunas":
+        //  - Pipeline próprio  → "Alterar Colunas" com ícone de engrenagem (CTA)
+        //  - Pipeline herdado  → "Colunas vinculadas à matriz" com ícone de link
+        //    (não desabilita — fica em estilo informativo; click mostra explicação)
+        const btnCols = document.getElementById('btnColumns');
+        if (btnCols) {
+          const ICON_GEAR = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06A2 2 0 1 1 2.27 17.8l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09c.7 0 1.27-.43 1.51-1a1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 6.3 2.27l.06.06c.5.5 1.2.75 1.82.33A1.65 1.65 0 0 0 9.69 1.5 1.65 1.65 0 0 0 9.7 1H12a2 2 0 1 1 0 4h-.09c-.7 0-1.27.43-1.51 1a1.65 1.65 0 0 0 .33 1.82l.06.06A2 2 0 1 1 17.73 6.2l-.06.06c-.5.5-.75 1.2-.33 1.82.32.56.32 1.28.32 1.82V12a2 2 0 1 1 4 0v.09c0 .7.43 1.27 1 1.51z"/></svg>';
+          const ICON_LINK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
+          if (_pipelineInherited) {
+            btnCols.classList.add('is-inherited');
+            btnCols.removeAttribute('disabled');
+            btnCols.setAttribute('title', 'O pipeline desta filial é definido pela matriz. Clique para mais informações.');
+            btnCols.innerHTML = ICON_LINK + ' Colunas vinculadas à matriz';
+          } else {
+            btnCols.classList.remove('is-inherited');
+            btnCols.removeAttribute('disabled');
+            btnCols.removeAttribute('title');
+            btnCols.innerHTML = ICON_GEAR + ' Alterar Colunas';
+          }
+        }
       } catch (e) {
         console.error('refreshColumnHeaders error', e);
       }
@@ -2002,7 +2206,7 @@ function column_display_name(array $col): string
 
     // Desvincular processo (remove o card_id do processo)
     window._desvincularProcesso = async (processId) => {
-      if (!confirm('Desvincular este processo do cliente?')) return;
+      if (!(await Yuris.confirm('Desvincular este processo do cliente?', { okLabel: 'Desvincular' }))) return;
       await fetch('/sistema_vendas/public/api/processes.php', {
         method: 'PUT', credentials: 'same-origin',
         headers: {'Content-Type':'application/json'},
@@ -2147,6 +2351,19 @@ function column_display_name(array $col): string
     function bindTopActions() {
       byId('btnRefresh').addEventListener('click', loadAll);
       byId('btnNewCard').addEventListener('click', () => {
+        // Trava: não permite criar lead sem pelo menos uma coluna no pipeline
+        // (antes era possível, e o card ficava órfão com coluna_id = NULL).
+        if (!columnsCache || columnsCache.length === 0) {
+          if (typeof window.showToast === 'function') {
+            window.showToast('Crie pelo menos uma coluna no pipeline antes de cadastrar um lead. Use o botão "Alterar Colunas".', 'error');
+          } else {
+            alert('Crie pelo menos uma coluna no pipeline antes de cadastrar um lead.\n\nUse o botão "Alterar Colunas" pra criar a primeira etapa.');
+          }
+          // Abre direto o modal de gestão de colunas pra acelerar
+          const btnCols = document.getElementById('btnColumns');
+          if (btnCols) btnCols.focus();
+          return;
+        }
         renderColumnSelectOptions('createColunaId');
         openModal('modalCreate');
       });
@@ -2160,6 +2377,16 @@ function column_display_name(array $col): string
       });
 
       byId('btnColumns').addEventListener('click', async () => {
+        // Pipeline herdado da matriz: filial não pode alterar — mostra info amigável.
+        if (_pipelineInherited) {
+          alert(
+            'ℹ Colunas vinculadas à matriz\n\n' +
+            'Sua filial faz parte de uma rede e usa o pipeline definido pela matriz, ' +
+            'para manter o processo comercial padronizado entre todos os escritórios.\n\n' +
+            'Para alterar uma coluna, peça ao administrador da matriz.'
+          );
+          return;
+        }
         openModal('modalColumns');
         await loadColumnsList();
       });
@@ -2178,8 +2405,9 @@ function column_display_name(array $col): string
         debounce = setTimeout(run, 180);
       });
 
-      ['filterResponsible', 'filterStage', 'filterDate'].forEach(id => {
-        byId(id).addEventListener('change', run);
+      ['filterResponsible', 'filterStage', 'filterDate', 'filterOrigin'].forEach(id => {
+        const el = byId(id);
+        if (el) el.addEventListener('change', run);
       });
     }
 
@@ -2211,9 +2439,14 @@ function column_display_name(array $col): string
           headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf},
           body: JSON.stringify(payload)
         });
-        const json = await res.json();
-        if (!json.success) {
-          alert('Erro ao criar lead.');
+        let json = {};
+        try { json = await res.json(); } catch(_) {}
+        if (!res.ok || !json.success) {
+          // Erro específico do backend (ex.: pipeline sem colunas)
+          const msg = json && json.error
+            ? json.error + (json.hint ? '\n\n' + json.hint : '')
+            : 'Erro ao criar lead.';
+          alert(msg);
           return;
         }
         closeModal('modalCreate');
@@ -2243,7 +2476,7 @@ function column_display_name(array $col): string
       });
 
       byId('deleteCard').addEventListener('click', async function() {
-        if (!confirm('Confirmar exclusão lógica do card?')) return;
+        if (!(await Yuris.confirm('Excluir este card?', { danger: true, okLabel: 'Excluir' }))) return;
         const id = byId('editForm').id.value;
         const res = await fetch(apiCards, {
           method: 'DELETE',
@@ -2353,7 +2586,7 @@ function column_display_name(array $col): string
         const removeBtn = e.target.closest('button[data-del-id]');
         if (removeBtn) {
           const itemId = removeBtn.getAttribute('data-del-id');
-          if (!confirm('Remover item do checklist?')) return;
+          if (!(await Yuris.confirm('Remover item do checklist?', { danger: true, okLabel: 'Remover' }))) return;
 
           const res = await fetch('/sistema_vendas/public/api/card_checklist.php', {
             method: 'DELETE',
@@ -2490,7 +2723,7 @@ function column_display_name(array $col): string
 
         const id = btn.getAttribute('data-del-col-id');
         if (!id) return;
-        if (!confirm('Excluir coluna? Os cards nessa etapa serão afetados.')) return;
+        if (!(await Yuris.confirm('Excluir coluna?\n\nOs cards nessa etapa serão afetados.', { danger: true, okLabel: 'Excluir' }))) return;
 
         const res = await fetch('/sistema_vendas/public/api/columns.php', {
           method: 'DELETE',
@@ -2599,13 +2832,43 @@ function column_display_name(array $col): string
     }
 
     bindAll();
+
+    // Detecta F5/reload — se for reload, NÃO auto-abre o modal mesmo que a URL
+    // ainda tenha ?open=X. Só auto-abre quando o usuário CHEGA na página via link.
+    function _isPageReload() {
+      try {
+        const nav = (performance.getEntriesByType('navigation') || [])[0];
+        if (nav && nav.type) return nav.type === 'reload';
+        // fallback legado
+        return performance.navigation && performance.navigation.type === 1;
+      } catch (e) { return false; }
+    }
+
+    // Limpa os params da URL (chamada também quando ignoramos por reload)
+    function _cleanUrlParams() {
+      try {
+        const u = new URL(location.href);
+        u.searchParams.delete('open');
+        u.searchParams.delete('contato');
+        const qs = u.searchParams.toString();
+        history.replaceState(null, '', u.pathname + (qs ? '?' + qs : '') + u.hash);
+      } catch (e) {}
+    }
+
     refreshColumnHeaders().then(loadAll).then(() => {
-      const params  = new URLSearchParams(location.search);
-      // Auto-abre card por card ID
-      const openId  = params.get('open');
-      if (openId) { openEditModal(openId); return; }
-      // Auto-abre card pelo contato_id (vindo de vínculos de tarefas)
+      const params    = new URLSearchParams(location.search);
+      const openId    = params.get('open');
       const contatoId = params.get('contato');
+      const isReload  = _isPageReload();
+
+      // Sempre limpa a URL — independente de reload ou navegação fresca
+      if (openId || contatoId) _cleanUrlParams();
+
+      // Se foi reload (F5/Ctrl+R), aborta auto-open mesmo com params presentes
+      if (isReload) return;
+
+      // Navegação fresca: auto-abre o card solicitado
+      if (openId) { openEditModal(openId); return; }
       if (contatoId) {
         for (const colCards of Object.values(cardsCacheByColumn)) {
           const found = colCards.find(c => String(c.contato_id) === String(contatoId));
@@ -2616,7 +2879,7 @@ function column_display_name(array $col): string
     enableDatePickers();
     bindCalendarButtons();
   </script>
-  <script src="assets/dashboard.js?v=10"></script>
+  <script src="assets/dashboard.js?v=12"></script>
   <script src="/sistema_vendas/public/assets/fog.js"></script>
 </body>
 </html>

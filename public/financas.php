@@ -1,6 +1,10 @@
 ﻿<?php
 require_once __DIR__ . '/../app/Models/Database.php';
 require_once __DIR__ . '/../app/Models/User.php';
+require_once __DIR__ . '/../app/Models/Account.php';
+require_once __DIR__ . '/../app/Models/ResourceShare.php';
+require_once __DIR__ . '/../app/Helpers/AccountContext.php';
+
 session_start();
 if (empty($_SESSION['user_id'])) { header('Location: /sistema_vendas/public/login.php'); exit; }
 $activePage = 'dre';
@@ -8,9 +12,27 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 
 require_once __DIR__ . '/../app/Models/DREAccount.php';
 use App\Models\DREAccount;
-$summary   = DREAccount::summary();
+use App\Helpers\AccountContext;
+
+// Contexto de tenant — render server-side filtra por conta para evitar "flash" entre contas
+$ctx       = AccountContext::fromSession();
+$ctx->assertAccountActive(); // bloqueia conta suspensa/cancelada/inativa
+$tenantIds = $ctx->getAccessibleAccountIds('financas');
+if (empty($tenantIds)) $tenantIds = [0]; // guard: evita SQL "IN ()" inválido
+
+// Monta cláusula IN(tenantIds) para reuso
+$_finPh = []; $_finParams = [];
+foreach ($tenantIds as $i => $aid) { $k = "finacc_{$i}"; $_finPh[] = ":{$k}"; $_finParams[$k] = (int)$aid; }
+$_finIn = '(' . implode(',', $_finPh) . ')';
+
+$summary   = DREAccount::summary(['account_ids' => $tenantIds]);
 $pdo       = App\Models\Database::getConnection();
-$st        = $pdo->query("SELECT COALESCE(SUM(COALESCE(NULLIF(valor_fechado_final,0), NULLIF(valor_proposta,0), IFNULL(valor_estimado,0))),0) as closed_total FROM cards WHERE deleted_at IS NULL AND (status = 'fechado' OR (data_fechamento IS NOT NULL AND data_fechamento > '0000-00-00'))");
+$st        = $pdo->prepare("SELECT COALESCE(SUM(COALESCE(NULLIF(valor_fechado_final,0), NULLIF(valor_proposta,0), IFNULL(valor_estimado,0))),0) as closed_total
+                            FROM cards
+                            WHERE deleted_at IS NULL
+                              AND (status = 'fechado' OR (data_fechamento IS NOT NULL AND data_fechamento > '0000-00-00'))
+                              AND account_id IN $_finIn");
+$st->execute($_finParams);
 $row       = $st->fetch();
 $closed_total       = (float)($row['closed_total'] ?? 0);
 $combined_receita   = (float)($summary['receita'] ?? 0) + $closed_total;
@@ -23,13 +45,15 @@ $total_impostos = 0.0;
 try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS taxes (
         id INT AUTO_INCREMENT PRIMARY KEY,
+        account_id INT NULL,
         nome VARCHAR(100) NOT NULL DEFAULT '',
         percentual DECIMAL(7,4) NOT NULL DEFAULT 0,
         ativo TINYINT(1) NOT NULL DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $tx_st = $pdo->query("SELECT * FROM taxes WHERE ativo = 1 ORDER BY id ASC");
+    $tx_st = $pdo->prepare("SELECT * FROM taxes WHERE ativo = 1 AND account_id IN $_finIn ORDER BY id ASC");
+    $tx_st->execute($_finParams);
     $taxes = $tx_st->fetchAll(PDO::FETCH_ASSOC);
     foreach ($taxes as $t) {
         $total_impostos += $combined_receita * ((float)$t['percentual'] / 100);
@@ -52,7 +76,8 @@ $health_icon         = $margem >= 40 ? '▲' : ($margem >= 15 ? '●' : '▼');
   <link rel="icon" type="image/png" sizes="192x192" href="/sistema_vendas/public/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css">
+  <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=27">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=8">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -886,7 +911,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Exposed for inline onclick
   window._taxEdit = id => openTaxModal(_taxes.find(t => t.id == id));
   window._taxDel  = async id => {
-    if (!confirm('Excluir este imposto?')) return;
+    if (!(await Yuris.confirm('Excluir este imposto?', { danger: true, okLabel: 'Excluir' }))) return;
     try {
       await fetch(TAX_API + '?id=' + id, {method:'DELETE',credentials:'same-origin',headers:{'X-CSRF-Token':CSRF}});
       loadTaxes();
@@ -952,6 +977,19 @@ window.dreUpdateDonutLegend = function(vals) {
   const honorarios  = <?=json_encode(round($closed_total, 2))?>;
   const lancamentos = <?=json_encode(round((float)($summary['receita'] ?? 0), 2))?>;
 
+  // Tema-aware: cores de eixo e grid adaptam ao tema atual
+  const _DRE_IS_LIGHT = document.documentElement.getAttribute('data-theme') === 'light';
+  const DRE_TICK   = _DRE_IS_LIGHT ? '#5A6B7E'              : '#9ab0c9';
+  const DRE_GRID   = _DRE_IS_LIGHT ? 'rgba(15,31,54,0.08)'  : 'rgba(148,163,184,.1)';
+  const DRE_GRID_Y = _DRE_IS_LIGHT ? 'rgba(15,31,54,0.06)'  : 'rgba(148,163,184,.08)';
+  const DRE_LEGEND = _DRE_IS_LIGHT ? '#0F1F36'              : '#A8BDD4';
+  if (typeof Chart !== 'undefined' && Chart.defaults) {
+    Chart.defaults.color = DRE_LEGEND;
+    if (Chart.defaults.plugins && Chart.defaults.plugins.legend && Chart.defaults.plugins.legend.labels) {
+      Chart.defaults.plugins.legend.labels.color = DRE_LEGEND;
+    }
+  }
+
   // Bar chart
   const ctxBar = document.getElementById('chartBarRD');
   if (ctxBar) {
@@ -965,8 +1003,8 @@ window.dreUpdateDonutLegend = function(vals) {
         responsive: true, maintainAspectRatio: true,
         plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' ' + _fmtR(ctx.raw) } } },
         scales: {
-          x: { grid: { color: 'rgba(148,163,184,.1)' }, ticks: { color: '#9ab0c9', font: { size: 11 } } },
-          y: { grid: { color: 'rgba(148,163,184,.08)' }, ticks: { color: '#9ab0c9', font: { size: 10 }, callback: v => 'R$' + (v/1000).toFixed(0) + 'k' } }
+          x: { grid: { color: DRE_GRID }, ticks: { color: DRE_TICK, font: { size: 11 } } },
+          y: { grid: { color: DRE_GRID_Y }, ticks: { color: DRE_TICK, font: { size: 10 }, callback: v => 'R$' + (v/1000).toFixed(0) + 'k' } }
         }
       }
     });

@@ -1,11 +1,40 @@
 <?php
 require_once __DIR__ . '/../app/Models/Database.php';
+require_once __DIR__ . '/../app/Models/Account.php';
+require_once __DIR__ . '/../app/Models/ResourceShare.php';
+require_once __DIR__ . '/../app/Helpers/AccountContext.php';
 session_start();
 if (empty($_SESSION['user_id'])) { header('Location: /sistema_vendas/public/login.php'); exit; }
+// HARDENING: bloqueia acesso de contas suspensas/canceladas/inativas
+\App\Helpers\AccountContext::fromSession()->assertAccountActive();
 $activePage = 'tarefas';
 $csrf       = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 $userId     = (int)$_SESSION['user_id'];
 $userName   = htmlspecialchars($_SESSION['user_nome'] ?? '');
+
+// Contas acessíveis (própria + filiais ativas, se matriz) — alimenta filtro de Origem
+$origin_accounts = [];
+$origin_self     = ['id' => 0, 'tipo' => 'matriz', 'nome' => ''];
+try {
+    $ctx_t = \App\Helpers\AccountContext::fromSession();
+    $origin_self = [
+        'id'   => $ctx_t->getAccountId(),
+        'tipo' => $ctx_t->getAccountTipo(),
+        'nome' => $_SESSION['account_nome'] ?? '',
+    ];
+    if ($ctx_t->isMatriz()) {
+        $pdo_t = \App\Models\Database::getConnection();
+        $stmt_t = $pdo_t->prepare(
+            "SELECT id, nome, tipo
+             FROM accounts
+             WHERE deleted_at IS NULL AND status = 'active'
+               AND (id = :self OR matriz_id = :self)
+             ORDER BY CASE WHEN tipo = 'matriz' THEN 0 ELSE 1 END, nome ASC"
+        );
+        $stmt_t->execute(['self' => $ctx_t->getAccountId()]);
+        $origin_accounts = $stmt_t->fetchAll(PDO::FETCH_ASSOC);
+    }
+} catch (Throwable $e) {}
 ?>
 <!doctype html>
 <html lang="pt-BR">
@@ -16,7 +45,8 @@ $userName   = htmlspecialchars($_SESSION['user_nome'] ?? '');
   <link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css">
+  <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=27">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=8">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/tarefas.css?v=5">
@@ -112,6 +142,18 @@ $userName   = htmlspecialchars($_SESSION['user_nome'] ?? '');
           <option value="atrasadas">Atrasadas</option>
           <option value="7dias">Próximos 7 dias</option>
         </select>
+        <?php if (count($origin_accounts) > 1): /* só matriz com filial */ ?>
+        <select id="fltOrigin" class="tk-filter-select" title="Filtrar por origem da tarefa">
+          <option value="">Origem</option>
+          <option value="__matriz__">Apenas Matriz</option>
+          <option value="__filiais__">Apenas Filiais</option>
+          <optgroup label="Filial específica">
+            <?php foreach ($origin_accounts as $oa): if ($oa['tipo'] === 'matriz') continue; ?>
+              <option value="<?=htmlspecialchars((string)$oa['id'])?>"><?=htmlspecialchars($oa['nome'])?></option>
+            <?php endforeach; ?>
+          </optgroup>
+        </select>
+        <?php endif; ?>
         <input id="fltBusca" class="tk-search" type="text" placeholder="Buscar tarefas...">
       </div>
       </div>
@@ -505,6 +547,12 @@ $userName   = htmlspecialchars($_SESSION['user_nome'] ?? '');
 window.YURIS_CSRF = <?= json_encode($csrf) ?>;
 window.YURIS_USER_ID = <?= $userId ?>;
 window.YURIS_USER_NAME = <?= json_encode($_SESSION['user_nome'] ?? '') ?>;
+
+// Identifica origem do registro (matriz/filial) — faixa SEMPRE visível
+// (mesmo em filial isolada ou matriz sem filiais).
+window.YURIS_ACCOUNT_SELF      = <?= json_encode($origin_self, JSON_UNESCAPED_UNICODE) ?>;
+window.YURIS_ORIGIN_ACCOUNTS   = <?= json_encode($origin_accounts, JSON_UNESCAPED_UNICODE) ?>;
+window.YURIS_SHOW_ORIGIN_STRIP = true;
 </script>
 <!-- ── Modal de confirmação customizado ── -->
 <div id="tkConfirmOverlay" style="
