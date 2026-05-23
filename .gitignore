@@ -9,8 +9,10 @@
 .env.*
 !.env.example
 
-# Uploads e arquivos gerados
-/public/uploads/
+# Uploads e arquivos gerados (mantém o diretório versionado mas ignora conteúdo)
+# .htaccess fica trackeado pra garantir proteção LGPD P0 em todos os ambientes.
+/public/uploads/*
+!/public/uploads/.htaccess
 /storage/
 
 # Logs

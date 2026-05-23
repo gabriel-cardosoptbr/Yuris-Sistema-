@@ -121,6 +121,14 @@ if ($method === 'POST') {
 if ($method === 'PUT' || $method === 'PATCH') {
     // batch reorder
     if (!empty($input['reorder']) && is_array($input['reorder'])) {
+        // ─── LGPD P0: valida tenant em CADA card do batch antes de reordenar ──
+        // Antes desta correção, um admin do tenant A podia montar payload com
+        // IDs de cards do tenant B e reordená-los/movê-los entre colunas.
+        foreach ($input['reorder'] as $item) {
+            if (!empty($item['id'])) {
+                $ctx->assertCanWrite('card', (int)$item['id']);
+            }
+        }
         $ok = Card::bulkUpdateOrders($input['reorder'], $user_id);
         echo json_encode(['success'=>(bool)$ok]);
         exit;
@@ -128,6 +136,13 @@ if ($method === 'PUT' || $method === 'PATCH') {
 
     if (empty($input['id'])) { http_response_code(400); echo json_encode(['error'=>'Missing id']); exit; }
     $id = (int)$input['id'];
+
+    // ─── LGPD P0: enforcement de tenant antes de qualquer mutação no card ────
+    // assertCanWrite cobre: owner do recurso (mesma conta) ou share ativo com
+    // permissão de escrita. Caso contrário, 403.
+    $ctx->assertCanWrite('card', $id);
+    // ──────────────────────────────────────────────────────────────────────────
+
     if (isset($input['coluna_id']) && isset($input['ordem_na_coluna']) && ($method === 'PATCH')) {
         $prevCard = Card::find($id);
         $ok = Card::move($id, (int)$input['coluna_id'], (int)$input['ordem_na_coluna'], $user_id);
@@ -166,6 +181,13 @@ if ($method === 'PUT' || $method === 'PATCH') {
 if ($method === 'DELETE') {
     $id = $_GET['id'] ?? ($input['id'] ?? null);
     if (!$id) { http_response_code(400); echo json_encode(['error'=>'Missing id']); exit; }
+
+    // ─── LGPD P0: tenant enforcement antes de soft-delete ────────────────────
+    // Antes desta correção, qualquer admin de qualquer tenant podia deletar
+    // cards alheios passando o ID. Agora exige ownership ou share com write.
+    $ctx->assertCanWrite('card', (int)$id);
+    // ──────────────────────────────────────────────────────────────────────────
+
     $prevCard = Card::find((int)$id);
     $ok = Card::softDelete((int)$id, $user_id);
     if ($ok) {

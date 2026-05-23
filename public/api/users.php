@@ -188,8 +188,26 @@ if ($method === 'PUT' || $method === 'PATCH') {
     $id = $input['id'] ?? null;
     if (!$id) { http_response_code(400); echo json_encode(['error'=>'Missing id']); exit; }
 
-    // user #1 is the root admin — only block perfil change; allow name/email/password
-    $isRoot = ((int)$id === 1);
+    // ─── LGPD P0: IDOR FIX ─────────────────────────────────────────────────────
+    // Antes desta correção, qualquer admin/owner do tenant A podia trocar senha
+    // ou alterar role de usuário do tenant B passando o id no body — porque
+    // o UPDATE final usava apenas `WHERE id = :id`, sem `AND account_id = :acc`.
+    // Aqui validamos antes de prosseguir: usuário precisa existir no tenant
+    // corrente (ou ser o próprio requester, que sempre pode editar a si).
+    $isRoot      = ((int)$id === 1);
+    $requesterId = $ctx->getUserId();
+    if ((int)$id !== $requesterId) {
+        $stmtTenant = $pdo->prepare(
+            'SELECT id FROM users WHERE id = :id AND account_id = :acc AND deleted_at IS NULL LIMIT 1'
+        );
+        $stmtTenant->execute(['id' => $id, 'acc' => $accountId]);
+        if (!$stmtTenant->fetchColumn()) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Usuário não encontrado no seu tenant']);
+            exit;
+        }
+    }
+    // ───────────────────────────────────────────────────────────────────────────
 
     $nome   = isset($input['nome'])   ? trim($input['nome'])  : null;
     $email  = isset($input['email'])  ? trim($input['email']) : null;
@@ -230,7 +248,11 @@ if ($method === 'PUT' || $method === 'PATCH') {
     }
 
     if (count($fields) > 0) {
-        $sql  = 'UPDATE users SET ' . implode(', ', $fields) . ', updated_at = NOW() WHERE id = :id';
+        // P0 LGPD: incluir account_id no WHERE como defesa em profundidade
+        // (mesmo com a verificação acima, garante que SQL nunca atinge outro tenant).
+        // Para o próprio requester editando a si mesmo, $accountId já está correto.
+        $params['acc'] = $accountId;
+        $sql  = 'UPDATE users SET ' . implode(', ', $fields) . ', updated_at = NOW() WHERE id = :id AND account_id = :acc';
         $pdo->prepare($sql)->execute($params);
     }
 
@@ -274,11 +296,39 @@ if ($method === 'DELETE') {
     $id = $_GET['id'] ?? ($input['id'] ?? null);
     if (!$id) { http_response_code(400); echo json_encode(['error'=>'Missing id']); exit; }
     if ((int)$id === 1) { http_response_code(403); echo json_encode(['success'=>false,'error'=>'O usuário raiz não pode ser excluído']); exit; }
+
+    // ─── LGPD P0: IDOR FIX ─────────────────────────────────────────────────────
+    // Bloqueia delete cross-tenant. Admin do tenant A não pode deletar usuário
+    // de tenant B passando o id no path. Usuário precisa pertencer ao próprio
+    // tenant (e não pode se auto-deletar — protege contra acidente).
+    $requesterId = $ctx->getUserId();
+    if ((int)$id === $requesterId) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => 'Você não pode excluir sua própria conta por aqui']);
+        exit;
+    }
+    $stmtTenant = $pdo->prepare(
+        'SELECT id FROM users WHERE id = :id AND account_id = :acc AND deleted_at IS NULL LIMIT 1'
+    );
+    $stmtTenant->execute(['id' => $id, 'acc' => $accountId]);
+    if (!$stmtTenant->fetchColumn()) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Usuário não encontrado no seu tenant']);
+        exit;
+    }
+    // Apenas owner/admin pode excluir outros usuários do tenant
+    if (!$ctx->isOwnerOrAdmin()) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Apenas owner/admin pode excluir usuários']);
+        exit;
+    }
+    // ───────────────────────────────────────────────────────────────────────────
+
     $prevUser = $pdo->prepare('SELECT id, nome, login AS email, perfil FROM users WHERE id = ? LIMIT 1');
     $prevUser->execute([$id]);
     $prevUser = $prevUser->fetch(PDO::FETCH_ASSOC);
-    $stmt = $pdo->prepare('UPDATE users SET deleted_at = NOW() WHERE id = :id');
-    $ok = $stmt->execute(['id'=>$id]);
+    $stmt = $pdo->prepare('UPDATE users SET deleted_at = NOW() WHERE id = :id AND account_id = :acc');
+    $ok = $stmt->execute(['id' => $id, 'acc' => $accountId]);
     if ($ok && $prevUser) {
         WebhookDispatcher::fire('usuario.deleted', WebhookDispatcher::buildPayload('usuario.deleted', [
             'entity' => 'usuario', 'entity_id' => (int)$id, 'data' => $prevUser,

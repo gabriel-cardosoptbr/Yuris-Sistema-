@@ -9,16 +9,37 @@ ob_start();
 @ini_set('display_errors', '0');
 
 require_once __DIR__ . '/../../../app/Models/Database.php';
+require_once __DIR__ . '/../../../app/Models/Account.php';
+require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
 require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
+require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 
 use App\Models\Database;
+use App\Helpers\AccountContext;
 
 session_start(['read_and_close' => true]);
 $_uid = $_SESSION['user_id'] ?? null;
 ob_end_clean();
 
 if (!$_uid) { http_response_code(401); exit; }
+
+// ─── LGPD P0: tenant enforcement ─────────────────────────────────────────────
+// Antes desta correção, qualquer usuário autenticado podia chamar
+//   GET /api/whatsapp/media.php?msg_id=N
+// e baixar mídia (imagens, áudios, PDFs, vídeos) de QUALQUER mensagem de
+// QUALQUER conta — vazamento massivo de documentos jurídicos, atestados etc.
+// Agora exigimos que a mensagem pertença a uma instance vinculada às contas
+// acessíveis pela sessão atual (matriz + filiais com sync_whatsapp ativo).
+$ctx           = AccountContext::fromSession();
+$accessibleIds = $ctx->getAccessibleAccountIds('whatsapp');
+if (empty($accessibleIds)) {
+    http_response_code(403);
+    echo 'Sem contas acessíveis';
+    exit;
+}
+$inClause = implode(',', array_map('intval', $accessibleIds));
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Modo diagnóstico: retorna JSON com info do que acontece
 $debug = !empty($_GET['debug']);
@@ -29,10 +50,19 @@ if (!$msgId) { http_response_code(400); echo 'msg_id obrigatório'; exit; }
 try {
     $pdo = Database::getConnection();
 
+    // P0 LGPD: dupla verificação de ownership do tenant.
+    //   • m.account_id IN (...)   → mensagens já migradas (após hardening 037)
+    //   • wi.account_id IN (...)  → fallback via instância (mensagens antigas
+    //                               podem ter account_id NULL, mas instance_id válido)
+    // Se nenhuma das duas bater, retorna 404 (não 403, para não vazar existência).
     $stmt = $pdo->prepare(
-        'SELECT id, wamid, remote_jid, direction, message_type,
-                media_mimetype, media_filename, media_url, media_base64, raw_payload
-         FROM whatsapp_messages WHERE id = ? LIMIT 1'
+        "SELECT m.id, m.wamid, m.remote_jid, m.direction, m.message_type,
+                m.media_mimetype, m.media_filename, m.media_url, m.media_base64, m.raw_payload
+         FROM whatsapp_messages m
+         LEFT JOIN whatsapp_instances wi ON wi.id = m.instance_id
+         WHERE m.id = ?
+           AND (m.account_id IN ($inClause) OR wi.account_id IN ($inClause))
+         LIMIT 1"
     );
     $stmt->execute([$msgId]);
     $msg = $stmt->fetch(\PDO::FETCH_ASSOC);

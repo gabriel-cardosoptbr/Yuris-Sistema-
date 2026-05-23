@@ -25,9 +25,22 @@ final class Gateway
         require_once __DIR__ . '/NullGateway.php';
 
         $name = $name ?: \App\Helpers\EnvLoader::get('BILLING_GATEWAY', 'null');
-        if (isset(self::$instances[$name])) return self::$instances[$name];
+        $nameLower = strtolower($name);
+        if (isset(self::$instances[$nameLower])) return self::$instances[$nameLower];
 
-        $adapter = match (strtolower($name)) {
+        // P0 LGPD: NullGateway em produção é vulnerabilidade — bloqueia bootstrap.
+        // Em prod exige BILLING_GATEWAY=stripe|mercadopago|... configurado explicitamente.
+        $env = strtolower(\App\Helpers\EnvLoader::get('APP_ENV', 'development'));
+        $isProd = in_array($env, ['production', 'prod'], true);
+        $isNull = in_array($nameLower, ['null','noop','dev',''], true);
+        if ($isProd && $isNull) {
+            throw new \RuntimeException(
+                'BILLING_GATEWAY não pode ser "null" em produção. ' .
+                'Configure um adapter real (stripe/mercadopago/asaas) no .env.'
+            );
+        }
+
+        $adapter = match ($nameLower) {
             'null','noop','dev' => new NullGateway(),
             // Adicionar aqui quando criar:
             // 'stripe'        => new StripeAdapter(),
@@ -35,7 +48,7 @@ final class Gateway
             default             => new NullGateway(),
         };
 
-        return self::$instances[$name] = $adapter;
+        return self::$instances[$nameLower] = $adapter;
     }
 
     public static function reset(): void { self::$instances = []; }

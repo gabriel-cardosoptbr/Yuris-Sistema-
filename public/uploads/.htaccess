@@ -1,0 +1,39 @@
+# =====================================================================
+# LGPD P0 — Bloqueio de acesso direto a /public/uploads/
+# =====================================================================
+# Antes desta proteção, anexos (PDFs, contratos, laudos médicos, fotos
+# de documentos) ficavam acessíveis por URL pública previsível, sem
+# autenticação. Qualquer pessoa que descobrisse a URL baixava o arquivo.
+#
+# Agora, downloads são SOMENTE via endpoint PHP autenticado:
+#   GET /api/task_attachments.php?action=download&id=N
+#
+# Esse endpoint valida ownership (tenant + share) antes de servir o
+# arquivo. Acesso direto ao filesystem é negado pelo Apache.
+#
+# IMPORTANTE: se uma versão futura migrar uploads para storage/, este
+# .htaccess pode ser removido — mas até lá, mantenha esta proteção.
+# =====================================================================
+
+# Apache 2.4+
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+
+# Apache 2.2 (fallback)
+<IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+</IfModule>
+
+# Bloqueio explícito de execução de PHP / CGI dentro do diretório
+# (defesa contra upload de webshell renomeado .php.jpg)
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|phps|cgi|pl|py|sh|asp|aspx)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
