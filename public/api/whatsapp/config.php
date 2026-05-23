@@ -1,6 +1,11 @@
 <?php
 require_once __DIR__ . '/../../../app/Models/Database.php';
+require_once __DIR__ . '/../../../app/Models/Account.php';
+require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
+require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+
+use App\Helpers\AccountContext;
 
 session_start(['read_and_close' => true]);
 $_uid  = $_SESSION['user_id']    ?? null;
@@ -8,11 +13,36 @@ $_csrf = $_SESSION['csrf_token'] ?? '';
 header('Content-Type: application/json; charset=utf-8');
 if (!$_uid) { http_response_code(401); echo json_encode(['error' => 'Unauthorized']); exit; }
 
+// ─── LGPD P0 (1.8): restringe acesso à configuração WhatsApp ──────────────────
+// Antes desta correção, qualquer usuário logado podia LER e ESCREVER a chave
+// global da Evolution API (evolution_api_key), o que permitia:
+//   • Exfiltrar a chave e usar fora do sistema
+//   • Redirecionar o webhook_url da Evolution para servidor controlado
+//   • Capturar todas as mensagens recebidas
+// Agora exigimos role admin/owner E escopo per-tenant via AccountContext.
+$ctx       = AccountContext::fromSession();
+$accountId = $ctx->getAccountId();
+if (!$ctx->isOwnerOrAdmin()) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Apenas owner/admin pode acessar a configuração do WhatsApp']);
+    exit;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 $model  = new WhatsAppInstance();
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
-    echo json_encode(['ok' => true, 'settings' => $model->getSettings()]);
+    // Ofusca evolution_api_key na resposta — UI mostra "configurada" sem revelar
+    $settings = $model->getSettings($accountId);
+    if (!empty($settings['evolution_api_key'])) {
+        $key = $settings['evolution_api_key'];
+        $settings['evolution_api_key_masked'] = strlen($key) > 8
+            ? str_repeat('*', strlen($key) - 4) . substr($key, -4)
+            : '****';
+        $settings['evolution_api_key'] = ''; // não devolve em claro
+    }
+    echo json_encode(['ok' => true, 'settings' => $settings]);
     exit;
 }
 
@@ -26,11 +56,22 @@ if ($method === 'POST') {
     $allowed = ['evolution_base_url', 'evolution_api_key', 'evolution_instance', 'webhook_enabled', 'webhook_url'];
     foreach ($allowed as $key) {
         if (isset($payload[$key])) {
-            $model->saveSetting($key, (string)$payload[$key]);
+            // não permite gravar string vazia em evolution_api_key (evita zerar inadvertidamente)
+            if ($key === 'evolution_api_key' && trim((string)$payload[$key]) === '') continue;
+            $model->saveSetting($accountId, $key, (string)$payload[$key]);
         }
     }
 
-    echo json_encode(['ok' => true, 'settings' => $model->getSettings()]);
+    // Resposta: idem GET (oculta api_key)
+    $settings = $model->getSettings($accountId);
+    if (!empty($settings['evolution_api_key'])) {
+        $key = $settings['evolution_api_key'];
+        $settings['evolution_api_key_masked'] = strlen($key) > 8
+            ? str_repeat('*', strlen($key) - 4) . substr($key, -4)
+            : '****';
+        $settings['evolution_api_key'] = '';
+    }
+    echo json_encode(['ok' => true, 'settings' => $settings]);
     exit;
 }
 

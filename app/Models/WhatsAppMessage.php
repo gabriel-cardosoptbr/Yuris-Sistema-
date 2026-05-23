@@ -68,15 +68,29 @@ class WhatsAppMessage
             }
         }
 
+        // P0 LGPD (1.8) — resolve account_id da instância pra escrever junto
+        // (antes ficava NULL no INSERT — JOIN tardio era frágil; agora gravamos
+        // direto pra defesa em profundidade e consultas mais simples)
+        $accountIdResolved = null;
+        if (!empty($data['account_id']) && (int)$data['account_id'] > 0) {
+            $accountIdResolved = (int)$data['account_id'];
+        } else {
+            $resolveStmt = $this->db->prepare('SELECT account_id FROM whatsapp_instances WHERE id = ? LIMIT 1');
+            $resolveStmt->execute([(int)$data['instance_id']]);
+            $accId = $resolveStmt->fetchColumn();
+            $accountIdResolved = $accId !== false && $accId !== null ? (int)$accId : null;
+        }
+
         $stmt = $this->db->prepare(
             'INSERT INTO whatsapp_messages
-             (instance_id, wamid, remote_jid, contact_name, phone,
+             (account_id, instance_id, wamid, remote_jid, contact_name, phone,
               message_type, message_content, caption, media_url,
               media_mimetype, media_filename, media_base64,
               direction, status, quoted_wamid, raw_payload, created_at)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
         );
         $stmt->execute([
+            $accountIdResolved,
             $data['instance_id'],
             $data['wamid']          ?? null,
             $data['remote_jid'],

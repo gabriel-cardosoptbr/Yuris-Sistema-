@@ -70,7 +70,8 @@ try {
     if (!$msg) { http_response_code(404); echo 'Mensagem não encontrada'; exit; }
 
     $instModel = new WhatsAppInstance();
-    $cfg       = $instModel->getSettings();
+    // P0 LGPD: usa accountId resolvido pelo tenant guard acima
+    $cfg       = $instModel->getSettings($ctx->getAccountId());
     $name      = $cfg['evolution_instance'] ?? 'yuris-crm';
     $apiKey    = $cfg['evolution_api_key']  ?? '';
     $baseUrl   = rtrim($cfg['evolution_base_url'] ?? 'http://localhost:8080', '/');

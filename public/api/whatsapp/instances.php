@@ -20,7 +20,7 @@ $accountId  = $ctx->getAccountId();
 $tenantIds  = [$accountId];
 
 $model  = new WhatsAppInstance();
-$cfg    = $model->getSettings();
+$cfg    = $model->getSettings($accountId);
 $evo    = new EvolutionApiService($cfg);
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
@@ -189,7 +189,7 @@ if ($method === 'POST') {
         $url  = $payload['url'] ?? '';
         if (!$url) { echo json_encode(['ok' => false, 'error' => 'URL obrigatória']); exit; }
         $res  = $evo->setWebhook($name, $url);
-        $model->saveSetting('webhook_url', $url);
+        $model->saveSetting($accountId, 'webhook_url', $url);
         echo json_encode(['ok' => true, 'raw' => $res]);
         exit;
     }

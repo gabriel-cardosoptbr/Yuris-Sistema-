@@ -66,28 +66,30 @@ class WhatsAppInstance
 
     /**
      * Idempotente: se a instância com $name existir DENTRO do tenant, retorna; senão cria.
-     * @param int|null $accountId obrigatório em ambientes multi-tenant (NULL apenas para legado/single-tenant)
+     *
+     * P0 LGPD (1.8) — accountId agora é OBRIGATÓRIO. O caminho legado sem
+     * accountId foi removido porque era a raiz do bug C-03 (instâncias órfãs
+     * criadas pelo webhook inbound + sequestro cross-tenant).
+     *
+     * Schema: UNIQUE composto (account_id, instance_name) garante isolamento.
+     *
+     * @param int $accountId Tenant dono da instância.
      */
-    public function findOrCreate(string $name, string $displayName = '', ?int $accountId = null): array
+    public function findOrCreate(string $name, string $displayName = '', int $accountId = 0): array
     {
-        if ($accountId !== null) {
-            $row = $this->findByName($name, [$accountId]);
-            if ($row) return $row;
-            $stmt = $this->db->prepare(
-                'INSERT INTO whatsapp_instances (account_id, instance_name, display_name, status)
-                 VALUES (?, ?, ?, "close")'
+        if ($accountId <= 0) {
+            throw new \InvalidArgumentException(
+                'WhatsAppInstance::findOrCreate exige accountId válido (LGPD P0). ' .
+                'Endpoints chamadores devem passar AccountContext::fromSession()->getAccountId().'
             );
-            $stmt->execute([$accountId, $name, $displayName ?: $name]);
-            return $this->find((int)$this->db->lastInsertId());
         }
-        // Caminho legado: comportamento original (sem tenant)
-        $row = $this->findByName($name);
+        $row = $this->findByName($name, [$accountId]);
         if ($row) return $row;
         $stmt = $this->db->prepare(
-            'INSERT INTO whatsapp_instances (instance_name, display_name, status)
-             VALUES (?, ?, "close")'
+            'INSERT INTO whatsapp_instances (account_id, instance_name, display_name, status)
+             VALUES (?, ?, ?, "close")'
         );
-        $stmt->execute([$name, $displayName ?: $name]);
+        $stmt->execute([$accountId, $name, $displayName ?: $name]);
         return $this->find((int)$this->db->lastInsertId());
     }
 
@@ -134,10 +136,18 @@ class WhatsAppInstance
         return $stmt->execute([$id]);
     }
 
-    /** Ler/salvar configuração global da Evolution API */
-    public function getSettings(): array
+    /**
+     * Ler configurações da Evolution API — agora PER-TENANT (LGPD P0 1.8).
+     *
+     * @param int $accountId Tenant cuja configuração quer ler.
+     */
+    public function getSettings(int $accountId): array
     {
-        $stmt = $this->db->query('SELECT config_key, config_value FROM whatsapp_settings');
+        if ($accountId <= 0) {
+            throw new \InvalidArgumentException('WhatsAppInstance::getSettings exige accountId válido (LGPD P0).');
+        }
+        $stmt = $this->db->prepare('SELECT config_key, config_value FROM whatsapp_settings WHERE account_id = ?');
+        $stmt->execute([$accountId]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $out = [];
         foreach ($rows as $r) {
@@ -146,13 +156,42 @@ class WhatsAppInstance
         return $out;
     }
 
-    public function saveSetting(string $key, string $value): bool
+    /**
+     * Salvar configuração — agora PER-TENANT.
+     * UNIQUE composto (account_id, config_key) garante idempotência por tenant.
+     */
+    public function saveSetting(int $accountId, string $key, string $value): bool
     {
+        if ($accountId <= 0) {
+            throw new \InvalidArgumentException('WhatsAppInstance::saveSetting exige accountId válido (LGPD P0).');
+        }
         $stmt = $this->db->prepare(
-            'INSERT INTO whatsapp_settings (config_key, config_value)
-             VALUES (?, ?)
+            'INSERT INTO whatsapp_settings (account_id, config_key, config_value)
+             VALUES (?, ?, ?)
              ON DUPLICATE KEY UPDATE config_value = VALUES(config_value)'
         );
-        return $stmt->execute([$key, $value]);
+        return $stmt->execute([$accountId, $key, $value]);
+    }
+
+    /**
+     * Resolve o tenant a partir da apikey enviada no webhook inbound da Evolution.
+     * Retorna o account_id da config que bate exatamente (timing-safe via hash_equals
+     * é responsabilidade do caller — aqui só fazemos lookup).
+     *
+     * Usado por public/api/whatsapp/webhook.php pra identificar de qual tenant
+     * vem cada evento da Evolution sem session.
+     *
+     * @return int|null account_id ou null se não houver match.
+     */
+    public function findAccountByApiKey(string $apiKey): ?int
+    {
+        if ($apiKey === '') return null;
+        $stmt = $this->db->prepare(
+            "SELECT account_id FROM whatsapp_settings
+             WHERE config_key = 'evolution_api_key' AND config_value = ? LIMIT 1"
+        );
+        $stmt->execute([$apiKey]);
+        $id = $stmt->fetchColumn();
+        return $id !== false && $id !== null ? (int)$id : null;
     }
 }

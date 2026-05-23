@@ -31,7 +31,7 @@ try {
     $instModel  = new WhatsAppInstance();
     $msgModel   = new WhatsAppMessage();
     $method     = $_SERVER['REQUEST_METHOD'];
-    $cfg        = $instModel->getSettings();
+    $cfg        = $instModel->getSettings($accountId);
     $instName   = $cfg['evolution_instance'] ?? 'yuris-crm';
     $row        = $instModel->findOrCreate($instName, '', $accountId);
     $instanceId = (int)$row['id'];

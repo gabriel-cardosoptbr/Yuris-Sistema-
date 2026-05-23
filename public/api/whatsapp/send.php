@@ -1,8 +1,13 @@
 <?php
 require_once __DIR__ . '/../../../app/Models/Database.php';
+require_once __DIR__ . '/../../../app/Models/Account.php';
+require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
 require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
+require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+
+use App\Helpers\AccountContext;
 
 session_start(['read_and_close' => true]);
 $_uid  = $_SESSION['user_id']    ?? null;
@@ -17,11 +22,15 @@ if (empty($payload['_csrf']) || $payload['_csrf'] !== $csrf) {
     http_response_code(403); echo json_encode(['error' => 'CSRF inválido']); exit;
 }
 
+// P0 LGPD (1.8): contexto de tenant — settings/instance now per-tenant
+$ctx       = AccountContext::fromSession();
+$accountId = $ctx->getAccountId();
+
 $instModel  = new WhatsAppInstance();
 $msgModel   = new WhatsAppMessage();
-$cfg        = $instModel->getSettings();
+$cfg        = $instModel->getSettings($accountId);
 $instName   = $cfg['evolution_instance'] ?? 'yuris-crm';
-$row        = $instModel->findOrCreate($instName);
+$row        = $instModel->findOrCreate($instName, '', $accountId);
 $instanceId = (int)$row['id'];
 $evo        = new EvolutionApiService($cfg);
 

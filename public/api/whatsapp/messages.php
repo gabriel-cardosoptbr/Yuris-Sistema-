@@ -38,7 +38,7 @@ if (!$remoteJid) {
 try {
     $instModel  = new WhatsAppInstance();
     $msgModel   = new WhatsAppMessage();
-    $cfg        = $instModel->getSettings();
+    $cfg        = $instModel->getSettings($accountId);
     $instName   = $cfg['evolution_instance'] ?? 'yuris-crm';
     // Cria/recupera instância DENTRO do tenant atual — evita usar instância de outra conta
     $row        = $instModel->findOrCreate($instName, '', $accountId);

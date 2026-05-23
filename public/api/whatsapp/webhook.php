@@ -45,26 +45,44 @@ if (!$instanceName) {
 try {
     $instModel  = new WhatsAppInstance();
     $msgModel   = new WhatsAppMessage();
-    $cfg        = $instModel->getSettings();
 
-    // Valida apikey — SEMPRE obrigatória (hardening Fase 0 audit).
-    // Antes era opcional ("if ($configuredKey)"), o que permitia webhook anônimo
-    // se a config_key não estivesse setada. Agora rejeita sem exceção.
-    $configuredKey = $cfg['evolution_api_key'] ?? '';
-    if (empty($configuredKey)) {
-        http_response_code(503);
-        echo json_encode(['error' => 'Webhook endpoint não configurado. Defina evolution_api_key em whatsapp_settings.']);
-        exit;
-    }
+    // ─── LGPD P0 (1.8): identificação do tenant via apikey ──────────────────
+    // A Evolution API envia POST sem session — antes da correção, o webhook
+    // chamava findOrCreate($instanceName) SEM accountId, criando instância
+    // órfã ou sobrescrevendo a do outro tenant (UNIQUE global de instance_name).
+    //
+    // Agora resolvemos o tenant pela apikey enviada — cada tenant tem sua
+    // apikey distinta em whatsapp_settings (per-tenant após migration 046).
+    // Compatibilidade: opcionalmente aceita ?account=N&token=hmac no URL para
+    // ambientes que queiram identificar tenant por path (Opção A do plano).
     $sentKey = $_SERVER['HTTP_APIKEY'] ?? ($_SERVER['HTTP_API_KEY'] ?? '');
-    if (!hash_equals($configuredKey, $sentKey)) {
+    if (empty($sentKey)) {
         http_response_code(401);
-        echo json_encode(['error' => 'Unauthorized']);
+        echo json_encode(['error' => 'apikey obrigatória']);
         exit;
     }
 
-    $row        = $instModel->findOrCreate($instanceName);
+    // Lookup tenant pela apikey (timing-safe — busca exata em coluna indexada)
+    $accountId = $instModel->findAccountByApiKey($sentKey);
+    if ($accountId === null) {
+        http_response_code(401);
+        echo json_encode(['error' => 'apikey não bate com nenhum tenant configurado']);
+        exit;
+    }
+
+    // Agora carrega settings DESSE tenant especificamente
+    $cfg = $instModel->getSettings($accountId);
+    if (empty($cfg['evolution_api_key'])) {
+        // sanity check redundante — não deveria ocorrer pois findAccountByApiKey achou
+        http_response_code(503);
+        echo json_encode(['error' => 'Configuração inconsistente']);
+        exit;
+    }
+
+    // Cria/encontra instância DENTRO do tenant identificado pela apikey
+    $row        = $instModel->findOrCreate($instanceName, '', $accountId);
     $instanceId = (int)$row['id'];
+    // ────────────────────────────────────────────────────────────────────────
 
     switch ($event) {
 
@@ -74,7 +92,7 @@ try {
             $msgs = $data;
             if (isset($data['key'])) $msgs = [$data]; // único
             foreach ($msgs as $msg) {
-                handleMessageUpsert($msg, $instanceId, $msgModel);
+                handleMessageUpsert($msg, $instanceId, $msgModel, $accountId);
             }
             break;
 
@@ -178,7 +196,7 @@ try {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model): void
+function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model, int $accountId): void
 {
     $key       = $msg['key']       ?? [];
     $message   = $msg['message']   ?? [];
@@ -201,7 +219,8 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
     if ($isMediaType) {
         try {
             $instModel = new WhatsAppInstance();
-            $cfg       = $instModel->getSettings();
+            // P0 LGPD (1.8): settings per-tenant — resolve pelo accountId do webhook
+            $cfg       = $instModel->getSettings($accountId);
             $evo       = new EvolutionApiService($cfg);
             $name      = $cfg['evolution_instance'] ?? 'yuris-crm';
             $b64 = $evo->getMediaBase64($name, $msg);
@@ -226,6 +245,7 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
     $phone = preg_replace('/[^0-9]/', '', explode('@', $remoteJid)[0]);
 
     $savedId = $model->save([
+        'account_id'      => $accountId,  // P0 LGPD: passa explícito (defesa em profundidade)
         'instance_id'     => $instanceId,
         'wamid'           => $wamid,
         'remote_jid'      => $remoteJid,
