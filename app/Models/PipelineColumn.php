@@ -5,16 +5,35 @@ use App\Models\Database;
 
 class PipelineColumn
 {
-    public static function listAll()
+    /**
+     * Lista colunas do funil. Aceita:
+     *   account_ids  array  — sessão matriz inclui filiais vinculadas
+     *   account_id   int    — legado
+     * Sem filtro de tenant retorna vazio (NUNCA expõe colunas de outras contas).
+     */
+    public static function listAll(array $filters = [])
     {
+        $ids = self::_normalizeAccountIds($filters);
+        if (empty($ids)) return [];
+
         $pdo = Database::getConnection();
-        $stmt = $pdo->query('SELECT * FROM pipeline_columns ORDER BY ordem ASC');
+        $in  = self::_buildInClause($ids, 'pcacc');
+        $stmt = $pdo->prepare("SELECT * FROM pipeline_columns WHERE account_id IN ({$in['placeholders']}) ORDER BY ordem ASC");
+        $stmt->execute($in['params']);
         return $stmt->fetchAll();
     }
 
-    public static function find($id)
+    public static function find($id, ?array $accountIds = null)
     {
         $pdo = Database::getConnection();
+        if ($accountIds !== null) {
+            $ids = array_values(array_filter(array_map('intval', $accountIds), fn($v) => $v > 0));
+            if (empty($ids)) return false;
+            $in  = self::_buildInClause($ids, 'pcfid');
+            $stmt = $pdo->prepare("SELECT * FROM pipeline_columns WHERE id = :id AND account_id IN ({$in['placeholders']}) LIMIT 1");
+            $stmt->execute(['id' => $id] + $in['params']);
+            return $stmt->fetch();
+        }
         $stmt = $pdo->prepare('SELECT * FROM pipeline_columns WHERE id = :id LIMIT 1');
         $stmt->execute(['id' => $id]);
         return $stmt->fetch();
@@ -22,10 +41,14 @@ class PipelineColumn
 
     public static function create($data)
     {
+        if (empty($data['account_id'])) {
+            throw new \InvalidArgumentException('account_id é obrigatório para criar coluna');
+        }
         $pdo = Database::getConnection();
         $slug = self::slugify($data['nome'] ?? '');
-        $stmt = $pdo->prepare('INSERT INTO pipeline_columns (nome, slug, cor, ordem, conta_funil, conta_oportunidade, conta_fechado, conta_perdido, peso_projecao, created_at, updated_at) VALUES (:nome, :slug, :cor, :ordem, :conta_funil, :conta_oportunidade, :conta_fechado, :conta_perdido, :peso_projecao, NOW(), NOW())');
+        $stmt = $pdo->prepare('INSERT INTO pipeline_columns (account_id, nome, slug, cor, ordem, conta_funil, conta_oportunidade, conta_fechado, conta_perdido, peso_projecao, created_at, updated_at) VALUES (:account_id, :nome, :slug, :cor, :ordem, :conta_funil, :conta_oportunidade, :conta_fechado, :conta_perdido, :peso_projecao, NOW(), NOW())');
         $stmt->execute([
+            'account_id' => (int)$data['account_id'],
             'nome' => $data['nome'] ?? '',
             'slug' => $slug,
             'cor' => $data['cor'] ?? '#EEEEEE',
@@ -39,7 +62,11 @@ class PipelineColumn
         return $pdo->lastInsertId();
     }
 
-    public static function update($id, $data)
+    /**
+     * Atualiza apenas se a coluna pertence a um dos account_ids permitidos.
+     * Se $accountIds for null, sem validação de tenant (uso interno).
+     */
+    public static function update($id, $data, ?array $accountIds = null)
     {
         $pdo = Database::getConnection();
         $fields = [];
@@ -62,16 +89,55 @@ class PipelineColumn
             $fields[] = "slug = :slug";
         }
         if (empty($fields)) return false;
-        $sql = 'UPDATE pipeline_columns SET ' . implode(', ', $fields) . ', updated_at = NOW() WHERE id = :id';
+
+        $tenantWhere = '';
+        if ($accountIds !== null) {
+            $ids = array_values(array_filter(array_map('intval', $accountIds), fn($v) => $v > 0));
+            if (empty($ids)) return false;
+            $in = self::_buildInClause($ids, 'pcuacc');
+            $tenantWhere = " AND account_id IN ({$in['placeholders']})";
+            $params = $params + $in['params'];
+        }
+        $sql = 'UPDATE pipeline_columns SET ' . implode(', ', $fields) . ', updated_at = NOW() WHERE id = :id' . $tenantWhere;
         $stmt = $pdo->prepare($sql);
-        return $stmt->execute($params);
+        $ok = $stmt->execute($params);
+        return $ok && $stmt->rowCount() > 0;
     }
 
-    public static function delete($id)
+    public static function delete($id, ?array $accountIds = null)
     {
         $pdo = Database::getConnection();
+        if ($accountIds !== null) {
+            $ids = array_values(array_filter(array_map('intval', $accountIds), fn($v) => $v > 0));
+            if (empty($ids)) return false;
+            $in = self::_buildInClause($ids, 'pcdacc');
+            $stmt = $pdo->prepare("DELETE FROM pipeline_columns WHERE id = :id AND account_id IN ({$in['placeholders']})");
+            $ok = $stmt->execute(['id' => $id] + $in['params']);
+            return $ok && $stmt->rowCount() > 0;
+        }
         $stmt = $pdo->prepare('DELETE FROM pipeline_columns WHERE id = :id');
         return $stmt->execute(['id'=>$id]);
+    }
+
+    private static function _normalizeAccountIds(array $filters): array
+    {
+        if (!empty($filters['account_ids']) && is_array($filters['account_ids'])) {
+            return array_values(array_filter(array_map('intval', $filters['account_ids']), fn($v) => $v > 0));
+        }
+        if (!empty($filters['account_id'])) return [(int) $filters['account_id']];
+        return [];
+    }
+
+    private static function _buildInClause(array $ids, string $prefix): array
+    {
+        $ph     = [];
+        $params = [];
+        foreach ($ids as $i => $id) {
+            $k          = "{$prefix}_{$i}";
+            $ph[]       = ":{$k}";
+            $params[$k] = (int) $id;
+        }
+        return ['placeholders' => implode(',', $ph), 'params' => $params];
     }
 
     private static function slugify($text)

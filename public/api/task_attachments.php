@@ -1,11 +1,21 @@
 <?php
 require_once __DIR__ . '/../../app/Models/Database.php';
+require_once __DIR__ . '/../../app/Models/Account.php';
+require_once __DIR__ . '/../../app/Models/ResourceShare.php';
+require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
+require_once __DIR__ . '/../../app/Helpers/ProcessoAudit.php';
+require_once __DIR__ . '/../../app/Helpers/TaskAudit.php';
+
+use App\Helpers\AccountContext;
+use App\Helpers\TenantGuard;
+use App\Helpers\TaskAudit;
 
 session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache, no-store, must-revalidate');
 
-if (empty($_SESSION['user_id'])) { http_response_code(401); echo json_encode(['ok'=>false,'error'=>'Unauthorized']); exit; }
+$ctx = AccountContext::fromSession();
 
 $userId = (int)$_SESSION['user_id'];
 $method = $_SERVER['REQUEST_METHOD'];
@@ -27,9 +37,13 @@ const ALLOWED_MIME = [
 ];
 
 if ($method === 'GET') {
+    $taskId = (int)($_GET['task_id'] ?? 0);
+    if (!$taskId) fail('task_id obrigatório');
+    TenantGuard::assertTaskAcessivel($ctx, $taskId);
+
     $pdo  = \App\Models\Database::getConnection();
     $stmt = $pdo->prepare('SELECT * FROM task_attachments WHERE task_id = ? ORDER BY created_at DESC');
-    $stmt->execute([(int)$_GET['task_id']]);
+    $stmt->execute([$taskId]);
     ok($stmt->fetchAll(\PDO::FETCH_ASSOC));
 }
 
@@ -39,6 +53,7 @@ if ($method === 'POST') {
 
     $taskId = (int)($_POST['task_id'] ?? 0);
     if (!$taskId) fail('task_id obrigatório');
+    TenantGuard::assertTaskAcessivel($ctx, $taskId);
     if (empty($_FILES['file'])) fail('Arquivo obrigatório');
 
     $file = $_FILES['file'];
@@ -59,6 +74,8 @@ if ($method === 'POST') {
     $pdo = \App\Models\Database::getConnection();
     $pdo->prepare('INSERT INTO task_attachments (task_id, file_path, file_name, mime_type, file_size, uploaded_by) VALUES (?,?,?,?,?,?)')
         ->execute([$taskId, str_replace(__DIR__ . '/..', '', $dest), $file['name'], $mime, $file['size'], $userId]);
+    // Propaga ao histórico processual se a tarefa está vinculada a processo(s)
+    TaskAudit::onAttachmentAdded($taskId, (string)$file['name']);
     ok(['id' => $pdo->lastInsertId()]);
 }
 
@@ -76,6 +93,8 @@ if ($method === 'DELETE') {
     $fullPath = __DIR__ . '/..' . $att['file_path'];
     if (file_exists($fullPath)) unlink($fullPath);
     $pdo->prepare('DELETE FROM task_attachments WHERE id = ?')->execute([$id]);
+    // Propaga ao histórico processual
+    if (!empty($att['task_id'])) TaskAudit::onAttachmentRemoved((int)$att['task_id'], (string)($att['file_name'] ?? ''));
     ok();
 }
 

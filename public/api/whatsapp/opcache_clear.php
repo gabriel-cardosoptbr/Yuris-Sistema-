@@ -3,6 +3,14 @@ require_once __DIR__ . '/../../../../app/Models/Database.php';
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 if (empty($_SESSION['user_id'])) { http_response_code(401); echo json_encode(['error'=>'Unauthorized']); exit; }
+// Hardening Fase 2 audit: restringir a owner/admin (era acessível a qualquer logado)
+$_role  = $_SESSION['user_role']   ?? null;
+$_perfil = $_SESSION['user_perfil'] ?? null;
+if (!in_array($_role, ['owner','admin'], true) && $_perfil !== 'admin') {
+    http_response_code(403);
+    echo json_encode(['error' => 'Apenas owner/admin pode executar limpeza de opcache']);
+    exit;
+}
 
 $results = [];
 $files = [

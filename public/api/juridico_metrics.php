@@ -1,8 +1,28 @@
 <?php
 require_once __DIR__ . '/../../app/Models/Database.php';
+require_once __DIR__ . '/../../app/Models/Account.php';
+require_once __DIR__ . '/../../app/Models/ResourceShare.php';
+require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+
+use App\Helpers\AccountContext;
+
+session_start();
 header('Content-Type: application/json; charset=utf-8');
 
-// Executa query segura retornando array vazio em caso de erro (evita 500 na página inteira)
+$ctx       = AccountContext::fromSession();
+$tenantIds = $ctx->getAccessibleAccountIds('juridico');
+if (empty($tenantIds)) $tenantIds = [0]; // guard contra SQL "IN ()" inválido
+
+// Constrói cláusula tenant uma vez
+$ph = []; $tenantParams = [];
+foreach ($tenantIds as $i => $aid) {
+    $k = "jacc_{$i}";
+    $ph[] = ":{$k}";
+    $tenantParams[$k] = (int) $aid;
+}
+$tProc = ' AND p.account_id IN (' . implode(',', $ph) . ')';
+$tBare = ' AND account_id IN ('   . implode(',', $ph) . ')';
+
 function safeQuery($pdo, $sql, $params = []) {
     try {
         $stmt = $pdo->prepare($sql);
@@ -13,8 +33,6 @@ function safeQuery($pdo, $sql, $params = []) {
         return [];
     }
 }
-
-// Executa query segura retornando escalar; usa ?: portanto retorna $default quando o valor é 0 (ver bug conhecido)
 function safeScalar($pdo, $sql, $params = [], $default = 0) {
     try {
         $stmt = $pdo->prepare($sql);
@@ -29,11 +47,18 @@ function safeScalar($pdo, $sql, $params = [], $default = 0) {
 try {
     $pdo = App\Models\Database::getConnection();
 
+    // "Processos Ativos" = NÃO encerrado/arquivado.
+    // Inclui status='ativo', 'concluido', 'suspenso', NULL.
+    // Consistente com computeJurKPIs (dashboard.js), updateKPIs (processos.js)
+    // e computeStrategicKPIs (juridico.js).
     $active = (int) safeScalar($pdo,
-        "SELECT COUNT(*) FROM processos WHERE deleted_at IS NULL AND status = 'ativo'"
+        "SELECT COUNT(*) FROM processos
+         WHERE deleted_at IS NULL
+           AND (status IS NULL OR status NOT IN ('encerrado','arquivado'))
+           $tBare",
+        $tenantParams
     );
 
-    // by_lawyer: try with JOIN first, fall back to without join
     $by_lawyer = safeQuery($pdo,
         "SELECT p.responsavel_user_id AS user_id,
                 COALESCE(u.nome, CONCAT('Responsável #', COALESCE(p.responsavel_user_id,'S/N'))) AS nome,
@@ -43,31 +68,21 @@ try {
          WHERE p.deleted_at IS NULL
            AND p.responsavel_user_id IS NOT NULL
            AND p.responsavel_user_id > 0
+           $tProc
          GROUP BY p.responsavel_user_id
          ORDER BY total DESC
-         LIMIT 100"
+         LIMIT 100",
+        $tenantParams
     );
-    if (empty($by_lawyer)) {
-        $by_lawyer = safeQuery($pdo,
-            "SELECT responsavel_user_id AS user_id,
-                    CONCAT('Responsável #', COALESCE(responsavel_user_id,'S/N')) AS nome,
-                    COUNT(*) AS total
-             FROM processos
-             WHERE deleted_at IS NULL
-               AND responsavel_user_id IS NOT NULL
-               AND responsavel_user_id > 0
-             GROUP BY responsavel_user_id
-             ORDER BY total DESC
-             LIMIT 100"
-        );
-    }
 
     $week_deadlines = safeQuery($pdo,
         "SELECT id, numero, cliente_nome, proximo_prazo, responsavel_user_id
          FROM processos
          WHERE deleted_at IS NULL
            AND proximo_prazo BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
-         ORDER BY proximo_prazo ASC LIMIT 200"
+           $tBare
+         ORDER BY proximo_prazo ASC LIMIT 200",
+        $tenantParams
     );
 
     $urgent = safeQuery($pdo,
@@ -75,26 +90,30 @@ try {
          FROM processos
          WHERE deleted_at IS NULL
            AND proximo_prazo BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)
-         ORDER BY proximo_prazo ASC LIMIT 200"
+           $tBare
+         ORDER BY proximo_prazo ASC LIMIT 200",
+        $tenantParams
     );
 
-    // Processos sem atualização há mais de 30 dias — ordenados do mais antigo para o mais recente
     $stale = safeQuery($pdo,
         "SELECT id, numero, cliente_nome, ultima_movimentacao
          FROM processos
          WHERE deleted_at IS NULL
            AND (ultima_movimentacao IS NULL OR ultima_movimentacao < DATE_SUB(NOW(), INTERVAL 30 DAY))
-         ORDER BY COALESCE(ultima_movimentacao,'1970-01-01') ASC LIMIT 200"
+           $tBare
+         ORDER BY COALESCE(ultima_movimentacao,'1970-01-01') ASC LIMIT 200",
+        $tenantParams
     );
 
-    // deadlines with responsavel name — these use JOIN, wrapped safely
     $deadlines_today = safeQuery($pdo,
         "SELECT p.id, p.numero, p.cliente_nome, p.proximo_prazo,
                 COALESCE(u.nome, CONCAT('ID:',COALESCE(p.responsavel_user_id,'—'))) AS responsavel
          FROM processos p
          LEFT JOIN users u ON u.id = p.responsavel_user_id
          WHERE p.deleted_at IS NULL AND p.proximo_prazo = CURDATE()
-         ORDER BY p.proximo_prazo ASC LIMIT 200"
+           $tProc
+         ORDER BY p.proximo_prazo ASC LIMIT 200",
+        $tenantParams
     );
 
     $deadlines_7 = safeQuery($pdo,
@@ -105,7 +124,9 @@ try {
          WHERE p.deleted_at IS NULL
            AND p.proximo_prazo > CURDATE()
            AND p.proximo_prazo <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
-         ORDER BY p.proximo_prazo ASC LIMIT 200"
+           $tProc
+         ORDER BY p.proximo_prazo ASC LIMIT 200",
+        $tenantParams
     );
 
     $deadlines_15 = safeQuery($pdo,
@@ -116,7 +137,9 @@ try {
          WHERE p.deleted_at IS NULL
            AND p.proximo_prazo > DATE_ADD(CURDATE(), INTERVAL 7 DAY)
            AND p.proximo_prazo <= DATE_ADD(CURDATE(), INTERVAL 15 DAY)
-         ORDER BY p.proximo_prazo ASC LIMIT 200"
+           $tProc
+         ORDER BY p.proximo_prazo ASC LIMIT 200",
+        $tenantParams
     );
 
     $deadlines_30 = safeQuery($pdo,
@@ -127,7 +150,9 @@ try {
          WHERE p.deleted_at IS NULL
            AND p.proximo_prazo > DATE_ADD(CURDATE(), INTERVAL 15 DAY)
            AND p.proximo_prazo <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
-         ORDER BY p.proximo_prazo ASC LIMIT 200"
+           $tProc
+         ORDER BY p.proximo_prazo ASC LIMIT 200",
+        $tenantParams
     );
 
     echo json_encode(['success' => true, 'data' => [

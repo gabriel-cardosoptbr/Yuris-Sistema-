@@ -1,0 +1,478 @@
+TABLE_NAME	COLUMN_NAME	COLUMN_TYPE	IS_NULLABLE	COLUMN_DEFAULT	COLUMN_KEY	EXTRA
+accounts	id	int(11)	NO	NULL	PRI	auto_increment
+accounts	nome	varchar(191)	NO	NULL		
+accounts	tipo	enum('matriz','filial')	NO	'matriz'	MUL	
+accounts	matriz_id	int(11)	YES	NULL	MUL	
+accounts	codigo_vinculo	varchar(64)	NO	NULL	UNI	
+accounts	plano	varchar(50)	NO	'basico'		
+accounts	status	enum('active','suspended','cancelled')	YES	'active'	MUL	
+accounts	configuracoes	longtext	YES	NULL		
+accounts	created_at	datetime	YES	current_timestamp()		
+accounts	updated_at	datetime	YES	current_timestamp()		on update current_timestamp()
+accounts	deleted_at	datetime	YES	NULL		
+account_audit_log	id	bigint(20) unsigned	NO	NULL	PRI	auto_increment
+account_audit_log	account_id	int(11)	NO	NULL	MUL	
+account_audit_log	user_id	int(11)	YES	NULL	MUL	
+account_audit_log	acao	varchar(100)	NO	NULL		
+account_audit_log	entidade	varchar(100)	YES	NULL		
+account_audit_log	entidade_id	int(11)	YES	NULL		
+account_audit_log	dados_antes	longtext	YES	NULL		
+account_audit_log	dados_depois	longtext	YES	NULL		
+account_audit_log	ip	varchar(45)	YES	NULL		
+account_audit_log	created_at	datetime	NO	current_timestamp()	MUL	
+account_notifications	id	int(11)	NO	NULL	PRI	auto_increment
+account_notifications	account_id	int(11)	NO	NULL	MUL	
+account_notifications	user_id	int(11)	YES	NULL	MUL	
+account_notifications	tipo	varchar(50)	NO	NULL	MUL	
+account_notifications	titulo	varchar(255)	NO	NULL		
+account_notifications	mensagem	text	YES	NULL		
+account_notifications	lida	tinyint(1)	YES	0	MUL	
+account_notifications	payload	longtext	YES	NULL		
+account_notifications	created_at	datetime	YES	current_timestamp()		
+account_notifications	lida_em	datetime	YES	NULL		
+account_vinculos	id	int(11)	NO	NULL	PRI	auto_increment
+account_vinculos	matriz_account_id	int(11)	NO	NULL	MUL	
+account_vinculos	filial_account_id	int(11)	NO	NULL	MUL	
+account_vinculos	status	enum('pending','active','suspended','rejected')	YES	'pending'	MUL	
+account_vinculos	solicitado_por	int(11)	YES	NULL		
+account_vinculos	aprovado_por	int(11)	YES	NULL		
+account_vinculos	solicitado_em	datetime	YES	current_timestamp()		
+account_vinculos	aprovado_em	datetime	YES	NULL		
+account_vinculos	suspenso_em	datetime	YES	NULL		
+account_vinculos	motivo_suspensao	text	YES	NULL		
+account_vinculos	created_at	datetime	YES	current_timestamp()		
+account_vinculos	updated_at	datetime	YES	current_timestamp()		on update current_timestamp()
+advogado_convites	id	int(11)	NO	NULL	PRI	auto_increment
+advogado_convites	resource_type	enum('card','processo','contato')	NO	NULL	MUL	
+advogado_convites	resource_id	int(11)	NO	NULL		
+advogado_convites	from_account_id	int(11)	NO	NULL	MUL	
+advogado_convites	convidado_user_id	int(11)	YES	NULL	MUL	
+advogado_convites	convidado_email	varchar(191)	NO	NULL	MUL	
+advogado_convites	convidado_nome	varchar(191)	YES	NULL		
+advogado_convites	token_convite	varchar(64)	NO	NULL	UNI	
+advogado_convites	permission_level	enum('view','edit')	NO	'view'		
+advogado_convites	mensagem	text	YES	NULL		
+advogado_convites	status	enum('pending','accepted','rejected','revoked','expired')	YES	'pending'	MUL	
+advogado_convites	expires_at	datetime	NO	NULL	MUL	
+advogado_convites	created_at	datetime	YES	current_timestamp()		
+advogado_convites	responded_at	datetime	YES	NULL		
+advogado_convites	revoked_at	datetime	YES	NULL		
+advogado_convites	revoked_by	int(11)	YES	NULL		
+cards	id	int(11)	NO	NULL	PRI	auto_increment
+cards	account_id	int(11)	YES	NULL	MUL	
+cards	cliente_nome	varchar(191)	NO	NULL		
+cards	empresa_nome	varchar(191)	YES	NULL		
+cards	telefone_whatsapp	varchar(50)	YES	NULL		
+cards	email	varchar(191)	YES	NULL		
+cards	responsavel_user_id	int(11)	YES	NULL		
+cards	coluna_id	int(11)	YES	NULL		
+cards	ordem_na_coluna	int(11)	YES	0		
+cards	valor_estimado	decimal(15,2)	YES	0.00		
+cards	valor_proposta	decimal(15,2)	YES	0.00		
+cards	valor_fechado_final	decimal(15,2)	YES	0.00		
+cards	data_prevista_fechamento	date	YES	NULL		
+cards	data_fechamento	date	YES	NULL		
+cards	descricao	text	YES	NULL		
+cards	status	varchar(50)	YES	'aberto'		
+cards	created_at	datetime	YES	current_timestamp()		
+cards	updated_at	datetime	YES	current_timestamp()		on update current_timestamp()
+cards	deleted_at	datetime	YES	NULL		
+cards	deleted_by	int(11)	YES	NULL		
+cards	checklist_percentual	decimal(5,2)	YES	0.00		
+cards	contato_id	int(11)	YES	NULL	MUL	
+cards	titulo	varchar(255)	YES	NULL		
+card_checklist_items	id	int(11)	NO	NULL	PRI	auto_increment
+card_checklist_items	card_id	int(11)	NO	NULL		
+card_checklist_items	titulo	varchar(255)	NO	NULL		
+card_checklist_items	concluido	tinyint(1)	YES	0		
+card_checklist_items	ordem	int(11)	YES	0		
+card_checklist_items	created_at	datetime	YES	current_timestamp()		
+card_checklist_items	updated_at	datetime	YES	current_timestamp()		on update current_timestamp()
+card_history	id	int(11)	NO	NULL	PRI	auto_increment
+card_history	card_id	int(11)	NO	NULL		
+card_history	usuario_id	int(11)	YES	NULL		
+card_history	acao	varchar(100)	YES	NULL		
+card_history	campo_alterado	varchar(100)	YES	NULL		
+card_history	valor_anterior	text	YES	NULL		
+card_history	valor_novo	text	YES	NULL		
+card_history	de_coluna_id	int(11)	YES	NULL		
+card_history	para_coluna_id	int(11)	YES	NULL		
+card_history	created_at	datetime	YES	current_timestamp()		
+chat_conversas	id	int(10) unsigned	NO	NULL	PRI	auto_increment
+chat_conversas	account_id	int(10) unsigned	YES	NULL	MUL	
+chat_conversas	nome	varchar(200)	YES	NULL		
+chat_conversas	tipo	enum('direto','grupo','geral','setor','filial','matriz','advogado')	NO	'direto'	MUL	
+chat_conversas	team_id	int(10) unsigned	YES	NULL	MUL	
+chat_conversas	ref_account_id	int(10) unsigned	YES	NULL	MUL	
+chat_conversas	criado_por	int(10) unsigned	NO	NULL	MUL	
+chat_conversas	created_at	datetime	NO	current_timestamp()		
+chat_conversas	updated_at	datetime	NO	current_timestamp()	MUL	on update current_timestamp()
+chat_conversas	archived_at	datetime	YES	NULL	MUL	
+chat_conversas	deleted_at	datetime	YES	NULL	MUL	
+chat_conversas	canal_geral_key	varchar(64)	YES	NULL	UNI	
+chat_mencoes	id	int(10) unsigned	NO	NULL	PRI	auto_increment
+chat_mencoes	mensagem_id	int(10) unsigned	NO	NULL	MUL	
+chat_mencoes	tipo	enum('usuario','processo','card')	NO	NULL	MUL	
+chat_mencoes	referencia_id	int(10) unsigned	NO	NULL		
+chat_mencoes	texto_exibido	varchar(200)	NO	NULL		
+chat_mencoes	url_destino	varchar(500)	NO	NULL		
+chat_mencoes	created_at	datetime	NO	current_timestamp()		
+chat_mensagens	id	int(10) unsigned	NO	NULL	PRI	auto_increment
+chat_mensagens	conversa_id	int(10) unsigned	NO	NULL	MUL	
+chat_mensagens	usuario_id	int(10) unsigned	NO	NULL	MUL	
+chat_mensagens	mensagem	text	NO	NULL		
+chat_mensagens	created_at	datetime	NO	current_timestamp()	MUL	
+chat_participantes	id	int(10) unsigned	NO	NULL	PRI	auto_increment
+chat_participantes	conversa_id	int(10) unsigned	NO	NULL	MUL	
+chat_participantes	usuario_id	int(10) unsigned	NO	NULL	MUL	
+chat_participantes	ultima_leitura_id	int(10) unsigned	YES	NULL		
+chat_participantes	created_at	datetime	NO	current_timestamp()		
+contatos	id	int(11)	NO	NULL	PRI	auto_increment
+contatos	account_id	int(11)	YES	NULL	MUL	
+contatos	nome	varchar(191)	NO	NULL		
+contatos	telefone	varchar(30)	YES	NULL	UNI	
+contatos	remote_jid	varchar(120)	YES	NULL	UNI	
+contatos	email	varchar(191)	YES	NULL		
+contatos	observacoes	text	YES	NULL		
+contatos	created_at	datetime	YES	current_timestamp()		
+contatos	updated_at	datetime	YES	current_timestamp()		on update current_timestamp()
+contato_vinculos	id	int(11)	NO	NULL	PRI	auto_increment
+contato_vinculos	contato_id	int(11)	NO	NULL	MUL	
+contato_vinculos	tipo_vinculo	enum('card','processo','chat')	NO	NULL	MUL	
+contato_vinculos	referencia_id	int(11)	NO	NULL		
+contato_vinculos	origem	varchar(50)	NO	'manual'		
+contato_vinculos	ativo	tinyint(1)	NO	1	MUL	
+contato_vinculos	created_at	datetime	YES	current_timestamp()		
+contato_vinculos	updated_at	datetime	YES	current_timestamp()		on update current_timestamp()
+dre_accounts	id	int(11)	NO	NULL	PRI	auto_increment
+dre_accounts	account_id	int(11)	YES	NULL	MUL	
+dre_accounts	codigo	varchar(64)	YES	NULL		
+dre_accounts	nome	varchar(191)	NO	NULL		
+dre_accounts	tipo	enum('receita','despesa')	NO	'despesa'		
+dre_accounts	valor_fixo	decimal(14,2)	NO	0.00		
+dre_accounts	ativo	tinyint(1)	NO	1		
+dre_accounts	created_at	timestamp	YES	current_timestamp()		
+dre_accounts	updated_at	timestamp	YES	current_timestamp()		on update current_timestamp()
+dre_accounts	recorrencia	varchar(30)	YES	'fixa'		
+dre_accounts	data_referencia	date	YES	NULL		
+dre_accounts	descricao	text	YES	NULL		
+dre_codes	id	int(11)	NO	NULL	PRI	auto_increment
+dre_codes	account_id	int(11)	YES	NULL	MUL	
+dre_codes	code	varchar(64)	NO	NULL	UNI	
+dre_codes	descricao	varchar(191)	YES	NULL		
+dre_codes	ativo	tinyint(1)	NO	1		
+dre_codes	created_at	timestamp	YES	current_timestamp()		
+dre_codes	updated_at	timestamp	YES	current_timestamp()		on update current_timestamp()
+goals	id	int(11)	NO	NULL	PRI	auto_increment
+goals	account_id	int(11)	YES	NULL	MUL	
+goals	user_id	int(11)	YES	NULL		
+goals	referencia_mes	varchar(7)	YES	NULL		
+goals	valor_meta	decimal(15,2)	YES	0.00		
+goals	tipo_meta	varchar(50)	YES	'global'		
+goals	created_at	datetime	YES	current_timestamp()		
+goals	updated_at	datetime	YES	current_timestamp()		on update current_timestamp()
+pipeline_columns	id	int(11)	NO	NULL	PRI	auto_increment
+pipeline_columns	account_id	int(11)	YES	NULL	MUL	
+pipeline_columns	nome	varchar(191)	NO	NULL		
+pipeline_columns	slug	varchar(191)	NO	NULL		
+pipeline_columns	cor	varchar(20)	YES	'#EEEEEE'		
+pipeline_columns	ordem	int(11)	YES	0		
+pipeline_columns	conta_funil	tinyint(1)	YES	1		
+pipeline_columns	conta_oportunidade	tinyint(1)	YES	1		
+pipeline_columns	conta_fechado	tinyint(1)	YES	0		
+pipeline_columns	conta_perdido	tinyint(1)	YES	0		
+pipeline_columns	peso_projecao	int(11)	YES	0		
+pipeline_columns	created_at	datetime	YES	current_timestamp()		
+pipeline_columns	updated_at	datetime	YES	current_timestamp()		on update current_timestamp()
+processos	id	int(11)	NO	NULL	PRI	auto_increment
+processos	account_id	int(11)	YES	NULL	MUL	
+processos	account_seq	int(11)	YES	NULL		
+processos	numero	varchar(255)	YES	NULL		
+processos	cliente_nome	varchar(255)	YES	NULL		
+processos	parte_contraria	varchar(255)	YES	NULL		
+processos	tipo_acao	varchar(255)	YES	NULL		
+processos	setor_id	int(11)	YES	NULL		
+processos	vara_comarca	varchar(255)	YES	NULL		
+processos	responsavel_user_id	int(11)	YES	NULL		
+processos	status	varchar(50)	YES	'ativo'		
+processos	data_inicio	date	YES	NULL		
+processos	proximo_prazo	date	YES	NULL		
+processos	ultima_movimentacao	datetime	YES	NULL		
+processos	observacoes	text	YES	NULL		
+processos	anexos	longtext	YES	NULL		
+processos	alerts	longtext	YES	NULL		
+processos	card_id	int(11)	YES	NULL		
+processos	created_at	datetime	YES	current_timestamp()		
+processos	updated_at	datetime	YES	current_timestamp()		on update current_timestamp()
+processos	deleted_at	datetime	YES	NULL		
+processos	contato_id	int(11)	YES	NULL	MUL	
+processos	cpf_cnpj_parte_contraria	varchar(20)	YES	NULL		
+processos	numero_cnj	varchar(30)	YES	NULL		
+processo_history	id	int(11)	NO	NULL	PRI	auto_increment
+processo_history	processo_id	int(11)	NO	NULL	MUL	
+processo_history	user_email	varchar(150)	YES	NULL		
+processo_history	acao	varchar(100)	YES	NULL		
+processo_history	descricao	text	YES	NULL		
+processo_history	created_at	timestamp	NO	current_timestamp()		
+processo_prazos	id	int(11)	NO	NULL	PRI	auto_increment
+processo_prazos	processo_id	int(11)	NO	NULL	MUL	
+processo_prazos	descricao	varchar(255)	NO	NULL		
+processo_prazos	data_limite	date	YES	NULL		
+processo_prazos	responsavel	varchar(150)	YES	NULL		
+processo_prazos	status	enum('pendente','concluido','vencido')	YES	'pendente'		
+processo_prazos	prioridade	enum('baixa','media','alta')	YES	'media'		
+processo_prazos	observacao	text	YES	NULL		
+processo_prazos	created_at	timestamp	NO	current_timestamp()		
+processo_prazos	updated_at	timestamp	NO	current_timestamp()		on update current_timestamp()
+processo_tarefas	id	int(11)	NO	NULL	PRI	auto_increment
+processo_tarefas	processo_id	int(11)	NO	NULL	MUL	
+processo_tarefas	titulo	varchar(255)	NO	NULL		
+processo_tarefas	concluido	tinyint(4)	YES	0		
+processo_tarefas	prioridade	enum('baixa','media','alta')	YES	'media'		
+processo_tarefas	responsavel	varchar(150)	YES	NULL		
+processo_tarefas	data_tarefa	date	YES	NULL		
+processo_tarefas	ordem	int(11)	YES	0		
+processo_tarefas	created_at	timestamp	NO	current_timestamp()		
+resource_shares	id	int(11)	NO	NULL	PRI	auto_increment
+resource_shares	resource_type	enum('card','processo','contato','task_board','module')	NO	NULL	MUL	
+resource_shares	resource_id	int(11)	NO	NULL		
+resource_shares	module_key	varchar(40)	YES	NULL	MUL	
+resource_shares	from_account_id	int(11)	NO	NULL	MUL	
+resource_shares	to_account_id	int(11)	YES	NULL	MUL	
+resource_shares	to_user_id	int(11)	YES	NULL	MUL	
+resource_shares	permission_level	enum('view','edit','full')	NO	'view'		
+resource_shares	criado_por	int(11)	NO	NULL		
+resource_shares	status	enum('active','revoked')	YES	'active'	MUL	
+resource_shares	created_at	datetime	YES	current_timestamp()		
+resource_shares	revoked_at	datetime	YES	NULL		
+resource_shares	revoked_by	int(11)	YES	NULL		
+tasks	id	int(11)	NO	NULL	PRI	auto_increment
+tasks	board_id	int(11)	NO	NULL	MUL	
+tasks	column_id	int(11)	NO	NULL	MUL	
+tasks	titulo	varchar(255)	NO	NULL		
+tasks	descricao	text	YES	NULL		
+tasks	prioridade	enum('baixa','media','alta','urgente')	YES	'media'		
+tasks	prazo	datetime	YES	NULL	MUL	
+tasks	prazo_tipo	varchar(50)	NO	'interno'		
+tasks	responsavel_id	int(11)	YES	NULL	MUL	
+tasks	criado_por_id	int(11)	NO	NULL	MUL	
+tasks	status	enum('ativa','concluida','arquivada')	YES	'ativa'	MUL	
+tasks	concluida_em	datetime	YES	NULL		
+tasks	ordem	int(11)	YES	0		
+tasks	recorrencia_id	int(11)	YES	NULL	MUL	
+tasks	origem_task_id	int(11)	YES	NULL		
+tasks	created_at	datetime	YES	current_timestamp()		
+tasks	updated_at	datetime	YES	current_timestamp()		on update current_timestamp()
+task_attachments	id	int(11)	NO	NULL	PRI	auto_increment
+task_attachments	task_id	int(11)	NO	NULL	MUL	
+task_attachments	file_path	varchar(500)	NO	NULL		
+task_attachments	file_name	varchar(255)	NO	NULL		
+task_attachments	mime_type	varchar(100)	YES	NULL		
+task_attachments	file_size	int(11)	YES	NULL		
+task_attachments	uploaded_by	int(11)	NO	NULL	MUL	
+task_attachments	created_at	datetime	YES	current_timestamp()		
+task_boards	id	int(11)	NO	NULL	PRI	auto_increment
+task_boards	account_id	int(11)	YES	NULL	MUL	
+task_boards	nome	varchar(150)	NO	NULL		
+task_boards	descricao	text	YES	NULL		
+task_boards	tipo	enum('pessoal','compartilhado')	NO	'pessoal'		
+task_boards	owner_id	int(11)	NO	NULL	MUL	
+task_boards	cor	varchar(20)	YES	'#6366f1'		
+task_boards	ordem	int(11)	YES	0		
+task_boards	ativo	tinyint(1)	YES	1		
+task_boards	created_at	datetime	YES	current_timestamp()		
+task_boards	updated_at	datetime	YES	current_timestamp()		on update current_timestamp()
+task_board_members	id	int(11)	NO	NULL	PRI	auto_increment
+task_board_members	board_id	int(11)	NO	NULL	MUL	
+task_board_members	user_id	int(11)	NO	NULL	MUL	
+task_board_members	papel	enum('owner','editor','viewer')	YES	'editor'		
+task_board_members	created_at	datetime	YES	current_timestamp()		
+task_checklist_items	id	int(11)	NO	NULL	PRI	auto_increment
+task_checklist_items	task_id	int(11)	NO	NULL	MUL	
+task_checklist_items	descricao	varchar(500)	NO	NULL		
+task_checklist_items	concluido	tinyint(1)	YES	0		
+task_checklist_items	ordem	int(11)	YES	0		
+task_checklist_items	created_at	datetime	YES	current_timestamp()		
+task_checklist_items	prazo	date	YES	NULL		
+task_columns	id	int(11)	NO	NULL	PRI	auto_increment
+task_columns	board_id	int(11)	NO	NULL	MUL	
+task_columns	nome	varchar(100)	NO	NULL		
+task_columns	ordem	int(11)	YES	0		
+task_columns	cor	varchar(20)	YES	'#94a3b8'		
+task_columns	is_coluna_inicial	tinyint(1)	YES	0		
+task_columns	is_coluna_concluido	tinyint(1)	YES	0		
+task_columns	created_at	datetime	YES	current_timestamp()		
+task_comments	id	int(11)	NO	NULL	PRI	auto_increment
+task_comments	task_id	int(11)	NO	NULL	MUL	
+task_comments	user_id	int(11)	NO	NULL	MUL	
+task_comments	mensagem	text	NO	NULL		
+task_comments	created_at	datetime	YES	current_timestamp()		
+task_history	id	int(11)	NO	NULL	PRI	auto_increment
+task_history	task_id	int(11)	NO	NULL	MUL	
+task_history	user_id	int(11)	YES	NULL		
+task_history	acao	varchar(80)	NO	NULL		
+task_history	antes_json	longtext	YES	NULL		
+task_history	depois_json	longtext	YES	NULL		
+task_history	created_at	datetime	YES	current_timestamp()		
+task_links	id	int(11)	NO	NULL	PRI	auto_increment
+task_links	task_id	int(11)	NO	NULL	MUL	
+task_links	link_type	enum('contato','processo','card','dre_account')	NO	NULL	MUL	
+task_links	link_id	int(11)	NO	NULL		
+task_links	created_at	datetime	YES	current_timestamp()		
+task_recurrences	id	int(11)	NO	NULL	PRI	auto_increment
+task_recurrences	tipo	enum('diaria','semanal','quinzenal','mensal','anual','custom')	NO	NULL		
+task_recurrences	intervalo	int(11)	YES	1		
+task_recurrences	dias_semana	longtext	YES	NULL		
+task_recurrences	dia_mes	int(11)	YES	NULL		
+task_recurrences	data_inicio	date	NO	NULL		
+task_recurrences	data_fim	date	YES	NULL		
+task_recurrences	ativa	tinyint(1)	YES	1		
+task_recurrences	created_at	datetime	YES	current_timestamp()		
+task_reminders	id	int(11)	NO	NULL	PRI	auto_increment
+task_reminders	task_id	int(11)	NO	NULL	MUL	
+task_reminders	user_id	int(11)	NO	NULL	MUL	
+task_reminders	lembrar_em	datetime	NO	NULL		
+task_reminders	canal	enum('sistema','whatsapp','email')	YES	'sistema'		
+task_reminders	enviado	tinyint(1)	YES	0	MUL	
+task_reminders	enviado_em	datetime	YES	NULL		
+task_reminders	created_at	datetime	YES	current_timestamp()		
+task_time_entries	id	int(11)	NO	NULL	PRI	auto_increment
+task_time_entries	task_id	int(11)	NO	NULL	MUL	
+task_time_entries	user_id	int(11)	NO	NULL	MUL	
+task_time_entries	inicio	datetime	NO	NULL		
+task_time_entries	fim	datetime	YES	NULL		
+task_time_entries	duracao_minutos	int(11)	YES	NULL		
+task_time_entries	valor_hora	decimal(10,2)	YES	NULL		
+task_time_entries	descricao	varchar(500)	YES	NULL		
+task_time_entries	created_at	datetime	YES	current_timestamp()		
+taxes	id	int(11)	NO	NULL	PRI	auto_increment
+taxes	account_id	int(11)	YES	NULL	MUL	
+taxes	nome	varchar(100)	NO	''		
+taxes	percentual	decimal(7,4)	NO	0.0000		
+taxes	ativo	tinyint(1)	NO	1		
+taxes	created_at	datetime	YES	current_timestamp()		
+taxes	updated_at	datetime	YES	current_timestamp()		on update current_timestamp()
+teams	id	int(11)	NO	NULL	PRI	auto_increment
+teams	account_id	int(11)	NO	NULL	MUL	
+teams	nome	varchar(100)	NO	NULL		
+teams	cor	varchar(7)	NO	'#3B82F6'		
+teams	descricao	varchar(255)	YES	NULL		
+teams	created_at	timestamp	NO	current_timestamp()		
+teams	updated_at	timestamp	NO	current_timestamp()		on update current_timestamp()
+teams	deleted_at	timestamp	YES	NULL		
+team_members	id	int(11)	NO	NULL	PRI	auto_increment
+team_members	team_id	int(11)	NO	NULL	MUL	
+team_members	user_id	int(11)	NO	NULL	MUL	
+team_members	created_at	timestamp	NO	current_timestamp()		
+users	id	int(11)	NO	NULL	PRI	auto_increment
+users	account_id	int(11)	YES	NULL	MUL	
+users	nome	varchar(191)	NO	NULL		
+users	login	varchar(100)	NO	NULL	UNI	
+users	codigo_vinculo	varchar(19)	YES	NULL	UNI	
+users	senha_hash	varchar(255)	NO	NULL		
+users	perfil	enum('admin','user')	NO	'user'		
+users	role	varchar(50)	NO	'user'	MUL	
+users	status	varchar(20)	NO	'active'		
+users	created_at	datetime	YES	current_timestamp()		
+users	updated_at	datetime	YES	current_timestamp()		on update current_timestamp()
+users	deleted_at	datetime	YES	NULL		
+users	senha_texto	varchar(255)	YES	NULL		
+users	codigo_advogado	varchar(20)	YES	NULL	UNI	
+user_permissions	id	int(11)	NO	NULL	PRI	auto_increment
+user_permissions	user_id	int(11)	NO	NULL	MUL	
+user_permissions	page	varchar(100)	NO	NULL		
+webhooks	id	int(11)	NO	NULL	PRI	auto_increment
+webhooks	account_id	int(11)	YES	NULL	MUL	
+webhooks	nome	varchar(191)	NO	NULL		
+webhooks	url	varchar(500)	NO	NULL		
+webhooks	secret	varchar(255)	YES	NULL		
+webhooks	eventos	longtext	YES	NULL		
+webhooks	ativo	tinyint(1)	YES	1		
+webhooks	created_at	datetime	YES	current_timestamp()		
+webhooks	updated_at	datetime	YES	current_timestamp()		on update current_timestamp()
+webhooks	deleted_at	datetime	YES	NULL		
+webhook_logs	id	int(11)	NO	NULL	PRI	auto_increment
+webhook_logs	webhook_id	int(11)	YES	NULL		
+webhook_logs	event_key	varchar(100)	NO	NULL		
+webhook_logs	payload	longtext	YES	NULL		
+webhook_logs	response_status	int(11)	YES	NULL		
+webhook_logs	response_body	text	YES	NULL		
+webhook_logs	duration_ms	int(11)	YES	NULL		
+webhook_logs	success	tinyint(1)	YES	0		
+webhook_logs	created_at	datetime	YES	current_timestamp()		
+whatsapp_chats	id	int(11)	NO	NULL	PRI	auto_increment
+whatsapp_chats	instance_id	int(11)	NO	NULL	MUL	
+whatsapp_chats	remote_jid	varchar(120)	NO	NULL		
+whatsapp_chats	contact_name	varchar(255)	YES	NULL		
+whatsapp_chats	phone	varchar(30)	YES	NULL		
+whatsapp_chats	profile_pic_url	text	YES	NULL		
+whatsapp_chats	last_message_content	text	YES	NULL		
+whatsapp_chats	last_message_type	varchar(30)	YES	NULL		
+whatsapp_chats	last_message_at	timestamp	YES	NULL		
+whatsapp_chats	last_message_from_me	tinyint(1)	YES	0		
+whatsapp_chats	unread_count	int(11)	YES	0		
+whatsapp_chats	is_pinned	tinyint(1)	YES	0		
+whatsapp_chats	is_archived	tinyint(1)	YES	0		
+whatsapp_chats	is_group	tinyint(1)	YES	0		
+whatsapp_chats	linked_card_id	int(11)	YES	NULL		
+whatsapp_chats	linked_processo_id	int(11)	YES	NULL		
+whatsapp_chats	linked_user_id	int(11)	YES	NULL		
+whatsapp_chats	created_at	timestamp	NO	current_timestamp()		
+whatsapp_chats	updated_at	timestamp	NO	current_timestamp()		on update current_timestamp()
+whatsapp_chats	contato_id	int(11)	YES	NULL		
+whatsapp_chats	team_id	int(11)	YES	NULL	MUL	
+whatsapp_chat_processos	id	int(11)	NO	NULL	PRI	auto_increment
+whatsapp_chat_processos	instance_id	int(11)	NO	NULL	MUL	
+whatsapp_chat_processos	remote_jid	varchar(120)	NO	NULL		
+whatsapp_chat_processos	processo_id	int(11)	NO	NULL		
+whatsapp_chat_processos	created_at	timestamp	NO	current_timestamp()		
+whatsapp_contacts	id	int(11)	NO	NULL	PRI	auto_increment
+whatsapp_contacts	instance_id	int(11)	NO	NULL	MUL	
+whatsapp_contacts	remote_jid	varchar(120)	NO	NULL		
+whatsapp_contacts	push_name	varchar(255)	YES	NULL		
+whatsapp_contacts	phone	varchar(30)	YES	NULL		
+whatsapp_contacts	profile_pic_url	text	YES	NULL		
+whatsapp_contacts	is_group	tinyint(1)	YES	0		
+whatsapp_contacts	is_favorite	tinyint(1)	YES	0		
+whatsapp_contacts	linked_card_id	int(11)	YES	NULL		
+whatsapp_contacts	linked_processo_id	int(11)	YES	NULL		
+whatsapp_contacts	linked_user_id	int(11)	YES	NULL		
+whatsapp_contacts	created_at	timestamp	NO	current_timestamp()		
+whatsapp_contacts	updated_at	timestamp	NO	current_timestamp()		on update current_timestamp()
+whatsapp_instances	id	int(11)	NO	NULL	PRI	auto_increment
+whatsapp_instances	account_id	int(11)	YES	NULL	MUL	
+whatsapp_instances	instance_name	varchar(100)	NO	NULL	UNI	
+whatsapp_instances	display_name	varchar(150)	YES	NULL		
+whatsapp_instances	status	enum('open','close','connecting','qr')	YES	'close'		
+whatsapp_instances	phone	varchar(30)	YES	NULL		
+whatsapp_instances	profile_name	varchar(150)	YES	NULL		
+whatsapp_instances	profile_pic_url	text	YES	NULL		
+whatsapp_instances	qr_code_base64	mediumtext	YES	NULL		
+whatsapp_instances	evolution_token	varchar(255)	YES	NULL		
+whatsapp_instances	webhook_url	text	YES	NULL		
+whatsapp_instances	created_at	timestamp	NO	current_timestamp()		
+whatsapp_instances	updated_at	timestamp	NO	current_timestamp()		on update current_timestamp()
+whatsapp_messages	id	int(11)	NO	NULL	PRI	auto_increment
+whatsapp_messages	instance_id	int(11)	NO	NULL	MUL	
+whatsapp_messages	wamid	varchar(120)	YES	NULL	MUL	
+whatsapp_messages	remote_jid	varchar(120)	NO	NULL		
+whatsapp_messages	contact_name	varchar(255)	YES	NULL		
+whatsapp_messages	phone	varchar(30)	YES	NULL		
+whatsapp_messages	message_type	varchar(30)	NO	'text'		
+whatsapp_messages	message_content	text	YES	NULL		
+whatsapp_messages	caption	text	YES	NULL		
+whatsapp_messages	media_url	text	YES	NULL		
+whatsapp_messages	media_mimetype	varchar(100)	YES	NULL		
+whatsapp_messages	media_filename	varchar(255)	YES	NULL		
+whatsapp_messages	media_base64	mediumtext	YES	NULL		
+whatsapp_messages	direction	enum('inbound','outbound')	NO	'inbound'		
+whatsapp_messages	status	enum('pending','sent','delivered','read','failed')	YES	'pending'		
+whatsapp_messages	quoted_wamid	varchar(120)	YES	NULL		
+whatsapp_messages	raw_payload	mediumtext	YES	NULL		
+whatsapp_messages	created_at	timestamp	NO	current_timestamp()	MUL	
+whatsapp_messages	updated_at	timestamp	NO	current_timestamp()		on update current_timestamp()
+whatsapp_settings	id	int(11)	NO	NULL	PRI	auto_increment
+whatsapp_settings	account_id	int(11)	YES	NULL	MUL	
+whatsapp_settings	config_key	varchar(80)	NO	NULL	UNI	
+whatsapp_settings	config_value	text	YES	NULL		
+whatsapp_settings	updated_at	timestamp	NO	current_timestamp()		on update current_timestamp()

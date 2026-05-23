@@ -12,33 +12,77 @@ class WhatsAppInstance
         $this->db = Database::getConnection();
     }
 
-    public function listAll(): array
+    /**
+     * Lista instâncias visíveis para o tenant.
+     * @param int[]|null $accountIds quando informado, escopa por account_id IN (...)
+     */
+    public function listAll(?array $accountIds = null): array
     {
-        $stmt = $this->db->query(
-            'SELECT * FROM whatsapp_instances ORDER BY created_at DESC'
-        );
+        if ($accountIds === null) {
+            $stmt = $this->db->query('SELECT * FROM whatsapp_instances ORDER BY created_at DESC');
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+        $ids = array_values(array_filter(array_map('intval', $accountIds), fn($v) => $v > 0));
+        if (empty($ids)) return [];
+        $ph = []; $params = [];
+        foreach ($ids as $i => $aid) { $k = "wacc_{$i}"; $ph[] = ":{$k}"; $params[$k] = (int)$aid; }
+        $sql = 'SELECT * FROM whatsapp_instances WHERE account_id IN (' . implode(',', $ph) . ') ORDER BY created_at DESC';
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function find(int $id): array|false
+    public function find(int $id, ?array $accountIds = null): array|false
     {
-        $stmt = $this->db->prepare('SELECT * FROM whatsapp_instances WHERE id = ?');
-        $stmt->execute([$id]);
+        if ($accountIds === null) {
+            $stmt = $this->db->prepare('SELECT * FROM whatsapp_instances WHERE id = ?');
+            $stmt->execute([$id]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+        $ids = array_values(array_filter(array_map('intval', $accountIds), fn($v) => $v > 0));
+        if (empty($ids)) return false;
+        $ph = []; $params = ['id' => $id];
+        foreach ($ids as $i => $aid) { $k = "wfa_{$i}"; $ph[] = ":{$k}"; $params[$k] = (int)$aid; }
+        $stmt = $this->db->prepare('SELECT * FROM whatsapp_instances WHERE id = :id AND account_id IN (' . implode(',', $ph) . ')');
+        $stmt->execute($params);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function findByName(string $name): array|false
+    public function findByName(string $name, ?array $accountIds = null): array|false
     {
-        $stmt = $this->db->prepare('SELECT * FROM whatsapp_instances WHERE instance_name = ?');
-        $stmt->execute([$name]);
+        if ($accountIds === null) {
+            $stmt = $this->db->prepare('SELECT * FROM whatsapp_instances WHERE instance_name = ?');
+            $stmt->execute([$name]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+        $ids = array_values(array_filter(array_map('intval', $accountIds), fn($v) => $v > 0));
+        if (empty($ids)) return false;
+        $ph = []; $params = ['name' => $name];
+        foreach ($ids as $i => $aid) { $k = "wfb_{$i}"; $ph[] = ":{$k}"; $params[$k] = (int)$aid; }
+        $stmt = $this->db->prepare('SELECT * FROM whatsapp_instances WHERE instance_name = :name AND account_id IN (' . implode(',', $ph) . ')');
+        $stmt->execute($params);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function findOrCreate(string $name, string $displayName = ''): array
+    /**
+     * Idempotente: se a instância com $name existir DENTRO do tenant, retorna; senão cria.
+     * @param int|null $accountId obrigatório em ambientes multi-tenant (NULL apenas para legado/single-tenant)
+     */
+    public function findOrCreate(string $name, string $displayName = '', ?int $accountId = null): array
     {
+        if ($accountId !== null) {
+            $row = $this->findByName($name, [$accountId]);
+            if ($row) return $row;
+            $stmt = $this->db->prepare(
+                'INSERT INTO whatsapp_instances (account_id, instance_name, display_name, status)
+                 VALUES (?, ?, ?, "close")'
+            );
+            $stmt->execute([$accountId, $name, $displayName ?: $name]);
+            return $this->find((int)$this->db->lastInsertId());
+        }
+        // Caminho legado: comportamento original (sem tenant)
         $row = $this->findByName($name);
         if ($row) return $row;
-
         $stmt = $this->db->prepare(
             'INSERT INTO whatsapp_instances (instance_name, display_name, status)
              VALUES (?, ?, "close")'

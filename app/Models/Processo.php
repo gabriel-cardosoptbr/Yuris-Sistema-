@@ -9,13 +9,17 @@ class Processo
      * Lista processos do tenant.
      * SEGURANÇA: account_id é obrigatório — sem ele retorna vazio.
      * Inclui processos compartilhados via resource_shares.
+     *
+     * Aceita:
+     *   - $filters['account_ids']  array de ints — sessões matriz passam matriz + filiais
+     *   - $filters['account_id']   int legado — convertido em [account_id]
      */
     public static function list($filters = [])
     {
         $pdo = Database::getConnection();
 
-        $accountId = $filters['account_id'] ?? null;
-        if (!$accountId) return [];
+        $accountIds = self::_normalizeAccountIds($filters);
+        if (empty($accountIds)) return [];
 
         // tenta com account_id; se coluna não existir (single-tenant) retira o filtro
         $hasAccountCol = true;
@@ -26,25 +30,39 @@ class Processo
         }
 
         if ($hasAccountCol) {
-            $sql = 'SELECT p.*, t.nome AS setor_nome,
+            $inOwn   = self::_buildInClause($accountIds, 'pown');
+            $inShare = self::_buildInClause($accountIds, 'pshr');
+            $userId  = isset($filters['user_id']) ? (int)$filters['user_id'] : 0;
+            $userClause = $userId > 0 ? ' OR rs.to_user_id = :puid' : '';
+            // Inclui origem (account_nome/tipo) via LEFT JOIN com accounts
+            // → permite renderizar selo "MATRIZ" / "FILIAL — Nome" no card sem fetch extra.
+            $sql = "SELECT p.*, t.nome AS setor_nome,
+                    a.nome AS origin_account_nome,
+                    a.tipo AS origin_account_tipo,
+                    p.account_id AS origin_account_id,
                     (SELECT COUNT(*) FROM processo_tarefas pt WHERE pt.processo_id = p.id) AS tarefas_total,
                     (SELECT COUNT(*) FROM processo_tarefas pt WHERE pt.processo_id = p.id AND pt.concluido = 1) AS tarefas_feitas
                     FROM processos p
                     LEFT JOIN teams t ON t.id = p.setor_id AND t.deleted_at IS NULL
+                    LEFT JOIN accounts a ON a.id = p.account_id
                     WHERE p.deleted_at IS NULL
                       AND (
-                        p.account_id = :account_id
+                        p.account_id IN ({$inOwn['placeholders']})
                         OR EXISTS (
                           SELECT 1 FROM resource_shares rs
-                          WHERE rs.resource_type = "processo"
+                          WHERE rs.resource_type = 'processo'
                             AND rs.resource_id   = p.id
-                            AND rs.status        = "active"
-                            AND (rs.to_account_id = :account_id2 OR rs.to_account_id IS NULL)
+                            AND rs.status        = 'active'
+                            AND (rs.to_account_id IN ({$inShare['placeholders']}) OR rs.to_account_id IS NULL{$userClause})
                         )
-                      )';
-            $params = ['account_id' => $accountId, 'account_id2' => $accountId];
+                      )";
+            $params = $inOwn['params'] + $inShare['params'];
+            if ($userId > 0) $params['puid'] = $userId;
         } else {
             $sql    = 'SELECT p.*, t.nome AS setor_nome,
+                       NULL AS origin_account_nome,
+                       NULL AS origin_account_tipo,
+                       p.account_id AS origin_account_id,
                        (SELECT COUNT(*) FROM processo_tarefas pt WHERE pt.processo_id = p.id) AS tarefas_total,
                        (SELECT COUNT(*) FROM processo_tarefas pt WHERE pt.processo_id = p.id AND pt.concluido = 1) AS tarefas_feitas
                        FROM processos p
@@ -83,10 +101,16 @@ class Processo
     public static function find($id)
     {
         $pdo = Database::getConnection();
+        // p.* já inclui account_seq automaticamente.
+        // accounts JOIN devolve origem (matriz / filial — Nome) para selo visual.
         $stmt = $pdo->prepare(
-            'SELECT p.*, t.nome AS setor_nome
+            'SELECT p.*, t.nome AS setor_nome,
+                    a.nome AS origin_account_nome,
+                    a.tipo AS origin_account_tipo,
+                    p.account_id AS origin_account_id
              FROM processos p
              LEFT JOIN teams t ON t.id = p.setor_id AND t.deleted_at IS NULL
+             LEFT JOIN accounts a ON a.id = p.account_id
              WHERE p.id = :id LIMIT 1'
         );
         $stmt->execute(['id' => $id]);
@@ -109,20 +133,29 @@ class Processo
             throw new \InvalidArgumentException('account_id é obrigatório para criar um processo');
         }
 
+        // account_seq: número sequencial DENTRO da conta. Gerado uma vez e nunca reutilizado.
+        // Usa MAX(account_seq)+1 para garantir continuidade mesmo se houver deleções.
+        $seqStmt = $pdo->prepare(
+            'SELECT COALESCE(MAX(account_seq), 0) + 1 FROM processos WHERE account_id = :acc'
+        );
+        $seqStmt->execute(['acc' => (int)$data['account_id']]);
+        $accountSeq = (int) $seqStmt->fetchColumn();
+
         $stmt = $pdo->prepare(
             'INSERT INTO processos
-             (account_id, numero, cliente_nome, parte_contraria, cpf_cnpj_parte_contraria, setor_id, vara_comarca,
+             (account_id, account_seq, numero, cliente_nome, parte_contraria, cpf_cnpj_parte_contraria, setor_id, vara_comarca,
               responsavel_user_id, status, data_inicio, proximo_prazo,
               ultima_movimentacao, observacoes, anexos, alerts, card_id, contato_id,
               created_at, updated_at)
              VALUES
-             (:account_id, :numero, :cliente_nome, :parte_contraria, :cpf_cnpj_parte_contraria, :setor_id, :vara_comarca,
+             (:account_id, :account_seq, :numero, :cliente_nome, :parte_contraria, :cpf_cnpj_parte_contraria, :setor_id, :vara_comarca,
               :responsavel_user_id, :status, :data_inicio, :proximo_prazo,
               :ultima_movimentacao, :observacoes, :anexos, :alerts, :card_id, :contato_id,
               NOW(), NOW())'
         );
         $stmt->execute([
             'account_id'           => $data['account_id'],
+            'account_seq'          => $accountSeq,
             'numero'               => $data['numero']               ?? null,
             'cliente_nome'         => $data['cliente_nome']         ?? null,
             'parte_contraria'           => $data['parte_contraria']           ?? null,
@@ -131,9 +164,12 @@ class Processo
             'vara_comarca'         => $data['vara_comarca']         ?? null,
             'responsavel_user_id'  => $data['responsavel_user_id']  ?? null,
             'status'               => $data['status']               ?? 'ativo',
-            'data_inicio'          => $data['data_inicio']          ?? null,
-            'proximo_prazo'        => $data['proximo_prazo']        ?? null,
-            'ultima_movimentacao'  => $data['ultima_movimentacao']  ?? null,
+            // Datas: normaliza "" e "0000-00-00" para NULL (evita lixo no banco).
+            // data_inicio: se vier vazio, assume HOJE (data de abertura do processo no escritório).
+            // proximo_prazo / ultima_movimentacao: permanecem NULL se não informados.
+            'data_inicio'          => self::_normalizeDate($data['data_inicio'] ?? null) ?? date('Y-m-d'),
+            'proximo_prazo'        => self::_normalizeDate($data['proximo_prazo']        ?? null),
+            'ultima_movimentacao'  => self::_normalizeDate($data['ultima_movimentacao']  ?? null),
             'observacoes'          => $data['observacoes']          ?? null,
             'anexos'               => isset($data['anexos'])  ? json_encode($data['anexos'],  JSON_UNESCAPED_UNICODE) : null,
             'alerts'               => isset($data['alerts'])  ? json_encode($data['alerts'],  JSON_UNESCAPED_UNICODE) : null,
@@ -149,11 +185,15 @@ class Processo
         $fields = [];
         $params = ['id' => $id];
         $allowed = ['numero','cliente_nome','parte_contraria','cpf_cnpj_parte_contraria','setor_id','vara_comarca','responsavel_user_id','status','data_inicio','proximo_prazo','ultima_movimentacao','observacoes','anexos','alerts','card_id','contato_id'];
+        $dateCols = ['data_inicio','proximo_prazo','ultima_movimentacao'];
         foreach ($allowed as $k) {
             if (array_key_exists($k, $data)) {
                 $fields[] = "$k = :$k";
                 if (in_array($k, ['anexos','alerts'])) {
                     $params[$k] = $data[$k] !== null ? json_encode($data[$k], JSON_UNESCAPED_UNICODE) : null;
+                } elseif (in_array($k, $dateCols, true)) {
+                    // Normaliza datas: "" e "0000-00-00" viram NULL
+                    $params[$k] = self::_normalizeDate($data[$k]);
                 } else {
                     $params[$k] = $data[$k];
                 }
@@ -183,5 +223,45 @@ class Processo
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('UPDATE processos SET deleted_at = NOW() WHERE id = :id');
         return $stmt->execute(['id' => $id]);
+    }
+
+    // ───────── helpers ──────────────────────────────────────────────
+
+    /**
+     * Normaliza valores de data vindos do frontend.
+     * Trata "", "0000-00-00", "0000-00-00 00:00:00" como NULL.
+     * Mantém o valor original em qualquer outro caso (validação fica a cargo do banco).
+     */
+    private static function _normalizeDate($v)
+    {
+        if ($v === null) return null;
+        if (!is_string($v)) return $v;
+        $v = trim($v);
+        if ($v === '' || $v === '0000-00-00' || $v === '0000-00-00 00:00:00') return null;
+        return $v;
+    }
+
+    // ───────── helpers de multi-tenant ──────────────────────────────
+    private static function _normalizeAccountIds(array $filters): array
+    {
+        if (!empty($filters['account_ids']) && is_array($filters['account_ids'])) {
+            return array_values(array_filter(array_map('intval', $filters['account_ids']), fn($v) => $v > 0));
+        }
+        if (!empty($filters['account_id'])) {
+            return [(int) $filters['account_id']];
+        }
+        return [];
+    }
+
+    private static function _buildInClause(array $ids, string $prefix): array
+    {
+        $ph     = [];
+        $params = [];
+        foreach ($ids as $i => $id) {
+            $k          = "{$prefix}_{$i}";
+            $ph[]       = ":{$k}";
+            $params[$k] = (int) $id;
+        }
+        return ['placeholders' => implode(',', $ph), 'params' => $params];
     }
 }

@@ -33,8 +33,15 @@ try {
     $method     = $_SERVER['REQUEST_METHOD'];
     $cfg        = $instModel->getSettings();
     $instName   = $cfg['evolution_instance'] ?? 'yuris-crm';
-    $row        = $instModel->findOrCreate($instName);
+    $row        = $instModel->findOrCreate($instName, '', $accountId);
     $instanceId = (int)$row['id'];
+
+    // Validação extra: garante isolamento por tenant
+    if ((int)($row['account_id'] ?? 0) !== $accountId) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Instância WhatsApp não pertence a esta conta']);
+        exit;
+    }
 
     if ($method === 'GET') {
         $search = trim($_GET['search'] ?? '');

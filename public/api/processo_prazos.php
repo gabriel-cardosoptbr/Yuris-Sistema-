@@ -1,18 +1,21 @@
 <?php
 require_once __DIR__ . '/../../app/Models/Database.php';
+require_once __DIR__ . '/../../app/Models/Account.php';
+require_once __DIR__ . '/../../app/Models/ResourceShare.php';
+require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
 require_once __DIR__ . '/../../app/Services/WebhookDispatcher.php';
+
+use App\Models\Database;
+use App\Helpers\AccountContext;
+use App\Helpers\TenantGuard;
+use App\Services\WebhookDispatcher;
+
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
-if (empty($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized']);
-    exit;
-}
-
-use App\Models\Database;
-use App\Services\WebhookDispatcher;
+$ctx = AccountContext::fromSession();
 
 $pdo = Database::getConnection();
 
@@ -53,6 +56,7 @@ try {
             echo json_encode(['error' => 'Missing processo_id']);
             exit;
         }
+        TenantGuard::assertProcessoAcessivel($ctx, $processoId);
 
         // Auto-atualiza status para 'vencido' quando data_limite < CURDATE()
         $pdo->prepare(
@@ -78,6 +82,7 @@ try {
             echo json_encode(['error' => 'Missing required fields']);
             exit;
         }
+        TenantGuard::assertProcessoAcessivel($ctx, $processoId);
 
         $stmt = $pdo->prepare(
             "INSERT INTO processo_prazos (processo_id, descricao, data_limite, responsavel, prioridade, observacao)
@@ -123,6 +128,8 @@ try {
         $prevPrazo = $pdo->prepare("SELECT * FROM processo_prazos WHERE id = :id LIMIT 1");
         $prevPrazo->execute(['id' => $id]);
         $prevPrazo = $prevPrazo->fetch(PDO::FETCH_ASSOC);
+        if (!$prevPrazo) { http_response_code(404); echo json_encode(['error' => 'Prazo não encontrado']); exit; }
+        TenantGuard::assertProcessoAcessivel($ctx, (int)$prevPrazo['processo_id']);
 
         $allowed = ['status', 'descricao', 'data_limite'];
         $fields = [];
@@ -141,6 +148,39 @@ try {
 
         $sql = "UPDATE processo_prazos SET " . implode(', ', $fields) . " WHERE id = :id";
         $pdo->prepare($sql)->execute($params);
+
+        // Auditoria server-side: detalhes do que mudou neste prazo
+        $auditPid = (int)$prevPrazo['processo_id'];
+        if (isset($input['status']) && $input['status'] !== $prevPrazo['status']) {
+            $acao = $input['status'] === 'concluido' ? 'Prazo concluído' : 'Prazo atualizado';
+            $pdo->prepare(
+                "INSERT INTO processo_history (processo_id, user_email, acao, descricao)
+                 VALUES (:pid, :email, :acao, :desc)"
+            )->execute([
+                'pid' => $auditPid, 'email' => $userEmail, 'acao' => $acao,
+                'desc' => "{$acao}: {$prevPrazo['descricao']} (de '{$prevPrazo['status']}' para '{$input['status']}')",
+            ]);
+        }
+        if (isset($input['descricao']) && $input['descricao'] !== $prevPrazo['descricao']) {
+            $pdo->prepare(
+                "INSERT INTO processo_history (processo_id, user_email, acao, descricao)
+                 VALUES (:pid, :email, 'Prazo editado', :desc)"
+            )->execute([
+                'pid' => $auditPid, 'email' => $userEmail,
+                'desc' => "Prazo renomeado: '{$prevPrazo['descricao']}' → '{$input['descricao']}'",
+            ]);
+        }
+        if (isset($input['data_limite']) && $input['data_limite'] !== $prevPrazo['data_limite']) {
+            $pdo->prepare(
+                "INSERT INTO processo_history (processo_id, user_email, acao, descricao)
+                 VALUES (:pid, :email, 'Prazo editado', :desc)"
+            )->execute([
+                'pid' => $auditPid, 'email' => $userEmail,
+                'desc' => "Data do prazo '{$prevPrazo['descricao']}': "
+                        . ($prevPrazo['data_limite'] ?: '∅') . ' → '
+                        . ($input['data_limite'] ?: '∅'),
+            ]);
+        }
 
         $eventKey = (isset($input['status']) && $input['status'] === 'concluido')
             ? 'processo.prazo_completed' : 'processo.prazo_updated';
@@ -165,7 +205,25 @@ try {
             exit;
         }
 
+        // Valida tenant antes de deletar
+        $row = $pdo->prepare("SELECT processo_id, descricao FROM processo_prazos WHERE id = :id LIMIT 1");
+        $row->execute(['id' => $id]);
+        $prazoInfo = $row->fetch(PDO::FETCH_ASSOC);
+        $procId   = (int)($prazoInfo['processo_id'] ?? 0);
+        $prazoDesc = (string)($prazoInfo['descricao'] ?? '');
+        if ($procId) TenantGuard::assertProcessoAcessivel($ctx, $procId);
+
         $pdo->prepare("DELETE FROM processo_prazos WHERE id = :id")->execute(['id' => $id]);
+        // Auditoria server-side: registra exclusão
+        if ($procId) {
+            $pdo->prepare(
+                "INSERT INTO processo_history (processo_id, user_email, acao, descricao)
+                 VALUES (:pid, :email, 'Prazo excluído', :desc)"
+            )->execute([
+                'pid' => $procId, 'email' => $userEmail,
+                'desc' => "Prazo removido: {$prazoDesc}",
+            ]);
+        }
         echo json_encode(['success' => true]);
         exit;
     }

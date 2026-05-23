@@ -1,18 +1,31 @@
 <?php
 require_once __DIR__ . '/../../app/Models/Database.php';
+require_once __DIR__ . '/../../app/Models/Account.php';
+require_once __DIR__ . '/../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../app/Models/CardChecklist.php';
 require_once __DIR__ . '/../../app/Models/Card.php';
+require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
 
 use App\Models\CardChecklist;
 use App\Models\Card;
+use App\Helpers\AccountContext;
+use App\Helpers\TenantGuard;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 
-if (empty($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized']);
-    exit;
+$ctx = AccountContext::fromSession();
+
+// Helper: descobre card_id de um checklist_item e valida tenant
+function cc_assertItemTenant(\App\Helpers\AccountContext $ctx, int $checklistId): int {
+    $pdo = \App\Models\Database::getConnection();
+    $stmt = $pdo->prepare('SELECT card_id FROM card_checklist_items WHERE id = ? LIMIT 1');
+    $stmt->execute([$checklistId]);
+    $cid = (int)($stmt->fetchColumn() ?: 0);
+    if (!$cid) { http_response_code(404); echo json_encode(['error' => 'Item não encontrado']); exit; }
+    \App\Helpers\TenantGuard::assertCardAcessivel($ctx, $cid);
+    return $cid;
 }
 
 $method = $_SERVER['REQUEST_METHOD'];
@@ -31,6 +44,7 @@ if (in_array($method, ['POST','PATCH','DELETE'])) {
 if ($method === 'GET') {
     $card_id = isset($_GET['card_id']) ? (int)$_GET['card_id'] : null;
     if (!$card_id) { echo json_encode(['data'=>[]]); exit; }
+    TenantGuard::assertCardAcessivel($ctx, $card_id);
     $items = CardChecklist::listByCard($card_id);
     echo json_encode(['data'=>$items]);
     exit;
@@ -40,6 +54,7 @@ if ($method === 'POST') {
     $card_id = isset($input['card_id']) ? (int)$input['card_id'] : 0;
     $descricao = trim($input['descricao'] ?? '');
     if (!$card_id || $descricao === '') { http_response_code(400); echo json_encode(['error'=>'Missing data']); exit; }
+    TenantGuard::assertCardAcessivel($ctx, $card_id);
     $id = CardChecklist::create($card_id, $descricao, $_SESSION['user_id']);
     // log history entry
     $pdo = \App\Models\Database::getConnection();
@@ -60,6 +75,7 @@ if ($method === 'PATCH') {
             echo json_encode(['error' => 'Missing card_id']);
             exit;
         }
+        TenantGuard::assertCardAcessivel($ctx, $card_id);
         $ok = CardChecklist::updateOrders($card_id, $input['reorder']);
         if ($ok) {
             $h = \App\Models\Database::getConnection()->prepare('INSERT INTO card_history (card_id, usuario_id, acao, campo_alterado, valor_anterior, valor_novo, created_at) VALUES (:card_id, :usuario_id, :acao, :campo_alterado, :valor_anterior, :valor_novo, NOW())');
@@ -78,6 +94,7 @@ if ($method === 'PATCH') {
 
     $id = isset($input['id']) ? (int)$input['id'] : 0;
     if (!$id) { http_response_code(400); echo json_encode(['error'=>'Missing id']); exit; }
+    cc_assertItemTenant($ctx, $id);
     // support two PATCH operations: toggle mark or update descricao
     // if descricao provided -> update text
     if (isset($input['descricao'])) {
@@ -120,6 +137,7 @@ if ($method === 'PATCH') {
 if ($method === 'DELETE') {
     $id = isset($input['id']) ? (int)$input['id'] : ($_GET['id'] ?? 0);
     if (!$id) { http_response_code(400); echo json_encode(['error'=>'Missing id']); exit; }
+    cc_assertItemTenant($ctx, (int)$id);
     // find card_id before delete
     $pdo = \App\Models\Database::getConnection();
     $r = $pdo->prepare('SELECT card_id, titulo AS descricao FROM card_checklist_items WHERE id = :id LIMIT 1');

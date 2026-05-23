@@ -35,8 +35,11 @@ if ($method === 'GET') {
         echo json_encode(['data' => $card]);
         exit;
     }
-    // listagem — sempre filtra por tenant (inclui cards compartilhados)
-    $filters = ['account_id' => $accountId];  // OBRIGATÓRIO
+    // listagem — sempre filtra por tenant (inclui cards das filiais vinculadas se matriz, e cards compartilhados)
+    $filters = [
+        'account_ids' => $ctx->getAccessibleAccountIds('prospeccao'),
+        'user_id'     => $ctx->getUserId(),
+    ];
     if (isset($_GET['coluna_id']))           $filters['coluna_id']            = (int)$_GET['coluna_id'];
     if (isset($_GET['responsavel_user_id'])) $filters['responsavel_user_id']  = (int)$_GET['responsavel_user_id'];
     if (isset($_GET['status']))              $filters['status']               = $_GET['status'];
@@ -59,6 +62,49 @@ if ($method === 'POST') {
     // create — injeta account_id da sessão (NUNCA do body)
     $data = $input;
     $data['account_id'] = $accountId;  // tenant ownership definido server-side
+
+    // Pipeline efetivo (Opção 2): filial vinculada usa colunas da matriz.
+    $pipelineAccountId = $ctx->getPipelineAccountId();
+
+    // ── Trava: pipeline precisa ter pelo menos uma coluna pra receber o lead ──
+    // (Antes era possível criar card com coluna_id NULL — o lead sumia da UI.)
+    $pdoChk = Database::getConnection();
+    $colCount = (int) $pdoChk->query(
+        "SELECT COUNT(*) FROM pipeline_columns WHERE account_id = " . (int)$pipelineAccountId
+    )->fetchColumn();
+    if ($colCount === 0) {
+        http_response_code(409);
+        $msg = $pipelineAccountId === $accountId
+            ? 'Crie pelo menos uma coluna no pipeline antes de cadastrar um lead.'
+            : 'A matriz ainda não definiu colunas no pipeline. Solicite ao admin da matriz.';
+        echo json_encode([
+            'error'   => $msg,
+            'code'    => 'no_pipeline_columns',
+            'hint'    => 'Use o botão "Alterar Colunas" para criar a primeira etapa.'
+        ]);
+        exit;
+    }
+
+    // Se coluna_id foi enviado, valida que pertence ao PIPELINE EFETIVO (não ao próprio tenant).
+    if (!empty($data['coluna_id'])) {
+        $stmtCol = $pdoChk->prepare(
+            "SELECT id FROM pipeline_columns WHERE id = :cid AND account_id = :acc LIMIT 1"
+        );
+        $stmtCol->execute(['cid' => (int)$data['coluna_id'], 'acc' => $pipelineAccountId]);
+        if (!$stmtCol->fetchColumn()) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Coluna inválida para este pipeline.', 'code' => 'invalid_column']);
+            exit;
+        }
+    } else {
+        // Fallback: usa primeira coluna do pipeline efetivo (em vez de gravar NULL)
+        $firstCol = $pdoChk->prepare(
+            "SELECT id FROM pipeline_columns WHERE account_id = :acc ORDER BY ordem ASC, id ASC LIMIT 1"
+        );
+        $firstCol->execute(['acc' => $pipelineAccountId]);
+        $data['coluna_id'] = (int) $firstCol->fetchColumn();
+    }
+
     // normalize numeric fields
     $data['valor_estimado']      = isset($data['valor_estimado'])      ? normalize_money($data['valor_estimado'])      : 0;
     $data['valor_proposta']      = isset($data['valor_proposta'])      ? normalize_money($data['valor_proposta'])      : 0;

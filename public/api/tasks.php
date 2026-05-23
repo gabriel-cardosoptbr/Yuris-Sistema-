@@ -6,6 +6,8 @@ require_once __DIR__ . '/../../app/Models/TaskRecurrence.php';
 require_once __DIR__ . '/../../app/Models/TaskLink.php';
 require_once __DIR__ . '/../../app/Models/Task.php';
 require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Helpers/ProcessoAudit.php';
+require_once __DIR__ . '/../../app/Helpers/TaskAudit.php';
 require_once __DIR__ . '/../../app/Services/RecurrenceCronService.php';
 
 use App\Models\Task;
@@ -13,6 +15,7 @@ use App\Models\TaskBoard;
 use App\Models\TaskColumn;
 use App\Models\TaskRecurrence;
 use App\Helpers\AccountContext;
+use App\Helpers\TaskAudit;
 
 session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');
@@ -79,6 +82,13 @@ if ($method === 'POST') {
         $task = Task::findById((int)($input['id'] ?? 0));
         if (!$task || !TaskBoard::canView((int)$task['board_id'], $userId)) fail('Não encontrado', 404);
         Task::move((int)$task['id'], (int)$input['column_id'], (int)($input['ordem'] ?? 0), $userId);
+        // Propaga ao histórico processual se a tarefa está vinculada a algum processo
+        $colNome = null;
+        try {
+            $colInfo = TaskColumn::findById((int)$input['column_id']);
+            $colNome = $colInfo['nome'] ?? null;
+        } catch (\Throwable $_e) {}
+        TaskAudit::onTaskMoved((int)$task['id'], $colNome);
         ok();
     }
 
@@ -88,6 +98,8 @@ if ($method === 'POST') {
         if (!$task) fail('Não encontrado', 404);
         if (!canEditTask($task, $userId, $isAdmin)) fail('Sem permissão', 403);
         $result = Task::complete((int)$task['id'], $userId);
+        // Propaga ao histórico processual se vinculada
+        TaskAudit::onTaskCompleted((int)$task['id']);
         ok($result); // devolve { renovada, proxima_data } ao frontend
     }
 
@@ -124,6 +136,8 @@ if ($method === 'POST') {
         'criado_por_id'  => $userId,
         'recorrencia_id' => $recId,
     ]);
+    // NOTA: vínculos com processo são criados em /api/task_links.php (POST) — propagação acontece lá.
+    // Se o frontend enviar vínculos junto na criação, a propagação roda quando o link for criado.
     ok(['id' => $id]);
 }
 
@@ -133,7 +147,19 @@ if ($method === 'PUT') {
     $task = Task::findById($id);
     if (!$task) fail('Não encontrado', 404);
     if (!canEditTask($task, $userId, $isAdmin)) fail('Sem permissão', 403);
+
+    // Captura "antes" para propagar diff ao histórico processual (se vinculada)
+    $diffFields = ['titulo','descricao','prioridade','prazo','prazo_tipo','responsavel_id','status'];
+    $changes = [];
+    foreach ($diffFields as $f) {
+        if (array_key_exists($f, $input) && (string)($task[$f] ?? '') !== (string)$input[$f]) {
+            $changes[$f] = [(string)($task[$f] ?? ''), (string)$input[$f]];
+        }
+    }
+
     Task::update($id, $input, $userId);
+
+    if (!empty($changes)) TaskAudit::onTaskUpdated($id, $changes);
 
     // recorrência: criar nova, atualizar existente ou desativar
     if (array_key_exists('recorrencia', $input)) {
@@ -178,6 +204,8 @@ if ($method === 'DELETE') {
     $task = Task::findById($id);
     if (!$task) fail('Não encontrado', 404);
     if (!canEditTask($task, $userId, $isAdmin)) fail('Sem permissão', 403);
+    // Captura ANTES de arquivar, pois TaskAudit lê task_links que ainda existem
+    TaskAudit::onTaskArchived($id);
     Task::archive($id, $userId);
     ok();
 }

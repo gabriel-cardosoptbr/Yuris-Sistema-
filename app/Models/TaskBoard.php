@@ -5,29 +5,68 @@ class TaskBoard
 {
     /**
      * Lista os boards visíveis para o usuário DENTRO da sua conta (tenant).
-     * account_id é obrigatório — nunca retorna boards de outras contas.
+     * Aceita um único accountId (legado) OU um array de account_ids
+     * (sessão matriz vê boards das filiais vinculadas).
      */
-    public static function findForUser(int $userId, int $accountId): array
+    public static function findForUser(int $userId, int|array $accountIds): array
     {
-        $pdo = Database::getConnection();
-        $stmt = $pdo->prepare('
-            SELECT DISTINCT b.*
+        $ids = is_array($accountIds)
+            ? array_values(array_filter(array_map('intval', $accountIds), fn($v) => $v > 0))
+            : [(int) $accountIds];
+        if (empty($ids)) return [];
+
+        $ph     = [];
+        $params = ['uid1' => $userId, 'uid2' => $userId];
+        foreach ($ids as $i => $aid) {
+            $k          = "tbacc_{$i}";
+            $ph[]       = ":{$k}";
+            $params[$k] = (int) $aid;
+        }
+        $inSql = implode(',', $ph);
+
+        $pdo  = Database::getConnection();
+        // LEFT JOIN com accounts devolve origem (matriz/filial — Nome) por board
+        // → permite o frontend renderizar selo visual no seletor de boards.
+        $stmt = $pdo->prepare("
+            SELECT DISTINCT b.*,
+                   a.nome AS origin_account_nome,
+                   a.tipo AS origin_account_tipo,
+                   b.account_id AS origin_account_id
             FROM task_boards b
             LEFT JOIN task_board_members m ON m.board_id = b.id AND m.user_id = :uid2
+            LEFT JOIN accounts a ON a.id = b.account_id
             WHERE b.ativo = 1
-              AND b.account_id = :account_id
+              AND b.account_id IN ({$inSql})
               AND (b.owner_id = :uid1 OR m.user_id IS NOT NULL)
-            ORDER BY b.ordem, b.id
-        ');
-        $stmt->execute(['uid1' => $userId, 'uid2' => $userId, 'account_id' => $accountId]);
+            ORDER BY
+              CASE WHEN a.tipo = 'matriz' THEN 0 ELSE 1 END,
+              a.nome ASC,
+              b.ordem, b.id
+        ");
+        $stmt->execute($params);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
-    public static function findById(int $id): array|false
+    /**
+     * Busca board por id.
+     * Quando $accountIds é passado, restringe ao tenant (segurança).
+     */
+    public static function findById(int $id, int|array|null $accountIds = null): array|false
     {
         $pdo = Database::getConnection();
-        $stmt = $pdo->prepare('SELECT * FROM task_boards WHERE id = ? AND ativo = 1');
-        $stmt->execute([$id]);
+        if ($accountIds === null) {
+            $stmt = $pdo->prepare('SELECT * FROM task_boards WHERE id = ? AND ativo = 1');
+            $stmt->execute([$id]);
+            return $stmt->fetch(\PDO::FETCH_ASSOC);
+        }
+        $ids = is_array($accountIds)
+            ? array_values(array_filter(array_map('intval', $accountIds), fn($v) => $v > 0))
+            : [(int)$accountIds];
+        if (empty($ids)) return false;
+        $ph = []; $params = ['id' => $id];
+        foreach ($ids as $i => $aid) { $k = "tbf_{$i}"; $ph[] = ":{$k}"; $params[$k] = (int)$aid; }
+        $stmt = $pdo->prepare('SELECT * FROM task_boards WHERE id = :id AND ativo = 1 AND account_id IN (' . implode(',', $ph) . ')');
+        $stmt->execute($params);
         return $stmt->fetch(\PDO::FETCH_ASSOC);
     }
 

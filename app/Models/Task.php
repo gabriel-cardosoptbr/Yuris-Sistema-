@@ -52,11 +52,15 @@ class Task
             $params['busca'] = '%' . $filtros['busca'] . '%';
         }
 
+        // Origem é puxada pelo board (tarefas não têm account_id direto — herdam do board).
         $sql = '
             SELECT t.*,
                    u.nome AS responsavel_nome,
                    c.nome AS criador_nome,
                    col.nome AS coluna_nome,
+                   b.account_id AS origin_account_id,
+                   a.nome       AS origin_account_nome,
+                   a.tipo       AS origin_account_tipo,
                    (SELECT COUNT(*) FROM task_checklist_items ci WHERE ci.task_id = t.id) AS checklist_total,
                    (SELECT COUNT(*) FROM task_checklist_items ci WHERE ci.task_id = t.id AND ci.concluido = 1) AS checklist_feito,
                    (SELECT COUNT(*) FROM task_comments tc WHERE tc.task_id = t.id) AS total_comentarios
@@ -64,6 +68,8 @@ class Task
             LEFT JOIN users u   ON u.id = t.responsavel_id
             LEFT JOIN users c   ON c.id = t.criado_por_id
             LEFT JOIN task_columns col ON col.id = t.column_id
+            LEFT JOIN task_boards  b   ON b.id  = t.board_id
+            LEFT JOIN accounts     a   ON a.id  = b.account_id
             WHERE ' . implode(' AND ', $where) . '
             ORDER BY t.column_id, t.ordem, t.id
         ';
@@ -78,10 +84,15 @@ class Task
         $stmt = $pdo->prepare('
             SELECT t.*,
                    u.nome AS responsavel_nome,
-                   c.nome AS criador_nome
+                   c.nome AS criador_nome,
+                   b.account_id AS origin_account_id,
+                   a.nome       AS origin_account_nome,
+                   a.tipo       AS origin_account_tipo
             FROM tasks t
             LEFT JOIN users u ON u.id = t.responsavel_id
             LEFT JOIN users c ON c.id = t.criado_por_id
+            LEFT JOIN task_boards b ON b.id = t.board_id
+            LEFT JOIN accounts    a ON a.id = b.account_id
             WHERE t.id = ?
         ');
         $stmt->execute([$id]);

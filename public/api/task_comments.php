@@ -1,14 +1,23 @@
 <?php
 require_once __DIR__ . '/../../app/Models/Database.php';
+require_once __DIR__ . '/../../app/Models/Account.php';
+require_once __DIR__ . '/../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../app/Models/TaskComment.php';
+require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
+require_once __DIR__ . '/../../app/Helpers/ProcessoAudit.php';
+require_once __DIR__ . '/../../app/Helpers/TaskAudit.php';
 
 use App\Models\TaskComment;
+use App\Helpers\AccountContext;
+use App\Helpers\TenantGuard;
+use App\Helpers\TaskAudit;
 
 session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache, no-store, must-revalidate');
 
-if (empty($_SESSION['user_id'])) { http_response_code(401); echo json_encode(['ok'=>false,'error'=>'Unauthorized']); exit; }
+$ctx = AccountContext::fromSession();
 
 $userId = (int)$_SESSION['user_id'];
 $method = $_SERVER['REQUEST_METHOD'];
@@ -22,19 +31,35 @@ function fail(string $msg, int $c = 400): void { http_response_code($c); echo js
 function ok(mixed $d = null): void { echo json_encode(['ok'=>true,'data'=>$d]); exit; }
 
 if ($method === 'GET') {
-    ok(TaskComment::findByTask((int)($_GET['task_id'] ?? 0)));
+    $taskId = (int)($_GET['task_id'] ?? 0);
+    if (!$taskId) fail('task_id obrigatório');
+    TenantGuard::assertTaskAcessivel($ctx, $taskId);
+    ok(TaskComment::findByTask($taskId));
 }
 
 if (!csrfOk()) fail('CSRF inválido');
 
 if ($method === 'POST') {
     if (empty($input['mensagem'])) fail('Mensagem obrigatória');
-    $id = TaskComment::create((int)$input['task_id'], $userId, $input['mensagem']);
+    $taskId = (int)($input['task_id'] ?? 0);
+    if (!$taskId) fail('task_id obrigatório');
+    TenantGuard::assertTaskAcessivel($ctx, $taskId);
+    $id = TaskComment::create($taskId, $userId, $input['mensagem']);
+    // Propaga ao histórico processual se a tarefa está vinculada a processo(s)
+    TaskAudit::onCommentAdded($taskId, $input['mensagem']);
     ok(['id' => $id]);
 }
 
 if ($method === 'DELETE') {
-    TaskComment::delete((int)($input['id'] ?? $_GET['id'] ?? 0), $userId);
+    $commentId = (int)($input['id'] ?? $_GET['id'] ?? 0);
+    // Busca a task associada ANTES de deletar (TaskAudit precisa do task_id)
+    $pdo  = \App\Models\Database::getConnection();
+    $stmt = $pdo->prepare('SELECT task_id FROM task_comments WHERE id = ? LIMIT 1');
+    $stmt->execute([$commentId]);
+    $tid = (int)($stmt->fetchColumn() ?: 0);
+    if ($tid > 0) TenantGuard::assertTaskAcessivel($ctx, $tid);
+    TaskComment::delete($commentId, $userId);
+    if ($tid > 0) TaskAudit::onCommentRemoved($tid);
     ok();
 }
 

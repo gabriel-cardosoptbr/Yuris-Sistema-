@@ -3,15 +3,20 @@ ob_start();
 @ini_set('display_errors', '0');
 
 require_once __DIR__ . '/../../../app/Models/Database.php';
+require_once __DIR__ . '/../../../app/Models/Account.php';
+require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
+require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+
+use App\Helpers\AccountContext;
 
 session_start(['read_and_close' => true]);
-$_uid = $_SESSION['user_id'] ?? null;
 
 ob_end_clean();
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache, no-store, must-revalidate');
 
-if (!$_uid) { http_response_code(401); echo json_encode(['error' => 'Unauthorized']); exit; }
+$ctx       = AccountContext::fromSession();
+$tenantIds = $ctx->getAccessibleAccountIds('chat');
 
 try {
     $pdo = \App\Models\Database::getConnection();
@@ -22,6 +27,15 @@ try {
         exit;
     }
 
+    // Cláusula IN para filtrar TUDO por tenant
+    $ph = []; $tenantParams = [];
+    foreach ($tenantIds as $i => $aid) {
+        $k = "cvacc_{$i}";
+        $ph[] = ":{$k}";
+        $tenantParams[$k] = (int)$aid;
+    }
+    $tenantIn = '(' . implode(',', $ph) . ')';
+
     $contato = null;
 
     // ── Estratégia 1: telefone extraído do JID (@s.whatsapp.net) ─────────────
@@ -30,42 +44,54 @@ try {
 
     if (strlen($phone) >= 10 && !str_ends_with($jid, '@lid')) {
         $stmt = $pdo->prepare(
-            'SELECT * FROM contatos
-             WHERE telefone = ?
-                OR telefone = CONCAT(\'55\', ?)
-             LIMIT 1'
+            "SELECT * FROM contatos
+             WHERE (telefone = :p1 OR telefone = CONCAT('55', :p2))
+               AND account_id IN $tenantIn
+             LIMIT 1"
         );
-        $stmt->execute([$phone, $phone]);
+        $stmt->execute(['p1' => $phone, 'p2' => $phone] + $tenantParams);
         $contato = $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
     }
 
-    // ── Estratégia 2: remote_jid direto em contatos (para @lid) ──────────────
-    if (!$contato) {
-        $stmt = $pdo->prepare('SELECT * FROM contatos WHERE remote_jid = ? LIMIT 1');
-        $stmt->execute([$jid]);
-        $contato = $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
-    }
-
-    // ── Estratégia 3: whatsapp_chats.contato_id (fallback geral) ─────────────
+    // ── Estratégia 2: remote_jid direto em contatos ──────────────────────────
     if (!$contato) {
         $stmt = $pdo->prepare(
-            'SELECT ct.* FROM whatsapp_chats wc
-             JOIN contatos ct ON ct.id = wc.contato_id
-             WHERE wc.remote_jid = ? LIMIT 1'
+            "SELECT * FROM contatos
+             WHERE remote_jid = :jid AND account_id IN $tenantIn
+             LIMIT 1"
         );
-        $stmt->execute([$jid]);
+        $stmt->execute(['jid' => $jid] + $tenantParams);
         $contato = $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
     }
 
-    // ── Estratégia 4: whatsapp_chats → linked_card_id → card.contato_id ──────
+    // ── Estratégia 3: whatsapp_chats.contato_id (com JOIN no instance pra tenant) ──
     if (!$contato) {
         $stmt = $pdo->prepare(
-            'SELECT ct.* FROM whatsapp_chats wc
-             JOIN cards c  ON c.id  = wc.linked_card_id
-             JOIN contatos ct ON ct.id = c.contato_id
-             WHERE wc.remote_jid = ? LIMIT 1'
+            "SELECT ct.* FROM whatsapp_chats wc
+             INNER JOIN contatos ct           ON ct.id = wc.contato_id
+             INNER JOIN whatsapp_instances wi ON wi.id = wc.instance_id
+             WHERE wc.remote_jid = :jid
+               AND wi.account_id IN $tenantIn
+               AND ct.account_id IN $tenantIn
+             LIMIT 1"
         );
-        $stmt->execute([$jid]);
+        $stmt->execute(['jid' => $jid] + $tenantParams);
+        $contato = $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
+    }
+
+    // ── Estratégia 4: via card vinculado ──────────────────────────────────────
+    if (!$contato) {
+        $stmt = $pdo->prepare(
+            "SELECT ct.* FROM whatsapp_chats wc
+             INNER JOIN cards c               ON c.id  = wc.linked_card_id
+             INNER JOIN contatos ct           ON ct.id = c.contato_id
+             INNER JOIN whatsapp_instances wi ON wi.id = wc.instance_id
+             WHERE wc.remote_jid = :jid
+               AND wi.account_id IN $tenantIn
+               AND c.account_id  IN $tenantIn
+             LIMIT 1"
+        );
+        $stmt->execute(['jid' => $jid] + $tenantParams);
         $contato = $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
     }
 
@@ -74,7 +100,7 @@ try {
         exit;
     }
 
-    // Busca vínculos do contato
+    // Busca vínculos — o contato já foi validado como sendo do tenant
     $stmt = $pdo->prepare(
         'SELECT cv.tipo_vinculo, cv.referencia_id, cv.origem, cv.ativo
          FROM contato_vinculos cv

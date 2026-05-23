@@ -1,13 +1,23 @@
 <?php
 require_once __DIR__ . '/../../../app/Models/Database.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
+require_once __DIR__ . '/../../../app/Models/Account.php';
+require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
+require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
+
+use App\Helpers\AccountContext;
 
 session_start(['read_and_close' => true]);
 $_uid  = $_SESSION['user_id']    ?? null;
 $_csrf = $_SESSION['csrf_token'] ?? '';
 header('Content-Type: application/json; charset=utf-8');
 if (!$_uid) { http_response_code(401); echo json_encode(['error' => 'Unauthorized']); exit; }
+
+$ctx        = AccountContext::fromSession();
+$accountId  = $ctx->getAccountId();
+// Instâncias de WhatsApp = CONFIGURAÇÃO da conta — cada tenant tem suas próprias conexões.
+$tenantIds  = [$accountId];
 
 $model  = new WhatsAppInstance();
 $cfg    = $model->getSettings();
@@ -20,7 +30,7 @@ if ($method === 'GET') {
 
     if ($action === 'status') {
         $name = $cfg['evolution_instance'] ?? 'yuris-crm';
-        $row  = $model->findOrCreate($name);
+        $row  = $model->findOrCreate($name, '', $accountId);
 
         // Consulta estado real na Evolution API
         $state = $evo->getConnectionState($name);
@@ -79,7 +89,7 @@ if ($method === 'GET') {
 
     if ($action === 'qr') {
         $name = $cfg['evolution_instance'] ?? 'yuris-crm';
-        $row  = $model->findOrCreate($name);
+        $row  = $model->findOrCreate($name, '', $accountId);
         $res  = $evo->connectInstance($name);
 
         $qr = $res['base64'] ?? ($res['qrcode']['base64'] ?? ($res['code'] ?? ''));
@@ -96,13 +106,13 @@ if ($method === 'GET') {
     }
 
     if ($action === 'list') {
-        echo json_encode(['ok' => true, 'instances' => $model->listAll()]);
+        echo json_encode(['ok' => true, 'instances' => $model->listAll($tenantIds)]);
         exit;
     }
 
     // Default: retorna instância padrão com estado atual
     $name = $cfg['evolution_instance'] ?? 'yuris-crm';
-    $row  = $model->findOrCreate($name);
+    $row  = $model->findOrCreate($name, '', $accountId);
     echo json_encode(['ok' => true, 'instance' => $row, 'settings' => $cfg]);
     exit;
 }
@@ -125,7 +135,7 @@ if ($method === 'POST') {
             echo json_encode(['ok' => false, 'error' => $res['_error']]); exit;
         }
 
-        $row = $model->findOrCreate($name, $payload['display_name'] ?? '');
+        $row = $model->findOrCreate($name, $payload['display_name'] ?? '', $accountId);
 
         // Salva QR code se retornado na criação
         $qr = $res['qrcode']['base64'] ?? ($res['base64'] ?? '');
@@ -134,13 +144,13 @@ if ($method === 'POST') {
             $model->updateQrCode($row['id'], $qr);
         }
 
-        echo json_encode(['ok' => true, 'instance' => $model->find($row['id']), 'qr' => $qr]);
+        echo json_encode(['ok' => true, 'instance' => $model->find((int)$row['id'], $tenantIds), 'qr' => $qr]);
         exit;
     }
 
     if ($action === 'connect') {
         $name = $cfg['evolution_instance'] ?? 'yuris-crm';
-        $row  = $model->findOrCreate($name);
+        $row  = $model->findOrCreate($name, '', $accountId);
         $res  = $evo->connectInstance($name);
 
         $qr = $res['base64'] ?? ($res['qrcode']['base64'] ?? '');
@@ -164,7 +174,7 @@ if ($method === 'POST') {
 
     if ($action === 'logout') {
         $name = $cfg['evolution_instance'] ?? 'yuris-crm';
-        $row  = $model->findByName($name);
+        $row  = $model->findByName($name, $tenantIds);
         if ($row) {
             $evo->logoutInstance($name);
             $model->updateStatus($row['id'], 'close');

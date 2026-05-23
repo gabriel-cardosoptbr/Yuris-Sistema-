@@ -1,24 +1,35 @@
 <?php
 require_once __DIR__ . '/../../app/Models/Database.php';
 require_once __DIR__ . '/../../app/Models/PipelineColumn.php';
+require_once __DIR__ . '/../../app/Models/Account.php';
+require_once __DIR__ . '/../../app/Models/ResourceShare.php';
+require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
 
 use App\Models\PipelineColumn;
+use App\Helpers\AccountContext;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 
-if (empty($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['error'=>'Unauthorized']);
-    exit;
-}
+$ctx       = AccountContext::fromSession();              // 401 se sessão inválida
+$accountId = $ctx->getAccountId();                       // conta da sessão
+// Pipeline único da matriz (Opção 2): filial vinculada herda colunas da matriz.
+// Matriz → próprias colunas. Filial isolada → próprias colunas.
+// CREATE/UPDATE/DELETE só são permitidos pela conta que possui o pipeline.
+$pipelineAccountId = $ctx->getPipelineAccountId();
+$tenantIds         = [$pipelineAccountId];
+$isInherited       = $ctx->isPipelineInherited();        // true = filial herda da matriz
 
 $method = $_SERVER['REQUEST_METHOD'];
-$input = json_decode(file_get_contents('php://input'), true) ?? [];
+$input  = json_decode(file_get_contents('php://input'), true) ?? [];
 
 if ($method === 'GET') {
-    $list = PipelineColumn::listAll();
-    echo json_encode(['data'=>$list]);
+    $list = PipelineColumn::listAll(['account_ids' => $tenantIds]);
+    echo json_encode([
+        'data'                 => $list,
+        'pipeline_account_id'  => $pipelineAccountId,
+        'inherited'            => $isInherited,
+    ]);
     exit;
 }
 
@@ -27,31 +38,50 @@ if (in_array($method, ['POST','PUT','DELETE','PATCH'])) {
     $csrf = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? $_POST['csrf_token'] ?? ($input['csrf_token'] ?? null);
     if (!$csrf || $csrf !== ($_SESSION['csrf_token'] ?? '')) {
         http_response_code(400);
-        echo json_encode(['error'=>'Invalid CSRF token']);
+        echo json_encode(['error' => 'Invalid CSRF token']);
+        exit;
+    }
+}
+
+// Filial vinculada NÃO pode mexer nas colunas (pipeline é da matriz).
+// Apenas a matriz dona do pipeline pode criar/atualizar/deletar.
+function _denyInheritedWrite(bool $isInherited): void {
+    if ($isInherited) {
+        http_response_code(403);
+        echo json_encode([
+            'error'   => 'Pipeline definido pela matriz. Solicite alteração ao administrador da matriz.',
+            'code'    => 'pipeline_inherited',
+        ]);
         exit;
     }
 }
 
 if ($method === 'POST') {
+    _denyInheritedWrite($isInherited);
+    $input['account_id'] = $pipelineAccountId;          // injeta tenant dono do pipeline
     $id = PipelineColumn::create($input);
-    echo json_encode(['success'=>true,'id'=>$id]);
+    echo json_encode(['success' => true, 'id' => $id]);
     exit;
 }
 
 if ($method === 'PUT' || $method === 'PATCH') {
-    if (empty($input['id'])) { http_response_code(400); echo json_encode(['error'=>'Missing id']); exit; }
-    $ok = PipelineColumn::update((int)$input['id'], $input);
-    echo json_encode(['success'=> (bool)$ok]);
+    _denyInheritedWrite($isInherited);
+    if (empty($input['id'])) { http_response_code(400); echo json_encode(['error' => 'Missing id']); exit; }
+    $ok = PipelineColumn::update((int)$input['id'], $input, $tenantIds);
+    if (!$ok) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
+    echo json_encode(['success' => true]);
     exit;
 }
 
 if ($method === 'DELETE') {
+    _denyInheritedWrite($isInherited);
     $id = $_GET['id'] ?? ($input['id'] ?? null);
-    if (!$id) { http_response_code(400); echo json_encode(['error'=>'Missing id']); exit; }
-    $ok = PipelineColumn::delete((int)$id);
-    echo json_encode(['success'=> (bool)$ok]);
+    if (!$id) { http_response_code(400); echo json_encode(['error' => 'Missing id']); exit; }
+    $ok = PipelineColumn::delete((int)$id, $tenantIds);
+    if (!$ok) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
+    echo json_encode(['success' => true]);
     exit;
 }
 
 http_response_code(405);
-echo json_encode(['error'=>'Method not allowed']);
+echo json_encode(['error' => 'Method not allowed']);

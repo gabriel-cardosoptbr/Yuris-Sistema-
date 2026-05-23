@@ -47,15 +47,20 @@ try {
     $msgModel   = new WhatsAppMessage();
     $cfg        = $instModel->getSettings();
 
-    // Valida apikey se configurada
+    // Valida apikey — SEMPRE obrigatória (hardening Fase 0 audit).
+    // Antes era opcional ("if ($configuredKey)"), o que permitia webhook anônimo
+    // se a config_key não estivesse setada. Agora rejeita sem exceção.
     $configuredKey = $cfg['evolution_api_key'] ?? '';
-    if ($configuredKey) {
-        $sentKey = $_SERVER['HTTP_APIKEY'] ?? ($_SERVER['HTTP_API_KEY'] ?? '');
-        if ($sentKey !== $configuredKey) {
-            http_response_code(401);
-            echo json_encode(['error' => 'Unauthorized']);
-            exit;
-        }
+    if (empty($configuredKey)) {
+        http_response_code(503);
+        echo json_encode(['error' => 'Webhook endpoint não configurado. Defina evolution_api_key em whatsapp_settings.']);
+        exit;
+    }
+    $sentKey = $_SERVER['HTTP_APIKEY'] ?? ($_SERVER['HTTP_API_KEY'] ?? '');
+    if (!hash_equals($configuredKey, $sentKey)) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Unauthorized']);
+        exit;
     }
 
     $row        = $instModel->findOrCreate($instanceName);

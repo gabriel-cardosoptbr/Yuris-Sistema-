@@ -31,14 +31,17 @@ if ($method === 'GET') {
     $hasSenhaTexto  = false;
     try { $pdo->query('SELECT account_id FROM users LIMIT 0');     $hasAccountCol  = true;  } catch (\Throwable $e) {}
     try { $pdo->query('SELECT role FROM users LIMIT 0');            $hasRoleCol     = true;  } catch (\Throwable $e) {}
-    try { $pdo->query('SELECT senha_texto FROM users LIMIT 0');     $hasSenhaTexto  = true;  } catch (\Throwable $e) {}
+    // senha_texto foi removida (Fase 0 audit — LGPD). Flag fica false sempre.
+    $hasSenhaTexto = false;
     $hasCodigo = false;
-    try { $pdo->query('SELECT codigo_vinculo FROM users LIMIT 0');  $hasCodigo      = true;  } catch (\Throwable $e) {}
+    try { $pdo->query('SELECT codigo_advogado FROM users LIMIT 0'); $hasCodigo = true;  } catch (\Throwable $e) {}
 
     $selRole     = $hasRoleCol    ? 'role'           : 'perfil AS role';
     $selAccount  = $hasAccountCol ? 'account_id'     : 'NULL AS account_id';
     $selSenha    = $hasSenhaTexto ? 'senha_texto'    : 'NULL AS senha_texto';
-    $selCodigo   = $hasCodigo     ? 'codigo_vinculo' : 'NULL AS codigo_vinculo';
+    // codigo_advogado é o ID universal do advogado (formato ADV-XXXXXX).
+    // Retornamos no nome legado "codigo_vinculo" para compat com o frontend existente.
+    $selCodigo   = $hasCodigo     ? 'codigo_advogado AS codigo_vinculo' : 'NULL AS codigo_vinculo';
 
     if ($id) {
         $where = $hasAccountCol
@@ -55,7 +58,8 @@ if ($method === 'GET') {
         $stmt->execute($params);
         $row = $stmt->fetch();
         if ($row) {
-            $row['senha_plain'] = $row['senha_texto'] ?? '';
+            // Nunca retornar senha (Fase 0 audit). senha_texto foi removida do schema.
+            $row['senha_plain'] = '';
             unset($row['senha_texto']);
             try {
                 $ps = $pdo->prepare('SELECT page FROM user_permissions WHERE user_id = ?');
@@ -67,16 +71,21 @@ if ($method === 'GET') {
         exit;
     }
 
-    // Lista usuários
+    // Lista usuários — display_id é sequencial dentro da conta (1, 2, 3, ...).
+    // O id físico (PK auto_increment) continua disponível para chaves técnicas.
     if ($hasAccountCol) {
         $stmt = $pdo->prepare(
-            "SELECT id, nome, login AS email, perfil, $selRole, status, $selAccount, $selCodigo, created_at, updated_at
+            "SELECT id,
+                    ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY id ASC) AS display_id,
+                    nome, login AS email, perfil, $selRole, status, $selAccount, $selCodigo, created_at, updated_at
              FROM users WHERE deleted_at IS NULL AND account_id = :acc ORDER BY nome ASC"
         );
         $stmt->execute(['acc' => $accountId]);
     } else {
         $stmt = $pdo->prepare(
-            "SELECT id, nome, login AS email, perfil, $selRole, status, $selAccount, $selCodigo, created_at, updated_at
+            "SELECT id,
+                    ROW_NUMBER() OVER (ORDER BY id ASC) AS display_id,
+                    nome, login AS email, perfil, $selRole, status, $selAccount, $selCodigo, created_at, updated_at
              FROM users WHERE deleted_at IS NULL ORDER BY nome ASC"
         );
         $stmt->execute();
@@ -98,7 +107,7 @@ if (in_array($method, ['POST','PUT','DELETE','PATCH'])) {
 
 $pdo = Database::getConnection();
 
-// garante tabela user_permissions e coluna senha_texto
+// garante tabela user_permissions (senha_texto foi REMOVIDA — Fase 0 audit/LGPD)
 try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS user_permissions (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -107,11 +116,6 @@ try {
         UNIQUE KEY uk_user_page (user_id, page)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 } catch (\Throwable $e) {}
-try {
-    $pdo->query('SELECT senha_texto FROM users LIMIT 0');
-} catch (\Throwable $e) {
-    $pdo->exec('ALTER TABLE users ADD COLUMN senha_texto VARCHAR(255) DEFAULT NULL');
-}
 
 if ($method === 'POST') {
     $nome = trim($input['nome'] ?? '');
@@ -139,12 +143,18 @@ if ($method === 'POST') {
 
     $hash = password_hash($senha, PASSWORD_BCRYPT);
 
-    // detecta colunas opcionais para montar INSERT dinamicamente
-    // Gera codigo_vinculo único para o novo usuário
-    $codigoVinculo = implode('-', str_split(bin2hex(random_bytes(8)), 4));
+    // Gera ID universal do advogado (ADV-XXXXXX).
+    // Único em toda a plataforma — independe de matriz/filial/associado.
+    $codigoAdvogado = 'ADV-' . strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
 
     $cols   = ['nome'=>$nome,'login'=>$email,'senha_hash'=>$hash,'perfil'=>$perfil,'status'=>'active'];
-    $checks = ['account_id'=>$accountId,'role'=>$role,'senha_texto'=>$senha,'codigo_vinculo'=>$codigoVinculo];
+    // senha_texto REMOVIDA do checks (Fase 0 audit/LGPD)
+    $checks = [
+        'account_id'      => $accountId,
+        'role'            => $role,
+        'codigo_vinculo'  => $codigoAdvogado,   // legado — preenchido com o mesmo valor pra manter compat
+        'codigo_advogado' => $codigoAdvogado,
+    ];
     foreach ($checks as $col => $val) {
         try { $pdo->query("SELECT $col FROM users LIMIT 0"); $cols[$col] = $val; } catch (\Throwable $e) {}
     }
@@ -200,10 +210,8 @@ if ($method === 'PUT' || $method === 'PATCH') {
             if ($cnt <= 0) { http_response_code(400); echo json_encode(['success'=>false,'error'=>'Cannot remove last admin']); exit; }
         }
     }
-    // detecta colunas opcionais
-    $hasSenhaTexto = false;
+    // detecta colunas opcionais (senha_texto foi REMOVIDA — Fase 0 audit)
     $hasRoleCol    = false;
-    try { $pdo->query('SELECT senha_texto FROM users LIMIT 0'); $hasSenhaTexto = true; } catch (\Throwable $e) {}
     try { $pdo->query('SELECT role FROM users LIMIT 0');        $hasRoleCol    = true; } catch (\Throwable $e) {}
 
     if ($nome   !== null) { $fields[] = 'nome = :nome';     $params['nome']  = $nome; }
@@ -218,7 +226,7 @@ if ($method === 'PUT' || $method === 'PATCH') {
     if ($senha !== null && $senha !== '') {
         $fields[] = 'senha_hash = :senha_hash';
         $params['senha_hash'] = password_hash($senha, PASSWORD_BCRYPT);
-        if ($hasSenhaTexto) { $fields[] = 'senha_texto = :senha_texto'; $params['senha_texto'] = $senha; }
+        // NUNCA mais salvamos senha em texto plano (Fase 0 audit/LGPD)
     }
 
     if (count($fields) > 0) {

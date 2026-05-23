@@ -9,13 +9,17 @@ class Card
      * Lista cards do tenant.
      * SEGURANÇA: account_id é obrigatório — NUNCA listar sem filtro de tenant.
      * Inclui cards compartilhados com a conta via resource_shares.
+     *
+     * Aceita:
+     *   - $filters['account_ids']  array de ints — sessões matriz passam matriz + filiais
+     *   - $filters['account_id']   int legado — convertido em [account_id]
      */
     public static function list($filters = [])
     {
         $pdo = Database::getConnection();
 
-        $accountId = $filters['account_id'] ?? null;
-        if (!$accountId) return [];
+        $accountIds = self::_normalizeAccountIds($filters);
+        if (empty($accountIds)) return [];
 
         // detecta se coluna account_id existe (single-tenant fallback)
         $hasAccountCol = true;
@@ -26,23 +30,37 @@ class Card
         }
 
         if ($hasAccountCol) {
-            $sql = 'SELECT c.*,
+            $inOwn   = self::_buildInClause($accountIds, 'cown');
+            $inShare = self::_buildInClause($accountIds, 'cshr');
+            $userId  = isset($filters['user_id']) ? (int)$filters['user_id'] : 0;
+            $userClause = $userId > 0 ? ' OR rs.to_user_id = :cuid' : '';
+            // Inclui origem (account_nome/tipo) via LEFT JOIN com accounts
+            // → permite renderizar selo "MATRIZ" / "FILIAL — Nome" no card sem fetch extra.
+            $sql = "SELECT c.*,
+                           a.nome AS origin_account_nome,
+                           a.tipo AS origin_account_tipo,
+                           c.account_id AS origin_account_id,
                            (SELECT remote_jid FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_jid
                     FROM cards c
+                    LEFT JOIN accounts a ON a.id = c.account_id
                     WHERE c.deleted_at IS NULL
                       AND (
-                        c.account_id = :account_id
+                        c.account_id IN ({$inOwn['placeholders']})
                         OR EXISTS (
                           SELECT 1 FROM resource_shares rs
-                          WHERE rs.resource_type = "card"
+                          WHERE rs.resource_type = 'card'
                             AND rs.resource_id   = c.id
-                            AND rs.status        = "active"
-                            AND (rs.to_account_id = :account_id2 OR rs.to_account_id IS NULL)
+                            AND rs.status        = 'active'
+                            AND (rs.to_account_id IN ({$inShare['placeholders']}) OR rs.to_account_id IS NULL{$userClause})
                         )
-                      )';
-            $params = ['account_id' => $accountId, 'account_id2' => $accountId];
+                      )";
+            $params = $inOwn['params'] + $inShare['params'];
+            if ($userId > 0) $params['cuid'] = $userId;
         } else {
             $sql    = 'SELECT c.*,
+                              NULL AS origin_account_nome,
+                              NULL AS origin_account_tipo,
+                              c.account_id AS origin_account_id,
                               (SELECT remote_jid FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_jid
                        FROM cards c WHERE c.deleted_at IS NULL';
             $params = [];
@@ -71,8 +89,13 @@ class Card
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare(
             'SELECT c.*,
+                    a.nome AS origin_account_nome,
+                    a.tipo AS origin_account_tipo,
+                    c.account_id AS origin_account_id,
                     (SELECT remote_jid FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_jid
-             FROM cards c WHERE c.id = :id AND c.deleted_at IS NULL LIMIT 1'
+             FROM cards c
+             LEFT JOIN accounts a ON a.id = c.account_id
+             WHERE c.id = :id AND c.deleted_at IS NULL LIMIT 1'
         );
         $stmt->execute(['id' => $id]);
         return $stmt->fetch();
@@ -85,9 +108,12 @@ class Card
             throw new \InvalidArgumentException('account_id é obrigatório para criar um card');
         }
         $pdo = Database::getConnection();
-        $stmt = $pdo->prepare('INSERT INTO cards (account_id, cliente_nome, empresa_nome, telefone_whatsapp, email, responsavel_user_id, coluna_id, ordem_na_coluna, valor_estimado, valor_proposta, valor_fechado_final, data_prevista_fechamento, data_fechamento, descricao, status, created_at, updated_at) VALUES (:account_id, :cliente_nome, :empresa_nome, :telefone_whatsapp, :email, :responsavel_user_id, :coluna_id, :ordem_na_coluna, :valor_estimado, :valor_proposta, :valor_fechado_final, :data_prevista_fechamento, :data_fechamento, :descricao, :status, NOW(), NOW())');
+        // titulo: usa o que veio; senão usa cliente_nome (preserva título visível em outros lugares)
+        $titulo = trim($data['titulo'] ?? $data['cliente_nome'] ?? '');
+        $stmt = $pdo->prepare('INSERT INTO cards (account_id, titulo, cliente_nome, empresa_nome, telefone_whatsapp, email, responsavel_user_id, coluna_id, ordem_na_coluna, valor_estimado, valor_proposta, valor_fechado_final, data_prevista_fechamento, data_fechamento, descricao, status, created_at, updated_at) VALUES (:account_id, :titulo, :cliente_nome, :empresa_nome, :telefone_whatsapp, :email, :responsavel_user_id, :coluna_id, :ordem_na_coluna, :valor_estimado, :valor_proposta, :valor_fechado_final, :data_prevista_fechamento, :data_fechamento, :descricao, :status, NOW(), NOW())');
         $stmt->execute([
             'account_id'   => $data['account_id'],
+            'titulo'       => $titulo ?: null,
             'cliente_nome' => $data['cliente_nome'] ?? '',
             'empresa_nome' => $data['empresa_nome'] ?? null,
             'telefone_whatsapp' => $data['telefone_whatsapp'] ?? null,
@@ -98,8 +124,9 @@ class Card
             'valor_estimado' => $data['valor_estimado'] ?? 0,
             'valor_proposta' => $data['valor_proposta'] ?? 0,
             'valor_fechado_final' => $data['valor_fechado_final'] ?? 0,
-            'data_prevista_fechamento' => $data['data_prevista_fechamento'] ?? null,
-            'data_fechamento' => $data['data_fechamento'] ?? null,
+            // Datas: normaliza "" e "0000-00-00" para NULL (evita lixo no banco)
+            'data_prevista_fechamento' => self::_normalizeDate($data['data_prevista_fechamento'] ?? null),
+            'data_fechamento' => self::_normalizeDate($data['data_fechamento'] ?? null),
             'descricao' => $data['descricao'] ?? null,
             'status' => $data['status'] ?? 'aberto'
         ]);
@@ -126,11 +153,13 @@ class Card
         $pdo = Database::getConnection();
         $fields = [];
         $params = ['id' => $id];
-        $allowed = ['cliente_nome','empresa_nome','telefone_whatsapp','email','responsavel_user_id','coluna_id','ordem_na_coluna','valor_estimado','valor_proposta','valor_fechado_final','data_prevista_fechamento','data_fechamento','descricao','status'];
+        $allowed  = ['titulo','cliente_nome','empresa_nome','telefone_whatsapp','email','responsavel_user_id','coluna_id','ordem_na_coluna','valor_estimado','valor_proposta','valor_fechado_final','data_prevista_fechamento','data_fechamento','descricao','status'];
+        $dateCols = ['data_prevista_fechamento','data_fechamento'];
         foreach ($allowed as $k) {
             if (array_key_exists($k, $data)) {
                 $fields[] = "$k = :$k";
-                $params[$k] = $data[$k];
+                // Normaliza datas: "" e "0000-00-00" viram NULL
+                $params[$k] = in_array($k, $dateCols, true) ? self::_normalizeDate($data[$k]) : $data[$k];
             }
         }
         if (empty($fields)) return false;
@@ -257,5 +286,51 @@ class Card
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('UPDATE cards SET deleted_at = NOW(), deleted_by = :deleted_by WHERE id = :id');
         return $stmt->execute(['deleted_by' => $deleted_by, 'id' => $id]);
+    }
+
+    // ───────── helpers ──────────────────────────────────────────────
+
+    /**
+     * Normaliza valores de data vindos do frontend.
+     * Trata "", "0000-00-00", "0000-00-00 00:00:00" como NULL.
+     * Mantém o valor original em qualquer outro caso.
+     */
+    private static function _normalizeDate($v)
+    {
+        if ($v === null) return null;
+        if (!is_string($v)) return $v;
+        $v = trim($v);
+        if ($v === '' || $v === '0000-00-00' || $v === '0000-00-00 00:00:00') return null;
+        return $v;
+    }
+
+    // ───────── helpers de multi-tenant ──────────────────────────────
+    /**
+     * Normaliza account_ids vindos de filters[]. Aceita:
+     *   account_ids => [1,2,3]   (preferencial)
+     *   account_id  => 1         (legado — embrulha em array)
+     */
+    private static function _normalizeAccountIds(array $filters): array
+    {
+        if (!empty($filters['account_ids']) && is_array($filters['account_ids'])) {
+            return array_values(array_filter(array_map('intval', $filters['account_ids']), fn($v) => $v > 0));
+        }
+        if (!empty($filters['account_id'])) {
+            return [(int) $filters['account_id']];
+        }
+        return [];
+    }
+
+    /** Gera placeholders nomeados para uma cláusula IN(...) + array de params. */
+    private static function _buildInClause(array $ids, string $prefix): array
+    {
+        $ph     = [];
+        $params = [];
+        foreach ($ids as $i => $id) {
+            $k          = "{$prefix}_{$i}";
+            $ph[]       = ":{$k}";
+            $params[$k] = (int) $id;
+        }
+        return ['placeholders' => implode(',', $ph), 'params' => $params];
     }
 }

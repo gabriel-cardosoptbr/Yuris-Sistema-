@@ -38,11 +38,14 @@ class ResourceShare
         $pdo  = Database::getConnection();
         $stmt = $pdo->prepare(
             'SELECT rs.*,
-                    a.nome AS to_account_nome,
-                    u.nome AS criado_por_nome
+                    a.nome  AS to_account_nome,
+                    tu.nome AS to_user_nome,
+                    tu.codigo_advogado AS to_user_codigo_advogado,
+                    u.nome  AS criado_por_nome
              FROM resource_shares rs
-             LEFT JOIN accounts a ON a.id = rs.to_account_id
-             LEFT JOIN users u    ON u.id = rs.criado_por
+             LEFT JOIN accounts a  ON a.id  = rs.to_account_id
+             LEFT JOIN users    tu ON tu.id = rs.to_user_id
+             LEFT JOIN users    u  ON u.id  = rs.criado_por
              WHERE rs.resource_type = :type
                AND rs.resource_id   = :rid
                AND rs.status        = "active"
@@ -101,7 +104,8 @@ class ResourceShare
 
     public static function create(array $data): int
     {
-        if (!in_array($data['resource_type'], self::$validTypes)) {
+        $validTypes = array_merge(self::$validTypes, ['module']);
+        if (!in_array($data['resource_type'], $validTypes)) {
             throw new \InvalidArgumentException('resource_type inválido: ' . $data['resource_type']);
         }
         if (!in_array($data['permission_level'] ?? 'view', self::$validPerms)) {
@@ -111,14 +115,15 @@ class ResourceShare
         $pdo  = Database::getConnection();
         $stmt = $pdo->prepare(
             'INSERT INTO resource_shares
-               (resource_type, resource_id, from_account_id, to_account_id, to_user_id,
+               (resource_type, resource_id, module_key, from_account_id, to_account_id, to_user_id,
                 permission_level, criado_por, status, created_at)
              VALUES
-               (:type, :rid, :from, :to, :to_user, :perm, :criado_por, "active", NOW())'
+               (:type, :rid, :mk, :from, :to, :to_user, :perm, :criado_por, "active", NOW())'
         );
         $stmt->execute([
             'type'       => $data['resource_type'],
-            'rid'        => $data['resource_id'],
+            'rid'        => $data['resource_id'] ?? 0,
+            'mk'         => $data['module_key'] ?? null,
             'from'       => $data['from_account_id'],
             'to'         => $data['to_account_id'] ?? null,
             'to_user'    => $data['to_user_id'] ?? null,

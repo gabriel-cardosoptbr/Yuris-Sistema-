@@ -2,13 +2,18 @@
 require_once __DIR__ . '/../../app/Models/Database.php';
 require_once __DIR__ . '/../../app/Models/Processo.php';
 require_once __DIR__ . '/../../app/Models/Contato.php';
+require_once __DIR__ . '/../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../app/Services/WebhookDispatcher.php';
 require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
+require_once __DIR__ . '/../../app/Helpers/ProcessoAudit.php';
 
 use App\Services\WebhookDispatcher;
 use App\Models\Processo;
 use App\Models\Database;
 use App\Helpers\AccountContext;
+use App\Helpers\TenantGuard;
+use App\Helpers\ProcessoAudit;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -37,11 +42,16 @@ try {
             exit;
         }
         if (!empty($_GET['id'])) {
+            // Valida tenant ANTES de retornar dados — bloqueia leitura cross-tenant
+            TenantGuard::assertProcessoAcessivel($ctx, (int)$_GET['id']);
             $p = Processo::find((int)$_GET['id']);
             echo json_encode($p ?: []);
             exit;
         }
-        $filters = ['account_id' => $accountId];  // tenant filter OBRIGATÓRIO
+        $filters = [
+            'account_ids' => $ctx->getAccessibleAccountIds('processos'),
+            'user_id'     => $ctx->getUserId(),
+        ];
         if (!empty($_GET['responsavel_user_id'])) $filters['responsavel_user_id'] = (int)$_GET['responsavel_user_id'];
         if (!empty($_GET['status'])) $filters['status'] = $_GET['status'];
         if (!empty($_GET['from']) && !empty($_GET['to'])) { $filters['from'] = $_GET['from']; $filters['to'] = $_GET['to']; }
@@ -56,6 +66,12 @@ try {
         $input['account_id'] = $accountId;  // injeta tenant server-side, nunca do body
         $id = Processo::create($input);
         $p = Processo::find($id);
+        // Auditoria garantida server-side (não depende do JS)
+        ProcessoAudit::log(
+            (int)$id,
+            'Processo criado',
+            'Processo ' . ($p['numero'] ?? '#'.$id) . ' cadastrado no sistema'
+        );
         WebhookDispatcher::fire('processo.created', WebhookDispatcher::buildPayload('processo.created', [
             'entity' => 'processo', 'entity_id' => $id, 'processo_id' => $id,
             'cliente_id' => $p['contato_id'] ?? null, 'data' => $p,
@@ -68,10 +84,16 @@ try {
         $input = json_decode(file_get_contents('php://input'), true) ?? [];
         $id = $input['id'] ?? null;
         if (!$id) { http_response_code(400); echo json_encode(['error'=>'Missing id']); exit; }
+        // Valida tenant ANTES de atualizar — bloqueia edição cross-tenant
+        TenantGuard::assertProcessoAcessivel($ctx, (int)$id);
+        // Remove campos imutáveis do payload (defesa em profundidade)
+        unset($input['account_id'], $input['account_seq']);
         $prev = Processo::find((int)$id);
         $ok = Processo::update((int)$id, $input);
         if ($ok && $prev) {
             $updated = Processo::find((int)$id);
+            // Auditoria garantida server-side (compara prev vs new, lista campos alterados + de/para)
+            ProcessoAudit::logChanges((int)$id, $prev, $input);
             $eventKey = 'processo.updated';
             if (isset($input['status']) && ($prev['status'] ?? null) !== $input['status']) {
                 $eventKey = 'processo.status_changed';
@@ -99,9 +121,17 @@ try {
             $id = $input['id'] ?? null;
         }
         if (!$id) { http_response_code(400); echo json_encode(['error'=>'Missing id']); exit; }
+        // Valida tenant ANTES de soft-delete — bloqueia exclusão cross-tenant
+        TenantGuard::assertProcessoAcessivel($ctx, (int)$id);
         $prev = Processo::find((int)$id);
         $ok = Processo::softDelete((int)$id);
         if ($ok && $prev) {
+            // Auditoria server-side: registra exclusão antes que o soft-delete esconda o processo
+            ProcessoAudit::log(
+                (int)$id,
+                'Processo excluído',
+                'Processo ' . ($prev['numero'] ?? '#'.$id) . ' removido (soft-delete)'
+            );
             WebhookDispatcher::fire('processo.deleted', WebhookDispatcher::buildPayload('processo.deleted', [
                 'entity' => 'processo', 'entity_id' => (int)$id, 'processo_id' => (int)$id,
                 'cliente_id' => $prev['contato_id'] ?? null, 'data' => $prev,

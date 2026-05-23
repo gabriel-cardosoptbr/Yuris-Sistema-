@@ -18,7 +18,8 @@ $isAdmin    = in_array($userRole, ['owner', 'admin']) || ($_SESSION['user_perfil
   <link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css">
+  <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=27">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=8">
   <style>
@@ -92,6 +93,168 @@ $isAdmin    = in_array($userRole, ['owner', 'admin']) || ($_SESSION['user_perfil
     .es-modal { background:linear-gradient(165deg,rgba(13,28,48,.98),rgba(8,18,35,.99)); border:1px solid rgba(96,165,250,.2); border-radius:14px; padding:26px 28px 22px; width:480px; max-width:95vw; box-shadow:0 24px 60px rgba(2,6,23,.7); }
     .es-modal h3 { font-size:1rem; font-weight:700; color:#dbeafe; margin-bottom:18px; }
     .es-modal-footer { display:flex; justify-content:flex-end; gap:10px; margin-top:18px; }
+
+    /* ──────────────────────────────────────────────────────────────────────
+       TEMA CLARO — overrides para data-theme="light"
+       Mantém a mesma estrutura visual mas com paleta clara legível.
+       Princípio: fundo claro → texto escuro; bordas/badges suavizados.
+       ────────────────────────────────────────────────────────────────────── */
+    html[data-theme="light"] .es-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      box-shadow: 0 1px 3px rgba(15,23,42,.04);
+    }
+    html[data-theme="light"] .es-card-title { color: #1E3A5F; }
+
+    html[data-theme="light"] .es-tab {
+      background: #FFFFFF;
+      border-color: #D1DCE8;
+      color: #4A5C72;
+    }
+    html[data-theme="light"] .es-tab.active {
+      background: rgba(37,99,235,.10);
+      border-color: rgba(37,99,235,.35);
+      color: #1D4ED8;
+    }
+    html[data-theme="light"] .es-tab:hover:not(.active) {
+      background: rgba(37,99,235,.05);
+      color: #1E40AF;
+    }
+
+    html[data-theme="light"] .codigo-box {
+      background: #F8FAFC;
+      border-color: #D1DCE8;
+      color: #1E3A5F;
+    }
+    html[data-theme="light"] .codigo-box code,
+    html[data-theme="light"] .codigo-box span { color: #1E40AF; }
+
+    html[data-theme="light"] .es-table th {
+      color: #64748B;
+      border-bottom-color: #E2E8F0;
+    }
+    html[data-theme="light"] .es-table td {
+      color: #1E3A5F;
+      border-bottom-color: #EDF2F7;
+    }
+    html[data-theme="light"] .es-table tr:hover td { background: #F1F5F9; }
+
+    html[data-theme="light"] .badge-matriz {
+      background: rgba(37,99,235,.10);
+      color: #1D4ED8;
+      border-color: rgba(37,99,235,.30);
+    }
+    html[data-theme="light"] .badge-filial {
+      background: rgba(126,34,206,.10);
+      color: #6B21A8;
+      border-color: rgba(126,34,206,.30);
+    }
+    html[data-theme="light"] .badge-active {
+      background: rgba(34,197,94,.10);
+      color: #166534;
+      border-color: rgba(34,197,94,.30);
+    }
+    html[data-theme="light"] .badge-pending {
+      background: rgba(245,158,11,.10);
+      color: #92400E;
+      border-color: rgba(245,158,11,.30);
+    }
+    html[data-theme="light"] .badge-suspended,
+    html[data-theme="light"] .badge-rejected {
+      background: rgba(239,68,68,.10);
+      color: #991B1B;
+      border-color: rgba(239,68,68,.30);
+    }
+    html[data-theme="light"] .badge-sync-on {
+      background: rgba(34,197,94,.10) !important;
+      color: #166534 !important;
+      border-color: rgba(34,197,94,.30) !important;
+    }
+
+    html[data-theme="light"] .es-input {
+      background: #FFFFFF;
+      border-color: #D1DCE8;
+      color: #1E3A5F;
+    }
+    html[data-theme="light"] .es-input:focus {
+      border-color: #2563EB;
+      box-shadow: 0 0 0 3px rgba(37,99,235,.10);
+    }
+    html[data-theme="light"] .es-input::placeholder { color: #94A3B8; }
+
+    html[data-theme="light"] .es-empty {
+      color: #64748B;
+    }
+
+    /* Botões — manter cor de identidade, mas com contraste pro fundo branco */
+    html[data-theme="light"] .btn-success {
+      background: #16A34A !important;
+      color: #FFFFFF !important;
+      border: 1px solid #16A34A !important;
+    }
+    html[data-theme="light"] .btn-success:hover { background: #15803D !important; }
+    html[data-theme="light"] .btn-danger {
+      background: #DC2626 !important;
+      color: #FFFFFF !important;
+      border: 1px solid #DC2626 !important;
+    }
+    html[data-theme="light"] .btn-danger:hover { background: #B91C1C !important; }
+    html[data-theme="light"] .btn-primary {
+      background: #2563EB !important;
+      color: #FFFFFF !important;
+      border: 1px solid #2563EB !important;
+    }
+    html[data-theme="light"] .btn-primary:hover { background: #1D4ED8 !important; }
+    html[data-theme="light"] .btn-outline {
+      background: #FFFFFF !important;
+      color: #475569 !important;
+      border: 1px solid #CBD5E1 !important;
+    }
+    html[data-theme="light"] .btn-outline:hover { background: #F8FAFC !important; }
+
+    /* Botão "Sincronização" usa inline style azul-translúcido — força contraste no claro */
+    html[data-theme="light"] [onclick*="abrirSyncModal"] {
+      background: rgba(37,99,235,.10) !important;
+      color: #1D4ED8 !important;
+      border: 1px solid rgba(37,99,235,.35) !important;
+    }
+    html[data-theme="light"] [onclick*="abrirSyncModal"]:hover {
+      background: rgba(37,99,235,.18) !important;
+    }
+
+    html[data-theme="light"] .copy-btn {
+      background: #FFFFFF;
+      border-color: #CBD5E1;
+      color: #1D4ED8;
+    }
+    html[data-theme="light"] .copy-btn:hover { background: #EFF6FF; }
+
+    /* Painel "Minha Conta" — labels + valores (Nome / Tipo / Plano / Status) */
+    html[data-theme="light"] .es-info-item label { color: #64748B; }
+    html[data-theme="light"] .es-info-item span  { color: #0F172A; }
+
+    /* Modal no tema claro */
+    html[data-theme="light"] .es-overlay {
+      background: rgba(15,23,42,.45);
+    }
+    html[data-theme="light"] .es-modal {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      box-shadow: 0 24px 60px rgba(15,23,42,.18);
+    }
+    html[data-theme="light"] .es-modal h3 { color: #1E3A5F; }
+    html[data-theme="light"] .es-modal p,
+    html[data-theme="light"] .es-modal label,
+    html[data-theme="light"] .es-modal span { color: #1E3A5F; }
+    /* Os blocos do modal de Sync (toggle mestre + módulos) usam fundo dark — força claro */
+    html[data-theme="light"] #modalSync label[style*="rgba(5,18,39"],
+    html[data-theme="light"] #modalSync #syncModulesGroup {
+      background: #F8FAFC !important;
+      border-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] #modalSync [style*="color:#dbe9ff"],
+    html[data-theme="light"] #modalSync [style*="color:#dbeafe"] { color: #1E3A5F !important; }
+    html[data-theme="light"] #modalSync [style*="color:#7a96b4"] { color: #64748B !important; }
   </style>
 </head>
 <body>
@@ -176,6 +339,7 @@ $isAdmin    = in_array($userRole, ['owner', 'admin']) || ($_SESSION['user_perfil
         <button class="es-tab active" onclick="switchTab('vinculos')">Vínculos</button>
         <button class="es-tab" onclick="switchTab('advogados')">Advogados Associados</button>
         <button class="es-tab" onclick="switchTab('compartilhamentos')">Compartilhamentos</button>
+        <button class="es-tab" onclick="switchTab('modulos')">Módulos</button>
         <?php if ($isAdmin && $accountTipo === 'filial'): ?>
         <button class="es-tab" onclick="switchTab('solicitar')">Solicitar Vínculo</button>
         <?php endif; ?>
@@ -212,6 +376,20 @@ $isAdmin    = in_array($userRole, ['owner', 'admin']) || ($_SESSION['user_perfil
         <div class="es-card">
           <div class="es-card-title">Compartilhamentos Ativos</div>
           <div id="sharesList"><div class="es-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Carregando...</div></div>
+        </div>
+      </div>
+
+      <!-- ── PANE: Módulos ── -->
+      <div class="es-pane" id="pane-modulos">
+        <div class="es-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div class="es-card-title" style="margin:0">Módulos Liberados</div>
+            <?php if ($isAdmin): ?>
+            <button class="btn-sm btn-primary" onclick="abrirModalModulo()">+ Liberar módulo</button>
+            <?php endif; ?>
+          </div>
+          <p style="font-size:.82rem;color:#7a96b4;margin:0 0 14px">Aqui você libera abas inteiras (ex: Dashboard, Jurídico, Processos) para outra matriz, filial ou advogado. Quem receber verá os <strong>seus dados</strong> daquela aba — diferente do vínculo de um processo específico, que libera apenas aquele processo.</p>
+          <div id="modulosList"><div class="es-empty">Carregando...</div></div>
         </div>
       </div>
 
@@ -278,6 +456,104 @@ $isAdmin    = in_array($userRole, ['owner', 'admin']) || ($_SESSION['user_perfil
   </div>
 </div>
 
+<!-- ── Modal: Liberar Módulo ── -->
+<div class="es-overlay" id="modalModulo">
+  <div class="es-modal" style="width:560px;">
+    <h3>Liberar módulo (aba inteira)</h3>
+    <p style="font-size:.82rem;color:#7a96b4;margin-bottom:14px">A pessoa/conta destino verá os <strong>seus dados</strong> nesse módulo (ex: seus processos, sua dashboard). Use o vínculo de processo específico se quiser liberar apenas 1 processo.</p>
+
+    <div class="es-field" style="margin-bottom:12px">
+      <label>Módulo *</label>
+      <select id="moduleKey" class="es-input">
+        <option value="processos">Processos</option>
+        <option value="juridico">Jurídico (métricas/prazos)</option>
+        <option value="dashboard">Dashboard</option>
+        <option value="planejamento">Planejamento</option>
+        <option value="prospeccao">Prospecção</option>
+        <option value="financas">Finanças</option>
+        <option value="tarefas">Tarefas</option>
+        <option value="chat">WhatsApp</option>
+        <option value="chat_interno">Chat Interno</option>
+      </select>
+    </div>
+
+    <div class="es-form-row" style="align-items:flex-end;margin-bottom:0">
+      <div class="es-field">
+        <label>Código *</label>
+        <input type="text" id="moduleCodigo" class="es-input" placeholder="Código de vínculo (conta) ou ADV-XXXXXX (advogado)">
+      </div>
+      <button class="btn-sm btn-outline" style="height:36px;white-space:nowrap" onclick="buscarDestinoModulo()">Buscar</button>
+    </div>
+    <div id="moduleResultado" style="display:none;margin-top:10px;padding:10px 14px;border-radius:8px;font-size:.84rem"></div>
+
+    <div id="modulePermSection" style="display:none;margin-top:14px">
+      <div class="es-field" style="max-width:200px">
+        <label>Permissão</label>
+        <select id="modulePerm" class="es-input">
+          <option value="view">Visualizar</option>
+          <option value="edit">Editar</option>
+          <option value="full">Acesso total</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="es-modal-footer">
+      <button class="btn-sm btn-outline" onclick="document.getElementById('modalModulo').classList.remove('open')">Cancelar</button>
+      <button class="btn-sm btn-primary" id="moduleConfirmBtn" style="display:none" onclick="confirmarLiberarModulo()">Liberar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Sincronização da Filial ──
+     Permite à matriz controlar quais dados puxar de uma filial vinculada.
+     - sync_enabled : toggle mestre (se desligado, a filial fica invisível)
+     - sync_cards / sync_processos / sync_tarefas : flags individuais por módulo -->
+<div class="es-overlay" id="modalSync">
+  <div class="es-modal">
+    <h3>Sincronização — <span id="syncFilialNome" style="color:#93c5fd"></span></h3>
+    <p style="font-size:.83rem;color:#7a96b4;margin-bottom:14px;">
+      Controle quais dados da filial são puxados para a matriz. As alterações são imediatas.
+    </p>
+
+    <!-- Toggle mestre -->
+    <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid rgba(96,165,250,.18);border-radius:10px;background:rgba(5,18,39,.4);margin-bottom:12px;cursor:pointer">
+      <div>
+        <div style="font-weight:700;color:#dbe9ff">Sincronização ativa</div>
+        <div style="font-size:.76rem;color:#7a96b4;margin-top:2px">Quando desligada, esta filial fica invisível para a matriz em todos os módulos.</div>
+      </div>
+      <input type="checkbox" id="syncEnabled" style="width:18px;height:18px;cursor:pointer;accent-color:#2563eb">
+    </label>
+
+    <!-- Flags individuais -->
+    <div id="syncModulesGroup" style="border:1px solid rgba(160,180,210,.12);border-radius:10px;padding:8px 4px;margin-bottom:14px">
+      <div style="font-size:.74rem;color:#7a96b4;padding:4px 12px 8px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Módulos a sincronizar</div>
+      <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;cursor:pointer">
+        <span style="color:#dbe9ff">Cards / Leads (Prospecção)</span>
+        <input type="checkbox" id="syncCards" style="width:16px;height:16px;cursor:pointer;accent-color:#2563eb">
+      </label>
+      <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;cursor:pointer">
+        <span style="color:#dbe9ff">Processos</span>
+        <input type="checkbox" id="syncProcessos" style="width:16px;height:16px;cursor:pointer;accent-color:#2563eb">
+      </label>
+      <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;cursor:pointer">
+        <span style="color:#dbe9ff">Tarefas</span>
+        <input type="checkbox" id="syncTarefas" style="width:16px;height:16px;cursor:pointer;accent-color:#2563eb">
+      </label>
+      <!-- Atalho "Tudo" -->
+      <div style="padding:6px 14px 8px;border-top:1px solid rgba(160,180,210,.08);margin-top:4px;display:flex;gap:8px">
+        <button type="button" class="btn-sm" style="background:transparent;border:1px solid rgba(96,165,250,.3);color:#93c5fd;font-size:.72rem" onclick="syncSetAll(true)">Marcar tudo</button>
+        <button type="button" class="btn-sm" style="background:transparent;border:1px solid rgba(160,180,210,.2);color:#9ab0c9;font-size:.72rem" onclick="syncSetAll(false)">Desmarcar tudo</button>
+      </div>
+    </div>
+
+    <div id="syncMsg" style="margin-top:8px;font-size:.82rem;"></div>
+    <div class="es-modal-footer">
+      <button class="btn-sm btn-outline" onclick="document.getElementById('modalSync').classList.remove('open')">Cancelar</button>
+      <button class="btn-sm btn-primary" onclick="salvarSync()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── Modal: Solicitar Vínculo ── -->
 <div class="es-overlay" id="modalSolicitar">
   <div class="es-modal">
@@ -299,6 +575,7 @@ $isAdmin    = in_array($userRole, ['owner', 'admin']) || ($_SESSION['user_perfil
 const CSRF = <?= json_encode($csrf) ?>;
 const IS_ADMIN = <?= $isAdmin ? 'true' : 'false' ?>;
 const ACCOUNT_TIPO = <?= json_encode($accountTipo) ?>;
+const ACCOUNT_ID = <?= json_encode($accountId) ?>;
 
 const api = (url, opts = {}) => fetch(url, {
   headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF },
@@ -383,7 +660,7 @@ async function carregarVinculos() {
   const el = document.getElementById('vinculosList');
   el.innerHTML = '<div class="es-empty">Carregando...</div>';
   const r = await api('/sistema_vendas/public/api/account_vinculos.php');
-  const lista = r.ok ? (r.data || []) : [];
+  const lista = r.data || [];
   if (!lista.length) {
     el.innerHTML = `<div class="es-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Nenhum vínculo cadastrado.</div>`;
     return;
@@ -391,17 +668,35 @@ async function carregarVinculos() {
   el.innerHTML = `<table class="es-table">
     <thead><tr><th>Tipo</th><th>Escritório</th><th>Status</th><th>Desde</th>${IS_ADMIN ? '<th>Ações</th>' : ''}</tr></thead>
     <tbody>${lista.map(v => {
-      const iAmMatriz = v.meu_papel === 'matriz';
-      const outro = iAmMatriz ? (v.filial_nome || v.filial_account_id) : (v.matriz_nome || v.matriz_account_id);
-      const tipo  = iAmMatriz ? 'Filial' : 'Matriz';
+      // Sou matriz nesta relação? compara o account_id da sessão com o lado matriz do vínculo
+      const iAmMatriz = parseInt(v.matriz_account_id) === parseInt(ACCOUNT_ID);
+      const outro = iAmMatriz ? (v.filial_nome || `Conta #${v.filial_account_id}`) : (v.matriz_nome || `Conta #${v.matriz_account_id}`);
+      const tipoOutro = iAmMatriz ? 'Filial' : 'Matriz';
+      // Resumo dos flags de sincronização (só mostrado quando sou matriz nesse vínculo)
+      let syncBadge = '';
+      if (iAmMatriz && v.status === 'active') {
+        const syncOn = parseInt(v.sync_enabled ?? 1) === 1;
+        const mods = [];
+        if (parseInt(v.sync_cards ?? 1)     === 1) mods.push('Cards');
+        if (parseInt(v.sync_processos ?? 1) === 1) mods.push('Processos');
+        if (parseInt(v.sync_tarefas ?? 1)   === 1) mods.push('Tarefas');
+        if (syncOn) {
+          syncBadge = `<span class="badge badge-sync-on" title="Sincronizando: ${mods.join(', ') || 'nenhum módulo'}" style="font-size:.7rem;background:rgba(34,197,94,.18);color:#86efac;border:1px solid rgba(34,197,94,.3);padding:2px 8px;border-radius:6px;font-weight:600">Sincronizado · ${mods.length}/3</span>`;
+        } else {
+          syncBadge = `<span class="badge" title="Sincronização desligada — não puxa nenhum dado da filial" style="font-size:.7rem;background:rgba(160,180,210,0.1);color:#9ab0c9;border:1px solid rgba(160,180,210,0.2);padding:2px 8px;border-radius:6px;font-weight:600">Sync desligado</span>`;
+        }
+      }
+
       const acoes = IS_ADMIN ? `
         ${v.status === 'pending' && iAmMatriz ? `<button class="btn-sm btn-success" onclick="aprovarVinculo(${v.id})">Aprovar</button> <button class="btn-sm btn-danger" onclick="rejeitarVinculo(${v.id})">Rejeitar</button>` : ''}
+        ${v.status === 'active' && iAmMatriz ? `<button class="btn-sm" style="background:rgba(37,99,235,.18);color:#93c5fd;border:1px solid rgba(37,99,235,.3)" onclick='abrirSyncModal(${JSON.stringify(v)})'>Sincronização</button>` : ''}
         ${v.status === 'active' && iAmMatriz ? `<button class="btn-sm btn-danger" onclick="suspenderVinculo(${v.id})">Suspender</button>` : ''}
+        ${v.status === 'pending' && !iAmMatriz ? '<span style="color:#7a96b4;font-size:.78rem">Aguardando aprovação da matriz</span>' : ''}
       ` : '';
       return `<tr>
-        <td><span class="badge badge-${tipo.toLowerCase()}">${tipo}</span></td>
+        <td><span class="badge badge-${tipoOutro.toLowerCase()}">${tipoOutro}</span></td>
         <td>${outro}</td>
-        <td><span class="badge badge-${v.status}">${v.status}</span></td>
+        <td><span class="badge badge-${v.status}">${v.status}</span>${syncBadge ? ' ' + syncBadge : ''}</td>
         <td style="color:#4a5568">${(v.created_at||'').slice(0,10)}</td>
         ${IS_ADMIN ? `<td style="display:flex;gap:6px;flex-wrap:wrap">${acoes}</td>` : ''}
       </tr>`;
@@ -413,21 +708,76 @@ async function aprovarVinculo(id) {
   const r = await api('/sistema_vendas/public/api/account_vinculos.php', {
     method: 'PATCH', body: JSON.stringify({ id, action: 'aprovar', csrf_token: CSRF })
   });
-  r.ok ? (toast('Vínculo aprovado!', 'ok'), carregarVinculos()) : toast(r.error || 'Erro', 'err');
+  (r.success || r.ok) ? (toast('Vínculo aprovado!', 'ok'), carregarVinculos()) : toast(r.error || 'Erro', 'err');
 }
 async function rejeitarVinculo(id) {
   const r = await api('/sistema_vendas/public/api/account_vinculos.php', {
     method: 'PATCH', body: JSON.stringify({ id, action: 'rejeitar', csrf_token: CSRF })
   });
-  r.ok ? (toast('Vínculo rejeitado.', 'ok'), carregarVinculos()) : toast(r.error || 'Erro', 'err');
+  (r.success || r.ok) ? (toast('Vínculo rejeitado.', 'ok'), carregarVinculos()) : toast(r.error || 'Erro', 'err');
 }
 async function suspenderVinculo(id) {
-  const motivo = prompt('Motivo da suspensão:') ?? '';
-  if (motivo === null) return;
+  const motivo = await Yuris.prompt('Motivo da suspensão:', {
+    title: 'Suspender vínculo',
+    placeholder: 'Opcional — explique brevemente o motivo',
+    okLabel: 'Suspender',
+  });
+  if (motivo === null) return;   // usuário cancelou
   const r = await api('/sistema_vendas/public/api/account_vinculos.php', {
     method: 'PATCH', body: JSON.stringify({ id, action: 'suspender', motivo, csrf_token: CSRF })
   });
-  r.ok ? (toast('Vínculo suspenso.', 'ok'), carregarVinculos()) : toast(r.error || 'Erro', 'err');
+  (r.success || r.ok) ? (toast('Vínculo suspenso.', 'ok'), carregarVinculos()) : toast(r.error || 'Erro', 'err');
+}
+
+// ── Sincronização granular por vínculo (Matriz↔Filial) ───────────────────────
+let _syncVinculoId = null;
+function abrirSyncModal(v) {
+  _syncVinculoId = v.id;
+  document.getElementById('syncFilialNome').textContent = v.filial_nome || `Conta #${v.filial_account_id}`;
+  document.getElementById('syncEnabled').checked     = parseInt(v.sync_enabled ?? 1)   === 1;
+  document.getElementById('syncCards').checked       = parseInt(v.sync_cards ?? 1)     === 1;
+  document.getElementById('syncProcessos').checked   = parseInt(v.sync_processos ?? 1) === 1;
+  document.getElementById('syncTarefas').checked     = parseInt(v.sync_tarefas ?? 1)   === 1;
+  document.getElementById('syncMsg').textContent = '';
+  _syncToggleModulesUI();
+  document.getElementById('modalSync').classList.add('open');
+}
+function syncSetAll(value) {
+  document.getElementById('syncCards').checked     = value;
+  document.getElementById('syncProcessos').checked = value;
+  document.getElementById('syncTarefas').checked   = value;
+}
+// Quando sync_enabled está OFF, desabilita visualmente os módulos individuais
+function _syncToggleModulesUI() {
+  const on = document.getElementById('syncEnabled').checked;
+  const grp = document.getElementById('syncModulesGroup');
+  grp.style.opacity      = on ? '1' : '.45';
+  grp.style.pointerEvents= on ? 'auto' : 'none';
+}
+document.addEventListener('change', e => {
+  if (e.target && e.target.id === 'syncEnabled') _syncToggleModulesUI();
+});
+async function salvarSync() {
+  if (!_syncVinculoId) return;
+  const payload = {
+    id: _syncVinculoId,
+    action: 'update_sync',
+    sync_enabled:   document.getElementById('syncEnabled').checked   ? 1 : 0,
+    sync_cards:     document.getElementById('syncCards').checked     ? 1 : 0,
+    sync_processos: document.getElementById('syncProcessos').checked ? 1 : 0,
+    sync_tarefas:   document.getElementById('syncTarefas').checked   ? 1 : 0,
+    csrf_token: CSRF
+  };
+  const r = await api('/sistema_vendas/public/api/account_vinculos.php', {
+    method: 'PATCH', body: JSON.stringify(payload)
+  });
+  if (r.success || r.ok) {
+    toast('Sincronização atualizada.', 'ok');
+    document.getElementById('modalSync').classList.remove('open');
+    carregarVinculos();
+  } else {
+    document.getElementById('syncMsg').innerHTML = `<span style="color:#fca5a5">${r.error || 'Erro ao salvar.'}</span>`;
+  }
 }
 
 function abrirSolicitarVinculo() {
@@ -440,9 +790,27 @@ async function solicitarVinculoModal() {
   const r = await api('/sistema_vendas/public/api/account_vinculos.php', {
     method: 'POST', body: JSON.stringify({ codigo_vinculo: codigo, csrf_token: CSRF })
   });
-  if (r.ok) {
+  if (r.success || r.ok) {
     msg.innerHTML = '<span style="color:#86efac">Solicitação enviada! Aguarde aprovação da Matriz.</span>';
     setTimeout(() => { document.getElementById('modalSolicitar').classList.remove('open'); carregarVinculos(); }, 1800);
+  } else {
+    msg.innerHTML = `<span style="color:#fca5a5">${r.error || 'Erro ao solicitar.'}</span>`;
+  }
+}
+
+// Versão usada pela aba "Solicitar Vínculo" (input inline, fora do modal)
+async function solicitarVinculo() {
+  const codigo = document.getElementById('inputCodigoMatriz').value.trim();
+  const msg    = document.getElementById('solicitarMsg');
+  if (!codigo) { msg.innerHTML = '<span style="color:#fca5a5">Informe o código.</span>'; return; }
+  msg.innerHTML = '<span style="color:#7a96b4">Enviando...</span>';
+  const r = await api('/sistema_vendas/public/api/account_vinculos.php', {
+    method: 'POST', body: JSON.stringify({ codigo_vinculo: codigo, csrf_token: CSRF })
+  });
+  if (r.success || r.ok) {
+    msg.innerHTML = '<span style="color:#86efac">Solicitação enviada! Aguarde aprovação da Matriz.</span>';
+    document.getElementById('inputCodigoMatriz').value = '';
+    setTimeout(() => { switchTab('vinculos'); }, 1500);
   } else {
     msg.innerHTML = `<span style="color:#fca5a5">${r.error || 'Erro ao solicitar.'}</span>`;
   }
@@ -551,7 +919,8 @@ function selecionarProcesso(id, numero, cliente) {
   document.getElementById('advProcessoLista').style.display = 'none';
   const sel = document.getElementById('advProcessoSelecionado');
   sel.style.display = 'block';
-  sel.textContent = `✓ Processo #${id} selecionado`;
+  // Mostra número do processo + cliente em vez de ID interno (ID é organização técnica)
+  sel.textContent = `✓ Processo ${numero}${cliente ? ' — ' + cliente : ''} selecionado`;
 }
 
 async function confirmarCompartilhamento() {
@@ -608,7 +977,7 @@ async function carregarShares() {
 }
 
 async function revogarShare(id) {
-  if (!confirm('Revogar este compartilhamento?')) return;
+  if (!(await Yuris.confirm('Revogar este compartilhamento?', { danger: true, okLabel: 'Revogar' }))) return;
   const r = await api('/sistema_vendas/public/api/resource_shares.php', {
     method: 'DELETE', body: JSON.stringify({ id, csrf_token: CSRF })
   });
@@ -616,21 +985,158 @@ async function revogarShare(id) {
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
+// Tema-aware: lê data-theme do <html> e ajusta paleta pra manter contraste
+// (fundo claro → texto escuro; fundo escuro → texto claro).
 function toast(msg, type = 'ok') {
   const t = document.createElement('div');
   t.textContent = msg;
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  let bg, border, color;
+  if (type === 'ok') {
+    bg     = isLight ? '#22C55E' : 'rgba(34,197,94,.2)';
+    border = isLight ? '#16A34A' : 'rgba(34,197,94,.4)';
+    color  = isLight ? '#FFFFFF' : '#86efac';
+  } else {
+    bg     = isLight ? '#DC2626' : 'rgba(239,68,68,.2)';
+    border = isLight ? '#B91C1C' : 'rgba(239,68,68,.4)';
+    color  = isLight ? '#FFFFFF' : '#fca5a5';
+  }
   Object.assign(t.style, {
     position:'fixed', bottom:'24px', right:'24px', zIndex:9999,
     padding:'10px 18px', borderRadius:'8px', fontSize:'.84rem', fontWeight:'600',
-    background: type === 'ok' ? 'rgba(34,197,94,.2)' : 'rgba(239,68,68,.2)',
-    border: `1px solid ${type === 'ok' ? 'rgba(34,197,94,.4)' : 'rgba(239,68,68,.4)'}`,
-    color: type === 'ok' ? '#86efac' : '#fca5a5',
-    boxShadow: '0 8px 24px rgba(0,0,0,.3)',
+    background: bg,
+    border: `1px solid ${border}`,
+    color: color,
+    boxShadow: isLight ? '0 8px 24px rgba(15,23,42,.18)' : '0 8px 24px rgba(0,0,0,.3)',
     transition: 'opacity .3s',
   });
   document.body.appendChild(t);
   setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
 }
+
+// ── Módulos liberados ─────────────────────────────────────────────────────────
+const MODULOS_LABEL = {
+  processos: 'Processos', juridico: 'Jurídico', dashboard: 'Dashboard',
+  planejamento: 'Planejamento', prospeccao: 'Prospecção', financas: 'Finanças',
+  tarefas: 'Tarefas', chat: 'WhatsApp', chat_interno: 'Chat Interno',
+};
+
+async function carregarModulos() {
+  const el = document.getElementById('modulosList');
+  el.innerHTML = '<div class="es-empty">Carregando...</div>';
+  const r = await api('/sistema_vendas/public/api/resource_shares.php?resource_type=module&resource_id=0');
+  // Fallback: também busca via shared_with_me para mostrar o que liberei
+  const r2 = await fetch('/sistema_vendas/public/api/resource_shares.php?listar_modulos=1', {credentials:'same-origin'}).then(x=>x.json()).catch(()=>({data:[]}));
+  const lista = (r2.data || r.data || []).filter(s => s.resource_type === 'module' && s.status === 'active');
+  if (!lista.length) {
+    el.innerHTML = `<div class="es-empty">Nenhum módulo liberado. Clique em "+ Liberar módulo" para começar.</div>`;
+    return;
+  }
+  el.innerHTML = `<table class="es-table">
+    <thead><tr><th>Módulo</th><th>Para</th><th>Permissão</th><th>Desde</th>${IS_ADMIN ? '<th>Ações</th>' : ''}</tr></thead>
+    <tbody>${lista.map(s => {
+      const alvo = s.to_user_nome ? `Advogado: <strong>${s.to_user_nome}</strong>` : (s.to_account_nome || `Conta #${s.to_account_id}`);
+      return `<tr>
+        <td><span class="badge badge-matriz">${MODULOS_LABEL[s.module_key] || s.module_key}</span></td>
+        <td>${alvo}</td>
+        <td>${s.permission_level}</td>
+        <td style="color:#4a5568">${(s.created_at||'').slice(0,10)}</td>
+        ${IS_ADMIN ? `<td><button class="btn-sm btn-danger" onclick="revogarShare(${s.id})">Revogar</button></td>` : ''}
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+let _moduleAlvo = null;
+function abrirModalModulo() {
+  _moduleAlvo = null;
+  document.getElementById('moduleCodigo').value = '';
+  document.getElementById('moduleResultado').style.display = 'none';
+  document.getElementById('modulePermSection').style.display = 'none';
+  document.getElementById('moduleConfirmBtn').style.display = 'none';
+  document.getElementById('modalModulo').classList.add('open');
+}
+
+async function buscarDestinoModulo() {
+  const codigo = document.getElementById('moduleCodigo').value.trim();
+  const res    = document.getElementById('moduleResultado');
+  if (!codigo) { toast('Cole o código primeiro.', 'err'); return; }
+  res.style.display = 'block';
+  res.style.background = 'rgba(30,50,80,.4)';
+  res.style.border = '1px solid rgba(96,165,250,.1)';
+  res.style.color = '#9ab0c9';
+  res.innerHTML = 'Buscando...';
+  const r = await fetch(`/sistema_vendas/public/api/lookup.php?codigo=${encodeURIComponent(codigo)}`, {credentials:'same-origin'}).then(x=>x.json()).catch(()=>({error:'Erro de rede'}));
+  if (r.tipo === 'conta') {
+    _moduleAlvo = { kind: 'conta', accountId: r.data.id, nome: r.data.nome };
+    res.style.background = 'rgba(34,197,94,.08)';
+    res.style.border = '1px solid rgba(34,197,94,.25)';
+    res.style.color = '#86efac';
+    res.innerHTML = `✓ Conta: <strong>${r.data.nome}</strong> <span style="opacity:.7">(${r.data.tipo})</span> — toda a conta receberá acesso ao módulo`;
+    document.getElementById('modulePermSection').style.display = 'block';
+    document.getElementById('moduleConfirmBtn').style.display = 'inline-block';
+  } else if (r.tipo === 'advogado') {
+    _moduleAlvo = { kind: 'advogado', userId: r.data.user_id, accountId: r.data.account_id, nome: r.data.nome };
+    res.style.background = 'rgba(34,197,94,.08)';
+    res.style.border = '1px solid rgba(34,197,94,.25)';
+    res.style.color = '#86efac';
+    res.innerHTML = `✓ Advogado: <strong>${r.data.nome}</strong> <span style="opacity:.7">(${r.data.codigo_advogado})</span> — apenas ele terá acesso ao módulo`;
+    document.getElementById('modulePermSection').style.display = 'block';
+    document.getElementById('moduleConfirmBtn').style.display = 'inline-block';
+  } else {
+    _moduleAlvo = null;
+    res.style.background = 'rgba(239,68,68,.08)';
+    res.style.border = '1px solid rgba(239,68,68,.3)';
+    res.style.color = '#fca5a5';
+    res.innerHTML = `✗ ${r.error || 'Código não encontrado'}`;
+    document.getElementById('modulePermSection').style.display = 'none';
+    document.getElementById('moduleConfirmBtn').style.display = 'none';
+  }
+}
+
+async function confirmarLiberarModulo() {
+  if (!_moduleAlvo) return;
+  const moduleKey = document.getElementById('moduleKey').value;
+  const perm      = document.getElementById('modulePerm').value;
+  const payload = {
+    resource_type:    'module',
+    module_key:       moduleKey,
+    permission_level: perm,
+    csrf_token:       CSRF,
+  };
+  if (_moduleAlvo.kind === 'conta') {
+    payload.to_account_id = _moduleAlvo.accountId;
+  } else {
+    payload.to_user_id    = _moduleAlvo.userId;
+    payload.to_account_id = _moduleAlvo.accountId;
+  }
+  const r = await api('/sistema_vendas/public/api/resource_shares.php', {
+    method: 'POST', body: JSON.stringify(payload),
+  });
+  if (r.success || r.ok) {
+    toast(`Módulo "${MODULOS_LABEL[moduleKey]}" liberado para ${_moduleAlvo.nome}!`, 'ok');
+    document.getElementById('modalModulo').classList.remove('open');
+    carregarModulos();
+  } else {
+    toast(r.error || 'Erro ao liberar módulo', 'err');
+  }
+}
+
+// ── Hook na switchTab para carregar módulos ───────────────────────────────────
+const _origSwitch = switchTab;
+switchTab = function(name) {
+  // atualiza tabs visualmente (mantém comportamento original)
+  document.querySelectorAll('.es-tab').forEach((t,i) => {
+    const tabs = ['vinculos','advogados','compartilhamentos','modulos','solicitar'];
+    t.classList.toggle('active', tabs[i] === name);
+  });
+  document.querySelectorAll('.es-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('pane-' + name)?.classList.add('active');
+  if (name === 'vinculos') carregarVinculos();
+  if (name === 'advogados') carregarAdvogados();
+  if (name === 'compartilhamentos') carregarShares();
+  if (name === 'modulos') carregarModulos();
+};
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 carregarConta();

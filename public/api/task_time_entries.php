@@ -1,18 +1,23 @@
 <?php
 require_once __DIR__ . '/../../app/Models/Database.php';
+require_once __DIR__ . '/../../app/Models/Account.php';
+require_once __DIR__ . '/../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../app/Models/TaskTimeEntry.php';
+require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
 
 use App\Models\TaskTimeEntry;
+use App\Helpers\AccountContext;
+use App\Helpers\TenantGuard;
 
-session_start(['read_and_close' => true]);
+session_start();
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache, no-store, must-revalidate');
 
-if (empty($_SESSION['user_id'])) { http_response_code(401); echo json_encode(['ok'=>false,'error'=>'Unauthorized']); exit; }
-
-$userId = (int)$_SESSION['user_id'];
-$method = $_SERVER['REQUEST_METHOD'];
-$input  = json_decode(file_get_contents('php://input'), true) ?? [];
+$ctx     = AccountContext::fromSession();
+$userId  = $ctx->getUserId();
+$method  = $_SERVER['REQUEST_METHOD'];
+$input   = json_decode(file_get_contents('php://input'), true) ?? [];
 
 function csrfOk(): bool {
     $tok = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($GLOBALS['input']['csrf_token'] ?? null);
@@ -25,6 +30,8 @@ $action  = $_GET['action'] ?? $input['action'] ?? null;
 $taskId  = (int)($input['task_id'] ?? $_GET['task_id'] ?? 0);
 
 if ($method === 'GET') {
+    if ($taskId <= 0) fail('task_id obrigatório');
+    TenantGuard::assertTaskAcessivel($ctx, $taskId);
     $rows  = TaskTimeEntry::findByTask($taskId);
     $total = TaskTimeEntry::totalMinutos($taskId);
     $timer = TaskTimeEntry::activeTimer($taskId, $userId);
@@ -34,6 +41,9 @@ if ($method === 'GET') {
 if (!csrfOk()) fail('CSRF inválido');
 
 if ($method === 'POST') {
+    if ($taskId <= 0) fail('task_id obrigatório');
+    TenantGuard::assertTaskAcessivel($ctx, $taskId);
+
     if ($action === 'start') { TaskTimeEntry::startTimer($taskId, $userId); ok(); }
     if ($action === 'stop')  { TaskTimeEntry::stopTimer($taskId, $userId);  ok(); }
     // manual

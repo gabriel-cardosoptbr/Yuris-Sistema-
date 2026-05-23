@@ -18,7 +18,8 @@ $nCols   = count($columns);
   <link rel="icon" type="image/png" sizes="192x192" href="/sistema_vendas/public/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css">
+  <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=27">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=8">
   <style>
@@ -220,6 +221,139 @@ $nCols   = count($columns);
     .toast.error   { background:linear-gradient(90deg,#dc2626,#ef4444); }
 
     @media (max-width: 640px) { .kpi-grid-6 { grid-template-columns: repeat(2,1fr) !important; } }
+
+    /* ── Cards de seleção de tema (aba Aparência) ── */
+    .theme-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+    }
+    .theme-card {
+      position: relative;
+      display: flex; flex-direction: column;
+      padding: 12px;
+      background: rgba(8,22,44,.45);
+      border: 2px solid rgba(96,165,250,.14);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all .2s ease;
+      text-align: left;
+      color: inherit;
+    }
+    .theme-card:hover {
+      border-color: rgba(96,165,250,.40);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(37,99,235,.12);
+    }
+    .theme-card[aria-pressed="true"] {
+      border-color: #2563EB;
+      box-shadow: 0 0 0 3px rgba(37,99,235,.18), 0 8px 24px rgba(37,99,235,.18);
+    }
+    .theme-card[aria-pressed="true"] .theme-card-check { opacity: 1; transform: scale(1); }
+
+    .theme-preview {
+      border-radius: 8px;
+      height: 130px;
+      display: flex;
+      overflow: hidden;
+      border: 1px solid rgba(160,180,210,.12);
+      margin-bottom: 10px;
+    }
+    .theme-preview .tp-sidebar { width: 22%; background: #060E18; border-right: 1px solid rgba(160,180,210,.10); }
+    .theme-preview .tp-content { flex: 1; padding: 10px; display: flex; flex-direction: column; gap: 6px; background: #070F1C; }
+    .theme-preview .tp-header  { height: 14px; background: rgba(20,50,90,.50); border-radius: 3px; width: 60%; }
+    .theme-preview .tp-card    { height: 22px; background: #0D1C30; border-radius: 4px; border: 1px solid rgba(160,180,210,.08); }
+    .theme-preview .tp-card-2  { background: linear-gradient(90deg, #1A3A5C 0%, #244E7A 100%); width: 70%; }
+    .theme-preview .tp-row     { height: 8px; background: rgba(160,180,210,.14); border-radius: 2px; }
+    .theme-preview .tp-row.short { width: 50%; }
+
+    /* Preview do tema CLARO — mostra como vai ficar */
+    .theme-preview-light .tp-sidebar { background: #EAEEF4; border-right-color: rgba(15,31,54,.10); }
+    .theme-preview-light .tp-content { background: #DDE3EC; }
+    .theme-preview-light .tp-header  { background: rgba(37,99,235,.18); }
+    .theme-preview-light .tp-card    { background: #FFFFFF; border-color: rgba(15,31,54,.10); }
+    .theme-preview-light .tp-card-2  { background: linear-gradient(90deg, #1E4A8A 0%, #2563EB 100%); }
+    .theme-preview-light .tp-row     { background: rgba(15,31,54,.18); }
+
+    .theme-card-meta { flex: 1; }
+    .theme-card-title { font-size: .92rem; font-weight: 700; color: #D8E4F0; display: flex; align-items: center; gap: 8px; }
+    .theme-card-sub   { font-size: .76rem; color: #7A8898; margin-top: 2px; }
+    .theme-badge      { padding: 2px 7px; border-radius: 10px; font-size: .65rem; font-weight: 700; background: rgba(96,165,250,.18); color: #93C5FD; text-transform: uppercase; letter-spacing: .04em; }
+    .theme-badge-new  { background: rgba(34,197,94,.16); color: #4ADE80; }
+
+    .theme-card-check {
+      position: absolute; top: 10px; right: 10px;
+      width: 28px; height: 28px; border-radius: 50%;
+      background: #2563EB; color: #FFFFFF;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transform: scale(.6);
+      transition: all .2s ease;
+      box-shadow: 0 4px 12px rgba(37,99,235,.40);
+    }
+
+    /* Tema claro overrides para esta tela específica (modal, cards) */
+    html[data-theme="light"] .modal-content input,
+    html[data-theme="light"] .modal-content select { color: #0F1F36 !important; background: #FFFFFF !important; }
+    html[data-theme="light"] .modal-title-text { color: #0F1F36 !important; }
+    html[data-theme="light"] .modal-header { background: rgba(37,99,235,0.04) !important; border-bottom-color: rgba(15,31,54,.12) !important; }
+    html[data-theme="light"] .modal-footer { background: rgba(37,99,235,0.02) !important; border-top-color: rgba(15,31,54,.10) !important; }
+    html[data-theme="light"] .theme-card { background: #FFFFFF !important; border-color: rgba(15,31,54,.12) !important; }
+    html[data-theme="light"] .theme-card-title { color: #0F1F36 !important; }
+    html[data-theme="light"] .theme-card-sub   { color: #5A6B7E !important; }
+    html[data-theme="light"] .theme-badge      { background: rgba(37,99,235,.12); color: #1E4A8A; }
+    html[data-theme="light"] .theme-badge-new  { background: rgba(22,163,74,.14); color: #15803D; }
+    html[data-theme="light"] .cfg-tab {
+      background: #FFFFFF !important;
+      border: 1px solid rgba(15,31,54,.18) !important;
+      color: #1E4A8A !important;
+      font-weight: 600 !important;
+    }
+    html[data-theme="light"] .cfg-tab svg { stroke: currentColor !important; }
+    html[data-theme="light"] .cfg-tab:hover  {
+      background: rgba(37,99,235,.10) !important;
+      color: #0F1F36 !important;
+      border-color: rgba(37,99,235,.40) !important;
+    }
+    html[data-theme="light"] .cfg-tab.active {
+      background: #1E4A8A !important;
+      color: #FFFFFF !important;
+      border-color: #1E4A8A !important;
+      font-weight: 700 !important;
+      box-shadow: 0 2px 8px rgba(30,74,138,.25) !important;
+    }
+    html[data-theme="light"] .cfg-tab.active svg { stroke: #FFFFFF !important; }
+    html[data-theme="light"] .cfg-section-title {
+      background: rgba(37,99,235,.08) !important;
+      color: #1E4A8A !important;
+      border-bottom-color: rgba(15,31,54,.12) !important;
+      font-weight: 700 !important;
+    }
+    /* Botões da página de configurações */
+    html[data-theme="light"] .cfg-btn-primary { background: linear-gradient(135deg, #1E4A8A, #2563EB) !important; color: #FFFFFF !important; border-color: #1E4A8A !important; }
+    html[data-theme="light"] .cfg-btn-secondary { background: #FFFFFF !important; color: #1E4A8A !important; border: 1px solid rgba(15,31,54,.18) !important; }
+    html[data-theme="light"] .cfg-btn-secondary:hover { background: rgba(37,99,235,.08) !important; }
+    html[data-theme="light"] .cfg-btn-danger { background: linear-gradient(135deg, #B91C1C, #DC2626) !important; color: #FFFFFF !important; border-color: #B91C1C !important; }
+    /* Textos genéricos dentro da página configurações */
+    html[data-theme="light"] .cfg-panel { color: #0F1F36 !important; }
+    html[data-theme="light"] .cfg-panel h3,
+    html[data-theme="light"] .cfg-panel h2 { color: #0F1F36 !important; }
+    /* Summary box em fundo claro */
+    html[data-theme="light"] .summary-box { background: rgba(247,249,252,.95) !important; border: 1px solid rgba(15,31,54,.10) !important; color: #0F1F36 !important; }
+    html[data-theme="light"] .summary-box strong { color: #1E4A8A !important; }
+    /* Badges sim/não */
+    html[data-theme="light"] .badge-sim { background: rgba(22,163,74,.14) !important; color: #15803D !important; border: 1px solid rgba(22,163,74,.30) !important; }
+    html[data-theme="light"] .badge-nao { background: rgba(124,139,160,.14) !important; color: #5A6B7E !important; border: 1px solid rgba(124,139,160,.30) !important; }
+    /* Tabela de colunas */
+    html[data-theme="light"] .cols-table thead tr { border-bottom-color: rgba(15,31,54,.14) !important; }
+    html[data-theme="light"] .cols-table th { color: #1E4A8A !important; }
+    html[data-theme="light"] .cols-table tbody tr { border-bottom-color: rgba(15,31,54,.08) !important; }
+    html[data-theme="light"] .cols-table tbody tr:hover { background: rgba(37,99,235,.06) !important; }
+    html[data-theme="light"] .cols-table td { color: #0F1F36 !important; }
+    /* Modal interno */
+    html[data-theme="light"] .modal-header { background: rgba(37,99,235,.06) !important; border-bottom-color: rgba(15,31,54,.12) !important; }
+    html[data-theme="light"] .modal-title-text { color: #0F1F36 !important; }
+    html[data-theme="light"] .modal-body { color: #0F1F36 !important; }
+    html[data-theme="light"] .modal-footer { background: rgba(37,99,235,.04) !important; border-top-color: rgba(15,31,54,.10) !important; }
   </style>
 </head>
 <body>
@@ -293,6 +427,7 @@ $nCols   = count($columns);
           <button class="cfg-tab active" data-tab="funil"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg> Funil de Vendas</button>
           <button class="cfg-tab" data-tab="juridico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M12 3v18"/><path d="M5 6l7-3 7 3"/><path d="M5 6 2 13h6z"/><path d="M19 6l-3 7h6z"/><line x1="3" y1="18" x2="21" y2="18"/></svg> Jurídico</button>
           <button class="cfg-tab" data-tab="notificacoes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Notificações</button>
+          <button class="cfg-tab" data-tab="aparencia"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg> Aparência</button>
           <button class="cfg-tab" data-tab="links"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Atalhos</button>
           <button class="cfg-tab" data-tab="seguranca"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Segurança</button>
         </div>
@@ -452,6 +587,69 @@ $nCols   = count($columns);
         </div>
       </div>
 
+      <!-- ── SECTION: Aparência ── -->
+      <div class="cfg-section" id="sec-aparencia">
+        <div class="cfg-panel">
+          <div class="cfg-section-title">🎨 Tema visual</div>
+          <div class="cfg-section-body">
+            <p style="font-size:.82rem;color:#9ab0c9;line-height:1.5;margin-bottom:16px">
+              Escolha entre o tema escuro institucional (padrão) ou o tema claro <strong>Yuris Day</strong> —
+              fundo prata derivado da logo, acentos em azul corporativo.
+              A preferência é salva no seu navegador e aplicada em todas as abas.
+            </p>
+
+            <div class="theme-grid" id="themeGrid">
+              <!-- Card: Tema Escuro -->
+              <button type="button" class="theme-card" data-theme-pick="dark" aria-pressed="true">
+                <div class="theme-preview theme-preview-dark">
+                  <div class="tp-sidebar"></div>
+                  <div class="tp-content">
+                    <div class="tp-header"></div>
+                    <div class="tp-card"></div>
+                    <div class="tp-card tp-card-2"></div>
+                    <div class="tp-row"></div>
+                    <div class="tp-row short"></div>
+                  </div>
+                </div>
+                <div class="theme-card-meta">
+                  <div class="theme-card-title">Yuris Night <span class="theme-badge">Padrão</span></div>
+                  <div class="theme-card-sub">Tema escuro institucional · navy + prata</div>
+                </div>
+                <div class="theme-card-check">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+              </button>
+
+              <!-- Card: Tema Claro -->
+              <button type="button" class="theme-card" data-theme-pick="light" aria-pressed="false">
+                <div class="theme-preview theme-preview-light">
+                  <div class="tp-sidebar"></div>
+                  <div class="tp-content">
+                    <div class="tp-header"></div>
+                    <div class="tp-card"></div>
+                    <div class="tp-card tp-card-2"></div>
+                    <div class="tp-row"></div>
+                    <div class="tp-row short"></div>
+                  </div>
+                </div>
+                <div class="theme-card-meta">
+                  <div class="theme-card-title">Yuris Day <span class="theme-badge theme-badge-new">Novo</span></div>
+                  <div class="theme-card-sub">Tema claro premium · prata + azul</div>
+                </div>
+                <div class="theme-card-check">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+              </button>
+            </div>
+
+            <div style="margin-top:18px;padding:12px 14px;background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.18);border-radius:8px;font-size:.78rem;color:#9ab0c9;line-height:1.5">
+              <strong style="color:#7EB8F6">💡 Dica:</strong>
+              A troca é instantânea — não precisa recarregar a página. A preferência é por dispositivo (cada navegador guarda a sua).
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ── SECTION: Atalhos ── -->
       <div class="cfg-section" id="sec-links">
         <div class="cfg-panel">
@@ -601,6 +799,35 @@ $nCols   = count($columns);
     });
   });
 
+  // ── Theme switcher (aba Aparência) ─────────────────────────────────────────
+  (function initThemeSwitcher(){
+    const root  = document.documentElement;
+    const cards = document.querySelectorAll('.theme-card[data-theme-pick]');
+    if (!cards.length) return;
+
+    // Reflete o estado atual nos cards (lido do localStorage / atributo do <html>)
+    const current = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    cards.forEach(c => c.setAttribute('aria-pressed', c.dataset.themePick === current ? 'true' : 'false'));
+
+    cards.forEach(c => {
+      c.addEventListener('click', () => {
+        const pick = c.dataset.themePick;
+        if (pick === 'light') {
+          root.setAttribute('data-theme', 'light');
+          try { localStorage.setItem('yuris_theme', 'light'); } catch(e){}
+        } else {
+          root.removeAttribute('data-theme');
+          try { localStorage.setItem('yuris_theme', 'dark'); } catch(e){}
+        }
+        cards.forEach(x => x.setAttribute('aria-pressed', x.dataset.themePick === pick ? 'true' : 'false'));
+        // Toast de confirmação (reaproveita o sistema existente da página)
+        if (typeof showToast === 'function') {
+          showToast(pick === 'light' ? 'Tema claro ativado · Yuris Day' : 'Tema escuro ativado · Yuris Night', 'success');
+        }
+      });
+    });
+  })();
+
   // ── Column CRUD (original logic preserved) ─────────────────────────────────
   const API_BASE = '/sistema_vendas/public/api/';
   const api    = API_BASE+'columns.php';
@@ -643,8 +870,8 @@ $nCols   = count($columns);
     fetch(api+'?id='+id).then(r=>r.json()).then(r=>openModal(r.data||r));
   }));
 
-  document.querySelectorAll('.delBtn').forEach(b=>b.addEventListener('click', e=>{
-    if(!confirm('Excluir essa coluna?')) return;
+  document.querySelectorAll('.delBtn').forEach(b=>b.addEventListener('click', async e=>{
+    if(!(await Yuris.confirm('Excluir essa coluna?', { danger: true, okLabel: 'Excluir' }))) return;
     const tr=e.target.closest('tr'); const id=tr.getAttribute('data-id');
     fetch(api+'?id='+id,{method:'DELETE',headers:{'X-CSRF-TOKEN':csrf}}).then(r=>r.json()).then(r=>{
       if(r.success){ showToast('Coluna excluída','success'); location.reload(); }

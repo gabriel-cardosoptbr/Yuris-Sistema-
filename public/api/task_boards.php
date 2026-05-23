@@ -40,7 +40,8 @@ if ($method === 'GET') {
         $b['membros']  = TaskBoard::members($b['id']);
         ok($b);
     }
-    ok(TaskBoard::findForUser($userId, $accountId));
+    // Matriz vê os boards das filiais vinculadas; filial vê só os seus
+    ok(TaskBoard::findForUser($userId, $ctx->getAccessibleAccountIds('tarefas')));
 }
 
 if (in_array($method, ['POST','PUT','DELETE'])) {

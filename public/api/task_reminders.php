@@ -1,18 +1,23 @@
 <?php
 require_once __DIR__ . '/../../app/Models/Database.php';
+require_once __DIR__ . '/../../app/Models/Account.php';
+require_once __DIR__ . '/../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../app/Models/TaskReminder.php';
+require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
 
 use App\Models\TaskReminder;
+use App\Helpers\AccountContext;
+use App\Helpers\TenantGuard;
 
-session_start(['read_and_close' => true]);
+session_start();
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache, no-store, must-revalidate');
 
-if (empty($_SESSION['user_id'])) { http_response_code(401); echo json_encode(['ok'=>false,'error'=>'Unauthorized']); exit; }
-
-$userId = (int)$_SESSION['user_id'];
-$method = $_SERVER['REQUEST_METHOD'];
-$input  = json_decode(file_get_contents('php://input'), true) ?? [];
+$ctx     = AccountContext::fromSession();
+$userId  = $ctx->getUserId();
+$method  = $_SERVER['REQUEST_METHOD'];
+$input   = json_decode(file_get_contents('php://input'), true) ?? [];
 
 function csrfOk(): bool {
     $tok = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($GLOBALS['input']['csrf_token'] ?? null);
@@ -22,16 +27,32 @@ function fail(string $msg, int $c = 400): void { http_response_code($c); echo js
 function ok(mixed $d = null): void { echo json_encode(['ok'=>true,'data'=>$d]); exit; }
 
 if ($method === 'GET') {
-    ok(TaskReminder::findByTask((int)($_GET['task_id'] ?? 0)));
+    $taskId = (int)($_GET['task_id'] ?? 0);
+    if ($taskId <= 0) fail('task_id obrigatório');
+    TenantGuard::assertTaskAcessivel($ctx, $taskId);
+    ok(TaskReminder::findByTask($taskId));
 }
 if (!csrfOk()) fail('CSRF inválido');
+
 if ($method === 'POST') {
     if (empty($input['lembrar_em'])) fail('lembrar_em obrigatório');
-    $id = TaskReminder::create((int)$input['task_id'], $userId, $input['lembrar_em'], $input['canal'] ?? 'sistema');
+    $taskId = (int)($input['task_id'] ?? 0);
+    if ($taskId <= 0) fail('task_id obrigatório');
+    TenantGuard::assertTaskAcessivel($ctx, $taskId);
+    $id = TaskReminder::create($taskId, $userId, $input['lembrar_em'], $input['canal'] ?? 'sistema');
     ok(['id' => $id]);
 }
+
 if ($method === 'DELETE') {
-    TaskReminder::delete((int)($input['id'] ?? $_GET['id'] ?? 0));
+    $remId = (int)($input['id'] ?? $_GET['id'] ?? 0);
+    if ($remId <= 0) fail('id obrigatório');
+    // Busca a task associada para validar tenant
+    $pdo  = \App\Models\Database::getConnection();
+    $stmt = $pdo->prepare('SELECT task_id FROM task_reminders WHERE id = ? LIMIT 1');
+    $stmt->execute([$remId]);
+    $tid = (int)($stmt->fetchColumn() ?: 0);
+    if ($tid > 0) TenantGuard::assertTaskAcessivel($ctx, $tid);
+    TaskReminder::delete($remId);
     ok();
 }
 

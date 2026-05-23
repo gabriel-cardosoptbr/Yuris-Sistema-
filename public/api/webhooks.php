@@ -1,19 +1,34 @@
 <?php
 require_once __DIR__ . '/../../app/Models/Database.php';
+require_once __DIR__ . '/../../app/Models/Account.php';
+require_once __DIR__ . '/../../app/Models/ResourceShare.php';
+require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../../app/Services/WebhookDispatcher.php';
 
 use App\Models\Database;
+use App\Helpers\AccountContext;
 use App\Services\WebhookDispatcher;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 
-if (empty($_SESSION['user_id'])) {
-    http_response_code(401); echo json_encode(['error' => 'Unauthorized']); exit;
-}
+$ctx       = AccountContext::fromSession();
+$accountId = $ctx->getAccountId();
+// Webhooks = CONFIGURAÇÃO da conta — cada tenant define seus próprios endpoints/eventos.
+$tenantIds = [$accountId];
+
 if ($_SESSION['user_perfil'] !== 'admin') {
     http_response_code(403); echo json_encode(['error' => 'Forbidden']); exit;
 }
+
+// Cláusula tenant
+$_whPh = []; $_whParams = [];
+foreach ($tenantIds as $i => $aid) {
+    $k = "whacc_{$i}";
+    $_whPh[] = ":{$k}";
+    $_whParams[$k] = (int)$aid;
+}
+$tenantIn = '(' . implode(',', $_whPh) . ')';
 
 $method = $_SERVER['REQUEST_METHOD'];
 $input  = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -71,17 +86,23 @@ if ($method === 'GET' && $action === 'catalog') {
 if ($method === 'GET' && $action === 'logs') {
     $wid   = (int)($_GET['id'] ?? 0);
     $limit = min((int)($_GET['limit'] ?? 50), 200);
-    $where = $wid ? 'WHERE l.webhook_id = ?' : 'WHERE 1';
-    $stmt  = $pdo->prepare("
+    // FILTRO TENANT: INNER JOIN com webhooks garante que logs visíveis pertencem ao tenant
+    $where = "WHERE w.account_id IN $tenantIn";
+    $params = $_whParams;
+    if ($wid) {
+        $where .= ' AND l.webhook_id = :wid';
+        $params['wid'] = $wid;
+    }
+    $stmt = $pdo->prepare("
         SELECT l.id, l.webhook_id, w.nome AS webhook_nome, l.event_key,
                l.response_status, l.duration_ms, l.success, l.created_at,
                LEFT(l.response_body,300) AS response_body
         FROM webhook_logs l
-        LEFT JOIN webhooks w ON w.id = l.webhook_id
+        INNER JOIN webhooks w ON w.id = l.webhook_id
         $where
         ORDER BY l.created_at DESC LIMIT $limit
     ");
-    $wid ? $stmt->execute([$wid]) : $stmt->execute();
+    $stmt->execute($params);
     echo json_encode(['data' => $stmt->fetchAll()]);
     exit;
 }
@@ -90,8 +111,8 @@ if ($method === 'GET' && $action === 'logs') {
 if ($method === 'GET') {
     $id = $_GET['id'] ?? null;
     if ($id) {
-        $stmt = $pdo->prepare("SELECT * FROM webhooks WHERE id = ? AND deleted_at IS NULL LIMIT 1");
-        $stmt->execute([$id]);
+        $stmt = $pdo->prepare("SELECT * FROM webhooks WHERE id = :id AND deleted_at IS NULL AND account_id IN $tenantIn LIMIT 1");
+        $stmt->execute(['id' => $id] + $_whParams);
         $row = $stmt->fetch();
         if ($row) {
             $row['eventos']     = json_decode($row['eventos'] ?? '[]', true);
@@ -108,11 +129,12 @@ if ($method === 'GET') {
     }
 
     // list all with stats
-    $stmt = $pdo->query("SELECT w.*,
+    $stmt = $pdo->prepare("SELECT w.*,
         (SELECT COUNT(*) FROM webhook_logs l WHERE l.webhook_id = w.id) AS total_logs,
         (SELECT COUNT(*) FROM webhook_logs l WHERE l.webhook_id = w.id AND l.success = 1) AS success_logs,
         (SELECT MAX(l.created_at) FROM webhook_logs l WHERE l.webhook_id = w.id) AS last_delivery
-        FROM webhooks w WHERE w.deleted_at IS NULL ORDER BY w.created_at DESC");
+        FROM webhooks w WHERE w.deleted_at IS NULL AND w.account_id IN $tenantIn ORDER BY w.created_at DESC");
+    $stmt->execute($_whParams);
     $rows = $stmt->fetchAll();
     foreach ($rows as &$r) {
         $r['eventos']      = json_decode($r['eventos'] ?? '[]', true);
@@ -153,8 +175,8 @@ if ($method === 'POST') {
     if (!$nome || !$url) { http_response_code(400); echo json_encode(['error' => 'Nome e URL são obrigatórios']); exit; }
     if (!filter_var($url, FILTER_VALIDATE_URL)) { http_response_code(400); echo json_encode(['error' => 'URL inválida']); exit; }
 
-    $stmt = $pdo->prepare("INSERT INTO webhooks (nome, url, secret, ativo, eventos, created_at, updated_at) VALUES (?,?,?,?,?,NOW(),NOW())");
-    $ok   = $stmt->execute([$nome, $url, $secret ?: null, $ativo, json_encode(array_values($eventos))]);
+    $stmt = $pdo->prepare("INSERT INTO webhooks (account_id, nome, url, secret, ativo, eventos, created_at, updated_at) VALUES (?,?,?,?,?,?,NOW(),NOW())");
+    $ok   = $stmt->execute([$accountId, $nome, $url, $secret ?: null, $ativo, json_encode(array_values($eventos))]);
     echo json_encode(['success' => (bool)$ok, 'id' => $pdo->lastInsertId()]);
     exit;
 }
@@ -176,8 +198,15 @@ if ($method === 'PUT' || $method === 'PATCH') {
     if (!$fields) { echo json_encode(['success' => true]); exit; }
 
     $fields[] = 'updated_at = NOW()';
+    // tenant placeholders (positional)
+    $tenantPos = [];
+    foreach ($tenantIds as $aid) $tenantPos[] = (int)$aid;
+    $tenantInPos = '(' . implode(',', array_fill(0, count($tenantPos), '?')) . ')';
     $params[] = $id;
-    $pdo->prepare("UPDATE webhooks SET " . implode(', ', $fields) . " WHERE id = ?")->execute($params);
+    foreach ($tenantPos as $aid) $params[] = $aid;
+    $stmt = $pdo->prepare("UPDATE webhooks SET " . implode(', ', $fields) . " WHERE id = ? AND account_id IN $tenantInPos");
+    $stmt->execute($params);
+    if ($stmt->rowCount() === 0) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
     echo json_encode(['success' => true]);
     exit;
 }
@@ -186,7 +215,9 @@ if ($method === 'PUT' || $method === 'PATCH') {
 if ($method === 'DELETE') {
     $id = (int)($_GET['id'] ?? ($input['id'] ?? 0));
     if (!$id) { http_response_code(400); echo json_encode(['error' => 'Missing id']); exit; }
-    $pdo->prepare("UPDATE webhooks SET deleted_at = NOW() WHERE id = ?")->execute([$id]);
+    $stmt = $pdo->prepare("UPDATE webhooks SET deleted_at = NOW() WHERE id = :id AND account_id IN $tenantIn");
+    $stmt->execute(['id' => $id] + $_whParams);
+    if ($stmt->rowCount() === 0) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
     echo json_encode(['success' => true]);
     exit;
 }

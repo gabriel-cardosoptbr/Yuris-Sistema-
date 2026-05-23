@@ -1,18 +1,21 @@
 <?php
 require_once __DIR__ . '/../../app/Models/Database.php';
+require_once __DIR__ . '/../../app/Models/Account.php';
+require_once __DIR__ . '/../../app/Models/ResourceShare.php';
+require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
 require_once __DIR__ . '/../../app/Services/WebhookDispatcher.php';
+
+use App\Models\Database;
+use App\Helpers\AccountContext;
+use App\Helpers\TenantGuard;
+use App\Services\WebhookDispatcher;
+
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
-if (empty($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized']);
-    exit;
-}
-
-use App\Models\Database;
-use App\Services\WebhookDispatcher;
+$ctx = AccountContext::fromSession();
 
 $pdo = Database::getConnection();
 
@@ -52,6 +55,7 @@ try {
             echo json_encode(['error' => 'Missing processo_id']);
             exit;
         }
+        TenantGuard::assertProcessoAcessivel($ctx, $processoId);
 
         $stmt = $pdo->prepare(
             "SELECT * FROM processo_tarefas WHERE processo_id = :pid ORDER BY concluido ASC, ordem ASC"
@@ -73,6 +77,7 @@ try {
             echo json_encode(['error' => 'Missing required fields']);
             exit;
         }
+        TenantGuard::assertProcessoAcessivel($ctx, $processoId);
 
         // Pegar próxima ordem
         $stmt = $pdo->prepare("SELECT COALESCE(MAX(ordem), -1) + 1 as next_order FROM processo_tarefas WHERE processo_id = :pid");
@@ -123,6 +128,8 @@ try {
         $prevTarefa = $pdo->prepare("SELECT * FROM processo_tarefas WHERE id = :id LIMIT 1");
         $prevTarefa->execute(['id' => $id]);
         $prevTarefa = $prevTarefa->fetch(PDO::FETCH_ASSOC);
+        if (!$prevTarefa) { http_response_code(404); echo json_encode(['error' => 'Tarefa não encontrada']); exit; }
+        TenantGuard::assertProcessoAcessivel($ctx, (int)$prevTarefa['processo_id']);
 
         $allowed = ['concluido', 'titulo', 'prioridade', 'responsavel', 'data_tarefa', 'ordem'];
         $fields = [];
@@ -195,7 +202,25 @@ try {
             exit;
         }
 
+        // Valida tenant antes de deletar
+        $row = $pdo->prepare("SELECT processo_id, titulo FROM processo_tarefas WHERE id = :id LIMIT 1");
+        $row->execute(['id' => $id]);
+        $tarefaInfo = $row->fetch(PDO::FETCH_ASSOC);
+        $procId   = (int)($tarefaInfo['processo_id'] ?? 0);
+        $tarefaTitulo = (string)($tarefaInfo['titulo'] ?? '');
+        if ($procId) TenantGuard::assertProcessoAcessivel($ctx, $procId);
+
         $pdo->prepare("DELETE FROM processo_tarefas WHERE id = :id")->execute(['id' => $id]);
+        // Auditoria server-side: registra exclusão
+        if ($procId) {
+            $pdo->prepare(
+                "INSERT INTO processo_history (processo_id, user_email, acao, descricao)
+                 VALUES (:pid, :email, 'Tarefa excluída', :desc)"
+            )->execute([
+                'pid' => $procId, 'email' => $userEmail,
+                'desc' => "Tarefa removida: {$tarefaTitulo}",
+            ]);
+        }
         echo json_encode(['success' => true]);
         exit;
     }

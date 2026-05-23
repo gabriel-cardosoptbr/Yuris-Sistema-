@@ -3,18 +3,23 @@ ob_start();
 @ini_set('display_errors', '0');
 
 require_once __DIR__ . '/../../../app/Models/Database.php';
+require_once __DIR__ . '/../../../app/Models/Account.php';
+require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
+require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 
 use App\Models\Database;
+use App\Helpers\AccountContext;
 
 session_start(['read_and_close' => true]);
-$_uid  = $_SESSION['user_id']    ?? null;
 $_csrf = $_SESSION['csrf_token'] ?? '';
 
 ob_end_clean();
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache, no-store, must-revalidate');
-if (!$_uid) { http_response_code(401); echo json_encode(['error' => 'Unauthorized']); exit; }
+
+$ctx       = AccountContext::fromSession();
+$accountId = $ctx->getAccountId();
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -22,8 +27,15 @@ try {
     $instModel  = new WhatsAppInstance();
     $cfg        = $instModel->getSettings();
     $instName   = $cfg['evolution_instance'] ?? 'yuris-crm';
-    $row        = $instModel->findOrCreate($instName);
+    $row        = $instModel->findOrCreate($instName, '', $accountId);
     $instanceId = (int)$row['id'];
+
+    // Validação extra: garante isolamento
+    if ((int)($row['account_id'] ?? 0) !== $accountId) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Instância WhatsApp não pertence a esta conta']);
+        exit;
+    }
     $pdo        = Database::getConnection();
 
     if ($method === 'GET') {

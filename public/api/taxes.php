@@ -1,23 +1,36 @@
 <?php
 require_once __DIR__ . '/../../app/Models/Database.php';
+require_once __DIR__ . '/../../app/Models/Account.php';
+require_once __DIR__ . '/../../app/Models/ResourceShare.php';
+require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+
 use App\Models\Database;
+use App\Helpers\AccountContext;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 
-if (empty($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized']);
-    exit;
-}
+$ctx       = AccountContext::fromSession();
+$accountId = $ctx->getAccountId();
+// Impostos = CONFIGURAÇÃO da conta — cada tenant tem sua tributação independente.
+$tenantIds = [$accountId];
 
-$pdo = Database::getConnection();
-
+$pdo    = Database::getConnection();
 $method = $_SERVER['REQUEST_METHOD'];
 $input  = json_decode(file_get_contents('php://input'), true) ?? [];
 
+// Cláusula tenant
+$ph = []; $tenantParams = [];
+foreach ($tenantIds as $i => $aid) {
+    $k = "tax_{$i}";
+    $ph[] = ":{$k}";
+    $tenantParams[$k] = (int)$aid;
+}
+$tenantIn = '(' . implode(',', $ph) . ')';
+
 if ($method === 'GET') {
-    $stmt = $pdo->query("SELECT * FROM taxes WHERE ativo = 1 ORDER BY id ASC");
+    $stmt = $pdo->prepare("SELECT * FROM taxes WHERE ativo = 1 AND account_id IN $tenantIn ORDER BY id ASC");
+    $stmt->execute($tenantParams);
     echo json_encode(['success' => true, 'data' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
     exit;
 }
@@ -34,8 +47,8 @@ if ($method === 'POST') {
     $percentual = (float)str_replace(',', '.', $input['percentual'] ?? '0');
     if (!$nome)                                  { http_response_code(400); echo json_encode(['error' => 'Nome é obrigatório']); exit; }
     if ($percentual < 0 || $percentual > 100)    { http_response_code(400); echo json_encode(['error' => 'Alíquota inválida (0–100)']); exit; }
-    $stmt = $pdo->prepare("INSERT INTO taxes (nome, percentual) VALUES (:nome, :percentual)");
-    $stmt->execute(['nome' => $nome, 'percentual' => $percentual]);
+    $stmt = $pdo->prepare("INSERT INTO taxes (account_id, nome, percentual) VALUES (:account_id, :nome, :percentual)");
+    $stmt->execute(['account_id' => $accountId, 'nome' => $nome, 'percentual' => $percentual]);
     $id = (int)$pdo->lastInsertId();
     $row = $pdo->prepare("SELECT * FROM taxes WHERE id = :id");
     $row->execute(['id' => $id]);
@@ -47,11 +60,12 @@ if ($method === 'PUT') {
     $id         = (int)($input['id'] ?? 0);
     $nome       = trim($input['nome'] ?? '');
     $percentual = (float)str_replace(',', '.', $input['percentual'] ?? '0');
-    if (!$id)                                    { http_response_code(400); echo json_encode(['error' => 'Missing id']); exit; }
-    if (!$nome)                                  { http_response_code(400); echo json_encode(['error' => 'Nome é obrigatório']); exit; }
-    if ($percentual < 0 || $percentual > 100)    { http_response_code(400); echo json_encode(['error' => 'Alíquota inválida (0–100)']); exit; }
-    $stmt = $pdo->prepare("UPDATE taxes SET nome = :nome, percentual = :percentual, updated_at = NOW() WHERE id = :id AND ativo = 1");
-    $stmt->execute(['nome' => $nome, 'percentual' => $percentual, 'id' => $id]);
+    if (!$id)                                 { http_response_code(400); echo json_encode(['error' => 'Missing id']); exit; }
+    if (!$nome)                               { http_response_code(400); echo json_encode(['error' => 'Nome é obrigatório']); exit; }
+    if ($percentual < 0 || $percentual > 100) { http_response_code(400); echo json_encode(['error' => 'Alíquota inválida (0–100)']); exit; }
+    $stmt = $pdo->prepare("UPDATE taxes SET nome = :nome, percentual = :percentual, updated_at = NOW() WHERE id = :id AND ativo = 1 AND account_id IN $tenantIn");
+    $stmt->execute(['nome' => $nome, 'percentual' => $percentual, 'id' => $id] + $tenantParams);
+    if ($stmt->rowCount() === 0) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
     echo json_encode(['success' => true]);
     exit;
 }
@@ -59,8 +73,9 @@ if ($method === 'PUT') {
 if ($method === 'DELETE') {
     $id = (int)($_GET['id'] ?? $input['id'] ?? 0);
     if (!$id) { http_response_code(400); echo json_encode(['error' => 'Missing id']); exit; }
-    $stmt = $pdo->prepare("UPDATE taxes SET ativo = 0, updated_at = NOW() WHERE id = :id");
-    $stmt->execute(['id' => $id]);
+    $stmt = $pdo->prepare("UPDATE taxes SET ativo = 0, updated_at = NOW() WHERE id = :id AND account_id IN $tenantIn");
+    $stmt->execute(['id' => $id] + $tenantParams);
+    if ($stmt->rowCount() === 0) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
     echo json_encode(['success' => true]);
     exit;
 }

@@ -14,7 +14,8 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
   <link rel="icon" type="image/png" sizes="192x192" href="/sistema_vendas/public/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css">
+  <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=27">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=8">
   <style>
@@ -512,7 +513,7 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
                 <tr>
                   <th>Usuário</th>
                   <th>ID</th>
-                  <th>Código de vínculo</th>
+                  <th>Código do Advogado</th>
                   <th>Perfil</th>
                   <th>Status</th>
                   <th>Alterar perfil</th>
@@ -878,8 +879,8 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
               `</div>` +
             `</div>` +
           `</td>` +
-          `<td data-label="ID"><span class="usr-id-tag">#${u.id}</span></td>` +
-          `<td data-label="Código de vínculo">` +
+          `<td data-label="ID"><span class="usr-id-tag">#${u.display_id ?? u.id}</span></td>` +
+          `<td data-label="Código do Advogado">` +
             `<div style="display:flex;align-items:center;gap:6px;">` +
               `<code style="font-family:monospace;font-size:.78rem;color:#7eb8f6;background:rgba(5,18,39,.7);padding:3px 8px;border-radius:5px;border:1px solid rgba(96,165,250,.15);letter-spacing:.04em">${escapeHtml(codigo)}</code>` +
               `<button onclick="navigator.clipboard.writeText('${escapeHtml(codigo)}').then(()=>{this.textContent='✓';setTimeout(()=>this.textContent='⧉',1500)})" title="Copiar" style="background:none;border:none;color:#4a6070;cursor:pointer;font-size:.85rem;padding:2px 4px">⧉</button>` +
@@ -957,7 +958,7 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
       const id = sel.dataset.id, perfil = sel.value;
       if (!id) return;
       if (String(id) === String(authUserId) && perfil !== 'admin'){
-        if (!confirm('Você está prestes a remover seu próprio acesso de administrador. Continuar?')){ sel.value='admin'; return; }
+        if (!(await Yuris.confirm('Você está prestes a remover seu próprio acesso de administrador. Continuar?', { danger: true, okLabel: 'Continuar' }))){ sel.value='admin'; return; }
       }
       try{
         const res = await fetch(apiUsers, {method:'PUT', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf}, body:JSON.stringify({id,perfil,csrf_token:csrf})});
@@ -1098,7 +1099,7 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
       const btnDel = e.target.closest('button.delete-user');
       if (btnDel){
         const id = btnDel.dataset.id;
-        if (!confirm('Excluir este usuário permanentemente?')) return;
+        if (!(await Yuris.confirm('Excluir este usuário permanentemente?', { danger: true, okLabel: 'Excluir' }))) return;
         const res= await fetch(apiUsers, {method:'DELETE', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf}, body:JSON.stringify({id,csrf_token:csrf})});
         const j  = await res.json();
         if (j && j.success){ loadUsers(); showToast('Usuário excluído'); }
@@ -1109,7 +1110,7 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
     // ── Delete from edit modal ────────────────────────────────────────────────
     document.getElementById('deleteUser').addEventListener('click', async function(){
       const id = document.getElementById('editUserForm').id.value;
-      if (!confirm('Confirmar exclusão do usuário?')) return;
+      if (!(await Yuris.confirm('Excluir este usuário?', { danger: true, okLabel: 'Excluir' }))) return;
       const res= await fetch(apiUsers, {method:'DELETE', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf}, body:JSON.stringify({id,csrf_token:csrf})});
       const j  = await res.json();
       if (j && j.success){ closeModal('modalEditUser'); loadUsers(); showToast('Usuário excluído'); }
@@ -1329,7 +1330,7 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
     }
 
     async function confirmDeleteTeam(id, nome) {
-      if (!confirm(`Excluir o setor "${nome}"?\nOs usuários não serão removidos do sistema.`)) return;
+      if (!(await Yuris.confirm(`Excluir o setor "${nome}"?\n\nOs usuários não serão removidos do sistema.`, { danger: true, okLabel: 'Excluir setor' }))) return;
       const res = await fetch(apiTeams + '?id=' + id, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },

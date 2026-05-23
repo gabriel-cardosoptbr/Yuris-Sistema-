@@ -42,8 +42,18 @@ class Account
     public static function listFiliaisVinculadas(int $matrizId): array
     {
         $pdo  = Database::getConnection();
+        // Inclui flags de sincronização — AccountContext usa pra filtrar quais
+        // filiais a matriz puxa por módulo (processos / cards / tarefas).
         $stmt = $pdo->prepare(
-            'SELECT a.*, av.id AS vinculo_id, av.status AS vinculo_status, av.aprovado_em
+            'SELECT a.*,
+                    av.id AS vinculo_id,
+                    av.status AS vinculo_status,
+                    av.aprovado_em,
+                    av.sync_enabled,
+                    av.sync_processos,
+                    av.sync_cards,
+                    av.sync_tarefas,
+                    av.sync_updated_at
              FROM accounts a
              INNER JOIN account_vinculos av ON av.filial_account_id = a.id
              WHERE av.matriz_account_id = :matriz_id

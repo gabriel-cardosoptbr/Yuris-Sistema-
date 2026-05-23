@@ -1,15 +1,17 @@
 <?php
 require_once __DIR__ . '/../../app/Models/Database.php';
+require_once __DIR__ . '/../../app/Models/Account.php';
+require_once __DIR__ . '/../../app/Models/ResourceShare.php';
+require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+
+use App\Helpers\AccountContext;
 
 session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache, no-store, must-revalidate');
 
-if (empty($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['ok' => false, 'error' => 'Unauthorized']);
-    exit;
-}
+$ctx       = AccountContext::fromSession();
+$tenantIds = $ctx->getAccessibleAccountIds();
 
 $type  = $_GET['type']  ?? '';
 $q     = trim($_GET['q'] ?? '');
@@ -17,6 +19,15 @@ $limit = min((int)($_GET['limit'] ?? 15), 50);
 $like  = '%' . $q . '%';
 $pdo   = \App\Models\Database::getConnection();
 $items = [];
+
+// Cláusula IN para os account_ids acessíveis
+$ph = []; $tenantParams = [];
+foreach ($tenantIds as $i => $aid) {
+    $k = "tls_{$i}";
+    $ph[] = ":{$k}";
+    $tenantParams[$k] = (int)$aid;
+}
+$tenantIn = '(' . implode(',', $ph) . ')';
 
 try {
     switch ($type) {
@@ -26,39 +37,44 @@ try {
                        nome AS label,
                        COALESCE(telefone, email, '') AS sub
                 FROM contatos
-                WHERE nome LIKE ? OR telefone LIKE ? OR email LIKE ?
+                WHERE (nome LIKE :q1 OR telefone LIKE :q2 OR email LIKE :q3)
+                  AND account_id IN $tenantIn
                 ORDER BY nome
                 LIMIT $limit
             ");
-            $stmt->execute([$like, $like, $like]);
+            $stmt->execute(['q1' => $like, 'q2' => $like, 'q3' => $like] + $tenantParams);
             break;
 
         case 'processo':
+            // Label: número do processo (humano). Se faltar, usa cliente — nunca expõe ID interno.
             $stmt = $pdo->prepare("
                 SELECT id,
-                       COALESCE(numero, CONCAT('Processo #', id)) AS label,
+                       COALESCE(NULLIF(numero,''), NULLIF(cliente_nome,''), 'Processo sem número') AS label,
                        COALESCE(cliente_nome, '') AS sub
                 FROM processos
                 WHERE deleted_at IS NULL
-                  AND (numero LIKE ? OR cliente_nome LIKE ? OR tipo_acao LIKE ?)
+                  AND (numero LIKE :q1 OR cliente_nome LIKE :q2 OR tipo_acao LIKE :q3)
+                  AND account_id IN $tenantIn
                 ORDER BY updated_at DESC
                 LIMIT $limit
             ");
-            $stmt->execute([$like, $like, $like]);
+            $stmt->execute(['q1' => $like, 'q2' => $like, 'q3' => $like] + $tenantParams);
             break;
 
         case 'card':
+            // Label: nome do cliente/lead. Se faltar, tenta empresa — nunca expõe ID interno.
             $stmt = $pdo->prepare("
                 SELECT id,
-                       COALESCE(cliente_nome, CONCAT('Card #', id)) AS label,
+                       COALESCE(NULLIF(cliente_nome,''), NULLIF(empresa_nome,''), NULLIF(titulo,''), 'Lead sem nome') AS label,
                        COALESCE(empresa_nome, '') AS sub
                 FROM cards
                 WHERE deleted_at IS NULL
-                  AND (cliente_nome LIKE ? OR empresa_nome LIKE ?)
+                  AND (cliente_nome LIKE :q1 OR empresa_nome LIKE :q2)
+                  AND account_id IN $tenantIn
                 ORDER BY updated_at DESC
                 LIMIT $limit
             ");
-            $stmt->execute([$like, $like]);
+            $stmt->execute(['q1' => $like, 'q2' => $like] + $tenantParams);
             break;
 
         case 'dre_account':
@@ -67,11 +83,12 @@ try {
                        nome AS label,
                        tipo AS sub
                 FROM dre_accounts
-                WHERE nome LIKE ? OR codigo LIKE ?
+                WHERE (nome LIKE :q1 OR codigo LIKE :q2)
+                  AND account_id IN $tenantIn
                 ORDER BY nome
                 LIMIT $limit
             ");
-            $stmt->execute([$like, $like]);
+            $stmt->execute(['q1' => $like, 'q2' => $like] + $tenantParams);
             break;
 
         default:

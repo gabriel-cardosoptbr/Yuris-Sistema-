@@ -200,6 +200,45 @@ if ($method === 'PATCH') {
             $ok = AccountVinculo::reativar($vinculoId);
             break;
 
+        case 'update_sync':
+            // Atualiza flags de sincronização (toggle mestre + por módulo).
+            // Vínculo precisa estar 'active' — não faz sentido configurar sync de pending/suspended.
+            if (($vinculo['status'] ?? '') !== 'active') {
+                http_response_code(409);
+                echo json_encode(['error' => 'Vínculo precisa estar ativo para configurar sincronização']);
+                exit;
+            }
+            $pdoUp = \App\Models\Database::getConnection();
+            $stmtUp = $pdoUp->prepare(
+                'UPDATE account_vinculos
+                 SET sync_enabled   = :se,
+                     sync_cards     = :sc,
+                     sync_processos = :sp,
+                     sync_tarefas   = :st,
+                     sync_updated_at = NOW()
+                 WHERE id = :id'
+            );
+            $ok = $stmtUp->execute([
+                'se' => !empty($input['sync_enabled'])   ? 1 : 0,
+                'sc' => !empty($input['sync_cards'])     ? 1 : 0,
+                'sp' => !empty($input['sync_processos']) ? 1 : 0,
+                'st' => !empty($input['sync_tarefas'])   ? 1 : 0,
+                'id' => $vinculoId,
+            ]);
+            if ($ok) {
+                Account::audit($ctx->getAccountId(), 'vinculo.sync_atualizada', [
+                    'user_id'  => $ctx->getUserId(),
+                    'detalhes' => [
+                        'vinculo_id'    => $vinculoId,
+                        'sync_enabled'  => (int)!empty($input['sync_enabled']),
+                        'sync_cards'    => (int)!empty($input['sync_cards']),
+                        'sync_processos'=> (int)!empty($input['sync_processos']),
+                        'sync_tarefas'  => (int)!empty($input['sync_tarefas']),
+                    ],
+                ]);
+            }
+            break;
+
         default:
             http_response_code(400);
             echo json_encode(['error' => 'action inválido: ' . $action]);

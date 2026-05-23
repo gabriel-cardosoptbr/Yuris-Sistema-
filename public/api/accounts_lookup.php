@@ -39,16 +39,17 @@ if (!$codigo) {
 $pdo = Database::getConnection();
 
 // ── 1. Tenta encontrar como código de USUÁRIO ─────────────────────────────
+// Aceita tanto o novo codigo_advogado (ADV-XXXXXX, ID universal) quanto o legado codigo_vinculo.
 $stmtUser = $pdo->prepare(
     'SELECT u.id AS user_id, u.nome AS user_nome, u.login AS user_email,
-            u.perfil, u.account_id,
+            u.perfil, u.account_id, u.codigo_advogado,
             a.nome AS account_nome, a.tipo AS account_tipo, a.status AS account_status
      FROM users u
      INNER JOIN accounts a ON a.id = u.account_id
-     WHERE u.codigo_vinculo = ? AND u.deleted_at IS NULL
+     WHERE (u.codigo_advogado = ? OR u.codigo_vinculo = ?) AND u.deleted_at IS NULL
      LIMIT 1'
 );
-$stmtUser->execute([$codigo]);
+$stmtUser->execute([$codigo, $codigo]);
 $user = $stmtUser->fetch(\PDO::FETCH_ASSOC);
 
 if ($user) {

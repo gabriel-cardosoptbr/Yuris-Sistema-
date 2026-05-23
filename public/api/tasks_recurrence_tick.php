@@ -14,6 +14,10 @@ require_once __DIR__ . '/../../app/Models/Task.php';
 require_once __DIR__ . '/../../app/Models/TaskColumn.php';
 require_once __DIR__ . '/../../app/Models/TaskRecurrence.php';
 require_once __DIR__ . '/../../app/Models/TaskReminder.php';
+require_once __DIR__ . '/../../app/Models/TaskLink.php';
+require_once __DIR__ . '/../../app/Models/ResourceShare.php';
+require_once __DIR__ . '/../../app/Helpers/ProcessoAudit.php';
+require_once __DIR__ . '/../../app/Helpers/TaskAudit.php';
 
 $configFile = __DIR__ . '/../../config/app.php';
 $config     = file_exists($configFile) ? (require $configFile) : [];
@@ -83,6 +87,17 @@ foreach ($recs as $recData) {
         'recorrencia_id' => $recData['id'],
         'origem_task_id' => $ultima['id'],
     ]);
+
+    // Replica os vínculos da tarefa origem (processo, card, etc.) para a nova instância
+    try {
+        $origLinks = \App\Models\TaskLink::findByTask((int)$ultima['id']);
+        foreach ($origLinks as $lnk) {
+            \App\Models\TaskLink::add((int)$newId, (string)$lnk['link_type'], (int)$lnk['link_id']);
+        }
+        // Propaga ao histórico processual (se vinculada a processo)
+        \App\Helpers\TaskAudit::onRecurringInstance((int)$newId);
+    } catch (\Throwable $_e) { /* não bloqueia o cron */ }
+
     $log[] = "criada instância #{$newId} para recorrencia #{$recData['id']} (prazo {$proximaData})";
 }
 
