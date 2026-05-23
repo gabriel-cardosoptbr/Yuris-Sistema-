@@ -285,6 +285,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
             'payments'  => '<rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>',
             'expenses'  => '<path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>',
             'audit'     => '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
+            'lgpd'      => '<path d="M9 12l2 2 4-4"/><path d="M12 22s8-4 8-10V6l-8-3-8 3v6c0 6 8 10 8 10z"/>',
         ];
         return '<svg ' . $base . '>' . ($paths[$key] ?? '') . '</svg>';
     };
@@ -299,6 +300,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
     <button class="mst-tab" data-mtab="payments"><?= $_tabIco('payments') ?>Pagamentos</button>
     <button class="mst-tab" data-mtab="expenses"><?= $_tabIco('expenses') ?>Despesas</button>
     <button class="mst-tab" data-mtab="audit"><?= $_tabIco('audit') ?>Auditoria</button>
+    <button class="mst-tab" data-mtab="lgpd"><?= $_tabIco('lgpd') ?>LGPD <span id="lgpdBadge" style="display:none;background:#ef4444;color:#fff;font-size:.7rem;padding:1px 7px;border-radius:999px;margin-left:5px;font-weight:700"></span></button>
   </div>
 
   <!-- ── Visão Geral ── -->
@@ -609,6 +611,49 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
       <table class="mst-tbl">
         <thead><tr><th>Quando</th><th>Operador</th><th>Ação</th><th>Alvo</th><th>Descrição</th><th>IP</th></tr></thead>
         <tbody id="auditBody"><tr><td colspan="6" class="empty">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── LGPD (solicitações de titulares — Art. 18) ── -->
+  <section class="mst-section" id="msec-lgpd">
+    <div class="mst-card" style="padding:0; overflow:hidden; margin-bottom:14px">
+      <div style="display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid rgba(160,180,210,.10); flex-wrap:wrap">
+        <div style="margin-right:auto">
+          <div style="font-weight:700">Central LGPD — Solicitações de Titulares</div>
+          <div style="font-size:.74rem; color:#9ab0c9; margin-top:3px">
+            Pedidos chegam via <a href="/sistema_vendas/public/lgpd/solicitar.php" target="_blank" style="color:#7eb8f7">/lgpd/solicitar.php</a> · Prazo de resposta: <strong>15 dias</strong> (LGPD Art. 19)
+          </div>
+        </div>
+        <select id="filterLgpdStatus" class="mst-form-select" style="width:auto;padding:6px 11px;font-size:.82rem">
+          <option value="">Todos status</option>
+          <option value="aberto" selected>Aberto</option>
+          <option value="em_analise">Em análise</option>
+          <option value="aguardando_titular">Aguardando titular</option>
+          <option value="concluido">Concluído</option>
+          <option value="rejeitado">Rejeitado</option>
+          <option value="expirado">Expirado</option>
+        </select>
+        <select id="filterLgpdTipo" class="mst-form-select" style="width:auto;padding:6px 11px;font-size:.82rem">
+          <option value="">Todos tipos</option>
+          <option value="confirmacao_existencia">Confirmação</option>
+          <option value="acesso">Acesso</option>
+          <option value="correcao">Correção</option>
+          <option value="anonimizacao">Anonimização</option>
+          <option value="bloqueio">Bloqueio</option>
+          <option value="eliminacao">Eliminação</option>
+          <option value="portabilidade">Portabilidade</option>
+          <option value="info_compartilhamento">Compartilhamento</option>
+          <option value="revogacao_consentimento">Revogação consentimento</option>
+          <option value="revisao_decisao_automatizada">Revisão decisão</option>
+        </select>
+        <label style="font-size:.82rem;color:#9ab0c9;display:flex;align-items:center;gap:5px">
+          <input type="checkbox" id="filterLgpdAtrasada"> Apenas atrasadas
+        </label>
+      </div>
+      <table class="mst-tbl">
+        <thead><tr><th>#</th><th>Titular</th><th>Tipo</th><th>Recebido</th><th>Prazo</th><th>Status</th><th>Ações</th></tr></thead>
+        <tbody id="lgpdBody"><tr><td colspan="7" class="empty">Carregando…</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -1186,6 +1231,17 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
   </div>
 </div>
 
+<!-- Modal: LGPD — detalhes da solicitação -->
+<div class="mst-modal-backdrop" id="modalLgpd" onclick="if(event.target===this)closeModal('modalLgpd')">
+  <div class="mst-modal lg">
+    <div class="mst-modal-header">
+      <h3 class="mst-modal-title" id="lgpdDrawerTitle">Solicitação LGPD</h3>
+      <button class="mst-modal-close" onclick="closeModal('modalLgpd')">×</button>
+    </div>
+    <div class="mst-modal-body" id="lgpdDrawerBody" style="max-height:75vh;overflow-y:auto"></div>
+  </div>
+</div>
+
 <script>
 const CSRF = '<?=htmlspecialchars($csrf)?>';
 const API  = '/sistema_vendas/public/api/master';
@@ -1266,6 +1322,7 @@ function loadTab(name) {
   if (name==='payments')  loadPayments();
   if (name==='expenses')  loadExpenses();
   if (name==='audit')     loadAudit();
+  if (name==='lgpd')      loadLgpdRequests();
 }
 document.querySelectorAll('.mst-tab').forEach(b => b.addEventListener('click', () => {
   window.location.hash = b.dataset.mtab;
@@ -2630,6 +2687,156 @@ async function deleteUser() {
   closeModal('modalEditUser');
   notifyOk('Usuário removido');
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LGPD — Central de solicitações (Art. 18)
+// ═══════════════════════════════════════════════════════════════════════════
+async function loadLgpdRequests() {
+  const status   = document.getElementById('filterLgpdStatus').value;
+  const tipo     = document.getElementById('filterLgpdTipo').value;
+  const atrasada = document.getElementById('filterLgpdAtrasada').checked ? '1' : '';
+  const qs = new URLSearchParams();
+  if (status)   qs.set('status', status);
+  if (tipo)     qs.set('tipo', tipo);
+  if (atrasada) qs.set('atrasada', '1');
+
+  const r = await fj(`${API}/lgpd_requests.php?${qs.toString()}`);
+  const tbody = document.getElementById('lgpdBody');
+  if (!r.ok || !Array.isArray(r.data)) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">Erro ao carregar.</td></tr>';
+    return;
+  }
+  if (r.data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">Nenhuma solicitação encontrada com esses filtros.</td></tr>';
+    return;
+  }
+
+  const tipoLabels = {
+    confirmacao_existencia: 'Confirmação',
+    acesso: 'Acesso',
+    correcao: 'Correção',
+    anonimizacao: 'Anonimização',
+    bloqueio: 'Bloqueio',
+    eliminacao: 'Eliminação',
+    portabilidade: 'Portabilidade',
+    info_compartilhamento: 'Compartilhamento',
+    revogacao_consentimento: 'Revogar consent.',
+    revisao_decisao_automatizada: 'Revisão decisão',
+  };
+  const statusColors = {
+    aberto: '#f59e0b', em_analise: '#3b82f6', aguardando_titular: '#a855f7',
+    concluido: '#10b981', rejeitado: '#ef4444', expirado: '#94a3b8',
+  };
+
+  tbody.innerHTML = r.data.map(row => {
+    const prazoDate  = new Date(row.prazo_resposta);
+    const atrasada   = prazoDate < new Date() && ['aberto','em_analise','aguardando_titular'].includes(row.status);
+    const atrasoTag  = atrasada ? ' <span style="color:#ef4444;font-weight:700">ATRASADA</span>' : '';
+    return `<tr>
+      <td>#${row.id}</td>
+      <td>
+        <div style="font-weight:600">${escL(row.titular_nome)}</div>
+        <div style="font-size:.75rem;color:#9ab0c9">${escL(row.titular_email)}</div>
+      </td>
+      <td>${escL(tipoLabels[row.tipo] || row.tipo)}</td>
+      <td style="font-size:.78rem">${fmtDateTime(row.recebido_em)}</td>
+      <td style="font-size:.78rem">${fmtDateTime(row.prazo_resposta)}${atrasoTag}</td>
+      <td><span style="padding:3px 9px;border-radius:999px;background:${statusColors[row.status]||'#94a3b8'}1f;border:1px solid ${statusColors[row.status]||'#94a3b8'}40;color:${statusColors[row.status]||'#94a3b8'};font-size:.74rem;font-weight:600">${escL(row.status)}</span></td>
+      <td><button class="btn-mst" onclick="openLgpdDrawer(${row.id})">Abrir</button></td>
+    </tr>`;
+  }).join('');
+}
+// helper escape isolado (escL = escape LGPD) pra não conflitar com helpers globais
+function escL(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
+
+async function openLgpdDrawer(id) {
+  const r = await fj(`${API}/lgpd_requests.php?id=${id}`);
+  if (!r.ok) return notifyErr(r.error || 'Erro');
+  const { request: req, eventos } = r.data;
+  const eventosHtml = (eventos || []).map(e => `
+    <div style="padding:8px 0;border-bottom:1px solid rgba(160,180,210,.10)">
+      <div style="font-size:.85rem;color:#fff;font-weight:600">${escL(e.evento)}</div>
+      ${e.observacao ? `<div style="font-size:.8rem;color:#cbd5e1;margin-top:2px">${escL(e.observacao)}</div>` : ''}
+      <div style="font-size:.72rem;color:#9ab0c9;margin-top:2px">
+        ${escL(fmtDateTime(e.created_at))}${e.user_nome ? ' · ' + escL(e.user_nome) : ''}
+      </div>
+    </div>
+  `).join('') || '<div style="padding:10px;color:#9ab0c9">Sem eventos.</div>';
+
+  document.getElementById('lgpdDrawerTitle').textContent = `Solicitação #${req.id} — ${escL(req.titular_nome)}`;
+  document.getElementById('lgpdDrawerBody').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;font-size:.82rem;color:#9ab0c9;margin-bottom:16px">
+      <div>E-mail: <strong style="color:#fff">${escL(req.titular_email)}</strong></div>
+      <div>CPF: <strong style="color:#fff">${escL(req.titular_cpf || '—')}</strong></div>
+      <div>Telefone: <strong style="color:#fff">${escL(req.titular_telefone || '—')}</strong></div>
+      <div>Tipo: <strong style="color:#fff">${escL(req.tipo)}</strong></div>
+      <div>Recebido: <strong style="color:#fff">${fmtDateTime(req.recebido_em)}</strong></div>
+      <div>Prazo: <strong style="color:#fff">${fmtDateTime(req.prazo_resposta)}</strong></div>
+    </div>
+    ${req.descricao ? `<h4 style="color:#fff;margin:14px 0 4px">Descrição do titular</h4><div style="background:rgba(96,165,250,.05);padding:10px;border-radius:6px;white-space:pre-wrap;color:#cbd5e1">${escL(req.descricao)}</div>` : ''}
+
+    <h4 style="color:#fff;margin:18px 0 8px">Histórico</h4>
+    <div style="background:rgba(8,12,24,.4);border:1px solid rgba(160,180,210,.10);border-radius:6px;padding:6px 14px;max-height:200px;overflow-y:auto">${eventosHtml}</div>
+
+    <h4 style="color:#fff;margin:18px 0 6px">Responder / Atualizar</h4>
+    <input type="hidden" id="lgpdReqId" value="${req.id}">
+    <textarea id="lgpdResposta" rows="5" placeholder="Digite a resposta ao titular..." style="width:100%;padding:10px;border:1px solid rgba(160,180,210,.18);border-radius:6px;background:rgba(5,18,39,.6);color:#fff;font:inherit;resize:vertical">${escL(req.resposta || '')}</textarea>
+    <textarea id="lgpdMotivoRejeicao" rows="2" placeholder="Motivo de rejeição (se aplicável)..." style="width:100%;margin-top:8px;padding:10px;border:1px solid rgba(239,68,68,.20);border-radius:6px;background:rgba(5,18,39,.6);color:#fca5a5;font:inherit;resize:vertical">${escL(req.motivo_rejeicao || '')}</textarea>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;justify-content:flex-end">
+      <button class="btn-mst" onclick="updateLgpdStatus('em_analise')">Marcar Em Análise</button>
+      <button class="btn-mst" onclick="updateLgpdStatus('aguardando_titular')">Aguardando Titular</button>
+      <button class="btn-mst" style="background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;border:none" onclick="updateLgpdStatus('rejeitado')">Rejeitar</button>
+      <button class="btn-mst btn-mst-primary" onclick="updateLgpdStatus('concluido')">Concluir</button>
+    </div>
+  `;
+  openModal('modalLgpd');
+}
+
+async function updateLgpdStatus(status) {
+  const id = parseInt(document.getElementById('lgpdReqId').value, 10);
+  const resposta = document.getElementById('lgpdResposta').value;
+  const motivo   = document.getElementById('lgpdMotivoRejeicao').value;
+  if (status === 'rejeitado' && !motivo.trim()) {
+    return notifyErr('Informe o motivo da rejeição.');
+  }
+  const body = { csrf_token: CSRF, id, status, resposta };
+  if (status === 'rejeitado') body.motivo_rejeicao = motivo;
+  const r = await fj(`${API}/lgpd_requests.php`, {
+    method: 'PATCH', body: JSON.stringify(body)
+  });
+  if (!r.ok) return notifyErr(r.error || 'Erro');
+  notifyOk('Solicitação atualizada');
+  closeModal('modalLgpd');
+  loadLgpdRequests();
+  refreshLgpdBadge();
+}
+
+async function refreshLgpdBadge() {
+  try {
+    const r = await fj(`${API}/lgpd_requests.php?counts=1`);
+    if (!r.ok) return;
+    const badge = document.getElementById('lgpdBadge');
+    const pendentes = (r.data && r.data.pendentes) || 0;
+    const atrasadas = (r.data && r.data.atrasadas) || 0;
+    if (pendentes > 0) {
+      badge.style.display = 'inline-block';
+      badge.textContent = pendentes;
+      badge.style.background = atrasadas > 0 ? '#ef4444' : '#f59e0b';
+      badge.title = `${pendentes} pendentes (${atrasadas} atrasadas)`;
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch (_) {}
+}
+
+// Auto-atualiza badge a cada 60s
+refreshLgpdBadge();
+setInterval(refreshLgpdBadge, 60000);
+
+document.getElementById('filterLgpdStatus').addEventListener('change', loadLgpdRequests);
+document.getElementById('filterLgpdTipo').addEventListener('change', loadLgpdRequests);
+document.getElementById('filterLgpdAtrasada').addEventListener('change', loadLgpdRequests);
 
 // ── Init ─────────────────────────────────────────────────────────────────
 const initialHash = (window.location.hash || '').replace('#','') || 'overview';

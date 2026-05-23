@@ -121,7 +121,8 @@ $activePage = 'configuracoes';
       Encarregado de Dados (DPO) pelo link abaixo.
     </p>
     <div class="links-grid">
-      <a class="btn btn-link" href="/sistema_vendas/public/dpo.php" target="_blank">Falar com o DPO →</a>
+      <a class="btn btn-link" href="/sistema_vendas/public/lgpd/solicitar.php" target="_blank" style="background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none">Abrir solicitação LGPD →</a>
+      <a class="btn btn-link" href="/sistema_vendas/public/dpo.php" target="_blank">Falar com o DPO</a>
       <a class="btn btn-link" href="/sistema_vendas/public/privacidade.php" target="_blank">Política de Privacidade</a>
       <a class="btn btn-link" href="/sistema_vendas/public/termos.php" target="_blank">Termos de Uso</a>
       <a class="btn btn-link" href="/sistema_vendas/public/cookies.php" target="_blank">Política de Cookies</a>

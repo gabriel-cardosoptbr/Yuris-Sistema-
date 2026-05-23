@@ -44,6 +44,12 @@ $LEGAL_PAGE = [
   <li><strong>Apresentar reclamações</strong> antes de recorrer à ANPD.</li>
 </ul>
 
+<p style="background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.25);padding:14px;border-radius:8px;margin-top:14px">
+  <strong>Forma mais rápida:</strong> abra uma solicitação pelo nosso formulário online em
+  <a href="/sistema_vendas/public/lgpd/solicitar.php" style="color:#7eb8f7"><strong>/lgpd/solicitar.php</strong></a>.
+  Você recebe um link único para acompanhar o status e nós notificamos o DPO automaticamente.
+</p>
+
 <h2>4. Como sua solicitação será tratada</h2>
 <ol>
   <li>Recebemos o pedido (e-mail, formulário ou outro canal indicado acima);</li>
