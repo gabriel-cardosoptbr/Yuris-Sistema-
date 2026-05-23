@@ -288,6 +288,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
             'lgpd'      => '<path d="M9 12l2 2 4-4"/><path d="M12 22s8-4 8-10V6l-8-3-8 3v6c0 6 8 10 8 10z"/>',
             'retencao'  => '<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>',
             'incidents' => '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+            'operators' => '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6"/><path d="M23 11h-6"/>',
         ];
         return '<svg ' . $base . '>' . ($paths[$key] ?? '') . '</svg>';
     };
@@ -305,6 +306,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
     <button class="mst-tab" data-mtab="lgpd"><?= $_tabIco('lgpd') ?>LGPD <span id="lgpdBadge" style="display:none;background:#ef4444;color:#fff;font-size:.7rem;padding:1px 7px;border-radius:999px;margin-left:5px;font-weight:700"></span></button>
     <button class="mst-tab" data-mtab="retencao"><?= $_tabIco('retencao') ?>Retenção</button>
     <button class="mst-tab" data-mtab="incidents"><?= $_tabIco('incidents') ?>Incidentes <span id="incidentBadge" style="display:none;background:#ef4444;color:#fff;font-size:.7rem;padding:1px 7px;border-radius:999px;margin-left:5px;font-weight:700"></span></button>
+    <button class="mst-tab" data-mtab="operators"><?= $_tabIco('operators') ?>Operadores <span id="operatorsBadge" style="display:none;background:#f59e0b;color:#fff;font-size:.7rem;padding:1px 7px;border-radius:999px;margin-left:5px;font-weight:700"></span></button>
   </div>
 
   <!-- ── Visão Geral ── -->
@@ -742,6 +744,55 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
       <table class="mst-tbl">
         <thead><tr><th>#</th><th>Título</th><th>Tipo</th><th>Sev.</th><th>Conta</th><th>Detectado</th><th>Status</th><th>Notificações</th><th>Ações</th></tr></thead>
         <tbody id="incidentsBody"><tr><td colspan="9" class="empty">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── Operadores / DPA (LGPD Art. 33 + 39) ── -->
+  <section class="mst-section" id="msec-operators">
+    <div class="mst-card" style="padding:0; overflow:hidden; margin-bottom:14px">
+      <div style="display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid rgba(160,180,210,.10); flex-wrap:wrap">
+        <div style="margin-right:auto">
+          <div style="font-weight:700">Inventário de Operadores (Terceiros)</div>
+          <div style="font-size:.74rem; color:#9ab0c9; margin-top:3px">
+            Todos os terceiros que tratam dados pessoais em nome da Yuris. <strong>Art. 33</strong> (transferência internacional) + <strong>Art. 39</strong> (DPA / contrato com operador).
+          </div>
+        </div>
+        <select id="filterOpCategoria" class="mst-form-select" style="width:auto;padding:6px 11px;font-size:.82rem">
+          <option value="">Todas categorias</option>
+          <option value="api_externa">API externa</option>
+          <option value="hospedagem">Hospedagem</option>
+          <option value="cdn">CDN</option>
+          <option value="gateway_pagamento">Gateway pagamento</option>
+          <option value="smtp">SMTP</option>
+          <option value="llm_ia">LLM / IA</option>
+          <option value="monitoramento">Monitoramento</option>
+          <option value="suporte">Suporte</option>
+          <option value="analytics">Analytics</option>
+          <option value="backup">Backup</option>
+          <option value="outro">Outro</option>
+        </select>
+        <select id="filterOpDpa" class="mst-form-select" style="width:auto;padding:6px 11px;font-size:.82rem">
+          <option value="">Todos DPA</option>
+          <option value="pendente">Pendente</option>
+          <option value="em_negociacao">Em negociação</option>
+          <option value="assinado">Assinado</option>
+          <option value="vencido">Vencido</option>
+          <option value="dispensado">Dispensado</option>
+          <option value="rejeitado">Rejeitado</option>
+        </select>
+        <label style="font-size:.82rem;color:#9ab0c9;display:flex;align-items:center;gap:5px">
+          <input type="checkbox" id="filterOpIntl"> Transf. internacional
+        </label>
+        <label style="font-size:.82rem;color:#9ab0c9;display:flex;align-items:center;gap:5px">
+          <input type="checkbox" id="filterOpAtivos" checked> Apenas ativos
+        </label>
+        <button class="btn-mst" type="button" onclick="exportInventory()">Exportar Inventário</button>
+        <button class="btn-mst btn-mst-primary" type="button" onclick="openNewOperator()">+ Novo Operador</button>
+      </div>
+      <table class="mst-tbl">
+        <thead><tr><th>#</th><th>Nome</th><th>Categoria</th><th>País</th><th>Intl?</th><th>DPA</th><th>Assinado</th><th>Validade</th><th>Ações</th></tr></thead>
+        <tbody id="operatorsBody"><tr><td colspan="9" class="empty">Carregando…</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -1341,6 +1392,143 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
   </div>
 </div>
 
+<!-- Modal: Operador — detalhes -->
+<div class="mst-modal-backdrop" id="modalOperator" onclick="if(event.target===this)closeModal('modalOperator')">
+  <div class="mst-modal lg">
+    <div class="mst-modal-header">
+      <h3 class="mst-modal-title" id="operatorTitle">Operador</h3>
+      <button class="mst-modal-close" onclick="closeModal('modalOperator')">×</button>
+    </div>
+    <div class="mst-modal-body" id="operatorBody" style="max-height:78vh;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- Modal: Novo Operador -->
+<div class="mst-modal-backdrop" id="modalNewOperator" onclick="if(event.target===this)closeModal('modalNewOperator')">
+  <div class="mst-modal lg">
+    <div class="mst-modal-header">
+      <h3 class="mst-modal-title">Adicionar Operador</h3>
+      <button class="mst-modal-close" onclick="closeModal('modalNewOperator')">×</button>
+    </div>
+    <form id="formNewOperator" onsubmit="submitNewOperator(event)">
+      <div class="mst-modal-body">
+        <div class="mst-form-section">Identificação</div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Nome *</label><input name="nome" class="mst-form-input" required maxlength="150"></div>
+          <div>
+            <label class="mst-form-label">Categoria *</label>
+            <select name="categoria" class="mst-form-select" required>
+              <option value="">Selecione...</option>
+              <option value="api_externa">API externa</option>
+              <option value="hospedagem">Hospedagem</option>
+              <option value="cdn">CDN</option>
+              <option value="gateway_pagamento">Gateway pagamento</option>
+              <option value="smtp">SMTP</option>
+              <option value="llm_ia">LLM / IA</option>
+              <option value="monitoramento">Monitoramento</option>
+              <option value="suporte">Suporte</option>
+              <option value="analytics">Analytics</option>
+              <option value="backup">Backup</option>
+              <option value="outro">Outro</option>
+            </select>
+          </div>
+          <div>
+            <label class="mst-form-label">Papel</label>
+            <select name="papel" class="mst-form-select">
+              <option value="operador" selected>Operador</option>
+              <option value="suboperador">Suboperador</option>
+              <option value="controlador_conjunto">Controlador conjunto</option>
+            </select>
+          </div>
+        </div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">CNPJ / ID estrangeiro</label><input name="cnpj_ou_id" class="mst-form-input" maxlength="100"></div>
+          <div><label class="mst-form-label">País (ISO 3166-1 alpha-2)</label><input name="pais" class="mst-form-input" maxlength="2" placeholder="BR, US, DE..." style="text-transform:uppercase"></div>
+          <div><label class="mst-form-label">Contato DPO terceiro (e-mail)</label><input name="contato_dpo_terceiro" type="email" class="mst-form-input"></div>
+        </div>
+
+        <div class="mst-form-section">Tratamento de dados</div>
+        <div class="mst-form-row">
+          <div>
+            <label class="mst-form-label">Categorias de dados tratados</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:.82rem;color:#cbd5e1">
+              <label><input type="checkbox" name="cat_pii_basica"> PII básica</label>
+              <label><input type="checkbox" name="cat_documentos"> Documentos</label>
+              <label><input type="checkbox" name="cat_financeiro"> Financeiro</label>
+              <label><input type="checkbox" name="cat_juridico"> Jurídico</label>
+              <label><input type="checkbox" name="cat_autenticacao"> Autenticação</label>
+              <label><input type="checkbox" name="cat_comunicacoes"> Comunicações</label>
+              <label><input type="checkbox" name="cat_sensiveis"> Sensíveis</label>
+            </div>
+          </div>
+        </div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Finalidade *</label><textarea name="finalidade" rows="2" class="mst-form-input" required placeholder="Para qual finalidade os dados são compartilhados?"></textarea></div>
+        </div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Retenção pelo terceiro</label><input name="retencao_terceiro" class="mst-form-input" placeholder="Ex: 30 dias após término do contrato"></div>
+        </div>
+
+        <div class="mst-form-section">Transferência internacional (Art. 33)</div>
+        <div class="mst-form-row">
+          <div>
+            <label class="mst-form-label">Há transferência internacional?</label>
+            <select name="transferencia_internacional" class="mst-form-select" id="opIntlSel" onchange="toggleBaseLegal()">
+              <option value="0" selected>Não</option>
+              <option value="1">Sim</option>
+            </select>
+          </div>
+          <div id="opBaseLegalWrap" style="display:none;flex:2">
+            <label class="mst-form-label">Base legal da transferência *</label>
+            <select name="base_legal_transferencia" class="mst-form-select">
+              <option value="">Selecione...</option>
+              <option value="clausulas_contratuais_padrao">Cláusulas contratuais padrão</option>
+              <option value="regras_corporativas_globais">Regras corporativas globais</option>
+              <option value="decisao_anpd_adequacao">Decisão ANPD (adequação)</option>
+              <option value="autorizacao_anpd_especifica">Autorização ANPD específica</option>
+              <option value="cooperacao_juridica_internacional">Cooperação jurídica internacional</option>
+              <option value="protecao_vida">Proteção da vida</option>
+              <option value="cumprimento_obrigacao_legal">Cumprimento obrigação legal</option>
+              <option value="execucao_contrato_titular">Execução de contrato com titular</option>
+              <option value="consentimento_especifico">Consentimento específico</option>
+              <option value="garantias_outras">Outras garantias</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mst-form-section">DPA (Art. 39)</div>
+        <div class="mst-form-row">
+          <div>
+            <label class="mst-form-label">Status DPA</label>
+            <select name="dpa_status" class="mst-form-select">
+              <option value="pendente" selected>Pendente</option>
+              <option value="em_negociacao">Em negociação</option>
+              <option value="assinado">Assinado</option>
+              <option value="dispensado">Dispensado (justificado)</option>
+            </select>
+          </div>
+          <div><label class="mst-form-label">Assinado em</label><input name="dpa_assinado_em" type="date" class="mst-form-input"></div>
+          <div><label class="mst-form-label">Validade</label><input name="dpa_validade" type="date" class="mst-form-input"></div>
+        </div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">URL/Path do PDF</label><input name="dpa_url" class="mst-form-input" placeholder="storage/dpa/..."></div>
+          <div><label class="mst-form-label">URL da Política de Privacidade do terceiro</label><input name="url_politica_privacidade" class="mst-form-input" placeholder="https://..."></div>
+        </div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Certificações</label><input name="certificacoes" class="mst-form-input" placeholder="ISO 27001, SOC 2 Type II..."></div>
+        </div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Notas</label><textarea name="notas" rows="2" class="mst-form-input"></textarea></div>
+        </div>
+      </div>
+      <div class="mst-modal-footer">
+        <button type="button" class="btn-mst" onclick="closeModal('modalNewOperator')">Cancelar</button>
+        <button type="submit" class="btn-mst btn-mst-primary">Adicionar Operador</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Modal: Novo Incidente -->
 <div class="mst-modal-backdrop" id="modalNewIncident" onclick="if(event.target===this)closeModal('modalNewIncident')">
   <div class="mst-modal lg">
@@ -1521,7 +1709,7 @@ function notifyOk(msg) {
 // ── Hash routing ─────────────────────────────────────────────────────────
 // Etapa 8 (LGPD): array atualizado com lgpd, retencao, incidents — antes faltavam
 // e o hash routing caía no fallback de 'overview' ao clicar nessas abas.
-const TABS = ['overview','dashboard','accounts','plans','billing','invoices','payments','expenses','audit','lgpd','retencao','incidents'];
+const TABS = ['overview','dashboard','accounts','plans','billing','invoices','payments','expenses','audit','lgpd','retencao','incidents','operators'];
 function activateTab(name) {
   if (!TABS.includes(name)) name = 'overview';
   document.querySelectorAll('.mst-tab').forEach(t => t.classList.toggle('active', t.dataset.mtab === name));
@@ -1541,6 +1729,7 @@ function loadTab(name) {
   if (name==='lgpd')      loadLgpdRequests();
   if (name==='retencao')  loadRetention();
   if (name==='incidents') loadIncidents();
+  if (name==='operators') loadOperators();
 }
 document.querySelectorAll('.mst-tab').forEach(b => b.addEventListener('click', () => {
   window.location.hash = b.dataset.mtab;
@@ -3480,6 +3669,321 @@ document.getElementById('filterIncStatus').addEventListener('change', loadIncide
 document.getElementById('filterIncSeveridade').addEventListener('change', loadIncidents);
 document.getElementById('filterIncTipo').addEventListener('change', loadIncidents);
 document.getElementById('filterIncAbertos').addEventListener('change', loadIncidents);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Operadores / DPA (Etapa 9 — LGPD Art. 33 + 39)
+// ═══════════════════════════════════════════════════════════════════════════
+const OP_CATEGORIA_LABEL = {
+  api_externa:'API externa', hospedagem:'Hospedagem', cdn:'CDN',
+  gateway_pagamento:'Gateway', smtp:'SMTP', llm_ia:'LLM/IA',
+  monitoramento:'Monitoramento', suporte:'Suporte', analytics:'Analytics',
+  backup:'Backup', outro:'Outro',
+};
+const OP_DPA_COLOR = {
+  assinado:'#10b981', dispensado:'#22d3ee',
+  em_negociacao:'#3b82f6', pendente:'#f59e0b',
+  vencido:'#ef4444', rejeitado:'#dc2626',
+};
+const OP_BL_LABEL = {
+  clausulas_contratuais_padrao:'Cláusulas contratuais padrão',
+  regras_corporativas_globais:'Regras corporativas globais',
+  decisao_anpd_adequacao:'Decisão ANPD (adequação)',
+  autorizacao_anpd_especifica:'Autorização ANPD',
+  cooperacao_juridica_internacional:'Cooperação jurídica',
+  protecao_vida:'Proteção da vida',
+  cumprimento_obrigacao_legal:'Obrigação legal',
+  execucao_contrato_titular:'Execução de contrato',
+  consentimento_especifico:'Consentimento específico',
+  garantias_outras:'Outras garantias',
+  nao_aplicavel:'N/A',
+};
+
+async function loadOperators() {
+  const categoria = document.getElementById('filterOpCategoria').value;
+  const dpa       = document.getElementById('filterOpDpa').value;
+  const intl      = document.getElementById('filterOpIntl').checked ? '1' : '';
+  const ativos    = document.getElementById('filterOpAtivos').checked ? '1' : '';
+  const qs = new URLSearchParams();
+  if (categoria) qs.set('categoria', categoria);
+  if (dpa)       qs.set('dpa_status', dpa);
+  if (intl)      qs.set('transferencia_internacional', '1');
+  if (ativos)    qs.set('ativo', '1');
+
+  const r = await fj(`${API}/processors.php?${qs.toString()}`);
+  const tbody = document.getElementById('operatorsBody');
+  if (!r.ok || !Array.isArray(r.data)) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty">Erro ao carregar.</td></tr>';
+    return;
+  }
+  if (r.data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty">Nenhum operador encontrado.</td></tr>';
+    return;
+  }
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  tbody.innerHTML = r.data.map(row => {
+    const dpaCol = OP_DPA_COLOR[row.dpa_status] || '#94a3b8';
+    let validadeStr = '—';
+    let validadeStyle = '';
+    if (row.dpa_validade) {
+      const dv = new Date(row.dpa_validade);
+      const diffDays = Math.floor((dv - hoje) / 86400000);
+      validadeStr = fmtDate(row.dpa_validade);
+      if (diffDays < 0)        { validadeStyle = 'color:#ef4444;font-weight:700'; validadeStr += ' (vencido)'; }
+      else if (diffDays <= 30) { validadeStyle = 'color:#f59e0b;font-weight:600'; validadeStr += ` (${diffDays}d)`; }
+    }
+    const inativo = row.ativo == 0 ? ' <span style="font-size:.7rem;color:#94a3b8">[inativo]</span>' : '';
+    return `<tr>
+      <td>#${row.id}</td>
+      <td><div style="font-weight:600">${escL(row.nome)}${inativo}</div>
+          <div style="font-size:.72rem;color:#9ab0c9">${escL(row.papel)}</div></td>
+      <td style="font-size:.78rem">${escL(OP_CATEGORIA_LABEL[row.categoria] || row.categoria)}</td>
+      <td>${row.pais ? `<span style="font-size:.78rem;background:rgba(96,165,250,.10);padding:2px 7px;border-radius:6px">${escL(row.pais)}</span>` : '—'}</td>
+      <td>${row.transferencia_internacional == 1
+            ? '<span style="color:#f59e0b;font-weight:700" title="Transferência internacional">SIM</span>'
+            : '<span style="color:#9ab0c9">—</span>'}</td>
+      <td><span style="padding:3px 9px;border-radius:999px;background:${dpaCol}1f;border:1px solid ${dpaCol}40;color:${dpaCol};font-size:.72rem;font-weight:600">${escL(row.dpa_status)}</span></td>
+      <td style="font-size:.78rem">${row.dpa_assinado_em ? fmtDate(row.dpa_assinado_em) : '—'}</td>
+      <td style="font-size:.78rem;${validadeStyle}">${validadeStr}</td>
+      <td><button class="btn-mst" onclick="openOperatorDrawer(${row.id})">Abrir</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function openNewOperator() {
+  document.getElementById('formNewOperator').reset();
+  document.getElementById('opBaseLegalWrap').style.display = 'none';
+  openModal('modalNewOperator');
+}
+
+function toggleBaseLegal() {
+  const v = document.getElementById('opIntlSel').value;
+  document.getElementById('opBaseLegalWrap').style.display = (v === '1') ? 'block' : 'none';
+}
+
+async function submitNewOperator(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  const fd = new FormData(f);
+  const cats = [];
+  ['pii_basica','documentos','financeiro','juridico','autenticacao','comunicacoes','sensiveis']
+    .forEach(c => { if (fd.get('cat_'+c)) cats.push(c); });
+
+  const body = {
+    csrf_token: CSRF,
+    nome: fd.get('nome'),
+    categoria: fd.get('categoria'),
+    papel: fd.get('papel') || 'operador',
+    cnpj_ou_id: fd.get('cnpj_ou_id') || null,
+    pais: (fd.get('pais')||'').toUpperCase() || null,
+    contato_dpo_terceiro: fd.get('contato_dpo_terceiro') || null,
+    dados_tratados: { categorias: cats },
+    finalidade: fd.get('finalidade'),
+    retencao_terceiro: fd.get('retencao_terceiro') || null,
+    transferencia_internacional: fd.get('transferencia_internacional') === '1',
+    base_legal_transferencia: fd.get('transferencia_internacional') === '1'
+      ? (fd.get('base_legal_transferencia') || null)
+      : 'nao_aplicavel',
+    dpa_status: fd.get('dpa_status') || 'pendente',
+    dpa_assinado_em: fd.get('dpa_assinado_em') || null,
+    dpa_validade: fd.get('dpa_validade') || null,
+    dpa_url: fd.get('dpa_url') || null,
+    url_politica_privacidade: fd.get('url_politica_privacidade') || null,
+    certificacoes: fd.get('certificacoes') || null,
+    notas: fd.get('notas') || null,
+  };
+  const r = await fj(`${API}/processors.php`, {
+    method:'POST', body: JSON.stringify(body)
+  });
+  if (!r.ok) return notifyErr(r.error || 'Erro');
+  notifyOk('Operador #' + r.data.id + ' adicionado');
+  closeModal('modalNewOperator');
+  loadOperators();
+  refreshOperatorsBadge();
+}
+
+async function openOperatorDrawer(id) {
+  const r = await fj(`${API}/processors.php?id=${id}`);
+  if (!r.ok) return notifyErr(r.error || 'Erro');
+  const { processor: p, history } = r.data;
+
+  const histHtml = (history || []).map(h => `
+    <div style="padding:8px 0;border-bottom:1px solid rgba(160,180,210,.10)">
+      <div style="font-size:.85rem;color:#fff;font-weight:600">${escL(h.acao)}</div>
+      ${h.descricao ? `<div style="font-size:.8rem;color:#cbd5e1;margin-top:2px">${escL(h.descricao)}</div>` : ''}
+      <div style="font-size:.72rem;color:#9ab0c9;margin-top:2px">
+        ${escL(fmtDateTime(h.created_at))}${h.user_nome ? ' · ' + escL(h.user_nome) : ' · sistema'}
+        ${h.request_id ? ' · req:' + escL(h.request_id) : ''}
+      </div>
+    </div>`).join('') || '<div style="padding:10px;color:#9ab0c9">Sem histórico.</div>';
+
+  const dpaCol = OP_DPA_COLOR[p.dpa_status] || '#94a3b8';
+  const cats = (p.dados_tratados && p.dados_tratados.categorias) || [];
+
+  document.getElementById('operatorTitle').textContent =
+    `Operador #${p.id} — ${escL(p.nome)}`;
+
+  document.getElementById('operatorBody').innerHTML = `
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+      <span style="padding:3px 11px;border-radius:999px;background:${dpaCol}1f;border:1px solid ${dpaCol}40;color:${dpaCol};font-size:.78rem;font-weight:600">DPA: ${escL(p.dpa_status)}</span>
+      <span style="font-size:.78rem;color:#9ab0c9">${escL(OP_CATEGORIA_LABEL[p.categoria] || p.categoria)} · ${escL(p.papel)}</span>
+      ${p.transferencia_internacional == 1
+        ? `<span style="padding:3px 9px;border-radius:999px;background:#f59e0b1f;border:1px solid #f59e0b40;color:#f59e0b;font-size:.72rem;font-weight:700">TRANSF. INTL → ${escL(p.pais||'?')}</span>` : ''}
+      ${p.ativo == 0 ? '<span style="padding:3px 9px;border-radius:999px;background:rgba(148,163,184,.15);color:#94a3b8;font-size:.72rem;font-weight:600">INATIVO</span>' : ''}
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;font-size:.82rem;color:#9ab0c9;margin-bottom:16px">
+      <div>CNPJ/ID: <strong style="color:#fff">${escL(p.cnpj_ou_id || '—')}</strong></div>
+      <div>País: <strong style="color:#fff">${escL(p.pais || '—')}</strong></div>
+      <div>Contato DPO: <strong style="color:#fff">${escL(p.contato_dpo_terceiro || '—')}</strong></div>
+      <div>DPA assinado em: <strong style="color:#fff">${p.dpa_assinado_em ? fmtDate(p.dpa_assinado_em) : '—'}</strong></div>
+      <div>DPA válido até: <strong style="color:#fff">${p.dpa_validade ? fmtDate(p.dpa_validade) : '—'}</strong></div>
+      <div>Base legal transf.: <strong style="color:#fff">${escL(OP_BL_LABEL[p.base_legal_transferencia] || p.base_legal_transferencia || '—')}</strong></div>
+    </div>
+
+    <h4 style="color:#fff;margin:14px 0 4px">Tratamento de dados</h4>
+    <div style="background:rgba(96,165,250,.05);padding:10px;border-radius:6px;color:#cbd5e1;font-size:.85rem">
+      <div><strong>Categorias:</strong> ${cats.length ? escL(cats.join(', ')) : '—'}</div>
+      ${p.finalidade ? `<div style="margin-top:6px"><strong>Finalidade:</strong> ${escL(p.finalidade)}</div>` : ''}
+      ${p.retencao_terceiro ? `<div style="margin-top:6px"><strong>Retenção do terceiro:</strong> ${escL(p.retencao_terceiro)}</div>` : ''}
+    </div>
+
+    ${p.certificacoes ? `<h4 style="color:#fff;margin:14px 0 4px">Certificações</h4>
+      <div style="background:rgba(96,165,250,.05);padding:10px;border-radius:6px;color:#cbd5e1">${escL(p.certificacoes)}</div>` : ''}
+
+    ${p.url_politica_privacidade ? `<h4 style="color:#fff;margin:14px 0 4px">Política de privacidade do terceiro</h4>
+      <div><a href="${escL(p.url_politica_privacidade)}" target="_blank" rel="noopener" style="color:#7eb8f7">${escL(p.url_politica_privacidade)}</a></div>` : ''}
+
+    ${p.dpa_url ? `<h4 style="color:#fff;margin:14px 0 4px">PDF do DPA</h4>
+      <div><a href="${escL(p.dpa_url)}" target="_blank" rel="noopener" style="color:#7eb8f7">${escL(p.dpa_url)}</a></div>` : ''}
+
+    ${p.notas ? `<h4 style="color:#fff;margin:14px 0 4px">Notas</h4>
+      <div style="background:rgba(96,165,250,.05);padding:10px;border-radius:6px;white-space:pre-wrap;color:#cbd5e1">${escL(p.notas)}</div>` : ''}
+
+    <h4 style="color:#fff;margin:18px 0 8px">Histórico (imutável)</h4>
+    <div style="background:rgba(8,12,24,.4);border:1px solid rgba(160,180,210,.10);border-radius:6px;padding:6px 14px;max-height:230px;overflow-y:auto">${histHtml}</div>
+
+    <h4 style="color:#fff;margin:18px 0 6px">Ações</h4>
+    <div style="background:rgba(96,165,250,.05);padding:10px;border-radius:6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      ${p.dpa_status !== 'assinado' ? `<button class="btn-mst btn-mst-primary" onclick="signDpa(${p.id})">Marcar DPA Assinado</button>` : ''}
+      ${p.dpa_status === 'pendente' ? `<button class="btn-mst" onclick="updateOperatorStatus(${p.id},'em_negociacao')">Em negociação</button>` : ''}
+      <button class="btn-mst" onclick="updateOperatorStatus(${p.id},'dispensado','DPA dispensado por dispensa legal (ex.: open-source self-hosted, dispensa contratual)')">Dispensar</button>
+      ${p.ativo == 1
+        ? `<button class="btn-mst" style="background:linear-gradient(135deg,#94a3b8,#64748b);color:#fff;border:none" onclick="deactivateOperator(${p.id})">Desativar</button>`
+        : `<button class="btn-mst" onclick="reactivateOperator(${p.id})">Reativar</button>`}
+    </div>
+
+    <h4 style="color:#fff;margin:18px 0 6px">Adicionar comentário ao histórico</h4>
+    <div style="display:flex;gap:6px">
+      <input id="opCommentTxt" type="text" placeholder="Comentário..." style="flex:1;padding:6px 10px;border-radius:6px;background:rgba(5,18,39,.6);border:1px solid rgba(160,180,210,.18);color:#fff;font:inherit">
+      <button class="btn-mst" onclick="addOperatorEvent(${p.id})">Adicionar</button>
+    </div>
+  `;
+  openModal('modalOperator');
+}
+
+async function signDpa(id) {
+  const assinado = prompt('Data de assinatura do DPA (YYYY-MM-DD):',
+    new Date().toISOString().slice(0,10));
+  if (!assinado) return;
+  const validade = prompt('Validade do DPA (YYYY-MM-DD, vazio = sem prazo):', '') || null;
+  const url = prompt('URL/Path do PDF (opcional):', '') || null;
+  const r = await fj(`${API}/processors.php?action=sign_dpa`, {
+    method:'POST', body: JSON.stringify({ csrf_token: CSRF, id, assinado_em: assinado, validade, url })
+  });
+  if (!r.ok) return notifyErr(r.error || 'Erro');
+  notifyOk('DPA marcado como assinado');
+  openOperatorDrawer(id);
+  loadOperators();
+  refreshOperatorsBadge();
+}
+
+async function updateOperatorStatus(id, dpa_status, motivo) {
+  if (!confirm(`Alterar status DPA do operador #${id} para "${dpa_status}"?`)) return;
+  const body = { csrf_token: CSRF, id, dpa_status };
+  if (motivo) body.notas = motivo;
+  const r = await fj(`${API}/processors.php`, {
+    method:'PATCH', body: JSON.stringify(body)
+  });
+  if (!r.ok) return notifyErr(r.error || 'Erro');
+  notifyOk('Status atualizado');
+  openOperatorDrawer(id);
+  loadOperators();
+  refreshOperatorsBadge();
+}
+
+async function deactivateOperator(id) {
+  const motivo = prompt('Motivo da desativação:', '');
+  if (motivo === null) return;
+  const r = await fj(`${API}/processors.php?action=deactivate`, {
+    method:'POST', body: JSON.stringify({ csrf_token: CSRF, id, motivo })
+  });
+  if (!r.ok) return notifyErr(r.error || 'Erro');
+  notifyOk('Operador desativado');
+  openOperatorDrawer(id);
+  loadOperators();
+}
+
+async function reactivateOperator(id) {
+  if (!confirm('Reativar operador #' + id + '?')) return;
+  const r = await fj(`${API}/processors.php`, {
+    method:'PATCH', body: JSON.stringify({ csrf_token: CSRF, id, ativo: 1 })
+  });
+  if (!r.ok) return notifyErr(r.error || 'Erro');
+  notifyOk('Operador reativado');
+  openOperatorDrawer(id);
+  loadOperators();
+}
+
+async function addOperatorEvent(id) {
+  const txt = document.getElementById('opCommentTxt').value.trim();
+  if (!txt) return notifyErr('Digite um comentário');
+  const r = await fj(`${API}/processors.php?action=add_event`, {
+    method:'POST', body: JSON.stringify({ csrf_token: CSRF, id, descricao: txt })
+  });
+  if (!r.ok) return notifyErr(r.error || 'Erro');
+  notifyOk('Comentário adicionado');
+  openOperatorDrawer(id);
+}
+
+async function exportInventory() {
+  const r = await fj(`${API}/processors.php?action=export_inventory`);
+  if (!r.ok) return notifyErr(r.error || 'Erro');
+  // Baixa como JSON
+  const blob = new Blob([JSON.stringify(r.data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `inventario-operadores-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  notifyOk('Inventário exportado');
+}
+
+async function refreshOperatorsBadge() {
+  try {
+    const r = await fj(`${API}/processors.php?counts=1`);
+    if (!r.ok) return;
+    const badge = document.getElementById('operatorsBadge');
+    const c = r.data || {};
+    const pendentes = (c.dpa_pendente || 0) + (c.dpa_vencido || 0) + (c.vencendo_30d || 0);
+    if (pendentes > 0) {
+      badge.style.display = 'inline-block';
+      badge.textContent = pendentes;
+      badge.style.background = (c.dpa_vencido > 0) ? '#ef4444' : '#f59e0b';
+      badge.title = `${c.dpa_pendente} DPA pendente · ${c.dpa_vencido} vencido · ${c.vencendo_30d} vencendo em 30d`;
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch (_) {}
+}
+
+refreshOperatorsBadge();
+setInterval(refreshOperatorsBadge, 60000);
+
+document.getElementById('filterOpCategoria').addEventListener('change', loadOperators);
+document.getElementById('filterOpDpa').addEventListener('change', loadOperators);
+document.getElementById('filterOpIntl').addEventListener('change', loadOperators);
+document.getElementById('filterOpAtivos').addEventListener('change', loadOperators);
 
 // ── Init ─────────────────────────────────────────────────────────────────
 const initialHash = (window.location.hash || '').replace('#','') || 'overview';
