@@ -5,13 +5,40 @@
  * Retorna: usuarios, processos, cards
  */
 require_once __DIR__ . '/../../../app/Models/Database.php';
+require_once __DIR__ . '/../../../app/Models/Account.php';
+require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
+require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+
 use App\Models\Database;
+use App\Helpers\AccountContext;
 
 session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');
 
-$uid = (int)($_SESSION['user_id'] ?? 0);
-if (!$uid) { http_response_code(401); echo json_encode(['error' => 'Não autenticado']); exit; }
+// ─── LGPD P1 (2B.1): tenant enforcement ─────────────────────────────────────
+// Antes desta correção, GET /api/chat/mencoes.php?q=silva retornava NOMES,
+// EMAILS, NÚMEROS CNJ, CLIENTE_NOME, EMPRESA_NOME de TODOS os tenants.
+// Qualquer usuário autenticado podia enumerar o catálogo da plataforma.
+// Agora filtramos por accounts acessíveis pela sessão (matriz + filiais
+// com sync ativo).
+$ctx = AccountContext::fromSession();
+$uid = $ctx->getUserId();
+
+$accessibleIds = $ctx->getAccessibleAccountIds(); // sem módulo: só matriz+filiais ativas
+if (empty($accessibleIds)) {
+    echo json_encode(['ok' => true, 'data' => []]);
+    exit;
+}
+// Constrói placeholders nomeados pra IN(...)
+$accPlaceholders = [];
+$accParams       = [];
+foreach ($accessibleIds as $i => $aid) {
+    $k = "acc{$i}";
+    $accPlaceholders[] = ":{$k}";
+    $accParams[$k]     = (int)$aid;
+}
+$accIn = implode(',', $accPlaceholders);
+// ────────────────────────────────────────────────────────────────────────────
 
 $pdo   = Database::getConnection();
 $q     = trim($_GET['q'] ?? '');
@@ -36,14 +63,16 @@ if ($type === 'auto') {
     }
 }
 
-// ── Usuários ──────────────────────────────────────────────────────────────
+// ── Usuários (somente do tenant) ──────────────────────────────────────────
 if ($showUsers) {
     $s = $pdo->prepare(
-        'SELECT id, nome, perfil FROM users
-         WHERE deleted_at IS NULL AND status = \'active\' AND nome LIKE ?
-         ORDER BY nome LIMIT ' . $limit
+        "SELECT id, nome, perfil FROM users
+         WHERE deleted_at IS NULL AND status = 'active'
+           AND account_id IN ($accIn)
+           AND nome LIKE :like
+         ORDER BY nome LIMIT " . $limit
     );
-    $s->execute([$like]);
+    $s->execute(['like' => $like] + $accParams);
     foreach ($s->fetchAll() as $row) {
         $result[] = [
             'tipo'          => 'usuario',
@@ -56,14 +85,16 @@ if ($showUsers) {
     }
 }
 
-// ── Processos ────────────────────────────────────────────────────────────
+// ── Processos (somente do tenant) ────────────────────────────────────────
 if ($showProcessos) {
     $s = $pdo->prepare(
-        'SELECT id, numero, cliente_nome FROM processos
-         WHERE (numero LIKE ? OR cliente_nome LIKE ?)
-         ORDER BY id DESC LIMIT ' . $limit
+        "SELECT id, numero, cliente_nome FROM processos
+         WHERE deleted_at IS NULL
+           AND account_id IN ($accIn)
+           AND (numero LIKE :like1 OR cliente_nome LIKE :like2)
+         ORDER BY id DESC LIMIT " . $limit
     );
-    $s->execute([$like, $like]);
+    $s->execute(['like1' => $like, 'like2' => $like] + $accParams);
     foreach ($s->fetchAll() as $row) {
         // Sempre mostra valor humano. ID interno só fica na URL (técnico, invisível).
         $display = $row['numero'] ?: ($row['cliente_nome'] ?: 'Processo sem número');
@@ -78,14 +109,16 @@ if ($showProcessos) {
     }
 }
 
-// ── Cards ────────────────────────────────────────────────────────────────
+// ── Cards (somente do tenant) ────────────────────────────────────────────
 if ($showCards) {
     $s = $pdo->prepare(
-        'SELECT id, cliente_nome, empresa_nome FROM cards
-         WHERE (cliente_nome LIKE ? OR empresa_nome LIKE ?)
-         ORDER BY id DESC LIMIT ' . $limit
+        "SELECT id, cliente_nome, empresa_nome FROM cards
+         WHERE deleted_at IS NULL
+           AND account_id IN ($accIn)
+           AND (cliente_nome LIKE :like1 OR empresa_nome LIKE :like2)
+         ORDER BY id DESC LIMIT " . $limit
     );
-    $s->execute([$like, $like]);
+    $s->execute(['like1' => $like, 'like2' => $like] + $accParams);
     foreach ($s->fetchAll() as $row) {
         // Display sempre humano: cliente OU empresa, sem ID interno.
         $display = $row['cliente_nome'] ?: ($row['empresa_nome'] ?: 'Lead sem nome');

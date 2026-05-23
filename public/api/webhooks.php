@@ -163,8 +163,15 @@ if ($method === 'POST') {
     // Test delivery
     if ($action === 'test') {
         $id = (int)($input['id'] ?? 0);
-        $stmt = $pdo->prepare("SELECT * FROM webhooks WHERE id = ? AND deleted_at IS NULL LIMIT 1");
-        $stmt->execute([$id]);
+        // ─── LGPD P1 (2B.5): filtra por tenant ──────────────────────────────
+        // Antes desta correção, qualquer owner/admin podia "testar" (disparar
+        // entrega real) qualquer webhook do sistema passando o ID, gerando
+        // log e payload em URL controlada por outro escritório.
+        $stmt = $pdo->prepare(
+            "SELECT * FROM webhooks WHERE id = :id AND deleted_at IS NULL AND account_id IN $tenantIn LIMIT 1"
+        );
+        $stmt->execute(['id' => $id] + $_whParams);
+        // ───────────────────────────────────────────────────────────────────────
         $hook = $stmt->fetch();
         if (!$hook) { http_response_code(404); echo json_encode(['error' => 'Webhook not found']); exit; }
 

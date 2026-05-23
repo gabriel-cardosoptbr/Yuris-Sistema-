@@ -16,6 +16,7 @@ $ctx       = AccountContext::fromSession();   // aborta com 401 se não autentic
 $userId    = $ctx->getUserId();
 $accountId = $ctx->getAccountId();
 $isAdmin   = $ctx->isOwnerOrAdmin();          // usa role do multi-tenancy (owner|admin)
+$accIds    = $ctx->getAccessibleAccountIds('tarefas');  // P1 LGPD (2B.3): escopo tenant
 $method    = $_SERVER['REQUEST_METHOD'];
 $input     = json_decode(file_get_contents('php://input'), true) ?? [];
 
@@ -34,8 +35,9 @@ $action = $_GET['action'] ?? null;
 
 if ($method === 'GET') {
     if (isset($_GET['id'])) {
-        $b = TaskBoard::findById((int)$_GET['id']);
-        if (!$b || !TaskBoard::canView((int)$_GET['id'], $userId)) fail('Não encontrado', 404);
+        // P1 LGPD (2B.3): findById restrito ao tenant; canView idem
+        $b = TaskBoard::findById((int)$_GET['id'], $accIds);
+        if (!$b || !TaskBoard::canView((int)$_GET['id'], $userId, $accIds)) fail('Não encontrado', 404);
         $b['colunas']  = \App\Models\TaskColumn::findByBoard($b['id']);
         $b['membros']  = TaskBoard::members($b['id']);
         ok($b);
@@ -51,7 +53,7 @@ if (in_array($method, ['POST','PUT','DELETE'])) {
 if ($method === 'POST') {
     if ($action === 'members') {
         $boardId = (int)($input['board_id'] ?? 0);
-        if (!TaskBoard::canEdit($boardId, $userId)) fail('Sem permissão', 403);
+        if (!TaskBoard::canEdit($boardId, $userId, $accIds)) fail('Sem permissão', 403);
         $op = $input['op'] ?? 'add';
         if ($op === 'remove') {
             TaskBoard::removeMember($boardId, (int)$input['user_id']);
@@ -74,14 +76,16 @@ if ($method === 'POST') {
 
 if ($method === 'PUT') {
     $id = (int)($input['id'] ?? $_GET['id'] ?? 0);
-    if (!TaskBoard::canEdit($id, $userId)) fail('Sem permissão', 403);
+    if (!TaskBoard::canEdit($id, $userId, $accIds)) fail('Sem permissão', 403);
     TaskBoard::update($id, $input);
     ok();
 }
 
 if ($method === 'DELETE') {
     $id = (int)($input['id'] ?? $_GET['id'] ?? 0);
-    $b  = TaskBoard::findById($id);
+    // P1 LGPD (2B.3): findById restrito ao tenant — admin de tenant A não
+    // pode deletar board de tenant B mesmo com ID conhecido
+    $b  = TaskBoard::findById($id, $accIds);
     if (!$b || ((int)$b['owner_id'] !== $userId && !$isAdmin)) fail('Sem permissão', 403);
     TaskBoard::delete($id);
     ok();

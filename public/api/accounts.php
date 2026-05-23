@@ -92,7 +92,12 @@ if ($method === 'PUT' || $method === 'PATCH') {
         exit;
     }
 
-    $allowed = ['nome', 'tipo', 'plano', 'configuracoes'];
+    // ─── LGPD P1 (2B.4): 'tipo' removido do allowed ──────────────────────────
+    // Antes desta correção, owner do tenant podia mudar 'tipo' de filial→matriz
+    // (escalation de privilégio: matriz herda dados das filiais vinculadas).
+    // Mudança de tipo agora é exclusiva do super_admin via /api/master/accounts.php
+    // (que tem audit log e checagem dedicada).
+    $allowed = ['nome', 'plano', 'configuracoes'];
     $update  = array_intersect_key($input, array_flip($allowed));
 
     if (empty($update)) {

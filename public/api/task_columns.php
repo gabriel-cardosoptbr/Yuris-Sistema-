@@ -1,18 +1,23 @@
 <?php
 require_once __DIR__ . '/../../app/Models/Database.php';
+require_once __DIR__ . '/../../app/Models/Account.php';
+require_once __DIR__ . '/../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../app/Models/TaskBoard.php';
 require_once __DIR__ . '/../../app/Models/TaskColumn.php';
+require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
 
 use App\Models\TaskBoard;
 use App\Models\TaskColumn;
+use App\Helpers\AccountContext;
 
 session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache, no-store, must-revalidate');
 
-if (empty($_SESSION['user_id'])) { http_response_code(401); echo json_encode(['ok'=>false,'error'=>'Unauthorized']); exit; }
-
-$userId = (int)$_SESSION['user_id'];
+// P1 LGPD (2B.3): contexto de tenant para escopar TaskBoard::canView/canEdit
+$ctx    = AccountContext::fromSession();
+$userId = $ctx->getUserId();
+$accIds = $ctx->getAccessibleAccountIds('tarefas');
 $method = $_SERVER['REQUEST_METHOD'];
 $input  = json_decode(file_get_contents('php://input'), true) ?? [];
 
@@ -31,7 +36,7 @@ $action = $_GET['action'] ?? null;
 
 if ($method === 'GET') {
     $boardId = (int)($_GET['board_id'] ?? 0);
-    if (!$boardId || !TaskBoard::canView($boardId, $userId)) fail('Sem acesso', 403);
+    if (!$boardId || !TaskBoard::canView($boardId, $userId, $accIds)) fail('Sem acesso', 403);
     ok(TaskColumn::findByBoard($boardId));
 }
 
@@ -42,12 +47,12 @@ if (in_array($method, ['POST','PUT','DELETE'])) {
 if ($method === 'POST') {
     if ($action === 'reorder') {
         $boardId = (int)($input['board_id'] ?? 0);
-        if (!TaskBoard::canEdit($boardId, $userId)) fail('Sem permissão', 403);
+        if (!TaskBoard::canEdit($boardId, $userId, $accIds)) fail('Sem permissão', 403);
         TaskColumn::reorder($boardId, $input['ids'] ?? []);
         ok();
     }
     $boardId = (int)($input['board_id'] ?? 0);
-    if (!TaskBoard::canEdit($boardId, $userId)) fail('Sem permissão', 403);
+    if (!TaskBoard::canEdit($boardId, $userId, $accIds)) fail('Sem permissão', 403);
     if (empty($input['nome'])) fail('Nome obrigatório');
     $id = TaskColumn::create([
         'board_id'           => $boardId,

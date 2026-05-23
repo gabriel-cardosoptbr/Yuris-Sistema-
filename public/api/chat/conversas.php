@@ -42,6 +42,58 @@ $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
 $body   = [];
 
+// ─── LGPD P1 (2B.2) — Validação de participantes cross-tenant ────────────────
+// Antes desta correção, create_direct/create_group/update_participants
+// validavam apenas existência do user_id (SELECT id FROM users WHERE id = ?).
+// Atacante podia adicionar usuário de OUTRO tenant na conversa, que então
+// receberia mensagens e poderia enviar como participante legítimo.
+// Esta função restringe a usuários:
+//   1. Da própria conta OU filiais sync ativas
+//   2. OU advogados associados com convite aceito pela conta atual
+// Retorna array dos IDs válidos (subset do input). IDs inválidos são DROPADOS.
+function _validParticipantIds(\PDO $pdo, array $userIds, \App\Helpers\AccountContext $ctx): array
+{
+    $userIds = array_values(array_unique(array_filter(array_map('intval', $userIds), fn($v) => $v > 0)));
+    if (empty($userIds)) return [];
+
+    $accessibleAccountIds = $ctx->getAccessibleAccountIds();
+    $myAccountId          = $ctx->getAccountId();
+
+    if (empty($accessibleAccountIds)) return [];
+
+    // Placeholders dinâmicos
+    $accPh = []; $uPh = []; $params = [];
+    foreach ($accessibleAccountIds as $i => $aid) { $k = "vacc{$i}"; $accPh[] = ":{$k}"; $params[$k] = (int)$aid; }
+    foreach ($userIds as $i => $uid) { $k = "vu{$i}"; $uPh[] = ":{$k}"; $params[$k] = (int)$uid; }
+
+    // (1) Usuários dos tenants acessíveis
+    $sqlOwn = "SELECT id FROM users
+               WHERE id IN (" . implode(',', $uPh) . ")
+                 AND account_id IN (" . implode(',', $accPh) . ")
+                 AND deleted_at IS NULL";
+    $st = $pdo->prepare($sqlOwn);
+    $st->execute($params);
+    $valid = array_map('intval', $st->fetchAll(\PDO::FETCH_COLUMN));
+
+    // (2) Advogados associados convidados pela conta atual (cobertura cross-tenant legítima)
+    $remaining = array_diff($userIds, $valid);
+    if (!empty($remaining)) {
+        $rPh = []; $rParams = ['from_acc' => $myAccountId];
+        foreach ($remaining as $i => $uid) { $k = "vra{$i}"; $rPh[] = ":{$k}"; $rParams[$k] = (int)$uid; }
+        $sqlAdv = "SELECT DISTINCT convidado_user_id FROM advogado_convites
+                   WHERE from_account_id = :from_acc
+                     AND status = 'accepted'
+                     AND convidado_user_id IN (" . implode(',', $rPh) . ")";
+        $st2 = $pdo->prepare($sqlAdv);
+        $st2->execute($rParams);
+        $extra = array_map('intval', $st2->fetchAll(\PDO::FETCH_COLUMN));
+        $valid = array_merge($valid, $extra);
+    }
+
+    return array_values(array_unique($valid));
+}
+// ────────────────────────────────────────────────────────────────────────────
+
 if ($method === 'POST') {
     $body   = json_decode(file_get_contents('php://input'), true) ?? [];
     $action = $body['action'] ?? $action;
@@ -297,10 +349,12 @@ if ($method === 'POST' && $action === 'create_direct') {
     if (!$otherId || $otherId === $uid) {
         http_response_code(400); echo json_encode(['error' => 'usuario_id inválido']); exit;
     }
-    $exists = $pdo->prepare('SELECT id FROM users WHERE id = ? AND deleted_at IS NULL LIMIT 1');
-    $exists->execute([$otherId]);
-    if (!$exists->fetchColumn()) {
-        http_response_code(404); echo json_encode(['error' => 'Usuário não encontrado']); exit;
+    // P1 LGPD (2B.2): valida tenant — não basta o user existir
+    $validIds = _validParticipantIds($pdo, [$otherId], $ctx);
+    if (empty($validIds)) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Usuário não pertence ao seu tenant ou não é advogado associado convidado.']);
+        exit;
     }
 
     $existing = $pdo->prepare(
@@ -335,6 +389,19 @@ if ($method === 'POST' && $action === 'create_group') {
     if (!$nome) { http_response_code(400); echo json_encode(['error' => 'Nome obrigatório']); exit; }
     if (!count($userIds)) { http_response_code(400); echo json_encode(['error' => 'Adicione ao menos 1 participante']); exit; }
 
+    // P1 LGPD (2B.2): filtra participantes a usuários do tenant + advogados convidados
+    $validIds = _validParticipantIds($pdo, $userIds, $ctx);
+    if (empty($validIds)) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Nenhum dos participantes é válido para esta conta.']);
+        exit;
+    }
+    // Log de IDs descartados (cross-tenant) pra diagnóstico
+    $dropped = array_diff($userIds, $validIds);
+    if (!empty($dropped)) {
+        error_log('[chat/conversas create_group] user_ids cross-tenant rejeitados: ' . implode(',', $dropped));
+    }
+
     $pdo->prepare(
         "INSERT INTO chat_conversas (account_id, nome, tipo, criado_por) VALUES (?, ?, 'grupo', ?)"
     )->execute([$aid, $nome, $uid]);
@@ -342,9 +409,9 @@ if ($method === 'POST' && $action === 'create_group') {
 
     $stmt = $pdo->prepare('INSERT IGNORE INTO chat_participantes (conversa_id, usuario_id) VALUES (?, ?)');
     $stmt->execute([$convId, $uid]);
-    foreach ($userIds as $uId) $stmt->execute([$convId, $uId]);
+    foreach ($validIds as $uId) $stmt->execute([$convId, $uId]);
 
-    echo json_encode(['ok' => true, 'conversa_id' => $convId]);
+    echo json_encode(['ok' => true, 'conversa_id' => $convId, 'rejected_user_ids' => array_values($dropped)]);
     exit;
 }
 
@@ -530,8 +597,14 @@ if ($method === 'POST' && $action === 'update_participants') {
     }
 
     if (count($addIds)) {
+        // P1 LGPD (2B.2): filtra adds a participantes válidos no tenant
+        $validAdds = _validParticipantIds($pdo, $addIds, $ctx);
+        $rejected  = array_diff($addIds, $validAdds);
+        if (!empty($rejected)) {
+            error_log('[chat/conversas update_participants] add cross-tenant rejeitados: ' . implode(',', $rejected));
+        }
         $stmtAdd = $pdo->prepare('INSERT IGNORE INTO chat_participantes (conversa_id, usuario_id) VALUES (?, ?)');
-        foreach ($addIds as $uId) $stmtAdd->execute([$convId, $uId]);
+        foreach ($validAdds as $uId) $stmtAdd->execute([$convId, $uId]);
     }
     if (count($removeIds)) {
         $stmtDel = $pdo->prepare(

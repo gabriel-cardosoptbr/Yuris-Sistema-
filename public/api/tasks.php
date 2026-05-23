@@ -27,6 +27,9 @@ $isAdmin = $ctx->isOwnerOrAdmin();          // usa role do multi-tenancy (owner|
 $method  = $_SERVER['REQUEST_METHOD'];
 $input   = json_decode(file_get_contents('php://input'), true) ?? [];
 
+// P1 LGPD (2B.3): contas acessíveis para escopar TaskBoard::canView/canEdit
+$accIds  = $ctx->getAccessibleAccountIds('tarefas');
+
 function csrfOk(): bool {
     $tok = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? $_POST['csrf_token'] ?? ($GLOBALS['input']['csrf_token'] ?? null);
     return $tok && $tok === ($_SESSION['csrf_token'] ?? '');
@@ -38,11 +41,12 @@ function ok(mixed $data = null): void {
     echo json_encode(['ok'=>true,'data'=>$data]); exit;
 }
 
-function canEditTask(array $task, int $userId, bool $isAdmin): bool {
+function canEditTask(array $task, int $userId, bool $isAdmin, array $accIds = []): bool {
     if ($isAdmin) return true;
     if ((int)$task['criado_por_id'] === $userId) return true;
     if ((int)$task['responsavel_id'] === $userId) return true;
-    return TaskBoard::canEdit((int)$task['board_id'], $userId);
+    // P1 LGPD (2B.3): escopa por tenant também via canEdit
+    return TaskBoard::canEdit((int)$task['board_id'], $userId, $accIds ?: null);
 }
 
 $action = $_GET['action'] ?? null;
@@ -51,11 +55,11 @@ $action = $_GET['action'] ?? null;
 if ($method === 'GET') {
     if (isset($_GET['id'])) {
         $task = Task::withDetails((int)$_GET['id']);
-        if (!$task || !TaskBoard::canView((int)$task['board_id'], $userId)) fail('Não encontrado', 404);
+        if (!$task || !TaskBoard::canView((int)$task['board_id'], $userId, $accIds)) fail('Não encontrado', 404);
         ok($task);
     }
     $boardId = (int)($_GET['board_id'] ?? 0);
-    if (!$boardId || !TaskBoard::canView($boardId, $userId)) fail('Sem acesso', 403);
+    if (!$boardId || !TaskBoard::canView($boardId, $userId, $accIds)) fail('Sem acesso', 403);
 
     // Cron interno: gera instâncias atrasadas de tarefas recorrentes (máx. 1x/hora)
     \App\Services\RecurrenceCronService::tickIfDue();
@@ -80,7 +84,7 @@ if ($method === 'POST') {
     // move (drag-and-drop)
     if ($action === 'move') {
         $task = Task::findById((int)($input['id'] ?? 0));
-        if (!$task || !TaskBoard::canView((int)$task['board_id'], $userId)) fail('Não encontrado', 404);
+        if (!$task || !TaskBoard::canView((int)$task['board_id'], $userId, $accIds)) fail('Não encontrado', 404);
         Task::move((int)$task['id'], (int)$input['column_id'], (int)($input['ordem'] ?? 0), $userId);
         // Propaga ao histórico processual se a tarefa está vinculada a algum processo
         $colNome = null;
@@ -96,7 +100,7 @@ if ($method === 'POST') {
     if ($action === 'complete') {
         $task = Task::findById((int)($input['id'] ?? 0));
         if (!$task) fail('Não encontrado', 404);
-        if (!canEditTask($task, $userId, $isAdmin)) fail('Sem permissão', 403);
+        if (!canEditTask($task, $userId, $isAdmin, $accIds)) fail('Sem permissão', 403);
         $result = Task::complete((int)$task['id'], $userId);
         // Propaga ao histórico processual se vinculada
         TaskAudit::onTaskCompleted((int)$task['id']);
@@ -106,7 +110,7 @@ if ($method === 'POST') {
     // criar
     $boardId  = (int)($input['board_id']  ?? 0);
     $columnId = (int)($input['column_id'] ?? 0);
-    if (!$boardId || !TaskBoard::canEdit($boardId, $userId)) fail('Sem permissão', 403);
+    if (!$boardId || !TaskBoard::canEdit($boardId, $userId, $accIds)) fail('Sem permissão', 403);
     if (empty($input['titulo'])) fail('Título obrigatório');
 
     // coluna padrão se não informada
@@ -146,7 +150,7 @@ if ($method === 'PUT') {
     $id   = (int)($input['id'] ?? $_GET['id'] ?? 0);
     $task = Task::findById($id);
     if (!$task) fail('Não encontrado', 404);
-    if (!canEditTask($task, $userId, $isAdmin)) fail('Sem permissão', 403);
+    if (!canEditTask($task, $userId, $isAdmin, $accIds)) fail('Sem permissão', 403);
 
     // Captura "antes" para propagar diff ao histórico processual (se vinculada)
     $diffFields = ['titulo','descricao','prioridade','prazo','prazo_tipo','responsavel_id','status'];
@@ -203,7 +207,7 @@ if ($method === 'DELETE') {
     $id   = (int)($input['id'] ?? $_GET['id'] ?? 0);
     $task = Task::findById($id);
     if (!$task) fail('Não encontrado', 404);
-    if (!canEditTask($task, $userId, $isAdmin)) fail('Sem permissão', 403);
+    if (!canEditTask($task, $userId, $isAdmin, $accIds)) fail('Sem permissão', 403);
     // Captura ANTES de arquivar, pois TaskAudit lê task_links que ainda existem
     TaskAudit::onTaskArchived($id);
     Task::archive($id, $userId);

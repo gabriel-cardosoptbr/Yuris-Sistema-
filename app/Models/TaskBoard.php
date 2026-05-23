@@ -145,9 +145,16 @@ class TaskBoard
             ->execute([$boardId, $userId]);
     }
 
-    public static function canEdit(int $boardId, int $userId): bool
+    /**
+     * Pode editar o board?
+     *
+     * P1 LGPD (2B.3): $accountIds opcional — quando informado, findById restringe
+     * ao tenant antes de checar membership. Antes, admin de tenant A podia
+     * adicionar-se como member de board de tenant B (IDOR via board_id conhecido).
+     */
+    public static function canEdit(int $boardId, int $userId, int|array|null $accountIds = null): bool
     {
-        $board = self::findById($boardId);
+        $board = self::findById($boardId, $accountIds);
         if (!$board) return false;
         if ((int)$board['owner_id'] === $userId) return true;
         $pdo = Database::getConnection();
@@ -157,9 +164,9 @@ class TaskBoard
         return $row && in_array($row['papel'], ['owner','editor']);
     }
 
-    public static function canView(int $boardId, int $userId): bool
+    public static function canView(int $boardId, int $userId, int|array|null $accountIds = null): bool
     {
-        $board = self::findById($boardId);
+        $board = self::findById($boardId, $accountIds);
         if (!$board) return false;
         if ((int)$board['owner_id'] === $userId) return true;
         $pdo = Database::getConnection();
