@@ -164,9 +164,11 @@ if ($method === 'POST') {
             'criado_por'      => $ctx->getUserId(),
         ]);
     } catch (\InvalidArgumentException $e) {
-        http_response_code(400);
-        echo json_encode(['error' => $e->getMessage()]);
-        exit;
+        // P1 LGPD (2D.1): InvalidArgumentException tem mensagem segura
+        // (validação de input) — mantém visível ao cliente mesmo em prod
+        // mas usa o helper pra padronizar resposta + correlation_id
+        require_once __DIR__ . '/../../app/Helpers/ErrorReporter.php';
+        \App\Helpers\ErrorReporter::handle($e, 400, $e->getMessage());
     }
 
     // Notifica a conta de destino (se especificada)

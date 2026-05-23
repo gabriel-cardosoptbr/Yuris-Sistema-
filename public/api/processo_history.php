@@ -54,7 +54,27 @@ try {
         if (!$processoId || !$acao) { http_response_code(400); echo json_encode(['error' => 'Missing fields']); exit; }
         TenantGuard::assertProcessoAcessivel($ctx, $processoId);
 
-        // Inclui snapshot da conta do autor pra renderizar badge MATRIZ/FILIAL
+        // ─── LGPD P1 (2D.3): allowlist de 'acao' ─────────────────────────────
+        // Antes desta correção, usuário podia POSTar acao='Processo modificado
+        // pelo Dr. Fulano' forjando entrada legítima de outro autor. Comprometia
+        // a auditoria do histórico. Agora aceita só valores conhecidos do
+        // sistema; qualquer outro vira 'observacao_manual' (categoria neutra).
+        $ALLOWED_ACOES = [
+            'observacao_manual',
+            'comentario',
+            'nota_interna',
+            'documento_adicionado',
+            'tarefa_relacionada',
+            'andamento_manual',
+            'reuniao_registrada',
+        ];
+        if (!in_array($acao, $ALLOWED_ACOES, true)) {
+            $acao = 'observacao_manual';   // fallback seguro, não bloqueia uso legítimo
+        }
+        // ────────────────────────────────────────────────────────────────────
+
+        // Inclui snapshot da conta do autor pra renderizar badge MATRIZ/FILIAL.
+        // user_email SEMPRE da sessão (nunca do body) — protege contra forjamento.
         $pdo->prepare(
             "INSERT INTO processo_history
                (processo_id, user_email, acao, descricao,
@@ -62,7 +82,7 @@ try {
              VALUES (:pid, :user, :acao, :desc, :aid, :atipo, :anome)"
         )->execute([
             ':pid'   => $processoId,
-            ':user'  => $userDisplay,
+            ':user'  => $userDisplay,     // já vem do session via $userDisplay
             ':acao'  => $acao,
             ':desc'  => $descricao,
             ':aid'   => isset($_SESSION['account_id']) ? (int)$_SESSION['account_id'] : null,
@@ -78,7 +98,7 @@ try {
     exit;
 
 } catch (\Throwable $e) {
-    http_response_code(500);
-    echo json_encode(['error' => $e->getMessage()]);
-    exit;
+    // P1 LGPD (2D.1): em prod esconde getMessage
+    require_once __DIR__ . '/../../app/Helpers/ErrorReporter.php';
+    \App\Helpers\ErrorReporter::handle($e);
 }

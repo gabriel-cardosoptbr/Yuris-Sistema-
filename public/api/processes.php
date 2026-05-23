@@ -7,6 +7,7 @@ require_once __DIR__ . '/../../app/Services/WebhookDispatcher.php';
 require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
 require_once __DIR__ . '/../../app/Helpers/ProcessoAudit.php';
+require_once __DIR__ . '/../../app/Helpers/ErrorReporter.php';
 
 use App\Services\WebhookDispatcher;
 use App\Models\Processo;
@@ -148,7 +149,6 @@ try {
     echo json_encode(['error'=>'Method not allowed']);
     exit;
 } catch (\Throwable $e) {
-    http_response_code(500);
-    echo json_encode(['error' => $e->getMessage()]);
-    exit;
+    // P1 LGPD (2D.1): erros padronizados — em prod esconde getMessage
+    \App\Helpers\ErrorReporter::handle($e);
 }

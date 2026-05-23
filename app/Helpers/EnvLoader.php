@@ -67,4 +67,62 @@ final class EnvLoader
         if ($val !== false && $val !== '') return $val;
         return self::$vars[$key] ?? $default;
     }
+
+    /**
+     * Verifica se variáveis críticas estão definidas. Em APP_ENV=production,
+     * aborta o request se algo essencial faltar (LGPD P1 — 2D.2).
+     *
+     * Variáveis exigidas em produção:
+     *   • DB_PASS               — senha de banco (NUNCA usar sem senha em prod)
+     *   • CRON_TOKEN            — token do cron tick (gere com openssl rand -hex 24)
+     *   • BILLING_GATEWAY       — gateway real (stripe/mercadopago/etc), nunca null
+     *   • MFA_ENCRYPTION_KEY    — exigido se algum super_admin tiver MFA habilitado
+     *
+     * Em dev (APP_ENV=development) só faz log warning das ausentes — não bloqueia.
+     *
+     * @return string[]  Lista de problemas encontrados (vazia se OK)
+     */
+    public static function validateProduction(): array
+    {
+        self::load();
+        $env = strtolower(self::get('APP_ENV', 'development'));
+        $isProd = in_array($env, ['production', 'prod'], true);
+
+        $problems = [];
+
+        if (self::get('DB_PASS', '') === '') {
+            $problems[] = 'DB_PASS vazio (root sem senha não é aceito em produção)';
+        }
+        $cron = self::get('CRON_TOKEN', '');
+        if ($cron === '' || $cron === 'yuris_cron_token_change_me') {
+            $problems[] = 'CRON_TOKEN não configurado ou usando default inseguro';
+        }
+        $gw = strtolower(self::get('BILLING_GATEWAY', 'null'));
+        if (in_array($gw, ['', 'null', 'noop', 'dev'], true)) {
+            $problems[] = 'BILLING_GATEWAY=null/dev — em produção exige gateway real (stripe/mercadopago/asaas)';
+        }
+        // MFA_ENCRYPTION_KEY: só obrigatório se super_admin tiver MFA habilitado.
+        // Não checamos aqui (precisaria de DB). Documentado no helper TotpHelper.
+
+        // Logs sempre. Em prod, aborta.
+        if (!empty($problems) && $isProd) {
+            $msg = "[EnvLoader] CRITICAL: variáveis de produção ausentes/inseguras:\n  - "
+                 . implode("\n  - ", $problems);
+            error_log($msg);
+            if (!headers_sent()) {
+                http_response_code(503);
+                header('Content-Type: application/json; charset=utf-8');
+            }
+            echo json_encode([
+                'ok'    => false,
+                'error' => 'Serviço indisponível: configuração de produção inválida. Contate o operador.',
+            ]);
+            exit;
+        }
+        if (!empty($problems)) {
+            error_log("[EnvLoader] WARNING (dev): configuração não-prod com problemas:\n  - "
+                    . implode("\n  - ", $problems));
+        }
+        return $problems;
+    }
 }

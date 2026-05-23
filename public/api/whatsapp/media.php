@@ -247,8 +247,9 @@ try {
 
 } catch (\Throwable $e) {
     if ($debug) {
-        header('Content-Type: application/json');
-        echo json_encode(['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+        // P1 LGPD (2D.1): em prod esconde getMessage/trace; em dev mantém debug
+        require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
+        \App\Helpers\ErrorReporter::handle($e);
     } else {
         http_response_code(500);
         echo 'Erro: ' . $e->getMessage();

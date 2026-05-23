@@ -62,6 +62,7 @@ try {
         'count'    => count($msgs),
     ]);
 } catch (Throwable $e) {
-    http_response_code(500);
-    echo json_encode(['error' => $e->getMessage(), 'file' => basename($e->getFile()), 'line' => $e->getLine()]);
+    // P1 LGPD (2D.1): em prod esconde getMessage/file/line; em dev mantém debug
+    require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
+    \App\Helpers\ErrorReporter::handle($e);
 }

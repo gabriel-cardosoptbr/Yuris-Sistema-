@@ -101,6 +101,6 @@ try {
     echo json_encode(['ok' => true, 'checked' => count($msgList), 'saved' => $saved]);
 
 } catch (Throwable $e) {
-    http_response_code(500);
-    echo json_encode(['error' => $e->getMessage()]);
+    require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
+    \App\Helpers\ErrorReporter::handle($e);  // P1 LGPD (2D.1)
 }

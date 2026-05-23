@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
 require_once __DIR__ . '/../../app/Services/WebhookDispatcher.php';
+require_once __DIR__ . '/../../app/Helpers/ErrorReporter.php';
 
 use App\Models\Database;
 use App\Helpers\AccountContext;
@@ -241,7 +242,6 @@ try {
     exit;
 
 } catch (\Throwable $e) {
-    http_response_code(500);
-    echo json_encode(['error' => $e->getMessage()]);
+    \App\Helpers\ErrorReporter::handle($e);  // P1 LGPD (2D.1)
     exit;
 }
