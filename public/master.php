@@ -246,16 +246,35 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
     </div>
   </div>
 
+  <?php
+    // Helper PHP: SVG inline de cada tab, mesmo padrão (size 13, stroke 2.2)
+    // — mantém consistência visual: TODAS as tabs têm ícone, sem exceção.
+    $_tabIco = function (string $key): string {
+        $base = 'width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-2px;margin-right:5px"';
+        $paths = [
+            'overview'  => '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
+            'dashboard' => '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
+            'accounts'  => '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+            'plans'     => '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>',
+            'billing'   => '<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
+            'invoices'  => '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+            'payments'  => '<rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>',
+            'expenses'  => '<path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>',
+            'audit'     => '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
+        ];
+        return '<svg ' . $base . '>' . ($paths[$key] ?? '') . '</svg>';
+    };
+  ?>
   <div class="mst-tabs">
-    <button class="mst-tab active" data-mtab="overview">Visão Geral</button>
-    <button class="mst-tab" data-mtab="dashboard"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-2px;margin-right:5px"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Dashboard</button>
-    <button class="mst-tab" data-mtab="accounts">Contas</button>
-    <button class="mst-tab" data-mtab="plans">Planos</button>
-    <button class="mst-tab" data-mtab="billing">Assinaturas</button>
-    <button class="mst-tab" data-mtab="invoices">Faturas</button>
-    <button class="mst-tab" data-mtab="payments">Pagamentos</button>
-    <button class="mst-tab" data-mtab="expenses"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-2px;margin-right:5px"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>Despesas</button>
-    <button class="mst-tab" data-mtab="audit">Auditoria</button>
+    <button class="mst-tab active" data-mtab="overview"><?= $_tabIco('overview') ?>Visão Geral</button>
+    <button class="mst-tab" data-mtab="dashboard"><?= $_tabIco('dashboard') ?>Dashboard</button>
+    <button class="mst-tab" data-mtab="accounts"><?= $_tabIco('accounts') ?>Contas</button>
+    <button class="mst-tab" data-mtab="plans"><?= $_tabIco('plans') ?>Planos</button>
+    <button class="mst-tab" data-mtab="billing"><?= $_tabIco('billing') ?>Assinaturas</button>
+    <button class="mst-tab" data-mtab="invoices"><?= $_tabIco('invoices') ?>Faturas</button>
+    <button class="mst-tab" data-mtab="payments"><?= $_tabIco('payments') ?>Pagamentos</button>
+    <button class="mst-tab" data-mtab="expenses"><?= $_tabIco('expenses') ?>Despesas</button>
+    <button class="mst-tab" data-mtab="audit"><?= $_tabIco('audit') ?>Auditoria</button>
   </div>
 
   <!-- ── Visão Geral ── -->
