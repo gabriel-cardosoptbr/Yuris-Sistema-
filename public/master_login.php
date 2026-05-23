@@ -501,6 +501,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step !== 'otp') {
           <input class="ml-input" id="ml_pwd" name="password" type="password" required>
         </div>
 
+        <!-- LGPD Etapa 5: aceite obrigatório de termos -->
+        <div class="ml-field" style="font-size:12px;color:#8b7daa;line-height:1.45">
+          <label style="display:flex;align-items:flex-start;gap:7px;cursor:pointer">
+            <input type="checkbox" name="aceite_termos" required style="margin-top:2px;accent-color:#a855f7">
+            <span>
+              Li e concordo com os
+              <a href="/sistema_vendas/public/termos.php" target="_blank" style="color:#c084fc">Termos de Uso</a>
+              e a
+              <a href="/sistema_vendas/public/privacidade.php" target="_blank" style="color:#c084fc">Política de Privacidade</a>.
+            </span>
+          </label>
+        </div>
+
         <button class="ml-btn" type="submit">Entrar no Painel Master →</button>
       </form>
     <?php endif; ?>
@@ -513,5 +526,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step !== 'otp') {
       <?php endif; ?>
     </div>
   </main>
+  <!-- LGPD Etapa 5: banner de cookies -->
+  <script src="/sistema_vendas/public/assets/cookie-consent.js?v=1"></script>
 </body>
 </html>

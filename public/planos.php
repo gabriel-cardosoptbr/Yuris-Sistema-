@@ -633,5 +633,9 @@
   <p><strong>Yuris</strong> — Sistema Jurídico Inteligente &nbsp;·&nbsp; Todos os direitos reservados</p>
 </div>
 
+<!-- LGPD Etapa 5: footer com links legais + banner de cookies -->
+<?php include __DIR__ . '/includes/legal_footer.php'; ?>
+<script src="/sistema_vendas/public/assets/cookie-consent.js?v=1"></script>
+
 </body>
 </html>

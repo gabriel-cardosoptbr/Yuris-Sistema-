@@ -108,13 +108,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="remember"> Lembrar</label>
         </div>
 
-        <div class="anim-item" data-i="5">
+        <!-- LGPD Etapa 5: aceite obrigatório de termos -->
+        <div class="field anim-item" data-i="5" style="font-size:13px;color:#7c8aa3;line-height:1.4">
+          <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer">
+            <input type="checkbox" name="aceite_termos" id="aceite_termos" required style="margin-top:3px">
+            <span>
+              Li e concordo com os
+              <a href="/sistema_vendas/public/termos.php" target="_blank" style="color:#7eb8f7">Termos de Uso</a>
+              e a
+              <a href="/sistema_vendas/public/privacidade.php" target="_blank" style="color:#7eb8f7">Política de Privacidade</a>.
+            </span>
+          </label>
+        </div>
+
+        <div class="anim-item" data-i="6">
           <button type="submit" class="btn-primary">Entrar</button>
         </div>
       </form>
     </div>
   </div>
 
+  <!-- LGPD Etapa 5: banner de cookies -->
+  <script src="/sistema_vendas/public/assets/cookie-consent.js?v=1"></script>
   <script>
     (function(){
       const btn = document.querySelector('.password-toggle');
