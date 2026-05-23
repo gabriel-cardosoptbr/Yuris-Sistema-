@@ -193,8 +193,23 @@ class Card
         $stmt = $pdo->prepare('UPDATE cards SET coluna_id = :coluna_id, ordem_na_coluna = :ordem_na_coluna, updated_at = NOW() WHERE id = :id');
         $ok = $stmt->execute(['coluna_id' => $coluna_id, 'ordem_na_coluna' => $ordem_na_coluna, 'id' => $id]);
         if ($ok) {
-            $h = $pdo->prepare('INSERT INTO card_history (card_id, usuario_id, acao, de_coluna_id, para_coluna_id, created_at) VALUES (:card_id, :usuario_id, :acao, :de_coluna_id, :para_coluna_id, NOW())');
-            $h->execute(['card_id'=>$id,'usuario_id'=>$usuario_id,'acao'=>'moved','de_coluna_id'=>$de_coluna,'para_coluna_id'=>$coluna_id]);
+            // LGPD Etapa 4: ip + user_agent + request_id
+            if (!class_exists('App\\Helpers\\RequestId')) {
+                require_once dirname(__DIR__) . '/Helpers/RequestId.php';
+            }
+            $h = $pdo->prepare(
+                'INSERT INTO card_history (card_id, usuario_id, acao, de_coluna_id, para_coluna_id,
+                                           ip, user_agent, request_id, created_at)
+                 VALUES (:card_id, :usuario_id, :acao, :de_coluna_id, :para_coluna_id,
+                         :ip, :ua, :rid, NOW())'
+            );
+            $h->execute([
+                'card_id'=>$id,'usuario_id'=>$usuario_id,'acao'=>'moved',
+                'de_coluna_id'=>$de_coluna,'para_coluna_id'=>$coluna_id,
+                'ip'  => $_SERVER['REMOTE_ADDR'] ?? null,
+                'ua'  => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255),
+                'rid' => \App\Helpers\RequestId::get(),
+            ]);
         }
         return $ok;
     }
@@ -205,7 +220,18 @@ class Card
         try {
             $pdo->beginTransaction();
             $uStmt = $pdo->prepare('UPDATE cards SET coluna_id = :coluna_id, ordem_na_coluna = :ordem_na_coluna, updated_at = NOW() WHERE id = :id');
-            $hStmt = $pdo->prepare('INSERT INTO card_history (card_id, usuario_id, acao, campo_alterado, valor_anterior, valor_novo, de_coluna_id, para_coluna_id, created_at) VALUES (:card_id, :usuario_id, :acao, :campo_alterado, :valor_anterior, :valor_novo, :de_coluna_id, :para_coluna_id, NOW())');
+            // LGPD Etapa 4: ip + user_agent + request_id
+            if (!class_exists('App\\Helpers\\RequestId')) {
+                require_once dirname(__DIR__) . '/Helpers/RequestId.php';
+            }
+            $hStmt = $pdo->prepare(
+                'INSERT INTO card_history (card_id, usuario_id, acao, campo_alterado,
+                                           valor_anterior, valor_novo, de_coluna_id, para_coluna_id,
+                                           ip, user_agent, request_id, created_at)
+                 VALUES (:card_id, :usuario_id, :acao, :campo_alterado,
+                         :valor_anterior, :valor_novo, :de_coluna_id, :para_coluna_id,
+                         :ip, :ua, :rid, NOW())'
+            );
             foreach ($updates as $up) {
                 $id = (int)($up['id'] ?? 0);
                 if (!$id) continue;

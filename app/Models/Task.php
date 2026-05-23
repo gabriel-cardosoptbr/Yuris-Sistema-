@@ -271,12 +271,21 @@ class Task
     public static function history(int $taskId, ?int $userId, string $acao, mixed $antes, mixed $depois): void
     {
         $pdo = Database::getConnection();
-        $pdo->prepare('INSERT INTO task_history (task_id, user_id, acao, antes_json, depois_json) VALUES (?,?,?,?,?)')
-            ->execute([
-                $taskId, $userId, $acao,
-                $antes  ? json_encode($antes)  : null,
-                $depois ? json_encode($depois) : null,
-            ]);
+        // LGPD Etapa 4: ip + user_agent + request_id pra trilha forense
+        if (!class_exists('App\\Helpers\\RequestId')) {
+            require_once dirname(__DIR__) . '/Helpers/RequestId.php';
+        }
+        $pdo->prepare(
+            'INSERT INTO task_history (task_id, user_id, acao, antes_json, depois_json, ip, user_agent, request_id)
+             VALUES (?,?,?,?,?,?,?,?)'
+        )->execute([
+            $taskId, $userId, $acao,
+            $antes  ? json_encode($antes)  : null,
+            $depois ? json_encode($depois) : null,
+            $_SERVER['REMOTE_ADDR'] ?? null,
+            substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255),
+            \App\Helpers\RequestId::get(),
+        ]);
     }
 
     public static function dueToday(int $userId): array

@@ -168,12 +168,19 @@ class Account
     public static function audit(int $accountId, string $acao, array $extras = []): void
     {
         try {
+            // LGPD Etapa 4: user_agent + request_id pra trilha forense
+            if (!class_exists('App\\Helpers\\RequestId')) {
+                require_once dirname(__DIR__) . '/Helpers/RequestId.php';
+            }
+
             $pdo  = Database::getConnection();
             $stmt = $pdo->prepare(
                 'INSERT INTO account_audit_log
-                   (account_id, user_id, acao, entidade, entidade_id, dados_antes, dados_depois, ip)
+                   (account_id, user_id, acao, entidade, entidade_id,
+                    dados_antes, dados_depois, ip, user_agent, request_id)
                  VALUES
-                   (:account_id, :user_id, :acao, :entidade, :entidade_id, :dados_antes, :dados_depois, :ip)'
+                   (:account_id, :user_id, :acao, :entidade, :entidade_id,
+                    :dados_antes, :dados_depois, :ip, :ua, :rid)'
             );
             $stmt->execute([
                 'account_id'   => $accountId,
@@ -188,6 +195,8 @@ class Account
                                     ? json_encode($extras['detalhes'])
                                     : (isset($extras['dados_depois']) ? json_encode($extras['dados_depois']) : null),
                 'ip'           => $_SERVER['REMOTE_ADDR'] ?? null,
+                'ua'           => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255),
+                'rid'          => \App\Helpers\RequestId::get(),
             ]);
         } catch (\Throwable $e) {
             // Auditoria NUNCA derruba o fluxo principal — só loga silenciosamente

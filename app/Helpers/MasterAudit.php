@@ -50,10 +50,15 @@ final class MasterAudit
 
             $payload = !empty($metadata) ? json_encode($metadata, JSON_UNESCAPED_UNICODE) : null;
 
+            // LGPD Etapa 4: user_agent + request_id pra trilha forense
+            if (!class_exists('App\\Helpers\\RequestId')) {
+                require_once __DIR__ . '/RequestId.php';
+            }
+
             $ins = $pdo->prepare(
                 "INSERT INTO master_audit_log
-                   (super_admin_id, acao, target_type, target_id, descricao, ip, metadata, created_at)
-                 VALUES (:saId, :acao, :tt, :tid, :desc, :ip, :meta, NOW())"
+                   (super_admin_id, acao, target_type, target_id, descricao, ip, user_agent, request_id, metadata, created_at)
+                 VALUES (:saId, :acao, :tt, :tid, :desc, :ip, :ua, :rid, :meta, NOW())"
             );
             $ins->execute([
                 'saId' => $saId,
@@ -62,6 +67,8 @@ final class MasterAudit
                 'tid'  => $id,
                 'desc' => $descricao,
                 'ip'   => $_SERVER['REMOTE_ADDR'] ?? null,
+                'ua'   => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255),
+                'rid'  => RequestId::get(),
                 'meta' => $payload,
             ]);
         } catch (\Throwable $e) {

@@ -53,12 +53,18 @@ class ProcessoAudit
         $aTipo = $_SESSION['account_tipo'] ?? null;
         $aNome = $_SESSION['account_nome'] ?? null;
         try {
+            // LGPD Etapa 4: ip + user_agent + request_id pra trilha forense
+            if (!class_exists('App\\Helpers\\RequestId')) {
+                require_once __DIR__ . '/RequestId.php';
+            }
             $pdo = Database::getConnection();
             $pdo->prepare(
                 "INSERT INTO processo_history
                    (processo_id, user_email, acao, descricao,
-                    author_account_id, author_account_tipo, author_account_nome)
-                 VALUES (:pid, :user, :acao, :desc, :aid, :atipo, :anome)"
+                    author_account_id, author_account_tipo, author_account_nome,
+                    ip, user_agent, request_id)
+                 VALUES (:pid, :user, :acao, :desc, :aid, :atipo, :anome,
+                         :ip, :ua, :rid)"
             )->execute([
                 'pid'   => $processoId,
                 'user'  => $user,
@@ -67,6 +73,9 @@ class ProcessoAudit
                 'aid'   => $aId,
                 'atipo' => $aTipo,
                 'anome' => $aNome,
+                'ip'    => $_SERVER['REMOTE_ADDR'] ?? null,
+                'ua'    => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255),
+                'rid'   => \App\Helpers\RequestId::get(),
             ]);
         } catch (\Throwable $e) {
             // Auditoria nunca quebra a operação principal — apenas loga em error_log
