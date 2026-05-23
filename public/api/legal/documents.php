@@ -1,0 +1,64 @@
+<?php
+/**
+ * /api/legal/documents.php
+ *
+ * GET  ?tipo=privacy_policy        → retorna versão vigente do tipo (público)
+ * GET  ?tipo=privacy_policy&hash=1 → retorna só id + versão + hash (lightweight)
+ * GET  ?list=1&tipo=privacy_policy → lista versões (auth necessária)
+ *
+ * Público: leitura do documento vigente NÃO exige sessão — qualquer titular
+ * (logado ou não) pode ver Política de Privacidade/Termos sem precisar
+ * estar autenticado.
+ */
+require_once __DIR__ . '/../../../app/Models/Database.php';
+require_once __DIR__ . '/../../../app/Models/LegalDocument.php';
+require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
+
+use App\Models\LegalDocument;
+use App\Helpers\ApiResponse;
+
+session_start();
+header('Content-Type: application/json; charset=utf-8');
+
+if ($_SERVER['REQUEST_METHOD'] !== 'GET') ApiResponse::methodNotAllowed();
+
+$tipo = trim($_GET['tipo'] ?? '');
+$validos = ['privacy_policy','terms_of_use','cookies_policy','dpa','security_policy','privacy_notice'];
+
+// list=1 → exige auth (admin)
+if (!empty($_GET['list'])) {
+    if (empty($_SESSION['user_id'])) ApiResponse::unauthorized();
+    if (!$tipo || !in_array($tipo, $validos, true)) ApiResponse::badRequest('tipo inválido');
+    ApiResponse::ok(LegalDocument::listVersions($tipo, 50));
+}
+
+if (!$tipo || !in_array($tipo, $validos, true)) {
+    ApiResponse::badRequest('tipo inválido. Use: ' . implode(', ', $validos));
+}
+
+$doc = LegalDocument::findActive($tipo);
+if (!$doc) {
+    ApiResponse::ok(null);
+}
+
+// Hash-only (UI usa pra detectar mudança de versão sem trafegar texto inteiro)
+if (!empty($_GET['hash'])) {
+    ApiResponse::ok([
+        'id'            => (int)$doc['id'],
+        'tipo'          => $doc['tipo'],
+        'versao'        => $doc['versao'],
+        'hash_conteudo' => $doc['hash_conteudo'],
+        'publicado_em'  => $doc['publicado_em'],
+    ]);
+}
+
+// Documento completo
+ApiResponse::ok([
+    'id'            => (int)$doc['id'],
+    'tipo'          => $doc['tipo'],
+    'versao'        => $doc['versao'],
+    'titulo'        => $doc['titulo'],
+    'conteudo_md'   => $doc['conteudo_md'],
+    'hash_conteudo' => $doc['hash_conteudo'],
+    'publicado_em'  => $doc['publicado_em'],
+]);
