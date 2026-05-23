@@ -58,6 +58,8 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
   <!-- Yuris UI lib (Yuris.notify/confirm/prompt — polyfill window.alert).
        Carregado direto aqui porque o Painel Master roda sem sidebar. -->
   <script src="/sistema_vendas/public/assets/yuris-ui.js"></script>
+  <!-- Chart.js pra gráficos da aba Dashboard -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     html, body { margin:0; padding:0; }
     body { font-family: Inter, system-ui, sans-serif; background:#070F1C; color:#D8E4F0; min-height:100vh; overflow-x:hidden; }
@@ -243,11 +245,13 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
 
   <div class="mst-tabs">
     <button class="mst-tab active" data-mtab="overview">Visão Geral</button>
+    <button class="mst-tab" data-mtab="dashboard">📊 Dashboard</button>
     <button class="mst-tab" data-mtab="accounts">Contas</button>
     <button class="mst-tab" data-mtab="plans">Planos</button>
     <button class="mst-tab" data-mtab="billing">Assinaturas</button>
     <button class="mst-tab" data-mtab="invoices">Faturas</button>
     <button class="mst-tab" data-mtab="payments">Pagamentos</button>
+    <button class="mst-tab" data-mtab="expenses">💰 Despesas</button>
     <button class="mst-tab" data-mtab="audit">Auditoria</button>
   </div>
 
@@ -309,6 +313,64 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
           <thead><tr><th>Plano</th><th>Active</th><th>Trial</th><th>Total</th></tr></thead>
           <tbody id="byPlanBody"><tr><td colspan="4" class="empty">—</td></tr></tbody>
         </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 📊 Dashboard (Gráficos) ── -->
+  <section class="mst-section" id="msec-dashboard">
+    <div class="mst-grid-5" style="grid-template-columns:repeat(3,1fr); margin-bottom:18px">
+      <div class="mst-card" style="border-left:3px solid #4ade80">
+        <div class="mst-kpi-label">Receita Mensal (MRR)</div>
+        <div class="mst-kpi-value" id="finMrr" style="color:#4ade80">R$ —</div>
+        <div class="mst-kpi-foot">subscriptions ativas + past_due</div>
+      </div>
+      <div class="mst-card" style="border-left:3px solid #fca5a5">
+        <div class="mst-kpi-label">Despesas (mês)</div>
+        <div class="mst-kpi-value" id="finDespesa" style="color:#fca5a5">R$ —</div>
+        <div class="mst-kpi-foot" id="finMesRef">—</div>
+      </div>
+      <div class="mst-card" style="border-left:3px solid #c084fc">
+        <div class="mst-kpi-label">Lucro Líquido (mês)</div>
+        <div class="mst-kpi-value" id="finLucro" style="color:#c084fc">R$ —</div>
+        <div class="mst-kpi-foot">MRR − Despesas</div>
+      </div>
+    </div>
+
+    <div class="mst-grid-5" style="grid-template-columns:repeat(2,1fr); gap:14px; margin-bottom:18px">
+      <div class="mst-card" style="padding:14px 18px">
+        <div style="font-weight:700; font-size:.9rem; margin-bottom:14px">MRR · últimos 12 meses</div>
+        <div style="position:relative; height:240px"><canvas id="chartMrr"></canvas></div>
+      </div>
+      <div class="mst-card" style="padding:14px 18px">
+        <div style="font-weight:700; font-size:.9rem; margin-bottom:14px">Receita vs Despesas · últimos 12 meses</div>
+        <div style="position:relative; height:240px"><canvas id="chartRecDesp"></canvas></div>
+      </div>
+    </div>
+
+    <div class="mst-grid-5" style="grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:18px">
+      <div class="mst-card" style="padding:14px 18px">
+        <div style="font-weight:700; font-size:.9rem; margin-bottom:14px">Contas por Tipo</div>
+        <div style="position:relative; height:220px"><canvas id="chartTipo"></canvas></div>
+      </div>
+      <div class="mst-card" style="padding:14px 18px">
+        <div style="font-weight:700; font-size:.9rem; margin-bottom:14px">Contas por Status</div>
+        <div style="position:relative; height:220px"><canvas id="chartStatus"></canvas></div>
+      </div>
+      <div class="mst-card" style="padding:14px 18px">
+        <div style="font-weight:700; font-size:.9rem; margin-bottom:14px">Despesas por Categoria (mês)</div>
+        <div style="position:relative; height:220px"><canvas id="chartDespCat"></canvas></div>
+      </div>
+    </div>
+
+    <div class="mst-grid-5" style="grid-template-columns:repeat(2,1fr); gap:14px">
+      <div class="mst-card" style="padding:14px 18px">
+        <div style="font-weight:700; font-size:.9rem; margin-bottom:14px">Receita por Plano</div>
+        <div style="position:relative; height:240px"><canvas id="chartPlanos"></canvas></div>
+      </div>
+      <div class="mst-card" style="padding:14px 18px">
+        <div style="font-weight:700; font-size:.9rem; margin-bottom:14px">Crescimento de Contas · últimos 12 meses</div>
+        <div style="position:relative; height:240px"><canvas id="chartCrescimento"></canvas></div>
       </div>
     </div>
   </section>
@@ -395,6 +457,60 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
       <table class="mst-tbl">
         <thead><tr><th>#</th><th>Conta</th><th>Plano</th><th>Valor</th><th>Status</th><th>Vencimento</th><th>Pago em</th><th>Obs.</th><th>Ações</th></tr></thead>
         <tbody id="paymentsBody"><tr><td colspan="9" class="empty">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── 💰 Despesas (CRUD) ── -->
+  <section class="mst-section" id="msec-expenses">
+    <div class="mst-grid-5" style="grid-template-columns:repeat(3,1fr); margin-bottom:18px">
+      <div class="mst-card">
+        <div class="mst-kpi-label">Total do Mês</div>
+        <div class="mst-kpi-value" id="expTotalMes">R$ —</div>
+        <div class="mst-kpi-foot" id="expCountMes">— despesas</div>
+      </div>
+      <div class="mst-card">
+        <div class="mst-kpi-label">Pendentes</div>
+        <div class="mst-kpi-value" id="expPendentes">—</div>
+        <div class="mst-kpi-foot">aguardando pagamento</div>
+      </div>
+      <div class="mst-card">
+        <div class="mst-kpi-label">Vencidas</div>
+        <div class="mst-kpi-value" id="expVencidas" style="color:#fca5a5">—</div>
+        <div class="mst-kpi-foot">prazo expirado</div>
+      </div>
+    </div>
+
+    <div class="mst-card" style="padding:0; overflow:hidden">
+      <div style="display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid rgba(160,180,210,.10); flex-wrap:wrap">
+        <div style="font-weight:700; margin-right:auto">Despesas Operacionais</div>
+        <select id="filterExpMonth" class="mst-form-select" style="width:auto; padding:6px 11px; font-size:.82rem">
+          <option value="">Todos os meses</option>
+        </select>
+        <select id="filterExpCategoria" class="mst-form-select" style="width:auto; padding:6px 11px; font-size:.82rem">
+          <option value="">Todas categorias</option>
+          <option value="servidor">Servidor</option>
+          <option value="pessoas">Pessoas / Salários</option>
+          <option value="apis">APIs</option>
+          <option value="marketing">Marketing</option>
+          <option value="infraestrutura">Infraestrutura</option>
+          <option value="impostos">Impostos</option>
+          <option value="software">Software</option>
+          <option value="juridico">Jurídico</option>
+          <option value="outros">Outros</option>
+        </select>
+        <select id="filterExpStatus" class="mst-form-select" style="width:auto; padding:6px 11px; font-size:.82rem">
+          <option value="">Todos status</option>
+          <option value="pendente">Pendente</option>
+          <option value="pago">Pago</option>
+          <option value="atrasado">Atrasado</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+        <button class="btn-mst btn-mst-primary" onclick="openExpenseModal()">+ Nova Despesa</button>
+      </div>
+      <table class="mst-tbl">
+        <thead><tr><th>Categoria</th><th>Descrição</th><th>Fornecedor</th><th>Valor</th><th>Competência</th><th>Vencimento</th><th>Status</th><th>Recorrência</th><th>Ações</th></tr></thead>
+        <tbody id="expensesBody"><tr><td colspan="9" class="empty">Carregando…</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -802,6 +918,89 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
   </div>
 </div>
 
+<!-- Modal: Nova/Editar Despesa -->
+<div class="mst-modal-backdrop" id="modalExpense" onclick="if(event.target===this)closeModal('modalExpense')">
+  <div class="mst-modal lg">
+    <div class="mst-modal-header">
+      <h3 class="mst-modal-title" id="expenseModalTitle">Nova Despesa</h3>
+      <button class="mst-modal-close" onclick="closeModal('modalExpense')">×</button>
+    </div>
+    <form id="formExpense" onsubmit="submitExpense(event)">
+      <input type="hidden" name="id" id="expId">
+      <div class="mst-modal-body">
+        <div class="mst-form-section">Identificação</div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Categoria *</label>
+            <select name="categoria" id="expCategoria" class="mst-form-select" required>
+              <option value="servidor">🖥️ Servidor / Hosting</option>
+              <option value="pessoas">👥 Pessoas / Salários</option>
+              <option value="apis">🔌 APIs externas</option>
+              <option value="marketing">📢 Marketing / Anúncios</option>
+              <option value="infraestrutura">🏗️ Infraestrutura</option>
+              <option value="impostos">💸 Impostos</option>
+              <option value="software">📦 Software / Licenças</option>
+              <option value="juridico">⚖️ Jurídico / Contábil</option>
+              <option value="outros">📌 Outros</option>
+            </select>
+          </div>
+          <div><label class="mst-form-label">Fornecedor</label><input name="fornecedor" id="expFornecedor" class="mst-form-input" placeholder="ex: DigitalOcean, Stripe, etc."></div>
+        </div>
+        <div class="mst-form-row full">
+          <div><label class="mst-form-label">Descrição *</label><input name="descricao" id="expDescricao" class="mst-form-input" required placeholder="ex: Hospedagem VPS Produção"></div>
+        </div>
+
+        <div class="mst-form-section">Valor & Datas</div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Valor (R$) *</label><input name="valor" id="expValor" class="mst-form-input" type="number" step="0.01" min="0.01" required></div>
+          <div><label class="mst-form-label">Competência *</label><input name="data_competencia" id="expCompetencia" class="mst-form-input" type="date" required>
+            <div class="mst-form-help">Mês a que pertence</div>
+          </div>
+          <div><label class="mst-form-label">Vencimento</label><input name="vencimento" id="expVencimento" class="mst-form-input" type="date"></div>
+          <div><label class="mst-form-label">Data Pagamento</label><input name="data_pagamento" id="expPagamento" class="mst-form-input" type="date"></div>
+        </div>
+
+        <div class="mst-form-section">Status & Recorrência</div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Status</label>
+            <select name="status" id="expStatus" class="mst-form-select">
+              <option value="pendente">Pendente</option>
+              <option value="pago">Pago</option>
+              <option value="atrasado">Atrasado</option>
+              <option value="cancelado">Cancelado</option>
+            </select>
+          </div>
+          <div><label class="mst-form-label">Recorrência</label>
+            <select name="recorrencia" id="expRecorrencia" class="mst-form-select">
+              <option value="nenhuma">Avulsa (não recorre)</option>
+              <option value="mensal">Mensal</option>
+              <option value="anual">Anual</option>
+            </select>
+          </div>
+          <div><label class="mst-form-label">Método de Pagamento</label>
+            <select name="metodo_pagamento" id="expMetodo" class="mst-form-select">
+              <option value="">—</option>
+              <option value="cartao">Cartão de crédito</option>
+              <option value="pix">PIX</option>
+              <option value="boleto">Boleto</option>
+              <option value="debito">Débito</option>
+              <option value="transferencia">Transferência</option>
+              <option value="outro">Outro</option>
+            </select>
+          </div>
+        </div>
+        <div class="mst-form-row full">
+          <div><label class="mst-form-label">Observações</label><textarea name="observacoes" id="expObs" class="mst-form-textarea" placeholder="anotações sobre o gasto, justificativa, link de nota..."></textarea></div>
+        </div>
+      </div>
+      <div class="mst-modal-foot">
+        <button type="button" class="btn-mst btn-mst-danger" onclick="deleteExpense()" style="margin-right:auto" id="expDeleteBtn">Excluir</button>
+        <button type="button" class="btn-mst" onclick="closeModal('modalExpense')">Cancelar</button>
+        <button type="submit" class="btn-mst btn-mst-primary">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Modal: Editar Usuário -->
 <div class="mst-modal-backdrop" id="modalEditUser" onclick="if(event.target===this)closeModal('modalEditUser')">
   <div class="mst-modal">
@@ -883,7 +1082,7 @@ function notifyOk(msg) {
 }
 
 // ── Hash routing ─────────────────────────────────────────────────────────
-const TABS = ['overview','accounts','plans','billing','invoices','payments','audit'];
+const TABS = ['overview','dashboard','accounts','plans','billing','invoices','payments','expenses','audit'];
 function activateTab(name) {
   if (!TABS.includes(name)) name = 'overview';
   document.querySelectorAll('.mst-tab').forEach(t => t.classList.toggle('active', t.dataset.mtab === name));
@@ -891,13 +1090,15 @@ function activateTab(name) {
   loadTab(name);
 }
 function loadTab(name) {
-  if (name==='overview') loadOverview();
-  if (name==='accounts') loadAccounts();
-  if (name==='plans')    loadPlans();
-  if (name==='billing')  loadBilling();
-  if (name==='invoices') loadInvoices();
-  if (name==='payments') loadPayments();
-  if (name==='audit')    loadAudit();
+  if (name==='overview')  loadOverview();
+  if (name==='dashboard') loadDashboard();
+  if (name==='accounts')  loadAccounts();
+  if (name==='plans')     loadPlans();
+  if (name==='billing')   loadBilling();
+  if (name==='invoices')  loadInvoices();
+  if (name==='payments')  loadPayments();
+  if (name==='expenses')  loadExpenses();
+  if (name==='audit')     loadAudit();
 }
 document.querySelectorAll('.mst-tab').forEach(b => b.addEventListener('click', () => {
   window.location.hash = b.dataset.mtab;
@@ -1667,6 +1868,344 @@ async function loadAudit() {
     </tr>`).join('');
 }
 document.getElementById('filterAuditAcao').addEventListener('input', () => clearTimeout(window._fa) || (window._fa = setTimeout(loadAudit, 300)));
+
+// ── 📊 Dashboard (Chart.js) ──────────────────────────────────────────────
+let _charts = {};
+function _isLight() { return document.documentElement.getAttribute('data-theme') === 'light'; }
+function _chartColors() {
+  const light = _isLight();
+  return {
+    grid:  light ? 'rgba(15,31,54,.08)'  : 'rgba(160,180,210,.10)',
+    tick:  light ? '#5A6B7E'             : '#9ab0c9',
+    title: light ? '#0F1F36'             : '#FFFFFF',
+  };
+}
+function _destroyChart(key) {
+  if (_charts[key]) { _charts[key].destroy(); delete _charts[key]; }
+}
+
+async function loadDashboard() {
+  const r = await fj(`${API}/finance.php`);
+  if (!r.ok) return notifyErr(r.error);
+  const d = r.data;
+  const cols = _chartColors();
+
+  // KPIs do topo
+  document.getElementById('finMrr').textContent     = 'R$ ' + d.mrr_atual_brl;
+  document.getElementById('finDespesa').textContent = 'R$ ' + d.despesa_mes_brl;
+  document.getElementById('finLucro').textContent   = 'R$ ' + d.lucro_mes_brl;
+  document.getElementById('finMesRef').textContent  = 'referência ' + d.mes_referencia;
+  // Cor do lucro: verde se positivo, vermelho se negativo
+  document.getElementById('finLucro').style.color = d.lucro_mes_cents >= 0 ? '#4ade80' : '#fca5a5';
+
+  const baseOpts = (extra = {}) => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { labels: { color: cols.tick, font: {size: 11} } },
+      tooltip: { callbacks: extra.tooltipCb || {} }
+    },
+    scales: extra.scales || {
+      x: { ticks: { color: cols.tick, font:{size:10} }, grid: { color: cols.grid } },
+      y: { ticks: { color: cols.tick, font:{size:10}, callback: v => 'R$ ' + (v/100).toLocaleString('pt-BR') }, grid: { color: cols.grid } }
+    }
+  });
+
+  // 1. MRR últimos 12 meses (line)
+  _destroyChart('mrr');
+  _charts.mrr = new Chart(document.getElementById('chartMrr'), {
+    type: 'line',
+    data: {
+      labels: d.mrr_serie_12m.map(x => x.mes),
+      datasets: [{
+        label: 'MRR (R$)',
+        data: d.mrr_serie_12m.map(x => x.value),
+        borderColor: '#4ade80',
+        backgroundColor: 'rgba(74,222,128,.18)',
+        tension: 0.32,
+        fill: true,
+        pointRadius: 3,
+      }]
+    },
+    options: baseOpts({
+      tooltipCb: { label: c => 'R$ ' + (c.parsed.y/100).toLocaleString('pt-BR', {minimumFractionDigits:2}) }
+    })
+  });
+
+  // 2. Receita vs Despesas (bar)
+  _destroyChart('recDesp');
+  _charts.recDesp = new Chart(document.getElementById('chartRecDesp'), {
+    type: 'bar',
+    data: {
+      labels: d.mrr_serie_12m.map(x => x.mes),
+      datasets: [
+        { label: 'Receita', data: d.mrr_serie_12m.map(x => x.value),    backgroundColor: 'rgba(74,222,128,.65)' },
+        { label: 'Despesa', data: d.despesas_serie_12m.map(x => x.value), backgroundColor: 'rgba(252,165,165,.65)' },
+      ]
+    },
+    options: baseOpts({
+      tooltipCb: { label: c => c.dataset.label + ': R$ ' + (c.parsed.y/100).toLocaleString('pt-BR') }
+    })
+  });
+
+  // 3. Contas por Tipo (donut)
+  _destroyChart('tipo');
+  const tipoData = d.accounts_por_tipo;
+  _charts.tipo = new Chart(document.getElementById('chartTipo'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Matriz', 'Filial', 'Advogado'],
+      datasets: [{
+        data: [tipoData.matriz, tipoData.filial, tipoData.advogado],
+        backgroundColor: ['#60a5fa','#c084fc','#86efac'],
+        borderColor: cols.grid, borderWidth: 2,
+      }]
+    },
+    options: { responsive:true, maintainAspectRatio:false,
+               plugins:{ legend:{ position:'bottom', labels:{ color: cols.tick, font:{size:11}, padding:10 } } } }
+  });
+
+  // 4. Contas por Status (donut)
+  _destroyChart('status');
+  const statusData = d.accounts_por_status;
+  _charts.status = new Chart(document.getElementById('chartStatus'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Active','Trial','Overdue','Suspended','Cancelled','Inactive'],
+      datasets: [{
+        data: [statusData.active, statusData.trial, statusData.overdue, statusData.suspended, statusData.cancelled, statusData.inactive],
+        backgroundColor: ['#4ade80','#c4b5fd','#fca5a5','#fbbf24','#fca5a5','#A8BDD4'],
+        borderColor: cols.grid, borderWidth: 2,
+      }]
+    },
+    options: { responsive:true, maintainAspectRatio:false,
+               plugins:{ legend:{ position:'bottom', labels:{ color: cols.tick, font:{size:11}, padding:10 } } } }
+  });
+
+  // 5. Despesas por Categoria (donut)
+  _destroyChart('despCat');
+  const catLabels = d.despesas_por_categoria.map(c => c.categoria);
+  const catValues = d.despesas_por_categoria.map(c => Number(c.total_cents));
+  const catColors = ['#60a5fa','#c084fc','#86efac','#fbbf24','#fca5a5','#94a3b8','#a78bfa','#7dd3fc','#fbbf24'];
+  _charts.despCat = new Chart(document.getElementById('chartDespCat'), {
+    type: 'doughnut',
+    data: {
+      labels: catLabels.length ? catLabels : ['(sem despesas neste mês)'],
+      datasets: [{
+        data: catValues.length ? catValues : [1],
+        backgroundColor: catLabels.length ? catColors.slice(0, catLabels.length) : ['rgba(160,180,210,.20)'],
+        borderColor: cols.grid, borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{ position:'bottom', labels:{ color: cols.tick, font:{size:11}, padding:8 } },
+        tooltip:{ callbacks:{ label: c => c.label + ': R$ ' + (c.parsed/100).toLocaleString('pt-BR', {minimumFractionDigits:2}) } }
+      }
+    }
+  });
+
+  // 6. Receita por Plano (bar horizontal)
+  _destroyChart('planos');
+  const planos = d.receita_por_plano;
+  _charts.planos = new Chart(document.getElementById('chartPlanos'), {
+    type: 'bar',
+    data: {
+      labels: planos.map(p => p.plano),
+      datasets: [{
+        label: 'MRR (R$)',
+        data: planos.map(p => Number(p.mrr_cents)),
+        backgroundColor: 'rgba(96,165,250,.65)',
+      }]
+    },
+    options: { indexAxis:'y', ...baseOpts({
+      scales: {
+        x: { ticks: { color: cols.tick, callback: v => 'R$ ' + (v/100).toLocaleString('pt-BR') }, grid: { color: cols.grid } },
+        y: { ticks: { color: cols.tick }, grid: { color: cols.grid } }
+      },
+      tooltipCb: { label: c => 'R$ ' + (c.parsed.x/100).toLocaleString('pt-BR') }
+    })}
+  });
+
+  // 7. Crescimento de Contas (line)
+  _destroyChart('cresc');
+  _charts.cresc = new Chart(document.getElementById('chartCrescimento'), {
+    type: 'line',
+    data: {
+      labels: d.contas_serie_12m.map(x => x.mes),
+      datasets: [{
+        label: 'Contas (acumulado)',
+        data: d.contas_serie_12m.map(x => x.value),
+        borderColor: '#a78bfa',
+        backgroundColor: 'rgba(167,139,250,.20)',
+        tension: 0.32, fill: true, pointRadius: 3,
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ labels:{ color: cols.tick, font:{size:11} } } },
+      scales: {
+        x: { ticks: { color: cols.tick, font:{size:10} }, grid: { color: cols.grid } },
+        y: { ticks: { color: cols.tick, font:{size:10}, precision:0 }, grid: { color: cols.grid }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+// ── 💰 Despesas ──────────────────────────────────────────────────────────
+let _expensesCache = [];
+async function loadExpenses() {
+  const params = new URLSearchParams();
+  const mm  = document.getElementById('filterExpMonth').value;
+  const cat = document.getElementById('filterExpCategoria').value;
+  const st  = document.getElementById('filterExpStatus').value;
+  if (mm)  params.set('month', mm);
+  if (cat) params.set('categoria', cat);
+  if (st)  params.set('status', st);
+
+  const r = await fj(`${API}/expenses.php` + (params.toString() ? '?'+params.toString() : ''));
+  if (!r.ok) return notifyErr(r.error);
+  _expensesCache = r.data.expenses || [];
+
+  // KPIs
+  document.getElementById('expTotalMes').textContent = 'R$ ' + r.data.total_brl;
+  document.getElementById('expCountMes').textContent = _expensesCache.length + ' despesa(s)';
+  document.getElementById('expPendentes').textContent = _expensesCache.filter(e => e.status === 'pendente').length;
+  const hoje = new Date().toISOString().slice(0,10);
+  document.getElementById('expVencidas').textContent = _expensesCache.filter(e =>
+    e.status === 'pendente' && e.vencimento && e.vencimento < hoje
+  ).length;
+
+  // Popular select de meses (últimos 12) — uma vez só
+  const selMes = document.getElementById('filterExpMonth');
+  if (selMes.options.length <= 1) {
+    for (let i = 0; i < 12; i++) {
+      const dt = new Date(); dt.setMonth(dt.getMonth() - i);
+      const mes = dt.toISOString().slice(0,7);
+      const o = document.createElement('option'); o.value = mes; o.textContent = mes;
+      selMes.appendChild(o);
+    }
+  }
+
+  const tb = document.getElementById('expensesBody');
+  if (!_expensesCache.length) { tb.innerHTML = '<tr><td colspan="9" class="empty">Nenhuma despesa</td></tr>'; return; }
+  tb.innerHTML = _expensesCache.map(e => {
+    const catLabels = {
+      servidor:'🖥️ Servidor', pessoas:'👥 Pessoas', apis:'🔌 APIs',
+      marketing:'📢 Marketing', infraestrutura:'🏗️ Infra',
+      impostos:'💸 Impostos', software:'📦 Software',
+      juridico:'⚖️ Jurídico', outros:'📌 Outros'
+    };
+    const recIco = e.recorrencia === 'mensal' ? '🔁' : (e.recorrencia === 'anual' ? '🗓️' : '—');
+    const vencidoFlag = (e.status === 'pendente' && e.vencimento && e.vencimento < hoje);
+    return `<tr ${vencidoFlag?'style="background:rgba(220,38,38,.05)"':''}>
+      <td><small>${catLabels[e.categoria] || e.categoria}</small></td>
+      <td><strong>${esc(e.descricao)}</strong></td>
+      <td>${esc(e.fornecedor||'—')}</td>
+      <td>R$ ${(Number(e.valor_cents)/100).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      <td>${fmtDate(e.data_competencia)}</td>
+      <td>${e.vencimento ? fmtDate(e.vencimento) + (vencidoFlag?' ⚠️':'') : '—'}</td>
+      <td>${pill(e.status)}</td>
+      <td>${recIco}</td>
+      <td>
+        <button class="btn-mst" onclick="openExpenseModal(${e.id})">Editar</button>
+        ${e.status !== 'pago' ? `<button class="btn-mst btn-mst-success" onclick="markExpensePaid(${e.id})">Marcar pago</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+document.getElementById('filterExpMonth').addEventListener('change', loadExpenses);
+document.getElementById('filterExpCategoria').addEventListener('change', loadExpenses);
+document.getElementById('filterExpStatus').addEventListener('change', loadExpenses);
+
+function openExpenseModal(id) {
+  const f = document.getElementById('formExpense');
+  f.reset();
+  document.getElementById('expId').value = id || '';
+  document.getElementById('expenseModalTitle').textContent = id ? 'Editar Despesa' : 'Nova Despesa';
+  document.getElementById('expDeleteBtn').style.display = id ? '' : 'none';
+
+  if (id) {
+    const e = _expensesCache.find(x => x.id == id);
+    if (!e) return notifyErr('Despesa não encontrada');
+    document.getElementById('expCategoria').value   = e.categoria;
+    document.getElementById('expDescricao').value   = e.descricao || '';
+    document.getElementById('expFornecedor').value  = e.fornecedor || '';
+    document.getElementById('expValor').value       = (Number(e.valor_cents)/100).toFixed(2);
+    document.getElementById('expCompetencia').value = e.data_competencia ? e.data_competencia.substring(0,10) : '';
+    document.getElementById('expVencimento').value  = e.vencimento ? e.vencimento.substring(0,10) : '';
+    document.getElementById('expPagamento').value   = e.data_pagamento ? e.data_pagamento.substring(0,10) : '';
+    document.getElementById('expStatus').value      = e.status;
+    document.getElementById('expRecorrencia').value = e.recorrencia;
+    document.getElementById('expMetodo').value      = e.metodo_pagamento || '';
+    document.getElementById('expObs').value         = e.observacoes || '';
+  } else {
+    // Defaults pra nova: competência = hoje
+    document.getElementById('expCompetencia').value = new Date().toISOString().slice(0,10);
+  }
+  openModal('modalExpense');
+}
+
+async function submitExpense(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  const id = f.id.value;
+  const isEdit = !!id;
+  const body = {
+    csrf_token: CSRF,
+    categoria:        f.categoria.value,
+    descricao:        f.descricao.value.trim(),
+    fornecedor:       f.fornecedor.value.trim(),
+    valor_cents:      Math.round(parseFloat(f.valor.value || 0) * 100),
+    data_competencia: f.data_competencia.value,
+    vencimento:       f.vencimento.value || null,
+    data_pagamento:   f.data_pagamento.value || null,
+    status:           f.status.value,
+    recorrencia:      f.recorrencia.value,
+    metodo_pagamento: f.metodo_pagamento.value,
+    observacoes:      f.observacoes.value.trim(),
+  };
+  if (isEdit) body.id = parseInt(id, 10);
+
+  const r = await fj(`${API}/expenses.php`, {
+    method: isEdit ? 'PATCH' : 'POST',
+    headers: {'Content-Type':'application/json','X-CSRF-Token':CSRF},
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) return notifyErr(r.error);
+  closeModal('modalExpense');
+  notifyOk(isEdit ? 'Despesa atualizada' : 'Despesa criada');
+  loadExpenses();
+}
+
+async function deleteExpense() {
+  const id = parseInt(document.getElementById('expId').value, 10);
+  if (!id) return;
+  const desc = document.getElementById('expDescricao').value;
+  if (!(await Yuris.confirm(`Excluir a despesa "${desc}"?`, {danger:true, okLabel:'Excluir'}))) return;
+  const r = await fj(`${API}/expenses.php?id=${id}`, {
+    method:'DELETE',
+    headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},
+    body: JSON.stringify({csrf_token: CSRF, id}),
+  });
+  if (!r.ok) return notifyErr(r.error);
+  closeModal('modalExpense');
+  notifyOk('Despesa removida');
+  loadExpenses();
+}
+
+async function markExpensePaid(id) {
+  if (!(await Yuris.confirm('Marcar esta despesa como PAGA?', {okLabel:'Marcar pago'}))) return;
+  const r = await fj(`${API}/expenses.php`, {
+    method:'PATCH',
+    headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},
+    body: JSON.stringify({csrf_token: CSRF, id, status: 'pago'}),
+  });
+  if (!r.ok) return notifyErr(r.error);
+  notifyOk('Despesa marcada como paga');
+  loadExpenses();
+}
 
 // ── Editar Conta (modal) ─────────────────────────────────────────────────
 async function openEditAccount(id) {
