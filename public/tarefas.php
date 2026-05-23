@@ -647,6 +647,8 @@ window.YURIS_SHOW_ORIGIN_STRIP = true;
   </div>
 </div>
 
-<script src="/sistema_vendas/public/assets/tarefas.js?v=7"></script>
+<!-- SortableJS: drag-and-drop entre colunas + reordenação intra-coluna (igual Pipeline) -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+<script src="/sistema_vendas/public/assets/tarefas.js?v=8"></script>
 </body>
 </html>

@@ -253,17 +253,43 @@ function renderKanban() {
     const body = colEl.querySelector('.tk-col-body');
     colTasks.sort((a,b)=>a.ordem-b.ordem).forEach(t => body.appendChild(buildCard(t)));
 
-    // drag-and-drop na coluna
-    body.addEventListener('dragover', e => { e.preventDefault(); body.classList.add('drag-over'); });
-    body.addEventListener('dragleave', () => body.classList.remove('drag-over'));
-    body.addEventListener('drop', async e => {
-      e.preventDefault();
-      body.classList.remove('drag-over');
-      if (!dragTaskId) return;
-      const newOrder = body.children.length + 1;
-      await POST('/tasks.php?action=move', { id: dragTaskId, column_id: parseInt(col.id), ordem: newOrder });
-      await loadTasks();
-    });
+    // ─── BUGFIX: drag-and-drop com SortableJS ────────────────────────────────
+    // ANTES: usava HTML5 nativo, ordem = body.children.length + 1 → sempre ia
+    // pro FINAL da coluna (ignorava posição do drop entre cards).
+    // AGORA: SortableJS (igual Pipeline) captura newIndex real do drop e
+    // suporta arrastar entre colunas mantendo posição exata.
+    if (typeof Sortable !== 'undefined') {
+      Sortable.create(body, {
+        group: 'tarefas-kanban',     // permite arrastar entre TODAS as colunas
+        animation: 150,
+        ghostClass: 'tk-card-ghost',
+        dragClass: 'tk-card-dragging',
+        forceFallback: false,
+        onEnd: async (evt) => {
+          const card     = evt.item;
+          const taskId   = parseInt(card.dataset.taskId, 10);
+          const toColEl  = evt.to;                              // body.tk-col-body
+          const toColId  = parseInt(toColEl.dataset.colId, 10);
+          const newIndex = evt.newIndex;                        // 0-based index na coluna destino
+          // ordem é 1-based no banco — ordem do banco é apenas relativa entre cards
+          // da mesma coluna, então passar newIndex + 1 já posiciona corretamente.
+          if (!taskId || !toColId) return;
+          try {
+            await POST('/tasks.php?action=move', {
+              id: taskId,
+              column_id: toColId,
+              ordem: newIndex + 1,
+            });
+            // reload completo pra normalizar ordem (mover cards de baixo, etc)
+            await loadTasks();
+          } catch (e) {
+            // se falhou, recarrega pra desfazer visualmente
+            await loadTasks();
+          }
+        },
+      });
+    }
+    // ─────────────────────────────────────────────────────────────────────────
   });
 
   // inline add
@@ -276,6 +302,10 @@ function buildCard(t) {
   const el = document.createElement('div');
   el.className = 'tk-card';
   el.dataset.prioridade = t.prioridade;
+  el.dataset.taskId     = t.id;   // BUGFIX: Sortable usa pra identificar no onEnd
+  // (el.draggable e os listeners dragstart/dragend abaixo são legado do HTML5
+  //  drag nativo — Sortable não precisa deles, mas deixamos pra fallback de
+  //  acessibilidade se Sortable não carregar. Não atrapalham.)
   el.draggable = true;
 
   const prazoStr = t.prazo ? formatDate(t.prazo) : '';

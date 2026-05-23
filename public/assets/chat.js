@@ -1499,9 +1499,10 @@ const ChatApp = (() => {
         const u = _linkData.users.find(x => String(x.id) === String(chat.linked_user_id));
         if (u) selectLinkItem('user', u.id, u.nome);
       }
-      if (teamSel && chat.team_id) {
-        teamSel.value = String(chat.team_id);
-      }
+      // BUGFIX: removida referência a `teamSel` (variável fantasma — quebrava
+      // openLinkModal com ReferenceError, modal não abria). Setor agora é
+      // gerenciado pelo dropdown no header (toggleSectorDropdown), não pelo
+      // modal Vincular. Resíduo de refatoração antiga.
     }
 
     // ── Processos da tabela de junção (complementar, evita duplicatas) ───────
