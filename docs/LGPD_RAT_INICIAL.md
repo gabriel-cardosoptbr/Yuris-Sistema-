@@ -155,23 +155,53 @@
 
 ---
 
-## 7. Pendências para revisão jurídica especialista
+## 7. Política de Retenção operacional (Etapa 7)
+
+A tabela `retention_policies` controla o ciclo de vida dos dados conforme Art. 16 LGPD. Cron diário (`/api/lgpd_retention_tick.php`) aplica as regras.
+
+| Entidade | Ação | Prazo | Base legal |
+|---|---|---|---|
+| `webhook_logs` | purge físico | 90 dias | Sem valor probatório após 90d (Art. 6 III — minimização) |
+| `login_attempts` | purge físico | 90 dias | Tentativas falhas; retenção curta protege titular |
+| `gateway_events_received` | purge físico | 90 dias | Idempotência já processada |
+| `emails_outbox_body` | anonimiza body | 7 dias após sent | Pode conter tokens/links sensíveis |
+| `whatsapp_messages_payload` | anonimiza `raw_payload` | 30 dias | Metadata + mediaKey não precisa persistir |
+
+DPO pode rodar manualmente via Painel Master → aba Retenção (botões "Dry Run" e "Executar agora").
+
+Anonimização de titulares (não cron, sob demanda do DPO):
+- `Anonymizer::user($id)` — nome, login, telefone, OAB → placeholder; preserva FKs e logs.
+- `Anonymizer::contato($id)` — idem para `contatos`.
+- `Anonymizer::card($id)` — `cards`.
+- `Anonymizer::processoParte($id)` — `parte_contraria` + CPF.
+- `Anonymizer::exportTitular($email)` — gera ZIP estruturado para portabilidade.
+
+Cada operação loga em `anonymization_log` com motivo + executor + `lgpd_request_id` (se origem foi solicitação Art. 18). Auditável, irreversível, com trilha clara.
+
+---
+
+## 8. Pendências para revisão jurídica especialista
 
 - [ ] Revisar todas as bases legais por atividade (Art. 7º e Art. 11)
-- [ ] Validar prazos de retenção em cada categoria
+- [ ] Validar prazos de retenção em cada categoria — em especial os 7/30/90 dias seed
 - [ ] Finalizar contratos de Operador com cada terceiro (DPA)
 - [ ] Designar formalmente o Encarregado (DPO) e preencher `.env`
 - [ ] Aprovar textos públicos: Política de Privacidade, Termos, Cookies
 - [ ] Aprovar este RAT
 - [ ] Plano de resposta a incidentes (Art. 48) — pendente Etapa 8 do roadmap
 - [ ] Inventário detalhado de operadores e suboperadores — pendente Etapa 9
-- [ ] Procedimento de atendimento aos titulares (Art. 18) — pendente Etapa 6
+- [ ] Treinar equipe no fluxo: chega solicitação → Painel Master → DPO analisa → Anonymizer/Export
 
 ---
 
-## 8. Documentos relacionados
+## 9. Documentos relacionados
 
 - `database/migrations/049_lgpd_legal_consent.sql` — schema legal_documents, term_acceptances, lgpd_consents
+- `database/migrations/050_lgpd_requests.sql` — schema lgpd_requests + events
+- `database/migrations/051_lgpd_retention_anonymization.sql` — retention_policies, anonymization_log + colunas anonymized_at
 - `public/privacidade.php`, `termos.php`, `cookies.php`, `lgpd.php`, `dpo.php` — páginas públicas
-- `app/Models/LegalDocument.php`, `TermAcceptance.php`, `Consent.php` — gestão programática
+- `public/lgpd/solicitar.php`, `acompanhar.php` — formulário Art. 18 + acompanhamento
+- `app/Models/LegalDocument.php`, `TermAcceptance.php`, `Consent.php`, `LgpdRequest.php` — gestão programática
+- `app/Helpers/Anonymizer.php` — substituição de PII (Art. 12)
+- `public/api/lgpd_retention_tick.php` — cron de purge automático
 - `docs/AUDITORIA_LGPD_2026-05-23` — relatório de auditoria base
