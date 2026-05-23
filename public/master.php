@@ -34,11 +34,17 @@ $saLevel = $ctx->getSuperAdminLevel() ?: 'operator';
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
   <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=27">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=8">
+  <!-- Yuris UI lib (Yuris.notify/confirm/prompt — polyfill window.alert).
+       Carregado direto aqui porque o Painel Master roda sem sidebar. -->
+  <script src="/sistema_vendas/public/assets/yuris-ui.js"></script>
   <style>
-    body { font-family: Inter, system-ui, sans-serif; background:#070F1C; color:#D8E4F0; margin:0; }
-    .mst-layout { display:grid; grid-template-columns:230px 1fr; min-height:100vh; gap:0; }
-    .mst-content { padding:24px 32px; overflow-x:auto; }
+    html, body { margin:0; padding:0; }
+    body { font-family: Inter, system-ui, sans-serif; background:#070F1C; color:#D8E4F0; min-height:100vh; overflow-x:hidden; }
+    .mst-content { padding:24px 32px; max-width:100%; box-sizing:border-box; }
+    .mst-exit { position:absolute; top:18px; right:32px; padding:7px 14px; border-radius:7px; border:1px solid rgba(160,180,210,.20); background:rgba(8,22,44,.6); color:#A8BDD4; text-decoration:none; font-size:.78rem; font-weight:600; transition:all .15s; z-index:5; }
+    .mst-exit:hover { background:rgba(37,99,235,.16); color:#FFFFFF; border-color:rgba(96,165,250,.4); }
+    html[data-theme="light"] body { background:#F8FAFC; color:#0F1F36; }
+    html[data-theme="light"] .mst-exit { background:#fff; color:#0F1F36; border-color:#E2E8F0; }
     .mst-header { margin-bottom:20px; display:flex; align-items:flex-start; justify-content:space-between; gap:20px; flex-wrap:wrap; }
     .mst-title-block { flex:1; min-width:280px; }
     .mst-title { font-size:1.7rem; font-weight:800; color:#FFFFFF; letter-spacing:.01em; margin:0 0 4px; }
@@ -186,9 +192,9 @@ $saLevel = $ctx->getSuperAdminLevel() ?: 'operator';
   </style>
 </head>
 <body>
-<?php $sidebarOmit = false; require __DIR__ . '/includes/sidebar.php'; ?>
+<a href="/sistema_vendas/public/dashboard.php" class="mst-exit" title="Voltar ao app">← Sair do Master</a>
 
-<main class="mst-content" style="margin-left:230px;">
+<main class="mst-content">
   <div class="mst-header">
     <div class="mst-title-block">
       <h1 class="mst-title">🛰️ Painel Master</h1>
