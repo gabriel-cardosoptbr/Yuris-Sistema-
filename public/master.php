@@ -286,6 +286,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
             'expenses'  => '<path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>',
             'audit'     => '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
             'lgpd'      => '<path d="M9 12l2 2 4-4"/><path d="M12 22s8-4 8-10V6l-8-3-8 3v6c0 6 8 10 8 10z"/>',
+            'retencao'  => '<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>',
         ];
         return '<svg ' . $base . '>' . ($paths[$key] ?? '') . '</svg>';
     };
@@ -301,6 +302,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
     <button class="mst-tab" data-mtab="expenses"><?= $_tabIco('expenses') ?>Despesas</button>
     <button class="mst-tab" data-mtab="audit"><?= $_tabIco('audit') ?>Auditoria</button>
     <button class="mst-tab" data-mtab="lgpd"><?= $_tabIco('lgpd') ?>LGPD <span id="lgpdBadge" style="display:none;background:#ef4444;color:#fff;font-size:.7rem;padding:1px 7px;border-radius:999px;margin-left:5px;font-weight:700"></span></button>
+    <button class="mst-tab" data-mtab="retencao"><?= $_tabIco('retencao') ?>Retenção</button>
   </div>
 
   <!-- ── Visão Geral ── -->
@@ -654,6 +656,37 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
       <table class="mst-tbl">
         <thead><tr><th>#</th><th>Titular</th><th>Tipo</th><th>Recebido</th><th>Prazo</th><th>Status</th><th>Ações</th></tr></thead>
         <tbody id="lgpdBody"><tr><td colspan="7" class="empty">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── Retenção LGPD (Art. 16 + 18 IV) ── -->
+  <section class="mst-section" id="msec-retencao">
+    <div class="mst-card" style="padding:0; overflow:hidden; margin-bottom:14px">
+      <div style="display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid rgba(160,180,210,.10); flex-wrap:wrap">
+        <div style="margin-right:auto">
+          <div style="font-weight:700">Políticas de Retenção</div>
+          <div style="font-size:.74rem; color:#9ab0c9; margin-top:3px">
+            Cron diário aplica essas regras. Última anonimização: <strong id="retencaoLastAnon">—</strong>
+          </div>
+        </div>
+        <button class="btn-mst" type="button" onclick="runRetention(true)">Dry Run (simular)</button>
+        <button class="btn-mst btn-mst-primary" type="button" onclick="runRetention(false)">Executar agora</button>
+      </div>
+      <table class="mst-tbl">
+        <thead><tr><th>Entidade</th><th>Ação</th><th>Prazo (dias)</th><th>Base legal</th><th>Último run</th><th>Status</th><th>Ativo</th></tr></thead>
+        <tbody id="retencaoBody"><tr><td colspan="7" class="empty">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="mst-card" style="padding:0; overflow:hidden">
+      <div style="padding:14px 18px; border-bottom:1px solid rgba(160,180,210,.10)">
+        <div style="font-weight:700">Log de Anonimizações (Art. 12)</div>
+        <div style="font-size:.74rem; color:#9ab0c9; margin-top:3px">Operações de anonimização irreversíveis — apenas as 50 mais recentes.</div>
+      </div>
+      <table class="mst-tbl">
+        <thead><tr><th>Quando</th><th>Entidade</th><th>ID</th><th>Motivo</th><th>Executor</th><th>Solicitação</th></tr></thead>
+        <tbody id="anonLogBody"><tr><td colspan="6" class="empty">Carregando…</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -1323,6 +1356,7 @@ function loadTab(name) {
   if (name==='expenses')  loadExpenses();
   if (name==='audit')     loadAudit();
   if (name==='lgpd')      loadLgpdRequests();
+  if (name==='retencao')  loadRetention();
 }
 document.querySelectorAll('.mst-tab').forEach(b => b.addEventListener('click', () => {
   window.location.hash = b.dataset.mtab;
@@ -2783,6 +2817,21 @@ async function openLgpdDrawer(id) {
     <textarea id="lgpdResposta" rows="5" placeholder="Digite a resposta ao titular..." style="width:100%;padding:10px;border:1px solid rgba(160,180,210,.18);border-radius:6px;background:rgba(5,18,39,.6);color:#fff;font:inherit;resize:vertical">${escL(req.resposta || '')}</textarea>
     <textarea id="lgpdMotivoRejeicao" rows="2" placeholder="Motivo de rejeição (se aplicável)..." style="width:100%;margin-top:8px;padding:10px;border:1px solid rgba(239,68,68,.20);border-radius:6px;background:rgba(5,18,39,.6);color:#fca5a5;font:inherit;resize:vertical">${escL(req.motivo_rejeicao || '')}</textarea>
 
+    <h4 style="color:#fff;margin:18px 0 6px">Ações LGPD (Etapa 7)</h4>
+    <div style="background:rgba(96,165,250,.05);padding:10px;border-radius:6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <select id="lgpdAnonEntidade" style="padding:6px 10px;border-radius:6px;background:rgba(5,18,39,.6);border:1px solid rgba(160,180,210,.18);color:#fff;font:inherit;font-size:.82rem">
+        <option value="user">Usuário</option>
+        <option value="contato">Contato</option>
+        <option value="card">Card/Lead</option>
+        <option value="processo">Processo (parte contrária)</option>
+      </select>
+      <input id="lgpdAnonId" type="number" placeholder="ID da entidade" style="width:120px;padding:6px 10px;border-radius:6px;background:rgba(5,18,39,.6);border:1px solid rgba(160,180,210,.18);color:#fff;font:inherit;font-size:.82rem">
+      <button class="btn-mst" type="button" onclick="lgpdAnonimizar()" style="background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;border:none">Anonimizar</button>
+      <span style="color:#9ab0c9;font-size:.74rem">|</span>
+      <button class="btn-mst" type="button" onclick="lgpdExport()">Gerar Export ZIP (portabilidade)</button>
+      <span id="lgpdExportLink" style="font-size:.78rem"></span>
+    </div>
+
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;justify-content:flex-end">
       <button class="btn-mst" onclick="updateLgpdStatus('em_analise')">Marcar Em Análise</button>
       <button class="btn-mst" onclick="updateLgpdStatus('aguardando_titular')">Aguardando Titular</button>
@@ -2790,6 +2839,9 @@ async function openLgpdDrawer(id) {
       <button class="btn-mst btn-mst-primary" onclick="updateLgpdStatus('concluido')">Concluir</button>
     </div>
   `;
+  // Guarda email do titular pra export
+  window._lgpdCurrentEmail = req.titular_email;
+  window._lgpdCurrentReqId = req.id;
   openModal('modalLgpd');
 }
 
@@ -2810,6 +2862,38 @@ async function updateLgpdStatus(status) {
   closeModal('modalLgpd');
   loadLgpdRequests();
   refreshLgpdBadge();
+}
+
+async function lgpdAnonimizar() {
+  const entidade   = document.getElementById('lgpdAnonEntidade').value;
+  const entidadeId = parseInt(document.getElementById('lgpdAnonId').value, 10);
+  if (!entidadeId) return notifyErr('Informe o ID da entidade');
+  if (!confirm(`Anonimizar ${entidade} #${entidadeId}? Esta operação é IRREVERSÍVEL.`)) return;
+  const r = await fj(`${API}/lgpd_anonymize.php`, {
+    method: 'POST', body: JSON.stringify({
+      csrf_token: CSRF, lgpd_request_id: window._lgpdCurrentReqId,
+      entidade, entidade_id: entidadeId,
+    })
+  });
+  if (!r.ok) return notifyErr(r.error || 'Erro');
+  notifyOk(`${entidade} #${entidadeId} anonimizado`);
+  openLgpdDrawer(window._lgpdCurrentReqId); // recarrega drawer (atualiza eventos)
+}
+
+async function lgpdExport() {
+  if (!window._lgpdCurrentEmail) return notifyErr('Email do titular não disponível');
+  if (!confirm(`Gerar export de portabilidade para ${window._lgpdCurrentEmail}?`)) return;
+  const out = document.getElementById('lgpdExportLink');
+  out.textContent = ' Gerando...';
+  const r = await fj(`${API}/lgpd_anonymize.php?action=export`, {
+    method: 'POST', body: JSON.stringify({
+      csrf_token: CSRF, lgpd_request_id: window._lgpdCurrentReqId,
+      email: window._lgpdCurrentEmail,
+    })
+  });
+  if (!r.ok) { out.textContent = ''; return notifyErr(r.error || 'Erro'); }
+  out.innerHTML = ` <a href="${r.data.download_url}" target="_blank" style="color:#7eb8f7">Baixar ${r.data.file}</a>`;
+  notifyOk('Export gerado');
 }
 
 async function refreshLgpdBadge() {
@@ -2837,6 +2921,85 @@ setInterval(refreshLgpdBadge, 60000);
 document.getElementById('filterLgpdStatus').addEventListener('change', loadLgpdRequests);
 document.getElementById('filterLgpdTipo').addEventListener('change', loadLgpdRequests);
 document.getElementById('filterLgpdAtrasada').addEventListener('change', loadLgpdRequests);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Retenção (Etapa 7)
+// ═══════════════════════════════════════════════════════════════════════════
+async function loadRetention() {
+  const r = await fj(`${API}/retention.php`);
+  const tbody = document.getElementById('retencaoBody');
+  if (!r.ok) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">Erro ao carregar.</td></tr>';
+    return;
+  }
+  const pols = r.data.policies || [];
+  if (pols.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">Sem políticas configuradas.</td></tr>';
+  } else {
+    tbody.innerHTML = pols.map(p => {
+      const statusColor = p.ultimo_status === 'success' ? '#10b981'
+                        : p.ultimo_status === 'error'   ? '#ef4444' : '#9ab0c9';
+      return `<tr>
+        <td><strong>${escL(p.entidade)}</strong></td>
+        <td><span style="padding:2px 9px;border-radius:999px;background:rgba(96,165,250,.10);color:#7eb8f7;font-size:.72rem;font-weight:600">${escL(p.acao_apos)}</span></td>
+        <td><input type="number" min="1" max="36500" value="${parseInt(p.retencao_dias,10)}" data-id="${p.id}" style="width:80px;padding:4px 8px;border-radius:6px;background:rgba(5,18,39,.6);border:1px solid rgba(160,180,210,.18);color:#fff;font:inherit" onchange="savePolicyDias(${p.id}, this.value)"></td>
+        <td style="font-size:.78rem;max-width:280px;color:#9ab0c9">${escL((p.base_legal||'').substring(0,120))}${(p.base_legal||'').length>120?'…':''}</td>
+        <td style="font-size:.78rem">${p.ultimo_run ? fmtDateTime(p.ultimo_run) : '—'} <br><small style="color:#9ab0c9">${p.ultimo_purge_count} linhas</small></td>
+        <td><span style="color:${statusColor};font-size:.78rem;font-weight:600">${escL(p.ultimo_status||'—')}</span></td>
+        <td><input type="checkbox" ${p.ativo == 1 ? 'checked' : ''} onchange="savePolicyAtivo(${p.id}, this.checked)"></td>
+      </tr>`;
+    }).join('');
+  }
+  document.getElementById('retencaoLastAnon').textContent = r.data.total_anonimizacoes + ' anonimizações executadas no histórico';
+  // Carrega log
+  loadAnonLog();
+}
+
+async function loadAnonLog() {
+  const r = await fj(`${API}/retention.php?logs=1`);
+  const tbody = document.getElementById('anonLogBody');
+  if (!r.ok || !Array.isArray(r.data) || r.data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">Sem anonimizações registradas.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = r.data.map(row => `<tr>
+    <td style="font-size:.78rem">${fmtDateTime(row.executado_em)}</td>
+    <td><strong>${escL(row.entidade)}</strong></td>
+    <td>#${parseInt(row.entidade_id,10)}</td>
+    <td style="font-size:.82rem">${escL(row.motivo || '—')}</td>
+    <td style="font-size:.82rem">${escL(row.executor_nome || (row.executado_por_user_id ? '#'+row.executado_por_user_id : 'cron'))}</td>
+    <td>${row.lgpd_request_id ? '#'+parseInt(row.lgpd_request_id,10) : '—'}</td>
+  </tr>`).join('');
+}
+
+async function savePolicyDias(id, val) {
+  const dias = parseInt(val, 10);
+  if (!dias || dias < 1) return notifyErr('Prazo inválido');
+  const r = await fj(`${API}/retention.php`, {
+    method: 'PATCH', body: JSON.stringify({ csrf_token: CSRF, id, retencao_dias: dias })
+  });
+  if (!r.ok) return notifyErr(r.error || 'Erro');
+  notifyOk('Política atualizada');
+}
+
+async function savePolicyAtivo(id, ativo) {
+  const r = await fj(`${API}/retention.php`, {
+    method: 'PATCH', body: JSON.stringify({ csrf_token: CSRF, id, ativo: ativo ? 1 : 0 })
+  });
+  if (!r.ok) return notifyErr(r.error || 'Erro');
+  notifyOk(ativo ? 'Política ativada' : 'Política desativada');
+}
+
+async function runRetention(dry) {
+  const msg = dry ? 'Executar simulação (sem alterações reais)?' : 'EXECUTAR retenção AGORA? Esta ação aplicará purges/anonimizações nos dados.';
+  if (!confirm(msg)) return;
+  const r = await fj(`${API}/retention.php?action=run`, {
+    method: 'POST', body: JSON.stringify({ csrf_token: CSRF, dry_run: dry })
+  });
+  if (!r.ok) return notifyErr(r.error || 'Erro');
+  alert((dry ? 'Simulação concluída.' : 'Executado!') + '\n\n' + (r.data.log || []).join('\n'));
+  loadRetention();
+}
 
 // ── Init ─────────────────────────────────────────────────────────────────
 const initialHash = (window.location.hash || '').replace('#','') || 'overview';
