@@ -182,6 +182,12 @@ if ($method === 'POST') {
         ]);
         // P0 LGPD: dispara só para o próprio tenant dono do webhook testado
         WebhookDispatcher::fire((int)$hook['account_id'], 'webhook.test', $payload);
+        \App\Models\Account::audit($accountId, 'webhook.tested', [
+            'user_id'     => $_SESSION['user_id'] ?? null,
+            'entidade'    => 'webhook',
+            'entidade_id' => (int)$id,
+            'detalhes'    => ['nome' => $hook['nome'], 'url' => $hook['url']],
+        ]);
         echo json_encode(['success' => true, 'message' => 'Evento de teste enviado']);
         exit;
     }
@@ -198,7 +204,22 @@ if ($method === 'POST') {
 
     $stmt = $pdo->prepare("INSERT INTO webhooks (account_id, nome, url, secret, ativo, eventos, created_at, updated_at) VALUES (?,?,?,?,?,?,NOW(),NOW())");
     $ok   = $stmt->execute([$accountId, $nome, $url, $secret ?: null, $ativo, json_encode(array_values($eventos))]);
-    echo json_encode(['success' => (bool)$ok, 'id' => $pdo->lastInsertId()]);
+    $newId = (int)$pdo->lastInsertId();
+    if ($ok) {
+        \App\Models\Account::audit($accountId, 'webhook.created', [
+            'user_id'     => $_SESSION['user_id'] ?? null,
+            'entidade'    => 'webhook',
+            'entidade_id' => $newId,
+            'detalhes'    => [
+                'nome'    => $nome,
+                'url'     => $url,
+                'ativo'   => $ativo,
+                'eventos' => array_values($eventos),
+                // secret omitido propositalmente — segredo não vai pra trilha
+            ],
+        ]);
+    }
+    echo json_encode(['success' => (bool)$ok, 'id' => $newId]);
     exit;
 }
 
@@ -208,15 +229,22 @@ if ($method === 'PUT' || $method === 'PATCH') {
     if (!$id) { http_response_code(400); echo json_encode(['error' => 'Missing id']); exit; }
 
     $fields = []; $params = [];
-    if (isset($input['nome']))    { $fields[] = 'nome = ?';    $params[] = trim($input['nome']); }
-    if (isset($input['url']))     { $fields[] = 'url = ?';     $params[] = trim($input['url']); }
-    if (isset($input['secret']))  { $fields[] = 'secret = ?';  $params[] = trim($input['secret']) ?: null; }
-    if (isset($input['ativo']))   { $fields[] = 'ativo = ?';   $params[] = (int)$input['ativo']; }
+    $changed = [];
+    if (isset($input['nome']))    { $fields[] = 'nome = ?';    $params[] = trim($input['nome']);            $changed['nome']  = trim($input['nome']); }
+    if (isset($input['url']))     { $fields[] = 'url = ?';     $params[] = trim($input['url']);             $changed['url']   = trim($input['url']); }
+    if (isset($input['secret']))  { $fields[] = 'secret = ?';  $params[] = trim($input['secret']) ?: null;  $changed['secret'] = '***'; /* nunca logar segredo em claro */ }
+    if (isset($input['ativo']))   { $fields[] = 'ativo = ?';   $params[] = (int)$input['ativo'];            $changed['ativo'] = (int)$input['ativo']; }
     if (isset($input['eventos'])) {
         $ev = array_filter((array)$input['eventos'], fn($e) => in_array($e, WebhookDispatcher::allEventKeys()) || $e === '*');
         $fields[] = 'eventos = ?'; $params[] = json_encode(array_values($ev));
+        $changed['eventos'] = array_values($ev);
     }
     if (!$fields) { echo json_encode(['success' => true]); exit; }
+
+    // snapshot pré-update (filtrado pelo tenant)
+    $stPrev = $pdo->prepare("SELECT id, nome, url, ativo, eventos FROM webhooks WHERE id = :id AND account_id IN $tenantIn LIMIT 1");
+    $stPrev->execute(['id' => $id] + $_whParams);
+    $dadosAntes = $stPrev->fetch(PDO::FETCH_ASSOC) ?: null;
 
     $fields[] = 'updated_at = NOW()';
     // tenant placeholders (positional)
@@ -228,6 +256,13 @@ if ($method === 'PUT' || $method === 'PATCH') {
     $stmt = $pdo->prepare("UPDATE webhooks SET " . implode(', ', $fields) . " WHERE id = ? AND account_id IN $tenantInPos");
     $stmt->execute($params);
     if ($stmt->rowCount() === 0) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
+    \App\Models\Account::audit($accountId, 'webhook.updated', [
+        'user_id'     => $_SESSION['user_id'] ?? null,
+        'entidade'    => 'webhook',
+        'entidade_id' => $id,
+        'dados_antes' => $dadosAntes,
+        'detalhes'    => $changed,
+    ]);
     echo json_encode(['success' => true]);
     exit;
 }
@@ -236,9 +271,18 @@ if ($method === 'PUT' || $method === 'PATCH') {
 if ($method === 'DELETE') {
     $id = (int)($_GET['id'] ?? ($input['id'] ?? 0));
     if (!$id) { http_response_code(400); echo json_encode(['error' => 'Missing id']); exit; }
+    $stPrev = $pdo->prepare("SELECT id, nome, url, ativo, eventos FROM webhooks WHERE id = :id AND account_id IN $tenantIn LIMIT 1");
+    $stPrev->execute(['id' => $id] + $_whParams);
+    $dadosAntes = $stPrev->fetch(PDO::FETCH_ASSOC) ?: null;
     $stmt = $pdo->prepare("UPDATE webhooks SET deleted_at = NOW() WHERE id = :id AND account_id IN $tenantIn");
     $stmt->execute(['id' => $id] + $_whParams);
     if ($stmt->rowCount() === 0) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
+    \App\Models\Account::audit($accountId, 'webhook.deleted', [
+        'user_id'     => $_SESSION['user_id'] ?? null,
+        'entidade'    => 'webhook',
+        'entidade_id' => $id,
+        'dados_antes' => $dadosAntes,
+    ]);
     echo json_encode(['success' => true]);
     exit;
 }

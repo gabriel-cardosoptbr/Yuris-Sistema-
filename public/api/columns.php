@@ -60,6 +60,17 @@ if ($method === 'POST') {
     _denyInheritedWrite($isInherited);
     $input['account_id'] = $pipelineAccountId;          // injeta tenant dono do pipeline
     $id = PipelineColumn::create($input);
+    \App\Models\Account::audit($accountId, 'column.created', [
+        'user_id'     => $ctx->getUserId(),
+        'entidade'    => 'pipeline_column',
+        'entidade_id' => (int)$id,
+        'detalhes'    => [
+            'nome'                => $input['nome'] ?? null,
+            'cor'                 => $input['cor'] ?? null,
+            'ordem'               => $input['ordem'] ?? null,
+            'pipeline_account_id' => $pipelineAccountId,
+        ],
+    ]);
     echo json_encode(['success' => true, 'id' => $id]);
     exit;
 }
@@ -67,8 +78,15 @@ if ($method === 'POST') {
 if ($method === 'PUT' || $method === 'PATCH') {
     _denyInheritedWrite($isInherited);
     if (empty($input['id'])) { http_response_code(400); echo json_encode(['error' => 'Missing id']); exit; }
-    $ok = PipelineColumn::update((int)$input['id'], $input, $tenantIds);
+    $colId = (int)$input['id'];
+    $ok = PipelineColumn::update($colId, $input, $tenantIds);
     if (!$ok) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
+    \App\Models\Account::audit($accountId, 'column.updated', [
+        'user_id'     => $ctx->getUserId(),
+        'entidade'    => 'pipeline_column',
+        'entidade_id' => $colId,
+        'detalhes'    => $input,
+    ]);
     echo json_encode(['success' => true]);
     exit;
 }
@@ -77,8 +95,14 @@ if ($method === 'DELETE') {
     _denyInheritedWrite($isInherited);
     $id = $_GET['id'] ?? ($input['id'] ?? null);
     if (!$id) { http_response_code(400); echo json_encode(['error' => 'Missing id']); exit; }
-    $ok = PipelineColumn::delete((int)$id, $tenantIds);
+    $colId = (int)$id;
+    $ok = PipelineColumn::delete($colId, $tenantIds);
     if (!$ok) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
+    \App\Models\Account::audit($accountId, 'column.deleted', [
+        'user_id'     => $ctx->getUserId(),
+        'entidade'    => 'pipeline_column',
+        'entidade_id' => $colId,
+    ]);
     echo json_encode(['success' => true]);
     exit;
 }

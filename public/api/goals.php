@@ -85,10 +85,14 @@ try {
     if ($method === 'POST' || $method === 'PUT') {
         $valor = parse_meta_value($input['valor_meta'] ?? null);
         // Upsert por usuário dentro do tenant
-        $stmt = $pdo->prepare("SELECT id FROM goals WHERE user_id = :uid AND account_id = :acc ORDER BY updated_at DESC, id DESC LIMIT 1");
+        $stmt = $pdo->prepare("SELECT id, valor_meta, tipo_meta, referencia_mes FROM goals WHERE user_id = :uid AND account_id = :acc ORDER BY updated_at DESC, id DESC LIMIT 1");
         $stmt->execute(['uid' => $uid, 'acc' => $accountId]);
         $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+        $wasUpdate = false;
+        $dadosAntes = null;
         if ($existing && isset($existing['id'])) {
+            $wasUpdate = true;
+            $dadosAntes = $existing;
             $gid = (int)$existing['id'];
             $pdo->prepare('UPDATE goals SET valor_meta = :val, tipo_meta = :tipo, referencia_mes = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = :id')
                 ->execute(['val' => $valor, 'id' => $gid, 'tipo' => 'single']);
@@ -99,13 +103,24 @@ try {
         }
         $row = $pdo->prepare('SELECT * FROM goals WHERE id = :id');
         $row->execute(['id' => $gid]);
-        echo json_encode(['ok' => true, 'id' => $gid, 'goal' => $row->fetch(PDO::FETCH_ASSOC)], JSON_UNESCAPED_UNICODE);
+        $goalRow = $row->fetch(PDO::FETCH_ASSOC);
+        \App\Models\Account::audit($accountId, $wasUpdate ? 'goal.updated' : 'goal.created', [
+            'user_id'     => $uid,
+            'entidade'    => 'goal',
+            'entidade_id' => $gid,
+            'dados_antes' => $dadosAntes,
+            'detalhes'    => ['valor_meta' => $valor, 'tipo_meta' => 'single'],
+        ]);
+        echo json_encode(['ok' => true, 'id' => $gid, 'goal' => $goalRow], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
     if ($method === 'DELETE') {
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
         if (!$id) { http_response_code(400); echo json_encode(['error'=>'id required']); exit; }
+        $stPrev = $pdo->prepare("SELECT * FROM goals WHERE id = :id AND account_id IN ({$in['sql']})");
+        $stPrev->execute(['id' => $id] + $in['params']);
+        $dadosAntes = $stPrev->fetch(PDO::FETCH_ASSOC) ?: null;
         $stmt = $pdo->prepare("DELETE FROM goals WHERE id = :id AND account_id IN ({$in['sql']})");
         $stmt->execute(['id' => $id] + $in['params']);
         if ($stmt->rowCount() === 0) {
@@ -113,6 +128,12 @@ try {
             echo json_encode(['error' => 'Sem permissão']);
             exit;
         }
+        \App\Models\Account::audit($accountId, 'goal.deleted', [
+            'user_id'     => $uid,
+            'entidade'    => 'goal',
+            'entidade_id' => $id,
+            'dados_antes' => $dadosAntes,
+        ]);
         echo json_encode(['ok' => true]);
         exit;
     }

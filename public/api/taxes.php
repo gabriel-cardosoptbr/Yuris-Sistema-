@@ -52,7 +52,14 @@ if ($method === 'POST') {
     $id = (int)$pdo->lastInsertId();
     $row = $pdo->prepare("SELECT * FROM taxes WHERE id = :id");
     $row->execute(['id' => $id]);
-    echo json_encode(['success' => true, 'data' => $row->fetch(PDO::FETCH_ASSOC)]);
+    $taxRow = $row->fetch(PDO::FETCH_ASSOC);
+    \App\Models\Account::audit($accountId, 'tax.created', [
+        'user_id'     => $ctx->getUserId(),
+        'entidade'    => 'tax',
+        'entidade_id' => $id,
+        'detalhes'    => ['nome' => $nome, 'percentual' => $percentual],
+    ]);
+    echo json_encode(['success' => true, 'data' => $taxRow]);
     exit;
 }
 
@@ -63,9 +70,19 @@ if ($method === 'PUT') {
     if (!$id)                                 { http_response_code(400); echo json_encode(['error' => 'Missing id']); exit; }
     if (!$nome)                               { http_response_code(400); echo json_encode(['error' => 'Nome é obrigatório']); exit; }
     if ($percentual < 0 || $percentual > 100) { http_response_code(400); echo json_encode(['error' => 'Alíquota inválida (0–100)']); exit; }
+    $stPrev = $pdo->prepare("SELECT * FROM taxes WHERE id = :id AND account_id IN $tenantIn");
+    $stPrev->execute(['id' => $id] + $tenantParams);
+    $dadosAntes = $stPrev->fetch(PDO::FETCH_ASSOC) ?: null;
     $stmt = $pdo->prepare("UPDATE taxes SET nome = :nome, percentual = :percentual, updated_at = NOW() WHERE id = :id AND ativo = 1 AND account_id IN $tenantIn");
     $stmt->execute(['nome' => $nome, 'percentual' => $percentual, 'id' => $id] + $tenantParams);
     if ($stmt->rowCount() === 0) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
+    \App\Models\Account::audit($accountId, 'tax.updated', [
+        'user_id'     => $ctx->getUserId(),
+        'entidade'    => 'tax',
+        'entidade_id' => $id,
+        'dados_antes' => $dadosAntes,
+        'detalhes'    => ['nome' => $nome, 'percentual' => $percentual],
+    ]);
     echo json_encode(['success' => true]);
     exit;
 }
@@ -73,9 +90,18 @@ if ($method === 'PUT') {
 if ($method === 'DELETE') {
     $id = (int)($_GET['id'] ?? $input['id'] ?? 0);
     if (!$id) { http_response_code(400); echo json_encode(['error' => 'Missing id']); exit; }
+    $stPrev = $pdo->prepare("SELECT * FROM taxes WHERE id = :id AND account_id IN $tenantIn");
+    $stPrev->execute(['id' => $id] + $tenantParams);
+    $dadosAntes = $stPrev->fetch(PDO::FETCH_ASSOC) ?: null;
     $stmt = $pdo->prepare("UPDATE taxes SET ativo = 0, updated_at = NOW() WHERE id = :id AND account_id IN $tenantIn");
     $stmt->execute(['id' => $id] + $tenantParams);
     if ($stmt->rowCount() === 0) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
+    \App\Models\Account::audit($accountId, 'tax.deleted', [
+        'user_id'     => $ctx->getUserId(),
+        'entidade'    => 'tax',
+        'entidade_id' => $id,
+        'dados_antes' => $dadosAntes,
+    ]);
     echo json_encode(['success' => true]);
     exit;
 }

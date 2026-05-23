@@ -12,6 +12,7 @@
 
 require_once __DIR__ . '/../../app/Models/Database.php';
 require_once __DIR__ . '/../../app/Models/Team.php';
+require_once __DIR__ . '/../../app/Models/Account.php';
 require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
 
 use App\Models\Team;
@@ -76,6 +77,18 @@ if ($method === 'POST') {
     $members = is_array($input['members'] ?? null) ? $input['members'] : [];
     Team::setMembers($id, $members);
 
+    \App\Models\Account::audit($accountId, 'team.created', [
+        'user_id'     => $ctx->getUserId(),
+        'entidade'    => 'team',
+        'entidade_id' => (int)$id,
+        'detalhes'    => [
+            'nome'      => $nome,
+            'cor'       => $cor,
+            'descricao' => $descricao,
+            'members'   => $members,
+        ],
+    ]);
+
     echo json_encode(['success' => true, 'id' => $id]);
     exit;
 }
@@ -99,6 +112,14 @@ if ($method === 'PUT') {
         Team::setMembers($id, $input['members']);
     }
 
+    \App\Models\Account::audit($accountId, 'team.updated', [
+        'user_id'     => $ctx->getUserId(),
+        'entidade'    => 'team',
+        'entidade_id' => $id,
+        'dados_antes' => $team,
+        'detalhes'    => $data + (isset($input['members']) && is_array($input['members']) ? ['members' => $input['members']] : []),
+    ]);
+
     echo json_encode(['success' => true]);
     exit;
 }
@@ -112,6 +133,14 @@ if ($method === 'DELETE') {
     if (!$team) { http_response_code(404); echo json_encode(['error' => 'Time não encontrado']); exit; }
 
     $ok = Team::delete($id, $accountId);
+    if ($ok) {
+        \App\Models\Account::audit($accountId, 'team.deleted', [
+            'user_id'     => $ctx->getUserId(),
+            'entidade'    => 'team',
+            'entidade_id' => $id,
+            'dados_antes' => $team,
+        ]);
+    }
     echo json_encode(['success' => $ok]);
     exit;
 }

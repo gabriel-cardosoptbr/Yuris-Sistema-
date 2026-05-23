@@ -283,10 +283,19 @@ if ($method === 'PUT' || $method === 'PATCH') {
     }
     $wRow = $pdo->prepare('SELECT id, nome, login AS email, perfil FROM users WHERE id = ? LIMIT 1');
     $wRow->execute([$id]);
+    $userAfter = $wRow->fetch(PDO::FETCH_ASSOC);
     WebhookDispatcher::fire($accountId, $wEventKey, WebhookDispatcher::buildPayload($wEventKey, [
         'entity' => 'usuario', 'entity_id' => (int)$id,
-        'data' => $wRow->fetch(PDO::FETCH_ASSOC),
+        'data' => $userAfter,
     ]));
+
+    // LGPD Etapa 4: audit (acao depende do que mudou)
+    \App\Models\Account::audit($accountId, $wEventKey, [
+        'user_id'     => $requesterId,
+        'entidade'    => 'user',
+        'entidade_id' => (int)$id,
+        'detalhes'    => $userAfter,
+    ]);
 
     echo json_encode(['success' => true]);
     exit;
@@ -333,6 +342,13 @@ if ($method === 'DELETE') {
         WebhookDispatcher::fire($accountId, 'usuario.deleted', WebhookDispatcher::buildPayload('usuario.deleted', [
             'entity' => 'usuario', 'entity_id' => (int)$id, 'data' => $prevUser,
         ]));
+        // LGPD Etapa 4: audit
+        \App\Models\Account::audit($accountId, 'user.deleted', [
+            'user_id'     => $requesterId,
+            'entidade'    => 'user',
+            'entidade_id' => (int)$id,
+            'dados_antes' => $prevUser,
+        ]);
     }
     echo json_encode(['success'=> (bool)$ok]);
     exit;

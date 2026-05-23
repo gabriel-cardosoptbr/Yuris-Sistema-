@@ -54,13 +54,24 @@ if ($method === 'POST') {
     }
 
     $allowed = ['evolution_base_url', 'evolution_api_key', 'evolution_instance', 'webhook_enabled', 'webhook_url'];
+    $touched = [];
     foreach ($allowed as $key) {
         if (isset($payload[$key])) {
             // não permite gravar string vazia em evolution_api_key (evita zerar inadvertidamente)
             if ($key === 'evolution_api_key' && trim((string)$payload[$key]) === '') continue;
             $model->saveSetting($accountId, $key, (string)$payload[$key]);
+            // LGPD: nunca registramos evolution_api_key em claro na trilha — só marcamos que foi alterada.
+            $touched[$key] = ($key === 'evolution_api_key') ? '***changed***' : (string)$payload[$key];
         }
     }
+
+    // LGPD Etapa 4: registra alteração da config WhatsApp do tenant.
+    \App\Models\Account::audit($accountId, 'whatsapp_settings.updated', [
+        'user_id'     => (int)$_uid,
+        'entidade'    => 'whatsapp_settings',
+        'entidade_id' => null,
+        'detalhes'    => $touched,
+    ]);
 
     // Resposta: idem GET (oculta api_key)
     $settings = $model->getSettings($accountId);

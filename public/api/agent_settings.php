@@ -174,6 +174,22 @@ if ($method === 'POST') {
             $masked = _maskApiKey($plain);
         } catch (\Throwable $_e) {}
     }
+    // LGPD Etapa 4: trilha de auditoria — api_key NUNCA é registrada em claro,
+    // apenas flag indicando se houve toque (touchApiKey).
+    \App\Models\Account::audit($accountId, 'agent_settings.updated', [
+        'user_id'     => $userId,
+        'entidade'    => 'agent_config',
+        'entidade_id' => $userId,
+        'detalhes'    => [
+            'name'             => $name,
+            'enabled'          => $enabled,
+            'whatsapp_number'  => $whatsappNumber,
+            'provider'         => $provider,
+            'prompt_changed'   => $prompt !== null,
+            'api_key_changed'  => $touchApiKey,
+            'created'          => !$existing,
+        ],
+    ]);
     echo json_encode([
         'success' => true,
         'data' => [

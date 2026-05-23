@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../app/Models/Database.php';
+require_once __DIR__ . '/../../app/Models/Account.php';
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -36,6 +37,16 @@ if ($method === 'POST') {
     if ($end === '') $end = null;
     $_SESSION['dashboard_start'] = $start;
     $_SESSION['dashboard_end'] = $end;
+    $userId    = (int)$_SESSION['user_id'];
+    $accountId = (int)($_SESSION['account_id'] ?? 0);
+    if ($accountId > 0) {
+        \App\Models\Account::audit($accountId, 'dashboard_settings.updated', [
+            'user_id'     => $userId,
+            'entidade'    => 'dashboard_settings',
+            'entidade_id' => $userId,
+            'detalhes'    => ['start' => $start, 'end' => $end],
+        ]);
+    }
     echo json_encode(['success'=>true,'start'=>$start,'end'=>$end]);
     exit;
 }

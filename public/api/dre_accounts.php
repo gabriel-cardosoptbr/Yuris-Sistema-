@@ -154,14 +154,35 @@ if ($method === 'POST') {
     if (empty($input['nome'])) { http_response_code(400); echo json_encode(['error' => 'Missing nome']); exit; }
     $input['account_id'] = $accountId;     // injeta tenant (NUNCA do body)
     $id = DREAccount::create($input);
+    \App\Models\Account::audit($accountId, 'dre.created', [
+        'user_id'     => $ctx->getUserId(),
+        'entidade'    => 'dre_account',
+        'entidade_id' => (int)$id,
+        'detalhes'    => [
+            'nome'           => $input['nome'] ?? null,
+            'tipo'           => $input['tipo'] ?? null,
+            'valor_fixo'     => $input['valor_fixo'] ?? null,
+            'recorrencia'    => $input['recorrencia'] ?? null,
+            'data_referencia'=> $input['data_referencia'] ?? null,
+        ],
+    ]);
     echo json_encode(['success' => true, 'id' => $id]);
     exit;
 }
 
 if ($method === 'PUT' || $method === 'PATCH') {
     if (empty($input['id'])) { http_response_code(400); echo json_encode(['error' => 'Missing id']); exit; }
-    $ok = DREAccount::update((int)$input['id'], $input, $tenantIds);
+    $dreId      = (int)$input['id'];
+    $dadosAntes = DREAccount::find($dreId, $tenantIds);
+    $ok = DREAccount::update($dreId, $input, $tenantIds);
     if (!$ok) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
+    \App\Models\Account::audit($accountId, 'dre.updated', [
+        'user_id'     => $ctx->getUserId(),
+        'entidade'    => 'dre_account',
+        'entidade_id' => $dreId,
+        'dados_antes' => $dadosAntes,
+        'detalhes'    => $input,
+    ]);
     echo json_encode(['success' => true]);
     exit;
 }
@@ -169,8 +190,16 @@ if ($method === 'PUT' || $method === 'PATCH') {
 if ($method === 'DELETE') {
     $id = $_GET['id'] ?? ($input['id'] ?? null);
     if (!$id) { http_response_code(400); echo json_encode(['error' => 'Missing id']); exit; }
-    $ok = DREAccount::softDelete((int)$id, $tenantIds);
+    $dreId      = (int)$id;
+    $dadosAntes = DREAccount::find($dreId, $tenantIds);
+    $ok = DREAccount::softDelete($dreId, $tenantIds);
     if (!$ok) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
+    \App\Models\Account::audit($accountId, 'dre.deleted', [
+        'user_id'     => $ctx->getUserId(),
+        'entidade'    => 'dre_account',
+        'entidade_id' => $dreId,
+        'dados_antes' => $dadosAntes,
+    ]);
     echo json_encode(['success' => true]);
     exit;
 }
