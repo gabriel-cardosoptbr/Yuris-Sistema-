@@ -287,6 +287,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
             'audit'     => '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
             'lgpd'      => '<path d="M9 12l2 2 4-4"/><path d="M12 22s8-4 8-10V6l-8-3-8 3v6c0 6 8 10 8 10z"/>',
             'retencao'  => '<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>',
+            'incidents' => '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
         ];
         return '<svg ' . $base . '>' . ($paths[$key] ?? '') . '</svg>';
     };
@@ -303,6 +304,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
     <button class="mst-tab" data-mtab="audit"><?= $_tabIco('audit') ?>Auditoria</button>
     <button class="mst-tab" data-mtab="lgpd"><?= $_tabIco('lgpd') ?>LGPD <span id="lgpdBadge" style="display:none;background:#ef4444;color:#fff;font-size:.7rem;padding:1px 7px;border-radius:999px;margin-left:5px;font-weight:700"></span></button>
     <button class="mst-tab" data-mtab="retencao"><?= $_tabIco('retencao') ?>Retenção</button>
+    <button class="mst-tab" data-mtab="incidents"><?= $_tabIco('incidents') ?>Incidentes <span id="incidentBadge" style="display:none;background:#ef4444;color:#fff;font-size:.7rem;padding:1px 7px;border-radius:999px;margin-left:5px;font-weight:700"></span></button>
   </div>
 
   <!-- ── Visão Geral ── -->
@@ -687,6 +689,59 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
       <table class="mst-tbl">
         <thead><tr><th>Quando</th><th>Entidade</th><th>ID</th><th>Motivo</th><th>Executor</th><th>Solicitação</th></tr></thead>
         <tbody id="anonLogBody"><tr><td colspan="6" class="empty">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── Incidentes de Segurança (LGPD Art. 48) ── -->
+  <section class="mst-section" id="msec-incidents">
+    <div class="mst-card" style="padding:0; overflow:hidden; margin-bottom:14px">
+      <div style="display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid rgba(160,180,210,.10); flex-wrap:wrap">
+        <div style="margin-right:auto">
+          <div style="font-weight:700">Incidentes de Segurança</div>
+          <div style="font-size:.74rem; color:#9ab0c9; margin-top:3px">
+            Registro de incidentes envolvendo dados pessoais. <strong>LGPD Art. 48</strong> exige notificação à ANPD e aos titulares afetados em prazo razoável.
+          </div>
+        </div>
+        <select id="filterIncStatus" class="mst-form-select" style="width:auto;padding:6px 11px;font-size:.82rem">
+          <option value="">Todos status</option>
+          <option value="detectado">Detectado</option>
+          <option value="em_analise">Em análise</option>
+          <option value="contido">Contido</option>
+          <option value="mitigado">Mitigado</option>
+          <option value="notificado_anpd">Notificado ANPD</option>
+          <option value="notificado_titulares">Notificado Titulares</option>
+          <option value="encerrado">Encerrado</option>
+          <option value="falso_positivo">Falso positivo</option>
+        </select>
+        <select id="filterIncSeveridade" class="mst-form-select" style="width:auto;padding:6px 11px;font-size:.82rem">
+          <option value="">Todas severidades</option>
+          <option value="critica">Crítica</option>
+          <option value="alta">Alta</option>
+          <option value="media">Média</option>
+          <option value="baixa">Baixa</option>
+        </select>
+        <select id="filterIncTipo" class="mst-form-select" style="width:auto;padding:6px 11px;font-size:.82rem">
+          <option value="">Todos tipos</option>
+          <option value="vazamento_dados">Vazamento</option>
+          <option value="acesso_indevido">Acesso indevido</option>
+          <option value="ransomware">Ransomware</option>
+          <option value="phishing">Phishing</option>
+          <option value="dos_ddos">DoS/DDoS</option>
+          <option value="exposicao_credenciais">Exposição credenciais</option>
+          <option value="perda_dispositivo">Perda de dispositivo</option>
+          <option value="engenharia_social">Engenharia social</option>
+          <option value="config_indevida">Config. indevida</option>
+          <option value="outro">Outro</option>
+        </select>
+        <label style="font-size:.82rem;color:#9ab0c9;display:flex;align-items:center;gap:5px">
+          <input type="checkbox" id="filterIncAbertos" checked> Apenas abertos
+        </label>
+        <button class="btn-mst btn-mst-primary" type="button" onclick="openNewIncident()">+ Novo Incidente</button>
+      </div>
+      <table class="mst-tbl">
+        <thead><tr><th>#</th><th>Título</th><th>Tipo</th><th>Sev.</th><th>Conta</th><th>Detectado</th><th>Status</th><th>Notificações</th><th>Ações</th></tr></thead>
+        <tbody id="incidentsBody"><tr><td colspan="9" class="empty">Carregando…</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -1275,6 +1330,132 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
   </div>
 </div>
 
+<!-- Modal: Incidente — detalhes -->
+<div class="mst-modal-backdrop" id="modalIncident" onclick="if(event.target===this)closeModal('modalIncident')">
+  <div class="mst-modal lg">
+    <div class="mst-modal-header">
+      <h3 class="mst-modal-title" id="incidentTitle">Incidente de Segurança</h3>
+      <button class="mst-modal-close" onclick="closeModal('modalIncident')">×</button>
+    </div>
+    <div class="mst-modal-body" id="incidentBody" style="max-height:78vh;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- Modal: Novo Incidente -->
+<div class="mst-modal-backdrop" id="modalNewIncident" onclick="if(event.target===this)closeModal('modalNewIncident')">
+  <div class="mst-modal lg">
+    <div class="mst-modal-header">
+      <h3 class="mst-modal-title">Registrar Novo Incidente</h3>
+      <button class="mst-modal-close" onclick="closeModal('modalNewIncident')">×</button>
+    </div>
+    <form id="formNewIncident" onsubmit="submitNewIncident(event)">
+      <div class="mst-modal-body">
+        <div class="mst-form-section">Classificação</div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Título *</label><input name="titulo" class="mst-form-input" required maxlength="200" placeholder="Ex.: Acesso indevido ao painel master via brute-force"></div>
+        </div>
+        <div class="mst-form-row">
+          <div>
+            <label class="mst-form-label">Tipo *</label>
+            <select name="tipo" class="mst-form-select" required>
+              <option value="">Selecione...</option>
+              <option value="vazamento_dados">Vazamento de dados</option>
+              <option value="acesso_indevido">Acesso indevido</option>
+              <option value="ransomware">Ransomware</option>
+              <option value="phishing">Phishing</option>
+              <option value="dos_ddos">DoS / DDoS</option>
+              <option value="exposicao_credenciais">Exposição de credenciais</option>
+              <option value="perda_dispositivo">Perda de dispositivo</option>
+              <option value="engenharia_social">Engenharia social</option>
+              <option value="config_indevida">Configuração indevida</option>
+              <option value="outro">Outro</option>
+            </select>
+          </div>
+          <div>
+            <label class="mst-form-label">Severidade *</label>
+            <select name="severidade" class="mst-form-select" required>
+              <option value="baixa">Baixa</option>
+              <option value="media" selected>Média</option>
+              <option value="alta">Alta</option>
+              <option value="critica">Crítica</option>
+            </select>
+          </div>
+          <div>
+            <label class="mst-form-label">Conta afetada (ID)</label>
+            <input name="account_id" type="number" class="mst-form-input" placeholder="vazio = plataforma">
+          </div>
+        </div>
+        <div class="mst-form-row">
+          <div>
+            <label class="mst-form-label">Detectado em *</label>
+            <input name="detectado_em" type="datetime-local" class="mst-form-input" required>
+          </div>
+          <div>
+            <label class="mst-form-label">Ocorrido em (estimado)</label>
+            <input name="ocorrido_em" type="datetime-local" class="mst-form-input">
+          </div>
+        </div>
+
+        <div class="mst-form-section">Impacto</div>
+        <div class="mst-form-row">
+          <div>
+            <label class="mst-form-label">Dados afetados (categorias)</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:.82rem;color:#cbd5e1">
+              <label><input type="checkbox" name="cat_pii_basica"> Dados básicos (nome, e-mail, tel.)</label>
+              <label><input type="checkbox" name="cat_documentos"> Documentos (CPF, RG, OAB)</label>
+              <label><input type="checkbox" name="cat_financeiro"> Financeiro</label>
+              <label><input type="checkbox" name="cat_juridico"> Jurídico (processos)</label>
+              <label><input type="checkbox" name="cat_autenticacao"> Autenticação (senhas, MFA)</label>
+              <label><input type="checkbox" name="cat_comunicacoes"> Comunicações (chat, WhatsApp)</label>
+              <label><input type="checkbox" name="cat_dados_sensiveis"> Sensíveis (Art. 5 II)</label>
+            </div>
+          </div>
+        </div>
+        <div class="mst-form-row">
+          <div>
+            <label class="mst-form-label">Titulares estimados</label>
+            <input name="titulares_estimados" type="number" min="0" class="mst-form-input" placeholder="0">
+          </div>
+          <div>
+            <label class="mst-form-label">Registros afetados</label>
+            <input name="registros" type="number" min="0" class="mst-form-input" placeholder="0">
+          </div>
+        </div>
+        <div class="mst-form-row">
+          <div>
+            <label class="mst-form-label">Impacto avaliado</label>
+            <textarea name="impacto" rows="2" class="mst-form-input" placeholder="Ex.: Possível acesso a dados básicos de 12 titulares; sem acesso a credenciais."></textarea>
+          </div>
+        </div>
+
+        <div class="mst-form-section">Descrição</div>
+        <div class="mst-form-row">
+          <div>
+            <label class="mst-form-label">Descrição interna (DPO)</label>
+            <textarea name="descricao_interna" rows="3" class="mst-form-input" placeholder="Detalhes técnicos para a equipe..."></textarea>
+          </div>
+        </div>
+        <div class="mst-form-row">
+          <div>
+            <label class="mst-form-label">Descrição pública (sanitizada)</label>
+            <textarea name="descricao_publica" rows="3" class="mst-form-input" placeholder="Versão para titulares / ANPD — sem detalhes técnicos sensíveis."></textarea>
+          </div>
+        </div>
+        <div class="mst-form-row">
+          <div>
+            <label class="mst-form-label">Medidas imediatas (contenção)</label>
+            <textarea name="medidas_imediatas" rows="2" class="mst-form-input" placeholder="Ex.: Sessão revogada, MFA forçado, IP bloqueado."></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="mst-modal-footer">
+        <button type="button" class="btn-mst" onclick="closeModal('modalNewIncident')">Cancelar</button>
+        <button type="submit" class="btn-mst btn-mst-primary">Registrar Incidente</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
 const CSRF = '<?=htmlspecialchars($csrf)?>';
 const API  = '/sistema_vendas/public/api/master';
@@ -1338,7 +1519,9 @@ function notifyOk(msg) {
 }
 
 // ── Hash routing ─────────────────────────────────────────────────────────
-const TABS = ['overview','dashboard','accounts','plans','billing','invoices','payments','expenses','audit'];
+// Etapa 8 (LGPD): array atualizado com lgpd, retencao, incidents — antes faltavam
+// e o hash routing caía no fallback de 'overview' ao clicar nessas abas.
+const TABS = ['overview','dashboard','accounts','plans','billing','invoices','payments','expenses','audit','lgpd','retencao','incidents'];
 function activateTab(name) {
   if (!TABS.includes(name)) name = 'overview';
   document.querySelectorAll('.mst-tab').forEach(t => t.classList.toggle('active', t.dataset.mtab === name));
@@ -1357,6 +1540,7 @@ function loadTab(name) {
   if (name==='audit')     loadAudit();
   if (name==='lgpd')      loadLgpdRequests();
   if (name==='retencao')  loadRetention();
+  if (name==='incidents') loadIncidents();
 }
 document.querySelectorAll('.mst-tab').forEach(b => b.addEventListener('click', () => {
   window.location.hash = b.dataset.mtab;
@@ -3000,6 +3184,302 @@ async function runRetention(dry) {
   alert((dry ? 'Simulação concluída.' : 'Executado!') + '\n\n' + (r.data.log || []).join('\n'));
   loadRetention();
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Incidentes de Segurança (Etapa 8 — LGPD Art. 48)
+// ═══════════════════════════════════════════════════════════════════════════
+const INC_TIPO_LABEL = {
+  vazamento_dados:'Vazamento', acesso_indevido:'Acesso indevido', ransomware:'Ransomware',
+  phishing:'Phishing', dos_ddos:'DoS/DDoS', exposicao_credenciais:'Exposição cred.',
+  perda_dispositivo:'Perda disp.', engenharia_social:'Eng. social',
+  config_indevida:'Config. indevida', outro:'Outro',
+};
+const INC_STATUS_COLOR = {
+  detectado:'#f59e0b', em_analise:'#3b82f6', contido:'#a855f7',
+  mitigado:'#06b6d4', notificado_anpd:'#22d3ee', notificado_titulares:'#22d3ee',
+  encerrado:'#10b981', falso_positivo:'#94a3b8',
+};
+const INC_SEV_COLOR = {
+  critica:'#dc2626', alta:'#ef4444', media:'#f59e0b', baixa:'#94a3b8',
+};
+
+async function loadIncidents() {
+  const status     = document.getElementById('filterIncStatus').value;
+  const severidade = document.getElementById('filterIncSeveridade').value;
+  const tipo       = document.getElementById('filterIncTipo').value;
+  const abertos    = document.getElementById('filterIncAbertos').checked ? '1' : '';
+  const qs = new URLSearchParams();
+  if (status)     qs.set('status', status);
+  if (severidade) qs.set('severidade', severidade);
+  if (tipo)       qs.set('tipo', tipo);
+  if (abertos)    qs.set('abertos', '1');
+
+  const r = await fj(`${API}/incidents.php?${qs.toString()}`);
+  const tbody = document.getElementById('incidentsBody');
+  if (!r.ok || !Array.isArray(r.data)) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty">Erro ao carregar.</td></tr>';
+    return;
+  }
+  if (r.data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty">Nenhum incidente registrado com esses filtros.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = r.data.map(row => {
+    const sevColor = INC_SEV_COLOR[row.severidade] || '#94a3b8';
+    const stColor  = INC_STATUS_COLOR[row.status]  || '#94a3b8';
+    const notifAnpd = row.notificacao_anpd_em
+      ? `<span style="color:#10b981;font-size:.72rem" title="ANPD: ${fmtDateTime(row.notificacao_anpd_em)}">ANPD ✓</span>` : '';
+    const notifTit  = row.notificacao_titulares_em
+      ? `<span style="color:#10b981;font-size:.72rem" title="Titulares: ${fmtDateTime(row.notificacao_titulares_em)}">Tit. ✓</span>` : '';
+    return `<tr>
+      <td>#${row.id}</td>
+      <td><div style="font-weight:600">${escL(row.titulo)}</div></td>
+      <td style="font-size:.78rem">${escL(INC_TIPO_LABEL[row.tipo] || row.tipo)}</td>
+      <td><span style="padding:2px 9px;border-radius:999px;background:${sevColor}1f;border:1px solid ${sevColor}40;color:${sevColor};font-size:.72rem;font-weight:700;text-transform:uppercase">${escL(row.severidade)}</span></td>
+      <td style="font-size:.78rem">${row.account_id ? '#'+row.account_id+' '+escL(row.account_nome||'') : '<em style="color:#9ab0c9">Plataforma</em>'}</td>
+      <td style="font-size:.78rem">${fmtDateTime(row.detectado_em)}</td>
+      <td><span style="padding:3px 9px;border-radius:999px;background:${stColor}1f;border:1px solid ${stColor}40;color:${stColor};font-size:.72rem;font-weight:600">${escL(row.status)}</span></td>
+      <td style="display:flex;gap:6px">${notifAnpd}${notifTit}</td>
+      <td><button class="btn-mst" onclick="openIncidentDrawer(${row.id})">Abrir</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function openNewIncident() {
+  // Pré-preenche detectado_em com agora (formato datetime-local)
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const local = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  document.querySelector('#formNewIncident [name="detectado_em"]').value = local;
+  document.getElementById('formNewIncident').reset();
+  document.querySelector('#formNewIncident [name="detectado_em"]').value = local;
+  document.querySelector('#formNewIncident [name="severidade"]').value = 'media';
+  openModal('modalNewIncident');
+}
+
+async function submitNewIncident(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  const fd = new FormData(f);
+  // Coleta categorias selecionadas no checkbox-group
+  const categorias = [];
+  ['pii_basica','documentos','financeiro','juridico','autenticacao','comunicacoes','dados_sensiveis']
+    .forEach(c => { if (fd.get('cat_'+c)) categorias.push(c); });
+  const dadosAfetados = {
+    categorias,
+    titulares_estimados: parseInt(fd.get('titulares_estimados')||'0', 10),
+    registros: parseInt(fd.get('registros')||'0', 10),
+  };
+  const body = {
+    csrf_token: CSRF,
+    titulo: fd.get('titulo'),
+    tipo: fd.get('tipo'),
+    severidade: fd.get('severidade'),
+    account_id: fd.get('account_id') ? parseInt(fd.get('account_id'),10) : null,
+    detectado_em: (fd.get('detectado_em')||'').replace('T',' ') + ':00',
+    ocorrido_em: fd.get('ocorrido_em') ? fd.get('ocorrido_em').replace('T',' ')+':00' : null,
+    impacto: fd.get('impacto'),
+    descricao_interna: fd.get('descricao_interna'),
+    descricao_publica: fd.get('descricao_publica'),
+    medidas_imediatas: fd.get('medidas_imediatas'),
+    dados_afetados: dadosAfetados,
+  };
+  const r = await fj(`${API}/incidents.php`, {
+    method:'POST', body: JSON.stringify(body)
+  });
+  if (!r.ok) return notifyErr(r.error || 'Erro');
+  notifyOk('Incidente #' + r.data.id + ' registrado');
+  closeModal('modalNewIncident');
+  loadIncidents();
+  refreshIncidentBadge();
+}
+
+async function openIncidentDrawer(id) {
+  const r = await fj(`${API}/incidents.php?id=${id}`);
+  if (!r.ok) return notifyErr(r.error || 'Erro');
+  const { incident: inc, eventos, public_report } = r.data;
+
+  const eventosHtml = (eventos || []).map(e => {
+    const stChange = (e.status_anterior && e.status_novo)
+      ? ` <span style="color:#9ab0c9">[${escL(e.status_anterior)} → ${escL(e.status_novo)}]</span>` : '';
+    return `<div style="padding:8px 0;border-bottom:1px solid rgba(160,180,210,.10)">
+      <div style="font-size:.85rem;color:#fff;font-weight:600">${escL(e.tipo_evento)}${stChange}</div>
+      ${e.descricao ? `<div style="font-size:.8rem;color:#cbd5e1;margin-top:2px">${escL(e.descricao)}</div>` : ''}
+      <div style="font-size:.72rem;color:#9ab0c9;margin-top:2px">
+        ${escL(fmtDateTime(e.created_at))}${e.user_nome ? ' · ' + escL(e.user_nome) : ' · sistema'}
+        ${e.request_id ? ' · req:' + escL(e.request_id) : ''}
+      </div>
+    </div>`;
+  }).join('') || '<div style="padding:10px;color:#9ab0c9">Sem eventos registrados.</div>';
+
+  const sevColor = INC_SEV_COLOR[inc.severidade] || '#94a3b8';
+  const stColor  = INC_STATUS_COLOR[inc.status]  || '#94a3b8';
+  const categoriasArr = (inc.dados_afetados && Array.isArray(inc.dados_afetados.categorias))
+    ? inc.dados_afetados.categorias : [];
+  const tit = (inc.dados_afetados && inc.dados_afetados.titulares_estimados) || '?';
+  const reg = (inc.dados_afetados && inc.dados_afetados.registros) || '?';
+
+  document.getElementById('incidentTitle').textContent =
+    `Incidente #${inc.id} — ${escL(inc.titulo)}`;
+
+  document.getElementById('incidentBody').innerHTML = `
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+      <span style="padding:3px 11px;border-radius:999px;background:${sevColor}1f;border:1px solid ${sevColor}40;color:${sevColor};font-size:.78rem;font-weight:700;text-transform:uppercase">SEV: ${escL(inc.severidade)}</span>
+      <span style="padding:3px 11px;border-radius:999px;background:${stColor}1f;border:1px solid ${stColor}40;color:${stColor};font-size:.78rem;font-weight:600">${escL(inc.status)}</span>
+      <span style="font-size:.78rem;color:#9ab0c9">${escL(INC_TIPO_LABEL[inc.tipo] || inc.tipo)}</span>
+      <span style="font-size:.78rem;color:#9ab0c9">·</span>
+      <span style="font-size:.78rem;color:#9ab0c9">${inc.account_id ? 'Conta #'+inc.account_id : 'Plataforma'}</span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;font-size:.82rem;color:#9ab0c9;margin-bottom:16px">
+      <div>Detectado: <strong style="color:#fff">${fmtDateTime(inc.detectado_em)}</strong></div>
+      <div>Ocorrido em: <strong style="color:#fff">${inc.ocorrido_em ? fmtDateTime(inc.ocorrido_em) : '—'}</strong></div>
+      <div>Contido em: <strong style="color:#fff">${inc.contido_em ? fmtDateTime(inc.contido_em) : '—'}</strong></div>
+      <div>Mitigado em: <strong style="color:#fff">${inc.mitigado_em ? fmtDateTime(inc.mitigado_em) : '—'}</strong></div>
+      <div>Encerrado em: <strong style="color:#fff">${inc.encerrado_em ? fmtDateTime(inc.encerrado_em) : '—'}</strong></div>
+      <div>Reportado por: <strong style="color:#fff">${inc.reportado_por_user_id ? '#'+inc.reportado_por_user_id : '—'}</strong></div>
+    </div>
+
+    <h4 style="color:#fff;margin:14px 0 4px">Impacto avaliado</h4>
+    <div style="background:rgba(96,165,250,.05);padding:10px;border-radius:6px;color:#cbd5e1;font-size:.85rem">
+      <div><strong>Categorias:</strong> ${categoriasArr.length ? escL(categoriasArr.join(', ')) : '—'}</div>
+      <div><strong>Titulares estimados:</strong> ${escL(String(tit))} · <strong>Registros:</strong> ${escL(String(reg))}</div>
+      ${inc.impacto ? `<div style="margin-top:6px"><strong>Avaliação:</strong> ${escL(inc.impacto)}</div>` : ''}
+    </div>
+
+    ${inc.descricao_publica ? `<h4 style="color:#fff;margin:14px 0 4px">Descrição pública (titular/ANPD)</h4>
+      <div style="background:rgba(96,165,250,.05);padding:10px;border-radius:6px;white-space:pre-wrap;color:#cbd5e1">${escL(inc.descricao_publica)}</div>` : ''}
+
+    ${inc.descricao_interna ? `<h4 style="color:#fff;margin:14px 0 4px">Descrição interna (DPO)</h4>
+      <div style="background:rgba(239,68,68,.06);padding:10px;border-radius:6px;white-space:pre-wrap;color:#fca5a5;font-size:.85rem">${escL(inc.descricao_interna)}</div>` : ''}
+
+    ${inc.medidas_imediatas ? `<h4 style="color:#fff;margin:14px 0 4px">Medidas imediatas</h4>
+      <div style="background:rgba(96,165,250,.05);padding:10px;border-radius:6px;white-space:pre-wrap;color:#cbd5e1">${escL(inc.medidas_imediatas)}</div>` : ''}
+
+    ${inc.causa_raiz ? `<h4 style="color:#fff;margin:14px 0 4px">Causa raiz</h4>
+      <div style="background:rgba(96,165,250,.05);padding:10px;border-radius:6px;white-space:pre-wrap;color:#cbd5e1">${escL(inc.causa_raiz)}</div>` : ''}
+
+    ${inc.medidas_corretivas ? `<h4 style="color:#fff;margin:14px 0 4px">Medidas corretivas / lições aprendidas</h4>
+      <div style="background:rgba(96,165,250,.05);padding:10px;border-radius:6px;white-space:pre-wrap;color:#cbd5e1">${escL(inc.medidas_corretivas)}</div>` : ''}
+
+    <h4 style="color:#fff;margin:18px 0 8px">Timeline (eventos imutáveis)</h4>
+    <div style="background:rgba(8,12,24,.4);border:1px solid rgba(160,180,210,.10);border-radius:6px;padding:6px 14px;max-height:230px;overflow-y:auto">${eventosHtml}</div>
+
+    <h4 style="color:#fff;margin:18px 0 6px">Notificações (Art. 48)</h4>
+    <div style="background:rgba(96,165,250,.05);padding:10px;border-radius:6px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <div style="flex:1;min-width:280px">
+        <div style="font-size:.78rem;color:#9ab0c9">ANPD: ${inc.notificacao_anpd_em
+          ? '<strong style="color:#10b981">notificada em '+fmtDateTime(inc.notificacao_anpd_em)+'</strong>'
+            + (inc.notificacao_anpd_protocolo ? ' · protocolo '+escL(inc.notificacao_anpd_protocolo) : '')
+          : '<strong style="color:#f59e0b">não notificada</strong>'}</div>
+        <div style="font-size:.78rem;color:#9ab0c9;margin-top:3px">Titulares: ${inc.notificacao_titulares_em
+          ? '<strong style="color:#10b981">notificados em '+fmtDateTime(inc.notificacao_titulares_em)+'</strong>'
+            + (inc.notificacao_titulares_canal ? ' via '+escL(inc.notificacao_titulares_canal) : '')
+          : '<strong style="color:#f59e0b">não notificados</strong>'}</div>
+      </div>
+      ${!inc.notificacao_anpd_em ? `<button class="btn-mst" onclick="notifyAnpd(${inc.id})">Marcar Notificação ANPD</button>` : ''}
+      ${!inc.notificacao_titulares_em ? `<button class="btn-mst" onclick="notifyHolders(${inc.id})">Marcar Notificação Titulares</button>` : ''}
+    </div>
+
+    <h4 style="color:#fff;margin:18px 0 6px">Atualizar status</h4>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+      <button class="btn-mst" onclick="updateIncidentStatus(${inc.id},'em_analise')">Em análise</button>
+      <button class="btn-mst" onclick="updateIncidentStatus(${inc.id},'contido')">Contido</button>
+      <button class="btn-mst" onclick="updateIncidentStatus(${inc.id},'mitigado')">Mitigado</button>
+      <button class="btn-mst" style="background:linear-gradient(135deg,#94a3b8,#64748b);color:#fff;border:none" onclick="updateIncidentStatus(${inc.id},'falso_positivo')">Falso positivo</button>
+      <button class="btn-mst btn-mst-primary" onclick="updateIncidentStatus(${inc.id},'encerrado')">Encerrar</button>
+    </div>
+
+    <h4 style="color:#fff;margin:18px 0 6px">Adicionar comentário ao timeline</h4>
+    <div style="display:flex;gap:6px">
+      <input id="incCommentTxt" type="text" placeholder="Comentário..." style="flex:1;padding:6px 10px;border-radius:6px;background:rgba(5,18,39,.6);border:1px solid rgba(160,180,210,.18);color:#fff;font:inherit">
+      <button class="btn-mst" onclick="addIncidentEvent(${inc.id})">Adicionar</button>
+    </div>
+
+    <details style="margin-top:18px">
+      <summary style="cursor:pointer;color:#7eb8f7;font-size:.85rem">Ver relatório público gerado (JSON)</summary>
+      <pre style="background:rgba(8,12,24,.5);padding:10px;border-radius:6px;color:#cbd5e1;font-size:.78rem;overflow-x:auto;margin-top:8px">${escL(JSON.stringify(public_report, null, 2))}</pre>
+    </details>
+  `;
+  openModal('modalIncident');
+}
+
+async function updateIncidentStatus(id, status) {
+  if (!confirm(`Alterar status do incidente #${id} para "${status}"?`)) return;
+  const r = await fj(`${API}/incidents.php`, {
+    method:'PATCH', body: JSON.stringify({ csrf_token: CSRF, id, status })
+  });
+  if (!r.ok) return notifyErr(r.error || 'Erro');
+  notifyOk('Status atualizado');
+  openIncidentDrawer(id);
+  loadIncidents();
+  refreshIncidentBadge();
+}
+
+async function notifyAnpd(id) {
+  const protocolo = prompt('Protocolo da notificação à ANPD (opcional):', '');
+  if (protocolo === null) return;
+  const r = await fj(`${API}/incidents.php?action=notify_anpd`, {
+    method:'POST', body: JSON.stringify({ csrf_token: CSRF, id, protocolo })
+  });
+  if (!r.ok) return notifyErr(r.error || 'Erro');
+  notifyOk('Notificação ANPD registrada');
+  openIncidentDrawer(id);
+  refreshIncidentBadge();
+}
+
+async function notifyHolders(id) {
+  const canal = prompt('Canal usado para notificar titulares (email | telefone | aviso_publico | in_app):', 'email');
+  if (canal === null) return;
+  const r = await fj(`${API}/incidents.php?action=notify_holders`, {
+    method:'POST', body: JSON.stringify({ csrf_token: CSRF, id, canal })
+  });
+  if (!r.ok) return notifyErr(r.error || 'Erro');
+  notifyOk('Notificação aos titulares registrada');
+  openIncidentDrawer(id);
+  refreshIncidentBadge();
+}
+
+async function addIncidentEvent(id) {
+  const txt = document.getElementById('incCommentTxt').value.trim();
+  if (!txt) return notifyErr('Digite um comentário');
+  const r = await fj(`${API}/incidents.php?action=add_event`, {
+    method:'POST', body: JSON.stringify({
+      csrf_token: CSRF, id, tipo_evento: 'comentario', descricao: txt
+    })
+  });
+  if (!r.ok) return notifyErr(r.error || 'Erro');
+  notifyOk('Comentário adicionado');
+  openIncidentDrawer(id);
+}
+
+async function refreshIncidentBadge() {
+  try {
+    const r = await fj(`${API}/incidents.php?counts=1`);
+    if (!r.ok) return;
+    const badge = document.getElementById('incidentBadge');
+    const abertos  = (r.data && r.data.abertos) || 0;
+    const criticos = (r.data && r.data.criticos_abertos) || 0;
+    const notifPend = (r.data && r.data.notificacao_pendente) || 0;
+    if (abertos > 0) {
+      badge.style.display = 'inline-block';
+      badge.textContent = abertos;
+      badge.style.background = (criticos > 0 || notifPend > 0) ? '#dc2626' : '#f59e0b';
+      badge.title = `${abertos} abertos · ${criticos} críticos · ${notifPend} pend. notificação`;
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch (_) {}
+}
+
+// Auto-atualiza badge a cada 60s
+refreshIncidentBadge();
+setInterval(refreshIncidentBadge, 60000);
+
+document.getElementById('filterIncStatus').addEventListener('change', loadIncidents);
+document.getElementById('filterIncSeveridade').addEventListener('change', loadIncidents);
+document.getElementById('filterIncTipo').addEventListener('change', loadIncidents);
+document.getElementById('filterIncAbertos').addEventListener('change', loadIncidents);
 
 // ── Init ─────────────────────────────────────────────────────────────────
 const initialHash = (window.location.hash || '').replace('#','') || 'overview';
