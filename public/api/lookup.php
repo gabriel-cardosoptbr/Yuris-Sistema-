@@ -22,7 +22,30 @@ use App\Helpers\AccountContext;
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 
-AccountContext::fromSession();  // exige sessão válida
+$ctx = AccountContext::fromSession();  // exige sessão válida
+
+// ─── LGPD P1 (2C.1) — rate limit anti-enumeração ────────────────────────────
+// Antes, lookup retornava email/nome/conta de qualquer advogado dado o código
+// ADV-XXXXXX (6 chars = 16M combinações = ~24h de brute-force). Atacante
+// poderia coletar todos os emails da plataforma.
+// Mitigações aplicadas:
+//   • Rate limit por sessão: 30 lookups/min (suficiente pra UI legítima)
+//   • Resposta minimal: id + tipo + nome ABREVIADO (primeiro nome + inicial)
+//     — sem email, sem account_nome, sem account_tipo. Bastante pra a UI
+//     confirmar "achei o advogado", sem permitir coleta automatizada.
+$now = time();
+$bucket = $_SESSION['_lookup_bucket'] ?? ['start' => $now, 'count' => 0];
+if ($now - (int)$bucket['start'] > 60) {
+    $bucket = ['start' => $now, 'count' => 0];
+}
+$bucket['count']++;
+$_SESSION['_lookup_bucket'] = $bucket;
+if ($bucket['count'] > 30) {
+    http_response_code(429);
+    echo json_encode(['error' => 'Muitas consultas. Aguarde 1 minuto.']);
+    exit;
+}
+// ────────────────────────────────────────────────────────────────────────────
 
 $codigo = trim($_GET['codigo'] ?? '');
 if ($codigo === '') {
@@ -68,16 +91,19 @@ $stmt = $pdo->prepare(
 $stmt->execute(['codigo' => $codigo]);
 $adv = $stmt->fetch(\PDO::FETCH_ASSOC);
 if ($adv) {
+    // P1 LGPD (2C.1): resposta minimal — só o suficiente pra UI confirmar
+    // identificação. NÃO retorna email, account_nome, account_tipo (eram
+    // exposições para enumeração).
+    // Nome é abreviado: "Silvana Monteiro" → "Silvana M."
+    $parts = preg_split('/\s+/', trim((string)$adv['nome']));
+    $nomeAbrev = (string)($parts[0] ?? '');
+    if (isset($parts[1])) $nomeAbrev .= ' ' . mb_strtoupper(mb_substr($parts[1], 0, 1)) . '.';
     echo json_encode([
         'tipo' => 'advogado',
         'data' => [
             'user_id'         => (int)$adv['id'],
-            'nome'            => $adv['nome'],
-            'email'           => $adv['login'],
+            'nome'            => $nomeAbrev,
             'codigo_advogado' => $adv['codigo_advogado'],
-            'account_id'      => (int)$adv['account_id'],
-            'account_nome'    => $adv['account_nome'],
-            'account_tipo'    => $adv['account_tipo'],
         ],
     ]);
     exit;

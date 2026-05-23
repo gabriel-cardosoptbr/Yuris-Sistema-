@@ -281,12 +281,27 @@ class EvolutionApiService
             $headers[] = 'apikey: ' . $this->apiKey;
         }
 
+        // ─── LGPD P1 (2C.4) — TLS verify configurável via .env ────────────────
+        // Antes desta correção, CURLOPT_SSL_VERIFYPEER era SEMPRE false —
+        // chamadas à Evolution API ficavam vulneráveis a MITM (interceptação
+        // de tokens, mídia, mensagens). Agora padrão é TRUE; só desliga via
+        // EVOLUTION_TLS_VERIFY=false no .env (cenários dev com cert self-signed).
+        // Em prod sempre TRUE.
+        if (!class_exists('App\\Helpers\\EnvLoader')) {
+            require_once __DIR__ . '/../Helpers/EnvLoader.php';
+        }
+        \App\Helpers\EnvLoader::load();
+        $tlsVerifySetting = strtolower(\App\Helpers\EnvLoader::get('EVOLUTION_TLS_VERIFY', 'true'));
+        $tlsVerify        = !in_array($tlsVerifySetting, ['false','0','no','off'], true);
+
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT        => $this->timeout,
             CURLOPT_HTTPHEADER     => $headers,
-            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYPEER => $tlsVerify,
+            CURLOPT_SSL_VERIFYHOST => $tlsVerify ? 2 : 0,
         ]);
+        // ──────────────────────────────────────────────────────────────────────
 
         switch (strtoupper($method)) {
             case 'POST':
