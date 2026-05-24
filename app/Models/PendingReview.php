@@ -50,28 +50,30 @@ final class PendingReview
         $w = [];
         $p = [];
 
+        // IMPORTANTE: prefixo "pr." obrigatorio — tabela users (JOIN) tambem
+        // tem coluna "status", causa "Column 'status' in where clause is ambiguous"
         if (!empty($f['status']) && in_array($f['status'], self::STATUSES, true)) {
-            $w[] = 'status = :st';
+            $w[] = 'pr.status = :st';
             $p['st'] = $f['status'];
         }
         if (!empty($f['categoria']) && in_array($f['categoria'], self::CATEGORIAS, true)) {
-            $w[] = 'categoria = :cat';
+            $w[] = 'pr.categoria = :cat';
             $p['cat'] = $f['categoria'];
         }
         if (!empty($f['prioridade']) && in_array($f['prioridade'], self::PRIORIDADES, true)) {
-            $w[] = 'prioridade = :pr';
+            $w[] = 'pr.prioridade = :pr';
             $p['pr'] = $f['prioridade'];
         }
         if (!empty($f['responsavel'])) {
-            $w[] = 'responsavel = :resp';
+            $w[] = 'pr.responsavel = :resp';
             $p['resp'] = $f['responsavel'];
         }
         if (isset($f['bloqueia']) && $f['bloqueia'] !== '') {
-            $w[] = 'bloqueia_producao = :bl';
+            $w[] = 'pr.bloqueia_producao = :bl';
             $p['bl'] = !empty($f['bloqueia']) ? 1 : 0;
         }
         if (!empty($f['q'])) {
-            $w[] = '(titulo LIKE :q OR descricao LIKE :q)';
+            $w[] = '(pr.titulo LIKE :q OR pr.descricao LIKE :q)';
             $p['q'] = '%' . $f['q'] . '%';
         }
 
