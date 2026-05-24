@@ -1589,6 +1589,134 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
   </div>
 </div>
 
+<!-- Modal: Editar Operador (dados completos) -->
+<div class="mst-modal-backdrop" id="modalEditOperator" onclick="if(event.target===this)closeModal('modalEditOperator')">
+  <div class="mst-modal lg">
+    <div class="mst-modal-header">
+      <h3 class="mst-modal-title" id="editOpTitle">Editar Operador</h3>
+      <button class="mst-modal-close" onclick="closeModal('modalEditOperator')">×</button>
+    </div>
+    <form id="formEditOperator" onsubmit="submitEditOperator(event)">
+      <input type="hidden" name="id" id="editOpId">
+      <div class="mst-modal-body">
+        <div class="mst-form-section">Identificação</div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Nome *</label><input name="nome" id="editOpNome" class="mst-form-input" required maxlength="150"></div>
+          <div>
+            <label class="mst-form-label">Categoria *</label>
+            <select name="categoria" id="editOpCategoria" class="mst-form-select" required>
+              <option value="api_externa">API externa</option>
+              <option value="hospedagem">Hospedagem</option>
+              <option value="cdn">CDN</option>
+              <option value="gateway_pagamento">Gateway pagamento</option>
+              <option value="smtp">SMTP</option>
+              <option value="llm_ia">LLM / IA</option>
+              <option value="monitoramento">Monitoramento</option>
+              <option value="suporte">Suporte</option>
+              <option value="analytics">Analytics</option>
+              <option value="backup">Backup</option>
+              <option value="outro">Outro</option>
+            </select>
+          </div>
+          <div>
+            <label class="mst-form-label">Papel</label>
+            <select name="papel" id="editOpPapel" class="mst-form-select">
+              <option value="operador">Operador</option>
+              <option value="suboperador">Suboperador</option>
+              <option value="controlador_conjunto">Controlador conjunto</option>
+            </select>
+          </div>
+        </div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">CNPJ / ID estrangeiro</label><input name="cnpj_ou_id" id="editOpCnpj" class="mst-form-input" maxlength="100"></div>
+          <div><label class="mst-form-label">País (ISO 3166-1 alpha-2)</label><input name="pais" id="editOpPais" class="mst-form-input" maxlength="2" placeholder="BR, US, DE..." style="text-transform:uppercase"></div>
+          <div><label class="mst-form-label">Contato DPO terceiro (e-mail)</label><input name="contato_dpo_terceiro" id="editOpDpoMail" type="email" class="mst-form-input"></div>
+        </div>
+
+        <div class="mst-form-section">Tratamento de dados</div>
+        <div class="mst-form-row">
+          <div>
+            <label class="mst-form-label">Categorias de dados tratados</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:.82rem;color:#cbd5e1">
+              <label><input type="checkbox" name="cat_pii_basica" id="editOpCatPii"> PII básica</label>
+              <label><input type="checkbox" name="cat_documentos" id="editOpCatDoc"> Documentos</label>
+              <label><input type="checkbox" name="cat_financeiro" id="editOpCatFin"> Financeiro</label>
+              <label><input type="checkbox" name="cat_juridico"   id="editOpCatJur"> Jurídico</label>
+              <label><input type="checkbox" name="cat_autenticacao" id="editOpCatAuth"> Autenticação</label>
+              <label><input type="checkbox" name="cat_comunicacoes" id="editOpCatCom"> Comunicações</label>
+              <label><input type="checkbox" name="cat_sensiveis"  id="editOpCatSens"> Sensíveis</label>
+            </div>
+          </div>
+        </div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Finalidade *</label><textarea name="finalidade" id="editOpFinalidade" rows="2" class="mst-form-input" required></textarea></div>
+        </div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Retenção pelo terceiro</label><input name="retencao_terceiro" id="editOpRetencao" class="mst-form-input"></div>
+        </div>
+
+        <div class="mst-form-section">Transferência internacional (Art. 33)</div>
+        <div class="mst-form-row">
+          <div>
+            <label class="mst-form-label">Há transferência internacional?</label>
+            <select name="transferencia_internacional" class="mst-form-select" id="editOpIntlSel" onchange="toggleBaseLegalEdit()">
+              <option value="0">Não</option>
+              <option value="1">Sim</option>
+            </select>
+          </div>
+          <div id="editOpBaseLegalWrap" style="display:none;flex:2">
+            <label class="mst-form-label">Base legal da transferência *</label>
+            <select name="base_legal_transferencia" id="editOpBaseLegal" class="mst-form-select">
+              <option value="">Selecione...</option>
+              <option value="clausulas_contratuais_padrao">Cláusulas contratuais padrão</option>
+              <option value="regras_corporativas_globais">Regras corporativas globais</option>
+              <option value="decisao_anpd_adequacao">Decisão ANPD (adequação)</option>
+              <option value="autorizacao_anpd_especifica">Autorização ANPD específica</option>
+              <option value="cooperacao_juridica_internacional">Cooperação jurídica internacional</option>
+              <option value="protecao_vida">Proteção da vida</option>
+              <option value="cumprimento_obrigacao_legal">Cumprimento obrigação legal</option>
+              <option value="execucao_contrato_titular">Execução de contrato com titular</option>
+              <option value="consentimento_especifico">Consentimento específico</option>
+              <option value="garantias_outras">Outras garantias</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mst-form-section">DPA (Art. 39)</div>
+        <div class="mst-form-row">
+          <div>
+            <label class="mst-form-label">Status DPA</label>
+            <select name="dpa_status" id="editOpDpaStatus" class="mst-form-select">
+              <option value="pendente">Pendente</option>
+              <option value="em_negociacao">Em negociação</option>
+              <option value="assinado">Assinado</option>
+              <option value="dispensado">Dispensado</option>
+              <option value="vencido">Vencido</option>
+              <option value="rejeitado">Rejeitado</option>
+            </select>
+          </div>
+          <div><label class="mst-form-label">Assinado em</label><input name="dpa_assinado_em" id="editOpDpaAss" type="date" class="mst-form-input"></div>
+          <div><label class="mst-form-label">Validade</label><input name="dpa_validade" id="editOpDpaVal" type="date" class="mst-form-input"></div>
+        </div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">URL/Path do PDF</label><input name="dpa_url" id="editOpDpaUrl" class="mst-form-input"></div>
+          <div><label class="mst-form-label">URL Política Privacidade</label><input name="url_politica_privacidade" id="editOpUrlPriv" class="mst-form-input"></div>
+        </div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Certificações</label><input name="certificacoes" id="editOpCert" class="mst-form-input"></div>
+        </div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Notas</label><textarea name="notas" id="editOpNotas" rows="2" class="mst-form-input"></textarea></div>
+        </div>
+      </div>
+      <div class="mst-modal-footer">
+        <button type="button" class="btn-mst" onclick="closeModal('modalEditOperator')">Cancelar</button>
+        <button type="submit" class="btn-mst btn-mst-primary">Salvar alterações</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Modal: Novo Incidente -->
 <div class="mst-modal-backdrop" id="modalNewIncident" onclick="if(event.target===this)closeModal('modalNewIncident')">
   <div class="mst-modal lg">
@@ -4194,6 +4322,104 @@ async function submitNewOperator(ev) {
   refreshOperatorsBadge();
 }
 
+// ── Editar operador existente ──────────────────────────────────────────────
+function toggleBaseLegalEdit() {
+  const v = document.getElementById('editOpIntlSel').value;
+  document.getElementById('editOpBaseLegalWrap').style.display = (v === '1') ? 'block' : 'none';
+}
+
+async function openEditOperator(id) {
+  const r = await fj(`${API}/processors.php?id=${id}`);
+  if (!r.ok) return notifyErr(r.error || 'Erro ao carregar operador');
+  const p = r.data.processor;
+
+  // Pre-preenche o form com dados atuais
+  document.getElementById('editOpId').value          = p.id;
+  document.getElementById('editOpTitle').textContent = `Editar Operador #${p.id} — ${p.nome}`;
+  document.getElementById('editOpNome').value        = p.nome || '';
+  document.getElementById('editOpCategoria').value   = p.categoria || 'outro';
+  document.getElementById('editOpPapel').value       = p.papel || 'operador';
+  document.getElementById('editOpCnpj').value        = p.cnpj_ou_id || '';
+  document.getElementById('editOpPais').value        = p.pais || '';
+  document.getElementById('editOpDpoMail').value     = p.contato_dpo_terceiro || '';
+  document.getElementById('editOpFinalidade').value  = p.finalidade || '';
+  document.getElementById('editOpRetencao').value    = p.retencao_terceiro || '';
+  document.getElementById('editOpIntlSel').value     = (p.transferencia_internacional == 1) ? '1' : '0';
+  document.getElementById('editOpBaseLegal').value   = p.base_legal_transferencia || '';
+  document.getElementById('editOpDpaStatus').value   = p.dpa_status || 'pendente';
+  document.getElementById('editOpDpaAss').value      = p.dpa_assinado_em || '';
+  document.getElementById('editOpDpaVal').value      = p.dpa_validade || '';
+  document.getElementById('editOpDpaUrl').value      = p.dpa_url || '';
+  document.getElementById('editOpUrlPriv').value     = p.url_politica_privacidade || '';
+  document.getElementById('editOpCert').value        = p.certificacoes || '';
+  document.getElementById('editOpNotas').value       = p.notas || '';
+
+  // Categorias de dados (JSON ja decodificado pelo Model)
+  const cats = (p.dados_tratados && Array.isArray(p.dados_tratados.categorias))
+             ? p.dados_tratados.categorias : [];
+  const catMap = {
+    pii_basica:'editOpCatPii', documentos:'editOpCatDoc', financeiro:'editOpCatFin',
+    juridico:'editOpCatJur', autenticacao:'editOpCatAuth',
+    comunicacoes:'editOpCatCom', sensiveis:'editOpCatSens',
+  };
+  Object.keys(catMap).forEach(k => {
+    const el = document.getElementById(catMap[k]);
+    if (el) el.checked = cats.includes(k);
+  });
+
+  toggleBaseLegalEdit();
+  openModal('modalEditOperator');
+}
+
+async function submitEditOperator(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  const fd = new FormData(f);
+  const id = parseInt(fd.get('id'), 10);
+  if (!id) return notifyErr('id ausente');
+
+  // Coleta categorias marcadas (mesma logica do submitNewOperator)
+  const cats = [];
+  ['pii_basica','documentos','financeiro','juridico','autenticacao','comunicacoes','sensiveis']
+    .forEach(c => { if (fd.get('cat_'+c)) cats.push(c); });
+
+  const intl = fd.get('transferencia_internacional') === '1';
+  const body = {
+    csrf_token: CSRF,
+    id,
+    nome: fd.get('nome'),
+    categoria: fd.get('categoria'),
+    papel: fd.get('papel') || 'operador',
+    cnpj_ou_id: fd.get('cnpj_ou_id') || null,
+    pais: (fd.get('pais')||'').toUpperCase() || null,
+    contato_dpo_terceiro: fd.get('contato_dpo_terceiro') || null,
+    dados_tratados: { categorias: cats },
+    finalidade: fd.get('finalidade'),
+    retencao_terceiro: fd.get('retencao_terceiro') || null,
+    transferencia_internacional: intl,
+    base_legal_transferencia: intl
+      ? (fd.get('base_legal_transferencia') || null)
+      : 'nao_aplicavel',
+    dpa_status: fd.get('dpa_status'),
+    dpa_assinado_em: fd.get('dpa_assinado_em') || null,
+    dpa_validade: fd.get('dpa_validade') || null,
+    dpa_url: fd.get('dpa_url') || null,
+    url_politica_privacidade: fd.get('url_politica_privacidade') || null,
+    certificacoes: fd.get('certificacoes') || null,
+    notas: fd.get('notas') || null,
+  };
+
+  const r = await fj(`${API}/processors.php`, {
+    method:'PATCH', body: JSON.stringify(body)
+  });
+  if (!r.ok) return notifyErr(r.error || 'Erro ao salvar');
+  notifyOk('Operador atualizado');
+  closeModal('modalEditOperator');
+  openOperatorDrawer(id);   // refresh drawer
+  loadOperators();          // refresh tabela
+  refreshOperatorsBadge();
+}
+
 async function openOperatorDrawer(id) {
   const r = await fj(`${API}/processors.php?id=${id}`);
   if (!r.ok) return notifyErr(r.error || 'Erro');
@@ -4257,6 +4483,7 @@ async function openOperatorDrawer(id) {
 
     <h4 style="color:#fff;margin:18px 0 6px">Ações</h4>
     <div style="background:rgba(96,165,250,.05);padding:10px;border-radius:6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="btn-mst" style="background:rgba(96,165,250,.18);color:#7eb8f7;border-color:rgba(96,165,250,.40)" onclick="openEditOperator(${p.id})">Editar dados</button>
       ${p.dpa_status !== 'assinado' ? `<button class="btn-mst btn-mst-primary" onclick="signDpa(${p.id})">Marcar DPA Assinado</button>` : ''}
       ${p.dpa_status === 'pendente' ? `<button class="btn-mst" onclick="updateOperatorStatus(${p.id},'em_negociacao')">Em negociação</button>` : ''}
       <button class="btn-mst" onclick="updateOperatorStatus(${p.id},'dispensado','DPA dispensado por dispensa legal (ex.: open-source self-hosted, dispensa contratual)')">Dispensar</button>
