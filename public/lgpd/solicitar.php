@@ -4,6 +4,9 @@
  *
  * Qualquer titular (logado ou não) abre solicitação aqui. Sistema gera token,
  * notifica DPO via Mailer (driver atual = log), e devolve link de acompanhamento.
+ *
+ * Visual: usa classes utilitárias do legal_page.php que respondem ao tema
+ * (claro/escuro via localStorage).
  */
 $LEGAL_PAGE = [
     'titulo'    => 'Solicitação de Direitos LGPD',
@@ -24,29 +27,29 @@ $LEGAL_PAGE = [
 <p>Após o envio, você receberá um <strong>link único de acompanhamento</strong>. Guarde-o — é a forma de verificar o status sem precisar criar conta.</p>
 <p>Prazo de resposta: até <strong>15 dias corridos</strong> (LGPD Art. 19), prorrogável em casos complexos.</p>
 
-<form id="lgpdForm" style="display:flex;flex-direction:column;gap:14px;margin-top:24px" autocomplete="off">
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
-    <label style="display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:#cbd5e1">
+<form id="lgpdForm" class="legal-form" autocomplete="off">
+  <div class="legal-form-grid">
+    <label class="legal-field">
       Nome completo *
-      <input name="titular_nome" required style="padding:9px 12px;border:1px solid rgba(96,165,250,.25);border-radius:7px;background:rgba(8,12,24,.7);color:#fff;font:inherit">
+      <input name="titular_nome" required class="legal-input">
     </label>
-    <label style="display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:#cbd5e1">
+    <label class="legal-field">
       E-mail *
-      <input name="titular_email" type="email" required style="padding:9px 12px;border:1px solid rgba(96,165,250,.25);border-radius:7px;background:rgba(8,12,24,.7);color:#fff;font:inherit">
+      <input name="titular_email" type="email" required class="legal-input">
     </label>
-    <label style="display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:#cbd5e1">
+    <label class="legal-field">
       CPF (opcional)
-      <input name="titular_cpf" placeholder="000.000.000-00" style="padding:9px 12px;border:1px solid rgba(96,165,250,.25);border-radius:7px;background:rgba(8,12,24,.7);color:#fff;font:inherit">
+      <input name="titular_cpf" placeholder="000.000.000-00" class="legal-input">
     </label>
-    <label style="display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:#cbd5e1">
+    <label class="legal-field">
       Telefone (opcional)
-      <input name="titular_telefone" placeholder="(11) 99999-9999" style="padding:9px 12px;border:1px solid rgba(96,165,250,.25);border-radius:7px;background:rgba(8,12,24,.7);color:#fff;font:inherit">
+      <input name="titular_telefone" placeholder="(11) 99999-9999" class="legal-input">
     </label>
   </div>
 
-  <label style="display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:#cbd5e1">
+  <label class="legal-field">
     Tipo da solicitação *
-    <select name="tipo" required style="padding:9px 12px;border:1px solid rgba(96,165,250,.25);border-radius:7px;background:rgba(8,12,24,.7);color:#fff;font:inherit">
+    <select name="tipo" required class="legal-input">
       <option value="">— escolha —</option>
       <option value="confirmacao_existencia">Confirmar existência de tratamento</option>
       <option value="acesso">Acessar meus dados</option>
@@ -61,21 +64,22 @@ $LEGAL_PAGE = [
     </select>
   </label>
 
-  <label style="display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:#cbd5e1">
+  <label class="legal-field">
     Descrição (detalhes da solicitação)
-    <textarea name="descricao" rows="4" placeholder="Ex: Quero saber quais dos meus dados estão registrados nos sistemas do escritório XYZ." style="padding:9px 12px;border:1px solid rgba(96,165,250,.25);border-radius:7px;background:rgba(8,12,24,.7);color:#fff;font:inherit;resize:vertical"></textarea>
+    <textarea name="descricao" rows="4" class="legal-input"
+              placeholder="Ex: Quero saber quais dos meus dados estão registrados nos sistemas do escritório XYZ."></textarea>
   </label>
 
-  <label style="display:flex;align-items:flex-start;gap:8px;font-size:.84rem;color:#cbd5e1;cursor:pointer">
+  <label class="legal-field-row">
     <input type="checkbox" name="aceito_tratamento" required style="margin-top:3px">
     <span>
       Autorizo o tratamento dos dados pessoais informados nesta solicitação <strong>exclusivamente para responder a este pedido</strong>,
-      conforme nossa <a href="/sistema_vendas/public/privacidade.php" target="_blank" style="color:#7eb8f7">Política de Privacidade</a>.
+      conforme nossa <a href="/sistema_vendas/public/privacidade.php">Política de Privacidade</a>.
       Estes dados serão usados para identificar você e processar o pedido — não serão utilizados para outras finalidades.
     </span>
   </label>
 
-  <button type="submit" id="submitBtn" style="padding:12px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:.92rem;cursor:pointer">Enviar solicitação</button>
+  <button type="submit" id="submitBtn" class="legal-btn-primary">Enviar solicitação</button>
   <div id="formAlert"></div>
 </form>
 
@@ -99,20 +103,20 @@ document.getElementById('lgpdForm').addEventListener('submit', async (ev) => {
     });
     const j = await r.json();
     if (!j.ok) {
-      out.innerHTML = '<div style="padding:12px;background:rgba(239,68,68,.13);border:1px solid rgba(239,68,68,.30);color:#fca5a5;border-radius:8px;margin-top:8px">Erro: ' + (j.error || 'desconhecido') + '</div>';
+      out.innerHTML = '<div class="legal-alert legal-alert-error">Erro: ' + (j.error || 'desconhecido') + '</div>';
       btn.disabled = false; btn.textContent = 'Enviar solicitação';
       return;
     }
     const link = j.data.acompanhamento;
-    out.innerHTML = '<div style="padding:14px;background:rgba(16,185,129,.13);border:1px solid rgba(16,185,129,.30);color:#a7f3d0;border-radius:8px;margin-top:12px">'
+    out.innerHTML = '<div class="legal-alert legal-alert-success">'
       + '<strong>Solicitação registrada!</strong> Prazo de resposta: ' + j.data.prazo_dias + ' dias corridos.<br><br>'
       + '<strong>Link de acompanhamento (guarde este link):</strong><br>'
-      + '<a href="' + link + '" style="color:#7eb8f7;word-break:break-all">' + window.location.origin + link + '</a><br><br>'
+      + '<a href="' + link + '" style="word-break:break-all">' + window.location.origin + link + '</a><br><br>'
       + 'Você também pode reabrir esta página a qualquer momento e usar o link para verificar o status.'
       + '</div>';
     form.style.display = 'none';
   } catch (e) {
-    out.innerHTML = '<div style="padding:12px;background:rgba(239,68,68,.13);border:1px solid rgba(239,68,68,.30);color:#fca5a5;border-radius:8px;margin-top:8px">Erro de rede: ' + e.message + '</div>';
+    out.innerHTML = '<div class="legal-alert legal-alert-error">Erro de rede: ' + e.message + '</div>';
     btn.disabled = false; btn.textContent = 'Enviar solicitação';
   }
 });
