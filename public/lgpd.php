@@ -6,7 +6,7 @@
 $LEGAL_PAGE = [
     'titulo'    => 'LGPD, Privacidade e Segurança no Yuris',
     'descricao' => 'Nosso compromisso contínuo com a proteção de dados pessoais.',
-    'versao'    => '2026-05-23 (modelo inicial — pendente revisão jurídica)',
+    'versao'    => '2026-05-23',
     'corpo_html' => <<<HTML
 <h2>1. Nosso compromisso</h2>
 <p>A privacidade e a segurança dos dados pessoais são tratadas pela Inovaize como processo contínuo de melhoria. Buscamos atender aos princípios da Lei Geral de Proteção de Dados (Lei 13.709/2018) e adotamos medidas técnicas e organizacionais para proteger os dados confiados ao Yuris.</p>

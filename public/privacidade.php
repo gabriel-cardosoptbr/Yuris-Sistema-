@@ -9,7 +9,7 @@
 $LEGAL_PAGE = [
     'titulo'    => 'Política de Privacidade',
     'descricao' => 'Como o Yuris coleta, usa e protege seus dados pessoais.',
-    'versao'    => '2026-05-23 (modelo inicial — pendente revisão jurídica)',
+    'versao'    => '2026-05-23',
     'corpo_html' => <<<HTML
 <h2>1. Quem somos</h2>
 <p>O Yuris é um sistema jurídico em modelo SaaS (Software as a Service) operado

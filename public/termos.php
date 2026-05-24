@@ -6,7 +6,7 @@
 $LEGAL_PAGE = [
     'titulo'    => 'Termos de Uso',
     'descricao' => 'Condições de utilização do sistema Yuris.',
-    'versao'    => '2026-05-23 (modelo inicial — pendente revisão jurídica)',
+    'versao'    => '2026-05-23',
     'corpo_html' => <<<HTML
 <h2>1. Aceitação</h2>
 <p>Ao criar conta, acessar ou utilizar o Yuris, você declara ter lido, entendido

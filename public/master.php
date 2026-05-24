@@ -289,6 +289,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
             'retencao'  => '<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>',
             'incidents' => '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
             'operators' => '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6"/><path d="M23 11h-6"/>',
+            'reviews'   => '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
         ];
         return '<svg ' . $base . '>' . ($paths[$key] ?? '') . '</svg>';
     };
@@ -307,6 +308,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
     <button class="mst-tab" data-mtab="retencao"><?= $_tabIco('retencao') ?>Retenção</button>
     <button class="mst-tab" data-mtab="incidents"><?= $_tabIco('incidents') ?>Incidentes <span id="incidentBadge" style="display:none;background:#ef4444;color:#fff;font-size:.7rem;padding:1px 7px;border-radius:999px;margin-left:5px;font-weight:700"></span></button>
     <button class="mst-tab" data-mtab="operators"><?= $_tabIco('operators') ?>Operadores <span id="operatorsBadge" style="display:none;background:#f59e0b;color:#fff;font-size:.7rem;padding:1px 7px;border-radius:999px;margin-left:5px;font-weight:700"></span></button>
+    <button class="mst-tab" data-mtab="reviews"><?= $_tabIco('reviews') ?>Revisões <span id="reviewsBadge" style="display:none;background:#dc2626;color:#fff;font-size:.7rem;padding:1px 7px;border-radius:999px;margin-left:5px;font-weight:700"></span></button>
   </div>
 
   <!-- ── Visão Geral ── -->
@@ -793,6 +795,53 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
       <table class="mst-tbl">
         <thead><tr><th>#</th><th>Nome</th><th>Categoria</th><th>País</th><th>Intl?</th><th>DPA</th><th>Assinado</th><th>Validade</th><th>Ações</th></tr></thead>
         <tbody id="operatorsBody"><tr><td colspan="9" class="empty">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── Revisões (uso INTERNO — pendências antes do go-live) ── -->
+  <section class="mst-section" id="msec-reviews">
+    <div class="mst-card" style="padding:0; overflow:hidden; margin-bottom:14px">
+      <div style="display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid rgba(160,180,210,.10); flex-wrap:wrap">
+        <div style="margin-right:auto">
+          <div style="font-weight:700">Revisões Internas (DPO / Diretoria)</div>
+          <div style="font-size:.74rem; color:#9ab0c9; margin-top:3px">
+            Pendências antes do go-live em produção. <strong>Visível apenas aqui</strong> — clientes nunca veem estes status. Itens com <span style="color:#dc2626;font-weight:700">bloqueador</span> impedem produção.
+          </div>
+        </div>
+        <select id="filterRevStatus" class="mst-form-select" style="width:auto;padding:6px 11px;font-size:.82rem">
+          <option value="">Todos status</option>
+          <option value="pendente" selected>Pendente</option>
+          <option value="em_revisao">Em revisão</option>
+          <option value="bloqueado">Bloqueado</option>
+          <option value="concluido">Concluído</option>
+          <option value="dispensado">Dispensado</option>
+        </select>
+        <select id="filterRevCategoria" class="mst-form-select" style="width:auto;padding:6px 11px;font-size:.82rem">
+          <option value="">Todas categorias</option>
+          <option value="documento_legal">Documentos legais</option>
+          <option value="operador_dpa">Operador/DPA</option>
+          <option value="configuracao_env">Configuração .env</option>
+          <option value="seguranca_tecnica">Segurança técnica</option>
+          <option value="treinamento">Treinamento</option>
+          <option value="auditoria_externa">Auditoria externa</option>
+          <option value="designacao_dpo">Designação DPO</option>
+          <option value="outro">Outro</option>
+        </select>
+        <select id="filterRevPrioridade" class="mst-form-select" style="width:auto;padding:6px 11px;font-size:.82rem">
+          <option value="">Todas prioridades</option>
+          <option value="critica">Crítica</option>
+          <option value="alta">Alta</option>
+          <option value="media">Média</option>
+          <option value="baixa">Baixa</option>
+        </select>
+        <label style="font-size:.82rem;color:#9ab0c9;display:flex;align-items:center;gap:5px">
+          <input type="checkbox" id="filterRevBloqueia"> Apenas bloqueadores
+        </label>
+      </div>
+      <table class="mst-tbl">
+        <thead><tr><th>#</th><th>Item</th><th>Categoria</th><th>Responsável</th><th>Prio.</th><th>Status</th><th>Bloq.</th><th>Ações</th></tr></thead>
+        <tbody id="reviewsBody"><tr><td colspan="8" class="empty">Carregando…</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -1392,6 +1441,17 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
   </div>
 </div>
 
+<!-- Modal: Revisão — detalhes -->
+<div class="mst-modal-backdrop" id="modalReview" onclick="if(event.target===this)closeModal('modalReview')">
+  <div class="mst-modal lg">
+    <div class="mst-modal-header">
+      <h3 class="mst-modal-title" id="reviewTitle">Item de Revisão</h3>
+      <button class="mst-modal-close" onclick="closeModal('modalReview')">×</button>
+    </div>
+    <div class="mst-modal-body" id="reviewBody" style="max-height:78vh;overflow-y:auto"></div>
+  </div>
+</div>
+
 <!-- Modal: Operador — detalhes -->
 <div class="mst-modal-backdrop" id="modalOperator" onclick="if(event.target===this)closeModal('modalOperator')">
   <div class="mst-modal lg">
@@ -1709,7 +1769,7 @@ function notifyOk(msg) {
 // ── Hash routing ─────────────────────────────────────────────────────────
 // Etapa 8 (LGPD): array atualizado com lgpd, retencao, incidents — antes faltavam
 // e o hash routing caía no fallback de 'overview' ao clicar nessas abas.
-const TABS = ['overview','dashboard','accounts','plans','billing','invoices','payments','expenses','audit','lgpd','retencao','incidents','operators'];
+const TABS = ['overview','dashboard','accounts','plans','billing','invoices','payments','expenses','audit','lgpd','retencao','incidents','operators','reviews'];
 function activateTab(name) {
   if (!TABS.includes(name)) name = 'overview';
   document.querySelectorAll('.mst-tab').forEach(t => t.classList.toggle('active', t.dataset.mtab === name));
@@ -1730,6 +1790,7 @@ function loadTab(name) {
   if (name==='retencao')  loadRetention();
   if (name==='incidents') loadIncidents();
   if (name==='operators') loadOperators();
+  if (name==='reviews')   loadReviews();
 }
 document.querySelectorAll('.mst-tab').forEach(b => b.addEventListener('click', () => {
   window.location.hash = b.dataset.mtab;
@@ -3984,6 +4045,156 @@ document.getElementById('filterOpCategoria').addEventListener('change', loadOper
 document.getElementById('filterOpDpa').addEventListener('change', loadOperators);
 document.getElementById('filterOpIntl').addEventListener('change', loadOperators);
 document.getElementById('filterOpAtivos').addEventListener('change', loadOperators);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Revisões Internas — pendências antes do go-live (uso DPO/Diretoria)
+// Migration 056 + tabela pending_reviews
+// ═══════════════════════════════════════════════════════════════════════════
+const REV_STATUS_COLOR = {
+  pendente:'#f59e0b', em_revisao:'#3b82f6', concluido:'#10b981',
+  dispensado:'#94a3b8', bloqueado:'#dc2626',
+};
+const REV_PRIO_COLOR = {
+  critica:'#dc2626', alta:'#ef4444', media:'#f59e0b', baixa:'#94a3b8',
+};
+const REV_CAT_LABEL = {
+  documento_legal:'Documento legal', operador_dpa:'Operador/DPA',
+  configuracao_env:'Config. .env', seguranca_tecnica:'Segurança técnica',
+  treinamento:'Treinamento', auditoria_externa:'Auditoria externa',
+  designacao_dpo:'Designação DPO', outro:'Outro',
+};
+
+async function loadReviews() {
+  const status     = document.getElementById('filterRevStatus').value;
+  const categoria  = document.getElementById('filterRevCategoria').value;
+  const prioridade = document.getElementById('filterRevPrioridade').value;
+  const bloqueia   = document.getElementById('filterRevBloqueia').checked ? '1' : '';
+  const qs = new URLSearchParams();
+  if (status)     qs.set('status', status);
+  if (categoria)  qs.set('categoria', categoria);
+  if (prioridade) qs.set('prioridade', prioridade);
+  if (bloqueia)   qs.set('bloqueia', '1');
+
+  const r = await fj(`${API}/reviews.php?${qs.toString()}`);
+  const tbody = document.getElementById('reviewsBody');
+  if (!r.ok || !Array.isArray(r.data)) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">Erro ao carregar.</td></tr>';
+    return;
+  }
+  if (r.data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">Nenhum item encontrado.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = r.data.map(row => {
+    const stCol  = REV_STATUS_COLOR[row.status] || '#94a3b8';
+    const prCol  = REV_PRIO_COLOR[row.prioridade] || '#94a3b8';
+    const bloqIco = row.bloqueia_producao == 1
+      ? '<span style="color:#dc2626;font-weight:700" title="Bloqueia go-live">BLOQ</span>'
+      : '<span style="color:#9ab0c9">—</span>';
+    return `<tr>
+      <td>#${row.id}</td>
+      <td>
+        <div style="font-weight:600">${escL(row.titulo)}</div>
+        ${row.link_referencia ? `<a href="${escL(row.link_referencia)}" target="_blank" rel="noopener" style="font-size:.7rem;color:#7eb8f7">${escL(row.link_referencia)}</a>` : ''}
+      </td>
+      <td style="font-size:.78rem">${escL(REV_CAT_LABEL[row.categoria] || row.categoria)}</td>
+      <td style="font-size:.78rem">${escL(row.responsavel || '—')}</td>
+      <td><span style="padding:2px 9px;border-radius:999px;background:${prCol}1f;border:1px solid ${prCol}40;color:${prCol};font-size:.7rem;font-weight:700;text-transform:uppercase">${escL(row.prioridade)}</span></td>
+      <td><span style="padding:3px 9px;border-radius:999px;background:${stCol}1f;border:1px solid ${stCol}40;color:${stCol};font-size:.72rem;font-weight:600">${escL(row.status)}</span></td>
+      <td>${bloqIco}</td>
+      <td><button class="btn-mst" onclick="openReviewDrawer(${row.id})">Abrir</button></td>
+    </tr>`;
+  }).join('');
+}
+
+async function openReviewDrawer(id) {
+  const r = await fj(`${API}/reviews.php?id=${id}`);
+  if (!r.ok) return notifyErr(r.error || 'Erro');
+  const it = r.data;
+
+  const stCol = REV_STATUS_COLOR[it.status] || '#94a3b8';
+  const prCol = REV_PRIO_COLOR[it.prioridade] || '#94a3b8';
+
+  document.getElementById('reviewTitle').textContent =
+    `Revisão #${it.id} — ${escL(it.titulo)}`;
+
+  document.getElementById('reviewBody').innerHTML = `
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+      <span style="padding:3px 11px;border-radius:999px;background:${stCol}1f;border:1px solid ${stCol}40;color:${stCol};font-size:.78rem;font-weight:600">${escL(it.status)}</span>
+      <span style="padding:3px 11px;border-radius:999px;background:${prCol}1f;border:1px solid ${prCol}40;color:${prCol};font-size:.72rem;font-weight:700;text-transform:uppercase">prio: ${escL(it.prioridade)}</span>
+      ${it.bloqueia_producao == 1 ? '<span style="padding:3px 9px;border-radius:999px;background:#dc26261f;border:1px solid #dc262640;color:#dc2626;font-size:.72rem;font-weight:700">BLOQUEIA GO-LIVE</span>' : ''}
+      <span style="font-size:.78rem;color:#9ab0c9">${escL(REV_CAT_LABEL[it.categoria] || it.categoria)}</span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;font-size:.82rem;color:#9ab0c9;margin-bottom:16px">
+      <div>Responsável: <strong style="color:#fff">${escL(it.responsavel || '—')}</strong></div>
+      <div>Prazo: <strong style="color:#fff">${it.prazo ? fmtDate(it.prazo) : '—'}</strong></div>
+      <div>Criado em: <strong style="color:#fff">${fmtDateTime(it.created_at)}</strong></div>
+      ${it.concluido_em ? `<div>Concluído em: <strong style="color:#10b981">${fmtDateTime(it.concluido_em)}</strong></div>` : ''}
+      ${it.concluido_por_nome ? `<div>Concluído por: <strong style="color:#fff">${escL(it.concluido_por_nome)}</strong></div>` : ''}
+    </div>
+
+    ${it.descricao ? `<h4 style="color:#fff;margin:14px 0 4px">Descrição</h4>
+      <div style="background:rgba(96,165,250,.05);padding:12px;border-radius:6px;white-space:pre-wrap;color:#cbd5e1;font-size:.88rem;line-height:1.55">${escL(it.descricao)}</div>` : ''}
+
+    ${it.link_referencia ? `<h4 style="color:#fff;margin:14px 0 4px">Link de referência</h4>
+      <a href="${escL(it.link_referencia)}" target="_blank" rel="noopener" style="color:#7eb8f7;word-break:break-all">${escL(it.link_referencia)}</a>` : ''}
+
+    <h4 style="color:#fff;margin:18px 0 6px">Notas internas (DPO/Diretoria)</h4>
+    <textarea id="revNotas" rows="4" placeholder="Notas livres sobre o andamento, contato com fornecedor, data prevista, etc..." style="width:100%;padding:10px;border:1px solid rgba(160,180,210,.18);border-radius:6px;background:rgba(5,18,39,.6);color:#fff;font:inherit;resize:vertical">${escL(it.notas_internas || '')}</textarea>
+
+    <h4 style="color:#fff;margin:18px 0 6px">Mudar status</h4>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+      <button class="btn-mst" onclick="updateReview(${it.id},'pendente')">Reabrir (pendente)</button>
+      <button class="btn-mst" onclick="updateReview(${it.id},'em_revisao')">Em revisão</button>
+      <button class="btn-mst" style="background:linear-gradient(135deg,#94a3b8,#64748b);color:#fff;border:none" onclick="updateReview(${it.id},'dispensado')">Dispensar</button>
+      <button class="btn-mst btn-mst-primary" onclick="updateReview(${it.id},'concluido')">Marcar Concluído</button>
+    </div>
+  `;
+  openModal('modalReview');
+}
+
+async function updateReview(id, status) {
+  const notas = document.getElementById('revNotas').value;
+  if (!confirm(`Marcar item #${id} como "${status}"?`)) return;
+  const r = await fj(`${API}/reviews.php`, {
+    method: 'PATCH',
+    body: JSON.stringify({ csrf_token: CSRF, id, status, notas_internas: notas })
+  });
+  if (!r.ok) return notifyErr(r.error || 'Erro');
+  notifyOk('Item atualizado');
+  closeModal('modalReview');
+  loadReviews();
+  refreshReviewsBadge();
+}
+
+async function refreshReviewsBadge() {
+  try {
+    const r = await fj(`${API}/reviews.php?counts=1`);
+    if (!r.ok) return;
+    const badge = document.getElementById('reviewsBadge');
+    const c = r.data || {};
+    const blocker = c.bloqueadores_golive || 0;
+    const crit    = c.criticos_abertos || 0;
+    const pend    = (c.pendentes || 0) + (c.em_revisao || 0);
+    if (pend > 0) {
+      badge.style.display = 'inline-block';
+      badge.textContent = pend;
+      badge.style.background = (blocker > 0 || crit > 0) ? '#dc2626' : '#f59e0b';
+      badge.title = `${pend} pendentes · ${blocker} bloqueadores go-live · ${crit} críticos`;
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch (_) {}
+}
+
+refreshReviewsBadge();
+setInterval(refreshReviewsBadge, 60000);
+
+document.getElementById('filterRevStatus').addEventListener('change', loadReviews);
+document.getElementById('filterRevCategoria').addEventListener('change', loadReviews);
+document.getElementById('filterRevPrioridade').addEventListener('change', loadReviews);
+document.getElementById('filterRevBloqueia').addEventListener('change', loadReviews);
 
 // ── Init ─────────────────────────────────────────────────────────────────
 const initialHash = (window.location.hash || '').replace('#','') || 'overview';

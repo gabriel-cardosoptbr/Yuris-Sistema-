@@ -6,7 +6,7 @@
 $LEGAL_PAGE = [
     'titulo'    => 'Política de Cookies',
     'descricao' => 'Quais cookies utilizamos e por quê.',
-    'versao'    => '2026-05-23 (modelo inicial — pendente revisão jurídica)',
+    'versao'    => '2026-05-23',
     'corpo_html' => <<<HTML
 <h2>1. O que são cookies</h2>
 <p>Cookies são pequenos arquivos armazenados no seu dispositivo pelo navegador.

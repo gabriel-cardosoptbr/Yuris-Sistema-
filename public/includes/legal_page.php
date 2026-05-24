@@ -301,12 +301,11 @@ $corpo     = $LEGAL_PAGE['corpo_html'] ?? '<p>Conteúdo em revisão.</p>';
         <div class="legal-version">Versão <?= $versao ?></div>
       <?php endif; ?>
 
-      <div class="legal-disclaimer">
-        <strong>Importante:</strong> este documento é um modelo inicial e deve passar por
-        revisão de advogado especialista em proteção de dados antes da publicação definitiva.
-        A segurança e a privacidade são tratadas como processo contínuo de adequação à LGPD.
-      </div>
-
+      <?php /* Disclaimer "modelo inicial / pendente revisao" REMOVIDO da
+               interface publica em 2026-05-23. Status de revisao agora fica
+               em /api/master/reviews.php (aba "Revisoes" no Painel Master),
+               para uso interno do DPO + Diretoria. Cliente nao deve ver
+               status de rascunho. */ ?>
       <div class="legal-content"><?= $corpo /* HTML já preparado */ ?></div>
 
       <div class="legal-footer">
