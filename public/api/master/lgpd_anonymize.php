@@ -20,12 +20,14 @@ require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
 require_once __DIR__ . '/../../../app/Helpers/Anonymizer.php';
 require_once __DIR__ . '/../../../app/Helpers/MasterAudit.php';
 require_once __DIR__ . '/../../../app/Models/LgpdRequest.php';
+require_once __DIR__ . '/../../../app/Models/LgpdRequestRetentionJustification.php';
 
 use App\Helpers\AccountContext;
 use App\Helpers\ApiResponse;
 use App\Helpers\Anonymizer;
 use App\Helpers\MasterAudit;
 use App\Models\LgpdRequest;
+use App\Models\LgpdRequestRetentionJustification;
 
 session_start();
 $ctx = AccountContext::fromSession();
@@ -64,6 +66,124 @@ $input = json_decode(file_get_contents('php://input'), true) ?? [];
 $csrf = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($input['csrf_token'] ?? null);
 if (!$csrf || $csrf !== ($_SESSION['csrf_token'] ?? '')) {
     ApiResponse::badRequest('CSRF inválido');
+}
+
+// ─── POST ?action=preview_impact — preview antes de anonimizar ──────────────
+// Retorna estimativa de quantos registros vinculados seriam afetados se a
+// entidade for anonimizada. Não modifica nada.
+if ($method === 'POST' && ($_GET['action'] ?? null) === 'preview_impact') {
+    $entidade   = strtolower(trim((string)($input['entidade']    ?? '')));
+    $entidadeId = (int)($input['entidade_id'] ?? 0);
+    if (!$entidadeId) ApiResponse::badRequest('entidade_id obrigatório');
+
+    $pdo = \App\Models\Database::getConnection();
+    $impact = ['entidade' => $entidade, 'entidade_id' => $entidadeId, 'vinculos' => []];
+
+    switch ($entidade) {
+        case 'user':
+        case 'usuario':
+            // Conta processos onde é responsável + cards + tasks
+            $impact['vinculos']['processos_responsavel'] = (int)$pdo->query(
+                "SELECT COUNT(*) FROM processos WHERE responsavel_user_id = $entidadeId AND anonymized_at IS NULL"
+            )->fetchColumn();
+            $impact['vinculos']['cards_responsavel'] = (int)$pdo->query(
+                "SELECT COUNT(*) FROM cards WHERE responsavel_user_id = $entidadeId AND anonymized_at IS NULL"
+            )->fetchColumn();
+            $impact['vinculos']['mensagens_chat'] = (int)$pdo->query(
+                "SELECT COUNT(*) FROM chat_mensagens WHERE usuario_id = $entidadeId AND deleted_at IS NULL"
+            )->fetchColumn();
+            $impact['vinculos']['acoes_audit'] = (int)$pdo->query(
+                "SELECT COUNT(*) FROM account_audit_log WHERE user_id = $entidadeId"
+            )->fetchColumn();
+            $impact['nivel_risco'] = ($impact['vinculos']['processos_responsavel'] > 0)
+                ? 'alto (processos ativos)' : 'medio';
+            break;
+
+        case 'contato':
+            $impact['vinculos']['cards_vinculados'] = (int)$pdo->query(
+                "SELECT COUNT(*) FROM cards WHERE contato_id = $entidadeId AND anonymized_at IS NULL"
+            )->fetchColumn();
+            $impact['vinculos']['processos_vinculados'] = (int)$pdo->query(
+                "SELECT COUNT(*) FROM processos WHERE contato_id = $entidadeId AND anonymized_at IS NULL"
+            )->fetchColumn();
+            $impact['nivel_risco'] = ($impact['vinculos']['processos_vinculados'] > 0)
+                ? 'alto (processos ativos)' : 'baixo';
+            break;
+
+        case 'card':
+            $impact['vinculos']['processos_derivados'] = (int)$pdo->query(
+                "SELECT COUNT(*) FROM processos WHERE card_id = $entidadeId AND anonymized_at IS NULL"
+            )->fetchColumn();
+            $impact['nivel_risco'] = ($impact['vinculos']['processos_derivados'] > 0)
+                ? 'alto (gerou processos)' : 'baixo';
+            break;
+
+        case 'processo':
+        case 'processoparte':
+            // Anonimizar parte_contraria não remove o processo
+            $st = $pdo->prepare("SELECT status, data_inicio FROM processos WHERE id = ?");
+            $st->execute([$entidadeId]);
+            $p = $st->fetch(\PDO::FETCH_ASSOC);
+            $impact['processo_status'] = $p['status'] ?? '?';
+            $impact['processo_data_inicio'] = $p['data_inicio'] ?? '?';
+            $impact['nivel_risco'] = (($p['status'] ?? '') === 'ativo')
+                ? 'CRITICO (processo ativo - exercicio de direito Art. 7 VI)'
+                : 'medio';
+            break;
+
+        default:
+            ApiResponse::badRequest('entidade desconhecida');
+    }
+
+    // Verifica se há justificativa de retenção REGISTRADA para esta entidade
+    $reqId = (int)($input['lgpd_request_id'] ?? 0);
+    if ($reqId) {
+        $st = $pdo->prepare(
+            "SELECT COUNT(*) FROM lgpd_request_retention_justifications
+             WHERE request_id = ? AND entidade = ? AND entidade_id = ?"
+        );
+        $st->execute([$reqId, $entidade, $entidadeId]);
+        $impact['ja_tem_retencao_registrada'] = ((int)$st->fetchColumn() > 0);
+    }
+
+    ApiResponse::ok($impact);
+}
+
+// ─── POST ?action=register_retention — registra justificativa Art. 7 ────────
+if ($method === 'POST' && ($_GET['action'] ?? null) === 'register_retention') {
+    $reqId      = (int)($input['lgpd_request_id'] ?? 0);
+    $entidade   = trim((string)($input['entidade']    ?? ''));
+    $entidadeId = (int)($input['entidade_id']   ?? 0);
+    $baseLegal  = trim((string)($input['base_legal_retencao'] ?? ''));
+    $just       = trim((string)($input['justificativa'] ?? ''));
+    $fund       = trim((string)($input['fundamentacao_juridica'] ?? ''));
+    $prazo      = trim((string)($input['prazo_retencao_ate'] ?? ''));
+    $findingId  = (int)($input['finding_id'] ?? 0);
+
+    if (!$reqId || !$entidade || !$entidadeId || !$baseLegal || !$just) {
+        ApiResponse::badRequest('lgpd_request_id, entidade, entidade_id, base_legal_retencao e justificativa são obrigatórios');
+    }
+    if (!LgpdRequest::findById($reqId)) ApiResponse::notFound('Solicitação não encontrada.');
+
+    try {
+        $jId = LgpdRequestRetentionJustification::create(
+            $reqId, $entidade, $entidadeId, $baseLegal, $just, $userId,
+            $findingId ?: null,
+            $prazo ?: null,
+            $fund ?: null
+        );
+    } catch (\InvalidArgumentException $e) {
+        ApiResponse::badRequest($e->getMessage());
+    }
+
+    LgpdRequest::addEvent($reqId, 'retencao_registrada',
+        "Retencao registrada para {$entidade}#{$entidadeId} - base: {$baseLegal}",
+        $userId);
+    MasterAudit::log('lgpd.retention_register', 'lgpd_request', $reqId,
+        "Justificativa de retenção registrada",
+        ['entidade' => $entidade, 'entidade_id' => $entidadeId, 'base_legal' => $baseLegal]);
+
+    ApiResponse::ok(['id' => $jId, 'registered' => true]);
 }
 
 // ─── POST ?action=export — gera ZIP de portabilidade ───────────────────────

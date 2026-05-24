@@ -83,6 +83,27 @@ if ($method === 'POST') {
         ApiResponse::badRequest($e->getMessage());
     }
 
+    // v2: tentativa de inferir tipo do titular + tenant automaticamente.
+    // DPO pode reclassificar depois via Painel Master. Falha silenciosa
+    // (mantém solicitação ainda que inferência falhe).
+    try {
+        $inferred = LgpdRequest::inferTitularTipo($email, $input['titular_cpf'] ?? null);
+        if ($inferred) {
+            LgpdRequest::setTitularRef(
+                $res['id'],
+                $inferred['tipo'],
+                $inferred['entidade'],
+                $inferred['entidade_id'],
+                $inferred['account_id']
+            );
+            LgpdRequest::addEvent($res['id'], 'tipificacao_automatica',
+                "Titular inferido como '{$inferred['tipo']}' (entidade={$inferred['entidade']} #{$inferred['entidade_id']}, account_id={$inferred['account_id']}). DPO deve confirmar.",
+                null);
+        }
+    } catch (\Throwable $_e) {
+        error_log('[lgpd/request inferir] ' . $_e->getMessage());
+    }
+
     // Registra tentativa pro rate-limit
     try {
         $pdo = Database::getConnection();

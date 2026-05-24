@@ -39,12 +39,17 @@ if ($method === 'GET') {
         ApiResponse::ok(LgpdRequest::countByStatus());
     }
     if (!empty($_GET['id'])) {
-        $req = LgpdRequest::findById((int)$_GET['id']);
-        if (!$req) ApiResponse::notFound();
-        ApiResponse::ok([
-            'request' => $req,
-            'eventos' => LgpdRequest::listEvents((int)$req['id']),
-        ]);
+        $id = (int)$_GET['id'];
+        // v2: fullDetail agrega request + eventos + modules + findings +
+        // attachments + retentions + counts (uma chamada serve toda a UI)
+        $detail = LgpdRequest::fullDetail($id);
+        if (!$detail) ApiResponse::notFound();
+
+        // Log de "acesso" para auditoria — DPO abriu o drawer
+        LgpdRequest::addEvent($id, 'acesso_drawer',
+            'Drawer da solicitação aberto no Painel Master', $userId);
+
+        ApiResponse::ok($detail);
     }
     $list = LgpdRequest::listForAdmin([
         'status'   => $_GET['status']   ?? null,
@@ -62,6 +67,51 @@ if (in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'])) {
     if (!$csrf || $csrf !== ($_SESSION['csrf_token'] ?? '')) {
         ApiResponse::badRequest('CSRF inválido');
     }
+}
+
+// ─── POST ?action=prorrogar — Art. 19 §3 (prorrogação justificada) ──────────
+if ($method === 'POST' && ($_GET['action'] ?? null) === 'prorrogar') {
+    $id        = (int)($input['id']        ?? 0);
+    $dias      = (int)($input['dias']      ?? 0);
+    $motivo    = trim((string)($input['motivo'] ?? ''));
+    if (!$id || !$dias || $motivo === '') {
+        ApiResponse::badRequest('id, dias (1-30) e motivo obrigatórios');
+    }
+    try {
+        $ok = LgpdRequest::prorrogar($id, $dias, $motivo, $userId);
+    } catch (\InvalidArgumentException $e) {
+        ApiResponse::badRequest($e->getMessage());
+    } catch (\LogicException $e) {
+        ApiResponse::badRequest($e->getMessage());
+    }
+    if ($ok) {
+        MasterAudit::log('lgpd_request.prorrogar', 'lgpd_request', $id,
+            "Prazo prorrogado por {$dias} dias",
+            ['motivo' => $motivo]);
+    }
+    ApiResponse::ok(['prorrogado' => $ok]);
+}
+
+// ─── POST ?action=set_titular_tipo — tipifica titular + ref polimorfica ─────
+if ($method === 'POST' && ($_GET['action'] ?? null) === 'set_titular_tipo') {
+    $id = (int)($input['id'] ?? 0);
+    $tipo = trim((string)($input['titular_tipo'] ?? ''));
+    if (!$id || $tipo === '') ApiResponse::badRequest('id e titular_tipo obrigatórios');
+    try {
+        $ok = LgpdRequest::setTitularRef(
+            $id, $tipo,
+            $input['titular_referencia_entidade'] ?? null,
+            isset($input['titular_referencia_id']) ? (int)$input['titular_referencia_id'] : null,
+            isset($input['account_id']) ? (int)$input['account_id'] : null
+        );
+    } catch (\InvalidArgumentException $e) {
+        ApiResponse::badRequest($e->getMessage());
+    }
+    if ($ok) {
+        MasterAudit::log('lgpd_request.set_titular_tipo', 'lgpd_request', $id,
+            "Tipo do titular definido como '$tipo'", $input);
+    }
+    ApiResponse::ok(['updated' => $ok]);
 }
 
 // ─── POST ?action=add_event — adiciona evento manual ─────────────────────────
