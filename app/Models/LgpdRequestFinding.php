@@ -59,6 +59,11 @@ final class LgpdRequestFinding
         ?string $baseLegal = null,
         ?string $finalidade = null
     ): int {
+        // Lazy-load defensivo do PIIMasker (caller pode não ter feito require_once)
+        if (!class_exists('App\\Helpers\\PIIMasker')) {
+            require_once dirname(__DIR__) . '/Helpers/PIIMasker.php';
+        }
+
         if (!in_array($tipoDado, self::TIPOS_DADO, true)) {
             throw new \InvalidArgumentException("tipo_dado invalido: $tipoDado");
         }

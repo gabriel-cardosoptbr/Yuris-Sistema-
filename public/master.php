@@ -3506,18 +3506,35 @@ async function prorrogarLgpd() {
 }
 
 async function toggleLgpdFindingExport(findingId, included) {
-  // Usa endpoint genérico de findings via update parcial.
-  // Como nao temos endpoint dedicado, usaremos um wrapper proximo do lgpd_anonymize
-  // — por simplicidade, expomos via lgpd_requests com action especial.
-  // Por ora: indicacao visual + alerta para implementar endpoint dedicado.
-  notifyOk(`Marcado ${included ? 'INCLUIR' : 'EXCLUIR'} no export. Salvamento via API dedicada em F4.1.`);
-  // TODO: chamar POST /api/master/lgpd_finding_review.php (ainda nao criado)
+  const r = await fj(`${API}/lgpd_finding_review.php`, {
+    method: 'PATCH', body: JSON.stringify({
+      csrf_token: CSRF, finding_id: findingId, incluido_no_export: included
+    })
+  });
+  if (!r.ok) {
+    // Reverte checkbox visualmente em caso de erro
+    const cb = event && event.target;
+    if (cb) cb.checked = !included;
+    return notifyErr(r.error || 'Erro ao salvar');
+  }
+  notifyOk(`Finding ${included ? 'INCLUIDO no' : 'REMOVIDO do'} export`);
 }
 
 async function reviewLgpdFinding(findingId) {
   const decide = confirm('Este dado PODE ser excluido/anonimizado em resposta a solicitacao?\n\n[OK] = pode excluir  |  [Cancelar] = deve reter');
-  notifyOk(decide ? 'Marcado como podeExcluir=true' : 'Marcado como podeExcluir=false (use Reter para justificar)');
-  // TODO: chamar POST /api/master/lgpd_finding_review.php
+  // Se for reter, exige motivo
+  let body = { csrf_token: CSRF, finding_id: findingId, pode_excluir: decide };
+  if (!decide) {
+    const motivo = prompt('Motivo da retencao (resumo curto — para justificativa formal completa use "Reter"):', '');
+    if (motivo === null || motivo.trim() === '') return notifyErr('Motivo obrigatorio para reter.');
+    body.motivo_retencao = motivo;
+  }
+  const r = await fj(`${API}/lgpd_finding_review.php`, {
+    method: 'PATCH', body: JSON.stringify(body)
+  });
+  if (!r.ok) return notifyErr(r.error || 'Erro');
+  notifyOk(decide ? 'Marcado: pode excluir' : 'Marcado: deve reter');
+  openLgpdDrawer(window._lgpdCurrentReqId);
 }
 
 function openRegisterRetention(findingId, entidade, entidadeId) {
@@ -3551,10 +3568,15 @@ function openRegisterRetention(findingId, entidade, entidadeId) {
 }
 
 async function approveRetention(justId) {
-  if (!confirm('Aprovar esta retenção como 2º revisor (4-eyes)? Você não pode aprovar uma justificativa que você mesmo criou.')) return;
-  // Endpoint dedicado de aprovacao ainda nao implementado — placeholder
-  notifyOk('Aprovação registrada (use endpoint dedicado para persistir)');
-  // TODO: POST /api/master/lgpd_retention_approve.php
+  if (!confirm('Aprovar esta retencao como 2º revisor (4-eyes)?\n\nVoce NAO pode aprovar uma justificativa que VOCE MESMO criou — o sistema bloqueia auto-aprovacao.')) return;
+  const r = await fj(`${API}/lgpd_retention_approve.php`, {
+    method: 'POST', body: JSON.stringify({
+      csrf_token: CSRF, justification_id: justId
+    })
+  });
+  if (!r.ok) return notifyErr(r.error || 'Erro');
+  notifyOk('Retencao aprovada (4-eyes)');
+  openLgpdDrawer(window._lgpdCurrentReqId);
 }
 
 async function uploadLgpdAttachment(ev) {
