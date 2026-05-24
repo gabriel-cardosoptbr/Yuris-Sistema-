@@ -236,12 +236,12 @@ $activePage     = 'privacidade';
           entre em contato com o Encarregado de Dados (DPO).
         </p>
         <div class="links-grid">
-          <a class="btn btn-primary" href="/sistema_vendas/public/lgpd/solicitar.php" target="_blank" rel="noopener">Abrir solicitação LGPD →</a>
-          <a class="btn btn-link" href="/sistema_vendas/public/dpo.php" target="_blank" rel="noopener">Falar com o DPO</a>
-          <a class="btn btn-link" href="/sistema_vendas/public/privacidade.php" target="_blank" rel="noopener">Política de Privacidade</a>
-          <a class="btn btn-link" href="/sistema_vendas/public/termos.php" target="_blank" rel="noopener">Termos de Uso</a>
-          <a class="btn btn-link" href="/sistema_vendas/public/cookies.php" target="_blank" rel="noopener">Política de Cookies</a>
-          <a class="btn btn-link" href="/sistema_vendas/public/lgpd.php" target="_blank" rel="noopener">LGPD &amp; Segurança</a>
+          <a class="btn btn-primary" href="/sistema_vendas/public/lgpd/solicitar.php">Abrir solicitação LGPD →</a>
+          <a class="btn btn-link" href="/sistema_vendas/public/dpo.php">Falar com o DPO</a>
+          <a class="btn btn-link" href="/sistema_vendas/public/privacidade.php">Política de Privacidade</a>
+          <a class="btn btn-link" href="/sistema_vendas/public/termos.php">Termos de Uso</a>
+          <a class="btn btn-link" href="/sistema_vendas/public/cookies.php">Política de Cookies</a>
+          <a class="btn btn-link" href="/sistema_vendas/public/lgpd.php">LGPD &amp; Segurança</a>
           <a class="btn btn-link" href="javascript:if(window.YurisCookies){YurisCookies.open()}">Gerenciar cookies</a>
         </div>
       </div>
