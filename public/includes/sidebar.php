@@ -178,11 +178,10 @@ $_uiLibVer   = file_exists($_uiLibPath) ? @filemtime($_uiLibPath) : '1';
       <span class="icon" aria-hidden="true"><?= $_svg['config'] ?></span>
       <span class="label">Configurações</span>
     </a>
-    <a href="configuracoes/privacidade.php"<?= $_ap === 'privacidade' ? ' class="active" aria-current="page"' : '' ?> title="Privacidade e consentimentos LGPD">
-      <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
-      <span class="label">Privacidade</span>
-    </a>
     <?php endif; ?>
+    <?php /* Link "Privacidade" movido para o rodape da sidebar (abaixo do
+             "Sistema Juridico Inteligente"), como discreto link tipo footer.
+             Acesso permanece o mesmo: /configuracoes/privacidade.php */ ?>
 
     <?php if (_sidebarCan('escritorios')): ?>
     <a href="escritorios.php"<?= $_ap === 'escritorios' ? ' class="active" aria-current="page"' : '' ?>>
@@ -209,7 +208,16 @@ $_uiLibVer   = file_exists($_uiLibPath) ? @filemtime($_uiLibPath) : '1';
   <!-- ── Rodapé da sidebar ── -->
   <div style="padding:10px 18px 0;text-align:center;border-top:1px solid rgba(96,165,250,0.1);">
     <p style="font-size:.9rem;font-weight:700;color:#e8f4ff;margin:0 0 2px;letter-spacing:.5px;">Yuris</p>
-    <p style="font-size:.72rem;color:#6b8299;margin:0;">Sistema Jurídico Inteligente</p>
+    <p style="font-size:.72rem;color:#6b8299;margin:0 0 8px;">Sistema Jurídico Inteligente</p>
+    <?php if (_sidebarCan('configuracoes')): ?>
+    <a href="configuracoes/privacidade.php"
+       title="Privacidade e consentimentos LGPD"
+       style="font-size:.7rem;color:<?= $_ap === 'privacidade' ? '#93C5FD' : '#6b8299' ?>;text-decoration:none;letter-spacing:.3px;transition:color .15s;<?= $_ap === 'privacidade' ? 'font-weight:600;border-bottom:1px solid rgba(147,197,253,.35);padding-bottom:1px;' : '' ?>"
+       onmouseover="this.style.color='#93C5FD'"
+       onmouseout="this.style.color='<?= $_ap === 'privacidade' ? '#93C5FD' : '#6b8299' ?>'">
+      Privacidade
+    </a>
+    <?php endif; ?>
   </div>
 
 </aside>
