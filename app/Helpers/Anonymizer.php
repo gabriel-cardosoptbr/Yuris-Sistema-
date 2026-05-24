@@ -301,4 +301,420 @@ final class Anonymizer
             $_SERVER['REMOTE_ADDR'] ?? null,
         ]);
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // F3 (LGPD v2): busca estruturada multi-módulo para Central LGPD
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /** Limite padrão por módulo para evitar travar a UI. */
+    private const SEARCH_LIMIT_PER_MODULE = 500;
+
+    /**
+     * Executa busca completa por dados do titular em todas as fontes do sistema.
+     * Para cada módulo:
+     *  - Registra entrada em lgpd_request_modules (mesmo com 0 achados)
+     *  - Para cada achado: registra em lgpd_request_findings (com mascaramento)
+     *  - Registra evento 'busca_modulo' em lgpd_request_events
+     *
+     * @param int $requestId   lgpd_requests.id que disparou a busca
+     * @param string $email    e-mail do titular
+     * @param string|null $cpf CPF/CNPJ (opcional — aumenta cobertura)
+     * @param string|null $tel telefone (opcional)
+     * @param int $byUserId    DPO que disparou
+     * @return array sumário {modulo => total_encontrado}
+     */
+    public static function searchAllModules(
+        int $requestId,
+        string $email,
+        ?string $cpf = null,
+        ?string $tel = null,
+        int $byUserId = 0
+    ): array {
+        // Lazy-load Models v2
+        if (!class_exists('App\\Models\\LgpdRequestModule')) {
+            require_once dirname(__DIR__) . '/Models/LgpdRequestModule.php';
+        }
+        if (!class_exists('App\\Models\\LgpdRequestFinding')) {
+            require_once dirname(__DIR__) . '/Models/LgpdRequestFinding.php';
+        }
+        if (!class_exists('App\\Models\\LgpdRequest')) {
+            require_once dirname(__DIR__) . '/Models/LgpdRequest.php';
+        }
+
+        $email = strtolower(trim($email));
+        $cpfClean = $cpf ? preg_replace('/\D/', '', $cpf) : null;
+        $telClean = $tel ? preg_replace('/\D/', '', $tel) : null;
+
+        $pdo = Database::getConnection();
+        $totals = [];
+
+        // 1. usuarios
+        $totals['usuarios'] = self::searchUsers($pdo, $requestId, $email, $cpfClean, $telClean, $byUserId);
+
+        // 2. contatos
+        $totals['contatos'] = self::searchContatos($pdo, $requestId, $email, $cpfClean, $telClean, $byUserId);
+
+        // 3. leads_cards
+        $totals['leads_cards'] = self::searchCards($pdo, $requestId, $email, $telClean, $byUserId);
+
+        // 4. processos (parte_contraria + cliente_nome)
+        $totals['processos'] = self::searchProcessos($pdo, $requestId, $email, $cpfClean, $byUserId);
+
+        // 5. whatsapp (mensagens via contato.email/telefone → remote_jid)
+        $totals['whatsapp'] = self::searchWhatsApp($pdo, $requestId, $email, $telClean, $byUserId);
+
+        // 6. chat_interno (mensagens onde titular = usuario_id)
+        $totals['chat_interno'] = self::searchChatInterno($pdo, $requestId, $email, $byUserId);
+
+        // 7. task_attachments (nomes de arquivo podem citar pessoas)
+        $totals['task_attachments'] = self::searchTaskAttachments($pdo, $requestId, $email, $byUserId);
+
+        // 8. financeiro (invoices via account_id do user titular)
+        $totals['financeiro'] = self::searchFinanceiro($pdo, $requestId, $email, $byUserId);
+
+        // 9. logs_auditoria (master_audit + account_audit por user_id)
+        $totals['logs_auditoria'] = self::searchLogsAuditoria($pdo, $requestId, $email, $byUserId);
+
+        // 10. consentimentos
+        $totals['consentimentos'] = self::searchConsentimentos($pdo, $requestId, $email, $byUserId);
+
+        // 11. aceites_termos
+        $totals['aceites_termos'] = self::searchAceitesTermos($pdo, $requestId, $email, $byUserId);
+
+        // Registra evento sumário na timeline da solicitação
+        $totalGeral = array_sum($totals);
+        $resumoModulos = implode(', ', array_map(
+            fn($m, $n) => "$m=$n",
+            array_keys($totals), array_values($totals)
+        ));
+        \App\Models\LgpdRequest::addEvent($requestId, 'busca_completa',
+            "Busca multi-modulo concluida. Total: $totalGeral achados. Detalhes: $resumoModulos",
+            $byUserId);
+
+        return $totals;
+    }
+
+    // ─── Buscas por módulo ──────────────────────────────────────────────────
+
+    private static function searchUsers(\PDO $pdo, int $reqId, string $email, ?string $cpf, ?string $tel, int $byUid): int
+    {
+        $where = ['anonymized_at IS NULL']; $params = [];
+        $where[] = '(LOWER(login) = :em' . ($tel ? ' OR REPLACE(REPLACE(telefone,"(",""),")","") LIKE :tel' : '') . ')';
+        $params['em'] = $email;
+        if ($tel) $params['tel'] = '%' . $tel . '%';
+
+        $sql = "SELECT id, account_id, nome, login, telefone, oab
+                FROM users WHERE " . implode(' AND ', $where) .
+               " LIMIT " . self::SEARCH_LIMIT_PER_MODULE;
+        $st = $pdo->prepare($sql);
+        $st->execute($params);
+        $rows = $st->fetchAll(\PDO::FETCH_ASSOC);
+
+        foreach ($rows as $r) {
+            if ($r['nome'])     \App\Models\LgpdRequestFinding::record($reqId, 'usuarios', 'users', (int)$r['id'], 'pii_basica', $r['nome'], 'nome', (int)$r['account_id'], 'contrato', 'Cadastro como usuario do sistema');
+            if ($r['login'])    \App\Models\LgpdRequestFinding::record($reqId, 'usuarios', 'users', (int)$r['id'], 'pii_basica', $r['login'], 'email', (int)$r['account_id'], 'contrato', 'E-mail de login');
+            if ($r['telefone']) \App\Models\LgpdRequestFinding::record($reqId, 'usuarios', 'users', (int)$r['id'], 'pii_basica', $r['telefone'], 'telefone', (int)$r['account_id'], 'contrato', 'Telefone de contato');
+            if ($r['oab'])      \App\Models\LgpdRequestFinding::record($reqId, 'usuarios', 'users', (int)$r['id'], 'documento', $r['oab'], 'oab', (int)$r['account_id'], 'contrato', 'Registro OAB');
+        }
+        \App\Models\LgpdRequestModule::record($reqId, 'usuarios', $byUid, count($rows),
+            count($rows) === 0 ? 'Nenhum usuario encontrado' : count($rows) . ' usuario(s) encontrado(s)');
+        return count($rows);
+    }
+
+    private static function searchContatos(\PDO $pdo, int $reqId, string $email, ?string $cpf, ?string $tel, int $byUid): int
+    {
+        $where = ['anonymized_at IS NULL']; $params = [];
+        $or = ['LOWER(email) = :em'];
+        $params['em'] = $email;
+        if ($tel) { $or[] = "telefone LIKE :tel"; $params['tel'] = '%' . $tel . '%'; }
+        $where[] = '(' . implode(' OR ', $or) . ')';
+
+        $sql = "SELECT id, account_id, nome, telefone, email
+                FROM contatos WHERE " . implode(' AND ', $where) .
+               " LIMIT " . self::SEARCH_LIMIT_PER_MODULE;
+        $st = $pdo->prepare($sql);
+        $st->execute($params);
+        $rows = $st->fetchAll(\PDO::FETCH_ASSOC);
+
+        foreach ($rows as $r) {
+            if ($r['nome'])     \App\Models\LgpdRequestFinding::record($reqId, 'contatos', 'contatos', (int)$r['id'], 'pii_basica', $r['nome'], 'nome', (int)$r['account_id'], 'contrato', 'Contato cadastrado');
+            if ($r['telefone']) \App\Models\LgpdRequestFinding::record($reqId, 'contatos', 'contatos', (int)$r['id'], 'pii_basica', $r['telefone'], 'telefone', (int)$r['account_id'], 'contrato', 'Telefone do contato');
+            if ($r['email'])    \App\Models\LgpdRequestFinding::record($reqId, 'contatos', 'contatos', (int)$r['id'], 'pii_basica', $r['email'], 'email', (int)$r['account_id'], 'contrato', 'E-mail do contato');
+        }
+        \App\Models\LgpdRequestModule::record($reqId, 'contatos', $byUid, count($rows),
+            count($rows) === 0 ? 'Nenhum contato encontrado' : count($rows) . ' contato(s) encontrado(s)');
+        return count($rows);
+    }
+
+    private static function searchCards(\PDO $pdo, int $reqId, string $email, ?string $tel, int $byUid): int
+    {
+        $where = ['anonymized_at IS NULL']; $params = [];
+        $or = ['LOWER(email) = :em'];
+        $params['em'] = $email;
+        if ($tel) { $or[] = "telefone_whatsapp LIKE :tel"; $params['tel'] = '%' . $tel . '%'; }
+        $where[] = '(' . implode(' OR ', $or) . ')';
+
+        $sql = "SELECT id, account_id, cliente_nome, telefone_whatsapp, email
+                FROM cards WHERE " . implode(' AND ', $where) .
+               " LIMIT " . self::SEARCH_LIMIT_PER_MODULE;
+        $st = $pdo->prepare($sql);
+        $st->execute($params);
+        $rows = $st->fetchAll(\PDO::FETCH_ASSOC);
+
+        foreach ($rows as $r) {
+            if ($r['cliente_nome'])      \App\Models\LgpdRequestFinding::record($reqId, 'leads_cards', 'cards', (int)$r['id'], 'pii_basica', $r['cliente_nome'], 'cliente_nome', (int)$r['account_id'], 'interesse_legitimo', 'Lead/prospect do funil');
+            if ($r['telefone_whatsapp']) \App\Models\LgpdRequestFinding::record($reqId, 'leads_cards', 'cards', (int)$r['id'], 'pii_basica', $r['telefone_whatsapp'], 'telefone_whatsapp', (int)$r['account_id'], 'interesse_legitimo', 'Contato WhatsApp do lead');
+            if ($r['email'])             \App\Models\LgpdRequestFinding::record($reqId, 'leads_cards', 'cards', (int)$r['id'], 'pii_basica', $r['email'], 'email', (int)$r['account_id'], 'interesse_legitimo', 'E-mail do lead');
+        }
+        \App\Models\LgpdRequestModule::record($reqId, 'leads_cards', $byUid, count($rows),
+            count($rows) === 0 ? 'Nenhum lead encontrado' : count($rows) . ' lead(s) encontrado(s)');
+        return count($rows);
+    }
+
+    /**
+     * processos: busca em cpf_cnpj_parte_contraria (CPF) + cliente_nome / parte_contraria (string).
+     * Atenção: cliente_nome geralmente é a cliente representada pelo escritório
+     * (NÃO necessariamente o titular da solicitação). Buscamos por matching
+     * de string só se o titular pediu/é parte processual.
+     */
+    private static function searchProcessos(\PDO $pdo, int $reqId, string $email, ?string $cpf, int $byUid): int
+    {
+        $where = ['anonymized_at IS NULL']; $params = []; $or = [];
+        if ($cpf) {
+            $or[] = "REPLACE(REPLACE(REPLACE(cpf_cnpj_parte_contraria,'.',''),'-',''),'/','') = :cpf";
+            $params['cpf'] = $cpf;
+        }
+        // Email não bate diretamente em processos; busca via contato vinculado
+        $or[] = "contato_id IN (SELECT id FROM contatos WHERE LOWER(email) = :em AND anonymized_at IS NULL)";
+        $params['em'] = $email;
+        $where[] = '(' . implode(' OR ', $or) . ')';
+
+        $sql = "SELECT id, account_id, numero_cnj, cliente_nome, parte_contraria, cpf_cnpj_parte_contraria
+                FROM processos WHERE " . implode(' AND ', $where) .
+               " LIMIT " . self::SEARCH_LIMIT_PER_MODULE;
+        $st = $pdo->prepare($sql);
+        $st->execute($params);
+        $rows = $st->fetchAll(\PDO::FETCH_ASSOC);
+
+        foreach ($rows as $r) {
+            if ($r['cpf_cnpj_parte_contraria']) {
+                \App\Models\LgpdRequestFinding::record($reqId, 'processos', 'processos', (int)$r['id'], 'juridico_processual',
+                    $r['cpf_cnpj_parte_contraria'], 'cpf_cnpj_parte_contraria',
+                    (int)$r['account_id'], 'exercicio_direito', 'Parte processual (CPF/CNPJ)');
+            }
+            if ($r['parte_contraria']) {
+                \App\Models\LgpdRequestFinding::record($reqId, 'processos', 'processos', (int)$r['id'], 'juridico_processual',
+                    $r['parte_contraria'], 'parte_contraria',
+                    (int)$r['account_id'], 'exercicio_direito', 'Nome da parte contraria');
+            }
+            if ($r['numero_cnj']) {
+                // CNJ não é PII direta, mas vincula titular ao processo
+                \App\Models\LgpdRequestFinding::record($reqId, 'processos', 'processos', (int)$r['id'], 'metadado',
+                    $r['numero_cnj'], 'numero_cnj',
+                    (int)$r['account_id'], 'exercicio_direito', 'Numero CNJ do processo vinculado');
+            }
+        }
+        \App\Models\LgpdRequestModule::record($reqId, 'processos', $byUid, count($rows),
+            count($rows) === 0 ? 'Nenhum processo encontrado' : count($rows) . ' processo(s) encontrado(s)');
+        return count($rows);
+    }
+
+    private static function searchWhatsApp(\PDO $pdo, int $reqId, string $email, ?string $tel, int $byUid): int
+    {
+        // WhatsApp não tem email direto. Correlaciona via contatos.remote_jid → messages.
+        $sql = "SELECT m.id, m.account_id, m.remote_jid, m.contact_name, m.message_type, m.created_at
+                FROM whatsapp_messages m
+                INNER JOIN contatos c ON c.remote_jid = m.remote_jid
+                WHERE LOWER(c.email) = ? AND m.deleted_at IS NULL
+                ORDER BY m.created_at DESC
+                LIMIT " . self::SEARCH_LIMIT_PER_MODULE;
+        $st = $pdo->prepare($sql);
+        $st->execute([$email]);
+        $rows = $st->fetchAll(\PDO::FETCH_ASSOC);
+
+        foreach ($rows as $r) {
+            if ($r['contact_name']) {
+                \App\Models\LgpdRequestFinding::record($reqId, 'whatsapp', 'whatsapp_messages', (int)$r['id'], 'comunicacao',
+                    $r['contact_name'], 'contact_name', (int)$r['account_id'],
+                    'interesse_legitimo', 'Mensagem WhatsApp (' . $r['message_type'] . ')');
+            }
+        }
+        \App\Models\LgpdRequestModule::record($reqId, 'whatsapp', $byUid, count($rows),
+            count($rows) === 0 ? 'Nenhuma mensagem WhatsApp' : count($rows) . ' mensagem(ns) WhatsApp');
+        return count($rows);
+    }
+
+    /**
+     * chat_interno: só faz sentido se titular for usuário interno do sistema.
+     * Busca via usuario_id resolvido a partir do email.
+     */
+    private static function searchChatInterno(\PDO $pdo, int $reqId, string $email, int $byUid): int
+    {
+        $sql = "SELECT cm.id, cm.account_id, cm.created_at
+                FROM chat_mensagens cm
+                INNER JOIN users u ON u.id = cm.usuario_id
+                WHERE LOWER(u.login) = ? AND cm.deleted_at IS NULL
+                ORDER BY cm.created_at DESC
+                LIMIT " . self::SEARCH_LIMIT_PER_MODULE;
+        $st = $pdo->prepare($sql);
+        $st->execute([$email]);
+        $rows = $st->fetchAll(\PDO::FETCH_ASSOC);
+
+        foreach ($rows as $r) {
+            \App\Models\LgpdRequestFinding::record($reqId, 'chat_interno', 'chat_mensagens', (int)$r['id'], 'comunicacao',
+                'msg-' . $r['id'], 'mensagem', (int)$r['account_id'],
+                'interesse_legitimo', 'Mensagem enviada no chat interno em ' . $r['created_at']);
+        }
+        \App\Models\LgpdRequestModule::record($reqId, 'chat_interno', $byUid, count($rows),
+            count($rows) === 0 ? 'Nenhuma mensagem no chat interno' : count($rows) . ' mensagem(ns) chat interno');
+        return count($rows);
+    }
+
+    /**
+     * task_attachments: busca anexos enviados pelo titular (uploaded_by = users.id).
+     * Não inspeciona conteúdo (file_name pode ser sensível, valor mascarado).
+     */
+    private static function searchTaskAttachments(\PDO $pdo, int $reqId, string $email, int $byUid): int
+    {
+        // tasks nao tem account_id direto — derivamos via user uploader
+        $sql = "SELECT ta.id, u.account_id, ta.file_name, ta.created_at
+                FROM task_attachments ta
+                INNER JOIN users u ON u.id = ta.uploaded_by
+                WHERE LOWER(u.login) = ?
+                LIMIT " . self::SEARCH_LIMIT_PER_MODULE;
+        $st = $pdo->prepare($sql);
+        $st->execute([$email]);
+        $rows = $st->fetchAll(\PDO::FETCH_ASSOC);
+
+        foreach ($rows as $r) {
+            \App\Models\LgpdRequestFinding::record($reqId, 'task_attachments', 'task_attachments', (int)$r['id'], 'metadado',
+                $r['file_name'] ?? 'arquivo', 'file_name', (int)($r['account_id'] ?? 0),
+                'interesse_legitimo', 'Anexo enviado em ' . $r['created_at']);
+        }
+        \App\Models\LgpdRequestModule::record($reqId, 'task_attachments', $byUid, count($rows),
+            count($rows) === 0 ? 'Nenhum anexo enviado pelo titular' : count($rows) . ' anexo(s) enviado(s)');
+        return count($rows);
+    }
+
+    /**
+     * financeiro: invoices vinculadas a accounts cujo usuário admin tem email = titular.
+     * Cobre: cliente PJ (admin) que pediu seus dados financeiros.
+     */
+    private static function searchFinanceiro(\PDO $pdo, int $reqId, string $email, int $byUid): int
+    {
+        $sql = "SELECT i.id, i.account_id, i.numero, i.amount_cents, i.status, i.due_date, i.descricao
+                FROM invoices i
+                WHERE i.account_id IN (
+                    SELECT DISTINCT account_id FROM users
+                    WHERE LOWER(login) = ? AND role IN ('admin','owner')
+                )
+                ORDER BY i.created_at DESC
+                LIMIT " . self::SEARCH_LIMIT_PER_MODULE;
+        $st = $pdo->prepare($sql);
+        $st->execute([$email]);
+        $rows = $st->fetchAll(\PDO::FETCH_ASSOC);
+
+        foreach ($rows as $r) {
+            \App\Models\LgpdRequestFinding::record($reqId, 'financeiro', 'invoices', (int)$r['id'], 'financeiro',
+                'invoice-' . $r['numero'], 'numero', (int)$r['account_id'],
+                'cumprimento_contrato', 'Fatura ' . $r['status'] . ' R$ ' . number_format($r['amount_cents']/100, 2, ',', '.'));
+        }
+        \App\Models\LgpdRequestModule::record($reqId, 'financeiro', $byUid, count($rows),
+            count($rows) === 0 ? 'Nenhuma fatura encontrada (titular nao e admin de tenant)' : count($rows) . ' fatura(s)');
+        return count($rows);
+    }
+
+    /**
+     * logs_auditoria: ações executadas pelo titular (se for user interno) em
+     * master_audit_log e account_audit_log. Não inclui payload completo.
+     */
+    private static function searchLogsAuditoria(\PDO $pdo, int $reqId, string $email, int $byUid): int
+    {
+        // master_audit_log via super_admins
+        $totalMaster = 0;
+        $sql = "SELECT mal.id, mal.acao, mal.target_type, mal.target_id, mal.created_at
+                FROM master_audit_log mal
+                INNER JOIN super_admins sa ON sa.id = mal.super_admin_id
+                INNER JOIN users u ON u.id = sa.user_id
+                WHERE LOWER(u.login) = ?
+                ORDER BY mal.created_at DESC
+                LIMIT " . self::SEARCH_LIMIT_PER_MODULE;
+        $st = $pdo->prepare($sql);
+        $st->execute([$email]);
+        $rows = $st->fetchAll(\PDO::FETCH_ASSOC);
+
+        foreach ($rows as $r) {
+            \App\Models\LgpdRequestFinding::record($reqId, 'logs_auditoria', 'master_audit_log', (int)$r['id'], 'metadado',
+                $r['acao'], 'acao', null,
+                'obrigacao_legal', 'Acao master em ' . $r['created_at'] . ' (alvo: ' . ($r['target_type'] ?? '-') . '#' . ($r['target_id'] ?? '-') . ')');
+            $totalMaster++;
+        }
+
+        // account_audit_log via user_id
+        $totalAcc = 0;
+        $sql = "SELECT aal.id, aal.account_id, aal.acao, aal.created_at
+                FROM account_audit_log aal
+                INNER JOIN users u ON u.id = aal.user_id
+                WHERE LOWER(u.login) = ?
+                ORDER BY aal.created_at DESC
+                LIMIT " . self::SEARCH_LIMIT_PER_MODULE;
+        $st = $pdo->prepare($sql);
+        $st->execute([$email]);
+        $rows = $st->fetchAll(\PDO::FETCH_ASSOC);
+
+        foreach ($rows as $r) {
+            \App\Models\LgpdRequestFinding::record($reqId, 'logs_auditoria', 'account_audit_log', (int)$r['id'], 'metadado',
+                $r['acao'], 'acao', (int)$r['account_id'],
+                'obrigacao_legal', 'Acao do tenant em ' . $r['created_at']);
+            $totalAcc++;
+        }
+
+        $totalLogs = $totalMaster + $totalAcc;
+        \App\Models\LgpdRequestModule::record($reqId, 'logs_auditoria', $byUid, $totalLogs,
+            "$totalMaster acao(es) master + $totalAcc acao(es) tenant");
+        return $totalLogs;
+    }
+
+    private static function searchConsentimentos(\PDO $pdo, int $reqId, string $email, int $byUid): int
+    {
+        $sql = "SELECT id, account_id, finalidade, base_legal, status, concedido_em
+                FROM lgpd_consents
+                WHERE LOWER(titular_email) = ?
+                   OR user_id IN (SELECT id FROM users WHERE LOWER(login) = ?)
+                LIMIT " . self::SEARCH_LIMIT_PER_MODULE;
+        $st = $pdo->prepare($sql);
+        $st->execute([$email, $email]);
+        $rows = $st->fetchAll(\PDO::FETCH_ASSOC);
+
+        foreach ($rows as $r) {
+            \App\Models\LgpdRequestFinding::record($reqId, 'consentimentos', 'lgpd_consents', (int)$r['id'], 'metadado',
+                $r['finalidade'], 'finalidade', (int)($r['account_id'] ?? 0),
+                strtolower($r['base_legal']), 'Consentimento ' . $r['status'] . ' em ' . $r['concedido_em']);
+        }
+        \App\Models\LgpdRequestModule::record($reqId, 'consentimentos', $byUid, count($rows),
+            count($rows) === 0 ? 'Nenhum consentimento' : count($rows) . ' consentimento(s)');
+        return count($rows);
+    }
+
+    private static function searchAceitesTermos(\PDO $pdo, int $reqId, string $email, int $byUid): int
+    {
+        $sql = "SELECT ta.id, ta.account_id, ld.tipo, ld.versao, ta.accepted_at, ta.contexto
+                FROM term_acceptances ta
+                LEFT JOIN legal_documents ld ON ld.id = ta.legal_document_id
+                WHERE LOWER(ta.titular_email) = ?
+                   OR ta.user_id IN (SELECT id FROM users WHERE LOWER(login) = ?)
+                LIMIT " . self::SEARCH_LIMIT_PER_MODULE;
+        $st = $pdo->prepare($sql);
+        $st->execute([$email, $email]);
+        $rows = $st->fetchAll(\PDO::FETCH_ASSOC);
+
+        foreach ($rows as $r) {
+            \App\Models\LgpdRequestFinding::record($reqId, 'aceites_termos', 'term_acceptances', (int)$r['id'], 'metadado',
+                ($r['tipo'] ?? '?') . ' v' . ($r['versao'] ?? '?'), 'tipo_versao', (int)($r['account_id'] ?? 0),
+                'consentimento', 'Aceite via ' . ($r['contexto'] ?? '-') . ' em ' . $r['accepted_at']);
+        }
+        \App\Models\LgpdRequestModule::record($reqId, 'aceites_termos', $byUid, count($rows),
+            count($rows) === 0 ? 'Nenhum aceite registrado' : count($rows) . ' aceite(s)');
+        return count($rows);
+    }
 }
