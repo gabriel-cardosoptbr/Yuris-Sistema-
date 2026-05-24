@@ -1,0 +1,40 @@
+# =============================================================================
+# .htaccess raiz — proteção e roteamento (Yuris)
+# Adicionado em 2026-05-23 após descobrir directory listing exposto via HTTP.
+# Requer Apache com mod_rewrite + AllowOverride All (já configurados no XAMPP).
+# =============================================================================
+
+# ── 1. Não listar conteúdo de diretório ─────────────────────────────────────
+# Sem isto, http://localhost/sistema_vendas/ mostrava CLAUDE.md, docs/, etc.
+Options -Indexes
+
+# ── 2. Bloqueio explícito de arquivos sensíveis na raiz ─────────────────────
+# Estes arquivos NUNCA devem ser servidos via web — só existem no filesystem
+# para devs e CI. Resposta 403 ao tentar acessar diretamente.
+<FilesMatch "(?i)^(CLAUDE|README|CHANGELOG|LICENSE|COMPOSER|TODO).*\.md$">
+    Require all denied
+</FilesMatch>
+<FilesMatch "(?i)\.(bat|sh|sql|log|ini|env|lock|sqlite|sqlite3|db)$">
+    Require all denied
+</FilesMatch>
+<FilesMatch "(?i)^composer\.(json|lock)$">
+    Require all denied
+</FilesMatch>
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# ── 3. Bloqueio de pastas internas (codigo-fonte, docs, infra) ──────────────
+# Mesmo que individualmente os PHPs estejam protegidos, bloquear a pasta
+# inteira via RedirectMatch evita listagem residual e enumeração.
+# OBS: 'public/' e 'Imagens/' ficam acessíveis (necessárias para o app).
+RedirectMatch 403 (?i)^/sistema_vendas/(docs|scripts|tests|vendor|node_modules|config)(/.*)?$
+
+# ── 4. Redirect / → /public/login.php ───────────────────────────────────────
+# Antes: http://localhost/sistema_vendas/ → directory listing exposto
+# Agora: http://localhost/sistema_vendas/ → login.php
+# OBS: URL absoluta (com /sistema_vendas/ no caminho) evita que Apache resolva
+# para path de filesystem em alguns ambientes.
+RewriteEngine On
+RewriteBase /sistema_vendas/
+RewriteRule ^$ /sistema_vendas/public/login.php [L,R=302]

@@ -35,6 +35,11 @@ $activePage = 'configuracoes';
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <!-- Fix: esta página está em subpasta /configuracoes/. Sem <base>, os links
+       relativos da sidebar (dashboard.php, etc) resolvem como
+       /configuracoes/dashboard.php → 404. <base> força resolução a partir
+       da raiz public/, igual às outras páginas. -->
+  <base href="/sistema_vendas/public/">
   <title>Privacidade — Yuris</title>
   <link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
