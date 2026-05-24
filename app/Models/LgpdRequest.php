@@ -245,4 +245,243 @@ final class LgpdRequest
         }
         return $out;
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // F2 (LGPD v2 — Migration 057): extensões para normalização
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /** ENUMs do schema v2 — espelham migration 057. */
+    public const TITULAR_TIPOS = [
+        'lead', 'cliente', 'advogado_associado', 'usuario_interno',
+        'parte_processual', 'contato_whatsapp', 'responsavel_financeiro',
+        'visitante', 'outro',
+    ];
+    public const DOCUMENTO_TIPOS = ['cpf','cnpj','rg','cnh','oab','passaporte','outro'];
+    public const CANAIS_ORIGEM = [
+        'formulario_publico','email','telefone','presencial',
+        'ouvidoria_anpd','painel_interno','outro',
+    ];
+    public const PRIORIDADES = ['baixa','media','alta','critica'];
+
+    /**
+     * Prazo de resposta por tipo de solicitação (LGPD Art. 19).
+     *
+     * Art. 19 §1º — confirmação de existência: resposta IMEDIATA ou em formato
+     * simplificado (usamos 5 dias para dar margem operacional).
+     * Art. 19 §3º — demais: 15 dias corridos.
+     */
+    public const PRAZO_POR_TIPO = [
+        'confirmacao_existencia'        => 5,
+        'acesso'                        => 15,
+        'correcao'                      => 15,
+        'anonimizacao'                  => 15,
+        'bloqueio'                      => 15,
+        'eliminacao'                    => 15,
+        'portabilidade'                 => 15,
+        'info_compartilhamento'         => 15,
+        'revogacao_consentimento'       => 15,
+        'revisao_decisao_automatizada'  => 15,
+    ];
+
+    /**
+     * Calcula o prazo apropriado para um tipo de solicitação.
+     * Cai em 15 dias se tipo desconhecido.
+     */
+    public static function prazoParaTipo(string $tipo): int
+    {
+        return self::PRAZO_POR_TIPO[$tipo] ?? self::PRAZO_DIAS;
+    }
+
+    /**
+     * Prazo efetivo de uma solicitação (considerando prorrogação Art. 19 §3º).
+     * Retorna DateTime ou null.
+     */
+    public static function getEffectiveDeadline(array $req): ?\DateTimeImmutable
+    {
+        $base = $req['prazo_prorrogado_em'] ?? $req['prazo_resposta'] ?? null;
+        if (!$base) return null;
+        try {
+            return new \DateTimeImmutable((string)$base);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Registra prorrogação (Art. 19 §3º). Adiciona N dias ao prazo original
+     * e grava motivo. Também cria evento "prorrogacao".
+     *
+     * @return bool sucesso
+     */
+    public static function prorrogar(int $id, int $diasAdicionais, string $motivo, ?int $byUserId = null): bool
+    {
+        $req = self::findById($id);
+        if (!$req) return false;
+        if (in_array($req['status'], ['concluido','rejeitado','expirado'], true)) {
+            throw new \LogicException('Nao se prorroga solicitacao ja encerrada');
+        }
+        if ($diasAdicionais < 1 || $diasAdicionais > 30) {
+            throw new \InvalidArgumentException('diasAdicionais deve estar entre 1 e 30');
+        }
+
+        $base = $req['prazo_prorrogado_em'] ?? $req['prazo_resposta'];
+        $novoPrazo = (new \DateTimeImmutable($base))
+            ->modify("+{$diasAdicionais} days")
+            ->format('Y-m-d');
+
+        $pdo = Database::getConnection();
+        $pdo->prepare(
+            "UPDATE lgpd_requests
+             SET prazo_prorrogado_em = :p, motivo_prorrogacao = :m
+             WHERE id = :id"
+        )->execute(['p' => $novoPrazo, 'm' => $motivo, 'id' => $id]);
+
+        self::addEvent($id, 'prorrogacao',
+            "Prazo prorrogado por {$diasAdicionais} dias. Motivo: {$motivo}",
+            $byUserId);
+        return true;
+    }
+
+    /**
+     * Inferência heurística do tipo de titular pelo e-mail/cpf.
+     * Procura em users, contatos, cards, processos. Retorna o primeiro match.
+     * Não é definitivo — DPO deve revisar/confirmar manualmente.
+     *
+     * @param string $email
+     * @param string|null $cpf
+     * @return array{tipo:string,entidade:string,entidade_id:int,account_id:int|null}|null
+     */
+    public static function inferTitularTipo(string $email, ?string $cpf = null): ?array
+    {
+        $email = strtolower(trim($email));
+        $pdo   = Database::getConnection();
+
+        // 1. user_interno / advogado_associado / usuario_interno (users.login = email)
+        $st = $pdo->prepare(
+            "SELECT id, account_id, codigo_advogado, role
+             FROM users WHERE LOWER(login) = ? AND anonymized_at IS NULL LIMIT 1"
+        );
+        $st->execute([$email]);
+        if ($u = $st->fetch(\PDO::FETCH_ASSOC)) {
+            $tipo = !empty($u['codigo_advogado']) ? 'advogado_associado' : 'usuario_interno';
+            return ['tipo' => $tipo, 'entidade' => 'users',
+                    'entidade_id' => (int)$u['id'], 'account_id' => (int)$u['account_id']];
+        }
+
+        // 2. cliente (contatos.email = email)
+        $st = $pdo->prepare(
+            "SELECT id, account_id FROM contatos
+             WHERE LOWER(email) = ? AND anonymized_at IS NULL LIMIT 1"
+        );
+        $st->execute([$email]);
+        if ($c = $st->fetch(\PDO::FETCH_ASSOC)) {
+            return ['tipo' => 'cliente', 'entidade' => 'contatos',
+                    'entidade_id' => (int)$c['id'], 'account_id' => (int)$c['account_id']];
+        }
+
+        // 3. lead (cards.email = email)
+        $st = $pdo->prepare(
+            "SELECT id, account_id FROM cards
+             WHERE LOWER(email) = ? AND anonymized_at IS NULL LIMIT 1"
+        );
+        $st->execute([$email]);
+        if ($r = $st->fetch(\PDO::FETCH_ASSOC)) {
+            return ['tipo' => 'lead', 'entidade' => 'cards',
+                    'entidade_id' => (int)$r['id'], 'account_id' => (int)$r['account_id']];
+        }
+
+        // 4. parte_processual (processos.cpf_cnpj_parte_contraria via CPF)
+        if ($cpf !== null) {
+            $cpfClean = preg_replace('/\D/', '', $cpf);
+            if ($cpfClean !== '') {
+                $st = $pdo->prepare(
+                    "SELECT id, account_id FROM processos
+                     WHERE REPLACE(REPLACE(REPLACE(cpf_cnpj_parte_contraria,'.',''),'-',''),'/','') = ?
+                       AND anonymized_at IS NULL LIMIT 1"
+                );
+                $st->execute([$cpfClean]);
+                if ($p = $st->fetch(\PDO::FETCH_ASSOC)) {
+                    return ['tipo' => 'parte_processual', 'entidade' => 'processos',
+                            'entidade_id' => (int)$p['id'], 'account_id' => (int)$p['account_id']];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Atualiza tipificação do titular + referência polimórfica + matriz.
+     */
+    public static function setTitularRef(
+        int $id,
+        string $tipo,
+        ?string $entidade = null,
+        ?int $entidadeId = null,
+        ?int $accountId = null
+    ): bool {
+        if (!in_array($tipo, self::TITULAR_TIPOS, true)) {
+            throw new \InvalidArgumentException("titular_tipo invalido: $tipo");
+        }
+        $pdo = Database::getConnection();
+
+        // Resolve matriz_account_id se accountId for filial
+        $matrizId = null;
+        if ($accountId) {
+            $st = $pdo->prepare("SELECT matriz_id FROM accounts WHERE id = ?");
+            $st->execute([$accountId]);
+            $matrizId = $st->fetchColumn() ?: null;
+            // Se for matriz, matriz_id é NULL → mantém NULL
+        }
+
+        $sql = "UPDATE lgpd_requests SET
+                  titular_tipo = :tipo,
+                  titular_referencia_entidade = :ent,
+                  titular_referencia_id = :eid,
+                  account_id = COALESCE(:acc, account_id),
+                  matriz_account_id = :mat
+                WHERE id = :id";
+        return $pdo->prepare($sql)->execute([
+            'tipo' => $tipo, 'ent' => $entidade, 'eid' => $entidadeId,
+            'acc'  => $accountId, 'mat' => $matrizId, 'id' => $id,
+        ]);
+    }
+
+    /**
+     * Agregador completo para o drawer da UI Master.
+     * Retorna array com request + eventos + modules + findings + attachments + retentions + counts.
+     */
+    public static function fullDetail(int $id): ?array
+    {
+        $req = self::findById($id);
+        if (!$req) return null;
+
+        // Lazy-load dos models v2 (evita require se classe ja carregada)
+        if (!class_exists('App\\Models\\LgpdRequestModule')) {
+            require_once __DIR__ . '/LgpdRequestModule.php';
+        }
+        if (!class_exists('App\\Models\\LgpdRequestFinding')) {
+            require_once __DIR__ . '/LgpdRequestFinding.php';
+        }
+        if (!class_exists('App\\Models\\LgpdRequestAttachment')) {
+            require_once __DIR__ . '/LgpdRequestAttachment.php';
+        }
+        if (!class_exists('App\\Models\\LgpdRequestRetentionJustification')) {
+            require_once __DIR__ . '/LgpdRequestRetentionJustification.php';
+        }
+
+        return [
+            'request'       => $req,
+            'eventos'       => self::listEvents($id),
+            'modules'       => \App\Models\LgpdRequestModule::summary($id),
+            'findings'      => \App\Models\LgpdRequestFinding::listByRequest($id),
+            'attachments'   => \App\Models\LgpdRequestAttachment::listByRequest($id),
+            'retentions'    => \App\Models\LgpdRequestRetentionJustification::listByRequest($id),
+            'counts'        => [
+                'findings'    => \App\Models\LgpdRequestFinding::countsByRequest($id),
+                'retentions'  => \App\Models\LgpdRequestRetentionJustification::countsByRequest($id),
+            ],
+            'prazo_efetivo' => self::getEffectiveDeadline($req),
+        ];
+    }
 }
