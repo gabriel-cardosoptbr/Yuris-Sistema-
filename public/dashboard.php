@@ -631,6 +631,52 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
   .adash-badge-info   { background:rgba(59,130,246,.18);color:#93c5fd;border:1px solid rgba(59,130,246,.25);border-radius:5px;padding:1px 7px;font-size:.7rem;font-weight:700; }
   .adash-badge-ok     { background:rgba(16,185,129,.18);color:#6ee7b7;border:1px solid rgba(16,185,129,.25);border-radius:5px;padding:1px 7px;font-size:.7rem;font-weight:700; }
   .adash-btn-primary  { padding:0 18px;height:36px;border-radius:8px;border:none;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-size:.82rem;font-weight:600;cursor:pointer; }
+
+  /* ── Tema claro para o popup "Alertas de Processos com Prazo" ──
+     Antes ficava com a paleta dark (fundo navy + texto azul-claro) sobre o
+     fundo branco do dashboard claro. Reseta para card branco + texto navy. */
+  html[data-theme="light"] #alertModalDash { background: rgba(15,31,54,0.45); }
+  html[data-theme="light"] .adash-box {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 24px 60px rgba(15,31,54,0.18);
+  }
+  html[data-theme="light"] .adash-header {
+    background: #F8FAFC;
+    border-bottom-color: #E2E8F0;
+  }
+  html[data-theme="light"] .adash-title  { color: #0F172A; }
+  html[data-theme="light"] .adash-close {
+    background: #FFFFFF;
+    border-color: #BFDBFE;
+    color: #1D4ED8;
+  }
+  html[data-theme="light"] .adash-close:hover { background: #EFF6FF; }
+  html[data-theme="light"] .adash-block       { border-color: #E2E8F0; }
+  html[data-theme="light"] .adash-block-header{ background: #EFF6FF; }
+  html[data-theme="light"] .adash-block-label { color: #1D4ED8; }
+  html[data-theme="light"] .adash-block-count { color: #0F172A; }
+  html[data-theme="light"] .adash-item        { background: #F8FAFC; border: 1px solid #E2E8F0; }
+  html[data-theme="light"] .adash-item-client { color: #0F172A; }
+  html[data-theme="light"] .adash-item-meta   { color: #64748B; }
+  html[data-theme="light"] .adash-footer {
+    background: #F8FAFC;
+    border-top-color: #E2E8F0;
+  }
+  /* Badges traduzidos pra fundo claro — mantém cor de status, baixa intensidade */
+  html[data-theme="light"] .adash-badge-danger {
+    background: #FEE2E2; color: #B91C1C; border-color: #FCA5A5;
+  }
+  html[data-theme="light"] .adash-badge-warn {
+    background: #FEF3C7; color: #B45309; border-color: #FCD34D;
+  }
+  html[data-theme="light"] .adash-badge-info {
+    background: #DBEAFE; color: #1D4ED8; border-color: #93C5FD;
+  }
+  html[data-theme="light"] .adash-badge-ok {
+    background: #D1FAE5; color: #047857; border-color: #6EE7B7;
+  }
+  /* Botão primário (gradiente azul + texto branco) — OK no claro, sem override */
 </style>
 
 <div id="alertModalDash" class="hidden">
