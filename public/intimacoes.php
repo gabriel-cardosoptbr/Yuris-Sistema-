@@ -307,6 +307,12 @@ $kpiNaoLidas  = PushEventUserStatus::countNaoLidas($userId, $accountId);
     }
     .int-popup-checkbox input { accent-color: #6898C0; }
 
+    /* ── Texto da publicação — respeita quebras de linha semânticas ── */
+    .int-pub-text {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
     /* ── Linha "Adv:" no card de publicação ── */
     .int-pub-advs {
       font-size: .74rem; color: #7A8898; margin-top: 4px; line-height: 1.45;

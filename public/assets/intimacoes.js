@@ -838,7 +838,7 @@
             </div>
             <div class="int-pub-orgao">${esc(orgao)}</div>
             ${this._renderAdvogadosLine(it.advogados)}
-            <div class="int-pub-text" data-text-len="${texto.length}">${esc(texto)}${texto.length > 400 ? '<div class="int-pub-text-fade"></div>' : ''}</div>
+            <div class="int-pub-text" data-text-len="${texto.length}">${esc(this._formatLegal(texto))}${texto.length > 400 ? '<div class="int-pub-text-fade"></div>' : ''}</div>
             ${texto.length > 400
               ? `<button class="int-pub-text-toggle" data-action="toggle-text" data-hash="${esc(it.hash_conteudo)}">Ver tudo (${texto.length.toLocaleString('pt-BR')} caracteres)</button>`
               : ''}
@@ -1809,6 +1809,65 @@
     /** Pluralização PT-BR: 1 → singular; 0/2+ → plural. */
     _pl(n, sing, plur) {
       return (Number(n) === 1) ? sing : (plur || sing + 's');
+    },
+
+    /**
+     * Adiciona quebras de linha semânticas em texto jurídico inline.
+     * AASP/DJEN devolvem tudo numa linha — esta função detecta marcadores
+     * formais e insere \n\n antes deles pra ficar legível.
+     *
+     * Cuidado: usa uppercase + boundary pra não quebrar dentro de frases.
+     * Ex: "decisão" minúscula não quebra, "DECISÃO" maiúscula sim.
+     */
+    _formatLegal(s) {
+      if (!s) return '';
+      let t = String(s);
+      // 1) Quebra ANTES de marcadores institucionais/processuais (uppercase)
+      const breakBefore = [
+        /\bPODER JUDICIÁRIO\b/g,
+        /\bRECLAMANTE\s*:/g,
+        /\bRECLAMADO\s*:/g,
+        /\bEXEQUENTE\s*:/g,
+        /\bEXECUTAD[OA]\s*:/g,
+        /\bAUTOR\(?A?\)?\s*:/g,
+        /\bRÉU\(?S?\)?\s*:/g,
+        /\bINTIMAÇÃO\b(?!\s*(?:de|do|da|por|com))/g,  // INTIMAÇÃO keyword (não "intimação de ID")
+        /\bDECISÃO\b(?!\s+ID)/g,                       // DECISÃO keyword (não "Decisão ID xxx")
+        /\bDESPACHO\b(?!\s+ID)/g,
+        /\bSENTENÇA\b(?!\s+ID)/g,
+        /\bACÓRDÃO\b(?!\s+ID)/g,
+        /\bCONCLUSÃO\b/g,
+        /\bVistos\b\s*(?:etc)?\./g,                    // "Vistos." / "Vistos etc."
+        /\bFica V\. Sa\./g,
+        /\bFica\s+intimad[oa]\b/g,
+        /\bIntimado\(s\)\s*\/?\s*Citado\(s\)/g,
+        /\bPara\s+maiores\s+informações/g,
+      ];
+      for (const re of breakBefore) {
+        t = t.replace(re, '\n\n$&');
+      }
+
+      // 2) Quebra ANTES de itens numerados "1- ", "2- ", "3- " (passos de decisão)
+      t = t.replace(/\s(\d+)-\s/g, '\n$1- ');
+
+      // 3) Quebra ANTES de "ADV: " / "Adv - " / "ADV - " (lista de advogados final)
+      t = t.replace(/\s+(-\s*ADV\s*:)/gi, '\n$1');
+      t = t.replace(/\s+(Adv\s+-)/g, '\n$1');
+
+      // 4) Quebra ANTES de "Intimado(s) / Citado(s)" se grudou na sentença anterior
+      // (já coberto acima, mas reforça pra casos tipo "...Substituta Intimado(s)")
+      t = t.replace(/([a-záéíóúçãõ])(Intimado\(s\))/g, '$1\n\n$2');
+
+      // 5) Quebra ANTES de "- NOME LTDA" / "- NOME S.A." em listas de intimados
+      // (cada parte em sua linha quando listadas após Intimado(s) / Citado(s))
+      t = t.replace(/\s+-\s+([A-Z][A-Z\.\s\&]{3,}(LTDA|S\.A\.|EIRELI|ME|EPP))/g, '\n - $1');
+
+      // 6) Quebra ANTES de "Em DD/MM/YYYY" (timestamps)
+      t = t.replace(/\s+(Em\s+\d{2}\/\d{2}\/\d{4})/g, '\n$1');
+
+      // 7) Normaliza: max 2 quebras seguidas, sem quebra no início
+      t = t.replace(/\n{3,}/g, '\n\n').replace(/^\n+/, '');
+      return t;
     },
   };
 
