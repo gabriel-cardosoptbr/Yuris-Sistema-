@@ -441,3 +441,32 @@
 
   .mobile-tabbar a .mob-icon svg { width: 22px; height: 22px; display: block; }
 }
+
+/* ══════════════════════════════════
+   TEMA CLARO — sidebar group toggles (Operação, Jurídico, Comunicação...)
+   Yuris-theme.css cobre .sidebar nav a mas NÃO os toggles. Adicionamos aqui
+   pra garantir card branco igual aos demais itens da sidebar no light theme.
+   ══════════════════════════════════ */
+html[data-theme="light"] .sidebar-group-toggle {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(15,31,54,0.10) !important;
+  color: #0F1F36 !important;
+  box-shadow: 0 1px 3px rgba(15,31,54,0.04) !important;
+}
+html[data-theme="light"] .sidebar-group-toggle:hover {
+  background: rgba(37,99,235,.08) !important;
+  color: #1E4A8A !important;
+  border-color: rgba(37,99,235,.40) !important;
+  box-shadow: 0 2px 8px rgba(37,99,235,.10) !important;
+}
+html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle {
+  color: #1E4A8A !important;
+  border-color: rgba(37,99,235,.40) !important;
+}
+html[data-theme="light"] .sidebar-group-chevron {
+  stroke: #5A6B7E !important;
+}
+html[data-theme="light"] .sidebar-group-toggle:hover .sidebar-group-chevron,
+html[data-theme="light"] .sidebar-group.has-active .sidebar-group-chevron {
+  stroke: #1E4A8A !important;
+}
