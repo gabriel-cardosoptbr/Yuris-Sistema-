@@ -129,6 +129,31 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
     }
     .int-pub-card:hover { border-color: rgba(96,165,250,.32); box-shadow: 0 4px 14px rgba(0,0,0,.35); }
     .int-pub-card.unread { border-left: 3px solid #f87171; }
+    /* Card de intimação já vinculada a um processo do CRM — destaque verde */
+    .int-pub-card.linked {
+      border-left: 3px solid #10b981;
+      background: linear-gradient(90deg, rgba(16,185,129,.06) 0%, transparent 35%);
+    }
+    .int-pub-card.linked.unread {
+      /* Vinculado venceu sobre não-lida visualmente — verde fala "ok, processo conhecido" */
+      border-left-color: #10b981;
+    }
+    html[data-theme="light"] .int-pub-card.linked {
+      border-left-color: #059669 !important;
+      background: linear-gradient(90deg, rgba(16,185,129,.10) 0%, #FFFFFF 35%) !important;
+    }
+    /* Ícone do botão "Ações" — destaque AZUL quando intimação já vinculada */
+    .int-icon-btn.is-linked {
+      color: #60a5fa;
+      background: rgba(96,165,250,.20);
+      border-color: rgba(96,165,250,.55);
+    }
+    .int-icon-btn.is-linked:hover { background: rgba(96,165,250,.30); }
+    html[data-theme="light"] .int-icon-btn.is-linked {
+      color: #1E4A8A !important;
+      background: rgba(37,99,235,.15) !important;
+      border-color: rgba(37,99,235,.55) !important;
+    }
     .int-pub-body { flex: 1; min-width: 0; max-width: 100%; overflow: hidden; }
     .int-pub-meta { display: flex; gap: 12px; align-items: center; margin-bottom: 6px; font-size: .72rem; color: #7A8898; flex-wrap: wrap; min-width: 0; }
     .int-pub-meta strong { color: #93c5fd; font-weight: 600; }
@@ -361,12 +386,46 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
     .act-proc-row {
       padding: 9px 11px; cursor: pointer;
       border-bottom: 1px solid rgba(96,165,250,.10);
-      transition: background .15s;
+      border-left: 3px solid transparent;
+      transition: background .15s, border-left-color .15s;
     }
     .act-proc-row:last-child { border-bottom: none; }
     .act-proc-row:hover { background: rgba(96,165,250,.12); }
     .act-proc-row-num { font-size: .82rem; color: #dbeafe; font-weight: 600; }
     .act-proc-row-sub { font-size: .72rem; color: #7A8898; margin-top: 2px; }
+    /* Marca a linha do processo já vinculado a essa intimação */
+    .act-proc-row.linked {
+      border-left-color: #10b981;
+      background: rgba(16,185,129,.08);
+    }
+    .act-proc-row.linked:hover { background: rgba(16,185,129,.14); }
+    .act-proc-tag {
+      display: inline-block; margin-left: 6px; padding: 1px 7px;
+      background: rgba(16,185,129,.20); color: #10b981;
+      border: 1px solid rgba(16,185,129,.45); border-radius: 10px;
+      font-size: .65rem; text-transform: uppercase; letter-spacing: .04em;
+    }
+    /* Link "Ver processo" dentro do modal */
+    .int-link {
+      color: #60a5fa; text-decoration: none;
+      border-bottom: 1px dashed rgba(96,165,250,.5);
+    }
+    .int-link:hover { color: #93c5fd; border-bottom-color: #93c5fd; }
+    html[data-theme="light"] .int-link {
+      color: #2563EB !important;
+      border-bottom-color: rgba(37,99,235,.45) !important;
+    }
+    html[data-theme="light"] .int-link:hover { color: #1E4A8A !important; }
+    html[data-theme="light"] .act-proc-row.linked {
+      background: rgba(16,185,129,.10) !important;
+      border-left-color: #059669 !important;
+    }
+    html[data-theme="light"] .act-proc-row.linked:hover { background: rgba(16,185,129,.18) !important; }
+    html[data-theme="light"] .act-proc-tag {
+      background: rgba(16,185,129,.14) !important;
+      color: #047857 !important;
+      border-color: rgba(5,150,105,.40) !important;
+    }
 
     html[data-theme="light"] .int-actions-section {
       background: rgba(248,250,253,.95) !important;

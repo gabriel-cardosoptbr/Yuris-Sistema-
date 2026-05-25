@@ -975,7 +975,7 @@
       ].filter(Boolean).join(' ');
 
       return `
-        <div class="int-pub-card ${unread ? 'unread' : ''}" data-hash="${esc(it.hash_conteudo)}">
+        <div class="int-pub-card ${unread ? 'unread' : ''} ${hasLink ? 'linked' : ''}" data-hash="${esc(it.hash_conteudo)}">
           <div class="int-pub-body">
             <div class="int-pub-meta">
               <span class="int-pub-trib">${esc(it.tribunal)}</span>
@@ -1015,9 +1015,9 @@
                     style="${hasComment ? 'color:#93c5fd;' : ''}">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             </button>
-            <button class="int-icon-btn" title="Vincular ao processo + criar prazo (auto-link nas próximas)"
-                    data-action="open-actions" data-hash="${esc(it.hash_conteudo)}" ${eventIdAttr}
-                    style="${hasLink ? 'color:#a78bfa;background:rgba(167,139,250,.15);border-color:rgba(167,139,250,.4);' : ''}">
+            <button class="int-icon-btn ${hasLink ? 'is-linked' : ''}"
+                    title="${hasLink ? 'Já vinculado · Abrir para editar / criar prazo' : 'Vincular ao processo + criar prazo (auto-link nas próximas)'}"
+                    data-action="open-actions" data-hash="${esc(it.hash_conteudo)}" ${eventIdAttr}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
             </button>
           </div>
@@ -1999,8 +1999,7 @@
       if (respSel) respSel.value = '';
 
       if (item.processo_id) {
-        $('actVinculoStatus').innerHTML =
-          `<span style="color:#34D399;">✓ Já vinculado ao processo #${item.processo_id}</span> — busque abaixo se quiser trocar`;
+        $('actVinculoStatus').innerHTML = this._actionsVinculoStatusHtml(item.processo_id);
         $('actBtnDesvincular').style.display = '';
         this._actionsShowStep2(item);
       } else {
@@ -2014,6 +2013,15 @@
 
       // Lista inicial dos últimos N processos do tenant (q vazio)
       this._actionsLoadProcessos('');
+    },
+
+    /** Monta o HTML do status de vínculo com link "Ver processo →" pro CRM. */
+    _actionsVinculoStatusHtml(processoId, label) {
+      const procUrl = '/sistema_vendas/public/processos.php?open=' + encodeURIComponent(processoId);
+      const lbl = label ? this._esc(label) + ' ' : '';
+      return `<span style="color:#34D399;font-weight:600;">✓ Vinculado ${lbl ? 'a ' + lbl : ''}(#${processoId})</span>
+              · <a href="${procUrl}" target="_blank" rel="noopener" class="int-link">Ver processo →</a>
+              <br><span style="color:#7A8898;font-size:.72rem;">Busque abaixo se quiser trocar</span>`;
     },
 
     closeActionsModal() {
@@ -2076,12 +2084,17 @@
           list.innerHTML = `<div style="padding:14px;color:#7A8898;font-size:.78rem;text-align:center;">${q ? 'Nenhum processo bate com a busca.' : 'Nenhum processo cadastrado neste workspace.'}</div>`;
           return;
         }
-        list.innerHTML = items.map(p => `
-          <div class="act-proc-row" data-proc-id="${p.id}" data-proc-label="${this._esc(p.label)}">
-            <div class="act-proc-row-num">${this._esc(p.label)}</div>
+        // Destaca a linha do processo já vinculado a esta intimação (badge verde)
+        const linkedId = (this._actionsCtx && this._actionsCtx.item && this._actionsCtx.item.processo_id)
+          ? parseInt(this._actionsCtx.item.processo_id, 10) : 0;
+        list.innerHTML = items.map(p => {
+          const isLinked = linkedId && parseInt(p.id, 10) === linkedId;
+          return `
+          <div class="act-proc-row${isLinked ? ' linked' : ''}" data-proc-id="${p.id}" data-proc-label="${this._esc(p.label)}">
+            <div class="act-proc-row-num">${this._esc(p.label)}${isLinked ? '<span class="act-proc-tag">vinculado</span>' : ''}</div>
             ${p.sublabel ? `<div class="act-proc-row-sub">${this._esc(p.sublabel)}</div>` : ''}
-          </div>
-        `).join('');
+          </div>`;
+        }).join('');
         list.querySelectorAll('.act-proc-row').forEach(row => {
           row.addEventListener('click', () => {
             this._actionsVincular(parseInt(row.dataset.procId, 10), row.dataset.procLabel);
@@ -2110,10 +2123,11 @@
           'Próximas com mesmo CNJ serão auto-vinculadas.',
           'success'
         );
-        document.getElementById('actVinculoStatus').innerHTML =
-          `<span style="color:#34D399;">✓ Vinculado a ${this._esc(label)} (#${processoId})</span>`;
+        document.getElementById('actVinculoStatus').innerHTML = this._actionsVinculoStatusHtml(processoId, label);
         document.getElementById('actBtnDesvincular').style.display = '';
         this._actionsShowStep2(ctx.item);
+        // Recarrega lista pra marcar nova linha como vinculada
+        this._actionsLoadProcessos(document.getElementById('actBuscaProcesso')?.value || '');
         await this.loadPersistidos();
       } catch (err) {
         this.notify('Erro ao vincular: ' + err.message, 'error');
@@ -2137,6 +2151,8 @@
         document.getElementById('actBtnDesvincular').style.display = 'none';
         // Sem vínculo, não dá pra criar prazo — esconde etapa 2
         document.getElementById('actStep2Prazo').style.display = 'none';
+        // Recarrega lista pra remover o badge "vinculado"
+        this._actionsLoadProcessos(document.getElementById('actBuscaProcesso')?.value || '');
         await this.loadPersistidos();
       } catch (err) {
         this.notify('Erro: ' + err.message, 'error');
@@ -2179,9 +2195,14 @@
           },
         });
         if (!r.ok) throw new Error(r.error || 'Erro');
-        this.notify(
-          `Prazo processual criado no processo #${ctx.item.processo_id}${r.prazo_id ? ' (prazo #' + r.prazo_id + ')' : ''}.`,
-          'success'
+        // Toast verde clicável que abre o processo no CRM (aba Prazos)
+        this._toast(
+          `Prazo criado no processo #${ctx.item.processo_id}${r.prazo_id ? ' (prazo #' + r.prazo_id + ')' : ''}.`,
+          'success',
+          { link: {
+            href: '/sistema_vendas/public/processos.php?open=' + ctx.item.processo_id,
+            text: 'Ver processo →',
+          } }
         );
         this.closeActionsModal();
       } catch (err) {
@@ -2193,10 +2214,12 @@
 
     /** Toast visual fallback (quando window.yurisNotify não existe).
      *  Tipos: 'success' | 'error' | 'warn' | 'info' (default).
+     *  opts.link = { href, text } — adiciona link clicável ao final do toast e
+     *  estende o tempo de exibição pra dar tempo do user clicar.
      */
-    _toast(msg, tipo) {
+    _toast(msg, tipo, opts) {
       tipo = tipo || 'info';
-      // Container — criado uma vez
+      opts = opts || {};
       let host = document.getElementById('intToastHost');
       if (!host) {
         host = document.createElement('div');
@@ -2212,15 +2235,26 @@
       }[tipo] || { bg: '#1E4A8A', fg: '#FFFFFF' };
       const t = document.createElement('div');
       t.style.cssText = `background:${colors.bg};color:${colors.fg};padding:10px 14px;border-radius:8px;font-size:.85rem;line-height:1.4;box-shadow:0 4px 16px rgba(0,0,0,.25);animation:intToastIn .2s ease-out;`;
-      t.textContent = msg;
+
+      if (opts.link && opts.link.href) {
+        // Toast com link clicável — usa innerHTML; escapa msg pra evitar XSS
+        const linkText = this._esc(opts.link.text || 'Abrir');
+        const linkHref = this._esc(opts.link.href);
+        t.innerHTML = `${this._esc(msg)}
+          <a href="${linkHref}" target="_blank" rel="noopener"
+             style="display:inline-block;margin-left:8px;color:#fff;font-weight:600;text-decoration:underline;">${linkText}</a>`;
+      } else {
+        t.textContent = msg;
+      }
+
       host.appendChild(t);
-      // Auto-dismiss em 5s
+      // Toast com link fica visível mais tempo (10s vs 5s) pra dar tempo de clicar
+      const dwell = (opts.link && opts.link.href) ? 10000 : 5000;
       setTimeout(() => {
         t.style.transition = 'opacity .3s';
         t.style.opacity = '0';
         setTimeout(() => t.remove(), 300);
-      }, 5000);
-      // Inject keyframes (uma vez)
+      }, dwell);
       if (!document.getElementById('intToastKeyframes')) {
         const s = document.createElement('style');
         s.id = 'intToastKeyframes';
