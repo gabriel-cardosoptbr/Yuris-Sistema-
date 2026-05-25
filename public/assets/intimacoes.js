@@ -85,6 +85,17 @@
       const today = new Date();
       const start = new Date(); start.setDate(today.getDate() - (days - 1));
       if (this.fp) this.fp.setDate([start, today], true);
+      // Garante hidden inputs setados — Flatpickr no modo range trata
+      // [hoje, hoje] (2 datas iguais) como 1 só e onChange não seta data_fim.
+      const di = document.getElementById('filterDataInicio');
+      const df = document.getElementById('filterDataFim');
+      if (di) di.value = this._isoDate(start);
+      if (df) df.value = this._isoDate(today);
+      // Banner LGPD + microcopy reagem
+      const hoje = this._isoDate(today);
+      const isManual = (di.value && di.value < hoje);
+      document.getElementById('bannerBuscaManual')?.classList.toggle('show', isManual);
+      this.updateSearchHint();
     },
 
     clearPeriodo() {
@@ -291,7 +302,10 @@
         });
         if (!data.ok) throw new Error(data.error || 'Erro ao buscar');
         this.notify(`Cache atualizado: ${data.cached} nova(s), ${data.total} no total.`, 'success');
-        // Recarrega lista combinada
+        // FORÇA filtro de data=HOJE no painel lateral — botão "Buscar publicações
+        // de hoje" tem que mostrar SÓ hoje, não dias passados que estão no cache.
+        // Sem isso, loadPersistidos lista o cache inteiro (cross-day).
+        this.setPeriodoShortcut(1);
         await this.loadPersistidos();
       } catch (err) {
         this.notify('Erro ao buscar publicações: ' + err.message, 'error');
