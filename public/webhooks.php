@@ -94,7 +94,20 @@ $catalog = WebhookDispatcher::catalog();
     .modal-footer { padding:14px 20px; border-top:1px solid rgba(96,165,250,.14); background:rgba(8,22,44,.4); display:flex; justify-content:flex-end; gap:8px; flex-shrink:0; }
     /* Garante scroll em modais altos (catalog, docs com 18+ casos) — supera qualquer override */
     #modalDocs .modal, #modalCatalog .modal { max-height:calc(100vh - 48px) !important; }
-    #modalDocs .modal-body, #modalCatalog .modal-body { flex:1 1 auto !important; min-height:0 !important; overflow-y:auto !important; }
+    #modalDocs .modal-body, #modalCatalog .modal-body {
+      flex:1 1 auto !important;
+      min-height:0 !important;
+      max-height:70vh !important;
+      overflow-y:scroll !important;
+      overflow-x:hidden !important;
+    }
+    /* Scrollbar sempre visível no modal de docs (ajuda o user a perceber que rola) */
+    #modalDocs .modal-body::-webkit-scrollbar,
+    #modalCatalog .modal-body::-webkit-scrollbar { width:10px; }
+    #modalDocs .modal-body::-webkit-scrollbar-thumb,
+    #modalCatalog .modal-body::-webkit-scrollbar-thumb { background:rgba(96,165,250,.35); border-radius:5px; }
+    #modalDocs .modal-body::-webkit-scrollbar-track,
+    #modalCatalog .modal-body::-webkit-scrollbar-track { background:rgba(0,0,0,.15); }
 
     /* ── Form fields ── */
     .field-group { display:flex; flex-direction:column; gap:5px; }
@@ -1688,11 +1701,26 @@ endforeach; ?>  },
   document.getElementById('btnDocs').addEventListener('click', ()=>{
     openModal('modalDocs');
     switchDocTab('overview');
+    // Força scroll funcionar mesmo se CSS antigo estiver em cache
+    requestAnimationFrame(()=>{
+      const body = document.getElementById('docsBody');
+      if (body) {
+        body.style.setProperty('max-height','70vh','important');
+        body.style.setProperty('overflow-y','scroll','important');
+        body.style.setProperty('overflow-x','hidden','important');
+        body.scrollTop = 0;
+      }
+    });
   });
   document.getElementById('modalDocsClose').addEventListener('click', ()=>closeModal('modalDocs'));
 
   document.querySelectorAll('.doc-tab').forEach(btn=>{
-    btn.addEventListener('click', ()=> switchDocTab(btn.dataset.tab));
+    btn.addEventListener('click', ()=> {
+      switchDocTab(btn.dataset.tab);
+      // Volta scroll pro topo ao trocar de aba
+      const body = document.getElementById('docsBody');
+      if (body) body.scrollTop = 0;
+    });
   });
 
   // ── Catalog modal ─────────────────────────────────────────────────────────────
