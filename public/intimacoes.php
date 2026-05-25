@@ -28,6 +28,11 @@ $userId     = (int)$_SESSION['user_id'];
 
 $kpiCacheHoje = PushTodayCache::countActive($accountId);
 $kpiNaoLidas  = PushEventUserStatus::countNaoLidas($userId, $accountId);
+
+// Usuários acessíveis (matriz + filiais ativas) — alimenta o select de Responsável
+// no modal "Criar prazo processual", espelhando o padrão da aba Processos.
+$system_users = [];
+try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
 ?>
 <!doctype html>
 <html lang="pt-BR">
@@ -323,11 +328,29 @@ $kpiNaoLidas  = PushEventUserStatus::countNaoLidas($userId, $accountId);
     }
     .int-actions-section input[type="text"],
     .int-actions-section input[type="date"],
-    .int-actions-section select {
+    .int-actions-section select,
+    .int-actions-section textarea {
       width: 100%; padding: 8px 10px;
       background: rgba(8,20,40,.6); border: 1px solid rgba(96,165,250,.2);
       border-radius: 7px; color: #dbeafe; font-size: .82rem;
     }
+    .int-actions-section .int-actions-input { margin-bottom: 8px; }
+    .int-actions-section .int-actions-textarea { resize: vertical; min-height: 70px; }
+    .int-actions-list {
+      max-height: 240px; overflow-y: auto;
+      border: 1px solid rgba(96,165,250,.18); border-radius: 7px;
+      background: rgba(8,20,40,.4);
+    }
+    .act-proc-row {
+      padding: 9px 11px; cursor: pointer;
+      border-bottom: 1px solid rgba(96,165,250,.10);
+      transition: background .15s;
+    }
+    .act-proc-row:last-child { border-bottom: none; }
+    .act-proc-row:hover { background: rgba(96,165,250,.12); }
+    .act-proc-row-num { font-size: .82rem; color: #dbeafe; font-weight: 600; }
+    .act-proc-row-sub { font-size: .72rem; color: #7A8898; margin-top: 2px; }
+
     html[data-theme="light"] .int-actions-section {
       background: rgba(248,250,253,.95) !important;
       border-color: rgba(15,31,54,.12) !important;
@@ -340,6 +363,16 @@ $kpiNaoLidas  = PushEventUserStatus::countNaoLidas($userId, $accountId);
       background: #FFFFFF !important; color: #0F1F36 !important;
       border-color: rgba(15,31,54,.18) !important;
     }
+    html[data-theme="light"] .int-actions-list {
+      background: #FFFFFF !important;
+      border-color: rgba(15,31,54,.14) !important;
+    }
+    html[data-theme="light"] .act-proc-row {
+      border-bottom-color: rgba(15,31,54,.08) !important;
+    }
+    html[data-theme="light"] .act-proc-row:hover { background: rgba(37,99,235,.07) !important; }
+    html[data-theme="light"] .act-proc-row-num { color: #0F1F36 !important; }
+    html[data-theme="light"] .act-proc-row-sub { color: #5A6B7E !important; }
     /* Botão único "Ações" no card */
     .int-pub-actions-single {
       display: flex; flex-direction: column; gap: 4px; align-items: flex-end;
@@ -837,10 +870,12 @@ $kpiNaoLidas  = PushEventUserStatus::countNaoLidas($userId, $accountId);
       <div id="actVinculoStatus" style="font-size:.78rem;margin-bottom:8px;"></div>
 
       <!-- Search inline (filtra a lista abaixo) -->
-      <input type="text" id="actBuscaProcesso" placeholder="🔍 Buscar por número CNJ, descrição, autor ou réu..." style="width:100%;padding:8px 10px;background:rgba(8,20,40,.6);border:1px solid rgba(96,165,250,.2);border-radius:7px;color:#dbeafe;font-size:.82rem;margin-bottom:8px;" autocomplete="off">
+      <input type="text" id="actBuscaProcesso" class="int-actions-input"
+             placeholder="Buscar por número CNJ, cliente, parte contrária ou tipo da ação..."
+             autocomplete="off">
 
       <!-- Lista de processos (sempre visível, scrollable) -->
-      <div id="actListaProcessos" style="max-height:240px;overflow-y:auto;border:1px solid rgba(96,165,250,.18);border-radius:7px;background:rgba(8,20,40,.4);"></div>
+      <div id="actListaProcessos" class="int-actions-list"></div>
 
       <div style="display:flex;justify-content:space-between;margin-top:8px;align-items:center;">
         <p style="font-size:.7rem;color:#7A8898;line-height:1.4;margin:0;flex:1;">
@@ -877,13 +912,16 @@ $kpiNaoLidas  = PushEventUserStatus::countNaoLidas($userId, $accountId);
         </div>
         <div>
           <label>Responsável</label>
-          <input type="text" id="actPrazoResponsavel" style="font-size:.85rem;" placeholder="Nome do advogado">
+          <select id="actPrazoResponsavel" style="font-size:.85rem;">
+            <option value="">— Selecionar —</option>
+          </select>
         </div>
       </div>
       <div class="int-mon-form" style="grid-template-columns:1fr;margin-top:6px;">
         <div>
           <label>Observação (opcional)</label>
-          <textarea id="actPrazoObservacao" rows="3" style="width:100%;padding:8px 10px;background:rgba(8,20,40,.6);border:1px solid rgba(96,165,250,.2);border-radius:7px;color:#dbeafe;font-size:.82rem;resize:vertical;" placeholder="Detalhes adicionais (origem, link ao documento, etc.)"></textarea>
+          <textarea id="actPrazoObservacao" rows="3" class="int-actions-textarea"
+                    placeholder="Detalhes adicionais (origem, link ao documento, etc.)"></textarea>
         </div>
       </div>
       <button class="int-btn primary" id="actBtnCriarPrazo" style="margin-top:10px;">
@@ -1048,7 +1086,15 @@ $kpiNaoLidas  = PushEventUserStatus::countNaoLidas($userId, $accountId);
 <?php
   $intJsPath = __DIR__ . '/assets/intimacoes.js';
   $intJsVer  = file_exists($intJsPath) ? @filemtime($intJsPath) : '1';
+  $usSelPath = __DIR__ . '/assets/user_select.js';
+  $usSelVer  = file_exists($usSelPath) ? @filemtime($usSelPath) : '1';
 ?>
+<script>
+  // Usuários acessíveis pelo tenant (matriz + filiais ativas) — usado no select
+  // de Responsável do modal Vincular intimação, igual aba Processos.
+  window._SYSTEM_USERS = <?= json_encode($system_users, JSON_UNESCAPED_UNICODE) ?>;
+</script>
+<script src="/sistema_vendas/public/assets/user_select.js?v=<?= $usSelVer ?>"></script>
 <script src="/sistema_vendas/public/assets/intimacoes.js?v=<?= $intJsVer ?>"></script>
 <script>
   (function () {
@@ -1056,6 +1102,7 @@ $kpiNaoLidas  = PushEventUserStatus::countNaoLidas($userId, $accountId);
     window.YurisIntimacoesApp.init({
       csrf:      <?= json_encode($csrf) ?>,
       accountId: <?= (int)$accountId ?>,
+      userId:    <?= (int)$userId ?>,
       apiBase:   '/sistema_vendas/public/api/push',
     });
   })();

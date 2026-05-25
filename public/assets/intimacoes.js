@@ -30,6 +30,7 @@
       this.csrf      = cfg.csrf;
       this.apiBase   = cfg.apiBase;
       this.accountId = cfg.accountId;
+      this.userId    = cfg.userId || 0;
       // Fallback robusto: se yurisNotify não existir, usa toast visual próprio
       this.notify    = window.yurisNotify || ((m, t) => this._toast(m, t));
       this.userProfile = { oab: '', oab_uf: '', nome_advogado: '', nome: '' };
@@ -1992,8 +1993,10 @@
       $('actPrazoDescricao').value   = '';
       $('actPrazoDataLimite').value  = '';
       $('actPrazoPrioridade').value  = 'media';
-      $('actPrazoResponsavel').value = '';
       $('actPrazoObservacao').value  = '';
+      // Select de responsável: limpa pra _actionsShowStep2 repopular (com user logado pré-selecionado)
+      const respSel = $('actPrazoResponsavel');
+      if (respSel) respSel.value = '';
 
       if (item.processo_id) {
         $('actVinculoStatus').innerHTML =
@@ -2019,7 +2022,8 @@
 
     /**
      * Mostra a etapa 2 (criar prazo) já com pré-população útil:
-     * descrição = resumo da intimação; responsável = nome do user logado.
+     *  - Descrição = resumo da intimação (truncado)
+     *  - Responsável = user logado (via Yuris.populateUserSelect com matriz+filiais)
      * Só pré-popula se campo estiver vazio (não sobrescreve edição do user).
      */
     _actionsShowStep2(item) {
@@ -2033,10 +2037,23 @@
         const base = item.resumo || item.tipo_comunicacao || 'Prazo da intimação';
         desc.value = String(base).slice(0, 200);
       }
-      const resp = $('actPrazoResponsavel');
-      if (resp && !resp.value) {
-        const p = this.userProfile || {};
-        resp.value = p.nome_advogado || p.nome || '';
+
+      // Popula select de responsável com mesma lista da aba Processos
+      // (window._SYSTEM_USERS exposto pelo PHP via getAccessibleUsers).
+      const respSel = $('actPrazoResponsavel');
+      if (respSel) {
+        const users = window._SYSTEM_USERS || [];
+        const currentVal = respSel.value;
+        if (window.Yuris && typeof window.Yuris.populateUserSelect === 'function') {
+          window.Yuris.populateUserSelect(respSel, users, {
+            placeholder: '— Selecionar —',
+            selected: currentVal || this.userId || null,
+          });
+        } else {
+          // Fallback se user_select.js não carregar
+          respSel.innerHTML = '<option value="">— Selecionar —</option>' +
+            users.map(u => `<option value="${u.id}"${String(u.id) === String(this.userId) ? ' selected' : ''}>${this._esc(u.nome)}</option>`).join('');
+        }
       }
 
       setTimeout(() => step.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
@@ -2060,15 +2077,12 @@
           return;
         }
         list.innerHTML = items.map(p => `
-          <div class="act-proc-row" data-proc-id="${p.id}" data-proc-label="${this._esc(p.label)}"
-               style="padding:9px 11px;cursor:pointer;border-bottom:1px solid rgba(96,165,250,.1);transition:background .15s;">
-            <div style="font-size:.82rem;color:#dbeafe;font-weight:600;">${this._esc(p.label)}</div>
-            ${p.sublabel ? `<div style="font-size:.72rem;color:#7A8898;margin-top:2px;">${this._esc(p.sublabel)}</div>` : ''}
+          <div class="act-proc-row" data-proc-id="${p.id}" data-proc-label="${this._esc(p.label)}">
+            <div class="act-proc-row-num">${this._esc(p.label)}</div>
+            ${p.sublabel ? `<div class="act-proc-row-sub">${this._esc(p.sublabel)}</div>` : ''}
           </div>
         `).join('');
         list.querySelectorAll('.act-proc-row').forEach(row => {
-          row.addEventListener('mouseenter', () => { row.style.background = 'rgba(96,165,250,.12)'; });
-          row.addEventListener('mouseleave', () => { row.style.background = ''; });
           row.addEventListener('click', () => {
             this._actionsVincular(parseInt(row.dataset.procId, 10), row.dataset.procLabel);
           });
@@ -2140,11 +2154,11 @@
         return;
       }
       const $ = (id) => document.getElementById(id);
-      const descricao   = $('actPrazoDescricao')?.value.trim() || '';
-      const dataLimite  = $('actPrazoDataLimite')?.value || '';
-      const prioridade  = $('actPrazoPrioridade')?.value || 'media';
-      const responsavel = $('actPrazoResponsavel')?.value.trim() || '';
-      const observacao  = $('actPrazoObservacao')?.value.trim() || '';
+      const descricao    = $('actPrazoDescricao')?.value.trim() || '';
+      const dataLimite   = $('actPrazoDataLimite')?.value || '';
+      const prioridade   = $('actPrazoPrioridade')?.value || 'media';
+      const responsavelId = parseInt($('actPrazoResponsavel')?.value || '0', 10) || 0;
+      const observacao    = $('actPrazoObservacao')?.value.trim() || '';
 
       if (!descricao)  { this.notify('Descrição do prazo é obrigatória.', 'warn'); return; }
       if (!dataLimite) { this.notify('Data limite é obrigatória.', 'warn'); return; }
@@ -2160,7 +2174,7 @@
             descricao,
             data_limite: dataLimite,
             prioridade,
-            responsavel,
+            responsavel_id: responsavelId,
             observacao,
           },
         });

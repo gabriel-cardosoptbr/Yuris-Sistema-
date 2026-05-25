@@ -58,7 +58,9 @@ try {
     $colsSet = array_flip($cols);
 
     $selectCols = ['p.id', 'p.account_id'];
-    foreach (['numero_cnj','numero_processo','numero','descricao','titulo','autor','reu'] as $c) {
+    // Inclui colunas reais do schema (cliente_nome/parte_contraria/tipo_acao) +
+    // legacy (autor/reu/descricao/titulo) pra robustez se schema variar entre instalações.
+    foreach (['numero_cnj','numero_processo','numero','cliente_nome','parte_contraria','tipo_acao','descricao','titulo','autor','reu'] as $c) {
         if (isset($colsSet[$c])) $selectCols[] = 'p.' . $c;
     }
 
@@ -76,7 +78,7 @@ try {
             }
             $params['nl'] = '%' . $numLimpo . '%';
         }
-        foreach (['numero_cnj','numero_processo','numero','descricao','titulo','autor','reu'] as $c) {
+        foreach (['numero_cnj','numero_processo','numero','cliente_nome','parte_contraria','tipo_acao','descricao','titulo','autor','reu'] as $c) {
             if (isset($colsSet[$c])) {
                 $orClauses[] = "p.{$c} LIKE :lk";
             }
@@ -95,14 +97,25 @@ try {
     $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
     // Normaliza pra UI — sempre devolve {id, label, sublabel}
+    // label    = número (CNJ ou alternativo)
+    // sublabel = "Cliente × Parte Contrária — Tipo Ação" (montado dos campos disponíveis)
     $items = array_map(static function ($r) {
-        $num = $r['numero_cnj'] ?? $r['numero_processo'] ?? $r['numero'] ?? '';
-        $desc = $r['descricao'] ?? $r['titulo'] ?? '';
-        $extra = trim(implode(' × ', array_filter([$r['autor'] ?? '', $r['reu'] ?? ''])));
+        $num   = $r['numero_cnj'] ?? $r['numero_processo'] ?? $r['numero'] ?? '';
+        $cli   = trim((string)($r['cliente_nome']    ?? $r['autor'] ?? ''));
+        $parte = trim((string)($r['parte_contraria'] ?? $r['reu']   ?? ''));
+        $tipo  = trim((string)($r['tipo_acao']       ?? $r['descricao'] ?? $r['titulo'] ?? ''));
+
+        // Monta partes × partes
+        $partes = trim(implode(' × ', array_filter([$cli, $parte])));
+        $sub = $partes;
+        if ($tipo !== '') {
+            $sub = $sub !== '' ? $sub . ' — ' . $tipo : $tipo;
+        }
+
         return [
             'id'       => (int)$r['id'],
             'label'    => $num ?: ('Processo #' . $r['id']),
-            'sublabel' => trim($desc . ($extra ? ' (' . $extra . ')' : '')) ?: '',
+            'sublabel' => $sub,
         ];
     }, $rows);
 

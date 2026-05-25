@@ -354,7 +354,26 @@ try {
             }
             $dataLim = isset($extra['data_limite']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $extra['data_limite'])
                 ? $extra['data_limite'] : null;
-            $respNome = trim((string)($extra['responsavel'] ?? ''));
+            // Aceita responsavel_id (user id) — preferencial — ou responsavel (string legacy).
+            // Quando vem id, valida que o user é acessível pelo tenant (matriz + filiais ativas).
+            $respNome = '';
+            $respId   = (int)($extra['responsavel_id'] ?? 0);
+            if ($respId > 0) {
+                $accessIds = $ctx->getAccessibleAccountIds();
+                if ($accessIds) {
+                    $ph = implode(',', array_fill(0, count($accessIds), '?'));
+                    $st = $pdo->prepare("SELECT nome FROM users WHERE id = ? AND account_id IN ($ph) AND deleted_at IS NULL LIMIT 1");
+                    $st->execute(array_merge([$respId], $accessIds));
+                    $respNome = (string)($st->fetchColumn() ?: '');
+                }
+                if ($respNome === '') {
+                    http_response_code(403);
+                    echo json_encode(['error' => 'Responsável inválido ou fora do seu workspace.']);
+                    exit;
+                }
+            } else {
+                $respNome = trim((string)($extra['responsavel'] ?? ''));
+            }
             if ($respNome === '') {
                 // Default: nome do user logado
                 $st = $pdo->prepare('SELECT nome FROM users WHERE id = :u LIMIT 1');
