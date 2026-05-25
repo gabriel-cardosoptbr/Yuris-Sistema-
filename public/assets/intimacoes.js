@@ -30,7 +30,8 @@
       this.csrf      = cfg.csrf;
       this.apiBase   = cfg.apiBase;
       this.accountId = cfg.accountId;
-      this.notify    = window.yurisNotify || ((m) => console.log('[notify]', m));
+      // Fallback robusto: se yurisNotify não existir, usa toast visual próprio
+      this.notify    = window.yurisNotify || ((m, t) => this._toast(m, t));
       this.userProfile = { oab: '', oab_uf: '', nome_advogado: '', nome: '' };
       this.bindEvents();
       this.initDatePicker();
@@ -112,10 +113,17 @@
       const STORAGE_KEY = 'yuris_intimacoes_last_auto_aasp';
       const last = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
       const agora = Date.now();
-      if (last && (agora - last) < 60 * 1000) return;
+      if (last && (agora - last) < 60 * 1000) {
+        const segsRest = Math.ceil((60 * 1000 - (agora - last)) / 1000);
+        this.notify(`AASP: aguardando cooldown (${segsRest}s pra próxima auto-sync). Clica em Sincronizar pra forçar.`, 'info');
+        return;
+      }
 
       const ativas = (this.aaspState.integrations || []).filter(i => i.status === 'active');
-      if (!ativas.length) return;
+      if (!ativas.length) {
+        this.notify('Nenhuma integração AASP ativa pra sincronizar.', 'warn');
+        return;
+      }
 
       sessionStorage.setItem(STORAGE_KEY, String(agora));
       this.notify(`Verificando AASP… (${ativas.length} ${this._pl(ativas.length, 'integração', 'integrações')})`, 'info');
@@ -1937,6 +1945,44 @@
     /** Pluralização PT-BR: 1 → singular; 0/2+ → plural. */
     _pl(n, sing, plur) {
       return (Number(n) === 1) ? sing : (plur || sing + 's');
+    },
+
+    /** Toast visual fallback (quando window.yurisNotify não existe).
+     *  Tipos: 'success' | 'error' | 'warn' | 'info' (default).
+     */
+    _toast(msg, tipo) {
+      tipo = tipo || 'info';
+      // Container — criado uma vez
+      let host = document.getElementById('intToastHost');
+      if (!host) {
+        host = document.createElement('div');
+        host.id = 'intToastHost';
+        host.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:99999;display:flex;flex-direction:column;gap:8px;max-width:380px;';
+        document.body.appendChild(host);
+      }
+      const colors = {
+        success: { bg: '#15803D', fg: '#FFFFFF' },
+        error:   { bg: '#B91C1C', fg: '#FFFFFF' },
+        warn:    { bg: '#B45309', fg: '#FFFFFF' },
+        info:    { bg: '#1E4A8A', fg: '#FFFFFF' },
+      }[tipo] || { bg: '#1E4A8A', fg: '#FFFFFF' };
+      const t = document.createElement('div');
+      t.style.cssText = `background:${colors.bg};color:${colors.fg};padding:10px 14px;border-radius:8px;font-size:.85rem;line-height:1.4;box-shadow:0 4px 16px rgba(0,0,0,.25);animation:intToastIn .2s ease-out;`;
+      t.textContent = msg;
+      host.appendChild(t);
+      // Auto-dismiss em 5s
+      setTimeout(() => {
+        t.style.transition = 'opacity .3s';
+        t.style.opacity = '0';
+        setTimeout(() => t.remove(), 300);
+      }, 5000);
+      // Inject keyframes (uma vez)
+      if (!document.getElementById('intToastKeyframes')) {
+        const s = document.createElement('style');
+        s.id = 'intToastKeyframes';
+        s.textContent = '@keyframes intToastIn { from { transform:translateX(40px);opacity:0; } to { transform:translateX(0);opacity:1; } }';
+        document.head.appendChild(s);
+      }
     },
 
     /**
