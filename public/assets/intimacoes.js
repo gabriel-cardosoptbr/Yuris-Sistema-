@@ -42,33 +42,44 @@
       // Pra ver mais dias, usa os shortcuts (7/30 dias) ou o calendário.
       this.setPeriodoShortcut(1);
       this.updateSearchHint();
-      this.loadUserDefaults()
-        .then(() => this.loadPersistidos())
-        .then(() => this._autoBuscarHoje());  // auto-refresh em background
+      this.loadUserDefaults().then(async () => {
+        // Se aba inicial é AASP, mostra painel e carrega integrações primeiro
+        // (sem isso, _autoSincronizarAasp não tem o que chamar)
+        if (activeTab === 'aasp') {
+          document.getElementById('intAaspPanel').style.display = '';
+          await this.loadAaspIntegrations();
+        }
+        await this.loadPersistidos();
+        this._autoBuscarHoje();  // auto-refresh em background (DJEN ou AASP conforme aba)
+      });
     },
 
     /**
-     * Auto-sincroniza DJEN ao carregar a página — sem precisar clicar
+     * Auto-sincroniza ao carregar a página — sem precisar clicar
      * "Buscar publicações de hoje". O botão continua existindo pra forçar
-     * sincronização manual ("adiantar"), mas o user não precisa mais clicar
-     * toda vez que abre a página.
+     * sincronização manual ("adiantar").
      *
-     * Skip silenciosamente se:
-     *   - User não tem perfil nem monitor (não faz sentido buscar nada)
-     *   - Aba ativa é AASP (cron AASP roda em background separadamente)
-     *   - Última auto-busca foi há < 5min (evita spam quando reload rápido)
+     * Roteamento:
+     *   - Aba DJEN → POST /search.php mode=cache_hoje (puxa DJEN)
+     *   - Aba AASP → POST /aasp/sync.php pra cada integração ativa (puxa AASP)
+     *
+     * Skip silencioso:
+     *   - User sem perfil nem monitor (nada pra buscar)
+     *   - Cooldown 5min via sessionStorage (anti-spam em reloads rápidos)
      */
     async _autoBuscarHoje() {
-      // Skip se não há nada pra buscar
+      // Roteia pra AASP se aba ativa
+      if (this.state.sourceFilter === 'aasp') {
+        return this._autoSincronizarAasp();
+      }
+
+      // DJEN: skip se não há nada pra buscar
       const p = this.userProfile || {};
       const hasSomething = p.oab || p.nome_advogado || p.hasMonitors;
       if (!hasSomething) return;
 
-      // Skip se aba AASP (cron AASP cuida disso)
-      if (this.state.sourceFilter === 'aasp') return;
-
-      // Skip se já buscou há menos de 5min — sessionStorage cross-page
-      const STORAGE_KEY = 'yuris_intimacoes_last_auto';
+      // Cooldown 5min
+      const STORAGE_KEY = 'yuris_intimacoes_last_auto_djen';
       const last = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
       const agora = Date.now();
       if (last && (agora - last) < 5 * 60 * 1000) return;
@@ -80,15 +91,58 @@
         });
         if (!data.ok) return;
         sessionStorage.setItem(STORAGE_KEY, String(agora));
-        // Notifica só se trouxe novidades (evita poluir com "0 novas" toda vez)
         if (data.cached > 0) {
           this.notify(
-            `${data.cached} ${this._pl(data.cached, 'nova publicação', 'novas publicações')} encontradas.`,
+            `${data.cached} ${this._pl(data.cached, 'nova publicação', 'novas publicações')} (DJEN).`,
             'success'
           );
           await this.loadPersistidos();
         }
-      } catch (_) { /* silencioso — não interrompe UX se DJEN estiver fora */ }
+      } catch (_) { /* silent */ }
+    },
+
+    /**
+     * Auto-sincroniza AASP: pra cada integração ativa, chama sync.php em
+     * sequência com diferencial=true (só novidades). Mostra notificação
+     * agregada no fim se houver itens novos.
+     */
+    async _autoSincronizarAasp() {
+      // Cooldown 5min separado do DJEN
+      const STORAGE_KEY = 'yuris_intimacoes_last_auto_aasp';
+      const last = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+      const agora = Date.now();
+      if (last && (agora - last) < 5 * 60 * 1000) return;
+
+      const ativas = (this.aaspState.integrations || []).filter(i => i.status === 'active');
+      if (!ativas.length) return;
+
+      sessionStorage.setItem(STORAGE_KEY, String(agora));
+      let totalNovos = 0;
+      let totalRetornados = 0;
+      for (const integ of ativas) {
+        try {
+          const data = await this.api('POST', '/sistema_vendas/public/api/aasp/sync.php', {
+            integration_id: integ.id,
+            diferencial: false,  // false = traz tudo do dia (idempotente). true seria incremental.
+          });
+          if (data.ok) {
+            totalNovos      += data.cached_novos || 0;
+            totalRetornados += data.total        || 0;
+          }
+        } catch (_) { /* silent */ }
+      }
+      if (totalNovos > 0) {
+        this.notify(
+          `AASP: ${totalNovos} ${this._pl(totalNovos, 'nova publicação', 'novas publicações')} (de ${totalRetornados} no dia).`,
+          'success'
+        );
+        await this.loadAaspIntegrations();
+        await this.loadPersistidos();
+      } else if (totalRetornados > 0) {
+        // Trouxe items mas já estavam no cache — só atualiza visual silenciosamente
+        await this.loadAaspIntegrations();
+        await this.loadPersistidos();
+      }
     },
 
     /** Inicializa o calendário visual Flatpickr no input "Período". */
