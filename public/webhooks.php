@@ -676,7 +676,7 @@ $catalog = WebhookDispatcher::catalog();
         <?php endforeach; ?>
       </div>
 
-      <div class="modal-body" id="docsBody" style="gap:20px;font-size:.84rem;line-height:1.7;color:#b8d5f4">
+      <div class="modal-body" id="docsBody" style="gap:20px;font-size:.84rem;line-height:1.7;color:#b8d5f4;max-height:70vh;overflow-y:auto;overflow-x:hidden">
 
         <!-- Visão Geral -->
         <div data-section="overview" style="border:1px solid rgba(96,165,250,.15);border-radius:10px;overflow:hidden">
