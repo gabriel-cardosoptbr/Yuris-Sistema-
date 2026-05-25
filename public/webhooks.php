@@ -101,6 +101,10 @@ $catalog = WebhookDispatcher::catalog();
       overflow-y:scroll !important;
       overflow-x:hidden !important;
     }
+    /* CRITICAL: secoes da doc NAO podem encolher (flex-shrink:1 default + overflow:hidden
+       inline = conteudo cortado internamente, parent nao percebe que precisa scrollar).
+       Forca flex-shrink:0 pra que o pai #docsBody enxergue a altura real e crie scroll. */
+    #modalDocs .modal-body > [data-section] { flex-shrink: 0 !important; }
     /* Scrollbar sempre visível no modal de docs (ajuda o user a perceber que rola) */
     /* Firefox */
     #modalDocs .modal-body,
