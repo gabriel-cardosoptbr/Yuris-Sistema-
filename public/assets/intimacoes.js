@@ -602,46 +602,14 @@
       }
       const diasIntim = (info.diasComIntimacao || []).map((d) => this.fmtData(d)).join(', ') || 'nenhum';
 
-      // Diagnóstico do GetJornaisComIntimacoes
-      let diagnose = '';
-      if (info.jornaisStatus === 'vazio' && info.usedFallback) {
-        diagnose = `<br><span class="muted">Diagnóstico: o endpoint GetJornaisComIntimacoes da AASP retornou <strong>0 dias com intimação</strong> nos últimos dias. Por garantia, consultei ${info.requestCount} dia(s) um por um (fallback). Resultado: ${info.total} item(ns).</span>`;
-      } else if (info.jornaisStatus === 'erro') {
-        diagnose = `<br><span class="muted">Diagnóstico: GetJornaisComIntimacoes falhou. Fallback consultou ${info.requestCount} dia(s) individualmente.</span>`;
-      } else if ((info.jornaisDatasRaw || []).length > 0) {
-        const fora = (info.jornaisDatasRaw || []).filter((d) => d < info.dataIni || d > info.dataFim);
-        if (fora.length) {
-          diagnose = `<br><span class="muted">AASP listou ${info.jornaisDatasRaw.length} dia(s) com intimação no total (últimos ${info.diasNoRange}+), mas só ${(info.diasComIntimacao||[]).length} caem no seu período pedido.</span>`;
-        }
-      }
-
-      // Diagnóstico extra: se há items mas o card aparece vazio, mostrar campos raw
-      // pra dev ajustar o normalize(). Só aparece quando há items.
-      let rawDiag = '';
-      if (info.firstItemRaw && info.firstItemRawKeys && info.firstItemRawKeys.length) {
-        const rawJson = JSON.stringify(info.firstItemRaw, null, 2);
-        const rawTrunc = rawJson.length > 3000 ? rawJson.slice(0, 3000) + '\n…(truncado)' : rawJson;
-        rawDiag = `
-          <details style="margin-top:10px;cursor:pointer;">
-            <summary style="font-size:.78rem;font-weight:600;color:#93c5fd;">
-              ⚠ Diagnóstico: campos raw do 1º item AASP (clique pra expandir)
-            </summary>
-            <div style="margin-top:6px;font-size:.72rem;">
-              <strong>Campos disponíveis (${info.firstItemRawKeys.length}):</strong>
-              <code style="display:block;padding:6px;background:rgba(8,20,40,.6);border-radius:4px;margin-top:4px;font-size:.7rem;overflow-x:auto;">${e(info.firstItemRawKeys.join(', '))}</code>
-              <strong style="display:block;margin-top:8px;">Payload completo do 1º item:</strong>
-              <pre style="margin-top:4px;padding:8px;max-height:280px;overflow:auto;background:rgba(8,20,40,.6);border-radius:5px;font-size:.7rem;white-space:pre-wrap;word-break:break-word;">${e(rawTrunc)}</pre>
-              <span class="muted">Se os cards estão aparecendo vazios, manda print deste bloco que o normalize() precisa ser ajustado pros nomes reais dos campos.</span>
-            </div>
-          </details>`;
-      }
+      // Diagnósticos técnicos (GetJornais status + raw payload) removidos do UI
+      // do usuário final em 2026-05-25 a pedido. Continuam disponíveis no
+      // payload de search.php pra debug via DevTools se precisar.
 
       el.innerHTML = `
         <strong>Última busca:</strong> "${e(info.nome)}" · período ${e(range)}<br>
         <strong>${info.total}</strong> ${this._pl(info.total, 'intimação', 'intimações')} · <strong>${(info.diasComIntimacao || []).length}</strong> de ${info.diasNoRange} ${this._pl(info.diasNoRange, 'dia', 'dias')} com intimação · ${info.duracaoMs}ms · ${info.requestCount} ${this._pl(info.requestCount, 'chamada', 'chamadas')}
         ${(info.diasComIntimacao || []).length ? `<br><span class="muted">Dias com intimação: ${e(diasIntim)}</span>` : ''}
-        ${diagnose}
-        ${rawDiag}
       `;
     },
 
