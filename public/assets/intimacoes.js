@@ -1476,8 +1476,11 @@
         if (aaspPanel) aaspPanel.style.display = '';
         if (banner)    banner.classList.remove('show');
         this.state.sourceFilter = 'aasp';
-        this.loadAaspIntegrations();
-        this.loadPersistidos();
+        // Carrega integrações ANTES de _autoBuscarHoje (que precisa delas)
+        this.loadAaspIntegrations().then(() => {
+          this.loadPersistidos();
+          this._autoBuscarHoje();  // roteado pra _autoSincronizarAasp (com cooldown próprio)
+        });
       } else {
         if (aaspPanel) aaspPanel.style.display = 'none';
         // Esconde resumo da última busca AASP ao sair da aba
@@ -1487,6 +1490,7 @@
         // Antes era null (cross-provider) mas isso fazia AASP aparecer na aba DJEN.
         this.state.sourceFilter = (tab === 'djen') ? 'djen' : null;
         this.loadPersistidos();
+        if (tab === 'djen') this._autoBuscarHoje();
       }
       // Atualiza microcopy do botão "Buscar publicações" e KPI da toolbar
       this.updateSearchHint();
