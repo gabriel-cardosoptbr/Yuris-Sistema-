@@ -399,6 +399,50 @@ $catalog = WebhookDispatcher::catalog();
 
     /* Bloco "EXEMPLO DE PAYLOAD COMPLETO" — usa .payload-preview, já coberto */
 
+    /* ─── Aba EXEMPLOS do modal Docs ─── */
+    html[data-theme="light"] #modalDocs [data-section="exemplos"] {
+      background: #FFFFFF !important;
+      border-color: rgba(15,31,54,0.10) !important;
+    }
+    /* Header "EXEMPLOS DE AUTOMAÇÃO" */
+    html[data-theme="light"] #modalDocs [data-section="exemplos"] > div[style*="background:rgba(37,99,235,.14)"] {
+      background: #EEF4FF !important;
+      color: #1E40AF !important;
+    }
+    /* Cards de integração (Make / n8n / Zapier / Servidor) */
+    html[data-theme="light"] #modalDocs [data-section="exemplos"] div[style*="background:rgba(30,58,95,.15)"] {
+      background: #F7F9FC !important;
+      border-color: rgba(15,31,54,0.08) !important;
+    }
+    /* Título dos cards de integração */
+    html[data-theme="light"] #modalDocs [data-section="exemplos"] div[style*="color:#dbeafe"] {
+      color: #0F1F36 !important;
+    }
+    /* Descrição dos cards + lista "Casos de uso" (todos com color:#94a3b8) */
+    html[data-theme="light"] #modalDocs [data-section="exemplos"] div[style*="color:#94a3b8"],
+    html[data-theme="light"] #modalDocs [data-section="exemplos"] ul[style*="color:#94a3b8"] {
+      color: #5A6B7E !important;
+    }
+    /* Bloco verde "Casos de uso prontos" */
+    html[data-theme="light"] #modalDocs [data-section="exemplos"] div[style*="background:rgba(5,150,105,.08)"] {
+      background: #ECFDF5 !important;
+      border-color: rgba(5,150,105,0.25) !important;
+    }
+    /* Título "Casos de uso prontos" + ícone */
+    html[data-theme="light"] #modalDocs [data-section="exemplos"] div[style*="color:#34d399"] {
+      color: #047857 !important;
+    }
+    html[data-theme="light"] #modalDocs [data-section="exemplos"] svg[stroke="#34d399"] {
+      stroke: #047857 !important;
+    }
+    /* <code> dos eventos nos casos de uso (lavanda claro -> azul escuro com fundo) */
+    html[data-theme="light"] #modalDocs [data-section="exemplos"] code {
+      color: #1E40AF !important;
+      background: rgba(30,64,175,0.08) !important;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
     @media (max-width:900px) {
       .kpi-grid { grid-template-columns:repeat(2,1fr); }
       .field-row { grid-template-columns:1fr; }
