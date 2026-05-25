@@ -268,13 +268,16 @@
     // ────────────────────────────────────────────────────────────────────────
 
     async buscarHoje(skipSetupCheck = false) {
-      // Guard: sem filtro + sem perfil cadastrado → força setup
+      // Guard: sem filtro + sem perfil pessoal + sem nenhum monitor no tenant → força setup
+      // Se já tem monitor cadastrado (mesmo que de outro user do tenant), pula o modal —
+      // a busca de hoje vai usar os monitores existentes via cron/list.
       if (!skipSetupCheck) {
         const f = this.collectFilters({ ignoreDates: true });
         const semFiltro = !f.numero_oab && !f.nome_advogado && !f.numero_processo;
         const p = this.userProfile || {};
-        const semPerfil = !p.oab && !p.nome_advogado;
-        if (semFiltro && semPerfil) {
+        const semPerfilPessoal = !p.oab && !p.nome_advogado;
+        const semMonitorTenant = !p.hasMonitors;
+        if (semFiltro && semPerfilPessoal && semMonitorTenant) {
           this.openProfileModal();
           return;
         }
@@ -1024,7 +1027,20 @@
       const r = await fetch(url, opts);
       const txt = await r.text();
       let json = {};
-      try { json = JSON.parse(txt); } catch (_) { json = { error: txt || 'resposta não-JSON' }; }
+      try {
+        json = JSON.parse(txt);
+      } catch (_) {
+        // Resposta não-JSON. Detecta HTML do Apache 404/500 e dá mensagem útil
+        // em vez de cuspir <!DOCTYPE><html>...</html> inteiro no UI.
+        const isHtml = /^\s*(<!doctype|<html)/i.test(txt);
+        if (isHtml && r.status === 404) {
+          json = { error: `Endpoint não encontrado (${url}). Refresque a página com Ctrl+F5 — pode ser cache antigo do JavaScript.` };
+        } else if (isHtml) {
+          json = { error: `Servidor retornou HTML (status ${r.status}) em vez de JSON. Verifique logs do Apache.` };
+        } else {
+          json = { error: txt.length > 200 ? txt.slice(0, 200) + '…' : (txt || 'Resposta vazia') };
+        }
+      }
       if (!r.ok) throw new Error(json.error || ('HTTP ' + r.status));
       return json;
     },

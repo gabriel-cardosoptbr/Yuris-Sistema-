@@ -74,7 +74,10 @@ try {
             'ok'           => true,
             'filters'      => $filters,
             'missing'      => $missing,
-            'has_monitors' => PushUserFiltersHelpers::countMonitorsForUser($pdo, $accountId, $userId) > 0,
+            // has_monitors = TENANT tem qualquer monitor ativo (independente de quem criou).
+            // Antes filtrava por created_by=userId, mas isso fazia o modal "Configure perfil"
+            // abrir indevidamente quando outro user do mesmo tenant já tinha configurado.
+            'has_monitors' => PushUserFiltersHelpers::countMonitorsForTenant($pdo, $accountId) > 0,
         ]);
         exit;
     }
@@ -149,6 +152,22 @@ try {
 // HELPERS LOCAIS (escopo de arquivo via classe estática anônima)
 // ─────────────────────────────────────────────────────────────────────────────
 class PushUserFiltersHelpers {
+    /**
+     * Conta monitores ativos do TENANT (qualquer user do mesmo account_id).
+     * Usado pra decidir se o modal "Configure perfil" deve aparecer no buscarHoje:
+     * se algum user já configurou monitor pro tenant, ninguém precisa configurar de novo.
+     */
+    public static function countMonitorsForTenant(\PDO $pdo, int $accountId): int
+    {
+        $stmt = $pdo->prepare(
+            "SELECT COUNT(*) FROM push_monitors
+             WHERE account_id = :acc AND status IN ('ativo','pausado')"
+        );
+        $stmt->execute(['acc' => $accountId]);
+        return (int)$stmt->fetchColumn();
+    }
+
+    /** Conta apenas monitores criados pelo próprio user (uso interno se precisar). */
     public static function countMonitorsForUser(\PDO $pdo, int $accountId, int $userId): int
     {
         $stmt = $pdo->prepare(
