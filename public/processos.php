@@ -53,7 +53,7 @@ try {
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=42">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=43">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=18">
   <style>
@@ -644,9 +644,11 @@ try {
     html[data-theme="light"] #modalVinculoProc {
       background: rgba(15,31,54,0.45) !important;
     }
-    /* Container interno: fundo branco com borda azul sutil */
+    /* Container interno: fundo branco com borda azul sutil.
+       Usa 'background:' shorthand pra RESETAR o linear-gradient inline (que
+       seria background-image, n�o background-color — daí longhand n�o cobre). */
     html[data-theme="light"] #modalVinculoProc > div {
-      background-color: #FFFFFF !important;
+      background: #FFFFFF !important;
       border-color: rgba(15,31,54,0.12) !important;
       box-shadow: 0 24px 60px rgba(15,31,54,0.18) !important;
     }
@@ -720,7 +722,7 @@ try {
     /* Modal "Selecionar Cliente" — tema claro */
     html[data-theme="light"] #modalSelecionarCliente { background: rgba(15,31,54,0.45) !important; }
     html[data-theme="light"] #modalSelecionarCliente > div {
-      background-color: #FFFFFF !important;
+      background: #FFFFFF !important;
       border: 1px solid #E2E8F0 !important;
       box-shadow: 0 24px 60px rgba(15,31,54,0.18) !important;
     }
@@ -769,7 +771,7 @@ try {
       background: rgba(15,31,54,0.45) !important;
     }
     html[data-theme="light"] #modalAddPrazo > div {
-      background-color: #FFFFFF !important;
+      background: #FFFFFF !important;
       border: 1px solid #E2E8F0 !important;
       box-shadow: 0 20px 50px rgba(15,31,54,0.18) !important;
     }
@@ -949,7 +951,7 @@ try {
       background: rgba(15,31,54,0.45) !important;
     }
     html[data-theme="light"] #modalEditPermVinculo > div {
-      background-color: #FFFFFF !important;
+      background: #FFFFFF !important;
       border: 1px solid #E2E8F0 !important;
       box-shadow: 0 24px 60px rgba(15,31,54,0.18) !important;
     }
