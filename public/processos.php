@@ -53,9 +53,9 @@ try {
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=39">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=42">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=8">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=18">
   <style>
     /*
       Variáveis locais alinhadas com yuris-theme.css.
@@ -628,6 +628,66 @@ try {
     html[data-theme="light"] .proc-modal-body [style*="color: #9ab0c9"] { color: #64748B !important; }
     html[data-theme="light"] .proc-modal-body [style*="color:#93c5fd"],
     html[data-theme="light"] .proc-modal-body [style*="color: #93c5fd"] { color: #1D4ED8 !important; }
+
+    /* ── Modal "Adicionar vínculo ao processo" (tema claro) ── */
+    /* Overlay mais claro */
+    html[data-theme="light"] #modalVinculoProc {
+      background: rgba(15,31,54,0.45) !important;
+    }
+    /* Container interno: fundo branco com borda azul sutil */
+    html[data-theme="light"] #modalVinculoProc > div {
+      background: #FFFFFF !important;
+      border-color: rgba(15,31,54,0.12) !important;
+      box-shadow: 0 24px 60px rgba(15,31,54,0.18) !important;
+    }
+    /* Header divider */
+    html[data-theme="light"] #modalVinculoProc > div > div:first-child {
+      border-bottom-color: rgba(15,31,54,0.08) !important;
+    }
+    /* Título */
+    html[data-theme="light"] #modalVinculoProc span[style*="color:#dbeafe"] {
+      color: #0F1F36 !important;
+    }
+    /* Botão Fechar (top-right) + Cancelar */
+    html[data-theme="light"] #modalVinculoProc button[style*="color:#93c5fd"] {
+      color: #1E40AF !important;
+      border-color: rgba(37,99,235,0.40) !important;
+      background: #F7F9FC !important;
+    }
+    html[data-theme="light"] #modalVinculoProc button[style*="color:#93c5fd"]:hover {
+      background: rgba(37,99,235,0.08) !important;
+    }
+    /* Parágrafo de ajuda + labels (color #9ab0c9) */
+    html[data-theme="light"] #modalVinculoProc p[style*="color:#9ab0c9"],
+    html[data-theme="light"] #modalVinculoProc label[style*="color:#9ab0c9"] {
+      color: #5A6B7E !important;
+    }
+    /* Input + Select */
+    html[data-theme="light"] #modalVinculoProc input[type="text"],
+    html[data-theme="light"] #modalVinculoProc select {
+      background: #FFFFFF !important;
+      border-color: rgba(15,31,54,0.18) !important;
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] #modalVinculoProc input[type="text"]:focus,
+    html[data-theme="light"] #modalVinculoProc select:focus {
+      border-color: rgba(37,99,235,0.50) !important;
+      outline: none;
+    }
+    html[data-theme="light"] #modalVinculoProc input[type="text"]::placeholder {
+      color: #94A3B8 !important;
+    }
+    /* Botão Buscar — usa color #93c5fd já coberto acima, mas o fundo precisa
+       continuar destacado pra parecer botão (não confundir com Cancelar) */
+    html[data-theme="light"] #modalVinculoProc button[onclick="buscarCodigoVinculo()"] {
+      background: linear-gradient(135deg, #2563EB, #1D4ED8) !important;
+      color: #FFFFFF !important;
+      border-color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] #modalVinculoProc button[onclick="buscarCodigoVinculo()"]:hover {
+      filter: brightness(1.08);
+    }
+    /* Botão "Confirmar vínculo" já é azul sólido com texto branco — OK no claro */
   </style>
 </head>
 <body>
