@@ -609,8 +609,6 @@ $kpiNaoLidas  = PushEventUserStatus::countNaoLidas($userId, $accountId);
           <div class="int-tabs">
             <div class="int-tab active" data-tab="djen">Intimações publicadas no Diário<span class="int-tab-count" id="kpiNaoLidas"><?= (int)$kpiNaoLidas ?> não lidas</span></div>
             <div class="int-tab" data-tab="aasp">Integração AASP<span class="int-tab-count" id="kpiAaspIntegracoes" style="display:none;">0</span></div>
-            <div class="int-tab" data-tab="busca">Busca ativa nos processos</div>
-            <div class="int-tab" data-tab="termos">Leitura de outros termos</div>
           </div>
 
           <!-- Painel da aba AASP (escondido por padrão) — fica EM CIMA da lista -->
@@ -701,32 +699,7 @@ $kpiNaoLidas  = PushEventUserStatus::countNaoLidas($userId, $accountId);
             </div>
           </div>
 
-          <div class="int-filter-section">
-            <label class="int-filter-label">Tribunal</label>
-            <select class="int-filter-input" id="filterTribunal">
-              <option value="">Todos</option>
-              <option value="TJSP">TJSP — São Paulo</option>
-              <option value="TJRJ">TJRJ — Rio de Janeiro</option>
-              <option value="TJMG">TJMG — Minas Gerais</option>
-              <option value="TRT2">TRT2 — Trabalho SP</option>
-              <option value="TRF3">TRF3 — Federal 3ª Região</option>
-            </select>
-          </div>
-
-          <div class="int-filter-section">
-            <label class="int-filter-label">Número do processo</label>
-            <input type="text" class="int-filter-input" id="filterProcesso" placeholder="0000000-00.0000.0.00.0000">
-          </div>
-
-          <div class="int-filter-section">
-            <label class="int-filter-label">OAB</label>
-            <input type="text" class="int-filter-input" id="filterOab" placeholder="ex: SP357838">
-          </div>
-
-          <div class="int-filter-section">
-            <label class="int-filter-label">Nome do advogado</label>
-            <input type="text" class="int-filter-input" id="filterNomeAdv" placeholder="ex: Bruno Carreira Ferreira">
-          </div>
+          <!-- Tribunal/Processo/OAB/Nome removidos — info já está no Monitoramento -->
 
           <!-- Hint quando perfil não configurado: leva pro modal Monitoramento -->
           <div id="profileNudge" style="display:none;background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.32);border-radius:7px;padding:9px 11px;font-size:.75rem;color:#1E4A8A;line-height:1.45;margin-bottom:10px;">
