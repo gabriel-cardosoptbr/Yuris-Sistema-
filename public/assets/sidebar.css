@@ -342,6 +342,18 @@
   display: block !important;
   stroke: currentColor !important;
 }
+/* Tema claro: força mesma cor escura dos ícones dos items nav (Visão Geral, etc.)
+   no light theme — yuris-theme.css L1359 usa #1E4A8A. Faz icone do toggle ficar
+   igual visualmente. Quando grupo está has-active (azul), currentColor herda
+   branco do .sidebar-group-toggle (regra já em vigor). */
+html[data-theme="light"] .sidebar-group-toggle .sidebar-group-icon svg,
+html[data-theme="light"] .sidebar-group-toggle .sidebar-group-icon svg * {
+  stroke: #1E4A8A !important;
+}
+html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-icon svg,
+html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-icon svg * {
+  stroke: #FFFFFF !important;
+}
 
 .sidebar-group-chevron {
   width: 12px !important;
