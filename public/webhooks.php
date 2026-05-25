@@ -21,8 +21,8 @@ $catalog = WebhookDispatcher::catalog();
   <link rel="icon" type="image/png" sizes="192x192" href="/sistema_vendas/public/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=27">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=9">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=42">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=10">
   <style>
     :root {
       --bg: #070F1C; --panel: rgba(14,35,65,.94); --line: rgba(160,180,210,0.08);
@@ -147,6 +147,258 @@ $catalog = WebhookDispatcher::catalog();
     .doc-tab:hover { background:rgba(37,99,235,.2); color:#93c5fd; border-color:rgba(59,130,246,.4); }
     .doc-tab-active { background:rgba(37,99,235,.35) !important; color:#dbeafe !important; border-color:rgba(96,165,250,.5) !important; }
 
+    /* ══════════════════════════════════════════════════════════════════
+       TEMA CLARO — Webhooks
+       Body claro, painéis brancos, modais translucidos invertidos,
+       overrides explícitos pros inline styles dos modais Catálogo + Docs
+       (attribute selectors `[style*="..."]` ganham especificidade sobre
+       inline graças ao `!important`).
+       ══════════════════════════════════════════════════════════════════ */
+    /* body bg vem do yuris-theme.css (cinza #DDE3EC + gradientes radiais —
+       padrão de todas as páginas). Não sobrescrever aqui pra não destoar. */
+    html[data-theme="light"] .panel,
+    html[data-theme="light"] .kpi-card,
+    html[data-theme="light"] .wh-card {
+      background: #FFFFFF !important;
+      border: 1px solid rgba(15,31,54,0.10) !important;
+      box-shadow: 0 1px 3px rgba(15,31,54,0.04) !important;
+    }
+    html[data-theme="light"] .kpi-card:hover,
+    html[data-theme="light"] .wh-card:hover {
+      border-color: rgba(37,99,235,0.30) !important;
+      box-shadow: 0 4px 12px rgba(15,31,54,0.08) !important;
+    }
+    html[data-theme="light"] .kpi-label { color: #5A6B7E !important; }
+    html[data-theme="light"] .kpi-value { color: #0F1F36 !important; }
+    html[data-theme="light"] .kpi-foot  { color: #5A6B7E !important; }
+    html[data-theme="light"] .wh-card-name { color: #0F1F36 !important; }
+    html[data-theme="light"] .wh-card-url  { color: #5A6B7E !important; }
+    html[data-theme="light"] .wh-empty     { color: #5A6B7E !important; }
+
+    /* Page header */
+    html[data-theme="light"] .page-header h2 { color: #0F1F36 !important; }
+    html[data-theme="light"] .page-header p  { color: #5A6B7E !important; }
+
+    /* Buttons */
+    html[data-theme="light"] .btn-secondary {
+      background: #FFFFFF !important;
+      color: #1E4A8A !important;
+      border: 1px solid rgba(15,31,54,0.18) !important;
+    }
+    html[data-theme="light"] .btn-secondary:hover {
+      background: rgba(37,99,235,0.08) !important;
+      border-color: rgba(37,99,235,0.30) !important;
+    }
+    html[data-theme="light"] .btn-primary {
+      background: linear-gradient(135deg, #1E4A8A, #2563EB) !important;
+      color: #FFFFFF !important;
+      border: 1px solid rgba(30,74,138,0.40) !important;
+    }
+    html[data-theme="light"] .btn-primary:hover {
+      background: linear-gradient(135deg, #2563EB, #3B82F6) !important;
+    }
+
+    /* Modais */
+    html[data-theme="light"] .modal-overlay { background: rgba(15,31,54,0.45) !important; }
+    html[data-theme="light"] .modal {
+      background: linear-gradient(165deg, #FFFFFF 0%, #F7F9FC 100%) !important;
+      border: 1px solid rgba(15,31,54,0.14) !important;
+      box-shadow: 0 24px 60px rgba(15,31,54,0.18) !important;
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .modal-header {
+      background: #F7F9FC !important;
+      border-bottom: 1px solid rgba(15,31,54,0.10) !important;
+    }
+    html[data-theme="light"] .modal-footer {
+      background: #F7F9FC !important;
+      border-top: 1px solid rgba(15,31,54,0.10) !important;
+    }
+    html[data-theme="light"] .modal-title { color: #0F1F36 !important; }
+
+    /* Form fields */
+    html[data-theme="light"] .field-label { color: #1E4A8A !important; }
+    html[data-theme="light"] .field-input {
+      background: #FFFFFF !important;
+      -webkit-text-fill-color: #0F1F36 !important;
+      color: #0F1F36 !important;
+      border: 1px solid rgba(15,31,54,0.18) !important;
+    }
+    html[data-theme="light"] .field-input::placeholder { color: #94A3B8 !important; }
+    html[data-theme="light"] .field-input:focus {
+      border-color: #2563EB !important;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.15) !important;
+    }
+
+    /* Event selector */
+    html[data-theme="light"] .ev-section {
+      border: 1px solid rgba(15,31,54,0.10) !important;
+      background: #FFFFFF !important;
+    }
+    html[data-theme="light"] .ev-section-header { background: rgba(37,99,235,0.08) !important; }
+    html[data-theme="light"] .ev-section-title  { color: #1E4A8A !important; }
+    html[data-theme="light"] .ev-section-count  { color: #5A6B7E !important; }
+    html[data-theme="light"] .ev-toggle-all     { color: #2563EB !important; }
+    html[data-theme="light"] .ev-item {
+      background: #FFFFFF !important;
+      border: 1px solid rgba(15,31,54,0.10) !important;
+    }
+    html[data-theme="light"] .ev-item:hover {
+      background: rgba(37,99,235,0.06) !important;
+      border-color: rgba(37,99,235,0.25) !important;
+    }
+    html[data-theme="light"] .ev-item.checked {
+      background: rgba(37,99,235,0.10) !important;
+      border-color: rgba(37,99,235,0.40) !important;
+    }
+    html[data-theme="light"] .ev-item-key  { color: #5A6B7E !important; }
+    html[data-theme="light"] .ev-item-desc { color: #0F1F36 !important; }
+    html[data-theme="light"] .ev-master {
+      background: rgba(37,99,235,0.06) !important;
+      border-bottom: 1px solid rgba(15,31,54,0.08) !important;
+    }
+    html[data-theme="light"] .ev-master label { color: #1E4A8A !important; }
+
+    /* Logs table */
+    html[data-theme="light"] .log-table th {
+      color: #5A6B7E !important;
+      border-bottom: 1px solid rgba(15,31,54,0.10) !important;
+    }
+    html[data-theme="light"] .log-table td {
+      color: #0F1F36 !important;
+      border-bottom: 1px solid rgba(15,31,54,0.08) !important;
+    }
+    html[data-theme="light"] .log-key { color: #1E4A8A !important; }
+
+    /* Payload preview (JSON viewer) */
+    html[data-theme="light"] .payload-preview {
+      background: #F7F9FC !important;
+      border: 1px solid rgba(15,31,54,0.10) !important;
+      color: #1E40AF !important;
+    }
+
+    /* Doc tabs (pílulas Visão Geral / Payload / Campos / ...) */
+    html[data-theme="light"] .doc-tab {
+      background: #FFFFFF !important;
+      color: #5A6B7E !important;
+      border-color: rgba(15,31,54,0.18) !important;
+    }
+    html[data-theme="light"] .doc-tab:hover {
+      background: rgba(37,99,235,0.08) !important;
+      color: #1E4A8A !important;
+      border-color: rgba(37,99,235,0.30) !important;
+    }
+    html[data-theme="light"] .doc-tab-active {
+      background: linear-gradient(135deg, #1E4A8A, #2563EB) !important;
+      color: #FFFFFF !important;
+      border-color: rgba(30,74,138,0.40) !important;
+    }
+
+    /* ─── Inline styles do Catálogo + Docs (attribute selectors) ─── */
+    /* Headers de seção (PROSPECÇÃO — CLIENTES etc.) */
+    html[data-theme="light"] #catalogBody [style*="background:rgba(37,99,235,.14)"],
+    html[data-theme="light"] #modalDocs [style*="background:rgba(37,99,235,.14)"] {
+      background: rgba(37,99,235,0.10) !important;
+      color: #1E4A8A !important;
+    }
+    /* Mini-cards (Tempo real / Seguro / Padronizado) */
+    html[data-theme="light"] #modalDocs [style*="background:rgba(30,58,95,.2)"] {
+      background: #F7F9FC !important;
+      border-color: rgba(15,31,54,0.10) !important;
+    }
+    /* Container das abas (Visão Geral...) */
+    html[data-theme="light"] #modalDocs [style*="background:rgba(8,22,44,.4)"] {
+      background: #F7F9FC !important;
+      border-bottom-color: rgba(15,31,54,0.10) !important;
+    }
+    /* Sub-cards azul-escuro dentro do docs */
+    html[data-theme="light"] #modalDocs [style*="background:rgba(37,99,235,.2)"] {
+      background: rgba(37,99,235,0.12) !important;
+      border-color: rgba(37,99,235,0.25) !important;
+    }
+    /* Borders */
+    html[data-theme="light"] #modalDocs [style*="border:1px solid rgba(96,165,250,.15)"],
+    html[data-theme="light"] #modalDocs [style*="border:1px solid rgba(96,165,250,.12)"],
+    html[data-theme="light"] #modalDocs [style*="border:1px solid rgba(59,130,246,.2)"] {
+      border-color: rgba(15,31,54,0.10) !important;
+    }
+    html[data-theme="light"] #catalogBody [style*="border-bottom:1px solid rgba(96,165,250,.1)"] {
+      border-bottom-color: rgba(15,31,54,0.08) !important;
+    }
+    html[data-theme="light"] #catalogBody [style*="border-top:1px solid rgba(96,165,250,.06)"] {
+      border-top-color: rgba(15,31,54,0.06) !important;
+    }
+
+    /* Texto colorido inline → tons escuros pra contraste no fundo claro */
+    html[data-theme="light"] #catalogBody [style*="color:#dbeafe"],
+    html[data-theme="light"] #modalDocs [style*="color:#dbeafe"] { color: #0F1F36 !important; }
+    html[data-theme="light"] #catalogBody [style*="color:#93c5fd"],
+    html[data-theme="light"] #modalDocs [style*="color:#93c5fd"]   { color: #1E4A8A !important; }
+    html[data-theme="light"] #catalogBody [style*="color:#b8d5f4"],
+    html[data-theme="light"] #modalDocs [style*="color:#b8d5f4"]   { color: #0F1F36 !important; }
+    html[data-theme="light"] #catalogBody [style*="color:#c8dff4"] { color: #0F1F36 !important; }
+    html[data-theme="light"] #catalogBody [style*="color:#4b6380"] { color: #5A6B7E !important; }
+    html[data-theme="light"] #modalDocs [style*="color:#6b7280"]   { color: #5A6B7E !important; }
+    html[data-theme="light"] #modalDocs [style*="color:#a5b4fc"]   { color: #1E40AF !important; }
+
+    /* docsBody — texto base */
+    html[data-theme="light"] #docsBody { color: #0F1F36 !important; }
+
+    /* Code inline (<code style="background:rgba(0,0,0,.3)..."> POST</code>) */
+    html[data-theme="light"] #modalDocs code[style*="background:rgba(0,0,0,.3)"] {
+      background: rgba(37,99,235,0.10) !important;
+      color: #1E40AF !important;
+    }
+    /* Pill "disponível" no catálogo */
+    html[data-theme="light"] #catalogBody span[style*="background:rgba(5,150,105,.2)"] {
+      background: rgba(5,150,105,0.12) !important;
+      color: #047857 !important;
+      border-color: rgba(5,150,105,0.35) !important;
+    }
+
+    /* ─── Aba EVENTOS do modal Docs (filtros sticky + cards de evento) ─── */
+    /* Container sticky com gradiente dark hardcoded → fundo claro com fade */
+    html[data-theme="light"] #modalDocs [data-section="eventos"] > div[style*="position:sticky"] {
+      background: linear-gradient(180deg, #FFFFFF 85%, transparent) !important;
+    }
+    /* Pílula "Todos" (cinza neutro) */
+    html[data-theme="light"] .ev-mod-btn[data-mod=""] {
+      background: rgba(15,31,54,0.06) !important;
+      color: #5A6B7E !important;
+      border-color: rgba(15,31,54,0.20) !important;
+    }
+    html[data-theme="light"] .ev-mod-btn[data-mod=""].ev-mod-active {
+      background: #1E4A8A !important;
+      color: #FFFFFF !important;
+      border-color: #1E4A8A !important;
+    }
+    /* Contador "80 eventos documentados" */
+    html[data-theme="light"] #evCount { color: #5A6B7E !important; }
+
+    /* Card de evento (.ev-doc-card) — header dark hardcoded vira claro */
+    html[data-theme="light"] .ev-doc-card {
+      background: #FFFFFF !important;
+      border: 1px solid rgba(15,31,54,0.10) !important;
+    }
+    html[data-theme="light"] .ev-doc-card > div[style*="background:rgba(8,20,40,.7)"] {
+      background: #F7F9FC !important;
+      border-bottom: 1px solid rgba(15,31,54,0.06) !important;
+    }
+    html[data-theme="light"] .ev-doc-card > div[style*="border-top:1px solid rgba(96,165,250,.08)"] {
+      border-top-color: rgba(15,31,54,0.06) !important;
+    }
+    /* Labels "QUANDO DISPARA" / "CAMPOS DO OBJETO" (#64748b muito claro) */
+    html[data-theme="light"] .ev-doc-card [style*="color:#64748b"] { color: #5A6B7E !important; }
+    /* Chevron do collapse (#4b5563 fica sumido no claro) */
+    html[data-theme="light"] .ev-doc-card svg[stroke="#4b5563"] { stroke: #5A6B7E !important; }
+
+    /* Tabela de campos (key/desc) dentro do card de evento */
+    html[data-theme="light"] .ev-doc-card table { color: #0F1F36 !important; }
+    html[data-theme="light"] .ev-doc-card table td { border-color: rgba(15,31,54,0.06) !important; }
+    html[data-theme="light"] .ev-doc-card code { color: #1E40AF !important; }
+
+    /* Bloco "EXEMPLO DE PAYLOAD COMPLETO" — usa .payload-preview, já coberto */
+
     @media (max-width:900px) {
       .kpi-grid { grid-template-columns:repeat(2,1fr); }
       .field-row { grid-template-columns:1fr; }
@@ -215,8 +467,8 @@ $catalog = WebhookDispatcher::catalog();
           </div>
           <div style="overflow-x:auto">
             <table class="log-table">
-              <thead><tr><th>Evento</th><th>Webhook</th><th>Status HTTP</th><th>Duração</th><th>Resultado</th><th>Data</th></tr></thead>
-              <tbody id="logsTbody"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">Carregando...</td></tr></tbody>
+              <thead><tr><th>Evento</th><th>Webhook</th><th>HTTP</th><th>Duração</th><th>Status</th><th>Tent.</th><th>Data</th><th></th></tr></thead>
+              <tbody id="logsTbody"><tr><td colspan="8" style="text-align:center;padding:24px;color:var(--muted)">Carregando...</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -258,6 +510,50 @@ $catalog = WebhookDispatcher::catalog();
             </select>
           </div>
         </div>
+        <details style="margin-top:4px">
+          <summary style="cursor:pointer;font-size:.8rem;color:#93c5fd;user-select:none;padding:4px 0">Configurações avançadas (LGPD, retry, escopo)</summary>
+          <div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(96,165,250,.15);display:flex;flex-direction:column;gap:12px">
+            <div class="field-row">
+              <div class="field-group">
+                <label class="field-label">Modo de payload (LGPD)</label>
+                <select id="whPayloadMode" class="field-input">
+                  <option value="masked">Mascarado (recomendado)</option>
+                  <option value="minimal">Mínimo (só id/type/status)</option>
+                  <option value="full">Completo (sem mascaramento)</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label class="field-label">Escopo</label>
+                <select id="whEscopo" class="field-input">
+                  <option value="tenant_only">Apenas este escritório</option>
+                  <option value="matriz_e_filiais">Matriz + filiais vinculadas</option>
+                  <option value="filial_only">Apenas filial</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field-group">
+                <label class="field-label">Timeout (segundos)</label>
+                <input id="whTimeout" type="number" min="1" max="60" value="10" class="field-input">
+              </div>
+              <div class="field-group">
+                <label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:6px">
+                  <input type="checkbox" id="whRetryEnabled" style="accent-color:#3b82f6" checked>
+                  Retry automático (máx. tentativas)
+                </label>
+                <input id="whMaxRetries" type="number" min="1" max="10" value="3" class="field-input" placeholder="3">
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Headers customizados <span style="color:var(--muted);font-weight:400">(JSON, opcional)</span></label>
+              <textarea id="whHeadersCustom" class="field-input" rows="2" placeholder='{"Authorization":"Bearer xxx"}' style="font-family:monospace;font-size:.78rem"></textarea>
+            </div>
+            <div id="whRotateSecretBlock" style="display:none;padding:10px;background:rgba(245,158,11,.06);border-left:3px solid #f59e0b;border-radius:4px">
+              <button type="button" id="whRotateSecret" class="btn btn-warn btn-sm">Rotacionar Secret</button>
+              <span style="font-size:.75rem;color:#fbbf24;margin-left:8px">Gera novo secret. Mostrado uma única vez.</span>
+            </div>
+          </div>
+        </details>
       </div>
 
       <!-- Eventos — área rolável separada -->
@@ -758,27 +1054,52 @@ endforeach; ?>  },
   async function loadLogs(webhookId){
     const tbody = document.getElementById('logsTbody');
     const sub   = document.getElementById('logsSubtitle');
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">Carregando...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--muted)">Carregando...</td></tr>';
     const url = API+'?action=logs' + (webhookId ? '&id='+webhookId : '');
     sub.textContent  = webhookId ? 'filtrando por webhook' : 'últimas 50 entregas';
     try {
       const j    = await fetch(url).then(r=>r.json());
       const logs = j.data||[];
-      if (!logs.length){ tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">Nenhuma entrega registrada</td></tr>'; return; }
+      if (!logs.length){ tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--muted)">Nenhuma entrega registrada</td></tr>'; return; }
+      const STATUS_MAP = {
+        success:  {label:'Sucesso',  color:'#34d399', cls:'log-ok'},
+        failed:   {label:'Falhou',   color:'#f87171', cls:'log-fail'},
+        retrying: {label:'Retry',    color:'#fbbf24', cls:''},
+        pending:  {label:'Pendente', color:'#93c5fd', cls:''},
+        canceled: {label:'Cancelada',color:'#a3a3a3', cls:''},
+      };
       tbody.innerHTML = logs.map(l=>{
-        const ok  = l.success==1;
-        const dt  = l.created_at ? new Date(l.created_at+'Z').toLocaleString('pt-BR') : '—';
+        const st = STATUS_MAP[l.status] || STATUS_MAP.failed;
+        const dt = l.created_at ? new Date(l.created_at+'Z').toLocaleString('pt-BR') : '—';
+        const terminal = ['success','failed','canceled'].includes(l.status);
+        const acoes = terminal
+          ? `<button class="btn btn-secondary btn-sm wh-resend-btn" data-delivery="${l.id}" title="Reenviar"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>`
+          : `<span style="font-size:.7rem;color:var(--muted)">aguardando</span>`;
         return `<tr>
           <td><code class="log-key">${esc(l.event_key)}</code></td>
           <td style="color:var(--muted);font-size:.75rem">${esc(l.webhook_nome||'#'+l.webhook_id)}</td>
-          <td><span style="font-size:.76rem;font-family:monospace;color:${ok?'#34d399':'#f87171'}">${l.response_status||'—'}</span></td>
+          <td><span style="font-size:.76rem;font-family:monospace;color:${st.color}">${l.response_status||'—'}</span></td>
           <td style="font-size:.75rem;color:var(--muted)">${l.duration_ms!=null?l.duration_ms+'ms':'—'}</td>
-          <td><span class="log-status ${ok?'log-ok':'log-fail'}">${ok?'Sucesso':'Falhou'}</span></td>
+          <td><span class="log-status ${st.cls}" style="color:${st.color}">${st.label}</span></td>
+          <td style="font-size:.74rem;color:var(--muted);text-align:center">${l.tentativa||1}</td>
           <td style="font-size:.74rem;color:var(--muted)">${dt}</td>
+          <td>${acoes}</td>
         </tr>`;
       }).join('');
-    } catch(e){ tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:#f87171">Erro ao carregar logs</td></tr>'; }
+    } catch(e){ tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:#f87171">Erro ao carregar logs</td></tr>'; }
   }
+
+  // ── Reenviar delivery (Etapa 9) ───────────────────────────────────────────────
+  document.getElementById('logsTbody').addEventListener('click', async function(e){
+    const btn = e.target.closest('.wh-resend-btn');
+    if (!btn) return;
+    const did = btn.dataset.delivery;
+    btn.disabled = true;
+    showToast('Reenviando...', 'info');
+    const j = await fetch(API, {method:'POST',headers:headers(),body:JSON.stringify({action:'resend',delivery_id:did,csrf_token:CSRF})}).then(r=>r.json());
+    if (j.success){ showToast('Delivery reenviada','success'); setTimeout(()=>loadLogs(), 800); }
+    else { btn.disabled = false; showToast('Erro: '+(j.error||''),'error'); }
+  });
 
   // ── Event catalog UI ──────────────────────────────────────────────────────────
   function buildEvCatalog(checkedKeys){
@@ -865,6 +1186,14 @@ endforeach; ?>  },
     document.getElementById('whUrl').value   = '';
     document.getElementById('whSecret').value= '';
     document.getElementById('whAtivo').value = '1';
+    // Etapa 8: defaults dos campos avançados
+    document.getElementById('whPayloadMode').value  = 'masked';
+    document.getElementById('whEscopo').value       = 'tenant_only';
+    document.getElementById('whTimeout').value      = '10';
+    document.getElementById('whRetryEnabled').checked = true;
+    document.getElementById('whMaxRetries').value   = '3';
+    document.getElementById('whHeadersCustom').value = '';
+    document.getElementById('whRotateSecretBlock').style.display = 'none';
     document.getElementById('chkAllEvents').checked = false;
     document.getElementById('whDelete').style.display = 'none';
     document.getElementById('whTest').style.display   = 'none';
@@ -887,6 +1216,16 @@ endforeach; ?>  },
       document.getElementById('whUrl').value    = h.url||'';
       document.getElementById('whSecret').value = h.secret||'';
       document.getElementById('whAtivo').value  = String(h.ativo??1);
+      // Etapa 8: carrega campos avançados
+      document.getElementById('whPayloadMode').value  = h.payload_mode || 'masked';
+      document.getElementById('whEscopo').value       = h.escopo || 'tenant_only';
+      document.getElementById('whTimeout').value      = h.timeout_segundos || 10;
+      document.getElementById('whRetryEnabled').checked = (h.retry_enabled ?? 1) == 1;
+      document.getElementById('whMaxRetries').value   = h.max_retries || 3;
+      document.getElementById('whHeadersCustom').value = h.headers_customizados
+        ? (typeof h.headers_customizados === 'string' ? h.headers_customizados : JSON.stringify(h.headers_customizados, null, 2))
+        : '';
+      document.getElementById('whRotateSecretBlock').style.display = '';
       document.getElementById('chkAllEvents').checked = false;
       document.getElementById('whDelete').style.display = '';
       document.getElementById('whTest').style.display   = '';
@@ -909,13 +1248,40 @@ endforeach; ?>  },
     const ativo  = parseInt(document.getElementById('whAtivo').value);
     const eventos= getCheckedEvents();
     if (!nome||!url){ showToast('Nome e URL são obrigatórios','error'); return; }
-    const body = { nome, url, secret, ativo, eventos, csrf_token:CSRF };
+    // Etapa 8: campos avançados
+    const payload_mode      = document.getElementById('whPayloadMode').value;
+    const escopo            = document.getElementById('whEscopo').value;
+    const timeout_segundos  = parseInt(document.getElementById('whTimeout').value) || 10;
+    const retry_enabled     = document.getElementById('whRetryEnabled').checked ? 1 : 0;
+    const max_retries       = parseInt(document.getElementById('whMaxRetries').value) || 3;
+    let   headers_customizados = null;
+    const hRaw = document.getElementById('whHeadersCustom').value.trim();
+    if (hRaw) {
+      try { headers_customizados = JSON.parse(hRaw); }
+      catch(e){ showToast('Headers customizados: JSON inválido','error'); return; }
+    }
+    const body = { nome, url, secret, ativo, eventos, csrf_token:CSRF,
+                   payload_mode, escopo, timeout_segundos, retry_enabled, max_retries, headers_customizados };
     const res  = id
       ? await fetch(API, {method:'PUT',  headers:headers(), body:JSON.stringify({...body,id})})
       : await fetch(API, {method:'POST', headers:headers(), body:JSON.stringify(body)});
     const j = await res.json();
     if (j.success){ closeModal('modalWebhook'); loadWebhooks(); loadKPIs(); showToast(id?'Webhook atualizado':'Webhook criado'); }
     else showToast('Erro: '+(j.error||''),'error');
+  });
+
+  // ── Rotacionar Secret (Etapa 9) ───────────────────────────────────────────────
+  document.getElementById('whRotateSecret').addEventListener('click', async ()=>{
+    const id = document.getElementById('whId').value;
+    if (!id) return;
+    if (!(await Yuris.confirm('Gerar novo secret? O secret atual deixa de funcionar imediatamente. O novo será mostrado uma única vez.', { danger: true, okLabel: 'Rotacionar' }))) return;
+    const j = await fetch(API, {method:'POST',headers:headers(),body:JSON.stringify({action:'rotate_secret',id,csrf_token:CSRF})}).then(r=>r.json());
+    if (j.success) {
+      document.getElementById('whSecret').value = j.secret;
+      showToast('Secret rotacionado — anote agora.', 'success');
+    } else {
+      showToast('Erro: '+(j.error||''),'error');
+    }
   });
 
   // ── Delete ────────────────────────────────────────────────────────────────────

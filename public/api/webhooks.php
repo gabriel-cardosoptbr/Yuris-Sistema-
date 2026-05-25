@@ -82,25 +82,28 @@ if ($method === 'GET' && $action === 'catalog') {
     exit;
 }
 
-// ── GET logs ──────────────────────────────────────────────────────────────────
+// ── GET logs (Etapa 8: agora le de webhook_deliveries) ──────────────────────
 if ($method === 'GET' && $action === 'logs') {
     $wid   = (int)($_GET['id'] ?? 0);
     $limit = min((int)($_GET['limit'] ?? 50), 200);
-    // FILTRO TENANT: INNER JOIN com webhooks garante que logs visíveis pertencem ao tenant
-    $where = "WHERE w.account_id IN $tenantIn";
+    // Tenant filtra direto em d.account_id (indexed por idx_wd_account_time)
+    $where = "WHERE d.account_id IN $tenantIn";
     $params = $_whParams;
     if ($wid) {
-        $where .= ' AND l.webhook_id = :wid';
+        $where .= ' AND d.webhook_endpoint_id = :wid';
         $params['wid'] = $wid;
     }
     $stmt = $pdo->prepare("
-        SELECT l.id, l.webhook_id, w.nome AS webhook_nome, l.event_key,
-               l.response_status, l.duration_ms, l.success, l.created_at,
-               LEFT(l.response_body,300) AS response_body
-        FROM webhook_logs l
-        INNER JOIN webhook_endpoints w ON w.id = l.webhook_id
+        SELECT d.id, d.webhook_endpoint_id AS webhook_id, w.nome AS webhook_nome,
+               d.event_code AS event_key, d.response_status,
+               d.response_time_ms AS duration_ms,
+               CASE WHEN d.status='success' THEN 1 ELSE 0 END AS success,
+               d.status, d.tentativa, d.scheduled_retry_at, d.event_id,
+               d.created_at, LEFT(d.response_body, 300) AS response_body
+        FROM webhook_deliveries d
+        INNER JOIN webhook_endpoints w ON w.id = d.webhook_endpoint_id
         $where
-        ORDER BY l.created_at DESC LIMIT $limit
+        ORDER BY d.created_at DESC LIMIT $limit
     ");
     $stmt->execute($params);
     echo json_encode(['data' => $stmt->fetchAll()]);
@@ -123,14 +126,14 @@ if ($method === 'GET') {
             // concatenado — copy-paste antigo).
             $row['eventos']      = json_decode($row['eventos'] ?? '[]', true);
 
-            $stCnt = $pdo->prepare("SELECT COUNT(*) FROM webhook_logs WHERE webhook_id = ?");
+            $stCnt = $pdo->prepare("SELECT COUNT(*) FROM webhook_deliveries WHERE webhook_endpoint_id = ?");
             $stCnt->execute([$id]);
             $cnt = (int)$stCnt->fetchColumn();
             $row['total_logs'] = $cnt;
 
             $row['success_rate'] = null;
             if ($cnt > 0) {
-                $stOk = $pdo->prepare("SELECT COUNT(*) FROM webhook_logs WHERE webhook_id = ? AND success = 1");
+                $stOk = $pdo->prepare("SELECT COUNT(*) FROM webhook_deliveries WHERE webhook_endpoint_id = ? AND status = 'success'");
                 $stOk->execute([$id]);
                 $ok = (int)$stOk->fetchColumn();
                 $row['success_rate'] = round(($ok / $cnt) * 100);
@@ -143,9 +146,9 @@ if ($method === 'GET') {
 
     // list all with stats
     $stmt = $pdo->prepare("SELECT w.*,
-        (SELECT COUNT(*) FROM webhook_logs l WHERE l.webhook_id = w.id) AS total_logs,
-        (SELECT COUNT(*) FROM webhook_logs l WHERE l.webhook_id = w.id AND l.success = 1) AS success_logs,
-        (SELECT MAX(l.created_at) FROM webhook_logs l WHERE l.webhook_id = w.id) AS last_delivery
+        (SELECT COUNT(*) FROM webhook_deliveries d WHERE d.webhook_endpoint_id = w.id) AS total_logs,
+        (SELECT COUNT(*) FROM webhook_deliveries d WHERE d.webhook_endpoint_id = w.id AND d.status = 'success') AS success_logs,
+        (SELECT MAX(d.created_at) FROM webhook_deliveries d WHERE d.webhook_endpoint_id = w.id) AS last_delivery
         FROM webhook_endpoints w WHERE w.deleted_at IS NULL AND w.account_id IN $tenantIn ORDER BY w.created_at DESC");
     $stmt->execute($_whParams);
     $rows = $stmt->fetchAll();
@@ -192,6 +195,77 @@ if ($method === 'POST') {
         exit;
     }
 
+    // Etapa 9 — Rotacionar secret (gera novo, retorna UMA vez)
+    if ($action === 'rotate_secret') {
+        $id = (int)($input['id'] ?? 0);
+        if (!$id) { http_response_code(400); echo json_encode(['error' => 'Missing id']); exit; }
+        $stmt = $pdo->prepare("SELECT id, nome FROM webhook_endpoints WHERE id = :id AND deleted_at IS NULL AND account_id IN $tenantIn LIMIT 1");
+        $stmt->execute(['id' => $id] + $_whParams);
+        $hook = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if (!$hook) { http_response_code(404); echo json_encode(['error' => 'Webhook not found']); exit; }
+        $newSecret = bin2hex(random_bytes(32)); // 64 hex chars = 256 bits
+        $pdo->prepare("UPDATE webhook_endpoints SET secret = ?, secret_rotated_at = NOW(), updated_at = NOW() WHERE id = ?")
+            ->execute([$newSecret, $id]);
+        \App\Models\Account::audit($accountId, 'webhook.secret_rotated', [
+            'user_id'     => $_SESSION['user_id'] ?? null,
+            'entidade'    => 'webhook',
+            'entidade_id' => (int)$id,
+            'detalhes'    => ['nome' => $hook['nome']], // nunca logar o secret
+        ]);
+        echo json_encode(['success' => true, 'secret' => $newSecret, 'message' => 'Anote o secret — não será mostrado de novo.']);
+        exit;
+    }
+
+    // Etapa 9 — Reenviar delivery (clona row com novo event_id, status=pending)
+    if ($action === 'resend') {
+        $deliveryId = (int)($input['delivery_id'] ?? 0);
+        if (!$deliveryId) { http_response_code(400); echo json_encode(['error' => 'Missing delivery_id']); exit; }
+        $stmt = $pdo->prepare(
+            "SELECT d.* FROM webhook_deliveries d
+               INNER JOIN webhook_endpoints e ON e.id = d.webhook_endpoint_id
+              WHERE d.id = :id AND e.account_id IN $tenantIn LIMIT 1"
+        );
+        $stmt->execute(['id' => $deliveryId] + $_whParams);
+        $d = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if (!$d) { http_response_code(404); echo json_encode(['error' => 'Delivery não encontrada']); exit; }
+
+        require_once __DIR__ . '/../../app/Services/WebhookPayloadBuilder.php';
+        $newEventId = \App\Services\WebhookPayloadBuilder::generateEventId();
+        $ins = $pdo->prepare(
+            "INSERT INTO webhook_deliveries
+               (webhook_endpoint_id, account_id, event_code, event_id, payload, request_url, status, tentativa, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, 'pending', 1, NOW(), NOW())"
+        );
+        $ins->execute([
+            (int)$d['webhook_endpoint_id'], (int)$d['account_id'],
+            (string)$d['event_code'], $newEventId,
+            (string)$d['payload'], (string)$d['request_url'],
+        ]);
+        $newId = (int)$pdo->lastInsertId();
+
+        // Tenta entregar agora (modo sync default). Em modo async, worker pega.
+        $hk = $pdo->prepare("SELECT * FROM webhook_endpoints WHERE id = ?");
+        $hk->execute([(int)$d['webhook_endpoint_id']]);
+        $hook = $hk->fetch(\PDO::FETCH_ASSOC);
+        if ($hook) {
+            $row = $pdo->prepare("SELECT * FROM webhook_deliveries WHERE id = ?");
+            $row->execute([$newId]);
+            $rowData = $row->fetch(\PDO::FETCH_ASSOC);
+            if ($rowData) {
+                \App\Services\WebhookDispatcher::processDelivery($pdo, $rowData);
+            }
+        }
+
+        \App\Models\Account::audit($accountId, 'webhook.resent', [
+            'user_id'     => $_SESSION['user_id'] ?? null,
+            'entidade'    => 'webhook_delivery',
+            'entidade_id' => $newId,
+            'detalhes'    => ['delivery_original' => $deliveryId, 'event_code' => $d['event_code']],
+        ]);
+        echo json_encode(['success' => true, 'delivery_id' => $newId, 'event_id' => $newEventId]);
+        exit;
+    }
+
     // Create
     $nome    = trim($input['nome'] ?? '');
     $url     = trim($input['url'] ?? '');
@@ -206,8 +280,34 @@ if ($method === 'POST') {
     [$urlOk, $urlErr] = \App\Helpers\WebhookUrlValidator::isPublicUrl($url);
     if (!$urlOk) { http_response_code(400); echo json_encode(['error' => 'URL bloqueada: ' . $urlErr]); exit; }
 
-    $stmt = $pdo->prepare("INSERT INTO webhook_endpoints (account_id, nome, url, secret, ativo, eventos, created_at, updated_at) VALUES (?,?,?,?,?,?,NOW(),NOW())");
-    $ok   = $stmt->execute([$accountId, $nome, $url, $secret ?: null, $ativo, json_encode(array_values($eventos))]);
+    // Etapa 8: campos novos (defaults seguros)
+    $payloadMode = in_array(($input['payload_mode'] ?? 'masked'), ['minimal','masked','full'], true)
+        ? $input['payload_mode'] : 'masked';
+    $escopo = in_array(($input['escopo'] ?? 'tenant_only'), ['tenant_only','matriz_e_filiais','filial_only'], true)
+        ? $input['escopo'] : 'tenant_only';
+    $timeoutSeg  = max(1, min(60, (int)($input['timeout_segundos'] ?? 10)));
+    $retryEnabled= isset($input['retry_enabled']) ? (int)(bool)$input['retry_enabled'] : 1;
+    $maxRetries  = max(1, min(10, (int)($input['max_retries'] ?? 3)));
+    $headersJson = null;
+    if (!empty($input['headers_customizados'])) {
+        $h = is_array($input['headers_customizados'])
+            ? $input['headers_customizados']
+            : json_decode((string)$input['headers_customizados'], true);
+        if (is_array($h)) $headersJson = json_encode($h, JSON_UNESCAPED_UNICODE);
+    }
+
+    $stmt = $pdo->prepare(
+        "INSERT INTO webhook_endpoints
+           (account_id, nome, url, secret, ativo, eventos,
+            payload_mode, escopo, timeout_segundos, retry_enabled, max_retries,
+            headers_customizados, created_by, created_at, updated_at)
+         VALUES (?,?,?,?,?,?, ?,?,?,?,?, ?,?, NOW(), NOW())"
+    );
+    $ok   = $stmt->execute([
+        $accountId, $nome, $url, $secret ?: null, $ativo, json_encode(array_values($eventos)),
+        $payloadMode, $escopo, $timeoutSeg, $retryEnabled, $maxRetries,
+        $headersJson, $_SESSION['user_id'] ?? null,
+    ]);
     $newId = (int)$pdo->lastInsertId();
     if ($ok) {
         \App\Models\Account::audit($accountId, 'webhook.created', [
@@ -215,10 +315,11 @@ if ($method === 'POST') {
             'entidade'    => 'webhook',
             'entidade_id' => $newId,
             'detalhes'    => [
-                'nome'    => $nome,
-                'url'     => $url,
-                'ativo'   => $ativo,
+                'nome' => $nome, 'url' => $url, 'ativo' => $ativo,
                 'eventos' => array_values($eventos),
+                'payload_mode' => $payloadMode, 'escopo' => $escopo,
+                'timeout_segundos' => $timeoutSeg,
+                'retry_enabled' => $retryEnabled, 'max_retries' => $maxRetries,
                 // secret omitido propositalmente — segredo não vai pra trilha
             ],
         ]);
@@ -251,6 +352,38 @@ if ($method === 'PUT' || $method === 'PATCH') {
         $ev = array_filter((array)$input['eventos'], fn($e) => in_array($e, WebhookDispatcher::allEventKeys()) || $e === '*');
         $fields[] = 'eventos = ?'; $params[] = json_encode(array_values($ev));
         $changed['eventos'] = array_values($ev);
+    }
+    // Etapa 8: campos novos
+    if (isset($input['payload_mode']) && in_array($input['payload_mode'], ['minimal','masked','full'], true)) {
+        $fields[] = 'payload_mode = ?'; $params[] = $input['payload_mode'];
+        $changed['payload_mode'] = $input['payload_mode'];
+    }
+    if (isset($input['escopo']) && in_array($input['escopo'], ['tenant_only','matriz_e_filiais','filial_only'], true)) {
+        $fields[] = 'escopo = ?'; $params[] = $input['escopo'];
+        $changed['escopo'] = $input['escopo'];
+    }
+    if (isset($input['timeout_segundos'])) {
+        $t = max(1, min(60, (int)$input['timeout_segundos']));
+        $fields[] = 'timeout_segundos = ?'; $params[] = $t;
+        $changed['timeout_segundos'] = $t;
+    }
+    if (isset($input['retry_enabled'])) {
+        $r = (int)(bool)$input['retry_enabled'];
+        $fields[] = 'retry_enabled = ?'; $params[] = $r;
+        $changed['retry_enabled'] = $r;
+    }
+    if (isset($input['max_retries'])) {
+        $m = max(1, min(10, (int)$input['max_retries']));
+        $fields[] = 'max_retries = ?'; $params[] = $m;
+        $changed['max_retries'] = $m;
+    }
+    if (isset($input['headers_customizados'])) {
+        $h = is_array($input['headers_customizados'])
+            ? $input['headers_customizados']
+            : json_decode((string)$input['headers_customizados'], true);
+        $hJson = is_array($h) ? json_encode($h, JSON_UNESCAPED_UNICODE) : null;
+        $fields[] = 'headers_customizados = ?'; $params[] = $hJson;
+        $changed['headers_customizados'] = $hJson ? '(custom)' : '(cleared)';
     }
     if (!$fields) { echo json_encode(['success' => true]); exit; }
 
