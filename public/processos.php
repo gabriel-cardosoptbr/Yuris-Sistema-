@@ -53,7 +53,7 @@ try {
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=27">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=39">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=8">
   <style>
@@ -647,16 +647,6 @@ try {
           Dados: /api/processes.php (CRUD completo) + /api/juridico_metrics.php (nomes de advogados).
           JS responsável: processos.js
         -->
-        <!-- Header — padrão .page-header (yuris-theme.css) -->
-        <div class="proc-panel page-header">
-          <div class="page-header-inner">
-            <div class="page-header-text">
-              <h2 class="page-header-title">Gestão Processual</h2>
-              <p class="page-header-subtitle">Controle operacional — prazos, tarefas, histórico e movimentações diárias</p>
-            </div>
-          </div>
-        </div>
-
         <!-- Filtros e ações — busca por texto, status, responsável, data e cadastro rápido -->
         <div class="proc-panel">
           <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
@@ -857,7 +847,7 @@ try {
                   <option value="encerrado">Encerrado</option>
                   <option value="arquivado">Arquivado</option>
                 </select>
-                <div id="statusPrazoHint" style="display:none;font-size:.7rem;color:#fbbf24;margin-top:3px">⚠ Processos encerrados/arquivados não devem ter prazo futuro ativo.</div>
+                <div id="statusPrazoHint" style="display:none;font-size:.7rem;color:#B45309;margin-top:3px;align-items:center;gap:5px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:3px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Processos encerrados/arquivados não devem ter prazo futuro ativo.</div>
               </div>
               <div class="field-group">
                 <label class="field-label">Data de início</label>
