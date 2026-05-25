@@ -195,10 +195,10 @@ class WebhookDispatcher
             $pdo = Database::getConnection();
             if ($accountId === null) {
                 error_log("[WebhookDispatcher] WARNING: fire(null, '{$eventKey}') — entrega global. Identifique o accountId apropriado.");
-                $stmt = $pdo->query("SELECT * FROM webhooks WHERE ativo = 1 AND deleted_at IS NULL");
+                $stmt = $pdo->query("SELECT * FROM webhook_endpoints WHERE ativo = 1 AND deleted_at IS NULL");
             } else {
                 $stmt = $pdo->prepare(
-                    "SELECT * FROM webhooks WHERE ativo = 1 AND deleted_at IS NULL AND account_id = ?"
+                    "SELECT * FROM webhook_endpoints WHERE ativo = 1 AND deleted_at IS NULL AND account_id = ?"
                 );
                 $stmt->execute([$accountId]);
             }

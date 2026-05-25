@@ -70,9 +70,9 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     // garante coluna deleted_at se tabela já existia sem ela
     try {
-        $pdo->query('SELECT deleted_at FROM webhooks LIMIT 0');
+        $pdo->query('SELECT deleted_at FROM webhook_endpoints LIMIT 0');
     } catch (\Throwable $e) {
-        $pdo->exec('ALTER TABLE webhooks ADD COLUMN deleted_at DATETIME DEFAULT NULL');
+        $pdo->exec('ALTER TABLE webhook_endpoints ADD COLUMN deleted_at DATETIME DEFAULT NULL');
     }
 } catch (\Throwable $e) {}
 
@@ -98,7 +98,7 @@ if ($method === 'GET' && $action === 'logs') {
                l.response_status, l.duration_ms, l.success, l.created_at,
                LEFT(l.response_body,300) AS response_body
         FROM webhook_logs l
-        INNER JOIN webhooks w ON w.id = l.webhook_id
+        INNER JOIN webhook_endpoints w ON w.id = l.webhook_id
         $where
         ORDER BY l.created_at DESC LIMIT $limit
     ");
@@ -111,7 +111,7 @@ if ($method === 'GET' && $action === 'logs') {
 if ($method === 'GET') {
     $id = $_GET['id'] ?? null;
     if ($id) {
-        $stmt = $pdo->prepare("SELECT * FROM webhooks WHERE id = :id AND deleted_at IS NULL AND account_id IN $tenantIn LIMIT 1");
+        $stmt = $pdo->prepare("SELECT * FROM webhook_endpoints WHERE id = :id AND deleted_at IS NULL AND account_id IN $tenantIn LIMIT 1");
         $stmt->execute(['id' => $id] + $_whParams);
         $row = $stmt->fetch();
         if ($row) {
@@ -146,7 +146,7 @@ if ($method === 'GET') {
         (SELECT COUNT(*) FROM webhook_logs l WHERE l.webhook_id = w.id) AS total_logs,
         (SELECT COUNT(*) FROM webhook_logs l WHERE l.webhook_id = w.id AND l.success = 1) AS success_logs,
         (SELECT MAX(l.created_at) FROM webhook_logs l WHERE l.webhook_id = w.id) AS last_delivery
-        FROM webhooks w WHERE w.deleted_at IS NULL AND w.account_id IN $tenantIn ORDER BY w.created_at DESC");
+        FROM webhook_endpoints w WHERE w.deleted_at IS NULL AND w.account_id IN $tenantIn ORDER BY w.created_at DESC");
     $stmt->execute($_whParams);
     $rows = $stmt->fetchAll();
     foreach ($rows as &$r) {
@@ -168,7 +168,7 @@ if ($method === 'POST') {
         // entrega real) qualquer webhook do sistema passando o ID, gerando
         // log e payload em URL controlada por outro escritório.
         $stmt = $pdo->prepare(
-            "SELECT * FROM webhooks WHERE id = :id AND deleted_at IS NULL AND account_id IN $tenantIn LIMIT 1"
+            "SELECT * FROM webhook_endpoints WHERE id = :id AND deleted_at IS NULL AND account_id IN $tenantIn LIMIT 1"
         );
         $stmt->execute(['id' => $id] + $_whParams);
         // ───────────────────────────────────────────────────────────────────────
@@ -202,7 +202,7 @@ if ($method === 'POST') {
     if (!$nome || !$url) { http_response_code(400); echo json_encode(['error' => 'Nome e URL são obrigatórios']); exit; }
     if (!filter_var($url, FILTER_VALIDATE_URL)) { http_response_code(400); echo json_encode(['error' => 'URL inválida']); exit; }
 
-    $stmt = $pdo->prepare("INSERT INTO webhooks (account_id, nome, url, secret, ativo, eventos, created_at, updated_at) VALUES (?,?,?,?,?,?,NOW(),NOW())");
+    $stmt = $pdo->prepare("INSERT INTO webhook_endpoints (account_id, nome, url, secret, ativo, eventos, created_at, updated_at) VALUES (?,?,?,?,?,?,NOW(),NOW())");
     $ok   = $stmt->execute([$accountId, $nome, $url, $secret ?: null, $ativo, json_encode(array_values($eventos))]);
     $newId = (int)$pdo->lastInsertId();
     if ($ok) {
@@ -242,7 +242,7 @@ if ($method === 'PUT' || $method === 'PATCH') {
     if (!$fields) { echo json_encode(['success' => true]); exit; }
 
     // snapshot pré-update (filtrado pelo tenant)
-    $stPrev = $pdo->prepare("SELECT id, nome, url, ativo, eventos FROM webhooks WHERE id = :id AND account_id IN $tenantIn LIMIT 1");
+    $stPrev = $pdo->prepare("SELECT id, nome, url, ativo, eventos FROM webhook_endpoints WHERE id = :id AND account_id IN $tenantIn LIMIT 1");
     $stPrev->execute(['id' => $id] + $_whParams);
     $dadosAntes = $stPrev->fetch(PDO::FETCH_ASSOC) ?: null;
 
@@ -253,7 +253,7 @@ if ($method === 'PUT' || $method === 'PATCH') {
     $tenantInPos = '(' . implode(',', array_fill(0, count($tenantPos), '?')) . ')';
     $params[] = $id;
     foreach ($tenantPos as $aid) $params[] = $aid;
-    $stmt = $pdo->prepare("UPDATE webhooks SET " . implode(', ', $fields) . " WHERE id = ? AND account_id IN $tenantInPos");
+    $stmt = $pdo->prepare("UPDATE webhook_endpoints SET " . implode(', ', $fields) . " WHERE id = ? AND account_id IN $tenantInPos");
     $stmt->execute($params);
     if ($stmt->rowCount() === 0) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
     \App\Models\Account::audit($accountId, 'webhook.updated', [
@@ -271,10 +271,10 @@ if ($method === 'PUT' || $method === 'PATCH') {
 if ($method === 'DELETE') {
     $id = (int)($_GET['id'] ?? ($input['id'] ?? 0));
     if (!$id) { http_response_code(400); echo json_encode(['error' => 'Missing id']); exit; }
-    $stPrev = $pdo->prepare("SELECT id, nome, url, ativo, eventos FROM webhooks WHERE id = :id AND account_id IN $tenantIn LIMIT 1");
+    $stPrev = $pdo->prepare("SELECT id, nome, url, ativo, eventos FROM webhook_endpoints WHERE id = :id AND account_id IN $tenantIn LIMIT 1");
     $stPrev->execute(['id' => $id] + $_whParams);
     $dadosAntes = $stPrev->fetch(PDO::FETCH_ASSOC) ?: null;
-    $stmt = $pdo->prepare("UPDATE webhooks SET deleted_at = NOW() WHERE id = :id AND account_id IN $tenantIn");
+    $stmt = $pdo->prepare("UPDATE webhook_endpoints SET deleted_at = NOW() WHERE id = :id AND account_id IN $tenantIn");
     $stmt->execute(['id' => $id] + $_whParams);
     if ($stmt->rowCount() === 0) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
     \App\Models\Account::audit($accountId, 'webhook.deleted', [
