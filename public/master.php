@@ -1195,12 +1195,12 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
           </div>
           <div><label class="mst-form-label">Status</label>
             <select name="status" id="subStatus" class="mst-form-select">
-              <option value="trialing">trialing</option>
-              <option value="active">active</option>
-              <option value="past_due">past_due</option>
-              <option value="canceled">canceled</option>
-              <option value="unpaid">unpaid</option>
-              <option value="incomplete">incomplete</option>
+              <option value="trialing">Em teste</option>
+              <option value="active">Ativa</option>
+              <option value="past_due">Atrasada</option>
+              <option value="canceled">Cancelada</option>
+              <option value="unpaid">Não paga</option>
+              <option value="incomplete">Incompleta</option>
             </select>
           </div>
           <div><label class="mst-form-label">Ciclo</label>
@@ -1382,17 +1382,17 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
           <div><label class="mst-form-label">Telefone</label><input name="telefone" id="editUserTel" class="mst-form-input"></div>
           <div><label class="mst-form-label">Role</label>
             <select name="role" id="editUserRole" class="mst-form-select">
-              <option value="owner">owner</option>
-              <option value="admin">admin</option>
-              <option value="manager">manager</option>
-              <option value="user">user</option>
-              <option value="viewer">viewer</option>
+              <option value="owner">Proprietário</option>
+              <option value="admin">Administrador</option>
+              <option value="manager">Gerente</option>
+              <option value="user">Usuário</option>
+              <option value="viewer">Leitor</option>
             </select>
           </div>
           <div><label class="mst-form-label">Status</label>
             <select name="status" id="editUserStatus" class="mst-form-select">
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="active">Ativo</option>
+              <option value="inactive">Inativo</option>
             </select>
           </div>
         </div>
@@ -1838,7 +1838,48 @@ const API  = '/sistema_vendas/public/api/master';
 const fmtBRL = v => 'R$ ' + Number((v||0)/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtDate = v => v ? new Date((v+'').replace(' ','T')).toLocaleDateString('pt-BR') : '—';
 const fmtDateTime = v => v ? new Date((v+'').replace(' ','T')).toLocaleString('pt-BR') : '—';
-const pill = (s) => `<span class="pill pill-${s||'cancel'}">${s||'?'}</span>`;
+// Traduz badges/valores tecnicos pra portugues. Mantem fallback no valor original
+// se nao mapeado. Class CSS continua usando o valor cru (preserva cores).
+function i18nBadge(v) {
+  if (v === null || v === undefined || v === '') return '—';
+  const map = {
+    // status conta (accounts.status)
+    'active':     'Ativa',
+    'trial':      'Em teste',
+    'overdue':    'Em atraso',
+    'suspended':  'Suspensa',
+    'cancelled':  'Cancelada',
+    'inactive':   'Inativa',
+    // status assinatura (subscriptions.status)
+    'trialing':   'Em teste',
+    'past_due':   'Atrasada',
+    'canceled':   'Cancelada',
+    'unpaid':     'Não paga',
+    'incomplete': 'Incompleta',
+    // ciclo (billing_cycle)
+    'monthly':    'Mensal',
+    'yearly':     'Anual',
+    'weekly':     'Semanal',
+    'quarterly':  'Trimestral',
+    // role (users.role)
+    'owner':      'Proprietário',
+    'admin':      'Administrador',
+    'manager':    'Gerente',
+    'user':       'Usuário',
+    'viewer':     'Leitor',
+    // tipo conta
+    'matriz':     'Matriz',
+    'filial':     'Filial',
+    'advogado':   'Advogado',
+    // status fatura/pagamento
+    'paid':       'Paga',
+    'pending':    'Pendente',
+    'refunded':   'Reembolsada',
+    'failed':     'Falhou',
+  };
+  return map[String(v).toLowerCase()] || v;
+}
+const pill = (s) => `<span class="pill pill-${s||'cancel'}">${i18nBadge(s)}</span>`;
 const esc  = (s) => (s == null ? '' : String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]));
 
 // ── Biblioteca de ícones SVG (Lucide-like) ───────────────────────────────
@@ -2144,7 +2185,7 @@ async function viewAcc(id) {
     html += `<div class="mst-detail-grid">
       <div class="mst-detail-item"><div class="label">Plano</div><div class="value">${esc(sub.plan_nome||'—')} (${esc(sub.plan_slug||'')})</div></div>
       <div class="mst-detail-item"><div class="label">Status</div><div class="value">${pill(sub.status)}</div></div>
-      <div class="mst-detail-item"><div class="label">Ciclo</div><div class="value">${esc(sub.billing_cycle||'—')}</div></div>
+      <div class="mst-detail-item"><div class="label">Ciclo</div><div class="value">${i18nBadge(sub.billing_cycle)}</div></div>
       <div class="mst-detail-item"><div class="label">Trial até</div><div class="value">${fmtDate(sub.trial_ends_at)}</div></div>
       <div class="mst-detail-item"><div class="label">Período até</div><div class="value">${fmtDate(sub.current_period_end)}</div></div>
     </div>`;
@@ -2166,7 +2207,7 @@ async function viewAcc(id) {
       html += `<tr>
         <td>${esc(u.nome)}</td>
         <td>${esc(u.email)}</td>
-        <td>${esc(u.role||u.perfil)}</td>
+        <td>${i18nBadge(u.role||u.perfil)}</td>
         <td>${pill(u.status)}</td>
         <td>
           <button class="btn-mst" onclick="openEditUser(${u.id})">Editar</button>
@@ -2190,6 +2231,10 @@ async function viewAcc(id) {
 
   // Footer actions
   let foot = '';
+  foot += `<button class="btn-mst btn-mst-primary" onclick="openEditAccount(${d.id})">Editar dados</button>`;
+  if (sub && sub.id) {
+    foot += `<button class="btn-mst btn-mst-primary" onclick="openEditSub(${sub.id})">Editar assinatura</button>`;
+  }
   if (isMatriz) {
     foot += `<button class="btn-mst" onclick="openModalFilial(${d.id})">+ Filial</button>`;
     foot += `<button class="btn-mst" onclick="openModalAdvogado(${d.id})">+ Advogado nesta conta</button>`;
