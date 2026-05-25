@@ -78,71 +78,77 @@
       const hasSomething = p.oab || p.nome_advogado || p.hasMonitors;
       if (!hasSomething) return;
 
-      // Cooldown 5min
+      // Cooldown curto (60s) — evita spam em reloads rápidos mas não atrapalha
       const STORAGE_KEY = 'yuris_intimacoes_last_auto_djen';
       const last = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
       const agora = Date.now();
-      if (last && (agora - last) < 5 * 60 * 1000) return;
+      if (last && (agora - last) < 60 * 1000) return;
 
       try {
+        this.notify('Verificando DJEN…', 'info');
         const data = await this.api('POST', '/search.php', {
           mode: 'cache_hoje',
           filters: this.collectFilters({ ignoreDates: true }),
         });
         if (!data.ok) return;
         sessionStorage.setItem(STORAGE_KEY, String(agora));
-        if (data.cached > 0) {
-          this.notify(
-            `${data.cached} ${this._pl(data.cached, 'nova publicação', 'novas publicações')} (DJEN).`,
-            'success'
-          );
-          await this.loadPersistidos();
-        }
+        const msg = data.cached > 0
+          ? `DJEN: ${data.cached} ${this._pl(data.cached, 'nova publicação', 'novas publicações')} (de ${data.total} no dia)`
+          : data.total > 0
+            ? `DJEN: ${data.total} ${this._pl(data.total, 'publicação', 'publicações')} no dia (sem novidades)`
+            : `DJEN verificado: nenhuma publicação no dia`;
+        this.notify(msg, data.cached > 0 ? 'success' : 'info');
+        if (data.cached > 0) await this.loadPersistidos();
       } catch (_) { /* silent */ }
     },
 
     /**
      * Auto-sincroniza AASP: pra cada integração ativa, chama sync.php em
-     * sequência com diferencial=true (só novidades). Mostra notificação
-     * agregada no fim se houver itens novos.
+     * sequência (diferencial=false, traz tudo do dia idempotente).
+     * Sempre dá feedback ("Verificando AASP…" / "AASP: N publicações").
      */
     async _autoSincronizarAasp() {
-      // Cooldown 5min separado do DJEN
+      // Cooldown curto (60s) — evita spam em reloads rápidos mas não atrapalha
       const STORAGE_KEY = 'yuris_intimacoes_last_auto_aasp';
       const last = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
       const agora = Date.now();
-      if (last && (agora - last) < 5 * 60 * 1000) return;
+      if (last && (agora - last) < 60 * 1000) return;
 
       const ativas = (this.aaspState.integrations || []).filter(i => i.status === 'active');
       if (!ativas.length) return;
 
       sessionStorage.setItem(STORAGE_KEY, String(agora));
+      this.notify(`Verificando AASP… (${ativas.length} ${this._pl(ativas.length, 'integração', 'integrações')})`, 'info');
+
       let totalNovos = 0;
       let totalRetornados = 0;
+      let erros = 0;
       for (const integ of ativas) {
         try {
           const data = await this.api('POST', '/sistema_vendas/public/api/aasp/sync.php', {
             integration_id: integ.id,
-            diferencial: false,  // false = traz tudo do dia (idempotente). true seria incremental.
+            diferencial: false,
           });
           if (data.ok) {
             totalNovos      += data.cached_novos || 0;
             totalRetornados += data.total        || 0;
+          } else {
+            erros++;
           }
-        } catch (_) { /* silent */ }
+        } catch (_) { erros++; }
       }
-      if (totalNovos > 0) {
-        this.notify(
-          `AASP: ${totalNovos} ${this._pl(totalNovos, 'nova publicação', 'novas publicações')} (de ${totalRetornados} no dia).`,
-          'success'
-        );
-        await this.loadAaspIntegrations();
-        await this.loadPersistidos();
-      } else if (totalRetornados > 0) {
-        // Trouxe items mas já estavam no cache — só atualiza visual silenciosamente
-        await this.loadAaspIntegrations();
-        await this.loadPersistidos();
-      }
+
+      // Sempre dá feedback do resultado, mesmo sem novidades
+      const msg = totalNovos > 0
+        ? `AASP: ${totalNovos} ${this._pl(totalNovos, 'nova publicação', 'novas publicações')} (de ${totalRetornados} no dia)`
+        : totalRetornados > 0
+          ? `AASP: ${totalRetornados} ${this._pl(totalRetornados, 'publicação', 'publicações')} no dia (sem novidades)`
+          : `AASP verificada: nenhuma publicação no dia`;
+      const tipo = erros > 0 ? 'warn' : (totalNovos > 0 ? 'success' : 'info');
+      this.notify(erros > 0 ? `${msg} (${erros} erro)` : msg, tipo);
+
+      await this.loadAaspIntegrations();
+      await this.loadPersistidos();
     },
 
     /** Inicializa o calendário visual Flatpickr no input "Período". */
