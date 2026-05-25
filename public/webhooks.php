@@ -866,33 +866,7 @@ X-Yuris-Signature: sha256=abc123def456...          <span style="color:#6b7280">/
           <div style="padding:10px 16px;background:rgba(37,99,235,.14);font-size:.75rem;font-weight:700;color:#93c5fd;text-transform:uppercase;letter-spacing:.06em">Exemplos de Automação</div>
           <div style="padding:14px 16px;display:flex;flex-direction:column;gap:12px">
 
-            <?php
-            $integracoes = [
-              ['<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>','Make (Integromat)','Use o módulo <strong>Webhooks → Custom webhook</strong>. Cole a URL gerada no campo URL do Yuris. O Make detecta automaticamente a estrutura do payload na primeira entrega.'],
-              ['<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>','n8n','Crie um nó <strong>Webhook</strong> no n8n, copie a URL e cole no Yuris. Use o campo <code>event</code> para rotear para fluxos diferentes com um nó Switch.'],
-              ['<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>','Zapier','Use o Zap trigger <strong>Webhooks by Zapier → Catch Hook</strong>. Cole a URL no Yuris e use o botão <strong>Testar</strong> para enviar um evento de exemplo.'],
-              ['<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>','Servidor próprio','Crie um endpoint POST que leia o body JSON, verifique a assinatura HMAC e processe o campo <code>event</code> para decidir a ação.'],
-            ];
-            foreach($integracoes as [$ico,$titulo,$desc]): ?>
-            <div style="background:rgba(30,58,95,.15);border:1px solid rgba(96,165,250,.1);border-radius:8px;padding:12px">
-              <div style="font-weight:700;color:#dbeafe;margin-bottom:4px;display:flex;align-items:center;gap:7px"><span style="opacity:.7"><?=$ico?></span><?=$titulo?></div>
-              <div style="font-size:.78rem;color:#94a3b8"><?=$desc?></div>
-            </div>
-            <?php endforeach; ?>
-
-            <div style="background:rgba(5,150,105,.08);border:1px solid rgba(5,150,105,.2);border-radius:8px;padding:12px">
-              <div style="font-weight:700;color:#34d399;margin-bottom:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Casos de uso prontos</div>
-              <ul style="margin:0;padding-left:18px;color:#94a3b8;font-size:.78rem;display:flex;flex-direction:column;gap:4px">
-                <li><code style="color:#a5b4fc">processo.prazo_created</code> → Avisar advogado responsável via WhatsApp</li>
-                <li><code style="color:#a5b4fc">card.stage_changed</code> → Quando entrar em "Contrato Enviado", gerar PDF da proposta</li>
-                <li><code style="color:#a5b4fc">cliente.converted_to_processo</code> → Criar pasta no Google Drive automaticamente</li>
-                <li><code style="color:#a5b4fc">processo.tarefa_atrasada</code> → Notificar gestor por e-mail</li>
-                <li><code style="color:#a5b4fc">financeiro.overdue</code> → Enviar lembrete de cobrança ao cliente</li>
-                <li><code style="color:#a5b4fc">usuario.mentioned</code> → Notificar usuário mencionado no chat interno</li>
-              </ul>
-            </div>
-
-            <!-- ── Casos de uso JURÍDICOS (focado em escritório de advocacia) ── -->
+            <!-- ── Casos de uso JURÍDICOS (focado em escritório de advocacia) — TOPO ── -->
             <?php
             $casosJuridicos = [
               // gatilho_label, eventos[], descricao (o que automatizar)
@@ -970,9 +944,10 @@ X-Yuris-Signature: sha256=abc123def456...          <span style="color:#6b7280">/
             ];
             ?>
             <div style="background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.2);border-radius:8px;padding:12px">
-              <div style="font-weight:700;color:#a78bfa;margin-bottom:8px;display:flex;align-items:center;gap:6px">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+              <div style="font-weight:700;color:#a78bfa;margin-bottom:8px;display:flex;align-items:center;gap:6px;font-size:.88rem">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
                 Casos de uso para escritório de advocacia
+                <span style="margin-left:auto;font-size:.7rem;color:#a78bfa;background:rgba(124,58,237,.18);padding:2px 8px;border-radius:999px;font-weight:600"><?=count($casosJuridicos)?> exemplos</span>
               </div>
               <div style="font-size:.74rem;color:var(--muted);margin-bottom:10px">Cenários reais do dia a dia. Cada gatilho pode encadear múltiplas ações via Make/n8n/Zapier — o Yuris só dispara o evento, a automação fica na ferramenta de fluxo.</div>
               <div style="display:flex;flex-direction:column;gap:8px">
@@ -989,6 +964,35 @@ X-Yuris-Signature: sha256=abc123def456...          <span style="color:#6b7280">/
                 <?php endforeach; ?>
               </div>
             </div>
+
+            <!-- ── Como integrar (ferramentas) ── -->
+            <div style="font-size:.7rem;color:var(--muted);font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-top:6px">Como integrar</div>
+            <?php
+            $integracoes = [
+              ['<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>','Make (Integromat)','Use o módulo <strong>Webhooks → Custom webhook</strong>. Cole a URL gerada no campo URL do Yuris. O Make detecta automaticamente a estrutura do payload na primeira entrega.'],
+              ['<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>','n8n','Crie um nó <strong>Webhook</strong> no n8n, copie a URL e cole no Yuris. Use o campo <code>event</code> para rotear para fluxos diferentes com um nó Switch.'],
+              ['<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>','Zapier','Use o Zap trigger <strong>Webhooks by Zapier → Catch Hook</strong>. Cole a URL no Yuris e use o botão <strong>Testar</strong> para enviar um evento de exemplo.'],
+              ['<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>','Servidor próprio','Crie um endpoint POST que leia o body JSON, verifique a assinatura HMAC e processe o campo <code>event</code> para decidir a ação.'],
+            ];
+            foreach($integracoes as [$ico,$titulo,$desc]): ?>
+            <div style="background:rgba(30,58,95,.15);border:1px solid rgba(96,165,250,.1);border-radius:8px;padding:12px">
+              <div style="font-weight:700;color:#dbeafe;margin-bottom:4px;display:flex;align-items:center;gap:7px"><span style="opacity:.7"><?=$ico?></span><?=$titulo?></div>
+              <div style="font-size:.78rem;color:#94a3b8"><?=$desc?></div>
+            </div>
+            <?php endforeach; ?>
+
+            <div style="background:rgba(5,150,105,.08);border:1px solid rgba(5,150,105,.2);border-radius:8px;padding:12px">
+              <div style="font-weight:700;color:#34d399;margin-bottom:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Casos de uso prontos</div>
+              <ul style="margin:0;padding-left:18px;color:#94a3b8;font-size:.78rem;display:flex;flex-direction:column;gap:4px">
+                <li><code style="color:#a5b4fc">processo.prazo_created</code> → Avisar advogado responsável via WhatsApp</li>
+                <li><code style="color:#a5b4fc">card.stage_changed</code> → Quando entrar em "Contrato Enviado", gerar PDF da proposta</li>
+                <li><code style="color:#a5b4fc">cliente.converted_to_processo</code> → Criar pasta no Google Drive automaticamente</li>
+                <li><code style="color:#a5b4fc">processo.tarefa_atrasada</code> → Notificar gestor por e-mail</li>
+                <li><code style="color:#a5b4fc">financeiro.overdue</code> → Enviar lembrete de cobrança ao cliente</li>
+                <li><code style="color:#a5b4fc">usuario.mentioned</code> → Notificar usuário mencionado no chat interno</li>
+              </ul>
+            </div>
+
           </div>
         </div>
 
