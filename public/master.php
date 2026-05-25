@@ -1270,6 +1270,28 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
           </div>
           <div><label class="mst-form-label">Plano (slug cache)</label><input name="plano" id="editAccPlano" class="mst-form-input"><div class="mst-form-help">String legada. Plano real é via Assinaturas.</div></div>
         </div>
+
+        <!-- Assinatura — só aparece se a conta tiver uma assinatura ativa -->
+        <div id="editAccSubBlock" style="display:none">
+          <div class="mst-form-section">Assinatura</div>
+          <input type="hidden" id="editAccSubId">
+          <div class="mst-form-row">
+            <div><label class="mst-form-label">Ciclo de cobrança</label>
+              <select id="editAccSubCycle" class="mst-form-select">
+                <option value="monthly">Mensal</option>
+                <option value="yearly">Anual</option>
+              </select>
+            </div>
+            <div><label class="mst-form-label">Trial até</label>
+              <input id="editAccSubTrial" type="date" class="mst-form-input">
+              <div class="mst-form-help">Data limite do período de teste gratuito.</div>
+            </div>
+            <div><label class="mst-form-label">Período até</label>
+              <input id="editAccSubPeriod" type="date" class="mst-form-input">
+              <div class="mst-form-help">Data até quando a conta fica ativa (pós-pagamento ou pós-trial).</div>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="mst-modal-foot">
         <button type="button" class="btn-mst btn-mst-danger" onclick="deleteAccount()" style="margin-right:auto">Excluir conta…</button>
@@ -3189,6 +3211,20 @@ async function openEditAccount(id) {
   document.getElementById('editAccTipo').value   = d.tipo || 'matriz';
   document.getElementById('editAccStatus').value = d.status || 'active';
   document.getElementById('editAccPlano').value  = d.plano || '';
+
+  // Bloco Assinatura: só aparece se a conta tem subscription
+  const sub = d.subscription || null;
+  const subBlock = document.getElementById('editAccSubBlock');
+  if (sub && sub.id) {
+    subBlock.style.display = '';
+    document.getElementById('editAccSubId').value     = sub.id;
+    document.getElementById('editAccSubCycle').value  = sub.billing_cycle || 'monthly';
+    document.getElementById('editAccSubTrial').value  = sub.trial_ends_at ? sub.trial_ends_at.substring(0,10) : '';
+    document.getElementById('editAccSubPeriod').value = sub.current_period_end ? sub.current_period_end.substring(0,10) : '';
+  } else {
+    subBlock.style.display = 'none';
+    document.getElementById('editAccSubId').value = '';
+  }
   openModal('modalEditAccount');
 }
 
@@ -3214,7 +3250,26 @@ async function submitEditAccount(ev) {
     headers: {'Content-Type':'application/json','X-CSRF-Token':CSRF},
     body: JSON.stringify(body),
   });
-  if (!r.ok) return notifyErr(r.error || 'Falha ao salvar');
+  if (!r.ok) return notifyErr(r.error || 'Falha ao salvar conta');
+
+  // Se houver assinatura, faz PATCH separado em billing.php com ciclo + datas
+  const subId = parseInt(document.getElementById('editAccSubId').value || '0', 10);
+  if (subId > 0) {
+    const subBody = {
+      csrf_token: CSRF,
+      subscription_id:    subId,
+      billing_cycle:      document.getElementById('editAccSubCycle').value,
+      trial_ends_at:      document.getElementById('editAccSubTrial').value || null,
+      current_period_end: document.getElementById('editAccSubPeriod').value || null,
+    };
+    const r2 = await fj(`${API}/billing.php`, {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json','X-CSRF-Token':CSRF},
+      body: JSON.stringify(subBody),
+    });
+    if (!r2.ok) return notifyErr(r2.error || 'Conta salva, mas falha ao salvar assinatura');
+  }
+
   closeModal('modalEditAccount');
   notifyOk('Conta atualizada');
   loadAccounts();
