@@ -1982,7 +1982,7 @@
       $('intActionsSummary').innerHTML = `
         <strong>${this._esc(item.tribunal || '?')}</strong> · ${this._esc(item.tipo_comunicacao || 'Intimação')} ·
         Processo: <strong>${this._esc(procMask)}</strong><br>
-        <span style="color:#9CA3AF;">${this._esc(item.orgao || '—')} · Disponibilizado em ${this.fmtData(item.data_disponibilizacao || '')}</span>
+        <span class="int-summary-sub">${this._esc(item.orgao || '—')} · Disponibilizado em ${this.fmtData(item.data_disponibilizacao || '')}</span>
       `;
 
       // Reset etapa 1

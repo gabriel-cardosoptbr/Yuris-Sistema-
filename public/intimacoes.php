@@ -313,6 +313,23 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
     .int-popup-checkbox input { accent-color: #6898C0; }
 
     /* ── Modal Ações da Intimação (seções) ── */
+    .int-actions-summary {
+      font-size: .82rem; color: #dbeafe;
+      margin-bottom: 14px; padding: 8px 11px;
+      background: rgba(15,33,60,.5); border-radius: 7px;
+      border-left: 3px solid rgba(96,165,250,.55);
+      line-height: 1.45;
+    }
+    .int-actions-summary strong { color: #ffffff; }
+    .int-actions-summary .int-summary-sub { color: #9CA3AF; }
+    html[data-theme="light"] .int-actions-summary {
+      background: #EEF3FB !important;
+      border-left-color: #2563EB !important;
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .int-actions-summary strong { color: #0A1729 !important; }
+    html[data-theme="light"] .int-actions-summary .int-summary-sub { color: #4B5B70 !important; }
+
     .int-actions-section {
       padding: 12px 14px; margin-bottom: 12px;
       background: rgba(15,33,60,.4); border: 1px solid rgba(96,165,250,.18);
@@ -862,7 +879,7 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </span>
     <h2>Vincular processo + criar prazo</h2>
-    <div id="intActionsSummary" style="font-size:.82rem;color:#7A8898;margin-bottom:14px;padding:8px 11px;background:rgba(15,33,60,.4);border-radius:7px;border-left:3px solid rgba(96,165,250,.4);"></div>
+    <div id="intActionsSummary" class="int-actions-summary"></div>
 
     <!-- ETAPA 1: Vincular ao processo -->
     <div class="int-actions-section" id="actStep1Vincular">
