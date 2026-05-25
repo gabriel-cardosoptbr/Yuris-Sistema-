@@ -994,11 +994,32 @@
               : ''}
             ${tagLine ? `<div class="int-pub-meta" style="margin-top:6px;">${tagLine}</div>` : ''}
           </div>
-          <div class="int-pub-actions int-pub-actions-single">
-            <button class="int-icon-btn" title="Ações (lida/favorita/prazo/comentário/vincular/criar tarefa)"
+          <div class="int-pub-actions">
+            <button class="int-icon-btn" title="${it.lida ? 'Marcar como não lida' : 'Marcar como lida'}"
+                    data-action="${it.lida ? 'unread' : 'read'}" data-hash="${esc(it.hash_conteudo)}" ${eventIdAttr}>
+              ${it.lida
+                ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>'
+                : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>'}
+            </button>
+            <button class="int-icon-btn" title="${it.favorita ? 'Remover dos favoritos' : 'Favoritar'}"
+                    data-action="favorite" data-hash="${esc(it.hash_conteudo)}" ${eventIdAttr}
+                    style="${it.favorita ? 'color:#fbbf24;' : ''}">
+              <svg viewBox="0 0 24 24" fill="${it.favorita ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </button>
+            <button class="int-icon-btn" title="Definir prazo"
+                    data-action="popup-deadline" data-hash="${esc(it.hash_conteudo)}" ${eventIdAttr}
+                    style="${hasPrazo ? 'color:#fbbf24;' : ''}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </button>
+            <button class="int-icon-btn" title="Comentário interno"
+                    data-action="popup-comment" data-hash="${esc(it.hash_conteudo)}" ${eventIdAttr}
+                    style="${hasComment ? 'color:#93c5fd;' : ''}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </button>
+            <button class="int-icon-btn" title="Vincular ao processo + criar tarefa (auto-link nas próximas)"
                     data-action="open-actions" data-hash="${esc(it.hash_conteudo)}" ${eventIdAttr}
-                    style="width:36px;height:36px;${(it.lida||it.favorita||hasPrazo||hasComment||hasLink)?'background:rgba(96,165,250,.22);border-color:rgba(96,165,250,.55);color:#dbeafe;':''}">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
+                    style="${hasLink ? 'color:#a78bfa;background:rgba(167,139,250,.15);border-color:rgba(167,139,250,.4);' : ''}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
             </button>
           </div>
         </div>`;
@@ -1963,12 +1984,6 @@
         Processo: <strong>${this._esc(procMask)}</strong><br>
         <span style="color:#9CA3AF;">${this._esc(item.orgao || '—')} · Disponibilizado em ${this.fmtData(item.data_disponibilizacao || '')}</span>
       `;
-
-      // Toggles
-      $('actToggleLida').checked = !!item.lida;
-      $('actToggleFav').checked  = !!item.favorita;
-      $('actPrazoData').value    = item.prazo_data || '';
-      $('actComentario').value   = item.comentario || '';
 
       // Vínculo de processo: status atual
       const statusEl = $('actVinculoStatus');

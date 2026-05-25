@@ -828,35 +828,8 @@ $kpiNaoLidas  = PushEventUserStatus::countNaoLidas($userId, $accountId);
     <span class="int-modal-close" id="intActionsClose" title="Fechar">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </span>
-    <h2>Ações da intimação</h2>
+    <h2>Vincular processo + criar tarefa</h2>
     <div id="intActionsSummary" style="font-size:.82rem;color:#7A8898;margin-bottom:14px;padding:8px 11px;background:rgba(15,33,60,.4);border-radius:7px;border-left:3px solid rgba(96,165,250,.4);"></div>
-
-    <!-- Toggles rápidos -->
-    <div style="display:flex;gap:14px;margin-bottom:18px;flex-wrap:wrap;">
-      <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;cursor:pointer;">
-        <input type="checkbox" id="actToggleLida"> <span>Marcada como lida</span>
-      </label>
-      <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;cursor:pointer;">
-        <input type="checkbox" id="actToggleFav"> <span>Favoritada</span>
-      </label>
-    </div>
-
-    <!-- Seção: Prazo -->
-    <div class="int-actions-section">
-      <h4>Definir prazo</h4>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <input type="date" id="actPrazoData" style="flex:1;min-width:160px;padding:8px 10px;background:rgba(8,20,40,.6);border:1px solid rgba(96,165,250,.2);border-radius:7px;color:#dbeafe;font-size:.82rem;">
-        <button class="int-btn" id="actBtnSalvarPrazo">Salvar prazo</button>
-        <button class="int-btn" id="actBtnLimparPrazo" style="background:rgba(176,96,112,.15);border-color:rgba(176,96,112,.3);color:#f87171;">Limpar</button>
-      </div>
-    </div>
-
-    <!-- Seção: Comentário -->
-    <div class="int-actions-section">
-      <h4>Comentário interno</h4>
-      <textarea id="actComentario" rows="3" placeholder="Anote algo sobre essa intimação (visível só pro tenant)..." style="width:100%;padding:8px 10px;background:rgba(8,20,40,.6);border:1px solid rgba(96,165,250,.2);border-radius:7px;color:#dbeafe;font-size:.82rem;resize:vertical;"></textarea>
-      <button class="int-btn" id="actBtnSalvarComentario" style="margin-top:6px;">Salvar comentário</button>
-    </div>
 
     <!-- Seção: Vincular ao processo -->
     <div class="int-actions-section">
