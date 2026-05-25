@@ -663,18 +663,20 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
     background: #F8FAFC;
     border-top-color: #E2E8F0;
   }
-  /* Badges traduzidos pra fundo claro — mantém cor de status, baixa intensidade */
+  /* Badges no fundo claro — sólidos com texto branco (estilo PR/release badges).
+     A tentativa anterior usava pasteis (red-100 + red-700) mas o contraste
+     ficou fraco e os textos sumiam. Saturado + branco garante legibilidade. */
   html[data-theme="light"] .adash-badge-danger {
-    background: #FEE2E2; color: #B91C1C; border-color: #FCA5A5;
+    background: #DC2626 !important; color: #FFFFFF !important; border-color: #B91C1C !important;
   }
   html[data-theme="light"] .adash-badge-warn {
-    background: #FEF3C7; color: #B45309; border-color: #FCD34D;
+    background: #F59E0B !important; color: #FFFFFF !important; border-color: #D97706 !important;
   }
   html[data-theme="light"] .adash-badge-info {
-    background: #DBEAFE; color: #1D4ED8; border-color: #93C5FD;
+    background: #2563EB !important; color: #FFFFFF !important; border-color: #1D4ED8 !important;
   }
   html[data-theme="light"] .adash-badge-ok {
-    background: #D1FAE5; color: #047857; border-color: #6EE7B7;
+    background: #059669 !important; color: #FFFFFF !important; border-color: #047857 !important;
   }
   /* Botão primário (gradiente azul + texto branco) — OK no claro, sem override */
 </style>
