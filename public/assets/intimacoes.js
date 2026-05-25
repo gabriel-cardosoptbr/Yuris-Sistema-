@@ -42,7 +42,53 @@
       // Pra ver mais dias, usa os shortcuts (7/30 dias) ou o calendário.
       this.setPeriodoShortcut(1);
       this.updateSearchHint();
-      this.loadUserDefaults().then(() => this.loadPersistidos());
+      this.loadUserDefaults()
+        .then(() => this.loadPersistidos())
+        .then(() => this._autoBuscarHoje());  // auto-refresh em background
+    },
+
+    /**
+     * Auto-sincroniza DJEN ao carregar a página — sem precisar clicar
+     * "Buscar publicações de hoje". O botão continua existindo pra forçar
+     * sincronização manual ("adiantar"), mas o user não precisa mais clicar
+     * toda vez que abre a página.
+     *
+     * Skip silenciosamente se:
+     *   - User não tem perfil nem monitor (não faz sentido buscar nada)
+     *   - Aba ativa é AASP (cron AASP roda em background separadamente)
+     *   - Última auto-busca foi há < 5min (evita spam quando reload rápido)
+     */
+    async _autoBuscarHoje() {
+      // Skip se não há nada pra buscar
+      const p = this.userProfile || {};
+      const hasSomething = p.oab || p.nome_advogado || p.hasMonitors;
+      if (!hasSomething) return;
+
+      // Skip se aba AASP (cron AASP cuida disso)
+      if (this.state.sourceFilter === 'aasp') return;
+
+      // Skip se já buscou há menos de 5min — sessionStorage cross-page
+      const STORAGE_KEY = 'yuris_intimacoes_last_auto';
+      const last = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10);
+      const agora = Date.now();
+      if (last && (agora - last) < 5 * 60 * 1000) return;
+
+      try {
+        const data = await this.api('POST', '/search.php', {
+          mode: 'cache_hoje',
+          filters: this.collectFilters({ ignoreDates: true }),
+        });
+        if (!data.ok) return;
+        sessionStorage.setItem(STORAGE_KEY, String(agora));
+        // Notifica só se trouxe novidades (evita poluir com "0 novas" toda vez)
+        if (data.cached > 0) {
+          this.notify(
+            `${data.cached} ${this._pl(data.cached, 'nova publicação', 'novas publicações')} encontradas.`,
+            'success'
+          );
+          await this.loadPersistidos();
+        }
+      } catch (_) { /* silencioso — não interrompe UX se DJEN estiver fora */ }
     },
 
     /** Inicializa o calendário visual Flatpickr no input "Período". */
