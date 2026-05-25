@@ -34,6 +34,13 @@
       this.userProfile = { oab: '', oab_uf: '', nome_advogado: '', nome: '' };
       this.bindEvents();
       this.initDatePicker();
+      // Detect aba ativa inicial — DJEN por padrão (data-tab="djen" no HTML)
+      const activeTab = document.querySelector('.int-tab.active')?.dataset?.tab || 'djen';
+      this.state.sourceFilter = activeTab === 'aasp' ? 'aasp' : (activeTab === 'djen' ? 'djen' : null);
+      // Default ao carregar a página: mostra SÓ HOJE. Antes mostrava o cache
+      // inteiro cross-day (19 items de vários dias), o que confundia o user.
+      // Pra ver mais dias, usa os shortcuts (7/30 dias) ou o calendário.
+      this.setPeriodoShortcut(1);
       this.updateSearchHint();
       this.loadUserDefaults().then(() => this.loadPersistidos());
     },
@@ -1381,9 +1388,29 @@
       const cache = items.filter(it => it._from_cache).length;
       const events = items.length - cache;
       const total = items.length;
-      let label = 'Hoje';
-      if (src === 'aasp')      label = 'AASP — hoje';
-      else if (src === 'djen') label = 'DJEN — hoje';
+
+      // Source label
+      let srcLabel = '';
+      if (src === 'aasp')      srcLabel = 'AASP';
+      else if (src === 'djen') srcLabel = 'DJEN';
+
+      // Date label — reflete o ESTADO REAL do filtro, não assume "hoje"
+      const f = this.collectFilters();
+      const hoje = new Date().toISOString().slice(0, 10);
+      let dateLabel = '';
+      if (f.data_inicio === hoje && f.data_fim === hoje) {
+        dateLabel = 'hoje';
+      } else if (f.data_inicio && f.data_fim && f.data_inicio === f.data_fim) {
+        dateLabel = this.fmtData(f.data_inicio);
+      } else if (f.data_inicio && f.data_fim) {
+        dateLabel = `${this.fmtData(f.data_inicio)} a ${this.fmtData(f.data_fim)}`;
+      } else if (f.data_inicio) {
+        dateLabel = `desde ${this.fmtData(f.data_inicio)}`;
+      } else {
+        dateLabel = 'sem filtro de data';
+      }
+
+      const label = srcLabel ? `${srcLabel} — ${dateLabel}` : dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
       const detail = (cache > 0 && events > 0)
         ? ` <span style="opacity:.7;">(${cache} no cache · ${events} salvas)</span>`
         : '';
