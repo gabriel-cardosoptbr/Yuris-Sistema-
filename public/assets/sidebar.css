@@ -191,7 +191,7 @@
   gap: 11px !important;
   padding: 10px 13px !important;
   border-radius: 11px !important;
-  color: #6B7887 !important;
+  color: #B8C5D5 !important;
   text-decoration: none !important;
   font-size: .88rem !important;
   font-weight: 600 !important;
@@ -200,8 +200,8 @@
   overflow: hidden;
   transition: background .15s ease, color .15s ease, border-color .15s ease;
   box-sizing: border-box;
-  background: rgba(30,58,95,0.22) !important;
-  border: 1px solid rgba(191,199,213,0.12) !important;
+  background: rgba(72,100,140,0.38) !important;
+  border: 1px solid rgba(191,199,213,0.22) !important;
 }
 
 /* ── Nav: ícone ── */
@@ -297,9 +297,9 @@
   width: 100% !important;
   padding: 10px 13px !important;
   border-radius: 11px !important;
-  background: rgba(30,58,95,0.22) !important;
-  border: 1px solid rgba(191,199,213,0.12) !important;
-  color: #8A96A8 !important;
+  background: rgba(72,100,140,0.38) !important;
+  border: 1px solid rgba(191,199,213,0.22) !important;
+  color: #C8D3E0 !important;
   font-size: .82rem !important;
   font-weight: 600 !important;
   font-family: inherit !important;
@@ -311,9 +311,9 @@
   box-sizing: border-box !important;
 }
 .sidebar-group-toggle:hover {
-  background: rgba(20,50,90,0.45) !important;
-  color: #BFC7D5 !important;
-  border-color: rgba(191,199,213,0.25) !important;
+  background: rgba(90,125,170,0.50) !important;
+  color: #E2EAF2 !important;
+  border-color: rgba(191,199,213,0.35) !important;
 }
 .sidebar-group-toggle:focus-visible { outline: 2px solid #60a5fa !important; outline-offset: 1px !important; }
 .sidebar-group.has-active .sidebar-group-toggle {
