@@ -194,6 +194,10 @@ final class Anonymizer
             'push_query_logs'        => 'account_id',
             'push_monitors'          => 'account_id',
             'push_events'            => 'account_id', // CASCADE apaga user_status linkado
+            // AASP — credenciais e auditoria de credencial
+            // chave_encrypted apagada junto (não dá pra decifrar depois)
+            'aasp_credential_audit'  => 'account_id',
+            'aasp_integrations'      => 'account_id',
         ];
         foreach ($tables as $tbl => $col) {
             try {
