@@ -31,15 +31,27 @@ document.addEventListener('DOMContentLoaded', ()=>{
       .replace(/&/g,'&amp;').replace(/"/g,'&quot;')
       .replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
+  // Labels canônicas de tipo de conta — usar em TODO render de badge de origem
+  // (faixa do card + badge do histórico). Antes existiam 2 ternários hardcoded
+  // que tratavam qualquer coisa != 'matriz' como FILIAL — fazendo conta tipo
+  // 'advogado' aparecer como FILIAL no histórico, errado.
+  const ACCOUNT_TIPO_LABEL = { matriz: 'MATRIZ', filial: 'FILIAL', advogado: 'ADVOGADO SOLO' };
+  const ACCOUNT_TIPO_CLASS = { matriz: 'is-matriz', filial: 'is-filial', advogado: 'is-advogado' };
+  function _tipoLabel(t) {
+    const k = String(t || '').toLowerCase();
+    return ACCOUNT_TIPO_LABEL[k] || k.toUpperCase();
+  }
+  function _tipoClass(t) {
+    const k = String(t || '').toLowerCase();
+    return ACCOUNT_TIPO_CLASS[k] || 'is-filial';
+  }
   function buildOriginStripHtml(p){
     if (!window.YURIS_SHOW_ORIGIN_STRIP) return '';
     const tipo = String(p && p.origin_account_tipo || '').toLowerCase();
     if (!tipo) return '';
     const nome  = _escapeAttr(p.origin_account_nome || '');
-    const cls   = tipo === 'matriz' ? 'is-matriz' : 'is-filial';
-    const label = tipo === 'matriz' ? 'MATRIZ'   : 'FILIAL';
-    return '<div class="proc-card-origin-strip ' + cls + '">' +
-             '<span class="org-label">' + label + '</span>' +
+    return '<div class="proc-card-origin-strip ' + _tipoClass(tipo) + '">' +
+             '<span class="org-label">' + _tipoLabel(tipo) + '</span>' +
              '<span class="org-name" title="' + nome + '">' + nome + '</span>' +
            '</div>';
   }
@@ -1003,14 +1015,15 @@ document.addEventListener('DOMContentLoaded', ()=>{
       el.innerHTML = items.length ? items.map(h=>{
         const dt=new Date(h.created_at);
         const s=dt.toLocaleDateString('pt-BR')+', '+dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-        // Badge de origem (MATRIZ/FILIAL) — pequeno, no topo do card, antes da ação.
+        // Badge de origem (MATRIZ / FILIAL / ADVOGADO SOLO) — pequeno, no topo do card.
+        // Usa _tipoLabel/_tipoClass (helpers no topo do arquivo) pra cobrir todos
+        // os 3 tipos de conta — antes o ternário tratava qualquer coisa != matriz
+        // como FILIAL, fazendo conta tipo 'advogado' aparecer como FILIAL aqui.
         const tipo = String(h.author_account_tipo || '').toLowerCase();
         const nome = String(h.author_account_nome || '');
         let originBadge = '';
         if (tipo && nome) {
-          const cls   = tipo === 'matriz' ? 'is-matriz' : 'is-filial';
-          const label = tipo === 'matriz' ? 'MATRIZ'   : 'FILIAL';
-          originBadge = `<div class="timeline-origin ${cls}" title="${escapeAttr(nome)}">${label} · ${escapeAttr(nome)}</div>`;
+          originBadge = `<div class="timeline-origin ${_tipoClass(tipo)}" title="${escapeAttr(nome)}">${_tipoLabel(tipo)} · ${escapeAttr(nome)}</div>`;
         }
         return `<div class="timeline-entry"><div class="timeline-dot"></div><div class="timeline-content">${originBadge}<div class="timeline-action">${h.descricao||h.acao}</div><div class="timeline-meta">${h.user_email||'sistema'} · ${s}</div></div></div>`;
       }).join('') : '<div style="color:#9ab0c9;font-size:.8rem">Nenhum registro ainda</div>';

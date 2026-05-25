@@ -234,6 +234,10 @@ try {
       background: linear-gradient(90deg, rgba(168,85,247,.32), rgba(168,85,247,.14));
       color: #d8b4fe;
     }
+    .proc-card-origin-strip.is-advogado {
+      background: linear-gradient(90deg, rgba(20,184,166,.32), rgba(20,184,166,.14));
+      color: #5eead4;
+    }
     .proc-card-origin-strip .org-name {
       font-weight: 600;
       text-transform: none;
@@ -247,6 +251,10 @@ try {
     html[data-theme="light"] .proc-card-origin-strip.is-matriz {
       background: linear-gradient(90deg, rgba(37,99,235,.22), rgba(37,99,235,.10));
       color: #1e40af;
+    }
+    html[data-theme="light"] .proc-card-origin-strip.is-advogado {
+      background: linear-gradient(90deg, rgba(20,184,166,.22), rgba(20,184,166,.10));
+      color: #0F766E;
     }
     html[data-theme="light"] .proc-card-origin-strip.is-filial {
       background: linear-gradient(90deg, rgba(126,34,206,.22), rgba(126,34,206,.10));
@@ -559,10 +567,12 @@ try {
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .timeline-origin.is-matriz { background: rgba(37,99,235,.16);  color: #93c5fd; border-color: rgba(37,99,235,.32); }
-    .timeline-origin.is-filial { background: rgba(168,85,247,.16); color: #d8b4fe; border-color: rgba(168,85,247,.32); }
-    html[data-theme="light"] .timeline-origin.is-matriz { background: rgba(37,99,235,.08);  color: #1D4ED8; border-color: rgba(37,99,235,.28); }
-    html[data-theme="light"] .timeline-origin.is-filial { background: rgba(126,34,206,.08); color: #6B21A8; border-color: rgba(126,34,206,.28); }
+    .timeline-origin.is-matriz   { background: rgba(37,99,235,.16);  color: #93c5fd; border-color: rgba(37,99,235,.32); }
+    .timeline-origin.is-filial   { background: rgba(168,85,247,.16); color: #d8b4fe; border-color: rgba(168,85,247,.32); }
+    .timeline-origin.is-advogado { background: rgba(20,184,166,.16); color: #5eead4; border-color: rgba(20,184,166,.32); }
+    html[data-theme="light"] .timeline-origin.is-matriz   { background: rgba(37,99,235,.08);  color: #1D4ED8; border-color: rgba(37,99,235,.28); }
+    html[data-theme="light"] .timeline-origin.is-filial   { background: rgba(126,34,206,.08); color: #6B21A8; border-color: rgba(126,34,206,.28); }
+    html[data-theme="light"] .timeline-origin.is-advogado { background: rgba(15,118,110,.08); color: #0F766E; border-color: rgba(15,118,110,.28); }
 
     /* ──────────────────────────────────────────────────────────────────────
        TEMA CLARO — overrides para o modal de processo e histórico.
