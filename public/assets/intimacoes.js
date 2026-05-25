@@ -1020,9 +1020,11 @@
       if (mutating || body) {
         opts.body = JSON.stringify(Object.assign({ _csrf: this.csrf }, body || {}));
       }
-      // Aceita path absoluto (começa com / ou http) — útil pra atingir
-      // /api/aasp/* ou outros endpoints fora do apiBase do módulo Push.
-      const isAbs = path.startsWith('/') || /^https?:\/\//.test(path);
+      // Aceita path absoluto (começa com /sistema_vendas/ ou http) — útil pra
+      // atingir /api/aasp/* ou outros endpoints fora do apiBase do módulo Push.
+      // Paths "/algo.php" são tratados como RELATIVOS ao apiBase (legacy),
+      // senão quebraria '/monitors.php', '/list.php', etc → 404 em localhost root.
+      const isAbs = path.startsWith('/sistema_vendas/') || /^https?:\/\//.test(path);
       const url = isAbs ? path : (this.apiBase + path);
       const r = await fetch(url, opts);
       const txt = await r.text();
