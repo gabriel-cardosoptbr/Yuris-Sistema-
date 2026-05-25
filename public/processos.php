@@ -53,7 +53,7 @@ try {
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=43">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=44">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=18">
   <style>
@@ -518,7 +518,10 @@ try {
     #modalAddPrazo input,
     #modalAddPrazo select,
     #modalAddPrazo textarea {
-      background: #050f22 !important;
+      /* background-color (longhand) — NUNCA shorthand 'background:' aqui:
+         o shorthand reseta background-image, apagando o chevron customizado
+         que o yuris-theme.css injeta nos <select>. */
+      background-color: #050f22 !important;
       color: #d6eaff !important;
       color-scheme: dark;
     }

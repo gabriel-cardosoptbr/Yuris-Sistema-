@@ -1003,24 +1003,33 @@ html[data-theme="light"] [role="tooltip"], html[data-theme="light"] .tooltip {
 /* ── Page header SVG: cor de ícones ── */
 html[data-theme="light"] .page-header svg { color: #1E4A8A !important; }
 
-/* ── Date picker icon (browser-rendered) — tema claro ──
-   Filter converte o icone cinza-claro padrao do Chrome em navy escuro
-   (#1E4A8A aprox), consistente com a paleta dos chevrons de select.
-   Antes (invert .3 sepia .5) ficava cinza pálido quase invisível. */
+/* ── Date picker icon — tema claro ──
+   SUBSTITUI completamente o icone padrao do Chrome (cinza-claro praticamente
+   invisivel) por um SVG navy escuro #1E4A8A. Antes tentamos varios filter()
+   mas mesmo `invert+sepia+hue-rotate` mantinha o icone palido. Abordagem
+   robusta: usa background-image proprio + esconde o glyph nativo via
+   `color: transparent` e zera o filter. */
 html[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator,
 html[data-theme="light"] input[type="datetime-local"]::-webkit-calendar-picker-indicator,
 html[data-theme="light"] input[type="time"]::-webkit-calendar-picker-indicator,
 html[data-theme="light"] input[type="month"]::-webkit-calendar-picker-indicator,
 html[data-theme="light"] input[type="week"]::-webkit-calendar-picker-indicator {
-  filter: brightness(0) saturate(100%) invert(24%) sepia(98%) saturate(1058%) hue-rotate(199deg) brightness(95%) contrast(91%);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%231E4A8A' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: 18px 18px !important;
+  filter: none !important;
+  opacity: 1 !important;
   cursor: pointer;
-  opacity: 0.85;
+  width: 22px;
+  height: 22px;
+  /* Esconde o glyph nativo do browser sob o nosso SVG */
+  color: transparent !important;
 }
 html[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator:hover,
 html[data-theme="light"] input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover,
 html[data-theme="light"] input[type="time"]::-webkit-calendar-picker-indicator:hover {
-  opacity: 1;
-  filter: brightness(0) saturate(100%) invert(20%) sepia(95%) saturate(2000%) hue-rotate(212deg) brightness(90%) contrast(95%);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%232563EB' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E") !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
