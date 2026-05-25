@@ -1370,16 +1370,24 @@
 
     /** Atualiza o KPI "Cache atual" no toolbar baseado na aba ativa. */
     updateToolbarCacheInfo() {
-      const el = document.querySelector('.int-toolbar-info');
+      // Usa id específico — antes querySelector pegava o aaspSummary do
+      // painel AASP por engano (1ª ocorrência da classe no DOM).
+      const el = document.getElementById('intCacheToolbar');
       if (!el) return;
-      const src = this.state.sourceFilter;
-      const items = this.state.items || [];
+      const src   = this.state.sourceFilter;
+      // Conta items DEDUPLICADOS pra bater com o que aparece nos cards
+      // (sem isso, KPI mostrava 25 raw enquanto o feed mostrava 6 dedupados).
+      const items = this._dedupItems(this.state.items || []);
       const cache = items.filter(it => it._from_cache).length;
       const events = items.length - cache;
-      let label = 'Cache atual';
-      if (src === 'aasp')      label = 'Cache AASP';
-      else if (src === 'djen') label = 'Cache DJEN';
-      el.innerHTML = `${label}: <strong>${cache}</strong> publicação(ões) no cache · <strong>${events}</strong> salvas`;
+      const total = items.length;
+      let label = 'Hoje';
+      if (src === 'aasp')      label = 'AASP — hoje';
+      else if (src === 'djen') label = 'DJEN — hoje';
+      const detail = (cache > 0 && events > 0)
+        ? ` <span style="opacity:.7;">(${cache} no cache · ${events} salvas)</span>`
+        : '';
+      el.innerHTML = `${label}: <strong>${total}</strong> publicação(ões)${detail}`;
     },
 
     /**
