@@ -775,34 +775,16 @@
     },
 
     /**
-     * Dedup visual: agrupa por (source_id + tribunal + numero_processo + data_disponibilizacao).
-     * Mantém o primeiro item, mas une lista de destinatários e quantidade
-     * (útil pra mostrar "Intimados: A; B; C" em vez de 3 cards separados).
-     * Se conteudo principal é diferente entre items do mesmo grupo, mantém ambos
-     * (caso raro: 2 decisões no mesmo processo no mesmo dia).
+     * Dedup visual: DESABILITADO por escolha do usuário (2026-05-25).
+     * Quando habilitado, agrupava por (source_id + tribunal + processo + data)
+     * consolidando intimados de uma mesma decisão. User preferiu manter 1 card
+     * por entrada do Diário pra bater 1:1 com a AASP nativa.
+     *
+     * Pra reabilitar: substituir o return por implementação de Map por chave
+     * (ver histórico git do commit 5cd9dc3).
      */
     _dedupItems(items) {
-      const byKey = new Map();
-      for (const it of (items || [])) {
-        const key = [
-          it.source_id || 'unknown',
-          it.tribunal || '',
-          it.numero_processo || it.numero_processo_mascara || '',
-          it.data_disponibilizacao || '',
-        ].join('|');
-        if (!byKey.has(key)) {
-          byKey.set(key, { ...it, _grouped_count: 1, _grouped_dests: [] });
-          continue;
-        }
-        // Agrupa: incrementa contador, anexa destinatários do duplicado
-        const acc = byKey.get(key);
-        acc._grouped_count++;
-        // Tenta extrair "Intimado(s)" do conteúdo do item duplicado pra anexar
-        const dupConteudo = it.conteudo || it.resumo || '';
-        const m = dupConteudo.match(/Intimado\(s\)[^\n]*(?:\n[^\n]+){0,8}/i);
-        if (m) acc._grouped_dests.push(m[0].slice(0, 200));
-      }
-      return Array.from(byKey.values());
+      return items || [];
     },
 
     /** Renderiza linha "Adv: Nome1 (UF-OAB1), ..." destacando OAB do user. */
