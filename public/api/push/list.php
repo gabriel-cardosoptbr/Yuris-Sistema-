@@ -132,11 +132,12 @@ try {
     // KPI: não-lidas pro user
     $naoLidas = PushEventUserStatus::countNaoLidas($userId, $accountId);
 
-    // Enriquecer cada item com lista de advogados extraída do payload_original
-    // (pra UI mostrar "Adv: X, Y, Z" e destacar a OAB do user logado).
+    // Enriquecer cada item com lista de advogados + partes extraídas do payload_original
+    // (pra UI mostrar "Adv: X, Y, Z" e "Parte(s): A.R.S. C.F.S.O...").
     // payload_original NÃO vai pro frontend — apagado depois.
     foreach ($combined as &$it) {
         $it['advogados'] = listPhpExtractAdvogados($it);
+        $it['partes']    = listPhpExtractPartes($it);
         unset($it['payload_original']);  // LGPD: não envia raw
     }
     unset($it);
@@ -199,4 +200,43 @@ function listPhpExtractAdvogados(array $it): array
     }
 
     return $advs;
+}
+
+/**
+ * Extrai lista de partes ["NOME 1", "NOME 2", ...] do payload_original.
+ * DJEN: array 'destinatarios' com objetos {nome, polo}.
+ * AASP: regex "Parte(s): X" no textoPublicacao até o próximo label.
+ */
+function listPhpExtractPartes(array $it): array
+{
+    $payloadRaw = $it['payload_original'] ?? null;
+    if (!$payloadRaw) return [];
+
+    $payload = is_string($payloadRaw) ? json_decode($payloadRaw, true) : $payloadRaw;
+    if (!is_array($payload)) return [];
+
+    $partes = [];
+
+    // DJEN: campo destinatarios (array de objetos com .nome)
+    if (!empty($payload['destinatarios']) && is_array($payload['destinatarios'])) {
+        foreach ($payload['destinatarios'] as $d) {
+            if (!is_array($d)) continue;
+            $nome = trim((string)($d['nome'] ?? ''));
+            if ($nome !== '') $partes[] = $nome;
+        }
+    }
+
+    // AASP: regex no textoPublicacao
+    if (empty($partes) && !empty($payload['textoPublicacao'])) {
+        $texto = (string)$payload['textoPublicacao'];
+        // Captura bloco "Parte(s): X Y Z" até próximo label conhecido
+        $stopLabels = '\s+(?:Advogado\(s\)|Agravante|Agravado|Recorrente|Recorrido|Publicação|Nota|Relator|Processo)';
+        if (preg_match('/Parte\(s\)\s*:\s*(.+?)(?=' . $stopLabels . '|$)/su', $texto, $m)) {
+            $bloco = trim(preg_replace('/[\r\n]+/', ' ', $m[1]));
+            $bloco = trim(preg_replace('/\s{2,}/', ' ', $bloco));
+            if ($bloco !== '') $partes[] = $bloco;
+        }
+    }
+
+    return $partes;
 }

@@ -787,6 +787,14 @@
       return items || [];
     },
 
+    /** Renderiza linha "Parte(s): Nome1; Nome2; ..." (réus/autores/executados). */
+    _renderPartesLine(partes) {
+      if (!Array.isArray(partes) || !partes.length) return '';
+      const esc = (s) => this._esc(s);
+      const lista = partes.map(p => esc(p)).join('; ');
+      return `<div class="int-pub-partes"><strong>Parte(s):</strong> ${lista}</div>`;
+    },
+
     /** Renderiza linha "Adv: Nome1 (UF-OAB1), ..." destacando OAB do user. */
     _renderAdvogadosLine(advs) {
       if (!Array.isArray(advs) || !advs.length) return '';
@@ -837,6 +845,7 @@
               ${it._from_search ? '<span style="color:#fbbf24;">resultado não persistido</span>' : ''}
             </div>
             <div class="int-pub-orgao">${esc(orgao)}</div>
+            ${this._renderPartesLine(it.partes)}
             ${this._renderAdvogadosLine(it.advogados)}
             <div class="int-pub-text" data-text-len="${texto.length}">${esc(this._formatLegal(texto))}${texto.length > 400 ? '<div class="int-pub-text-fade"></div>' : ''}</div>
             ${texto.length > 400

@@ -313,18 +313,23 @@ $kpiNaoLidas  = PushEventUserStatus::countNaoLidas($userId, $accountId);
       word-break: break-word;
     }
 
-    /* ── Linha "Adv:" no card de publicação ── */
-    .int-pub-advs {
+    /* ── Linhas "Parte(s):" e "Adv:" no card de publicação ── */
+    .int-pub-partes, .int-pub-advs {
       font-size: .74rem; color: #7A8898; margin-top: 4px; line-height: 1.45;
       padding: 4px 8px; background: rgba(15,33,60,.35); border-radius: 5px;
       border-left: 2px solid rgba(96,165,250,.3);
     }
-    .int-pub-advs strong { color: #9CA3AF; }
+    .int-pub-partes strong, .int-pub-advs strong { color: #9CA3AF; }
+    /* Borda esquerda diferenciada: partes (vermelho/laranja sutil) vs advogados (azul) */
+    .int-pub-partes { border-left-color: rgba(251,191,36,.4); }
+    html[data-theme="light"] .int-pub-partes,
     html[data-theme="light"] .int-pub-advs {
       background: rgba(37,99,235,.05) !important;
       border-left-color: rgba(37,99,235,.35) !important;
       color: #5A6B7E !important;
     }
+    html[data-theme="light"] .int-pub-partes { border-left-color: rgba(217,119,6,.5) !important; }
+    html[data-theme="light"] .int-pub-partes strong,
     html[data-theme="light"] .int-pub-advs strong { color: #1E2E45 !important; }
 
     /* ── Aba AASP ── */
