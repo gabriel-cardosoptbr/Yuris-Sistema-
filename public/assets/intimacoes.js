@@ -161,11 +161,23 @@
 
     /** Inicializa o calendário visual Flatpickr no input "Período". */
     initDatePicker() {
+      // Helper pra mostrar/atualizar instruções dinâmicas no topo do calendário
+      const updateHelper = (msg, tipo) => {
+        if (!this.fp || !this.fp.calendarContainer) return;
+        let helper = this.fp.calendarContainer.querySelector('.fp-range-helper');
+        if (!helper) {
+          helper = document.createElement('div');
+          helper.className = 'fp-range-helper';
+          this.fp.calendarContainer.insertBefore(helper, this.fp.calendarContainer.firstChild);
+        }
+        helper.textContent = msg;
+        helper.className = 'fp-range-helper fp-range-helper-' + (tipo || 'info');
+      };
+
       const tryInit = () => {
         if (!window.flatpickr) { return false; }
         const inp = document.getElementById('filterPeriodo');
         if (!inp) return false;
-        // Configura locale pt-BR se disponível
         if (window.flatpickr.l10ns && window.flatpickr.l10ns.pt) {
           window.flatpickr.localize(window.flatpickr.l10ns.pt);
         }
@@ -175,13 +187,29 @@
           maxDate: 'today',
           showMonths: 1,
           allowInput: false,
+          onOpen: () => {
+            const dates = this.fp.selectedDates || [];
+            if (dates.length === 0) {
+              updateHelper('1️⃣ Selecione a data inicial', 'info');
+            } else if (dates.length === 1) {
+              updateHelper('2️⃣ Agora selecione a data final', 'step');
+            } else {
+              updateHelper('✓ Período definido — clique fora pra confirmar', 'done');
+            }
+          },
           onChange: (dates) => {
             const di = document.getElementById('filterDataInicio');
             const df = document.getElementById('filterDataFim');
             if (dates.length >= 1) di.value = this._isoDate(dates[0]);
             if (dates.length >= 2) df.value = this._isoDate(dates[1]);
             if (dates.length === 0) { di.value = ''; df.value = ''; }
-            // Mostra banner LGPD se data antiga
+            // Atualiza helper conforme número de datas selecionadas
+            if (dates.length === 1) {
+              updateHelper('2️⃣ Agora selecione a data final', 'step');
+            } else if (dates.length === 2) {
+              updateHelper('✓ Período definido — clique fora pra confirmar', 'done');
+            }
+            // Banner LGPD se data antiga
             const hoje = new Date().toISOString().slice(0, 10);
             const isManual = (di.value && di.value < hoje) || (df.value && df.value < hoje);
             document.getElementById('bannerBuscaManual')?.classList.toggle('show', isManual);
@@ -190,7 +218,6 @@
         return true;
       };
       if (!tryInit()) {
-        // Flatpickr carrega via <script defer> — espera até estar pronto
         const t = setInterval(() => { if (tryInit()) clearInterval(t); }, 100);
         setTimeout(() => clearInterval(t), 5000);
       }

@@ -500,6 +500,20 @@ $kpiNaoLidas  = PushEventUserStatus::countNaoLidas($userId, $accountId);
     #aaspTestData::-webkit-calendar-picker-indicator { filter: invert(0.85); }
     html[data-theme="light"] #aaspTestData::-webkit-calendar-picker-indicator { filter: invert(0.25); }
 
+    /* ── Helper do calendário Flatpickr range (passo-a-passo) ── */
+    .fp-range-helper {
+      padding: 10px 12px; text-align: center;
+      font-size: .82rem; font-weight: 600;
+      border-bottom: 1px solid rgba(96,165,250,.2);
+      letter-spacing: .01em;
+    }
+    .fp-range-helper-info { background: rgba(96,165,250,.12); color: #93c5fd; }
+    .fp-range-helper-step { background: rgba(251,191,36,.14); color: #FBBF24; }
+    .fp-range-helper-done { background: rgba(52,211,153,.14); color: #34D399; }
+    html[data-theme="light"] .fp-range-helper-info { background: rgba(37,99,235,.10) !important; color: #1E4A8A !important; }
+    html[data-theme="light"] .fp-range-helper-step { background: rgba(217,119,6,.12) !important; color: #B45309 !important; }
+    html[data-theme="light"] .fp-range-helper-done { background: rgba(5,150,105,.12) !important; color: #047857 !important; }
+
     /* ── Flatpickr customization (calendário range) ── */
     .flatpickr-calendar {
       background: linear-gradient(165deg, #0E2341 0%, #0A172B 100%) !important;
