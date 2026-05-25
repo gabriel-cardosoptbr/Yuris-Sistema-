@@ -189,72 +189,127 @@ class WebhookDispatcher
      *
      * @param int|null $accountId Tenant originador do evento. Null = global (legado).
      */
-    public static function fire(?int $accountId, string $eventKey, array $payload): void
+    public static function fire(?int $accountId, string $eventKey, array $v1Payload): void
     {
         try {
-            $pdo = Database::getConnection();
-            if ($accountId === null) {
-                error_log("[WebhookDispatcher] WARNING: fire(null, '{$eventKey}') — entrega global. Identifique o accountId apropriado.");
-                $stmt = $pdo->query("SELECT * FROM webhook_endpoints WHERE ativo = 1 AND deleted_at IS NULL");
-            } else {
-                $stmt = $pdo->prepare(
-                    "SELECT * FROM webhook_endpoints WHERE ativo = 1 AND deleted_at IS NULL AND account_id = ?"
-                );
-                $stmt->execute([$accountId]);
-            }
-            $hooks = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $pdo   = Database::getConnection();
+            $hooks = self::findSubscribers($pdo, $accountId, $eventKey);
+            if (empty($hooks)) return;
+
+            require_once __DIR__ . '/WebhookPayloadBuilder.php';
+            // event_id estavel: todas as entregas deste mesmo evento compartilham,
+            // permitindo correlacao no destino (idempotencia por evento).
+            $eventId = WebhookPayloadBuilder::generateEventId();
+            $async   = self::isAsyncEnabled();
+
             foreach ($hooks as $hook) {
-                $eventos = json_decode($hook['eventos'] ?? '[]', true) ?: [];
-                if (!in_array('*', $eventos) && !in_array($eventKey, $eventos)) continue;
-                self::deliver($pdo, $hook, $eventKey, $payload);
+                $deliveryId = self::enqueueDelivery($pdo, $hook, $eventKey, $eventId, $v1Payload);
+                if ($deliveryId && !$async) {
+                    self::tryDeliver($pdo, $hook, $eventKey, $v1Payload, $deliveryId, 1, $eventId);
+                }
             }
         } catch (\Throwable $e) {
             error_log('[WebhookDispatcher] fire error: ' . $e->getMessage());
         }
     }
 
-    // ── HTTP delivery ─────────────────────────────────────────────────────────
-    private static function deliver(\PDO $pdo, array $hook, string $eventKey, array $v1Payload): void
+    /** Wrapper usado pelo worker (bin/webhook_worker.php) ao consumir 1 row de webhook_deliveries. */
+    public static function processDelivery(\PDO $pdo, array $delivery): void
     {
-        // Etapa 2: monta envelope v2 (event_id, tenant, organization, actor, data, metadata)
-        // e aplica mascaramento conforme endpoint.payload_mode (minimal|masked|full).
+        try {
+            $hookStmt = $pdo->prepare("SELECT * FROM webhook_endpoints WHERE id = ? AND deleted_at IS NULL LIMIT 1");
+            $hookStmt->execute([(int)$delivery['webhook_endpoint_id']]);
+            $hook = $hookStmt->fetch(\PDO::FETCH_ASSOC);
+            if (!$hook) {
+                $pdo->prepare("UPDATE webhook_deliveries SET status='canceled', erro=?, updated_at=NOW() WHERE id=?")
+                    ->execute(['Endpoint not found or deleted', (int)$delivery['id']]);
+                return;
+            }
+            $payload    = json_decode((string)$delivery['payload'], true) ?: [];
+            $tentativa  = max(1, (int)($delivery['tentativa'] ?? 1));
+            self::tryDeliver(
+                $pdo, $hook, (string)$delivery['event_code'], $payload,
+                (int)$delivery['id'], $tentativa, (string)($delivery['event_id'] ?? '')
+            );
+        } catch (\Throwable $e) {
+            error_log('[WebhookDispatcher] processDelivery error: ' . $e->getMessage());
+        }
+    }
+
+    // ── Helpers internos ──────────────────────────────────────────────────────
+
+    private static function findSubscribers(\PDO $pdo, ?int $accountId, string $eventKey): array
+    {
+        if ($accountId === null) {
+            error_log("[WebhookDispatcher] WARNING: fire(null, '{$eventKey}') — entrega global. Identifique o accountId apropriado.");
+            $stmt = $pdo->query("SELECT * FROM webhook_endpoints WHERE ativo = 1 AND deleted_at IS NULL");
+        } else {
+            $stmt = $pdo->prepare("SELECT * FROM webhook_endpoints WHERE ativo = 1 AND deleted_at IS NULL AND account_id = ?");
+            $stmt->execute([$accountId]);
+        }
+        $hooks = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        return array_values(array_filter($hooks, function ($h) use ($eventKey) {
+            $eventos = json_decode($h['eventos'] ?? '[]', true) ?: [];
+            return in_array('*', $eventos, true) || in_array($eventKey, $eventos, true);
+        }));
+    }
+
+    private static function enqueueDelivery(\PDO $pdo, array $hook, string $eventKey, string $eventId, array $v1Payload): ?int
+    {
+        try {
+            $stmt = $pdo->prepare(
+                "INSERT INTO webhook_deliveries
+                   (webhook_endpoint_id, account_id, event_code, event_id, payload, request_url, status, tentativa, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, 'pending', 1, NOW(), NOW())"
+            );
+            $stmt->execute([
+                (int)$hook['id'],
+                (int)$hook['account_id'],
+                $eventKey,
+                $eventId,
+                json_encode($v1Payload, JSON_UNESCAPED_UNICODE),
+                (string)$hook['url'],
+            ]);
+            return (int)$pdo->lastInsertId();
+        } catch (\Throwable $e) {
+            error_log('[WebhookDispatcher] enqueueDelivery error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    private static function tryDeliver(\PDO $pdo, array $hook, string $eventKey, array $v1Payload, int $deliveryId, int $tentativa, string $eventIdOverride): void
+    {
         require_once __DIR__ . '/WebhookPayloadBuilder.php';
+        require_once __DIR__ . '/WebhookRetryPolicy.php';
         require_once __DIR__ . '/../Helpers/PayloadMasker.php';
         require_once __DIR__ . '/../Helpers/WebhookUrlValidator.php';
-        $envelope = WebhookPayloadBuilder::v2($eventKey, $v1Payload, $hook);
 
-        // Etapa 4: SSRF guard — bloqueia 127.0.0.1, RFC1918, link-local, metadata cloud
+        $envelope = WebhookPayloadBuilder::v2($eventKey, $v1Payload, $hook, null, $eventIdOverride ?: null);
+
+        // SSRF — bloqueia destinos perigosos.
         [$urlOk, $urlErr] = \App\Helpers\WebhookUrlValidator::isPublicUrl((string)$hook['url']);
         if (!$urlOk) {
-            try {
-                $pdo->prepare("INSERT INTO webhook_logs (webhook_id, event_key, payload, response_status, response_body, duration_ms, success, created_at) VALUES (?,?,?,?,?,?,0,NOW())")
-                    ->execute([$hook['id'], $eventKey, json_encode($envelope), 0, 'SSRF-blocked: ' . $urlErr, 0]);
-            } catch (\Throwable $_) {}
+            self::finalizeDelivery($pdo, $deliveryId, 'canceled', null, 0, null, 'SSRF-blocked: ' . $urlErr, null, null);
             error_log("[WebhookDispatcher] SSRF block hook={$hook['id']} url={$hook['url']} reason={$urlErr}");
             return;
         }
 
-        $timeout = (int)($hook['timeout_segundos'] ?? 10);
+        $timeout   = (int)($hook['timeout_segundos'] ?? 10);
         if ($timeout < 1 || $timeout > 60) $timeout = 10;
-
         $body      = json_encode($envelope, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         $timestamp = time();
-        $deliveryId = $envelope['event_id'] ?? ('dlv_' . bin2hex(random_bytes(8)));
-
-        // Etapa 3: assinatura com timestamp (anti-replay) + headers padrao
-        $sigBase = $timestamp . '.' . $body;
-        $sig     = 'sha256=' . hash_hmac('sha256', $sigBase, (string)($hook['secret'] ?? ''));
+        $deliveryHeader = (string)($envelope['event_id'] ?? '');
+        $sig       = 'sha256=' . hash_hmac('sha256', $timestamp . '.' . $body, (string)($hook['secret'] ?? ''));
 
         $headerLines = [
             'Content-Type: application/json',
             'User-Agent: Yuris-Webhook/2.0',
             "X-Yuris-Event: {$eventKey}",
-            "X-Yuris-Delivery: {$deliveryId}",
+            "X-Yuris-Delivery: {$deliveryHeader}",
             "X-Yuris-Timestamp: {$timestamp}",
             "X-Yuris-Tenant: " . (int)($hook['account_id'] ?? 0),
             "X-Yuris-Signature: {$sig}",
         ];
-        // headers_customizados (JSON {k:v}) anexados, sem sobrescrever os Yuris-*
         if (!empty($hook['headers_customizados'])) {
             $custom = json_decode((string)$hook['headers_customizados'], true);
             if (is_array($custom)) {
@@ -278,20 +333,68 @@ class WebhookDispatcher
         $resp   = @file_get_contents($hook['url'], false, $ctx);
         $ms     = (int)((microtime(true) - $start) * 1000);
         $status = null;
-
         if (!empty($http_response_header[0])) {
             preg_match('/HTTP\/[\d.]+ (\d+)/', $http_response_header[0], $m);
             $status = isset($m[1]) ? (int)$m[1] : null;
         }
+        $success = $status !== null && $status >= 200 && $status < 300;
 
-        $success = ($status >= 200 && $status < 300) ? 1 : 0;
-
-        try {
-            // Logamos o envelope v2 (o que de fato foi enviado).
-            $pdo->prepare("INSERT INTO webhook_logs (webhook_id, event_key, payload, response_status, response_body, duration_ms, success, created_at) VALUES (?,?,?,?,?,?,?,NOW())")
-                ->execute([$hook['id'], $eventKey, $body, $status, substr($resp ?? '', 0, 2000), $ms, $success]);
-        } catch (\Throwable $e) {
-            error_log('[WebhookDispatcher] log error: ' . $e->getMessage());
+        if ($success) {
+            self::finalizeDelivery($pdo, $deliveryId, 'success', $status, $ms, $body, null, $resp, $headerLines);
+        } else {
+            $erro          = 'HTTP ' . ($status ?? 'no_response');
+            $retryEnabled  = (int)($hook['retry_enabled'] ?? 1) === 1;
+            $maxRetries    = max(1, (int)($hook['max_retries'] ?? 3));
+            if ($retryEnabled && \App\Services\WebhookRetryPolicy::canRetry($tentativa, $maxRetries)) {
+                $nextAt = \App\Services\WebhookRetryPolicy::nextAttemptAt($tentativa);
+                $pdo->prepare(
+                    "UPDATE webhook_deliveries
+                       SET status='retrying', tentativa=?, scheduled_retry_at=?,
+                           response_status=?, response_body=?, response_time_ms=?,
+                           erro=?, request_headers=?, payload=?, updated_at=NOW()
+                     WHERE id=?"
+                )->execute([
+                    $tentativa, $nextAt, $status, substr((string)$resp, 0, 4000), $ms,
+                    $erro, json_encode($headerLines, JSON_UNESCAPED_SLASHES), $body, $deliveryId
+                ]);
+            } else {
+                self::finalizeDelivery($pdo, $deliveryId, 'failed', $status, $ms, $body, $erro, $resp, $headerLines);
+            }
         }
+
+        // Dual-write em webhook_logs (compat com painel atual; removido na etapa 8).
+        try {
+            $pdo->prepare("INSERT INTO webhook_logs (webhook_id, event_key, payload, response_status, response_body, duration_ms, success, created_at) VALUES (?,?,?,?,?,?,?,NOW())")
+                ->execute([$hook['id'], $eventKey, $body, $status, substr($resp ?? '', 0, 2000), $ms, $success ? 1 : 0]);
+        } catch (\Throwable $e) {
+            error_log('[WebhookDispatcher] webhook_logs dual-write error: ' . $e->getMessage());
+        }
+    }
+
+    private static function finalizeDelivery(\PDO $pdo, int $deliveryId, string $status, ?int $httpStatus, int $ms, ?string $body, ?string $erro, ?string $resp, ?array $headerLines): void
+    {
+        try {
+            $pdo->prepare(
+                "UPDATE webhook_deliveries
+                   SET status=?, response_status=?, response_body=?, response_time_ms=?, erro=?,
+                       request_headers=COALESCE(?, request_headers),
+                       payload=COALESCE(?, payload),
+                       delivered_at=NOW(), updated_at=NOW()
+                 WHERE id=?"
+            )->execute([
+                $status, $httpStatus, substr((string)$resp, 0, 4000), $ms, $erro,
+                $headerLines !== null ? json_encode($headerLines, JSON_UNESCAPED_SLASHES) : null,
+                $body, $deliveryId
+            ]);
+        } catch (\Throwable $e) {
+            error_log('[WebhookDispatcher] finalizeDelivery error: ' . $e->getMessage());
+        }
+    }
+
+    /** Toggle global por .env: WEBHOOK_DISPATCH_MODE=async | sync (default sync). */
+    private static function isAsyncEnabled(): bool
+    {
+        $val = $_ENV['WEBHOOK_DISPATCH_MODE'] ?? getenv('WEBHOOK_DISPATCH_MODE');
+        return strtolower((string)$val) === 'async';
     }
 }

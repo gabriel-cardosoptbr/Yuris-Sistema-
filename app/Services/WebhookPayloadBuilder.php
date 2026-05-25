@@ -26,7 +26,7 @@ class WebhookPayloadBuilder
 {
     private const VERSION = '2.0';
 
-    public static function v2(string $eventCode, array $v1Opts, array $endpoint, ?array $actorOverride = null): array
+    public static function v2(string $eventCode, array $v1Opts, array $endpoint, ?array $actorOverride = null, ?string $eventIdOverride = null): array
     {
         $mode      = $endpoint['payload_mode'] ?? 'masked';
         $tenantId  = (int)($endpoint['account_id'] ?? 0);
@@ -47,7 +47,7 @@ class WebhookPayloadBuilder
         $parts = explode('.', $eventCode);
         return [
             'event'       => $eventCode,
-            'event_id'    => self::generateEventId(),
+            'event_id'    => $eventIdOverride ?? self::generateEventId(),
             'occurred_at' => date('c'),
             'tenant'      => [
                 'id'   => $tenantId,
