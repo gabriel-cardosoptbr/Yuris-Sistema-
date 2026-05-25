@@ -647,6 +647,16 @@ try {
           Dados: /api/processes.php (CRUD completo) + /api/juridico_metrics.php (nomes de advogados).
           JS responsável: processos.js
         -->
+        <!-- Header — padrão .page-header (yuris-theme.css) -->
+        <div class="proc-panel page-header">
+          <div class="page-header-inner">
+            <div class="page-header-text">
+              <h2 class="page-header-title">Gestão Processual</h2>
+              <p class="page-header-subtitle">Controle operacional — prazos, tarefas, histórico e movimentações diárias</p>
+            </div>
+          </div>
+        </div>
+
         <!-- Filtros e ações — busca por texto, status, responsável, data e cadastro rápido -->
         <div class="proc-panel">
           <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">

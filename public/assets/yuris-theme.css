@@ -1214,9 +1214,10 @@ html[data-theme="light"] .dre-section-title {
 }
 
 /* Top-bar com filtros em dashboard/planejamento (a barra branca do topo) */
+/* .proc-topbar removido: era só agrupador "Ano + Cadastrar Processo" dentro da
+   barra de filtros — fundo próprio criava um retângulo duplicado no UI. */
 html[data-theme="light"] .filter-bar,
-html[data-theme="light"] .top-filters,
-html[data-theme="light"] .proc-topbar {
+html[data-theme="light"] .top-filters {
   background: linear-gradient(165deg, #FFFFFF 0%, #F4F7FB 100%) !important;
   border: 1px solid rgba(15,31,54,0.10) !important;
 }
