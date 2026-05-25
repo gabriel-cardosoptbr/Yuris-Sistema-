@@ -220,18 +220,56 @@ class WebhookDispatcher
         // e aplica mascaramento conforme endpoint.payload_mode (minimal|masked|full).
         require_once __DIR__ . '/WebhookPayloadBuilder.php';
         require_once __DIR__ . '/../Helpers/PayloadMasker.php';
+        require_once __DIR__ . '/../Helpers/WebhookUrlValidator.php';
         $envelope = WebhookPayloadBuilder::v2($eventKey, $v1Payload, $hook);
+
+        // Etapa 4: SSRF guard — bloqueia 127.0.0.1, RFC1918, link-local, metadata cloud
+        [$urlOk, $urlErr] = \App\Helpers\WebhookUrlValidator::isPublicUrl((string)$hook['url']);
+        if (!$urlOk) {
+            try {
+                $pdo->prepare("INSERT INTO webhook_logs (webhook_id, event_key, payload, response_status, response_body, duration_ms, success, created_at) VALUES (?,?,?,?,?,?,0,NOW())")
+                    ->execute([$hook['id'], $eventKey, json_encode($envelope), 0, 'SSRF-blocked: ' . $urlErr, 0]);
+            } catch (\Throwable $_) {}
+            error_log("[WebhookDispatcher] SSRF block hook={$hook['id']} url={$hook['url']} reason={$urlErr}");
+            return;
+        }
 
         $timeout = (int)($hook['timeout_segundos'] ?? 10);
         if ($timeout < 1 || $timeout > 60) $timeout = 10;
 
-        $body = json_encode($envelope, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        $sig  = 'sha256=' . hash_hmac('sha256', $body, $hook['secret'] ?? '');
+        $body      = json_encode($envelope, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $timestamp = time();
+        $deliveryId = $envelope['event_id'] ?? ('dlv_' . bin2hex(random_bytes(8)));
+
+        // Etapa 3: assinatura com timestamp (anti-replay) + headers padrao
+        $sigBase = $timestamp . '.' . $body;
+        $sig     = 'sha256=' . hash_hmac('sha256', $sigBase, (string)($hook['secret'] ?? ''));
+
+        $headerLines = [
+            'Content-Type: application/json',
+            'User-Agent: Yuris-Webhook/2.0',
+            "X-Yuris-Event: {$eventKey}",
+            "X-Yuris-Delivery: {$deliveryId}",
+            "X-Yuris-Timestamp: {$timestamp}",
+            "X-Yuris-Tenant: " . (int)($hook['account_id'] ?? 0),
+            "X-Yuris-Signature: {$sig}",
+        ];
+        // headers_customizados (JSON {k:v}) anexados, sem sobrescrever os Yuris-*
+        if (!empty($hook['headers_customizados'])) {
+            $custom = json_decode((string)$hook['headers_customizados'], true);
+            if (is_array($custom)) {
+                foreach ($custom as $k => $v) {
+                    if (!is_string($k) || !is_scalar($v)) continue;
+                    if (stripos($k, 'X-Yuris-') === 0) continue;
+                    $headerLines[] = trim($k) . ': ' . trim((string)$v);
+                }
+            }
+        }
 
         $start = microtime(true);
         $ctx   = stream_context_create(['http' => [
             'method'        => 'POST',
-            'header'        => "Content-Type: application/json\r\nX-Yuris-Event: {$eventKey}\r\nX-Yuris-Signature: {$sig}\r\nUser-Agent: Yuris-Webhook/2.0",
+            'header'        => implode("\r\n", $headerLines),
             'content'       => $body,
             'timeout'       => $timeout,
             'ignore_errors' => true,

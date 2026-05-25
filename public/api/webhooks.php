@@ -201,6 +201,10 @@ if ($method === 'POST') {
 
     if (!$nome || !$url) { http_response_code(400); echo json_encode(['error' => 'Nome e URL são obrigatórios']); exit; }
     if (!filter_var($url, FILTER_VALIDATE_URL)) { http_response_code(400); echo json_encode(['error' => 'URL inválida']); exit; }
+    // Etapa 4: SSRF guard
+    require_once __DIR__ . '/../../app/Helpers/WebhookUrlValidator.php';
+    [$urlOk, $urlErr] = \App\Helpers\WebhookUrlValidator::isPublicUrl($url);
+    if (!$urlOk) { http_response_code(400); echo json_encode(['error' => 'URL bloqueada: ' . $urlErr]); exit; }
 
     $stmt = $pdo->prepare("INSERT INTO webhook_endpoints (account_id, nome, url, secret, ativo, eventos, created_at, updated_at) VALUES (?,?,?,?,?,?,NOW(),NOW())");
     $ok   = $stmt->execute([$accountId, $nome, $url, $secret ?: null, $ativo, json_encode(array_values($eventos))]);
@@ -231,7 +235,16 @@ if ($method === 'PUT' || $method === 'PATCH') {
     $fields = []; $params = [];
     $changed = [];
     if (isset($input['nome']))    { $fields[] = 'nome = ?';    $params[] = trim($input['nome']);            $changed['nome']  = trim($input['nome']); }
-    if (isset($input['url']))     { $fields[] = 'url = ?';     $params[] = trim($input['url']);             $changed['url']   = trim($input['url']); }
+    if (isset($input['url'])) {
+        $newUrl = trim($input['url']);
+        // Etapa 4: SSRF guard tambem na edicao
+        require_once __DIR__ . '/../../app/Helpers/WebhookUrlValidator.php';
+        [$urlOk, $urlErr] = \App\Helpers\WebhookUrlValidator::isPublicUrl($newUrl);
+        if (!$urlOk) { http_response_code(400); echo json_encode(['error' => 'URL bloqueada: ' . $urlErr]); exit; }
+        $fields[] = 'url = ?';
+        $params[] = $newUrl;
+        $changed['url'] = $newUrl;
+    }
     if (isset($input['secret']))  { $fields[] = 'secret = ?';  $params[] = trim($input['secret']) ?: null;  $changed['secret'] = '***'; /* nunca logar segredo em claro */ }
     if (isset($input['ativo']))   { $fields[] = 'ativo = ?';   $params[] = (int)$input['ativo'];            $changed['ativo'] = (int)$input['ativo']; }
     if (isset($input['eventos'])) {
