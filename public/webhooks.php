@@ -443,6 +443,29 @@ $catalog = WebhookDispatcher::catalog();
       border-radius: 3px;
     }
 
+    /* Bloco roxo "Casos de uso para escritório de advocacia" */
+    html[data-theme="light"] #modalDocs [data-section="exemplos"] div[style*="background:rgba(124,58,237,.06)"] {
+      background: #F5F3FF !important;
+      border-color: rgba(124,58,237,0.25) !important;
+    }
+    html[data-theme="light"] #modalDocs [data-section="exemplos"] div[style*="background:rgba(124,58,237,.04)"] {
+      background: #FFFFFF !important;
+      border-color: rgba(124,58,237,0.18) !important;
+    }
+    html[data-theme="light"] #modalDocs [data-section="exemplos"] div[style*="color:#a78bfa"] {
+      color: #6D28D9 !important;
+    }
+    html[data-theme="light"] #modalDocs [data-section="exemplos"] svg[stroke="#a78bfa"] {
+      stroke: #6D28D9 !important;
+    }
+    html[data-theme="light"] #modalDocs [data-section="exemplos"] span[style*="color:#c4b5fd"] {
+      color: #5B21B6 !important;
+    }
+    html[data-theme="light"] #modalDocs [data-section="exemplos"] code[style*="color:#ddd6fe"] {
+      color: #5B21B6 !important;
+      background: rgba(124,58,237,0.10) !important;
+    }
+
     @media (max-width:900px) {
       .kpi-grid { grid-template-columns:repeat(2,1fr); }
       .field-row { grid-template-columns:1fr; }
@@ -655,14 +678,14 @@ $catalog = WebhookDispatcher::catalog();
         <div data-section="overview" style="border:1px solid rgba(96,165,250,.15);border-radius:10px;overflow:hidden">
           <div style="padding:10px 16px;background:rgba(37,99,235,.14);font-size:.75rem;font-weight:700;color:#93c5fd;text-transform:uppercase;letter-spacing:.06em">Visão Geral</div>
           <div style="padding:14px 16px">
-            <p style="margin:0 0 10px">Os <strong style="color:#dbeafe">Webhooks do Yuris</strong> permitem que sistemas externos recebam notificações em tempo real sempre que algo acontecer no sistema - prazo criado, um processo atualizado, um cliente convertido, etc.</p>
-            <p style="margin:0 0 10px">Cada webhook é um <strong>endpoint HTTP(S) seu</strong> (Make, n8n, Zapier, seu próprio servidor) que o Yuris chama via <code style="background:rgba(0,0,0,.3);padding:1px 5px;border-radius:4px;color:#a5b4fc">POST</code> com um payload JSON padronizado.</p>
+            <p style="margin:0 0 10px">Os <strong style="color:#dbeafe">Webhooks do Yuris</strong> notificam sistemas externos sempre que algo acontece no escritório — intimação chega, prazo é criado, cliente assina contrato, etc.</p>
+            <p style="margin:0 0 10px">Cada webhook é um <strong>endpoint HTTP(S) seu</strong> (Make, n8n, Zapier ou servidor próprio) que o Yuris chama via <code style="background:rgba(0,0,0,.3);padding:1px 5px;border-radius:4px;color:#a5b4fc">POST</code> com um envelope JSON v2 (<code style="background:rgba(0,0,0,.3);padding:1px 5px;border-radius:4px;color:#a5b4fc">event</code>, <code style="background:rgba(0,0,0,.3);padding:1px 5px;border-radius:4px;color:#a5b4fc">tenant</code>, <code style="background:rgba(0,0,0,.3);padding:1px 5px;border-radius:4px;color:#a5b4fc">actor</code>, <code style="background:rgba(0,0,0,.3);padding:1px 5px;border-radius:4px;color:#a5b4fc">data</code>, <code style="background:rgba(0,0,0,.3);padding:1px 5px;border-radius:4px;color:#a5b4fc">metadata</code>).</p>
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px">
               <?php
               $whFeatures = [
-                ['<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>','Tempo real','Disparo imediato no momento do evento'],
-                ['<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>','Seguro','Assinatura HMAC-SHA256 em cada requisição'],
-                ['<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>','Padronizado','Mesmo formato JSON para todos os eventos'],
+                ['<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>','Tempo real','Disparo automático no momento do evento, com retry exponencial em falhas'],
+                ['<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>','Seguro','HMAC-SHA256 com timestamp (anti-replay) + bloqueio de URLs locais/privadas'],
+                ['<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>','LGPD-first','Mascaramento automático de CPF, CNPJ, e-mail e telefone (configurável por endpoint)'],
               ];
               foreach($whFeatures as [$ic,$t,$d]): ?>
               <div style="background:rgba(30,58,95,.2);border:1px solid rgba(96,165,250,.12);border-radius:8px;padding:12px">
@@ -677,27 +700,50 @@ $catalog = WebhookDispatcher::catalog();
 
         <!-- Estrutura do Payload -->
         <div data-section="payload" style="border:1px solid rgba(96,165,250,.15);border-radius:10px;overflow:hidden;display:none">
-          <div style="padding:10px 16px;background:rgba(37,99,235,.14);font-size:.75rem;font-weight:700;color:#93c5fd;text-transform:uppercase;letter-spacing:.06em">Estrutura do Payload</div>
+          <div style="padding:10px 16px;background:rgba(37,99,235,.14);font-size:.75rem;font-weight:700;color:#93c5fd;text-transform:uppercase;letter-spacing:.06em">Estrutura do Payload (envelope v2)</div>
           <div style="padding:14px 16px">
-            <p style="margin:0 0 10px">Todo evento enviado pelo Yuris segue <strong>exatamente</strong> este formato JSON:</p>
+            <p style="margin:0 0 10px">Todo evento segue este formato JSON. Campos sensíveis em <code style="background:rgba(0,0,0,.3);padding:1px 5px;border-radius:4px;color:#a5b4fc">data.attributes</code> são <strong>mascarados</strong> conforme o modo escolhido no endpoint (<code style="background:rgba(0,0,0,.3);padding:1px 5px;border-radius:4px;color:#a5b4fc">minimal</code> | <code style="background:rgba(0,0,0,.3);padding:1px 5px;border-radius:4px;color:#a5b4fc">masked</code> | <code style="background:rgba(0,0,0,.3);padding:1px 5px;border-radius:4px;color:#a5b4fc">full</code>):</p>
             <pre class="payload-preview">{
-  "event":         "processo.prazo_created",   <span style="color:#6b7280">// chave única do evento</span>
-  "module":        "processo",                  <span style="color:#6b7280">// módulo de origem</span>
-  "entity":        "prazo",                     <span style="color:#6b7280">// tipo da entidade afetada</span>
-  "entity_id":     123,                         <span style="color:#6b7280">// ID da entidade</span>
-  "processo_id":   55,                          <span style="color:#6b7280">// ID do processo (se aplicável)</span>
-  "cliente_id":    18,                          <span style="color:#6b7280">// ID do cliente (se aplicável)</span>
-  "card_id":       null,                        <span style="color:#6b7280">// ID do card (se aplicável)</span>
-  "action":        "created",                   <span style="color:#6b7280">// ação: created | updated | deleted | etc.</span>
-  "user_id":       4,                           <span style="color:#6b7280">// usuário que disparou a ação</span>
-  "timestamp":     "2026-05-03 18:30:00",       <span style="color:#6b7280">// data/hora UTC</span>
-  "data":          {                            <span style="color:#6b7280">// dados atuais da entidade</span>
-    "titulo":      "Prazo para contestação",
-    "data_prazo":  "2026-05-10",
-    "status":      "pendente"
+  "event":       "processo.prazo_created",         <span style="color:#6b7280">// chave única do evento</span>
+  "event_id":    "evt_695b2f6294a367cb79bbdb8ae",  <span style="color:#6b7280">// id único — use pra deduplicar no destino</span>
+  "occurred_at": "2026-05-25T14:30:00-03:00",      <span style="color:#6b7280">// ISO 8601 com timezone</span>
+
+  "tenant": {                                      <span style="color:#6b7280">// escritório dono do evento</span>
+    "id":   1,
+    "name": "Escritório Silvana Advocacia"
   },
-  "previous_data": null                         <span style="color:#6b7280">// dados anteriores (em updates)</span>
+  "organization": {                                <span style="color:#6b7280">// matriz ou filial</span>
+    "id":        1,
+    "type":      "matriz",                         <span style="color:#6b7280">// matriz | filial</span>
+    "name":      "Matriz SP",
+    "matriz_id": null                              <span style="color:#6b7280">// preenchido se type=filial</span>
+  },
+  "actor": {                                       <span style="color:#6b7280">// usuário que disparou (null se sistema)</span>
+    "id":    5,
+    "role":  "owner",                              <span style="color:#6b7280">// owner | admin | manager | user | viewer</span>
+    "email": "j***@escritorio.adv.br"              <span style="color:#6b7280">// mascarado conforme payload_mode</span>
+  },
+
+  "data": {
+    "id":         123,                             <span style="color:#6b7280">// ID da entidade</span>
+    "type":       "prazo",                         <span style="color:#6b7280">// tipo (prazo | tarefa | processo | etc.)</span>
+    "attributes": {                                <span style="color:#6b7280">// payload mascarado conforme modo</span>
+      "titulo":         "Prazo para contestação",
+      "data_prazo":     "2026-05-10",
+      "status":         "pendente",
+      "responsavel_id": 5,
+      "cpf":            "123.***.***-01"           <span style="color:#6b7280">// mascarado em modo 'masked'</span>
+    }
+  },
+
+  "metadata": {
+    "source":       "yuris",
+    "environment":  "production",
+    "version":      "2.0",
+    "payload_mode": "masked"                       <span style="color:#6b7280">// minimal | masked | full</span>
+  }
 }</pre>
+            <p style="margin:10px 0 0;font-size:.77rem;color:var(--muted);display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> <strong>Modo <code>minimal</code></strong> deixa <code>data.attributes</code> só com <code>id</code>, <code>type</code>, <code>status</code>. <strong>Modo <code>full</code></strong> envia tudo sem mascaramento (exige decisão consciente do controlador LGPD).</p>
           </div>
         </div>
 
@@ -713,17 +759,25 @@ $catalog = WebhookDispatcher::catalog();
             <tbody>
             <?php foreach([
               ['event','string','Chave única do evento. Ex: processo.prazo_created'],
-              ['module','string','Módulo de origem: processo, card, cliente, financeiro, usuario, sistema'],
-              ['entity','string|null','Tipo da entidade afetada: prazo, tarefa, documento, audiencia, etc.'],
-              ['entity_id','int|null','ID primário da entidade afetada'],
-              ['processo_id','int|null','ID do processo relacionado (null se não aplicável)'],
-              ['cliente_id','int|null','ID do cliente relacionado (null se não aplicável)'],
-              ['card_id','int|null','ID do card de prospecção (null se não aplicável)'],
-              ['action','string','Ação executada: created, updated, deleted, changed, completed, paid'],
-              ['user_id','int|null','ID do usuário do Yuris que executou a ação'],
-              ['timestamp','string','Data/hora UTC no formato Y-m-d H:i:s'],
-              ['data','object|null','Dados atuais completos da entidade no momento do evento'],
-              ['previous_data','object|null','Dados anteriores (preenchido apenas em eventos de update)'],
+              ['event_id','string','Identificador único do evento (prefixo evt_). Use pra deduplicar no destino — retries e reenvios compartilham o mesmo event_id.'],
+              ['occurred_at','string (ISO 8601)','Data/hora do evento com timezone. Ex: 2026-05-25T14:30:00-03:00'],
+              ['tenant.id','int','ID do escritório (conta) dono do evento.'],
+              ['tenant.name','string','Nome do escritório.'],
+              ['organization.id','int','Mesmo id do tenant (compat futura).'],
+              ['organization.type','enum','"matriz" ou "filial".'],
+              ['organization.name','string','Nome da organização.'],
+              ['organization.matriz_id','int|null','ID da matriz (preenchido apenas se type=filial).'],
+              ['actor','object|null','Usuário que disparou a ação. Null para eventos de sistema (cron, webhook recebido, etc.).'],
+              ['actor.id','int','ID do usuário.'],
+              ['actor.role','string','Papel: owner | admin | manager | user | viewer.'],
+              ['actor.email','string','E-mail (mascarado em modo masked/minimal; bruto em modo full).'],
+              ['data.id','int|null','ID da entidade principal afetada (ex: id do prazo em processo.prazo_created).'],
+              ['data.type','string','Tipo da entidade (prazo, tarefa, processo, card, cliente, lgpd_request, etc.).'],
+              ['data.attributes','object','Atributos da entidade. Conteúdo varia por evento — ver aba Eventos pra detalhes por código.'],
+              ['metadata.source','string','Sempre "yuris".'],
+              ['metadata.environment','string','"production" | "staging" | "development".'],
+              ['metadata.version','string','Versão do envelope. Atual: "2.0".'],
+              ['metadata.payload_mode','enum','Modo configurado no endpoint: minimal | masked | full.'],
             ] as [$campo,$tipo,$desc]): ?>
             <tr style="border-bottom:1px solid rgba(96,165,250,.06)">
               <td style="padding:8px 16px"><code style="color:#a5b4fc;font-size:.78rem"><?=$campo?></code></td>
@@ -737,27 +791,50 @@ $catalog = WebhookDispatcher::catalog();
 
         <!-- Assinatura -->
         <div data-section="signature" style="border:1px solid rgba(96,165,250,.15);border-radius:10px;overflow:hidden;display:none">
-          <div style="padding:10px 16px;background:rgba(37,99,235,.14);font-size:.75rem;font-weight:700;color:#93c5fd;text-transform:uppercase;letter-spacing:.06em">Verificação de Assinatura (HMAC-SHA256)</div>
+          <div style="padding:10px 16px;background:rgba(37,99,235,.14);font-size:.75rem;font-weight:700;color:#93c5fd;text-transform:uppercase;letter-spacing:.06em">Verificação de Assinatura (HMAC-SHA256 com timestamp)</div>
           <div style="padding:14px 16px">
-            <p style="margin:0 0 10px">Cada requisição inclui o header <code style="background:rgba(0,0,0,.3);padding:1px 5px;border-radius:4px;color:#a5b4fc">X-Yuris-Signature</code> com assinatura HMAC do body. Use o <strong>Secret</strong> configurado no webhook para verificar:</p>
-            <pre class="payload-preview"><span style="color:#6b7280">// PHP</span>
-$secret    = 'seu_secret_aqui';
-$body      = file_get_contents('php://input');
-$signature = 'sha256=' . hash_hmac('sha256', $body, $secret);
-$received  = $_SERVER['HTTP_X_YURIS_SIGNATURE'] ?? '';
+            <p style="margin:0 0 10px">Cada requisição leva o header <code style="background:rgba(0,0,0,.3);padding:1px 5px;border-radius:4px;color:#a5b4fc">X-Yuris-Signature</code> e <code style="background:rgba(0,0,0,.3);padding:1px 5px;border-radius:4px;color:#a5b4fc">X-Yuris-Timestamp</code>. A assinatura é HMAC do <strong>timestamp + "." + body</strong> (anti-replay):</p>
+            <pre class="payload-preview"><span style="color:#6b7280">signature = "sha256=" + HMAC_SHA256(secret, timestamp + "." + raw_body)</span></pre>
+            <p style="margin:10px 0 8px;font-size:.78rem;color:#dbeafe;font-weight:600">PHP</p>
+            <pre class="payload-preview">$secret = 'seu_secret_aqui';
+$body   = file_get_contents('php://input');
+$ts     = $_SERVER['HTTP_X_YURIS_TIMESTAMP'] ?? '';
+$sig    = $_SERVER['HTTP_X_YURIS_SIGNATURE'] ?? '';
 
-if (!hash_equals($signature, $received)) {
-    http_response_code(401);
-    die('Assinatura inválida');
+<span style="color:#6b7280">// Anti-replay: rejeita timestamps com mais de 5 minutos</span>
+if (!$ts || abs(time() - (int)$ts) > 300) {
+    http_response_code(401); die('Timestamp inválido');
 }
-
-<span style="color:#6b7280">// Node.js</span>
-const crypto = require('crypto');
-const sig = 'sha256=' + crypto.createHmac('sha256', secret).update(body).digest('hex');
-if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(received))) {
-    return res.status(401).send('Invalid signature');
+$esperado = 'sha256=' . hash_hmac('sha256', $ts . '.' . $body, $secret);
+if (!hash_equals($esperado, $sig)) {
+    http_response_code(401); die('Assinatura inválida');
 }</pre>
-            <p style="margin:10px 0 0;font-size:.77rem;color:var(--muted);display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Se não configurar um Secret, a assinatura ainda é enviada mas com chave vazia — ideal para testes iniciais.</p>
+            <p style="margin:10px 0 8px;font-size:.78rem;color:#dbeafe;font-weight:600">Node.js</p>
+            <pre class="payload-preview">const crypto = require('crypto');
+
+function valida(req, secret) {
+  const ts  = req.headers['x-yuris-timestamp'];
+  const sig = req.headers['x-yuris-signature'];
+  if (!ts || Math.abs(Date.now()/1000 - parseInt(ts)) > 300) return false;
+  const esperado = 'sha256=' + crypto.createHmac('sha256', secret)
+    .update(ts + '.' + req.rawBody).digest('hex');
+  return crypto.timingSafeEqual(Buffer.from(esperado), Buffer.from(sig));
+}</pre>
+            <p style="margin:10px 0 8px;font-size:.78rem;color:#dbeafe;font-weight:600">Python</p>
+            <pre class="payload-preview">import hmac, hashlib, time
+
+def valida(secret: str, raw_body: bytes, headers: dict) -> bool:
+    ts  = headers.get('X-Yuris-Timestamp', '')
+    sig = headers.get('X-Yuris-Signature', '')
+    if not ts or abs(time.time() - int(ts)) > 300:
+        return False
+    esperado = 'sha256=' + hmac.new(
+        secret.encode(),
+        (ts + '.').encode() + raw_body,
+        hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(esperado, sig)</pre>
+            <p style="margin:10px 0 0;font-size:.77rem;color:var(--muted);display:flex;align-items:flex-start;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" style="margin-top:2px;flex-shrink:0"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> <span><strong>Sempre use timing-safe compare</strong> (<code>hash_equals</code>, <code>timingSafeEqual</code>, <code>compare_digest</code>) — comparação simples (<code>==</code>) expõe a assinatura a timing attacks.</span></p>
           </div>
         </div>
 
@@ -766,11 +843,21 @@ if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(received))) {
           <div style="padding:10px 16px;background:rgba(37,99,235,.14);font-size:.75rem;font-weight:700;color:#93c5fd;text-transform:uppercase;letter-spacing:.06em">Headers HTTP enviados</div>
           <div style="padding:14px 16px">
             <pre class="payload-preview">POST https://seu-endpoint.com/webhook HTTP/1.1
-Content-Type: application/json
-X-Yuris-Event: processo.prazo_created      <span style="color:#6b7280">// nome do evento</span>
-X-Yuris-Signature: sha256=abc123...        <span style="color:#6b7280">// assinatura HMAC</span>
-User-Agent: Yuris-Webhook/1.0</pre>
-            <p style="margin:10px 0 0;font-size:.77rem;color:var(--muted)">Seu endpoint deve responder com status <strong style="color:#34d399">2xx</strong> em até 10 segundos. Qualquer outro código é registrado como falha no log.</p>
+Content-Type:      application/json
+User-Agent:        Yuris-Webhook/2.0
+X-Yuris-Event:     processo.prazo_created          <span style="color:#6b7280">// código do evento</span>
+X-Yuris-Delivery:  evt_695b2f6294a367cb79bbdb8ae   <span style="color:#6b7280">// id único — mesmo em retries/reenvios</span>
+X-Yuris-Timestamp: 1748192400                      <span style="color:#6b7280">// unix seconds — usado na HMAC</span>
+X-Yuris-Tenant:    1                               <span style="color:#6b7280">// account_id do escritório</span>
+X-Yuris-Signature: sha256=abc123def456...          <span style="color:#6b7280">// HMAC(secret, timestamp + "." + body)</span></pre>
+            <p style="margin:14px 0 6px;font-size:.78rem;color:#dbeafe;font-weight:600">Headers customizados</p>
+            <p style="margin:0 0 10px;font-size:.78rem;color:var(--muted)">No painel você pode adicionar headers extras (JSON) — eles são anexados a cada requisição sem sobrescrever os <code style="background:rgba(0,0,0,.3);padding:1px 5px;border-radius:4px;color:#a5b4fc">X-Yuris-*</code>. Útil para autenticar em APIs externas:</p>
+            <pre class="payload-preview">{
+  "Authorization": "Bearer eyJhbGc...",
+  "X-API-Key":     "minha-chave-do-n8n"
+}</pre>
+            <p style="margin:14px 0 6px;font-size:.78rem;color:#dbeafe;font-weight:600">Resposta esperada e timeout</p>
+            <p style="margin:0;font-size:.77rem;color:var(--muted)">Responda com status <strong style="color:#34d399">2xx</strong> dentro do <strong>timeout configurado</strong> no endpoint (padrão 10s, configurável de 1 a 60s). Qualquer outro código ou timeout vira <strong style="color:#f87171">failed</strong> e — se <em>retry automático</em> estiver ativo — é reagendado com backoff exponencial (60s, 5min, 30min) até atingir o máximo de tentativas.</p>
           </div>
         </div>
 
@@ -803,6 +890,104 @@ User-Agent: Yuris-Webhook/1.0</pre>
                 <li><code style="color:#a5b4fc">financeiro.overdue</code> → Enviar lembrete de cobrança ao cliente</li>
                 <li><code style="color:#a5b4fc">usuario.mentioned</code> → Notificar usuário mencionado no chat interno</li>
               </ul>
+            </div>
+
+            <!-- ── Casos de uso JURÍDICOS (focado em escritório de advocacia) ── -->
+            <?php
+            $casosJuridicos = [
+              // gatilho_label, eventos[], descricao (o que automatizar)
+              ['Prazo processual chegou',
+               ['processo.prazo_created'],
+               'Disparar mensagem WhatsApp pro advogado responsável com número do processo, tipo de prazo (fatal/regular) e data limite. Se faltar ≤ 3 dias, escalar pro coordenador.'],
+
+              ['Prazo prestes a vencer (≤ 3 dias)',
+               ['processo.prazo_vencendo'],
+               'Notificação cruzada: e-mail pro advogado + Slack pro escritório + criar tarefa "Cumprir prazo" no Asana com data limite.'],
+
+              ['Intimação recebida (DJEN/AASP)',
+               ['processo.andamento_added'],
+               'Quando o andamento for de origem "DJEN" ou "AASP", abrir tarefa automática "Analisar intimação" + enviar resumo por e-mail pro responsável.'],
+
+              ['Audiência agendada',
+               ['processo.audiencia_created'],
+               'Criar evento no Google Calendar do advogado com data, hora, local/link. Agendar lembrete WhatsApp 24h antes pro cliente confirmar presença.'],
+
+              ['Cliente assinou contrato',
+               ['card.contrato.updated','card.stage_changed'],
+               'Quando status_contrato = "assinado" (ou card foi pra etapa "Contratado"): salvar PDF no Drive do cliente + enviar boas-vindas WhatsApp + criar processo automaticamente no ERP do escritório.'],
+
+              ['Documento enviado pelo cliente',
+               ['processo.documento_uploaded','card.file_uploaded'],
+               'Notificar advogado responsável via WhatsApp com link do documento. Se for procuração ou contrato social, encaminhar pra revisão do estagiário.'],
+
+              ['Lead novo via site / Google Ads',
+               ['lead.created'],
+               'Enviar mensagem WhatsApp automática de boas-vindas em <60s + criar tarefa "Ligar em 24h" pro SDR + sincronizar contato no Mailchimp.'],
+
+              ['Lead convertido em cliente',
+               ['lead.converted'],
+               'Disparar fluxo Docusign com contrato + criar pasta no Drive (estrutura "Cliente / Ano / Caso") + adicionar ao grupo WhatsApp do escritório.'],
+
+              ['Audiência realizada',
+               ['processo.audiencia_realizada'],
+               'Enviar resumo da audiência pro cliente via WhatsApp (mascarado) + criar tarefa "Lançar honorário" no financeiro + atualizar status no CRM.'],
+
+              ['Honorário pago',
+               ['financeiro.paid'],
+               'Quando lançamento for de origem "honorário": enviar recibo PDF por e-mail ao cliente + agradecimento WhatsApp + atualizar status do processo pra "Quitado".'],
+
+              ['Solicitação LGPD recebida',
+               ['lgpd.request_created'],
+               'Notificar DPO via Slack + criar tarefa "Atender em 15 dias" (prazo LGPD Art. 19) + abrir ticket no Jira do jurídico. Tipo "eliminacao" escala pra sócio.'],
+
+              ['Consentimento revogado',
+               ['lgpd.consent_revoked'],
+               'Remover contato de lista de marketing (Mailchimp/RD Station) + criar registro em sistema de compliance + notificar atendimento pra não enviar mais campanhas.'],
+
+              ['Incidente de segurança',
+               ['security.incident_created'],
+               'Alerta CRÍTICO no Slack #ti-incidentes + e-mail pro DPO + SMS pro sócio responsável. Se severidade=alta/critica, abrir guerra no PagerDuty automaticamente.'],
+
+              ['Login suspeito do advogado',
+               ['security.suspicious_login'],
+               'E-mail pro próprio usuário ("foi você?") + alerta pro admin + logout forçado de sessões antigas. Se confirmar que não foi, dispara troca obrigatória de senha.'],
+
+              ['Tarefa do processo atrasou',
+               ['processo.tarefa_atrasada'],
+               'Notificar responsável + coordenador 1 dia após o atraso. Se passar 3 dias sem resolver, escalar pro sócio responsável pelo cliente.'],
+
+              ['Cobrança vencida',
+               ['financeiro.overdue'],
+               'Régua de cobrança automática: D+1 lembrete WhatsApp, D+7 e-mail + 2ª via boleto, D+15 ligação SDR, D+30 protesto/jurídico.'],
+
+              ['WhatsApp pediu pra falar com humano',
+               ['whatsapp.handoff_requested'],
+               'Encaminhar conversa pra fila do atendente disponível + tocar som no Slack #atendimento + criar registro de SLA (resposta em &lt;5min).'],
+
+              ['Termos de uso aceitos (cliente novo)',
+               ['lgpd.terms_accepted'],
+               'Disparar onboarding por e-mail (vídeo de tutorial, FAQ, contato do CS) + criar ticket de boas-vindas + adicionar tag "onboarded" no CRM.'],
+            ];
+            ?>
+            <div style="background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.2);border-radius:8px;padding:12px">
+              <div style="font-weight:700;color:#a78bfa;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+                Casos de uso para escritório de advocacia
+              </div>
+              <div style="font-size:.74rem;color:var(--muted);margin-bottom:10px">Cenários reais do dia a dia. Cada gatilho pode encadear múltiplas ações via Make/n8n/Zapier — o Yuris só dispara o evento, a automação fica na ferramenta de fluxo.</div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <?php foreach($casosJuridicos as [$titulo, $eventos, $desc]): ?>
+                <div style="border:1px solid rgba(124,58,237,.12);border-radius:6px;padding:10px 12px;background:rgba(124,58,237,.04)">
+                  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
+                    <span style="font-weight:600;color:#c4b5fd;font-size:.79rem">⚖ <?=htmlspecialchars($titulo)?></span>
+                    <?php foreach($eventos as $ev): ?>
+                    <code style="background:rgba(124,58,237,0.18);color:#ddd6fe;font-size:.7rem;padding:1px 6px;border-radius:3px"><?=htmlspecialchars($ev)?></code>
+                    <?php endforeach; ?>
+                  </div>
+                  <div style="font-size:.76rem;color:#94a3b8;line-height:1.45"><?=$desc?></div>
+                </div>
+                <?php endforeach; ?>
+              </div>
             </div>
           </div>
         </div>
