@@ -382,9 +382,35 @@ try {
             }
             $prioridade = in_array($extra['prioridade'] ?? '', ['baixa','media','alta'], true)
                 ? $extra['prioridade'] : 'alta';
-            // Observação: anexa origem (push_event_id) pra rastreabilidade
+            // Observação: anexa um resumo da intimação de origem (tribunal/órgão/data/trecho)
+            // pra que o advogado tenha contexto direto no card do prazo, sem ter que
+            // voltar pra aba Intimações. O push_event_id fica como rodapé discreto
+            // pra rastreabilidade técnica (debug/auditoria).
             $observacao = trim((string)($extra['observacao'] ?? ''));
-            $obsExtra = "Origem: intimação automática (push_event_id={$eventId})";
+
+            $origemPartes = [];
+            $headLine = trim(
+                ($ev['tribunal'] ?? '')
+                . (!empty($ev['tipo_comunicacao']) ? ' · ' . $ev['tipo_comunicacao'] : '')
+                . (!empty($ev['data_disponibilizacao']) ? ' · disponibilizado em ' . date('d/m/Y', strtotime($ev['data_disponibilizacao'])) : '')
+            );
+            if ($headLine !== '') $origemPartes[] = $headLine;
+            if (!empty($ev['orgao']))           $origemPartes[] = 'Órgão: ' . $ev['orgao'];
+            if (!empty($ev['numero_processo_mascara']) || !empty($ev['numero_processo'])) {
+                $origemPartes[] = 'Processo: ' . ($ev['numero_processo_mascara'] ?? $ev['numero_processo']);
+            }
+            // Trecho do conteúdo (limita pra não estourar — TEXT mas o card só mostra ~2 linhas)
+            $trecho = trim((string)($ev['resumo'] ?? ''));
+            if ($trecho === '') $trecho = trim((string)($ev['conteudo'] ?? ''));
+            if ($trecho !== '') {
+                // Normaliza whitespace e corta em 240 chars (com reticências)
+                $trecho = preg_replace('/\s+/u', ' ', $trecho);
+                if (mb_strlen($trecho) > 240) $trecho = mb_substr($trecho, 0, 237) . '…';
+                $origemPartes[] = 'Trecho: "' . $trecho . '"';
+            }
+
+            $obsExtra = "— Origem (intimação automática) —\n" . implode("\n", $origemPartes)
+                      . "\n[ref: push_event #{$eventId}]";
             $observacao = $observacao !== '' ? $observacao . "\n\n" . $obsExtra : $obsExtra;
 
             // Garante que processo_prazos existe (idempotente — endpoint /api/processo_prazos.php já cria)
