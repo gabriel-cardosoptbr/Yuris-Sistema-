@@ -132,6 +132,15 @@ try {
     // KPI: não-lidas pro user
     $naoLidas = PushEventUserStatus::countNaoLidas($userId, $accountId);
 
+    // Enriquecer cada item com lista de advogados extraída do payload_original
+    // (pra UI mostrar "Adv: X, Y, Z" e destacar a OAB do user logado).
+    // payload_original NÃO vai pro frontend — apagado depois.
+    foreach ($combined as &$it) {
+        $it['advogados'] = listPhpExtractAdvogados($it);
+        unset($it['payload_original']);  // LGPD: não envia raw
+    }
+    unset($it);
+
     echo json_encode([
         'ok'        => true,
         'total'     => count($combined),
@@ -143,4 +152,51 @@ try {
 
 } catch (\Throwable $e) {
     \App\Helpers\ErrorReporter::handle($e);
+}
+
+/**
+ * Extrai lista de advogados [{nome, oab, uf}] do payload_original.
+ * Cobre AASP (texto inline "NOME OAB UF-NNNN") e DJEN (array destinatarioadvogados).
+ * Retorna [] se nada encontrado.
+ */
+function listPhpExtractAdvogados(array $it): array
+{
+    $payloadRaw = $it['payload_original'] ?? null;
+    if (!$payloadRaw) return [];
+
+    $payload = is_string($payloadRaw) ? json_decode($payloadRaw, true) : $payloadRaw;
+    if (!is_array($payload)) return [];
+
+    $advs = [];
+
+    // DJEN: campo destinatarioadvogados (array de objetos com .advogado)
+    if (!empty($payload['destinatarioadvogados']) && is_array($payload['destinatarioadvogados'])) {
+        foreach ($payload['destinatarioadvogados'] as $da) {
+            $adv = $da['advogado'] ?? [];
+            if (!is_array($adv)) continue;
+            $nome = trim((string)($adv['nome'] ?? ''));
+            $oab  = trim((string)($adv['numero_oab'] ?? ''));
+            $uf   = trim((string)($adv['uf_oab'] ?? ''));
+            if ($nome === '' && $oab === '') continue;
+            $advs[] = ['nome' => $nome, 'oab' => $oab, 'uf' => $uf];
+        }
+    }
+
+    // AASP: regex no textoPublicacao
+    if (empty($advs) && !empty($payload['textoPublicacao'])) {
+        $texto = (string)$payload['textoPublicacao'];
+        if (preg_match_all('/([A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ\s\.\']+?)\s+OAB\s+([A-Z]{2})[-\s]*(\d+)/u', $texto, $m, PREG_SET_ORDER)) {
+            $seen = [];
+            foreach ($m as $row) {
+                $oab = $row[3];
+                $uf  = $row[2];
+                $key = "{$uf}-{$oab}";
+                if (isset($seen[$key])) continue;
+                $seen[$key] = true;
+                $advs[] = ['nome' => trim($row[1]), 'oab' => $oab, 'uf' => $uf];
+            }
+        }
+    }
+
+    return $advs;
 }

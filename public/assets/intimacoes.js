@@ -784,6 +784,23 @@
       return Array.from(byKey.values());
     },
 
+    /** Renderiza linha "Adv: Nome1 (UF-OAB1), ..." destacando OAB do user. */
+    _renderAdvogadosLine(advs) {
+      if (!Array.isArray(advs) || !advs.length) return '';
+      const myOab = (this.userProfile && this.userProfile.oab || '').replace(/\D/g, '');
+      const myUf  = (this.userProfile && this.userProfile.oab_uf || '').toUpperCase();
+      const esc = (s) => this._esc(s);
+      const parts = advs.slice(0, 8).map(a => {
+        const oab = (a.oab || '').replace(/\D/g, '');
+        const uf  = (a.uf || '').toUpperCase();
+        const isMine = myOab && oab === myOab && (!myUf || uf === myUf);
+        const label = `${esc(a.nome || '?')} (${esc(uf)}-${esc(oab)})`;
+        return isMine ? `<strong style="color:#34D399;">${label} ✓</strong>` : label;
+      });
+      const more = advs.length > 8 ? ` <em>+${advs.length - 8} outros</em>` : '';
+      return `<div class="int-pub-advs"><strong>Adv:</strong> ${parts.join(', ')}${more}</div>`;
+    },
+
     renderCard(it) {
       const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
         ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
@@ -817,6 +834,7 @@
               ${it._from_search ? '<span style="color:#fbbf24;">resultado não persistido</span>' : ''}
             </div>
             <div class="int-pub-orgao">${esc(orgao)}</div>
+            ${this._renderAdvogadosLine(it.advogados)}
             <div class="int-pub-text" data-text-len="${texto.length}">${esc(texto)}${texto.length > 400 ? '<div class="int-pub-text-fade"></div>' : ''}</div>
             ${texto.length > 400
               ? `<button class="int-pub-text-toggle" data-action="toggle-text" data-hash="${esc(it.hash_conteudo)}">Ver tudo (${texto.length.toLocaleString('pt-BR')} caracteres)</button>`

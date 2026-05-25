@@ -307,6 +307,20 @@ $kpiNaoLidas  = PushEventUserStatus::countNaoLidas($userId, $accountId);
     }
     .int-popup-checkbox input { accent-color: #6898C0; }
 
+    /* ── Linha "Adv:" no card de publicação ── */
+    .int-pub-advs {
+      font-size: .74rem; color: #7A8898; margin-top: 4px; line-height: 1.45;
+      padding: 4px 8px; background: rgba(15,33,60,.35); border-radius: 5px;
+      border-left: 2px solid rgba(96,165,250,.3);
+    }
+    .int-pub-advs strong { color: #9CA3AF; }
+    html[data-theme="light"] .int-pub-advs {
+      background: rgba(37,99,235,.05) !important;
+      border-left-color: rgba(37,99,235,.35) !important;
+      color: #5A6B7E !important;
+    }
+    html[data-theme="light"] .int-pub-advs strong { color: #1E2E45 !important; }
+
     /* ── Aba AASP ── */
     .int-aasp-disclaimer {
       background: rgba(36,78,122,.18);
