@@ -323,6 +323,26 @@
 
 .sidebar-group-label { flex: 1 !important; min-width: 0 !important; overflow: hidden !important; text-overflow: ellipsis !important; }
 
+/* Icone do toggle dos grupos (Operacao, Juridico, etc.) — mesma familia visual
+   dos icones de items internos (.sidebar nav a .icon = 20px). Toggle usa 18px
+   pra harmonizar com a fonte menor do label (.82rem). */
+.sidebar-group-toggle .sidebar-group-icon {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  opacity: 1 !important;
+}
+.sidebar-group-toggle .sidebar-group-icon svg {
+  width: 18px !important;
+  height: 18px !important;
+  display: block !important;
+  stroke: currentColor !important;
+}
+
 .sidebar-group-chevron {
   width: 12px !important;
   height: 12px !important;

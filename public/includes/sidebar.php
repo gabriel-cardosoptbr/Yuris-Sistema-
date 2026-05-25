@@ -106,31 +106,40 @@ $_uiLibVer   = file_exists($_uiLibPath) ? @filemtime($_uiLibPath) : '1';
     // Definição das seções (mantém todas as rotas atuais — só agrupa visualmente).
     // perm = chave usada em _sidebarCan(); admin_only = visível só pra admins.
     // active = valor de $activePage que faz o item brilhar (e abre a seção pai).
+    // SVGs Feather/Lucide pros toggles dos grupos (mesma familia visual dos demais)
+    $_grpSvg = [
+      'operacao'    => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+      'juridico'    => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 16h6l-3-7-3 7zM2 16h6l-3-7-3 7zM12 3v19M3 22h18M5 9h14"/></svg>',
+      'comunicacao' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>',
+      'gestao'      => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+      'automacoes'  => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>',
+      'sistema'     => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+    ];
     $_sections = [
-      [ 'key' => 'operacao', 'label' => 'Operação', 'items' => [
+      [ 'key' => 'operacao', 'label' => 'Operação', 'icon' => $_grpSvg['operacao'], 'items' => [
         ['perm'=>'planejamento','href'=>'planejamento.php','active'=>'funil',     'icon'=>'funil',   'label'=>'Planejamento'],
         ['perm'=>'prospeccao', 'href'=>'prospeccao.php', 'active'=>'prospeccao', 'icon'=>'prosp',    'label'=>'Prospecção'],
         ['perm'=>'tarefas',    'href'=>'tarefas.php',    'active'=>'tarefas',    'icon'=>'tarefas',  'label'=>'Tarefas'],
       ]],
-      [ 'key' => 'juridico', 'label' => 'Jurídico', 'items' => [
+      [ 'key' => 'juridico', 'label' => 'Jurídico', 'icon' => $_grpSvg['juridico'], 'items' => [
         ['perm'=>'processos', 'href'=>'processos.php', 'active'=>'processos', 'icon'=>'processos', 'label'=>'Processos'],
         ['perm'=>'intimacoes','href'=>'intimacoes.php','active'=>'intimacoes','icon'=>'intimacoes','label'=>'Intimações'],
         ['perm'=>'juridico',  'href'=>'juridico.php',  'active'=>'juridico',  'icon'=>'juridico',  'label'=>'Jurídico'],
       ]],
-      [ 'key' => 'comunicacao', 'label' => 'Comunicação', 'items' => [
+      [ 'key' => 'comunicacao', 'label' => 'Comunicação', 'icon' => $_grpSvg['comunicacao'], 'items' => [
         ['perm'=>'chat',         'href'=>'chat.php',         'active'=>'chat',         'icon'=>'chat',         'label'=>'WhatsApp'],
         ['perm'=>'chat_interno', 'href'=>'chat_interno.php', 'active'=>'chat_interno', 'icon'=>'chat_interno', 'label'=>'Chat Interno'],
       ]],
-      [ 'key' => 'gestao', 'label' => 'Gestão', 'items' => [
+      [ 'key' => 'gestao', 'label' => 'Gestão', 'icon' => $_grpSvg['gestao'], 'items' => [
         ['perm'=>'financas',   'href'=>'financas.php',   'active'=>'dre',         'icon'=>'financas',    'label'=>'Finanças'],
         ['perm'=>'usuarios',   'href'=>'usuarios.php',   'active'=>'usuarios',    'icon'=>'usuarios',    'label'=>'Usuários'],
         ['perm'=>'escritorios','href'=>'escritorios.php','active'=>'escritorios', 'icon'=>'escritorios', 'label'=>'Escritórios'],
       ]],
-      [ 'key' => 'automacoes', 'label' => 'Automações', 'items' => [
+      [ 'key' => 'automacoes', 'label' => 'Automações', 'icon' => $_grpSvg['automacoes'], 'items' => [
         ['perm'=>'agente',                 'href'=>'agente.php',   'active'=>'agente',   'icon'=>'agente',   'label'=>'Agente'],
         ['perm'=>null,'admin_only'=>true, 'href'=>'webhooks.php', 'active'=>'webhooks', 'icon'=>'webhooks', 'label'=>'Webhooks'],
       ]],
-      [ 'key' => 'sistema', 'label' => 'Sistema', 'items' => [
+      [ 'key' => 'sistema', 'label' => 'Sistema', 'icon' => $_grpSvg['sistema'], 'items' => [
         ['perm'=>'configuracoes','href'=>'configuracoes.php','active'=>'configuracoes','icon'=>'config','label'=>'Configurações'],
         // Sair: sem permissão (sempre visível); marca is_logout pra hover vermelho
         ['perm'=>null,'always'=>true,'is_logout'=>true,'href'=>'logout.php','active'=>'__never__','icon'=>'sair','label'=>'Sair'],
@@ -156,6 +165,9 @@ $_uiLibVer   = file_exists($_uiLibPath) ? @filemtime($_uiLibPath) : '1';
     ?>
     <div class="sidebar-group<?= $_hasActive ? ' open has-active' : '' ?>" data-group="<?= htmlspecialchars($_sec['key']) ?>">
       <button type="button" class="sidebar-group-toggle" aria-expanded="<?= $_hasActive ? 'true' : 'false' ?>" aria-controls="grp-<?= htmlspecialchars($_sec['key']) ?>">
+        <?php if (!empty($_sec['icon'])): ?>
+        <span class="sidebar-group-icon" aria-hidden="true"><?= $_sec['icon'] ?></span>
+        <?php endif; ?>
         <span class="sidebar-group-label"><?= htmlspecialchars($_sec['label']) ?></span>
         <svg class="sidebar-group-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="9 18 15 12 9 6"/>
