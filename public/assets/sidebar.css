@@ -459,14 +459,27 @@ html[data-theme="light"] .sidebar-group-toggle:hover {
   border-color: rgba(37,99,235,.40) !important;
   box-shadow: 0 2px 8px rgba(37,99,235,.10) !important;
 }
+/* Grupo que CONTÉM a página ativa: toggle ganha o mesmo azul forte do nav.active,
+   pra que mesmo recolhido o user veja "estou nessa seção" (ex: em Planejamento,
+   o toggle Operação fica azul). */
 html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle {
-  color: #1E4A8A !important;
-  border-color: rgba(37,99,235,.40) !important;
+  background: linear-gradient(135deg, #1E4A8A 0%, #2563EB 100%) !important;
+  color: #FFFFFF !important;
+  border-color: #1E4A8A !important;
+  box-shadow: 0 4px 14px rgba(30,74,138,.28) !important;
+  font-weight: 700 !important;
+}
+html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle:hover {
+  filter: brightness(1.08);
+  color: #FFFFFF !important;
+  border-color: #1E4A8A !important;
 }
 html[data-theme="light"] .sidebar-group-chevron {
   stroke: #5A6B7E !important;
 }
-html[data-theme="light"] .sidebar-group-toggle:hover .sidebar-group-chevron,
-html[data-theme="light"] .sidebar-group.has-active .sidebar-group-chevron {
+html[data-theme="light"] .sidebar-group-toggle:hover .sidebar-group-chevron {
   stroke: #1E4A8A !important;
+}
+html[data-theme="light"] .sidebar-group.has-active .sidebar-group-chevron {
+  stroke: #FFFFFF !important;
 }
