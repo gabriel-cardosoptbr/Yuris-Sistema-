@@ -214,17 +214,26 @@ class WebhookDispatcher
     }
 
     // ── HTTP delivery ─────────────────────────────────────────────────────────
-    private static function deliver(\PDO $pdo, array $hook, string $eventKey, array $payload): void
+    private static function deliver(\PDO $pdo, array $hook, string $eventKey, array $v1Payload): void
     {
-        $body = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        // Etapa 2: monta envelope v2 (event_id, tenant, organization, actor, data, metadata)
+        // e aplica mascaramento conforme endpoint.payload_mode (minimal|masked|full).
+        require_once __DIR__ . '/WebhookPayloadBuilder.php';
+        require_once __DIR__ . '/../Helpers/PayloadMasker.php';
+        $envelope = WebhookPayloadBuilder::v2($eventKey, $v1Payload, $hook);
+
+        $timeout = (int)($hook['timeout_segundos'] ?? 10);
+        if ($timeout < 1 || $timeout > 60) $timeout = 10;
+
+        $body = json_encode($envelope, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         $sig  = 'sha256=' . hash_hmac('sha256', $body, $hook['secret'] ?? '');
 
         $start = microtime(true);
         $ctx   = stream_context_create(['http' => [
             'method'        => 'POST',
-            'header'        => "Content-Type: application/json\r\nX-Yuris-Event: {$eventKey}\r\nX-Yuris-Signature: {$sig}\r\nUser-Agent: Yuris-Webhook/1.0",
+            'header'        => "Content-Type: application/json\r\nX-Yuris-Event: {$eventKey}\r\nX-Yuris-Signature: {$sig}\r\nUser-Agent: Yuris-Webhook/2.0",
             'content'       => $body,
-            'timeout'       => 10,
+            'timeout'       => $timeout,
             'ignore_errors' => true,
         ]]);
 
@@ -240,8 +249,9 @@ class WebhookDispatcher
         $success = ($status >= 200 && $status < 300) ? 1 : 0;
 
         try {
+            // Logamos o envelope v2 (o que de fato foi enviado).
             $pdo->prepare("INSERT INTO webhook_logs (webhook_id, event_key, payload, response_status, response_body, duration_ms, success, created_at) VALUES (?,?,?,?,?,?,?,NOW())")
-                ->execute([$hook['id'], $eventKey, json_encode($payload), $status, substr($resp ?? '', 0, 2000), $ms, $success]);
+                ->execute([$hook['id'], $eventKey, $body, $status, substr($resp ?? '', 0, 2000), $ms, $success]);
         } catch (\Throwable $e) {
             error_log('[WebhookDispatcher] log error: ' . $e->getMessage());
         }
