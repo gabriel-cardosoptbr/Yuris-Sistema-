@@ -482,15 +482,17 @@
         if (f.data_fim)        qs.set('data_fim',    f.data_fim);
         if (f.sigla_tribunal)  qs.set('tribunal',    f.sigla_tribunal);
         if (f.numero_processo) qs.set('processo',    f.numero_processo);
-        // Filtro por provider — set quando aba AASP ativa
+        // Filtro por provider — set quando aba AASP ou DJEN explícita
         if (this.state.sourceFilter) qs.set('source_id', this.state.sourceFilter);
         qs.set('limit', '100');
 
-        const data = await this.api('GET', '/list.php?' + qs.toString());
+        const url = '/list.php?' + qs.toString();
+        const data = await this.api('GET', url);
         if (!data.ok) throw new Error(data.error || 'Erro');
         this.state.items = data.items || [];
         this.render();
         this.updateKpi(data.nao_lidas);
+        this.updateToolbarCacheInfo();
       } catch (err) {
         this.notify('Erro ao carregar: ' + err.message, 'error');
       } finally {
@@ -708,7 +710,11 @@
     render() {
       const list = document.getElementById('intList');
       if (!list) return;
-      const items = this.state.items;
+      // Dedup: mesma intimação (processo+data+tribunal+source) pode vir N vezes
+      // do provider (DJEN cria 1 entrada por intimado/destinatário quando a
+      // mesma decisão tem múltiplos). Consolidamos visualmente preservando
+      // o conteúdo do primeiro e somando lista de destinatários.
+      const items = this._dedupItems(this.state.items);
 
       if (!items.length) {
         list.innerHTML = `
@@ -745,6 +751,37 @@
       // Inclui itens não-persistidos (cache/search) que por natureza não foram lidos.
       const naoLidas = items.filter((it) => !it.lida).length;
       this.updateKpi(naoLidas);
+    },
+
+    /**
+     * Dedup visual: agrupa por (source_id + tribunal + numero_processo + data_disponibilizacao).
+     * Mantém o primeiro item, mas une lista de destinatários e quantidade
+     * (útil pra mostrar "Intimados: A; B; C" em vez de 3 cards separados).
+     * Se conteudo principal é diferente entre items do mesmo grupo, mantém ambos
+     * (caso raro: 2 decisões no mesmo processo no mesmo dia).
+     */
+    _dedupItems(items) {
+      const byKey = new Map();
+      for (const it of (items || [])) {
+        const key = [
+          it.source_id || 'unknown',
+          it.tribunal || '',
+          it.numero_processo || it.numero_processo_mascara || '',
+          it.data_disponibilizacao || '',
+        ].join('|');
+        if (!byKey.has(key)) {
+          byKey.set(key, { ...it, _grouped_count: 1, _grouped_dests: [] });
+          continue;
+        }
+        // Agrupa: incrementa contador, anexa destinatários do duplicado
+        const acc = byKey.get(key);
+        acc._grouped_count++;
+        // Tenta extrair "Intimado(s)" do conteúdo do item duplicado pra anexar
+        const dupConteudo = it.conteudo || it.resumo || '';
+        const m = dupConteudo.match(/Intimado\(s\)[^\n]*(?:\n[^\n]+){0,8}/i);
+        if (m) acc._grouped_dests.push(m[0].slice(0, 200));
+      }
+      return Array.from(byKey.values());
     },
 
     renderCard(it) {
@@ -1265,11 +1302,18 @@
      * Mostra/esconde painéis conforme aba ativa.
      * O #intList é COMPARTILHADO entre abas — só o filtro de source muda.
      * Quando aba=aasp, o filtro vira 'aasp' e o feed mostra só intimações AASP.
+     *
+     * IMPORTANTE: limpa state.items antes de recarregar pra evitar "vazamento"
+     * dos items da aba anterior enquanto a request nova está em andamento.
      */
     switchTab(tab) {
       const $ = (id) => document.getElementById(id);
       const aaspPanel = $('intAaspPanel');
       const banner    = $('bannerBuscaManual');
+
+      // Limpa estado visual imediatamente — evita ver lista antiga enquanto carrega
+      this.state.items = [];
+      this.render();
 
       if (tab === 'aasp') {
         if (aaspPanel) aaspPanel.style.display = '';
@@ -1282,13 +1326,28 @@
         // Esconde resumo da última busca AASP ao sair da aba
         const lastEl = document.getElementById('aaspLastSearch');
         if (lastEl) lastEl.style.display = 'none';
-        // null = aceita todos os providers (DJEN, AASP que user salvou, futuros)
-        // Atalho: na aba DJEN explícita, pode-se filtrar 'djen'; deixo null pra cross-provider
-        this.state.sourceFilter = (tab === 'djen') ? null : null;
+        // Na aba DJEN, filtra explicitamente source_id='djen' (deixa AASP separado).
+        // Antes era null (cross-provider) mas isso fazia AASP aparecer na aba DJEN.
+        this.state.sourceFilter = (tab === 'djen') ? 'djen' : null;
         this.loadPersistidos();
       }
-      // Atualiza microcopy do botão "Buscar publicações"
+      // Atualiza microcopy do botão "Buscar publicações" e KPI da toolbar
       this.updateSearchHint();
+      this.updateToolbarCacheInfo();
+    },
+
+    /** Atualiza o KPI "Cache atual" no toolbar baseado na aba ativa. */
+    updateToolbarCacheInfo() {
+      const el = document.querySelector('.int-toolbar-info');
+      if (!el) return;
+      const src = this.state.sourceFilter;
+      const items = this.state.items || [];
+      const cache = items.filter(it => it._from_cache).length;
+      const events = items.length - cache;
+      let label = 'Cache atual';
+      if (src === 'aasp')      label = 'Cache AASP';
+      else if (src === 'djen') label = 'Cache DJEN';
+      el.innerHTML = `${label}: <strong>${cache}</strong> publicação(ões) no cache · <strong>${events}</strong> salvas`;
     },
 
     /**
