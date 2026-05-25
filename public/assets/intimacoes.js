@@ -436,22 +436,20 @@
         }
       });
 
-      // Modal Ações da intimação — listeners
+      // Modal Ações da intimação — 2 etapas: vincular processo → criar prazo
       $('intActionsClose')?.addEventListener('click', () => this.closeActionsModal());
       $('intActionsModal')?.addEventListener('click', (e) => {
         if (e.target.id === 'intActionsModal') this.closeActionsModal();
       });
-      // Toggles instantâneos
-      $('actToggleLida')?.addEventListener('change', (e) => this._actionsToggle('lida', e.target.checked));
-      $('actToggleFav')?.addEventListener('change',  (e) => this._actionsToggle('favorita', e.target.checked));
-      // Botões
-      $('actBtnSalvarPrazo')?.addEventListener('click',    () => this._actionsSalvarPrazo());
-      $('actBtnLimparPrazo')?.addEventListener('click',    () => this._actionsSalvarPrazo(true));
-      $('actBtnSalvarComentario')?.addEventListener('click', () => this._actionsSalvarComentario());
-      $('actBtnDesvincular')?.addEventListener('click',    () => this._actionsDesvincular());
-      $('actBtnCriarTarefa')?.addEventListener('click',    () => this._actionsCriarTarefa());
-      // Autocomplete de processo
-      $('actBuscaProcesso')?.addEventListener('input', (e) => this._actionsBuscaProcesso(e.target.value));
+      $('actBtnDesvincular')?.addEventListener('click', () => this._actionsDesvincular());
+      $('actBtnCriarPrazo')?.addEventListener('click',  () => this._actionsCriarPrazo());
+      // Filtro live da lista de processos. Debounce 250ms pra não martelar o backend.
+      let _actBuscaT = null;
+      $('actBuscaProcesso')?.addEventListener('input', (e) => {
+        clearTimeout(_actBuscaT);
+        const v = e.target.value;
+        _actBuscaT = setTimeout(() => this._actionsLoadProcessos(v), 250);
+      });
     },
 
     // ────────────────────────────────────────────────────────────────────────
@@ -1016,7 +1014,7 @@
                     style="${hasComment ? 'color:#93c5fd;' : ''}">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             </button>
-            <button class="int-icon-btn" title="Vincular ao processo + criar tarefa (auto-link nas próximas)"
+            <button class="int-icon-btn" title="Vincular ao processo + criar prazo (auto-link nas próximas)"
                     data-action="open-actions" data-hash="${esc(it.hash_conteudo)}" ${eventIdAttr}
                     style="${hasLink ? 'color:#a78bfa;background:rgba(167,139,250,.15);border-color:rgba(167,139,250,.4);' : ''}">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
@@ -1966,18 +1964,19 @@
     },
 
     // ────────────────────────────────────────────────────────────────────────
-    // MODAL DE AÇÕES UNIFICADO (substitui os 5 ícones por 1)
+    // MODAL DE AÇÕES — 2 etapas: (1) vincular processo  →  (2) criar prazo
     // ────────────────────────────────────────────────────────────────────────
 
-    /** Contexto do item aberto no modal — guardado pra cada ação saber qual é. */
     _actionsCtx: { item: null, eventId: null },
 
-    /** Abre o modal pré-popula com dados do item. */
+    /**
+     * Abre o modal preenchendo o resumo + carregando a lista de processos do
+     * tenant. Se a intimação já está vinculada, libera direto a etapa 2.
+     */
     async openActionsModal(item, eventId) {
       const $ = (id) => document.getElementById(id);
       this._actionsCtx = { item, eventId };
 
-      // Sumário compacto da intimação
       const procMask = item.numero_processo_mascara || item.numero_processo || '—';
       $('intActionsSummary').innerHTML = `
         <strong>${this._esc(item.tribunal || '?')}</strong> · ${this._esc(item.tipo_comunicacao || 'Intimação')} ·
@@ -1985,136 +1984,97 @@
         <span style="color:#9CA3AF;">${this._esc(item.orgao || '—')} · Disponibilizado em ${this.fmtData(item.data_disponibilizacao || '')}</span>
       `;
 
-      // Vínculo de processo: status atual
-      const statusEl = $('actVinculoStatus');
-      const btnDesv  = $('actBtnDesvincular');
-      if (item.processo_id) {
-        statusEl.innerHTML = `<span style="color:#34D399;">✓ Vinculado ao processo #${item.processo_id}</span> — buscar abaixo pra trocar`;
-        btnDesv.style.display = '';
-      } else {
-        statusEl.innerHTML = `<span style="color:#7A8898;">Sem vínculo — busque um processo abaixo:</span>`;
-        btnDesv.style.display = 'none';
-      }
+      // Reset etapa 1
       $('actBuscaProcesso').value = '';
-      $('actSugProcessos').innerHTML = '';
+      $('actListaProcessos').innerHTML = '<div style="padding:14px;color:#7A8898;font-size:.78rem;text-align:center;">Carregando processos…</div>';
 
-      // Criar tarefa: pre-popula título + descrição
-      const tituloSugerido = `Intimação ${item.tribunal || ''} — ${procMask}`.trim();
-      const descSugerida = `Órgão: ${item.orgao || '—'}\nTipo: ${item.tipo_comunicacao || '—'}\nData: ${this.fmtData(item.data_disponibilizacao || '')}\n\n${(item.resumo || item.conteudo || '').slice(0, 1000)}`;
-      $('actTaskTitulo').value    = tituloSugerido;
-      $('actTaskDescricao').value = descSugerida;
-      $('actTaskPrazo').value     = '';
+      // Reset etapa 2 — fresh por item aberto (evita vazar campos entre intimações diferentes)
+      $('actPrazoDescricao').value   = '';
+      $('actPrazoDataLimite').value  = '';
+      $('actPrazoPrioridade').value  = 'media';
+      $('actPrazoResponsavel').value = '';
+      $('actPrazoObservacao').value  = '';
 
-      // Load users do tenant pro select de responsável (lazy + cache)
-      if (!this._usersTenantCache) {
-        try {
-          const data = await this.api('GET', '/users.php');
-          this._usersTenantCache = (data.ok && data.users) ? data.users : [];
-        } catch (_) { this._usersTenantCache = []; }
+      if (item.processo_id) {
+        $('actVinculoStatus').innerHTML =
+          `<span style="color:#34D399;">✓ Já vinculado ao processo #${item.processo_id}</span> — busque abaixo se quiser trocar`;
+        $('actBtnDesvincular').style.display = '';
+        this._actionsShowStep2(item);
+      } else {
+        $('actVinculoStatus').innerHTML =
+          `<span style="color:#7A8898;">Sem vínculo — escolha um processo da lista abaixo pra liberar a etapa 2:</span>`;
+        $('actBtnDesvincular').style.display = 'none';
+        $('actStep2Prazo').style.display = 'none';
       }
-      const sel = $('actTaskResponsavel');
-      const myId = this.accountId; // not really user_id, mas vamos default no 1º
-      sel.innerHTML = this._usersTenantCache.map(u =>
-        `<option value="${u.id}">${this._esc(u.nome)}${u.email ? ' (' + this._esc(u.email) + ')' : ''}</option>`
-      ).join('');
 
       $('intActionsModal').classList.add('show');
+
+      // Lista inicial dos últimos N processos do tenant (q vazio)
+      this._actionsLoadProcessos('');
     },
 
     closeActionsModal() {
       document.getElementById('intActionsModal')?.classList.remove('show');
     },
 
-    /** Toggle lida/favorita instantâneo (sem botão Salvar). */
-    async _actionsToggle(campo, novoValor) {
-      const ctx = this._actionsCtx;
-      if (!ctx.item) return;
-      const action = campo === 'lida'
-        ? (novoValor ? 'read' : 'unread')
-        : 'favorite';  // favorita é toggle
+    /**
+     * Mostra a etapa 2 (criar prazo) já com pré-população útil:
+     * descrição = resumo da intimação; responsável = nome do user logado.
+     * Só pré-popula se campo estiver vazio (não sobrescreve edição do user).
+     */
+    _actionsShowStep2(item) {
+      const $ = (id) => document.getElementById(id);
+      const step = $('actStep2Prazo');
+      if (!step) return;
+      step.style.display = '';
+
+      const desc = $('actPrazoDescricao');
+      if (desc && !desc.value) {
+        const base = item.resumo || item.tipo_comunicacao || 'Prazo da intimação';
+        desc.value = String(base).slice(0, 200);
+      }
+      const resp = $('actPrazoResponsavel');
+      if (resp && !resp.value) {
+        const p = this.userProfile || {};
+        resp.value = p.nome_advogado || p.nome || '';
+      }
+
+      setTimeout(() => step.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+    },
+
+    /**
+     * Carrega processos do tenant em #actListaProcessos. termo vazio → últimos N
+     * (lista inicial); termo 2+ chars → busca filtrada server-side.
+     */
+    async _actionsLoadProcessos(termo) {
+      const list = document.getElementById('actListaProcessos');
+      if (!list) return;
+      const q = (termo || '').trim();
       try {
-        const data = await this.api('POST', '/persist.php', {
-          action, event_id: ctx.eventId || undefined, payload: ctx.item,
-        });
+        const url = '/search_processos.php?q=' + encodeURIComponent(q) + '&limit=30';
+        const data = await this.api('GET', url);
         if (!data.ok) throw new Error(data.error || 'Erro');
-        // Sync state local
-        if (campo === 'lida')     ctx.item.lida     = novoValor ? 1 : 0;
-        if (campo === 'favorita') ctx.item.favorita = data.favorita ? 1 : 0;
-        if (data.event_id) ctx.eventId = data.event_id;
-        this.notify(campo === 'lida'
-          ? (novoValor ? 'Marcada como lida.' : 'Marcada como não lida.')
-          : (ctx.item.favorita ? 'Favoritada.' : 'Removida dos favoritos.'),
-          'success');
-        this.refreshKpi();
-        // Re-render card no feed
-        await this.loadPersistidos();
-      } catch (err) {
-        this.notify('Erro: ' + err.message, 'error');
-      }
-    },
-
-    async _actionsSalvarPrazo(limpar = false) {
-      const ctx = this._actionsCtx;
-      const data = limpar ? null : (document.getElementById('actPrazoData').value || null);
-      try {
-        const r = await this.api('POST', '/persist.php', {
-          action: 'deadline',
-          event_id: ctx.eventId || undefined,
-          payload: ctx.item,
-          extra: { data },
-        });
-        if (!r.ok) throw new Error(r.error || 'Erro');
-        if (r.event_id) ctx.eventId = r.event_id;
-        ctx.item.prazo_data = data;
-        ctx.item.com_prazo  = data ? 1 : 0;
-        this.notify(limpar ? 'Prazo removido.' : `Prazo definido: ${this.fmtData(data)}`, 'success');
-        await this.loadPersistidos();
-      } catch (err) {
-        this.notify('Erro: ' + err.message, 'error');
-      }
-    },
-
-    async _actionsSalvarComentario() {
-      const ctx = this._actionsCtx;
-      const texto = document.getElementById('actComentario').value.trim();
-      try {
-        const r = await this.api('POST', '/persist.php', {
-          action: 'comment',
-          event_id: ctx.eventId || undefined,
-          payload: ctx.item,
-          extra: { texto },
-        });
-        if (!r.ok) throw new Error(r.error || 'Erro');
-        if (r.event_id) ctx.eventId = r.event_id;
-        ctx.item.comentario = texto;
-        this.notify(texto ? 'Comentário salvo.' : 'Comentário removido.', 'success');
-        await this.loadPersistidos();
-      } catch (err) {
-        this.notify('Erro: ' + err.message, 'error');
-      }
-    },
-
-    async _actionsBuscaProcesso(termo) {
-      const sug = document.getElementById('actSugProcessos');
-      if (!termo || termo.length < 3) { sug.innerHTML = ''; return; }
-      try {
-        const data = await this.api('GET', '/search_processos.php?q=' + encodeURIComponent(termo) + '&limit=8');
-        if (!data.ok || !data.processos || !data.processos.length) {
-          sug.innerHTML = '<div style="padding:8px;color:#7A8898;font-size:.75rem;">Nenhum processo encontrado.</div>';
+        const items = data.items || [];
+        if (!items.length) {
+          list.innerHTML = `<div style="padding:14px;color:#7A8898;font-size:.78rem;text-align:center;">${q ? 'Nenhum processo bate com a busca.' : 'Nenhum processo cadastrado neste workspace.'}</div>`;
           return;
         }
-        sug.innerHTML = data.processos.map(p =>
-          `<div class="act-proc-sug" data-proc-id="${p.id}" data-proc-label="${this._esc(p.numero_cnj || p.numero || '#' + p.id)}"
-                style="padding:8px 10px;cursor:pointer;font-size:.78rem;border-bottom:1px solid rgba(96,165,250,.1);background:rgba(8,20,40,.4);">
-            <strong>${this._esc(p.numero_cnj || p.numero || '#' + p.id)}</strong>
-            ${p.descricao ? ' — ' + this._esc(p.descricao.slice(0, 60)) : ''}
-          </div>`
-        ).join('');
-        sug.querySelectorAll('.act-proc-sug').forEach(el => {
-          el.addEventListener('click', () => this._actionsVincular(parseInt(el.dataset.procId, 10), el.dataset.procLabel));
+        list.innerHTML = items.map(p => `
+          <div class="act-proc-row" data-proc-id="${p.id}" data-proc-label="${this._esc(p.label)}"
+               style="padding:9px 11px;cursor:pointer;border-bottom:1px solid rgba(96,165,250,.1);transition:background .15s;">
+            <div style="font-size:.82rem;color:#dbeafe;font-weight:600;">${this._esc(p.label)}</div>
+            ${p.sublabel ? `<div style="font-size:.72rem;color:#7A8898;margin-top:2px;">${this._esc(p.sublabel)}</div>` : ''}
+          </div>
+        `).join('');
+        list.querySelectorAll('.act-proc-row').forEach(row => {
+          row.addEventListener('mouseenter', () => { row.style.background = 'rgba(96,165,250,.12)'; });
+          row.addEventListener('mouseleave', () => { row.style.background = ''; });
+          row.addEventListener('click', () => {
+            this._actionsVincular(parseInt(row.dataset.procId, 10), row.dataset.procLabel);
+          });
         });
       } catch (err) {
-        sug.innerHTML = `<div style="padding:8px;color:#F87171;font-size:.75rem;">Erro: ${this._esc(err.message)}</div>`;
+        list.innerHTML = `<div style="padding:14px;color:#F87171;font-size:.78rem;text-align:center;">Erro: ${this._esc(err.message)}</div>`;
       }
     },
 
@@ -2133,15 +2093,13 @@
         const retro = r.retroativo_aplicado || 0;
         this.notify(
           `Vinculado a ${label}.${retro > 0 ? ' Aplicado retroativamente em ' + retro + ' intimações antigas.' : ''} ` +
-          'Próximas com mesmo número serão auto-vinculadas.',
+          'Próximas com mesmo CNJ serão auto-vinculadas.',
           'success'
         );
-        // Atualiza modal
         document.getElementById('actVinculoStatus').innerHTML =
           `<span style="color:#34D399;">✓ Vinculado a ${this._esc(label)} (#${processoId})</span>`;
         document.getElementById('actBtnDesvincular').style.display = '';
-        document.getElementById('actSugProcessos').innerHTML = '';
-        document.getElementById('actBuscaProcesso').value = '';
+        this._actionsShowStep2(ctx.item);
         await this.loadPersistidos();
       } catch (err) {
         this.notify('Erro ao vincular: ' + err.message, 'error');
@@ -2160,32 +2118,62 @@
         if (!r.ok) throw new Error(r.error || 'Erro');
         ctx.item.processo_id = null;
         this.notify('Vínculo removido. Auto-link futuro desativado.', 'success');
-        document.getElementById('actVinculoStatus').innerHTML = `<span style="color:#7A8898;">Sem vínculo</span>`;
+        document.getElementById('actVinculoStatus').innerHTML =
+          `<span style="color:#7A8898;">Sem vínculo — escolha um processo da lista abaixo pra liberar a etapa 2:</span>`;
         document.getElementById('actBtnDesvincular').style.display = 'none';
+        // Sem vínculo, não dá pra criar prazo — esconde etapa 2
+        document.getElementById('actStep2Prazo').style.display = 'none';
         await this.loadPersistidos();
       } catch (err) {
         this.notify('Erro: ' + err.message, 'error');
       }
     },
 
-    async _actionsCriarTarefa() {
+    /**
+     * Cria prazo processual no processo já vinculado. Vai pra processo_prazos
+     * (aparece em Processos → aba Prazos), NÃO no kanban de tarefas.
+     */
+    async _actionsCriarPrazo() {
       const ctx = this._actionsCtx;
-      const titulo     = document.getElementById('actTaskTitulo').value.trim();
-      const descricao  = document.getElementById('actTaskDescricao').value.trim();
-      const prazoData  = document.getElementById('actTaskPrazo').value;
-      const respId     = parseInt(document.getElementById('actTaskResponsavel').value, 10);
-      if (!titulo) { this.notify('Título obrigatório.', 'warn'); return; }
+      if (!ctx.item || !ctx.item.processo_id) {
+        this.notify('Vincule a intimação a um processo antes de criar o prazo.', 'warn');
+        return;
+      }
+      const $ = (id) => document.getElementById(id);
+      const descricao   = $('actPrazoDescricao')?.value.trim() || '';
+      const dataLimite  = $('actPrazoDataLimite')?.value || '';
+      const prioridade  = $('actPrazoPrioridade')?.value || 'media';
+      const responsavel = $('actPrazoResponsavel')?.value.trim() || '';
+      const observacao  = $('actPrazoObservacao')?.value.trim() || '';
+
+      if (!descricao)  { this.notify('Descrição do prazo é obrigatória.', 'warn'); return; }
+      if (!dataLimite) { this.notify('Data limite é obrigatória.', 'warn'); return; }
+
+      const btn = $('actBtnCriarPrazo');
+      if (btn) btn.disabled = true;
       try {
         const r = await this.api('POST', '/persist.php', {
-          action: 'create_task',
+          action: 'create_prazo',
           event_id: ctx.eventId || undefined,
           payload: ctx.item,
-          extra: { titulo, descricao, prazo_data: prazoData, responsavel_id: respId },
+          extra: {
+            descricao,
+            data_limite: dataLimite,
+            prioridade,
+            responsavel,
+            observacao,
+          },
         });
         if (!r.ok) throw new Error(r.error || 'Erro');
-        this.notify(`Tarefa criada (#${r.task_id}). Visível em /tarefas.`, 'success');
+        this.notify(
+          `Prazo processual criado no processo #${ctx.item.processo_id}${r.prazo_id ? ' (prazo #' + r.prazo_id + ')' : ''}.`,
+          'success'
+        );
+        this.closeActionsModal();
       } catch (err) {
-        this.notify('Erro ao criar tarefa: ' + err.message, 'error');
+        this.notify('Erro ao criar prazo: ' + err.message, 'error');
+      } finally {
+        if (btn) btn.disabled = false;
       }
     },
 

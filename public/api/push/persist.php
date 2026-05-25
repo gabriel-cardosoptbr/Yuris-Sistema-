@@ -68,7 +68,7 @@ try {
 
     $action = trim((string)($payload['action'] ?? ''));
     $extra  = is_array($payload['extra'] ?? null) ? $payload['extra'] : [];
-    $allowedActions = ['read','unread','favorite','deadline','comment','link_process','unlink_process','create_task'];
+    $allowedActions = ['read','unread','favorite','deadline','comment','link_process','unlink_process','create_task','create_prazo'];
     if (!in_array($action, $allowedActions, true)) {
         http_response_code(400);
         echo json_encode(['error' => 'Ação inválida. Use: ' . implode(', ', $allowedActions)]);
@@ -318,6 +318,87 @@ try {
             $resultado['task_id']        = $taskId;
             $resultado['task_board_id']  = $boardId;
             $resultado['responsavel_id'] = $respId;
+            break;
+
+        case 'create_prazo':
+            // Cria prazo processual em processo_prazos (não kanban tasks).
+            // Requer que a intimação esteja vinculada a um processo (processo_id obrigatório).
+            // extra: { descricao, data_limite (Y-m-d), responsavel (nome string), prioridade (baixa|media|alta), observacao }
+            $ev = \App\Models\PushEvent::findByIdForAccount($eventId, $accountId);
+            if (!$ev) {
+                http_response_code(404);
+                echo json_encode(['error' => 'Evento não encontrado']);
+                exit;
+            }
+            $procId = (int)($ev['processo_id'] ?? 0);
+            if ($procId <= 0) {
+                http_response_code(409);
+                echo json_encode(['error' => 'Intimação precisa estar vinculada a um processo. Vincule primeiro.']);
+                exit;
+            }
+            // Confirma que o processo pertence ao tenant
+            $pdo = Database::getConnection();
+            $stProc = $pdo->prepare('SELECT id FROM processos WHERE id = :id AND account_id = :acc LIMIT 1');
+            $stProc->execute(['id' => $procId, 'acc' => $accountId]);
+            if (!$stProc->fetchColumn()) {
+                http_response_code(403);
+                echo json_encode(['error' => 'Processo não pertence a esta conta']);
+                exit;
+            }
+
+            $descricao = trim((string)($extra['descricao'] ?? ''));
+            if ($descricao === '') {
+                $descricao = ($ev['tipo_comunicacao'] ?? 'Intimação') . ' — '
+                           . ($ev['orgao'] ?? '') . ' ('
+                           . ($ev['tribunal'] ?? '') . ')';
+            }
+            $dataLim = isset($extra['data_limite']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $extra['data_limite'])
+                ? $extra['data_limite'] : null;
+            $respNome = trim((string)($extra['responsavel'] ?? ''));
+            if ($respNome === '') {
+                // Default: nome do user logado
+                $st = $pdo->prepare('SELECT nome FROM users WHERE id = :u LIMIT 1');
+                $st->execute(['u' => $userId]);
+                $respNome = (string)($st->fetchColumn() ?: 'Sem responsável');
+            }
+            $prioridade = in_array($extra['prioridade'] ?? '', ['baixa','media','alta'], true)
+                ? $extra['prioridade'] : 'alta';
+            // Observação: anexa origem (push_event_id) pra rastreabilidade
+            $observacao = trim((string)($extra['observacao'] ?? ''));
+            $obsExtra = "Origem: intimação automática (push_event_id={$eventId})";
+            $observacao = $observacao !== '' ? $observacao . "\n\n" . $obsExtra : $obsExtra;
+
+            // Garante que processo_prazos existe (idempotente — endpoint /api/processo_prazos.php já cria)
+            $pdo->exec("CREATE TABLE IF NOT EXISTS processo_prazos (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                processo_id INT NOT NULL,
+                descricao VARCHAR(255) NOT NULL,
+                data_limite DATE,
+                responsavel VARCHAR(150),
+                status ENUM('pendente','concluido','vencido') DEFAULT 'pendente',
+                prioridade ENUM('baixa','media','alta') DEFAULT 'media',
+                observacao TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX(processo_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+            $stmt = $pdo->prepare(
+                'INSERT INTO processo_prazos
+                   (processo_id, descricao, data_limite, responsavel, status, prioridade, observacao)
+                 VALUES
+                   (:p, :d, :dl, :r, "pendente", :pr, :o)'
+            );
+            $stmt->execute([
+                'p'  => $procId,
+                'd'  => mb_substr($descricao, 0, 255),
+                'dl' => $dataLim,
+                'r'  => mb_substr($respNome, 0, 150),
+                'pr' => $prioridade,
+                'o'  => $observacao,
+            ]);
+            $resultado['prazo_id']    = (int)$pdo->lastInsertId();
+            $resultado['processo_id'] = $procId;
             break;
     }
 

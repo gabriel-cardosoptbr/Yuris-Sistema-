@@ -828,51 +828,67 @@ $kpiNaoLidas  = PushEventUserStatus::countNaoLidas($userId, $accountId);
     <span class="int-modal-close" id="intActionsClose" title="Fechar">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </span>
-    <h2>Vincular processo + criar tarefa</h2>
+    <h2>Vincular processo + criar prazo</h2>
     <div id="intActionsSummary" style="font-size:.82rem;color:#7A8898;margin-bottom:14px;padding:8px 11px;background:rgba(15,33,60,.4);border-radius:7px;border-left:3px solid rgba(96,165,250,.4);"></div>
 
-    <!-- Seção: Vincular ao processo -->
-    <div class="int-actions-section">
-      <h4>Vincular ao processo do CRM</h4>
+    <!-- ETAPA 1: Vincular ao processo -->
+    <div class="int-actions-section" id="actStep1Vincular">
+      <h4>1. Vincular ao processo do CRM</h4>
       <div id="actVinculoStatus" style="font-size:.78rem;margin-bottom:8px;"></div>
-      <div style="display:flex;gap:8px;align-items:center;position:relative;">
-        <input type="text" id="actBuscaProcesso" placeholder="Buscar por número CNJ ou descrição..." style="flex:1;padding:8px 10px;background:rgba(8,20,40,.6);border:1px solid rgba(96,165,250,.2);border-radius:7px;color:#dbeafe;font-size:.82rem;" autocomplete="off">
-        <button class="int-btn" id="actBtnDesvincular" style="background:rgba(176,96,112,.15);border-color:rgba(176,96,112,.3);color:#f87171;display:none;">Desvincular</button>
+
+      <!-- Search inline (filtra a lista abaixo) -->
+      <input type="text" id="actBuscaProcesso" placeholder="🔍 Buscar por número CNJ, descrição, autor ou réu..." style="width:100%;padding:8px 10px;background:rgba(8,20,40,.6);border:1px solid rgba(96,165,250,.2);border-radius:7px;color:#dbeafe;font-size:.82rem;margin-bottom:8px;" autocomplete="off">
+
+      <!-- Lista de processos (sempre visível, scrollable) -->
+      <div id="actListaProcessos" style="max-height:240px;overflow-y:auto;border:1px solid rgba(96,165,250,.18);border-radius:7px;background:rgba(8,20,40,.4);"></div>
+
+      <div style="display:flex;justify-content:space-between;margin-top:8px;align-items:center;">
+        <p style="font-size:.7rem;color:#7A8898;line-height:1.4;margin:0;flex:1;">
+          <strong>💡 Auto-link:</strong> próximas intimações com mesmo CNJ vinculadas automaticamente.
+        </p>
+        <button class="int-btn" id="actBtnDesvincular" style="background:rgba(176,96,112,.15);border-color:rgba(176,96,112,.3);color:#f87171;display:none;margin-left:8px;">Desvincular</button>
       </div>
-      <div id="actSugProcessos" style="position:relative;margin-top:2px;"></div>
-      <p style="font-size:.7rem;color:#7A8898;margin-top:6px;line-height:1.4;">
-        <strong>💡 Auto-link:</strong> ao vincular este processo, todas as <strong>próximas intimações</strong> com o mesmo número CNJ serão automaticamente vinculadas. Também aplicamos retroativamente a intimações passadas.
-      </p>
     </div>
 
-    <!-- Seção: Criar tarefa -->
-    <div class="int-actions-section">
-      <h4>Criar tarefa pra esta intimação</h4>
+    <!-- ETAPA 2: Criar prazo processual (só aparece após vincular) -->
+    <div class="int-actions-section" id="actStep2Prazo" style="display:none;">
+      <h4>2. Criar prazo processual</h4>
+      <p style="font-size:.72rem;color:#7A8898;margin:0 0 10px;">
+        O prazo aparecerá em <strong>Processos &rarr; aba Prazos</strong> do processo vinculado.
+      </p>
       <div class="int-mon-form" style="grid-template-columns:1fr;">
         <div>
-          <label>Título da tarefa</label>
-          <input type="text" id="actTaskTitulo" style="font-size:.85rem;">
+          <label>Descrição do prazo</label>
+          <input type="text" id="actPrazoDescricao" style="font-size:.85rem;" placeholder="ex: Apresentar contrarrazões em 15 dias">
+        </div>
+      </div>
+      <div class="int-mon-form" style="grid-template-columns:1fr 1fr 1fr;margin-top:6px;">
+        <div>
+          <label>Data limite</label>
+          <input type="date" id="actPrazoDataLimite" style="font-size:.85rem;">
+        </div>
+        <div>
+          <label>Prioridade</label>
+          <select id="actPrazoPrioridade" style="font-size:.85rem;">
+            <option value="alta">Alta</option>
+            <option value="media">Média</option>
+            <option value="baixa">Baixa</option>
+          </select>
+        </div>
+        <div>
+          <label>Responsável</label>
+          <input type="text" id="actPrazoResponsavel" style="font-size:.85rem;" placeholder="Nome do advogado">
         </div>
       </div>
       <div class="int-mon-form" style="grid-template-columns:1fr;margin-top:6px;">
         <div>
-          <label>Descrição</label>
-          <textarea id="actTaskDescricao" rows="4" style="width:100%;padding:8px 10px;background:rgba(8,20,40,.6);border:1px solid rgba(96,165,250,.2);border-radius:7px;color:#dbeafe;font-size:.82rem;resize:vertical;"></textarea>
+          <label>Observação (opcional)</label>
+          <textarea id="actPrazoObservacao" rows="3" style="width:100%;padding:8px 10px;background:rgba(8,20,40,.6);border:1px solid rgba(96,165,250,.2);border-radius:7px;color:#dbeafe;font-size:.82rem;resize:vertical;" placeholder="Detalhes adicionais (origem, link ao documento, etc.)"></textarea>
         </div>
       </div>
-      <div class="int-mon-form" style="grid-template-columns:1fr 1fr;margin-top:6px;">
-        <div>
-          <label>Prazo (opcional)</label>
-          <input type="date" id="actTaskPrazo" style="font-size:.85rem;">
-        </div>
-        <div>
-          <label>Responsável</label>
-          <select id="actTaskResponsavel" style="font-size:.85rem;"></select>
-        </div>
-      </div>
-      <button class="int-btn primary" id="actBtnCriarTarefa" style="margin-top:8px;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>
-        Criar tarefa
+      <button class="int-btn primary" id="actBtnCriarPrazo" style="margin-top:10px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Criar prazo processual
       </button>
     </div>
 

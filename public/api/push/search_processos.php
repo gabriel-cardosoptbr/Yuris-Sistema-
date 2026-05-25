@@ -43,10 +43,8 @@ try {
     $q     = trim((string)($_GET['q'] ?? ''));
     $limit = max(1, min(50, (int)($_GET['limit'] ?? 10)));
 
-    if (mb_strlen($q) < 2) {
-        echo json_encode(['ok' => true, 'items' => [], 'msg' => 'Digite ao menos 2 caracteres']);
-        exit;
-    }
+    // q vazio → retorna últimos N processos (modo "lista inicial" pra UI de vincular).
+    // q com 2+ chars → busca filtrada (modo autocomplete).
 
     $pdo = Database::getConnection();
 
@@ -67,23 +65,26 @@ try {
     $where  = ['p.account_id = :acc'];
     $params = ['acc' => $accountId];
 
-    $orClauses = [];
-    if ($isNumero && $numLimpo !== '') {
-        foreach (['numero_cnj','numero_processo','numero'] as $c) {
+    // Filtro opcional: só aplica se q tiver pelo menos 2 chars
+    if (mb_strlen($q) >= 2) {
+        $orClauses = [];
+        if ($isNumero && $numLimpo !== '') {
+            foreach (['numero_cnj','numero_processo','numero'] as $c) {
+                if (isset($colsSet[$c])) {
+                    $orClauses[] = "REPLACE(REPLACE(REPLACE(p.{$c},'-',''),'.',''),'/','') LIKE :nl";
+                }
+            }
+            $params['nl'] = '%' . $numLimpo . '%';
+        }
+        foreach (['numero_cnj','numero_processo','numero','descricao','titulo','autor','reu'] as $c) {
             if (isset($colsSet[$c])) {
-                $orClauses[] = "REPLACE(REPLACE(REPLACE(p.{$c},'-',''),'.',''),'/','') LIKE :nl";
+                $orClauses[] = "p.{$c} LIKE :lk";
             }
         }
-        $params['nl'] = '%' . $numLimpo . '%';
-    }
-    foreach (['numero_cnj','numero_processo','numero','descricao','titulo','autor','reu'] as $c) {
-        if (isset($colsSet[$c])) {
-            $orClauses[] = "p.{$c} LIKE :lk";
+        if ($orClauses) {
+            $where[] = '(' . implode(' OR ', $orClauses) . ')';
+            $params['lk'] = $like;
         }
-    }
-    if ($orClauses) {
-        $where[] = '(' . implode(' OR ', $orClauses) . ')';
-        $params['lk'] = $like;
     }
 
     $sql = 'SELECT ' . implode(', ', $selectCols)
