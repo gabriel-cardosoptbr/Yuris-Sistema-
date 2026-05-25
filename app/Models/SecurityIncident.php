@@ -129,6 +129,26 @@ final class SecurityIncident
             null, 'detectado'
         );
 
+        // Webhook: security.incident_created (etapa 10/11)
+        try {
+            require_once __DIR__ . '/../Services/WebhookDispatcher.php';
+            \App\Services\WebhookDispatcher::fire(
+                isset($data['account_id']) ? (int)$data['account_id'] : null,
+                'security.incident_created',
+                \App\Services\WebhookDispatcher::buildPayload('security.incident_created', [
+                    'entity'    => 'security_incident',
+                    'entity_id' => $id,
+                    'data'      => [
+                        'id'         => $id,
+                        'tipo'       => $tipo,
+                        'severidade' => $severidade,
+                        'status'     => 'detectado',
+                        'titulo'     => $titulo,
+                    ],
+                ])
+            );
+        } catch (\Throwable $_) { /* fail silently */ }
+
         return $id;
     }
 

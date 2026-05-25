@@ -86,7 +86,32 @@ final class Consent
             'ua'   => $ua,
             'ev'   => $ev,
         ]);
-        return (int)$pdo->lastInsertId();
+        $newId = (int)$pdo->lastInsertId();
+
+        // Webhook: lgpd.consent_given (etapa 10/11) — somente em INSERT novo;
+        // re-grant idempotente (caminho `existing`) acima ja retornou sem chegar aqui.
+        try {
+            require_once __DIR__ . '/../Services/WebhookDispatcher.php';
+            $isTerms = ($finalidade === 'termos_uso_login');
+            $eventCode = $isTerms ? 'lgpd.terms_accepted' : 'lgpd.consent_given';
+            \App\Services\WebhookDispatcher::fire(
+                isset($data['account_id']) ? (int)$data['account_id'] : null,
+                $eventCode,
+                \App\Services\WebhookDispatcher::buildPayload($eventCode, [
+                    'entity'    => 'lgpd_consent',
+                    'entity_id' => $newId,
+                    'data'      => [
+                        'id'             => $newId,
+                        'finalidade'     => $finalidade,
+                        'base_legal'     => $baseLegal,
+                        'fonte'          => $data['fonte'] ?? null,
+                        'titular_email'  => $data['titular_email'] ?? null,
+                    ],
+                ])
+            );
+        } catch (\Throwable $_) { /* fail silently — consent nao pode quebrar */ }
+
+        return $newId;
     }
 
     /**

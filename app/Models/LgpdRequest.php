@@ -85,6 +85,25 @@ final class LgpdRequest
         // Evento "criado"
         self::addEvent($id, 'criado', "Solicitação aberta pelo titular ({$email})", null);
 
+        // Webhook: lgpd.request_created (etapa 10/11)
+        try {
+            require_once __DIR__ . '/../Services/WebhookDispatcher.php';
+            \App\Services\WebhookDispatcher::fire(
+                isset($data['account_id']) ? (int)$data['account_id'] : null,
+                'lgpd.request_created',
+                \App\Services\WebhookDispatcher::buildPayload('lgpd.request_created', [
+                    'entity'    => 'lgpd_request',
+                    'entity_id' => $id,
+                    'data'      => [
+                        'id'             => $id,
+                        'tipo'           => $tipo,
+                        'status'         => 'aberto',
+                        'titular_email'  => $email, // PayloadMasker mascara conforme payload_mode
+                    ],
+                ])
+            );
+        } catch (\Throwable $_) { /* fail silently — webhook nao pode bloquear LGPD */ }
+
         return ['id' => $id, 'token' => $token];
     }
 
