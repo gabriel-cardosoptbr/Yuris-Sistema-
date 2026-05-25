@@ -257,7 +257,112 @@
 .sidebar nav a.active .icon { opacity: 1 !important; }
 .sidebar nav a.active .icon svg { stroke: #A8BDD4; }
 
-/* ── Sair — card flutuante independente ── */
+/* ── Visão Geral (link direto, fora dos grupos) — iguala altura/peso aos toggles ── */
+.sidebar nav a.sidebar-overview-link {
+  font-size: .82rem !important;
+  gap: 10px !important;
+}
+.sidebar nav a.sidebar-overview-link .label {
+  font-size: .82rem !important;
+}
+.sidebar nav a.sidebar-overview-link .icon,
+.sidebar nav a.sidebar-overview-link .icon svg {
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+}
+
+/* ══════════════════════════════════
+   SIDEBAR — Grupos colapsáveis
+   Visual: o título da seção É UM CARD clicável (mesmo visual dos items),
+   com chevron à direita indicando expandir/recolher. Clique = toggle.
+   Items abaixo aparecem como cards levemente recuados.
+   !important em tudo crítico porque sidebar.css concorre com yuris-theme.css.
+   ══════════════════════════════════ */
+
+.sidebar-nav-grouped {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+.sidebar-group { display: flex !important; flex-direction: column !important; gap: 4px !important; }
+
+/* Toggle = card clicável (mesmo visual de .sidebar nav a) */
+.sidebar-group-toggle {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 11px !important;
+  width: 100% !important;
+  padding: 10px 13px !important;
+  border-radius: 11px !important;
+  background: rgba(30,58,95,0.22) !important;
+  border: 1px solid rgba(191,199,213,0.12) !important;
+  color: #8A96A8 !important;
+  font-size: .82rem !important;
+  font-weight: 600 !important;
+  font-family: inherit !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  line-height: 1.4 !important;
+  white-space: nowrap !important;
+  transition: background .15s, color .15s, border-color .15s !important;
+  box-sizing: border-box !important;
+}
+.sidebar-group-toggle:hover {
+  background: rgba(20,50,90,0.45) !important;
+  color: #BFC7D5 !important;
+  border-color: rgba(191,199,213,0.25) !important;
+}
+.sidebar-group-toggle:focus-visible { outline: 2px solid #60a5fa !important; outline-offset: 1px !important; }
+.sidebar-group.has-active .sidebar-group-toggle {
+  color: #A8BDD4 !important;
+  border-color: rgba(168,189,212,0.25) !important;
+}
+
+.sidebar-group-label { flex: 1 !important; min-width: 0 !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+
+.sidebar-group-chevron {
+  width: 12px !important;
+  height: 12px !important;
+  min-width: 12px !important;
+  flex-shrink: 0 !important;
+  opacity: .55 !important;
+  transition: transform .2s ease, opacity .15s ease !important;
+  stroke: currentColor !important;
+  display: block !important;
+}
+.sidebar-group-toggle:hover .sidebar-group-chevron { opacity: 1 !important; }
+.sidebar-group.open .sidebar-group-chevron { transform: rotate(90deg) !important; opacity: 1 !important; }
+
+/* Container dos items — colapsa via max-height. Recuo leve à esquerda pra hierarquia. */
+.sidebar-group-items {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  padding-left: 10px !important;
+  overflow: hidden !important;
+  max-height: 0 !important;
+  margin-top: 0 !important;
+  transition: max-height .25s ease, margin-top .25s ease !important;
+}
+.sidebar-group.open .sidebar-group-items {
+  max-height: 500px !important;
+  margin-top: 2px !important;
+}
+
+/* Items dentro herdam .sidebar nav a (mesmo visual de card existente). */
+
+/* Sair: hover vermelho discreto pra sinalizar ação destrutiva. */
+.sidebar nav a.is-logout:hover {
+  background: rgba(139,38,53,0.18) !important;
+  color: #C07080 !important;
+  border-color: rgba(139,38,53,0.30) !important;
+}
+.sidebar nav a.is-logout:hover .icon svg { stroke: #C07080 !important; }
+
+/* ── Sair — card flutuante independente (legado, sem uso após sidebar agrupada) ── */
 .sidebar-logout-card {
   display: flex !important;
   align-items: center !important;

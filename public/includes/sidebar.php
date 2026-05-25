@@ -87,116 +87,93 @@ $_uiLibVer   = file_exists($_uiLibPath) ? @filemtime($_uiLibPath) : '1';
   <!-- ── Status (última atualização) ── -->
   <div id="dashboardStatus" class="sidebar-status">—</div>
 
-  <!-- ── Navegação ── -->
-  <nav aria-label="Páginas do sistema">
+  <!-- ── Navegação agrupada em seções colapsáveis ──
+       Estrutura: Dashboard fixo no topo, demais módulos em grupos.
+       Auto-expand server-side via classe .open quando $_ap pertence ao grupo
+       (evita flash de conteúdo). Estado persiste em localStorage (override do
+       auto-expand: se user fechou explicitamente, respeitamos).
+  -->
+  <nav aria-label="Páginas do sistema" class="sidebar-nav-grouped">
 
     <?php if (_sidebarCan('dashboard')): ?>
-    <a href="dashboard.php"<?= $_ap === 'dashboard' ? ' class="active" aria-current="page"' : '' ?>>
+    <a href="dashboard.php" class="sidebar-overview-link<?= $_ap === 'dashboard' ? ' active' : '' ?>"<?= $_ap === 'dashboard' ? ' aria-current="page"' : '' ?>>
       <span class="icon" aria-hidden="true"><?= $_svg['dashboard'] ?></span>
-      <span class="label">Dashboard</span>
+      <span class="label">Visão Geral</span>
     </a>
     <?php endif; ?>
 
-    <?php if (_sidebarCan('planejamento')): ?>
-    <a href="planejamento.php"<?= $_ap === 'funil' ? ' class="active" aria-current="page"' : '' ?>>
-      <span class="icon" aria-hidden="true"><?= $_svg['funil'] ?></span>
-      <span class="label">Planejamento</span>
-    </a>
-    <?php endif; ?>
+    <?php
+    // Definição das seções (mantém todas as rotas atuais — só agrupa visualmente).
+    // perm = chave usada em _sidebarCan(); admin_only = visível só pra admins.
+    // active = valor de $activePage que faz o item brilhar (e abre a seção pai).
+    $_sections = [
+      [ 'key' => 'operacao', 'label' => 'Operação', 'items' => [
+        ['perm'=>'planejamento','href'=>'planejamento.php','active'=>'funil',     'icon'=>'funil',   'label'=>'Planejamento'],
+        ['perm'=>'prospeccao', 'href'=>'prospeccao.php', 'active'=>'prospeccao', 'icon'=>'prosp',    'label'=>'Prospecção'],
+        ['perm'=>'tarefas',    'href'=>'tarefas.php',    'active'=>'tarefas',    'icon'=>'tarefas',  'label'=>'Tarefas'],
+      ]],
+      [ 'key' => 'juridico', 'label' => 'Jurídico', 'items' => [
+        ['perm'=>'processos', 'href'=>'processos.php', 'active'=>'processos', 'icon'=>'processos', 'label'=>'Processos'],
+        ['perm'=>'intimacoes','href'=>'intimacoes.php','active'=>'intimacoes','icon'=>'intimacoes','label'=>'Intimações'],
+        ['perm'=>'juridico',  'href'=>'juridico.php',  'active'=>'juridico',  'icon'=>'juridico',  'label'=>'Jurídico'],
+      ]],
+      [ 'key' => 'comunicacao', 'label' => 'Comunicação', 'items' => [
+        ['perm'=>'chat',         'href'=>'chat.php',         'active'=>'chat',         'icon'=>'chat',         'label'=>'WhatsApp'],
+        ['perm'=>'chat_interno', 'href'=>'chat_interno.php', 'active'=>'chat_interno', 'icon'=>'chat_interno', 'label'=>'Chat Interno'],
+      ]],
+      [ 'key' => 'gestao', 'label' => 'Gestão', 'items' => [
+        ['perm'=>'financas',   'href'=>'financas.php',   'active'=>'dre',         'icon'=>'financas',    'label'=>'Finanças'],
+        ['perm'=>'usuarios',   'href'=>'usuarios.php',   'active'=>'usuarios',    'icon'=>'usuarios',    'label'=>'Usuários'],
+        ['perm'=>'escritorios','href'=>'escritorios.php','active'=>'escritorios', 'icon'=>'escritorios', 'label'=>'Escritórios'],
+      ]],
+      [ 'key' => 'automacoes', 'label' => 'Automações', 'items' => [
+        ['perm'=>'agente',                 'href'=>'agente.php',   'active'=>'agente',   'icon'=>'agente',   'label'=>'Agente'],
+        ['perm'=>null,'admin_only'=>true, 'href'=>'webhooks.php', 'active'=>'webhooks', 'icon'=>'webhooks', 'label'=>'Webhooks'],
+      ]],
+      [ 'key' => 'sistema', 'label' => 'Sistema', 'items' => [
+        ['perm'=>'configuracoes','href'=>'configuracoes.php','active'=>'configuracoes','icon'=>'config','label'=>'Configurações'],
+        // Sair: sem permissão (sempre visível); marca is_logout pra hover vermelho
+        ['perm'=>null,'always'=>true,'is_logout'=>true,'href'=>'logout.php','active'=>'__never__','icon'=>'sair','label'=>'Sair'],
+      ]],
+    ];
 
-    <?php if (_sidebarCan('prospeccao')): ?>
-    <a href="prospeccao.php"<?= $_ap === 'prospeccao' ? ' class="active" aria-current="page"' : '' ?>>
-      <span class="icon" aria-hidden="true"><?= $_svg['prosp'] ?></span>
-      <span class="label">Prospecção</span>
-    </a>
-    <?php endif; ?>
+    foreach ($_sections as $_sec):
+        // Filtra items que o user pode ver
+        $_visible = [];
+        foreach ($_sec['items'] as $_it) {
+            $_allowed = !empty($_it['always'])
+                || (!empty($_it['admin_only']) && $_isAdmin)
+                || (!empty($_it['perm']) && _sidebarCan($_it['perm']));
+            if ($_allowed) $_visible[] = $_it;
+        }
+        if (empty($_visible)) continue;  // grupo vazio não renderiza
 
-    <?php if (_sidebarCan('financas')): ?>
-    <a href="financas.php"<?= $_ap === 'dre' ? ' class="active" aria-current="page"' : '' ?>>
-      <span class="icon" aria-hidden="true"><?= $_svg['financas'] ?></span>
-      <span class="label">Finanças</span>
-    </a>
-    <?php endif; ?>
-
-    <?php if (_sidebarCan('processos')): ?>
-    <a href="processos.php"<?= $_ap === 'processos' ? ' class="active" aria-current="page"' : '' ?>>
-      <span class="icon" aria-hidden="true"><?= $_svg['processos'] ?></span>
-      <span class="label">Processos</span>
-    </a>
-    <?php endif; ?>
-
-    <?php if (_sidebarCan('intimacoes')): ?>
-    <a href="intimacoes.php"<?= $_ap === 'intimacoes' ? ' class="active" aria-current="page"' : '' ?>>
-      <span class="icon" aria-hidden="true"><?= $_svg['intimacoes'] ?></span>
-      <span class="label">Intimações</span>
-    </a>
-    <?php endif; ?>
-
-    <?php if (_sidebarCan('juridico')): ?>
-    <a href="juridico.php"<?= $_ap === 'juridico' ? ' class="active" aria-current="page"' : '' ?>>
-      <span class="icon" aria-hidden="true"><?= $_svg['juridico'] ?></span>
-      <span class="label">Jurídico</span>
-    </a>
-    <?php endif; ?>
-
-    <?php if (_sidebarCan('tarefas')): ?>
-    <a href="tarefas.php"<?= $_ap === 'tarefas' ? ' class="active" aria-current="page"' : '' ?>>
-      <span class="icon" aria-hidden="true"><?= $_svg['tarefas'] ?></span>
-      <span class="label">Tarefas</span>
-    </a>
-    <?php endif; ?>
-
-    <?php if (_sidebarCan('usuarios')): ?>
-    <a href="usuarios.php"<?= $_ap === 'usuarios' ? ' class="active" aria-current="page"' : '' ?>>
-      <span class="icon" aria-hidden="true"><?= $_svg['usuarios'] ?></span>
-      <span class="label">Usuários</span>
-    </a>
-    <?php endif; ?>
-
-    <?php if (_sidebarCan('agente')): ?>
-    <a href="agente.php"<?= $_ap === 'agente' ? ' class="active" aria-current="page"' : '' ?>>
-      <span class="icon" aria-hidden="true"><?= $_svg['agente'] ?></span>
-      <span class="label">Agente</span>
-    </a>
-    <?php endif; ?>
-
-    <?php if (_sidebarCan('chat')): ?>
-    <a href="chat.php"<?= $_ap === 'chat' ? ' class="active" aria-current="page"' : '' ?>>
-      <span class="icon" aria-hidden="true"><?= $_svg['chat'] ?></span>
-      <span class="label">WhatsApp</span>
-    </a>
-    <?php endif; ?>
-
-    <?php if (_sidebarCan('chat_interno')): ?>
-    <a href="chat_interno.php"<?= $_ap === 'chat_interno' ? ' class="active" aria-current="page"' : '' ?>>
-      <span class="icon" aria-hidden="true"><?= $_svg['chat_interno'] ?></span>
-      <span class="label">Chat Interno</span>
-    </a>
-    <?php endif; ?>
-
-    <?php if ($_isAdmin): ?>
-    <a href="webhooks.php"<?= $_ap === 'webhooks' ? ' class="active" aria-current="page"' : '' ?>>
-      <span class="icon" aria-hidden="true"><?= $_svg['webhooks'] ?></span>
-      <span class="label">Webhooks</span>
-    </a>
-    <?php endif; ?>
-
-    <?php if (_sidebarCan('configuracoes')): ?>
-    <a href="configuracoes.php"<?= $_ap === 'configuracoes' ? ' class="active" aria-current="page"' : '' ?>>
-      <span class="icon" aria-hidden="true"><?= $_svg['config'] ?></span>
-      <span class="label">Configurações</span>
-    </a>
-    <?php endif; ?>
-    <?php /* Link "Privacidade" movido para o rodape da sidebar (abaixo do
-             "Sistema Juridico Inteligente"), como discreto link tipo footer.
-             Acesso permanece o mesmo: /configuracoes/privacidade.php */ ?>
-
-    <?php if (_sidebarCan('escritorios')): ?>
-    <a href="escritorios.php"<?= $_ap === 'escritorios' ? ' class="active" aria-current="page"' : '' ?>>
-      <span class="icon" aria-hidden="true"><?= $_svg['escritorios'] ?></span>
-      <span class="label">Escritórios</span>
-    </a>
-    <?php endif; ?>
+        // Se a página atual está num item dessa seção → abre + destaca o título
+        $_hasActive = false;
+        foreach ($_visible as $_it) {
+            if ($_ap === $_it['active']) { $_hasActive = true; break; }
+        }
+    ?>
+    <div class="sidebar-group<?= $_hasActive ? ' open has-active' : '' ?>" data-group="<?= htmlspecialchars($_sec['key']) ?>">
+      <button type="button" class="sidebar-group-toggle" aria-expanded="<?= $_hasActive ? 'true' : 'false' ?>" aria-controls="grp-<?= htmlspecialchars($_sec['key']) ?>">
+        <span class="sidebar-group-label"><?= htmlspecialchars($_sec['label']) ?></span>
+        <svg class="sidebar-group-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </button>
+      <div class="sidebar-group-items" id="grp-<?= htmlspecialchars($_sec['key']) ?>">
+        <?php foreach ($_visible as $_it):
+            $_isActive = ($_ap === $_it['active']);
+            $_extraClass = !empty($_it['is_logout']) ? ' is-logout' : '';
+        ?>
+        <a href="<?= htmlspecialchars($_it['href']) ?>"<?= $_isActive ? ' class="active' . $_extraClass . '" aria-current="page"' : ($_extraClass ? ' class="' . trim($_extraClass) . '"' : '') ?>>
+          <span class="icon" aria-hidden="true"><?= $_svg[$_it['icon']] ?></span>
+          <span class="label"><?= htmlspecialchars($_it['label']) ?></span>
+        </a>
+        <?php endforeach; ?>
+      </div>
+    </div>
+    <?php endforeach; ?>
 
     <?php
     /* Painel Master — REMOVIDO da sidebar do app normal.
@@ -207,11 +184,6 @@ $_uiLibVer   = file_exists($_uiLibPath) ? @filemtime($_uiLibPath) : '1';
     ?>
 
   </nav>
-
-  <a href="logout.php" class="sidebar-logout-card" style="display:flex;align-items:center;gap:11px;padding:12px 13px;border-radius:11px;background:rgba(30,58,95,0.22);border:1px solid rgba(191,199,213,0.12);color:#6B7887;text-decoration:none;font-size:.9rem;font-weight:600;">
-    <span style="width:20px;height:20px;min-width:20px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;"><?= $_svg['sair'] ?></span>
-    <span>Sair</span>
-  </a>
 
   <!-- ── Rodapé da sidebar ── -->
   <div style="padding:10px 18px 0;text-align:center;border-top:1px solid rgba(96,165,250,0.1);">
@@ -235,7 +207,7 @@ $_uiLibVer   = file_exists($_uiLibPath) ? @filemtime($_uiLibPath) : '1';
 
   <a href="dashboard.php"<?= $_ap === 'dashboard' ? ' class="active"' : '' ?>>
     <span class="mob-icon" aria-hidden="true"><?= $_svg['dashboard'] ?></span>
-    <span>Dashboard</span>
+    <span>Visão Geral</span>
   </a>
 
   <a href="prospeccao.php"<?= $_ap === 'prospeccao' ? ' class="active"' : '' ?>>
@@ -272,5 +244,35 @@ $_uiLibVer   = file_exists($_uiLibPath) ? @filemtime($_uiLibPath) : '1';
       if (el2) { el2.textContent = e.newValue; el2.style.color = '#4ade80'; }
     });
   } catch (e) { /* silently fail */ }
+})();
+
+// Sidebar: expandir/recolher seções + persistência em localStorage.
+// Auto-expand server-side (classe .open) é mantido. localStorage só sobrescreve
+// quando o user clicou em alguma seção explicitamente — assim a página atual
+// sempre abre, mas a preferência manual ganha precedência.
+(function () {
+  var KEY = 'yuris_sidebar_groups_v2';
+  // Limpa chave antiga (estado herdado de sessão anterior onde grupos abriam automaticamente)
+  try { localStorage.removeItem('yuris_sidebar_groups'); } catch (e) {}
+  var stored = {};
+  try { stored = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) {}
+
+  document.querySelectorAll('.sidebar-group').forEach(function (g) {
+    var key = g.getAttribute('data-group');
+    if (!key) return;
+    if (Object.prototype.hasOwnProperty.call(stored, key)) {
+      g.classList.toggle('open', !!stored[key]);
+      var btn0 = g.querySelector('.sidebar-group-toggle');
+      if (btn0) btn0.setAttribute('aria-expanded', stored[key] ? 'true' : 'false');
+    }
+    var btn = g.querySelector('.sidebar-group-toggle');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      var open = g.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      stored[key] = open;
+      try { localStorage.setItem(KEY, JSON.stringify(stored)); } catch (e) {}
+    });
+  });
 })();
 </script>
