@@ -48,6 +48,7 @@ final class Anonymizer
                   telefone = NULL,
                   oab = NULL,
                   oab_uf = NULL,
+                  nome_advogado = NULL,
                   anonymized_at = NOW(),
                   deletion_reason = :motivo
                 WHERE id = :id";
@@ -59,7 +60,9 @@ final class Anonymizer
         ]);
         if ($ok) {
             self::log('user', $id, $motivo, $byUserId, $lgpdReqId,
-                ['nome','login','senha_hash','telefone','oab','oab_uf']);
+                ['nome','login','senha_hash','telefone','oab','oab_uf','nome_advogado']);
+            // Cascade: apaga anotações pessoais do user em intimações (LGPD Etapa 4 — F2026-05-24)
+            try { self::pushUserStatus($id, $motivo, $byUserId, $lgpdReqId); } catch (\Throwable $_) {}
         }
         return $ok;
     }
@@ -148,6 +151,64 @@ final class Anonymizer
                 ['parte_contraria','cpf_cnpj_parte_contraria']);
         }
         return $ok;
+    }
+
+    /**
+     * Apaga comentários internos de um usuário em intimações.
+     * Conteúdo da publicação em si (push_events.conteudo) NÃO é tocado —
+     * é dado público (Diário de Justiça Eletrônico Nacional).
+     *
+     * Chamado em cascata por Anonymizer::user() (idempotente).
+     */
+    public static function pushUserStatus(int $userId, ?string $motivo = null, ?int $byUserId = null, ?int $lgpdReqId = null): bool
+    {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare(
+            "UPDATE push_event_user_status
+             SET comentario = NULL, updated_at = NOW()
+             WHERE user_id = :uid AND comentario IS NOT NULL"
+        );
+        $ok = $stmt->execute(['uid' => $userId]);
+        if ($ok && $stmt->rowCount() > 0) {
+            self::log('push_event_user_status', $userId, $motivo, $byUserId, $lgpdReqId,
+                ['comentario', '__rowcount__' => $stmt->rowCount()]);
+        }
+        return $ok;
+    }
+
+    /**
+     * Purge total de intimações de uma conta (eliminação de tenant).
+     * Apaga cache temporário, eventos persistidos, status dos usuários,
+     * monitores e logs.
+     *
+     * Chamado apenas em deleção definitiva da conta.
+     */
+    public static function pushAccountPurge(int $accountId, ?string $motivo = null, ?int $byUserId = null, ?int $lgpdReqId = null): array
+    {
+        $pdo = Database::getConnection();
+        $counts = [];
+
+        $tables = [
+            'push_event_user_status' => 'account_id',
+            'push_today_cache'       => 'account_id',
+            'push_query_logs'        => 'account_id',
+            'push_monitors'          => 'account_id',
+            'push_events'            => 'account_id', // CASCADE apaga user_status linkado
+        ];
+        foreach ($tables as $tbl => $col) {
+            try {
+                $st = $pdo->prepare("DELETE FROM {$tbl} WHERE {$col} = :acc");
+                $st->execute(['acc' => $accountId]);
+                $counts[$tbl] = $st->rowCount();
+            } catch (\Throwable $e) {
+                $counts[$tbl] = 'error: ' . $e->getMessage();
+            }
+        }
+
+        self::log('push_account_purge', $accountId, $motivo, $byUserId, $lgpdReqId,
+            array_merge(array_keys($tables), ['__counts__' => $counts]));
+
+        return $counts;
     }
 
     /**

@@ -152,10 +152,10 @@ class Task
         $stmt = $pdo->prepare('
             INSERT INTO tasks
               (board_id, column_id, titulo, descricao, prioridade, prazo, prazo_tipo,
-               responsavel_id, criado_por_id, ordem, recorrencia_id, origem_task_id)
+               responsavel_id, criado_por_id, ordem, recorrencia_id, origem_task_id, push_event_id)
             VALUES
               (:board_id, :column_id, :titulo, :descricao, :prioridade, :prazo, :prazo_tipo,
-               :responsavel_id, :criado_por_id, :ordem, :recorrencia_id, :origem_task_id)
+               :responsavel_id, :criado_por_id, :ordem, :recorrencia_id, :origem_task_id, :push_event_id)
         ');
         $stmt->execute([
             'board_id'       => $data['board_id'],
@@ -170,6 +170,7 @@ class Task
             'ordem'          => $data['ordem'] ?? $ordem,
             'recorrencia_id' => $data['recorrencia_id'] ?? null,
             'origem_task_id' => $data['origem_task_id'] ?? null,
+            'push_event_id'  => $data['push_event_id'] ?? null,
         ]);
         $id = (int)$pdo->lastInsertId();
         self::history($id, $data['criado_por_id'] ?? null, 'criada', null, ['titulo' => $data['titulo']]);
@@ -202,6 +203,62 @@ class Task
         $old = self::findById($id);
         $pdo->prepare('UPDATE tasks SET column_id = ?, ordem = ? WHERE id = ?')->execute([$columnId, $ordem, $id]);
         self::history($id, $userId, 'movida', ['column_id' => $old['column_id']], ['column_id' => $columnId]);
+    }
+
+    /**
+     * Reordena em lote — idêntico ao padrão Card::bulkUpdateOrders da Prospecção.
+     *
+     * Recebe a lista COMPLETA das tarefas afetadas (origem + destino) com a
+     * ordem final calculada no frontend a partir do DOM pós-drop. Tudo em
+     * transação para evitar estado parcial se algo falhar.
+     *
+     * Antes desta função o drag-and-drop usava Task::move() em um único card,
+     * deixando os outros com a `ordem` antiga — duplicatas no ORDER BY
+     * faziam o card aparecer em posição aleatória após o reload.
+     *
+     * Cada item: ['id' => int, 'column_id' => int, 'ordem' => int]
+     */
+    public static function bulkUpdateOrders(array $updates, int $userId): bool
+    {
+        if (empty($updates)) return false;
+        $pdo = Database::getConnection();
+
+        // Só inicia transação se NÃO há uma ativa (caller pode estar dentro de
+        // uma transação maior — ex: smoke tests com ROLLBACK manual, ou um
+        // batch que envolve várias mutações relacionadas).
+        $owned = false;
+        if (!$pdo->inTransaction()) {
+            $pdo->beginTransaction();
+            $owned = true;
+        }
+
+        try {
+            $uStmt = $pdo->prepare('UPDATE tasks SET column_id = :column_id, ordem = :ordem WHERE id = :id');
+            foreach ($updates as $up) {
+                $id     = (int)($up['id'] ?? 0);
+                $colId  = (int)($up['column_id'] ?? 0);
+                $ordem  = (int)($up['ordem'] ?? 0);
+                if (!$id || !$colId) continue;
+
+                // Captura estado anterior pra registrar movimento entre colunas no histórico
+                $old = self::findById($id);
+                $uStmt->execute(['column_id' => $colId, 'ordem' => $ordem, 'id' => $id]);
+
+                // Só loga 'movida' quando a coluna realmente mudou — reordenação
+                // intra-coluna não vira ruído no histórico.
+                if ($old && (int)$old['column_id'] !== $colId) {
+                    self::history($id, $userId, 'movida',
+                        ['column_id' => $old['column_id']],
+                        ['column_id' => $colId]);
+                }
+            }
+            if ($owned) $pdo->commit();
+            return true;
+        } catch (\Throwable $e) {
+            if ($owned && $pdo->inTransaction()) $pdo->rollBack();
+            error_log('[Task::bulkUpdateOrders] ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**

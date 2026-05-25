@@ -104,6 +104,28 @@ final class EnvLoader
         // MFA_ENCRYPTION_KEY: só obrigatório se super_admin tiver MFA habilitado.
         // Não checamos aqui (precisaria de DB). Documentado no helper TotpHelper.
 
+        // APP_ENCRYPTION_KEY: obrigatória em prod se houver aasp_integrations
+        // gravadas (sem ela, decrypt() falha e o módulo AASP fica inutilizável).
+        // Checamos via INFORMATION_SCHEMA pra evitar require da Crypto/Model aqui.
+        if (self::get('APP_ENCRYPTION_KEY', '') === '') {
+            try {
+                if (class_exists('\\App\\Models\\Database')) {
+                    $pdo = \App\Models\Database::getConnection();
+                    $st  = $pdo->query(
+                        "SELECT COUNT(*) FROM information_schema.TABLES
+                          WHERE table_schema = DATABASE() AND table_name = 'aasp_integrations'"
+                    );
+                    if ($st && (int)$st->fetchColumn() > 0) {
+                        $cnt = (int)$pdo->query('SELECT COUNT(*) FROM aasp_integrations')->fetchColumn();
+                        if ($cnt > 0) {
+                            $problems[] = 'APP_ENCRYPTION_KEY ausente com ' . $cnt
+                                . ' integração(ões) AASP gravadas — decrypt vai falhar';
+                        }
+                    }
+                }
+            } catch (\Throwable $_) { /* DB indisponível no boot — ignorar */ }
+        }
+
         // Logs sempre. Em prod, aborta.
         if (!empty($problems) && $isProd) {
             $msg = "[EnvLoader] CRITICAL: variáveis de produção ausentes/inseguras:\n  - "

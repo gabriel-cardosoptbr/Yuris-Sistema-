@@ -3,7 +3,7 @@
  * sidebar.php — componente global da sidebar
  * Defina $activePage antes de incluir este arquivo.
  * Valores: 'dashboard' | 'funil' | 'prospeccao' | 'dre' |
- *          'processos' | 'juridico' | 'tarefas' | 'usuarios' | 'agente' | 'configuracoes'
+ *          'processos' | 'intimacoes' | 'juridico' | 'tarefas' | 'usuarios' | 'agente' | 'configuracoes'
  */
 $_ap          = (string)($activePage ?? '');
 $_userName    = (string)($_SESSION['user_nome']   ?? 'Usuário');
@@ -50,6 +50,7 @@ $_svg = [
     'financas'  => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M9 9h4.5a1.5 1.5 0 0 1 0 3h-5a1.5 1.5 0 0 0 0 3H15"/></svg>',
     'processos' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
     'juridico'  => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4"/><path d="M6 7h12"/><path d="M8 10v4"/><path d="M16 10v4"/><path d="M5 18c1.5-1 3.5-1 5 0"/><path d="M19 18c-1.5-1-3.5-1-5 0"/></svg>',
+    'intimacoes'=> '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/><circle cx="18" cy="6" r="2.5" fill="currentColor" stroke="none"/></svg>',
     'usuarios'  => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
     'agente'    => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M12 11V7"/><circle cx="12" cy="5" r="2"/><path d="M8 15h.01M12 15h.01M16 15h.01"/><path d="M7 11V9a5 5 0 0 1 10 0v2"/></svg>',
     'tarefas'   => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
@@ -121,6 +122,13 @@ $_uiLibVer   = file_exists($_uiLibPath) ? @filemtime($_uiLibPath) : '1';
     <a href="processos.php"<?= $_ap === 'processos' ? ' class="active" aria-current="page"' : '' ?>>
       <span class="icon" aria-hidden="true"><?= $_svg['processos'] ?></span>
       <span class="label">Processos</span>
+    </a>
+    <?php endif; ?>
+
+    <?php if (_sidebarCan('intimacoes')): ?>
+    <a href="intimacoes.php"<?= $_ap === 'intimacoes' ? ' class="active" aria-current="page"' : '' ?>>
+      <span class="icon" aria-hidden="true"><?= $_svg['intimacoes'] ?></span>
+      <span class="label">Intimações</span>
     </a>
     <?php endif; ?>
 
