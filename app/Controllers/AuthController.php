@@ -81,14 +81,22 @@ class AuthController
             // tabela accounts ausente — modo single-tenant legado
         }
 
-        // ⚠️ HARDENING: bloqueia status diferente de 'active' (Fase 0 audit)
-        if ($account && $account['status'] !== 'active') {
-            $msg = $account['status'] === 'suspended'
-                 ? 'Conta suspensa. Entre em contato com o suporte.'
-                 : 'Conta cancelada. Acesso negado.';
-            $_SESSION['flash_error'] = $msg;
-            header('Location: /sistema_vendas/public/login.php');
-            exit;
+        // ⚠️ HARDENING: bloqueia status terminais (Fase 0 audit + fix trial 2026-05-25)
+        // ENUM accounts.status: active, trial, overdue, suspended, cancelled, inactive
+        // Permite login: active (pago), trial (período de teste), overdue (vencido mas precisa logar pra pagar)
+        // Bloqueia: suspended, cancelled, inactive (terminais)
+        if ($account) {
+            $allowed = ['active', 'trial', 'overdue'];
+            if (!in_array($account['status'], $allowed, true)) {
+                $msgMap = [
+                    'suspended' => 'Conta suspensa. Entre em contato com o suporte.',
+                    'cancelled' => 'Conta cancelada. Acesso negado.',
+                    'inactive'  => 'Conta inativa. Contate o suporte.',
+                ];
+                $_SESSION['flash_error'] = $msgMap[$account['status']] ?? 'Conta sem permissão de acesso.';
+                header('Location: /sistema_vendas/public/login.php');
+                exit;
+            }
         }
 
         // ── Login OK — popular sessão ──────────────────────────────────────
