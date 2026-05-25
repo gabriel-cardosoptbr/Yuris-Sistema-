@@ -86,11 +86,15 @@ $catalog = WebhookDispatcher::catalog();
     /* ── Modal ── */
     .modal-overlay { position:fixed; inset:0; background:rgba(2,6,23,.7); display:flex; align-items:flex-start; justify-content:center; z-index:1000; overflow-y:auto; padding:24px 12px; }
     .modal-overlay.hidden { display:none !important; }
-    .modal { width:680px; max-width:96vw; margin:auto; background:linear-gradient(165deg,rgba(10,24,46,.99),rgba(7,18,36,.99)); border:1px solid rgba(96,165,250,.22); border-radius:16px; box-shadow:0 24px 60px rgba(2,6,23,.7); overflow:hidden; }
+    /* Flex column no .modal pra que .modal-body respeite max-height corretamente em todos browsers */
+    .modal { width:680px; max-width:96vw; margin:auto; background:linear-gradient(165deg,rgba(10,24,46,.99),rgba(7,18,36,.99)); border:1px solid rgba(96,165,250,.22); border-radius:16px; box-shadow:0 24px 60px rgba(2,6,23,.7); overflow:hidden; display:flex; flex-direction:column; max-height:calc(100vh - 48px); }
     .modal-header { display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid rgba(96,165,250,.14); background:rgba(8,22,44,.55); flex-shrink:0; }
     .modal-title  { font-size:1rem; font-weight:700; color:#dbeafe; }
-    .modal-body   { padding:20px; display:flex; flex-direction:column; gap:16px; max-height:75vh; overflow-y:auto; overflow-x:hidden; }
+    .modal-body   { padding:20px; display:flex; flex-direction:column; gap:16px; flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; }
     .modal-footer { padding:14px 20px; border-top:1px solid rgba(96,165,250,.14); background:rgba(8,22,44,.4); display:flex; justify-content:flex-end; gap:8px; flex-shrink:0; }
+    /* Garante scroll em modais altos (catalog, docs com 18+ casos) — supera qualquer override */
+    #modalDocs .modal, #modalCatalog .modal { max-height:calc(100vh - 48px) !important; }
+    #modalDocs .modal-body, #modalCatalog .modal-body { flex:1 1 auto !important; min-height:0 !important; overflow-y:auto !important; }
 
     /* ── Form fields ── */
     .field-group { display:flex; flex-direction:column; gap:5px; }
