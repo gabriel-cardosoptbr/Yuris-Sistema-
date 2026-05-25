@@ -1094,13 +1094,15 @@ document.addEventListener('DOMContentLoaded', ()=>{
       lista.innerHTML = '<div style="color:#9ab0c9;font-size:.83rem;padding:16px 8px;text-align:center">Nenhum cliente encontrado</div>';
       return;
     }
+    // Usa classes (.cliente-mod-item) ao inves de inline + onmouseover/out:
+    // permite override limpo no tema claro via CSS :hover. Antes os handlers
+    // setavam el.style.background a cada movimento de mouse, brigando com
+    // qualquer regra externa de tema.
     lista.innerHTML = filtrados.map(c => {
       const nome = _cardNome(c);
-      const emp  = c.empresa_nome ? `<span style="font-size:.72rem;color:#7a9abf"> · ${c.empresa_nome}</span>` : '';
-      return `<div onclick="window._selecionarCliente(${c.id})"
-                style="padding:11px 14px;border-radius:8px;border:1px solid rgba(96,165,250,.1);background:rgba(8,20,40,.7);margin-bottom:6px;cursor:pointer;transition:background .15s"
-                onmouseover="this.style.background='rgba(37,99,235,.2)'" onmouseout="this.style.background='rgba(8,20,40,.7)'">
-                <div style="font-size:.87rem;font-weight:600;color:#e2f0ff">${nome}${emp}</div>
+      const emp  = c.empresa_nome ? `<span class="cliente-mod-emp"> · ${c.empresa_nome}</span>` : '';
+      return `<div class="cliente-mod-item" onclick="window._selecionarCliente(${c.id})">
+                <div class="cliente-mod-nome">${nome}${emp}</div>
               </div>`;
     }).join('');
   }

@@ -699,6 +699,69 @@ try {
     }
     /* Botão "Confirmar vínculo" já é azul sólido com texto branco — OK no claro */
 
+    /* ── Modal "Selecionar Cliente" (lista de cards) ──
+       Estilos base (dark theme) + overrides do tema claro.
+       Antes os items usavam inline style + onmouseover JS, brigando com
+       qualquer override de tema — refatorado pra classes (.cliente-mod-*). */
+    .cliente-mod-item {
+      padding: 11px 14px; border-radius: 8px;
+      border: 1px solid rgba(96,165,250,.10);
+      background: rgba(8,20,40,.7);
+      margin-bottom: 6px; cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+    .cliente-mod-item:hover {
+      background: rgba(37,99,235,.20);
+      border-color: rgba(96,165,250,.25);
+    }
+    .cliente-mod-nome { font-size: .87rem; font-weight: 600; color: #e2f0ff; }
+    .cliente-mod-emp  { font-size: .72rem; color: #7a9abf; }
+
+    /* Modal "Selecionar Cliente" — tema claro */
+    html[data-theme="light"] #modalSelecionarCliente { background: rgba(15,31,54,0.45) !important; }
+    html[data-theme="light"] #modalSelecionarCliente > div {
+      background: #FFFFFF !important;
+      border: 1px solid #E2E8F0 !important;
+      box-shadow: 0 24px 60px rgba(15,31,54,0.18) !important;
+    }
+    html[data-theme="light"] #modalSelecionarCliente > div > div:first-child {
+      border-bottom-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] #modalSelecionarCliente span[style*="color:#dbeafe"] {
+      color: #0F172A !important;
+    }
+    html[data-theme="light"] #btnFecharModalCliente {
+      background: #FFFFFF !important;
+      border-color: #BFDBFE !important;
+      color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] #btnFecharModalCliente:hover { background: #EFF6FF !important; }
+    html[data-theme="light"] #clienteSearchInput {
+      background: #FFFFFF !important;
+      border-color: #CBD5E1 !important;
+      color: #0F172A !important;
+    }
+    html[data-theme="light"] #clienteSearchInput::placeholder { color: #94A3B8 !important; }
+    html[data-theme="light"] #clienteSearchInput:focus {
+      border-color: #2563EB !important;
+      box-shadow: 0 0 0 3px rgba(37,99,235,.12) !important;
+      outline: none;
+    }
+    html[data-theme="light"] .cliente-mod-item {
+      background: #F8FAFC !important;
+      border-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] .cliente-mod-item:hover {
+      background: #EFF6FF !important;
+      border-color: #93C5FD !important;
+    }
+    html[data-theme="light"] .cliente-mod-nome { color: #0F172A !important; }
+    html[data-theme="light"] .cliente-mod-emp  { color: #64748B !important; }
+    /* "Nenhum cliente encontrado" hint */
+    html[data-theme="light"] #clienteListaModal div[style*="color:#9ab0c9"] {
+      color: #64748B !important;
+    }
+
     /* ── Tarefas processuais (lista) — tema claro ─────────────────────────
        O dark-theme usa fundo navy translúcido + texto azul-claro #dbeafe,
        que vira "texto fantasma" sobre o card branco. Reseta tudo para a
