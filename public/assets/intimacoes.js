@@ -91,9 +91,22 @@
     setPeriodoShortcut(days) {
       const today = new Date();
       const start = new Date(); start.setDate(today.getDate() - (days - 1));
-      if (this.fp) this.fp.setDate([start, today], true);
+      // Format BR pra exibição no input
+      const fmtBR = (d) => `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+      const startBR = fmtBR(start);
+      const todayBR = fmtBR(today);
+
+      if (this.fp) {
+        this.fp.setDate([start, today], true);
+        // FORÇA input visual — Flatpickr no modo range com 2 datas iguais
+        // (caso "Hoje" — days=1) não preenche o input automaticamente.
+        // Setamos manualmente pra garantir feedback visual.
+        if (this.fp.input) {
+          this.fp.input.value = (days === 1) ? todayBR : `${startBR} a ${todayBR}`;
+        }
+      }
       // Garante hidden inputs setados — Flatpickr no modo range trata
-      // [hoje, hoje] (2 datas iguais) como 1 só e onChange não seta data_fim.
+      // [hoje, hoje] como 1 só e onChange não seta data_fim.
       const di = document.getElementById('filterDataInicio');
       const df = document.getElementById('filterDataFim');
       if (di) di.value = this._isoDate(start);
