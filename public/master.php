@@ -457,12 +457,12 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
         <div style="font-weight:700; margin-right:auto">Todas as Contas</div>
         <select id="filterAccStatus" class="mst-form-select" style="width:auto; padding:6px 11px; font-size:.82rem">
           <option value="">Todos status</option>
-          <option value="active">Active</option>
-          <option value="trial">Trial</option>
-          <option value="overdue">Overdue</option>
-          <option value="suspended">Suspended</option>
-          <option value="cancelled">Cancelled</option>
-          <option value="inactive">Inactive</option>
+          <option value="active">Ativa</option>
+          <option value="trial">Em teste</option>
+          <option value="overdue">Em atraso</option>
+          <option value="suspended">Suspensa</option>
+          <option value="cancelled">Cancelada</option>
+          <option value="inactive">Inativa</option>
         </select>
         <select id="filterAccTipo" class="mst-form-select" style="width:auto; padding:6px 11px; font-size:.82rem">
           <option value="">Todos tipos</option>
@@ -876,8 +876,8 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
           <div><label class="mst-form-label">UF</label><input name="account_uf" class="mst-form-input" maxlength="2" style="text-transform:uppercase"></div>
           <div><label class="mst-form-label">Status inicial</label>
             <select name="account_status" class="mst-form-select">
-              <option value="trial" selected>Trial (período de teste)</option>
-              <option value="active">Active (já paga)</option>
+              <option value="trial" selected>Em teste (período de avaliação)</option>
+              <option value="active">Ativa (já paga)</option>
             </select>
           </div>
         </div>
@@ -1260,12 +1260,12 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
           </div>
           <div><label class="mst-form-label">Status</label>
             <select name="status" id="editAccStatus" class="mst-form-select">
-              <option value="active">Active</option>
-              <option value="trial">Trial</option>
-              <option value="overdue">Overdue</option>
-              <option value="suspended">Suspended</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="inactive">Inactive</option>
+              <option value="active">Ativa</option>
+              <option value="trial">Em teste</option>
+              <option value="overdue">Em atraso</option>
+              <option value="suspended">Suspensa</option>
+              <option value="cancelled">Cancelada</option>
+              <option value="inactive">Inativa</option>
             </select>
           </div>
           <div><label class="mst-form-label">Plano (slug cache)</label><input name="plano" id="editAccPlano" class="mst-form-input"><div class="mst-form-help">String legada. Plano real é via Assinaturas.</div></div>
