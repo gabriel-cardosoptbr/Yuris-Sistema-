@@ -646,7 +646,7 @@ try {
     }
     /* Container interno: fundo branco com borda azul sutil */
     html[data-theme="light"] #modalVinculoProc > div {
-      background: #FFFFFF !important;
+      background-color: #FFFFFF !important;
       border-color: rgba(15,31,54,0.12) !important;
       box-shadow: 0 24px 60px rgba(15,31,54,0.18) !important;
     }
@@ -675,7 +675,7 @@ try {
     /* Input + Select */
     html[data-theme="light"] #modalVinculoProc input[type="text"],
     html[data-theme="light"] #modalVinculoProc select {
-      background: #FFFFFF !important;
+      background-color: #FFFFFF !important;
       border-color: rgba(15,31,54,0.18) !important;
       color: #0F1F36 !important;
     }
@@ -720,7 +720,7 @@ try {
     /* Modal "Selecionar Cliente" — tema claro */
     html[data-theme="light"] #modalSelecionarCliente { background: rgba(15,31,54,0.45) !important; }
     html[data-theme="light"] #modalSelecionarCliente > div {
-      background: #FFFFFF !important;
+      background-color: #FFFFFF !important;
       border: 1px solid #E2E8F0 !important;
       box-shadow: 0 24px 60px rgba(15,31,54,0.18) !important;
     }
@@ -731,13 +731,13 @@ try {
       color: #0F172A !important;
     }
     html[data-theme="light"] #btnFecharModalCliente {
-      background: #FFFFFF !important;
+      background-color: #FFFFFF !important;
       border-color: #BFDBFE !important;
       color: #1D4ED8 !important;
     }
     html[data-theme="light"] #btnFecharModalCliente:hover { background: #EFF6FF !important; }
     html[data-theme="light"] #clienteSearchInput {
-      background: #FFFFFF !important;
+      background-color: #FFFFFF !important;
       border-color: #CBD5E1 !important;
       color: #0F172A !important;
     }
@@ -769,7 +769,7 @@ try {
       background: rgba(15,31,54,0.45) !important;
     }
     html[data-theme="light"] #modalAddPrazo > div {
-      background: #FFFFFF !important;
+      background-color: #FFFFFF !important;
       border: 1px solid #E2E8F0 !important;
       box-shadow: 0 20px 50px rgba(15,31,54,0.18) !important;
     }
@@ -784,7 +784,7 @@ try {
     html[data-theme="light"] #modalAddPrazo input,
     html[data-theme="light"] #modalAddPrazo select,
     html[data-theme="light"] #modalAddPrazo textarea {
-      background: #FFFFFF !important;
+      background-color: #FFFFFF !important;
       border-color: #CBD5E1 !important;
       color: #0F172A !important;
     }
@@ -808,7 +808,7 @@ try {
     }
     /* Botão Cancelar — outline azul-claro */
     html[data-theme="light"] #addPrazoCancel {
-      background: #FFFFFF !important;
+      background-color: #FFFFFF !important;
       border-color: #BFDBFE !important;
       color: #1D4ED8 !important;
     }
@@ -850,7 +850,7 @@ try {
     /* X de excluir tarefa — fundo MUITO leve, glyph em vermelho médio
        (antes ficava burgundy chamando demais a atenção sobre o card claro) */
     html[data-theme="light"] .tarefa-del {
-      background: #FFFFFF !important;
+      background-color: #FFFFFF !important;
       border: 1px solid #FECACA !important;
       color: #EF4444 !important;
     }
@@ -893,7 +893,7 @@ try {
     }
     /* Botão Editar (azul claro outline) */
     html[data-theme="light"] #vinculosProcessoList button[style*="color:#93c5fd"] {
-      background: #FFFFFF !important;
+      background-color: #FFFFFF !important;
       border-color: #BFDBFE !important;
       color: #1D4ED8 !important;
     }
@@ -932,7 +932,7 @@ try {
     }
     /* Select inline ao editar permissão */
     html[data-theme="light"] #vinculosProcessoList select {
-      background: #FFFFFF !important;
+      background-color: #FFFFFF !important;
       border: 1px solid #BFDBFE !important;
       color: #0F172A !important;
     }
@@ -949,7 +949,7 @@ try {
       background: rgba(15,31,54,0.45) !important;
     }
     html[data-theme="light"] #modalEditPermVinculo > div {
-      background: #FFFFFF !important;
+      background-color: #FFFFFF !important;
       border: 1px solid #E2E8F0 !important;
       box-shadow: 0 24px 60px rgba(15,31,54,0.18) !important;
     }
@@ -980,7 +980,7 @@ try {
       color: #64748B !important;
     }
     html[data-theme="light"] #modalEditPermVinculo button[style*="color:#93c5fd"] {
-      background: #FFFFFF !important;
+      background-color: #FFFFFF !important;
       border-color: #BFDBFE !important;
       color: #1D4ED8 !important;
     }

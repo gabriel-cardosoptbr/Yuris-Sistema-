@@ -886,17 +886,18 @@ html[data-theme="light"] input::placeholder,
 html[data-theme="light"] textarea::placeholder { color: #98A4B5 !important; }
 
 /* ── Chevron do select no tema claro — reafirma TODAS as propriedades de background
-   (não só image) pra garantir que não fique tiled mesmo se outra regra usar shorthand. */
+   (não só image) pra garantir que não fique tiled mesmo se outra regra usar shorthand.
+   Stroke navy escuro (#1E4A8A) — antes era #5A6B7E (cinza), ficava quase invisível. */
 html[data-theme="light"] select:not(.y-select),
 html[data-theme="light"] .form-group select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235A6B7E' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231E4A8A' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
   background-repeat: no-repeat !important;
   background-position: right 10px center !important;
   background-size: 14px !important;
   padding-right: 32px !important;
 }
 html[data-theme="light"] select:not(.y-select):hover {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231E4A8A' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563EB' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
   background-repeat: no-repeat !important;
   background-position: right 10px center !important;
   background-size: 14px !important;
@@ -1002,10 +1003,24 @@ html[data-theme="light"] [role="tooltip"], html[data-theme="light"] .tooltip {
 /* ── Page header SVG: cor de ícones ── */
 html[data-theme="light"] .page-header svg { color: #1E4A8A !important; }
 
-/* ── Date picker icon (browser-rendered) ── */
+/* ── Date picker icon (browser-rendered) — tema claro ──
+   Filter converte o icone cinza-claro padrao do Chrome em navy escuro
+   (#1E4A8A aprox), consistente com a paleta dos chevrons de select.
+   Antes (invert .3 sepia .5) ficava cinza pálido quase invisível. */
 html[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator,
-html[data-theme="light"] input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-  filter: invert(0.3) sepia(0.5) saturate(2) hue-rotate(195deg);
+html[data-theme="light"] input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+html[data-theme="light"] input[type="time"]::-webkit-calendar-picker-indicator,
+html[data-theme="light"] input[type="month"]::-webkit-calendar-picker-indicator,
+html[data-theme="light"] input[type="week"]::-webkit-calendar-picker-indicator {
+  filter: brightness(0) saturate(100%) invert(24%) sepia(98%) saturate(1058%) hue-rotate(199deg) brightness(95%) contrast(91%);
+  cursor: pointer;
+  opacity: 0.85;
+}
+html[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator:hover,
+html[data-theme="light"] input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover,
+html[data-theme="light"] input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+  filter: brightness(0) saturate(100%) invert(20%) sepia(95%) saturate(2000%) hue-rotate(212deg) brightness(90%) contrast(95%);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
