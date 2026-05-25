@@ -469,9 +469,15 @@ html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle {
   box-shadow: 0 4px 14px rgba(30,74,138,.28) !important;
   font-weight: 700 !important;
 }
+/* O texto fica num <span class="sidebar-group-label"> — força branco explícito
+   pra superar qualquer regra base que vença por especificidade. */
+html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle,
+html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-label,
+html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle * {
+  color: #FFFFFF !important;
+}
 html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle:hover {
   filter: brightness(1.08);
-  color: #FFFFFF !important;
   border-color: #1E4A8A !important;
 }
 html[data-theme="light"] .sidebar-group-chevron {
