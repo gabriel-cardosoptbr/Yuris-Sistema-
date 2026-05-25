@@ -20,14 +20,54 @@ require_once __DIR__ . '/../../app/Models/Account.php';
 require_once __DIR__ . '/../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../app/Models/AccountNotification.php';
 require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Helpers/ProcessoAudit.php';
 
 use App\Models\Account;
+use App\Models\Database;
 use App\Models\ResourceShare;
 use App\Models\AccountNotification;
 use App\Helpers\AccountContext;
+use App\Helpers\ProcessoAudit;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
+
+// ─── helpers locais p/ auditoria no processo_history ────────────────────
+// (somente usados quando resource_type='processo')
+$_permLabel = static function (string $p): string {
+    return ['view' => 'Visualização', 'edit' => 'Edição', 'full' => 'Acesso total'][$p] ?? $p;
+};
+$_tipoLabel = static function (string $t): string {
+    return ['matriz' => 'Matriz', 'filial' => 'Filial', 'advogado' => 'Advogado solo'][$t] ?? $t;
+};
+// Descreve o destinatário do share em português, ex.:
+//   "Conta Gabriel (Advogado solo · código d6fe-a916-08c0-fea8)"
+//   "Advogado Silvana Monteiro (ADV-3504EB)"
+$_describeTarget = static function (?int $toAccountId, ?int $toUserId) use ($_tipoLabel): string {
+    try {
+        $pdo = Database::getConnection();
+        if ($toUserId) {
+            $st = $pdo->prepare("SELECT nome, codigo_advogado FROM users WHERE id = :id LIMIT 1");
+            $st->execute(['id' => $toUserId]);
+            $u = $st->fetch(\PDO::FETCH_ASSOC);
+            if ($u) {
+                $cod = $u['codigo_advogado'] ? " ({$u['codigo_advogado']})" : '';
+                return "Advogado {$u['nome']}{$cod}";
+            }
+        }
+        if ($toAccountId) {
+            $st = $pdo->prepare("SELECT nome, tipo, codigo_vinculo FROM accounts WHERE id = :id LIMIT 1");
+            $st->execute(['id' => $toAccountId]);
+            $a = $st->fetch(\PDO::FETCH_ASSOC);
+            if ($a) {
+                $bits = [$_tipoLabel($a['tipo'] ?? '')];
+                if (!empty($a['codigo_vinculo'])) $bits[] = "código {$a['codigo_vinculo']}";
+                return "Conta {$a['nome']} (" . implode(' · ', $bits) . ")";
+            }
+        }
+    } catch (\Throwable $_e) { /* fall through */ }
+    return $toUserId ? "Advogado #{$toUserId}" : "Conta #{$toAccountId}";
+};
 
 $ctx    = AccountContext::fromSession();
 $method = $_SERVER['REQUEST_METHOD'];
@@ -141,13 +181,16 @@ if ($method === 'POST') {
         $ctx->assertIsOwnerOfResource($resourceType, $resourceId);
     }
 
-    // Valida que a conta de destino existe e está ativa
-    // Advogado Associado não exige vínculo Matriz/Filial formal — apenas conta Yuris ativa
+    // Valida que a conta de destino existe e está em estado utilizável.
+    // Aceita active/trial/overdue — mesma whitelist do AuthController e do
+    // lookup. Só suspended/cancelled/inactive bloqueiam compartilhamento.
+    // Advogado Associado não exige vínculo Matriz/Filial formal — apenas conta Yuris utilizável.
     if ($toAccountId !== null) {
         $contaDestino = Account::findById($toAccountId);
-        if (!$contaDestino || $contaDestino['status'] !== 'active') {
+        $statusOk     = ['active','trial','overdue'];
+        if (!$contaDestino || !in_array($contaDestino['status'] ?? '', $statusOk, true)) {
             http_response_code(400);
-            echo json_encode(['error' => 'Conta de destino não encontrada ou inativa']);
+            echo json_encode(['error' => 'Conta de destino não encontrada ou indisponível']);
             exit;
         }
     }
@@ -196,7 +239,90 @@ if ($method === 'POST') {
         'detalhes'      => ['share_id' => $shareId, 'to_account_id' => $toAccountId, 'permission' => $permLevel],
     ]);
 
+    // Loga no histórico do processo quando o recurso for um processo.
+    // Ex.: "Vínculo criado com Conta Gabriel (Advogado solo · código d6fe-a916-08c0-fea8) — Acesso total"
+    if ($resourceType === 'processo' && $resourceId > 0) {
+        $alvo = $_describeTarget($toAccountId, $toUserId);
+        ProcessoAudit::log(
+            $resourceId,
+            'Vínculo criado',
+            "Vínculo criado com {$alvo} — {$_permLabel($permLevel)}"
+        );
+    }
+
     echo json_encode(['success' => true, 'id' => $shareId]);
+    exit;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PATCH — edita permission_level de um share existente
+//   Body: { id, permission_level }
+//   Apenas a conta DONA do recurso (from_account_id == sessão) pode editar.
+// ─────────────────────────────────────────────────────────────────────────────
+if ($method === 'PATCH') {
+    $id   = (int) ($input['id'] ?? $_GET['id'] ?? 0);
+    $perm = $input['permission_level'] ?? null;
+
+    if (!$id || !$perm) {
+        http_response_code(400);
+        echo json_encode(['error' => 'id e permission_level são obrigatórios']);
+        exit;
+    }
+    if (!in_array($perm, ['view', 'edit', 'full'], true)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'permission_level inválido. Use: view, edit ou full']);
+        exit;
+    }
+
+    $share = ResourceShare::findById($id);
+    if (!$share) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Share não encontrado']);
+        exit;
+    }
+
+    if ((int)$share['from_account_id'] !== $ctx->getAccountId()) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Apenas a conta que criou o compartilhamento pode editá-lo']);
+        exit;
+    }
+
+    if ((string)$share['permission_level'] === (string)$perm) {
+        // No-op: cliente mandou o mesmo valor. Não loga, só confirma.
+        echo json_encode(['success' => true, 'changed' => false]);
+        exit;
+    }
+
+    $ok = ResourceShare::updatePermission($id, $perm);
+
+    Account::audit($ctx->getAccountId(), 'share.editado', [
+        'user_id'       => $ctx->getUserId(),
+        'resource_type' => $share['resource_type'],
+        'resource_id'   => $share['resource_id'],
+        'detalhes'      => [
+            'share_id'         => $id,
+            'permission_from'  => $share['permission_level'],
+            'permission_to'    => $perm,
+            'to_account_id'    => $share['to_account_id'],
+            'to_user_id'       => $share['to_user_id'],
+        ],
+    ]);
+
+    // Loga no histórico do processo quando aplicável.
+    // Ex.: "Vínculo com Conta Gabriel: Edição → Acesso total"
+    if ($share['resource_type'] === 'processo' && (int)$share['resource_id'] > 0) {
+        $alvo = $_describeTarget(
+            isset($share['to_account_id']) ? (int)$share['to_account_id'] : null,
+            isset($share['to_user_id'])    ? (int)$share['to_user_id']    : null
+        );
+        ProcessoAudit::log(
+            (int)$share['resource_id'],
+            'Vínculo editado',
+            "Vínculo com {$alvo}: {$_permLabel($share['permission_level'])} → {$_permLabel($perm)}"
+        );
+    }
+
+    echo json_encode(['success' => $ok, 'changed' => true]);
     exit;
 }
 
@@ -231,6 +357,20 @@ if ($method === 'DELETE') {
         'resource_id'   => $share['resource_id'],
         'detalhes'      => ['share_id' => $id],
     ]);
+
+    // Loga no histórico do processo quando aplicável.
+    // Ex.: "Vínculo revogado: Conta Gabriel (era Acesso total)"
+    if ($share['resource_type'] === 'processo' && (int)$share['resource_id'] > 0) {
+        $alvo = $_describeTarget(
+            isset($share['to_account_id']) ? (int)$share['to_account_id'] : null,
+            isset($share['to_user_id'])    ? (int)$share['to_user_id']    : null
+        );
+        ProcessoAudit::log(
+            (int)$share['resource_id'],
+            'Vínculo revogado',
+            "Vínculo revogado: {$alvo} (era {$_permLabel($share['permission_level'])})"
+        );
+    }
 
     echo json_encode(['success' => $ok]);
     exit;

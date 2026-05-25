@@ -32,18 +32,25 @@ class ResourceShare
         return $row ?: null;
     }
 
-    /** Lista todos os shares de um recurso específico */
+    /** Lista todos os shares de um recurso específico.
+     *  Retorna também tipo + codigo_vinculo da conta destino e nome da conta
+     *  origem, pra que a UI mostre uma descrição completa (necessário quando
+     *  há vários vínculos no mesmo processo). */
     public static function listByResource(string $type, int $resourceId): array
     {
         $pdo  = Database::getConnection();
         $stmt = $pdo->prepare(
             'SELECT rs.*,
-                    a.nome  AS to_account_nome,
-                    tu.nome AS to_user_nome,
-                    tu.codigo_advogado AS to_user_codigo_advogado,
-                    u.nome  AS criado_por_nome
+                    a.nome           AS to_account_nome,
+                    a.tipo           AS to_account_tipo,
+                    a.codigo_vinculo AS to_account_codigo,
+                    tu.nome              AS to_user_nome,
+                    tu.codigo_advogado   AS to_user_codigo_advogado,
+                    fa.nome          AS from_account_nome,
+                    u.nome           AS criado_por_nome
              FROM resource_shares rs
              LEFT JOIN accounts a  ON a.id  = rs.to_account_id
+             LEFT JOIN accounts fa ON fa.id = rs.from_account_id
              LEFT JOIN users    tu ON tu.id = rs.to_user_id
              LEFT JOIN users    u  ON u.id  = rs.criado_por
              WHERE rs.resource_type = :type
@@ -53,6 +60,24 @@ class ResourceShare
         );
         $stmt->execute(['type' => $type, 'rid' => $resourceId]);
         return $stmt->fetchAll();
+    }
+
+    /** Atualiza somente permission_level de um share ativo. Não muda
+     *  destinatário nem revoga. A validação de quem pode editar (apenas
+     *  from_account_id == sessão) fica no endpoint. */
+    public static function updatePermission(int $id, string $perm): bool
+    {
+        if (!in_array($perm, self::$validPerms, true)) {
+            throw new \InvalidArgumentException('permission_level deve ser view, edit ou full');
+        }
+        $pdo  = Database::getConnection();
+        $stmt = $pdo->prepare(
+            "UPDATE resource_shares
+                SET permission_level = :p
+              WHERE id = :id AND status = 'active'"
+        );
+        $stmt->execute(['p' => $perm, 'id' => $id]);
+        return $stmt->rowCount() > 0;
     }
 
     /** Lista recursos compartilhados COM uma conta (o que ela pode ver de fora) */

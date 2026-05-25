@@ -97,9 +97,13 @@ if ((int)$conta['id'] === $ctx->getAccountId()) {
     exit;
 }
 
-if (($conta['status'] ?? '') !== 'active') {
+// Defensivo: findByCodigoVinculo já filtra por status utilizável
+// (active/trial/overdue), mas mantemos a checagem caso o critério
+// mude no Model. Mesma whitelist usada no AuthController.
+$statusOk = ['active','trial','overdue'];
+if (!in_array($conta['status'] ?? '', $statusOk, true)) {
     http_response_code(400);
-    echo json_encode(['error' => 'Esta conta está inativa']);
+    echo json_encode(['error' => 'Esta conta está indisponível']);
     exit;
 }
 

@@ -688,6 +688,180 @@ try {
       filter: brightness(1.08);
     }
     /* Botão "Confirmar vínculo" já é azul sólido com texto branco — OK no claro */
+
+    /* ── Tarefas processuais (lista) — tema claro ─────────────────────────
+       O dark-theme usa fundo navy translúcido + texto azul-claro #dbeafe,
+       que vira "texto fantasma" sobre o card branco. Reseta tudo para a
+       paleta de cinzas + navy do tema claro. */
+    html[data-theme="light"] .tarefa-item {
+      background: #F8FAFC;
+      border-color: #E2E8F0;
+    }
+    html[data-theme="light"] .tarefa-item:hover {
+      background: #EFF6FF;
+      border-color: #BFDBFE;
+    }
+    html[data-theme="light"] .tarefa-texto       { color: #0F172A; }
+    html[data-theme="light"] .tarefa-texto.done  { color: #94A3B8; }
+    html[data-theme="light"] .tarefa-resp        { color: #475569; }
+    html[data-theme="light"] .tarefa-chk-box {
+      border-color: #94A3B8;
+      background: #FFFFFF;
+    }
+    html[data-theme="light"] .tarefa-chk-box:hover { border-color: #2563EB; }
+    html[data-theme="light"] .tarefa-item.done-item .tarefa-chk-box {
+      background: #2563EB; border-color: #2563EB; color: #FFFFFF;
+    }
+    html[data-theme="light"] .tarefa-btn-edit {
+      background: #FFFFFF;
+      border-color: #BFDBFE;
+      color: #1D4ED8;
+    }
+    html[data-theme="light"] .tarefa-btn-edit:hover {
+      background: #EFF6FF;
+      border-color: #2563EB;
+    }
+    /* X de excluir tarefa — fundo MUITO leve, glyph em vermelho médio
+       (antes ficava burgundy chamando demais a atenção sobre o card claro) */
+    html[data-theme="light"] .tarefa-del {
+      background: #FFFFFF !important;
+      border: 1px solid #FECACA !important;
+      color: #EF4444 !important;
+    }
+    html[data-theme="light"] .tarefa-del:hover {
+      background: #FEF2F2 !important;
+      border-color: #F87171 !important;
+      color: #DC2626 !important;
+    }
+
+    /* ── Painel "Vínculos do Processo" — tema claro ───────────────────────
+       Os cards de vínculo são renderizados via JS com style inline (fundo
+       navy translúcido). Selecionadores de atributo trocam pra fundo claro
+       e texto navy. Também conserta a dica/empty state acima da lista. */
+    html[data-theme="light"] #vinculosProcessoHint[style*="color:#9ab0c9"] {
+      color: #64748B !important;
+    }
+    html[data-theme="light"] #vinculosProcessoList > div[style*="rgba(5,18,39"] {
+      background: #F8FAFC !important;
+      border-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] #vinculosProcessoList > div[style*="color:#d6eaff"],
+    html[data-theme="light"] #vinculosProcessoList div[style*="color:#d6eaff"] {
+      color: #0F172A !important;
+    }
+    html[data-theme="light"] #vinculosProcessoList span[style*="color:#6b7887"] {
+      color: #64748B !important;
+    }
+    html[data-theme="light"] #vinculosProcessoList div[style*="color:#6b7887"] {
+      color: #64748B !important;
+    }
+    html[data-theme="light"] #vinculosProcessoList button[style*="color:#fca5a5"] {
+      background: #FEE2E2 !important;
+      border-color: #FCA5A5 !important;
+      color: #B91C1C !important;
+    }
+    html[data-theme="light"] #vinculosProcessoList button[style*="color:#fca5a5"]:hover {
+      background: #FECACA !important;
+      border-color: #EF4444 !important;
+      color: #991B1B !important;
+    }
+    /* Botão Editar (azul claro outline) */
+    html[data-theme="light"] #vinculosProcessoList button[style*="color:#93c5fd"] {
+      background: #FFFFFF !important;
+      border-color: #BFDBFE !important;
+      color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] #vinculosProcessoList button[style*="color:#93c5fd"]:hover {
+      background: #EFF6FF !important;
+      border-color: #2563EB !important;
+    }
+    html[data-theme="light"] #vinculosProcessoList div[style*="color:#9ab0c9"] {
+      color: #64748B !important;
+    }
+    /* Sub-linha (tipo + código + criador) */
+    html[data-theme="light"] #vinculosProcessoList div[style*="color:#7a96b4"] {
+      color: #64748B !important;
+    }
+    html[data-theme="light"] #vinculosProcessoList code {
+      background: #F1F5F9 !important;
+      color: #334155 !important;
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+    /* Badge de permissão (criador) — clicável azul claro */
+    html[data-theme="light"] #vinculosProcessoList .vinc-perm-badge {
+      background: #EFF6FF !important;
+      border-color: #BFDBFE !important;
+      color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] #vinculosProcessoList .vinc-perm-badge:hover {
+      background: #DBEAFE !important;
+      border-color: #2563EB !important;
+    }
+    /* Badge de permissão (destinatário, somente leitura) */
+    html[data-theme="light"] #vinculosProcessoList span[style*="rgba(100,116,139,.18)"] {
+      background: #F1F5F9 !important;
+      border-color: #CBD5E1 !important;
+      color: #475569 !important;
+    }
+    /* Select inline ao editar permissão */
+    html[data-theme="light"] #vinculosProcessoList select {
+      background: #FFFFFF !important;
+      border: 1px solid #BFDBFE !important;
+      color: #0F172A !important;
+    }
+
+    /* ── Modal Editar Permissão — destaque do radio ativo (dark + light) ── */
+    .ep-opt:hover { border-color: rgba(96,165,250,.45) !important; }
+    .ep-opt:has(input[type="radio"]:checked) {
+      background: rgba(37,99,235,.18) !important;
+      border-color: rgba(96,165,250,.6) !important;
+    }
+
+    /* ── Modal Editar Permissão — tema claro ── */
+    html[data-theme="light"] #modalEditPermVinculo {
+      background: rgba(15,31,54,0.45) !important;
+    }
+    html[data-theme="light"] #modalEditPermVinculo > div {
+      background: #FFFFFF !important;
+      border: 1px solid #E2E8F0 !important;
+      box-shadow: 0 24px 60px rgba(15,31,54,0.18) !important;
+    }
+    html[data-theme="light"] #modalEditPermVinculo > div > div:first-child {
+      border-bottom-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] #modalEditPermVinculo span[style*="color:#dbeafe"] {
+      color: #0F172A !important;
+    }
+    html[data-theme="light"] #modalEditPermVinculo #editPermAlvo {
+      color: #475569 !important;
+    }
+    html[data-theme="light"] #modalEditPermVinculo .ep-opt {
+      background: #F8FAFC !important;
+      border-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] #modalEditPermVinculo .ep-opt:hover {
+      border-color: #93C5FD !important;
+    }
+    html[data-theme="light"] #modalEditPermVinculo .ep-opt:has(input:checked) {
+      background: #EFF6FF !important;
+      border-color: #2563EB !important;
+    }
+    html[data-theme="light"] #modalEditPermVinculo .ep-opt div[style*="color:#dbeafe"] {
+      color: #0F172A !important;
+    }
+    html[data-theme="light"] #modalEditPermVinculo .ep-opt div[style*="color:#9ab0c9"] {
+      color: #64748B !important;
+    }
+    html[data-theme="light"] #modalEditPermVinculo button[style*="color:#93c5fd"] {
+      background: #FFFFFF !important;
+      border-color: #BFDBFE !important;
+      color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] #modalEditPermVinculo button[style*="color:#93c5fd"]:hover {
+      background: #EFF6FF !important;
+    }
+    /* Botão Salvar já é azul sólido com texto branco — OK no claro */
   </style>
 </head>
 <body>
@@ -1201,20 +1375,133 @@ try {
             list.innerHTML = '<div style="color:#6b7887;font-size:.78rem;padding:8px 0">Nenhum vínculo. Clique em "+ Adicionar vínculo" para liberar acesso a uma matriz, filial ou advogado.</div>';
             return;
           }
+          // Só quem CRIOU o vínculo (from_account_id == minha conta) vê os
+          // botões Editar e Revogar. O backend já enforce isso (PATCH e
+          // DELETE em resource_shares.php retornam 403 pra não-dono); aqui é
+          // só esconder pra não confundir o destinatário.
+          const myAccId = (window.YURIS_ACCOUNT_SELF && window.YURIS_ACCOUNT_SELF.id) || 0;
+          const TIPO_PT = { matriz: 'Matriz', filial: 'Filial', advogado: 'Advogado solo' };
+          const PERM_PT = { view: 'Visualização', edit: 'Edição', full: 'Acesso total' };
           list.innerHTML = shares.map(s => {
-            const alvo = s.to_user_nome
+            const sou_criador = Number(s.from_account_id) === Number(myAccId);
+
+            // ── Cabeçalho: quem é o alvo ──
+            const titulo = s.to_user_nome
               ? `Advogado: <strong>${s.to_user_nome}</strong>`
-              : (s.to_account_nome ? `Conta: <strong>${s.to_account_nome}</strong>` : `Conta #${s.to_account_id}`);
+              : (s.to_account_nome
+                  ? `Conta: <strong>${s.to_account_nome}</strong>`
+                  : `Conta #${s.to_account_id}`);
+
+            // ── Sub-linha: tipo + código + (se receptor) quem compartilhou ──
+            const partes = [];
+            if (s.to_user_codigo_advogado) {
+              partes.push('Advogado individual');
+              partes.push(`código <code style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.74rem">${s.to_user_codigo_advogado}</code>`);
+            } else if (s.to_account_tipo) {
+              partes.push(TIPO_PT[s.to_account_tipo] || s.to_account_tipo);
+              if (s.to_account_codigo) {
+                partes.push(`código <code style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.74rem">${s.to_account_codigo}</code>`);
+              }
+            }
+            if (!sou_criador && s.from_account_nome) {
+              partes.push(`compartilhado por <strong>${s.from_account_nome}</strong>`);
+            }
+            const subLinha = partes.length
+              ? `<div style="font-size:.72rem;color:#7a96b4;margin-top:2px">${partes.join(' · ')}</div>`
+              : '';
+
+            // ── Badge de permissão (somente leitura, mostra o nível atual) ──
+            // O badge é apenas visual — para editar há um botão Editar explícito
+            // (badge clicável era invisível pra quem não conhecia o padrão).
+            const permLabel = PERM_PT[s.permission_level] || s.permission_level;
+            const badgePerm = sou_criador
+              ? `<span class="vinc-perm-badge" data-share="${s.id}" data-perm="${s.permission_level}"
+                       style="display:inline-block;padding:3px 10px;border-radius:999px;background:rgba(37,99,235,.18);border:1px solid rgba(96,165,250,.35);color:#bfdbfe;font-size:.74rem;font-weight:500">${permLabel}</span>`
+              : `<span style="display:inline-block;padding:3px 10px;border-radius:999px;background:rgba(100,116,139,.18);border:1px solid rgba(148,163,184,.25);color:#cbd5e1;font-size:.74rem">${permLabel}</span>`;
+
+            // ── Botões de ação ──
+            // type="button" é OBRIGATÓRIO: a row está dentro de <form id="processForm">
+            // e <button> sem type vira submit por padrão — clicar Editar/Revogar
+            // submeteria o form e fecharia o modal do processo.
+            const acoes = sou_criador
+              ? `<button type="button" onclick="abrirEditarPerm(${s.id})" style="padding:3px 10px;border-radius:6px;background:transparent;border:1px solid rgba(96,165,250,.35);color:#93c5fd;cursor:pointer;font-size:.74rem">Editar</button>
+                 <button type="button" onclick="revogarVinculoProc(${s.id})" style="padding:3px 10px;border-radius:6px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#fca5a5;cursor:pointer;font-size:.74rem">Revogar</button>`
+              : `<span style="font-size:.72rem;color:#9ab0c9;font-style:italic">só quem solicitou pode alterar</span>`;
+
             return `
-              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:8px;background:rgba(5,18,39,.6);border:1px solid rgba(96,165,250,.15);font-size:.82rem">
-                <div style="color:#d6eaff">${alvo} <span style="color:#6b7887;margin-left:6px">(${s.permission_level})</span></div>
-                <button onclick="revogarVinculoProc(${s.id})" style="padding:3px 10px;border-radius:6px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#fca5a5;cursor:pointer;font-size:.74rem">Revogar</button>
+              <div data-vinc-row="${s.id}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:8px;background:rgba(5,18,39,.6);border:1px solid rgba(96,165,250,.15);font-size:.82rem">
+                <div style="flex:1;min-width:0;color:#d6eaff">
+                  ${titulo}
+                  ${subLinha}
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+                  ${badgePerm}
+                  ${acoes}
+                </div>
               </div>`;
           }).join('');
         } catch(e) {
           list.innerHTML = '<div style="color:#fca5a5;font-size:.78rem">Erro ao carregar vínculos.</div>';
         }
       }
+
+      // Editar permissão via popup #modalEditPermVinculo.
+      // Apenas o criador consegue chegar aqui — backend valida 403.
+      let editPermShareId = null;
+      window.abrirEditarPerm = function(shareId) {
+        const badge = document.querySelector(`.vinc-perm-badge[data-share="${shareId}"]`);
+        const row   = document.querySelector(`[data-vinc-row="${shareId}"]`);
+        if (!badge) return;
+        editPermShareId = shareId;
+        const atual = badge.getAttribute('data-perm') || 'view';
+
+        // Mostra quem é o alvo do vínculo (1ª linha textual da row)
+        let alvoTxt = 'vínculo';
+        if (row) {
+          const t = row.querySelector('div')?.firstChild?.nextSibling;
+          alvoTxt = (row.innerText || '').split('\n')[0].trim() || alvoTxt;
+        }
+        document.getElementById('editPermAlvo').innerHTML =
+          `Vínculo: <strong>${alvoTxt}</strong>`;
+
+        // Marca a opção atual
+        document.querySelectorAll('#editPermOptions input[name="editPerm"]').forEach(i => {
+          i.checked = (i.value === atual);
+        });
+        document.getElementById('modalEditPermVinculo').style.display = 'flex';
+      };
+
+      window.fecharModalEditPerm = function() {
+        document.getElementById('modalEditPermVinculo').style.display = 'none';
+        editPermShareId = null;
+      };
+
+      window.salvarEditPerm = async function() {
+        if (!editPermShareId) return;
+        const sel = document.querySelector('#editPermOptions input[name="editPerm"]:checked');
+        if (!sel) { alert('Escolha um nível de acesso.'); return; }
+        const btn = document.getElementById('editPermSalvarBtn');
+        const labelOrig = btn.textContent;
+        btn.disabled = true; btn.textContent = 'Salvando...';
+        try {
+          const r = await fetch('/sistema_vendas/public/api/resource_shares.php', {
+            method: 'PATCH',
+            headers: {'Content-Type':'application/json', 'X-CSRF-Token': CSRF},
+            credentials: 'same-origin',
+            body: JSON.stringify({ id: editPermShareId, permission_level: sel.value, csrf_token: CSRF }),
+          }).then(x => x.json());
+          if (r.success) {
+            fecharModalEditPerm();
+            carregarVinculos(currentProcId);
+          } else {
+            alert(r.error || 'Erro ao atualizar permissão');
+          }
+        } catch (e) {
+          alert('Erro de rede');
+        } finally {
+          btn.disabled = false; btn.textContent = labelOrig;
+        }
+      };
 
       window.revogarVinculoProc = async function(id) {
         if (!(await Yuris.confirm('Revogar este vínculo?', { danger: true, okLabel: 'Revogar' }))) return;
@@ -1230,30 +1517,24 @@ try {
         }
       };
 
-      // Override do showModal para carregar vínculos ao abrir
-      // window.showModal é definido pelo processos.js dentro de DOMContentLoaded,
-      // então fazemos retry até encontrar (evita race condition).
-      function installShowModalHook() {
-        if (window.__vinculosHookInstalled) return;
-        const orig = window.showModal;
-        if (typeof orig !== 'function') {
-          setTimeout(installShowModalHook, 50);
-          return;
-        }
-        window.__vinculosHookInstalled = true;
-        window.showModal = function(data) {
-          orig(data);
-          carregarVinculos(data?.id || null);
-          resetModalVinculo();
-        };
-        // Caso o modal já esteja aberto agora (ex: ?open=ID), tenta puxar o id já preenchido
-        try {
-          const f = document.getElementById('processForm');
-          const id = f && f.id ? parseInt(f.id.value, 10) : 0;
-          if (id) carregarVinculos(id);
-        } catch (e) {}
-      }
-      installShowModalHook();
+      // Sincronização com a abertura do modal de processo.
+      // Antes existia um monkey-patch em window.showModal, mas os listeners
+      // internos do processos.js chamam o `showModal` LOCAL da closure (não
+      // window.showModal), o que fazia o patch nunca rodar para clicks em
+      // Editar do card — e o painel de vínculos aparecia vazio mesmo com
+      // shares persistidos no DB. Agora processos.js dispara um evento e
+      // este bloco escuta.
+      document.addEventListener('processo:modal-opened', function(e) {
+        carregarVinculos(e.detail?.id || null);
+        resetModalVinculo();
+      });
+      // Caso o modal já esteja aberto agora (ex: ?open=ID disparado antes
+      // deste listener registrar), tenta puxar o id já preenchido no form.
+      try {
+        const f = document.getElementById('processForm');
+        const id = f && f.id ? parseInt(f.id.value, 10) : 0;
+        if (id) carregarVinculos(id);
+      } catch (e) {}
 
       // Botão "+ Adicionar vínculo" — lê o id direto do form como fallback
       document.addEventListener('DOMContentLoaded', function(){
@@ -1382,6 +1663,46 @@ try {
         <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
           <button onclick="fecharModalVinculoProc()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(96,165,250,.3);background:transparent;color:#93c5fd;cursor:pointer;font-size:.82rem">Cancelar</button>
           <button id="vincConfirmBtn" onclick="confirmarVinculoProc()" style="display:none;padding:8px 18px;border-radius:8px;border:none;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-weight:700;cursor:pointer;font-size:.82rem">Confirmar vínculo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Editar Permissão (Vínculo) -->
+  <div id="modalEditPermVinculo" style="display:none;position:fixed;inset:0;background:rgba(2,6,23,.8);z-index:3600;align-items:center;justify-content:center">
+    <div style="background:linear-gradient(165deg,rgba(10,24,46,.99),rgba(7,18,36,.99));border:1px solid rgba(96,165,250,.25);border-radius:14px;width:460px;max-width:95vw;box-shadow:0 24px 60px rgba(0,0,0,.7)">
+      <div style="padding:18px 20px;border-bottom:1px solid rgba(96,165,250,.12);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:1rem;font-weight:700;color:#dbeafe">Alterar nível de acesso</span>
+        <button type="button" onclick="fecharModalEditPerm()" style="background:transparent;border:1px solid rgba(96,165,250,.3);color:#93c5fd;border-radius:8px;padding:4px 12px;cursor:pointer;font-size:.82rem">Fechar</button>
+      </div>
+      <div style="padding:20px">
+        <div id="editPermAlvo" style="font-size:.85rem;color:#9ab0c9;margin-bottom:14px"></div>
+        <div id="editPermOptions" style="display:flex;flex-direction:column;gap:8px">
+          <label class="ep-opt" style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:rgba(5,18,39,.6);border:1px solid rgba(96,165,250,.18);cursor:pointer">
+            <input type="radio" name="editPerm" value="view" style="margin-top:3px;accent-color:#2563eb">
+            <div>
+              <div style="font-size:.85rem;color:#dbeafe;font-weight:600">Visualização</div>
+              <div style="font-size:.74rem;color:#9ab0c9;margin-top:2px">Pode apenas ver, sem alterar nada.</div>
+            </div>
+          </label>
+          <label class="ep-opt" style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:rgba(5,18,39,.6);border:1px solid rgba(96,165,250,.18);cursor:pointer">
+            <input type="radio" name="editPerm" value="edit" style="margin-top:3px;accent-color:#2563eb">
+            <div>
+              <div style="font-size:.85rem;color:#dbeafe;font-weight:600">Edição</div>
+              <div style="font-size:.74rem;color:#9ab0c9;margin-top:2px">Visualizar e modificar dados do processo.</div>
+            </div>
+          </label>
+          <label class="ep-opt" style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:rgba(5,18,39,.6);border:1px solid rgba(96,165,250,.18);cursor:pointer">
+            <input type="radio" name="editPerm" value="full" style="margin-top:3px;accent-color:#2563eb">
+            <div>
+              <div style="font-size:.85rem;color:#dbeafe;font-weight:600">Acesso total</div>
+              <div style="font-size:.74rem;color:#9ab0c9;margin-top:2px">Edição + revogar vínculos e demais ações administrativas.</div>
+            </div>
+          </label>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
+          <button type="button" onclick="fecharModalEditPerm()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(96,165,250,.3);background:transparent;color:#93c5fd;cursor:pointer;font-size:.82rem">Cancelar</button>
+          <button type="button" id="editPermSalvarBtn" onclick="salvarEditPerm()" style="padding:8px 18px;border-radius:8px;border:none;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-weight:700;cursor:pointer;font-size:.82rem">Salvar</button>
         </div>
       </div>
     </div>

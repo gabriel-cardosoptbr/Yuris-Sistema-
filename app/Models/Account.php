@@ -29,9 +29,16 @@ class Account
 
     public static function findByCodigoVinculo(string $codigo): ?array
     {
+        // Aceita active/trial/overdue — mesma whitelist do AuthController.
+        // Contas em teste ou inadimplentes continuam operáveis; só
+        // suspended/cancelled/inactive ficam invisíveis ao lookup.
         $pdo  = Database::getConnection();
         $stmt = $pdo->prepare(
-            'SELECT * FROM accounts WHERE codigo_vinculo = :codigo AND deleted_at IS NULL AND status = "active" LIMIT 1'
+            "SELECT * FROM accounts
+             WHERE codigo_vinculo = :codigo
+               AND deleted_at IS NULL
+               AND status IN ('active','trial','overdue')
+             LIMIT 1"
         );
         $stmt->execute(['codigo' => $codigo]);
         $row = $stmt->fetch();

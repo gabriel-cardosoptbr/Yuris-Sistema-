@@ -408,6 +408,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const tp=document.getElementById('tarefasProgress'); if(tp) tp.textContent='0% concluído (0/0)';
       const tb=document.getElementById('tarefasProgressBar'); if(tb) tb.style.width='0%';
     }
+    // Notifica blocos externos (ex: Vínculos do Processo, definido em processos.php)
+    // que o modal abriu. Antes existia um monkey-patch em window.showModal, mas
+    // os listeners internos chamam o `showModal` LOCAL desta closure, bypassando
+    // o patch — fazendo com que carregarVinculos nunca disparasse e o painel
+    // aparecesse vazio mesmo com vínculos persistidos. Evento + listener resolve.
+    try {
+      document.dispatchEvent(new CustomEvent('processo:modal-opened', {
+        detail: { id: data?.id || null }
+      }));
+    } catch (e) {}
   }
   function hideModal(){ modal.classList.add('hidden'); document.body.style.overflow = ''; }
   window.showModal = showModal; // expõe globalmente para auto-open via URL ?open=ID

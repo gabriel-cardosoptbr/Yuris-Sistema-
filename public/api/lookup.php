@@ -56,11 +56,16 @@ if ($codigo === '') {
 
 $pdo = Database::getConnection();
 
-// 1) Tenta como conta (matriz/filial)
+// 1) Tenta como conta (matriz/filial/advogado)
+// Aceita active/trial/overdue — mesma whitelist do AuthController (uma conta
+// em teste ou inadimplente continua usável; só suspended/cancelled/inactive
+// ficam fora). Antes filtrava só 'active' e contas em trial não eram achadas.
 $stmt = $pdo->prepare(
     "SELECT id, nome, tipo, plano, status
      FROM accounts
-     WHERE codigo_vinculo = :codigo AND deleted_at IS NULL AND status = 'active'
+     WHERE codigo_vinculo = :codigo
+       AND deleted_at IS NULL
+       AND status IN ('active','trial','overdue')
      LIMIT 1"
 );
 $stmt->execute(['codigo' => $codigo]);
