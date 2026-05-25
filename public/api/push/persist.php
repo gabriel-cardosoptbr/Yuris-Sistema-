@@ -28,9 +28,11 @@ require_once __DIR__ . '/../../../app/Models/Task.php';
 require_once __DIR__ . '/../../../app/Models/TaskBoard.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
+require_once __DIR__ . '/../../../app/Helpers/ProcessoAudit.php';
 require_once __DIR__ . '/../../../app/Services/Push/PublicationHasher.php';
 
 use App\Helpers\AccountContext;
+use App\Helpers\ProcessoAudit;
 use App\Models\Database;
 use App\Models\PushEvent;
 use App\Models\PushTodayCache;
@@ -227,12 +229,41 @@ try {
             // Pega o numero_processo do evento pra registrar auto-link
             $ev = \App\Models\PushEvent::findByIdForAccount($eventId, $accountId);
             $numProc = $ev['numero_processo'] ?? '';
+
+            // Auditoria no histórico do processo: origem + OAB + número + publicação.
+            // Tudo o que advogado precisa pra rastrear "de onde veio essa intimação".
+            $origem = strtoupper((string)($ev['source_id'] ?? '?'));   // DJEN | AASP
+            $oab    = trim((string)($ev['advogado_oab'] ?? ''));
+            $advNome= trim((string)($ev['advogado_nome'] ?? ''));
+            $dataPub= $ev['data_publicacao'] ?? $ev['data_disponibilizacao'] ?? '';
+            $numMask= $ev['numero_processo_mascara'] ?? $numProc;
+            $tribunal = $ev['tribunal'] ?? '';
+            $bits = ["origem {$origem}"];
+            if ($oab !== '')     $bits[] = "OAB {$oab}" . ($advNome !== '' ? " ({$advNome})" : '');
+            if ($numMask !== '') $bits[] = "número {$numMask}";
+            if ($tribunal !== '')$bits[] = "tribunal {$tribunal}";
+            if ($dataPub !== '') $bits[] = "publicação {$dataPub}";
+            $bits[] = "push_event #{$eventId}";
+            ProcessoAudit::log(
+                $procId,
+                'Intimação vinculada',
+                'Intimação vinculada ao processo — ' . implode(' · ', $bits)
+            );
+
             if ($numProc !== '') {
                 // Salva mapping permanente — futuras intimações com mesmo número auto-vinculam
                 \App\Models\PushProcessoLink::linkProcesso($accountId, $numProc, $procId, $userId);
                 // Aplica retroativo: outras intimações passadas com mesmo número ganham vínculo
                 $retroCount = \App\Models\PushProcessoLink::aplicarRetroativo($accountId, $numProc, $procId);
                 $resultado['retroativo_aplicado'] = $retroCount;
+                if ($retroCount > 0) {
+                    // Loga o lote retroativo separadamente pra ficar claro no histórico.
+                    ProcessoAudit::log(
+                        $procId,
+                        'Intimações auto-vinculadas (retroativo)',
+                        "{$retroCount} intimação(ões) anterior(es) com número {$numMask} foram auto-vinculadas a este processo"
+                    );
+                }
             }
             $resultado['processo_id'] = $procId;
             break;
@@ -242,10 +273,21 @@ try {
             $pdo = Database::getConnection();
             $ev = \App\Models\PushEvent::findByIdForAccount($eventId, $accountId);
             $numProc = $ev['numero_processo'] ?? '';
+            $procIdAntes = (int)($ev['processo_id'] ?? 0);   // pra logar no processo CORRETO
             $pdo->prepare('UPDATE push_events SET processo_id = NULL WHERE id = :id AND account_id = :acc')
                 ->execute(['id' => $eventId, 'acc' => $accountId]);
             if ($numProc !== '') {
                 \App\Models\PushProcessoLink::unlinkProcesso($accountId, $numProc);
+            }
+            // Audit no processo que PERDEU a intimação
+            if ($procIdAntes > 0) {
+                $origem  = strtoupper((string)($ev['source_id'] ?? '?'));
+                $numMask = $ev['numero_processo_mascara'] ?? $numProc;
+                ProcessoAudit::log(
+                    $procIdAntes,
+                    'Intimação desvinculada',
+                    "Intimação desvinculada — origem {$origem} · número {$numMask} · push_event #{$eventId}"
+                );
             }
             $resultado['unlinked'] = true;
             break;

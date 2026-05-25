@@ -52,6 +52,24 @@ class ProcessoAudit
         $aId   = isset($_SESSION['account_id'])   ? (int)$_SESSION['account_id']   : null;
         $aTipo = $_SESSION['account_tipo'] ?? null;
         $aNome = $_SESSION['account_nome'] ?? null;
+
+        // Detecta acesso "via vínculo": se a conta autora não é a dona do processo,
+        // chegou via resource_share. Prefixa a descricao com [VIA VÍNCULO] pra que
+        // o histórico do dono mostre claramente quando outra conta tocou no processo.
+        // Falha silenciosa: se DB não responder, segue sem o prefixo (auditoria nunca
+        // bloqueia ação).
+        try {
+            if ($aId) {
+                $pdoDono = Database::getConnection();
+                $stDono = $pdoDono->prepare("SELECT account_id FROM processos WHERE id = :id LIMIT 1");
+                $stDono->execute(['id' => $processoId]);
+                $procOwnerAcc = (int) ($stDono->fetchColumn() ?: 0);
+                if ($procOwnerAcc > 0 && $procOwnerAcc !== $aId) {
+                    $descricao = '[VIA VÍNCULO] ' . $descricao;
+                }
+            }
+        } catch (\Throwable $_e) { /* sem prefixo se falhar */ }
+
         try {
             // LGPD Etapa 4: ip + user_agent + request_id pra trilha forense
             if (!class_exists('App\\Helpers\\RequestId')) {
@@ -102,7 +120,16 @@ class ProcessoAudit
             if (!array_key_exists($field, $new)) continue;          // só compara o que foi enviado
             $a = (string)($prev[$field] ?? '');
             $b = (string)($new[$field]  ?? '');
-            if ($a === $b) continue;
+            // Normaliza vazio: '', '0', null e 0 são equivalentes para IDs/datas/etc.
+            // Antes, prev='' (NULL no DB) vs new='0' (form vazio) escapava do !== e
+            // disparava uma entrada falsa "Setor:  → " com strings vazias dos dois lados.
+            $aN = ($a === '' || $a === '0') ? '' : $a;
+            $bN = ($b === '' || $b === '0') ? '' : $b;
+            if ($aN === $bN) continue;
+            // A partir daqui $aN/$bN representam o "valor real" — usa pra todo o
+            // resto do bloco para evitar o falso-positivo de '' vs '0'.
+            $a = $aN;
+            $b = $bN;
 
             if (in_array($field, $detailFields, true)) {
                 // Resolve IDs para NOMES legíveis (responsavel/setor/card/contato/status)

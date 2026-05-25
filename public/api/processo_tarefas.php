@@ -6,10 +6,12 @@ require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
 require_once __DIR__ . '/../../app/Services/WebhookDispatcher.php';
 require_once __DIR__ . '/../../app/Helpers/ErrorReporter.php';
+require_once __DIR__ . '/../../app/Helpers/ProcessoAudit.php';
 
 use App\Models\Database;
 use App\Helpers\AccountContext;
 use App\Helpers\TenantGuard;
+use App\Helpers\ProcessoAudit;
 use App\Services\WebhookDispatcher;
 
 session_start();
@@ -99,15 +101,8 @@ try {
         ]);
         $newId = $pdo->lastInsertId();
 
-        // Registra em processo_history
-        $pdo->prepare(
-            "INSERT INTO processo_history (processo_id, user_email, acao, descricao)
-             VALUES (:pid, :email, 'Tarefa criada', :desc)"
-        )->execute([
-            'pid'   => $processoId,
-            'email' => $userEmail,
-            'desc'  => "Tarefa criada: {$titulo}",
-        ]);
+        // Registra em processo_history via ProcessoAudit (trilha forense completa)
+        ProcessoAudit::log($processoId, 'Tarefa criada', "Tarefa criada: {$titulo}");
 
         // P0 LGPD: tenant dono do processo
         $procAcc = $pdo->prepare("SELECT account_id FROM processos WHERE id = ? LIMIT 1");
@@ -154,7 +149,7 @@ try {
         $sql = "UPDATE processo_tarefas SET " . implode(', ', $fields) . " WHERE id = :id";
         $pdo->prepare($sql)->execute($params);
 
-        // Registra em processo_history para qualquer mudança relevante
+        // Registra em processo_history via ProcessoAudit para qualquer mudança relevante
         if (array_key_exists('concluido', $input) || array_key_exists('titulo', $input)) {
             $stmt = $pdo->prepare("SELECT processo_id, titulo FROM processo_tarefas WHERE id = :id");
             $stmt->execute(['id' => $id]);
@@ -167,15 +162,7 @@ try {
                     $acao = 'Tarefa editada';
                     $desc = "Tarefa renomeada para: {$input['titulo']}";
                 }
-                $pdo->prepare(
-                    "INSERT INTO processo_history (processo_id, user_email, acao, descricao)
-                     VALUES (:pid, :email, :acao, :desc)"
-                )->execute([
-                    'pid'   => $tarefa['processo_id'],
-                    'email' => $userEmail,
-                    'acao'  => $acao,
-                    'desc'  => $desc,
-                ]);
+                ProcessoAudit::log((int)$tarefa['processo_id'], $acao, $desc);
             }
         }
 
@@ -220,15 +207,9 @@ try {
         if ($procId) TenantGuard::assertProcessoAcessivel($ctx, $procId);
 
         $pdo->prepare("DELETE FROM processo_tarefas WHERE id = :id")->execute(['id' => $id]);
-        // Auditoria server-side: registra exclusão
+        // Auditoria server-side: registra exclusão via helper (trilha forense)
         if ($procId) {
-            $pdo->prepare(
-                "INSERT INTO processo_history (processo_id, user_email, acao, descricao)
-                 VALUES (:pid, :email, 'Tarefa excluída', :desc)"
-            )->execute([
-                'pid' => $procId, 'email' => $userEmail,
-                'desc' => "Tarefa removida: {$tarefaTitulo}",
-            ]);
+            ProcessoAudit::log($procId, 'Tarefa excluída', "Tarefa removida: {$tarefaTitulo}");
         }
         echo json_encode(['success' => true]);
         exit;

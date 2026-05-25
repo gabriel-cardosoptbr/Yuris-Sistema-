@@ -6,10 +6,12 @@ require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
 require_once __DIR__ . '/../../app/Services/WebhookDispatcher.php';
 require_once __DIR__ . '/../../app/Helpers/ErrorReporter.php';
+require_once __DIR__ . '/../../app/Helpers/ProcessoAudit.php';
 
 use App\Models\Database;
 use App\Helpers\AccountContext;
 use App\Helpers\TenantGuard;
+use App\Helpers\ProcessoAudit;
 use App\Services\WebhookDispatcher;
 
 session_start();
@@ -99,15 +101,13 @@ try {
         ]);
         $newId = $pdo->lastInsertId();
 
-        // Registra em processo_history
-        $pdo->prepare(
-            "INSERT INTO processo_history (processo_id, user_email, acao, descricao)
-             VALUES (:pid, :email, 'Prazo criado', :desc)"
-        )->execute([
-            'pid'   => $processoId,
-            'email' => $userEmail,
-            'desc'  => "Prazo criado: {$descricao}" . (isset($input['data_limite']) ? " (vence em {$input['data_limite']})" : ''),
-        ]);
+        // Registra em processo_history via ProcessoAudit (ganha ip/ua/request_id
+        // + snapshot da conta autora — diff vs INSERT direto que faltavam esses campos).
+        ProcessoAudit::log(
+            $processoId,
+            'Prazo criado',
+            "Prazo criado: {$descricao}" . (isset($input['data_limite']) ? " (vence em {$input['data_limite']})" : '')
+        );
 
         // P0 LGPD: dispara apenas para webhooks do tenant DONO do processo
         $procAcc = $pdo->prepare("SELECT account_id FROM processos WHERE id = ? LIMIT 1");
@@ -154,37 +154,28 @@ try {
         $sql = "UPDATE processo_prazos SET " . implode(', ', $fields) . " WHERE id = :id";
         $pdo->prepare($sql)->execute($params);
 
-        // Auditoria server-side: detalhes do que mudou neste prazo
+        // Auditoria server-side via ProcessoAudit (ganha trilha forense completa).
         $auditPid = (int)$prevPrazo['processo_id'];
         if (isset($input['status']) && $input['status'] !== $prevPrazo['status']) {
             $acao = $input['status'] === 'concluido' ? 'Prazo concluído' : 'Prazo atualizado';
-            $pdo->prepare(
-                "INSERT INTO processo_history (processo_id, user_email, acao, descricao)
-                 VALUES (:pid, :email, :acao, :desc)"
-            )->execute([
-                'pid' => $auditPid, 'email' => $userEmail, 'acao' => $acao,
-                'desc' => "{$acao}: {$prevPrazo['descricao']} (de '{$prevPrazo['status']}' para '{$input['status']}')",
-            ]);
+            ProcessoAudit::log(
+                $auditPid, $acao,
+                "{$acao}: {$prevPrazo['descricao']} (de '{$prevPrazo['status']}' para '{$input['status']}')"
+            );
         }
         if (isset($input['descricao']) && $input['descricao'] !== $prevPrazo['descricao']) {
-            $pdo->prepare(
-                "INSERT INTO processo_history (processo_id, user_email, acao, descricao)
-                 VALUES (:pid, :email, 'Prazo editado', :desc)"
-            )->execute([
-                'pid' => $auditPid, 'email' => $userEmail,
-                'desc' => "Prazo renomeado: '{$prevPrazo['descricao']}' → '{$input['descricao']}'",
-            ]);
+            ProcessoAudit::log(
+                $auditPid, 'Prazo editado',
+                "Prazo renomeado: '{$prevPrazo['descricao']}' → '{$input['descricao']}'"
+            );
         }
         if (isset($input['data_limite']) && $input['data_limite'] !== $prevPrazo['data_limite']) {
-            $pdo->prepare(
-                "INSERT INTO processo_history (processo_id, user_email, acao, descricao)
-                 VALUES (:pid, :email, 'Prazo editado', :desc)"
-            )->execute([
-                'pid' => $auditPid, 'email' => $userEmail,
-                'desc' => "Data do prazo '{$prevPrazo['descricao']}': "
-                        . ($prevPrazo['data_limite'] ?: '∅') . ' → '
-                        . ($input['data_limite'] ?: '∅'),
-            ]);
+            ProcessoAudit::log(
+                $auditPid, 'Prazo editado',
+                "Data do prazo '{$prevPrazo['descricao']}': "
+                . ($prevPrazo['data_limite'] ?: '∅') . ' → '
+                . ($input['data_limite'] ?: '∅')
+            );
         }
 
         $eventKey = (isset($input['status']) && $input['status'] === 'concluido')
@@ -223,15 +214,9 @@ try {
         if ($procId) TenantGuard::assertProcessoAcessivel($ctx, $procId);
 
         $pdo->prepare("DELETE FROM processo_prazos WHERE id = :id")->execute(['id' => $id]);
-        // Auditoria server-side: registra exclusão
+        // Auditoria server-side: registra exclusão (via helper para trilha forense)
         if ($procId) {
-            $pdo->prepare(
-                "INSERT INTO processo_history (processo_id, user_email, acao, descricao)
-                 VALUES (:pid, :email, 'Prazo excluído', :desc)"
-            )->execute([
-                'pid' => $procId, 'email' => $userEmail,
-                'desc' => "Prazo removido: {$prazoDesc}",
-            ]);
+            ProcessoAudit::log($procId, 'Prazo excluído', "Prazo removido: {$prazoDesc}");
         }
         echo json_encode(['success' => true]);
         exit;
