@@ -315,7 +315,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
   <section class="mst-section active" id="msec-overview">
     <div class="mst-grid-5">
       <div class="mst-card"><div class="mst-kpi-label">Contas Ativas</div><div class="mst-kpi-value" id="kpiActive">—</div><div class="mst-kpi-foot" id="kpiActiveFoot">de — totais</div></div>
-      <div class="mst-card"><div class="mst-kpi-label">Em Trial</div><div class="mst-kpi-value" id="kpiTrial">—</div><div class="mst-kpi-foot">testando o sistema</div></div>
+      <div class="mst-card"><div class="mst-kpi-label">Em teste</div><div class="mst-kpi-value" id="kpiTrial">—</div><div class="mst-kpi-foot">testando o sistema</div></div>
       <div class="mst-card"><div class="mst-kpi-label">Em Atraso</div><div class="mst-kpi-value" id="kpiOverdue">—</div><div class="mst-kpi-foot">pagamento vencido</div></div>
       <div class="mst-card"><div class="mst-kpi-label">Suspensas</div><div class="mst-kpi-value" id="kpiSuspended">—</div><div class="mst-kpi-foot">acesso bloqueado</div></div>
       <div class="mst-card"><div class="mst-kpi-label">MRR Projetado</div><div class="mst-kpi-value" id="kpiMrr">R$ —</div><div class="mst-kpi-foot">receita mensal</div></div>
@@ -366,7 +366,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
       <div class="mst-card" style="padding:0; overflow:hidden">
         <div style="padding:14px 18px; font-weight:700; font-size:.9rem; border-bottom:1px solid rgba(160,180,210,.10)">Por Plano</div>
         <table class="mst-tbl">
-          <thead><tr><th>Plano</th><th>Active</th><th>Trial</th><th>Total</th></tr></thead>
+          <thead><tr><th>Plano</th><th>Ativas</th><th>Em teste</th><th>Total</th></tr></thead>
           <tbody id="byPlanBody"><tr><td colspan="4" class="empty">—</td></tr></tbody>
         </table>
       </div>
@@ -487,7 +487,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
         <button class="btn-mst btn-mst-primary" onclick="openPlanModal()">+ Novo Plano</button>
       </div>
       <table class="mst-tbl">
-        <thead><tr><th>Slug</th><th>Nome</th><th>Mensal</th><th>Anual</th><th>Trial</th><th>Ativo</th><th>Assinaturas</th><th>Features</th><th>Ações</th></tr></thead>
+        <thead><tr><th>Slug</th><th>Nome</th><th>Mensal</th><th>Anual</th><th>Dias de teste</th><th>Ativo</th><th>Assinaturas</th><th>Features</th><th>Ações</th></tr></thead>
         <tbody id="plansBody"><tr><td colspan="9" class="empty">Carregando…</td></tr></tbody>
       </table>
     </div>
@@ -498,7 +498,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
     <div class="mst-card" style="padding:0; overflow:hidden">
       <div style="padding:14px 18px; font-weight:700; border-bottom:1px solid rgba(160,180,210,.10)">Assinaturas</div>
       <table class="mst-tbl">
-        <thead><tr><th>Conta</th><th>Plano</th><th>Status</th><th>Ciclo</th><th>Trial até</th><th>Período até</th><th>Ações</th></tr></thead>
+        <thead><tr><th>Conta</th><th>Plano</th><th>Status</th><th>Ciclo</th><th>Teste até</th><th>Período até</th><th>Ações</th></tr></thead>
         <tbody id="subsBody"><tr><td colspan="7" class="empty">Carregando…</td></tr></tbody>
       </table>
     </div>
@@ -1211,7 +1211,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
           </div>
         </div>
         <div class="mst-form-row">
-          <div><label class="mst-form-label">Fim do trial</label><input name="trial_ends_at" id="subTrialEnd" class="mst-form-input" type="date"></div>
+          <div><label class="mst-form-label">Teste grátis até</label><input name="trial_ends_at" id="subTrialEnd" class="mst-form-input" type="date"></div>
           <div><label class="mst-form-label">Fim do período atual</label><input name="current_period_end" id="subPeriodEnd" class="mst-form-input" type="date"></div>
         </div>
       </div>
@@ -1282,9 +1282,9 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
                 <option value="yearly">Anual</option>
               </select>
             </div>
-            <div><label class="mst-form-label">Trial até</label>
+            <div><label class="mst-form-label">Teste grátis até</label>
               <input id="editAccSubTrial" type="date" class="mst-form-input">
-              <div class="mst-form-help">Data limite do período de teste gratuito.</div>
+              <div class="mst-form-help">Data limite do período de avaliação gratuita (depois precisa pagar pra continuar usando).</div>
             </div>
             <div><label class="mst-form-label">Período até</label>
               <input id="editAccSubPeriod" type="date" class="mst-form-input">
@@ -2208,7 +2208,7 @@ async function viewAcc(id) {
       <div class="mst-detail-item"><div class="label">Plano</div><div class="value">${esc(sub.plan_nome||'—')} (${esc(sub.plan_slug||'')})</div></div>
       <div class="mst-detail-item"><div class="label">Status</div><div class="value">${pill(sub.status)}</div></div>
       <div class="mst-detail-item"><div class="label">Ciclo</div><div class="value">${i18nBadge(sub.billing_cycle)}</div></div>
-      <div class="mst-detail-item"><div class="label">Trial até</div><div class="value">${fmtDate(sub.trial_ends_at)}</div></div>
+      <div class="mst-detail-item"><div class="label">Teste grátis até</div><div class="value">${fmtDate(sub.trial_ends_at)}</div></div>
       <div class="mst-detail-item"><div class="label">Período até</div><div class="value">${fmtDate(sub.current_period_end)}</div></div>
     </div>`;
   } else {
