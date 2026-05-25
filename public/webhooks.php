@@ -102,12 +102,52 @@ $catalog = WebhookDispatcher::catalog();
       overflow-x:hidden !important;
     }
     /* Scrollbar sempre visível no modal de docs (ajuda o user a perceber que rola) */
+    /* Firefox */
+    #modalDocs .modal-body,
+    #modalCatalog .modal-body {
+      scrollbar-width: thin;
+      scrollbar-color: #3b82f6 rgba(0,0,0,.1);
+    }
+    /* WebKit (Chrome/Edge/Safari) — thumb azul sólido, sempre visível */
     #modalDocs .modal-body::-webkit-scrollbar,
-    #modalCatalog .modal-body::-webkit-scrollbar { width:10px; }
+    #modalCatalog .modal-body::-webkit-scrollbar { width:14px; }
     #modalDocs .modal-body::-webkit-scrollbar-thumb,
-    #modalCatalog .modal-body::-webkit-scrollbar-thumb { background:rgba(96,165,250,.35); border-radius:5px; }
+    #modalCatalog .modal-body::-webkit-scrollbar-thumb {
+      background:#3b82f6;
+      border-radius:7px;
+      border:3px solid transparent;
+      background-clip:padding-box;
+      min-height:50px;
+    }
+    #modalDocs .modal-body::-webkit-scrollbar-thumb:hover,
+    #modalCatalog .modal-body::-webkit-scrollbar-thumb:hover {
+      background:#1d4ed8;
+      background-clip:padding-box;
+    }
     #modalDocs .modal-body::-webkit-scrollbar-track,
-    #modalCatalog .modal-body::-webkit-scrollbar-track { background:rgba(0,0,0,.15); }
+    #modalCatalog .modal-body::-webkit-scrollbar-track {
+      background:rgba(96,165,250,.08);
+      border-radius:7px;
+    }
+    /* Tema claro: thumb com mais contraste em fundo branco */
+    html[data-theme="light"] #modalDocs .modal-body,
+    html[data-theme="light"] #modalCatalog .modal-body {
+      scrollbar-color: #2563eb rgba(15,31,54,0.08);
+    }
+    html[data-theme="light"] #modalDocs .modal-body::-webkit-scrollbar-thumb,
+    html[data-theme="light"] #modalCatalog .modal-body::-webkit-scrollbar-thumb {
+      background:#2563eb;
+      background-clip:padding-box;
+    }
+    html[data-theme="light"] #modalDocs .modal-body::-webkit-scrollbar-thumb:hover,
+    html[data-theme="light"] #modalCatalog .modal-body::-webkit-scrollbar-thumb:hover {
+      background:#1e40af;
+      background-clip:padding-box;
+    }
+    html[data-theme="light"] #modalDocs .modal-body::-webkit-scrollbar-track,
+    html[data-theme="light"] #modalCatalog .modal-body::-webkit-scrollbar-track {
+      background:rgba(15,31,54,0.06);
+    }
 
     /* ── Form fields ── */
     .field-group { display:flex; flex-direction:column; gap:5px; }
