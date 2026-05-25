@@ -25,6 +25,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
+  <script>/* yuris_terms_preboot — sem flash: esconde aceite ANTES do primeiro paint */
+    (function(){try{
+      if (localStorage.getItem("yuris_terms_accepted_v1") === "1") {
+        var s = document.createElement("style");
+        s.id = "yuris-terms-prehide";
+        s.textContent = "#termsField{display:none !important}";
+        document.head.appendChild(s);
+      }
+    }catch(e){}})();
+  </script>
   <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=27">
   <style>
     :root{
@@ -86,6 +96,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       <form id="loginForm" method="post" novalidate>
         <input type="hidden" name="csrf_token" value="<?=htmlspecialchars($_SESSION['csrf_token'])?>">
+        <!-- Hidden: marcado via JS se o user ja aceitou os termos antes (lookup no servidor por e-mail) -->
+        <input type="hidden" name="aceite_termos_servidor" id="aceite_termos_servidor" value="0">
         <div class="field anim-item" data-i="2">
           <label class="text-sm">E-mail</label>
           <div class="rel">
@@ -108,15 +120,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="remember"> Lembrar</label>
         </div>
 
-        <!-- LGPD Etapa 5: aceite obrigatório de termos -->
-        <div class="field anim-item" data-i="5" style="font-size:13px;color:#7c8aa3;line-height:1.4">
+        <!-- LGPD Etapa 5: aceite obrigatório de termos (somente na primeira vez por user) -->
+        <div id="termsField" class="field anim-item" data-i="5" style="font-size:13px;color:#A8BDD4;line-height:1.4">
           <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer">
             <input type="checkbox" name="aceite_termos" id="aceite_termos" required style="margin-top:3px">
             <span>
               Li e concordo com os
-              <a href="/sistema_vendas/public/termos.php" target="_blank" style="color:#7eb8f7">Termos de Uso</a>
+              <a href="/sistema_vendas/public/termos.php" target="_blank" style="color:#9CC7F7">Termos de Uso</a>
               e a
-              <a href="/sistema_vendas/public/privacidade.php" target="_blank" style="color:#7eb8f7">Política de Privacidade</a>.
+              <a href="/sistema_vendas/public/privacidade.php" target="_blank" style="color:#9CC7F7">Política de Privacidade</a>.
             </span>
           </label>
         </div>
@@ -153,10 +165,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       if (document.readyState === 'complete' || document.readyState === 'interactive') playEntrance();
       else document.addEventListener('DOMContentLoaded', playEntrance);
 
+      // ── LGPD: aceite "uma vez por user" — usa localStorage + servidor como fonte da verdade
+      const emailInput   = document.querySelector('input[name="login"]');
+      const termsField   = document.getElementById('termsField');
+      const checkboxEl   = document.getElementById('aceite_termos');
+      const hiddenSrv    = document.getElementById('aceite_termos_servidor');
+      const preHideStyle = document.getElementById('yuris-terms-prehide');
+
+      function hideTerms(){
+        if (termsField) termsField.style.display = 'none';
+        if (checkboxEl) { checkboxEl.checked = true; checkboxEl.required = false; }
+        if (hiddenSrv)  hiddenSrv.value = '1';
+      }
+      function showTerms(){
+        if (preHideStyle) preHideStyle.remove();
+        if (termsField) termsField.style.display = '';
+        if (checkboxEl) { checkboxEl.checked = false; checkboxEl.required = true; }
+        if (hiddenSrv)  hiddenSrv.value = '0';
+        try { localStorage.removeItem('yuris_terms_accepted_v1'); } catch(e){}
+      }
+      async function checkTermsForEmail(email){
+        if (!email || !email.includes('@')) return;
+        try {
+          const r = await fetch('/sistema_vendas/public/api/auth/check_terms.php?email=' + encodeURIComponent(email),
+                                { cache: 'no-store' });
+          const j = await r.json();
+          if (j && j.ok && j.accepted) { hideTerms(); }
+          else { showTerms(); }
+        } catch(e){ /* silencioso */ }
+      }
+
+      // Se localStorage diz aceito, ja escondemos via pre-paint. Mantém escondido aqui também.
+      if (localStorage.getItem('yuris_terms_accepted_v1') === '1') hideTerms();
+
+      // Quando user digitar/colar email, consulta servidor (fonte de verdade)
+      if (emailInput) {
+        emailInput.addEventListener('blur',  () => checkTermsForEmail(emailInput.value.trim()));
+        emailInput.addEventListener('change',() => checkTermsForEmail(emailInput.value.trim()));
+        // Poll curto pra capturar autofill do browser
+        let pollCount = 0;
+        const pollId = setInterval(() => {
+          if (++pollCount > 10 || (emailInput.value && emailInput.value.includes('@'))) {
+            clearInterval(pollId);
+            if (emailInput.value) checkTermsForEmail(emailInput.value.trim());
+          }
+        }, 300);
+      }
+
       // exit animation on submit
       const form = document.getElementById('loginForm');
       if (form) {
         form.addEventListener('submit', function(e){
+          // Se aceitou agora ou servidor confirmou, persiste localStorage pra zero-flash futuro
+          const marcou = checkboxEl && checkboxEl.checked;
+          const srvOk  = hiddenSrv && hiddenSrv.value === '1';
+          if (marcou || srvOk) {
+            try { localStorage.setItem('yuris_terms_accepted_v1', '1'); } catch(_){}
+          }
           // animate then submit
           e.preventDefault();
           const card = document.querySelector('.login-card');

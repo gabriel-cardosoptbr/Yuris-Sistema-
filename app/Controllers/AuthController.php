@@ -144,6 +144,10 @@ class AuthController
         // Rate-limit: zera contador em login bem-sucedido
         self::clearFailedAttempts($ip, $login);
 
+        // LGPD: persiste aceite dos Termos/Privacidade na primeira vez.
+        // Idempotente — Consent::grant detecta ativo anterior e não duplica.
+        self::recordTermsConsentIfNeeded($user, $ip);
+
         require_once __DIR__ . '/../Services/WebhookDispatcher.php';
         // P0 LGPD: passa account_id do usuário que logou, não global
         $loginAcc = isset($user['account_id']) ? (int)$user['account_id'] : null;
@@ -240,5 +244,39 @@ class AuthController
                 'DELETE FROM login_attempts WHERE ip = :ip AND login = :login AND success = 0'
             )->execute(['ip' => $ip, 'login' => $login]);
         } catch (\Throwable $_e) { /* fail silently */ }
+    }
+
+    /**
+     * Grava aceite dos Termos+Privacidade em lgpd_consents.
+     * Roda apenas se o user marcou o checkbox OU o hidden indica que o servidor
+     * já confirmou aceite anterior (UI escondeu o checkbox). Idempotente: o
+     * model detecta consent ativo e só atualiza ip/ua.
+     */
+    private static function recordTermsConsentIfNeeded(array $user, string $ip): void
+    {
+        $marcouCheckbox = !empty($_POST['aceite_termos']);
+        $hiddenAceite   = ($_POST['aceite_termos_servidor'] ?? '0') === '1';
+        if (!$marcouCheckbox && !$hiddenAceite) return;
+
+        try {
+            require_once __DIR__ . '/../Models/Consent.php';
+            $accId = isset($user['account_id']) ? (int)$user['account_id'] : null;
+            \App\Models\Consent::grant([
+                'user_id'        => (int)$user['id'],
+                'account_id'     => $accId,
+                // Tabela users guarda e-mail na coluna `login` (não `email`).
+                // Também salvamos em titular_email pra fazer lookup direto antes do login.
+                'titular_email'  => $user['login'] ?? null,
+                'finalidade'     => 'termos_uso_login',
+                'base_legal'     => 'consentimento',
+                'fonte'          => 'login_form',
+                'ip'             => $ip,
+                'evidencia'      => [
+                    'marcou_checkbox' => $marcouCheckbox,
+                    'hidden_servidor' => $hiddenAceite,
+                    'timestamp'       => date('c'),
+                ],
+            ]);
+        } catch (\Throwable $_e) { /* fail silently — não pode bloquear login */ }
     }
 }
