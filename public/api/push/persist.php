@@ -23,6 +23,7 @@ require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../../app/Models/PushEvent.php';
 require_once __DIR__ . '/../../../app/Models/PushTodayCache.php';
 require_once __DIR__ . '/../../../app/Models/PushEventUserStatus.php';
+require_once __DIR__ . '/../../../app/Models/PushProcessoLink.php';
 require_once __DIR__ . '/../../../app/Models/Task.php';
 require_once __DIR__ . '/../../../app/Models/TaskBoard.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
@@ -67,7 +68,7 @@ try {
 
     $action = trim((string)($payload['action'] ?? ''));
     $extra  = is_array($payload['extra'] ?? null) ? $payload['extra'] : [];
-    $allowedActions = ['read','unread','favorite','deadline','comment','link_process'];
+    $allowedActions = ['read','unread','favorite','deadline','comment','link_process','unlink_process','create_task'];
     if (!in_array($action, $allowedActions, true)) {
         http_response_code(400);
         echo json_encode(['error' => 'Ação inválida. Use: ' . implode(', ', $allowedActions)]);
@@ -219,9 +220,104 @@ try {
                 echo json_encode(['error' => 'Processo não pertence a esta conta']);
                 exit;
             }
+            // Vincula a intimação específica
             $pdo->prepare('UPDATE push_events SET processo_id = :p WHERE id = :id AND account_id = :acc')
                 ->execute(['p' => $procId, 'id' => $eventId, 'acc' => $accountId]);
+
+            // Pega o numero_processo do evento pra registrar auto-link
+            $ev = \App\Models\PushEvent::findByIdForAccount($eventId, $accountId);
+            $numProc = $ev['numero_processo'] ?? '';
+            if ($numProc !== '') {
+                // Salva mapping permanente — futuras intimações com mesmo número auto-vinculam
+                \App\Models\PushProcessoLink::linkProcesso($accountId, $numProc, $procId, $userId);
+                // Aplica retroativo: outras intimações passadas com mesmo número ganham vínculo
+                $retroCount = \App\Models\PushProcessoLink::aplicarRetroativo($accountId, $numProc, $procId);
+                $resultado['retroativo_aplicado'] = $retroCount;
+            }
             $resultado['processo_id'] = $procId;
+            break;
+
+        case 'unlink_process':
+            // Remove vínculo da intimação específica + remove auto-link futuro
+            $pdo = Database::getConnection();
+            $ev = \App\Models\PushEvent::findByIdForAccount($eventId, $accountId);
+            $numProc = $ev['numero_processo'] ?? '';
+            $pdo->prepare('UPDATE push_events SET processo_id = NULL WHERE id = :id AND account_id = :acc')
+                ->execute(['id' => $eventId, 'acc' => $accountId]);
+            if ($numProc !== '') {
+                \App\Models\PushProcessoLink::unlinkProcesso($accountId, $numProc);
+            }
+            $resultado['unlinked'] = true;
+            break;
+
+        case 'create_task':
+            // Cria tarefa standalone (sem precisar setar prazo primeiro).
+            // Campos: extra.titulo, extra.descricao, extra.prazo_data, extra.responsavel_id
+            $ev = \App\Models\PushEvent::findByIdForAccount($eventId, $accountId);
+            if (!$ev) {
+                http_response_code(404);
+                echo json_encode(['error' => 'Evento não encontrado']);
+                exit;
+            }
+            $boards = \App\Models\TaskBoard::findForUser($userId, $accountId);
+            if (empty($boards)) {
+                http_response_code(409);
+                echo json_encode(['error' => 'Nenhum board de tarefas encontrado. Crie um em /tarefas primeiro.']);
+                exit;
+            }
+            $boardId = (int)$boards[0]['id'];
+            $pdo = Database::getConnection();
+            $colStmt = $pdo->prepare('SELECT id FROM task_columns WHERE board_id = :b ORDER BY ordem, id LIMIT 1');
+            $colStmt->execute(['b' => $boardId]);
+            $colId = (int)$colStmt->fetchColumn();
+            if (!$colId) {
+                http_response_code(409);
+                echo json_encode(['error' => 'Board sem colunas. Configure em /tarefas.']);
+                exit;
+            }
+
+            // Título e descrição: extra > sugestão automática
+            $titulo = trim((string)($extra['titulo'] ?? ''));
+            if ($titulo === '') {
+                $titulo = 'Intimação ' . ($ev['tribunal'] ?? '') . ' — '
+                        . ($ev['numero_processo_mascara'] ?: $ev['numero_processo'] ?: 'sem processo');
+            }
+            $desc = trim((string)($extra['descricao'] ?? ''));
+            if ($desc === '') {
+                $desc = "Origem: intimação automática\n"
+                      . "Órgão: " . ($ev['orgao'] ?? '—') . "\n"
+                      . "Tipo: " . ($ev['tipo_comunicacao'] ?? '—') . "\n"
+                      . "Data: " . ($ev['data_disponibilizacao'] ?? '—') . "\n\n"
+                      . mb_substr($ev['conteudo'] ?? '', 0, 1500);
+            }
+            // Responsável padrão = user logado se não especificado
+            $respId = (int)($extra['responsavel_id'] ?? $userId);
+            // Validar que responsável pertence ao tenant (proteção cross-tenant)
+            $st  = $pdo->prepare('SELECT id FROM users WHERE id = :u AND account_id = :acc LIMIT 1');
+            $st->execute(['u' => $respId, 'acc' => $accountId]);
+            if (!$st->fetchColumn()) {
+                $respId = $userId;  // fallback se não bate
+            }
+            // Prazo: extra.prazo_data (Y-m-d) → ISO datetime
+            $prazoData = isset($extra['prazo_data']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $extra['prazo_data'])
+                ? $extra['prazo_data'] . ' 18:00:00'
+                : null;
+
+            $taskId = \App\Models\Task::create([
+                'board_id'       => $boardId,
+                'column_id'      => $colId,
+                'titulo'         => mb_substr($titulo, 0, 200),
+                'descricao'      => $desc,
+                'prioridade'     => $extra['prioridade'] ?? 'alta',
+                'prazo'          => $prazoData,
+                'prazo_tipo'     => 'fatal',
+                'responsavel_id' => $respId,
+                'criado_por_id'  => $userId,
+                'push_event_id'  => $eventId,
+            ]);
+            $resultado['task_id']        = $taskId;
+            $resultado['task_board_id']  = $boardId;
+            $resultado['responsavel_id'] = $respId;
             break;
     }
 

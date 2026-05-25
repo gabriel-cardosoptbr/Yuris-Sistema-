@@ -17,9 +17,29 @@ class PushEvent
     /**
      * Insere ou atualiza um evento persistente.
      * Retorna ID do registro (novo ou existente).
+     *
+     * AUTO-LINK: se processo_id não foi passado e existe entrada em
+     * push_processo_links pro mesmo (account_id + numero_processo),
+     * preenche automaticamente. Aplica-se a TODA intimação nova
+     * (cron, sync, manual, persist) — zero intervenção.
      */
     public static function upsert(array $data): int
     {
+        // Auto-link: tenta vincular processo automaticamente via PushProcessoLink
+        // se ainda não foi vinculado e temos numero_processo no payload.
+        if (empty($data['processo_id']) && !empty($data['numero_processo']) && !empty($data['account_id'])) {
+            // Lazy require pra evitar ciclo de inclusão
+            if (!class_exists('\\App\\Models\\PushProcessoLink')) {
+                require_once __DIR__ . '/PushProcessoLink.php';
+            }
+            $autoProcId = \App\Models\PushProcessoLink::findProcessoId(
+                (int)$data['account_id'],
+                (string)$data['numero_processo']
+            );
+            if ($autoProcId > 0) {
+                $data['processo_id'] = $autoProcId;
+            }
+        }
         $pdo  = Database::getConnection();
         $pdo->prepare(
             'INSERT INTO push_events

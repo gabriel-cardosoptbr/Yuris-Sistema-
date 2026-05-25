@@ -307,6 +307,44 @@ $kpiNaoLidas  = PushEventUserStatus::countNaoLidas($userId, $accountId);
     }
     .int-popup-checkbox input { accent-color: #6898C0; }
 
+    /* ── Modal Ações da Intimação (seções) ── */
+    .int-actions-section {
+      padding: 12px 14px; margin-bottom: 12px;
+      background: rgba(15,33,60,.4); border: 1px solid rgba(96,165,250,.18);
+      border-radius: 8px;
+    }
+    .int-actions-section h4 {
+      margin: 0 0 8px; font-size: .88rem; color: #dbeafe;
+      font-weight: 600; letter-spacing: .01em;
+    }
+    .int-actions-section label {
+      display: block; font-size: .7rem; font-weight: 600; color: #7A8898;
+      text-transform: uppercase; margin-bottom: 4px; letter-spacing: .04em;
+    }
+    .int-actions-section input[type="text"],
+    .int-actions-section input[type="date"],
+    .int-actions-section select {
+      width: 100%; padding: 8px 10px;
+      background: rgba(8,20,40,.6); border: 1px solid rgba(96,165,250,.2);
+      border-radius: 7px; color: #dbeafe; font-size: .82rem;
+    }
+    html[data-theme="light"] .int-actions-section {
+      background: rgba(248,250,253,.95) !important;
+      border-color: rgba(15,31,54,.12) !important;
+    }
+    html[data-theme="light"] .int-actions-section h4 { color: #0F1F36 !important; }
+    html[data-theme="light"] .int-actions-section label { color: #5A6B7E !important; }
+    html[data-theme="light"] .int-actions-section input,
+    html[data-theme="light"] .int-actions-section select,
+    html[data-theme="light"] .int-actions-section textarea {
+      background: #FFFFFF !important; color: #0F1F36 !important;
+      border-color: rgba(15,31,54,.18) !important;
+    }
+    /* Botão único "Ações" no card */
+    .int-pub-actions-single {
+      display: flex; flex-direction: column; gap: 4px; align-items: flex-end;
+    }
+
     /* ── Texto da publicação — respeita quebras de linha semânticas ── */
     .int-pub-text {
       white-space: pre-wrap;
@@ -781,6 +819,90 @@ $kpiNaoLidas  = PushEventUserStatus::countNaoLidas($userId, $accountId);
       <button class="int-btn" id="profSkip" style="flex:0 0 auto;">Continuar sem filtro</button>
       <button class="int-btn primary" id="profSubmit" style="flex:1;">Salvar e buscar</button>
     </div>
+  </div>
+</div>
+
+<!-- Modal Ações da Intimação (unificado: lida/favorita/prazo/comentário/vincular/criar tarefa) -->
+<div class="int-modal-bg" id="intActionsModal">
+  <div class="int-modal" style="position:relative;max-width:680px;max-height:88vh;overflow-y:auto;">
+    <span class="int-modal-close" id="intActionsClose" title="Fechar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </span>
+    <h2>Ações da intimação</h2>
+    <div id="intActionsSummary" style="font-size:.82rem;color:#7A8898;margin-bottom:14px;padding:8px 11px;background:rgba(15,33,60,.4);border-radius:7px;border-left:3px solid rgba(96,165,250,.4);"></div>
+
+    <!-- Toggles rápidos -->
+    <div style="display:flex;gap:14px;margin-bottom:18px;flex-wrap:wrap;">
+      <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;cursor:pointer;">
+        <input type="checkbox" id="actToggleLida"> <span>Marcada como lida</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;cursor:pointer;">
+        <input type="checkbox" id="actToggleFav"> <span>Favoritada</span>
+      </label>
+    </div>
+
+    <!-- Seção: Prazo -->
+    <div class="int-actions-section">
+      <h4>Definir prazo</h4>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input type="date" id="actPrazoData" style="flex:1;min-width:160px;padding:8px 10px;background:rgba(8,20,40,.6);border:1px solid rgba(96,165,250,.2);border-radius:7px;color:#dbeafe;font-size:.82rem;">
+        <button class="int-btn" id="actBtnSalvarPrazo">Salvar prazo</button>
+        <button class="int-btn" id="actBtnLimparPrazo" style="background:rgba(176,96,112,.15);border-color:rgba(176,96,112,.3);color:#f87171;">Limpar</button>
+      </div>
+    </div>
+
+    <!-- Seção: Comentário -->
+    <div class="int-actions-section">
+      <h4>Comentário interno</h4>
+      <textarea id="actComentario" rows="3" placeholder="Anote algo sobre essa intimação (visível só pro tenant)..." style="width:100%;padding:8px 10px;background:rgba(8,20,40,.6);border:1px solid rgba(96,165,250,.2);border-radius:7px;color:#dbeafe;font-size:.82rem;resize:vertical;"></textarea>
+      <button class="int-btn" id="actBtnSalvarComentario" style="margin-top:6px;">Salvar comentário</button>
+    </div>
+
+    <!-- Seção: Vincular ao processo -->
+    <div class="int-actions-section">
+      <h4>Vincular ao processo do CRM</h4>
+      <div id="actVinculoStatus" style="font-size:.78rem;margin-bottom:8px;"></div>
+      <div style="display:flex;gap:8px;align-items:center;position:relative;">
+        <input type="text" id="actBuscaProcesso" placeholder="Buscar por número CNJ ou descrição..." style="flex:1;padding:8px 10px;background:rgba(8,20,40,.6);border:1px solid rgba(96,165,250,.2);border-radius:7px;color:#dbeafe;font-size:.82rem;" autocomplete="off">
+        <button class="int-btn" id="actBtnDesvincular" style="background:rgba(176,96,112,.15);border-color:rgba(176,96,112,.3);color:#f87171;display:none;">Desvincular</button>
+      </div>
+      <div id="actSugProcessos" style="position:relative;margin-top:2px;"></div>
+      <p style="font-size:.7rem;color:#7A8898;margin-top:6px;line-height:1.4;">
+        <strong>💡 Auto-link:</strong> ao vincular este processo, todas as <strong>próximas intimações</strong> com o mesmo número CNJ serão automaticamente vinculadas. Também aplicamos retroativamente a intimações passadas.
+      </p>
+    </div>
+
+    <!-- Seção: Criar tarefa -->
+    <div class="int-actions-section">
+      <h4>Criar tarefa pra esta intimação</h4>
+      <div class="int-mon-form" style="grid-template-columns:1fr;">
+        <div>
+          <label>Título da tarefa</label>
+          <input type="text" id="actTaskTitulo" style="font-size:.85rem;">
+        </div>
+      </div>
+      <div class="int-mon-form" style="grid-template-columns:1fr;margin-top:6px;">
+        <div>
+          <label>Descrição</label>
+          <textarea id="actTaskDescricao" rows="4" style="width:100%;padding:8px 10px;background:rgba(8,20,40,.6);border:1px solid rgba(96,165,250,.2);border-radius:7px;color:#dbeafe;font-size:.82rem;resize:vertical;"></textarea>
+        </div>
+      </div>
+      <div class="int-mon-form" style="grid-template-columns:1fr 1fr;margin-top:6px;">
+        <div>
+          <label>Prazo (opcional)</label>
+          <input type="date" id="actTaskPrazo" style="font-size:.85rem;">
+        </div>
+        <div>
+          <label>Responsável</label>
+          <select id="actTaskResponsavel" style="font-size:.85rem;"></select>
+        </div>
+      </div>
+      <button class="int-btn primary" id="actBtnCriarTarefa" style="margin-top:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>
+        Criar tarefa
+      </button>
+    </div>
+
   </div>
 </div>
 
