@@ -762,6 +762,59 @@ try {
       color: #64748B !important;
     }
 
+    /* ── Modal "Novo Prazo Processual" — tema claro ──
+       Mesma estratégia dos outros modais: ataque via attribute selectors
+       nos inline styles dark. */
+    html[data-theme="light"] #modalAddPrazo {
+      background: rgba(15,31,54,0.45) !important;
+    }
+    html[data-theme="light"] #modalAddPrazo > div {
+      background: #FFFFFF !important;
+      border: 1px solid #E2E8F0 !important;
+      box-shadow: 0 20px 50px rgba(15,31,54,0.18) !important;
+    }
+    html[data-theme="light"] #modalAddPrazo div[style*="color:#dbeafe"] {
+      color: #0F172A !important;
+    }
+    html[data-theme="light"] #modalAddPrazo label[style*="color:#9ab0c9"] {
+      color: #475569 !important;
+    }
+    /* Inputs já têm regra dedicada em #modalAddPrazo input/select/textarea
+       (linha ~518). Aqui só sobrescreve cores no tema claro. */
+    html[data-theme="light"] #modalAddPrazo input,
+    html[data-theme="light"] #modalAddPrazo select,
+    html[data-theme="light"] #modalAddPrazo textarea {
+      background: #FFFFFF !important;
+      border-color: #CBD5E1 !important;
+      color: #0F172A !important;
+    }
+    html[data-theme="light"] #modalAddPrazo input::placeholder {
+      color: #94A3B8 !important;
+    }
+    html[data-theme="light"] #modalAddPrazo input:focus,
+    html[data-theme="light"] #modalAddPrazo select:focus,
+    html[data-theme="light"] #modalAddPrazo textarea:focus {
+      border-color: #2563EB !important;
+      box-shadow: 0 0 0 3px rgba(37,99,235,.12) !important;
+      outline: none;
+    }
+    /* Conserta o auto-fill do browser pra fundo branco no tema claro */
+    html[data-theme="light"] #modalAddPrazo input:-webkit-autofill,
+    html[data-theme="light"] #modalAddPrazo input:-webkit-autofill:hover,
+    html[data-theme="light"] #modalAddPrazo input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+      -webkit-text-fill-color: #0F172A !important;
+      caret-color: #0F172A;
+    }
+    /* Botão Cancelar — outline azul-claro */
+    html[data-theme="light"] #addPrazoCancel {
+      background: #FFFFFF !important;
+      border-color: #BFDBFE !important;
+      color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] #addPrazoCancel:hover { background: #EFF6FF !important; }
+    /* Botão Salvar Prazo já é azul sólido com texto branco — OK no claro */
+
     /* ── Tarefas processuais (lista) — tema claro ─────────────────────────
        O dark-theme usa fundo navy translúcido + texto azul-claro #dbeafe,
        que vira "texto fantasma" sobre o card branco. Reseta tudo para a
