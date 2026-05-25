@@ -640,7 +640,7 @@ $kpiNaoLidas  = PushEventUserStatus::countNaoLidas($userId, $accountId);
           </div>
 
           <div class="int-toolbar">
-            <span class="int-toolbar-info" id="intCacheToolbar">Cache atual: <strong><?= (int)$kpiCacheHoje ?></strong> publicações</span>
+            <span class="int-toolbar-info" id="intCacheToolbar">Cache atual: <strong><?= (int)$kpiCacheHoje ?></strong> <?= $kpiCacheHoje === 1 ? 'publicação' : 'publicações' ?></span>
           </div>
 
           <div class="int-banner-info" id="bannerBuscaManual">

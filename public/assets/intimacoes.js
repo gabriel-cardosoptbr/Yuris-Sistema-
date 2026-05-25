@@ -301,7 +301,7 @@
           filters: this.collectFilters({ ignoreDates: true }),
         });
         if (!data.ok) throw new Error(data.error || 'Erro ao buscar');
-        this.notify(`Cache atualizado: ${data.cached} nova(s), ${data.total} no total.`, 'success');
+        this.notify(`Cache atualizado: ${data.cached} ${this._pl(data.cached, 'nova', 'novas')}, ${data.total} no total.`, 'success');
         // FORÇA filtro de data=HOJE no painel lateral — botão "Buscar publicações
         // de hoje" tem que mostrar SÓ hoje, não dias passados que estão no cache.
         // Sem isso, loadPersistidos lista o cache inteiro (cross-day).
@@ -408,7 +408,7 @@
           this.notify(msg, 'info');
         } else {
           this.notify(
-            `AASP "${data.integration_nome}": ${data.total} intimação(ões) em ${diasReais} de ${diasRange} dias · ${data.duracao_ms}ms · ${data.request_count} chamada(s)`,
+            `AASP "${data.integration_nome}": ${data.total} ${this._pl(data.total, 'intimação', 'intimações')} em ${diasReais} de ${diasRange} dias · ${data.duracao_ms}ms · ${data.request_count} ${this._pl(data.request_count, 'chamada', 'chamadas')}`,
             'success'
           );
         }
@@ -477,7 +477,7 @@
 
       el.innerHTML = `
         <strong>Última busca:</strong> "${e(info.nome)}" · período ${e(range)}<br>
-        <strong>${info.total}</strong> intimação(ões) · <strong>${(info.diasComIntimacao || []).length}</strong> de ${info.diasNoRange} dias com intimação · ${info.duracaoMs}ms · ${info.requestCount} chamada(s)
+        <strong>${info.total}</strong> ${this._pl(info.total, 'intimação', 'intimações')} · <strong>${(info.diasComIntimacao || []).length}</strong> de ${info.diasNoRange} ${this._pl(info.diasNoRange, 'dia', 'dias')} com intimação · ${info.duracaoMs}ms · ${info.requestCount} ${this._pl(info.requestCount, 'chamada', 'chamadas')}
         ${(info.diasComIntimacao || []).length ? `<br><span class="muted">Dias com intimação: ${e(diasIntim)}</span>` : ''}
         ${diagnose}
         ${rawDiag}
@@ -754,7 +754,7 @@
       let html = '';
       for (const d of datas) {
         const label = this.fmtData(d);
-        html += `<div class="int-day-header">Dia ${label} — ${grupos[d].length} publicação(ões)</div>`;
+        html += `<div class="int-day-header">Dia ${label} — ${grupos[d].length} ${this._pl(grupos[d].length, 'publicação', 'publicações')}</div>`;
         for (const it of grupos[d]) {
           html += this.renderCard(it);
         }
@@ -1387,7 +1387,7 @@
       const detail = (cache > 0 && events > 0)
         ? ` <span style="opacity:.7;">(${cache} no cache · ${events} salvas)</span>`
         : '';
-      el.innerHTML = `${label}: <strong>${total}</strong> publicação(ões)${detail}`;
+      el.innerHTML = `${label}: <strong>${total}</strong> ${this._pl(total, 'publicação', 'publicações')}${detail}`;
     },
 
     /**
@@ -1481,7 +1481,7 @@
       // Sumário
       if (sumEl) {
         const parts = [];
-        parts.push(`<strong>${sum.total | 0}</strong> integração(ões)`);
+        parts.push(`<strong>${sum.total | 0}</strong> ${this._pl(sum.total | 0, 'integração', 'integrações')}`);
         if (sum.ativas | 0) parts.push(`<span style="color:#34D399">${sum.ativas} ativa(s)</span>`);
         if (sum.pending | 0) parts.push(`<span style="color:#FBBF24">${sum.pending} pendente(s)</span>`);
         if (sum.erros | 0) parts.push(`<span style="color:#F87171">${sum.erros} com erro</span>`);
@@ -1577,7 +1577,7 @@
           });
           if (!data.ok) throw new Error(data.error || 'Erro');
           this.notify(
-            `AASP: ${data.total} intimação(ões) no dia, ${data.cached_novos} nova(s) no cache · ${data.duracao_ms}ms`,
+            `AASP: ${data.total} ${this._pl(data.total, 'intimação', 'intimações')} no dia, ${data.cached_novos} ${this._pl(data.cached_novos, 'nova', 'novas')} no cache · ${data.duracao_ms}ms`,
             'success'
           );
           await this.loadAaspIntegrations();
@@ -1704,7 +1704,7 @@
           ? `<details style="margin-top:8px;"><summary style="cursor:pointer;font-size:.72rem;color:#93c5fd;">Raw da AASP (campos brutos)</summary>
              <pre>${this._esc(JSON.stringify(data.sample_raw, null, 2).slice(0, 1500))}</pre></details>`
           : '';
-        box.innerHTML = `<strong>OK</strong> · ${data.total} intimação(ões) · ${data.duracao_ms}ms · ${data.request_count || 1} chamada(s) · data: ${data.data_consultada || 'hoje'}
+        box.innerHTML = `<strong>OK</strong> · ${data.total} ${this._pl(data.total, 'intimação', 'intimações')} · ${data.duracao_ms}ms · ${data.request_count || 1} ${this._pl(data.request_count || 1, 'chamada', 'chamadas')} · data: ${data.data_consultada || 'hoje'}
           <div style="margin-top:6px;font-size:.74rem;color:#7A8898;">Sample normalizado:</div>
           ${sampleNorm}${sampleRaw}
           <div style="margin-top:8px;font-size:.74rem;color:#34D399;">
@@ -1795,6 +1795,11 @@
       return String(s)
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    },
+
+    /** Pluralização PT-BR: 1 → singular; 0/2+ → plural. */
+    _pl(n, sing, plur) {
+      return (Number(n) === 1) ? sing : (plur || sing + 's');
     },
   };
 
