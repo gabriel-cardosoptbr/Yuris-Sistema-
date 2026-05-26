@@ -20,6 +20,7 @@ const ChatApp = (() => {
     firstMsgId   : 0,        // menor ID ja carregado (pra paginar antigas via before_id)
     hasMoreOlder : true,     // false quando o servidor devolve 0 antigas
     loadingOlder : false,    // semaforo pra evitar requests duplicadas no scroll
+    groupMembersCache: {},   // { 'XXXXX@g.us': [members] } — popula em updateGroupHeader
     pollingTimer : null,
     statusTimer  : null,
     qrTimer      : null,
@@ -780,10 +781,13 @@ const ChatApp = (() => {
   }
 
   function buildMessageContent(msg) {
-    const type    = msg.message_type || 'text';
-    const content = esc(msg.message_content || '');
-    const caption = esc(msg.caption || '');
-    const mUrl    = mediaUrl(msg);
+    const type     = msg.message_type || 'text';
+    // formatMentions roda DEPOIS de esc() — adiciona spans seguros com nomes
+    // tambem escapados internamente. groupJid usado pra lookup no cache.
+    const groupJid = state.currentJid && state.currentJid.endsWith('@g.us') ? state.currentJid : null;
+    const content  = formatMentions(esc(msg.message_content || ''), groupJid);
+    const caption  = formatMentions(esc(msg.caption || ''), groupJid);
+    const mUrl     = mediaUrl(msg);
 
     switch (type) {
       case 'image':
@@ -1929,20 +1933,67 @@ const ChatApp = (() => {
       return;
     }
 
-    // Fetch dos membros e atualiza sublabel + handler de click
+    // Fetch dos membros e atualiza sublabel + handler de click + popula cache de menções
     fetch('/sistema_vendas/public/api/whatsapp/group_members.php?jid=' + encodeURIComponent(jid), {
       credentials: 'same-origin'
     })
       .then(r => r.json())
       .then(d => {
-        const n = (d && d.count) || 0;
+        const members = (d && d.members) || [];
+        const n = (d && d.count) || members.length;
         if (n > 0 && subEl) {
           subEl.textContent = `Grupo · ${n} membro${n === 1 ? '' : 's'} · clique pra ver`;
           subEl.style.cursor = 'pointer';
-          subEl.onclick = () => showGroupMembersModal(jid, d.members || []);
+          subEl.onclick = () => showGroupMembersModal(jid, members);
         }
+        // Cache pra resolver @menções no conteudo das mensagens
+        state.groupMembersCache[jid] = members;
+        // Re-resolve menções pendentes que renderizaram antes do cache popular
+        refreshPendingMentions(jid);
       })
       .catch(() => { /* silencioso — header continua mostrando phone */ });
+  }
+
+  // ── Menções em grupos: @<numero> → @<NomeReal> ─────────────────────────
+  // Detecta @\d{8,} no texto e resolve via cache de group_members.
+  // Quando o membro não está no cache (ainda fetching), marca span como
+  // pending pra re-resolver depois (refreshPendingMentions).
+  function resolveMentionName(num, groupJid) {
+    if (!groupJid) return null;
+    const members = state.groupMembersCache[groupJid];
+    if (!members || !members.length) return null;
+    for (const m of members) {
+      const phone = String(m.phone || '').replace(/\D/g, '');
+      const pjid  = String(m.participant_jid || '');
+      if (phone === num)            return m.push_name || phoneFromJid(pjid) || phone;
+      if (pjid.startsWith(num + '@')) return m.push_name || phoneFromJid(pjid) || num;
+    }
+    return null;
+  }
+
+  function formatMentions(text, groupJid) {
+    if (!text) return text;
+    // Detecta @<digitos> isolado (não dentro de e-mail/URL).
+    return text.replace(/(^|[\s>(])@(\d{8,})\b/g, (full, pre, num) => {
+      const name = resolveMentionName(num, groupJid);
+      if (name) {
+        return `${pre}<span class="msg-mention">@${esc(name)}</span>`;
+      }
+      // Pending: marca pra re-resolver quando cache popular
+      return `${pre}<span class="msg-mention" data-mention-num="${num}">@${num}</span>`;
+    });
+  }
+
+  // Percorre todos os spans .msg-mention[data-mention-num] e tenta resolver.
+  function refreshPendingMentions(groupJid) {
+    document.querySelectorAll('.msg-mention[data-mention-num]').forEach(el => {
+      const num  = el.dataset.mentionNum;
+      const name = resolveMentionName(num, groupJid);
+      if (name) {
+        el.textContent = '@' + name;
+        el.removeAttribute('data-mention-num');
+      }
+    });
   }
 
   // Modal simples com a lista de membros (reaproveita estilos .gm-* do chat.php)

@@ -1411,6 +1411,16 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
     html[data-theme="light"] .chat-more-item { color: #0F1F36 !important; }
     html[data-theme="light"] .chat-more-item:hover { background: #EFF6FF !important; color: #1D4ED8 !important; }
 
+    /* @menções em grupos — estilo WhatsApp Web (azul + bold) */
+    .msg-mention {
+      color: #34B7F1;
+      font-weight: 600;
+      cursor: default;
+    }
+    .msg-row.outbound .msg-mention { color: #BFDBFE; }
+    html[data-theme="light"] .msg-mention { color: #1D4ED8 !important; }
+    html[data-theme="light"] .msg-row.outbound .msg-mention { color: #1E40AF !important; }
+
     /* Status de leitura ✓/✓✓ — azul WhatsApp pra mensagens lidas, cinzas pros demais.
        Vale tanto no dark quanto no light, mas o claro precisa de !important pra
        sobrescrever o ! important de outros temas. */
@@ -2296,7 +2306,7 @@ const API  = {
 #imgLightboxDownload:hover { background: rgba(37,99,235,.3); border-color: rgba(96,165,250,.5); }
 </style>
 
-<script src="/sistema_vendas/public/assets/chat.js?v=44"></script>
+<script src="/sistema_vendas/public/assets/chat.js?v=45"></script>
 <script>
 // Lightbox init
 (function(){
