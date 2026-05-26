@@ -638,29 +638,28 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
     .msg-status-icon.pending { color: #4A5568; }
 
     /* Separador de data */
+    /* Separador de data — texto sutil centralizado, SEM chip/fundo
+       (estilo minimalista; antes tinha pill cinza que poluia visualmente). */
     .msg-date-sep {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      margin: 14px 0;
+      margin: 14px 0 8px;
     }
     .msg-date-sep > span {
-      /* Chip estilo WhatsApp */
       display: inline-block;
-      padding: 4px 12px;
-      background: rgba(8,18,32,.6);
-      color: #B0C4D8;
-      font-size: .7rem;
+      padding: 0;
+      background: transparent;
+      color: #6B7A8C;
+      font-size: .72rem;
       font-weight: 600;
-      border-radius: 8px;
-      letter-spacing: .02em;
+      letter-spacing: .06em;
+      text-transform: uppercase;
     }
-    /* Tema claro: chip branco com leve sombra */
     html[data-theme="light"] .msg-date-sep > span {
-      background: #FFFFFF !important;
-      color: #475569 !important;
-      box-shadow: 0 1px 3px rgba(15,31,54,0.08), 0 0 0 1px rgba(15,31,54,0.04);
+      color: #94A3B8 !important;
+      background: transparent !important;
+      box-shadow: none !important;
     }
 
     /* Estado vazio / sem chat selecionado */
@@ -2302,7 +2301,7 @@ const API  = {
 #imgLightboxDownload:hover { background: rgba(37,99,235,.3); border-color: rgba(96,165,250,.5); }
 </style>
 
-<script src="/sistema_vendas/public/assets/chat.js?v=43"></script>
+<script src="/sistema_vendas/public/assets/chat.js?v=44"></script>
 <script>
 // Lightbox init
 (function(){

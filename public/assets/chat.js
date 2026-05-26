@@ -748,7 +748,8 @@ const ChatApp = (() => {
     return `${y}-${m}-${dd}`;
   }
 
-  // Rotulo amigavel: 'Hoje', 'Ontem', dia da semana se < 7 dias, senao dd/mm/yyyy.
+  // Rotulo amigavel: 'Hoje', 'Ontem', ou dd/mm/yyyy. Sem dia-da-semana
+  // (estilo WhatsApp mobile: depois de ontem vai direto pra data numerica).
   function formatDateGroup(timestamp) {
     if (!timestamp) return '';
     const d = new Date(timestamp.replace(' ', 'T'));
@@ -758,11 +759,6 @@ const ChatApp = (() => {
     const target = new Date(d);     target.setHours(0,0,0,0);
     if (target.getTime() === today.getTime()) return 'Hoje';
     if (target.getTime() === yest.getTime())  return 'Ontem';
-    const diffDays = Math.floor((today - target) / 86400000);
-    if (diffDays > 0 && diffDays < 7) {
-      const dias = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
-      return dias[target.getDay()];
-    }
     return target.toLocaleDateString('pt-BR'); // dd/mm/yyyy
   }
 
