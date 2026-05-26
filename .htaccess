@@ -30,11 +30,15 @@ Options -Indexes
 # OBS: 'public/' e 'Imagens/' ficam acessíveis (necessárias para o app).
 RedirectMatch 403 (?i)^/sistema_vendas/(docs|scripts|tests|vendor|node_modules|config)(/.*)?$
 
-# ── 4. Redirect / → /public/login.php ───────────────────────────────────────
-# Antes: http://localhost/sistema_vendas/ → directory listing exposto
-# Agora: http://localhost/sistema_vendas/ → login.php
+# ── 4. Redirect / → /public/index.php (landing institucional) ──────────────
+# Antes (2026-05-23): redirecionava direto pra login.php (sem landing pública).
+# Agora (2026-05-26): visitante novo cai na landing one-page do Yuris.
+#   • /sistema_vendas/             → /public/index.php  (landing)
+#   • /sistema_vendas/public/      → /public/index.php  (mesmo destino)
+#   • Botão "Entrar" da landing aponta direto pra /public/login.php
 # OBS: URL absoluta (com /sistema_vendas/ no caminho) evita que Apache resolva
 # para path de filesystem em alguns ambientes.
 RewriteEngine On
 RewriteBase /sistema_vendas/
-RewriteRule ^$ /sistema_vendas/public/login.php [L,R=302]
+RewriteRule ^$            /sistema_vendas/public/index.php [L,R=302]
+RewriteRule ^public/?$    /sistema_vendas/public/index.php [L,R=302]

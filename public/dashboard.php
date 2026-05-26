@@ -261,13 +261,52 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
     .meta-widget .meta-label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
     .meta-widget .meta-val   { font-size: 1.35rem; font-weight: 700; color: #f0f8ff; }
     .meta-widget-btn {
-      padding: 6px 13px; border-radius: 8px; border: none;
-      font-family: inherit; font-size: .78rem; font-weight: 600; cursor: pointer;
-      transition: opacity .18s, transform .12s;
+      padding: 7px 14px; border-radius: 8px; border: 1px solid transparent;
+      font-family: inherit; font-size: .8rem; font-weight: 600; cursor: pointer;
+      transition: opacity .18s, transform .12s, background .18s, color .18s, border-color .18s;
     }
-    .meta-widget-btn:hover { opacity: .85; transform: translateY(-1px); }
-    .meta-widget-btn.primary { background: linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; box-shadow:0 3px 10px rgba(37,99,235,.3); }
-    .meta-widget-btn.secondary { background: rgba(37,99,235,.22); color:#93c5fd; border:1px solid rgba(96,165,250,.3); }
+    .meta-widget-btn:hover { opacity: .92; transform: translateY(-1px); }
+    /* Primary (Editar) — azul forte + texto branco. Funciona em ambos os temas. */
+    .meta-widget-btn.primary {
+      background: linear-gradient(135deg,#2563eb,#1d4ed8);
+      color:#fff;
+      border-color: rgba(255,255,255,0.08);
+      box-shadow:0 3px 10px rgba(37,99,235,.3);
+    }
+    /* Secondary (Calcular) — no dark tem fundo translúcido azul + texto azul-claro.
+       Antes: color #93c5fd em background azul-claro do tema claro = invisível. */
+    .meta-widget-btn.secondary {
+      background: rgba(37,99,235,.22);
+      color:#93c5fd;
+      border-color: rgba(96,165,250,.3);
+    }
+    /* ── Tema claro: override de contraste real ──
+       Texto azul forte sobre background azul muito leve = AAA legível. */
+    html[data-theme="light"] .meta-widget-btn.secondary {
+      background: rgba(29,78,216,.08) !important;
+      color: #1d4ed8 !important;
+      border-color: rgba(29,78,216,.40) !important;
+    }
+    html[data-theme="light"] .meta-widget-btn.secondary:hover {
+      background: rgba(29,78,216,.14) !important;
+      border-color: rgba(29,78,216,.60) !important;
+    }
+    /* ── Primary no claro: azul vivo, NÃO navy escuro ──
+       Causa raiz: yuris-theme.css força `button.primary { background: #1E4A8A
+       !important }` em tema claro. Isso vence meu gradient e cria um botão
+       quase preto sobre card branco — visualmente pesado. A regra abaixo é
+       mais específica (.meta-widget-btn.primary > button.primary) e força um
+       azul moderno (#3b82f6 → #2563eb) que combina com card branco. */
+    html[data-theme="light"] .meta-widget-btn.primary {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+      color: #FFFFFF !important;
+      border-color: rgba(29,78,216,.30) !important;
+      box-shadow: 0 3px 10px rgba(59,130,246,.28) !important;
+    }
+    html[data-theme="light"] .meta-widget-btn.primary:hover {
+      background: linear-gradient(135deg, #4a90f6 0%, #2c70ee 100%) !important;
+      box-shadow: 0 4px 14px rgba(59,130,246,.40) !important;
+    }
 
     /* ── Chart card ── */
     .chart-card {

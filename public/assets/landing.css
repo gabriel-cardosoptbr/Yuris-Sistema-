@@ -1,0 +1,1410 @@
+/* =============================================================================
+   landing.css — Landing institucional Yuris
+   Escopado em body.lp para não afetar o app interno.
+   Paleta: yuris-theme.css (dark institucional). Sem dependência externa.
+   ========================================================================== */
+
+body.lp {
+  --lp-bg-0:        #060D1A;
+  --lp-bg-1:        #0A1628;
+  --lp-bg-card:     #0D1E35;
+  --lp-bg-card-2:   #081526;
+  --lp-text:        #E8EDF5;
+  --lp-text-dim:    #A8B5C6;
+  --lp-text-mute:   #6D7B8C;
+  --lp-border:      rgba(168,189,212,0.10);
+  --lp-border-md:   rgba(168,189,212,0.18);
+  --lp-border-lg:   rgba(168,189,212,0.32);
+  --lp-primary:     #2E5587;
+  --lp-primary-2:   #1E3A5F;
+  --lp-blue-soft:   #3D6A96;
+  --lp-blue-cyan:   #5BBCE0;
+  --lp-blue-glow:   #7EB8F6;
+  --lp-silver:      #B0BCCB;
+  --lp-success:     #4ADE80;
+  --lp-warning:     #F59E0B;
+  --lp-danger:      #EF4444;
+
+  margin: 0;
+  padding: 0;
+  color: var(--lp-text);
+  font-family: Inter, Poppins, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  background-color: var(--lp-bg-0);
+  background-image:
+    radial-gradient(ellipse 120% 80% at 15% 10%, rgba(20,50,90,0.30) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 60% at 85% 30%, rgba(30,80,130,0.20) 0%, transparent 50%),
+    radial-gradient(ellipse 100% 70% at 50% 90%, rgba(15,40,80,0.25) 0%, transparent 55%);
+  background-attachment: fixed;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body.lp *, body.lp *::before, body.lp *::after { box-sizing: border-box; }
+
+body.lp h1, body.lp h2, body.lp h3, body.lp h4 {
+  font-family: Poppins, Inter, system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 .5em;
+  color: #F1F5FA;
+}
+body.lp h1 { font-size: clamp(2.2rem, 4.5vw, 3.6rem); line-height: 1.1; }
+body.lp h2 { font-size: clamp(1.8rem, 3.2vw, 2.6rem); line-height: 1.15; }
+body.lp h3 { font-size: 1.25rem; line-height: 1.3; }
+body.lp p  { margin: 0 0 1em; color: var(--lp-text-dim); }
+body.lp a  { color: var(--lp-blue-glow); text-decoration: none; transition: color .2s ease; }
+body.lp a:hover { color: #A8D4FF; }
+
+body.lp img { max-width: 100%; display: block; }
+
+body.lp .lp-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+body.lp .lp-section {
+  padding: clamp(64px, 9vw, 120px) 0;
+  position: relative;
+}
+
+body.lp .lp-section-head {
+  text-align: center;
+  max-width: 760px;
+  margin: 0 auto clamp(32px, 5vw, 64px);
+}
+body.lp .lp-eyebrow {
+  display: inline-block;
+  font-size: .8rem;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--lp-blue-glow);
+  background: rgba(126,184,246,0.10);
+  border: 1px solid rgba(126,184,246,0.22);
+  padding: 6px 14px;
+  border-radius: 999px;
+  margin-bottom: 18px;
+}
+body.lp .lp-section-head p {
+  font-size: 1.05rem;
+  color: var(--lp-text-dim);
+}
+
+/* ── Botões ── */
+body.lp .lp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 22px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: .95rem;
+  letter-spacing: .02em;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--lp-text);
+  transition: transform .15s ease, box-shadow .2s ease, filter .2s ease, background .2s ease, border-color .2s ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+body.lp .lp-btn-primary {
+  background: linear-gradient(135deg, #1E3A5F 0%, #2E5587 60%, #3D6FAA 100%);
+  border-color: rgba(168,189,212,0.28);
+  color: #F1F5FA;
+  box-shadow: 0 4px 18px rgba(46,85,135,0.28), inset 0 1px 0 rgba(255,255,255,0.10);
+}
+/* Hover só em mouse — em touch, o lift "gruda" depois do tap */
+@media (hover: hover) and (pointer: fine) {
+  body.lp .lp-btn-primary:hover {
+    filter: brightness(1.12);
+    box-shadow: 0 8px 26px rgba(46,85,135,0.46), inset 0 1px 0 rgba(255,255,255,0.14);
+    transform: translateY(-1px);
+  }
+  body.lp .lp-btn-ghost:hover {
+    background: rgba(168,189,212,0.08);
+    border-color: var(--lp-border-lg);
+    transform: translateY(-1px);
+  }
+}
+body.lp .lp-btn-primary:active { transform: translateY(0); filter: brightness(0.95); }
+body.lp .lp-btn-ghost {
+  background: rgba(168,189,212,0.04);
+  border-color: var(--lp-border-md);
+  color: var(--lp-text);
+}
+body.lp .lp-btn-ghost:active { filter: brightness(0.92); }
+body.lp .lp-btn svg { width: 16px; height: 16px; }
+
+/* ── Header ── */
+body.lp .lp-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 14px 0;
+  background: rgba(6,13,26,0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid transparent;
+  transition: background .25s ease, border-color .25s ease, padding .25s ease;
+}
+body.lp .lp-header.scrolled {
+  background: rgba(6,13,26,0.88);
+  border-bottom-color: var(--lp-border);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.30);
+  padding: 10px 0;
+}
+body.lp .lp-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+body.lp .lp-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--lp-text);
+  letter-spacing: .04em;
+}
+body.lp .lp-logo img { height: 40px; width: auto; }
+body.lp .lp-logo-text {
+  font-family: Poppins, Inter, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1.2rem;
+  letter-spacing: 0.18em;
+  color: #F1F5FA;
+  line-height: 1;
+  /* Pequeno gradient sutil pra alinhar com o resto da identidade */
+  background: linear-gradient(120deg, #F1F5FA 0%, #B0BCCB 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+body.lp .lp-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+body.lp .lp-nav a {
+  color: var(--lp-text-dim);
+  font-size: .9rem;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: 8px;
+  transition: color .2s ease, background .2s ease;
+}
+body.lp .lp-nav a:hover { color: var(--lp-text); background: rgba(168,189,212,0.06); }
+body.lp .lp-header-cta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+body.lp .lp-header-cta .lp-btn { padding: 9px 18px; font-size: .88rem; }
+body.lp .lp-menu-toggle {
+  display: none;
+  background: none;
+  border: 1px solid var(--lp-border-md);
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--lp-text);
+}
+body.lp .lp-menu-toggle svg { width: 22px; height: 22px; }
+
+/* ── Hero ── */
+body.lp .lp-hero {
+  padding: clamp(120px, 14vw, 180px) 0 clamp(64px, 9vw, 120px);
+  position: relative;
+  overflow: hidden;
+}
+body.lp .lp-hero::before {
+  content: '';
+  position: absolute;
+  top: -10%; left: 50%;
+  width: 80vw; height: 80vw;
+  max-width: 1200px; max-height: 1200px;
+  transform: translateX(-50%);
+  background: radial-gradient(circle at center, rgba(46,85,135,0.18) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+body.lp .lp-hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 56px;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+body.lp .lp-hero h1 strong {
+  background: linear-gradient(120deg, #7EB8F6 0%, #5BBCE0 50%, #B0BCCB 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 700;
+}
+body.lp .lp-hero-sub {
+  font-size: 1.15rem;
+  line-height: 1.65;
+  margin-bottom: 32px;
+  max-width: 540px;
+}
+body.lp .lp-hero-ctas {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 36px;
+}
+body.lp .lp-hero-trust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px 28px;
+  color: var(--lp-text-mute);
+  font-size: .85rem;
+}
+body.lp .lp-hero-trust > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+body.lp .lp-hero-trust svg { width: 14px; height: 14px; color: var(--lp-blue-cyan); }
+
+/* Hero mockup */
+body.lp .lp-hero-mockup {
+  position: relative;
+  animation: lpFloat 8s ease-in-out infinite;
+}
+@keyframes lpFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+body.lp .lp-mockup-frame {
+  background: linear-gradient(165deg, #0D1E35 0%, #081526 100%);
+  border: 1px solid var(--lp-border-md);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow:
+    0 30px 80px rgba(0,0,0,0.50),
+    0 0 0 1px rgba(168,189,212,0.04),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+  overflow: hidden;
+}
+body.lp .lp-mockup-frame::before {
+  content: '';
+  display: block;
+  height: 14px;
+  background:
+    radial-gradient(circle at 12px 7px, #EF4444 4px, transparent 4.5px),
+    radial-gradient(circle at 30px 7px, #F59E0B 4px, transparent 4.5px),
+    radial-gradient(circle at 48px 7px, #4ADE80 4px, transparent 4.5px);
+  margin-bottom: 8px;
+}
+body.lp .lp-mockup-card {
+  background: var(--lp-bg-card-2);
+  border: 1px solid var(--lp-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+body.lp .lp-mockup-card svg { display: block; width: 100%; height: auto; }
+
+body.lp .lp-hero-chips {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+body.lp .lp-chip {
+  position: absolute;
+  background: rgba(13,30,53,0.92);
+  border: 1px solid var(--lp-border-md);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: .82rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.40);
+  backdrop-filter: blur(6px);
+  color: var(--lp-text);
+  pointer-events: auto;
+  animation: lpFloat 6s ease-in-out infinite;
+}
+body.lp .lp-chip svg { width: 16px; height: 16px; color: var(--lp-blue-glow); flex-shrink: 0; }
+body.lp .lp-chip strong { font-weight: 600; }
+body.lp .lp-chip-1 { top: 6%;  left: -8%;  animation-delay: -1s; }
+body.lp .lp-chip-2 { top: 28%; right: -10%; animation-delay: -3s; }
+body.lp .lp-chip-3 { bottom: 22%; left: -12%; animation-delay: -2s; }
+body.lp .lp-chip-4 { bottom: 4%; right: -4%;  animation-delay: -4s; }
+
+/* ── Cards interativos com mouse-glow ── */
+body.lp .lp-card {
+  position: relative;
+  background: linear-gradient(165deg, #0D1E35 0%, #081526 100%);
+  border: 1px solid var(--lp-border);
+  border-radius: 14px;
+  padding: 28px;
+  overflow: hidden;
+  transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+  cursor: default;
+}
+body.lp .lp-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background:
+    radial-gradient(
+      400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      rgba(126,184,246,0.55),
+      transparent 40%
+    );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  opacity: 0;
+  transition: opacity .25s ease;
+  pointer-events: none;
+}
+body.lp .lp-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(
+      350px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      rgba(126,184,246,0.10),
+      transparent 40%
+    );
+  opacity: 0;
+  transition: opacity .25s ease;
+  pointer-events: none;
+}
+/* Hover só pra dispositivos com mouse de verdade. Em touch, :hover "gruda"
+   depois do tap e parece bug — por isso isolamos com @media (hover:hover). */
+@media (hover: hover) and (pointer: fine) {
+  body.lp .lp-card:hover {
+    border-color: var(--lp-border-md);
+    transform: translateY(-3px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+  }
+  body.lp .lp-card:hover::before { opacity: 1; }
+  body.lp .lp-card:hover::after  { opacity: 1; }
+}
+/* Em touch devices: feedback no toque (:active) — sem sticky-hover.
+   Mostra um glow estático centralizado em vez do mouse-glow dinâmico. */
+@media (hover: none) {
+  body.lp .lp-card { transition: transform .15s ease, border-color .2s ease; }
+  body.lp .lp-card:active {
+    border-color: var(--lp-border-md);
+    transform: scale(0.985);
+  }
+  body.lp .lp-card::after {
+    /* Glow centralizado e suave, sempre visível bem leve nos cards de touch */
+    background:
+      radial-gradient(
+        70% 50% at 50% 0%,
+        rgba(126,184,246,0.10),
+        transparent 70%
+      );
+    opacity: 1;
+  }
+  body.lp .lp-card::before { display: none; }
+}
+body.lp .lp-card > * { position: relative; z-index: 1; }
+
+body.lp .lp-card-icon {
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(46,85,135,0.30), rgba(30,58,95,0.20));
+  border: 1px solid var(--lp-border-md);
+  margin-bottom: 16px;
+  color: var(--lp-blue-glow);
+}
+body.lp .lp-card-icon svg { width: 22px; height: 22px; }
+body.lp .lp-card h3 { margin-bottom: 8px; }
+body.lp .lp-card p  { margin: 0; font-size: .95rem; }
+body.lp .lp-card ul {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: .88rem;
+  color: var(--lp-text-mute);
+}
+body.lp .lp-card ul li {
+  padding: 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+body.lp .lp-card ul li::before {
+  content: '';
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--lp-blue-cyan);
+  flex-shrink: 0;
+}
+
+/* ── Mockups (prova visual / tabs) ── */
+body.lp .lp-mockup-tabs {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 32px;
+  align-items: stretch;
+}
+body.lp .lp-tab-list { display: flex; flex-direction: column; gap: 8px; }
+body.lp .lp-tab {
+  background: transparent;
+  border: 1px solid var(--lp-border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--lp-text-dim);
+  font-family: inherit;
+  font-size: .95rem;
+  font-weight: 500;
+  transition: all .2s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+body.lp .lp-tab svg { width: 16px; height: 16px; flex-shrink: 0; }
+body.lp .lp-tab:hover { background: rgba(168,189,212,0.05); color: var(--lp-text); }
+body.lp .lp-tab.active {
+  background: linear-gradient(135deg, rgba(46,85,135,0.30), rgba(30,58,95,0.18));
+  border-color: rgba(126,184,246,0.40);
+  color: #F1F5FA;
+  box-shadow: 0 0 0 1px rgba(126,184,246,0.12), 0 4px 16px rgba(46,85,135,0.25);
+}
+body.lp .lp-tab.active svg { color: var(--lp-blue-glow); }
+body.lp .lp-tab-panel {
+  background: linear-gradient(165deg, #0D1E35, #081526);
+  border: 1px solid var(--lp-border-md);
+  border-radius: 14px;
+  padding: 18px;
+  min-height: 380px;
+  position: relative;
+  overflow: hidden;
+}
+body.lp .lp-tab-pane {
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  inset: 18px;
+  transition: opacity .35s ease;
+}
+body.lp .lp-tab-pane.active {
+  opacity: 1;
+  pointer-events: auto;
+  position: relative;
+  inset: auto;
+}
+body.lp .lp-tab-pane svg { width: 100%; height: auto; }
+
+/* ── Vitrine interativa ── */
+body.lp .lp-vitrine {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 40px;
+  align-items: start;
+}
+body.lp .lp-vitrine-list { display: flex; flex-direction: column; gap: 10px; }
+body.lp .lp-vit-item {
+  background: linear-gradient(165deg, #0D1E35, #081526);
+  border: 1px solid var(--lp-border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  cursor: pointer;
+  transition: all .2s ease;
+  text-align: left;
+  font-family: inherit;
+  color: var(--lp-text);
+}
+body.lp .lp-vit-item h4 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--lp-text-dim);
+  transition: color .2s ease;
+}
+body.lp .lp-vit-item h4 svg { width: 16px; height: 16px; color: var(--lp-text-mute); }
+body.lp .lp-vit-item p { margin: 0; font-size: .88rem; color: var(--lp-text-mute); }
+body.lp .lp-vit-item:hover { border-color: var(--lp-border-md); }
+body.lp .lp-vit-item.active {
+  background: linear-gradient(135deg, rgba(46,85,135,0.30), rgba(30,58,95,0.16));
+  border-color: rgba(126,184,246,0.42);
+  box-shadow: 0 0 0 1px rgba(126,184,246,0.12), 0 8px 24px rgba(46,85,135,0.20);
+}
+body.lp .lp-vit-item.active h4 { color: #F1F5FA; }
+body.lp .lp-vit-item.active h4 svg { color: var(--lp-blue-glow); }
+body.lp .lp-vit-item.active p { color: var(--lp-text-dim); }
+body.lp .lp-vitrine-mockup {
+  background: linear-gradient(165deg, #0D1E35, #081526);
+  border: 1px solid var(--lp-border-md);
+  border-radius: 14px;
+  padding: 18px;
+  position: sticky;
+  top: 100px;
+  min-height: 420px;
+  overflow: hidden;
+}
+body.lp .lp-vit-pane {
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  inset: 18px;
+  transition: opacity .35s ease;
+}
+body.lp .lp-vit-pane.active {
+  opacity: 1;
+  pointer-events: auto;
+  position: relative;
+  inset: auto;
+}
+body.lp .lp-vit-pane svg { width: 100%; height: auto; }
+
+/* ── Grids genéricos ── */
+body.lp .lp-grid {
+  display: grid;
+  gap: 20px;
+}
+body.lp .lp-grid-2 { grid-template-columns: repeat(2, 1fr); }
+body.lp .lp-grid-3 { grid-template-columns: repeat(3, 1fr); }
+body.lp .lp-grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+/* ── Dores ── */
+body.lp .lp-pain {
+  background: linear-gradient(165deg, rgba(58,16,32,0.30), rgba(20,10,18,0.40));
+  border: 1px solid rgba(220,80,100,0.18);
+  border-radius: 12px;
+  padding: 22px;
+  position: relative;
+}
+body.lp .lp-pain-icon {
+  width: 38px; height: 38px;
+  border-radius: 8px;
+  background: rgba(220,80,100,0.10);
+  border: 1px solid rgba(220,80,100,0.22);
+  color: #E07A8A;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+body.lp .lp-pain-icon svg { width: 20px; height: 20px; }
+body.lp .lp-pain h3 { font-size: 1.05rem; color: #F1F5FA; }
+body.lp .lp-pain p  { margin: 0; font-size: .9rem; }
+
+/* ── Antes / Depois ──────────────────────────────────────────────────────
+   Layout pareado com seta central pulsante (desktop) e animação stagger
+   nos bullets quando a seção entra na viewport (.is-visible disparado pelo
+   IntersectionObserver). Ícones do header viram chips discretos pra não
+   competir visualmente com o conteúdo. */
+body.lp .lp-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  position: relative;
+}
+body.lp .lp-compare-col {
+  position: relative;
+  border-radius: 14px;
+  padding: 32px 28px 28px;
+  border: 1px solid var(--lp-border-md);
+  overflow: hidden;
+}
+/* Barra de cor sutil no topo de cada coluna */
+body.lp .lp-compare-col::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  pointer-events: none;
+}
+body.lp .lp-compare-before {
+  background: linear-gradient(165deg, rgba(58,16,32,0.25), rgba(20,10,18,0.35));
+  border-color: rgba(220,80,100,0.20);
+}
+body.lp .lp-compare-before::before {
+  background: linear-gradient(90deg, transparent 0%, rgba(220,80,100,0.55) 50%, transparent 100%);
+}
+body.lp .lp-compare-after {
+  background: linear-gradient(165deg, rgba(20,60,40,0.20), rgba(15,40,30,0.30));
+  border-color: rgba(80,200,140,0.25);
+}
+body.lp .lp-compare-after::before {
+  background: linear-gradient(90deg, transparent 0%, rgba(80,200,140,0.65) 50%, transparent 100%);
+}
+/* Header como chip elegante (não mais ícone gigante) */
+body.lp .lp-compare-col h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: .88rem;
+  font-weight: 600;
+  letter-spacing: .02em;
+  margin: 0 0 22px;
+}
+body.lp .lp-compare-col h3 svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+body.lp .lp-compare-before h3 {
+  background: rgba(220,80,100,0.10);
+  border: 1px solid rgba(220,80,100,0.28);
+  color: #F0B8C2;
+}
+body.lp .lp-compare-after h3 {
+  background: rgba(80,200,140,0.10);
+  border: 1px solid rgba(80,200,140,0.32);
+  color: #B8F0CE;
+}
+body.lp .lp-compare-col ul { margin: 0; padding: 0; list-style: none; }
+body.lp .lp-compare-col li {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 10px 10px;
+  margin: 0 -10px;
+  font-size: .92rem;
+  color: var(--lp-text-dim);
+  border-radius: 8px;
+  position: relative;
+  /* Estado inicial pra animação stagger */
+  opacity: 0;
+  transition:
+    opacity .55s ease,
+    transform .55s cubic-bezier(.2,.9,.2,1),
+    background-color .2s ease;
+}
+/* Linha entra da esquerda (antes) ou da direita (depois) */
+body.lp .lp-compare-before li { transform: translateX(-14px); }
+body.lp .lp-compare-after  li { transform: translateX(14px); }
+/* Quando a seção fica visível, libera o stagger */
+body.lp .lp-compare.is-visible li {
+  opacity: 1;
+  transform: translateX(0);
+}
+/* Delays escalonados — 7 itens por coluna */
+body.lp .lp-compare.is-visible li:nth-child(1) { transition-delay: .05s; }
+body.lp .lp-compare.is-visible li:nth-child(2) { transition-delay: .12s; }
+body.lp .lp-compare.is-visible li:nth-child(3) { transition-delay: .19s; }
+body.lp .lp-compare.is-visible li:nth-child(4) { transition-delay: .26s; }
+body.lp .lp-compare.is-visible li:nth-child(5) { transition-delay: .33s; }
+body.lp .lp-compare.is-visible li:nth-child(6) { transition-delay: .40s; }
+body.lp .lp-compare.is-visible li:nth-child(7) { transition-delay: .47s; }
+/* Separador entre linhas (a partir da 2ª) */
+body.lp .lp-compare-col li + li::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 10px; right: 10px;
+  height: 1px;
+  background: var(--lp-border);
+  opacity: .6;
+}
+/* Hover sutil nas linhas */
+body.lp .lp-compare-before li:hover { background: rgba(220,80,100,0.05); }
+body.lp .lp-compare-after  li:hover { background: rgba(80,200,140,0.05); transform: translateX(2px); }
+body.lp .lp-compare.is-visible .lp-compare-after li:hover { transform: translateX(2px); }
+/* Ícones X / check como mini-círculos polidos */
+body.lp .lp-compare-col li svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  padding: 2px;
+  border-radius: 50%;
+}
+body.lp .lp-compare-before li svg {
+  color: #E07A8A;
+  background: rgba(220,80,100,0.10);
+  border: 1px solid rgba(220,80,100,0.25);
+}
+body.lp .lp-compare-after li svg {
+  color: #6EE7A0;
+  background: rgba(80,200,140,0.10);
+  border: 1px solid rgba(80,200,140,0.30);
+}
+
+/* Seta central pulsante (desktop) — indica a transformação Antes → Depois */
+body.lp .lp-compare-arrow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1E3A5F 0%, #2E5587 100%);
+  border: 1px solid rgba(168,189,212,0.30);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #F1F5FA;
+  z-index: 5;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.10);
+  animation: lpArrowPulse 2.6s ease-in-out infinite;
+  pointer-events: none;
+}
+body.lp .lp-compare-arrow svg { width: 22px; height: 22px; }
+@keyframes lpArrowPulse {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45), 0 0 0 0 rgba(126,184,246,0.45);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.06);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45), 0 0 0 14px rgba(126,184,246,0);
+  }
+}
+
+/* ── Para quem é ── */
+body.lp .lp-personas {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+body.lp .lp-persona {
+  background: linear-gradient(135deg, rgba(46,85,135,0.18), rgba(30,58,95,0.10));
+  border: 1px solid var(--lp-border-md);
+  border-radius: 999px;
+  padding: 12px 22px;
+  font-size: .95rem;
+  color: var(--lp-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all .2s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  body.lp .lp-persona:hover {
+    border-color: rgba(126,184,246,0.40);
+    background: linear-gradient(135deg, rgba(46,85,135,0.30), rgba(30,58,95,0.18));
+    transform: translateY(-2px);
+  }
+}
+body.lp .lp-persona svg { width: 16px; height: 16px; color: var(--lp-blue-cyan); }
+
+/* ── Pilares de confiança ── */
+body.lp .lp-pillar {
+  text-align: center;
+  padding: 28px 22px;
+}
+body.lp .lp-pillar-icon {
+  width: 60px; height: 60px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(46,85,135,0.35), rgba(30,58,95,0.18));
+  border: 1px solid var(--lp-border-md);
+  color: var(--lp-blue-glow);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+body.lp .lp-pillar-icon svg { width: 28px; height: 28px; }
+body.lp .lp-pillar h3 { font-size: 1.1rem; margin-bottom: 6px; }
+body.lp .lp-pillar p  { font-size: .88rem; margin: 0; }
+
+/* ── CTA final ── */
+body.lp .lp-cta-final {
+  background:
+    radial-gradient(ellipse 80% 100% at 50% 0%, rgba(46,85,135,0.30) 0%, transparent 70%),
+    linear-gradient(165deg, #0D1E35 0%, #081526 100%);
+  border: 1px solid var(--lp-border-md);
+  border-radius: 20px;
+  padding: clamp(48px, 8vw, 80px) clamp(28px, 6vw, 64px);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+body.lp .lp-cta-final::before {
+  content: '';
+  position: absolute;
+  top: -50%; left: 50%;
+  width: 80%; height: 200%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at center, rgba(126,184,246,0.10) 0%, transparent 50%);
+  pointer-events: none;
+}
+body.lp .lp-cta-final h2 { font-size: clamp(1.8rem, 3.5vw, 2.8rem); margin-bottom: 14px; }
+body.lp .lp-cta-final p  { font-size: 1.1rem; margin-bottom: 28px; max-width: 600px; margin-left: auto; margin-right: auto; }
+body.lp .lp-cta-final .lp-hero-ctas { justify-content: center; margin-bottom: 0; }
+
+/* ── Integrações grid ── */
+body.lp .lp-integ {
+  background: linear-gradient(165deg, #0D1E35, #081526);
+  border: 1px solid var(--lp-border);
+  border-radius: 12px;
+  padding: 22px;
+  text-align: center;
+  transition: all .2s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  body.lp .lp-integ:hover {
+    border-color: var(--lp-border-md);
+    transform: translateY(-2px);
+  }
+}
+body.lp .lp-integ-logo {
+  width: 48px; height: 48px;
+  margin: 0 auto 12px;
+  border-radius: 10px;
+  background: rgba(168,189,212,0.08);
+  border: 1px solid var(--lp-border-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--lp-blue-glow);
+}
+body.lp .lp-integ-logo svg { width: 22px; height: 22px; }
+body.lp .lp-integ h4 { font-size: .95rem; margin: 0 0 4px; font-weight: 600; color: var(--lp-text); }
+body.lp .lp-integ p  { font-size: .8rem; margin: 0; color: var(--lp-text-mute); }
+
+/* ── Lista eventos automação ── */
+body.lp .lp-event-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 22px;
+}
+body.lp .lp-event {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(168,189,212,0.04);
+  border: 1px solid var(--lp-border);
+  border-radius: 10px;
+  font-size: .88rem;
+  color: var(--lp-text-dim);
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+body.lp .lp-event-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--lp-blue-cyan);
+  flex-shrink: 0;
+  box-shadow: 0 0 8px rgba(91,188,224,0.50);
+}
+
+/* ── Bloco texto+imagem ── */
+body.lp .lp-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 56px;
+  align-items: center;
+}
+body.lp .lp-split.reversed { direction: rtl; }
+body.lp .lp-split.reversed > * { direction: ltr; }
+body.lp .lp-split h2 { margin-bottom: 16px; }
+body.lp .lp-split .lp-eyebrow { margin-bottom: 14px; }
+body.lp .lp-split p { font-size: 1.05rem; max-width: 540px; }
+body.lp .lp-split-bullets {
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+body.lp .lp-split-bullets li {
+  padding: 8px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: .95rem;
+  color: var(--lp-text-dim);
+  border-top: 1px solid var(--lp-border);
+}
+body.lp .lp-split-bullets li:first-child { border-top: none; }
+body.lp .lp-split-bullets li svg {
+  width: 18px; height: 18px;
+  color: var(--lp-blue-cyan);
+  flex-shrink: 0; margin-top: 2px;
+}
+
+/* ── Diagrama matriz/filial ── */
+body.lp .lp-hierarchy {
+  background: linear-gradient(165deg, #0D1E35, #081526);
+  border: 1px solid var(--lp-border-md);
+  border-radius: 14px;
+  padding: 28px;
+}
+body.lp .lp-hierarchy-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ── Footer ── */
+body.lp .lp-footer {
+  border-top: 1px solid var(--lp-border);
+  padding: 56px 0 32px;
+  margin-top: 40px;
+  background: rgba(6,13,26,0.40);
+}
+body.lp .lp-footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 40px;
+  margin-bottom: 40px;
+}
+body.lp .lp-footer-brand img { height: 52px; margin-bottom: 14px; }
+body.lp .lp-footer-brand p { font-size: .9rem; max-width: 320px; }
+body.lp .lp-footer-col h5 {
+  font-size: .82rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: var(--lp-text-mute);
+  margin: 0 0 14px;
+}
+body.lp .lp-footer-col ul { margin: 0; padding: 0; list-style: none; }
+body.lp .lp-footer-col li { padding: 6px 0; }
+body.lp .lp-footer-col a { color: var(--lp-text-dim); font-size: .9rem; }
+body.lp .lp-footer-col a:hover { color: var(--lp-text); }
+body.lp .lp-footer-bottom {
+  border-top: 1px solid var(--lp-border);
+  padding-top: 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: .82rem;
+  color: var(--lp-text-mute);
+}
+
+/* ── Scroll-reveal ── */
+body.lp .lp-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity .8s ease, transform .8s cubic-bezier(.2,.9,.2,1);
+  will-change: opacity, transform;
+}
+body.lp .lp-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── CTA contextual por seção ────────────────────────────────────────────
+   Botão de ação específica que aparece em cada dobra. Mantém a identidade
+   azul institucional do Yuris, com ícone do WhatsApp branco. Um leve glow
+   esverdeado no hover sinaliza o canal de contato. */
+body.lp .lp-section-cta {
+  text-align: center;
+  margin-top: clamp(32px, 5vw, 56px);
+}
+body.lp .lp-split-cta {
+  margin-top: 28px;
+  display: inline-flex;
+}
+body.lp .lp-btn-wa {
+  position: relative;
+  gap: 10px;
+}
+body.lp .lp-btn-wa .lp-wa-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(74,222,128,0.22);
+  color: #4ADE80;
+  flex-shrink: 0;
+  transition: background .2s ease, color .2s ease, box-shadow .2s ease;
+}
+body.lp .lp-btn-wa .lp-wa-icon svg { width: 13px; height: 13px; }
+body.lp .lp-btn-wa:hover .lp-wa-icon {
+  background: rgba(74,222,128,0.35);
+  color: #BBF7D0;
+  box-shadow: 0 0 0 4px rgba(74,222,128,0.12);
+}
+
+/* ── Mobile drawer ── */
+body.lp .lp-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(6,13,26,0.70);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease;
+  z-index: 200;
+}
+body.lp .lp-drawer-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+body.lp .lp-drawer {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: min(320px, 88vw);
+  background: linear-gradient(165deg, #0D1E35, #060D1A);
+  border-left: 1px solid var(--lp-border-md);
+  padding: 24px;
+  transform: translateX(100%);
+  transition: transform .3s cubic-bezier(.2,.9,.2,1);
+  z-index: 201;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+}
+body.lp .lp-drawer.open { transform: translateX(0); }
+body.lp .lp-drawer-close {
+  position: absolute;
+  top: 16px; right: 16px;
+  background: none;
+  border: 1px solid var(--lp-border-md);
+  border-radius: 8px;
+  padding: 6px;
+  cursor: pointer;
+  color: var(--lp-text);
+}
+body.lp .lp-drawer-close svg { width: 18px; height: 18px; }
+body.lp .lp-drawer a {
+  display: block;
+  padding: 12px 14px;
+  border-radius: 8px;
+  color: var(--lp-text);
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+body.lp .lp-drawer a:hover {
+  background: rgba(168,189,212,0.06);
+  border-color: var(--lp-border-md);
+}
+body.lp .lp-drawer .lp-btn {
+  margin-top: 8px;
+  width: 100%;
+}
+body.lp .lp-drawer-title {
+  font-size: .8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: var(--lp-text-mute);
+  margin: 16px 0 6px;
+}
+
+/* ── Anchor offset (header fixo) ── */
+body.lp section[id] {
+  scroll-margin-top: 80px;
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  body.lp *,
+  body.lp *::before,
+  body.lp *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+  body.lp .lp-reveal { opacity: 1; transform: none; }
+}
+
+/* ── Responsive ── */
+@media (max-width: 980px) {
+  body.lp .lp-hero-grid { grid-template-columns: 1fr; gap: 40px; }
+  body.lp .lp-hero-chips { display: none; }
+  body.lp .lp-split { grid-template-columns: 1fr; gap: 32px; }
+  body.lp .lp-split.reversed { direction: ltr; }
+  body.lp .lp-mockup-tabs { grid-template-columns: 1fr; }
+  body.lp .lp-vitrine { grid-template-columns: 1fr; }
+  body.lp .lp-vitrine-mockup { position: static; min-height: 280px; }
+  body.lp .lp-grid-3, body.lp .lp-grid-4 { grid-template-columns: repeat(2, 1fr); }
+  body.lp .lp-compare { grid-template-columns: 1fr; row-gap: 56px; }
+  body.lp .lp-compare-arrow {
+    /* No mobile, a seta vai entre as 2 colunas empilhadas, apontando pra baixo */
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%) rotate(90deg);
+    animation: lpArrowPulseMobile 2.6s ease-in-out infinite;
+  }
+  @keyframes lpArrowPulseMobile {
+    0%, 100% {
+      transform: translate(-50%, -50%) rotate(90deg) scale(1);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45), 0 0 0 0 rgba(126,184,246,0.45);
+    }
+    50% {
+      transform: translate(-50%, -50%) rotate(90deg) scale(1.06);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45), 0 0 0 12px rgba(126,184,246,0);
+    }
+  }
+  body.lp .lp-event-list { grid-template-columns: 1fr; }
+  body.lp .lp-footer-grid { grid-template-columns: 1fr 1fr; gap: 28px; }
+}
+
+@media (max-width: 640px) {
+  body.lp { font-size: 15px; }
+  body.lp .lp-container { padding: 0 18px; }
+  body.lp .lp-nav { display: none; }
+  body.lp .lp-header-cta .lp-btn-ghost { display: none; }
+  body.lp .lp-menu-toggle { display: inline-flex; }
+  body.lp .lp-grid-2, body.lp .lp-grid-3, body.lp .lp-grid-4 { grid-template-columns: 1fr; }
+  body.lp .lp-footer-grid { grid-template-columns: 1fr; }
+  body.lp .lp-footer-bottom { flex-direction: column; align-items: flex-start; }
+  body.lp .lp-hero-ctas { flex-direction: column; align-items: stretch; }
+  body.lp .lp-hero-ctas .lp-btn { width: 100%; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   MOBILE TUNING — auditoria 2026-05-26
+   Refinos pra ≤980px, ≤640px e ≤480px. Mantém desktop intacto.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ── Tabs "O Yuris por dentro" viram chips horizontais com scroll-snap ──
+   No desktop, lista vertical de 5 tabs ao lado do mockup funciona bem.
+   Em mobile, ocupar ~250px de altura antes do mockup empurrava o usuário
+   pra rolar muito. Agora a lista vira uma "barra de chips" com scroll
+   lateral (padrão de mobile moderno — App Store, Netflix). */
+@media (max-width: 980px) {
+  body.lp .lp-tab-list {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;          /* Firefox */
+    -ms-overflow-style: none;       /* IE/Edge legado */
+    gap: 8px;
+    padding: 4px 4px 12px;
+    margin: 0 -4px 4px;
+  }
+  body.lp .lp-tab-list::-webkit-scrollbar { display: none; }
+  body.lp .lp-tab {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    white-space: nowrap;
+    padding: 10px 16px;
+    font-size: .88rem;
+  }
+  body.lp .lp-tab-panel { padding: 14px; min-height: auto; }
+
+  /* ── Mockup hero: limita crescimento desproporcional em viewport pequena */
+  body.lp .lp-hero-mockup { max-width: 540px; margin: 0 auto; }
+
+  /* ── Vitrine: indicador visual de item ativo mais forte (borda lateral) */
+  body.lp .lp-vit-item.active {
+    border-left: 3px solid rgba(126,184,246,0.85);
+    padding-left: 17px;
+  }
+}
+
+/* ── Diagrama Matriz/Filial com scroll horizontal em mobile ──
+   O SVG é 1100×360 — em mobile virava texto de ~6px. Solução: wrapper com
+   overflow-x:auto e largura mínima preservada do SVG. Indicador "deslize"
+   aparece via ::after no container, some assim que o user rola. */
+@media (max-width: 980px) {
+  body.lp .lp-hierarchy {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 22px;
+    position: relative;
+    scrollbar-width: thin;
+  }
+  body.lp .lp-hierarchy > svg {
+    min-width: 760px;     /* Garante legibilidade do texto interno */
+    width: 760px;
+    height: auto;
+  }
+  /* Indicador "deslize →" no canto inferior direito.
+     position: sticky resolve sozinho — fica visível só enquanto há overflow. */
+  body.lp .lp-hierarchy::after {
+    content: '← deslize →';
+    position: sticky;
+    bottom: 8px;
+    left: calc(100% - 110px);
+    display: inline-block;
+    font-size: .72rem;
+    font-weight: 500;
+    letter-spacing: .04em;
+    color: var(--lp-blue-glow);
+    background: rgba(126,184,246,0.12);
+    border: 1px solid rgba(126,184,246,0.28);
+    padding: 4px 10px;
+    border-radius: 999px;
+    pointer-events: none;
+    margin-left: auto;
+    width: max-content;
+  }
+}
+
+/* ── Tablet portrait (641–980px): grids 3/4 em 2 colunas (já estava); split
+   já vira 1 coluna. Aqui adiciono ajustes finos no padding. */
+@media (max-width: 980px) {
+  body.lp .lp-section { padding: clamp(48px, 8vw, 96px) 0; }
+  body.lp .lp-hero { padding: clamp(96px, 12vw, 140px) 0 clamp(48px, 8vw, 96px); }
+  body.lp .lp-section-head { margin-bottom: clamp(24px, 4vw, 48px); }
+}
+
+/* ── Mobile padrão (≤ 640px) — refinos sobre o bloco anterior */
+@media (max-width: 640px) {
+  /* Header mais compacto */
+  body.lp .lp-header { padding: 10px 0; }
+  body.lp .lp-header.scrolled { padding: 8px 0; }
+  body.lp .lp-logo img { height: 34px; }
+  body.lp .lp-header-cta { gap: 8px; }
+
+  /* Hero — headline mais conservadora pra não estourar */
+  body.lp .lp-hero h1 { font-size: clamp(1.7rem, 7vw, 2.4rem); line-height: 1.18; }
+  body.lp .lp-hero-sub { font-size: 1rem; line-height: 1.55; margin-bottom: 24px; }
+  body.lp .lp-hero-trust { gap: 12px 18px; font-size: .8rem; }
+
+  /* Section heads mais conservadoras */
+  body.lp .lp-section-head h2 { font-size: clamp(1.6rem, 6vw, 2.2rem); }
+  body.lp .lp-section-head p { font-size: 1rem; }
+
+  /* Cards com padding menor pra ganhar espaço útil */
+  body.lp .lp-card { padding: 22px 20px; border-radius: 12px; }
+  body.lp .lp-card h3 { font-size: 1.1rem; }
+  body.lp .lp-pain { padding: 18px 16px; }
+  body.lp .lp-pain h3 { font-size: 1rem; }
+
+  /* Compare cols mais compactos */
+  body.lp .lp-compare-col { padding: 26px 20px; }
+
+  /* CTA de seção — botão ocupa largura confortável */
+  body.lp .lp-section-cta .lp-btn { width: 100%; max-width: 360px; }
+  body.lp .lp-split-cta { width: 100%; max-width: 360px; }
+
+  /* Hierarquia: SVG ainda 760px de min-width, mas reduz padding */
+  body.lp .lp-hierarchy { padding: 16px; }
+
+  /* Footer brand não cresce demais */
+  body.lp .lp-footer-brand img { height: 44px; }
+
+  /* Anchor offset reduzido pra novo header menor */
+  body.lp section[id] { scroll-margin-top: 64px; }
+}
+
+/* ── Mobile pequeno (≤ 480px) — iPhone SE, Android pequeno ── */
+@media (max-width: 480px) {
+  body.lp { font-size: 14.5px; }
+  body.lp .lp-container { padding: 0 16px; }
+
+  /* Header compacto: CTA vira ícone-only WhatsApp.
+     gap:0 é essencial — o text node "Solicitar demonstração" ainda ocupa
+     o gap mesmo com font-size:0, e isso descentralizava o ícone. */
+  body.lp .lp-header-cta .lp-btn-primary {
+    padding: 0;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    gap: 0;
+    font-size: 0;             /* Esconde o text node "Solicitar demonstração" */
+    line-height: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* Mantém o círculo verde menor dentro do botão azul — identidade WhatsApp.
+     Sem mudar o tamanho do badge, o ícone fica visualmente equilibrado. */
+  body.lp .lp-header-cta .lp-btn-primary .lp-wa-icon {
+    width: 28px;
+    height: 28px;
+    background: rgba(74,222,128,0.22);
+    color: #4ADE80;
+    margin: 0;
+  }
+  body.lp .lp-header-cta .lp-btn-primary .lp-wa-icon svg { width: 14px; height: 14px; }
+  body.lp .lp-header-cta .lp-btn-primary:hover .lp-wa-icon { box-shadow: none; }
+
+  /* "YURIS" um pouco mais compacto no mobile pequeno */
+  body.lp .lp-logo-text { font-size: 1.05rem; letter-spacing: 0.16em; }
+
+  /* Logo um pouco menor */
+  body.lp .lp-logo img { height: 32px; }
+  body.lp .lp-menu-toggle { padding: 8px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+
+  /* Hero ainda mais conservador */
+  body.lp .lp-hero { padding: 88px 0 56px; }
+  body.lp .lp-hero h1 { font-size: clamp(1.55rem, 8vw, 2rem); }
+  body.lp .lp-hero-sub { font-size: .95rem; }
+  body.lp .lp-eyebrow { font-size: .72rem; padding: 5px 12px; }
+
+  /* Trust badges em 2 colunas — sem amontoamento */
+  body.lp .lp-hero-trust {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 14px;
+    font-size: .78rem;
+  }
+
+  /* Sections menos altas */
+  body.lp .lp-section { padding: 56px 0; }
+  body.lp .lp-hero-ctas { gap: 10px; }
+
+  /* Cards com texto menor */
+  body.lp .lp-card { padding: 20px 18px; }
+  body.lp .lp-card-icon { width: 40px; height: 40px; margin-bottom: 12px; }
+  body.lp .lp-card-icon svg { width: 20px; height: 20px; }
+  body.lp .lp-card h3 { font-size: 1.05rem; }
+  body.lp .lp-card p  { font-size: .9rem; }
+
+  /* Personas mais compactas */
+  body.lp .lp-persona { padding: 10px 16px; font-size: .88rem; }
+
+  /* Section CTA tamanho confortável de toque */
+  body.lp .lp-section-cta { margin-top: 36px; }
+
+  /* Compare cols */
+  body.lp .lp-compare-col { padding: 22px 16px; }
+  body.lp .lp-compare-col h3 { font-size: .82rem; padding: 5px 12px; }
+  body.lp .lp-compare-col li { font-size: .87rem; padding: 8px; }
+
+  /* Hierarquia ainda visível */
+  body.lp .lp-hierarchy > svg { min-width: 680px; width: 680px; }
+
+  /* Footer mais respirável */
+  body.lp .lp-footer { padding: 40px 0 24px; }
+  body.lp .lp-footer-grid { gap: 24px; }
+  body.lp .lp-footer-brand img { height: 40px; }
+}
+
+/* ── Mobile muito pequeno (≤ 360px) — micro-ajustes finais ── */
+@media (max-width: 360px) {
+  body.lp .lp-container { padding: 0 14px; }
+  body.lp .lp-hero h1 { font-size: 1.5rem; }
+  body.lp .lp-section-head h2 { font-size: 1.4rem; }
+  body.lp .lp-card { padding: 18px 16px; }
+  body.lp .lp-hero-trust { grid-template-columns: 1fr; gap: 8px; }
+  /* Esconde texto "YURIS" pra caber tudo (logo + WhatsApp + hambúrguer) */
+  body.lp .lp-logo-text { display: none; }
+}
+
+/* ── Touch areas: garante 44×44px em controles críticos ── */
+@media (hover: none) {
+  body.lp .lp-tab,
+  body.lp .lp-vit-item,
+  body.lp .lp-menu-toggle,
+  body.lp .lp-drawer-close,
+  body.lp .lp-header-cta .lp-btn {
+    min-height: 44px;
+  }
+}
