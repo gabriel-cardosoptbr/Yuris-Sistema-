@@ -19,8 +19,13 @@ require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../../app/Models/PushMonitor.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
+require_once __DIR__ . '/../../../app/Helpers/MonitorQuota.php';  // Etapa 5
+require_once __DIR__ . '/../../../app/Helpers/MonitorAudit.php';  // Etapa 5
+require_once __DIR__ . '/../../../app/Helpers/BillingGuard.php';
 
 use App\Helpers\AccountContext;
+use App\Helpers\MonitorQuota;
+use App\Helpers\MonitorAudit;
 use App\Models\Database;
 use App\Models\PushMonitor;
 
@@ -95,6 +100,13 @@ try {
                 $valor = ltrim($m[2], '0');
             }
 
+            // ── Guarda de cota (Etapa 5 add-on) ─────────────────────────
+            // Bloqueia criação se cota esgotada. Resposta 402 (Payment
+            // Required) com mensagem amigável "contrate mais monitoramentos".
+            // Frontend já desabilita o botão quando cota=0, mas isto é
+            // defense-in-depth contra request forjado.
+            MonitorQuota::assertCanCreate($accountId);
+
             $id = PushMonitor::create([
                 'account_id'         => $accountId,
                 'source_id'          => 'djen',
@@ -108,6 +120,16 @@ try {
                 'proxima_consulta_em'=> date('Y-m-d H:i:s'), // dispara já no próximo tick
                 'created_by'         => $userId,
             ]);
+
+            // Audit (graceful — fail-soft no helper)
+            MonitorAudit::log(
+                'monitor_created',
+                $accountId,
+                (int)$id,
+                "Monitor {$tipo} criado: {$valor}" . ($uf ? "/{$uf}" : ''),
+                null,
+                ['tipo' => $tipo, 'valor' => $valor, 'uf' => $uf]
+            );
 
             echo json_encode(['ok' => true, 'id' => $id]);
             break;

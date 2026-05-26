@@ -23,8 +23,13 @@ require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../../app/Models/PushMonitor.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
+require_once __DIR__ . '/../../../app/Helpers/MonitorQuota.php';  // Etapa 5 — graceful
+require_once __DIR__ . '/../../../app/Helpers/MonitorAudit.php';
+require_once __DIR__ . '/../../../app/Helpers/BillingGuard.php';
 
 use App\Helpers\AccountContext;
+use App\Helpers\MonitorQuota;
+use App\Helpers\MonitorAudit;
 use App\Models\Database;
 use App\Models\PushMonitor;
 
@@ -226,19 +231,35 @@ class PushUserFiltersHelpers {
                     $created[] = ['tipo' => $nome ? 'oab+nome' : 'oab', 'valor' => "{$uf}{$oab}", 'nome' => $existingNome, 'monitor_id' => $existingId, 'novo' => false, 'label' => 'já existia'];
                 }
             } else {
-                $newId = PushMonitor::create([
-                    'account_id'         => $accountId,
-                    'source_id'          => 'djen',
-                    'tipo_monitoramento' => 'oab',
-                    'valor_monitorado'   => $oab,
-                    'uf'                 => $uf ?: null,
-                    'nome_complementar'  => $nome ?: null,
-                    'status'             => 'ativo',
-                    'intervalo_minutos'  => 120,
-                    'proxima_consulta_em'=> date('Y-m-d H:i:s'),
-                    'created_by'         => $userId,
-                ]);
-                $created[] = ['tipo' => $nome ? 'oab+nome' : 'oab', 'valor' => "{$uf}{$oab}", 'nome' => $nome, 'monitor_id' => $newId, 'novo' => true, 'label' => 'criado'];
+                // ── Cota (Etapa 5) ────────────────────────────────────
+                // Auto-monitor é GRACEFUL: se cota esgotada, salva o
+                // perfil mas não cria monitor + retorna aviso na resposta.
+                // NÃO usa assertCanCreate (que mata o request com 402).
+                if (MonitorQuota::getAvailable($accountId) <= 0) {
+                    $created[] = [
+                        'tipo' => 'oab', 'valor' => "{$uf}{$oab}",
+                        'nome' => $nome, 'monitor_id' => null,
+                        'novo' => false, 'label' => 'sem_cota',
+                        'warning' => 'Cota esgotada. Contrate mais monitoramentos para criar este monitor automaticamente.',
+                    ];
+                } else {
+                    $newId = PushMonitor::create([
+                        'account_id'         => $accountId,
+                        'source_id'          => 'djen',
+                        'tipo_monitoramento' => 'oab',
+                        'valor_monitorado'   => $oab,
+                        'uf'                 => $uf ?: null,
+                        'nome_complementar'  => $nome ?: null,
+                        'status'             => 'ativo',
+                        'intervalo_minutos'  => 120,
+                        'proxima_consulta_em'=> date('Y-m-d H:i:s'),
+                        'created_by'         => $userId,
+                    ]);
+                    MonitorAudit::log('monitor_created', $accountId, (int)$newId,
+                        "Auto-monitor OAB criado: {$uf}{$oab}" . ($nome ? " (+nome: {$nome})" : ''),
+                        null, ['tipo' => 'oab', 'valor' => $oab, 'uf' => $uf]);
+                    $created[] = ['tipo' => $nome ? 'oab+nome' : 'oab', 'valor' => "{$uf}{$oab}", 'nome' => $nome, 'monitor_id' => $newId, 'novo' => true, 'label' => 'criado'];
+                }
             }
 
             // Cleanup: se tem monitor antigo tipo='nome' redundante (mesmo nome do user), remove
@@ -268,17 +289,30 @@ class PushUserFiltersHelpers {
         if ($existingId) {
             $created[] = ['tipo' => 'nome', 'valor' => $nome, 'monitor_id' => $existingId, 'novo' => false, 'label' => 'já existia'];
         } else {
-            $newId = PushMonitor::create([
-                'account_id'         => $accountId,
-                'source_id'          => 'djen',
-                'tipo_monitoramento' => 'nome',
-                'valor_monitorado'   => $nome,
-                'status'             => 'ativo',
-                'intervalo_minutos'  => 240,
-                'proxima_consulta_em'=> date('Y-m-d H:i:s'),
-                'created_by'         => $userId,
-            ]);
-            $created[] = ['tipo' => 'nome', 'valor' => $nome, 'monitor_id' => $newId, 'novo' => true, 'label' => 'criado'];
+            // ── Cota graceful (Etapa 5) — mesmo do CASO 1 ──────────────
+            if (MonitorQuota::getAvailable($accountId) <= 0) {
+                $created[] = [
+                    'tipo' => 'nome', 'valor' => $nome,
+                    'monitor_id' => null, 'novo' => false,
+                    'label' => 'sem_cota',
+                    'warning' => 'Cota esgotada. Contrate mais monitoramentos para criar este monitor automaticamente.',
+                ];
+            } else {
+                $newId = PushMonitor::create([
+                    'account_id'         => $accountId,
+                    'source_id'          => 'djen',
+                    'tipo_monitoramento' => 'nome',
+                    'valor_monitorado'   => $nome,
+                    'status'             => 'ativo',
+                    'intervalo_minutos'  => 240,
+                    'proxima_consulta_em'=> date('Y-m-d H:i:s'),
+                    'created_by'         => $userId,
+                ]);
+                MonitorAudit::log('monitor_created', $accountId, (int)$newId,
+                    "Auto-monitor nome criado: {$nome}",
+                    null, ['tipo' => 'nome', 'valor' => $nome]);
+                $created[] = ['tipo' => 'nome', 'valor' => $nome, 'monitor_id' => $newId, 'novo' => true, 'label' => 'criado'];
+            }
         }
         return $created;
     }

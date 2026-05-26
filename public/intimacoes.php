@@ -1401,6 +1401,21 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
     <h2>Monitoramento de intimações</h2>
     <p class="modal-sub">A cada ciclo do cron (a cada 10 min), o sistema busca novas publicações para cada monitor ativo. Quando algo novo aparece, você recebe notificação.</p>
 
+    <!-- ── Badge de cota (Etapa 5 add-on) ─────────────────────────────
+         Mostra contratado/usado/disponível. Quando sem cota disponível,
+         vira vermelho com mensagem "Contrate mais monitoramentos".
+    -->
+    <div id="monitorQuotaBadge" style="margin:10px 0 16px; padding:12px 14px; border-radius:9px; border:1px solid rgba(96,165,250,.25); background:rgba(37,99,235,.06); display:flex; gap:14px; align-items:center; flex-wrap:wrap; font-size:.85rem;">
+      <div style="display:flex; gap:14px; align-items:baseline;">
+        <span><strong id="mqContratado">…</strong> <small style="color:#7A8898">contratado(s)</small></span>
+        <span><strong id="mqUsado">…</strong> <small style="color:#7A8898">em uso</small></span>
+        <span><strong id="mqDisponivel" style="color:#22c55e">…</strong> <small style="color:#7A8898">disponível</small></span>
+      </div>
+      <div id="mqAviso" style="flex:1; min-width:200px; font-size:.78rem; color:#7A8898;">
+        Carregando cota…
+      </div>
+    </div>
+
     <!-- Meu perfil de busca (OAB + nome do user logado) -->
     <div class="int-modal-section" style="background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.20);border-radius:9px;padding:14px;">
       <h3 style="margin-bottom:8px;">Meu perfil de busca</h3>

@@ -805,6 +805,13 @@
         this.applyUserDefaults();
         this.updateProfileNudge();
         this.loadMonitors();
+        this.loadMonitorQuota();   // Etapa 5 — atualiza badge após criar monitor auto
+
+        // Mostra warnings de cota esgotada do response (auto_monitor graceful)
+        const warns = (data.monitors_created || []).filter(m => m.label === 'sem_cota');
+        if (warns.length) {
+          this.notify('⚠️ Cota esgotada — alguns monitores não foram criados. Contrate mais monitoramentos.', 'error');
+        }
       } catch (err) {
         if (statusEl) statusEl.textContent = '';
         this.notify('Erro: ' + err.message, 'error');
@@ -1347,6 +1354,80 @@
       document.getElementById('monitorsModal')?.classList.add('show');
       this.fillMyProfileForm();
       this.loadMonitors();
+      this.loadMonitorQuota(); // Etapa 5 add-on
+    },
+
+    /**
+     * Carrega status de cota e atualiza o badge + estado dos botões.
+     * Quando cota=0 ou disponível=0, desabilita botões 'Salvar perfil' e
+     * 'Adicionar processo' + mostra mensagem "Contrate mais monitoramentos".
+     */
+    async loadMonitorQuota() {
+      try {
+        const r = await fetch(`/sistema_vendas/public/api/push/quota.php`, { credentials: 'same-origin' });
+        const j = await r.json();
+        if (!j.ok) throw new Error(j.error || 'erro');
+        const s = j.status || {};
+        const lim = s.effective_limit || 0;
+        const used = s.current_usage || 0;
+        const avail = s.available || 0;
+
+        const $ = (id) => document.getElementById(id);
+        if ($('mqContratado')) $('mqContratado').textContent = lim;
+        if ($('mqUsado'))      $('mqUsado').textContent      = used;
+        if ($('mqDisponivel')) {
+          $('mqDisponivel').textContent = avail;
+          $('mqDisponivel').style.color = avail > 0 ? '#22c55e' : '#ef4444';
+        }
+
+        const badge  = $('monitorQuotaBadge');
+        const aviso  = $('mqAviso');
+        const btnPro = $('myProfSave');
+        const btnNew = $('monNewSubmit');
+
+        const semCota = lim <= 0 || avail <= 0;
+        if (semCota) {
+          if (badge) {
+            badge.style.background = 'rgba(239,68,68,.10)';
+            badge.style.borderColor = 'rgba(239,68,68,.45)';
+          }
+          if (aviso) {
+            aviso.innerHTML = lim <= 0
+              ? '⚠️ <strong style="color:#ef4444">Sem monitoramentos contratados.</strong> Cada OAB monitorada é cobrada à parte — fale com o admin pra contratar.'
+              : '⚠️ <strong style="color:#ef4444">Limite de monitoramentos atingido.</strong> Para criar mais, peça pro admin contratar mais monitoramentos.';
+            aviso.style.color = '#fca5a5';
+          }
+          [btnPro, btnNew].forEach(b => {
+            if (!b) return;
+            b.disabled = true;
+            b.style.opacity = '.5';
+            b.style.cursor = 'not-allowed';
+            b.title = 'Cota esgotada. Contrate mais monitoramentos.';
+          });
+        } else {
+          if (badge) {
+            badge.style.background = 'rgba(37,99,235,.06)';
+            badge.style.borderColor = 'rgba(96,165,250,.25)';
+          }
+          if (aviso) {
+            aviso.textContent = `Você pode criar mais ${avail} monitoramento${avail === 1 ? '' : 's'}.`;
+            aviso.style.color = '#7A8898';
+          }
+          [btnPro, btnNew].forEach(b => {
+            if (!b) return;
+            b.disabled = false;
+            b.style.opacity = '';
+            b.style.cursor = '';
+            b.title = '';
+          });
+        }
+      } catch (e) {
+        const aviso = document.getElementById('mqAviso');
+        if (aviso) {
+          aviso.textContent = 'Não consegui carregar a cota — tente recarregar a página.';
+          aviso.style.color = '#fca5a5';
+        }
+      }
     },
 
     /** Pré-popula os inputs "Meu perfil" dentro do modal Monitoramento. */
@@ -1448,6 +1529,7 @@
         this.notify(`Processo monitorado: ${proc}`, 'success');
         $('monNewProc').value = '';   // limpa só o processo; mantém tribunal/intervalo pra próximo cadastro
         this.loadMonitors();
+        this.loadMonitorQuota();  // Etapa 5 add-on — refresh do badge
       } catch (err) {
         this.notify('Erro: ' + err.message, 'error');
       }
@@ -1462,6 +1544,7 @@
           if (!data.ok) throw new Error(data.error || 'Erro');
           this.notify('Monitor removido.', 'success');
           this.loadMonitors();
+          this.loadMonitorQuota();   // Etapa 5 — atualiza badge após delete
           return;
         }
         if (action === 'pause' || action === 'resume') {
@@ -1470,6 +1553,7 @@
           if (!data.ok) throw new Error(data.error || 'Erro');
           this.notify(newStatus === 'ativo' ? 'Monitor ativado.' : 'Monitor pausado.', 'success');
           this.loadMonitors();
+          this.loadMonitorQuota();   // Etapa 5 — pause não libera cota, mas refresh por consistência
         }
       } catch (err) {
         this.notify('Erro: ' + err.message, 'error');
