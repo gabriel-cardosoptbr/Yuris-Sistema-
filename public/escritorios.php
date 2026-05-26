@@ -1085,8 +1085,11 @@ async function reativarVinculoAdv(id) {
 // ── Advogados Associados (via resource_shares — compartilhamentos pontuais) ──
 async function carregarAdvogados() {
   const el = document.getElementById('advogadosList');
+  if (!el) return; // pane oculto para conta tipo='advogado'
   el.innerHTML = '<div class="es-empty">Carregando...</div>';
-  const r = await api('/sistema_vendas/public/api/resource_shares.php');
+  // ?listar_meus=1 lista shares pontuais (processo/card/contato) emitidos por mim.
+  // Antes chamava sem parametros e recebia 400 — frontend ficava em "Carregando..."
+  const r = await api('/sistema_vendas/public/api/resource_shares.php?listar_meus=1');
   const lista = (r.data || r || []).filter(s => s.status === 'active');
   if (!lista.length) {
     el.innerHTML = `<div class="es-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Nenhum compartilhamento ativo.</div>`;

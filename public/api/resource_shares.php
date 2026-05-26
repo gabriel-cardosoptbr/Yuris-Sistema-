@@ -104,6 +104,25 @@ if ($method === 'GET') {
         exit;
     }
 
+    // Lista TODOS shares emitidos pela conta atual (exceto module, que tem rota propria).
+    // Usado pela aba "Compartilhamentos pontuais por processo" em /escritorios.php.
+    if (!empty($_GET['listar_meus'])) {
+        $pdo  = \App\Models\Database::getConnection();
+        $stmt = $pdo->prepare(
+            "SELECT rs.*, a.nome AS to_account_nome, tu.nome AS to_user_nome
+             FROM resource_shares rs
+             LEFT JOIN accounts a  ON a.id  = rs.to_account_id
+             LEFT JOIN users    tu ON tu.id = rs.to_user_id
+             WHERE rs.from_account_id = :acc
+               AND rs.resource_type   <> 'module'
+               AND rs.status          = 'active'
+             ORDER BY rs.created_at DESC"
+        );
+        $stmt->execute(['acc' => $ctx->getAccountId()]);
+        echo json_encode(['data' => $stmt->fetchAll(\PDO::FETCH_ASSOC)]);
+        exit;
+    }
+
     // Lista recursos compartilhados COM a conta logada
     if (!empty($_GET['shared_with_me'])) {
         $type  = $_GET['resource_type'] ?? null;
