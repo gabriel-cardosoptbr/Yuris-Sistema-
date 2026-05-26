@@ -45,9 +45,9 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=41">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=44">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=8">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=18">
   <!-- Flatpickr (calendário visual range) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js" defer></script>
@@ -733,6 +733,117 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
     html[data-theme="light"] .flatpickr-calendar .flatpickr-day.prevMonthDay,
     html[data-theme="light"] .flatpickr-calendar .flatpickr-day.nextMonthDay { color: #B8C2D0 !important; }
     html[data-theme="light"] .flatpickr-calendar input.numInput { color: #0F1F36 !important; }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       TEMA CLARO — Patches dos blocos que ficavam dark sobre fundo branco
+       Mapeados via auditoria: aba AASP ativa, botao Conectar, card AASP,
+       banner info, day header, card de publicacao base.
+       ══════════════════════════════════════════════════════════════════════ */
+
+    /* 1) Aba "Integração AASP" ativa */
+    html[data-theme="light"] .int-tab.active {
+      background: #EFF6FF !important;
+      border-color: #BFDBFE !important;
+      color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] .int-tab {
+      color: #5A6B7E !important;
+    }
+    html[data-theme="light"] .int-tab:hover {
+      color: #1E4A8A !important;
+      background: #F1F5F9 !important;
+    }
+
+    /* 2) Botão "+ Conectar chave AASP" (.int-btn.primary) */
+    html[data-theme="light"] .int-btn.primary {
+      background: linear-gradient(135deg, #2563EB, #1D4ED8) !important;
+      border-color: #1D4ED8 !important;
+      color: #FFFFFF !important;
+    }
+    html[data-theme="light"] .int-btn.primary:hover {
+      filter: brightness(1.08);
+    }
+    /* .int-btn neutro (Sincronizar etc.) — outline azul claro */
+    html[data-theme="light"] .int-btn:not(.primary):not(.danger) {
+      background: #FFFFFF !important;
+      border-color: #BFDBFE !important;
+      color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] .int-btn:not(.primary):not(.danger):hover {
+      background: #EFF6FF !important;
+    }
+
+    /* 3) Card AASP (.int-aasp-int-card + status-*) */
+    html[data-theme="light"] .int-aasp-int-card {
+      background: #FFFFFF !important;
+      border-color: #E2E8F0 !important;
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .int-aasp-int-card .pill.active,
+    html[data-theme="light"] .int-aasp-int-card .pill-active {
+      background: #D1FAE5 !important; color: #047857 !important; border-color: #6EE7B7 !important;
+    }
+    html[data-theme="light"] .int-aasp-int-card .pill.pending,
+    html[data-theme="light"] .int-aasp-int-card .pill-pending {
+      background: #FEF3C7 !important; color: #B45309 !important; border-color: #FCD34D !important;
+    }
+    html[data-theme="light"] .int-aasp-int-card .pill.error,
+    html[data-theme="light"] .int-aasp-int-card .pill-error {
+      background: #FEE2E2 !important; color: #B91C1C !important; border-color: #FCA5A5 !important;
+    }
+
+    /* 4) Banner azul "Esta busca consulta fontes oficiais..." (.int-banner-info) */
+    html[data-theme="light"] .int-banner-info {
+      background: #EFF6FF !important;
+      border-color: #BFDBFE !important;
+      color: #1E4A8A !important;
+    }
+
+    /* 5) Header de dia "Dia 25/05/2026 — N publicações" (.int-day-header) */
+    html[data-theme="light"] .int-day-header {
+      background: #F1F5F9 !important;
+      color: #1D4ED8 !important;
+      border-color: #CBD5E1 !important;
+    }
+
+    /* 6) Card de publicação base (.int-pub-card) — tribunal + intimação + nome */
+    html[data-theme="light"] .int-pub-card {
+      background: #FFFFFF !important;
+      border-color: #E2E8F0 !important;
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .int-pub-card h4,
+    html[data-theme="light"] .int-pub-card .int-pub-title { color: #0F1F36 !important; }
+    html[data-theme="light"] .int-pub-card .int-pub-meta,
+    html[data-theme="light"] .int-pub-card .int-pub-text { color: #4B5B70 !important; }
+    /* Badges dentro do card (TJSP, Intimação, etc.) */
+    html[data-theme="light"] .int-pub-card .int-badge,
+    html[data-theme="light"] .int-pub-card .pill {
+      background: #EFF6FF !important;
+      color: #1D4ED8 !important;
+      border-color: #BFDBFE !important;
+    }
+    /* "resultado não persistido" — badge amarelo */
+    html[data-theme="light"] .int-pub-card [class*="nao-persist"],
+    html[data-theme="light"] .int-pub-card .int-pill-warn {
+      background: #FEF3C7 !important;
+      color: #B45309 !important;
+      border-color: #FCD34D !important;
+    }
+    /* Texto longo do conteúdo da intimação */
+    html[data-theme="light"] .int-pub-card .int-pub-body,
+    html[data-theme="light"] .int-pub-card p {
+      color: #0F1F36 !important;
+    }
+    /* Botões de ação na coluna direita (favoritar, comentário, etc.) */
+    html[data-theme="light"] .int-pub-card .int-icon-btn {
+      background: #FFFFFF !important;
+      border: 1px solid #BFDBFE !important;
+      color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] .int-pub-card .int-icon-btn:hover {
+      background: #EFF6FF !important;
+    }
   </style>
 </head>
 <body>
