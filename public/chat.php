@@ -1223,14 +1223,9 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
     }
     .msg-reaction-pill .cnt { font-size:.7rem; color:#A8BDD4; font-weight:600; }
 
-    /* — Separador de dia (P0-B) — */
-    .msg-date-sep {
-      align-self:center; margin:14px auto;
-      padding:4px 14px; border-radius:14px;
-      background: rgba(8,15,26,.65); border:1px solid rgba(160,180,210,.12);
-      color:#A8BDD4; font-size:.72rem; font-weight:600;
-      text-transform: lowercase; letter-spacing:.02em;
-    }
+    /* (Separador de dia movido pra cima — regra anterior aqui (chip cinza) foi
+       removida porque vinha depois na cascade e sobrescrevia o estilo minimalista
+       definido em .msg-date-sep / .msg-date-sep > span no inicio do <style>.) */
 
     /* — Quote (mensagem citada) na bubble (P0-J) — */
     .msg-quoted {
