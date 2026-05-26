@@ -233,11 +233,16 @@ if ($method === 'GET' && $action === 'get') {
 if ($method === 'GET' && $action === 'modal_data') {
     $accountTipo = $ctx->getAccountTipo();
 
-    // Usuários da mesma conta
+    // Usuários da mesma conta — JOIN com accounts pra trazer info da org
+    // (necessário para sub-agrupar matriz/filial no UI quando o escritório tem
+    // múltiplas contas vinculadas)
     $usersStmt = $pdo->prepare(
-        "SELECT id, nome FROM users
-         WHERE account_id = ? AND id <> ? AND status = 'active' AND deleted_at IS NULL
-         ORDER BY nome"
+        "SELECT u.id, u.nome, u.account_id,
+                a.nome AS account_nome, a.tipo AS account_tipo
+           FROM users u
+           LEFT JOIN accounts a ON a.id = u.account_id
+          WHERE u.account_id = ? AND u.id <> ? AND u.status = 'active' AND u.deleted_at IS NULL
+          ORDER BY u.nome"
     );
     $usersStmt->execute([$aid, $uid]);
     $users = $usersStmt->fetchAll();
@@ -306,14 +311,14 @@ if ($method === 'GET' && $action === 'modal_data') {
     }
     $linkedAccounts = $lnk->fetchAll();
 
-    // Usuários de cada conta vinculada
+    // Usuários de cada conta vinculada (inclui account_tipo pra agrupamento no UI)
     $linkedUsers = [];
     foreach ($linkedAccounts as $la) {
         $lu = $pdo->prepare(
-            "SELECT id, nome, ? AS account_id, ? AS account_nome
+            "SELECT id, nome, ? AS account_id, ? AS account_nome, ? AS account_tipo
              FROM users WHERE account_id = ? AND status = 'active' AND deleted_at IS NULL ORDER BY nome"
         );
-        $lu->execute([$la['id'], $la['nome'], $la['id']]);
+        $lu->execute([$la['id'], $la['nome'], $la['tipo'], $la['id']]);
         $linkedUsers[(int) $la['id']] = $lu->fetchAll();
     }
 

@@ -296,6 +296,26 @@ $csrf       = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
     }
     .ci-mpanel-subsection:first-child { border-top: none; }
 
+    /* Sub-cabecalho dentro de listas de checkbox (Nova Conversa + Editar) */
+    .ci-userlist-section {
+      padding: 8px 10px 4px; margin: 4px 2px 2px;
+      font-size: .62rem; font-weight: 700;
+      color: #7A8898; text-transform: uppercase; letter-spacing: .08em;
+      border-bottom: 1px solid rgba(160,180,210,.08);
+    }
+    .ci-userlist-section:first-child { margin-top: 0; }
+
+    /* Container "Membros que entrarão na conversa" — antes era inline com
+       rgba(0,0,0,.12) que ficava cinza escuro feio no tema claro */
+    .ci-setor-membros-box {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      padding: 10px 12px;
+      border: 1px solid var(--line-md);
+      border-radius: 8px;
+      background: rgba(255,255,255,.04);
+      margin-bottom: 12px;
+    }
+
     /* ═════════════════════════════════════════════════════════════════════
        TEMA CLARO — Chat Interno (correção 2026-05-26)
        Sem isso as bolhas, chips, modais, popup ficavam pretos em fundo branco
@@ -442,6 +462,15 @@ $csrf       = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
       color: #64748B !important;
       background: #F8FAFC !important;
       border-top-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] .ci-userlist-section {
+      color: #475569 !important;
+      border-bottom-color: #E2E8F0 !important;
+    }
+    /* Container Membros do Setor — fundo claro com borda discreta */
+    html[data-theme="light"] .ci-setor-membros-box {
+      background: #F8FAFC !important;
+      border-color: #E2E8F0 !important;
     }
     html[data-theme="light"] .ci-mention-item:hover,
     html[data-theme="light"] .ci-mention-item.focused {
@@ -659,11 +688,7 @@ $csrf       = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
       </div>
       <div id="ciSetorMembrosWrap" style="display:none">
         <label style="margin-top:4px">Membros que entrarão na conversa</label>
-        <div id="ciSetorMembros" style="
-          display:flex; flex-wrap:wrap; gap:6px;
-          padding:10px 12px; border:1px solid var(--line-md);
-          border-radius:8px; background:rgba(0,0,0,.12); margin-bottom:12px;
-        "></div>
+        <div id="ciSetorMembros" class="ci-setor-membros-box"></div>
       </div>
     </div>
 
@@ -731,6 +756,6 @@ const CI_API  = {
   users     : '/sistema_vendas/public/api/users.php',
 };
 </script>
-<script src="/sistema_vendas/public/assets/chat_interno.js?v=3"></script>
+<script src="/sistema_vendas/public/assets/chat_interno.js?v=4"></script>
 </body>
 </html>

@@ -370,12 +370,15 @@ const CI = (() => {
 
     qs('#ciEditModalOverlay').classList.add('open');
 
-    if (!state.allUsers.length) {
+    // Carrega modal_data (em vez de /api/users.php) pra ter account_id/nome/tipo
+    // de TODAS as contas vinculadas — necessario pra agrupar Matriz/Filial.
+    if (!state.modalData) {
       try {
-        const r = await apiFetch(CI_API.users);
-        state.allUsers = (r.data || []).filter(u => u.id != CI_UID);
-      } catch(e) {}
+        const r = await apiFetch(CI_API.conversas + '?action=modal_data');
+        if (r.ok) state.modalData = r;
+      } catch (e) {}
     }
+    state.allUsers = collectAllUsers(state.modalData || {});
 
     const currentIds = (state.convData.participantes || []).map(p => parseInt(p.id));
     renderEditCheckboxes(currentIds);
@@ -387,15 +390,40 @@ const CI = (() => {
       el.innerHTML = '<div style="padding:12px;text-align:center;color:var(--muted);font-size:.78rem">Nenhum usuário disponível</div>';
       return;
     }
-    el.innerHTML = state.allUsers.map(u => {
+
+    const renderItem = (u) => {
       const init    = esc(u.nome).trim().charAt(0).toUpperCase();
       const checked = selectedIds.includes(parseInt(u.id)) ? 'checked' : '';
+      const sub     = u.account_nome ? `<span class="ci-chk-sub">${esc(u.account_nome)}</span>` : '';
       return `<label class="ci-user-check">
         <input type="checkbox" value="${u.id}" name="edit_users" ${checked}>
         <div class="ci-chk-avatar">${init}</div>
-        <span class="ci-chk-name">${esc(u.nome)}</span>
+        <span class="ci-chk-name">${esc(u.nome)}${sub}</span>
         <div class="ci-chk-box">${chkBoxSvg()}</div>
       </label>`;
+    };
+
+    // Agrupa por conta (matriz/filial/advogado) — mesma lógica de renderUserCheckboxes
+    const byAcc = new Map();
+    state.allUsers.forEach(u => {
+      const aid = u.account_id ?? 0;
+      if (!byAcc.has(aid)) byAcc.set(aid, { tipo: u.account_tipo || 'matriz', nome: u.account_nome || '', items: [] });
+      byAcc.get(aid).items.push(u);
+    });
+
+    if (byAcc.size <= 1) {
+      el.innerHTML = state.allUsers.map(renderItem).join('');
+      return;
+    }
+    const ordem = { matriz: 0, filial: 1, advogado: 2 };
+    const groups = Array.from(byAcc.values()).sort((a, b) =>
+      (ordem[a.tipo] ?? 9) - (ordem[b.tipo] ?? 9) || a.nome.localeCompare(b.nome)
+    );
+    el.innerHTML = groups.map(grp => {
+      const label = (ACCOUNT_TIPO_LABEL[grp.tipo] || grp.tipo.toUpperCase())
+                  + (grp.nome ? ' · ' + grp.nome : '');
+      return `<div class="ci-userlist-section">${esc(label)}</div>`
+           + grp.items.map(renderItem).join('');
     }).join('');
   }
 
@@ -511,14 +539,14 @@ const CI = (() => {
       case 'direto':
         show('ciModalParticipantesWrap');
         qs('#ciParticipantesLabel').textContent = 'Participante';
-        renderUserCheckboxes(users, true);
+        renderUserCheckboxes(collectAllUsers(md), true);
         break;
 
       case 'grupo':
         show('ciModalNomeWrap');
         show('ciModalParticipantesWrap');
         qs('#ciParticipantesLabel').textContent = 'Participantes';
-        renderUserCheckboxes(users, false);
+        renderUserCheckboxes(collectAllUsers(md), false);
         break;
 
       case 'setor':
@@ -588,16 +616,34 @@ const CI = (() => {
     }
   }
 
+  // Coleta usuarios do tenant atual + de todas as contas vinculadas (matriz +
+  // filiais + advogados associados). Usado em Conversa Direta e Grupo pra
+  // permitir conversar com gente de qualquer parte do escritorio.
+  function collectAllUsers(md) {
+    const out = [...(md.users || [])];
+    const linked = md.linked_users || {};
+    Object.keys(linked).forEach(aid => {
+      (linked[aid] || []).forEach(u => out.push(u));
+    });
+    return out;
+  }
+
+  // Sub-agrupa usuarios por conta (matriz/filial/advogado) quando ha mais de
+  // uma organizacao envolvida. Se for tudo da mesma conta, renderiza flat.
+  const ACCOUNT_TIPO_LABEL = { matriz: 'MATRIZ', filial: 'FILIAL', advogado: 'ADVOGADO SOLO' };
+
   function renderUserCheckboxes(users, singleSelect) {
     const el = qs('#ciUserCheckboxes');
     if (!users.length) {
       el.innerHTML = '<div style="padding:12px;text-align:center;color:var(--muted);font-size:.78rem">Nenhum usuário disponível</div>';
       return;
     }
-    el.innerHTML = users.map(u => {
+
+    const type = singleSelect ? 'radio' : 'checkbox';
+    const name = singleSelect ? 'conv_user_single' : 'conv_users';
+
+    const renderItem = (u) => {
       const init = esc(u.nome || '?').trim().charAt(0).toUpperCase();
-      const type = singleSelect ? 'radio' : 'checkbox';
-      const name = singleSelect ? 'conv_user_single' : 'conv_users';
       const sub  = u.account_nome ? `<span class="ci-chk-sub">${esc(u.account_nome)}</span>` : '';
       return `<label class="ci-user-check">
         <input type="${type}" value="${u.id}" name="${name}">
@@ -605,6 +651,39 @@ const CI = (() => {
         <span class="ci-chk-name">${esc(u.nome)}${sub}</span>
         <div class="ci-chk-box">${chkBoxSvg()}</div>
       </label>`;
+    };
+
+    // Agrupa por account_id (Map preserva ordem de insercao)
+    const byAcc = new Map();
+    users.forEach(u => {
+      const aid = u.account_id ?? 0;
+      if (!byAcc.has(aid)) {
+        byAcc.set(aid, {
+          tipo : u.account_tipo || 'matriz',
+          nome : u.account_nome || '',
+          items: [],
+        });
+      }
+      byAcc.get(aid).items.push(u);
+    });
+
+    // Se so 1 conta, render flat (sem cabecalhos redundantes)
+    if (byAcc.size <= 1) {
+      el.innerHTML = users.map(renderItem).join('');
+      return;
+    }
+
+    // Ordena: matriz → filial → advogado, alfabetico dentro de cada tipo
+    const ordem = { matriz: 0, filial: 1, advogado: 2 };
+    const groups = Array.from(byAcc.values()).sort((a, b) =>
+      (ordem[a.tipo] ?? 9) - (ordem[b.tipo] ?? 9) || a.nome.localeCompare(b.nome)
+    );
+
+    el.innerHTML = groups.map(grp => {
+      const label = (ACCOUNT_TIPO_LABEL[grp.tipo] || grp.tipo.toUpperCase())
+                  + (grp.nome ? ' · ' + grp.nome : '');
+      return `<div class="ci-userlist-section">${esc(label)}</div>`
+           + grp.items.map(renderItem).join('');
     }).join('');
   }
 
