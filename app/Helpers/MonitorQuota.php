@@ -127,21 +127,27 @@ final class MonitorQuota
      * modelo híbrido (pool aberto vs alocação fixa).
      *
      * REGRAS:
-     *   • Conta tipo=matriz (sem matriz_id) → own_limit
+     *   • Conta tipo=matriz → own_limit
      *   • Conta tipo=filial:
      *       - has_allocations? sim → SOMA allocations recebidas
-     *       - has_allocations? não → own_limit do pai (matriz_id) [pool]
+     *       - has_allocations? não → own_limit da matriz pai (pool aberto)
+     *         Matriz resolvida via account_vinculos (status='active' AND
+     *         sync_enabled=1 AND sync_monitoramentos=1). accounts.matriz_id
+     *         é legacy — não usado.
      *   • Conta tipo=advogado → own_limit + allocations recebidas
      *     (advogado vinculado a host pode receber alocação direta)
      *   • Default (qualquer outro) → own_limit
+     *
+     * BUG FIX 2026-05-26: usava accounts.matriz_id que vinha NULL pras
+     * filiais reais. Agora resolve via account_vinculos respeitando
+     * sync_monitoramentos (flag adicionada em mig 078).
      */
     public static function getEffectiveLimit(int $accountId): int
     {
         $acc = self::loadAccountMeta($accountId);
         if ($acc === null) return 0;
 
-        $tipo     = $acc['tipo']      ?? null;
-        $matrizId = $acc['matriz_id'] ?? null;
+        $tipo = $acc['tipo'] ?? null;
 
         // Matriz raiz
         if ($tipo === 'matriz') {
@@ -153,14 +159,15 @@ final class MonitorQuota
             if (self::hasAllocations($accountId)) {
                 return self::getAllocationsReceived($accountId);
             }
-            // Pool aberto — filial usa cota do pai
-            if ($matrizId !== null) {
-                return self::getOwnLimit((int) $matrizId);
+            // Pool aberto — filial usa cota do pai (resolvido por vinculo)
+            $matrizId = self::resolveMatrizId($accountId);
+            if ($matrizId) {
+                return self::getOwnLimit($matrizId);
             }
             return self::getOwnLimit($accountId);
         }
 
-        // Advogado solo (conta própria) — soma own + allocations recebidas
+        // Advogado solo — soma own + allocations recebidas
         if ($tipo === 'advogado') {
             return self::getOwnLimit($accountId)
                  + self::getAllocationsReceived($accountId);
@@ -168,6 +175,33 @@ final class MonitorQuota
 
         // Fallback genérico
         return self::getOwnLimit($accountId);
+    }
+
+    /**
+     * Resolve a matriz pai de uma filial via account_vinculos.
+     * Respeita sync_enabled=1 AND sync_monitoramentos=1 — se a matriz
+     * desligou o sync de monitoramentos, a filial fica isolada (0).
+     */
+    private static function resolveMatrizId(int $filialAccountId): ?int
+    {
+        static $cache = [];
+        if (array_key_exists($filialAccountId, $cache)) return $cache[$filialAccountId];
+        try {
+            $pdo = Database::getConnection();
+            $stmt = $pdo->prepare(
+                "SELECT matriz_account_id FROM account_vinculos
+                   WHERE filial_account_id = :fid
+                     AND status            = 'active'
+                     AND sync_enabled      = 1
+                     AND sync_monitoramentos = 1
+                   LIMIT 1"
+            );
+            $stmt->execute(['fid' => $filialAccountId]);
+            $v = $stmt->fetchColumn();
+            return $cache[$filialAccountId] = $v ? (int) $v : null;
+        } catch (\Throwable $e) {
+            return $cache[$filialAccountId] = null;
+        }
     }
 
     /**
