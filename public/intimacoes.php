@@ -1001,6 +1001,41 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
     html[data-theme="light"] .int-mon-form textarea::placeholder {
       color: #94A3B8 !important;
     }
+
+    /* 10) Lista de monitores ATIVOS / PAUSADOS no modal Monitoramento.
+       Cada linha (.int-mon-row) era cinza-escura sobre fundo branco. */
+    html[data-theme="light"] .int-mon-row {
+      background: #F8FAFC !important;
+      border: 1px solid #E2E8F0 !important;
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .int-mon-row .grow strong,
+    html[data-theme="light"] .int-mon-row strong {
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .int-mon-row .meta {
+      color: #5A6B7E !important;
+    }
+    /* Pill ATIVO (default) — verde claro pra reforcar status positivo */
+    html[data-theme="light"] .int-mon-row .pill {
+      background: #D1FAE5 !important;
+      color: #047857 !important;
+      border: 1px solid #6EE7B7 !important;
+    }
+    html[data-theme="light"] .int-mon-row .pill.paused {
+      background: #FEF3C7 !important;
+      color: #B45309 !important;
+      border-color: #FCD34D !important;
+    }
+    html[data-theme="light"] .int-mon-row .pill.erro {
+      background: #FEE2E2 !important;
+      color: #B91C1C !important;
+      border-color: #FCA5A5 !important;
+    }
+    /* Empty state "Nenhum monitor cadastrado" */
+    html[data-theme="light"] .int-mon-empty {
+      color: #5A6B7E !important;
+    }
   </style>
 </head>
 <body>
