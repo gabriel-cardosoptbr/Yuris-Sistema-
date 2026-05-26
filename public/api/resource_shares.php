@@ -106,10 +106,25 @@ if ($method === 'GET') {
 
     // Lista TODOS shares emitidos pela conta atual (exceto module, que tem rota propria).
     // Usado pela aba "Compartilhamentos pontuais por processo" em /escritorios.php.
+    // Traz codigo_vinculo (conta) + codigo_advogado (user) + tipo da conta destino,
+    // pra UI mostrar info completa do destinatario.
     if (!empty($_GET['listar_meus'])) {
         $pdo  = \App\Models\Database::getConnection();
         $stmt = $pdo->prepare(
-            "SELECT rs.*, a.nome AS to_account_nome, tu.nome AS to_user_nome
+            "SELECT rs.*,
+                    a.nome  AS to_account_nome,
+                    a.tipo  AS to_account_tipo,
+                    a.codigo_vinculo AS to_account_codigo,
+                    tu.nome AS to_user_nome,
+                    tu.codigo_advogado AS to_user_codigo_adv,
+                    tu.codigo_vinculo  AS to_user_codigo_vinculo,
+                    -- Resolve label humano do recurso pra UI nao mostrar so '#10'
+                    CASE rs.resource_type
+                      WHEN 'processo' THEN (SELECT COALESCE(p.numero, CONCAT('Processo #', p.id)) FROM processos p WHERE p.id = rs.resource_id LIMIT 1)
+                      WHEN 'card'     THEN (SELECT COALESCE(c.cliente_nome, c.empresa_nome, CONCAT('Card #', c.id)) FROM cards c WHERE c.id = rs.resource_id LIMIT 1)
+                      WHEN 'contato'  THEN (SELECT COALESCE(co.nome, CONCAT('Contato #', co.id)) FROM contatos co WHERE co.id = rs.resource_id LIMIT 1)
+                      ELSE NULL
+                    END AS resource_label
              FROM resource_shares rs
              LEFT JOIN accounts a  ON a.id  = rs.to_account_id
              LEFT JOIN users    tu ON tu.id = rs.to_user_id

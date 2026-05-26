@@ -655,6 +655,29 @@ $isAdmin    = in_array($userRole, ['owner', 'admin']) || ($_SESSION['user_perfil
   </div>
 </div>
 
+<!-- ── Modal: Editar permissão de compartilhamento pontual ── -->
+<div class="es-overlay" id="modalEditShare">
+  <div class="es-modal">
+    <h3>Editar permissão</h3>
+    <div id="editShareInfo" style="padding:10px 14px;border:1px solid rgba(96,165,250,.16);border-radius:8px;background:rgba(5,18,39,.4);margin-bottom:14px"></div>
+
+    <div class="es-field">
+      <label>Nível de permissão</label>
+      <select id="editSharePerm" class="es-input">
+        <option value="view">Visualizar — só lê dados, não altera nada</option>
+        <option value="edit">Editar — pode alterar campos do recurso</option>
+        <option value="full">Acesso total — pode editar e revogar/transferir</option>
+      </select>
+    </div>
+
+    <div id="editShareMsg" style="margin-top:8px;font-size:.82rem;"></div>
+    <div class="es-modal-footer">
+      <button class="btn-sm btn-outline" onclick="document.getElementById('modalEditShare').classList.remove('open')">Cancelar</button>
+      <button class="btn-sm btn-primary" onclick="salvarEditarShare()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── Modal: Solicitar Vínculo ── -->
 <div class="es-overlay" id="modalSolicitar">
   <div class="es-modal">
@@ -1083,12 +1106,31 @@ async function reativarVinculoAdv(id) {
 }
 
 // ── Advogados Associados (via resource_shares — compartilhamentos pontuais) ──
+// Helpers para o card "Compartilhamentos pontuais"
+const PERM_LABEL = { view: 'Visualizar', edit: 'Editar', full: 'Acesso total' };
+const PERM_COLOR = {
+  view: { bg: 'rgba(96,165,250,.18)', fg: '#93c5fd', bd: 'rgba(96,165,250,.32)' },
+  edit: { bg: 'rgba(245,158,11,.18)', fg: '#fcd34d', bd: 'rgba(245,158,11,.32)' },
+  full: { bg: 'rgba(34,197,94,.18)',  fg: '#86efac', bd: 'rgba(34,197,94,.32)' },
+};
+const ACCOUNT_TIPO_LABEL = { matriz: 'Matriz', filial: 'Filial', advogado: 'Advogado solo' };
+const RES_TIPO_LABEL = { processo: 'Processo', card: 'Card', contato: 'Contato' };
+const RES_TIPO_COLOR = {
+  processo: { bg: 'rgba(167,139,250,.16)', fg: '#c4b5fd', bd: 'rgba(167,139,250,.30)' },
+  card    : { bg: 'rgba(34,197,94,.16)',   fg: '#86efac', bd: 'rgba(34,197,94,.30)' },
+  contato : { bg: 'rgba(245,158,11,.16)',  fg: '#fcd34d', bd: 'rgba(245,158,11,.30)' },
+};
+const RES_TIPO_URL = {
+  processo: id => '/sistema_vendas/public/processos.php?open=' + id,
+  card    : id => '/sistema_vendas/public/prospeccao.php?open=' + id,
+  contato : id => '/sistema_vendas/public/contatos.php?open=' + id,
+};
+
 async function carregarAdvogados() {
   const el = document.getElementById('advogadosList');
   if (!el) return; // pane oculto para conta tipo='advogado'
   el.innerHTML = '<div class="es-empty">Carregando...</div>';
   // ?listar_meus=1 lista shares pontuais (processo/card/contato) emitidos por mim.
-  // Antes chamava sem parametros e recebia 400 — frontend ficava em "Carregando..."
   const r = await api('/sistema_vendas/public/api/resource_shares.php?listar_meus=1');
   const lista = (r.data || r || []).filter(s => s.status === 'active');
   if (!lista.length) {
@@ -1096,15 +1138,110 @@ async function carregarAdvogados() {
     return;
   }
   el.innerHTML = `<table class="es-table">
-    <thead><tr><th>Escritório</th><th>Recurso</th><th>Permissão</th><th>Desde</th>${IS_ADMIN ? '<th>Ações</th>' : ''}</tr></thead>
-    <tbody>${lista.map(s => `<tr>
-      <td>${s.to_account_nome || `Conta #${s.to_account_id}`}</td>
-      <td><span class="badge badge-filial">${s.resource_type} #${s.resource_id}</span></td>
-      <td>${s.permission_level}</td>
-      <td style="color:#4a5568">${(s.created_at||'').slice(0,10)}</td>
-      ${IS_ADMIN ? `<td><button class="btn-sm btn-danger" onclick="revogarShare(${s.id})">Revogar</button></td>` : ''}
-    </tr>`).join('')}</tbody>
+    <thead><tr>
+      <th>Destinatário</th>
+      <th>Código</th>
+      <th>Recurso</th>
+      <th>Permissão</th>
+      <th>Desde</th>
+      ${IS_ADMIN ? '<th>Ações</th>' : ''}
+    </tr></thead>
+    <tbody>${lista.map(s => {
+      // Destinatário: user (advogado solo) > conta (matriz/filial)
+      const isUser = !!s.to_user_id;
+      const nome   = isUser ? (s.to_user_nome || `Usuário #${s.to_user_id}`)
+                            : (s.to_account_nome || `Conta #${s.to_account_id}`);
+      const tipoLbl = isUser
+        ? 'Advogado'
+        : (ACCOUNT_TIPO_LABEL[s.to_account_tipo] || s.to_account_tipo || 'Conta');
+
+      // Código: prefere ADV (user) > codigo_vinculo (user) > codigo_vinculo (conta)
+      const codigo = s.to_user_codigo_adv
+                  || s.to_user_codigo_vinculo
+                  || s.to_account_codigo
+                  || '—';
+
+      // Recurso: badge colorido + link clicável
+      const rt    = s.resource_type;
+      const rtCfg = RES_TIPO_COLOR[rt] || RES_TIPO_COLOR.processo;
+      const rtLbl = RES_TIPO_LABEL[rt] || rt;
+      const rLabel= s.resource_label || (rt + ' #' + s.resource_id);
+      const rUrl  = (RES_TIPO_URL[rt] && RES_TIPO_URL[rt](s.resource_id)) || '#';
+
+      // Permissão: badge colorido
+      const pCfg = PERM_COLOR[s.permission_level] || PERM_COLOR.view;
+      const pLbl = PERM_LABEL[s.permission_level] || s.permission_level;
+
+      return `<tr>
+        <td>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font-weight:600">${escapeHtml(nome)}</span>
+            <span style="font-size:.72rem;color:#7a96b4">${escapeHtml(tipoLbl)}</span>
+          </div>
+        </td>
+        <td>
+          <code style="font-family:monospace;font-size:.78rem;color:#7eb8f6;background:rgba(5,18,39,.5);padding:3px 8px;border-radius:5px;border:1px solid rgba(96,165,250,.18);letter-spacing:.04em">${escapeHtml(codigo)}</code>
+        </td>
+        <td>
+          <a href="${rUrl}" target="_blank" rel="noopener" style="text-decoration:none">
+            <span class="badge" style="display:inline-flex;align-items:center;gap:5px;font-size:.72rem;background:${rtCfg.bg};color:${rtCfg.fg};border:1px solid ${rtCfg.bd};padding:3px 9px;border-radius:6px;font-weight:600">
+              ${escapeHtml(rtLbl)}: ${escapeHtml(rLabel)}
+            </span>
+          </a>
+        </td>
+        <td>
+          <span class="badge" style="font-size:.72rem;background:${pCfg.bg};color:${pCfg.fg};border:1px solid ${pCfg.bd};padding:3px 9px;border-radius:6px;font-weight:600">${pLbl}</span>
+        </td>
+        <td style="color:#7a96b4;font-size:.78rem">${(s.created_at||'').slice(0,10)}</td>
+        ${IS_ADMIN ? `<td style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn-sm" style="background:rgba(37,99,235,.18);color:#93c5fd;border:1px solid rgba(37,99,235,.30)" onclick='abrirEditarShare(${JSON.stringify(s).replace(/"/g, "&quot;")})'>Editar</button>
+          <button class="btn-sm btn-danger" onclick="revogarShare(${s.id})">Revogar</button>
+        </td>` : ''}
+      </tr>`;
+    }).join('')}</tbody>
   </table>`;
+}
+
+// Helper local — escapa HTML pra evitar XSS no nome do destinatário/recurso
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  }[c]));
+}
+
+// Modal Editar permissão de share pontual
+let _editShareId = null;
+function abrirEditarShare(s) {
+  _editShareId = s.id;
+  document.getElementById('editShareInfo').innerHTML = `
+    <div style="font-size:.82rem;color:#dbe9ff;margin-bottom:4px">
+      <strong>${escapeHtml(s.to_user_nome || s.to_account_nome || 'Destinatário')}</strong>
+    </div>
+    <div style="font-size:.76rem;color:#7a96b4">
+      ${escapeHtml(RES_TIPO_LABEL[s.resource_type] || s.resource_type)}: ${escapeHtml(s.resource_label || '#' + s.resource_id)}
+    </div>
+  `;
+  document.getElementById('editSharePerm').value = s.permission_level || 'view';
+  document.getElementById('editShareMsg').textContent = '';
+  document.getElementById('modalEditShare').classList.add('open');
+}
+
+async function salvarEditarShare() {
+  if (!_editShareId) return;
+  const perm = document.getElementById('editSharePerm').value;
+  const msg  = document.getElementById('editShareMsg');
+  msg.innerHTML = '<span style="color:#7a96b4">Salvando...</span>';
+  const r = await api('/sistema_vendas/public/api/resource_shares.php', {
+    method: 'PATCH',
+    body: JSON.stringify({ id: _editShareId, permission_level: perm, csrf_token: CSRF }),
+  });
+  if (r.success || r.ok) {
+    toast('Permissão atualizada.', 'ok');
+    document.getElementById('modalEditShare').classList.remove('open');
+    carregarAdvogados();
+  } else {
+    msg.innerHTML = `<span style="color:#fca5a5">${r.error || 'Erro ao salvar.'}</span>`;
+  }
 }
 
 function abrirModalConvite() {
