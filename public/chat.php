@@ -1365,10 +1365,15 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
     html[data-theme="light"] .chat-item {
       border-bottom: 1px solid #F1F5F9 !important;
     }
-    html[data-theme="light"] .chat-item:hover { background: #EFF6FF !important; }
-    html[data-theme="light"] .chat-item.active {
+    /* Hover mais marcante — antes era #EFF6FF (quase invisivel sobre fundo claro).
+       Agora #DBEAFE (blue-100), com borda esquerda azul pra reforcar foco. */
+    html[data-theme="light"] .chat-item:hover {
       background: #DBEAFE !important;
-      border-left: 3px solid #2563EB !important;
+      box-shadow: inset 3px 0 0 #93C5FD !important;
+    }
+    html[data-theme="light"] .chat-item.active {
+      background: #BFDBFE !important;
+      box-shadow: inset 3px 0 0 #2563EB !important;
     }
     html[data-theme="light"] .chat-item-name    { color: #0F1F36 !important; }
     html[data-theme="light"] .chat-item-time    { color: #94A3B8 !important; }
@@ -1495,6 +1500,25 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
     /* ── 10) Ícone do botão Enviar — branco puro pra contrastar com fundo azul ── */
     html[data-theme="light"] .chat-send-btn svg { color: #FFFFFF !important; stroke: #FFFFFF !important; fill: none !important; }
     html[data-theme="light"] .chat-send-btn svg * { stroke: #FFFFFF !important; fill: none !important; }
+
+    /* Botões de filtro "Todos os setores" / "Todos os responsáveis" na sidebar.
+       Borda azul reforçada (era 1px rgba 10%, ficava praticamente invisivel). */
+    html[data-theme="light"] .chat-sector-btn {
+      background: #FFFFFF !important;
+      border: 1px solid #BFDBFE !important;
+      color: #1E4A8A !important;
+    }
+    html[data-theme="light"] .chat-sector-btn:hover {
+      background: #EFF6FF !important;
+      border-color: #2563EB !important;
+      color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] .chat-sector-btn.active {
+      background: #DBEAFE !important;
+      border-color: #2563EB !important;
+      color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] .chat-sector-btn .csf-chevron { opacity: 0.7 !important; color: #1D4ED8 !important; }
 
     /* ── 11) Dropdown "Setor" da topbar (.sector-dropdown + .sector-dd-*) ──
        Container é .sector-dropdown (linha 479); items são .sector-dd-item.
