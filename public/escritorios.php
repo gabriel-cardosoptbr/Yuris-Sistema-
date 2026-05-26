@@ -47,6 +47,44 @@ $isAdmin    = in_array($userRole, ['owner', 'admin']) || ($_SESSION['user_perfil
     .badge-rejected { background:rgba(239,68,68,.15); color:#fca5a5; border:1px solid rgba(239,68,68,.3); }
     .badge-revoked, .badge-suspended { background:rgba(100,116,139,.15); color:#94a3b8; border:1px solid rgba(100,116,139,.3); }
 
+    /* Badges de permissão (compartilhamentos pontuais) */
+    .badge-perm-view { background:rgba(96,165,250,.18); color:#93c5fd; border:1px solid rgba(96,165,250,.32); padding:3px 9px; font-size:.72rem; }
+    .badge-perm-edit { background:rgba(245,158,11,.18); color:#fcd34d; border:1px solid rgba(245,158,11,.32); padding:3px 9px; font-size:.72rem; }
+    .badge-perm-full { background:rgba(34,197,94,.18);  color:#86efac; border:1px solid rgba(34,197,94,.32);  padding:3px 9px; font-size:.72rem; }
+
+    /* Badges de recurso compartilhado */
+    .badge-res-processo { background:rgba(167,139,250,.16); color:#c4b5fd; border:1px solid rgba(167,139,250,.30); padding:3px 9px; font-size:.72rem; display:inline-flex; align-items:center; gap:5px; }
+    .badge-res-card     { background:rgba(34,197,94,.16);   color:#86efac; border:1px solid rgba(34,197,94,.30);   padding:3px 9px; font-size:.72rem; display:inline-flex; align-items:center; gap:5px; }
+    .badge-res-contato  { background:rgba(245,158,11,.16);  color:#fcd34d; border:1px solid rgba(245,158,11,.30);  padding:3px 9px; font-size:.72rem; display:inline-flex; align-items:center; gap:5px; }
+
+    /* Destinatário (compartilhamento) */
+    .share-dest { display:flex; flex-direction:column; gap:2px; }
+    .share-dest-name { font-weight:600; color:#c8ddf0; }
+    .share-dest-tipo { font-size:.72rem; color:#7a96b4; }
+
+    /* Código do destinatário (ADV-XXXXXX / codigo_vinculo) */
+    .share-codigo {
+      font-family:monospace; font-size:.78rem; color:#7eb8f6;
+      background:rgba(5,18,39,.5); padding:3px 8px; border-radius:5px;
+      border:1px solid rgba(96,165,250,.18); letter-spacing:.04em;
+    }
+
+    .share-recurso-link { text-decoration:none; }
+    .share-since { color:#7a96b4; font-size:.78rem; }
+    .share-actions { display:flex; gap:6px; flex-wrap:wrap; }
+    .btn-share-edit {
+      background:rgba(37,99,235,.18); color:#93c5fd;
+      border:1px solid rgba(37,99,235,.30);
+    }
+    .btn-share-edit:hover { background:rgba(37,99,235,.30); }
+
+    /* Caixa informativa do modal Editar Permissão */
+    .edit-share-info {
+      padding:10px 14px; border:1px solid rgba(96,165,250,.16);
+      border-radius:8px; background:rgba(5,18,39,.4); margin-bottom:14px;
+      color:#dbe9ff;
+    }
+
     /* ── Código de vínculo ── */
     .codigo-box { display:flex; align-items:center; gap:10px; background:rgba(5,18,39,.8); border:1px solid rgba(96,165,250,.2); border-radius:8px; padding:10px 14px; }
     .codigo-box code { flex:1; font-family:monospace; color:#7eb8f6; font-size:.92rem; letter-spacing:.06em; }
@@ -255,6 +293,55 @@ $isAdmin    = in_array($userRole, ['owner', 'admin']) || ($_SESSION['user_perfil
     html[data-theme="light"] #modalSync [style*="color:#dbe9ff"],
     html[data-theme="light"] #modalSync [style*="color:#dbeafe"] { color: #1E3A5F !important; }
     html[data-theme="light"] #modalSync [style*="color:#7a96b4"] { color: #64748B !important; }
+
+    /* Tema claro — Compartilhamentos pontuais (linha + modal Editar) */
+    html[data-theme="light"] .share-dest-name { color: #0F1F36 !important; }
+    html[data-theme="light"] .share-dest-tipo { color: #64748B !important; }
+    html[data-theme="light"] .share-codigo {
+      background: #EFF6FF !important;
+      color: #1D4ED8 !important;
+      border-color: #BFDBFE !important;
+    }
+    html[data-theme="light"] .share-since { color: #64748B !important; }
+
+    html[data-theme="light"] .badge-perm-view {
+      background: #DBEAFE !important; color: #1D4ED8 !important;
+      border-color: #93C5FD !important;
+    }
+    html[data-theme="light"] .badge-perm-edit {
+      background: #FEF3C7 !important; color: #92400E !important;
+      border-color: #FCD34D !important;
+    }
+    html[data-theme="light"] .badge-perm-full {
+      background: #D1FAE5 !important; color: #047857 !important;
+      border-color: #6EE7B7 !important;
+    }
+    html[data-theme="light"] .badge-res-processo {
+      background: #EDE9FE !important; color: #6D28D9 !important;
+      border-color: #C4B5FD !important;
+    }
+    html[data-theme="light"] .badge-res-card {
+      background: #D1FAE5 !important; color: #047857 !important;
+      border-color: #6EE7B7 !important;
+    }
+    html[data-theme="light"] .badge-res-contato {
+      background: #FEF3C7 !important; color: #92400E !important;
+      border-color: #FCD34D !important;
+    }
+    html[data-theme="light"] .btn-share-edit {
+      background: #DBEAFE !important; color: #1D4ED8 !important;
+      border-color: #93C5FD !important;
+    }
+    html[data-theme="light"] .btn-share-edit:hover { background: #BFDBFE !important; }
+
+    /* Caixa info do modal Editar Permissão */
+    html[data-theme="light"] .edit-share-info {
+      background: #F8FAFC !important;
+      border-color: #E2E8F0 !important;
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .edit-share-info strong { color: #0F1F36 !important; }
+    html[data-theme="light"] .edit-share-info div[style*="color:#7a96b4"] { color: #64748B !important; }
   </style>
 </head>
 <body>
@@ -659,7 +746,7 @@ $isAdmin    = in_array($userRole, ['owner', 'admin']) || ($_SESSION['user_perfil
 <div class="es-overlay" id="modalEditShare">
   <div class="es-modal">
     <h3>Editar permissão</h3>
-    <div id="editShareInfo" style="padding:10px 14px;border:1px solid rgba(96,165,250,.16);border-radius:8px;background:rgba(5,18,39,.4);margin-bottom:14px"></div>
+    <div id="editShareInfo" class="edit-share-info"></div>
 
     <div class="es-field">
       <label>Nível de permissão</label>
@@ -1163,38 +1250,36 @@ async function carregarAdvogados() {
 
       // Recurso: badge colorido + link clicável
       const rt    = s.resource_type;
-      const rtCfg = RES_TIPO_COLOR[rt] || RES_TIPO_COLOR.processo;
       const rtLbl = RES_TIPO_LABEL[rt] || rt;
       const rLabel= s.resource_label || (rt + ' #' + s.resource_id);
       const rUrl  = (RES_TIPO_URL[rt] && RES_TIPO_URL[rt](s.resource_id)) || '#';
 
-      // Permissão: badge colorido
-      const pCfg = PERM_COLOR[s.permission_level] || PERM_COLOR.view;
+      // Permissão (classe CSS já tematizada via .badge-perm-*)
       const pLbl = PERM_LABEL[s.permission_level] || s.permission_level;
 
       return `<tr>
         <td>
-          <div style="display:flex;flex-direction:column;gap:2px">
-            <span style="font-weight:600">${escapeHtml(nome)}</span>
-            <span style="font-size:.72rem;color:#7a96b4">${escapeHtml(tipoLbl)}</span>
+          <div class="share-dest">
+            <span class="share-dest-name">${escapeHtml(nome)}</span>
+            <span class="share-dest-tipo">${escapeHtml(tipoLbl)}</span>
           </div>
         </td>
         <td>
-          <code style="font-family:monospace;font-size:.78rem;color:#7eb8f6;background:rgba(5,18,39,.5);padding:3px 8px;border-radius:5px;border:1px solid rgba(96,165,250,.18);letter-spacing:.04em">${escapeHtml(codigo)}</code>
+          <code class="share-codigo">${escapeHtml(codigo)}</code>
         </td>
         <td>
-          <a href="${rUrl}" target="_blank" rel="noopener" style="text-decoration:none">
-            <span class="badge" style="display:inline-flex;align-items:center;gap:5px;font-size:.72rem;background:${rtCfg.bg};color:${rtCfg.fg};border:1px solid ${rtCfg.bd};padding:3px 9px;border-radius:6px;font-weight:600">
+          <a href="${rUrl}" target="_blank" rel="noopener" class="share-recurso-link">
+            <span class="badge badge-res-${rt}">
               ${escapeHtml(rtLbl)}: ${escapeHtml(rLabel)}
             </span>
           </a>
         </td>
         <td>
-          <span class="badge" style="font-size:.72rem;background:${pCfg.bg};color:${pCfg.fg};border:1px solid ${pCfg.bd};padding:3px 9px;border-radius:6px;font-weight:600">${pLbl}</span>
+          <span class="badge badge-perm-${s.permission_level}">${pLbl}</span>
         </td>
-        <td style="color:#7a96b4;font-size:.78rem">${(s.created_at||'').slice(0,10)}</td>
-        ${IS_ADMIN ? `<td style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn-sm" style="background:rgba(37,99,235,.18);color:#93c5fd;border:1px solid rgba(37,99,235,.30)" onclick='abrirEditarShare(${JSON.stringify(s).replace(/"/g, "&quot;")})'>Editar</button>
+        <td class="share-since">${(s.created_at||'').slice(0,10)}</td>
+        ${IS_ADMIN ? `<td class="share-actions">
+          <button class="btn-sm btn-share-edit" onclick='abrirEditarShare(${JSON.stringify(s).replace(/"/g, "&quot;")})'>Editar</button>
           <button class="btn-sm btn-danger" onclick="revogarShare(${s.id})">Revogar</button>
         </td>` : ''}
       </tr>`;
