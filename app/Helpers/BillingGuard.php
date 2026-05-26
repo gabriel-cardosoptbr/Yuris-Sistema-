@@ -45,10 +45,24 @@ final class BillingGuard
     }
 
     /**
-     * Retorna o limit_value do plano da conta para uma feature.
-     * - null  → ilimitado
+     * Retorna o limit_value EFETIVO da conta para uma feature.
+     *
+     * EVOLUÇÃO 2026-05-26 (Etapa 4 add-on Monitoramentos):
+     *   Agora soma `plan_features.limit_value + SUM(account_quota_overrides
+     *   ativos)`. Compat retroativa: módulos antigos (max_users, max_processos,
+     *   etc.) continuam funcionando porque overrides são opt-in — se a tabela
+     *   estiver vazia ou inexistente, comportamento é idêntico ao anterior.
+     *
+     *   Casos de uso da nova semântica:
+     *   • plan_features.max_processos=100 + override(+5) = 105 efetivos.
+     *   • plan_features.monitors.limit=0 + override(+10) = 10 efetivos.
+     *   • plan_features.limit_value=NULL (ilimitado) → ignora overrides
+     *     (ilimitado + qualquer coisa = ilimitado).
+     *
+     * Retorno:
+     * - null  → ilimitado (plan_features.limit_value=NULL e is_enabled=1)
      * - false → infra de billing indisponível (use como "libera")
-     * - int   → limite numérico
+     * - int   → limite numérico = base do plano + overrides ativos
      */
     public static function getLimit(int $accountId, string $featureKey): int|null|false
     {
@@ -68,9 +82,85 @@ final class BillingGuard
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
             if (!$row) return false;
             if (!$row['is_enabled']) return 0;
-            return $row['limit_value'] === null ? null : (int)$row['limit_value'];
+
+            // Base do plano (NULL = ilimitado — não soma overrides)
+            if ($row['limit_value'] === null) return null;
+
+            $base = (int) $row['limit_value'];
+
+            // Soma overrides ATIVOS (Etapa 4 add-on Monitoramentos).
+            // Cliente pode empilhar grant promo + purchase. Fail-soft se a
+            // tabela ainda não existir (deploy antes da migração 072).
+            $overrideSum = self::sumActiveOverrides($pdo, $accountId, $featureKey);
+
+            return $base + $overrideSum;
         } catch (\Throwable $_e) {
             return false;
+        }
+    }
+
+    /**
+     * Retorna apenas a base do plano (sem somar overrides).
+     * Útil pro Painel Master mostrar "Plano: X + Overrides: Y = Total: Z".
+     */
+    public static function getBaseLimit(int $accountId, string $featureKey): int|null|false
+    {
+        try {
+            $pdo = Database::getConnection();
+            $stmt = $pdo->prepare(
+                'SELECT pf.limit_value, pf.is_enabled
+                 FROM subscriptions s
+                 INNER JOIN plan_features pf ON pf.plan_id = s.plan_id
+                 WHERE s.account_id = :aid
+                   AND s.status IN ("trialing","active","past_due")
+                   AND pf.feature_key = :fk
+                 ORDER BY (s.status="active") DESC, s.id DESC
+                 LIMIT 1'
+            );
+            $stmt->execute(['aid' => $accountId, 'fk' => $featureKey]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if (!$row) return false;
+            if (!$row['is_enabled']) return 0;
+            return $row['limit_value'] === null ? null : (int) $row['limit_value'];
+        } catch (\Throwable $_e) {
+            return false;
+        }
+    }
+
+    /**
+     * Retorna a soma dos overrides ATIVOS pra uma conta + feature.
+     * Fail-soft: 0 se tabela ausente (ambiente pre-mig 072).
+     */
+    public static function getOverrideSum(int $accountId, string $featureKey): int
+    {
+        try {
+            return self::sumActiveOverrides(Database::getConnection(), $accountId, $featureKey);
+        } catch (\Throwable $_e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Soma overrides ativos. Internal — assume PDO já aberto.
+     * Regra: active = revoked_at IS NULL AND (expires_at IS NULL OR > NOW())
+     */
+    private static function sumActiveOverrides(\PDO $pdo, int $accountId, string $featureKey): int
+    {
+        try {
+            $stmt = $pdo->prepare(
+                'SELECT COALESCE(SUM(limit_value), 0)
+                   FROM account_quota_overrides
+                  WHERE account_id  = :aid
+                    AND feature_key = :fk
+                    AND revoked_at  IS NULL
+                    AND (expires_at IS NULL OR expires_at > NOW())'
+            );
+            $stmt->execute(['aid' => $accountId, 'fk' => $featureKey]);
+            return (int) $stmt->fetchColumn();
+        } catch (\Throwable $_e) {
+            // Tabela ausente (pre-mig 072) — fail-soft retornando zero.
+            // Comportamento idêntico ao BillingGuard antes desta Etapa 4.
+            return 0;
         }
     }
 

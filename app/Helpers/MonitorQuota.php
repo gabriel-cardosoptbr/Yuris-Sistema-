@@ -46,32 +46,33 @@ final class MonitorQuota
     public const STATUS_CONSUMINDO = ['ativo', 'pausado', 'erro'];
 
     /**
-     * Soma de overrides ATIVOS da conta (master_grant + purchase + promo).
+     * Limite efetivo da própria conta (plano + overrides somados).
      *
-     * Regra SOMA (não MAX): cliente pode empilhar diferentes sources.
-     * Ignora overrides revogados (revoked_at NOT NULL) ou expirados.
+     * EVOLUÇÃO 2026-05-26 (Etapa 4):
+     *   Delega pra BillingGuard::getLimit() — agora é a única fonte de
+     *   verdade pra "quanto a conta tem direito". BillingGuard soma
+     *   plan_features.limit_value + account_quota_overrides ativos.
      *
-     * @return int  Quantidade liberada via override. 0 se nenhum override
-     *              ativo OU se tabela ainda não existe (fail-soft).
+     *   No modelo comercial aprovado:
+     *     plan_features.monitors.limit = 0 (mig 077 seedou)
+     *     SUM(overrides) = N (Master configurou via Painel Master)
+     *     getOwnLimit = 0 + N = N
+     *
+     * @return int  Limite efetivo. 0 se sem cota.
      */
     public static function getOwnLimit(int $accountId): int
     {
-        try {
-            $pdo = Database::getConnection();
-            $stmt = $pdo->prepare(
-                "SELECT COALESCE(SUM(limit_value), 0) AS total
-                   FROM account_quota_overrides
-                   WHERE account_id    = :aid
-                     AND feature_key   = :fk
-                     AND revoked_at    IS NULL
-                     AND (expires_at   IS NULL OR expires_at > NOW())"
-            );
-            $stmt->execute(['aid' => $accountId, 'fk' => self::FEATURE_KEY]);
-            return (int) $stmt->fetchColumn();
-        } catch (\Throwable $e) {
-            // Tabela inexistente em ambiente legado — fail-soft (zero).
-            return 0;
+        // Carrega BillingGuard se ainda não carregado (loader manual sem composer)
+        if (!class_exists('App\\Helpers\\BillingGuard')) {
+            require_once __DIR__ . '/BillingGuard.php';
         }
+        $limit = BillingGuard::getLimit($accountId, self::FEATURE_KEY);
+        // null (ilimitado) → trata como muito grande mas finito pra evitar overflow.
+        //   Em monitors.limit ilimitado seria caso extremo (master config absurda).
+        if ($limit === null)  return PHP_INT_MAX;
+        // false (infra ausente / sem subscription) → 0 (fail-soft).
+        if ($limit === false) return 0;
+        return (int) $limit;
     }
 
     /**
