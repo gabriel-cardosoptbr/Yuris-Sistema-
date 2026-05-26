@@ -124,15 +124,18 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
       color: #4A5568; width: 15px; height: 15px; pointer-events: none;
     }
 
-    /* Filtros */
+    /* Filtros — wrap em 2 linhas quando ha 6 botoes (Todas/Nao lidas/Grupos
+       /Individuais/Fixadas/Arquivadas). Cada um ocupa ~33% pra ficar 3+3. */
     .chat-filters {
       display: flex;
+      flex-wrap: wrap;
       gap: 4px;
     }
     .chat-filter-btn {
-      flex: 1;
-      padding: 5px 4px;
-      font-size: .72rem;
+      flex: 1 1 calc(33.333% - 4px);
+      min-width: 0;
+      padding: 5px 6px;
+      font-size: .7rem;
       font-weight: 600;
       border-radius: 6px;
       border: 1px solid transparent;
@@ -140,6 +143,9 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
       color: #6B7887;
       cursor: pointer;
       text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
       transition: all .15s;
     }
     .chat-filter-btn:hover  { background: rgba(26,58,92,.2); color: #A8BDD4; }
