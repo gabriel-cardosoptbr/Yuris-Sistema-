@@ -1130,3 +1130,355 @@ html[data-theme="light"] .tk-card-origin-strip.is-filial {
   padding: 0;
 }
 .pt-edit-btn:hover { color: #93c5fd; background: rgba(59,130,246,.12); }
+
+/* =============================================================================
+   TEMA CLARO — modal/drawer de detalhe da tarefa (tk-drawer)
+   =============================================================================
+   Adicionado em 2026-05-26. A varredura anterior de tema claro (#173-176)
+   cobriu o board/cards externos mas não desceu nos estilos do drawer interno.
+   Quando o usuário abria um card em data-theme="light", o modal continuava
+   com background quase preto + texto branco — ilegível sobre o fundo light
+   da página.
+   ========================================================================== */
+
+/* — Overlay e container principal — */
+html[data-theme="light"] .tk-drawer-overlay {
+  background: rgba(15, 23, 42, .35);   /* slate-900 transparente */
+}
+html[data-theme="light"] .tk-drawer {
+  background: linear-gradient(165deg, #FFFFFF 0%, #F8FAFC 100%);
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, .15),
+              0 0 0 1px rgba(59, 130, 246, .05);
+}
+
+/* — Header: borda inferior + título — */
+html[data-theme="light"] .tk-drawer-header {
+  border-bottom: 1px solid #E2E8F0;
+}
+html[data-theme="light"] .tk-drawer-title {
+  color: #0F172A;            /* slate-900 */
+}
+html[data-theme="light"] .tk-drawer-title:focus {
+  border-bottom: 1px solid #3B82F6;
+}
+
+/* — Botões do header (Concluir, Arquivar, X) — */
+html[data-theme="light"] .tk-drawer-btn {
+  border: 1px solid #E2E8F0;
+  color: #475569;            /* slate-600 */
+  background: #FFFFFF;
+}
+html[data-theme="light"] .tk-drawer-btn:hover {
+  background: #F1F5F9;
+  color: #1E293B;
+}
+html[data-theme="light"] .tk-drawer-btn.concluir {
+  border-color: rgba(5, 150, 105, .35);
+  color: #059669;
+  background: rgba(5, 150, 105, .06);
+}
+html[data-theme="light"] .tk-drawer-btn.concluir:hover {
+  background: rgba(5, 150, 105, .14);
+}
+html[data-theme="light"] .tk-drawer-btn.arquivar {
+  border-color: rgba(220, 38, 38, .35);
+  color: #DC2626;
+  background: rgba(220, 38, 38, .05);
+}
+html[data-theme="light"] .tk-drawer-btn.arquivar:hover {
+  background: rgba(220, 38, 38, .12);
+}
+html[data-theme="light"] .tk-drawer-btn.close-btn {
+  color: #94A3B8;
+  background: transparent;
+}
+html[data-theme="light"] .tk-drawer-btn.close-btn:hover {
+  color: #475569;
+  background: #F1F5F9;
+}
+
+/* — Tabs (Geral / Checklist / Tarefas Processuais / Vínculos / Comentários / Histórico) — */
+html[data-theme="light"] .tk-tabs {
+  border-bottom: 1px solid #E2E8F0;
+}
+html[data-theme="light"] .tk-tab {
+  color: #64748B;            /* slate-500 — inativo */
+}
+html[data-theme="light"] .tk-tab.active,
+html[data-theme="light"] .tk-tab:hover {
+  color: #2563EB;            /* blue-600 */
+  border-bottom-color: #3B82F6;
+}
+
+/* — Scrollbar do conteúdo — */
+html[data-theme="light"] .tk-tab-pane::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, .25);
+}
+
+/* — Labels dos campos — */
+html[data-theme="light"] .tk-field label {
+  color: #475569;            /* slate-600 */
+}
+
+/* — Inputs, selects e textareas —
+   Cuidado: o tema escuro usa !important nessas regras (autofill killer
+   com inset shadow). Nossas regras precisam ser igualmente fortes. */
+html[data-theme="light"] .tk-field input,
+html[data-theme="light"] .tk-field select,
+html[data-theme="light"] .tk-field textarea {
+  background: #FFFFFF !important;
+  border: 1px solid #CBD5E1;
+  color: #0F172A !important;
+  -webkit-text-fill-color: #0F172A !important;
+  box-shadow: 0 0 0 9999px #FFFFFF inset !important;
+  color-scheme: light;
+}
+html[data-theme="light"] .tk-field input::placeholder,
+html[data-theme="light"] .tk-field textarea::placeholder {
+  color: rgba(100, 116, 139, .55) !important;
+}
+html[data-theme="light"] .tk-field input:focus,
+html[data-theme="light"] .tk-field select:focus,
+html[data-theme="light"] .tk-field textarea:focus {
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, .18),
+              0 0 0 9999px #FFFFFF inset !important;
+}
+
+/* — Checklist items — */
+html[data-theme="light"] .tk-check-item {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+}
+html[data-theme="light"] .tk-check-item:hover {
+  background: #F1F5F9;
+  border-color: rgba(59, 130, 246, .25);
+}
+html[data-theme="light"] .tk-chk-box {
+  border: 1.5px solid #CBD5E1;
+  background: #FFFFFF;
+}
+html[data-theme="light"] .tk-chk-box:hover {
+  border-color: #93C5FD;
+}
+html[data-theme="light"] .tk-check-item.done .tk-chk-box {
+  background: #2563EB;
+  border-color: #2563EB;
+}
+html[data-theme="light"] .tk-check-desc {
+  color: #1E293B;
+}
+html[data-theme="light"] .tk-check-item.done .tk-check-desc {
+  color: #94A3B8;
+}
+html[data-theme="light"] .tk-check-btn-edit {
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  color: #2563EB;
+}
+html[data-theme="light"] .tk-check-btn-edit:hover {
+  background: rgba(59, 130, 246, .08);
+  border-color: #93C5FD;
+}
+html[data-theme="light"] .tk-check-btn-del {
+  background: rgba(220, 38, 38, .08);
+  border-color: rgba(220, 38, 38, .25);
+  color: #DC2626;
+}
+html[data-theme="light"] .tk-check-btn-del:hover {
+  background: rgba(220, 38, 38, .16);
+  border-color: rgba(220, 38, 38, .5);
+}
+
+/* — Vínculos: texto "Nenhum vínculo" e grupos — */
+html[data-theme="light"] .tk-no-links {
+  color: #94A3B8;
+}
+html[data-theme="light"] .tk-link-group {
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+}
+
+/* — Toggle "Tarefa recorrente" (label cinza claro) —
+   A label do switch usa cor inerente do .tk-field label, já coberto acima. */
+
+/* — Barra de progresso do checklist —
+   O background da barra é rgba(255,255,255,.08) (não-overrideable sem :where).
+   Em fundo branco fica praticamente invisível — não bloqueia uso. Tratar em
+   sprint futura se ficar feio. */
+
+/* — Toggle "Tarefa recorrente" — */
+html[data-theme="light"] .tk-toggle-sw {
+  background: #CBD5E1;       /* slate-300 — off state */
+  border-color: #94A3B8;
+}
+html[data-theme="light"] .tk-toggle-sw::after {
+  background: #FFFFFF;
+}
+html[data-theme="light"] .tk-toggle:has(input:checked) .tk-toggle-sw {
+  background: #2563EB;       /* on state — blue-600 */
+  border-color: #3B82F6;
+}
+html[data-theme="light"] .tk-toggle-label {
+  color: #475569;            /* slate-600 — boa leitura em fundo branco */
+}
+
+/* — Botão "Salvar" do drawer (tk-btn-sm + tk-btn-ok) — */
+html[data-theme="light"] .tk-btn-sm {
+  /* base sem mudar — só sobrescrevemos os variants coloridos */
+}
+html[data-theme="light"] .tk-btn-ok {
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  color: #FFFFFF;
+}
+html[data-theme="light"] .tk-btn-ok:hover {
+  background: linear-gradient(135deg, #4A90F6 0%, #2C70EE 100%);
+  opacity: 1;
+}
+
+/* — Modais aninhados (sub-modal Editar Item, Nova Tarefa Processual, etc) — */
+html[data-theme="light"] .tk-modal-btn-primary {
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  color: #FFFFFF;
+}
+html[data-theme="light"] .tk-modal-btn-cancel {
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  color: #475569;
+}
+html[data-theme="light"] .tk-modal-btn-cancel:hover {
+  background: #E2E8F0;
+  opacity: 1;
+}
+
+/* — Aba Vínculos: botões de tipo (Processos / Card CRM / Conta DRE) — */
+html[data-theme="light"] .tk-link-type-btn {
+  border: 1px solid #CBD5E1;
+  background: #FFFFFF;
+  color: #475569;
+}
+html[data-theme="light"] .tk-link-type-btn:hover {
+  color: #2563EB;
+  border-color: #93C5FD;
+  background: rgba(59, 130, 246, .06);
+}
+html[data-theme="light"] .tk-link-type-btn.active {
+  color: #FFFFFF;
+  border-color: #2563EB;
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+}
+
+/* — Input de busca inline ("Buscar para vincular...") — */
+html[data-theme="light"] .tk-inline-input {
+  background: #FFFFFF !important;
+  border: 1px solid #CBD5E1;
+  color: #0F172A !important;
+  -webkit-text-fill-color: #0F172A !important;
+  box-shadow: 0 0 0 9999px #FFFFFF inset !important;
+}
+html[data-theme="light"] .tk-inline-input::placeholder {
+  color: rgba(100, 116, 139, .55) !important;
+}
+html[data-theme="light"] .tk-inline-input:focus {
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, .18),
+              0 0 0 9999px #FFFFFF inset !important;
+}
+
+/* — Resultados da busca de vínculos (lista que aparece após digitar) — */
+html[data-theme="light"] .tk-vinculos-result-item {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  color: #1E293B;
+}
+html[data-theme="light"] .tk-vinculos-result-item:hover {
+  background: #EFF6FF;       /* blue-50 */
+  border-color: #93C5FD;
+}
+html[data-theme="light"] .tk-vinculos-result-item .item-label {
+  color: #0F172A;
+}
+html[data-theme="light"] .tk-vinculos-result-item .item-sub {
+  color: #64748B;
+}
+html[data-theme="light"] .tk-vinculos-result-item .item-add {
+  color: #2563EB;
+  background: rgba(59, 130, 246, .10);
+  border: 1px solid rgba(59, 130, 246, .35);
+}
+html[data-theme="light"] .tk-vinculos-result-item.linked .item-add {
+  color: #059669;
+  border-color: rgba(5, 150, 105, .45);
+  background: rgba(5, 150, 105, .10);
+}
+
+/* — Aba Comentários — */
+html[data-theme="light"] .tk-comment-body {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+}
+html[data-theme="light"] .tk-comment-author {
+  color: #2563EB;
+}
+html[data-theme="light"] .tk-comment-text {
+  color: #1E293B;
+}
+html[data-theme="light"] .tk-comment-time {
+  color: #94A3B8;
+}
+html[data-theme="light"] .tk-comment-input {
+  background: #FFFFFF !important;
+  border: 1px solid #CBD5E1;
+  color: #0F172A !important;
+  -webkit-text-fill-color: #0F172A !important;
+  box-shadow: 0 0 0 9999px #FFFFFF inset !important;
+}
+html[data-theme="light"] .tk-comment-input::placeholder {
+  color: rgba(100, 116, 139, .55) !important;
+}
+html[data-theme="light"] .tk-comment-input:focus {
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, .18),
+              0 0 0 9999px #FFFFFF inset !important;
+}
+html[data-theme="light"] .tk-comment-send {
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  color: #FFFFFF;
+}
+html[data-theme="light"] .tk-comment-send:hover {
+  background: linear-gradient(135deg, #4A90F6 0%, #2C70EE 100%);
+}
+
+/* — Tempo (sub-seção dentro de Comentários ou aba dedicada) — */
+html[data-theme="light"] .tk-time-entry {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  color: #475569;
+}
+html[data-theme="light"] .tk-time-total {
+  color: #1E293B;
+  background: rgba(59, 130, 246, .08);
+  border: 1px solid rgba(59, 130, 246, .30);
+}
+html[data-theme="light"] .tk-timer-start {
+  background: rgba(5, 150, 105, .10);
+  color: #047857;
+  border: 1px solid rgba(5, 150, 105, .45);
+}
+html[data-theme="light"] .tk-timer-stop {
+  background: rgba(220, 38, 38, .10);
+  color: #B91C1C;
+  border: 1px solid rgba(220, 38, 38, .45);
+}
+
+/* — Aba Histórico — */
+html[data-theme="light"] .tk-history-item {
+  color: #64748B;
+}
+html[data-theme="light"] .tk-history-item strong {
+  color: #1E293B;
+}
+html[data-theme="light"] .tk-history-dot {
+  background: #3B82F6;
+}
