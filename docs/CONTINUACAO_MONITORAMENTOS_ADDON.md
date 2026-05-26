@@ -1,9 +1,9 @@
 # Continuação — Add-on Monitoramentos (pós-compact)
 
-**Data do snapshot:** 2026-05-26
-**Status geral:** ~70% completo (5 de 11 etapas + extras)
-**HEAD local:** 12 commits ahead de `origin/main` (sem push ainda)
-**Last commit:** `c76f9f4` — fix(monitor-addon): filial herda cota da matriz via account_vinculos
+**Data do snapshot:** 2026-05-26 (Etapas 8-11 concluídas neste turno)
+**Status geral:** ~95% completo (10 de 11 etapas — falta só push)
+**HEAD local:** 16 commits ahead de `origin/main` (sem push ainda)
+**Last commit:** `61ed4a6` — feat(monitor-addon): Etapa 10 — propagar monitor_id push_today_cache→push_events
 
 ---
 
@@ -95,37 +95,39 @@ Aplicadas em `sistema_vendas` (XAMPP local). Backup migrations:
 
 ## ⏳ Etapas pendentes
 
-### Etapa 8 — Distribuição matriz→filial (UI)
-Backend e tabela existem (`monitor_quota_allocations`), mas falta:
-- Endpoint `public/api/push/allocations.php` (POST cria, DELETE revoga, GET lista)
-- Página `/configuracoes/monitoramentos.php` (matriz/filial)
-- Aba **Distribuir cota** com:
-  - KPIs: total contratado / total alocado / livre no pool
-  - Tabela de filiais com input "alocar X" + botão "Salvar"
-  - Histórico de alocações
-- Tela do admin_filial: vê só cota alocada (se houver) ou pool aberto
+### ✅ Etapa 8 — Distribuição matriz→filial (commit `13bfd55`)
+- `public/api/push/allocations.php` — GET/POST/PATCH/DELETE com validação de pool
+- `public/api/push/permissions.php` — toggle flag advogado_pode_criar_monitor
+- `public/configuracoes/monitoramentos.php` — 3 abas (Geral / Distribuir cota / Histórico)
+- Link no rodapé da sidebar + botão "Gerenciar cota →" no badge do intimacoes.php
 
-### Etapa 9 — Solicitações `monitor_requests` (UI)
-Tabela existe (mig 075), mas falta:
-- Endpoint `public/api/push/requests.php` (POST cria, PATCH aprova/recusa, GET lista)
-- Botão **"Solicitar monitor"** no modal `intimacoes.php` quando advogado sem permissão direta
-- Aba "Solicitações" no `/configuracoes/monitoramentos.php` (admin aprova/recusa)
-- Notificação via `AccountNotification` quando solicitação criada/aprovada/recusada
-- Cota é reservada na hora da solicitação (D4) — já considerada em `getCurrentUsage`
+### ✅ Etapa 9 — Solicitações `monitor_requests` (commit `f1c3291`)
+- `public/api/push/requests.php` — GET/POST/PATCH com scope=mine|pending|all
+- Aprovação cria push_monitor em transação + revalida cota (race-safe)
+- Aba "Solicitações" em monitoramentos.php com badge de pending
+- Botão "Solicitar ao admin" no intimacoes.php (só se !canCreate)
+- Notificações via account_notifications (admins on POST, solicitante on resolve)
+- `MonitorPermission::assertCanRequestMonitor` adicionado
 
-### Etapa 10 — Integração com intimações
-- `PushEvent::upsert` já tem campo `monitor_id` mas `persist.php` não propaga. Adicionar.
-- Quando intimação aparece em `push_today_cache` → `push_events`, preencher `monitor_id` do origem.
-- Útil pra rastrear ROI: "monitor X gerou N intimações no mês"
+### ✅ Etapa 10 — Integração com intimações (commit `61ed4a6`)
+- Migration 080 — ALTER push_today_cache ADD monitor_id + índice (idempotente)
+- `PushTodayCache::upsert` aceita monitor_id no array
+- `PushMonitorRunner` passa monitor_id no upsert (origem automática)
+- `persist.php` lê monitor_id do cache e propaga pro `PushEvent::upsert`
+- Smoke: upsert/select com monitor_id=999 valida coluna + índice
 
-### Etapa 11 — Testes + polish final + push
-- Smoke test multi-tenant completo: Silvana matriz, Filial SP, Gabriel solo, todos com diferentes cotas
-- Validar que tenant A não vê monitors de tenant B
-- Validar `pending_approval` decrementando saldo
-- Validar webhooks operacionais (se forem implementados):
-  - `monitor.created`, `monitor.canceled`, `monitor.quota_granted`, etc.
-- Smoke test e2e
-- **Push pro origin/main** (12+ commits)
+### ✅ Etapa 11 — Testes + polish + (push aguardando aprovação)
+Smoke test multi-tenant E2E (este turno):
+- Silvana #1 (matriz): limit=1 used=1 avail=0 (cota cheia) ✓
+- Filial SP #9 (filial): limit=1 used=0 avail=1 (herda pool da matriz) ✓
+- Gabriel #72 (advogado solo): limit=0 avail=0 (sem add-on contratado) ✓
+- Isolamento cross-tenant: cada conta só vê seus push_monitors ✓
+- D4 (pending reserva cota): INSERT pending → usage +1 ✓
+- Allocation matriz→filial: limit muda de pool (1) pra allocated (1) com
+  has_allocations=Y ✓
+- Vínculo matriz=1↔filial=9 ativo com sync_monitoramentos=1 ✓
+
+**Push pro origin/main:** aguardando aprovação do user (16 commits ahead).
 
 ### Extras opcionais (não-bloqueantes)
 - KPI no dashboard Master: "MRR de monitoramentos" (soma de unit_price_cents × qtd em overrides purchase ativos com billing_cycle)
