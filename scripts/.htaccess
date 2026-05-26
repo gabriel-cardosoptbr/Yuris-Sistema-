@@ -1,0 +1,14 @@
+# Bloqueia acesso direto a scripts/ via HTTP.
+# São scripts CLI (seed_admin, check_user, test_multitenancy_e2e) — nunca
+# devem ser servidos pelo web server. Defense-in-depth: o .htaccess raiz já
+# bloqueia /sistema_vendas/scripts/* via RedirectMatch 403, mas em deploy
+# Linux/Apache que sirva /var/www/yuris/public como DocumentRoot, esse
+# bloqueio raiz pode não estar ativo. Este .htaccess garante proteção mesmo
+# se alguém apontar o Apache pra raiz do projeto por engano.
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Deny from all
+</IfModule>

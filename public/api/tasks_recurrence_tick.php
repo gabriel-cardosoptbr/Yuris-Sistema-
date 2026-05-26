@@ -33,23 +33,33 @@ $config     = file_exists($configFile) ? (require $configFile) : [];
 $envToken   = \App\Helpers\EnvLoader::get('CRON_TOKEN', '');
 $cronToken  = $config['cron_token'] ?? ($envToken !== '' ? $envToken : null);
 
-header('Content-Type: application/json; charset=utf-8');
+// ─── CLI bypass (Fix 2026-05-26 — auditoria pré-deploy AWS) ──────────────────
+// Cron pode rodar via duas rotas:
+//   (a) HTTP   — Windows Task Scheduler + curl, auth por ?token=<CRON_TOKEN>
+//   (b) CLI    — Linux crontab: php /var/www/yuris/public/api/tasks_recurrence_tick.php
+//                CLI é trusted (quem disparou tem shell access). Em produção
+//                Linux recomendamos rota (b) — menos superfície de ataque.
+$isCli = (PHP_SAPI === 'cli');
 
-// Bloqueia se token não configurado OU se é o legado inseguro
-if (!$cronToken || $cronToken === '' || $cronToken === 'yuris_cron_token_change_me') {
-    http_response_code(503);
-    error_log('[tasks_recurrence_tick] CRON_TOKEN não configurado ou usando default inseguro');
-    echo json_encode([
-        'ok' => false,
-        'error' => 'Cron endpoint não configurado. Defina CRON_TOKEN no .env (gere com: openssl rand -hex 24).'
-    ]);
-    exit;
-}
+if (!$isCli) {
+    header('Content-Type: application/json; charset=utf-8');
 
-if (($_GET['token'] ?? '') !== $cronToken) {
-    http_response_code(403);
-    echo json_encode(['ok' => false, 'error' => 'Forbidden']);
-    exit;
+    // Bloqueia se token não configurado OU se é o legado inseguro
+    if (!$cronToken || $cronToken === '' || $cronToken === 'yuris_cron_token_change_me') {
+        http_response_code(503);
+        error_log('[tasks_recurrence_tick] CRON_TOKEN não configurado ou usando default inseguro');
+        echo json_encode([
+            'ok' => false,
+            'error' => 'Cron endpoint não configurado. Defina CRON_TOKEN no .env (gere com: openssl rand -hex 24).'
+        ]);
+        exit;
+    }
+
+    if (($_GET['token'] ?? '') !== $cronToken) {
+        http_response_code(403);
+        echo json_encode(['ok' => false, 'error' => 'Forbidden']);
+        exit;
+    }
 }
 // ────────────────────────────────────────────────────────────────────────────
 

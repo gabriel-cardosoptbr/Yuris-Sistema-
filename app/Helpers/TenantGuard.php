@@ -114,4 +114,74 @@ class TenantGuard
         echo json_encode(['error' => 'Acesso negado: ' . $msg]);
         exit;
     }
+
+    /**
+     * Defense-in-depth contra CSRF — combina 3 verificações em camadas:
+     *   1. Cookies já são SameSite=Lax (browser bloqueia cross-site automatic
+     *      no nível do navegador para POST cross-site).
+     *   2. Header Origin OU Referer precisa começar com o host atual (same-origin).
+     *   3. Se cliente envia token CSRF (header X-CSRF-Token ou body csrf_token),
+     *      validamos contra $_SESSION['csrf_token'].
+     *
+     * A função aceita o request se:
+     *   • Origin/Referer = same-origin    OU
+     *   • Token CSRF presente e válido
+     *
+     * Rejeita 403 só se AMBOS faltarem (Origin/Referer cross-site E sem token).
+     *
+     * Histórico:
+     *   2026-05-26 — adicionada na auditoria pré-deploy AWS. Endpoints como
+     *   processo_history.php, processo_prazos.php, processo_tarefas.php e
+     *   processes.php eram POST sem nenhuma verificação anti-CSRF — esta
+     *   função fecha o gap mantendo retrocompat com JS legado que não envia
+     *   token mas faz request same-origin (Origin/Referer batem).
+     *
+     * IMPORTANTE: chamar DEPOIS de session_start() pois lê $_SESSION.
+     *
+     * @param array $methods  Métodos HTTP a proteger. Default: state-changing only.
+     */
+    public static function requireSameOriginOrCsrf(array $methods = ['POST','PUT','PATCH','DELETE']): void
+    {
+        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        if (!in_array($method, $methods, true)) return;
+
+        // ── 1) Tenta validar via Origin/Referer same-origin ────────────────
+        $host = $_SERVER['HTTP_HOST'] ?? '';
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $selfOrigin = $scheme . '://' . $host;
+
+        $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+        if ($origin !== '' && stripos($origin, $selfOrigin) === 0) {
+            return; // Origin same-origin → pass
+        }
+
+        $referer = $_SERVER['HTTP_REFERER'] ?? '';
+        if ($referer !== '' && stripos($referer, $selfOrigin) === 0) {
+            return; // Referer same-origin → pass
+        }
+
+        // ── 2) Fallback: token CSRF explícito ──────────────────────────────
+        // Lê do header X-CSRF-Token ou do corpo (csrf_token em JSON / form)
+        $sessToken = $_SESSION['csrf_token'] ?? null;
+        if ($sessToken) {
+            $headerTok = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+            $bodyTok   = $_POST['csrf_token'] ?? '';
+            if ($bodyTok === '') {
+                // Tenta JSON body (Content-Type: application/json)
+                $raw = file_get_contents('php://input');
+                if ($raw) {
+                    $decoded = json_decode($raw, true);
+                    $bodyTok = is_array($decoded) ? ($decoded['csrf_token'] ?? '') : '';
+                }
+            }
+
+            if (($headerTok !== '' && hash_equals($sessToken, $headerTok)) ||
+                ($bodyTok   !== '' && hash_equals($sessToken, $bodyTok))) {
+                return; // Token bate → pass
+            }
+        }
+
+        // ── 3) Bloqueio: Origin/Referer cross-site E sem token válido ─────
+        self::_forbid('CSRF: request sem Origin/Referer same-origin nem token válido');
+    }
 }

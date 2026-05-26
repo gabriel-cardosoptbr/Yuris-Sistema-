@@ -28,17 +28,28 @@ $config     = file_exists($configFile) ? (require $configFile) : [];
 $envToken   = EnvLoader::get('CRON_TOKEN', '');
 $cronToken  = $config['cron_token'] ?? ($envToken !== '' ? $envToken : null);
 
-header('Content-Type: application/json; charset=utf-8');
+// ─── CLI bypass (Fix 2026-05-26 — auditoria pré-deploy AWS) ──────────────────
+// Cron pode rodar via duas rotas:
+//   (a) HTTP   — Windows Task Scheduler + curl, auth por ?token=<CRON_TOKEN>
+//   (b) CLI    — Linux crontab: php /var/www/yuris/public/api/lgpd_retention_tick.php
+//                CLI é trusted (quem disparou tem shell access). Sem header de
+//                token, sem Content-Type JSON (logs vão pro stdout do cron).
+// Em produção Linux, recomendamos rota (b) — menos superfície de ataque.
+$isCli = (PHP_SAPI === 'cli');
 
-if (!$cronToken || $cronToken === 'yuris_cron_token_change_me') {
-    http_response_code(503);
-    echo json_encode(['ok' => false, 'error' => 'CRON_TOKEN não configurado']);
-    exit;
-}
-if (($_GET['token'] ?? '') !== $cronToken) {
-    http_response_code(403);
-    echo json_encode(['ok' => false, 'error' => 'Forbidden']);
-    exit;
+if (!$isCli) {
+    header('Content-Type: application/json; charset=utf-8');
+
+    if (!$cronToken || $cronToken === 'yuris_cron_token_change_me') {
+        http_response_code(503);
+        echo json_encode(['ok' => false, 'error' => 'CRON_TOKEN não configurado']);
+        exit;
+    }
+    if (($_GET['token'] ?? '') !== $cronToken) {
+        http_response_code(403);
+        echo json_encode(['ok' => false, 'error' => 'Forbidden']);
+        exit;
+    }
 }
 
 $pdo  = Database::getConnection();

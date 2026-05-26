@@ -1,0 +1,13 @@
+# Bloqueia acesso direto a docs/ via HTTP.
+# Inclui CHECKLIST_DEPLOY_PRODUCAO.md, RELATORIO_FINAL_LGPD.md, INVENTARIO_
+# OPERADORES.md, POLITICA_*, AUDITORIA_* — alguns desses contêm informação
+# técnica que NÃO deve ser indexada por buscador nem acessível anonimamente.
+# Defense-in-depth: o .htaccess raiz já bloqueia /sistema_vendas/docs/*, mas
+# este garante proteção em qualquer configuração de DocumentRoot.
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Deny from all
+</IfModule>

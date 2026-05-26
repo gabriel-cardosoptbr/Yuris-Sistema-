@@ -22,6 +22,11 @@ header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 header('Expires: 0');
 
+// CSRF defense (2026-05-26 — auditoria de seg pré-deploy): aceita request se
+// Origin/Referer = same-origin OU token CSRF presente. Bloqueia cross-site.
+// Cobre POST/PUT/PATCH/DELETE (state-changing). GET é deixado em paz.
+TenantGuard::requireSameOriginOrCsrf();
+
 // Carrega contexto de tenant — aborta com 401 se sessão inválida
 $ctx       = AccountContext::fromSession();
 $accountId = $ctx->getAccountId();  // NUNCA lido do request
