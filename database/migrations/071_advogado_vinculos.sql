@@ -1,5 +1,14 @@
 -- ============================================================================
--- Migration 067 — advogado_vinculos: vínculo de CONTA matriz/filial ↔ advogado
+-- Migration 071 — advogado_vinculos: vínculo de CONTA matriz/filial ↔ advogado
+-- ============================================================================
+-- RENUMERAÇÃO 2026-05-26 (auditoria pré-deploy):
+--   Arquivo era 067_advogado_vinculos.sql, colidindo numericamente com
+--   067_rename_webhooks_to_endpoints.sql. Em lex sort `_advogado` vem antes
+--   de `_rename`, então rodava primeiro — funcionou no nosso local. Mas o
+--   risco era real em deploy zero rodando filenames diferente: 067_rename
+--   precisa rodar ANTES de 069_create_webhook_deliveries (que usa
+--   webhook_endpoints). Como advogado_vinculos é independente do chain de
+--   webhooks, foi movido pra 071 sem perda de semântica.
 -- ============================================================================
 --
 -- CONTEXTO:
