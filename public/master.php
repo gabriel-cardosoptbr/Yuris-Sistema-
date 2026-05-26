@@ -496,7 +496,15 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
   <!-- ── Assinaturas ── -->
   <section class="mst-section" id="msec-billing">
     <div class="mst-card" style="padding:0; overflow:hidden">
-      <div style="padding:14px 18px; font-weight:700; border-bottom:1px solid rgba(160,180,210,.10)">Assinaturas</div>
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid rgba(160,180,210,.10)">
+        <div>
+          <div style="font-weight:700">Assinaturas</div>
+          <div style="font-size:.74rem; color:#9ab0c9; margin-top:3px">
+            Plano do sistema (cobrança via gateway) + Monitoramento (add-on cobrado por unidade)
+          </div>
+        </div>
+        <button class="btn-mst btn-mst-primary" onclick="openNovaMonitorSubModal()">+ Nova assinatura de monitor</button>
+      </div>
       <table class="mst-tbl">
         <thead><tr><th>Tipo</th><th>Conta</th><th>Plano / Produto</th><th>Status</th><th>Ciclo</th><th>Valor</th><th>Teste até</th><th>Período até</th><th>Ações</th></tr></thead>
         <tbody id="subsBody"><tr><td colspan="9" class="empty">Carregando…</td></tr></tbody>
@@ -1517,6 +1525,66 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
       <div class="mst-modal-foot">
         <button type="button" class="btn-mst" onclick="closeModal('modalPurchaseMonitor')">Cancelar</button>
         <button type="submit" class="btn-mst btn-mst-primary">Registrar compra</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────────────────────────────────────
+     Modal: Nova assinatura de monitor (atalho da aba Assinaturas)
+     Permite Master registrar compra de monitor sem ir em Contas →
+     Editar conta → Monitoramentos. Mesma operação backend, UX mais direta.
+──────────────────────────────────────────────────────────────────── -->
+<div class="mst-modal-backdrop" id="modalNovaMonitorSub" onclick="if(event.target===this)closeModal('modalNovaMonitorSub')">
+  <div class="mst-modal">
+    <div class="mst-modal-header">
+      <h3 class="mst-modal-title">+ Nova assinatura de monitor</h3>
+      <button class="mst-modal-close" onclick="closeModal('modalNovaMonitorSub')">×</button>
+    </div>
+    <form onsubmit="submitNovaMonitorSub(event)">
+      <div class="mst-modal-body">
+        <div style="background:rgba(168,85,247,.08); border-left:3px solid #c084fc; padding:10px 12px; border-radius:6px; font-size:.82rem; color:#A8BDD4; margin-bottom:14px">
+          Registra contrato comercial de monitoramento (add-on do plano).
+          Vai aparecer nesta tela como assinatura ativa. <strong>Não dispara
+          cobrança automática</strong> — gateway será integrado em etapa futura.
+        </div>
+        <div>
+          <label class="mst-form-label">Conta *</label>
+          <select name="account_id" id="novaMonSubAccount" class="mst-form-select" required>
+            <option value="">— escolha a conta —</option>
+          </select>
+          <div class="mst-form-help">Carregada da aba Contas.</div>
+        </div>
+        <div class="mst-form-row" style="margin-top:10px">
+          <div>
+            <label class="mst-form-label">Quantidade de monitors *</label>
+            <input name="qtd" type="number" min="1" max="1000" required class="mst-form-input" placeholder="10">
+          </div>
+          <div>
+            <label class="mst-form-label">Preço unitário (R$ — opcional)</label>
+            <input name="price" type="number" step="0.01" min="0" class="mst-form-input" placeholder="49.90">
+          </div>
+          <div>
+            <label class="mst-form-label">Ciclo *</label>
+            <select name="cycle" class="mst-form-select" required>
+              <option value="monthly">Mensal</option>
+              <option value="quarterly">Trimestral</option>
+              <option value="yearly">Anual</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:10px">
+          <label class="mst-form-label">Nº de contrato / proposta</label>
+          <input name="contract" type="text" maxlength="120" class="mst-form-input" placeholder="Ex: CONT-2026-001">
+        </div>
+        <div style="margin-top:10px">
+          <label class="mst-form-label">Observação (interna)</label>
+          <textarea name="obs" rows="2" class="mst-form-input" placeholder="Ex: Contrato trimestral pago via PIX"></textarea>
+        </div>
+      </div>
+      <div class="mst-modal-foot">
+        <button type="button" class="btn-mst" onclick="closeModal('modalNovaMonitorSub')">Cancelar</button>
+        <button type="submit" class="btn-mst btn-mst-primary">Criar assinatura</button>
       </div>
     </form>
   </div>
@@ -3680,8 +3748,73 @@ async function revokeMonitorOverride(overrideId) {
   });
   if (!r.ok) return notifyErr(r.error);
   notifyOk('Override revogado');
-  loadEditAccMonitorQuota(window._editAccCurrentId);
+  // Atualiza onde quer que esteja sendo exibido
+  if (window._editAccCurrentId) loadEditAccMonitorQuota(window._editAccCurrentId);
   loadAccounts();
+  loadBilling(); // refresh tabela Assinaturas (linha do monitor some)
+}
+
+/**
+ * Abre o modal de "Nova assinatura de monitor" — atalho da aba Assinaturas.
+ * Popula select com contas ativas (cache _accountsListMin) e pré-seleciona
+ * a Silvana ou primeira da lista se _accountsCacheMin tem dados.
+ */
+async function openNovaMonitorSubModal() {
+  // Carrega lista de contas (sem filtro — Master vê todas)
+  const sel = document.getElementById('novaMonSubAccount');
+  sel.innerHTML = '<option value="">— carregando contas… —</option>';
+  sel.disabled = true;
+
+  const r = await fj(`${API}/accounts.php`);
+  if (!r.ok) {
+    sel.innerHTML = '<option value="">— erro ao carregar contas —</option>';
+    return notifyErr(r.error);
+  }
+  const accs = (r.data.accounts || []).filter(a => a.status !== 'deleted');
+  sel.innerHTML = '<option value="">— escolha a conta —</option>'
+    + accs.map(a => `<option value="${a.id}">#${a.id} · ${esc(a.nome)} (${esc(a.tipo)})</option>`).join('');
+  sel.disabled = false;
+
+  // Reset form
+  const form = sel.closest('form');
+  form.querySelector('[name=qtd]').value      = 10;
+  form.querySelector('[name=price]').value    = '';
+  form.querySelector('[name=cycle]').value    = 'monthly';
+  form.querySelector('[name=contract]').value = '';
+  form.querySelector('[name=obs]').value      = '';
+
+  openModal('modalNovaMonitorSub');
+}
+
+async function submitNovaMonitorSub(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  const accId = parseInt(f.account_id.value, 10);
+  if (!accId) return notifyErr('Escolha uma conta');
+
+  const body = {
+    csrf_token:   CSRF,
+    account_id:   accId,
+    limit_value:  parseInt(f.qtd.value, 10),
+    source:       'purchase',
+    billing_cycle: f.cycle.value,           // monthly | quarterly | yearly
+    contract_ref: f.contract.value.trim() || null,
+    observacoes:  f.obs.value.trim() || null,
+  };
+  const price = parseFloat(f.price.value);
+  if (!isNaN(price) && price > 0) body.unit_price_cents = Math.round(price * 100);
+
+  const r = await fj(`${API}/quotas.php`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRF-Token':CSRF},
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) return notifyErr(r.error);
+
+  closeModal('modalNovaMonitorSub');
+  notifyOk(`Assinatura criada: +${body.limit_value} monitor(s)`);
+  loadBilling();  // recarrega aba Assinaturas — linha nova aparece
+  loadAccounts(); // refresh contagem da coluna Monitors em Contas
 }
 
 async function submitEditAccount(ev) {
