@@ -32,3 +32,11 @@ Thumbs.db
 # Cache
 /cache/
 *.cache
+
+# Claude Code — settings per-developer (NÃO versionar)
+# settings.json (team-shared) continua trackeado.
+# settings.local.json contém URLs de túnel pessoal (ngrok) + allowlists locais.
+/.claude/settings.local.json
+
+# Backups locais de fases anteriores (não vão pro repo)
+/.backup_*/

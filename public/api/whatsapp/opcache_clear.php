@@ -1,5 +1,12 @@
 <?php
-require_once __DIR__ . '/../../../../app/Models/Database.php';
+// Fix 2026-05-26 (deploy audit): paths usavam ../../../../ (4 níveis, subindo
+// acima da raiz do projeto pra C:/xampp/). O correto é 3 níveis:
+//   public/api/whatsapp/  →  ../  =  public/api/
+//   ../../ = public/  ;  ../../../ = raiz do projeto
+// Antes, o require_once gerava fatal error (path inexistente) e os realpaths
+// no array $files retornavam false → opcache_invalidate/touch eram pulados
+// silenciosamente. Endpoint só fazia opcache_reset() global.
+require_once __DIR__ . '/../../../app/Models/Database.php';
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 if (empty($_SESSION['user_id'])) { http_response_code(401); echo json_encode(['error'=>'Unauthorized']); exit; }
@@ -14,9 +21,9 @@ if (!in_array($_role, ['owner','admin'], true) && $_perfil !== 'admin') {
 
 $results = [];
 $files = [
-    realpath(__DIR__ . '/../../../../app/Models/WhatsAppInstance.php'),
-    realpath(__DIR__ . '/../../../../app/Models/WhatsAppMessage.php'),
-    realpath(__DIR__ . '/../../../../app/Services/EvolutionApiService.php'),
+    realpath(__DIR__ . '/../../../app/Models/WhatsAppInstance.php'),
+    realpath(__DIR__ . '/../../../app/Models/WhatsAppMessage.php'),
+    realpath(__DIR__ . '/../../../app/Services/EvolutionApiService.php'),
     realpath(__FILE__),
     realpath(dirname(__FILE__) . '/chats.php'),
     realpath(dirname(__FILE__) . '/instances.php'),
