@@ -202,13 +202,22 @@ $_uiLibVer   = file_exists($_uiLibPath) ? @filemtime($_uiLibPath) : '1';
     <p style="font-size:.9rem;font-weight:700;color:#e8f4ff;margin:0 0 2px;letter-spacing:.5px;">Yuris</p>
     <p style="font-size:.72rem;color:#6b8299;margin:0 0 8px;">Sistema Jurídico Inteligente</p>
     <?php if (_sidebarCan('configuracoes')): ?>
-    <a href="configuracoes/privacidade.php"
-       title="Privacidade e consentimentos LGPD"
-       style="font-size:.7rem;color:<?= $_ap === 'privacidade' ? '#93C5FD' : '#6b8299' ?>;text-decoration:none;letter-spacing:.3px;transition:color .15s;<?= $_ap === 'privacidade' ? 'font-weight:600;border-bottom:1px solid rgba(147,197,253,.35);padding-bottom:1px;' : '' ?>"
-       onmouseover="this.style.color='#93C5FD'"
-       onmouseout="this.style.color='<?= $_ap === 'privacidade' ? '#93C5FD' : '#6b8299' ?>'">
-      Privacidade
-    </a>
+    <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
+      <a href="configuracoes/privacidade.php"
+         title="Privacidade e consentimentos LGPD"
+         style="font-size:.7rem;color:<?= $_ap === 'privacidade' ? '#93C5FD' : '#6b8299' ?>;text-decoration:none;letter-spacing:.3px;transition:color .15s;<?= $_ap === 'privacidade' ? 'font-weight:600;border-bottom:1px solid rgba(147,197,253,.35);padding-bottom:1px;' : '' ?>"
+         onmouseover="this.style.color='#93C5FD'"
+         onmouseout="this.style.color='<?= $_ap === 'privacidade' ? '#93C5FD' : '#6b8299' ?>'">
+        Privacidade
+      </a>
+      <a href="configuracoes/monitoramentos.php"
+         title="Cota de monitoramentos e distribuição matriz↔filial"
+         style="font-size:.7rem;color:<?= $_ap === 'monitoramentos' ? '#93C5FD' : '#6b8299' ?>;text-decoration:none;letter-spacing:.3px;transition:color .15s;<?= $_ap === 'monitoramentos' ? 'font-weight:600;border-bottom:1px solid rgba(147,197,253,.35);padding-bottom:1px;' : '' ?>"
+         onmouseover="this.style.color='#93C5FD'"
+         onmouseout="this.style.color='<?= $_ap === 'monitoramentos' ? '#93C5FD' : '#6b8299' ?>'">
+        Monitoramentos
+      </a>
+    </div>
     <?php endif; ?>
   </div>
 
