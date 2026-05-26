@@ -22,7 +22,7 @@ $catalog = WebhookDispatcher::catalog();
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
   <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=42">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=18">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=19">
   <style>
     :root {
       --bg: #070F1C; --panel: rgba(14,35,65,.94); --line: rgba(160,180,210,0.08);

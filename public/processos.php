@@ -55,7 +55,7 @@ try {
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
   <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=44">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=18">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=19">
   <style>
     /*
       Variáveis locais alinhadas com yuris-theme.css.

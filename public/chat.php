@@ -19,7 +19,7 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
   <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=44">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=18">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=19">
   <style>
     /* ── Layout base ── */
     *, *::before, *::after { box-sizing: border-box; }

@@ -149,7 +149,7 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
   <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=42">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=18">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=19">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
   <style>
     :root {

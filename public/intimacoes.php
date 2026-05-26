@@ -47,7 +47,7 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
   <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=44">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=18">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=19">
   <!-- Flatpickr (calendário visual range) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js" defer></script>
