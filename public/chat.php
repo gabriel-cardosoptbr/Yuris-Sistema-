@@ -641,16 +641,26 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
     .msg-date-sep {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
-      color: #4A5568;
-      font-size: .7rem;
-      margin: 8px 0;
+      margin: 14px 0;
     }
-    .msg-date-sep::before,
-    .msg-date-sep::after {
-      content: '';
-      flex: 1;
-      border-top: 1px solid rgba(160,180,210,.08);
+    .msg-date-sep > span {
+      /* Chip estilo WhatsApp */
+      display: inline-block;
+      padding: 4px 12px;
+      background: rgba(8,18,32,.6);
+      color: #B0C4D8;
+      font-size: .7rem;
+      font-weight: 600;
+      border-radius: 8px;
+      letter-spacing: .02em;
+    }
+    /* Tema claro: chip branco com leve sombra */
+    html[data-theme="light"] .msg-date-sep > span {
+      background: #FFFFFF !important;
+      color: #475569 !important;
+      box-shadow: 0 1px 3px rgba(15,31,54,0.08), 0 0 0 1px rgba(15,31,54,0.04);
     }
 
     /* Estado vazio / sem chat selecionado */
@@ -1406,6 +1416,16 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
     }
     html[data-theme="light"] .chat-more-item { color: #0F1F36 !important; }
     html[data-theme="light"] .chat-more-item:hover { background: #EFF6FF !important; color: #1D4ED8 !important; }
+
+    /* Status de leitura ✓/✓✓ — azul WhatsApp pra mensagens lidas, cinzas pros demais.
+       Vale tanto no dark quanto no light, mas o claro precisa de !important pra
+       sobrescrever o ! important de outros temas. */
+    .msg-status-icon.read     { color: #34B7F1 !important; }    /* azul WhatsApp p/ lidas */
+    .msg-status-icon.delivered{ color: #7A8898 !important; }    /* cinza medio p/ entregues */
+    .msg-status-icon.pending  { color: #B0BCC9 !important; }    /* cinza claro p/ pending */
+    html[data-theme="light"] .msg-status-icon.read     { color: #2563EB !important; }
+    html[data-theme="light"] .msg-status-icon.delivered{ color: #64748B !important; }
+    html[data-theme="light"] .msg-status-icon.pending  { color: #94A3B8 !important; }
 
     /* 6) Mensagens — balões enviadas/recebidas */
     html[data-theme="light"] .chat-messages { background: #F8FAFC !important; }
@@ -2282,7 +2302,7 @@ const API  = {
 #imgLightboxDownload:hover { background: rgba(37,99,235,.3); border-color: rgba(96,165,250,.5); }
 </style>
 
-<script src="/sistema_vendas/public/assets/chat.js?v=42"></script>
+<script src="/sistema_vendas/public/assets/chat.js?v=43"></script>
 <script>
 // Lightbox init
 (function(){

@@ -17,6 +17,9 @@ const ChatApp = (() => {
     userFilter   : null,      // null=todos | 0=sem responsável | N=user específico
     userFilterName: 'Todos os responsáveis',
     lastMsgId    : 0,
+    firstMsgId   : 0,        // menor ID ja carregado (pra paginar antigas via before_id)
+    hasMoreOlder : true,     // false quando o servidor devolve 0 antigas
+    loadingOlder : false,    // semaforo pra evitar requests duplicadas no scroll
     pollingTimer : null,
     statusTimer  : null,
     qrTimer      : null,
@@ -31,7 +34,20 @@ const ChatApp = (() => {
     await loadSettings();
     await checkStatus();
     startStatusPolling();
+    setupInfiniteScroll();
     // showConnectedUI já é chamado dentro de setConnectionStatus quando status='open'
+  }
+
+  // Listener (uma vez) que dispara loadOlderMessages quando o user rola pro topo.
+  // Threshold 80px: dispara um pouco antes do topo absoluto pra precarregar.
+  function setupInfiniteScroll() {
+    const msgsEl = qs('#chatMessages');
+    if (!msgsEl) return;
+    msgsEl.addEventListener('scroll', () => {
+      if (msgsEl.scrollTop < 80 && state.hasMoreOlder && !state.loadingOlder) {
+        loadOlderMessages();
+      }
+    }, { passive: true });
   }
 
   // ── Settings ────────────────────────────────────────────────
@@ -503,6 +519,9 @@ const ChatApp = (() => {
     const chatObj = state.chats.find(c => c.remote_jid === jid);
     updateSectorBadge(chatObj || null);
 
+    // Header de grupo: foto + contador "(N membros)" + click pra abrir lista
+    updateGroupHeader(jid, chatObj);
+
     // Limpa mensagens antigas e mostra spinner
     const msgsEl = qs('#chatMessages');
     if (msgsEl) msgsEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#4A5568;font-size:.82rem">Carregando mensagens…</div>';
@@ -533,20 +552,93 @@ const ChatApp = (() => {
   async function loadMessages() {
     if (!state.currentJid) return;
     const msgsEl = qs('#chatMessages');
+    // Reseta estado de paginacao ao abrir conversa nova
+    state.firstMsgId   = 0;
+    state.hasMoreOlder = true;
+    state.loadingOlder = false;
     try {
       const r = await apiFetch(API.messages + '?jid=' + encodeURIComponent(state.currentJid) + '&limit=50');
       const msgs = r.messages || [];
       if (!msgs.length) {
         msgsEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#4A5568;font-size:.82rem">Nenhuma mensagem nesta conversa</div>';
+        state.hasMoreOlder = false;
       } else {
-        msgsEl.innerHTML = msgs.map(renderMessage).join('');
-        state.lastMsgId = Math.max(...msgs.map(m => m.id));
+        msgsEl.innerHTML = renderMessagesWithDateSeparators(msgs);
+        state.lastMsgId  = Math.max(...msgs.map(m => m.id));
+        state.firstMsgId = Math.min(...msgs.map(m => m.id));
+        if (msgs.length < 50) state.hasMoreOlder = false;
         scrollToBottom();
       }
     } catch(e) {
       if (msgsEl) msgsEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#B06070;font-size:.82rem;padding:16px;text-align:center">Erro: ' + (e.message || 'falha ao carregar mensagens') + '</div>';
       toast('Erro mensagens: ' + (e.message || ''), 'error');
     }
+  }
+
+  // Scroll infinito: carrega mensagens ANTIGAS (before_id < firstMsgId) ao
+  // rolar pra cima, preservando posicao visual pro user nao perder o ponto.
+  async function loadOlderMessages() {
+    if (!state.currentJid)     return;
+    if (!state.hasMoreOlder)   return;
+    if (state.loadingOlder)    return;
+    if (!state.firstMsgId)     return;
+    state.loadingOlder = true;
+    const msgsEl = qs('#chatMessages');
+    // Spinner no topo (removido depois)
+    const spinner = document.createElement('div');
+    spinner.className = 'msg-older-spinner';
+    spinner.style.cssText = 'text-align:center;padding:10px;color:#7A8898;font-size:.78rem';
+    spinner.textContent = 'Carregando mensagens anteriores…';
+    msgsEl.insertBefore(spinner, msgsEl.firstChild);
+    // Preserva a distancia do topo da PRIMEIRA mensagem visivel atual,
+    // pra apos prepend manter a mesma msg no mesmo lugar pra o user.
+    const prevScrollHeight = msgsEl.scrollHeight;
+    try {
+      const r = await apiFetch(
+        API.messages + '?jid=' + encodeURIComponent(state.currentJid)
+        + '&before_id=' + state.firstMsgId + '&limit=50'
+      );
+      const msgs = r.messages || [];
+      spinner.remove();
+      if (!msgs.length) {
+        state.hasMoreOlder = false;
+        return;
+      }
+      // Prepend (mais antigas vao no topo). renderMessagesWithDateSeparators
+      // ja injeta separadores. Como vamos PREPEND, removemos o separador da
+      // primeira msg ja renderizada se a data combinar — evita duplicar.
+      const html = renderMessagesWithDateSeparators(msgs);
+      msgsEl.insertAdjacentHTML('afterbegin', html);
+      state.firstMsgId = Math.min(state.firstMsgId, ...msgs.map(m => m.id));
+      if (msgs.length < 50) state.hasMoreOlder = false;
+      // Restaura scroll position pra usuario nao sentir o jump
+      const newScrollHeight = msgsEl.scrollHeight;
+      msgsEl.scrollTop = newScrollHeight - prevScrollHeight;
+      // Limpa separadores duplicados consecutivos (caso a 1a msg antiga seja
+      // do mesmo dia que a 1a msg ja renderizada antes do prepend)
+      dedupeDateSeparators(msgsEl);
+    } catch (e) {
+      spinner.remove();
+      toast('Erro ao carregar antigas: ' + (e.message || ''), 'error');
+    } finally {
+      state.loadingOlder = false;
+    }
+  }
+
+  // Remove .msg-date-sep que ficou adjacente a outro .msg-date-sep com mesma data
+  // (acontece ao prepend quando dia se repete).
+  function dedupeDateSeparators(container) {
+    const seps = container.querySelectorAll('.msg-date-sep');
+    let lastKey = null;
+    seps.forEach(s => {
+      const k = s.dataset.dayKey || '';
+      // Se for igual ao anterior, remove ESTE; senao atualiza lastKey
+      if (k && k === lastKey) {
+        s.remove();
+      } else {
+        lastKey = k;
+      }
+    });
   }
 
   async function pollNewMessages() {
@@ -564,6 +656,13 @@ const ChatApp = (() => {
       msgs.forEach(m => {
         // Evita duplicata
         if (qs('#msg-' + m.id)) return;
+        // Se a nova msg cair em dia diferente da ultima ja renderizada, injeta separador
+        const lastSep = container.lastElementChild?.dataset?.dayKey
+                     || container.querySelector('.msg-row:last-child')?.dataset?.dayKey;
+        const myKey   = dayKey(m.created_at);
+        if (myKey && myKey !== lastSep) {
+          container.insertAdjacentHTML('beforeend', renderDateSeparator(m.created_at, myKey));
+        }
         container.insertAdjacentHTML('beforeend', renderMessage(m));
         state.lastMsgId = Math.max(state.lastMsgId, m.id);
       });
@@ -597,17 +696,84 @@ const ChatApp = (() => {
     const status  = dir === 'outbound' ? renderStatus(msg.status) : '';
 
     const isGroup  = state.currentJid && state.currentJid.endsWith('@g.us');
-    const dispName = resolveSenderName(msg.contact_name);
+    // Em grupos, sempre tenta mostrar o autor inbound. Ordem de fallback:
+    //   1) contact_name resolvido pelo SQL (group_members → contacts → original)
+    //   2) telefone formatado a partir do participant_jid (quando contact_name
+    //      veio fantasma ou rotulado como "Você" por outro path)
+    const dispName = resolveSenderName(msg.contact_name)
+                  || phoneFromJid(msg.participant_jid);
     const sender   = (isGroup && dir === 'inbound' && dispName)
       ? `<div class="msg-sender">${esc(dispName)}</div>` : '';
+    const dKey     = dayKey(msg.created_at);
 
-    return `<div class="msg-row ${dir}" id="msg-${msg.id}">
+    return `<div class="msg-row ${dir}" id="msg-${msg.id}" data-day-key="${dKey}">
       <div class="msg-bubble">${sender}${content}</div>
       <div class="msg-meta">
         <span>${time}</span>
         ${status}
       </div>
     </div>`;
+  }
+
+  // ── Separador de data entre mensagens (Hoje / Ontem / dd-mm-yyyy) ────────
+  // Recebe a lista crua e devolve HTML com <div class="msg-date-sep"> injetado
+  // entre grupos de dias diferentes (estilo WhatsApp Web).
+  function renderMessagesWithDateSeparators(msgs) {
+    let html = '';
+    let lastKey = null;
+    for (const m of msgs) {
+      const k = dayKey(m.created_at);
+      if (k && k !== lastKey) {
+        html += renderDateSeparator(m.created_at, k);
+        lastKey = k;
+      }
+      html += renderMessage(m);
+    }
+    return html;
+  }
+
+  function renderDateSeparator(timestamp, key) {
+    const label = formatDateGroup(timestamp);
+    return `<div class="msg-date-sep" data-day-key="${key || ''}"><span>${esc(label)}</span></div>`;
+  }
+
+  // Chave canonica do dia (YYYY-MM-DD) pra comparar igualdade entre mensagens.
+  function dayKey(timestamp) {
+    if (!timestamp) return '';
+    const d = new Date(timestamp.replace(' ', 'T'));
+    if (isNaN(d)) return '';
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dd}`;
+  }
+
+  // Rotulo amigavel: 'Hoje', 'Ontem', dia da semana se < 7 dias, senao dd/mm/yyyy.
+  function formatDateGroup(timestamp) {
+    if (!timestamp) return '';
+    const d = new Date(timestamp.replace(' ', 'T'));
+    if (isNaN(d)) return '';
+    const today  = new Date(); today.setHours(0,0,0,0);
+    const yest   = new Date(today); yest.setDate(today.getDate() - 1);
+    const target = new Date(d);     target.setHours(0,0,0,0);
+    if (target.getTime() === today.getTime()) return 'Hoje';
+    if (target.getTime() === yest.getTime())  return 'Ontem';
+    const diffDays = Math.floor((today - target) / 86400000);
+    if (diffDays > 0 && diffDays < 7) {
+      const dias = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+      return dias[target.getDay()];
+    }
+    return target.toLocaleDateString('pt-BR'); // dd/mm/yyyy
+  }
+
+  // Extrai e formata o telefone de um JID estilo '5511999991111@s.whatsapp.net'
+  // ou '12345678901234@lid'. Devolve '' se nao for um JID utilizavel.
+  function phoneFromJid(jid) {
+    if (!jid) return '';
+    const local = String(jid).split('@')[0];
+    if (!/^\d{8,}$/.test(local)) return ''; // LIDs muito longos ou nao-numericos
+    if (/^\d{14,}$/.test(local)) return ''; // LID interno do WhatsApp, suprime
+    return formatPhone(local) || local;
   }
 
   const MEDIA_PROXY = '/sistema_vendas/public/api/whatsapp/media.php?msg_id=';
@@ -1671,8 +1837,12 @@ const ChatApp = (() => {
 
   function resolveSenderName(name) {
     if (!name) return '';
-    const s = String(name);
+    const s = String(name).trim();
+    if (!s) return '';
     if (/^\d{14,}$/.test(s)) return '';        // LID interno do WhatsApp — suprimir
+    // 'Você'/'Voce'/'You' nao faz sentido em msg INBOUND (autor real era outro);
+    // suprime pra que o fallback (participant_jid) entre.
+    if (/^(voc[êe]|you|me)$/i.test(s)) return '';
     return formatPhone(s) || s;                 // telefone → formata; nome normal → exibe direto
   }
 
@@ -1736,6 +1906,90 @@ const ChatApp = (() => {
     if (!res.ok) throw new Error(data.error || 'Erro HTTP ' + res.status);
     if (data.error) throw new Error(data.error);
     return data;
+  }
+
+  // ── Grupo: header (foto + contador) + modal de membros ───────────────────
+  // Chamado em openChat. Se nao for grupo, esconde elementos extra.
+  function updateGroupHeader(jid, chatObj) {
+    const isGroup = jid && jid.endsWith('@g.us');
+    const subEl   = qs('#activePhone');
+
+    // Foto do grupo (profile_pic_url ja sincronizado em whatsapp_chats)
+    const avatar = qs('#activeAvatar');
+    if (avatar) {
+      // Reset (caso conversa anterior tenha imagem)
+      avatar.style.backgroundImage = '';
+      const pic = chatObj && chatObj.profile_pic_url;
+      if (pic) {
+        avatar.textContent = '';
+        avatar.style.backgroundImage = `url("${pic}")`;
+        avatar.style.backgroundSize  = 'cover';
+        avatar.style.backgroundPosition = 'center';
+      }
+    }
+
+    if (!isGroup) {
+      // Conversa 1:1: garante sublabel default
+      return;
+    }
+
+    // Fetch dos membros e atualiza sublabel + handler de click
+    fetch('/sistema_vendas/public/api/whatsapp/group_members.php?jid=' + encodeURIComponent(jid), {
+      credentials: 'same-origin'
+    })
+      .then(r => r.json())
+      .then(d => {
+        const n = (d && d.count) || 0;
+        if (n > 0 && subEl) {
+          subEl.textContent = `Grupo · ${n} membro${n === 1 ? '' : 's'} · clique pra ver`;
+          subEl.style.cursor = 'pointer';
+          subEl.onclick = () => showGroupMembersModal(jid, d.members || []);
+        }
+      })
+      .catch(() => { /* silencioso — header continua mostrando phone */ });
+  }
+
+  // Modal simples com a lista de membros (reaproveita estilos .gm-* do chat.php)
+  function showGroupMembersModal(groupJid, members) {
+    let modal = document.getElementById('groupMembersModal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'groupMembersModal';
+      modal.className = 'modal-overlay';
+      modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+      modal.innerHTML = `
+        <div class="modal-box" style="max-width:480px;max-height:80vh;display:flex;flex-direction:column">
+          <div class="modal-header">
+            <h3>Membros do grupo</h3>
+            <button class="modal-close" onclick="document.getElementById('groupMembersModal').style.display='none'">×</button>
+          </div>
+          <div class="modal-body" id="gmList" style="overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:6px"></div>
+        </div>`;
+      document.body.appendChild(modal);
+    }
+
+    const list = modal.querySelector('#gmList');
+    if (!members.length) {
+      list.innerHTML = '<div class="gm-empty">Nenhum membro listado. Aguarde a próxima sincronização.</div>';
+    } else {
+      list.innerHTML = members.map(m => {
+        const nome  = esc(m.push_name || phoneFromJid(m.participant_jid) || m.participant_jid);
+        const phone = esc(m.phone || '');
+        let badge = '';
+        if (m.role === 'superadmin') badge = '<span class="gm-badge gm-superadmin">Criador</span>';
+        else if (m.role === 'admin') badge = '<span class="gm-badge gm-admin">Admin</span>';
+        return `
+          <div class="gm-row" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:rgba(8,18,32,.5);border:1px solid rgba(160,180,210,.10)">
+            <div class="gm-avatar" style="width:34px;height:34px;border-radius:50%;background:rgba(37,99,235,.25);display:flex;align-items:center;justify-content:center;font-weight:700;color:#bfdbfe;flex-shrink:0">${esc((nome || '?')[0].toUpperCase())}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:.85rem;font-weight:600;color:#d6eaff">${nome}</div>
+              ${phone ? `<div style="font-size:.72rem;color:#7a96b4">${phone}</div>` : ''}
+            </div>
+            ${badge}
+          </div>`;
+      }).join('');
+    }
+    modal.style.display = 'flex';
   }
 
   // ── API pública ──────────────────────────────────────────────

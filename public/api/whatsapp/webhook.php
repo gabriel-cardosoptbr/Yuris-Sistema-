@@ -203,6 +203,9 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
     $wamid     = $key['id']        ?? null;
     $remoteJid = $key['remoteJid'] ?? null;
     $fromMe    = (bool)($key['fromMe'] ?? false);
+    // participant: JID real do autor da mensagem em grupos. Em chat 1:1 vem null.
+    // Sem isso, resolveSenderName mostra 'Você' ou o nome errado em grupos.
+    $participantJid = $key['participant'] ?? ($msg['participant'] ?? null);
 
     if (!$remoteJid) return;
 
@@ -249,6 +252,7 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
         'instance_id'     => $instanceId,
         'wamid'           => $wamid,
         'remote_jid'      => $remoteJid,
+        'participant_jid' => $participantJid,  // autor real em grupos
         'contact_name'    => $pushName,
         'phone'           => $phone,
         'message_type'    => $msgType,

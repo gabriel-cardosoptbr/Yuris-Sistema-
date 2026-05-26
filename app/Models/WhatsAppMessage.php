@@ -83,17 +83,18 @@ class WhatsAppMessage
 
         $stmt = $this->db->prepare(
             'INSERT INTO whatsapp_messages
-             (account_id, instance_id, wamid, remote_jid, contact_name, phone,
+             (account_id, instance_id, wamid, remote_jid, participant_jid, contact_name, phone,
               message_type, message_content, caption, media_url,
               media_mimetype, media_filename, media_base64,
               direction, status, quoted_wamid, raw_payload, created_at)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
         );
         $stmt->execute([
             $accountIdResolved,
             $data['instance_id'],
             $data['wamid']          ?? null,
             $data['remote_jid'],
+            $data['participant_jid'] ?? null,
             $data['contact_name']   ?? null,
             $data['phone']          ?? null,
             $data['message_type']   ?? 'text',
@@ -121,14 +122,29 @@ class WhatsAppMessage
     /** Buscar mensagens paginadas para um chat. */
     public function findByJid(int $instanceId, string $remoteJid, int $limit = 50, int $beforeId = 0): array
     {
-        $sql = 'SELECT m.id, m.wamid, m.remote_jid,
+        // Resolve o nome do remetente em 4 camadas (prioridade decrescente):
+        //   1) group_members.push_name pelo participant_jid (autor real em grupos)
+        //   2) contacts.push_name pelo participant_jid (fallback grupos)
+        //   3) contact_name original do registro (filtra JIDs raw 14+ dígitos)
+        //   4) contacts.push_name por matching de phone (último fallback 1:1)
+        // Tambem retorna participant_jid separado pro JS resolver nome se quiser.
+        $sql = 'SELECT m.id, m.wamid, m.remote_jid, m.participant_jid,
                        COALESCE(
+                           CASE WHEN m.direction = \'inbound\' AND m.participant_jid IS NOT NULL THEN gm.push_name END,
+                           CASE WHEN m.direction = \'inbound\' AND m.participant_jid IS NOT NULL THEN cp.push_name END,
                            CASE WHEN m.contact_name REGEXP \'^[0-9]{14,}$\' THEN NULL ELSE m.contact_name END,
                            c.push_name
                        ) AS contact_name,
                        m.message_type, m.message_content, m.caption, m.media_url, m.media_mimetype,
                        m.media_filename, m.direction, m.status, m.quoted_wamid, m.created_at
                 FROM whatsapp_messages m
+                LEFT JOIN whatsapp_group_members gm
+                       ON gm.instance_id = m.instance_id
+                      AND gm.group_jid       COLLATE utf8mb4_unicode_ci = m.remote_jid
+                      AND gm.participant_jid COLLATE utf8mb4_unicode_ci = m.participant_jid
+                LEFT JOIN whatsapp_contacts cp
+                       ON cp.instance_id = m.instance_id
+                      AND cp.remote_jid  = m.participant_jid
                 LEFT JOIN whatsapp_contacts c
                        ON c.instance_id = m.instance_id
                       AND m.contact_name REGEXP \'^[0-9]{12,}$\'
@@ -151,18 +167,28 @@ class WhatsAppMessage
         return array_reverse($rows);
     }
 
-    /** Buscar apenas novas mensagens após um ID. */
+    /** Buscar apenas novas mensagens após um ID.
+     *  Mesma resolucao em 4 camadas do findByJid pra coerencia (grupos). */
     public function findAfter(int $instanceId, string $remoteJid, int $afterId): array
     {
         $stmt = $this->db->prepare(
-            'SELECT m.id, m.wamid, m.remote_jid,
+            'SELECT m.id, m.wamid, m.remote_jid, m.participant_jid,
                     COALESCE(
+                        CASE WHEN m.direction = \'inbound\' AND m.participant_jid IS NOT NULL THEN gm.push_name END,
+                        CASE WHEN m.direction = \'inbound\' AND m.participant_jid IS NOT NULL THEN cp.push_name END,
                         CASE WHEN m.contact_name REGEXP \'^[0-9]{14,}$\' THEN NULL ELSE m.contact_name END,
                         c.push_name
                     ) AS contact_name,
                     m.message_type, m.message_content, m.caption, m.media_url, m.media_mimetype,
                     m.media_filename, m.direction, m.status, m.quoted_wamid, m.created_at
              FROM whatsapp_messages m
+             LEFT JOIN whatsapp_group_members gm
+                    ON gm.instance_id     = m.instance_id
+                   AND gm.group_jid       COLLATE utf8mb4_unicode_ci = m.remote_jid
+                   AND gm.participant_jid COLLATE utf8mb4_unicode_ci = m.participant_jid
+             LEFT JOIN whatsapp_contacts cp
+                    ON cp.instance_id = m.instance_id
+                   AND cp.remote_jid  = m.participant_jid
              LEFT JOIN whatsapp_contacts c
                     ON c.instance_id = m.instance_id
                    AND m.contact_name REGEXP \'^[0-9]{12,}$\'
