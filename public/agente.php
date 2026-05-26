@@ -185,6 +185,34 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
     }
     .test-label { font-size: .74rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
 
+    /* ── Mensagem de resultado de "Testar conexão" ── */
+    /* Pill-style: fundo opaco + borda + ícone via ::before. Funciona em ambos os temas. */
+    .test-conn-msg {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border-radius: 8px;
+      font-size: .8rem; font-weight: 600; line-height: 1.3;
+    }
+    .test-conn-msg::before {
+      content: ''; flex-shrink: 0; width: 14px; height: 14px;
+      background-repeat: no-repeat; background-position: center; background-size: contain;
+    }
+    .test-conn-warn {
+      background: rgba(245,158,11,.18);
+      color: #fcd34d;
+      border: 1px solid rgba(245,158,11,.45);
+    }
+    .test-conn-warn::before {
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fcd34d' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z'/><line x1='12' y1='9' x2='12' y2='13'/><line x1='12' y1='17' x2='12.01' y2='17'/></svg>");
+    }
+    .test-conn-ok {
+      background: rgba(16,185,129,.18);
+      color: #6ee7b7;
+      border: 1px solid rgba(16,185,129,.45);
+    }
+    .test-conn-ok::before {
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236ee7b7' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg>");
+    }
+
     /* ── Tips panel ── */
     .tip-row { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-bottom: 1px solid rgba(96,165,250,.07); }
     .tip-row:last-child { border-bottom: none; }
@@ -350,6 +378,25 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 
     /* Save / Test connection button icons */
     html[data-theme="light"] .agt-btn-secondary svg { stroke: currentColor !important; }
+
+    /* Mensagem "Testar conexão" no tema claro */
+    /* Cores amber-700 / emerald-700 — alto contraste em fundo claro */
+    html[data-theme="light"] .test-conn-warn {
+      background: #fff3d4 !important;
+      color: #92400e !important;
+      border: 1px solid #f5c46a !important;
+    }
+    html[data-theme="light"] .test-conn-warn::before {
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2392400e' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z'/><line x1='12' y1='9' x2='12' y2='13'/><line x1='12' y1='17' x2='12.01' y2='17'/></svg>") !important;
+    }
+    html[data-theme="light"] .test-conn-ok {
+      background: #dcfce7 !important;
+      color: #166534 !important;
+      border: 1px solid #86efac !important;
+    }
+    html[data-theme="light"] .test-conn-ok::before {
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23166534' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg>") !important;
+    }
   </style>
 </head>
 <body>

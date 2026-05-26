@@ -154,9 +154,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const provider = form.provider.value.trim();
       const key      = apiKeyInput ? apiKeyInput.value.trim() : '';
       if (!provider || !key) {
+        // Limpa estilos inline (caso tenha vindo de tentativa anterior)
+        testConnRes.style.color = '';
+        testConnRes.style.fontWeight = '';
         testConnRes.style.display = 'block';
-        testConnRes.style.color   = 'var(--warn)';
-        testConnRes.textContent   = '⚠️ Preencha o provedor e a chave de API antes de testar.';
+        testConnRes.className = 'test-conn-msg test-conn-warn';
+        testConnRes.textContent   = 'Preencha o provedor e a chave de API antes de testar.';
         return;
       }
       btnTestConn.disabled = true;
@@ -165,11 +168,12 @@ document.addEventListener('DOMContentLoaded', () => {
       await new Promise(r => setTimeout(r, 1200));
       btnTestConn.disabled = false;
       btnTestConn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Testar conexão';
+      // Limpa estilos inline antigos antes de aplicar a classe ok
+      testConnRes.style.color = '';
+      testConnRes.style.fontWeight = '';
       testConnRes.style.display = 'block';
-      // verde-escuro funciona em ambos os temas (claro e escuro)
-      testConnRes.style.color   = '#10b981';
-      testConnRes.style.fontWeight = '600';
-      testConnRes.textContent   = `✅ Credenciais para "${provider}" validadas — salve para confirmar.`;
+      testConnRes.className = 'test-conn-msg test-conn-ok';
+      testConnRes.textContent   = `Credenciais para "${provider}" validadas — salve para confirmar.`;
     });
   }
 
