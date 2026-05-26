@@ -1978,7 +1978,8 @@ async function loadMonQuotaEsc() {
     });
     const j = await r.json();
     if (!j.ok) return;
-    const s = j.status || {};
+    // ApiResponse::ok encapsula em {ok, data}; fallback pra formato antigo.
+    const s = (j.data && j.data.status) || j.status || {};
     const lim = s.effective_limit || 0;
     const used = s.current_usage || 0;
     const avail = s.available || 0;
@@ -2052,12 +2053,16 @@ function renderMonFiliais() {
 
   // ── Linha da MATRIZ (read-only) ──
   // A matriz não "reserva pra si mesma" — ela usa o que sobra do pool.
-  // Mostramos como linha pra ficar visualmente claro que ela também consome.
+  // Mostra usage atual + vagas livres pra criar mais (= sobra - uso atual).
+  const livreMatriz = Math.max(0, livre - usoMatriz);
+  const pillMatriz = livreMatriz > 0
+    ? `<span class="mon-pill mon-pill-active">${livreMatriz} vaga${livreMatriz>1?'s':''} livre${livreMatriz>1?'s':''}</span>`
+    : `<span class="mon-pill mon-pill-denied">lotado</span>`;
   html += `<tr style="background:rgba(37,99,235,.04);">
     <td><strong>${escMon(matrizNome)} (matriz, você)</strong>
         <div class="mon-hint">o que não estiver reservado fica pra você</div></td>
     <td>${usoMatriz}</td>
-    <td><span class="mon-pill mon-pill-active">${livre} sobrando</span></td>
+    <td>${pillMatriz}</td>
     <td><span class="mon-hint">automático</span></td>
     <td style="text-align:right"><span class="mon-hint">—</span></td>
   </tr>`;

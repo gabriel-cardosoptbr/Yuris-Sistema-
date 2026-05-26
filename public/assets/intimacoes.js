@@ -1379,7 +1379,8 @@
         });
         const j = await r.json();
         if (!j.ok) throw new Error(j.error || 'erro');
-        const s = j.status || {};
+        // ApiResponse::ok encapsula em {ok, data}; fallback pra formato antigo.
+        const s = (j.data && j.data.status) || j.status || {};
         const lim = s.effective_limit || 0;
         const used = s.current_usage || 0;
         const avail = s.available || 0;
