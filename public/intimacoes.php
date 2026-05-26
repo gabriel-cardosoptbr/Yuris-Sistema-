@@ -1041,6 +1041,45 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
     html[data-theme="light"] .int-mon-empty {
       color: #5A6B7E !important;
     }
+
+    /* ── Badge de cota (add-on Monitoramentos) — contraste no tema claro ──
+       Inline styles pretos/cinzas claros ficavam ilegíveis sobre o fundo
+       rosa/azul claro do badge. Forçamos cores escuras pra leitura. */
+    html[data-theme="light"] #monitorQuotaBadge {
+      background: rgba(37,99,235,.07) !important;
+      border-color: rgba(37,99,235,.30) !important;
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] #monitorQuotaBadge strong {
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] #monitorQuotaBadge small {
+      color: #475569 !important;
+    }
+    html[data-theme="light"] #mqDisponivel { color: #15803D !important; }
+    html[data-theme="light"] #mqAviso { color: #475569 !important; }
+    /* Link "Gerenciar cota →" */
+    html[data-theme="light"] #monitorQuotaBadge a {
+      color: #1D4ED8 !important;
+      background: #FFFFFF !important;
+      border-color: rgba(37,99,235,.35) !important;
+    }
+    html[data-theme="light"] #monitorQuotaBadge a:hover {
+      background: rgba(37,99,235,.08) !important;
+    }
+    /* Estado "sem cota" — JS aplica background vermelho claro. Texto
+       precisa ficar bem escuro/saturado para leitura. */
+    html[data-theme="light"] #monitorQuotaBadge[data-state="sem-cota"] {
+      background: #FEF2F2 !important;       /* rosa MUITO clarinho sólido */
+      border-color: #FCA5A5 !important;     /* borda rosa-200 */
+    }
+    html[data-theme="light"] #monitorQuotaBadge[data-state="sem-cota"] #mqDisponivel { color: #B91C1C !important; }
+    html[data-theme="light"] #monitorQuotaBadge[data-state="sem-cota"] #mqAviso {
+      color: #991B1B !important;
+    }
+    html[data-theme="light"] #monitorQuotaBadge[data-state="sem-cota"] #mqAviso strong {
+      color: #7F1D1D !important;
+    }
   </style>
 </head>
 <body>

@@ -1399,6 +1399,10 @@
         const btnNew = $('monNewSubmit');
 
         const semCota = lim <= 0 || avail <= 0;
+        // data-state permite que o CSS no tema claro (intimacoes.php <style>)
+        // troque as cores pra ter contraste decente — usa !important pra
+        // vencer os styles inline que setamos abaixo (necessários no escuro).
+        if (badge) badge.setAttribute('data-state', semCota ? 'sem-cota' : 'ok');
         if (semCota) {
           if (badge) {
             badge.style.background = 'rgba(239,68,68,.10)';
