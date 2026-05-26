@@ -506,8 +506,8 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
         <button class="btn-mst btn-mst-primary" onclick="openNovaMonitorSubModal()">+ Nova assinatura de monitor</button>
       </div>
       <table class="mst-tbl">
-        <thead><tr><th>Tipo</th><th>Conta</th><th>Plano / Produto</th><th>Status</th><th>Ciclo</th><th>Valor</th><th>Teste até</th><th>Período até</th><th>Ações</th></tr></thead>
-        <tbody id="subsBody"><tr><td colspan="9" class="empty">Carregando…</td></tr></tbody>
+        <thead><tr><th>Tipo</th><th>Conta</th><th>Produtos / Assinaturas</th><th>Ações</th></tr></thead>
+        <tbody id="subsBody"><tr><td colspan="4" class="empty">Carregando…</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -2897,68 +2897,82 @@ async function loadBilling() {
   const monitorSubs = r.data.monitor_subscriptions || [];
   const tb = document.getElementById('subsBody');
 
-  // Une plano (subscriptions) + monitor (overrides recorrentes) na mesma
-  // tabela — coluna "Tipo" diferencia. Mesma tela mostra toda receita
-  // recorrente do tenant (add-on de monitor inclusive).
-  const rows = [];
+  // Agrupa por account_id — 1 row por conta com tags + lista empilhada.
+  // Mais organizado que 1 row por assinatura quando uma conta tem plano +
+  // múltiplos monitors. Pedido do usuário 2026-05-26.
+  const byAccount = {};
+  function ensure(aid, nome) {
+    if (!byAccount[aid]) byAccount[aid] = { account_id: aid, account_nome: nome, plano: null, monitors: [] };
+    return byAccount[aid];
+  }
+  _subsCache.forEach(s => { ensure(s.account_id, s.account_nome).plano = s; });
+  monitorSubs.forEach(m => { ensure(m.account_id, m.account_nome).monitors.push(m); });
 
-  _subsCache.forEach(s => {
-    // Valor: por enquanto pega só o cents do plano em monthly/yearly
-    // (não suportamos preço trimestral no plano ainda — manter mensal/anual)
-    let valor = '—';
-    if (s.billing_cycle === 'monthly')    valor = fmtBRL(s.preco_mensal_cents);
-    else if (s.billing_cycle === 'yearly') valor = fmtBRL(s.preco_anual_cents);
-    rows.push(`
-      <tr>
-        <td><span class="pill" style="background:rgba(96,165,250,.15);color:#60a5fa;border:1px solid rgba(96,165,250,.3)">Plano</span></td>
-        <td>${esc(s.account_nome)}</td>
-        <td>${esc(s.plan_nome)} <small style="color:#9ab0c9">(${esc(s.plan_slug)})</small></td>
-        <td>${pill(s.status)}</td>
-        <td>${i18nBadge(s.billing_cycle)}</td>
-        <td>${valor}</td>
-        <td>${fmtDate(s.trial_ends_at)}</td>
-        <td>${fmtDate(s.current_period_end)}</td>
-        <td>
-          <button class="btn-mst" onclick="openSubModal(${s.id})">Editar</button>
-          ${s.status==='active' || s.status==='trialing'
-            ? `<button class="btn-mst btn-mst-danger" onclick="cancelSub(${s.id})">Cancelar</button>`
-            : ''}
-        </td>
-      </tr>`);
-  });
-
-  monitorSubs.forEach(m => {
-    // Valor total = qtd × preço unitário
-    let valorRow = '—';
-    if (m.unit_price_cents && m.qtd) {
-      const total = m.unit_price_cents * m.qtd;
-      valorRow = `${fmtBRL(total)} <small style="color:#9ab0c9">(${m.qtd}×${fmtBRL(m.unit_price_cents)})</small>`;
-    } else if (m.qtd) {
-      valorRow = `<small style="color:#9ab0c9">${m.qtd} monitor(es), sem preço</small>`;
-    }
-    const status = m.expires_at && new Date(m.expires_at) < new Date() ? 'canceled' : 'active';
-    rows.push(`
-      <tr>
-        <td><span class="pill" style="background:rgba(168,85,247,.15);color:#c084fc;border:1px solid rgba(168,85,247,.3)">Monitor</span></td>
-        <td>${esc(m.account_nome)}</td>
-        <td>${m.qtd}× Monitoramento OAB ${m.contract_ref?` <small style="color:#9ab0c9">(${esc(m.contract_ref)})</small>`:''}</td>
-        <td>${pill(status)}</td>
-        <td>${i18nBadge(m.billing_cycle)}</td>
-        <td>${valorRow}</td>
-        <td>—</td>
-        <td>${m.expires_at?fmtDate(m.expires_at):'—'}</td>
-        <td>
-          <button class="btn-mst" onclick="openMonitorSubFromBilling(${m.account_id})">Editar</button>
-          <button class="btn-mst btn-mst-danger" onclick="revokeMonitorOverride(${m.id})">Cancelar</button>
-        </td>
-      </tr>`);
-  });
-
-  if (!rows.length) {
-    tb.innerHTML = '<tr><td colspan="9" class="empty">Nenhuma assinatura</td></tr>';
+  const grupos = Object.values(byAccount);
+  if (!grupos.length) {
+    tb.innerHTML = '<tr><td colspan="4" class="empty">Nenhuma assinatura</td></tr>';
     return;
   }
-  tb.innerHTML = rows.join('');
+
+  // CSS inline pra "linha-item" dentro da célula Produtos
+  const itemStyle = 'padding:7px 0; line-height:1.5';
+  const itemSep   = 'border-top:1px solid rgba(160,180,210,.08)';
+
+  tb.innerHTML = grupos.map(g => {
+    // Tags empilhadas na coluna Tipo (mostra só os tipos que essa conta tem)
+    const tags = [];
+    if (g.plano)              tags.push(`<span class="pill" style="background:rgba(96,165,250,.15); color:#60a5fa; border:1px solid rgba(96,165,250,.3); display:inline-block; margin-bottom:3px">Plano</span>`);
+    if (g.monitors.length)    tags.push(`<span class="pill" style="background:rgba(168,85,247,.15); color:#c084fc; border:1px solid rgba(168,85,247,.3); display:inline-block">Monitor</span>`);
+
+    // Linhas-item dentro da célula Produtos
+    const itens = [];
+
+    if (g.plano) {
+      let valor = '<small style="color:#9ab0c9">sem preço cadastrado</small>';
+      if (g.plano.billing_cycle === 'monthly')      valor = `<strong style="color:#e2e8f0">${fmtBRL(g.plano.preco_mensal_cents)}</strong> <small style="color:#9ab0c9">/mês</small>`;
+      else if (g.plano.billing_cycle === 'yearly')  valor = `<strong style="color:#e2e8f0">${fmtBRL(g.plano.preco_anual_cents)}</strong> <small style="color:#9ab0c9">/ano</small>`;
+      else if (g.plano.billing_cycle === 'quarterly') valor = '<small style="color:#9ab0c9">trimestral — preço não configurado no plano</small>';
+      itens.push(`<div style="${itemStyle}">
+        <strong style="color:#e2e8f0">📦 ${esc(g.plano.plan_nome)}</strong>
+        <small style="color:#9ab0c9">(${esc(g.plano.plan_slug)})</small>
+        · ${pill(g.plano.status)}
+        · <span style="color:#cbd5e1">${i18nBadge(g.plano.billing_cycle)}</span>
+        · ${valor}
+        ${g.plano.trial_ends_at ? `<br><small style="color:#9ab0c9">teste até ${fmtDate(g.plano.trial_ends_at)} · período até ${fmtDate(g.plano.current_period_end)}</small>` : `<br><small style="color:#9ab0c9">período até ${fmtDate(g.plano.current_period_end)}</small>`}
+      </div>`);
+    }
+
+    g.monitors.forEach(m => {
+      let valor = '<small style="color:#9ab0c9">sem preço</small>';
+      if (m.unit_price_cents && m.qtd) {
+        const total = m.unit_price_cents * m.qtd;
+        const sufixo = m.billing_cycle === 'monthly' ? '/mês' :
+                       m.billing_cycle === 'quarterly' ? '/trim' :
+                       m.billing_cycle === 'yearly' ? '/ano' : '';
+        valor = `<strong style="color:#e2e8f0">${fmtBRL(total)}</strong> <small style="color:#9ab0c9">${sufixo} · ${m.qtd}×${fmtBRL(m.unit_price_cents)}</small>`;
+      }
+      const status = m.expires_at && new Date(m.expires_at) < new Date() ? 'canceled' : 'active';
+      itens.push(`<div style="${itemStyle}; ${itens.length ? itemSep : ''}">
+        <strong style="color:#e2e8f0">🛰️ ${m.qtd}× Monitoramento OAB</strong>
+        ${m.contract_ref ? `<small style="color:#9ab0c9">(${esc(m.contract_ref)})</small>` : ''}
+        · ${pill(status)}
+        · <span style="color:#cbd5e1">${i18nBadge(m.billing_cycle)}</span>
+        · ${valor}
+        ${m.expires_at ? `<br><small style="color:#9ab0c9">expira ${fmtDate(m.expires_at)}</small>` : ''}
+        <button class="btn-mst btn-mst-danger" style="float:right; padding:2px 8px; font-size:.7rem" onclick="revokeMonitorOverride(${m.id})">Cancelar</button>
+      </div>`);
+    });
+
+    return `
+      <tr>
+        <td style="vertical-align:top">${tags.join('')}</td>
+        <td style="vertical-align:top"><strong>${esc(g.account_nome)}</strong></td>
+        <td>${itens.join('')}</td>
+        <td style="vertical-align:top">
+          <button class="btn-mst" onclick="openEditAccount(${g.account_id})">Editar conta</button>
+        </td>
+      </tr>`;
+  }).join('');
 }
 
 /**
