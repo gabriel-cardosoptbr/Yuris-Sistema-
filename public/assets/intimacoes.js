@@ -688,13 +688,25 @@
 
     collectFilters(opts = {}) {
       const $ = (id) => document.getElementById(id);
+      // Inputs visiveis tem precedencia; senao usa userProfile como fallback.
+      // A UI atual nao expoe os inputs filterOab/filterNomeAdv/etc — sem fallback
+      // a busca ia sem nenhum filtro e a DJEN devolvia 422 ('pesquisa deve conter
+      // pelo menos um dos seguintes parametros: siglaTribunal, texto, nomeParte,
+      // nomeAdvogado, numeroOab, numeroProcesso').
+      const p = this.userProfile || {};
+      const oabInputVal  = ($('filterOab')?.value     || '').trim();
+      const nomeInputVal = ($('filterNomeAdv')?.value || '').trim();
+      // Pra OAB usamos formato "UF + numero" que o DjenProvider sabe normalizar
+      const oabFromProfile  = (p.oab || '') ? ((p.oab_uf || '') + p.oab) : '';
+      const nomeFromProfile = p.nome_advogado || p.nome || '';
+
       const f = {
-        numero_oab:      $('filterOab')?.value.trim()      || '',
+        numero_oab:      oabInputVal     || oabFromProfile,
         sigla_tribunal:  $('filterTribunal')?.value        || '',
         numero_processo: $('filterProcesso')?.value.trim() || '',
         data_inicio:     opts.ignoreDates ? '' : ($('filterDataInicio')?.value || ''),
         data_fim:        opts.ignoreDates ? '' : ($('filterDataFim')?.value    || ''),
-        nome_advogado:   $('filterNomeAdv')?.value.trim()  || '',
+        nome_advogado:   nomeInputVal    || nomeFromProfile,
       };
       // Aplica filtros de status no state (não vão pro provider — usados em loadPersistidos)
       this.state.filters.lida      = $('fNaoLidas')?.checked ? 0 : ($('fLidas')?.checked ? 1 : null);

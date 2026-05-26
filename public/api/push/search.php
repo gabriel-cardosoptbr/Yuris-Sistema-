@@ -119,6 +119,24 @@ try {
         }
     }
 
+    // ── Validação pré-voo: DJEN exige pelo menos um filtro de identificação ──
+    // (numeroOab, nomeAdvogado, numeroProcesso ou siglaTribunal). Senão devolve
+    // 422 'A pesquisa deve conter pelo menos um dos seguintes parametros...'.
+    // Aqui já avisa o usuário em PT pra abrir o modal Monitoramento e configurar OAB+Nome.
+    $temFiltro = ($filters['numero_oab'] !== '')
+              || ($filters['nome_advogado'] !== '')
+              || ($filters['numero_processo'] !== '')
+              || ($filters['sigla_tribunal'] !== '');
+    if (!$temFiltro) {
+        http_response_code(400);
+        echo json_encode([
+            'error' => 'Configure seu perfil de busca (OAB + Nome) em "Monitoramento" '
+                     . 'antes de buscar. A DJEN exige pelo menos um filtro de '
+                     . 'identificação (OAB, Nome do advogado, Número do processo ou Tribunal).',
+        ]);
+        exit;
+    }
+
     // Provider DJEN
     EnvLoader::load();
     $baseUrl = EnvLoader::get('DJEN_BASE_URL', 'https://comunicaapi.pje.jus.br/api/v1');
