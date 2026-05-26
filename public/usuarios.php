@@ -398,6 +398,260 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
       background: #2563eb; border-color: #2563eb; color: #fff;
     }
     .tm-empty { text-align: center; padding: 20px; color: var(--muted); font-size: .8rem; }
+
+    /* ═════════════════════════════════════════════════════════════════════
+       TEMA CLARO — Gestão de Usuários (correção 2026-05-26)
+       Página não tinha NENHUM override. Tudo aparecia escuro em fundo claro.
+       ═════════════════════════════════════════════════════════════════════ */
+    html[data-theme="light"] body {
+      background-color: #F4F7FB;
+      background-image: none;
+      color: #0F1F36;
+    }
+
+    /* Painéis principais */
+    html[data-theme="light"] .usr-panel {
+      background: #FFFFFF !important;
+      border: 1px solid #E2E8F0 !important;
+      box-shadow: 0 1px 3px rgba(15,31,54,0.04) !important;
+    }
+
+    /* KPI cards — fundo branco com borda */
+    html[data-theme="light"] .kpi-card {
+      background: #FFFFFF !important;
+      border-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] .kpi-card:hover {
+      border-color: #CBD5E1 !important;
+      box-shadow: 0 6px 18px rgba(15,31,54,0.08) !important;
+    }
+    html[data-theme="light"] .kpi-label { color: #64748B !important; }
+    html[data-theme="light"] .kpi-value { color: #0F1F36 !important; }
+    html[data-theme="light"] .kpi-foot  { color: #64748B !important; }
+
+    /* Resumo executivo */
+    html[data-theme="light"] .summary-box {
+      background: #EFF6FF !important;
+      border-color: #BFDBFE !important;
+      color: #1E4A8A !important;
+    }
+    html[data-theme="light"] .summary-box strong { color: #0F1F36 !important; }
+
+    /* Tabs (Usuários / Setores) */
+    html[data-theme="light"] .tab-bar {
+      background: #F1F5F9 !important;
+      border-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] .tab-btn { color: #64748B !important; background: transparent !important; }
+    html[data-theme="light"] .tab-btn:hover:not(.active) {
+      background: #E2E8F0 !important; color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .tab-btn.active {
+      background: #FFFFFF !important;
+      color: #1D4ED8 !important;
+      box-shadow: 0 1px 3px rgba(15,31,54,0.10) !important;
+    }
+
+    /* Toolbar — busca, selects, botões */
+    html[data-theme="light"] .usr-search,
+    html[data-theme="light"] .usr-select,
+    html[data-theme="light"] .perfil-select {
+      background: #FFFFFF !important;
+      border-color: #CBD5E1 !important;
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .usr-search::placeholder { color: #94A3B8 !important; }
+    html[data-theme="light"] .usr-search:focus,
+    html[data-theme="light"] .usr-select:focus,
+    html[data-theme="light"] .perfil-select:focus {
+      border-color: #2563EB !important;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12) !important;
+    }
+    html[data-theme="light"] .usr-select option,
+    html[data-theme="light"] .perfil-select option {
+      background: #FFFFFF !important; color: #0F1F36 !important;
+    }
+
+    html[data-theme="light"] .usr-btn-primary {
+      background: #1D4ED8 !important;
+      border-color: #1D4ED8 !important;
+      color: #FFFFFF !important;
+      box-shadow: 0 2px 6px rgba(37,99,235,0.25) !important;
+    }
+    html[data-theme="light"] .usr-btn-primary:hover { filter: brightness(1.05); }
+    html[data-theme="light"] .usr-btn-secondary {
+      border-color: #CBD5E1 !important;
+      color: #475569 !important;
+      background: #FFFFFF !important;
+    }
+    html[data-theme="light"] .usr-btn-secondary:hover { background: #F1F5F9 !important; }
+
+    /* Tabela — header, linhas, divisores */
+    html[data-theme="light"] .usr-table thead tr { border-bottom-color: #E2E8F0 !important; }
+    html[data-theme="light"] .usr-table th { color: #64748B !important; }
+    html[data-theme="light"] .usr-table tbody tr { border-bottom-color: #F1F5F9 !important; }
+    html[data-theme="light"] .usr-table tbody tr:hover { background: #F8FAFC !important; }
+
+    /* Avatar, nome, email, id — TEXTOS NAVY ESCURO LEGÍVEL */
+    html[data-theme="light"] .usr-avatar {
+      background: linear-gradient(135deg, #DBEAFE, #BFDBFE) !important;
+      color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] .usr-name  { color: #0F1F36 !important; font-weight: 600 !important; }
+    html[data-theme="light"] .usr-email { color: #64748B !important; }
+    html[data-theme="light"] .usr-id-tag { color: #94A3B8 !important; }
+
+    /* Badge ADV-XXXX — antes era inline preto. Tema claro: fundo lavanda */
+    html[data-theme="light"] .usr-table code {
+      background: #EFF6FF !important;
+      color: #1D4ED8 !important;
+      border: 1px solid #BFDBFE !important;
+    }
+    html[data-theme="light"] .usr-table button[title="Copiar"] { color: #94A3B8 !important; }
+    html[data-theme="light"] .usr-table button[title="Copiar"]:hover { color: #1D4ED8 !important; }
+
+    /* Badges Perfil/Status */
+    html[data-theme="light"] .badge-admin {
+      background: #DBEAFE !important; color: #1D4ED8 !important;
+      border-color: #93C5FD !important;
+    }
+    html[data-theme="light"] .badge-user {
+      background: #D1FAE5 !important; color: #047857 !important;
+      border-color: #6EE7B7 !important;
+    }
+    html[data-theme="light"] .badge-other {
+      background: #F1F5F9 !important; color: #475569 !important;
+      border-color: #CBD5E1 !important;
+    }
+    html[data-theme="light"] .badge-active {
+      background: #D1FAE5 !important; color: #047857 !important;
+      border-color: #6EE7B7 !important;
+    }
+    html[data-theme="light"] .badge-inactive {
+      background: #F1F5F9 !important; color: #94A3B8 !important;
+      border-color: #CBD5E1 !important;
+    }
+
+    /* Botões de ação na tabela */
+    html[data-theme="light"] .btn-edit {
+      background: #DBEAFE !important; color: #1D4ED8 !important;
+      border-color: #93C5FD !important;
+    }
+    html[data-theme="light"] .btn-edit:hover { background: #BFDBFE !important; }
+    html[data-theme="light"] .btn-del {
+      background: #FEE2E2 !important; color: #DC2626 !important;
+      border-color: #FECACA !important;
+    }
+    html[data-theme="light"] .btn-del:hover { background: #FECACA !important; }
+
+    /* Boas práticas de segurança */
+    html[data-theme="light"] .tip-item {
+      background: #F8FAFC !important;
+      border-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] .tip-icon {
+      background: #DBEAFE !important; color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] .tip-text { color: #475569 !important; }
+
+    /* H3 dentro de painéis (Equipe, Boas práticas, Setores) */
+    html[data-theme="light"] .usr-panel h3 { color: #0F1F36 !important; }
+    html[data-theme="light"] .usr-panel h3 svg { color: #1E4A8A !important; }
+    html[data-theme="light"] .usr-panel p { color: #64748B !important; }
+
+    /* Setores (Times) */
+    html[data-theme="light"] .team-card {
+      background: #FFFFFF !important;
+      border-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] .team-card:hover {
+      border-color: #CBD5E1 !important;
+      box-shadow: 0 6px 18px rgba(15,31,54,0.08) !important;
+    }
+    html[data-theme="light"] .team-name  { color: #0F1F36 !important; }
+    html[data-theme="light"] .team-desc  { color: #64748B !important; }
+    html[data-theme="light"] .team-member-count { color: #64748B !important; }
+    html[data-theme="light"] .team-avatar-sm {
+      background: linear-gradient(135deg, #DBEAFE, #BFDBFE) !important;
+      color: #1D4ED8 !important;
+      border-color: #FFFFFF !important;
+    }
+
+    /* Modal Novo/Editar Usuário */
+    html[data-theme="light"] .usr-modal-overlay { background: rgba(15,31,54,0.45) !important; }
+    html[data-theme="light"] .usr-modal {
+      background: #FFFFFF !important;
+      border-color: #E2E8F0 !important;
+      box-shadow: 0 24px 60px rgba(15,31,54,0.18) !important;
+    }
+    html[data-theme="light"] .usr-modal-header {
+      background: #F8FAFC !important;
+      border-bottom-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] .usr-modal-title { color: #0F1F36 !important; }
+    html[data-theme="light"] .usr-modal-section {
+      border-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] .usr-modal-section-title {
+      background: #EFF6FF !important; color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] .field-label { color: #475569 !important; }
+    html[data-theme="light"] .field-input {
+      background: #FFFFFF !important;
+      background-color: #FFFFFF !important;
+      border-color: #CBD5E1 !important;
+      color: #0F1F36 !important;
+      -webkit-text-fill-color: #0F1F36 !important;
+      color-scheme: light;
+    }
+    html[data-theme="light"] .field-input::placeholder { color: #94A3B8 !important; }
+    html[data-theme="light"] .field-input:focus { border-color: #2563EB !important; }
+    html[data-theme="light"] .field-input:-webkit-autofill,
+    html[data-theme="light"] .field-input:-webkit-autofill:hover,
+    html[data-theme="light"] .field-input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+      -webkit-text-fill-color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .usr-modal-footer {
+      background: #F8FAFC !important;
+      border-top-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] .modal-btn-cancel {
+      background: #FFFFFF !important;
+      border-color: #CBD5E1 !important;
+      color: #475569 !important;
+    }
+    html[data-theme="light"] .modal-btn-cancel:hover { background: #F1F5F9 !important; }
+
+    /* Permissões checkboxes */
+    html[data-theme="light"] .perm-item {
+      background: #F8FAFC !important;
+      border-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] .perm-item:hover {
+      background: #EFF6FF !important; border-color: #93C5FD !important;
+    }
+    html[data-theme="light"] .perm-item.checked {
+      background: #DBEAFE !important; border-color: #2563EB !important;
+    }
+    html[data-theme="light"] .perm-item label { color: #1E4A8A !important; }
+
+    /* Team member picker */
+    html[data-theme="light"] .tm-avatar {
+      background: linear-gradient(135deg, #DBEAFE, #BFDBFE) !important;
+      color: #1D4ED8 !important;
+      border-color: #BFDBFE !important;
+    }
+    html[data-theme="light"] .tm-name { color: #0F1F36 !important; }
+
+    /* Mobile (cards) */
+    html[data-theme="light"] .usr-table td::before { color: #64748B !important; }
+    @media (max-width: 900px) {
+      html[data-theme="light"] .usr-table tbody tr {
+        background: #FFFFFF !important;
+        border-color: #E2E8F0 !important;
+      }
+    }
   </style>
 </head>
 <body>
