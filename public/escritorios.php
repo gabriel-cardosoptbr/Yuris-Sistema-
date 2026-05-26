@@ -336,8 +336,12 @@ $isAdmin    = in_array($userRole, ['owner', 'admin']) || ($_SESSION['user_perfil
 
       <!-- Tabs -->
       <div class="es-tabs">
+        <?php if ($accountTipo !== 'advogado'): ?>
         <button class="es-tab active" onclick="switchTab('vinculos')">Vínculos</button>
         <button class="es-tab" onclick="switchTab('advogados')">Advogados Associados</button>
+        <?php else: ?>
+        <button class="es-tab active" onclick="switchTab('advogados')">Quem me vinculou</button>
+        <?php endif; ?>
         <button class="es-tab" onclick="switchTab('compartilhamentos')">Compartilhamentos</button>
         <button class="es-tab" onclick="switchTab('modulos')">Módulos</button>
         <?php if ($isAdmin && $accountTipo === 'filial'): ?>
@@ -345,7 +349,8 @@ $isAdmin    = in_array($userRole, ['owner', 'admin']) || ($_SESSION['user_perfil
         <?php endif; ?>
       </div>
 
-      <!-- ── PANE: Vínculos ── -->
+      <!-- ── PANE: Vínculos ── (escondido para advogado: ele só vê "Quem me vinculou") -->
+      <?php if ($accountTipo !== 'advogado'): ?>
       <div class="es-pane active" id="pane-vinculos">
         <div class="es-card">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
@@ -357,18 +362,47 @@ $isAdmin    = in_array($userRole, ['owner', 'admin']) || ($_SESSION['user_perfil
           <div id="vinculosList"><div class="es-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Carregando...</div></div>
         </div>
       </div>
+      <?php endif; ?>
 
-      <!-- ── PANE: Advogados ── -->
-      <div class="es-pane" id="pane-advogados">
+      <!-- ── PANE: Advogados ── (default active para conta advogado) -->
+      <div class="es-pane <?= $accountTipo === 'advogado' ? 'active' : '' ?>" id="pane-advogados">
+        <!-- Vinculos de conta (advogado_vinculos) — analogo a matriz-filial -->
         <div class="es-card">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-            <div class="es-card-title" style="margin:0">Advogados Associados</div>
-            <?php if ($isAdmin): ?>
-            <button class="btn-sm btn-primary" onclick="abrirModalConvite()">+ Novo Convite</button>
+            <div>
+              <div class="es-card-title" style="margin:0">Vínculos de conta com advogados</div>
+              <?php if ($accountTipo !== 'advogado'): ?>
+              <p style="font-size:.78rem;color:#7a96b4;margin:3px 0 0">
+                Vincule advogados pelo código <strong>ADV-XXXXXX</strong>. Tudo do escritório dele (Cards/Processos/Tarefas) fica acessível conforme as flags de sincronização.
+              </p>
+              <?php else: ?>
+              <p style="font-size:.78rem;color:#7a96b4;margin:3px 0 0">
+                Veja quais matrizes/filiais te vincularam e o que estão sincronizando.
+              </p>
+              <?php endif; ?>
+            </div>
+            <?php if ($isAdmin && $accountTipo !== 'advogado'): ?>
+            <button class="btn-sm btn-primary" onclick="abrirModalVincularAdv()">+ Vincular Advogado</button>
             <?php endif; ?>
           </div>
-          <div id="advogadosList"><div class="es-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Carregando...</div></div>
+          <div id="advogadosVinculosList"><div class="es-empty">Carregando...</div></div>
         </div>
+
+        <!-- Compartilhamentos pontuais (resource_shares legado) — apenas para hosts -->
+        <?php if ($accountTipo !== 'advogado'): ?>
+        <div class="es-card" style="margin-top:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div>
+              <div class="es-card-title" style="margin:0">Compartilhamentos pontuais por processo</div>
+              <p style="font-size:.78rem;color:#7a96b4;margin:3px 0 0">Compartilhe um processo específico (não a conta inteira). Útil para casos isolados.</p>
+            </div>
+            <?php if ($isAdmin): ?>
+            <button class="btn-sm btn-outline" onclick="abrirModalConvite()">+ Novo compartilhamento</button>
+            <?php endif; ?>
+          </div>
+          <div id="advogadosList"><div class="es-empty">Carregando...</div></div>
+        </div>
+        <?php endif; ?>
       </div>
 
       <!-- ── PANE: Compartilhamentos ── -->
@@ -554,6 +588,73 @@ $isAdmin    = in_array($userRole, ['owner', 'admin']) || ($_SESSION['user_perfil
   </div>
 </div>
 
+<!-- ── Modal: Vincular Advogado Associado (vinculo de conta) ── -->
+<div class="es-overlay" id="modalVincularAdv">
+  <div class="es-modal">
+    <h3>Vincular Advogado Associado</h3>
+    <p style="font-size:.83rem;color:#7a96b4;margin-bottom:14px;">
+      Informe o código <strong>ADV-XXXXXX</strong> do advogado solo. Após vincular, você define quais módulos (Cards / Processos / Tarefas) puxa do escritório dele.
+    </p>
+    <div class="es-field">
+      <label>Código do advogado *</label>
+      <input type="text" id="inputCodigoAdvogado" class="es-input" placeholder="Ex: ADV-3504EB">
+    </div>
+    <div id="vincularAdvMsg" style="margin-top:8px;font-size:.82rem;"></div>
+    <div class="es-modal-footer">
+      <button class="btn-sm btn-outline" onclick="document.getElementById('modalVincularAdv').classList.remove('open')">Cancelar</button>
+      <button class="btn-sm btn-primary" onclick="vincularAdvogado()">Vincular</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Sincronização do Advogado ──
+     Clone do modal de filial. Permite à host (matriz/filial) controlar quais
+     dados puxar do advogado vinculado.
+     - sync_enabled : toggle mestre
+     - sync_cards / sync_processos / sync_tarefas : flags individuais -->
+<div class="es-overlay" id="modalSyncAdv">
+  <div class="es-modal">
+    <h3>Sincronização — <span id="syncAdvNome" style="color:#93c5fd"></span></h3>
+    <p style="font-size:.83rem;color:#7a96b4;margin-bottom:14px;">
+      Controle quais dados do advogado são puxados para sua conta. As alterações são imediatas.
+    </p>
+
+    <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid rgba(96,165,250,.18);border-radius:10px;background:rgba(5,18,39,.4);margin-bottom:12px;cursor:pointer">
+      <div>
+        <div style="font-weight:700;color:#dbe9ff">Sincronização ativa</div>
+        <div style="font-size:.76rem;color:#7a96b4;margin-top:2px">Quando desligada, este advogado fica invisível para sua conta em todos os módulos.</div>
+      </div>
+      <input type="checkbox" id="syncAdvEnabled" style="width:18px;height:18px;cursor:pointer;accent-color:#2563eb">
+    </label>
+
+    <div id="syncAdvModulesGroup" style="border:1px solid rgba(160,180,210,.12);border-radius:10px;padding:8px 4px;margin-bottom:14px">
+      <div style="font-size:.74rem;color:#7a96b4;padding:4px 12px 8px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Módulos a sincronizar</div>
+      <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;cursor:pointer">
+        <span style="color:#dbe9ff">Cards / Leads (Prospecção)</span>
+        <input type="checkbox" id="syncAdvCards" style="width:16px;height:16px;cursor:pointer;accent-color:#2563eb">
+      </label>
+      <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;cursor:pointer">
+        <span style="color:#dbe9ff">Processos</span>
+        <input type="checkbox" id="syncAdvProcessos" style="width:16px;height:16px;cursor:pointer;accent-color:#2563eb">
+      </label>
+      <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;cursor:pointer">
+        <span style="color:#dbe9ff">Tarefas</span>
+        <input type="checkbox" id="syncAdvTarefas" style="width:16px;height:16px;cursor:pointer;accent-color:#2563eb">
+      </label>
+      <div style="padding:6px 14px 8px;border-top:1px solid rgba(160,180,210,.08);margin-top:4px;display:flex;gap:8px">
+        <button type="button" class="btn-sm" style="background:transparent;border:1px solid rgba(96,165,250,.3);color:#93c5fd;font-size:.72rem" onclick="syncAdvSetAll(true)">Marcar tudo</button>
+        <button type="button" class="btn-sm" style="background:transparent;border:1px solid rgba(160,180,210,.2);color:#9ab0c9;font-size:.72rem" onclick="syncAdvSetAll(false)">Desmarcar tudo</button>
+      </div>
+    </div>
+
+    <div id="syncAdvMsg" style="margin-top:8px;font-size:.82rem;"></div>
+    <div class="es-modal-footer">
+      <button class="btn-sm btn-outline" onclick="document.getElementById('modalSyncAdv').classList.remove('open')">Cancelar</button>
+      <button class="btn-sm btn-primary" onclick="salvarSyncAdv()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── Modal: Solicitar Vínculo ── -->
 <div class="es-overlay" id="modalSolicitar">
   <div class="es-modal">
@@ -651,7 +752,10 @@ function switchTab(name) {
   document.querySelectorAll('.es-pane').forEach(p => p.classList.remove('active'));
   document.getElementById('pane-' + name)?.classList.add('active');
   if (name === 'vinculos') carregarVinculos();
-  if (name === 'advogados') carregarAdvogados();
+  if (name === 'advogados') {
+    carregarAdvogadosVinculos();
+    if (ACCOUNT_TIPO !== 'advogado') carregarAdvogados(); // resource_shares legado
+  }
   if (name === 'compartilhamentos') carregarShares();
 }
 
@@ -816,7 +920,169 @@ async function solicitarVinculo() {
   }
 }
 
-// ── Advogados Associados (via resource_shares) ────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+// Vínculos de CONTA com advogados (advogado_vinculos) — analogo a matriz↔filial
+// ════════════════════════════════════════════════════════════════════════════
+async function carregarAdvogadosVinculos() {
+  const el = document.getElementById('advogadosVinculosList');
+  if (!el) return;
+  el.innerHTML = '<div class="es-empty">Carregando...</div>';
+  const r = await api('/sistema_vendas/public/api/advogado_vinculos.php');
+  const lista = r.data || [];
+  if (!lista.length) {
+    if (ACCOUNT_TIPO === 'advogado') {
+      el.innerHTML = `<div class="es-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Nenhuma matriz/filial te vinculou ainda.</div>`;
+    } else {
+      el.innerHTML = `<div class="es-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Nenhum advogado vinculado. Clique em "Vincular Advogado" para começar.</div>`;
+    }
+    return;
+  }
+
+  // Layout depende do papel: se sou advogado, mostro quem me vinculou (host).
+  // Se sou matriz/filial, mostro os advogados vinculados.
+  const iAmAdvogado = ACCOUNT_TIPO === 'advogado';
+
+  el.innerHTML = `<table class="es-table">
+    <thead><tr>
+      <th>${iAmAdvogado ? 'Vinculado por' : 'Advogado'}</th>
+      <th>Status</th>
+      <th>Desde</th>
+      ${IS_ADMIN && !iAmAdvogado ? '<th>Ações</th>' : ''}
+    </tr></thead>
+    <tbody>${lista.map(v => {
+      const nome = iAmAdvogado
+        ? (v.host_nome || `Conta #${v.host_account_id}`) + (v.host_tipo === 'filial' ? ' (Filial)' : (v.host_tipo === 'matriz' ? ' (Matriz)' : ''))
+        : (v.advogado_nome || `Conta #${v.advogado_account_id}`) + (v.advogado_oab ? ' · OAB ' + v.advogado_oab : '');
+
+      // Badge de sync — só faz sentido quando vínculo está active
+      let syncBadge = '';
+      if (v.status === 'active') {
+        const syncOn = parseInt(v.sync_enabled ?? 1) === 1;
+        const mods = [];
+        if (parseInt(v.sync_cards ?? 1)     === 1) mods.push('Cards');
+        if (parseInt(v.sync_processos ?? 1) === 1) mods.push('Processos');
+        if (parseInt(v.sync_tarefas ?? 1)   === 1) mods.push('Tarefas');
+        if (syncOn) {
+          syncBadge = `<span class="badge" style="font-size:.7rem;background:rgba(34,197,94,.18);color:#86efac;border:1px solid rgba(34,197,94,.3);padding:2px 8px;border-radius:6px;font-weight:600">Sincronizado · ${mods.length}/3</span>`;
+        } else {
+          syncBadge = `<span class="badge" style="font-size:.7rem;background:rgba(160,180,210,0.1);color:#9ab0c9;border:1px solid rgba(160,180,210,0.2);padding:2px 8px;border-radius:6px;font-weight:600">Sync desligado</span>`;
+        }
+      }
+
+      // Ações só pro host (matriz/filial), não pro advogado
+      const acoes = (IS_ADMIN && !iAmAdvogado) ? `
+        ${v.status === 'active' ? `<button class="btn-sm" style="background:rgba(37,99,235,.18);color:#93c5fd;border:1px solid rgba(37,99,235,.3)" onclick='abrirSyncModalAdv(${JSON.stringify(v)})'>Sincronização</button>` : ''}
+        ${v.status === 'active' ? `<button class="btn-sm btn-danger" onclick="suspenderVinculoAdv(${v.id})">Suspender</button>` : ''}
+        ${v.status === 'suspended' ? `<button class="btn-sm btn-success" onclick="reativarVinculoAdv(${v.id})">Reativar</button>` : ''}
+      ` : '';
+
+      return `<tr>
+        <td>${nome}</td>
+        <td><span class="badge badge-${v.status}">${v.status}</span>${syncBadge ? ' ' + syncBadge : ''}</td>
+        <td style="color:#4a5568">${(v.created_at||'').slice(0,10)}</td>
+        ${(IS_ADMIN && !iAmAdvogado) ? `<td style="display:flex;gap:6px;flex-wrap:wrap">${acoes}</td>` : ''}
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+function abrirModalVincularAdv() {
+  document.getElementById('inputCodigoAdvogado').value = '';
+  document.getElementById('vincularAdvMsg').textContent = '';
+  document.getElementById('modalVincularAdv').classList.add('open');
+}
+
+async function vincularAdvogado() {
+  const codigo = document.getElementById('inputCodigoAdvogado').value.trim();
+  const msg    = document.getElementById('vincularAdvMsg');
+  if (!codigo) { msg.innerHTML = '<span style="color:#fca5a5">Informe o código ADV-XXXXXX.</span>'; return; }
+  msg.innerHTML = '<span style="color:#7a96b4">Vinculando...</span>';
+  const r = await api('/sistema_vendas/public/api/advogado_vinculos.php', {
+    method: 'POST', body: JSON.stringify({ codigo_advogado: codigo, csrf_token: CSRF })
+  });
+  if (r.success || r.ok) {
+    msg.innerHTML = `<span style="color:#86efac">Vínculo criado! ${r.advogado?.nome ? '— ' + r.advogado.nome : ''}</span>`;
+    setTimeout(() => {
+      document.getElementById('modalVincularAdv').classList.remove('open');
+      carregarAdvogadosVinculos();
+    }, 1200);
+  } else {
+    msg.innerHTML = `<span style="color:#fca5a5">${r.error || 'Erro ao vincular.'}</span>`;
+  }
+}
+
+// Modal de sincronização do advogado (clone do modal filial)
+let _syncAdvVinculoId = null;
+function abrirSyncModalAdv(v) {
+  _syncAdvVinculoId = v.id;
+  document.getElementById('syncAdvNome').textContent = v.advogado_nome || `Conta #${v.advogado_account_id}`;
+  document.getElementById('syncAdvEnabled').checked   = parseInt(v.sync_enabled ?? 1)   === 1;
+  document.getElementById('syncAdvCards').checked     = parseInt(v.sync_cards ?? 1)     === 1;
+  document.getElementById('syncAdvProcessos').checked = parseInt(v.sync_processos ?? 1) === 1;
+  document.getElementById('syncAdvTarefas').checked   = parseInt(v.sync_tarefas ?? 1)   === 1;
+  document.getElementById('syncAdvMsg').textContent   = '';
+  _syncAdvToggleModulesUI();
+  document.getElementById('modalSyncAdv').classList.add('open');
+}
+function syncAdvSetAll(value) {
+  document.getElementById('syncAdvCards').checked     = value;
+  document.getElementById('syncAdvProcessos').checked = value;
+  document.getElementById('syncAdvTarefas').checked   = value;
+}
+function _syncAdvToggleModulesUI() {
+  const on = document.getElementById('syncAdvEnabled').checked;
+  const grp = document.getElementById('syncAdvModulesGroup');
+  grp.style.opacity       = on ? '1' : '.45';
+  grp.style.pointerEvents = on ? 'auto' : 'none';
+}
+document.addEventListener('change', e => {
+  if (e.target && e.target.id === 'syncAdvEnabled') _syncAdvToggleModulesUI();
+});
+
+async function salvarSyncAdv() {
+  if (!_syncAdvVinculoId) return;
+  const payload = {
+    id: _syncAdvVinculoId,
+    action: 'update_sync',
+    sync_enabled:   document.getElementById('syncAdvEnabled').checked   ? 1 : 0,
+    sync_cards:     document.getElementById('syncAdvCards').checked     ? 1 : 0,
+    sync_processos: document.getElementById('syncAdvProcessos').checked ? 1 : 0,
+    sync_tarefas:   document.getElementById('syncAdvTarefas').checked   ? 1 : 0,
+    csrf_token: CSRF
+  };
+  const r = await api('/sistema_vendas/public/api/advogado_vinculos.php', {
+    method: 'PATCH', body: JSON.stringify(payload)
+  });
+  if (r.success || r.ok) {
+    toast('Sincronização atualizada.', 'ok');
+    document.getElementById('modalSyncAdv').classList.remove('open');
+    carregarAdvogadosVinculos();
+  } else {
+    document.getElementById('syncAdvMsg').innerHTML = `<span style="color:#fca5a5">${r.error || 'Erro ao salvar.'}</span>`;
+  }
+}
+
+async function suspenderVinculoAdv(id) {
+  const motivo = await Yuris.prompt('Motivo da suspensão:', {
+    title: 'Suspender vínculo de advogado',
+    placeholder: 'Opcional — explique brevemente o motivo',
+    okLabel: 'Suspender',
+  });
+  if (motivo === null) return;
+  const r = await api('/sistema_vendas/public/api/advogado_vinculos.php', {
+    method: 'PATCH', body: JSON.stringify({ id, action: 'suspender', motivo, csrf_token: CSRF })
+  });
+  (r.success || r.ok) ? (toast('Vínculo suspenso.', 'ok'), carregarAdvogadosVinculos()) : toast(r.error || 'Erro', 'err');
+}
+
+async function reativarVinculoAdv(id) {
+  const r = await api('/sistema_vendas/public/api/advogado_vinculos.php', {
+    method: 'PATCH', body: JSON.stringify({ id, action: 'reativar', csrf_token: CSRF })
+  });
+  (r.success || r.ok) ? (toast('Vínculo reativado.', 'ok'), carregarAdvogadosVinculos()) : toast(r.error || 'Erro', 'err');
+}
+
+// ── Advogados Associados (via resource_shares — compartilhamentos pontuais) ──
 async function carregarAdvogados() {
   const el = document.getElementById('advogadosList');
   el.innerHTML = '<div class="es-empty">Carregando...</div>';
@@ -1133,14 +1399,22 @@ switchTab = function(name) {
   document.querySelectorAll('.es-pane').forEach(p => p.classList.remove('active'));
   document.getElementById('pane-' + name)?.classList.add('active');
   if (name === 'vinculos') carregarVinculos();
-  if (name === 'advogados') carregarAdvogados();
+  if (name === 'advogados') {
+    carregarAdvogadosVinculos();
+    if (ACCOUNT_TIPO !== 'advogado') carregarAdvogados();
+  }
   if (name === 'compartilhamentos') carregarShares();
   if (name === 'modulos') carregarModulos();
 };
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 carregarConta();
-carregarVinculos();
+// Aba default: vínculos pra matriz/filial, advogados pra conta advogado
+if (ACCOUNT_TIPO === 'advogado') {
+  carregarAdvogadosVinculos();
+} else {
+  carregarVinculos();
+}
 </script>
 </body>
 </html>

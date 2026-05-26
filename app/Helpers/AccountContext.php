@@ -345,6 +345,37 @@ class AccountContext
             }
         }
 
+        // ── Advogados associados vinculados a esta conta ─────────────────────
+        // Tanto matriz QUANTO filial podem vincular advogados (advogado_vinculos).
+        // Quando vínculo está active + sync_enabled=1 + sync_<module>=1, a host
+        // vê tudo do advogado naquele módulo (Cards/Processos/Tarefas).
+        // Espelha exatamente a lógica de filial.
+        if ($this->accountTipo !== 'advogado') {
+            try {
+                if (!class_exists('App\\Models\\AdvogadoVinculo')) {
+                    require_once __DIR__ . '/../Models/AdvogadoVinculo.php';
+                }
+                // Mapeia $module pra string usada no método (cards/processos/tarefas/'')
+                $modKey = match (self::_syncFlagForModule($module)) {
+                    'sync_cards'     => 'cards',
+                    'sync_processos' => 'processos',
+                    'sync_tarefas'   => 'tarefas',
+                    default          => '',  // só checa sync_enabled
+                };
+                $advogadoIds = \App\Models\AdvogadoVinculo::advogadosAtivosDeHost($this->accountId, $modKey);
+                foreach ($advogadoIds as $aid) {
+                    if ($aid > 0 && !in_array($aid, $ids, true)) $ids[] = $aid;
+                }
+            } catch (\Throwable $e) {
+                error_log('[AccountContext::getAccessibleAccountIds:advogado] ' . $e->getMessage());
+            }
+        }
+        // Observação: quando ESTA conta é o advogado, NÃO inclui automaticamente
+        // a host. Advogado solo continua vendo só dados próprios — a colaboração
+        // acontece via processos compartilhados (resource_shares) ou quando a host
+        // puxa dados pra DENTRO dela. O painel "Quem me vinculou" do advogado é
+        // só leitura informacional.
+
         // Inclui contas que liberaram este módulo para mim (account ou user)
         if ($module !== null && $module !== '') {
             try {
