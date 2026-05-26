@@ -86,6 +86,39 @@ try {
         $filters['data_fim']    = $hoje;
     }
 
+    // ── Validação pré-voo: datas futuras quebram a DJEN com 422 ─────────
+    // A DJEN só tem publicações até o dia útil corrente. Se o relógio do
+    // servidor está no futuro (ex: ambiente de teste em 2026), a chamada
+    // retorna 422 sem mensagem útil. Devolve erro local amigável.
+    $hojeReal = date('Y-m-d');
+    $dInicio  = $filters['data_inicio'] ?: null;
+    $dFim     = $filters['data_fim']    ?: null;
+    if ($dInicio && $dInicio > $hojeReal) {
+        http_response_code(400);
+        echo json_encode([
+            'error' => "Data início ({$dInicio}) é futura — a DJEN só tem dados até {$hojeReal}.",
+        ]);
+        exit;
+    }
+    if ($dFim && $dFim > $hojeReal) {
+        http_response_code(400);
+        echo json_encode([
+            'error' => "Data fim ({$dFim}) é futura — a DJEN só tem dados até {$hojeReal}.",
+        ]);
+        exit;
+    }
+    // Janela máxima da DJEN: ~90 dias por requisição
+    if ($dInicio && $dFim) {
+        $diff = (strtotime($dFim) - strtotime($dInicio)) / 86400;
+        if ($diff > 90) {
+            http_response_code(400);
+            echo json_encode([
+                'error' => "Período muito longo (" . (int)$diff . " dias). Máximo aceito pela DJEN: 90 dias por busca.",
+            ]);
+            exit;
+        }
+    }
+
     // Provider DJEN
     EnvLoader::load();
     $baseUrl = EnvLoader::get('DJEN_BASE_URL', 'https://comunicaapi.pje.jus.br/api/v1');

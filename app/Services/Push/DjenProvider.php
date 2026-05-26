@@ -83,7 +83,34 @@ final class DjenProvider implements ProviderInterface
             throw new \RuntimeException("DJEN: servidor retornou {$status}");
         }
         if ($status >= 400) {
-            throw new \RuntimeException("DJEN: requisição rejeitada ({$status}) — verificar filtros");
+            // Inclui o body (curto) no erro pra ajudar a diagnosticar — antes
+            // o usuário só via 'rejeitada (422)' sem saber se era data invalida,
+            // OAB inexistente, filtro fora do permitido, etc.
+            $body = '';
+            $decoded = json_decode((string)$rawResp, true);
+            if (is_array($decoded)) {
+                // Mensagens conhecidas da API DJEN
+                $body = (string)($decoded['detail']
+                    ?? $decoded['message']
+                    ?? $decoded['error']
+                    ?? $decoded['title']
+                    ?? '');
+                // Se tiver erros por campo (FastAPI/Pydantic), achata
+                if ($body === '' && isset($decoded['errors']) && is_array($decoded['errors'])) {
+                    $parts = [];
+                    foreach ($decoded['errors'] as $e) {
+                        if (is_array($e)) {
+                            $parts[] = ($e['field'] ?? '?') . ': ' . ($e['msg'] ?? $e['message'] ?? '?');
+                        } elseif (is_string($e)) {
+                            $parts[] = $e;
+                        }
+                    }
+                    $body = implode(' | ', $parts);
+                }
+            }
+            if ($body === '') $body = mb_substr((string)$rawResp, 0, 200);
+            $hint = $body !== '' ? " — {$body}" : ' — verificar filtros';
+            throw new \RuntimeException("DJEN: requisição rejeitada ({$status}){$hint}");
         }
 
         $decoded = json_decode($rawResp, true);
