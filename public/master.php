@@ -2959,8 +2959,17 @@ async function loadBilling() {
         · <span style="color:#cbd5e1">${i18nBadge(m.billing_cycle)}</span>
         · ${valor}
         ${m.expires_at ? `<br><small style="color:#9ab0c9">expira ${fmtDate(m.expires_at)}</small>` : ''}
-        <button class="btn-mst btn-mst-danger" style="float:right; padding:2px 8px; font-size:.7rem" onclick="revokeMonitorOverride(${m.id})">Cancelar</button>
       </div>`);
+    });
+
+    // Ações empilhadas: Editar conta sempre + Cancelar por monitor.
+    // Tudo alinhado na coluna Ações pra não ter botão flutuando dentro
+    // de items na coluna Produtos.
+    const acoes = [];
+    acoes.push(`<button class="btn-mst" onclick="openEditAccount(${g.account_id})" style="display:block; width:100%; margin-bottom:6px">Editar conta</button>`);
+    g.monitors.forEach(m => {
+      const label = m.contract_ref ? esc(m.contract_ref) : `monitor #${m.id}`;
+      acoes.push(`<button class="btn-mst btn-mst-danger" onclick="revokeMonitorOverride(${m.id})" style="display:block; width:100%; padding:4px 10px; font-size:.72rem; margin-bottom:4px" title="Revogar assinatura de monitor">Cancelar ${label}</button>`);
     });
 
     return `
@@ -2968,9 +2977,7 @@ async function loadBilling() {
         <td style="vertical-align:top">${tags.join('')}</td>
         <td style="vertical-align:top"><strong>${esc(g.account_nome)}</strong></td>
         <td>${itens.join('')}</td>
-        <td style="vertical-align:top">
-          <button class="btn-mst" onclick="openEditAccount(${g.account_id})">Editar conta</button>
-        </td>
+        <td style="vertical-align:top; min-width:160px">${acoes.join('')}</td>
       </tr>`;
   }).join('');
 }
