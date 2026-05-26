@@ -1294,18 +1294,35 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
         </div>
 
         <!-- ── Monitoramentos (add-on) ─────────────────────────────────
-             Cobrado por unidade. NÃO incluído no plano. Master libera
-             via grant gratuito OU registra compra (preparado pra gateway).
+             Inline edit: input direto pra ajustar o total contratado.
+             "+ Registrar compra" continua disponível pra contratos
+             comerciais com metadados (preço/ciclo/nº contrato).
         -->
         <div class="mst-form-section">Monitoramentos (add-on)</div>
-        <div id="editAccMonitorSummary" style="background:rgba(91,155,213,.06); border:1px solid rgba(91,155,213,.18); border-radius:8px; padding:10px 14px; margin-bottom:10px; display:flex; gap:18px; align-items:center; flex-wrap:wrap">
-          <div><div class="label" style="font-size:.7rem; color:#9ab0c9">CONTRATADOS</div><div style="font-size:1.25rem; font-weight:700" id="editAccMonLimit">—</div></div>
-          <div><div class="label" style="font-size:.7rem; color:#9ab0c9">EM USO</div><div style="font-size:1.25rem; font-weight:700" id="editAccMonUsed">—</div></div>
-          <div><div class="label" style="font-size:.7rem; color:#9ab0c9">DISPONÍVEL</div><div style="font-size:1.25rem; font-weight:700" id="editAccMonAvail">—</div></div>
-          <div style="margin-left:auto; display:flex; gap:6px">
-            <button type="button" class="btn-mst btn-mst-primary" onclick="openGrantMonitorModal()">+ Liberar grant</button>
-            <button type="button" class="btn-mst" onclick="openPurchaseMonitorModal()">+ Registrar compra</button>
+        <div id="editAccMonitorSummary" style="background:rgba(91,155,213,.06); border:1px solid rgba(91,155,213,.18); border-radius:8px; padding:12px 14px; margin-bottom:10px; display:flex; gap:18px; align-items:center; flex-wrap:wrap">
+          <div style="flex:0 0 auto">
+            <div class="label" style="font-size:.7rem; color:#9ab0c9; margin-bottom:4px">CONTRATADOS</div>
+            <div style="display:flex; gap:6px; align-items:center">
+              <input type="number" id="editAccMonLimit" min="0" max="9999" value="0"
+                     class="mst-form-input" style="width:80px; font-size:1.15rem; font-weight:700; text-align:center">
+              <button type="button" class="btn-mst btn-mst-primary" onclick="saveMonitorLimit()" style="padding:7px 14px">Salvar</button>
+            </div>
           </div>
+          <div>
+            <div class="label" style="font-size:.7rem; color:#9ab0c9">EM USO</div>
+            <div style="font-size:1.25rem; font-weight:700" id="editAccMonUsed">—</div>
+          </div>
+          <div>
+            <div class="label" style="font-size:.7rem; color:#9ab0c9">DISPONÍVEL</div>
+            <div style="font-size:1.25rem; font-weight:700" id="editAccMonAvail">—</div>
+          </div>
+          <div style="margin-left:auto">
+            <button type="button" class="btn-mst" onclick="openPurchaseMonitorModal()" title="Registrar contrato comercial com nº de contrato, preço, ciclo">+ Registrar compra/contrato</button>
+          </div>
+        </div>
+        <div style="font-size:.74rem; color:#9ab0c9; margin-top:-4px; margin-bottom:10px">
+          ↑ Edite o número e clique <strong>Salvar</strong> pra adicionar ou remover monitoramentos.
+          Use <strong>+ Registrar compra</strong> só pra contratos comerciais com nº de contrato e preço.
         </div>
         <div id="editAccMonOverrides" style="font-size:.85rem"></div>
         <!-- ────────────────────────────────────────────────────────── -->
@@ -3399,7 +3416,11 @@ async function openEditAccount(id) {
     document.getElementById('editAccSubId').value = '';
   }
 
-  // Carrega cota de monitoramentos (Etapa 6 add-on)
+  // Carrega cota de monitoramentos (Etapa 6 add-on).
+  // IMPORTANTE: setamos window._editAccCurrentId AQUI (sincrono) pra
+  // garantir que botões/inputs funcionam mesmo se o user clicar antes
+  // da chamada AJAX a /quotas.php completar (race condition fix).
+  window._editAccCurrentId = id;
   loadEditAccMonitorQuota(id);
 
   openModal('modalEditAccount');
@@ -3411,7 +3432,11 @@ async function openEditAccount(id) {
  * grant/purchase/revoke. Endpoint: /api/master/quotas.php?account_id=X.
  */
 async function loadEditAccMonitorQuota(accountId) {
-  document.getElementById('editAccMonLimit').textContent = '…';
+  // window._editAccCurrentId já foi setado sincronamente em openEditAccount()
+  // — não precisa esperar AJAX.
+  const limitInput = document.getElementById('editAccMonLimit');
+  limitInput.value = '…';
+  limitInput.disabled = true;
   document.getElementById('editAccMonUsed').textContent  = '…';
   document.getElementById('editAccMonAvail').textContent = '…';
   document.getElementById('editAccMonOverrides').innerHTML = '<div class="empty">Carregando…</div>';
@@ -3419,13 +3444,14 @@ async function loadEditAccMonitorQuota(accountId) {
   const r = await fj(`${API}/quotas.php?account_id=${accountId}`);
   if (!r.ok) {
     document.getElementById('editAccMonOverrides').innerHTML = `<div class="empty">Erro: ${esc(r.error||'desconhecido')}</div>`;
+    limitInput.disabled = false;
     return;
   }
   const q = r.data;
-  // Stash do ID atual pra usar nos handlers de grant/purchase
-  window._editAccCurrentId = accountId;
 
-  document.getElementById('editAccMonLimit').textContent = q.effective_limit || 0;
+  limitInput.value = q.effective_limit || 0;
+  limitInput.disabled = false;
+  limitInput.dataset.original = q.effective_limit || 0; // pra comparar em saveMonitorLimit
   document.getElementById('editAccMonUsed').textContent  = q.current_usage  || 0;
   const avail = q.available || 0;
   const availEl = document.getElementById('editAccMonAvail');
@@ -3459,8 +3485,54 @@ async function loadEditAccMonitorQuota(accountId) {
 }
 
 /**
+ * Salva o novo total contratado (inline edit).
+ * Backend (/api/master/quotas.php POST com set_total) calcula delta:
+ *   - delta > 0: cria grant master_grant com a diferença
+ *   - delta < 0: revoga overrides ativos (FIFO) até cobrir a redução
+ *   - delta == 0: no-op
+ */
+async function saveMonitorLimit() {
+  const accId = window._editAccCurrentId;
+  if (!accId) return notifyErr('Abra primeiro o modal Editar Conta');
+
+  const limitInput = document.getElementById('editAccMonLimit');
+  const novo  = parseInt(limitInput.value, 10);
+  const orig  = parseInt(limitInput.dataset.original || '0', 10);
+  if (isNaN(novo) || novo < 0) return notifyErr('Informe um número válido (0 ou mais)');
+  if (novo === orig) return notifyOk('Sem mudanças.');
+
+  // Se reduzir, confirma — pode afetar overrides existentes
+  if (novo < orig) {
+    const diff = orig - novo;
+    const used = parseInt(document.getElementById('editAccMonUsed').textContent, 10) || 0;
+    let warn = `Reduzir de ${orig} para ${novo} monitoramentos (-${diff})?`;
+    if (used > novo) {
+      warn += `\n\n⚠️ Cliente já usa ${used} — vai ficar acima do novo limite. Os monitors existentes NÃO serão removidos, mas novos cadastros serão bloqueados.`;
+    }
+    if (!(await Yuris.confirm(warn, {danger:true, okLabel:'Reduzir'}))) {
+      limitInput.value = orig;
+      return;
+    }
+  }
+
+  // Disable durante request pra evitar duplo clique
+  limitInput.disabled = true;
+  const r = await fj(`${API}/quotas.php`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRF-Token':CSRF},
+    body: JSON.stringify({csrf_token: CSRF, account_id: accId, set_total: novo}),
+  });
+  limitInput.disabled = false;
+  if (!r.ok) return notifyErr(r.error);
+
+  notifyOk(r.data.message || 'Cota atualizada');
+  loadEditAccMonitorQuota(accId);
+  loadAccounts();
+}
+
+/**
  * Abre modal pra liberar GRANT gratuito (cortesia/promo).
- * Usa window._editAccCurrentId que loadEditAccMonitorQuota deixou.
+ * Usa window._editAccCurrentId que openEditAccount setou.
  */
 function openGrantMonitorModal() {
   const accId = window._editAccCurrentId;

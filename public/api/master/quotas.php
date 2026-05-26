@@ -112,26 +112,166 @@ if ($method === 'GET') {
 }
 
 // ──────────────────────────────────────────────────────────────────────
-// POST — criar override (grant ou purchase)
+// POST — criar override (grant ou purchase) OU set_total (atalho UX)
 // ──────────────────────────────────────────────────────────────────────
+//
+// 2 modos:
+//  (a) Delta explícito (modo original):
+//      {account_id, limit_value, source: 'master_grant'|'purchase', ...}
+//      Insere 1 row em account_quota_overrides com a quantidade.
+//
+//  (b) set_total (modo UX inline — adicionado 2026-05-26):
+//      {account_id, set_total: N}
+//      Calcula delta = N - effective_limit_atual.
+//        - delta > 0: cria grant master_grant com a diferença
+//        - delta < 0: revoga overrides ativos até liberar a diferença
+//                      (FIFO — mais antigos primeiro pra preservar
+//                       purchases recentes que importam comercialmente)
+//        - delta == 0: no-op
+//      Útil pra "Editar contratado" inline no Master UI.
+//
 if ($method === 'POST') {
     $accountId  = (int) ($input['account_id'] ?? 0);
-    $limitValue = (int) ($input['limit_value'] ?? $input['qtd'] ?? 0);
-    $source     = trim($input['source'] ?? 'master_grant');
-
     if ($accountId <= 0) ApiResponse::badRequest('account_id obrigatório');
-    if ($limitValue <= 0) ApiResponse::badRequest('limit_value/qtd deve ser maior que zero');
-
-    $sourceAllowed = ['master_grant', 'purchase', 'trial', 'promo'];
-    if (!in_array($source, $sourceAllowed, true)) {
-        ApiResponse::badRequest("source inválido. Aceitos: " . implode(', ', $sourceAllowed));
-    }
 
     // Conta tem de existir
     $accStmt = $pdo->prepare('SELECT id, nome FROM accounts WHERE id = :id LIMIT 1');
     $accStmt->execute(['id' => $accountId]);
     $acc = $accStmt->fetch(\PDO::FETCH_ASSOC);
     if (!$acc) ApiResponse::notFound('Conta não encontrada');
+
+    // ── Modo (b): set_total ────────────────────────────────────────
+    if (isset($input['set_total'])) {
+        $newTotal = (int) $input['set_total'];
+        if ($newTotal < 0) ApiResponse::badRequest('set_total não pode ser negativo');
+
+        $statusAntes  = MonitorQuota::getQuotaStatus($accountId);
+        $atual        = $statusAntes['effective_limit'];
+        $delta        = $newTotal - $atual;
+
+        if ($delta === 0) {
+            ApiResponse::ok(['message' => 'Nada mudou', 'status' => $statusAntes]);
+        }
+
+        try {
+            $pdo->beginTransaction();
+
+            if ($delta > 0) {
+                // Adicionar — cria 1 grant com o delta
+                $stmt = $pdo->prepare(
+                    "INSERT INTO account_quota_overrides
+                        (account_id, feature_key, limit_value, source,
+                         set_by_super_admin_id, observacoes)
+                     VALUES
+                        (:aid, 'monitors.limit', :lv, 'master_grant',
+                         :sa, :obs)"
+                );
+                $stmt->execute([
+                    'aid' => $accountId,
+                    'lv'  => $delta,
+                    'sa'  => $superAdminId,
+                    'obs' => 'Ajuste via editar (+' . $delta . ')',
+                ]);
+                $newOverrideId = (int) $pdo->lastInsertId();
+                $opDesc = "+{$delta} (ajuste inline)";
+            } else {
+                // Reduzir — revoga overrides do mais antigo até cobrir |delta|
+                $aRevogar = abs($delta);
+                $stmt = $pdo->prepare(
+                    "SELECT id, limit_value FROM account_quota_overrides
+                       WHERE account_id = :aid AND feature_key = 'monitors.limit'
+                         AND revoked_at IS NULL
+                         AND (expires_at IS NULL OR expires_at > NOW())
+                       ORDER BY created_at ASC, id ASC"
+                );
+                $stmt->execute(['aid' => $accountId]);
+                $candidatos = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+                $sobra = $aRevogar;
+                $revogados = [];
+                foreach ($candidatos as $ovr) {
+                    if ($sobra <= 0) break;
+                    $val = (int) $ovr['limit_value'];
+
+                    if ($val <= $sobra) {
+                        // Revoga inteiro
+                        $upd = $pdo->prepare(
+                            "UPDATE account_quota_overrides
+                                SET revoked_at = NOW(),
+                                    revoked_by_super_admin_id = :sa
+                              WHERE id = :id"
+                        );
+                        $upd->execute(['sa' => $superAdminId, 'id' => $ovr['id']]);
+                        $revogados[] = (int) $ovr['id'];
+                        $sobra -= $val;
+                    } else {
+                        // Split: revoga o original e cria um novo com val-sobra
+                        $upd = $pdo->prepare(
+                            "UPDATE account_quota_overrides
+                                SET revoked_at = NOW(),
+                                    revoked_by_super_admin_id = :sa
+                              WHERE id = :id"
+                        );
+                        $upd->execute(['sa' => $superAdminId, 'id' => $ovr['id']]);
+                        $revogados[] = (int) $ovr['id'];
+
+                        $resto = $val - $sobra;
+                        $ins = $pdo->prepare(
+                            "INSERT INTO account_quota_overrides
+                                (account_id, feature_key, limit_value, source,
+                                 set_by_super_admin_id, observacoes)
+                             VALUES
+                                (:aid, 'monitors.limit', :lv, 'master_grant',
+                                 :sa, :obs)"
+                        );
+                        $ins->execute([
+                            'aid' => $accountId,
+                            'lv'  => $resto,
+                            'sa'  => $superAdminId,
+                            'obs' => "Saldo de override #{$ovr['id']} após reducao inline",
+                        ]);
+                        $sobra = 0;
+                    }
+                }
+                $opDesc = "-{$aRevogar} (ajuste inline)";
+            }
+
+            $statusDepois = MonitorQuota::getQuotaStatus($accountId);
+            MasterAudit::log(
+                'monitor.quota.set_total', 'account', $accountId,
+                "Editar inline: {$atual} → {$newTotal} ({$opDesc})",
+                ['antes' => $atual, 'depois' => $newTotal, 'delta' => $delta]
+            );
+            MonitorAudit::log(
+                $delta > 0 ? 'quota_granted' : 'quota_reduced',
+                $accountId,
+                null,
+                "Master editou cota: {$atual} → {$newTotal}",
+                ['limit_efetivo' => $atual],
+                ['limit_efetivo' => $newTotal, 'delta' => $delta]
+            );
+
+            $pdo->commit();
+            ApiResponse::ok([
+                'message' => "Cota atualizada: {$atual} → {$newTotal}",
+                'status'  => $statusDepois,
+            ]);
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            ApiResponse::serverError('Erro ao ajustar total: ' . $e->getMessage());
+        }
+    }
+
+    // ── Modo (a): delta explícito (original) ────────────────────────
+    $limitValue = (int) ($input['limit_value'] ?? $input['qtd'] ?? 0);
+    $source     = trim($input['source'] ?? 'master_grant');
+
+    if ($limitValue <= 0) ApiResponse::badRequest('limit_value/qtd deve ser maior que zero');
+
+    $sourceAllowed = ['master_grant', 'purchase', 'trial', 'promo'];
+    if (!in_array($source, $sourceAllowed, true)) {
+        ApiResponse::badRequest("source inválido. Aceitos: " . implode(', ', $sourceAllowed));
+    }
 
     // Campos opcionais (prep gateway — todos NULL por default)
     $expiresAt           = !empty($input['expires_at']) ? $input['expires_at'] : null;
