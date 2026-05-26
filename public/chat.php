@@ -1605,6 +1605,53 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
       border: 1px dashed #93C5FD !important;
       color: #1D4ED8 !important;
     }
+
+    /* ── 13) Modal "Nomes dos Contatos" — linhas .contact-row ──
+       JS antes renderizava com inline styles dark; refatorado pra classes
+       (.contact-row, .contact-jid, .contact-phone, .contact-name-input). */
+    .contact-row {
+      display: flex; align-items: center; gap: 10px;
+      background: #0D1A28;
+      border: 1px solid rgba(100,150,200,.12);
+      border-radius: 8px;
+      padding: 9px 12px;
+      margin-bottom: 6px;
+    }
+    .contact-row-info { flex: 1; min-width: 0; }
+    .contact-jid   { font-size: .72rem; color: #4A5568; word-break: break-all; }
+    .contact-phone { font-size: .75rem; color: #7EB8F7; }
+    .contact-name-input {
+      flex: 1; min-width: 0;
+      background: #1A2740;
+      border: 1px solid rgba(100,150,200,.2);
+      border-radius: 6px;
+      color: #D8E4F0;
+      padding: 6px 10px;
+      font-size: .82rem;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .contact-name-input:focus {
+      border-color: rgba(126,184,247,.5);
+      outline: none;
+    }
+
+    /* Tema claro */
+    html[data-theme="light"] .contact-row {
+      background: #F8FAFC !important;
+      border: 1px solid #E2E8F0 !important;
+    }
+    html[data-theme="light"] .contact-jid   { color: #64748B !important; }
+    html[data-theme="light"] .contact-phone { color: #1D4ED8 !important; font-weight: 600; }
+    html[data-theme="light"] .contact-name-input {
+      background: #FFFFFF !important;
+      border: 1px solid #CBD5E1 !important;
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .contact-name-input::placeholder { color: #94A3B8 !important; }
+    html[data-theme="light"] .contact-name-input:focus {
+      border-color: #2563EB !important;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12) !important;
+    }
   </style>
 </head>
 <body>
@@ -2235,7 +2282,7 @@ const API  = {
 #imgLightboxDownload:hover { background: rgba(37,99,235,.3); border-color: rgba(96,165,250,.5); }
 </style>
 
-<script src="/sistema_vendas/public/assets/chat.js?v=41"></script>
+<script src="/sistema_vendas/public/assets/chat.js?v=42"></script>
 <script>
 // Lightbox init
 (function(){

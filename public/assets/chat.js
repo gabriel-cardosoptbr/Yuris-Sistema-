@@ -1219,13 +1219,13 @@ const ChatApp = (() => {
         return;
       }
       box.innerHTML = list.map(c => `
-        <div style="display:flex;align-items:center;gap:8px;background:#0D1A28;border:1px solid rgba(100,150,200,.12);border-radius:8px;padding:8px 10px">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:.72rem;color:#4A5568">${esc(c.remote_jid)}</div>
-            <div style="font-size:.75rem;color:#7EB8F7">${esc(c.phone || '')}</div>
+        <div class="contact-row">
+          <div class="contact-row-info">
+            <div class="contact-jid">${esc(c.remote_jid)}</div>
+            <div class="contact-phone">${esc(c.phone || '')}</div>
           </div>
-          <input type="text" value="${esc(c.push_name || '')}" placeholder="Nome do contato"
-            style="flex:1;min-width:0;background:#1A2740;border:1px solid rgba(100,150,200,.2);border-radius:6px;color:#D8E4F0;padding:5px 8px;font-size:.8rem"
+          <input type="text" class="contact-name-input"
+            value="${esc(c.push_name || '')}" placeholder="Nome do contato"
             data-jid="${esc(c.remote_jid)}"
             onchange="ChatApp.saveContactName(this)">
         </div>`).join('');
