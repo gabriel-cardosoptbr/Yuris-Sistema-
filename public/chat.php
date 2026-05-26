@@ -125,11 +125,17 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
     }
 
     /* Filtros — wrap em 2 linhas quando ha 6 botoes (Todas/Nao lidas/Grupos
-       /Individuais/Fixadas/Arquivadas). Cada um ocupa ~33% pra ficar 3+3. */
+       /Individuais/Fixadas/Arquivadas). Cada um ocupa ~33% pra ficar 3+3.
+       Borda externa pra delimitar visualmente o grupo (UX: indicar que sao
+       um conjunto, nao itens soltos). */
     .chat-filters {
       display: flex;
       flex-wrap: wrap;
       gap: 4px;
+      padding: 5px;
+      border: 1px solid rgba(160,180,210,.12);
+      border-radius: 8px;
+      background: transparent;
     }
     .chat-filter-btn {
       flex: 1 1 calc(33.333% - 4px);
@@ -1375,6 +1381,9 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
     }
     html[data-theme="light"] .chat-search input::placeholder { color: #94A3B8 !important; }
     html[data-theme="light"] .chat-search-icon { color: #94A3B8 !important; }
+    html[data-theme="light"] .chat-filters {
+      border-color: #E2E8F0 !important;
+    }
     html[data-theme="light"] .chat-filter-btn {
       color: #5A6B7E !important;
       background: transparent !important;
