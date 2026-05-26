@@ -473,8 +473,8 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
         <input id="filterAcc" placeholder="Buscar nome..." style="padding:6px 11px; border-radius:7px; background:rgba(5,18,39,.6); border:1px solid rgba(160,180,210,.18); color:#D8E4F0; font-size:.82rem; width:240px">
       </div>
       <table class="mst-tbl">
-        <thead><tr><th>#</th><th>Nome</th><th>Tipo</th><th>Status</th><th>Plano</th><th>Cidade/UF</th><th>Users</th><th>Adv.</th><th>Assinatura</th><th>Ações</th></tr></thead>
-        <tbody id="accountsBody"><tr><td colspan="10" class="empty">Carregando…</td></tr></tbody>
+        <thead><tr><th>#</th><th>Nome</th><th>Tipo</th><th>Status</th><th>Plano</th><th>Cidade/UF</th><th>Users</th><th>Adv.</th><th title="Monitoramentos usados / contratados">Monitors</th><th>Assinatura</th><th>Ações</th></tr></thead>
+        <tbody id="accountsBody"><tr><td colspan="11" class="empty">Carregando…</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -1292,6 +1292,24 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
             </div>
           </div>
         </div>
+
+        <!-- ── Monitoramentos (add-on) ─────────────────────────────────
+             Cobrado por unidade. NÃO incluído no plano. Master libera
+             via grant gratuito OU registra compra (preparado pra gateway).
+        -->
+        <div class="mst-form-section">Monitoramentos (add-on)</div>
+        <div id="editAccMonitorSummary" style="background:rgba(91,155,213,.06); border:1px solid rgba(91,155,213,.18); border-radius:8px; padding:10px 14px; margin-bottom:10px; display:flex; gap:18px; align-items:center; flex-wrap:wrap">
+          <div><div class="label" style="font-size:.7rem; color:#9ab0c9">CONTRATADOS</div><div style="font-size:1.25rem; font-weight:700" id="editAccMonLimit">—</div></div>
+          <div><div class="label" style="font-size:.7rem; color:#9ab0c9">EM USO</div><div style="font-size:1.25rem; font-weight:700" id="editAccMonUsed">—</div></div>
+          <div><div class="label" style="font-size:.7rem; color:#9ab0c9">DISPONÍVEL</div><div style="font-size:1.25rem; font-weight:700" id="editAccMonAvail">—</div></div>
+          <div style="margin-left:auto; display:flex; gap:6px">
+            <button type="button" class="btn-mst btn-mst-primary" onclick="openGrantMonitorModal()">+ Liberar grant</button>
+            <button type="button" class="btn-mst" onclick="openPurchaseMonitorModal()">+ Registrar compra</button>
+          </div>
+        </div>
+        <div id="editAccMonOverrides" style="font-size:.85rem"></div>
+        <!-- ────────────────────────────────────────────────────────── -->
+
       </div>
       <div class="mst-modal-foot">
         <button type="button" class="btn-mst btn-mst-danger" onclick="deleteAccount()" style="margin-right:auto">Excluir conta…</button>
@@ -1386,6 +1404,103 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
 </div>
 
 <!-- Modal: Editar Usuário -->
+<!-- ────────────────────────────────────────────────────────────────────
+     Modal: Liberar grant gratuito de monitor (cortesia/promo)
+     Etapa 6 add-on Monitoramentos
+──────────────────────────────────────────────────────────────────── -->
+<div class="mst-modal-backdrop" id="modalGrantMonitor" onclick="if(event.target===this)closeModal('modalGrantMonitor')">
+  <div class="mst-modal">
+    <div class="mst-modal-header">
+      <h3 class="mst-modal-title">+ Liberar grant gratuito</h3>
+      <button class="mst-modal-close" onclick="closeModal('modalGrantMonitor')">×</button>
+    </div>
+    <form onsubmit="submitGrantMonitor(event)">
+      <input type="hidden" name="account_id" id="grantMonAccountId">
+      <div class="mst-modal-body">
+        <div style="background:rgba(168,207,238,.08); border-left:3px solid #5b9bd5; padding:10px 12px; border-radius:6px; font-size:.82rem; color:#A8BDD4; margin-bottom:14px">
+          Use pra cortesia, promoção, trial estendido ou compensar bug/incidente.
+          Cliente vai ver a quantidade liberada IMEDIATAMENTE.
+        </div>
+        <div class="mst-form-row">
+          <div>
+            <label class="mst-form-label">Quantidade de monitors *</label>
+            <input name="qtd" type="number" min="1" max="500" required class="mst-form-input" placeholder="1">
+            <div class="mst-form-help">Quantos monitoramentos extras essa conta vai ter.</div>
+          </div>
+          <div>
+            <label class="mst-form-label">Expira em (opcional)</label>
+            <input name="expires" type="date" class="mst-form-input">
+            <div class="mst-form-help">Vazio = nunca expira. Útil pra trial temporário.</div>
+          </div>
+        </div>
+        <div>
+          <label class="mst-form-label">Observação (interna)</label>
+          <textarea name="obs" rows="2" class="mst-form-input" placeholder="Ex: Cortesia lançamento Q2-2026"></textarea>
+        </div>
+      </div>
+      <div class="mst-modal-foot">
+        <button type="button" class="btn-mst" onclick="closeModal('modalGrantMonitor')">Cancelar</button>
+        <button type="submit" class="btn-mst btn-mst-primary">Liberar agora</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────────────────────────────────────
+     Modal: Registrar compra/contrato comercial de monitors
+     Preparado pra gateway futuro mas SEM cobrança automática agora.
+──────────────────────────────────────────────────────────────────── -->
+<div class="mst-modal-backdrop" id="modalPurchaseMonitor" onclick="if(event.target===this)closeModal('modalPurchaseMonitor')">
+  <div class="mst-modal">
+    <div class="mst-modal-header">
+      <h3 class="mst-modal-title">+ Registrar compra / contrato</h3>
+      <button class="mst-modal-close" onclick="closeModal('modalPurchaseMonitor')">×</button>
+    </div>
+    <form onsubmit="submitPurchaseMonitor(event)">
+      <input type="hidden" name="account_id" id="purchMonAccountId">
+      <div class="mst-modal-body">
+        <div style="background:rgba(91,155,213,.08); border-left:3px solid #5b9bd5; padding:10px 12px; border-radius:6px; font-size:.82rem; color:#A8BDD4; margin-bottom:14px">
+          Registra contrato comercial. Cliente recebe os monitors imediatamente.
+          <strong>Não dispara cobrança automática</strong> — gateway ainda não está
+          implementado. Os campos de preço/ciclo são metadados.
+        </div>
+        <div class="mst-form-row">
+          <div>
+            <label class="mst-form-label">Quantidade contratada *</label>
+            <input name="qtd" type="number" min="1" max="1000" required class="mst-form-input" placeholder="10">
+          </div>
+          <div>
+            <label class="mst-form-label">Preço unitário (R$ — opcional)</label>
+            <input name="price" type="number" step="0.01" min="0" class="mst-form-input" placeholder="49.90">
+            <div class="mst-form-help">Metadado. Vira KPI de MRR no Master.</div>
+          </div>
+          <div>
+            <label class="mst-form-label">Ciclo</label>
+            <select name="cycle" class="mst-form-select">
+              <option value="">— escolha —</option>
+              <option value="monthly">Mensal</option>
+              <option value="yearly">Anual</option>
+              <option value="one_off">Pagamento único</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="mst-form-label">Nº de contrato / proposta</label>
+          <input name="contract" type="text" maxlength="120" class="mst-form-input" placeholder="Ex: CONT-2026-001">
+        </div>
+        <div>
+          <label class="mst-form-label">Observação (interna)</label>
+          <textarea name="obs" rows="2" class="mst-form-input" placeholder="Ex: Contrato anual — pago via PIX"></textarea>
+        </div>
+      </div>
+      <div class="mst-modal-foot">
+        <button type="button" class="btn-mst" onclick="closeModal('modalPurchaseMonitor')">Cancelar</button>
+        <button type="submit" class="btn-mst btn-mst-primary">Registrar compra</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="mst-modal-backdrop" id="modalEditUser" onclick="if(event.target===this)closeModal('modalEditUser')">
   <div class="mst-modal">
     <div class="mst-modal-header">
@@ -2222,6 +2337,45 @@ async function viewAcc(id) {
     <div class="mst-detail-item"><div class="label">Cards</div><div class="value">${d.cards_count||0}</div></div>
   </div>`;
 
+  // ── Monitoramentos (Etapa 6 add-on) ──────────────────────────────────
+  // Add-on à parte do plano. Cliente começa com 0. Master libera grant
+  // gratuito OU registra compra/contrato (sem implementar gateway ainda).
+  const mq = d.monitor_quota || {};
+  const limMq = mq.effective_limit || 0;
+  const usedMq = mq.current_usage || 0;
+  const availMq = mq.available || 0;
+  const mqColor = limMq === 0 ? '#6b7280'
+    : usedMq > limMq ? '#ef4444'
+    : usedMq >= limMq * 0.8 ? '#f59e0b'
+    : '#22c55e';
+  html += `<div class="mst-form-section">Monitoramentos (add-on)</div>
+  <div class="mst-detail-grid">
+    <div class="mst-detail-item"><div class="label">Contratados</div><div class="value" style="color:${mqColor}">${limMq}</div></div>
+    <div class="mst-detail-item"><div class="label">Em uso</div><div class="value">${usedMq}</div></div>
+    <div class="mst-detail-item"><div class="label">Disponível</div><div class="value" style="color:${availMq>0?'#22c55e':'#9ab0c9'}">${availMq}</div></div>
+  </div>`;
+  if (mq.overrides && mq.overrides.length) {
+    html += `<table class="mst-tbl" style="margin-top:8px"><thead><tr>
+      <th>Origem</th><th>Qtd</th><th>Contrato</th><th>Preço unit.</th><th>Expira</th><th>Criado</th><th>Observação</th>
+    </tr></thead><tbody>`;
+    mq.overrides.forEach(o => {
+      const priceFmt = o.unit_price_cents ? fmtBRL(o.unit_price_cents) : '—';
+      html += `<tr>
+        <td><span class="pill pill-${o.source==='purchase'?'active':'trial'}">${esc(o.source)}</span></td>
+        <td><strong>+${o.limit_value}</strong></td>
+        <td>${esc(o.contract_ref||'—')}</td>
+        <td>${priceFmt}</td>
+        <td>${o.expires_at?fmtDate(o.expires_at):'Sem expirar'}</td>
+        <td><span title="${esc(o.criado_por_nome||'?')}">${fmtDate(o.created_at)}</span></td>
+        <td><small>${esc(o.observacoes||'—')}</small></td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+  } else {
+    html += `<div class="empty" style="margin-top:6px">Sem monitoramentos contratados</div>`;
+  }
+  // ─────────────────────────────────────────────────────────────────────
+
   if (d.users && d.users.length) {
     html += `<div class="mst-form-section">Usuários (${d.users.length})</div>
     <table class="mst-tbl"><thead><tr><th>Nome</th><th>E-mail</th><th>Role</th><th>Status</th><th>Ações</th></tr></thead><tbody>`;
@@ -2442,7 +2596,7 @@ async function loadAccounts() {
   const r = await fj(`${API}/accounts.php` + (params.toString() ? '?'+params.toString() : ''));
   if (!r.ok) return notifyErr(r.error);
   const tb = document.getElementById('accountsBody');
-  if (!r.data.accounts.length) { tb.innerHTML='<tr><td colspan="10" class="empty">Nenhuma conta</td></tr>'; return; }
+  if (!r.data.accounts.length) { tb.innerHTML='<tr><td colspan="11" class="empty">Nenhuma conta</td></tr>'; return; }
   tb.innerHTML = r.data.accounts.map(a => `
     <tr>
       <td>${a.id}</td>
@@ -2453,6 +2607,7 @@ async function loadAccounts() {
       <td>${a.cidade ? esc(a.cidade) + (a.estado?'/'+esc(a.estado):'') : '—'}</td>
       <td>${a.users_count}</td>
       <td>${a.advogados_count || 0}</td>
+      <td>${renderMonitorsCell(a.monitors_used||0, a.monitors_limit||0)}</td>
       <td>${a.sub_status?pill(a.sub_status):'—'}</td>
       <td>
         <button class="btn-mst" onclick="viewAcc(${a.id})">Detalhes</button>
@@ -2461,6 +2616,24 @@ async function loadAccounts() {
         ${a.status==='suspended' ? `<button class="btn-mst btn-mst-success" onclick="setStatus(${a.id},'active')">Reativar</button>` : ''}
       </td>
     </tr>`).join('');
+}
+
+/**
+ * Renderiza célula "Monitors" da lista de contas — formato "used/limit"
+ * colorido conforme % de uso:
+ *   - sem cota (limit=0):              cinza, "—"
+ *   - usado > limit (estouro/legado):  vermelho
+ *   - usado >= 80% do limit:           laranja
+ *   - default:                         verde
+ */
+function renderMonitorsCell(used, limit) {
+  if (!limit) {
+    return `<span style="color:#6b7280; font-size:.78rem" title="Sem cota contratada">—</span>`;
+  }
+  let color = '#22c55e'; // verde (default)
+  if (used > limit) color = '#ef4444';      // vermelho (estouro)
+  else if (used >= limit * 0.8) color = '#f59e0b'; // laranja (perto do limite)
+  return `<span style="color:${color}; font-weight:600; font-size:.85rem" title="Usado / Contratado">${used}/${limit}</span>`;
 }
 document.getElementById('filterAcc').addEventListener('input', () => clearTimeout(window._ft) || (window._ft = setTimeout(loadAccounts, 300)));
 document.getElementById('filterAccStatus').addEventListener('change', loadAccounts);
@@ -3225,7 +3398,158 @@ async function openEditAccount(id) {
     subBlock.style.display = 'none';
     document.getElementById('editAccSubId').value = '';
   }
+
+  // Carrega cota de monitoramentos (Etapa 6 add-on)
+  loadEditAccMonitorQuota(id);
+
   openModal('modalEditAccount');
+}
+
+/**
+ * Carrega cota de monitoramentos da conta + lista de overrides ativos
+ * pra exibir no modal Editar. Chamado quando abre o modal e após cada
+ * grant/purchase/revoke. Endpoint: /api/master/quotas.php?account_id=X.
+ */
+async function loadEditAccMonitorQuota(accountId) {
+  document.getElementById('editAccMonLimit').textContent = '…';
+  document.getElementById('editAccMonUsed').textContent  = '…';
+  document.getElementById('editAccMonAvail').textContent = '…';
+  document.getElementById('editAccMonOverrides').innerHTML = '<div class="empty">Carregando…</div>';
+
+  const r = await fj(`${API}/quotas.php?account_id=${accountId}`);
+  if (!r.ok) {
+    document.getElementById('editAccMonOverrides').innerHTML = `<div class="empty">Erro: ${esc(r.error||'desconhecido')}</div>`;
+    return;
+  }
+  const q = r.data;
+  // Stash do ID atual pra usar nos handlers de grant/purchase
+  window._editAccCurrentId = accountId;
+
+  document.getElementById('editAccMonLimit').textContent = q.effective_limit || 0;
+  document.getElementById('editAccMonUsed').textContent  = q.current_usage  || 0;
+  const avail = q.available || 0;
+  const availEl = document.getElementById('editAccMonAvail');
+  availEl.textContent = avail;
+  availEl.style.color = avail > 0 ? '#22c55e' : (q.current_usage > q.effective_limit ? '#ef4444' : '#9ab0c9');
+
+  // Tabela de overrides ativos
+  const cont = document.getElementById('editAccMonOverrides');
+  if (!q.overrides || !q.overrides.length) {
+    cont.innerHTML = `<div class="empty" style="margin-top:8px">Sem monitoramentos contratados. Use os botões acima pra liberar grant ou registrar compra.</div>`;
+    return;
+  }
+  let html = `<table class="mst-tbl"><thead><tr>
+    <th>Origem</th><th>Qtd</th><th>Contrato</th><th>Preço unit.</th><th>Expira</th><th>Criado</th><th>Observação</th><th>Ações</th>
+  </tr></thead><tbody>`;
+  q.overrides.forEach(o => {
+    const priceFmt = o.unit_price_cents ? fmtBRL(o.unit_price_cents) : '—';
+    html += `<tr>
+      <td><span class="pill pill-${o.source==='purchase'?'active':'trial'}">${esc(o.source)}</span></td>
+      <td><strong>+${o.limit_value}</strong></td>
+      <td>${esc(o.contract_ref||'—')}</td>
+      <td>${priceFmt}</td>
+      <td>${o.expires_at?fmtDate(o.expires_at):'Sem expirar'}</td>
+      <td>${fmtDate(o.created_at)}</td>
+      <td><small>${esc(o.observacoes||'—')}</small></td>
+      <td><button type="button" class="btn-mst btn-mst-danger" onclick="revokeMonitorOverride(${o.id})">Revogar</button></td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  cont.innerHTML = html;
+}
+
+/**
+ * Abre modal pra liberar GRANT gratuito (cortesia/promo).
+ * Usa window._editAccCurrentId que loadEditAccMonitorQuota deixou.
+ */
+function openGrantMonitorModal() {
+  const accId = window._editAccCurrentId;
+  if (!accId) return notifyErr('Abra primeiro o modal Editar Conta');
+  document.getElementById('grantMonAccountId').value = accId;
+  document.getElementById('grantMonQtd').value = 1;
+  document.getElementById('grantMonExpires').value = '';
+  document.getElementById('grantMonObs').value = '';
+  openModal('modalGrantMonitor');
+}
+
+/**
+ * Abre modal pra REGISTRAR compra (contrato comercial — sem gateway agora).
+ */
+function openPurchaseMonitorModal() {
+  const accId = window._editAccCurrentId;
+  if (!accId) return notifyErr('Abra primeiro o modal Editar Conta');
+  document.getElementById('purchMonAccountId').value = accId;
+  document.getElementById('purchMonQtd').value = 1;
+  document.getElementById('purchMonPrice').value = '';
+  document.getElementById('purchMonCycle').value = '';
+  document.getElementById('purchMonContract').value = '';
+  document.getElementById('purchMonObs').value = '';
+  openModal('modalPurchaseMonitor');
+}
+
+async function submitGrantMonitor(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  const body = {
+    csrf_token:  CSRF,
+    account_id:  parseInt(f.account_id.value, 10),
+    limit_value: parseInt(f.qtd.value, 10),
+    source:      'master_grant',
+    observacoes: f.obs.value.trim() || null,
+  };
+  const expires = f.expires.value;
+  if (expires) body.expires_at = expires + ' 23:59:59';
+  const r = await fj(`${API}/quotas.php`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRF-Token':CSRF},
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) return notifyErr(r.error);
+  closeModal('modalGrantMonitor');
+  notifyOk(`Liberado: +${body.limit_value} monitor(s)`);
+  // Atualiza UI
+  loadEditAccMonitorQuota(body.account_id);
+  loadAccounts(); // refresh da lista de fundo
+}
+
+async function submitPurchaseMonitor(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  const body = {
+    csrf_token:    CSRF,
+    account_id:    parseInt(f.account_id.value, 10),
+    limit_value:   parseInt(f.qtd.value, 10),
+    source:        'purchase',
+    observacoes:   f.obs.value.trim() || null,
+    contract_ref:  f.contract.value.trim() || null,
+  };
+  const price = parseFloat(f.price.value);
+  if (!isNaN(price) && price > 0) body.unit_price_cents = Math.round(price * 100);
+  if (f.cycle.value) body.billing_cycle = f.cycle.value;
+
+  const r = await fj(`${API}/quotas.php`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRF-Token':CSRF},
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) return notifyErr(r.error);
+  closeModal('modalPurchaseMonitor');
+  notifyOk(`Compra registrada: +${body.limit_value} monitor(s)`);
+  loadEditAccMonitorQuota(body.account_id);
+  loadAccounts();
+}
+
+async function revokeMonitorOverride(overrideId) {
+  if (!(await Yuris.confirm('Revogar este override de monitoramento? A cota será reduzida.', {danger:true, okLabel:'Revogar'}))) return;
+  const r = await fj(`${API}/quotas.php?id=${overrideId}`, {
+    method: 'DELETE',
+    headers: {'Content-Type':'application/json','X-CSRF-Token':CSRF},
+    body: JSON.stringify({csrf_token: CSRF}),
+  });
+  if (!r.ok) return notifyErr(r.error);
+  notifyOk('Override revogado');
+  loadEditAccMonitorQuota(window._editAccCurrentId);
+  loadAccounts();
 }
 
 async function submitEditAccount(ev) {

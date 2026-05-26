@@ -14,9 +14,11 @@ require_once __DIR__ . '/../../../app/Models/Account.php';
 require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
+require_once __DIR__ . '/../../../app/Helpers/MonitorQuota.php';   // Etapa 6 add-on
 
 use App\Helpers\AccountContext;
 use App\Helpers\ApiResponse;
+use App\Helpers\MonitorQuota;
 use App\Models\Database;
 
 session_start();
@@ -82,6 +84,12 @@ if ($method === 'GET') {
         $invs->execute(['id' => $id]);
         $acc['invoices'] = $invs->fetchAll(\PDO::FETCH_ASSOC);
 
+        // ── Monitor add-on (Etapa 6) ─────────────────────────────────────
+        // Estrutura completa: limit, used, available, percent, has_quota.
+        // O modal "Detalhes" usa esse objeto pra mostrar a seção
+        // "MONITORAMENTOS" sem precisar de chamada separada.
+        $acc['monitor_quota'] = MonitorQuota::getQuotaStatus($id);
+
         ApiResponse::ok($acc);
     }
 
@@ -100,7 +108,32 @@ if ($method === 'GET') {
                 (SELECT COUNT(*) FROM users u WHERE u.account_id=a.id AND u.deleted_at IS NULL) AS users_count,
                 (SELECT COUNT(*) FROM users u WHERE u.account_id=a.id AND u.deleted_at IS NULL AND u.is_advogado=1) AS advogados_count,
                 (SELECT s.status FROM subscriptions s WHERE s.account_id=a.id ORDER BY s.id DESC LIMIT 1) AS sub_status,
-                (SELECT p.nome   FROM subscriptions s INNER JOIN plans p ON p.id=s.plan_id WHERE s.account_id=a.id ORDER BY s.id DESC LIMIT 1) AS sub_plan
+                (SELECT p.nome   FROM subscriptions s INNER JOIN plans p ON p.id=s.plan_id WHERE s.account_id=a.id ORDER BY s.id DESC LIMIT 1) AS sub_plan,
+                /* Monitor add-on (Etapa 6) — subqueries inline pra evitar N+1.
+                   monitors_limit = plan_features.limit_value + SUM(overrides ativos).
+                   monitors_used  = monitors consumindo cota + requests pending. */
+                COALESCE(
+                  (SELECT pf.limit_value FROM subscriptions s
+                     INNER JOIN plan_features pf ON pf.plan_id=s.plan_id
+                     WHERE s.account_id=a.id
+                       AND pf.feature_key='monitors.limit'
+                     ORDER BY (s.status='active') DESC, s.id DESC LIMIT 1),
+                  0
+                ) + COALESCE(
+                  (SELECT SUM(limit_value) FROM account_quota_overrides
+                     WHERE account_id=a.id AND feature_key='monitors.limit'
+                       AND revoked_at IS NULL
+                       AND (expires_at IS NULL OR expires_at > NOW())),
+                  0
+                ) AS monitors_limit,
+                (
+                  (SELECT COUNT(*) FROM push_monitors pm
+                     WHERE pm.account_id=a.id AND pm.consome_cota=1
+                       AND pm.status IN ('ativo','pausado','erro'))
+                  +
+                  (SELECT COUNT(*) FROM monitor_requests mr
+                     WHERE mr.account_id=a.id AND mr.status='pending')
+                ) AS monitors_used
          FROM accounts a
          WHERE a.deleted_at IS NULL {$where}
          ORDER BY a.created_at DESC"
