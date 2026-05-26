@@ -47,9 +47,38 @@ if (!$remoteJid) {
     http_response_code(400); echo json_encode(['error' => 'remote_jid obrigatório']); exit;
 }
 
+// ── Resolve estrutura completa do quoted (se fornecido) ────────────────────
+// A Evolution API v2 precisa de mais do que o wamid pra montar o reply visível
+// no celular: precisa de key.{remoteJid,fromMe,participant?} + message.conversation.
+// Buscamos a mensagem original no DB pra montar a estrutura corretamente.
+$quotedStruct = null;
+if ($quotedId) {
+    $pdo = \App\Models\Database::getConnection();
+    $st = $pdo->prepare(
+        'SELECT wamid, remote_jid, participant_jid, direction, message_content, caption, message_type
+           FROM whatsapp_messages
+          WHERE instance_id = ? AND wamid = ? LIMIT 1'
+    );
+    $st->execute([$instanceId, $quotedId]);
+    $q = $st->fetch(\PDO::FETCH_ASSOC);
+    if ($q) {
+        $quotedStruct = [
+            'id'          => $q['wamid'],
+            'fromMe'      => ($q['direction'] === 'outbound'),
+            'remoteJid'   => $q['remote_jid'],
+            'participant' => $q['participant_jid'] ?: null,
+            'content'     => $q['message_content'] ?: ($q['caption'] ?: ''),
+        ];
+    } else {
+        // Fallback: só o ID — pode não renderizar no celular mas o quoted_wamid
+        // fica gravado no DB pra exibir o preview na nossa UI.
+        $quotedStruct = ['id' => $quotedId];
+    }
+}
+
 // ── Envio via Evolution API ─────────────────────────────────────────────────
 $res = match ($type) {
-    'text'  => $evo->sendText($instName, $remoteJid, $text, $quotedId),
+    'text'  => $evo->sendText($instName, $remoteJid, $text, $quotedStruct),
     'audio' => $evo->sendAudio($instName, $remoteJid, $mediaData),
     default => $evo->sendMedia($instName, $remoteJid, $type, $mediaData, $caption, $filename, $mimetype),
 };

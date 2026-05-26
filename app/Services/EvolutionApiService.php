@@ -121,16 +121,40 @@ class EvolutionApiService
     // Sending messages
     // ────────────────────────────────────────────
 
-    /** Enviar texto simples. */
-    public function sendText(string $name, string $to, string $text, ?string $quotedId = null): array
+    /**
+     * Enviar texto simples.
+     *
+     * $quoted = ['id' => wamid, 'fromMe' => bool, 'remoteJid' => '...', 'participant' => '...', 'content' => 'preview']
+     * Apenas string (wamid) também é aceito por compat — mas reply só aparece no WhatsApp
+     * se a Evolution receber o `message` completo, não só `key.id`.
+     */
+    public function sendText(string $name, string $to, string $text, string|array|null $quoted = null): array
     {
         $body = [
             'number'  => $this->normalizeNumber($to),
             'text'    => $text,
             'options' => ['delay' => 0],
         ];
-        if ($quotedId) {
-            $body['options']['quoted'] = ['key' => ['id' => $quotedId]];
+        if ($quoted) {
+            // Compat: aceita string (wamid solto) — mas reply no WhatsApp pode não funcionar
+            if (is_string($quoted)) {
+                $quoted = ['id' => $quoted];
+            }
+            // Evolution API v2 espera estrutura "Message" completa:
+            //   options.quoted = { key: {id, fromMe, remoteJid, participant?}, message: {conversation|...} }
+            // Sem `message`, a Evolution v2 às vezes envia o quoted_id mas o WhatsApp
+            // não consegue resolver e a citação não aparece no celular.
+            $key = ['id' => $quoted['id']];
+            if (isset($quoted['fromMe']))      $key['fromMe']      = (bool)$quoted['fromMe'];
+            if (!empty($quoted['remoteJid']))  $key['remoteJid']   = $quoted['remoteJid'];
+            if (!empty($quoted['participant']))$key['participant'] = $quoted['participant'];
+
+            $body['options']['quoted'] = [
+                'key'     => $key,
+                'message' => [
+                    'conversation' => (string)($quoted['content'] ?? ''),
+                ],
+            ];
         }
         return $this->request('POST', "/message/sendText/{$name}", $body);
     }
@@ -164,6 +188,37 @@ class EvolutionApiService
             'audio'    => $audioBase64,
             'encoding' => true,
         ]);
+    }
+
+    /**
+     * Envia uma reaction (emoji) a uma mensagem existente.
+     * $key = ['remoteJid' => '...', 'id' => '<wamid>', 'fromMe' => bool]
+     * $emoji = '' remove a reaction.
+     *
+     * Evolution API v2 (formato real, sem envelope reactionMessage):
+     *   POST /message/sendReaction/{instance}
+     *   body: { key: {remoteJid, fromMe, id}, reaction: '👍' }
+     *
+     * Ref: https://doc.evolution-api.com/v2/api-reference/message-controller/send-reaction
+     */
+    public function sendReaction(string $name, array $key, string $emoji): array
+    {
+        return $this->request('POST', "/message/sendReaction/{$name}", [
+            'key'      => $key,
+            'reaction' => $emoji,
+        ]);
+    }
+
+    /**
+     * Apaga (revoke) uma mensagem para todos os participantes.
+     * $key = ['remoteJid' => '...', 'id' => '<wamid>', 'fromMe' => true]
+     *
+     * Evolution API v2: DELETE /chat/deleteMessageForEveryone/{instance}
+     *   body: { id, remoteJid, fromMe, participant? }
+     */
+    public function deleteMessage(string $name, array $key): array
+    {
+        return $this->request('DELETE', "/chat/deleteMessageForEveryone/{$name}", $key);
     }
 
     // ────────────────────────────────────────────

@@ -22,6 +22,9 @@ const ChatApp = (() => {
     loadingOlder : false,    // semaforo pra evitar requests duplicadas no scroll
     groupMembersCache: {},   // { 'XXXXX@g.us': [members] } — popula em updateGroupHeader
     contactsLidMap: {},      // { 'localPartDoJid': {name, phone} } — pra resolver @mencoes LID/@s.whatsapp.net
+    replyTo      : null,     // { wamid, content, sender, type } — set por setReply(); enviado no proximo send()
+    menuOpenFor  : null,     // id da msg cujo popup de acoes esta aberto (1 por vez)
+    msgIndex     : {},       // { msgId: {wamid, content, sender, type, fromMe, isDeleted} } — cache pra setReply/reactMessage sem refetch
     pollingTimer : null,
     statusTimer  : null,
     qrTimer      : null,
@@ -694,7 +697,8 @@ const ChatApp = (() => {
   function renderMessage(msg) {
     const dir     = msg.direction || 'inbound';
     const time    = formatTime(msg.created_at);
-    const content = buildMessageContent(msg);
+    const isDel   = !!(msg.is_deleted && msg.is_deleted != 0);
+    const content = isDel ? renderDeleted() : buildMessageContent(msg);
     const status  = dir === 'outbound' ? renderStatus(msg.status) : '';
 
     const isGroup  = state.currentJid && state.currentJid.endsWith('@g.us');
@@ -704,17 +708,104 @@ const ChatApp = (() => {
     //      veio fantasma ou rotulado como "Você" por outro path)
     const dispName = resolveSenderName(msg.contact_name)
                   || phoneFromJid(msg.participant_jid);
-    const sender   = (isGroup && dir === 'inbound' && dispName)
+    const sender   = (isGroup && dir === 'inbound' && dispName && !isDel)
       ? `<div class="msg-sender">${esc(dispName)}</div>` : '';
     const dKey     = dayKey(msg.created_at);
 
-    return `<div class="msg-row ${dir}" id="msg-${msg.id}" data-day-key="${dKey}">
-      <div class="msg-bubble">${sender}${content}</div>
+    // ── Quoted preview (msg citada) ───────────────────────────────────────────
+    // Renderiza no topo da bubble um trecho clicavel da msg original.
+    const quoted = (!isDel && msg.quoted_wamid && (msg.quoted_content || msg.quoted_caption || msg.quoted_type))
+      ? renderQuoted(msg)
+      : '';
+
+    // ── Menu de acoes (botao 3 pontos no canto) ───────────────────────────────
+    // So mostra em msgs nao-apagadas. Outbound pode apagar; inbound nao.
+    const menuBtn = isDel ? '' : renderMenuBtn(msg);
+
+    // ── Cache no state pra setReply/reactMessage acharem dados sem refetch ────
+    // Sempre popular (mesmo sem wamid) pra que o menu de ações apareça;
+    // ações que requerem wamid (reply/react/delete) checam antes e exibem toast.
+    if (msg.id) {
+      state.msgIndex[msg.id] = {
+        wamid     : msg.wamid || '',
+        content   : msg.message_content || msg.caption || '',
+        type      : msg.message_type || 'text',
+        sender    : dispName || (dir === 'outbound' ? 'Você' : ''),
+        fromMe    : dir === 'outbound',
+        isDeleted : isDel,
+      };
+    }
+
+    // ── Reactions agregadas (pílulas abaixo da bubble) ────────────────────────
+    const reactions = (!isDel && Array.isArray(msg.reactions) && msg.reactions.length)
+      ? renderReactions(msg)
+      : '';
+
+    return `<div class="msg-row ${dir}" id="msg-${msg.id}" data-day-key="${dKey}" data-wamid="${esc(msg.wamid || '')}">
+      <div class="msg-bubble">${sender}${quoted}${content}${menuBtn}</div>
+      ${reactions}
       <div class="msg-meta">
         <span>${time}</span>
         ${status}
       </div>
     </div>`;
+  }
+
+  // ── Helpers de render (quoted / deleted / menu / reactions) ─────────────────
+
+  function renderDeleted() {
+    return `<span class="msg-deleted">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+      Mensagem apagada
+    </span>`;
+  }
+
+  // Renderiza preview da mensagem citada (texto curto + nome do autor + indicador
+  // por tipo: [Imagem]/[Audio]/[Video]/[Documento]). Clicavel: rola pra msg
+  // original via scrollToWamid().
+  function renderQuoted(msg) {
+    const sender = msg.quoted_sender || 'Você';
+    let preview = msg.quoted_content || msg.quoted_caption || '';
+    if (!preview) {
+      preview = {
+        image    : '📷 Imagem',
+        video    : '🎥 Vídeo',
+        audio    : '🎵 Áudio',
+        document : '📄 Documento',
+        sticker  : '✨ Sticker',
+      }[msg.quoted_type] || 'Mensagem';
+    }
+    // Limita a 80 chars pra nao quebrar layout
+    if (preview.length > 80) preview = preview.slice(0, 77) + '…';
+    return `<div class="msg-quoted" onclick="ChatApp.scrollToWamid('${esc(msg.quoted_wamid)}')" title="Ir para mensagem original">
+      <div class="msg-quoted-bar"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.72rem;font-weight:700;color:#7EB8F6">${esc(sender)}</div>
+        <div class="msg-quoted-text">${esc(preview)}</div>
+      </div>
+    </div>`;
+  }
+
+  // Botao 3 pontos no canto da bubble. Hover/click abre o popup .msg-actions-menu.
+  // Evento stopPropagation impede que o clique propague pra fora e feche o menu.
+  function renderMenuBtn(msg) {
+    return `<button class="msg-menu-btn" title="Ações" onclick="event.stopPropagation();ChatApp.toggleMsgMenu(${msg.id}, this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="6" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="18" r="1.2"/></svg>
+    </button>`;
+  }
+
+  // Renderiza grupo de pílulas de reactions agrupadas por emoji.
+  // Pílula com .me realça a reação do usuário atual. Clique = toggle (remove se .me, adiciona senão).
+  function renderReactions(msg) {
+    const pills = msg.reactions.map(r => {
+      const mine = r.mine ? 'me' : '';
+      // Click no pill: se mine → remove (emoji=''); senão → adiciona
+      const action = r.mine ? `ChatApp.reactMessage(${msg.id}, '')` : `ChatApp.reactMessage(${msg.id}, '${esc(r.emoji)}')`;
+      return `<span class="msg-reaction-pill ${mine}" onclick="${action}" title="${r.count} reação${r.count>1?'ões':''}">
+        ${esc(r.emoji)}${r.count > 1 ? `<span class="cnt">${r.count}</span>` : ''}
+      </span>`;
+    }).join('');
+    return `<div class="msg-reactions">${pills}</div>`;
   }
 
   // ── Separador de data entre mensagens (Hoje / Ontem / dd-mm-yyyy) ────────
@@ -881,11 +972,17 @@ const ChatApp = (() => {
     scrollToBottom();
 
     try {
+      // Snapshot do replyTo (atual) e limpa state antes do request pra que
+      // se o user comecar a digitar outra coisa, nao acumule citacao.
+      const replySnap = state.replyTo;
+      if (replySnap) cancelReply();
+
       const r = await apiFetch(API.send, 'POST', {
         _csrf     : CSRF,
         remote_jid: state.currentJid,
         type      : 'text',
         text,
+        quoted_id : replySnap ? replySnap.wamid : null,
       });
 
       // Remove temp e insere real
@@ -894,11 +991,17 @@ const ChatApp = (() => {
       if (r.message_id) {
         qs('#chatMessages').insertAdjacentHTML('beforeend', renderMessage({
           id             : r.message_id,
+          wamid          : r.wamid,
           direction      : 'outbound',
           message_type   : 'text',
           message_content: text,
           status         : 'sent',
           created_at     : new Date().toISOString(),
+          // Repassa preview da quoted pra renderizar imediatamente (otimista)
+          quoted_wamid   : replySnap ? replySnap.wamid : null,
+          quoted_content : replySnap ? replySnap.content : null,
+          quoted_type    : replySnap ? replySnap.type : null,
+          quoted_sender  : replySnap ? replySnap.sender : null,
         }));
         state.lastMsgId = Math.max(state.lastMsgId, r.message_id);
         scrollToBottom();
@@ -2058,6 +2161,283 @@ const ChatApp = (() => {
     modal.style.display = 'flex';
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // P2 wire-up (2026-05-25): Reply, Reactions, Delete
+  // Backend (model + endpoint) já estava todo pronto desde a auditoria 2026-05-24;
+  // faltava só conectar o frontend. CSS .msg-actions-menu / .msg-reactions / .chat-reply-bar
+  // já está em chat.php. Aqui só adicionamos os handlers JS.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // Emojis comuns no quick-picker (padrão WhatsApp). Ordem fixa.
+  const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+
+  // ── Reply (citar mensagem) ─────────────────────────────────────────────────
+  // Mostra a barra acima do input com preview da msg sendo respondida.
+  // O quoted_id (wamid) é enviado no próximo send().
+  function setReply(msgId) {
+    const info = state.msgIndex[msgId];
+    if (!info) {
+      toast('Mensagem não encontrada', 'error');
+      return;
+    }
+    if (!info.wamid) {
+      toast('Mensagem muito antiga — sem ID para responder no WhatsApp', 'error');
+      return;
+    }
+    state.replyTo = {
+      wamid   : info.wamid,
+      content : info.content,
+      type    : info.type,
+      sender  : info.sender,
+    };
+    const bar  = qs('#chatReplyBar');
+    const text = qs('#chatReplyText');
+    if (!bar || !text) return;
+
+    // Preview amigável: ' [Imagem]' / ' [Audio]' / 'texto curto'
+    let preview = info.content || '';
+    if (!preview) {
+      preview = ({
+        image    : '📷 Imagem',
+        video    : '🎥 Vídeo',
+        audio    : '🎵 Áudio',
+        document : '📄 Documento',
+        sticker  : '✨ Sticker',
+      })[info.type] || 'Mensagem';
+    }
+    if (preview.length > 80) preview = preview.slice(0, 77) + '…';
+
+    text.textContent = (info.sender ? info.sender + ': ' : '') + preview;
+    bar.style.display = 'flex';
+    closeMsgMenu();
+    // Foca o input pra digitar a resposta
+    const input = qs('#chatInput');
+    if (input) input.focus();
+  }
+
+  function cancelReply() {
+    state.replyTo = null;
+    const bar = qs('#chatReplyBar');
+    if (bar) bar.style.display = 'none';
+  }
+
+  // ── Menu de ações por mensagem (3 pontos) ──────────────────────────────────
+  // Popup posicionado próximo ao botão. Único aberto por vez (state.menuOpenFor).
+  // Clique fora fecha (handler global em init).
+  function toggleMsgMenu(msgId, anchorEl) {
+    // Se já está aberto pra essa msg → fecha
+    if (state.menuOpenFor === msgId) {
+      closeMsgMenu();
+      return;
+    }
+    closeMsgMenu();
+    const info = state.msgIndex[msgId];
+    if (!info) return;
+
+    // Cria popup global se ainda não existe
+    let menu = qs('#msgActionsPopup');
+    if (!menu) {
+      menu = document.createElement('div');
+      menu.id = 'msgActionsPopup';
+      menu.className = 'msg-actions-menu';
+      menu.style.position = 'fixed';
+      menu.style.zIndex = '9999';
+      menu.style.display = 'none';
+      document.body.appendChild(menu);
+    }
+
+    // Botão Apagar só faz sentido pras mensagens próprias (outbound).
+    // Reagir + Responder disponíveis pra todas.
+    const reactRow = `<div class="msg-actions-reactions">
+      ${QUICK_REACTIONS.map(em => `<button class="msg-act-react" onclick="ChatApp.reactMessage(${msgId}, '${em}')" title="Reagir com ${em}">${em}</button>`).join('')}
+    </div>`;
+
+    const deleteBtn = info.fromMe
+      ? `<button class="danger" onclick="ChatApp.confirmDeleteMessage(${msgId})">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
+           Apagar mensagem
+         </button>`
+      : '';
+
+    menu.innerHTML = `
+      <button onclick="ChatApp.setReply(${msgId})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+        Responder
+      </button>
+      ${reactRow}
+      ${deleteBtn}
+    `;
+
+    // Posiciona próximo ao botão (clamp pra não sair da tela)
+    const rect = anchorEl.getBoundingClientRect();
+    menu.style.display = 'flex';
+    const mw = menu.offsetWidth || 220;
+    const mh = menu.offsetHeight || 140;
+    let left = rect.right - mw;
+    let top  = rect.bottom + 4;
+    if (left < 8)             left = 8;
+    if (top + mh > window.innerHeight - 8) top = rect.top - mh - 4;
+    menu.style.left = left + 'px';
+    menu.style.top  = top  + 'px';
+
+    state.menuOpenFor = msgId;
+  }
+
+  function closeMsgMenu() {
+    const menu = qs('#msgActionsPopup');
+    if (menu) menu.style.display = 'none';
+    state.menuOpenFor = null;
+  }
+
+  // ── Reaction (emoji) ───────────────────────────────────────────────────────
+  // Envia pra API e atualiza otimisticamente. emoji='' remove a reaction.
+  async function reactMessage(msgId, emoji) {
+    const info = state.msgIndex[msgId];
+    if (!info) { toast('Mensagem não encontrada', 'error'); return; }
+    if (!info.wamid) {
+      toast('Mensagem muito antiga — sem ID para reagir', 'error');
+      return;
+    }
+    closeMsgMenu();
+
+    try {
+      const r = await apiFetch(API.reaction, 'POST', {
+        _csrf       : CSRF,
+        jid         : state.currentJid,
+        message_id  : msgId,
+        target_wamid: info.wamid,
+        emoji,
+        from_me     : info.fromMe ? 1 : 0,
+      });
+      // Aplica local (otimista). O servidor já gravou no DB.
+      updateReactionLocally(msgId, emoji);
+      // Se a Evolution rejeitou o envio externo, avisa o user
+      if (r.evolution && r.evolution.ok === false) {
+        const msg = r.evolution.message || ('HTTP ' + (r.evolution.http || '?'));
+        toast('Reação salva, mas WhatsApp rejeitou: ' + msg, 'warn');
+      }
+    } catch (e) {
+      toast('Erro ao enviar reação', 'error');
+    }
+  }
+
+  // Atualiza pílulas localmente sem refetch. Idempotente: se já reagiu com o
+  // mesmo emoji, vira no-op (servidor mantém UNIQUE por reactor).
+  function updateReactionLocally(msgId, emoji) {
+    const row = qs('#msg-' + msgId);
+    if (!row) return;
+    // Remove qualquer .me anterior do usuário
+    let container = row.querySelector('.msg-reactions');
+    let reactions = [];
+    if (container) {
+      reactions = Array.from(container.querySelectorAll('.msg-reaction-pill')).map(p => {
+        const em  = (p.firstChild && p.firstChild.textContent) ? p.firstChild.textContent.trim() : '';
+        const cntEl = p.querySelector('.cnt');
+        const cnt = cntEl ? parseInt(cntEl.textContent, 10) : 1;
+        return { emoji: em, count: cnt, mine: p.classList.contains('me') };
+      });
+    }
+    // Decremento da reação atual do usuário
+    const myCurrentIdx = reactions.findIndex(r => r.mine);
+    if (myCurrentIdx >= 0) {
+      reactions[myCurrentIdx].count -= 1;
+      reactions[myCurrentIdx].mine   = false;
+      if (reactions[myCurrentIdx].count <= 0) reactions.splice(myCurrentIdx, 1);
+    }
+    // Incrementa nova (se não for emoji vazio)
+    if (emoji) {
+      const exists = reactions.find(r => r.emoji === emoji);
+      if (exists) { exists.count += 1; exists.mine = true; }
+      else        reactions.push({ emoji, count: 1, mine: true });
+    }
+
+    // Re-render container
+    if (!container) {
+      container = document.createElement('div');
+      container.className = 'msg-reactions';
+      row.insertBefore(container, row.querySelector('.msg-meta'));
+    }
+    if (!reactions.length) {
+      container.remove();
+    } else {
+      container.innerHTML = reactions.map(r => {
+        const action = r.mine
+          ? `ChatApp.reactMessage(${msgId}, '')`
+          : `ChatApp.reactMessage(${msgId}, '${esc(r.emoji)}')`;
+        return `<span class="msg-reaction-pill ${r.mine?'me':''}" onclick="${action}">${esc(r.emoji)}${r.count>1?`<span class="cnt">${r.count}</span>`:''}</span>`;
+      }).join('');
+    }
+  }
+
+  // ── Delete (apagar mensagem) ───────────────────────────────────────────────
+  // Confirma antes (revoke pra todos é destrutivo). Atualiza UI em "Mensagem apagada".
+  async function confirmDeleteMessage(msgId) {
+    closeMsgMenu();
+    const info = state.msgIndex[msgId];
+    if (!info || !info.fromMe) {
+      toast('Só é possível apagar suas próprias mensagens', 'error');
+      return;
+    }
+    if (!info.wamid) {
+      toast('Mensagem muito antiga — sem ID para apagar no WhatsApp', 'error');
+      return;
+    }
+    if (!confirm('Apagar esta mensagem para todos? Esta ação não pode ser desfeita.')) return;
+
+    try {
+      await apiFetch(API.messageAction, 'POST', {
+        _csrf       : CSRF,
+        action      : 'delete',
+        message_id  : msgId,
+        jid         : state.currentJid,
+        target_wamid: info.wamid,
+      });
+      // Atualiza UI local: troca conteúdo por "Mensagem apagada"
+      const row = qs('#msg-' + msgId);
+      if (row) {
+        const bubble = row.querySelector('.msg-bubble');
+        if (bubble) bubble.innerHTML = `<span class="msg-deleted">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+          Mensagem apagada
+        </span>`;
+        // Remove reactions (não fazem mais sentido)
+        const reacts = row.querySelector('.msg-reactions');
+        if (reacts) reacts.remove();
+      }
+      // Atualiza cache
+      if (state.msgIndex[msgId]) state.msgIndex[msgId].isDeleted = true;
+      toast('Mensagem apagada', 'success');
+    } catch (e) {
+      toast('Erro ao apagar mensagem', 'error');
+    }
+  }
+
+  // ── Scroll para mensagem citada ────────────────────────────────────────────
+  // Quando o usuário clica numa .msg-quoted, rola até a msg original e destaca.
+  function scrollToWamid(wamid) {
+    if (!wamid) return;
+    const target = document.querySelector(`.msg-row[data-wamid="${CSS.escape(wamid)}"]`);
+    if (!target) {
+      toast('Mensagem original fora da janela atual. Role para cima para carregá-la.', 'info');
+      return;
+    }
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Destaque temporário
+    target.style.transition = 'background .3s';
+    const orig = target.style.background;
+    target.style.background = 'rgba(37,99,235,.18)';
+    setTimeout(() => { target.style.background = orig; }, 1500);
+  }
+
+  // Listener global pra fechar o menu de ações ao clicar fora
+  document.addEventListener('click', (e) => {
+    if (!state.menuOpenFor) return;
+    const menu = qs('#msgActionsPopup');
+    if (menu && menu.contains(e.target)) return;
+    if (e.target.closest('.msg-menu-btn')) return;
+    closeMsgMenu();
+  });
+
   // ── API pública ──────────────────────────────────────────────
   return {
     init, checkStatus, connectWhatsApp, disconnectWhatsApp,
@@ -2077,6 +2457,11 @@ const ChatApp = (() => {
     openLinkPicker, filterLinkPicker, selectLinkItem, clearLinkItem, removeLinkedProcesso,
     toggleSectorDropdown, setSectorDirect,
     openImage,
+    // P2 wire-up (2026-05-25)
+    setReply, cancelReply,
+    toggleMsgMenu, closeMsgMenu,
+    reactMessage, confirmDeleteMessage,
+    scrollToWamid,
   };
 })();
 

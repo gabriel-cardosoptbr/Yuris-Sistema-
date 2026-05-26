@@ -48,6 +48,25 @@ class WhatsAppInstance
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Retorna a primeira instância WhatsApp de um tenant (geralmente só tem 1).
+     * Usado por endpoints que não querem ter que descobrir o instance_name —
+     * pegam direto a instância do AccountContext.
+     *
+     * @return array|false Linha da whatsapp_instances ou false se não houver.
+     */
+    public function getByAccountId(int $accountId): array|false
+    {
+        if ($accountId <= 0) return false;
+        $stmt = $this->db->prepare(
+            'SELECT * FROM whatsapp_instances
+             WHERE account_id = ?
+             ORDER BY created_at DESC LIMIT 1'
+        );
+        $stmt->execute([$accountId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
     public function findByName(string $name, ?array $accountIds = null): array|false
     {
         if ($accountIds === null) {

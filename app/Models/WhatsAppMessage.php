@@ -128,6 +128,9 @@ class WhatsAppMessage
         //   3) contact_name original do registro (filtra JIDs raw 14+ dígitos)
         //   4) contacts.push_name por matching de phone (último fallback 1:1)
         // Tambem retorna participant_jid separado pro JS resolver nome se quiser.
+        // P2 (wire-up reply/reactions/delete 2026-05-25):
+        //   - LEFT JOIN com whatsapp_messages q (alias) pra preview da quoted
+        //   - m.is_deleted retornado pra render "Mensagem apagada"
         $sql = 'SELECT m.id, m.wamid, m.remote_jid, m.participant_jid,
                        COALESCE(
                            CASE WHEN m.direction = \'inbound\' AND m.participant_jid IS NOT NULL THEN gm.push_name END,
@@ -136,7 +139,14 @@ class WhatsAppMessage
                            c.push_name
                        ) AS contact_name,
                        m.message_type, m.message_content, m.caption, m.media_url, m.media_mimetype,
-                       m.media_filename, m.direction, m.status, m.quoted_wamid, m.created_at
+                       m.media_filename, m.direction, m.status, m.quoted_wamid, m.is_deleted, m.created_at,
+                       q.message_content AS quoted_content,
+                       q.caption         AS quoted_caption,
+                       q.message_type    AS quoted_type,
+                       q.direction       AS quoted_direction,
+                       q.contact_name    AS quoted_sender_raw,
+                       qgm.push_name     AS quoted_sender_member,
+                       qcp.push_name     AS quoted_sender_contact
                 FROM whatsapp_messages m
                 LEFT JOIN whatsapp_group_members gm
                        ON gm.instance_id = m.instance_id
@@ -150,6 +160,16 @@ class WhatsAppMessage
                       AND m.contact_name REGEXP \'^[0-9]{12,}$\'
                       AND (c.remote_jid LIKE CONCAT(m.contact_name, \'%@lid\')
                            OR c.remote_jid LIKE CONCAT(m.contact_name, \'%\'))
+                LEFT JOIN whatsapp_messages q
+                       ON q.instance_id = m.instance_id
+                      AND q.wamid       = m.quoted_wamid
+                LEFT JOIN whatsapp_group_members qgm
+                       ON qgm.instance_id = q.instance_id
+                      AND qgm.group_jid       COLLATE utf8mb4_unicode_ci = q.remote_jid
+                      AND qgm.participant_jid COLLATE utf8mb4_unicode_ci = q.participant_jid
+                LEFT JOIN whatsapp_contacts qcp
+                       ON qcp.instance_id = q.instance_id
+                      AND qcp.remote_jid  = q.participant_jid
                 WHERE m.instance_id = ? AND m.remote_jid = ?';
         $params = [$instanceId, $remoteJid];
 
@@ -164,7 +184,11 @@ class WhatsAppMessage
         $stmt->execute($params);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        return array_reverse($rows);
+        // Pós-processamento: agrega reactions e normaliza quoted_sender
+        $rows = array_reverse($rows);
+        $this->hydrateReactions($instanceId, $rows);
+        $this->hydrateQuotedSender($rows);
+        return $rows;
     }
 
     /** Buscar apenas novas mensagens após um ID.
@@ -180,7 +204,14 @@ class WhatsAppMessage
                         c.push_name
                     ) AS contact_name,
                     m.message_type, m.message_content, m.caption, m.media_url, m.media_mimetype,
-                    m.media_filename, m.direction, m.status, m.quoted_wamid, m.created_at
+                    m.media_filename, m.direction, m.status, m.quoted_wamid, m.is_deleted, m.created_at,
+                    q.message_content AS quoted_content,
+                    q.caption         AS quoted_caption,
+                    q.message_type    AS quoted_type,
+                    q.direction       AS quoted_direction,
+                    q.contact_name    AS quoted_sender_raw,
+                    qgm.push_name     AS quoted_sender_member,
+                    qcp.push_name     AS quoted_sender_contact
              FROM whatsapp_messages m
              LEFT JOIN whatsapp_group_members gm
                     ON gm.instance_id     = m.instance_id
@@ -194,12 +225,160 @@ class WhatsAppMessage
                    AND m.contact_name REGEXP \'^[0-9]{12,}$\'
                    AND (c.remote_jid LIKE CONCAT(m.contact_name, \'%@lid\')
                         OR c.remote_jid LIKE CONCAT(m.contact_name, \'%\'))
+             LEFT JOIN whatsapp_messages q
+                    ON q.instance_id = m.instance_id
+                   AND q.wamid       = m.quoted_wamid
+             LEFT JOIN whatsapp_group_members qgm
+                    ON qgm.instance_id = q.instance_id
+                   AND qgm.group_jid       COLLATE utf8mb4_unicode_ci = q.remote_jid
+                   AND qgm.participant_jid COLLATE utf8mb4_unicode_ci = q.participant_jid
+             LEFT JOIN whatsapp_contacts qcp
+                    ON qcp.instance_id = q.instance_id
+                   AND qcp.remote_jid  = q.participant_jid
              WHERE m.instance_id = ? AND m.remote_jid = ? AND m.id > ?
              ORDER BY m.id ASC
              LIMIT 100'
         );
         $stmt->execute([$instanceId, $remoteJid, $afterId]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->hydrateReactions($instanceId, $rows);
+        $this->hydrateQuotedSender($rows);
+        return $rows;
+    }
+
+    // ─── Helpers de hidratação (preview de quoted + reactions agregadas) ────────
+    // Roda em PHP pra evitar GROUP BY + JOIN complicado em SQL (2 grupos diferentes:
+    // mensagem real e reactions). Custo é uma query extra com WHERE IN (...) — barato.
+
+    /**
+     * Resolve quoted_sender pelo fallback: group_members → contacts → raw (filtra LID 14+).
+     * Anexa $row['quoted_sender'] sem campos auxiliares.
+     */
+    private function hydrateQuotedSender(array &$rows): void
+    {
+        foreach ($rows as &$r) {
+            if (empty($r['quoted_wamid'])) {
+                $r['quoted_sender'] = null;
+                continue;
+            }
+            $sender = $r['quoted_sender_member']
+                   ?: $r['quoted_sender_contact']
+                   ?: (preg_match('/^\d{14,}$/', (string)($r['quoted_sender_raw'] ?? '')) ? null : ($r['quoted_sender_raw'] ?? null));
+            // Pra mensagens próprias citadas, usa rótulo amigável
+            if (($r['quoted_direction'] ?? '') === 'outbound' && !$sender) {
+                $sender = 'Você';
+            }
+            $r['quoted_sender'] = $sender;
+            // Limpa campos auxiliares
+            unset($r['quoted_sender_raw'], $r['quoted_sender_member'], $r['quoted_sender_contact']);
+        }
+    }
+
+    /**
+     * Busca todas as reactions das mensagens listadas em uma query só e anexa
+     * agregadas por emoji em $row['reactions'] = [{emoji, count, mine}].
+     */
+    private function hydrateReactions(int $instanceId, array &$rows): void
+    {
+        if (empty($rows)) return;
+        // Sempre garante o campo, mesmo sem wamid — evita undefined no frontend
+        foreach ($rows as &$r0) { $r0['reactions'] = []; }
+        unset($r0);
+
+        $wamids = [];
+        foreach ($rows as $r) {
+            if (!empty($r['wamid'])) $wamids[] = $r['wamid'];
+        }
+        if (empty($wamids)) return;
+
+        $placeholders = implode(',', array_fill(0, count($wamids), '?'));
+        $sql = "SELECT target_wamid, emoji, reactor_jid, is_from_me
+                FROM whatsapp_reactions
+                WHERE instance_id = ?
+                  AND target_wamid IN ($placeholders)
+                  AND emoji <> ''";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(array_merge([$instanceId], $wamids));
+        $raw = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Agrupa por target_wamid → emoji → {count, mine}
+        $byWamid = [];
+        foreach ($raw as $r) {
+            $tw    = $r['target_wamid'];
+            $emoji = $r['emoji'];
+            if (!isset($byWamid[$tw][$emoji])) {
+                $byWamid[$tw][$emoji] = ['emoji' => $emoji, 'count' => 0, 'mine' => false];
+            }
+            $byWamid[$tw][$emoji]['count']++;
+            if ($r['is_from_me']) $byWamid[$tw][$emoji]['mine'] = true;
+        }
+
+        // Anexa em cada row (mantém ordem dos emojis pela primeira aparição)
+        foreach ($rows as &$row) {
+            $row['reactions'] = isset($byWamid[$row['wamid']]) ? array_values($byWamid[$row['wamid']]) : [];
+        }
+    }
+
+    /**
+     * UPSERT de reaction: unique por (instance_id, target_wamid, reactor_jid).
+     * Se $data['emoji'] === '' → remove (DELETE).
+     */
+    public function upsertReaction(array $data): void
+    {
+        $instanceId  = (int)$data['instance_id'];
+        $targetWamid = (string)$data['target_wamid'];
+        $reactorJid  = (string)$data['reactor_jid'];
+        $emoji       = (string)$data['emoji'];
+
+        // Emoji vazio = remover reaction existente
+        if ($emoji === '') {
+            $this->db->prepare(
+                'DELETE FROM whatsapp_reactions
+                 WHERE instance_id = ? AND target_wamid = ? AND reactor_jid = ?'
+            )->execute([$instanceId, $targetWamid, $reactorJid]);
+            return;
+        }
+
+        // INSERT ON DUPLICATE KEY UPDATE — sobrescreve emoji anterior do mesmo reactor
+        $this->db->prepare(
+            'INSERT INTO whatsapp_reactions
+             (account_id, instance_id, target_wamid, reactor_jid, reactor_name, emoji, is_from_me)
+             VALUES (?,?,?,?,?,?,?)
+             ON DUPLICATE KEY UPDATE
+               emoji        = VALUES(emoji),
+               reactor_name = VALUES(reactor_name),
+               is_from_me   = VALUES(is_from_me),
+               created_at   = CURRENT_TIMESTAMP'
+        )->execute([
+            (int)($data['account_id'] ?? 0),
+            $instanceId,
+            $targetWamid,
+            $reactorJid,
+            $data['reactor_name'] ?? null,
+            $emoji,
+            !empty($data['is_from_me']) ? 1 : 0,
+        ]);
+    }
+
+    /**
+     * Soft delete: marca is_deleted=1 numa mensagem.
+     * Filtra por account_ids pra impedir cross-tenant.
+     * Retorna true se afetou alguma linha.
+     */
+    public function markDeleted(int $messageId, array $accountIds): bool
+    {
+        $accountIds = array_filter(array_map('intval', $accountIds));
+        if (empty($accountIds)) return false;
+
+        $placeholders = implode(',', array_fill(0, count($accountIds), '?'));
+        $stmt = $this->db->prepare(
+            "UPDATE whatsapp_messages
+                SET is_deleted = 1
+              WHERE id = ?
+                AND account_id IN ($placeholders)"
+        );
+        $stmt->execute(array_merge([$messageId], $accountIds));
+        return $stmt->rowCount() > 0;
     }
 
     /** Lista chats com última mensagem por JID. */

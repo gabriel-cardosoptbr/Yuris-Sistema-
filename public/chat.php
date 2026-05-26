@@ -1676,6 +1676,85 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
       border-color: #2563EB !important;
       box-shadow: 0 0 0 3px rgba(37,99,235,0.12) !important;
     }
+
+    /* ═══ Tema claro: menu de acoes/reactions/quoted (P2 wire-up 2026-05-25) ═══ */
+    html[data-theme="light"] .msg-actions-menu {
+      background: #FFFFFF !important;
+      border: 1px solid #CBD5E1 !important;
+      box-shadow: 0 12px 32px rgba(15,31,54,0.18) !important;
+    }
+    html[data-theme="light"] .msg-actions-menu button {
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .msg-actions-menu button:hover {
+      background: #EFF6FF !important;
+    }
+    html[data-theme="light"] .msg-actions-menu button.danger {
+      color: #DC2626 !important;
+    }
+    html[data-theme="light"] .msg-actions-menu button.danger:hover {
+      background: #FEE2E2 !important;
+    }
+    html[data-theme="light"] .msg-actions-reactions {
+      border-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] .msg-act-react:hover {
+      background: #EFF6FF !important;
+    }
+    /* Botao 3 pontos: contraste melhor em fundo claro */
+    html[data-theme="light"] .msg-menu-btn {
+      background: rgba(15,31,54,0.10) !important;
+      color: #475569 !important;
+    }
+    html[data-theme="light"] .msg-menu-btn:hover {
+      background: rgba(15,31,54,0.20) !important;
+      color: #0F1F36 !important;
+    }
+    /* Reactions pills no tema claro */
+    html[data-theme="light"] .msg-reaction-pill {
+      background: #FFFFFF !important;
+      border: 1px solid #CBD5E1 !important;
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .msg-reaction-pill:hover {
+      background: #DBEAFE !important;
+    }
+    html[data-theme="light"] .msg-reaction-pill.me {
+      background: #DBEAFE !important;
+      border-color: #2563EB !important;
+    }
+    html[data-theme="light"] .msg-reaction-pill .cnt {
+      color: #475569 !important;
+    }
+    /* Quoted preview na bolha (msg citada) */
+    html[data-theme="light"] .msg-quoted {
+      background: rgba(15,31,54,0.06) !important;
+    }
+    html[data-theme="light"] .msg-quoted:hover {
+      background: rgba(15,31,54,0.10) !important;
+    }
+    html[data-theme="light"] .msg-quoted-text {
+      color: #475569 !important;
+    }
+    /* "Mensagem apagada" */
+    html[data-theme="light"] .msg-deleted {
+      color: #94A3B8 !important;
+    }
+    /* Reply bar (acima do input) */
+    html[data-theme="light"] .chat-reply-bar {
+      background: #EFF6FF !important;
+      border-color: #93C5FD !important;
+      border-left-color: #2563EB !important;
+    }
+    html[data-theme="light"] .chat-reply-bar-text {
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .chat-reply-bar-cancel {
+      color: #475569 !important;
+    }
+    html[data-theme="light"] .chat-reply-bar-cancel:hover {
+      color: #DC2626 !important;
+    }
   </style>
 </head>
 <body>
@@ -2306,7 +2385,7 @@ const API  = {
 #imgLightboxDownload:hover { background: rgba(37,99,235,.3); border-color: rgba(96,165,250,.5); }
 </style>
 
-<script src="/sistema_vendas/public/assets/chat.js?v=46"></script>
+<script src="/sistema_vendas/public/assets/chat.js?v=49"></script>
 <script>
 // Lightbox init
 (function(){
