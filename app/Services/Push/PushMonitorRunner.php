@@ -168,6 +168,7 @@ final class PushMonitorRunner
         foreach ($items as $it) {
             $inserted = PushTodayCache::upsert([
                 'account_id'              => $accountId,
+                'monitor_id'              => $monitorId,
                 'source_id'               => $it['source_id'],
                 'tribunal'                => $it['tribunal'],
                 'data_disponibilizacao'   => $it['data_disponibilizacao'],

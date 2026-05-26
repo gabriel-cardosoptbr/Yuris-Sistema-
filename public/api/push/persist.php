@@ -97,9 +97,20 @@ try {
             $decoded = json_decode($cached['payload_original'], true);
             if (is_array($decoded)) $item['payload_original'] = $decoded;
         }
+        // Etapa 10 add-on Monitoramentos: propaga monitor_id quando a
+        // publicação veio de busca automática (cron). Útil pra ROI:
+        // "quantas intimações vieram do monitor X neste mês".
+        $monitorIdOrigem = null;
+        if ($cached && !empty($cached['monitor_id'])) {
+            $monitorIdOrigem = (int) $cached['monitor_id'];
+        } elseif (!empty($item['monitor_id'])) {
+            // permite caller passar explicitamente (raro)
+            $monitorIdOrigem = (int) $item['monitor_id'];
+        }
 
         $eventId = PushEvent::upsert([
             'account_id'              => $accountId,
+            'monitor_id'              => $monitorIdOrigem,
             'source_id'               => $item['source_id']             ?? 'djen',
             'tipo_evento'             => 'publicacao',
             'titulo'                  => $item['titulo']                ?? null,

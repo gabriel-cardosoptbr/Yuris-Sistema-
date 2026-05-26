@@ -28,14 +28,14 @@ class PushTodayCache
         $pdo  = Database::getConnection();
         $stmt = $pdo->prepare(
             'INSERT IGNORE INTO push_today_cache
-               (account_id, source_id, tribunal, data_disponibilizacao, data_publicacao,
+               (account_id, monitor_id, source_id, tribunal, data_disponibilizacao, data_publicacao,
                 numero_processo, numero_processo_mascara, orgao, id_orgao,
                 tipo_comunicacao, meio, meio_completo, classe_nome, classe_codigo,
                 titulo, resumo, conteudo, url_origem, numero_comunicacao,
                 hash_externo, hash_conteudo, payload_original,
                 encontrado_em, expires_at)
              VALUES
-               (:acc, :src, :trib, :ddisp, :dpub,
+               (:acc, :mon, :src, :trib, :ddisp, :dpub,
                 :np, :npm, :org, :idorg,
                 :tcom, :meio, :mcomp, :cnome, :ccod,
                 :tit, :res, :cont, :url, :ncom,
@@ -44,6 +44,9 @@ class PushTodayCache
         );
         $stmt->execute([
             'acc'     => (int)$data['account_id'],
+            // Etapa 10 add-on Monitoramentos: rastreia qual monitor disparou
+            // a busca que populou esse item. NULL pra cache vindo de busca manual.
+            'mon'     => isset($data['monitor_id']) ? (int)$data['monitor_id'] : null,
             'src'     => $data['source_id']             ?? 'djen',
             'trib'    => $data['tribunal']              ?? '',
             'ddisp'   => $data['data_disponibilizacao'] ?? date('Y-m-d'),
