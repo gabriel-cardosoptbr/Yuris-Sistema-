@@ -19,9 +19,9 @@ $nCols   = count($columns);
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=27">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=42">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=8">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=18">
   <style>
     :root {
       --bg-main: #070F1C;
@@ -185,6 +185,22 @@ $nCols   = count($columns);
     .link-card:hover { border-color: rgba(96,165,250,.32); background: rgba(37,99,235,.1); }
     .link-card-title { font-size: .85rem; font-weight: 600; }
     .link-card-sub   { font-size: .73rem; color: var(--muted); margin-top: 2px; }
+
+    /* Tema claro: aba Atalhos — cards brancos legíveis */
+    html[data-theme="light"] .link-card {
+      background: #FFFFFF !important;
+      border: 1px solid rgba(15,31,54,0.10) !important;
+      color: #0F1F36 !important;
+      box-shadow: 0 1px 3px rgba(15,31,54,0.04) !important;
+    }
+    html[data-theme="light"] .link-card:hover {
+      background: rgba(37,99,235,0.06) !important;
+      border-color: rgba(37,99,235,0.30) !important;
+      box-shadow: 0 4px 12px rgba(15,31,54,0.08) !important;
+    }
+    html[data-theme="light"] .link-card-title { color: #0F1F36 !important; }
+    html[data-theme="light"] .link-card-sub   { color: #5A6B7E !important; }
+    html[data-theme="light"] .link-card svg   { stroke: #1E4A8A !important; }
 
     /* ── Modal ── */
     #modal {
@@ -377,13 +393,7 @@ $nCols   = count($columns);
       </div>
 
       <!-- KPI cards -->
-      <div class="kpi-grid-6" style="display:grid;grid-template-columns:repeat(6,1fr);gap:11px">
-        <div class="kpi-card kpi-ok">
-          <div class="kpi-dot dot-ok"></div>
-          <div class="kpi-label">Colunas do Funil</div>
-          <div class="kpi-value"><?= $nCols ?></div>
-          <div class="kpi-foot">etapas configuradas</div>
-        </div>
+      <div class="kpi-grid-6" style="display:grid;grid-template-columns:repeat(5,1fr);gap:11px">
         <div class="kpi-card">
           <div class="kpi-dot dot-neutral" id="dotUsers"></div>
           <div class="kpi-label">Usuários</div>
@@ -424,8 +434,7 @@ $nCols   = count($columns);
       <!-- Nav tabs -->
       <div class="cfg-panel" style="padding:14px 18px">
         <div class="cfg-tabs" id="cfgTabs">
-          <button class="cfg-tab active" data-tab="funil"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg> Funil de Vendas</button>
-          <button class="cfg-tab" data-tab="juridico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M12 3v18"/><path d="M5 6l7-3 7 3"/><path d="M5 6 2 13h6z"/><path d="M19 6l-3 7h6z"/><line x1="3" y1="18" x2="21" y2="18"/></svg> Jurídico</button>
+          <button class="cfg-tab active" data-tab="juridico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M12 3v18"/><path d="M5 6l7-3 7 3"/><path d="M5 6 2 13h6z"/><path d="M19 6l-3 7h6z"/><line x1="3" y1="18" x2="21" y2="18"/></svg> Jurídico</button>
           <button class="cfg-tab" data-tab="notificacoes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Notificações</button>
           <button class="cfg-tab" data-tab="aparencia"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg> Aparência</button>
           <button class="cfg-tab" data-tab="links"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Atalhos</button>
@@ -433,62 +442,8 @@ $nCols   = count($columns);
         </div>
       </div>
 
-      <!-- ── SECTION: Funil ── -->
-      <div class="cfg-section active" id="sec-funil">
-        <div class="cfg-panel">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h3 style="font-size:.95rem;font-weight:600;color:#dbeafe">Colunas do Funil de Vendas</h3>
-              <p style="font-size:.78rem;color:var(--muted);margin-top:2px">Gerencie as etapas do pipeline comercial</p>
-            </div>
-            <button id="btnAdd" class="cfg-btn-primary">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Adicionar coluna
-            </button>
-          </div>
-          <div class="overflow-auto">
-            <table class="cols-table">
-              <thead>
-                <tr>
-                  <th>Ordem</th>
-                  <th>Nome</th>
-                  <th>Cor</th>
-                  <th>Funil</th>
-                  <th>Oportunidade</th>
-                  <th>Fechado</th>
-                  <th style="text-align:right">Ações</th>
-                </tr>
-              </thead>
-              <tbody id="colsBody">
-              <?php foreach ($columns as $c): ?>
-                <tr data-id="<?=htmlspecialchars($c['id'])?>">
-                  <td style="color:var(--muted);font-size:.78rem"><?=htmlspecialchars($c['ordem'])?></td>
-                  <td style="font-weight:600;color:#e2f0ff"><?=htmlspecialchars($c['nome'])?></td>
-                  <td>
-                    <div style="display:flex;align-items:center;gap:7px">
-                      <span class="col-color-swatch" style="background:<?=htmlspecialchars($c['cor'])?>"></span>
-                      <span style="font-size:.72rem;color:var(--muted)"><?=htmlspecialchars($c['cor'])?></span>
-                    </div>
-                  </td>
-                  <td><span class="col-badge <?= $c['conta_funil'] ? 'badge-sim':'badge-nao' ?>"><?= $c['conta_funil'] ? 'Sim':'Não' ?></span></td>
-                  <td><span class="col-badge <?= $c['conta_oportunidade'] ? 'badge-sim':'badge-nao' ?>"><?= $c['conta_oportunidade'] ? 'Sim':'Não' ?></span></td>
-                  <td><span class="col-badge <?= $c['conta_fechado'] ? 'badge-sim':'badge-nao' ?>"><?= $c['conta_fechado'] ? 'Sim':'Não' ?></span></td>
-                  <td style="text-align:right">
-                    <div style="display:flex;gap:6px;justify-content:flex-end">
-                      <button class="editBtn cfg-btn-secondary">Editar</button>
-                      <button class="delBtn cfg-btn-danger">Excluir</button>
-                    </div>
-                  </td>
-                </tr>
-              <?php endforeach; ?>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── SECTION: Jurídico ── -->
-      <div class="cfg-section" id="sec-juridico">
+      <!-- ── SECTION: Jurídico ── (default) -->
+      <div class="cfg-section active" id="sec-juridico">
         <div class="cfg-panel space-y-4">
           <div>
             <h3 style="font-size:.95rem;font-weight:600;color:#dbeafe;margin-bottom:4px">Alertas de Prazos Jurídicos</h3>
@@ -643,7 +598,7 @@ $nCols   = count($columns);
             </div>
 
             <div style="margin-top:18px;padding:12px 14px;background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.18);border-radius:8px;font-size:.78rem;color:#9ab0c9;line-height:1.5">
-              <strong style="color:#7EB8F6">💡 Dica:</strong>
+              <strong style="color:#1E4A8A;display:inline-flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21h6"/><path d="M12 17v4"/><path d="M12 3a6 6 0 0 0-4 10.5c.5.5 1 1.2 1 2v.5h6v-.5c0-.8.5-1.5 1-2A6 6 0 0 0 12 3z"/></svg> Dica:</strong>
               A troca é instantânea — não precisa recarregar a página. A preferência é por dispositivo (cada navegador guarda a sua).
             </div>
           </div>
@@ -740,41 +695,6 @@ $nCols   = count($columns);
   </div>
 </main>
 
-<!-- ── Modal coluna (lógica original preservada) ── -->
-<div id="modal" class="hidden">
-  <div class="modal-box">
-    <div class="modal-header">
-      <span class="modal-title-text" id="modalTitle">Nova Coluna</span>
-      <button type="button" id="modalCloseX" class="cfg-btn-secondary" style="height:30px;padding:0 10px;font-size:.76rem"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-    </div>
-    <div class="modal-body modal-content">
-      <form id="colForm">
-        <input type="hidden" name="id">
-        <input type="hidden" name="csrf_token" value="<?=htmlspecialchars($csrf)?>">
-        <div class="field-group">
-          <label class="field-label">Nome da coluna</label>
-          <input name="nome" class="field-input" placeholder="Ex: Proposta enviada" required>
-        </div>
-        <div class="field-group" style="margin-top:10px">
-          <label class="field-label">Cor (hex)</label>
-          <div style="display:flex;gap:8px;align-items:center">
-            <input type="color" name="cor_picker" id="corPicker" style="width:38px;height:34px;border:none;background:none;cursor:pointer;padding:0">
-            <input name="cor" id="corHex" class="field-input" placeholder="#3B82F6" value="#3B82F6" style="flex:1">
-          </div>
-        </div>
-        <div class="field-group" style="margin-top:10px">
-          <label class="field-label">Ordem</label>
-          <input type="number" name="ordem" class="field-input" value="0" min="0">
-        </div>
-        <div class="modal-footer" style="padding:12px 0 0;border-top:none;background:transparent;margin-top:6px">
-          <button type="button" id="cancelBtn" class="cfg-btn-secondary">Cancelar</button>
-          <button type="submit" class="cfg-btn-primary">Salvar</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
 <div class="toast-wrap" id="toastWrap" aria-live="polite"></div>
 
 
@@ -828,70 +748,8 @@ $nCols   = count($columns);
     });
   })();
 
-  // ── Column CRUD (original logic preserved) ─────────────────────────────────
+  // Base de APIs usada por loadKPIs() abaixo (Column CRUD removido junto com a aba Funil de Vendas)
   const API_BASE = '/sistema_vendas/public/api/';
-  const api    = API_BASE+'columns.php';
-  const modal  = document.getElementById('modal');
-  const colForm= document.getElementById('colForm');
-  const csrf   = '<?=htmlspecialchars($csrf)?>';
-
-  // Color picker sync
-  const corPicker = document.getElementById('corPicker');
-  const corHex    = document.getElementById('corHex');
-  if (corPicker && corHex){
-    corPicker.addEventListener('input', ()=>{ corHex.value=corPicker.value; });
-    corHex.addEventListener('input', ()=>{ if(/^#[0-9A-Fa-f]{6}$/.test(corHex.value)) corPicker.value=corHex.value; });
-  }
-
-  function openModal(data=null){
-    modal.classList.remove('hidden');
-    const titleEl = document.getElementById('modalTitle');
-    if (!data){
-      titleEl.textContent='Nova Coluna'; colForm.reset();
-      if(corHex) corHex.value='#3B82F6'; if(corPicker) corPicker.value='#3B82F6';
-      return;
-    }
-    titleEl.textContent='Editar Coluna';
-    colForm.id.value    = data.id    || '';
-    colForm.nome.value  = data.nome  || '';
-    colForm.cor.value   = data.cor   || '#3B82F6';
-    if(corHex)    corHex.value    = data.cor||'#3B82F6';
-    if(corPicker) corPicker.value = data.cor||'#3B82F6';
-    colForm.ordem.value = data.ordem || 0;
-  }
-  function closeModal(){ modal.classList.add('hidden'); }
-
-  document.getElementById('btnAdd').addEventListener('click', ()=>openModal());
-  document.getElementById('cancelBtn').addEventListener('click', closeModal);
-  document.getElementById('modalCloseX').addEventListener('click', closeModal);
-
-  document.querySelectorAll('.editBtn').forEach(b=>b.addEventListener('click', e=>{
-    const tr=e.target.closest('tr'); const id=tr.getAttribute('data-id');
-    fetch(api+'?id='+id).then(r=>r.json()).then(r=>openModal(r.data||r));
-  }));
-
-  document.querySelectorAll('.delBtn').forEach(b=>b.addEventListener('click', async e=>{
-    if(!(await Yuris.confirm('Excluir essa coluna?', { danger: true, okLabel: 'Excluir' }))) return;
-    const tr=e.target.closest('tr'); const id=tr.getAttribute('data-id');
-    fetch(api+'?id='+id,{method:'DELETE',headers:{'X-CSRF-TOKEN':csrf}}).then(r=>r.json()).then(r=>{
-      if(r.success){ showToast('Coluna excluída','success'); location.reload(); }
-      else showToast('Erro ao excluir','error');
-    });
-  }));
-
-  colForm.addEventListener('submit', e=>{
-    e.preventDefault();
-    const fd=new FormData(colForm); const payload=Object.fromEntries(fd.entries());
-    payload.conta_funil       = fd.get('conta_funil')       ? 1 : 0;
-    payload.conta_oportunidade= fd.get('conta_oportunidade')? 1 : 0;
-    payload.conta_fechado     = fd.get('conta_fechado')     ? 1 : 0;
-    const id=payload.id; const method=id?'PUT':'POST';
-    fetch(api,{method,headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf},body:JSON.stringify(payload)})
-      .then(r=>r.json()).then(r=>{
-        if(r.success){ showToast('Coluna salva com sucesso'); location.reload(); }
-        else showToast('Erro: '+JSON.stringify(r),'error');
-      });
-  });
 
   // Updates only localStorage-derived KPI cells — no network calls.
   function updateLocalKPIs(){
@@ -904,7 +762,7 @@ $nCols   = count($columns);
     const elN=document.getElementById('kpiNotifs');   if(elN) elN.textContent=activeNotifs+' ativos';
     const last=localStorage.getItem('cfg_last_change');
     const elL=document.getElementById('kpiLastChange'); if(elL&&last) elL.textContent=last;
-    updateSummary(<?= $nCols ?>);
+    updateSummary();
   }
 
   // Fetches remote KPIs (users + agent) in parallel, then refreshes local KPIs.
@@ -940,7 +798,7 @@ $nCols   = count($columns);
     const agentStatus=agentEl?agentEl.textContent:'—';
     const alertas=document.getElementById('kpiAlertas')?.textContent||'—';
     el.innerHTML=
-      `O sistema possui <strong>${nCols}</strong> colunas de funil configuradas, <strong>${users}</strong> usuário${users!=='1'?'s':''} cadastrado${users!=='1'?'s':''}, `+
+      `O sistema possui <strong>${users}</strong> usuário${users!=='1'?'s':''} cadastrado${users!=='1'?'s':''}, `+
       `agente IA <strong>${agentStatus.toLowerCase()}</strong> e <strong>${alertas}</strong> alertas jurídicos habilitados. `+
       `Revise as configurações periodicamente para manter o escritório operando com eficiência.`;
   }
