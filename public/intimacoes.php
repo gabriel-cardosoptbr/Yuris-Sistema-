@@ -893,6 +893,114 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
     html[data-theme="light"] .int-tab:not(.active):hover { color: #1E4A8A !important; }
     /* Botão "Sincronizar / Buscar" (.int-toolbar-info link inline) */
     html[data-theme="light"] .int-toolbar-info { color: #1E4A8A !important; }
+
+    /* 8) Badges TJSP / Intimação / Processo no header do card de publicação
+       (substituem o pasteizinho rgba+93c5fd que sumia no claro). */
+    html[data-theme="light"] .int-pub-trib {
+      background: #DBEAFE !important;
+      color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] .int-pub-meta {
+      color: #475569 !important;
+    }
+    html[data-theme="light"] .int-pub-meta strong {
+      color: #1D4ED8 !important;
+    }
+    /* Texto preview da intimação (.int-pub-text) — cinza médio era claro demais */
+    html[data-theme="light"] .int-pub-text {
+      color: #334155 !important;
+    }
+    /* Fade-out na parte inferior do preview quando truncado */
+    html[data-theme="light"] .int-pub-text-fade {
+      background: linear-gradient(to bottom, transparent 0%, rgba(255,255,255,.85) 70%, #FFFFFF 100%) !important;
+    }
+
+    /* 9) Modal "Vincular processo + criar prazo" (.int-modal-bg / .int-modal) */
+    html[data-theme="light"] .int-modal-bg {
+      background: rgba(15,31,54,0.45) !important;
+    }
+    html[data-theme="light"] .int-modal {
+      background: #FFFFFF !important;
+      border: 1px solid #E2E8F0 !important;
+      box-shadow: 0 24px 60px rgba(15,31,54,0.18) !important;
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .int-modal h2 {
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .int-modal h4 {
+      color: #1E4A8A !important;
+    }
+    html[data-theme="light"] .int-modal p {
+      color: #475569 !important;
+    }
+    html[data-theme="light"] .int-modal label {
+      color: #475569 !important;
+    }
+    html[data-theme="light"] .int-modal-close {
+      background: #F1F5F9 !important;
+      border: 1px solid #CBD5E1 !important;
+      color: #475569 !important;
+    }
+    html[data-theme="light"] .int-modal-close:hover {
+      background: #FEE2E2 !important;
+      color: #B91C1C !important;
+      border-color: #FCA5A5 !important;
+    }
+    /* Header summary (caixa azul com TJSP · Intimação · Processo) */
+    html[data-theme="light"] .int-actions-summary {
+      background: #EFF6FF !important;
+      border: 1px solid #BFDBFE !important;
+      color: #1E4A8A !important;
+    }
+    html[data-theme="light"] .int-actions-summary strong { color: #0A1729 !important; }
+    /* Seções (cards) dentro do modal */
+    html[data-theme="light"] .int-actions-section {
+      background: #F8FAFC !important;
+      border: 1px solid #E2E8F0 !important;
+      color: #0F1F36 !important;
+    }
+    /* Input de busca dentro do modal */
+    html[data-theme="light"] .int-actions-input,
+    html[data-theme="light"] .int-actions-textarea {
+      background: #FFFFFF !important;
+      border: 1px solid #CBD5E1 !important;
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .int-actions-input::placeholder,
+    html[data-theme="light"] .int-actions-textarea::placeholder {
+      color: #94A3B8 !important;
+    }
+    /* Lista de processos no modal (items PROC-MATRIZ...) */
+    html[data-theme="light"] .int-actions-list {
+      background: #FFFFFF !important;
+      border: 1px solid #E2E8F0 !important;
+    }
+    html[data-theme="light"] .int-actions-list > div,
+    html[data-theme="light"] .int-actions-list .int-actions-list-item {
+      background: #FFFFFF !important;
+      border-bottom: 1px solid #F1F5F9 !important;
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .int-actions-list > div:hover,
+    html[data-theme="light"] .int-actions-list .int-actions-list-item:hover {
+      background: #EFF6FF !important;
+    }
+    /* Form do prazo (labels + inputs/selects dentro do .int-mon-form) */
+    html[data-theme="light"] .int-mon-form label {
+      color: #475569 !important;
+    }
+    html[data-theme="light"] .int-mon-form input,
+    html[data-theme="light"] .int-mon-form select,
+    html[data-theme="light"] .int-mon-form textarea {
+      background-color: #FFFFFF !important;
+      border: 1px solid #CBD5E1 !important;
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .int-mon-form input::placeholder,
+    html[data-theme="light"] .int-mon-form textarea::placeholder {
+      color: #94A3B8 !important;
+    }
   </style>
 </head>
 <body>
