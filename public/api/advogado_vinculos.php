@@ -87,14 +87,19 @@ if ($method === 'POST') {
         exit;
     }
 
-    // Busca pelo codigo_advogado em users (esse é o ID universal do advogado, formato ADV-XXXXXX).
-    // Resolve para a conta dona desse user; a conta precisa ser tipo='advogado'.
+    // Busca em 3 lugares (advogado solo costuma compartilhar QUALQUER um deles):
+    //   1. users.codigo_advogado (ADV-XXXXXX) — id universal de advogado
+    //   2. users.codigo_vinculo  (xxxx-xxxx-xxxx-xxxx) — código pessoal
+    //   3. accounts.codigo_vinculo — código de vínculo da conta tipo='advogado'
+    // Em todos os casos, resolve para a conta tipo='advogado' do advogado.
     $pdo = \App\Models\Database::getConnection();
+
+    // Tentativa 1+2: por código em users
     $stmt = $pdo->prepare(
         "SELECT a.id, a.nome, a.tipo, a.status, u.oab
            FROM users u
            INNER JOIN accounts a ON a.id = u.account_id
-          WHERE u.codigo_advogado = :cod
+          WHERE (u.codigo_advogado = :cod OR u.codigo_vinculo = :cod)
             AND u.deleted_at IS NULL
             AND a.tipo = 'advogado'
             AND a.deleted_at IS NULL
@@ -104,9 +109,27 @@ if ($method === 'POST') {
     $stmt->execute(['cod' => $codigoAdvogado]);
     $advogado = $stmt->fetch(\PDO::FETCH_ASSOC);
 
+    // Tentativa 3: por accounts.codigo_vinculo direto
+    if (!$advogado) {
+        $stmt2 = $pdo->prepare(
+            "SELECT a.id, a.nome, a.tipo, a.status,
+                    (SELECT u.oab FROM users u
+                       WHERE u.account_id = a.id AND u.oab IS NOT NULL AND u.oab <> ''
+                         AND u.deleted_at IS NULL LIMIT 1) AS oab
+               FROM accounts a
+              WHERE a.codigo_vinculo = :cod
+                AND a.tipo = 'advogado'
+                AND a.deleted_at IS NULL
+                AND a.status IN ('active','trial','overdue')
+              LIMIT 1"
+        );
+        $stmt2->execute(['cod' => $codigoAdvogado]);
+        $advogado = $stmt2->fetch(\PDO::FETCH_ASSOC);
+    }
+
     if (!$advogado) {
         http_response_code(404);
-        echo json_encode(['error' => 'Código de advogado inválido. Use o código ADV-XXXXXX do advogado solo.']);
+        echo json_encode(['error' => 'Código inválido. Aceita: ADV-XXXXXX (código do advogado), código pessoal do user, ou código de vínculo da conta advogado.']);
         exit;
     }
 

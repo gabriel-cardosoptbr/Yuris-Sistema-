@@ -680,11 +680,16 @@ $isAdmin    = in_array($userRole, ['owner', 'admin']) || ($_SESSION['user_perfil
   <div class="es-modal">
     <h3>Vincular Advogado Associado</h3>
     <p style="font-size:.83rem;color:#7a96b4;margin-bottom:14px;">
-      Informe o código <strong>ADV-XXXXXX</strong> do advogado solo. Após vincular, você define quais módulos (Cards / Processos / Tarefas) puxa do escritório dele.
+      Informe o código do advogado solo. Aceita 3 formatos:
     </p>
+    <ul style="font-size:.78rem;color:#7a96b4;margin:0 0 14px 18px;line-height:1.7;">
+      <li><strong>ADV-XXXXXX</strong> — código universal do advogado (em <em>Usuários</em> dele)</li>
+      <li><strong>xxxx-xxxx-xxxx-xxxx</strong> (user) — código pessoal do user advogado</li>
+      <li><strong>xxxx-xxxx-xxxx-xxxx</strong> (conta) — código de vínculo da conta dele em <em>Escritórios → Minha Conta</em></li>
+    </ul>
     <div class="es-field">
-      <label>Código do advogado *</label>
-      <input type="text" id="inputCodigoAdvogado" class="es-input" placeholder="Ex: ADV-3504EB">
+      <label>Código *</label>
+      <input type="text" id="inputCodigoAdvogado" class="es-input" placeholder="Ex: ADV-3504EB ou d6fe-a916-08c0-fea8">
     </div>
     <div id="vincularAdvMsg" style="margin-top:8px;font-size:.82rem;"></div>
     <div class="es-modal-footer">
@@ -1448,9 +1453,16 @@ async function confirmarCompartilhamento() {
 // ── Compartilhamentos ─────────────────────────────────────────────────────────
 async function carregarShares() {
   const el = document.getElementById('sharesList');
+  if (!el) return;
   el.innerHTML = '<div class="es-empty">Carregando...</div>';
-  const r = await api('/sistema_vendas/public/api/resource_shares.php');
-  const lista = r.ok ? (r.data || []) : [];
+  // Mesma cilada de antes: GET sem params retorna 400.
+  // - Advogado: vê o que recebeu (shared_with_me=1)
+  // - Matriz/Filial: vê o que emitiu (listar_meus=1)
+  const url = ACCOUNT_TIPO === 'advogado'
+    ? '/sistema_vendas/public/api/resource_shares.php?shared_with_me=1'
+    : '/sistema_vendas/public/api/resource_shares.php?listar_meus=1';
+  const r = await api(url);
+  const lista = (r.data || []).filter(s => (s.status || 'active') === 'active');
   if (!lista.length) {
     el.innerHTML = `<div class="es-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Nenhum compartilhamento ativo.</div>`;
     return;
