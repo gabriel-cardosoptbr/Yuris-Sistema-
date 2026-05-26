@@ -105,6 +105,10 @@ try {
 
 function handleGet(PDO $pdo, AccountContext $ctx): void
 {
+    // Cota e status de pending mudam em tempo real. Nunca cachear.
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+
     $accountId = $ctx->getAccountId();
     $userId    = $ctx->getUserId();
     $scope     = (string) ($_GET['scope'] ?? '');

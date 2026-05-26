@@ -102,42 +102,36 @@ if ($method === 'GET') {
     }
     $where = empty($filter) ? '' : ' AND ' . implode(' AND ', $filter);
 
+    // ── Lista base de contas ──
+    // monitors_limit e monitors_used são preenchidos depois via MonitorQuota
+    // (single source of truth — herda matriz↔filial via account_vinculos).
+    // Não duplique a lógica em SQL inline aqui.
     $rows = $pdo->query(
         "SELECT a.id, a.nome, a.razao_social, a.cnpj, a.email, a.telefone, a.cidade, a.estado,
                 a.tipo, a.status, a.plano, a.matriz_id, a.created_at,
                 (SELECT COUNT(*) FROM users u WHERE u.account_id=a.id AND u.deleted_at IS NULL) AS users_count,
                 (SELECT COUNT(*) FROM users u WHERE u.account_id=a.id AND u.deleted_at IS NULL AND u.is_advogado=1) AS advogados_count,
                 (SELECT s.status FROM subscriptions s WHERE s.account_id=a.id ORDER BY s.id DESC LIMIT 1) AS sub_status,
-                (SELECT p.nome   FROM subscriptions s INNER JOIN plans p ON p.id=s.plan_id WHERE s.account_id=a.id ORDER BY s.id DESC LIMIT 1) AS sub_plan,
-                /* Monitor add-on (Etapa 6) — subqueries inline pra evitar N+1.
-                   monitors_limit = plan_features.limit_value + SUM(overrides ativos).
-                   monitors_used  = monitors consumindo cota + requests pending. */
-                COALESCE(
-                  (SELECT pf.limit_value FROM subscriptions s
-                     INNER JOIN plan_features pf ON pf.plan_id=s.plan_id
-                     WHERE s.account_id=a.id
-                       AND pf.feature_key='monitors.limit'
-                     ORDER BY (s.status='active') DESC, s.id DESC LIMIT 1),
-                  0
-                ) + COALESCE(
-                  (SELECT SUM(limit_value) FROM account_quota_overrides
-                     WHERE account_id=a.id AND feature_key='monitors.limit'
-                       AND revoked_at IS NULL
-                       AND (expires_at IS NULL OR expires_at > NOW())),
-                  0
-                ) AS monitors_limit,
-                (
-                  (SELECT COUNT(*) FROM push_monitors pm
-                     WHERE pm.account_id=a.id AND pm.consome_cota=1
-                       AND pm.status IN ('ativo','pausado','erro'))
-                  +
-                  (SELECT COUNT(*) FROM monitor_requests mr
-                     WHERE mr.account_id=a.id AND mr.status='pending')
-                ) AS monitors_used
+                (SELECT p.nome   FROM subscriptions s INNER JOIN plans p ON p.id=s.plan_id WHERE s.account_id=a.id ORDER BY s.id DESC LIMIT 1) AS sub_plan
          FROM accounts a
          WHERE a.deleted_at IS NULL {$where}
          ORDER BY a.created_at DESC"
     )->fetchAll(\PDO::FETCH_ASSOC);
+
+    // ── Anexa monitors_limit/used via batch (resolve herança matriz↔filial)
+    // ── Mesma fonte que o modal "Detalhes" (GET ?id=X) e o cliente
+    //    (/api/push/quota.php) — garante zero discrepância entre UIs.
+    $ids = array_column($rows, 'id');
+    $batch = MonitorQuota::getQuotaStatusBatch($ids);
+    foreach ($rows as &$r) {
+        $s = $batch[(int)$r['id']] ?? null;
+        $r['monitors_limit'] = $s ? (int)$s['effective_limit'] : 0;
+        $r['monitors_used']  = $s ? (int)$s['current_usage']  : 0;
+    }
+    unset($r);
+
+    // Não cachear — sempre buscar fresco (cota muda em tempo real via Master).
+    if (!headers_sent()) header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
     ApiResponse::ok(['accounts' => $rows]);
 }
 

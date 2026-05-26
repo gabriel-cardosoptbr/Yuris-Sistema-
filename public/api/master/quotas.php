@@ -55,6 +55,11 @@ if ($superAdminId <= 0) ApiResponse::forbidden('super_admin não encontrado/ativ
 // GET — status da cota + overrides ativos
 // ──────────────────────────────────────────────────────────────────────
 if ($method === 'GET') {
+    // Single source of truth: nunca cachear. Mudanças em outras abas
+    // do Master (ou no cliente) precisam refletir imediatamente.
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+
     $accountId = (int) ($_GET['account_id'] ?? 0);
     if ($accountId <= 0) ApiResponse::badRequest('account_id obrigatório');
 

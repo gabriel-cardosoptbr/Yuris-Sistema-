@@ -1355,6 +1355,7 @@
       this.fillMyProfileForm();
       this.loadMonitors();
       this.loadMonitorQuota(); // Etapa 5 add-on
+      this._startMonitorQuotaPolling(); // Polling pra refletir mudanças do Master
     },
 
     /**
@@ -1364,7 +1365,12 @@
      */
     async loadMonitorQuota() {
       try {
-        const r = await fetch(`/sistema_vendas/public/api/push/quota.php`, { credentials: 'same-origin' });
+        // Cache-buster no querystring + header pra ter certeza que nada intermediário
+        // serve resposta stale. Backend tb manda Cache-Control: no-store.
+        const r = await fetch(`/sistema_vendas/public/api/push/quota.php?_t=${Date.now()}`, {
+          credentials: 'same-origin',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
         const j = await r.json();
         if (!j.ok) throw new Error(j.error || 'erro');
         const s = j.status || {};
@@ -1447,6 +1453,47 @@
 
     closeMonitors() {
       document.getElementById('monitorsModal')?.classList.remove('show');
+      this._stopMonitorQuotaPolling();
+    },
+
+    /**
+     * Polling do badge de cota (Etapa 11 — robustez sync Master↔Cliente).
+     *
+     * Garante que quando o Master altera a cota da conta, o badge no
+     * cliente reflete em até 30s SEM precisar fechar/abrir o modal.
+     * Para imediatamente quando o modal fecha (evita request desnecessário).
+     *
+     * Também escuta `visibilitychange`: ao voltar pra aba, força refresh
+     * imediato — UX comum quando user alterna Master ↔ cliente.
+     */
+    _startMonitorQuotaPolling() {
+      this._stopMonitorQuotaPolling();
+      this._monitorQuotaTimer = setInterval(() => {
+        // Só refresca se modal ainda visível
+        if (document.getElementById('monitorsModal')?.classList.contains('show')) {
+          this.loadMonitorQuota();
+        }
+      }, 30000); // 30s — equilibrio entre frescor e ruído de rede
+
+      // Refresh imediato ao voltar pra aba
+      this._monitorQuotaOnVis = () => {
+        if (document.visibilityState === 'visible' &&
+            document.getElementById('monitorsModal')?.classList.contains('show')) {
+          this.loadMonitorQuota();
+        }
+      };
+      document.addEventListener('visibilitychange', this._monitorQuotaOnVis);
+    },
+
+    _stopMonitorQuotaPolling() {
+      if (this._monitorQuotaTimer) {
+        clearInterval(this._monitorQuotaTimer);
+        this._monitorQuotaTimer = null;
+      }
+      if (this._monitorQuotaOnVis) {
+        document.removeEventListener('visibilitychange', this._monitorQuotaOnVis);
+        this._monitorQuotaOnVis = null;
+      }
     },
 
     async loadMonitors() {

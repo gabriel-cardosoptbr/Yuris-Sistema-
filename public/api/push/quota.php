@@ -32,4 +32,10 @@ $status = MonitorQuota::getQuotaStatus($accountId);
 $status['plan_base']    = BillingGuard::getBaseLimit($accountId, 'monitors.limit');
 $status['override_sum'] = BillingGuard::getOverrideSum($accountId, 'monitors.limit');
 
+// Single source of truth — nunca cachear. Mudanças no Painel Master
+// (alocação, override, grant) refletem imediatamente no badge do cliente.
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
+
 ApiResponse::ok(['status' => $status]);

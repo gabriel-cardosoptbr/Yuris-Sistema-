@@ -297,6 +297,29 @@ final class MonitorQuota
     }
 
     /**
+     * Versão batch do getQuotaStatus — pra listas que precisam de N contas
+     * sem N+1 chamadas externas. Internamente ainda chama getQuotaStatus
+     * por conta (5 queries cada), mas reusa caches static de loadAccountMeta
+     * e resolveMatrizId, então fica O(N * 5) sem N² join.
+     *
+     * Retorna mapa: [accountId => quota_status_array]
+     *
+     * IMPORTANTE: esta é a fonte de verdade pra listagens (Master "Todas
+     * as contas", relatórios, etc.). NUNCA reimplementar a lógica de cota
+     * em SQL inline em outros endpoints — sempre passe por aqui.
+     */
+    public static function getQuotaStatusBatch(array $accountIds): array
+    {
+        $out = [];
+        foreach ($accountIds as $id) {
+            $id = (int) $id;
+            if ($id <= 0) continue;
+            $out[$id] = self::getQuotaStatus($id);
+        }
+        return $out;
+    }
+
+    /**
      * Status completo pra exibição no UI (modal de monitor, dashboard
      * Master, badge "X de Y", etc.).
      *

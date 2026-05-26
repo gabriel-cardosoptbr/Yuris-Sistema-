@@ -134,6 +134,10 @@ try {
 
 function handleGet(PDO $pdo, AccountContext $ctx): void
 {
+    // Cota muda em tempo real (Master, allocations, requests). Nunca cachear.
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+
     $accountId = $ctx->getAccountId();
 
     // Status da matriz (sempre olhamos do ponto de vista da própria conta
