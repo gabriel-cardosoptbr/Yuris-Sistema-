@@ -6,10 +6,12 @@ require_once __DIR__ . '/../../../app/Models/Database.php';
 require_once __DIR__ . '/../../../app/Models/Account.php';
 require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
+require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 
 use App\Models\Database;
 use App\Helpers\AccountContext;
+use App\Services\EvolutionApiService;
 
 session_start(['read_and_close' => true]);
 $_csrf = $_SESSION['csrf_token'] ?? '';
@@ -53,6 +55,42 @@ try {
         if (empty($payload['_csrf']) || $payload['_csrf'] !== $_csrf) {
             http_response_code(403); echo json_encode(['error' => 'CSRF inválido']); exit;
         }
+
+        $action = trim($payload['action'] ?? '');
+
+        // ── action: fetch_pic ─────────────────────────────────────────────────
+        // Busca foto de perfil on-demand via Evolution API e cacheia em whatsapp_chats.
+        // Usado por openChat() pra hidratar a foto de conversas 1:1 que ainda não tem.
+        if ($action === 'fetch_pic') {
+            $jid = trim($payload['jid'] ?? '');
+            if (!$jid) { http_response_code(400); echo json_encode(['error' => 'jid obrigatório']); exit; }
+            try {
+                $evo = new EvolutionApiService($cfg);
+                $res = $evo->getProfilePicture($instName, $jid);
+                // Evolution v2 retorna { profilePictureUrl: '...' } ou { wuid, profilePictureUrl }
+                $picUrl = $res['profilePictureUrl']
+                       ?? $res['profile_pic_url']
+                       ?? null;
+
+                if ($picUrl) {
+                    // Cacheia em whatsapp_chats (cria registro se nao existir ainda)
+                    $pdo->prepare(
+                        'INSERT INTO whatsapp_chats (instance_id, remote_jid, profile_pic_url)
+                         VALUES (?,?,?)
+                         ON DUPLICATE KEY UPDATE profile_pic_url = VALUES(profile_pic_url)'
+                    )->execute([$instanceId, $jid, $picUrl]);
+                }
+
+                echo json_encode(['ok' => true, 'profile_pic_url' => $picUrl]);
+                exit;
+            } catch (\Throwable $e) {
+                // Evolution pode retornar 404 (sem foto/desbloqueado). Não trata como erro.
+                echo json_encode(['ok' => true, 'profile_pic_url' => null, 'note' => 'sem foto disponível']);
+                exit;
+            }
+        }
+
+        // ── action default: editar push_name custom ───────────────────────────
         $jid  = trim($payload['remote_jid'] ?? '');
         $name = trim($payload['push_name']  ?? '');
         if (!$jid) { http_response_code(400); echo json_encode(['error' => 'remote_jid obrigatório']); exit; }

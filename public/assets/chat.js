@@ -25,6 +25,9 @@ const ChatApp = (() => {
     replyTo      : null,     // { wamid, content, sender, type } — set por setReply(); enviado no proximo send()
     menuOpenFor  : null,     // id da msg cujo popup de acoes esta aberto (1 por vez)
     msgIndex     : {},       // { msgId: {wamid, content, sender, type, fromMe, isDeleted} } — cache pra setReply/reactMessage sem refetch
+    unreadTotal  : 0,        // total nao lidas (somatorio chats) — pinta document.title (N)
+    notifPerm    : null,     // 'granted' | 'denied' | 'default' — Notification API browser
+    notifSound   : null,     // Audio element pra tocar quando chega msg nova
     pollingTimer : null,
     statusTimer  : null,
     qrTimer      : null,
@@ -40,7 +43,94 @@ const ChatApp = (() => {
     await checkStatus();
     startStatusPolling();
     setupInfiniteScroll();
+    setupNotifications();
     // showConnectedUI já é chamado dentro de setConnectionStatus quando status='open'
+  }
+
+  // ── Notificações nativas + badge título + som ──────────────────────────────
+  // Pede permissão ao usuário (uma vez) e prepara áudio + capa do título.
+  // Quando chega msg nova inbound (pollNewMessages): toca som, mostra Notification,
+  // e atualiza document.title com (N) — N é total de não lidas em todos os chats.
+  function setupNotifications() {
+    // Notification API: pede permissão na primeira vez
+    if ('Notification' in window) {
+      state.notifPerm = Notification.permission;
+      if (state.notifPerm === 'default') {
+        // Não pede imediato — espera o user interagir (clicar em qualquer lugar)
+        // pra evitar pop-up agressivo no carregamento.
+        const askOnce = () => {
+          Notification.requestPermission().then(p => { state.notifPerm = p; });
+          document.removeEventListener('click', askOnce);
+        };
+        document.addEventListener('click', askOnce, { once: true });
+      }
+    }
+    // Audio: beep curto em base64 (440Hz, ~150ms) — sem precisar de arquivo extra
+    // Gerado dinamicamente com WebAudio pra não depender de asset externo.
+    state.notifSound = makeBeep();
+  }
+
+  function makeBeep() {
+    // Closure que gera um beep curto via WebAudio API.
+    // Mais leve que carregar .mp3 e não polui DOM.
+    return () => {
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        const ctx = new AC();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = 720;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.18);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.2);
+      } catch (e) {}
+    };
+  }
+
+  // Atualiza document.title com (N) baseado em state.chats[].unread_count
+  function updateTitleBadge() {
+    const total = (state.chats || []).reduce((s, c) => s + (parseInt(c.unread_count, 10) || 0), 0);
+    state.unreadTotal = total;
+    const base = 'Yuris';
+    document.title = total > 0 ? `(${total}) ${base}` : base;
+  }
+
+  // Notifica + toca som pra mensagens novas inbound que NÃO vieram do chat aberto
+  // (usuário olhando outra conversa ou em outra aba do browser).
+  function notifyNewMessage(msg) {
+    if (!msg || msg.direction !== 'inbound') return;
+    const isCurrentChat = msg.remote_jid === state.currentJid;
+    const tabVisible    = !document.hidden;
+    // Se está olhando ESSA conversa nesta aba, não notifica (não faz sentido)
+    if (isCurrentChat && tabVisible) return;
+
+    // Som sempre que chegar (mesmo na conversa atual, mas em aba escondida)
+    if (state.notifSound) state.notifSound();
+
+    // Notification API só funciona se foi autorizada
+    if (state.notifPerm === 'granted' && !tabVisible) {
+      const sender = resolveSenderName(msg.contact_name) || formatPhone(msg.phone) || 'Mensagem nova';
+      const body   = (msg.message_content || msg.caption || '[Mídia]').slice(0, 120);
+      try {
+        const n = new Notification(sender, {
+          body,
+          icon: '/sistema_vendas/public/assets/favicon-32.png',
+          tag : msg.remote_jid, // agrupa notificações do mesmo chat
+        });
+        n.onclick = () => {
+          window.focus();
+          if (msg.remote_jid !== state.currentJid) {
+            openChat(msg.remote_jid, msg.contact_name || '', msg.phone || '');
+          }
+          n.close();
+        };
+      } catch (e) {}
+    }
   }
 
   // Listener (uma vez) que dispara loadOlderMessages quando o user rola pro topo.
@@ -403,6 +493,9 @@ const ChatApp = (() => {
       const params = new URLSearchParams({ search: state.searchTerm });
       if (state.teamFilter !== null) params.set('team_id', String(state.teamFilter));
       if (state.userFilter !== null) params.set('user_id', String(state.userFilter));
+      // Quando filtro = "archived", pede ao servidor a lista de arquivadas
+      // (default sempre vem is_archived=0 — sem isso, lista vem vazia).
+      if (state.filter === 'archived') params.set('archived', '1');
       const r = await apiFetch(API.chats + '?' + params);
       state.chats = r.chats || [];
       renderChatList();
@@ -442,9 +535,13 @@ const ChatApp = (() => {
     let chats = state.chats;
 
     // Filtro
-    if (state.filter === 'unread')  chats = chats.filter(c => c.unread_count > 0);
-    if (state.filter === 'groups')  chats = chats.filter(c => c.is_group == 1);
-    if (state.filter === 'pinned')  chats = chats.filter(c => c.is_pinned == 1);
+    if (state.filter === 'unread')     chats = chats.filter(c => c.unread_count > 0);
+    if (state.filter === 'groups')     chats = chats.filter(c => c.is_group == 1);
+    if (state.filter === 'individual') chats = chats.filter(c => c.is_group != 1);
+    if (state.filter === 'pinned')     chats = chats.filter(c => c.is_pinned == 1);
+    // Arquivadas: API filtra por padrão is_archived=0; quando filter=archived
+    // o servidor já retorna apenas arquivadas (parâmetro ?archived=1 em loadChats).
+    // Aqui apenas mantém a lista que veio do servidor.
 
     if (!chats.length) {
       const msg = state.status === 'open' ? 'Nenhuma conversa encontrada' : 'Conecte o WhatsApp para ver as conversas';
@@ -453,6 +550,9 @@ const ChatApp = (() => {
     }
 
     container.innerHTML = chats.map(renderChatItem).join('');
+
+    // Atualiza document.title (N) — total de não lidas em todos os chats
+    updateTitleBadge();
   }
 
   function renderChatItem(chat) {
@@ -670,6 +770,8 @@ const ChatApp = (() => {
         }
         container.insertAdjacentHTML('beforeend', renderMessage(m));
         state.lastMsgId = Math.max(state.lastMsgId, m.id);
+        // Notifica msg inbound (som + Notification API + badge)
+        notifyNewMessage(m);
       });
 
       if (atBottom) scrollToBottom();
@@ -1179,10 +1281,17 @@ const ChatApp = (() => {
   }
 
   function setFilter(filter) {
+    const prev = state.filter;
     state.filter = filter;
     qs('.chat-filter-btn.active').classList.remove('active');
     qs('[data-filter="' + filter + '"]').classList.add('active');
-    renderChatList();
+    // Quando alterna entre archived↔outros, precisa refazer a query no servidor
+    // (default vem só is_archived=0; archived precisa de ?archived=1)
+    if (prev === 'archived' || filter === 'archived') {
+      loadChats(true);
+    } else {
+      renderChatList();
+    }
   }
 
   // ── Filtro de setor na sidebar ───────────────────────────────
@@ -1384,6 +1493,39 @@ const ChatApp = (() => {
   function closeMoreMenu() {
     const dd = qs('#chatMoreDd');
     if (dd) dd.style.display = 'none';
+  }
+
+  // ── Marcar conversa como não lida ──────────────────────────────────────────
+  async function markChatUnread() {
+    if (!state.currentJid) return;
+    try {
+      await apiFetch(API.chats, 'POST', {
+        _csrf      : CSRF,
+        action     : 'mark_unread',
+        remote_jid : state.currentJid,
+      });
+      toast('Conversa marcada como não lida', 'success');
+      await loadChats(true);
+    } catch (e) {
+      toast('Erro ao marcar não lida', 'error');
+    }
+  }
+
+  // ── Arquivar / desarquivar conversa ────────────────────────────────────────
+  async function toggleArchive() {
+    if (!state.currentJid) return;
+    try {
+      await apiFetch(API.chats, 'POST', {
+        _csrf      : CSRF,
+        action     : 'toggle_archive',
+        remote_jid : state.currentJid,
+      });
+      toast('Conversa arquivada/desarquivada', 'success');
+      closeChat();
+      await loadChats(true);
+    } catch (e) {
+      toast('Erro ao arquivar', 'error');
+    }
   }
 
   // ── Excluir conversa ─────────────────────────────────────────
@@ -2018,7 +2160,7 @@ const ChatApp = (() => {
     const isGroup = jid && jid.endsWith('@g.us');
     const subEl   = qs('#activePhone');
 
-    // Foto do grupo (profile_pic_url ja sincronizado em whatsapp_chats)
+    // Foto do chat (profile_pic_url ja sincronizado em whatsapp_chats)
     const avatar = qs('#activeAvatar');
     if (avatar) {
       // Reset (caso conversa anterior tenha imagem)
@@ -2029,6 +2171,21 @@ const ChatApp = (() => {
         avatar.style.backgroundImage = `url("${pic}")`;
         avatar.style.backgroundSize  = 'cover';
         avatar.style.backgroundPosition = 'center';
+      } else if (jid && !isGroup) {
+        // Lazy fetch: conversa 1:1 sem foto cacheada → busca na Evolution
+        // Sem isso, 9 de 10 conversas 1:1 ficam só com a inicial cinza.
+        fetchProfilePicLazy(jid).then(picUrl => {
+          // Só aplica se ainda estiver na mesma conversa (user pode ter trocado)
+          if (state.currentJid === jid && picUrl && avatar) {
+            avatar.textContent = '';
+            avatar.style.backgroundImage = `url("${picUrl}")`;
+            avatar.style.backgroundSize = 'cover';
+            avatar.style.backgroundPosition = 'center';
+            // Atualiza state.chats pra sidebar mostrar foto também
+            const c = state.chats.find(x => x.remote_jid === jid);
+            if (c) { c.profile_pic_url = picUrl; renderChatList(); }
+          }
+        });
       }
     }
 
@@ -2061,6 +2218,110 @@ const ChatApp = (() => {
         refreshPendingMentions(jid);
       })
       .catch(() => { /* silencioso — header continua mostrando phone */ });
+  }
+
+  // ── Busca dentro da conversa atual ─────────────────────────────────────────
+  // Abre/fecha barra de busca acima das mensagens. Debounce 300ms enquanto
+  // digita. Endpoint messages.php?search=texto retorna até 50 matches.
+  let _searchTimer = null;
+  function toggleChatSearch() {
+    const bar = qs('#chatSearchBar');
+    if (!bar) return;
+    if (bar.style.display === 'none' || !bar.style.display) {
+      bar.style.display = 'flex';
+      const inp = qs('#chatSearchInput');
+      if (inp) { inp.value = ''; inp.focus(); }
+      qs('#chatSearchCount').textContent = '';
+    } else {
+      closeChatSearch();
+    }
+  }
+
+  function closeChatSearch() {
+    const bar = qs('#chatSearchBar');
+    if (bar) bar.style.display = 'none';
+    qs('#chatSearchInput').value = '';
+    qs('#chatSearchCount').textContent = '';
+    // Restaura a lista completa de mensagens
+    loadMessages().then(scrollToBottom);
+  }
+
+  function onChatSearchInput() {
+    clearTimeout(_searchTimer);
+    const term = (qs('#chatSearchInput').value || '').trim();
+    _searchTimer = setTimeout(() => doChatSearch(term), 300);
+  }
+
+  async function doChatSearch(term) {
+    if (!state.currentJid) return;
+    const countEl = qs('#chatSearchCount');
+    const msgsEl  = qs('#chatMessages');
+    if (!term) {
+      // Vazio: volta msgs completas
+      if (countEl) countEl.textContent = '';
+      loadMessages().then(scrollToBottom);
+      return;
+    }
+    try {
+      const r = await apiFetch(
+        API.messages + '?jid=' + encodeURIComponent(state.currentJid)
+        + '&search=' + encodeURIComponent(term)
+      );
+      const msgs = r.messages || [];
+      if (countEl) countEl.textContent = msgs.length ? `${msgs.length} resultado${msgs.length===1?'':'s'}` : 'Nenhum resultado';
+      if (!msgs.length) {
+        msgsEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#7A8898;font-size:.82rem;padding:32px">Nada encontrado para "' + esc(term) + '"</div>';
+        return;
+      }
+      msgsEl.innerHTML = renderMessagesWithDateSeparators(msgs);
+      // Highlight do termo nos resultados
+      highlightSearchTerm(msgsEl, term);
+      // Scroll pra primeira ocorrência (que é a mais antiga visível)
+      const firstMatch = msgsEl.querySelector('.search-match');
+      if (firstMatch) firstMatch.scrollIntoView({ block: 'center' });
+    } catch (e) {
+      if (countEl) countEl.textContent = 'Erro';
+    }
+  }
+
+  // Wrap simples: regex case-insensitive aplica .search-match nos text nodes
+  // (não toca em HTML interno tipo <a>, <span class="msg-mention">, etc).
+  function highlightSearchTerm(container, term) {
+    if (!term) return;
+    const re = new RegExp('(' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+    const targets = [];
+    let node;
+    while ((node = walker.nextNode())) {
+      if (re.test(node.nodeValue) && !node.parentElement.closest('.msg-meta, .msg-date-sep')) {
+        targets.push(node);
+      }
+    }
+    targets.forEach(t => {
+      const span = document.createElement('span');
+      span.innerHTML = t.nodeValue.replace(re, '<span class="search-match">$1</span>');
+      t.replaceWith(...span.childNodes);
+    });
+  }
+
+  // ── Foto de perfil 1:1 lazy fetch ──────────────────────────────────────────
+  // Busca foto on-demand quando openChat() abre uma conversa que não tem
+  // profile_pic_url cacheado. Resultado vai pra whatsapp_chats no servidor +
+  // cache local pra não pedir duas vezes pra mesma conversa (mesmo se vier null).
+  const _picFetchAttempts = new Set();
+  async function fetchProfilePicLazy(jid) {
+    if (!jid || _picFetchAttempts.has(jid)) return null;
+    _picFetchAttempts.add(jid);
+    try {
+      const r = await apiFetch(API.contacts, 'POST', {
+        _csrf : CSRF,
+        action: 'fetch_pic',
+        jid,
+      });
+      return r && r.profile_pic_url ? r.profile_pic_url : null;
+    } catch (e) {
+      return null;
+    }
   }
 
   // ── Menções em grupos: @<numero> → @<NomeReal> ─────────────────────────
@@ -2462,6 +2723,9 @@ const ChatApp = (() => {
     toggleMsgMenu, closeMsgMenu,
     reactMessage, confirmDeleteMessage,
     scrollToWamid,
+    // P0+P1 (2026-05-25) — busca + arquivar + marcar nao lida
+    toggleChatSearch, closeChatSearch, onChatSearchInput,
+    markChatUnread, toggleArchive,
   };
 })();
 

@@ -27,6 +27,7 @@ $remoteJid = trim($_GET['jid'] ?? '');
 $beforeId  = (int)($_GET['before_id'] ?? 0);
 $afterId   = (int)($_GET['after_id']  ?? 0);
 $limit     = min((int)($_GET['limit'] ?? 50), 100);
+$search    = trim($_GET['search'] ?? '');
 
 if ($method !== 'GET') {
     http_response_code(405); echo json_encode(['error' => 'Method not allowed']); exit;
@@ -51,9 +52,14 @@ try {
         exit;
     }
 
-    $msgs = $afterId > 0
-        ? $msgModel->findAfter($instanceId, $remoteJid, $afterId)
-        : $msgModel->findByJid($instanceId, $remoteJid, $limit, $beforeId);
+    if ($search !== '') {
+        // Busca dentro da conversa: retorna apenas mensagens que matcham
+        $msgs = $msgModel->searchInChat($instanceId, $remoteJid, $search, $limit);
+    } elseif ($afterId > 0) {
+        $msgs = $msgModel->findAfter($instanceId, $remoteJid, $afterId);
+    } else {
+        $msgs = $msgModel->findByJid($instanceId, $remoteJid, $limit, $beforeId);
+    }
 
     echo json_encode([
         'ok'       => true,

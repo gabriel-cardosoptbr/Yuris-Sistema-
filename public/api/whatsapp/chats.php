@@ -66,10 +66,12 @@ try {
         //   ?user_id=N  → conversas atribuídas ao user N
         //   ?user_id=0  → conversas sem responsável
         $userFilter = isset($_GET['user_id']) ? (int)$_GET['user_id'] : null;
+        // Filtro arquivadas: ?archived=1 lista apenas arquivadas; default = só não-arquivadas
+        $archived = !empty($_GET['archived']) && $_GET['archived'] !== '0';
 
         echo json_encode([
             'ok'          => true,
-            'chats'       => $msgModel->getChatList($instanceId, $search, $teamFilter, $userFilter),
+            'chats'       => $msgModel->getChatList($instanceId, $search, $teamFilter, $userFilter, $archived),
             'total_unread'=> $msgModel->getTotalUnread($instanceId),
         ]);
         exit;
@@ -85,6 +87,16 @@ try {
 
         if ($action === 'mark_read') {
             if ($jid) $msgModel->markChatRead($instanceId, $jid);
+            echo json_encode(['ok' => true]); exit;
+        }
+        // Marca chat como NÃO lido (volta unread_count >= 1). Inverso de mark_read.
+        if ($action === 'mark_unread') {
+            if ($jid) $msgModel->markChatUnread($instanceId, $jid);
+            echo json_encode(['ok' => true]); exit;
+        }
+        // Arquiva / desarquiva conversa
+        if ($action === 'toggle_archive') {
+            if ($jid) $msgModel->toggleArchive($instanceId, $jid);
             echo json_encode(['ok' => true]); exit;
         }
         if ($action === 'toggle_pin') {

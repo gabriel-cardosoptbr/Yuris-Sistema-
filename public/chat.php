@@ -1240,6 +1240,37 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
     .msg-quoted-bar { width:3px; flex-shrink:0; background:#2563eb; border-radius:2px; }
     .msg-quoted-text { font-size:.76rem; color:#A8BDD4; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
+    /* — Busca dentro da conversa (P1 2026-05-25) — */
+    .chat-search-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px; margin: 0;
+      background: rgba(15,30,55,0.85);
+      border-bottom: 1px solid rgba(160,180,210,0.10);
+      flex-shrink: 0;
+    }
+    .chat-search-bar input {
+      flex: 1; background: transparent; border: none; outline: none;
+      color: #D8E4F0; font-size: .82rem; font-family: inherit;
+    }
+    .chat-search-bar input::placeholder { color: #6B7887; }
+    .chat-search-count {
+      font-size: .72rem; color: #7EB8F6; font-weight: 600;
+      padding: 2px 8px; background: rgba(37,99,235,0.18);
+      border-radius: 10px; flex-shrink: 0;
+    }
+    html[data-theme="light"] .chat-search-bar {
+      background: #F4F7FB !important;
+      border-bottom-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] .chat-search-bar input { color: #0F1F36 !important; }
+    html[data-theme="light"] .chat-search-bar input::placeholder { color: #94A3B8 !important; }
+    html[data-theme="light"] .chat-search-count {
+      color: #1E4A8A !important; background: #DBEAFE !important;
+    }
+    /* Highlight de matches no resultado da busca */
+    .search-match { background: rgba(245,158,11,.35) !important; color: #FFF !important; padding: 0 2px; border-radius: 3px; }
+    html[data-theme="light"] .search-match { background: #FEF3C7 !important; color: #92400E !important; }
+
     /* — Msg apagada (P2-N) — */
     .msg-deleted {
       display:inline-flex; align-items:center;
@@ -1867,10 +1898,12 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
             <input type="text" id="chatSearch" placeholder="Buscar conversa ou número..." oninput="ChatApp.searchChats(this.value)">
           </div>
           <div class="chat-filters">
-            <button class="chat-filter-btn active" data-filter="all"      onclick="ChatApp.setFilter('all')">Todas</button>
-            <button class="chat-filter-btn"         data-filter="unread"   onclick="ChatApp.setFilter('unread')">Não lidas</button>
-            <button class="chat-filter-btn"         data-filter="groups"   onclick="ChatApp.setFilter('groups')">Grupos</button>
-            <button class="chat-filter-btn"         data-filter="pinned"   onclick="ChatApp.setFilter('pinned')">Fixadas</button>
+            <button class="chat-filter-btn active" data-filter="all"        onclick="ChatApp.setFilter('all')">Todas</button>
+            <button class="chat-filter-btn"         data-filter="unread"    onclick="ChatApp.setFilter('unread')">Não lidas</button>
+            <button class="chat-filter-btn"         data-filter="groups"    onclick="ChatApp.setFilter('groups')">Grupos</button>
+            <button class="chat-filter-btn"         data-filter="individual" onclick="ChatApp.setFilter('individual')">Individuais</button>
+            <button class="chat-filter-btn"         data-filter="pinned"    onclick="ChatApp.setFilter('pinned')">Fixadas</button>
+            <button class="chat-filter-btn"         data-filter="archived"  onclick="ChatApp.setFilter('archived')">Arquivadas</button>
           </div>
 
           <!-- Filtro por setor -->
@@ -1955,6 +1988,10 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
                 <div id="sectorDropdown" class="sector-dropdown" style="display:none"></div>
               </div>
 
+              <!-- Busca dentro da conversa atual -->
+              <button class="chat-icon-btn" onclick="ChatApp.toggleChatSearch()" title="Buscar nesta conversa" id="btnChatSearch">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </button>
               <button class="chat-icon-btn" onclick="ChatApp.openLinkModal()" title="Vincular ao sistema"
                       style="width:auto;padding:0 10px;gap:5px;font-size:.75rem;font-weight:600;color:#7EB8F7;border-color:rgba(126,184,247,.2)">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:13px;height:13px;flex-shrink:0"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
@@ -1981,6 +2018,14 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17z"/></svg>
                     Fixar / Desafixar
                   </div>
+                  <div class="chat-more-item" onclick="ChatApp.markChatUnread();ChatApp.closeMoreMenu()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    Marcar como não lida
+                  </div>
+                  <div class="chat-more-item" onclick="ChatApp.toggleArchive();ChatApp.closeMoreMenu()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+                    Arquivar / Desarquivar
+                  </div>
                   <div class="chat-more-item danger" onclick="ChatApp.confirmDeleteChat()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                     Excluir conversa
@@ -1989,6 +2034,16 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
               </div>
 
             </div>
+          </div>
+
+          <!-- Barra de busca dentro da conversa (toggle via header) -->
+          <div id="chatSearchBar" class="chat-search-bar" style="display:none">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;flex-shrink:0;color:#7EB8F6"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="chatSearchInput" placeholder="Buscar nesta conversa…" oninput="ChatApp.onChatSearchInput()" onkeydown="if(event.key==='Escape')ChatApp.closeChatSearch()">
+            <span id="chatSearchCount" class="chat-search-count"></span>
+            <button class="chat-icon-btn" onclick="ChatApp.closeChatSearch()" title="Fechar busca" style="width:24px;height:24px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
           </div>
 
           <!-- Mensagens -->
@@ -2385,7 +2440,7 @@ const API  = {
 #imgLightboxDownload:hover { background: rgba(37,99,235,.3); border-color: rgba(96,165,250,.5); }
 </style>
 
-<script src="/sistema_vendas/public/assets/chat.js?v=49"></script>
+<script src="/sistema_vendas/public/assets/chat.js?v=50"></script>
 <script>
 // Lightbox init
 (function(){
