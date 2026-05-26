@@ -201,6 +201,155 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 
     @media (max-width: 768px)  { .two-col { grid-template-columns: 1fr !important; } }
     @media (max-width: 640px)  { .kpi-grid { grid-template-columns: repeat(2,1fr) !important; } }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       LIGHT THEME OVERRIDES — Página tinha ZERO overrides; tudo tava com texto
+       azul-claro sobre fundo branco (ilegível). Cobrindo: KPI cards, painéis,
+       seções, inputs, labels, hints, toggle, credential warn, tip rows,
+       diagnóstico, botões secundários, teste rápido.
+       ═══════════════════════════════════════════════════════════════════════ */
+    html[data-theme="light"] body {
+      background: linear-gradient(135deg, #eef2f9 0%, #e2e9f4 50%, #d8e1ee 100%) !important;
+      color: #0b1a33 !important;
+    }
+
+    /* Panel container */
+    html[data-theme="light"] .agt-panel {
+      background: #ffffff !important;
+      border: 1px solid #d6deeb !important;
+      box-shadow: 0 4px 16px rgba(15,32,60,.06) !important;
+      color: #0b1a33 !important;
+    }
+
+    /* KPI cards */
+    html[data-theme="light"] .kpi-card {
+      background: #ffffff !important;
+      border: 1px solid #d6deeb !important;
+      box-shadow: 0 2px 8px rgba(15,32,60,.05) !important;
+    }
+    html[data-theme="light"] .kpi-card:hover {
+      border-color: #93c5fd !important;
+      box-shadow: 0 6px 20px rgba(37,99,235,.14) !important;
+    }
+    html[data-theme="light"] .kpi-card.kpi-ok     { border-color: rgba(16,185,129,.45) !important; }
+    html[data-theme="light"] .kpi-card.kpi-warn   { border-color: rgba(245,158,11,.55) !important; }
+    html[data-theme="light"] .kpi-card.kpi-danger { border-color: rgba(239,68,68,.55) !important; }
+    html[data-theme="light"] .kpi-label { color: #4b5d76 !important; }
+    html[data-theme="light"] .kpi-value { color: #0b1a33 !important; }
+    html[data-theme="light"] .kpi-foot  { color: #5b6b85 !important; }
+
+    /* Section card */
+    html[data-theme="light"] .agt-section {
+      border: 1px solid #d6deeb !important;
+      background: #ffffff !important;
+    }
+    html[data-theme="light"] .agt-section-title {
+      color: #1d4ed8 !important;
+      background: #eaf1fb !important;
+      border-bottom: 1px solid #d0deef !important;
+    }
+    html[data-theme="light"] .agt-section-body {
+      background: #ffffff !important;
+    }
+
+    /* Form fields */
+    html[data-theme="light"] .field-label { color: #1f3358 !important; font-weight: 600 !important; }
+    html[data-theme="light"] .field-hint  { color: #5b6b85 !important; }
+    html[data-theme="light"] .field-input {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e3 !important;
+      color: #0b1a33 !important;
+      -webkit-text-fill-color: #0b1a33 !important;
+    }
+    html[data-theme="light"] .field-input::placeholder { color: #94a3b8 !important; -webkit-text-fill-color: #94a3b8 !important; }
+    html[data-theme="light"] .field-input:focus {
+      border-color: #2563eb !important;
+      box-shadow: 0 0 0 3px rgba(37,99,235,.15) !important;
+    }
+    html[data-theme="light"] .field-input:-webkit-autofill,
+    html[data-theme="light"] .field-input:-webkit-autofill:hover,
+    html[data-theme="light"] .field-input:-webkit-autofill:focus,
+    html[data-theme="light"] .field-input:-webkit-autofill:active {
+      -webkit-box-shadow: 0 0 0 200px #ffffff inset !important;
+      -webkit-text-fill-color: #0b1a33 !important;
+      caret-color: #0b1a33 !important;
+    }
+    html[data-theme="light"] textarea.field-input { background: #ffffff !important; }
+    html[data-theme="light"] .field-icon-btn { color: #5b6b85 !important; }
+    html[data-theme="light"] .field-icon-btn:hover { background: rgba(15,32,60,.06) !important; }
+
+    /* Toggle */
+    html[data-theme="light"] .toggle-slider { background: #cbd5e3 !important; }
+    html[data-theme="light"] .toggle-wrap input:checked + .toggle-slider { background: #10b981 !important; }
+    html[data-theme="light"] .toggle-label    { color: #0b1a33 !important; }
+    html[data-theme="light"] .toggle-sublabel { color: #5b6b85 !important; }
+
+    /* Credential warn */
+    html[data-theme="light"] .credential-warn {
+      background: #fff7e1 !important;
+      border: 1px solid #f5c46a !important;
+      color: #8a5a07 !important;
+    }
+    html[data-theme="light"] .credential-warn svg { stroke: #c08407 !important; }
+
+    /* Char counter */
+    html[data-theme="light"] .char-counter { color: #5b6b85 !important; }
+    html[data-theme="light"] .char-counter.near { color: #c08407 !important; }
+    html[data-theme="light"] .char-counter.over { color: #b91c1c !important; }
+
+    /* Buttons */
+    html[data-theme="light"] .agt-btn-secondary {
+      background: #f4f7fc !important;
+      border: 1px solid #c7d3e6 !important;
+      color: #1d4ed8 !important;
+    }
+    html[data-theme="light"] .agt-btn-secondary:hover { background: #e7eefb !important; border-color: #93c5fd !important; }
+    html[data-theme="light"] .agt-btn-primary {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+      color: #fff !important;
+      box-shadow: 0 4px 14px rgba(37,99,235,.30) !important;
+    }
+    html[data-theme="light"] .agt-btn-primary:hover {
+      box-shadow: 0 6px 18px rgba(37,99,235,.40) !important;
+    }
+
+    /* Test bubble */
+    html[data-theme="light"] .test-bubble {
+      background: #f4f7fc !important;
+      border: 1px solid #d6deeb !important;
+      color: #0b1a33 !important;
+    }
+    html[data-theme="light"] .test-label { color: #5b6b85 !important; }
+
+    /* Tip rows */
+    html[data-theme="light"] .tip-row { border-bottom: 1px solid #e5ebf5 !important; }
+    html[data-theme="light"] .tip-icon {
+      background: #e7eefb !important;
+      color: #1d4ed8 !important;
+    }
+    html[data-theme="light"] .tip-icon svg { stroke: #1d4ed8 !important; }
+    html[data-theme="light"] .tip-text { color: #1f3358 !important; }
+
+    /* Side panel headers (h3) */
+    html[data-theme="light"] .agt-panel h3 { color: #0b1a33 !important; }
+    html[data-theme="light"] .agt-panel h3 svg { stroke: #1d4ed8 !important; }
+    html[data-theme="light"] .agt-panel p { color: #5b6b85 !important; }
+
+    /* Diagnóstico rápido */
+    html[data-theme="light"] .diag-row { border-bottom: 1px solid #e5ebf5 !important; }
+    html[data-theme="light"] .diag-row span:first-child { color: #4b5d76 !important; }
+    html[data-theme="light"] .diag-ok      { background:#dcfce7 !important; color:#15803d !important; border:1px solid #86efac !important; }
+    html[data-theme="light"] .diag-warn    { background:#fef3c7 !important; color:#92400e !important; border:1px solid #fcd34d !important; }
+    html[data-theme="light"] .diag-neutral { background:#f1f5fb !important; color:#4b5d76 !important; border:1px solid #cbd5e3 !important; }
+
+    /* KPI dot when neutral */
+    html[data-theme="light"] .dot-neutral { background:#cbd5e3 !important; }
+
+    /* Section title SVG icons */
+    html[data-theme="light"] .agt-section-title svg { stroke: #1d4ed8 !important; }
+
+    /* Save / Test connection button icons */
+    html[data-theme="light"] .agt-btn-secondary svg { stroke: currentColor !important; }
   </style>
 </head>
 <body>

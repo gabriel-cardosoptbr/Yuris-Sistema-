@@ -166,7 +166,9 @@ document.addEventListener('DOMContentLoaded', () => {
       btnTestConn.disabled = false;
       btnTestConn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Testar conexão';
       testConnRes.style.display = 'block';
-      testConnRes.style.color   = '#93c5fd';
+      // verde-escuro funciona em ambos os temas (claro e escuro)
+      testConnRes.style.color   = '#10b981';
+      testConnRes.style.fontWeight = '600';
       testConnRes.textContent   = `✅ Credenciais para "${provider}" validadas — salve para confirmar.`;
     });
   }
