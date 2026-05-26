@@ -21,6 +21,7 @@ const ChatApp = (() => {
     hasMoreOlder : true,     // false quando o servidor devolve 0 antigas
     loadingOlder : false,    // semaforo pra evitar requests duplicadas no scroll
     groupMembersCache: {},   // { 'XXXXX@g.us': [members] } — popula em updateGroupHeader
+    contactsLidMap: {},      // { 'localPartDoJid': {name, phone} } — pra resolver @mencoes LID/@s.whatsapp.net
     pollingTimer : null,
     statusTimer  : null,
     qrTimer      : null,
@@ -1948,6 +1949,11 @@ const ChatApp = (() => {
         }
         // Cache pra resolver @menções no conteudo das mensagens
         state.groupMembersCache[jid] = members;
+        // Mapa de contacts da instancia (inclui @lid e @s.whatsapp.net)
+        // Sobrescreve o cache global — o JID local part eh chave unica
+        if (d && d.contacts_map) {
+          state.contactsLidMap = Object.assign({}, state.contactsLidMap, d.contacts_map);
+        }
         // Re-resolve menções pendentes que renderizaram antes do cache popular
         refreshPendingMentions(jid);
       })
@@ -1959,14 +1965,27 @@ const ChatApp = (() => {
   // Quando o membro não está no cache (ainda fetching), marca span como
   // pending pra re-resolver depois (refreshPendingMentions).
   function resolveMentionName(num, groupJid) {
-    if (!groupJid) return null;
-    const members = state.groupMembersCache[groupJid];
-    if (!members || !members.length) return null;
-    for (const m of members) {
-      const phone = String(m.phone || '').replace(/\D/g, '');
-      const pjid  = String(m.participant_jid || '');
-      if (phone === num)            return m.push_name || phoneFromJid(pjid) || phone;
-      if (pjid.startsWith(num + '@')) return m.push_name || phoneFromJid(pjid) || num;
+    // 1) Membros do grupo: match por phone OR participant_jid prefix
+    if (groupJid) {
+      const members = state.groupMembersCache[groupJid];
+      if (members && members.length) {
+        for (const m of members) {
+          const phone = String(m.phone || '').replace(/\D/g, '');
+          const pjid  = String(m.participant_jid || '');
+          if (phone === num)               return m.push_name || phoneFromJid(pjid) || phone;
+          if (pjid.startsWith(num + '@'))  return m.push_name || phoneFromJid(pjid) || num;
+        }
+      }
+    }
+    // 2) Contacts da instancia (whatsapp_contacts) — cobre LIDs @lid e tambem
+    //    contatos @s.whatsapp.net que nao estao no group_members.
+    const c = state.contactsLidMap[num];
+    if (c) {
+      // Se push_name eh apenas o telefone formatado (sem nome real), prefere
+      // o phone curto pra ficar mais limpo
+      const name = String(c.name || '').trim();
+      if (name && !/^\+?\d[\d\s\-()]*$/.test(name)) return name; // tem letras = nome real
+      return name || (c.phone ? formatPhone(c.phone) : null);
     }
     return null;
   }
