@@ -41,6 +41,9 @@ class AdvogadoVinculo
 
     /**
      * Lista vínculos onde a conta é HOST (matriz/filial vendo seus advogados).
+     *
+     * OAB do advogado mora em users.oab (não accounts.oab). Fazemos LEFT JOIN
+     * com 1 user qualquer da conta advogado pra trazer a OAB pro UI.
      */
     public static function listByHost(int $hostAccountId): array
     {
@@ -49,7 +52,11 @@ class AdvogadoVinculo
             'SELECT av.*,
                     ah.nome AS host_nome,     ah.tipo AS host_tipo,
                     aa.nome AS advogado_nome, aa.tipo AS advogado_tipo,
-                    aa.oab  AS advogado_oab,
+                    (SELECT u.oab FROM users u
+                       WHERE u.account_id = aa.id
+                         AND u.oab IS NOT NULL AND u.oab <> \'\'
+                         AND u.deleted_at IS NULL
+                       LIMIT 1) AS advogado_oab,
                     us.nome AS solicitado_por_nome,
                     ua.nome AS aprovado_por_nome
              FROM advogado_vinculos av
