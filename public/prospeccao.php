@@ -105,9 +105,9 @@ function column_display_name(array $col): string
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=27">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=42">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=8">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=18">
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
   <style>
     :root {
@@ -1082,7 +1082,7 @@ function column_display_name(array $col): string
           <div class="card-shell">
             <div class="toolbar-grid">
               <div class="action-buttons">
-                <button id="btnNewCard" class="btn primary" type="button">＋ Novo Lead</button>
+                <button id="btnNewCard" class="btn primary" type="button">＋ Novo Cliente</button>
                 <button id="btnRefresh" class="btn soft" type="button">↻ Atualizar</button>
                 <button id="btnColumns" class="btn soft" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06A2 2 0 1 1 2.27 17.8l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09c.7 0 1.27-.43 1.51-1a1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 6.3 2.27l.06.06c.5.5 1.2.75 1.82.33A1.65 1.65 0 0 0 9.69 1.5 1.65 1.65 0 0 0 9.7 1H12a2 2 0 1 1 0 4h-.09c-.7 0-1.27.43-1.51 1a1.65 1.65 0 0 0 .33 1.82l.06.06A2 2 0 1 1 17.73 6.2l-.06.06c-.5.5-.75 1.2-.33 1.82.32.56.32 1.28.32 1.82V12a2 2 0 1 1 4 0v.09c0 .7.43 1.27 1 1.51z"/></svg> Alterar Colunas</button>
                 <button id="btnToggleFilters" class="btn ghost" type="button">⌕ Filtros</button>
@@ -2879,7 +2879,7 @@ function column_display_name(array $col): string
     enableDatePickers();
     bindCalendarButtons();
   </script>
-  <script src="assets/dashboard.js?v=12"></script>
+  <script src="assets/dashboard.js?v=13"></script>
   <script src="/sistema_vendas/public/assets/fog.js"></script>
 </body>
 </html>

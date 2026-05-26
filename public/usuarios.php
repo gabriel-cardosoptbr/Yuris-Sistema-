@@ -15,9 +15,9 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=27">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=42">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=8">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=18">
   <style>
     :root {
       --bg-main: #070F1C;
@@ -605,7 +605,7 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 
           <!-- Bloco 2 — Acesso -->
           <div class="usr-modal-section" style="margin-top:12px">
-            <div class="usr-modal-section-title">🔑 Acesso</div>
+            <div class="usr-modal-section-title"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:6px"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M21 2l-9.6 9.6"/><path d="M15.5 7.5l3 3L22 7l-3-3"/></svg> Acesso</div>
             <div class="usr-modal-fields">
               <div class="field-group">
                 <label class="field-label">Perfil</label>
@@ -628,7 +628,7 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 
           <!-- Bloco 3 — Permissões (só para perfil user) -->
           <div class="usr-modal-section" id="createPermsSection" style="margin-top:12px;display:none">
-            <div class="usr-modal-section-title">🔐 Permissões de Acesso</div>
+            <div class="usr-modal-section-title"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:6px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Permissões de Acesso</div>
             <div style="padding:12px">
               <p style="font-size:.76rem;color:#93c5fd;margin:0 0 10px">Selecione os módulos que este usuário pode acessar:</p>
               <div id="createPermsGrid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
@@ -673,7 +673,7 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 
           <!-- Bloco 2 — Acesso -->
           <div class="usr-modal-section" style="margin-top:12px" id="editAcessoSection">
-            <div class="usr-modal-section-title">🔑 Acesso</div>
+            <div class="usr-modal-section-title"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:6px"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M21 2l-9.6 9.6"/><path d="M15.5 7.5l3 3L22 7l-3-3"/></svg> Acesso</div>
             <div class="usr-modal-fields">
               <div class="field-group" id="editPerfilGroup">
                 <label class="field-label">Perfil</label>
@@ -699,7 +699,7 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 
           <!-- Bloco 3 — Permissões (só para não-admin) -->
           <div class="usr-modal-section" id="permsSection" style="margin-top:12px;display:none">
-            <div class="usr-modal-section-title">🔐 Permissões de Acesso</div>
+            <div class="usr-modal-section-title"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:6px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Permissões de Acesso</div>
             <div style="padding:12px">
               <p style="font-size:.76rem;color:#93c5fd;margin:0 0 10px">Selecione os módulos que este usuário pode acessar:</p>
               <div id="permsGrid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>

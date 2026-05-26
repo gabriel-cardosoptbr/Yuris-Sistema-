@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once __DIR__ . '/../app/Models/Database.php';
 require_once __DIR__ . '/../app/Models/Account.php';
 require_once __DIR__ . '/../app/Models/ResourceShare.php';
@@ -46,10 +46,10 @@ try {
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=27">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=42">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=8">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/tarefas.css?v=5">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=18">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/tarefas.css?v=10">
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body {
@@ -111,7 +111,7 @@ try {
       </button>
 
       <div class="tk-view-btns">
-        <button class="tk-view-btn active" data-view="kanban">
+        <button class="tk-view-btn" data-view="kanban">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg>
           Kanban
         </button>
@@ -649,6 +649,6 @@ window.YURIS_SHOW_ORIGIN_STRIP = true;
 
 <!-- SortableJS: drag-and-drop entre colunas + reordenação intra-coluna (igual Pipeline) -->
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
-<script src="/sistema_vendas/public/assets/tarefas.js?v=8"></script>
+<script src="/sistema_vendas/public/assets/tarefas.js?v=11"></script>
 </body>
 </html>

@@ -15,9 +15,9 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=27">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=42">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=8">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=18">
   <style>
     :root {
       --bg-main: #071427;
@@ -267,7 +267,7 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 
               <!-- Bloco 1 — Identidade -->
               <div class="agt-section">
-                <div class="agt-section-title">🤖 Identidade do agente</div>
+                <div class="agt-section-title"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:6px"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg> Identidade do agente</div>
                 <div class="agt-section-body">
                   <div class="field-group">
                     <label class="field-label">Nome do agente</label>
@@ -296,7 +296,7 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 
               <!-- Bloco 2 — Integração -->
               <div class="agt-section" style="margin-top:14px">
-                <div class="agt-section-title">🔌 Integração com API</div>
+                <div class="agt-section-title"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:6px"><path d="M9 2v6"/><path d="M15 2v6"/><path d="M6 8h12v4a6 6 0 1 1-12 0V8z"/><path d="M12 18v4"/></svg> Integração com API</div>
                 <div class="agt-section-body">
                   <div class="field-group">
                     <label class="field-label">Provedor / API</label>
@@ -333,7 +333,7 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 
               <!-- Bloco 3 — Comportamento -->
               <div class="agt-section" style="margin-top:14px">
-                <div class="agt-section-title">💬 Comportamento do agente</div>
+                <div class="agt-section-title"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:6px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Comportamento do agente</div>
                 <div class="agt-section-body">
                   <div class="field-group">
                     <label class="field-label">Prompt padrão</label>

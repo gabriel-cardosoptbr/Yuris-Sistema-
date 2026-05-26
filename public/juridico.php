@@ -15,9 +15,9 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=27">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=42">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=8">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=18">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
   <style>
     :root {
@@ -243,6 +243,56 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
       box-shadow: 0 2px 8px rgba(0,0,0,0.35); transition: transform .18s, box-shadow .18s;
     }
     .jur-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(20,58,100,0.40); background: linear-gradient(135deg, #244E7A, #2E6090); }
+
+    /* ── Alert popup modal — tema claro ── */
+    html[data-theme="light"] #alertModal { background: rgba(15,31,54,0.45); }
+    html[data-theme="light"] .alert-modal-box {
+      background: linear-gradient(165deg, #FFFFFF 0%, #F4F7FB 100%);
+      border: 1px solid rgba(15,31,54,0.14);
+      box-shadow: 0 24px 60px rgba(15,31,54,0.18);
+    }
+    html[data-theme="light"] .alert-modal-header {
+      background: #F7F9FC;
+      border-bottom: 1px solid rgba(15,31,54,0.10);
+    }
+    html[data-theme="light"] .alert-modal-title { color: #0F1F36; }
+    html[data-theme="light"] .alert-block {
+      border: 1px solid rgba(15,31,54,0.10);
+    }
+    html[data-theme="light"] .alert-block-header {
+      background: rgba(37,99,235,0.08);
+    }
+    html[data-theme="light"] .alert-block-label { color: #1E4A8A; }
+    html[data-theme="light"] .alert-block-count { color: #0F1F36; }
+    html[data-theme="light"] .alert-item {
+      background: #FFFFFF;
+      border: 1px solid rgba(15,31,54,0.08);
+    }
+    html[data-theme="light"] .alert-item-client { color: #0F1F36; }
+    html[data-theme="light"] .alert-item-meta   { color: #5A6B7E; }
+    html[data-theme="light"] .alert-modal-footer {
+      background: #F7F9FC;
+      border-top: 1px solid rgba(15,31,54,0.10);
+    }
+    html[data-theme="light"] .jur-btn-secondary {
+      background: #FFFFFF;
+      border-color: rgba(15,31,54,0.18);
+      color: #1E4A8A;
+    }
+    html[data-theme="light"] .jur-btn-secondary:hover {
+      background: rgba(37,99,235,0.08);
+      border-color: rgba(37,99,235,0.30);
+    }
+    html[data-theme="light"] .jur-btn-primary {
+      background: linear-gradient(135deg, #1E4A8A, #2563EB);
+      border: 1px solid rgba(30,74,138,0.40);
+      color: #FFFFFF;
+      box-shadow: 0 2px 8px rgba(30,74,138,0.20);
+    }
+    html[data-theme="light"] .jur-btn-primary:hover {
+      background: linear-gradient(135deg, #2563EB, #3B82F6);
+      box-shadow: 0 4px 14px rgba(37,99,235,0.30);
+    }
 
     @media (max-width: 1100px) {
       .kpi-grid-6 { grid-template-columns: repeat(3,1fr) !important; }
