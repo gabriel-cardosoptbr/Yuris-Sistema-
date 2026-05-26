@@ -1419,7 +1419,7 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
       <div id="mqAviso" style="flex:1; min-width:200px; font-size:.78rem; color:#7A8898;">
         Carregando cota…
       </div>
-      <a href="/sistema_vendas/public/configuracoes/monitoramentos.php"
+      <a href="/sistema_vendas/public/escritorios.php#monitoramentos"
          title="Gerenciar cota e distribuição matriz↔filial"
          style="font-size:.74rem; color:#93C5FD; text-decoration:none; padding:5px 10px; border-radius:6px; border:1px solid rgba(96,165,250,.30); background:rgba(36,78,122,.18); white-space:nowrap; font-weight:600;">
         Gerenciar cota →

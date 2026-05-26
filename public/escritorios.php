@@ -1,5 +1,9 @@
 ﻿<?php
 require_once __DIR__ . '/../app/Models/Database.php';
+require_once __DIR__ . '/../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../app/Helpers/MonitorQuota.php';
+require_once __DIR__ . '/../app/Helpers/MonitorPermission.php';
+require_once __DIR__ . '/../app/Helpers/BillingGuard.php';
 session_start();
 if (empty($_SESSION['user_id'])) { header('Location: /sistema_vendas/public/login.php'); exit; }
 $activePage = 'escritorios';
@@ -8,6 +12,18 @@ $userRole   = $_SESSION['user_role']  ?? 'user';
 $accountId  = (int)($_SESSION['account_id'] ?? 0);
 $accountTipo= $_SESSION['account_tipo'] ?? 'matriz';
 $isAdmin    = in_array($userRole, ['owner', 'admin']) || ($_SESSION['user_perfil'] ?? '') === 'admin';
+
+// ── Aba Monitoramentos (add-on) ─────────────────────────────────────────
+// Dados server-side de cota pra render inicial (evita flash "Carregando…").
+// JS faz refresh depois via /api/push/quota.php (com Cache-Control no-store).
+$ctxEsc            = \App\Helpers\AccountContext::fromSession();
+$isMatrizEsc       = $ctxEsc->isMatriz();
+$canAllocateEsc    = \App\Helpers\MonitorPermission::canManageQuotaAllocations($ctxEsc);
+$canManagePermsEsc = $isAdmin || $ctxEsc->isSuperAdmin();
+$advFlagEsc        = \App\Helpers\MonitorPermission::isAdvogadoAllowedToCreate($accountId);
+$monStatusEsc      = \App\Helpers\MonitorQuota::getQuotaStatus($accountId);
+$monPlanBaseEsc    = \App\Helpers\BillingGuard::getBaseLimit($accountId, 'monitors.limit');
+$monOverrideSumEsc = \App\Helpers\BillingGuard::getOverrideSum($accountId, 'monitors.limit');
 ?>
 <!doctype html>
 <html lang="pt-BR">
@@ -342,6 +358,143 @@ $isAdmin    = in_array($userRole, ['owner', 'admin']) || ($_SESSION['user_perfil
     }
     html[data-theme="light"] .edit-share-info strong { color: #0F1F36 !important; }
     html[data-theme="light"] .edit-share-info div[style*="color:#7a96b4"] { color: #64748B !important; }
+
+    /* ──────────────────────────────────────────────────────────────────
+       Aba MONITORAMENTOS — add-on. Tudo .mon-* pra não colidir com classes
+       das outras abas. Tema escuro default + overrides claro.
+       ────────────────────────────────────────────────────────────────── */
+    .mon-kpi-grid {
+      display: grid; gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+    .mon-kpi {
+      background: rgba(14,35,65,.55);
+      border: 1px solid rgba(160,180,210,.14);
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .mon-kpi-label { font-size:.74rem; color:#7a96b4; text-transform:uppercase; letter-spacing:.05em; }
+    .mon-kpi-value { font-size:1.6rem; font-weight:700; margin-top:4px; color:#dbeafe; }
+    .mon-kpi.good .mon-kpi-value { color:#6EE7B7; }
+    .mon-kpi.warn .mon-kpi-value { color:#FBBF24; }
+    .mon-kpi.bad  .mon-kpi-value { color:#FCA5A5; }
+    .mon-kpi-meta { font-size:.72rem; color:#7a96b4; margin-top:6px; }
+
+    .mon-alert {
+      padding: 12px 14px; border-radius: 10px;
+      font-size: .85rem;
+    }
+    .mon-alert-info {
+      background: rgba(37,99,235,.10);
+      border: 1px solid rgba(96,165,250,.25);
+      color: #bbd7ff;
+    }
+    .mon-alert-warn {
+      background: rgba(245,158,11,.10);
+      border: 1px solid rgba(245,158,11,.30);
+      color: #FED7AA;
+    }
+
+    .mon-perm-row {
+      display:flex; align-items:center; gap:14px;
+      padding:12px 14px;
+      background: rgba(14,35,65,.4);
+      border: 1px solid rgba(160,180,210,.14);
+      border-radius: 10px;
+    }
+    .mon-perm-title { font-weight:600; color:#dbeafe; font-size:.92rem; }
+    .mon-perm-hint  { font-size:.78rem; color:#7a96b4; margin-top:4px; }
+
+    .mon-switch { position:relative; display:inline-block; width:42px; height:22px; flex-shrink:0; }
+    .mon-switch input { opacity:0; width:0; height:0; }
+    .mon-slider {
+      position:absolute; cursor:pointer; inset:0;
+      background:#3B4A5E; border-radius:22px; transition:background .15s;
+    }
+    .mon-slider:before {
+      content:""; position:absolute; height:16px; width:16px; left:3px; top:3px;
+      background:#fff; border-radius:50%; transition:.15s;
+    }
+    .mon-switch input:checked + .mon-slider { background:#2563EB; }
+    .mon-switch input:checked + .mon-slider:before { transform: translateX(20px); }
+
+    .mon-table { width:100%; border-collapse:collapse; font-size:.85rem; }
+    .mon-table th, .mon-table td {
+      padding:10px 12px; text-align:left;
+      border-bottom:1px solid rgba(160,180,210,.10);
+      color:#dbeafe;
+    }
+    .mon-table th {
+      font-size:.7rem; text-transform:uppercase; letter-spacing:.05em;
+      color:#7a96b4; font-weight:600;
+    }
+    .mon-table tr:last-child td { border-bottom:none; }
+    .mon-alloc-input {
+      width:80px; padding:6px 8px;
+      background: rgba(14,35,65,.7);
+      border: 1px solid rgba(160,180,210,.22);
+      border-radius: 6px;
+      color: #dbeafe;
+      font: inherit; font-size:.85rem;
+      text-align:center;
+    }
+    .mon-alloc-input:focus { outline:none; border-color:#2563EB; }
+
+    .mon-pill {
+      display:inline-block; padding:2px 10px;
+      border-radius:999px; font-size:.68rem; font-weight:700;
+      text-transform:uppercase; letter-spacing:.04em;
+    }
+    .mon-pill-active   { background:rgba(74,144,120,.16); color:#6EE7B7; border:1px solid rgba(74,144,120,.30); }
+    .mon-pill-revoked  { background:rgba(160,180,210,.12); color:#94a3b8; border:1px solid rgba(160,180,210,.22); }
+    .mon-pill-pending  { background:rgba(245,158,11,.16); color:#FBBF24; border:1px solid rgba(245,158,11,.35); }
+    .mon-pill-denied   { background:rgba(220,38,38,.16); color:#FCA5A5; border:1px solid rgba(220,38,38,.35); }
+
+    .mon-hint { font-size:.75rem; color:#7a96b4; }
+
+    /* TEMA CLARO (light) — overrides do add-on */
+    html[data-theme="light"] .mon-kpi {
+      background: #F2F5F9;
+      border-color: #E2E8F0;
+    }
+    html[data-theme="light"] .mon-kpi-label { color: #64748B; }
+    html[data-theme="light"] .mon-kpi-value { color: #0F1F36; }
+    html[data-theme="light"] .mon-kpi.good .mon-kpi-value { color: #047857; }
+    html[data-theme="light"] .mon-kpi.warn .mon-kpi-value { color: #B45309; }
+    html[data-theme="light"] .mon-kpi.bad  .mon-kpi-value { color: #B91C1C; }
+    html[data-theme="light"] .mon-kpi-meta { color: #64748B; }
+    html[data-theme="light"] .mon-alert-info {
+      background: rgba(37,99,235,.07);
+      border-color: rgba(37,99,235,.20);
+      color: #1D4ED8;
+    }
+    html[data-theme="light"] .mon-alert-warn {
+      background: rgba(245,158,11,.08);
+      border-color: rgba(245,158,11,.30);
+      color: #92400E;
+    }
+    html[data-theme="light"] .mon-perm-row {
+      background: #F8FAFC;
+      border-color: #E2E8F0;
+    }
+    html[data-theme="light"] .mon-perm-title { color: #0F1F36; }
+    html[data-theme="light"] .mon-perm-hint { color: #64748B; }
+    html[data-theme="light"] .mon-slider { background: #CBD5E1; }
+    html[data-theme="light"] .mon-table td { color: #0F1F36; border-bottom-color: #EDF2F7; }
+    html[data-theme="light"] .mon-table th { color: #64748B; border-bottom-color: #E2E8F0; }
+    html[data-theme="light"] .mon-alloc-input {
+      background: #FFFFFF;
+      color: #0F1F36;
+      border-color: #D1DCE8;
+    }
+    html[data-theme="light"] .mon-pill-active  { background:rgba(22,163,74,.10); color:#15803D; border-color:rgba(22,163,74,.30); }
+    html[data-theme="light"] .mon-pill-revoked { background:rgba(100,116,139,.10); color:#475569; border-color:rgba(100,116,139,.30); }
+    html[data-theme="light"] .mon-pill-pending { background:rgba(245,158,11,.10); color:#92400E; border-color:rgba(245,158,11,.30); }
+    html[data-theme="light"] .mon-pill-denied  { background:rgba(239,68,68,.10); color:#991B1B; border-color:rgba(239,68,68,.30); }
+    html[data-theme="light"] .mon-hint { color: #64748B; }
+
+    /* Badge de pending na tab */
+    html[data-theme="light"] #reqPendingBadgeEsc { background:#DC2626; color:#FFF; }
   </style>
 </head>
 <body>
@@ -434,6 +587,10 @@ $isAdmin    = in_array($userRole, ['owner', 'admin']) || ($_SESSION['user_perfil
         <?php endif; ?>
         <button class="es-tab" data-tab="compartilhamentos" onclick="switchTab('compartilhamentos')">Compartilhamentos</button>
         <button class="es-tab" data-tab="modulos"           onclick="switchTab('modulos')">Módulos</button>
+        <button class="es-tab" data-tab="monitoramentos"    onclick="switchTab('monitoramentos')">
+          Monitoramentos
+          <span id="reqPendingBadgeEsc" style="display:none; margin-left:6px; padding:1px 7px; border-radius:999px; background:#DC2626; color:#FFF; font-size:.7rem;">0</span>
+        </button>
         <?php if ($isAdmin && $accountTipo === 'filial'): ?>
         <button class="es-tab" data-tab="solicitar"         onclick="switchTab('solicitar')">Solicitar Vínculo</button>
         <?php endif; ?>
@@ -515,6 +672,133 @@ $isAdmin    = in_array($userRole, ['owner', 'admin']) || ($_SESSION['user_perfil
           <p style="font-size:.82rem;color:#7a96b4;margin:0 0 14px">Aqui você libera abas inteiras (ex: Dashboard, Jurídico, Processos) para outra matriz, filial ou advogado. Quem receber verá os <strong>seus dados</strong> daquela aba — diferente do vínculo de um processo específico, que libera apenas aquele processo.</p>
           <div id="modulosList"><div class="es-empty">Carregando...</div></div>
         </div>
+      </div>
+
+      <!-- ── PANE: Monitoramentos ── (add-on Yuris)
+           Single source: /api/push/quota.php + /api/push/allocations.php
+           + /api/push/requests.php + /api/push/permissions.php
+      -->
+      <div class="es-pane" id="pane-monitoramentos">
+
+        <!-- KPIs de cota da própria conta -->
+        <div class="es-card">
+          <div class="es-card-title">Cota contratada</div>
+          <?php if ($monStatusEsc['effective_limit'] <= 0): ?>
+          <div class="mon-alert mon-alert-warn" style="margin-bottom:14px;">
+            <strong>Sua conta ainda não tem monitoramentos contratados.</strong><br>
+            Cada OAB/advogado monitorado é cobrado à parte do plano. Fale com o time comercial.
+          </div>
+          <?php endif; ?>
+          <div class="mon-kpi-grid">
+            <div class="mon-kpi">
+              <div class="mon-kpi-label">Contratado</div>
+              <div class="mon-kpi-value" id="monKpiContratado"><?= (int) $monStatusEsc['effective_limit'] ?></div>
+              <div class="mon-kpi-meta">
+                <?php if ($monStatusEsc['has_allocations'] && !$isMatrizEsc): ?>
+                  alocação recebida da matriz
+                <?php elseif (!$isMatrizEsc): ?>
+                  pool aberto da matriz
+                <?php else: ?>
+                  plano: <?= (int) $monPlanBaseEsc ?> · add-ons: <?= (int) $monOverrideSumEsc ?>
+                <?php endif; ?>
+              </div>
+            </div>
+            <div class="mon-kpi <?= $monStatusEsc['percent_used'] >= 100 ? 'bad' : ($monStatusEsc['percent_used'] >= 80 ? 'warn' : '') ?>" id="monKpiUsadoBox">
+              <div class="mon-kpi-label">Em uso</div>
+              <div class="mon-kpi-value" id="monKpiUsado"><?= (int) $monStatusEsc['current_usage'] ?></div>
+              <div class="mon-kpi-meta" id="monKpiPercent"><?= (int) $monStatusEsc['percent_used'] ?>% utilizado</div>
+            </div>
+            <div class="mon-kpi <?= $monStatusEsc['available'] > 0 ? 'good' : 'bad' ?>" id="monKpiDispBox">
+              <div class="mon-kpi-label">Disponível</div>
+              <div class="mon-kpi-value" id="monKpiDispo"><?= (int) $monStatusEsc['available'] ?></div>
+              <div class="mon-kpi-meta">vagas livres pra novo monitor</div>
+            </div>
+          </div>
+        </div>
+
+        <?php if ($canManagePermsEsc): ?>
+        <!-- Permissões -->
+        <div class="es-card">
+          <div class="es-card-title">Permissões</div>
+          <div class="mon-perm-row">
+            <label class="mon-switch">
+              <input type="checkbox" id="monFlagAdvogadoCreate" <?= $advFlagEsc ? 'checked' : '' ?>>
+              <span class="mon-slider"></span>
+            </label>
+            <div>
+              <div class="mon-perm-title">Advogados podem criar próprio monitoramento</div>
+              <div class="mon-perm-hint">
+                Quando desligado, advogados precisam <strong>solicitar</strong> ao admin.
+                Owner/admin/super_admin sempre podem criar.
+              </div>
+            </div>
+          </div>
+        </div>
+        <?php endif; ?>
+
+        <?php if ($isMatrizEsc && $canAllocateEsc): ?>
+        <!-- Distribuir cota matriz→filial -->
+        <div class="es-card">
+          <div class="es-card-title">Distribuir cota para filiais</div>
+          <div class="mon-alert mon-alert-info" style="margin-bottom:14px;">
+            <strong>Modelo híbrido:</strong> sem alocações fixas, todas as filiais
+            vinculadas compartilham o pool aberto da matriz. Aloque para
+            <em>reservar</em> uma quantidade fixa pra uma filial específica.
+          </div>
+          <div class="mon-kpi-grid" id="monDistribKpis" style="margin-bottom:18px;">
+            <div class="mon-kpi">
+              <div class="mon-kpi-label">Pool total</div>
+              <div class="mon-kpi-value" id="monKpiPoolTotal">—</div>
+              <div class="mon-kpi-meta">limite contratado</div>
+            </div>
+            <div class="mon-kpi warn">
+              <div class="mon-kpi-label">Alocado</div>
+              <div class="mon-kpi-value" id="monKpiAlloc">—</div>
+              <div class="mon-kpi-meta">reservado pra filiais</div>
+            </div>
+            <div class="mon-kpi good">
+              <div class="mon-kpi-label">Livre no pool</div>
+              <div class="mon-kpi-value" id="monKpiPoolLivre">—</div>
+              <div class="mon-kpi-meta">disponível pra novas alocações</div>
+            </div>
+          </div>
+          <div id="monFiliaisWrap"><div class="es-empty">Carregando…</div></div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Solicitações -->
+        <div class="es-card">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
+            <div class="es-card-title" style="margin:0">Solicitações</div>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <select id="monReqScope" class="es-input" style="height:32px; padding:4px 10px; width:auto;">
+                <option value="pending">Pendentes</option>
+                <option value="all">Todas</option>
+                <option value="mine">Só as minhas</option>
+              </select>
+              <button class="btn-sm btn-outline" onclick="loadMonReqs()">Atualizar</button>
+            </div>
+          </div>
+          <div class="mon-alert mon-alert-info" style="margin-bottom:12px;">
+            <?php if ($canManagePermsEsc): ?>
+              <strong>Caixa de entrada:</strong> aprove ou recuse pedidos de monitoramento.
+              Aprovar cria o monitor automaticamente.
+            <?php else: ?>
+              Aqui você vê o status das suas solicitações. Quando o admin aprovar,
+              o monitor passa a rodar automaticamente.
+            <?php endif; ?>
+          </div>
+          <div id="monReqsWrap"><div class="es-empty">Carregando…</div></div>
+        </div>
+
+        <?php if ($isMatrizEsc && $canAllocateEsc): ?>
+        <!-- Histórico de alocações -->
+        <div class="es-card">
+          <div class="es-card-title">Histórico de alocações</div>
+          <div id="monAllocHistWrap"><div class="es-empty">Carregando…</div></div>
+        </div>
+        <?php endif; ?>
+
       </div>
 
       <!-- ── PANE: Solicitar vínculo ── -->
@@ -881,6 +1165,7 @@ function switchTab(name) {
   }
   if (name === 'compartilhamentos') carregarShares();
   if (name === 'modulos')           carregarModulos();
+  if (name === 'monitoramentos')    carregarMonitoramentos();
 }
 
 // ── Vínculos ─────────────────────────────────────────────────────────────────
@@ -1637,10 +1922,333 @@ async function confirmarLiberarModulo() {
 // (Removida 2a versao redundante de switchTab — a unificada em ~linha 862 ja
 //  cobre vinculos/advogados/compartilhamentos/modulos via data-tab.)
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// Aba MONITORAMENTOS (add-on)
+// Single source: /api/push/quota.php + allocations + requests + permissions
+// ═══════════════════════════════════════════════════════════════════════════════
+const MON_IS_MATRIZ      = <?= $isMatrizEsc ? 'true' : 'false' ?>;
+const MON_CAN_ALLOCATE   = <?= $canAllocateEsc ? 'true' : 'false' ?>;
+const MON_CAN_MANAGE_PERMS = <?= $canManagePermsEsc ? 'true' : 'false' ?>;
+
+let _monAllocCache = null;
+let _monReqCache   = null;
+
+async function carregarMonitoramentos() {
+  // Refresca tudo paralelo. Quota já vem rendered server-side, mas refrescamos
+  // pra refletir mudanças do Master sem precisar F5.
+  await Promise.all([
+    loadMonQuotaEsc(),
+    (MON_IS_MATRIZ && MON_CAN_ALLOCATE) ? loadMonAllocs() : Promise.resolve(),
+    loadMonReqs(),
+  ]);
+}
+
+async function loadMonQuotaEsc() {
+  try {
+    const r = await fetch(`/sistema_vendas/public/api/push/quota.php?_t=${Date.now()}`, {
+      credentials: 'same-origin',
+      headers: { 'Cache-Control': 'no-cache' },
+    });
+    const j = await r.json();
+    if (!j.ok) return;
+    const s = j.status || {};
+    const lim = s.effective_limit || 0;
+    const used = s.current_usage || 0;
+    const avail = s.available || 0;
+    const pct = s.percent_used || 0;
+    const $ = id => document.getElementById(id);
+    if ($('monKpiContratado')) $('monKpiContratado').textContent = lim;
+    if ($('monKpiUsado'))      $('monKpiUsado').textContent      = used;
+    if ($('monKpiDispo'))      $('monKpiDispo').textContent      = avail;
+    if ($('monKpiPercent'))    $('monKpiPercent').textContent    = pct + '% utilizado';
+
+    // Reaplica classes good/warn/bad
+    const dispBox = $('monKpiDispBox');
+    if (dispBox) {
+      dispBox.classList.remove('good', 'bad');
+      dispBox.classList.add(avail > 0 ? 'good' : 'bad');
+    }
+    const usadoBox = $('monKpiUsadoBox');
+    if (usadoBox) {
+      usadoBox.classList.remove('warn', 'bad');
+      if (pct >= 100) usadoBox.classList.add('bad');
+      else if (pct >= 80) usadoBox.classList.add('warn');
+    }
+  } catch (e) { console.warn('quota fetch', e); }
+}
+
+async function loadMonAllocs() {
+  const wrap = document.getElementById('monFiliaisWrap');
+  const hist = document.getElementById('monAllocHistWrap');
+  try {
+    const r = await fetch(`/sistema_vendas/public/api/push/allocations.php?_t=${Date.now()}`, {
+      credentials: 'same-origin', headers: { 'Cache-Control': 'no-cache' },
+    });
+    const j = await r.json();
+    if (!j.ok) {
+      if (wrap) wrap.innerHTML = `<div class="es-empty">${escMon(j.error||'?')}</div>`;
+      return;
+    }
+    _monAllocCache = j.data || j;
+    renderMonAllocKpis();
+    renderMonFiliais();
+    renderMonAllocHist();
+  } catch (e) {
+    if (wrap) wrap.innerHTML = `<div class="es-empty">Falha de rede</div>`;
+    if (hist) hist.innerHTML = '';
+  }
+}
+
+function renderMonAllocKpis() {
+  const p = _monAllocCache?.parent || {};
+  const $ = id => document.getElementById(id);
+  if ($('monKpiPoolTotal')) $('monKpiPoolTotal').textContent = p.own_limit ?? '—';
+  if ($('monKpiAlloc'))     $('monKpiAlloc').textContent     = p.allocated_total ?? '—';
+  if ($('monKpiPoolLivre')) $('monKpiPoolLivre').textContent = p.pool_disponivel ?? '—';
+}
+
+function renderMonFiliais() {
+  const wrap = document.getElementById('monFiliaisWrap');
+  if (!wrap) return;
+  const filiais = _monAllocCache?.filiais || [];
+  const livre = _monAllocCache?.parent?.pool_disponivel ?? 0;
+  if (!filiais.length) {
+    wrap.innerHTML = `<div class="es-empty">
+      Nenhuma filial vinculada com <code>sync_monitoramentos=1</code>.
+      Crie ou ative o vínculo na aba <strong>Vínculos</strong>.
+    </div>`;
+    return;
+  }
+  let html = `<table class="mon-table">
+    <thead><tr>
+      <th>Filial</th><th>Em uso</th><th>Alocação atual</th><th>Nova alocação</th><th style="text-align:right">Ações</th>
+    </tr></thead><tbody>`;
+  for (const f of filiais) {
+    const val = f.allocated || 0;
+    html += `<tr data-acc="${f.account_id}" data-id="${f.allocation_id||''}">
+      <td><strong>${escMon(f.nome)}</strong><div class="mon-hint">#${f.account_id}</div></td>
+      <td>${f.current_usage||0}</td>
+      <td>${val > 0
+        ? `<span class="mon-pill mon-pill-active">${val} reservados</span>`
+        : `<span class="mon-pill mon-pill-revoked">pool aberto</span>`}</td>
+      <td><input type="number" min="0" step="1" class="mon-alloc-input" value="${val}"></td>
+      <td style="text-align:right;white-space:nowrap">
+        <button class="btn-sm btn-primary" onclick="saveMonAlloc(${f.account_id})">Salvar</button>
+        ${f.allocation_id
+          ? `<button class="btn-sm btn-danger" style="margin-left:6px" onclick="revokeMonAlloc(${f.allocation_id})">Revogar</button>`
+          : ''}
+      </td>
+    </tr>`;
+  }
+  html += `</tbody></table>
+    <div class="mon-hint" style="margin-top:10px">
+      Pool livre disponível: <strong>${livre}</strong>. Definir <strong>0</strong> e clicar Salvar volta a filial pro pool aberto.
+    </div>`;
+  wrap.innerHTML = html;
+}
+
+function renderMonAllocHist() {
+  const wrap = document.getElementById('monAllocHistWrap');
+  if (!wrap) return;
+  const list = _monAllocCache?.allocations || [];
+  if (!list.length) { wrap.innerHTML = `<div class="es-empty">Nenhuma alocação registrada ainda.</div>`; return; }
+  let html = `<table class="mon-table"><thead><tr>
+    <th>Quando</th><th>Filial</th><th>Qtd</th><th>Status</th><th>Por</th><th>Obs.</th>
+  </tr></thead><tbody>`;
+  for (const a of list) {
+    const isAtiva = a.status === 'active';
+    html += `<tr>
+      <td>${monDate(a.created_at)}${a.revoked_at ? `<div class="mon-hint">revogada ${monDate(a.revoked_at)}</div>`:''}</td>
+      <td>${escMon(a.target_nome||'?')} <span class="mon-hint">#${a.target_account_id}</span></td>
+      <td>${a.allocated}</td>
+      <td>${isAtiva ? `<span class="mon-pill mon-pill-active">ativa</span>` : `<span class="mon-pill mon-pill-revoked">revogada</span>`}</td>
+      <td>${escMon(a.created_by_nome||'?')}${a.revoked_by_nome ? `<div class="mon-hint">por ${escMon(a.revoked_by_nome)}</div>`:''}</td>
+      <td>${escMon(a.observacoes||'')}</td>
+    </tr>`;
+  }
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+}
+
+async function saveMonAlloc(accountId) {
+  const row = document.querySelector(`#monFiliaisWrap [data-acc="${accountId}"]`);
+  if (!row) return;
+  const input = row.querySelector('.mon-alloc-input');
+  const allocId = row.dataset.id ? parseInt(row.dataset.id, 10) : 0;
+  const novo = parseInt(input.value, 10);
+  if (Number.isNaN(novo) || novo < 0) { alert('Valor inválido'); return; }
+  if (novo === 0 && allocId) {
+    if (!confirm('Definir 0 vai revogar a alocação. Continuar?')) return;
+    return revokeMonAlloc(allocId);
+  }
+  if (novo === 0 && !allocId) return;
+  try {
+    const r = await fetch(
+      allocId ? `/sistema_vendas/public/api/push/allocations.php?id=${allocId}`
+              : `/sistema_vendas/public/api/push/allocations.php`,
+      {
+        method: allocId ? 'PATCH' : 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(allocId
+          ? { _csrf: CSRF, allocated: novo }
+          : { _csrf: CSRF, target_account_id: accountId, allocated: novo }),
+      }
+    );
+    const j = await r.json();
+    if (!j.ok) { alert(j.error || 'Erro ao salvar'); return; }
+    await loadMonAllocs();
+    await loadMonQuotaEsc();
+  } catch (e) { alert('Falha de rede'); }
+}
+
+async function revokeMonAlloc(id) {
+  if (!confirm('Revogar alocação? A filial volta pro pool aberto da matriz.')) return;
+  try {
+    const r = await fetch(`/sistema_vendas/public/api/push/allocations.php?id=${id}`, {
+      method: 'DELETE',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ _csrf: CSRF }),
+    });
+    const j = await r.json();
+    if (!j.ok) { alert(j.error || 'Erro ao revogar'); return; }
+    await loadMonAllocs();
+    await loadMonQuotaEsc();
+  } catch (e) { alert('Falha de rede'); }
+}
+
+// ── Solicitações ──
+async function loadMonReqs() {
+  const wrap = document.getElementById('monReqsWrap');
+  const scope = document.getElementById('monReqScope')?.value || 'pending';
+  try {
+    const r = await fetch(`/sistema_vendas/public/api/push/requests.php?scope=${encodeURIComponent(scope)}&_t=${Date.now()}`, {
+      credentials: 'same-origin', headers: { 'Cache-Control': 'no-cache' },
+    });
+    const j = await r.json();
+    if (!j.ok) {
+      if (wrap) wrap.innerHTML = `<div class="es-empty">${escMon(j.error||'?')}</div>`;
+      return;
+    }
+    _monReqCache = j.data || j;
+    updateMonReqBadge();
+    renderMonReqs();
+  } catch (e) {
+    if (wrap) wrap.innerHTML = `<div class="es-empty">Falha de rede</div>`;
+  }
+}
+
+function updateMonReqBadge() {
+  const badge = document.getElementById('reqPendingBadgeEsc');
+  if (!badge || !_monReqCache) return;
+  const n = _monReqCache.counts?.pending || 0;
+  badge.style.display = n > 0 ? 'inline-block' : 'none';
+  badge.textContent = String(n);
+}
+
+function renderMonReqs() {
+  const wrap = document.getElementById('monReqsWrap');
+  if (!wrap || !_monReqCache) return;
+  const list = _monReqCache.requests || [];
+  const canApprove = _monReqCache.can?.approve;
+  if (!list.length) { wrap.innerHTML = `<div class="es-empty">Nenhuma solicitação encontrada nesse filtro.</div>`; return; }
+  let html = `<table class="mon-table"><thead><tr>
+    <th>Quando</th><th>Quem</th><th>Pediu</th><th>Justificativa</th><th>Status</th><th style="text-align:right">Ações</th>
+  </tr></thead><tbody>`;
+  for (const r of list) {
+    const pillStatus = ({
+      pending:  '<span class="mon-pill mon-pill-pending">pendente</span>',
+      approved: '<span class="mon-pill mon-pill-active">aprovada</span>',
+      denied:   '<span class="mon-pill mon-pill-denied">recusada</span>',
+      canceled: '<span class="mon-pill mon-pill-revoked">cancelada</span>',
+    })[r.status] || r.status;
+    const acoes = r.status === 'pending'
+      ? (canApprove
+        ? `<button class="btn-sm btn-primary" onclick="resolveMonReq(${r.id},'approve')">Aprovar</button>
+           <button class="btn-sm btn-danger" style="margin-left:6px" onclick="resolveMonReq(${r.id},'deny')">Recusar</button>`
+        : `<button class="btn-sm btn-outline" onclick="resolveMonReq(${r.id},'cancel')">Cancelar</button>`)
+      : (r.resulting_monitor_id ? `<span class="mon-hint">monitor #${r.resulting_monitor_id}</span>` : '');
+    const pediu = `${escMon(r.tipo_monitoramento)} <strong>${escMon(r.valor_monitorado)}</strong>`
+      + (r.uf ? ` <span class="mon-hint">/${escMon(r.uf)}</span>` : '')
+      + (r.nome_complementar ? `<div class="mon-hint">${escMon(r.nome_complementar)}</div>` : '');
+    html += `<tr>
+      <td>${monDate(r.created_at)}${(r.approved_at || r.denied_at) ? `<div class="mon-hint">resolvida ${monDate(r.approved_at||r.denied_at)}</div>`:''}</td>
+      <td>${escMon(r.requesting_user_nome||'?')}</td>
+      <td>${pediu}</td>
+      <td><div class="mon-hint" style="max-width:240px;white-space:pre-wrap">${escMon(r.justificativa||'—')}</div>${r.motivo_recusa ? `<div class="mon-hint" style="color:#FCA5A5;margin-top:4px">${escMon(r.motivo_recusa)}</div>`:''}</td>
+      <td>${pillStatus}</td>
+      <td style="text-align:right;white-space:nowrap">${acoes}</td>
+    </tr>`;
+  }
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+}
+
+async function resolveMonReq(id, action) {
+  let motivo = null;
+  if (action === 'deny') {
+    motivo = prompt('Motivo da recusa (opcional):', '');
+    if (motivo === null) return;
+  }
+  if (action === 'cancel' && !confirm('Cancelar essa solicitação?')) return;
+  if (action === 'approve' && !confirm('Aprovar e criar o monitor agora?')) return;
+  try {
+    const r = await fetch(`/sistema_vendas/public/api/push/requests.php?id=${id}`, {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ _csrf: CSRF, action, motivo }),
+    });
+    const j = await r.json();
+    if (!j.ok) { alert(j.error || 'Erro'); return; }
+    await loadMonReqs();
+    await loadMonQuotaEsc();
+  } catch (e) { alert('Falha de rede'); }
+}
+
+// Toggle flag advogado_pode_criar_monitor
+document.getElementById('monFlagAdvogadoCreate')?.addEventListener('change', async (e) => {
+  const cb = e.target;
+  try {
+    const r = await fetch('/sistema_vendas/public/api/push/permissions.php', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ _csrf: CSRF, advogado_pode_criar_monitor: !!cb.checked }),
+    });
+    const j = await r.json();
+    if (!j.ok) { alert(j.error || 'Erro'); cb.checked = !cb.checked; }
+  } catch (e) { cb.checked = !cb.checked; alert('Falha de rede'); }
+});
+
+// Filtro scope
+document.getElementById('monReqScope')?.addEventListener('change', () => loadMonReqs());
+
+// Helpers locais (escape + data) — escopados como mon* pra não colidir
+function escMon(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+function monDate(s) {
+  if (!s) return '—';
+  const d = new Date(String(s).replace(' ', 'T'));
+  if (isNaN(d)) return s;
+  return d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'})
+       + ' ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+}
+
+// Preload pra contagem de pending na tab mesmo antes de abrir
+loadMonReqs();
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 carregarConta();
-// Aba default: vínculos pra matriz/filial, advogados pra conta advogado
-if (ACCOUNT_TIPO === 'advogado') {
+
+// Hash routing: #monitoramentos | #vinculos | #advogados | etc.
+// Permite linkar direto pra uma aba específica (ex: badge "Gerenciar cota →"
+// no modal de intimações aponta pra /escritorios.php#monitoramentos).
+const _hashTab = (location.hash || '').replace('#', '').trim();
+const _validHashes = ['vinculos','advogados','compartilhamentos','modulos','monitoramentos','solicitar'];
+if (_validHashes.includes(_hashTab) && document.querySelector(`.es-tab[data-tab="${_hashTab}"]`)) {
+  switchTab(_hashTab);
+} else if (ACCOUNT_TIPO === 'advogado') {
   carregarAdvogadosVinculos();
 } else {
   carregarVinculos();
