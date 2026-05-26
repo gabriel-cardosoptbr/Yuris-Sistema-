@@ -17,9 +17,9 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=27">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=44">
   <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=8">
+  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=18">
   <style>
     /* ── Layout base ── */
     *, *::before, *::after { box-sizing: border-box; }
@@ -1090,6 +1090,407 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
       .chat-content.mobile-open { display: flex; }
       .chat-panel { flex-direction: column; }
     }
+
+    /* ═════════════════════════════════════════════════════════════════════
+       AUDITORIA 2026-05-24 — novos componentes:
+       reply bar, file preview rico, msg actions menu, reactions, group members,
+       separador de dia, quote em bubble, msg apagada, infinite scroll loader
+       ═════════════════════════════════════════════════════════════════════ */
+
+    /* — Reply bar (P0-J) — */
+    .chat-reply-bar {
+      display:none; align-items:center; gap:10px;
+      padding:8px 12px; margin-bottom:8px;
+      background: rgba(37,99,235,.10);
+      border: 1px solid rgba(37,99,235,.25);
+      border-left: 3px solid #2563eb;
+      border-radius:8px;
+    }
+    .chat-reply-bar-icon { color:#2563eb; display:flex; flex-shrink:0; }
+    .chat-reply-bar-icon svg { width:16px; height:16px; }
+    .chat-reply-bar-content { flex:1; min-width:0; }
+    .chat-reply-bar-label { font-size:.68rem; font-weight:700; color:#2563eb; text-transform:uppercase; letter-spacing:.04em; }
+    .chat-reply-bar-text { font-size:.82rem; color:#D8E4F0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .chat-reply-bar-cancel {
+      background:transparent; border:none; cursor:pointer; color:#6B7887;
+      display:flex; flex-shrink:0; padding:2px;
+    }
+    .chat-reply-bar-cancel:hover { color:#B06070; }
+    .chat-reply-bar-cancel svg { width:14px; height:14px; }
+
+    /* — File preview rico (P0-E) — */
+    .chat-file-preview {
+      display:none; align-items:center; gap:10px;
+      padding:8px 10px; margin-bottom:8px;
+      background: rgba(37,99,235,.12);
+      border:1px solid rgba(96,165,250,.25);
+      border-radius:10px;
+    }
+    .chat-file-preview.visible { display:flex; }
+    .chat-file-thumb {
+      width:42px; height:42px; flex-shrink:0; border-radius:6px;
+      background: rgba(160,180,210,.10);
+      display:flex; align-items:center; justify-content:center;
+      color:#7EB8F6; overflow:hidden;
+    }
+    .chat-file-thumb.image { background:#000; }
+    .chat-file-thumb svg { width:20px; height:20px; }
+    .chat-file-thumb img { width:100%; height:100%; object-fit:cover; }
+    .chat-file-info { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+    .chat-file-preview-name {
+      font-size:.83rem; font-weight:600; color:#D8E4F0;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .chat-file-preview-size { font-size:.71rem; color:#7A8898; }
+    .chat-file-remove {
+      background: rgba(220,38,38,.18); border:1px solid rgba(220,38,38,.30);
+      color:#fca5a5; border-radius:6px; padding:4px 6px;
+      cursor:pointer; display:flex; align-items:center;
+    }
+    .chat-file-remove:hover { background: rgba(220,38,38,.32); }
+
+    /* — Msg actions menu (P1-K) — */
+    .msg-menu-btn {
+      position:absolute; top:6px; right:6px;
+      background: rgba(0,0,0,.18); border:none;
+      width:22px; height:22px; border-radius:50%; cursor:pointer;
+      display:none; align-items:center; justify-content:center;
+      color:#A8BDD4;
+    }
+    .msg-row:hover .msg-menu-btn { display:flex; }
+    .msg-menu-btn:hover { background: rgba(0,0,0,.32); color:#fff; }
+    .msg-menu-btn svg { width:14px; height:14px; }
+    .msg-bubble { position:relative; padding-right:28px; } /* reserva espaço pro botão */
+
+    .msg-actions-menu {
+      background: linear-gradient(165deg, #0F2540, #0A1828);
+      border:1px solid rgba(160,180,210,.18);
+      border-radius:10px; padding:6px;
+      box-shadow:0 12px 32px rgba(0,0,0,.5);
+      min-width:200px; max-width:240px;
+      display:flex; flex-direction:column; gap:2px;
+    }
+    .msg-actions-menu button {
+      display:flex; align-items:center; gap:8px; padding:8px 10px;
+      background:transparent; border:none; cursor:pointer;
+      color:#D8E4F0; font-size:.83rem; font-family:inherit;
+      border-radius:6px; text-align:left; transition:background .12s;
+    }
+    .msg-actions-menu button:hover { background: rgba(37,99,235,.18); }
+    .msg-actions-menu button.danger { color:#fca5a5; }
+    .msg-actions-menu button.danger:hover { background: rgba(220,38,38,.18); }
+    .msg-actions-menu button svg { width:14px; height:14px; flex-shrink:0; }
+    .msg-actions-reactions {
+      display:flex; gap:4px; padding:4px 6px;
+      border-top:1px solid rgba(160,180,210,.10);
+      border-bottom:1px solid rgba(160,180,210,.10);
+      margin:4px 0;
+    }
+    .msg-act-react {
+      background:transparent !important; border:none !important;
+      padding:6px !important; cursor:pointer; font-size:1.1rem !important;
+      border-radius:6px !important; transition:transform .12s, background .12s !important;
+    }
+    .msg-act-react:hover { background: rgba(255,255,255,.10) !important; transform:scale(1.25); }
+
+    /* — Reactions pílulas (P2-M) — */
+    .msg-reactions {
+      display:flex; flex-wrap:wrap; gap:4px;
+      margin-top:4px; margin-left:8px;
+    }
+    .msg-row.outbound .msg-reactions { justify-content:flex-end; margin-right:8px; margin-left:0; }
+    .msg-reaction-pill {
+      display:inline-flex; align-items:center; gap:3px;
+      padding:2px 7px; border-radius:14px;
+      background: rgba(15,30,55,.85);
+      border:1px solid rgba(160,180,210,.20);
+      font-size:.78rem; cursor:pointer;
+      transition: all .12s;
+    }
+    .msg-reaction-pill:hover { background: rgba(37,99,235,.25); transform: translateY(-1px); }
+    .msg-reaction-pill.me {
+      background: rgba(37,99,235,.30);
+      border-color: rgba(96,165,250,.45);
+    }
+    .msg-reaction-pill .cnt { font-size:.7rem; color:#A8BDD4; font-weight:600; }
+
+    /* — Separador de dia (P0-B) — */
+    .msg-date-sep {
+      align-self:center; margin:14px auto;
+      padding:4px 14px; border-radius:14px;
+      background: rgba(8,15,26,.65); border:1px solid rgba(160,180,210,.12);
+      color:#A8BDD4; font-size:.72rem; font-weight:600;
+      text-transform: lowercase; letter-spacing:.02em;
+    }
+
+    /* — Quote (mensagem citada) na bubble (P0-J) — */
+    .msg-quoted {
+      display:flex; align-items:stretch; gap:8px;
+      margin:0 0 6px;
+      padding:6px 8px;
+      background: rgba(255,255,255,.05);
+      border-radius:6px; cursor:pointer;
+      transition:background .12s;
+    }
+    .msg-quoted:hover { background: rgba(255,255,255,.10); }
+    .msg-quoted-bar { width:3px; flex-shrink:0; background:#2563eb; border-radius:2px; }
+    .msg-quoted-text { font-size:.76rem; color:#A8BDD4; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+    /* — Msg apagada (P2-N) — */
+    .msg-deleted {
+      display:inline-flex; align-items:center;
+      color:#6B7887; font-style:italic; font-size:.82rem;
+    }
+
+    /* — Infinite scroll loader (P0-A) — */
+    .chat-older-loader, .chat-history-end, .chat-empty-msgs {
+      text-align:center; padding:10px; font-size:.78rem;
+      color:#6B7887; font-style:italic;
+    }
+    .chat-empty-msgs.error { color:#B06070; padding:16px; }
+    .chat-history-end {
+      border-top:1px dashed rgba(160,180,210,.15);
+      margin-top:8px; padding-top:14px;
+    }
+
+    /* — Highlight pulsa quando navega via quote (P0-J) — */
+    @keyframes highlight-flash-anim {
+      0%   { background: rgba(37,99,235,.30); }
+      100% { background: transparent; }
+    }
+    .msg-row.highlight-flash { animation: highlight-flash-anim 1.5s ease-out; border-radius:8px; }
+
+    /* — Group members modal list (P1-I) — */
+    .gm-list {
+      display:flex; flex-direction:column; gap:6px;
+      max-height:60vh; overflow-y:auto;
+    }
+    .gm-row {
+      display:flex; align-items:center; gap:10px;
+      padding:9px 10px; border-radius:8px;
+      background: rgba(8,18,32,.65);
+      border:1px solid rgba(160,180,210,.10);
+    }
+    .gm-row:hover { background: rgba(26,58,92,.30); }
+    .gm-avatar {
+      width:36px; height:36px; flex-shrink:0; border-radius:50%;
+      background: linear-gradient(135deg, #1A3A5C, #244E7A);
+      display:flex; align-items:center; justify-content:center;
+      color:#C8D4E0; font-weight:700; font-size:.78rem;
+    }
+    .gm-info { flex:1; min-width:0; }
+    .gm-name { font-size:.85rem; font-weight:600; color:#D8E4F0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .gm-phone { font-size:.74rem; color:#7A8898; }
+    .gm-role {
+      font-size:.65rem; font-weight:700; padding:2px 7px; border-radius:8px;
+      text-transform:uppercase; letter-spacing:.04em; flex-shrink:0;
+    }
+    .gm-admin      { background: rgba(37,99,235,.25); color:#7EB8F6; border:1px solid rgba(96,165,250,.30); }
+    .gm-superadmin { background: rgba(245,158,11,.20); color:#fbbf24; border:1px solid rgba(245,158,11,.30); }
+    .gm-empty { text-align:center; padding:20px; color:#7A8898; font-size:.82rem; font-style:italic; }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       TEMA CLARO — Patches para Chat WhatsApp
+       Tudo era dark hardcoded; mapeado via auditoria (38 itens).
+       Estratégia: sobrescrever bg (resetar gradient com 'background:' shorthand
+       quando container tem linear-gradient), borders e cores de texto pra
+       paleta navy/cinza-azulado da paleta clara do sistema.
+       ═══════════════════════════════════════════════════════════════════════ */
+
+    /* 1) KPIs do topo (CONVERSAS / NÃO LIDAS / CONEXÃO / NÚMERO) */
+    html[data-theme="light"] .chat-kpi {
+      background: #FFFFFF !important;
+      border: 1px solid #E2E8F0 !important;
+      box-shadow: 0 2px 8px rgba(15,31,54,0.04) !important;
+    }
+    html[data-theme="light"] .chat-kpi-icon {
+      background: #EFF6FF !important;
+      color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] .chat-kpi-label { color: #5A6B7E !important; }
+    html[data-theme="light"] .chat-kpi-val   { color: #0F1F36 !important; }
+
+    /* 2) Painel principal + sidebar */
+    html[data-theme="light"] .chat-panel {
+      background: #FFFFFF !important;
+      border: 1px solid #E2E8F0 !important;
+      box-shadow: 0 2px 12px rgba(15,31,54,0.05) !important;
+    }
+    html[data-theme="light"] .chat-sidebar {
+      background: #F8FAFC !important;
+      border-right: 1px solid #E2E8F0 !important;
+    }
+    html[data-theme="light"] .chat-sidebar-header {
+      background: #FFFFFF !important;
+      border-bottom: 1px solid #E2E8F0 !important;
+    }
+    html[data-theme="light"] .chat-sidebar-title h2 { color: #0F1F36 !important; }
+
+    /* 3) Busca + filtros */
+    html[data-theme="light"] .chat-search input {
+      background: #FFFFFF !important;
+      border: 1px solid #CBD5E1 !important;
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .chat-search input::placeholder { color: #94A3B8 !important; }
+    html[data-theme="light"] .chat-search-icon { color: #94A3B8 !important; }
+    html[data-theme="light"] .chat-filter-btn {
+      color: #5A6B7E !important;
+      background: transparent !important;
+    }
+    html[data-theme="light"] .chat-filter-btn:hover {
+      color: #1E4A8A !important;
+      background: #F1F5F9 !important;
+    }
+    html[data-theme="light"] .chat-filter-btn.active {
+      background: #EFF6FF !important;
+      color: #1D4ED8 !important;
+      border-color: #BFDBFE !important;
+    }
+    /* Dropdowns de setor/responsável */
+    html[data-theme="light"] .chat-sector-dd {
+      background: #FFFFFF !important;
+      border: 1px solid #E2E8F0 !important;
+      box-shadow: 0 8px 24px rgba(15,31,54,0.12) !important;
+    }
+    html[data-theme="light"] .chat-sector-dd-item {
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .chat-sector-dd-item:hover {
+      background: #EFF6FF !important;
+      color: #1D4ED8 !important;
+    }
+
+    /* 4) Lista de conversas */
+    html[data-theme="light"] .chat-item {
+      border-bottom: 1px solid #F1F5F9 !important;
+    }
+    html[data-theme="light"] .chat-item:hover { background: #EFF6FF !important; }
+    html[data-theme="light"] .chat-item.active {
+      background: #DBEAFE !important;
+      border-left: 3px solid #2563EB !important;
+    }
+    html[data-theme="light"] .chat-item-name    { color: #0F1F36 !important; }
+    html[data-theme="light"] .chat-item-time    { color: #94A3B8 !important; }
+    html[data-theme="light"] .chat-item-preview { color: #5A6B7E !important; }
+    html[data-theme="light"] .chat-unread-badge {
+      background: #2563EB !important;
+      color: #FFFFFF !important;
+    }
+
+    /* 5) Conteúdo direita (lista vazia ou conversa aberta) */
+    html[data-theme="light"] .chat-content {
+      background: #F8FAFC !important;
+    }
+    html[data-theme="light"] .chat-content-header {
+      background: #FFFFFF !important;
+      border-bottom: 1px solid #E2E8F0 !important;
+    }
+    html[data-theme="light"] .chat-contact-name { color: #0F1F36 !important; }
+    html[data-theme="light"] .chat-icon-btn {
+      background: #FFFFFF !important;
+      border: 1px solid #BFDBFE !important;
+      color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] .chat-icon-btn:hover { background: #EFF6FF !important; }
+    /* Menu "Mais opções" (⋮) */
+    html[data-theme="light"] .chat-more-dd {
+      background: #FFFFFF !important;
+      border: 1px solid #E2E8F0 !important;
+      box-shadow: 0 8px 24px rgba(15,31,54,0.12) !important;
+    }
+    html[data-theme="light"] .chat-more-item { color: #0F1F36 !important; }
+    html[data-theme="light"] .chat-more-item:hover { background: #EFF6FF !important; color: #1D4ED8 !important; }
+
+    /* 6) Mensagens — balões enviadas/recebidas */
+    html[data-theme="light"] .chat-messages { background: #F8FAFC !important; }
+    html[data-theme="light"] .msg-row.inbound .msg-bubble {
+      background: #FFFFFF !important;
+      border: 1px solid #E2E8F0 !important;
+      color: #0F1F36 !important;
+      box-shadow: 0 1px 3px rgba(15,31,54,0.06) !important;
+    }
+    html[data-theme="light"] .msg-row.outbound .msg-bubble {
+      background: linear-gradient(135deg, #DBEAFE, #BFDBFE) !important;
+      border: 1px solid #93C5FD !important;
+      color: #0F1F36 !important;
+      box-shadow: 0 1px 3px rgba(37,99,235,0.10) !important;
+    }
+    html[data-theme="light"] .msg-bubble .msg-time { color: #5A6B7E !important; }
+    html[data-theme="light"] .msg-bubble .msg-author { color: #1D4ED8 !important; }
+
+    /* 7) Input de digitar + botão enviar */
+    html[data-theme="light"] .chat-input-area {
+      background: #FFFFFF !important;
+      border-top: 1px solid #E2E8F0 !important;
+    }
+    html[data-theme="light"] #chatInput {
+      background: #F8FAFC !important;
+      border: 1px solid #CBD5E1 !important;
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] #chatInput::placeholder { color: #94A3B8 !important; }
+    html[data-theme="light"] .chat-send-btn {
+      background: linear-gradient(135deg, #2563EB, #1D4ED8) !important;
+      color: #FFFFFF !important;
+    }
+    html[data-theme="light"] .chat-send-btn:hover { filter: brightness(1.08); }
+
+    /* 8) Empty state ("Selecione uma conversa") + tela de conexão */
+    html[data-theme="light"] .chat-empty-state { color: #5A6B7E !important; }
+    html[data-theme="light"] #connectionScreen { color: #5A6B7E !important; }
+    html[data-theme="light"] .conn-status-badge {
+      background: #D1FAE5 !important;
+      color: #047857 !important;
+      border: 1px solid #6EE7B7 !important;
+    }
+
+    /* 9) Modais (Configurações Evolution API + Contatos + Membros) */
+    html[data-theme="light"] .modal-overlay {
+      background: rgba(15,31,54,0.45) !important;
+    }
+    html[data-theme="light"] .modal-box {
+      background: #FFFFFF !important;
+      border: 1px solid #E2E8F0 !important;
+      box-shadow: 0 24px 60px rgba(15,31,54,0.18) !important;
+    }
+    html[data-theme="light"] .modal-header {
+      background: #F8FAFC !important;
+      border-bottom: 1px solid #E2E8F0 !important;
+    }
+    html[data-theme="light"] .modal-header h3 { color: #0F1F36 !important; }
+    html[data-theme="light"] .modal-close {
+      color: #5A6B7E !important;
+    }
+    html[data-theme="light"] .modal-close:hover { color: #B91C1C !important; }
+    html[data-theme="light"] .modal-body  { background: #FFFFFF !important; color: #0F1F36 !important; }
+    html[data-theme="light"] .modal-body p,
+    html[data-theme="light"] .modal-body small { color: #5A6B7E !important; }
+    html[data-theme="light"] .form-label  { color: #475569 !important; }
+    html[data-theme="light"] .form-input {
+      background-color: #FFFFFF !important;
+      border: 1px solid #CBD5E1 !important;
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .form-input::placeholder { color: #94A3B8 !important; }
+    html[data-theme="light"] .form-input:focus {
+      border-color: #2563EB !important;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12) !important;
+      outline: none;
+    }
+    html[data-theme="light"] .modal-footer {
+      background: #F8FAFC !important;
+      border-top: 1px solid #E2E8F0 !important;
+    }
+    /* Botão "Aplicar Webhook na Instância" e similares de outline */
+    html[data-theme="light"] .modal-body button:not(.btn-primary):not(.btn-danger) {
+      background: #FFFFFF !important;
+      border: 1px solid #BFDBFE !important;
+      color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] .modal-body button:not(.btn-primary):not(.btn-danger):hover {
+      background: #EFF6FF !important;
+    }
   </style>
 </head>
 <body>
@@ -1217,6 +1618,16 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
             </button>
             <div id="sectorFilterDd" class="chat-sector-dd"></div>
           </div>
+
+          <!-- Filtro por responsável (mesmo padrão do setor) -->
+          <div class="chat-sector-filter">
+            <button id="userFilterBtn" class="chat-sector-btn" onclick="ChatApp.toggleUserFilterDropdown(event)" title="Filtrar por responsável">
+              <span class="csf-dot" id="userFilterDot"></span>
+              <span class="csf-label" id="userFilterLabel">Todos os responsáveis</span>
+              <svg class="csf-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:10px;height:10px"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div id="userFilterDd" class="chat-sector-dd"></div>
+          </div>
         </div>
         <div class="chat-list" id="chatList">
           <div class="chat-list-empty" id="chatListEmpty">
@@ -1291,6 +1702,10 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
               <button class="chat-icon-btn" onclick="ChatApp.refreshMessages()" title="Atualizar">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
               </button>
+              <!-- P1-I (auditoria 2026-05-24): botão de membros do grupo (só aparece em chat de grupo) -->
+              <button class="chat-icon-btn" id="chatMembersBtn" onclick="ChatApp.openGroupMembers()" title="Membros do grupo" style="display:none">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </button>
 
               <!-- ── Mais opções ── -->
               <div class="chat-more-wrap">
@@ -1319,11 +1734,28 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
 
           <!-- Input area -->
           <div class="chat-input-area" id="chatInputArea">
-            <!-- Preview de arquivo selecionado -->
+            <!-- Preview de arquivo selecionado + Reply bar -->
             <div style="flex:1;min-width:0">
+              <!-- P0-J (auditoria 2026-05-24): Reply bar — aparece ao responder mensagem -->
+              <div class="chat-reply-bar" id="chatReplyBar" style="display:none">
+                <div class="chat-reply-bar-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+                </div>
+                <div class="chat-reply-bar-content">
+                  <div class="chat-reply-bar-label">Respondendo a</div>
+                  <div class="chat-reply-bar-text" id="chatReplyText"></div>
+                </div>
+                <button class="chat-reply-bar-cancel" onclick="ChatApp.cancelReply()" title="Cancelar resposta">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+              <!-- P0-E (auditoria 2026-05-24): preview de arquivo com thumbnail e tamanho -->
               <div class="chat-file-preview" id="filePreview">
-                <svg style="width:16px;height:16px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                <span class="chat-file-preview-name" id="filePreviewName"></span>
+                <div class="chat-file-thumb" id="filePreviewThumb"></div>
+                <div class="chat-file-info">
+                  <span class="chat-file-preview-name" id="filePreviewName"></span>
+                  <span class="chat-file-preview-size" id="filePreviewSize"></span>
+                </div>
                 <button class="chat-file-remove" onclick="ChatApp.clearFile()">
                   <svg style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
@@ -1527,6 +1959,24 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
   </div>
 </div>
 
+<!-- P1-I (auditoria 2026-05-24): Modal de Membros do Grupo -->
+<div class="modal-overlay" id="groupMembersModal" onclick="if(event.target===this)ChatApp.closeGroupMembers()">
+  <div class="modal-box" style="max-width:460px">
+    <div class="modal-header">
+      <h3>Membros do grupo <span id="groupMembersCount" style="font-size:.78rem;font-weight:500;color:#7A8898;margin-left:6px"></span></h3>
+      <button class="modal-close" onclick="ChatApp.closeGroupMembers()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div id="groupMembersList" class="gm-list"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="conn-btn-secondary" onclick="ChatApp.closeGroupMembers()">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal de Contatos -->
 <div class="modal-overlay" id="contactsModal" onclick="if(event.target===this)ChatApp.closeContacts()">
   <div class="modal-box" style="max-width:520px">
@@ -1555,16 +2005,20 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
 const CSRF          = <?= json_encode($csrf) ?>;
 const AUTO_OPEN_JID = <?= json_encode($auto_open_jid) ?>;
 const API  = {
-  config   : '/sistema_vendas/public/api/whatsapp/config.php',
-  instances: '/sistema_vendas/public/api/whatsapp/instances.php',
-  chats    : '/sistema_vendas/public/api/whatsapp/chats.php',
-  messages : '/sistema_vendas/public/api/whatsapp/messages.php',
-  send     : '/sistema_vendas/public/api/whatsapp/send.php',
-  upload   : '/sistema_vendas/public/api/whatsapp/media_upload.php',
-  sync     : '/sistema_vendas/public/api/whatsapp/sync.php',
-  refresh  : '/sistema_vendas/public/api/whatsapp/refresh_chat.php',
-  contacts : '/sistema_vendas/public/api/whatsapp/contacts.php',
-  discover : '/sistema_vendas/public/api/whatsapp/discover.php',
+  config        : '/sistema_vendas/public/api/whatsapp/config.php',
+  instances     : '/sistema_vendas/public/api/whatsapp/instances.php',
+  chats         : '/sistema_vendas/public/api/whatsapp/chats.php',
+  messages      : '/sistema_vendas/public/api/whatsapp/messages.php',
+  send          : '/sistema_vendas/public/api/whatsapp/send.php',
+  upload        : '/sistema_vendas/public/api/whatsapp/media_upload.php',
+  sync          : '/sistema_vendas/public/api/whatsapp/sync.php',
+  refresh       : '/sistema_vendas/public/api/whatsapp/refresh_chat.php',
+  contacts      : '/sistema_vendas/public/api/whatsapp/contacts.php',
+  discover      : '/sistema_vendas/public/api/whatsapp/discover.php',
+  // Auditoria 2026-05-24 — novos endpoints
+  groupMembers  : '/sistema_vendas/public/api/whatsapp/group_members.php',
+  reaction      : '/sistema_vendas/public/api/whatsapp/reaction.php',
+  messageAction : '/sistema_vendas/public/api/whatsapp/message_action.php',
 };
 </script>
 <!-- ── Lightbox de Imagem ── -->
@@ -1667,7 +2121,7 @@ const API  = {
 #imgLightboxDownload:hover { background: rgba(37,99,235,.3); border-color: rgba(96,165,250,.5); }
 </style>
 
-<script src="/sistema_vendas/public/assets/chat.js?v=38"></script>
+<script src="/sistema_vendas/public/assets/chat.js?v=40"></script>
 <script>
 // Lightbox init
 (function(){
