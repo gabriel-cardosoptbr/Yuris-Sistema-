@@ -62,10 +62,14 @@ try {
         //   ?team_id=0  → conversas sem setor
         //   (ausente)   → todas as conversas
         $teamFilter = isset($_GET['team_id']) ? (int)$_GET['team_id'] : null;
+        // Filtro por responsável (linked_user_id):
+        //   ?user_id=N  → conversas atribuídas ao user N
+        //   ?user_id=0  → conversas sem responsável
+        $userFilter = isset($_GET['user_id']) ? (int)$_GET['user_id'] : null;
 
         echo json_encode([
             'ok'          => true,
-            'chats'       => $msgModel->getChatList($instanceId, $search, $teamFilter),
+            'chats'       => $msgModel->getChatList($instanceId, $search, $teamFilter, $userFilter),
             'total_unread'=> $msgModel->getTotalUnread($instanceId),
         ]);
         exit;

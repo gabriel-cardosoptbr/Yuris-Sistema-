@@ -14,6 +14,8 @@ const ChatApp = (() => {
     teamFilter   : null,      // null=todos | 0=sem setor | N=setor específico
     teamFilterName: 'Todos os setores',
     teamFilterCor : null,
+    userFilter   : null,      // null=todos | 0=sem responsável | N=user específico
+    userFilterName: 'Todos os responsáveis',
     lastMsgId    : 0,
     pollingTimer : null,
     statusTimer  : null,
@@ -379,6 +381,7 @@ const ChatApp = (() => {
     try {
       const params = new URLSearchParams({ search: state.searchTerm });
       if (state.teamFilter !== null) params.set('team_id', String(state.teamFilter));
+      if (state.userFilter !== null) params.set('user_id', String(state.userFilter));
       const r = await apiFetch(API.chats + '?' + params);
       state.chats = r.chats || [];
       renderChatList();
@@ -984,6 +987,88 @@ const ChatApp = (() => {
                </div>`;
     } else {
       html += `<div class="chat-sector-dd-item" style="color:#4A5568;cursor:default">Nenhum setor cadastrado</div>`;
+    }
+
+    dd.innerHTML = html;
+    dd.style.display = 'block';
+
+    setTimeout(() => {
+      document.addEventListener('click', function _close() {
+        if (dd) dd.style.display = 'none';
+        document.removeEventListener('click', _close);
+      }, { once: true });
+    }, 0);
+  }
+
+  // ── Filtro por responsável (mesmo padrão do setor) ───────────
+  // Lazy: carrega lista de users só na primeira abertura do dropdown.
+  async function _loadUsersForFilter() {
+    if (_linkData.users.length) return;
+    try {
+      const r = await fetch('/sistema_vendas/public/api/users.php', { credentials: 'same-origin' }).then(r => r.json());
+      _linkData.users = Array.isArray(r) ? r : (r.data || []);
+    } catch(e) { _linkData.users = []; }
+  }
+
+  function setUserFilter(id, nome) {
+    state.userFilter     = id !== undefined ? id : null;
+    state.userFilterName = nome || 'Todos os responsáveis';
+
+    // Atualiza o label do botão
+    const lbl = qs('#userFilterLabel');
+    const dot = qs('#userFilterDot');
+    if (lbl) lbl.textContent = state.userFilterName;
+    if (dot) dot.style.background = id ? '#2563EB' : '#4A5568';
+
+    // Marca botão como active se tem filtro selecionado
+    const btn = qs('#userFilterBtn');
+    if (btn) btn.classList.toggle('active', id !== null);
+
+    // Fecha dropdown
+    const dd = qs('#userFilterDd');
+    if (dd) dd.style.display = 'none';
+
+    loadChats();
+  }
+
+  // Abre/fecha dropdown de responsáveis para filtro da sidebar
+  async function toggleUserFilterDropdown(e) {
+    if (e) e.stopPropagation();
+    const dd = qs('#userFilterDd');
+    if (!dd) return;
+
+    if (dd.style.display !== 'none') {
+      dd.style.display = 'none';
+      return;
+    }
+
+    await _loadUsersForFilter();
+
+    const currentId = state.userFilter !== null ? String(state.userFilter) : null;
+
+    let html = `<div class="chat-sector-dd-item${currentId === null ? ' active' : ''}"
+                     onclick="ChatApp.setUserFilter(null)">
+                  <span class="csf-dd-dot" style="background:#4A5568"></span>
+                  Todos os responsáveis
+                </div>`;
+
+    if (_linkData.users.length) {
+      html += `<hr class="chat-sector-dd-divider">`;
+      html += _linkData.users.map(u => `
+        <div class="chat-sector-dd-item${currentId === String(u.id) ? ' active' : ''}"
+             onclick="ChatApp.setUserFilter(${u.id},'${esc(u.nome || u.email || ('Usuário #' + u.id))}')">
+          <span class="csf-dd-dot" style="background:#2563EB"></span>
+          ${esc(u.nome || u.email || ('Usuário #' + u.id))}
+        </div>`).join('');
+
+      html += `<hr class="chat-sector-dd-divider">`;
+      html += `<div class="chat-sector-dd-item${currentId === '0' ? ' active' : ''}"
+                    onclick="ChatApp.setUserFilter(0,'Sem responsável')">
+                 <span class="csf-dd-dot" style="background:#6B7887"></span>
+                 Sem responsável atribuído
+               </div>`;
+    } else {
+      html += `<div class="chat-sector-dd-item" style="color:#4A5568;cursor:default">Nenhum usuário cadastrado</div>`;
     }
 
     dd.innerHTML = html;
@@ -1662,7 +1747,8 @@ const ChatApp = (() => {
     send, sendMedia, onKeyDown, autoResize,
     onFileSelected, clearFile,
     toggleAudio, stopRecording, onAudioFileSelected,
-    searchChats, setFilter, setTeamFilter, toggleTeamFilterDropdown, togglePin,
+    searchChats, setFilter, setTeamFilter, toggleTeamFilterDropdown,
+    setUserFilter, toggleUserFilterDropdown, togglePin,
     toggleMoreMenu, closeMoreMenu, confirmDeleteChat,
     openSettings, closeSettings, saveSettings, applyWebhook,
     syncChats,

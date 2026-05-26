@@ -184,7 +184,7 @@ class WhatsAppMessage
      * @param string      $search      Busca por nome/telefone
      * @param int|null    $teamId      Filtra pelo setor (NULL = todos; 0 = sem setor)
      */
-    public function getChatList(int $instanceId, string $search = '', ?int $teamId = null): array
+    public function getChatList(int $instanceId, string $search = '', ?int $teamId = null, ?int $userId = null): array
     {
         // JOIN com teams para trazer nome e cor do setor junto com cada chat
         $sql = 'SELECT c.*,
@@ -213,6 +213,19 @@ class WhatsAppMessage
             } else {
                 $sql .= ' AND c.team_id = ?';
                 $params[] = $teamId;
+            }
+        }
+
+        // Filtro por responsável (usuário vinculado):
+        //   user_id = N  → somente conversas atribuídas a esse user
+        //   user_id = 0  → somente conversas SEM responsável
+        //   null         → todos (sem filtro)
+        if ($userId !== null) {
+            if ($userId === 0) {
+                $sql .= ' AND c.linked_user_id IS NULL';
+            } else {
+                $sql .= ' AND c.linked_user_id = ?';
+                $params[] = $userId;
             }
         }
 
