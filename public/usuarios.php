@@ -399,6 +399,30 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
     }
     .tm-empty { text-align: center; padding: 20px; color: var(--muted); font-size: .8rem; }
 
+    /* Box do color picker (Cor de identificação) — antes era inline style */
+    .team-color-box {
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px;
+      background: rgba(5,18,39,.9);
+      border: 1px solid rgba(96,165,250,.25);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border-color .18s;
+    }
+    .team-color-box:hover { border-color: rgba(96,165,250,.4); }
+    .team-color-input {
+      width: 30px; height: 26px; padding: 1px;
+      border: 1px solid rgba(96,165,250,.2); border-radius: 4px;
+      background: transparent; cursor: pointer; flex-shrink: 0;
+    }
+    .team-color-label {
+      font-size: .83rem; color: #d6eaff;
+      font-family: monospace; letter-spacing: .04em;
+    }
+    .team-color-hint {
+      margin-left: auto; font-size: .75rem; color: var(--muted);
+    }
+
     /* ═════════════════════════════════════════════════════════════════════
        TEMA CLARO — Gestão de Usuários (correção 2026-05-26)
        Página não tinha NENHUM override. Tudo aparecia escuro em fundo claro.
@@ -636,13 +660,51 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
     }
     html[data-theme="light"] .perm-item label { color: #1E4A8A !important; }
 
-    /* Team member picker */
+    /* Team member picker — modal Novo/Editar Setor */
+    html[data-theme="light"] .tm-search {
+      background: #FFFFFF !important;
+      background-color: #FFFFFF !important;
+      border-color: #CBD5E1 !important;
+      color: #0F1F36 !important;
+      -webkit-text-fill-color: #0F1F36 !important;
+      box-shadow: 0 0 0 9999px #FFFFFF inset !important;
+      color-scheme: light;
+    }
+    html[data-theme="light"] .tm-search::placeholder { color: #94A3B8 !important; }
+    html[data-theme="light"] .tm-search:focus { border-color: #2563EB !important; }
+    html[data-theme="light"] .tm-search-icon { color: #94A3B8 !important; opacity: 1 !important; }
+
+    html[data-theme="light"] .tm-member {
+      background: #FFFFFF !important;
+      border-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] .tm-member:hover {
+      background: #F8FAFC !important;
+      border-color: #CBD5E1 !important;
+    }
+    html[data-theme="light"] .tm-member:has(input:checked) {
+      background: #DBEAFE !important;
+      border-color: #2563EB !important;
+    }
     html[data-theme="light"] .tm-avatar {
       background: linear-gradient(135deg, #DBEAFE, #BFDBFE) !important;
       color: #1D4ED8 !important;
       border-color: #BFDBFE !important;
     }
-    html[data-theme="light"] .tm-name { color: #0F1F36 !important; }
+    html[data-theme="light"] .tm-name  { color: #0F1F36 !important; }
+    html[data-theme="light"] .tm-email { color: #64748B !important; }
+    html[data-theme="light"] .tm-chk   { border-color: #CBD5E1 !important; }
+    html[data-theme="light"] .tm-empty { color: #94A3B8 !important; }
+
+    /* Box do color picker (Cor de identificação) */
+    html[data-theme="light"] .team-color-box {
+      background: #FFFFFF !important;
+      border-color: #CBD5E1 !important;
+    }
+    html[data-theme="light"] .team-color-box:hover { border-color: #2563EB !important; }
+    html[data-theme="light"] .team-color-input { border-color: #CBD5E1 !important; }
+    html[data-theme="light"] .team-color-label { color: #0F1F36 !important; }
+    html[data-theme="light"] .team-color-hint  { color: #64748B !important; }
 
     /* Mobile (cards) */
     html[data-theme="light"] .usr-table td::before { color: #64748B !important; }
@@ -992,12 +1054,11 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
             </div>
             <div class="field-group">
               <label class="field-label">Cor de identificação</label>
-              <div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:rgba(5,18,39,.9);border:1px solid rgba(96,165,250,.25);border-radius:8px;transition:border-color .18s" onclick="document.getElementById('teamCor').click()" style="cursor:pointer">
-                <input type="color" id="teamCor" value="#3B82F6"
-                  style="width:30px;height:26px;padding:1px;border:1px solid rgba(96,165,250,.2);border-radius:4px;background:transparent;cursor:pointer;flex-shrink:0"
+              <div class="team-color-box" onclick="document.getElementById('teamCor').click()">
+                <input type="color" id="teamCor" value="#3B82F6" class="team-color-input"
                   oninput="document.getElementById('teamCorLabel').textContent=this.value">
-                <span id="teamCorLabel" style="font-size:.83rem;color:#d6eaff;font-family:monospace;letter-spacing:.04em">#3B82F6</span>
-                <span style="margin-left:auto;font-size:.75rem;color:var(--muted)">Clique para escolher</span>
+                <span id="teamCorLabel" class="team-color-label">#3B82F6</span>
+                <span class="team-color-hint">Clique para escolher</span>
               </div>
             </div>
             <div class="field-group">
