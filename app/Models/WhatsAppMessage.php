@@ -191,6 +191,68 @@ class WhatsAppMessage
         return $rows;
     }
 
+    /**
+     * Busca por texto dentro de uma conversa (LIKE em message_content + caption).
+     * Retorna até $limit matches mais recentes, com os mesmos JOINs do findByJid
+     * (resolução de nome do autor + quoted preview + reactions).
+     */
+    public function searchInChat(int $instanceId, string $remoteJid, string $search, int $limit = 50): array
+    {
+        $like = '%' . $search . '%';
+        $sql = 'SELECT m.id, m.wamid, m.remote_jid, m.participant_jid,
+                       COALESCE(
+                           CASE WHEN m.direction = \'inbound\' AND m.participant_jid IS NOT NULL THEN gm.push_name END,
+                           CASE WHEN m.direction = \'inbound\' AND m.participant_jid IS NOT NULL THEN cp.push_name END,
+                           CASE WHEN m.contact_name REGEXP \'^[0-9]{14,}$\' THEN NULL ELSE m.contact_name END,
+                           c.push_name
+                       ) AS contact_name,
+                       m.message_type, m.message_content, m.caption, m.media_url, m.media_mimetype,
+                       m.media_filename, m.direction, m.status, m.quoted_wamid, m.is_deleted, m.created_at,
+                       q.message_content AS quoted_content,
+                       q.caption         AS quoted_caption,
+                       q.message_type    AS quoted_type,
+                       q.direction       AS quoted_direction,
+                       q.contact_name    AS quoted_sender_raw,
+                       qgm.push_name     AS quoted_sender_member,
+                       qcp.push_name     AS quoted_sender_contact
+                FROM whatsapp_messages m
+                LEFT JOIN whatsapp_group_members gm
+                       ON gm.instance_id = m.instance_id
+                      AND gm.group_jid       COLLATE utf8mb4_unicode_ci = m.remote_jid
+                      AND gm.participant_jid COLLATE utf8mb4_unicode_ci = m.participant_jid
+                LEFT JOIN whatsapp_contacts cp
+                       ON cp.instance_id = m.instance_id
+                      AND cp.remote_jid  = m.participant_jid
+                LEFT JOIN whatsapp_contacts c
+                       ON c.instance_id = m.instance_id
+                      AND m.contact_name REGEXP \'^[0-9]{12,}$\'
+                      AND (c.remote_jid LIKE CONCAT(m.contact_name, \'%@lid\')
+                           OR c.remote_jid LIKE CONCAT(m.contact_name, \'%\'))
+                LEFT JOIN whatsapp_messages q
+                       ON q.instance_id = m.instance_id
+                      AND q.wamid       = m.quoted_wamid
+                LEFT JOIN whatsapp_group_members qgm
+                       ON qgm.instance_id = q.instance_id
+                      AND qgm.group_jid       COLLATE utf8mb4_unicode_ci = q.remote_jid
+                      AND qgm.participant_jid COLLATE utf8mb4_unicode_ci = q.participant_jid
+                LEFT JOIN whatsapp_contacts qcp
+                       ON qcp.instance_id = q.instance_id
+                      AND qcp.remote_jid  = q.participant_jid
+                WHERE m.instance_id = ?
+                  AND m.remote_jid  = ?
+                  AND m.is_deleted  = 0
+                  AND (m.message_content LIKE ? OR m.caption LIKE ?)
+                ORDER BY m.id DESC
+                LIMIT ' . (int)$limit;
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$instanceId, $remoteJid, $like, $like]);
+        $rows = array_reverse($stmt->fetchAll(\PDO::FETCH_ASSOC));
+        $this->hydrateReactions($instanceId, $rows);
+        $this->hydrateQuotedSender($rows);
+        return $rows;
+    }
+
     /** Buscar apenas novas mensagens após um ID.
      *  Mesma resolucao em 4 camadas do findByJid pra coerencia (grupos). */
     public function findAfter(int $instanceId, string $remoteJid, int $afterId): array
@@ -389,15 +451,16 @@ class WhatsAppMessage
      * @param string      $search      Busca por nome/telefone
      * @param int|null    $teamId      Filtra pelo setor (NULL = todos; 0 = sem setor)
      */
-    public function getChatList(int $instanceId, string $search = '', ?int $teamId = null, ?int $userId = null): array
+    public function getChatList(int $instanceId, string $search = '', ?int $teamId = null, ?int $userId = null, bool $archived = false): array
     {
         // JOIN com teams para trazer nome e cor do setor junto com cada chat
+        // archived=true → lista apenas arquivadas; false (default) → só não-arquivadas
         $sql = 'SELECT c.*,
                        t.nome AS team_nome,
                        t.cor  AS team_cor
                 FROM whatsapp_chats c
                 LEFT JOIN teams t ON t.id = c.team_id AND t.deleted_at IS NULL
-                WHERE c.instance_id = ? AND c.is_archived = 0';
+                WHERE c.instance_id = ? AND c.is_archived = ' . ($archived ? '1' : '0');
         $params = [$instanceId];
 
         // Filtro de busca por nome ou telefone
@@ -457,6 +520,26 @@ class WhatsAppMessage
     {
         $stmt = $this->db->prepare(
             'UPDATE whatsapp_chats SET unread_count = 0
+             WHERE instance_id = ? AND remote_jid = ?'
+        );
+        return $stmt->execute([$instanceId, $remoteJid]);
+    }
+
+    /** Marca chat como nao lido (volta unread_count = 1 se estava 0). */
+    public function markChatUnread(int $instanceId, string $remoteJid): bool
+    {
+        $stmt = $this->db->prepare(
+            'UPDATE whatsapp_chats SET unread_count = GREATEST(unread_count, 1)
+             WHERE instance_id = ? AND remote_jid = ?'
+        );
+        return $stmt->execute([$instanceId, $remoteJid]);
+    }
+
+    /** Alterna arquivado/desarquivado. */
+    public function toggleArchive(int $instanceId, string $remoteJid): bool
+    {
+        $stmt = $this->db->prepare(
+            'UPDATE whatsapp_chats SET is_archived = IF(is_archived = 1, 0, 1)
              WHERE instance_id = ? AND remote_jid = ?'
         );
         return $stmt->execute([$instanceId, $remoteJid]);

@@ -193,6 +193,13 @@ try {
     }
 
     // 5. Sincronizar participantes dos grupos (LID → telefone real)
+    // Grava em DUAS tabelas:
+    //   a) whatsapp_contacts   — facilita lookup LID/JID para nome em qualquer contexto
+    //   b) whatsapp_group_members — vincula explicitamente ao grupo + role (admin/member)
+    //
+    // Bug fix 2026-05-25: antes só gravava em whatsapp_contacts e a tabela
+    // whatsapp_group_members ficava vazia → modal de membros usava fallback
+    // frágil pelos last messages do chat (sem role, sem completude).
     foreach (array_keys($groupMap) as $gJid) {
         $gInfo = $evo->fetchGroupInfo($name, $gJid);
         foreach ($gInfo['participants'] ?? [] as $p) {
@@ -201,6 +208,8 @@ try {
             if (!$pLid) continue;
             $phoneNum    = $pPhone ? preg_replace('/[^0-9]/', '', explode('@', $pPhone)[0]) : null;
             $displayName = $phoneNum ? formatBrPhone($phoneNum) : null;
+
+            // a) Mapa global de contatos (necessário pra resolver @menções de LID)
             $pdo->prepare(
                 'INSERT INTO whatsapp_contacts (instance_id, remote_jid, push_name, phone)
                  VALUES (?,?,?,?)
@@ -209,6 +218,23 @@ try {
                    push_name = IF(VALUES(push_name) IS NOT NULL, VALUES(push_name), push_name)'
             )->execute([$instanceId, $pLid, $displayName, $phoneNum]);
             $contacts++;
+
+            // b) Vínculo grupo → membro + role
+            //    Evolution retorna p.admin = 'admin' | 'superadmin' | null (member)
+            $role = match ($p['admin'] ?? null) {
+                'superadmin' => 'superadmin',
+                'admin'      => 'admin',
+                default      => 'member',
+            };
+            $pdo->prepare(
+                'INSERT INTO whatsapp_group_members
+                   (account_id, instance_id, group_jid, participant_jid, push_name, phone, role)
+                 VALUES (?,?,?,?,?,?,?)
+                 ON DUPLICATE KEY UPDATE
+                   push_name = IF(VALUES(push_name) IS NOT NULL, VALUES(push_name), push_name),
+                   phone     = IF(VALUES(phone)     IS NOT NULL, VALUES(phone),     phone),
+                   role      = VALUES(role)'
+            )->execute([$accountId, $instanceId, $gJid, $pLid, $displayName, $phoneNum, $role]);
         }
     }
 

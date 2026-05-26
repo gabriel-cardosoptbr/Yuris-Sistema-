@@ -89,17 +89,34 @@ try {
         $cfg  = $instModel->getSettings($accountId);
         $evo  = new EvolutionApiService($cfg);
         $name = $cfg['evolution_instance'] ?? 'yuris-crm';
-        $evoResult = $evo->sendReaction($name, [
+
+        // Em grupos, a Evolution exige `participant` no key (jid do autor real
+        // da msg sendo reagida). Sem isso, o WhatsApp não encontra a msg alvo
+        // e a reação não aparece no celular. Buscamos no DB.
+        $key = [
             'remoteJid' => $jid,
             'id'        => $targetWamid,
-            'fromMe'    => $fromMe,
-        ], $emoji);
+            'fromMe'    => (bool)$fromMe,
+        ];
+        if (str_ends_with($jid, '@g.us')) {
+            $pdoLk = \App\Models\Database::getConnection();
+            $stLk = $pdoLk->prepare(
+                'SELECT participant_jid FROM whatsapp_messages
+                  WHERE instance_id = ? AND wamid = ? LIMIT 1'
+            );
+            $stLk->execute([$instanceId, $targetWamid]);
+            $partJid = $stLk->fetchColumn();
+            if ($partJid) $key['participant'] = $partJid;
+        }
+
+        $evoResult = $evo->sendReaction($name, $key, $emoji);
         // Log se Evolution retornou erro (ajuda diagnosticar quando reaction nao
         // aparece no WhatsApp real)
         if (($evoResult['_http'] ?? 0) >= 400) {
             error_log(sprintf(
-                '[reaction] Evolution rejeitou: http=%d body=%s',
+                '[reaction] Evolution rejeitou: http=%d key=%s body=%s',
                 $evoResult['_http'] ?? 0,
+                json_encode($key),
                 substr(json_encode($evoResult), 0, 500)
             ));
         }

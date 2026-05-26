@@ -216,6 +216,34 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
     [$msgType, $msgContent, $caption, $mediaUrl, $mimetype, $filename] =
         extractMessageContent($message);
 
+    // ── Reaction recebida via webhook ────────────────────────────────────────
+    // Grava em whatsapp_reactions (UPSERT por reactor) em vez de criar uma
+    // msg ghost. Sem isso o painel não atualizava pílulas quando alguém reagia
+    // pelo celular.
+    if ($msgType === 'reaction') {
+        $rm        = $message['reactionMessage'] ?? [];
+        $tgtKey    = $rm['key'] ?? [];
+        $tgtWamid  = $tgtKey['id'] ?? null;
+        $emoji     = $rm['text'] ?? '';
+        $reactorJid = $participantJid ?: ($fromMe ? 'me' : $remoteJid);
+
+        if ($tgtWamid !== null) {
+            $model->upsertReaction([
+                'account_id'   => $accountId,
+                'instance_id'  => $instanceId,
+                'target_wamid' => $tgtWamid,
+                'reactor_jid'  => $fromMe ? 'me' : $reactorJid,
+                'reactor_name' => $pushName,
+                'emoji'        => $emoji,
+                'is_from_me'   => $fromMe ? 1 : 0,
+            ]);
+        }
+        return; // não salva como mensagem
+    }
+
+    // ── Quoted (reply) — extrai stanzaId da msg citada pra exibir preview ───
+    $quotedWamid = extractQuotedWamid($message);
+
     // Para mídias: tenta baixar base64 completo via Evolution (mídia ainda está em cache local)
     $mediaBase64 = null;
     $isMediaType = in_array($msgType, ['image', 'video', 'audio', 'sticker', 'document']);
@@ -264,6 +292,7 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
         'media_base64'    => $mediaBase64,
         'direction'       => $fromMe ? 'outbound' : 'inbound',
         'status'          => $fromMe ? 'sent' : 'delivered',
+        'quoted_wamid'    => $quotedWamid,  // reply ao qual a msg responde (pode ser null)
         'raw_payload'     => json_encode($msg),
         'created_at'      => $createdAt,
     ]);
@@ -330,10 +359,48 @@ function extractMessageContent(array $message): array
     if (!empty($message['stickerMessage'])) {
         return ['sticker', null, null, $message['stickerMessage']['url'] ?? null, 'image/webp', null];
     }
-    // reaction
+    // reaction — sinalizador; handler trata separado (grava em whatsapp_reactions)
     if (!empty($message['reactionMessage'])) {
         return ['reaction', $message['reactionMessage']['text'] ?? '👍', null, null, null, null];
     }
+    // location → mostra como msg de texto com label amigavel (antes virava "nao suportada")
+    if (!empty($message['locationMessage'])) {
+        $loc = $message['locationMessage'];
+        $lat = $loc['degreesLatitude']  ?? '';
+        $lng = $loc['degreesLongitude'] ?? '';
+        $name = $loc['name'] ?? '';
+        $text = '📍 Localização' . ($name ? ': ' . $name : '') . ($lat && $lng ? " ($lat, $lng)" : '');
+        return ['text', $text, null, null, null, null];
+    }
+    // contato compartilhado
+    if (!empty($message['contactMessage'])) {
+        $name = $message['contactMessage']['displayName'] ?? 'Contato';
+        return ['text', '👤 Contato compartilhado: ' . $name, null, null, null, null];
+    }
+    // enquete (pollCreationMessage)
+    if (!empty($message['pollCreationMessage'])) {
+        $title = $message['pollCreationMessage']['name'] ?? 'Enquete';
+        return ['text', '📊 ' . $title, null, null, null, null];
+    }
 
     return ['text', null, null, null, null, null];
+}
+
+/**
+ * Extrai o stanzaId da mensagem citada (reply).
+ * Localizado em vários paths dependendo do tipo da msg que carrega o reply.
+ */
+function extractQuotedWamid(array $message): ?string
+{
+    // Reply em texto simples
+    if (!empty($message['extendedTextMessage']['contextInfo']['stanzaId'])) {
+        return $message['extendedTextMessage']['contextInfo']['stanzaId'];
+    }
+    // Reply em imagem/video/audio/sticker (todos têm contextInfo dentro do sub)
+    foreach (['imageMessage', 'videoMessage', 'audioMessage', 'stickerMessage', 'documentMessage'] as $sub) {
+        if (!empty($message[$sub]['contextInfo']['stanzaId'])) {
+            return $message[$sub]['contextInfo']['stanzaId'];
+        }
+    }
+    return null;
 }
