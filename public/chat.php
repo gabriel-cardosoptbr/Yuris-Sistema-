@@ -1491,6 +1491,94 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
     html[data-theme="light"] .modal-body button:not(.btn-primary):not(.btn-danger):hover {
       background: #EFF6FF !important;
     }
+
+    /* ── 10) Ícone do botão Enviar — branco puro pra contrastar com fundo azul ── */
+    html[data-theme="light"] .chat-send-btn svg { color: #FFFFFF !important; stroke: #FFFFFF !important; fill: none !important; }
+    html[data-theme="light"] .chat-send-btn svg * { stroke: #FFFFFF !important; fill: none !important; }
+
+    /* ── 11) Dropdown "Setor" da topbar (.sector-dd-*) — distinto do .chat-sector-dd ──
+       Esse é o que aparece com Civil / Previdenciario / Trabalista. */
+    html[data-theme="light"] .sector-dd {
+      background: #FFFFFF !important;
+      border: 1px solid #E2E8F0 !important;
+      box-shadow: 0 8px 24px rgba(15,31,54,0.12) !important;
+    }
+    html[data-theme="light"] .sector-dd-item {
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .sector-dd-item:hover {
+      background: #EFF6FF !important;
+      color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] .sector-dd-item.active {
+      color: #1D4ED8 !important;
+      background: #DBEAFE !important;
+    }
+    html[data-theme="light"] .sector-dd-divider {
+      border-top: 1px solid #E2E8F0 !important;
+    }
+    html[data-theme="light"] .sector-dd-remove {
+      color: #B91C1C !important;
+    }
+    html[data-theme="light"] .sector-dd-remove:hover {
+      background: #FEE2E2 !important;
+    }
+
+    /* ── 12) Modal "Vincular Conversa" — .link-* family ──
+       Campos: Card (Lead), Processos Juridicos, Usuario Responsavel. */
+    html[data-theme="light"] .link-select {
+      background-color: #FFFFFF !important;
+      border: 1px solid #CBD5E1 !important;
+      color: #0F1F36 !important;
+      /* Chevron escuro pra ser visivel no fundo branco */
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231E4A8A' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
+    }
+    html[data-theme="light"] .link-select:hover,
+    html[data-theme="light"] .link-select:focus {
+      border-color: #2563EB !important;
+    }
+    html[data-theme="light"] .link-select option { background: #FFFFFF !important; color: #0F1F36 !important; }
+
+    /* Trigger (caixa cinza com "— Nenhum vinculado —") */
+    html[data-theme="light"] .link-picker-trigger {
+      background: #FFFFFF !important;
+      border: 1px solid #CBD5E1 !important;
+    }
+    html[data-theme="light"] .link-picker-trigger:hover { border-color: #93C5FD !important; }
+    html[data-theme="light"] .link-picker-trigger.has-value { border-color: #2563EB !important; }
+    html[data-theme="light"] .link-picker-label { color: #94A3B8 !important; }
+    html[data-theme="light"] .link-picker-label.selected { color: #0F1F36 !important; }
+    html[data-theme="light"] .link-picker-sub { color: #64748B !important; }
+    html[data-theme="light"] .link-picker-clear { color: #64748B !important; }
+    html[data-theme="light"] .link-picker-clear:hover { color: #B91C1C !important; }
+    html[data-theme="light"] .link-picker-chevron { color: #1E4A8A !important; }
+
+    /* Dropdown que abre quando clica no trigger */
+    html[data-theme="light"] .link-picker-dropdown {
+      background: #FFFFFF !important;
+      border: 1px solid #E2E8F0 !important;
+      box-shadow: 0 8px 24px rgba(15,31,54,0.12) !important;
+    }
+    html[data-theme="light"] .link-picker-search {
+      color: #0F1F36 !important;
+      border-bottom: 1px solid #E2E8F0 !important;
+    }
+    html[data-theme="light"] .link-picker-search::placeholder { color: #94A3B8 !important; }
+    html[data-theme="light"] .link-picker-item { color: #0F1F36 !important; }
+    html[data-theme="light"] .link-picker-item:hover {
+      background: #EFF6FF !important;
+      color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] .link-picker-empty { color: #94A3B8 !important; }
+
+    /* Botão "+ Adicionar processo" dentro do modal Vincular */
+    html[data-theme="light"] .modal-body .btn-add-process,
+    html[data-theme="light"] .modal-body button[onclick*="adicionarProcesso"],
+    html[data-theme="light"] .modal-body button[onclick*="addProcesso"] {
+      background: #FFFFFF !important;
+      border: 1px dashed #93C5FD !important;
+      color: #1D4ED8 !important;
+    }
   </style>
 </head>
 <body>
