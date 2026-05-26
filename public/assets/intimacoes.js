@@ -53,6 +53,12 @@
         }
         await this.loadPersistidos();
         this._autoBuscarHoje();  // auto-refresh em background (DJEN ou AASP conforme aba)
+
+        // Hash routing: #monitores abre o modal de monitoramentos automaticamente
+        // (usado pelo botão "+ Novo monitoramento" em /escritorios.php).
+        if ((location.hash || '').toLowerCase() === '#monitores') {
+          this.openMonitors();
+        }
       });
     },
 

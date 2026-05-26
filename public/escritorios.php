@@ -674,44 +674,56 @@ $monOverrideSumEsc = \App\Helpers\BillingGuard::getOverrideSum($accountId, 'moni
         </div>
       </div>
 
-      <!-- ── PANE: Monitoramentos ── (add-on Yuris)
-           Single source: /api/push/quota.php + /api/push/allocations.php
-           + /api/push/requests.php + /api/push/permissions.php
-      -->
+      <!-- ── PANE: Monitoramentos ── -->
       <div class="es-pane" id="pane-monitoramentos">
 
-        <!-- KPIs de cota da própria conta -->
+        <!-- Resumo: quantos a conta tem -->
         <div class="es-card">
-          <div class="es-card-title">Cota contratada</div>
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+            <div class="es-card-title" style="margin:0">Quantos monitoramentos você tem</div>
+            <a href="/sistema_vendas/public/intimacoes.php#monitores"
+               class="btn-sm btn-primary"
+               title="Abre o cadastro de monitoramentos"
+               style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+              + Novo monitoramento
+            </a>
+          </div>
+          <p class="mon-hint" style="margin:6px 0 14px">
+            Cada OAB ou processo monitorado é uma assinatura à parte do plano do sistema.
+            Aqui você vê quantos sua conta tem disponível.
+          </p>
           <?php if ($monStatusEsc['effective_limit'] <= 0): ?>
           <div class="mon-alert mon-alert-warn" style="margin-bottom:14px;">
-            <strong>Sua conta ainda não tem monitoramentos contratados.</strong><br>
-            Cada OAB/advogado monitorado é cobrado à parte do plano. Fale com o time comercial.
+            <strong>Você ainda não contratou nenhum monitoramento.</strong>
+            Fale com o time comercial para contratar.
           </div>
           <?php endif; ?>
           <div class="mon-kpi-grid">
             <div class="mon-kpi">
-              <div class="mon-kpi-label">Contratado</div>
+              <div class="mon-kpi-label">Total</div>
               <div class="mon-kpi-value" id="monKpiContratado"><?= (int) $monStatusEsc['effective_limit'] ?></div>
               <div class="mon-kpi-meta">
                 <?php if ($monStatusEsc['has_allocations'] && !$isMatrizEsc): ?>
-                  alocação recebida da matriz
+                  recebidos da matriz
                 <?php elseif (!$isMatrizEsc): ?>
-                  pool aberto da matriz
+                  compartilhados com a matriz
                 <?php else: ?>
-                  plano: <?= (int) $monPlanBaseEsc ?> · add-ons: <?= (int) $monOverrideSumEsc ?>
+                  <?php $detalheTotal = []; ?>
+                  <?php if ($monPlanBaseEsc > 0) $detalheTotal[] = "incluídos no plano: " . (int) $monPlanBaseEsc; ?>
+                  <?php if ($monOverrideSumEsc > 0) $detalheTotal[] = "comprados à parte: " . (int) $monOverrideSumEsc; ?>
+                  <?= implode(' · ', $detalheTotal) ?: 'nenhum contratado' ?>
                 <?php endif; ?>
               </div>
             </div>
             <div class="mon-kpi <?= $monStatusEsc['percent_used'] >= 100 ? 'bad' : ($monStatusEsc['percent_used'] >= 80 ? 'warn' : '') ?>" id="monKpiUsadoBox">
-              <div class="mon-kpi-label">Em uso</div>
+              <div class="mon-kpi-label">Em uso agora</div>
               <div class="mon-kpi-value" id="monKpiUsado"><?= (int) $monStatusEsc['current_usage'] ?></div>
-              <div class="mon-kpi-meta" id="monKpiPercent"><?= (int) $monStatusEsc['percent_used'] ?>% utilizado</div>
+              <div class="mon-kpi-meta" id="monKpiPercent">monitoramentos ativos</div>
             </div>
             <div class="mon-kpi <?= $monStatusEsc['available'] > 0 ? 'good' : 'bad' ?>" id="monKpiDispBox">
-              <div class="mon-kpi-label">Disponível</div>
+              <div class="mon-kpi-label">Sobrando</div>
               <div class="mon-kpi-value" id="monKpiDispo"><?= (int) $monStatusEsc['available'] ?></div>
-              <div class="mon-kpi-meta">vagas livres pra novo monitor</div>
+              <div class="mon-kpi-meta">vagas livres para criar mais</div>
             </div>
           </div>
         </div>
@@ -719,17 +731,18 @@ $monOverrideSumEsc = \App\Helpers\BillingGuard::getOverrideSum($accountId, 'moni
         <?php if ($canManagePermsEsc): ?>
         <!-- Permissões -->
         <div class="es-card">
-          <div class="es-card-title">Permissões</div>
+          <div class="es-card-title">Quem pode criar monitoramento</div>
           <div class="mon-perm-row">
             <label class="mon-switch">
               <input type="checkbox" id="monFlagAdvogadoCreate" <?= $advFlagEsc ? 'checked' : '' ?>>
               <span class="mon-slider"></span>
             </label>
             <div>
-              <div class="mon-perm-title">Advogados podem criar próprio monitoramento</div>
+              <div class="mon-perm-title">Advogados podem criar monitoramento sozinhos</div>
               <div class="mon-perm-hint">
-                Quando desligado, advogados precisam <strong>solicitar</strong> ao admin.
-                Owner/admin/super_admin sempre podem criar.
+                Quando esta opção está ligada, qualquer advogado da conta consegue cadastrar
+                um monitoramento direto. Quando desligada, ele precisa <strong>pedir aprovação</strong>
+                pra você (admin). Donos e administradores sempre podem criar.
               </div>
             </div>
           </div>
@@ -737,64 +750,68 @@ $monOverrideSumEsc = \App\Helpers\BillingGuard::getOverrideSum($accountId, 'moni
         <?php endif; ?>
 
         <?php if ($isMatrizEsc && $canAllocateEsc): ?>
-        <!-- Distribuir cota matriz→filial -->
+        <!-- Distribuição matriz ↔ filiais -->
         <div class="es-card">
-          <div class="es-card-title">Distribuir cota para filiais</div>
+          <div class="es-card-title">Como dividir entre matriz e filiais</div>
           <div class="mon-alert mon-alert-info" style="margin-bottom:14px;">
-            <strong>Modelo híbrido:</strong> sem alocações fixas, todas as filiais
-            vinculadas compartilham o pool aberto da matriz. Aloque para
-            <em>reservar</em> uma quantidade fixa pra uma filial específica.
+            Por padrão, suas filiais compartilham os monitoramentos da matriz —
+            quem cadastrar primeiro usa. Se quiser <strong>garantir um número
+            fixo</strong> pra uma filial específica, preencha o campo "Quero deixar"
+            ao lado dela e clique <strong>Salvar</strong>.
           </div>
           <div class="mon-kpi-grid" id="monDistribKpis" style="margin-bottom:18px;">
             <div class="mon-kpi">
-              <div class="mon-kpi-label">Pool total</div>
+              <div class="mon-kpi-label">Total contratado</div>
               <div class="mon-kpi-value" id="monKpiPoolTotal">—</div>
-              <div class="mon-kpi-meta">limite contratado</div>
+              <div class="mon-kpi-meta">soma de tudo que sua conta comprou</div>
             </div>
             <div class="mon-kpi warn">
-              <div class="mon-kpi-label">Alocado</div>
+              <div class="mon-kpi-label">Reservado pras filiais</div>
               <div class="mon-kpi-value" id="monKpiAlloc">—</div>
-              <div class="mon-kpi-meta">reservado pra filiais</div>
+              <div class="mon-kpi-meta">já separado pra cada filial</div>
             </div>
             <div class="mon-kpi good">
-              <div class="mon-kpi-label">Livre no pool</div>
+              <div class="mon-kpi-label">Sobra para a matriz</div>
               <div class="mon-kpi-value" id="monKpiPoolLivre">—</div>
-              <div class="mon-kpi-meta">disponível pra novas alocações</div>
+              <div class="mon-kpi-meta">o que a matriz pode usar livremente</div>
             </div>
           </div>
           <div id="monFiliaisWrap"><div class="es-empty">Carregando…</div></div>
         </div>
         <?php endif; ?>
 
-        <!-- Solicitações -->
+        <!-- Solicitações / Pedidos -->
         <div class="es-card">
           <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
-            <div class="es-card-title" style="margin:0">Solicitações</div>
+            <div class="es-card-title" style="margin:0">Pedidos de monitoramento</div>
             <div style="display:flex; gap:8px; align-items:center;">
               <select id="monReqScope" class="es-input" style="height:32px; padding:4px 10px; width:auto;">
-                <option value="pending">Pendentes</option>
-                <option value="all">Todas</option>
-                <option value="mine">Só as minhas</option>
+                <option value="pending">Aguardando aprovação</option>
+                <option value="all">Todos</option>
+                <option value="mine">Só os meus</option>
               </select>
               <button class="btn-sm btn-outline" onclick="loadMonReqs()">Atualizar</button>
             </div>
           </div>
           <div class="mon-alert mon-alert-info" style="margin-bottom:12px;">
             <?php if ($canManagePermsEsc): ?>
-              <strong>Caixa de entrada:</strong> aprove ou recuse pedidos de monitoramento.
-              Aprovar cria o monitor automaticamente.
+              Quando um advogado pede um monitoramento novo, o pedido cai aqui.
+              Você pode <strong>aprovar</strong> (cria o monitoramento na hora) ou <strong>recusar</strong>.
             <?php else: ?>
-              Aqui você vê o status das suas solicitações. Quando o admin aprovar,
-              o monitor passa a rodar automaticamente.
+              Quando você pede um monitoramento, ele aparece aqui aguardando a aprovação
+              do admin. Assim que for aprovado, o monitoramento começa a rodar automaticamente.
             <?php endif; ?>
           </div>
           <div id="monReqsWrap"><div class="es-empty">Carregando…</div></div>
         </div>
 
         <?php if ($isMatrizEsc && $canAllocateEsc): ?>
-        <!-- Histórico de alocações -->
+        <!-- Histórico -->
         <div class="es-card">
-          <div class="es-card-title">Histórico de alocações</div>
+          <div class="es-card-title">Histórico de reservas pra filiais</div>
+          <p class="mon-hint" style="margin:0 0 12px">
+            Tudo que você reservou ou desfez aparece aqui para auditoria.
+          </p>
           <div id="monAllocHistWrap"><div class="es-empty">Carregando…</div></div>
         </div>
         <?php endif; ?>
@@ -1929,6 +1946,16 @@ async function confirmarLiberarModulo() {
 const MON_IS_MATRIZ      = <?= $isMatrizEsc ? 'true' : 'false' ?>;
 const MON_CAN_ALLOCATE   = <?= $canAllocateEsc ? 'true' : 'false' ?>;
 const MON_CAN_MANAGE_PERMS = <?= $canManagePermsEsc ? 'true' : 'false' ?>;
+// Nome da matriz (pra mostrar na tabela de distribuição). Resolvido da própria
+// conta logada — toda matriz vê SEU nome aqui.
+window.MON_MATRIZ_NOME = <?php
+    try {
+        $pdo = \App\Models\Database::getConnection();
+        $st  = $pdo->prepare('SELECT nome FROM accounts WHERE id = :id LIMIT 1');
+        $st->execute(['id' => $accountId]);
+        echo json_encode((string)($st->fetchColumn() ?: 'Matriz'));
+    } catch (\Throwable $e) { echo '"Matriz"'; }
+?>;
 
 let _monAllocCache = null;
 let _monReqCache   = null;
@@ -2010,39 +2037,61 @@ function renderMonAllocKpis() {
 function renderMonFiliais() {
   const wrap = document.getElementById('monFiliaisWrap');
   if (!wrap) return;
+  const p = _monAllocCache?.parent || {};
   const filiais = _monAllocCache?.filiais || [];
-  const livre = _monAllocCache?.parent?.pool_disponivel ?? 0;
-  if (!filiais.length) {
-    wrap.innerHTML = `<div class="es-empty">
-      Nenhuma filial vinculada com <code>sync_monitoramentos=1</code>.
-      Crie ou ative o vínculo na aba <strong>Vínculos</strong>.
-    </div>`;
-    return;
-  }
+  const livre   = p.pool_disponivel ?? 0;
+  const usoMatriz = p.matriz_usage ?? 0;
+  const total   = p.own_limit ?? 0;
+  const alloc   = p.allocated_total ?? 0;
+  const matrizNome = (window.MON_MATRIZ_NOME || 'Matriz');
+
   let html = `<table class="mon-table">
     <thead><tr>
-      <th>Filial</th><th>Em uso</th><th>Alocação atual</th><th>Nova alocação</th><th style="text-align:right">Ações</th>
+      <th>Quem usa</th><th>Está usando</th><th>Quantos tem agora</th><th>Quero deixar</th><th style="text-align:right">Ações</th>
     </tr></thead><tbody>`;
-  for (const f of filiais) {
-    const val = f.allocated || 0;
-    html += `<tr data-acc="${f.account_id}" data-id="${f.allocation_id||''}">
-      <td><strong>${escMon(f.nome)}</strong><div class="mon-hint">#${f.account_id}</div></td>
-      <td>${f.current_usage||0}</td>
-      <td>${val > 0
-        ? `<span class="mon-pill mon-pill-active">${val} reservados</span>`
-        : `<span class="mon-pill mon-pill-revoked">pool aberto</span>`}</td>
-      <td><input type="number" min="0" step="1" class="mon-alloc-input" value="${val}"></td>
-      <td style="text-align:right;white-space:nowrap">
-        <button class="btn-sm btn-primary" onclick="saveMonAlloc(${f.account_id})">Salvar</button>
-        ${f.allocation_id
-          ? `<button class="btn-sm btn-danger" style="margin-left:6px" onclick="revokeMonAlloc(${f.allocation_id})">Revogar</button>`
-          : ''}
-      </td>
-    </tr>`;
+
+  // ── Linha da MATRIZ (read-only) ──
+  // A matriz não "reserva pra si mesma" — ela usa o que sobra do pool.
+  // Mostramos como linha pra ficar visualmente claro que ela também consome.
+  html += `<tr style="background:rgba(37,99,235,.04);">
+    <td><strong>${escMon(matrizNome)} (matriz, você)</strong>
+        <div class="mon-hint">o que não estiver reservado fica pra você</div></td>
+    <td>${usoMatriz}</td>
+    <td><span class="mon-pill mon-pill-active">${livre} sobrando</span></td>
+    <td><span class="mon-hint">automático</span></td>
+    <td style="text-align:right"><span class="mon-hint">—</span></td>
+  </tr>`;
+
+  if (!filiais.length) {
+    html += `<tr><td colspan="5">
+      <div class="es-empty">
+        Você ainda não tem filiais vinculadas para distribuir monitoramentos.
+        Crie um vínculo na aba <strong>Vínculos</strong> primeiro.
+      </div>
+    </td></tr>`;
+  } else {
+    for (const f of filiais) {
+      const val = f.allocated || 0;
+      html += `<tr data-acc="${f.account_id}" data-id="${f.allocation_id||''}">
+        <td><strong>${escMon(f.nome)}</strong><div class="mon-hint">filial #${f.account_id}</div></td>
+        <td>${f.current_usage||0}</td>
+        <td>${val > 0
+          ? `<span class="mon-pill mon-pill-active">${val} reservado${val>1?'s':''}</span>`
+          : `<span class="mon-pill mon-pill-revoked">compartilhado</span>`}</td>
+        <td><input type="number" min="0" step="1" class="mon-alloc-input" value="${val}"></td>
+        <td style="text-align:right;white-space:nowrap">
+          <button class="btn-sm btn-primary" onclick="saveMonAlloc(${f.account_id})">Salvar</button>
+          ${f.allocation_id
+            ? `<button class="btn-sm btn-danger" style="margin-left:6px" onclick="revokeMonAlloc(${f.allocation_id})" title="Desfaz a reserva — essa filial volta a compartilhar com a matriz">Desfazer</button>`
+            : ''}
+        </td>
+      </tr>`;
+    }
   }
   html += `</tbody></table>
     <div class="mon-hint" style="margin-top:10px">
-      Pool livre disponível: <strong>${livre}</strong>. Definir <strong>0</strong> e clicar Salvar volta a filial pro pool aberto.
+      Você tem <strong>${total}</strong> ao todo · reservou <strong>${alloc}</strong> pra filiais · sobram <strong>${livre}</strong> pra matriz usar livremente.
+      ${filiais.length ? '<br>Deixar a filial com <strong>0</strong> e clicar Salvar volta ela a compartilhar com a matriz.' : ''}
     </div>`;
   wrap.innerHTML = html;
 }
@@ -2051,18 +2100,18 @@ function renderMonAllocHist() {
   const wrap = document.getElementById('monAllocHistWrap');
   if (!wrap) return;
   const list = _monAllocCache?.allocations || [];
-  if (!list.length) { wrap.innerHTML = `<div class="es-empty">Nenhuma alocação registrada ainda.</div>`; return; }
+  if (!list.length) { wrap.innerHTML = `<div class="es-empty">Você ainda não reservou monitoramentos pra nenhuma filial.</div>`; return; }
   let html = `<table class="mon-table"><thead><tr>
-    <th>Quando</th><th>Filial</th><th>Qtd</th><th>Status</th><th>Por</th><th>Obs.</th>
+    <th>Quando</th><th>Filial</th><th>Quantos</th><th>Situação</th><th>Quem fez</th><th>Observação</th>
   </tr></thead><tbody>`;
   for (const a of list) {
     const isAtiva = a.status === 'active';
     html += `<tr>
-      <td>${monDate(a.created_at)}${a.revoked_at ? `<div class="mon-hint">revogada ${monDate(a.revoked_at)}</div>`:''}</td>
+      <td>${monDate(a.created_at)}${a.revoked_at ? `<div class="mon-hint">desfeito ${monDate(a.revoked_at)}</div>`:''}</td>
       <td>${escMon(a.target_nome||'?')} <span class="mon-hint">#${a.target_account_id}</span></td>
       <td>${a.allocated}</td>
-      <td>${isAtiva ? `<span class="mon-pill mon-pill-active">ativa</span>` : `<span class="mon-pill mon-pill-revoked">revogada</span>`}</td>
-      <td>${escMon(a.created_by_nome||'?')}${a.revoked_by_nome ? `<div class="mon-hint">por ${escMon(a.revoked_by_nome)}</div>`:''}</td>
+      <td>${isAtiva ? `<span class="mon-pill mon-pill-active">em vigor</span>` : `<span class="mon-pill mon-pill-revoked">desfeito</span>`}</td>
+      <td>${escMon(a.created_by_nome||'?')}${a.revoked_by_nome ? `<div class="mon-hint">desfeito por ${escMon(a.revoked_by_nome)}</div>`:''}</td>
       <td>${escMon(a.observacoes||'')}</td>
     </tr>`;
   }
@@ -2150,31 +2199,35 @@ function renderMonReqs() {
   if (!wrap || !_monReqCache) return;
   const list = _monReqCache.requests || [];
   const canApprove = _monReqCache.can?.approve;
-  if (!list.length) { wrap.innerHTML = `<div class="es-empty">Nenhuma solicitação encontrada nesse filtro.</div>`; return; }
+  if (!list.length) {
+    wrap.innerHTML = `<div class="es-empty">Nenhum pedido nesse filtro.</div>`;
+    return;
+  }
   let html = `<table class="mon-table"><thead><tr>
-    <th>Quando</th><th>Quem</th><th>Pediu</th><th>Justificativa</th><th>Status</th><th style="text-align:right">Ações</th>
+    <th>Quando</th><th>Quem pediu</th><th>O que quer monitorar</th><th>Motivo</th><th>Situação</th><th style="text-align:right">Ações</th>
   </tr></thead><tbody>`;
   for (const r of list) {
     const pillStatus = ({
-      pending:  '<span class="mon-pill mon-pill-pending">pendente</span>',
-      approved: '<span class="mon-pill mon-pill-active">aprovada</span>',
-      denied:   '<span class="mon-pill mon-pill-denied">recusada</span>',
-      canceled: '<span class="mon-pill mon-pill-revoked">cancelada</span>',
+      pending:  '<span class="mon-pill mon-pill-pending">aguardando</span>',
+      approved: '<span class="mon-pill mon-pill-active">aprovado</span>',
+      denied:   '<span class="mon-pill mon-pill-denied">recusado</span>',
+      canceled: '<span class="mon-pill mon-pill-revoked">cancelado</span>',
     })[r.status] || r.status;
     const acoes = r.status === 'pending'
       ? (canApprove
-        ? `<button class="btn-sm btn-primary" onclick="resolveMonReq(${r.id},'approve')">Aprovar</button>
-           <button class="btn-sm btn-danger" style="margin-left:6px" onclick="resolveMonReq(${r.id},'deny')">Recusar</button>`
-        : `<button class="btn-sm btn-outline" onclick="resolveMonReq(${r.id},'cancel')">Cancelar</button>`)
-      : (r.resulting_monitor_id ? `<span class="mon-hint">monitor #${r.resulting_monitor_id}</span>` : '');
-    const pediu = `${escMon(r.tipo_monitoramento)} <strong>${escMon(r.valor_monitorado)}</strong>`
+        ? `<button class="btn-sm btn-primary" onclick="resolveMonReq(${r.id},'approve')" title="Aprovar e criar o monitoramento agora">Aprovar</button>
+           <button class="btn-sm btn-danger" style="margin-left:6px" onclick="resolveMonReq(${r.id},'deny')" title="Recusar o pedido">Recusar</button>`
+        : `<button class="btn-sm btn-outline" onclick="resolveMonReq(${r.id},'cancel')">Cancelar pedido</button>`)
+      : (r.resulting_monitor_id ? `<span class="mon-hint">monitoramento #${r.resulting_monitor_id}</span>` : '');
+    const tipoLabel = ({oab:'OAB', processo:'Processo', nome:'Nome', customizado:'Outro'})[r.tipo_monitoramento] || r.tipo_monitoramento;
+    const pediu = `${escMon(tipoLabel)}: <strong>${escMon(r.valor_monitorado)}</strong>`
       + (r.uf ? ` <span class="mon-hint">/${escMon(r.uf)}</span>` : '')
       + (r.nome_complementar ? `<div class="mon-hint">${escMon(r.nome_complementar)}</div>` : '');
     html += `<tr>
-      <td>${monDate(r.created_at)}${(r.approved_at || r.denied_at) ? `<div class="mon-hint">resolvida ${monDate(r.approved_at||r.denied_at)}</div>`:''}</td>
+      <td>${monDate(r.created_at)}${(r.approved_at || r.denied_at) ? `<div class="mon-hint">decidido ${monDate(r.approved_at||r.denied_at)}</div>`:''}</td>
       <td>${escMon(r.requesting_user_nome||'?')}</td>
       <td>${pediu}</td>
-      <td><div class="mon-hint" style="max-width:240px;white-space:pre-wrap">${escMon(r.justificativa||'—')}</div>${r.motivo_recusa ? `<div class="mon-hint" style="color:#FCA5A5;margin-top:4px">${escMon(r.motivo_recusa)}</div>`:''}</td>
+      <td><div class="mon-hint" style="max-width:240px;white-space:pre-wrap">${escMon(r.justificativa||'—')}</div>${r.motivo_recusa ? `<div class="mon-hint" style="color:#FCA5A5;margin-top:4px"><strong>Recusado:</strong> ${escMon(r.motivo_recusa)}</div>`:''}</td>
       <td>${pillStatus}</td>
       <td style="text-align:right;white-space:nowrap">${acoes}</td>
     </tr>`;
