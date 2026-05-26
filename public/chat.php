@@ -1496,9 +1496,11 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
     html[data-theme="light"] .chat-send-btn svg { color: #FFFFFF !important; stroke: #FFFFFF !important; fill: none !important; }
     html[data-theme="light"] .chat-send-btn svg * { stroke: #FFFFFF !important; fill: none !important; }
 
-    /* ── 11) Dropdown "Setor" da topbar (.sector-dd-*) — distinto do .chat-sector-dd ──
-       Esse é o que aparece com Civil / Previdenciario / Trabalista. */
-    html[data-theme="light"] .sector-dd {
+    /* ── 11) Dropdown "Setor" da topbar (.sector-dropdown + .sector-dd-*) ──
+       Container é .sector-dropdown (linha 479); items são .sector-dd-item.
+       Esse é o dropdown da topbar que aparece com Civil/Previdenciario/Trabalista.
+       Distinto do .chat-sector-dd (filtro da sidebar). */
+    html[data-theme="light"] .sector-dropdown {
       background: #FFFFFF !important;
       border: 1px solid #E2E8F0 !important;
       box-shadow: 0 8px 24px rgba(15,31,54,0.12) !important;
