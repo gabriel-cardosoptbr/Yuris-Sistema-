@@ -1017,12 +1017,60 @@ const CI = (() => {
       </div>`;
     };
 
+    // ── Sub-agrupamento de usuarios por conta (matriz/filial/advogado) ──────
+    // Quando um escritorio tem matriz + filiais + advogados vinculados, o
+    // usuario precisa ver de qual organizacao cada pessoa eh. Sem essa
+    // separacao, "Admin Filial SP" e "Admin Matriz" ficavam misturados.
+    const ACCOUNT_TIPO_LABEL = { matriz: 'MATRIZ', filial: 'FILIAL', advogado: 'ADVOGADO SOLO' };
+    const groupUsersByAccount = (users) => {
+      const byAcc = new Map(); // accountId → {tipo, nome, items[]}
+      users.forEach(u => {
+        const aid = u.account_id ?? 0;
+        if (!byAcc.has(aid)) {
+          byAcc.set(aid, {
+            tipo : u.account_tipo || 'matriz',
+            nome : u.account_nome || 'Sem organização',
+            items: [],
+          });
+        }
+        byAcc.get(aid).items.push(u);
+      });
+      // Ordena: matriz primeiro, depois filial, depois advogado
+      const ordem = { matriz: 0, filial: 1, advogado: 2 };
+      return Array.from(byAcc.values()).sort((a, b) =>
+        (ordem[a.tipo] ?? 9) - (ordem[b.tipo] ?? 9) || a.nome.localeCompare(b.nome)
+      );
+    };
+    const renderUserSection = (users) => {
+      // So sub-agrupa se houver mais de 1 conta — senao a divisao polui visualmente
+      const accGroups = groupUsersByAccount(users);
+      if (accGroups.length <= 1) {
+        let out = '';
+        users.forEach(item => { out += renderItem(item, globalIdx++); });
+        return out;
+      }
+      let out = '';
+      accGroups.forEach(grp => {
+        const label = (ACCOUNT_TIPO_LABEL[grp.tipo] || grp.tipo.toUpperCase()) + ' · ' + grp.nome;
+        out += `<div class="ci-mpanel-subsection">${esc(label)}</div>`;
+        grp.items.forEach(item => { out += renderItem(item, globalIdx++); });
+      });
+      return out;
+    };
+
     if (_mpanelTab === 'auto') {
       ['usuario','processo','card'].forEach(tipo => {
         if (!groups[tipo].length) return;
         html += `<div class="ci-mpanel-section">${labelMap[tipo]}</div>`;
-        groups[tipo].forEach(item => { html += renderItem(item, globalIdx++); });
+        if (tipo === 'usuario') {
+          html += renderUserSection(groups.usuario);
+        } else {
+          groups[tipo].forEach(item => { html += renderItem(item, globalIdx++); });
+        }
       });
+    } else if (_mpanelTab === 'usuario') {
+      // Tab so de usuarios: aplica subagrupamento direto
+      html += renderUserSection(results);
     } else {
       results.forEach(item => { html += renderItem(item, globalIdx++); });
     }

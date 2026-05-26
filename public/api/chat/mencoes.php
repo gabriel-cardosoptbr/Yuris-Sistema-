@@ -64,23 +64,32 @@ if ($type === 'auto') {
 }
 
 // ── Usuários (somente do tenant) ──────────────────────────────────────────
+// JOIN com accounts pra retornar info da conta dona do user — UI agrupa por
+// matriz/filial/advogado pra deixar claro de qual organizacao a pessoa eh.
 if ($showUsers) {
     $s = $pdo->prepare(
-        "SELECT id, nome, perfil FROM users
-         WHERE deleted_at IS NULL AND status = 'active'
-           AND account_id IN ($accIn)
-           AND nome LIKE :like
-         ORDER BY nome LIMIT " . $limit
+        "SELECT u.id, u.nome, u.perfil, u.account_id,
+                a.nome AS account_nome, a.tipo AS account_tipo
+           FROM users u
+           LEFT JOIN accounts a ON a.id = u.account_id
+          WHERE u.deleted_at IS NULL AND u.status = 'active'
+            AND u.account_id IN ($accIn)
+            AND u.nome LIKE :like
+          ORDER BY a.tipo, a.nome, u.nome LIMIT " . $limit
     );
     $s->execute(['like' => $like] + $accParams);
     foreach ($s->fetchAll() as $row) {
         $result[] = [
-            'tipo'          => 'usuario',
-            'id'            => (int)$row['id'],
-            'display'       => $row['nome'],
-            'sub'           => ucfirst($row['perfil'] ?? ''),
-            'token'         => '@[user|' . $row['id'] . '|' . $row['nome'] . ']',
-            'url'           => '/sistema_vendas/public/usuarios.php',
+            'tipo'         => 'usuario',
+            'id'           => (int)$row['id'],
+            'display'      => $row['nome'],
+            'sub'          => ucfirst($row['perfil'] ?? ''),
+            'token'        => '@[user|' . $row['id'] . '|' . $row['nome'] . ']',
+            'url'          => '/sistema_vendas/public/usuarios.php',
+            // Info de organização: usado pelo frontend pra agrupar por conta
+            'account_id'   => (int)$row['account_id'],
+            'account_nome' => $row['account_nome'] ?? '',
+            'account_tipo' => $row['account_tipo'] ?? 'matriz', // matriz | filial | advogado
         ];
     }
 }

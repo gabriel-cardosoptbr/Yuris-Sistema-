@@ -286,6 +286,249 @@ $csrf       = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--line-md); border-radius: 3px; }
+
+    /* Sub-cabecalho dentro do popup de menção (agrupa por matriz/filial) */
+    .ci-mpanel-subsection {
+      padding: 8px 12px 4px; font-size: .62rem; font-weight: 700;
+      color: #7A8898; text-transform: uppercase; letter-spacing: .08em;
+      background: rgba(255,255,255,.03);
+      border-top: 1px solid rgba(160,180,210,.06);
+    }
+    .ci-mpanel-subsection:first-child { border-top: none; }
+
+    /* ═════════════════════════════════════════════════════════════════════
+       TEMA CLARO — Chat Interno (correção 2026-05-26)
+       Sem isso as bolhas, chips, modais, popup ficavam pretos em fundo branco
+       ═════════════════════════════════════════════════════════════════════ */
+    html[data-theme="light"] body { background: #F4F7FB; }
+
+    /* Sidebar + lista de conversas */
+    html[data-theme="light"] .ci-sidebar {
+      background: #FFFFFF !important;
+      border-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] .ci-sidebar-header {
+      border-bottom-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] .ci-sidebar-title { color: #1E4A8A !important; }
+    html[data-theme="light"] .ci-btn-new {
+      background: #DBEAFE !important;
+      border-color: #93C5FD !important;
+      color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] .ci-btn-new:hover { background: #BFDBFE !important; }
+    html[data-theme="light"] .ci-btn-arch {
+      border-color: #CBD5E1 !important; color: #64748B !important;
+    }
+    html[data-theme="light"] .ci-btn-arch:hover,
+    html[data-theme="light"] .ci-btn-arch.active {
+      border-color: #2563EB !important; color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] .ci-conv-item { border-bottom-color: #F1F5F9 !important; }
+    html[data-theme="light"] .ci-conv-item:hover { background: #F8FAFC !important; }
+    html[data-theme="light"] .ci-conv-item.active {
+      background: #EFF6FF !important; border-left-color: #2563EB !important;
+    }
+    html[data-theme="light"] .ci-conv-avatar {
+      background: #F1F5F9 !important; border-color: #CBD5E1 !important;
+    }
+    html[data-theme="light"] .ci-conv-name { color: #0F1F36 !important; }
+    html[data-theme="light"] .ci-conv-preview { color: #64748B !important; }
+    html[data-theme="light"] .ci-conv-time { color: #94A3B8 !important; }
+
+    /* Area principal */
+    html[data-theme="light"] .ci-main {
+      background: #FFFFFF !important;
+      border-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] .ci-empty { color: #94A3B8 !important; }
+
+    /* Header da conversa */
+    html[data-theme="light"] .ci-header {
+      background: #FFFFFF !important;
+      border-bottom-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] .ci-header-avatar {
+      background: #F1F5F9 !important; border: 1px solid #CBD5E1 !important;
+    }
+    html[data-theme="light"] .ci-header-name { color: #0F1F36 !important; }
+    html[data-theme="light"] .ci-header-sub  { color: #64748B !important; }
+    html[data-theme="light"] .ci-header-opts { color: #64748B !important; }
+    html[data-theme="light"] .ci-header-opts:hover {
+      background: #F1F5F9 !important; border-color: #CBD5E1 !important; color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .ci-options-menu {
+      background: #FFFFFF !important;
+      border-color: #E2E8F0 !important;
+      box-shadow: 0 8px 24px rgba(15,31,54,0.12) !important;
+    }
+    html[data-theme="light"] .ci-opt-btn { color: #0F1F36 !important; }
+    html[data-theme="light"] .ci-opt-btn:hover { background: #F1F5F9 !important; }
+    html[data-theme="light"] .ci-opt-btn.danger { color: #DC2626 !important; }
+    html[data-theme="light"] .ci-opt-btn.danger:hover { background: #FEE2E2 !important; }
+    html[data-theme="light"] .ci-opt-divider { background: #E2E8F0 !important; }
+
+    /* Mensagens — bolhas */
+    html[data-theme="light"] .ci-messages { background: transparent; }
+    html[data-theme="light"] .ci-date-sep { color: #94A3B8 !important; }
+    html[data-theme="light"] .ci-date-sep::before,
+    html[data-theme="light"] .ci-date-sep::after { background: #E2E8F0 !important; }
+    html[data-theme="light"] .ci-msg-bubble {
+      background: #FFFFFF !important;
+      color: #0F1F36 !important;
+      border: 1px solid #E2E8F0 !important;
+    }
+    html[data-theme="light"] .ci-msg--out .ci-msg-bubble {
+      background: #DBEAFE !important;
+      color: #0F1F36 !important;
+      border-color: #93C5FD !important;
+    }
+    html[data-theme="light"] .ci-msg-sender { color: #64748B !important; }
+    html[data-theme="light"] .ci-msg-time   { color: #94A3B8 !important; }
+
+    /* Chips de menção (@usuario, @processo, @card) */
+    html[data-theme="light"] .ci-mention--user {
+      background: #DBEAFE !important; color: #1D4ED8 !important;
+      border-color: #93C5FD !important;
+    }
+    html[data-theme="light"] .ci-mention--proc {
+      background: #EDE9FE !important; color: #6D28D9 !important;
+      border-color: #C4B5FD !important;
+    }
+    html[data-theme="light"] .ci-mention--card {
+      background: #D1FAE5 !important; color: #047857 !important;
+      border-color: #6EE7B7 !important;
+    }
+
+    /* Input area */
+    html[data-theme="light"] .ci-input-wrap {
+      background: #FFFFFF !important;
+      border-top-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] .ci-textarea {
+      background: #FFFFFF !important;
+      border-color: #CBD5E1 !important;
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .ci-textarea::placeholder { color: #94A3B8 !important; }
+    html[data-theme="light"] .ci-textarea:focus { border-color: #2563EB !important; }
+    html[data-theme="light"] .ci-mention-hint { color: #94A3B8 !important; }
+
+    /* Popup de menção (@ usuário/processo/card) */
+    html[data-theme="light"] .ci-mention-panel {
+      background: #FFFFFF !important;
+      border-color: #E2E8F0 !important;
+      box-shadow: 0 -12px 40px rgba(15,31,54,0.15) !important;
+    }
+    html[data-theme="light"] .ci-mpanel-search {
+      background: #F8FAFC !important;
+      border-color: #CBD5E1 !important;
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .ci-mpanel-search:focus { border-color: #2563EB !important; }
+    html[data-theme="light"] .ci-mpanel-close { color: #94A3B8 !important; }
+    html[data-theme="light"] .ci-mpanel-close:hover { color: #0F1F36 !important; }
+    html[data-theme="light"] .ci-mpanel-tabs { border-bottom-color: #E2E8F0 !important; }
+    html[data-theme="light"] .ci-mtab { color: #64748B !important; }
+    html[data-theme="light"] .ci-mtab:hover { color: #0F1F36 !important; }
+    html[data-theme="light"] .ci-mtab.active {
+      background: #DBEAFE !important;
+      border-color: #93C5FD !important;
+      color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] .ci-mpanel-empty { color: #94A3B8 !important; }
+    html[data-theme="light"] .ci-mpanel-section { color: #475569 !important; }
+    html[data-theme="light"] .ci-mpanel-subsection {
+      color: #64748B !important;
+      background: #F8FAFC !important;
+      border-top-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] .ci-mention-item:hover,
+    html[data-theme="light"] .ci-mention-item.focused {
+      background: #EFF6FF !important;
+    }
+    html[data-theme="light"] .ci-mention-icon {
+      background: #F1F5F9 !important; border-color: #CBD5E1 !important;
+    }
+    html[data-theme="light"] .ci-mention-name { color: #0F1F36 !important; }
+    html[data-theme="light"] .ci-mention-sub  { color: #64748B !important; }
+
+    /* Modal — Nova Conversa + Editar Participantes */
+    html[data-theme="light"] .ci-modal-overlay { background: rgba(15,31,54,0.45) !important; }
+    html[data-theme="light"] .ci-modal {
+      background: #FFFFFF !important;
+      border-color: #E2E8F0 !important;
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .ci-modal h3 { color: #0F1F36 !important; }
+    html[data-theme="light"] .ci-modal label { color: #475569 !important; }
+    html[data-theme="light"] .ci-modal input,
+    html[data-theme="light"] .ci-modal select {
+      background: #FFFFFF !important;
+      background-color: #FFFFFF !important;
+      border-color: #CBD5E1 !important;
+      color: #0F1F36 !important;
+      -webkit-text-fill-color: #0F1F36 !important;
+      box-shadow: 0 0 0 9999px #FFFFFF inset !important;
+      color-scheme: light;
+    }
+    html[data-theme="light"] .ci-modal input::placeholder { color: #94A3B8 !important; }
+    html[data-theme="light"] .ci-modal input:focus,
+    html[data-theme="light"] .ci-modal select:focus { border-color: #2563EB !important; }
+
+    /* Tipos de conversa (cards Chat privado / Vários / Canal / Filial) */
+    html[data-theme="light"] .ci-type-card {
+      background: #FFFFFF !important;
+      border-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] .ci-type-card:hover {
+      background: #F8FAFC !important; border-color: #CBD5E1 !important;
+    }
+    html[data-theme="light"] .ci-type-card.selected {
+      background: #EFF6FF !important; border-color: #2563EB !important;
+    }
+    html[data-theme="light"] .ci-type-card-name { color: #0F1F36 !important; }
+    html[data-theme="light"] .ci-type-card-desc { color: #64748B !important; }
+
+    /* Lista de usuários no modal (checkboxes) */
+    html[data-theme="light"] .ci-user-checkboxes {
+      background: #F8FAFC !important;
+      border-color: #E2E8F0 !important;
+    }
+    html[data-theme="light"] .ci-user-check:hover {
+      background: #EFF6FF !important; border-color: #93C5FD !important;
+    }
+    html[data-theme="light"] .ci-user-check:has(input:checked) {
+      background: #DBEAFE !important; border-color: #2563EB !important;
+    }
+    html[data-theme="light"] .ci-chk-avatar {
+      background: #EFF6FF !important; border-color: #BFDBFE !important; color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] .ci-chk-name { color: #0F1F36 !important; }
+    html[data-theme="light"] .ci-chk-sub  { color: #64748B !important; }
+    html[data-theme="light"] .ci-chk-box  { border-color: #CBD5E1 !important; }
+    html[data-theme="light"] .ci-user-check:has(input:checked) .ci-chk-box {
+      background: #2563EB !important; border-color: #2563EB !important; color: #FFFFFF !important;
+    }
+
+    /* Botões do modal */
+    html[data-theme="light"] .ci-modal-cancel {
+      background: #FFFFFF !important;
+      border-color: #CBD5E1 !important;
+      color: #475569 !important;
+    }
+    html[data-theme="light"] .ci-modal-cancel:hover { background: #F1F5F9 !important; }
+    html[data-theme="light"] .ci-modal-confirm {
+      background: #2563EB !important; color: #FFFFFF !important;
+    }
+    html[data-theme="light"] .ci-modal-confirm:hover { background: #1D4ED8 !important; }
+
+    /* Toast */
+    html[data-theme="light"] #ciToast {
+      background: #FFFFFF !important; color: #0F1F36 !important;
+      border: 1px solid #E2E8F0 !important;
+      box-shadow: 0 4px 16px rgba(15,31,54,0.12) !important;
+    }
   </style>
 </head>
 <body>
@@ -488,6 +731,6 @@ const CI_API  = {
   users     : '/sistema_vendas/public/api/users.php',
 };
 </script>
-<script src="/sistema_vendas/public/assets/chat_interno.js?v=2"></script>
+<script src="/sistema_vendas/public/assets/chat_interno.js?v=3"></script>
 </body>
 </html>
