@@ -498,8 +498,8 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
     <div class="mst-card" style="padding:0; overflow:hidden">
       <div style="padding:14px 18px; font-weight:700; border-bottom:1px solid rgba(160,180,210,.10)">Assinaturas</div>
       <table class="mst-tbl">
-        <thead><tr><th>Conta</th><th>Plano</th><th>Status</th><th>Ciclo</th><th>Teste até</th><th>Período até</th><th>Ações</th></tr></thead>
-        <tbody id="subsBody"><tr><td colspan="7" class="empty">Carregando…</td></tr></tbody>
+        <thead><tr><th>Tipo</th><th>Conta</th><th>Plano / Produto</th><th>Status</th><th>Ciclo</th><th>Valor</th><th>Teste até</th><th>Período até</th><th>Ações</th></tr></thead>
+        <tbody id="subsBody"><tr><td colspan="9" class="empty">Carregando…</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -909,6 +909,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
           <div><label class="mst-form-label">Ciclo</label>
             <select name="sub_cycle" class="mst-form-select">
               <option value="monthly">Mensal</option>
+              <option value="quarterly">Trimestral</option>
               <option value="yearly">Anual</option>
             </select>
           </div>
@@ -1206,6 +1207,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
           <div><label class="mst-form-label">Ciclo</label>
             <select name="billing_cycle" id="subCycle" class="mst-form-select">
               <option value="monthly">Mensal</option>
+              <option value="quarterly">Trimestral</option>
               <option value="yearly">Anual</option>
             </select>
           </div>
@@ -1279,6 +1281,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
             <div><label class="mst-form-label">Ciclo de cobrança</label>
               <select id="editAccSubCycle" class="mst-form-select">
                 <option value="monthly">Mensal</option>
+                <option value="quarterly">Trimestral</option>
                 <option value="yearly">Anual</option>
               </select>
             </div>
@@ -1496,6 +1499,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
             <select name="cycle" class="mst-form-select">
               <option value="">— escolha —</option>
               <option value="monthly">Mensal</option>
+              <option value="quarterly">Trimestral</option>
               <option value="yearly">Anual</option>
               <option value="one_off">Pagamento único</option>
             </select>
@@ -2822,23 +2826,79 @@ async function loadBilling() {
   const r = await fj(`${API}/billing.php`);
   if (!r.ok) return notifyErr(r.error);
   _subsCache = r.data.subscriptions || [];
+  const monitorSubs = r.data.monitor_subscriptions || [];
   const tb = document.getElementById('subsBody');
-  if (!_subsCache.length) { tb.innerHTML='<tr><td colspan="7" class="empty">Nenhuma assinatura</td></tr>'; return; }
-  tb.innerHTML = _subsCache.map(s => `
-    <tr>
-      <td>${esc(s.account_nome)}</td>
-      <td>${esc(s.plan_nome)} <small style="color:#9ab0c9">(${esc(s.plan_slug)})</small></td>
-      <td>${pill(s.status)}</td>
-      <td>${esc(s.billing_cycle)}</td>
-      <td>${fmtDate(s.trial_ends_at)}</td>
-      <td>${fmtDate(s.current_period_end)}</td>
-      <td>
-        <button class="btn-mst" onclick="openSubModal(${s.id})">Editar</button>
-        ${s.status==='active' || s.status==='trialing'
-          ? `<button class="btn-mst btn-mst-danger" onclick="cancelSub(${s.id})">Cancelar</button>`
-          : ''}
-      </td>
-    </tr>`).join('');
+
+  // Une plano (subscriptions) + monitor (overrides recorrentes) na mesma
+  // tabela — coluna "Tipo" diferencia. Mesma tela mostra toda receita
+  // recorrente do tenant (add-on de monitor inclusive).
+  const rows = [];
+
+  _subsCache.forEach(s => {
+    // Valor: por enquanto pega só o cents do plano em monthly/yearly
+    // (não suportamos preço trimestral no plano ainda — manter mensal/anual)
+    let valor = '—';
+    if (s.billing_cycle === 'monthly')    valor = fmtBRL(s.preco_mensal_cents);
+    else if (s.billing_cycle === 'yearly') valor = fmtBRL(s.preco_anual_cents);
+    rows.push(`
+      <tr>
+        <td><span class="pill" style="background:rgba(96,165,250,.15);color:#60a5fa;border:1px solid rgba(96,165,250,.3)">Plano</span></td>
+        <td>${esc(s.account_nome)}</td>
+        <td>${esc(s.plan_nome)} <small style="color:#9ab0c9">(${esc(s.plan_slug)})</small></td>
+        <td>${pill(s.status)}</td>
+        <td>${i18nBadge(s.billing_cycle)}</td>
+        <td>${valor}</td>
+        <td>${fmtDate(s.trial_ends_at)}</td>
+        <td>${fmtDate(s.current_period_end)}</td>
+        <td>
+          <button class="btn-mst" onclick="openSubModal(${s.id})">Editar</button>
+          ${s.status==='active' || s.status==='trialing'
+            ? `<button class="btn-mst btn-mst-danger" onclick="cancelSub(${s.id})">Cancelar</button>`
+            : ''}
+        </td>
+      </tr>`);
+  });
+
+  monitorSubs.forEach(m => {
+    // Valor total = qtd × preço unitário
+    let valorRow = '—';
+    if (m.unit_price_cents && m.qtd) {
+      const total = m.unit_price_cents * m.qtd;
+      valorRow = `${fmtBRL(total)} <small style="color:#9ab0c9">(${m.qtd}×${fmtBRL(m.unit_price_cents)})</small>`;
+    } else if (m.qtd) {
+      valorRow = `<small style="color:#9ab0c9">${m.qtd} monitor(es), sem preço</small>`;
+    }
+    const status = m.expires_at && new Date(m.expires_at) < new Date() ? 'canceled' : 'active';
+    rows.push(`
+      <tr>
+        <td><span class="pill" style="background:rgba(168,85,247,.15);color:#c084fc;border:1px solid rgba(168,85,247,.3)">Monitor</span></td>
+        <td>${esc(m.account_nome)}</td>
+        <td>${m.qtd}× Monitoramento OAB ${m.contract_ref?` <small style="color:#9ab0c9">(${esc(m.contract_ref)})</small>`:''}</td>
+        <td>${pill(status)}</td>
+        <td>${i18nBadge(m.billing_cycle)}</td>
+        <td>${valorRow}</td>
+        <td>—</td>
+        <td>${m.expires_at?fmtDate(m.expires_at):'—'}</td>
+        <td>
+          <button class="btn-mst" onclick="openMonitorSubFromBilling(${m.account_id})">Editar</button>
+          <button class="btn-mst btn-mst-danger" onclick="revokeMonitorOverride(${m.id})">Cancelar</button>
+        </td>
+      </tr>`);
+  });
+
+  if (!rows.length) {
+    tb.innerHTML = '<tr><td colspan="9" class="empty">Nenhuma assinatura</td></tr>';
+    return;
+  }
+  tb.innerHTML = rows.join('');
+}
+
+/**
+ * Atalho: do row da assinatura de monitor, abre o modal Editar Conta
+ * já na seção Monitoramentos. Reusa o fluxo existente.
+ */
+function openMonitorSubFromBilling(accountId) {
+  openEditAccount(accountId);
 }
 
 async function cancelSub(id) {

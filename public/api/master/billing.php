@@ -41,7 +41,9 @@ if ($method === 'GET') {
         )->fetchAll(\PDO::FETCH_ASSOC);
         ApiResponse::ok(['invoices' => $rows]);
     }
-    $rows = $pdo->query(
+
+    // Assinaturas do plano do sistema (subscriptions)
+    $subs = $pdo->query(
         "SELECT s.*, a.nome AS account_nome, p.nome AS plan_nome, p.slug AS plan_slug,
                 p.preco_mensal_cents, p.preco_anual_cents
          FROM subscriptions s
@@ -50,7 +52,33 @@ if ($method === 'GET') {
          WHERE a.deleted_at IS NULL
          ORDER BY s.id DESC"
     )->fetchAll(\PDO::FETCH_ASSOC);
-    ApiResponse::ok(['subscriptions' => $rows]);
+
+    // Assinaturas de monitoramento (overrides com billing_cycle preenchido).
+    // Etapa 6+7 (add-on Monitoramentos) — monitoramento é cobrado por unidade
+    // à parte do plano, em ciclo recorrente (mensal/trimestral/anual).
+    // Aparece como linha separada na tabela "Assinaturas" pro Master ter
+    // visão única de toda receita recorrente do tenant.
+    $monitorSubs = $pdo->query(
+        "SELECT aqo.id, aqo.account_id, aqo.limit_value AS qtd,
+                aqo.unit_price_cents, aqo.billing_cycle, aqo.contract_ref,
+                aqo.expires_at, aqo.observacoes, aqo.created_at,
+                a.nome AS account_nome
+         FROM account_quota_overrides aqo
+         INNER JOIN accounts a ON a.id = aqo.account_id
+         WHERE aqo.feature_key  = 'monitors.limit'
+           AND aqo.source        = 'purchase'
+           AND aqo.billing_cycle IS NOT NULL
+           AND aqo.billing_cycle <> 'one_off'
+           AND aqo.revoked_at    IS NULL
+           AND (aqo.expires_at IS NULL OR aqo.expires_at > NOW())
+           AND a.deleted_at IS NULL
+         ORDER BY aqo.id DESC"
+    )->fetchAll(\PDO::FETCH_ASSOC);
+
+    ApiResponse::ok([
+        'subscriptions'        => $subs,
+        'monitor_subscriptions' => $monitorSubs,
+    ]);
 }
 
 if ($method === 'PATCH') {
