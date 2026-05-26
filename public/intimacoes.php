@@ -844,6 +844,55 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
     html[data-theme="light"] .int-pub-card .int-icon-btn:hover {
       background: #EFF6FF !important;
     }
+
+    /* 7) Textos azul-claros que ficavam ilegíveis no tema claro
+       (#dbeafe e #93c5fd sobre fundo branco = fantasma).
+       Cobre: nome do órgão, labels dos filtros, "Ver tudo (...)", etc. */
+    html[data-theme="light"] .int-pub-orgao {
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .int-pub-meta strong {
+      color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] .int-pub-text-toggle {
+      background: #FFFFFF !important;
+      border: 1px solid #BFDBFE !important;
+      color: #1D4ED8 !important;
+    }
+    html[data-theme="light"] .int-pub-text-toggle:hover {
+      background: #EFF6FF !important;
+      border-color: #2563EB !important;
+    }
+    /* Sidebar de filtros — "Buscar por" */
+    html[data-theme="light"] .int-filter-label {
+      color: #475569 !important;
+    }
+    html[data-theme="light"] .int-filter-input {
+      background: #FFFFFF !important;
+      border: 1px solid #CBD5E1 !important;
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .int-filter-input::placeholder {
+      color: #94A3B8 !important;
+    }
+    /* Labels dos checkboxes: Lidas / Não lidas / Favoritas / Com prazo */
+    html[data-theme="light"] .int-filter-cb span {
+      color: #0F1F36 !important;
+    }
+    html[data-theme="light"] .int-filter-cb input { accent-color: #2563EB !important; }
+    /* Empty state ("nenhuma intimação encontrada") */
+    html[data-theme="light"] .int-empty {
+      background: #F1F5F9 !important;
+      color: #475569 !important;
+    }
+    html[data-theme="light"] .int-empty h3 { color: #0F1F36 !important; }
+    /* Toolbar info: "AASP — 25/05/2026: 0 publicações" */
+    html[data-theme="light"] .int-toolbar-info strong { color: #1D4ED8 !important; }
+    /* Tab inativa em hover */
+    html[data-theme="light"] .int-tab:not(.active) { color: #475569 !important; }
+    html[data-theme="light"] .int-tab:not(.active):hover { color: #1E4A8A !important; }
+    /* Botão "Sincronizar / Buscar" (.int-toolbar-info link inline) */
+    html[data-theme="light"] .int-toolbar-info { color: #1E4A8A !important; }
   </style>
 </head>
 <body>
