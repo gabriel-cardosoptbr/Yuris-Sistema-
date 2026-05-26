@@ -126,25 +126,21 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
 
     /* Filtros — wrap em 2 linhas quando ha 6 botoes (Todas/Nao lidas/Grupos
        /Individuais/Fixadas/Arquivadas). Cada um ocupa ~33% pra ficar 3+3.
-       Borda externa pra delimitar visualmente o grupo (UX: indicar que sao
-       um conjunto, nao itens soltos). */
+       Cada botao tem sua propria borda vazada pra deixar claro que sao
+       opcoes individuais (nao um grupo unico). */
     .chat-filters {
       display: flex;
       flex-wrap: wrap;
-      gap: 4px;
-      padding: 5px;
-      border: 1px solid rgba(160,180,210,.12);
-      border-radius: 8px;
-      background: transparent;
+      gap: 5px;
     }
     .chat-filter-btn {
-      flex: 1 1 calc(33.333% - 4px);
+      flex: 1 1 calc(33.333% - 5px);
       min-width: 0;
       padding: 5px 6px;
       font-size: .7rem;
       font-weight: 600;
-      border-radius: 6px;
-      border: 1px solid transparent;
+      border-radius: 14px;
+      border: 1px solid rgba(160,180,210,.18);
       background: transparent;
       color: #6B7887;
       cursor: pointer;
@@ -154,8 +150,8 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
       text-overflow: ellipsis;
       transition: all .15s;
     }
-    .chat-filter-btn:hover  { background: rgba(26,58,92,.2); color: #A8BDD4; }
-    .chat-filter-btn.active { background: rgba(26,58,92,.35); color: #D8E4F0; border-color: rgba(160,180,210,.15); }
+    .chat-filter-btn:hover  { background: rgba(26,58,92,.2); color: #A8BDD4; border-color: rgba(160,180,210,.30); }
+    .chat-filter-btn.active { background: rgba(37,99,235,.20); color: #D8E4F0; border-color: rgba(96,165,250,.45); }
 
     /* Filtro de setor (sidebar) */
     .chat-sector-filter {
@@ -1381,12 +1377,10 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
     }
     html[data-theme="light"] .chat-search input::placeholder { color: #94A3B8 !important; }
     html[data-theme="light"] .chat-search-icon { color: #94A3B8 !important; }
-    html[data-theme="light"] .chat-filters {
-      border-color: #E2E8F0 !important;
-    }
     html[data-theme="light"] .chat-filter-btn {
       color: #5A6B7E !important;
       background: transparent !important;
+      border-color: #E2E8F0 !important;
     }
     html[data-theme="light"] .chat-filter-btn:hover {
       color: #1E4A8A !important;
