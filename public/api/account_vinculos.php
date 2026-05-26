@@ -3,6 +3,17 @@
  * API: /api/account_vinculos.php
  * Gerencia vínculos Matriz ↔ Filial.
  *
+ * RESTRIÇÃO POR DESIGN (vs outros lookups):
+ *   Este endpoint aceita SOMENTE accounts.codigo_vinculo (xxxx-xxxx-...) da
+ *   conta matriz. NÃO aceita codigo_advogado nem codigo_vinculo de user.
+ *
+ *   Motivo: vínculo Matriz↔Filial dá acesso à CONTA INTEIRA. Permitir que
+ *   uma filial cole o ADV-XXXXXX de um advogado funcionário da matriz e
+ *   ganhe acesso a toda matriz seria furo de segurança crítico.
+ *
+ *   Padrão geral do sistema: "aceite um ou outro" se aplica a lookups e
+ *   shares pontuais. Vínculo de CONTA é mais restrito.
+ *
  * GET    /api/account_vinculos.php              → lista vínculos da conta atual
  * POST   /api/account_vinculos.php              → filial solicita vínculo com uma matriz
  *          Body: { codigo_vinculo: "abc123", csrf_token: "..." }

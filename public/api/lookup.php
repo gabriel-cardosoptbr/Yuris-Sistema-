@@ -2,14 +2,24 @@
 /**
  * API: /api/lookup.php
  *
- * Busca unificada por código:
+ * Busca unificada por código. Aceita TRÊS formatos diferentes (princípio
+ * geral do sistema: "aceite um ou outro"):
  *   GET ?codigo=XXXX
- *     - tenta accounts.codigo_vinculo  → retorna tipo='conta'
- *     - senão users.codigo_advogado    → retorna tipo='advogado'
+ *     1. accounts.codigo_vinculo  (xxxx-xxxx-xxxx-xxxx) → tipo='conta'
+ *        - Pode ser matriz/filial/advogado solo. Reusa o mesmo formato.
+ *     2. users.codigo_advogado    (ADV-XXXXXX) → tipo='advogado'
+ *        - ID universal do advogado, em qualquer conta.
+ *     3. users.codigo_vinculo     (xxxx-xxxx-xxxx-xxxx) → tipo='advogado'
+ *        - Código pessoal alternativo do user. Aceito por completude.
  *     - senão 404
  *
- * Usado pelo modal de "Adicionar vínculo" para descobrir o que o usuário colou:
- * código de matriz/filial OU código de advogado individual.
+ * REGRA DE NEGÓCIO (importante):
+ *   Advogado solo pode dar QUALQUER um dos 3 e tudo resolve pra mesma conta.
+ *   Matriz/Filial são vinculadas SEMPRE pelo accounts.codigo_vinculo (caso 1)
+ *   — endpoint /api/account_vinculos.php é mais restrito por design (não
+ *   aceita codigo de user pra evitar vincular conta inteira via user random).
+ *
+ * Usado pelo modal de "Adicionar vínculo" para descobrir o que o usuário colou.
  */
 require_once __DIR__ . '/../../app/Models/Database.php';
 require_once __DIR__ . '/../../app/Models/Account.php';
@@ -84,13 +94,17 @@ if ($conta) {
     exit;
 }
 
-// 2) Tenta como advogado individual
+// 2) Tenta como advogado individual.
+//    Aceita 2 campos: codigo_advogado (ADV-XXXXXX, ID universal de advogado)
+//    OU codigo_vinculo (uuid pessoal do user). Ambos identificam a mesma pessoa.
+//    Match unico: o WHERE inteiro só retorna 1 user (LIMIT 1).
 $stmt = $pdo->prepare(
     "SELECT u.id, u.nome, u.login, u.codigo_advogado, u.account_id,
             a.nome AS account_nome, a.tipo AS account_tipo
      FROM users u
      LEFT JOIN accounts a ON a.id = u.account_id
-     WHERE u.codigo_advogado = :codigo AND u.deleted_at IS NULL AND u.status = 'active'
+     WHERE (u.codigo_advogado = :codigo OR u.codigo_vinculo = :codigo)
+       AND u.deleted_at IS NULL AND u.status = 'active'
      LIMIT 1"
 );
 $stmt->execute(['codigo' => $codigo]);
