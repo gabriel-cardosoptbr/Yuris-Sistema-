@@ -421,18 +421,21 @@ $isAdmin    = in_array($userRole, ['owner', 'admin']) || ($_SESSION['user_perfil
         <?php endif; ?>
       </div>
 
-      <!-- Tabs -->
+      <!-- Tabs — data-tab garante que o nome do pane bate certo mesmo quando
+           algumas tabs sao escondidas condicionalmente (ex: advogado nao ve
+           "Vinculos" matriz<->filial). Antes era por posicao no array e
+           quebrava: clicar em "Quem me vinculou" ativava "Compartilhamentos". -->
       <div class="es-tabs">
         <?php if ($accountTipo !== 'advogado'): ?>
-        <button class="es-tab active" onclick="switchTab('vinculos')">Vínculos</button>
-        <button class="es-tab" onclick="switchTab('advogados')">Advogados Associados</button>
+        <button class="es-tab active" data-tab="vinculos"  onclick="switchTab('vinculos')">Vínculos</button>
+        <button class="es-tab"         data-tab="advogados" onclick="switchTab('advogados')">Advogados Associados</button>
         <?php else: ?>
-        <button class="es-tab active" onclick="switchTab('advogados')">Quem me vinculou</button>
+        <button class="es-tab active" data-tab="advogados" onclick="switchTab('advogados')">Quem me vinculou</button>
         <?php endif; ?>
-        <button class="es-tab" onclick="switchTab('compartilhamentos')">Compartilhamentos</button>
-        <button class="es-tab" onclick="switchTab('modulos')">Módulos</button>
+        <button class="es-tab" data-tab="compartilhamentos" onclick="switchTab('compartilhamentos')">Compartilhamentos</button>
+        <button class="es-tab" data-tab="modulos"           onclick="switchTab('modulos')">Módulos</button>
         <?php if ($isAdmin && $accountTipo === 'filial'): ?>
-        <button class="es-tab" onclick="switchTab('solicitar')">Solicitar Vínculo</button>
+        <button class="es-tab" data-tab="solicitar"         onclick="switchTab('solicitar')">Solicitar Vínculo</button>
         <?php endif; ?>
       </div>
 
@@ -859,19 +862,25 @@ function copiarCodigo() {
 }
 
 // ── Tabs ─────────────────────────────────────────────────────────────────────
+// Switch usa data-tab (nao posicao). Funciona mesmo quando algumas tabs sao
+// escondidas via PHP (advogado nao ve "Vinculos" matriz<->filial).
 function switchTab(name) {
-  document.querySelectorAll('.es-tab').forEach((t,i) => {
-    const tabs = ['vinculos','advogados','compartilhamentos','solicitar'];
-    t.classList.toggle('active', tabs[i] === name);
+  // Toggle visual nas tabs — match por data-tab
+  document.querySelectorAll('.es-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === name);
   });
+  // Mostra só o pane correspondente
   document.querySelectorAll('.es-pane').forEach(p => p.classList.remove('active'));
   document.getElementById('pane-' + name)?.classList.add('active');
-  if (name === 'vinculos') carregarVinculos();
+
+  // Dispara loaders só quando entra na aba (lazy)
+  if (name === 'vinculos')          carregarVinculos();
   if (name === 'advogados') {
     carregarAdvogadosVinculos();
     if (ACCOUNT_TIPO !== 'advogado') carregarAdvogados(); // resource_shares legado
   }
   if (name === 'compartilhamentos') carregarShares();
+  if (name === 'modulos')           carregarModulos();
 }
 
 // ── Vínculos ─────────────────────────────────────────────────────────────────
@@ -1625,24 +1634,8 @@ async function confirmarLiberarModulo() {
   }
 }
 
-// ── Hook na switchTab para carregar módulos ───────────────────────────────────
-const _origSwitch = switchTab;
-switchTab = function(name) {
-  // atualiza tabs visualmente (mantém comportamento original)
-  document.querySelectorAll('.es-tab').forEach((t,i) => {
-    const tabs = ['vinculos','advogados','compartilhamentos','modulos','solicitar'];
-    t.classList.toggle('active', tabs[i] === name);
-  });
-  document.querySelectorAll('.es-pane').forEach(p => p.classList.remove('active'));
-  document.getElementById('pane-' + name)?.classList.add('active');
-  if (name === 'vinculos') carregarVinculos();
-  if (name === 'advogados') {
-    carregarAdvogadosVinculos();
-    if (ACCOUNT_TIPO !== 'advogado') carregarAdvogados();
-  }
-  if (name === 'compartilhamentos') carregarShares();
-  if (name === 'modulos') carregarModulos();
-};
+// (Removida 2a versao redundante de switchTab — a unificada em ~linha 862 ja
+//  cobre vinculos/advogados/compartilhamentos/modulos via data-tab.)
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 carregarConta();
