@@ -6,6 +6,7 @@ require_once __DIR__ . '/../app/Models/PushTodayCache.php';
 require_once __DIR__ . '/../app/Models/PushEvent.php';
 require_once __DIR__ . '/../app/Models/PushEventUserStatus.php';
 require_once __DIR__ . '/../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../app/Helpers/MonitorPermission.php';
 
 session_start();
 if (empty($_SESSION['user_id'])) {
@@ -25,6 +26,10 @@ use App\Models\PushEventUserStatus;
 $ctx        = AccountContext::fromSession();
 $accountId  = $ctx->getAccountId();
 $userId     = (int)$_SESSION['user_id'];
+
+// Add-on Monitoramentos: permissão pra exibir/esconder botão "Solicitar"
+$monitorCanCreate  = \App\Helpers\MonitorPermission::canCreate($ctx);
+$monitorCanRequest = \App\Helpers\MonitorPermission::canRequestMonitor($ctx);
 
 $kpiCacheHoje = PushTodayCache::countActive($accountId);
 $kpiNaoLidas  = PushEventUserStatus::countNaoLidas($userId, $accountId);
@@ -1468,8 +1473,16 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
         Use para acompanhar processos específicos (de clientes, casos pontuais). Sua OAB e nome já estão no
         <strong>Meu perfil</strong> acima — não precisa repetir aqui.
       </div>
-      <div style="margin-top:10px;display:flex;gap:8px;">
-        <button class="int-btn primary" id="monNewSubmit">Adicionar processo</button>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="int-btn primary" id="monNewSubmit"
+                <?= $monitorCanCreate ? '' : 'style="display:none"' ?>>
+          Adicionar processo
+        </button>
+        <button class="int-btn"
+                id="monRequestSubmit"
+                style="background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.35); color:#FBBF24;<?= (!$monitorCanCreate && $monitorCanRequest) ? '' : ' display:none;' ?>">
+          Solicitar ao admin
+        </button>
       </div>
     </div>
 
@@ -1503,6 +1516,58 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
       accountId: <?= (int)$accountId ?>,
       userId:    <?= (int)$userId ?>,
       apiBase:   '/sistema_vendas/public/api/push',
+      monitorCanCreate:  <?= $monitorCanCreate  ? 'true' : 'false' ?>,
+      monitorCanRequest: <?= $monitorCanRequest ? 'true' : 'false' ?>,
+    });
+  })();
+
+  // ── Etapa 9 (add-on Monitoramentos) — "Solicitar ao admin" ──
+  // Reaproveita os inputs do form "Monitorar processo específico"
+  // (#monNewProc) pra montar uma solicitação. Por ora suporta tipo='processo';
+  // futuramente OAB/nome via tela /configuracoes/monitoramentos.php.
+  (function () {
+    const btn = document.getElementById('monRequestSubmit');
+    if (!btn) return;
+    const CSRF = <?= json_encode($csrf) ?>;
+    btn.addEventListener('click', async () => {
+      const proc = document.getElementById('monNewProc')?.value.trim() || '';
+      if (!proc) {
+        alert('Informe o número do processo a monitorar antes de solicitar.');
+        return;
+      }
+      const just = prompt(
+        'Justificativa pro admin (opcional):',
+        'Solicito monitoramento deste processo'
+      );
+      if (just === null) return; // user cancelou
+      btn.disabled = true;
+      const txt = btn.textContent;
+      btn.textContent = 'Enviando…';
+      try {
+        const r = await fetch('/sistema_vendas/public/api/push/requests.php', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            _csrf: CSRF,
+            tipo_monitoramento: 'processo',
+            valor_monitorado: proc,
+            justificativa: just || null,
+          })
+        });
+        const data = await r.json();
+        if (!data.ok) {
+          alert(data.error || 'Erro ao solicitar');
+          return;
+        }
+        alert('Solicitação enviada! O admin será notificado.');
+        document.getElementById('monNewProc').value = '';
+      } catch (e) {
+        console.error(e);
+        alert('Falha de rede');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = txt;
+      }
     });
   })();
 </script>

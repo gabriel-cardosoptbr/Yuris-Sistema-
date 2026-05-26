@@ -292,6 +292,10 @@ $advFlag     = MonitorPermission::isAdvogadoAllowedToCreate($accountId);
           <?php if ($isMatriz && $canAllocate): ?>
             <div class="tab" data-tab="distribuir">Distribuir cota</div>
           <?php endif; ?>
+          <div class="tab" data-tab="solicitacoes">
+            Solicitações
+            <span id="reqPendingBadge" style="display:none; margin-left:6px; padding:1px 7px; border-radius:999px; background:#DC2626; color:#FFF; font-size:.7rem;">0</span>
+          </div>
           <div class="tab" data-tab="historico">Histórico</div>
         </div>
 
@@ -385,6 +389,36 @@ $advFlag     = MonitorPermission::isAdvogadoAllowedToCreate($accountId);
           </div>
         <?php endif; ?>
 
+        <!-- ── Aba: Solicitações ──────────────────────────────── -->
+        <div class="tab-panel" data-panel="solicitacoes">
+          <?php if ($ctx->isOwnerOrAdmin() || $ctx->isSuperAdmin()): ?>
+            <div class="alert alert-info">
+              <strong>Caixa de entrada do admin:</strong> aprove ou recuse
+              solicitações de monitoramento feitas por usuários da conta.
+              Aprovar cria o monitor automaticamente.
+            </div>
+          <?php else: ?>
+            <div class="alert alert-info">
+              Aqui você vê o status das suas solicitações de monitoramento.
+              Quando o admin aprovar, o monitor passa a rodar automaticamente.
+            </div>
+          <?php endif; ?>
+
+          <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; align-items:center;">
+            <label class="hint" style="margin:0">Filtro:</label>
+            <select id="reqScope" class="alloc-input" style="width:auto;">
+              <option value="pending">Pendentes</option>
+              <option value="all">Todas</option>
+              <option value="mine">Só as minhas</option>
+            </select>
+            <button class="btn btn-ghost" onclick="loadRequests()">Atualizar</button>
+          </div>
+
+          <div id="requestsWrap">
+            <div class="empty">Carregando…</div>
+          </div>
+        </div>
+
         <!-- ── Aba: Histórico ─────────────────────────────────── -->
         <div class="tab-panel" data-panel="historico">
           <h3 style="font-size:1.02rem;font-weight:600;margin:0 0 12px">Histórico de alocações</h3>
@@ -421,8 +455,14 @@ document.querySelectorAll('#monitTabs .tab').forEach(t => {
     const target = t.dataset.tab;
     document.querySelector(`.tab-panel[data-panel="${target}"]`)?.classList.add('active');
     if (target === 'distribuir' || target === 'historico') loadAllocations();
+    if (target === 'solicitacoes') loadRequests();
   });
 });
+
+// Carrega solicitações em background pra mostrar badge na aba Solicitações
+(function preloadRequests() {
+  loadRequests(true /*quiet*/);
+})();
 
 // ── Flag advogado pode criar ──
 if (CAN_FLIP_FLAG) {
@@ -639,6 +679,120 @@ async function revokeAlloc(id) {
     alert('Falha de rede');
   }
 }
+
+// ── Aba Solicitações ──
+let _reqData = null;
+let _loadingReq = false;
+async function loadRequests(quiet) {
+  if (_loadingReq) return;
+  _loadingReq = true;
+  const wrap = document.getElementById('requestsWrap');
+  const scopeSel = document.getElementById('reqScope');
+  const scope = scopeSel ? scopeSel.value : 'pending';
+  try {
+    const r = await fetch(`/sistema_vendas/public/api/push/requests.php?scope=${encodeURIComponent(scope)}`, {
+      headers: {'Accept':'application/json'}
+    });
+    const data = await r.json();
+    if (!data.ok) {
+      if (!quiet && wrap) wrap.innerHTML = `<div class="empty">Erro: ${escHtml(data.error||'?')}</div>`;
+      return;
+    }
+    _reqData = data;
+    updatePendingBadge();
+    if (!quiet) renderRequests();
+  } catch (e) {
+    if (!quiet && wrap) wrap.innerHTML = `<div class="empty">Falha de rede</div>`;
+  } finally {
+    _loadingReq = false;
+  }
+}
+
+function updatePendingBadge() {
+  const badge = document.getElementById('reqPendingBadge');
+  if (!badge || !_reqData) return;
+  const n = _reqData.counts?.pending || 0;
+  if (n > 0) {
+    badge.style.display = 'inline-block';
+    badge.textContent = String(n);
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function renderRequests() {
+  const wrap = document.getElementById('requestsWrap');
+  if (!wrap || !_reqData) return;
+  const list = _reqData.requests || [];
+  const canApprove = _reqData.can?.approve;
+  if (!list.length) {
+    wrap.innerHTML = `<div class="empty">Nenhuma solicitação encontrada nesse filtro.</div>`;
+    return;
+  }
+  let html = `<table class="filiais-table">
+    <thead><tr>
+      <th>Quando</th><th>Quem</th><th>Pediu</th><th>Justificativa</th><th>Status</th><th style="text-align:right">Ações</th>
+    </tr></thead><tbody>`;
+  for (const r of list) {
+    const pillStatus = {
+      pending:  '<span class="pill" style="background:rgba(245,158,11,.16);color:#FBBF24;border:1px solid rgba(245,158,11,.35);">pendente</span>',
+      approved: '<span class="pill pill-active">aprovada</span>',
+      denied:   '<span class="pill" style="background:rgba(220,38,38,.16);color:#FCA5A5;border:1px solid rgba(220,38,38,.35);">recusada</span>',
+      canceled: '<span class="pill pill-revoked">cancelada</span>',
+    }[r.status] || r.status;
+
+    const acoes = r.status === 'pending'
+      ? (canApprove
+        ? `<button class="btn btn-primary" onclick="resolveRequest(${r.id}, 'approve')">Aprovar</button>
+           <button class="btn btn-danger" onclick="resolveRequest(${r.id}, 'deny')" style="margin-left:6px">Recusar</button>`
+        : `<button class="btn btn-ghost" onclick="resolveRequest(${r.id}, 'cancel')">Cancelar</button>`)
+      : (r.resulting_monitor_id ? `<span class="hint">monitor #${r.resulting_monitor_id}</span>` : '');
+
+    const pediu = `${escHtml(r.tipo_monitoramento)} <strong>${escHtml(r.valor_monitorado)}</strong>`
+      + (r.uf ? ` <span class="hint">/${escHtml(r.uf)}</span>` : '')
+      + (r.nome_complementar ? `<div class="hint">${escHtml(r.nome_complementar)}</div>` : '');
+
+    html += `<tr>
+      <td>${formatDate(r.created_at)}${r.approved_at ? `<div class="hint">resolvida ${formatDate(r.approved_at||r.denied_at)}</div>`:''}</td>
+      <td>${escHtml(r.requesting_user_nome||'?')}</td>
+      <td>${pediu}</td>
+      <td><div class="hint" style="max-width:240px; white-space:pre-wrap;">${escHtml(r.justificativa||'—')}</div>${r.motivo_recusa ? `<div class="hint" style="color:#FCA5A5; margin-top:4px;">${escHtml(r.motivo_recusa)}</div>`:''}</td>
+      <td>${pillStatus}</td>
+      <td style="text-align:right; white-space:nowrap;">${acoes}</td>
+    </tr>`;
+  }
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+}
+
+async function resolveRequest(id, action) {
+  let motivo = null;
+  if (action === 'deny') {
+    motivo = prompt('Motivo da recusa (opcional, mas recomendado):', '');
+    if (motivo === null) return; // cancelou o prompt
+  }
+  if (action === 'cancel') {
+    if (!confirm('Cancelar essa solicitação?')) return;
+  }
+  if (action === 'approve') {
+    if (!confirm('Aprovar e criar o monitor agora?')) return;
+  }
+  try {
+    const r = await fetch(`/sistema_vendas/public/api/push/requests.php?id=${id}`, {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ _csrf: CSRF, action, motivo })
+    });
+    const data = await r.json();
+    if (!data.ok) { alert(data.error || 'Erro'); return; }
+    await loadRequests();
+  } catch (e) {
+    console.error(e);
+    alert('Falha de rede');
+  }
+}
+
+document.getElementById('reqScope')?.addEventListener('change', () => loadRequests());
 
 function escHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({

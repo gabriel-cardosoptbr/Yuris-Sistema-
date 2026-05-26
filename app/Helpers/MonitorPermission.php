@@ -235,6 +235,13 @@ final class MonitorPermission
         }
     }
 
+    public static function assertCanRequestMonitor(AccountContext $ctx): void
+    {
+        if (!self::canRequestMonitor($ctx)) {
+            self::forbid('Sem permissão para solicitar monitoramento.');
+        }
+    }
+
     // ──────────────────────────────────────────────────────────────────
     // Internos
     // ──────────────────────────────────────────────────────────────────
