@@ -123,58 +123,131 @@ final class MonitorQuota
     }
 
     /**
-     * Limite efetivo da conta — resolve hierarquia matriz↔filial e o
-     * modelo híbrido (pool aberto vs alocação fixa).
+     * Escopo de cota — quais accounts compartilham o MESMO pool com $accountId.
+     *
+     * Pra qualquer conta no scope, o limite efetivo é o mesmo e o uso atual
+     * é SOMADO entre todas (D4 reserva inter-tenant, fix cross-tenant 2026-05-26).
+     *
+     * Retorna ['scope' => int[], 'mode' => string, 'matriz_id' => int|null]
+     *   - mode='shared_pool'        → matriz + filiais sem allocation fixa
+     *   - mode='fixed_allocation'   → filial isolada com reserva fixa
+     *   - mode='standalone'         → advogado solo, matriz sem filiais, etc.
+     */
+    public static function getQuotaScope(int $accountId): array
+    {
+        $acc  = self::loadAccountMeta($accountId);
+        $tipo = $acc['tipo'] ?? null;
+
+        // Filial com allocation recebida → escopo isolado, usa só sua reserva
+        if ($tipo === 'filial' && self::hasAllocations($accountId)) {
+            return ['scope' => [$accountId], 'mode' => 'fixed_allocation', 'matriz_id' => null];
+        }
+
+        // Advogado: scope é a própria conta (modelo 1 conta = 1 advogado)
+        // Allocations recebidas por advogado SOMAM ao próprio limit mas não criam pool compartilhado.
+        if ($tipo === 'advogado') {
+            return ['scope' => [$accountId], 'mode' => 'standalone', 'matriz_id' => null];
+        }
+
+        // Matriz: pool = matriz + filiais sem allocation fixa
+        if ($tipo === 'matriz') {
+            return [
+                'scope'     => self::buildSharedPoolScope($accountId),
+                'mode'      => 'shared_pool',
+                'matriz_id' => $accountId,
+            ];
+        }
+
+        // Filial em pool aberto (sem allocation): resolve matriz e usa scope dela
+        if ($tipo === 'filial') {
+            $matrizId = self::resolveMatrizId($accountId);
+            if ($matrizId) {
+                return [
+                    'scope'     => self::buildSharedPoolScope($matrizId),
+                    'mode'      => 'shared_pool',
+                    'matriz_id' => $matrizId,
+                ];
+            }
+        }
+
+        return ['scope' => [$accountId], 'mode' => 'standalone', 'matriz_id' => null];
+    }
+
+    /**
+     * Constrói lista de account_ids no pool aberto da matriz: matriz +
+     * filiais vinculadas com sync_monitoramentos=1 E sem allocation fixa.
+     */
+    private static function buildSharedPoolScope(int $matrizId): array
+    {
+        $scope = [$matrizId];
+        try {
+            $pdo  = Database::getConnection();
+            $stmt = $pdo->prepare(
+                "SELECT av.filial_account_id
+                   FROM account_vinculos av
+                  WHERE av.matriz_account_id   = :mid
+                    AND av.status              = 'active'
+                    AND av.sync_enabled        = 1
+                    AND av.sync_monitoramentos = 1"
+            );
+            $stmt->execute(['mid' => $matrizId]);
+            foreach ($stmt->fetchAll(\PDO::FETCH_COLUMN) as $fid) {
+                $fid = (int) $fid;
+                // Filial com allocation fixa SAI do pool aberto
+                if (self::hasAllocations($fid)) continue;
+                $scope[] = $fid;
+            }
+        } catch (\Throwable $e) { /* fail-soft */ }
+        return array_values(array_unique($scope));
+    }
+
+    /**
+     * Soma allocations ATIVAS dadas POR uma matriz (parent_account_id).
+     * Diferente de getAllocationsReceived (target_account_id).
+     */
+    private static function sumActiveAllocationsFrom(int $parentAccountId): int
+    {
+        try {
+            $pdo  = Database::getConnection();
+            $stmt = $pdo->prepare(
+                "SELECT COALESCE(SUM(allocated), 0)
+                   FROM monitor_quota_allocations
+                  WHERE parent_account_id = :pid
+                    AND status            = 'active'"
+            );
+            $stmt->execute(['pid' => $parentAccountId]);
+            return (int) $stmt->fetchColumn();
+        } catch (\Throwable $e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Limite efetivo da conta — resolve scope (matriz↔filial híbrido).
      *
      * REGRAS:
-     *   • Conta tipo=matriz → own_limit
-     *   • Conta tipo=filial:
-     *       - has_allocations? sim → SOMA allocations recebidas
-     *       - has_allocations? não → own_limit da matriz pai (pool aberto)
-     *         Matriz resolvida via account_vinculos (status='active' AND
-     *         sync_enabled=1 AND sync_monitoramentos=1). accounts.matriz_id
-     *         é legacy — não usado.
-     *   • Conta tipo=advogado → own_limit + allocations recebidas
-     *     (advogado vinculado a host pode receber alocação direta)
-     *   • Default (qualquer outro) → own_limit
-     *
-     * BUG FIX 2026-05-26: usava accounts.matriz_id que vinha NULL pras
-     * filiais reais. Agora resolve via account_vinculos respeitando
-     * sync_monitoramentos (flag adicionada em mig 078).
+     *   • fixed_allocation (filial reservada) → SOMA allocations recebidas
+     *   • shared_pool (matriz + filiais) → own_limit(matriz) - allocations_dadas
+     *   • standalone (advogado, matriz isolada) → own_limit + allocations recebidas
      */
     public static function getEffectiveLimit(int $accountId): int
     {
-        $acc = self::loadAccountMeta($accountId);
-        if ($acc === null) return 0;
+        $sc = self::getQuotaScope($accountId);
 
-        $tipo = $acc['tipo'] ?? null;
-
-        // Matriz raiz
-        if ($tipo === 'matriz') {
-            return self::getOwnLimit($accountId);
+        if ($sc['mode'] === 'fixed_allocation') {
+            return self::getAllocationsReceived($accountId);
         }
 
-        // Filial
-        if ($tipo === 'filial') {
-            if (self::hasAllocations($accountId)) {
-                return self::getAllocationsReceived($accountId);
-            }
-            // Pool aberto — filial usa cota do pai (resolvido por vinculo)
-            $matrizId = self::resolveMatrizId($accountId);
-            if ($matrizId) {
-                return self::getOwnLimit($matrizId);
-            }
-            return self::getOwnLimit($accountId);
+        if ($sc['mode'] === 'shared_pool') {
+            $matrizId = (int) $sc['matriz_id'];
+            $own      = self::getOwnLimit($matrizId);
+            $alloc    = self::sumActiveAllocationsFrom($matrizId);
+            return max(0, $own - $alloc);
         }
 
-        // Advogado solo — soma own + allocations recebidas
-        if ($tipo === 'advogado') {
-            return self::getOwnLimit($accountId)
-                 + self::getAllocationsReceived($accountId);
-        }
-
-        // Fallback genérico
-        return self::getOwnLimit($accountId);
+        // standalone
+        return self::getOwnLimit($accountId)
+             + self::getAllocationsReceived($accountId);
     }
 
     /**
@@ -205,42 +278,50 @@ final class MonitorQuota
     }
 
     /**
-     * Conta os monitors ativos/pausados/erro com consome_cota=1 da conta
-     * (NÃO agrega filiais — chame com escopo expandido se precisar).
-     *
-     * Inclui monitor_requests com status='pending' (D4 aprovada — pending
-     * reserva cota pra evitar race condition).
+     * Conta SÓ os monitors da própria conta (sem agregar scope).
+     * Use quando precisar reportar "quanto ESSA conta está usando" (ex.: linha
+     * da matriz na tabela de divisão, mostrando o uso só da matriz vs filiais).
      */
-    public static function getCurrentUsage(int $accountId): int
+    public static function getOwnUsage(int $accountId): int
     {
         try {
-            $pdo = Database::getConnection();
-
-            // Monitors ativos consumindo cota
+            $pdo  = Database::getConnection();
             $stmt = $pdo->prepare(
-                "SELECT COUNT(*)
-                   FROM push_monitors
-                   WHERE account_id   = :aid
-                     AND consome_cota = 1
-                     AND status IN ('ativo','pausado','erro')"
+                "SELECT COUNT(*) FROM push_monitors
+                  WHERE account_id   = :aid
+                    AND consome_cota = 1
+                    AND status IN ('ativo','pausado','erro')"
             );
             $stmt->execute(['aid' => $accountId]);
             $usados = (int) $stmt->fetchColumn();
 
-            // Requests pendentes reservam vaga (D4)
             $stmt = $pdo->prepare(
-                "SELECT COUNT(*)
-                   FROM monitor_requests
-                   WHERE account_id = :aid
-                     AND status     = 'pending'"
+                "SELECT COUNT(*) FROM monitor_requests
+                  WHERE account_id = :aid AND status = 'pending'"
             );
             $stmt->execute(['aid' => $accountId]);
-            $pending = (int) $stmt->fetchColumn();
-
-            return $usados + $pending;
+            return $usados + (int) $stmt->fetchColumn();
         } catch (\Throwable $e) {
             return 0;
         }
+    }
+
+    /**
+     * Uso EFETIVO da cota — agrega scope (pool aberto = matriz + filiais).
+     *
+     * FIX 2026-05-26 (bloqueador #3 + #5 da auditoria E2E): D4 cross-tenant.
+     *   Antes: cada filial contava só o próprio uso. Pool aberto não somava
+     *   entre filiais nem com a matriz, então 3 filiais podiam estourar a
+     *   cota sem ninguém perceber. Agora qualquer conta do scope vê o uso
+     *   AGREGADO de todas as contas que compartilham o pool.
+     *
+     * Inclui monitor_requests com status='pending' (D4 — pending reserva
+     * vaga pra evitar race condition mesmo cross-tenant).
+     */
+    public static function getCurrentUsage(int $accountId): int
+    {
+        $sc = self::getQuotaScope($accountId);
+        return self::getAggregatedUsage($sc['scope']);
     }
 
     /**

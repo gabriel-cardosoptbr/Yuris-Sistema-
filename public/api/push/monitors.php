@@ -21,11 +21,13 @@ require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
 require_once __DIR__ . '/../../../app/Helpers/MonitorQuota.php';  // Etapa 5
 require_once __DIR__ . '/../../../app/Helpers/MonitorAudit.php';  // Etapa 5
+require_once __DIR__ . '/../../../app/Helpers/MonitorPermission.php'; // audit fix #1
 require_once __DIR__ . '/../../../app/Helpers/BillingGuard.php';
 
 use App\Helpers\AccountContext;
 use App\Helpers\MonitorQuota;
 use App\Helpers\MonitorAudit;
+use App\Helpers\MonitorPermission;
 use App\Models\Database;
 use App\Models\PushMonitor;
 
@@ -99,6 +101,15 @@ try {
                 $uf    = strtoupper($m[1]);
                 $valor = ltrim($m[2], '0');
             }
+
+            // ── Guarda de PERMISSÃO (fix #1 auditoria E2E 2026-05-26) ────
+            // Bloqueia user sem direito de criar monitoramento (D3/D7):
+            //   • owner/admin sempre podem
+            //   • advogado: depende da flag accounts.configuracoes.advogado_pode_criar_monitor
+            //   • user comum: nunca cria direto — só via pedido (POST requests.php)
+            // Antes desse guard, qualquer user com sessão válida e cota
+            // disponível conseguia criar monitor via POST forjado.
+            MonitorPermission::assertCanCreate($ctx);
 
             // ── Guarda de cota (Etapa 5 add-on) ─────────────────────────
             // Bloqueia criação se cota esgotada. Resposta 402 (Payment

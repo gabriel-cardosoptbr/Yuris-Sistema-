@@ -26,6 +26,7 @@ require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
 require_once __DIR__ . '/../../../app/Helpers/MonitorQuota.php';  // Etapa 5 — graceful
 require_once __DIR__ . '/../../../app/Helpers/MonitorAudit.php';
 require_once __DIR__ . '/../../../app/Helpers/BillingGuard.php';
+require_once __DIR__ . '/../../../app/Helpers/MonitorPermission.php'; // audit fix #2 — bypass D3/D7
 
 use App\Helpers\AccountContext;
 use App\Helpers\MonitorQuota;
@@ -130,7 +131,23 @@ try {
 
         $monitorsCreated = [];
         if ($autoMon) {
-            $monitorsCreated = PushUserFiltersHelpers::createMonitorsForUser($pdo, $accountId, $userId, $cur);
+            // Fix #2 (auditoria E2E 2026-05-26): respeita D3/D7. Antes, qualquer
+            // user que salvasse perfil (oab+nome) tinha monitor auto-criado,
+            // mesmo advogado com flag advogado_pode_criar_monitor=false ou user
+            // perfil='user' sem permissão. Graceful — salva o perfil mesmo
+            // sem criar monitor e retorna aviso na resposta.
+            if (!\App\Helpers\MonitorPermission::canCreate($ctx)) {
+                $monitorsCreated[] = [
+                    'tipo'    => 'oab_or_nome',
+                    'valor'   => trim((string)($cur['oab_uf'] ?? '') . (string)($cur['oab'] ?? '')),
+                    'monitor_id' => null,
+                    'novo'    => false,
+                    'label'   => 'sem_permissao',
+                    'warning' => 'Perfil salvo, mas você não tem permissão para criar monitoramentos. Peça ao administrador da conta.',
+                ];
+            } else {
+                $monitorsCreated = PushUserFiltersHelpers::createMonitorsForUser($pdo, $accountId, $userId, $cur);
+            }
         }
 
         echo json_encode([

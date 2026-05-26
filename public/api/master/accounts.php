@@ -15,6 +15,7 @@ require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
 require_once __DIR__ . '/../../../app/Helpers/MonitorQuota.php';   // Etapa 6 add-on
+require_once __DIR__ . '/../../../app/Helpers/BillingGuard.php';   // fix #4 — plan_base/override_sum
 
 use App\Helpers\AccountContext;
 use App\Helpers\ApiResponse;
@@ -85,10 +86,33 @@ if ($method === 'GET') {
         $acc['invoices'] = $invs->fetchAll(\PDO::FETCH_ASSOC);
 
         // ── Monitor add-on (Etapa 6) ─────────────────────────────────────
-        // Estrutura completa: limit, used, available, percent, has_quota.
-        // O modal "Detalhes" usa esse objeto pra mostrar a seção
-        // "MONITORAMENTOS" sem precisar de chamada separada.
-        $acc['monitor_quota'] = MonitorQuota::getQuotaStatus($id);
+        // Estrutura completa: limit, used, available, percent, has_quota
+        // + array `overrides` (compras/grants ativos) — o modal Master
+        // "Detalhes" precisa disso pra renderizar a tabela. Sem o array,
+        // a UI mostrava "Sem contratados" mesmo com purchases ativas
+        // (fix #4 auditoria E2E 2026-05-26).
+        $monStatus = MonitorQuota::getQuotaStatus($id);
+        try {
+            $ovStmt = $pdo->prepare(
+                "SELECT id, limit_value, source, billing_cycle, unit_price_cents,
+                        contract_ref, expires_at, created_at, observacoes
+                   FROM account_quota_overrides
+                  WHERE account_id  = :id
+                    AND feature_key = 'monitors.limit'
+                    AND revoked_at  IS NULL
+                    AND (expires_at IS NULL OR expires_at > NOW())
+                  ORDER BY id DESC"
+            );
+            $ovStmt->execute(['id' => $id]);
+            $monStatus['overrides'] = $ovStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+        } catch (\Throwable $e) {
+            $monStatus['overrides'] = [];
+        }
+        // Inclui detalhamento plan_base / override_sum pra coerência com
+        // /api/push/quota.php e /api/master/quotas.php.
+        $monStatus['plan_base']    = \App\Helpers\BillingGuard::getBaseLimit($id, 'monitors.limit');
+        $monStatus['override_sum'] = \App\Helpers\BillingGuard::getOverrideSum($id, 'monitors.limit');
+        $acc['monitor_quota']      = $monStatus;
 
         ApiResponse::ok($acc);
     }

@@ -143,9 +143,11 @@ function handleGet(PDO $pdo, AccountContext $ctx): void
     // Status da matriz (sempre olhamos do ponto de vista da própria conta
     // — quem chama GET é a matriz; filial vê seu próprio status via
     // /api/push/quota.php).
+    // Usa getOwnUsage (uso SÓ da matriz, sem agregar pool) pra exibição
+    // discriminada — a tabela mostra coluna por conta.
     $own        = MonitorQuota::getOwnLimit($accountId);
     $allocSum   = sumActiveAllocations($pdo, $accountId);
-    $usedMatriz = MonitorQuota::getCurrentUsage($accountId);
+    $usedMatriz = MonitorQuota::getOwnUsage($accountId);
 
     // Lista filiais vinculadas (status=active, sync_monitoramentos=1)
     $filiais = listFiliaisVinculadas($pdo, $accountId);
@@ -157,7 +159,10 @@ function handleGet(PDO $pdo, AccountContext $ctx): void
         $f['allocation_id']  = $alloc['id']         ?? null;
         $f['allocated']      = $alloc['allocated']  ?? 0;
         $f['has_allocation'] = $alloc !== null;
-        $f['current_usage']  = MonitorQuota::getCurrentUsage((int) $f['account_id']);
+        // getOwnUsage (não getCurrentUsage) — queremos uso só dessa filial,
+        // sem somar com outras filiais do pool. A coluna mostra o consumo
+        // específico de cada conta.
+        $f['current_usage']  = MonitorQuota::getOwnUsage((int) $f['account_id']);
     }
     unset($f);
 
