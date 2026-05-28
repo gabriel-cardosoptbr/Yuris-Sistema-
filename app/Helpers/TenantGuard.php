@@ -146,8 +146,11 @@ class TenantGuard
         if (!in_array($method, $methods, true)) return;
 
         // ── 1) Tenta validar via Origin/Referer same-origin ────────────────
-        $host = $_SERVER['HTTP_HOST'] ?? '';
-        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? ($_SERVER['HTTP_HOST'] ?? '');
+        $scheme = $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '';
+        if ($scheme === '') {
+            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        }
         $selfOrigin = $scheme . '://' . $host;
 
         $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
