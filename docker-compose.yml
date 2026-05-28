@@ -1,6 +1,6 @@
 services:
   yuris_app:
-    image: php:8.2-apache
+    build: .
     container_name: yuris_app
     ports:
       - "8081:80"
@@ -9,18 +9,14 @@ services:
     depends_on:
       - yuris_db
     restart: unless-stopped
-    command: >
-      bash -c "
-      a2enmod rewrite &&
-      echo 'ServerName localhost' >> /etc/apache2/apache2.conf &&
-      sed -i 's|^[[:space:]]*DocumentRoot .*|DocumentRoot /var/www/html/public|g' /etc/apache2/sites-available/000-default.conf &&
-      apache2-foreground
-      "
 
   yuris_db:
     image: mysql:8.0
     container_name: yuris_db
     restart: unless-stopped
+    command:
+      - --sql-mode=ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION
+      - --log-bin-trust-function-creators=1
     environment:
       MYSQL_DATABASE: sistema_vendas
       MYSQL_USER: yuris_user
