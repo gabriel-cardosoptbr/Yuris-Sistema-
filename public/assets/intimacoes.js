@@ -1252,11 +1252,14 @@
       if (mutating || body) {
         opts.body = JSON.stringify(Object.assign({ _csrf: this.csrf }, body || {}));
       }
-      // Aceita path absoluto (começa com /sistema_vendas/ ou http) — útil pra
-      // atingir /api/aasp/* ou outros endpoints fora do apiBase do módulo Push.
-      // Paths "/algo.php" são tratados como RELATIVOS ao apiBase (legacy),
-      // senão quebraria '/monitors.php', '/list.php', etc → 404 em localhost root.
-      const isAbs = path.startsWith('/sistema_vendas/') || /^https?:\/\//.test(path);
+      // Aceita path absoluto (começa com /api/, /sistema_vendas/ ou http) — útil
+      // pra atingir /api/aasp/* ou outros endpoints fora do apiBase do módulo Push.
+      // Paths legados tipo "/monitors.php", "/list.php" (sem /api/) seguem sendo
+      // RELATIVOS ao apiBase (vira /api/push/monitors.php), senão quebrariam.
+      // FIX 2026-05-28: o deploy removeu o prefixo /sistema_vendas/, então os
+      // endpoints AASP passaram a ser "/api/aasp/...". Sem reconhecer "/api/" como
+      // absoluto, o apiBase (/api/push) era prependado → /api/push/api/aasp/... (404).
+      const isAbs = /^https?:\/\//.test(path) || path.startsWith('/api/') || path.startsWith('/sistema_vendas/');
       const url = isAbs ? path : (this.apiBase + path);
       const r = await fetch(url, opts);
       const txt = await r.text();
@@ -1264,18 +1267,22 @@
       try {
         json = JSON.parse(txt);
       } catch (_) {
-        // Resposta não-JSON. Detecta HTML do Apache 404/500 e dá mensagem útil
-        // em vez de cuspir <!DOCTYPE><html>...</html> inteiro no UI.
-        const isHtml = /^\s*(<!doctype|<html)/i.test(txt);
-        if (isHtml && r.status === 404) {
-          json = { error: `Endpoint não encontrado (${url}). Refresque a página com Ctrl+F5 — pode ser cache antigo do JavaScript.` };
-        } else if (isHtml) {
-          json = { error: `Servidor retornou HTML (status ${r.status}) em vez de JSON. Verifique logs do Apache.` };
+        // Resposta não-JSON (HTML de erro do Apache, etc). O detalhe técnico
+        // — URL, status, trecho da resposta — vai SÓ pro console (informação
+        // interna da equipe). O usuário final vê uma mensagem curta e amigável,
+        // sem caminho de arquivo, sem "Apache"/"cache do JavaScript", sem HTML cru.
+        console.error('[Intimações] Resposta não-JSON do servidor', {
+          url: url, status: r.status, preview: (txt || '').slice(0, 500),
+        });
+        if (r.status === 404) {
+          json = { error: 'Não foi possível acessar este recurso. Atualize a página e tente novamente.' };
+        } else if (r.status >= 500) {
+          json = { error: 'O servidor teve um problema ao processar a solicitação. Tente novamente em instantes.' };
         } else {
-          json = { error: txt.length > 200 ? txt.slice(0, 200) + '…' : (txt || 'Resposta vazia') };
+          json = { error: 'Não foi possível concluir a operação. Tente novamente.' };
         }
       }
-      if (!r.ok) throw new Error(json.error || ('HTTP ' + r.status));
+      if (!r.ok) throw new Error(json.error || 'Não foi possível concluir a operação. Tente novamente.');
       return json;
     },
 
@@ -1773,7 +1780,7 @@
         if (listEl) {
           listEl.innerHTML = `<div class="int-empty" style="padding:30px 20px;">
             <h3 style="color:#F87171;">Erro ao carregar integrações</h3>
-            <p>${this._esc(err.message)}</p>
+            <p>${this._esc(this._uiErr(err))}</p>
           </div>`;
         }
       }
@@ -2028,7 +2035,7 @@
           </div>`;
       } catch (err) {
         box.className = 'error';
-        box.innerHTML = `<strong>Falhou:</strong> ${this._esc(err.message)}`;
+        box.innerHTML = `<strong>Falhou:</strong> ${this._esc(this._uiErr(err))}`;
       } finally {
         btn.disabled = false;
       }
@@ -2064,7 +2071,7 @@
           await this.loadAaspIntegrations();
         } catch (err) {
           box.className = 'error';
-          box.innerHTML = `<strong>Falhou:</strong> ${this._esc(err.message)}`;
+          box.innerHTML = `<strong>Falhou:</strong> ${this._esc(this._uiErr(err))}`;
         } finally {
           btn.disabled = false;
         }
@@ -2091,7 +2098,7 @@
         await this.loadAaspIntegrations();
       } catch (err) {
         box.className = 'error';
-        box.innerHTML = `<strong>Falhou:</strong> ${this._esc(err.message)}`;
+        box.innerHTML = `<strong>Falhou:</strong> ${this._esc(this._uiErr(err))}`;
       } finally {
         btn.disabled = false;
       }
@@ -2111,6 +2118,20 @@
       return String(s)
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    },
+
+    /* Converte um erro em mensagem curta e amigável pro usuário final.
+       O detalhe técnico (caminho do endpoint, "Failed to fetch", status HTTP,
+       trecho de HTML) já foi logado no console por this.api() — só a equipe
+       interna precisa dele. Aqui evitamos vazar isso na tela. Mensagens do
+       backend que já são amigáveis (em português) passam direto. */
+    _uiErr(err) {
+      const m = (err && err.message ? String(err.message) : '').trim();
+      // Sinais de mensagem técnica → troca por genérica
+      if (!m || /failed to fetch|networkerror|load failed|unexpected token|\.php|https?:\/\/|\/api\/|\bHTTP\s?\d{3}\b|JSON/i.test(m)) {
+        return 'Não foi possível concluir a operação. Tente novamente.';
+      }
+      return m;
     },
 
     /** Pluralização PT-BR: 1 → singular; 0/2+ → plural. */
@@ -2255,7 +2276,7 @@
           });
         });
       } catch (err) {
-        list.innerHTML = `<div style="padding:14px;color:#F87171;font-size:.78rem;text-align:center;">Erro: ${this._esc(err.message)}</div>`;
+        list.innerHTML = `<div style="padding:14px;color:#F87171;font-size:.78rem;text-align:center;">Erro: ${this._esc(this._uiErr(err))}</div>`;
       }
     },
 
