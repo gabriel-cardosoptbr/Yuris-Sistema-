@@ -225,15 +225,89 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
     html[data-theme="light"] .btn-mst { background:#fff!important; color:#0F1F36!important; border-color:#E2E8F0!important; }
     html[data-theme="light"] .btn-mst:hover { background:rgba(37,99,235,.08)!important; color:#1E4A8A!important; border-color:rgba(37,99,235,.30)!important; }
     html[data-theme="light"] .empty { color:#5A6B7E!important; }
+
+    /* ── Light overrides ADICIONAIS (contraste — auditoria 2026-05-28) ─────────
+       Elementos que estavam ilegíveis no tema claro: badges de nível, subtexto
+       dos KPIs, pills de status, banner 2FA, ícones e botões coloridos. */
+    html[data-theme="light"] .mst-badge-super    { background:rgba(168,85,247,.10)!important; color:#6B21A8!important; border-color:rgba(168,85,247,.30)!important; }
+    html[data-theme="light"] .mst-badge-operator { background:rgba(37,99,235,.10)!important;  color:#1E40AF!important; border-color:rgba(37,99,235,.30)!important; }
+    html[data-theme="light"] .mst-badge-viewer   { background:rgba(100,116,139,.12)!important; color:#475569!important; border-color:rgba(100,116,139,.30)!important; }
+
+    html[data-theme="light"] .mst-kpi-foot { color:#5A6B7E!important; }
+
+    html[data-theme="light"] .pill-active,
+    html[data-theme="light"] .pill-paid          { background:rgba(22,163,74,.12)!important;  color:#15803D!important; border-color:rgba(22,163,74,.30)!important; }
+    html[data-theme="light"] .pill-trial,
+    html[data-theme="light"] .pill-trialing      { background:rgba(124,58,237,.12)!important; color:#5B21B6!important; border-color:rgba(124,58,237,.30)!important; }
+    html[data-theme="light"] .pill-overdue,
+    html[data-theme="light"] .pill-past_due,
+    html[data-theme="light"] .pill-uncollectible { background:rgba(220,38,38,.12)!important;  color:#B91C1C!important; border-color:rgba(220,38,38,.30)!important; }
+    html[data-theme="light"] .pill-suspended     { background:rgba(217,119,6,.12)!important;  color:#B45309!important; border-color:rgba(217,119,6,.30)!important; }
+    html[data-theme="light"] .pill-cancelled,
+    html[data-theme="light"] .pill-canceled      { background:rgba(220,38,38,.08)!important;  color:#B91C1C!important; border-color:rgba(220,38,38,.25)!important; }
+    html[data-theme="light"] .pill-inactive,
+    html[data-theme="light"] .pill-void,
+    html[data-theme="light"] .pill-usuario       { background:rgba(100,116,139,.12)!important; color:#475569!important; border-color:rgba(100,116,139,.30)!important; }
+    html[data-theme="light"] .pill-open          { background:rgba(37,99,235,.12)!important;  color:#1E40AF!important; border-color:rgba(37,99,235,.30)!important; }
+    html[data-theme="light"] .pill-matriz        { background:rgba(37,99,235,.12)!important;  color:#1E40AF!important; border-color:rgba(37,99,235,.30)!important; }
+    html[data-theme="light"] .pill-filial        { background:rgba(168,85,247,.12)!important; color:#6B21A8!important; border-color:rgba(168,85,247,.30)!important; }
+    html[data-theme="light"] .pill-advogado      { background:rgba(34,197,94,.12)!important;  color:#15803D!important; border-color:rgba(34,197,94,.30)!important; }
+
+    html[data-theme="light"] .mst-search-ico   { color:#5A6B7E!important; }
+    html[data-theme="light"] .mst-search-empty { color:#5A6B7E!important; }
+    html[data-theme="light"] .mst-form-help    { color:#5A6B7E!important; }
+    html[data-theme="light"] .btn-mst-danger   { color:#B91C1C!important; border-color:rgba(220,38,38,.30)!important; }
+    html[data-theme="light"] .btn-mst-success  { color:#15803D!important; border-color:rgba(22,163,74,.30)!important; }
+
+    /* Banner 2FA (era amarelo claro #fde68a, sumia no fundo claro) */
+    html[data-theme="light"] .mst-mfa-banner { background:linear-gradient(90deg,rgba(217,119,6,.14),rgba(217,119,6,.05))!important; border-bottom-color:rgba(217,119,6,.45)!important; color:#92400E!important; }
+
+    /* ── Botão de alternar tema (claro/escuro) no header ── */
+    .mst-theme-toggle { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:7px; border:1px solid rgba(160,180,210,.20); background:rgba(8,22,44,.6); color:#A8BDD4; cursor:pointer; font-size:.76rem; font-weight:600; transition:all .15s; margin-bottom:8px; margin-right:8px; font-family:inherit; }
+    .mst-theme-toggle:hover { background:rgba(37,99,235,.16); color:#FFFFFF; border-color:rgba(96,165,250,.4); }
+    .mst-theme-toggle svg { width:15px; height:15px; flex-shrink:0; }
+    html[data-theme="light"] .mst-theme-toggle { background:#F1F5F9; color:#0F1F36; border-color:#E2E8F0; }
+    html[data-theme="light"] .mst-theme-toggle:hover { background:rgba(37,99,235,.10); border-color:rgba(37,99,235,.30); color:#1E4A8A; }
   </style>
 </head>
 <body>
 <div class="mst-topbar-exit">
+  <button type="button" id="mstThemeToggle" class="mst-theme-toggle" title="Alternar entre tema claro e escuro">
+    <span class="mst-theme-ico" aria-hidden="true"></span>
+    <span id="mstThemeLabel">Tema claro</span>
+  </button>
   <a href="<?= htmlspecialchars($exitHref) ?>" class="mst-exit" title="<?= htmlspecialchars($exitTitle) ?>"><?= htmlspecialchars($exitLabel) ?></a>
 </div>
+<script>
+/* Alternador de tema do Painel Master — escreve em localStorage.yuris_theme,
+   mesmo mecanismo do boot script (linha ~66) e de configuracoes.php. O botão
+   mostra a AÇÃO: no escuro oferece "Tema claro" (sol); no claro oferece
+   "Tema escuro" (lua). */
+(function(){
+  var btn = document.getElementById('mstThemeToggle');
+  if (!btn) return;
+  var root = document.documentElement;
+  var ico  = btn.querySelector('.mst-theme-ico');
+  var lbl  = document.getElementById('mstThemeLabel');
+  var sun  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
+  var moon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+  function render(){
+    var isLight = root.getAttribute('data-theme') === 'light';
+    ico.innerHTML  = isLight ? moon : sun;
+    lbl.textContent = isLight ? 'Tema escuro' : 'Tema claro';
+  }
+  btn.addEventListener('click', function(){
+    var isLight = root.getAttribute('data-theme') === 'light';
+    if (isLight) { root.removeAttribute('data-theme'); try{ localStorage.setItem('yuris_theme','dark'); }catch(e){} }
+    else         { root.setAttribute('data-theme','light'); try{ localStorage.setItem('yuris_theme','light'); }catch(e){} }
+    render();
+  });
+  render();
+})();
+</script>
 
 <?php if (!$mfaEnabled): ?>
-<div style="background:linear-gradient(90deg,rgba(245,158,11,.18),rgba(245,158,11,.06));border-bottom:1px solid rgba(245,158,11,.40);padding:10px 32px;display:flex;align-items:center;justify-content:space-between;gap:14px;color:#fde68a;font-size:.86rem">
+<div class="mst-mfa-banner" style="background:linear-gradient(90deg,rgba(245,158,11,.18),rgba(245,158,11,.06));border-bottom:1px solid rgba(245,158,11,.40);padding:10px 32px;display:flex;align-items:center;justify-content:space-between;gap:14px;color:#fde68a;font-size:.86rem">
   <div style="display:flex;align-items:center;gap:10px">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
     <strong>2FA não configurado.</strong>
