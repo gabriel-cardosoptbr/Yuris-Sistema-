@@ -147,7 +147,14 @@ class TenantGuard
 
         // ── 1) Tenta validar via Origin/Referer same-origin ────────────────
         $host = $_SERVER['HTTP_HOST'] ?? '';
-        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        // Detecta HTTPS mesmo atrás de proxy reverso / load balancer que termina
+        // o SSL e fala HTTP com o backend (envia X-Forwarded-Proto: https). Sem
+        // isso, $scheme cairia em 'http' e o Origin do browser ('https://...')
+        // nunca casaria → 403 CSRF em produção. Mesma checagem já usada em
+        // AuthController::ensureSessionStarted() e master_login.php.
+        $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+        $scheme = $isHttps ? 'https' : 'http';
         $selfOrigin = $scheme . '://' . $host;
 
         $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
