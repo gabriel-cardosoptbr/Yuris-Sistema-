@@ -651,6 +651,6 @@ window.YURIS_SHOW_ORIGIN_STRIP = true;
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
 <!-- Helper de selects de usuário agrupados por Matriz/Filial (carrega ANTES do tarefas.js) -->
 <script src="/assets/user_select.js?v=2"></script>
-<script src="/assets/tarefas.js?v=13"></script>
+<script src="/assets/tarefas.js?v=14"></script>
 </body>
 </html>

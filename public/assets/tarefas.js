@@ -188,7 +188,11 @@ async function loadBoards(selectId = null) {
     ?? (currentBoard && boards.find(b => b.id === currentBoard.id) ? currentBoard.id : null)
     ?? boards[0].id;
 
-  selectBoard(keepId);
+  // await é essencial: sem ele, loadBoards() resolve antes do quadro carregar
+  // colunas/tarefas, e o setView('kanban') do boot desenharia a tela vazia
+  // (o usuário precisava clicar no Kanban pra forçar o render). Com await, o
+  // boot espera o quadro carregar 100% antes de renderizar.
+  await selectBoard(keepId);
 }
 function renderBoardSelect() {
   const sel = document.getElementById('tkBoardSelect');
