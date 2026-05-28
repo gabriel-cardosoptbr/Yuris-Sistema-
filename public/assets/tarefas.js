@@ -120,6 +120,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   bindDrawer();
   bindModals();
   bindCalendar();
+  // Kanban SEMPRE como visualização inicial ao entrar/recarregar a página:
+  // re-renderiza com os dados já carregados e destaca o botão Kanban.
+  setView('kanban');
 });
 
 /* ── Carregar usuários ────────────────────────────────────────────────────── */
@@ -236,6 +239,19 @@ function _applyOriginFilter(arr) {
     if (origin !== '__matriz__' && origin !== '__filiais__' && oid !== origin) return false;
     return true;
   });
+}
+
+/* setView(view) — troca a visualização ativa (kanban / lista / calendario) de
+   forma centralizada: destaca o botão correspondente (.active), atualiza
+   currentView e re-renderiza. Usada no clique dos botões, no boot da página e ao
+   criar um quadro novo — garantindo que o Kanban venha SEMPRE selecionado por
+   padrão (sem precisar recarregar nem clicar manualmente). */
+function setView(view) {
+  currentView = view;
+  document.querySelectorAll('.tk-view-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.view === view);
+  });
+  renderView();
 }
 
 function renderView() {
@@ -1204,12 +1220,7 @@ function bindTopbar() {
     selectBoard(parseInt(e.target.value));
   });
   document.querySelectorAll('.tk-view-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tk-view-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentView = btn.dataset.view;
-      renderView();
-    });
+    btn.addEventListener('click', () => setView(btn.dataset.view));
   });
   ['fltResponsavel','fltPrioridade','fltPrazo'].forEach(id => {
     document.getElementById(id).addEventListener('change', e => {
@@ -1415,6 +1426,7 @@ function bindModals() {
     document.getElementById('nbNome').value = '';
     if (r.data?.id) {
       await loadBoards(r.data.id); // já seleciona o novo quadro direto
+      setView('kanban');           // quadro novo abre sempre no Kanban
     }
   });
 

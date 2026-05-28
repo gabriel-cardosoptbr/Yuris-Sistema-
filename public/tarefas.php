@@ -111,7 +111,7 @@ try {
       </button>
 
       <div class="tk-view-btns">
-        <button class="tk-view-btn" data-view="kanban">
+        <button class="tk-view-btn active" data-view="kanban">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg>
           Kanban
         </button>
@@ -651,6 +651,6 @@ window.YURIS_SHOW_ORIGIN_STRIP = true;
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
 <!-- Helper de selects de usuário agrupados por Matriz/Filial (carrega ANTES do tarefas.js) -->
 <script src="/assets/user_select.js?v=2"></script>
-<script src="/assets/tarefas.js?v=12"></script>
+<script src="/assets/tarefas.js?v=13"></script>
 </body>
 </html>
