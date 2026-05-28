@@ -455,12 +455,16 @@ class AccountContext
      * conta os usuários em ordem alfabética. Usuários soft-deletados/inativos
      * são omitidos.
      *
-     * @param bool $onlyActive  Se true (default), exclui usuários com status != 'active'
+     * @param bool        $onlyActive  Se true (default), exclui usuários com status != 'active'
+     * @param string|null $module      Se informado (ex: 'tarefas', 'cards', 'processos'),
+     *                                  respeita a flag de sync por-módulo das filiais —
+     *                                  filiais com aquele módulo desligado são omitidas.
+     *                                  Default null = só o toggle mestre de sync.
      * @return array<int, array{id:int,nome:string,account_id:int,account_nome:string,account_tipo:string}>
      */
-    public function getAccessibleUsers(bool $onlyActive = true): array
+    public function getAccessibleUsers(bool $onlyActive = true, ?string $module = null): array
     {
-        $accountIds = $this->getAccessibleAccountIds();
+        $accountIds = $this->getAccessibleAccountIds($module);
         if (empty($accountIds)) return [];
 
         try {

@@ -11,29 +11,12 @@ header('Content-Type: application/json; charset=utf-8');
 
 // Carrega contexto de tenant (aborta 401 se sessão inválida)
 $ctx = AccountContext::fromSession();
-$accessibleAccountIds = $ctx->getAccessibleAccountIds('tarefas');
-if (empty($accessibleAccountIds)) {
-    echo json_encode(['ok' => true, 'data' => []]);
-    exit;
-}
 
-// Filtra usuários apenas das contas acessíveis (matriz + filiais + módulos compartilhados)
-$ph = []; $params = [];
-foreach ($accessibleAccountIds as $i => $aid) {
-    $k = "tu_{$i}";
-    $ph[] = ":{$k}";
-    $params[$k] = (int)$aid;
-}
-
-$pdo  = \App\Models\Database::getConnection();
-$sql  = "SELECT id, nome
-         FROM users
-         WHERE deleted_at IS NULL
-           AND status = 'active'
-           AND account_id IN (" . implode(',', $ph) . ")
-         ORDER BY nome";
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$users = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+// Usuários acessíveis (matriz + filiais vinculadas que mantêm o módulo 'tarefas'
+// ligado), já com metadados {account_id, account_nome, account_tipo} pra
+// suportar o agrupamento Matriz/Filial nos <select> via Yuris.populateUserSelect.
+// Passar 'tarefas' garante que filiais com o sync deste módulo desligado fiquem
+// de fora — mesmo comportamento do antigo getAccessibleAccountIds('tarefas').
+$users = $ctx->getAccessibleUsers(true, 'tarefas');
 
 echo json_encode(['ok' => true, 'data' => $users]);

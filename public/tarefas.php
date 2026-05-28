@@ -49,7 +49,7 @@ try {
   <link rel="stylesheet" href="/assets/yuris-theme.css?v=42">
   <link rel="stylesheet" href="/assets/fog.css">
   <link rel="stylesheet" href="/assets/sidebar.css?v=19">
-  <link rel="stylesheet" href="/assets/tarefas.css?v=10">
+  <link rel="stylesheet" href="/assets/tarefas.css?v=13">
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body {
@@ -649,6 +649,8 @@ window.YURIS_SHOW_ORIGIN_STRIP = true;
 
 <!-- SortableJS: drag-and-drop entre colunas + reordenação intra-coluna (igual Pipeline) -->
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
-<script src="/assets/tarefas.js?v=11"></script>
+<!-- Helper de selects de usuário agrupados por Matriz/Filial (carrega ANTES do tarefas.js) -->
+<script src="/assets/user_select.js?v=2"></script>
+<script src="/assets/tarefas.js?v=12"></script>
 </body>
 </html>

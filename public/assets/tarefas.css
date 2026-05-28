@@ -1227,7 +1227,7 @@ html[data-theme="light"] .tk-field label {
 html[data-theme="light"] .tk-field input,
 html[data-theme="light"] .tk-field select,
 html[data-theme="light"] .tk-field textarea {
-  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
   border: 1px solid #CBD5E1;
   color: #0F172A !important;
   -webkit-text-fill-color: #0F172A !important;
@@ -1482,3 +1482,378 @@ html[data-theme="light"] .tk-history-item strong {
 html[data-theme="light"] .tk-history-dot {
   background: #3B82F6;
 }
+
+/* =============================================================================
+   TEMA CLARO — Topbar, Kanban, Lista, Calendário, Modais e Processuais
+   =============================================================================
+   Adicionado em 2026-05-27. Complementa o bloco anterior (drawer interno)
+   e cobre TUDO o que está fora do drawer: a barra superior, as 3 visões
+   (Kanban/Lista/Calendário), os modais "Novo quadro" e "Nova tarefa", a
+   seção de recorrência e o painel de Tarefas Processuais (.pt-*).
+   ========================================================================== */
+
+/* ── TOPBAR ───────────────────────────────────────────────────────────────── */
+html[data-theme="light"] .tk-topbar {
+  border-bottom-color: rgba(15,23,42,.10);
+}
+html[data-theme="light"] .tk-board-select,
+html[data-theme="light"] .tk-filter-select,
+html[data-theme="light"] .tk-search {
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  color: #0F172A;
+}
+html[data-theme="light"] .tk-search::placeholder {
+  color: #94A3B8;
+}
+html[data-theme="light"] .tk-board-select:focus,
+html[data-theme="light"] .tk-filter-select:focus,
+html[data-theme="light"] .tk-search:focus {
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+}
+html[data-theme="light"] .tk-view-btn {
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  color: #475569;
+}
+html[data-theme="light"] .tk-view-btn.active,
+html[data-theme="light"] .tk-view-btn:hover {
+  background: rgba(59,130,246,.10);
+  border-color: #3B82F6;
+  color: #1D4ED8;
+}
+/* Botões inline da topbar (Editar quadro / Excluir quadro / Colunas) */
+html[data-theme="light"] #tkBtnEditBoard,
+html[data-theme="light"] #tkBtnManageCols {
+  color: #1D4ED8 !important;
+}
+html[data-theme="light"] #tkBtnDelBoard {
+  color: #DC2626 !important;
+}
+
+/* ── KANBAN — Coluna ──────────────────────────────────────────────────────── */
+html[data-theme="light"] .tk-col {
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+}
+html[data-theme="light"] .tk-col-header {
+  border-bottom-color: #E2E8F0;
+}
+html[data-theme="light"] .tk-col-name {
+  color: #0F172A;
+}
+html[data-theme="light"] .tk-col-count {
+  background: #E2E8F0;
+  color: #475569;
+}
+
+/* ── KANBAN — Card ────────────────────────────────────────────────────────── */
+html[data-theme="light"] .tk-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-left: 3px solid transparent;
+  box-shadow: 0 1px 3px rgba(15,23,42,.05);
+}
+html[data-theme="light"] .tk-card:hover {
+  border-color: #CBD5E1;
+  box-shadow: 0 6px 18px rgba(15,23,42,.10);
+}
+html[data-theme="light"] .tk-card.drag-over {
+  border-color: #3B82F6;
+  background: rgba(59,130,246,.05);
+}
+html[data-theme="light"] .tk-card-title {
+  color: #0F172A;
+}
+html[data-theme="light"] .tk-card-meta {
+  color: #64748B;
+}
+html[data-theme="light"] .tk-card-footer {
+  border-top-color: #E2E8F0;
+}
+html[data-theme="light"] .tk-card-icons {
+  color: #64748B;
+}
+html[data-theme="light"] .tk-prazo {
+  color: #64748B;
+}
+html[data-theme="light"] .tk-prazo.atrasado {
+  color: #DC2626;
+}
+html[data-theme="light"] .tk-avatar-sm {
+  background: rgba(59,130,246,.12);
+  border-color: rgba(59,130,246,.30);
+  color: #1D4ED8;
+}
+html[data-theme="light"] .tk-checklist-bar {
+  background: rgba(15,23,42,.08);
+}
+/* Badges de prioridade no card — ajustar contraste com fundo branco */
+html[data-theme="light"] .tk-badge-baixa   { background: rgba(71,85,105,.12);  color: #475569; }
+html[data-theme="light"] .tk-badge-media   { background: rgba(59,130,246,.12); color: #1D4ED8; }
+html[data-theme="light"] .tk-badge-alta    { background: rgba(245,158,11,.15); color: #B45309; }
+html[data-theme="light"] .tk-badge-urgente { background: rgba(239,68,68,.12);  color: #B91C1C; }
+/* Status de recorrência no card */
+html[data-theme="light"] .tk-rec-status {
+  background: rgba(5,150,105,.08);
+  border-color: rgba(5,150,105,.30);
+  color: #047857;
+}
+html[data-theme="light"] .tk-rec-status svg { stroke: #059669; }
+html[data-theme="light"] .tk-rec-badge { color: #2563EB; opacity: .75; }
+
+/* ── KANBAN — Add inline ("+ Adicionar tarefa") ───────────────────────────── */
+html[data-theme="light"] .tk-add-inline {
+  background: transparent;
+  border: 1px dashed #CBD5E1;
+  color: #64748B;
+}
+html[data-theme="light"] .tk-add-inline:hover {
+  border-color: #3B82F6;
+  color: #1D4ED8;
+}
+html[data-theme="light"] .tk-inline-input {
+  background: #FFFFFF;
+  border: 1px solid #3B82F6;
+  color: #0F172A;
+}
+html[data-theme="light"] .tk-btn-ok {
+  background: #2563EB;
+  color: #FFFFFF;
+}
+html[data-theme="light"] .tk-btn-cancel {
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  color: #475569;
+}
+
+/* ── LISTA ────────────────────────────────────────────────────────────────── */
+html[data-theme="light"] .tk-list-row {
+  color: #0F172A;
+  border-bottom-color: #E2E8F0;
+}
+html[data-theme="light"] .tk-list-row:hover {
+  background: rgba(59,130,246,.04);
+}
+html[data-theme="light"] .tk-list-header {
+  color: #475569;
+}
+
+/* ── CALENDÁRIO ───────────────────────────────────────────────────────────── */
+html[data-theme="light"] .tk-cal-nav {
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  color: #475569;
+}
+html[data-theme="light"] .tk-cal-nav:hover {
+  background: #F1F5F9;
+  color: #1E293B;
+}
+html[data-theme="light"] .tk-cal-month {
+  color: #0F172A;
+}
+html[data-theme="light"] .tk-cal-day-label {
+  color: #64748B;
+}
+html[data-theme="light"] .tk-cal-cell {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+}
+html[data-theme="light"] .tk-cal-cell:hover {
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+}
+html[data-theme="light"] .tk-cal-cell.today {
+  border-color: #3B82F6;
+  background: rgba(59,130,246,.04);
+}
+html[data-theme="light"] .tk-cal-num {
+  color: #1E293B;
+}
+html[data-theme="light"] .tk-cal-cell.today .tk-cal-num {
+  color: #2563EB;
+}
+html[data-theme="light"] .tk-cal-dot {
+  background: rgba(59,130,246,.12);
+  color: #1D4ED8;
+}
+
+/* ── MODAL GENÉRICO (Novo quadro, Nova tarefa, Editar quadro, Colunas) ────── */
+html[data-theme="light"] .tk-modal-overlay {
+  background: rgba(15,23,42,.35);
+}
+html[data-theme="light"] .tk-modal {
+  background: linear-gradient(165deg, #FFFFFF 0%, #F8FAFC 100%);
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 24px 60px rgba(15,23,42,.18),
+              0 0 0 1px rgba(59,130,246,.05);
+}
+html[data-theme="light"] .tk-modal h3 {
+  color: #0F172A;
+}
+html[data-theme="light"] .tk-modal label,
+html[data-theme="light"] .tk-modal small {
+  color: #475569;
+}
+/* Inputs do modal — kill autofill com inset shadow igual ao bloco do drawer */
+html[data-theme="light"] .tk-modal input,
+html[data-theme="light"] .tk-modal select,
+html[data-theme="light"] .tk-modal textarea {
+  background-color: #FFFFFF !important;
+  border: 1px solid #CBD5E1 !important;
+  color: #0F172A !important;
+  -webkit-text-fill-color: #0F172A !important;
+  box-shadow: 0 0 0 9999px #FFFFFF inset !important;
+  color-scheme: light;
+}
+html[data-theme="light"] .tk-modal input::placeholder,
+html[data-theme="light"] .tk-modal textarea::placeholder {
+  color: rgba(100,116,139,.55) !important;
+}
+html[data-theme="light"] .tk-modal input:focus,
+html[data-theme="light"] .tk-modal select:focus,
+html[data-theme="light"] .tk-modal textarea:focus {
+  border-color: #3B82F6 !important;
+  box-shadow: 0 0 0 3px rgba(59,130,246,.18),
+              0 0 0 9999px #FFFFFF inset !important;
+}
+html[data-theme="light"] .tk-modal-btn-primary {
+  background: linear-gradient(135deg, #2563EB, #1D4ED8);
+  color: #FFFFFF;
+}
+html[data-theme="light"] .tk-modal-btn-cancel {
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  color: #475569;
+}
+
+/* ── RECORRÊNCIA (toggle e seção dentro do modal Nova tarefa) ─────────────── */
+html[data-theme="light"] .tk-recurrence-section {
+  border: 1px solid #E2E8F0;
+  background: #F8FAFC;
+}
+html[data-theme="light"] .tk-toggle-sw {
+  background: #E2E8F0;
+  border-color: #CBD5E1;
+}
+html[data-theme="light"] .tk-toggle:has(input:checked) .tk-toggle-sw {
+  background: #2563EB;
+  border-color: #3B82F6;
+}
+html[data-theme="light"] .tk-toggle-label {
+  color: #1E293B;
+}
+
+/* ── TAREFAS PROCESSUAIS (.pt-*) — aba inteira sem cobertura antes ────────── */
+html[data-theme="light"] .pt-group {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+}
+html[data-theme="light"] .pt-group-header {
+  background: #F8FAFC;
+  border-bottom-color: #E2E8F0;
+}
+html[data-theme="light"] .pt-group-header:hover {
+  background: #F1F5F9;
+}
+html[data-theme="light"] .pt-chevron {
+  color: #64748B;
+}
+html[data-theme="light"] .pt-group-numero {
+  color: #1D4ED8;
+}
+html[data-theme="light"] .pt-group-cliente {
+  color: #64748B;
+}
+html[data-theme="light"] .pt-group-badge {
+  color: #1D4ED8;
+  background: rgba(59,130,246,.10);
+  border-color: rgba(59,130,246,.25);
+}
+html[data-theme="light"] .pt-item {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+}
+html[data-theme="light"] .pt-item:hover {
+  background: #F8FAFC;
+  border-color: rgba(59,130,246,.25);
+}
+html[data-theme="light"] .pt-titulo {
+  color: #0F172A;
+}
+html[data-theme="light"] .pt-item.pt-done .pt-titulo {
+  color: #94A3B8;
+}
+html[data-theme="light"] .pt-resp,
+html[data-theme="light"] .pt-data {
+  color: #475569;
+  background: rgba(59,130,246,.06);
+  border-color: rgba(59,130,246,.20);
+}
+html[data-theme="light"] .pt-check {
+  background: #FFFFFF;
+  border-color: #CBD5E1;
+}
+html[data-theme="light"] .pt-item.pt-done .pt-check {
+  background: #2563EB;
+  border-color: #2563EB;
+}
+html[data-theme="light"] .pt-bar {
+  background: #E2E8F0;
+}
+html[data-theme="light"] .pt-pct {
+  color: #64748B;
+}
+html[data-theme="light"] .pt-edit-btn {
+  color: #64748B;
+}
+html[data-theme="light"] .pt-edit-btn:hover {
+  color: #1D4ED8;
+  background: rgba(59,130,246,.08);
+}
+
+/* =============================================================================
+   SETA (chevron) de "lista suspensa" nos <select> da aba Tarefas
+   =============================================================================
+   Padrão do sistema: todo <select> tem um chevron no canto direito (definido
+   globalmente em yuris-theme.css). Nos campos de Tarefas ele sumia por 2 motivos:
+     1. as regras de input usam `background:` (shorthand), que reseta o
+        background-image do chevron;
+     2. o "autofill-killer" `box-shadow: inset 9999px #FFF` (necessário nos
+        inputs de texto pra matar o fundo amarelo do Chrome) cobria a setinha.
+   Aqui devolvemos o chevron e removemos o inset shadow SÓ nos selects (que não
+   sofrem autofill). Mesmas cores do resto do sistema: cinza no dark, navy no
+   light. Vem por último no arquivo pra vencer as regras anteriores no empate. */
+.tk-field select,
+.tk-modal select {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ab0c9' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 10px center !important;
+  background-size: 14px !important;
+  padding-right: 32px !important;
+  box-shadow: none !important;
+}
+.tk-field select:focus,
+.tk-modal select:focus {
+  box-shadow: 0 0 0 3px rgba(91,155,213,.25) !important;
+}
+html[data-theme="light"] .tk-field select,
+html[data-theme="light"] .tk-modal select {
+  background-color: #FFFFFF !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231E4A8A' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 10px center !important;
+  background-size: 14px !important;
+  box-shadow: none !important;
+}
+html[data-theme="light"] .tk-field select:focus,
+html[data-theme="light"] .tk-modal select:focus {
+  border-color: #3B82F6 !important;
+  box-shadow: 0 0 0 3px rgba(59,130,246,.18) !important;
+}
+/* "Tipo de prazo" tem o botão "personalizar" (lápis) em right:28px além do
+   chevron em right:10px — padding extra pra os dois não encostarem no texto. */
+#dPrazoTipo { padding-right: 50px !important; }

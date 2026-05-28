@@ -131,15 +131,43 @@ async function loadUsers() {
   } catch(e) { console.warn('users:', e); }
 }
 function populateUserSelects() {
-  const selects = ['fltResponsavel','dResponsavel','ntResponsavel'];
-  selects.forEach(id => {
+  // Usa o helper global Yuris.populateUserSelect (assets/user_select.js), que
+  // agrupa os usuários por conta em <optgroup> "Matriz: X" / "Filial: Y" quando
+  // a lista tem mais de uma conta. Fallback defensivo: se o helper não carregou,
+  // mantém o render simples sem agrupamento.
+  const hasHelper = window.Yuris && typeof window.Yuris.populateUserSelect === 'function';
+
+  const fill = (id, placeholder) => {
     const el = document.getElementById(id);
     if (!el) return;
     const cur = el.value;
-    const opts = id === 'fltResponsavel' ? '<option value="">Responsável</option>' : '<option value="">Sem responsável</option>';
-    el.innerHTML = opts + users.map(u => `<option value="${u.id}">${esc(u.nome)}</option>`).join('');
+    if (hasHelper) {
+      Yuris.populateUserSelect(el, users, { placeholder, selected: cur || null });
+    } else {
+      el.innerHTML = `<option value="">${esc(placeholder)}</option>`
+        + users.map(u => `<option value="${u.id}">${esc(u.nome)}</option>`).join('');
+    }
     el.value = cur;
-  });
+  };
+
+  fill('fltResponsavel', 'Responsável');   // filtro da topbar
+  fill('dResponsavel',   'Sem responsável'); // modal editar tarefa
+  fill('ntResponsavel',  'Sem responsável'); // modal nova tarefa
+}
+
+/* Monta string de <option>/<optgroup> agrupada por Matriz/Filial usando o NOME
+   como value. As tarefas processuais guardam o responsável como texto livre
+   (não FK user_id), por isso usamos o helper central Yuris.buildGroupedOptionsByName
+   (assets/user_select.js). Fallback defensivo se o helper não tiver carregado. */
+function buildProcRespOptions(placeholder, selectedName) {
+  if (window.Yuris && typeof Yuris.buildGroupedOptionsByName === 'function') {
+    return Yuris.buildGroupedOptionsByName(users, { placeholder, selectedName });
+  }
+  const ph = `<option value="">${esc(placeholder)}</option>`;
+  if (!Array.isArray(users) || !users.length) return ph;
+  return ph + users.map(u =>
+    `<option value="${esc(u.nome)}"${selectedName && u.nome === selectedName ? ' selected' : ''}>${esc(u.nome)}</option>`
+  ).join('');
 }
 
 /* ── Carregar quadros ─────────────────────────────────────────────────────── */
@@ -766,9 +794,8 @@ function renderProcTarefas(groups) {
   const iconEdit = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
   const iconVer  = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
 
-  // Monta opções de usuários para o select do add-row
-  const userOpts = `<option value="">— Responsável —</option>` +
-    users.map(u => `<option value="${esc(u.nome)}">${esc(u.nome)}</option>`).join('');
+  // Monta opções de usuários para o select do add-row (agrupado Matriz/Filial)
+  const userOpts = buildProcRespOptions('— Responsável —', null);
 
   body.innerHTML = groups.map(g => {
     const pct   = g.total > 0 ? Math.round((g.concluido / g.total) * 100) : 0;
@@ -914,10 +941,9 @@ window.editProcTarefa = (id) => {
   document.getElementById('ptEditData').value      = taskData.data_tarefa || '';
   document.getElementById('ptEditPrioridade').value= taskData.prioridade || 'media';
 
-  // Monta o select de responsável com os usuários carregados
+  // Monta o select de responsável com os usuários carregados (agrupado Matriz/Filial)
   const selResp = document.getElementById('ptEditResponsavel');
-  selResp.innerHTML = `<option value="">— Nenhum —</option>` +
-    users.map(u => `<option value="${esc(u.nome)}"${u.nome === taskData.responsavel ? ' selected' : ''}>${esc(u.nome)}</option>`).join('');
+  selResp.innerHTML = buildProcRespOptions('— Nenhum —', taskData.responsavel || null);
   // Garante seleção mesmo se nome não estiver na lista (velho dado)
   if (taskData.responsavel && !users.find(u => u.nome === taskData.responsavel)) {
     selResp.innerHTML += `<option value="${esc(taskData.responsavel)}" selected>${esc(taskData.responsavel)}</option>`;

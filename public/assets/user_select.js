@@ -88,4 +88,60 @@
     const aid = Number(accountId);
     return users.filter(u => Number(u.account_id) === aid);
   };
+
+  /**
+   * Yuris.buildGroupedOptionsByName — igual ao populateUserSelect, mas retorna
+   * uma STRING de HTML (<option>/<optgroup>) usando o NOME do usuário como value
+   * em vez do id. Necessário para selects de "responsável" que persistem texto
+   * livre (não FK user_id): tarefas processuais e edição de tarefa de processo.
+   *
+   *   users — [{nome, account_id, account_nome, account_tipo}, ...]
+   *   opts  — { placeholder: string, selectedName: string|null }
+   *
+   * Agrupa em <optgroup label="Matriz: X"/"Filial: Y"> quando há +1 conta.
+   */
+  root.Yuris.buildGroupedOptionsByName = function (users, opts) {
+    opts = opts || {};
+    const placeholder  = (opts.placeholder !== undefined) ? opts.placeholder : '— Selecionar —';
+    const selectedName = opts.selectedName || null;
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (m) => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]
+    ));
+
+    const ph = `<option value="">${esc(placeholder)}</option>`;
+    if (!Array.isArray(users) || users.length === 0) return ph;
+
+    const groups = new Map();
+    users.forEach((u) => {
+      const key = Number(u.account_id || 0);
+      if (!groups.has(key)) {
+        groups.set(key, {
+          label: String(u.account_nome || 'Outros'),
+          tipo:  String(u.account_tipo || ''),
+          list:  []
+        });
+      }
+      groups.get(key).list.push(u);
+    });
+
+    const optFor = (u) => {
+      const sel = (selectedName && u.nome === selectedName) ? ' selected' : '';
+      return `<option value="${esc(u.nome)}"${sel}>${esc(u.nome)}</option>`;
+    };
+
+    // 1 conta → sem optgroup (UI mais limpa)
+    if (groups.size <= 1) return ph + users.map(optFor).join('');
+
+    // Múltiplas → matriz primeiro, filiais alfabéticas
+    const sorted = Array.from(groups.values()).sort((a, b) => {
+      const ta = a.tipo === 'matriz' ? 0 : 1;
+      const tb = b.tipo === 'matriz' ? 0 : 1;
+      if (ta !== tb) return ta - tb;
+      return a.label.localeCompare(b.label, 'pt-BR', { sensitivity: 'base' });
+    });
+    return ph + sorted.map((g) => {
+      const prefix = g.tipo === 'matriz' ? 'Matriz: ' : (g.tipo === 'filial' ? 'Filial: ' : '');
+      return `<optgroup label="${esc(prefix + g.label)}">${g.list.map(optFor).join('')}</optgroup>`;
+    }).join('');
+  };
 })(window);

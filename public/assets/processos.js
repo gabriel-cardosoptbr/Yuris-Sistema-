@@ -965,11 +965,24 @@ document.addEventListener('DOMContentLoaded', ()=>{
     document.getElementById('etTitulo').value= titulo;
     document.getElementById('etData').value  = data || '';
 
+    // Responsável agrupado por Matriz/Filial (helper central user_select.js).
+    // Usa NOME como value porque tarefas de processo guardam responsável em texto.
     const etResp = document.getElementById('etResp');
-    etResp.innerHTML = '<option value="">— Sem responsável —</option>' +
-      _usuariosList.map(u =>
-        `<option value="${u.nome}"${u.nome === resp ? ' selected' : ''}>${u.nome}</option>`
-      ).join('');
+    if (window.Yuris && typeof Yuris.buildGroupedOptionsByName === 'function') {
+      etResp.innerHTML = Yuris.buildGroupedOptionsByName(_usuariosList, {
+        placeholder: '— Sem responsável —',
+        selectedName: resp
+      });
+    } else {
+      etResp.innerHTML = '<option value="">— Sem responsável —</option>' +
+        _usuariosList.map(u =>
+          `<option value="${u.nome}"${u.nome === resp ? ' selected' : ''}>${u.nome}</option>`
+        ).join('');
+    }
+    // Garante a option mesmo se o responsável atual não estiver mais na lista (dado antigo)
+    if (resp && !_usuariosList.find(u => u.nome === resp)) {
+      etResp.innerHTML += `<option value="${resp.replace(/"/g,'&quot;')}" selected>${resp}</option>`;
+    }
 
     const modal = document.getElementById('modalEditTarefa');
     modal.style.display = 'flex';
