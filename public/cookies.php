@@ -51,7 +51,7 @@ banner a qualquer momento clicando em <a href="javascript:if(window.YurisCookies
 <p>Esta Política pode mudar. Quando alteramos categorias ou cookies, o banner volta a aparecer pedindo novo consentimento.</p>
 
 <h2>6. Mais informações</h2>
-<p>Veja nossa <a href="/sistema_vendas/public/privacidade.php">Política de Privacidade</a> completa ou entre em contato com o <a href="/sistema_vendas/public/dpo.php">DPO</a>.</p>
+<p>Veja nossa <a href="/privacidade.php">Política de Privacidade</a> completa ou entre em contato com o <a href="/dpo.php">DPO</a>.</p>
 HTML
 ];
 require __DIR__ . '/includes/legal_page.php';

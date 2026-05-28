@@ -199,7 +199,7 @@ if ($method === 'POST' && ($_GET['action'] ?? null) === 'export') {
     }
 
     $basename = basename($path);
-    $downloadUrl = '/sistema_vendas/public/api/master/lgpd_anonymize.php?action=download&file=' . urlencode($basename);
+    $downloadUrl = '/api/master/lgpd_anonymize.php?action=download&file=' . urlencode($basename);
 
     // Anexa o path na solicitação
     if ($reqId) {

@@ -251,7 +251,7 @@ final class PushMonitorRunner
                     'tipo'       => $tipo,
                     'valor'      => $valor,
                     'count'      => $count,
-                    'url'        => '/sistema_vendas/public/intimacoes.php',
+                    'url'        => '/intimacoes.php',
                 ],
             ]);
         } catch (\Throwable $e) {

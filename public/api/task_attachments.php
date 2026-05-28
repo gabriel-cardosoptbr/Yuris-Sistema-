@@ -101,7 +101,7 @@ if ($method === 'GET') {
     // P0 LGPD: expõe download_url em vez de file_path bruto.
     // Frontend deve usar download_url; nunca montar URL direta a partir de file_path.
     foreach ($rows as &$r) {
-        $r['download_url'] = '/sistema_vendas/public/api/task_attachments.php?action=download&id=' . (int)$r['id'];
+        $r['download_url'] = '/api/task_attachments.php?action=download&id=' . (int)$r['id'];
     }
     unset($r);
     ok($rows);

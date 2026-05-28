@@ -60,7 +60,7 @@
       if (CATEGORIES[cat]?.locked) return; // essenciais não precisam registrar
       const finalidade = 'cookies_' + cat;
       const method     = granted ? 'POST' : 'DELETE';
-      fetch('/sistema_vendas/public/api/legal/consent.php', {
+      fetch('/api/legal/consent.php', {
         method,
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
         credentials: 'same-origin',
@@ -143,8 +143,8 @@
         <div class="ycc-text">
           <strong>Cookies & Privacidade.</strong>
           Usamos cookies essenciais para o login e CSRF, e carregamos fontes/libs de CDN externa que enviam seu IP a terceiros (Google, jsDelivr).
-          Veja nossa <a href="/sistema_vendas/public/cookies.php" target="_blank">Política de Cookies</a>
-          e <a href="/sistema_vendas/public/privacidade.php" target="_blank">Política de Privacidade</a>.
+          Veja nossa <a href="/cookies.php" target="_blank">Política de Cookies</a>
+          e <a href="/privacidade.php" target="_blank">Política de Privacidade</a>.
         </div>
         <div class="ycc-actions">
           <button type="button" data-action="prefs">Preferências</button>

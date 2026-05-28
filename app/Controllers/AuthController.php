@@ -33,7 +33,7 @@ class AuthController
         // ── CSRF ────────────────────────────────────────────────────────────
         if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== ($_SESSION['csrf_token'] ?? '')) {
             $_SESSION['flash_error'] = 'Token inválido.';
-            header('Location: /sistema_vendas/public/login.php');
+            header('Location: /login.php');
             exit;
         }
 
@@ -44,7 +44,7 @@ class AuthController
         // ── Rate limit ──────────────────────────────────────────────────────
         if (self::isRateLimited($ip, $login)) {
             $_SESSION['flash_error'] = 'Muitas tentativas. Tente novamente em 15 minutos.';
-            header('Location: /sistema_vendas/public/login.php');
+            header('Location: /login.php');
             exit;
         }
 
@@ -54,14 +54,14 @@ class AuthController
         if (!$user || !password_verify($password, $user['senha_hash'])) {
             self::logFailedAttempt($ip, $login);
             $_SESSION['flash_error'] = 'Usuário ou senha inválidos.';
-            header('Location: /sistema_vendas/public/login.php');
+            header('Location: /login.php');
             exit;
         }
 
         // Usuário soft-deleted ou status inativo
         if (!empty($user['deleted_at']) || (isset($user['status']) && $user['status'] !== 'active')) {
             $_SESSION['flash_error'] = 'Esta conta está inativa. Contate o administrador.';
-            header('Location: /sistema_vendas/public/login.php');
+            header('Location: /login.php');
             exit;
         }
 
@@ -94,7 +94,7 @@ class AuthController
                     'inactive'  => 'Conta inativa. Contate o suporte.',
                 ];
                 $_SESSION['flash_error'] = $msgMap[$account['status']] ?? 'Conta sem permissão de acesso.';
-                header('Location: /sistema_vendas/public/login.php');
+                header('Location: /login.php');
                 exit;
             }
         }
@@ -164,7 +164,7 @@ class AuthController
             'data' => ['id' => $user['id'], 'nome' => $user['nome'], 'perfil' => $user['perfil'], 'ip' => $ip],
         ]));
 
-        header('Location: /sistema_vendas/public/dashboard.php');
+        header('Location: /dashboard.php');
         exit;
     }
 
@@ -182,7 +182,7 @@ class AuthController
         }
 
         session_destroy();
-        header('Location: /sistema_vendas/public/login.php');
+        header('Location: /login.php');
         exit;
     }
 

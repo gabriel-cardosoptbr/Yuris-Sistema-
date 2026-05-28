@@ -117,9 +117,9 @@ const CI = (() => {
   function parseMentions(text) {
     return esc(text).replace(/@\[(user|proc|card)\|(\d+)\|([^\]]+)\]/g, (_, tipo, id, display) => {
       const urls = {
-        user: '/sistema_vendas/public/usuarios.php',
-        proc: '/sistema_vendas/public/processos.php?open=' + id,
-        card: '/sistema_vendas/public/prospeccao.php?open=' + id,
+        user: '/usuarios.php',
+        proc: '/processos.php?open=' + id,
+        card: '/prospeccao.php?open=' + id,
       };
       const labels = { user: 'Usuário', proc: 'Processo', card: 'Card' };
       return `<a href="${urls[tipo] || '#'}" class="ci-mention ci-mention--${tipo}">` +
@@ -976,9 +976,9 @@ const CI = (() => {
     const out = [];
     const tipoMap = { user: 'usuario', proc: 'processo', card: 'card' };
     const urlMap  = {
-      user: '/sistema_vendas/public/usuarios.php',
-      proc: id => '/sistema_vendas/public/processos.php?id=' + id,
-      card: id => '/sistema_vendas/public/prospeccao.php?card=' + id,
+      user: '/usuarios.php',
+      proc: id => '/processos.php?id=' + id,
+      card: id => '/prospeccao.php?card=' + id,
     };
     let m;
     while ((m = re.exec(texto)) !== null) {

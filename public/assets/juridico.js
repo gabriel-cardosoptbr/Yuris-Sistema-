@@ -16,8 +16,8 @@
  *   juridico.js  → foco estratégico: volume total, produtividade, risco latente, carga por advogado
  */
 document.addEventListener('DOMContentLoaded', () => {
-  const METRICS_API   = '/sistema_vendas/public/api/juridico_metrics.php';
-  const PROCESSES_API = '/sistema_vendas/public/api/processes.php';
+  const METRICS_API   = '/api/juridico_metrics.php';
+  const PROCESSES_API = '/api/processes.php';
 
   // ── Helpers de data ────────────────────────────────────────────────────────
 

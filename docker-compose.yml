@@ -1,0 +1,35 @@
+services:
+  yuris_app:
+    image: php:8.2-apache
+    container_name: yuris_app
+    ports:
+      - "8081:80"
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      - yuris_db
+    restart: unless-stopped
+    command: >
+      bash -c "
+      a2enmod rewrite &&
+      echo 'ServerName localhost' >> /etc/apache2/apache2.conf &&
+      sed -i 's|^[[:space:]]*DocumentRoot .*|DocumentRoot /var/www/html/public|g' /etc/apache2/sites-available/000-default.conf &&
+      apache2-foreground
+      "
+
+  yuris_db:
+    image: mysql:8.0
+    container_name: yuris_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: sistema_vendas
+      MYSQL_USER: yuris_user
+      MYSQL_PASSWORD: yuris_pass
+      MYSQL_ROOT_PASSWORD: root_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - yuris_db_data:/var/lib/mysql
+
+volumes:
+  yuris_db_data:

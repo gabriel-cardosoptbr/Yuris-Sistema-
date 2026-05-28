@@ -162,7 +162,7 @@ class AccountContext
             echo json_encode(['ok' => false, 'error' => $msg, 'code' => 'ACCOUNT_BLOCKED']);
             exit;
         }
-        header('Location: /sistema_vendas/public/login.php?msg=' . urlencode($msg));
+        header('Location: /login.php?msg=' . urlencode($msg));
         exit;
     }
 

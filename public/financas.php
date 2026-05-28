@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once __DIR__ . '/../app/Models/Database.php';
 require_once __DIR__ . '/../app/Models/User.php';
 require_once __DIR__ . '/../app/Models/Account.php';
@@ -6,7 +6,7 @@ require_once __DIR__ . '/../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../app/Helpers/AccountContext.php';
 
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /sistema_vendas/public/login.php'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
 $activePage = 'dre';
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 
@@ -73,13 +73,13 @@ $health_icon         = $margem >= 40 ? '▲' : ($margem >= 15 ? '●' : '▼');
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Finanças — Yuris</title>
-  <link rel="icon" type="image/png" sizes="192x192" href="/sistema_vendas/public/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=42">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=19">
+  <link rel="stylesheet" href="/assets/yuris-theme.css?v=42">
+  <link rel="stylesheet" href="/assets/fog.css">
+  <link rel="stylesheet" href="/assets/sidebar.css?v=19">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     :root {
@@ -786,7 +786,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //  Gestão de Impostos
 // ════════════════════════════════════════════════════════
 (function(){
-  const TAX_API  = '/sistema_vendas/public/api/taxes.php';
+  const TAX_API  = '/api/taxes.php';
   const CSRF     = document.querySelector('[name=csrf_token]')?.value || '';
   const fmt      = v => 'R$ ' + Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
   const escHtml  = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1023,8 +1023,8 @@ window.dreUpdateDonutLegend = function(vals) {
   }
 })();
 </script>
-<script src="/sistema_vendas/public/assets/dre.js?v=<?=filemtime(__DIR__.'/assets/dre.js')?>"></script>
-<script src="/sistema_vendas/public/assets/fog.js"></script>
+<script src="/assets/dre.js?v=<?=filemtime(__DIR__.'/assets/dre.js')?>"></script>
+<script src="/assets/fog.js"></script>
 </body>
 </html>
 

@@ -85,7 +85,7 @@ if ($showUsers) {
             'display'      => $row['nome'],
             'sub'          => ucfirst($row['perfil'] ?? ''),
             'token'        => '@[user|' . $row['id'] . '|' . $row['nome'] . ']',
-            'url'          => '/sistema_vendas/public/usuarios.php',
+            'url'          => '/usuarios.php',
             // Info de organização: usado pelo frontend pra agrupar por conta
             'account_id'   => (int)$row['account_id'],
             'account_nome' => $row['account_nome'] ?? '',
@@ -113,7 +113,7 @@ if ($showProcessos) {
             'display' => $display,
             'sub'     => $row['cliente_nome'] ?? '',
             'token'   => '@[proc|' . $row['id'] . '|' . $display . ']',
-            'url'     => '/sistema_vendas/public/processos.php?open=' . $row['id'],
+            'url'     => '/processos.php?open=' . $row['id'],
         ];
     }
 }
@@ -137,7 +137,7 @@ if ($showCards) {
             'display' => $display,
             'sub'     => $row['empresa_nome'] ?? '',
             'token'   => '@[card|' . $row['id'] . '|' . $display . ']',
-            'url'     => '/sistema_vendas/public/prospeccao.php?open=' . $row['id'],
+            'url'     => '/prospeccao.php?open=' . $row['id'],
         ];
     }
 }

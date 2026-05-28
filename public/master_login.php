@@ -2,7 +2,7 @@
 /**
  * Painel Master — portal de login isolado.
  *
- * URL pública: /sistema_vendas/public/master_login.php
+ * URL pública: /master_login.php
  *
  * Diferenças do login regular (/login.php):
  *   • Só aceita usuários com registro ATIVO em super_admins
@@ -58,7 +58,7 @@ unset($_SESSION['flash_error_master']);
 
 // Se já está logado E é super_admin → atalho direto pro master.php
 if (!empty($_SESSION['user_id']) && !empty($_SESSION['is_super_admin']) && !empty($_SESSION['master_mode'])) {
-    header('Location: /sistema_vendas/public/master.php');
+    header('Location: /master.php');
     exit;
 }
 
@@ -72,13 +72,13 @@ if ($mfaPending && (time() - (int)($mfaPending['started_at'] ?? 0) > 300)) {
     unset($_SESSION['mfa_pending_login']);
     $mfaPending = null;
     $_SESSION['flash_error_master'] = 'Sessão de 2FA expirada. Faça login novamente.';
-    header('Location: /sistema_vendas/public/master_login.php');
+    header('Location: /master_login.php');
     exit;
 }
 
 if ($step === 'otp' && !$mfaPending) {
     // Não há setup pendente; manda pra tela de senha
-    header('Location: /sistema_vendas/public/master_login.php');
+    header('Location: /master_login.php');
     exit;
 }
 
@@ -87,7 +87,7 @@ if ($step === 'otp' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrf = $_POST['csrf_token'] ?? '';
     if (!$csrf || $csrf !== ($_SESSION['csrf_token'] ?? '')) {
         $_SESSION['flash_error_master'] = 'Token inválido. Recarregue a página.';
-        header('Location: /sistema_vendas/public/master_login.php?step=otp');
+        header('Location: /master_login.php?step=otp');
         exit;
     }
 
@@ -104,7 +104,7 @@ if ($step === 'otp' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if ((int)$rl->fetchColumn() >= 5) {
             unset($_SESSION['mfa_pending_login']);
             $_SESSION['flash_error_master'] = 'Muitas tentativas. Tente novamente em 15 minutos.';
-            header('Location: /sistema_vendas/public/master_login.php');
+            header('Location: /master_login.php');
             exit;
         }
     } catch (\Throwable $_e) {}
@@ -130,7 +130,7 @@ if ($step === 'otp' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$sa || !$sa['mfa_secret']) {
         unset($_SESSION['mfa_pending_login']);
         $_SESSION['flash_error_master'] = 'Configuração 2FA inconsistente. Contate suporte.';
-        header('Location: /sistema_vendas/public/master_login.php');
+        header('Location: /master_login.php');
         exit;
     }
 
@@ -162,7 +162,7 @@ if ($step === 'otp' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['flash_error_master'] = $useBackup
             ? 'Backup code inválido ou já utilizado.'
             : 'Código incorreto. Verifique a hora do seu dispositivo.';
-        header('Location: /sistema_vendas/public/master_login.php?step=otp');
+        header('Location: /master_login.php?step=otp');
         exit;
     }
 
@@ -192,7 +192,7 @@ if ($step === 'otp' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             ->execute(['ip' => $ip, 'login' => $rlLogin]);
     } catch (\Throwable $_e) {}
 
-    header('Location: /sistema_vendas/public/master.php');
+    header('Location: /master.php');
     exit;
 }
 
@@ -206,7 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step !== 'otp') {
     // CSRF
     if (!$csrf || $csrf !== ($_SESSION['csrf_token'] ?? '')) {
         $_SESSION['flash_error_master'] = 'Token inválido. Recarregue a página.';
-        header('Location: /sistema_vendas/public/master_login.php');
+        header('Location: /master_login.php');
         exit;
     }
 
@@ -222,7 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step !== 'otp') {
         $rl->execute(['ip' => $ip, 'login' => $rlLogin]);
         if ((int) $rl->fetchColumn() >= 5) {
             $_SESSION['flash_error_master'] = 'Muitas tentativas. Tente novamente em 15 minutos.';
-            header('Location: /sistema_vendas/public/master_login.php');
+            header('Location: /master_login.php');
             exit;
         }
     } catch (\Throwable $_e) {}
@@ -239,7 +239,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step !== 'otp') {
     if (!$user || !password_verify($pwd, $user['senha_hash'])) {
         $registerFail();
         $_SESSION['flash_error_master'] = 'Credenciais inválidas ou acesso negado.';
-        header('Location: /sistema_vendas/public/master_login.php');
+        header('Location: /master_login.php');
         exit;
     }
 
@@ -247,7 +247,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step !== 'otp') {
     if (!empty($user['deleted_at']) || (isset($user['status']) && $user['status'] !== 'active')) {
         $registerFail();
         $_SESSION['flash_error_master'] = 'Credenciais inválidas ou acesso negado.';
-        header('Location: /sistema_vendas/public/master_login.php');
+        header('Location: /master_login.php');
         exit;
     }
 
@@ -264,7 +264,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step !== 'otp') {
     if (!$sa) {
         $registerFail();
         $_SESSION['flash_error_master'] = 'Credenciais inválidas ou acesso negado.';
-        header('Location: /sistema_vendas/public/master_login.php');
+        header('Location: /master_login.php');
         exit;
     }
 
@@ -308,7 +308,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step !== 'otp') {
             'started_at' => time(),
         ]);
         // Não regenera sessão ainda — só após OTP válido
-        header('Location: /sistema_vendas/public/master_login.php?step=otp');
+        header('Location: /master_login.php?step=otp');
         exit;
     }
     // ──────────────────────────────────────────────────────────────────────────
@@ -338,7 +338,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step !== 'otp') {
             ->execute(['ip' => $ip, 'login' => $rlLogin]);
     } catch (\Throwable $_e) {}
 
-    header('Location: /sistema_vendas/public/master.php');
+    header('Location: /master.php');
     exit;
 }
 ?>
@@ -348,7 +348,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step !== 'otp') {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Painel Master — Yuris</title>
-  <link rel="icon" type="image/png" sizes="192x192" href="/sistema_vendas/public/assets/favicon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
@@ -507,9 +507,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step !== 'otp') {
             <input type="checkbox" name="aceite_termos" required style="margin-top:2px;accent-color:#a855f7">
             <span>
               Li e concordo com os
-              <a href="/sistema_vendas/public/termos.php" target="_blank" style="color:#c084fc">Termos de Uso</a>
+              <a href="/termos.php" target="_blank" style="color:#c084fc">Termos de Uso</a>
               e a
-              <a href="/sistema_vendas/public/privacidade.php" target="_blank" style="color:#c084fc">Política de Privacidade</a>.
+              <a href="/privacidade.php" target="_blank" style="color:#c084fc">Política de Privacidade</a>.
             </span>
           </label>
         </div>
@@ -520,13 +520,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step !== 'otp') {
 
     <div class="ml-foot">
       <?php if ($step === 'otp'): ?>
-        <a href="/sistema_vendas/public/master_login.php" onclick="return confirm('Cancelar e voltar ao login?')">← Voltar ao login</a>
+        <a href="/master_login.php" onclick="return confirm('Cancelar e voltar ao login?')">← Voltar ao login</a>
       <?php else: ?>
-        Procurando o app normal? <a href="/sistema_vendas/public/login.php">Ir pro login do sistema</a>
+        Procurando o app normal? <a href="/login.php">Ir pro login do sistema</a>
       <?php endif; ?>
     </div>
   </main>
   <!-- LGPD Etapa 5: banner de cookies -->
-  <script src="/sistema_vendas/public/assets/cookie-consent.js?v=1"></script>
+  <script src="/assets/cookie-consent.js?v=1"></script>
 </body>
 </html>

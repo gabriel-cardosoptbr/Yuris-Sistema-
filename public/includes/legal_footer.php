@@ -24,11 +24,11 @@
       <span style="opacity:.7">Em processo contínuo de adequação à LGPD</span>
     </div>
     <nav style="display: flex; gap: 18px; flex-wrap: wrap;">
-      <a href="/sistema_vendas/public/privacidade.php" style="color: #7eb8f7; text-decoration: none;">Privacidade</a>
-      <a href="/sistema_vendas/public/termos.php"      style="color: #7eb8f7; text-decoration: none;">Termos</a>
-      <a href="/sistema_vendas/public/cookies.php"     style="color: #7eb8f7; text-decoration: none;">Cookies</a>
-      <a href="/sistema_vendas/public/lgpd.php"        style="color: #7eb8f7; text-decoration: none;">LGPD &amp; Segurança</a>
-      <a href="/sistema_vendas/public/dpo.php"         style="color: #7eb8f7; text-decoration: none;">Encarregado (DPO)</a>
+      <a href="/privacidade.php" style="color: #7eb8f7; text-decoration: none;">Privacidade</a>
+      <a href="/termos.php"      style="color: #7eb8f7; text-decoration: none;">Termos</a>
+      <a href="/cookies.php"     style="color: #7eb8f7; text-decoration: none;">Cookies</a>
+      <a href="/lgpd.php"        style="color: #7eb8f7; text-decoration: none;">LGPD &amp; Segurança</a>
+      <a href="/dpo.php"         style="color: #7eb8f7; text-decoration: none;">Encarregado (DPO)</a>
       <a href="javascript:if(window.YurisCookies){YurisCookies.open()}else{location.reload()}"
          style="color: #94a3b8; text-decoration: none;">Gerenciar cookies</a>
     </nav>

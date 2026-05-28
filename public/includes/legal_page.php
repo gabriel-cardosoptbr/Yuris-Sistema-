@@ -32,7 +32,7 @@ $corpo     = $LEGAL_PAGE['corpo_html'] ?? '<p>Conteúdo em revisão.</p>';
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title><?= $titulo ?> — Yuris</title>
-  <link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
   <!-- Boot do tema ANTES de qualquer render — evita flash de tema errado. -->
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
@@ -285,11 +285,11 @@ $corpo     = $LEGAL_PAGE['corpo_html'] ?? '<p>Conteúdo em revisão.</p>';
 <body>
   <div class="legal-shell">
     <div class="legal-header">
-      <a class="legal-brand" href="/sistema_vendas/public/planos.php">
+      <a class="legal-brand" href="/planos.php">
         <img src="/sistema_vendas/Imagens/Logo.png" alt="Yuris">
         <span class="legal-brand-name">Yuris</span>
       </a>
-      <a class="legal-back" href="javascript:history.length>1?history.back():(location.href='/sistema_vendas/public/planos.php')">← Voltar</a>
+      <a class="legal-back" href="javascript:history.length>1?history.back():(location.href='/planos.php')">← Voltar</a>
     </div>
 
     <article class="legal-card">
@@ -310,17 +310,17 @@ $corpo     = $LEGAL_PAGE['corpo_html'] ?? '<p>Conteúdo em revisão.</p>';
 
       <div class="legal-footer">
         <div class="legal-footer-links">
-          <a href="/sistema_vendas/public/privacidade.php">Privacidade</a>
-          <a href="/sistema_vendas/public/termos.php">Termos</a>
-          <a href="/sistema_vendas/public/cookies.php">Cookies</a>
-          <a href="/sistema_vendas/public/lgpd.php">LGPD & Segurança</a>
-          <a href="/sistema_vendas/public/dpo.php">Contato DPO</a>
+          <a href="/privacidade.php">Privacidade</a>
+          <a href="/termos.php">Termos</a>
+          <a href="/cookies.php">Cookies</a>
+          <a href="/lgpd.php">LGPD & Segurança</a>
+          <a href="/dpo.php">Contato DPO</a>
         </div>
         <div>© <?= date('Y') ?> Yuris — Sistema jurídico SaaS</div>
       </div>
     </article>
   </div>
   <!-- LGPD Etapa 5: banner de cookies -->
-  <script src="/sistema_vendas/public/assets/cookie-consent.js?v=1"></script>
+  <script src="/assets/cookie-consent.js?v=1"></script>
 </body>
 </html>

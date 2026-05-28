@@ -47,7 +47,7 @@ function parseNumberFlexible(v){
 // Busca todos os cards do CRM — usado como fallback quando a API do dashboard não retorna closed_by_month
 async function fetchAllCards(){
   try{
-    const res = await fetch('/sistema_vendas/public/api/cards.php', { credentials: 'same-origin' });
+    const res = await fetch('/api/cards.php', { credentials: 'same-origin' });
     const j = await res.json();
     console.log('API dashboard response', j);
     return j && j.data ? j.data : [];
@@ -84,7 +84,7 @@ async function loadDashboard(start, end){
   try{
     const statusEl = document.getElementById('dashboardStatus');
     if (statusEl) { statusEl.textContent = 'Carregando dados...'; statusEl.style.color = '#6B7887'; }
-    let url = '/sistema_vendas/public/api/dashboard.php';
+    let url = '/api/dashboard.php';
     // Propaga filtro de origem (matriz/filial) lido da URL — mantém API sincronizada
     // com a seleção exibida no header (ver dashboard.php → dashFilterOrigin).
     const pageQs = new URLSearchParams(window.location.search);
@@ -326,7 +326,7 @@ function monthToRange(monthStr){
 // Persiste o período selecionado na sessão do servidor e recarrega o dashboard
 async function saveAndLoad(start, end){
   try{
-    await fetch('/sistema_vendas/public/api/dashboard_settings.php', {method:'POST', credentials: 'same-origin', headers:{'Content-Type':'application/json'}, body: JSON.stringify({start: start || '', end: end || ''})});
+    await fetch('/api/dashboard_settings.php', {method:'POST', credentials: 'same-origin', headers:{'Content-Type':'application/json'}, body: JSON.stringify({start: start || '', end: end || ''})});
   } catch(err){ console.error('save settings err', err); }
   await loadDashboard(start || null, end || null);
   updateMetaWidgetForSelectedMonth();
@@ -382,7 +382,7 @@ if (_clearRange) {
 // on load, fetch current settings to prefill selectors and load dashboard
 (async function(){
   try{
-    const res = await fetch('/sistema_vendas/public/api/dashboard_settings.php', { credentials: 'same-origin' });
+    const res = await fetch('/api/dashboard_settings.php', { credentials: 'same-origin' });
     const j = await res.json();
     if (j.start) {
       const d = new Date(j.start);
@@ -410,7 +410,7 @@ function fmtCurrency(n){ return currency.format(Number(n||0)); }
 // Busca a meta global do usuário (tipo single, sem filtro de período)
 async function getCurrentGoal(){
   try{
-    const res = await fetch('/sistema_vendas/public/api/goals.php?_=' + Date.now(), { credentials: 'same-origin' });
+    const res = await fetch('/api/goals.php?_=' + Date.now(), { credentials: 'same-origin' });
     const arr = await res.json();
     return (arr && arr.length) ? arr[0] : null;
   } catch(err){ return null; }
@@ -600,7 +600,7 @@ async function submitGoalForm(e){
     if (parsedVal < 0) return alert('Valor deve ser >= 0');
     let res, jr;
     // sempre POST — backend faz upsert no registro mais recente do usuário
-    res = await fetch('/sistema_vendas/public/api/goals.php', {method:'POST', credentials: 'same-origin', headers:{'Content-Type':'application/json'}, body: JSON.stringify({valor_meta: parsedVal})});
+    res = await fetch('/api/goals.php', {method:'POST', credentials: 'same-origin', headers:{'Content-Type':'application/json'}, body: JSON.stringify({valor_meta: parsedVal})});
     jr = await res.json();
     console.log('save goal response', res.status, jr);
     let savedSuccessfully = false;

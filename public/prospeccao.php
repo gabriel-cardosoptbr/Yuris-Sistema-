@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once __DIR__ . '/../app/Models/Database.php';
 require_once __DIR__ . '/../app/Models/PipelineColumn.php';
 require_once __DIR__ . '/../app/Models/Account.php';
@@ -13,7 +13,7 @@ use App\Helpers\UserOptions;
 
 session_start();
 if (empty($_SESSION['user_id'])) {
-    header('Location: /sistema_vendas/public/login.php');
+    header('Location: /login.php');
     exit;
 }
 // HARDENING: bloqueia acesso de contas suspensas/canceladas/inativas
@@ -101,13 +101,13 @@ function column_display_name(array $col): string
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Central de Prospecção Jurídica - Yuris</title>
-  <link rel="icon" type="image/png" sizes="192x192" href="/sistema_vendas/public/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=42">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=19">
+  <link rel="stylesheet" href="/assets/yuris-theme.css?v=42">
+  <link rel="stylesheet" href="/assets/fog.css">
+  <link rel="stylesheet" href="/assets/sidebar.css?v=19">
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
   <style>
     :root {
@@ -1399,7 +1399,7 @@ function column_display_name(array $col): string
   </div>
 
   <script>
-    const apiCards = '/sistema_vendas/public/api/cards.php';
+    const apiCards = '/api/cards.php';
     const csrf = '<?=htmlspecialchars($csrf)?>';
     const usersMap = <?=json_encode($usersMap, JSON_UNESCAPED_UNICODE)?>;
     let columnsCache = <?=json_encode($columns, JSON_UNESCAPED_UNICODE)?>;
@@ -1652,7 +1652,7 @@ function column_display_name(array $col): string
           '<div class="card-actions">' +
             '<button type="button" class="wa-btn js-whatsapp ' + (hasWhatsapp ? '' : 'disabled') + '" data-phone="' + escapeHtml(card.telefone_whatsapp || '') + '">' + (hasWhatsapp ? 'WhatsApp' : 'Sem WhatsApp') + '</button>' +
             (card.linked_chat_jid
-              ? '<a href="/sistema_vendas/public/chat.php?jid=' + encodeURIComponent(card.linked_chat_jid) + '" class="chat-link-btn" title="Abrir conversa no Chat" onclick="event.stopPropagation()">' +
+              ? '<a href="/chat.php?jid=' + encodeURIComponent(card.linked_chat_jid) + '" class="chat-link-btn" title="Abrir conversa no Chat" onclick="event.stopPropagation()">' +
                   '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.38 1.27 4.79L2.05 22l5.38-1.37c1.37.74 2.93 1.16 4.61 1.16 5.45 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.13-2.9-7A9.83 9.83 0 0 0 12.04 2z"/></svg>' +
                   'Chat</a>'
               : '') +
@@ -1957,7 +1957,7 @@ function column_display_name(array $col): string
 
     async function refreshColumnHeaders() {
       try {
-        const res = await fetch('/sistema_vendas/public/api/columns.php');
+        const res = await fetch('/api/columns.php');
         const json = await res.json();
         columnsCache = json.data || [];
         _pipelineInherited = !!json.inherited;
@@ -2053,7 +2053,7 @@ function column_display_name(array $col): string
       const reorder = rows.map((row, index) => ({ id: Number(row.getAttribute('data-id')), ordem: index }));
       if (!reorder.length) return;
 
-      const res = await fetch('/sistema_vendas/public/api/card_checklist.php', {
+      const res = await fetch('/api/card_checklist.php', {
         method: 'PATCH',
         headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf},
         body: JSON.stringify({ card_id: Number(cardId), reorder: reorder, csrf_token: csrf })
@@ -2083,7 +2083,7 @@ function column_display_name(array $col): string
     }
 
     async function loadChecklist(cardId) {
-      const res = await fetch('/sistema_vendas/public/api/card_checklist.php?card_id=' + cardId);
+      const res = await fetch('/api/card_checklist.php?card_id=' + cardId);
       const json = await res.json();
       const items = json.data || [];
       const container = byId('checklistItems');
@@ -2171,7 +2171,7 @@ function column_display_name(array $col): string
             </div>
             <div style="font-size:.78rem;color:#9ab0c9">${escapeHtml(label)}</div>
           </div>
-          <a href="/sistema_vendas/public/chat.php?jid=${encodeURIComponent(jid)}"
+          <a href="/chat.php?jid=${encodeURIComponent(jid)}"
              style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:rgba(37,211,102,.15);border:1px solid rgba(37,211,102,.35);border-radius:8px;color:#6ee7b7;font-size:.8rem;font-weight:600;text-decoration:none;white-space:nowrap;transition:background .15s"
              onmouseover="this.style.background='rgba(37,211,102,.28)'" onmouseout="this.style.background='rgba(37,211,102,.15)'"
           ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
@@ -2184,7 +2184,7 @@ function column_display_name(array $col): string
       if (!el || !cardId) return;
       el.innerHTML = '<div style="color:#9ab0c9;font-size:.82rem">Carregando...</div>';
       try {
-        const r = await fetch(`/sistema_vendas/public/api/processes.php?card_id=${encodeURIComponent(cardId)}`, {credentials:'same-origin'});
+        const r = await fetch(`/api/processes.php?card_id=${encodeURIComponent(cardId)}`, {credentials:'same-origin'});
         const data = await r.json();
         const procs = Array.isArray(data) ? data : (data.data || []);
         el.innerHTML = procs.length ? procs.map(p => {
@@ -2194,7 +2194,7 @@ function column_display_name(array $col): string
               <div style="font-size:.85rem;font-weight:600;color:#e2f0ff">${p.numero||'Processo'} — ${p.tipo_acao||'—'}</div>
               <div style="font-size:.75rem;color:#9ab0c9">${p.status||''} · Prazo: ${prazo}</div>
             </div>
-            <a href="/sistema_vendas/public/processos.php?open=${p.id}" style="font-size:.75rem;color:#60a5fa;white-space:nowrap">Ver →</a>
+            <a href="/processos.php?open=${p.id}" style="font-size:.75rem;color:#60a5fa;white-space:nowrap">Ver →</a>
             <button type="button" onclick="_desvincularProcesso(${p.id})" title="Desvincular processo"
                     style="background:transparent;border:1px solid rgba(239,68,68,.3);color:#fca5a5;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:.72rem;white-space:nowrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
           </div>`;
@@ -2207,7 +2207,7 @@ function column_display_name(array $col): string
     // Desvincular processo (remove o card_id do processo)
     window._desvincularProcesso = async (processId) => {
       if (!(await Yuris.confirm('Desvincular este processo do cliente?', { okLabel: 'Desvincular' }))) return;
-      await fetch('/sistema_vendas/public/api/processes.php', {
+      await fetch('/api/processes.php', {
         method: 'PUT', credentials: 'same-origin',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({id: processId, card_id: null})
@@ -2256,7 +2256,7 @@ function column_display_name(array $col): string
 
     // Vincula o processo ao card atual
     window._vincularProcesso = async (processId) => {
-      await fetch('/sistema_vendas/public/api/processes.php', {
+      await fetch('/api/processes.php', {
         method: 'PUT', credentials: 'same-origin',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({id: processId, card_id: _currentCardId})
@@ -2265,7 +2265,7 @@ function column_display_name(array $col): string
       if (_currentCardId) {
         await loadProcessosDoCliente(_currentCardId);
         // Recarrega cache e re-renderiza
-        const r2 = await fetch('/sistema_vendas/public/api/processes.php', {credentials:'same-origin'});
+        const r2 = await fetch('/api/processes.php', {credentials:'same-origin'});
         const d2 = await r2.json();
         _allProcsCache = Array.isArray(d2) ? d2 : (d2.data || []);
         _renderProcessoLista(document.getElementById('processoSearchInput')?.value || '');
@@ -2282,7 +2282,7 @@ function column_display_name(array $col): string
       setTimeout(() => document.getElementById('processoSearchInput')?.focus(), 50);
       // Carrega todos os processos
       try {
-        const r = await fetch('/sistema_vendas/public/api/processes.php', {credentials:'same-origin'});
+        const r = await fetch('/api/processes.php', {credentials:'same-origin'});
         const d = await r.json();
         _allProcsCache = Array.isArray(d) ? d : (d.data || []);
         _renderProcessoLista('');
@@ -2308,7 +2308,7 @@ function column_display_name(array $col): string
     document.getElementById('btnCriarProcessoCliente')?.addEventListener('click', () => {
       if (!_currentCardId) return;
       // Navega para processos.php passando o card_id para pré-selecionar o cliente
-      window.location.href = `/sistema_vendas/public/processos.php?new_card_id=${_currentCardId}`;
+      window.location.href = `/processos.php?new_card_id=${_currentCardId}`;
     });
 
     async function openEditModal(cardId) {
@@ -2565,7 +2565,7 @@ function column_display_name(array $col): string
         const cardId = getCurrentCardId();
         if (!text || !cardId) return;
 
-        const res = await fetch('/sistema_vendas/public/api/card_checklist.php', {
+        const res = await fetch('/api/card_checklist.php', {
           method: 'POST',
           headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf},
           body: JSON.stringify({ card_id: cardId, descricao: text, csrf_token: csrf })
@@ -2588,7 +2588,7 @@ function column_display_name(array $col): string
           const itemId = removeBtn.getAttribute('data-del-id');
           if (!(await Yuris.confirm('Remover item do checklist?', { danger: true, okLabel: 'Remover' }))) return;
 
-          const res = await fetch('/sistema_vendas/public/api/card_checklist.php', {
+          const res = await fetch('/api/card_checklist.php', {
             method: 'DELETE',
             headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf},
             body: JSON.stringify({ id: itemId, csrf_token: csrf })
@@ -2623,7 +2623,7 @@ function column_display_name(array $col): string
             if (save) {
               const next = input.value.trim();
               if (next && next !== current) {
-                const res = await fetch('/sistema_vendas/public/api/card_checklist.php', {
+                const res = await fetch('/api/card_checklist.php', {
                   method: 'PATCH',
                   headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf},
                   body: JSON.stringify({ id: itemId, descricao: next, csrf_token: csrf })
@@ -2661,7 +2661,7 @@ function column_display_name(array $col): string
         if (!chk) return;
         const itemId = chk.getAttribute('data-check-id');
 
-        const res = await fetch('/sistema_vendas/public/api/card_checklist.php', {
+        const res = await fetch('/api/card_checklist.php', {
           method: 'PATCH',
           headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf},
           body: JSON.stringify({ id: itemId, marcado: chk.checked, csrf_token: csrf })
@@ -2682,7 +2682,7 @@ function column_display_name(array $col): string
     function initColumnsHandlers() {
       byId('addColumnBtn').addEventListener('click', async function() {
         const payload = { nome: 'Nova Coluna', cor: '#084779', csrf_token: csrf };
-        const res = await fetch('/sistema_vendas/public/api/columns.php', {
+        const res = await fetch('/api/columns.php', {
           method: 'POST',
           headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf},
           body: JSON.stringify(payload)
@@ -2705,7 +2705,7 @@ function column_display_name(array $col): string
           const nome = rows[i].querySelector('.col-name').value.trim();
           const cor = rows[i].querySelector('.col-color').value || '#EEEEEE';
 
-          await fetch('/sistema_vendas/public/api/columns.php', {
+          await fetch('/api/columns.php', {
             method: 'PUT',
             headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf},
             body: JSON.stringify({ id: id, nome: nome, cor: cor, ordem: i, csrf_token: csrf })
@@ -2725,7 +2725,7 @@ function column_display_name(array $col): string
         if (!id) return;
         if (!(await Yuris.confirm('Excluir coluna?\n\nOs cards nessa etapa serão afetados.', { danger: true, okLabel: 'Excluir' }))) return;
 
-        const res = await fetch('/sistema_vendas/public/api/columns.php', {
+        const res = await fetch('/api/columns.php', {
           method: 'DELETE',
           headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf},
           body: JSON.stringify({ id: id, csrf_token: csrf })
@@ -2743,7 +2743,7 @@ function column_display_name(array $col): string
     }
 
     async function loadColumnsList() {
-      const res = await fetch('/sistema_vendas/public/api/columns.php');
+      const res = await fetch('/api/columns.php');
       const json = await res.json();
       const cols = json.data || [];
       const list = byId('columnsList');
@@ -2880,7 +2880,7 @@ function column_display_name(array $col): string
     bindCalendarButtons();
   </script>
   <script src="assets/dashboard.js?v=13"></script>
-  <script src="/sistema_vendas/public/assets/fog.js"></script>
+  <script src="/assets/fog.js"></script>
 </body>
 </html>
 

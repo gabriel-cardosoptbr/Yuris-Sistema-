@@ -1,7 +1,7 @@
 /* tarefas.js — Lógica completa do módulo Tarefas YURIS */
 'use strict';
 
-const BASE  = '/sistema_vendas/public/api';
+const BASE  = '/api';
 const CSRF  = window.YURIS_CSRF;
 const ME_ID = window.YURIS_USER_ID;
 
@@ -772,7 +772,7 @@ function renderProcTarefas(groups) {
 
   body.innerHTML = groups.map(g => {
     const pct   = g.total > 0 ? Math.round((g.concluido / g.total) * 100) : 0;
-    const url   = `/sistema_vendas/public/processos.php?open=${g.processo_id}`;
+    const url   = `/processos.php?open=${g.processo_id}`;
     const itens = g.tarefas.map(t => {
       // Serializa os dados da tarefa para o atributo data-task (usado pelo modal de edição)
       const taskJson = esc(JSON.stringify({
@@ -944,22 +944,22 @@ function renderLinks(links) {
   const typeConfig = {
     processo:    {
       label: 'Processos', color: '#3b82f6', rgb: '59,130,246',
-      url: l => `/sistema_vendas/public/processos.php?open=${l.link_id}`,
+      url: l => `/processos.php?open=${l.link_id}`,
       icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
     },
     contato:     {
       label: 'Clientes', color: '#10b981', rgb: '16,185,129',
-      url: l => `/sistema_vendas/public/prospeccao.php?contato=${l.link_id}`,
+      url: l => `/prospeccao.php?contato=${l.link_id}`,
       icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
     },
     card:        {
       label: 'Cards CRM', color: '#8b5cf6', rgb: '139,92,246',
-      url: l => `/sistema_vendas/public/prospeccao.php?open=${l.link_id}`,
+      url: l => `/prospeccao.php?open=${l.link_id}`,
       icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
     },
     dre_account: {
       label: 'Contas DRE', color: '#f59e0b', rgb: '245,158,11',
-      url: l => `/sistema_vendas/public/financas.php`,
+      url: l => `/financas.php`,
       icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
     },
   };

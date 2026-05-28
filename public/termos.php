@@ -11,7 +11,7 @@ $LEGAL_PAGE = [
 <h2>1. Aceitação</h2>
 <p>Ao criar conta, acessar ou utilizar o Yuris, você declara ter lido, entendido
 e concordado com estes Termos de Uso e com a
-<a href="/sistema_vendas/public/privacidade.php">Política de Privacidade</a>.
+<a href="/privacidade.php">Política de Privacidade</a>.
 Caso não concorde, não utilize o serviço.</p>
 
 <h2>2. Definições</h2>
@@ -27,7 +27,7 @@ Caso não concorde, não utilize o serviço.</p>
 
 <h2>4. Planos, pagamento e renovação</h2>
 <ul>
-  <li>Os planos vigentes, valores e funcionalidades estão disponíveis na <a href="/sistema_vendas/public/planos.php">página de planos</a>.</li>
+  <li>Os planos vigentes, valores e funcionalidades estão disponíveis na <a href="/planos.php">página de planos</a>.</li>
   <li>O pagamento é realizado conforme periodicidade contratada (mensal ou anual).</li>
   <li>Inadimplência por mais de 7 dias pode resultar em suspensão de acesso; após 30 dias, cancelamento.</li>
   <li>Cancelamento pode ser solicitado a qualquer momento; faturas em aberto continuam devidas.</li>
@@ -79,7 +79,7 @@ Caso não concorde, não utilize o serviço.</p>
 <p>Fica eleito o foro da Comarca da sede da Inovaize para dirimir controvérsias decorrentes destes Termos, com renúncia a qualquer outro, por mais privilegiado que seja.</p>
 
 <h2>12. Contato</h2>
-<p>Suporte: através do canal indicado na plataforma. Encarregado de Dados (DPO): <a href="/sistema_vendas/public/dpo.php">consulte aqui</a>.</p>
+<p>Suporte: através do canal indicado na plataforma. Encarregado de Dados (DPO): <a href="/dpo.php">consulte aqui</a>.</p>
 HTML
 ];
 require __DIR__ . '/includes/legal_page.php';

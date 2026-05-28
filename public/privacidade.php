@@ -88,7 +88,7 @@ ao longo do uso da plataforma.</p>
   <li>Informação sobre compartilhamento;</li>
   <li>Revogação do consentimento.</li>
 </ol>
-<p>Solicite através do <a href="/sistema_vendas/public/dpo.php">canal do Encarregado de Dados (DPO)</a>. Prazo de resposta: 15 dias.</p>
+<p>Solicite através do <a href="/dpo.php">canal do Encarregado de Dados (DPO)</a>. Prazo de resposta: 15 dias.</p>
 
 <h2>9. Segurança da informação</h2>
 <p>Adotamos medidas técnicas e administrativas em processo contínuo de aprimoramento, incluindo:</p>
@@ -110,7 +110,7 @@ ao longo do uso da plataforma.</p>
 <p>Esta Política pode ser atualizada. Mudanças relevantes serão comunicadas com antecedência razoável e podem exigir novo aceite. O histórico de versões é mantido para consulta.</p>
 
 <h2>12. Contato</h2>
-<p>Encarregado de Dados (DPO): consulte os contatos atualizados em <a href="/sistema_vendas/public/dpo.php">/dpo</a>.</p>
+<p>Encarregado de Dados (DPO): consulte os contatos atualizados em <a href="/dpo.php">/dpo</a>.</p>
 HTML
 ];
 require __DIR__ . '/includes/legal_page.php';

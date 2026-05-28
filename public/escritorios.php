@@ -1,11 +1,11 @@
-﻿<?php
+<?php
 require_once __DIR__ . '/../app/Models/Database.php';
 require_once __DIR__ . '/../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../app/Helpers/MonitorQuota.php';
 require_once __DIR__ . '/../app/Helpers/MonitorPermission.php';
 require_once __DIR__ . '/../app/Helpers/BillingGuard.php';
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /sistema_vendas/public/login.php'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
 $activePage = 'escritorios';
 $csrf       = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 $userRole   = $_SESSION['user_role']  ?? 'user';
@@ -31,13 +31,13 @@ $monOverrideSumEsc = \App\Helpers\BillingGuard::getOverrideSum($accountId, 'moni
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Escritórios — Yuris</title>
-  <link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=42">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=19">
+  <link rel="stylesheet" href="/assets/yuris-theme.css?v=42">
+  <link rel="stylesheet" href="/assets/fog.css">
+  <link rel="stylesheet" href="/assets/sidebar.css?v=19">
   <style>
     /* ── Tabs ── */
     .es-tabs { display:flex; gap:6px; margin-bottom:20px; flex-wrap:wrap; }
@@ -681,7 +681,7 @@ $monOverrideSumEsc = \App\Helpers\BillingGuard::getOverrideSum($accountId, 'moni
         <div class="es-card">
           <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
             <div class="es-card-title" style="margin:0">Quantos monitoramentos você tem</div>
-            <a href="/sistema_vendas/public/intimacoes.php#monitores"
+            <a href="/intimacoes.php#monitores"
                class="btn-sm btn-primary"
                title="Abre o cadastro de monitoramentos"
                style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
@@ -1105,7 +1105,7 @@ const api = (url, opts = {}) => fetch(url, {
 // ── Carregar conta ────────────────────────────────────────────────────────────
 let _contaData = null;
 async function carregarConta() {
-  const r = await api('/sistema_vendas/public/api/accounts.php');
+  const r = await api('/api/accounts.php');
   const c = r.data || r;
   if (!c || !c.nome) return;
   _contaData = c;
@@ -1115,7 +1115,7 @@ async function carregarConta() {
   document.getElementById('cStatus').innerHTML   = `<span class="badge badge-${c.status}">${c.status}</span>`;
 
   if (IS_ADMIN) {
-    const rc = await api('/sistema_vendas/public/api/accounts.php?action=codigo');
+    const rc = await api('/api/accounts.php?action=codigo');
     const codigo = rc.codigo_vinculo || rc.data?.codigo_vinculo || '—';
     document.getElementById('codigoVinculo').textContent = codigo;
   }
@@ -1142,7 +1142,7 @@ async function salvarConta() {
     csrf_token:  CSRF,
   };
   if (!payload.nome) { toast('Nome obrigatório.', 'err'); return; }
-  const r = await api('/sistema_vendas/public/api/accounts.php', {
+  const r = await api('/api/accounts.php', {
     method: 'PUT', body: JSON.stringify(payload)
   });
   if (r.success || r.ok) {
@@ -1189,7 +1189,7 @@ function switchTab(name) {
 async function carregarVinculos() {
   const el = document.getElementById('vinculosList');
   el.innerHTML = '<div class="es-empty">Carregando...</div>';
-  const r = await api('/sistema_vendas/public/api/account_vinculos.php');
+  const r = await api('/api/account_vinculos.php');
   const lista = r.data || [];
   if (!lista.length) {
     el.innerHTML = `<div class="es-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Nenhum vínculo cadastrado.</div>`;
@@ -1235,13 +1235,13 @@ async function carregarVinculos() {
 }
 
 async function aprovarVinculo(id) {
-  const r = await api('/sistema_vendas/public/api/account_vinculos.php', {
+  const r = await api('/api/account_vinculos.php', {
     method: 'PATCH', body: JSON.stringify({ id, action: 'aprovar', csrf_token: CSRF })
   });
   (r.success || r.ok) ? (toast('Vínculo aprovado!', 'ok'), carregarVinculos()) : toast(r.error || 'Erro', 'err');
 }
 async function rejeitarVinculo(id) {
-  const r = await api('/sistema_vendas/public/api/account_vinculos.php', {
+  const r = await api('/api/account_vinculos.php', {
     method: 'PATCH', body: JSON.stringify({ id, action: 'rejeitar', csrf_token: CSRF })
   });
   (r.success || r.ok) ? (toast('Vínculo rejeitado.', 'ok'), carregarVinculos()) : toast(r.error || 'Erro', 'err');
@@ -1253,7 +1253,7 @@ async function suspenderVinculo(id) {
     okLabel: 'Suspender',
   });
   if (motivo === null) return;   // usuário cancelou
-  const r = await api('/sistema_vendas/public/api/account_vinculos.php', {
+  const r = await api('/api/account_vinculos.php', {
     method: 'PATCH', body: JSON.stringify({ id, action: 'suspender', motivo, csrf_token: CSRF })
   });
   (r.success || r.ok) ? (toast('Vínculo suspenso.', 'ok'), carregarVinculos()) : toast(r.error || 'Erro', 'err');
@@ -1298,7 +1298,7 @@ async function salvarSync() {
     sync_tarefas:   document.getElementById('syncTarefas').checked   ? 1 : 0,
     csrf_token: CSRF
   };
-  const r = await api('/sistema_vendas/public/api/account_vinculos.php', {
+  const r = await api('/api/account_vinculos.php', {
     method: 'PATCH', body: JSON.stringify(payload)
   });
   if (r.success || r.ok) {
@@ -1317,7 +1317,7 @@ async function solicitarVinculoModal() {
   const codigo = document.getElementById('inputCodigoModal').value.trim();
   const msg    = document.getElementById('solicitarModalMsg');
   if (!codigo) { msg.innerHTML = '<span style="color:#fca5a5">Informe o código.</span>'; return; }
-  const r = await api('/sistema_vendas/public/api/account_vinculos.php', {
+  const r = await api('/api/account_vinculos.php', {
     method: 'POST', body: JSON.stringify({ codigo_vinculo: codigo, csrf_token: CSRF })
   });
   if (r.success || r.ok) {
@@ -1334,7 +1334,7 @@ async function solicitarVinculo() {
   const msg    = document.getElementById('solicitarMsg');
   if (!codigo) { msg.innerHTML = '<span style="color:#fca5a5">Informe o código.</span>'; return; }
   msg.innerHTML = '<span style="color:#7a96b4">Enviando...</span>';
-  const r = await api('/sistema_vendas/public/api/account_vinculos.php', {
+  const r = await api('/api/account_vinculos.php', {
     method: 'POST', body: JSON.stringify({ codigo_vinculo: codigo, csrf_token: CSRF })
   });
   if (r.success || r.ok) {
@@ -1353,7 +1353,7 @@ async function carregarAdvogadosVinculos() {
   const el = document.getElementById('advogadosVinculosList');
   if (!el) return;
   el.innerHTML = '<div class="es-empty">Carregando...</div>';
-  const r = await api('/sistema_vendas/public/api/advogado_vinculos.php');
+  const r = await api('/api/advogado_vinculos.php');
   const lista = r.data || [];
   if (!lista.length) {
     if (ACCOUNT_TIPO === 'advogado') {
@@ -1423,7 +1423,7 @@ async function vincularAdvogado() {
   const msg    = document.getElementById('vincularAdvMsg');
   if (!codigo) { msg.innerHTML = '<span style="color:#fca5a5">Informe o código ADV-XXXXXX.</span>'; return; }
   msg.innerHTML = '<span style="color:#7a96b4">Vinculando...</span>';
-  const r = await api('/sistema_vendas/public/api/advogado_vinculos.php', {
+  const r = await api('/api/advogado_vinculos.php', {
     method: 'POST', body: JSON.stringify({ codigo_advogado: codigo, csrf_token: CSRF })
   });
   if (r.success || r.ok) {
@@ -1476,7 +1476,7 @@ async function salvarSyncAdv() {
     sync_tarefas:   document.getElementById('syncAdvTarefas').checked   ? 1 : 0,
     csrf_token: CSRF
   };
-  const r = await api('/sistema_vendas/public/api/advogado_vinculos.php', {
+  const r = await api('/api/advogado_vinculos.php', {
     method: 'PATCH', body: JSON.stringify(payload)
   });
   if (r.success || r.ok) {
@@ -1495,14 +1495,14 @@ async function suspenderVinculoAdv(id) {
     okLabel: 'Suspender',
   });
   if (motivo === null) return;
-  const r = await api('/sistema_vendas/public/api/advogado_vinculos.php', {
+  const r = await api('/api/advogado_vinculos.php', {
     method: 'PATCH', body: JSON.stringify({ id, action: 'suspender', motivo, csrf_token: CSRF })
   });
   (r.success || r.ok) ? (toast('Vínculo suspenso.', 'ok'), carregarAdvogadosVinculos()) : toast(r.error || 'Erro', 'err');
 }
 
 async function reativarVinculoAdv(id) {
-  const r = await api('/sistema_vendas/public/api/advogado_vinculos.php', {
+  const r = await api('/api/advogado_vinculos.php', {
     method: 'PATCH', body: JSON.stringify({ id, action: 'reativar', csrf_token: CSRF })
   });
   (r.success || r.ok) ? (toast('Vínculo reativado.', 'ok'), carregarAdvogadosVinculos()) : toast(r.error || 'Erro', 'err');
@@ -1524,9 +1524,9 @@ const RES_TIPO_COLOR = {
   contato : { bg: 'rgba(245,158,11,.16)',  fg: '#fcd34d', bd: 'rgba(245,158,11,.30)' },
 };
 const RES_TIPO_URL = {
-  processo: id => '/sistema_vendas/public/processos.php?open=' + id,
-  card    : id => '/sistema_vendas/public/prospeccao.php?open=' + id,
-  contato : id => '/sistema_vendas/public/contatos.php?open=' + id,
+  processo: id => '/processos.php?open=' + id,
+  card    : id => '/prospeccao.php?open=' + id,
+  contato : id => '/contatos.php?open=' + id,
 };
 
 async function carregarAdvogados() {
@@ -1534,7 +1534,7 @@ async function carregarAdvogados() {
   if (!el) return; // pane oculto para conta tipo='advogado'
   el.innerHTML = '<div class="es-empty">Carregando...</div>';
   // ?listar_meus=1 lista shares pontuais (processo/card/contato) emitidos por mim.
-  const r = await api('/sistema_vendas/public/api/resource_shares.php?listar_meus=1');
+  const r = await api('/api/resource_shares.php?listar_meus=1');
   const lista = (r.data || r || []).filter(s => s.status === 'active');
   if (!lista.length) {
     el.innerHTML = `<div class="es-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Nenhum compartilhamento ativo.</div>`;
@@ -1632,7 +1632,7 @@ async function salvarEditarShare() {
   const perm = document.getElementById('editSharePerm').value;
   const msg  = document.getElementById('editShareMsg');
   msg.innerHTML = '<span style="color:#7a96b4">Salvando...</span>';
-  const r = await api('/sistema_vendas/public/api/resource_shares.php', {
+  const r = await api('/api/resource_shares.php', {
     method: 'PATCH',
     body: JSON.stringify({ id: _editShareId, permission_level: perm, csrf_token: CSRF }),
   });
@@ -1672,7 +1672,7 @@ async function buscarContaAdvogado() {
   resultado.style.color = '#7a96b4';
   resultado.style.border = '1px solid rgba(96,165,250,.1)';
 
-  const r = await fetch(`/sistema_vendas/public/api/accounts_lookup.php?codigo_vinculo=${encodeURIComponent(codigo)}`).then(x=>x.json()).catch(()=>({}));
+  const r = await fetch(`/api/accounts_lookup.php?codigo_vinculo=${encodeURIComponent(codigo)}`).then(x=>x.json()).catch(()=>({}));
 
   if (r.data) {
     _advContaDestino = r.data;
@@ -1706,7 +1706,7 @@ let _buscaTimer = null;
 async function buscarProcessos(q) {
   clearTimeout(_buscaTimer);
   _buscaTimer = setTimeout(async () => {
-    const r = await fetch(`/sistema_vendas/public/api/processes_search.php?q=${encodeURIComponent(q)}`).then(x=>x.json()).catch(()=>({data:[]}));
+    const r = await fetch(`/api/processes_search.php?q=${encodeURIComponent(q)}`).then(x=>x.json()).catch(()=>({data:[]}));
     const lista = document.getElementById('advProcessoLista');
     if (!r.data?.length) { lista.style.display = 'none'; return; }
     lista.style.display = 'block';
@@ -1747,7 +1747,7 @@ async function confirmarCompartilhamento() {
   if (_advContaDestino.tipo_lookup === 'usuario' && _advContaDestino.user_id) {
     payload.to_user_id = _advContaDestino.user_id;
   }
-  const r = await api('/sistema_vendas/public/api/resource_shares.php', {
+  const r = await api('/api/resource_shares.php', {
     method: 'POST',
     body: JSON.stringify(payload)
   });
@@ -1770,8 +1770,8 @@ async function carregarShares() {
   // - Advogado: vê o que recebeu (shared_with_me=1)
   // - Matriz/Filial: vê o que emitiu (listar_meus=1)
   const url = ACCOUNT_TIPO === 'advogado'
-    ? '/sistema_vendas/public/api/resource_shares.php?shared_with_me=1'
-    : '/sistema_vendas/public/api/resource_shares.php?listar_meus=1';
+    ? '/api/resource_shares.php?shared_with_me=1'
+    : '/api/resource_shares.php?listar_meus=1';
   const r = await api(url);
   const lista = (r.data || []).filter(s => (s.status || 'active') === 'active');
   if (!lista.length) {
@@ -1792,7 +1792,7 @@ async function carregarShares() {
 
 async function revogarShare(id) {
   if (!(await Yuris.confirm('Revogar este compartilhamento?', { danger: true, okLabel: 'Revogar' }))) return;
-  const r = await api('/sistema_vendas/public/api/resource_shares.php', {
+  const r = await api('/api/resource_shares.php', {
     method: 'DELETE', body: JSON.stringify({ id, csrf_token: CSRF })
   });
   r.ok ? (toast('Compartilhamento revogado.', 'ok'), carregarShares()) : toast(r.error || 'Erro', 'err');
@@ -1838,9 +1838,9 @@ const MODULOS_LABEL = {
 async function carregarModulos() {
   const el = document.getElementById('modulosList');
   el.innerHTML = '<div class="es-empty">Carregando...</div>';
-  const r = await api('/sistema_vendas/public/api/resource_shares.php?resource_type=module&resource_id=0');
+  const r = await api('/api/resource_shares.php?resource_type=module&resource_id=0');
   // Fallback: também busca via shared_with_me para mostrar o que liberei
-  const r2 = await fetch('/sistema_vendas/public/api/resource_shares.php?listar_modulos=1', {credentials:'same-origin'}).then(x=>x.json()).catch(()=>({data:[]}));
+  const r2 = await fetch('/api/resource_shares.php?listar_modulos=1', {credentials:'same-origin'}).then(x=>x.json()).catch(()=>({data:[]}));
   const lista = (r2.data || r.data || []).filter(s => s.resource_type === 'module' && s.status === 'active');
   if (!lista.length) {
     el.innerHTML = `<div class="es-empty">Nenhum módulo liberado. Clique em "+ Liberar módulo" para começar.</div>`;
@@ -1880,7 +1880,7 @@ async function buscarDestinoModulo() {
   res.style.border = '1px solid rgba(96,165,250,.1)';
   res.style.color = '#9ab0c9';
   res.innerHTML = 'Buscando...';
-  const r = await fetch(`/sistema_vendas/public/api/lookup.php?codigo=${encodeURIComponent(codigo)}`, {credentials:'same-origin'}).then(x=>x.json()).catch(()=>({error:'Erro de rede'}));
+  const r = await fetch(`/api/lookup.php?codigo=${encodeURIComponent(codigo)}`, {credentials:'same-origin'}).then(x=>x.json()).catch(()=>({error:'Erro de rede'}));
   if (r.tipo === 'conta') {
     _moduleAlvo = { kind: 'conta', accountId: r.data.id, nome: r.data.nome };
     res.style.background = 'rgba(34,197,94,.08)';
@@ -1924,7 +1924,7 @@ async function confirmarLiberarModulo() {
     payload.to_user_id    = _moduleAlvo.userId;
     payload.to_account_id = _moduleAlvo.accountId;
   }
-  const r = await api('/sistema_vendas/public/api/resource_shares.php', {
+  const r = await api('/api/resource_shares.php', {
     method: 'POST', body: JSON.stringify(payload),
   });
   if (r.success || r.ok) {
@@ -1972,7 +1972,7 @@ async function carregarMonitoramentos() {
 
 async function loadMonQuotaEsc() {
   try {
-    const r = await fetch(`/sistema_vendas/public/api/push/quota.php?_t=${Date.now()}`, {
+    const r = await fetch(`/api/push/quota.php?_t=${Date.now()}`, {
       credentials: 'same-origin',
       headers: { 'Cache-Control': 'no-cache' },
     });
@@ -2009,7 +2009,7 @@ async function loadMonAllocs() {
   const wrap = document.getElementById('monFiliaisWrap');
   const hist = document.getElementById('monAllocHistWrap');
   try {
-    const r = await fetch(`/sistema_vendas/public/api/push/allocations.php?_t=${Date.now()}`, {
+    const r = await fetch(`/api/push/allocations.php?_t=${Date.now()}`, {
       credentials: 'same-origin', headers: { 'Cache-Control': 'no-cache' },
     });
     const j = await r.json();
@@ -2138,8 +2138,8 @@ async function saveMonAlloc(accountId) {
   if (novo === 0 && !allocId) return;
   try {
     const r = await fetch(
-      allocId ? `/sistema_vendas/public/api/push/allocations.php?id=${allocId}`
-              : `/sistema_vendas/public/api/push/allocations.php`,
+      allocId ? `/api/push/allocations.php?id=${allocId}`
+              : `/api/push/allocations.php`,
       {
         method: allocId ? 'PATCH' : 'POST',
         headers: {'Content-Type':'application/json'},
@@ -2158,7 +2158,7 @@ async function saveMonAlloc(accountId) {
 async function revokeMonAlloc(id) {
   if (!confirm('Revogar alocação? A filial volta pro pool aberto da matriz.')) return;
   try {
-    const r = await fetch(`/sistema_vendas/public/api/push/allocations.php?id=${id}`, {
+    const r = await fetch(`/api/push/allocations.php?id=${id}`, {
       method: 'DELETE',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ _csrf: CSRF }),
@@ -2175,7 +2175,7 @@ async function loadMonReqs() {
   const wrap = document.getElementById('monReqsWrap');
   const scope = document.getElementById('monReqScope')?.value || 'pending';
   try {
-    const r = await fetch(`/sistema_vendas/public/api/push/requests.php?scope=${encodeURIComponent(scope)}&_t=${Date.now()}`, {
+    const r = await fetch(`/api/push/requests.php?scope=${encodeURIComponent(scope)}&_t=${Date.now()}`, {
       credentials: 'same-origin', headers: { 'Cache-Control': 'no-cache' },
     });
     const j = await r.json();
@@ -2250,7 +2250,7 @@ async function resolveMonReq(id, action) {
   if (action === 'cancel' && !confirm('Cancelar essa solicitação?')) return;
   if (action === 'approve' && !confirm('Aprovar e criar o monitor agora?')) return;
   try {
-    const r = await fetch(`/sistema_vendas/public/api/push/requests.php?id=${id}`, {
+    const r = await fetch(`/api/push/requests.php?id=${id}`, {
       method: 'PATCH',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ _csrf: CSRF, action, motivo }),
@@ -2266,7 +2266,7 @@ async function resolveMonReq(id, action) {
 document.getElementById('monFlagAdvogadoCreate')?.addEventListener('change', async (e) => {
   const cb = e.target;
   try {
-    const r = await fetch('/sistema_vendas/public/api/push/permissions.php', {
+    const r = await fetch('/api/push/permissions.php', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ _csrf: CSRF, advogado_pode_criar_monitor: !!cb.checked }),

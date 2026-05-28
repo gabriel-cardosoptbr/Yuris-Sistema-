@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once __DIR__ . '/../app/Models/Database.php';
 require_once __DIR__ . '/../app/Models/Processo.php';
 require_once __DIR__ . '/../app/Models/Account.php';
@@ -6,7 +6,7 @@ require_once __DIR__ . '/../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../app/Helpers/AccountContext.php';
 session_start();
 if (empty($_SESSION['user_id'])) {
-    header('Location: /sistema_vendas/public/login.php');
+    header('Location: /login.php');
     exit;
 }
 // HARDENING: bloqueia acesso de contas suspensas/canceladas/inativas
@@ -49,13 +49,13 @@ try {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Gestão Processual — Yuris</title>
-  <link rel="icon" type="image/png" sizes="192x192" href="/sistema_vendas/public/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=44">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=19">
+  <link rel="stylesheet" href="/assets/yuris-theme.css?v=44">
+  <link rel="stylesheet" href="/assets/fog.css">
+  <link rel="stylesheet" href="/assets/sidebar.css?v=19">
   <style>
     /*
       Variáveis locais alinhadas com yuris-theme.css.
@@ -1271,7 +1271,7 @@ try {
                 </div>
               </div>
               <div id="proc_card_link" style="display:none;margin-top:8px">
-                <a id="proc_card_link_btn" href="/sistema_vendas/public/prospeccao.php" style="font-size:.82rem;color:#60a5fa">Ver ficha do cliente na Prospecção →</a>
+                <a id="proc_card_link_btn" href="/prospeccao.php" style="font-size:.82rem;color:#60a5fa">Ver ficha do cliente na Prospecção →</a>
               </div>
             </div>
           </div>
@@ -1385,10 +1385,10 @@ try {
     window.YURIS_ORIGIN_ACCOUNTS   = <?= json_encode($origin_accounts, JSON_UNESCAPED_UNICODE) ?>;
     window.YURIS_SHOW_ORIGIN_STRIP = true;
   </script>
-  <script src="/sistema_vendas/public/assets/user_select.js?v=<?= filemtime(__DIR__ . '/assets/user_select.js') ?>"></script>
-  <script src="/sistema_vendas/public/assets/processos.js?v=<?= filemtime(__DIR__ . '/assets/processos.js') ?>"></script>
-  <script src="/sistema_vendas/public/assets/process_codes.js"></script>
-  <script src="/sistema_vendas/public/assets/fog.js"></script>
+  <script src="/assets/user_select.js?v=<?= filemtime(__DIR__ . '/assets/user_select.js') ?>"></script>
+  <script src="/assets/processos.js?v=<?= filemtime(__DIR__ . '/assets/processos.js') ?>"></script>
+  <script src="/assets/process_codes.js"></script>
+  <script src="/assets/fog.js"></script>
   <script>
     // Auto-abre processo se URL tiver ?open=ID (vindo de outra aba do sistema)
     // Também suporta ?new_card_id=ID para criar novo processo já vinculado a um cliente
@@ -1423,7 +1423,7 @@ try {
 
       setTimeout(() => { // aguarda processos.js inicializar
         if (openId) {
-          fetch(`/sistema_vendas/public/api/processes.php?id=${openId}`, {credentials:'same-origin'})
+          fetch(`/api/processes.php?id=${openId}`, {credentials:'same-origin'})
             .then(r => r.json())
             .then(data => { const proc = data.data || data; if (proc && proc.id) { showModal(proc); } })
             .catch(() => {});
@@ -1440,7 +1440,7 @@ try {
                 window._applyCardSelection(card);
               }
             } else {
-              fetch('/sistema_vendas/public/api/cards.php?id=' + newCardId, {credentials:'same-origin'})
+              fetch('/api/cards.php?id=' + newCardId, {credentials:'same-origin'})
                 .then(r => r.json())
                 .then(d => {
                   const card = d.data || d;
@@ -1500,7 +1500,7 @@ try {
         list.style.display = 'flex';
         list.innerHTML = '<div style="color:#9ab0c9;font-size:.8rem">Carregando...</div>';
         try {
-          const r = await fetch(`/sistema_vendas/public/api/resource_shares.php?resource_type=processo&resource_id=${procId}`, {credentials:'same-origin'}).then(x=>x.json());
+          const r = await fetch(`/api/resource_shares.php?resource_type=processo&resource_id=${procId}`, {credentials:'same-origin'}).then(x=>x.json());
           const shares = (r.data || []).filter(s => s.status === 'active');
           if (!shares.length) {
             list.innerHTML = '<div style="color:#6b7887;font-size:.78rem;padding:8px 0">Nenhum vínculo. Clique em "+ Adicionar vínculo" para liberar acesso a uma matriz, filial ou advogado.</div>';
@@ -1615,7 +1615,7 @@ try {
         const labelOrig = btn.textContent;
         btn.disabled = true; btn.textContent = 'Salvando...';
         try {
-          const r = await fetch('/sistema_vendas/public/api/resource_shares.php', {
+          const r = await fetch('/api/resource_shares.php', {
             method: 'PATCH',
             headers: {'Content-Type':'application/json', 'X-CSRF-Token': CSRF},
             credentials: 'same-origin',
@@ -1636,7 +1636,7 @@ try {
 
       window.revogarVinculoProc = async function(id) {
         if (!(await Yuris.confirm('Revogar este vínculo?', { danger: true, okLabel: 'Revogar' }))) return;
-        const r = await fetch(`/sistema_vendas/public/api/resource_shares.php?id=${id}`, {
+        const r = await fetch(`/api/resource_shares.php?id=${id}`, {
           method: 'DELETE',
           headers: {'X-CSRF-Token': CSRF, 'Content-Type': 'application/json'},
           credentials: 'same-origin',
@@ -1703,7 +1703,7 @@ try {
         res.style.border = '1px solid rgba(96,165,250,.1)';
         res.style.color  = '#9ab0c9';
         res.innerHTML = 'Buscando...';
-        const r = await fetch(`/sistema_vendas/public/api/lookup.php?codigo=${encodeURIComponent(codigo)}`, {credentials:'same-origin'}).then(x=>x.json()).catch(()=>({error:'Erro de rede'}));
+        const r = await fetch(`/api/lookup.php?codigo=${encodeURIComponent(codigo)}`, {credentials:'same-origin'}).then(x=>x.json()).catch(()=>({error:'Erro de rede'}));
         if (r.tipo === 'conta') {
           lookupResult = { kind: 'conta', accountId: r.data.id, nome: r.data.nome };
           res.style.background = 'rgba(34,197,94,.08)';
@@ -1746,7 +1746,7 @@ try {
           payload.to_user_id  = lookupResult.userId;
           payload.to_account_id = lookupResult.accountId;
         }
-        const r = await fetch('/sistema_vendas/public/api/resource_shares.php', {
+        const r = await fetch('/api/resource_shares.php', {
           method: 'POST',
           headers: {'Content-Type':'application/json', 'X-CSRF-Token': CSRF},
           credentials: 'same-origin',

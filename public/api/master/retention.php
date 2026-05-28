@@ -77,7 +77,7 @@ if ($method === 'POST' && ($_GET['action'] ?? null) === 'run') {
     $tok = \App\Helpers\EnvLoader::get('CRON_TOKEN', '');
 
     $url = 'http://' . ($_SERVER['HTTP_HOST'] ?? 'localhost')
-         . '/sistema_vendas/public' . $tokenPath
+         . '' . $tokenPath
          . '?token=' . urlencode($tok)
          . ($dry ? '&dry_run=1' : '')
          . '&force=1';

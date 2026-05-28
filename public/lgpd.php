@@ -14,8 +14,8 @@ $LEGAL_PAGE = [
 <div class="legal-disclaimer" style="margin: 18px 0">
 Esta página é informativa e <strong>não constitui</strong> garantia absoluta de segurança ou
 conformidade total. A LGPD é uma jornada contínua. Detalhes completos estão na
-<a href="/sistema_vendas/public/privacidade.php">Política de Privacidade</a>
-e nos <a href="/sistema_vendas/public/termos.php">Termos de Uso</a>.
+<a href="/privacidade.php">Política de Privacidade</a>
+e nos <a href="/termos.php">Termos de Uso</a>.
 </div>
 
 <h2>2. Como protegemos seus dados</h2>
@@ -49,7 +49,7 @@ e nos <a href="/sistema_vendas/public/termos.php">Termos de Uso</a>.
   <li>Revogação de consentimento;</li>
   <li>Informação sobre compartilhamento.</li>
 </ul>
-<p>Solicite pelo <a href="/sistema_vendas/public/dpo.php">canal do DPO</a>. Prazo de resposta: até 15 dias.</p>
+<p>Solicite pelo <a href="/dpo.php">canal do DPO</a>. Prazo de resposta: até 15 dias.</p>
 
 <h2>5. Subprocessadores e terceiros</h2>
 <p>O Yuris pode utilizar operadores essenciais à prestação do serviço:</p>
@@ -59,7 +59,7 @@ e nos <a href="/sistema_vendas/public/termos.php">Termos de Uso</a>.
   <li>Provedores de e-mail e infraestrutura;</li>
   <li>CDNs (Google Fonts, jsDelivr).</li>
 </ul>
-<p>A lista completa e atualizada está na <a href="/sistema_vendas/public/privacidade.php#operadores">Política de Privacidade</a>.</p>
+<p>A lista completa e atualizada está na <a href="/privacidade.php#operadores">Política de Privacidade</a>.</p>
 
 <h2>6. Incidentes</h2>
 <p>Em caso de incidente que represente risco aos direitos dos titulares, comunicaremos a ANPD e os titulares afetados conforme o Art. 48 da LGPD, em prazo razoável (geralmente 2 dias úteis a partir da ciência).</p>
@@ -73,10 +73,10 @@ e nos <a href="/sistema_vendas/public/termos.php">Termos de Uso</a>.
 
 <h2>8. Documentos relacionados</h2>
 <ul>
-  <li><a href="/sistema_vendas/public/privacidade.php">Política de Privacidade</a> — completa</li>
-  <li><a href="/sistema_vendas/public/termos.php">Termos de Uso</a></li>
-  <li><a href="/sistema_vendas/public/cookies.php">Política de Cookies</a></li>
-  <li><a href="/sistema_vendas/public/dpo.php">Contato do DPO</a></li>
+  <li><a href="/privacidade.php">Política de Privacidade</a> — completa</li>
+  <li><a href="/termos.php">Termos de Uso</a></li>
+  <li><a href="/cookies.php">Política de Cookies</a></li>
+  <li><a href="/dpo.php">Contato do DPO</a></li>
 </ul>
 HTML
 ];

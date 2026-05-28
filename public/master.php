@@ -7,7 +7,7 @@ require_once __DIR__ . '/../app/Helpers/AccountContext.php';
 session_start();
 // Não logado → manda pro portal dedicado (não pro login regular)
 if (empty($_SESSION['user_id'])) {
-    header('Location: /sistema_vendas/public/master_login.php');
+    header('Location: /master_login.php');
     exit;
 }
 
@@ -16,7 +16,7 @@ if (empty($_SESSION['user_id'])) {
 // precisa fazer login explícito em /master_login.php pra ter master_mode=true.
 // Isso evita que uma sessão sequestrada do app abra o painel master.
 if (empty($_SESSION['master_mode'])) {
-    header('Location: /sistema_vendas/public/master_login.php');
+    header('Location: /master_login.php');
     exit;
 }
 
@@ -29,7 +29,7 @@ if (!$ctx->isSuperAdmin()) {
     http_response_code(403);
     echo '<html><body style="font-family:sans-serif;padding:40px;background:#0a0418;color:#dbe7f5">';
     echo '<h1>Acesso negado</h1><p>Apenas super administradores podem acessar o Painel Master.</p>';
-    echo '<a href="/sistema_vendas/public/master_login.php" style="color:#c084fc">← Voltar ao portal master</a>';
+    echo '<a href="/master_login.php" style="color:#c084fc">← Voltar ao portal master</a>';
     echo '</body></html>';
     exit;
 }
@@ -50,7 +50,7 @@ try {
 
 // Botão "Sair" sempre faz logout do master e volta pro portal isolado.
 // (chegou até aqui = master_mode obrigatoriamente true, asserted acima)
-$exitHref  = '/sistema_vendas/public/master_logout.php';
+$exitHref  = '/master_logout.php';
 $exitLabel = '← Sair (logout)';
 $exitTitle = 'Encerrar sessão e voltar ao portal master';
 ?>
@@ -60,14 +60,14 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Painel Master — Yuris</title>
-  <link rel="icon" type="image/png" sizes="192x192" href="/sistema_vendas/public/assets/favicon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=27">
+  <link rel="stylesheet" href="/assets/yuris-theme.css?v=27">
   <!-- Yuris UI lib (Yuris.notify/confirm/prompt — polyfill window.alert).
        Carregado direto aqui porque o Painel Master roda sem sidebar. -->
-  <script src="/sistema_vendas/public/assets/yuris-ui.js"></script>
+  <script src="/assets/yuris-ui.js"></script>
   <!-- Chart.js pra gráficos da aba Dashboard -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -239,7 +239,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
     <strong>2FA não configurado.</strong>
     <span>O Painel Master tem acesso cross-tenant total — proteja com autenticação em dois fatores.</span>
   </div>
-  <a href="/sistema_vendas/public/master_mfa_setup.php"
+  <a href="/master_mfa_setup.php"
      style="padding:6px 14px;background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;text-decoration:none;border-radius:6px;font-weight:600;font-size:.82rem;white-space:nowrap;">
     Configurar agora →
   </a>
@@ -638,7 +638,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
         <div style="margin-right:auto">
           <div style="font-weight:700">Central LGPD — Solicitações de Titulares</div>
           <div style="font-size:.74rem; color:#9ab0c9; margin-top:3px">
-            Pedidos chegam via <a href="/sistema_vendas/public/lgpd/solicitar.php" target="_blank" style="color:#7eb8f7">/lgpd/solicitar.php</a> · Prazo de resposta: <strong>15 dias</strong> (LGPD Art. 19)
+            Pedidos chegam via <a href="/lgpd/solicitar.php" target="_blank" style="color:#7eb8f7">/lgpd/solicitar.php</a> · Prazo de resposta: <strong>15 dias</strong> (LGPD Art. 19)
           </div>
         </div>
         <select id="filterLgpdStatus" class="mst-form-select" style="width:auto;padding:6px 11px;font-size:.82rem">
@@ -2060,7 +2060,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
 
 <script>
 const CSRF = '<?=htmlspecialchars($csrf)?>';
-const API  = '/sistema_vendas/public/api/master';
+const API  = '/api/master';
 const fmtBRL = v => 'R$ ' + Number((v||0)/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtDate = v => v ? new Date((v+'').replace(' ','T')).toLocaleDateString('pt-BR') : '—';
 const fmtDateTime = v => v ? new Date((v+'').replace(' ','T')).toLocaleString('pt-BR') : '—';

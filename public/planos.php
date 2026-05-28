@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Planos — Yuris CRM Jurídico</title>
-  <link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -635,7 +635,7 @@
 
 <!-- LGPD Etapa 5: footer com links legais + banner de cookies -->
 <?php include __DIR__ . '/includes/legal_footer.php'; ?>
-<script src="/sistema_vendas/public/assets/cookie-consent.js?v=1"></script>
+<script src="/assets/cookie-consent.js?v=1"></script>
 
 </body>
 </html>

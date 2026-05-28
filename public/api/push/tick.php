@@ -16,7 +16,7 @@
  *   force=1              ignora lock
  *   skip_monitors=1      só expira cache, pula runner (útil em deploy/teste)
  *
- * Acesso: GET /sistema_vendas/public/api/push/tick.php?token=<CRON_TOKEN>
+ * Acesso: GET /api/push/tick.php?token=<CRON_TOKEN>
  */
 ob_start();
 

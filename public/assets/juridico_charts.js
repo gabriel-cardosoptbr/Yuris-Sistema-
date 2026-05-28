@@ -17,8 +17,8 @@
  * Este arquivo é executado DEPOIS de juridico.js (carregado em sequência no HTML).
  */
 (function () {
-  const PROCESSES_API = '/sistema_vendas/public/api/processes.php';
-  const METRICS_API   = '/sistema_vendas/public/api/juridico_metrics.php';
+  const PROCESSES_API = '/api/processes.php';
+  const METRICS_API   = '/api/juridico_metrics.php';
 
   async function fetchJson(url) {
     try {

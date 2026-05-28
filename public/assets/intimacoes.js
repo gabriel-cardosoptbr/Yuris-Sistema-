@@ -140,7 +140,7 @@
       let erros = 0;
       for (const integ of ativas) {
         try {
-          const data = await this.api('POST', '/sistema_vendas/public/api/aasp/sync.php', {
+          const data = await this.api('POST', '/api/aasp/sync.php', {
             integration_id: integ.id,
             diferencial: false,
           });
@@ -555,7 +555,7 @@
         loading: true, dataIni, dataFim, nome: ints[0].nome,
       });
       try {
-        const data = await this.api('POST', '/sistema_vendas/public/api/aasp/search.php', {
+        const data = await this.api('POST', '/api/aasp/search.php', {
           integration_id: integrationId,
           data_inicio: dataIni,
           data_fim: dataFim,
@@ -1373,7 +1373,7 @@
       try {
         // Cache-buster no querystring + header pra ter certeza que nada intermediário
         // serve resposta stale. Backend tb manda Cache-Control: no-store.
-        const r = await fetch(`/sistema_vendas/public/api/push/quota.php?_t=${Date.now()}`, {
+        const r = await fetch(`/api/push/quota.php?_t=${Date.now()}`, {
           credentials: 'same-origin',
           headers: { 'Cache-Control': 'no-cache' },
         });
@@ -1761,7 +1761,7 @@
       const listEl = document.getElementById('aaspIntegrationsList');
       const sumEl  = document.getElementById('aaspSummary');
       try {
-        const data = await this.api('GET', '/sistema_vendas/public/api/aasp/integrations.php');
+        const data = await this.api('GET', '/api/aasp/integrations.php');
         if (!data.ok) throw new Error(data.error || 'Erro');
         this.aaspState.integrations = data.integrations || [];
         this.aaspState.summary      = data.summary      || this.aaspState.summary;
@@ -1866,7 +1866,7 @@
       if (action === 'delete') {
         if (!confirm('Excluir esta integração AASP? A chave cifrada será removida. Esta ação não pode ser desfeita.')) return;
         try {
-          const data = await this.api('DELETE', '/sistema_vendas/public/api/aasp/integrations.php', { id });
+          const data = await this.api('DELETE', '/api/aasp/integrations.php', { id });
           if (!data.ok) throw new Error(data.error || 'Erro');
           this.notify('Integração AASP excluída.', 'success');
           await this.loadAaspIntegrations();
@@ -1885,7 +1885,7 @@
         try {
           btn.disabled = true;
           this.notify('Sincronizando AASP…', 'info');
-          const data = await this.api('POST', '/sistema_vendas/public/api/aasp/sync.php', {
+          const data = await this.api('POST', '/api/aasp/sync.php', {
             integration_id: id,
             // diferencial=false por padrão (manual): traz tudo do dia.
             // Cron usa diferencial=true (incremental) — Fase F.
@@ -1997,7 +1997,7 @@
       const btn = document.getElementById('aaspTest');
       btn.disabled = true;
       try {
-        const data = await this.api('POST', '/sistema_vendas/public/api/aasp/test.php', {
+        const data = await this.api('POST', '/api/aasp/test.php', {
           chave: r.payload.chave,
           tipo: r.payload.tipo,
           codigos_associados: r.payload.codigos_associados,
@@ -2052,7 +2052,7 @@
         }
         btn.disabled = true;
         try {
-          const data = await this.api('PATCH', '/sistema_vendas/public/api/aasp/integrations.php', { id, chave, validated });
+          const data = await this.api('PATCH', '/api/aasp/integrations.php', { id, chave, validated });
           if (!data.ok) throw new Error(data.error || 'Erro');
           this.notify(
             validated
@@ -2079,7 +2079,7 @@
       }
       btn.disabled = true;
       try {
-        const data = await this.api('POST', '/sistema_vendas/public/api/aasp/integrations.php', { ...r.payload, validated });
+        const data = await this.api('POST', '/api/aasp/integrations.php', { ...r.payload, validated });
         if (!data.ok) throw new Error(data.error || 'Erro');
         this.notify(
           validated
@@ -2171,7 +2171,7 @@
 
     /** Monta o HTML do status de vínculo com link "Ver processo →" pro CRM. */
     _actionsVinculoStatusHtml(processoId, label) {
-      const procUrl = '/sistema_vendas/public/processos.php?open=' + encodeURIComponent(processoId);
+      const procUrl = '/processos.php?open=' + encodeURIComponent(processoId);
       const lbl = label ? this._esc(label) + ' ' : '';
       return `<span style="color:#34D399;font-weight:600;">✓ Vinculado ${lbl ? 'a ' + lbl : ''}(#${processoId})</span>
               · <a href="${procUrl}" target="_blank" rel="noopener" class="int-link">Ver processo →</a>
@@ -2354,7 +2354,7 @@
           `Prazo criado no processo #${ctx.item.processo_id}${r.prazo_id ? ' (prazo #' + r.prazo_id + ')' : ''}.`,
           'success',
           { link: {
-            href: '/sistema_vendas/public/processos.php?open=' + ctx.item.processo_id,
+            href: '/processos.php?open=' + ctx.item.processo_id,
             text: 'Ver processo →',
           } }
         );

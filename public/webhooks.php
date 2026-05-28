@@ -1,12 +1,12 @@
-﻿<?php
+<?php
 require_once __DIR__ . '/../app/Models/Database.php';
 require_once __DIR__ . '/../app/Services/WebhookDispatcher.php';
 
 use App\Services\WebhookDispatcher;
 
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /sistema_vendas/public/login.php'); exit; }
-if ($_SESSION['user_perfil'] !== 'admin') { header('Location: /sistema_vendas/public/dashboard.php'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
+if ($_SESSION['user_perfil'] !== 'admin') { header('Location: /dashboard.php'); exit; }
 
 $activePage = 'webhooks';
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
@@ -18,11 +18,11 @@ $catalog = WebhookDispatcher::catalog();
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Webhooks — Yuris</title>
-  <link rel="icon" type="image/png" sizes="192x192" href="/sistema_vendas/public/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=42">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=19">
+  <link rel="stylesheet" href="/assets/yuris-theme.css?v=42">
+  <link rel="stylesheet" href="/assets/sidebar.css?v=19">
   <style>
     :root {
       --bg: #070F1C; --panel: rgba(14,35,65,.94); --line: rgba(160,180,210,0.08);
@@ -1356,7 +1356,7 @@ endforeach; ?>  },
   <div class="toast-wrap" id="toastWrap"></div>
 
   <script>
-  const API   = '/sistema_vendas/public/api/webhooks.php';
+  const API   = '/api/webhooks.php';
   const CSRF  = '<?= htmlspecialchars($csrf) ?>';
   const CATALOG = <?= json_encode($catalog, JSON_UNESCAPED_UNICODE) ?>;
 

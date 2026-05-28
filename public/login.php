@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once __DIR__ . '/../app/Models/Database.php';
 require_once __DIR__ . '/../app/Models/User.php';
 require_once __DIR__ . '/../app/Controllers/AuthController.php';
@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Yuris - Login</title>
-  <link rel="icon" type="image/png" sizes="192x192" href="/sistema_vendas/public/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
     }catch(e){}})();
   </script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=27">
+  <link rel="stylesheet" href="/assets/yuris-theme.css?v=27">
   <style>
     :root{
       --bg:#081526;
@@ -126,9 +126,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <input type="checkbox" name="aceite_termos" id="aceite_termos" required style="margin-top:3px">
             <span>
               Li e concordo com os
-              <a href="/sistema_vendas/public/termos.php" target="_blank" style="color:#9CC7F7">Termos de Uso</a>
+              <a href="/termos.php" target="_blank" style="color:#9CC7F7">Termos de Uso</a>
               e a
-              <a href="/sistema_vendas/public/privacidade.php" target="_blank" style="color:#9CC7F7">Política de Privacidade</a>.
+              <a href="/privacidade.php" target="_blank" style="color:#9CC7F7">Política de Privacidade</a>.
             </span>
           </label>
         </div>
@@ -141,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 
   <!-- LGPD Etapa 5: banner de cookies -->
-  <script src="/sistema_vendas/public/assets/cookie-consent.js?v=1"></script>
+  <script src="/assets/cookie-consent.js?v=1"></script>
   <script>
     (function(){
       const btn = document.querySelector('.password-toggle');
@@ -187,7 +187,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       async function checkTermsForEmail(email){
         if (!email || !email.includes('@')) return;
         try {
-          const r = await fetch('/sistema_vendas/public/api/auth/check_terms.php?email=' + encodeURIComponent(email),
+          const r = await fetch('/api/auth/check_terms.php?email=' + encodeURIComponent(email),
                                 { cache: 'no-store' });
           const j = await r.json();
           if (j && j.ok && j.accepted) { hideTerms(); }

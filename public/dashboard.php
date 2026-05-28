@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once __DIR__ . '/../app/Models/Database.php';
 require_once __DIR__ . '/../app/Models/User.php';
 require_once __DIR__ . '/../app/Models/Account.php';
@@ -9,7 +9,7 @@ use App\Models\Database;
 use App\Models\DREAccount;
 use App\Helpers\AccountContext;
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /sistema_vendas/public/login.php'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
 $activePage = 'dashboard';
 
 // Contexto de tenant — obrigatório para evitar vazamento entre contas.
@@ -143,13 +143,13 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Dashboard Executivo — Yuris</title>
-  <link rel="icon" type="image/png" sizes="192x192" href="/sistema_vendas/public/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=42">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=19">
+  <link rel="stylesheet" href="/assets/yuris-theme.css?v=42">
+  <link rel="stylesheet" href="/assets/fog.css">
+  <link rel="stylesheet" href="/assets/sidebar.css?v=19">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
   <style>
     :root {
@@ -555,7 +555,7 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
               <div class="meta-val" id="metaMonthValue">R$ 0,00</div>
             </div>
             <button id="editMonthMeta" class="meta-widget-btn primary">Editar</button>
-            <button id="calcMetaBtn"   class="meta-widget-btn secondary" onclick="location.href='/sistema_vendas/public/planejamento.php'">Calcular</button>
+            <button id="calcMetaBtn"   class="meta-widget-btn secondary" onclick="location.href='/planejamento.php'">Calcular</button>
           </div>
         </div>
       </div>
@@ -773,7 +773,7 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
 
     let procs = [];
     try {
-      const r = await fetch('/sistema_vendas/public/api/processes.php', { credentials: 'same-origin' });
+      const r = await fetch('/api/processes.php', { credentials: 'same-origin' });
       const data = await r.json();
       procs = Array.isArray(data) ? data : (data.data || []);
     } catch(e) { return; }
@@ -816,7 +816,7 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
   document.getElementById('adashClose2').addEventListener('click', close);
   document.getElementById('adashVerBtn').addEventListener('click', () => {
     close();
-    window.location.href = '/sistema_vendas/public/juridico.php';
+    window.location.href = '/juridico.php';
   });
 
   // Só exibe o popup na primeira visita após login (flag controlado pela sessão PHP)
@@ -826,13 +826,13 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
 
 <!-- ── Scripts ── -->
 <script src="assets/dashboard.js?v=13"></script>
-<script src="/sistema_vendas/public/assets/fog.js"></script>
+<script src="/assets/fog.js"></script>
 
 <!-- ── Dashboard extended: jurídico + resumo + alertas ── -->
 <script>
 (function(){
-  const PROC_API    = '/sistema_vendas/public/api/processes.php';
-  const METRICS_API = '/sistema_vendas/public/api/juridico_metrics.php';
+  const PROC_API    = '/api/processes.php';
+  const METRICS_API = '/api/juridico_metrics.php';
   const currency    = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
   const TICK        = '#9ab0c9';
   const GRID        = 'rgba(148,163,184,.1)';
@@ -1043,7 +1043,7 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
   // ── DRE filtered load ────────────────────────────────────────────────────
   async function loadDRE(start, end){
     try{
-      let url = '/sistema_vendas/public/api/dre_accounts.php';
+      let url = '/api/dre_accounts.php';
       const qs = new URLSearchParams();
       if (start) qs.set('start', start);
       if (end)   qs.set('end',   end);

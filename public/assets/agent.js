@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const API  = '/sistema_vendas/public/api/agent_settings.php';
+  const API  = '/api/agent_settings.php';
   const form = document.getElementById('agentForm');
   if (!form) return;
 

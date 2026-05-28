@@ -10,7 +10,7 @@ require_once __DIR__ . '/../app/Helpers/MonitorPermission.php';
 
 session_start();
 if (empty($_SESSION['user_id'])) {
-    header('Location: /sistema_vendas/public/login.php');
+    header('Location: /login.php');
     exit;
 }
 // HARDENING: bloqueia acesso de contas suspensas/canceladas/inativas
@@ -45,14 +45,14 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Intimações — Yuris</title>
-  <link rel="icon" type="image/png" sizes="192x192" href="/sistema_vendas/public/assets/favicon-192.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=44">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=19">
+  <link rel="stylesheet" href="/assets/yuris-theme.css?v=44">
+  <link rel="stylesheet" href="/assets/fog.css">
+  <link rel="stylesheet" href="/assets/sidebar.css?v=19">
   <!-- Flatpickr (calendário visual range) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js" defer></script>
@@ -1458,7 +1458,7 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
       <div id="mqAviso" style="flex:1; min-width:200px; font-size:.78rem; color:#7A8898;">
         Carregando cota…
       </div>
-      <a href="/sistema_vendas/public/escritorios.php#monitoramentos"
+      <a href="/escritorios.php#monitoramentos"
          title="Gerenciar cota e distribuição matriz↔filial"
          style="font-size:.74rem; color:#93C5FD; text-decoration:none; padding:5px 10px; border-radius:6px; border:1px solid rgba(96,165,250,.30); background:rgba(36,78,122,.18); white-space:nowrap; font-weight:600;">
         Gerenciar cota →
@@ -1545,8 +1545,8 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
   // de Responsável do modal Vincular intimação, igual aba Processos.
   window._SYSTEM_USERS = <?= json_encode($system_users, JSON_UNESCAPED_UNICODE) ?>;
 </script>
-<script src="/sistema_vendas/public/assets/user_select.js?v=<?= $usSelVer ?>"></script>
-<script src="/sistema_vendas/public/assets/intimacoes.js?v=<?= $intJsVer ?>"></script>
+<script src="/assets/user_select.js?v=<?= $usSelVer ?>"></script>
+<script src="/assets/intimacoes.js?v=<?= $intJsVer ?>"></script>
 <script>
   (function () {
     if (!window.YurisIntimacoesApp) return;
@@ -1554,7 +1554,7 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
       csrf:      <?= json_encode($csrf) ?>,
       accountId: <?= (int)$accountId ?>,
       userId:    <?= (int)$userId ?>,
-      apiBase:   '/sistema_vendas/public/api/push',
+      apiBase:   '/api/push',
       monitorCanCreate:  <?= $monitorCanCreate  ? 'true' : 'false' ?>,
       monitorCanRequest: <?= $monitorCanRequest ? 'true' : 'false' ?>,
     });
@@ -1583,7 +1583,7 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
       const txt = btn.textContent;
       btn.textContent = 'Enviando…';
       try {
-        const r = await fetch('/sistema_vendas/public/api/push/requests.php', {
+        const r = await fetch('/api/push/requests.php', {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
           body: JSON.stringify({

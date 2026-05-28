@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', ()=>{
-  const api             = '/sistema_vendas/public/api/processes.php';
+  const api             = '/api/processes.php';
   const btnNew          = document.getElementById('btnNewProcess');
   const yearFilter      = document.getElementById('yearFilter');
   const modal           = document.getElementById('modalProcess');
@@ -836,7 +836,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   async function _loadPrazos(pid) {
     const c = document.getElementById('prazosContainer'); if(!c) return;
     try {
-      const r = await fetch(`/sistema_vendas/public/api/processo_prazos.php?processo_id=${pid}`,{credentials:'same-origin'});
+      const r = await fetch(`/api/processo_prazos.php?processo_id=${pid}`,{credentials:'same-origin'});
       const d = await r.json();
       const pz = d.data||[];
       c.innerHTML = pz.length ? pz.map(_renderPrazo).join('') : '<div style="color:#9ab0c9;font-size:.8rem">Nenhum prazo cadastrado</div>';
@@ -853,12 +853,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
   window._togglePrazo = async (id,status) => {
-    await fetch('/sistema_vendas/public/api/processo_prazos.php',{method:'PATCH',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status})});
+    await fetch('/api/processo_prazos.php',{method:'PATCH',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status})});
     if(_procId) _loadPrazos(_procId);
   };
   window._deletePrazo = async (id) => {
     if(!(await Yuris.confirm('Remover este prazo?', { danger: true, okLabel: 'Remover' }))) return;
-    await fetch(`/sistema_vendas/public/api/processo_prazos.php?id=${id}`,{method:'DELETE',credentials:'same-origin'});
+    await fetch(`/api/processo_prazos.php?id=${id}`,{method:'DELETE',credentials:'same-origin'});
     if(_procId) _loadPrazos(_procId);
   };
 
@@ -885,7 +885,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const resp = document.getElementById('addPrazoResp').value.trim();
     const obs  = document.getElementById('addPrazoObs').value.trim();
     document.getElementById('modalAddPrazo').style.display = 'none';
-    await fetch('/sistema_vendas/public/api/processo_prazos.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({processo_id:_procId,descricao:desc,data_limite:data,prioridade:prio,responsavel:resp,observacao:obs})});
+    await fetch('/api/processo_prazos.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({processo_id:_procId,descricao:desc,data_limite:data,prioridade:prio,responsavel:resp,observacao:obs})});
     _loadPrazos(_procId);
   });
 
@@ -941,16 +941,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
   async function _loadTarefas(pid) {
-    try { const r=await fetch(`/sistema_vendas/public/api/processo_tarefas.php?processo_id=${pid}`,{credentials:'same-origin'}); _renderTarefas((await r.json()).data||[]); } catch(e){}
+    try { const r=await fetch(`/api/processo_tarefas.php?processo_id=${pid}`,{credentials:'same-origin'}); _renderTarefas((await r.json()).data||[]); } catch(e){}
   }
 
   window._toggleTarefa = async (id,v) => {
-    await fetch('/sistema_vendas/public/api/processo_tarefas.php',{method:'PATCH',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,concluido:v?1:0})});
+    await fetch('/api/processo_tarefas.php',{method:'PATCH',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,concluido:v?1:0})});
     if(_procId){_loadTarefas(_procId);_loadHistorico(_procId);}
   };
   window._deleteTarefa = async (id) => {
     if(!(await Yuris.confirm('Remover esta tarefa?', { danger: true, okLabel: 'Remover' }))) return;
-    await fetch(`/sistema_vendas/public/api/processo_tarefas.php?id=${id}`,{method:'DELETE',credentials:'same-origin'});
+    await fetch(`/api/processo_tarefas.php?id=${id}`,{method:'DELETE',credentials:'same-origin'});
     if(_procId) _loadTarefas(_procId);
   };
 
@@ -987,7 +987,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const novaData   = document.getElementById('etData')?.value || null;
     if (!id || !novoTitulo) return;
     document.getElementById('modalEditTarefa').style.display = 'none';
-    await fetch('/sistema_vendas/public/api/processo_tarefas.php', {
+    await fetch('/api/processo_tarefas.php', {
       method:'PATCH', credentials:'same-origin',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({id: parseInt(id), titulo: novoTitulo, responsavel: novoResp, data_tarefa: novaData})
@@ -999,7 +999,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const _addTarefaInput = document.getElementById('novaTarefa');
   async function _doAddTarefa(){
     const titulo=_addTarefaInput?.value.trim(); if(!titulo||!_procId){if(!_procId)alert('Salve o processo primeiro.');return;}
-    await fetch('/sistema_vendas/public/api/processo_tarefas.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({processo_id:_procId,titulo})});
+    await fetch('/api/processo_tarefas.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({processo_id:_procId,titulo})});
     if(_addTarefaInput) _addTarefaInput.value='';
     _loadTarefas(_procId); _loadHistorico(_procId);
   }
@@ -1010,7 +1010,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   async function _loadHistorico(pid) {
     const el=document.getElementById('processoHistoryList'); if(!el) return;
     try {
-      const r=await fetch(`/sistema_vendas/public/api/processo_history.php?processo_id=${pid}`,{credentials:'same-origin'});
+      const r=await fetch(`/api/processo_history.php?processo_id=${pid}`,{credentials:'same-origin'});
       const items=(await r.json()).data||[];
       el.innerHTML = items.length ? items.map(h=>{
         const dt=new Date(h.created_at);
@@ -1050,7 +1050,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const nome = _cardNome(card);
       if (hidden) hidden.value = card.id;
       if (lk) lk.style.display = 'block';
-      if (linkBtn) linkBtn.href = `/sistema_vendas/public/prospeccao.php?open=${card.id}`;
+      if (linkBtn) linkBtn.href = `/prospeccao.php?open=${card.id}`;
       if (label) { label.textContent = `✓ ${nome}`; label.style.color = '#6ee7b7'; }
       if (limpar) limpar.style.display = 'block';
       // Preenche campo "Cliente" e exibe aviso de vínculo
@@ -1071,7 +1071,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   async function _loadCardsSelect(selectedId) {
     if (!_cardsData.length) {
       try {
-        const r = await fetch('/sistema_vendas/public/api/cards.php', {credentials:'same-origin'});
+        const r = await fetch('/api/cards.php', {credentials:'same-origin'});
         const d = await r.json();
         _cardsData = Array.isArray(d) ? d : (d.data || []);
       } catch(e) {}
@@ -1118,7 +1118,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('btnAbrirModalCliente')?.addEventListener('click', async () => {
     if (!_cardsData.length) {
       try {
-        const r = await fetch('/sistema_vendas/public/api/cards.php', {credentials:'same-origin'});
+        const r = await fetch('/api/cards.php', {credentials:'same-origin'});
         const d = await r.json();
         _cardsData = Array.isArray(d) ? d : (d.data || []);
       } catch(e) {}
@@ -1151,7 +1151,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   async function _loadUsuarios() {
     if(_usuariosList.length) return _usuariosList;
     try {
-      const r = await fetch('/sistema_vendas/public/api/users.php',{credentials:'same-origin'});
+      const r = await fetch('/api/users.php',{credentials:'same-origin'});
       _usuariosList = ((await r.json()).data||[]);
     } catch(e){}
     return _usuariosList;
@@ -1162,7 +1162,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   async function _loadSetores() {
     if (_setoresList.length) return _setoresList;
     try {
-      const r = await fetch('/sistema_vendas/public/api/teams.php', { credentials: 'same-origin' });
+      const r = await fetch('/api/teams.php', { credentials: 'same-origin' });
       const j = await r.json();
       _setoresList = j.data || [];
     } catch(e) { _setoresList = []; }
@@ -1229,7 +1229,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const titulo=_addTarefaInput?.value.trim(); if(!titulo||!_procId){if(!_procId)alert('Salve o processo primeiro.');return;}
     const resp  = document.getElementById('novaTarefaResp')?.value || '';
     const data  = document.getElementById('novaTarefaData')?.value || null;
-    await fetch('/sistema_vendas/public/api/processo_tarefas.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({processo_id:_procId,titulo,responsavel:resp,data_tarefa:data||null})});
+    await fetch('/api/processo_tarefas.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({processo_id:_procId,titulo,responsavel:resp,data_tarefa:data||null})});
     if(_addTarefaInput) _addTarefaInput.value='';
     const dataEl = document.getElementById('novaTarefaData'); if(dataEl) dataEl.value='';
     _loadTarefas(_procId); _loadHistorico(_procId);

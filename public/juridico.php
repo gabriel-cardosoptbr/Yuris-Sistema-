@@ -1,7 +1,7 @@
-﻿<?php
+<?php
 require_once __DIR__ . '/../app/Models/Database.php';
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /sistema_vendas/public/login.php'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
 $activePage = 'juridico';
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 ?>
@@ -11,13 +11,13 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Painel Jurídico — Yuris</title>
-  <link rel="icon" type="image/png" sizes="192x192" href="/sistema_vendas/public/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=42">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=19">
+  <link rel="stylesheet" href="/assets/yuris-theme.css?v=42">
+  <link rel="stylesheet" href="/assets/fog.css">
+  <link rel="stylesheet" href="/assets/sidebar.css?v=19">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
   <style>
     :root {
@@ -623,9 +623,9 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
     </div>
   </div>
 
-  <script src="/sistema_vendas/public/assets/juridico.js?v=<?= filemtime(__DIR__ . '/assets/juridico.js') ?>"></script>
-  <script src="/sistema_vendas/public/assets/juridico_charts.js?v=3<?= filemtime(__DIR__ . '/assets/juridico_charts.js') ?>"></script>
-  <script src="/sistema_vendas/public/assets/fog.js"></script>
+  <script src="/assets/juridico.js?v=<?= filemtime(__DIR__ . '/assets/juridico.js') ?>"></script>
+  <script src="/assets/juridico_charts.js?v=3<?= filemtime(__DIR__ . '/assets/juridico_charts.js') ?>"></script>
+  <script src="/assets/fog.js"></script>
   <script>
     // Dashboard status mirror
     try {

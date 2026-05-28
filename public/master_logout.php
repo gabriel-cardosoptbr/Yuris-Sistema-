@@ -22,5 +22,5 @@ if (ini_get('session.use_cookies')) {
 
 session_destroy();
 
-header('Location: /sistema_vendas/public/master_login.php');
+header('Location: /master_login.php');
 exit;

@@ -117,7 +117,7 @@ if ($method === 'POST') {
         $dpoEmail = EnvLoader::get('DPO_EMAIL', '');
         if ($dpoEmail !== '') {
             $url    = 'http://' . ($_SERVER['HTTP_HOST'] ?? 'localhost')
-                    . '/sistema_vendas/public/lgpd/acompanhar.php?token=' . $res['token'];
+                    . '/lgpd/acompanhar.php?token=' . $res['token'];
             $body   = '<p>Nova solicitação LGPD recebida.</p>'
                     . '<p><strong>Tipo:</strong> ' . htmlspecialchars((string)($input['tipo'] ?? ''))
                     . '<br><strong>Titular:</strong> ' . htmlspecialchars((string)($input['titular_nome'] ?? ''))
@@ -140,7 +140,7 @@ if ($method === 'POST') {
     ApiResponse::ok([
         'id'             => $res['id'],
         'token'          => $res['token'],
-        'acompanhamento' => '/sistema_vendas/public/lgpd/acompanhar.php?token=' . $res['token'],
+        'acompanhamento' => '/lgpd/acompanhar.php?token=' . $res['token'],
         'prazo_dias'     => LgpdRequest::PRAZO_DIAS,
     ]);
 }

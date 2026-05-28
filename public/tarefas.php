@@ -1,10 +1,10 @@
-﻿<?php
+<?php
 require_once __DIR__ . '/../app/Models/Database.php';
 require_once __DIR__ . '/../app/Models/Account.php';
 require_once __DIR__ . '/../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../app/Helpers/AccountContext.php';
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /sistema_vendas/public/login.php'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
 // HARDENING: bloqueia acesso de contas suspensas/canceladas/inativas
 \App\Helpers\AccountContext::fromSession()->assertAccountActive();
 $activePage = 'tarefas';
@@ -42,14 +42,14 @@ try {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Tarefas — Yuris</title>
-  <link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=42">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=19">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/tarefas.css?v=10">
+  <link rel="stylesheet" href="/assets/yuris-theme.css?v=42">
+  <link rel="stylesheet" href="/assets/fog.css">
+  <link rel="stylesheet" href="/assets/sidebar.css?v=19">
+  <link rel="stylesheet" href="/assets/tarefas.css?v=10">
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body {
@@ -649,6 +649,6 @@ window.YURIS_SHOW_ORIGIN_STRIP = true;
 
 <!-- SortableJS: drag-and-drop entre colunas + reordenação intra-coluna (igual Pipeline) -->
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
-<script src="/sistema_vendas/public/assets/tarefas.js?v=11"></script>
+<script src="/assets/tarefas.js?v=11"></script>
 </body>
 </html>

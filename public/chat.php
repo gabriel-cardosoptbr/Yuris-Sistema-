@@ -1,7 +1,7 @@
-﻿<?php
+<?php
 require_once __DIR__ . '/../app/Models/Database.php';
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /sistema_vendas/public/login.php'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
 $activePage    = 'chat';
 $csrf          = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
@@ -13,13 +13,13 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#070F1C">
   <title>Chat WhatsApp — Yuris</title>
-  <link rel="icon" type="image/png" sizes="192x192" href="/sistema_vendas/public/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=44">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=19">
+  <link rel="stylesheet" href="/assets/yuris-theme.css?v=44">
+  <link rel="stylesheet" href="/assets/fog.css">
+  <link rel="stylesheet" href="/assets/sidebar.css?v=19">
   <style>
     /* ── Layout base ── */
     *, *::before, *::after { box-sizing: border-box; }
@@ -2190,7 +2190,7 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
       </div>
       <div class="form-field">
         <label class="form-label">URL do Webhook (para receber mensagens)</label>
-        <input type="text" class="form-input" id="cfgWebhook" placeholder="https://seudominio.com/sistema_vendas/public/api/whatsapp/webhook.php">
+        <input type="text" class="form-input" id="cfgWebhook" placeholder="https://seudominio.com/api/whatsapp/webhook.php">
         <span style="font-size:.72rem;color:#4A5568">A URL precisa ser acessível pela Evolution API. Em localhost, use ngrok ou similar.</span>
       </div>
       <button class="conn-btn-secondary" onclick="ChatApp.applyWebhook()" style="width:100%;justify-content:center">
@@ -2333,20 +2333,20 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
 const CSRF          = <?= json_encode($csrf) ?>;
 const AUTO_OPEN_JID = <?= json_encode($auto_open_jid) ?>;
 const API  = {
-  config        : '/sistema_vendas/public/api/whatsapp/config.php',
-  instances     : '/sistema_vendas/public/api/whatsapp/instances.php',
-  chats         : '/sistema_vendas/public/api/whatsapp/chats.php',
-  messages      : '/sistema_vendas/public/api/whatsapp/messages.php',
-  send          : '/sistema_vendas/public/api/whatsapp/send.php',
-  upload        : '/sistema_vendas/public/api/whatsapp/media_upload.php',
-  sync          : '/sistema_vendas/public/api/whatsapp/sync.php',
-  refresh       : '/sistema_vendas/public/api/whatsapp/refresh_chat.php',
-  contacts      : '/sistema_vendas/public/api/whatsapp/contacts.php',
-  discover      : '/sistema_vendas/public/api/whatsapp/discover.php',
+  config        : '/api/whatsapp/config.php',
+  instances     : '/api/whatsapp/instances.php',
+  chats         : '/api/whatsapp/chats.php',
+  messages      : '/api/whatsapp/messages.php',
+  send          : '/api/whatsapp/send.php',
+  upload        : '/api/whatsapp/media_upload.php',
+  sync          : '/api/whatsapp/sync.php',
+  refresh       : '/api/whatsapp/refresh_chat.php',
+  contacts      : '/api/whatsapp/contacts.php',
+  discover      : '/api/whatsapp/discover.php',
   // Auditoria 2026-05-24 — novos endpoints
-  groupMembers  : '/sistema_vendas/public/api/whatsapp/group_members.php',
-  reaction      : '/sistema_vendas/public/api/whatsapp/reaction.php',
-  messageAction : '/sistema_vendas/public/api/whatsapp/message_action.php',
+  groupMembers  : '/api/whatsapp/group_members.php',
+  reaction      : '/api/whatsapp/reaction.php',
+  messageAction : '/api/whatsapp/message_action.php',
 };
 </script>
 <!-- ── Lightbox de Imagem ── -->
@@ -2449,7 +2449,7 @@ const API  = {
 #imgLightboxDownload:hover { background: rgba(37,99,235,.3); border-color: rgba(96,165,250,.5); }
 </style>
 
-<script src="/sistema_vendas/public/assets/chat.js?v=50"></script>
+<script src="/assets/chat.js?v=50"></script>
 <script>
 // Lightbox init
 (function(){

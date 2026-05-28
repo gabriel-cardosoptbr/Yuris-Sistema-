@@ -262,7 +262,7 @@ final class AaspSyncRunner
                     'integration_id' => $integrationId,
                     'source_id'      => 'aasp',
                     'count'          => $count,
-                    'url'            => '/sistema_vendas/public/intimacoes.php',
+                    'url'            => '/intimacoes.php',
                 ],
             ]);
         } catch (\Throwable $e) {

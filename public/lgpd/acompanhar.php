@@ -47,7 +47,7 @@ if (!$valido) {
     $corpo = '<div class="legal-alert legal-alert-error">Token inválido. Verifique o link.</div>';
 } elseif (!$req) {
     $corpo = '<div class="legal-alert legal-alert-error">Solicitação não encontrada. Verifique o link ou abra uma nova solicitação em '
-           . '<a href="/sistema_vendas/public/lgpd/solicitar.php">/lgpd/solicitar.php</a>.</div>';
+           . '<a href="/lgpd/solicitar.php">/lgpd/solicitar.php</a>.</div>';
 } else {
     $statusLabel = $statusLabels[$req['status']] ?? $req['status'];
     $tipoLabel   = $tipoLabels[$req['tipo']] ?? $req['tipo'];

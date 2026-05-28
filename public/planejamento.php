@@ -1,10 +1,10 @@
-﻿﻿<?php
+<?php
 require_once __DIR__ . '/../app/Models/Database.php';
 require_once __DIR__ . '/../app/Models/User.php';
 use App\Models\Database;
 session_start();
 if (empty($_SESSION['user_id'])) {
-    header('Location: /sistema_vendas/public/login.php');
+    header('Location: /login.php');
     exit;
 }
 $activePage = 'funil';
@@ -15,13 +15,13 @@ $activePage = 'funil';
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Planejamento Comercial Jurídico — Yuris</title>
-  <link rel="icon" type="image/png" sizes="192x192" href="/sistema_vendas/public/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=42">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/fog.css">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=19">
+  <link rel="stylesheet" href="/assets/yuris-theme.css?v=42">
+  <link rel="stylesheet" href="/assets/fog.css">
+  <link rel="stylesheet" href="/assets/sidebar.css?v=19">
   <style>
     :root {
       --bg-main: #071427;
@@ -735,8 +735,8 @@ $activePage = 'funil';
   </main>
 
   <script src="assets/dashboard.js?v=13"></script>
-  <script src="/sistema_vendas/public/assets/fog.js"></script>
-  <script src="/sistema_vendas/public/assets/funnel.js?v=4"></script>
+  <script src="/assets/fog.js"></script>
+  <script src="/assets/funnel.js?v=4"></script>
 
 </body>
 </html>

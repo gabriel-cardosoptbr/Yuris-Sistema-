@@ -1,6 +1,6 @@
 <?php
 /**
- * /sistema_vendas/public/index.php
+ * /index.php
  *
  * Landing page institucional do Yuris — Sistema Jurídico Inteligente.
  * Página pública (sem sessão exigida). Quem clica "Entrar" vai pro /login.php.
@@ -36,21 +36,21 @@ $waSvg = '<span class="lp-wa-icon" aria-hidden="true"><svg viewBox="0 0 24 24" f
   <title>Yuris — Sistema Jurídico Inteligente para Advogados</title>
   <meta name="description" content="Controle processos, prazos, intimações, tarefas, clientes e comunicação em uma plataforma jurídica inteligente para advogados e escritórios.">
   <meta name="robots" content="index,follow">
-  <link rel="canonical" href="/sistema_vendas/public/index.php">
+  <link rel="canonical" href="/index.php">
 
   <meta property="og:type" content="website">
   <meta property="og:title" content="Yuris — Sistema Jurídico Inteligente para Advogados">
   <meta property="og:description" content="Centralize processos, prazos, intimações e clientes em um único sistema jurídico moderno.">
   <meta property="og:image" content="/sistema_vendas/Imagens/Logo.png">
 
-  <link rel="icon" type="image/png" sizes="192x192" href="/sistema_vendas/public/assets/favicon-192.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/sistema_vendas/public/assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/landing.css?v=<?= $cssVer ?>">
+  <link rel="stylesheet" href="/assets/landing.css?v=<?= $cssVer ?>">
 </head>
 <body class="lp">
 
@@ -74,7 +74,7 @@ $waSvg = '<span class="lp-wa-icon" aria-hidden="true"><svg viewBox="0 0 24 24" f
     </nav>
 
     <div class="lp-header-cta">
-      <a href="/sistema_vendas/public/login.php" class="lp-btn lp-btn-ghost">Entrar</a>
+      <a href="/login.php" class="lp-btn lp-btn-ghost">Entrar</a>
       <a href="<?= wa('Olá Bruno, quero uma demonstração do Yuris!') ?>" target="_blank" rel="noopener" class="lp-btn lp-btn-primary lp-btn-wa">
         <?= $waSvg ?>
         Solicitar demonstração
@@ -100,7 +100,7 @@ $waSvg = '<span class="lp-wa-icon" aria-hidden="true"><svg viewBox="0 0 24 24" f
   <a href="#seguranca">Segurança</a>
   <a href="#demonstracao">Demonstração</a>
   <div class="lp-drawer-title">Acesso</div>
-  <a href="/sistema_vendas/public/login.php" class="lp-btn lp-btn-ghost">Entrar</a>
+  <a href="/login.php" class="lp-btn lp-btn-ghost">Entrar</a>
   <a href="<?= wa('Olá Bruno, quero uma demonstração do Yuris!') ?>" target="_blank" rel="noopener" class="lp-btn lp-btn-primary lp-btn-wa">
     <?= $waSvg ?>
     Solicitar demonstração
@@ -1850,16 +1850,16 @@ $waSvg = '<span class="lp-wa-icon" aria-hidden="true"><svg viewBox="0 0 24 24" f
           <li><a href="#para-quem">Para quem é</a></li>
           <li><a href="#confianca">Pilares</a></li>
           <li><a href="#demonstracao">Demonstração</a></li>
-          <li><a href="/sistema_vendas/public/login.php">Entrar</a></li>
+          <li><a href="/login.php">Entrar</a></li>
         </ul>
       </div>
       <div class="lp-footer-col">
         <h5>Legal</h5>
         <ul>
-          <li><a href="/sistema_vendas/public/privacidade.php">Privacidade</a></li>
-          <li><a href="/sistema_vendas/public/termos.php">Termos</a></li>
-          <li><a href="/sistema_vendas/public/lgpd.php">LGPD</a></li>
-          <li><a href="/sistema_vendas/public/cookies.php">Cookies</a></li>
+          <li><a href="/privacidade.php">Privacidade</a></li>
+          <li><a href="/termos.php">Termos</a></li>
+          <li><a href="/lgpd.php">LGPD</a></li>
+          <li><a href="/cookies.php">Cookies</a></li>
         </ul>
       </div>
     </div>
@@ -1870,6 +1870,6 @@ $waSvg = '<span class="lp-wa-icon" aria-hidden="true"><svg viewBox="0 0 24 24" f
   </div>
 </footer>
 
-<script src="/sistema_vendas/public/assets/landing.js?v=<?= $jsVer ?>" defer></script>
+<script src="/assets/landing.js?v=<?= $jsVer ?>" defer></script>
 </body>
 </html>

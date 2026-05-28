@@ -1,6 +1,6 @@
 (function(){
-  const api = '/sistema_vendas/public/api/dre_accounts.php';
-  const codesApi = '/sistema_vendas/public/api/dre_codes.php';
+  const api = '/api/dre_accounts.php';
+  const codesApi = '/api/dre_codes.php';
   const csrf = (document.querySelector('input[name="csrf_token"]') || {}).value || '';
 
   // helper for temporary blinking messages

@@ -46,7 +46,7 @@ $LEGAL_PAGE = [
 
 <p style="background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.25);padding:14px;border-radius:8px;margin-top:14px">
   <strong>Forma mais rápida:</strong> abra uma solicitação pelo nosso formulário online em
-  <a href="/sistema_vendas/public/lgpd/solicitar.php" style="color:#7eb8f7"><strong>/lgpd/solicitar.php</strong></a>.
+  <a href="/lgpd/solicitar.php" style="color:#7eb8f7"><strong>/lgpd/solicitar.php</strong></a>.
   Você recebe um link único para acompanhar o status e nós notificamos o DPO automaticamente.
 </p>
 
@@ -65,9 +65,9 @@ $LEGAL_PAGE = [
 
 <h2>6. Documentos relacionados</h2>
 <ul>
-  <li><a href="/sistema_vendas/public/privacidade.php">Política de Privacidade</a></li>
-  <li><a href="/sistema_vendas/public/termos.php">Termos de Uso</a></li>
-  <li><a href="/sistema_vendas/public/lgpd.php">LGPD &amp; Segurança</a></li>
+  <li><a href="/privacidade.php">Política de Privacidade</a></li>
+  <li><a href="/termos.php">Termos de Uso</a></li>
+  <li><a href="/lgpd.php">LGPD &amp; Segurança</a></li>
 </ul>
 HTML
 ];

@@ -1,8 +1,8 @@
-﻿<?php
+<?php
 require_once __DIR__ . '/../app/Models/Database.php';
 session_start();
 if (empty($_SESSION['user_id'])) {
-    header('Location: /sistema_vendas/public/login.php');
+    header('Location: /login.php');
     exit;
 }
 $activePage = 'chat_interno';
@@ -16,12 +16,12 @@ $csrf       = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Chat Interno — Yuris</title>
-  <link rel="icon" type="image/png" sizes="192x192" href="/sistema_vendas/public/assets/favicon-192.png">
-  <link rel="icon" type="image/png" sizes="32x32"  href="/sistema_vendas/public/assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png">
+  <link rel="icon" type="image/png" sizes="32x32"  href="/assets/favicon-32.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/yuris-theme.css?v=42">
-  <link rel="stylesheet" href="/sistema_vendas/public/assets/sidebar.css?v=19">
+  <link rel="stylesheet" href="/assets/yuris-theme.css?v=42">
+  <link rel="stylesheet" href="/assets/sidebar.css?v=19">
   <style>
     :root {
       --bg:           #070F1C;
@@ -750,12 +750,12 @@ const CI_UID  = <?= $uid ?>;
 const CI_NOME = <?= json_encode($_SESSION['user_nome'] ?? 'Usuário') ?>;
 const CI_CSRF = <?= json_encode($csrf) ?>;
 const CI_API  = {
-  conversas : '/sistema_vendas/public/api/chat/conversas.php',
-  mensagens : '/sistema_vendas/public/api/chat/mensagens.php',
-  mencoes   : '/sistema_vendas/public/api/chat/mencoes.php',
-  users     : '/sistema_vendas/public/api/users.php',
+  conversas : '/api/chat/conversas.php',
+  mensagens : '/api/chat/mensagens.php',
+  mencoes   : '/api/chat/mencoes.php',
+  users     : '/api/users.php',
 };
 </script>
-<script src="/sistema_vendas/public/assets/chat_interno.js?v=4"></script>
+<script src="/assets/chat_interno.js?v=4"></script>
 </body>
 </html>

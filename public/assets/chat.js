@@ -119,7 +119,7 @@ const ChatApp = (() => {
       try {
         const n = new Notification(sender, {
           body,
-          icon: '/sistema_vendas/public/assets/favicon-32.png',
+          icon: '/assets/favicon-32.png',
           tag : msg.remote_jid, // agrupa notificações do mesmo chat
         });
         n.onclick = () => {
@@ -967,7 +967,7 @@ const ChatApp = (() => {
     return formatPhone(local) || local;
   }
 
-  const MEDIA_PROXY = '/sistema_vendas/public/api/whatsapp/media.php?msg_id=';
+  const MEDIA_PROXY = '/api/whatsapp/media.php?msg_id=';
 
   function mediaUrl(msg) {
     if (!msg || !msg.id) return '';
@@ -1384,7 +1384,7 @@ const ChatApp = (() => {
   async function _loadUsersForFilter() {
     if (_linkData.users.length) return;
     try {
-      const r = await fetch('/sistema_vendas/public/api/users.php', { credentials: 'same-origin' }).then(r => r.json());
+      const r = await fetch('/api/users.php', { credentials: 'same-origin' }).then(r => r.json());
       _linkData.users = Array.isArray(r) ? r : (r.data || []);
     } catch(e) { _linkData.users = []; }
   }
@@ -1774,7 +1774,7 @@ const ChatApp = (() => {
     if (type === 'card') {
       const goBtn = qs('#pickerCardGoBtn');
       if (goBtn) {
-        goBtn.href = '/sistema_vendas/public/prospeccao.php?open=' + encodeURIComponent(id);
+        goBtn.href = '/prospeccao.php?open=' + encodeURIComponent(id);
         goBtn.style.display = 'flex';
       }
     }
@@ -1799,7 +1799,7 @@ const ChatApp = (() => {
     container.innerHTML = _linkPicker.processos.map((p, i) =>
       `<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:6px;background:rgba(5,18,39,.7);border:1px solid rgba(96,165,250,.14)">
         <span style="flex:1;font-size:.82rem;color:#C0D8F0">${esc(p.name || String(p.id))}</span>
-        <a href="/sistema_vendas/public/processos.php?open=${encodeURIComponent(p.id)}"
+        <a href="/processos.php?open=${encodeURIComponent(p.id)}"
            class="btn-yuris btn-yuris-sm" title="Abrir processo">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
           Abrir
@@ -1834,7 +1834,7 @@ const ChatApp = (() => {
   async function _loadTeams() {
     if (_linkData.teams.length) return; // já carregado
     try {
-      const r = await fetch('/sistema_vendas/public/api/teams.php?action=for_chat_filter', { credentials: 'same-origin' }).then(r => r.json());
+      const r = await fetch('/api/teams.php?action=for_chat_filter', { credentials: 'same-origin' }).then(r => r.json());
       _linkData.teams = Array.isArray(r) ? r : (r.data || []);
     } catch(e) { _linkData.teams = []; }
   }
@@ -1942,9 +1942,9 @@ const ChatApp = (() => {
     if (!_linkData.cards.length || !_linkData.users.length) {
       try {
         const [rCards, rProcessos, rUsers] = await Promise.all([
-          fetch('/sistema_vendas/public/api/cards.php',    { credentials: 'same-origin' }).then(r => r.json()),
-          fetch('/sistema_vendas/public/api/processes.php',{ credentials: 'same-origin' }).then(r => r.json()),
-          fetch('/sistema_vendas/public/api/users.php',    { credentials: 'same-origin' }).then(r => r.json()),
+          fetch('/api/cards.php',    { credentials: 'same-origin' }).then(r => r.json()),
+          fetch('/api/processes.php',{ credentials: 'same-origin' }).then(r => r.json()),
+          fetch('/api/users.php',    { credentials: 'same-origin' }).then(r => r.json()),
         ]);
         _linkData.cards    = Array.isArray(rCards)    ? rCards    : (rCards.data    || []);
         _linkData.processos= Array.isArray(rProcessos)? rProcessos: (rProcessos.data|| []);
@@ -1963,7 +1963,7 @@ const ChatApp = (() => {
     let _vinculosCarregados = false;
     try {
       const rv = await fetch(
-        '/sistema_vendas/public/api/whatsapp/contato_vinculos.php?jid=' + encodeURIComponent(state.currentJid),
+        '/api/whatsapp/contato_vinculos.php?jid=' + encodeURIComponent(state.currentJid),
         { credentials: 'same-origin' }
       ).then(r => r.json());
 
@@ -2195,7 +2195,7 @@ const ChatApp = (() => {
     }
 
     // Fetch dos membros e atualiza sublabel + handler de click + popula cache de menções
-    fetch('/sistema_vendas/public/api/whatsapp/group_members.php?jid=' + encodeURIComponent(jid), {
+    fetch('/api/whatsapp/group_members.php?jid=' + encodeURIComponent(jid), {
       credentials: 'same-origin'
     })
       .then(r => r.json())

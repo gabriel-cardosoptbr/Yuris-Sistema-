@@ -26,7 +26,7 @@ $ctx = AccountContext::fromSession();
 $ctx->assertSuperAdmin();
 
 if (empty($_SESSION['master_mode'])) {
-    header('Location: /sistema_vendas/public/master_login.php');
+    header('Location: /master_login.php');
     exit;
 }
 
@@ -39,7 +39,7 @@ $csrf = $_SESSION['csrf_token'];
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Configurar 2FA — Painel Master</title>
-  <link rel="icon" type="image/png" sizes="192x192" href="/sistema_vendas/public/assets/favicon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
   <!-- QR code: biblioteca leve e amplamente usada (renderiza puro JS, sem call externo) -->
@@ -124,7 +124,7 @@ $csrf = $_SESSION['csrf_token'];
   <div class="mfa-wrap">
     <div class="mfa-head">
       <h1>Configurar 2FA</h1>
-      <a class="mfa-back" href="/sistema_vendas/public/master.php">← Voltar ao Painel Master</a>
+      <a class="mfa-back" href="/master.php">← Voltar ao Painel Master</a>
     </div>
 
     <!-- Estado atual -->
@@ -202,7 +202,7 @@ $csrf = $_SESSION['csrf_token'];
 
   <script>
     const CSRF   = <?= json_encode($csrf) ?>;
-    const API    = '/sistema_vendas/public/api/master/mfa.php';
+    const API    = '/api/master/mfa.php';
     let backupCodesShown = [];
 
     async function fj(url, opts = {}) {

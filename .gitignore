@@ -40,3 +40,11 @@ Thumbs.db
 
 # Backups locais de fases anteriores (não vão pro repo)
 /.backup_*/
+
+# arquivos locais/produção
+.env
+database/import.sql
+database/import_clean.sql
+database/import_original.sql
+*.bak
+*.tar.gz

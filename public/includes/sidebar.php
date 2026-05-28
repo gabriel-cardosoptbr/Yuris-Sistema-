@@ -65,9 +65,9 @@ $_uiLibPath  = __DIR__ . '/../assets/yuris-ui.js';
 $_uiLibVer   = file_exists($_uiLibPath) ? @filemtime($_uiLibPath) : '1';
 ?>
 <!-- Yuris UI lib (notify/confirm/prompt sem "localhost diz"). Auto-polyfills window.alert. -->
-<script src="/sistema_vendas/public/assets/yuris-ui.js?v=<?= $_uiLibVer ?>"></script>
+<script src="/assets/yuris-ui.js?v=<?= $_uiLibVer ?>"></script>
 <!-- LGPD Etapa 5: banner de cookies — auto-inicializa, só aparece se ainda não respondeu -->
-<script src="/sistema_vendas/public/assets/cookie-consent.js?v=1"></script>
+<script src="/assets/cookie-consent.js?v=1"></script>
 <aside class="sidebar" role="complementary" aria-label="Menu lateral">
 
   <!-- ── Marca ── -->
@@ -189,7 +189,7 @@ $_uiLibVer   = file_exists($_uiLibPath) ? @filemtime($_uiLibPath) : '1';
 
     <?php
     /* Painel Master — REMOVIDO da sidebar do app normal.
-     * Acesso EXCLUSIVO via portal isolado: /sistema_vendas/public/master_login.php
+     * Acesso EXCLUSIVO via portal isolado: /master_login.php
      * Mesmo super_admins não vêem link aqui. Garantia de "qualquer outra conta
      * não deve ter acesso ao painel master nunca" — não há trilha visual.
      */
