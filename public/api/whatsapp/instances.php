@@ -186,9 +186,21 @@ if ($method === 'POST') {
 
     if ($action === 'set_webhook') {
         $name = $cfg['evolution_instance'] ?? 'yuris-crm';
-        $url  = $payload['url'] ?? '';
+        $url  = trim($payload['url'] ?? '');
         if (!$url) { echo json_encode(['ok' => false, 'error' => 'URL obrigatória']); exit; }
-        $res  = $evo->setWebhook($name, $url);
+
+        // Anexa ?token=<apikey do tenant> à URL enviada à Evolution. Garante que o
+        // webhook.php identifique o tenant mesmo quando a Evolution não repassa
+        // headers customizados (a query string SEMPRE é enviada). Não duplica se o
+        // usuário já tiver colocado token. A URL "limpa" (sem token) é a que fica
+        // salva/exibida na tela — o token é detalhe interno da integração.
+        $tenantKey = (string)($cfg['evolution_api_key'] ?? '');
+        $urlFinal  = $url;
+        if ($tenantKey !== '' && !preg_match('/[?&]token=/i', $url)) {
+            $urlFinal .= (strpos($url, '?') === false ? '?' : '&') . 'token=' . urlencode($tenantKey);
+        }
+
+        $res = $evo->setWebhook($name, $urlFinal);
         $model->saveSetting($accountId, 'webhook_url', $url);
         echo json_encode(['ok' => true, 'raw' => $res]);
         exit;

@@ -52,6 +52,10 @@ class EvolutionApiService
                     'SEND_MESSAGE',
                 ],
             ];
+            // Header apikey pro webhook.php identificar o tenant (ver setWebhook).
+            if ($this->apiKey !== '') {
+                $body['webhook']['headers'] = ['apikey' => $this->apiKey, 'Content-Type' => 'application/json'];
+            }
         }
         return $this->request('POST', '/instance/create', $body);
     }
@@ -101,15 +105,21 @@ class EvolutionApiService
             ];
         }
         // Evolution API v2 exige o envelope { "webhook": { ... } }
-        return $this->request('POST', "/webhook/set/{$name}", [
-            'webhook' => [
-                'enabled'  => true,
-                'url'      => $url,
-                'byEvents' => false,
-                'base64'   => true,
-                'events'   => $events,
-            ],
-        ]);
+        $webhook = [
+            'enabled'  => true,
+            'url'      => $url,
+            'byEvents' => false,
+            'base64'   => true,
+            'events'   => $events,
+        ];
+        // Header apikey (defense-in-depth): quando a Evolution honra headers
+        // customizados, o webhook.php identifica o tenant por aqui. Quando NÃO
+        // honra (varia por versão), o ?token na própria URL cobre. Os dois juntos
+        // garantem a entrega independente do comportamento da versão.
+        if ($this->apiKey !== '') {
+            $webhook['headers'] = ['apikey' => $this->apiKey, 'Content-Type' => 'application/json'];
+        }
+        return $this->request('POST', "/webhook/set/{$name}", ['webhook' => $webhook]);
     }
 
     public function getWebhook(string $name): array

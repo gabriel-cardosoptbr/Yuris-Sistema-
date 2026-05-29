@@ -55,7 +55,16 @@ try {
     // apikey distinta em whatsapp_settings (per-tenant após migration 046).
     // Compatibilidade: opcionalmente aceita ?account=N&token=hmac no URL para
     // ambientes que queiram identificar tenant por path (Opção A do plano).
+    // Identificação do tenant: header apikey (preferencial) OU token na query string.
+    // O fallback de query é essencial: algumas versões da Evolution API NÃO
+    // repassam headers customizados configurados no webhook — mas SEMPRE enviam a
+    // URL exata como cadastrada (incluindo ?token=...). O token é a própria
+    // evolution_api_key do tenant e trafega apenas entre a Evolution e o Yuris
+    // (mesma infraestrutura), sem cruzar fronteira de terceiros.
     $sentKey = $_SERVER['HTTP_APIKEY'] ?? ($_SERVER['HTTP_API_KEY'] ?? '');
+    if ($sentKey === '') {
+        $sentKey = $_GET['token'] ?? ($_GET['apikey'] ?? '');
+    }
     if (empty($sentKey)) {
         http_response_code(401);
         echo json_encode(['error' => 'apikey obrigatória']);
