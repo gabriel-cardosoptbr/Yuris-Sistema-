@@ -205,12 +205,43 @@ class WhatsAppInstance
     public function findAccountByApiKey(string $apiKey): ?int
     {
         if ($apiKey === '') return null;
+        $ids = $this->accountsUsingApiKey($apiKey);
+        if (!$ids) return null;
+
+        // Blindagem contra "divergência de conta": a MESMA evolution_api_key
+        // configurada em mais de um tenant torna a identificação ambígua — o
+        // webhook entregava na primeira que o índice devolvesse (não-determinístico)
+        // e o usuário do OUTRO tenant "não recebia". Agora escolhemos sempre a
+        // mesma conta (menor account_id = determinístico) e registramos o conflito
+        // no log do servidor pra diagnóstico. A correção definitiva é limpar a
+        // duplicata: cada tenant deve ter sua própria apikey/instância.
+        if (count($ids) > 1) {
+            error_log(
+                '[WhatsApp] CONFLITO de conta: evolution_api_key compartilhada por '
+                . count($ids) . ' tenants (account_id=' . implode(',', $ids) . '). '
+                . 'Webhook usando ' . $ids[0] . '. Limpe a duplicata em whatsapp_settings '
+                . '(cada conta deve ter apikey/instância própria).'
+            );
+        }
+        return $ids[0];
+    }
+
+    /**
+     * Retorna TODOS os account_id que usam a mesma evolution_api_key, em ordem
+     * determinística (menor primeiro). Vazio se nenhum. Usado por
+     * findAccountByApiKey (blindagem) e por diagnóstico de conflito de conta.
+     *
+     * @return int[]
+     */
+    public function accountsUsingApiKey(string $apiKey): array
+    {
+        if ($apiKey === '') return [];
         $stmt = $this->db->prepare(
             "SELECT account_id FROM whatsapp_settings
-             WHERE config_key = 'evolution_api_key' AND config_value = ? LIMIT 1"
+             WHERE config_key = 'evolution_api_key' AND config_value = ?
+             ORDER BY account_id ASC"
         );
         $stmt->execute([$apiKey]);
-        $id = $stmt->fetchColumn();
-        return $id !== false && $id !== null ? (int)$id : null;
+        return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
     }
 }
