@@ -262,6 +262,7 @@ const ChatApp = (() => {
     }
 
     if (status === 'open') {
+      _discDismissed = false; // reconectou: rearma o aviso pra uma próxima queda
       connScreen.style.display = 'none';
       if (state.currentJid) {
         chatArea.style.display = 'flex';
@@ -276,6 +277,19 @@ const ChatApp = (() => {
       connScreen.style.display = 'flex';
       chatArea.style.display   = 'none';
       chatEmpty.style.display  = 'none';
+      // Mostra o alerta de desconexão SEMPRE que não estiver conectado — não só
+      // na transição detectada pelo polling. Antes, quem ABRIA a tela já
+      // desconectado (a sessão caiu enquanto estava noutra aba) não via aviso
+      // nenhum, só o QR, e não entendia que tinha caído da base (Evolution).
+      // 'connecting' = caiu e está tentando voltar; 'close'/'qr' = precisa QR.
+      if (!_discDismissed) {
+        _showDisconnectAlert();
+        if (status === 'connecting') {
+          _setReconnectStatus('Desconectou da base (Evolution). Tentando reconectar automaticamente…');
+        } else {
+          _setReconnectStatus('Desconectou da base (Evolution). Escaneie o QR Code para reconectar.');
+        }
+      }
     }
   }
 
@@ -358,6 +372,10 @@ const ChatApp = (() => {
   // ── Auto-reconexão ──────────────────────────────────────────
   let _reconnectAttempts = 0;
   let _reconnectTimer    = null;
+  // Quando o usuário fecha (X) o alerta de desconexão, respeitamos: não o
+  // reexibimos a cada polling. Reseta ao reconectar, pra avisar de novo numa
+  // próxima queda.
+  let _discDismissed     = false;
   const _MAX_AUTO        = 3;
   const _RETRY_DELAYS    = [15000, 30000, 60000]; // 15s, 30s, 60s
 
@@ -409,7 +427,7 @@ const ChatApp = (() => {
     if (el) el.classList.remove('visible');
   }
 
-  function dismissDisconnectAlert() { _hideDisconnectAlert(); }
+  function dismissDisconnectAlert() { _discDismissed = true; _hideDisconnectAlert(); }
 
   async function manualReconnect() {
     _clearReconnect();
