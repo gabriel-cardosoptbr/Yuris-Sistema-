@@ -55,24 +55,42 @@ try {
     // apikey distinta em whatsapp_settings (per-tenant após migration 046).
     // Compatibilidade: opcionalmente aceita ?account=N&token=hmac no URL para
     // ambientes que queiram identificar tenant por path (Opção A do plano).
-    // Identificação do tenant: header apikey (preferencial) OU token na query string.
-    // O fallback de query é essencial: algumas versões da Evolution API NÃO
-    // repassam headers customizados configurados no webhook — mas SEMPRE enviam a
-    // URL exata como cadastrada (incluindo ?token=...). O token é a própria
-    // evolution_api_key do tenant e trafega apenas entre a Evolution e o Yuris
-    // (mesma infraestrutura), sem cruzar fronteira de terceiros.
-    $sentKey = $_SERVER['HTTP_APIKEY'] ?? ($_SERVER['HTTP_API_KEY'] ?? '');
-    if ($sentKey === '') {
-        $sentKey = $_GET['token'] ?? ($_GET['apikey'] ?? '');
+    // Identificação do tenant: testamos TODAS as chaves candidatas (header E
+    // ?token na URL) e aceitamos se QUALQUER uma identificar o tenant.
+    //
+    // Por que tentar as duas: a Evolution API, ao disparar o webhook, manda no
+    // header `apikey` a chave DELA (a AUTHENTICATION_API_KEY global do .env, ou a
+    // apikey da instância) — que NÃO é a evolution_api_key do tenant gravada no
+    // Yuris. Se priorizássemos o header (como era antes), ele "venceria", não
+    // bateria com nenhum tenant e retornaria 401 — descartando o ?token correto
+    // que mandamos na URL. Testando ambas, o ?token (chave do tenant) sempre tem
+    // chance de identificar, independente do que a Evolution põe no header.
+    //
+    // O ?token é a própria evolution_api_key do tenant e trafega só entre a
+    // Evolution e o Yuris (mesma infra), sem cruzar fronteira de terceiros.
+    $candidatos = [];
+    foreach ([
+        $_SERVER['HTTP_APIKEY']  ?? '',
+        $_SERVER['HTTP_API_KEY'] ?? '',
+        $_GET['token']           ?? '',
+        $_GET['apikey']          ?? '',
+    ] as $cand) {
+        $cand = trim((string)$cand);
+        if ($cand !== '' && !in_array($cand, $candidatos, true)) $candidatos[] = $cand;
     }
-    if (empty($sentKey)) {
+    if (empty($candidatos)) {
         http_response_code(401);
         echo json_encode(['error' => 'apikey obrigatória']);
         exit;
     }
 
-    // Lookup tenant pela apikey (timing-safe — busca exata em coluna indexada)
-    $accountId = $instModel->findAccountByApiKey($sentKey);
+    // Primeira chave candidata que identificar o tenant vence (timing-safe —
+    // busca exata em coluna indexada).
+    $accountId = null;
+    foreach ($candidatos as $cand) {
+        $accountId = $instModel->findAccountByApiKey($cand);
+        if ($accountId !== null) break;
+    }
     if ($accountId === null) {
         http_response_code(401);
         echo json_encode(['error' => 'apikey não bate com nenhum tenant configurado']);
