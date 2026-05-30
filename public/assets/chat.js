@@ -175,7 +175,9 @@ const ChatApp = (() => {
       closeSettings();
       await checkStatus();
     } catch(e) {
-      toast('Erro ao salvar configurações', 'error');
+      // Mostra a mensagem real do servidor (ex.: 409 "chave ja vinculada a outra
+      // conta") em vez de um erro generico, pra o usuario entender o bloqueio.
+      toast(e.message || 'Erro ao salvar configurações', 'error');
     }
   }
 
