@@ -59,6 +59,22 @@ if ($method === 'POST') {
         if (isset($payload[$key])) {
             // não permite gravar string vazia em evolution_api_key (evita zerar inadvertidamente)
             if ($key === 'evolution_api_key' && trim((string)$payload[$key]) === '') continue;
+
+            // ── Bloqueio "uma instância por conta/número" ─────────────────────
+            // A MESMA evolution_api_key em mais de uma conta torna o roteamento do
+            // webhook ambíguo (findAccountByApiKey) e faz UMA das contas parar de
+            // receber mensagens. Cada conta precisa da sua própria instância/chave.
+            if ($key === 'evolution_api_key') {
+                $conflito = $model->apiKeyConflict((string)$payload[$key], $accountId);
+                if (!empty($conflito)) {
+                    http_response_code(409);
+                    echo json_encode(['ok' => false, 'error' =>
+                        'Essa chave da Evolution API já está vinculada a outra conta. '
+                      . 'Cada conta precisa da sua própria instância (uma instância por conta/número).']);
+                    exit;
+                }
+            }
+
             $model->saveSetting($accountId, $key, (string)$payload[$key]);
             // LGPD: nunca registramos evolution_api_key em claro na trilha — só marcamos que foi alterada.
             $touched[$key] = ($key === 'evolution_api_key') ? '***changed***' : (string)$payload[$key];

@@ -244,4 +244,24 @@ class WhatsAppInstance
         $stmt->execute([$apiKey]);
         return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
     }
+
+    /**
+     * account_id(s) que JÁ usam esta evolution_api_key, EXCETO $exceptAccountId.
+     * Vazio = sem conflito. Usado pela tela de configuração (config.php) para
+     * bloquear que duas contas compartilhem a mesma chave/instância — raiz do
+     * "não recebe": com a key repetida o webhook (findAccountByApiKey) fica
+     * ambíguo e só UMA conta recebe. Regra de negócio: uma instância por
+     * conta/número. O número como dado/contato pode aparecer em várias contas —
+     * o que se bloqueia aqui é a INSTÂNCIA (chave de roteamento) duplicada.
+     *
+     * @return int[]
+     */
+    public function apiKeyConflict(string $apiKey, int $exceptAccountId): array
+    {
+        if (trim($apiKey) === '') return [];
+        return array_values(array_filter(
+            $this->accountsUsingApiKey(trim($apiKey)),
+            fn($id) => $id !== $exceptAccountId
+        ));
+    }
 }
