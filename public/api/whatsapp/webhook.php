@@ -335,7 +335,18 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
     }
 
     // ── Quoted (reply) — extrai stanzaId da msg citada pra exibir preview ───
+    // Evolution v2: reply em TEXTO SIMPLES vem como messageType=conversation e o
+    // contextInfo (com stanzaId) fica no TOPO do payload (irmão de "message"), NÃO
+    // dentro de extendedTextMessage. Sem checar o topo, citar um texto não capturava
+    // a citação (bug 2026-05-31). Reply em mídia já vem no sub-objeto da mídia.
     $quotedWamid = extractQuotedWamid($message);
+    if (!$quotedWamid && !empty($msg['contextInfo']['stanzaId'])) {
+        $quotedWamid = $msg['contextInfo']['stanzaId'];
+    }
+    // Snapshot da citação (autor + texto) que o WhatsApp manda EMBUTIDO no
+    // contextInfo. Garante que a citação apareça mesmo se a mensagem original
+    // não estiver sincronizada no YURIS. Ver migration 089.
+    [$quotedSenderName, $quotedText] = extractQuotedSnapshot($message, $msg);
 
     // Para mídias: tenta baixar base64 completo via Evolution (mídia ainda está em cache local)
     $mediaBase64 = null;
@@ -389,6 +400,8 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
         'direction'       => $fromMe ? 'outbound' : 'inbound',
         'status'          => $fromMe ? 'sent' : 'delivered',
         'quoted_wamid'    => $quotedWamid,  // reply ao qual a msg responde (pode ser null)
+        'quoted_sender_name' => $quotedSenderName, // snapshot do autor citado (fallback)
+        'quoted_text'        => $quotedText,       // snapshot do texto citado (fallback)
         'raw_payload'     => json_encode($msg),
         'created_at'      => $createdAt,
     ]);
@@ -540,4 +553,55 @@ function extractQuotedWamid(array $message): ?string
         }
     }
     return null;
+}
+
+/**
+ * Extrai o SNAPSHOT da mensagem citada (autor + trecho de texto) embutido no
+ * contextInfo do payload. O WhatsApp sempre manda esse trecho junto da resposta,
+ * então conseguimos exibir a citação mesmo sem ter a mensagem original no banco.
+ * Procura o contextInfo em: topo do payload ($msg) → extendedTextMessage → subs de mídia.
+ * Retorna [senderName|null, text|null].
+ */
+function extractQuotedSnapshot(array $message, array $msg): array
+{
+    // Acha o primeiro contextInfo disponível (topo > texto > mídia)
+    $ci = $msg['contextInfo']
+        ?? ($message['extendedTextMessage']['contextInfo'] ?? null);
+    if (!$ci) {
+        foreach (['imageMessage', 'videoMessage', 'audioMessage', 'stickerMessage', 'documentMessage'] as $sub) {
+            if (!empty($message[$sub]['contextInfo'])) { $ci = $message[$sub]['contextInfo']; break; }
+        }
+    }
+    if (!is_array($ci)) return [null, null];
+
+    // Autor da mensagem citada (JID). Só guardamos se for telefone real — o nome
+    // de verdade é resolvido depois no Model. Aqui guardamos o número como dica.
+    $participant = $ci['participant'] ?? null;
+    $senderName = null;
+    if ($participant && !str_contains((string)$participant, '@lid')) {
+        $digits = preg_replace('/\D/', '', explode('@', (string)$participant)[0]);
+        if ($digits !== '') $senderName = $digits; // Model tenta trocar por nome real
+    }
+
+    // Texto da mensagem citada (vários formatos possíveis no quotedMessage)
+    $qm = $ci['quotedMessage'] ?? [];
+    $text = null;
+    if (is_array($qm)) {
+        $text = $qm['conversation']
+            ?? ($qm['extendedTextMessage']['text'] ?? null)
+            ?? ($qm['imageMessage']['caption'] ?? null)
+            ?? ($qm['videoMessage']['caption'] ?? null)
+            ?? ($qm['documentMessage']['caption'] ?? null)
+            ?? null;
+        if ($text === null) {
+            if (isset($qm['imageMessage']))      $text = '📷 Imagem';
+            elseif (isset($qm['videoMessage']))  $text = '🎥 Vídeo';
+            elseif (isset($qm['audioMessage']))  $text = '🎵 Áudio';
+            elseif (isset($qm['documentMessage'])) $text = '📄 Documento';
+            elseif (isset($qm['stickerMessage'])) $text = '✨ Sticker';
+        }
+    }
+    if (is_string($text) && mb_strlen($text) > 480) $text = mb_substr($text, 0, 477) . '…';
+
+    return [$senderName, $text];
 }

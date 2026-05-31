@@ -909,10 +909,12 @@ const ChatApp = (() => {
     const dKey     = dayKey(msg.created_at);
 
     // ── Quoted preview (msg citada) ───────────────────────────────────────────
-    // Renderiza no topo da bubble um trecho clicavel da msg original.
-    const quoted = (!isDel && msg.quoted_wamid && (msg.quoted_content || msg.quoted_caption || msg.quoted_type))
-      ? renderQuoted(msg)
-      : '';
+    // Renderiza no topo da bubble um trecho clicavel da msg original. Considera
+    // tambem o snapshot embutido (quoted_sender/quoted_content via contextInfo),
+    // pra exibir citacao de msg que nao esta sincronizada no banco (migration 089).
+    const hasQuote = msg.quoted_wamid &&
+      (msg.quoted_content || msg.quoted_caption || msg.quoted_type || msg.quoted_sender);
+    const quoted = (!isDel && hasQuote) ? renderQuoted(msg) : '';
 
     // ── Menu de acoes (botao 3 pontos no canto) ───────────────────────────────
     // So mostra em msgs nao-apagadas. Outbound pode apagar; inbound nao.
@@ -960,7 +962,7 @@ const ChatApp = (() => {
   // por tipo: [Imagem]/[Audio]/[Video]/[Documento]). Clicavel: rola pra msg
   // original via scrollToWamid().
   function renderQuoted(msg) {
-    const sender = msg.quoted_sender || 'Você';
+    const sender = msg.quoted_sender || 'Contato';
     let preview = msg.quoted_content || msg.quoted_caption || '';
     if (!preview) {
       preview = {

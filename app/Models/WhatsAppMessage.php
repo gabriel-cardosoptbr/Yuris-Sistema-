@@ -102,8 +102,8 @@ class WhatsAppMessage
              (account_id, instance_id, wamid, remote_jid, participant_jid, contact_name, phone,
               message_type, message_content, caption, media_url,
               media_mimetype, media_filename, media_base64,
-              direction, status, quoted_wamid, raw_payload, created_at)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
+              direction, status, quoted_wamid, quoted_sender_name, quoted_text, raw_payload, created_at)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
         );
         $insertParams = [
             $accountIdResolved,
@@ -123,6 +123,8 @@ class WhatsAppMessage
             $data['direction']      ?? 'inbound',
             $data['status']         ?? 'sent',
             $data['quoted_wamid']   ?? null,
+            $data['quoted_sender_name'] ?? null,
+            $data['quoted_text']        ?? null,
             $data['raw_payload']    ?? null,
             $data['created_at']     ?? date('Y-m-d H:i:s'),
         ];
@@ -171,6 +173,7 @@ class WhatsAppMessage
                        ) AS contact_name,
                        m.message_type, m.message_content, m.caption, m.media_url, m.media_mimetype,
                        m.media_filename, m.direction, m.status, m.quoted_wamid, m.is_deleted, m.created_at,
+                       m.quoted_sender_name, m.quoted_text,
                        q.message_content AS quoted_content,
                        q.caption         AS quoted_caption,
                        q.message_type    AS quoted_type,
@@ -250,6 +253,7 @@ class WhatsAppMessage
                        ) AS contact_name,
                        m.message_type, m.message_content, m.caption, m.media_url, m.media_mimetype,
                        m.media_filename, m.direction, m.status, m.quoted_wamid, m.is_deleted, m.created_at,
+                       m.quoted_sender_name, m.quoted_text,
                        q.message_content AS quoted_content,
                        q.caption         AS quoted_caption,
                        q.message_type    AS quoted_type,
@@ -320,6 +324,7 @@ class WhatsAppMessage
                     ) AS contact_name,
                     m.message_type, m.message_content, m.caption, m.media_url, m.media_mimetype,
                     m.media_filename, m.direction, m.status, m.quoted_wamid, m.is_deleted, m.created_at,
+                    m.quoted_sender_name, m.quoted_text,
                     q.message_content AS quoted_content,
                     q.caption         AS quoted_caption,
                     q.message_type    AS quoted_type,
@@ -386,17 +391,25 @@ class WhatsAppMessage
                 continue;
             }
             $letters = null;
-            foreach ([$r['quoted_sender_member'] ?? null, $r['quoted_sender_contact'] ?? null, $r['quoted_sender_raw'] ?? null] as $c) {
+            // Inclui o snapshot (quoted_sender_name vindo do contextInfo) na busca
+            // por um nome COM LETRAS — cobre citação de msg que não está no banco.
+            foreach ([$r['quoted_sender_member'] ?? null, $r['quoted_sender_contact'] ?? null, $r['quoted_sender_raw'] ?? null, $r['quoted_sender_name'] ?? null] as $c) {
                 if ($hasLetters($c)) { $letters = $c; break; }
             }
             if ($letters !== null) {
                 $r['quoted_sender'] = $letters;
+                $needWamids[(string)$r['quoted_wamid']] = true; // ainda tenta achar nome real
             } else {
                 // Telefone de fallback (descarta LID puro 14+ digitos, que nao e exibivel)
-                $phone = $r['quoted_sender_member'] ?: ($r['quoted_sender_contact'] ?: ($r['quoted_sender_raw'] ?: null));
+                $phone = $r['quoted_sender_member'] ?: ($r['quoted_sender_contact'] ?: ($r['quoted_sender_raw'] ?: ($r['quoted_sender_name'] ?: null)));
                 if ($phone !== null && preg_match('/^\d{14,}$/', (string)$phone)) $phone = null;
                 $r['quoted_sender'] = $phone; // por enquanto o telefone (ou null)
                 $needWamids[(string)$r['quoted_wamid']] = true;
+            }
+            // Se a mensagem original NÃO está no banco (sem quoted_content), usa o
+            // texto do snapshot embutido (quoted_text) pra preview não ficar vazio.
+            if (empty($r['quoted_content']) && empty($r['quoted_caption']) && !empty($r['quoted_text'])) {
+                $r['quoted_content'] = $r['quoted_text'];
             }
             // Mensagem propria citada sem nome resolvido → rotulo amigavel
             if (($r['quoted_direction'] ?? '') === 'outbound' && ($r['quoted_sender'] === null || $r['quoted_sender'] === '')) {
@@ -450,7 +463,8 @@ class WhatsAppMessage
     /** Remove os campos auxiliares usados só pra resolver quoted_sender. */
     private function cleanQuotedAux(array &$r): void
     {
-        unset($r['quoted_sender_raw'], $r['quoted_sender_member'], $r['quoted_sender_contact']);
+        unset($r['quoted_sender_raw'], $r['quoted_sender_member'], $r['quoted_sender_contact'],
+              $r['quoted_sender_name'], $r['quoted_text']);
     }
 
     /**
