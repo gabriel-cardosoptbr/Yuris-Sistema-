@@ -17,7 +17,9 @@ const ChatApp = (() => {
     userFilter   : null,      // null=todos | 0=sem responsável | N=user específico
     userFilterName: 'Todos os responsáveis',
     lastMsgId    : 0,
-    firstMsgId   : 0,        // menor ID ja carregado (pra paginar antigas via before_id)
+    lastMsgAt    : '',       // created_at da msg mais NOVA carregada (cursor do poll)
+    firstMsgId   : 0,        // id da msg mais ANTIGA carregada (desempate do cursor)
+    firstMsgAt   : '',       // created_at da msg mais ANTIGA carregada (cursor scroll-up)
     hasMoreOlder : true,     // false quando o servidor devolve 0 antigas
     loadingOlder : false,    // semaforo pra evitar requests duplicadas no scroll
     groupMembersCache: {},   // { 'XXXXX@g.us': [members] } — popula em updateGroupHeader
@@ -667,6 +669,7 @@ const ChatApp = (() => {
     state.currentJid  = null;
     state.currentName = '';
     state.lastMsgId   = 0;
+    state.lastMsgAt   = '';
     renderChatList();
     qs('#chatArea').style.display       = 'none';
     qs('#chatEmptyState').style.display = state.status === 'open' ? 'flex' : 'none';
@@ -679,6 +682,8 @@ const ChatApp = (() => {
     const msgsEl = qs('#chatMessages');
     // Reseta estado de paginacao ao abrir conversa nova
     state.firstMsgId   = 0;
+    state.firstMsgAt   = '';
+    state.lastMsgAt    = '';
     state.hasMoreOlder = true;
     state.loadingOlder = false;
     try {
@@ -689,8 +694,11 @@ const ChatApp = (() => {
         state.hasMoreOlder = false;
       } else {
         msgsEl.innerHTML = renderMessagesWithDateSeparators(msgs);
-        state.lastMsgId  = Math.max(...msgs.map(m => m.id));
-        state.firstMsgId = Math.min(...msgs.map(m => m.id));
+        // msgs vem em ordem CRONOLÓGICA (mais antiga → mais nova). Os cursores são
+        // as bordas reais: primeira = mais antiga (scroll-up), última = mais nova (poll).
+        const _first = msgs[0], _last = msgs[msgs.length - 1];
+        state.firstMsgId = _first.id; state.firstMsgAt = _first.created_at || '';
+        state.lastMsgId  = _last.id;  state.lastMsgAt  = _last.created_at || '';
         if (msgs.length < 50) state.hasMoreOlder = false;
         scrollToBottom();
       }
@@ -721,7 +729,9 @@ const ChatApp = (() => {
     try {
       const r = await apiFetch(
         API.messages + '?jid=' + encodeURIComponent(state.currentJid)
-        + '&before_id=' + state.firstMsgId + '&limit=50'
+        + '&before_id=' + state.firstMsgId
+        + '&before_at=' + encodeURIComponent(state.firstMsgAt || '')
+        + '&limit=50'
       );
       const msgs = r.messages || [];
       spinner.remove();
@@ -734,7 +744,9 @@ const ChatApp = (() => {
       // primeira msg ja renderizada se a data combinar — evita duplicar.
       const html = renderMessagesWithDateSeparators(msgs);
       msgsEl.insertAdjacentHTML('afterbegin', html);
-      state.firstMsgId = Math.min(state.firstMsgId, ...msgs.map(m => m.id));
+      // Bloco antigo vem cronológico; a nova borda "mais antiga" é o primeiro item.
+      const _oldest = msgs[0];
+      state.firstMsgId = _oldest.id; state.firstMsgAt = _oldest.created_at || '';
       if (msgs.length < 50) state.hasMoreOlder = false;
       // Restaura scroll position pra usuario nao sentir o jump
       const newScrollHeight = msgsEl.scrollHeight;
@@ -770,7 +782,9 @@ const ChatApp = (() => {
     if (!state.currentJid || !state.lastMsgId) return;
     try {
       const r = await apiFetch(
-        API.messages + '?jid=' + encodeURIComponent(state.currentJid) + '&after_id=' + state.lastMsgId
+        API.messages + '?jid=' + encodeURIComponent(state.currentJid)
+        + '&after_id=' + state.lastMsgId
+        + '&after_at=' + encodeURIComponent(state.lastMsgAt || '')
       );
       const msgs = r.messages || [];
       if (!msgs.length) return;
@@ -789,10 +803,14 @@ const ChatApp = (() => {
           container.insertAdjacentHTML('beforeend', renderDateSeparator(m.created_at, myKey));
         }
         container.insertAdjacentHTML('beforeend', renderMessage(m));
-        state.lastMsgId = Math.max(state.lastMsgId, m.id);
         // Notifica msg inbound (som + Notification API + badge)
         notifyNewMessage(m);
       });
+
+      // Avança o cursor do poll pra borda mais NOVA retornada (created_at + id).
+      // Não dá pra usar max(id): após sync de antigas, id não é mais cronológico.
+      const _newest = msgs[msgs.length - 1];
+      if (_newest) { state.lastMsgAt = _newest.created_at || state.lastMsgAt; state.lastMsgId = _newest.id; }
 
       if (atBottom) scrollToBottom();
 
@@ -805,6 +823,7 @@ const ChatApp = (() => {
 
   async function refreshMessages() {
     state.lastMsgId = 0;
+    state.lastMsgAt = '';
     await refreshLiveMessages();
     await loadMessages();
   }
@@ -955,7 +974,7 @@ const ChatApp = (() => {
   // Chave canonica do dia (YYYY-MM-DD) pra comparar igualdade entre mensagens.
   function dayKey(timestamp) {
     if (!timestamp) return '';
-    const d = new Date(timestamp.replace(' ', 'T'));
+    const d = new Date(timestamp.replace(' ', 'T') + (timestamp.includes('Z') ? '' : 'Z'));
     if (isNaN(d)) return '';
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -967,7 +986,7 @@ const ChatApp = (() => {
   // (estilo WhatsApp mobile: depois de ontem vai direto pra data numerica).
   function formatDateGroup(timestamp) {
     if (!timestamp) return '';
-    const d = new Date(timestamp.replace(' ', 'T'));
+    const d = new Date(timestamp.replace(' ', 'T') + (timestamp.includes('Z') ? '' : 'Z'));
     if (isNaN(d)) return '';
     const today  = new Date(); today.setHours(0,0,0,0);
     const yest   = new Date(today); yest.setDate(today.getDate() - 1);

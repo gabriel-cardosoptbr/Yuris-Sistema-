@@ -109,6 +109,7 @@ try {
                 'instance_id'     => $instanceId,
                 'wamid'           => $wamid,
                 'remote_jid'      => $remJid,
+                'participant_jid' => $participantJid,
                 'contact_name'    => $push,
                 'phone'           => preg_replace('/[^0-9]/', '', explode('@', $remJid)[0]),
                 'message_type'    => $type,

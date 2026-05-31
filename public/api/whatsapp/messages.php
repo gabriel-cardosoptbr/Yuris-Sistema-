@@ -26,6 +26,10 @@ $method    = $_SERVER['REQUEST_METHOD'];
 $remoteJid = trim($_GET['jid'] ?? '');
 $beforeId  = (int)($_GET['before_id'] ?? 0);
 $afterId   = (int)($_GET['after_id']  ?? 0);
+// Cursores cronológicos (created_at). Acompanham o id como desempate pra
+// paginação keyset por (created_at, id) — ordena pela data REAL da mensagem.
+$beforeAt  = trim($_GET['before_at'] ?? '');
+$afterAt   = trim($_GET['after_at']  ?? '');
 $limit     = min((int)($_GET['limit'] ?? 50), 100);
 $search    = trim($_GET['search'] ?? '');
 
@@ -55,10 +59,10 @@ try {
     if ($search !== '') {
         // Busca dentro da conversa: retorna apenas mensagens que matcham
         $msgs = $msgModel->searchInChat($instanceId, $remoteJid, $search, $limit);
-    } elseif ($afterId > 0) {
-        $msgs = $msgModel->findAfter($instanceId, $remoteJid, $afterId);
+    } elseif ($afterId > 0 || $afterAt !== '') {
+        $msgs = $msgModel->findAfter($instanceId, $remoteJid, $afterId, $afterAt !== '' ? $afterAt : null);
     } else {
-        $msgs = $msgModel->findByJid($instanceId, $remoteJid, $limit, $beforeId);
+        $msgs = $msgModel->findByJid($instanceId, $remoteJid, $limit, $beforeId, $beforeAt !== '' ? $beforeAt : null);
     }
 
     echo json_encode([

@@ -18,6 +18,11 @@ class WhatsAppMessage
      */
     public function save(array $data): int
     {
+        // Normaliza wamid vazio para NULL. Com o UNIQUE (instance_id, wamid),
+        // duas strings vazias colidiriam (NULLs não colidem); manter null evita erro.
+        if (isset($data['wamid']) && $data['wamid'] === '') {
+            $data['wamid'] = null;
+        }
         // Se tiver wamid, verificar duplicata
         if (!empty($data['wamid'])) {
             $stmt = $this->db->prepare(
@@ -35,7 +40,7 @@ class WhatsAppMessage
                 // Atualiza contact_name se o armazenado é LID (≥14 dígitos) e agora temos um valor real
                 $newName = (string)($data['contact_name'] ?? '');
                 if ($newName !== '' && !preg_match('/^\d{14,}$/', $newName)) {
-                    $sets[]   = "contact_name = IF(contact_name IS NULL OR contact_name REGEXP '^[0-9]{14,}$', ?, contact_name)";
+                    $sets[]   = "contact_name = IF(contact_name IS NULL OR contact_name REGEXP '^[0-9]{10,}$', ?, contact_name)";
                     $params[] = $newName;
                 }
                 // Atualiza raw_payload para mensagens de mídia que foram salvas sem payload
@@ -43,15 +48,26 @@ class WhatsAppMessage
                     $sets[]   = 'raw_payload = IF(raw_payload IS NULL, ?, raw_payload)';
                     $params[] = $data['raw_payload'];
                 }
-                // Atualiza media_base64 (thumbnail) se ainda não tiver
+                // Atualiza media_base64. Se for o BINÁRIO COMPLETO (media_is_full=1),
+                // sobrescreve um thumbnail antigo; se for só thumbnail, preenche quando
+                // estiver vazio (nunca rebaixa um binário completo já salvo).
                 if (!empty($data['media_base64'])) {
-                    $sets[]   = 'media_base64 = IF(media_base64 IS NULL, ?, media_base64)';
+                    $isFull   = !empty($data['media_is_full']) ? 1 : 0;
+                    $sets[]   = 'media_base64 = IF(media_base64 IS NULL OR ? = 1, ?, media_base64)';
+                    $params[] = $isFull;
                     $params[] = $data['media_base64'];
                 }
                 // Atualiza mimetype se não tiver
                 if (!empty($data['media_mimetype'])) {
                     $sets[]   = 'media_mimetype = IF(media_mimetype IS NULL, ?, media_mimetype)';
                     $params[] = $data['media_mimetype'];
+                }
+                // Preenche participant_jid (autor real em grupos) quando a linha foi
+                // criada antes pelo polling sem esse dado. Só quando está vazio — assim
+                // o webhook conserta o que o discover/refresh inseriram sem o autor.
+                if (!empty($data['participant_jid'])) {
+                    $sets[]   = 'participant_jid = IF(participant_jid IS NULL OR participant_jid = "", ?, participant_jid)';
+                    $params[] = $data['participant_jid'];
                 }
                 // Sempre corrige o created_at com o timestamp real da Evolution API
                 if (!empty($data['created_at'])) {
@@ -89,7 +105,7 @@ class WhatsAppMessage
               direction, status, quoted_wamid, raw_payload, created_at)
              VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
         );
-        $stmt->execute([
+        $insertParams = [
             $accountIdResolved,
             $data['instance_id'],
             $data['wamid']          ?? null,
@@ -109,7 +125,21 @@ class WhatsAppMessage
             $data['quoted_wamid']   ?? null,
             $data['raw_payload']    ?? null,
             $data['created_at']     ?? date('Y-m-d H:i:s'),
-        ]);
+        ];
+        // Idempotência (contingência): com o UNIQUE (instance_id, wamid), uma corrida
+        // entre sync e webhook podia tentar inserir a MESMA mensagem 2x. Em vez de
+        // duplicar (ou estourar 500), recupera o id já existente e segue.
+        try {
+            $stmt->execute($insertParams);
+        } catch (\PDOException $e) {
+            if (!empty($data['wamid'])) {
+                $dup = $this->db->prepare('SELECT id FROM whatsapp_messages WHERE instance_id = ? AND wamid = ? LIMIT 1');
+                $dup->execute([$data['instance_id'], $data['wamid']]);
+                $dupId = $dup->fetchColumn();
+                if ($dupId) return (int)$dupId;
+            }
+            throw $e;
+        }
 
         $newId = (int)$this->db->lastInsertId();
 
@@ -120,7 +150,7 @@ class WhatsAppMessage
     }
 
     /** Buscar mensagens paginadas para um chat. */
-    public function findByJid(int $instanceId, string $remoteJid, int $limit = 50, int $beforeId = 0): array
+    public function findByJid(int $instanceId, string $remoteJid, int $limit = 50, int $beforeId = 0, ?string $beforeAt = null): array
     {
         // Resolve o nome do remetente em 4 camadas (prioridade decrescente):
         //   1) group_members.push_name pelo participant_jid (autor real em grupos)
@@ -173,12 +203,22 @@ class WhatsAppMessage
                 WHERE m.instance_id = ? AND m.remote_jid = ?';
         $params = [$instanceId, $remoteJid];
 
-        if ($beforeId > 0) {
+        // Paginação por keyset CRONOLÓGICO (created_at, id). O created_at guarda o
+        // messageTimestamp REAL do WhatsApp; ordenar por id misturava mensagens
+        // antigas sincronizadas (id alto, mas data passada) no meio das novas.
+        // Cursor composto (data + id de desempate) evita pular/repetir nas bordas.
+        if ($beforeAt !== null && $beforeAt !== '') {
+            $sql .= ' AND (m.created_at < ? OR (m.created_at = ? AND m.id < ?))';
+            $params[] = $beforeAt;
+            $params[] = $beforeAt;
+            $params[] = $beforeId;
+        } elseif ($beforeId > 0) {
+            // Compat: cursor antigo só por id (caso o front não mande before_at)
             $sql .= ' AND m.id < ?';
             $params[] = $beforeId;
         }
 
-        $sql .= ' ORDER BY m.id DESC LIMIT ' . (int)$limit;
+        $sql .= ' ORDER BY m.created_at DESC, m.id DESC LIMIT ' . (int)$limit;
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
@@ -242,7 +282,7 @@ class WhatsAppMessage
                   AND m.remote_jid  = ?
                   AND m.is_deleted  = 0
                   AND (m.message_content LIKE ? OR m.caption LIKE ?)
-                ORDER BY m.id DESC
+                ORDER BY m.created_at DESC, m.id DESC
                 LIMIT ' . (int)$limit;
 
         $stmt = $this->db->prepare($sql);
@@ -255,8 +295,18 @@ class WhatsAppMessage
 
     /** Buscar apenas novas mensagens após um ID.
      *  Mesma resolucao em 4 camadas do findByJid pra coerencia (grupos). */
-    public function findAfter(int $instanceId, string $remoteJid, int $afterId): array
+    public function findAfter(int $instanceId, string $remoteJid, int $afterId, ?string $afterAt = null): array
     {
+        // Keyset cronológico: traz o que é MAIS NOVO que o cursor (created_at, id).
+        // Mensagem antiga sincronizada (data passada) NÃO entra aqui — ela aparece
+        // no lugar cronológico certo ao reabrir/rolar, não "pulando" no rodapé.
+        if ($afterAt !== null && $afterAt !== '') {
+            $cursorCond   = 'AND (m.created_at > ? OR (m.created_at = ? AND m.id > ?))';
+            $cursorParams = [$afterAt, $afterAt, $afterId];
+        } else {
+            $cursorCond   = 'AND m.id > ?';
+            $cursorParams = [$afterId];
+        }
         $stmt = $this->db->prepare(
             'SELECT m.id, m.wamid, m.remote_jid, m.participant_jid,
                     COALESCE(
@@ -297,11 +347,11 @@ class WhatsAppMessage
              LEFT JOIN whatsapp_contacts qcp
                     ON qcp.instance_id = q.instance_id
                    AND qcp.remote_jid  = q.participant_jid
-             WHERE m.instance_id = ? AND m.remote_jid = ? AND m.id > ?
-             ORDER BY m.id ASC
+             WHERE m.instance_id = ? AND m.remote_jid = ? ' . $cursorCond . '
+             ORDER BY m.created_at ASC, m.id ASC
              LIMIT 100'
         );
-        $stmt->execute([$instanceId, $remoteJid, $afterId]);
+        $stmt->execute(array_merge([$instanceId, $remoteJid], $cursorParams));
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $this->hydrateReactions($instanceId, $rows);
         $this->hydrateQuotedSender($rows);

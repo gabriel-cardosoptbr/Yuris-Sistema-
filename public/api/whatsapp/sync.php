@@ -87,6 +87,23 @@ try {
         $allMessages = array_merge($allMessages, $records);
     }
 
+    // 2c. Mapa telefone(dígitos) → NOME real, pra exibir nome em vez de número em
+    // grupos. Fontes: contatos (findContacts) + pushName das próprias mensagens.
+    // Usado tanto no save das mensagens quanto no preenchimento de group_members.
+    $nameByPhone = [];
+    foreach ($contactMap as $cJid => $cInfo) {
+        $cd = preg_replace('/[^0-9]/', '', explode('@', (string)$cJid)[0]);
+        if ($cd && !empty($cInfo['name'])) $nameByPhone[$cd] = $cInfo['name'];
+    }
+    foreach ($allMessages as $rr) {
+        $pj = $rr['key']['participant'] ?? null;
+        $pn = $rr['pushName'] ?? null;
+        if ($pj && $pn && !preg_match('/^\d{6,}$/', (string)$pn)) {
+            $pd = preg_replace('/[^0-9]/', '', explode('@', (string)$pj)[0]);
+            if ($pd && !isset($nameByPhone[$pd])) $nameByPhone[$pd] = $pn;
+        }
+    }
+
     // 3. Derivar lista de chats únicos a partir das mensagens
     $jidMap = [];
     foreach ($allMessages as $r) {
@@ -122,6 +139,10 @@ try {
     }
 
     // 4. Salvar todas as mensagens no banco
+    // Cap de downloads de binário por execução pra não estourar o tempo do sync
+    // (cada getBase64 é uma chamada HTTP à Evolution). Acima do cap, cai no thumbnail.
+    $mediaFetched    = 0;
+    $MEDIA_FETCH_CAP = 60;
     foreach ($allMessages as $r) {
         if (!is_array($r) || empty($r['key'])) continue;
         $key2   = $r['key'];
@@ -135,10 +156,16 @@ try {
         $msgObj     = $r['message']     ?? [];
         $ts         = $r['messageTimestamp'] ?? time();
         $push       = $r['pushName'] ?? null;
-        // Substitui LID pelo telefone do participant quando possível
-        if ($participantJid && (!$push || preg_match('/^\d{12,}$/', (string)$push))) {
-            $pp = preg_replace('/[^0-9]/', '', explode('@', $participantJid)[0]);
-            if ($pp && !preg_match('/^\d{12,}$/', $pp)) $push = $pp;
+        // Em grupo, quando não veio nome legível, resolve pelo mapa de nomes
+        // (contato/pushName) e, em último caso, telefone FORMATADO — nunca o
+        // número cru. Assim o autor aparece com nome (ou telefone bonito), não "5511…".
+        if ($participantJid && (!$push || preg_match('/^\d{6,}$/', (string)$push))) {
+            $pd = preg_replace('/[^0-9]/', '', explode('@', (string)$participantJid)[0]);
+            if ($pd && isset($nameByPhone[$pd])) {
+                $push = $nameByPhone[$pd];
+            } elseif ($pd && strlen($pd) >= 10) {
+                $push = formatBrPhone($pd);
+            }
         }
 
         $type = match ($msgTypeRaw) {
@@ -158,16 +185,37 @@ try {
         $isMedia    = in_array($type, ['image','video','audio','document','sticker']);
         $rawPayload = $isMedia ? json_encode($r, JSON_UNESCAPED_UNICODE) : null;
 
-        // Extrai thumbnail embarcado na mensagem (não depende de CDN)
+        // Mídia: baixa o BINÁRIO REAL (pra mídia sincronizada também abrir/baixar).
+        // Antes só guardava o jpegThumbnail (imagem minúscula) e nada pra áudio/vídeo/doc.
         $mediaBase64 = null;
+        $mediaIsFull = 0;
         if ($isMedia) {
-            $msgSubObj = $msgObj[$msgTypeRaw] ?? [];
-            $thumb = $msgSubObj['jpegThumbnail'] ?? null;
-            if ($thumb) {
-                // jpegThumbnail já é base64 puro
-                $mediaBase64 = str_contains($thumb, ',') ? explode(',', $thumb, 2)[1] : $thumb;
-                // Garante que o mime seja jpeg para thumbnails
-                if (!$mime) $mime = 'image/jpeg';
+            // 1) downloadMedia=true às vezes já traz o base64 embutido no retorno.
+            $embedded = $r['base64']
+                     ?? ($msgObj['base64'] ?? null)
+                     ?? ($msgObj[$msgTypeRaw]['base64'] ?? null);
+            if (is_string($embedded) && strlen($embedded) > 256) {
+                $mediaBase64 = str_contains($embedded, ',') ? explode(',', $embedded, 2)[1] : $embedded;
+                $mediaIsFull = 1;
+            }
+            // 2) Senão, baixa via getBase64 (capado pra não estourar o tempo do sync).
+            if (!$mediaBase64 && $mediaFetched < $MEDIA_FETCH_CAP) {
+                try {
+                    $b64 = $evo->getMediaBase64($name, $r);
+                    if ($b64) {
+                        $mediaBase64 = str_contains($b64, ',') ? explode(',', $b64, 2)[1] : $b64;
+                        $mediaIsFull = 1;
+                        $mediaFetched++;
+                    }
+                } catch (\Throwable $_) {}
+            }
+            // 3) Último recurso: thumbnail embarcado (não depende de CDN).
+            if (!$mediaBase64) {
+                $thumb = $msgObj[$msgTypeRaw]['jpegThumbnail'] ?? null;
+                if ($thumb) {
+                    $mediaBase64 = str_contains($thumb, ',') ? explode(',', $thumb, 2)[1] : $thumb;
+                    if (!$mime) $mime = 'image/jpeg';
+                }
             }
         }
 
@@ -175,6 +223,7 @@ try {
             'instance_id'     => $instanceId,
             'wamid'           => $wamid,
             'remote_jid'      => $remJid,
+            'participant_jid' => $participantJid,
             'contact_name'    => $push,
             'phone'           => preg_replace('/[^0-9]/', '', explode('@', $remJid)[0]),
             'message_type'    => $type,
@@ -184,6 +233,7 @@ try {
             'media_mimetype'  => $mime,
             'media_filename'  => $fname,
             'media_base64'    => $mediaBase64,
+            'media_is_full'   => $mediaIsFull,
             'direction'       => $fromMe ? 'outbound' : 'inbound',
             'status'          => $fromMe ? 'sent' : 'delivered',
             'created_at'      => date('Y-m-d H:i:s', (int)$ts),
@@ -207,7 +257,9 @@ try {
             $pPhone = $p['phoneNumber'] ?? null;
             if (!$pLid) continue;
             $phoneNum    = $pPhone ? preg_replace('/[^0-9]/', '', explode('@', $pPhone)[0]) : null;
-            $displayName = $phoneNum ? formatBrPhone($phoneNum) : null;
+            // Nome REAL quando conhecido (contato/pushName); telefone formatado só como fallback.
+            $realName    = ($phoneNum && isset($nameByPhone[$phoneNum])) ? $nameByPhone[$phoneNum] : null;
+            $displayName = $realName ?? ($phoneNum ? formatBrPhone($phoneNum) : null);
 
             // a) Mapa global de contatos (necessário pra resolver @menções de LID)
             $pdo->prepare(

@@ -173,20 +173,37 @@ try {
         // ── Atualização de contato ───────────────────────────────────────
         case 'contacts.update':
         case 'contacts.upsert':
-            // Atualiza nome de exibição nos chats
+            // Persiste o nome do contato em DOIS lugares:
+            //   a) whatsapp_chats.contact_name  → nome no topo da conversa 1:1
+            //   b) whatsapp_contacts.push_name  → resolve nome em grupos e 1:1 (JOINs)
+            // Respeita is_manual_name (rename manual do usuário não é sobrescrito).
             $contacts = $data;
             if (isset($data['id'])) $contacts = [$data];
             $pdo = Database::getConnection();
             foreach ($contacts as $c) {
+                if (!is_array($c)) continue;
                 $jid  = $c['id'] ?? null;
-                $name = $c['pushName'] ?? ($c['name'] ?? null);
-                if ($jid && $name) {
-                    $s = $pdo->prepare(
-                        'UPDATE whatsapp_chats SET contact_name = ?
-                         WHERE instance_id = ? AND remote_jid = ?'
-                    );
-                    $s->execute([$name, $instanceId, $jid]);
-                }
+                $name = $c['pushName'] ?? ($c['name'] ?? ($c['verifiedName'] ?? null));
+                if (!$jid || !$name) continue;
+                // Ignora "nome" que é só número (não é nome de verdade)
+                if (preg_match('/^\d{6,}$/', (string)$name)) continue;
+                $isGroup = str_ends_with((string)$jid, '@g.us') ? 1 : 0;
+                $phone   = $isGroup ? null : preg_replace('/[^0-9]/', '', explode('@', (string)$jid)[0]);
+
+                // a) nome de exibição no chat (não sobrescreve rename manual)
+                $pdo->prepare(
+                    'UPDATE whatsapp_chats SET contact_name = ?
+                     WHERE instance_id = ? AND remote_jid = ? AND COALESCE(is_manual_name,0) = 0'
+                )->execute([$name, $instanceId, $jid]);
+
+                // b) tabela de contatos (alimenta a resolução de nome em grupos/1:1)
+                $pdo->prepare(
+                    'INSERT INTO whatsapp_contacts (account_id, instance_id, remote_jid, push_name, phone, is_group)
+                     VALUES (?,?,?,?,?,?)
+                     ON DUPLICATE KEY UPDATE
+                       push_name = IF(COALESCE(is_manual_name,0) = 0, VALUES(push_name), push_name),
+                       phone     = IF(VALUES(phone) IS NOT NULL AND VALUES(phone) <> "", VALUES(phone), phone)'
+                )->execute([$accountId, $instanceId, $jid, $name, $phone, $isGroup]);
             }
             break;
 
@@ -211,6 +228,55 @@ try {
                 );
                 $s->execute([$instanceId, $jid, $name, $unread, $isGroup]);
             }
+            break;
+
+        // ── Grupos: nome do grupo + participantes ────────────────────────
+        // Mantém membros/nome atualizados em tempo real, sem depender do
+        // "Sincronizar" manual. Defensivo: shape varia por versão da Evolution,
+        // então um payload inesperado NÃO derruba o webhook (try/catch local).
+        case 'groups.upsert':
+        case 'groups.update':
+            try {
+                $pdo    = Database::getConnection();
+                $groups = $data;
+                if (isset($data['id'])) $groups = [$data];
+                foreach ($groups as $g) {
+                    if (!is_array($g)) continue;
+                    $gjid = $g['id'] ?? null;
+                    if (!$gjid) continue;
+                    $subj = $g['subject'] ?? ($g['subjectName'] ?? null);
+                    if ($subj) {
+                        $pdo->prepare(
+                            'INSERT INTO whatsapp_chats (instance_id, remote_jid, contact_name, is_group)
+                             VALUES (?,?,?,1)
+                             ON DUPLICATE KEY UPDATE
+                               contact_name = IF(COALESCE(is_manual_name,0)=0 AND VALUES(contact_name) IS NOT NULL AND VALUES(contact_name) <> "", VALUES(contact_name), contact_name)'
+                        )->execute([$instanceId, $gjid, $subj]);
+                    }
+                    if (!empty($g['participants']) && is_array($g['participants'])) {
+                        upsertGroupParticipants($pdo, $accountId, $instanceId, $gjid, $g['participants']);
+                    }
+                }
+            } catch (\Throwable $_) { /* não derruba o webhook */ }
+            break;
+
+        case 'group-participants.update':
+        case 'groups.participants.update':
+            try {
+                $pdo    = Database::getConnection();
+                $gjid   = $data['id'] ?? ($data['groupJid'] ?? null);
+                $action = strtolower((string)($data['action'] ?? 'add'));
+                $parts  = $data['participants'] ?? [];
+                if ($gjid && is_array($parts)) {
+                    if (in_array($action, ['remove','leave'], true)) {
+                        $del = $pdo->prepare('DELETE FROM whatsapp_group_members WHERE instance_id = ? AND group_jid = ? AND participant_jid = ?');
+                        foreach ($parts as $pj) { if (is_string($pj) && $pj !== '') $del->execute([$instanceId, $gjid, $pj]); }
+                    } else {
+                        $defaultRole = $action === 'promote' ? 'admin' : 'member';
+                        upsertGroupParticipants($pdo, $accountId, $instanceId, $gjid, $parts, $defaultRole);
+                    }
+                }
+            } catch (\Throwable $_) { /* não derruba o webhook */ }
             break;
     }
 
@@ -273,6 +339,7 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
 
     // Para mídias: tenta baixar base64 completo via Evolution (mídia ainda está em cache local)
     $mediaBase64 = null;
+    $mediaIsFull = 0;  // 1 = binário completo (sobrescreve thumbnail); 0 = só thumbnail
     $isMediaType = in_array($msgType, ['image', 'video', 'audio', 'sticker', 'document']);
     if ($isMediaType) {
         try {
@@ -284,6 +351,7 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
             $b64 = $evo->getMediaBase64($name, $msg);
             if ($b64) {
                 $mediaBase64 = str_contains($b64, ',') ? explode(',', $b64, 2)[1] : $b64;
+                $mediaIsFull = 1;
             }
         } catch (\Throwable $_) {}
 
@@ -317,6 +385,7 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
         'media_mimetype'  => $mimetype,
         'media_filename'  => $filename,
         'media_base64'    => $mediaBase64,
+        'media_is_full'   => $mediaIsFull,
         'direction'       => $fromMe ? 'outbound' : 'inbound',
         'status'          => $fromMe ? 'sent' : 'delivered',
         'quoted_wamid'    => $quotedWamid,  // reply ao qual a msg responde (pode ser null)
@@ -411,6 +480,47 @@ function extractMessageContent(array $message): array
     }
 
     return ['text', null, null, null, null, null];
+}
+
+/**
+ * UPSERT de participantes de grupo em whatsapp_group_members.
+ * Aceita itens como string (JID puro) ou objeto {id, admin, phoneNumber, pushName}.
+ * Nunca grava número como "nome"; telefone vai na coluna própria.
+ */
+function upsertGroupParticipants(PDO $pdo, ?int $accountId, int $instanceId, string $groupJid, array $participants, string $defaultRole = 'member'): void
+{
+    $ins = $pdo->prepare(
+        'INSERT INTO whatsapp_group_members
+           (account_id, instance_id, group_jid, participant_jid, push_name, phone, role)
+         VALUES (?,?,?,?,?,?,?)
+         ON DUPLICATE KEY UPDATE
+           push_name = IF(VALUES(push_name) IS NOT NULL, VALUES(push_name), push_name),
+           phone     = IF(VALUES(phone)     IS NOT NULL, VALUES(phone),     phone),
+           role      = VALUES(role)'
+    );
+    foreach ($participants as $p) {
+        if (is_string($p)) {
+            $pj = $p; $admin = null; $phoneJid = null; $pn = null;
+        } elseif (is_array($p)) {
+            $pj       = $p['id'] ?? ($p['jid'] ?? null);
+            $admin    = $p['admin'] ?? null;
+            $phoneJid = $p['phoneNumber'] ?? null;
+            $pn       = $p['pushName'] ?? ($p['name'] ?? null);
+        } else {
+            continue;
+        }
+        if (!$pj) continue;
+        $src    = $phoneJid ?: $pj;
+        $digits = preg_replace('/[^0-9]/', '', explode('@', (string)$src)[0]);
+        $phone  = ($digits && strlen($digits) >= 10 && strlen($digits) < 14) ? $digits : null;
+        if ($pn !== null && preg_match('/^\d{6,}$/', (string)$pn)) $pn = null; // número não é nome
+        $role   = match ($admin) {
+            'superadmin' => 'superadmin',
+            'admin'      => 'admin',
+            default      => $defaultRole,
+        };
+        $ins->execute([(int)($accountId ?? 0), $instanceId, $groupJid, $pj, $pn, $phone, $role]);
+    }
 }
 
 /**

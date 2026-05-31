@@ -48,7 +48,11 @@ class EvolutionApiService
                     'CONNECTION_UPDATE',
                     'QRCODE_UPDATED',
                     'CONTACTS_UPDATE',
+                    'CONTACTS_UPSERT',
                     'CHATS_UPSERT',
+                    'GROUPS_UPSERT',
+                    'GROUPS_UPDATE',
+                    'GROUP_PARTICIPANTS_UPDATE',
                     'SEND_MESSAGE',
                 ],
             ];
@@ -100,7 +104,8 @@ class EvolutionApiService
             $events = [
                 'MESSAGES_UPSERT', 'MESSAGES_UPDATE',
                 'CONNECTION_UPDATE', 'QRCODE_UPDATED',
-                'CONTACTS_UPDATE',  'CHATS_UPSERT',
+                'CONTACTS_UPDATE',  'CONTACTS_UPSERT', 'CHATS_UPSERT',
+                'GROUPS_UPSERT', 'GROUPS_UPDATE', 'GROUP_PARTICIPANTS_UPDATE',
                 'SEND_MESSAGE',
             ];
         }
