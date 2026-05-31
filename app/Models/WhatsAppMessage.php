@@ -528,6 +528,19 @@ class WhatsAppMessage
                                AND mi.contact_name NOT REGEXP \'^[+0-9 ()-]+$\'
                                AND LOWER(mi.contact_name) NOT IN (\'voce\',\'você\',\'you\')
                              ORDER BY mi.created_at DESC LIMIT 1),
+                           -- Fallback (2026-05-31): chats 1:1 cujo remote_jid é um LID
+                           -- (@lid). Não há inbound com nome real nessa conversa, mas
+                           -- a MESMA pessoa escreve em GRUPOS com o pushName de verdade
+                           -- (ex.: Milton/Gabriel). Cruza o LID do chat com o
+                           -- participant_jid das mensagens e pega o nome mais frequente.
+                           -- Coberto pelo índice idx_participant (instance_id,participant_jid).
+                           (SELECT mp.contact_name FROM whatsapp_messages mp
+                             WHERE mp.instance_id = c.instance_id
+                               AND mp.participant_jid = c.remote_jid
+                               AND mp.contact_name REGEXP \'[A-Za-z]\'
+                               AND mp.contact_name NOT REGEXP \'^[+0-9 ()-]+$\'
+                               AND LOWER(mp.contact_name) NOT IN (\'voce\',\'você\',\'you\')
+                             GROUP BY mp.contact_name ORDER BY COUNT(*) DESC LIMIT 1),
                            CASE WHEN c.contact_name REGEXP \'[A-Za-z]\'
                                      AND LOWER(c.contact_name) NOT IN (\'voce\',\'você\',\'you\')
                                 THEN c.contact_name END
