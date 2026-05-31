@@ -1061,7 +1061,8 @@ const ChatApp = (() => {
         // troca o player quebrado (0:00) por um rótulo honesto. Áudio novo (com
         // cache) toca normal; só os expirados mostram o aviso.
         return `<div class="msg-audio">
-          <audio controls src="${mUrl}" style="max-width:240px;height:36px"
+          <audio controls src="${mUrl}" style="max-width:240px;height:36px" preload="metadata"
+                 onloadedmetadata="ChatApp.fixAudioDuration(this)"
                  onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"></audio>
           <div style="display:none;align-items:center;gap:6px;padding:8px 12px;background:rgba(30,40,60,.6);border:1px solid rgba(148,163,184,.15);border-radius:8px;color:#6B7887;font-size:.78rem;">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
@@ -1074,7 +1075,8 @@ const ChatApp = (() => {
         // Arquivo de áudio enviado como documento → renderiza como player
         if (mime.startsWith('audio/')) {
           return `<div class="msg-audio">
-            <audio controls src="${mUrl}" style="max-width:240px;height:36px"
+            <audio controls src="${mUrl}" style="max-width:240px;height:36px" preload="metadata"
+                   onloadedmetadata="ChatApp.fixAudioDuration(this)"
                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"></audio>
             <div style="display:none;align-items:center;gap:6px;padding:8px 12px;background:rgba(30,40,60,.6);border:1px solid rgba(148,163,184,.15);border-radius:8px;color:#6B7887;font-size:.78rem;">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
@@ -2744,6 +2746,28 @@ const ChatApp = (() => {
     }
   }
 
+  // ── Fix da duração de áudio OGG/Opus (voz do WhatsApp) ──────────────────────
+  // Áudio de voz é OGG/Opus sem duração no cabeçalho → o player nativo mostra
+  // "0:00" até tocar tudo. Truque consagrado: forçar um seek pro fim faz o browser
+  // varrer o arquivo e calcular a duração real; depois voltamos pro início. Aí o
+  // player passa a exibir "0:16" ANTES de clicar, igual WhatsApp.
+  // Defensivo: só roda se a duração veio inválida (Infinity/NaN); qualquer erro é
+  // silencioso (no pior caso, mantém o comportamento atual de 0:00).
+  function fixAudioDuration(el) {
+    try {
+      if (!el || (isFinite(el.duration) && el.duration > 0)) return; // já tem duração
+      if (el.dataset.durFix === '1') return; // evita loop
+      el.dataset.durFix = '1';
+      const onUpdate = () => {
+        el.removeEventListener('timeupdate', onUpdate);
+        // volta pro início; agora el.duration já é finito e o player mostra o total
+        try { el.currentTime = 0; } catch (_) {}
+      };
+      el.addEventListener('timeupdate', onUpdate);
+      el.currentTime = 1e101; // seek "pro fim" → força o cálculo da duração
+    } catch (_) { /* silencioso — mantém 0:00 no pior caso */ }
+  }
+
   // ── Scroll para mensagem citada ────────────────────────────────────────────
   // Quando o usuário clica numa .msg-quoted, rola até a msg original e destaca.
   function scrollToWamid(wamid) {
@@ -2791,7 +2815,7 @@ const ChatApp = (() => {
     openImage,
     // P2 wire-up (2026-05-25)
     setReply, cancelReply,
-    toggleMsgMenu, closeMsgMenu,
+    toggleMsgMenu, closeMsgMenu, fixAudioDuration,
     reactMessage, confirmDeleteMessage,
     scrollToWamid,
     // P0+P1 (2026-05-25) — busca + arquivar + marcar nao lida
