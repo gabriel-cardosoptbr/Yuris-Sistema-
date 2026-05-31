@@ -125,7 +125,11 @@ try {
                 echo json_encode(['ok' => true, 'profile_pic_url' => $picUrl]);
                 exit;
             } catch (\Throwable $e) {
-                // Evolution pode retornar 404 (sem foto/desbloqueado). Não trata como erro.
+                // Loga o motivo real (antes era engolido em silêncio → impossível
+                // diagnosticar por que a foto não vinha). Não expõe ao cliente.
+                error_log('[whatsapp fetch_pic] jid=' . ($jid ?? '?')
+                    . ' erro: ' . $e->getMessage()
+                    . ' @ ' . basename($e->getFile()) . ':' . $e->getLine());
                 echo json_encode(['ok' => true, 'profile_pic_url' => null, 'note' => 'sem foto disponível']);
                 exit;
             }
