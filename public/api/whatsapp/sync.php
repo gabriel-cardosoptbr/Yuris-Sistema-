@@ -39,19 +39,28 @@ try {
     $row        = $instModel->findOrCreate($name, '', $accountId);
     $instanceId = (int)$row['id'];
     $evo        = new EvolutionApiService($cfg);
+    // Timeout curto: nenhuma chamada à Evolution pode pendurar a tela do usuário.
+    // Com a Evolution lenta/instável, cada chamada falha em até 8s (em vez de 20s).
+    $evo->setTimeout(8);
     $pdo        = Database::getConnection();
 
     $synced   = 0;
     $messages = 0;
     $contacts = 0;
+    $partial  = false; // vira true se o sync parar por orçamento de tempo (resposta incompleta)
 
-    // Orçamento de tempo: o sync faz chamadas HTTP à Evolution (timeout 20s cada).
-    // Se a Evolution/WhatsApp estiver lenta/caída, sem isto o script estoura o
-    // max_execution_time e o Apache devolve HTML (bug "Unexpected token <").
-    // Guardamos um teto e paramos as chamadas pesadas antes de estourar.
+    // ── PROTEÇÃO ANTI-TRAVAMENTO (lição do 504 em produção) ───────────────────
+    // O sync faz N chamadas HTTP à Evolution. No pior caso (Evolution lenta) o
+    // somatório estourava o tempo do PHP/nginx → tela travada / 504 / "Unexpected
+    // token <". Solução: um ORÇAMENTO DE TEMPO global, checado antes de cada lote
+    // de chamadas. Ao estourar, o sync PARA e devolve JSON com o que já tem
+    // (partial=true) — degrada com elegância, nunca trava.
     $startedAt   = time();
-    $TIME_BUDGET = 20; // segundos (abaixo do max_execution_time padrão de 30s)
-    @set_time_limit(60); // margem extra; o orçamento acima é o controle real
+    $TIME_BUDGET = 22; // teto total do sync, bem abaixo de qualquer timeout de proxy/PHP
+    @set_time_limit(45); // rede de segurança; o controle REAL é o $TIME_BUDGET acima
+    $overBudget = function () use ($startedAt, $TIME_BUDGET) {
+        return (time() - $startedAt) >= $TIME_BUDGET;
+    };
 
     // 1. Buscar nomes reais dos grupos
     $groupMap = [];
@@ -85,10 +94,14 @@ try {
     $startPage  = max(1, $totalPages - 19); // últimas 20 páginas = mais recentes
 
     for ($page = $startPage; $page <= $totalPages; $page++) {
+        // Para de paginar se já gastamos o orçamento — evita travar quando a
+        // Evolution está lenta (era o buraco que faltava: até 20 páginas × 20s).
+        if ($overBudget()) { $partial = true; break; }
+        // SEM downloadMedia: não força a Evolution a baixar mídia (lento). A mídia
+        // é resolvida sob demanda pelo media.php quando o usuário abre a mensagem.
         $apiResp = $evo->request('POST', "/chat/findMessages/{$name}", [
-            'limit'         => 50,
-            'page'          => $page,
-            'downloadMedia' => true,
+            'limit' => 50,
+            'page'  => $page,
         ]);
         $records = $apiResp['messages']['records'] ?? [];
         if (empty($records)) continue;
@@ -247,7 +260,7 @@ try {
     foreach (array_keys($groupMap) as $gJid) {
         // Para de buscar info de grupo se já gastamos o orçamento de tempo —
         // evita travar o sync inteiro quando a Evolution está lenta/caída.
-        if ((time() - $startedAt) >= $TIME_BUDGET) break;
+        if ($overBudget()) { $partial = true; break; }
         try {
             $gInfo = $evo->fetchGroupInfo($name, $gJid);
         } catch (\Throwable $_) {
@@ -296,6 +309,7 @@ try {
         'synced'   => $synced,
         'messages' => $messages,
         'contacts' => $contacts,
+        'partial'  => $partial, // true = parou por tempo; clique Sincronizar de novo p/ continuar
     ]);
 
 } catch (Throwable $e) {

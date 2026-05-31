@@ -19,6 +19,18 @@ class EvolutionApiService
         $this->instanceName = $settings['evolution_instance']  ?? 'yuris-crm';
     }
 
+    /**
+     * Ajusta o timeout (segundos) das chamadas HTTP desta instância do serviço.
+     * Usado por contextos web que NÃO podem travar a tela (ex.: sync.php): com a
+     * Evolution lenta/instável, garante que cada chamada falhe rápido em vez de
+     * pendurar 20s. Afeta só ESTA instância — envio de mensagem etc. seguem com o
+     * timeout padrão.
+     */
+    public function setTimeout(int $seconds): void
+    {
+        $this->timeout = max(1, $seconds);
+    }
+
     // ────────────────────────────────────────────
     // Instance management
     // ────────────────────────────────────────────
