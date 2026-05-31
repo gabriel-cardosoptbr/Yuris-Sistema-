@@ -63,31 +63,31 @@ class EvolutionApiService
     /** Conectar instância (gera QR Code). */
     public function connectInstance(string $name): array
     {
-        return $this->request('GET', "/instance/connect/{$name}");
+        return $this->request('GET', "/instance/connect/{$this->enc($name)}");
     }
 
     /** Estado da conexão. */
     public function getConnectionState(string $name): array
     {
-        return $this->request('GET', "/instance/connectionState/{$name}");
+        return $this->request('GET', "/instance/connectionState/{$this->enc($name)}");
     }
 
     /** Desconectar (logout) sem excluir instância. */
     public function logoutInstance(string $name): array
     {
-        return $this->request('DELETE', "/instance/logout/{$name}");
+        return $this->request('DELETE', "/instance/logout/{$this->enc($name)}");
     }
 
     /** Excluir instância completamente. */
     public function deleteInstance(string $name): array
     {
-        return $this->request('DELETE', "/instance/delete/{$name}");
+        return $this->request('DELETE', "/instance/delete/{$this->enc($name)}");
     }
 
     /** Reiniciar instância. */
     public function restartInstance(string $name): array
     {
-        return $this->request('PUT', "/instance/restart/{$name}");
+        return $this->request('PUT', "/instance/restart/{$this->enc($name)}");
     }
 
     // ────────────────────────────────────────────
@@ -119,12 +119,12 @@ class EvolutionApiService
         if ($this->apiKey !== '') {
             $webhook['headers'] = ['apikey' => $this->apiKey, 'Content-Type' => 'application/json'];
         }
-        return $this->request('POST', "/webhook/set/{$name}", ['webhook' => $webhook]);
+        return $this->request('POST', "/webhook/set/{$this->enc($name)}", ['webhook' => $webhook]);
     }
 
     public function getWebhook(string $name): array
     {
-        return $this->request('GET', "/webhook/find/{$name}");
+        return $this->request('GET', "/webhook/find/{$this->enc($name)}");
     }
 
     // ────────────────────────────────────────────
@@ -166,7 +166,7 @@ class EvolutionApiService
                 ],
             ];
         }
-        return $this->request('POST', "/message/sendText/{$name}", $body);
+        return $this->request('POST', "/message/sendText/{$this->enc($name)}", $body);
     }
 
     /**
@@ -184,7 +184,7 @@ class EvolutionApiService
         if ($filename)  $body['fileName'] = $filename;
         if ($mimetype)  $body['mimetype'] = $mimetype;
 
-        return $this->request('POST', "/message/sendMedia/{$name}", $body);
+        return $this->request('POST', "/message/sendMedia/{$this->enc($name)}", $body);
     }
 
     /**
@@ -193,7 +193,7 @@ class EvolutionApiService
      */
     public function sendAudio(string $name, string $to, string $audioBase64): array
     {
-        return $this->request('POST', "/message/sendWhatsAppAudio/{$name}", [
+        return $this->request('POST', "/message/sendWhatsAppAudio/{$this->enc($name)}", [
             'number'   => $this->normalizeNumber($to),
             'audio'    => $audioBase64,
             'encoding' => true,
@@ -213,7 +213,7 @@ class EvolutionApiService
      */
     public function sendReaction(string $name, array $key, string $emoji): array
     {
-        return $this->request('POST', "/message/sendReaction/{$name}", [
+        return $this->request('POST', "/message/sendReaction/{$this->enc($name)}", [
             'key'      => $key,
             'reaction' => $emoji,
         ]);
@@ -228,7 +228,7 @@ class EvolutionApiService
      */
     public function deleteMessage(string $name, array $key): array
     {
-        return $this->request('DELETE', "/chat/deleteMessageForEveryone/{$name}", $key);
+        return $this->request('DELETE', "/chat/deleteMessageForEveryone/{$this->enc($name)}", $key);
     }
 
     // ────────────────────────────────────────────
@@ -251,7 +251,7 @@ class EvolutionApiService
         ];
 
         // Tentativa 1: formato compacto
-        $resp = $this->request('POST', "/chat/getBase64FromMediaMessage/{$name}", [
+        $resp = $this->request('POST', "/chat/getBase64FromMediaMessage/{$this->enc($name)}", [
             'message'      => $msg,
             'convertToMp4' => false,
         ]);
@@ -259,7 +259,7 @@ class EvolutionApiService
         if ($result) return $result;
 
         // Tentativa 2: payload completo (fallback)
-        $resp2 = $this->request('POST', "/chat/getBase64FromMediaMessage/{$name}", [
+        $resp2 = $this->request('POST', "/chat/getBase64FromMediaMessage/{$this->enc($name)}", [
             'message'      => $rawPayload,
             'convertToMp4' => false,
         ]);
@@ -271,7 +271,7 @@ class EvolutionApiService
      */
     public function getMediaBase64Raw(string $name, array $rawPayload): array
     {
-        return $this->request('POST', "/chat/getBase64FromMediaMessage/{$name}", [
+        return $this->request('POST', "/chat/getBase64FromMediaMessage/{$this->enc($name)}", [
             'message'      => $rawPayload,
             'convertToMp4' => false,
         ]);
@@ -282,7 +282,7 @@ class EvolutionApiService
 
     public function findChats(string $name): array
     {
-        return $this->request('POST', "/chat/findChats/{$name}", new \stdClass());
+        return $this->request('POST', "/chat/findChats/{$this->enc($name)}", new \stdClass());
     }
 
     /**
@@ -294,7 +294,7 @@ class EvolutionApiService
     {
         $allRecords = [];
         for ($p = 1; $p <= $pages; $p++) {
-            $resp = $this->request('POST', "/chat/findMessages/{$name}", [
+            $resp = $this->request('POST', "/chat/findMessages/{$this->enc($name)}", [
                 'where' => ['key' => ['remoteJid' => $remoteJid]],
                 'limit' => $count,
                 'page'  => $p,
@@ -309,24 +309,24 @@ class EvolutionApiService
     /** Listar todos os grupos da instância. */
     public function fetchAllGroups(string $name): array
     {
-        return $this->request('GET', "/group/fetchAllGroups/{$name}?getParticipants=false");
+        return $this->request('GET', "/group/fetchAllGroups/{$this->enc($name)}?getParticipants=false");
     }
 
     /** Metadados de um grupo específico. */
     public function fetchGroupInfo(string $name, string $groupJid): array
     {
-        return $this->request('GET', "/group/findGroupInfos/{$name}?groupJid=" . urlencode($groupJid));
+        return $this->request('GET', "/group/findGroupInfos/{$this->enc($name)}?groupJid=" . urlencode($groupJid));
     }
 
     public function findContacts(string $name, string $query = ''): array
     {
         $body = $query ? ['where' => ['pushName' => $query]] : new \stdClass();
-        return $this->request('POST', "/contact/findContacts/{$name}", $body);
+        return $this->request('POST', "/contact/findContacts/{$this->enc($name)}", $body);
     }
 
     public function getProfilePicture(string $name, string $jid): array
     {
-        return $this->request('GET', "/contact/getProfilePicture/{$name}?number=" . urlencode($jid));
+        return $this->request('GET', "/contact/getProfilePicture/{$this->enc($name)}?number=" . urlencode($jid));
     }
 
     // ────────────────────────────────────────────
@@ -404,6 +404,19 @@ class EvolutionApiService
     // ────────────────────────────────────────────
     // Helpers
     // ────────────────────────────────────────────
+
+    /**
+     * Escapa o nome da instância para uso seguro no PATH da URL.
+     * Ex.: "Gabriel Yuris" -> "Gabriel%20Yuris"; "Homologação" -> "Homologa%C3%A7%C3%A3o".
+     * O nome continua com espaço/acento no banco e na tela — a codificação acontece
+     * só na hora de montar a URL HTTP pra Evolution, que decodifica de volta.
+     * rawurlencode (RFC 3986) é o correto p/ segmento de path (espaço -> %20, não '+').
+     * NÃO usar no corpo JSON (ex.: createInstance) — lá o nome vai cru.
+     */
+    private function enc(string $name): string
+    {
+        return rawurlencode($name);
+    }
 
     /** Normaliza número: remove tudo exceto dígitos e @. */
     private function normalizeNumber(string $to): string
