@@ -70,15 +70,40 @@ try {
                 // Sem timeout, a Evolution lenta segurava o request ~20s e, com
                 // vários cliques, saturava o pool de conexões do navegador.
                 $evo->setTimeout(6);
-                // Busca a foto pelo TELEFONE real — o LID ('@lid') não resolve foto na
-                // Evolution. O front manda 'number' (real_phone já resolvido na lista).
-                // Sem number, tenta extrair os dígitos do jid quando é @s.whatsapp.net.
-                $fetchNum = preg_replace('/\D/', '', (string)($payload['number'] ?? ''));
-                if ($fetchNum === '' && str_contains($jid, '@s.whatsapp.net')) {
-                    $fetchNum = preg_replace('/\D/', '', explode('@', $jid)[0]);
+                // ── Resolve o TELEFONE real (dialável) pra buscar a foto ──────────
+                // A Evolution só devolve foto pelo telefone (10-13 díg.); o LID
+                // ('@lid', 14+ díg.) NÃO resolve. À PROVA DE BALAS (não depende do
+                // front mandar certo). Ordem: (1) 'number' do front se válido;
+                // (2) dígitos do jid quando @s.whatsapp.net; (3) telefone do LID via
+                // group_members; (4) via contacts — mesma resolução do getChatList.
+                $isPhone  = static fn($n) => preg_match('/^[0-9]{10,13}$/', (string)$n) === 1;
+                $digits   = static fn($v) => preg_replace('/\D/', '', (string)$v);
+                $fetchNum = $digits($payload['number'] ?? '');
+                if (!$isPhone($fetchNum)) {
+                    $fetchNum = '';
+                    if (str_contains($jid, '@s.whatsapp.net')) {
+                        $cand = $digits(explode('@', $jid)[0]);
+                        if ($isPhone($cand)) $fetchNum = $cand;
+                    }
                 }
                 if ($fetchNum === '') {
-                    // Sem telefone discável (LID puro / grupo) → não há como buscar foto
+                    try {
+                        $rs = $pdo->prepare("SELECT phone FROM whatsapp_group_members WHERE participant_jid COLLATE utf8mb4_unicode_ci = ? AND phone REGEXP '^[0-9]{10,13}\$' LIMIT 1");
+                        $rs->execute([$jid]);
+                        $cand = $digits($rs->fetchColumn());
+                        if ($isPhone($cand)) $fetchNum = $cand;
+                    } catch (\Throwable $_) {}
+                }
+                if ($fetchNum === '') {
+                    try {
+                        $rs = $pdo->prepare("SELECT phone FROM whatsapp_contacts WHERE remote_jid = ? AND phone REGEXP '^[0-9]{10,13}\$' LIMIT 1");
+                        $rs->execute([$jid]);
+                        $cand = $digits($rs->fetchColumn());
+                        if ($isPhone($cand)) $fetchNum = $cand;
+                    } catch (\Throwable $_) {}
+                }
+                if ($fetchNum === '') {
+                    // Sem telefone discável (contato só-LID sem registro) → sem foto
                     echo json_encode(['ok' => true, 'profile_pic_url' => null, 'note' => 'sem telefone para buscar foto']);
                     exit;
                 }
