@@ -45,6 +45,14 @@ try {
     $messages = 0;
     $contacts = 0;
 
+    // Orçamento de tempo: o sync faz chamadas HTTP à Evolution (timeout 20s cada).
+    // Se a Evolution/WhatsApp estiver lenta/caída, sem isto o script estoura o
+    // max_execution_time e o Apache devolve HTML (bug "Unexpected token <").
+    // Guardamos um teto e paramos as chamadas pesadas antes de estourar.
+    $startedAt   = time();
+    $TIME_BUDGET = 20; // segundos (abaixo do max_execution_time padrão de 30s)
+    @set_time_limit(60); // margem extra; o orçamento acima é o controle real
+
     // 1. Buscar nomes reais dos grupos
     $groupMap = [];
     $apiGroups = $evo->fetchAllGroups($name);
@@ -138,11 +146,7 @@ try {
         $synced++;
     }
 
-    // 4. Salvar todas as mensagens no banco
-    // Cap de downloads de binário por execução pra não estourar o tempo do sync
-    // (cada getBase64 é uma chamada HTTP à Evolution). Acima do cap, cai no thumbnail.
-    $mediaFetched    = 0;
-    $MEDIA_FETCH_CAP = 60;
+    // 4. Salvar todas as mensagens no banco (só dados — sem download pesado de mídia)
     foreach ($allMessages as $r) {
         if (!is_array($r) || empty($r['key'])) continue;
         $key2   = $r['key'];
@@ -185,32 +189,22 @@ try {
         $isMedia    = in_array($type, ['image','video','audio','document','sticker']);
         $rawPayload = $isMedia ? json_encode($r, JSON_UNESCAPED_UNICODE) : null;
 
-        // Mídia: baixa o BINÁRIO REAL (pra mídia sincronizada também abrir/baixar).
-        // Antes só guardava o jpegThumbnail (imagem minúscula) e nada pra áudio/vídeo/doc.
+        // Mídia: NÃO baixa binário pesado aqui (getBase64) — isso é SÍNCRONO e, se a
+        // Evolution/WhatsApp estiver lenta ou caída, cada chamada trava ~20s e o sync
+        // inteiro estoura o tempo, devolvendo HTML em vez de JSON (bug "Unexpected token <").
+        // No sync usamos só o que é INSTANTÂNEO: base64 já embutido no retorno (quando
+        // downloadMedia traz) ou o jpegThumbnail. O binário completo é baixado sob demanda
+        // pelo proxy media.php (com o raw_payload) quando o usuário abre a mídia.
         $mediaBase64 = null;
         $mediaIsFull = 0;
         if ($isMedia) {
-            // 1) downloadMedia=true às vezes já traz o base64 embutido no retorno.
             $embedded = $r['base64']
                      ?? ($msgObj['base64'] ?? null)
                      ?? ($msgObj[$msgTypeRaw]['base64'] ?? null);
             if (is_string($embedded) && strlen($embedded) > 256) {
                 $mediaBase64 = str_contains($embedded, ',') ? explode(',', $embedded, 2)[1] : $embedded;
                 $mediaIsFull = 1;
-            }
-            // 2) Senão, baixa via getBase64 (capado pra não estourar o tempo do sync).
-            if (!$mediaBase64 && $mediaFetched < $MEDIA_FETCH_CAP) {
-                try {
-                    $b64 = $evo->getMediaBase64($name, $r);
-                    if ($b64) {
-                        $mediaBase64 = str_contains($b64, ',') ? explode(',', $b64, 2)[1] : $b64;
-                        $mediaIsFull = 1;
-                        $mediaFetched++;
-                    }
-                } catch (\Throwable $_) {}
-            }
-            // 3) Último recurso: thumbnail embarcado (não depende de CDN).
-            if (!$mediaBase64) {
+            } else {
                 $thumb = $msgObj[$msgTypeRaw]['jpegThumbnail'] ?? null;
                 if ($thumb) {
                     $mediaBase64 = str_contains($thumb, ',') ? explode(',', $thumb, 2)[1] : $thumb;
@@ -251,7 +245,14 @@ try {
     // whatsapp_group_members ficava vazia → modal de membros usava fallback
     // frágil pelos last messages do chat (sem role, sem completude).
     foreach (array_keys($groupMap) as $gJid) {
-        $gInfo = $evo->fetchGroupInfo($name, $gJid);
+        // Para de buscar info de grupo se já gastamos o orçamento de tempo —
+        // evita travar o sync inteiro quando a Evolution está lenta/caída.
+        if ((time() - $startedAt) >= $TIME_BUDGET) break;
+        try {
+            $gInfo = $evo->fetchGroupInfo($name, $gJid);
+        } catch (\Throwable $_) {
+            continue; // um grupo que falha não derruba o sync
+        }
         foreach ($gInfo['participants'] ?? [] as $p) {
             $pLid   = $p['id']          ?? null;
             $pPhone = $p['phoneNumber'] ?? null;
