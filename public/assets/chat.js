@@ -578,8 +578,13 @@ const ChatApp = (() => {
   }
 
   function renderChatItem(chat) {
-    const initial = (chat.contact_name || chat.phone || '?').charAt(0).toUpperCase();
-    const name    = esc(chat.contact_name || formatPhone(chat.phone) || chat.remote_jid);
+    // display_name vem resolvido pelo backend (pushName real da msg inbound, sem
+    // "Você"/telefone). Fallback: contact_name do chat → telefone formatado → jid.
+    // resolveSenderName ainda filtra "Você"/número cru que tenha sobrado.
+    const resolved = resolveSenderName(chat.display_name) || resolveSenderName(chat.contact_name);
+    const nameRaw  = resolved || formatPhone(chat.phone) || chat.remote_jid;
+    const initial  = (nameRaw || '?').charAt(0).toUpperCase();
+    const name     = esc(nameRaw);
     const preview = esc(chat.last_message_content || '');
     const time    = chat.last_message_at ? formatTime(chat.last_message_at) : '';
     const unread  = chat.unread_count > 0

@@ -508,9 +508,30 @@ class WhatsAppMessage
     {
         // JOIN com teams para trazer nome e cor do setor junto com cada chat
         // archived=true → lista apenas arquivadas; false (default) → só não-arquivadas
+        //
+        // Fix 2026-05-31 ("Você" na lista 1:1): o upsertChat grava no contact_name
+        // o nome da ÚLTIMA mensagem — quando ela é sua (outbound), grava "Você",
+        // rotulando a conversa inteira errado. Aqui resolvemos o nome de exibição
+        // por uma subquery que pega o pushName REAL (com letra, sem ser "Você"/
+        // telefone/LID) da mensagem inbound mais recente. Cai pro contact_name do
+        // chat (respeitando rename manual) só quando não há nome real nas mensagens.
         $sql = 'SELECT c.*,
                        t.nome AS team_nome,
-                       t.cor  AS team_cor
+                       t.cor  AS team_cor,
+                       COALESCE(
+                           CASE WHEN COALESCE(c.is_manual_name,0)=1 THEN c.contact_name END,
+                           (SELECT mi.contact_name FROM whatsapp_messages mi
+                             WHERE mi.instance_id = c.instance_id
+                               AND mi.remote_jid  = c.remote_jid
+                               AND mi.direction   = \'inbound\'
+                               AND mi.contact_name REGEXP \'[A-Za-z]\'
+                               AND mi.contact_name NOT REGEXP \'^[+0-9 ()-]+$\'
+                               AND LOWER(mi.contact_name) NOT IN (\'voce\',\'você\',\'you\')
+                             ORDER BY mi.created_at DESC LIMIT 1),
+                           CASE WHEN c.contact_name REGEXP \'[A-Za-z]\'
+                                     AND LOWER(c.contact_name) NOT IN (\'voce\',\'você\',\'you\')
+                                THEN c.contact_name END
+                       ) AS display_name
                 FROM whatsapp_chats c
                 LEFT JOIN teams t ON t.id = c.team_id AND t.deleted_at IS NULL
                 WHERE c.instance_id = ? AND c.is_archived = ' . ($archived ? '1' : '0');
