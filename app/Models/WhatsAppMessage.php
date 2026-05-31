@@ -371,22 +371,86 @@ class WhatsAppMessage
      */
     private function hydrateQuotedSender(array &$rows): void
     {
+        // 1a passada: prioriza um candidato COM LETRAS (nome real). Telefone/LID
+        // NAO viram "nome" — ficam só como fallback e marcam a linha pra
+        // enriquecimento (buscar o nome real do autor citado nas mensagens).
+        // BUG (2026-05-31): o fallback antigo só descartava LID puro de 14+ digitos,
+        // entao um telefone normal (13 dig / formatado) virava o "nome" do autor
+        // citado em grupos. Ex.: citar msg do "Marcelo" mostrava "+55 (11) ...".
+        $hasLetters = static fn($s) => $s !== null && preg_match('/[A-Za-z]/', (string)$s) === 1;
+        $needWamids = [];
         foreach ($rows as &$r) {
             if (empty($r['quoted_wamid'])) {
                 $r['quoted_sender'] = null;
+                $this->cleanQuotedAux($r);
                 continue;
             }
-            $sender = $r['quoted_sender_member']
-                   ?: $r['quoted_sender_contact']
-                   ?: (preg_match('/^\d{14,}$/', (string)($r['quoted_sender_raw'] ?? '')) ? null : ($r['quoted_sender_raw'] ?? null));
-            // Pra mensagens próprias citadas, usa rótulo amigável
-            if (($r['quoted_direction'] ?? '') === 'outbound' && !$sender) {
-                $sender = 'Você';
+            $letters = null;
+            foreach ([$r['quoted_sender_member'] ?? null, $r['quoted_sender_contact'] ?? null, $r['quoted_sender_raw'] ?? null] as $c) {
+                if ($hasLetters($c)) { $letters = $c; break; }
             }
-            $r['quoted_sender'] = $sender;
-            // Limpa campos auxiliares
-            unset($r['quoted_sender_raw'], $r['quoted_sender_member'], $r['quoted_sender_contact']);
+            if ($letters !== null) {
+                $r['quoted_sender'] = $letters;
+            } else {
+                // Telefone de fallback (descarta LID puro 14+ digitos, que nao e exibivel)
+                $phone = $r['quoted_sender_member'] ?: ($r['quoted_sender_contact'] ?: ($r['quoted_sender_raw'] ?: null));
+                if ($phone !== null && preg_match('/^\d{14,}$/', (string)$phone)) $phone = null;
+                $r['quoted_sender'] = $phone; // por enquanto o telefone (ou null)
+                $needWamids[(string)$r['quoted_wamid']] = true;
+            }
+            // Mensagem propria citada sem nome resolvido → rotulo amigavel
+            if (($r['quoted_direction'] ?? '') === 'outbound' && ($r['quoted_sender'] === null || $r['quoted_sender'] === '')) {
+                $r['quoted_sender'] = 'Você';
+                unset($needWamids[(string)$r['quoted_wamid']]);
+            }
         }
+        unset($r);
+
+        // 2a passada: enriquece com o NOME REAL do autor citado. O push_name de
+        // group_members costuma ser só o telefone; aqui buscamos um contact_name
+        // COM LETRAS nas mensagens daquele participant_jid (mesma logica do
+        // getGroupMembers). 1 query batelada por quoted_wamid — barata e indexada
+        // (idx_wamid + idx_participant).
+        if ($needWamids) {
+            $wamids = array_keys($needWamids);
+            $ph = implode(',', array_fill(0, count($wamids), '?'));
+            try {
+                $st = $this->db->prepare(
+                    "SELECT q.wamid AS qw,
+                            MAX(CASE WHEN mm.contact_name REGEXP '[A-Za-z]' THEN mm.contact_name END) AS real_name
+                       FROM whatsapp_messages q
+                       JOIN whatsapp_messages mm
+                         ON mm.instance_id = q.instance_id
+                        AND mm.participant_jid = q.participant_jid
+                      WHERE q.wamid IN ($ph)
+                      GROUP BY q.wamid"
+                );
+                $st->execute($wamids);
+                $real = [];
+                foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    if (!empty($row['real_name'])) $real[(string)$row['qw']] = $row['real_name'];
+                }
+                if ($real) {
+                    foreach ($rows as &$r2) {
+                        $w = (string)($r2['quoted_wamid'] ?? '');
+                        if ($w !== '' && isset($real[$w])) $r2['quoted_sender'] = $real[$w];
+                    }
+                    unset($r2);
+                }
+            } catch (\Throwable $e) {
+                error_log('[whatsapp hydrateQuotedSender] enrich falhou: ' . $e->getMessage());
+            }
+        }
+
+        // Limpa campos auxiliares de todas as linhas
+        foreach ($rows as &$r3) { $this->cleanQuotedAux($r3); }
+        unset($r3);
+    }
+
+    /** Remove os campos auxiliares usados só pra resolver quoted_sender. */
+    private function cleanQuotedAux(array &$r): void
+    {
+        unset($r['quoted_sender_raw'], $r['quoted_sender_member'], $r['quoted_sender_contact']);
     }
 
     /**
