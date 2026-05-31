@@ -62,7 +62,23 @@ class AccountContext
      */
     public static function fromSession(): self
     {
-        if (session_status() === PHP_SESSION_NONE) session_start();
+        // PERF/CONCORRÊNCIA (2026-05-31): fromSession() só LÊ a sessão.
+        // Os endpoints de API usam session_start(['read_and_close'=>true]) (lêem e
+        // LIBERAM a trava). Antes, reabríamos aqui com session_start() simples, o que
+        // RE-ADQUIRIA a trava de escrita e a segurava até o fim do script —
+        // SERIALIZANDO todas as requisições da MESMA sessão (poll + cliques
+        // empilhavam → "Carregando…" travado ~20s e até o reload da página
+        // congelava). Comprovado: com a trava presa, uma 2ª requisição da mesma
+        // sessão esperava ~3,9s; sessões diferentes, 0ms.
+        // Correção: se ABRIRMOS a sessão aqui, lemos e liberamos na hora
+        // (session_write_close). NÃO mexemos em sessões já abertas pelo chamador —
+        // páginas com session_start() próprio continuam com a sessão aberta pra
+        // gravar normalmente (assertAccountActive, CSRF, etc.).
+        $weOpenedHere = false;
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+            $weOpenedHere = true;
+        }
 
         if (empty($_SESSION['user_id']) || empty($_SESSION['account_id'])) {
             http_response_code(401);
@@ -71,12 +87,20 @@ class AccountContext
             exit;
         }
 
-        return new self(
+        $ctx = new self(
             (int)    $_SESSION['account_id'],
             (string) ($_SESSION['account_tipo'] ?? 'matriz'),
             (string) ($_SESSION['user_role']    ?? 'user'),
             (int)    $_SESSION['user_id']
         );
+
+        // Libera a trava imediatamente (só leitura acima). Sem held-lock → sem
+        // serialização das requisições concorrentes da mesma sessão.
+        if ($weOpenedHere) {
+            session_write_close();
+        }
+
+        return $ctx;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
