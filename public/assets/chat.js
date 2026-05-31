@@ -1053,11 +1053,20 @@ const ChatApp = (() => {
                 </div>${caption ? `<span class="msg-caption">${caption}</span>` : ''}`;
 
       case 'video':
-        return `<video controls style="max-width:280px;max-height:200px;border-radius:8px;display:block" src="${mUrl}"></video>${caption ? `<span class="msg-caption">${caption}</span>` : ''}`;
+        return `<video controls style="max-width:280px;max-height:200px;border-radius:8px;display:block" src="${mUrl}"
+                       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"></video><div style="display:none;align-items:center;gap:6px;padding:8px 12px;background:rgba(30,40,60,.6);border:1px solid rgba(148,163,184,.15);border-radius:8px;color:#6B7887;font-size:.78rem;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>Vídeo expirado (não está mais disponível)</div>${caption ? `<span class="msg-caption">${caption}</span>` : ''}`;
 
       case 'audio':
+        // onerror: se o proxy devolver 404 (mídia antiga já expirada no WhatsApp),
+        // troca o player quebrado (0:00) por um rótulo honesto. Áudio novo (com
+        // cache) toca normal; só os expirados mostram o aviso.
         return `<div class="msg-audio">
-          <audio controls src="${mUrl}" style="max-width:240px;height:36px"></audio>
+          <audio controls src="${mUrl}" style="max-width:240px;height:36px"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"></audio>
+          <div style="display:none;align-items:center;gap:6px;padding:8px 12px;background:rgba(30,40,60,.6);border:1px solid rgba(148,163,184,.15);border-radius:8px;color:#6B7887;font-size:.78rem;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+            Áudio expirado (não está mais disponível)
+          </div>
         </div>`;
 
       case 'document': {
@@ -1065,7 +1074,12 @@ const ChatApp = (() => {
         // Arquivo de áudio enviado como documento → renderiza como player
         if (mime.startsWith('audio/')) {
           return `<div class="msg-audio">
-            <audio controls src="${mUrl}" style="max-width:240px;height:36px"></audio>
+            <audio controls src="${mUrl}" style="max-width:240px;height:36px"
+                   onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"></audio>
+            <div style="display:none;align-items:center;gap:6px;padding:8px 12px;background:rgba(30,40,60,.6);border:1px solid rgba(148,163,184,.15);border-radius:8px;color:#6B7887;font-size:.78rem;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+              Áudio expirado (não está mais disponível)
+            </div>
             ${msg.media_filename ? `<span class="msg-caption">${esc(msg.media_filename)}</span>` : ''}
           </div>`;
         }
