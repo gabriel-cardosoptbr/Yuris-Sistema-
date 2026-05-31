@@ -70,7 +70,19 @@ try {
                 // Sem timeout, a Evolution lenta segurava o request ~20s e, com
                 // vários cliques, saturava o pool de conexões do navegador.
                 $evo->setTimeout(6);
-                $res = $evo->getProfilePicture($instName, $jid);
+                // Busca a foto pelo TELEFONE real — o LID ('@lid') não resolve foto na
+                // Evolution. O front manda 'number' (real_phone já resolvido na lista).
+                // Sem number, tenta extrair os dígitos do jid quando é @s.whatsapp.net.
+                $fetchNum = preg_replace('/\D/', '', (string)($payload['number'] ?? ''));
+                if ($fetchNum === '' && str_contains($jid, '@s.whatsapp.net')) {
+                    $fetchNum = preg_replace('/\D/', '', explode('@', $jid)[0]);
+                }
+                if ($fetchNum === '') {
+                    // Sem telefone discável (LID puro / grupo) → não há como buscar foto
+                    echo json_encode(['ok' => true, 'profile_pic_url' => null, 'note' => 'sem telefone para buscar foto']);
+                    exit;
+                }
+                $res = $evo->getProfilePicture($instName, $fetchNum);
                 // Evolution v2 retorna { profilePictureUrl: '...' } ou { wuid, profilePictureUrl }
                 $picUrl = $res['profilePictureUrl']
                        ?? $res['profile_pic_url']

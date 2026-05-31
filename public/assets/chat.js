@@ -521,6 +521,7 @@ const ChatApp = (() => {
       const r = await apiFetch(API.chats + '?' + params);
       state.chats = r.chats || [];
       renderChatList();
+      prefetchSidebarPhotos();   // fotos da lista em background (gentil, não bloqueia)
       setText('kpiChats',  String(state.chats.length));
       setText('kpiUnread', String(r.total_unread || 0));
 
@@ -2279,7 +2280,7 @@ const ChatApp = (() => {
       } else if (jid && !isGroup) {
         // Lazy fetch: conversa 1:1 sem foto cacheada → busca na Evolution
         // Sem isso, 9 de 10 conversas 1:1 ficam só com a inicial cinza.
-        fetchProfilePicLazy(jid).then(picUrl => {
+        fetchProfilePicLazy(jid, chatObj && chatObj.real_phone).then(picUrl => {
           // Só aplica se ainda estiver na mesma conversa (user pode ter trocado)
           if (state.currentJid === jid && picUrl && avatar) {
             avatar.textContent = '';
@@ -2414,7 +2415,7 @@ const ChatApp = (() => {
   // profile_pic_url cacheado. Resultado vai pra whatsapp_chats no servidor +
   // cache local pra não pedir duas vezes pra mesma conversa (mesmo se vier null).
   const _picFetchAttempts = new Set();
-  async function fetchProfilePicLazy(jid) {
+  async function fetchProfilePicLazy(jid, number) {
     if (!jid || _picFetchAttempts.has(jid)) return null;
     _picFetchAttempts.add(jid);
     try {
@@ -2422,6 +2423,7 @@ const ChatApp = (() => {
         _csrf : CSRF,
         action: 'fetch_pic',
         jid,
+        number: number || '',   // telefone real (LID não resolve foto)
       }, _evoAbort && _evoAbort.signal);
       return r && r.profile_pic_url ? r.profile_pic_url : null;
     } catch (e) {
@@ -2429,6 +2431,36 @@ const ChatApp = (() => {
       if (e && e.name === 'AbortError') _picFetchAttempts.delete(jid);
       return null;
     }
+  }
+
+  // ── Sync de fotos da lista (background, gentil) ────────────────────────────
+  // Busca a foto dos chats 1:1 que ainda não têm, UMA POR VEZ com respiro de
+  // 150ms, e atualiza a sidebar conforme cada foto chega. Usa o TELEFONE real
+  // (real_phone) — o LID não resolve foto. Grupos: pulados (foto vem do
+  // group-info). Cacheia no servidor → custo só na 1ª vez. Sequencial = nunca
+  // satura o pool de conexões (e o session-lock já foi resolvido).
+  let _photoBatchRunning = false;
+  async function prefetchSidebarPhotos() {
+    if (_photoBatchRunning) return;
+    _photoBatchRunning = true;
+    try {
+      const alvos = (state.chats || []).filter(c =>
+        c && c.remote_jid
+        && !c.profile_pic_url
+        && !String(c.remote_jid).endsWith('@g.us')
+        && !_picFetchAttempts.has(c.remote_jid)
+        && (c.real_phone || /^\d{10,13}$/.test(String(c.phone || '')))
+      );
+      for (const c of alvos) {
+        if (!state.chats.some(x => x.remote_jid === c.remote_jid)) continue; // saiu da lista
+        const url = await fetchProfilePicLazy(c.remote_jid, c.real_phone || c.phone);
+        if (url) {
+          const ch = state.chats.find(x => x.remote_jid === c.remote_jid);
+          if (ch) { ch.profile_pic_url = url; renderChatList(); }
+        }
+        await new Promise(r => setTimeout(r, 150)); // respiro: gentil com Evolution + pool
+      }
+    } finally { _photoBatchRunning = false; }
   }
 
   // ── Menções em grupos: @<numero> → @<NomeReal> ─────────────────────────

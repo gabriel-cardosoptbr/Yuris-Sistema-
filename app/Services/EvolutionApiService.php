@@ -341,9 +341,13 @@ class EvolutionApiService
         return $this->request('POST', "/contact/findContacts/{$this->enc($name)}", $body);
     }
 
-    public function getProfilePicture(string $name, string $jid): array
+    public function getProfilePicture(string $name, string $number): array
     {
-        return $this->request('GET', "/contact/getProfilePicture/{$this->enc($name)}?number=" . urlencode($jid));
+        // Evolution v2: foto de perfil = POST /chat/fetchProfilePictureUrl/{instance}
+        // com body {number}. A rota antiga (GET /contact/getProfilePicture) devolvia
+        // 404 "Cannot GET" nesta versão — por isso a foto 1:1 NUNCA vinha. O 'number'
+        // tem que ser o TELEFONE real (o LID '@lid' não resolve foto).
+        return $this->request('POST', "/chat/fetchProfilePictureUrl/{$this->enc($name)}", ['number' => $number]);
     }
 
     // ────────────────────────────────────────────
