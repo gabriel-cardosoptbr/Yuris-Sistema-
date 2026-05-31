@@ -579,12 +579,13 @@ const ChatApp = (() => {
 
   function renderChatItem(chat) {
     // display_name vem resolvido pelo backend (pushName real da msg inbound, sem
-    // "Você"/telefone). Fallback: contact_name do chat → telefone formatado → jid.
-    // resolveSenderName ainda filtra "Você"/número cru que tenha sobrado.
-    const resolved = resolveSenderName(chat.display_name) || resolveSenderName(chat.contact_name);
-    const nameRaw  = resolved || formatPhone(chat.phone) || chat.remote_jid;
-    const initial  = (nameRaw || '?').charAt(0).toUpperCase();
-    const name     = esc(nameRaw);
+    // "Você"/telefone). Fallback: real_phone (telefone VERDADEIRO, resolvido pelo
+    // backend mesmo quando o chat guardou o LID) formatado. Nunca exibe o LID cru.
+    const resolved  = resolveSenderName(chat.display_name) || resolveSenderName(chat.contact_name);
+    const realPhone = chat.real_phone || (/^\d{10,13}$/.test(String(chat.phone || '')) ? chat.phone : '');
+    const nameRaw   = resolved || formatPhone(realPhone) || 'Contato';
+    const initial   = (nameRaw || '?').charAt(0).toUpperCase();
+    const name      = esc(nameRaw);
     const preview = esc(chat.last_message_content || '');
     const time    = chat.last_message_at ? formatTime(chat.last_message_at) : '';
     const unread  = chat.unread_count > 0

@@ -531,7 +531,24 @@ class WhatsAppMessage
                            CASE WHEN c.contact_name REGEXP \'[A-Za-z]\'
                                      AND LOWER(c.contact_name) NOT IN (\'voce\',\'você\',\'you\')
                                 THEN c.contact_name END
-                       ) AS display_name
+                       ) AS display_name,
+                       -- Telefone REAL: o c.phone às vezes guarda o LID (id interno
+                       -- longo, não-discável). Quando o remote_jid é @lid, busca o
+                       -- telefone verdadeiro em group_members/contacts por aquele LID.
+                       COALESCE(
+                           CASE WHEN c.remote_jid NOT LIKE \'%@lid\'
+                                     AND c.phone REGEXP \'^[0-9]{10,13}$\'
+                                THEN c.phone END,
+                           (SELECT gm.phone FROM whatsapp_group_members gm
+                             WHERE gm.instance_id = c.instance_id
+                               AND gm.participant_jid COLLATE utf8mb4_unicode_ci = c.remote_jid
+                               AND gm.phone REGEXP \'^[0-9]{10,13}$\' LIMIT 1),
+                           (SELECT wc.phone FROM whatsapp_contacts wc
+                             WHERE wc.instance_id = c.instance_id
+                               AND wc.remote_jid = c.remote_jid
+                               AND wc.phone REGEXP \'^[0-9]{10,13}$\' LIMIT 1),
+                           CASE WHEN c.phone REGEXP \'^[0-9]{10,13}$\' THEN c.phone END
+                       ) AS real_phone
                 FROM whatsapp_chats c
                 LEFT JOIN teams t ON t.id = c.team_id AND t.deleted_at IS NULL
                 WHERE c.instance_id = ? AND c.is_archived = ' . ($archived ? '1' : '0');
