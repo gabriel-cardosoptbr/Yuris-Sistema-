@@ -825,4 +825,59 @@ class WhatsAppMessage
             if ($pid > 0) $stmt->execute([$instanceId, $remoteJid, $pid]);
         }
     }
+
+    /**
+     * Lista os membros de um grupo (pra header "N membros", modal e resolução de
+     * @menções). O push_name em whatsapp_group_members frequentemente é só o
+     * telefone (a Evolution não devolve o nome no fetchGroupInfo). Então AQUI
+     * enriquecemos: se houver um pushName REAL (com letra) nas mensagens daquele
+     * participant_jid, usamos ele no lugar do telefone.
+     *
+     * Bug fix 2026-05-31: este método era chamado em group_members.php mas NÃO
+     * existia → erro fatal → lista vazia + menções sem nome. Criado + enriquecido.
+     */
+    public function getGroupMembers(int $instanceId, string $groupJid): array
+    {
+        // 1) Mapa participant_jid → nome real, tirado do pushName das mensagens
+        //    do grupo (contact_name que tem letra, não é telefone/LID).
+        $nameStmt = $this->db->prepare(
+            "SELECT m.participant_jid,
+                    MAX(CASE WHEN m.contact_name REGEXP '[A-Za-z]'
+                             AND m.contact_name NOT REGEXP '^[+0-9 ()-]+$'
+                        THEN m.contact_name END) AS real_name
+               FROM whatsapp_messages m
+              WHERE m.instance_id = ?
+                AND m.remote_jid = ?
+                AND m.participant_jid IS NOT NULL
+              GROUP BY m.participant_jid"
+        );
+        $nameStmt->execute([$instanceId, $groupJid]);
+        $realByJid = [];
+        foreach ($nameStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+            if (!empty($r['real_name'])) {
+                $realByJid[$r['participant_jid']] = $r['real_name'];
+            }
+        }
+
+        // 2) Lista de membros (de whatsapp_group_members)
+        $stmt = $this->db->prepare(
+            "SELECT participant_jid, push_name, phone, role
+               FROM whatsapp_group_members
+              WHERE instance_id = ? AND group_jid = ?
+              ORDER BY (role = 'superadmin') DESC, (role = 'admin') DESC, push_name ASC"
+        );
+        $stmt->execute([$instanceId, $groupJid]);
+        $members = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // 3) Enriquece: prioriza nome real das mensagens sobre o telefone gravado
+        foreach ($members as &$m) {
+            $jid = $m['participant_jid'] ?? '';
+            if (isset($realByJid[$jid])) {
+                $m['push_name'] = $realByJid[$jid];
+            }
+        }
+        unset($m);
+
+        return $members;
+    }
 }

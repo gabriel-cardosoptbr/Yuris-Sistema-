@@ -74,6 +74,31 @@ try {
         ];
     }
 
+    // Enriquece o mapa com o NOME REAL tirado do pushName das mensagens do grupo.
+    // Resolve @menções tipo @191748965933068 (LID) que ficavam sem nome porque
+    // contacts/group_members só tinham telefone. A chave é o local-part do LID.
+    $stMsg = $pdo->prepare(
+        "SELECT participant_jid,
+                MAX(CASE WHEN contact_name REGEXP '[A-Za-z]'
+                         AND contact_name NOT REGEXP '^[+0-9 ()-]+$'
+                    THEN contact_name END) AS real_name
+           FROM whatsapp_messages
+          WHERE instance_id = ? AND remote_jid = ?
+            AND participant_jid IS NOT NULL
+          GROUP BY participant_jid"
+    );
+    $stMsg->execute([$instanceId, $jid]);
+    foreach ($stMsg->fetchAll(\PDO::FETCH_ASSOC) as $mm) {
+        if (empty($mm['real_name'])) continue;
+        $local = explode('@', (string)$mm['participant_jid'])[0];
+        if ($local === '') continue;
+        // nome real das mensagens tem prioridade sobre telefone do contato
+        $contactsMap[$local] = [
+            'name'  => $mm['real_name'],
+            'phone' => $contactsMap[$local]['phone'] ?? '',
+        ];
+    }
+
     echo json_encode([
         'ok'           => true,
         'group_jid'    => $jid,
