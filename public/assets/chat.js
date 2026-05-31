@@ -665,10 +665,18 @@ const ChatApp = (() => {
     // Zera não lidas (fire-and-forget)
     apiFetch(API.chats, 'POST', { _csrf: CSRF, action: 'mark_read', remote_jid: jid }).catch(() => {});
 
-    // Busca mensagens da Evolution API em background, depois lê do banco
-    refreshLiveMessages().then(() => loadMessages()).then(scrollToBottom).catch(() => {
-      loadMessages().then(scrollToBottom).catch(() => {});
-    });
+    // Render INSTANTÂNEO: mostra o que já está no banco PRIMEIRO (leitura ~ms).
+    // Antes, o render ficava refém de refreshLiveMessages() — chamada HTTP à
+    // Evolution que às vezes levava 5–20s — deixando "Carregando mensagens…"
+    // travado mesmo com tudo já salvo. Agora a Evolution sincroniza em SEGUNDO
+    // PLANO e, ao terminar, só ANEXA as novas via pollNewMessages (sem resetar
+    // o scroll). Se a conversa estava vazia, aí sim recarrega do zero.
+    loadMessages().then(scrollToBottom).catch(() => {});
+    refreshLiveMessages().then(() => {
+      if (state.currentJid !== jid) return;                    // trocou de conversa → ignora
+      if (state.lastMsgId) pollNewMessages();                  // já tinha msgs → anexa as novas
+      else loadMessages().then(scrollToBottom).catch(() => {}); // estava vazia → carrega o que veio
+    }).catch(() => {});
   }
 
   function closeChat() {
@@ -852,11 +860,19 @@ const ChatApp = (() => {
     await loadMessages();
   }
 
+  // Trava de concorrência: a Evolution às vezes responde lento (5–20s). Sem
+  // isto, o poll de 4s EMPILHA chamadas travadas, esgota o pool de conexões do
+  // navegador e atrasa até o loadMessages rápido. Com a trava, no máximo UMA
+  // sincronização roda por vez; as demais são puladas (o banco já é mostrado).
+  let _refreshing = false;
   async function refreshLiveMessages() {
     if (!state.currentJid) return;
+    if (_refreshing) return;
+    _refreshing = true;
     try {
       await apiFetch(API.refresh + '?jid=' + encodeURIComponent(state.currentJid));
     } catch(e) { /* silencioso — sem webhook não é erro */ }
+    finally { _refreshing = false; }
   }
 
   function renderMessage(msg) {

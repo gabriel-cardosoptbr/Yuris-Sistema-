@@ -2449,7 +2449,7 @@ const API  = {
 #imgLightboxDownload:hover { background: rgba(37,99,235,.3); border-color: rgba(96,165,250,.5); }
 </style>
 
-<script src="/assets/chat.js?v=59"></script>
+<script src="/assets/chat.js?v=60"></script>
 <script>
 // Lightbox init
 (function(){
