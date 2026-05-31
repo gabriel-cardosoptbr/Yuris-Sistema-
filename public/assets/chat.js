@@ -786,8 +786,26 @@ const ChatApp = (() => {
         + '&after_id=' + state.lastMsgId
         + '&after_at=' + encodeURIComponent(state.lastMsgAt || '')
       );
-      const msgs = r.messages || [];
+      let msgs = r.messages || [];
       if (!msgs.length) return;
+
+      // TRAVA DE ORDEM (anti-bagunça pós-sync): só anexa no rodapé o que é REALMENTE
+      // mais novo que a última msg já renderizada. Mensagem antiga vinda de um sync
+      // (data passada, id alto) NÃO entra aqui — apareceria fora de lugar no fim da
+      // conversa. Ela surge no lugar cronológico certo no próximo carregamento/scroll.
+      // Redundante com o cursor after_at do backend, mas protege também quando o
+      // navegador ainda roda um chat.js em cache antigo (sem after_at).
+      const _lastAt = state.lastMsgAt || '';
+      if (_lastAt) {
+        msgs = msgs.filter(m => (m.created_at || '') >= _lastAt);
+        if (!msgs.length) return;
+      }
+      // Ordena o lote por data real (created_at, id) antes de anexar
+      msgs.sort((a, b) => {
+        const ca = a.created_at || '', cb = b.created_at || '';
+        if (ca !== cb) return ca < cb ? -1 : 1;
+        return (a.id || 0) - (b.id || 0);
+      });
 
       const container = qs('#chatMessages');
       const atBottom  = isNearBottom(container);
