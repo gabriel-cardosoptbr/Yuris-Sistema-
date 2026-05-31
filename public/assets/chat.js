@@ -649,15 +649,20 @@ const ChatApp = (() => {
     qs('#chatEmptyState').style.display   = 'none';
 
     // Header do chat
-    const displayName = name || formatPhone(phone) || jid;
-    const initial     = displayName.charAt(0).toUpperCase();
+    const chatObj = state.chats.find(c => c.remote_jid === jid);
+    // Subtítulo do cabeçalho: TELEFONE real, NUNCA o LID cru (id interno @lid). O
+    // real_phone já vem resolvido do backend; só cai pro phone quando ele já é um
+    // número discável (10-13 díg.). Sem telefone → vazio (melhor que o LID).
+    const headerPhone = (chatObj && chatObj.real_phone)
+                     || (/^\d{10,13}$/.test(String(phone || '')) ? phone : '');
+    const displayName = name || formatPhone(headerPhone) || 'Contato';
+    const initial     = (displayName || '?').charAt(0).toUpperCase();
     const el = document.getElementById('activeAvatar');
     if (el) el.textContent = initial;
     setText('activeName',  displayName);
-    setText('activePhone', phone ? formatPhone(phone) : jid);
+    setText('activePhone', headerPhone ? formatPhone(headerPhone) : '');
 
     // Badge de setor — atualiza com o chat atual (pode ter team_id já carregado)
-    const chatObj = state.chats.find(c => c.remote_jid === jid);
     updateSectorBadge(chatObj || null);
 
     // Header de grupo: foto + contador "(N membros)" + click pra abrir lista
