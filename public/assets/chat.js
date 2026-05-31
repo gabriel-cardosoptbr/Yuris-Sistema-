@@ -629,8 +629,15 @@ const ChatApp = (() => {
   }
 
   // ── Abrir / fechar chat ─────────────────────────────────────
+  // AbortController da conversa atual: cancela as buscas pesadas (foto/refresh
+  // na Evolution) da conversa ANTERIOR ao abrir uma nova. Sem isto, clicar rápido
+  // entre conversas empilhava chamadas travadas e saturava o pool de conexões do
+  // navegador — chegando a engasgar até o reload da página.
+  let _evoAbort = null;
   function openChat(jid, name, phone) {
     phone = phone || '';
+    try { if (_evoAbort) _evoAbort.abort(); } catch (_) {}
+    _evoAbort = (typeof AbortController !== 'undefined') ? new AbortController() : null;
     state.currentJid  = jid;
     state.currentName = name;
     state.lastMsgId   = 0;
@@ -693,6 +700,7 @@ const ChatApp = (() => {
   // ── Mensagens ───────────────────────────────────────────────
   async function loadMessages() {
     if (!state.currentJid) return;
+    const jid0 = state.currentJid;   // trava anti-corrida ao clicar rápido entre conversas
     const msgsEl = qs('#chatMessages');
     // Reseta estado de paginacao ao abrir conversa nova
     state.firstMsgId   = 0;
@@ -701,7 +709,8 @@ const ChatApp = (() => {
     state.hasMoreOlder = true;
     state.loadingOlder = false;
     try {
-      const r = await apiFetch(API.messages + '?jid=' + encodeURIComponent(state.currentJid) + '&limit=50');
+      const r = await apiFetch(API.messages + '?jid=' + encodeURIComponent(jid0) + '&limit=50');
+      if (state.currentJid !== jid0) return;   // usuário já trocou de conversa → não renderiza a errada
       const msgs = r.messages || [];
       if (!msgs.length) {
         msgsEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#4A5568;font-size:.82rem">Nenhuma mensagem nesta conversa</div>';
@@ -870,8 +879,8 @@ const ChatApp = (() => {
     if (_refreshing) return;
     _refreshing = true;
     try {
-      await apiFetch(API.refresh + '?jid=' + encodeURIComponent(state.currentJid));
-    } catch(e) { /* silencioso — sem webhook não é erro */ }
+      await apiFetch(API.refresh + '?jid=' + encodeURIComponent(state.currentJid), 'GET', null, _evoAbort && _evoAbort.signal);
+    } catch(e) { /* silencioso — sem webhook, ou abort ao trocar de conversa */ }
     finally { _refreshing = false; }
   }
 
@@ -2235,13 +2244,14 @@ const ChatApp = (() => {
   }
 
   // ── HTTP helper ──────────────────────────────────────────────
-  async function apiFetch(url, method = 'GET', body = null) {
+  async function apiFetch(url, method = 'GET', body = null, signal = null) {
     const opts = {
       method,
       cache  : 'no-store',
       headers: { 'Content-Type': 'application/json' },
     };
     if (body) opts.body = JSON.stringify(body);
+    if (signal) opts.signal = signal;   // permite abortar (ex.: trocar de conversa)
     const res  = await fetch(url, opts);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro HTTP ' + res.status);
@@ -2412,9 +2422,11 @@ const ChatApp = (() => {
         _csrf : CSRF,
         action: 'fetch_pic',
         jid,
-      });
+      }, _evoAbort && _evoAbort.signal);
       return r && r.profile_pic_url ? r.profile_pic_url : null;
     } catch (e) {
+      // Abortado ao trocar de conversa → libera o jid pra tentar de novo depois
+      if (e && e.name === 'AbortError') _picFetchAttempts.delete(jid);
       return null;
     }
   }

@@ -36,6 +36,9 @@ try {
     $row        = $instModel->findOrCreate($name, '', $accountId);
     $instanceId = (int)$row['id'];
     $evo        = new EvolutionApiService($cfg);
+    // Não pendurar a conexão se a Evolution estiver lenta/instável (era ilimitado).
+    // Esse refresh roda em segundo plano; se estourar o tempo, o banco já foi exibido.
+    $evo->setTimeout(8);
 
     // Busca a última página de mensagens do JID (as mais recentes)
     $apiMsgs = $evo->findMessages($name, $remoteJid, 50);

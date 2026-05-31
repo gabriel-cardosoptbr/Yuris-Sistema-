@@ -66,6 +66,10 @@ try {
             if (!$jid) { http_response_code(400); echo json_encode(['error' => 'jid obrigatório']); exit; }
             try {
                 $evo = new EvolutionApiService($cfg);
+                // Foto de perfil é "nice-to-have": não pode pendurar a conexão.
+                // Sem timeout, a Evolution lenta segurava o request ~20s e, com
+                // vários cliques, saturava o pool de conexões do navegador.
+                $evo->setTimeout(6);
                 $res = $evo->getProfilePicture($instName, $jid);
                 // Evolution v2 retorna { profilePictureUrl: '...' } ou { wuid, profilePictureUrl }
                 $picUrl = $res['profilePictureUrl']
