@@ -521,7 +521,9 @@ class WhatsAppMessage
                        COALESCE(
                            CASE WHEN COALESCE(c.is_manual_name,0)=1 THEN c.contact_name END,
                            (SELECT mi.contact_name FROM whatsapp_messages mi
-                             WHERE mi.instance_id = c.instance_id
+                             WHERE mi.instance_id IN (SELECT wi.id FROM whatsapp_instances wi
+                                     WHERE wi.account_id = (SELECT account_id FROM whatsapp_instances WHERE id = c.instance_id))
+                               AND c.remote_jid NOT LIKE \'%@g.us\'
                                AND mi.remote_jid  = c.remote_jid
                                AND mi.direction   = \'inbound\'
                                AND mi.contact_name REGEXP \'[A-Za-z]\'
@@ -534,8 +536,15 @@ class WhatsAppMessage
                            -- (ex.: Milton/Gabriel). Cruza o LID do chat com o
                            -- participant_jid das mensagens e pega o nome mais frequente.
                            -- Coberto pelo índice idx_participant (instance_id,participant_jid).
+                           -- Cross-instância: a conta pode ter várias conexões de WhatsApp
+                           -- (reconexões geram novas instâncias) e o nome pode ter sido
+                           -- sincronizado por uma e não por outra; buscamos em TODAS as
+                           -- instâncias da MESMA conta (mesmo tenant, sem vazamento).
+                           -- O filtro @g.us evita resolver nome de pessoa em grupos.
                            (SELECT mp.contact_name FROM whatsapp_messages mp
-                             WHERE mp.instance_id = c.instance_id
+                             WHERE mp.instance_id IN (SELECT wi.id FROM whatsapp_instances wi
+                                     WHERE wi.account_id = (SELECT account_id FROM whatsapp_instances WHERE id = c.instance_id))
+                               AND c.remote_jid NOT LIKE \'%@g.us\'
                                AND mp.participant_jid = c.remote_jid
                                AND mp.contact_name REGEXP \'[A-Za-z]\'
                                AND mp.contact_name NOT REGEXP \'^[+0-9 ()-]+$\'
