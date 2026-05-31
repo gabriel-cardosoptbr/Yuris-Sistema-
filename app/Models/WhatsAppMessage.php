@@ -163,9 +163,10 @@ class WhatsAppMessage
         //   - m.is_deleted retornado pra render "Mensagem apagada"
         $sql = 'SELECT m.id, m.wamid, m.remote_jid, m.participant_jid,
                        COALESCE(
+                           CASE WHEN m.direction = \'inbound\' AND m.participant_jid IS NOT NULL AND gm.push_name REGEXP \'[A-Za-z]\' THEN gm.push_name END,
+                           CASE WHEN m.direction = \'inbound\' AND m.participant_jid IS NOT NULL AND cp.push_name REGEXP \'[A-Za-z]\' THEN cp.push_name END,
+                           CASE WHEN m.contact_name REGEXP \'^[+0-9 ()-]{8,}$\' THEN NULL ELSE m.contact_name END,
                            CASE WHEN m.direction = \'inbound\' AND m.participant_jid IS NOT NULL THEN gm.push_name END,
-                           CASE WHEN m.direction = \'inbound\' AND m.participant_jid IS NOT NULL THEN cp.push_name END,
-                           CASE WHEN m.contact_name REGEXP \'^[0-9]{14,}$\' THEN NULL ELSE m.contact_name END,
                            c.push_name
                        ) AS contact_name,
                        m.message_type, m.message_content, m.caption, m.media_url, m.media_mimetype,
@@ -241,9 +242,10 @@ class WhatsAppMessage
         $like = '%' . $search . '%';
         $sql = 'SELECT m.id, m.wamid, m.remote_jid, m.participant_jid,
                        COALESCE(
+                           CASE WHEN m.direction = \'inbound\' AND m.participant_jid IS NOT NULL AND gm.push_name REGEXP \'[A-Za-z]\' THEN gm.push_name END,
+                           CASE WHEN m.direction = \'inbound\' AND m.participant_jid IS NOT NULL AND cp.push_name REGEXP \'[A-Za-z]\' THEN cp.push_name END,
+                           CASE WHEN m.contact_name REGEXP \'^[+0-9 ()-]{8,}$\' THEN NULL ELSE m.contact_name END,
                            CASE WHEN m.direction = \'inbound\' AND m.participant_jid IS NOT NULL THEN gm.push_name END,
-                           CASE WHEN m.direction = \'inbound\' AND m.participant_jid IS NOT NULL THEN cp.push_name END,
-                           CASE WHEN m.contact_name REGEXP \'^[0-9]{14,}$\' THEN NULL ELSE m.contact_name END,
                            c.push_name
                        ) AS contact_name,
                        m.message_type, m.message_content, m.caption, m.media_url, m.media_mimetype,
@@ -310,9 +312,10 @@ class WhatsAppMessage
         $stmt = $this->db->prepare(
             'SELECT m.id, m.wamid, m.remote_jid, m.participant_jid,
                     COALESCE(
+                        CASE WHEN m.direction = \'inbound\' AND m.participant_jid IS NOT NULL AND gm.push_name REGEXP \'[A-Za-z]\' THEN gm.push_name END,
+                        CASE WHEN m.direction = \'inbound\' AND m.participant_jid IS NOT NULL AND cp.push_name REGEXP \'[A-Za-z]\' THEN cp.push_name END,
+                        CASE WHEN m.contact_name REGEXP \'^[+0-9 ()-]{8,}$\' THEN NULL ELSE m.contact_name END,
                         CASE WHEN m.direction = \'inbound\' AND m.participant_jid IS NOT NULL THEN gm.push_name END,
-                        CASE WHEN m.direction = \'inbound\' AND m.participant_jid IS NOT NULL THEN cp.push_name END,
-                        CASE WHEN m.contact_name REGEXP \'^[0-9]{14,}$\' THEN NULL ELSE m.contact_name END,
                         c.push_name
                     ) AS contact_name,
                     m.message_type, m.message_content, m.caption, m.media_url, m.media_mimetype,
