@@ -289,6 +289,16 @@ try {
             $monContract = !empty($mon['contract_ref']) ? trim($mon['contract_ref']) : null;
             $monObs      = $observacoes !== '' ? $observacoes : null;
 
+            // FIX: set_by_super_admin_id é FK pra super_admins.id (NÃO users.id).
+            // O quotas.php faz a mesma resolução. Antes eu estava gravando o
+            // user_id direto — semanticamente errado (override 12 da conta 76
+            // ficou com sa_id=91 que é user_id do super, não sa.id real).
+            $saStmt = $pdo->prepare('SELECT id FROM super_admins WHERE user_id = :uid AND ativo = 1 LIMIT 1');
+            $saStmt->execute(['uid' => $ctx->getUserId()]);
+            $superAdminId = (int)($saStmt->fetchColumn() ?: 0);
+            // Se o caller não é super_admin (raro neste endpoint que já checou
+            // assertSuperAdmin), usa NULL — a coluna é nullable.
+
             $stmtM = $pdo->prepare(
                 "INSERT INTO account_quota_overrides
                     (account_id, feature_key, limit_value, source,
@@ -302,7 +312,7 @@ try {
             $stmtM->execute([
                 'aid' => $accountId,
                 'lv'  => $monQtd,
-                'sa'  => $ctx->getUserId(),
+                'sa'  => $superAdminId > 0 ? $superAdminId : null,
                 'upc' => $monPrice,
                 'bc'  => $monCycle,
                 'ref' => $monContract,

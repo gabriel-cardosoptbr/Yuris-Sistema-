@@ -46,10 +46,33 @@ if (in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
 }
 
 // Resolve super_admin_id (pra auditoria + foreign-key)
+// Fonte canônica: $ctx->getUserId() — consistente com assertSuperAdmin().
+// (Antes lia $_SESSION['user_id'] cru, o que podia divergir do contexto se
+// algo intermediário tocasse na sessão. Cinto-e-suspensórios.)
+$ctxUid = $ctx->getUserId();
 $saStmt = $pdo->prepare('SELECT id FROM super_admins WHERE user_id = :uid AND ativo = 1 LIMIT 1');
-$saStmt->execute(['uid' => (int) ($_SESSION['user_id'] ?? 0)]);
+$saStmt->execute(['uid' => $ctxUid]);
 $superAdminId = (int) ($saStmt->fetchColumn() ?: 0);
-if ($superAdminId <= 0) ApiResponse::forbidden('super_admin não encontrado/ativo');
+if ($superAdminId <= 0) {
+    // Fallback: tenta o user_id direto da sessão (se diferir do contexto)
+    $sessUid = (int) ($_SESSION['user_id'] ?? 0);
+    if ($sessUid > 0 && $sessUid !== $ctxUid) {
+        $saStmt->execute(['uid' => $sessUid]);
+        $superAdminId = (int) ($saStmt->fetchColumn() ?: 0);
+    }
+}
+if ($superAdminId <= 0) {
+    // Diagnóstico: o assertSuperAdmin passou (página master loaded) mas a
+    // tabela super_admins não tem registro ativo pra esse user_id. Logamos
+    // pra rastrear casos raros (sessão antiga, registro desativado, etc.).
+    error_log(sprintf(
+        '[quotas.php] super_admin não encontrado: ctxUid=%d sessUid=%d is_super_admin=%s',
+        $ctxUid,
+        (int)($_SESSION['user_id'] ?? 0),
+        ($_SESSION['is_super_admin'] ?? 'unset') ? '1' : '0'
+    ));
+    ApiResponse::forbidden('super_admin não encontrado/ativo (ctxUid=' . $ctxUid . ')');
+}
 
 // ──────────────────────────────────────────────────────────────────────
 // GET — status da cota + overrides ativos
