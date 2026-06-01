@@ -2525,48 +2525,44 @@ const ChatApp = (() => {
     });
   }
 
-  // Modal simples com a lista de membros (reaproveita estilos .gm-* do chat.php)
+  // Popula e abre o modal ESTÁTICO de membros (já existe em chat.php com os ids
+  // #groupMembersList / #groupMembersCount e classe .open). Bug 2026-05-31: a
+  // versão antiga tentava criar um modal dinâmico e escrevia em #gmList — como o
+  // modal estático já existia, o querySelector('#gmList') vinha null e dava
+  // TypeError → o clique em "clique pra ver" não fazia nada.
   function showGroupMembersModal(groupJid, members) {
-    let modal = document.getElementById('groupMembersModal');
-    if (!modal) {
-      modal = document.createElement('div');
-      modal.id = 'groupMembersModal';
-      modal.className = 'modal-overlay';
-      modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
-      modal.innerHTML = `
-        <div class="modal-box" style="max-width:480px;max-height:80vh;display:flex;flex-direction:column">
-          <div class="modal-header">
-            <h3>Membros do grupo</h3>
-            <button class="modal-close" onclick="document.getElementById('groupMembersModal').style.display='none'">×</button>
-          </div>
-          <div class="modal-body" id="gmList" style="overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:6px"></div>
-        </div>`;
-      document.body.appendChild(modal);
-    }
+    const list  = document.getElementById('groupMembersList');
+    const count = document.getElementById('groupMembersCount');
+    if (!list) { toast('Não foi possível abrir a lista de membros', 'error'); return; }
 
-    const list = modal.querySelector('#gmList');
-    if (!members.length) {
-      list.innerHTML = '<div class="gm-empty">Nenhum membro listado. Aguarde a próxima sincronização.</div>';
+    if (count) count.textContent = members && members.length ? `(${members.length})` : '';
+
+    if (!members || !members.length) {
+      list.innerHTML = '<div class="gm-empty" style="padding:16px;color:#7A8898;font-size:.85rem;text-align:center">Nenhum membro listado. Aguarde a próxima sincronização.</div>';
     } else {
       list.innerHTML = members.map(m => {
-        const nome  = esc(m.push_name || phoneFromJid(m.participant_jid) || m.participant_jid);
+        const nome  = esc(m.push_name || phoneFromJid(m.participant_jid) || m.participant_jid || '?');
         const phone = esc(m.phone || '');
-        let badge = '';
-        if (m.role === 'superadmin') badge = '<span class="gm-badge gm-superadmin">Criador</span>';
-        else if (m.role === 'admin') badge = '<span class="gm-badge gm-admin">Admin</span>';
+        const ini   = esc(((m.push_name || nome || '?').trim()[0] || '?').toUpperCase());
+        let role = '';
+        if (m.role === 'superadmin') role = '<span class="gm-role gm-superadmin">Criador</span>';
+        else if (m.role === 'admin') role = '<span class="gm-role gm-admin">Admin</span>';
         return `
-          <div class="gm-row" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:rgba(8,18,32,.5);border:1px solid rgba(160,180,210,.10)">
-            <div class="gm-avatar" style="width:34px;height:34px;border-radius:50%;background:rgba(37,99,235,.25);display:flex;align-items:center;justify-content:center;font-weight:700;color:#bfdbfe;flex-shrink:0">${esc((nome || '?')[0].toUpperCase())}</div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:.85rem;font-weight:600;color:#d6eaff">${nome}</div>
-              ${phone ? `<div style="font-size:.72rem;color:#7a96b4">${phone}</div>` : ''}
+          <div class="gm-row">
+            <div class="gm-avatar">${ini}</div>
+            <div class="gm-info">
+              <div class="gm-name">${nome}</div>
+              ${phone ? `<div class="gm-phone">${phone}</div>` : ''}
             </div>
-            ${badge}
+            ${role}
           </div>`;
       }).join('');
     }
-    modal.style.display = 'flex';
+    modal('groupMembersModal', true);
   }
+
+  // Fecha o modal de membros do grupo (chamado pelos botões do modal estático).
+  function closeGroupMembers() { modal('groupMembersModal', false); }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // P2 wire-up (2026-05-25): Reply, Reactions, Delete
