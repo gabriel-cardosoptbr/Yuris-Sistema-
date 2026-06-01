@@ -250,6 +250,45 @@ function column_display_name(array $col): string
       gap: 10px;
     }
 
+    /* ── Empty-pipeline banner ─────────────────────────────────────────
+       Mostrado quando o tenant ainda não tem nenhuma coluna no pipeline.
+       UX defensiva — antes o user clicava em "Novo Cliente" e o botão
+       silenciava (disabled) sem explicar o motivo. */
+    .empty-pipeline {
+      display: flex; align-items: center; gap: 18px;
+      padding: 18px 22px; margin: 6px 0 16px;
+      background: linear-gradient(135deg, rgba(245,158,11,.12), rgba(245,158,11,.05));
+      border: 1px solid rgba(245,158,11,.40);
+      border-radius: 12px;
+      color: #fcd34d;
+    }
+    .empty-pipeline[hidden] { display: none; }
+    .empty-pipeline-icon { flex-shrink: 0; color: #f59e0b; }
+    .empty-pipeline-body { flex: 1; min-width: 0; }
+    .empty-pipeline-body h3 {
+      margin: 0 0 6px; font-size: 1.02rem; font-weight: 700;
+      color: #fde68a; letter-spacing: .01em;
+    }
+    .empty-pipeline-body p {
+      margin: 0 0 10px; font-size: .9rem; line-height: 1.5;
+      color: #fde68a; opacity: .9;
+    }
+    .empty-pipeline-body p strong { color: #fff; font-weight: 700; }
+    .empty-pipeline-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .empty-pipeline-actions .btn.primary {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      border-color: rgba(245,158,11,.5);
+      color: #fff;
+    }
+    html[data-theme="light"] .empty-pipeline {
+      background: linear-gradient(135deg, #fffbeb, #fef3c7);
+      border-color: #fcd34d; color: #78350f;
+    }
+    html[data-theme="light"] .empty-pipeline-icon { color: #b45309; }
+    html[data-theme="light"] .empty-pipeline-body h3,
+    html[data-theme="light"] .empty-pipeline-body p { color: #78350f; }
+    html[data-theme="light"] .empty-pipeline-body p strong { color: #451a03; }
+
     .field-group {
       display: flex;
       flex-direction: column;
@@ -1140,6 +1179,27 @@ function column_display_name(array $col): string
 
           <div class="card-shell kanban-wrap">
             <div class="board-hint" id="boardHint"></div>
+            <!-- Banner visível quando NÃO há colunas no pipeline. Mostrado/escondido em
+                 refreshColumnHeaders() conforme columnsCache.length === 0. -->
+            <div class="empty-pipeline" id="emptyPipelineBanner" hidden>
+              <div class="empty-pipeline-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </div>
+              <div class="empty-pipeline-body">
+                <h3 id="emptyPipelineTitle">Nenhuma etapa cadastrada no pipeline</h3>
+                <p id="emptyPipelineMessage">
+                  Antes de cadastrar um lead, você precisa criar pelo menos uma <strong>etapa comercial</strong> (ex.: Leads em atendimento, Proposta enviada, Contrato fechado).
+                  Use o botão <strong>Alterar Colunas</strong> aqui em cima pra começar.
+                </p>
+                <div class="empty-pipeline-actions">
+                  <button type="button" class="btn primary" id="btnGoColumns">＋ Criar primeira etapa</button>
+                </div>
+              </div>
+            </div>
             <div class="board" id="board">
               <?php foreach ($columns as $col): ?>
                 <?php $displayName = column_display_name($col); ?>
@@ -2164,6 +2224,34 @@ function column_display_name(array $col): string
           }
         }
 
+        // ── Banner "Pipeline vazio" — visível só quando não há colunas ──
+        // Texto adapta pra filial vinculada (que não pode criar coluna sozinha).
+        const banner    = document.getElementById('emptyPipelineBanner');
+        const bannerMsg = document.getElementById('emptyPipelineMessage');
+        const bannerBtn = document.getElementById('btnGoColumns');
+        const boardHint = document.getElementById('boardHint');
+        if (banner) {
+          if (columnsCache.length === 0) {
+            banner.hidden = false;
+            if (boardHint) boardHint.style.display = 'none';   // o hint "Arraste cards" não faz sentido sem colunas
+            if (_pipelineInherited) {
+              if (bannerMsg) bannerMsg.innerHTML =
+                'Sua filial usa o pipeline definido pela <strong>matriz</strong>, mas a matriz ainda não criou nenhuma etapa comercial. ' +
+                'Solicite ao <strong>administrador da matriz</strong> que crie as etapas para que vocês possam cadastrar leads.';
+              if (bannerBtn) bannerBtn.style.display = 'none';   // filial não pode criar
+            } else {
+              if (bannerMsg) bannerMsg.innerHTML =
+                'Antes de cadastrar um lead, você precisa criar pelo menos uma <strong>etapa comercial</strong> ' +
+                '(ex.: Leads em atendimento, Proposta enviada, Contrato fechado). ' +
+                'Use o botão <strong>Alterar Colunas</strong> aqui em cima pra começar.';
+              if (bannerBtn) bannerBtn.style.display = '';
+            }
+          } else {
+            banner.hidden = true;
+            if (boardHint) boardHint.style.display = '';
+          }
+        }
+
         // Botão "Alterar Colunas":
         //  - Pipeline próprio  → "Alterar Colunas" com ícone de engrenagem (CTA)
         //  - Pipeline herdado  → "Colunas vinculadas à matriz" com ícone de link
@@ -2546,6 +2634,15 @@ function column_display_name(array $col): string
       byId('cancelColumns').addEventListener('click', () => closeModal('modalColumns'));
 
       // btnToggleFilters removido: filtros sempre visíveis na toolbar
+
+      // Atalho do banner "Pipeline vazio" — simula click no btnColumns.
+      const btnGoCols = document.getElementById('btnGoColumns');
+      if (btnGoCols) {
+        btnGoCols.addEventListener('click', () => {
+          const b = document.getElementById('btnColumns');
+          if (b) b.click();
+        });
+      }
 
       byId('btnColumns').addEventListener('click', async () => {
         // Pipeline herdado da matriz: filial não pode alterar — mostra info amigável.

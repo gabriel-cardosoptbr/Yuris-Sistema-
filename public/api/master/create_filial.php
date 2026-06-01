@@ -28,11 +28,13 @@ require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
 require_once __DIR__ . '/../../../app/Helpers/MasterAudit.php';
+require_once __DIR__ . '/../../../app/Services/AccountBootstrapSeeder.php';
 
 use App\Helpers\AccountContext;
 use App\Helpers\ApiResponse;
 use App\Helpers\MasterAudit;
 use App\Models\Database;
+use App\Services\AccountBootstrapSeeder;
 
 session_start();
 $ctx = AccountContext::fromSession();
@@ -168,6 +170,12 @@ try {
         $adminUserId = (int) $pdo->lastInsertId();
     }
 
+    // Bootstrap — filial não nasce crua tampouco:
+    //   - 0 pipeline_columns (filial herda da matriz — não recebe)
+    //   - 8 setores em Clientes (setores são per-conta no módulo Clientes)
+    //   - 10 origens de cadastro em Clientes
+    $seedCounts = AccountBootstrapSeeder::bootstrapNew($pdo, $filialId, 'filial');
+
     MasterAudit::log(
         'filial.create',
         'account',
@@ -178,6 +186,7 @@ try {
             'vinculo_id'  => $vinculoId,
             'admin_user_id' => $adminUserId,
             'status'      => $filStatus,
+            'bootstrap_seed' => $seedCounts,
         ]
     );
 

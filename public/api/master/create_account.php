@@ -51,11 +51,13 @@ require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
 require_once __DIR__ . '/../../../app/Helpers/MasterAudit.php';
+require_once __DIR__ . '/../../../app/Services/AccountBootstrapSeeder.php';
 
 use App\Helpers\AccountContext;
 use App\Helpers\ApiResponse;
 use App\Helpers\MasterAudit;
 use App\Models\Database;
+use App\Services\AccountBootstrapSeeder;
 
 session_start();
 $ctx = AccountContext::fromSession();
@@ -262,7 +264,14 @@ try {
     ]);
     $subId = (int) $pdo->lastInsertId();
 
-    // 4. Audit
+    // 4. Bootstrap — conta nova não nasce 100% crua. Semeia:
+    //   - 4 etapas de pipeline (Prospecção)  → matriz e advogado (filial herda)
+    //   - 8 setores em Clientes              → todas
+    //   - 10 origens de cadastro em Clientes → todas
+    // Admin pode renomear/reordenar/arquivar a qualquer momento pela UI.
+    $seedCounts = AccountBootstrapSeeder::bootstrapNew($pdo, $accountId, $tipo);
+
+    // 5. Audit
     MasterAudit::log(
         'account.create',
         'account',
@@ -278,6 +287,7 @@ try {
             'subscription_id' => $subId,
             'user_id'      => $userId,
             'oab'          => $isAdvogado ? "{$advOab}/{$advOabUf}" : null,
+            'bootstrap_seed' => $seedCounts,
         ]
     );
 
