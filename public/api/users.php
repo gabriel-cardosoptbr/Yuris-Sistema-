@@ -125,10 +125,15 @@ if ($method === 'POST') {
     if ($nome === '' || $email === '' || $senha === '') {
         http_response_code(400); echo json_encode(['error' => 'Missing fields']); exit;
     }
-    // simple uniqueness check
+    // LGPD + integridade: email único no sistema (DB tem UNIQUE em users.login,
+    // mas validar aqui pra dar mensagem amigável em vez de constraint violation crua).
     $stmt = $pdo->prepare('SELECT id FROM users WHERE login = :login AND deleted_at IS NULL LIMIT 1');
     $stmt->execute(['login' => $email]);
-    if ($stmt->fetch()) { http_response_code(400); echo json_encode(['error'=>'User exists']); exit; }
+    if ($stmt->fetch()) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Já existe um usuário com este email no sistema']);
+        exit;
+    }
     // Apenas owner/admin pode criar usuários
     if (!$ctx->isOwnerOrAdmin()) {
         http_response_code(403);
@@ -233,7 +238,19 @@ if ($method === 'PUT' || $method === 'PATCH') {
     try { $pdo->query('SELECT role FROM users LIMIT 0');        $hasRoleCol    = true; } catch (\Throwable $e) {}
 
     if ($nome   !== null) { $fields[] = 'nome = :nome';     $params['nome']  = $nome; }
-    if ($email  !== null) { $fields[] = 'login = :login';   $params['login'] = $email; }
+    if ($email  !== null) {
+        // LGPD + integridade: email único no sistema. Trocar pra um email
+        // que JÁ pertence a outro user (qualquer tenant) deve ser bloqueado
+        // ANTES do UPDATE — senão estoura o UNIQUE constraint cru.
+        $dup = $pdo->prepare('SELECT id FROM users WHERE login = :em AND id != :id AND deleted_at IS NULL LIMIT 1');
+        $dup->execute(['em' => $email, 'id' => $id]);
+        if ($dup->fetchColumn()) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Já existe outro usuário com este email no sistema']);
+            exit;
+        }
+        $fields[] = 'login = :login';   $params['login'] = $email;
+    }
     if ($perfil !== null) { $fields[] = 'perfil = :perfil'; $params['perfil'] = $perfil; }
     if ($hasRoleCol && isset($input['role'])) {
         $r = $input['role'];
