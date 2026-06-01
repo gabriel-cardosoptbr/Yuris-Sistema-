@@ -64,6 +64,21 @@ final class AccountBootstrapSeeder
         ['Outro',             'outro',           10],
     ];
 
+    // ── Defaults de Tarefas (Quadro padrão compartilhado + 4 colunas) ────
+    private const TASK_BOARD = [
+        'nome'      => 'Quadro do Escritório',
+        'descricao' => 'Quadro compartilhado padrão — renomeie ou crie outros via "Novo quadro".',
+        'tipo'      => 'compartilhado',
+        'cor'       => '#3b82f6',
+    ];
+    private const TASK_COLUMNS = [
+        // [nome, ordem, cor, is_inicial, is_concluido]
+        ['A fazer',       1, '#94a3b8', 1, 0],
+        ['Em andamento',  2, '#3b82f6', 0, 0],
+        ['Em revisão',    3, '#f59e0b', 0, 0],
+        ['Concluído',     4, '#22c55e', 0, 1],
+    ];
+
     /**
      * Bootstrap completo de uma conta nova.
      *
@@ -73,14 +88,18 @@ final class AccountBootstrapSeeder
      * @param PDO $pdo Conexão com transação aberta (recomendado)
      * @param int $accountId ID da conta recém-criada
      * @param string $tipo 'matriz' | 'advogado' | 'filial'
-     * @return array{pipeline_columns:int, clientes_setores:int, clientes_origens:int} Counts inseridos
+     * @param int|null $ownerUserId ID do admin recém-criado (necessário pra task_boards.owner_id).
+     *                              Se null, o seed de tarefas é pulado.
+     * @return array{pipeline_columns:int, clientes_setores:int, clientes_origens:int, task_board:int, task_columns:int}
      */
-    public static function bootstrapNew(PDO $pdo, int $accountId, string $tipo): array
+    public static function bootstrapNew(PDO $pdo, int $accountId, string $tipo, ?int $ownerUserId = null): array
     {
         $result = [
             'pipeline_columns' => 0,
             'clientes_setores' => 0,
             'clientes_origens' => 0,
+            'task_board'       => 0,
+            'task_columns'     => 0,
         ];
         if ($accountId <= 0) return $result;
 
@@ -92,6 +111,13 @@ final class AccountBootstrapSeeder
         // Setores e origens de Clientes são SEMPRE per-conta (sem herança), inclusive filial.
         $result['clientes_setores'] = self::seedClientesSetores($pdo, $accountId);
         $result['clientes_origens'] = self::seedClientesOrigens($pdo, $accountId);
+
+        // Tarefas: precisa de um owner. Filial sem admin → não cria board.
+        if ($ownerUserId !== null && $ownerUserId > 0) {
+            $taskSeed = self::seedTaskBoard($pdo, $accountId, $ownerUserId);
+            $result['task_board']   = $taskSeed['board'];
+            $result['task_columns'] = $taskSeed['columns'];
+        }
 
         return $result;
     }
@@ -154,6 +180,47 @@ final class AccountBootstrapSeeder
             $n++;
         }
         return $n;
+    }
+
+    /**
+     * Cria 1 task_board "Quadro do Escritório" (compartilhado) + 4 colunas
+     * (A fazer / Em andamento / Em revisão / Concluído).
+     *
+     * Idempotente: skip se a conta já tem qualquer board.
+     * Retorna ['board' => 0|1, 'columns' => 0|N].
+     */
+    public static function seedTaskBoard(PDO $pdo, int $accountId, int $ownerUserId): array
+    {
+        if (self::countOf($pdo, 'task_boards', $accountId) > 0) {
+            return ['board' => 0, 'columns' => 0];
+        }
+
+        $pdo->prepare(
+            'INSERT INTO task_boards (account_id, nome, descricao, tipo, owner_id, cor, ordem, ativo, created_at, updated_at)
+             VALUES (:aid, :nome, :desc, :tipo, :owner, :cor, 1, 1, NOW(), NOW())'
+        )->execute([
+            'aid'   => $accountId,
+            'nome'  => self::TASK_BOARD['nome'],
+            'desc'  => self::TASK_BOARD['descricao'],
+            'tipo'  => self::TASK_BOARD['tipo'],
+            'owner' => $ownerUserId,
+            'cor'   => self::TASK_BOARD['cor'],
+        ]);
+        $boardId = (int)$pdo->lastInsertId();
+
+        $colStmt = $pdo->prepare(
+            'INSERT INTO task_columns (board_id, nome, ordem, cor, is_coluna_inicial, is_coluna_concluido, created_at)
+             VALUES (:bid, :nome, :ordem, :cor, :ini, :fim, NOW())'
+        );
+        $colsInserted = 0;
+        foreach (self::TASK_COLUMNS as [$nome, $ordem, $cor, $ini, $fim]) {
+            $colStmt->execute([
+                'bid'  => $boardId, 'nome' => $nome, 'ordem' => $ordem,
+                'cor'  => $cor,     'ini'  => $ini,  'fim'   => $fim,
+            ]);
+            $colsInserted++;
+        }
+        return ['board' => 1, 'columns' => $colsInserted];
     }
 
     /** Helper: conta linhas dessa conta numa tabela (com guard pra tabela inexistente). */

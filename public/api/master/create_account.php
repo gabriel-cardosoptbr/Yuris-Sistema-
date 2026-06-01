@@ -316,8 +316,9 @@ try {
     //   - 4 etapas de pipeline (Prospecção)  → matriz e advogado (filial herda)
     //   - 8 setores em Clientes              → todas
     //   - 10 origens de cadastro em Clientes → todas
+    //   - 1 quadro Tarefas compartilhado + 4 colunas (admin = owner)
     // Admin pode renomear/reordenar/arquivar a qualquer momento pela UI.
-    $seedCounts = AccountBootstrapSeeder::bootstrapNew($pdo, $accountId, $tipo);
+    $seedCounts = AccountBootstrapSeeder::bootstrapNew($pdo, $accountId, $tipo, $userId);
 
     // 6. Audit
     MasterAudit::log(

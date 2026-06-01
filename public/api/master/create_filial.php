@@ -174,7 +174,10 @@ try {
     //   - 0 pipeline_columns (filial herda da matriz — não recebe)
     //   - 8 setores em Clientes (setores são per-conta no módulo Clientes)
     //   - 10 origens de cadastro em Clientes
-    $seedCounts = AccountBootstrapSeeder::bootstrapNew($pdo, $filialId, 'filial');
+    //   - 1 quadro Tarefas (compartilhado) — APENAS SE filial tiver admin próprio.
+    //     Sem admin, $adminUserId = null e o seed pula (board precisa de owner_id).
+    //     Filial sem admin compartilha tarefas via escopo da matriz mesmo.
+    $seedCounts = AccountBootstrapSeeder::bootstrapNew($pdo, $filialId, 'filial', $adminUserId);
 
     MasterAudit::log(
         'filial.create',
