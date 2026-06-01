@@ -2890,6 +2890,8 @@ const ChatApp = (() => {
     // P0+P1 (2026-05-25) — busca + arquivar + marcar nao lida
     toggleChatSearch, closeChatSearch, onChatSearchInput,
     markChatUnread, toggleArchive,
+    // Modal de membros do grupo — botoes do chat.php chamam ChatApp.closeGroupMembers
+    showGroupMembersModal, closeGroupMembers,
   };
 })();
 
