@@ -114,8 +114,16 @@ const filters = { responsavel_id: '', prioridade: '', prazo: '', busca: '' };
 
 /* ── Init ─────────────────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', async () => {
-  await loadUsers();
-  await loadBoards();
+  // Robustez de boot: cada fetch fica isolado em try/catch para que UMA falha
+  // de rede (5xx, resposta não-JSON, cookie de sessão velho) NÃO impeça que
+  // bindTopbar/bindDrawer/bindModals/bindCalendar rodem — caso contrário, todos
+  // os botões da tela ficam mortos silenciosamente. Toast mostra o erro real
+  // ao usuário em vez de uma tela vazia que parece estar "travada".
+  try { await loadUsers();  } catch (e) { console.warn('[Tarefas] loadUsers falhou:', e); }
+  try { await loadBoards(); } catch (e) {
+    console.error('[Tarefas] loadBoards falhou:', e);
+    showToast('Falha ao carregar quadros: ' + (e && e.message ? e.message : 'erro desconhecido'), { type: 'error', duration: 8000 });
+  }
   bindTopbar();
   bindDrawer();
   bindModals();
