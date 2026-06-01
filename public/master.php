@@ -997,6 +997,52 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
           </div>
           <div><label class="mst-form-label">Trial (dias)</label><input name="sub_trial_dias" class="mst-form-input" type="number" min="0" placeholder="usa do plano se vazio"></div>
         </div>
+
+        <!-- ── Monitoramento (add-on opcional) ──────────────────────────
+             Permite contratar monitoramento JÁ na criação da conta.
+             Mesma operação backend do "+ Nova assinatura de monitor".
+             Se a checkbox ficar desmarcada, nada é cobrado/registrado.
+        -->
+        <div class="mst-form-section" style="display:flex; align-items:center; gap:10px">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font:inherit; color:inherit">
+            <input type="checkbox" name="mon_enable" id="monEnable" onchange="document.getElementById('monFields').style.display=this.checked?'':'none'" style="width:16px;height:16px;cursor:pointer">
+            Monitoramento (add-on opcional)
+          </label>
+        </div>
+        <div id="monFields" style="display:none">
+          <div style="background:rgba(168,85,247,.08); border-left:3px solid #c084fc; padding:10px 12px; border-radius:6px; font-size:.82rem; color:#A8BDD4; margin-bottom:12px">
+            Registra contrato comercial de monitoramento. <strong>Não dispara cobrança automática</strong> — gateway ainda não plugado. Os campos de preço/ciclo são metadados que viram MRR.
+          </div>
+          <div class="mst-form-row">
+            <div>
+              <label class="mst-form-label">Quantidade de monitors</label>
+              <input name="mon_qtd" type="number" min="1" max="1000" class="mst-form-input" placeholder="ex: 10">
+            </div>
+            <div>
+              <label class="mst-form-label">Preço unitário (R$)</label>
+              <input name="mon_price" type="number" step="0.01" min="0" class="mst-form-input" placeholder="ex: 49.90">
+              <div class="mst-form-help">Opcional — vira KPI de MRR</div>
+            </div>
+            <div>
+              <label class="mst-form-label">Ciclo</label>
+              <select name="mon_cycle" class="mst-form-select">
+                <option value="monthly">Mensal</option>
+                <option value="quarterly">Trimestral</option>
+                <option value="yearly">Anual</option>
+              </select>
+            </div>
+          </div>
+          <div class="mst-form-row">
+            <div>
+              <label class="mst-form-label">Nº contrato / proposta</label>
+              <input name="mon_contract" type="text" maxlength="120" class="mst-form-input" placeholder="ex: CONT-2026-001">
+            </div>
+            <div style="grid-column: span 2">
+              <label class="mst-form-label">Observação interna</label>
+              <input name="mon_obs" type="text" maxlength="200" class="mst-form-input" placeholder="ex: Pacote anual fechado via PIX">
+            </div>
+          </div>
+        </div>
       </div>
       <div class="mst-modal-foot">
         <button type="button" class="btn-mst" onclick="closeModal('modalAccount')">Cancelar</button>
@@ -2373,6 +2419,24 @@ async function submitAccount(ev) {
   if (tipo === 'advogado') {
     body.admin.oab    = f.adm_oab.value.trim();
     body.admin.oab_uf = f.adm_oab_uf.value.trim().toUpperCase();
+  }
+  // Monitoramento (add-on opcional). Só envia se checkbox marcada E qtd > 0.
+  // Backend (create_account.php) faz o INSERT em account_quota_overrides
+  // dentro da mesma transação — falha aqui = rollback de tudo.
+  if (f.mon_enable && f.mon_enable.checked) {
+    const monQtd = parseInt(f.mon_qtd.value, 10);
+    if (monQtd > 0) {
+      body.monitor = {
+        qtd:          monQtd,
+        billing_cycle: f.mon_cycle.value || 'monthly',
+        contract_ref: f.mon_contract.value.trim() || null,
+        observacoes:  f.mon_obs.value.trim() || null,
+      };
+      const monPrice = parseFloat(f.mon_price.value);
+      if (!isNaN(monPrice) && monPrice > 0) {
+        body.monitor.unit_price_cents = Math.round(monPrice * 100);
+      }
+    }
   }
   const r = await fj(`${API}/create_account.php`, {
     method: 'POST',

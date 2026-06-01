@@ -264,14 +264,62 @@ try {
     ]);
     $subId = (int) $pdo->lastInsertId();
 
-    // 4. Bootstrap — conta nova não nasce 100% crua. Semeia:
+    // 4. Monitoramento (add-on opcional). Se vier no payload `monitor`,
+    //    insere em account_quota_overrides — mesma mecânica do /quotas.php.
+    //    Tudo na mesma transação: se algo abaixo falhar, rollback total.
+    $monOverrideId = null;
+    $mon = $input['monitor'] ?? null;
+    if (is_array($mon) && !empty($mon['qtd'])) {
+        $monQtd = (int)$mon['qtd'];
+        if ($monQtd > 0 && $monQtd <= 1000) {
+            $monCycle = $mon['billing_cycle'] ?? null;
+            // Normaliza: backend de quotas aceita só monthly/yearly/one_off.
+            // Convertemos 'quarterly' (oferecido na UI) pra um valor compatível +
+            // registramos no observacoes pra preservar a intenção comercial.
+            $observacoes = trim($mon['observacoes'] ?? '');
+            if ($monCycle === 'quarterly') {
+                $observacoes = ($observacoes ? $observacoes . ' · ' : '') . 'Ciclo: trimestral';
+                $monCycle = 'monthly';
+            }
+            if (!in_array($monCycle, ['monthly', 'yearly', 'one_off'], true)) {
+                $monCycle = 'monthly';
+            }
+            $monPrice    = isset($mon['unit_price_cents']) && $mon['unit_price_cents'] !== ''
+                ? (int)$mon['unit_price_cents'] : null;
+            $monContract = !empty($mon['contract_ref']) ? trim($mon['contract_ref']) : null;
+            $monObs      = $observacoes !== '' ? $observacoes : null;
+
+            $stmtM = $pdo->prepare(
+                "INSERT INTO account_quota_overrides
+                    (account_id, feature_key, limit_value, source,
+                     set_by_super_admin_id,
+                     unit_price_cents, billing_cycle, contract_ref, observacoes)
+                 VALUES
+                    (:aid, 'monitors.limit', :lv, 'purchase',
+                     :sa,
+                     :upc, :bc, :ref, :obs)"
+            );
+            $stmtM->execute([
+                'aid' => $accountId,
+                'lv'  => $monQtd,
+                'sa'  => $ctx->getUserId(),
+                'upc' => $monPrice,
+                'bc'  => $monCycle,
+                'ref' => $monContract,
+                'obs' => $monObs,
+            ]);
+            $monOverrideId = (int)$pdo->lastInsertId();
+        }
+    }
+
+    // 5. Bootstrap — conta nova não nasce 100% crua. Semeia:
     //   - 4 etapas de pipeline (Prospecção)  → matriz e advogado (filial herda)
     //   - 8 setores em Clientes              → todas
     //   - 10 origens de cadastro em Clientes → todas
     // Admin pode renomear/reordenar/arquivar a qualquer momento pela UI.
     $seedCounts = AccountBootstrapSeeder::bootstrapNew($pdo, $accountId, $tipo);
 
-    // 5. Audit
+    // 6. Audit
     MasterAudit::log(
         'account.create',
         'account',
@@ -288,6 +336,7 @@ try {
             'user_id'      => $userId,
             'oab'          => $isAdvogado ? "{$advOab}/{$advOabUf}" : null,
             'bootstrap_seed' => $seedCounts,
+            'monitor_override_id' => $monOverrideId,
         ]
     );
 
