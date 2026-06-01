@@ -547,7 +547,7 @@ $activePage = 'funil';
   </style>
 </head>
 <body>
-  <main class="w-full px-6 pb-6">
+  <main class="w-full px-6 py-6">
     <div class="page-layout">
 
       <!-- ── Sidebar ── -->

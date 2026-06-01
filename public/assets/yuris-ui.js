@@ -326,6 +326,98 @@
   root.Yuris.toast = (message, type = 'info', opts = {}) =>
     root.Yuris.notify(message, Object.assign({ type }, opts));
 
+  // ── Tradução de ações de histórico/auditoria ───────────────────────────
+  // Todas as tabelas *_history e audit_log gravam acao em inglês/snake_case
+  // (ex.: 'created', 'updated', 'moved', 'archived'). Esta função traduz pra PT-BR
+  // pra exibir em UI. Aceita também variantes com namespace (ex.: 'card.moved').
+  // Use em qualquer linha de histórico: `Yuris.translateAuditAcao(item.acao)`.
+  //
+  // Caso a acao venha desconhecida (módulo novo sem entrada aqui), retorna a
+  // string original com `_` viradas em espaço e capitalizada — fallback razoável
+  // que não quebra a UI.
+  const AUDIT_ACAO_MAP = {
+    // CRUD genérico
+    'created':              'Criado',
+    'updated':              'Atualizado',
+    'deleted':              'Excluído',
+    'archived':             'Arquivado',
+    'restored':             'Restaurado',
+    'moved':                'Movido',
+    'reorder':              'Reordenado',
+    'reordered':            'Reordenado',
+    'duplicated':           'Duplicado',
+    'merged':               'Mesclado',
+    // Checklist
+    'checklist_add':        'Item adicionado ao checklist',
+    'checklist_update':     'Item do checklist atualizado',
+    'checklist_toggle':     'Item do checklist marcado/desmarcado',
+    'checklist_delete':     'Item do checklist removido',
+    'checklist_reorder':    'Checklist reordenado',
+    // Status / fluxo
+    'status_changed':       'Status alterado',
+    'stage_changed':        'Etapa alterada',
+    'responsavel_changed':  'Responsável alterado',
+    'assigned':             'Atribuído',
+    'unassigned':           'Desatribuído',
+    'closed':               'Fechado',
+    'reopened':             'Reaberto',
+    'completed':            'Concluído',
+    'cancelled':            'Cancelado',
+    // Vínculos
+    'linked':               'Vinculado',
+    'unlinked':             'Desvinculado',
+    'shared':               'Compartilhado',
+    'unshared':             'Compartilhamento removido',
+    // Comentários / docs
+    'comment_added':        'Comentário adicionado',
+    'comment_deleted':      'Comentário removido',
+    'document_added':       'Documento adicionado',
+    'document_deleted':     'Documento removido',
+    'attachment_added':     'Anexo adicionado',
+    'attachment_deleted':   'Anexo removido',
+    // Tempo / prazo
+    'deadline_set':         'Prazo definido',
+    'deadline_changed':     'Prazo alterado',
+    'deadline_met':         'Prazo cumprido',
+    'deadline_missed':      'Prazo perdido',
+    // Login / sessão
+    'login':                'Login',
+    'logout':               'Logout',
+    'login_failed':         'Falha no login',
+    'password_changed':     'Senha alterada',
+    // LGPD
+    'consent_given':        'Consentimento dado',
+    'consent_revoked':      'Consentimento revogado',
+    'anonymized':           'Anonimizado',
+    'exported':             'Exportado',
+  };
+
+  /**
+   * Traduz uma string de "acao" do audit log para PT-BR.
+   * Aceita strings simples ("moved"), namespaced ("card.moved") e snake_case ("checklist_add").
+   * Fallback: converte snake_case → "Snake Case" capitalizado.
+   */
+  root.Yuris.translateAuditAcao = function (acao) {
+    if (acao == null || acao === '') return '';
+    const raw = String(acao).trim();
+    if (raw === '') return '';
+
+    // 1) Namespaced ("card.moved" → tenta "moved")
+    const lastDot = raw.lastIndexOf('.');
+    const bareKey = lastDot >= 0 ? raw.slice(lastDot + 1) : raw;
+    const lowKey  = bareKey.toLowerCase();
+
+    if (AUDIT_ACAO_MAP[lowKey]) return AUDIT_ACAO_MAP[lowKey];
+
+    // 2) Match exato com a string completa (caso o map tenha 'card.created' etc)
+    const fullLow = raw.toLowerCase();
+    if (AUDIT_ACAO_MAP[fullLow]) return AUDIT_ACAO_MAP[fullLow];
+
+    // 3) Fallback: snake_case → "Title Case Português-aproximado"
+    const cleaned = bareKey.replace(/[_-]+/g, ' ').trim();
+    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1).toLowerCase();
+  };
+
   // ── Polyfill: window.alert vira Yuris.notify (não-bloqueante) ──────────
   // Mantém assinatura síncrona-aparente (não retorna Promise pra não quebrar
   // chamadas legadas tipo `alert('oi'); doSomething();` — o doSomething continua

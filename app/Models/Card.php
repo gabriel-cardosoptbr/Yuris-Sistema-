@@ -110,7 +110,22 @@ class Card
         $pdo = Database::getConnection();
         // titulo: usa o que veio; senão usa cliente_nome (preserva título visível em outros lugares)
         $titulo = trim($data['titulo'] ?? $data['cliente_nome'] ?? '');
-        $stmt = $pdo->prepare('INSERT INTO cards (account_id, titulo, cliente_nome, empresa_nome, telefone_whatsapp, email, responsavel_user_id, coluna_id, ordem_na_coluna, valor_estimado, valor_proposta, valor_fechado_final, data_prevista_fechamento, data_fechamento, descricao, status, created_at, updated_at) VALUES (:account_id, :titulo, :cliente_nome, :empresa_nome, :telefone_whatsapp, :email, :responsavel_user_id, :coluna_id, :ordem_na_coluna, :valor_estimado, :valor_proposta, :valor_fechado_final, :data_prevista_fechamento, :data_fechamento, :descricao, :status, NOW(), NOW())');
+        $stmt = $pdo->prepare('INSERT INTO cards
+              (account_id, titulo, cliente_nome, empresa_nome, telefone_whatsapp, email,
+               cpf_cnpj, rg, nome_mae,
+               cep, logradouro, numero, complemento, bairro, cidade, uf,
+               responsavel_user_id, coluna_id, ordem_na_coluna,
+               valor_estimado, valor_proposta, valor_fechado_final,
+               data_prevista_fechamento, data_fechamento, descricao, status,
+               created_at, updated_at)
+            VALUES
+              (:account_id, :titulo, :cliente_nome, :empresa_nome, :telefone_whatsapp, :email,
+               :cpf_cnpj, :rg, :nome_mae,
+               :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :uf,
+               :responsavel_user_id, :coluna_id, :ordem_na_coluna,
+               :valor_estimado, :valor_proposta, :valor_fechado_final,
+               :data_prevista_fechamento, :data_fechamento, :descricao, :status,
+               NOW(), NOW())');
         $stmt->execute([
             'account_id'   => $data['account_id'],
             'titulo'       => $titulo ?: null,
@@ -118,6 +133,18 @@ class Card
             'empresa_nome' => $data['empresa_nome'] ?? null,
             'telefone_whatsapp' => $data['telefone_whatsapp'] ?? null,
             'email' => $data['email'] ?? null,
+            // Dados pessoais
+            'cpf_cnpj'     => self::_cleanDigitsOrNull($data['cpf_cnpj'] ?? null),
+            'rg'           => self::_trimOrNull($data['rg'] ?? null),
+            'nome_mae'     => self::_trimOrNull($data['nome_mae'] ?? null),
+            // Endereço estruturado
+            'cep'          => self::_cleanDigitsOrNull($data['cep'] ?? null),
+            'logradouro'   => self::_trimOrNull($data['logradouro'] ?? null),
+            'numero'       => self::_trimOrNull($data['numero'] ?? null),
+            'complemento'  => self::_trimOrNull($data['complemento'] ?? null),
+            'bairro'       => self::_trimOrNull($data['bairro'] ?? null),
+            'cidade'       => self::_trimOrNull($data['cidade'] ?? null),
+            'uf'           => self::_normalizeUf($data['uf'] ?? null),
             'responsavel_user_id' => $data['responsavel_user_id'] ?? null,
             'coluna_id' => $data['coluna_id'] ?? null,
             'ordem_na_coluna' => $data['ordem_na_coluna'] ?? 0,
@@ -153,13 +180,21 @@ class Card
         $pdo = Database::getConnection();
         $fields = [];
         $params = ['id' => $id];
-        $allowed  = ['titulo','cliente_nome','empresa_nome','telefone_whatsapp','email','responsavel_user_id','coluna_id','ordem_na_coluna','valor_estimado','valor_proposta','valor_fechado_final','data_prevista_fechamento','data_fechamento','descricao','status'];
-        $dateCols = ['data_prevista_fechamento','data_fechamento'];
+        $allowed  = ['titulo','cliente_nome','empresa_nome','telefone_whatsapp','email',
+                     'cpf_cnpj','rg','nome_mae',
+                     'cep','logradouro','numero','complemento','bairro','cidade','uf',
+                     'responsavel_user_id','coluna_id','ordem_na_coluna',
+                     'valor_estimado','valor_proposta','valor_fechado_final',
+                     'data_prevista_fechamento','data_fechamento','descricao','status'];
+        $dateCols   = ['data_prevista_fechamento','data_fechamento'];
+        $digitsOnly = ['cpf_cnpj','cep'];
         foreach ($allowed as $k) {
             if (array_key_exists($k, $data)) {
                 $fields[] = "$k = :$k";
-                // Normaliza datas: "" e "0000-00-00" viram NULL
-                $params[$k] = in_array($k, $dateCols, true) ? self::_normalizeDate($data[$k]) : $data[$k];
+                if      (in_array($k, $dateCols,   true)) $params[$k] = self::_normalizeDate($data[$k]);
+                elseif  (in_array($k, $digitsOnly, true)) $params[$k] = self::_cleanDigitsOrNull($data[$k]);
+                elseif  ($k === 'uf')                     $params[$k] = self::_normalizeUf($data[$k]);
+                else                                       $params[$k] = $data[$k];
             }
         }
         if (empty($fields)) return false;
@@ -328,6 +363,32 @@ class Card
         $v = trim($v);
         if ($v === '' || $v === '0000-00-00' || $v === '0000-00-00 00:00:00') return null;
         return $v;
+    }
+
+    /** trim + null se vazio. Usado em campos cadastrais (RG, nome_mae, logradouro, etc.). */
+    private static function _trimOrNull($v): ?string
+    {
+        if ($v === null) return null;
+        $s = trim((string)$v);
+        return $s === '' ? null : $s;
+    }
+
+    /** Mantém só dígitos. NULL se ficou vazio. Usado em cpf_cnpj e cep. */
+    private static function _cleanDigitsOrNull($v): ?string
+    {
+        if ($v === null) return null;
+        $d = preg_replace('/\D/', '', (string)$v);
+        return $d === '' ? null : $d;
+    }
+
+    /** UF: upper-case + allowlist ISO 3166-2 BR. NULL fora da lista. */
+    private static function _normalizeUf($v): ?string
+    {
+        if ($v === null) return null;
+        $uf = strtoupper(trim((string)$v));
+        if ($uf === '') return null;
+        static $allowed = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
+        return in_array($uf, $allowed, true) ? $uf : null;
     }
 
     // ───────── helpers de multi-tenant ──────────────────────────────

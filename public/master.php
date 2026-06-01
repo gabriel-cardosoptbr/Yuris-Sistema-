@@ -3251,7 +3251,7 @@ async function loadAudit() {
     <tr>
       <td>${fmtDateTime(e.created_at)}</td>
       <td>${esc(e.user_nome||'—')} <small style="color:#9ab0c9">${esc(e.sa_nivel||'')}</small></td>
-      <td><code style="font-size:.78rem">${esc(e.acao)}</code></td>
+      <td><code style="font-size:.78rem">${esc((window.Yuris && Yuris.translateAuditAcao) ? Yuris.translateAuditAcao(e.acao) : (e.acao || ''))}</code></td> <!-- i18n acao via Yuris.translateAuditAcao -->
       <td>${e.target_type?`${esc(e.target_type)} #${e.target_id||'—'}`:'—'}</td>
       <td>${esc(e.descricao||'—')}</td>
       <td><small>${esc(e.ip||'—')}</small></td>
@@ -4379,7 +4379,7 @@ function _renderLgpdHistorico() {
   return `
     <div style="background:rgba(8,12,24,.4);border:1px solid rgba(160,180,210,.10);border-radius:6px;padding:6px 14px;max-height:380px;overflow-y:auto">
       ${ev.map(e => `<div style="padding:8px 0;border-bottom:1px solid rgba(160,180,210,.10)">
-        <div style="font-size:.85rem;color:#fff;font-weight:600">${escL(e.evento)}${e.tipo_acao ? ` <span style="font-size:.7rem;color:#7eb8f7">[${escL(e.tipo_acao)}]</span>` : ''}</div>
+        <div style="font-size:.85rem;color:#fff;font-weight:600">${escL((window.Yuris && Yuris.translateAuditAcao) ? Yuris.translateAuditAcao(e.evento) : (e.evento || ''))}${e.tipo_acao ? ` <span style="font-size:.7rem;color:#7eb8f7">[${escL((window.Yuris && Yuris.translateAuditAcao) ? Yuris.translateAuditAcao(e.tipo_acao) : (e.tipo_acao || ''))}]</span>` : ''}</div> <!-- i18n acao via Yuris.translateAuditAcao -->
         ${(e.status_anterior && e.status_novo) ? `<div style="font-size:.78rem;color:#a855f7;margin-top:2px">${escL(e.status_anterior)} → ${escL(e.status_novo)}</div>` : ''}
         ${e.observacao ? `<div style="font-size:.8rem;color:#cbd5e1;margin-top:2px">${escL(e.observacao)}</div>` : ''}
         <div style="font-size:.72rem;color:#9ab0c9;margin-top:2px">
@@ -5211,7 +5211,7 @@ async function openOperatorDrawer(id) {
 
   const histHtml = (history || []).map(h => `
     <div style="padding:8px 0;border-bottom:1px solid rgba(160,180,210,.10)">
-      <div style="font-size:.85rem;color:#fff;font-weight:600">${escL(h.acao)}</div>
+      <div style="font-size:.85rem;color:#fff;font-weight:600">${escL((window.Yuris && Yuris.translateAuditAcao) ? Yuris.translateAuditAcao(h.acao) : (h.acao || ''))}</div> <!-- i18n acao via Yuris.translateAuditAcao -->
       ${h.descricao ? `<div style="font-size:.8rem;color:#cbd5e1;margin-top:2px">${escL(h.descricao)}</div>` : ''}
       <div style="font-size:.72rem;color:#9ab0c9;margin-top:2px">
         ${escL(fmtDateTime(h.created_at))}${h.user_nome ? ' · ' + escL(h.user_nome) : ' · sistema'}

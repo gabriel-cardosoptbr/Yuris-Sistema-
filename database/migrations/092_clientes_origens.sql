@@ -1,0 +1,18 @@
+-- ═══════════════════════════════════════════════════════════
+-- 092_clientes_origens.sql
+-- Origens do cadastro de Cliente viram lista EDITÁVEL por tenant
+-- (espelha o padrão de clientes_setores).
+--
+-- 1) Cria tabela clientes_origens (id, account_id, nome, slug, ordem, ativo).
+-- 2) Altera clientes.origem de ENUM → VARCHAR(80) preservando valores.
+--    Os slugs do ENUM antigo (cadastro_manual, cliente_antigo, cliente_ativo,
+--    indicacao, outro) viram strings literais; o frontend mostra o nome do
+--    setor cadastrado na tabela nova (lookup por slug).
+-- 3) Seed (no run_092.php): popula 10 origens padrão por matriz/advogado.
+--
+-- Idempotência: garantida pelo runner PHP via information_schema.
+-- ═══════════════════════════════════════════════════════════
+
+-- Referência (runner cria via PDO):
+-- CREATE TABLE clientes_origens (...);
+-- ALTER TABLE clientes MODIFY COLUMN origem VARCHAR(80) NULL ...;

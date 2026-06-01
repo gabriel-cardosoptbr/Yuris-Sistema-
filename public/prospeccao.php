@@ -42,16 +42,23 @@ try {
         'nome' => $_SESSION['account_nome'] ?? '',
     ];
     if ($ctx_p->isMatriz()) {
-        $pdo_o = Database::getConnection();
-        $stmt_o = $pdo_o->prepare(
-            "SELECT id, nome, tipo
-             FROM accounts
-             WHERE deleted_at IS NULL AND status = 'active'
-               AND (id = :self OR matriz_id = :self)
-             ORDER BY CASE WHEN tipo = 'matriz' THEN 0 ELSE 1 END, nome ASC"
-        );
-        $stmt_o->execute(['self' => $ctx_p->getAccountId()]);
-        $origin_accounts = $stmt_o->fetchAll(PDO::FETCH_ASSOC);
+        // FIX: usa getAccessibleAccountIds (que já lê account_vinculos canonicamente).
+        // Query antiga com matriz_id falhava porque vínculo real é via account_vinculos.
+        $accessibleIds_p = $ctx_p->getAccessibleAccountIds('prospeccao');
+        if (count($accessibleIds_p) > 1) {
+            $pdo_o = Database::getConnection();
+            $ph = implode(',', array_fill(0, count($accessibleIds_p), '?'));
+            $stmt_o = $pdo_o->prepare(
+                "SELECT id, nome, tipo
+                   FROM accounts
+                  WHERE id IN ($ph)
+                    AND deleted_at IS NULL
+                    AND status IN ('active','trial','overdue')
+               ORDER BY CASE WHEN tipo = 'matriz' THEN 0 ELSE 1 END, nome ASC"
+            );
+            $stmt_o->execute(array_map('intval', $accessibleIds_p));
+            $origin_accounts = $stmt_o->fetchAll(PDO::FETCH_ASSOC);
+        }
     }
 } catch (\Throwable $e) { /* fallback vazio */ }
 
@@ -162,16 +169,19 @@ function column_display_name(array $col): string
     .toolbar-grid {
       margin-top: 0;
       display: grid;
-      grid-template-columns: 1.3fr 2.5fr;
+      /* Botões à esquerda ocupam só o que precisam; filtros à direita pegam o resto. */
+      grid-template-columns: auto 1fr;
       gap: 12px;
-      align-items: start;
+      align-items: end;
     }
 
     .action-buttons {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      display: flex;
+      flex-wrap: wrap;
       gap: 8px;
+      align-self: end;
     }
+    .action-buttons .btn { white-space: nowrap; }
 
     .btn {
       border-radius: 10px;
@@ -234,7 +244,9 @@ function column_display_name(array $col): string
 
     .filters-grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      /* auto-fit: tenta caber todos os filtros numa linha; quebra natural quando
+         o viewport não comporta. Min 150px evita campos comprimidos demais. */
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       gap: 10px;
     }
 
@@ -1014,12 +1026,9 @@ function column_display_name(array $col): string
 
     @media (max-width: 1200px) {
       .toolbar-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr;   /* botões em cima, filtros embaixo */
       }
-
-      .filters-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
+      /* filters-grid auto-fit já se reorganiza sozinho — sem override aqui */
     }
 
     @media (max-width: 980px) {
@@ -1031,24 +1040,18 @@ function column_display_name(array $col): string
       .kpi-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
-
-      .action-buttons {
-        grid-template-columns: 1fr 1fr;
-      }
+      /* action-buttons já é flex — não precisa override */
     }
 
     @media (max-width: 680px) {
       .filters-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr;   /* mobile: 1 filtro por linha */
       }
 
       .kpi-grid {
         grid-template-columns: 1fr;
       }
-
-      .action-buttons {
-        grid-template-columns: 1fr;
-      }
+      /* action-buttons flex já quebra naturalmente */
 
       .modal-footer {
         justify-content: stretch;
@@ -1083,9 +1086,9 @@ function column_display_name(array $col): string
             <div class="toolbar-grid">
               <div class="action-buttons">
                 <button id="btnNewCard" class="btn primary" type="button">＋ Novo Cliente</button>
-                <button id="btnRefresh" class="btn soft" type="button">↻ Atualizar</button>
                 <button id="btnColumns" class="btn soft" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06A2 2 0 1 1 2.27 17.8l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09c.7 0 1.27-.43 1.51-1a1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 6.3 2.27l.06.06c.5.5 1.2.75 1.82.33A1.65 1.65 0 0 0 9.69 1.5 1.65 1.65 0 0 0 9.7 1H12a2 2 0 1 1 0 4h-.09c-.7 0-1.27.43-1.51 1a1.65 1.65 0 0 0 .33 1.82l.06.06A2 2 0 1 1 17.73 6.2l-.06.06c-.5.5-.75 1.2-.33 1.82.32.56.32 1.28.32 1.82V12a2 2 0 1 1 4 0v.09c0 .7.43 1.27 1 1.51z"/></svg> Alterar Colunas</button>
-                <button id="btnToggleFilters" class="btn ghost" type="button">⌕ Filtros</button>
+                <!-- Removidos: btnRefresh (auto-reload já acontece em create/edit/move) e btnToggleFilters (filtros sempre visíveis abaixo) -->
+
               </div>
 
               <div id="filtersPanel" class="filters-grid">
@@ -1186,6 +1189,69 @@ function column_display_name(array $col): string
                   <?= UserOptions::renderGrouped($users, $_SESSION['user_id'] ?? null, '— Selecionar —') ?>
                 </select>
               </label>
+              <label class="form-group">
+                <span class="form-label">E-mail</span>
+                <input name="email" type="email" class="form-input" placeholder="contato@cliente.com">
+              </label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Dados pessoais</div>
+            <div class="form-grid">
+              <label class="form-group">
+                <span class="form-label">CPF / CNPJ</span>
+                <input name="cpf_cnpj" class="form-input" placeholder="000.000.000-00" maxlength="20">
+              </label>
+              <label class="form-group">
+                <span class="form-label">RG</span>
+                <input name="rg" class="form-input" placeholder="00.000.000-0" maxlength="30">
+              </label>
+              <label class="form-group" style="grid-column: 1 / -1;">
+                <span class="form-label">Nome da mãe</span>
+                <input name="nome_mae" class="form-input" maxlength="190" autocomplete="off">
+              </label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Endereço</div>
+            <div class="form-grid three">
+              <label class="form-group">
+                <span class="form-label">CEP</span>
+                <input name="cep" class="form-input" placeholder="00000-000" maxlength="10"
+                  data-cep-form="create" onblur="window.ProspViaCep && window.ProspViaCep(this, 'create')">
+                <small class="cep-status" style="display:block; font-size:.7rem; color:#94a3b8; margin-top:3px; min-height:1em;"></small>
+              </label>
+              <label class="form-group">
+                <span class="form-label">UF</span>
+                <select name="uf" class="form-select">
+                  <option value="">—</option>
+                  <?php foreach (['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'] as $uf): ?>
+                    <option value="<?= $uf ?>"><?= $uf ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </label>
+              <label class="form-group">
+                <span class="form-label">Cidade</span>
+                <input name="cidade" class="form-input" maxlength="100">
+              </label>
+              <label class="form-group" style="grid-column: 1 / -1;">
+                <span class="form-label">Logradouro (rua/av./travessa)</span>
+                <input name="logradouro" class="form-input" maxlength="190">
+              </label>
+              <label class="form-group">
+                <span class="form-label">Número</span>
+                <input name="numero" class="form-input" placeholder="100 ou S/N" maxlength="20">
+              </label>
+              <label class="form-group">
+                <span class="form-label">Complemento</span>
+                <input name="complemento" class="form-input" placeholder="Apto 42, Bloco B…" maxlength="100">
+              </label>
+              <label class="form-group">
+                <span class="form-label">Bairro</span>
+                <input name="bairro" class="form-input" maxlength="100">
+              </label>
             </div>
           </div>
 
@@ -1264,6 +1330,69 @@ function column_display_name(array $col): string
                 <select name="responsavel_user_id" class="form-select">
                   <?= UserOptions::renderGrouped($users, null, '— Selecionar —') ?>
                 </select>
+              </label>
+              <label class="form-group">
+                <span class="form-label">E-mail</span>
+                <input name="email" type="email" class="form-input" placeholder="contato@cliente.com">
+              </label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Bloco 1B — Dados pessoais</div>
+            <div class="form-grid">
+              <label class="form-group">
+                <span class="form-label">CPF / CNPJ</span>
+                <input name="cpf_cnpj" class="form-input" placeholder="000.000.000-00" maxlength="20">
+              </label>
+              <label class="form-group">
+                <span class="form-label">RG</span>
+                <input name="rg" class="form-input" placeholder="00.000.000-0" maxlength="30">
+              </label>
+              <label class="form-group" style="grid-column: 1 / -1;">
+                <span class="form-label">Nome da mãe</span>
+                <input name="nome_mae" class="form-input" maxlength="190" autocomplete="off">
+              </label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Bloco 1C — Endereço</div>
+            <div class="form-grid three">
+              <label class="form-group">
+                <span class="form-label">CEP</span>
+                <input name="cep" class="form-input" placeholder="00000-000" maxlength="10"
+                  data-cep-form="edit" onblur="window.ProspViaCep && window.ProspViaCep(this, 'edit')">
+                <small class="cep-status" style="display:block; font-size:.7rem; color:#94a3b8; margin-top:3px; min-height:1em;"></small>
+              </label>
+              <label class="form-group">
+                <span class="form-label">UF</span>
+                <select name="uf" class="form-select">
+                  <option value="">—</option>
+                  <?php foreach (['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'] as $uf): ?>
+                    <option value="<?= $uf ?>"><?= $uf ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </label>
+              <label class="form-group">
+                <span class="form-label">Cidade</span>
+                <input name="cidade" class="form-input" maxlength="100">
+              </label>
+              <label class="form-group" style="grid-column: 1 / -1;">
+                <span class="form-label">Logradouro</span>
+                <input name="logradouro" class="form-input" maxlength="190">
+              </label>
+              <label class="form-group">
+                <span class="form-label">Número</span>
+                <input name="numero" class="form-input" placeholder="100 ou S/N" maxlength="20">
+              </label>
+              <label class="form-group">
+                <span class="form-label">Complemento</span>
+                <input name="complemento" class="form-input" placeholder="Apto 42…" maxlength="100">
+              </label>
+              <label class="form-group">
+                <span class="form-label">Bairro</span>
+                <input name="bairro" class="form-input" maxlength="100">
               </label>
             </div>
           </div>
@@ -1399,6 +1528,44 @@ function column_display_name(array $col): string
   </div>
 
   <script>
+    // ── ViaCEP autofill ────────────────────────────────────────────
+    // Usado pelos modais create/edit no campo CEP (onblur).
+    // Preenche logradouro/bairro/cidade/UF apenas se vazios (não sobrescreve manual).
+    let _prospLastCep = null;
+    window.ProspViaCep = async function (input, formKind) {
+        const cep = String(input.value || '').replace(/\D/g, '');
+        const status = input.parentElement.querySelector('.cep-status');
+        if (cep.length !== 8) {
+            if (status) status.textContent = cep.length === 0 ? '' : 'CEP precisa de 8 dígitos';
+            return;
+        }
+        if (cep === _prospLastCep) return;
+        _prospLastCep = cep;
+        if (status) { status.textContent = 'Buscando…'; status.style.color = '#94a3b8'; }
+        try {
+            const formId = formKind === 'edit' ? 'editForm' : 'createForm';
+            const form = document.getElementById(formId);
+            if (!form) return;
+            const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const j = await res.json();
+            if (j.erro) {
+                if (status) { status.textContent = 'CEP não encontrado'; status.style.color = '#f59e0b'; }
+                return;
+            }
+            const setIfEmpty = (name, val) => { const el = form.elements[name]; if (el && !el.value && val) el.value = val; };
+            setIfEmpty('logradouro', j.logradouro);
+            setIfEmpty('bairro',     j.bairro);
+            setIfEmpty('cidade',     j.localidade);
+            const ufEl = form.elements['uf'];
+            if (ufEl && !ufEl.value && j.uf) ufEl.value = j.uf;
+            if (status) { status.textContent = `${j.localidade}/${j.uf}`; status.style.color = '#22c55e'; }
+        } catch (e) {
+            console.warn('[ProspViaCep]', e);
+            if (status) { status.textContent = 'Falha ao consultar CEP'; status.style.color = '#f59e0b'; }
+        }
+    };
+
     const apiCards = '/api/cards.php';
     const csrf = '<?=htmlspecialchars($csrf)?>';
     const usersMap = <?=json_encode($usersMap, JSON_UNESCAPED_UNICODE)?>;
@@ -2110,16 +2277,11 @@ function column_display_name(array $col): string
     }
 
     function historyActionLabel(history) {
-      const map = {
-        moved: 'Moveu etapa no funil',
-        reorder: 'Reorganizou ordem dos cards',
-        checklist_add: 'Adicionou item de checklist',
-        checklist_update: 'Atualizou item de checklist',
-        checklist_toggle: 'Alterou conclusão do checklist',
-        checklist_delete: 'Removeu item de checklist',
-        checklist_reorder: 'Reordenou checklist operacional'
-      };
-      return map[history.acao] || (history.acao ? String(history.acao) : 'Atualização comercial');
+      // i18n acao via Yuris.translateAuditAcao — delega pro helper canônico (yuris-ui.js)
+      const acao = history && history.acao;
+      if (!acao) return 'Atualização comercial';
+      if (window.Yuris && Yuris.translateAuditAcao) return Yuris.translateAuditAcao(acao);
+      return String(acao);
     }
 
     async function loadCardHistory(cardId) {
@@ -2328,6 +2490,18 @@ function column_display_name(array $col): string
       form.data_fechamento.value = card.data_fechamento || '';
       form.responsavel_user_id.value = card.responsavel_user_id || '';
       form.telefone_whatsapp.value = card.telefone_whatsapp || '';
+      // Dados pessoais + endereço (migration 091)
+      if (form.email)        form.email.value        = card.email || '';
+      if (form.cpf_cnpj)     form.cpf_cnpj.value     = card.cpf_cnpj || '';
+      if (form.rg)           form.rg.value           = card.rg || '';
+      if (form.nome_mae)     form.nome_mae.value     = card.nome_mae || '';
+      if (form.cep)          form.cep.value          = card.cep || '';
+      if (form.logradouro)   form.logradouro.value   = card.logradouro || '';
+      if (form.numero)       form.numero.value       = card.numero || '';
+      if (form.complemento)  form.complemento.value  = card.complemento || '';
+      if (form.bairro)       form.bairro.value       = card.bairro || '';
+      if (form.cidade)       form.cidade.value       = card.cidade || '';
+      if (form.uf)           form.uf.value           = card.uf || '';
       renderColumnSelectOptions('editColunaId', card.coluna_id || '');
 
       const parsedDesc = splitDescricao(card.descricao || '');
@@ -2349,7 +2523,7 @@ function column_display_name(array $col): string
     }
 
     function bindTopActions() {
-      byId('btnRefresh').addEventListener('click', loadAll);
+      // btnRefresh removido: reload já é automático em create/edit/move/drag-drop
       byId('btnNewCard').addEventListener('click', () => {
         // Trava: não permite criar lead sem pelo menos uma coluna no pipeline
         // (antes era possível, e o card ficava órfão com coluna_id = NULL).
@@ -2371,10 +2545,7 @@ function column_display_name(array $col): string
       byId('cancelEdit').addEventListener('click', () => closeModal('modalEdit'));
       byId('cancelColumns').addEventListener('click', () => closeModal('modalColumns'));
 
-      byId('btnToggleFilters').addEventListener('click', () => {
-        const panel = byId('filtersPanel');
-        panel.classList.toggle('hidden');
-      });
+      // btnToggleFilters removido: filtros sempre visíveis na toolbar
 
       byId('btnColumns').addEventListener('click', async () => {
         // Pipeline herdado da matriz: filial não pode alterar — mostra info amigável.

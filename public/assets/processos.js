@@ -1038,7 +1038,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
         if (tipo && nome) {
           originBadge = `<div class="timeline-origin ${_tipoClass(tipo)}" title="${escapeAttr(nome)}">${_tipoLabel(tipo)} · ${escapeAttr(nome)}</div>`;
         }
-        return `<div class="timeline-entry"><div class="timeline-dot"></div><div class="timeline-content">${originBadge}<div class="timeline-action">${h.descricao||h.acao}</div><div class="timeline-meta">${h.user_email||'sistema'} · ${s}</div></div></div>`;
+        const _acaoTraduzida = (window.Yuris && Yuris.translateAuditAcao) ? Yuris.translateAuditAcao(h.acao) : (h.acao || ''); // i18n acao via Yuris.translateAuditAcao
+        return `<div class="timeline-entry"><div class="timeline-dot"></div><div class="timeline-content">${originBadge}<div class="timeline-action">${h.descricao||_acaoTraduzida}</div><div class="timeline-meta">${h.user_email||'sistema'} · ${s}</div></div></div>`;
       }).join('') : '<div style="color:#9ab0c9;font-size:.8rem">Nenhum registro ainda</div>';
     } catch(e){}
   }

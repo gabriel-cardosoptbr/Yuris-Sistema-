@@ -1159,7 +1159,7 @@ function renderHistorico(items) {
     <div class="tk-history-item">
       <div class="tk-history-dot"></div>
       <div>
-        <strong>${esc(h.autor||'Sistema')}</strong> ${esc(h.acao)}
+        <strong>${esc(h.autor||'Sistema')}</strong> ${esc((window.Yuris && Yuris.translateAuditAcao) ? Yuris.translateAuditAcao(h.acao) : (h.acao || ''))} <!-- i18n acao via Yuris.translateAuditAcao -->
         <div style="font-size:.67rem;color:#3A4858;">${formatDate(h.created_at)}</div>
       </div>
     </div>`).join('');
