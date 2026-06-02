@@ -49,6 +49,13 @@
   }
 
   function fetchJson(opts) {
+    // Timeout duro (12s): mesmo que o servidor pendure (contenção de sessão, rede
+    // ruim), o fetch é abortado e a Promise resolve em null — a UI nunca fica presa
+    // em "Carregando…" pra sempre; mostra "Não foi possível carregar" e o usuário
+    // reabre pra tentar de novo.
+    var ctrl  = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 12000) : null;
+    var done  = function () { if (timer) { clearTimeout(timer); timer = null; } };
     return fetch(API + (opts && opts.qs ? opts.qs : ''), {
       method: (opts && opts.method) || 'GET',
       headers: Object.assign(
@@ -57,11 +64,13 @@
       ),
       credentials: 'same-origin',
       cache: 'no-store',
+      signal: ctrl ? ctrl.signal : undefined,
       body: opts && opts.body ? JSON.stringify(opts.body) : undefined
     }).then(function (res) {
+      done();
       if (!res.ok) return null;          // 401/4xx/5xx → silencioso (ex.: sessão expirada)
       return res.json().catch(function () { return null; });
-    }).catch(function () { return null; }); // rede off → não quebra a página
+    }).catch(function () { done(); return null; }); // rede off / abort → não quebra a página
   }
 
   // ── Badge ──────────────────────────────────────────────────────────────────

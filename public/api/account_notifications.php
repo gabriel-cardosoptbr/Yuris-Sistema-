@@ -16,7 +16,10 @@ require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
 use App\Models\AccountNotification;
 use App\Helpers\AccountContext;
 
-session_start();
+// read_and_close: o endpoint só LÊ a sessão (AccountContext + csrf), nunca escreve.
+// Sem isto, o session_start() segurava o lock de escrita e o fetch da lista podia
+// pendurar sob contenção (bug do sino "Carregando..." eterno). Padrão da casa.
+session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');
 
 $ctx    = AccountContext::fromSession();
