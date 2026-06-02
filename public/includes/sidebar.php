@@ -150,6 +150,9 @@ $_notifTempo = function ($raw) {
   <style>
     /* Sino de notificações — estilo alinhado ao tema escuro da sidebar. */
     .yuris-notif { position: relative; margin-left: auto; }
+    /* CRÍTICO: sem isto o display:flex/inline-flex abaixo VENCE o atributo [hidden]
+       e o painel/badge ficam SEMPRE visíveis (era a causa do sino "espalhado"). */
+    .yuris-notif-panel[hidden], .yuris-notif-badge[hidden] { display: none !important; }
     .yuris-notif-btn {
       position: relative; display: inline-flex; align-items: center; justify-content: center;
       width: 34px; height: 34px; padding: 0; border-radius: 9px;

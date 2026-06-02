@@ -209,7 +209,6 @@
     document.addEventListener('click', onDocClick, true);
     document.addEventListener('keydown', onKeydown, true);
     window.addEventListener('resize', positionPanel);
-    window.addEventListener('scroll', positionPanel, true);
   }
 
   function closePanel() {
@@ -220,11 +219,14 @@
     document.removeEventListener('click', onDocClick, true);
     document.removeEventListener('keydown', onKeydown, true);
     window.removeEventListener('resize', positionPanel);
-    window.removeEventListener('scroll', positionPanel, true);
   }
 
   function onDocClick(e) {
-    if (elWrap && !elWrap.contains(e.target)) closePanel();
+    // O painel agora vive no <body> (fora do elWrap). Só fecha se o clique foi
+    // REALMENTE fora do sino E fora do painel (senão fecharia ao clicar dentro).
+    if (elWrap && elWrap.contains(e.target)) return;
+    if (elPanel && elPanel.contains(e.target)) return;
+    closePanel();
   }
 
   function onKeydown(e) {
@@ -240,6 +242,11 @@
     elList    = document.getElementById('yurisNotifList');
     elMarkAll = document.getElementById('yurisNotifMarkAll');
     if (!elWrap || !elBtn || !elPanel || !elList) return; // página sem sino
+
+    // Portal: move o painel pro <body> — escapa de QUALQUER ancestral com transform/
+    // overflow/stacking da sidebar (que quebrava o position:fixed e fazia o painel
+    // "pular"/aparecer torto). Agora o fixed usa coordenadas reais da viewport.
+    if (elPanel.parentNode !== document.body) document.body.appendChild(elPanel);
 
     elBtn.addEventListener('click', function (e) {
       e.stopPropagation();
