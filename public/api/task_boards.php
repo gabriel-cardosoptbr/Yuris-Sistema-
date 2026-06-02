@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/_json_guard.php';   // avisos PHP nunca vazam como HTML no JSON (anti "Unexpected token '<'")
 require_once __DIR__ . '/../../app/Models/Database.php';
 require_once __DIR__ . '/../../app/Models/TaskBoard.php';
 require_once __DIR__ . '/../../app/Models/TaskColumn.php';
