@@ -1245,7 +1245,7 @@ try {
             <div class="proc-section-title">Vínculo com Cliente</div>
             <div class="proc-section-body">
               <div>
-                <label style="font-size:.8rem;color:#9ab0c9;display:block;margin-bottom:4px">Cliente vinculado (Lead/Prospecção)</label>
+                <label style="font-size:.8rem;color:#9ab0c9;display:block;margin-bottom:4px">Cliente vinculado (Prospecção ou Clientes)</label>
                 <div style="display:flex;gap:8px;align-items:center">
                   <div id="proc_card_selected_name" style="flex:1;padding:10px 12px;border-radius:8px;background:rgba(5,18,39,.6);border:1px solid rgba(96,165,250,.15);color:#9ab0c9;font-size:.85rem;min-height:40px;display:flex;align-items:center">
                     <span id="proc_card_selected_label" style="color:#9ab0c9">Nenhum cliente vinculado</span>
@@ -1254,6 +1254,7 @@ try {
                   <button type="button" id="btnLimparCliente" style="display:none;padding:10px 10px;border-radius:8px;background:transparent;border:1px solid rgba(239,68,68,.3);color:#fca5a5;cursor:pointer;font-size:.82rem"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                 </div>
                 <input type="hidden" name="card_id" id="proc_card_id">
+                <input type="hidden" name="cliente_id" id="proc_cliente_id">
               </div>
 
               <!-- Modal de seleção de cliente -->
@@ -1428,30 +1429,18 @@ try {
             .then(data => { const proc = data.data || data; if (proc && proc.id) { showModal(proc); } })
             .catch(() => {});
         } else if (newCardId) {
-          // Abre modal de novo processo com o cliente pré-selecionado
+          // Abre modal de novo processo já vinculado a um Lead da Prospecção.
+          // Usa os helpers expostos por processos.js (_ensureVinculoData +
+          // _selecionarVinculo) — antes referenciava window._cardsData /
+          // window._applyCardSelection, que nunca foram expostos no window
+          // (eram locais da closure) e portanto não funcionavam.
           showModal(null);
-          setTimeout(() => {
-            const hidden = document.getElementById('proc_card_id');
-            if (hidden) hidden.value = newCardId;
-            // Carrega o nome do cliente e pré-seleciona no campo de busca
-            if (window._cardsData && window._cardsData.length) {
-              const card = window._cardsData.find(c => String(c.id) === String(newCardId));
-              if (card) {
-                window._applyCardSelection(card);
-              }
-            } else {
-              fetch('/api/cards.php?id=' + newCardId, {credentials:'same-origin'})
-                .then(r => r.json())
-                .then(d => {
-                  const card = d.data || d;
-                  if (card && card.id) {
-                    if (!window._cardsData) window._cardsData = [];
-                    window._cardsData.push(card);
-                    window._applyCardSelection(card);
-                  }
-                }).catch(() => {});
-            }
-          }, 100);
+          setTimeout(async () => {
+            try {
+              if (window._ensureVinculoData) await window._ensureVinculoData();
+              if (window._selecionarVinculo) window._selecionarVinculo('prospeccao', newCardId);
+            } catch (e) {}
+          }, 150);
         }
       }, 800);
     });

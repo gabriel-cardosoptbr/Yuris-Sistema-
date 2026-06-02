@@ -1,0 +1,20 @@
+-- ═══════════════════════════════════════════════════════════
+-- 093_processo_cliente_link.sql
+-- Vínculo do Processo com a aba CLIENTES (módulo Operações).
+--
+-- Contexto: o processo já podia vincular um Lead da Prospecção via
+-- processos.card_id. Com a nova aba Clientes (tabela `clientes`),
+-- o processo precisa poder apontar TAMBÉM pra um cliente cadastrado lá.
+--
+-- 1) Adiciona processos.cliente_id INT NULL (FK soft -> clientes.id).
+--    Fica AO LADO de card_id; só um dos dois é preenchido por processo
+--    (a UI deixa escolher a fonte: Prospecção OU Clientes).
+-- 2) Index pra lookup reverso ("quais processos desse cliente").
+--
+-- Idempotência: garantida pelo runner PHP (run_093.php) via
+-- information_schema — seguro rodar mais de uma vez.
+-- ═══════════════════════════════════════════════════════════
+
+-- Referência (o runner aplica via PDO com checagem de existência):
+-- ALTER TABLE processos ADD COLUMN cliente_id INT NULL AFTER card_id;
+-- ALTER TABLE processos ADD INDEX idx_processos_cliente (cliente_id);

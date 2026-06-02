@@ -379,7 +379,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       form.reset(); form.id.value='';
       _originalProcessData = {};
       _procId = null;
-      _loadCardsSelect(null);
+      _applySelection(null, null);
       const h2 = document.getElementById('clienteNomeHint'); if(h2) h2.style.display='none';
       const pc=document.getElementById('prazosContainer'); if(pc) pc.innerHTML='<div style="color:#9ab0c9;font-size:.8rem">Salve o processo primeiro para adicionar prazos</div>';
       const tc=document.getElementById('tarefasContainer'); if(tc) tc.innerHTML='';
@@ -408,7 +408,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const selResp = document.getElementById('selectResponsavelProcesso');
     if (selResp) selResp.value = data.responsavel_user_id || '';
     _procId = data.id || null;
-    _loadCardsSelect(data.card_id || null);
+    _loadVinculoSelect(data.card_id || null, data.cliente_id || null);
     if (_procId) {
       _loadPrazos(_procId);
       _loadTarefas(_procId);
@@ -448,7 +448,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
     e.preventDefault();
     const payload = {};
     new FormData(form).forEach((v,k)=>{ payload[k]=v; });
-    payload.card_id = document.getElementById('proc_card_id')?.value || null;
+    // Vínculo com cliente: duas fontes mutuamente exclusivas.
+    // proc_card_id = Lead da Prospecção | proc_cliente_id = cadastro da aba Clientes.
+    // Mandamos os dois (um sempre null) pra o backend limpar o que foi desvinculado.
+    payload.card_id    = document.getElementById('proc_card_id')?.value    || null;
+    payload.cliente_id = document.getElementById('proc_cliente_id')?.value || null;
     try{
       if (payload.id){
         payload.id = parseInt(payload.id);
@@ -1047,105 +1051,163 @@ document.addEventListener('DOMContentLoaded', ()=>{
     return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  // ── Vínculo com cliente (Card) ────────────────────────────────────────────
-  let _cardsData = []; // cache local dos cards para não buscar repetidamente
+  // ── Vínculo com cliente: 2 fontes (Prospecção + aba Clientes) ──────────────
+  // O processo pode vincular um Lead da Prospecção (tabela cards, via card_id)
+  // OU um cliente cadastrado na aba Clientes (tabela clientes, via cliente_id).
+  // O modal lista as DUAS fontes com etiqueta, e só uma é gravada por processo.
+  let _cardsData    = []; // cache leads/prospecção  (/api/cards.php)
+  let _clientesData = []; // cache aba Clientes       (/api/clientes.php)
 
   function _cardNome(c) {
     return c.cliente_nome || c.cliente || c.titulo || `Lead #${c.id}`;
   }
+  function _clienteNome(c) {
+    return c.nome || c.cliente_nome || `Cliente #${c.id}`;
+  }
 
-  function _applyCardSelection(card) {
-    const hidden  = document.getElementById('proc_card_id');
-    const lk      = document.getElementById('proc_card_link');
-    const linkBtn = document.getElementById('proc_card_link_btn');
-    const label   = document.getElementById('proc_card_selected_label');
-    const limpar  = document.getElementById('btnLimparCliente');
-    if (card) {
-      const nome = _cardNome(card);
-      if (hidden) hidden.value = card.id;
+  // Carrega as duas fontes uma vez (cacheadas). Tolerante a falha de qualquer uma.
+  async function _ensureVinculoData() {
+    if (!_cardsData.length) {
+      try {
+        const r = await fetch('/api/cards.php', {credentials:'same-origin'});
+        const d = await r.json();
+        _cardsData = Array.isArray(d) ? d : (d.data || []);
+      } catch(e) {}
+    }
+    if (!_clientesData.length) {
+      try {
+        const r = await fetch('/api/clientes.php', {credentials:'same-origin'});
+        const d = await r.json();
+        _clientesData = Array.isArray(d) ? d : (d.data || []);
+      } catch(e) {}
+    }
+  }
+
+  // Aplica a seleção de UMA fonte ('prospeccao' | 'cliente'), limpando a outra.
+  // Passar source=null limpa tudo (desvincula).
+  function _applySelection(source, item) {
+    const hCard    = document.getElementById('proc_card_id');
+    const hCli     = document.getElementById('proc_cliente_id');
+    const lk       = document.getElementById('proc_card_link');
+    const linkBtn  = document.getElementById('proc_card_link_btn');
+    const label    = document.getElementById('proc_card_selected_label');
+    const limpar   = document.getElementById('btnLimparCliente');
+    const nomeInput= form?.querySelector('[name="cliente_nome"]');
+    const hint     = document.getElementById('clienteNomeHint');
+
+    // Reset base
+    if (hCard) hCard.value = '';
+    if (hCli)  hCli.value  = '';
+
+    if (source && item) {
+      const isProsp = source === 'prospeccao';
+      const nome    = isProsp ? _cardNome(item) : _clienteNome(item);
+      const tag     = isProsp ? 'Prospecção' : 'Cliente';
+      if (isProsp && hCard) hCard.value = item.id;
+      if (!isProsp && hCli) hCli.value  = item.id;
+      if (label) { label.innerHTML = `✓ ${_esc(nome)} <span style="opacity:.7;font-size:.72rem;font-weight:600">· ${tag}</span>`; label.style.color = '#6ee7b7'; }
       if (lk) lk.style.display = 'block';
-      if (linkBtn) linkBtn.href = `/prospeccao.php?open=${card.id}`;
-      if (label) { label.textContent = `✓ ${nome}`; label.style.color = '#6ee7b7'; }
+      if (linkBtn) {
+        linkBtn.href = isProsp ? `/prospeccao.php?open=${item.id}` : `/clientes.php?open=${item.id}`;
+        linkBtn.textContent = isProsp ? 'Ver ficha na Prospecção →' : 'Ver ficha na aba Clientes →';
+      }
       if (limpar) limpar.style.display = 'block';
-      // Preenche campo "Cliente" e exibe aviso de vínculo
-      const nomeInput = form?.querySelector('[name="cliente_nome"]');
       if (nomeInput) nomeInput.value = nome;
-      const hint = document.getElementById('clienteNomeHint');
       if (hint) hint.style.display = 'block';
     } else {
-      if (hidden) hidden.value = '';
-      if (lk) lk.style.display = 'none';
       if (label) { label.textContent = 'Nenhum cliente vinculado'; label.style.color = '#9ab0c9'; }
+      if (lk) lk.style.display = 'none';
       if (limpar) limpar.style.display = 'none';
-      const hint = document.getElementById('clienteNomeHint');
       if (hint) hint.style.display = 'none';
     }
   }
 
-  async function _loadCardsSelect(selectedId) {
-    if (!_cardsData.length) {
-      try {
-        const r = await fetch('/api/cards.php', {credentials:'same-origin'});
-        const d = await r.json();
-        _cardsData = Array.isArray(d) ? d : (d.data || []);
-      } catch(e) {}
+  // Escape mínimo pra montar HTML do label/lista com nome do cliente.
+  function _esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  // Resolve o vínculo salvo ao abrir o processo (uma das 2 fontes, ou nenhuma).
+  async function _loadVinculoSelect(cardId, clienteId) {
+    await _ensureVinculoData();
+    if (cardId) {
+      const card = _cardsData.find(c => String(c.id) === String(cardId));
+      if (card) { _applySelection('prospeccao', card); return; }
     }
-    if (selectedId) {
-      const card = _cardsData.find(c => String(c.id) === String(selectedId));
-      _applyCardSelection(card || null);
-    } else {
-      _applyCardSelection(null);
+    if (clienteId) {
+      const cli = _clientesData.find(c => String(c.id) === String(clienteId));
+      if (cli) { _applySelection('cliente', cli); return; }
     }
+    _applySelection(null, null);
   }
 
-  // Renderiza a lista de clientes no modal (com filtro opcional)
-  function _renderClienteList(filtro = '') {
+  // Renderiza a lista unificada no modal (com filtro opcional), agrupada por fonte.
+  function _renderVinculoList(filtro = '') {
     const lista = document.getElementById('clienteListaModal');
     if (!lista) return;
     const termo = filtro.toLowerCase();
-    const filtrados = _cardsData.filter(c => !termo || _cardNome(c).toLowerCase().includes(termo) || (c.empresa_nome||'').toLowerCase().includes(termo));
-    if (!filtrados.length) {
+
+    const cards = _cardsData.filter(c => !termo
+      || _cardNome(c).toLowerCase().includes(termo)
+      || (c.empresa_nome||'').toLowerCase().includes(termo));
+    const clientes = _clientesData.filter(c => !termo
+      || _clienteNome(c).toLowerCase().includes(termo)
+      || (c.cpf_cnpj||'').toLowerCase().includes(termo));
+
+    if (!cards.length && !clientes.length) {
       lista.innerHTML = '<div style="color:#9ab0c9;font-size:.83rem;padding:16px 8px;text-align:center">Nenhum cliente encontrado</div>';
       return;
     }
-    // Usa classes (.cliente-mod-item) ao inves de inline + onmouseover/out:
-    // permite override limpo no tema claro via CSS :hover. Antes os handlers
-    // setavam el.style.background a cada movimento de mouse, brigando com
-    // qualquer regra externa de tema.
-    lista.innerHTML = filtrados.map(c => {
-      const nome = _cardNome(c);
-      const emp  = c.empresa_nome ? `<span class="cliente-mod-emp"> · ${c.empresa_nome}</span>` : '';
-      return `<div class="cliente-mod-item" onclick="window._selecionarCliente(${c.id})">
-                <div class="cliente-mod-nome">${nome}${emp}</div>
-              </div>`;
-    }).join('');
+
+    const grpTitle = (txt) => `<div style="font-size:.7rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#7c93b4;padding:10px 8px 4px">${txt}</div>`;
+    let html = '';
+
+    if (clientes.length) {
+      html += grpTitle('Clientes');
+      html += clientes.map(c => {
+        const nome = _clienteNome(c);
+        const sub  = c.cpf_cnpj ? `<span class="cliente-mod-emp"> · ${_esc(c.cpf_cnpj)}</span>` : '';
+        return `<div class="cliente-mod-item" onclick="window._selecionarVinculo('cliente',${c.id})">
+                  <div class="cliente-mod-nome">${_esc(nome)}${sub}</div>
+                </div>`;
+      }).join('');
+    }
+    if (cards.length) {
+      html += grpTitle('Prospecção (Leads)');
+      html += cards.map(c => {
+        const nome = _cardNome(c);
+        const emp  = c.empresa_nome ? `<span class="cliente-mod-emp"> · ${_esc(c.empresa_nome)}</span>` : '';
+        return `<div class="cliente-mod-item" onclick="window._selecionarVinculo('prospeccao',${c.id})">
+                  <div class="cliente-mod-nome">${_esc(nome)}${emp}</div>
+                </div>`;
+      }).join('');
+    }
+    lista.innerHTML = html;
   }
 
-  // Chamado ao clicar num cliente no modal
-  window._selecionarCliente = (cardId) => {
-    const card = _cardsData.find(c => String(c.id) === String(cardId));
-    _applyCardSelection(card || null);
-    document.getElementById('modalSelecionarCliente').style.display = 'none';
+  // Chamado ao clicar num item do modal (qualquer fonte)
+  window._selecionarVinculo = (source, id) => {
+    const arr  = source === 'cliente' ? _clientesData : _cardsData;
+    const item = arr.find(c => String(c.id) === String(id));
+    _applySelection(source, item || null);
+    const m = document.getElementById('modalSelecionarCliente');
+    if (m) m.style.display = 'none';
   };
+  // Exposto pra fluxos externos (ex: abrir processo já vinculado a um lead via
+  // ?novo_card=ID em processos.php) garantirem que os caches foram carregados
+  // antes de chamar _selecionarVinculo.
+  window._ensureVinculoData = _ensureVinculoData;
 
-  // Botão "Buscar" abre o modal e carrega a lista
+  // Botão "Buscar" abre o modal e carrega as 2 fontes
   document.getElementById('btnAbrirModalCliente')?.addEventListener('click', async () => {
-    if (!_cardsData.length) {
-      try {
-        const r = await fetch('/api/cards.php', {credentials:'same-origin'});
-        const d = await r.json();
-        _cardsData = Array.isArray(d) ? d : (d.data || []);
-      } catch(e) {}
-    }
+    await _ensureVinculoData();
     document.getElementById('clienteSearchInput').value = '';
-    _renderClienteList('');
+    _renderVinculoList('');
     document.getElementById('modalSelecionarCliente').style.display = 'flex';
     setTimeout(() => document.getElementById('clienteSearchInput')?.focus(), 50);
   });
 
   // Filtro em tempo real dentro do modal
   document.getElementById('clienteSearchInput')?.addEventListener('input', function() {
-    _renderClienteList(this.value);
+    _renderVinculoList(this.value);
   });
 
   // Fechar modal
@@ -1156,8 +1218,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if (e.target === this) this.style.display = 'none';
   });
 
-  // Botão "✕" limpa a seleção
-  document.getElementById('btnLimparCliente')?.addEventListener('click', () => _applyCardSelection(null));
+  // Botão "✕" limpa a seleção (desvincula)
+  document.getElementById('btnLimparCliente')?.addEventListener('click', () => _applySelection(null, null));
 
   // ── Lista de usuários — carregada uma vez e reutilizada em todos os selects ──
   // Usa dados embutidos pelo PHP se disponíveis — elimina fetch async e race condition

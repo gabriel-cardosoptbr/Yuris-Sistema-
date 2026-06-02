@@ -121,12 +121,19 @@ class Processo
     {
         $pdo = Database::getConnection();
 
-        // Resolve contato_id: herda do card se houver, ou cria/localiza pelo telefone
+        // Resolve contato_id: herda do card (Prospecção) ou do cliente (aba Clientes)
+        // se houver. Card tem prioridade quando ambos vierem (não deveria, a UI
+        // deixa escolher só uma fonte, mas é defensivo).
         $contatoId = $data['contato_id'] ?? null;
         if (!$contatoId && !empty($data['card_id'])) {
             $cardRow = $pdo->prepare('SELECT contato_id FROM cards WHERE id = ? LIMIT 1');
             $cardRow->execute([$data['card_id']]);
             $contatoId = $cardRow->fetchColumn() ?: null;
+        }
+        if (!$contatoId && !empty($data['cliente_id'])) {
+            $cliRow = $pdo->prepare('SELECT contato_id FROM clientes WHERE id = ? LIMIT 1');
+            $cliRow->execute([$data['cliente_id']]);
+            $contatoId = $cliRow->fetchColumn() ?: null;
         }
 
         if (empty($data['account_id'])) {
@@ -145,12 +152,12 @@ class Processo
             'INSERT INTO processos
              (account_id, account_seq, numero, cliente_nome, parte_contraria, cpf_cnpj_parte_contraria, setor_id, vara_comarca,
               responsavel_user_id, status, data_inicio, proximo_prazo,
-              ultima_movimentacao, observacoes, anexos, alerts, card_id, contato_id,
+              ultima_movimentacao, observacoes, anexos, alerts, card_id, cliente_id, contato_id,
               created_at, updated_at)
              VALUES
              (:account_id, :account_seq, :numero, :cliente_nome, :parte_contraria, :cpf_cnpj_parte_contraria, :setor_id, :vara_comarca,
               :responsavel_user_id, :status, :data_inicio, :proximo_prazo,
-              :ultima_movimentacao, :observacoes, :anexos, :alerts, :card_id, :contato_id,
+              :ultima_movimentacao, :observacoes, :anexos, :alerts, :card_id, :cliente_id, :contato_id,
               NOW(), NOW())'
         );
         $stmt->execute([
@@ -174,6 +181,7 @@ class Processo
             'anexos'               => isset($data['anexos'])  ? json_encode($data['anexos'],  JSON_UNESCAPED_UNICODE) : null,
             'alerts'               => isset($data['alerts'])  ? json_encode($data['alerts'],  JSON_UNESCAPED_UNICODE) : null,
             'card_id'              => $data['card_id']              ?? null,
+            'cliente_id'           => !empty($data['cliente_id']) ? (int)$data['cliente_id'] : null,
             'contato_id'           => $contatoId,
         ]);
         return $pdo->lastInsertId();
@@ -184,7 +192,7 @@ class Processo
         $pdo = Database::getConnection();
         $fields = [];
         $params = ['id' => $id];
-        $allowed = ['numero','cliente_nome','parte_contraria','cpf_cnpj_parte_contraria','setor_id','vara_comarca','responsavel_user_id','status','data_inicio','proximo_prazo','ultima_movimentacao','observacoes','anexos','alerts','card_id','contato_id'];
+        $allowed = ['numero','cliente_nome','parte_contraria','cpf_cnpj_parte_contraria','setor_id','vara_comarca','responsavel_user_id','status','data_inicio','proximo_prazo','ultima_movimentacao','observacoes','anexos','alerts','card_id','cliente_id','contato_id'];
         $dateCols = ['data_inicio','proximo_prazo','ultima_movimentacao'];
         foreach ($allowed as $k) {
             if (array_key_exists($k, $data)) {
@@ -207,6 +215,18 @@ class Processo
             $cardRow = $pdo->prepare('SELECT contato_id FROM cards WHERE id = ? LIMIT 1');
             $cardRow->execute([$data['card_id']]);
             $inherited = $cardRow->fetchColumn();
+            if ($inherited) {
+                $fields[]              = 'contato_id = :contato_id';
+                $params['contato_id']  = (int)$inherited;
+            }
+        }
+        // Idem para cliente_id (aba Clientes): herda contato_id do cliente vinculado
+        // se contato_id não veio explícito e card_id não tratou acima.
+        if (array_key_exists('cliente_id', $data) && !array_key_exists('contato_id', $data)
+            && !array_key_exists('contato_id', $params) && !empty($data['cliente_id'])) {
+            $cliRow = $pdo->prepare('SELECT contato_id FROM clientes WHERE id = ? LIMIT 1');
+            $cliRow->execute([$data['cliente_id']]);
+            $inherited = $cliRow->fetchColumn();
             if ($inherited) {
                 $fields[]              = 'contato_id = :contato_id';
                 $params['contato_id']  = (int)$inherited;
