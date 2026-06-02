@@ -20,6 +20,9 @@ require_once __DIR__ . '/../../app/Models/Database.php';
 require_once __DIR__ . '/../../app/Models/Cliente.php';
 require_once __DIR__ . '/../../app/Models/ClienteSetor.php';
 require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Services/WebhookDispatcher.php';
+
+use App\Services\WebhookDispatcher;
 
 use App\Models\Cliente;
 use App\Models\ClienteSetor;
@@ -117,6 +120,11 @@ if ($method === 'POST') {
 
     try {
         $id = Cliente::create($data, $userId);
+        // Webhook cliente.created (auditoria 2026-06-01: evento existia no catalogo
+        // mas nunca disparava). Falha do webhook nao quebra a resposta.
+        try { WebhookDispatcher::fire($accountId, 'cliente.created', WebhookDispatcher::buildPayload('cliente.created', [
+            'entity' => 'cliente', 'entity_id' => $id, 'cliente_id' => $id, 'data' => ['id' => $id, 'nome' => $data['nome'] ?? null],
+        ])); } catch (\Throwable $_) {}
         echo json_encode(['success' => true, 'id' => $id]);
     } catch (\InvalidArgumentException $e) {
         http_response_code(400);
@@ -167,6 +175,9 @@ if ($method === 'PUT') {
 
     try {
         $ok = Cliente::update($id, $input, $userId);
+        if ($ok) { try { WebhookDispatcher::fire((int)$cli['account_id'], 'cliente.updated', WebhookDispatcher::buildPayload('cliente.updated', [
+            'entity' => 'cliente', 'entity_id' => $id, 'cliente_id' => $id, 'data' => ['id' => $id],
+        ])); } catch (\Throwable $_) {} }
         echo json_encode(['success' => (bool)$ok]);
     } catch (\InvalidArgumentException $e) {
         http_response_code(400);
@@ -183,8 +194,11 @@ if ($method === 'DELETE') {
     $id = $_GET['id'] ?? ($input['id'] ?? null);
     if (!$id) { http_response_code(400); echo json_encode(['error' => 'Missing id']); exit; }
     $id  = (int)$id;
-    _assertClienteTenant($id, $tenantIds);
+    $cliDel = _assertClienteTenant($id, $tenantIds);
     $ok = Cliente::archive($id, $userId);
+    if ($ok) { try { WebhookDispatcher::fire((int)$cliDel['account_id'], 'cliente.deleted', WebhookDispatcher::buildPayload('cliente.deleted', [
+        'entity' => 'cliente', 'entity_id' => $id, 'cliente_id' => $id, 'data' => ['id' => $id],
+    ])); } catch (\Throwable $_) {} }
     echo json_encode(['success' => (bool)$ok]);
     exit;
 }

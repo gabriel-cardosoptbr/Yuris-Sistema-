@@ -62,6 +62,7 @@ try {
         if (!empty($_GET['status'])) $filters['status'] = $_GET['status'];
         if (!empty($_GET['from']) && !empty($_GET['to'])) { $filters['from'] = $_GET['from']; $filters['to'] = $_GET['to']; }
         if (isset($_GET['card_id']) && $_GET['card_id'] !== '') $filters['card_id'] = (int)$_GET['card_id'];
+        if (isset($_GET['cliente_id']) && $_GET['cliente_id'] !== '') $filters['cliente_id'] = (int)$_GET['cliente_id'];
         $list = Processo::list($filters);
         echo json_encode(['data'=>$list]);
         exit;

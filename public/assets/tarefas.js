@@ -382,7 +382,9 @@ function buildCard(t) {
   if (window.YURIS_SHOW_ORIGIN_STRIP && t.origin_account_tipo) {
     const tipo  = String(t.origin_account_tipo).toLowerCase();
     const nome  = String(t.origin_account_nome || '');
-    const cls   = tipo === 'matriz' ? 'is-matriz' : 'is-filial';
+    const cls   = tipo === 'matriz' ? 'is-matriz'
+                : tipo === 'advogado' ? 'is-advogado'
+                : 'is-filial';
     // Label reflete o TIPO real da conta — conta solo é 'advogado', nunca 'filial'.
     const label = tipo === 'matriz'   ? 'MATRIZ'
                 : tipo === 'advogado' ? 'ADVOGADO'

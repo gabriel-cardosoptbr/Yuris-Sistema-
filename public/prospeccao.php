@@ -487,6 +487,10 @@ function column_display_name(array $col): string
       background: linear-gradient(90deg, rgba(168,85,247,.32), rgba(168,85,247,.14));
       color: #d8b4fe;
     }
+    .card-origin-strip.is-advogado {
+      background: linear-gradient(90deg, rgba(16,185,129,.32), rgba(16,185,129,.14));
+      color: #6ee7b7;
+    }
     .card-origin-strip .org-name {
       font-weight: 600;
       text-transform: none;
@@ -506,6 +510,10 @@ function column_display_name(array $col): string
     html[data-theme="light"] .card-origin-strip.is-filial {
       background: linear-gradient(90deg, rgba(126,34,206,.22), rgba(126,34,206,.10));
       color: #6b21a8;
+    }
+    html[data-theme="light"] .card-origin-strip.is-advogado {
+      background: linear-gradient(90deg, rgba(5,150,105,.22), rgba(5,150,105,.10));
+      color: #065f46;
     }
 
     .card-drag-handle {
@@ -1846,7 +1854,9 @@ function column_display_name(array $col): string
         if (window.YURIS_SHOW_ORIGIN_STRIP && originTipo) {
           div.setAttribute('data-origin-tipo', originTipo);
           div.setAttribute('data-origin-id',   String(card.origin_account_id || ''));
-          const cls   = originTipo === 'matriz' ? 'is-matriz' : 'is-filial';
+          const cls   = originTipo === 'matriz' ? 'is-matriz'
+                      : originTipo === 'advogado' ? 'is-advogado'
+                      : 'is-filial';
           // Label reflete o TIPO real da conta — conta solo é 'advogado', nunca 'filial'.
           const label = originTipo === 'matriz'   ? 'MATRIZ'
                       : originTipo === 'advogado' ? 'ADVOGADO'

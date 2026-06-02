@@ -295,6 +295,10 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
       background: linear-gradient(90deg, rgba(168,85,247,.32), rgba(168,85,247,.14));
       color: #d8b4fe;
     }
+    .cli-card .origin-strip.is-advogado {
+      background: linear-gradient(90deg, rgba(16,185,129,.32), rgba(16,185,129,.14));
+      color: #6ee7b7;
+    }
     .cli-card .origin-strip .org-name {
       font-weight: 600; text-transform: none; letter-spacing: 0; opacity: .9;
       max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -306,6 +310,10 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
     html[data-theme="light"] .cli-card .origin-strip.is-filial {
       background: linear-gradient(90deg, rgba(126,34,206,.22), rgba(126,34,206,.10));
       color: #6b21a8;
+    }
+    html[data-theme="light"] .cli-card .origin-strip.is-advogado {
+      background: linear-gradient(90deg, rgba(5,150,105,.22), rgba(5,150,105,.10));
+      color: #065f46;
     }
 
     .cli-name { font-weight: 700; font-size: .92rem; line-height: 1.25; margin: 2px 0 4px; padding-right: 4px; word-break: break-word; }
@@ -662,6 +670,15 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
         </div>
       </div>
 
+      <!-- Processos vinculados (só no modo edição) — reverse lookup do cliente_id -->
+      <div id="cliProcessosBlock" style="display:none; margin-top:16px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin:0 0 8px;">
+          <h3 style="font-size:.84rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:0;">Processos vinculados</h3>
+          <a id="cliNovoProcesso" href="#" style="font-size:.78rem; color:#60a5fa; text-decoration:none;">+ Novo processo</a>
+        </div>
+        <div id="cliProcessos" style="display:flex; flex-direction:column; gap:6px;"></div>
+      </div>
+
       <!-- Histórico (só no modo edição) -->
       <div id="cliHistoryBlock" style="display:none; margin-top:16px;">
         <h3 style="font-size:.84rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:0 0 8px;">Histórico</h3>
@@ -938,7 +955,9 @@ window.Clientes = (function () {
         const origemNome = String(c.origin_account_nome || '');
 
         // Faixa de origem: SEMPRE no topo (matriz=azul, filial=roxo), com label + nome
-        const stripCls    = origemTipo === 'matriz' ? 'is-matriz' : 'is-filial';
+        const stripCls    = origemTipo === 'matriz' ? 'is-matriz'
+                          : origemTipo === 'advogado' ? 'is-advogado'
+                          : 'is-filial';
         // Label reflete o TIPO real da conta — conta solo é 'advogado', nunca 'filial'.
         const stripLabel  = origemTipo === 'matriz'   ? 'MATRIZ'
                           : origemTipo === 'advogado' ? 'ADVOGADO'
@@ -1138,6 +1157,10 @@ window.Clientes = (function () {
             $$('#cliForm input, #cliForm select, #cliForm textarea').forEach(el => el.disabled = disabled);
             $('#btnSalvarCliente').style.display = disabled ? 'none' : '';
 
+            // Processos vinculados (reverse lookup do cliente_id, migration 093) +
+            // atalho "Novo processo para este cliente" (auditoria 2026-06-01).
+            loadProcessosCliente(c.id);
+
             showModal('modalCliente');
         } catch (e) {
             console.error('[Clientes] openEditModal', e);
@@ -1313,9 +1336,49 @@ window.Clientes = (function () {
     function hideModal(id) { const m = $('#' + id); if (m) m.classList.remove('open'); }
 
     // ── Wire-up ──────────────────────────────────────────────────
+    // Carrega processos vinculados ao cliente (GET /api/processes.php?cliente_id=)
+    // e configura o atalho "Novo processo para este cliente".
+    async function loadProcessosCliente(clienteId) {
+        const block = $('#cliProcessosBlock');
+        const list  = $('#cliProcessos');
+        const novo  = $('#cliNovoProcesso');
+        if (!block || !list) return;
+        if (novo) novo.href = '/processos.php?new_cliente_id=' + encodeURIComponent(clienteId);
+        block.style.display = '';
+        list.innerHTML = '<div style="color:var(--muted); font-size:.8rem;">Carregando…</div>';
+        try {
+            const r = await fetch('/api/processes.php?cliente_id=' + encodeURIComponent(clienteId), { credentials: 'same-origin' });
+            const j = await r.json();
+            const procs = Array.isArray(j) ? j : (j.data || []);
+            if (!procs.length) {
+                list.innerHTML = '<div style="color:var(--muted); font-size:.8rem;">Nenhum processo vinculado a este cliente ainda.</div>';
+                return;
+            }
+            list.innerHTML = procs.map(p => {
+                const num = escapeHtml(p.numero || ('Processo #' + p.id));
+                const st  = escapeHtml(p.status || '');
+                return `<a href="/processos.php?open=${p.id}" style="display:flex; justify-content:space-between; gap:8px; padding:8px 10px; border-radius:8px; background:rgba(96,165,250,.08); border:1px solid rgba(96,165,250,.15); text-decoration:none; color:inherit;">
+                    <span>${num}</span><span style="color:var(--muted); font-size:.76rem;">${st} →</span>
+                </a>`;
+            }).join('');
+        } catch (e) {
+            list.innerHTML = '<div style="color:var(--muted); font-size:.8rem;">Falha ao carregar processos.</div>';
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         $('#btnNovoCliente')?.addEventListener('click', openCreateModal);
         $('#btnGerenciarSetores')?.addEventListener('click', openSetoresModal);
+
+        // Deep-link ?open=ID — abre o cliente direto (ex: vindo do vínculo de
+        // processo "Ver ficha na aba Clientes"). Auditoria 2026-06-01.
+        try {
+            const openId = new URLSearchParams(location.search).get('open');
+            if (openId) {
+                setTimeout(() => { try { openEditModal(parseInt(openId, 10)); } catch(e){} }, 400);
+                history.replaceState({}, '', location.pathname);
+            }
+        } catch (e) {}
 
         // Filtros: debounced re-render
         let t;

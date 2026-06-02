@@ -1404,6 +1404,7 @@ try {
       const params   = new URLSearchParams(location.search);
       const openId   = params.get('open');
       const newCardId = params.get('new_card_id');
+      const newClienteId = params.get('new_cliente_id'); // vindo da aba Clientes
 
       // Detecta se a navegação foi um reload (F5/Ctrl+R)
       function _isPageReload() {
@@ -1420,13 +1421,14 @@ try {
           const u = new URL(location.href);
           u.searchParams.delete('open');
           u.searchParams.delete('new_card_id');
+          u.searchParams.delete('new_cliente_id');
           const qs = u.searchParams.toString();
           history.replaceState(null, '', u.pathname + (qs ? '?' + qs : '') + u.hash);
         } catch (e) {}
       }
 
       const isReload = _isPageReload();
-      if (openId || newCardId) _cleanUrlParams();
+      if (openId || newCardId || newClienteId) _cleanUrlParams();
       if (isReload) return; // F5 não auto-abre modal
 
       setTimeout(() => { // aguarda processos.js inicializar
@@ -1446,6 +1448,16 @@ try {
             try {
               if (window._ensureVinculoData) await window._ensureVinculoData();
               if (window._selecionarVinculo) window._selecionarVinculo('prospeccao', newCardId);
+            } catch (e) {}
+          }, 150);
+        } else if (newClienteId) {
+          // Novo processo já vinculado a um Cliente (aba Clientes). Mesma infra
+          // do new_card_id, fonte 'cliente' (auditoria 2026-06-01 — Onda 3).
+          showModal(null);
+          setTimeout(async () => {
+            try {
+              if (window._ensureVinculoData) await window._ensureVinculoData();
+              if (window._selecionarVinculo) window._selecionarVinculo('cliente', newClienteId);
             } catch (e) {}
           }, 150);
         }

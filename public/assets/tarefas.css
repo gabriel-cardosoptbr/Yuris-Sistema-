@@ -225,6 +225,10 @@
   background: linear-gradient(90deg, rgba(168,85,247,.32), rgba(168,85,247,.14));
   color: #d8b4fe;
 }
+.tk-card-origin-strip.is-advogado {
+  background: linear-gradient(90deg, rgba(16,185,129,.32), rgba(16,185,129,.14));
+  color: #6ee7b7;
+}
 .tk-card-origin-strip .org-name {
   font-weight: 600;
   text-transform: none;
@@ -242,6 +246,10 @@ html[data-theme="light"] .tk-card-origin-strip.is-matriz {
 html[data-theme="light"] .tk-card-origin-strip.is-filial {
   background: linear-gradient(90deg, rgba(126,34,206,.22), rgba(126,34,206,.10));
   color: #6b21a8;
+}
+html[data-theme="light"] .tk-card-origin-strip.is-advogado {
+  background: linear-gradient(90deg, rgba(5,150,105,.22), rgba(5,150,105,.10));
+  color: #065f46;
 }
 
 /* faixa de prioridade */

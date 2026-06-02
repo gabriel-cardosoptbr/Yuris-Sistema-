@@ -92,6 +92,12 @@ class Processo
             $sql .= ' AND p.card_id = :card_id';
             $params['card_id'] = $filters['card_id'];
         }
+        // Filtro por cliente (aba Clientes) — simetrico ao card_id. Sem isto o
+        // vinculo cliente_id (migration 093) ficava write-only (auditoria 2026-06-01).
+        if (isset($filters['cliente_id'])) {
+            $sql .= ' AND p.cliente_id = :cliente_id';
+            $params['cliente_id'] = (int)$filters['cliente_id'];
+        }
         $sql .= ' ORDER BY p.proximo_prazo IS NULL, p.proximo_prazo ASC, p.updated_at DESC';
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
