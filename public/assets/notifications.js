@@ -106,11 +106,11 @@
   function listEl() { return document.getElementById('yurisNotifList') || elList; }
 
   function loadList() {
-    var el = listEl();
-    if (!el) return;
-    el.innerHTML = '<div class="yuris-notif-empty">Carregando…</div>';
+    // A lista JÁ vem renderizada do servidor (sidebar.php) — fonte da verdade da
+    // exibição. Aqui só atualizamos em SILÊNCIO se o fetch trouxer dados; em erro
+    // ou fetch lento, mantém o que já está visível (nunca volta pra "Carregando…").
     fetchJson({ qs: '' }).then(function (data) {
-      renderList((data && Array.isArray(data.data)) ? data.data : null);
+      if (data && Array.isArray(data.data)) renderList(data.data);
     });
   }
 

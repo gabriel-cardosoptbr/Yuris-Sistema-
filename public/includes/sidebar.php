@@ -71,6 +71,27 @@ $_uiLibPath  = __DIR__ . '/../assets/yuris-ui.js';
 $_uiLibVer   = file_exists($_uiLibPath) ? @filemtime($_uiLibPath) : '1';
 $_notifJsPath = __DIR__ . '/../assets/notifications.js';
 $_notifJsVer  = file_exists($_notifJsPath) ? @filemtime($_notifJsPath) : '1';
+
+// ── Notificações renderizadas NO SERVIDOR (à prova de falha de fetch/JS/cache no
+//    cliente). O notifications.js só atualiza em silêncio depois + marca lida.
+$_notifItems  = null;  // null => mantém "Carregando…" e o JS assume o carregamento
+$_notifUnread = 0;
+try {
+    require_once __DIR__ . '/../../app/Models/AccountNotification.php';
+    require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+    $__nctx      = \App\Helpers\AccountContext::fromSession();
+    $_notifItems = \App\Models\AccountNotification::listForUser($__nctx->getUserId(), $__nctx->getAccountId());
+    foreach ($_notifItems as $__n) { if ((int)($__n['lida'] ?? 0) === 0) $_notifUnread++; }
+} catch (\Throwable $__e) { $_notifItems = null; }
+$_notifTempo = function ($raw) {
+    $ts = $raw ? strtotime((string)$raw) : 0; if (!$ts) return '';
+    $d = max(0, time() - $ts);
+    if ($d < 60)     return 'agora mesmo';
+    if ($d < 3600)   return 'há ' . intdiv($d, 60) . ' min';
+    if ($d < 86400)  return 'há ' . intdiv($d, 3600) . ' h';
+    if ($d < 604800) return 'há ' . intdiv($d, 86400) . ' d';
+    return date('d/m/Y', $ts);
+};
 ?>
 <!-- Yuris UI lib (notify/confirm/prompt sem "localhost diz"). Auto-polyfills window.alert. -->
 <script src="/assets/yuris-ui.js?v=<?= $_uiLibVer ?>"></script>
@@ -98,7 +119,7 @@ $_notifJsVer  = file_exists($_notifJsPath) ? @filemtime($_notifJsPath) : '1';
       <button type="button" class="yuris-notif-btn" id="yurisNotifBtn"
               aria-label="Notificações" aria-haspopup="true" aria-expanded="false" title="Notificações">
         <span class="yuris-notif-ico" aria-hidden="true"><?= $_svg['sino'] ?></span>
-        <span class="yuris-notif-badge" id="yurisNotifBadge" hidden>0</span>
+        <span class="yuris-notif-badge" id="yurisNotifBadge"<?= $_notifUnread > 0 ? '' : ' hidden' ?>><?= $_notifUnread > 99 ? '99+' : (int)$_notifUnread ?></span>
       </button>
 
       <div class="yuris-notif-panel" id="yurisNotifPanel" role="dialog" aria-label="Notificações" hidden>
@@ -107,7 +128,18 @@ $_notifJsVer  = file_exists($_notifJsPath) ? @filemtime($_notifJsPath) : '1';
           <button type="button" class="yuris-notif-all" id="yurisNotifMarkAll">Marcar todas como lidas</button>
         </div>
         <div class="yuris-notif-list" id="yurisNotifList">
-          <div class="yuris-notif-empty">Carregando…</div>
+          <?php if ($_notifItems === null): ?>
+            <div class="yuris-notif-empty">Carregando…</div>
+          <?php elseif (empty($_notifItems)): ?>
+            <div class="yuris-notif-empty">Nenhuma notificação.</div>
+          <?php else: foreach ($_notifItems as $__n):
+              $__unread = ((int)($__n['lida'] ?? 0) === 0); ?>
+            <button type="button" class="yuris-notif-item<?= $__unread ? ' is-unread' : '' ?>" data-id="<?= (int)($__n['id'] ?? 0) ?>" data-unread="<?= $__unread ? '1' : '0' ?>">
+              <span class="yuris-notif-item-titulo"><?php if ($__unread): ?><span class="yuris-notif-dot" aria-hidden="true"></span><?php endif; ?><?= htmlspecialchars((string)($__n['titulo'] ?? 'Notificação'), ENT_QUOTES, 'UTF-8') ?></span>
+              <?php if (!empty($__n['mensagem'])): ?><p class="yuris-notif-item-msg"><?= htmlspecialchars((string)$__n['mensagem'], ENT_QUOTES, 'UTF-8') ?></p><?php endif; ?>
+              <span class="yuris-notif-item-time"><?= htmlspecialchars($_notifTempo($__n['created_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
+            </button>
+          <?php endforeach; endif; ?>
         </div>
       </div>
     </div>
