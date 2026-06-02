@@ -100,24 +100,29 @@
   }
 
   // ── Lista ──────────────────────────────────────────────────────────────────
+  // Re-busca o elemento AO VIVO a cada uso: robusto a re-render do sidebar / a uma
+  // referência cacheada que ficou "detached" (causa do sino preso em "Carregando…"
+  // mesmo com o endpoint respondendo 200/itens). Sem trava 'loading' persistente.
+  function listEl() { return document.getElementById('yurisNotifList') || elList; }
+
   function loadList() {
-    if (loading) return;
-    loading = true;
-    elList.innerHTML = '<div class="yuris-notif-empty">Carregando…</div>';
+    var el = listEl();
+    if (!el) return;
+    el.innerHTML = '<div class="yuris-notif-empty">Carregando…</div>';
     fetchJson({ qs: '' }).then(function (data) {
-      loading = false;
-      var items = (data && Array.isArray(data.data)) ? data.data : null;
-      if (items === null) {
-        elList.innerHTML = '<div class="yuris-notif-empty">Não foi possível carregar.</div>';
-        return;
-      }
-      renderList(items);
+      renderList((data && Array.isArray(data.data)) ? data.data : null);
     });
   }
 
   function renderList(items) {
+    var el = listEl();
+    if (!el) return;
+    if (items === null) {
+      el.innerHTML = '<div class="yuris-notif-empty">Não foi possível carregar.</div>';
+      return;
+    }
     if (!items.length) {
-      elList.innerHTML = '<div class="yuris-notif-empty">Nenhuma notificação.</div>';
+      el.innerHTML = '<div class="yuris-notif-empty">Nenhuma notificação.</div>';
       if (elMarkAll) elMarkAll.disabled = true;
       return;
     }
@@ -135,7 +140,7 @@
                '<span class="yuris-notif-item-time">' + tempoRelativo(it.created_at) + '</span>' +
              '</button>';
     }).join('');
-    elList.innerHTML = html;
+    el.innerHTML = html;
     if (elMarkAll) elMarkAll.disabled = !anyUnread;
   }
 
