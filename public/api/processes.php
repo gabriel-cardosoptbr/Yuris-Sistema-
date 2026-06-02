@@ -70,6 +70,11 @@ try {
     if ($method === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true) ?? [];
         $input['account_id'] = $accountId;  // injeta tenant server-side, nunca do body
+        // SEGURANCA (auditoria 2026-06-01): valida o tenant das fontes de vinculo
+        // ANTES de gravar. Sem isso, um usuario podia mandar card_id/cliente_id de
+        // outro tenant e o processo herdava o contato_id alheio (vazamento cross-tenant).
+        if (!empty($input['card_id']))    TenantGuard::assertCardAcessivel($ctx, (int)$input['card_id']);
+        if (!empty($input['cliente_id'])) TenantGuard::assertClienteAcessivel($ctx, (int)$input['cliente_id']);
         $id = Processo::create($input);
         $p = Processo::find($id);
         // Auditoria garantida server-side (não depende do JS)
@@ -92,6 +97,11 @@ try {
         if (!$id) { http_response_code(400); echo json_encode(['error'=>'Missing id']); exit; }
         // Valida tenant ANTES de atualizar — bloqueia edição cross-tenant
         TenantGuard::assertProcessoAcessivel($ctx, (int)$id);
+        // SEGURANCA (auditoria 2026-06-01): valida tenant do card_id/cliente_id
+        // recebidos antes de vincular — impede vincular recurso de outro tenant
+        // e herdar contato_id alheio.
+        if (!empty($input['card_id']))    TenantGuard::assertCardAcessivel($ctx, (int)$input['card_id']);
+        if (!empty($input['cliente_id'])) TenantGuard::assertClienteAcessivel($ctx, (int)$input['cliente_id']);
         // Remove campos imutáveis do payload (defesa em profundidade)
         unset($input['account_id'], $input['account_seq']);
         $prev = Processo::find((int)$id);

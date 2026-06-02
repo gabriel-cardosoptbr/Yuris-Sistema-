@@ -238,12 +238,15 @@ if ($method === 'POST') {
         case 'card':
             $ok = Anonymizer::card($entidadeId, $motivo, $userId, $reqId ?: null);
             break;
+        case 'cliente':
+            $ok = Anonymizer::cliente($entidadeId, $motivo, $userId, $reqId ?: null);
+            break;
         case 'processo':
         case 'processoparte':
             $ok = Anonymizer::processoParte($entidadeId, $motivo, $userId, $reqId ?: null);
             break;
         default:
-            ApiResponse::badRequest('entidade desconhecida (use user|contato|card|processo)');
+            ApiResponse::badRequest('entidade desconhecida (use user|contato|card|cliente|processo)');
     }
     if (!$ok) ApiResponse::notFound("{$entidade} #{$entidadeId} não encontrado");
 

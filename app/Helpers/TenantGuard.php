@@ -32,6 +32,15 @@ class TenantGuard
         self::_assertResource($ctx, 'cards', 'card', $cardId, 'c.deleted_at IS NULL', 'c');
     }
 
+    /**
+     * Verifica acesso a um cliente (modulo Clientes). Aborta 403 se fora do tenant.
+     * Usado ao vincular cliente a processo (processes.php) — espelha assertCardAcessivel.
+     */
+    public static function assertClienteAcessivel(AccountContext $ctx, int $clienteId): void
+    {
+        self::_assertResource($ctx, 'clientes', 'cliente', $clienteId, 'cl.deleted_at IS NULL', 'cl');
+    }
+
     public static function assertTaskAcessivel(AccountContext $ctx, int $taskId): void
     {
         // Tarefa não tem account_id direto; herda via board_id → task_boards.account_id.
@@ -74,7 +83,11 @@ class TenantGuard
         string $extraWhere = '1',
         string $alias = 'p'
     ): void {
-        $module    = $resourceType === 'card' ? 'prospeccao' : 'processos';
+        // Mapeia o tipo de recurso pro modulo de escopo de tenant correto.
+        // (antes era binario card->prospeccao, resto->processos, o que escopava
+        //  'cliente' no modulo errado.)
+        $moduleMap = ['card' => 'prospeccao', 'cliente' => 'clientes', 'processo' => 'processos'];
+        $module    = $moduleMap[$resourceType] ?? 'processos';
         $tenantIds = $ctx->getAccessibleAccountIds($module);
         if (empty($tenantIds)) self::_forbid('Sem tenants acessíveis');
 

@@ -115,9 +115,32 @@ try {
                     if (!Team::findById($teamId, $accountId)) $teamId = null;
                 }
 
+                // SEGURANCA (auditoria 2026-06-01): valida tenant do card_id/user_id
+                // antes de gravar o vinculo (IDOR de escrita — antes aceitava ID de
+                // outro tenant). Se nao pertencer aos tenants acessiveis, descarta.
+                $linkCardId = isset($payload['card_id']) && $payload['card_id'] ? (int)$payload['card_id'] : null;
+                $linkUserId = isset($payload['user_id']) && $payload['user_id'] ? (int)$payload['user_id'] : null;
+                if ($linkCardId || $linkUserId) {
+                    $pdoChk = \App\Models\Database::getConnection();
+                    $accIds = $ctx->getAccessibleAccountIds('prospeccao');
+                    if (empty($accIds)) $accIds = [$accountId];
+                    $ph = implode(',', array_fill(0, count($accIds), '?'));
+                    if ($linkCardId) {
+                        $st = $pdoChk->prepare("SELECT 1 FROM cards WHERE id=? AND account_id IN ($ph) AND deleted_at IS NULL LIMIT 1");
+                        $st->execute(array_merge([$linkCardId], $accIds));
+                        if (!$st->fetchColumn()) $linkCardId = null; // descarta card de outro tenant
+                    }
+                    if ($linkUserId) {
+                        $accIdsU = $ctx->getAccessibleAccountIds('chat'); if (empty($accIdsU)) $accIdsU = [$accountId];
+                        $phU = implode(',', array_fill(0, count($accIdsU), '?'));
+                        $st = $pdoChk->prepare("SELECT 1 FROM users WHERE id=? AND account_id IN ($phU) AND deleted_at IS NULL LIMIT 1");
+                        $st->execute(array_merge([$linkUserId], $accIdsU));
+                        if (!$st->fetchColumn()) $linkUserId = null; // descarta user de outro tenant
+                    }
+                }
                 $linkData = [
-                    'linked_card_id' => $payload['card_id']  ?? null,
-                    'linked_user_id' => $payload['user_id']  ?? null,
+                    'linked_card_id' => $linkCardId,
+                    'linked_user_id' => $linkUserId,
                     'processo_ids'   => $processoIds,
                 ];
                 if ($teamId !== null) $linkData['team_id'] = $teamId;
@@ -125,11 +148,11 @@ try {
                 $msgModel->linkChat($instanceId, $jid, $linkData);
                 WebhookDispatcher::fire($accountId, 'whatsapp.vinculo', WebhookDispatcher::buildPayload('whatsapp.vinculo', [
                     'entity' => 'whatsapp_chat', 'entity_id' => null,
-                    'card_id' => $payload['card_id'] ?? null,
+                    'card_id' => $linkCardId,
                     'data' => [
                         'remote_jid'   => $jid,
-                        'card_id'      => $payload['card_id'] ?? null,
-                        'user_id'      => $payload['user_id'] ?? null,
+                        'card_id'      => $linkCardId,
+                        'user_id'      => $linkUserId,
                         'processo_ids' => $processoIds,
                         'team_id'      => $teamId,
                     ],

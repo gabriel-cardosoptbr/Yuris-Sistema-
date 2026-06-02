@@ -226,18 +226,22 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     const btn = document.getElementById('btnSave');
     if (btn) { btn.disabled = true; btn.textContent = 'Salvando…'; }
+    // CSRF (auditoria 2026-06-01): o endpoint exige token; sem isto o salvar
+    // SEMPRE falhava com "CSRF inválido". Lê do hidden input do form.
+    const csrfTok = (form.csrf_token && form.csrf_token.value) || window.YURIS_CSRF || '';
     const payload = {
       name:             form.name.value,
       enabled:          form.enabled.checked ? 1 : 0,
       whatsapp_number:  form.whatsapp_number.value,
       provider:         form.provider.value,
       api_key:          apiKeyInput ? apiKeyInput.value : form.api_key?.value || '',
-      prompt:           form.prompt.value
+      prompt:           form.prompt.value,
+      csrf_token:       csrfTok
     };
     try {
       const res = await fetch(API, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfTok },
         body: JSON.stringify(payload)
       });
       const j = await res.json();

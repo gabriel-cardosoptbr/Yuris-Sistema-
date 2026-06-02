@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/../../app/Models/Database.php';
 require_once __DIR__ . '/../../app/Models/Account.php';
+require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
+
+use App\Helpers\TenantGuard;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -10,6 +13,9 @@ if (empty($_SESSION['user_id'])) {
     echo json_encode(['error'=>'Unauthorized']);
     exit;
 }
+
+// CSRF (auditoria 2026-06-01): POST gravava periodo na sessao sem validar.
+TenantGuard::requireSameOriginOrCsrf();
 
 $method = $_SERVER['REQUEST_METHOD'];
 // GET: return current settings

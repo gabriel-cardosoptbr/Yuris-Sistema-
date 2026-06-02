@@ -127,6 +127,44 @@ final class Anonymizer
         return $ok;
     }
 
+    /**
+     * Anonimiza um CLIENTE (modulo Operacoes > Clientes) — PII pesada:
+     * nome, cpf_cnpj, rg, nome_mae, telefone, whatsapp, email, endereco completo.
+     * (auditoria 2026-06-01: a tabela clientes estava 100% fora do anonimizador.)
+     */
+    public static function cliente(int $id, ?string $motivo = null, ?int $byUserId = null, ?int $lgpdReqId = null): bool
+    {
+        $pdo = Database::getConnection();
+        $row = $pdo->prepare('SELECT id FROM clientes WHERE id = ? LIMIT 1');
+        $row->execute([$id]);
+        if (!$row->fetch(\PDO::FETCH_ASSOC)) return false;
+
+        $sql = "UPDATE clientes SET
+                  nome = :nome,
+                  cpf_cnpj = NULL,
+                  rg = NULL,
+                  nome_mae = NULL,
+                  telefone = NULL,
+                  whatsapp = NULL,
+                  email = NULL,
+                  cep = NULL, logradouro = NULL, numero = NULL, complemento = NULL,
+                  bairro = NULL, cidade = NULL, uf = NULL,
+                  observacoes = NULL,
+                  anonymized_at = NOW(),
+                  deletion_reason = :motivo
+                WHERE id = :id";
+        $ok = $pdo->prepare($sql)->execute([
+            'nome'   => self::PLACEHOLDER_NOME . ' #' . $id,
+            'motivo' => $motivo,
+            'id'     => $id,
+        ]);
+        if ($ok) {
+            self::log('cliente', $id, $motivo, $byUserId, $lgpdReqId,
+                ['nome','cpf_cnpj','rg','nome_mae','telefone','whatsapp','email','cep','logradouro','numero','complemento','bairro','cidade','uf','observacoes']);
+        }
+        return $ok;
+    }
+
     /** Anonimiza PARTE CONTRÁRIA de um processo (não o cliente representado). */
     public static function processoParte(int $id, ?string $motivo = null, ?int $byUserId = null, ?int $lgpdReqId = null): bool
     {
@@ -239,6 +277,7 @@ final class Anonymizer
                 'users'     => self::collectUsers($pdo, $email),
                 'contatos'  => self::collectContatos($pdo, $email),
                 'cards'     => self::collectCards($pdo, $email),
+                'clientes'  => self::collectClientes($pdo, $email),
                 'mensagens_whatsapp' => self::collectWhatsAppMessages($pdo, $email),
                 'aceites_termos'     => self::collectTermAcceptances($pdo, $email),
                 'consentimentos'     => self::collectConsents($pdo, $email),
@@ -299,6 +338,18 @@ final class Anonymizer
             'SELECT id, account_id, cliente_nome, empresa_nome, telefone_whatsapp, email,
                     descricao, status, created_at, anonymized_at
              FROM cards WHERE LOWER(email) = ? LIMIT 100'
+        );
+        $st->execute([$email]);
+        return $st->fetchAll(\PDO::FETCH_ASSOC);
+    }
+    private static function collectClientes(\PDO $pdo, string $email): array
+    {
+        // Inclui PII do modulo Clientes na portabilidade (auditoria 2026-06-01).
+        $st = $pdo->prepare(
+            'SELECT id, account_id, nome, cpf_cnpj, rg, nome_mae, telefone, whatsapp, email,
+                    cep, logradouro, numero, complemento, bairro, cidade, uf, origem, status,
+                    observacoes, created_at, anonymized_at
+             FROM clientes WHERE LOWER(email) = ? LIMIT 100'
         );
         $st->execute([$email]);
         return $st->fetchAll(\PDO::FETCH_ASSOC);

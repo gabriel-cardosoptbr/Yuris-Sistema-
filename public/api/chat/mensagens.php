@@ -6,7 +6,9 @@
  * POST                                       — envia mensagem
  */
 require_once __DIR__ . '/../../../app/Models/Database.php';
+require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 use App\Models\Database;
+use App\Helpers\AccountContext;
 
 session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');
@@ -14,6 +16,8 @@ header('Content-Type: application/json; charset=utf-8');
 $uid  = (int)($_SESSION['user_id']    ?? 0);
 $csrf = $_SESSION['csrf_token'] ?? '';
 if (!$uid) { http_response_code(401); echo json_encode(['error' => 'Não autenticado']); exit; }
+
+$ctx = AccountContext::fromSession();  // pra escopar validacao de mencoes por tenant
 
 $pdo    = Database::getConnection();
 $method = $_SERVER['REQUEST_METHOD'];
@@ -110,16 +114,23 @@ if ($method === 'POST') {
             if (!in_array($tipo, ['usuario','processo','card'])) continue;
             if (!$refId || !$texto || !$url) continue;
 
-            // Valida existência da referência
-            $valid = match($tipo) {
-                'usuario'  => $pdo->prepare('SELECT id FROM users WHERE id = ? AND deleted_at IS NULL LIMIT 1'),
-                'processo' => $pdo->prepare('SELECT id FROM processos WHERE id = ? LIMIT 1'),
-                'card'     => $pdo->prepare('SELECT id FROM cards WHERE id = ? LIMIT 1'),
+            // SEGURANCA (auditoria 2026-06-01): valida a referencia ESCOPADA por
+            // tenant. Antes, qualquer id existente era aceito (IDOR/enumeracao —
+            // dava pra mencionar processo/card/usuario de outro tenant).
+            $scopeMod = $tipo === 'card' ? 'prospeccao' : ($tipo === 'processo' ? 'processos' : 'chat');
+            $accIds   = $ctx->getAccessibleAccountIds($scopeMod);
+            if (empty($accIds)) continue;
+            $phRef = implode(',', array_fill(0, count($accIds), '?'));
+            $sqlRef = match($tipo) {
+                'usuario'  => "SELECT id FROM users     WHERE id = ? AND deleted_at IS NULL AND account_id IN ($phRef) LIMIT 1",
+                'processo' => "SELECT id FROM processos WHERE id = ? AND account_id IN ($phRef) LIMIT 1",
+                'card'     => "SELECT id FROM cards      WHERE id = ? AND account_id IN ($phRef) LIMIT 1",
                 default    => null,
             };
-            if (!$valid) continue;
-            $valid->execute([$refId]);
-            if (!$valid->fetchColumn()) continue;
+            if (!$sqlRef) continue;
+            $valid = $pdo->prepare($sqlRef);
+            $valid->execute(array_merge([$refId], $accIds));
+            if (!$valid->fetchColumn()) continue; // referencia fora do tenant — descarta mencao
 
             $stmtM->execute([$msgId, $tipo, $refId, $texto, $url]);
         }

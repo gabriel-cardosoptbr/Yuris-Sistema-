@@ -3,12 +3,18 @@ require_once __DIR__ . '/../../app/Models/Database.php';
 require_once __DIR__ . '/../../app/Models/Account.php';
 require_once __DIR__ . '/../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
 
 use App\Models\Database;
 use App\Helpers\AccountContext;
+use App\Helpers\TenantGuard;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
+
+// CSRF (auditoria 2026-06-01): POST/PUT/DELETE de metas exigiam zero validacao.
+// requireSameOriginOrCsrf aceita same-origin OU token — mesmo padrao de processes.php.
+TenantGuard::requireSameOriginOrCsrf();
 
 $ctx       = AccountContext::fromSession();
 $uid       = $ctx->getUserId();

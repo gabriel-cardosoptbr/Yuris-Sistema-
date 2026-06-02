@@ -283,8 +283,11 @@ try {
     echo json_encode(['ok' => true, 'event' => $event]);
 
 } catch (Throwable $e) {
+    // Nao vaza getMessage/file/line na resposta (LGPD/seguranca — auditoria 2026-06-01).
+    // Loga server-side pra diagnostico; cliente recebe so mensagem generica.
+    error_log('[whatsapp/webhook] ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
     http_response_code(500);
-    echo json_encode(['error' => 'Erro interno', 'msg' => $e->getMessage()]);
+    echo json_encode(['error' => 'Erro interno']);
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
