@@ -1864,7 +1864,7 @@ CREATE TABLE `subscriptions` (
   `account_id` int(11) NOT NULL,
   `plan_id` int(11) NOT NULL,
   `status` enum('trialing','active','past_due','canceled','unpaid','incomplete') NOT NULL DEFAULT 'trialing',
-  `billing_cycle` enum('monthly','yearly') NOT NULL DEFAULT 'monthly',
+  `billing_cycle` enum('monthly','quarterly','yearly') NOT NULL DEFAULT 'monthly',
   `trial_ends_at` datetime DEFAULT NULL,
   `current_period_start` datetime DEFAULT NULL,
   `current_period_end` datetime DEFAULT NULL,
