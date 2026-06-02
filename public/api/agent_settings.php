@@ -12,9 +12,18 @@
  *   AGORA:
  *     • Persistido em agent_configs (migration 048)
  *     • UNIQUE (account_id, user_id) — cada user tem sua config no tenant
- *     • api_key cifrada com AES-256-CBC (MFA_ENCRYPTION_KEY)
+ *     • api_key cifrada com AES-256-GCM (App\Helpers\Crypto / APP_ENCRYPTION_KEY)
  *     • GET retorna api_key ofuscada (****1234)
  *     • POST exige CSRF
+ *
+ * BAIXA #2 (auditoria 2026-06-01): a api_key era cifrada com TotpHelper
+ *   (AES-256-CBC + MFA_ENCRYPTION_KEY) — fora do padrão do resto do sistema, que
+ *   usa App\Helpers\Crypto (AES-256-GCM autenticado + APP_ENCRYPTION_KEY). Agora
+ *   gravamos SEMPRE com Crypto. Para não quebrar configs já salvas com a chave
+ *   antiga, a leitura tenta Crypto primeiro e, se falhar, cai para o formato CBC
+ *   legado (TotpHelper). O LLM/webhook usa o MESMO helper de leitura.
+ *   IMPACTO DE DEPLOY: descrito nos "risks" do pacote — chaves legadas continuam
+ *   legíveis; ao próximo save elas migram para GCM automaticamente.
  *
  * Endpoints:
  *   GET    → retorna config do user atual (api_key MASKED)
@@ -24,11 +33,13 @@ require_once __DIR__ . '/../../app/Models/Database.php';
 require_once __DIR__ . '/../../app/Models/Account.php';
 require_once __DIR__ . '/../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../app/Helpers/TotpHelper.php';   // reusa encryptSecret/decryptSecret
+require_once __DIR__ . '/../../app/Helpers/Crypto.php';        // cifragem padrão (GCM / APP_ENCRYPTION_KEY)
+require_once __DIR__ . '/../../app/Helpers/TotpHelper.php';    // só p/ ler configs LEGADAS (CBC / MFA_ENCRYPTION_KEY)
 require_once __DIR__ . '/../../app/Helpers/EnvLoader.php';
 
 use App\Models\Database;
 use App\Helpers\AccountContext;
+use App\Helpers\Crypto;
 use App\Helpers\TotpHelper;
 
 session_start();
@@ -59,6 +70,30 @@ function _loadRow(\PDO $pdo, int $accountId, int $userId): ?array
     return $row ?: null;
 }
 
+/**
+ * Decifra api_key_enc com compatibilidade de chave (BAIXA #2).
+ * Tenta primeiro o formato NOVO (Crypto / AES-256-GCM, prefixo "v1:"); se não bater,
+ * cai para o formato LEGADO (TotpHelper / AES-256-CBC, binário IV||cipher). Assim
+ * configs gravadas antes da padronização continuam legíveis até o próximo save.
+ * Retorna null se ambos falharem (chave indecifrável — não derruba o fluxo).
+ */
+function _decryptApiKey(?string $enc): ?string
+{
+    if ($enc === null || $enc === '') return null;
+    // Formato novo: começa com "v1:" (versionado pelo Crypto). Tenta GCM primeiro.
+    try {
+        return Crypto::decrypt($enc);
+    } catch (\Throwable $_) {
+        // Fallback legado: CBC com MFA_ENCRYPTION_KEY (configs anteriores à BAIXA #2).
+        try {
+            return TotpHelper::decryptSecret($enc);
+        } catch (\Throwable $_e) {
+            error_log('[agent_settings] api_key indecifrável (nem GCM nem CBC legado)');
+            return null;
+        }
+    }
+}
+
 // ─── GET ─────────────────────────────────────────────────────────────────────
 if ($method === 'GET') {
     $row = _loadRow($pdo, $accountId, $userId);
@@ -72,14 +107,11 @@ if ($method === 'GET') {
     }
 
     // Decifra api_key SOMENTE pra extrair últimos 4 (masked). Plain nunca volta na resposta.
+    // Usa _decryptApiKey (GCM novo, com fallback CBC legado — BAIXA #2).
     $masked = '';
     if (!empty($row['api_key_enc'])) {
-        try {
-            $plain  = TotpHelper::decryptSecret($row['api_key_enc']);
-            $masked = _maskApiKey($plain);
-        } catch (\Throwable $e) {
-            error_log('[agent_settings] falha ao decifrar api_key: ' . $e->getMessage());
-        }
+        $plain = _decryptApiKey($row['api_key_enc']);
+        if ($plain !== null) $masked = _maskApiKey($plain);
     }
 
     echo json_encode([
@@ -113,17 +145,19 @@ if ($method === 'POST') {
     $prompt         = isset($input['prompt'])          ? (string)$input['prompt']                : null;
 
     // Cifra api_key se foi fornecida NÃO-VAZIA. String vazia ignora (mantém existente).
-    // P1 LGPD: ENV pode não ter MFA_ENCRYPTION_KEY — tratar gracefully se acontecer.
+    // BAIXA #2: grava SEMPRE com App\Helpers\Crypto (AES-256-GCM / APP_ENCRYPTION_KEY).
+    // ENV pode não ter APP_ENCRYPTION_KEY — tratar gracefully se acontecer.
     $apiKeyEnc = null;
     $touchApiKey = false;
     if ($apiKey !== null && $apiKey !== '') {
         try {
-            $apiKeyEnc   = TotpHelper::encryptSecret($apiKey);
+            $apiKeyEnc   = Crypto::encrypt($apiKey);
             $touchApiKey = true;
         } catch (\Throwable $e) {
+            error_log('[agent_settings] APP_ENCRYPTION_KEY ausente/inválida ao cifrar api_key: ' . $e->getMessage());
             http_response_code(503);
             echo json_encode([
-                'error' => 'MFA_ENCRYPTION_KEY não configurada — api_key não pode ser cifrada com segurança. Defina no .env e tente novamente.'
+                'error' => 'APP_ENCRYPTION_KEY não configurada — api_key não pode ser cifrada com segurança. Defina no .env e tente novamente.'
             ]);
             exit;
         }
@@ -169,10 +203,8 @@ if ($method === 'POST') {
     $row = _loadRow($pdo, $accountId, $userId);
     $masked = '';
     if ($row && !empty($row['api_key_enc'])) {
-        try {
-            $plain  = TotpHelper::decryptSecret($row['api_key_enc']);
-            $masked = _maskApiKey($plain);
-        } catch (\Throwable $_e) {}
+        $plain = _decryptApiKey($row['api_key_enc']);
+        if ($plain !== null) $masked = _maskApiKey($plain);
     }
     // LGPD Etapa 4: trilha de auditoria — api_key NUNCA é registrada em claro,
     // apenas flag indicando se houve toque (touchApiKey).

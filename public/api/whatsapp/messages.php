@@ -20,7 +20,13 @@ header('Pragma: no-cache');
 
 $ctx       = AccountContext::fromSession();
 $accountId = $ctx->getAccountId();
-$tenantIds = $ctx->getAccessibleAccountIds('chat');
+// Auditoria 2026-06-01 BAIXA #23/#24: antes este conjunto era calculado e nunca
+// usado (dead code) e ainda divergia do módulo usado por media.php ('whatsapp').
+// Agora: (a) usa o módulo canônico 'whatsapp' (coerente com media.php — ambos
+// resolvem o mesmo conjunto matriz+filiais ativas, pois não há flag sync_whatsapp
+// dedicada) e (b) é efetivamente consumido abaixo como guarda de tenant.
+$tenantIds = $ctx->getAccessibleAccountIds('whatsapp');
+if (empty($tenantIds)) $tenantIds = [$accountId];
 
 $method    = $_SERVER['REQUEST_METHOD'];
 $remoteJid = trim($_GET['jid'] ?? '');
@@ -49,8 +55,12 @@ try {
     $row        = $instModel->findOrCreate($instName, '', $accountId);
     $instanceId = (int)$row['id'];
 
-    // Validação extra: garante que a instância pertence ao tenant
-    if ((int)($row['account_id'] ?? 0) !== $accountId) {
+    // Validação extra: garante que a instância pertence a uma conta acessível
+    // (matriz + filiais ativas). Usa $tenantIds — antes esse conjunto era morto
+    // (BAIXA #23). A instância é resolvida pela conta atual, então isto é uma
+    // guarda de defesa-em-profundidade alinhada ao escopo de media.php.
+    $instAccId = (int)($row['account_id'] ?? 0);
+    if ($instAccId !== $accountId && !in_array($instAccId, array_map('intval', $tenantIds), true)) {
         http_response_code(403);
         echo json_encode(['error' => 'Instância WhatsApp não pertence a esta conta']);
         exit;

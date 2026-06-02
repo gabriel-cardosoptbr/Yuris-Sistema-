@@ -6,6 +6,15 @@ use App\Models\Database;
 class WebhookDispatcher
 {
     // ── Event catalog ─────────────────────────────────────────────────────────
+    //
+    // NOTA (auditoria 2026-06-01, achado BAIXA #28): este catalogo hardcoded e a
+    // FONTE DE VERDADE em runtime — a UI (public/webhooks.php) e a validacao de
+    // eventos (allEventKeys()) leem daqui. A tabela `webhook_events` (migration 068)
+    // e populada APENAS pelo seed database/seed_webhook_events.php e NAO e lida pelo
+    // app; serve como espelho/catalogo para consulta externa (ex.: BI), nao para o
+    // dispatcher. Decisao: manter o catalogo em codigo (zero query no hot path,
+    // versionado junto do dispatcher). Se um dia o catalogo precisar ser editavel
+    // pelo usuario, migrar a leitura para webhook_events de forma explicita.
     public static function catalog(): array
     {
         return [
@@ -326,6 +335,41 @@ class WebhookDispatcher
         }
     }
 
+    /**
+     * FIX #28 (auditoria 2026-06-01): entrega de TESTE para UM endpoint especifico,
+     * SEM passar por findSubscribers(). O botao "Testar" antes chamava fire(), que
+     * filtrava por assinatura — um webhook que nao assinava 'webhook.test' recebia
+     * zero entregas mas a UI mostrava "Teste enviado" (falso sucesso). Aqui forcamos
+     * a entrega ao endpoint informado e devolvemos o resultado REAL (status HTTP),
+     * pra UI refletir a saude verdadeira do endpoint.
+     *
+     * @param array $hook Linha completa de webhook_endpoints (ja filtrada por tenant pelo caller).
+     * @return array{delivery_id:?int, status:string, http_status:?int} resultado da entrega sincrona.
+     */
+    public static function deliverTest(\PDO $pdo, array $hook, array $v1Payload): array
+    {
+        require_once __DIR__ . '/WebhookPayloadBuilder.php';
+        $eventKey   = 'webhook.test';
+        $eventId    = WebhookPayloadBuilder::generateEventId();
+        $deliveryId = self::enqueueDelivery($pdo, $hook, $eventKey, $eventId, $v1Payload);
+        if (!$deliveryId) {
+            return ['delivery_id' => null, 'status' => 'error', 'http_status' => null];
+        }
+        // Entrega sincrona SEMPRE (teste manual precisa de feedback imediato), mesmo
+        // que o modo global seja async — o worker so processaria depois.
+        self::tryDeliver($pdo, $hook, $eventKey, $v1Payload, $deliveryId, 1, $eventId);
+
+        // Le o resultado consolidado da entrega pra reportar honestamente.
+        $st = $pdo->prepare("SELECT status, response_status FROM webhook_deliveries WHERE id = ? LIMIT 1");
+        $st->execute([$deliveryId]);
+        $row = $st->fetch(\PDO::FETCH_ASSOC) ?: [];
+        return [
+            'delivery_id' => $deliveryId,
+            'status'      => (string)($row['status'] ?? 'pending'),
+            'http_status' => isset($row['response_status']) ? (int)$row['response_status'] : null,
+        ];
+    }
+
     /** Wrapper usado pelo worker (bin/webhook_worker.php) ao consumir 1 row de webhook_deliveries. */
     public static function processDelivery(\PDO $pdo, array $delivery): void
     {
@@ -356,17 +400,92 @@ class WebhookDispatcher
         if ($accountId === null) {
             error_log("[WebhookDispatcher] WARNING: fire(null, '{$eventKey}') — entrega global. Identifique o accountId apropriado.");
             $stmt = $pdo->query("SELECT * FROM webhook_endpoints WHERE ativo = 1 AND deleted_at IS NULL");
-        } else {
+            $hooks = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            return self::filterBySubscription($hooks, $eventKey);
+        }
+
+        // ── FIX #21 (auditoria 2026-06-01): a coluna `escopo` era totalmente orfa.
+        // findSubscribers() filtrava SO account_id = ?, entao um webhook de matriz
+        // com escopo='matriz_e_filiais' NUNCA era encontrado quando uma FILIAL
+        // disparava um evento (o fire() vem com o account_id da filial). Aqui
+        // expandimos o conjunto de contas-alvo via account_vinculos (status='active'),
+        // espelhando a regra canonica matriz<->filial — o vinculo vive SEMPRE em
+        // account_vinculos (accounts.matriz_id e sempre NULL). Nao usamos
+        // AccountContext::getAccessibleAccountIds() porque o dispatcher roda fora de
+        // contexto de sessao (eventos disparam de cards.php, prazos, worker, etc.).
+        $relatedIds = self::relatedAccountIds($pdo, $accountId); // [matriz?, ...filiais]
+
+        // Conjunto candidato: SEMPRE os webhooks do proprio tenant originador +
+        // (quando ha contas vinculadas) os webhooks das contas relacionadas QUE
+        // optaram por escopo='matriz_e_filiais'. Sem vinculos ativos, cai no
+        // comportamento original (so o proprio account_id) — evita IN () invalido.
+        if (empty($relatedIds)) {
             $stmt = $pdo->prepare("SELECT * FROM webhook_endpoints WHERE ativo = 1 AND deleted_at IS NULL AND account_id = ?");
             $stmt->execute([$accountId]);
+        } else {
+            $placeholders = implode(',', array_fill(0, count($relatedIds), '?'));
+            $sql = "SELECT * FROM webhook_endpoints
+                     WHERE ativo = 1 AND deleted_at IS NULL
+                       AND (
+                         account_id = ?
+                         OR (account_id IN ($placeholders) AND escopo = 'matriz_e_filiais')
+                       )";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute(array_merge([$accountId], $relatedIds));
         }
         $hooks = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        return self::filterBySubscription($hooks, $eventKey);
+    }
+
+    /**
+     * Resolve as contas relacionadas ao tenant originador via account_vinculos
+     * (status='active'), nos DOIS sentidos:
+     *   - se o originador e uma FILIAL → devolve a matriz vinculada;
+     *   - se o originador e uma MATRIZ → devolve as filiais vinculadas.
+     * Assim um webhook 'matriz_e_filiais' da matriz recebe eventos das filiais e
+     * vice-versa. Retorna array (possivelmente vazio) de ints distintos, sem o
+     * proprio $accountId (esse ja entra incondicionalmente no SELECT).
+     */
+    private static function relatedAccountIds(\PDO $pdo, int $accountId): array
+    {
+        $ids = [];
+        try {
+            // Originador como filial → matriz(es)
+            $st = $pdo->prepare(
+                "SELECT matriz_account_id AS rel FROM account_vinculos
+                  WHERE filial_account_id = ? AND status = 'active'
+                 UNION
+                 SELECT filial_account_id AS rel FROM account_vinculos
+                  WHERE matriz_account_id = ? AND status = 'active'"
+            );
+            $st->execute([$accountId, $accountId]);
+            foreach ($st->fetchAll(\PDO::FETCH_COLUMN) as $rel) {
+                $rel = (int)$rel;
+                if ($rel > 0 && $rel !== $accountId) $ids[$rel] = true;
+            }
+        } catch (\Throwable $e) {
+            error_log('[WebhookDispatcher] relatedAccountIds error: ' . $e->getMessage());
+        }
+        return array_keys($ids);
+    }
+
+    /** Mantem apenas hooks cuja lista `eventos` assina o evento (ou '*'). */
+    private static function filterBySubscription(array $hooks, string $eventKey): array
+    {
         return array_values(array_filter($hooks, function ($h) use ($eventKey) {
             $eventos = json_decode($h['eventos'] ?? '[]', true) ?: [];
             return in_array('*', $eventos, true) || in_array($eventKey, $eventos, true);
         }));
     }
 
+    // NOTA (auditoria 2026-06-01, achado BAIXA #27): a fila de eventos vive em
+    // `webhook_deliveries` (state machine: pending/retrying/success/failed/canceled),
+    // consumida pelo worker bin/webhook_worker.php. A tabela `webhook_event_queue`
+    // (migration 070) foi criada mas NUNCA usada — `webhook_deliveries` (migration 069)
+    // a substituiu antes de qualquer codigo passar a escrever nela. Nao ha codigo
+    // referenciando webhook_event_queue em lugar nenhum (a tabela permanece no banco,
+    // a ser dropada em migration dedicada com controle). Toda enfileiramento e aqui.
     private static function enqueueDelivery(\PDO $pdo, array $hook, string $eventKey, string $eventId, array $v1Payload): ?int
     {
         try {
@@ -475,13 +594,10 @@ class WebhookDispatcher
             }
         }
 
-        // Dual-write em webhook_logs (compat com painel atual; removido na etapa 8).
-        try {
-            $pdo->prepare("INSERT INTO webhook_logs (webhook_id, event_key, payload, response_status, response_body, duration_ms, success, created_at) VALUES (?,?,?,?,?,?,?,NOW())")
-                ->execute([$hook['id'], $eventKey, $body, $status, substr($resp ?? '', 0, 2000), $ms, $success ? 1 : 0]);
-        } catch (\Throwable $e) {
-            error_log('[WebhookDispatcher] webhook_logs dual-write error: ' . $e->getMessage());
-        }
+        // FIX #22 (auditoria 2026-06-01): removido o dual-write morto em webhook_logs.
+        // O painel e todas as leituras (public/api/webhooks.php action=logs/list/get)
+        // usam webhook_deliveries desde a Etapa 8; webhook_logs nao tem mais consumidor.
+        // A tabela legada nao e dropada aqui (fica para migration dedicada com controle).
     }
 
     private static function finalizeDelivery(\PDO $pdo, int $deliveryId, string $status, ?int $httpStatus, int $ms, ?string $body, ?string $erro, ?string $resp, ?array $headerLines): void

@@ -67,9 +67,9 @@ $kpis = [
 // ─── Receita prevista (MRR) ────────────────────────────────────────────────
 $mrrCents = (int) $pdo->query(
     "SELECT COALESCE(SUM(
-        CASE WHEN s.billing_cycle = 'monthly'
-             THEN p.preco_mensal_cents
-             ELSE ROUND(p.preco_anual_cents / 12)
+        CASE WHEN s.billing_cycle = 'yearly'
+             THEN ROUND(p.preco_anual_cents / 12)
+             ELSE p.preco_mensal_cents
         END
      ), 0)
      FROM subscriptions s

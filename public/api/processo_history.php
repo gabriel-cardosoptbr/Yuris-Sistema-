@@ -22,7 +22,11 @@ $tenantIds = $ctx->getAccessibleAccountIds('processos');
 
 $pdo = Database::getConnection();
 
-// Criar tabela processo_history se não existir
+// Criar tabela processo_history se não existir.
+// IMPORTANTE: o DDL inline DEVE espelhar o schema real (migrations 040 + 052),
+// pois o INSERT do POST abaixo e o ProcessoAudit gravam author_account_*/ip/
+// user_agent/request_id. Num banco fresco onde este endpoint rode antes dessas
+// migrations, omitir as colunas faria o INSERT do POST quebrar (500).
 $pdo->exec("CREATE TABLE IF NOT EXISTS processo_history (
     id INT AUTO_INCREMENT PRIMARY KEY,
     processo_id INT NOT NULL,
@@ -30,7 +34,15 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS processo_history (
     acao VARCHAR(100),
     descricao TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX(processo_id)
+    author_account_id INT NULL,
+    author_account_tipo VARCHAR(20) NULL,
+    author_account_nome VARCHAR(150) NULL,
+    ip VARCHAR(45) NULL,
+    user_agent VARCHAR(255) NULL,
+    request_id CHAR(12) NULL,
+    INDEX(processo_id),
+    INDEX idx_ph_author_account (author_account_id),
+    INDEX idx_request_id (request_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
 $method      = $_SERVER['REQUEST_METHOD'];

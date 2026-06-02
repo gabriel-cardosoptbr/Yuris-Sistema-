@@ -101,9 +101,13 @@ if ($method === 'POST') {
 
     // Salva menções validadas
     if (is_array($mencoes)) {
+        // BAIXA #1 (auditoria 2026-06-01): grava account_id do contexto. Antes
+        // ficava NULL (a coluna existe desde a migration 037 mas o INSERT nunca
+        // a preenchia), quebrando filtros/relatórios escopados por tenant.
+        $myAccountId = $ctx->getAccountId();
         $stmtM = $pdo->prepare(
-            'INSERT INTO chat_mencoes (mensagem_id, tipo, referencia_id, texto_exibido, url_destino)
-             VALUES (?, ?, ?, ?, ?)'
+            'INSERT INTO chat_mencoes (mensagem_id, tipo, referencia_id, texto_exibido, url_destino, account_id)
+             VALUES (?, ?, ?, ?, ?, ?)'
         );
         foreach ($mencoes as $m) {
             $tipo   = $m['tipo']          ?? '';
@@ -111,20 +115,29 @@ if ($method === 'POST') {
             $texto  = substr(trim($m['texto_exibido'] ?? ''), 0, 200);
             $url    = substr(trim($m['url_destino']   ?? ''), 0, 500);
 
-            if (!in_array($tipo, ['usuario','processo','card'])) continue;
+            // ALTA #1: 'cliente' agora é um tipo de menção de primeira classe
+            // (a tabela `clientes`). Enum estendido na migration 094.
+            if (!in_array($tipo, ['usuario','processo','card','cliente'])) continue;
             if (!$refId || !$texto || !$url) continue;
 
             // SEGURANCA (auditoria 2026-06-01): valida a referencia ESCOPADA por
             // tenant. Antes, qualquer id existente era aceito (IDOR/enumeracao —
-            // dava pra mencionar processo/card/usuario de outro tenant).
-            $scopeMod = $tipo === 'card' ? 'prospeccao' : ($tipo === 'processo' ? 'processos' : 'chat');
+            // dava pra mencionar processo/card/usuario de outro tenant). Cada tipo
+            // usa o escopo do SEU módulo (respeita sync_<modulo> por filial).
+            $scopeMod = match($tipo) {
+                'card'     => 'prospeccao',
+                'processo' => 'processos',
+                'cliente'  => 'clientes',
+                default    => 'chat',
+            };
             $accIds   = $ctx->getAccessibleAccountIds($scopeMod);
             if (empty($accIds)) continue;
             $phRef = implode(',', array_fill(0, count($accIds), '?'));
             $sqlRef = match($tipo) {
                 'usuario'  => "SELECT id FROM users     WHERE id = ? AND deleted_at IS NULL AND account_id IN ($phRef) LIMIT 1",
-                'processo' => "SELECT id FROM processos WHERE id = ? AND account_id IN ($phRef) LIMIT 1",
-                'card'     => "SELECT id FROM cards      WHERE id = ? AND account_id IN ($phRef) LIMIT 1",
+                'processo' => "SELECT id FROM processos WHERE id = ? AND deleted_at IS NULL AND account_id IN ($phRef) LIMIT 1",
+                'card'     => "SELECT id FROM cards      WHERE id = ? AND deleted_at IS NULL AND account_id IN ($phRef) LIMIT 1",
+                'cliente'  => "SELECT id FROM clientes   WHERE id = ? AND deleted_at IS NULL AND account_id IN ($phRef) LIMIT 1",
                 default    => null,
             };
             if (!$sqlRef) continue;
@@ -132,7 +145,7 @@ if ($method === 'POST') {
             $valid->execute(array_merge([$refId], $accIds));
             if (!$valid->fetchColumn()) continue; // referencia fora do tenant — descarta mencao
 
-            $stmtM->execute([$msgId, $tipo, $refId, $texto, $url]);
+            $stmtM->execute([$msgId, $tipo, $refId, $texto, $url, $myAccountId]);
         }
     }
 

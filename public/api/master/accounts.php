@@ -182,6 +182,60 @@ if ($method === 'PATCH') {
         if (!in_array($input['tipo'], ['matriz','filial','advogado'], true)) {
             ApiResponse::badRequest('tipo inválido');
         }
+        // Só processa se o tipo realmente muda (PATCH idempotente não bloqueia).
+        if ($input['tipo'] !== $prev['tipo']) {
+            // Trocar o tipo sem ajustar account_vinculos deixaria a herança
+            // matriz↔filial incoerente (o vínculo é quem governa o acesso, não
+            // accounts.tipo). Em vez de mutar vínculos silenciosamente (arriscado),
+            // BLOQUEAMOS a troca enquanto existirem vínculos ativos que o novo
+            // tipo tornaria órfãos. O operador deve primeiro desvincular pelo
+            // fluxo próprio (account_vinculos) e só então trocar o tipo.
+
+            // Como matriz: possui filiais vinculadas (matriz_account_id = :id)?
+            $stFil = $pdo->prepare(
+                "SELECT COUNT(*) FROM account_vinculos
+                 WHERE matriz_account_id = :id AND status IN ('active','pending','suspended')"
+            );
+            $stFil->execute(['id' => $id]);
+            $temFiliais = (int) $stFil->fetchColumn();
+
+            // Como filial: está vinculada a alguma matriz (filial_account_id = :id)?
+            $stMat = $pdo->prepare(
+                "SELECT COUNT(*) FROM account_vinculos
+                 WHERE filial_account_id = :id AND status IN ('active','pending','suspended')"
+            );
+            $stMat->execute(['id' => $id]);
+            $temMatriz = (int) $stMat->fetchColumn();
+
+            // Sair de 'matriz' com filiais vinculadas → órfãs.
+            if ($prev['tipo'] === 'matriz' && $temFiliais > 0) {
+                ApiResponse::badRequest(
+                    'Não é possível alterar o tipo: esta matriz possui ' . $temFiliais .
+                    ' filial(is) vinculada(s). Desvincule as filiais antes de trocar o tipo.'
+                );
+            }
+            // Sair de 'filial' com vínculo ativo a uma matriz → vínculo incoerente.
+            if ($prev['tipo'] === 'filial' && $temMatriz > 0) {
+                ApiResponse::badRequest(
+                    'Não é possível alterar o tipo: esta filial está vinculada a uma matriz. ' .
+                    'Remova o vínculo antes de trocar o tipo.'
+                );
+            }
+            // Virar 'matriz' enquanto ainda é filial vinculada → conflito de papel.
+            if ($input['tipo'] === 'matriz' && $temMatriz > 0) {
+                ApiResponse::badRequest(
+                    'Não é possível tornar esta conta matriz: ela está vinculada a outra matriz como filial. ' .
+                    'Remova o vínculo primeiro.'
+                );
+            }
+            // Virar 'filial'/'advogado' enquanto tem filiais sob si → órfãs.
+            if (in_array($input['tipo'], ['filial','advogado'], true) && $temFiliais > 0) {
+                ApiResponse::badRequest(
+                    'Não é possível alterar o tipo: esta conta possui ' . $temFiliais .
+                    ' filial(is) vinculada(s) como matriz. Desvincule-as primeiro.'
+                );
+            }
+        }
         $fields[] = 'tipo = :tipo'; $params['tipo'] = $input['tipo'];
     }
     if (isset($input['plano']))        { $fields[] = 'plano = :plano';        $params['plano']        = $input['plano']; }

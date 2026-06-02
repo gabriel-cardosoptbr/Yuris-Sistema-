@@ -37,6 +37,14 @@ if ($method === 'GET') {
 }
 
 if ($method === 'PATCH') {
+    // CSRF obrigatório em mutações (regra canônica): header X-CSRF-Token ou body.
+    $csrf = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($input['csrf_token'] ?? ($_POST['csrf_token'] ?? null));
+    if (!$csrf || !hash_equals($_SESSION['csrf_token'] ?? '', (string) $csrf)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Token CSRF inválido']);
+        exit;
+    }
+
     if (!empty($input['all'])) {
         $count = AccountNotification::marcarTodasLidas($ctx->getUserId(), $ctx->getAccountId());
         echo json_encode(['success' => true, 'marcadas' => $count]);
@@ -45,7 +53,7 @@ if ($method === 'PATCH') {
 
     $id = (int) ($input['id'] ?? 0);
     if (!$id) { http_response_code(400); echo json_encode(['error' => 'id obrigatório']); exit; }
-    $ok = AccountNotification::marcarLida($id, $ctx->getUserId());
+    $ok = AccountNotification::marcarLida($id, $ctx->getUserId(), $ctx->getAccountId());
     echo json_encode(['success' => $ok]);
     exit;
 }

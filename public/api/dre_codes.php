@@ -13,8 +13,11 @@ header('Content-Type: application/json; charset=utf-8');
 
 $ctx       = AccountContext::fromSession();
 $accountId = $ctx->getAccountId();
-// Plano de contas (DRE codes) = CONFIGURAÇÃO da conta — isolamento 100% por tenant.
-$tenantIds = [$accountId];
+// Escopo CONSOLIDADO: a matriz enxerga o plano de contas das filiais/advogados vinculados,
+// coerente com financas.php (render) e com o dashboard. Antes hardcodava [$accountId], o que
+// deixava o <select> de códigos do DRE inconsistente com os lançamentos consolidados.
+$tenantIds = $ctx->getAccessibleAccountIds('financas');
+if (empty($tenantIds)) $tenantIds = [$accountId]; // guard: evita SQL "IN ()" inválido
 
 $method = $_SERVER['REQUEST_METHOD'];
 $input  = json_decode(file_get_contents('php://input'), true) ?? [];

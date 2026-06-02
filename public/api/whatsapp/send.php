@@ -22,9 +22,39 @@ if (empty($payload['_csrf']) || $payload['_csrf'] !== $csrf) {
     http_response_code(403); echo json_encode(['error' => 'CSRF inválido']); exit;
 }
 
+// ─── Allowlist de MIME para mídia (auditoria 2026-06-01 MEDIA #38) ───────────
+// Mantida em sincronia com a de public/api/whatsapp/media_upload.php. Usada para
+// revalidar, via finfo, o conteúdo real do base64 antes de enviar à Evolution.
+if (!defined('WA_ALLOWED_MIME')) {
+    define('WA_ALLOWED_MIME', [
+        // imagens
+        'image/jpeg','image/png','image/gif','image/webp',
+        // áudio (incluindo formatos do WhatsApp)
+        'audio/ogg','audio/mpeg','audio/mp4','audio/aac','audio/wav','audio/x-wav','audio/webm',
+        // vídeo
+        'video/mp4','video/quicktime','video/webm','video/x-msvideo','video/3gpp',
+        // documentos
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'text/plain','text/csv',
+        'application/zip','application/x-zip-compressed',
+    ]);
+}
+
 // P0 LGPD (1.8): contexto de tenant — settings/instance now per-tenant
 $ctx       = AccountContext::fromSession();
 $accountId = $ctx->getAccountId();
+
+// Auditoria 2026-06-01 MEDIA #32: todo o fluxo (DB + Evolution) roda dentro de
+// try/catch. Antes nao havia guarda: uma exceção (PDO/Evolution) escapava como
+// fatal/warning, podendo vazar caminho/SQL ao cliente. Agora vai pro ErrorReporter
+// (loga server-side, devolve generico em prod).
+try {
 
 $instModel  = new WhatsAppInstance();
 $msgModel   = new WhatsAppMessage();
@@ -32,6 +62,14 @@ $cfg        = $instModel->getSettings($accountId);
 $instName   = $cfg['evolution_instance'] ?? 'yuris-crm';
 $row        = $instModel->findOrCreate($instName, '', $accountId);
 $instanceId = (int)$row['id'];
+
+// Validação extra: garante isolamento por tenant (mesma checagem dos demais endpoints)
+if ((int)($row['account_id'] ?? 0) !== $accountId) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Instância WhatsApp não pertence a esta conta']);
+    exit;
+}
+
 $evo        = new EvolutionApiService($cfg);
 
 $remoteJid  = $payload['remote_jid'] ?? '';
@@ -45,6 +83,63 @@ $quotedId   = $payload['quoted_id']  ?? null;
 
 if (!$remoteJid) {
     http_response_code(400); echo json_encode(['error' => 'remote_jid obrigatório']); exit;
+}
+
+// ─── Auditoria 2026-06-01 MEDIA #38: validação de mídia server-side ──────────
+// media_upload.php (multipart) já validava MIME via finfo contra uma allowlist,
+// mas o fluxo real do chat manda o base64 direto pra cá (API.send) e este
+// endpoint NUNCA revalidava — confiava no `type`/`mimetype` do cliente (forjável).
+// Plugamos a MESMA allowlist aqui, no caminho que de fato é usado, decodificando
+// o base64 e conferindo os magic bytes do conteúdo real. Fecha a brecha e dá
+// propósito à lógica de validação antes órfã em media_upload.php.
+if ($type !== 'text') {
+    if ($mediaData === '') {
+        http_response_code(400); echo json_encode(['error' => 'mídia obrigatória para envio não-texto']); exit;
+    }
+    // Decodifica (removendo prefixo data:...;base64, se presente) para inspecionar bytes.
+    $rawB64 = str_contains($mediaData, ',') ? explode(',', $mediaData, 2)[1] : $mediaData;
+    $bin    = base64_decode($rawB64, true);
+    if ($bin === false || $bin === '') {
+        http_response_code(400); echo json_encode(['error' => 'mídia inválida (base64)']); exit;
+    }
+    $maxSize = 64 * 1024 * 1024; // 64 MB — mesmo limite do media_upload.php
+    if (strlen($bin) > $maxSize) {
+        http_response_code(400); echo json_encode(['error' => 'Arquivo muito grande (máx 64 MB)']); exit;
+    }
+    // finfo lê o MIME real do conteúdo (magic bytes), não o que o cliente declarou.
+    $detected = null;
+    if (function_exists('finfo_open')) {
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        if ($finfo) { $detected = finfo_buffer($finfo, $bin) ?: null; finfo_close($finfo); }
+    }
+    // Normaliza variações de container que o finfo reporta de forma genérica
+    // (ex.: áudio gravado no navegador como Opus-in-Ogg vem como application/ogg;
+    //  alguns ambientes reportam audio/x-wav). Sem isto, mensagens de voz legítimas
+    //  seriam bloqueadas — regressão. NÃO afrouxa exe/php/html (continuam fora).
+    $detected = strtolower(trim(explode(';', (string)$detected)[0]));
+    $aliases  = [
+        'application/ogg' => 'audio/ogg',
+        'audio/x-hx-aac-adts' => 'audio/aac',
+        'video/x-m4v' => 'video/mp4',
+    ];
+    if (isset($aliases[$detected])) $detected = $aliases[$detected];
+
+    // Estratégia de decisão (à prova de regressão):
+    //  1) finfo detectou e está na allowlist → usa o detectado (confiável).
+    //  2) finfo falhou/indisponível OU devolveu genérico (octet-stream) →
+    //     aceita o mimetype DECLARADO se ele estiver na allowlist.
+    //  3) caso contrário → bloqueia.
+    $declared = strtolower(trim(explode(';', (string)$mimetype)[0]));
+    if ($detected && in_array($detected, WA_ALLOWED_MIME, true)) {
+        $mimetype = $detected;
+    } elseif (($detected === '' || $detected === 'application/octet-stream')
+              && in_array($declared, WA_ALLOWED_MIME, true)) {
+        $mimetype = $declared;
+    } else {
+        http_response_code(400);
+        echo json_encode(['error' => 'Tipo de arquivo não permitido']);
+        exit;
+    }
 }
 
 // ── Resolve estrutura completa do quoted (se fornecido) ────────────────────
@@ -130,3 +225,10 @@ echo json_encode([
     'message_id' => $msgId,
     'wamid'      => $wamid,
 ]);
+
+} catch (\Throwable $e) {
+    // Auditoria 2026-06-01 MEDIA #32: loga server-side e devolve generico
+    // (nunca expõe $e->getMessage() em prod).
+    require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
+    \App\Helpers\ErrorReporter::handle($e);
+}

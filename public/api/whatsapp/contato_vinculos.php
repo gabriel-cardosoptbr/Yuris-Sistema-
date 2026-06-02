@@ -16,7 +16,12 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache, no-store, must-revalidate');
 
 $ctx       = AccountContext::fromSession();
-$tenantIds = $ctx->getAccessibleAccountIds('chat');
+// Auditoria 2026-06-01 BAIXA #24: usa o módulo canônico 'whatsapp' (coerente com
+// media.php). Funcionalmente idêntico a 'chat' (mesmo conjunto matriz+filiais
+// ativas), mas mantém os endpoints do pacote WhatsApp consistentes no escopo
+// cross-conta. Fallback p/ conta atual evita IN () vazio caso o set venha vazio.
+$tenantIds = $ctx->getAccessibleAccountIds('whatsapp');
+if (empty($tenantIds)) $tenantIds = [$ctx->getAccountId()];
 
 try {
     $pdo = \App\Models\Database::getConnection();
@@ -117,6 +122,8 @@ try {
     ]);
 
 } catch (\Throwable $e) {
-    http_response_code(500);
-    echo json_encode(['error' => $e->getMessage()]);
+    // Auditoria 2026-06-01 MEDIA #32: nao vaza $e->getMessage() em prod
+    // (antes devolvia a mensagem real no JSON). Loga server-side e devolve generico.
+    require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
+    \App\Helpers\ErrorReporter::handle($e);
 }

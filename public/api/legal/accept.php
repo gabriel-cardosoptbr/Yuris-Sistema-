@@ -8,6 +8,15 @@
  * Anti-replay: se já existe aceite recente do MESMO documento+user, não duplica.
  *
  * CSRF obrigatório.
+ *
+ * STATUS DE WIRING (auditoria #34): endpoint mantido PROPOSITALMENTE.
+ *   Hoje o aceite no login é gravado server-side no POST do próprio login.php
+ *   (campo aceite_termos) e a detecção usa GET /api/auth/check_terms.php. Este
+ *   endpoint é a via versionada/anti-replay para RE-aceite de uma nova versão de
+ *   termo (modal de re-aceite, signup, ou app externo) — fluxos que NÃO devem
+ *   gravar manualmente em term_acceptances. Não remover: é a API canônica de
+ *   gravação de aceite. O fetch que o consome (header X-CSRF-Token) deve viver
+ *   no banner/modal de re-aceite em login.php (arquivo de outro dono — ver risks).
  */
 require_once __DIR__ . '/../../../app/Models/Database.php';
 require_once __DIR__ . '/../../../app/Models/LegalDocument.php';

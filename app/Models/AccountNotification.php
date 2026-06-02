@@ -65,15 +65,18 @@ class AccountNotification
         return (int) $pdo->lastInsertId();
     }
 
-    public static function marcarLida(int $id, int $userId): bool
+    public static function marcarLida(int $id, int $userId, int $accountId): bool
     {
+        // Escopo por tenant (Auditoria 2026-06-01, BAIXA #3): notificações de
+        // conta (user_id IS NULL) poderiam ser marcadas por usuário de outro
+        // tenant adivinhando o id. Exigir account_id fecha essa escrita cross-tenant.
         $pdo  = Database::getConnection();
         $stmt = $pdo->prepare(
             'UPDATE account_notifications
              SET lida = 1, lida_em = NOW()
-             WHERE id = :id AND (user_id = :uid OR user_id IS NULL)'
+             WHERE id = :id AND account_id = :acc AND (user_id = :uid OR user_id IS NULL)'
         );
-        return $stmt->execute(['id' => $id, 'uid' => $userId]);
+        return $stmt->execute(['id' => $id, 'acc' => $accountId, 'uid' => $userId]);
     }
 
     public static function marcarTodasLidas(int $userId, int $accountId): int

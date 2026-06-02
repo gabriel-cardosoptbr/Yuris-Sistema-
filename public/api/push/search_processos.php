@@ -37,8 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 }
 
 try {
-    $ctx       = AccountContext::fromSession();
-    $accountId = $ctx->getAccountId();
+    $ctx   = AccountContext::fromSession();
 
     $q     = trim((string)($_GET['q'] ?? ''));
     $limit = max(1, min(50, (int)($_GET['limit'] ?? 10)));
@@ -64,8 +63,24 @@ try {
         if (isset($colsSet[$c])) $selectCols[] = 'p.' . $c;
     }
 
-    $where  = ['p.account_id = :acc'];
-    $params = ['acc' => $accountId];
+    // Multi-tenant: a matriz precisa achar processos das filiais ao vincular
+    // uma intimação. Antes filtrava só p.account_id=:acc (achado ALTA #12),
+    // o que escondia os processos de filial. Usamos getAccessibleAccountIds
+    // ('processos') — mesma fonte canônica de processes.php (account_vinculos +
+    // resource shares), respeitando sync_processos por filial.
+    $accIds = $ctx->getAccessibleAccountIds('processos');
+    if (empty($accIds)) {
+        echo json_encode(['ok' => true, 'total' => 0, 'items' => []]);
+        exit;
+    }
+    $accPh  = [];
+    $params = [];
+    foreach ($accIds as $i => $aid) {
+        $k = "acc{$i}";
+        $accPh[]      = ":{$k}";
+        $params[$k]   = (int)$aid;
+    }
+    $where  = ['p.account_id IN (' . implode(',', $accPh) . ')'];
 
     // Filtro opcional: só aplica se q tiver pelo menos 2 chars
     if (mb_strlen($q) >= 2) {

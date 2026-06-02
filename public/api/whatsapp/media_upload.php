@@ -1,9 +1,16 @@
 <?php
 /**
- * media_upload.php — recebe arquivo via multipart ou base64 JSON.
- * Retorna base64 para envio direto à Evolution API.
+ * media_upload.php — recebe arquivo via multipart e devolve base64 + MIME validado.
+ *
+ * Auditoria 2026-06-01 MEDIA #38: este endpoint (mapeado em chat.php como
+ * `API.upload`) é o caminho de upload MULTIPART. O fluxo atual do chat lê o
+ * arquivo no cliente (FileReader) e manda o base64 direto pro send.php; por isso
+ * a MESMA allowlist/validação finfo foi plugada em send.php, que é o caminho de
+ * fato exercido. Mantemos este endpoint como validador multipart reutilizável
+ * (resposta JSON com base64 já validado por magic bytes).
  */
 require_once __DIR__ . '/../../../app/Models/Database.php';
+require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -36,6 +43,10 @@ const WA_ALLOWED_MIME = [
     'application/zip','application/x-zip-compressed',
 ];
 // ────────────────────────────────────────────────────────────────────────────
+
+// Auditoria 2026-06-01 MEDIA #32: envolve o processamento em try/catch para
+// nunca vazar detalhes de exceção (finfo/IO) ao cliente — loga e devolve generico.
+try {
 
 // ── Suporte a multipart/form-data (file upload real) ─────────────────────
 if (!empty($_FILES['file'])) {
@@ -87,6 +98,10 @@ if (!empty($_FILES['file'])) {
 // ── Fallback: nenhum arquivo ─────────────────────────────────────────────
 http_response_code(400);
 echo json_encode(['error' => 'Nenhum arquivo enviado']);
+
+} catch (\Throwable $e) {
+    \App\Helpers\ErrorReporter::handle($e);
+}
 
 function detectMediaType(string $mime): string
 {

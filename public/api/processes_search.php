@@ -27,11 +27,27 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 $q   = trim($_GET['q'] ?? '');
 $pdo = Database::getConnection();
 
+// Multi-tenant: a matriz precisa ver processos das filiais no autocomplete
+// (achado MEDIA #18). Antes escopava só account_id próprio; usamos
+// getAccessibleAccountIds('processos') — fonte canônica (account_vinculos +
+// shares), coerente com /api/processes.php e push/search_processos.php.
+$accIds = $ctx->getAccessibleAccountIds('processos');
+if (empty($accIds)) {
+    echo json_encode(['data' => []]);
+    exit;
+}
+$accPh  = [];
+$params = [];
+foreach ($accIds as $i => $aid) {
+    $k = "acc{$i}";
+    $accPh[]    = ":{$k}";
+    $params[$k] = (int)$aid;
+}
+
 $sql    = 'SELECT id, numero, cliente_nome
            FROM processos
-           WHERE account_id = :account_id
+           WHERE account_id IN (' . implode(',', $accPh) . ')
              AND deleted_at IS NULL';
-$params = ['account_id' => $ctx->getAccountId()];
 
 if ($q !== '') {
     $sql .= ' AND (numero LIKE :q OR cliente_nome LIKE :q)';

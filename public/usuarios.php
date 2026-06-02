@@ -930,7 +930,20 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
                   <option value="user" selected>Usuário</option>
                 </select>
               </div>
+              <!-- Nível de acesso (role) — hierarquia owner>admin>manager>user>viewer.
+                   Perfil controla a UI de permissões por página; role define o nível
+                   funcional usado pelo AccountContext (audit #26). -->
               <div class="field-group">
+                <label class="field-label">Nível de acesso</label>
+                <select name="role" class="field-input">
+                  <option value="owner">Proprietário</option>
+                  <option value="admin">Administrador</option>
+                  <option value="manager">Gerente</option>
+                  <option value="user" selected>Usuário</option>
+                  <option value="viewer">Visualizador</option>
+                </select>
+              </div>
+              <div class="field-group" style="grid-column:1/-1">
                 <label class="field-label">Senha inicial</label>
                 <div class="field-wrap-rel">
                   <input id="create_senha" name="senha" type="password" class="field-input" placeholder="Senha de acesso" required style="padding-right:34px">
@@ -998,11 +1011,17 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
                   <option value="user">Usuário</option>
                 </select>
               </div>
-              <div class="field-group">
-                <label class="field-label">Senha atual</label>
-                <input id="edit_senha_atual" type="text" class="field-input" readonly
-                  placeholder="Não registrada"
-                  style="font-family:monospace;background:rgba(5,18,39,.5)!important;cursor:default;color:#6ee7b7!important;">
+              <!-- Nível de acesso (role) — agora editável (audit #26). Substituiu o
+                   campo morto "Senha atual" (audit #21: senha_plain era sempre vazio). -->
+              <div class="field-group" id="editRoleGroup">
+                <label class="field-label">Nível de acesso</label>
+                <select name="role" id="editRole" class="field-input">
+                  <option value="owner">Proprietário</option>
+                  <option value="admin">Administrador</option>
+                  <option value="manager">Gerente</option>
+                  <option value="user">Usuário</option>
+                  <option value="viewer">Visualizador</option>
+                </select>
               </div>
             </div>
             <div class="usr-modal-fields" style="padding-top:0">
@@ -1382,15 +1401,9 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
         form.querySelector('[name=nome]').value  = u.nome  || '';
         form.querySelector('[name=email]').value = u.email || '';
 
-        // pre-fill password if returned (admin or self)
-        // campo leitura — senha atual
-        const senhaAtualEl = document.getElementById('edit_senha_atual');
-        if (senhaAtualEl) {
-          senhaAtualEl.value = u.senha_plain || '';
-          senhaAtualEl.placeholder = u.senha_plain ? '' : 'Não registrada — salve uma nova senha';
-          senhaAtualEl.style.borderColor = u.senha_plain ? 'rgba(16,185,129,.3)' : 'rgba(245,158,11,.3)';
-        }
         // campo nova senha — sempre limpo
+        // (audit #21: removido o antigo campo "Senha atual"/senha_plain, que era
+        //  caminho morto — a senha em texto plano foi eliminada do schema na Fase 0.)
         const senhaInput = form.querySelector('[name=senha]');
         senhaInput.value = '';
         senhaInput.placeholder = 'Digite para alterar a senha';
@@ -1399,6 +1412,14 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
         const perfilSel = document.getElementById('editPerfil');
         perfilSel.value    = u.perfil || 'user';
         perfilSel.disabled = isRoot;
+
+        // nível de acesso (role) — audit #26. Default 'user' quando ausente.
+        // Bloqueado pro usuário raiz (id=1), igual ao perfil.
+        const roleSel = document.getElementById('editRole');
+        if (roleSel) {
+          roleSel.value    = u.role || 'user';
+          roleSel.disabled = isRoot;
+        }
 
         // delete button: hide for root
         const delBtn = document.getElementById('deleteUser');

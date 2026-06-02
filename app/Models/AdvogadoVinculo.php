@@ -15,12 +15,13 @@ use App\Models\Database;
  *   - `advogado_account_id` deve ser uma conta tipo='advogado'
  *   - sync_enabled + sync_<modulo> idênticos a account_vinculos
  *
- * Fluxo padrão:
+ * Fluxo padrão (consentimento obrigatório do advogado):
  *   1. Host (matriz/filial) obtém codigo_advogado (ADV-XXXXXX) do advogado
  *   2. Host chama POST /api/advogado_vinculos com o código → status='pending'
- *      (ou já 'active' se for criação direta pelo host com auto-approve)
+ *      e sync_*=0 (host ainda NÃO vê nada do advogado)
  *   3. Notificação para o advogado
- *   4. Advogado aceita → status='active'
+ *   4. Advogado aceita → status='active' (sync ainda desligado)
+ *   5. Host habilita os módulos desejados via updateSync() → passa a sincronizar
  *
  * @see app/Models/AccountVinculo.php — modelo análogo para matriz↔filial
  */
@@ -119,8 +120,14 @@ class AdvogadoVinculo
     /**
      * Cria solicitação de vínculo.
      * Idempotente: se já existe vínculo pending/active, retorna o ID existente.
-     * Se $autoActivate=true, já cria como 'active' (uso: matriz convidou e
-     * o advogado pode aceitar implicitamente — fluxo simplificado).
+     * Se $autoActivate=true, já cria como 'active' (uso interno/legado).
+     *
+     * SEGURANÇA (consentimento do advogado): quando o vínculo é criado como
+     * 'pending' (fluxo padrão), os flags sync_* são gravados como 0. Assim,
+     * mesmo após a aprovação do advogado, a host NÃO passa a ver cards/processos/
+     * tarefas automaticamente — ela precisa habilitar cada módulo explicitamente
+     * via updateSync(). O schema tem DEFAULT 1 nesses flags; aqui sobrescrevemos
+     * para 0 no caminho 'pending' para não vazar dados por padrão.
      */
     public static function solicitar(int $hostId, int $advogadoId, int $solicitadoPor, bool $autoActivate = false): int
     {
@@ -131,14 +138,25 @@ class AdvogadoVinculo
         $status = $autoActivate ? 'active' : 'pending';
         $aprovadoEm = $autoActivate ? 'NOW()' : 'NULL';
         $aprovadoPor = $autoActivate ? ':sp' : 'NULL';
+        // Em 'pending' não habilitamos sync algum (sync_enabled=0); em autoActivate
+        // mantemos o comportamento legado (DEFAULT do schema = 1).
+        $syncEnabled = $autoActivate ? 1 : 0;
         $sql = "INSERT INTO advogado_vinculos
                   (host_account_id, advogado_account_id, status,
                    solicitado_por, aprovado_por, solicitado_em, aprovado_em,
+                   sync_enabled, sync_processos, sync_cards, sync_tarefas,
                    created_at, updated_at)
                 VALUES
-                  (:h, :a, :st, :sp, $aprovadoPor, NOW(), $aprovadoEm, NOW(), NOW())";
+                  (:h, :a, :st, :sp, $aprovadoPor, NOW(), $aprovadoEm,
+                   :se, :se, :se, :se, NOW(), NOW())";
         $stmt = $pdo->prepare($sql);
-        $stmt->execute(['h' => $hostId, 'a' => $advogadoId, 'st' => $status, 'sp' => $solicitadoPor]);
+        $stmt->execute([
+            'h'  => $hostId,
+            'a'  => $advogadoId,
+            'st' => $status,
+            'sp' => $solicitadoPor,
+            'se' => $syncEnabled,
+        ]);
         return (int) $pdo->lastInsertId();
     }
 

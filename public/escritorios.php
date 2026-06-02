@@ -58,6 +58,8 @@ $monOverrideSumEsc = \App\Helpers\BillingGuard::getOverrideSum($accountId, 'moni
     .badge { display:inline-block; padding:2px 10px; border-radius:999px; font-size:.72rem; font-weight:700; }
     .badge-matriz   { background:rgba(59,130,246,.2); color:#93c5fd; border:1px solid rgba(59,130,246,.35); }
     .badge-filial   { background:rgba(139,92,246,.2); color:#c4b5fd; border:1px solid rgba(139,92,246,.35); }
+    /* advogado solo tem cor própria (VERDE), nunca azul/roxo — mesma paleta is-advogado de prospeccao/clientes/tarefas */
+    .badge-advogado { background:rgba(16,185,129,.2); color:#6ee7b7; border:1px solid rgba(16,185,129,.35); }
     .badge-active   { background:rgba(34,197,94,.15); color:#86efac; border:1px solid rgba(34,197,94,.3); }
     .badge-pending  { background:rgba(245,158,11,.15); color:#fcd34d; border:1px solid rgba(245,158,11,.3); }
     .badge-rejected { background:rgba(239,68,68,.15); color:#fca5a5; border:1px solid rgba(239,68,68,.3); }
@@ -202,6 +204,11 @@ $monOverrideSumEsc = \App\Helpers\BillingGuard::getOverrideSum($accountId, 'moni
       background: rgba(126,34,206,.10);
       color: #6B21A8;
       border-color: rgba(126,34,206,.30);
+    }
+    html[data-theme="light"] .badge-advogado {
+      background: rgba(5,150,105,.10);
+      color: #065F46;
+      border-color: rgba(5,150,105,.30);
     }
     html[data-theme="light"] .badge-active {
       background: rgba(34,197,94,.10);
@@ -555,6 +562,7 @@ $monOverrideSumEsc = \App\Helpers\BillingGuard::getOverrideSum($accountId, 'moni
               <select id="editTipo" class="es-input">
                 <option value="matriz">Matriz (escritório principal)</option>
                 <option value="filial">Filial (vinculada a uma Matriz)</option>
+                <option value="advogado">Advogado (solo)</option>
               </select>
             </div>
             <div class="es-field">

@@ -584,7 +584,6 @@ async function refreshDrawer() {
   renderChecklist(t.checklist || []);
   try { renderLinks(t.links || []); } catch(e) { console.error('[renderLinks] error:', e); }
   renderComments(t.comentarios || []);
-  renderTempo(t.tempo || []);
   renderHistorico(t.historico || []);
 }
 function switchTab(name) {
@@ -1006,8 +1005,15 @@ function renderLinks(links) {
       url: l => `/processos.php?open=${l.link_id}`,
       icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
     },
-    contato:     {
+    // MEDIA #21: cliente da aba Clientes. Deep-link via ?open= (clientes.php
+    // auto-abre o cliente). Distinto de 'contato' (tabela contatos da Prospecção).
+    cliente:     {
       label: 'Clientes', color: '#10b981', rgb: '16,185,129',
+      url: l => `/clientes.php?open=${l.link_id}`,
+      icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+    },
+    contato:     {
+      label: 'Contatos', color: '#10b981', rgb: '16,185,129',
       url: l => `/prospeccao.php?contato=${l.link_id}`,
       icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
     },
@@ -1139,32 +1145,197 @@ document.getElementById('dCommentInput').addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); document.getElementById('dCommentSend').click(); }
 });
 
-
-/* ── Tempo ─────────────────────────────────────────────────────────────────── */
-function renderTempo(entries) {
-  if (!document.getElementById('dTimerTotal')) return;
-  let total = 0;
-  entries.forEach(e => { if (e.duracao_minutos) total += parseInt(e.duracao_minutos); });
-  document.getElementById('dTimerTotal').textContent = `Total: ${total} min (${(total/60).toFixed(1)}h)`;
-  const dl = document.getElementById('dTimeList');
-  if (dl) dl.innerHTML = entries.map(e => `
-    <div class="tk-time-entry">
-      <span style="flex:1;">${e.descricao||esc(e.autor)}</span>
-      <span>${e.duracao_minutos||'—'} min</span>
+/* ── Anexos (ALTA #30) ───────────────────────────────────────────────────────
+   Plugando a UI no endpoint task_attachments.php (upload/list/download/delete),
+   que já existia 100% no backend mas não tinha tela. O upload é multipart/form-data
+   (o endpoint lê $_FILES['file'] + $_POST), por isso usamos fetch+FormData direto
+   em vez do helper POST (que envia JSON). CSRF vai no header X-CSRF-Token. */
+function _fmtBytes(n) {
+  n = parseInt(n) || 0;
+  if (n < 1024) return n + ' B';
+  if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+  return (n / 1048576).toFixed(1) + ' MB';
+}
+function _anexoMsg(text, isErr) {
+  const el = document.getElementById('dAnexoMsg');
+  if (!el) return;
+  if (!text) { el.style.display = 'none'; return; }
+  el.textContent = text;
+  el.style.display = 'block';
+  el.style.color           = isErr ? '#fca5a5' : '#86efac';
+  el.style.background      = isErr ? 'rgba(239,68,68,.1)' : 'rgba(34,197,94,.1)';
+  el.style.border          = '1px solid ' + (isErr ? 'rgba(239,68,68,.2)' : 'rgba(34,197,94,.2)');
+}
+async function loadAnexos() {
+  const list = document.getElementById('dAnexoList');
+  if (!list || !openTaskId) return;
+  list.innerHTML = '<div style="color:#4a5568;font-size:.8rem;padding:8px 0;">Carregando...</div>';
+  try {
+    const r = await GET(`/task_attachments.php?task_id=${openTaskId}`);
+    renderAnexos(r.data || []);
+  } catch (e) {
+    list.innerHTML = `<div style="color:#f87171;font-size:.8rem;padding:8px;">Erro ao carregar: ${esc(e.message)}</div>`;
+  }
+}
+function renderAnexos(items) {
+  const list = document.getElementById('dAnexoList');
+  if (!list) return;
+  if (!items.length) {
+    list.innerHTML = '<div style="font-size:.8rem;color:#7a8898;padding:6px 0;">Nenhum anexo</div>';
+    return;
+  }
+  const svgFile = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+  const svgDl   = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+  list.innerHTML = items.map(a => `
+    <div class="tk-link-row" data-id="${a.id}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:rgba(5,18,39,.6);border:1px solid rgba(96,165,250,.1);">
+      <span style="color:#7eb8f6;flex-shrink:0;">${svgFile}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.83rem;color:#d6eaff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.file_name || 'anexo')}</div>
+        <div style="font-size:.71rem;color:#7a9abf;">${_fmtBytes(a.file_size)}${a.created_at ? ' · ' + formatDate(a.created_at) : ''}</div>
+      </div>
+      <a href="${esc(a.download_url || ('/api/task_attachments.php?action=download&id=' + a.id))}"
+         class="tk-link-open" title="Baixar"
+         style="display:inline-flex;align-items:center;gap:4px;font-size:.75rem;color:#93c5fd;text-decoration:none;padding:4px 8px;border-radius:6px;border:1px solid rgba(96,165,250,.2);">${svgDl} Baixar</a>
+      <button class="tk-anexo-del" data-id="${a.id}" title="Remover"
+        style="padding:4px 9px;border-radius:6px;border:1px solid rgba(239,68,68,.2);background:rgba(220,38,38,.12);color:#fca5a5;font-size:.78rem;cursor:pointer;flex-shrink:0;">✕</button>
     </div>`).join('');
 
-  const hasActive = entries.some(e => !e.fim);
-  const ts = document.getElementById('dTimerStart'); if(ts) ts.style.display = hasActive ? 'none' : '';
-  const tp = document.getElementById('dTimerStop');  if(tp) tp.style.display  = hasActive ? '' : 'none';
+  list.querySelectorAll('.tk-anexo-del').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = parseInt(btn.dataset.id);
+      if (!await tkConfirm('Remover este anexo?', { confirmLabel: 'Remover', confirmColor: '#dc2626' })) return;
+      try {
+        const r = await DEL('/task_attachments.php', { id });
+        if (!r.ok) { _anexoMsg(r.error || 'Falha ao remover', true); return; }
+        await loadAnexos();
+      } catch (e) { _anexoMsg('Erro: ' + e.message, true); }
+    });
+  });
 }
-document.getElementById('dTimerStart')?.addEventListener('click', async () => {
-  await POST('/task_time_entries.php', { task_id: openTaskId, action: 'start' });
-  await refreshDrawer();
-});
-document.getElementById('dTimerStop')?.addEventListener('click', async () => {
-  await POST('/task_time_entries.php', { task_id: openTaskId, action: 'stop' });
-  await refreshDrawer();
-});
+async function uploadAnexo() {
+  const fileEl = document.getElementById('dAnexoFile');
+  if (!openTaskId) { _anexoMsg('Abra uma tarefa existente para anexar.', true); return; }
+  if (!fileEl || !fileEl.files || !fileEl.files.length) { _anexoMsg('Selecione um arquivo.', true); return; }
+
+  const btn = document.getElementById('dAnexoUpload');
+  const orig = btn.textContent;
+  btn.textContent = 'Enviando…'; btn.disabled = true;
+  _anexoMsg('');
+
+  try {
+    const fd = new FormData();
+    fd.append('task_id', openTaskId);
+    fd.append('csrf_token', CSRF);          // fallback no body (endpoint lê POST ou header)
+    fd.append('file', fileEl.files[0]);
+    // Sem 'Content-Type' manual: o browser define o boundary do multipart.
+    const res = await fetch(BASE + '/task_attachments.php', {
+      method: 'POST',
+      headers: { 'X-CSRF-Token': CSRF },
+      body: fd,
+      cache: 'no-store',
+    });
+    const r = await res.json().catch(() => ({ ok: false, error: 'Resposta inválida' }));
+    if (!r.ok) { _anexoMsg(r.error || 'Falha no upload', true); return; }
+    fileEl.value = '';
+    _anexoMsg('Anexo enviado.', false);
+    await loadAnexos();
+  } catch (e) {
+    _anexoMsg('Erro de conexão: ' + e.message, true);
+  } finally {
+    btn.textContent = orig; btn.disabled = false;
+  }
+}
+document.getElementById('dAnexoUpload')?.addEventListener('click', uploadAnexo);
+
+/* ── Lembretes (ALTA #31) ─────────────────────────────────────────────────────
+   UI plugada no endpoint task_reminders.php (GET/POST/DELETE). lembrar_em é
+   datetime; canal = sistema|email|whatsapp. Tudo via JSON+CSRF (helpers POST/DEL). */
+function _lembreteMsg(text, isErr) {
+  const el = document.getElementById('dLembreteMsg');
+  if (!el) return;
+  if (!text) { el.style.display = 'none'; return; }
+  el.textContent = text;
+  el.style.display = 'block';
+  el.style.color           = isErr ? '#fca5a5' : '#86efac';
+  el.style.background      = isErr ? 'rgba(239,68,68,.1)' : 'rgba(34,197,94,.1)';
+  el.style.border          = '1px solid ' + (isErr ? 'rgba(239,68,68,.2)' : 'rgba(34,197,94,.2)');
+}
+const _CANAL_LABEL = { sistema: 'Sistema', email: 'E-mail', whatsapp: 'WhatsApp' };
+async function loadLembretes() {
+  const list = document.getElementById('dLembreteList');
+  if (!list || !openTaskId) return;
+  list.innerHTML = '<div style="color:#4a5568;font-size:.8rem;padding:8px 0;">Carregando...</div>';
+  try {
+    const r = await GET(`/task_reminders.php?task_id=${openTaskId}`);
+    renderLembretes(r.data || []);
+  } catch (e) {
+    list.innerHTML = `<div style="color:#f87171;font-size:.8rem;padding:8px;">Erro ao carregar: ${esc(e.message)}</div>`;
+  }
+}
+function renderLembretes(items) {
+  const list = document.getElementById('dLembreteList');
+  if (!list) return;
+  if (!items.length) {
+    list.innerHTML = '<div style="font-size:.8rem;color:#7a8898;padding:6px 0;">Nenhum lembrete</div>';
+    return;
+  }
+  const svgBell = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`;
+  list.innerHTML = items.map(l => {
+    const enviado = l.enviado_em || l.enviado || l.sent_at;
+    return `
+    <div class="tk-link-row" data-id="${l.id}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:rgba(5,18,39,.6);border:1px solid rgba(96,165,250,.1);">
+      <span style="color:#7eb8f6;flex-shrink:0;">${svgBell}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.83rem;color:#d6eaff;">${esc(formatDate(l.lembrar_em))}</div>
+        <div style="font-size:.71rem;color:#7a9abf;">${esc(_CANAL_LABEL[l.canal] || l.canal || 'Sistema')}${enviado ? ' · enviado' : ''}</div>
+      </div>
+      <button class="tk-lembrete-del" data-id="${l.id}" title="Remover"
+        style="padding:4px 9px;border-radius:6px;border:1px solid rgba(239,68,68,.2);background:rgba(220,38,38,.12);color:#fca5a5;font-size:.78rem;cursor:pointer;flex-shrink:0;">✕</button>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('.tk-lembrete-del').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = parseInt(btn.dataset.id);
+      if (!await tkConfirm('Remover este lembrete?', { confirmLabel: 'Remover', confirmColor: '#dc2626' })) return;
+      try {
+        const r = await DEL('/task_reminders.php', { id });
+        if (!r.ok) { _lembreteMsg(r.error || 'Falha ao remover', true); return; }
+        await loadLembretes();
+      } catch (e) { _lembreteMsg('Erro: ' + e.message, true); }
+    });
+  });
+}
+async function addLembrete() {
+  const emEl    = document.getElementById('dLembreteEm');
+  const canalEl = document.getElementById('dLembreteCanal');
+  if (!openTaskId) { _lembreteMsg('Abra uma tarefa existente para criar lembrete.', true); return; }
+  const lembrarEm = emEl?.value;
+  if (!lembrarEm) { _lembreteMsg('Informe data/hora do lembrete.', true); emEl?.focus(); return; }
+
+  const btn = document.getElementById('dLembreteAdd');
+  const orig = btn.textContent;
+  btn.textContent = '...'; btn.disabled = true;
+  _lembreteMsg('');
+
+  try {
+    // datetime-local devolve "YYYY-MM-DDTHH:MM" — troca o T por espaço pro MySQL DATETIME.
+    const r = await POST('/task_reminders.php', {
+      task_id: openTaskId,
+      lembrar_em: lembrarEm.replace('T', ' '),
+      canal: canalEl?.value || 'sistema',
+    });
+    if (!r.ok) { _lembreteMsg(r.error || 'Falha ao criar lembrete', true); return; }
+    emEl.value = '';
+    _lembreteMsg('Lembrete criado.', false);
+    await loadLembretes();
+  } catch (e) {
+    _lembreteMsg('Erro de conexão: ' + e.message, true);
+  } finally {
+    btn.textContent = orig; btn.disabled = false;
+  }
+}
+document.getElementById('dLembreteAdd')?.addEventListener('click', addLembrete);
 
 /* ── Histórico ─────────────────────────────────────────────────────────────── */
 function renderHistorico(items) {
@@ -1221,6 +1392,8 @@ function bindDrawer() {
       switchTab(tab.dataset.tab);
       if (tab.dataset.tab === 'vinculos')     searchVinculos(document.getElementById('dVinculoBusca').value);
       if (tab.dataset.tab === 'proc-tarefas') loadProcTarefas();
+      if (tab.dataset.tab === 'anexos')       loadAnexos();
+      if (tab.dataset.tab === 'lembretes')    loadLembretes();
     })
   );
   document.getElementById('dTitle').addEventListener('input', function() {

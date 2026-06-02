@@ -123,6 +123,11 @@ if ($adv) {
             'user_id'         => (int)$adv['id'],
             'nome'            => $nomeAbrev,
             'codigo_advogado' => $adv['codigo_advogado'],
+            // account_id é só um ID numérico interno (não é PII como email/nome),
+            // então expô-lo não reabre a enumeração mitigada acima. O frontend
+            // (buscarDestinoModulo em escritorios.php) precisa dele para escopar
+            // o resource_share à conta do advogado (to_account_id + to_user_id).
+            'account_id'      => (int)$adv['account_id'],
         ],
     ]);
     exit;

@@ -1684,7 +1684,9 @@ endforeach; ?>  },
     if (!id) return;
     showToast('Enviando evento de teste...','info');
     const j = await fetch(API, {method:'POST',headers:headers(),body:JSON.stringify({action:'test',id,csrf_token:CSRF})}).then(r=>r.json());
-    showToast(j.success?'Teste enviado! Verifique os logs.':'Erro ao testar: '+(j.error||''), j.success?'success':'error');
+    // FIX #28: o backend agora entrega direto ao endpoint e devolve o resultado REAL.
+    // success=true so quando a entrega respondeu 2xx; senao mostra o erro honesto.
+    showToast(j.success ? (j.message || 'Teste entregue! Verifique os logs.') : (j.error || 'Falha ao testar o webhook.'), j.success ? 'success' : 'error');
     setTimeout(()=>loadLogs(id), 1500);
   });
 

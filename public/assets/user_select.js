@@ -62,22 +62,36 @@
       return;
     }
 
-    // Múltiplas contas → optgroup, matriz primeiro
+    // Múltiplas contas → optgroup. Ordem: matriz → filial → advogado.
+    // advogado é um tipo de conta próprio (solo), nunca "filial": ele tem
+    // grupo/rótulo dedicado ('Advogado: …') em vez de cair no balde da filial.
     const sorted = Array.from(groups.values()).sort((a, b) => {
-      const ta = a.tipo === 'matriz' ? 0 : 1;
-      const tb = b.tipo === 'matriz' ? 0 : 1;
-      if (ta !== tb) return ta - tb;
+      const ra = tipoRank(a.tipo);
+      const rb = tipoRank(b.tipo);
+      if (ra !== rb) return ra - rb;
       return a.label.localeCompare(b.label, 'pt-BR', { sensitivity: 'base' });
     });
 
     sorted.forEach(g => {
       const og = document.createElement('optgroup');
-      const prefix = g.tipo === 'matriz' ? 'Matriz: ' : (g.tipo === 'filial' ? 'Filial: ' : '');
-      og.label = prefix + g.label;
+      og.label = tipoPrefix(g.tipo) + g.label;
       g.users.forEach(u => og.appendChild(makeOpt(u)));
       sel.appendChild(og);
     });
   };
+
+  // Ordena os 3 tipos de conta (matriz < filial < advogado < outros) e gera o
+  // rótulo do optgroup. Centralizado p/ não repetir o ternário binário (que
+  // historicamente esquecia 'advogado' e o rotulava como filial).
+  function tipoRank(tipo) {
+    return tipo === 'matriz' ? 0 : tipo === 'filial' ? 1 : tipo === 'advogado' ? 2 : 3;
+  }
+  function tipoPrefix(tipo) {
+    return tipo === 'matriz' ? 'Matriz: '
+         : tipo === 'filial' ? 'Filial: '
+         : tipo === 'advogado' ? 'Advogado: '
+         : '';
+  }
 
   /**
    * Helper para extrair só os usuários de um determinado account_id
@@ -132,16 +146,16 @@
     // 1 conta → sem optgroup (UI mais limpa)
     if (groups.size <= 1) return ph + users.map(optFor).join('');
 
-    // Múltiplas → matriz primeiro, filiais alfabéticas
+    // Múltiplas → matriz, depois filiais, depois advogados (cada um em seu
+    // próprio grupo/rótulo). advogado nunca é agrupado sob 'Filial'.
     const sorted = Array.from(groups.values()).sort((a, b) => {
-      const ta = a.tipo === 'matriz' ? 0 : 1;
-      const tb = b.tipo === 'matriz' ? 0 : 1;
-      if (ta !== tb) return ta - tb;
+      const ra = tipoRank(a.tipo);
+      const rb = tipoRank(b.tipo);
+      if (ra !== rb) return ra - rb;
       return a.label.localeCompare(b.label, 'pt-BR', { sensitivity: 'base' });
     });
     return ph + sorted.map((g) => {
-      const prefix = g.tipo === 'matriz' ? 'Matriz: ' : (g.tipo === 'filial' ? 'Filial: ' : '');
-      return `<optgroup label="${esc(prefix + g.label)}">${g.list.map(optFor).join('')}</optgroup>`;
+      return `<optgroup label="${esc(tipoPrefix(g.tipo) + g.label)}">${g.list.map(optFor).join('')}</optgroup>`;
     }).join('');
   };
 })(window);

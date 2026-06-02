@@ -12,7 +12,8 @@
  *          → lista vínculos da conta atual (como host OU como advogado)
  * POST   /api/advogado_vinculos.php
  *          Body: { codigo_advogado: "ADV-XXXXXX", csrf_token: "..." }
- *          → host vincula o advogado (cria já como 'active' por design)
+ *          → host solicita o vínculo (cria como 'pending'; advogado precisa
+ *            aprovar antes de qualquer dado ser compartilhado)
  * PATCH  /api/advogado_vinculos.php
  *          Body: { id: 5, action: "aprovar"|"rejeitar"|"suspender"|"reativar"|"update_sync"
  *                  motivo?: "...", sync_enabled?, sync_cards?, sync_processos?, sync_tarefas? }
@@ -139,13 +140,17 @@ if ($method === 'POST') {
         exit;
     }
 
-    // Cria vínculo já como 'active' (host está convidando ativamente).
+    // Cria vínculo como 'pending' (consentimento do advogado é obrigatório).
+    // SEGURANÇA: não ativar automaticamente — enquanto pending, sync_* ficam 0
+    // e getAccessibleAccountIds (que exige status='active' AND sync_enabled=1)
+    // NÃO expõe cards/processos/tarefas do advogado à host. O advogado precisa
+    // aprovar (PATCH action=aprovar) para o vínculo virar 'active'.
     // Idempotente: se já existe pending/active, retorna o ID existente.
     $vinculoId = AdvogadoVinculo::solicitar(
         $ctx->getAccountId(),
         (int)$advogado['id'],
         $ctx->getUserId(),
-        true // autoActivate
+        false // não auto-ativar: aguarda consentimento do advogado
     );
 
     // Notifica o advogado
@@ -161,8 +166,8 @@ if ($method === 'POST') {
             'account_id' => (int)$advogado['id'],
             'user_id'    => $adminId,
             'tipo'       => 'advogado_vinculo.criado',
-            'titulo'     => "Você foi vinculado a {$hostAccount['nome']}",
-            'mensagem'   => "A conta \"{$hostAccount['nome']}\" criou um vínculo com você. Acesse Configurações → Vínculos para gerenciar.",
+            'titulo'     => "Solicitação de vínculo de {$hostAccount['nome']}",
+            'mensagem'   => "A conta \"{$hostAccount['nome']}\" solicitou um vínculo com você. Enquanto você não aprovar, ela NÃO terá acesso aos seus cards, processos ou tarefas. Acesse Configurações → Vínculos para aprovar ou recusar.",
             'payload'    => ['vinculo_id' => $vinculoId, 'host_account_id' => $ctx->getAccountId()],
         ]);
     }
@@ -172,10 +177,19 @@ if ($method === 'POST') {
         'detalhes' => ['vinculo_id' => $vinculoId, 'advogado_id' => $advogado['id']],
     ]);
 
+    // Reporta o status real do vínculo (normalmente 'pending'; mas se já existia
+    // um vínculo 'active' a chamada é idempotente e devolve o estado corrente).
+    $vinculoAtual = AdvogadoVinculo::findById($vinculoId);
+    $statusAtual  = $vinculoAtual['status'] ?? 'pending';
+
     echo json_encode([
         'success'      => true,
         'vinculo_id'   => $vinculoId,
-        'status'       => 'active',
+        'status'       => $statusAtual,
+        'pending'      => $statusAtual === 'pending',
+        'message'      => $statusAtual === 'pending'
+            ? 'Solicitação enviada. O advogado precisa aprovar antes de qualquer dado ser compartilhado.'
+            : 'Vínculo já existente.',
         'advogado'     => [
             'id'   => (int)$advogado['id'],
             'nome' => $advogado['nome'],
@@ -213,8 +227,8 @@ if ($method === 'PATCH') {
     }
 
     // Permissão: apenas a HOST (matriz/filial) pode gerenciar suspender/sync.
-    // Advogado pode aprovar/rejeitar quando pending (não usado no fluxo
-    // auto-active, mas mantido pra futuro).
+    // O ADVOGADO aprova/rejeita o vínculo enquanto pending (consentimento
+    // obrigatório antes de qualquer sincronização de dados).
     $hostId = (int)$vinculo['host_account_id'];
     $advId  = (int)$vinculo['advogado_account_id'];
     $isHost = $hostId === $ctx->getAccountId();
@@ -238,7 +252,7 @@ if ($method === 'PATCH') {
                     'user_id'    => null,
                     'tipo'       => 'advogado_vinculo.aprovado',
                     'titulo'     => 'Advogado aceitou o vínculo',
-                    'mensagem'   => 'O advogado aceitou o vínculo com sua conta.',
+                    'mensagem'   => 'O advogado aceitou o vínculo. A sincronização começa desligada — habilite os módulos (cards/processos/tarefas) em Sincronização.',
                     'payload'    => ['vinculo_id' => $vinculoId],
                 ]);
             }

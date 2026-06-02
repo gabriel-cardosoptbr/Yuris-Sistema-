@@ -28,20 +28,24 @@ if ($method === 'GET') {
     // detecta quais colunas extras existem
     $hasAccountCol  = false;
     $hasRoleCol     = false;
-    $hasSenhaTexto  = false;
     try { $pdo->query('SELECT account_id FROM users LIMIT 0');     $hasAccountCol  = true;  } catch (\Throwable $e) {}
     try { $pdo->query('SELECT role FROM users LIMIT 0');            $hasRoleCol     = true;  } catch (\Throwable $e) {}
-    // senha_texto foi removida (Fase 0 audit — LGPD). Flag fica false sempre.
-    $hasSenhaTexto = false;
+    // senha_texto foi removida do schema (Fase 0 audit — LGPD). Nenhuma senha em
+    // texto plano é lida/retornada (audit #21: caminho morto removido).
     $hasCodigo = false;
     try { $pdo->query('SELECT codigo_advogado FROM users LIMIT 0'); $hasCodigo = true;  } catch (\Throwable $e) {}
 
     $selRole     = $hasRoleCol    ? 'role'           : 'perfil AS role';
     $selAccount  = $hasAccountCol ? 'account_id'     : 'NULL AS account_id';
-    $selSenha    = $hasSenhaTexto ? 'senha_texto'    : 'NULL AS senha_texto';
     // codigo_advogado é o ID universal do advogado (formato ADV-XXXXXX).
     // Retornamos no nome legado "codigo_vinculo" para compat com o frontend existente.
     $selCodigo   = $hasCodigo     ? 'codigo_advogado AS codigo_vinculo' : 'NULL AS codigo_vinculo';
+
+    // Variantes qualificadas com o alias "u." para a listagem com JOIN em accounts
+    // (a query single-row acima não usa alias). Em colunas inexistentes o fallback
+    // é "NULL AS ..." — que NÃO pode receber prefixo "u.", por isso geramos à parte.
+    $selRoleU    = $hasRoleCol    ? 'u.role'             : 'u.perfil AS role';
+    $selCodigoU  = $hasCodigo     ? 'u.codigo_advogado AS codigo_vinculo' : 'NULL AS codigo_vinculo';
 
     if ($id) {
         $where = $hasAccountCol
@@ -52,15 +56,12 @@ if ($method === 'GET') {
             : ['id' => $id];
 
         $stmt = $pdo->prepare(
-            "SELECT id, nome, login AS email, perfil, $selRole, status, $selAccount, $selSenha, $selCodigo, created_at, updated_at
+            "SELECT id, nome, login AS email, perfil, $selRole, status, $selAccount, $selCodigo, created_at, updated_at
              FROM users $where LIMIT 1"
         );
         $stmt->execute($params);
         $row = $stmt->fetch();
         if ($row) {
-            // Nunca retornar senha (Fase 0 audit). senha_texto foi removida do schema.
-            $row['senha_plain'] = '';
-            unset($row['senha_texto']);
             try {
                 $ps = $pdo->prepare('SELECT page FROM user_permissions WHERE user_id = ?');
                 $ps->execute([$id]);
@@ -74,13 +75,39 @@ if ($method === 'GET') {
     // Lista usuários — display_id é sequencial dentro da conta (1, 2, 3, ...).
     // O id físico (PK auto_increment) continua disponível para chaves técnicas.
     if ($hasAccountCol) {
+        // FIX (audit #20/#24): antes a listagem filtrava por UMA conta só
+        // (account_id = :acc), então a matriz nunca via usuários das filiais.
+        // Agora escopamos por getAccessibleAccountIds() (matriz + filiais
+        // vinculadas + advogados) e fazemos JOIN em accounts para devolver
+        // account_nome/account_tipo — espelhando getAccessibleUsers(). Isso
+        // habilita o agrupamento Matriz/Filial/Advogado em populateUserSelect
+        // e o seletor de membros de Setores enxergar filiais.
+        $accessibleIds = $ctx->getAccessibleAccountIds();
+        $ph     = [];
+        $params = [];
+        foreach ($accessibleIds as $i => $aid) {
+            $key          = "acc_{$i}";
+            $ph[]         = ":{$key}";
+            $params[$key] = (int)$aid;
+        }
+        $inClause = implode(',', $ph);
         $stmt = $pdo->prepare(
-            "SELECT id,
-                    ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY id ASC) AS display_id,
-                    nome, login AS email, perfil, $selRole, status, $selAccount, $selCodigo, created_at, updated_at
-             FROM users WHERE deleted_at IS NULL AND account_id = :acc ORDER BY nome ASC"
+            "SELECT u.id,
+                    ROW_NUMBER() OVER (PARTITION BY u.account_id ORDER BY u.id ASC) AS display_id,
+                    u.nome, u.login AS email, u.perfil, $selRoleU, u.status,
+                    u.account_id,
+                    a.nome AS account_nome,
+                    a.tipo AS account_tipo,
+                    $selCodigoU, u.created_at, u.updated_at
+             FROM users u
+             INNER JOIN accounts a ON a.id = u.account_id
+             WHERE u.deleted_at IS NULL AND u.account_id IN ($inClause)
+             ORDER BY
+                CASE WHEN a.tipo = 'matriz' THEN 0 ELSE 1 END,
+                a.nome ASC,
+                u.nome ASC"
         );
-        $stmt->execute(['acc' => $accountId]);
+        $stmt->execute($params);
     } else {
         $stmt = $pdo->prepare(
             "SELECT id,

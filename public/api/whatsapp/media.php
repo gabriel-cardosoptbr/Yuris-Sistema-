@@ -246,12 +246,20 @@ try {
     echo $binary;
 
 } catch (\Throwable $e) {
+    // P1 LGPD (2D.1) / auditoria 2026-06-01 MEDIA #32: NUNCA vaza getMessage/trace
+    // ao cliente em prod. Loga server-side e devolve mensagem generica.
+    // Antes, o ramo !$debug fazia `echo 'Erro: ' . $e->getMessage()`, expondo
+    // nomes de tabela/coluna/path. Agora ambos os ramos passam pelo ErrorReporter.
+    require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
     if ($debug) {
-        // P1 LGPD (2D.1): em prod esconde getMessage/trace; em dev mantém debug
-        require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
         \App\Helpers\ErrorReporter::handle($e);
     } else {
-        http_response_code(500);
-        echo 'Erro: ' . $e->getMessage();
+        // Resposta nao-JSON (este endpoint serve binario): loga e devolve texto generico.
+        \App\Helpers\ErrorReporter::log($e, 'whatsapp/media');
+        if (!headers_sent()) {
+            http_response_code(500);
+            header('Content-Type: text/plain; charset=utf-8');
+        }
+        echo 'Erro ao carregar mídia';
     }
 }

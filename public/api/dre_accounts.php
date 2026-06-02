@@ -14,9 +14,11 @@ header('Content-Type: application/json; charset=utf-8');
 
 $ctx       = AccountContext::fromSession();
 $accountId = $ctx->getAccountId();
-// Lançamentos financeiros = isolamento 100% por tenant (cada conta tem seu DRE independente).
-// Matriz NÃO consolida automaticamente o DRE das filiais.
-$tenantIds = [$accountId];
+// Escopo CONSOLIDADO: a matriz vê o DRE das filiais/advogados vinculados (igual ao dashboard
+// e ao render server-side de financas.php). Antes esta API hardcodava [$accountId], o que fazia
+// os KPIs da matriz ENCOLHEREM no load do JS (consolidado no 1º paint → só-a-matriz depois).
+$tenantIds = $ctx->getAccessibleAccountIds('financas');
+if (empty($tenantIds)) $tenantIds = [$accountId]; // guard: evita SQL "IN ()" inválido
 
 $method = $_SERVER['REQUEST_METHOD'];
 $input  = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -62,10 +64,6 @@ if ($method === 'GET') {
         $monthFirst = $_GET['closed_month'] . '-01';
         $st = $pdo->prepare("SELECT COALESCE(SUM(COALESCE(NULLIF(valor_fechado_final,0), NULLIF(valor_proposta,0), IFNULL(valor_estimado,0))),0) as t FROM cards WHERE deleted_at IS NULL AND (status = 'fechado' OR (data_fechamento IS NOT NULL AND data_fechamento > '0000-00-00')) AND (data_fechamento IS NOT NULL AND data_fechamento <= LAST_DAY(:monthFirst))" . $cardTenant);
         $st->execute([':monthFirst' => $monthFirst] + $tenantParams);
-        $closed_total = (float)($st->fetchColumn() ?? 0);
-    } elseif (isset($_GET['closed_until'])) {
-        $st = $pdo->prepare("SELECT COALESCE(SUM(COALESCE(NULLIF(valor_fechado_final,0), NULLIF(valor_proposta,0), IFNULL(valor_estimado,0))),0) as t FROM cards WHERE deleted_at IS NULL AND (status = 'fechado' OR (data_fechamento IS NOT NULL AND data_fechamento > '0000-00-00')) AND (data_fechamento IS NOT NULL AND data_fechamento <= :closedUntil)" . $cardTenant);
-        $st->execute([':closedUntil' => $_GET['closed_until']] + $tenantParams);
         $closed_total = (float)($st->fetchColumn() ?? 0);
     } else {
         $st = $pdo->prepare("SELECT COALESCE(SUM(COALESCE(NULLIF(valor_fechado_final,0), NULLIF(valor_proposta,0), IFNULL(valor_estimado,0))),0) as t FROM cards WHERE deleted_at IS NULL AND (status = 'fechado' OR (data_fechamento IS NOT NULL AND data_fechamento > '0000-00-00'))" . $cardTenant);

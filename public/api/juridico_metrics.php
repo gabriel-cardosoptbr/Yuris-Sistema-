@@ -47,18 +47,14 @@ function safeScalar($pdo, $sql, $params = [], $default = 0) {
 try {
     $pdo = App\Models\Database::getConnection();
 
-    // "Processos Ativos" = NÃO encerrado/arquivado.
-    // Inclui status='ativo', 'concluido', 'suspenso', NULL.
-    // Consistente com computeJurKPIs (dashboard.js), updateKPIs (processos.js)
-    // e computeStrategicKPIs (juridico.js).
-    $active = (int) safeScalar($pdo,
-        "SELECT COUNT(*) FROM processos
-         WHERE deleted_at IS NULL
-           AND (status IS NULL OR status NOT IN ('encerrado','arquivado'))
-           $tBare",
-        $tenantParams
-    );
-
+    // Nota (auditoria #4): este endpoint devolve SOMENTE o que os consumidores
+    // realmente usam — by_lawyer (gráfico de carga por advogado em
+    // juridico_charts.js), no_update (card "sem movimentação" em juridico.js) e
+    // as faixas de prazo deadlines_today/7/15/30 (Dashboard + Jurídico).
+    // Campos antes calculados e descartados (active_count, deadlines_week,
+    // urgent, hearings_month) foram removidos: o Dashboard recomputa "Processos
+    // Ativos"/"urgentes" client-side via computeJurKPIs(processes) e ninguém lia
+    // esses campos. Evita trabalho de servidor desperdiçado.
     $by_lawyer = safeQuery($pdo,
         "SELECT p.responsavel_user_id AS user_id,
                 COALESCE(u.nome, CONCAT('Responsável #', COALESCE(p.responsavel_user_id,'S/N'))) AS nome,
@@ -72,26 +68,6 @@ try {
          GROUP BY p.responsavel_user_id
          ORDER BY total DESC
          LIMIT 100",
-        $tenantParams
-    );
-
-    $week_deadlines = safeQuery($pdo,
-        "SELECT id, numero, cliente_nome, proximo_prazo, responsavel_user_id
-         FROM processos
-         WHERE deleted_at IS NULL
-           AND proximo_prazo BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
-           $tBare
-         ORDER BY proximo_prazo ASC LIMIT 200",
-        $tenantParams
-    );
-
-    $urgent = safeQuery($pdo,
-        "SELECT id, numero, cliente_nome, proximo_prazo
-         FROM processos
-         WHERE deleted_at IS NULL
-           AND proximo_prazo BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)
-           $tBare
-         ORDER BY proximo_prazo ASC LIMIT 200",
         $tenantParams
     );
 
@@ -156,19 +132,17 @@ try {
     );
 
     echo json_encode(['success' => true, 'data' => [
-        'active_count'    => $active,
-        'by_lawyer'       => $by_lawyer,
-        'deadlines_week'  => $week_deadlines,
-        'hearings_month'  => [],
-        'urgent'          => $urgent,
-        'no_update'       => $stale,
+        'by_lawyer'       => $by_lawyer,   // gráfico carga por advogado (juridico_charts.js)
+        'no_update'       => $stale,       // card "sem movimentação 30d+" (juridico.js)
         'deadlines_today' => $deadlines_today,
         'deadlines_7'     => $deadlines_7,
         'deadlines_15'    => $deadlines_15,
         'deadlines_30'    => $deadlines_30,
     ]], JSON_UNESCAPED_UNICODE);
 
-} catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+} catch (\Throwable $e) {
+    // P1 LGPD (rule #4): nunca vaza $e->getMessage() em prod — loga server-side
+    // e devolve mensagem genérica via ErrorReporter (padrão do projeto).
+    require_once __DIR__ . '/../../app/Helpers/ErrorReporter.php';
+    \App\Helpers\ErrorReporter::handle($e);
 }

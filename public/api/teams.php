@@ -64,6 +64,31 @@ if (!$ctx->isOwnerOrAdmin()) {
     exit;
 }
 
+/**
+ * FIX (audit #25): valida que os user_ids enviados como membros pertencem ao
+ * tenant antes de gravar. Antes, teams.php repassava o array cru pro
+ * Team::setMembers — um payload forjado podia inserir user_id de OUTRA conta
+ * em team_members. Agora cruzamos com getAccessibleUsers() (matriz + filiais
+ * vinculadas), descartando qualquer id fora do escopo acessível.
+ *
+ * @param array $members  ids enviados pelo cliente
+ * @return array<int>     subconjunto válido (apenas ids acessíveis), únicos
+ */
+function _sanitizeTeamMembers(array $members, \App\Helpers\AccountContext $ctx): array {
+    // getAccessibleUsers(false): inclui inativos também — o seletor da UI pode
+    // ter membros que ficaram inativos; a regra aqui é só de TENANT, não de status.
+    $allowed = [];
+    foreach ($ctx->getAccessibleUsers(false) as $u) {
+        $allowed[(int)$u['id']] = true;
+    }
+    $valid = [];
+    foreach ($members as $uid) {
+        $uid = (int)$uid;
+        if ($uid > 0 && isset($allowed[$uid])) $valid[$uid] = true;
+    }
+    return array_keys($valid);
+}
+
 // ── POST — criar ──────────────────────────────────────────────────────────────
 if ($method === 'POST') {
     $nome = trim($input['nome'] ?? '');
@@ -74,7 +99,8 @@ if ($method === 'POST') {
 
     $id = Team::create(['account_id' => $accountId, 'nome' => $nome, 'cor' => $cor, 'descricao' => $descricao]);
 
-    $members = is_array($input['members'] ?? null) ? $input['members'] : [];
+    // FIX (audit #25): só grava membros que pertencem ao tenant.
+    $members = _sanitizeTeamMembers(is_array($input['members'] ?? null) ? $input['members'] : [], $ctx);
     Team::setMembers($id, $members);
 
     \App\Models\Account::audit($accountId, 'team.created', [
@@ -108,8 +134,11 @@ if ($method === 'PUT') {
 
     Team::update($id, $data);
 
-    if (isset($input['members']) && is_array($input['members'])) {
-        Team::setMembers($id, $input['members']);
+    // FIX (audit #25): valida os membros contra o tenant antes de gravar/auditar.
+    $membersChanged = isset($input['members']) && is_array($input['members']);
+    $validMembers   = $membersChanged ? _sanitizeTeamMembers($input['members'], $ctx) : [];
+    if ($membersChanged) {
+        Team::setMembers($id, $validMembers);
     }
 
     \App\Models\Account::audit($accountId, 'team.updated', [
@@ -117,7 +146,7 @@ if ($method === 'PUT') {
         'entidade'    => 'team',
         'entidade_id' => $id,
         'dados_antes' => $team,
-        'detalhes'    => $data + (isset($input['members']) && is_array($input['members']) ? ['members' => $input['members']] : []),
+        'detalhes'    => $data + ($membersChanged ? ['members' => $validMembers] : []),
     ]);
 
     echo json_encode(['success' => true]);

@@ -179,8 +179,11 @@ if ($method === 'PUT') {
             $rec['data_inicio'] = $rec['data_inicio'] ?? date('Y-m-d');
             if ($task['recorrencia_id']) {
                 // atualiza existente
+                // FIX (auditoria 2026-06-01 / ALTA #19): inclui 'unidade' nos campos
+                // atualizaveis — sem isso a edicao de uma recorrencia 'custom' nunca
+                // gravava a unidade (semana/mes/ano) e ela voltava a 'day'.
                 $fields = []; $params = [];
-                foreach (['tipo','intervalo','dias_semana','dia_mes','data_inicio','data_fim'] as $f) {
+                foreach (['tipo','intervalo','unidade','dias_semana','dia_mes','data_inicio','data_fim'] as $f) {
                     if (array_key_exists($f, $rec)) {
                         $fields[] = "$f = :$f";
                         $params[$f] = $f === 'dias_semana' ? json_encode($rec[$f]) : $rec[$f];

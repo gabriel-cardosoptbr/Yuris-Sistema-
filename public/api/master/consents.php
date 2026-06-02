@@ -92,5 +92,8 @@ try {
         'items' => $rows,
     ]);
 } catch (\Throwable $e) {
-    ApiResponse::serverError('Falha ao listar consents: ' . $e->getMessage());
+    // Rule 4: nunca vazar $e->getMessage() em prod — loga server-side e
+    // devolve mensagem genérica (mesmo padrão de error_log dos outros endpoints master).
+    error_log('[master/consents] ' . $e->getMessage());
+    ApiResponse::serverError('Falha ao listar aceites de termos.');
 }

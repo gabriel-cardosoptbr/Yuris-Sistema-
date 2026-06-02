@@ -12,10 +12,20 @@ require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
 require_once __DIR__ . '/../../../app/Services/WebhookDispatcher.php';
 require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
+require_once __DIR__ . '/../../../app/Helpers/Crypto.php';     // decifra api_key do agente (GCM / APP_ENCRYPTION_KEY)
+require_once __DIR__ . '/../../../app/Helpers/TotpHelper.php'; // fallback p/ api_key legada (CBC / MFA_ENCRYPTION_KEY)
 
 use App\Models\Database;
+use App\Helpers\Crypto;
+use App\Helpers\TotpHelper;
 
 header('Content-Type: application/json; charset=utf-8');
+
+// ALTA #5 / guardrail (d): bufferiza a saída para que, em ambientes SEM PHP-FPM,
+// flushResponse() consiga emitir Content-Length + fechar a conexão antes de
+// processar o LLM. Em PHP-FPM o fastcgi_finish_request() cobre isso de qualquer
+// forma; o buffer aqui é inofensivo (a resposta é pequena).
+ob_start();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -282,6 +292,21 @@ try {
 
     echo json_encode(['ok' => true, 'event' => $event]);
 
+    // ── ALTA #5: atendimento automático via LLM (após responder 200) ──────────
+    // GUARDRAIL (d): o webhook da Evolution NUNCA pode travar/atrasar. A geração
+    // de resposta via LLM (cURL ~15s) + envio (sendText) acontece SOMENTE depois
+    // de devolvermos o 200 e liberarmos a conexão. flushResponse() fecha a conexão
+    // com a Evolution (fastcgi_finish_request quando em FPM; senão flush + ignore_
+    // user_abort) — a Evolution recebe o 200 imediatamente e nós seguimos o
+    // processamento em "background" no mesmo processo. Qualquer falha no LLM é
+    // engolida em runAgentReply (try/catch) e só vai pro log.
+    if (!empty($GLOBALS['__agent_tasks'])) {
+        flushResponse();
+        foreach ($GLOBALS['__agent_tasks'] as $task) {
+            runAgentReply($task);
+        }
+    }
+
 } catch (Throwable $e) {
     // Nao vaza getMessage/file/line na resposta (LGPD/seguranca — auditoria 2026-06-01).
     // Loga server-side pra diagnostico; cliente recebe so mensagem generica.
@@ -384,6 +409,32 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
 
     $phone = preg_replace('/[^0-9]/', '', explode('@', $remoteJid)[0]);
 
+    // ALTA #5: o Agente IA só pode responder a mensagem GENUINAMENTE NOVA. A
+    // Evolution reenvia histórico (replay) ao reconectar e sync/webhook podem
+    // correr juntos — sem isto, a MESMA mensagem dispararia o LLM várias vezes
+    // (custo por token!). Checamos a existência do wamid ANTES do save (o save()
+    // já é idempotente para o histórico de mensagens, mas retorna o mesmo id em
+    // insert e update, então não dá pra distinguir pelo retorno). Só vale p/ inbound.
+    $isNewInbound = false;
+    if (!$fromMe) {
+        if (empty($wamid)) {
+            // Sem wamid não há como deduplicar — trata como nova (caso raro).
+            $isNewInbound = true;
+        } else {
+            try {
+                $pdoDup = Database::getConnection();
+                $dupChk = $pdoDup->prepare(
+                    'SELECT 1 FROM whatsapp_messages WHERE instance_id = ? AND wamid = ? LIMIT 1'
+                );
+                $dupChk->execute([$instanceId, $wamid]);
+                $isNewInbound = ($dupChk->fetchColumn() === false);
+            } catch (\Throwable $_) {
+                // Em dúvida, NÃO dispara o agente (mais seguro/barato que duplicar).
+                $isNewInbound = false;
+            }
+        }
+    }
+
     $savedId = $model->save([
         'account_id'      => $accountId,  // P0 LGPD: passa explícito (defesa em profundidade)
         'instance_id'     => $instanceId,
@@ -431,6 +482,84 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
                 'created_at'   => $createdAt,
             ],
         ]));
+
+        // ── ALTA #5: enfileira resposta automática do Agente IA (LLM) ─────────
+        // Só ENFILEIRA aqui (checa guardrails + carrega o agent_config); o trabalho
+        // pesado (cURL ao LLM + envio) roda DEPOIS do 200, em runAgentReply().
+        // Guardrails verificados em maybeQueueAgentReply: texto, chat individual,
+        // toggle enabled. fromMe já está excluído por estarmos dentro de !$fromMe;
+        // $isNewInbound exclui replays/duplicatas (não re-dispara o LLM).
+        if ($isNewInbound) {
+            maybeQueueAgentReply($accountId, $instanceId, $remoteJid, $msgType, $msgContent);
+        }
+    }
+}
+
+/**
+ * ALTA #5 — avalia se a mensagem recebida deve disparar o Agente IA e, em caso
+ * afirmativo, enfileira a tarefa em $GLOBALS['__agent_tasks'] (não envia nada aqui).
+ *
+ * GUARDRAILS (revisados pelo dono):
+ *   (a) responde só CHAT INDIVIDUAL — ignora grupos (@g.us);
+ *   (b) fromMe já foi excluído pelo chamador (estamos em !$fromMe) — evita loop:
+ *       a própria resposta do agente volta como fromMe=true e não reentra;
+ *   (e) respeita o toggle: só dispara se houver agent_config com enabled=1.
+ *   + só mensagens de TEXTO com conteúdo não-vazio.
+ */
+function maybeQueueAgentReply(int $accountId, int $instanceId, ?string $remoteJid, string $msgType, ?string $msgContent): void
+{
+    try {
+        // (a) só chat individual — grupos terminam em @g.us
+        if (!$remoteJid || str_ends_with($remoteJid, '@g.us')) return;
+        // Ignora JIDs de sistema/broadcast (status@broadcast, newsletter etc.)
+        if (str_ends_with($remoteJid, '@broadcast') || str_contains($remoteJid, '@newsletter')) return;
+        // só TEXTO com conteúdo
+        if ($msgType !== 'text') return;
+        $userText = trim((string)$msgContent);
+        if ($userText === '') return;
+
+        // (e) toggle: carrega o agent_config ATIVO do tenant (mais recente vence).
+        // Coluna api_key_enc é VARBINARY — leitura crua via PDO.
+        $pdo = Database::getConnection();
+        $st  = $pdo->prepare(
+            'SELECT provider, api_key_enc, prompt
+               FROM agent_configs
+              WHERE account_id = ? AND enabled = 1
+                AND api_key_enc IS NOT NULL
+                AND provider IS NOT NULL AND provider <> ""
+           ORDER BY updated_at DESC, id DESC
+              LIMIT 1'
+        );
+        $st->execute([$accountId]);
+        $cfg = $st->fetch(\PDO::FETCH_ASSOC);
+        if (!$cfg) return; // sem agente ativo configurado → não responde
+
+        $provider = strtolower(trim((string)$cfg['provider']));
+        if (!in_array($provider, ['openai', 'anthropic'], true)) {
+            // Provider não suportado por cURL puro (ex.: gemini) — não derruba nada,
+            // apenas não responde automaticamente. Logado p/ diagnóstico.
+            error_log('[whatsapp/agent] provider não suportado para auto-resposta: ' . $provider);
+            return;
+        }
+
+        $apiKey = decryptAgentApiKey($cfg['api_key_enc'] !== null ? (string)$cfg['api_key_enc'] : null);
+        if ($apiKey === null || $apiKey === '') {
+            error_log('[whatsapp/agent] api_key do agente indecifrável/vazia — auto-resposta abortada');
+            return;
+        }
+
+        $GLOBALS['__agent_tasks'][] = [
+            'account_id'  => $accountId,
+            'instance_id' => $instanceId,
+            'remote_jid'  => $remoteJid,
+            'provider'    => $provider,
+            'api_key'     => $apiKey,
+            'prompt'      => trim((string)($cfg['prompt'] ?? '')),
+            'user_text'   => $userText,
+        ];
+    } catch (\Throwable $e) {
+        // Nunca deixa a avaliação do agente derrubar o webhook.
+        error_log('[whatsapp/agent] maybeQueueAgentReply falhou: ' . $e->getMessage());
     }
 }
 
@@ -607,4 +736,206 @@ function extractQuotedSnapshot(array $message, array $msg): array
     if (is_string($text) && mb_strlen($text) > 480) $text = mb_substr($text, 0, 477) . '…';
 
     return [$senderName, $text];
+}
+
+// ── ALTA #5: Agente IA (atendimento automático via LLM) ───────────────────────
+
+/**
+ * Garante que a resposta HTTP (200) já enviada chegue à Evolution e a conexão
+ * seja LIBERADA antes de processarmos o LLM — para o webhook nunca travar (d).
+ *
+ *  • PHP-FPM: fastcgi_finish_request() devolve a resposta e libera o worker para
+ *    o que vier depois (a Evolution recebe o 200 na hora).
+ *  • mod_php / servidor embutido: fecha os buffers de saída na marra e marca
+ *    ignore_user_abort(true) para o script continuar mesmo se a Evolution já
+ *    tiver desconectado. set_time_limit(0) evita matar o processo no meio do
+ *    envio (a chamada cURL tem timeout próprio e curto).
+ */
+function flushResponse(): void
+{
+    ignore_user_abort(true);
+    @set_time_limit(0); // o cURL ao LLM tem timeout próprio e curto (15s)
+
+    // Sinaliza fim de resposta ANTES de fechar — só funciona se headers não saíram.
+    if (!headers_sent()) {
+        @header('Connection: close');
+        @header('Content-Length: ' . (string)ob_get_length());
+    }
+
+    if (function_exists('fastcgi_finish_request')) {
+        // PHP-FPM: descarrega o buffer na resposta e libera o worker.
+        @fastcgi_finish_request();
+        return;
+    }
+    // Fallback sem FPM (mod_php / servidor embutido): empurra o buffer e fecha o que der.
+    while (ob_get_level() > 0) { @ob_end_flush(); }
+    @flush();
+}
+
+/**
+ * Decifra a api_key do agente com compatibilidade de chave (espelha BAIXA #2 do
+ * agent_settings.php): tenta o formato NOVO (Crypto / AES-256-GCM, "v1:…") e, se
+ * falhar, cai para o LEGADO (TotpHelper / AES-256-CBC). Retorna null se nenhum
+ * decifrar — o chamador então NÃO responde (em vez de quebrar).
+ */
+function decryptAgentApiKey(?string $enc): ?string
+{
+    if ($enc === null || $enc === '') return null;
+    try {
+        return Crypto::decrypt($enc);
+    } catch (\Throwable $_) {
+        try {
+            return TotpHelper::decryptSecret($enc);
+        } catch (\Throwable $_e) {
+            return null;
+        }
+    }
+}
+
+/**
+ * Executa a resposta automática: chama o LLM e, se obtiver texto, envia via
+ * EvolutionApiService::sendText. TUDO em try/catch — guardrail (c)/(d): se o LLM
+ * falhar/demorar, apenas loga e segue; nunca propaga exceção (já estamos depois
+ * do 200, mas mantemos o processo saudável).
+ *
+ * @param array{account_id:int,instance_id:int,remote_jid:string,provider:string,api_key:string,prompt:string,user_text:string} $task
+ */
+function runAgentReply(array $task): void
+{
+    try {
+        $reply = ($task['provider'] === 'anthropic')
+            ? callAnthropic($task['api_key'], $task['prompt'], $task['user_text'])
+            : callOpenAi($task['api_key'], $task['prompt'], $task['user_text']);
+
+        $reply = is_string($reply) ? trim($reply) : '';
+        if ($reply === '') {
+            error_log('[whatsapp/agent] LLM (' . $task['provider'] . ') não retornou texto — nada enviado');
+            return;
+        }
+        // Limite defensivo de tamanho (evita respostas gigantes do modelo).
+        if (mb_strlen($reply) > 4096) $reply = mb_substr($reply, 0, 4096);
+
+        // Envia pelo mesmo tenant (settings per-tenant, P0 LGPD).
+        $instModel = new WhatsAppInstance();
+        $cfg       = $instModel->getSettings((int)$task['account_id']);
+        $evo       = new EvolutionApiService($cfg);
+        $name      = $cfg['evolution_instance'] ?? 'yuris-crm';
+        $resp      = $evo->sendText($name, (string)$task['remote_jid'], $reply);
+        if (!empty($resp['_error'])) {
+            error_log('[whatsapp/agent] sendText falhou: ' . $resp['_error']);
+        }
+    } catch (\Throwable $e) {
+        // Não vaza detalhe; só log server-side (LGPD).
+        error_log('[whatsapp/agent] runAgentReply falhou: ' . $e->getMessage());
+    }
+}
+
+/**
+ * OpenAI Chat Completions via cURL puro (sem SDK).
+ * System = prompt salvo; user = texto recebido. Modelo padrão econômico.
+ */
+function callOpenAi(string $apiKey, string $prompt, string $userText): ?string
+{
+    $messages = [];
+    if ($prompt !== '') $messages[] = ['role' => 'system', 'content' => $prompt];
+    $messages[] = ['role' => 'user', 'content' => $userText];
+
+    $body = [
+        'model'       => 'gpt-4o-mini',
+        'messages'    => $messages,
+        'max_tokens'  => 600,
+        'temperature' => 0.6,
+    ];
+    $resp = llmHttpPost(
+        'https://api.openai.com/v1/chat/completions',
+        ['Content-Type: application/json', 'Authorization: Bearer ' . $apiKey],
+        $body
+    );
+    if ($resp === null) return null;
+    // Caminho de sucesso: choices[0].message.content
+    $text = $resp['choices'][0]['message']['content'] ?? null;
+    if (!is_string($text) || trim($text) === '') {
+        if (!empty($resp['error']['message'])) {
+            error_log('[whatsapp/agent] OpenAI erro: ' . $resp['error']['message']);
+        }
+        return null;
+    }
+    return $text;
+}
+
+/**
+ * Anthropic Messages API via cURL puro (sem SDK).
+ * Headers: x-api-key + anthropic-version: 2023-06-01.
+ * System = prompt salvo (campo "system"); user = texto recebido.
+ */
+function callAnthropic(string $apiKey, string $prompt, string $userText): ?string
+{
+    $body = [
+        'model'      => 'claude-3-5-haiku-20241022',
+        'max_tokens' => 600,
+        'messages'   => [['role' => 'user', 'content' => $userText]],
+    ];
+    if ($prompt !== '') $body['system'] = $prompt;
+
+    $resp = llmHttpPost(
+        'https://api.anthropic.com/v1/messages',
+        [
+            'Content-Type: application/json',
+            'x-api-key: ' . $apiKey,
+            'anthropic-version: 2023-06-01',
+        ],
+        $body
+    );
+    if ($resp === null) return null;
+    // Sucesso: content[] com blocos {type:text, text:...}
+    $text = '';
+    if (!empty($resp['content']) && is_array($resp['content'])) {
+        foreach ($resp['content'] as $block) {
+            if (($block['type'] ?? '') === 'text' && is_string($block['text'] ?? null)) {
+                $text .= $block['text'];
+            }
+        }
+    }
+    if (trim($text) === '') {
+        if (!empty($resp['error']['message'])) {
+            error_log('[whatsapp/agent] Anthropic erro: ' . $resp['error']['message']);
+        }
+        return null;
+    }
+    return $text;
+}
+
+/**
+ * POST JSON genérico para a API do LLM via cURL puro.
+ * GUARDRAIL (c): timeout CURTO (connect 5s, total 15s). Retorna o array decodado
+ * em sucesso, ou null em erro de transporte / resposta não-JSON (logado).
+ */
+function llmHttpPost(string $url, array $headers, array $body): ?array
+{
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => json_encode($body),
+        CURLOPT_HTTPHEADER     => $headers,
+        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_TIMEOUT        => 15,   // (c) timeout curto — não pendura o processo
+        CURLOPT_SSL_VERIFYPEER => true, // APIs públicas: sempre verificar TLS
+        CURLOPT_SSL_VERIFYHOST => 2,
+    ]);
+    $raw   = curl_exec($ch);
+    $http  = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
+    curl_close($ch);
+
+    if ($error !== '' || $raw === false) {
+        error_log('[whatsapp/agent] cURL LLM falhou (' . $url . '): ' . $error);
+        return null;
+    }
+    $decoded = json_decode((string)$raw, true);
+    if (!is_array($decoded)) {
+        error_log('[whatsapp/agent] LLM resposta não-JSON (http ' . $http . ')');
+        return null;
+    }
+    return $decoded;
 }

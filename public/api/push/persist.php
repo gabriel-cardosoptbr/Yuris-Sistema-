@@ -27,11 +27,13 @@ require_once __DIR__ . '/../../../app/Models/PushProcessoLink.php';
 require_once __DIR__ . '/../../../app/Models/Task.php';
 require_once __DIR__ . '/../../../app/Models/TaskBoard.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../../app/Helpers/TenantGuard.php';
 require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
 require_once __DIR__ . '/../../../app/Helpers/ProcessoAudit.php';
 require_once __DIR__ . '/../../../app/Services/Push/PublicationHasher.php';
 
 use App\Helpers\AccountContext;
+use App\Helpers\TenantGuard;
 use App\Helpers\ProcessoAudit;
 use App\Models\Database;
 use App\Models\PushEvent;
@@ -224,15 +226,13 @@ try {
                 echo json_encode(['error' => 'extra.processo_id inválido']);
                 exit;
             }
-            // Validar que processo pertence à conta (proteção cross-tenant)
+            // Validar acesso ao processo (proteção cross-tenant). Antes filtrava
+            // só account_id=:acc (achado ALTA #13), o que dava 403 ao vincular um
+            // processo de filial. assertProcessoAcessivel usa o escopo canônico
+            // getAccessibleAccountIds('processos') + resource_shares — coerente com
+            // create_prazo (abaixo) e com /api/processes.php. Aborta 403 se sem acesso.
             $pdo = Database::getConnection();
-            $st  = $pdo->prepare('SELECT id FROM processos WHERE id = :id AND account_id = :acc LIMIT 1');
-            $st->execute(['id' => $procId, 'acc' => $accountId]);
-            if (!$st->fetchColumn()) {
-                http_response_code(403);
-                echo json_encode(['error' => 'Processo não pertence a esta conta']);
-                exit;
-            }
+            TenantGuard::assertProcessoAcessivel($ctx, $procId);
             // Vincula a intimação específica
             $pdo->prepare('UPDATE push_events SET processo_id = :p WHERE id = :id AND account_id = :acc')
                 ->execute(['p' => $procId, 'id' => $eventId, 'acc' => $accountId]);
@@ -389,15 +389,12 @@ try {
                 echo json_encode(['error' => 'Intimação precisa estar vinculada a um processo. Vincule primeiro.']);
                 exit;
             }
-            // Confirma que o processo pertence ao tenant
+            // Confirma acesso ao processo (achado ALTA #13). Mesmo motivo do
+            // link_process: a intimação pode estar vinculada a um processo de
+            // filial, então usamos o escopo canônico (matriz + filiais + shares)
+            // via assertProcessoAcessivel em vez de account_id=:acc próprio.
             $pdo = Database::getConnection();
-            $stProc = $pdo->prepare('SELECT id FROM processos WHERE id = :id AND account_id = :acc LIMIT 1');
-            $stProc->execute(['id' => $procId, 'acc' => $accountId]);
-            if (!$stProc->fetchColumn()) {
-                http_response_code(403);
-                echo json_encode(['error' => 'Processo não pertence a esta conta']);
-                exit;
-            }
+            TenantGuard::assertProcessoAcessivel($ctx, $procId);
 
             $descricao = trim((string)($extra['descricao'] ?? ''));
             if ($descricao === '') {

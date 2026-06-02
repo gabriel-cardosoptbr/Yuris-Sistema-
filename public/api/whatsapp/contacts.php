@@ -11,7 +11,9 @@ require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 
 use App\Models\Database;
 use App\Helpers\AccountContext;
-use App\Services\EvolutionApiService;
+// NB (auditoria 2026-06-01, BAIXA #25): removido `use App\Services\EvolutionApiService`.
+// A classe EvolutionApiService e GLOBAL (sem namespace) — este import resolvia para um
+// FQCN inexistente e nunca era usado (instanciamos via \EvolutionApiService mais abaixo).
 
 session_start(['read_and_close' => true]);
 $_csrf = $_SESSION['csrf_token'] ?? '';

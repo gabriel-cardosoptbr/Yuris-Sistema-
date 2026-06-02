@@ -52,12 +52,24 @@ if ($ctx->isMatriz()) {
 // Restringe ao conjunto ACESSÍVEL — qualquer id fora dele é ignorado (segurança).
 $selected_origin = isset($_GET['origin']) ? trim((string)$_GET['origin']) : '';
 if ($selected_origin !== '' && count($origin_accounts) > 1) {
-    $matrizIds  = array_map(fn($a) => (int)$a['id'], array_filter($origin_accounts, fn($a) => $a['tipo'] === 'matriz'));
-    $filiaisIds = array_map(fn($a) => (int)$a['id'], array_filter($origin_accounts, fn($a) => $a['tipo'] === 'filial'));
+    // FIX (auditoria 2026-06-01 — MÉDIA #9/#19): o YURIS tem 3 tipos de conta
+    // (matriz | filial | advogado). getAccessibleAccountIds('dashboard') já inclui
+    // advogados vinculados, então eles entram nos KPIs agregados — mas a
+    // classificação antiga só mapeava matriz/filial, deixando o advogado fora do
+    // recorte de origem. Aqui:
+    //   - '__filiais__'  recorta TODAS as origens não-matriz (filiais + advogados),
+    //     conforme decisão de tratar advogado como "não-matriz" no recorte;
+    //   - '__advogados__' recorta só os advogados vinculados (isolamento fino).
+    $matrizIds    = array_map(fn($a) => (int)$a['id'], array_filter($origin_accounts, fn($a) => $a['tipo'] === 'matriz'));
+    $filiaisIds   = array_map(fn($a) => (int)$a['id'], array_filter($origin_accounts, fn($a) => $a['tipo'] === 'filial'));
+    $advogadoIds  = array_map(fn($a) => (int)$a['id'], array_filter($origin_accounts, fn($a) => $a['tipo'] === 'advogado'));
+    $naoMatrizIds = array_map(fn($a) => (int)$a['id'], array_filter($origin_accounts, fn($a) => $a['tipo'] !== 'matriz'));
     if ($selected_origin === '__matriz__') {
         $tenantIds = $matrizIds ?: [0];
     } elseif ($selected_origin === '__filiais__') {
-        $tenantIds = $filiaisIds ?: [0];
+        $tenantIds = $naoMatrizIds ?: [0];
+    } elseif ($selected_origin === '__advogados__') {
+        $tenantIds = $advogadoIds ?: [0];
     } else {
         $sid = (int)$selected_origin;
         // Só permite ids que pertencem ao conjunto acessível
@@ -392,16 +404,27 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
             <h2 class="page-header-title">Dashboard Executivo</h2>
             <p class="page-header-subtitle">Visão completa — Comercial · Financeiro · Jurídico · Operacional</p>
             <?php if (count($origin_accounts) > 1):
-              // Indicador visual do escopo ativo (matriz com filiais)
+              // Indicador visual do escopo ativo (matriz com filiais/advogados).
+              // FIX (auditoria 2026-06-01 — MÉDIA #9): rotula cada conta pelo TIPO
+              // real (matriz/filial/advogado), em vez de assumir "filial" para
+              // tudo que não é matriz.
+              $_tipoLabel  = ['matriz' => 'Matriz', 'filial' => 'Filial', 'advogado' => 'Advogado'];
+              $_nFiliais   = count(array_filter($origin_accounts, fn($a) => $a['tipo'] === 'filial'));
+              $_nAdvogados = count(array_filter($origin_accounts, fn($a) => $a['tipo'] === 'advogado'));
               $scope_label = '';
               if ($selected_origin === '__matriz__') $scope_label = 'Apenas Matriz';
-              elseif ($selected_origin === '__filiais__') $scope_label = 'Apenas Filiais';
+              elseif ($selected_origin === '__filiais__') $scope_label = 'Filiais e Advogados vinculados';
+              elseif ($selected_origin === '__advogados__') $scope_label = 'Apenas Advogados';
               elseif ($selected_origin !== '') {
                   $found = array_filter($origin_accounts, fn($a) => (string)$a['id'] === $selected_origin);
                   $first = $found ? reset($found) : null;
-                  if ($first) $scope_label = ($first['tipo'] === 'matriz' ? 'Matriz: ' : 'Filial: ') . $first['nome'];
+                  if ($first) $scope_label = ($_tipoLabel[$first['tipo']] ?? 'Conta') . ': ' . $first['nome'];
               } else {
-                  $scope_label = 'Todas as origens (Matriz + ' . (count($origin_accounts) - 1) . ' filial' . (count($origin_accounts) - 1 === 1 ? '' : 'is') . ')';
+                  // Resumo "Matriz + N filiais + M advogados" (omite os zerados)
+                  $_parts = [];
+                  if ($_nFiliais > 0)   $_parts[] = $_nFiliais . ' filial' . ($_nFiliais === 1 ? '' : 'is');
+                  if ($_nAdvogados > 0) $_parts[] = $_nAdvogados . ' advogado' . ($_nAdvogados === 1 ? '' : 's');
+                  $scope_label = 'Todas as origens (Matriz' . ($_parts ? ' + ' . implode(' + ', $_parts) : '') . ')';
               }
             ?>
             <div style="margin-top:6px;font-size:.74rem;color:#93c5fd;display:inline-flex;align-items:center;gap:6px">
@@ -414,16 +437,37 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
             <?php if (count($origin_accounts) > 1): ?>
             <!-- Filtro de Origem (matriz/filial) — visível só para matriz com filiais.
                  Recarrega a página com ?origin=... porque o cálculo é server-side. -->
+            <?php
+              // FIX (auditoria 2026-06-01 — MÉDIA #9): separa filiais de advogados
+              // em optgroups distintos. Antes "if tipo==='matriz' continue" jogava
+              // qualquer não-matriz (inclusive advogado) sob o rótulo "Filial",
+              // rotulando errado o tipo advogado. "__filiais__" cobre não-matriz;
+              // "__advogados__" isola só os advogados.
+              $_oaFiliais   = array_filter($origin_accounts, fn($a) => $a['tipo'] === 'filial');
+              $_oaAdvogados = array_filter($origin_accounts, fn($a) => $a['tipo'] === 'advogado');
+            ?>
             <select id="dashFilterOrigin"
                     style="height:36px;padding:0 12px;border-radius:9px;border:1px solid rgba(96,165,250,.28);background:rgba(5,18,39,.85);color:#d6eaff;font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer">
               <option value="">Todas as origens</option>
               <option value="__matriz__"  <?=$selected_origin==='__matriz__'?'selected':''?>>Apenas Matriz</option>
-              <option value="__filiais__" <?=$selected_origin==='__filiais__'?'selected':''?>>Apenas Filiais</option>
+              <option value="__filiais__" <?=$selected_origin==='__filiais__'?'selected':''?>>Filiais e Advogados</option>
+              <?php if (!empty($_oaAdvogados)): ?>
+              <option value="__advogados__" <?=$selected_origin==='__advogados__'?'selected':''?>>Apenas Advogados</option>
+              <?php endif; ?>
+              <?php if (!empty($_oaFiliais)): ?>
               <optgroup label="Filial específica">
-                <?php foreach ($origin_accounts as $oa): if ($oa['tipo'] === 'matriz') continue; ?>
+                <?php foreach ($_oaFiliais as $oa): ?>
                   <option value="<?=htmlspecialchars((string)$oa['id'])?>" <?=$selected_origin===(string)$oa['id']?'selected':''?>><?=htmlspecialchars($oa['nome'])?></option>
                 <?php endforeach; ?>
               </optgroup>
+              <?php endif; ?>
+              <?php if (!empty($_oaAdvogados)): ?>
+              <optgroup label="Advogado vinculado">
+                <?php foreach ($_oaAdvogados as $oa): ?>
+                  <option value="<?=htmlspecialchars((string)$oa['id'])?>" <?=$selected_origin===(string)$oa['id']?'selected':''?>><?=htmlspecialchars($oa['nome'])?></option>
+                <?php endforeach; ?>
+              </optgroup>
+              <?php endif; ?>
             </select>
             <?php endif; ?>
             <button id="reportDashboardBtn" style="display:inline-flex;align-items:center;gap:6px;padding:0 14px;height:36px;border-radius:9px;border:1px solid rgba(96,165,250,.28);background:transparent;color:#93c5fd;font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer;transition:background .18s" onmouseover="this.style.background='rgba(37,99,235,.15)'" onmouseout="this.style.background='transparent'">

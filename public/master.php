@@ -746,6 +746,28 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
         <tbody id="lgpdBody"><tr><td colspan="7" class="empty">Carregando…</td></tr></tbody>
       </table>
     </div>
+
+    <!-- ── Aceites de Termos (LGPD Art. 8º — registro de consentimento) ── -->
+    <div class="mst-card" style="padding:0; overflow:hidden; margin-bottom:14px">
+      <div style="display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid rgba(160,180,210,.10); flex-wrap:wrap">
+        <div style="margin-right:auto">
+          <div style="font-weight:700">Aceites de Termos <span id="consentsBadge" style="display:none;background:#10b981;color:#fff;font-size:.72rem;padding:1px 8px;border-radius:999px;margin-left:6px;font-weight:700"></span></div>
+          <div style="font-size:.74rem; color:#9ab0c9; margin-top:3px">
+            Prova de consentimento aos Termos de Uso/Privacidade no login (LGPD Art. 8º §1º — registro de IP, data e versão)
+          </div>
+        </div>
+        <input type="search" id="filterConsentQ" class="mst-form-select" placeholder="Buscar e-mail / nome…" style="width:auto;min-width:200px;padding:6px 11px;font-size:.82rem">
+        <select id="filterConsentStatus" class="mst-form-select" style="width:auto;padding:6px 11px;font-size:.82rem">
+          <option value="ativo" selected>Ativos</option>
+          <option value="revogado">Revogados</option>
+          <option value="">Todos</option>
+        </select>
+      </div>
+      <table class="mst-tbl">
+        <thead><tr><th>#</th><th>Titular</th><th>Conta</th><th>Base legal</th><th>Concedido</th><th>IP</th><th>Status</th></tr></thead>
+        <tbody id="consentsBody"><tr><td colspan="7" class="empty">Carregando…</td></tr></tbody>
+      </table>
+    </div>
   </section>
 
   <!-- ── Retenção LGPD (Art. 16 + 18 IV) ── -->
@@ -2307,7 +2329,7 @@ function loadTab(name) {
   if (name==='payments')  loadPayments();
   if (name==='expenses')  loadExpenses();
   if (name==='audit')     loadAudit();
-  if (name==='lgpd')      loadLgpdRequests();
+  if (name==='lgpd')    { loadLgpdRequests(); loadConsents(); }
   if (name==='retencao')  loadRetention();
   if (name==='incidents') loadIncidents();
   if (name==='operators') loadOperators();
@@ -2382,7 +2404,10 @@ async function openModalAdvogado(accountId) {
     r.data.accounts.forEach(a => {
       const o = document.createElement('option');
       o.value = a.id;
-      o.textContent = `[${a.tipo === 'matriz' ? 'M' : 'F'}] ${a.nome} (#${a.id})`;
+      // Rótulo cobrindo os 3 tipos. O ternário binário antigo (matriz?'M':'F')
+      // marcava advogado-solo e qualquer não-matriz como [F] (Filial) — errado.
+      const tag = a.tipo === 'matriz' ? 'M' : a.tipo === 'filial' ? 'F' : 'A';
+      o.textContent = `[${tag}] ${a.nome} (#${a.id})`;
       sel.appendChild(o);
     });
   }
@@ -2534,6 +2559,12 @@ async function viewAcc(id) {
   const d = r.data;
   const isMatriz = d.tipo === 'matriz';
 
+  // Ícone/cor por tipo cobrindo os TRÊS tipos (matriz/filial/advogado).
+  // Antes era binário (matriz vs 'store') e o advogado-solo caía no ramo de
+  // filial. Advogado tem ícone/cor próprios (balança verde, igual a viewAdvogado).
+  const _accIcon  = d.tipo === 'matriz' ? 'building' : d.tipo === 'advogado' ? 'scale' : 'store';
+  const _accColor = d.tipo === 'matriz' ? '#60a5fa'  : d.tipo === 'advogado' ? '#86efac' : '#c084fc';
+
   // Header mostra DOIS pills quando o status da assinatura diverge do status
   // da conta — antes só mostrava o da conta e o user via "Em teste" no bloco
   // Assinatura abaixo sem entender que eram coisas distintas (conta=acesso,
@@ -2545,7 +2576,7 @@ async function viewAcc(id) {
     ? ` <span style="opacity:.7;font-size:.7rem;margin-left:6px">Assin:</span> ${pill(_sub.status)}`
     : '';
   document.getElementById('detalheTitle').innerHTML =
-    `${ico(isMatriz ? 'building' : 'store', {size:18, style:'display:inline;vertical-align:-3px;margin-right:6px;color:'+(isMatriz?'#60a5fa':'#c084fc')})}${esc(d.nome)} <span class="pill pill-${esc(d.tipo)}" style="margin-left:8px;font-size:.6rem">${esc(d.tipo)}</span> ${pill(d.status)}${_subPill}`;
+    `${ico(_accIcon, {size:18, style:'display:inline;vertical-align:-3px;margin-right:6px;color:'+_accColor})}${esc(d.nome)} <span class="pill pill-${esc(d.tipo)}" style="margin-left:8px;font-size:.6rem">${esc(d.tipo)}</span> ${pill(d.status)}${_subPill}`;
 
   let sub = d.subscription || {};
   let html = '';
@@ -2652,7 +2683,12 @@ async function viewAcc(id) {
   let foot = '';
   foot += `<button class="btn-mst btn-mst-primary" onclick="openEditAccount(${d.id})">Editar dados</button>`;
   if (sub && sub.id) {
-    foot += `<button class="btn-mst btn-mst-primary" onclick="openEditSub(${sub.id})">Editar assinatura</button>`;
+    // openSubModal lê de _subsCache (populada só ao abrir a aba Assinaturas).
+    // Ao editar a assinatura direto pelo detalhe da conta, a aba pode nunca
+    // ter sido carregada — então sincronizamos o cache com a subscription
+    // deste detalhe (acrescentando account_nome, que vem da própria conta).
+    cacheSubscription({ ...sub, account_id: sub.account_id || d.id, account_nome: d.nome });
+    foot += `<button class="btn-mst btn-mst-primary" onclick="openSubModal(${sub.id})">Editar assinatura</button>`;
   }
   if (isMatriz) {
     foot += `<button class="btn-mst" onclick="openModalFilial(${d.id})">+ Filial</button>`;
@@ -2844,7 +2880,7 @@ async function loadAccounts() {
     <tr>
       <td>${a.id}</td>
       <td><strong>${esc(a.nome)}</strong></td>
-      <td><span class="pill pill-${esc(a.tipo)}">${esc(a.tipo)}</span>${a.matriz_id?' <small>matriz #'+a.matriz_id+'</small>':''}</td>
+      <td><span class="pill pill-${esc(a.tipo)}">${esc(a.tipo)}</span>${a.matriz_nome?' <small>← '+esc(a.matriz_nome)+'</small>':''}</td>
       <td>${pill(a.status)}</td>
       <td>${esc(a.sub_plan || a.plano || '—')}</td>
       <td>${a.cidade ? esc(a.cidade) + (a.estado?'/'+esc(a.estado):'') : '—'}</td>
@@ -3038,6 +3074,14 @@ async function submitPlan(ev) {
 
 // ── Subscription modal (editar) ──────────────────────────────────────────
 let _subsCache = [];
+// Faz upsert de uma assinatura em _subsCache (por id). Usado para abrir o
+// modal de edição a partir do detalhe da conta sem depender de loadBilling().
+function cacheSubscription(sub) {
+  if (!sub || !sub.id) return;
+  const i = _subsCache.findIndex(x => x.id == sub.id);
+  if (i >= 0) _subsCache[i] = { ..._subsCache[i], ...sub };
+  else _subsCache.push(sub);
+}
 async function openSubModal(id) {
   const s = _subsCache.find(x => x.id == id);
   if (!s) return notifyErr('Assinatura não encontrada');
@@ -4252,6 +4296,74 @@ async function loadLgpdRequests() {
 }
 // helper escape isolado (escL = escape LGPD) pra não conflitar com helpers globais
 function escL(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
+
+// ── Aceites de Termos (consome /api/master/consents.php) ───────────────────
+// Lê os registros de consentimento (finalidade=termos_uso_login) — prova de
+// aceite aos Termos no login. Somente leitura; mutação/revogação é feita via
+// fluxo de Solicitações LGPD (revogacao_consentimento). Endpoint exige
+// master_mode no servidor.
+let _consentsTimer;
+async function loadConsents() {
+  const q      = document.getElementById('filterConsentQ').value.trim();
+  const status = document.getElementById('filterConsentStatus').value;
+  const qs = new URLSearchParams({ finalidade: 'termos_uso_login' });
+  if (q)      qs.set('q', q);
+  if (status) qs.set('status', status);
+
+  const tbody = document.getElementById('consentsBody');
+  const r = await fj(`${API}/consents.php?${qs.toString()}`);
+  if (!r.ok || !r.data || !Array.isArray(r.data.items)) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">Erro ao carregar aceites.</td></tr>';
+    return;
+  }
+  const items = r.data.items;
+  if (!items.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">Nenhum aceite encontrado com esses filtros.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = items.map(c => {
+    const ativo = c.status === 'ativo';
+    const stColor = ativo ? '#10b981' : '#ef4444';
+    const stTxt = ativo ? 'ativo' : escL(c.status);
+    const stExtra = (!ativo && c.revogado_em) ? `<div style="font-size:.7rem;color:#9ab0c9">rev. ${fmtDate(c.revogado_em)}</div>` : '';
+    return `<tr>
+      <td>#${c.id}</td>
+      <td>
+        <div style="font-weight:600">${escL(c.user_nome || c.email || '—')}</div>
+        ${c.user_nome && c.email ? `<div style="font-size:.75rem;color:#9ab0c9">${escL(c.email)}</div>` : ''}
+      </td>
+      <td>${escL(c.account_nome || '—')}</td>
+      <td style="font-size:.78rem">${escL(c.base_legal || '—')}</td>
+      <td style="font-size:.78rem">${fmtDateTime(c.concedido_em)}</td>
+      <td style="font-size:.74rem;font-family:ui-monospace,monospace;color:#9ab0c9" title="${escL(c.user_agent || '')}">${escL(c.ip || '—')}</td>
+      <td><span style="padding:3px 9px;border-radius:999px;background:${stColor}1f;border:1px solid ${stColor}40;color:${stColor};font-size:.74rem;font-weight:600">${stTxt}</span>${stExtra}</td>
+    </tr>`;
+  }).join('');
+
+  refreshConsentsBadge();
+}
+
+async function refreshConsentsBadge() {
+  try {
+    const r = await fj(`${API}/consents.php?counts=1`);
+    if (!r.ok || !r.data) return;
+    const badge = document.getElementById('consentsBadge');
+    const total = r.data.total_ativos || 0;
+    if (total > 0) {
+      badge.style.display = 'inline-block';
+      badge.textContent = total;
+      badge.title = `${total} aceites ativos · ${r.data.hoje || 0} hoje · ${r.data.ultimos_7d || 0} nos últimos 7 dias`;
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch (_) {}
+}
+
+document.getElementById('filterConsentStatus').addEventListener('change', loadConsents);
+document.getElementById('filterConsentQ').addEventListener('input', () => {
+  clearTimeout(_consentsTimer);
+  _consentsTimer = setTimeout(loadConsents, 300);
+});
 
 // ═════ Central LGPD v2: drawer com abas (Migration 057 + APIs F4) ═════════
 // Guarda estado da solicitacao atual aberta (alimentado pelo fullDetail).

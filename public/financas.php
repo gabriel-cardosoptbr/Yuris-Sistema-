@@ -43,15 +43,8 @@ $combined_resultado = $combined_receita - $combined_despesa;
 $taxes = [];
 $total_impostos = 0.0;
 try {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS taxes (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        account_id INT NULL,
-        nome VARCHAR(100) NOT NULL DEFAULT '',
-        percentual DECIMAL(7,4) NOT NULL DEFAULT 0,
-        ativo TINYINT(1) NOT NULL DEFAULT 1,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    // A tabela `taxes` é criada pela migration 031_create_taxes.sql — sem DDL inline aqui
+    // (rodar CREATE TABLE a cada request é frágil e pode divergir do schema oficial).
     $tx_st = $pdo->prepare("SELECT * FROM taxes WHERE ativo = 1 AND account_id IN $_finIn ORDER BY id ASC");
     $tx_st->execute($_finParams);
     $taxes = $tx_st->fetchAll(PDO::FETCH_ASSOC);

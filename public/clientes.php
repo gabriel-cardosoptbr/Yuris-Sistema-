@@ -482,16 +482,34 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
           <?php if ($showOrigemFilter): ?>
           <label class="field-group">
             <span class="field-label">Origem</span>
+            <?php
+              // FIX (auditoria 2026-06-01 — BAIXA #32 / MÉDIA #19): o YURIS tem 3
+              // tipos de conta (matriz | filial | advogado). A versão antiga só
+              // montava o optgroup com tipo==='filial', deixando advogados
+              // vinculados de fora do filtro. Separa filiais de advogados em
+              // optgroups distintos (rótulo correto por tipo) e expõe
+              // "__advogados__" para isolar só os advogados. "__filiais__" passa
+              // a cobrir todas as origens não-matriz (ver applyFilters no JS).
+              $filiaisOnly   = array_filter($origin_accounts, fn($a) => $a['tipo'] === 'filial');
+              $advogadosOnly = array_filter($origin_accounts, fn($a) => $a['tipo'] === 'advogado');
+            ?>
             <select id="filterOrigem" class="form-select">
               <option value="">Todas as origens</option>
               <option value="__matriz__">Apenas Matriz</option>
-              <option value="__filiais__">Apenas Filiais</option>
-              <?php
-                $filiaisOnly = array_filter($origin_accounts, fn($a) => $a['tipo'] === 'filial');
-                if (!empty($filiaisOnly)):
-              ?>
+              <option value="__filiais__">Filiais e Advogados</option>
+              <?php if (!empty($advogadosOnly)): ?>
+              <option value="__advogados__">Apenas Advogados</option>
+              <?php endif; ?>
+              <?php if (!empty($filiaisOnly)): ?>
               <optgroup label="Filial específica">
                 <?php foreach ($filiaisOnly as $a): ?>
+                  <option value="<?= (int)$a['id'] ?>"><?= htmlspecialchars((string)$a['nome']) ?></option>
+                <?php endforeach; ?>
+              </optgroup>
+              <?php endif; ?>
+              <?php if (!empty($advogadosOnly)): ?>
+              <optgroup label="Advogado vinculado">
+                <?php foreach ($advogadosOnly as $a): ?>
                   <option value="<?= (int)$a['id'] ?>"><?= htmlspecialchars((string)$a['nome']) ?></option>
                 <?php endforeach; ?>
               </optgroup>
@@ -1019,13 +1037,19 @@ window.Clientes = (function () {
             if (resp > 0 && parseInt(c.responsavel_id, 10) !== resp) return false;
             if (status   && String(c.status || '').toLowerCase() !== status.toLowerCase()) return false;
 
-            // Origem: aceita pseudo-valores __matriz__ / __filiais__ ou account_id específico
+            // Origem: aceita pseudo-valores __matriz__ / __filiais__ / __advogados__
+            // ou account_id específico.
+            // FIX (auditoria 2026-06-01 — MÉDIA #19 / BAIXA #32): "__filiais__"
+            // antes exigia tipo==='filial', escondendo clientes de contas advogado
+            // vinculadas. Agora cobre toda origem não-matriz (filial + advogado);
+            // "__advogados__" isola só os advogados.
             if (origem) {
                 const tipo = String(c.origin_account_tipo || '').toLowerCase();
                 const accId = String(c.account_id || '');
-                if (origem === '__matriz__'  && tipo !== 'matriz') return false;
-                if (origem === '__filiais__' && tipo !== 'filial') return false;
-                if (origem !== '__matriz__' && origem !== '__filiais__' && accId !== origem) return false;
+                if (origem === '__matriz__'    && tipo !== 'matriz')    return false;
+                if (origem === '__filiais__'   && tipo === 'matriz')    return false;
+                if (origem === '__advogados__' && tipo !== 'advogado')  return false;
+                if (origem !== '__matriz__' && origem !== '__filiais__' && origem !== '__advogados__' && accId !== origem) return false;
             }
             return true;
         });

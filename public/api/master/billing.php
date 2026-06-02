@@ -109,7 +109,7 @@ if ($method === 'PATCH') {
         }
     }
     if (isset($input['billing_cycle'])) {
-        if (!in_array($input['billing_cycle'], ['monthly','yearly'], true)) {
+        if (!in_array($input['billing_cycle'], ['monthly','quarterly','yearly'], true)) {
             ApiResponse::badRequest('billing_cycle inválido');
         }
         $sets[] = 'billing_cycle = :bc'; $params['bc'] = $input['billing_cycle'];

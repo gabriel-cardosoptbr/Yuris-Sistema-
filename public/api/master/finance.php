@@ -40,9 +40,9 @@ $pdo = Database::getConnection();
 // Representa o RUN RATE — quanto entra se todos os trials converterem.
 $mrrProjCents = (int) $pdo->query(
     "SELECT COALESCE(SUM(
-        CASE WHEN s.billing_cycle = 'monthly'
-             THEN p.preco_mensal_cents
-             ELSE ROUND(p.preco_anual_cents / 12)
+        CASE WHEN s.billing_cycle = 'yearly'
+             THEN ROUND(p.preco_anual_cents / 12)
+             ELSE p.preco_mensal_cents
         END
      ), 0)
      FROM subscriptions s
@@ -53,9 +53,9 @@ $mrrProjCents = (int) $pdo->query(
 // ─── MRR REALIZADO (subs efetivamente pagando agora: active + past_due) ─────
 $mrrRealCents = (int) $pdo->query(
     "SELECT COALESCE(SUM(
-        CASE WHEN s.billing_cycle = 'monthly'
-             THEN p.preco_mensal_cents
-             ELSE ROUND(p.preco_anual_cents / 12)
+        CASE WHEN s.billing_cycle = 'yearly'
+             THEN ROUND(p.preco_anual_cents / 12)
+             ELSE p.preco_mensal_cents
         END
      ), 0)
      FROM subscriptions s
@@ -107,9 +107,9 @@ for ($i = 11; $i >= 0; $i--) {
     // MRR vigente NO FIM daquele mês
     $stMRR = $pdo->prepare(
         "SELECT COALESCE(SUM(
-            CASE WHEN s.billing_cycle = 'monthly'
-                 THEN p.preco_mensal_cents
-                 ELSE ROUND(p.preco_anual_cents / 12)
+            CASE WHEN s.billing_cycle = 'yearly'
+                 THEN ROUND(p.preco_anual_cents / 12)
+                 ELSE p.preco_mensal_cents
             END
          ), 0)
          FROM subscriptions s
@@ -157,9 +157,9 @@ foreach (['active','trial','overdue','suspended','cancelled','inactive'] as $st)
 $receitaPorPlano = $pdo->query(
     "SELECT p.id, p.slug, p.nome AS plano,
             COALESCE(SUM(
-              CASE WHEN s.billing_cycle = 'monthly'
-                   THEN p.preco_mensal_cents
-                   ELSE ROUND(p.preco_anual_cents / 12)
+              CASE WHEN s.billing_cycle = 'yearly'
+                   THEN ROUND(p.preco_anual_cents / 12)
+                   ELSE p.preco_mensal_cents
               END
             ), 0) AS mrr_cents,
             COUNT(s.id) AS subs_count

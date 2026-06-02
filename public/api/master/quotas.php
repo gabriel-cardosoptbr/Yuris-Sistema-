@@ -310,7 +310,7 @@ if ($method === 'POST') {
     $observacoes         = !empty($input['observacoes']) ? trim($input['observacoes']) : null;
 
     if ($billingCycle !== null) {
-        $cycleAllowed = ['monthly', 'yearly', 'one_off'];
+        $cycleAllowed = ['monthly', 'quarterly', 'yearly', 'one_off'];
         if (!in_array($billingCycle, $cycleAllowed, true)) {
             ApiResponse::badRequest('billing_cycle inválido. Aceitos: ' . implode(', ', $cycleAllowed));
         }

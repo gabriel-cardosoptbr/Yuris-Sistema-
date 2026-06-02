@@ -148,16 +148,31 @@ try {
           <option value="atrasadas">Atrasadas</option>
           <option value="7dias">Próximos 7 dias</option>
         </select>
-        <?php if (count($origin_accounts) > 1): /* só matriz com filial */ ?>
+        <?php
+        // MEDIA #9: classifica as contas vinculadas por TIPO real. Conta solo é
+        // 'advogado' (não 'filial') — precisa de optgroup/label próprios, nunca
+        // pode aparecer sob "Filial específica" nem ser contada como filial.
+        $filiais_accounts   = array_values(array_filter($origin_accounts, fn($a) => ($a['tipo'] ?? '') === 'filial'));
+        $advogado_accounts  = array_values(array_filter($origin_accounts, fn($a) => ($a['tipo'] ?? '') === 'advogado'));
+        if (count($origin_accounts) > 1): /* matriz com filiais e/ou advogados vinculados */ ?>
         <select id="fltOrigin" class="tk-filter-select" title="Filtrar por origem da tarefa">
           <option value="">Origem</option>
           <option value="__matriz__">Apenas Matriz</option>
+          <?php if ($filiais_accounts): ?>
           <option value="__filiais__">Apenas Filiais</option>
           <optgroup label="Filial específica">
-            <?php foreach ($origin_accounts as $oa): if ($oa['tipo'] === 'matriz') continue; ?>
+            <?php foreach ($filiais_accounts as $oa): ?>
               <option value="<?=htmlspecialchars((string)$oa['id'])?>"><?=htmlspecialchars($oa['nome'])?></option>
             <?php endforeach; ?>
           </optgroup>
+          <?php endif; ?>
+          <?php if ($advogado_accounts): ?>
+          <optgroup label="Advogado específico">
+            <?php foreach ($advogado_accounts as $oa): ?>
+              <option value="<?=htmlspecialchars((string)$oa['id'])?>"><?=htmlspecialchars($oa['nome'])?></option>
+            <?php endforeach; ?>
+          </optgroup>
+          <?php endif; ?>
         </select>
         <?php endif; ?>
         <input id="fltBusca" class="tk-search" type="text" placeholder="Buscar tarefas...">
@@ -201,6 +216,8 @@ try {
       <button class="tk-tab" data-tab="checklist">Checklist</button>
       <button class="tk-tab" data-tab="proc-tarefas">Tarefas Processuais</button>
       <button class="tk-tab" data-tab="vinculos">Vínculos</button>
+      <button class="tk-tab" data-tab="anexos">Anexos</button>
+      <button class="tk-tab" data-tab="lembretes">Lembretes</button>
       <button class="tk-tab" data-tab="comentarios">Comentários</button>
       <button class="tk-tab" data-tab="historico">Histórico</button>
     </div>
@@ -327,6 +344,7 @@ try {
       <!-- seletor de tipo -->
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
         <button class="tk-link-type-btn active" data-type="processo">Processo</button>
+        <button class="tk-link-type-btn" data-type="cliente">Cliente</button>
         <button class="tk-link-type-btn" data-type="card">Card CRM</button>
         <button class="tk-link-type-btn" data-type="dre_account">Conta DRE</button>
       </div>
@@ -336,6 +354,38 @@ try {
 
       <!-- resultados -->
       <div id="dVinculoResults" style="display:flex;flex-direction:column;gap:4px;"></div>
+    </div>
+    <!-- Anexos (ALTA #30) -->
+    <div class="tk-tab-pane" id="pane-anexos">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
+        <input id="dAnexoFile" type="file"
+          style="flex:1;min-width:160px;font-size:.8rem;color:#9ab0c9;font-family:inherit;color-scheme:dark;">
+        <button id="dAnexoUpload"
+          style="padding:9px 16px;border-radius:8px;background:rgba(37,99,235,.25);border:1px solid rgba(96,165,250,.3);color:#93c5fd;cursor:pointer;font-size:.82rem;font-family:inherit;white-space:nowrap;">Enviar</button>
+      </div>
+      <div id="dAnexoMsg" style="display:none;font-size:.78rem;margin-bottom:8px;padding:6px 10px;border-radius:6px;"></div>
+      <div id="dAnexoList" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+    <!-- Lembretes (ALTA #31) -->
+    <div class="tk-tab-pane" id="pane-lembretes">
+      <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:10px;flex-wrap:wrap;">
+        <div class="tk-field" style="flex:1;min-width:160px;">
+          <label>Lembrar em</label>
+          <input id="dLembreteEm" type="datetime-local">
+        </div>
+        <div class="tk-field" style="width:130px;">
+          <label>Canal</label>
+          <select id="dLembreteCanal">
+            <option value="sistema">Sistema</option>
+            <option value="email">E-mail</option>
+            <option value="whatsapp">WhatsApp</option>
+          </select>
+        </div>
+        <button id="dLembreteAdd"
+          style="padding:9px 16px;height:38px;border-radius:8px;background:rgba(37,99,235,.25);border:1px solid rgba(96,165,250,.3);color:#93c5fd;cursor:pointer;font-size:.82rem;font-family:inherit;white-space:nowrap;">Adicionar</button>
+      </div>
+      <div id="dLembreteMsg" style="display:none;font-size:.78rem;margin-bottom:8px;padding:6px 10px;border-radius:6px;"></div>
+      <div id="dLembreteList" style="display:flex;flex-direction:column;gap:6px;"></div>
     </div>
     <!-- Comentários -->
     <div class="tk-tab-pane" id="pane-comentarios">

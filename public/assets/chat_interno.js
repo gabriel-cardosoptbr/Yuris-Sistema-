@@ -114,14 +114,16 @@ const CI = (() => {
   }
 
   // ── Parsear menções ──────────────────────────────────────────────────────
+  // Tokens: @[user|id|nome] @[proc|id|nome] @[card|id|nome] @[cli|id|nome]
   function parseMentions(text) {
-    return esc(text).replace(/@\[(user|proc|card)\|(\d+)\|([^\]]+)\]/g, (_, tipo, id, display) => {
+    return esc(text).replace(/@\[(user|proc|card|cli)\|(\d+)\|([^\]]+)\]/g, (_, tipo, id, display) => {
       const urls = {
         user: '/usuarios.php',
         proc: '/processos.php?open=' + id,
         card: '/prospeccao.php?open=' + id,
+        cli : '/clientes.php?open=' + id,
       };
-      const labels = { user: 'Usuário', proc: 'Processo', card: 'Card' };
+      const labels = { user: 'Usuário', proc: 'Processo', card: 'Card', cli: 'Cliente' };
       return `<a href="${urls[tipo] || '#'}" class="ci-mention ci-mention--${tipo}">` +
              `<span class="ci-mention-label">${labels[tipo]}</span>${esc(display)}</a>`;
     });
@@ -972,13 +974,19 @@ const CI = (() => {
   }
 
   function extractMencoes(texto) {
-    const re = /@\[(user|proc|card)\|(\d+)\|([^\]]+)\]/g;
+    const re = /@\[(user|proc|card|cli)\|(\d+)\|([^\]]+)\]/g;
     const out = [];
-    const tipoMap = { user: 'usuario', proc: 'processo', card: 'card' };
+    const tipoMap = { user: 'usuario', proc: 'processo', card: 'card', cli: 'cliente' };
+    // MEDIA #2/#3 (auditoria 2026-06-01): a url_destino persistida em
+    // chat_mencoes precisa ser o MESMO param que a página de destino lê no
+    // auto-open. Antes gravava ?card=/?id= (links mortos — prospeccao/processos
+    // só abrem via ?open=). Agora todos usam ?open=, alinhado com parseMentions
+    // (render) e com mencoes.php (busca).
     const urlMap  = {
       user: '/usuarios.php',
-      proc: id => '/processos.php?id=' + id,
-      card: id => '/prospeccao.php?card=' + id,
+      proc: id => '/processos.php?open=' + id,
+      card: id => '/prospeccao.php?open=' + id,
+      cli : id => '/clientes.php?open=' + id,
     };
     let m;
     while ((m = re.exec(texto)) !== null) {

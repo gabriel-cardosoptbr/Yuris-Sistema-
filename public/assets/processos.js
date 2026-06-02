@@ -1222,10 +1222,15 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('btnLimparCliente')?.addEventListener('click', () => _applySelection(null, null));
 
   // ── Lista de usuários — carregada uma vez e reutilizada em todos os selects ──
-  // Usa dados embutidos pelo PHP se disponíveis — elimina fetch async e race condition
+  // Fonte primária: window._SYSTEM_USERS, embutido pelo PHP via getAccessibleUsers()
+  // (matriz + filiais + advogados, já com account_id/account_nome/account_tipo) —
+  // elimina fetch async e race condition.
   let _usuariosList = (window._SYSTEM_USERS && window._SYSTEM_USERS.length) ? window._SYSTEM_USERS : [];
   async function _loadUsuarios() {
     if(_usuariosList.length) return _usuariosList;
+    // Fallback (audit #20 baixa): /api/users.php agora também escopa por
+    // getAccessibleAccountIds() e devolve account_nome/account_tipo, então a lista
+    // fica coerente (mesmo agrupamento Matriz/Filial/Advogado) com a fonte primária.
     try {
       const r = await fetch('/api/users.php',{credentials:'same-origin'});
       _usuariosList = ((await r.json()).data||[]);

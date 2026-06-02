@@ -1056,17 +1056,35 @@ try {
               <span style="font-size:.78rem;color:#9ab0c9">e</span>
               <input id="procFilterDateTo" type="date" class="proc-select" style="padding:0 8px;min-width:130px">
             </div>
-            <?php if (count($origin_accounts) > 1): /* só matriz com pelo menos 1 filial */ ?>
-            <!-- Filtro por origem (Matriz / Filiais) — visível só para matriz -->
+            <?php if (count($origin_accounts) > 1): /* só matriz com pelo menos 1 filial/advogado */ ?>
+            <!-- Filtro por origem (Matriz / Filiais / Advogados) — visível só para matriz.
+                 FIX (auditoria 2026-06-01 — MÉDIA #9/#19/#33): o YURIS tem 3 tipos de
+                 conta. Antes "if tipo==='matriz' continue" listava advogados sob o
+                 rótulo "Filial específica", rotulando errado o tipo advogado. Aqui
+                 cada tipo vai pro seu optgroup (filtro por id, que o processos.js já
+                 trata). -->
+            <?php
+              $_oaFiliais   = array_filter($origin_accounts, fn($a) => $a['tipo'] === 'filial');
+              $_oaAdvogados = array_filter($origin_accounts, fn($a) => $a['tipo'] === 'advogado');
+            ?>
             <select id="procFilterOrigin" class="proc-select" style="min-width:160px" title="Filtrar por origem do processo">
               <option value="">Todas as origens</option>
               <option value="__matriz__">Apenas Matriz</option>
               <option value="__filiais__">Apenas Filiais</option>
+              <?php if (!empty($_oaFiliais)): ?>
               <optgroup label="Filial específica">
-                <?php foreach ($origin_accounts as $oa): if ($oa['tipo'] === 'matriz') continue; ?>
+                <?php foreach ($_oaFiliais as $oa): ?>
                   <option value="<?=htmlspecialchars((string)$oa['id'])?>"><?=htmlspecialchars($oa['nome'])?></option>
                 <?php endforeach; ?>
               </optgroup>
+              <?php endif; ?>
+              <?php if (!empty($_oaAdvogados)): ?>
+              <optgroup label="Advogado vinculado">
+                <?php foreach ($_oaAdvogados as $oa): ?>
+                  <option value="<?=htmlspecialchars((string)$oa['id'])?>"><?=htmlspecialchars($oa['nome'])?></option>
+                <?php endforeach; ?>
+              </optgroup>
+              <?php endif; ?>
             </select>
             <?php endif; ?>
             <!-- Limpar -->

@@ -7,6 +7,10 @@
  */
 $_ap          = (string)($activePage ?? '');
 $_userName    = (string)($_SESSION['user_nome']   ?? 'Usuário');
+// Token CSRF para o sino de notificações (PATCH marcar lida). Garante que o
+// token exista mesmo em páginas que não o definem (ex.: dashboard.php) — o
+// sidebar é incluído em todas as telas autenticadas, então centralizamos aqui.
+$_notifCsrf   = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 $_userRole    = strtolower((string)($_SESSION['user_perfil'] ?? ''));
 $_userInitial = mb_strtoupper(mb_substr(trim($_userName), 0, 1, 'UTF-8'), 'UTF-8') ?: '?';
 
@@ -61,9 +65,12 @@ $_svg = [
     'escritorios' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
     'config'    => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06A2 2 0 1 1 2.27 17.8l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09c.7 0 1.27-.43 1.51-1a1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 6.3 2.27l.06.06c.5.5 1.2.75 1.82.33.56-.32 1.28-.32 1.82-.32H12a2 2 0 1 1 0 4h-.09c-.7 0-1.27.43-1.51 1a1.65 1.65 0 0 0 .33 1.82l.06.06A2 2 0 1 1 17.73 6.2l-.06.06c-.5.5-.75 1.2-.33 1.82.32.56.32 1.28.32 1.82V12a2 2 0 1 1 4 0v.09c0 .7.43 1.27 1 1.51z"/></svg>',
     'sair'      => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
+    'sino'      => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
 ];
 $_uiLibPath  = __DIR__ . '/../assets/yuris-ui.js';
 $_uiLibVer   = file_exists($_uiLibPath) ? @filemtime($_uiLibPath) : '1';
+$_notifJsPath = __DIR__ . '/../assets/notifications.js';
+$_notifJsVer  = file_exists($_notifJsPath) ? @filemtime($_notifJsPath) : '1';
 ?>
 <!-- Yuris UI lib (notify/confirm/prompt sem "localhost diz"). Auto-polyfills window.alert. -->
 <script src="/assets/yuris-ui.js?v=<?= $_uiLibVer ?>"></script>
@@ -83,7 +90,83 @@ $_uiLibVer   = file_exists($_uiLibPath) ? @filemtime($_uiLibPath) : '1';
       <div class="sidebar-user-name"><?= htmlspecialchars($_userName) ?></div>
       <span class="sidebar-user-badge sidebar-user-badge--<?= htmlspecialchars($_roleCss) ?>"><?= htmlspecialchars($_roleLabel) ?></span>
     </div>
+
+    <!-- ── Sino de notificações (Auditoria 2026-06-01 #29/#7) ──
+         Pluga a central account_notifications na UI: badge via ?count=1,
+         lista via GET, PATCH ao marcar lida. Lógica em /assets/notifications.js. -->
+    <div class="yuris-notif" id="yurisNotif">
+      <button type="button" class="yuris-notif-btn" id="yurisNotifBtn"
+              aria-label="Notificações" aria-haspopup="true" aria-expanded="false" title="Notificações">
+        <span class="yuris-notif-ico" aria-hidden="true"><?= $_svg['sino'] ?></span>
+        <span class="yuris-notif-badge" id="yurisNotifBadge" hidden>0</span>
+      </button>
+
+      <div class="yuris-notif-panel" id="yurisNotifPanel" role="dialog" aria-label="Notificações" hidden>
+        <div class="yuris-notif-head">
+          <span class="yuris-notif-title">Notificações</span>
+          <button type="button" class="yuris-notif-all" id="yurisNotifMarkAll">Marcar todas como lidas</button>
+        </div>
+        <div class="yuris-notif-list" id="yurisNotifList">
+          <div class="yuris-notif-empty">Carregando…</div>
+        </div>
+      </div>
+    </div>
   </div>
+
+  <style>
+    /* Sino de notificações — estilo alinhado ao tema escuro da sidebar. */
+    .yuris-notif { position: relative; margin-left: auto; }
+    .yuris-notif-btn {
+      position: relative; display: inline-flex; align-items: center; justify-content: center;
+      width: 34px; height: 34px; padding: 0; border-radius: 9px;
+      background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.18);
+      color: #cbd9ec; cursor: pointer; transition: background .15s, color .15s, border-color .15s;
+    }
+    .yuris-notif-btn:hover { background: rgba(96,165,250,0.18); color: #e8f4ff; }
+    .yuris-notif-btn.has-unread { color: #e8f4ff; }
+    .yuris-notif-ico svg { width: 18px; height: 18px; display: block; }
+    .yuris-notif-badge {
+      position: absolute; top: -5px; right: -5px; min-width: 17px; height: 17px; padding: 0 4px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: #ef4444; color: #fff; font-size: 10px; font-weight: 700; line-height: 1;
+      border-radius: 9px; border: 2px solid #0f172b; box-sizing: border-box;
+    }
+    .yuris-notif-panel {
+      position: absolute; top: calc(100% + 8px); right: 0; z-index: 1200;
+      width: 320px; max-width: 86vw; max-height: 60vh; overflow: hidden;
+      display: flex; flex-direction: column;
+      background: #0f172b; border: 1px solid rgba(96,165,250,0.25); border-radius: 12px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+      font-family: Inter, system-ui, sans-serif;
+    }
+    .yuris-notif-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 12px 14px; border-bottom: 1px solid rgba(96,165,250,0.14);
+    }
+    .yuris-notif-title { font-size: 13px; font-weight: 700; color: #e8f4ff; letter-spacing: .3px; }
+    .yuris-notif-all {
+      background: none; border: none; color: #7eb8f7; font-size: 11px; font-weight: 600;
+      cursor: pointer; padding: 0; transition: color .12s;
+    }
+    .yuris-notif-all:hover { color: #a9d0fb; text-decoration: underline; }
+    .yuris-notif-all[disabled] { color: #4a5a72; cursor: default; text-decoration: none; }
+    .yuris-notif-list { overflow-y: auto; padding: 4px; }
+    .yuris-notif-item {
+      display: block; width: 100%; text-align: left; padding: 10px 10px; border: none;
+      background: none; border-radius: 8px; cursor: pointer; transition: background .12s;
+    }
+    .yuris-notif-item + .yuris-notif-item { border-top: 1px solid rgba(96,165,250,0.08); }
+    .yuris-notif-item:hover { background: rgba(96,165,250,0.10); }
+    .yuris-notif-item.is-unread { background: rgba(96,165,250,0.06); }
+    .yuris-notif-item-titulo {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12.5px; font-weight: 600; color: #e8f4ff; margin: 0 0 2px;
+    }
+    .yuris-notif-dot { width: 7px; height: 7px; border-radius: 50%; background: #60a5fa; flex: 0 0 auto; }
+    .yuris-notif-item-msg { font-size: 11.5px; color: #9fb2cc; margin: 0 0 3px; line-height: 1.35; }
+    .yuris-notif-item-time { font-size: 10.5px; color: #6b8299; }
+    .yuris-notif-empty { padding: 22px 14px; text-align: center; color: #6b8299; font-size: 12px; }
+  </style>
 
   <!-- ── Status (última atualização) ── -->
   <div id="dashboardStatus" class="sidebar-status">—</div>
@@ -290,3 +373,12 @@ $_uiLibVer   = file_exists($_uiLibPath) ? @filemtime($_uiLibPath) : '1';
   });
 })();
 </script>
+
+<!-- Sino de notificações: config (token CSRF) + lógica. notifications.js lê window.YURIS_NOTIF. -->
+<script>
+window.YURIS_NOTIF = Object.assign({}, window.YURIS_NOTIF, {
+  csrf: <?= json_encode($_notifCsrf) ?>,
+  api:  '/api/account_notifications.php'
+});
+</script>
+<script src="/assets/notifications.js?v=<?= $_notifJsVer ?>" defer></script>

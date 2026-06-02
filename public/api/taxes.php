@@ -12,8 +12,11 @@ header('Content-Type: application/json; charset=utf-8');
 
 $ctx       = AccountContext::fromSession();
 $accountId = $ctx->getAccountId();
-// Impostos = CONFIGURAÇÃO da conta — cada tenant tem sua tributação independente.
-$tenantIds = [$accountId];
+// Escopo CONSOLIDADO: a matriz enxerga os impostos das filiais/advogados vinculados, em linha
+// com o render server-side de financas.php e com o dashboard. Antes hardcodava [$accountId],
+// fazendo o painel de impostos recalcular só com a receita da matriz após o load do JS.
+$tenantIds = $ctx->getAccessibleAccountIds('financas');
+if (empty($tenantIds)) $tenantIds = [$accountId]; // guard: evita SQL "IN ()" inválido
 
 $pdo    = Database::getConnection();
 $method = $_SERVER['REQUEST_METHOD'];

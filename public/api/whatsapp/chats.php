@@ -182,6 +182,32 @@ try {
         // Body: { action: "delete", remote_jid: "..." }
         if ($action === 'delete') {
             if (!$jid) { echo json_encode(['ok' => false, 'error' => 'remote_jid obrigatório']); exit; }
+
+            // SEGURANCA (auditoria 2026-06-01 BAIXA #26): checagem de tenant EXPLÍCITA
+            // antes do delete. WhatsAppMessage::deleteChat() faz um DELETE cego por
+            // (instance_id, remote_jid) sem filtrar account_id; aqui confirmamos que
+            // o chat alvo pertence a uma instância de conta acessível (matriz+filiais)
+            // — não apenas confiando no instanceId resolvido acima. Sem isso, um
+            // instanceId/jid forjado poderia apagar conversa de outro tenant.
+            $pdoDel = \App\Models\Database::getConnection();
+            $accDel = $ctx->getAccessibleAccountIds('whatsapp');
+            if (empty($accDel)) $accDel = [$accountId];
+            $phDel  = implode(',', array_fill(0, count($accDel), '?'));
+            $stDel  = $pdoDel->prepare(
+                "SELECT 1
+                   FROM whatsapp_chats wc
+                   JOIN whatsapp_instances wi ON wi.id = wc.instance_id
+                  WHERE wc.instance_id = ? AND wc.remote_jid = ?
+                    AND wi.account_id IN ($phDel)
+                  LIMIT 1"
+            );
+            $stDel->execute(array_merge([$instanceId, $jid], array_map('intval', $accDel)));
+            if (!$stDel->fetchColumn()) {
+                http_response_code(403);
+                echo json_encode(['ok' => false, 'error' => 'Conversa não pertence a esta conta']);
+                exit;
+            }
+
             $ok = $msgModel->deleteChat($instanceId, $jid);
             echo json_encode(['ok' => $ok]); exit;
         }

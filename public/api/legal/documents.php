@@ -9,6 +9,15 @@
  * Público: leitura do documento vigente NÃO exige sessão — qualquer titular
  * (logado ou não) pode ver Política de Privacidade/Termos sem precisar
  * estar autenticado.
+ *
+ * STATUS DE WIRING (auditoria #35): endpoint mantido PROPOSITALMENTE.
+ *   As páginas legais server-side (termos.php, privacidade.php, etc. via
+ *   includes/legal_page.php) renderizam o texto diretamente. Esta API é a via
+ *   DINÂMICA (modal de termos, detecção de nova versão via ?hash=1, app/cliente
+ *   externo) e é explicitamente pública. Não remover: é a fonte JSON canônica do
+ *   LegalDocument. O consumo dinâmico (modal de re-aceite que casa com
+ *   /api/legal/accept.php) deve ser plugado nas páginas/banner — arquivos de
+ *   outro dono (includes/legal_page.php, login.php) — ver risks.
  */
 require_once __DIR__ . '/../../../app/Models/Database.php';
 require_once __DIR__ . '/../../../app/Models/LegalDocument.php';

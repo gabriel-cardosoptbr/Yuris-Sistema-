@@ -67,7 +67,9 @@ if ($method === 'POST') {
 if ($method === 'PUT') {
     $id  = (int)($input['id'] ?? $_GET['id'] ?? 0);
     $col = TaskColumn::findById($id);
-    if (!$col || !TaskBoard::canEdit($col['board_id'], $userId)) fail('Sem permissão', 403);
+    // MEDIA #23: passa $accIds (escopo de tenant) — antes canEdit era chamado sem
+    // o conjunto acessível, divergindo do GET/POST e do resto do módulo Tarefas.
+    if (!$col || !TaskBoard::canEdit($col['board_id'], $userId, $accIds)) fail('Sem permissão', 403);
     TaskColumn::update($id, $input);
     ok();
 }
@@ -75,7 +77,8 @@ if ($method === 'PUT') {
 if ($method === 'DELETE') {
     $id  = (int)($input['id'] ?? $_GET['id'] ?? 0);
     $col = TaskColumn::findById($id);
-    if (!$col || !TaskBoard::canEdit($col['board_id'], $userId)) fail('Sem permissão', 403);
+    // MEDIA #23: idem PUT — escopa canEdit por tenant.
+    if (!$col || !TaskBoard::canEdit($col['board_id'], $userId, $accIds)) fail('Sem permissão', 403);
     try {
         TaskColumn::delete($id);
         ok();

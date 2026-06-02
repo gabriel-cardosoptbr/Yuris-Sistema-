@@ -159,7 +159,7 @@ if ($senhaGerada) {
 $senhaHash = password_hash($senhaTexto, PASSWORD_BCRYPT);
 
 $trialDias = isset($sub['trial_dias']) ? (int) $sub['trial_dias'] : (int) $plano['trial_dias'];
-$cycle     = in_array($sub['billing_cycle'] ?? 'monthly', ['monthly','yearly'], true)
+$cycle     = in_array($sub['billing_cycle'] ?? 'monthly', ['monthly','quarterly','yearly'], true)
     ? $sub['billing_cycle']
     : 'monthly';
 $subStatus = $accStatus === 'active' ? 'active' : 'trialing';
@@ -260,7 +260,7 @@ try {
         'st'      => $subStatus,
         'bc'      => $cycle,
         'td'      => $trialDias,
-        'periodo' => $cycle === 'yearly' ? 12 : 1,
+        'periodo' => $cycle === 'yearly' ? 12 : ($cycle === 'quarterly' ? 3 : 1),
     ]);
     $subId = (int) $pdo->lastInsertId();
 

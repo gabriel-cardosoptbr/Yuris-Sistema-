@@ -48,7 +48,7 @@
       // populate codes and filters
       await loadCodes();
       // render using current filters
-      applyFiltersAndRender(j);
+      applyFiltersAndRender();
       attachButtons();
     }catch(e){ console.error(e); }
   }
@@ -57,10 +57,13 @@
     const month = (document.getElementById('filter_month')||{}).value || '';
     const recorr = (document.getElementById('filter_recorrencia')||{}).value || 'all';
     const code = (document.getElementById('filter_code')||{}).value || '';
-    return { month, recorr, code };
+    // Tipo (receita/despesa) e Busca rápida existiam na UI mas não eram lidos — agora conectados.
+    const tipo = (document.getElementById('filter_tipo_extra')||{}).value || 'all';
+    const search = ((document.getElementById('filter_search_dre')||{}).value || '').trim().toLowerCase();
+    return { month, recorr, code, tipo, search };
   }
 
-  function applyFiltersAndRender(apiPayload){
+  function applyFiltersAndRender(){
     try{
       const filters = getFilters();
       const rows = (cachedRows || []).filter(r => {
@@ -72,8 +75,16 @@
           if (recorr !== filters.recorr) return false;
         }
 
+        // filtro por tipo (receita/despesa)
+        if (filters.tipo && filters.tipo !== 'all') {
+          if (String(r.tipo || '').trim().toLowerCase() !== filters.tipo) return false;
+        }
+
         // filtro por código
         if (filters.code && (r.codigo || '') !== filters.code) return false;
+
+        // busca rápida por descrição (substring, case-insensitive)
+        if (filters.search && !String(r.nome || '').toLowerCase().includes(filters.search)) return false;
 
         // filtro por mês
         if (filters.month) {
@@ -125,18 +136,6 @@
           const j = await res.json();
           closed = (j && j.closed_total) ? Number(j.closed_total) : 0;
         }catch(e){ console.error(e); }
-        // ensure closedOnlyVal exists
-        let closedEl = document.getElementById('closedOnlyVal');
-        if (!closedEl){
-          const wrap = document.getElementById('dreSummary');
-          if (wrap){
-            const div = document.createElement('div'); div.id = 'closedOnlyRow'; div.innerHTML = 'Receita (fechados): <strong id="closedOnlyVal">' + fmtMoney(closed || 0) + '</strong>';
-            wrap.insertBefore(div, wrap.firstChild);
-            closedEl = document.getElementById('closedOnlyVal');
-          }
-        } else {
-          closedEl.textContent = fmtMoney(closed || 0);
-        }
         const totalReceita   = (sumReceita || 0) + (closed || 0);
         const totalResultado = totalReceita - (sumDespesa || 0);
         const margem         = totalReceita > 0 ? (totalResultado / totalReceita * 100) : 0;
@@ -184,18 +183,6 @@
         }
       })();
 
-      // closed_total from API payload (if present) remains visible
-      try{
-        if (apiPayload && typeof apiPayload.closed_total !== 'undefined'){
-          var wrap = document.getElementById('dreSummary');
-          if (wrap && !document.getElementById('closedOnlyRow')){
-            var div = document.createElement('div');
-            div.id = 'closedOnlyRow';
-            div.innerHTML = 'Receita (fechados): <strong id="closedOnlyVal">' + fmtMoney(apiPayload.closed_total || 0) + '</strong>';
-            wrap.insertBefore(div, wrap.firstChild);
-          } else if (wrap){ var el = document.getElementById('closedOnlyVal'); if (el) el.textContent = fmtMoney(apiPayload.closed_total || 0); }
-        }
-      }catch(e){ /* ignore */ }
       attachButtons();
     }catch(e){ console.error(e); }
   }
@@ -272,12 +259,6 @@
     });
   }
 
-  function renderSummary(s){
-    document.getElementById('sumReceita').textContent = fmtMoney(s.receita || 0);
-    document.getElementById('sumDespesa').textContent = fmtMoney(s.despesa || 0);
-    document.getElementById('sumResultado').textContent = fmtMoney(s.resultado || 0);
-  }
-
   function attachButtons(){
     document.querySelectorAll('.delBtn').forEach(b => {
       b.onclick = async function(){
@@ -352,7 +333,9 @@
     const fMonth = document.getElementById('filter_month'); if (fMonth) fMonth.addEventListener('change', () => applyFiltersAndRender());
     const fRec = document.getElementById('filter_recorrencia'); if (fRec) fRec.addEventListener('change', () => applyFiltersAndRender());
     const fCode = document.getElementById('filter_code'); if (fCode) fCode.addEventListener('change', () => applyFiltersAndRender());
-    const clearBtn = document.getElementById('clearFiltersBtn'); if (clearBtn) clearBtn.addEventListener('click', () => { if (fMonth) fMonth.value=''; if (fRec) fRec.value='all'; if (fCode) fCode.value=''; applyFiltersAndRender(); });
+    const fTipo = document.getElementById('filter_tipo_extra'); if (fTipo) fTipo.addEventListener('change', () => applyFiltersAndRender());
+    const fSearch = document.getElementById('filter_search_dre'); if (fSearch) fSearch.addEventListener('input', () => applyFiltersAndRender());
+    const clearBtn = document.getElementById('clearFiltersBtn'); if (clearBtn) clearBtn.addEventListener('click', () => { if (fMonth) fMonth.value=''; if (fRec) fRec.value='all'; if (fCode) fCode.value=''; if (fTipo) fTipo.value='all'; if (fSearch) fSearch.value=''; applyFiltersAndRender(); });
   }catch(e){ }
 
   // Codes modal handlers

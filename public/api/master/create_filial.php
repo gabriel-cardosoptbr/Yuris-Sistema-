@@ -3,8 +3,9 @@
  * Painel Master — criação de filial vinculada a uma matriz.
  *
  * Cria em transação:
- *   1. accounts (tipo=filial, matriz_id=<id>)
- *   2. account_vinculos (status=active, aprovado_por=user atual)
+ *   1. accounts (tipo=filial) — SEM gravar matriz_id (coluna vestigial)
+ *   2. account_vinculos (status=active, aprovado_por=user atual) — o vínculo real
+ *      matriz↔filial vive AQUI, não em accounts.matriz_id
  *   3. opcional: users (admin da filial) — só se "admin" for enviado
  *
  * Acesso: super_admin apenas. CSRF obrigatório.
@@ -112,13 +113,16 @@ try {
     $pdo->beginTransaction();
 
     // 1. INSERT filial
+    // NÃO gravamos accounts.matriz_id: essa coluna é vestigial (regra canônica —
+    // sempre NULL). O vínculo matriz↔filial vive EXCLUSIVAMENTE em
+    // account_vinculos, criado no passo 2 abaixo.
     $stmtA = $pdo->prepare(
         "INSERT INTO accounts
            (nome, razao_social, cnpj, email, telefone, cidade, estado,
-            tipo, matriz_id, codigo_vinculo, plano, status, created_at, updated_at)
+            tipo, codigo_vinculo, plano, status, created_at, updated_at)
          VALUES
            (:nome, :rs, :cnpj, :em, :tel, :ci, :uf,
-            'filial', :mid, :codigo, 'basico', :status, NOW(), NOW())"
+            'filial', :codigo, 'basico', :status, NOW(), NOW())"
     );
     $codigo = implode('-', str_split(bin2hex(random_bytes(8)), 4));
     $stmtA->execute([
@@ -129,7 +133,6 @@ try {
         'tel'    => trim($fil['telefone'] ?? '') ?: null,
         'ci'     => trim($fil['cidade'] ?? '') ?: null,
         'uf'     => trim($fil['estado'] ?? '') ?: null,
-        'mid'    => $matrizId,
         'codigo' => $codigo,
         'status' => $filStatus,
     ]);

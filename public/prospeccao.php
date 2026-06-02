@@ -1163,18 +1163,36 @@ function column_display_name(array $col): string
                   <span class="field-label">Data prevista</span>
                   <input id="filterDate" class="field-control" type="date">
                 </label>
-                <?php if (count($origin_accounts) > 1): /* só matriz com pelo menos 1 filial */ ?>
+                <?php if (count($origin_accounts) > 1): /* só matriz com pelo menos 1 filial/advogado */ ?>
                 <label class="field-group">
                   <span class="field-label">Origem</span>
+                  <?php
+                    // FIX (auditoria 2026-06-01 — MÉDIA #19/#33): separa filiais de
+                    // advogados em optgroups distintos. Antes "if tipo==='matriz'
+                    // continue" listava contas advogado sob o rótulo "Filial
+                    // específica", rotulando errado o 3º tipo de conta. O filtro por
+                    // id já é tratado em prospeccao.js (filtro de origem).
+                    $_oaFiliais   = array_filter($origin_accounts, fn($a) => $a['tipo'] === 'filial');
+                    $_oaAdvogados = array_filter($origin_accounts, fn($a) => $a['tipo'] === 'advogado');
+                  ?>
                   <select id="filterOrigin" class="field-control">
                     <option value="">Todas as origens</option>
                     <option value="__matriz__">Apenas Matriz</option>
                     <option value="__filiais__">Apenas Filiais</option>
+                    <?php if (!empty($_oaFiliais)): ?>
                     <optgroup label="Filial específica">
-                      <?php foreach ($origin_accounts as $oa): if ($oa['tipo'] === 'matriz') continue; ?>
+                      <?php foreach ($_oaFiliais as $oa): ?>
                         <option value="<?=htmlspecialchars((string)$oa['id'])?>"><?=htmlspecialchars($oa['nome'])?></option>
                       <?php endforeach; ?>
                     </optgroup>
+                    <?php endif; ?>
+                    <?php if (!empty($_oaAdvogados)): ?>
+                    <optgroup label="Advogado vinculado">
+                      <?php foreach ($_oaAdvogados as $oa): ?>
+                        <option value="<?=htmlspecialchars((string)$oa['id'])?>"><?=htmlspecialchars($oa['nome'])?></option>
+                      <?php endforeach; ?>
+                    </optgroup>
+                    <?php endif; ?>
                   </select>
                 </label>
                 <?php endif; ?>
@@ -1930,13 +1948,19 @@ function column_display_name(array $col): string
       if (stage && String(colId) !== String(stage)) return false;
       if (date && String(card.data_prevista_fechamento || '') !== String(date)) return false;
 
-      // Filtro de origem: pseudo-valores __matriz__ / __filiais__ ou account_id específico
+      // Filtro de origem: pseudo-valores __matriz__ / __filiais__ / __advogados__
+      // ou account_id específico.
+      // FIX (auditoria 2026-06-01 — MÉDIA #19): "__filiais__" antes exigia
+      // tipo==='filial', escondendo cards de contas advogado vinculadas (que a
+      // matriz vê no board). Agora cobre toda origem não-matriz; "__advogados__"
+      // isola só os advogados.
       if (origin) {
         const tipo = String(card.origin_account_tipo || '').toLowerCase();
         const oid  = String(card.origin_account_id || '');
-        if (origin === '__matriz__'  && tipo !== 'matriz') return false;
-        if (origin === '__filiais__' && tipo !== 'filial') return false;
-        if (origin !== '__matriz__' && origin !== '__filiais__' && oid !== origin) return false;
+        if (origin === '__matriz__'    && tipo !== 'matriz')   return false;
+        if (origin === '__filiais__'   && tipo === 'matriz')   return false;
+        if (origin === '__advogados__' && tipo !== 'advogado') return false;
+        if (origin !== '__matriz__' && origin !== '__filiais__' && origin !== '__advogados__' && oid !== origin) return false;
       }
       return true;
     }

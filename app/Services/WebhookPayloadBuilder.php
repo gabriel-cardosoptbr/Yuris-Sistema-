@@ -32,6 +32,19 @@ class WebhookPayloadBuilder
         $tenantId  = (int)($endpoint['account_id'] ?? 0);
         $tenant    = self::fetchTenantInfo($tenantId);
 
+        // FIX #27 (auditoria 2026-06-01): NAO assumir 'matriz' como default cego.
+        // As contas sao TRES (matriz|filial|advogado). O default antigo (?? 'matriz')
+        // rotulava advogado (solo) como matriz e, junto com o matriz_id orfo, mentia
+        // pro integrador. Aqui usamos o tipo real da coluna accounts.tipo; so quando
+        // ele vier genuinamente vazio caimos em 'unknown' (honesto), nunca 'matriz'.
+        $orgType = $tenant['tipo'] ?? null;
+        if (!in_array($orgType, ['matriz', 'filial', 'advogado'], true)) {
+            $orgType = 'unknown';
+        }
+        // advogado (solo) e matriz nunca tem matriz vinculada; so filial herda.
+        // matriz_id resolvido via account_vinculos em fetchTenantInfo() (Onda 2).
+        $orgMatrizId = $orgType === 'filial' ? ($tenant['matriz_id'] ?? null) : null;
+
         $actor = $actorOverride ?? self::fetchActorFromSession();
         if ($actor && isset($actor['email'])) {
             $actor['email'] = $mode === 'full'
@@ -55,9 +68,9 @@ class WebhookPayloadBuilder
             ],
             'organization' => [
                 'id'        => $tenantId,
-                'type'      => $tenant['tipo']      ?? 'matriz',
-                'name'      => $tenant['nome']      ?? null,
-                'matriz_id' => $tenant['matriz_id'] ?? null,
+                'type'      => $orgType,
+                'name'      => $tenant['nome'] ?? null,
+                'matriz_id' => $orgMatrizId,
             ],
             'actor' => $actor,
             'data'  => [

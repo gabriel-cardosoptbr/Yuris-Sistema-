@@ -14,13 +14,17 @@ class TaskRecurrence
     public static function create(array $data): int
     {
         $pdo = Database::getConnection();
+        // FIX (auditoria 2026-06-01 / ALTA #19): persiste `unidade` (day|week|month|year).
+        // Sem ela, a recorrencia 'custom' caia sempre no fallback 'day' em
+        // calcularProximaData(). Default 'day' espelha esse fallback.
         $stmt = $pdo->prepare('
-            INSERT INTO task_recurrences (tipo, intervalo, dias_semana, dia_mes, data_inicio, data_fim)
-            VALUES (:tipo, :intervalo, :dias_semana, :dia_mes, :data_inicio, :data_fim)
+            INSERT INTO task_recurrences (tipo, intervalo, unidade, dias_semana, dia_mes, data_inicio, data_fim)
+            VALUES (:tipo, :intervalo, :unidade, :dias_semana, :dia_mes, :data_inicio, :data_fim)
         ');
         $stmt->execute([
             'tipo'        => $data['tipo'],
             'intervalo'   => $data['intervalo'] ?? 1,
+            'unidade'     => $data['unidade'] ?? 'day',
             'dias_semana' => isset($data['dias_semana']) ? json_encode($data['dias_semana']) : null,
             'dia_mes'     => $data['dia_mes'] ?? null,
             'data_inicio' => $data['data_inicio'],

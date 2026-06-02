@@ -45,30 +45,62 @@ if (in_array($method, ['POST','PUT','DELETE','PATCH'])) {
 $pdo = Database::getConnection();
 
 // auto-cria tabelas se não existirem (banco resetado)
+// FIX #29 (auditoria 2026-06-01): a migration 067 renomeou `webhooks` -> `webhook_endpoints`
+// e TODO o resto do modulo (list/get/create/update/delete + WebhookDispatcher) opera sobre
+// `webhook_endpoints` e `webhook_deliveries`. O auto-create antigo criava a tabela ERRADA
+// ('webhooks') com schema defasado (sem account_id/escopo/payload_mode/...), e o guard de
+// coluna logo abaixo ja consultava 'webhook_endpoints' — num reset, todas as queries
+// quebravam. Agora criamos as tabelas CERTAS com o schema completo (espelho das migrations
+// 067 e 069). webhook_logs NAO e mais criada: nada le dela (logs vem de webhook_deliveries).
 try {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS webhooks (
-        id          INT AUTO_INCREMENT PRIMARY KEY,
-        nome        VARCHAR(191) NOT NULL,
-        url         VARCHAR(500) NOT NULL,
-        secret      VARCHAR(255) DEFAULT NULL,
-        eventos     JSON DEFAULT NULL,
-        ativo       TINYINT(1) DEFAULT 1,
-        deleted_at  DATETIME DEFAULT NULL,
-        created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    $pdo->exec("CREATE TABLE IF NOT EXISTS webhook_endpoints (
+        id                    INT AUTO_INCREMENT PRIMARY KEY,
+        account_id            INT NOT NULL,
+        escopo                ENUM('tenant_only','matriz_e_filiais','filial_only') NOT NULL DEFAULT 'tenant_only',
+        nome                  VARCHAR(191) NOT NULL,
+        url                   VARCHAR(500) NOT NULL,
+        metodo                ENUM('POST') NOT NULL DEFAULT 'POST',
+        secret                VARCHAR(255) DEFAULT NULL,
+        secret_rotated_at     DATETIME DEFAULT NULL,
+        eventos               JSON DEFAULT NULL,
+        headers_customizados  JSON DEFAULT NULL,
+        timeout_segundos      INT NOT NULL DEFAULT 10,
+        retry_enabled         TINYINT(1) NOT NULL DEFAULT 1,
+        max_retries           INT NOT NULL DEFAULT 3,
+        payload_mode          ENUM('minimal','masked','full') NOT NULL DEFAULT 'masked',
+        created_by            INT DEFAULT NULL,
+        ativo                 TINYINT(1) DEFAULT 1,
+        deleted_at            DATETIME DEFAULT NULL,
+        created_at            DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at            DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_we_account_status (account_id, ativo, deleted_at),
+        INDEX idx_we_escopo (escopo)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $pdo->exec("CREATE TABLE IF NOT EXISTS webhook_logs (
-        id              INT AUTO_INCREMENT PRIMARY KEY,
-        webhook_id      INT DEFAULT NULL,
-        event_key       VARCHAR(100) NOT NULL,
-        payload         JSON DEFAULT NULL,
-        response_status INT DEFAULT NULL,
-        response_body   TEXT DEFAULT NULL,
-        duration_ms     INT DEFAULT NULL,
-        success         TINYINT(1) DEFAULT 0,
-        created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+    $pdo->exec("CREATE TABLE IF NOT EXISTS webhook_deliveries (
+        id                   BIGINT AUTO_INCREMENT PRIMARY KEY,
+        webhook_endpoint_id  INT NOT NULL,
+        account_id           INT NOT NULL,
+        event_code           VARCHAR(100) NOT NULL,
+        event_id             VARCHAR(64)  NOT NULL,
+        payload              JSON NOT NULL,
+        request_url          VARCHAR(500) NOT NULL,
+        request_headers      JSON NULL,
+        response_status      INT NULL,
+        response_body        TEXT NULL,
+        response_time_ms     INT NULL,
+        status               ENUM('pending','success','failed','retrying','canceled') NOT NULL DEFAULT 'pending',
+        tentativa            INT NOT NULL DEFAULT 1,
+        erro                 TEXT NULL,
+        scheduled_retry_at   DATETIME NULL,
+        delivered_at         DATETIME NULL,
+        created_at           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_wd_endpoint_time (webhook_endpoint_id, created_at),
+        INDEX idx_wd_status_retry (status, scheduled_retry_at),
+        INDEX idx_wd_account_time (account_id, created_at),
+        INDEX idx_wd_event_id (event_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    // garante coluna deleted_at se tabela já existia sem ela
+    // garante coluna deleted_at se tabela já existia sem ela (instalacoes pre-067)
     try {
         $pdo->query('SELECT deleted_at FROM webhook_endpoints LIMIT 0');
     } catch (\Throwable $e) {
@@ -183,15 +215,38 @@ if ($method === 'POST') {
             'entity_id' => $id,
             'data'      => ['mensagem' => 'Este é um evento de teste do Yuris CRM', 'webhook_nome' => $hook['nome']],
         ]);
-        // P0 LGPD: dispara só para o próprio tenant dono do webhook testado
-        WebhookDispatcher::fire((int)$hook['account_id'], 'webhook.test', $payload);
+        // FIX #28 (auditoria 2026-06-01): entrega DIRETA ao endpoint testado, sem passar
+        // por fire()/findSubscribers(). Antes, um webhook que nao assinava 'webhook.test'
+        // recebia zero entregas mas a API respondia success=true (sucesso enganoso).
+        // Agora o resultado reflete a entrega REAL (status HTTP) e nunca promete sucesso falso.
+        $res     = WebhookDispatcher::deliverTest($pdo, $hook, $payload);
+        $ok      = $res['status'] === 'success';
         \App\Models\Account::audit($accountId, 'webhook.tested', [
             'user_id'     => $_SESSION['user_id'] ?? null,
             'entidade'    => 'webhook',
             'entidade_id' => (int)$id,
-            'detalhes'    => ['nome' => $hook['nome'], 'url' => $hook['url']],
+            'detalhes'    => ['nome' => $hook['nome'], 'url' => $hook['url'], 'resultado' => $res['status'], 'http_status' => $res['http_status']],
         ]);
-        echo json_encode(['success' => true, 'message' => 'Evento de teste enviado']);
+        if ($ok) {
+            echo json_encode([
+                'success'     => true,
+                'message'     => 'Evento de teste entregue (HTTP ' . ($res['http_status'] ?? '2xx') . ')',
+                'delivery_id' => $res['delivery_id'],
+                'http_status' => $res['http_status'],
+            ]);
+        } else {
+            // Status nao-2xx, retrying, canceled (ex.: SSRF) ou falha de conexao.
+            $detalhe = $res['http_status'] !== null
+                ? ('o endpoint respondeu HTTP ' . $res['http_status'])
+                : 'o endpoint não respondeu';
+            echo json_encode([
+                'success'     => false,
+                'error'       => 'Falha na entrega de teste: ' . $detalhe . '. Verifique os logs.',
+                'delivery_id' => $res['delivery_id'],
+                'http_status' => $res['http_status'],
+                'status'      => $res['status'],
+            ]);
+        }
         exit;
     }
 
