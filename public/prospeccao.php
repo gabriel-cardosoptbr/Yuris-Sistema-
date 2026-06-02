@@ -1847,7 +1847,10 @@ function column_display_name(array $col): string
           div.setAttribute('data-origin-tipo', originTipo);
           div.setAttribute('data-origin-id',   String(card.origin_account_id || ''));
           const cls   = originTipo === 'matriz' ? 'is-matriz' : 'is-filial';
-          const label = originTipo === 'matriz' ? 'MATRIZ' : 'FILIAL';
+          // Label reflete o TIPO real da conta — conta solo é 'advogado', nunca 'filial'.
+          const label = originTipo === 'matriz'   ? 'MATRIZ'
+                      : originTipo === 'advogado' ? 'ADVOGADO'
+                      : 'FILIAL';
           originStripHtml =
             '<div class="card-origin-strip ' + cls + '">' +
               '<span class="org-label">' + label + '</span>' +

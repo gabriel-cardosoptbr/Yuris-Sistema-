@@ -939,7 +939,10 @@ window.Clientes = (function () {
 
         // Faixa de origem: SEMPRE no topo (matriz=azul, filial=roxo), com label + nome
         const stripCls    = origemTipo === 'matriz' ? 'is-matriz' : 'is-filial';
-        const stripLabel  = origemTipo === 'matriz' ? 'MATRIZ' : 'FILIAL';
+        // Label reflete o TIPO real da conta — conta solo é 'advogado', nunca 'filial'.
+        const stripLabel  = origemTipo === 'matriz'   ? 'MATRIZ'
+                          : origemTipo === 'advogado' ? 'ADVOGADO'
+                          : 'FILIAL';
         const stripHtml   = origemTipo ? `
             <div class="origin-strip ${stripCls}">
               <span class="org-label">${stripLabel}</span>

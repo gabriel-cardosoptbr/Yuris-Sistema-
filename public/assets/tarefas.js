@@ -383,7 +383,10 @@ function buildCard(t) {
     const tipo  = String(t.origin_account_tipo).toLowerCase();
     const nome  = String(t.origin_account_nome || '');
     const cls   = tipo === 'matriz' ? 'is-matriz' : 'is-filial';
-    const label = tipo === 'matriz' ? 'MATRIZ'   : 'FILIAL';
+    // Label reflete o TIPO real da conta — conta solo é 'advogado', nunca 'filial'.
+    const label = tipo === 'matriz'   ? 'MATRIZ'
+                : tipo === 'advogado' ? 'ADVOGADO'
+                : 'FILIAL';
     el.setAttribute('data-origin-tipo', tipo);
     el.setAttribute('data-origin-id',   String(t.origin_account_id || ''));
     originStripHtml = `<div class="tk-card-origin-strip ${cls}">
