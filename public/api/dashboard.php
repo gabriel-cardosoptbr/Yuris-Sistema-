@@ -21,12 +21,16 @@ if (empty($tenantIds)) $tenantIds = [0]; // guard contra SQL "IN ()" inválido
 $selected_origin = isset($_GET['origin']) ? trim((string)$_GET['origin']) : '';
 if ($selected_origin !== '' && $ctx->isMatriz()) {
     try {
-        $stmt_oa = $pdo = Database::getConnection()->prepare(
+        // FIX (auditoria 2026-06-01): matriz_id e sempre NULL — deriva do conjunto
+        // acessivel ($tenantIds via account_vinculos). Sem isso, ?origin retornava vazio.
+        $accIds = $tenantIds;
+        $ph_oa  = implode(',', array_fill(0, count($accIds), '?'));
+        $stmt_oa = Database::getConnection()->prepare(
             "SELECT id, tipo FROM accounts
-             WHERE deleted_at IS NULL AND status='active'
-               AND (id = :self OR matriz_id = :self)"
+             WHERE id IN ($ph_oa) AND deleted_at IS NULL
+               AND status IN ('active','trial','overdue')"
         );
-        $stmt_oa->execute(['self' => $ctx->getAccountId()]);
+        $stmt_oa->execute(array_map('intval', $accIds));
         $accs = $stmt_oa->fetchAll(\PDO::FETCH_ASSOC);
         $matrizIds  = array_map(fn($a) => (int)$a['id'], array_filter($accs, fn($a) => $a['tipo'] === 'matriz'));
         $filiaisIds = array_map(fn($a) => (int)$a['id'], array_filter($accs, fn($a) => $a['tipo'] === 'filial'));

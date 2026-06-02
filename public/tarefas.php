@@ -23,16 +23,22 @@ try {
         'nome' => $_SESSION['account_nome'] ?? '',
     ];
     if ($ctx_t->isMatriz()) {
-        $pdo_t = \App\Models\Database::getConnection();
-        $stmt_t = $pdo_t->prepare(
-            "SELECT id, nome, tipo
-             FROM accounts
-             WHERE deleted_at IS NULL AND status = 'active'
-               AND (id = :self OR matriz_id = :self)
-             ORDER BY CASE WHEN tipo = 'matriz' THEN 0 ELSE 1 END, nome ASC"
-        );
-        $stmt_t->execute(['self' => $ctx_t->getAccountId()]);
-        $origin_accounts = $stmt_t->fetchAll(PDO::FETCH_ASSOC);
+        // FIX (auditoria 2026-06-01): matriz_id e sempre NULL — usa account_vinculos
+        // via getAccessibleAccountIds (canonico), respeitando sync_tarefas das filiais.
+        $accessibleIds = $ctx_t->getAccessibleAccountIds('tarefas');
+        if (count($accessibleIds) > 1) {
+            $pdo_t = \App\Models\Database::getConnection();
+            $ph_t  = implode(',', array_fill(0, count($accessibleIds), '?'));
+            $stmt_t = $pdo_t->prepare(
+                "SELECT id, nome, tipo
+                 FROM accounts
+                 WHERE id IN ($ph_t) AND deleted_at IS NULL
+                   AND status IN ('active','trial','overdue')
+                 ORDER BY CASE WHEN tipo = 'matriz' THEN 0 ELSE 1 END, nome ASC"
+            );
+            $stmt_t->execute(array_map('intval', $accessibleIds));
+            $origin_accounts = $stmt_t->fetchAll(PDO::FETCH_ASSOC);
+        }
     }
 } catch (Throwable $e) {}
 ?>

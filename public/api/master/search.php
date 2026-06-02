@@ -62,10 +62,11 @@ if ($type === null || $type === 'all' || $type === 'matriz' || $type === 'filial
 
     $sql =
         "SELECT a.id, a.nome, a.razao_social, a.cnpj, a.email, a.telefone,
-                a.tipo, a.matriz_id, a.status, a.cidade, a.estado,
+                a.tipo, av.matriz_account_id AS matriz_id, a.status, a.cidade, a.estado,
                 am.nome AS matriz_nome
          FROM accounts a
-         LEFT JOIN accounts am ON am.id = a.matriz_id
+         LEFT JOIN account_vinculos av ON av.filial_account_id = a.id AND av.status = 'active'
+         LEFT JOIN accounts am ON am.id = av.matriz_account_id
          WHERE " . implode(' AND ', $where) . "
          ORDER BY a.nome ASC
          LIMIT 30";

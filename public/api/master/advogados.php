@@ -63,7 +63,8 @@ if ($method === 'GET') {
                     am.id AS matriz_id, am.nome AS matriz_nome
              FROM users u
              LEFT JOIN accounts a  ON a.id  = u.account_id
-             LEFT JOIN accounts am ON am.id = a.matriz_id
+             LEFT JOIN account_vinculos av ON av.filial_account_id = a.id AND av.status = 'active'
+             LEFT JOIN accounts am ON am.id = av.matriz_account_id
              WHERE u.id = :id AND u.is_advogado = 1 AND u.deleted_at IS NULL
              LIMIT 1"
         );

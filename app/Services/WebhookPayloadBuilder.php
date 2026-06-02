@@ -90,7 +90,15 @@ class WebhookPayloadBuilder
         if ($accountId <= 0) return [];
         try {
             $pdo = Database::getConnection();
-            $st  = $pdo->prepare('SELECT id, nome, tipo, matriz_id FROM accounts WHERE id = ? LIMIT 1');
+            // FIX (auditoria 2026-06-01): accounts.matriz_id e sempre NULL — resolve a
+            // matriz real via account_vinculos (filial -> matriz). tipo ja cobre os 3
+            // valores (matriz|filial|advogado), sem default cego pra 'matriz'.
+            $st  = $pdo->prepare(
+                'SELECT a.id, a.nome, a.tipo, av.matriz_account_id AS matriz_id
+                 FROM accounts a
+                 LEFT JOIN account_vinculos av ON av.filial_account_id = a.id AND av.status = \'active\'
+                 WHERE a.id = ? LIMIT 1'
+            );
             $st->execute([$accountId]);
             return $st->fetch(\PDO::FETCH_ASSOC) ?: [];
         } catch (\Throwable $e) {

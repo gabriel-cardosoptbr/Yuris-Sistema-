@@ -30,16 +30,23 @@ try {
         'nome' => $_SESSION['account_nome'] ?? '',
     ];
     if ($ctx_users->isMatriz()) {
-        $pdo_o = \App\Models\Database::getConnection();
-        $stmt_o = $pdo_o->prepare(
-            "SELECT id, nome, tipo
-             FROM accounts
-             WHERE deleted_at IS NULL AND status = 'active'
-               AND (id = :self OR matriz_id = :self)
-             ORDER BY CASE WHEN tipo = 'matriz' THEN 0 ELSE 1 END, nome ASC"
-        );
-        $stmt_o->execute(['self' => $ctx_users->getAccountId()]);
-        $origin_accounts = $stmt_o->fetchAll(PDO::FETCH_ASSOC);
+        // FIX (auditoria 2026-06-01): accounts.matriz_id e SEMPRE NULL no YURIS —
+        // o vinculo real e via account_vinculos. Usa getAccessibleAccountIds
+        // (canonico, ja le account_vinculos) em vez do matriz_id morto.
+        $accessibleIds = $ctx_users->getAccessibleAccountIds('processos');
+        if (count($accessibleIds) > 1) {
+            $pdo_o = \App\Models\Database::getConnection();
+            $ph_o  = implode(',', array_fill(0, count($accessibleIds), '?'));
+            $stmt_o = $pdo_o->prepare(
+                "SELECT id, nome, tipo
+                 FROM accounts
+                 WHERE id IN ($ph_o) AND deleted_at IS NULL
+                   AND status IN ('active','trial','overdue')
+                 ORDER BY CASE WHEN tipo = 'matriz' THEN 0 ELSE 1 END, nome ASC"
+            );
+            $stmt_o->execute(array_map('intval', $accessibleIds));
+            $origin_accounts = $stmt_o->fetchAll(PDO::FETCH_ASSOC);
+        }
     }
 } catch (Exception $e) {}
 ?>

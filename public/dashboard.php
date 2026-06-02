@@ -28,16 +28,23 @@ $origin_self     = [
 ];
 if ($ctx->isMatriz()) {
     try {
-        $pdo_oa = Database::getConnection();
-        $stmt_oa = $pdo_oa->prepare(
-            "SELECT id, nome, tipo
-             FROM accounts
-             WHERE deleted_at IS NULL AND status = 'active'
-               AND (id = :self OR matriz_id = :self)
-             ORDER BY CASE WHEN tipo = 'matriz' THEN 0 ELSE 1 END, nome ASC"
-        );
-        $stmt_oa->execute(['self' => $ctx->getAccountId()]);
-        $origin_accounts = $stmt_oa->fetchAll(PDO::FETCH_ASSOC);
+        // FIX (auditoria 2026-06-01): matriz_id e SEMPRE NULL — deriva as contas do
+        // conjunto acessivel ($tenantIds, ja vindo de getAccessibleAccountIds via
+        // account_vinculos). Sem isso o filtro de Origem do Dashboard ficava morto.
+        $accIds = $tenantIds; // conjunto acessivel pre-filtro de origem
+        if (count($accIds) > 1) {
+            $pdo_oa = Database::getConnection();
+            $ph_oa  = implode(',', array_fill(0, count($accIds), '?'));
+            $stmt_oa = $pdo_oa->prepare(
+                "SELECT id, nome, tipo
+                 FROM accounts
+                 WHERE id IN ($ph_oa) AND deleted_at IS NULL
+                   AND status IN ('active','trial','overdue')
+                 ORDER BY CASE WHEN tipo = 'matriz' THEN 0 ELSE 1 END, nome ASC"
+            );
+            $stmt_oa->execute(array_map('intval', $accIds));
+            $origin_accounts = $stmt_oa->fetchAll(PDO::FETCH_ASSOC);
+        }
     } catch (Throwable $e) {}
 }
 
