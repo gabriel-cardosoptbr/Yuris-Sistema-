@@ -80,7 +80,9 @@ try {
     require_once __DIR__ . '/../../app/Models/AccountNotification.php';
     require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
     $__nctx      = \App\Helpers\AccountContext::fromSession();
-    $_notifItems = \App\Models\AccountNotification::listForUser($__nctx->getUserId(), $__nctx->getAccountId());
+    // Só NÃO-LIDAS no sino (caixa de entrada de pendências): ao concluir/marcar
+    // lida, o item sai e não reaparece no reload. Histórico fica no banco.
+    $_notifItems = \App\Models\AccountNotification::listForUser($__nctx->getUserId(), $__nctx->getAccountId(), true);
     foreach ($_notifItems as $__n) { if ((int)($__n['lida'] ?? 0) === 0) $_notifUnread++; }
 } catch (\Throwable $__e) { $_notifItems = null; }
 $_notifTempo = function ($raw) {
@@ -125,7 +127,7 @@ $_notifTempo = function ($raw) {
       <div class="yuris-notif-panel" id="yurisNotifPanel" role="dialog" aria-label="Notificações" hidden>
         <div class="yuris-notif-head">
           <span class="yuris-notif-title">Notificações</span>
-          <button type="button" class="yuris-notif-all" id="yurisNotifMarkAll">Marcar todas como lidas</button>
+          <button type="button" class="yuris-notif-all" id="yurisNotifMarkAll"<?= $_notifUnread > 0 ? '' : ' disabled' ?>>Marcar todas como lidas</button>
         </div>
         <div class="yuris-notif-list" id="yurisNotifList">
           <?php if ($_notifItems === null): ?>

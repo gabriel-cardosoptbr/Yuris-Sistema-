@@ -109,7 +109,7 @@
     // A lista JÁ vem renderizada do servidor (sidebar.php) — fonte da verdade da
     // exibição. Aqui só atualizamos em SILÊNCIO se o fetch trouxer dados; em erro
     // ou fetch lento, mantém o que já está visível (nunca volta pra "Carregando…").
-    fetchJson({ qs: '' }).then(function (data) {
+    fetchJson({ qs: '?unread=1' }).then(function (data) {
       if (data && Array.isArray(data.data)) renderList(data.data);
     });
   }
@@ -145,21 +145,30 @@
   }
 
   // ── Marcar como lida ────────────────────────────────────────────────────────
+  // Remove um item da lista com fade; se a lista esvaziar, mostra "Nenhuma…".
+  function dismissItem(itemEl) {
+    if (!itemEl) return;
+    itemEl.style.transition = 'opacity .18s ease';
+    itemEl.style.opacity = '0';
+    setTimeout(function () {
+      itemEl.remove();
+      var le = listEl();
+      if (le && !le.querySelector('.yuris-notif-item')) {
+        le.innerHTML = '<div class="yuris-notif-empty">Nenhuma notificação.</div>';
+        if (elMarkAll) elMarkAll.disabled = true;
+      }
+    }, 180);
+  }
+
+  // Clicar = CONCLUIR: marca como lida no servidor e REMOVE o item da lista (o sino
+  // só mostra pendências, então some e não volta no reload). Feedback = o fade-out.
   function marcarLida(id, itemEl) {
-    if (!id) return;
+    if (!id) { dismissItem(itemEl); return; }
+    var wasUnread = !itemEl || itemEl.dataset.unread === '1';
     fetchJson({ method: 'PATCH', body: { id: id, csrf_token: CSRF } }).then(function (data) {
-      if (!data || !data.success) return; // falhou → mantém estado atual
-      if (itemEl) {
-        itemEl.classList.remove('is-unread');
-        itemEl.dataset.unread = '0';
-        var dot = itemEl.querySelector('.yuris-notif-dot');
-        if (dot) dot.remove();
-      }
-      setBadge(Math.max(0, currentBadgeCount() - 1));
-      // Se não sobrou nenhuma não lida visível, desabilita "marcar todas".
-      if (elMarkAll && !elList.querySelector('.yuris-notif-item[data-unread="1"]')) {
-        elMarkAll.disabled = true;
-      }
+      if (!data || !data.success) return; // falhou → mantém o item
+      if (wasUnread) setBadge(Math.max(0, currentBadgeCount() - 1));
+      dismissItem(itemEl);
     });
   }
 
@@ -168,13 +177,9 @@
     fetchJson({ method: 'PATCH', body: { all: true, csrf_token: CSRF } }).then(function (data) {
       if (!data || !data.success) return;
       setBadge(0);
-      // Limpa estado de não lidas na lista aberta.
-      Array.prototype.forEach.call(elList.querySelectorAll('.yuris-notif-item.is-unread'), function (el) {
-        el.classList.remove('is-unread');
-        el.dataset.unread = '0';
-        var dot = el.querySelector('.yuris-notif-dot');
-        if (dot) dot.remove();
-      });
+      // Concluiu todas → esvazia o sino (só mostra pendências).
+      var le = listEl();
+      if (le) le.innerHTML = '<div class="yuris-notif-empty">Nenhuma notificação.</div>';
       if (elMarkAll) elMarkAll.disabled = true;
     });
   }
@@ -253,7 +258,7 @@
       var item = e.target.closest('.yuris-notif-item');
       if (!item) return;
       var id = parseInt(item.dataset.id, 10) || 0;
-      if (item.dataset.unread === '1') marcarLida(id, item);
+      marcarLida(id, item); // clicar = concluir (marca lida + remove da lista)
     });
 
     // Badge: carrega já e em polling leve. Pausa quando a aba está oculta.
