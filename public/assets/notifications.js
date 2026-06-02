@@ -180,14 +180,31 @@
   }
 
   // ── Abrir/fechar dropdown ────────────────────────────────────────────────────
+  // Ancora o painel (position:fixed) logo abaixo do sino, alinhado pela direita e
+  // sempre dentro da viewport. Fixed escapa do clipping/overflow da sidebar estreita.
+  function positionPanel() {
+    if (!elPanel || !elBtn) return;
+    var r = elBtn.getBoundingClientRect();
+    var w = elPanel.offsetWidth || 340;
+    var left = r.right - w;
+    var maxLeft = window.innerWidth - w - 8;
+    if (left > maxLeft) left = maxLeft;
+    if (left < 8) left = 8;
+    elPanel.style.top  = Math.round(r.bottom + 8) + 'px';
+    elPanel.style.left = Math.round(left) + 'px';
+  }
+
   function openPanel() {
     if (open) return;
     open = true;
     elPanel.hidden = false;
+    positionPanel();
     elBtn.setAttribute('aria-expanded', 'true');
     loadList();
     document.addEventListener('click', onDocClick, true);
     document.addEventListener('keydown', onKeydown, true);
+    window.addEventListener('resize', positionPanel);
+    window.addEventListener('scroll', positionPanel, true);
   }
 
   function closePanel() {
@@ -197,6 +214,8 @@
     elBtn.setAttribute('aria-expanded', 'false');
     document.removeEventListener('click', onDocClick, true);
     document.removeEventListener('keydown', onKeydown, true);
+    window.removeEventListener('resize', positionPanel);
+    window.removeEventListener('scroll', positionPanel, true);
   }
 
   function onDocClick(e) {

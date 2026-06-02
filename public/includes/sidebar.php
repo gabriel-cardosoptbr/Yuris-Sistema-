@@ -163,9 +163,11 @@ $_notifTempo = function ($raw) {
       background: #ef4444; color: #fff; font-size: 10px; font-weight: 700; line-height: 1;
       border-radius: 9px; border: 2px solid #0f172b; box-sizing: border-box;
     }
+    /* position:fixed escapa do clipping/overflow da sidebar (antes cortava o painel).
+       JS (positionPanel) ancora top/left no botão do sino; aqui só o fallback. */
     .yuris-notif-panel {
-      position: absolute; top: calc(100% + 8px); right: 0; z-index: 1200;
-      width: 320px; max-width: 86vw; max-height: 60vh; overflow: hidden;
+      position: fixed; z-index: 3000; top: 64px; left: 16px;
+      width: 340px; max-width: calc(100vw - 16px); max-height: 72vh; overflow: hidden;
       display: flex; flex-direction: column;
       background: #0f172b; border: 1px solid rgba(96,165,250,0.25); border-radius: 12px;
       box-shadow: 0 16px 40px rgba(0,0,0,0.5);
@@ -182,7 +184,7 @@ $_notifTempo = function ($raw) {
     }
     .yuris-notif-all:hover { color: #a9d0fb; text-decoration: underline; }
     .yuris-notif-all[disabled] { color: #4a5a72; cursor: default; text-decoration: none; }
-    .yuris-notif-list { overflow-y: auto; padding: 4px; }
+    .yuris-notif-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 4px; }
     .yuris-notif-item {
       display: block; width: 100%; text-align: left; padding: 10px 10px; border: none;
       background: none; border-radius: 8px; cursor: pointer; transition: background .12s;
@@ -191,11 +193,12 @@ $_notifTempo = function ($raw) {
     .yuris-notif-item:hover { background: rgba(96,165,250,0.10); }
     .yuris-notif-item.is-unread { background: rgba(96,165,250,0.06); }
     .yuris-notif-item-titulo {
-      display: flex; align-items: center; gap: 6px;
-      font-size: 12.5px; font-weight: 600; color: #e8f4ff; margin: 0 0 2px;
+      display: flex; align-items: flex-start; gap: 6px;
+      font-size: 12.5px; font-weight: 600; color: #e8f4ff; margin: 0 0 3px;
+      overflow-wrap: anywhere; line-height: 1.35;
     }
-    .yuris-notif-dot { width: 7px; height: 7px; border-radius: 50%; background: #60a5fa; flex: 0 0 auto; }
-    .yuris-notif-item-msg { font-size: 11.5px; color: #9fb2cc; margin: 0 0 3px; line-height: 1.35; }
+    .yuris-notif-dot { width: 7px; height: 7px; border-radius: 50%; background: #60a5fa; flex: 0 0 auto; margin-top: 5px; }
+    .yuris-notif-item-msg { font-size: 11.5px; color: #9fb2cc; margin: 0 0 3px; line-height: 1.4; overflow-wrap: anywhere; }
     .yuris-notif-item-time { font-size: 10.5px; color: #6b8299; }
     .yuris-notif-empty { padding: 22px 14px; text-align: center; color: #6b8299; font-size: 12px; }
   </style>
