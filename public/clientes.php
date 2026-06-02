@@ -692,7 +692,10 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
       <div id="cliProcessosBlock" style="display:none; margin-top:16px;">
         <div style="display:flex; align-items:center; justify-content:space-between; margin:0 0 8px;">
           <h3 style="font-size:.84rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:0;">Processos vinculados</h3>
-          <a id="cliNovoProcesso" href="#" style="font-size:.78rem; color:#60a5fa; text-decoration:none;">+ Novo processo</a>
+          <div style="display:flex; gap:14px; align-items:center;">
+            <a id="cliVincularProcesso" href="#" style="font-size:.78rem; color:#60a5fa; text-decoration:none;">+ Vincular existente</a>
+            <a id="cliNovoProcesso" href="#" style="font-size:.78rem; color:#60a5fa; text-decoration:none;">+ Novo processo</a>
+          </div>
         </div>
         <div id="cliProcessos" style="display:flex; flex-direction:column; gap:6px;"></div>
       </div>
@@ -767,6 +770,28 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
 
     <div class="modal-foot">
       <button type="button" class="btn btn-ghost" onclick="Clientes.closeOrigensModal()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────────
+     MODAL: Vincular processo EXISTENTE ao cliente
+─────────────────────────────────────────────────────────────────── -->
+<div class="modal-shell" id="modalVincularProcesso" role="dialog" aria-modal="true" aria-labelledby="mvpTitle">
+  <div class="modal-panel">
+    <div class="modal-head">
+      <h2 id="mvpTitle">Vincular processo existente</h2>
+      <button type="button" class="close" onclick="document.getElementById('modalVincularProcesso').classList.remove('open')" aria-label="Fechar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <p style="color:var(--muted); font-size:.84rem; margin:0 0 12px;">
+      Busque por número, cliente ou parte contrária. Processos da matriz e das filiais vinculadas aparecem agrupados.
+    </p>
+    <input type="text" id="vincProcSearch" class="form-input" placeholder="Buscar processo…" autocomplete="off" style="width:100%; margin:0 0 10px;">
+    <div id="vincProcLista" style="max-height:48vh; overflow-y:auto;"><!-- preenchido por JS --></div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn-ghost" onclick="document.getElementById('modalVincularProcesso').classList.remove('open')">Fechar</button>
     </div>
   </div>
 </div>
@@ -1389,6 +1414,113 @@ window.Clientes = (function () {
             list.innerHTML = '<div style="color:var(--muted); font-size:.8rem;">Falha ao carregar processos.</div>';
         }
     }
+
+    // ── Vincular processo EXISTENTE ao cliente ────────────────────────
+    // Espelha o picker de cliente que já existe no detalhe do Processo:
+    // lista os processos acessíveis (matriz + filiais vinculadas) agrupados
+    // por conta de origem, com busca, e ao escolher seta processos.cliente_id
+    // = cliente atual via PUT /api/processes.php (update parcial + tenant-check).
+    let _procPickerData = null; // cache da lista de processos do picker
+
+    async function openVincularProcessoModal() {
+        if (!state.editingId) { notify('Abra um cliente primeiro', 'error'); return; }
+        const input = document.getElementById('vincProcSearch');
+        const lista = document.getElementById('vincProcLista');
+        if (input) input.value = '';
+        if (lista) lista.innerHTML = '<div style="color:var(--muted); font-size:.83rem; padding:16px 8px; text-align:center">Carregando…</div>';
+        showModal('modalVincularProcesso');
+        setTimeout(() => input?.focus(), 60);
+        try {
+            if (!_procPickerData) {
+                const r = await fetch('/api/processes.php', { credentials: 'same-origin' });
+                const j = await r.json();
+                _procPickerData = Array.isArray(j) ? j : (j.data || []);
+            }
+            _renderProcPicker('');
+        } catch (e) {
+            if (lista) lista.innerHTML = '<div style="color:var(--muted); font-size:.83rem; padding:16px 8px; text-align:center">Falha ao carregar processos.</div>';
+        }
+    }
+
+    function _renderProcPicker(filtro) {
+        const lista = document.getElementById('vincProcLista');
+        if (!lista) return;
+        const termo = String(filtro || '').toLowerCase().trim();
+        const arr = (_procPickerData || []).filter(p => {
+            if (!termo) return true;
+            return String(p.numero || '').toLowerCase().includes(termo)
+                || String(p.cliente_nome || '').toLowerCase().includes(termo)
+                || String(p.parte_contraria || '').toLowerCase().includes(termo);
+        });
+        if (!arr.length) {
+            lista.innerHTML = '<div style="color:var(--muted); font-size:.83rem; padding:16px 8px; text-align:center">Nenhum processo encontrado</div>';
+            return;
+        }
+        // Agrupa por conta de origem (matriz primeiro, depois filiais/advogados por nome)
+        const groups = {};
+        arr.forEach(p => {
+            const key = String(p.origin_account_id || '0');
+            if (!groups[key]) groups[key] = { tipo: (p.origin_account_tipo || ''), nome: (p.origin_account_nome || ''), items: [] };
+            groups[key].items.push(p);
+        });
+        const order = Object.values(groups).sort((a, b) => {
+            const am = a.tipo === 'matriz' ? 0 : 1, bm = b.tipo === 'matriz' ? 0 : 1;
+            if (am !== bm) return am - bm;
+            return String(a.nome || '').localeCompare(String(b.nome || ''));
+        });
+        const tipoLabel = t => t === 'matriz' ? 'MATRIZ' : (t === 'filial' ? 'FILIAL' : (t === 'advogado' ? 'ADVOGADO' : ''));
+        let html = '';
+        order.forEach(g => {
+            const title = [tipoLabel(g.tipo), g.nome].filter(Boolean).join(' · ') || 'Conta';
+            html += `<div style="font-size:.7rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); padding:10px 8px 4px;">${escapeHtml(title)}</div>`;
+            html += g.items.map(p => {
+                const num = escapeHtml(p.numero || ('Processo #' + p.id));
+                const subParts = [];
+                if (p.cliente_nome)     subParts.push(escapeHtml(p.cliente_nome));
+                if (p.parte_contraria)  subParts.push('× ' + escapeHtml(p.parte_contraria));
+                const sub = subParts.join(' · ');
+                const jaNeste = String(p.cliente_id || '') === String(state.editingId || '') && p.cliente_id;
+                const noutro  = !jaNeste && p.cliente_id;
+                const badge = jaNeste
+                    ? '<span style="color:#34d399; font-size:.72rem; font-weight:600; white-space:nowrap">✓ já vinculado</span>'
+                    : (noutro ? '<span style="color:#fbbf24; font-size:.72rem; font-weight:600; white-space:nowrap">vinculado a outro</span>' : '');
+                const clickAttr = jaNeste ? '' : `onclick="window.__vincProc(${p.id})"`;
+                const cur = jaNeste ? 'default; opacity:.55' : 'pointer';
+                return `<div ${clickAttr} style="display:flex; justify-content:space-between; gap:10px; align-items:center; padding:9px 10px; border-radius:8px; cursor:${cur}; border:1px solid var(--border); margin:4px 0;">
+                    <div style="min-width:0;">
+                        <div style="font-weight:600; font-size:.86rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${num}</div>
+                        ${sub ? `<div style="color:var(--muted); font-size:.76rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${sub}</div>` : ''}
+                    </div>
+                    ${badge}
+                </div>`;
+            }).join('');
+        });
+        lista.innerHTML = html;
+    }
+
+    // Chamado ao clicar num processo do modal — grava o vínculo (cliente_id)
+    window.__vincProc = async (procId) => {
+        if (!state.editingId) { notify('Abra um cliente primeiro', 'error'); return; }
+        try {
+            const r = await fetch('/api/processes.php', {
+                method: 'PUT', headers: csrfHeaders(), credentials: 'same-origin',
+                body: JSON.stringify({ id: procId, cliente_id: state.editingId, csrf_token: window.YURIS_CTX.csrf })
+            });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok || j.success === false) throw new Error(j.error || ('HTTP ' + r.status));
+            notify('Processo vinculado ao cliente', 'success');
+            hideModal('modalVincularProcesso');
+            _procPickerData = null;            // cliente_id mudou — invalida o cache
+            loadProcessosCliente(state.editingId);
+        } catch (e) {
+            notify('Falha ao vincular processo: ' + (e.message || 'erro'), 'error');
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('cliVincularProcesso')?.addEventListener('click', (e) => { e.preventDefault(); openVincularProcessoModal(); });
+        document.getElementById('vincProcSearch')?.addEventListener('input', function () { _renderProcPicker(this.value); });
+    });
 
     document.addEventListener('DOMContentLoaded', () => {
         $('#btnNovoCliente')?.addEventListener('click', openCreateModal);
