@@ -11,7 +11,9 @@ use App\Models\Database;
 use App\Services\WebhookDispatcher;
 use App\Helpers\AccountContext;
 
-session_start();
+// read_and_close: só lê $_SESSION (csrf_token + contexto), nunca escreve. Libera o
+// lock de escrita na hora — evita serializar os AJAX do dashboard e travar o sino.
+session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');
 
 // Carrega contexto de tenant — aborta com 401 se sessão inválida

@@ -6,7 +6,9 @@ require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
 
 use App\Helpers\AccountContext;
 
-session_start();
+// read_and_close: endpoint read-only (não escreve $_SESSION). Libera o lock de
+// escrita na hora — evita serializar os AJAX do dashboard e travar o sino.
+session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');
 
 $ctx       = AccountContext::fromSession();

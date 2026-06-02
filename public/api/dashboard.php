@@ -7,7 +7,10 @@ require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
 use App\Models\Database;
 use App\Helpers\AccountContext;
 
-session_start();
+// read_and_close: endpoint read-only (não escreve $_SESSION). Sem isto, o
+// session_start() segura o lock de escrita da sessão durante o carregamento/polling
+// do dashboard, serializando os AJAX e travando o sino de notificações em "Carregando…".
+session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');
 
 $ctx       = AccountContext::fromSession();

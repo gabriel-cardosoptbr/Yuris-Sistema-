@@ -9,7 +9,9 @@ use App\Models\Database;
 use App\Helpers\AccountContext;
 use App\Helpers\TenantGuard;
 
-session_start();
+// read_and_close: só lê $_SESSION (csrf via TenantGuard), nunca escreve. Libera o
+// lock de escrita na hora — evita serializar os AJAX do dashboard e travar o sino.
+session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');
 
 // CSRF (auditoria 2026-06-01): POST/PUT/DELETE de metas exigiam zero validacao.
