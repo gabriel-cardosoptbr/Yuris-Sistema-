@@ -1388,7 +1388,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
             </select>
             <div class="mst-form-help" style="color:#fbbf24">Atenção — mudar tipo é arriscado. Use só se sabe o que está fazendo.</div>
           </div>
-          <div><label class="mst-form-label">Status</label>
+          <div><label class="mst-form-label">Status da conta</label>
             <select name="status" id="editAccStatus" class="mst-form-select">
               <option value="active">Ativa</option>
               <option value="trial">Em teste</option>
@@ -1397,8 +1397,14 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
               <option value="cancelled">Cancelada</option>
               <option value="inactive">Inativa</option>
             </select>
+            <div class="mst-form-help">Controla acesso ao sistema. O status financeiro fica no bloco Assinatura abaixo.</div>
           </div>
-          <div><label class="mst-form-label">Plano (slug cache)</label><input name="plano" id="editAccPlano" class="mst-form-input"><div class="mst-form-help">String legada. Plano real é via Assinaturas.</div></div>
+          <div><label class="mst-form-label">Plano (slug cache)</label>
+            <select name="plano" id="editAccPlano" class="mst-form-select">
+              <option value="">— Carregando…</option>
+            </select>
+            <div class="mst-form-help">String legada. Plano real é via Assinaturas.</div>
+          </div>
         </div>
 
         <!-- Assinatura — só aparece se a conta tiver uma assinatura ativa -->
@@ -2528,8 +2534,18 @@ async function viewAcc(id) {
   const d = r.data;
   const isMatriz = d.tipo === 'matriz';
 
+  // Header mostra DOIS pills quando o status da assinatura diverge do status
+  // da conta — antes só mostrava o da conta e o user via "Em teste" no bloco
+  // Assinatura abaixo sem entender que eram coisas distintas (conta=acesso,
+  // assinatura=ciclo financeiro). Hint visual "Assin:" deixa explícito.
+  const _sub = d.subscription || {};
+  const _hasSub = _sub && _sub.id && _sub.status;
+  const _statusDiverge = _hasSub && String(_sub.status) !== String(d.status);
+  const _subPill = _statusDiverge
+    ? ` <span style="opacity:.7;font-size:.7rem;margin-left:6px">Assin:</span> ${pill(_sub.status)}`
+    : '';
   document.getElementById('detalheTitle').innerHTML =
-    `${ico(isMatriz ? 'building' : 'store', {size:18, style:'display:inline;vertical-align:-3px;margin-right:6px;color:'+(isMatriz?'#60a5fa':'#c084fc')})}${esc(d.nome)} <span class="pill pill-${esc(d.tipo)}" style="margin-left:8px;font-size:.6rem">${esc(d.tipo)}</span> ${pill(d.status)}`;
+    `${ico(isMatriz ? 'building' : 'store', {size:18, style:'display:inline;vertical-align:-3px;margin-right:6px;color:'+(isMatriz?'#60a5fa':'#c084fc')})}${esc(d.nome)} <span class="pill pill-${esc(d.tipo)}" style="margin-left:8px;font-size:.6rem">${esc(d.tipo)}</span> ${pill(d.status)}${_subPill}`;
 
   let sub = d.subscription || {};
   let html = '';
@@ -2885,6 +2901,46 @@ async function loadPlans() {
       <td>${p.features ? p.features.length : 0} features</td>
       <td><button class="btn-mst" onclick="openPlanModal(${p.id})">Editar</button></td>
     </tr>`).join('');
+}
+
+/**
+ * Popula o <select id="editAccPlano"> do modal Editar Conta com a lista
+ * de planos vinda de plans.php. Usa _plansCache se já estiver populado
+ * (ex: usuário entrou na aba Planos antes); senão fetcha sob demanda.
+ *
+ * Reabilita o sentido de "lista suspensa" — antes era input livre, fácil
+ * de gerar typo no slug. selectedSlug pré-seleciona o atual; se o slug
+ * legado não bater com nenhum plano ativo, adiciona uma opção avulsa
+ * preservando o valor (evita perder o cache em contas antigas).
+ */
+async function fillEditAccPlanos(selectedSlug = '') {
+  const sel = document.getElementById('editAccPlano');
+  if (!sel) return;
+  let planos = _plansCache;
+  if (!planos || !planos.length) {
+    try {
+      const r = await fj(`${API}/plans.php`);
+      if (r.ok) {
+        planos = (r.data && r.data.plans) || [];
+        _plansCache = planos;
+      } else {
+        planos = [];
+      }
+    } catch (_e) { planos = []; }
+  }
+  let html = '<option value="">— Sem plano —</option>';
+  let foundCurrent = false;
+  planos.forEach(p => {
+    const isSel = String(p.slug) === String(selectedSlug);
+    if (isSel) foundCurrent = true;
+    const ativo = p.ativo == 1 ? '' : ' (inativo)';
+    html += `<option value="${esc(p.slug)}"${isSel?' selected':''}>${esc(p.nome)} (${esc(p.slug)})${ativo}</option>`;
+  });
+  // Slug legado que não existe mais em plans — mantém visível pra não corromper o cache
+  if (selectedSlug && !foundCurrent) {
+    html += `<option value="${esc(selectedSlug)}" selected>${esc(selectedSlug)} (legado)</option>`;
+  }
+  sel.innerHTML = html;
 }
 
 // ── Plan modal (criar / editar) ──────────────────────────────────────────
@@ -3687,7 +3743,11 @@ async function openEditAccount(id) {
   document.getElementById('editAccUf').value     = d.estado || '';
   document.getElementById('editAccTipo').value   = d.tipo || 'matriz';
   document.getElementById('editAccStatus').value = d.status || 'active';
-  document.getElementById('editAccPlano').value  = d.plano || '';
+
+  // Popula o select de planos com a lista de plans.php ANTES de aplicar o
+  // value salvo. Se a opção não existir (slug legado deletado), o select
+  // mostra placeholder e fica visível pro user escolher um novo.
+  await fillEditAccPlanos(d.plano || '');
 
   // Bloco Assinatura: só aparece se a conta tem subscription
   const sub = d.subscription || null;
