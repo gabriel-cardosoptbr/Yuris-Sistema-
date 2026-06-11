@@ -38,13 +38,18 @@ RedirectMatch 403 (?i)^/sistema_vendas/(docs|scripts|tests|vendor|node_modules|c
 #   • Botão "Entrar" da landing aponta direto pra /public/login.php
 # OBS: URL absoluta (com /sistema_vendas/ no caminho) evita que Apache resolva
 # para path de filesystem em alguns ambientes.
+# IMPORTANTE (descoberto em 2026-06-11): em produção o docker-php.conf dá
+# AllowOverride All em /var/www/html, então este arquivo É processado lá
+# (o docroot public/ fica dentro dele). As regras de redirect abaixo são
+# SÓ do XAMPP — por isso a RewriteCond no DOCUMENT_ROOT: em prod o docroot
+# termina em "public" e as regras não disparam (raiz responde 200 direto).
 RewriteEngine On
 RewriteBase /sistema_vendas/
+RewriteCond %{DOCUMENT_ROOT} !public$
 RewriteRule ^$            /sistema_vendas/public/index.php [L,R=302]
+RewriteCond %{DOCUMENT_ROOT} !public$
 RewriteRule ^public/?$    /sistema_vendas/public/index.php [L,R=302]
 
-# ── 5. 404 brandada (DEV) ────────────────────────────────────────────────────
-# Em produção o equivalente fica no Dockerfile (zz-yuris.conf), porque lá o
-# DocumentRoot é public/ e este arquivo fica FORA do docroot (ignorado).
-# OBS: este .htaccess inteiro só vale no XAMPP local.
-ErrorDocument 404 /sistema_vendas/public/404.php
+# 404 brandada: em produção fica no zz-yuris.conf (ErrorDocument 404 /404.php).
+# NÃO declarar ErrorDocument aqui — .htaccess sobrescreveria o conf em prod
+# com um caminho de XAMPP quebrado.
