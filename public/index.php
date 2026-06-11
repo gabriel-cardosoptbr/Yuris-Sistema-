@@ -28,29 +28,114 @@ function wa(string $mensagem): string {
 /* SVG do ícone WhatsApp — usado em todos os CTAs contextuais da landing.
    Path original do logo oficial, simplificado. */
 $waSvg = '<span class="lp-wa-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg></span>';
+$cssVerSp = @filemtime(__DIR__ . '/assets/seo-pages.css') ?: 1;
 ?><!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <!-- Marca <html class="js"> ANTES do CSS: o estado oculto do .lp-reveal
+       só se aplica com JS ativo (resiliência no-JS + LCP do hero). -->
+  <script>document.documentElement.classList.add('js');</script>
   <title>Yuris — Sistema Jurídico Inteligente para Advogados</title>
   <meta name="description" content="Controle processos, prazos, intimações, tarefas, clientes e comunicação em uma plataforma jurídica inteligente para advogados e escritórios.">
   <meta name="robots" content="index,follow">
-  <link rel="canonical" href="/index.php">
+  <link rel="canonical" href="https://yuris.com.br/">
+  <meta name="theme-color" content="#060D1A">
 
   <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Yuris">
+  <meta property="og:locale" content="pt_BR">
+  <meta property="og:url" content="https://yuris.com.br/">
   <meta property="og:title" content="Yuris — Sistema Jurídico Inteligente para Advogados">
   <meta property="og:description" content="Centralize processos, prazos, intimações e clientes em um único sistema jurídico moderno.">
-  <meta property="og:image" content="/sistema_vendas/Imagens/Logo.png">
+  <meta property="og:image" content="https://yuris.com.br/assets/img/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Yuris — Sistema Jurídico Inteligente para Advogados">
+  <meta name="twitter:description" content="Centralize processos, prazos, intimações e clientes em um único sistema jurídico moderno.">
+  <meta name="twitter:image" content="https://yuris.com.br/assets/img/og-image.jpg">
 
   <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="/assets/landing.css?v=<?= $cssVer ?>">
+  <link rel="stylesheet" href="/assets/seo-pages.css?v=<?= $cssVerSp ?>">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://yuris.com.br/#org",
+        "name": "Yuris",
+        "url": "https://yuris.com.br/",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://yuris.com.br/assets/img/logo-512.png",
+          "width": 512,
+          "height": 512
+        },
+        "description": "Yuris — Sistema Jurídico Inteligente: SaaS de gestão para advogados e escritórios de advocacia no Brasil.",
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "contactType": "sales",
+          "url": "https://wa.me/5511991170602",
+          "availableLanguage": "Portuguese"
+        }
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://yuris.com.br/#website",
+        "url": "https://yuris.com.br/",
+        "name": "Yuris",
+        "inLanguage": "pt-BR",
+        "publisher": { "@id": "https://yuris.com.br/#org" }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://yuris.com.br/#app",
+        "name": "Yuris — Sistema Jurídico Inteligente",
+        "url": "https://yuris.com.br/",
+        "image": "https://yuris.com.br/assets/img/og-image.jpg",
+        "applicationCategory": "BusinessApplication",
+        "applicationSubCategory": "Sistema jurídico / gestão para escritórios de advocacia",
+        "operatingSystem": "Web",
+        "inLanguage": "pt-BR",
+        "description": "Sistema jurídico para advogados e escritórios: processos, prazos, intimações, CRM, financeiro, tarefas e WhatsApp em uma única plataforma com LGPD e auditoria.",
+        "audience": { "@type": "Audience", "audienceType": "Advogados e escritórios de advocacia" },
+        "featureList": [
+          "Gestão de processos com histórico auditado",
+          "Monitoramento de intimações (DJEN, DataJud e AASP)",
+          "CRM jurídico em Kanban",
+          "Clientes e contatos centralizados",
+          "Atendimento por WhatsApp integrado",
+          "Financeiro com DRE e recorrências",
+          "Tarefas em Kanban, lista e calendário",
+          "Webhooks para n8n, Make e Zapier",
+          "LGPD e auditoria estruturais",
+          "Multi-tenant com matriz e filial"
+        ],
+        "offers": {
+          "@type": "AggregateOffer",
+          "priceCurrency": "BRL",
+          "lowPrice": "220",
+          "highPrice": "670",
+          "offerCount": 4,
+          "url": "https://yuris.com.br/planos.php"
+        },
+        "provider": { "@id": "https://yuris.com.br/#org" }
+      }
+    ]
+  }
+  </script>
 </head>
 <body class="lp">
 
@@ -60,7 +145,7 @@ $waSvg = '<span class="lp-wa-icon" aria-hidden="true"><svg viewBox="0 0 24 24" f
 <header class="lp-header" role="banner">
   <div class="lp-container lp-header-inner">
     <a href="#inicio" class="lp-logo" aria-label="Yuris — Sistema Jurídico Inteligente">
-      <img src="/sistema_vendas/Imagens/Logo.png" alt="">
+      <img src="/assets/img/logo-144.webp" alt="" width="40" height="40">
       <span class="lp-logo-text">YURIS</span>
     </a>
 
@@ -70,6 +155,7 @@ $waSvg = '<span class="lp-wa-icon" aria-hidden="true"><svg viewBox="0 0 24 24" f
       <a href="#juridico">Jurídico</a>
       <a href="#automacao">Automação</a>
       <a href="#seguranca">Segurança</a>
+      <a href="/planos.php">Planos</a>
       <a href="#demonstracao">Demonstração</a>
     </nav>
 
@@ -98,6 +184,7 @@ $waSvg = '<span class="lp-wa-icon" aria-hidden="true"><svg viewBox="0 0 24 24" f
   <a href="#juridico">Jurídico</a>
   <a href="#automacao">Automação</a>
   <a href="#seguranca">Segurança</a>
+  <a href="/planos.php">Planos</a>
   <a href="#demonstracao">Demonstração</a>
   <div class="lp-drawer-title">Acesso</div>
   <a href="/login.php" class="lp-btn lp-btn-ghost">Entrar</a>
@@ -116,7 +203,9 @@ $waSvg = '<span class="lp-wa-icon" aria-hidden="true"><svg viewBox="0 0 24 24" f
   <div class="lp-container">
     <div class="lp-hero-grid">
 
-      <div class="lp-hero-text lp-reveal">
+      <!-- Hero SEM .lp-reveal de propósito: a primeira dobra (LCP) pinta
+           imediatamente, sem esperar o JS. O reveal segue nas demais seções. -->
+      <div class="lp-hero-text">
         <span class="lp-eyebrow">Sistema jurídico inteligente</span>
         <h1>Controle processos, prazos, intimações e clientes em <strong>um único sistema</strong> jurídico inteligente.</h1>
         <p class="lp-hero-sub">
@@ -139,7 +228,7 @@ $waSvg = '<span class="lp-wa-icon" aria-hidden="true"><svg viewBox="0 0 24 24" f
         </div>
       </div>
 
-      <div class="lp-hero-mockup lp-reveal">
+      <div class="lp-hero-mockup">
         <div class="lp-mockup-frame">
           <div class="lp-mockup-card">
             <!-- Mockup dashboard (SVG inline) -->
@@ -780,35 +869,35 @@ $waSvg = '<span class="lp-wa-icon" aria-hidden="true"><svg viewBox="0 0 24 24" f
     <div class="lp-vitrine lp-reveal" data-tabs="vitrine">
       <div class="lp-vitrine-list">
         <button type="button" class="lp-vit-item active" data-target="v-processos">
-          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Processos</h4>
+          <span class="lp-vit-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Processos</span>
           <p>Organize processos com histórico, responsáveis, vínculos e visão clara de andamento.</p>
         </button>
         <button type="button" class="lp-vit-item" data-target="v-intimacoes">
-          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Intimações</h4>
+          <span class="lp-vit-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Intimações</span>
           <p>Centralize intimações, origem da consulta, OAB vinculada e associação ao processo.</p>
         </button>
         <button type="button" class="lp-vit-item" data-target="v-tarefas">
-          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Tarefas e prazos</h4>
+          <span class="lp-vit-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Tarefas e prazos</span>
           <p>Transforme prazos em tarefas rastreáveis, com responsáveis, status e alertas.</p>
         </button>
         <button type="button" class="lp-vit-item" data-target="v-prospeccao">
-          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l7 8v6l6 4v-10l7-8z"/></svg>Prospecção</h4>
+          <span class="lp-vit-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l7 8v6l6 4v-10l7-8z"/></svg>Prospecção</span>
           <p>Acompanhe oportunidades, leads e clientes em um funil visual para a operação jurídica.</p>
         </button>
         <button type="button" class="lp-vit-item" data-target="v-comunicacao">
-          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>Comunicação</h4>
+          <span class="lp-vit-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>Comunicação</span>
           <p>Centralize conversas e mantenha o histórico conectado ao cliente ou processo.</p>
         </button>
         <button type="button" class="lp-vit-item" data-target="v-automacoes">
-          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 16.98h-5.99c-1.1 0-1.95.68-2.48 1.61A4 4 0 0 1 2 17c0-2.22 1.8-4 4-4h4"/></svg>Automações</h4>
+          <span class="lp-vit-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 16.98h-5.99c-1.1 0-1.95.68-2.48 1.61A4 4 0 0 1 2 17c0-2.22 1.8-4 4-4h4"/></svg>Automações</span>
           <p>Dispare eventos internos para n8n, Make, Zapier ou robôs próprios por meio de webhooks.</p>
         </button>
         <button type="button" class="lp-vit-item" data-target="v-lgpd">
-          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 6v6c0 5 3.5 9.5 8 11 4.5-1.5 8-6 8-11V6l-8-4z"/></svg>LGPD e auditoria</h4>
+          <span class="lp-vit-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 6v6c0 5 3.5 9.5 8 11 4.5-1.5 8-6 8-11V6l-8-4z"/></svg>LGPD e auditoria</span>
           <p>Registre ações críticas, consentimentos, solicitações e logs para uma operação mais segura.</p>
         </button>
         <button type="button" class="lp-vit-item" data-target="v-matriz">
-          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Matriz e filial</h4>
+          <span class="lp-vit-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Matriz e filial</span>
           <p>Separe unidades, filiais, advogados e permissões sem perder a visão gerencial.</p>
         </button>
       </div>
@@ -1617,42 +1706,42 @@ $waSvg = '<span class="lp-wa-icon" aria-hidden="true"><svg viewBox="0 0 24 24" f
     <div class="lp-grid lp-grid-4 lp-reveal">
       <div class="lp-integ">
         <div class="lp-integ-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></div>
-        <h4>WhatsApp</h4>
+        <h3>WhatsApp</h3>
         <p>Atendimento e mensagens</p>
       </div>
       <div class="lp-integ">
         <div class="lp-integ-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 16.98h-5.99c-1.1 0-1.95.68-2.48 1.61A4 4 0 0 1 2 17c0-2.22 1.8-4 4-4h4"/><path d="m13 10 3-3-3-3"/><path d="M7.07 7.07A8.35 8.35 0 0 1 16 6c1.55 0 3 .43 4.23 1.17"/></svg></div>
-        <h4>n8n</h4>
+        <h3>n8n</h3>
         <p>Automação self-hosted</p>
       </div>
       <div class="lp-integ">
         <div class="lp-integ-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
-        <h4>Make</h4>
+        <h3>Make</h3>
         <p>Cenários visuais</p>
       </div>
       <div class="lp-integ">
         <div class="lp-integ-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg></div>
-        <h4>Zapier</h4>
+        <h3>Zapier</h3>
         <p>Conexões rápidas</p>
       </div>
       <div class="lp-integ">
         <div class="lp-integ-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
-        <h4>DJEN</h4>
+        <h3>DJEN</h3>
         <p>Diário oficial eletrônico</p>
       </div>
       <div class="lp-integ">
         <div class="lp-integ-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-        <h4>AASP</h4>
+        <h3>AASP</h3>
         <p>Publicações OAB</p>
       </div>
       <div class="lp-integ">
         <div class="lp-integ-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div>
-        <h4>API REST</h4>
+        <h3>API REST</h3>
         <p>Integrações próprias</p>
       </div>
       <div class="lp-integ">
         <div class="lp-integ-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
-        <h4>Webhooks</h4>
+        <h3>Webhooks</h3>
         <p>Eventos com HMAC</p>
       </div>
     </div>
@@ -1801,7 +1890,91 @@ $waSvg = '<span class="lp-wa-icon" aria-hidden="true"><svg viewBox="0 0 24 24" f
 </section>
 
 <!-- ════════════════════════════════════════════════════════════════════════
-     18. CTA FINAL
+     18. FAQ (perguntas frequentes — rastreável, <details> sem JS)
+     Schema FAQPage logo abaixo: manter PERGUNTAS E RESPOSTAS IDÊNTICAS
+     ao texto visível, senão o rich result é invalidado.
+     ════════════════════════════════════════════════════════════════════════ -->
+<section id="faq" class="lp-section">
+  <div class="lp-container">
+    <div class="lp-section-head lp-reveal">
+      <span class="lp-eyebrow">Perguntas frequentes</span>
+      <h2>O que todo escritório pergunta antes de conhecer o Yuris.</h2>
+    </div>
+    <div class="sp-faq">
+      <details>
+        <summary>O que é o Yuris?</summary>
+        <div class="sp-faq-resposta"><p>O Yuris é um sistema jurídico para advogados e escritórios de advocacia que centraliza processos, prazos, intimações, clientes, tarefas, financeiro e atendimento por WhatsApp em uma única plataforma, com LGPD e auditoria como parte da estrutura.</p></div>
+      </details>
+      <details>
+        <summary>Quanto custa o Yuris?</summary>
+        <div class="sp-faq-resposta"><p>Os planos são públicos e começam em R$ 220 por mês, com tudo incluído — sem cobrança separada por módulo. O valor varia conforme o número de usuários do escritório. A tabela completa está na <a href="/planos.php">página de planos</a>.</p></div>
+      </details>
+      <details>
+        <summary>O Yuris serve para advogado autônomo ou só para escritórios?</summary>
+        <div class="sp-faq-resposta"><p>Os dois. O plano de entrada atende de 1 a 2 usuários, e a mesma plataforma escala para equipes e estruturas com matriz e filiais — sem trocar de sistema no caminho.</p></div>
+      </details>
+      <details>
+        <summary>O Yuris monitora intimações automaticamente?</summary>
+        <div class="sp-faq-resposta"><p>Sim. O sistema monitora publicações judiciais em múltiplas fontes — DJEN, DataJud e AASP — com deduplicação automática. A intimação pode ser vinculada ao processo e convertida em prazo ou tarefa com responsável. A fonte AASP requer chave de acesso do próprio escritório.</p></div>
+      </details>
+      <details>
+        <summary>Como o Yuris trata a LGPD?</summary>
+        <div class="sp-faq-resposta"><p>Como camada estrutural: isolamento de dados entre escritórios, permissões por escopo, trilha de auditoria imutável, anonimização e atendimento aos direitos do titular. O Yuris adota medidas técnicas e organizacionais de proteção de dados e segue em processo contínuo de adequação à LGPD.</p></div>
+      </details>
+      <details>
+        <summary>Como faço para conhecer o sistema?</summary>
+        <div class="sp-faq-resposta"><p>Pelo WhatsApp: a equipe agenda uma demonstração e apresenta o Yuris aplicado à rotina do seu escritório — volume de processos, tamanho da equipe e forma de atendimento.</p></div>
+      </details>
+    </div>
+    <div class="lp-section-cta lp-reveal">
+      <a href="<?= wa('Olá Bruno, tenho algumas perguntas sobre o Yuris!') ?>" target="_blank" rel="noopener" class="lp-btn lp-btn-primary lp-btn-wa">
+        <?= $waSvg ?>
+        Tirar minhas dúvidas no WhatsApp
+      </a>
+    </div>
+  </div>
+</section>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "O que é o Yuris?",
+      "acceptedAnswer": { "@type": "Answer", "text": "O Yuris é um sistema jurídico para advogados e escritórios de advocacia que centraliza processos, prazos, intimações, clientes, tarefas, financeiro e atendimento por WhatsApp em uma única plataforma, com LGPD e auditoria como parte da estrutura." }
+    },
+    {
+      "@type": "Question",
+      "name": "Quanto custa o Yuris?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Os planos são públicos e começam em R$ 220 por mês, com tudo incluído — sem cobrança separada por módulo. O valor varia conforme o número de usuários do escritório. A tabela completa está na página de planos." }
+    },
+    {
+      "@type": "Question",
+      "name": "O Yuris serve para advogado autônomo ou só para escritórios?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Os dois. O plano de entrada atende de 1 a 2 usuários, e a mesma plataforma escala para equipes e estruturas com matriz e filiais — sem trocar de sistema no caminho." }
+    },
+    {
+      "@type": "Question",
+      "name": "O Yuris monitora intimações automaticamente?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Sim. O sistema monitora publicações judiciais em múltiplas fontes — DJEN, DataJud e AASP — com deduplicação automática. A intimação pode ser vinculada ao processo e convertida em prazo ou tarefa com responsável. A fonte AASP requer chave de acesso do próprio escritório." }
+    },
+    {
+      "@type": "Question",
+      "name": "Como o Yuris trata a LGPD?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Como camada estrutural: isolamento de dados entre escritórios, permissões por escopo, trilha de auditoria imutável, anonimização e atendimento aos direitos do titular. O Yuris adota medidas técnicas e organizacionais de proteção de dados e segue em processo contínuo de adequação à LGPD." }
+    },
+    {
+      "@type": "Question",
+      "name": "Como faço para conhecer o sistema?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Pelo WhatsApp: a equipe agenda uma demonstração e apresenta o Yuris aplicado à rotina do seu escritório — volume de processos, tamanho da equipe e forma de atendimento." }
+    }
+  ]
+}
+</script>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     19. CTA FINAL
      ════════════════════════════════════════════════════════════════════════ -->
 <section id="demonstracao" class="lp-section">
   <div class="lp-container">
@@ -1832,8 +2005,21 @@ $waSvg = '<span class="lp-wa-icon" aria-hidden="true"><svg viewBox="0 0 24 24" f
   <div class="lp-container">
     <div class="lp-footer-grid">
       <div class="lp-footer-brand">
-        <img src="/sistema_vendas/Imagens/Logo.png" alt="Yuris">
+        <img src="/assets/img/logo-144.webp" alt="Yuris" width="52" height="52" loading="lazy" decoding="async">
         <p>Sistema Jurídico Inteligente. Controle, segurança e automação para a rotina de advogados e escritórios.</p>
+      </div>
+      <div class="lp-footer-col">
+        <h5>Soluções</h5>
+        <ul>
+          <li><a href="/sistema-juridico/">Sistema Jurídico</a></li>
+          <li><a href="/crm-juridico/">CRM Jurídico</a></li>
+          <li><a href="/gestao-escritorio-advocacia/">Gestão de Escritório</a></li>
+          <li><a href="/automacao-juridica/">Automação Jurídica</a></li>
+          <li><a href="/controle-de-processos/">Controle de Processos</a></li>
+          <li><a href="/prospeccao-juridica/">Prospecção Jurídica</a></li>
+          <li><a href="/financeiro-juridico/">Financeiro Jurídico</a></li>
+          <li><a href="/lgpd-escritorios-advocacia/">LGPD para Escritórios</a></li>
+        </ul>
       </div>
       <div class="lp-footer-col">
         <h5>Produto</h5>
@@ -1842,14 +2028,17 @@ $waSvg = '<span class="lp-wa-icon" aria-hidden="true"><svg viewBox="0 0 24 24" f
           <li><a href="#juridico">Jurídico</a></li>
           <li><a href="#automacao">Automações</a></li>
           <li><a href="#integracoes">Integrações</a></li>
+          <li><a href="/planos.php">Planos</a></li>
+          <li><a href="/blog/">Blog</a></li>
         </ul>
       </div>
       <div class="lp-footer-col">
         <h5>Empresa</h5>
         <ul>
+          <li><a href="/sobre/">Sobre o Yuris</a></li>
           <li><a href="#para-quem">Para quem é</a></li>
           <li><a href="#confianca">Pilares</a></li>
-          <li><a href="#demonstracao">Demonstração</a></li>
+          <li><a href="/demonstracao/">Demonstração</a></li>
           <li><a href="/login.php">Entrar</a></li>
         </ul>
       </div>
@@ -1860,6 +2049,8 @@ $waSvg = '<span class="lp-wa-icon" aria-hidden="true"><svg viewBox="0 0 24 24" f
           <li><a href="/termos.php">Termos</a></li>
           <li><a href="/lgpd.php">LGPD</a></li>
           <li><a href="/cookies.php">Cookies</a></li>
+          <li><a href="/dpo.php">Encarregado (DPO)</a></li>
+          <li><a href="javascript:if(window.YurisCookies){YurisCookies.open()}else{location.reload()}">Gerenciar cookies</a></li>
         </ul>
       </div>
     </div>
@@ -1871,5 +2062,6 @@ $waSvg = '<span class="lp-wa-icon" aria-hidden="true"><svg viewBox="0 0 24 24" f
 </footer>
 
 <script src="/assets/landing.js?v=<?= $jsVer ?>" defer></script>
+<script src="/assets/cookie-consent.js?v=1"></script>
 </body>
 </html>

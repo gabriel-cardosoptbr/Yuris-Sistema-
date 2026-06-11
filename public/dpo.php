@@ -12,9 +12,12 @@ $dpoFone  = trim(\App\Helpers\EnvLoader::get('DPO_PHONE',    ''));
 $dpoEnd   = trim(\App\Helpers\EnvLoader::get('DPO_ADDRESS',  ''));
 
 if ($dpoNome === '' && $dpoEmail === '') {
-    $dpoBlock = '<p><em>(DPO ainda não designado nesta instalação. Configure as variáveis '
-              . '<code>DPO_NAME</code>, <code>DPO_EMAIL</code>, <code>DPO_PHONE</code> '
-              . 'no arquivo <code>.env</code> do servidor para exibir os contatos aqui.)</em></p>';
+    // Mensagem voltada ao TITULAR (não vazar instrução de infraestrutura ao público).
+    // A configuração das variáveis DPO_* do .env está documentada para os admins
+    // no próprio comentário do topo deste arquivo.
+    $dpoBlock = '<p>Para falar com o nosso canal de proteção de dados, abra uma solicitação pelo '
+              . '<a href="/lgpd/solicitar.php"><strong>formulário online</strong></a> — você recebe um '
+              . 'link único para acompanhar o andamento e a equipe responsável é notificada.</p>';
 } else {
     $dpoBlock = '<ul>';
     if ($dpoNome)  $dpoBlock .= '<li><strong>Nome:</strong> ' . htmlspecialchars($dpoNome)  . '</li>';

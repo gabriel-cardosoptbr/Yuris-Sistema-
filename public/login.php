@@ -20,7 +20,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Yuris - Login</title>
+  <title>Entrar — Yuris</title>
+  <meta name="robots" content="noindex,follow">
   <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -104,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A96A8" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg></span>
             <input name="login" type="email" placeholder="seu@exemplo.com" required class="with-icon" />
           </div>
-          <div class="small-note">Use seu e-mail como usuário (ex: admin@admin.com)</div>
+          <div class="small-note">Use seu e-mail como usuário (ex: nome@seuescritorio.com.br)</div>
         </div>
 
         <div class="field anim-item" data-i="3">

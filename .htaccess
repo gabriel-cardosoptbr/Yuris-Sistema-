@@ -42,3 +42,9 @@ RewriteEngine On
 RewriteBase /sistema_vendas/
 RewriteRule ^$            /sistema_vendas/public/index.php [L,R=302]
 RewriteRule ^public/?$    /sistema_vendas/public/index.php [L,R=302]
+
+# ── 5. 404 brandada (DEV) ────────────────────────────────────────────────────
+# Em produção o equivalente fica no Dockerfile (zz-yuris.conf), porque lá o
+# DocumentRoot é public/ e este arquivo fica FORA do docroot (ignorado).
+# OBS: este .htaccess inteiro só vale no XAMPP local.
+ErrorDocument 404 /sistema_vendas/public/404.php

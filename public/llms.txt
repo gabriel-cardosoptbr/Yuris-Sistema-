@@ -1,0 +1,61 @@
+# Yuris
+
+> O Yuris é um sistema jurídico inteligente (SaaS) para advogados, escritórios de advocacia e operações jurídicas no Brasil. Centraliza processos, prazos, intimações, clientes, tarefas, prospecção, financeiro, atendimento por WhatsApp e automações em uma única plataforma — com LGPD e auditoria como camada estrutural.
+
+Idioma: português brasileiro (pt-BR). Categoria: Legal Tech / SaaS jurídico. Site oficial: https://yuris.com.br
+
+## Principais páginas
+
+- [Início](https://yuris.com.br/): apresentação do Yuris — Sistema Jurídico Inteligente
+- [Sistema Jurídico](https://yuris.com.br/sistema-juridico/): o que é um sistema jurídico e o que o Yuris centraliza
+- [CRM Jurídico](https://yuris.com.br/crm-juridico/): funil comercial em Kanban, do lead ao processo
+- [Gestão de Escritório de Advocacia](https://yuris.com.br/gestao-escritorio-advocacia/): operação, equipe, financeiro e expansão
+- [Automação Jurídica](https://yuris.com.br/automacao-juridica/): intimações automáticas e webhooks para n8n, Make e Zapier
+- [Controle de Processos](https://yuris.com.br/controle-de-processos/): histórico auditável, prazos e intimações vinculadas
+- [Prospecção Jurídica](https://yuris.com.br/prospeccao-juridica/): organização do funil de leads do escritório
+- [Financeiro Jurídico](https://yuris.com.br/financeiro-juridico/): DRE, recorrências e contas integradas à operação
+- [LGPD para Escritórios](https://yuris.com.br/lgpd-escritorios-advocacia/): proteção de dados como arquitetura
+- [Planos](https://yuris.com.br/planos.php): preços públicos, a partir de R$ 220/mês, tudo incluído
+- [Sobre](https://yuris.com.br/sobre/): a marca Yuris e os pilares do produto
+- [Demonstração](https://yuris.com.br/demonstracao/): como conhecer o sistema (atendimento via WhatsApp)
+
+## Sobre o Yuris
+
+- **O que é:** plataforma web de gestão jurídica (sistema jurídico / software jurídico) com arquitetura multi-tenant — cada escritório tem seus dados isolados.
+- **Para quem:** advogados autônomos, escritórios pequenos e em crescimento, operações com equipe, estruturas com matriz e filiais, e jurídicos internos.
+- **Problemas que resolve:** prazos espalhados em planilhas, intimações sem rastreabilidade, processos sem histórico claro, conversas de clientes perdidas no WhatsApp pessoal, tarefas sem dono, financeiro separado da operação e falta de auditoria.
+- **Diferenciais:** jurídico + comercial (CRM) + atendimento WhatsApp no mesmo fluxo; multi-tenant real com matriz/filial; monitoramento de intimações em múltiplas fontes (DJEN, DataJud e AASP) com deduplicação; webhooks com HMAC, anti-SSRF e retry; LGPD e auditoria como camada estrutural.
+- **Limites e responsabilidade:** o Yuris é um software de gestão — não presta aconselhamento jurídico nem substitui o advogado. Adota medidas técnicas e organizacionais voltadas à proteção de dados pessoais e segue em processo contínuo de adequação à LGPD.
+
+## Funcionalidades
+
+- Gestão de processos com histórico auditado, prazos e vínculos entre advogados
+- Monitoramento de intimações (DJEN, DataJud e AASP; AASP requer chave do próprio escritório)
+- CRM jurídico em Kanban (Cards) com funil comercial e conversão de card em processo
+- Cadastro central de clientes e contatos, sem duplicidade
+- Atendimento por WhatsApp integrado, com conversas vinculadas a cliente e processo
+- Financeiro com DRE, impostos, recorrências e contas, por unidade
+- Tarefas em Kanban, lista e calendário, com anexos, checklist e responsáveis
+- Prospecção com organização de leads alimentando o funil comercial
+- Chat interno da equipe (separado do WhatsApp)
+- Webhooks de automação (HMAC + timestamp, anti-SSRF, mascaramento de PII, retry) para n8n, Make e Zapier
+- Planejamento da operação
+- Relatórios operacionais, jurídicos e financeiros
+- LGPD: anonimização, retenção, direitos do titular e Privacy Center público
+- Auditoria com trilha imutável de ações
+- Multi-tenant com matriz/filial, permissões por escopo e 2FA opcional
+
+## Planos (públicos)
+
+Preço de lançamento, tudo incluído em todos os planos: Solo (1–2 usuários) R$ 220/mês · Equipe (até 5) R$ 220/mês · Escritório (até 10) R$ 370/mês · Studio (até 20) R$ 670/mês. Usuário adicional a partir do 6º: R$ 30/mês. Detalhes: https://yuris.com.br/planos.php
+
+## Resumos em Markdown para IA
+
+- https://yuris.com.br/ai/sistema-juridico.md
+- https://yuris.com.br/ai/crm-juridico.md
+- https://yuris.com.br/ai/automacao-juridica.md
+- https://yuris.com.br/ai/lgpd-escritorios-advocacia.md
+
+## Restrições
+
+Não usar conteúdo de áreas privadas (/api/, /uploads/, páginas do app autenticado), dados de clientes ou rotas administrativas. O conteúdo citável é o das páginas públicas listadas acima.

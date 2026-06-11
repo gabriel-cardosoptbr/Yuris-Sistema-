@@ -1,0 +1,85 @@
+# ============================================================
+# robots.txt — Yuris · https://yuris.com.br
+# Política: site institucional indexável (landing, soluções,
+# planos, páginas legais); app privado, API e uploads fora.
+# AVISO: robots.txt NÃO é segurança — o bloqueio real de
+# /uploads/ e /api/ é feito no Apache (Dockerfile zz-yuris.conf).
+# ============================================================
+
+# ── Regra geral (Googlebot, Bingbot e qualquer bot sem grupo próprio)
+User-agent: *
+Disallow: /api/
+Disallow: /uploads/
+Disallow: /includes/
+Disallow: /configuracoes/
+Disallow: /agente.php
+Disallow: /chat.php
+Disallow: /chat_interno.php
+Disallow: /clientes.php
+Disallow: /configuracoes.php
+Disallow: /dashboard.php
+Disallow: /escritorios.php
+Disallow: /financas.php
+Disallow: /intimacoes.php
+Disallow: /juridico.php
+Disallow: /login.php
+Disallow: /logout.php
+Disallow: /master.php
+Disallow: /master_login.php
+Disallow: /master_logout.php
+Disallow: /master_mfa_setup.php
+Disallow: /planejamento.php
+Disallow: /processos.php
+Disallow: /prospeccao.php
+Disallow: /tarefas.php
+Disallow: /usuarios.php
+Disallow: /webhooks.php
+Disallow: /404.php
+
+# ── Crawlers de IA (GEO) — permitidos no conteúdo público ──
+# Objetivo: Yuris citável em ChatGPT, Claude, Perplexity e Gemini.
+# Grupo próprio SOBRESCREVE o "*", por isso o mesmo regime é repetido.
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: anthropic-ai
+User-agent: Claude-User
+User-agent: Claude-SearchBot
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+Disallow: /api/
+Disallow: /uploads/
+Disallow: /includes/
+Disallow: /configuracoes/
+Disallow: /agente.php
+Disallow: /chat.php
+Disallow: /chat_interno.php
+Disallow: /clientes.php
+Disallow: /configuracoes.php
+Disallow: /dashboard.php
+Disallow: /escritorios.php
+Disallow: /financas.php
+Disallow: /intimacoes.php
+Disallow: /juridico.php
+Disallow: /login.php
+Disallow: /logout.php
+Disallow: /master.php
+Disallow: /master_login.php
+Disallow: /master_logout.php
+Disallow: /master_mfa_setup.php
+Disallow: /planejamento.php
+Disallow: /processos.php
+Disallow: /prospeccao.php
+Disallow: /tarefas.php
+Disallow: /usuarios.php
+Disallow: /webhooks.php
+Disallow: /404.php
+
+# ── Google-Extended (uso por IA da Google; não afeta a Busca) ──
+# Decisão: permitir conteúdo público (estratégia GEO).
+User-agent: Google-Extended
+Disallow: /api/
+Disallow: /uploads/
+
+Sitemap: https://yuris.com.br/sitemap.xml

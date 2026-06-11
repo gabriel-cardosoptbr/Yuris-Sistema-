@@ -3,8 +3,54 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Planos — Yuris CRM Jurídico</title>
+  <title>Planos e Preços — Yuris Sistema Jurídico</title>
+  <meta name="description" content="Planos do Yuris com tudo incluído: CRM, processos, intimações, financeiro e WhatsApp. A partir de R$ 220/mês, conforme o número de usuários.">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="https://yuris.com.br/planos.php">
+  <meta name="theme-color" content="#070F1C">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Yuris">
+  <meta property="og:locale" content="pt_BR">
+  <meta property="og:url" content="https://yuris.com.br/planos.php">
+  <meta property="og:title" content="Planos e Preços — Yuris Sistema Jurídico">
+  <meta property="og:description" content="Planos com tudo incluído, a partir de R$ 220/mês. CRM, processos, intimações, financeiro e WhatsApp em um só sistema.">
+  <meta property="og:image" content="https://yuris.com.br/assets/img/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Planos e Preços — Yuris Sistema Jurídico">
+  <meta name="twitter:description" content="Planos com tudo incluído, a partir de R$ 220/mês.">
+  <meta name="twitter:image" content="https://yuris.com.br/assets/img/og-image.jpg">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Início", "item": "https://yuris.com.br/" },
+          { "@type": "ListItem", "position": 2, "name": "Planos", "item": "https://yuris.com.br/planos.php" }
+        ]
+      },
+      {
+        "@type": "Product",
+        "name": "Yuris — Sistema Jurídico Inteligente",
+        "description": "Sistema jurídico para advogados e escritórios: processos, prazos, intimações, CRM, financeiro, tarefas e WhatsApp em uma única plataforma.",
+        "image": "https://yuris.com.br/assets/img/og-image.jpg",
+        "brand": { "@type": "Brand", "name": "Yuris" },
+        "url": "https://yuris.com.br/planos.php",
+        "offers": [
+          { "@type": "Offer", "name": "Plano Solo (1 a 2 usuários)", "price": "220.00", "priceCurrency": "BRL", "url": "https://yuris.com.br/planos.php", "availability": "https://schema.org/InStock" },
+          { "@type": "Offer", "name": "Plano Equipe (até 5 usuários)", "price": "220.00", "priceCurrency": "BRL", "url": "https://yuris.com.br/planos.php", "availability": "https://schema.org/InStock" },
+          { "@type": "Offer", "name": "Plano Escritório (até 10 usuários)", "price": "370.00", "priceCurrency": "BRL", "url": "https://yuris.com.br/planos.php", "availability": "https://schema.org/InStock" },
+          { "@type": "Offer", "name": "Plano Studio (até 20 usuários)", "price": "670.00", "priceCurrency": "BRL", "url": "https://yuris.com.br/planos.php", "availability": "https://schema.org/InStock" }
+        ]
+      }
+    ]
+  }
+  </script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -423,7 +469,7 @@
 <!-- ── Header ── -->
 <div class="header">
   <div class="header-logo">
-    <img src="/sistema_vendas/Imagens/Logo.png" alt="Yuris">
+    <img src="/assets/img/logo-144.webp" alt="Yuris" width="52" height="52">
   </div>
   <div class="badge-launch">Preço de Lançamento</div>
   <h1>Simples, transparente,<br><span>sem surpresas.</span></h1>
@@ -453,7 +499,7 @@
       <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Chat WhatsApp integrado</li>
       <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Agente IA no WhatsApp</li>
     </ul>
-    <a href="https://wa.me/55?text=Quero+o+plano+Solo+do+Yuris" class="plan-btn plan-btn-outline">Começar agora</a>
+    <a href="https://wa.me/5511991170602?text=Ol%C3%A1%20Bruno%2C%20quero%20o%20plano%20Solo%20do%20Yuris!" target="_blank" rel="noopener" class="plan-btn plan-btn-outline">Começar agora</a>
   </div>
 
   <!-- Equipe — DESTAQUE -->
@@ -477,7 +523,7 @@
       <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Chat WhatsApp integrado</li>
       <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Agente IA no WhatsApp</li>
     </ul>
-    <a href="https://wa.me/55?text=Quero+o+plano+Equipe+do+Yuris" class="plan-btn plan-btn-primary">Começar agora</a>
+    <a href="https://wa.me/5511991170602?text=Ol%C3%A1%20Bruno%2C%20quero%20o%20plano%20Equipe%20do%20Yuris!" target="_blank" rel="noopener" class="plan-btn plan-btn-primary">Começar agora</a>
   </div>
 
   <!-- Escritório -->
@@ -500,7 +546,7 @@
       <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Chat WhatsApp integrado</li>
       <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Agente IA no WhatsApp</li>
     </ul>
-    <a href="https://wa.me/55?text=Quero+o+plano+Escritório+do+Yuris" class="plan-btn plan-btn-outline">Começar agora</a>
+    <a href="https://wa.me/5511991170602?text=Ol%C3%A1%20Bruno%2C%20quero%20o%20plano%20Escrit%C3%B3rio%20do%20Yuris!" target="_blank" rel="noopener" class="plan-btn plan-btn-outline">Começar agora</a>
   </div>
 
   <!-- Studio -->
@@ -523,7 +569,7 @@
       <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Chat WhatsApp integrado</li>
       <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Agente IA no WhatsApp</li>
     </ul>
-    <a href="https://wa.me/55?text=Quero+o+plano+Studio+do+Yuris" class="plan-btn plan-btn-outline">Começar agora</a>
+    <a href="https://wa.me/5511991170602?text=Ol%C3%A1%20Bruno%2C%20quero%20o%20plano%20Studio%20do%20Yuris!" target="_blank" rel="noopener" class="plan-btn plan-btn-outline">Começar agora</a>
   </div>
 
 </div>
@@ -614,7 +660,7 @@
       </div>
       <div>
         <div class="feature-title">Chat WhatsApp + IA</div>
-        <div class="feature-desc">Atendimento integrado com agente IA que responde por você no WhatsApp.</div>
+        <div class="feature-desc">Atendimento integrado e agente de IA configurável no WhatsApp (com a chave de API do seu provedor).</div>
       </div>
     </div>
 
@@ -625,7 +671,7 @@
 <div class="cta-section">
   <h2>Pronto para começar?</h2>
   <p>Fale com a gente pelo WhatsApp e tenha o Yuris funcionando no seu escritório hoje mesmo.</p>
-  <a href="https://wa.me/55?text=Quero+conhecer+o+Yuris+CRM+Jurídico" class="cta-btn">Falar com a equipe</a>
+  <a href="https://wa.me/5511991170602?text=Ol%C3%A1%20Bruno%2C%20quero%20conhecer%20o%20Yuris!" target="_blank" rel="noopener" class="cta-btn">Falar com a equipe</a>
 </div>
 
 <!-- ── Footer ── -->

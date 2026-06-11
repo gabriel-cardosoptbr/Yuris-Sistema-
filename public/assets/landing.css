@@ -32,14 +32,24 @@ body.lp {
   font-size: 16px;
   line-height: 1.6;
   background-color: var(--lp-bg-0);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Gradientes do fundo num pseudo-elemento fixo (em vez de
+   background-attachment: fixed no body, que força repaint a cada
+   scroll em mobile). Visual idêntico, rolagem mais leve. */
+body.lp::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background-image:
     radial-gradient(ellipse 120% 80% at 15% 10%, rgba(20,50,90,0.30) 0%, transparent 55%),
     radial-gradient(ellipse 80% 60% at 85% 30%, rgba(30,80,130,0.20) 0%, transparent 50%),
     radial-gradient(ellipse 100% 70% at 50% 90%, rgba(15,40,80,0.25) 0%, transparent 55%);
-  background-attachment: fixed;
-  overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 body.lp *, body.lp *::before, body.lp *::after { box-sizing: border-box; }
@@ -536,7 +546,8 @@ body.lp .lp-vit-item {
   font-family: inherit;
   color: var(--lp-text);
 }
-body.lp .lp-vit-item h4 {
+body.lp .lp-vit-item h4,
+body.lp .lp-vit-item .lp-vit-title {
   margin: 0 0 4px;
   font-size: 1rem;
   font-weight: 600;
@@ -546,7 +557,8 @@ body.lp .lp-vit-item h4 {
   color: var(--lp-text-dim);
   transition: color .2s ease;
 }
-body.lp .lp-vit-item h4 svg { width: 16px; height: 16px; color: var(--lp-text-mute); }
+body.lp .lp-vit-item h4 svg,
+body.lp .lp-vit-item .lp-vit-title svg { width: 16px; height: 16px; color: var(--lp-text-mute); }
 body.lp .lp-vit-item p { margin: 0; font-size: .88rem; color: var(--lp-text-mute); }
 body.lp .lp-vit-item:hover { border-color: var(--lp-border-md); }
 body.lp .lp-vit-item.active {
@@ -554,8 +566,10 @@ body.lp .lp-vit-item.active {
   border-color: rgba(126,184,246,0.42);
   box-shadow: 0 0 0 1px rgba(126,184,246,0.12), 0 8px 24px rgba(46,85,135,0.20);
 }
-body.lp .lp-vit-item.active h4 { color: #F1F5FA; }
-body.lp .lp-vit-item.active h4 svg { color: var(--lp-blue-glow); }
+body.lp .lp-vit-item.active h4,
+body.lp .lp-vit-item.active .lp-vit-title { color: #F1F5FA; }
+body.lp .lp-vit-item.active h4 svg,
+body.lp .lp-vit-item.active .lp-vit-title svg { color: var(--lp-blue-glow); }
 body.lp .lp-vit-item.active p { color: var(--lp-text-dim); }
 body.lp .lp-vitrine-mockup {
   background: linear-gradient(165deg, #0D1E35, #081526);
@@ -880,6 +894,7 @@ body.lp .lp-integ-logo {
   color: var(--lp-blue-glow);
 }
 body.lp .lp-integ-logo svg { width: 22px; height: 22px; }
+body.lp .lp-integ h3,
 body.lp .lp-integ h4 { font-size: .95rem; margin: 0 0 4px; font-weight: 600; color: var(--lp-text); }
 body.lp .lp-integ p  { font-size: .8rem; margin: 0; color: var(--lp-text-mute); }
 
@@ -965,8 +980,9 @@ body.lp .lp-footer {
 }
 body.lp .lp-footer-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap: 40px;
+  /* 5 colunas desde 2026-06-11: brand + Soluções + Produto + Empresa + Legal */
+  grid-template-columns: 1.6fr 1.1fr 1fr 1fr 1fr;
+  gap: 32px;
   margin-bottom: 40px;
 }
 body.lp .lp-footer-brand img { height: 52px; margin-bottom: 14px; }
@@ -996,13 +1012,14 @@ body.lp .lp-footer-bottom {
 }
 
 /* ── Scroll-reveal ── */
-body.lp .lp-reveal {
+/* O estado oculto só existe quando o JS marcou <html class="js"> —
+   sem JS (ou se o landing.js falhar), todo o conteúdo fica visível. */
+html.js body.lp .lp-reveal {
   opacity: 0;
   transform: translateY(24px);
   transition: opacity .8s ease, transform .8s cubic-bezier(.2,.9,.2,1);
-  will-change: opacity, transform;
 }
-body.lp .lp-reveal.is-visible {
+html.js body.lp .lp-reveal.is-visible {
   opacity: 1;
   transform: translateY(0);
 }

@@ -32,6 +32,12 @@ $corpo     = $LEGAL_PAGE['corpo_html'] ?? '<p>Conteúdo em revisão.</p>';
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title><?= $titulo ?> — Yuris</title>
+<?php if ($descricao !== ''): ?>
+  <meta name="description" content="<?= $descricao ?>">
+<?php endif; ?>
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="https://yuris.com.br/<?= htmlspecialchars(basename($_SERVER['SCRIPT_NAME'] ?? 'index.php')) ?>">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
   <!-- Boot do tema ANTES de qualquer render — evita flash de tema errado. -->
