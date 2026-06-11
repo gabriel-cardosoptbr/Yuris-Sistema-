@@ -6,12 +6,12 @@
   <title>Planos e Preços — Yuris Sistema Jurídico</title>
   <meta name="description" content="Planos do Yuris com tudo incluído: CRM, processos, intimações, financeiro e WhatsApp. A partir de R$ 220/mês, conforme o número de usuários.">
   <meta name="robots" content="index,follow">
-  <link rel="canonical" href="https://yuris.com.br/planos.php">
+  <link rel="canonical" href="https://yuris.com.br/planos">
   <meta name="theme-color" content="#070F1C">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Yuris">
   <meta property="og:locale" content="pt_BR">
-  <meta property="og:url" content="https://yuris.com.br/planos.php">
+  <meta property="og:url" content="https://yuris.com.br/planos">
   <meta property="og:title" content="Planos e Preços — Yuris Sistema Jurídico">
   <meta property="og:description" content="Planos com tudo incluído, a partir de R$ 220/mês. CRM, processos, intimações, financeiro e WhatsApp em um só sistema.">
   <meta property="og:image" content="https://yuris.com.br/assets/img/og-image.jpg">
@@ -31,7 +31,7 @@
         "@type": "BreadcrumbList",
         "itemListElement": [
           { "@type": "ListItem", "position": 1, "name": "Início", "item": "https://yuris.com.br/" },
-          { "@type": "ListItem", "position": 2, "name": "Planos", "item": "https://yuris.com.br/planos.php" }
+          { "@type": "ListItem", "position": 2, "name": "Planos", "item": "https://yuris.com.br/planos" }
         ]
       },
       {
@@ -40,12 +40,12 @@
         "description": "Sistema jurídico para advogados e escritórios: processos, prazos, intimações, CRM, financeiro, tarefas e WhatsApp em uma única plataforma.",
         "image": "https://yuris.com.br/assets/img/og-image.jpg",
         "brand": { "@type": "Brand", "name": "Yuris" },
-        "url": "https://yuris.com.br/planos.php",
+        "url": "https://yuris.com.br/planos",
         "offers": [
-          { "@type": "Offer", "name": "Plano Solo (1 a 2 usuários)", "price": "220.00", "priceCurrency": "BRL", "url": "https://yuris.com.br/planos.php", "availability": "https://schema.org/InStock" },
-          { "@type": "Offer", "name": "Plano Equipe (até 5 usuários)", "price": "220.00", "priceCurrency": "BRL", "url": "https://yuris.com.br/planos.php", "availability": "https://schema.org/InStock" },
-          { "@type": "Offer", "name": "Plano Escritório (até 10 usuários)", "price": "370.00", "priceCurrency": "BRL", "url": "https://yuris.com.br/planos.php", "availability": "https://schema.org/InStock" },
-          { "@type": "Offer", "name": "Plano Studio (até 20 usuários)", "price": "670.00", "priceCurrency": "BRL", "url": "https://yuris.com.br/planos.php", "availability": "https://schema.org/InStock" }
+          { "@type": "Offer", "name": "Plano Solo (1 a 2 usuários)", "price": "220.00", "priceCurrency": "BRL", "url": "https://yuris.com.br/planos", "availability": "https://schema.org/InStock" },
+          { "@type": "Offer", "name": "Plano Equipe (até 5 usuários)", "price": "220.00", "priceCurrency": "BRL", "url": "https://yuris.com.br/planos", "availability": "https://schema.org/InStock" },
+          { "@type": "Offer", "name": "Plano Escritório (até 10 usuários)", "price": "370.00", "priceCurrency": "BRL", "url": "https://yuris.com.br/planos", "availability": "https://schema.org/InStock" },
+          { "@type": "Offer", "name": "Plano Studio (até 20 usuários)", "price": "670.00", "priceCurrency": "BRL", "url": "https://yuris.com.br/planos", "availability": "https://schema.org/InStock" }
         ]
       }
     ]

@@ -49,7 +49,7 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://yuris.com.br/planos.php</loc>
+    <loc>https://yuris.com.br/planos</loc>
     <lastmod>2026-06-11</lastmod>
     <priority>0.9</priority>
   </url>
@@ -64,27 +64,27 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://yuris.com.br/privacidade.php</loc>
+    <loc>https://yuris.com.br/privacidade</loc>
     <lastmod>2026-06-11</lastmod>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://yuris.com.br/termos.php</loc>
+    <loc>https://yuris.com.br/termos</loc>
     <lastmod>2026-06-11</lastmod>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://yuris.com.br/cookies.php</loc>
+    <loc>https://yuris.com.br/cookies</loc>
     <lastmod>2026-06-11</lastmod>
     <priority>0.2</priority>
   </url>
   <url>
-    <loc>https://yuris.com.br/lgpd.php</loc>
+    <loc>https://yuris.com.br/lgpd</loc>
     <lastmod>2026-06-11</lastmod>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://yuris.com.br/dpo.php</loc>
+    <loc>https://yuris.com.br/dpo</loc>
     <lastmod>2026-06-11</lastmod>
     <priority>0.2</priority>
   </url>

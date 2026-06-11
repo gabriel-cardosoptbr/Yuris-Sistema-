@@ -129,7 +129,7 @@ $cssVerSp = @filemtime(__DIR__ . '/assets/seo-pages.css') ?: 1;
           "lowPrice": "220",
           "highPrice": "670",
           "offerCount": 4,
-          "url": "https://yuris.com.br/planos.php"
+          "url": "https://yuris.com.br/planos"
         },
         "provider": { "@id": "https://yuris.com.br/#org" }
       }

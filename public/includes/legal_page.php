@@ -36,7 +36,8 @@ $corpo     = $LEGAL_PAGE['corpo_html'] ?? '<p>Conteúdo em revisão.</p>';
   <meta name="description" content="<?= $descricao ?>">
 <?php endif; ?>
   <meta name="robots" content="index,follow">
-  <link rel="canonical" href="https://yuris.com.br/<?= htmlspecialchars(basename($_SERVER['SCRIPT_NAME'] ?? 'index.php')) ?>">
+  <!-- Canonical na forma limpa (sem .php) — em produção o nginx serve /privacidade etc. -->
+  <link rel="canonical" href="https://yuris.com.br/<?= htmlspecialchars(basename($_SERVER['SCRIPT_NAME'] ?? '', '.php')) ?>">
   <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
