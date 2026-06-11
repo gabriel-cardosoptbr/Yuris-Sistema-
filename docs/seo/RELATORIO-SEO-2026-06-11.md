@@ -1,7 +1,15 @@
 # Relatório — Implementação SEO/GEO/AEO do site Yuris
 
-**Data:** 2026-06-11 · **Escopo:** site público (`public/`) · **Status:** implementado LOCALMENTE, aguardando deploy
+**Data:** 2026-06-11 · **Escopo:** site público (`public/`) · **Status:** ✅ **DEPLOYADO em produção em 2026-06-11** (commits `2b12712`, `ff46636`, `d9a8759`)
 **Backup:** `.backup_seo_20260611/` (todos os arquivos alterados, estado anterior)
+
+> **Deploy realizado (2026-06-11):** `git pull --ff-only` no servidor (zero downtime) + bloco novo
+> no nginx do host (`/etc/nginx/sites-available/yuris-com-br`, backup `.bak-20260611`) liberando as
+> páginas-pasta — o vhost tem camada de URLs limpas (REGRA 1/2) que reescrevia `/slug/` → 403.
+> Smoke em prod: todas as 11 páginas 200, raiz 200 (antes era 302!), `/uploads/` e `/api/` 403,
+> 404 ok, app 302→login, Evolution/n8n intocados. Canonicals na forma limpa (`/planos`, `/privacidade`…).
+> PENDENTE do Dockerfile: o conf `zz-yuris.conf` (ErrorDocument 404 brandada, ServerTokens, cache)
+> só entra no próximo rebuild do container — ver §4.
 
 ---
 
