@@ -987,3 +987,18 @@ body.lp2 .cmp-scn { max-width: 100%; height: auto; }
   body.lp2 .cmp-zt-before, body.lp2 .cmp-zt-after { font-size: .9rem; }
   body.lp2 .cmp-scene-title { font-size: 1.25rem; }
 }
+
+/* ════════════ HEADER: hambúrguer em telas médias (evita nav espremida 769–1200px) ════════════
+   A nav completa (7 itens + 2 CTAs + logo) só cabe confortável a partir de ~1200px.
+   Abaixo disso ela encolhia e quebrava no meio das palavras (YURI/S, Iníci/o...).
+   Defesas globais: logo/links nunca quebram palavra; gap da nav fluido. */
+body.lp2 .lp2-logo { flex-shrink: 0; }
+body.lp2 .lp2-logo-text { white-space: nowrap; }
+body.lp2 .lp2-nav a { white-space: nowrap; }
+body.lp2 .lp2-nav { gap: clamp(16px, 1.6vw, 28px); flex-wrap: nowrap; }
+
+@media (max-width: 1200px) {
+  body.lp2 .lp2-nav,
+  body.lp2 .lp2-header-cta .lp2-btn { display: none; }   /* nav completa some — vai pro drawer */
+  body.lp2 .lp2-menu-toggle { display: inline-flex; }    /* mostra o hambúrguer */
+}
