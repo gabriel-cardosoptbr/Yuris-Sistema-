@@ -12,12 +12,28 @@ session_start(['read_and_close' => true]);
 $_uid  = $_SESSION['user_id']    ?? null;
 $_csrf = $_SESSION['csrf_token'] ?? '';
 header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store'); // resposta carrega estado de conexão do tenant
 if (!$_uid) { http_response_code(401); echo json_encode(['error' => 'Unauthorized']); exit; }
 
 $ctx        = AccountContext::fromSession();
 $accountId  = $ctx->getAccountId();
 // Instâncias de WhatsApp = CONFIGURAÇÃO da conta — cada tenant tem suas próprias conexões.
 $tenantIds  = [$accountId];
+
+// ─── Segurança (hotfix): gestão de canal é só owner/admin ─────────────────────
+// Antes desta correção, QUALQUER usuário logado podia ler a config crua: o GET
+// default devolvia 'settings' com evolution_api_key EM CLARO, e era possível
+// disparar create/connect/restart/logout/set_webhook. Agora: a leitura de STATUS
+// continua liberada (banner de conexão, sem segredos), mas QR, listagem, GET
+// default e todas as mutações exigem owner/admin. A chave nunca é devolvida e
+// nenhuma resposta carrega o 'raw' técnico da Evolution. (espelha config.php)
+$canManage  = $ctx->isOwnerOrAdmin();
+$denyManage = static function () {
+    http_response_code(403);
+    echo json_encode(['error' => 'Apenas owner/admin pode gerenciar a conexão WhatsApp']);
+    exit;
+};
+// ──────────────────────────────────────────────────────────────────────────────
 
 $model  = new WhatsAppInstance();
 $cfg    = $model->getSettings($accountId);
@@ -77,8 +93,8 @@ if ($method === 'GET') {
 
         $model->updateStatus($row['id'], $status, $extra);
 
-        // Remove qr_code_base64 da resposta de status (é grande e desnecessário)
-        unset($row['qr_code_base64']);
+        // Remove campos grandes/sensíveis da resposta de status.
+        unset($row['qr_code_base64'], $row['evolution_token'], $row['webhook_url']);
         echo json_encode([
             'ok'       => true,
             'status'   => $status,
@@ -86,6 +102,9 @@ if ($method === 'GET') {
         ]);
         exit;
     }
+
+    // Daqui pra baixo (qr / list / GET default) é gestão/leitura de config: exige owner/admin.
+    if (!$canManage) { $denyManage(); }
 
     if ($action === 'qr') {
         $name = $cfg['evolution_instance'] ?? 'yuris-crm';
@@ -101,7 +120,7 @@ if ($method === 'GET') {
             $model->updateQrCode($row['id'], $qr);
         }
 
-        echo json_encode(['ok' => true, 'qr' => $qr, 'raw' => $res]);
+        echo json_encode(['ok' => true, 'qr' => $qr]);
         exit;
     }
 
@@ -110,10 +129,11 @@ if ($method === 'GET') {
         exit;
     }
 
-    // Default: retorna instância padrão com estado atual
+    // Default: retorna instância padrão com estado atual (NUNCA credenciais).
     $name = $cfg['evolution_instance'] ?? 'yuris-crm';
     $row  = $model->findOrCreate($name, '', $accountId);
-    echo json_encode(['ok' => true, 'instance' => $row, 'settings' => $cfg]);
+    unset($row['evolution_token'], $row['webhook_url'], $row['qr_code_base64']);
+    echo json_encode(['ok' => true, 'instance' => $row]);
     exit;
 }
 
@@ -158,7 +178,7 @@ if ($method === 'POST') {
         if ($qr && !str_starts_with($qr, 'data:')) $qr = 'data:image/png;base64,' . $qr;
         if ($qr) $model->updateQrCode($row['id'], $qr);
 
-        echo json_encode(['ok' => true, 'qr' => $qr, 'raw' => $res]);
+        echo json_encode(['ok' => true, 'qr' => $qr]);
         exit;
     }
 
@@ -168,7 +188,7 @@ if ($method === 'POST') {
         // Verifica se voltou com QR (sessão expirou)
         $qr = $res['base64'] ?? ($res['qrcode']['base64'] ?? '');
         if ($qr && !str_starts_with($qr, 'data:')) $qr = 'data:image/png;base64,' . $qr;
-        echo json_encode(['ok' => true, 'qr' => $qr ?: null, 'raw' => $res]);
+        echo json_encode(['ok' => true, 'qr' => $qr ?: null]);
         exit;
     }
 
@@ -202,7 +222,7 @@ if ($method === 'POST') {
 
         $res = $evo->setWebhook($name, $urlFinal);
         $model->saveSetting($accountId, 'webhook_url', $url);
-        echo json_encode(['ok' => true, 'raw' => $res]);
+        echo json_encode(['ok' => true]);
         exit;
     }
 
