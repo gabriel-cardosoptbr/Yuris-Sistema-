@@ -675,11 +675,47 @@
   body.lp2 .lp2-tag-pill:hover { border-color:var(--lp2-gold); color:var(--lp2-metal-hi); transform:translateY(-3px); }
 
   /* Integrações */
-  body.lp2 .lp2-integra { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; }
-  body.lp2 .lp2-integra-card { text-align:center; padding:26px 18px; border:1px solid var(--lp2-border); border-radius:var(--lp2-radius); background:var(--lp2-card); transition:.25s var(--lp2-ease); }
-  body.lp2 .lp2-integra-card:hover { transform:translateY(-3px); border-color:var(--lp2-border-strong); box-shadow:var(--lp2-shadow); }
-  body.lp2 .lp2-integra-name { font-family:var(--lp2-font-display); font-size:1.02rem; letter-spacing:.04em; color:var(--lp2-metal-hi); margin-bottom:5px; }
-  body.lp2 .lp2-integra-card p { font-size:.8rem; margin:0; color:var(--lp2-text-mute); }
+  /* ── Integrações: grade premium 4 + 3 (2ª linha centralizada por flex) ── */
+  body.lp2 .lp2-integra { display:flex; flex-wrap:wrap; justify-content:center; gap:18px; margin:0; padding:0; list-style:none; }
+  body.lp2 .lp2-integra-card {
+    position:relative; box-sizing:border-box; flex:0 0 calc((100% - 3 * 18px) / 4);
+    display:flex; flex-direction:column; align-items:flex-start; min-height:172px;
+    padding:22px 20px 20px; border:1px solid var(--lp2-border); border-radius:var(--lp2-radius);
+    background:linear-gradient(180deg, rgba(18,38,64,.5), rgba(10,22,40,.32)); overflow:hidden;
+    transition-property:opacity, transform, border-color, box-shadow, background;
+    transition-duration:.45s, .3s, .3s, .3s, .3s; transition-timing-function:var(--lp2-ease);
+  }
+  body.lp2 .lp2-integra-card::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.5;
+    background:radial-gradient(120% 80% at 18% 0, rgba(91,188,224,.06), transparent 60%); }
+  body.lp2 .lp2-integra-ic { position:relative; display:grid; place-items:center; width:46px; height:46px; margin-bottom:15px;
+    border:1px solid var(--lp2-border-strong); border-radius:13px; transition:border-color .3s var(--lp2-ease);
+    background:radial-gradient(circle at 50% 38%, rgba(91,188,224,.14), rgba(13,30,53,.25)); }
+  body.lp2 .lp2-integra-ic::after { content:""; position:absolute; inset:-8px; border-radius:18px; pointer-events:none;
+    background:radial-gradient(circle, rgba(91,188,224,.16), transparent 68%); opacity:.5; transition:opacity .3s var(--lp2-ease); }
+  body.lp2 .lp2-integra .ii { width:25px; height:25px; display:block; position:relative; z-index:1; transition:transform .35s var(--lp2-ease); }
+  body.lp2 .lp2-integra .ii-base, body.lp2 .lp2-integra .ii-flow { stroke:var(--lp2-cyan); stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; fill:none; }
+  body.lp2 .lp2-integra .ii-acc { stroke:var(--lp2-gold); stroke-width:1.6; stroke-linecap:round; fill:none; }
+  body.lp2 .lp2-integra .ii-dot { fill:var(--lp2-gold); }
+  body.lp2 .lp2-integra-name { font-family:var(--lp2-font-display); font-size:1.04rem; line-height:1.2; letter-spacing:.02em; color:var(--lp2-metal-hi); margin-bottom:6px; transition:color .3s var(--lp2-ease); }
+  body.lp2 .lp2-integra-card p { font-size:.84rem; line-height:1.45; margin:0; color:var(--lp2-text-dim); max-width:23ch; }
+  body.lp2 .lp2-integra-conn { position:absolute; top:16px; right:16px; width:6px; height:6px; border-radius:50%; background:var(--lp2-cyan);
+    box-shadow:0 0 0 3px rgba(91,188,224,.12); opacity:.65; transition:opacity .3s var(--lp2-ease), box-shadow .3s var(--lp2-ease); }
+  body.lp2 .lp2-integra-flow { display:block; width:26px; height:2px; margin-top:auto; border-radius:2px; transform-origin:left center;
+    background:linear-gradient(90deg, var(--lp2-cyan), transparent); opacity:.45; transition:transform .4s var(--lp2-ease), opacity .3s var(--lp2-ease); }
+  /* hover */
+  body.lp2 .lp2-integra-card:hover { transform:translateY(-4px); border-color:rgba(91,188,224,.42); box-shadow:0 18px 44px rgba(0,0,0,.34); background:linear-gradient(180deg, rgba(22,46,76,.62), rgba(10,22,40,.4)); }
+  body.lp2 .lp2-integra-card:hover .lp2-integra-name { color:var(--lp2-text); }
+  body.lp2 .lp2-integra-card:hover .lp2-integra-flow { transform:scaleX(2); opacity:.95; }
+  body.lp2 .lp2-integra-card:hover .lp2-integra-ic { border-color:rgba(91,188,224,.5); }
+  body.lp2 .lp2-integra-card:hover .lp2-integra-ic::after { opacity:1; }
+  body.lp2 .lp2-integra-card:hover .lp2-integra-conn { opacity:1; box-shadow:0 0 0 4px rgba(91,188,224,.16); }
+  body.lp2 .lp2-integra-card:hover .ii { transform:scale(1.07); }
+  body.lp2 .lp2-integra-card:hover .ii-flow { stroke-dasharray:58; animation:lp2-ii-draw .6s var(--lp2-ease) forwards; }
+  @keyframes lp2-ii-draw { from { stroke-dashoffset:58; } to { stroke-dashoffset:0; } }
+  /* entrada em stagger: o container .lp2-reveal só serve de gatilho; os cards aparecem em cascata */
+  body.lp2 .lp2-integra.lp2-reveal.lp2-hidden { opacity:1; transform:none; }
+  body.lp2 .lp2-integra.lp2-hidden .lp2-integra-card { opacity:0; }
+  body.lp2 .lp2-integra.is-visible .lp2-integra-card { opacity:1; transition-delay:calc(var(--i, 0) * .06s), 0s, 0s, 0s, 0s; }
 
   /* FAQ */
   body.lp2 .lp2-faq { max-width:820px; margin:0 auto; display:grid; gap:14px; }
@@ -696,7 +732,6 @@
   body.lp2 .lp2-final p { font-size:1.08rem; margin-bottom:30px; }
   body.lp2 .lp2-final-ctas { display:flex; flex-wrap:wrap; gap:14px; justify-content:center; }
 
-  @media (max-width:980px) { body.lp2 .lp2-integra { grid-template-columns:repeat(2,1fr); } }
   @media (max-width:680px) { body.lp2 .lp2-compare { grid-template-columns:1fr; } }
 }
 
@@ -900,8 +935,7 @@ body.lp2 .cmp-scn { max-width: 100%; height: auto; }
   /* ---------- TODOS os grids -> 1 coluna ---------- */
   body.lp2 .lp2-grid-2,
   body.lp2 .lp2-grid-3,
-  body.lp2 .lp2-grid-4,
-  body.lp2 .lp2-integra { grid-template-columns: 1fr; }
+  body.lp2 .lp2-grid-4 { grid-template-columns: 1fr; }
   body.lp2 .lp2-card { padding: 22px; }
 
   /* ---------- SEÇÕES / EYEBROW centralizado ---------- */
@@ -1001,4 +1035,20 @@ body.lp2 .lp2-nav { gap: clamp(16px, 1.6vw, 28px); flex-wrap: nowrap; }
   body.lp2 .lp2-nav,
   body.lp2 .lp2-header-cta .lp2-btn { display: none; }   /* nav completa some — vai pro drawer */
   body.lp2 .lp2-menu-toggle { display: inline-flex; }    /* mostra o hambúrguer */
+}
+
+/* ════════════ INTEGRAÇÕES: responsivo (unlayered → vence @layer) ════════════ */
+@media (max-width: 900px) {
+  body.lp2 .lp2-integra-card { flex-basis: calc(50% - 9px); }   /* tablet: 2 colunas; o 7º card centraliza sozinho via justify-content */
+}
+@media (max-width: 520px) {
+  body.lp2 .lp2-integra { gap: 14px; }
+  body.lp2 .lp2-integra-card { flex-basis: 100%; min-height: 0; max-width: 420px; }   /* mobile: 1 coluna centralizada */
+}
+@media (prefers-reduced-motion: reduce) {
+  body.lp2 .lp2-integra-card,
+  body.lp2 .lp2-integra.is-visible .lp2-integra-card { opacity: 1 !important; transform: none !important; transition: none !important; transition-delay: 0s !important; }
+  body.lp2 .lp2-integra-card:hover .ii-flow { animation: none !important; }
+  body.lp2 .lp2-integra-card:hover .ii { transform: none !important; }
+  body.lp2 .lp2-integra-card:hover .lp2-integra-flow { transform: none !important; transition: none !important; }
 }
