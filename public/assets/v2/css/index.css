@@ -780,3 +780,210 @@
   }
   html.lp2-still body.lp2 .lp2-reveal { opacity:1 !important; transform:none !important; }
 }
+
+/* =============================================================================
+   YURIS v2 — CORREÇÃO RESPONSIVA MOBILE (consolidada)
+   COLAR NO FIM de index.css, FORA de qualquer @layer.
+   Regras unlayered vencem TODAS as @layer (tokens..utilities) -> resolvem a
+   cascata invertida (overrides estavam em @layer layout, perdendo p/ components
+   /sections) SEM !important estrutural e SEM tocar a ordem da linha 7.
+   Tudo em @media max-width -> DESKTOP 100% intacto.
+   ========================================================================== */
+
+/* ───────────────────────── GLOBAL / OVERFLOW (sem breakpoint) ───────────── */
+/* Lenis torna o <html> o scroller: o clip precisa existir no html, não só no body. */
+html { overflow-x: clip; }                 /* fallback hidden p/ browsers sem clip logo abaixo */
+html.lenis, html.lenis-smooth { overflow-x: clip; }
+body.lp2 { overflow-x: clip; max-width: 100%; }
+@supports not (overflow: clip) {
+  html { overflow-x: hidden; }
+  body.lp2 { overflow-x: hidden; }
+}
+
+/* Quebra de palavras/números longos (nº de processo monospace etc.) */
+body.lp2 { overflow-wrap: anywhere; }
+body.lp2 .dm-num,
+body.lp2 .dm-row b,
+body.lp2 .dm-lnum,
+body.lp2 .dm-conv-b b { overflow-wrap: anywhere; word-break: break-word; }
+
+/* min-width:0 nos filhos de grid/flex (default é auto e impede o colapso) */
+body.lp2 .lp2-grid > *,
+body.lp2 .lp2-split > *,
+body.lp2 .lp2-vitrine > *,
+body.lp2 .lp2-screen > *,
+body.lp2 .cmp-texts > *,
+body.lp2 .lp2-footer-grid > *,
+body.lp2 .lp2-etimo > *,
+body.lp2 .lp2-pontas-grid > *,
+body.lp2 .lp2-ystage > *,
+body.lp2 .dm-cols > *,
+body.lp2 .dm-kan > *,
+body.lp2 .dm-seg > *,
+body.lp2 .dm-kpis > *,
+body.lp2 .dm-dash-kpis > * { min-width: 0; }
+
+/* Mídia/cenas SVG nunca estouram a coluna */
+body.lp2 img,
+body.lp2 svg,
+body.lp2 .lp2-mockup-card svg,
+body.lp2 .lp2-demo svg,
+body.lp2 .cmp-scn { max-width: 100%; height: auto; }
+
+/* ════════════════════════════ <= 768px (tablet/grande mobile) ═══════════ */
+@media (max-width: 768px) {
+
+  /* ---------- HEADER (esconde nav + CTAs, mostra hambúrguer) ---------- */
+  body.lp2 .lp2-nav,
+  body.lp2 .lp2-header-cta .lp2-btn { display: none; }   /* vence .lp2-btn{inline-flex} de @layer components */
+  body.lp2 .lp2-menu-toggle { display: inline-flex; }
+  body.lp2 .lp2-header,
+  body.lp2 .lp2-header-inner { max-width: 100%; }
+  body.lp2 .lp2-header-inner { height: 64px; gap: 12px; padding-inline: 16px; }
+
+  /* ---------- HERO (1 coluna, mockup no topo, chips off) ---------- */
+  body.lp2 .lp2-hero { padding: 120px 0 72px; }
+  body.lp2 .lp2-hero-grid { grid-template-columns: 1fr; gap: 44px; }
+  body.lp2 .lp2-hero-mockup { order: -1; }
+  body.lp2 .lp2-hero-chips { display: none; }
+  body.lp2 .lp2-hero-aura { right: -12%; width: min(420px, 80vw); }
+  body.lp2 .lp2-hero-sub { max-width: 100%; }
+  /* eyebrow simétrico no hero/split (base só tem ::before) */
+  body.lp2 .lp2-hero .lp2-eyebrow,
+  body.lp2 .lp2-split-text .lp2-eyebrow { flex-wrap: wrap; }
+  body.lp2 .lp2-hero .lp2-eyebrow::after,
+  body.lp2 .lp2-split-text .lp2-eyebrow::after {
+    content: ''; width: 34px; height: 1px;
+    background: linear-gradient(90deg, var(--lp2-gold), transparent);
+  }
+
+  /* ---------- SEÇÕES / TÍTULOS ---------- */
+  body.lp2 .lp2-section { padding: 64px 0; }
+  body.lp2 h1, body.lp2 h2, body.lp2 .lp2-section-head h2 { overflow-wrap: anywhere; hyphens: auto; }
+
+  /* ---------- GRIDS DE CARDS (recursos/dores/segurança/confiança) ---------- */
+  body.lp2 .lp2-grid-3,
+  body.lp2 .lp2-grid-4 { grid-template-columns: repeat(2, 1fr); }   /* vence base components :408-409 */
+
+  /* ---------- SPLIT / VITRINE / PRODUTO (1 coluna) ---------- */
+  body.lp2 .lp2-split,
+  body.lp2 .lp2-vitrine,
+  body.lp2 .lp2-screen { grid-template-columns: 1fr; gap: 32px; }
+  body.lp2 .lp2-split.reverse .lp2-split-text { order: 0; }
+  body.lp2 .lp2-vitrine-mockup { position: static; top: auto; }
+  body.lp2 .lp2-feature-pane p { max-width: 100%; }
+
+  /* ---------- ORIGEM / INTEGRAÇÕES (1 coluna) ---------- */
+  body.lp2 .lp2-etimo,
+  body.lp2 .lp2-pontas-grid { grid-template-columns: 1fr; }
+
+  /* ---------- ANTI-OVERFLOW DE CENAS (defesa) ---------- */
+  body.lp2 .lp2-demo,
+  body.lp2 .lp2-split-visual,
+  body.lp2 .lp2-screen-demo,
+  body.lp2 .cmp-stage,
+  body.lp2 .cmp-scn { max-width: 100%; overflow: hidden; }
+}
+
+/* ════════════════════════════ <= 480px (celular) ═══════════════════════ */
+@media (max-width: 480px) {
+
+  /* ---------- GUTTER lateral menor ---------- */
+  body.lp2 { --lp2-gutter: 16px; }
+  body.lp2 .lp2-container { overflow-x: clip; }
+
+  /* ---------- HEADER compacto ---------- */
+  body.lp2 .lp2-header-inner { height: 60px; padding-inline: 14px; }
+  body.lp2 .lp2-logo-text { font-size: 1.15rem; letter-spacing: .12em; }
+  body.lp2 .lp2-logo img { width: 34px; height: 34px; }
+
+  /* ---------- TODOS os grids -> 1 coluna ---------- */
+  body.lp2 .lp2-grid-2,
+  body.lp2 .lp2-grid-3,
+  body.lp2 .lp2-grid-4,
+  body.lp2 .lp2-integra { grid-template-columns: 1fr; }
+  body.lp2 .lp2-card { padding: 22px; }
+
+  /* ---------- SEÇÕES / EYEBROW centralizado ---------- */
+  body.lp2 .lp2-section { padding: 48px 0; }
+  body.lp2 .lp2-section-head { margin-bottom: 36px; }
+  body.lp2 .lp2-eyebrow { flex-wrap: wrap; justify-content: center; letter-spacing: .18em; font-size: .66rem; gap: 8px; }
+
+  /* ---------- PAINEL FINAL / FEATURE-PANE + CTAs full-width ---------- */
+  body.lp2 .lp2-feature-pane { padding: 24px 20px; }
+  body.lp2 .lp2-feature-icon { width: 50px; height: 50px; }
+  body.lp2 .lp2-final { padding: 40px 22px; }
+  body.lp2 .lp2-final-ctas .lp2-btn,
+  body.lp2 .lp2-hero-ctas .lp2-btn { width: 100%; }
+
+  /* ---------- FOOTER ---------- */
+  body.lp2 .lp2-footer { padding: 40px 0 28px; margin-top: 48px; }
+  body.lp2 .lp2-footer-bottom { flex-direction: column; gap: 12px; }
+
+  /* ---------- COMPARATIVO (blindagem celular) ---------- */
+  body.lp2 .cmp-mg, body.lp2 .cmp-track, body.lp2 .cmp-stage, body.lp2 .cmp-texts { max-width: 100%; }
+  body.lp2 .cmp-stage { overflow: hidden; }
+  body.lp2 .cmp-scn-h { display: none; }
+  body.lp2 .cmp-scn-v { display: block; width: 100%; height: auto; }
+  body.lp2 .cmp-texts { grid-template-columns: 1fr; gap: 10px; text-align: center; }
+  body.lp2 .cmp-zt-after { text-align: center; }
+
+  /* ---------- PILLS / TABS ---------- */
+  body.lp2 .lp2-tag-pill { padding: 10px 16px; font-size: .85rem; }
+  body.lp2 .lp2-tab { padding: 9px 13px; font-size: .82rem; }
+
+  /* ===== CENAS DEMO INTERNAS (demos.css @layer demos — vencidas por estar unlayered) ===== */
+  /* Funil OPERAÇÃO: 4 -> 2 colunas */
+  body.lp2 .dm-cols { grid-template-columns: repeat(2, 1fr); gap: 6px; row-gap: 7px; }
+  body.lp2 .dm-coltag { font-size: .56rem; letter-spacing: 0; white-space: nowrap; }
+  body.lp2 .dm-lead { width: calc((100% - 40px - 6px) / 2); }
+  /* Kanban TAREFAS: 1 coluna */
+  body.lp2 .dm-kan { grid-template-columns: 1fr; gap: 8px; }
+  body.lp2 .dm-kcol { min-height: auto; }
+  body.lp2 .dm-ktag { text-align: left; }
+  /* Listas PROCESSO/INTIMAÇÕES: esconde coluna do meio (cliente) */
+  body.lp2 .dm-lhead, body.lp2 .dm-lrow { grid-template-columns: 1fr auto; gap: 8px; font-size: .68rem; }
+  body.lp2 .dm-lhead > :nth-child(2),
+  body.lp2 .dm-lrow > :nth-child(2) { display: none; }
+  body.lp2 .dm-spill { font-size: .58rem; padding: 2px 7px; }
+  body.lp2 .dm-lnum { font-size: .68rem; word-break: break-all; }
+  /* Showcase / organograma: largura intrínseca não pode estourar */
+  body.lp2 .dm-user { min-width: 0; width: 100%; }
+  body.lp2 .dm-org { overflow: hidden; }
+  body.lp2 .dm-branch, body.lp2 .dm-fr-branch, body.lp2 .dm-fr-nodes,
+  body.lp2 .dm-flow, body.lp2 .dm-fr-funnel { flex-wrap: wrap; }
+  body.lp2 .dm-onode { white-space: normal; word-break: break-word; max-width: 100%; }
+}
+
+/* ════════════════════════════ <= 390px (iPhone) ════════════════════════ */
+@media (max-width: 390px) {
+
+  body.lp2 { --lp2-gutter: 14px; }
+
+  /* ---------- HEADER ---------- */
+  body.lp2 .lp2-header-inner { height: 56px; padding-inline: 12px; gap: 8px; }
+  body.lp2 .lp2-menu-toggle { width: 40px; height: 40px; padding: 8px; }
+
+  /* ---------- HERO fontes ---------- */
+  body.lp2 .lp2-hero-title { font-size: clamp(1.9rem, 8.5vw, 2.4rem); }
+  body.lp2 .lp2-hero-sub { font-size: 1rem; }
+
+  /* ---------- GESTÃO / DASHBOARD (KPIs empilham; segmented mantém 3-up p/ o thumb do JS) ---------- */
+  body.lp2 .dm-kpis,
+  body.lp2 .dm-dash-kpis { grid-template-columns: 1fr; gap: 8px; }
+  body.lp2 .dm-kpi { display: flex; align-items: baseline; justify-content: center; gap: 8px; padding: 10px 8px; }
+  body.lp2 .dm-kpi b { font-size: 1.15rem; }
+  body.lp2 .dm-kpi span { margin-top: 0; font-size: .58rem; }
+  body.lp2 .dm-seg-i { font-size: .56rem; padding: 6px 2px; }
+  body.lp2 .dm-stat b { font-size: 1.35rem; }
+  body.lp2 .dm-bars { gap: 6px; }
+  body.lp2 .dm-bar i { font-size: .5rem; }
+
+  /* ---------- JANELA DEMO mais compacta ---------- */
+  body.lp2 .lp2-demo { padding: 38px 12px 14px; min-height: 300px; font-size: .74rem; gap: 10px; }
+  body.lp2 .dm-card { padding: 11px 12px; }
+
+  /* ---------- COMPARATIVO fontes ---------- */
+  body.lp2 .cmp-zt-before, body.lp2 .cmp-zt-after { font-size: .9rem; }
+  body.lp2 .cmp-scene-title { font-size: 1.25rem; }
+}
