@@ -1,0 +1,145 @@
+/* =============================================================================
+   motion.css — Sistema de motion da landing YURIS v2.
+   Tokens, keyframes reutilizáveis, microinterações e reduced-motion.
+   Filosofia: "riqueza de detalhe, sutileza de movimento."
+   Carregado após index.css; escopo body.lp2.
+   ========================================================================== */
+@layer motion {
+  body.lp2 {
+    /* durações */
+    --mo-instant:100ms; --mo-fast:180ms; --mo-base:280ms;
+    --mo-medium:440ms; --mo-slow:680ms;
+    /* easings */
+    --ease-standard:cubic-bezier(.4,0,.2,1);
+    --ease-emph:cubic-bezier(.22,.8,.3,1);
+    --ease-exit:cubic-bezier(.4,0,1,1);
+    --ease-spring:cubic-bezier(.34,1.35,.64,1);
+  }
+
+  /* ─── Keyframes reutilizáveis (usados pelas ilustrações dos módulos) ─── */
+  @keyframes lp2-rise   { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
+  @keyframes lp2-draw   { to { stroke-dashoffset:0; } }
+  @keyframes lp2-pop    { 0%{opacity:0;transform:scale(.5)} 60%{opacity:1;transform:scale(1.12)} 100%{opacity:1;transform:scale(1)} }
+  @keyframes lp2-fadein { from{opacity:0} to{opacity:1} }
+  @keyframes lp2-slidein{ from{opacity:0;transform:translateX(-14px)} to{opacity:1;transform:none} }
+  @keyframes lp2-breathe{ 0%,100%{opacity:.35} 50%{opacity:1} }
+  @keyframes lp2-dash   { to { stroke-dashoffset:-220; } }
+  @keyframes lp2-shine  { to { left:130%; } }
+
+  /* ─── Microinteração: ícone dos cards reage no hover/seleção ─── */
+  body.lp2 .lp2-card { overflow:hidden; }
+  body.lp2 .lp2-card-icon {
+    transition:transform var(--mo-base) var(--ease-emph), color var(--mo-base),
+               border-color var(--mo-base), background var(--mo-base);
+  }
+  body.lp2 .lp2-card:hover .lp2-card-icon {
+    transform:translateY(-3px) scale(1.07) rotate(-3deg);
+    color:var(--lp2-cyan); border-color:var(--lp2-cyan);
+    background:rgba(91,188,224,.12);
+  }
+  /* halo dourado discreto que surge no topo do card no hover */
+  body.lp2 .lp2-card::after {
+    content:''; position:absolute; inset:0; pointer-events:none; opacity:0;
+    background:radial-gradient(160px 120px at 50% -10%, rgba(201,162,75,.12), transparent 65%);
+    transition:opacity var(--mo-base) var(--ease-standard);
+  }
+  body.lp2 .lp2-card:hover::after { opacity:1; }
+
+  /* ─── Vitrine: marcador dourado do item selecionado ─── */
+  body.lp2 .lp2-vit-item { position:relative; }
+  body.lp2 .lp2-vit-item::before {
+    content:''; position:absolute; left:0; top:14px; bottom:14px; width:3px; border-radius:3px;
+    background:linear-gradient(var(--lp2-gold),var(--lp2-cyan));
+    transform:scaleY(0); transform-origin:center;
+    transition:transform var(--mo-base) var(--ease-emph);
+  }
+  body.lp2 .lp2-vit-item.active::before { transform:scaleY(1); }
+  body.lp2 .lp2-vit-item .lp2-vit-title svg { transition:transform var(--mo-base) var(--ease-emph); }
+  body.lp2 .lp2-vit-item:hover .lp2-vit-title svg,
+  body.lp2 .lp2-vit-item.active .lp2-vit-title svg { transform:scale(1.12) rotate(-4deg); }
+
+  /* ─── Botão primário: brilho que cruza no hover ─── */
+  body.lp2 .lp2-btn-primary { position:relative; overflow:hidden; isolation:isolate; }
+  body.lp2 .lp2-btn-primary::after {
+    content:''; position:absolute; top:0; left:-60%; width:45%; height:100%; z-index:1;
+    background:linear-gradient(100deg,transparent,rgba(255,255,255,.22),transparent);
+    transform:skewX(-18deg); pointer-events:none;
+  }
+  body.lp2 .lp2-btn-primary:hover::after { animation:lp2-shine .85s var(--ease-standard); }
+
+  /* ─── Feedback de clique (cards/abas) ─── */
+  body.lp2 .lp2-card:active,
+  body.lp2 .lp2-vit-item:active,
+  body.lp2 .lp2-tab:active { transform:scale(.99); }
+
+  /* ─── Eyebrow: filete dourado "respira" de leve ─── */
+  body.lp2 .lp2-eyebrow::before { transform-origin:left; }
+
+  /* ─── Ilustrações animadas dos módulos (painel da vitrine) ─── */
+  @keyframes lp2-fall { 0%{opacity:0;transform:translateY(0)} 18%{opacity:1} 78%{opacity:1;transform:translateY(82px)} 100%{opacity:0;transform:translateY(98px)} }
+
+  body.lp2 .lp2-ill { width:100%; height:auto; max-height:240px; display:block; margin:2px auto 22px; }
+  body.lp2 .lp2-ill .ill-draw    { stroke-dasharray:400; stroke-dashoffset:400; animation:lp2-draw 1s var(--ease-standard) var(--d,0s) both; }
+  body.lp2 .lp2-ill .ill-pop     { opacity:0; transform-box:fill-box; transform-origin:center; animation:lp2-pop .55s var(--ease-spring) var(--d,0s) both; }
+  body.lp2 .lp2-ill .ill-rise    { opacity:0; transform-box:fill-box; animation:lp2-rise .55s var(--ease-emph) var(--d,0s) both; }
+  body.lp2 .lp2-ill .ill-fade    { opacity:0; animation:lp2-fadein .6s var(--ease-standard) var(--d,0s) both; }
+  body.lp2 .lp2-ill .ill-slidein { opacity:0; transform-box:fill-box; animation:lp2-slidein .6s var(--ease-emph) var(--d,0s) both; }
+  body.lp2 .lp2-ill .ill-fall    { opacity:0; transform-box:fill-box; animation:lp2-fall 1.5s var(--ease-emph) var(--d,0s) both; }
+  body.lp2 .lp2-ill .ill-breathe { animation:lp2-breathe 1.3s var(--ease-standard) var(--d,0s) infinite; }
+  body.lp2 .lp2-ill .ill-flow    { stroke-dasharray:7 210; stroke-dashoffset:217; animation:lp2-dash 2s linear var(--d,0s) infinite; }
+
+  /* ─── Cursor spotlight: iluminação ambiente que segue o cursor ───
+     Camadas criadas via JS só em mouse fino + hover. Atrás do conteúdo
+     (z-index:-1, junto ao brilho ambiente), pointer-events:none. */
+  @media (hover:hover) and (pointer:fine) {
+    body.lp2 .lp2-glow-layer {
+      position:fixed; inset:0; z-index:-1; pointer-events:none;
+      opacity:0; transition:opacity .6s var(--ease-standard); contain:layout style;
+    }
+    body.lp2 .lp2-glow-layer.is-on { opacity:1; }
+    body.lp2 .lp2-glow-main,
+    body.lp2 .lp2-glow-fog {
+      position:absolute; top:0; left:0; border-radius:50%;
+      pointer-events:none; will-change:transform;
+    }
+    body.lp2 .lp2-glow-main {
+      width:340px; height:340px;
+      background:radial-gradient(circle,
+        rgba(91,188,224,.10) 0%,
+        rgba(126,184,246,.14) 30%,
+        rgba(46,85,135,.06) 55%,
+        rgba(201,162,75,.028) 70%,
+        transparent 78%);
+    }
+    body.lp2 .lp2-glow-fog {
+      width:520px; height:520px; opacity:.7; filter:blur(16px);
+      background:
+        radial-gradient(circle at 46% 44%, rgba(126,184,246,.05) 0%, transparent 60%),
+        radial-gradient(circle at 56% 58%, rgba(46,95,160,.045) 0%, transparent 66%);
+    }
+    body.lp2 .lp2-glow-particles { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+
+    /* glow local nos cards/demos (camada .lp2-litglow injetada via JS) */
+    body.lp2 .lp2-litglow {
+      position:absolute; inset:0; z-index:-1; border-radius:inherit; pointer-events:none;
+      opacity:0; transition:opacity .4s var(--ease-standard);
+      background:radial-gradient(220px circle at var(--px,50%) var(--py,50%),
+        rgba(126,184,246,.13) 0%, rgba(91,188,224,.05) 36%, transparent 62%);
+    }
+    body.lp2 .lp2-card:hover > .lp2-litglow,
+    body.lp2 .lp2-demo:hover > .lp2-litglow,
+    body.lp2 .lp2-etimo-card:hover > .lp2-litglow,
+    body.lp2 .lp2-ponta:hover > .lp2-litglow { opacity:1; }
+  }
+  /* isolation para conter a .lp2-litglow (z-index:-1) dentro do card/demo */
+  body.lp2 .lp2-card, body.lp2 .lp2-demo { isolation:isolate; }
+  body.lp2 .lp2-etimo-card, body.lp2 .lp2-ponta { position:relative; isolation:isolate; }
+
+  /* ─── reduced-motion: desliga animações, preserva legibilidade ─── */
+  @media (prefers-reduced-motion:reduce) {
+    body.lp2 *, body.lp2 *::before, body.lp2 *::after {
+      animation-duration:.001ms !important; animation-delay:0ms !important;
+      animation-iteration-count:1 !important; transition-duration:.001ms !important;
+    }
+  }
+}
