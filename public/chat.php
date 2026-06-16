@@ -2001,6 +2001,15 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
               <button class="chat-icon-btn" onclick="ChatApp.toggleChatSearch()" title="Buscar nesta conversa" id="btnChatSearch">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               </button>
+
+              <!-- Assumir conversa: pausa/retoma o agente de IA SÓ nesta conversa -->
+              <button class="chat-icon-btn" id="btnTakeover" onclick="ChatApp.toggleTakeover()"
+                      title="Assumir conversa (pausar o agente)"
+                      style="width:auto;padding:0 10px;gap:5px;font-size:.75rem;font-weight:600;color:#F59E0B;border-color:rgba(245,158,11,.3)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:13px;height:13px;flex-shrink:0"><path d="M18 11V6a2 2 0 0 0-4 0"/><path d="M14 10V4a2 2 0 0 0-4 0v2"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
+                <span id="btnTakeoverLabel">Assumir</span>
+              </button>
+
               <button class="chat-icon-btn" onclick="ChatApp.openLinkModal()" title="Vincular ao sistema"
                       style="width:auto;padding:0 10px;gap:5px;font-size:.75rem;font-weight:600;color:#7EB8F7;border-color:rgba(126,184,247,.2)">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:13px;height:13px;flex-shrink:0"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>

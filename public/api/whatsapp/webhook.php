@@ -518,21 +518,38 @@ function maybeQueueAgentReply(int $accountId, int $instanceId, ?string $remoteJi
         $userText = trim((string)$msgContent);
         if ($userText === '') return;
 
-        // (e) toggle: carrega o agent_config ATIVO do tenant (mais recente vence).
-        // Coluna api_key_enc é VARBINARY — leitura crua via PDO.
         $pdo = Database::getConnection();
+
+        // Takeover (decisão: botão "Assumir conversa"): se um humano assumiu ESTA
+        // conversa, o agente não responde. agent_paused é por conversa (instance+jid).
+        try {
+            $stPause = $pdo->prepare(
+                'SELECT agent_paused FROM whatsapp_chats WHERE instance_id = ? AND remote_jid = ? LIMIT 1'
+            );
+            $stPause->execute([$instanceId, $remoteJid]);
+            if ((int)$stPause->fetchColumn() === 1) return; // conversa assumida por humano
+        } catch (\Throwable $_p) {
+            // Coluna ainda não migrada → fail-safe: não dispara o agente.
+            error_log('[whatsapp/agent] agent_paused indisponível (migration 082?): ' . $_p->getMessage());
+            return;
+        }
+
+        // FONTE ÚNICA DA VERDADE: seleciona o agente PELA INSTÂNCIA que recebeu a
+        // mensagem (1 agente por canal), não "o mais recente da conta". Só dispara se
+        // o canal estiver conectado (status=open). api_key_enc é VARBINARY (leitura crua).
         $st  = $pdo->prepare(
-            'SELECT provider, api_key_enc, prompt
-               FROM agent_configs
-              WHERE account_id = ? AND enabled = 1
-                AND api_key_enc IS NOT NULL
-                AND provider IS NOT NULL AND provider <> ""
-           ORDER BY updated_at DESC, id DESC
+            'SELECT ac.provider, ac.api_key_enc, ac.prompt
+               FROM agent_configs ac
+               JOIN whatsapp_instances wi ON wi.id = ac.whatsapp_instance_id
+              WHERE ac.whatsapp_instance_id = ? AND ac.enabled = 1
+                AND wi.status = "open"
+                AND ac.api_key_enc IS NOT NULL
+                AND ac.provider IS NOT NULL AND ac.provider <> ""
               LIMIT 1'
         );
-        $st->execute([$accountId]);
+        $st->execute([$instanceId]);
         $cfg = $st->fetch(\PDO::FETCH_ASSOC);
-        if (!$cfg) return; // sem agente ativo configurado → não responde
+        if (!$cfg) return; // sem agente ativo conectado para este canal → não responde
 
         $provider = strtolower(trim((string)$cfg['provider']));
         if (!in_array($provider, ['openai', 'anthropic'], true)) {

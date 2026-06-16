@@ -665,6 +665,9 @@ const ChatApp = (() => {
     // Badge de setor — atualiza com o chat atual (pode ter team_id já carregado)
     updateSectorBadge(chatObj || null);
 
+    // Botão "Assumir conversa" — reflete o estado de pausa do agente nesta conversa
+    renderTakeoverBtn(!!(chatObj && (chatObj.agent_paused == 1 || chatObj.agent_paused === true)));
+
     // Header de grupo: foto + contador "(N membros)" + click pra abrir lista
     updateGroupHeader(jid, chatObj);
 
@@ -2864,6 +2867,44 @@ const ChatApp = (() => {
   });
 
   // ── API pública ──────────────────────────────────────────────
+  // ── Assumir conversa (pausa/retoma o agente de IA SÓ nesta conversa) ────────
+  function renderTakeoverBtn(paused) {
+    const btn = document.getElementById('btnTakeover');
+    const lbl = document.getElementById('btnTakeoverLabel');
+    if (!btn || !lbl) return;
+    if (paused) {
+      lbl.textContent = 'Liberar IA';
+      btn.title = 'Você assumiu esta conversa. Clique para reativar o agente.';
+      btn.style.color = '#34D399';
+      btn.style.borderColor = 'rgba(52,211,153,.45)';
+    } else {
+      lbl.textContent = 'Assumir';
+      btn.title = 'Assumir conversa (pausar o agente nesta conversa)';
+      btn.style.color = '#F59E0B';
+      btn.style.borderColor = 'rgba(245,158,11,.3)';
+    }
+  }
+
+  async function toggleTakeover() {
+    if (!state.currentJid) return;
+    const chatObj = state.chats.find(c => c.remote_jid === state.currentJid);
+    const cur  = !!(chatObj && (chatObj.agent_paused == 1 || chatObj.agent_paused === true));
+    const next = cur ? 0 : 1;
+    const body = { _csrf: CSRF, paused: next, remote_jid: state.currentJid };
+    if (chatObj && chatObj.id)          body.chat_id     = chatObj.id;
+    if (chatObj && chatObj.instance_id) body.instance_id = chatObj.instance_id;
+    try {
+      const r = await apiFetch('/api/whatsapp/agent_takeover.php', 'POST', body);
+      if (r && r.ok) {
+        if (chatObj) chatObj.agent_paused = next;
+        renderTakeoverBtn(next === 1);
+        toast(next ? 'Você assumiu a conversa, o agente foi pausado aqui' : 'Agente reativado nesta conversa', 'success');
+      }
+    } catch (e) {
+      toast(e.message || 'Não foi possível alterar o atendimento', 'error');
+    }
+  }
+
   return {
     init, checkStatus, connectWhatsApp, disconnectWhatsApp,
     manualReconnect, dismissDisconnectAlert,
@@ -2889,7 +2930,7 @@ const ChatApp = (() => {
     scrollToWamid,
     // P0+P1 (2026-05-25) — busca + arquivar + marcar nao lida
     toggleChatSearch, closeChatSearch, onChatSearchInput,
-    markChatUnread, toggleArchive,
+    markChatUnread, toggleArchive, toggleTakeover,
     // Modal de membros do grupo — botoes do chat.php chamam ChatApp.closeGroupMembers
     showGroupMembersModal, closeGroupMembers,
   };

@@ -397,6 +397,31 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
     html[data-theme="light"] .test-conn-ok::before {
       background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23166534' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg>") !important;
     }
+
+    /* ── Canal WhatsApp (read-only; gerido em Comunicação) ── */
+    .channel-box { border:1px solid rgba(96,165,250,.22); border-radius:10px; background:rgba(8,20,44,.6); padding:12px 14px; }
+    .channel-box.channel-loading { color:var(--muted); font-size:.82rem; }
+    .channel-select { width:100%; margin-bottom:10px; }
+    .ch-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .ch-name { font-weight:700; color:#e8f4ff; font-size:.92rem; }
+    .ch-meta { display:flex; gap:14px; flex-wrap:wrap; margin-top:8px; font-size:.78rem; color:var(--muted); }
+    .ch-meta b { color:#cfe4ff; font-weight:600; }
+    .ch-badge { font-size:.7rem; font-weight:700; padding:2px 9px; border-radius:999px; white-space:nowrap; }
+    .ch-badge.ok   { background:rgba(16,185,129,.2);  color:#6ee7b7; border:1px solid rgba(16,185,129,.4); }
+    .ch-badge.off  { background:rgba(239,68,68,.16);  color:#fca5a5; border:1px solid rgba(239,68,68,.4); }
+    .ch-badge.wait { background:rgba(245,158,11,.16); color:#fcd34d; border:1px solid rgba(245,158,11,.4); }
+    .ch-warn { margin-top:10px; padding:9px 12px; border-radius:8px; background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.3); color:#fca5a5; font-size:.78rem; line-height:1.45; }
+    .ch-empty { text-align:center; padding:8px 6px; }
+    .ch-empty-title { font-weight:700; color:#fca5a5; font-size:.9rem; margin-bottom:6px; }
+    .ch-empty-sub { color:var(--muted); font-size:.78rem; margin-bottom:12px; line-height:1.45; }
+    .ch-link { color:#93c5fd; text-decoration:underline; font-weight:600; cursor:pointer; }
+    html[data-theme="light"] .channel-box { background:#f4f7fc !important; border:1px solid #d6deeb !important; }
+    html[data-theme="light"] .ch-name { color:#0b1a33 !important; }
+    html[data-theme="light"] .ch-meta { color:#5b6b85 !important; }
+    html[data-theme="light"] .ch-meta b { color:#1f3358 !important; }
+    html[data-theme="light"] .ch-link { color:#1d4ed8 !important; }
+    html[data-theme="light"] .ch-warn { background:#fee2e2 !important; border-color:#fca5a5 !important; color:#b91c1c !important; }
+    html[data-theme="light"] .ch-empty-title { color:#b91c1c !important; }
   </style>
 </head>
 <body>
@@ -470,10 +495,11 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
                     <input name="name" class="field-input" placeholder="Ex: Assistente Jurídico — Yuris" autocomplete="off">
                     <span class="field-hint">Nome que aparece nas conversas do WhatsApp</span>
                   </div>
+                  <input type="hidden" name="whatsapp_instance_id" id="whatsappInstanceId" value="">
                   <div class="field-group">
-                    <label class="field-label">Número WhatsApp (formato internacional)</label>
-                    <input name="whatsapp_number" class="field-input" placeholder="5511999999999" inputmode="tel" autocomplete="off">
-                    <span class="field-hint">Inclua o DDI e DDD sem espaços ou símbolos. Ex: 5511999999999</span>
+                    <label class="field-label">Canal WhatsApp</label>
+                    <div id="channelBox" class="channel-box channel-loading">Carregando canais…</div>
+                    <span class="field-hint">O canal é conectado e gerido em Comunicação, Chat WhatsApp. Aqui você só escolhe em qual canal o agente atende, não dá para digitar número nem criar conexão.</span>
                   </div>
                   <div>
                     <div class="toggle-row">
@@ -517,13 +543,9 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
                       </div>
                     </div>
                   </div>
-                  <div>
-                    <button type="button" id="btnTestConnection" class="agt-btn-secondary">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                      Testar conexão
-                    </button>
-                    <div id="testConnectionResult" style="margin-top:8px;font-size:.78rem;display:none"></div>
-                  </div>
+                  <!-- (removido) "Testar conexão" simulado: a conexão WhatsApp é validada
+                       em Comunicação -> Chat WhatsApp; aqui só há a credencial do LLM. -->
+                  <span class="field-hint">A chave acima é do provedor de IA (LLM), não da Evolution. A conexão do WhatsApp é feita em Comunicação, Chat WhatsApp.</span>
                 </div>
               </div>
 
