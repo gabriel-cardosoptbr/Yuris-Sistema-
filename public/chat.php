@@ -5,6 +5,9 @@ if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
 $activePage    = 'chat';
 $csrf          = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
+// Fase 5: a config da conexão Evolution (infra) é gerida no Painel Master.
+// No painel da conta, só o super_admin vê a engrenagem de Configurações.
+$isSuper       = !empty($_SESSION['is_super_admin']);
 ?>
 <!doctype html>
 <html lang="pt-BR">
@@ -1824,10 +1827,12 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
             <p class="page-header-subtitle">Interface de mensagens integrada via Evolution API</p>
           </div>
           <div class="page-header-actions">
+<?php if ($isSuper): /* Fase 5: config de infra Evolution só p/ super_admin; cliente usa Painel Master */ ?>
         <button class="conn-btn-secondary" onclick="ChatApp.openSettings()" title="Configurações">
           <svg style="display:inline;width:14px;height:14px;margin-right:5px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06A2 2 0 1 1 2.27 17.8l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09c.7 0 1.27-.43 1.51-1a1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 6.3 2.27l.06.06c.5.5 1.2.75 1.82.33A1.65 1.65 0 0 0 9.69 1.5 1.65 1.65 0 0 0 9.7 1H12a2 2 0 1 1 0 4h-.09c-.7 0-1.27.43-1.51 1a1.65 1.65 0 0 0 .33 1.82l.06.06A2 2 0 1 1 17.73 6.2l-.06.06c-.5.5-.75 1.2-.33 1.82.32.56.32 1.28.32 1.82V12a2 2 0 1 1 4 0v.09c0 .7.43 1.27 1 1.51z"/></svg>
           Configurações
         </button>
+<?php endif; ?>
         <button class="conn-btn-primary" id="btnConnectTop" onclick="ChatApp.connectWhatsApp()" style="display:none">
           Conectar WhatsApp
         </button>

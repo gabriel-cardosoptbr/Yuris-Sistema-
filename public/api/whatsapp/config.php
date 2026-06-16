@@ -47,6 +47,14 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST') {
+    // Fase 5: a conexão Evolution (infra) agora é configurada SÓ pelo Painel Master
+    // (super_admin). Admin comum de matriz/filial não edita mais a infra por aqui.
+    // O GET continua liberado p/ owner/admin (status/instância; chave mascarada).
+    if (!$ctx->isSuperAdmin()) {
+        http_response_code(403);
+        echo json_encode(['error' => 'A conexão Evolution agora é configurada pelo Painel Master (super admin).']);
+        exit;
+    }
     $csrf    = $_csrf;
     $payload = json_decode(file_get_contents('php://input'), true) ?? [];
     if (empty($payload['_csrf']) || $payload['_csrf'] !== $csrf) {

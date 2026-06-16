@@ -383,6 +383,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
     <button class="mst-tab" data-mtab="incidents"><?= $_tabIco('incidents') ?>Incidentes <span id="incidentBadge" style="display:none;background:#ef4444;color:#fff;font-size:.7rem;padding:1px 7px;border-radius:999px;margin-left:5px;font-weight:700"></span></button>
     <button class="mst-tab" data-mtab="operators"><?= $_tabIco('operators') ?>Operadores <span id="operatorsBadge" style="display:none;background:#f59e0b;color:#fff;font-size:.7rem;padding:1px 7px;border-radius:999px;margin-left:5px;font-weight:700"></span></button>
     <button class="mst-tab" data-mtab="reviews"><?= $_tabIco('reviews') ?>Revisões <span id="reviewsBadge" style="display:none;background:#dc2626;color:#fff;font-size:.7rem;padding:1px 7px;border-radius:999px;margin-left:5px;font-weight:700"></span></button>
+    <button class="mst-tab" data-mtab="whatsapp"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>WhatsApp</button>
   </div>
 
   <!-- ── Visão Geral ── -->
@@ -904,6 +905,35 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
   </section>
 
   <!-- ── Revisões (uso INTERNO — pendências antes do go-live) ── -->
+  <section class="mst-section" id="msec-whatsapp">
+    <div class="mst-card" style="padding:0; overflow:hidden; margin-bottom:14px">
+      <div style="padding:14px 18px; border-bottom:1px solid rgba(160,180,210,.10)">
+        <div style="font-weight:700">WhatsApp / Evolution API (infraestrutura por conta)</div>
+        <div style="font-size:.74rem; color:#9ab0c9; margin-top:3px">
+          Conexão Evolution (URL, API Key, instância, webhook) de cada conta. Editável <strong>apenas aqui</strong>, pelo super admin. No painel da conta o cliente só conecta, gera QR e vê o status, nunca a chave.
+        </div>
+      </div>
+      <table class="mst-tbl">
+        <thead><tr><th>Conta</th><th>Tipo</th><th>Instância</th><th>API Key</th><th></th></tr></thead>
+        <tbody id="waCfgRows"><tr><td colspan="5" style="padding:14px;color:#9ab0c9">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="mst-card" id="waCfgForm" style="display:none; padding:18px; margin-bottom:14px">
+      <div style="font-weight:700; margin-bottom:12px" id="waCfgFormTitle">Conexão Evolution</div>
+      <input type="hidden" id="waCfgAccountId">
+      <div style="display:grid; gap:12px; max-width:640px">
+        <div><label class="mst-form-label">URL da Evolution API</label><input id="waCfgBaseUrl" class="mst-form-input" placeholder="http://evolution:8080"></div>
+        <div><label class="mst-form-label">API Key</label><input id="waCfgApiKey" class="mst-form-input" type="text" autocomplete="new-password" placeholder="deixe em branco para manter a atual"><span id="waCfgKeyHint" style="font-size:.72rem;color:#9ab0c9;display:block;margin-top:4px"></span></div>
+        <div><label class="mst-form-label">Nome da instância</label><input id="waCfgInstance" class="mst-form-input" placeholder="ex: yuris-crm"></div>
+        <div><label class="mst-form-label">URL do webhook</label><input id="waCfgWebhook" class="mst-form-input" placeholder="https://yuris.com.br/api/whatsapp/webhook.php"></div>
+        <div style="display:flex; gap:10px; margin-top:4px">
+          <button onclick="saveWhatsappConfig()" style="padding:9px 18px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer">Salvar conexão</button>
+          <button onclick="document.getElementById('waCfgForm').style.display='none'" style="padding:9px 16px;background:transparent;border:1px solid rgba(160,180,210,.3);color:#9ab0c9;border-radius:8px;cursor:pointer">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="mst-section" id="msec-reviews">
     <div class="mst-card" style="padding:0; overflow:hidden; margin-bottom:14px">
       <div style="display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid rgba(160,180,210,.10); flex-wrap:wrap">
@@ -2312,7 +2342,7 @@ function notifyOk(msg) {
 // ── Hash routing ─────────────────────────────────────────────────────────
 // Etapa 8 (LGPD): array atualizado com lgpd, retencao, incidents — antes faltavam
 // e o hash routing caía no fallback de 'overview' ao clicar nessas abas.
-const TABS = ['overview','dashboard','accounts','plans','billing','invoices','payments','expenses','audit','lgpd','retencao','incidents','operators','reviews'];
+const TABS = ['overview','dashboard','accounts','plans','billing','invoices','payments','expenses','audit','lgpd','retencao','incidents','operators','reviews','whatsapp'];
 function activateTab(name) {
   if (!TABS.includes(name)) name = 'overview';
   document.querySelectorAll('.mst-tab').forEach(t => t.classList.toggle('active', t.dataset.mtab === name));
@@ -2334,6 +2364,62 @@ function loadTab(name) {
   if (name==='incidents') loadIncidents();
   if (name==='operators') loadOperators();
   if (name==='reviews')   loadReviews();
+  if (name==='whatsapp')  loadWhatsappConfig();
+}
+
+// ── WhatsApp / Evolution (infra por conta — só super_admin) ────────────────
+async function loadWhatsappConfig() {
+  const tb = document.getElementById('waCfgRows');
+  const form = document.getElementById('waCfgForm');
+  if (form) form.style.display = 'none';
+  if (!tb) return;
+  const _e = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  tb.innerHTML = '<tr><td colspan="5" style="padding:14px;color:#9ab0c9">Carregando…</td></tr>';
+  const r = await fj(`${API}/whatsapp_config.php?list=1`);
+  if (!r.ok) { tb.innerHTML = '<tr><td colspan="5" style="padding:14px;color:#dc2626">Erro ao carregar</td></tr>'; return; }
+  const rows = (r.data && r.data.accounts) || [];
+  if (!rows.length) { tb.innerHTML = '<tr><td colspan="5" style="padding:14px;color:#9ab0c9">Nenhuma conta com WhatsApp configurado ainda.</td></tr>'; return; }
+  tb.innerHTML = rows.map(a => `<tr>
+    <td>${_e(a.account_nome)} <span style="color:#7a8aa0">#${a.account_id}</span></td>
+    <td>${_e(a.account_tipo)}</td>
+    <td>${_e(a.evolution_instance) || '—'}</td>
+    <td>${a.has_key ? '<span style="color:#10b981;font-weight:600">configurada</span>' : '<span style="color:#f59e0b;font-weight:600">faltando</span>'}</td>
+    <td style="text-align:right"><button onclick="editWhatsappConfig(${a.account_id})" style="padding:5px 12px;font-size:.78rem;border:1px solid rgba(96,165,250,.4);background:transparent;color:#7EB8F7;border-radius:7px;cursor:pointer">Editar</button></td>
+  </tr>`).join('');
+}
+async function editWhatsappConfig(accountId) {
+  const r = await fj(`${API}/whatsapp_config.php?account_id=${accountId}`);
+  if (!r.ok) { notifyErr('Erro ao carregar a conexão'); return; }
+  const s = (r.data && r.data.settings) || {};
+  const acc = (r.data && r.data.account) || {};
+  document.getElementById('waCfgAccountId').value = accountId;
+  document.getElementById('waCfgFormTitle').textContent = 'Conexão Evolution — ' + (acc.nome || ('conta #'+accountId));
+  document.getElementById('waCfgBaseUrl').value  = s.evolution_base_url || '';
+  document.getElementById('waCfgInstance').value = s.evolution_instance || '';
+  document.getElementById('waCfgWebhook').value  = s.webhook_url || '';
+  document.getElementById('waCfgApiKey').value   = '';
+  document.getElementById('waCfgKeyHint').textContent = s.evolution_api_key_masked
+    ? ('Chave atual: ' + s.evolution_api_key_masked + ' (deixe em branco para manter)')
+    : 'Nenhuma chave salva ainda';
+  const form = document.getElementById('waCfgForm');
+  form.style.display = 'block';
+  form.scrollIntoView({behavior:'smooth', block:'center'});
+}
+async function saveWhatsappConfig() {
+  const accountId = parseInt(document.getElementById('waCfgAccountId').value, 10);
+  if (!accountId) return;
+  const body = { csrf_token: CSRF, account_id: accountId,
+    evolution_base_url: document.getElementById('waCfgBaseUrl').value.trim(),
+    evolution_instance: document.getElementById('waCfgInstance').value.trim(),
+    webhook_url:        document.getElementById('waCfgWebhook').value.trim() };
+  const k = document.getElementById('waCfgApiKey').value.trim();
+  if (k) body.evolution_api_key = k;
+  try {
+    const res = await fetch(`${API}/whatsapp_config.php`, { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF}, body: JSON.stringify(body) });
+    const j = await res.json();
+    if (res.ok && j.ok !== false) { notifyOk('Conexão Evolution salva'); document.getElementById('waCfgForm').style.display='none'; loadWhatsappConfig(); }
+    else notifyErr(j.error || (j.data && j.data.error) || 'Erro ao salvar');
+  } catch(e) { notifyErr('Erro de rede ao salvar'); }
 }
 document.querySelectorAll('.mst-tab').forEach(b => b.addEventListener('click', () => {
   window.location.hash = b.dataset.mtab;
