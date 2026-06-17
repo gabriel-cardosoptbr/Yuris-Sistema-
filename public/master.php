@@ -906,9 +906,19 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
 
   <!-- ── Revisões (uso INTERNO — pendências antes do go-live) ── -->
   <section class="mst-section" id="msec-whatsapp">
+    <div class="mst-card" style="padding:18px; margin-bottom:14px">
+      <div style="font-weight:700; margin-bottom:4px">Configuração Global da Evolution</div>
+      <div style="font-size:.74rem; color:#9ab0c9; margin-bottom:12px">URL base + admin key do servidor Evolution (AUTHENTICATION_API_KEY). Usadas para CRIAR instâncias automaticamente. A admin key fica cifrada e nunca volta em claro.</div>
+      <div style="display:grid; gap:12px; max-width:640px">
+        <div><label class="mst-form-label">URL base da Evolution</label><input id="gevBaseUrl" class="mst-form-input" placeholder="https://evolution.inovaize.com"></div>
+        <div><label class="mst-form-label">Admin key (global)</label><input id="gevAdminKey" class="mst-form-input" type="text" autocomplete="new-password" placeholder="deixe em branco para manter a atual"><span id="gevKeyHint" style="font-size:.72rem;color:#9ab0c9;display:block;margin-top:4px"></span></div>
+        <div><label class="mst-form-label">Webhook canônico</label><input id="gevWebhook" class="mst-form-input" placeholder="https://yuris.com.br/api/whatsapp/webhook.php"></div>
+        <div><button onclick="saveGlobalEvolution()" style="padding:9px 18px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer">Salvar config global</button></div>
+      </div>
+    </div>
     <div class="mst-card" style="padding:0; overflow:hidden; margin-bottom:14px">
       <div style="padding:14px 18px; border-bottom:1px solid rgba(160,180,210,.10)">
-        <div style="font-weight:700">WhatsApp / Evolution API (infraestrutura por conta)</div>
+        <div style="font-weight:700">Instâncias por conta</div>
         <div style="font-size:.74rem; color:#9ab0c9; margin-top:3px">
           Conexão Evolution (URL, API Key, instância, webhook) de cada conta. Editável <strong>apenas aqui</strong>, pelo super admin. No painel da conta o cliente só conecta, gera QR e vê o status, nunca a chave.
         </div>
@@ -2364,7 +2374,7 @@ function loadTab(name) {
   if (name==='incidents') loadIncidents();
   if (name==='operators') loadOperators();
   if (name==='reviews')   loadReviews();
-  if (name==='whatsapp')  loadWhatsappConfig();
+  if (name==='whatsapp') { loadGlobalEvolution(); loadWhatsappConfig(); }
 }
 
 // ── WhatsApp / Evolution (infra por conta — só super_admin) ────────────────
@@ -2384,7 +2394,10 @@ async function loadWhatsappConfig() {
     <td>${_e(a.account_tipo)}</td>
     <td>${_e(a.evolution_instance) || '—'}</td>
     <td>${a.has_key ? '<span style="color:#10b981;font-weight:600">configurada</span>' : '<span style="color:#f59e0b;font-weight:600">faltando</span>'}</td>
-    <td style="text-align:right"><button onclick="editWhatsappConfig(${a.account_id})" style="padding:5px 12px;font-size:.78rem;border:1px solid rgba(96,165,250,.4);background:transparent;color:#7EB8F7;border-radius:7px;cursor:pointer">Editar</button></td>
+    <td style="text-align:right;white-space:nowrap">
+      <button onclick="provisionInstance(${a.account_id})" style="padding:5px 12px;font-size:.78rem;border:1px solid rgba(16,185,129,.5);background:transparent;color:#34D399;border-radius:7px;cursor:pointer;margin-right:6px">Criar instância</button>
+      <button onclick="editWhatsappConfig(${a.account_id})" style="padding:5px 12px;font-size:.78rem;border:1px solid rgba(96,165,250,.4);background:transparent;color:#7EB8F7;border-radius:7px;cursor:pointer">Editar</button>
+    </td>
   </tr>`).join('');
 }
 async function editWhatsappConfig(accountId) {
@@ -2420,6 +2433,43 @@ async function saveWhatsappConfig() {
     if (res.ok && j.ok !== false) { notifyOk('Conexão Evolution salva'); document.getElementById('waCfgForm').style.display='none'; loadWhatsappConfig(); }
     else notifyErr(j.error || (j.data && j.data.error) || 'Erro ao salvar');
   } catch(e) { notifyErr('Erro de rede ao salvar'); }
+}
+
+// ── Config GLOBAL Evolution + provisionamento ────────────────────────────────
+async function loadGlobalEvolution() {
+  const r = await fj(`${API}/whatsapp_config.php?global=1`);
+  if (!r.ok) return;
+  const d = r.data || {};
+  const set = (id,v)=>{ const el=document.getElementById(id); if(el) el.value = v||''; };
+  set('gevBaseUrl', d.evolution_base_url);
+  set('gevWebhook', d.webhook_url);
+  const k = document.getElementById('gevAdminKey'); if (k) k.value = '';
+  const hint = document.getElementById('gevKeyHint');
+  if (hint) hint.textContent = d.has_admin_key
+    ? ('Admin key salva: ' + (d.admin_key_masked||'****') + ' (deixe em branco para manter)')
+    : 'Nenhuma admin key salva ainda';
+}
+async function saveGlobalEvolution() {
+  const body = { csrf_token: CSRF, action:'save_global',
+    evolution_base_url: document.getElementById('gevBaseUrl').value.trim(),
+    webhook_url:        document.getElementById('gevWebhook').value.trim() };
+  const k = document.getElementById('gevAdminKey').value.trim();
+  if (k) body.evolution_admin_key = k;
+  try {
+    const res = await fetch(`${API}/whatsapp_config.php`, { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF}, body: JSON.stringify(body) });
+    const j = await res.json();
+    if (res.ok && j.ok !== false) { notifyOk('Config global salva'); loadGlobalEvolution(); }
+    else notifyErr(j.error || (j.data&&j.data.error) || 'Erro ao salvar');
+  } catch(e) { notifyErr('Erro de rede'); }
+}
+async function provisionInstance(accountId) {
+  if (!confirm('Criar uma instância WhatsApp nova na Evolution para esta conta? Isso conecta de verdade no servidor.')) return;
+  try {
+    const res = await fetch(`${API}/whatsapp_config.php`, { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF}, body: JSON.stringify({ csrf_token: CSRF, action:'provision', account_id: accountId }) });
+    const j = await res.json();
+    if (res.ok && j.ok !== false) { notifyOk((j.data && j.data.message) || 'Instância criada'); loadWhatsappConfig(); }
+    else notifyErr(j.error || (j.data&&j.data.error) || 'Erro ao criar instância');
+  } catch(e) { notifyErr('Erro de rede ao criar instância'); }
 }
 document.querySelectorAll('.mst-tab').forEach(b => b.addEventListener('click', () => {
   window.location.hash = b.dataset.mtab;

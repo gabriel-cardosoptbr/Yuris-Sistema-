@@ -42,13 +42,16 @@ class EvolutionApiService
     }
 
     /** Criar nova instância. */
-    public function createInstance(string $name, string $webhookUrl = ''): array
+    public function createInstance(string $name, string $webhookUrl = '', string $token = ''): array
     {
         $body = [
             'instanceName'  => $name,
             'integration'   => 'WHATSAPP-BAILEYS',
             'qrcode'        => true,
         ];
+        // Evolution v2: define a apikey da PRÓPRIA instância (em vez de auto-gerar).
+        // O provisionamento usa isso pra já saber a chave que roteia o webhook do tenant.
+        if ($token !== '') $body['token'] = $token;
         if ($webhookUrl) {
             $body['webhook'] = [
                 'url'      => $webhookUrl,
