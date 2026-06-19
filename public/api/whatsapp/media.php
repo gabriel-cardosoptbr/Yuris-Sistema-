@@ -13,6 +13,7 @@ require_once __DIR__ . '/../../../app/Models/Account.php';
 require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
 require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
+require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 
 use App\Models\Database;
@@ -24,21 +25,14 @@ ob_end_clean();
 
 if (!$_uid) { http_response_code(401); exit; }
 
-// ─── LGPD P0: tenant enforcement ─────────────────────────────────────────────
-// Antes desta correção, qualquer usuário autenticado podia chamar
-//   GET /api/whatsapp/media.php?msg_id=N
-// e baixar mídia (imagens, áudios, PDFs, vídeos) de QUALQUER mensagem de
-// QUALQUER conta — vazamento massivo de documentos jurídicos, atestados etc.
-// Agora exigimos que a mensagem pertença a uma instance vinculada às contas
-// acessíveis pela sessão atual (matriz + filiais com sync_whatsapp ativo).
-$ctx           = AccountContext::fromSession();
-$accessibleIds = $ctx->getAccessibleAccountIds('whatsapp');
-if (empty($accessibleIds)) {
-    http_response_code(403);
-    echo 'Sem contas acessíveis';
-    exit;
-}
-$inClause = implode(',', array_map('intval', $accessibleIds));
+// ─── Fase 2: autorização por CANAL ────────────────────────────────────────────
+// Antes (LGPD P0) a mídia era escopada por getAccessibleAccountIds('whatsapp')
+// (matriz+filiais). Agora a regra é o GRANT explícito de canal: a conta precisa
+// de 'view' sobre o canal DONO da mensagem. A instância/credenciais são
+// resolvidas no backend a partir do dono do canal — nunca do front. Mantém o
+// 404 anti-enumeração (não revela existência da mídia a quem não tem acesso).
+$ctx       = AccountContext::fromSession();
+$accountId = $ctx->getAccountId();
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Modo diagnóstico: retorna JSON com info do que acontece
@@ -50,18 +44,12 @@ if (!$msgId) { http_response_code(400); echo 'msg_id obrigatório'; exit; }
 try {
     $pdo = Database::getConnection();
 
-    // P0 LGPD: dupla verificação de ownership do tenant.
-    //   • m.account_id IN (...)   → mensagens já migradas (após hardening 037)
-    //   • wi.account_id IN (...)  → fallback via instância (mensagens antigas
-    //                               podem ter account_id NULL, mas instance_id válido)
-    // Se nenhuma das duas bater, retorna 404 (não 403, para não vazar existência).
+    // 1) Resolve a mensagem só pelo id (descobre o canal dono). 404 se inexistente.
     $stmt = $pdo->prepare(
-        "SELECT m.id, m.wamid, m.remote_jid, m.direction, m.message_type,
+        "SELECT m.id, m.instance_id, m.wamid, m.remote_jid, m.direction, m.message_type,
                 m.media_mimetype, m.media_filename, m.media_url, m.media_base64, m.raw_payload
          FROM whatsapp_messages m
-         LEFT JOIN whatsapp_instances wi ON wi.id = m.instance_id
          WHERE m.id = ?
-           AND (m.account_id IN ($inClause) OR wi.account_id IN ($inClause))
          LIMIT 1"
     );
     $stmt->execute([$msgId]);
@@ -69,10 +57,16 @@ try {
 
     if (!$msg) { http_response_code(404); echo 'Mensagem não encontrada'; exit; }
 
+    // 2) Autorização de canal: a conta precisa de 'view' sobre o canal dono da
+    //    mensagem. Usa check() (não assert) para devolver 404 — não 403 — e não
+    //    revelar a existência da mídia a quem não tem acesso (anti-enumeração).
+    $chk = WhatsAppChannelAccessService::check($pdo, $accountId, (int)$msg['instance_id'], 'view');
+    if (!$chk) { http_response_code(404); echo 'Mensagem não encontrada'; exit; }
+
     $instModel = new WhatsAppInstance();
-    // P0 LGPD: usa accountId resolvido pelo tenant guard acima
-    $cfg       = $instModel->getSettings($ctx->getAccountId());
-    $name      = $cfg['evolution_instance'] ?? 'yuris-crm';
+    // 3) Credenciais SEMPRE do DONO do canal (nunca da conta requisitante/front).
+    $cfg       = $instModel->getSettings((int)$chk['owner_account_id']);
+    $name      = $chk['instance_name'];
     $apiKey    = $cfg['evolution_api_key']  ?? '';
     $baseUrl   = rtrim($cfg['evolution_base_url'] ?? 'http://localhost:8080', '/');
     $evo       = new EvolutionApiService($cfg);

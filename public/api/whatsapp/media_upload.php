@@ -10,6 +10,8 @@
  * (resposta JSON com base64 já validado por magic bytes).
  */
 require_once __DIR__ . '/../../../app/Models/Database.php';
+require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
 require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
 
 session_start();
@@ -54,6 +56,12 @@ if (!empty($_FILES['file'])) {
     if ($csrfPost !== $csrf) {
         http_response_code(403); echo json_encode(['error' => 'CSRF inválido']); exit;
     }
+
+    // Gate de canal (Fase 2): só prepara mídia quem tem 'send' em algum canal
+    // (próprio ou compartilhado com a flag ligada). Resolvido 100% no backend.
+    $ctxUp = \App\Helpers\AccountContext::fromSession();
+    $pdoUp = \App\Models\Database::getConnection();
+    WhatsAppChannelAccessService::resolveForRequest($pdoUp, $ctxUp->getAccountId(), $_POST['channel_id'] ?? null, 'send');
 
     $file     = $_FILES['file'];
     $error    = $file['error'] ?? UPLOAD_ERR_NO_FILE;

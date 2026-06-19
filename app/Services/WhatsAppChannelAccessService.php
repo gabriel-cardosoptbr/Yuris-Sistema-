@@ -23,6 +23,7 @@
  */
 
 require_once __DIR__ . '/../Models/Database.php';
+require_once __DIR__ . '/../Models/WhatsAppInstance.php';
 require_once __DIR__ . '/../Helpers/EnvLoader.php';
 
 class WhatsAppChannelAccessService
@@ -112,20 +113,29 @@ class WhatsAppChannelAccessService
     {
         $ch = self::check($pdo, $accountId, $channelId, $perm);
         if ($ch === null) {
-            if (!headers_sent()) {
-                http_response_code(403);
-                header('Content-Type: application/json; charset=utf-8');
-                header('Cache-Control: no-store');
-            }
-            // Mensagem genérica — não revela existência/posse do canal (anti-enumeração).
-            echo json_encode(['ok' => false, 'error' => 'Acesso negado ao canal de WhatsApp.']);
-            exit;
+            self::deny();
         }
         if ($perm === 'manage') {
             error_log(sprintf('[wa-channel-access] MANAGE account=%d channel=%d owner=%d type=%s',
                 $accountId, $channelId, $ch['owner_account_id'], $ch['access_type']));
         }
         return $ch;
+    }
+
+    /**
+     * Resposta 403 GENÉRICA + exit. Nunca revela se o canal existe/é de quem
+     * (anti-enumeração/IDOR). Centralizada para que TODO ponto de negação use a
+     * mesma mensagem e os mesmos headers.
+     */
+    public static function deny(): void
+    {
+        if (!headers_sent()) {
+            http_response_code(403);
+            header('Content-Type: application/json; charset=utf-8');
+            header('Cache-Control: no-store');
+        }
+        echo json_encode(['ok' => false, 'error' => 'Acesso negado ao canal de WhatsApp.']);
+        exit;
     }
 
     /**
@@ -180,6 +190,119 @@ class WhatsAppChannelAccessService
             return in_array($req, self::viewableChannelIds($pdo, $accountId), true) ? $req : null;
         }
         return self::ownChannelId($pdo, $accountId);
+    }
+
+    /**
+     * Primeiro canal COMPARTILHADO visível pra conta (filial herdando o canal da
+     * matriz). Só faz sentido com a flag ligada — o caller é quem decide chamar.
+     * Determinístico: mais recente primeiro.
+     */
+    public static function firstSharedChannelId(\PDO $pdo, int $accountId): ?int
+    {
+        if ($accountId <= 0) return null;
+        $st = $pdo->prepare(
+            "SELECT channel_id FROM whatsapp_channel_accounts
+              WHERE account_id = ? AND access_type = 'shared'
+                AND revoked_at IS NULL AND can_view = 1
+              ORDER BY created_at DESC, channel_id DESC LIMIT 1"
+        );
+        $st->execute([$accountId]);
+        $v = $st->fetchColumn();
+        return $v === false ? null : (int)$v;
+    }
+
+    /** A conta tem QUALQUER vínculo ativo (dono ou compartilhado)? */
+    public static function hasAnyGrant(\PDO $pdo, int $accountId): bool
+    {
+        if ($accountId <= 0) return false;
+        $st = $pdo->prepare(
+            'SELECT 1 FROM whatsapp_channel_accounts
+              WHERE account_id = ? AND revoked_at IS NULL LIMIT 1'
+        );
+        $st->execute([$accountId]);
+        return (bool)$st->fetchColumn();
+    }
+
+    /**
+     * RESOLUÇÃO ÚNICA de canal para um endpoint do pacote WhatsApp. Faz TUDO no
+     * backend, nunca confiando no front:
+     *
+     *   1) resolve o channel_id efetivo, nesta ordem de precedência:
+     *        a) channel_id pedido pelo front — só se for VISÍVEL à conta
+     *           (anti-tampering/enumeração); caso contrário, NEGA.
+     *        b) canal PRÓPRIO (onde a conta é dona) — o padrão.
+     *        c) com a flag LIGADA, o primeiro canal COMPARTILHADO visível
+     *           (filial herdando o canal da matriz).
+     *        d) bootstrap do canal próprio a partir das settings da conta
+     *           (compat com o findOrCreate legado; default 'yuris-crm'),
+     *           SÓ quando a conta não tem NENHUM vínculo (nem dono, nem
+     *           compartilhado). Assim uma filial herdeira nunca ganha um canal
+     *           próprio vazio que competiria com o da matriz.
+     *   2) AUTORIZA ($perm) — deny-by-default; 403 genérico + exit se negar.
+     *   3) carrega a config Evolution do DONO do canal (base_url/api_key/instance);
+     *      NUNCA da conta requisitante nem do front.
+     *
+     * @param mixed  $requestedChannelId  channel_id que o front mandou (ou null)
+     * @param string $perm                view|send|sync|delete_messages|manage
+     * @return array{
+     *   channel_id:int, owner_account_id:int, instance_name:string,
+     *   instance_row:array, cfg:array, access_type:string, is_owner:bool, shared:bool
+     * }
+     */
+    public static function resolveForRequest(\PDO $pdo, int $accountId, $requestedChannelId, string $perm): array
+    {
+        if ($accountId <= 0) self::deny();
+        $model = new \WhatsAppInstance();
+
+        $channelId = null;
+
+        // (a) canal pedido explicitamente — só se visível.
+        $req = (int)($requestedChannelId ?? 0);
+        if ($req > 0) {
+            if (!in_array($req, self::viewableChannelIds($pdo, $accountId), true)) {
+                self::deny();
+            }
+            $channelId = $req;
+        }
+
+        // (b) canal próprio (default).
+        if ($channelId === null) {
+            $channelId = self::ownChannelId($pdo, $accountId);
+        }
+
+        // (c) filial herdando: só com a flag ligada.
+        if ($channelId === null && self::sharingEnabled()) {
+            $channelId = self::firstSharedChannelId($pdo, $accountId);
+        }
+
+        // (d) bootstrap do próprio — só se a conta não tem NENHUM vínculo.
+        if ($channelId === null && !self::hasAnyGrant($pdo, $accountId)) {
+            $cfg0     = $model->getSettings($accountId);
+            $instName = $cfg0['evolution_instance'] ?? 'yuris-crm';
+            $row      = $model->findOrCreate($instName, '', $accountId);
+            $channelId = (int)$row['id'];
+            self::grant($pdo, $channelId, $accountId, 'owner', [], null); // idempotente
+        }
+
+        if ($channelId === null) self::deny();
+
+        // (2) autoriza (deny-by-default).
+        $ch = self::assert($pdo, $accountId, (int)$channelId, $perm);
+
+        // (3) config Evolution SEMPRE do DONO do canal — nunca do front/filial.
+        $cfg     = $model->getSettings((int)$ch['owner_account_id']);
+        $instRow = $model->find((int)$ch['channel_id']); // já autorizado; sem escopo
+
+        return [
+            'channel_id'       => (int)$ch['channel_id'],
+            'owner_account_id' => (int)$ch['owner_account_id'],
+            'instance_name'    => (string)$ch['instance_name'],
+            'instance_row'     => is_array($instRow) ? $instRow : [],
+            'cfg'              => $cfg,
+            'access_type'      => (string)$ch['access_type'],
+            'is_owner'         => ($ch['access_type'] === 'owner'),
+            'shared'           => ($ch['access_type'] !== 'owner'),
+        ];
     }
 
     /** Concede/atualiza um vínculo de canal (idempotente por (channel,account)). */

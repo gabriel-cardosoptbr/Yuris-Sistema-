@@ -7,6 +7,7 @@ require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
 require_once __DIR__ . '/../../../app/Models/Team.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
 require_once __DIR__ . '/../../../app/Services/WebhookDispatcher.php';
 
 use App\Models\Team;
@@ -28,20 +29,16 @@ $ctx       = AccountContext::fromSession();
 $accountId = $ctx->getAccountId();
 
 try {
-    $instModel  = new WhatsAppInstance();
     $msgModel   = new WhatsAppMessage();
     $method     = $_SERVER['REQUEST_METHOD'];
-    $cfg        = $instModel->getSettings($accountId);
-    $instName   = $cfg['evolution_instance'] ?? 'yuris-crm';
-    $row        = $instModel->findOrCreate($instName, '', $accountId);
-    $instanceId = (int)$row['id'];
+    $pdo        = \App\Models\Database::getConnection();
 
-    // Validação extra: garante isolamento por tenant
-    if ((int)($row['account_id'] ?? 0) !== $accountId) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Instância WhatsApp não pertence a esta conta']);
-        exit;
-    }
+    // Lista/anotações de conversa = 'view' no canal (deny-by-default). Resolve o
+    // canal próprio ou, com a flag ligada, o compartilhado (filial herdando o da
+    // matriz). instance_id resolvido no backend. A ação destrutiva 'delete' exige,
+    // adicionalmente, 'delete_messages' (ver branch abaixo) — não basta 'view'.
+    $ch         = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, ($_GET['channel_id'] ?? null), 'view');
+    $instanceId = (int)$ch['channel_id'];
 
     if ($method === 'GET') {
         $search = trim($_GET['search'] ?? '');
@@ -183,28 +180,23 @@ try {
         if ($action === 'delete') {
             if (!$jid) { echo json_encode(['ok' => false, 'error' => 'remote_jid obrigatório']); exit; }
 
-            // SEGURANCA (auditoria 2026-06-01 BAIXA #26): checagem de tenant EXPLÍCITA
-            // antes do delete. WhatsAppMessage::deleteChat() faz um DELETE cego por
-            // (instance_id, remote_jid) sem filtrar account_id; aqui confirmamos que
-            // o chat alvo pertence a uma instância de conta acessível (matriz+filiais)
-            // — não apenas confiando no instanceId resolvido acima. Sem isso, um
-            // instanceId/jid forjado poderia apagar conversa de outro tenant.
-            $pdoDel = \App\Models\Database::getConnection();
-            $accDel = $ctx->getAccessibleAccountIds('whatsapp');
-            if (empty($accDel)) $accDel = [$accountId];
-            $phDel  = implode(',', array_fill(0, count($accDel), '?'));
-            $stDel  = $pdoDel->prepare(
-                "SELECT 1
-                   FROM whatsapp_chats wc
-                   JOIN whatsapp_instances wi ON wi.id = wc.instance_id
-                  WHERE wc.instance_id = ? AND wc.remote_jid = ?
-                    AND wi.account_id IN ($phDel)
-                  LIMIT 1"
+            // Excluir a conversa local é DESTRUTIVO → exige 'delete_messages' no
+            // canal (não basta 'view'). Dono sempre tem; conta compartilhada só se
+            // a permissão tiver sido explicitamente concedida (off por padrão p/
+            // filial). 403 genérico em caso de negação.
+            WhatsAppChannelAccessService::assert($pdo, $accountId, (int)$ch['channel_id'], 'delete_messages');
+
+            // Defesa-em-profundidade: confirma que o chat alvo pertence ao canal já
+            // autorizado (instance_id resolvido no backend) — não a um id forjado.
+            // deleteChat() faz um DELETE cego por (instance_id, remote_jid); como o
+            // instance_id veio do grant (não do front), o escopo está garantido.
+            $stDel = $pdo->prepare(
+                "SELECT 1 FROM whatsapp_chats WHERE instance_id = ? AND remote_jid = ? LIMIT 1"
             );
-            $stDel->execute(array_merge([$instanceId, $jid], array_map('intval', $accDel)));
+            $stDel->execute([$instanceId, $jid]);
             if (!$stDel->fetchColumn()) {
-                http_response_code(403);
-                echo json_encode(['ok' => false, 'error' => 'Conversa não pertence a esta conta']);
+                http_response_code(404);
+                echo json_encode(['ok' => false, 'error' => 'Conversa não encontrada']);
                 exit;
             }
 

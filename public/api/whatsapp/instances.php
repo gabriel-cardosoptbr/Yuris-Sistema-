@@ -5,8 +5,10 @@ require_once __DIR__ . '/../../../app/Models/Account.php';
 require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
+require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
 
 use App\Helpers\AccountContext;
+use App\Models\Database;
 
 session_start(['read_and_close' => true]);
 $_uid  = $_SESSION['user_id']    ?? null;
@@ -17,27 +19,25 @@ if (!$_uid) { http_response_code(401); echo json_encode(['error' => 'Unauthorize
 
 $ctx        = AccountContext::fromSession();
 $accountId  = $ctx->getAccountId();
-// Instâncias de WhatsApp = CONFIGURAÇÃO da conta — cada tenant tem suas próprias conexões.
-$tenantIds  = [$accountId];
+$pdo        = Database::getConnection();
 
-// ─── Segurança (hotfix): gestão de canal é só owner/admin ─────────────────────
-// Antes desta correção, QUALQUER usuário logado podia ler a config crua: o GET
-// default devolvia 'settings' com evolution_api_key EM CLARO, e era possível
-// disparar create/connect/restart/logout/set_webhook. Agora: a leitura de STATUS
-// continua liberada (banner de conexão, sem segredos), mas QR, listagem, GET
-// default e todas as mutações exigem owner/admin. A chave nunca é devolvida e
-// nenhuma resposta carrega o 'raw' técnico da Evolution. (espelha config.php)
+// ─── Autorização em DUAS camadas (Fase 2 — canais compartilhados) ─────────────
+//  • Camada de PAPEL (intra-conta): gerir a conexão (conectar/QR/restart/logout/
+//    webhook/criar) continua sendo só owner/admin. Ortogonal ao canal.
+//  • Camada de CANAL (cross-tenant): WhatsAppChannelAccessService resolve o canal
+//    no backend e autoriza por grant. 'manage' é EXCLUSIVO do dono — uma conta com
+//    acesso compartilhado (filial herdando o canal da matriz) nunca conecta/exclui.
+//  A instância/credenciais são resolvidas SEMPRE no backend, a partir do DONO do
+//  canal (nunca do front). 'status' é leitura (view); a chave nunca é devolvida.
+// ──────────────────────────────────────────────────────────────────────────────
 $canManage  = $ctx->isOwnerOrAdmin();
 $denyManage = static function () {
     http_response_code(403);
     echo json_encode(['error' => 'Apenas owner/admin pode gerenciar a conexão WhatsApp']);
     exit;
 };
-// ──────────────────────────────────────────────────────────────────────────────
 
 $model  = new WhatsAppInstance();
-$cfg    = $model->getSettings($accountId);
-$evo    = new EvolutionApiService($cfg);
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
 
@@ -45,8 +45,12 @@ $action = $_GET['action'] ?? '';
 if ($method === 'GET') {
 
     if ($action === 'status') {
-        $name = $cfg['evolution_instance'] ?? 'yuris-crm';
-        $row  = $model->findOrCreate($name, '', $accountId);
+        // Leitura do estado de conexão (banner) — exige 'view' no canal.
+        $ch   = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $_GET['channel_id'] ?? null, 'view');
+        $cfg  = $ch['cfg'];
+        $name = $ch['instance_name'];
+        $row  = $ch['instance_row'];
+        $evo  = new EvolutionApiService($cfg);
 
         // Consulta estado real na Evolution API
         $state = $evo->getConnectionState($name);
@@ -91,7 +95,7 @@ if ($method === 'GET') {
             $extra['phone'] = preg_replace('/[^0-9+]/', '', explode('@', $phoneRaw)[0]);
         }
 
-        $model->updateStatus($row['id'], $status, $extra);
+        $model->updateStatus((int)$ch['channel_id'], $status, $extra);
 
         // Remove campos grandes/sensíveis da resposta de status.
         unset($row['qr_code_base64'], $row['evolution_token'], $row['webhook_url']);
@@ -107,8 +111,11 @@ if ($method === 'GET') {
     if (!$canManage) { $denyManage(); }
 
     if ($action === 'qr') {
-        $name = $cfg['evolution_instance'] ?? 'yuris-crm';
-        $row  = $model->findOrCreate($name, '', $accountId);
+        // Conectar/QR é AÇÃO DE GESTÃO do canal → 'manage' (exclusivo do dono).
+        $ch   = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $_GET['channel_id'] ?? null, 'manage');
+        $cfg  = $ch['cfg'];
+        $name = $ch['instance_name'];
+        $evo  = new EvolutionApiService($cfg);
         $res  = $evo->connectInstance($name);
 
         $qr = $res['base64'] ?? ($res['qrcode']['base64'] ?? ($res['code'] ?? ''));
@@ -117,7 +124,7 @@ if ($method === 'GET') {
             if (!str_starts_with($qr, 'data:')) {
                 $qr = 'data:image/png;base64,' . $qr;
             }
-            $model->updateQrCode($row['id'], $qr);
+            $model->updateQrCode((int)$ch['channel_id'], $qr);
         }
 
         echo json_encode(['ok' => true, 'qr' => $qr]);
@@ -125,13 +132,23 @@ if ($method === 'GET') {
     }
 
     if ($action === 'list') {
-        echo json_encode(['ok' => true, 'instances' => $model->listAll($tenantIds)]);
+        // Lista APENAS os canais visíveis pra conta (dono + compartilhados se a flag
+        // estiver ligada). Nunca expõe canal não vinculado, token, webhook ou QR.
+        $viewable = WhatsAppChannelAccessService::viewableChannelIds($pdo, $accountId);
+        $out = [];
+        foreach ($viewable as $cid) {
+            $r = $model->find((int)$cid);
+            if (!$r) continue;
+            unset($r['evolution_token'], $r['webhook_url'], $r['qr_code_base64']);
+            $out[] = $r;
+        }
+        echo json_encode(['ok' => true, 'instances' => $out]);
         exit;
     }
 
-    // Default: retorna instância padrão com estado atual (NUNCA credenciais).
-    $name = $cfg['evolution_instance'] ?? 'yuris-crm';
-    $row  = $model->findOrCreate($name, '', $accountId);
+    // Default: retorna a instância do canal da conta com estado atual (NUNCA credenciais).
+    $ch  = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $_GET['channel_id'] ?? null, 'view');
+    $row = $ch['instance_row'];
     unset($row['evolution_token'], $row['webhook_url'], $row['qr_code_base64']);
     echo json_encode(['ok' => true, 'instance' => $row]);
     exit;
@@ -144,10 +161,22 @@ if ($method === 'POST') {
         http_response_code(403); echo json_encode(['error' => 'CSRF inválido']); exit;
     }
 
+    // Todas as mutações abaixo exigem owner/admin (papel) E 'manage' no canal.
+    if (!$canManage) { $denyManage(); }
+
     $action = $payload['action'] ?? '';
 
+    // conectar/criar/restart/logout/webhook são GESTÃO do canal → 'manage'.
+    // 'manage' é exclusivo do dono: conta com canal compartilhado é negada aqui.
+    $ch   = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $payload['channel_id'] ?? null, 'manage');
+    $cfg  = $ch['cfg'];
+    $name = $ch['instance_name'];      // resolvido no backend — não confiamos no front
+    $ownerId = (int)$ch['owner_account_id'];
+    $evo  = new EvolutionApiService($cfg);
+
     if ($action === 'create') {
-        $name       = preg_replace('/[^a-zA-Z0-9_-]/', '', $payload['name'] ?? $cfg['evolution_instance']);
+        // Recria a instância do PRÓPRIO canal na Evolution. O nome é o resolvido no
+        // backend (ignora qualquer 'name' do front — anti-tampering).
         $webhookUrl = $payload['webhook_url'] ?? '';
         $res        = $evo->createInstance($name, $webhookUrl);
 
@@ -155,36 +184,33 @@ if ($method === 'POST') {
             echo json_encode(['ok' => false, 'error' => $res['_error']]); exit;
         }
 
-        $row = $model->findOrCreate($name, $payload['display_name'] ?? '', $accountId);
-
         // Salva QR code se retornado na criação
         $qr = $res['qrcode']['base64'] ?? ($res['base64'] ?? '');
         if ($qr) {
             if (!str_starts_with($qr, 'data:')) $qr = 'data:image/png;base64,' . $qr;
-            $model->updateQrCode($row['id'], $qr);
+            $model->updateQrCode((int)$ch['channel_id'], $qr);
         }
 
-        echo json_encode(['ok' => true, 'instance' => $model->find((int)$row['id'], $tenantIds), 'qr' => $qr]);
+        $row = $model->find((int)$ch['channel_id']);
+        if (is_array($row)) unset($row['evolution_token'], $row['webhook_url'], $row['qr_code_base64']);
+        echo json_encode(['ok' => true, 'instance' => $row, 'qr' => $qr]);
         exit;
     }
 
     if ($action === 'connect') {
-        $name = $cfg['evolution_instance'] ?? 'yuris-crm';
-        $row  = $model->findOrCreate($name, '', $accountId);
-        $res  = $evo->connectInstance($name);
+        $res = $evo->connectInstance($name);
 
         $qr = $res['base64'] ?? ($res['qrcode']['base64'] ?? '');
         if (!$qr && !empty($res['code'])) $qr = $res['code'];
         if ($qr && !str_starts_with($qr, 'data:')) $qr = 'data:image/png;base64,' . $qr;
-        if ($qr) $model->updateQrCode($row['id'], $qr);
+        if ($qr) $model->updateQrCode((int)$ch['channel_id'], $qr);
 
         echo json_encode(['ok' => true, 'qr' => $qr]);
         exit;
     }
 
     if ($action === 'restart') {
-        $name = $cfg['evolution_instance'] ?? 'yuris-crm';
-        $res  = $evo->restartInstance($name);
+        $res = $evo->restartInstance($name);
         // Verifica se voltou com QR (sessão expirou)
         $qr = $res['base64'] ?? ($res['qrcode']['base64'] ?? '');
         if ($qr && !str_starts_with($qr, 'data:')) $qr = 'data:image/png;base64,' . $qr;
@@ -193,23 +219,18 @@ if ($method === 'POST') {
     }
 
     if ($action === 'logout') {
-        $name = $cfg['evolution_instance'] ?? 'yuris-crm';
-        $row  = $model->findByName($name, $tenantIds);
-        if ($row) {
-            $evo->logoutInstance($name);
-            $model->updateStatus($row['id'], 'close');
-            $model->clearQrCode($row['id']);
-        }
+        $evo->logoutInstance($name);
+        $model->updateStatus((int)$ch['channel_id'], 'close');
+        $model->clearQrCode((int)$ch['channel_id']);
         echo json_encode(['ok' => true]);
         exit;
     }
 
     if ($action === 'set_webhook') {
-        $name = $cfg['evolution_instance'] ?? 'yuris-crm';
         $url  = trim($payload['url'] ?? '');
         if (!$url) { echo json_encode(['ok' => false, 'error' => 'URL obrigatória']); exit; }
 
-        // Anexa ?token=<apikey do tenant> à URL enviada à Evolution. Garante que o
+        // Anexa ?token=<apikey do DONO> à URL enviada à Evolution. Garante que o
         // webhook.php identifique o tenant mesmo quando a Evolution não repassa
         // headers customizados (a query string SEMPRE é enviada). Não duplica se o
         // usuário já tiver colocado token. A URL "limpa" (sem token) é a que fica
@@ -220,8 +241,8 @@ if ($method === 'POST') {
             $urlFinal .= (strpos($url, '?') === false ? '?' : '&') . 'token=' . urlencode($tenantKey);
         }
 
-        $res = $evo->setWebhook($name, $urlFinal);
-        $model->saveSetting($accountId, 'webhook_url', $url);
+        $evo->setWebhook($name, $urlFinal);
+        $model->saveSetting($ownerId, 'webhook_url', $url);
         echo json_encode(['ok' => true]);
         exit;
     }

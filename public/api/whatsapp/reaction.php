@@ -18,6 +18,7 @@ require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
 require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
+require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
 
@@ -61,19 +62,20 @@ try {
         exit;
     }
 
-    $instModel = new WhatsAppInstance();
-    $instance  = $instModel->getByAccountId($accountId);
-    if (!$instance) {
-        http_response_code(404);
-        echo json_encode(['error' => 'Instância WhatsApp não configurada']);
-        exit;
-    }
-    $instanceId = (int)$instance['id'];
+    // Reagir é equivalente a ENVIAR → permissão 'send' no canal (deny-by-default).
+    // Canal/credenciais resolvidos no backend (dono do canal), nunca do front.
+    $pdo        = \App\Models\Database::getConnection();
+    $ch         = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $payload['channel_id'] ?? null, 'send');
+    $instanceId = (int)$ch['channel_id'];
+    $ownerId    = (int)$ch['owner_account_id'];
+    $cfg        = $ch['cfg'];
+    $name       = $ch['instance_name'];
 
-    // 1) Persiste no banco local (UPSERT por reactor='me')
+    // 1) Persiste no banco local (UPSERT por reactor='me'). account_id = DONO do
+    //    canal, pra manter coerência com as mensagens (escopadas pelo dono).
     $model = new WhatsAppMessage();
     $model->upsertReaction([
-        'account_id'   => $accountId,
+        'account_id'   => $ownerId,
         'instance_id'  => $instanceId,
         'target_wamid' => $targetWamid,
         'reactor_jid'  => 'me',
@@ -86,9 +88,7 @@ try {
     // Mas captura o resultado pra retornar ao frontend (debug / status visivel).
     $evoResult = null;
     try {
-        $cfg  = $instModel->getSettings($accountId);
-        $evo  = new EvolutionApiService($cfg);
-        $name = $cfg['evolution_instance'] ?? 'yuris-crm';
+        $evo  = new EvolutionApiService($cfg); // $cfg/$name já resolvidos (dono do canal)
 
         // Em grupos, a Evolution exige `participant` no key (jid do autor real
         // da msg sendo reagida). Sem isso, o WhatsApp não encontra a msg alvo

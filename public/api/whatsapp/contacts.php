@@ -7,6 +7,7 @@ require_once __DIR__ . '/../../../app/Models/Account.php';
 require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
 require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
+require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 
 use App\Models\Database;
@@ -28,19 +29,15 @@ $accountId = $ctx->getAccountId();
 $method = $_SERVER['REQUEST_METHOD'];
 
 try {
-    $instModel  = new WhatsAppInstance();
-    $cfg        = $instModel->getSettings($accountId);
-    $instName   = $cfg['evolution_instance'] ?? 'yuris-crm';
-    $row        = $instModel->findOrCreate($instName, '', $accountId);
-    $instanceId = (int)$row['id'];
-
-    // Validação extra: garante isolamento
-    if ((int)($row['account_id'] ?? 0) !== $accountId) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Instância WhatsApp não pertence a esta conta']);
-        exit;
-    }
     $pdo        = Database::getConnection();
+
+    // Contatos do canal = 'view' (deny-by-default). Resolve canal próprio ou, com a
+    // flag ligada, o compartilhado (filial herdando o da matriz). instance_id e
+    // credenciais (usadas no fetch_pic) saem do backend, do dono do canal.
+    $ch         = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, ($_GET['channel_id'] ?? null), 'view');
+    $cfg        = $ch['cfg'];
+    $instName   = $ch['instance_name'];
+    $instanceId = (int)$ch['channel_id'];
 
     if ($method === 'GET') {
         $stmt = $pdo->prepare(

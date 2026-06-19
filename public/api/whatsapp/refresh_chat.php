@@ -8,6 +8,7 @@ require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
 require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
+require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 
 use App\Helpers\AccountContext;
@@ -29,12 +30,15 @@ $ctx       = AccountContext::fromSession();
 $accountId = $ctx->getAccountId();
 
 try {
-    $instModel  = new WhatsAppInstance();
     $msgModel   = new WhatsAppMessage();
-    $cfg        = $instModel->getSettings($accountId);
-    $name       = $cfg['evolution_instance'] ?? 'yuris-crm';
-    $row        = $instModel->findOrCreate($name, '', $accountId);
-    $instanceId = (int)$row['id'];
+    $pdo        = \App\Models\Database::getConnection();
+
+    // Refresh de uma conversa = 'sync' no canal (deny-by-default). Canal/credenciais
+    // resolvidos no backend (dono do canal) — nunca do front.
+    $ch         = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $_GET['channel_id'] ?? null, 'sync');
+    $cfg        = $ch['cfg'];
+    $name       = $ch['instance_name'];
+    $instanceId = (int)$ch['channel_id'];
     $evo        = new EvolutionApiService($cfg);
     // Não pendurar a conexão se a Evolution estiver lenta/instável (era ilimitado).
     // Esse refresh roda em segundo plano; se estourar o tempo, o banco já foi exibido.
