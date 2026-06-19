@@ -384,6 +384,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
     <button class="mst-tab" data-mtab="operators"><?= $_tabIco('operators') ?>Operadores <span id="operatorsBadge" style="display:none;background:#f59e0b;color:#fff;font-size:.7rem;padding:1px 7px;border-radius:999px;margin-left:5px;font-weight:700"></span></button>
     <button class="mst-tab" data-mtab="reviews"><?= $_tabIco('reviews') ?>Revisões <span id="reviewsBadge" style="display:none;background:#dc2626;color:#fff;font-size:.7rem;padding:1px 7px;border-radius:999px;margin-left:5px;font-weight:700"></span></button>
     <button class="mst-tab" data-mtab="whatsapp"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>WhatsApp</button>
+    <button class="mst-tab" data-mtab="agente"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="8" cy="16" r="1"/><circle cx="16" cy="16" r="1"/><path d="M12 7v4"/><circle cx="12" cy="5" r="2"/></svg>Agente IA</button>
   </div>
 
   <!-- ── Visão Geral ── -->
@@ -917,42 +918,6 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
       </div>
     </div>
 
-    <!-- Security Key da OpenAI (GLOBAL, vale para todas as instancias) -->
-    <div class="mst-card" style="padding:18px; margin-bottom:14px">
-      <div style="font-weight:700; margin-bottom:4px">Security Key da OpenAI (global)</div>
-      <div style="font-size:.74rem; color:#9ab0c9; margin-bottom:12px; max-width:720px">Chave usada por TODAS as instâncias do agente de IA. Fica cifrada e nunca volta em claro. Os escritórios não precisam informar chave: o sistema usa esta. Valide antes de salvar.</div>
-      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; max-width:780px">
-        <input id="aiOpenaiKey" class="mst-form-input" type="password" autocomplete="new-password" style="flex:1; min-width:260px" placeholder="sk-...">
-        <span id="aiOpenaiStatus" style="font-size:.78rem; color:#9ab0c9; min-width:160px"></span>
-        <button onclick="testAiOpenai(this)" style="padding:9px 16px;background:transparent;border:1px solid rgba(96,165,250,.5);color:#7EB8F7;border-radius:8px;font-weight:600;cursor:pointer">Validar</button>
-        <button onclick="saveAiOpenai(this)" style="padding:9px 16px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer">Salvar chave</button>
-      </div>
-    </div>
-
-    <!-- Prompt do Agente de IA (asset GLOBAL, corrigido so aqui pelo super admin) -->
-    <div class="mst-card" style="padding:18px; margin-bottom:14px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
-        <div>
-          <div style="font-weight:700; margin-bottom:4px">Prompt do Agente de IA (Pré-Atendimento)</div>
-          <div style="font-size:.74rem; color:#9ab0c9; max-width:700px">Manual de conduta universal usado por TODOS os escritórios. Os clientes não editam isto, eles só preenchem nome, áreas e mensagens na tela do agente. Cada correção aqui cria uma nova versão (com histórico e rollback). Atenção: prompt maior significa mais tokens por mensagem, mitigado pelo cache automático da OpenAI.</div>
-        </div>
-        <div style="text-align:right;font-size:.74rem;color:#9ab0c9">
-          <div>Versão ativa: <strong id="aiPromptVer" style="color:#cfe0f5">—</strong></div>
-          <div id="aiPromptMeta"></div>
-        </div>
-      </div>
-      <textarea id="aiPromptText" class="mst-form-input" rows="16" spellcheck="false" style="margin-top:12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.78rem;line-height:1.5;white-space:pre-wrap" placeholder="Carregando…"></textarea>
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px">
-        <input id="aiPromptChangelog" class="mst-form-input" style="flex:1;min-width:240px" placeholder="O que você corrigiu? (entra no histórico da versão)">
-        <span id="aiPromptCounter" style="font-size:.72rem;color:#9ab0c9"></span>
-        <button onclick="saveAiPrompt(this)" style="padding:9px 18px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer">Salvar nova versão</button>
-      </div>
-      <div style="margin-top:14px">
-        <div style="font-size:.74rem;color:#9ab0c9;margin-bottom:6px">Histórico de versões</div>
-        <div id="aiPromptVersions" style="font-size:.78rem">—</div>
-      </div>
-    </div>
-
     <div class="mst-card" style="padding:0; overflow:hidden; margin-bottom:14px">
       <div style="padding:14px 18px; border-bottom:1px solid rgba(160,180,210,.10)">
         <div style="font-weight:700">Instâncias por conta</div>
@@ -989,6 +954,49 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
         </div>
       </div>
       <div id="waShareList" style="padding:14px 18px"><div style="color:#9ab0c9">Carregando…</div></div>
+    </div>
+  </section>
+
+  <section class="mst-section" id="msec-agente">
+    <div class="mst-card" style="padding:18px; margin-bottom:14px">
+      <div style="font-weight:700; margin-bottom:4px">Agente de IA, Pré-Atendimento Jurídico</div>
+      <div style="font-size:.74rem; color:#9ab0c9; max-width:760px">Configuração GLOBAL do assistente que faz a triagem no WhatsApp. A chave da OpenAI e o prompt valem para TODAS as instâncias; cada escritório só escolhe o canal, as áreas e as mensagens na própria tela do agente. A conexão do WhatsApp (número, QR, token) continua na aba WhatsApp.</div>
+    </div>
+
+    <!-- Security Key da OpenAI (GLOBAL, vale para todas as instancias) -->
+    <div class="mst-card" style="padding:18px; margin-bottom:14px">
+      <div style="font-weight:700; margin-bottom:4px">Security Key da OpenAI (global)</div>
+      <div style="font-size:.74rem; color:#9ab0c9; margin-bottom:12px; max-width:720px">Chave usada por TODAS as instâncias do agente de IA. Fica cifrada e nunca volta em claro. Os escritórios não precisam informar chave: o sistema usa esta. Valide antes de salvar.</div>
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; max-width:780px">
+        <input id="aiOpenaiKey" class="mst-form-input" type="password" autocomplete="new-password" style="flex:1; min-width:260px" placeholder="sk-...">
+        <span id="aiOpenaiStatus" style="font-size:.78rem; color:#9ab0c9; min-width:160px"></span>
+        <button onclick="testAiOpenai(this)" style="padding:9px 16px;background:transparent;border:1px solid rgba(96,165,250,.5);color:#7EB8F7;border-radius:8px;font-weight:600;cursor:pointer">Validar</button>
+        <button onclick="saveAiOpenai(this)" style="padding:9px 16px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer">Salvar chave</button>
+      </div>
+    </div>
+
+    <!-- Prompt do Agente de IA (asset GLOBAL, corrigido so aqui pelo super admin) -->
+    <div class="mst-card" style="padding:18px; margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:700; margin-bottom:4px">Prompt do Agente de IA (Pré-Atendimento)</div>
+          <div style="font-size:.74rem; color:#9ab0c9; max-width:700px">Manual de conduta universal usado por TODOS os escritórios. Os clientes não editam isto, eles só preenchem nome, áreas e mensagens na tela do agente. Cada correção aqui cria uma nova versão (com histórico e rollback). Atenção: prompt maior significa mais tokens por mensagem, mitigado pelo cache automático da OpenAI.</div>
+        </div>
+        <div style="text-align:right;font-size:.74rem;color:#9ab0c9">
+          <div>Versão ativa: <strong id="aiPromptVer" style="color:#cfe0f5">—</strong></div>
+          <div id="aiPromptMeta"></div>
+        </div>
+      </div>
+      <textarea id="aiPromptText" class="mst-form-input" rows="16" spellcheck="false" style="margin-top:12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.78rem;line-height:1.5;white-space:pre-wrap" placeholder="Carregando…"></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px">
+        <input id="aiPromptChangelog" class="mst-form-input" style="flex:1;min-width:240px" placeholder="O que você corrigiu? (entra no histórico da versão)">
+        <span id="aiPromptCounter" style="font-size:.72rem;color:#9ab0c9"></span>
+        <button onclick="saveAiPrompt(this)" style="padding:9px 18px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer">Salvar nova versão</button>
+      </div>
+      <div style="margin-top:14px">
+        <div style="font-size:.74rem;color:#9ab0c9;margin-bottom:6px">Histórico de versões</div>
+        <div id="aiPromptVersions" style="font-size:.78rem">—</div>
+      </div>
     </div>
   </section>
 
@@ -2417,7 +2425,7 @@ function notifyOk(msg) {
 // ── Hash routing ─────────────────────────────────────────────────────────
 // Etapa 8 (LGPD): array atualizado com lgpd, retencao, incidents — antes faltavam
 // e o hash routing caía no fallback de 'overview' ao clicar nessas abas.
-const TABS = ['overview','dashboard','accounts','plans','billing','invoices','payments','expenses','audit','lgpd','retencao','incidents','operators','reviews','whatsapp'];
+const TABS = ['overview','dashboard','accounts','plans','billing','invoices','payments','expenses','audit','lgpd','retencao','incidents','operators','reviews','whatsapp','agente'];
 function activateTab(name) {
   if (!TABS.includes(name)) name = 'overview';
   document.querySelectorAll('.mst-tab').forEach(t => t.classList.toggle('active', t.dataset.mtab === name));
@@ -2439,7 +2447,8 @@ function loadTab(name) {
   if (name==='incidents') loadIncidents();
   if (name==='operators') loadOperators();
   if (name==='reviews')   loadReviews();
-  if (name==='whatsapp') { loadGlobalEvolution(); loadWhatsappConfig(); loadWaChannels(); loadAiOpenai(); loadAiPrompt(); }
+  if (name==='whatsapp') { loadGlobalEvolution(); loadWhatsappConfig(); loadWaChannels(); }
+  if (name==='agente')   { loadAiOpenai(); loadAiPrompt(); }
 }
 
 // ── WhatsApp / Evolution (infra por conta — só super_admin) ────────────────
