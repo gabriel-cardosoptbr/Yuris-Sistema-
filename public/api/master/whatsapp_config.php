@@ -227,7 +227,9 @@ if ($method === 'POST') {
         $acctKey  = (string)($settings['evolution_api_key'] ?? '');
         [$gBase, $gHook, $gKey] = _globalCfg($pdo);
         $base    = ((string)($settings['evolution_base_url'] ?? '')) ?: $gBase;
-        $authKey = $acctKey !== '' ? $acctKey : $gKey;
+        // Prefere a admin key GLOBAL (autoritativa na Evolution v2: apaga qualquer
+        // instância) — robusto mesmo se a chave salva da conta estiver errada.
+        $authKey = $gKey !== '' ? $gKey : $acctKey;
 
         // Reset TOTAL da conta: pega TODAS as instâncias locais dela (some também o
         // lixo de testes antigos), não só a "atual".
