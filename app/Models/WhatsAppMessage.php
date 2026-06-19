@@ -145,7 +145,8 @@ class WhatsAppMessage
 
         $newId = (int)$this->db->lastInsertId();
 
-        // Atualiza resumo do chat
+        // Atualiza resumo do chat (propaga o account_id resolvido pra nao gravar NULL)
+        $data['account_id'] = $accountIdResolved;
         $this->upsertChat($data);
 
         return $newId;
@@ -752,13 +753,31 @@ class WhatsAppMessage
             };
         }
 
+        $isGroup = str_ends_with($data['remote_jid'] ?? '', '@g.us');
+
+        // account_id: usa o resolvido pelo save(); fallback resolve pela instancia (evita NULL).
+        $accId = isset($data['account_id']) && (int)$data['account_id'] > 0 ? (int)$data['account_id'] : null;
+        if ($accId === null) {
+            $r = $this->db->prepare('SELECT account_id FROM whatsapp_instances WHERE id = ? LIMIT 1');
+            $r->execute([(int)$data['instance_id']]);
+            $a = $r->fetchColumn();
+            $accId = ($a !== false && $a !== null) ? (int)$a : null;
+        }
+
+        // contact_name: SO usa o nome da mensagem quando ela e INBOUND. Em mensagem sua
+        // (outbound), o pushName e o SEU nome (ex.: "Voce"), que rotularia o chat errado.
+        $cname = $isInbound ? trim((string)($data['contact_name'] ?? '')) : '';
+        if ($cname !== '' && in_array(mb_strtolower($cname), ['voce', 'você', 'you', 'eu'], true)) $cname = '';
+        $cname = $cname !== '' ? $cname : null;
+
         $stmt = $this->db->prepare(
             'INSERT INTO whatsapp_chats
-             (instance_id, remote_jid, contact_name, phone,
+             (account_id, instance_id, remote_jid, contact_name, phone,
               last_message_content, last_message_type, last_message_at,
               last_message_from_me, unread_count, is_group)
-             VALUES (?,?,?,?,?,?,?,?,?,?)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?)
              ON DUPLICATE KEY UPDATE
+               account_id           = IF(account_id IS NULL, VALUES(account_id), account_id),
                contact_name         = IF(is_group = 0 AND VALUES(contact_name) IS NOT NULL AND VALUES(contact_name) != "", VALUES(contact_name), contact_name),
                phone                = IF(VALUES(phone) IS NOT NULL AND VALUES(phone) != "", VALUES(phone), phone),
                last_message_content = VALUES(last_message_content),
@@ -768,12 +787,11 @@ class WhatsAppMessage
                unread_count         = IF(VALUES(last_message_from_me) = 0, unread_count + 1, unread_count)'
         );
 
-        $isGroup = str_ends_with($data['remote_jid'] ?? '', '@g.us');
-
         $stmt->execute([
+            $accId,
             $data['instance_id'],
             $data['remote_jid'],
-            $data['contact_name'] ?? null,
+            $cname,
             $data['phone']        ?? null,
             $content,
             $data['message_type'] ?? 'text',
@@ -782,6 +800,35 @@ class WhatsAppMessage
             $isInbound ? 1 : 0,
             $isGroup ? 1 : 0,
         ]);
+    }
+
+    /**
+     * Normaliza um remote_jid @lid (id de privacidade do WhatsApp) para o JID de telefone
+     * (<numero>@s.whatsapp.net) QUANDO ja conhecemos o numero real do contato (de grupos em
+     * comum / contatos). Senao, devolve o jid cru. Evita criar/duplicar a conversa sob o @lid
+     * quando o telefone ja e conhecido. Prevencao da duplicacao @lid x telefone.
+     */
+    public static function resolvePhoneJid(\PDO $db, int $instanceId, ?string $jid): ?string
+    {
+        if (!$jid || !str_ends_with($jid, '@lid')) return $jid;
+        // Fonte confiavel 1: participante de grupo (phoneNumber real).
+        $st = $db->prepare("SELECT phone FROM whatsapp_group_members
+                             WHERE instance_id = ? AND participant_jid = ? AND phone REGEXP '^[0-9]{10,15}$'
+                             LIMIT 1");
+        $st->execute([$instanceId, $jid]);
+        $phone = $st->fetchColumn();
+        if (!$phone) {
+            // Fonte 2: contato ja com telefone resolvido.
+            $st = $db->prepare("SELECT phone FROM whatsapp_contacts
+                                 WHERE instance_id = ? AND remote_jid = ? AND phone REGEXP '^[0-9]{10,15}$'
+                                 LIMIT 1");
+            $st->execute([$instanceId, $jid]);
+            $phone = $st->fetchColumn();
+        }
+        if ($phone && preg_match('/^[0-9]{10,15}$/', (string)$phone)) {
+            return $phone . '@s.whatsapp.net';
+        }
+        return $jid; // sem telefone confiavel: mantem @lid (nao quebra o fluxo atual)
     }
 
     /** Contar mensagens novas (para badge). */

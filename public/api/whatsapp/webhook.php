@@ -227,16 +227,18 @@ try {
                 $jid      = $c['id']       ?? null;
                 $name     = $c['name']     ?? null;
                 $unread   = (int)($c['unreadCount'] ?? 0);
-                $isGroup  = str_ends_with((string)$jid, '@g.us') ? 1 : 0;
                 if (!$jid) continue;
+                $jid      = WhatsAppMessage::resolvePhoneJid($pdo, (int)$instanceId, $jid); // @lid -> telefone quando conhecido
+                $isGroup  = str_ends_with((string)$jid, '@g.us') ? 1 : 0;
                 $s = $pdo->prepare(
-                    'INSERT INTO whatsapp_chats (instance_id, remote_jid, contact_name, unread_count, is_group)
-                     VALUES (?,?,?,?,?)
+                    'INSERT INTO whatsapp_chats (account_id, instance_id, remote_jid, contact_name, unread_count, is_group)
+                     VALUES (?,?,?,?,?,?)
                      ON DUPLICATE KEY UPDATE
+                       account_id   = IF(account_id IS NULL, VALUES(account_id), account_id),
                        contact_name = IF(VALUES(contact_name) IS NOT NULL, VALUES(contact_name), contact_name),
                        unread_count = VALUES(unread_count)'
                 );
-                $s->execute([$instanceId, $jid, $name, $unread, $isGroup]);
+                $s->execute([$accountId, $instanceId, $jid, $name, $unread, $isGroup]);
             }
             break;
 
@@ -257,11 +259,12 @@ try {
                     $subj = $g['subject'] ?? ($g['subjectName'] ?? null);
                     if ($subj) {
                         $pdo->prepare(
-                            'INSERT INTO whatsapp_chats (instance_id, remote_jid, contact_name, is_group)
-                             VALUES (?,?,?,1)
+                            'INSERT INTO whatsapp_chats (account_id, instance_id, remote_jid, contact_name, is_group)
+                             VALUES (?,?,?,?,1)
                              ON DUPLICATE KEY UPDATE
+                               account_id   = IF(account_id IS NULL, VALUES(account_id), account_id),
                                contact_name = IF(COALESCE(is_manual_name,0)=0 AND VALUES(contact_name) IS NOT NULL AND VALUES(contact_name) <> "", VALUES(contact_name), contact_name)'
-                        )->execute([$instanceId, $gjid, $subj]);
+                        )->execute([$accountId, $instanceId, $gjid, $subj]);
                     }
                     if (!empty($g['participants']) && is_array($g['participants'])) {
                         upsertGroupParticipants($pdo, $accountId, $instanceId, $gjid, $g['participants']);
@@ -329,6 +332,9 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
     $participantJid = $key['participant'] ?? ($msg['participant'] ?? null);
 
     if (!$remoteJid) return;
+    // Prevencao da duplicacao @lid x telefone: se o chat 1:1 vier como id de privacidade
+    // @lid e ja conhecermos o numero real (de grupos/contatos), grava sob o JID do telefone.
+    $remoteJid = WhatsAppMessage::resolvePhoneJid(Database::getConnection(), $instanceId, $remoteJid);
 
     $pushName  = $msg['pushName']          ?? null;
     $ts        = $msg['messageTimestamp']  ?? time();

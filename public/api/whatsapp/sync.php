@@ -142,6 +142,7 @@ try {
     }
 
     foreach ($jidMap as $jid => $info) {
+        $jid      = WhatsAppMessage::resolvePhoneJid($pdo, (int)$instanceId, $jid); // @lid -> telefone quando conhecido (anti-duplicacao)
         $isGroup  = str_ends_with($jid, '@g.us') ? 1 : 0;
         $cname    = $isGroup
             ? ($groupMap[$jid]['name'] ?? $info['pushName'] ?? null)
@@ -155,12 +156,13 @@ try {
 
         $pdo->prepare(
             'INSERT INTO whatsapp_chats
-             (instance_id, remote_jid, contact_name, phone, is_group, profile_pic_url, unread_count)
-             VALUES (?,?,?,?,?,?,0)
+             (account_id, instance_id, remote_jid, contact_name, phone, is_group, profile_pic_url, unread_count)
+             VALUES (?,?,?,?,?,?,?,0)
              ON DUPLICATE KEY UPDATE
+               account_id      = IF(account_id IS NULL, VALUES(account_id), account_id),
                contact_name    = IF(VALUES(contact_name) IS NOT NULL AND VALUES(contact_name) != "", VALUES(contact_name), contact_name),
                profile_pic_url = IF(VALUES(profile_pic_url) IS NOT NULL, VALUES(profile_pic_url), profile_pic_url)'
-        )->execute([$instanceId, $jid, $cname, $phone, $isGroup, $pic]);
+        )->execute([$ownerId, $instanceId, $jid, $cname, $phone, $isGroup, $pic]);
         $synced++;
     }
 
@@ -173,6 +175,7 @@ try {
         $fromMe = (bool)($key2['fromMe']   ?? false);
         $participantJid = $key2['participant'] ?? null;
         if (!$remJid) continue;
+        $remJid = WhatsAppMessage::resolvePhoneJid($pdo, (int)$instanceId, $remJid); // @lid -> telefone quando conhecido
 
         $msgTypeRaw = $r['messageType'] ?? 'text';
         $msgObj     = $r['message']     ?? [];
