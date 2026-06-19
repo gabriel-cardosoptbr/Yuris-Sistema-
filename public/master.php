@@ -2443,18 +2443,41 @@ async function loadGlobalEvolution() {
   const set = (id,v)=>{ const el=document.getElementById(id); if(el) el.value = v||''; };
   set('gevBaseUrl', d.evolution_base_url);
   set('gevWebhook', d.webhook_url);
-  const k = document.getElementById('gevAdminKey'); if (k) k.value = '';
+  const k = document.getElementById('gevAdminKey');
+  if (k) {
+    if (d.has_admin_key) {
+      // Mostra a chave salva mascarada NO PRÓPRIO CAMPO (asteriscos + final),
+      // pra confirmar visualmente que está lá. Trava: enquanto "pristine", o save
+      // nunca reenvia a máscara (mantém a atual). Ao focar limpa pra digitar nova;
+      // se sair sem digitar, restaura a máscara.
+      const masked = d.admin_key_masked || '••••••••••••';
+      k.value = masked;
+      k.dataset.masked = masked;
+      k.dataset.pristine = '1';
+      k.onfocus = function(){ if (this.dataset.pristine === '1') this.value = ''; };
+      k.onblur  = function(){ if (this.dataset.pristine === '1' && this.value === '') this.value = this.dataset.masked || ''; };
+      k.oninput = function(){ this.dataset.pristine = '0'; };
+    } else {
+      k.value = ''; k.dataset.masked = ''; k.dataset.pristine = '0';
+      k.onfocus = null; k.onblur = null; k.oninput = null;
+    }
+  }
   const hint = document.getElementById('gevKeyHint');
   if (hint) hint.textContent = d.has_admin_key
-    ? ('Admin key salva: ' + (d.admin_key_masked||'****') + ' (deixe em branco para manter)')
+    ? 'Chave salva (mostrada mascarada acima). Clique no campo e digite para trocar; deixe como está para manter.'
     : 'Nenhuma admin key salva ainda';
 }
 async function saveGlobalEvolution() {
   const body = { csrf_token: CSRF, action:'save_global',
     evolution_base_url: document.getElementById('gevBaseUrl').value.trim(),
     webhook_url:        document.getElementById('gevWebhook').value.trim() };
-  const k = document.getElementById('gevAdminKey').value.trim();
-  if (k) body.evolution_admin_key = k;
+  // Só envia a chave se o usuário REALMENTE digitou uma nova. Se o campo continua
+  // "pristine" (mostrando a máscara) ou igual à máscara, mantém a atual (não grava por cima).
+  const kEl = document.getElementById('gevAdminKey');
+  const kVal = (kEl.value || '').trim();
+  if (kEl.dataset.pristine !== '1' && kVal !== '' && kVal !== (kEl.dataset.masked || '')) {
+    body.evolution_admin_key = kVal;
+  }
   try {
     const res = await fetch(`${API}/whatsapp_config.php`, { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF}, body: JSON.stringify(body) });
     const j = await res.json();
