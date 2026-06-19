@@ -1844,6 +1844,10 @@ $isSuper       = !empty($_SESSION['is_super_admin']);
           <svg style="display:inline;width:13px;height:13px;margin-right:5px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           Contatos
         </button>
+        <button class="conn-btn-secondary" id="btnAgentToggle" onclick="ChatApp.toggleAgentChannel()" style="display:none" title="Liga ou desliga o agente de IA no canal inteiro">
+          <svg style="display:inline;width:13px;height:13px;margin-right:5px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="8" cy="16" r="1"/><circle cx="16" cy="16" r="1"/><path d="M12 7v4"/><circle cx="12" cy="5" r="2"/></svg>
+          <span id="btnAgentToggleLabel">Agente</span>
+        </button>
         <button class="conn-btn-secondary" id="btnDisconnect" onclick="ChatApp.disconnectWhatsApp()" style="display:none">
           Desconectar
         </button>

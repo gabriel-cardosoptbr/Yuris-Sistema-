@@ -212,6 +212,8 @@ const ChatApp = (() => {
   function setConnectionStatus(status, instance = {}) {
     const wasConnected = state.status === 'open';
     state.status = status;
+    if (instance && instance.id) state.instanceId = Number(instance.id);
+    loadAgentToggle();
     const dot   = qs('#waDot');
     const label = qs('#waStatusLabel');
     const badge = qs('#connBadge');
@@ -2905,6 +2907,57 @@ const ChatApp = (() => {
     }
   }
 
+  // ── Agente IA: liga/desliga GLOBAL do canal (atalho no header) ──────────────
+  async function loadAgentToggle() {
+    const btn = qs('#btnAgentToggle'); if (!btn) return;
+    if (state.status !== 'open' || !state.instanceId) { btn.style.display = 'none'; return; }
+    try {
+      const r = await apiFetch('/api/whatsapp/agent_channel_toggle.php?instance_id=' + state.instanceId);
+      if (!r || r.ok !== true) { btn.style.display = 'none'; return; }
+      renderAgentToggle(r);
+    } catch (e) {
+      // 403 (nao owner/admin) ou 404 (sem canal no escopo): simplesmente nao mostra
+      btn.style.display = 'none';
+    }
+  }
+  function renderAgentToggle(r) {
+    const btn = qs('#btnAgentToggle'); const lbl = qs('#btnAgentToggleLabel'); if (!btn) return;
+    btn.style.display = 'inline-flex';
+    if (!r.has_agent) {
+      lbl.textContent = 'Configurar agente';
+      btn.style.color = '#9ab0c9'; btn.style.borderColor = 'rgba(160,180,210,.3)';
+      btn.title = 'Nenhum agente configurado neste canal. Abrir a tela Agente de IA.';
+      btn.dataset.mode = 'setup';
+    } else if (r.enabled) {
+      lbl.textContent = 'Agente: Ligado';
+      btn.style.color = '#10b981'; btn.style.borderColor = 'rgba(16,185,129,.45)';
+      btn.title = 'O agente responde automaticamente nas conversas (menos as que você assumir). Clique para desligar no canal inteiro.';
+      btn.dataset.mode = 'on';
+    } else {
+      lbl.textContent = 'Agente: Desligado';
+      btn.style.color = '#9ab0c9'; btn.style.borderColor = 'rgba(160,180,210,.3)';
+      btn.title = 'O agente está desligado neste canal. Clique para ligar.';
+      btn.dataset.mode = 'off';
+    }
+  }
+  async function toggleAgentChannel() {
+    const btn = qs('#btnAgentToggle'); if (!btn) return;
+    const mode = btn.dataset.mode;
+    if (mode === 'setup') { window.location.href = 'agente.php'; return; }
+    const turnOn = (mode !== 'on');
+    const msg = turnOn
+      ? 'Ligar o agente de IA neste canal? Ele passará a responder automaticamente as conversas (menos as que você assumir).'
+      : 'Desligar o agente de IA no canal inteiro? Nenhuma conversa será respondida automaticamente.';
+    if (!confirm(msg)) return;
+    try {
+      const r = await apiFetch('/api/whatsapp/agent_channel_toggle.php', 'POST', { _csrf: CSRF, instance_id: state.instanceId, enabled: turnOn ? 1 : 0 });
+      if (r && r.ok) { renderAgentToggle(r); toast(turnOn ? 'Agente ligado no canal' : 'Agente desligado no canal', 'success'); }
+      else { toast((r && r.error) || 'Não foi possível alterar o agente', 'error'); }
+    } catch (e) {
+      toast(e.message || 'Não foi possível alterar o agente', 'error');
+    }
+  }
+
   return {
     init, checkStatus, connectWhatsApp, disconnectWhatsApp,
     manualReconnect, dismissDisconnectAlert,
@@ -2930,7 +2983,7 @@ const ChatApp = (() => {
     scrollToWamid,
     // P0+P1 (2026-05-25) — busca + arquivar + marcar nao lida
     toggleChatSearch, closeChatSearch, onChatSearchInput,
-    markChatUnread, toggleArchive, toggleTakeover,
+    markChatUnread, toggleArchive, toggleTakeover, toggleAgentChannel,
     // Modal de membros do grupo — botoes do chat.php chamam ChatApp.closeGroupMembers
     showGroupMembersModal, closeGroupMembers,
   };
