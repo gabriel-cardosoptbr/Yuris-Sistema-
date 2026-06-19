@@ -69,7 +69,10 @@ Backfill: toda instância existente recebe a linha de DONO (owner, full perms).
 
 ---
 
-## 4. Arquivos alterados (21 arquivos; +1034 / -212)
+## 4. Arquivos alterados (21 arquivos de implementação; +1034 / -212)
+
+> Além destes 21, o commit da Parte F adiciona 2 arquivos de **entrega** em `docs/`
+> (este relatório + o `.patch`), que não fazem parte da implementação.
 
 ```
 .env.example                                        (flag)
@@ -200,3 +203,25 @@ Rollback: desligar a flag (volta ao isolamento por canal próprio) sem reverter 
 
 **Nenhum deploy foi feito. A flag está desligada.** Aguardando autorização expressa
 para: (a) merge na main, (b) rodar a migration em produção, (c) ligar a flag.
+
+---
+
+## 11. Auditoria do pacote (self-check, 2026-06-19)
+
+Conferência da matriz da seção 5 contra o que cada endpoint REALMENTE chama
+(`grep` por `resolveForRequest/assert/check` + gates de papel):
+
+- `instances.php`: `view` (status linha 49 / default linha 159), `manage` (qr linha 115;
+  POST connect/restart/logout/set_webhook/create linha 180) + `isOwnerOrAdmin`. ✔
+- `send.php`/`reaction.php` = `send`; `media_upload.php` = `send`. ✔
+- `messages.php`/`contacts.php`/`group_members.php`/`contato_vinculos.php` = `view`. ✔
+- `chats.php` = `view` (linha 40) + `assert('delete_messages')` na ação delete (linha 187). ✔
+- `media.php` = `check('view')` com cfg do dono (linha 63). ✔
+- `sync.php`/`refresh_chat.php`/`discover.php` = `sync`. ✔
+- `message_action.php` = `delete_messages` (linha 75), exclusão escopada à conta requisitante. ✔
+- `config.php` = `isOwnerOrAdmin` (GET) + super_admin (POST). ✔
+- `opcache_clear.php`: utilitário de deploy (invalida opcache de arquivos de código),
+  já restrito a owner/admin, NÃO toca dado de canal/tenant — fora do escopo da matriz. ✔
+- `webhook.php`: identifica tenant pela apikey da instância (dono); sem sessão. ✔
+
+Resultado: matriz da seção 5 confere 1:1 com o código. Sem divergência doc↔implementação.
