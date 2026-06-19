@@ -14,6 +14,7 @@ require_once __DIR__ . '/../../../app/Models/Account.php';
 require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
+require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
 
@@ -31,14 +32,12 @@ if (empty($_SESSION['user_id'])) {
 try {
     $ctx       = AccountContext::fromSession();
     $accountId = $ctx->getAccountId();
+    $pdo       = \App\Models\Database::getConnection();
 
-    $instModel = new WhatsAppInstance();
-    $instance  = $instModel->getByAccountId($accountId);
-    if (!$instance) {
-        echo json_encode(['ok' => true, 'members' => [], 'count' => 0]);
-        exit;
-    }
-    $instanceId = (int)$instance['id'];
+    // Membros do grupo = 'view' no canal (deny-by-default). instance_id resolvido
+    // no backend (canal próprio ou compartilhado, com a flag ligada).
+    $ch         = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, ($_GET['channel_id'] ?? null), 'view');
+    $instanceId = (int)$ch['channel_id'];
 
     $jid = trim($_GET['jid'] ?? '');
     if ($jid === '' || !str_ends_with($jid, '@g.us')) {

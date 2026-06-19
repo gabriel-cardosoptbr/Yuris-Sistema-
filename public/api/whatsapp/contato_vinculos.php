@@ -5,6 +5,8 @@ ob_start();
 require_once __DIR__ . '/../../../app/Models/Database.php';
 require_once __DIR__ . '/../../../app/Models/Account.php';
 require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
+require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
+require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 
 use App\Helpers\AccountContext;
@@ -25,6 +27,13 @@ if (empty($tenantIds)) $tenantIds = [$ctx->getAccountId()];
 
 try {
     $pdo = \App\Models\Database::getConnection();
+
+    // Gate de canal (Fase 2): exige 'view' em algum canal (próprio ou compartilhado
+    // com a flag ligada). A RESOLUÇÃO do contato abaixo continua escopada pelas
+    // contas acessíveis (CRM próprio do tenant) — a filial não enxerga o CRM da
+    // matriz mesmo vendo o chat compartilhado; aqui só se garante o acesso ao canal.
+    WhatsAppChannelAccessService::resolveForRequest($pdo, $ctx->getAccountId(), ($_GET['channel_id'] ?? null), 'view');
+
     $jid = trim($_GET['jid'] ?? '');
 
     if (!$jid) {

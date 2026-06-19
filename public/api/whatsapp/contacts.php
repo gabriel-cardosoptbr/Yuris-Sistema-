@@ -7,6 +7,7 @@ require_once __DIR__ . '/../../../app/Models/Account.php';
 require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
 require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
+require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 
 use App\Models\Database;
@@ -28,19 +29,15 @@ $accountId = $ctx->getAccountId();
 $method = $_SERVER['REQUEST_METHOD'];
 
 try {
-    $instModel  = new WhatsAppInstance();
-    $cfg        = $instModel->getSettings($accountId);
-    $instName   = $cfg['evolution_instance'] ?? 'yuris-crm';
-    $row        = $instModel->findOrCreate($instName, '', $accountId);
-    $instanceId = (int)$row['id'];
-
-    // Validação extra: garante isolamento
-    if ((int)($row['account_id'] ?? 0) !== $accountId) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Instância WhatsApp não pertence a esta conta']);
-        exit;
-    }
     $pdo        = Database::getConnection();
+
+    // Contatos do canal = 'view' (deny-by-default). Resolve canal próprio ou, com a
+    // flag ligada, o compartilhado (filial herdando o da matriz). instance_id e
+    // credenciais (usadas no fetch_pic) saem do backend, do dono do canal.
+    $ch         = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, ($_GET['channel_id'] ?? null), 'view');
+    $cfg        = $ch['cfg'];
+    $instName   = $ch['instance_name'];
+    $instanceId = (int)$ch['channel_id'];
 
     if ($method === 'GET') {
         $stmt = $pdo->prepare(
@@ -95,16 +92,18 @@ try {
                 }
                 if ($fetchNum === '') {
                     try {
-                        $rs = $pdo->prepare("SELECT phone FROM whatsapp_group_members WHERE participant_jid COLLATE utf8mb4_unicode_ci = ? AND phone REGEXP '^[0-9]{10,13}\$' LIMIT 1");
-                        $rs->execute([$jid]);
+                        // ESCOPADO ao canal resolvido (instance_id) — sem isso, a busca
+                        // varria o pool GLOBAL e vazava telefone de canal alheio (Fase 2 E).
+                        $rs = $pdo->prepare("SELECT phone FROM whatsapp_group_members WHERE participant_jid COLLATE utf8mb4_unicode_ci = ? AND instance_id = ? AND phone REGEXP '^[0-9]{10,13}\$' LIMIT 1");
+                        $rs->execute([$jid, $instanceId]);
                         $cand = $digits($rs->fetchColumn());
                         if ($isPhone($cand)) $fetchNum = $cand;
                     } catch (\Throwable $_) {}
                 }
                 if ($fetchNum === '') {
                     try {
-                        $rs = $pdo->prepare("SELECT phone FROM whatsapp_contacts WHERE remote_jid = ? AND phone REGEXP '^[0-9]{10,13}\$' LIMIT 1");
-                        $rs->execute([$jid]);
+                        $rs = $pdo->prepare("SELECT phone FROM whatsapp_contacts WHERE remote_jid = ? AND instance_id = ? AND phone REGEXP '^[0-9]{10,13}\$' LIMIT 1");
+                        $rs->execute([$jid, $instanceId]);
                         $cand = $digits($rs->fetchColumn());
                         if ($isPhone($cand)) $fetchNum = $cand;
                     } catch (\Throwable $_) {}

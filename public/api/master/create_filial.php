@@ -30,6 +30,8 @@ require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
 require_once __DIR__ . '/../../../app/Helpers/MasterAudit.php';
 require_once __DIR__ . '/../../../app/Services/AccountBootstrapSeeder.php';
+require_once __DIR__ . '/../../../app/Services/WhatsAppProvisioningService.php';
+require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
 
 use App\Helpers\AccountContext;
 use App\Helpers\ApiResponse;
@@ -83,6 +85,13 @@ if ($cnpj) {
 
 $filStatus = in_array($fil['status'] ?? 'active', ['active','trial','suspended'], true)
     ? $fil['status'] : 'active';
+
+// WhatsApp da filial: 'matriz' (herdar canal da matriz, padrão), 'propria' (canal
+// próprio) ou 'depois' (pendente). Normaliza apelidos do front.
+$waModeRaw = strtolower(trim((string)($input['whatsapp_mode'] ?? 'matriz')));
+$waMode = in_array($waModeRaw, ['matriz', 'herdar', 'herdar_matriz'], true) ? 'matriz'
+        : (in_array($waModeRaw, ['propria', 'proprio'], true) ? 'propria'
+        : 'depois');
 
 // Admin opcional — valida se for enviado
 $senhaGerada = false; $senhaTexto = null;
@@ -198,10 +207,44 @@ try {
 
     $pdo->commit();
 
+    // ── WhatsApp da filial (BEST-EFFORT, após o commit; nunca derruba o cadastro) ──
+    // A hierarquia matriz↔filial é validada AQUI mesmo (acabamos de criar o vínculo
+    // explícito em account_vinculos), então conceder à filial acesso 'shared' ao canal
+    // da matriz é legítimo. O acesso só vale em runtime com a feature flag ligada.
+    $whatsapp = ['mode' => $waMode];
+    try {
+        if ($waMode === 'propria') {
+            if (WhatsAppProvisioningService::isGloballyConfigured($pdo)) {
+                $whatsapp['result'] = WhatsAppProvisioningService::provision($pdo, (int)$filialId, (string)$nome);
+            } else {
+                $whatsapp['result'] = ['success' => false, 'error' => 'config global Evolution ausente'];
+            }
+        } elseif ($waMode === 'matriz') {
+            // Canal PRÓPRIO da matriz (dono). Sem canal => fica pendente.
+            $matrizChannel = WhatsAppChannelAccessService::ownChannelId($pdo, $matrizId);
+            if ($matrizChannel) {
+                WhatsAppChannelAccessService::grant(
+                    $pdo, $matrizChannel, (int)$filialId, 'shared',
+                    ['can_view' => 1, 'can_send' => 1, 'can_sync' => 1], // sem can_manage
+                    (int)($userId ?? 0) ?: null
+                );
+                $whatsapp['shared_channel_id'] = $matrizChannel;
+                $whatsapp['granted'] = true;
+            } else {
+                $whatsapp['granted'] = false;
+                $whatsapp['pending'] = 'matriz ainda nao tem canal proprio';
+            }
+        }
+    } catch (\Throwable $e) {
+        error_log('[master/create_filial/whatsapp] ' . $e->getMessage());
+        $whatsapp['error'] = $e->getMessage();
+    }
+
     $payload = [
         'filial_id'      => $filialId,
         'vinculo_id'     => $vinculoId,
         'codigo_vinculo' => $codigo,
+        'whatsapp'       => $whatsapp,
     ];
     if ($adminUserId) {
         $payload['admin_user_id'] = $adminUserId;

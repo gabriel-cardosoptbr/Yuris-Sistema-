@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
 require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
+require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 
 use App\Helpers\AccountContext;
@@ -58,17 +59,16 @@ try {
 
 $instModel  = new WhatsAppInstance();
 $msgModel   = new WhatsAppMessage();
-$cfg        = $instModel->getSettings($accountId);
-$instName   = $cfg['evolution_instance'] ?? 'yuris-crm';
-$row        = $instModel->findOrCreate($instName, '', $accountId);
-$instanceId = (int)$row['id'];
+$pdo        = \App\Models\Database::getConnection();
 
-// Validação extra: garante isolamento por tenant (mesma checagem dos demais endpoints)
-if ((int)($row['account_id'] ?? 0) !== $accountId) {
-    http_response_code(403);
-    echo json_encode(['error' => 'Instância WhatsApp não pertence a esta conta']);
-    exit;
-}
+// Envio = permissão 'send' no canal (deny-by-default). Resolve o canal próprio ou,
+// com a flag ligada, o canal COMPARTILHADO (filial herdando o da matriz). A
+// instância e as credenciais são SEMPRE resolvidas no backend, a partir do DONO
+// do canal — nunca do front (instance_name/account_id/channel_id não confiáveis).
+$ch         = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $payload['channel_id'] ?? null, 'send');
+$cfg        = $ch['cfg'];
+$instName   = $ch['instance_name'];
+$instanceId = (int)$ch['channel_id'];
 
 $evo        = new EvolutionApiService($cfg);
 
@@ -178,16 +178,21 @@ $res = match ($type) {
     default => $evo->sendMedia($instName, $remoteJid, $type, $mediaData, $caption, $filename, $mimetype),
 };
 
+// Erros de rede/Evolution: o detalhe (curl_error, mensagem crua da API) pode
+// vazar host/IP/path interno. Loga server-side e devolve mensagem GENERICA ao
+// cliente (auditoria 2026-06-19 Fase 2 Parte E).
 if (!empty($res['_error'])) {
+    error_log('[whatsapp/send] curl/_error inst=' . $instName . ': ' . $res['_error']);
     http_response_code(502);
-    echo json_encode(['ok' => false, 'error' => 'Falha ao enviar: ' . $res['_error']]);
+    echo json_encode(['ok' => false, 'error' => 'Falha ao enviar a mensagem. Tente novamente.']);
     exit;
 }
 
 if (($res['_http'] ?? 0) >= 400) {
-    $errMsg = $res['message'] ?? ($res['error'] ?? 'Erro desconhecido da API');
+    error_log('[whatsapp/send] Evolution http=' . ($res['_http'] ?? 0) . ' inst=' . $instName
+        . ' msg=' . substr((string)($res['message'] ?? ($res['error'] ?? '')), 0, 300));
     http_response_code(502);
-    echo json_encode(['ok' => false, 'error' => $errMsg]);
+    echo json_encode(['ok' => false, 'error' => 'Falha ao enviar a mensagem. Tente novamente.']);
     exit;
 }
 

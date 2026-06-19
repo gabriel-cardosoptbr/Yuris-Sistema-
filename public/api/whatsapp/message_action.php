@@ -17,6 +17,7 @@ require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
 require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
+require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
 
@@ -66,19 +67,18 @@ try {
         exit;
     }
 
-    $instModel = new WhatsAppInstance();
-    $instance  = $instModel->getByAccountId($accountId);
-    if (!$instance) {
-        http_response_code(404);
-        echo json_encode(['error' => 'Instância WhatsApp não configurada']);
-        exit;
-    }
+    // Apagar mensagem = permissão DEDICADA 'delete_messages' no canal
+    // (deny-by-default). Dono sempre tem; conta compartilhada só se concedido
+    // explicitamente (off por padrão p/ filial). Canal/credenciais resolvidos no
+    // backend (dono do canal), nunca do front.
+    $pdo     = \App\Models\Database::getConnection();
+    $ch      = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $payload['channel_id'] ?? null, 'delete_messages');
+    $cfg     = $ch['cfg'];
+    $name    = $ch['instance_name'];
 
     // 1) Despacha revoke para Evolution (best-effort)
     try {
-        $cfg  = $instModel->getSettings($accountId);
         $evo  = new EvolutionApiService($cfg);
-        $name = $cfg['evolution_instance'] ?? 'yuris-crm';
         $evo->deleteMessage($name, [
             'remoteJid' => $jid,
             'id'        => $targetWamid,
@@ -86,7 +86,11 @@ try {
         ]);
     } catch (\Throwable $_) {}
 
-    // 2) Soft delete local (filtra por account_id)
+    // 2) Soft delete local — escopado à CONTA REQUISITANTE (nunca ao dono do canal).
+    //    Como WhatsAppMessage::save grava account_id = conta DONA da instância, uma
+    //    conta com acesso COMPARTILHADO (filial) não casa o account_id das mensagens
+    //    do canal e portanto NÃO consegue apagar mensagem da matriz nem de outra
+    //    filial (markDeleted devolve false -> 403). O dono (matriz) apaga as suas.
     $model = new WhatsAppMessage();
     $ok    = $model->markDeleted($messageId, [$accountId]);
     if (!$ok) {

@@ -1,0 +1,2166 @@
+diff --git a/.env.example b/.env.example
+index 925199d..fb8a701 100644
+--- a/.env.example
++++ b/.env.example
+@@ -25,6 +25,13 @@ EVOLUTION_INSTANCE=
+ # self-signed/expirado em ambiente dev. NUNCA defina false em produção.
+ EVOLUTION_TLS_VERIFY=true
+ 
++# ── Compartilhamento de canal WhatsApp (Fase 2 — filial usa canal da matriz) ──
++# Feature flag de SEGURANÇA. Enquanto false, o compartilhamento matriz->filial NÃO
++# é honrado em runtime (cada conta só acessa o canal do qual é DONA). A autorização
++# é sempre por vínculo explícito em whatsapp_channel_accounts (deny-by-default);
++# esta flag só LIBERA o uso dos vínculos 'shared'. Só ligar após revisão de segurança.
++WHATSAPP_SHARED_CHANNELS_ENABLED=false
++
+ # ── App ──
+ APP_ENV=development
+ APP_DEBUG=true
+diff --git a/app/Services/WhatsAppChannelAccessService.php b/app/Services/WhatsAppChannelAccessService.php
+new file mode 100644
+index 0000000..933610a
+--- /dev/null
++++ b/app/Services/WhatsAppChannelAccessService.php
+@@ -0,0 +1,359 @@
++<?php
++/**
++ * WhatsAppChannelAccessService — camada ÚNICA de autorização de canal WhatsApp.
++ *
++ * Princípios (spec de segurança Fase 2):
++ *  - DENY BY DEFAULT. Sem registro ativo em whatsapp_channel_accounts => sem acesso.
++ *  - channel_id = whatsapp_instances.id. NUNCA confiar em instance_name/account_id/
++ *    channel_id vindos do front sem validar contra um grant ativo da conta.
++ *  - DONO (access_type='owner') tem todas as permissões.
++ *  - COMPARTILHADO (access_type='shared') só vale se a feature flag estiver LIGADA,
++ *    e só concede as permissões granulares marcadas (can_view/can_send/can_sync).
++ *  - 'manage' (conectar/QR/logout/excluir/webhook/credenciais) é EXCLUSIVO DO DONO.
++ *    Conta compartilhada nunca administra o canal, mesmo que a coluna esteja 1.
++ *  - getPipelineAccountId() NÃO é usado aqui (autorização de runtime); só serve pra
++ *    validar hierarquia na hora de CONCEDER o vínculo (em create_filial).
++ *
++ * Uso típico no endpoint:
++ *   $ctx = AccountContext::fromSession();
++ *   $accountId = $ctx->getAccountId();
++ *   $channelId = WhatsAppChannelAccessService::resolveRequestedChannel($pdo, $accountId, $in['channel_id'] ?? null);
++ *   $ch = WhatsAppChannelAccessService::assert($pdo, $accountId, $channelId, 'send'); // 403+exit se negar
++ *   // $ch['owner_account_id'] / $ch['instance_name'] resolvidos no backend.
++ */
++
++require_once __DIR__ . '/../Models/Database.php';
++require_once __DIR__ . '/../Models/WhatsAppInstance.php';
++require_once __DIR__ . '/../Helpers/EnvLoader.php';
++
++class WhatsAppChannelAccessService
++{
++    /** Feature flag global. Compartilhamento só vale quando LIGADA. */
++    public static function sharingEnabled(): bool
++    {
++        $v = strtolower(trim(\App\Helpers\EnvLoader::get('WHATSAPP_SHARED_CHANNELS_ENABLED', 'false')));
++        return in_array($v, ['1', 'true', 'yes', 'on'], true);
++    }
++
++    /** Mapeia permissão -> coluna. */
++    private static function permColumn(string $perm): ?string
++    {
++        switch ($perm) {
++            case 'view':            return 'can_view';
++            case 'send':            return 'can_send';
++            case 'sync':            return 'can_sync';
++            case 'delete_messages': return 'can_delete_messages';
++            case 'manage':          return 'can_manage';
++            default:                return null;
++        }
++    }
++
++    /** Grant ATIVO de (account, channel), ou null. */
++    private static function grantRow(\PDO $pdo, int $accountId, int $channelId): ?array
++    {
++        $st = $pdo->prepare(
++            'SELECT access_type, can_view, can_send, can_sync, can_delete_messages, can_manage
++               FROM whatsapp_channel_accounts
++              WHERE account_id = ? AND channel_id = ? AND revoked_at IS NULL
++              LIMIT 1'
++        );
++        $st->execute([$accountId, $channelId]);
++        $r = $st->fetch(\PDO::FETCH_ASSOC);
++        return $r ?: null;
++    }
++
++    /**
++     * Verifica acesso. Retorna o contexto do canal (resolvido NO BACKEND) se a conta
++     * tem $perm sobre $channelId; senão null. Deny-by-default.
++     *
++     * @return array{channel_id:int, owner_account_id:int, instance_name:string, status:string, access_type:string}|null
++     */
++    public static function check(\PDO $pdo, int $accountId, int $channelId, string $perm): ?array
++    {
++        if ($accountId <= 0 || $channelId <= 0) return null;
++        $col = self::permColumn($perm);
++        if ($col === null) return null;
++
++        // Canal precisa existir (resolve dono + nome no backend, nunca do front).
++        $st = $pdo->prepare('SELECT id, account_id, instance_name, status FROM whatsapp_instances WHERE id = ? LIMIT 1');
++        $st->execute([$channelId]);
++        $inst = $st->fetch(\PDO::FETCH_ASSOC);
++        if (!$inst) return null;
++
++        $grant = self::grantRow($pdo, $accountId, $channelId);
++        if (!$grant) return null; // sem vínculo => negado
++
++        $isOwner = ($grant['access_type'] === 'owner');
++
++        if ($isOwner) {
++            $allowed = true; // dono tem todas as permissões
++        } else {
++            // Compartilhado: só com a flag ligada; e 'manage' nunca é concedido a shared.
++            if (!self::sharingEnabled()) return null;
++            if ($perm === 'manage')      return null; // exclusivo do dono
++            $allowed = ((int)($grant[$col] ?? 0) === 1);
++        }
++
++        if (!$allowed) return null;
++
++        return [
++            'channel_id'       => (int)$inst['id'],
++            'owner_account_id' => (int)$inst['account_id'],
++            'instance_name'    => (string)$inst['instance_name'],
++            'status'           => (string)$inst['status'],
++            'access_type'      => (string)$grant['access_type'],
++        ];
++    }
++
++    /**
++     * Igual ao check, mas em caso de negação devolve 403 genérico e encerra.
++     * Loga acessos administrativos (manage) pra auditoria.
++     */
++    public static function assert(\PDO $pdo, int $accountId, int $channelId, string $perm): array
++    {
++        $ch = self::check($pdo, $accountId, $channelId, $perm);
++        if ($ch === null) {
++            self::deny();
++        }
++        if ($perm === 'manage') {
++            error_log(sprintf('[wa-channel-access] MANAGE account=%d channel=%d owner=%d type=%s',
++                $accountId, $channelId, $ch['owner_account_id'], $ch['access_type']));
++        }
++        return $ch;
++    }
++
++    /**
++     * Resposta 403 GENÉRICA + exit. Nunca revela se o canal existe/é de quem
++     * (anti-enumeração/IDOR). Centralizada para que TODO ponto de negação use a
++     * mesma mensagem e os mesmos headers.
++     */
++    public static function deny(): void
++    {
++        if (!headers_sent()) {
++            http_response_code(403);
++            header('Content-Type: application/json; charset=utf-8');
++            header('Cache-Control: no-store');
++        }
++        echo json_encode(['ok' => false, 'error' => 'Acesso negado ao canal de WhatsApp.']);
++        exit;
++    }
++
++    /**
++     * IDs de canais que a conta pode VER. Dono sempre; compartilhados só com a flag
++     * ligada (e can_view=1). Usado nas LISTAGENS — nunca expor canal não vinculado.
++     *
++     * @return int[]
++     */
++    public static function viewableChannelIds(\PDO $pdo, int $accountId): array
++    {
++        if ($accountId <= 0) return [];
++        if (self::sharingEnabled()) {
++            $st = $pdo->prepare(
++                "SELECT channel_id FROM whatsapp_channel_accounts
++                  WHERE account_id = ? AND revoked_at IS NULL
++                    AND (access_type = 'owner' OR can_view = 1)"
++            );
++        } else {
++            $st = $pdo->prepare(
++                "SELECT channel_id FROM whatsapp_channel_accounts
++                  WHERE account_id = ? AND revoked_at IS NULL AND access_type = 'owner'"
++            );
++        }
++        $st->execute([$accountId]);
++        return array_map('intval', $st->fetchAll(\PDO::FETCH_COLUMN) ?: []);
++    }
++
++    /** Canal PRÓPRIO da conta (onde ela é dona). null se não tiver. */
++    public static function ownChannelId(\PDO $pdo, int $accountId): ?int
++    {
++        if ($accountId <= 0) return null;
++        $st = $pdo->prepare(
++            "SELECT channel_id FROM whatsapp_channel_accounts
++              WHERE account_id = ? AND access_type = 'owner' AND revoked_at IS NULL
++              ORDER BY channel_id DESC LIMIT 1"
++        );
++        $st->execute([$accountId]);
++        $v = $st->fetchColumn();
++        return $v === false ? null : (int)$v;
++    }
++
++    /**
++     * Resolve o canal de uma requisição. Se o front mandou channel_id, valida que a
++     * conta tem QUALQUER vínculo de visão sobre ele (senão nega via assert no caller);
++     * se não mandou, usa o canal próprio. Nunca confia cegamente no valor do front.
++     */
++    public static function resolveRequestedChannel(\PDO $pdo, int $accountId, $requested): ?int
++    {
++        $req = (int)($requested ?? 0);
++        if ($req > 0) {
++            // Só aceita se estiver na lista de canais visíveis da conta (anti-tampering/enumeração).
++            return in_array($req, self::viewableChannelIds($pdo, $accountId), true) ? $req : null;
++        }
++        return self::ownChannelId($pdo, $accountId);
++    }
++
++    /**
++     * Primeiro canal COMPARTILHADO visível pra conta (filial herdando o canal da
++     * matriz). Só faz sentido com a flag ligada — o caller é quem decide chamar.
++     * Determinístico: mais recente primeiro.
++     */
++    public static function firstSharedChannelId(\PDO $pdo, int $accountId): ?int
++    {
++        if ($accountId <= 0) return null;
++        $st = $pdo->prepare(
++            "SELECT channel_id FROM whatsapp_channel_accounts
++              WHERE account_id = ? AND access_type = 'shared'
++                AND revoked_at IS NULL AND can_view = 1
++              ORDER BY created_at DESC, channel_id DESC LIMIT 1"
++        );
++        $st->execute([$accountId]);
++        $v = $st->fetchColumn();
++        return $v === false ? null : (int)$v;
++    }
++
++    /** A conta tem QUALQUER vínculo ativo (dono ou compartilhado)? */
++    public static function hasAnyGrant(\PDO $pdo, int $accountId): bool
++    {
++        if ($accountId <= 0) return false;
++        $st = $pdo->prepare(
++            'SELECT 1 FROM whatsapp_channel_accounts
++              WHERE account_id = ? AND revoked_at IS NULL LIMIT 1'
++        );
++        $st->execute([$accountId]);
++        return (bool)$st->fetchColumn();
++    }
++
++    /**
++     * RESOLUÇÃO ÚNICA de canal para um endpoint do pacote WhatsApp. Faz TUDO no
++     * backend, nunca confiando no front:
++     *
++     *   1) resolve o channel_id efetivo, nesta ordem de precedência:
++     *        a) channel_id pedido pelo front — só se for VISÍVEL à conta
++     *           (anti-tampering/enumeração); caso contrário, NEGA.
++     *        b) canal PRÓPRIO (onde a conta é dona) — o padrão.
++     *        c) com a flag LIGADA, o primeiro canal COMPARTILHADO visível
++     *           (filial herdando o canal da matriz).
++     *        d) bootstrap do canal próprio a partir das settings da conta
++     *           (compat com o findOrCreate legado; default 'yuris-crm'),
++     *           SÓ quando a conta não tem NENHUM vínculo (nem dono, nem
++     *           compartilhado). Assim uma filial herdeira nunca ganha um canal
++     *           próprio vazio que competiria com o da matriz.
++     *   2) AUTORIZA ($perm) — deny-by-default; 403 genérico + exit se negar.
++     *   3) carrega a config Evolution do DONO do canal (base_url/api_key/instance);
++     *      NUNCA da conta requisitante nem do front.
++     *
++     * @param mixed  $requestedChannelId  channel_id que o front mandou (ou null)
++     * @param string $perm                view|send|sync|delete_messages|manage
++     * @return array{
++     *   channel_id:int, owner_account_id:int, instance_name:string,
++     *   instance_row:array, cfg:array, access_type:string, is_owner:bool, shared:bool
++     * }
++     */
++    public static function resolveForRequest(\PDO $pdo, int $accountId, $requestedChannelId, string $perm): array
++    {
++        if ($accountId <= 0) self::deny();
++        $model = new \WhatsAppInstance();
++
++        $channelId = null;
++
++        // (a) canal pedido explicitamente — só se visível.
++        $req = (int)($requestedChannelId ?? 0);
++        if ($req > 0) {
++            if (!in_array($req, self::viewableChannelIds($pdo, $accountId), true)) {
++                self::deny();
++            }
++            $channelId = $req;
++        }
++
++        // (b) canal próprio (default).
++        if ($channelId === null) {
++            $channelId = self::ownChannelId($pdo, $accountId);
++        }
++
++        // (c) filial herdando: só com a flag ligada.
++        if ($channelId === null && self::sharingEnabled()) {
++            $channelId = self::firstSharedChannelId($pdo, $accountId);
++        }
++
++        // (d) bootstrap do próprio — só se a conta não tem NENHUM vínculo.
++        if ($channelId === null && !self::hasAnyGrant($pdo, $accountId)) {
++            $cfg0     = $model->getSettings($accountId);
++            $instName = $cfg0['evolution_instance'] ?? 'yuris-crm';
++            $row      = $model->findOrCreate($instName, '', $accountId);
++            $channelId = (int)$row['id'];
++            self::grant($pdo, $channelId, $accountId, 'owner', [], null); // idempotente
++        }
++
++        if ($channelId === null) self::deny();
++
++        // (2) autoriza (deny-by-default).
++        $ch = self::assert($pdo, $accountId, (int)$channelId, $perm);
++
++        // (3) config Evolution SEMPRE do DONO do canal — nunca do front/filial.
++        $cfg     = $model->getSettings((int)$ch['owner_account_id']);
++        $instRow = $model->find((int)$ch['channel_id']); // já autorizado; sem escopo
++
++        return [
++            'channel_id'       => (int)$ch['channel_id'],
++            'owner_account_id' => (int)$ch['owner_account_id'],
++            'instance_name'    => (string)$ch['instance_name'],
++            'instance_row'     => is_array($instRow) ? $instRow : [],
++            'cfg'              => $cfg,
++            'access_type'      => (string)$ch['access_type'],
++            'is_owner'         => ($ch['access_type'] === 'owner'),
++            'shared'           => ($ch['access_type'] !== 'owner'),
++        ];
++    }
++
++    /** Concede/atualiza um vínculo de canal (idempotente por (channel,account)). */
++    public static function grant(\PDO $pdo, int $channelId, int $accountId, string $accessType, array $perms = [], ?int $grantedBy = null): bool
++    {
++        if ($channelId <= 0 || $accountId <= 0) return false;
++        $accessType = in_array($accessType, ['owner', 'shared'], true) ? $accessType : 'shared';
++        $isOwner = ($accessType === 'owner');
++        $v = static fn(string $k) => $isOwner ? 1 : (int)!empty($perms[$k]);
++        $st = $pdo->prepare(
++            'INSERT INTO whatsapp_channel_accounts
++                (channel_id, account_id, access_type, can_view, can_send, can_sync, can_delete_messages, can_manage, granted_by, created_at, revoked_at)
++             VALUES (?,?,?,?,?,?,?,?,?,NOW(),NULL)
++             ON DUPLICATE KEY UPDATE
++                access_type         = VALUES(access_type),
++                can_view            = VALUES(can_view),
++                can_send            = VALUES(can_send),
++                can_sync            = VALUES(can_sync),
++                can_delete_messages = VALUES(can_delete_messages),
++                can_manage          = VALUES(can_manage),
++                granted_by          = VALUES(granted_by),
++                revoked_at          = NULL'
++        );
++        $ok = $st->execute([
++            $channelId, $accountId, $accessType,
++            $v('can_view'), $v('can_send'), $v('can_sync'),
++            $v('can_delete_messages'),
++            $isOwner ? 1 : 0, // 'manage' nunca concedido a shared, mesmo se pedirem
++            $grantedBy,
++        ]);
++        error_log(sprintf('[wa-channel-access] GRANT channel=%d account=%d type=%s by=%s',
++            $channelId, $accountId, $accessType, $grantedBy === null ? 'system' : (string)$grantedBy));
++        return (bool)$ok;
++    }
++
++    /**
++     * Revoga (soft) um vínculo COMPARTILHADO. Nunca toca um registro de DONO
++     * (access_type='owner') — posse não se revoga por aqui. Retorna TRUE só se uma
++     * linha foi de fato revogada (rowCount), pra auditoria não registrar revogação
++     * falsa quando não havia compartilhamento ativo.
++     */
++    public static function revoke(\PDO $pdo, int $channelId, int $accountId, ?int $by = null): bool
++    {
++        $st = $pdo->prepare(
++            "UPDATE whatsapp_channel_accounts SET revoked_at = NOW()
++              WHERE channel_id = ? AND account_id = ? AND access_type = 'shared' AND revoked_at IS NULL"
++        );
++        $st->execute([$channelId, $accountId]);
++        $changed = $st->rowCount() > 0;
++        error_log(sprintf('[wa-channel-access] REVOKE channel=%d account=%d by=%s changed=%s',
++            $channelId, $accountId, $by === null ? 'system' : (string)$by, $changed ? '1' : '0'));
++        return $changed;
++    }
++}
+diff --git a/app/Services/WhatsAppProvisioningService.php b/app/Services/WhatsAppProvisioningService.php
+index bdc2e98..52aebde 100644
+--- a/app/Services/WhatsAppProvisioningService.php
++++ b/app/Services/WhatsAppProvisioningService.php
+@@ -17,6 +17,7 @@
+ require_once __DIR__ . '/EvolutionApiService.php';
+ require_once __DIR__ . '/../Models/WhatsAppInstance.php';
+ require_once __DIR__ . '/../Helpers/Crypto.php';
++require_once __DIR__ . '/WhatsAppChannelAccessService.php';
+ 
+ class WhatsAppProvisioningService
+ {
+@@ -119,9 +120,16 @@ class WhatsAppProvisioningService
+             $acctEvo->setWebhook($name, $hookUrl);
+ 
+             // Linha local da instancia.
+-            $model->findOrCreate($name, $accountName !== '' ? $accountName : $name, $accountId);
++            $inst = $model->findOrCreate($name, $accountName !== '' ? $accountName : $name, $accountId);
+ 
+-            return ['success' => true, 'instance' => $name];
++            // Autorização de canal: a conta vira DONA do canal (full perms). É o que
++            // a camada WhatsAppChannelAccessService usa como base (deny-by-default).
++            $channelId = (int)($inst['id'] ?? 0);
++            if ($channelId > 0) {
++                \WhatsAppChannelAccessService::grant($pdo, $channelId, $accountId, 'owner', [], null);
++            }
++
++            return ['success' => true, 'instance' => $name, 'channel_id' => $channelId];
+         } catch (\Throwable $e) {
+             error_log('[WhatsAppProvisioningService] ' . $e->getMessage());
+             return ['success' => false, 'error' => $e->getMessage()];
+diff --git a/database/migrations/096_whatsapp_channel_accounts.sql b/database/migrations/096_whatsapp_channel_accounts.sql
+new file mode 100644
+index 0000000..36642af
+--- /dev/null
++++ b/database/migrations/096_whatsapp_channel_accounts.sql
+@@ -0,0 +1,38 @@
++-- Migration 096: whatsapp_channel_accounts
++-- Camada de AUTORIZAÇÃO EXPLÍCITA de acesso a canal de WhatsApp (instância).
++-- channel_id = whatsapp_instances.id. Cada conta que pode usar um canal tem UMA
++-- linha aqui: a dona (access_type='owner', todas as permissões) e cada conta com
++-- quem o canal foi explicitamente compartilhado (access_type='shared', permissões
++-- granulares). Sem linha = sem acesso (deny-by-default).
++--
++-- Compartilhamento (filial usando o canal da matriz) NÃO é inferido de hierarquia
++-- em runtime; exige um registro 'shared' explícito criado na concessão.
++
++CREATE TABLE IF NOT EXISTS whatsapp_channel_accounts (
++    id          INT AUTO_INCREMENT PRIMARY KEY,
++    channel_id  INT NOT NULL,                                   -- whatsapp_instances.id
++    account_id  INT NOT NULL,                                   -- conta que recebe o acesso
++    access_type ENUM('owner','shared') NOT NULL DEFAULT 'shared',
++    can_view            TINYINT(1) NOT NULL DEFAULT 0,
++    can_send            TINYINT(1) NOT NULL DEFAULT 0,
++    can_sync            TINYINT(1) NOT NULL DEFAULT 0,
++    can_delete_messages TINYINT(1) NOT NULL DEFAULT 0,          -- apagar mensagens (shared: off por padrao)
++    can_manage          TINYINT(1) NOT NULL DEFAULT 0,          -- conexao/QR/logout/webhook/excluir instancia (so dono)
++    granted_by  INT DEFAULT NULL,                               -- users.id / super admin que concedeu
++    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
++    revoked_at  DATETIME DEFAULT NULL,                          -- NULL = ativo
++    UNIQUE KEY uk_channel_account (channel_id, account_id),
++    KEY idx_wca_account (account_id),
++    KEY idx_wca_channel (channel_id),
++    KEY idx_wca_active  (account_id, revoked_at),
++    CONSTRAINT fk_wca_channel FOREIGN KEY (channel_id) REFERENCES whatsapp_instances(id) ON DELETE CASCADE,
++    CONSTRAINT fk_wca_account FOREIGN KEY (account_id) REFERENCES accounts(id)            ON DELETE CASCADE
++) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
++
++-- Backfill: toda instância existente recebe a linha de DONA (owner, full perms).
++INSERT INTO whatsapp_channel_accounts (channel_id, account_id, access_type, can_view, can_send, can_sync, can_delete_messages, can_manage, created_at)
++SELECT wi.id, wi.account_id, 'owner', 1, 1, 1, 1, 1, NOW()
++  FROM whatsapp_instances wi
++  LEFT JOIN whatsapp_channel_accounts wca
++    ON wca.channel_id = wi.id AND wca.account_id = wi.account_id
++ WHERE wca.id IS NULL;
+diff --git a/database/migrations/run_096.php b/database/migrations/run_096.php
+new file mode 100644
+index 0000000..2a7fdb9
+--- /dev/null
++++ b/database/migrations/run_096.php
+@@ -0,0 +1,75 @@
++<?php
++// Runner standalone da migration 096 (whatsapp_channel_accounts).
++//
++// Uso local:  php database/migrations/run_096.php
++// Uso prod:   docker exec -i yuris_app php /var/www/html/database/migrations/run_096.php
++//
++// Cria a tabela de autorização explícita de canal + coluna can_delete_messages +
++// backfill das linhas de DONO para instâncias já existentes. Idempotente.
++
++require_once __DIR__ . '/../../app/Models/Database.php';
++
++use App\Models\Database;
++
++$pdo = Database::getConnection();
++$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
++
++echo "== Migration 096: whatsapp_channel_accounts ==\n";
++echo "Server: " . $pdo->getAttribute(PDO::ATTR_SERVER_VERSION) . "\n";
++echo "DB: "     . $pdo->query('SELECT DATABASE()')->fetchColumn() . "\n----\n";
++
++$pdo->exec(
++    "CREATE TABLE IF NOT EXISTS whatsapp_channel_accounts (
++        id          INT AUTO_INCREMENT PRIMARY KEY,
++        channel_id  INT NOT NULL,
++        account_id  INT NOT NULL,
++        access_type ENUM('owner','shared') NOT NULL DEFAULT 'shared',
++        can_view            TINYINT(1) NOT NULL DEFAULT 0,
++        can_send            TINYINT(1) NOT NULL DEFAULT 0,
++        can_sync            TINYINT(1) NOT NULL DEFAULT 0,
++        can_delete_messages TINYINT(1) NOT NULL DEFAULT 0,
++        can_manage          TINYINT(1) NOT NULL DEFAULT 0,
++        granted_by  INT DEFAULT NULL,
++        created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
++        revoked_at  DATETIME DEFAULT NULL,
++        UNIQUE KEY uk_channel_account (channel_id, account_id),
++        KEY idx_wca_account (account_id),
++        KEY idx_wca_channel (channel_id),
++        KEY idx_wca_active  (account_id, revoked_at),
++        CONSTRAINT fk_wca_channel FOREIGN KEY (channel_id) REFERENCES whatsapp_instances(id) ON DELETE CASCADE,
++        CONSTRAINT fk_wca_account FOREIGN KEY (account_id) REFERENCES accounts(id)            ON DELETE CASCADE
++     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
++);
++echo "  [ok] tabela whatsapp_channel_accounts garantida\n";
++
++// Coluna can_delete_messages (idempotente — tabela pode ter sido criada sem ela).
++$hasCol = function (string $t, string $c) use ($pdo): bool {
++    $s = $pdo->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS
++                         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?");
++    $s->execute([$t, $c]);
++    return (int)$s->fetchColumn() > 0;
++};
++if (!$hasCol('whatsapp_channel_accounts', 'can_delete_messages')) {
++    $pdo->exec("ALTER TABLE whatsapp_channel_accounts
++                ADD COLUMN can_delete_messages TINYINT(1) NOT NULL DEFAULT 0 AFTER can_sync");
++    echo "  [ok] coluna can_delete_messages adicionada\n";
++} else {
++    echo "  [skip] coluna can_delete_messages ja existe\n";
++}
++
++// Backfill das linhas de dono (idempotente via LEFT JOIN).
++$n = $pdo->exec(
++    "INSERT INTO whatsapp_channel_accounts (channel_id, account_id, access_type, can_view, can_send, can_sync, can_delete_messages, can_manage, created_at)
++     SELECT wi.id, wi.account_id, 'owner', 1, 1, 1, 1, 1, NOW()
++       FROM whatsapp_instances wi
++       LEFT JOIN whatsapp_channel_accounts wca
++         ON wca.channel_id = wi.id AND wca.account_id = wi.account_id
++      WHERE wca.id IS NULL"
++);
++echo "  [ok] backfill de donos: {$n} linha(s) inserida(s)\n";
++
++// Garante que donos pré-existentes tenham can_delete_messages = 1.
++$u = $pdo->exec("UPDATE whatsapp_channel_accounts SET can_delete_messages = 1
++                  WHERE access_type = 'owner' AND can_delete_messages = 0 AND revoked_at IS NULL");
++echo "  [ok] donos atualizados com can_delete_messages: {$u} linha(s)\n";
++echo "== Migration 096 concluída ==\n";
+diff --git a/docs/FASE2_WHATSAPP_CANAIS_COMPARTILHADOS.md b/docs/FASE2_WHATSAPP_CANAIS_COMPARTILHADOS.md
+new file mode 100644
+index 0000000..d0a70c1
+--- /dev/null
++++ b/docs/FASE2_WHATSAPP_CANAIS_COMPARTILHADOS.md
+@@ -0,0 +1,227 @@
++# Fase 2 — Compartilhamento de canal WhatsApp (matriz → filial)
++
++**Pacote de entrega (Parte F).** Branch `feature/whatsapp-shared-channels`.
++**Status: NÃO deployado. Feature flag `WHATSAPP_SHARED_CHANNELS_ENABLED=false`.**
++Aguardando autorização expressa para merge / ativar flag / deploy.
++
++Data: 2026-06-19.
++
++---
++
++## 1. Resumo executivo
++
++A filial passa a poder usar o WhatsApp da matriz por **autorização explícita de
++canal**, e não por relaxar o isolamento multi-tenant. Nenhum acesso é inferido de
++hierarquia em tempo de requisição: cada acesso exige um registro explícito em
++`whatsapp_channel_accounts`, e tudo passa por uma **camada única de autorização**
++(`WhatsAppChannelAccessService`), com **negação por padrão**.
++
++O comportamento só muda quando a flag `WHATSAPP_SHARED_CHANNELS_ENABLED` estiver
++ligada. Com a flag desligada (estado atual), o isolamento é idêntico ao de antes:
++cada conta só enxerga o próprio canal.
++
++---
++
++## 2. Modelo de segurança
++
++- **Camada única** `WhatsAppChannelAccessService`. Todos os endpoints de dados
++  passam por ela. Não há 14 implementações de checagem — há uma.
++- **Deny-by-default.** Sem registro ativo em `whatsapp_channel_accounts` → sem acesso.
++- **`channel_id` = `whatsapp_instances.id`.** Nunca se confia em
++  `instance_name`/`account_id`/`channel_id` vindos do front sem validar contra um
++  grant ativo.
++- **Instância e credenciais resolvidas no backend, sempre do DONO do canal.**
++- **`access_type`:** `owner` (todas as permissões) | `shared` (granular).
++- **Permissões:** `can_view`, `can_send`, `can_sync`, `can_delete_messages`, `can_manage`.
++- **`manage` é exclusivo do dono.** Conexão / QR / logout / restart / exclusão /
++  webhook / credenciais nunca são concedidos a uma conta compartilhada — nem que a
++  coluna esteja marcada (o código força).
++- **`getPipelineAccountId()` não é usado em runtime.** Hierarquia só é validada na
++  CONCESSÃO do vínculo (em `create_filial` e no endpoint Master).
++- **Resolução de canal:** sem `channel_id` do request → o backend resolve o canal
++  próprio; filial com herança ativada (e flag ligada) resolve o canal compartilhado;
++  acesso só com grant ativo.
++
++### Modos de WhatsApp da filial (no `+Filial`)
++
++- **`matriz` (herdar, padrão):** registro `shared` apontando para o canal da matriz
++  (view+send+sync; sem delete/manage). Só vale com a flag ligada.
++- **`propria`:** provisiona canal próprio (owner). Sem acesso ao da matriz.
++- **`depois`:** nada (pendente).
++
++---
++
++## 3. Migration / schema
++
++`database/migrations/096_whatsapp_channel_accounts.sql` + `run_096.php` (idempotente):
++
++Tabela `whatsapp_channel_accounts`:
++`id`, `channel_id` (FK → `whatsapp_instances.id` ON DELETE CASCADE),
++`account_id` (FK → `accounts.id` ON DELETE CASCADE),
++`access_type` ENUM('owner','shared'),
++`can_view`, `can_send`, `can_sync`, `can_delete_messages`, `can_manage` (TINYINT default 0),
++`granted_by`, `created_at`, `revoked_at` (NULL = ativo).
++UNIQUE `(channel_id, account_id)`. Índices por account/channel/ativo.
++Backfill: toda instância existente recebe a linha de DONO (owner, full perms).
++
++> Em produção, rodar antes de ativar a flag:
++> `docker exec -i yuris_app php /var/www/html/database/migrations/run_096.php`
++
++---
++
++## 4. Arquivos alterados (21 arquivos de implementação; +1034 / -212)
++
++> Além destes 21, o commit da Parte F adiciona 2 arquivos de **entrega** em `docs/`
++> (este relatório + o `.patch`), que não fazem parte da implementação.
++
++```
++.env.example                                        (flag)
++app/Services/WhatsAppChannelAccessService.php       (camada única — novo)
++app/Services/WhatsAppProvisioningService.php        (grant de dono ao provisionar)
++database/migrations/096_whatsapp_channel_accounts.sql + run_096.php  (novos)
++public/api/master/create_filial.php                 (whatsapp_mode)
++public/api/master/whatsapp_channels.php             (grant/revoke — novo, Parte D)
++public/api/whatsapp/instances.php                   (view/manage)
++public/api/whatsapp/send.php                        (send + sanitização de erro)
++public/api/whatsapp/media_upload.php                (send + channel_id na resposta)
++public/api/whatsapp/messages.php                    (view)
++public/api/whatsapp/chats.php                        (view; delete = delete_messages)
++public/api/whatsapp/media.php                        (view; cfg do dono; debug owner-only)
++public/api/whatsapp/sync.php                         (sync)
++public/api/whatsapp/refresh_chat.php                 (sync)
++public/api/whatsapp/discover.php                     (sync)
++public/api/whatsapp/reaction.php                     (send)
++public/api/whatsapp/message_action.php               (delete_messages; escopo requisitante)
++public/api/whatsapp/contacts.php                     (view; fetch_pic escopado)
++public/api/whatsapp/group_members.php                (view)
++public/api/whatsapp/contato_vinculos.php             (gate view)
++```
++
++Commits: `e364670` (fundação) · `f62555a` (B-backend) · `b959f63` (delete_messages) ·
++`27e1096` (C) · `7429b13` (D) · `99f90a1` (E).
++
++---
++
++## 5. Matriz de autorização por endpoint
++
++| Endpoint | Método / ação | Permissão exigida | Observações |
++|---|---|---|---|
++| `instances.php` | GET status / list / default | `view` | papel owner/admin ainda exigido p/ list/default |
++| `instances.php` | connect / qr / restart / logout / set_webhook / create | `manage` | exclusivo do dono |
++| `send.php` | POST | `send` | erro da Evolution sanitizado |
++| `media_upload.php` | POST | `send` | retorna `channel_id` resolvido |
++| `reaction.php` | POST | `send` | account_id da reação = dono |
++| `message_action.php` | POST delete | `delete_messages` | exclusão escopada à **conta requisitante** |
++| `messages.php` | GET | `view` | |
++| `chats.php` | GET + mark/archive/pin/link/set_team | `view` | |
++| `chats.php` | POST delete (conversa) | `delete_messages` | mais estrito que view |
++| `media.php` | GET | `view` | cfg do dono; 404 anti-enum; `debug` só dono |
++| `contacts.php` | GET + fetch_pic + edit | `view` | fetch_pic escopado por instance_id |
++| `group_members.php` | GET | `view` | |
++| `contato_vinculos.php` | GET | `view` (gate) | resolução de contato no CRM próprio |
++| `sync.php` / `refresh_chat.php` / `discover.php` | — | `sync` | dados gravados sob o dono |
++| `config.php` | POST | super_admin | infra própria da conta (inalterado) |
++| `whatsapp_channels.php` (Master) | grant / revoke | super_admin + master_mode + CSRF | hierarquia validada na concessão |
++| `webhook.php` | inbound | N/A | identifica tenant pela apikey da instância (dono) |
++| `agent_instances` / `agent_takeover` | — | escopo próprio (pré-existente) | fora da camada de canal — ver riscos residuais |
++
++---
++
++## 6. Testes e resultados (local)
++
++| Bateria | Resultado |
++|---|---|
++| **17 cenários de segurança do spec** (camada de autorização) | **20/20** |
++| Resolução de canal (Parte C: owner / shared / flag / bootstrap / anti-tamper) | 20/20 |
++| Grant/revoke + gate de hierarquia (Parte D) | 10/10 |
++| Revoke idempotente + proteção do dono | 4/4 |
++| Exclusão de mensagem (dono apaga; filial não apaga a da matriz) | 4/4 |
++| `php -l` em todos os arquivos tocados | OK |
++
++Pontos provados pela bateria dos 17: deny-by-default; dono libera tudo; flag OFF →
++filial herdeira não vê o canal da matriz; flag ON → libera só view/send/sync;
++`delete_messages` desligado por padrão p/ filial; `manage` exclusivo do dono mesmo
++com `can_manage=1` forçado no banco; credenciais/instância sempre do dono;
++anti-tampering por `channel_id`; sem cross-tenant nas listagens; `grant()` força
++`can_manage=0` p/ shared; revoke nunca toca o dono; grant revogado nega em runtime;
++bootstrap dá canal próprio (nunca alheio).
++
++### Revisão adversarial (multi-agente)
++- Parte D (endpoint Master): 13 achados → corrigidos os reais (revoke rowCount +
++  só shared; dono soft-deleted; viewer bloqueado; granted_by removido).
++- Parte E (14 endpoints de dados): 19 achados, 3 confirmados reais → corrigidos
++  (message_action escopo; contacts fetch_pic escopo; send.php sanitização) +
++  hardening (instances list whitelist; media debug owner-only; media_upload channel_id).
++
++---
++
++## 7. Riscos residuais (aceitos / a decidir)
++
++1. **Super admin gere todas as contas.** Não há escopo por conta no Painel Master
++   (vale para todos os endpoints master, não só este). O nível `viewer` foi
++   bloqueado nas mutações de canal, mas isso não é uma política system-wide.
++2. **Autorização de runtime é baseada no GRANT, não no vínculo vivo.** Se um vínculo
++   matriz↔filial for suspenso, o acesso compartilhado persiste até ser **revogado**
++   no Painel Master. (Decisão de design: o grant é a fonte de verdade em runtime.)
++3. **`can_delete_messages` para conta compartilhada é efetivamente inerte.** Como
++   toda mensagem do canal grava `account_id` = dono da instância, uma filial não
++   casa o escopo e não apaga nada (seguro). Exclusão granular por sub-conta exigiria
++   rastrear o autor (mudança de schema) — fora do escopo desta fase.
++4. **`agent_instances` / `agent_takeover`** seguem o escopo pré-existente
++   (`getPipelineAccountId`), são somente-leitura/operacionais e sanitizados; não
++   foram migrados para a camada de canal.
++5. **`chats.php` ação `link`** valida card/usuário pelo escopo CRM M→F pré-existente
++   (auditado na LGPD), ortogonal ao compartilhamento de canal.
++6. **TOCTOU na concessão** (vínculo suspenso entre validar e gravar): ação manual de
++   admin, recuperável por revoke. Não mitigado com transação/lock.
++
++---
++
++## 8. Rollout (quando autorizado)
++
++1. `git -C /home/ubuntu/Yuris-Sistema- pull --ff-only` (após merge na main).
++2. Rodar a migration 096 em produção (idempotente).
++3. **Manter a flag desligada** e validar que tudo segue como antes (isolamento).
++4. Conceder um compartilhamento de teste (conta de homologação) via Painel Master.
++5. Ligar `WHATSAPP_SHARED_CHANNELS_ENABLED=true` e validar a herança.
++6. `docker exec yuris_app apache2ctl graceful`.
++
++Rollback: desligar a flag (volta ao isolamento por canal próprio) sem reverter código.
++
++---
++
++## 9. Falta (não bloqueia a revisão)
++
++- **Parte B (frontend):** 3 radios `whatsapp_mode` (herdar matriz [padrão] / própria
++  / configurar depois) no modal `+Filial` do `master.php` (o backend já honra).
++  Opcional: aba "Compartilhamento de canais" no Master consumindo
++  `whatsapp_channels.php` (grant/revoke + lista).
++
++---
++
++## 10. Pendência
++
++**Nenhum deploy foi feito. A flag está desligada.** Aguardando autorização expressa
++para: (a) merge na main, (b) rodar a migration em produção, (c) ligar a flag.
++
++---
++
++## 11. Auditoria do pacote (self-check, 2026-06-19)
++
++Conferência da matriz da seção 5 contra o que cada endpoint REALMENTE chama
++(`grep` por `resolveForRequest/assert/check` + gates de papel):
++
++- `instances.php`: `view` (status linha 49 / default linha 159), `manage` (qr linha 115;
++  POST connect/restart/logout/set_webhook/create linha 180) + `isOwnerOrAdmin`. ✔
++- `send.php`/`reaction.php` = `send`; `media_upload.php` = `send`. ✔
++- `messages.php`/`contacts.php`/`group_members.php`/`contato_vinculos.php` = `view`. ✔
++- `chats.php` = `view` (linha 40) + `assert('delete_messages')` na ação delete (linha 187). ✔
++- `media.php` = `check('view')` com cfg do dono (linha 63). ✔
++- `sync.php`/`refresh_chat.php`/`discover.php` = `sync`. ✔
++- `message_action.php` = `delete_messages` (linha 75), exclusão escopada à conta requisitante. ✔
++- `config.php` = `isOwnerOrAdmin` (GET) + super_admin (POST). ✔
++- `opcache_clear.php`: utilitário de deploy (invalida opcache de arquivos de código),
++  já restrito a owner/admin, NÃO toca dado de canal/tenant — fora do escopo da matriz. ✔
++- `webhook.php`: identifica tenant pela apikey da instância (dono); sem sessão. ✔
++
++Resultado: matriz da seção 5 confere 1:1 com o código. Sem divergência doc↔implementação.
+diff --git a/public/api/master/create_filial.php b/public/api/master/create_filial.php
+index 7b9654d..b302ebf 100644
+--- a/public/api/master/create_filial.php
++++ b/public/api/master/create_filial.php
+@@ -30,6 +30,8 @@ require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+ require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
+ require_once __DIR__ . '/../../../app/Helpers/MasterAudit.php';
+ require_once __DIR__ . '/../../../app/Services/AccountBootstrapSeeder.php';
++require_once __DIR__ . '/../../../app/Services/WhatsAppProvisioningService.php';
++require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
+ 
+ use App\Helpers\AccountContext;
+ use App\Helpers\ApiResponse;
+@@ -84,6 +86,13 @@ if ($cnpj) {
+ $filStatus = in_array($fil['status'] ?? 'active', ['active','trial','suspended'], true)
+     ? $fil['status'] : 'active';
+ 
++// WhatsApp da filial: 'matriz' (herdar canal da matriz, padrão), 'propria' (canal
++// próprio) ou 'depois' (pendente). Normaliza apelidos do front.
++$waModeRaw = strtolower(trim((string)($input['whatsapp_mode'] ?? 'matriz')));
++$waMode = in_array($waModeRaw, ['matriz', 'herdar', 'herdar_matriz'], true) ? 'matriz'
++        : (in_array($waModeRaw, ['propria', 'proprio'], true) ? 'propria'
++        : 'depois');
++
+ // Admin opcional — valida se for enviado
+ $senhaGerada = false; $senhaTexto = null;
+ if (is_array($adm) && !empty($adm)) {
+@@ -198,10 +207,44 @@ try {
+ 
+     $pdo->commit();
+ 
++    // ── WhatsApp da filial (BEST-EFFORT, após o commit; nunca derruba o cadastro) ──
++    // A hierarquia matriz↔filial é validada AQUI mesmo (acabamos de criar o vínculo
++    // explícito em account_vinculos), então conceder à filial acesso 'shared' ao canal
++    // da matriz é legítimo. O acesso só vale em runtime com a feature flag ligada.
++    $whatsapp = ['mode' => $waMode];
++    try {
++        if ($waMode === 'propria') {
++            if (WhatsAppProvisioningService::isGloballyConfigured($pdo)) {
++                $whatsapp['result'] = WhatsAppProvisioningService::provision($pdo, (int)$filialId, (string)$nome);
++            } else {
++                $whatsapp['result'] = ['success' => false, 'error' => 'config global Evolution ausente'];
++            }
++        } elseif ($waMode === 'matriz') {
++            // Canal PRÓPRIO da matriz (dono). Sem canal => fica pendente.
++            $matrizChannel = WhatsAppChannelAccessService::ownChannelId($pdo, $matrizId);
++            if ($matrizChannel) {
++                WhatsAppChannelAccessService::grant(
++                    $pdo, $matrizChannel, (int)$filialId, 'shared',
++                    ['can_view' => 1, 'can_send' => 1, 'can_sync' => 1], // sem can_manage
++                    (int)($userId ?? 0) ?: null
++                );
++                $whatsapp['shared_channel_id'] = $matrizChannel;
++                $whatsapp['granted'] = true;
++            } else {
++                $whatsapp['granted'] = false;
++                $whatsapp['pending'] = 'matriz ainda nao tem canal proprio';
++            }
++        }
++    } catch (\Throwable $e) {
++        error_log('[master/create_filial/whatsapp] ' . $e->getMessage());
++        $whatsapp['error'] = $e->getMessage();
++    }
++
+     $payload = [
+         'filial_id'      => $filialId,
+         'vinculo_id'     => $vinculoId,
+         'codigo_vinculo' => $codigo,
++        'whatsapp'       => $whatsapp,
+     ];
+     if ($adminUserId) {
+         $payload['admin_user_id'] = $adminUserId;
+diff --git a/public/api/master/whatsapp_channels.php b/public/api/master/whatsapp_channels.php
+new file mode 100644
+index 0000000..6ac9e16
+--- /dev/null
++++ b/public/api/master/whatsapp_channels.php
+@@ -0,0 +1,251 @@
++<?php
++/**
++ * /api/master/whatsapp_channels.php — Fase 2 (Parte D): conceder/revogar
++ * COMPARTILHAMENTO de canal WhatsApp (matriz -> filial), só pelo Painel Master.
++ *
++ * O compartilhamento NÃO é inferido de hierarquia em runtime: ele exige um
++ * registro 'shared' EXPLÍCITO em whatsapp_channel_accounts, criado aqui. Esta é a
++ * ÚNICA porta de concessão. A autorização em runtime (endpoints de dados) é feita
++ * pela WhatsAppChannelAccessService e só vale com a feature flag ligada.
++ *
++ * Regra de hierarquia (validada na CONCESSÃO, não em runtime):
++ *   só é possível compartilhar o canal de uma conta DONA (matriz) com uma FILIAL
++ *   que tenha vínculo ATIVO com ela em account_vinculos. Qualquer outro alvo é
++ *   recusado (422) — impede transformar a hierarquia num bypass genérico.
++ *
++ * Acesso: super_admin em sessão master_mode. CSRF nos POST. Tudo auditado.
++ *
++ *   GET  (default | ?list=1)         -> canais + compartilhamentos + filiais elegíveis
++ *   POST action=grant   {channel_id, account_id, perms:{can_view,can_send,can_sync,can_delete_messages}}
++ *   POST action=revoke  {channel_id, account_id}
++ */
++require_once __DIR__ . '/../../../app/Models/Database.php';
++require_once __DIR__ . '/../../../app/Models/Account.php';
++require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
++require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
++require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
++require_once __DIR__ . '/../../../app/Helpers/MasterAudit.php';
++require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
++
++use App\Helpers\AccountContext;
++use App\Helpers\ApiResponse;
++use App\Helpers\MasterAudit;
++
++session_start();
++header('Cache-Control: no-store');
++$ctx = AccountContext::fromSession();
++$ctx->assertSuperAdmin();
++if (empty($_SESSION['master_mode'])) {
++    ApiResponse::forbidden('Acesso somente pelo Painel Master.');
++}
++
++$pdo    = \App\Models\Database::getConnection();
++$method = $_SERVER['REQUEST_METHOD'];
++
++/** Canal (whatsapp_instances) resolvido NO BACKEND, com a conta dona. null se não existe. */
++function _channel(\PDO $pdo, int $channelId): ?array {
++    $st = $pdo->prepare(
++        "SELECT wi.id, wi.instance_name, wi.status, wi.account_id AS owner_account_id,
++                a.nome AS owner_nome, a.tipo AS owner_tipo
++           FROM whatsapp_instances wi
++           JOIN accounts a ON a.id = wi.account_id AND a.deleted_at IS NULL
++          WHERE wi.id = ? LIMIT 1"
++    );
++    $st->execute([$channelId]);
++    $r = $st->fetch(\PDO::FETCH_ASSOC);
++    return $r ?: null;
++}
++
++/**
++ * Existe vínculo ATIVO matriz(owner)->filial(target) em account_vinculos?
++ * É a checagem de hierarquia da CONCESSÃO. Sem ela, não se compartilha.
++ */
++function _isActiveFilialOf(\PDO $pdo, int $ownerAccountId, int $targetAccountId): bool {
++    $st = $pdo->prepare(
++        "SELECT 1
++           FROM account_vinculos av
++           JOIN accounts f ON f.id = av.filial_account_id
++          WHERE av.matriz_account_id = ? AND av.filial_account_id = ?
++            AND av.status = 'active' AND f.deleted_at IS NULL
++          LIMIT 1"
++    );
++    $st->execute([$ownerAccountId, $targetAccountId]);
++    return (bool)$st->fetchColumn();
++}
++
++// ─── GET: canais + compartilhamentos + filiais elegíveis ──────────────────────
++if ($method === 'GET') {
++    $channels = $pdo->query(
++        "SELECT wi.id AS channel_id, wi.instance_name, wi.status,
++                wi.account_id AS owner_account_id, a.nome AS owner_nome, a.tipo AS owner_tipo
++           FROM whatsapp_instances wi
++           JOIN accounts a ON a.id = wi.account_id AND a.deleted_at IS NULL
++          ORDER BY a.nome ASC, wi.instance_name ASC"
++    )->fetchAll(\PDO::FETCH_ASSOC);
++
++    $shareSt = $pdo->prepare(
++        "SELECT wca.account_id, a.nome, a.tipo,
++                wca.can_view, wca.can_send, wca.can_sync, wca.can_delete_messages, wca.created_at
++           FROM whatsapp_channel_accounts wca
++           JOIN accounts a ON a.id = wca.account_id
++          WHERE wca.channel_id = ? AND wca.access_type = 'shared' AND wca.revoked_at IS NULL
++          ORDER BY a.nome ASC"
++    );
++    $eligSt = $pdo->prepare(
++        "SELECT f.id AS account_id, f.nome, f.tipo
++           FROM account_vinculos av
++           JOIN accounts f ON f.id = av.filial_account_id
++          WHERE av.matriz_account_id = ? AND av.status = 'active' AND f.deleted_at IS NULL
++            AND f.id NOT IN (
++                SELECT account_id FROM whatsapp_channel_accounts
++                 WHERE channel_id = ? AND revoked_at IS NULL
++            )
++          ORDER BY f.nome ASC"
++    );
++
++    $out = [];
++    foreach ($channels as $c) {
++        $cid = (int)$c['channel_id'];
++        $shareSt->execute([$cid]);
++        $shares = array_map(static function (array $s): array {
++            return [
++                'account_id'          => (int)$s['account_id'],
++                'nome'                => $s['nome'],
++                'tipo'                => $s['tipo'],
++                'can_view'            => (int)$s['can_view'],
++                'can_send'            => (int)$s['can_send'],
++                'can_sync'            => (int)$s['can_sync'],
++                'can_delete_messages' => (int)$s['can_delete_messages'],
++                'granted_at'          => $s['created_at'],
++            ];
++        }, $shareSt->fetchAll(\PDO::FETCH_ASSOC) ?: []);
++
++        $eligSt->execute([(int)$c['owner_account_id'], $cid]);
++        $eligible = $eligSt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
++
++        $out[] = [
++            'channel_id'       => $cid,
++            'instance_name'    => $c['instance_name'],
++            'status'           => $c['status'],
++            'owner_account_id' => (int)$c['owner_account_id'],
++            'owner_nome'       => $c['owner_nome'],
++            'owner_tipo'       => $c['owner_tipo'],
++            'shares'           => $shares,
++            'eligible'         => array_map(static fn($e) => [
++                'account_id' => (int)$e['account_id'], 'nome' => $e['nome'], 'tipo' => $e['tipo'],
++            ], $eligible),
++        ];
++    }
++
++    ApiResponse::ok([
++        'sharing_enabled' => WhatsAppChannelAccessService::sharingEnabled(),
++        'channels'        => $out,
++    ]);
++}
++
++// ─── POST: grant / revoke ─────────────────────────────────────────────────────
++if ($method === 'POST') {
++    $in   = json_decode(file_get_contents('php://input'), true) ?? [];
++    $csrf = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($in['_csrf'] ?? ($in['csrf_token'] ?? null));
++    if (!$csrf || $csrf !== ($_SESSION['csrf_token'] ?? '')) {
++        http_response_code(400); echo json_encode(['ok' => false, 'error' => 'CSRF inválido']); exit;
++    }
++
++    // Super admin de nível 'viewer' é read-only: pode listar (GET), mas não pode
++    // conceder/revogar acesso a canal (mutação sensível de multi-tenant). Bloqueio
++    // dirigido — só nega o nível explicitamente restrito, p/ nunca travar um admin
++    // legítimo cujo nível seja 'super'/'operator'/null.
++    if ($ctx->getSuperAdminLevel() === 'viewer') {
++        ApiResponse::forbidden('Super admin de nível "viewer" não pode gerenciar compartilhamentos.');
++    }
++
++    $action    = $in['action'] ?? '';
++    $channelId = (int)($in['channel_id'] ?? 0);
++    $accountId = (int)($in['account_id'] ?? 0);
++    if ($channelId <= 0 || $accountId <= 0) {
++        ApiResponse::badRequest('channel_id e account_id são obrigatórios');
++    }
++
++    $ch = _channel($pdo, $channelId);
++    if (!$ch) ApiResponse::badRequest('Canal não encontrado');
++    $ownerId = (int)$ch['owner_account_id'];
++
++    // Nunca mexer no registro do DONO por esta porta (evita rebaixar owner->shared
++    // via ON DUPLICATE KEY do grant). O dono não é "compartilhado".
++    if ($accountId === $ownerId) {
++        ApiResponse::badRequest('A conta dona já tem acesso total ao próprio canal; não há o que compartilhar.');
++    }
++
++    if ($action === 'grant') {
++        // Hierarquia: o alvo PRECISA ser filial ativa da conta dona do canal.
++        if (!_isActiveFilialOf($pdo, $ownerId, $accountId)) {
++            ApiResponse::badRequest('Só é possível compartilhar com uma filial ativa da conta dona do canal.');
++        }
++
++        // Permissões granulares. can_manage NUNCA é concedido a compartilhado (o
++        // service força 0); aqui sequer aceitamos o campo. Default = view+send+sync.
++        $p = is_array($in['perms'] ?? null) ? $in['perms'] : [];
++        $perms = [
++            'can_view'            => array_key_exists('can_view', $p) ? (int)!empty($p['can_view']) : 1,
++            'can_send'            => array_key_exists('can_send', $p) ? (int)!empty($p['can_send']) : 1,
++            'can_sync'            => array_key_exists('can_sync', $p) ? (int)!empty($p['can_sync']) : 1,
++            'can_delete_messages' => (int)!empty($p['can_delete_messages']), // off por padrão p/ filial
++        ];
++
++        $ok = WhatsAppChannelAccessService::grant(
++            $pdo, $channelId, $accountId, 'shared', $perms,
++            (int)($_SESSION['user_id'] ?? 0) ?: null
++        );
++        if (!$ok) ApiResponse::serverError('Falha ao conceder compartilhamento');
++
++        MasterAudit::log(
++            'whatsapp_channel.grant', 'whatsapp_instance', $channelId,
++            "Canal '{$ch['instance_name']}' (dono #{$ownerId}) compartilhado com conta #{$accountId}",
++            ['owner_account_id' => $ownerId, 'target_account_id' => $accountId, 'perms' => $perms]
++        );
++
++        ApiResponse::ok([
++            'channel_id' => $channelId,
++            'account_id' => $accountId,
++            'perms'      => $perms,
++            'message'    => 'Compartilhamento concedido. Só vale em runtime com a flag WHATSAPP_SHARED_CHANNELS_ENABLED ligada.',
++        ]);
++    }
++
++    if ($action === 'revoke') {
++        // Revogar não re-valida hierarquia (revogar é sempre seguro), mas EXIGE que
++        // exista um compartilhamento ATIVO — senão a auditoria registraria revogação
++        // falsa (nada mudou). O service só revoga linhas 'shared' (dono nunca é alvo).
++        $hasShare = $pdo->prepare(
++            "SELECT 1 FROM whatsapp_channel_accounts
++              WHERE channel_id = ? AND account_id = ? AND access_type = 'shared' AND revoked_at IS NULL
++              LIMIT 1"
++        );
++        $hasShare->execute([$channelId, $accountId]);
++        if (!$hasShare->fetchColumn()) {
++            ApiResponse::badRequest('Não há compartilhamento ativo desse canal com essa conta.');
++        }
++
++        $ok = WhatsAppChannelAccessService::revoke(
++            $pdo, $channelId, $accountId, (int)($_SESSION['user_id'] ?? 0) ?: null
++        );
++        if (!$ok) ApiResponse::serverError('Falha ao revogar compartilhamento');
++
++        MasterAudit::log(
++            'whatsapp_channel.revoke', 'whatsapp_instance', $channelId,
++            "Compartilhamento do canal '{$ch['instance_name']}' (dono #{$ownerId}) revogado da conta #{$accountId}",
++            ['owner_account_id' => $ownerId, 'target_account_id' => $accountId]
++        );
++
++        ApiResponse::ok([
++            'channel_id' => $channelId,
++            'account_id' => $accountId,
++            'message'    => 'Compartilhamento revogado.',
++        ]);
++    }
++
++    ApiResponse::badRequest('Ação desconhecida (use grant ou revoke)');
++}
++
++http_response_code(405);
++echo json_encode(['ok' => false, 'error' => 'Method not allowed']);
+diff --git a/public/api/whatsapp/chats.php b/public/api/whatsapp/chats.php
+index 8ad2f44..8fb42f3 100644
+--- a/public/api/whatsapp/chats.php
++++ b/public/api/whatsapp/chats.php
+@@ -7,6 +7,7 @@ require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
+ require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
+ require_once __DIR__ . '/../../../app/Models/Team.php';
+ require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
++require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
+ require_once __DIR__ . '/../../../app/Services/WebhookDispatcher.php';
+ 
+ use App\Models\Team;
+@@ -28,20 +29,16 @@ $ctx       = AccountContext::fromSession();
+ $accountId = $ctx->getAccountId();
+ 
+ try {
+-    $instModel  = new WhatsAppInstance();
+     $msgModel   = new WhatsAppMessage();
+     $method     = $_SERVER['REQUEST_METHOD'];
+-    $cfg        = $instModel->getSettings($accountId);
+-    $instName   = $cfg['evolution_instance'] ?? 'yuris-crm';
+-    $row        = $instModel->findOrCreate($instName, '', $accountId);
+-    $instanceId = (int)$row['id'];
+-
+-    // Validação extra: garante isolamento por tenant
+-    if ((int)($row['account_id'] ?? 0) !== $accountId) {
+-        http_response_code(403);
+-        echo json_encode(['error' => 'Instância WhatsApp não pertence a esta conta']);
+-        exit;
+-    }
++    $pdo        = \App\Models\Database::getConnection();
++
++    // Lista/anotações de conversa = 'view' no canal (deny-by-default). Resolve o
++    // canal próprio ou, com a flag ligada, o compartilhado (filial herdando o da
++    // matriz). instance_id resolvido no backend. A ação destrutiva 'delete' exige,
++    // adicionalmente, 'delete_messages' (ver branch abaixo) — não basta 'view'.
++    $ch         = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, ($_GET['channel_id'] ?? null), 'view');
++    $instanceId = (int)$ch['channel_id'];
+ 
+     if ($method === 'GET') {
+         $search = trim($_GET['search'] ?? '');
+@@ -183,28 +180,23 @@ try {
+         if ($action === 'delete') {
+             if (!$jid) { echo json_encode(['ok' => false, 'error' => 'remote_jid obrigatório']); exit; }
+ 
+-            // SEGURANCA (auditoria 2026-06-01 BAIXA #26): checagem de tenant EXPLÍCITA
+-            // antes do delete. WhatsAppMessage::deleteChat() faz um DELETE cego por
+-            // (instance_id, remote_jid) sem filtrar account_id; aqui confirmamos que
+-            // o chat alvo pertence a uma instância de conta acessível (matriz+filiais)
+-            // — não apenas confiando no instanceId resolvido acima. Sem isso, um
+-            // instanceId/jid forjado poderia apagar conversa de outro tenant.
+-            $pdoDel = \App\Models\Database::getConnection();
+-            $accDel = $ctx->getAccessibleAccountIds('whatsapp');
+-            if (empty($accDel)) $accDel = [$accountId];
+-            $phDel  = implode(',', array_fill(0, count($accDel), '?'));
+-            $stDel  = $pdoDel->prepare(
+-                "SELECT 1
+-                   FROM whatsapp_chats wc
+-                   JOIN whatsapp_instances wi ON wi.id = wc.instance_id
+-                  WHERE wc.instance_id = ? AND wc.remote_jid = ?
+-                    AND wi.account_id IN ($phDel)
+-                  LIMIT 1"
++            // Excluir a conversa local é DESTRUTIVO → exige 'delete_messages' no
++            // canal (não basta 'view'). Dono sempre tem; conta compartilhada só se
++            // a permissão tiver sido explicitamente concedida (off por padrão p/
++            // filial). 403 genérico em caso de negação.
++            WhatsAppChannelAccessService::assert($pdo, $accountId, (int)$ch['channel_id'], 'delete_messages');
++
++            // Defesa-em-profundidade: confirma que o chat alvo pertence ao canal já
++            // autorizado (instance_id resolvido no backend) — não a um id forjado.
++            // deleteChat() faz um DELETE cego por (instance_id, remote_jid); como o
++            // instance_id veio do grant (não do front), o escopo está garantido.
++            $stDel = $pdo->prepare(
++                "SELECT 1 FROM whatsapp_chats WHERE instance_id = ? AND remote_jid = ? LIMIT 1"
+             );
+-            $stDel->execute(array_merge([$instanceId, $jid], array_map('intval', $accDel)));
++            $stDel->execute([$instanceId, $jid]);
+             if (!$stDel->fetchColumn()) {
+-                http_response_code(403);
+-                echo json_encode(['ok' => false, 'error' => 'Conversa não pertence a esta conta']);
++                http_response_code(404);
++                echo json_encode(['ok' => false, 'error' => 'Conversa não encontrada']);
+                 exit;
+             }
+ 
+diff --git a/public/api/whatsapp/contacts.php b/public/api/whatsapp/contacts.php
+index 8b18c03..8918b1e 100644
+--- a/public/api/whatsapp/contacts.php
++++ b/public/api/whatsapp/contacts.php
+@@ -7,6 +7,7 @@ require_once __DIR__ . '/../../../app/Models/Account.php';
+ require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
+ require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
+ require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
++require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
+ require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+ 
+ use App\Models\Database;
+@@ -28,20 +29,16 @@ $accountId = $ctx->getAccountId();
+ $method = $_SERVER['REQUEST_METHOD'];
+ 
+ try {
+-    $instModel  = new WhatsAppInstance();
+-    $cfg        = $instModel->getSettings($accountId);
+-    $instName   = $cfg['evolution_instance'] ?? 'yuris-crm';
+-    $row        = $instModel->findOrCreate($instName, '', $accountId);
+-    $instanceId = (int)$row['id'];
+-
+-    // Validação extra: garante isolamento
+-    if ((int)($row['account_id'] ?? 0) !== $accountId) {
+-        http_response_code(403);
+-        echo json_encode(['error' => 'Instância WhatsApp não pertence a esta conta']);
+-        exit;
+-    }
+     $pdo        = Database::getConnection();
+ 
++    // Contatos do canal = 'view' (deny-by-default). Resolve canal próprio ou, com a
++    // flag ligada, o compartilhado (filial herdando o da matriz). instance_id e
++    // credenciais (usadas no fetch_pic) saem do backend, do dono do canal.
++    $ch         = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, ($_GET['channel_id'] ?? null), 'view');
++    $cfg        = $ch['cfg'];
++    $instName   = $ch['instance_name'];
++    $instanceId = (int)$ch['channel_id'];
++
+     if ($method === 'GET') {
+         $stmt = $pdo->prepare(
+             'SELECT remote_jid, push_name, phone FROM whatsapp_contacts
+@@ -95,16 +92,18 @@ try {
+                 }
+                 if ($fetchNum === '') {
+                     try {
+-                        $rs = $pdo->prepare("SELECT phone FROM whatsapp_group_members WHERE participant_jid COLLATE utf8mb4_unicode_ci = ? AND phone REGEXP '^[0-9]{10,13}\$' LIMIT 1");
+-                        $rs->execute([$jid]);
++                        // ESCOPADO ao canal resolvido (instance_id) — sem isso, a busca
++                        // varria o pool GLOBAL e vazava telefone de canal alheio (Fase 2 E).
++                        $rs = $pdo->prepare("SELECT phone FROM whatsapp_group_members WHERE participant_jid COLLATE utf8mb4_unicode_ci = ? AND instance_id = ? AND phone REGEXP '^[0-9]{10,13}\$' LIMIT 1");
++                        $rs->execute([$jid, $instanceId]);
+                         $cand = $digits($rs->fetchColumn());
+                         if ($isPhone($cand)) $fetchNum = $cand;
+                     } catch (\Throwable $_) {}
+                 }
+                 if ($fetchNum === '') {
+                     try {
+-                        $rs = $pdo->prepare("SELECT phone FROM whatsapp_contacts WHERE remote_jid = ? AND phone REGEXP '^[0-9]{10,13}\$' LIMIT 1");
+-                        $rs->execute([$jid]);
++                        $rs = $pdo->prepare("SELECT phone FROM whatsapp_contacts WHERE remote_jid = ? AND instance_id = ? AND phone REGEXP '^[0-9]{10,13}\$' LIMIT 1");
++                        $rs->execute([$jid, $instanceId]);
+                         $cand = $digits($rs->fetchColumn());
+                         if ($isPhone($cand)) $fetchNum = $cand;
+                     } catch (\Throwable $_) {}
+diff --git a/public/api/whatsapp/contato_vinculos.php b/public/api/whatsapp/contato_vinculos.php
+index a16037c..dadcacf 100644
+--- a/public/api/whatsapp/contato_vinculos.php
++++ b/public/api/whatsapp/contato_vinculos.php
+@@ -5,6 +5,8 @@ ob_start();
+ require_once __DIR__ . '/../../../app/Models/Database.php';
+ require_once __DIR__ . '/../../../app/Models/Account.php';
+ require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
++require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
++require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
+ require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+ 
+ use App\Helpers\AccountContext;
+@@ -25,6 +27,13 @@ if (empty($tenantIds)) $tenantIds = [$ctx->getAccountId()];
+ 
+ try {
+     $pdo = \App\Models\Database::getConnection();
++
++    // Gate de canal (Fase 2): exige 'view' em algum canal (próprio ou compartilhado
++    // com a flag ligada). A RESOLUÇÃO do contato abaixo continua escopada pelas
++    // contas acessíveis (CRM próprio do tenant) — a filial não enxerga o CRM da
++    // matriz mesmo vendo o chat compartilhado; aqui só se garante o acesso ao canal.
++    WhatsAppChannelAccessService::resolveForRequest($pdo, $ctx->getAccountId(), ($_GET['channel_id'] ?? null), 'view');
++
+     $jid = trim($_GET['jid'] ?? '');
+ 
+     if (!$jid) {
+diff --git a/public/api/whatsapp/discover.php b/public/api/whatsapp/discover.php
+index 2e52d52..fbe755a 100644
+--- a/public/api/whatsapp/discover.php
++++ b/public/api/whatsapp/discover.php
+@@ -12,6 +12,7 @@ require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
+ require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
+ require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
+ require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
++require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
+ require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+ 
+ use App\Models\Database;
+@@ -31,15 +32,17 @@ $ctx       = AccountContext::fromSession();
+ $accountId = $ctx->getAccountId();
+ 
+ try {
+-    $instModel  = new WhatsAppInstance();
+     $msgModel   = new WhatsAppMessage();
+-    $cfg        = $instModel->getSettings($accountId);
+-    $name       = $cfg['evolution_instance'] ?? 'yuris-crm';
+-    $row        = $instModel->findOrCreate($name, '', $accountId);
+-    $instanceId = (int)$row['id'];
+-    $evo        = new EvolutionApiService($cfg);
+     $pdo        = Database::getConnection();
+ 
++    // Descobrir mensagens novas = 'sync' no canal (deny-by-default). Canal e
++    // credenciais resolvidos no backend (dono do canal) — nunca do front.
++    $ch         = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $_GET['channel_id'] ?? null, 'sync');
++    $cfg        = $ch['cfg'];
++    $name       = $ch['instance_name'];
++    $instanceId = (int)$ch['channel_id'];
++    $evo        = new EvolutionApiService($cfg);
++
+     $newChats    = 0;
+     $newMessages = 0;
+ 
+diff --git a/public/api/whatsapp/group_members.php b/public/api/whatsapp/group_members.php
+index 3132835..c2e97a1 100644
+--- a/public/api/whatsapp/group_members.php
++++ b/public/api/whatsapp/group_members.php
+@@ -14,6 +14,7 @@ require_once __DIR__ . '/../../../app/Models/Account.php';
+ require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
+ require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
+ require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
++require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
+ require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+ require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
+ 
+@@ -31,14 +32,12 @@ if (empty($_SESSION['user_id'])) {
+ try {
+     $ctx       = AccountContext::fromSession();
+     $accountId = $ctx->getAccountId();
++    $pdo       = \App\Models\Database::getConnection();
+ 
+-    $instModel = new WhatsAppInstance();
+-    $instance  = $instModel->getByAccountId($accountId);
+-    if (!$instance) {
+-        echo json_encode(['ok' => true, 'members' => [], 'count' => 0]);
+-        exit;
+-    }
+-    $instanceId = (int)$instance['id'];
++    // Membros do grupo = 'view' no canal (deny-by-default). instance_id resolvido
++    // no backend (canal próprio ou compartilhado, com a flag ligada).
++    $ch         = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, ($_GET['channel_id'] ?? null), 'view');
++    $instanceId = (int)$ch['channel_id'];
+ 
+     $jid = trim($_GET['jid'] ?? '');
+     if ($jid === '' || !str_ends_with($jid, '@g.us')) {
+diff --git a/public/api/whatsapp/instances.php b/public/api/whatsapp/instances.php
+index df56b38..6c0ff03 100644
+--- a/public/api/whatsapp/instances.php
++++ b/public/api/whatsapp/instances.php
+@@ -5,8 +5,10 @@ require_once __DIR__ . '/../../../app/Models/Account.php';
+ require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
+ require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+ require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
++require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
+ 
+ use App\Helpers\AccountContext;
++use App\Models\Database;
+ 
+ session_start(['read_and_close' => true]);
+ $_uid  = $_SESSION['user_id']    ?? null;
+@@ -17,27 +19,25 @@ if (!$_uid) { http_response_code(401); echo json_encode(['error' => 'Unauthorize
+ 
+ $ctx        = AccountContext::fromSession();
+ $accountId  = $ctx->getAccountId();
+-// Instâncias de WhatsApp = CONFIGURAÇÃO da conta — cada tenant tem suas próprias conexões.
+-$tenantIds  = [$accountId];
+-
+-// ─── Segurança (hotfix): gestão de canal é só owner/admin ─────────────────────
+-// Antes desta correção, QUALQUER usuário logado podia ler a config crua: o GET
+-// default devolvia 'settings' com evolution_api_key EM CLARO, e era possível
+-// disparar create/connect/restart/logout/set_webhook. Agora: a leitura de STATUS
+-// continua liberada (banner de conexão, sem segredos), mas QR, listagem, GET
+-// default e todas as mutações exigem owner/admin. A chave nunca é devolvida e
+-// nenhuma resposta carrega o 'raw' técnico da Evolution. (espelha config.php)
++$pdo        = Database::getConnection();
++
++// ─── Autorização em DUAS camadas (Fase 2 — canais compartilhados) ─────────────
++//  • Camada de PAPEL (intra-conta): gerir a conexão (conectar/QR/restart/logout/
++//    webhook/criar) continua sendo só owner/admin. Ortogonal ao canal.
++//  • Camada de CANAL (cross-tenant): WhatsAppChannelAccessService resolve o canal
++//    no backend e autoriza por grant. 'manage' é EXCLUSIVO do dono — uma conta com
++//    acesso compartilhado (filial herdando o canal da matriz) nunca conecta/exclui.
++//  A instância/credenciais são resolvidas SEMPRE no backend, a partir do DONO do
++//  canal (nunca do front). 'status' é leitura (view); a chave nunca é devolvida.
++// ──────────────────────────────────────────────────────────────────────────────
+ $canManage  = $ctx->isOwnerOrAdmin();
+ $denyManage = static function () {
+     http_response_code(403);
+     echo json_encode(['error' => 'Apenas owner/admin pode gerenciar a conexão WhatsApp']);
+     exit;
+ };
+-// ──────────────────────────────────────────────────────────────────────────────
+ 
+ $model  = new WhatsAppInstance();
+-$cfg    = $model->getSettings($accountId);
+-$evo    = new EvolutionApiService($cfg);
+ $method = $_SERVER['REQUEST_METHOD'];
+ $action = $_GET['action'] ?? '';
+ 
+@@ -45,8 +45,12 @@ $action = $_GET['action'] ?? '';
+ if ($method === 'GET') {
+ 
+     if ($action === 'status') {
+-        $name = $cfg['evolution_instance'] ?? 'yuris-crm';
+-        $row  = $model->findOrCreate($name, '', $accountId);
++        // Leitura do estado de conexão (banner) — exige 'view' no canal.
++        $ch   = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $_GET['channel_id'] ?? null, 'view');
++        $cfg  = $ch['cfg'];
++        $name = $ch['instance_name'];
++        $row  = $ch['instance_row'];
++        $evo  = new EvolutionApiService($cfg);
+ 
+         // Consulta estado real na Evolution API
+         $state = $evo->getConnectionState($name);
+@@ -91,7 +95,7 @@ if ($method === 'GET') {
+             $extra['phone'] = preg_replace('/[^0-9+]/', '', explode('@', $phoneRaw)[0]);
+         }
+ 
+-        $model->updateStatus($row['id'], $status, $extra);
++        $model->updateStatus((int)$ch['channel_id'], $status, $extra);
+ 
+         // Remove campos grandes/sensíveis da resposta de status.
+         unset($row['qr_code_base64'], $row['evolution_token'], $row['webhook_url']);
+@@ -107,8 +111,11 @@ if ($method === 'GET') {
+     if (!$canManage) { $denyManage(); }
+ 
+     if ($action === 'qr') {
+-        $name = $cfg['evolution_instance'] ?? 'yuris-crm';
+-        $row  = $model->findOrCreate($name, '', $accountId);
++        // Conectar/QR é AÇÃO DE GESTÃO do canal → 'manage' (exclusivo do dono).
++        $ch   = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $_GET['channel_id'] ?? null, 'manage');
++        $cfg  = $ch['cfg'];
++        $name = $ch['instance_name'];
++        $evo  = new EvolutionApiService($cfg);
+         $res  = $evo->connectInstance($name);
+ 
+         $qr = $res['base64'] ?? ($res['qrcode']['base64'] ?? ($res['code'] ?? ''));
+@@ -117,7 +124,7 @@ if ($method === 'GET') {
+             if (!str_starts_with($qr, 'data:')) {
+                 $qr = 'data:image/png;base64,' . $qr;
+             }
+-            $model->updateQrCode($row['id'], $qr);
++            $model->updateQrCode((int)$ch['channel_id'], $qr);
+         }
+ 
+         echo json_encode(['ok' => true, 'qr' => $qr]);
+@@ -125,13 +132,32 @@ if ($method === 'GET') {
+     }
+ 
+     if ($action === 'list') {
+-        echo json_encode(['ok' => true, 'instances' => $model->listAll($tenantIds)]);
++        // Lista APENAS os canais visíveis pra conta (dono + compartilhados se a flag
++        // estiver ligada). Nunca expõe canal não vinculado, token, webhook ou QR.
++        $viewable = WhatsAppChannelAccessService::viewableChannelIds($pdo, $accountId);
++        $out = [];
++        foreach ($viewable as $cid) {
++            $r = $model->find((int)$cid);
++            if (!$r) continue;
++            // Projeção MÍNIMA (whitelist) — nunca o row cru. Evita vazar colunas
++            // sensíveis atuais ou futuras (token/webhook/qr/credenciais) a um tenant
++            // com acesso compartilhado. Só metadados de exibição.
++            $out[] = [
++                'id'            => (int)$r['id'],
++                'instance_name' => $r['instance_name'] ?? '',
++                'display_name'  => $r['display_name'] ?: ($r['instance_name'] ?? ''),
++                'status'        => $r['status'] ?? 'close',
++                'phone'         => $r['phone'] ?? null,
++                'is_own'        => ((int)($r['account_id'] ?? 0) === $accountId),
++            ];
++        }
++        echo json_encode(['ok' => true, 'instances' => $out]);
+         exit;
+     }
+ 
+-    // Default: retorna instância padrão com estado atual (NUNCA credenciais).
+-    $name = $cfg['evolution_instance'] ?? 'yuris-crm';
+-    $row  = $model->findOrCreate($name, '', $accountId);
++    // Default: retorna a instância do canal da conta com estado atual (NUNCA credenciais).
++    $ch  = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $_GET['channel_id'] ?? null, 'view');
++    $row = $ch['instance_row'];
+     unset($row['evolution_token'], $row['webhook_url'], $row['qr_code_base64']);
+     echo json_encode(['ok' => true, 'instance' => $row]);
+     exit;
+@@ -144,10 +170,22 @@ if ($method === 'POST') {
+         http_response_code(403); echo json_encode(['error' => 'CSRF inválido']); exit;
+     }
+ 
++    // Todas as mutações abaixo exigem owner/admin (papel) E 'manage' no canal.
++    if (!$canManage) { $denyManage(); }
++
+     $action = $payload['action'] ?? '';
+ 
++    // conectar/criar/restart/logout/webhook são GESTÃO do canal → 'manage'.
++    // 'manage' é exclusivo do dono: conta com canal compartilhado é negada aqui.
++    $ch   = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $payload['channel_id'] ?? null, 'manage');
++    $cfg  = $ch['cfg'];
++    $name = $ch['instance_name'];      // resolvido no backend — não confiamos no front
++    $ownerId = (int)$ch['owner_account_id'];
++    $evo  = new EvolutionApiService($cfg);
++
+     if ($action === 'create') {
+-        $name       = preg_replace('/[^a-zA-Z0-9_-]/', '', $payload['name'] ?? $cfg['evolution_instance']);
++        // Recria a instância do PRÓPRIO canal na Evolution. O nome é o resolvido no
++        // backend (ignora qualquer 'name' do front — anti-tampering).
+         $webhookUrl = $payload['webhook_url'] ?? '';
+         $res        = $evo->createInstance($name, $webhookUrl);
+ 
+@@ -155,36 +193,33 @@ if ($method === 'POST') {
+             echo json_encode(['ok' => false, 'error' => $res['_error']]); exit;
+         }
+ 
+-        $row = $model->findOrCreate($name, $payload['display_name'] ?? '', $accountId);
+-
+         // Salva QR code se retornado na criação
+         $qr = $res['qrcode']['base64'] ?? ($res['base64'] ?? '');
+         if ($qr) {
+             if (!str_starts_with($qr, 'data:')) $qr = 'data:image/png;base64,' . $qr;
+-            $model->updateQrCode($row['id'], $qr);
++            $model->updateQrCode((int)$ch['channel_id'], $qr);
+         }
+ 
+-        echo json_encode(['ok' => true, 'instance' => $model->find((int)$row['id'], $tenantIds), 'qr' => $qr]);
++        $row = $model->find((int)$ch['channel_id']);
++        if (is_array($row)) unset($row['evolution_token'], $row['webhook_url'], $row['qr_code_base64']);
++        echo json_encode(['ok' => true, 'instance' => $row, 'qr' => $qr]);
+         exit;
+     }
+ 
+     if ($action === 'connect') {
+-        $name = $cfg['evolution_instance'] ?? 'yuris-crm';
+-        $row  = $model->findOrCreate($name, '', $accountId);
+-        $res  = $evo->connectInstance($name);
++        $res = $evo->connectInstance($name);
+ 
+         $qr = $res['base64'] ?? ($res['qrcode']['base64'] ?? '');
+         if (!$qr && !empty($res['code'])) $qr = $res['code'];
+         if ($qr && !str_starts_with($qr, 'data:')) $qr = 'data:image/png;base64,' . $qr;
+-        if ($qr) $model->updateQrCode($row['id'], $qr);
++        if ($qr) $model->updateQrCode((int)$ch['channel_id'], $qr);
+ 
+         echo json_encode(['ok' => true, 'qr' => $qr]);
+         exit;
+     }
+ 
+     if ($action === 'restart') {
+-        $name = $cfg['evolution_instance'] ?? 'yuris-crm';
+-        $res  = $evo->restartInstance($name);
++        $res = $evo->restartInstance($name);
+         // Verifica se voltou com QR (sessão expirou)
+         $qr = $res['base64'] ?? ($res['qrcode']['base64'] ?? '');
+         if ($qr && !str_starts_with($qr, 'data:')) $qr = 'data:image/png;base64,' . $qr;
+@@ -193,23 +228,18 @@ if ($method === 'POST') {
+     }
+ 
+     if ($action === 'logout') {
+-        $name = $cfg['evolution_instance'] ?? 'yuris-crm';
+-        $row  = $model->findByName($name, $tenantIds);
+-        if ($row) {
+-            $evo->logoutInstance($name);
+-            $model->updateStatus($row['id'], 'close');
+-            $model->clearQrCode($row['id']);
+-        }
++        $evo->logoutInstance($name);
++        $model->updateStatus((int)$ch['channel_id'], 'close');
++        $model->clearQrCode((int)$ch['channel_id']);
+         echo json_encode(['ok' => true]);
+         exit;
+     }
+ 
+     if ($action === 'set_webhook') {
+-        $name = $cfg['evolution_instance'] ?? 'yuris-crm';
+         $url  = trim($payload['url'] ?? '');
+         if (!$url) { echo json_encode(['ok' => false, 'error' => 'URL obrigatória']); exit; }
+ 
+-        // Anexa ?token=<apikey do tenant> à URL enviada à Evolution. Garante que o
++        // Anexa ?token=<apikey do DONO> à URL enviada à Evolution. Garante que o
+         // webhook.php identifique o tenant mesmo quando a Evolution não repassa
+         // headers customizados (a query string SEMPRE é enviada). Não duplica se o
+         // usuário já tiver colocado token. A URL "limpa" (sem token) é a que fica
+@@ -220,8 +250,8 @@ if ($method === 'POST') {
+             $urlFinal .= (strpos($url, '?') === false ? '?' : '&') . 'token=' . urlencode($tenantKey);
+         }
+ 
+-        $res = $evo->setWebhook($name, $urlFinal);
+-        $model->saveSetting($accountId, 'webhook_url', $url);
++        $evo->setWebhook($name, $urlFinal);
++        $model->saveSetting($ownerId, 'webhook_url', $url);
+         echo json_encode(['ok' => true]);
+         exit;
+     }
+diff --git a/public/api/whatsapp/media.php b/public/api/whatsapp/media.php
+index ee32a00..f0a90f4 100644
+--- a/public/api/whatsapp/media.php
++++ b/public/api/whatsapp/media.php
+@@ -13,6 +13,7 @@ require_once __DIR__ . '/../../../app/Models/Account.php';
+ require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
+ require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
+ require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
++require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
+ require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+ 
+ use App\Models\Database;
+@@ -24,21 +25,14 @@ ob_end_clean();
+ 
+ if (!$_uid) { http_response_code(401); exit; }
+ 
+-// ─── LGPD P0: tenant enforcement ─────────────────────────────────────────────
+-// Antes desta correção, qualquer usuário autenticado podia chamar
+-//   GET /api/whatsapp/media.php?msg_id=N
+-// e baixar mídia (imagens, áudios, PDFs, vídeos) de QUALQUER mensagem de
+-// QUALQUER conta — vazamento massivo de documentos jurídicos, atestados etc.
+-// Agora exigimos que a mensagem pertença a uma instance vinculada às contas
+-// acessíveis pela sessão atual (matriz + filiais com sync_whatsapp ativo).
+-$ctx           = AccountContext::fromSession();
+-$accessibleIds = $ctx->getAccessibleAccountIds('whatsapp');
+-if (empty($accessibleIds)) {
+-    http_response_code(403);
+-    echo 'Sem contas acessíveis';
+-    exit;
+-}
+-$inClause = implode(',', array_map('intval', $accessibleIds));
++// ─── Fase 2: autorização por CANAL ────────────────────────────────────────────
++// Antes (LGPD P0) a mídia era escopada por getAccessibleAccountIds('whatsapp')
++// (matriz+filiais). Agora a regra é o GRANT explícito de canal: a conta precisa
++// de 'view' sobre o canal DONO da mensagem. A instância/credenciais são
++// resolvidas no backend a partir do dono do canal — nunca do front. Mantém o
++// 404 anti-enumeração (não revela existência da mídia a quem não tem acesso).
++$ctx       = AccountContext::fromSession();
++$accountId = $ctx->getAccountId();
+ // ─────────────────────────────────────────────────────────────────────────────
+ 
+ // Modo diagnóstico: retorna JSON com info do que acontece
+@@ -50,18 +44,12 @@ if (!$msgId) { http_response_code(400); echo 'msg_id obrigatório'; exit; }
+ try {
+     $pdo = Database::getConnection();
+ 
+-    // P0 LGPD: dupla verificação de ownership do tenant.
+-    //   • m.account_id IN (...)   → mensagens já migradas (após hardening 037)
+-    //   • wi.account_id IN (...)  → fallback via instância (mensagens antigas
+-    //                               podem ter account_id NULL, mas instance_id válido)
+-    // Se nenhuma das duas bater, retorna 404 (não 403, para não vazar existência).
++    // 1) Resolve a mensagem só pelo id (descobre o canal dono). 404 se inexistente.
+     $stmt = $pdo->prepare(
+-        "SELECT m.id, m.wamid, m.remote_jid, m.direction, m.message_type,
++        "SELECT m.id, m.instance_id, m.wamid, m.remote_jid, m.direction, m.message_type,
+                 m.media_mimetype, m.media_filename, m.media_url, m.media_base64, m.raw_payload
+          FROM whatsapp_messages m
+-         LEFT JOIN whatsapp_instances wi ON wi.id = m.instance_id
+          WHERE m.id = ?
+-           AND (m.account_id IN ($inClause) OR wi.account_id IN ($inClause))
+          LIMIT 1"
+     );
+     $stmt->execute([$msgId]);
+@@ -69,10 +57,20 @@ try {
+ 
+     if (!$msg) { http_response_code(404); echo 'Mensagem não encontrada'; exit; }
+ 
++    // 2) Autorização de canal: a conta precisa de 'view' sobre o canal dono da
++    //    mensagem. Usa check() (não assert) para devolver 404 — não 403 — e não
++    //    revelar a existência da mídia a quem não tem acesso (anti-enumeração).
++    $chk = WhatsAppChannelAccessService::check($pdo, $accountId, (int)$msg['instance_id'], 'view');
++    if (!$chk) { http_response_code(404); echo 'Mensagem não encontrada'; exit; }
++
++    // debug=1 expõe respostas cruas da Evolution + erros internos — restrito ao DONO
++    // do canal (conta com acesso compartilhado nunca usa o modo diagnóstico). Fase 2 E.
++    $debug = $debug && ($chk['access_type'] === 'owner');
++
+     $instModel = new WhatsAppInstance();
+-    // P0 LGPD: usa accountId resolvido pelo tenant guard acima
+-    $cfg       = $instModel->getSettings($ctx->getAccountId());
+-    $name      = $cfg['evolution_instance'] ?? 'yuris-crm';
++    // 3) Credenciais SEMPRE do DONO do canal (nunca da conta requisitante/front).
++    $cfg       = $instModel->getSettings((int)$chk['owner_account_id']);
++    $name      = $chk['instance_name'];
+     $apiKey    = $cfg['evolution_api_key']  ?? '';
+     $baseUrl   = rtrim($cfg['evolution_base_url'] ?? 'http://localhost:8080', '/');
+     $evo       = new EvolutionApiService($cfg);
+diff --git a/public/api/whatsapp/media_upload.php b/public/api/whatsapp/media_upload.php
+index 2bfa1fd..34d6c0c 100644
+--- a/public/api/whatsapp/media_upload.php
++++ b/public/api/whatsapp/media_upload.php
+@@ -10,6 +10,8 @@
+  * (resposta JSON com base64 já validado por magic bytes).
+  */
+ require_once __DIR__ . '/../../../app/Models/Database.php';
++require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
++require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
+ require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
+ 
+ session_start();
+@@ -55,6 +57,12 @@ if (!empty($_FILES['file'])) {
+         http_response_code(403); echo json_encode(['error' => 'CSRF inválido']); exit;
+     }
+ 
++    // Gate de canal (Fase 2): só prepara mídia quem tem 'send' em algum canal
++    // (próprio ou compartilhado com a flag ligada). Resolvido 100% no backend.
++    $ctxUp = \App\Helpers\AccountContext::fromSession();
++    $pdoUp = \App\Models\Database::getConnection();
++    $chUp  = WhatsAppChannelAccessService::resolveForRequest($pdoUp, $ctxUp->getAccountId(), $_POST['channel_id'] ?? null, 'send');
++
+     $file     = $_FILES['file'];
+     $error    = $file['error'] ?? UPLOAD_ERR_NO_FILE;
+ 
+@@ -85,12 +93,13 @@ if (!empty($_FILES['file'])) {
+     $base64   = base64_encode($content);
+ 
+     echo json_encode([
+-        'ok'       => true,
+-        'base64'   => $base64,
+-        'mimetype' => $mimetype,
+-        'filename' => $filename,
+-        'size'     => $file['size'],
+-        'type'     => detectMediaType($mimetype),
++        'ok'         => true,
++        'base64'     => $base64,
++        'mimetype'   => $mimetype,
++        'filename'   => $filename,
++        'size'       => $file['size'],
++        'type'       => detectMediaType($mimetype),
++        'channel_id' => (int)$chUp['channel_id'], // canal resolvido no backend (confere destino)
+     ]);
+     exit;
+ }
+diff --git a/public/api/whatsapp/message_action.php b/public/api/whatsapp/message_action.php
+index 40285cd..3764065 100644
+--- a/public/api/whatsapp/message_action.php
++++ b/public/api/whatsapp/message_action.php
+@@ -17,6 +17,7 @@ require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
+ require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
+ require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
+ require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
++require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
+ require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+ require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
+ 
+@@ -66,19 +67,18 @@ try {
+         exit;
+     }
+ 
+-    $instModel = new WhatsAppInstance();
+-    $instance  = $instModel->getByAccountId($accountId);
+-    if (!$instance) {
+-        http_response_code(404);
+-        echo json_encode(['error' => 'Instância WhatsApp não configurada']);
+-        exit;
+-    }
++    // Apagar mensagem = permissão DEDICADA 'delete_messages' no canal
++    // (deny-by-default). Dono sempre tem; conta compartilhada só se concedido
++    // explicitamente (off por padrão p/ filial). Canal/credenciais resolvidos no
++    // backend (dono do canal), nunca do front.
++    $pdo     = \App\Models\Database::getConnection();
++    $ch      = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $payload['channel_id'] ?? null, 'delete_messages');
++    $cfg     = $ch['cfg'];
++    $name    = $ch['instance_name'];
+ 
+     // 1) Despacha revoke para Evolution (best-effort)
+     try {
+-        $cfg  = $instModel->getSettings($accountId);
+         $evo  = new EvolutionApiService($cfg);
+-        $name = $cfg['evolution_instance'] ?? 'yuris-crm';
+         $evo->deleteMessage($name, [
+             'remoteJid' => $jid,
+             'id'        => $targetWamid,
+@@ -86,7 +86,11 @@ try {
+         ]);
+     } catch (\Throwable $_) {}
+ 
+-    // 2) Soft delete local (filtra por account_id)
++    // 2) Soft delete local — escopado à CONTA REQUISITANTE (nunca ao dono do canal).
++    //    Como WhatsAppMessage::save grava account_id = conta DONA da instância, uma
++    //    conta com acesso COMPARTILHADO (filial) não casa o account_id das mensagens
++    //    do canal e portanto NÃO consegue apagar mensagem da matriz nem de outra
++    //    filial (markDeleted devolve false -> 403). O dono (matriz) apaga as suas.
+     $model = new WhatsAppMessage();
+     $ok    = $model->markDeleted($messageId, [$accountId]);
+     if (!$ok) {
+diff --git a/public/api/whatsapp/messages.php b/public/api/whatsapp/messages.php
+index e12ec81..9db95e3 100644
+--- a/public/api/whatsapp/messages.php
++++ b/public/api/whatsapp/messages.php
+@@ -7,6 +7,7 @@ require_once __DIR__ . '/../../../app/Models/Account.php';
+ require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
+ require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
+ require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
++require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
+ require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+ 
+ use App\Helpers\AccountContext;
+@@ -20,13 +21,6 @@ header('Pragma: no-cache');
+ 
+ $ctx       = AccountContext::fromSession();
+ $accountId = $ctx->getAccountId();
+-// Auditoria 2026-06-01 BAIXA #23/#24: antes este conjunto era calculado e nunca
+-// usado (dead code) e ainda divergia do módulo usado por media.php ('whatsapp').
+-// Agora: (a) usa o módulo canônico 'whatsapp' (coerente com media.php — ambos
+-// resolvem o mesmo conjunto matriz+filiais ativas, pois não há flag sync_whatsapp
+-// dedicada) e (b) é efetivamente consumido abaixo como guarda de tenant.
+-$tenantIds = $ctx->getAccessibleAccountIds('whatsapp');
+-if (empty($tenantIds)) $tenantIds = [$accountId];
+ 
+ $method    = $_SERVER['REQUEST_METHOD'];
+ $remoteJid = trim($_GET['jid'] ?? '');
+@@ -47,24 +41,14 @@ if (!$remoteJid) {
+ }
+ 
+ try {
+-    $instModel  = new WhatsAppInstance();
+     $msgModel   = new WhatsAppMessage();
+-    $cfg        = $instModel->getSettings($accountId);
+-    $instName   = $cfg['evolution_instance'] ?? 'yuris-crm';
+-    // Cria/recupera instância DENTRO do tenant atual — evita usar instância de outra conta
+-    $row        = $instModel->findOrCreate($instName, '', $accountId);
+-    $instanceId = (int)$row['id'];
++    $pdo        = \App\Models\Database::getConnection();
+ 
+-    // Validação extra: garante que a instância pertence a uma conta acessível
+-    // (matriz + filiais ativas). Usa $tenantIds — antes esse conjunto era morto
+-    // (BAIXA #23). A instância é resolvida pela conta atual, então isto é uma
+-    // guarda de defesa-em-profundidade alinhada ao escopo de media.php.
+-    $instAccId = (int)($row['account_id'] ?? 0);
+-    if ($instAccId !== $accountId && !in_array($instAccId, array_map('intval', $tenantIds), true)) {
+-        http_response_code(403);
+-        echo json_encode(['error' => 'Instância WhatsApp não pertence a esta conta']);
+-        exit;
+-    }
++    // Leitura do histórico = 'view' no canal (deny-by-default). Resolve o canal
++    // próprio ou, com a flag ligada, o compartilhado (filial herdando o da matriz).
++    // instance_id e credenciais saem do backend (dono do canal), nunca do front.
++    $ch         = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $_GET['channel_id'] ?? null, 'view');
++    $instanceId = (int)$ch['channel_id'];
+ 
+     if ($search !== '') {
+         // Busca dentro da conversa: retorna apenas mensagens que matcham
+diff --git a/public/api/whatsapp/reaction.php b/public/api/whatsapp/reaction.php
+index 6e457ce..25d945d 100644
+--- a/public/api/whatsapp/reaction.php
++++ b/public/api/whatsapp/reaction.php
+@@ -18,6 +18,7 @@ require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
+ require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
+ require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
+ require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
++require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
+ require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+ require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
+ 
+@@ -61,19 +62,20 @@ try {
+         exit;
+     }
+ 
+-    $instModel = new WhatsAppInstance();
+-    $instance  = $instModel->getByAccountId($accountId);
+-    if (!$instance) {
+-        http_response_code(404);
+-        echo json_encode(['error' => 'Instância WhatsApp não configurada']);
+-        exit;
+-    }
+-    $instanceId = (int)$instance['id'];
++    // Reagir é equivalente a ENVIAR → permissão 'send' no canal (deny-by-default).
++    // Canal/credenciais resolvidos no backend (dono do canal), nunca do front.
++    $pdo        = \App\Models\Database::getConnection();
++    $ch         = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $payload['channel_id'] ?? null, 'send');
++    $instanceId = (int)$ch['channel_id'];
++    $ownerId    = (int)$ch['owner_account_id'];
++    $cfg        = $ch['cfg'];
++    $name       = $ch['instance_name'];
+ 
+-    // 1) Persiste no banco local (UPSERT por reactor='me')
++    // 1) Persiste no banco local (UPSERT por reactor='me'). account_id = DONO do
++    //    canal, pra manter coerência com as mensagens (escopadas pelo dono).
+     $model = new WhatsAppMessage();
+     $model->upsertReaction([
+-        'account_id'   => $accountId,
++        'account_id'   => $ownerId,
+         'instance_id'  => $instanceId,
+         'target_wamid' => $targetWamid,
+         'reactor_jid'  => 'me',
+@@ -86,9 +88,7 @@ try {
+     // Mas captura o resultado pra retornar ao frontend (debug / status visivel).
+     $evoResult = null;
+     try {
+-        $cfg  = $instModel->getSettings($accountId);
+-        $evo  = new EvolutionApiService($cfg);
+-        $name = $cfg['evolution_instance'] ?? 'yuris-crm';
++        $evo  = new EvolutionApiService($cfg); // $cfg/$name já resolvidos (dono do canal)
+ 
+         // Em grupos, a Evolution exige `participant` no key (jid do autor real
+         // da msg sendo reagida). Sem isso, o WhatsApp não encontra a msg alvo
+diff --git a/public/api/whatsapp/refresh_chat.php b/public/api/whatsapp/refresh_chat.php
+index f725ce8..07e959e 100644
+--- a/public/api/whatsapp/refresh_chat.php
++++ b/public/api/whatsapp/refresh_chat.php
+@@ -8,6 +8,7 @@ require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
+ require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
+ require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
+ require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
++require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
+ require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+ 
+ use App\Helpers\AccountContext;
+@@ -29,12 +30,15 @@ $ctx       = AccountContext::fromSession();
+ $accountId = $ctx->getAccountId();
+ 
+ try {
+-    $instModel  = new WhatsAppInstance();
+     $msgModel   = new WhatsAppMessage();
+-    $cfg        = $instModel->getSettings($accountId);
+-    $name       = $cfg['evolution_instance'] ?? 'yuris-crm';
+-    $row        = $instModel->findOrCreate($name, '', $accountId);
+-    $instanceId = (int)$row['id'];
++    $pdo        = \App\Models\Database::getConnection();
++
++    // Refresh de uma conversa = 'sync' no canal (deny-by-default). Canal/credenciais
++    // resolvidos no backend (dono do canal) — nunca do front.
++    $ch         = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $_GET['channel_id'] ?? null, 'sync');
++    $cfg        = $ch['cfg'];
++    $name       = $ch['instance_name'];
++    $instanceId = (int)$ch['channel_id'];
+     $evo        = new EvolutionApiService($cfg);
+     // Não pendurar a conexão se a Evolution estiver lenta/instável (era ilimitado).
+     // Esse refresh roda em segundo plano; se estourar o tempo, o banco já foi exibido.
+diff --git a/public/api/whatsapp/send.php b/public/api/whatsapp/send.php
+index be784cd..ab7aedb 100644
+--- a/public/api/whatsapp/send.php
++++ b/public/api/whatsapp/send.php
+@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
+ require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
+ require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
+ require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
++require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
+ require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+ 
+ use App\Helpers\AccountContext;
+@@ -58,17 +59,16 @@ try {
+ 
+ $instModel  = new WhatsAppInstance();
+ $msgModel   = new WhatsAppMessage();
+-$cfg        = $instModel->getSettings($accountId);
+-$instName   = $cfg['evolution_instance'] ?? 'yuris-crm';
+-$row        = $instModel->findOrCreate($instName, '', $accountId);
+-$instanceId = (int)$row['id'];
+-
+-// Validação extra: garante isolamento por tenant (mesma checagem dos demais endpoints)
+-if ((int)($row['account_id'] ?? 0) !== $accountId) {
+-    http_response_code(403);
+-    echo json_encode(['error' => 'Instância WhatsApp não pertence a esta conta']);
+-    exit;
+-}
++$pdo        = \App\Models\Database::getConnection();
++
++// Envio = permissão 'send' no canal (deny-by-default). Resolve o canal próprio ou,
++// com a flag ligada, o canal COMPARTILHADO (filial herdando o da matriz). A
++// instância e as credenciais são SEMPRE resolvidas no backend, a partir do DONO
++// do canal — nunca do front (instance_name/account_id/channel_id não confiáveis).
++$ch         = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $payload['channel_id'] ?? null, 'send');
++$cfg        = $ch['cfg'];
++$instName   = $ch['instance_name'];
++$instanceId = (int)$ch['channel_id'];
+ 
+ $evo        = new EvolutionApiService($cfg);
+ 
+@@ -178,16 +178,21 @@ $res = match ($type) {
+     default => $evo->sendMedia($instName, $remoteJid, $type, $mediaData, $caption, $filename, $mimetype),
+ };
+ 
++// Erros de rede/Evolution: o detalhe (curl_error, mensagem crua da API) pode
++// vazar host/IP/path interno. Loga server-side e devolve mensagem GENERICA ao
++// cliente (auditoria 2026-06-19 Fase 2 Parte E).
+ if (!empty($res['_error'])) {
++    error_log('[whatsapp/send] curl/_error inst=' . $instName . ': ' . $res['_error']);
+     http_response_code(502);
+-    echo json_encode(['ok' => false, 'error' => 'Falha ao enviar: ' . $res['_error']]);
++    echo json_encode(['ok' => false, 'error' => 'Falha ao enviar a mensagem. Tente novamente.']);
+     exit;
+ }
+ 
+ if (($res['_http'] ?? 0) >= 400) {
+-    $errMsg = $res['message'] ?? ($res['error'] ?? 'Erro desconhecido da API');
++    error_log('[whatsapp/send] Evolution http=' . ($res['_http'] ?? 0) . ' inst=' . $instName
++        . ' msg=' . substr((string)($res['message'] ?? ($res['error'] ?? '')), 0, 300));
+     http_response_code(502);
+-    echo json_encode(['ok' => false, 'error' => $errMsg]);
++    echo json_encode(['ok' => false, 'error' => 'Falha ao enviar a mensagem. Tente novamente.']);
+     exit;
+ }
+ 
+diff --git a/public/api/whatsapp/sync.php b/public/api/whatsapp/sync.php
+index 429af73..4efbf2e 100644
+--- a/public/api/whatsapp/sync.php
++++ b/public/api/whatsapp/sync.php
+@@ -10,6 +10,7 @@ require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
+ require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
+ require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
+ require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
++require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
+ require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+ 
+ use App\Models\Database;
+@@ -32,17 +33,21 @@ $ctx       = AccountContext::fromSession();
+ $accountId = $ctx->getAccountId();
+ 
+ try {
+-    $instModel  = new WhatsAppInstance();
+     $msgModel   = new WhatsAppMessage();
+-    $cfg        = $instModel->getSettings($accountId);
+-    $name       = $cfg['evolution_instance'] ?? 'yuris-crm';
+-    $row        = $instModel->findOrCreate($name, '', $accountId);
+-    $instanceId = (int)$row['id'];
++    $pdo        = Database::getConnection();
++
++    // Sincronizar = permissão 'sync' no canal (deny-by-default). Resolve o canal
++    // próprio ou, com a flag ligada, o compartilhado (filial herdando o da matriz).
++    // Tudo (instância, credenciais, dono) resolvido no backend, nunca do front.
++    $ch         = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $payload['channel_id'] ?? null, 'sync');
++    $cfg        = $ch['cfg'];
++    $name       = $ch['instance_name'];
++    $instanceId = (int)$ch['channel_id'];
++    $ownerId    = (int)$ch['owner_account_id']; // dono do canal — dados gravados sob ele
+     $evo        = new EvolutionApiService($cfg);
+     // Timeout curto: nenhuma chamada à Evolution pode pendurar a tela do usuário.
+     // Com a Evolution lenta/instável, cada chamada falha em até 8s (em vez de 20s).
+     $evo->setTimeout(8);
+-    $pdo        = Database::getConnection();
+ 
+     $synced   = 0;
+     $messages = 0;
+@@ -300,7 +305,7 @@ try {
+                    push_name = IF(VALUES(push_name) IS NOT NULL, VALUES(push_name), push_name),
+                    phone     = IF(VALUES(phone)     IS NOT NULL, VALUES(phone),     phone),
+                    role      = VALUES(role)'
+-            )->execute([$accountId, $instanceId, $gJid, $pLid, $displayName, $phoneNum, $role]);
++            )->execute([$ownerId, $instanceId, $gJid, $pLid, $displayName, $phoneNum, $role]);
+         }
+     }
+ 
+diff --git a/public/master.php b/public/master.php
+index 9974a08..409406f 100644
+--- a/public/master.php
++++ b/public/master.php
+@@ -942,6 +942,17 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
+         </div>
+       </div>
+     </div>
++
++    <!-- Fase 2: compartilhamento de canal matriz -> filial -->
++    <div class="mst-card" style="padding:0; overflow:hidden; margin-bottom:14px">
++      <div style="padding:14px 18px; border-bottom:1px solid rgba(160,180,210,.10)">
++        <div style="font-weight:700">Compartilhamento de canais (matriz, filial)</div>
++        <div style="font-size:.74rem; color:#9ab0c9; margin-top:3px">
++          Dá a uma filial acesso ao canal WhatsApp da matriz vinculada, sem número próprio. Só é possível compartilhar com filial <strong>ativa</strong> da conta dona do canal. <span id="waShareFlag"></span>
++        </div>
++      </div>
++      <div id="waShareList" style="padding:14px 18px"><div style="color:#9ab0c9">Carregando…</div></div>
++    </div>
+   </section>
+ 
+   <section class="mst-section" id="msec-reviews">
+@@ -1144,6 +1155,23 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
+           <div><label class="mst-form-label">UF</label><input name="fil_uf" class="mst-form-input" maxlength="2" style="text-transform:uppercase"></div>
+         </div>
+ 
++        <div class="mst-form-section">WhatsApp da Filial</div>
++        <div class="mst-form-help" style="margin-bottom:10px">Como esta filial vai usar o WhatsApp. O compartilhamento do canal da matriz só passa a valer quando o recurso estiver ativado no servidor.</div>
++        <div class="mst-form-row full">
++          <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin-bottom:8px">
++            <input type="radio" name="whatsapp_mode" value="matriz" checked style="margin-top:3px">
++            <span><strong>Usar o WhatsApp da matriz</strong> (padrão, recomendado)<br><span class="mst-form-help">A filial enxerga e atende pelo mesmo canal da matriz, sem precisar de um número próprio.</span></span>
++          </label>
++          <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin-bottom:8px">
++            <input type="radio" name="whatsapp_mode" value="propria" style="margin-top:3px">
++            <span><strong>WhatsApp próprio</strong><br><span class="mst-form-help">Cria uma instância nova na Evolution para esta filial (número separado).</span></span>
++          </label>
++          <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer">
++            <input type="radio" name="whatsapp_mode" value="depois" style="margin-top:3px">
++            <span><strong>Configurar depois</strong><br><span class="mst-form-help">A filial nasce sem WhatsApp; você define mais tarde.</span></span>
++          </label>
++        </div>
++
+         <div class="mst-form-section">Admin da Filial (opcional)</div>
+         <div class="mst-form-help" style="margin-bottom:10px">Se preencher, será criado um usuário admin pra esta filial. Caso contrário, ela compartilha do escopo da matriz.</div>
+         <div class="mst-form-row">
+@@ -2374,7 +2402,7 @@ function loadTab(name) {
+   if (name==='incidents') loadIncidents();
+   if (name==='operators') loadOperators();
+   if (name==='reviews')   loadReviews();
+-  if (name==='whatsapp') { loadGlobalEvolution(); loadWhatsappConfig(); }
++  if (name==='whatsapp') { loadGlobalEvolution(); loadWhatsappConfig(); loadWaChannels(); }
+ }
+ 
+ // ── WhatsApp / Evolution (infra por conta — só super_admin) ────────────────
+@@ -2545,6 +2573,65 @@ async function provisionInstance(accountId, btn) {
+     else { notifyErr(j.error || (j.data&&j.data.error) || 'Erro ao criar instância'); _btnRestore(btn); }
+   } catch(e) { notifyErr('Erro de rede ao criar instância'); _btnRestore(btn); }
+ }
++
++// ── Fase 2: compartilhamento de canal (matriz -> filial) ───────────────────
++async function loadWaChannels() {
++  const box = document.getElementById('waShareList');
++  if (!box) return;
++  const _e = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
++  box.innerHTML = '<div style="color:#9ab0c9">Carregando…</div>';
++  const r = await fj(`${API}/whatsapp_channels.php`);
++  if (!r.ok) { box.innerHTML = '<div style="color:#dc2626">Erro ao carregar canais</div>'; return; }
++  const d = r.data || {};
++  const flagEl = document.getElementById('waShareFlag');
++  if (flagEl) flagEl.innerHTML = d.sharing_enabled
++    ? '<strong style="color:#16a34a">Recurso ATIVADO</strong> no servidor.'
++    : '<strong style="color:#f59e0b">Recurso desligado</strong> (flag off): as concessões ficam registradas, mas só passam a valer quando o recurso for ligado no servidor.';
++  const chans = d.channels || [];
++  if (!chans.length) { box.innerHTML = '<div style="color:#9ab0c9">Nenhum canal WhatsApp cadastrado ainda.</div>'; return; }
++  box.innerHTML = chans.map(c => {
++    const shares = (c.shares||[]).map(s => `
++      <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.3);color:#93c5fd;border-radius:999px;padding:3px 10px;margin:3px 4px 0 0;font-size:.8rem">
++        ${_e(s.nome)} <span style="color:#7a8aa0">#${s.account_id}</span>
++        <button title="Revogar" onclick="revokeWaShare(${c.channel_id}, ${s.account_id}, this)" style="background:none;border:none;color:#fca5a5;cursor:pointer;font-weight:700;font-size:1rem;line-height:1;padding:0 0 0 2px">×</button>
++      </span>`).join('') || '<span style="color:#7a8aa0;font-size:.82rem">nenhuma filial compartilhada</span>';
++    const elig = c.eligible || [];
++    const addCtl = elig.length ? `
++      <div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap">
++        <select class="mst-form-select" style="width:auto;min-width:220px;padding:6px 11px;font-size:.82rem" id="waShareSel_${c.channel_id}">
++          ${elig.map(e => `<option value="${e.account_id}">${_e(e.nome)} (#${e.account_id})</option>`).join('')}
++        </select>
++        <button onclick="grantWaShare(${c.channel_id}, this)" style="padding:7px 14px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:.82rem">Compartilhar</button>
++      </div>` : '<div style="color:#7a8aa0;font-size:.8rem;margin-top:8px">Sem filiais ativas elegíveis para esta matriz.</div>';
++    return `
++      <div style="border:1px solid rgba(160,180,210,.12);border-radius:10px;padding:12px 14px;margin-bottom:10px">
++        <div style="font-weight:600">${_e(c.instance_name)} <span style="color:#7a8aa0;font-weight:400">, dono: ${_e(c.owner_nome)} (#${c.owner_account_id}, ${_e(c.owner_tipo)})</span></div>
++        <div style="margin-top:8px">${shares}</div>
++        ${addCtl}
++      </div>`;
++  }).join('');
++}
++async function grantWaShare(channelId, btn) {
++  const sel = document.getElementById('waShareSel_' + channelId);
++  const accountId = sel && parseInt(sel.value, 10);
++  if (!accountId) return;
++  _btnLoading(btn, 'Compartilhando…');
++  try {
++    const res = await fetch(`${API}/whatsapp_channels.php`, { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF}, body: JSON.stringify({ csrf_token: CSRF, action:'grant', channel_id: channelId, account_id: accountId }) });
++    const j = await res.json();
++    if (res.ok && j.ok !== false) { notifyOk((j.data && j.data.message) || 'Compartilhamento concedido'); loadWaChannels(); }
++    else { notifyErr(j.error || (j.data&&j.data.error) || 'Falha ao compartilhar'); _btnRestore(btn); }
++  } catch(e) { notifyErr('Erro de rede ao compartilhar'); _btnRestore(btn); }
++}
++async function revokeWaShare(channelId, accountId, btn) {
++  if (!confirm('Revogar o compartilhamento deste canal com a filial?')) return;
++  try {
++    const res = await fetch(`${API}/whatsapp_channels.php`, { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF}, body: JSON.stringify({ csrf_token: CSRF, action:'revoke', channel_id: channelId, account_id: accountId }) });
++    const j = await res.json();
++    if (res.ok && j.ok !== false) { notifyOk('Compartilhamento revogado'); loadWaChannels(); }
++    else { notifyErr(j.error || (j.data&&j.data.error) || 'Falha ao revogar'); }
++  } catch(e) { notifyErr('Erro de rede ao revogar'); }
++}
+ document.querySelectorAll('.mst-tab').forEach(b => b.addEventListener('click', () => {
+   window.location.hash = b.dataset.mtab;
+ }));
+@@ -2704,6 +2791,10 @@ async function submitFilial(ev) {
+   const body = {
+     csrf_token: CSRF,
+     matriz_id: parseInt(f.matriz_id.value, 10),
++    // WhatsApp da filial: matriz (herdar, padrão) | propria | depois. O backend
++    // (create_filial.php) valida e só concede acesso ao canal da matriz via grant
++    // explícito; o uso em runtime depende da feature flag.
++    whatsapp_mode: (f.whatsapp_mode && f.whatsapp_mode.value) || 'matriz',
+     filial: {
+       nome:         f.fil_nome.value.trim(),
+       razao_social: f.fil_razao.value.trim(),

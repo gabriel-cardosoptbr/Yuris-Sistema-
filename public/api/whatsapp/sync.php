@@ -10,6 +10,7 @@ require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
 require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
+require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 
 use App\Models\Database;
@@ -32,17 +33,21 @@ $ctx       = AccountContext::fromSession();
 $accountId = $ctx->getAccountId();
 
 try {
-    $instModel  = new WhatsAppInstance();
     $msgModel   = new WhatsAppMessage();
-    $cfg        = $instModel->getSettings($accountId);
-    $name       = $cfg['evolution_instance'] ?? 'yuris-crm';
-    $row        = $instModel->findOrCreate($name, '', $accountId);
-    $instanceId = (int)$row['id'];
+    $pdo        = Database::getConnection();
+
+    // Sincronizar = permissão 'sync' no canal (deny-by-default). Resolve o canal
+    // próprio ou, com a flag ligada, o compartilhado (filial herdando o da matriz).
+    // Tudo (instância, credenciais, dono) resolvido no backend, nunca do front.
+    $ch         = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $payload['channel_id'] ?? null, 'sync');
+    $cfg        = $ch['cfg'];
+    $name       = $ch['instance_name'];
+    $instanceId = (int)$ch['channel_id'];
+    $ownerId    = (int)$ch['owner_account_id']; // dono do canal — dados gravados sob ele
     $evo        = new EvolutionApiService($cfg);
     // Timeout curto: nenhuma chamada à Evolution pode pendurar a tela do usuário.
     // Com a Evolution lenta/instável, cada chamada falha em até 8s (em vez de 20s).
     $evo->setTimeout(8);
-    $pdo        = Database::getConnection();
 
     $synced   = 0;
     $messages = 0;
@@ -300,7 +305,7 @@ try {
                    push_name = IF(VALUES(push_name) IS NOT NULL, VALUES(push_name), push_name),
                    phone     = IF(VALUES(phone)     IS NOT NULL, VALUES(phone),     phone),
                    role      = VALUES(role)'
-            )->execute([$accountId, $instanceId, $gJid, $pLid, $displayName, $phoneNum, $role]);
+            )->execute([$ownerId, $instanceId, $gJid, $pLid, $displayName, $phoneNum, $role]);
         }
     }
 
