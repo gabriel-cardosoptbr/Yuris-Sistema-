@@ -48,3 +48,16 @@ database/import_clean.sql
 database/import_original.sql
 *.bak
 *.tar.gz
+
+# Python (scripts das skills de desenvolvimento em .claude/skills/*/scripts)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Skills de desenvolvimento: VERSIONAR o código (SKILL.md, references/, templates/,
+# scripts/, tests/, evals/) mas IGNORAR artefatos de execução/avaliação e caches.
+/.claude/skills/*-workspace/
+/.claude/skills/**/benchmarks/
+/.claude/skills/**/*.eval-results.json
+/.claude/skills/**/feedback.json

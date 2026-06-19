@@ -1,0 +1,8 @@
+-- Migration 098 — Prompt universal v2 do Assistente de Pre-Atendimento (manual completo).
+-- Apenas DADOS (seed): nao altera schema. Aplicacao idempotente via run_098.php.
+--
+-- Desativa a versao anterior do prompt global e insere a v2 (ativa). O texto fica em
+-- database/seeds/ai_prompt_v2.php e e editavel pelo super admin no Painel Master
+-- (api/master/ai_prompt.php), que cria novas versoes a cada correcao.
+--
+-- (Sem DDL aqui; a tabela ai_prompts foi criada na migration 097.)

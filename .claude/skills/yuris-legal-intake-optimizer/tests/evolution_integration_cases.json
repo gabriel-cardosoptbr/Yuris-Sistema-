@@ -1,0 +1,85 @@
+{
+  "skill_name": "yuris-legal-intake-optimizer",
+  "notes": "Casos de integracao com a Evolution. 'sim' = avaliado pelo simulador bot_would_respond (espelha maybeQueueAgentReply). 'invariant' = garantido por design/schema (asserido, nao executado). Cobrem os 20 testes obrigatorios do SKILL.md.",
+  "cases": [
+    {"id": 1, "name": "agente reutiliza instancia existente", "type": "invariant", "expect": true,
+     "why": "agent_configs.whatsapp_instance_id referencia whatsapp_instances.id; sem credencial propria."},
+    {"id": 2, "name": "nenhuma instancia adicional e criada pelo bot", "type": "invariant", "expect": true,
+     "why": "createInstance vive so no modulo WhatsApp/Master; validate_evolution_architecture.py falha se vazar."},
+    {"id": 3, "name": "nenhum segundo QR Code e solicitado", "type": "invariant", "expect": true,
+     "why": "QR fica no modulo WhatsApp; tela do agente nao gera QR."},
+    {"id": 4, "name": "nenhuma credencial da Evolution e duplicada", "type": "invariant", "expect": true,
+     "why": "credenciais centralizadas em whatsapp_settings, resolvidas no backend."},
+
+    {"id": 5, "name": "webhook atual encaminha mensagem nova ao motor", "type": "sim",
+     "state": {}, "event": {"remote_jid": "5511999999999@s.whatsapp.net", "type": "text", "text": "ola, preciso de ajuda", "wamid": "WMSG5"},
+     "expect_bot_responds": true},
+
+    {"id": 6, "name": "evento duplicado nao gera resposta duplicada", "type": "sim",
+     "state": {"seen_wamids": ["WDUP"]}, "event": {"remote_jid": "5511999999999@s.whatsapp.net", "type": "text", "text": "ola", "wamid": "WDUP"},
+     "expect_bot_responds": false},
+
+    {"id": 7, "name": "mensagem fromMe nao aciona o bot", "type": "sim",
+     "state": {}, "event": {"remote_jid": "5511999999999@s.whatsapp.net", "type": "text", "text": "resposta do proprio sistema", "fromMe": true, "wamid": "WSELF"},
+     "expect_bot_responds": false},
+
+    {"id": 8, "name": "mensagem manual do advogado (conversa assumida) pausa o bot", "type": "sim",
+     "state": {"agent_paused": true}, "event": {"remote_jid": "5511999999999@s.whatsapp.net", "type": "text", "text": "ola", "wamid": "WTKO"},
+     "expect_bot_responds": false},
+
+    {"id": 9, "name": "encaminhamento humano ocorre na mesma conversa", "type": "invariant", "expect": true,
+     "why": "takeover via whatsapp_chats.agent_paused na mesma instancia/conversa; nao transfere numero."},
+
+    {"id": 10, "name": "canal desconectado nao aciona (e nao cria instancia)", "type": "sim",
+     "state": {"status": "close"}, "event": {"remote_jid": "5511999999999@s.whatsapp.net", "type": "text", "text": "ola", "wamid": "WOFF"},
+     "expect_bot_responds": false},
+
+    {"id": 11, "name": "tenant sem canal nao pode ativar o bot", "type": "sim",
+     "state": {"has_channel": false}, "event": {"remote_jid": "5511999999999@s.whatsapp.net", "type": "text", "text": "ola", "wamid": "WNOCH"},
+     "expect_bot_responds": false},
+
+    {"id": 12, "name": "filial sem grant nao acessa canal da matriz", "type": "sim",
+     "state": {"requires_shared": true, "flag_on": true, "shared_grant": false}, "event": {"remote_jid": "5511999999999@s.whatsapp.net", "type": "text", "text": "ola", "wamid": "WNOGRANT"},
+     "expect_bot_responds": false},
+
+    {"id": 13, "name": "filial autorizada usa o canal compartilhado", "type": "sim",
+     "state": {"requires_shared": true, "flag_on": true, "shared_grant": true}, "event": {"remote_jid": "5511999999999@s.whatsapp.net", "type": "text", "text": "ola", "wamid": "WGRANT"},
+     "expect_bot_responds": true},
+
+    {"id": 14, "name": "token e instancia resolvidos apenas no backend", "type": "invariant", "expect": true,
+     "why": "resolveForRequest resolve instancia+credenciais do dono; front nunca prova autorizacao."},
+
+    {"id": 15, "name": "dois agentes nao respondem a mesma conversa", "type": "invariant", "expect": true,
+     "why": "UNIQUE uk_agent_instance em agent_configs.whatsapp_instance_id: no maximo 1 agente por canal."},
+
+    {"id": 16, "name": "midia (imagem) nao aciona o bot na v1, mas usa a mesma conexao", "type": "sim",
+     "state": {}, "event": {"remote_jid": "5511999999999@s.whatsapp.net", "type": "image", "text": "", "wamid": "WIMG"},
+     "expect_bot_responds": false},
+
+    {"id": 17, "name": "bot desativado nao processa mensagens", "type": "sim",
+     "state": {"enabled": false}, "event": {"remote_jid": "5511999999999@s.whatsapp.net", "type": "text", "text": "ola", "wamid": "WDIS"},
+     "expect_bot_responds": false},
+
+    {"id": 18, "name": "conversa em human_takeover nao recebe automacao", "type": "sim",
+     "state": {"agent_paused": true}, "event": {"remote_jid": "5511999999999@s.whatsapp.net", "type": "text", "text": "tem alguem ai?", "wamid": "WHUMAN"},
+     "expect_bot_responds": false},
+
+    {"id": 19, "name": "card de prospeccao nao e duplicado", "type": "invariant", "expect": true,
+     "why": "efeito de triagem (card/lead) deve ser idempotente por sessao/canal; nao reprocessar evento."},
+
+    {"id": 20, "name": "isolamento multi-tenant mantido", "type": "invariant", "expect": true,
+     "why": "toda leitura/escrita escopada por canal/conta resolvidos no backend; channel_id revalidado."},
+
+    {"id": 21, "name": "mensagem de grupo nao aciona o bot", "type": "sim",
+     "state": {}, "event": {"remote_jid": "1203630xxxx@g.us", "type": "text", "text": "ola pessoal", "wamid": "WGRP"},
+     "expect_bot_responds": false},
+
+    {"id": 22, "name": "broadcast/status nao aciona o bot", "type": "sim",
+     "state": {}, "event": {"remote_jid": "status@broadcast", "type": "text", "text": "status", "wamid": "WBC"},
+     "expect_bot_responds": false},
+
+    {"id": 23, "name": "texto vazio nao aciona o bot", "type": "sim",
+     "state": {}, "event": {"remote_jid": "5511999999999@s.whatsapp.net", "type": "text", "text": "   ", "wamid": "WEMPTY"},
+     "expect_bot_responds": false}
+  ]
+}

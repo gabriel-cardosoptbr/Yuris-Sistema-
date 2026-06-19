@@ -1,0 +1,54 @@
+{
+  "skill_name": "yuris-legal-intake-optimizer",
+  "notes": "Casos no formato skill-creator para avaliar o ACIONAMENTO e o comportamento da skill durante o desenvolvimento (nao sao os casos de conversa do agente). prompt = pedido realista que um dev faria.",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "O agente de IA do WhatsApp ta respondendo as proprias mensagens num loop infinito. Da uma olhada no webhook (public/api/whatsapp/webhook.php) e me diz como corrigir sem quebrar o atendimento humano.",
+      "expected_output": "Diagnostica como loop de fromMe/idempotencia; aponta a checagem de key.fromMe e o UNIQUE (instance_id, wamid); confirma que NAO se cria segunda instancia; preserva agent_paused.",
+      "files": [],
+      "expectations": [
+        "Cita public/api/whatsapp/webhook.php e a checagem de fromMe",
+        "Cita idempotencia por (instance_id, wamid)",
+        "Reafirma a premissa de instancia unica (nao criar 2a conexao)",
+        "Menciona respeitar whatsapp_chats.agent_paused"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Quero revisar o prompt do assistente de pre-atendimento pra gastar menos token, mas sem perder as recusas de promessa de resultado e de parecer juridico. Pode otimizar?",
+      "expected_output": "Preserva baseline; usa estrutura TIDD-EC; roda validate_prompt.py e estimate_prompt_tokens.py; compara antes/depois; mantem as regras Don't (promessa/parecer).",
+      "files": [],
+      "expectations": [
+        "Preserva a baseline antes de editar",
+        "Mantem estrutura TIDD-EC com listas Do/Don't",
+        "Roda validate_prompt.py e estimate_prompt_tokens.py e compara antes/depois",
+        "Nao introduz chain-of-thought no prompt de producao"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Preciso configurar o agente num canal de WhatsApp de um cliente novo. Como faco garantindo que nao cria uma instancia separada da Evolution so pro bot?",
+      "expected_output": "Orienta selecionar canal existente em agent_settings (whatsapp_instance_id), bloqueio se status != open, sem QR/credencial na tela do agente; reforca instancia unica.",
+      "files": [],
+      "expectations": [
+        "Seleciona canal existente via whatsapp_instance_id (sem criar instancia)",
+        "Lembra que ativar exige canal open (409 CHANNEL_DISCONNECTED)",
+        "Reforca que a tela do agente nao pede URL/QR/token/api key",
+        "Aponta validate_evolution_architecture.py como verificacao"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "A filial Sao Paulo quer que o bot atenda no WhatsApp da matriz. Isso e possivel e seguro? como o backend resolve o canal?",
+      "expected_output": "Explica resolveForRequest, grant ativo em whatsapp_channel_accounts + flag WHATSAPP_SHARED_CHANNELS_ENABLED, 1 agente por canal, credenciais do dono; filial sem grant nao acessa.",
+      "files": [],
+      "expectations": [
+        "Explica WhatsAppChannelAccessService::resolveForRequest e grant ativo",
+        "Cita a flag WHATSAPP_SHARED_CHANNELS_ENABLED",
+        "Reforca 1 agente por canal (UNIQUE whatsapp_instance_id)",
+        "Diz que filial sem grant nao acessa o canal da matriz"
+      ]
+    }
+  ]
+}
