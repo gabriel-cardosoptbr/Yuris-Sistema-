@@ -190,12 +190,18 @@ Rollback: desligar a flag (volta ao isolamento por canal próprio) sem reverter 
 
 ---
 
-## 9. Falta (não bloqueia a revisão)
+## 9. Frontend (concluído)
 
-- **Parte B (frontend):** 3 radios `whatsapp_mode` (herdar matriz [padrão] / própria
-  / configurar depois) no modal `+Filial` do `master.php` (o backend já honra).
-  Opcional: aba "Compartilhamento de canais" no Master consumindo
-  `whatsapp_channels.php` (grant/revoke + lista).
+- **Parte B:** 3 radios `whatsapp_mode` (herdar matriz [padrão] / própria /
+  configurar depois) no modal `+Filial` do `master.php`; `submitFilial` envia
+  `whatsapp_mode`. Commit `15deb62`.
+- **Painel "Compartilhamento de canais"** na aba WhatsApp do Master, consumindo
+  `whatsapp_channels.php`: por canal lista dono, filiais compartilhadas (chips com
+  revogar) e select de filiais elegíveis + botão Compartilhar; banner do estado da
+  flag. Commit `ceab042`.
+
+Pendente apenas: autorização para deploy (seção 10). Fase 3 (criar filiais inline
+no `+Matriz`) segue como melhoria futura opcional.
 
 ---
 
