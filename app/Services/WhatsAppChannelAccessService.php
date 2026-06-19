@@ -338,16 +338,22 @@ class WhatsAppChannelAccessService
         return (bool)$ok;
     }
 
-    /** Revoga (soft) um vínculo. */
+    /**
+     * Revoga (soft) um vínculo COMPARTILHADO. Nunca toca um registro de DONO
+     * (access_type='owner') — posse não se revoga por aqui. Retorna TRUE só se uma
+     * linha foi de fato revogada (rowCount), pra auditoria não registrar revogação
+     * falsa quando não havia compartilhamento ativo.
+     */
     public static function revoke(\PDO $pdo, int $channelId, int $accountId, ?int $by = null): bool
     {
         $st = $pdo->prepare(
-            'UPDATE whatsapp_channel_accounts SET revoked_at = NOW()
-              WHERE channel_id = ? AND account_id = ? AND revoked_at IS NULL'
+            "UPDATE whatsapp_channel_accounts SET revoked_at = NOW()
+              WHERE channel_id = ? AND account_id = ? AND access_type = 'shared' AND revoked_at IS NULL"
         );
-        $ok = $st->execute([$channelId, $accountId]);
-        error_log(sprintf('[wa-channel-access] REVOKE channel=%d account=%d by=%s',
-            $channelId, $accountId, $by === null ? 'system' : (string)$by));
-        return (bool)$ok;
+        $st->execute([$channelId, $accountId]);
+        $changed = $st->rowCount() > 0;
+        error_log(sprintf('[wa-channel-access] REVOKE channel=%d account=%d by=%s changed=%s',
+            $channelId, $accountId, $by === null ? 'system' : (string)$by, $changed ? '1' : '0'));
+        return $changed;
     }
 }
