@@ -38,11 +38,12 @@ class WhatsAppChannelAccessService
     private static function permColumn(string $perm): ?string
     {
         switch ($perm) {
-            case 'view':   return 'can_view';
-            case 'send':   return 'can_send';
-            case 'sync':   return 'can_sync';
-            case 'manage': return 'can_manage';
-            default:       return null;
+            case 'view':            return 'can_view';
+            case 'send':            return 'can_send';
+            case 'sync':            return 'can_sync';
+            case 'delete_messages': return 'can_delete_messages';
+            case 'manage':          return 'can_manage';
+            default:                return null;
         }
     }
 
@@ -50,7 +51,7 @@ class WhatsAppChannelAccessService
     private static function grantRow(\PDO $pdo, int $accountId, int $channelId): ?array
     {
         $st = $pdo->prepare(
-            'SELECT access_type, can_view, can_send, can_sync, can_manage
+            'SELECT access_type, can_view, can_send, can_sync, can_delete_messages, can_manage
                FROM whatsapp_channel_accounts
               WHERE account_id = ? AND channel_id = ? AND revoked_at IS NULL
               LIMIT 1'
@@ -190,20 +191,22 @@ class WhatsAppChannelAccessService
         $v = static fn(string $k) => $isOwner ? 1 : (int)!empty($perms[$k]);
         $st = $pdo->prepare(
             'INSERT INTO whatsapp_channel_accounts
-                (channel_id, account_id, access_type, can_view, can_send, can_sync, can_manage, granted_by, created_at, revoked_at)
-             VALUES (?,?,?,?,?,?,?,?,NOW(),NULL)
+                (channel_id, account_id, access_type, can_view, can_send, can_sync, can_delete_messages, can_manage, granted_by, created_at, revoked_at)
+             VALUES (?,?,?,?,?,?,?,?,?,NOW(),NULL)
              ON DUPLICATE KEY UPDATE
-                access_type = VALUES(access_type),
-                can_view    = VALUES(can_view),
-                can_send    = VALUES(can_send),
-                can_sync    = VALUES(can_sync),
-                can_manage  = VALUES(can_manage),
-                granted_by  = VALUES(granted_by),
-                revoked_at  = NULL'
+                access_type         = VALUES(access_type),
+                can_view            = VALUES(can_view),
+                can_send            = VALUES(can_send),
+                can_sync            = VALUES(can_sync),
+                can_delete_messages = VALUES(can_delete_messages),
+                can_manage          = VALUES(can_manage),
+                granted_by          = VALUES(granted_by),
+                revoked_at          = NULL'
         );
         $ok = $st->execute([
             $channelId, $accountId, $accessType,
             $v('can_view'), $v('can_send'), $v('can_sync'),
+            $v('can_delete_messages'),
             $isOwner ? 1 : 0, // 'manage' nunca concedido a shared, mesmo se pedirem
             $grantedBy,
         ]);
