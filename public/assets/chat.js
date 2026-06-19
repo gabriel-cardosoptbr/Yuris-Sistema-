@@ -2910,14 +2910,21 @@ const ChatApp = (() => {
   // ── Agente IA: liga/desliga GLOBAL do canal (atalho no header) ──────────────
   async function loadAgentToggle() {
     const btn = qs('#btnAgentToggle'); if (!btn) return;
-    if (state.status !== 'open' || !state.instanceId) { btn.style.display = 'none'; return; }
+    // Aparece mesmo com o canal desconectado (o id da instancia existe no banco), pra o
+    // admin sempre alcancar "Configurar agente" / ligar-desligar. Ligar de fato exige
+    // canal open (o backend retorna 409). So exige ter a instancia resolvida.
+    if (!state.instanceId) { btn.style.display = 'none'; return; }
+    // Ja carregado para este canal? Nao refaz a cada tick do polling (~6s).
+    if (state._agentToggleFetchedFor === state.instanceId && btn.dataset.mode) return;
     try {
       const r = await apiFetch('/api/whatsapp/agent_channel_toggle.php?instance_id=' + state.instanceId);
       if (!r || r.ok !== true) { btn.style.display = 'none'; return; }
+      state._agentToggleFetchedFor = state.instanceId;
       renderAgentToggle(r);
     } catch (e) {
-      // 403 (nao owner/admin) ou 404 (sem canal no escopo): simplesmente nao mostra
+      // 403 (nao owner/admin) ou 404 (sem canal no escopo): esconde e nao fica re-tentando neste canal
       btn.style.display = 'none';
+      if (/owner|admin|acesso|unauthorized|encontrad/i.test(e.message || '')) state._agentToggleFetchedFor = state.instanceId;
     }
   }
   function renderAgentToggle(r) {
