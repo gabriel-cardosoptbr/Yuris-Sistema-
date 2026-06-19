@@ -11,8 +11,10 @@
  * Tudo auditado em master_audit_log.
  *
  *   GET                      -> { active:{id,version,template,changelog,chars,tokens_est,updated_at}, versions:[...] }
+ *   GET ?id=N                -> { id,version,active,template,changelog,chars,tokens_est,... } (uma versao)
  *   POST action=save   {template, changelog}   -> cria nova versao ativa
  *   POST action=activate {id}                  -> ativa uma versao existente (rollback)
+ *   POST action=delete {id}                    -> exclui uma versao (nunca a ativa nem a ultima)
  */
 require_once __DIR__ . '/../../../app/Models/Database.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
@@ -72,6 +74,17 @@ function _nextVersion(\PDO $pdo, string $name): string {
 
 // ─── GET ───────────────────────────────────────────────────────────────────
 if ($method === 'GET') {
+    $vid = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+    if ($vid > 0) {
+        $st = $pdo->prepare("SELECT id, version, active, template, changelog, created_at, updated_at
+                               FROM ai_prompts WHERE id = ? AND name = ? AND account_id IS NULL LIMIT 1");
+        $st->execute([$vid, $NAME]);
+        $r = $st->fetch(\PDO::FETCH_ASSOC);
+        if (!$r) ApiResponse::badRequest('Versão não encontrada.');
+        $r['chars']      = mb_strlen((string)$r['template']);
+        $r['tokens_est'] = _tokensEst((string)$r['template']);
+        ApiResponse::ok($r);
+    }
     ApiResponse::ok([
         'active'   => _activePrompt($pdo, $NAME),
         'versions' => _versions($pdo, $NAME),
@@ -155,7 +168,32 @@ if ($method === 'POST') {
         ]);
     }
 
-    ApiResponse::badRequest('Ação desconhecida (use save ou activate).');
+    if ($action === 'delete') {
+        $id  = (int)($in['id'] ?? 0);
+        $chk = $pdo->prepare("SELECT version, active FROM ai_prompts WHERE id = ? AND name = ? AND account_id IS NULL LIMIT 1");
+        $chk->execute([$id, $NAME]);
+        $row = $chk->fetch(\PDO::FETCH_ASSOC);
+        if (!$row) ApiResponse::badRequest('Versão não encontrada.');
+        if ((int)$row['active'] === 1) {
+            ApiResponse::badRequest('Não é possível excluir a versão ativa. Ative outra versão antes de excluir esta.');
+        }
+        $cnt = $pdo->prepare("SELECT COUNT(*) FROM ai_prompts WHERE name = ? AND account_id IS NULL");
+        $cnt->execute([$NAME]);
+        if ((int)$cnt->fetchColumn() <= 1) {
+            ApiResponse::badRequest('Não é possível excluir a única versão existente.');
+        }
+
+        $pdo->prepare("DELETE FROM ai_prompts WHERE id = ?")->execute([$id]);
+        MasterAudit::log('ai_prompt.delete', 'ai_prompt', $id, 'Excluiu a versão ' . $row['version'] . ' do prompt do agente', ['version' => $row['version']]);
+
+        ApiResponse::ok([
+            'deleted' => true, 'version' => $row['version'],
+            'active' => _activePrompt($pdo, $NAME), 'versions' => _versions($pdo, $NAME),
+            'message' => 'Versão ' . $row['version'] . ' excluída.',
+        ]);
+    }
+
+    ApiResponse::badRequest('Ação desconhecida (use save, activate ou delete).');
 }
 
 http_response_code(405);

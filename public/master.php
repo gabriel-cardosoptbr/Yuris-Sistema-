@@ -2530,9 +2530,14 @@ async function loadAiPrompt() {
   _aiPromptCount();
   const _e = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const vs = (r.data && r.data.versions) || [];
-  document.getElementById('aiPromptVersions').innerHTML = vs.length ? vs.map(v => `<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid rgba(160,180,210,.08)">
-      <span><strong style="color:#cfe0f5">${_e(v.version)}</strong> ${v.active==1?'<span style="color:#10b981;font-weight:600">(ativa)</span>':''} <span style="color:#7a8aa0">${_e(v.changelog||'')}</span></span>
-      <span style="white-space:nowrap;color:#7a8aa0">${_e(String(v.created_at||'').replace('T',' ').slice(0,16))}${v.active==1?'':` <button onclick="activateAiPrompt(${v.id})" style="margin-left:8px;padding:3px 9px;font-size:.72rem;border:1px solid rgba(96,165,250,.4);background:transparent;color:#7EB8F7;border-radius:6px;cursor:pointer">Ativar</button>`}</span>
+  const _bs = 'padding:3px 9px;font-size:.72rem;border-radius:6px;cursor:pointer;margin-left:6px';
+  document.getElementById('aiPromptVersions').innerHTML = vs.length ? vs.map(v => `<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid rgba(160,180,210,.08);flex-wrap:wrap">
+      <span style="min-width:200px;flex:1"><strong style="color:#cfe0f5">${_e(v.version)}</strong> ${v.active==1?'<span style="color:#10b981;font-weight:600">(ativa)</span>':''} <span style="color:#7a8aa0">${_e(v.changelog||'')}</span></span>
+      <span style="white-space:nowrap;color:#7a8aa0">${_e(String(v.created_at||'').replace('T',' ').slice(0,16))}
+        <button onclick="viewAiPrompt(${v.id})" style="${_bs};border:1px solid rgba(160,180,210,.35);background:transparent;color:#cfe0f5">Ver/Editar</button>
+        ${v.active==1?'':`<button onclick="activateAiPrompt(${v.id})" style="${_bs};border:1px solid rgba(96,165,250,.4);background:transparent;color:#7EB8F7">Ativar</button>`}
+        ${v.active==1?'':`<button onclick="deleteAiPrompt(${v.id},'${_e(v.version)}')" style="${_bs};border:1px solid rgba(248,113,113,.4);background:transparent;color:#f87171">Excluir</button>`}
+      </span>
     </div>`).join('') : '<span style="color:#7a8aa0">Sem versões.</span>';
   if (!t.dataset.bound) { t.addEventListener('input', _aiPromptCount); t.dataset.bound = '1'; }
 }
@@ -2559,6 +2564,25 @@ async function activateAiPrompt(id) {
     if (res.ok && j.ok !== false) { notifyOk((j.data && j.data.message) || 'Versão ativada'); loadAiPrompt(); }
     else notifyErr(j.error || 'Erro ao ativar');
   } catch(e) { notifyErr('Erro de rede'); }
+}
+async function viewAiPrompt(id) {
+  const t = document.getElementById('aiPromptText'); if (!t) return;
+  const r = await fj(`${API}/ai_prompt.php?id=${id}`);
+  if (!r.ok || !r.data) { notifyErr('Erro ao carregar a versão'); return; }
+  const v = r.data;
+  t.value = v.template || '';
+  _aiPromptCount();
+  t.scrollIntoView({ behavior:'smooth', block:'center' });
+  notifyOk('Versão ' + (v.version||'') + ' carregada no editor' + (v.active==1 ? ' (é a ativa).' : '. Edite e clique Salvar nova versão, ou use Ativar para usá-la como está.'));
+}
+async function deleteAiPrompt(id, ver) {
+  if (!confirm('Excluir a versão ' + (ver||'') + ' do prompt? Não pode ser desfeito. A versão ativa não pode ser excluída.')) return;
+  try {
+    const res = await fetch(`${API}/ai_prompt.php`, { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF}, body: JSON.stringify({ csrf_token: CSRF, action:'delete', id }) });
+    const j = await res.json();
+    if (res.ok && j.ok !== false) { notifyOk((j.data && j.data.message) || 'Versão excluída'); loadAiPrompt(); }
+    else notifyErr(j.error || 'Erro ao excluir');
+  } catch(e) { notifyErr('Erro de rede ao excluir'); }
 }
 
 async function editWhatsappConfig(accountId) {
