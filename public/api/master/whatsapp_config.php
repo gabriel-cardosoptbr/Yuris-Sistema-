@@ -209,30 +209,40 @@ if ($method === 'POST') {
         if ($accountId <= 0) { http_response_code(422); echo json_encode(['ok' => false, 'error' => 'account_id obrigatório']); exit; }
 
         $settings = $model->getSettings($accountId);
-        $instName = trim((string)($settings['evolution_instance'] ?? ''));
         $acctKey  = (string)($settings['evolution_api_key'] ?? '');
         [$gBase, $gHook, $gKey] = _globalCfg($pdo);
-        $base = ((string)($settings['evolution_base_url'] ?? '')) ?: $gBase;
+        $base    = ((string)($settings['evolution_base_url'] ?? '')) ?: $gBase;
+        $authKey = $acctKey !== '' ? $acctKey : $gKey;
 
-        // 1) Best-effort na Evolution (logout + delete). Usa a chave da própria
-        //    instância se houver, senão a admin key global. Não derruba se falhar
-        //    (ex.: instância já não existe lá) — o objetivo é resetar mesmo assim.
-        $evoResult = 'pulado (sem nome de instância salvo)';
-        if ($instName !== '' && $base !== '') {
-            $authKey = $acctKey !== '' ? $acctKey : $gKey;
-            if ($authKey !== '') {
+        // Reset TOTAL da conta: pega TODAS as instâncias locais dela (some também o
+        // lixo de testes antigos), não só a "atual".
+        $stI = $pdo->prepare('SELECT id, instance_name FROM whatsapp_instances WHERE account_id = ?');
+        $stI->execute([$accountId]);
+        $localInst = $stI->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+        $ids   = array_map(static fn($r) => (int)$r['id'], $localInst);
+        $names = array_map(static fn($r) => (string)$r['instance_name'], $localInst);
+        $cfgName = trim((string)($settings['evolution_instance'] ?? ''));
+        if ($cfgName !== '' && !in_array($cfgName, $names, true)) $names[] = $cfgName;
+        $names = array_values(array_unique(array_filter($names, static fn($n) => $n !== '')));
+
+        // 1) Best-effort na Evolution (logout + delete) p/ CADA instância. Não
+        //    derruba se falhar (ex.: já não existe lá) — o objetivo é resetar.
+        $evoResults = [];
+        if ($base !== '' && $authKey !== '') {
+            foreach ($names as $nm) {
                 try {
-                    $evo = new EvolutionApiService(['evolution_base_url' => $base, 'evolution_api_key' => $authKey, 'evolution_instance' => $instName]);
-                    try { $evo->logoutInstance($instName); } catch (\Throwable $_) {}
-                    $del = $evo->deleteInstance($instName);
-                    $evoResult = !empty($del['_error']) ? ('Evolution recusou: ' . $del['_error']) : 'excluída na Evolution';
+                    $evo = new EvolutionApiService(['evolution_base_url' => $base, 'evolution_api_key' => $authKey, 'evolution_instance' => $nm]);
+                    try { $evo->logoutInstance($nm); } catch (\Throwable $_) {}
+                    $del = $evo->deleteInstance($nm);
+                    $evoResults[$nm] = !empty($del['_error']) ? ('recusou: ' . $del['_error']) : 'ok';
                 } catch (\Throwable $e) {
-                    $evoResult = 'erro Evolution: ' . $e->getMessage();
+                    $evoResults[$nm] = 'erro: ' . $e->getMessage();
                 }
-            } else {
-                $evoResult = 'pulado (sem chave p/ autenticar na Evolution)';
             }
         }
+        $evoResult = $evoResults
+            ? implode('; ', array_map(static fn($n) => "{$n}={$evoResults[$n]}", array_keys($evoResults)))
+            : ($names ? 'pulado (sem chave/base p/ Evolution)' : 'nenhuma instância');
 
         // 2) Limpeza local em transação. Essas tabelas têm instance_id SEM FK →
         //    apaga na mão pra não deixar órfão. agent_configs desvincula sozinho
@@ -240,9 +250,6 @@ if ($method === 'POST') {
         $deleted = ['instances'=>0,'mensagens'=>0,'conversas'=>0,'contatos'=>0,'membros'=>0,'reacoes'=>0];
         try {
             $pdo->beginTransaction();
-            $stI = $pdo->prepare('SELECT id FROM whatsapp_instances WHERE account_id = ?' . ($instName !== '' ? ' AND instance_name = ?' : ''));
-            $stI->execute($instName !== '' ? [$accountId, $instName] : [$accountId]);
-            $ids = $stI->fetchAll(\PDO::FETCH_COLUMN) ?: [];
             if ($ids) {
                 $ph  = implode(',', array_fill(0, count($ids), '?'));
                 $map = ['whatsapp_messages'=>'mensagens','whatsapp_chats'=>'conversas','whatsapp_contacts'=>'contatos','whatsapp_group_members'=>'membros','whatsapp_reactions'=>'reacoes'];
@@ -268,13 +275,13 @@ if ($method === 'POST') {
         }
 
         MasterAudit::log('whatsapp.delete_instance', 'account', $accountId,
-            "Instância '{$instName}' excluída (Evolution: {$evoResult})", ['instance' => $instName, 'evolution' => $evoResult, 'deleted' => $deleted]);
+            'Reset WhatsApp da conta (Evolution: ' . $evoResult . ')', ['instances' => $names, 'evolution' => $evoResult, 'deleted' => $deleted]);
 
         ApiResponse::ok([
-            'instance'  => $instName,
+            'instances' => $names,
             'evolution' => $evoResult,
             'deleted'   => $deleted,
-            'message'   => "Instância excluída. Evolution: {$evoResult}. Agora você pode clicar em \"Criar instância\" pra começar do zero.",
+            'message'   => 'WhatsApp da conta resetado. Evolution: ' . $evoResult . '. Agora você pode clicar em "Criar instância" pra começar do zero.',
         ]);
     }
 

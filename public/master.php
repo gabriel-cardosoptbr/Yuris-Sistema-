@@ -2456,11 +2456,11 @@ async function deleteInstance(accountId) {
   const nm  = row.evolution_instance || '(instância)';
   const acc = row.account_nome || ('conta #' + accountId);
   if (!confirm(
-    'Excluir a instância "' + nm + '" de ' + acc + '?\n\n' +
+    'Resetar a conexão WhatsApp de ' + acc + ' (instância atual: ' + nm + ')?\n\n' +
     'Isso vai:\n' +
-    '• apagar a conexão na Evolution (o número desconecta)\n' +
-    '• apagar as conversas/mensagens dessa instância no Yuris\n' +
-    '• desvincular o agente de IA desse canal\n\n' +
+    '• apagar TODAS as instâncias dessa conta na Evolution (o número desconecta)\n' +
+    '• apagar as conversas/mensagens/contatos dessa conta no Yuris\n' +
+    '• desvincular o agente de IA do canal\n\n' +
     'NÃO dá pra desfazer. Depois você pode clicar em "Criar instância" pra começar do zero.'
   )) return;
   try {
