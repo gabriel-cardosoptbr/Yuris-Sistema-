@@ -169,9 +169,24 @@ if ($method === 'POST') {
                 echo json_encode(['ok' => false, 'error' => 'Evolution recusou criar a instância: ' . $res['_error']]);
                 exit;
             }
-            // Usa a apikey que a Evolution REALMENTE atribuiu (varia por versão); senão o token.
-            $apikey = $res['hash']['apikey'] ?? (is_string($res['hash'] ?? null) ? $res['hash'] : null)
-                   ?? $res['instance']['apikey'] ?? $res['instance']['token'] ?? $token;
+            // A apikey REAL da instância é o campo `token` do item em fetchInstances.
+            // (Evolution v2.3.6 não honra o token enviado no create nem devolve a
+            // chave num formato fixo; o autoritativo é o `token` da instância.)
+            $apikey = null;
+            try {
+                foreach ((array)$globalEvo->fetchInstances() as $it) {
+                    $nm = $it['name'] ?? $it['instanceName'] ?? ($it['instance']['instanceName'] ?? ($it['instance']['name'] ?? null));
+                    if ($nm === $name) {
+                        $apikey = $it['token'] ?? $it['apikey'] ?? ($it['instance']['token'] ?? null);
+                        break;
+                    }
+                }
+            } catch (\Throwable $_) { /* cai no fallback abaixo */ }
+            // Fallback (compat outras versões): tenta extrair do retorno do create.
+            if (!$apikey) {
+                $apikey = $res['hash']['apikey'] ?? (is_string($res['hash'] ?? null) ? $res['hash'] : null)
+                       ?? $res['instance']['apikey'] ?? $res['instance']['token'] ?? $token;
+            }
 
             // Salva config da conta
             $model->saveSetting($accountId, 'evolution_base_url', $base);
