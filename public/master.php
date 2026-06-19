@@ -942,6 +942,17 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
         </div>
       </div>
     </div>
+
+    <!-- Fase 2: compartilhamento de canal matriz -> filial -->
+    <div class="mst-card" style="padding:0; overflow:hidden; margin-bottom:14px">
+      <div style="padding:14px 18px; border-bottom:1px solid rgba(160,180,210,.10)">
+        <div style="font-weight:700">Compartilhamento de canais (matriz, filial)</div>
+        <div style="font-size:.74rem; color:#9ab0c9; margin-top:3px">
+          Dá a uma filial acesso ao canal WhatsApp da matriz vinculada, sem número próprio. Só é possível compartilhar com filial <strong>ativa</strong> da conta dona do canal. <span id="waShareFlag"></span>
+        </div>
+      </div>
+      <div id="waShareList" style="padding:14px 18px"><div style="color:#9ab0c9">Carregando…</div></div>
+    </div>
   </section>
 
   <section class="mst-section" id="msec-reviews">
@@ -2391,7 +2402,7 @@ function loadTab(name) {
   if (name==='incidents') loadIncidents();
   if (name==='operators') loadOperators();
   if (name==='reviews')   loadReviews();
-  if (name==='whatsapp') { loadGlobalEvolution(); loadWhatsappConfig(); }
+  if (name==='whatsapp') { loadGlobalEvolution(); loadWhatsappConfig(); loadWaChannels(); }
 }
 
 // ── WhatsApp / Evolution (infra por conta — só super_admin) ────────────────
@@ -2561,6 +2572,65 @@ async function provisionInstance(accountId, btn) {
     if (res.ok && j.ok !== false) { notifyOk((j.data && j.data.message) || 'Instância criada'); loadWhatsappConfig(); /* re-render recria o botão */ }
     else { notifyErr(j.error || (j.data&&j.data.error) || 'Erro ao criar instância'); _btnRestore(btn); }
   } catch(e) { notifyErr('Erro de rede ao criar instância'); _btnRestore(btn); }
+}
+
+// ── Fase 2: compartilhamento de canal (matriz -> filial) ───────────────────
+async function loadWaChannels() {
+  const box = document.getElementById('waShareList');
+  if (!box) return;
+  const _e = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  box.innerHTML = '<div style="color:#9ab0c9">Carregando…</div>';
+  const r = await fj(`${API}/whatsapp_channels.php`);
+  if (!r.ok) { box.innerHTML = '<div style="color:#dc2626">Erro ao carregar canais</div>'; return; }
+  const d = r.data || {};
+  const flagEl = document.getElementById('waShareFlag');
+  if (flagEl) flagEl.innerHTML = d.sharing_enabled
+    ? '<strong style="color:#16a34a">Recurso ATIVADO</strong> no servidor.'
+    : '<strong style="color:#f59e0b">Recurso desligado</strong> (flag off): as concessões ficam registradas, mas só passam a valer quando o recurso for ligado no servidor.';
+  const chans = d.channels || [];
+  if (!chans.length) { box.innerHTML = '<div style="color:#9ab0c9">Nenhum canal WhatsApp cadastrado ainda.</div>'; return; }
+  box.innerHTML = chans.map(c => {
+    const shares = (c.shares||[]).map(s => `
+      <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.3);color:#93c5fd;border-radius:999px;padding:3px 10px;margin:3px 4px 0 0;font-size:.8rem">
+        ${_e(s.nome)} <span style="color:#7a8aa0">#${s.account_id}</span>
+        <button title="Revogar" onclick="revokeWaShare(${c.channel_id}, ${s.account_id}, this)" style="background:none;border:none;color:#fca5a5;cursor:pointer;font-weight:700;font-size:1rem;line-height:1;padding:0 0 0 2px">×</button>
+      </span>`).join('') || '<span style="color:#7a8aa0;font-size:.82rem">nenhuma filial compartilhada</span>';
+    const elig = c.eligible || [];
+    const addCtl = elig.length ? `
+      <div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap">
+        <select class="mst-form-select" style="width:auto;min-width:220px;padding:6px 11px;font-size:.82rem" id="waShareSel_${c.channel_id}">
+          ${elig.map(e => `<option value="${e.account_id}">${_e(e.nome)} (#${e.account_id})</option>`).join('')}
+        </select>
+        <button onclick="grantWaShare(${c.channel_id}, this)" style="padding:7px 14px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:.82rem">Compartilhar</button>
+      </div>` : '<div style="color:#7a8aa0;font-size:.8rem;margin-top:8px">Sem filiais ativas elegíveis para esta matriz.</div>';
+    return `
+      <div style="border:1px solid rgba(160,180,210,.12);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+        <div style="font-weight:600">${_e(c.instance_name)} <span style="color:#7a8aa0;font-weight:400">, dono: ${_e(c.owner_nome)} (#${c.owner_account_id}, ${_e(c.owner_tipo)})</span></div>
+        <div style="margin-top:8px">${shares}</div>
+        ${addCtl}
+      </div>`;
+  }).join('');
+}
+async function grantWaShare(channelId, btn) {
+  const sel = document.getElementById('waShareSel_' + channelId);
+  const accountId = sel && parseInt(sel.value, 10);
+  if (!accountId) return;
+  _btnLoading(btn, 'Compartilhando…');
+  try {
+    const res = await fetch(`${API}/whatsapp_channels.php`, { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF}, body: JSON.stringify({ csrf_token: CSRF, action:'grant', channel_id: channelId, account_id: accountId }) });
+    const j = await res.json();
+    if (res.ok && j.ok !== false) { notifyOk((j.data && j.data.message) || 'Compartilhamento concedido'); loadWaChannels(); }
+    else { notifyErr(j.error || (j.data&&j.data.error) || 'Falha ao compartilhar'); _btnRestore(btn); }
+  } catch(e) { notifyErr('Erro de rede ao compartilhar'); _btnRestore(btn); }
+}
+async function revokeWaShare(channelId, accountId, btn) {
+  if (!confirm('Revogar o compartilhamento deste canal com a filial?')) return;
+  try {
+    const res = await fetch(`${API}/whatsapp_channels.php`, { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF}, body: JSON.stringify({ csrf_token: CSRF, action:'revoke', channel_id: channelId, account_id: accountId }) });
+    const j = await res.json();
+    if (res.ok && j.ok !== false) { notifyOk('Compartilhamento revogado'); loadWaChannels(); }
+    else { notifyErr(j.error || (j.data&&j.data.error) || 'Falha ao revogar'); }
+  } catch(e) { notifyErr('Erro de rede ao revogar'); }
 }
 document.querySelectorAll('.mst-tab').forEach(b => b.addEventListener('click', () => {
   window.location.hash = b.dataset.mtab;
