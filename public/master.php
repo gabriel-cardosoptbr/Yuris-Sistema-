@@ -917,6 +917,18 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
       </div>
     </div>
 
+    <!-- Security Key da OpenAI (GLOBAL, vale para todas as instancias) -->
+    <div class="mst-card" style="padding:18px; margin-bottom:14px">
+      <div style="font-weight:700; margin-bottom:4px">Security Key da OpenAI (global)</div>
+      <div style="font-size:.74rem; color:#9ab0c9; margin-bottom:12px; max-width:720px">Chave usada por TODAS as instâncias do agente de IA. Fica cifrada e nunca volta em claro. Os escritórios não precisam informar chave: o sistema usa esta. Valide antes de salvar.</div>
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; max-width:780px">
+        <input id="aiOpenaiKey" class="mst-form-input" type="password" autocomplete="new-password" style="flex:1; min-width:260px" placeholder="sk-...">
+        <span id="aiOpenaiStatus" style="font-size:.78rem; color:#9ab0c9; min-width:160px"></span>
+        <button onclick="testAiOpenai(this)" style="padding:9px 16px;background:transparent;border:1px solid rgba(96,165,250,.5);color:#7EB8F7;border-radius:8px;font-weight:600;cursor:pointer">Validar</button>
+        <button onclick="saveAiOpenai(this)" style="padding:9px 16px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer">Salvar chave</button>
+      </div>
+    </div>
+
     <!-- Prompt do Agente de IA (asset GLOBAL, corrigido so aqui pelo super admin) -->
     <div class="mst-card" style="padding:18px; margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
@@ -2427,7 +2439,7 @@ function loadTab(name) {
   if (name==='incidents') loadIncidents();
   if (name==='operators') loadOperators();
   if (name==='reviews')   loadReviews();
-  if (name==='whatsapp') { loadGlobalEvolution(); loadWhatsappConfig(); loadWaChannels(); loadAiPrompt(); }
+  if (name==='whatsapp') { loadGlobalEvolution(); loadWhatsappConfig(); loadWaChannels(); loadAiOpenai(); loadAiPrompt(); }
 }
 
 // ── WhatsApp / Evolution (infra por conta — só super_admin) ────────────────
@@ -2455,6 +2467,44 @@ async function loadWhatsappConfig() {
     </td>
   </tr>`).join('');
 }
+// ── Security Key da OpenAI (global) ────────────────────────────────────────
+async function loadAiOpenai() {
+  const el = document.getElementById('aiOpenaiStatus'); if (!el) return;
+  const r = await fj(`${API}/ai_openai.php`);
+  if (!r.ok) { el.textContent = 'Erro ao carregar'; el.style.color = '#ef4444'; return; }
+  const d = r.data || {};
+  el.textContent = d.has_key ? ('Chave salva: ' + (d.masked || '****')) : 'Nenhuma chave salva';
+  el.style.color = d.has_key ? '#10b981' : '#f59e0b';
+  const inp = document.getElementById('aiOpenaiKey');
+  if (inp) inp.placeholder = d.has_key ? '•••• chave salva (deixe em branco para manter)' : 'sk-...';
+}
+async function saveAiOpenai(btn) {
+  const inp = document.getElementById('aiOpenaiKey'); const key = (inp.value || '').trim();
+  if (!key) { notifyErr('Cole a Security Key da OpenAI.'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Salvando…'; }
+  try {
+    const res = await fetch(`${API}/ai_openai.php`, { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF}, body: JSON.stringify({ csrf_token: CSRF, action:'save', api_key: key }) });
+    const j = await res.json();
+    if (res.ok && j.ok !== false) { notifyOk((j.data && j.data.message) || 'Chave salva'); inp.value=''; loadAiOpenai(); }
+    else notifyErr(j.error || 'Erro ao salvar');
+  } catch(e) { notifyErr('Erro de rede ao salvar'); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = 'Salvar chave'; } }
+}
+async function testAiOpenai(btn) {
+  const inp = document.getElementById('aiOpenaiKey'); const key = (inp.value || '').trim();
+  const el = document.getElementById('aiOpenaiStatus');
+  if (btn) { btn.disabled = true; btn.textContent = 'Validando…'; }
+  if (el) { el.textContent = 'Validando com a OpenAI…'; el.style.color = '#9ab0c9'; }
+  try {
+    const res = await fetch(`${API}/ai_openai.php`, { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF}, body: JSON.stringify({ csrf_token: CSRF, action:'test', api_key: key }) });
+    const j = await res.json();
+    const ok = res.ok && j.ok !== false && j.data && j.data.valid;
+    if (el) { el.textContent = ok ? ('Chave válida' + (j.data.detail ? (' · ' + j.data.detail) : '')) : ('Inválida: ' + ((j.data && j.data.detail) || j.error || 'falhou')); el.style.color = ok ? '#10b981' : '#ef4444'; }
+    ok ? notifyOk('Security Key válida') : notifyErr('Security Key inválida');
+  } catch(e) { if (el) { el.textContent = 'Erro de rede'; el.style.color = '#ef4444'; } }
+  finally { if (btn) { btn.disabled = false; btn.textContent = 'Validar'; } }
+}
+
 // ── Prompt do Agente IA (asset global, ver/corrigir) ───────────────────────
 function _aiPromptCount() {
   const t = document.getElementById('aiPromptText'), c = document.getElementById('aiPromptCounter');

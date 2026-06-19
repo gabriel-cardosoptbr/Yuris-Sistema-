@@ -540,34 +540,38 @@ function maybeQueueAgentReply(int $accountId, int $instanceId, ?string $remoteJi
 
         // FONTE ÚNICA DA VERDADE: seleciona o agente PELA INSTÂNCIA (1 agente por canal),
         // so dispara com o canal conectado (status=open). Carrega o config COMPLETO (config
-        // rica da migration 097) para o motor de pre-atendimento. api_key_enc e VARBINARY.
+        // rica da migration 097) para o motor de pre-atendimento.
         $st  = $pdo->prepare(
             'SELECT ac.*
                FROM agent_configs ac
                JOIN whatsapp_instances wi ON wi.id = ac.whatsapp_instance_id
               WHERE ac.whatsapp_instance_id = ? AND ac.enabled = 1
                 AND wi.status = "open"
-                AND ac.api_key_enc IS NOT NULL
-                AND ac.provider IS NOT NULL AND ac.provider <> ""
               LIMIT 1'
         );
         $st->execute([$instanceId]);
         $cfg = $st->fetch(\PDO::FETCH_ASSOC);
         if (!$cfg) return; // sem agente ativo conectado para este canal → não responde
 
-        $provider = strtolower(trim((string)$cfg['provider']));
+        // Provider: o do agente, ou OpenAI por padrao (a chave OpenAI e GLOBAL, no Master).
+        $provider = strtolower(trim((string)($cfg['provider'] ?? ''))) ?: 'openai';
         if (!in_array($provider, ['openai', 'anthropic'], true)) {
-            // Provider sem Structured Outputs por cURL puro (ex.: gemini) — nao derruba nada,
-            // so nao responde automaticamente. Logado p/ diagnostico.
             error_log('[whatsapp/agent] provider não suportado para auto-resposta: ' . $provider);
             return;
         }
 
+        // Chave: a do canal (agent_configs.api_key_enc) tem prioridade; senao, para OpenAI,
+        // usa a Security Key GLOBAL cadastrada no Painel Master (vale p/ todas as instancias).
         $apiKey = decryptAgentApiKey($cfg['api_key_enc'] !== null ? (string)$cfg['api_key_enc'] : null);
+        if (($apiKey === null || $apiKey === '') && $provider === 'openai') {
+            require_once __DIR__ . '/../../../app/Helpers/AiSettings.php';
+            $apiKey = \App\Helpers\AiSettings::openAiKey($pdo);
+        }
         if ($apiKey === null || $apiKey === '') {
-            error_log('[whatsapp/agent] api_key do agente indecifrável/vazia — auto-resposta abortada');
+            error_log('[whatsapp/agent] sem chave de IA (nem por canal, nem global OpenAI) — auto-resposta abortada');
             return;
         }
+        $cfg['provider'] = $provider; // provider resolvido segue no task
 
         // O trabalho pesado (1 chamada de IA + envio + efeitos) roda DEPOIS do 200, em
         // runAgentReply() -> IntakeEngine. Aqui so enfileiramos.
