@@ -1973,7 +1973,7 @@ $isSuper       = !empty($_SESSION['is_super_admin']);
             <div class="qr-container" id="qrContainer">
               <p style="color:#9A7B28;font-size:.82rem;margin:0">Escaneie o QR Code com seu WhatsApp</p>
               <img id="qrCodeImg" src="" alt="QR Code">
-              <p style="color:#4A5568;font-size:.75rem;margin:0">O código expira em 60 segundos. Atualizando automaticamente…</p>
+              <p style="color:#4A5568;font-size:.75rem;margin:0">O QR expira em segundos e troca sozinho. Escaneie rápido; se falhar, toque em "Atualizar QR Code".</p>
               <button class="conn-btn-secondary" onclick="ChatApp.refreshQr()">Atualizar QR Code</button>
             </div>
           </div>

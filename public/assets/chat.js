@@ -360,11 +360,11 @@ const ChatApp = (() => {
       qs('#qrContainer').classList.add('visible');
     }
     setConnectionStatus('qr');
-    // Auto-atualiza QR a cada 55s
+    // O QR do WhatsApp gira a cada ~20s; atualizamos antes disso pra nunca mostrar QR morto.
     clearTimeout(state.qrTimer);
     state.qrTimer = setTimeout(() => {
       if (state.status === 'qr') refreshQr();
-    }, 55000);
+    }, 18000);
   }
 
   async function refreshQr() {
