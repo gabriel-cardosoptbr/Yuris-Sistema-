@@ -516,8 +516,8 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
                 </div>
               </div>
 
-              <!-- Bloco 2 — Integração -->
-              <div class="agt-section" style="margin-top:14px">
+              <!-- Bloco 2 — Integração (OCULTO: provedor e chave da IA são GLOBAIS, definidos no Painel Master) -->
+              <div class="agt-section" style="margin-top:14px; display:none">
                 <div class="agt-section-title"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:6px"><path d="M9 2v6"/><path d="M15 2v6"/><path d="M6 8h12v4a6 6 0 1 1-12 0V8z"/><path d="M12 18v4"/></svg> Integração com API</div>
                 <div class="agt-section-body">
                   <div class="field-group">
@@ -549,8 +549,8 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
                 </div>
               </div>
 
-              <!-- Bloco 3 — Comportamento -->
-              <div class="agt-section" style="margin-top:14px">
+              <!-- Bloco 3 — Comportamento (OCULTO: o prompt/comportamento é GLOBAL, definido no Painel Master) -->
+              <div class="agt-section" style="margin-top:14px; display:none">
                 <div class="agt-section-title"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:6px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Comportamento do agente</div>
                 <div class="agt-section-body">
                   <div class="field-group">
@@ -571,8 +571,9 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 
                   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
                     <div class="field-group"><label class="field-label">Nome do escritorio</label><input id="cfgOfficeName" class="field-input" placeholder="Ex: Silva e Advogados"></div>
-                    <div class="field-group"><label class="field-label">Maximo de perguntas (3 a 8)</label><input id="cfgMaxQuestions" type="number" min="3" max="8" class="field-input" value="6"></div>
-                    <div class="field-group"><label class="field-label">Modelo de IA</label><select id="cfgModel" class="field-input"><option value="gpt-4o-mini">gpt-4o-mini (economico)</option><option value="gpt-5.4-mini">gpt-5.4-mini</option><option value="gpt-5.4-nano">gpt-5.4-nano</option></select></div>
+                    <!-- OCULTO: maximo de perguntas e modelo de IA sao GLOBAIS (Painel Master). Mantidos no DOM com default global p/ nao quebrar o salvar. -->
+                    <div class="field-group" style="display:none"><label class="field-label">Maximo de perguntas (3 a 8)</label><input id="cfgMaxQuestions" type="number" min="3" max="8" class="field-input" value="6"></div>
+                    <div class="field-group" style="display:none"><label class="field-label">Modelo de IA</label><select id="cfgModel" class="field-input"><option value="gpt-4o-mini">gpt-4o-mini (economico)</option><option value="gpt-5.4-mini">gpt-5.4-mini</option><option value="gpt-5.4-nano">gpt-5.4-nano</option></select></div>
                   </div>
 
                   <div class="field-group" style="margin-top:10px"><label class="field-label">Descricao do escritorio</label><input id="cfgOfficeDesc" class="field-input" placeholder="Atendemos nas areas de... em..."></div>
@@ -609,9 +610,10 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
                     <div id="areasBox" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:4px 14px;margin-top:8px;max-height:220px;overflow:auto;border:1px solid var(--border,#1e293b);border-radius:8px;padding:10px"></div>
                   </div>
 
-                  <div class="agt-section-title" style="margin-top:14px;font-size:.8rem">Encaminhamento e limites</div>
-                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
-                    <div class="field-group"><label class="field-label" style="font-weight:400"><input type="checkbox" id="cfgCreateCard" checked> Criar card em Prospeccao</label></div>
+                  <!-- OCULTO (etapa futura, paga a parte): criar card/tarefa, board, responsavel e limites de token/custo. Mantido no DOM (card desligado) p/ nao quebrar o salvar; sera reativado depois. -->
+                  <div class="agt-section-title" style="margin-top:14px;font-size:.8rem; display:none">Encaminhamento e limites</div>
+                  <div style="display:none;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+                    <div class="field-group"><label class="field-label" style="font-weight:400"><input type="checkbox" id="cfgCreateCard"> Criar card em Prospeccao</label></div>
                     <div class="field-group"><label class="field-label" style="font-weight:400"><input type="checkbox" id="cfgCreateTask"> Criar tarefa</label></div>
                     <div class="field-group"><label class="field-label">Quadro de tarefas (board_id)</label><input id="cfgBoardId" type="number" class="field-input" placeholder="opcional"></div>
                     <div class="field-group"><label class="field-label">Responsavel padrao (user_id)</label><input id="cfgDefaultUser" type="number" class="field-input" placeholder="opcional"></div>
