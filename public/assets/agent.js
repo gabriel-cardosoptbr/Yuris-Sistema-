@@ -151,6 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (toggleCb) toggleCb.checked = !!j.enabled && si.connected;
       if (promptField) promptField.dispatchEvent(new Event('input'));
       applyGating(si.connected, true);
+      populateAdvanced(j);
       updateCards(currentData(j));
     } catch (e) {
       console.error('loadConfig', e);
@@ -310,6 +311,79 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // ── Config rica do pre-atendimento (Bloco 4) ────────────────────────────────
+  const gv = (id) => { const e = document.getElementById(id); return e ? e.value : ''; };
+  const sv = (id, v) => { const e = document.getElementById(id); if (e) e.value = (v ?? ''); };
+  const gc = (id) => { const e = document.getElementById(id); return e ? !!e.checked : false; };
+  const sc = (id, v) => { const e = document.getElementById(id); if (e) e.checked = !!v; };
+
+  function renderAreas(catalog, areas) {
+    const box = document.getElementById('areasBox');
+    if (!box) return;
+    const en = {};
+    (areas || []).forEach(a => { en[a.code] = +a.enabled; });
+    const hasCfg = (areas && areas.length > 0);
+    box.innerHTML = (catalog || []).map(c => {
+      // 1o setup (sem config): todas marcadas. Depois: respeita o que foi salvo.
+      const checked = hasCfg ? (en[c.code] ? 'checked' : '') : 'checked';
+      return `<label style="font-size:.8rem;color:#cbd5e1;display:flex;gap:6px;align-items:center">
+                <input type="checkbox" class="area-cb" data-code="${esc(c.code)}" ${checked}> ${esc(c.name)}
+              </label>`;
+    }).join('') || '<span class="field-hint">Catalogo de areas indisponivel.</span>';
+  }
+
+  function populateAdvanced(j) {
+    sv('cfgOfficeName', j.office_name); sv('cfgOfficeDesc', j.office_description);
+    sv('cfgMaxQuestions', j.max_questions || 6); if (j.model) sv('cfgModel', j.model);
+    sv('cfgInitialMsg', j.initial_message); sv('cfgClosingMsg', j.closing_message);
+    sv('cfgUrgencyMsg', j.urgency_message); sv('cfgHandoffMsg', j.handoff_message);
+    const oi = j.office_information || {};
+    sv('cfgCidade', oi.cidade); sv('cfgHorario', oi.horario); sv('cfgTelefone', oi.telefone);
+    sv('cfgEmail', oi.email); sv('cfgSite', oi.site); sv('cfgEndereco', oi.endereco);
+    const bh = j.behavior || {};
+    sc('cfgAskCidade', !!bh.perguntar_cidade);
+    sc('cfgAskDocumentos', bh.perguntar_documentos !== false);
+    sc('cfgAskProcesso', bh.perguntar_processo !== false);
+    sc('cfgAskPrazo', bh.perguntar_prazo !== false);
+    const hc = j.handoff_config || {};
+    sc('cfgCreateCard', hc.create_card !== false); sc('cfgCreateTask', !!hc.create_task);
+    sv('cfgBoardId', hc.board_id || ''); sv('cfgDefaultUser', hc.default_user_id || '');
+    const ul = j.usage_limits || {};
+    sv('cfgMaxTokens', ul.max_tokens || 800); sv('cfgMonthlyLimit', ul.monthly_cost_limit || '');
+    renderAreas(j.catalog, j.areas);
+  }
+
+  function collectAdvanced() {
+    const areas = [];
+    document.querySelectorAll('#areasBox .area-cb').forEach(cb => {
+      areas.push({ code: cb.getAttribute('data-code'), enabled: cb.checked ? 1 : 0 });
+    });
+    return {
+      office_name: gv('cfgOfficeName'), office_description: gv('cfgOfficeDesc'),
+      model: gv('cfgModel'), max_questions: parseInt(gv('cfgMaxQuestions') || '6', 10),
+      initial_message: gv('cfgInitialMsg'), closing_message: gv('cfgClosingMsg'),
+      urgency_message: gv('cfgUrgencyMsg'), handoff_message: gv('cfgHandoffMsg'),
+      office_information: {
+        cidade: gv('cfgCidade'), horario: gv('cfgHorario'), telefone: gv('cfgTelefone'),
+        email: gv('cfgEmail'), site: gv('cfgSite'), endereco: gv('cfgEndereco'),
+      },
+      behavior: {
+        perguntar_cidade: gc('cfgAskCidade'), perguntar_documentos: gc('cfgAskDocumentos'),
+        perguntar_processo: gc('cfgAskProcesso'), perguntar_prazo: gc('cfgAskPrazo'),
+      },
+      handoff_config: {
+        create_card: gc('cfgCreateCard'), create_task: gc('cfgCreateTask'),
+        board_id: parseInt(gv('cfgBoardId') || '0', 10) || null,
+        default_user_id: parseInt(gv('cfgDefaultUser') || '0', 10) || null,
+      },
+      usage_limits: {
+        max_tokens: parseInt(gv('cfgMaxTokens') || '800', 10),
+        monthly_cost_limit: parseFloat(gv('cfgMonthlyLimit') || '0') || 0,
+      },
+      areas: areas,
+    };
+  }
+
   // ── Salvar ───────────────────────────────────────────────────────────────────
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -326,6 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Só envia 'enabled' quando o toggle está habilitado (canal conectado);
     // assim salvar com canal desconectado NÃO desativa por engano.
     if (toggleCb && !toggleCb.disabled) payload.enabled = toggleCb.checked ? 1 : 0;
+    Object.assign(payload, collectAdvanced());   // config rica do pre-atendimento (Bloco 4)
 
     if (btnSave) { btnSave.disabled = true; btnSave.textContent = 'Salvando…'; }
     try {

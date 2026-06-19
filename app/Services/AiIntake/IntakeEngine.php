@@ -1,0 +1,398 @@
+<?php
+namespace App\Services\AiIntake;
+
+require_once __DIR__ . '/IntakeSchema.php';
+require_once __DIR__ . '/Taxonomy.php';
+require_once __DIR__ . '/IntakeStateMachine.php';
+require_once __DIR__ . '/IntakeSessionRepository.php';
+require_once __DIR__ . '/LlmProviderInterface.php';
+require_once __DIR__ . '/HandoffService.php';
+
+/**
+ * IntakeEngine — orquestrador do pre-atendimento. UMA chamada de IA por mensagem.
+ *
+ * Divisao de responsabilidade (secao 9 do prompt mestre):
+ *  - MODELO (provider): intencao, classificacao de area, extracao, urgencia, sugestao da
+ *    proxima chave de pergunta, flags de handoff, resumo (Structured Output).
+ *  - BACKEND (este engine): autoriza, resolve sessao, monta o prompt, valida a saida,
+ *    controla a maquina de estados, escolhe o TEXTO da proxima pergunta, NAO repete,
+ *    aplica o limite, decide o handoff efetivo, monta a resposta, registra uso e audita.
+ *
+ * NAO cria conexao/credencial/QR. A resposta sai pela MESMA instancia (o webhook envia via
+ * EvolutionApiService e devolve o wamid para correlacao anti-loop).
+ */
+final class IntakeEngine
+{
+    private \PDO $pdo;
+    private LlmProviderInterface $provider;
+    private IntakeSessionRepository $repo;
+    private ?string $promptTemplate = null;
+
+    /** Preco estimado por 1M tokens (input, output) — atualizavel. */
+    private const COST = [
+        'gpt-4o-mini'  => [0.15, 0.60],
+        'gpt-4.1-mini' => [0.40, 1.60],
+        'gpt-5.4-mini' => [0.75, 4.50],
+        'gpt-5.4-nano' => [0.20, 1.25],
+    ];
+
+    /** Banco de perguntas (texto deterministico por chave; copy Yuris, sem travessao). */
+    private const QUESTIONS = [
+        'motivo'     => 'Pode me contar resumidamente o que aconteceu?',
+        'quando'     => 'Quando isso aconteceu?',
+        'processo'   => 'Ja existe algum processo sobre esse assunto?',
+        'prazo'      => 'Existe algum prazo, intimacao ou audiencia marcada?',
+        'documentos' => 'Voce tem algum documento relacionado ao caso?',
+        'cidade'     => 'Em qual cidade isso aconteceu?',
+        'area'       => 'Sobre qual assunto juridico voce precisa de ajuda?',
+    ];
+
+    public function __construct(\PDO $pdo, LlmProviderInterface $provider)
+    {
+        $this->pdo = $pdo;
+        $this->provider = $provider;
+        $this->repo = new IntakeSessionRepository($pdo);
+    }
+
+    public function repo(): IntakeSessionRepository { return $this->repo; }
+
+    /**
+     * Processa uma mensagem inbound do cliente. Retorna a decisao + texto a enviar.
+     * O webhook envia a resposta pela MESMA instancia e chama repo()->attachWamid(...).
+     */
+    public function handleInbound(array $cfg, int $channelId, string $remoteJid, ?int $contactId, string $userText, string $messageType, ?string $wamid): array
+    {
+        $accountId = (int)$cfg['account_id'];
+        $agentId   = (int)$cfg['id'];
+        $maxQ      = max(3, min(8, (int)($cfg['max_questions'] ?? 6)));
+
+        // 1) Sessao ativa (ou cria)
+        $session = $this->repo->findActiveSession($channelId, $remoteJid);
+        $firstTurn = false;
+        if (!$session) {
+            $this->repo->createSession([
+                'account_id' => $accountId, 'agent_id' => $agentId, 'channel_id' => $channelId,
+                'remote_jid' => $remoteJid, 'contact_id' => $contactId, 'status' => 'active',
+                'controller_mode' => 'bot_active', 'current_state' => 'new', 'question_count' => 0,
+                'collected_data_json' => IntakeSchema::defaults()['extracted_data'],
+                'asked_questions_json' => [],
+            ]);
+            $session = $this->repo->findActiveSession($channelId, $remoteJid);
+            $firstTurn = true;
+        }
+        $sid = (int)$session['id'];
+
+        // 2) Pausado (humano assumiu) ou terminal -> bot silencioso (so registra)
+        if ($this->repo->isPaused($channelId, $remoteJid) || IntakeStateMachine::isTerminal((string)($session['current_state'] ?? ''))) {
+            $this->repo->recordInbound($accountId, $sid, $wamid, $userText, $messageType);
+            return $this->silent($sid, 'paused_or_terminal');
+        }
+
+        // 3) Idempotencia da camada IA
+        if ($this->repo->inboundAlreadyProcessed($sid, $wamid)) {
+            return $this->silent($sid, 'duplicate');
+        }
+        $this->repo->recordInbound($accountId, $sid, $wamid, $userText, $messageType);
+
+        $collected = is_array($session['collected_data_json'] ?? null)
+            ? $session['collected_data_json'] : IntakeSchema::defaults()['extracted_data'];
+        $asked  = is_array($session['asked_questions_json'] ?? null) ? $session['asked_questions_json'] : [];
+        $qcount = (int)($session['question_count'] ?? 0);
+
+        // 4) Midia (nao-texto): confirma recebimento, NAO chama IA, nao envia a OpenAI (secao 22)
+        if ($messageType !== 'text') {
+            $collected['has_documents'] = true;
+            $collected['mentioned_documents'] = array_values(array_unique(array_merge($collected['mentioned_documents'] ?? [], [$messageType])));
+            $reply = ($messageType === 'audio')
+                ? 'Recebi o seu audio. Por aqui eu nao analiso o conteudo, mas vou registrar para a equipe avaliar. Se puder, me conte por escrito do que se trata.'
+                : 'Recebi o seu arquivo e vou deixa-lo registrado para a equipe analisar.';
+            $this->repo->updateSession($sid, ['collected_data_json' => $collected, 'last_message_at' => date('Y-m-d H:i:s')]);
+            $aiMsgId = $this->repo->recordSystem($accountId, $sid, $reply);
+            return $this->reply($sid, $aiMsgId, $reply, false, null, 'media_ack');
+        }
+
+        // 5) Circuit breaker de custo mensal
+        $limits = $this->jdec($cfg['usage_limits_json'] ?? null);
+        $monthLimit = (float)($limits['monthly_cost_limit'] ?? 0);
+        if ($monthLimit > 0 && $this->repo->monthlyCost($accountId) >= $monthLimit) {
+            return $this->doHandoff($cfg, $session, $collected, IntakeSchema::defaults(), $contactId, $remoteJid, $channelId, true, 'limit_reached');
+        }
+
+        // 6) Monta prompt + chama o modelo (1 chamada)
+        $enabled = $this->enabledAreas($agentId);
+        $system  = $this->buildSystemPrompt($cfg, $session, $enabled, $collected, $asked, $userText);
+        $opts = [
+            'max_tokens' => (int)($limits['max_tokens'] ?? 800),
+            'timeout'    => (int)($limits['timeout'] ?? 45),
+            'temperature'=> 0,
+            'context'    => [ // usado pelo FakeProvider em testes
+                'collected' => $collected, 'asked' => $asked, 'question_count' => $qcount,
+                'max_questions' => $maxQ, 'enabled_areas' => array_column($enabled, 'code'),
+            ],
+        ];
+        $model = (string)($cfg['model'] ?: 'gpt-4o-mini');
+        $res = $this->provider->complete($model, $system, $userText, IntakeSchema::responseFormat(), $opts);
+
+        // registra uso (sempre)
+        $cost = $this->cost($model, $res['usage']['input_tokens'] ?? 0, $res['usage']['output_tokens'] ?? 0);
+        $this->repo->recordUsage([
+            'account_id' => $accountId, 'agent_id' => $agentId, 'session_id' => $sid,
+            'provider' => $this->provider->name(), 'model' => $model, 'operation' => 'intake',
+            'input_tokens' => $res['usage']['input_tokens'] ?? 0, 'output_tokens' => $res['usage']['output_tokens'] ?? 0,
+            'estimated_cost' => $cost, 'success' => $res['ok'] ? 1 : 0,
+            'error' => $res['error'] ? substr($res['error'], 0, 240) : null, 'latency_ms' => $res['latency_ms'] ?? null,
+        ]);
+
+        // 7) Falha/recusa -> fallback handoff (nao trava o cliente)
+        if (!$res['ok']) {
+            if ($res['error']) error_log('[ai_intake] provider error: ' . $res['error']);
+            return $this->doHandoff($cfg, $session, $collected, IntakeSchema::defaults(), $contactId, $remoteJid, $channelId, false, $res['refused'] ? 'refused' : 'provider_error');
+        }
+
+        // 8) Valida + coerce
+        $structured = IntakeSchema::coerce($res['data']);
+        $errs = IntakeSchema::validate($structured);
+        if ($errs) error_log('[ai_intake] schema warnings: ' . implode('; ', array_slice($errs, 0, 5)));
+
+        // 9) Override server-side de urgencia critica (defesa)
+        $srv = Taxonomy::detectUrgency($userText);
+        if ($srv['level'] === 'critical' && $structured['urgency_level'] !== 'critical') {
+            $structured['urgency_level'] = 'critical';
+            $structured['urgency_reasons'] = array_values(array_unique(array_merge($structured['urgency_reasons'], $srv['reasons'])));
+            $structured['should_handoff_immediately'] = true;
+            $structured['enough_for_handoff'] = true;
+        }
+
+        // 10) Mescla dados coletados
+        $collected = $this->mergeExtracted($collected, $structured['extracted_data']);
+
+        // 11) Decisao de controle (BACKEND)
+        $intent   = $structured['intent'];
+        $critical = $structured['urgency_level'] === 'critical';
+        $wantsHuman = in_array($intent, ['human_request', 'existing_case'], true);
+        $limitReached = $qcount >= $maxQ;
+        $doHandoff = $critical || $wantsHuman || !empty($structured['should_handoff_immediately'])
+            || !empty($structured['enough_for_handoff']) || $limitReached;
+
+        $baseUpd = [
+            'collected_data_json' => $collected,
+            'intent' => $intent,
+            'primary_area' => $structured['primary_practice_area'],
+            'secondary_areas_json' => $structured['secondary_practice_areas'],
+            'classification_confidence' => $structured['classification_confidence'],
+            'urgency_level' => $structured['urgency_level'],
+            'urgency_reasons_json' => $structured['urgency_reasons'],
+            'summary' => $structured['summary'],
+            'last_message_at' => date('Y-m-d H:i:s'),
+        ];
+
+        // Spam / nao-juridico -> encerra com cordialidade
+        if ($intent === 'non_legal') {
+            $reply = 'Obrigado pelo contato. Este canal e do atendimento juridico do escritorio. Se precisar de ajuda juridica, e so escrever por aqui.';
+            $this->repo->updateSession($sid, $baseUpd + ['status' => 'completed', 'current_state' => 'completed', 'closed_at' => date('Y-m-d H:i:s')]);
+            $aiMsgId = $this->repo->recordBotSent($accountId, $sid, null, null, $reply, $structured, $res['usage'] ?? [], $res['latency_ms'] ?? null, true);
+            return $this->reply($sid, $aiMsgId, $reply, false, $structured, 'out_of_scope');
+        }
+
+        // Informacoes do escritorio (sem handoff) -> responde com o cadastrado + convite
+        if ($intent === 'office_information' && !$doHandoff) {
+            $reply = $this->composeOfficeInfo($cfg);
+            $this->repo->updateSession($sid, $baseUpd + ['current_state' => 'identifying_intent']);
+            $aiMsgId = $this->repo->recordBotSent($accountId, $sid, null, null, $reply, $structured, $res['usage'] ?? [], $res['latency_ms'] ?? null, true);
+            return $this->reply($sid, $aiMsgId, $reply, false, $structured, 'office_info');
+        }
+
+        // Handoff (imediato/critico/limite/suficiente/pedido humano)
+        if ($doHandoff) {
+            return $this->doHandoff($cfg, $session, $collected, $structured, $contactId, $remoteJid, $channelId, $critical, $limitReached ? 'limit_reached' : ($wantsHuman ? 'human_request' : ($critical ? 'urgent' : 'qualified')), $res);
+        }
+
+        // Caso geral: faz a proxima pergunta indispensavel (sem repetir, respeitando o limite)
+        $key = $structured['suggested_next_question_key'] ?: $this->pickNextKey($collected, $asked);
+        if ($key && in_array($key, $asked, true)) {
+            $key = $this->pickNextKey($collected, $asked); // nunca repetir
+        }
+        $greetingOnly = $firstTurn && empty($collected['main_report']) && in_array($intent, ['unknown'], true);
+
+        if ($greetingOnly) {
+            $reply = $this->composeGreeting($cfg);
+            $state = 'greeting';
+        } else {
+            if ($key) { $asked[] = $key; $qcount++; }
+            $reply = $this->composeQuestion($cfg, $structured, $key, $collected);
+            $state = IntakeStateMachine::decide((string)$session['current_state'], $structured, ['will_ask' => true]);
+        }
+
+        $this->repo->updateSession($sid, $baseUpd + [
+            'asked_questions_json' => $asked, 'question_count' => $qcount,
+            'current_state' => $state, 'current_question' => $key,
+        ]);
+        $aiMsgId = $this->repo->recordBotSent($accountId, $sid, null, null, $reply, $structured, $res['usage'] ?? [], $res['latency_ms'] ?? null, true);
+        return $this->reply($sid, $aiMsgId, $reply, false, $structured, 'question');
+    }
+
+    // ─────────────────────────── Handoff ───────────────────────────
+    private function doHandoff(array $cfg, array $session, array $collected, array $structured, ?int $contactId, string $remoteJid, int $channelId, bool $critical, string $reason, ?array $res = null): array
+    {
+        $accountId = (int)$cfg['account_id'];
+        $sid = (int)$session['id'];
+
+        // Efeitos (contato + card + tarefa + notificacao) idempotentes por sessao.
+        $hand = HandoffService::run($this->pdo, $cfg, [
+            'session_id' => $sid, 'channel_id' => $channelId, 'remote_jid' => $remoteJid,
+            'contact_id' => $contactId, 'collected' => $collected, 'structured' => $structured,
+            'reason' => $reason, 'existing_prospect_id' => $session['prospect_id'] ?? null,
+            'existing_task_id' => $session['task_id'] ?? null,
+        ]);
+
+        $reply = $critical
+            ? ($cfg['urgency_message'] ?: 'Entendi a urgencia. Vou registrar essa informacao com prioridade e encaminhar agora para a nossa equipe.')
+            : ($cfg['handoff_message'] ?: 'Perfeito, registrei as informacoes iniciais. Vou encaminhar o seu atendimento para a nossa equipe dar continuidade.');
+
+        $this->repo->updateSession($sid, [
+            'collected_data_json' => $collected,
+            'intent' => $structured['intent'] ?? ($session['intent'] ?? null),
+            'primary_area' => $structured['primary_practice_area'] ?? ($session['primary_area'] ?? null),
+            'urgency_level' => $structured['urgency_level'] ?? 'normal',
+            'summary' => $structured['summary'] ?? ($session['summary'] ?? null),
+            'status' => 'awaiting_human', 'controller_mode' => 'awaiting_human',
+            'current_state' => 'awaiting_human',
+            'assigned_user_id' => $hand['user_id'] ?? ($session['assigned_user_id'] ?? null),
+            'prospect_id' => $hand['prospect_id'] ?? ($session['prospect_id'] ?? null),
+            'task_id' => $hand['task_id'] ?? ($session['task_id'] ?? null),
+            'last_message_at' => date('Y-m-d H:i:s'),
+        ]);
+        // pausa o bot na conversa (mesma instancia; humano segue) — espelha agent_paused
+        try {
+            $st = $this->pdo->prepare("UPDATE whatsapp_chats SET agent_paused = 1 WHERE instance_id = ? AND remote_jid = ?");
+            $st->execute([$channelId, $remoteJid]);
+        } catch (\Throwable $_) {}
+
+        $aiMsgId = $this->repo->recordBotSent($accountId, $sid, null, null, $reply, $structured, $res['usage'] ?? [], $res['latency_ms'] ?? null, true);
+        return $this->reply($sid, $aiMsgId, $reply, true, $structured, 'handoff:' . $reason);
+    }
+
+    // ─────────────────────────── Helpers de resposta ───────────────────────────
+    private function composeGreeting(array $cfg): string
+    {
+        if (!empty($cfg['initial_message'])) return (string)$cfg['initial_message'];
+        $agent  = $cfg['name'] ?: 'assistente virtual';
+        $office = $cfg['office_name'] ?: 'nosso escritorio';
+        return "Ola! Sou {$agent}, assistente virtual de pre-atendimento do {$office}. Como posso ajudar?";
+    }
+
+    private function composeQuestion(array $cfg, array $structured, ?string $key, array $collected): string
+    {
+        $q = $key && isset(self::QUESTIONS[$key]) ? self::QUESTIONS[$key] : 'Pode me dar mais um detalhe sobre a sua situacao?';
+        // ack neutro (nunca "que bom"); empatia se urgencia
+        $ack = '';
+        if (($structured['urgency_level'] ?? 'normal') !== 'normal') $ack = 'Entendi a situacao. ';
+        elseif (!empty($collected['main_report'])) $ack = 'Certo, registrei. ';
+        return trim($ack . $q);
+    }
+
+    private function composeOfficeInfo(array $cfg): string
+    {
+        $info = $this->jdec($cfg['office_information_json'] ?? null);
+        $parts = [];
+        if (!empty($cfg['office_description'])) $parts[] = (string)$cfg['office_description'];
+        if (!empty($info['horario']))  $parts[] = 'Horario de atendimento: ' . $info['horario'] . '.';
+        if (!empty($info['telefone'])) $parts[] = 'Telefone: ' . $info['telefone'] . '.';
+        if (!empty($info['endereco'])) $parts[] = 'Endereco: ' . $info['endereco'] . '.';
+        if (!empty($info['site']))     $parts[] = 'Site: ' . $info['site'] . '.';
+        $txt = $parts ? implode(' ', $parts) : 'Posso te ajudar com o pre-atendimento juridico do escritorio.';
+        return $txt . ' Existe alguma situacao juridica em que possamos ajudar?';
+    }
+
+    // ─────────────────────────── Prompt / contexto ───────────────────────────
+    private function getPromptTemplate(): string
+    {
+        if ($this->promptTemplate !== null) return $this->promptTemplate;
+        try {
+            $st = $this->pdo->query("SELECT template FROM ai_prompts WHERE name='pre_atendimento_universal' AND active=1 ORDER BY id DESC LIMIT 1");
+            $tpl = $st ? $st->fetchColumn() : '';
+        } catch (\Throwable $_) { $tpl = ''; }
+        $this->promptTemplate = $tpl ?: 'Voce e {{agent_name}}, assistente virtual de pre-atendimento de {{office_name}}. Faca triagem, nao advogue. Responda somente com o JSON do schema.';
+        return $this->promptTemplate;
+    }
+
+    private function buildSystemPrompt(array $cfg, array $session, array $enabled, array $collected, array $asked, string $userText): string
+    {
+        $tpl = $this->getPromptTemplate();
+        $areaNames = implode(', ', array_map(fn($a) => $a['name'], $enabled)) ?: 'todas as areas do direito';
+        $vars = [
+            '{{agent_name}}'      => $cfg['name'] ?: 'Assistente',
+            '{{office_name}}'     => $cfg['office_name'] ?: 'o escritorio',
+            '{{max_questions}}'   => (string)max(3, min(8, (int)($cfg['max_questions'] ?? 6))),
+            '{{enabled_areas}}'   => $areaNames,
+            '{{office_information}}' => json_encode($this->jdec($cfg['office_information_json'] ?? null) ?: new \stdClass(), JSON_UNESCAPED_UNICODE),
+            '{{session_state}}'   => (string)($session['current_state'] ?? 'new'),
+            '{{asked_questions}}' => json_encode($asked, JSON_UNESCAPED_UNICODE),
+            '{{collected_data}}'  => json_encode($collected, JSON_UNESCAPED_UNICODE),
+            '{{current_question}}'=> (string)($session['current_question'] ?? ''),
+            '{{user_message}}'    => $userText,
+        ];
+        return strtr($tpl, $vars);
+    }
+
+    private function enabledAreas(int $agentId): array
+    {
+        try {
+            $st = $this->pdo->prepare("SELECT code, COALESCE(name, code) AS name FROM ai_intake_areas WHERE agent_id = ? AND enabled = 1 ORDER BY priority DESC, name ASC");
+            $st->execute([$agentId]);
+            $rows = $st->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+        } catch (\Throwable $_) { $rows = []; }
+        if ($rows) return $rows;
+        // fallback: todas as areas do catalogo
+        return array_map(fn($a) => ['code' => $a['code'], 'name' => $a['name']], Taxonomy::areas());
+    }
+
+    // ─────────────────────────── util ───────────────────────────
+    private function pickNextKey(array $collected, array $asked): ?string
+    {
+        $need = [];
+        if (empty($collected['main_report']))         $need[] = 'motivo';
+        if (empty($collected['event_date']))          $need[] = 'quando';
+        if (($collected['has_existing_case'] ?? null) === null) $need[] = 'processo';
+        if (($collected['has_deadline'] ?? null) === null)     $need[] = 'prazo';
+        if (($collected['has_documents'] ?? null) === null)    $need[] = 'documentos';
+        if (empty($collected['city']))                $need[] = 'cidade';
+        foreach ($need as $k) if (!in_array($k, $asked, true)) return $k;
+        return null;
+    }
+
+    private function mergeExtracted(array $base, array $new): array
+    {
+        foreach ($new as $k => $v) {
+            if ($k === 'mentioned_documents') {
+                $base[$k] = array_values(array_unique(array_merge($base[$k] ?? [], is_array($v) ? $v : [])));
+                continue;
+            }
+            if ($v !== null && $v !== '' && $v !== []) $base[$k] = $v;
+        }
+        return $base;
+    }
+
+    private function cost(string $model, int $in, int $out): float
+    {
+        [$pin, $pout] = self::COST[$model] ?? self::COST['gpt-4o-mini'];
+        return round($in / 1e6 * $pin + $out / 1e6 * $pout, 6);
+    }
+
+    private function jdec($v): array
+    {
+        if (is_array($v)) return $v;
+        if (is_string($v) && $v !== '') { $d = json_decode($v, true); return is_array($d) ? $d : []; }
+        return [];
+    }
+
+    private function silent(int $sid, string $note): array
+    {
+        return ['should_send' => false, 'reply' => null, 'session_id' => $sid, 'ai_message_id' => null, 'handoff' => false, 'structured' => null, 'note' => $note];
+    }
+
+    private function reply(int $sid, ?int $aiMsgId, string $text, bool $handoff, ?array $structured, string $note): array
+    {
+        return ['should_send' => true, 'reply' => $text, 'session_id' => $sid, 'ai_message_id' => $aiMsgId, 'handoff' => $handoff, 'structured' => $structured, 'note' => $note];
+    }
+}

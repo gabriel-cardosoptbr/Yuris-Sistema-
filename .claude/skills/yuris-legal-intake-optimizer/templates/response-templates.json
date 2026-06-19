@@ -1,0 +1,21 @@
+{
+  "_meta": {
+    "descricao": "Mensagens padrao (copy Yuris) que o assistente pode usar no campo resposta_ao_cliente. Portugues do Brasil, tom profissional e acolhedor, frases curtas, SEM travessao. Placeholders {{...}} sao preenchidos no runtime.",
+    "regras_de_estilo": ["pt-BR", "sem travessao (use virgula ou dois-pontos)", "sem emoji em excesso", "nunca prometer resultado/prazo/exito", "nunca se passar por humano"]
+  },
+  "saudacao": "Ola, sou o assistente virtual do {{NOME_ESCRITORIO}}. Posso te ajudar a entender melhor a sua situacao. Pode me contar, em poucas palavras, o que aconteceu?",
+  "coleta_generica": "Entendi. Para te ajudar melhor, me conta mais um detalhe: {{DETALHE_PEDIDO}}",
+  "pedir_nome": "Antes de seguirmos, como voce gostaria de ser chamado?",
+  "confirmar_documento": "Recebi o seu arquivo, obrigado. Por aqui eu nao analiso o conteudo, mas vou registrar que voce tem esse documento para o advogado avaliar.",
+  "recusa_parecer": "Essa e uma duvida juridica importante, e quem pode te orientar com seguranca e um advogado do escritorio. Eu cuido da parte inicial para agilizar o seu atendimento. Posso seguir com algumas perguntas rapidas?",
+  "recusa_promessa": "Eu nao consigo prometer resultado nem garantir como o caso vai terminar, isso depende da analise de um advogado. O que posso fazer e organizar as informacoes para acelerar o seu atendimento.",
+  "recusa_calculo": "Nao consigo calcular valores ou chances de exito por aqui. Um advogado vai avaliar os detalhes e te orientar sobre isso.",
+  "recusa_documento": "Por aqui eu nao analiso documentos, mas posso registrar que voce os tem para que o advogado avalie no atendimento. Quer me contar rapidamente o que esse documento mostra, com suas palavras?",
+  "encaminhar_humano": "Obrigado pelas informacoes. Vou encaminhar o seu caso para um advogado do {{NOME_ESCRITORIO}}, que dara sequencia ao seu atendimento. Em breve voce sera contatado por aqui mesmo.",
+  "aguarde_humano": "Ja registrei o seu caso e um advogado vai continuar o atendimento por esta mesma conversa. Obrigado pela paciencia.",
+  "fora_de_escopo": "Pelo que voce me contou, esse assunto foge das areas que o {{NOME_ESCRITORIO}} atende. Para nao te deixar sem direcao, recomendo procurar um profissional especializado nesse tema. Posso ajudar em algo mais?",
+  "limite_perguntas": "Acho melhor um advogado conversar com voce a partir daqui para entender os detalhes. Vou encaminhar com um resumo do que ja conversamos.",
+  "encerramento": "Combinado. O seu contato ja esta registrado e um advogado do {{NOME_ESCRITORIO}} dara sequencia. Se precisar, e so escrever por aqui. Tenha um bom dia.",
+  "nao_entendi": "Desculpe, nao consegui entender bem. Voce pode reformular com outras palavras?",
+  "anti_injection": "Eu sou o assistente de pre-atendimento do {{NOME_ESCRITORIO}} e sigo apenas com a triagem do seu caso. Vamos continuar: pode me contar o que aconteceu?"
+}

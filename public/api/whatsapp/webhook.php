@@ -490,8 +490,12 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
         // toggle enabled. fromMe já está excluído por estarmos dentro de !$fromMe;
         // $isNewInbound exclui replays/duplicatas (não re-dispara o LLM).
         if ($isNewInbound) {
-            maybeQueueAgentReply($accountId, $instanceId, $remoteJid, $msgType, $msgContent);
+            maybeQueueAgentReply($accountId, $instanceId, $remoteJid, $msgType, $msgContent, $wamid, $pushName);
         }
+    } else {
+        // fromMe: distingue o ECO do proprio bot (ignora, anti-loop) do ENVIO MANUAL por um
+        // humano via Yuris/celular (sinal de atendimento humano -> pausa o bot na conversa).
+        maybeHandleHumanSend($accountId, $instanceId, $remoteJid, $wamid, $msgContent);
     }
 }
 
@@ -506,22 +510,23 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
  *   (e) respeita o toggle: só dispara se houver agent_config com enabled=1.
  *   + só mensagens de TEXTO com conteúdo não-vazio.
  */
-function maybeQueueAgentReply(int $accountId, int $instanceId, ?string $remoteJid, string $msgType, ?string $msgContent): void
+function maybeQueueAgentReply(int $accountId, int $instanceId, ?string $remoteJid, string $msgType, ?string $msgContent, ?string $wamid = null, ?string $pushName = null): void
 {
     try {
         // (a) só chat individual — grupos terminam em @g.us
         if (!$remoteJid || str_ends_with($remoteJid, '@g.us')) return;
         // Ignora JIDs de sistema/broadcast (status@broadcast, newsletter etc.)
         if (str_ends_with($remoteJid, '@broadcast') || str_contains($remoteJid, '@newsletter')) return;
-        // só TEXTO com conteúdo
-        if ($msgType !== 'text') return;
+        // texto + midia (a midia vira confirmacao de recebimento no motor, sem chamar IA).
+        $allowed = ['text', 'image', 'audio', 'document', 'video', 'sticker'];
+        if (!in_array($msgType, $allowed, true)) return;
         $userText = trim((string)$msgContent);
-        if ($userText === '') return;
+        if ($msgType === 'text' && $userText === '') return;
 
         $pdo = Database::getConnection();
 
-        // Takeover (decisão: botão "Assumir conversa"): se um humano assumiu ESTA
-        // conversa, o agente não responde. agent_paused é por conversa (instance+jid).
+        // Takeover (botão "Assumir conversa" OU envio manual humano): se a conversa esta
+        // pausada, o agente nao responde. agent_paused e por conversa (instance+jid).
         try {
             $stPause = $pdo->prepare(
                 'SELECT agent_paused FROM whatsapp_chats WHERE instance_id = ? AND remote_jid = ? LIMIT 1'
@@ -529,16 +534,15 @@ function maybeQueueAgentReply(int $accountId, int $instanceId, ?string $remoteJi
             $stPause->execute([$instanceId, $remoteJid]);
             if ((int)$stPause->fetchColumn() === 1) return; // conversa assumida por humano
         } catch (\Throwable $_p) {
-            // Coluna ainda não migrada → fail-safe: não dispara o agente.
             error_log('[whatsapp/agent] agent_paused indisponível (migration 082?): ' . $_p->getMessage());
             return;
         }
 
-        // FONTE ÚNICA DA VERDADE: seleciona o agente PELA INSTÂNCIA que recebeu a
-        // mensagem (1 agente por canal), não "o mais recente da conta". Só dispara se
-        // o canal estiver conectado (status=open). api_key_enc é VARBINARY (leitura crua).
+        // FONTE ÚNICA DA VERDADE: seleciona o agente PELA INSTÂNCIA (1 agente por canal),
+        // so dispara com o canal conectado (status=open). Carrega o config COMPLETO (config
+        // rica da migration 097) para o motor de pre-atendimento. api_key_enc e VARBINARY.
         $st  = $pdo->prepare(
-            'SELECT ac.provider, ac.api_key_enc, ac.prompt
+            'SELECT ac.*
                FROM agent_configs ac
                JOIN whatsapp_instances wi ON wi.id = ac.whatsapp_instance_id
               WHERE ac.whatsapp_instance_id = ? AND ac.enabled = 1
@@ -553,8 +557,8 @@ function maybeQueueAgentReply(int $accountId, int $instanceId, ?string $remoteJi
 
         $provider = strtolower(trim((string)$cfg['provider']));
         if (!in_array($provider, ['openai', 'anthropic'], true)) {
-            // Provider não suportado por cURL puro (ex.: gemini) — não derruba nada,
-            // apenas não responde automaticamente. Logado p/ diagnóstico.
+            // Provider sem Structured Outputs por cURL puro (ex.: gemini) — nao derruba nada,
+            // so nao responde automaticamente. Logado p/ diagnostico.
             error_log('[whatsapp/agent] provider não suportado para auto-resposta: ' . $provider);
             return;
         }
@@ -565,18 +569,65 @@ function maybeQueueAgentReply(int $accountId, int $instanceId, ?string $remoteJi
             return;
         }
 
+        // O trabalho pesado (1 chamada de IA + envio + efeitos) roda DEPOIS do 200, em
+        // runAgentReply() -> IntakeEngine. Aqui so enfileiramos.
         $GLOBALS['__agent_tasks'][] = [
+            'cfg'         => $cfg,            // config completa do agente (dono do canal)
+            'api_key'     => $apiKey,
+            'provider'    => $provider,
             'account_id'  => $accountId,
             'instance_id' => $instanceId,
             'remote_jid'  => $remoteJid,
-            'provider'    => $provider,
-            'api_key'     => $apiKey,
-            'prompt'      => trim((string)($cfg['prompt'] ?? '')),
             'user_text'   => $userText,
+            'msg_type'    => $msgType,
+            'wamid'       => $wamid,
+            'push_name'   => $pushName,
         ];
     } catch (\Throwable $e) {
         // Nunca deixa a avaliação do agente derrubar o webhook.
         error_log('[whatsapp/agent] maybeQueueAgentReply falhou: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Mensagem fromMe (saida): distingue o ECO do proprio bot do ENVIO MANUAL humano.
+ *  - eco do bot (wamid no ledger ai_intake_messages.origin='bot', ou conteudo == ultima
+ *    resposta do bot): ignora (anti-loop; nao reprocessa, nao pausa).
+ *  - envio manual de um humano numa conversa com sessao ativa do agente: pausa o bot
+ *    (human takeover na mesma conversa, mesma instancia).
+ * NUNCA usa apenas fromMe para decidir (fromMe da Evolution e historicamente nao confiavel).
+ */
+function maybeHandleHumanSend(int $accountId, int $instanceId, ?string $remoteJid, ?string $wamid, ?string $msgContent): void
+{
+    try {
+        if (!$remoteJid || str_ends_with($remoteJid, '@g.us') || str_ends_with($remoteJid, '@broadcast') || str_contains($remoteJid, '@newsletter')) return;
+        require_once __DIR__ . '/../../../app/Services/AiIntake/IntakeSessionRepository.php';
+        $pdo  = Database::getConnection();
+        $repo = new \App\Services\AiIntake\IntakeSessionRepository($pdo);
+
+        // 1) eco do proprio bot por wamid -> ignora
+        if ($repo->isBotEcho($wamid)) return;
+
+        // ha sessao ativa do agente nesta conversa?
+        $sess = $repo->findActiveSession($instanceId, $remoteJid);
+        if (!$sess) return;
+
+        // 2) defesa extra: conteudo identico a ultima resposta do bot -> tambem e eco
+        $txt = trim((string)$msgContent);
+        if ($txt !== '') {
+            $st = $pdo->prepare("SELECT content FROM ai_intake_messages WHERE session_id = ? AND origin = 'bot' ORDER BY id DESC LIMIT 1");
+            $st->execute([(int)$sess['id']]);
+            $last = (string)($st->fetchColumn() ?: '');
+            if ($last !== '' && mb_strtolower(trim($last)) === mb_strtolower($txt)) return;
+        }
+
+        // 3) envio manual humano -> pausa o bot (se ainda nao pausado)
+        if (!in_array($sess['controller_mode'] ?? '', ['human_takeover', 'bot_paused'], true)) {
+            $repo->pauseForHuman($instanceId, $remoteJid, null);
+            error_log('[whatsapp/agent] envio manual humano detectado -> bot pausado em ' . $remoteJid);
+        }
+    } catch (\Throwable $e) {
+        error_log('[whatsapp/agent] maybeHandleHumanSend falhou: ' . $e->getMessage());
     }
 }
 
@@ -820,29 +871,55 @@ function decryptAgentApiKey(?string $enc): ?string
 function runAgentReply(array $task): void
 {
     try {
-        $reply = ($task['provider'] === 'anthropic')
-            ? callAnthropic($task['api_key'], $task['prompt'], $task['user_text'])
-            : callOpenAi($task['api_key'], $task['prompt'], $task['user_text']);
+        require_once __DIR__ . '/../../../app/Services/AiIntake/IntakeEngine.php';
+        require_once __DIR__ . '/../../../app/Services/AiIntake/OpenAiProvider.php';
+        require_once __DIR__ . '/../../../app/Services/AiIntake/AnthropicProvider.php';
 
-        $reply = is_string($reply) ? trim($reply) : '';
-        if ($reply === '') {
-            error_log('[whatsapp/agent] LLM (' . $task['provider'] . ') não retornou texto — nada enviado');
-            return;
-        }
-        // Limite defensivo de tamanho (evita respostas gigantes do modelo).
+        $apiKey   = (string)($task['api_key'] ?? '');
+        $provider = ($task['provider'] === 'anthropic')
+            ? new \App\Services\AiIntake\AnthropicProvider($apiKey)
+            : new \App\Services\AiIntake\OpenAiProvider($apiKey);
+
+        $pdo    = Database::getConnection();
+        $engine = new \App\Services\AiIntake\IntakeEngine($pdo, $provider);
+        $cfg    = is_array($task['cfg'] ?? null) ? $task['cfg'] : [];
+
+        // 1 chamada de IA + controle deterministico + efeitos (handoff) ficam no motor.
+        $result = $engine->handleInbound(
+            $cfg,
+            (int)$task['instance_id'],
+            (string)$task['remote_jid'],
+            null,
+            (string)($task['user_text'] ?? ''),
+            (string)($task['msg_type'] ?? 'text'),
+            $task['wamid'] ?? null
+        );
+
+        if (empty($result['should_send']) || empty($result['reply'])) return;
+        $reply = (string)$result['reply'];
         if (mb_strlen($reply) > 4096) $reply = mb_substr($reply, 0, 4096);
 
-        // Envia pelo mesmo tenant (settings per-tenant, P0 LGPD).
+        // Envia pela MESMA instancia — credenciais do DONO do canal (account do agent_config).
+        $ownerAcc  = (int)($cfg['account_id'] ?? $task['account_id']);
         $instModel = new WhatsAppInstance();
-        $cfg       = $instModel->getSettings((int)$task['account_id']);
-        $evo       = new EvolutionApiService($cfg);
-        $name      = $cfg['evolution_instance'] ?? 'yuris-crm';
+        $sett      = $instModel->getSettings($ownerAcc);
+        $evo       = new EvolutionApiService($sett);
+        $name      = $sett['evolution_instance'] ?? 'yuris-crm';
         $resp      = $evo->sendText($name, (string)$task['remote_jid'], $reply);
         if (!empty($resp['_error'])) {
             error_log('[whatsapp/agent] sendText falhou: ' . $resp['_error']);
+            return;
+        }
+
+        // Anti-loop: registra o wamid que o BOT acabou de enviar (ledger). Quando o eco
+        // (fromMe) voltar pelo webhook, isBotEcho() reconhece e ignora.
+        $wamidOut = $resp['key']['id'] ?? ($resp['id'] ?? null);
+        if (!empty($result['ai_message_id']) && $wamidOut) {
+            try { $engine->repo()->attachWamid((int)$result['ai_message_id'], (string)$wamidOut, null); }
+            catch (\Throwable $_) {}
         }
     } catch (\Throwable $e) {
-        // Não vaza detalhe; só log server-side (LGPD).
+        // Não vaza detalhe; só log server-side (LGPD). Ja estamos depois do 200.
         error_log('[whatsapp/agent] runAgentReply falhou: ' . $e->getMessage());
     }
 }

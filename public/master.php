@@ -916,6 +916,31 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
         <div><button onclick="saveGlobalEvolution()" style="padding:9px 18px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer">Salvar config global</button></div>
       </div>
     </div>
+
+    <!-- Prompt do Agente de IA (asset GLOBAL, corrigido so aqui pelo super admin) -->
+    <div class="mst-card" style="padding:18px; margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:700; margin-bottom:4px">Prompt do Agente de IA (Pré-Atendimento)</div>
+          <div style="font-size:.74rem; color:#9ab0c9; max-width:700px">Manual de conduta universal usado por TODOS os escritórios. Os clientes não editam isto, eles só preenchem nome, áreas e mensagens na tela do agente. Cada correção aqui cria uma nova versão (com histórico e rollback). Atenção: prompt maior significa mais tokens por mensagem, mitigado pelo cache automático da OpenAI.</div>
+        </div>
+        <div style="text-align:right;font-size:.74rem;color:#9ab0c9">
+          <div>Versão ativa: <strong id="aiPromptVer" style="color:#cfe0f5">—</strong></div>
+          <div id="aiPromptMeta"></div>
+        </div>
+      </div>
+      <textarea id="aiPromptText" class="mst-form-input" rows="16" spellcheck="false" style="margin-top:12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.78rem;line-height:1.5;white-space:pre-wrap" placeholder="Carregando…"></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px">
+        <input id="aiPromptChangelog" class="mst-form-input" style="flex:1;min-width:240px" placeholder="O que você corrigiu? (entra no histórico da versão)">
+        <span id="aiPromptCounter" style="font-size:.72rem;color:#9ab0c9"></span>
+        <button onclick="saveAiPrompt(this)" style="padding:9px 18px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer">Salvar nova versão</button>
+      </div>
+      <div style="margin-top:14px">
+        <div style="font-size:.74rem;color:#9ab0c9;margin-bottom:6px">Histórico de versões</div>
+        <div id="aiPromptVersions" style="font-size:.78rem">—</div>
+      </div>
+    </div>
+
     <div class="mst-card" style="padding:0; overflow:hidden; margin-bottom:14px">
       <div style="padding:14px 18px; border-bottom:1px solid rgba(160,180,210,.10)">
         <div style="font-weight:700">Instâncias por conta</div>
@@ -2402,7 +2427,7 @@ function loadTab(name) {
   if (name==='incidents') loadIncidents();
   if (name==='operators') loadOperators();
   if (name==='reviews')   loadReviews();
-  if (name==='whatsapp') { loadGlobalEvolution(); loadWhatsappConfig(); loadWaChannels(); }
+  if (name==='whatsapp') { loadGlobalEvolution(); loadWhatsappConfig(); loadWaChannels(); loadAiPrompt(); }
 }
 
 // ── WhatsApp / Evolution (infra por conta — só super_admin) ────────────────
@@ -2430,6 +2455,53 @@ async function loadWhatsappConfig() {
     </td>
   </tr>`).join('');
 }
+// ── Prompt do Agente IA (asset global, ver/corrigir) ───────────────────────
+function _aiPromptCount() {
+  const t = document.getElementById('aiPromptText'), c = document.getElementById('aiPromptCounter');
+  if (t && c) { const n = t.value.length; c.textContent = n.toLocaleString('pt-BR') + ' caracteres (~' + Math.round(n/4).toLocaleString('pt-BR') + ' tokens)'; }
+}
+async function loadAiPrompt() {
+  const t = document.getElementById('aiPromptText'); if (!t) return;
+  const r = await fj(`${API}/ai_prompt.php`);
+  if (!r.ok) { t.value=''; t.placeholder='Erro ao carregar o prompt'; return; }
+  const a = (r.data && r.data.active) || null;
+  t.value = a ? a.template : '';
+  document.getElementById('aiPromptVer').textContent = a ? a.version : '—';
+  document.getElementById('aiPromptMeta').textContent = a ? ((a.chars||0).toLocaleString('pt-BR') + ' chars · ~' + (a.tokens_est||0).toLocaleString('pt-BR') + ' tokens') : '';
+  _aiPromptCount();
+  const _e = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const vs = (r.data && r.data.versions) || [];
+  document.getElementById('aiPromptVersions').innerHTML = vs.length ? vs.map(v => `<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid rgba(160,180,210,.08)">
+      <span><strong style="color:#cfe0f5">${_e(v.version)}</strong> ${v.active==1?'<span style="color:#10b981;font-weight:600">(ativa)</span>':''} <span style="color:#7a8aa0">${_e(v.changelog||'')}</span></span>
+      <span style="white-space:nowrap;color:#7a8aa0">${_e(String(v.created_at||'').replace('T',' ').slice(0,16))}${v.active==1?'':` <button onclick="activateAiPrompt(${v.id})" style="margin-left:8px;padding:3px 9px;font-size:.72rem;border:1px solid rgba(96,165,250,.4);background:transparent;color:#7EB8F7;border-radius:6px;cursor:pointer">Ativar</button>`}</span>
+    </div>`).join('') : '<span style="color:#7a8aa0">Sem versões.</span>';
+  if (!t.dataset.bound) { t.addEventListener('input', _aiPromptCount); t.dataset.bound = '1'; }
+}
+async function saveAiPrompt(btn) {
+  const t = document.getElementById('aiPromptText'); if (!t) return;
+  const template = t.value;
+  if (template.trim().length < 200) { notifyErr('O prompt está muito curto (mín. 200 caracteres).'); return; }
+  if (!confirm('Salvar como NOVA versão ATIVA do prompt? Todos os escritórios passam a usar este texto.')) return;
+  const changelog = (document.getElementById('aiPromptChangelog').value || '').trim();
+  if (btn) { btn.disabled = true; btn.textContent = 'Salvando…'; }
+  try {
+    const res = await fetch(`${API}/ai_prompt.php`, { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF}, body: JSON.stringify({ csrf_token: CSRF, action:'save', template, changelog }) });
+    const j = await res.json();
+    if (res.ok && j.ok !== false) { notifyOk((j.data && j.data.message) || 'Prompt salvo'); document.getElementById('aiPromptChangelog').value=''; loadAiPrompt(); }
+    else notifyErr(j.error || 'Erro ao salvar');
+  } catch(e) { notifyErr('Erro de rede ao salvar'); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = 'Salvar nova versão'; } }
+}
+async function activateAiPrompt(id) {
+  if (!confirm('Ativar esta versão do prompt para todos os escritórios?')) return;
+  try {
+    const res = await fetch(`${API}/ai_prompt.php`, { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF}, body: JSON.stringify({ csrf_token: CSRF, action:'activate', id }) });
+    const j = await res.json();
+    if (res.ok && j.ok !== false) { notifyOk((j.data && j.data.message) || 'Versão ativada'); loadAiPrompt(); }
+    else notifyErr(j.error || 'Erro ao ativar');
+  } catch(e) { notifyErr('Erro de rede'); }
+}
+
 async function editWhatsappConfig(accountId) {
   const r = await fj(`${API}/whatsapp_config.php?account_id=${accountId}`);
   if (!r.ok) { notifyErr('Erro ao carregar a conexão'); return; }
