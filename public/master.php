@@ -1144,6 +1144,23 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
           <div><label class="mst-form-label">UF</label><input name="fil_uf" class="mst-form-input" maxlength="2" style="text-transform:uppercase"></div>
         </div>
 
+        <div class="mst-form-section">WhatsApp da Filial</div>
+        <div class="mst-form-help" style="margin-bottom:10px">Como esta filial vai usar o WhatsApp. O compartilhamento do canal da matriz só passa a valer quando o recurso estiver ativado no servidor.</div>
+        <div class="mst-form-row full">
+          <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin-bottom:8px">
+            <input type="radio" name="whatsapp_mode" value="matriz" checked style="margin-top:3px">
+            <span><strong>Usar o WhatsApp da matriz</strong> (padrão, recomendado)<br><span class="mst-form-help">A filial enxerga e atende pelo mesmo canal da matriz, sem precisar de um número próprio.</span></span>
+          </label>
+          <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin-bottom:8px">
+            <input type="radio" name="whatsapp_mode" value="propria" style="margin-top:3px">
+            <span><strong>WhatsApp próprio</strong><br><span class="mst-form-help">Cria uma instância nova na Evolution para esta filial (número separado).</span></span>
+          </label>
+          <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer">
+            <input type="radio" name="whatsapp_mode" value="depois" style="margin-top:3px">
+            <span><strong>Configurar depois</strong><br><span class="mst-form-help">A filial nasce sem WhatsApp; você define mais tarde.</span></span>
+          </label>
+        </div>
+
         <div class="mst-form-section">Admin da Filial (opcional)</div>
         <div class="mst-form-help" style="margin-bottom:10px">Se preencher, será criado um usuário admin pra esta filial. Caso contrário, ela compartilha do escopo da matriz.</div>
         <div class="mst-form-row">
@@ -2704,6 +2721,10 @@ async function submitFilial(ev) {
   const body = {
     csrf_token: CSRF,
     matriz_id: parseInt(f.matriz_id.value, 10),
+    // WhatsApp da filial: matriz (herdar, padrão) | propria | depois. O backend
+    // (create_filial.php) valida e só concede acesso ao canal da matriz via grant
+    // explícito; o uso em runtime depende da feature flag.
+    whatsapp_mode: (f.whatsapp_mode && f.whatsapp_mode.value) || 'matriz',
     filial: {
       nome:         f.fil_nome.value.trim(),
       razao_social: f.fil_razao.value.trim(),
