@@ -2396,9 +2396,9 @@ async function loadWhatsappConfig() {
     <td>${_e(a.evolution_instance) || '—'}</td>
     <td>${a.has_key ? '<span style="color:#10b981;font-weight:600">configurada</span>' : '<span style="color:#f59e0b;font-weight:600">faltando</span>'}</td>
     <td style="text-align:right;white-space:nowrap">
-      <button onclick="provisionInstance(${a.account_id})" style="padding:5px 12px;font-size:.78rem;border:1px solid rgba(16,185,129,.5);background:transparent;color:#34D399;border-radius:7px;cursor:pointer;margin-right:6px">Criar instância</button>
+      <button onclick="provisionInstance(${a.account_id}, this)" style="padding:5px 12px;font-size:.78rem;border:1px solid rgba(16,185,129,.5);background:transparent;color:#34D399;border-radius:7px;cursor:pointer;margin-right:6px">Criar instância</button>
       <button onclick="editWhatsappConfig(${a.account_id})" style="padding:5px 12px;font-size:.78rem;border:1px solid rgba(96,165,250,.4);background:transparent;color:#7EB8F7;border-radius:7px;cursor:pointer">Editar</button>
-      ${a.evolution_instance ? `<button onclick="deleteInstance(${a.account_id})" style="padding:5px 12px;font-size:.78rem;border:1px solid rgba(239,68,68,.5);background:transparent;color:#F87171;border-radius:7px;cursor:pointer;margin-left:6px">Excluir</button>` : ''}
+      ${a.evolution_instance ? `<button onclick="deleteInstance(${a.account_id}, this)" style="padding:5px 12px;font-size:.78rem;border:1px solid rgba(239,68,68,.5);background:transparent;color:#F87171;border-radius:7px;cursor:pointer;margin-left:6px">Excluir</button>` : ''}
     </td>
   </tr>`).join('');
 }
@@ -2451,7 +2451,7 @@ async function saveWhatsappConfig() {
     else notifyErr(j.error || (j.data && j.data.error) || 'Erro ao salvar');
   } catch(e) { notifyErr('Erro de rede ao salvar'); }
 }
-async function deleteInstance(accountId) {
+async function deleteInstance(accountId, btn) {
   const row = (window.__waCfgList || []).find(a => String(a.account_id) === String(accountId)) || {};
   const nm  = row.evolution_instance || '(instância)';
   const acc = row.account_nome || ('conta #' + accountId);
@@ -2463,13 +2463,14 @@ async function deleteInstance(accountId) {
     '• desvincular o agente de IA do canal\n\n' +
     'NÃO dá pra desfazer. Depois você pode clicar em "Criar instância" pra começar do zero.'
   )) return;
+  _btnLoading(btn, 'Excluindo…');
   try {
     const res = await fetch(`${API}/whatsapp_config.php`, { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},
       body: JSON.stringify({ csrf_token: CSRF, action:'delete_instance', account_id: accountId }) });
     const j = await res.json();
-    if (res.ok && j.ok !== false) { notifyOk((j.data && j.data.message) || 'Instância excluída'); loadWhatsappConfig(); }
-    else notifyErr(j.error || (j.data && j.data.error) || 'Erro ao excluir');
-  } catch(e) { notifyErr('Erro de rede ao excluir'); }
+    if (res.ok && j.ok !== false) { notifyOk((j.data && j.data.message) || 'Instância excluída'); loadWhatsappConfig(); /* re-render recria o botão */ }
+    else { notifyErr(j.error || (j.data && j.data.error) || 'Erro ao excluir'); _btnRestore(btn); }
+  } catch(e) { notifyErr('Erro de rede ao excluir'); _btnRestore(btn); }
 }
 
 // ── Config GLOBAL Evolution + provisionamento ────────────────────────────────
@@ -2522,14 +2523,27 @@ async function saveGlobalEvolution() {
     else notifyErr(j.error || (j.data&&j.data.error) || 'Erro ao salvar');
   } catch(e) { notifyErr('Erro de rede'); }
 }
-async function provisionInstance(accountId) {
+function _btnLoading(btn, txt) {
+  if (!btn) return null;
+  const orig = btn.textContent;
+  btn.disabled = true; btn.dataset.orig = orig;
+  btn.textContent = txt; btn.style.opacity = '.6'; btn.style.cursor = 'wait';
+  return orig;
+}
+function _btnRestore(btn) {
+  if (!btn) return;
+  btn.disabled = false; btn.textContent = btn.dataset.orig || btn.textContent;
+  btn.style.opacity = ''; btn.style.cursor = '';
+}
+async function provisionInstance(accountId, btn) {
   if (!confirm('Criar uma instância WhatsApp nova na Evolution para esta conta? Isso conecta de verdade no servidor.')) return;
+  _btnLoading(btn, 'Criando…');
   try {
     const res = await fetch(`${API}/whatsapp_config.php`, { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF}, body: JSON.stringify({ csrf_token: CSRF, action:'provision', account_id: accountId }) });
     const j = await res.json();
-    if (res.ok && j.ok !== false) { notifyOk((j.data && j.data.message) || 'Instância criada'); loadWhatsappConfig(); }
-    else notifyErr(j.error || (j.data&&j.data.error) || 'Erro ao criar instância');
-  } catch(e) { notifyErr('Erro de rede ao criar instância'); }
+    if (res.ok && j.ok !== false) { notifyOk((j.data && j.data.message) || 'Instância criada'); loadWhatsappConfig(); /* re-render recria o botão */ }
+    else { notifyErr(j.error || (j.data&&j.data.error) || 'Erro ao criar instância'); _btnRestore(btn); }
+  } catch(e) { notifyErr('Erro de rede ao criar instância'); _btnRestore(btn); }
 }
 document.querySelectorAll('.mst-tab').forEach(b => b.addEventListener('click', () => {
   window.location.hash = b.dataset.mtab;
