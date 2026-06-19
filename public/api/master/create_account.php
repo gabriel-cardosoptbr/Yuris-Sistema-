@@ -52,6 +52,7 @@ require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
 require_once __DIR__ . '/../../../app/Helpers/MasterAudit.php';
 require_once __DIR__ . '/../../../app/Services/AccountBootstrapSeeder.php';
+require_once __DIR__ . '/../../../app/Services/WhatsAppProvisioningService.php';
 
 use App\Helpers\AccountContext;
 use App\Helpers\ApiResponse;
@@ -353,6 +354,22 @@ try {
 
     $pdo->commit();
 
+    // Auto-instância WhatsApp (BEST-EFFORT): matriz e advogado novos já nascem com
+    // instância na Evolution. Roda DEPOIS do commit, fora da transação — se a
+    // Evolution falhar, NÃO derruba o cadastro (a conta já está persistida). O
+    // helper já é try/catch interno e idempotente; o guard evita tentar quando a
+    // config global ainda não existe. (Filial é tratada à parte no create_filial.)
+    $whatsappResult = null;
+    if (in_array($tipo, ['matriz', 'advogado'], true)
+        && WhatsAppProvisioningService::isGloballyConfigured($pdo)) {
+        try {
+            $whatsappResult = WhatsAppProvisioningService::provision($pdo, (int)$accountId, (string)$nome);
+        } catch (\Throwable $e) {
+            error_log('[master/create_account/whatsapp] ' . $e->getMessage());
+            $whatsappResult = ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
     $payload = [
         'account_id'      => $accountId,
         'user_id'         => $userId,
@@ -362,6 +379,7 @@ try {
     ];
     if ($senhaGerada)    $payload['senha_gerada']    = $senhaTexto;
     if ($codigoAdvogado) $payload['codigo_advogado'] = $codigoAdvogado;
+    if ($whatsappResult) $payload['whatsapp']        = $whatsappResult;
 
     ApiResponse::ok($payload);
 } catch (\Throwable $e) {

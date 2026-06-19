@@ -24,6 +24,7 @@ require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
 require_once __DIR__ . '/../../../app/Helpers/MasterAudit.php';
 require_once __DIR__ . '/../../../app/Helpers/Crypto.php';
 require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
+require_once __DIR__ . '/../../../app/Services/WhatsAppProvisioningService.php';
 
 use App\Helpers\AccountContext;
 use App\Helpers\ApiResponse;
@@ -143,8 +144,7 @@ if ($method === 'POST') {
         $accountId = (int)($in['account_id'] ?? 0);
         if ($accountId <= 0) { http_response_code(422); echo json_encode(['ok' => false, 'error' => 'account_id obrigatório']); exit; }
 
-        [$base, $hook, $adminKey] = _globalCfg($pdo);
-        if ($base === '' || $adminKey === '') {
+        if (!WhatsAppProvisioningService::isGloballyConfigured($pdo)) {
             http_response_code(422);
             echo json_encode(['ok' => false, 'error' => 'Configure a URL base e a admin key global da Evolution antes de criar instâncias.']);
             exit;
@@ -155,66 +155,23 @@ if ($method === 'POST') {
         $accRow = $acc->fetch(\PDO::FETCH_ASSOC);
         if (!$accRow) { http_response_code(404); echo json_encode(['ok' => false, 'error' => 'Conta não encontrada']); exit; }
 
-        // Nome da instância: slug do nome da conta + id (único, [a-zA-Z0-9_-]).
-        $slug = strtolower((string)preg_replace('/[^a-zA-Z0-9]/', '', (string)$accRow['nome']));
-        if ($slug === '') $slug = 'conta';
-        $name  = substr($slug, 0, 24) . '-' . $accountId;
-        $token = bin2hex(random_bytes(18)); // chave própria da instância (roteia o webhook)
-
-        try {
-            $globalEvo = new EvolutionApiService(['evolution_base_url' => $base, 'evolution_api_key' => $adminKey]);
-            $res = $globalEvo->createInstance($name, '', $token);
-            if (!empty($res['_error'])) {
-                http_response_code(502);
-                echo json_encode(['ok' => false, 'error' => 'Evolution recusou criar a instância: ' . $res['_error']]);
-                exit;
-            }
-            // A apikey REAL da instância é o campo `token` do item em fetchInstances.
-            // (Evolution v2.3.6 não honra o token enviado no create nem devolve a
-            // chave num formato fixo; o autoritativo é o `token` da instância.)
-            $apikey = null;
-            try {
-                foreach ((array)$globalEvo->fetchInstances() as $it) {
-                    $nm = $it['name'] ?? $it['instanceName'] ?? ($it['instance']['instanceName'] ?? ($it['instance']['name'] ?? null));
-                    if ($nm === $name) {
-                        $apikey = $it['token'] ?? $it['apikey'] ?? ($it['instance']['token'] ?? null);
-                        break;
-                    }
-                }
-            } catch (\Throwable $_) { /* cai no fallback abaixo */ }
-            // Fallback (compat outras versões): tenta extrair do retorno do create.
-            if (!$apikey) {
-                $apikey = $res['hash']['apikey'] ?? (is_string($res['hash'] ?? null) ? $res['hash'] : null)
-                       ?? $res['instance']['apikey'] ?? $res['instance']['token'] ?? $token;
-            }
-
-            // Salva config da conta
-            $model->saveSetting($accountId, 'evolution_base_url', $base);
-            $model->saveSetting($accountId, 'evolution_instance', $name);
-            $model->saveSetting($accountId, 'evolution_api_key',  (string)$apikey);
-            $model->saveSetting($accountId, 'webhook_url',        $hook);
-
-            // Aplica o webhook canônico com ?token (auth da própria instância)
-            $acctEvo = new EvolutionApiService(['evolution_base_url' => $base, 'evolution_api_key' => (string)$apikey, 'evolution_instance' => $name]);
-            $hookUrl = $hook . (strpos($hook, '?') === false ? '?' : '&') . 'token=' . urlencode((string)$apikey);
-            $acctEvo->setWebhook($name, $hookUrl);
-
-            // Cria a linha local da instância
-            $model->findOrCreate($name, (string)$accRow['nome'] ?: $name, $accountId);
-
-            MasterAudit::log('whatsapp.provision', 'account', $accountId,
-                "Instância Evolution '{$name}' criada para a conta", ['instance' => $name]);
-
-            ApiResponse::ok([
-                'instance' => $name,
-                'message'  => "Instância criada. A conta já pode escanear o QR em Comunicação, Chat WhatsApp.",
-            ]);
-        } catch (\Throwable $e) {
-            error_log('[whatsapp_config provision] ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['ok' => false, 'error' => 'Falha ao provisionar: ' . $e->getMessage()]);
+        // Provisionamento centralizado no helper (mesma lógica usada na criação de conta).
+        $r = WhatsAppProvisioningService::provision($pdo, $accountId, (string)$accRow['nome']);
+        if (empty($r['success'])) {
+            http_response_code(502);
+            echo json_encode(['ok' => false, 'error' => $r['error'] ?? 'Falha ao provisionar a instância']);
             exit;
         }
+
+        MasterAudit::log('whatsapp.provision', 'account', $accountId,
+            "Instância Evolution '{$r['instance']}' provisionada", ['instance' => $r['instance'], 'skipped' => $r['skipped'] ?? false]);
+
+        ApiResponse::ok([
+            'instance' => $r['instance'],
+            'message'  => !empty($r['skipped'])
+                ? "Essa conta já tinha instância configurada ({$r['instance']})."
+                : "Instância criada. A conta já pode escanear o QR em Comunicação, Chat WhatsApp.",
+        ]);
     }
 
     // ── Excluir instância da conta (apaga na Evolution + limpa local) ──────────
