@@ -139,8 +139,17 @@ if ($method === 'GET') {
         foreach ($viewable as $cid) {
             $r = $model->find((int)$cid);
             if (!$r) continue;
-            unset($r['evolution_token'], $r['webhook_url'], $r['qr_code_base64']);
-            $out[] = $r;
+            // Projeção MÍNIMA (whitelist) — nunca o row cru. Evita vazar colunas
+            // sensíveis atuais ou futuras (token/webhook/qr/credenciais) a um tenant
+            // com acesso compartilhado. Só metadados de exibição.
+            $out[] = [
+                'id'            => (int)$r['id'],
+                'instance_name' => $r['instance_name'] ?? '',
+                'display_name'  => $r['display_name'] ?: ($r['instance_name'] ?? ''),
+                'status'        => $r['status'] ?? 'close',
+                'phone'         => $r['phone'] ?? null,
+                'is_own'        => ((int)($r['account_id'] ?? 0) === $accountId),
+            ];
         }
         echo json_encode(['ok' => true, 'instances' => $out]);
         exit;

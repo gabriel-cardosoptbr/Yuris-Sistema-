@@ -63,6 +63,10 @@ try {
     $chk = WhatsAppChannelAccessService::check($pdo, $accountId, (int)$msg['instance_id'], 'view');
     if (!$chk) { http_response_code(404); echo 'Mensagem não encontrada'; exit; }
 
+    // debug=1 expõe respostas cruas da Evolution + erros internos — restrito ao DONO
+    // do canal (conta com acesso compartilhado nunca usa o modo diagnóstico). Fase 2 E.
+    $debug = $debug && ($chk['access_type'] === 'owner');
+
     $instModel = new WhatsAppInstance();
     // 3) Credenciais SEMPRE do DONO do canal (nunca da conta requisitante/front).
     $cfg       = $instModel->getSettings((int)$chk['owner_account_id']);

@@ -92,16 +92,18 @@ try {
                 }
                 if ($fetchNum === '') {
                     try {
-                        $rs = $pdo->prepare("SELECT phone FROM whatsapp_group_members WHERE participant_jid COLLATE utf8mb4_unicode_ci = ? AND phone REGEXP '^[0-9]{10,13}\$' LIMIT 1");
-                        $rs->execute([$jid]);
+                        // ESCOPADO ao canal resolvido (instance_id) — sem isso, a busca
+                        // varria o pool GLOBAL e vazava telefone de canal alheio (Fase 2 E).
+                        $rs = $pdo->prepare("SELECT phone FROM whatsapp_group_members WHERE participant_jid COLLATE utf8mb4_unicode_ci = ? AND instance_id = ? AND phone REGEXP '^[0-9]{10,13}\$' LIMIT 1");
+                        $rs->execute([$jid, $instanceId]);
                         $cand = $digits($rs->fetchColumn());
                         if ($isPhone($cand)) $fetchNum = $cand;
                     } catch (\Throwable $_) {}
                 }
                 if ($fetchNum === '') {
                     try {
-                        $rs = $pdo->prepare("SELECT phone FROM whatsapp_contacts WHERE remote_jid = ? AND phone REGEXP '^[0-9]{10,13}\$' LIMIT 1");
-                        $rs->execute([$jid]);
+                        $rs = $pdo->prepare("SELECT phone FROM whatsapp_contacts WHERE remote_jid = ? AND instance_id = ? AND phone REGEXP '^[0-9]{10,13}\$' LIMIT 1");
+                        $rs->execute([$jid, $instanceId]);
                         $cand = $digits($rs->fetchColumn());
                         if ($isPhone($cand)) $fetchNum = $cand;
                     } catch (\Throwable $_) {}

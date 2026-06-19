@@ -75,7 +75,6 @@ try {
     $ch      = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $payload['channel_id'] ?? null, 'delete_messages');
     $cfg     = $ch['cfg'];
     $name    = $ch['instance_name'];
-    $ownerId = (int)$ch['owner_account_id'];
 
     // 1) Despacha revoke para Evolution (best-effort)
     try {
@@ -87,10 +86,13 @@ try {
         ]);
     } catch (\Throwable $_) {}
 
-    // 2) Soft delete local — escopado ao DONO do canal (mensagens são gravadas
-    //    sob o dono). markDeleted falha se a mensagem não pertencer a esse escopo.
+    // 2) Soft delete local — escopado à CONTA REQUISITANTE (nunca ao dono do canal).
+    //    Como WhatsAppMessage::save grava account_id = conta DONA da instância, uma
+    //    conta com acesso COMPARTILHADO (filial) não casa o account_id das mensagens
+    //    do canal e portanto NÃO consegue apagar mensagem da matriz nem de outra
+    //    filial (markDeleted devolve false -> 403). O dono (matriz) apaga as suas.
     $model = new WhatsAppMessage();
-    $ok    = $model->markDeleted($messageId, [$ownerId]);
+    $ok    = $model->markDeleted($messageId, [$accountId]);
     if (!$ok) {
         http_response_code(403);
         echo json_encode(['error' => 'Sem permissão / mensagem não pertence à conta']);

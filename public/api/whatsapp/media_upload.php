@@ -61,7 +61,7 @@ if (!empty($_FILES['file'])) {
     // (próprio ou compartilhado com a flag ligada). Resolvido 100% no backend.
     $ctxUp = \App\Helpers\AccountContext::fromSession();
     $pdoUp = \App\Models\Database::getConnection();
-    WhatsAppChannelAccessService::resolveForRequest($pdoUp, $ctxUp->getAccountId(), $_POST['channel_id'] ?? null, 'send');
+    $chUp  = WhatsAppChannelAccessService::resolveForRequest($pdoUp, $ctxUp->getAccountId(), $_POST['channel_id'] ?? null, 'send');
 
     $file     = $_FILES['file'];
     $error    = $file['error'] ?? UPLOAD_ERR_NO_FILE;
@@ -93,12 +93,13 @@ if (!empty($_FILES['file'])) {
     $base64   = base64_encode($content);
 
     echo json_encode([
-        'ok'       => true,
-        'base64'   => $base64,
-        'mimetype' => $mimetype,
-        'filename' => $filename,
-        'size'     => $file['size'],
-        'type'     => detectMediaType($mimetype),
+        'ok'         => true,
+        'base64'     => $base64,
+        'mimetype'   => $mimetype,
+        'filename'   => $filename,
+        'size'       => $file['size'],
+        'type'       => detectMediaType($mimetype),
+        'channel_id' => (int)$chUp['channel_id'], // canal resolvido no backend (confere destino)
     ]);
     exit;
 }

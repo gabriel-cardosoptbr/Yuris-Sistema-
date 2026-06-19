@@ -178,16 +178,21 @@ $res = match ($type) {
     default => $evo->sendMedia($instName, $remoteJid, $type, $mediaData, $caption, $filename, $mimetype),
 };
 
+// Erros de rede/Evolution: o detalhe (curl_error, mensagem crua da API) pode
+// vazar host/IP/path interno. Loga server-side e devolve mensagem GENERICA ao
+// cliente (auditoria 2026-06-19 Fase 2 Parte E).
 if (!empty($res['_error'])) {
+    error_log('[whatsapp/send] curl/_error inst=' . $instName . ': ' . $res['_error']);
     http_response_code(502);
-    echo json_encode(['ok' => false, 'error' => 'Falha ao enviar: ' . $res['_error']]);
+    echo json_encode(['ok' => false, 'error' => 'Falha ao enviar a mensagem. Tente novamente.']);
     exit;
 }
 
 if (($res['_http'] ?? 0) >= 400) {
-    $errMsg = $res['message'] ?? ($res['error'] ?? 'Erro desconhecido da API');
+    error_log('[whatsapp/send] Evolution http=' . ($res['_http'] ?? 0) . ' inst=' . $instName
+        . ' msg=' . substr((string)($res['message'] ?? ($res['error'] ?? '')), 0, 300));
     http_response_code(502);
-    echo json_encode(['ok' => false, 'error' => $errMsg]);
+    echo json_encode(['ok' => false, 'error' => 'Falha ao enviar a mensagem. Tente novamente.']);
     exit;
 }
 
