@@ -17,6 +17,7 @@
 require_once __DIR__ . '/EvolutionApiService.php';
 require_once __DIR__ . '/../Models/WhatsAppInstance.php';
 require_once __DIR__ . '/../Helpers/Crypto.php';
+require_once __DIR__ . '/WhatsAppChannelAccessService.php';
 
 class WhatsAppProvisioningService
 {
@@ -119,9 +120,16 @@ class WhatsAppProvisioningService
             $acctEvo->setWebhook($name, $hookUrl);
 
             // Linha local da instancia.
-            $model->findOrCreate($name, $accountName !== '' ? $accountName : $name, $accountId);
+            $inst = $model->findOrCreate($name, $accountName !== '' ? $accountName : $name, $accountId);
 
-            return ['success' => true, 'instance' => $name];
+            // Autorização de canal: a conta vira DONA do canal (full perms). É o que
+            // a camada WhatsAppChannelAccessService usa como base (deny-by-default).
+            $channelId = (int)($inst['id'] ?? 0);
+            if ($channelId > 0) {
+                \WhatsAppChannelAccessService::grant($pdo, $channelId, $accountId, 'owner', [], null);
+            }
+
+            return ['success' => true, 'instance' => $name, 'channel_id' => $channelId];
         } catch (\Throwable $e) {
             error_log('[WhatsAppProvisioningService] ' . $e->getMessage());
             return ['success' => false, 'error' => $e->getMessage()];
