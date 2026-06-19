@@ -202,6 +202,82 @@ if ($method === 'POST') {
         }
     }
 
+    // ── Excluir instância da conta (apaga na Evolution + limpa local) ──────────
+    // Pra "resetar" um canal travado/bugado e criar outro do zero.
+    if ($action === 'delete_instance') {
+        $accountId = (int)($in['account_id'] ?? 0);
+        if ($accountId <= 0) { http_response_code(422); echo json_encode(['ok' => false, 'error' => 'account_id obrigatório']); exit; }
+
+        $settings = $model->getSettings($accountId);
+        $instName = trim((string)($settings['evolution_instance'] ?? ''));
+        $acctKey  = (string)($settings['evolution_api_key'] ?? '');
+        [$gBase, $gHook, $gKey] = _globalCfg($pdo);
+        $base = ((string)($settings['evolution_base_url'] ?? '')) ?: $gBase;
+
+        // 1) Best-effort na Evolution (logout + delete). Usa a chave da própria
+        //    instância se houver, senão a admin key global. Não derruba se falhar
+        //    (ex.: instância já não existe lá) — o objetivo é resetar mesmo assim.
+        $evoResult = 'pulado (sem nome de instância salvo)';
+        if ($instName !== '' && $base !== '') {
+            $authKey = $acctKey !== '' ? $acctKey : $gKey;
+            if ($authKey !== '') {
+                try {
+                    $evo = new EvolutionApiService(['evolution_base_url' => $base, 'evolution_api_key' => $authKey, 'evolution_instance' => $instName]);
+                    try { $evo->logoutInstance($instName); } catch (\Throwable $_) {}
+                    $del = $evo->deleteInstance($instName);
+                    $evoResult = !empty($del['_error']) ? ('Evolution recusou: ' . $del['_error']) : 'excluída na Evolution';
+                } catch (\Throwable $e) {
+                    $evoResult = 'erro Evolution: ' . $e->getMessage();
+                }
+            } else {
+                $evoResult = 'pulado (sem chave p/ autenticar na Evolution)';
+            }
+        }
+
+        // 2) Limpeza local em transação. Essas tabelas têm instance_id SEM FK →
+        //    apaga na mão pra não deixar órfão. agent_configs desvincula sozinho
+        //    (FK ON DELETE SET NULL).
+        $deleted = ['instances'=>0,'mensagens'=>0,'conversas'=>0,'contatos'=>0,'membros'=>0,'reacoes'=>0];
+        try {
+            $pdo->beginTransaction();
+            $stI = $pdo->prepare('SELECT id FROM whatsapp_instances WHERE account_id = ?' . ($instName !== '' ? ' AND instance_name = ?' : ''));
+            $stI->execute($instName !== '' ? [$accountId, $instName] : [$accountId]);
+            $ids = $stI->fetchAll(\PDO::FETCH_COLUMN) ?: [];
+            if ($ids) {
+                $ph  = implode(',', array_fill(0, count($ids), '?'));
+                $map = ['whatsapp_messages'=>'mensagens','whatsapp_chats'=>'conversas','whatsapp_contacts'=>'contatos','whatsapp_group_members'=>'membros','whatsapp_reactions'=>'reacoes'];
+                foreach ($map as $tbl => $k) {
+                    $d = $pdo->prepare("DELETE FROM {$tbl} WHERE instance_id IN ($ph)");
+                    $d->execute($ids);
+                    $deleted[$k] = $d->rowCount();
+                }
+                $dI = $pdo->prepare("DELETE FROM whatsapp_instances WHERE id IN ($ph)");
+                $dI->execute($ids);
+                $deleted['instances'] = $dI->rowCount();
+            }
+            // Limpa a conexão (mantém a conta na lista p/ poder recriar): zera
+            // instance + api_key; preserva base_url/webhook.
+            $pdo->prepare("DELETE FROM whatsapp_settings WHERE account_id = ? AND config_key IN ('evolution_instance','evolution_api_key')")->execute([$accountId]);
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            error_log('[whatsapp_config delete_instance] ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['ok' => false, 'error' => 'Falha ao limpar dados locais: ' . $e->getMessage()]);
+            exit;
+        }
+
+        MasterAudit::log('whatsapp.delete_instance', 'account', $accountId,
+            "Instância '{$instName}' excluída (Evolution: {$evoResult})", ['instance' => $instName, 'evolution' => $evoResult, 'deleted' => $deleted]);
+
+        ApiResponse::ok([
+            'instance'  => $instName,
+            'evolution' => $evoResult,
+            'deleted'   => $deleted,
+            'message'   => "Instância excluída. Evolution: {$evoResult}. Agora você pode clicar em \"Criar instância\" pra começar do zero.",
+        ]);
+    }
+
     // ── Salvar config da conta (manual) ───────────────────────────────────────
     $accountId = (int)($in['account_id'] ?? 0);
     if ($accountId <= 0) { http_response_code(422); echo json_encode(['ok' => false, 'error' => 'account_id obrigatório']); exit; }

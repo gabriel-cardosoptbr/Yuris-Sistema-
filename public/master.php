@@ -2388,6 +2388,7 @@ async function loadWhatsappConfig() {
   const r = await fj(`${API}/whatsapp_config.php?list=1`);
   if (!r.ok) { tb.innerHTML = '<tr><td colspan="5" style="padding:14px;color:#dc2626">Erro ao carregar</td></tr>'; return; }
   const rows = (r.data && r.data.accounts) || [];
+  window.__waCfgList = rows;
   if (!rows.length) { tb.innerHTML = '<tr><td colspan="5" style="padding:14px;color:#9ab0c9">Nenhuma conta com WhatsApp configurado ainda.</td></tr>'; return; }
   tb.innerHTML = rows.map(a => `<tr>
     <td>${_e(a.account_nome)} <span style="color:#7a8aa0">#${a.account_id}</span></td>
@@ -2397,6 +2398,7 @@ async function loadWhatsappConfig() {
     <td style="text-align:right;white-space:nowrap">
       <button onclick="provisionInstance(${a.account_id})" style="padding:5px 12px;font-size:.78rem;border:1px solid rgba(16,185,129,.5);background:transparent;color:#34D399;border-radius:7px;cursor:pointer;margin-right:6px">Criar instância</button>
       <button onclick="editWhatsappConfig(${a.account_id})" style="padding:5px 12px;font-size:.78rem;border:1px solid rgba(96,165,250,.4);background:transparent;color:#7EB8F7;border-radius:7px;cursor:pointer">Editar</button>
+      ${a.evolution_instance ? `<button onclick="deleteInstance(${a.account_id})" style="padding:5px 12px;font-size:.78rem;border:1px solid rgba(239,68,68,.5);background:transparent;color:#F87171;border-radius:7px;cursor:pointer;margin-left:6px">Excluir</button>` : ''}
     </td>
   </tr>`).join('');
 }
@@ -2410,9 +2412,20 @@ async function editWhatsappConfig(accountId) {
   document.getElementById('waCfgBaseUrl').value  = s.evolution_base_url || '';
   document.getElementById('waCfgInstance').value = s.evolution_instance || '';
   document.getElementById('waCfgWebhook').value  = s.webhook_url || '';
-  document.getElementById('waCfgApiKey').value   = '';
+  const ak = document.getElementById('waCfgApiKey');
+  if (s.evolution_api_key_masked) {
+    ak.value = s.evolution_api_key_masked;
+    ak.dataset.masked = s.evolution_api_key_masked;
+    ak.dataset.pristine = '1';
+    ak.onfocus = function(){ if (this.dataset.pristine === '1') this.value = ''; };
+    ak.onblur  = function(){ if (this.dataset.pristine === '1' && this.value === '') this.value = this.dataset.masked || ''; };
+    ak.oninput = function(){ this.dataset.pristine = '0'; };
+  } else {
+    ak.value = ''; ak.dataset.masked = ''; ak.dataset.pristine = '0';
+    ak.onfocus = null; ak.onblur = null; ak.oninput = null;
+  }
   document.getElementById('waCfgKeyHint').textContent = s.evolution_api_key_masked
-    ? ('Chave atual: ' + s.evolution_api_key_masked + ' (deixe em branco para manter)')
+    ? 'Chave salva (mostrada mascarada). Clique e digite para trocar; deixe como está para manter.'
     : 'Nenhuma chave salva ainda';
   const form = document.getElementById('waCfgForm');
   form.style.display = 'block';
@@ -2425,14 +2438,38 @@ async function saveWhatsappConfig() {
     evolution_base_url: document.getElementById('waCfgBaseUrl').value.trim(),
     evolution_instance: document.getElementById('waCfgInstance').value.trim(),
     webhook_url:        document.getElementById('waCfgWebhook').value.trim() };
-  const k = document.getElementById('waCfgApiKey').value.trim();
-  if (k) body.evolution_api_key = k;
+  // Só envia a chave se o usuário digitou uma nova (não reenvia a máscara).
+  const akEl = document.getElementById('waCfgApiKey');
+  const akVal = (akEl.value || '').trim();
+  if (akEl.dataset.pristine !== '1' && akVal !== '' && akVal !== (akEl.dataset.masked || '')) {
+    body.evolution_api_key = akVal;
+  }
   try {
     const res = await fetch(`${API}/whatsapp_config.php`, { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF}, body: JSON.stringify(body) });
     const j = await res.json();
     if (res.ok && j.ok !== false) { notifyOk('Conexão Evolution salva'); document.getElementById('waCfgForm').style.display='none'; loadWhatsappConfig(); }
     else notifyErr(j.error || (j.data && j.data.error) || 'Erro ao salvar');
   } catch(e) { notifyErr('Erro de rede ao salvar'); }
+}
+async function deleteInstance(accountId) {
+  const row = (window.__waCfgList || []).find(a => String(a.account_id) === String(accountId)) || {};
+  const nm  = row.evolution_instance || '(instância)';
+  const acc = row.account_nome || ('conta #' + accountId);
+  if (!confirm(
+    'Excluir a instância "' + nm + '" de ' + acc + '?\n\n' +
+    'Isso vai:\n' +
+    '• apagar a conexão na Evolution (o número desconecta)\n' +
+    '• apagar as conversas/mensagens dessa instância no Yuris\n' +
+    '• desvincular o agente de IA desse canal\n\n' +
+    'NÃO dá pra desfazer. Depois você pode clicar em "Criar instância" pra começar do zero.'
+  )) return;
+  try {
+    const res = await fetch(`${API}/whatsapp_config.php`, { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},
+      body: JSON.stringify({ csrf_token: CSRF, action:'delete_instance', account_id: accountId }) });
+    const j = await res.json();
+    if (res.ok && j.ok !== false) { notifyOk((j.data && j.data.message) || 'Instância excluída'); loadWhatsappConfig(); }
+    else notifyErr(j.error || (j.data && j.data.error) || 'Erro ao excluir');
+  } catch(e) { notifyErr('Erro de rede ao excluir'); }
 }
 
 // ── Config GLOBAL Evolution + provisionamento ────────────────────────────────
