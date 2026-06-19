@@ -987,6 +987,51 @@ $monOverrideSumEsc = \App\Helpers\BillingGuard::getOverrideSum($accountId, 'moni
   </div>
 </div>
 
+<!-- ── Modal: Compartilhar WhatsApp com a Filial (a MATRIZ decide) ── -->
+<div class="es-overlay" id="modalWaShare">
+  <div class="es-modal">
+    <h3>WhatsApp — <span id="waShareFilialNome" style="color:#93c5fd"></span></h3>
+    <p style="font-size:.83rem;color:#7a96b4;margin-bottom:14px;">
+      Você decide se esta filial usa o WhatsApp da sua matriz e o que ela pode fazer. Apagar mensagens e administrar o canal (conectar, QR, desconectar) continuam só com a matriz.
+    </p>
+    <input type="hidden" id="waShareFilialId">
+
+    <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid rgba(34,197,94,.18);border-radius:10px;background:rgba(5,18,39,.4);margin-bottom:12px;cursor:pointer">
+      <div>
+        <div style="font-weight:700;color:#dbe9ff">Compartilhar meu WhatsApp</div>
+        <div style="font-size:.76rem;color:#7a96b4;margin-top:2px">Quando ligado, esta filial vê e atende pelo mesmo canal da matriz, sem número próprio.</div>
+      </div>
+      <input type="checkbox" id="waShareEnabled" onchange="waShareToggle()" style="width:18px;height:18px;cursor:pointer;accent-color:#16a34a">
+    </label>
+
+    <div id="waSharePermsGroup" style="border:1px solid rgba(160,180,210,.12);border-radius:10px;padding:8px 4px;margin-bottom:12px">
+      <div style="font-size:.74rem;color:#7a96b4;padding:4px 12px 8px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">O que a filial pode fazer</div>
+      <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;cursor:pointer">
+        <span style="color:#dbe9ff">Ver conversas</span>
+        <input type="checkbox" id="waPermView" style="width:16px;height:16px;cursor:pointer;accent-color:#16a34a">
+      </label>
+      <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;cursor:pointer">
+        <span style="color:#dbe9ff">Enviar mensagens</span>
+        <input type="checkbox" id="waPermSend" style="width:16px;height:16px;cursor:pointer;accent-color:#16a34a">
+      </label>
+      <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;cursor:pointer">
+        <span style="color:#dbe9ff">Sincronizar (puxar histórico)</span>
+        <input type="checkbox" id="waPermSync" style="width:16px;height:16px;cursor:pointer;accent-color:#16a34a">
+      </label>
+    </div>
+
+    <div id="waShareFlagNote" style="display:none;font-size:.78rem;color:#fbbf24;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);border-radius:8px;padding:8px 12px;margin-bottom:8px">
+      O recurso de compartilhamento ainda não foi ativado no servidor. Sua escolha fica salva e passa a valer assim que for ativado.
+    </div>
+
+    <div id="waShareMsg" style="margin-top:4px;font-size:.82rem;"></div>
+    <div class="es-modal-footer">
+      <button class="btn-sm btn-outline" onclick="document.getElementById('modalWaShare').classList.remove('open')">Cancelar</button>
+      <button class="btn-sm btn-primary" onclick="salvarWaShare()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── Modal: Vincular Advogado Associado (vinculo de conta) ── -->
 <div class="es-overlay" id="modalVincularAdv">
   <div class="es-modal">
@@ -1104,6 +1149,8 @@ const CSRF = <?= json_encode($csrf) ?>;
 const IS_ADMIN = <?= $isAdmin ? 'true' : 'false' ?>;
 const ACCOUNT_TIPO = <?= json_encode($accountTipo) ?>;
 const ACCOUNT_ID = <?= json_encode($accountId) ?>;
+// Fase 2: estado do compartilhamento de WhatsApp da matriz (preenchido em carregarVinculos)
+let _waShare = { has_channel:false, sharing_enabled:false, map:{} };
 
 const api = (url, opts = {}) => fetch(url, {
   headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF },
@@ -1199,6 +1246,19 @@ async function carregarVinculos() {
   el.innerHTML = '<div class="es-empty">Carregando...</div>';
   const r = await api('/api/account_vinculos.php');
   const lista = r.data || [];
+
+  // Estado do compartilhamento de WhatsApp da matriz (best-effort; nunca quebra a lista)
+  _waShare = { has_channel:false, sharing_enabled:false, map:{} };
+  if (IS_ADMIN) {
+    try {
+      const w = await api('/api/whatsapp/share.php');
+      const wd = (w && w.data) || {};
+      _waShare.has_channel = !!wd.has_channel;
+      _waShare.sharing_enabled = !!wd.sharing_enabled;
+      (wd.filiais || []).forEach(f => { _waShare.map[parseInt(f.account_id)] = f; });
+    } catch (e) { /* segue sem o controle de WhatsApp */ }
+  }
+
   if (!lista.length) {
     el.innerHTML = `<div class="es-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Nenhum vínculo cadastrado.</div>`;
     return;
@@ -1225,21 +1285,81 @@ async function carregarVinculos() {
         }
       }
 
+      // Badge "WhatsApp compartilhado" (lado matriz) — só quando a matriz tem canal
+      let waBadge = '';
+      if (iAmMatriz && v.status === 'active' && _waShare.has_channel) {
+        const stWa = _waShare.map[parseInt(v.filial_account_id)];
+        if (stWa && stWa.shared) {
+          waBadge = `<span class="badge" title="Seu WhatsApp está compartilhado com esta filial" style="font-size:.7rem;background:rgba(34,197,94,.18);color:#86efac;border:1px solid rgba(34,197,94,.3);padding:2px 8px;border-radius:6px;font-weight:600">WhatsApp ✓</span>`;
+        }
+      }
+
       const acoes = IS_ADMIN ? `
         ${v.status === 'pending' && iAmMatriz ? `<button class="btn-sm btn-success" onclick="aprovarVinculo(${v.id})">Aprovar</button> <button class="btn-sm btn-danger" onclick="rejeitarVinculo(${v.id})">Rejeitar</button>` : ''}
         ${v.status === 'active' && iAmMatriz ? `<button class="btn-sm" style="background:rgba(37,99,235,.18);color:#93c5fd;border:1px solid rgba(37,99,235,.3)" onclick='abrirSyncModal(${JSON.stringify(v)})'>Sincronização</button>` : ''}
+        ${v.status === 'active' && iAmMatriz && _waShare.has_channel ? `<button class="btn-sm" style="background:rgba(34,197,94,.16);color:#86efac;border:1px solid rgba(34,197,94,.3)" onclick='abrirWaShareModal(${parseInt(v.filial_account_id)}, ${JSON.stringify(outro)})'>WhatsApp</button>` : ''}
         ${v.status === 'active' && iAmMatriz ? `<button class="btn-sm btn-danger" onclick="suspenderVinculo(${v.id})">Suspender</button>` : ''}
         ${v.status === 'pending' && !iAmMatriz ? '<span style="color:#7a96b4;font-size:.78rem">Aguardando aprovação da matriz</span>' : ''}
       ` : '';
       return `<tr>
         <td><span class="badge badge-${tipoOutro.toLowerCase()}">${tipoOutro}</span></td>
         <td>${outro}</td>
-        <td><span class="badge badge-${v.status}">${v.status}</span>${syncBadge ? ' ' + syncBadge : ''}</td>
+        <td><span class="badge badge-${v.status}">${v.status}</span>${syncBadge ? ' ' + syncBadge : ''}${waBadge ? ' ' + waBadge : ''}</td>
         <td style="color:#4a5568">${(v.created_at||'').slice(0,10)}</td>
         ${IS_ADMIN ? `<td style="display:flex;gap:6px;flex-wrap:wrap">${acoes}</td>` : ''}
       </tr>`;
     }).join('')}</tbody>
   </table>`;
+}
+
+// ── WhatsApp: a matriz compartilha o PRÓPRIO canal com a filial ──────────────
+function abrirWaShareModal(filialId, filialNome) {
+  if (!_waShare.has_channel) { toast('Configure o WhatsApp da matriz primeiro (Comunicação → Chat WhatsApp).', 'err'); return; }
+  const st = _waShare.map[parseInt(filialId)] || { shared:false, perms:{can_view:1,can_send:1,can_sync:1} };
+  const p  = st.perms || {can_view:1,can_send:1,can_sync:1};
+  document.getElementById('waShareFilialId').value = filialId;
+  document.getElementById('waShareFilialNome').textContent = filialNome || ('Filial #' + filialId);
+  document.getElementById('waShareEnabled').checked = !!st.shared;
+  document.getElementById('waPermView').checked = parseInt(p.can_view ?? 1) === 1;
+  document.getElementById('waPermSend').checked = parseInt(p.can_send ?? 1) === 1;
+  document.getElementById('waPermSync').checked = parseInt(p.can_sync ?? 1) === 1;
+  const note = document.getElementById('waShareFlagNote');
+  if (note) note.style.display = _waShare.sharing_enabled ? 'none' : 'block';
+  document.getElementById('waShareMsg').textContent = '';
+  waShareToggle();
+  document.getElementById('modalWaShare').classList.add('open');
+}
+function waShareToggle() {
+  const on  = document.getElementById('waShareEnabled').checked;
+  const grp = document.getElementById('waSharePermsGroup');
+  grp.style.opacity = on ? '1' : '.45';
+  grp.style.pointerEvents = on ? 'auto' : 'none';
+}
+async function salvarWaShare() {
+  const filialId = parseInt(document.getElementById('waShareFilialId').value);
+  const on = document.getElementById('waShareEnabled').checked;
+  let r;
+  if (!on) {
+    r = await api('/api/whatsapp/share.php', { method:'POST', body: JSON.stringify({ action:'revoke', filial_account_id: filialId, csrf_token: CSRF }) });
+  } else {
+    const perms = {
+      can_view: document.getElementById('waPermView').checked ? 1 : 0,
+      can_send: document.getElementById('waPermSend').checked ? 1 : 0,
+      can_sync: document.getElementById('waPermSync').checked ? 1 : 0,
+    };
+    if (!perms.can_view && !perms.can_send && !perms.can_sync) {
+      document.getElementById('waShareMsg').innerHTML = '<span style="color:#fca5a5">Marque ao menos uma permissão, ou desligue o compartilhamento.</span>';
+      return;
+    }
+    r = await api('/api/whatsapp/share.php', { method:'POST', body: JSON.stringify({ action:'grant', filial_account_id: filialId, perms, csrf_token: CSRF }) });
+  }
+  if (r && (r.ok || r.success)) {
+    toast((r.data && r.data.message) || 'Compartilhamento atualizado.', 'ok');
+    document.getElementById('modalWaShare').classList.remove('open');
+    carregarVinculos();
+  } else {
+    document.getElementById('waShareMsg').innerHTML = `<span style="color:#fca5a5">${(r && r.error) || 'Erro ao salvar.'}</span>`;
+  }
 }
 
 async function aprovarVinculo(id) {
