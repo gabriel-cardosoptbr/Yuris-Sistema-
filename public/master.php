@@ -1016,6 +1016,35 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
       </div>
     </div>
 
+    <!-- Provedor & Modelos do Agente (catalogo GLOBAL editavel) -->
+    <div class="mst-card" style="padding:18px; margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:700; margin-bottom:4px">Provedor &amp; Modelos do Agente (global)</div>
+          <div style="font-size:.74rem; color:#9ab0c9; max-width:740px">Lista de modelos que aparece no dropdown "Modelo" do agente em TODAS as contas. Adicione, edite ou remova conforme o provedor mudar, reflete no sistema inteiro. Modelos inativos não aparecem para os escritórios.</div>
+        </div>
+        <button onclick="loadAiModels()" style="padding:8px 14px;background:transparent;border:1px solid rgba(96,165,250,.5);color:#7EB8F7;border-radius:8px;font-weight:600;cursor:pointer;font-size:.8rem">Atualizar</button>
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin:14px 0 10px">
+        <div><label class="mst-form-label">Provedor</label>
+          <select id="aiMdlNewProvider" class="mst-form-select" style="min-width:130px"><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option></select></div>
+        <div><label class="mst-form-label">Código do modelo</label><input id="aiMdlNewCode" class="mst-form-input" placeholder="ex.: gpt-4o" style="min-width:180px"></div>
+        <div style="flex:1;min-width:160px"><label class="mst-form-label">Rótulo (opcional)</label><input id="aiMdlNewLabel" class="mst-form-input" placeholder="ex.: GPT-4o (completo)"></div>
+        <button class="btn-mst btn-mst-primary" onclick="addAiModel(this)">Adicionar</button>
+      </div>
+
+      <div style="overflow-x:auto">
+        <table class="mst-table" style="width:100%;min-width:560px;border-collapse:collapse;font-size:.82rem">
+          <thead><tr style="text-align:left;color:#9ab0c9;border-bottom:1px solid rgba(255,255,255,.08)">
+            <th style="padding:6px 8px">Provedor</th><th style="padding:6px 8px">Código</th><th style="padding:6px 8px">Rótulo</th>
+            <th style="padding:6px 8px;text-align:center">Ativo</th><th style="padding:6px 8px;text-align:right">Ações</th>
+          </tr></thead>
+          <tbody id="aiModelsBody"><tr><td colspan="5" style="padding:14px;color:#9ab0c9">Carregando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Prompt do Agente de IA (asset GLOBAL, corrigido so aqui pelo super admin) -->
     <div class="mst-card" style="padding:18px; margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
@@ -1672,14 +1701,9 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
       <div class="mst-form-section">Cérebro (técnico)</div>
       <div class="mst-form-row">
         <div><label class="mst-form-label">Provedor</label>
-          <select id="aiAgProvider" class="mst-form-select"><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option></select></div>
+          <select id="aiAgProvider" class="mst-form-select" onchange="fillAiModelSelect(this.value)"><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option></select></div>
         <div><label class="mst-form-label">Modelo</label>
-          <select id="aiAgModel" class="mst-form-select">
-            <option value="gpt-4o-mini">gpt-4o-mini (econômico)</option>
-            <option value="gpt-4.1-mini">gpt-4.1-mini</option>
-            <option value="gpt-5.4-mini">gpt-5.4-mini</option>
-            <option value="gpt-5.4-nano">gpt-5.4-nano</option>
-          </select></div>
+          <select id="aiAgModel" class="mst-form-select"><option value="">—</option></select></div>
         <div><label class="mst-form-label">Chave do canal (override)</label><input id="aiAgKey" class="mst-form-input" type="text" autocomplete="new-password" placeholder="em branco = usa a global"><span id="aiAgKeyHint" style="font-size:.7rem;color:#9ab0c9;display:block;margin-top:4px"></span></div>
       </div>
       <div><label class="mst-form-label">Prompt por canal (opcional, vazio = usa o prompt global)</label>
@@ -2560,7 +2584,7 @@ function loadTab(name) {
   if (name==='operators') loadOperators();
   if (name==='reviews')   loadReviews();
   if (name==='whatsapp') { loadGlobalEvolution(); loadWhatsappConfig(); loadWaChannels(); }
-  if (name==='agente')   { loadAiOpenai(); loadAiPrompt(); loadAiUsage(); }
+  if (name==='agente')   { loadAiOpenai(); loadAiPrompt(); loadAiUsage(); loadAiModels(); }
 }
 
 // ── WhatsApp / Evolution (infra por conta — só super_admin) ────────────────
@@ -2660,13 +2684,10 @@ async function openAiAgentEditor(instanceId) {
     (ch.display_name || ch.instance_name || '—') + (ch.status ? ` (${ch.status})` : '') + (ch.account_nome ? ` · ${ch.account_nome}` : '');
   document.getElementById('aiAgEnabled').value = d.enabled ? '1' : '0';
   set('aiAgName', d.name); set('aiAgProvider', (d.provider || 'openai'));
-  // Modelo é lista; se a config tiver um modelo fora das opções, adiciona pra não sumir.
-  const mdlSel = document.getElementById('aiAgModel');
-  if (mdlSel) {
-    const mv = d.model || 'gpt-4o-mini';
-    if (mv && ![...mdlSel.options].some(o => o.value === mv)) mdlSel.add(new Option(mv, mv), 0);
-    mdlSel.value = mv;
-  }
+  // Modelo vem do catálogo global editável (card da OpenAI). Mantém o valor salvo mesmo
+  // se estiver inativo/fora da lista (adiciona como opção pra não sumir).
+  await _ensureAiModels();
+  fillAiModelSelect(d.provider || 'openai', d.model || 'gpt-4o-mini');
   set('aiAgMaxQ', d.max_questions); set('aiAgPrompt', d.prompt);
   set('aiAgOfficeName', d.office_name); set('aiAgOfficeDesc', d.office_description);
   set('aiAgInitial', d.initial_message); set('aiAgClosing', d.closing_message);
@@ -2719,6 +2740,69 @@ async function saveAiAgentEditor() {
     else notifyErr(jr.error || 'Erro ao salvar o agente');
   } catch (e) { notifyErr('Erro de rede ao salvar'); }
   finally { if (btn) { btn.disabled = false; btn.textContent = 'Salvar'; } }
+}
+
+// ── Catálogo GLOBAL de modelos de IA (alimenta os dropdowns) ───────────────
+let _aiModelsCache = [];
+async function _ensureAiModels() {
+  if (_aiModelsCache.length) return;
+  const r = await fj(`${API}/ai_models.php`);
+  if (r.ok) _aiModelsCache = (r.data && r.data.models) || [];
+}
+function fillAiModelSelect(provider, current) {
+  const sel = document.getElementById('aiAgModel'); if (!sel) return;
+  const cur = (current != null) ? current : sel.value;
+  const list = _aiModelsCache.filter(m => m.provider === provider && (Number(m.active) === 1 || m.code === cur));
+  let opts = list.map(m => `<option value="${esc(m.code)}">${esc(m.label || m.code)}</option>`);
+  if (cur && !list.some(m => m.code === cur)) opts.unshift(`<option value="${esc(cur)}">${esc(cur)} (fora do catálogo)</option>`);
+  if (!opts.length) opts = ['<option value="">(nenhum modelo cadastrado p/ esse provedor)</option>'];
+  sel.innerHTML = opts.join('');
+  if (cur) sel.value = cur;
+}
+async function loadAiModels() {
+  const body = document.getElementById('aiModelsBody'); if (!body) return;
+  const r = await fj(`${API}/ai_models.php`);
+  if (!r.ok) { body.innerHTML = '<tr><td colspan="5" style="padding:14px;color:#ef4444">Erro ao carregar modelos</td></tr>'; return; }
+  _aiModelsCache = (r.data && r.data.models) || [];
+  if (!_aiModelsCache.length) { body.innerHTML = '<tr><td colspan="5" style="padding:14px;color:#9ab0c9">Nenhum modelo. Adicione acima.</td></tr>'; return; }
+  body.innerHTML = _aiModelsCache.map(m => `
+    <tr style="border-bottom:1px solid rgba(255,255,255,.05)">
+      <td style="padding:6px 8px"><span style="font-size:.7rem;color:#9ab0c9">${esc(m.provider)}</span></td>
+      <td style="padding:6px 8px;font-family:ui-monospace,Consolas,monospace">${esc(m.code)}</td>
+      <td style="padding:6px 8px"><input class="mst-form-input" style="padding:4px 8px" id="aiMdlLbl${m.id}" value="${esc(m.label || '')}"></td>
+      <td style="padding:6px 8px;text-align:center"><input type="checkbox" id="aiMdlAct${m.id}" ${Number(m.active) === 1 ? 'checked' : ''}></td>
+      <td style="padding:6px 8px;text-align:right;white-space:nowrap">
+        <button class="btn-mst" onclick="saveAiModel(${m.id},this)">Salvar</button>
+        <button class="btn-mst btn-mst-danger" onclick="deleteAiModel(${m.id},this)">Excluir</button>
+      </td></tr>`).join('');
+}
+async function _aiModelsPost(payload, btn, okMsg) {
+  if (btn) btn.disabled = true;
+  try {
+    const res = await fetch(`${API}/ai_models.php`, { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF}, body: JSON.stringify({ csrf_token: CSRF, ...payload }) });
+    const j = await res.json();
+    if (res.ok && j.ok !== false) { notifyOk(okMsg); _aiModelsCache = (j.data && j.data.models) || _aiModelsCache; loadAiModels(); }
+    else notifyErr(j.error || 'Erro');
+  } catch (e) { notifyErr('Erro de rede'); }
+  finally { if (btn) btn.disabled = false; }
+}
+async function addAiModel(btn) {
+  const provider = document.getElementById('aiMdlNewProvider').value;
+  const code = (document.getElementById('aiMdlNewCode').value || '').trim();
+  const label = (document.getElementById('aiMdlNewLabel').value || '').trim();
+  if (!code) { notifyErr('Informe o código do modelo.'); return; }
+  await _aiModelsPost({ action:'add', provider, code, label }, btn, 'Modelo adicionado');
+  const c = document.getElementById('aiMdlNewCode'), l = document.getElementById('aiMdlNewLabel');
+  if (c) c.value = ''; if (l) l.value = '';
+}
+async function saveAiModel(id, btn) {
+  const label = (document.getElementById('aiMdlLbl' + id)?.value || '').trim();
+  const active = document.getElementById('aiMdlAct' + id)?.checked ? 1 : 0;
+  await _aiModelsPost({ action:'update', id, label, active }, btn, 'Modelo salvo');
+}
+async function deleteAiModel(id, btn) {
+  if (!(await Yuris.confirm('Remover este modelo da lista?', { okLabel:'Remover', danger:true }))) return;
+  await _aiModelsPost({ action:'delete', id }, btn, 'Modelo removido');
 }
 
 // ── Security Key da OpenAI (global) ────────────────────────────────────────
