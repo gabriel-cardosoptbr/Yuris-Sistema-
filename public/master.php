@@ -2540,10 +2540,14 @@ async function loadAiUsage() {
       ? '<span style="background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.4);padding:2px 9px;border-radius:999px;font-size:.72rem;font-weight:700">Ligado</span>'
       : '<span style="background:rgba(148,163,184,.12);color:#94a3b8;border:1px solid rgba(148,163,184,.35);padding:2px 9px;border-radius:999px;font-size:.72rem;font-weight:700">Desligado</span>';
     const tipo = a.tipo ? ` <span style="color:#9ab0c9;font-size:.7rem">· ${esc(a.tipo)}</span>` : '';
+    const canToggle = (a.channels || 0) > 0;
+    const actBtn = !canToggle ? '' : (on
+      ? `<button class="btn-mst btn-mst-danger"  style="display:block;margin:6px auto 0;font-size:.7rem;padding:3px 12px" onclick="toggleAiAgent(${a.account_id},0,this)">Pausar</button>`
+      : `<button class="btn-mst btn-mst-success" style="display:block;margin:6px auto 0;font-size:.7rem;padding:3px 12px" onclick="toggleAiAgent(${a.account_id},1,this)">Ativar</button>`);
     return `<tr style="border-bottom:1px solid rgba(255,255,255,.05)">
       <td style="padding:8px 10px"><strong>${esc(a.account_nome)}</strong>${tipo}</td>
       <td style="padding:8px 10px;font-size:.78rem">${ch}</td>
-      <td style="padding:8px 10px;text-align:center">${badge}</td>
+      <td style="padding:8px 10px;text-align:center">${badge}${actBtn}</td>
       <td style="padding:8px 10px;text-align:right">${_aiN(a.areas)}</td>
       <td style="padding:8px 10px;text-align:right">${_aiN(a.tok_month)}</td>
       <td style="padding:8px 10px;text-align:right">${_aiUsd(a.cost_month)}</td>
@@ -2551,6 +2555,21 @@ async function loadAiUsage() {
       <td style="padding:8px 10px;text-align:right;font-size:.76rem;color:#9ab0c9">${_aiWhen(a.last_at)}</td>
     </tr>`;
   }).join('');
+}
+
+async function toggleAiAgent(accountId, enable, btn) {
+  const verbo = enable ? 'ATIVAR' : 'PAUSAR';
+  if (!(await Yuris.confirm(`${verbo} o agente de IA desta conta?`, { okLabel: 'Confirmar', danger: !enable }))) return;
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  try {
+    const res = await fetch(`${API}/ai_agent_toggle.php`, {
+      method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},
+      body: JSON.stringify({ csrf_token: CSRF, account_id: accountId, enabled: enable ? 1 : 0 })
+    });
+    const j = await res.json();
+    if (res.ok && j.ok !== false) { notifyOk(enable ? 'Agente ativado para a conta' : 'Agente pausado para a conta'); loadAiUsage(); }
+    else { notifyErr(j.error || 'Erro ao alterar o agente'); if (btn) { btn.disabled = false; btn.textContent = enable ? 'Ativar' : 'Pausar'; } }
+  } catch (e) { notifyErr('Erro de rede ao alterar o agente'); if (btn) { btn.disabled = false; btn.textContent = enable ? 'Ativar' : 'Pausar'; } }
 }
 
 // ── Security Key da OpenAI (global) ────────────────────────────────────────
