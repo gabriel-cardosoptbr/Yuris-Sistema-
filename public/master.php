@@ -1651,6 +1651,71 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
 </div>
 
 <!-- Modal: Nova/Editar Despesa -->
+<!-- ── Editar Agente da Conta (todos os campos) ── -->
+<div class="mst-modal-backdrop" id="modalAiAgent" onclick="if(event.target===this)closeModal('modalAiAgent')">
+  <div class="mst-modal lg">
+    <div class="mst-modal-header">
+      <h3 class="mst-modal-title">Editar Agente da Conta</h3>
+      <button class="mst-modal-close" onclick="closeModal('modalAiAgent')">×</button>
+    </div>
+    <div class="mst-modal-body">
+      <div style="font-size:.78rem;color:#9ab0c9;margin-bottom:6px">Canal: <strong id="aiAgChannel" style="color:#cfe0f5">—</strong></div>
+
+      <div class="mst-form-section">Geral</div>
+      <div class="mst-form-row">
+        <div><label class="mst-form-label">Agente</label>
+          <select id="aiAgEnabled" class="mst-form-select"><option value="1">Ligado</option><option value="0">Pausado</option></select></div>
+        <div><label class="mst-form-label">Nome do agente</label><input id="aiAgName" class="mst-form-input" placeholder="Ex.: Assistente Yuris"></div>
+        <div><label class="mst-form-label">Máx. perguntas</label><input id="aiAgMaxQ" class="mst-form-input" type="number" min="3" max="8"></div>
+      </div>
+
+      <div class="mst-form-section">Cérebro (técnico)</div>
+      <div class="mst-form-row">
+        <div><label class="mst-form-label">Provedor</label>
+          <select id="aiAgProvider" class="mst-form-select"><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option></select></div>
+        <div><label class="mst-form-label">Modelo</label><input id="aiAgModel" class="mst-form-input" placeholder="gpt-4o-mini"></div>
+        <div><label class="mst-form-label">Chave do canal (override)</label><input id="aiAgKey" class="mst-form-input" type="text" autocomplete="new-password" placeholder="em branco = usa a global"><span id="aiAgKeyHint" style="font-size:.7rem;color:#9ab0c9;display:block;margin-top:4px"></span></div>
+      </div>
+      <div><label class="mst-form-label">Prompt por canal (opcional, vazio = usa o prompt global)</label>
+        <textarea id="aiAgPrompt" class="mst-form-input" rows="3" spellcheck="false" style="font-family:ui-monospace,Consolas,monospace;font-size:.76rem"></textarea></div>
+
+      <div class="mst-form-section">Escritório</div>
+      <div class="mst-form-row">
+        <div style="flex:1"><label class="mst-form-label">Nome do escritório</label><input id="aiAgOfficeName" class="mst-form-input"></div>
+      </div>
+      <div><label class="mst-form-label">Descrição do escritório</label><textarea id="aiAgOfficeDesc" class="mst-form-input" rows="2"></textarea></div>
+
+      <div class="mst-form-section">Mensagens</div>
+      <div class="mst-form-row">
+        <div><label class="mst-form-label">Mensagem inicial</label><textarea id="aiAgInitial" class="mst-form-input" rows="2"></textarea></div>
+        <div><label class="mst-form-label">Mensagem de encerramento</label><textarea id="aiAgClosing" class="mst-form-input" rows="2"></textarea></div>
+      </div>
+      <div class="mst-form-row">
+        <div><label class="mst-form-label">Mensagem de urgência</label><textarea id="aiAgUrgency" class="mst-form-input" rows="2"></textarea></div>
+        <div><label class="mst-form-label">Mensagem de transferência (handoff)</label><textarea id="aiAgHandoff" class="mst-form-input" rows="2"></textarea></div>
+      </div>
+
+      <div class="mst-form-section">Áreas de triagem</div>
+      <div id="aiAgAreas" style="max-height:220px;overflow-y:auto;border:1px solid rgba(160,180,210,.14);border-radius:8px;padding:8px 12px">—</div>
+
+      <div class="mst-form-section">Avançado (JSON)</div>
+      <div style="font-size:.72rem;color:#9ab0c9;margin-bottom:8px">Cada campo é um objeto JSON. <strong>usage_limits</strong> define o teto de gasto/uso do agente desta conta. Deixe vazio para não usar.</div>
+      <div class="mst-form-row">
+        <div><label class="mst-form-label">usage_limits (teto de gasto/uso)</label><textarea id="aiAgUsageLim" class="mst-form-input" rows="3" spellcheck="false" placeholder='{"max_tokens_month": 500000}' style="font-family:ui-monospace,Consolas,monospace;font-size:.74rem"></textarea></div>
+        <div><label class="mst-form-label">office_information</label><textarea id="aiAgOfficeInfo" class="mst-form-input" rows="3" spellcheck="false" style="font-family:ui-monospace,Consolas,monospace;font-size:.74rem"></textarea></div>
+      </div>
+      <div class="mst-form-row">
+        <div><label class="mst-form-label">behavior</label><textarea id="aiAgBehavior" class="mst-form-input" rows="3" spellcheck="false" style="font-family:ui-monospace,Consolas,monospace;font-size:.74rem"></textarea></div>
+        <div><label class="mst-form-label">handoff_config</label><textarea id="aiAgHandoffCfg" class="mst-form-input" rows="3" spellcheck="false" style="font-family:ui-monospace,Consolas,monospace;font-size:.74rem"></textarea></div>
+      </div>
+    </div>
+    <div class="mst-modal-foot">
+      <button class="btn-mst" onclick="closeModal('modalAiAgent')">Cancelar</button>
+      <button class="btn-mst btn-mst-primary" id="aiAgSaveBtn" onclick="saveAiAgentEditor()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <div class="mst-modal-backdrop" id="modalExpense" onclick="if(event.target===this)closeModal('modalExpense')">
   <div class="mst-modal lg">
     <div class="mst-modal-header">
@@ -2534,7 +2599,11 @@ async function loadAiUsage() {
   set('kuMesLbl', s.month_label || '—');
   if (!list.length) { body.innerHTML = '<tr><td colspan="8" style="padding:16px;color:#9ab0c9">Nenhuma conta com agente configurado ainda.</td></tr>'; return; }
   body.innerHTML = list.map(a => {
-    const ch = (a.channels_detail || []).map(c => esc(c.name||'') + (c.status ? ` <span style="color:#9ab0c9">(${esc(c.status)})</span>` : '')).join('<br>') || '<span style="color:#9ab0c9">—</span>';
+    const ch = (a.channels_detail || []).map(c => {
+      const lbl = esc(c.name||'') + (c.status ? ` <span style="color:#9ab0c9">(${esc(c.status)})</span>` : '');
+      const ed  = c.instance_id ? ` <button class="btn-mst" style="font-size:.66rem;padding:1px 9px;margin-left:4px" onclick="openAiAgentEditor(${c.instance_id})">Editar</button>` : '';
+      return lbl + ed;
+    }).join('<br>') || '<span style="color:#9ab0c9">—</span>';
     const on = a.enabled === 1;
     const badge = on
       ? '<span style="background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.4);padding:2px 9px;border-radius:999px;font-size:.72rem;font-weight:700">Ligado</span>'
@@ -2570,6 +2639,73 @@ async function toggleAiAgent(accountId, enable, btn) {
     if (res.ok && j.ok !== false) { notifyOk(enable ? 'Agente ativado para a conta' : 'Agente pausado para a conta'); loadAiUsage(); }
     else { notifyErr(j.error || 'Erro ao alterar o agente'); if (btn) { btn.disabled = false; btn.textContent = enable ? 'Ativar' : 'Pausar'; } }
   } catch (e) { notifyErr('Erro de rede ao alterar o agente'); if (btn) { btn.disabled = false; btn.textContent = enable ? 'Ativar' : 'Pausar'; } }
+}
+
+// ── Editar Agente da Conta (todos os campos) ───────────────────────────────
+let _aiAgInstance = 0;
+async function openAiAgentEditor(instanceId) {
+  _aiAgInstance = instanceId;
+  const r = await fj(`${API}/ai_agent_config.php?instance_id=${instanceId}`);
+  if (!r.ok) { notifyErr(r.error || 'Erro ao carregar o agente'); return; }
+  const d = r.data || {};
+  const set = (id, v) => { const e = document.getElementById(id); if (e) e.value = (v == null ? '' : v); };
+  const ch = d.channel || {};
+  document.getElementById('aiAgChannel').textContent =
+    (ch.display_name || ch.instance_name || '—') + (ch.status ? ` (${ch.status})` : '') + (ch.account_nome ? ` · ${ch.account_nome}` : '');
+  document.getElementById('aiAgEnabled').value = d.enabled ? '1' : '0';
+  set('aiAgName', d.name); set('aiAgProvider', (d.provider || 'openai')); set('aiAgModel', d.model);
+  set('aiAgMaxQ', d.max_questions); set('aiAgPrompt', d.prompt);
+  set('aiAgOfficeName', d.office_name); set('aiAgOfficeDesc', d.office_description);
+  set('aiAgInitial', d.initial_message); set('aiAgClosing', d.closing_message);
+  set('aiAgUrgency', d.urgency_message); set('aiAgHandoff', d.handoff_message);
+  const j = (o) => (o && typeof o === 'object' && Object.keys(o).length) ? JSON.stringify(o, null, 2) : '';
+  set('aiAgUsageLim', j(d.usage_limits)); set('aiAgOfficeInfo', j(d.office_information));
+  set('aiAgBehavior', j(d.behavior)); set('aiAgHandoffCfg', j(d.handoff_config));
+  const kh = document.getElementById('aiAgKeyHint');
+  if (kh) kh.textContent = d.api_key_masked ? ('Chave do canal: ' + d.api_key_masked + ' (em branco mantém)') : 'Sem chave por canal — usa a Security Key GLOBAL.';
+  set('aiAgKey', '');
+  const cat = d.catalog || [], cur = {}; (d.areas || []).forEach(a => cur[a.code] = a);
+  document.getElementById('aiAgAreas').innerHTML = cat.length ? cat.map(c => {
+    const a = cur[c.code] || {}; const on = a.enabled ? 'checked' : ''; const pr = (a.priority != null ? a.priority : 0);
+    return `<label style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:.82rem">
+      <input type="checkbox" data-area="${esc(c.code)}" ${on}>
+      <span style="flex:1">${esc(c.name)}</span>
+      <input type="number" data-areapri="${esc(c.code)}" value="${pr}" title="Prioridade" class="mst-form-input" style="width:62px;padding:3px 6px"></label>`;
+  }).join('') : '<span style="color:#9ab0c9">Catálogo de áreas vazio.</span>';
+  openModal('modalAiAgent');
+}
+async function saveAiAgentEditor() {
+  const v = (id) => { const e = document.getElementById(id); return e ? e.value : ''; };
+  const body = {
+    csrf_token: CSRF, whatsapp_instance_id: _aiAgInstance,
+    name: v('aiAgName'), enabled: parseInt(v('aiAgEnabled'), 10) || 0,
+    provider: v('aiAgProvider'), model: v('aiAgModel'), max_questions: parseInt(v('aiAgMaxQ'), 10) || 6,
+    prompt: v('aiAgPrompt'), office_name: v('aiAgOfficeName'), office_description: v('aiAgOfficeDesc'),
+    initial_message: v('aiAgInitial'), closing_message: v('aiAgClosing'),
+    urgency_message: v('aiAgUrgency'), handoff_message: v('aiAgHandoff'),
+  };
+  const key = v('aiAgKey'); if (key.trim()) body.api_key = key.trim();
+  for (const [id, k] of [['aiAgUsageLim','usage_limits'],['aiAgOfficeInfo','office_information'],['aiAgBehavior','behavior'],['aiAgHandoffCfg','handoff_config']]) {
+    const t = v(id).trim(); if (!t) continue;
+    let o; try { o = JSON.parse(t); } catch (e) { notifyErr(`JSON inválido em "${k}".`); return; }
+    if (!o || typeof o !== 'object' || Array.isArray(o)) { notifyErr(`"${k}" precisa ser um objeto JSON {}.`); return; }
+    body[k] = o;
+  }
+  const areas = [];
+  document.querySelectorAll('#aiAgAreas input[data-area]').forEach(cb => {
+    const code = cb.getAttribute('data-area');
+    const pri = document.querySelector(`#aiAgAreas input[data-areapri="${code}"]`);
+    areas.push({ code, enabled: cb.checked ? 1 : 0, priority: pri ? (parseInt(pri.value, 10) || 0) : 0 });
+  });
+  body.areas = areas;
+  const btn = document.getElementById('aiAgSaveBtn'); if (btn) { btn.disabled = true; btn.textContent = 'Salvando…'; }
+  try {
+    const res = await fetch(`${API}/ai_agent_config.php`, { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF}, body: JSON.stringify(body) });
+    const jr = await res.json();
+    if (res.ok && jr.ok !== false) { notifyOk('Agente atualizado'); closeModal('modalAiAgent'); loadAiUsage(); }
+    else notifyErr(jr.error || 'Erro ao salvar o agente');
+  } catch (e) { notifyErr('Erro de rede ao salvar'); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = 'Salvar'; } }
 }
 
 // ── Security Key da OpenAI (global) ────────────────────────────────────────

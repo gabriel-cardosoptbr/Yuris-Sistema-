@@ -41,7 +41,7 @@ $cfgRows = $pdo->query("
            MAX(ac.enabled) AS any_enabled,
            COUNT(*) AS channels,
            GROUP_CONCAT(
-               CONCAT(COALESCE(wi.instance_name,'(sem canal)'), '|', COALESCE(wi.status,''), '|', ac.enabled)
+               CONCAT(ac.id, '|', COALESCE(wi.id,0), '|', COALESCE(wi.instance_name,'(sem canal)'), '|', COALESCE(wi.status,''), '|', ac.enabled)
                ORDER BY ac.id SEPARATOR ';;'
            ) AS channels_detail
       FROM agent_configs ac
@@ -107,7 +107,13 @@ foreach ($cfgRows as $r) {
     foreach (explode(';;', (string)($r['channels_detail'] ?? '')) as $piece) {
         if ($piece === '') continue;
         $p = explode('|', $piece);
-        $det[] = ['name'=>$p[0] ?? '', 'status'=>$p[1] ?? '', 'enabled'=>(int)($p[2] ?? 0)];
+        $det[] = [
+            'agent_id'    => (int)($p[0] ?? 0),
+            'instance_id' => (int)($p[1] ?? 0),
+            'name'        => $p[2] ?? '',
+            'status'      => $p[3] ?? '',
+            'enabled'     => (int)($p[4] ?? 0),
+        ];
     }
     $row['channels_detail'] = $det;
     $acc[$id] = $row;
