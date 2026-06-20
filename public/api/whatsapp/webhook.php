@@ -197,6 +197,8 @@ try {
                 if (!$jid || !$name) continue;
                 // Ignora "nome" que é só número (não é nome de verdade)
                 if (preg_match('/^\d{6,}$/', (string)$name)) continue;
+                // Ignora auto-nome ("Voce"/"you"/"eu"): rotularia o chat errado.
+                if (in_array(mb_strtolower(trim((string)$name)), ['voce','você','you','eu'], true)) continue;
                 $isGroup = str_ends_with((string)$jid, '@g.us') ? 1 : 0;
                 $phone   = $isGroup ? null : preg_replace('/[^0-9]/', '', explode('@', (string)$jid)[0]);
 
@@ -228,8 +230,20 @@ try {
                 $name     = $c['name']     ?? null;
                 $unread   = (int)($c['unreadCount'] ?? 0);
                 if (!$jid) continue;
+                // Ignora status/broadcast e newsletter: nao sao conversas (nao viram chat "0").
+                if (str_ends_with((string)$jid, '@broadcast') || str_contains((string)$jid, '@newsletter')) continue;
                 $jid      = WhatsAppMessage::resolvePhoneJid($pdo, (int)$instanceId, $jid); // @lid -> telefone quando conhecido
                 $isGroup  = str_ends_with((string)$jid, '@g.us') ? 1 : 0;
+                // Nao pre-cria shell @lid 1:1 vazio (fantasma): so se ja houver mensagem sob o jid.
+                if (!$isGroup && str_ends_with((string)$jid, '@lid')) {
+                    $ex = $pdo->prepare('SELECT 1 FROM whatsapp_messages WHERE instance_id = ? AND remote_jid = ? LIMIT 1');
+                    $ex->execute([(int)$instanceId, $jid]);
+                    if (!$ex->fetchColumn()) continue;
+                }
+                // Nao rotula com auto-nome ("Voce" etc.)
+                $cn = trim((string)$name);
+                if ($cn !== '' && in_array(mb_strtolower($cn), ['voce','você','you','eu'], true)) $cn = '';
+                $name = $cn !== '' ? $cn : null;
                 $s = $pdo->prepare(
                     'INSERT INTO whatsapp_chats (account_id, instance_id, remote_jid, contact_name, unread_count, is_group)
                      VALUES (?,?,?,?,?,?)
