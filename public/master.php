@@ -1673,7 +1673,13 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
       <div class="mst-form-row">
         <div><label class="mst-form-label">Provedor</label>
           <select id="aiAgProvider" class="mst-form-select"><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option></select></div>
-        <div><label class="mst-form-label">Modelo</label><input id="aiAgModel" class="mst-form-input" placeholder="gpt-4o-mini"></div>
+        <div><label class="mst-form-label">Modelo</label>
+          <select id="aiAgModel" class="mst-form-select">
+            <option value="gpt-4o-mini">gpt-4o-mini (econômico)</option>
+            <option value="gpt-4.1-mini">gpt-4.1-mini</option>
+            <option value="gpt-5.4-mini">gpt-5.4-mini</option>
+            <option value="gpt-5.4-nano">gpt-5.4-nano</option>
+          </select></div>
         <div><label class="mst-form-label">Chave do canal (override)</label><input id="aiAgKey" class="mst-form-input" type="text" autocomplete="new-password" placeholder="em branco = usa a global"><span id="aiAgKeyHint" style="font-size:.7rem;color:#9ab0c9;display:block;margin-top:4px"></span></div>
       </div>
       <div><label class="mst-form-label">Prompt por canal (opcional, vazio = usa o prompt global)</label>
@@ -2653,7 +2659,14 @@ async function openAiAgentEditor(instanceId) {
   document.getElementById('aiAgChannel').textContent =
     (ch.display_name || ch.instance_name || '—') + (ch.status ? ` (${ch.status})` : '') + (ch.account_nome ? ` · ${ch.account_nome}` : '');
   document.getElementById('aiAgEnabled').value = d.enabled ? '1' : '0';
-  set('aiAgName', d.name); set('aiAgProvider', (d.provider || 'openai')); set('aiAgModel', d.model);
+  set('aiAgName', d.name); set('aiAgProvider', (d.provider || 'openai'));
+  // Modelo é lista; se a config tiver um modelo fora das opções, adiciona pra não sumir.
+  const mdlSel = document.getElementById('aiAgModel');
+  if (mdlSel) {
+    const mv = d.model || 'gpt-4o-mini';
+    if (mv && ![...mdlSel.options].some(o => o.value === mv)) mdlSel.add(new Option(mv, mv), 0);
+    mdlSel.value = mv;
+  }
   set('aiAgMaxQ', d.max_questions); set('aiAgPrompt', d.prompt);
   set('aiAgOfficeName', d.office_name); set('aiAgOfficeDesc', d.office_description);
   set('aiAgInitial', d.initial_message); set('aiAgClosing', d.closing_message);
