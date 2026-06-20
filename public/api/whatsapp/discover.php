@@ -43,6 +43,12 @@ try {
     $instanceId = (int)$ch['channel_id'];
     $evo        = new EvolutionApiService($cfg);
 
+    // account_id do DONO do canal (nao do visualizador) — pra gravar no chat sem NULL.
+    $ownerStmt = $pdo->prepare('SELECT account_id FROM whatsapp_instances WHERE id = ? LIMIT 1');
+    $ownerStmt->execute([$instanceId]);
+    $ownerAccRaw = $ownerStmt->fetchColumn();
+    $ownerAcc    = ($ownerAccRaw !== false && $ownerAccRaw !== null) ? (int)$ownerAccRaw : null;
+
     $newChats    = 0;
     $newMessages = 0;
 
@@ -67,6 +73,12 @@ try {
             $fromMe = (bool)($key2['fromMe']    ?? false);
             $participantJid = $key2['participant'] ?? null;
             if (!$remJid || !$wamid) continue;
+            // Ignora status/broadcast e newsletter: nao sao conversas.
+            if (str_ends_with($remJid, '@broadcast') || str_contains($remJid, '@newsletter')) continue;
+            // Normaliza @lid -> telefone quando conhecido (de grupos/contatos). Evita
+            // criar um shell @lid vazio: o save() deduplica por wamid e a conversa real
+            // ja existe sob o telefone. Faz UMA vez no topo: tudo abaixo usa o jid certo.
+            $remJid = WhatsAppMessage::resolvePhoneJid($pdo, $instanceId, $remJid);
 
             $msgTypeRaw = $r['messageType'] ?? 'text';
             $msgObj     = $r['message']     ?? [];
@@ -78,19 +90,21 @@ try {
             }
 
             $isGroup = str_ends_with($remJid, '@g.us') ? 1 : 0;
-            $phone   = $isGroup ? null : preg_replace('/[^0-9]/', '', explode('@', $remJid)[0]);
+            // phone: so guarda numero discavel. @lid nao resolvido -> NULL (nao polui com o id de privacidade).
+            $phone   = ($isGroup || str_ends_with($remJid, '@lid')) ? null : preg_replace('/[^0-9]/', '', explode('@', $remJid)[0]);
             $chatName = $isGroup ? null : ($push ?? null);
 
-            // Garante que o chat existe no banco
+            // Garante que o chat existe no banco (com account_id do dono, sem NULL).
             $ins = $pdo->prepare(
                 'INSERT INTO whatsapp_chats
-                 (instance_id, remote_jid, contact_name, phone, is_group, unread_count)
-                 VALUES (?,?,?,?,?,?)
+                 (account_id, instance_id, remote_jid, contact_name, phone, is_group, unread_count)
+                 VALUES (?,?,?,?,?,?,?)
                  ON DUPLICATE KEY UPDATE
+                   account_id   = IF(account_id IS NULL, VALUES(account_id), account_id),
                    contact_name = IF(is_group = 0 AND VALUES(contact_name) IS NOT NULL AND VALUES(contact_name) != "" AND contact_name IS NULL, VALUES(contact_name), contact_name),
-                   unread_count = IF(VALUES(last_message_from_me) IS NULL AND VALUES(is_group) = 0, unread_count + 1, unread_count)'
+                   phone        = IF(VALUES(phone) IS NOT NULL AND VALUES(phone) != "" AND (phone IS NULL OR phone = ""), VALUES(phone), phone)'
             );
-            $ins->execute([$instanceId, $remJid, $chatName, $phone, $isGroup, 0]);
+            $ins->execute([$ownerAcc, $instanceId, $remJid, $chatName, $phone, $isGroup, 0]);
             if ($ins->rowCount() === 1) $newChats++;  // INSERT (não era duplicata)
 
             // Salva a mensagem (save() ignora duplicatas por wamid)

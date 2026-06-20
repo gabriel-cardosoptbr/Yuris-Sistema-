@@ -120,12 +120,12 @@ try {
                        ?? null;
 
                 if ($picUrl) {
-                    // Cacheia em whatsapp_chats (cria registro se nao existir ainda)
+                    // Cacheia a foto SO em chat ja existente (UPDATE). Nao cria shell novo:
+                    // criar linha so pra foto gerava "fantasma" vazio (@lid sem mensagem).
                     $pdo->prepare(
-                        'INSERT INTO whatsapp_chats (instance_id, remote_jid, profile_pic_url)
-                         VALUES (?,?,?)
-                         ON DUPLICATE KEY UPDATE profile_pic_url = VALUES(profile_pic_url)'
-                    )->execute([$instanceId, $jid, $picUrl]);
+                        'UPDATE whatsapp_chats SET profile_pic_url = ?
+                         WHERE instance_id = ? AND remote_jid = ?'
+                    )->execute([$picUrl, $instanceId, $jid]);
                 }
 
                 echo json_encode(['ok' => true, 'profile_pic_url' => $picUrl]);

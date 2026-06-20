@@ -652,7 +652,24 @@ class WhatsAppMessage
                        ) AS real_phone
                 FROM whatsapp_chats c
                 LEFT JOIN teams t ON t.id = c.team_id AND t.deleted_at IS NULL
-                WHERE c.instance_id = ? AND c.is_archived = ' . ($archived ? '1' : '0');
+                WHERE c.instance_id = ? AND c.is_archived = ' . ($archived ? '1' : '0') . '
+                  -- Esconde status/broadcast e newsletter (nao sao conversas).
+                  AND c.remote_jid NOT LIKE \'%@broadcast\'
+                  AND c.remote_jid NOT LIKE \'%@newsletter\'
+                  -- Esconde shell 1:1 VAZIO (sem mensagem) e sem vinculo: fantasma de
+                  -- discovery/foto (ex.: @lid duplicado do telefone). Grupos, fixados,
+                  -- vinculados ou com pelo menos 1 mensagem sempre aparecem.
+                  AND (
+                        c.is_group = 1
+                     OR c.is_pinned = 1
+                     OR c.linked_user_id     IS NOT NULL
+                     OR c.linked_card_id     IS NOT NULL
+                     OR c.linked_processo_id IS NOT NULL
+                     OR c.contato_id         IS NOT NULL
+                     OR EXISTS (SELECT 1 FROM whatsapp_messages mm
+                                 WHERE mm.instance_id = c.instance_id
+                                   AND mm.remote_jid  = c.remote_jid LIMIT 1)
+                  )';
         $params = [$instanceId];
 
         // Filtro de busca por nome ou telefone

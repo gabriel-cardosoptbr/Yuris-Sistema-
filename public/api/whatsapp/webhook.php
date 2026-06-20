@@ -332,6 +332,8 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
     $participantJid = $key['participant'] ?? ($msg['participant'] ?? null);
 
     if (!$remoteJid) return;
+    // Ignora status/broadcast e newsletter: nao sao conversas (nao viram chat "0").
+    if (str_ends_with($remoteJid, '@broadcast') || str_contains($remoteJid, '@newsletter')) return;
     // Prevencao da duplicacao @lid x telefone: se o chat 1:1 vier como id de privacidade
     // @lid e ja conhecermos o numero real (de grupos/contatos), grava sob o JID do telefone.
     $remoteJid = WhatsAppMessage::resolvePhoneJid(Database::getConnection(), $instanceId, $remoteJid);
