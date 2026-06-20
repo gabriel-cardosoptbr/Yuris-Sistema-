@@ -72,6 +72,9 @@ final class OpenAiProvider implements LlmProviderInterface
                 'input_tokens'  => (int)($data['usage']['prompt_tokens'] ?? 0),
                 'output_tokens' => (int)($data['usage']['completion_tokens'] ?? 0),
                 'total_tokens'  => (int)($data['usage']['total_tokens'] ?? 0),
+                // Tokens do prompt servidos do CACHE da OpenAI (prefixo estavel reaproveitado
+                // entre mensagens). Custam metade do preco de entrada — usado no calculo de custo.
+                'cached_input_tokens' => (int)($data['usage']['prompt_tokens_details']['cached_tokens'] ?? 0),
             ];
 
             if (!empty($msg['refusal'])) {

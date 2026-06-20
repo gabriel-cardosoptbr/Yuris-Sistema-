@@ -134,8 +134,8 @@ final class IntakeEngine
         $model = (string)($cfg['model'] ?: 'gpt-4o-mini');
         $res = $this->provider->complete($model, $system, $userText, IntakeSchema::responseFormat(), $opts);
 
-        // registra uso (sempre)
-        $cost = $this->cost($model, $res['usage']['input_tokens'] ?? 0, $res['usage']['output_tokens'] ?? 0);
+        // registra uso (sempre) — custo ja credita os tokens servidos do cache da OpenAI
+        $cost = $this->cost($model, $res['usage']['input_tokens'] ?? 0, $res['usage']['output_tokens'] ?? 0, $res['usage']['cached_input_tokens'] ?? 0);
         $this->repo->recordUsage([
             'account_id' => $accountId, 'agent_id' => $agentId, 'session_id' => $sid,
             'provider' => $this->provider->name(), 'model' => $model, 'operation' => 'intake',
@@ -420,10 +420,13 @@ final class IntakeEngine
         return $base;
     }
 
-    private function cost(string $model, int $in, int $out): float
+    private function cost(string $model, int $in, int $out, int $cached = 0): float
     {
         [$pin, $pout] = self::COST[$model] ?? self::COST['gpt-4o-mini'];
-        return round($in / 1e6 * $pin + $out / 1e6 * $pout, 6);
+        // OpenAI cobra input em cache pela METADE. Credita o que veio do cache.
+        $cached   = max(0, min($cached, $in));
+        $uncached = $in - $cached;
+        return round($uncached / 1e6 * $pin + $cached / 1e6 * ($pin * 0.5) + $out / 1e6 * $pout, 6);
     }
 
     private function jdec($v): array
