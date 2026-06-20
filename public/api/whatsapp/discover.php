@@ -92,7 +92,10 @@ try {
             $isGroup = str_ends_with($remJid, '@g.us') ? 1 : 0;
             // phone: so guarda numero discavel. @lid nao resolvido -> NULL (nao polui com o id de privacidade).
             $phone   = ($isGroup || str_ends_with($remJid, '@lid')) ? null : preg_replace('/[^0-9]/', '', explode('@', $remJid)[0]);
-            $chatName = $isGroup ? null : ($push ?? null);
+            // contact_name: SO de mensagem INBOUND e nunca auto-nome ("Voce"): em msg sua
+            // (outbound) o pushName e o SEU nome e rotularia o chat errado.
+            $chatName = ($isGroup || $fromMe) ? null : ($push ?? null);
+            if ($chatName !== null && in_array(mb_strtolower(trim((string)$chatName)), ['voce','você','you','eu'], true)) $chatName = null;
 
             // Garante que o chat existe no banco (com account_id do dono, sem NULL).
             $ins = $pdo->prepare(

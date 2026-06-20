@@ -159,6 +159,8 @@ try {
             : ($contactMap[$jid]['name'] ?? $info['pushName'] ?? null);
         // Não armazena LIDs como nomes
         if ($cname && preg_match('/^\d{12,}$/', (string)$cname)) $cname = null;
+        // Nao rotula com auto-nome ("Voce"/"you"/"eu").
+        if ($cname && in_array(mb_strtolower(trim((string)$cname)), ['voce','você','you','eu'], true)) $cname = null;
         // phone: so guarda numero discavel. @lid nao resolvido -> NULL.
         $phone    = ($isGroup || str_ends_with($jid, '@lid')) ? null : preg_replace('/[^0-9]/', '', explode('@', $jid)[0]);
         $pic      = $isGroup
