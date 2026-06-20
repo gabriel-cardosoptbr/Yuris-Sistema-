@@ -153,6 +153,16 @@ foreach ($plan as $p) {
             )->execute([':lid'=>(int)$c['id'], ':twin'=>$twin]);
             $pdo->prepare("DELETE FROM whatsapp_chats WHERE id=?")->execute([(int)$c['id']]);
         }
+        // Preserva o mapa @lid -> telefone em whatsapp_contacts para o resolvePhoneJid
+        // continuar normalizando mensagens FUTURAS desse contato. Sem isso, repontar o
+        // participant_jid do grupo (@lid -> telefone) destruia a fonte de resolucao e a
+        // duplicacao @lid voltava no proximo sync/mensagem.
+        $aphone = explode('@', $target)[0];
+        $pdo->prepare(
+            "INSERT INTO whatsapp_contacts (account_id, instance_id, remote_jid, phone, is_group)
+             VALUES ((SELECT account_id FROM whatsapp_instances WHERE id=?), ?, ?, ?, 0)
+             ON DUPLICATE KEY UPDATE phone = VALUES(phone)"
+        )->execute([$inst, $inst, $lid, $aphone]);
         $pdo->commit();
         $done++;
     } catch (\Throwable $e) {

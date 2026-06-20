@@ -142,14 +142,25 @@ try {
     }
 
     foreach ($jidMap as $jid => $info) {
+        // Pula status/broadcast e newsletter: nao sao conversas.
+        if (str_ends_with($jid, '@broadcast') || str_contains($jid, '@newsletter')) continue;
         $jid      = WhatsAppMessage::resolvePhoneJid($pdo, (int)$instanceId, $jid); // @lid -> telefone quando conhecido (anti-duplicacao)
         $isGroup  = str_ends_with($jid, '@g.us') ? 1 : 0;
+        // Nao pre-cria shell @lid 1:1 vazio (fantasma): se o @lid nao resolveu pra telefone
+        // e nao ha NENHUMA mensagem sob esse jid no banco, pula. A conversa real vive sob o
+        // telefone; o chat-list da Evolution lista o @lid mesmo sem msgs nossas -> shell vazio.
+        if (!$isGroup && str_ends_with($jid, '@lid')) {
+            $ex = $pdo->prepare('SELECT 1 FROM whatsapp_messages WHERE instance_id = ? AND remote_jid = ? LIMIT 1');
+            $ex->execute([(int)$instanceId, $jid]);
+            if (!$ex->fetchColumn()) { continue; }
+        }
         $cname    = $isGroup
             ? ($groupMap[$jid]['name'] ?? $info['pushName'] ?? null)
             : ($contactMap[$jid]['name'] ?? $info['pushName'] ?? null);
         // Não armazena LIDs como nomes
         if ($cname && preg_match('/^\d{12,}$/', (string)$cname)) $cname = null;
-        $phone    = $isGroup ? null : preg_replace('/[^0-9]/', '', explode('@', $jid)[0]);
+        // phone: so guarda numero discavel. @lid nao resolvido -> NULL.
+        $phone    = ($isGroup || str_ends_with($jid, '@lid')) ? null : preg_replace('/[^0-9]/', '', explode('@', $jid)[0]);
         $pic      = $isGroup
             ? ($groupMap[$jid]['pic'] ?? null)
             : ($contactMap[$jid]['pic'] ?? null);
@@ -175,6 +186,8 @@ try {
         $fromMe = (bool)($key2['fromMe']   ?? false);
         $participantJid = $key2['participant'] ?? null;
         if (!$remJid) continue;
+        // Pula status/broadcast e newsletter: nao sao conversas (nao salva msg de status).
+        if (str_ends_with($remJid, '@broadcast') || str_contains($remJid, '@newsletter')) continue;
         $remJid = WhatsAppMessage::resolvePhoneJid($pdo, (int)$instanceId, $remJid); // @lid -> telefone quando conhecido
 
         $msgTypeRaw = $r['messageType'] ?? 'text';

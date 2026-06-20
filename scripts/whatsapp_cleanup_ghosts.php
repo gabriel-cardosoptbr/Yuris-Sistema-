@@ -66,21 +66,24 @@ if (!$APPLY) { echo "\n(DRY-RUN: nada alterado. Rode com --apply para aplicar.)\
 $ts  = date('Ymd_His');
 $bak = "_bak_ghosts_{$ts}";
 echo "\n== APPLY ==\nBackup das linhas afetadas em {$bak}_chats / {$bak}_messages\n";
+
+// Backup (DDL) FORA da transacao: CREATE TABLE faz commit implicito no MySQL e
+// encerraria qualquer transacao aberta. Por isso o backup roda em autocommit ANTES.
+$pdo->exec("CREATE TABLE {$bak}_chats LIKE whatsapp_chats");
+$pdo->exec("INSERT INTO {$bak}_chats
+            SELECT c.* FROM whatsapp_chats c WHERE {$emptyWhere}");
+$pdo->exec("INSERT INTO {$bak}_chats
+            SELECT * FROM whatsapp_chats
+             WHERE remote_jid LIKE '%@broadcast' OR remote_jid LIKE '%@newsletter'");
+$pdo->exec("CREATE TABLE {$bak}_messages LIKE whatsapp_messages");
+$pdo->exec("INSERT INTO {$bak}_messages
+            SELECT m.* FROM whatsapp_messages m
+              JOIN whatsapp_chats c ON c.instance_id = m.instance_id AND c.remote_jid = m.remote_jid
+             WHERE c.remote_jid LIKE '%@broadcast' OR c.remote_jid LIKE '%@newsletter'");
+
+// So o DML (DELETE/UPDATE) fica na transacao (sem DDL -> commit/rollback validos).
 $pdo->beginTransaction();
 try {
-    // Backup (estrutura + dados) das linhas que serao apagadas (G1 + G2).
-    $pdo->exec("CREATE TABLE {$bak}_chats LIKE whatsapp_chats");
-    $pdo->exec("INSERT INTO {$bak}_chats
-                SELECT c.* FROM whatsapp_chats c WHERE {$emptyWhere}");
-    $pdo->exec("INSERT INTO {$bak}_chats
-                SELECT * FROM whatsapp_chats
-                 WHERE remote_jid LIKE '%@broadcast' OR remote_jid LIKE '%@newsletter'");
-    $pdo->exec("CREATE TABLE {$bak}_messages LIKE whatsapp_messages");
-    $pdo->exec("INSERT INTO {$bak}_messages
-                SELECT m.* FROM whatsapp_messages m
-                  JOIN whatsapp_chats c ON c.instance_id = m.instance_id AND c.remote_jid = m.remote_jid
-                 WHERE c.remote_jid LIKE '%@broadcast' OR c.remote_jid LIKE '%@newsletter'");
-
     // G2: apaga mensagens dos chats broadcast/newsletter, depois os chats.
     $n2m = $pdo->exec("DELETE m FROM whatsapp_messages m
                         JOIN whatsapp_chats c ON c.instance_id = m.instance_id AND c.remote_jid = m.remote_jid
