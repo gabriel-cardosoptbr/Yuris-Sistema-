@@ -968,13 +968,14 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
         <div>
           <div style="font-weight:700; margin-bottom:4px">Contas &amp; Consumo do Agente</div>
-          <div style="font-size:.74rem; color:#9ab0c9; max-width:720px">Quais contas estão com o agente <strong>ligado</strong>, em qual canal, e quanto cada uma consumiu de tokens/custo (estimado, US$). Os números vêm do log de uso a cada resposta do bot.</div>
+          <div style="font-size:.74rem; color:#9ab0c9; max-width:760px">Todas as contas, com o agente <strong>ligado ou não</strong>, em qual canal, pra onde o <strong>webhook</strong> de cada canal entrega (Yuris ou externo, lido ao vivo da Evolution) e quanto cada uma consumiu de tokens/custo (estimado, US$).</div>
         </div>
         <button onclick="loadAiUsage()" style="padding:8px 14px;background:transparent;border:1px solid rgba(96,165,250,.5);color:#7EB8F7;border-radius:8px;font-weight:600;cursor:pointer;font-size:.8rem">Atualizar</button>
       </div>
 
       <!-- KPIs -->
       <div id="aiUsageKpis" style="display:flex;gap:22px;flex-wrap:wrap;margin:16px 2px 8px">
+        <div style="min-width:110px"><div class="mst-kpi-value" id="kuTotal">—</div><div class="mst-kpi-label">Contas (total)</div></div>
         <div style="min-width:110px"><div class="mst-kpi-value" id="kuAtivas">—</div><div class="mst-kpi-label">Contas ligadas</div></div>
         <div style="min-width:110px"><div class="mst-kpi-value" id="kuComAgente">—</div><div class="mst-kpi-label">Contas com agente</div></div>
         <div style="min-width:130px"><div class="mst-kpi-value" id="kuTokMes">—</div><div class="mst-kpi-label">Tokens no mês (<span id="kuMesLbl">—</span>)</div></div>
@@ -989,6 +990,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
             <tr style="text-align:left;color:#9ab0c9;border-bottom:1px solid rgba(255,255,255,.08)">
               <th style="padding:8px 10px">Conta</th>
               <th style="padding:8px 10px">Canal</th>
+              <th style="padding:8px 10px">Webhook</th>
               <th style="padding:8px 10px;text-align:center">Agente</th>
               <th style="padding:8px 10px;text-align:right">Áreas</th>
               <th style="padding:8px 10px;text-align:right">Tokens (mês)</th>
@@ -998,7 +1000,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
             </tr>
           </thead>
           <tbody id="aiUsageBody">
-            <tr><td colspan="8" style="padding:16px;color:#9ab0c9">Carregando…</td></tr>
+            <tr><td colspan="9" style="padding:16px;color:#9ab0c9">Carregando…</td></tr>
           </tbody>
         </table>
       </div>
@@ -2618,34 +2620,47 @@ function _aiUsd(n){ return 'US$ ' + Number(n||0).toLocaleString('pt-BR',{minimum
 function _aiWhen(s){ if(!s) return '—'; const d=new Date(String(s).replace(' ','T')); if(isNaN(d.getTime())) return s; return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
 async function loadAiUsage() {
   const body = document.getElementById('aiUsageBody'); if (!body) return;
-  body.innerHTML = '<tr><td colspan="8" style="padding:16px;color:#9ab0c9">Carregando…</td></tr>';
+  body.innerHTML = '<tr><td colspan="9" style="padding:16px;color:#9ab0c9">Carregando…</td></tr>';
   const r = await fj(`${API}/ai_usage.php`);
-  if (!r.ok) { body.innerHTML = '<tr><td colspan="8" style="padding:16px;color:#ef4444">Erro ao carregar consumo</td></tr>'; return; }
+  if (!r.ok) { body.innerHTML = '<tr><td colspan="9" style="padding:16px;color:#ef4444">Erro ao carregar consumo</td></tr>'; return; }
   const d = r.data || {}, s = d.summary || {}, list = d.accounts || [];
   const set = (id,v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  set('kuTotal', _aiN(s.contas_total));
   set('kuAtivas', _aiN(s.contas_ligadas));   set('kuComAgente', _aiN(s.contas_com_agente));
   set('kuTokMes', _aiN(s.tokens_month));     set('kuCustoMes', _aiUsd(s.cost_month));
   set('kuTokTotal', _aiN(s.tokens_total));   set('kuCustoTotal', _aiUsd(s.cost_total));
   set('kuMesLbl', s.month_label || '—');
-  if (!list.length) { body.innerHTML = '<tr><td colspan="8" style="padding:16px;color:#9ab0c9">Nenhuma conta com agente configurado ainda.</td></tr>'; return; }
+  if (!list.length) { body.innerHTML = '<tr><td colspan="9" style="padding:16px;color:#9ab0c9">Nenhuma conta cadastrada.</td></tr>'; return; }
+  const allInst = [];
   body.innerHTML = list.map(a => {
-    const ch = (a.channels_detail || []).map(c => {
+    const chans = a.channels_detail || [];
+    // Canal (+ botão Editar/Configurar)
+    const ch = chans.length ? chans.map(c => {
       const lbl = esc(c.name||'') + (c.status ? ` <span style="color:#9ab0c9">(${esc(c.status)})</span>` : '');
-      const ed  = c.instance_id ? ` <button class="btn-mst" style="font-size:.66rem;padding:1px 9px;margin-left:4px" onclick="openAiAgentEditor(${c.instance_id})">Editar</button>` : '';
+      const ed  = c.instance_id ? ` <button class="btn-mst" style="font-size:.66rem;padding:1px 9px;margin-left:4px" onclick="openAiAgentEditor(${c.instance_id})">${c.has_agent ? 'Editar' : 'Configurar'}</button>` : '';
       return lbl + ed;
-    }).join('<br>') || '<span style="color:#9ab0c9">—</span>';
+    }).join('<br>') : '<span style="color:#9ab0c9">sem canal</span>';
+    // Webhook (preenchido ao vivo logo após render)
+    const whk = chans.length ? chans.map(c => {
+      if (!c.instance_id) return '<span style="color:#9ab0c9">—</span>';
+      allInst.push(c.instance_id);
+      return `<span id="whk_${c.instance_id}" style="color:#9ab0c9;font-size:.72rem">verificando…</span>`;
+    }).join('<br>') : '<span style="color:#9ab0c9">—</span>';
+    // Agente
     const on = a.enabled === 1;
-    const badge = on
-      ? '<span style="background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.4);padding:2px 9px;border-radius:999px;font-size:.72rem;font-weight:700">Ligado</span>'
-      : '<span style="background:rgba(148,163,184,.12);color:#94a3b8;border:1px solid rgba(148,163,184,.35);padding:2px 9px;border-radius:999px;font-size:.72rem;font-weight:700">Desligado</span>';
+    const badge = !a.has_agent
+      ? '<span style="background:rgba(148,163,184,.10);color:#94a3b8;border:1px solid rgba(148,163,184,.3);padding:2px 9px;border-radius:999px;font-size:.7rem;font-weight:700">sem agente</span>'
+      : (on
+        ? '<span style="background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.4);padding:2px 9px;border-radius:999px;font-size:.72rem;font-weight:700">Ligado</span>'
+        : '<span style="background:rgba(148,163,184,.12);color:#94a3b8;border:1px solid rgba(148,163,184,.35);padding:2px 9px;border-radius:999px;font-size:.72rem;font-weight:700">Desligado</span>');
     const tipo = a.tipo ? ` <span style="color:#9ab0c9;font-size:.7rem">· ${esc(a.tipo)}</span>` : '';
-    const canToggle = (a.channels || 0) > 0;
-    const actBtn = !canToggle ? '' : (on
+    const actBtn = !a.has_agent ? '' : (on
       ? `<button class="btn-mst btn-mst-danger"  style="display:block;margin:6px auto 0;font-size:.7rem;padding:3px 12px" onclick="toggleAiAgent(${a.account_id},0,this)">Pausar</button>`
       : `<button class="btn-mst btn-mst-success" style="display:block;margin:6px auto 0;font-size:.7rem;padding:3px 12px" onclick="toggleAiAgent(${a.account_id},1,this)">Ativar</button>`);
     return `<tr style="border-bottom:1px solid rgba(255,255,255,.05)">
       <td style="padding:8px 10px"><strong>${esc(a.account_nome)}</strong>${tipo}</td>
       <td style="padding:8px 10px;font-size:.78rem">${ch}</td>
+      <td style="padding:8px 10px;font-size:.78rem">${whk}</td>
       <td style="padding:8px 10px;text-align:center">${badge}${actBtn}</td>
       <td style="padding:8px 10px;text-align:right">${_aiN(a.areas)}</td>
       <td style="padding:8px 10px;text-align:right">${_aiN(a.tok_month)}</td>
@@ -2654,6 +2669,31 @@ async function loadAiUsage() {
       <td style="padding:8px 10px;text-align:right;font-size:.76rem;color:#9ab0c9">${_aiWhen(a.last_at)}</td>
     </tr>`;
   }).join('');
+  _aiLoadWebhooks(allInst);
+}
+
+// Chip do destino do webhook (lido ao vivo). dest: yuris|n8n|outro|none|noconfig|erro
+function _aiWhkChip(dest, url) {
+  const map = {
+    yuris:    ['Yuris ✓',     '#34d399', 'rgba(16,185,129,.15)', 'rgba(16,185,129,.4)'],
+    n8n:      ['n8n / externo','#f59e0b', 'rgba(245,158,11,.14)', 'rgba(245,158,11,.45)'],
+    outro:    ['outro',        '#f59e0b', 'rgba(245,158,11,.10)', 'rgba(245,158,11,.35)'],
+    none:     ['sem webhook',  '#94a3b8', 'rgba(148,163,184,.10)','rgba(148,163,184,.3)'],
+    noconfig: ['sem Evolution','#94a3b8', 'rgba(148,163,184,.10)','rgba(148,163,184,.3)'],
+    erro:     ['erro ao ler',  '#ef4444', 'rgba(239,68,68,.10)',  'rgba(239,68,68,.35)'],
+  };
+  const m = map[dest] || map.outro;
+  return `<span title="${esc(url || m[0])}" style="display:inline-block;color:${m[1]};background:${m[2]};border:1px solid ${m[3]};padding:1px 8px;border-radius:999px;font-size:.7rem;font-weight:700">${esc(m[0])}</span>`;
+}
+async function _aiLoadWebhooks(ids) {
+  await Promise.allSettled((ids || []).map(async (iid) => {
+    const el = document.getElementById('whk_' + iid); if (!el) return;
+    try {
+      const r = await fj(`${API}/ai_usage.php?action=webhook&instance_id=${iid}`);
+      const d = (r && r.ok && r.data) ? r.data : { dest: 'erro' };
+      el.innerHTML = _aiWhkChip(d.dest, d.url);
+    } catch (e) { el.innerHTML = _aiWhkChip('erro'); }
+  }));
 }
 
 async function toggleAiAgent(accountId, enable, btn) {

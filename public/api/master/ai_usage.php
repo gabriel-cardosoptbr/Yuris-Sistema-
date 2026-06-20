@@ -2,9 +2,14 @@
 /**
  * /api/master/ai_usage.php — Painel Master: visão de CONTAS x AGENTE de IA.
  *
- * Mostra, por conta: se o agente está LIGADO (agent_configs.enabled), em qual canal,
- * quantas áreas de triagem, e o CONSUMO de tokens/custo (hoje, mês, total) lido de
- * ai_usage_log (já gravado pelo motor a cada resposta do bot). Pura leitura/relatório.
+ * Mostra TODAS as contas (com agente ou não), em qual canal, se o agente está LIGADO
+ * (agent_configs.enabled), quantas áreas de triagem, e o CONSUMO de tokens/custo
+ * (mês/total) lido de ai_usage_log. Pura leitura/relatório.
+ *
+ * Ação extra (leitura ao vivo, read-only): GET ?action=webhook&instance_id=ID
+ *   -> { ok, data:{ instance_id, dest:'yuris'|'n8n'|'outro'|'none'|'noconfig'|'erro', url } }
+ *   Consulta a Evolution (GET /webhook/find) pra mostrar PRA ONDE cada canal entrega
+ *   (Yuris ou externo). O token na URL volta MASCARADO (nunca expõe a chave do tenant).
  *
  * Acesso: super_admin em sessão master_mode (somente leitura — sem CSRF/escrita).
  *
@@ -29,41 +34,120 @@ if (empty($_SESSION['master_mode'])) {
 
 $pdo = \App\Models\Database::getConnection();
 
+/* ─────────────────────────────────────────────────────────────────────────
+ * AÇÃO: webhook (leitura ao vivo do destino do webhook de UMA instância).
+ * READ-ONLY: usa GET /webhook/find na Evolution. NÃO altera nada.
+ * ──────────────────────────────────────────────────────────────────────── */
+if (($_GET['action'] ?? '') === 'webhook') {
+    require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
+    require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
+
+    $iid = (int)($_GET['instance_id'] ?? 0);
+    if ($iid <= 0) ApiResponse::badRequest('instance_id obrigatório.');
+
+    $wi   = new \WhatsAppInstance();
+    $inst = $wi->find($iid);                       // super admin: sem escopo de conta
+    if (!$inst) ApiResponse::badRequest('Instância não encontrada.');
+
+    $aid  = (int)$inst['account_id'];
+    $cfg  = $wi->getSettings($aid);
+    $base = $cfg['evolution_base_url'] ?? '';
+    $key  = $cfg['evolution_api_key']  ?? '';
+    $name = $cfg['evolution_instance'] ?? ($inst['instance_name'] ?? '');
+    if ($base === '' || $key === '' || $name === '') {
+        ApiResponse::ok(['instance_id' => $iid, 'dest' => 'noconfig', 'url' => null]);
+    }
+
+    try {
+        $svc = new \EvolutionApiService($cfg);
+        $svc->setTimeout(8);
+        $resp = $svc->getWebhook($name);
+        $url  = $resp['url'] ?? $resp['webhook']['url'] ?? ($resp['data']['url'] ?? null);
+        if ($url === null || $url === '') {
+            ApiResponse::ok(['instance_id' => $iid, 'dest' => 'none', 'url' => null]);
+        }
+        $dest = (stripos($url, 'yuris') !== false && stripos($url, 'webhook') !== false) ? 'yuris'
+              : ((stripos($url, 'automacao.inovaize.com') !== false || stripos($url, 'n8n') !== false) ? 'n8n' : 'outro');
+        // Mascara token/apikey na URL antes de devolver (nunca expõe a chave do tenant).
+        $masked = preg_replace('/((?:token|apikey)=)[^&]+/i', '$1***', (string)$url);
+        ApiResponse::ok(['instance_id' => $iid, 'dest' => $dest, 'url' => $masked]);
+    } catch (\Throwable $e) {
+        ApiResponse::ok(['instance_id' => $iid, 'dest' => 'erro', 'url' => null]);
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * RELATÓRIO PRINCIPAL (todas as contas).
+ * ──────────────────────────────────────────────────────────────────────── */
 $monthStart = date('Y-m-01 00:00:00');
 $todayStart = date('Y-m-d 00:00:00');
 
-/* ── 1) Configs do agente por conta (quem tem agente, ligado/desligado, canal) ── */
-$cfgRows = $pdo->query("
-    SELECT ac.account_id,
-           a.nome   AS account_nome,
-           a.tipo   AS tipo,
-           a.status AS account_status,
-           MAX(ac.enabled) AS any_enabled,
-           COUNT(*) AS channels,
-           GROUP_CONCAT(
-               CONCAT(ac.id, '|', COALESCE(wi.id,0), '|', COALESCE(wi.instance_name,'(sem canal)'), '|', COALESCE(wi.status,''), '|', ac.enabled)
-               ORDER BY ac.id SEPARATOR ';;'
-           ) AS channels_detail
-      FROM agent_configs ac
-      JOIN accounts a            ON a.id  = ac.account_id
-      LEFT JOIN whatsapp_instances wi ON wi.id = ac.whatsapp_instance_id
-     GROUP BY ac.account_id, a.nome, a.tipo, a.status
-")->fetchAll(\PDO::FETCH_ASSOC);
+$mk = function (int $id, string $nome = '', string $tipo = '', $status = null) {
+    return [
+        'account_id'      => $id,
+        'account_nome'    => $nome !== '' ? $nome : ('Conta #' . $id),
+        'tipo'            => $tipo,
+        'account_status'  => $status,
+        'has_agent'       => 0,
+        'enabled'         => 0,
+        'channels'        => 0,
+        'channels_detail' => [],
+        'areas'           => 0,
+        'calls'           => 0,
+        'tok_today'       => 0, 'tok_month' => 0, 'tok_total' => 0,
+        'cost_month'      => 0.0, 'cost_total' => 0.0,
+        'last_at'         => null,
+    ];
+};
 
-/* Áreas de triagem habilitadas por conta (best-effort; tabela pode estar vazia). */
-$areasByAcc = [];
+/* 1) TODAS as contas. */
+$acc = [];
+foreach ($pdo->query("SELECT id, nome, tipo, status FROM accounts ORDER BY id") as $r) {
+    $id = (int)$r['id'];
+    $acc[$id] = $mk($id, (string)($r['nome'] ?? ''), (string)($r['tipo'] ?? ''), $r['status'] ?? null);
+}
+
+/* 2) Áreas de triagem habilitadas por conta (best-effort). */
 try {
     foreach ($pdo->query("SELECT account_id, COUNT(*) c FROM ai_intake_areas WHERE enabled = 1 GROUP BY account_id") as $r) {
-        $areasByAcc[(int)$r['account_id']] = (int)$r['c'];
+        $id = (int)$r['account_id'];
+        if (isset($acc[$id])) $acc[$id]['areas'] = (int)$r['c'];
     }
-} catch (\Throwable $_) { /* coluna/tabela ausente: ignora */ }
+} catch (\Throwable $_) { /* tabela ausente: ignora */ }
 
-/* ── 2) Consumo (tokens/custo) por conta, lido de ai_usage_log ── */
+/* 3) agent_configs: estado por instância + flag por conta. */
+$agByInst = [];   // instance_id => [agent_id, enabled]
+foreach ($pdo->query("SELECT id, account_id, whatsapp_instance_id, enabled FROM agent_configs") as $g) {
+    $iid = (int)$g['whatsapp_instance_id'];
+    if ($iid > 0) $agByInst[$iid] = ['agent_id' => (int)$g['id'], 'enabled' => (int)$g['enabled']];
+    $aid = (int)$g['account_id'];
+    if (isset($acc[$aid])) {
+        $acc[$aid]['has_agent'] = 1;
+        if ((int)$g['enabled'] === 1) $acc[$aid]['enabled'] = 1;
+    }
+}
+
+/* 4) Instâncias (canais) por conta. */
+foreach ($pdo->query("SELECT id, account_id, instance_name, display_name, status FROM whatsapp_instances ORDER BY account_id, id") as $w) {
+    $aid = (int)$w['account_id'];
+    if (!isset($acc[$aid])) continue;            // instância órfã (conta inexistente): ignora
+    $iid = (int)$w['id'];
+    $ag  = $agByInst[$iid] ?? null;
+    $acc[$aid]['channels_detail'][] = [
+        'agent_id'    => $ag['agent_id'] ?? 0,
+        'instance_id' => $iid,
+        'name'        => ($w['instance_name'] !== '' && $w['instance_name'] !== null) ? $w['instance_name'] : ($w['display_name'] ?: ('#' . $iid)),
+        'status'      => $w['status'] ?? '',
+        'enabled'     => $ag['enabled'] ?? 0,
+        'has_agent'   => $ag ? 1 : 0,
+    ];
+    $acc[$aid]['channels']++;
+}
+
+/* 5) Consumo (tokens/custo) por conta, de ai_usage_log. */
 $useStmt = $pdo->prepare("
     SELECT ul.account_id,
-           a.nome AS account_nome,
-           a.tipo AS tipo,
-           COUNT(*)                       AS calls,
+           COUNT(*)                           AS calls,
            COALESCE(SUM(ul.total_tokens),0)   AS tok_total,
            COALESCE(SUM(ul.estimated_cost),0) AS cost_total,
            COALESCE(SUM(CASE WHEN ul.created_at >= :ms1 THEN ul.total_tokens   ELSE 0 END),0) AS tok_month,
@@ -71,57 +155,12 @@ $useStmt = $pdo->prepare("
            COALESCE(SUM(CASE WHEN ul.created_at >= :ts1 THEN ul.total_tokens   ELSE 0 END),0) AS tok_today,
            MAX(ul.created_at) AS last_at
       FROM ai_usage_log ul
-      LEFT JOIN accounts a ON a.id = ul.account_id
-     GROUP BY ul.account_id, a.nome, a.tipo
+     GROUP BY ul.account_id
 ");
-$useStmt->execute([':ms1'=>$monthStart, ':ms2'=>$monthStart, ':ts1'=>$todayStart]);
-$useRows = $useStmt->fetchAll(\PDO::FETCH_ASSOC);
-
-/* ── 3) Merge por account_id ── */
-$acc = []; // account_id => linha
-$mk = function(int $id, string $nome = '', string $tipo = '') {
-    return [
-        'account_id'   => $id,
-        'account_nome' => $nome !== '' ? $nome : ('Conta #' . $id),
-        'tipo'         => $tipo,
-        'account_status' => null,
-        'enabled'      => 0,
-        'channels'     => 0,
-        'channels_detail' => [],
-        'areas'        => 0,
-        'calls'        => 0,
-        'tok_today'    => 0, 'tok_month' => 0, 'tok_total' => 0,
-        'cost_month'   => 0.0, 'cost_total' => 0.0,
-        'last_at'      => null,
-    ];
-};
-
-foreach ($cfgRows as $r) {
+$useStmt->execute([':ms1' => $monthStart, ':ms2' => $monthStart, ':ts1' => $todayStart]);
+foreach ($useStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
     $id = (int)$r['account_id'];
-    $row = $mk($id, (string)($r['account_nome'] ?? ''), (string)($r['tipo'] ?? ''));
-    $row['account_status'] = $r['account_status'] ?? null;
-    $row['enabled']  = (int)$r['any_enabled'];
-    $row['channels'] = (int)$r['channels'];
-    $row['areas']    = $areasByAcc[$id] ?? 0;
-    $det = [];
-    foreach (explode(';;', (string)($r['channels_detail'] ?? '')) as $piece) {
-        if ($piece === '') continue;
-        $p = explode('|', $piece);
-        $det[] = [
-            'agent_id'    => (int)($p[0] ?? 0),
-            'instance_id' => (int)($p[1] ?? 0),
-            'name'        => $p[2] ?? '',
-            'status'      => $p[3] ?? '',
-            'enabled'     => (int)($p[4] ?? 0),
-        ];
-    }
-    $row['channels_detail'] = $det;
-    $acc[$id] = $row;
-}
-
-foreach ($useRows as $r) {
-    $id = (int)$r['account_id'];
-    if (!isset($acc[$id])) $acc[$id] = $mk($id, (string)($r['account_nome'] ?? ''), (string)($r['tipo'] ?? ''));
+    if (!isset($acc[$id])) $acc[$id] = $mk($id);
     $acc[$id]['calls']      = (int)$r['calls'];
     $acc[$id]['tok_today']  = (int)$r['tok_today'];
     $acc[$id]['tok_month']  = (int)$r['tok_month'];
@@ -132,14 +171,17 @@ foreach ($useRows as $r) {
 }
 
 $accounts = array_values($acc);
-/* Ordena: ligados primeiro, depois por consumo do mês desc. */
+/* Ordena: ligados primeiro, depois com agente, depois consumo do mês desc, depois nome. */
 usort($accounts, function ($a, $b) {
-    if ($a['enabled'] !== $b['enabled']) return $b['enabled'] <=> $a['enabled'];
-    return $b['tok_month'] <=> $a['tok_month'];
+    if ($a['enabled']   !== $b['enabled'])   return $b['enabled']   <=> $a['enabled'];
+    if ($a['has_agent'] !== $b['has_agent']) return $b['has_agent'] <=> $a['has_agent'];
+    if ($a['tok_month'] !== $b['tok_month']) return $b['tok_month'] <=> $a['tok_month'];
+    return strcasecmp((string)$a['account_nome'], (string)$b['account_nome']);
 });
 
 $summary = [
-    'contas_com_agente' => count($cfgRows),
+    'contas_total'      => count($accounts),
+    'contas_com_agente' => count(array_filter($accounts, fn($x) => $x['has_agent'] === 1)),
     'contas_ligadas'    => count(array_filter($accounts, fn($x) => $x['enabled'] === 1)),
     'tokens_today'      => array_sum(array_column($accounts, 'tok_today')),
     'tokens_month'      => array_sum(array_column($accounts, 'tok_month')),
