@@ -56,6 +56,10 @@ try {
         $remJid = $key2['remoteJid']       ?? $remoteJid;
         $fromMe = (bool)($key2['fromMe']   ?? false);
         $participantJid = $key2['participant'] ?? null;
+        // Pula status/broadcast e newsletter: nao sao conversas (nao re-salva status@broadcast).
+        if (str_ends_with((string)$remJid, '@broadcast') || str_contains((string)$remJid, '@newsletter')) continue;
+        // Normaliza @lid -> telefone quando conhecido (mesma anti-duplicacao dos demais caminhos).
+        $remJid = WhatsAppMessage::resolvePhoneJid($pdo, $instanceId, $remJid);
         $msgTypeRaw = $r['messageType'] ?? 'text';
         $msgObj     = $r['message']     ?? [];
         $ts         = $r['messageTimestamp'] ?? time();
