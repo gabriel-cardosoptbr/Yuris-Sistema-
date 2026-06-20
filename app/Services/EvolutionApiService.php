@@ -66,7 +66,7 @@ class EvolutionApiService
                     'CONTACTS_UPSERT',
                     'CHATS_UPSERT',
                     'GROUPS_UPSERT',
-                    'GROUPS_UPDATE',
+                    'GROUP_UPDATE',
                     'GROUP_PARTICIPANTS_UPDATE',
                     'SEND_MESSAGE',
                 ],
@@ -120,7 +120,7 @@ class EvolutionApiService
                 'MESSAGES_UPSERT', 'MESSAGES_UPDATE',
                 'CONNECTION_UPDATE', 'QRCODE_UPDATED',
                 'CONTACTS_UPDATE',  'CONTACTS_UPSERT', 'CHATS_UPSERT',
-                'GROUPS_UPSERT', 'GROUPS_UPDATE', 'GROUP_PARTICIPANTS_UPDATE',
+                'GROUPS_UPSERT', 'GROUP_UPDATE', 'GROUP_PARTICIPANTS_UPDATE',
                 'SEND_MESSAGE',
             ];
         }

@@ -484,11 +484,26 @@ const ChatApp = (() => {
 
   let _liveRefreshTick = 0;
   let _discoverTick    = 0;
-  function startChatPolling() {
-    _liveRefreshTick = 0;
-    _discoverTick    = 0;
-    clearInterval(state.pollingTimer);
-    state.pollingTimer = setInterval(async () => {
+  // Trava de concorrência do TICK inteiro (não só do refreshLiveMessages):
+  // o setInterval é async e não espera o tick anterior terminar. Se a lista ou
+  // a Evolution responderem lento, os ticks de 4s EMPILHAM requests, esgotam o
+  // pool de conexões do navegador e a sidebar parece "congelar" (só destrava ao
+  // clicar numa conversa, que dispara um loadChats direto). Com esta flag, no
+  // máximo UM tick roda por vez; os demais são pulados até o atual voltar.
+  let _tickRunning = false;
+  // Listener de visibilidade registrado uma única vez (idempotente entre re-inits).
+  let _visBound    = false;
+
+  // Corpo de um ciclo de atualização ao vivo: recarrega a LISTA (preview +
+  // não-lidas + ordenação) e, se houver conversa aberta, anexa as msgs novas.
+  // Reutiliza as funções existentes (loadChats/refreshLiveMessages/pollNewMessages)
+  // — nada de re-render da conversa inteira; o append/dedupe/scroll já é seguro.
+  async function _chatPollTick() {
+    if (_tickRunning) return;            // tick anterior ainda em voo → pula
+    if (document.hidden) return;         // aba oculta → não consome rede à toa
+    if (state.status !== 'open') return; // só quando o WhatsApp está conectado
+    _tickRunning = true;
+    try {
       _discoverTick++;
       if (_discoverTick >= 8) {      // a cada 32s: descobre chats novos na Evolution API
         _discoverTick = 0;
@@ -502,7 +517,26 @@ const ChatApp = (() => {
         await refreshLiveMessages(); // a cada 4s: busca mensagens novas na Evolution API
         await pollNewMessages();
       }
-    }, 4000);
+    } catch (e) { /* silencioso — não derruba o intervalo por um erro pontual */ }
+    finally { _tickRunning = false; }
+  }
+
+  function startChatPolling() {
+    _liveRefreshTick = 0;
+    _discoverTick    = 0;
+    clearInterval(state.pollingTimer);
+    // Único setInterval (guardado em state.pollingTimer) — o clearInterval acima
+    // evita timers duplicados se startChatPolling rodar de novo (ex.: reconexão).
+    state.pollingTimer = setInterval(_chatPollTick, 4000);
+
+    // Ao voltar pra aba, faz um catch-up imediato (sem esperar o próximo tick de
+    // 4s), pra lista e contadores ficarem em dia na hora. Registrado só uma vez.
+    if (!_visBound) {
+      _visBound = true;
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && state.status === 'open') _chatPollTick();
+      });
+    }
   }
 
   function stopPolling() {

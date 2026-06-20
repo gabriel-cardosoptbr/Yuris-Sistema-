@@ -2691,9 +2691,29 @@ async function _aiLoadWebhooks(ids) {
     try {
       const r = await fj(`${API}/ai_usage.php?action=webhook&instance_id=${iid}`);
       const d = (r && r.ok && r.data) ? r.data : { dest: 'erro' };
-      el.innerHTML = _aiWhkChip(d.dest, d.url);
+      // Quando o webhook aponta pra fora do Yuris (n8n/outro/none), oferece o
+      // atalho "→ Yuris" pra reapontar o canal com 1 clique.
+      const canRepoint = d.dest !== 'yuris' && d.dest !== 'noconfig' && d.dest !== 'erro';
+      const extraBtn = canRepoint
+        ? ` <button class="btn-mst" style="font-size:.64rem;padding:1px 8px;margin-left:6px" onclick="repointWebhook(${iid})">→ Yuris</button>`
+        : '';
+      el.innerHTML = _aiWhkChip(d.dest, d.url) + extraBtn;
     } catch (e) { el.innerHTML = _aiWhkChip('erro'); }
   }));
+}
+
+// Reaponta o webhook deste canal pro Yuris (super-admin, auditado).
+async function repointWebhook(iid) {
+  if (!(await Yuris.confirm('Apontar o webhook deste canal pro Yuris? Se ele estiver indo pra um fluxo externo (ex.: n8n), esse fluxo deixa de receber as mensagens deste número.', { okLabel: 'Apontar pro Yuris' }))) return;
+  try {
+    const res = await fetch(`${API}/ai_webhook.php`, {
+      method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},
+      body: JSON.stringify({ csrf_token: CSRF, instance_id: iid })
+    });
+    const j = await res.json();
+    if (res.ok && j.ok !== false) { notifyOk('Webhook apontado pro Yuris'); _aiLoadWebhooks([iid]); }
+    else { notifyErr(j.error || 'Erro ao apontar o webhook'); }
+  } catch (e) { notifyErr('Erro de rede ao apontar o webhook'); }
 }
 
 async function toggleAiAgent(accountId, enable, btn) {
