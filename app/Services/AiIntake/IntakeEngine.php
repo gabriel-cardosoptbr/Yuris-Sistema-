@@ -38,13 +38,14 @@ final class IntakeEngine
 
     /** Banco de perguntas (texto deterministico por chave; copy Yuris, sem travessao). */
     private const QUESTIONS = [
-        'motivo'     => 'Pode me contar resumidamente o que aconteceu?',
+        'nome'       => 'Como posso te chamar?',
+        'motivo'     => 'Me conta rapidinho o que aconteceu?',
         'quando'     => 'Quando isso aconteceu?',
-        'processo'   => 'Ja existe algum processo sobre esse assunto?',
-        'prazo'      => 'Existe algum prazo, intimacao ou audiencia marcada?',
-        'documentos' => 'Voce tem algum documento relacionado ao caso?',
+        'processo'   => 'Já existe algum processo sobre esse assunto?',
+        'prazo'      => 'Tem algum prazo, intimação ou audiência marcada?',
+        'documentos' => 'Você tem algum documento sobre o caso?',
         'cidade'     => 'Em qual cidade isso aconteceu?',
-        'area'       => 'Sobre qual assunto juridico voce precisa de ajuda?',
+        'area'       => 'Sobre qual assunto jurídico você precisa de ajuda?',
     ];
 
     public function __construct(\PDO $pdo, LlmProviderInterface $provider)
@@ -163,7 +164,8 @@ final class IntakeEngine
             $structured['enough_for_handoff'] = true;
         }
 
-        // 10) Mescla dados coletados
+        // 10) Mescla dados coletados (guarda se ja havia relato, p/ empatia so 1x)
+        $hadReport = !empty($collected['main_report']);
         $collected = $this->mergeExtracted($collected, $structured['extracted_data']);
 
         // 11) Decisao de controle (BACKEND)
@@ -207,19 +209,31 @@ final class IntakeEngine
             return $this->doHandoff($cfg, $session, $collected, $structured, $contactId, $remoteJid, $channelId, $critical, $limitReached ? 'limit_reached' : ($wantsHuman ? 'human_request' : ($critical ? 'urgent' : 'qualified')), $res);
         }
 
-        // Caso geral: faz a proxima pergunta indispensavel (sem repetir, respeitando o limite)
-        $key = $structured['suggested_next_question_key'] ?: $this->pickNextKey($collected, $asked);
-        if ($key && in_array($key, $asked, true)) {
-            $key = $this->pickNextKey($collected, $asked); // nunca repetir
-        }
-        $greetingOnly = $firstTurn && empty($collected['main_report']) && in_array($intent, ['unknown'], true);
+        // Caso geral: no 1o turno SEMPRE se apresenta (escritorio + agente) e pede o nome.
+        // Depois personaliza pelo primeiro nome do lead e nao repete a empatia.
+        $leadFirst = $this->firstName($collected['name'] ?? '');
+        $firstReportNow = empty($hadReport) && !empty($collected['main_report']); // empatia so 1x
 
-        if ($greetingOnly) {
-            $reply = $this->composeGreeting($cfg);
+        if ($firstTurn) {
+            if (!empty($cfg['initial_message'])) {
+                // Liberdade do advogado: a saudacao e EXATAMENTE a que ele cadastrou,
+                // sem o sistema emendar nada. O nome do lead e pedido no proximo turno.
+                $reply = trim((string)$cfg['initial_message']);
+            } else {
+                $key = empty($collected['name'])
+                    ? 'nome'
+                    : ($structured['suggested_next_question_key'] ?: $this->pickNextKey($collected, $asked));
+                $reply = $this->composeFirstTurn($cfg, $collected, $leadFirst, $firstReportNow, $key);
+                if ($key) { $asked[] = $key; } // marca; nao conta no limite no 1o turno
+            }
             $state = 'greeting';
         } else {
+            $key = $structured['suggested_next_question_key'] ?: $this->pickNextKey($collected, $asked);
+            if ($key && in_array($key, $asked, true)) {
+                $key = $this->pickNextKey($collected, $asked); // nunca repetir
+            }
             if ($key) { $asked[] = $key; $qcount++; }
-            $reply = $this->composeQuestion($cfg, $structured, $key, $collected);
+            $reply = $this->composeQuestion($cfg, $structured, $key, $collected, $leadFirst, $firstReportNow);
             $state = IntakeStateMachine::decide((string)$session['current_state'], $structured, ['will_ask' => true]);
         }
 
@@ -245,9 +259,11 @@ final class IntakeEngine
             'existing_task_id' => $session['task_id'] ?? null,
         ]);
 
+        $hOff = $this->firstName($collected['name'] ?? '');
+        $hNm  = $hOff !== '' ? (', ' . $hOff) : '';
         $reply = $critical
-            ? ($cfg['urgency_message'] ?: 'Entendi a urgencia. Vou registrar essa informacao com prioridade e encaminhar agora para a nossa equipe.')
-            : ($cfg['handoff_message'] ?: 'Perfeito, registrei as informacoes iniciais. Vou encaminhar o seu atendimento para a nossa equipe dar continuidade.');
+            ? ($cfg['urgency_message'] ?: ('Entendi a urgência' . $hNm . '. Vou registrar com prioridade e já encaminhar para a nossa equipe. 🙏'))
+            : ($cfg['handoff_message'] ?: ('Perfeito' . $hNm . '! 👍 Registrei as informações iniciais e vou encaminhar o seu atendimento para a nossa equipe dar continuidade.'));
 
         $this->repo->updateSession($sid, [
             'collected_data_json' => $collected,
@@ -273,22 +289,53 @@ final class IntakeEngine
     }
 
     // ─────────────────────────── Helpers de resposta ───────────────────────────
-    private function composeGreeting(array $cfg): string
+    /**
+     * 1o turno SEM mensagem inicial cadastrada: saudacao automatica acolhedora (escritorio +
+     * agente, com emoji) e pede o nome do lead. Se houver mensagem inicial do advogado, ela e
+     * usada como esta (no handleInbound) e este metodo nao roda — preserva a liberdade dele.
+     */
+    private function composeFirstTurn(array $cfg, array $collected, string $leadFirst, bool $firstReportNow, ?string $key): string
     {
-        if (!empty($cfg['initial_message'])) return (string)$cfg['initial_message'];
-        $agent  = $cfg['name'] ?: 'assistente virtual';
         $office = $cfg['office_name'] ?: 'nosso escritorio';
-        return "Ola! Sou {$agent}, assistente virtual de pre-atendimento do {$office}. Como posso ajudar?";
+        $agent  = $this->firstName($cfg['name'] ?? '');
+        $open = 'Olá! 👋 Seja bem-vindo(a) ao ' . $office . '.';
+        $who = $agent !== '' ? (' Aqui é ' . $agent . ', do pré-atendimento. 🙂') : '';
+        if (empty($collected['name'])) {
+            return $open . $who . ' Pra começar, como posso te chamar?';
+        }
+        $nm = $leadFirst !== '' ? (', ' . $leadFirst) : '';
+        if ($firstReportNow) {
+            return $open . $who . ' Poxa' . $nm . ', imagino o quanto isso é chato. 🙏 ' . $this->questionText($key, 'Me conta rapidinho o que aconteceu?');
+        }
+        return $open . $who . ' Me conta rapidinho' . $nm . ', o que aconteceu?';
     }
 
-    private function composeQuestion(array $cfg, array $structured, ?string $key, array $collected): string
+    /** Demais turnos: ack curto e personalizado (empatia so 1x), depois a pergunta. */
+    private function composeQuestion(array $cfg, array $structured, ?string $key, array $collected, string $leadFirst = '', bool $firstReportNow = false): string
     {
-        $q = $key && isset(self::QUESTIONS[$key]) ? self::QUESTIONS[$key] : 'Pode me dar mais um detalhe sobre a sua situacao?';
-        // ack neutro (nunca "que bom"); empatia se urgencia
-        $ack = '';
-        if (($structured['urgency_level'] ?? 'normal') !== 'normal') $ack = 'Entendi a situacao. ';
-        elseif (!empty($collected['main_report'])) $ack = 'Certo, registrei. ';
+        $q  = $this->questionText($key, 'Pode me dar mais um detalhe sobre a sua situação?');
+        $nm = $leadFirst !== '' ? (', ' . $leadFirst) : '';
+        if (($structured['urgency_level'] ?? 'normal') !== 'normal') $ack = 'Entendi a situação' . $nm . '. ';
+        elseif ($firstReportNow)                                     $ack = 'Poxa' . $nm . ', imagino o quanto isso é chato. 🙏 ';
+        elseif (!empty($collected['main_report']))                   $ack = 'Certo' . $nm . '. ';
+        elseif ($nm !== '')                                          $ack = 'Perfeito' . $nm . '! ';
+        else                                                         $ack = '';
         return trim($ack . $q);
+    }
+
+    private function questionText(?string $key, string $fallback): string
+    {
+        return ($key && isset(self::QUESTIONS[$key])) ? self::QUESTIONS[$key] : $fallback;
+    }
+
+    /** Primeiro nome do lead, capitalizado, para personalizar a conversa. */
+    private function firstName(?string $full): string
+    {
+        $full = trim((string)$full);
+        if ($full === '') return '';
+        $parts = preg_split('/\s+/', $full);
+        $f = $parts[0] ?? '';
+        return $f === '' ? '' : (mb_strtoupper(mb_substr($f, 0, 1)) . mb_substr($f, 1));
     }
 
     private function composeOfficeInfo(array $cfg): string
