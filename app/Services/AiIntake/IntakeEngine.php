@@ -171,10 +171,21 @@ final class IntakeEngine
         // 11) Decisao de controle (BACKEND)
         $intent   = $structured['intent'];
         $critical = $structured['urgency_level'] === 'critical';
-        $wantsHuman = in_array($intent, ['human_request', 'existing_case'], true);
+        $existingCase = ($intent === 'existing_case');
+        $humanReq     = ($intent === 'human_request');
         $limitReached = $qcount >= $maxQ;
-        $doHandoff = $critical || $wantsHuman || !empty($structured['should_handoff_immediately'])
-            || !empty($structured['enough_for_handoff']) || $limitReached;
+
+        // PRE-QUALIFICACAO MINIMA antes de encaminhar: o pre-atendimento faz ao menos ~3
+        // perguntas (sem exagerar) p/ qualificar o caso (o que houve, area provavel, quando...).
+        // Sinais "soft" (o modelo achou suficiente OU a pessoa pediu humano de forma generica)
+        // so encaminham DEPOIS dessa qualificacao, ou quando nao ha mais nada essencial a
+        // perguntar. Urgencia critica, cliente existente e limite de perguntas SEMPRE encaminham.
+        $qualMin   = max(2, min(3, $maxQ));
+        $qualified = ($qcount >= $qualMin) || ($this->pickNextKey($collected, $asked) === null);
+        $softHandoff = $humanReq
+            || !empty($structured['should_handoff_immediately'])
+            || !empty($structured['enough_for_handoff']);
+        $doHandoff = $critical || $existingCase || $limitReached || ($softHandoff && $qualified);
 
         $baseUpd = [
             'collected_data_json' => $collected,
@@ -204,9 +215,13 @@ final class IntakeEngine
             return $this->reply($sid, $aiMsgId, $reply, false, $structured, 'office_info');
         }
 
-        // Handoff (imediato/critico/limite/suficiente/pedido humano)
+        // Handoff (imediato/critico/limite/suficiente/pedido humano), so apos a pre-qualificacao
         if ($doHandoff) {
-            return $this->doHandoff($cfg, $session, $collected, $structured, $contactId, $remoteJid, $channelId, $critical, $limitReached ? 'limit_reached' : ($wantsHuman ? 'human_request' : ($critical ? 'urgent' : 'qualified')), $res);
+            $reason = $limitReached ? 'limit_reached'
+                    : ($existingCase ? 'existing_case'
+                    : ($humanReq ? 'human_request'
+                    : ($critical ? 'urgent' : 'qualified')));
+            return $this->doHandoff($cfg, $session, $collected, $structured, $contactId, $remoteJid, $channelId, $critical, $reason, $res);
         }
 
         // Caso geral: no 1o turno SEMPRE se apresenta (escritorio + agente) e pede o nome.
