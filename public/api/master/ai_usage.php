@@ -95,6 +95,7 @@ $mk = function (int $id, string $nome = '', string $tipo = '', $status = null) {
         'areas'           => 0,
         'calls'           => 0,
         'tok_today'       => 0, 'tok_month' => 0, 'tok_total' => 0,
+        'inp_month'       => 0, 'cch_month' => 0,
         'cost_month'      => 0.0, 'cost_total' => 0.0,
         'last_at'         => null,
     ];
@@ -153,11 +154,13 @@ $useStmt = $pdo->prepare("
            COALESCE(SUM(CASE WHEN ul.created_at >= :ms1 THEN ul.total_tokens   ELSE 0 END),0) AS tok_month,
            COALESCE(SUM(CASE WHEN ul.created_at >= :ms2 THEN ul.estimated_cost ELSE 0 END),0) AS cost_month,
            COALESCE(SUM(CASE WHEN ul.created_at >= :ts1 THEN ul.total_tokens   ELSE 0 END),0) AS tok_today,
+           COALESCE(SUM(CASE WHEN ul.created_at >= :ms3 THEN ul.input_tokens        ELSE 0 END),0) AS inp_month,
+           COALESCE(SUM(CASE WHEN ul.created_at >= :ms4 THEN ul.cached_input_tokens ELSE 0 END),0) AS cch_month,
            MAX(ul.created_at) AS last_at
       FROM ai_usage_log ul
      GROUP BY ul.account_id
 ");
-$useStmt->execute([':ms1' => $monthStart, ':ms2' => $monthStart, ':ts1' => $todayStart]);
+$useStmt->execute([':ms1' => $monthStart, ':ms2' => $monthStart, ':ms3' => $monthStart, ':ms4' => $monthStart, ':ts1' => $todayStart]);
 foreach ($useStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
     $id = (int)$r['account_id'];
     if (!isset($acc[$id])) $acc[$id] = $mk($id);
@@ -165,6 +168,8 @@ foreach ($useStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
     $acc[$id]['tok_today']  = (int)$r['tok_today'];
     $acc[$id]['tok_month']  = (int)$r['tok_month'];
     $acc[$id]['tok_total']  = (int)$r['tok_total'];
+    $acc[$id]['inp_month']  = (int)$r['inp_month'];
+    $acc[$id]['cch_month']  = (int)$r['cch_month'];
     $acc[$id]['cost_month'] = (float)$r['cost_month'];
     $acc[$id]['cost_total'] = (float)$r['cost_total'];
     $acc[$id]['last_at']    = $r['last_at'];
@@ -188,7 +193,12 @@ $summary = [
     'tokens_total'      => array_sum(array_column($accounts, 'tok_total')),
     'cost_month'        => array_sum(array_column($accounts, 'cost_month')),
     'cost_total'        => array_sum(array_column($accounts, 'cost_total')),
+    'input_month'       => array_sum(array_column($accounts, 'inp_month')),
+    'cached_month'      => array_sum(array_column($accounts, 'cch_month')),
     'month_label'       => date('m/Y'),
 ];
+// Taxa de cache do mes = tokens de entrada servidos do cache / total de entrada (0..1).
+$summary['cache_ratio_month'] = $summary['input_month'] > 0
+    ? round($summary['cached_month'] / $summary['input_month'], 4) : 0.0;
 
 ApiResponse::ok(['summary' => $summary, 'accounts' => $accounts]);

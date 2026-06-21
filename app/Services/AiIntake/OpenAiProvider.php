@@ -45,6 +45,11 @@ final class OpenAiProvider implements LlmProviderInterface
             ],
             'response_format' => $responseFormat,
         ];
+        // Prompt caching: dica de roteamento estavel (mesmo prefixo -> mesmo no de cache da OpenAI).
+        // NUNCA conter dado dinamico (timestamp/telefone/sessao); so identifica o prefixo estavel.
+        if (!empty($opts['cache_key'])) {
+            $payload['prompt_cache_key'] = (string)$opts['cache_key'];
+        }
 
         $attempt = 0;
         $started = microtime(true);

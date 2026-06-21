@@ -137,6 +137,9 @@ final class IntakeEngine
             ],
         ];
         $model = (string)($cfg['model'] ?: 'gpt-4o-mini');
+        // Prompt caching: chave de roteamento estavel por agente+modelo (o prefixo do prompt e
+        // identico entre as mensagens do mesmo agente). Sem dado dinamico na chave.
+        $opts['cache_key'] = 'yuris:' . $model . ':a' . $agentId;
         $res = $this->provider->complete($model, $system, $userText, IntakeSchema::responseFormat(), $opts);
 
         // registra uso (sempre) — custo ja credita os tokens servidos do cache da OpenAI
@@ -145,6 +148,7 @@ final class IntakeEngine
             'account_id' => $accountId, 'agent_id' => $agentId, 'session_id' => $sid,
             'provider' => $this->provider->name(), 'model' => $model, 'operation' => 'intake',
             'input_tokens' => $res['usage']['input_tokens'] ?? 0, 'output_tokens' => $res['usage']['output_tokens'] ?? 0,
+            'cached_input_tokens' => $res['usage']['cached_input_tokens'] ?? 0,
             'estimated_cost' => $cost, 'success' => $res['ok'] ? 1 : 0,
             'error' => $res['error'] ? substr($res['error'], 0, 240) : null, 'latency_ms' => $res['latency_ms'] ?? null,
         ]);

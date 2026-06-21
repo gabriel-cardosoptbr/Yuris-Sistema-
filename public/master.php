@@ -979,6 +979,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
         <div style="min-width:110px"><div class="mst-kpi-value" id="kuAtivas">—</div><div class="mst-kpi-label">Contas ligadas</div></div>
         <div style="min-width:110px"><div class="mst-kpi-value" id="kuComAgente">—</div><div class="mst-kpi-label">Contas com agente</div></div>
         <div style="min-width:130px"><div class="mst-kpi-value" id="kuTokMes">—</div><div class="mst-kpi-label">Tokens no mês (<span id="kuMesLbl">—</span>)</div></div>
+        <div style="min-width:120px"><div class="mst-kpi-value" id="kuCacheMes">—</div><div class="mst-kpi-label">Cache no mês (entrada)</div></div>
         <div style="min-width:120px"><div class="mst-kpi-value" id="kuCustoMes">—</div><div class="mst-kpi-label">Custo no mês (US$)</div></div>
         <div style="min-width:120px"><div class="mst-kpi-value" id="kuTokTotal">—</div><div class="mst-kpi-label">Tokens (total)</div></div>
         <div style="min-width:120px"><div class="mst-kpi-value" id="kuCustoTotal">—</div><div class="mst-kpi-label">Custo total (US$)</div></div>
@@ -2677,6 +2678,7 @@ async function loadAiUsage() {
   set('kuAtivas', _aiN(s.contas_ligadas));   set('kuComAgente', _aiN(s.contas_com_agente));
   set('kuTokMes', _aiN(s.tokens_month));     set('kuCustoMes', _aiUsd(s.cost_month));
   set('kuTokTotal', _aiN(s.tokens_total));   set('kuCustoTotal', _aiUsd(s.cost_total));
+  set('kuCacheMes', ((Number(s.cache_ratio_month||0)*100).toFixed(0)) + '%');
   set('kuMesLbl', s.month_label || '—');
   if (!list.length) { body.innerHTML = '<tr><td colspan="9" style="padding:16px;color:#9ab0c9">Nenhuma conta cadastrada.</td></tr>'; return; }
   const allInst = [];
