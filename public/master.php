@@ -1070,6 +1070,54 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
         <div id="aiPromptVersions" style="font-size:.78rem">—</div>
       </div>
     </div>
+
+    <!-- Perguntas por Area (banco GLOBAL deterministico, o "2o mundo" do motor) -->
+    <div class="mst-card" style="padding:18px; margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:700; margin-bottom:4px">Perguntas por Área (banco do agente)</div>
+          <div style="font-size:.74rem; color:#9ab0c9; max-width:780px">O <strong>segundo mundo</strong> do motor: além das perguntas genéricas (nome, relato, quando, processo, prazo, documentos, cidade), cada área tem perguntas <strong>específicas de triagem</strong>. São determinísticas, <strong>não entram no prompt mestre</strong> e <strong>não custam tokens</strong>. O agente as faz logo após entender o relato, qualificando melhor o caso para o advogado. Edite à vontade, vale para todas as contas.</div>
+        </div>
+        <button onclick="loadAreaQuestions()" style="padding:8px 14px;background:transparent;border:1px solid rgba(96,165,250,.5);color:#7EB8F7;border-radius:8px;font-weight:600;cursor:pointer;font-size:.8rem">Atualizar</button>
+      </div>
+
+      <!-- KPIs -->
+      <div style="display:flex;gap:22px;flex-wrap:wrap;margin:16px 2px 10px">
+        <div style="min-width:110px"><div class="mst-kpi-value" id="aqKpiAreas">—</div><div class="mst-kpi-label">Áreas no catálogo</div></div>
+        <div style="min-width:130px"><div class="mst-kpi-value" id="aqKpiAreasQ">—</div><div class="mst-kpi-label">Áreas com pergunta</div></div>
+        <div style="min-width:120px"><div class="mst-kpi-value" id="aqKpiTotal">—</div><div class="mst-kpi-label">Perguntas (total)</div></div>
+        <div style="min-width:120px"><div class="mst-kpi-value" id="aqKpiAtivas">—</div><div class="mst-kpi-label">Perguntas ativas</div></div>
+      </div>
+
+      <!-- Seletor de area -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin:6px 0 10px">
+        <div style="flex:1;min-width:240px">
+          <label class="mst-form-label">Área</label>
+          <select id="aqAreaSel" class="mst-form-select" onchange="renderAreaQuestions()" style="width:100%"><option>Carregando…</option></select>
+        </div>
+      </div>
+
+      <!-- Adicionar pergunta -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin:4px 0 12px;padding:12px;background:rgba(96,165,250,.05);border:1px solid rgba(96,165,250,.18);border-radius:10px">
+        <div style="flex:2;min-width:260px"><label class="mst-form-label">Nova pergunta (sem travessão)</label><input id="aqNewText" class="mst-form-input" maxlength="500" placeholder="ex.: O seu trabalho tinha carteira assinada?"></div>
+        <div style="flex:1;min-width:180px"><label class="mst-form-label">Nota interna (opcional)</label><input id="aqNewHelp" class="mst-form-input" maxlength="255" placeholder="por que essa pergunta importa"></div>
+        <button class="btn-mst btn-mst-primary" onclick="addAreaQuestion(this)">Adicionar</button>
+      </div>
+
+      <div style="overflow-x:auto">
+        <table class="mst-table" style="width:100%;min-width:680px;border-collapse:collapse;font-size:.82rem">
+          <thead><tr style="text-align:left;color:#9ab0c9;border-bottom:1px solid rgba(255,255,255,.08)">
+            <th style="padding:6px 8px;width:30px">#</th>
+            <th style="padding:6px 8px">Pergunta</th>
+            <th style="padding:6px 8px">Nota interna</th>
+            <th style="padding:6px 8px;text-align:center;width:64px">Ativa</th>
+            <th style="padding:6px 8px;text-align:right;width:150px">Ações</th>
+          </tr></thead>
+          <tbody id="aqBody"><tr><td colspan="5" style="padding:14px;color:#9ab0c9">Carregando…</td></tr></tbody>
+        </table>
+      </div>
+      <div style="font-size:.72rem;color:#9ab0c9;margin-top:8px">Dica: a ordem da tabela é a ordem em que o agente faz as perguntas. Use as setas para reordenar. Perguntas inativas ficam guardadas mas não são feitas.</div>
+    </div>
   </section>
 
   <section class="mst-section" id="msec-reviews">
@@ -2586,7 +2634,7 @@ function loadTab(name) {
   if (name==='operators') loadOperators();
   if (name==='reviews')   loadReviews();
   if (name==='whatsapp') { loadGlobalEvolution(); loadWhatsappConfig(); loadWaChannels(); }
-  if (name==='agente')   { loadAiOpenai(); loadAiPrompt(); loadAiUsage(); loadAiModels(); }
+  if (name==='agente')   { loadAiOpenai(); loadAiPrompt(); loadAiUsage(); loadAiModels(); loadAreaQuestions(); }
 }
 
 // ── WhatsApp / Evolution (infra por conta — só super_admin) ────────────────
@@ -2863,6 +2911,90 @@ async function saveAiModel(id, btn) {
 async function deleteAiModel(id, btn) {
   if (!(await Yuris.confirm('Remover este modelo da lista?', { okLabel:'Remover', danger:true }))) return;
   await _aiModelsPost({ action:'delete', id }, btn, 'Modelo removido');
+}
+
+// ── Perguntas por Area (banco deterministico, 2o mundo do motor) ────────────
+let _aqAreas = [];        // [{code,name,active,questions:[...],total,ativas}]
+function _aqSelected() { return document.getElementById('aqAreaSel')?.value || ''; }
+async function loadAreaQuestions() {
+  const body = document.getElementById('aqBody'); if (!body) return;
+  const r = await fj(`${API}/ai_area_questions.php`);
+  if (!r.ok) { body.innerHTML = '<tr><td colspan="5" style="padding:14px;color:#ef4444">Erro ao carregar perguntas por área</td></tr>'; return; }
+  const d = r.data || {}, s = d.summary || {};
+  _aqAreas = d.areas || [];
+  const set = (id,v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  set('aqKpiAreas', _aqN(s.areas_total)); set('aqKpiAreasQ', _aqN(s.areas_com_pergunta));
+  set('aqKpiTotal', _aqN(s.perguntas_total)); set('aqKpiAtivas', _aqN(s.perguntas_ativas));
+  // popular o seletor (preserva a area atual; default = 1a com perguntas)
+  const sel = document.getElementById('aqAreaSel'); if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = _aqAreas.map(a => `<option value="${esc(a.code)}">${esc(a.name)} (${a.total})${a.active ? '' : ' · área inativa'}</option>`).join('');
+  if (prev && _aqAreas.some(a => a.code === prev)) sel.value = prev;
+  else { const firstQ = _aqAreas.find(a => a.total > 0); if (firstQ) sel.value = firstQ.code; }
+  renderAreaQuestions();
+}
+function _aqN(n){ return Number(n||0).toLocaleString('pt-BR'); }
+function renderAreaQuestions() {
+  const body = document.getElementById('aqBody'); if (!body) return;
+  const code = _aqSelected();
+  const area = _aqAreas.find(a => a.code === code);
+  const qs = (area && area.questions) || [];
+  if (!qs.length) { body.innerHTML = '<tr><td colspan="5" style="padding:14px;color:#9ab0c9">Esta área ainda não tem perguntas específicas. Adicione acima, ou o agente usará só as perguntas genéricas.</td></tr>'; return; }
+  body.innerHTML = qs.map((q,i) => `
+    <tr style="border-bottom:1px solid rgba(255,255,255,.05)${Number(q.active)===1?'':';opacity:.55'}">
+      <td style="padding:6px 8px;white-space:nowrap;color:#9ab0c9">
+        ${i+1}
+        <button class="btn-mst" title="Subir" style="padding:0 6px;margin-left:2px" ${i===0?'disabled':''} onclick="moveAreaQuestion(${q.id},-1)">↑</button>
+        <button class="btn-mst" title="Descer" style="padding:0 6px" ${i===qs.length-1?'disabled':''} onclick="moveAreaQuestion(${q.id},1)">↓</button>
+      </td>
+      <td style="padding:6px 8px"><input class="mst-form-input" style="padding:4px 8px;width:100%" id="aqTxt${q.id}" maxlength="500" value="${esc(q.question_text||'')}"></td>
+      <td style="padding:6px 8px"><input class="mst-form-input" style="padding:4px 8px;width:100%" id="aqHlp${q.id}" maxlength="255" value="${esc(q.help_text||'')}" placeholder="—"></td>
+      <td style="padding:6px 8px;text-align:center"><input type="checkbox" id="aqAct${q.id}" ${Number(q.active)===1?'checked':''}></td>
+      <td style="padding:6px 8px;text-align:right;white-space:nowrap">
+        <button class="btn-mst" onclick="saveAreaQuestion(${q.id},this)">Salvar</button>
+        <button class="btn-mst btn-mst-danger" onclick="deleteAreaQuestion(${q.id},this)">Excluir</button>
+      </td></tr>`).join('');
+}
+async function _aqPost(payload, btn, okMsg) {
+  if (btn) btn.disabled = true;
+  try {
+    const res = await fetch(`${API}/ai_area_questions.php`, { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF}, body: JSON.stringify({ csrf_token: CSRF, ...payload }) });
+    const j = await res.json();
+    if (res.ok && j.ok !== false) { notifyOk(okMsg); if (j.data && j.data.areas) { _aqAreas = j.data.areas; const s=j.data.summary||{}; const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=_aqN(v);}; set('aqKpiAreas',s.areas_total);set('aqKpiAreasQ',s.areas_com_pergunta);set('aqKpiTotal',s.perguntas_total);set('aqKpiAtivas',s.perguntas_ativas); renderAreaQuestions(); } return true; }
+    notifyErr(j.error || 'Erro'); return false;
+  } catch (e) { notifyErr('Erro de rede'); return false; }
+  finally { if (btn) btn.disabled = false; }
+}
+async function addAreaQuestion(btn) {
+  const area = _aqSelected();
+  if (!area) { notifyErr('Selecione uma área.'); return; }
+  const txt = (document.getElementById('aqNewText').value || '').trim();
+  const help = (document.getElementById('aqNewHelp').value || '').trim();
+  if (!txt) { notifyErr('Escreva a pergunta.'); return; }
+  if (txt.includes('—')) { notifyErr('Não use travessão (—). Prefira vírgula ou dois-pontos.'); return; }
+  const ok = await _aqPost({ action:'add', area_code: area, question_text: txt, help_text: help }, btn, 'Pergunta adicionada');
+  if (ok) { document.getElementById('aqNewText').value=''; document.getElementById('aqNewHelp').value=''; }
+}
+async function saveAreaQuestion(id, btn) {
+  const txt = (document.getElementById('aqTxt'+id)?.value || '').trim();
+  const help = (document.getElementById('aqHlp'+id)?.value || '').trim();
+  const active = document.getElementById('aqAct'+id)?.checked ? 1 : 0;
+  if (!txt) { notifyErr('A pergunta não pode ficar vazia.'); return; }
+  if (txt.includes('—')) { notifyErr('Não use travessão (—). Prefira vírgula ou dois-pontos.'); return; }
+  await _aqPost({ action:'update', id, question_text: txt, help_text: help, active }, btn, 'Pergunta salva');
+}
+async function deleteAreaQuestion(id, btn) {
+  if (!(await Yuris.confirm('Remover esta pergunta da área?', { okLabel:'Remover', danger:true }))) return;
+  await _aqPost({ action:'delete', id }, btn, 'Pergunta removida');
+}
+async function moveAreaQuestion(id, dir) {
+  const code = _aqSelected();
+  const area = _aqAreas.find(a => a.code === code); if (!area) return;
+  const ids = area.questions.map(q => q.id);
+  const idx = ids.indexOf(id); const j = idx + dir;
+  if (idx < 0 || j < 0 || j >= ids.length) return;
+  [ids[idx], ids[j]] = [ids[j], ids[idx]];
+  await _aqPost({ action:'reorder', area_code: code, ids }, null, 'Ordem atualizada');
 }
 
 // ── Security Key da OpenAI (global) ────────────────────────────────────────

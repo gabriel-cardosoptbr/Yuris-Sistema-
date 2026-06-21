@@ -28,6 +28,11 @@ final class IntakeEngine
     private IntakeSessionRepository $repo;
     private ?string $promptTemplate = null;
 
+    /** Perguntas POR AREA (2o mundo), carregadas sob demanda da tabela ai_area_questions. */
+    private array  $areaQ      = [];   // ['area:<key>' => 'texto da pergunta']
+    private array  $areaQOrder = [];   // ['area:<key>', ...] na ordem (sort)
+    private ?string $areaQFor  = null; // area_code ja carregado (cache de 1 area por request)
+
     /** Preco estimado por 1M tokens (input, output) — atualizavel. */
     private const COST = [
         'gpt-4o-mini'  => [0.15, 0.60],
@@ -169,6 +174,10 @@ final class IntakeEngine
         $hadName   = !empty($collected['name']);
         $collected = $this->mergeExtracted($collected, $structured['extracted_data']);
 
+        // Area classificada -> carrega o 2o mundo (perguntas especificas da area), 1x por request.
+        $areaCode = $structured['primary_practice_area'] ?? null;
+        $this->ensureAreaQuestions($areaCode);
+
         // 11) Decisao de controle (BACKEND)
         $intent   = $structured['intent'];
         $critical = $structured['urgency_level'] === 'critical';
@@ -182,7 +191,7 @@ final class IntakeEngine
         // so encaminham DEPOIS dessa qualificacao, ou quando nao ha mais nada essencial a
         // perguntar. Urgencia critica, cliente existente e limite de perguntas SEMPRE encaminham.
         $qualMin   = max(2, min(3, $maxQ));
-        $qualified = ($qcount >= $qualMin) || ($this->pickNextKey($collected, $asked) === null);
+        $qualified = ($qcount >= $qualMin) || ($this->pickNextKey($collected, $asked, $areaCode) === null);
         $softHandoff = $humanReq
             || !empty($structured['should_handoff_immediately'])
             || !empty($structured['enough_for_handoff']);
@@ -236,14 +245,17 @@ final class IntakeEngine
             // conversa (pede o nome ou acolhe o relato) — nunca deixa no vacuo apos o "oi".
             $key = empty($collected['name'])
                 ? 'nome'
-                : ($structured['suggested_next_question_key'] ?: $this->pickNextKey($collected, $asked));
+                : ($structured['suggested_next_question_key'] ?: $this->pickNextKey($collected, $asked, $areaCode));
             $reply = $this->composeFirstTurn($cfg, $collected, $leadFirst, $firstReportNow, $key);
             if ($key) { $asked[] = $key; } // marca; nao conta no limite no 1o turno
             $state = 'greeting';
         } else {
-            $key = $structured['suggested_next_question_key'] ?: $this->pickNextKey($collected, $asked);
-            if ($key && in_array($key, $asked, true)) {
-                $key = $this->pickNextKey($collected, $asked); // nunca repetir
+            // BACKEND decide a ordem (genericas + especificas da area, sem repetir). A sugestao do
+            // modelo so entra como fallback quando ja nao ha nada essencial a perguntar.
+            $key = $this->pickNextKey($collected, $asked, $areaCode);
+            if ($key === null) {
+                $sug = $structured['suggested_next_question_key'] ?: null;
+                if ($sug && !in_array($sug, $asked, true) && $this->questionText($sug, '') !== '') $key = $sug;
             }
             if ($key) { $asked[] = $key; $qcount++; }
             $reply = $this->composeQuestion($cfg, $structured, $key, $collected, $leadFirst, $firstReportNow, $nameJustGiven);
@@ -362,7 +374,45 @@ final class IntakeEngine
 
     private function questionText(?string $key, string $fallback): string
     {
-        return ($key && isset(self::QUESTIONS[$key])) ? self::QUESTIONS[$key] : $fallback;
+        if ($key === null || $key === '') return $fallback;
+        if (isset(self::QUESTIONS[$key])) return self::QUESTIONS[$key];   // generica
+        if (isset($this->areaQ[$key]))    return $this->areaQ[$key];      // especifica da area
+        return $fallback;
+    }
+
+    // ─────────────────────────── Perguntas por area (2o mundo) ───────────────────────────
+    /**
+     * Carrega (1x por request, cache por area) as perguntas especificas da area classificada.
+     * Best-effort: se a tabela nao existir ou a area nao tiver perguntas, o motor segue so com
+     * as perguntas genericas. As chaves sao prefixadas com "area:" p/ nao colidir com as genericas.
+     */
+    private function ensureAreaQuestions(?string $areaCode): void
+    {
+        $areaCode = $areaCode !== null ? trim($areaCode) : '';
+        if ($this->areaQFor === $areaCode) return; // ja carregado p/ essa area
+        $this->areaQFor   = $areaCode;
+        $this->areaQ      = [];
+        $this->areaQOrder = [];
+        if ($areaCode === '') return;
+        try {
+            $st = $this->pdo->prepare(
+                "SELECT question_key, question_text FROM ai_area_questions
+                  WHERE area_code = ? AND active = 1 ORDER BY sort ASC, id ASC"
+            );
+            $st->execute([$areaCode]);
+            foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $k = 'area:' . $row['question_key'];
+                $this->areaQ[$k]      = (string)$row['question_text'];
+                $this->areaQOrder[]   = $k;
+            }
+        } catch (\Throwable $_) { /* tabela ausente: sem perguntas de area */ }
+    }
+
+    /** Chaves (prefixadas) das perguntas da area, na ordem; [] se area desconhecida. */
+    private function areaQuestionKeys(?string $areaCode): array
+    {
+        $this->ensureAreaQuestions($areaCode);
+        return $this->areaQOrder;
     }
 
     /** Primeiro nome do lead, capitalizado, para personalizar a conversa. */
@@ -432,10 +482,18 @@ final class IntakeEngine
     }
 
     // ─────────────────────────── util ───────────────────────────
-    private function pickNextKey(array $collected, array $asked): ?string
+    /**
+     * Proxima chave de pergunta (DOIS MUNDOS): primeiro o relato (motivo), depois as perguntas
+     * ESPECIFICAS da area classificada (qualificam o caso para o advogado) e por fim os demais
+     * fatos genericos. Nunca repete uma pergunta ja feita ($asked). Sem area conhecida, cai so
+     * nas genericas. O limite/pre-qualificacao continua sendo aplicado por quem chama.
+     */
+    private function pickNextKey(array $collected, array $asked, ?string $areaCode = null): ?string
     {
         $need = [];
         if (empty($collected['main_report']))         $need[] = 'motivo';
+        // 2o mundo: perguntas da area, logo apos entender o que aconteceu.
+        foreach ($this->areaQuestionKeys($areaCode) as $ak) $need[] = $ak;
         if (empty($collected['event_date']))          $need[] = 'quando';
         if (($collected['has_existing_case'] ?? null) === null) $need[] = 'processo';
         if (($collected['has_deadline'] ?? null) === null)     $need[] = 'prazo';
