@@ -127,12 +127,54 @@ class WhatsAppProvisioningService
             $channelId = (int)($inst['id'] ?? 0);
             if ($channelId > 0) {
                 \WhatsAppChannelAccessService::grant($pdo, $channelId, $accountId, 'owner', [], null);
+                self::ensureAgentConfig($pdo, $accountId, $channelId, $accountName);
             }
 
             return ['success' => true, 'instance' => $name, 'channel_id' => $channelId];
         } catch (\Throwable $e) {
             error_log('[WhatsAppProvisioningService] ' . $e->getMessage());
             return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Onboarding ZERO-TOQUE do agente de IA: cria o agent_config da conta JA configurado
+     * mas DESLIGADO (enabled=0). A conta nasce pronta (webhook no Yuris + agente no banco,
+     * herdando prompt+chave GLOBAIS do Master) e a unica acao do cliente e clicar "Ativar".
+     * O bot so responde com enabled=1 E instancia conectada (gate do webhook). Best-effort,
+     * idempotente (UNIQUE em whatsapp_instance_id) — nunca derruba o provisionamento.
+     */
+    private static function ensureAgentConfig(\PDO $pdo, int $accountId, int $channelId, string $accountName): void
+    {
+        try {
+            $has = $pdo->prepare("SELECT id FROM agent_configs WHERE whatsapp_instance_id = ? LIMIT 1");
+            $has->execute([$channelId]);
+            if ($has->fetchColumn()) return; // ja existe — nao recria
+
+            $tipo = '';
+            try {
+                $ts = $pdo->prepare("SELECT tipo FROM accounts WHERE id = ? LIMIT 1");
+                $ts->execute([$accountId]);
+                $tipo = (string)$ts->fetchColumn();
+            } catch (\Throwable $_) {}
+            $branchId = ($tipo === 'filial') ? $accountId : null;
+
+            // Defaults seguros: provedor/modelo padrao, escritorio = nome da conta, agente OFF.
+            // prompt/chave ficam vazios de proposito -> o motor usa o prompt mestre + a
+            // Security Key GLOBAIS do Master. Areas: vazio -> motor cai no catalogo completo.
+            $pdo->prepare(
+                "INSERT INTO agent_configs
+                   (account_id, branch_id, whatsapp_instance_id, name, enabled, status, provider, model,
+                    api_key_enc, prompt, max_questions, office_name, office_description,
+                    office_information_json, behavior_json, handoff_config_json, usage_limits_json,
+                    initial_message, closing_message, urgency_message, handoff_message, updated_by)
+                 VALUES (?,?,?,?,0,'inactive','openai','gpt-4o-mini',
+                         NULL,NULL,6,?,NULL,
+                         NULL,NULL,NULL,NULL,
+                         NULL,NULL,NULL,NULL,NULL)"
+            )->execute([$accountId, $branchId, $channelId, '', $accountName]);
+        } catch (\Throwable $e) {
+            error_log('[WhatsAppProvisioningService] ensureAgentConfig: ' . $e->getMessage());
         }
     }
 }
