@@ -66,9 +66,16 @@ try {
         // Filtro arquivadas: ?archived=1 lista apenas arquivadas; default = só não-arquivadas
         $archived = !empty($_GET['archived']) && $_GET['archived'] !== '0';
 
+        // O2: paginação da lista. limit cresce via "Carregar mais" no front (default 500).
+        // has_more = retornou o teto cheio (pode haver mais). O front sempre refaz a lista
+        // inteira com o limit atual (compatível com o refresh de 4s, sem merge/duplicata).
+        $listLimit = isset($_GET['limit']) ? max(50, min(2000, (int)$_GET['limit'])) : 500;
+        $chats     = $msgModel->getChatList($instanceId, $search, $teamFilter, $userFilter, $archived, $listLimit);
+
         echo json_encode([
             'ok'          => true,
-            'chats'       => $msgModel->getChatList($instanceId, $search, $teamFilter, $userFilter, $archived),
+            'chats'       => $chats,
+            'has_more'    => count($chats) >= $listLimit,
             'total_unread'=> $msgModel->getTotalUnread($instanceId),
         ]);
         exit;

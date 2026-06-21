@@ -561,8 +561,13 @@ const ChatApp = (() => {
       // Quando filtro = "archived", pede ao servidor a lista de arquivadas
       // (default sempre vem is_archived=0 — sem isso, lista vem vazia).
       if (state.filter === 'archived') params.set('archived', '1');
+      // O2: paginação da lista. Manda o limit atual (cresce via "Carregar mais"); o
+      // servidor sempre devolve a lista inteira até o limit, então o refresh de 4s
+      // mantém tudo fresco sem precisar mesclar páginas.
+      params.set('limit', String(state.chatLimit || 500));
       const r = await apiFetch(API.chats + '?' + params);
       state.chats = r.chats || [];
+      state.hasMoreChats = !!r.has_more;
       renderChatList();
       prefetchSidebarPhotos();   // fotos da lista em background (gentil, não bloqueia)
       setText('kpiChats',  String(state.chats.length));
@@ -617,8 +622,22 @@ const ChatApp = (() => {
 
     container.innerHTML = chats.map(renderChatItem).join('');
 
+    // O2: paginação — quando o servidor sinaliza que há mais conversas além do limite
+    // atual (has_more), oferece "Carregar mais" no fim da lista. Clicar amplia o limit
+    // e refaz a lista inteira (o refresh de 4s passa a usar o limit ampliado).
+    if (state.hasMoreChats) {
+      container.insertAdjacentHTML('beforeend',
+        '<div class="chat-load-more" onclick="ChatApp.loadMoreChats()" style="padding:12px;text-align:center;cursor:pointer;color:#7EB8F6;font-size:.82rem">Carregar mais conversas</div>');
+    }
+
     // Atualiza document.title (N) — total de não lidas em todos os chats
     updateTitleBadge();
+  }
+
+  // O2: amplia o teto da lista lateral em +500 e recarrega (server-side).
+  function loadMoreChats() {
+    state.chatLimit = (state.chatLimit || 500) + 500;
+    loadChats(true);
   }
 
   function renderChatItem(chat) {
@@ -627,7 +646,7 @@ const ChatApp = (() => {
     // backend mesmo quando o chat guardou o LID) formatado. Nunca exibe o LID cru.
     const resolved  = resolveSenderName(chat.display_name) || resolveSenderName(chat.contact_name);
     const realPhone = chat.real_phone || (/^\d{10,13}$/.test(String(chat.phone || '')) ? chat.phone : '');
-    const nameRaw   = resolved || formatPhone(realPhone) || 'Contato';
+    const nameRaw   = resolved || formatPhone(realPhone) || (chat.is_group == 1 ? 'Grupo' : 'Contato');
     const initial   = (nameRaw || '?').charAt(0).toUpperCase();
     const name      = esc(nameRaw);
     const preview = esc(chat.last_message_content || '');
@@ -698,7 +717,7 @@ const ChatApp = (() => {
     // número discável (10-13 díg.). Sem telefone → vazio (melhor que o LID).
     const headerPhone = (chatObj && chatObj.real_phone)
                      || (/^\d{10,13}$/.test(String(phone || '')) ? phone : '');
-    const displayName = name || formatPhone(headerPhone) || 'Contato';
+    const displayName = name || formatPhone(headerPhone) || ((chatObj && chatObj.is_group == 1) ? 'Grupo' : 'Contato');
     const initial     = (displayName || '?').charAt(0).toUpperCase();
     const el = document.getElementById('activeAvatar');
     if (el) el.textContent = initial;
@@ -3020,7 +3039,7 @@ const ChatApp = (() => {
   return {
     init, checkStatus, connectWhatsApp, disconnectWhatsApp,
     manualReconnect, dismissDisconnectAlert,
-    refreshQr, loadChats, openChat, openChatByJid, closeChat,
+    refreshQr, loadChats, loadMoreChats, openChat, openChatByJid, closeChat,
     loadMessages, refreshMessages, pollNewMessages,
     send, sendMedia, onKeyDown, autoResize,
     onFileSelected, clearFile,

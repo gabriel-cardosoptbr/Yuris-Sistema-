@@ -100,6 +100,28 @@ try {
         if ($cd && strlen($cd) >= 10) $contactByDigits[$cd] = $cInfo;
     }
 
+    // O2 (persistir agenda 1:1): grava os contatos do findContacts em whatsapp_contacts.
+    // Antes, contato @lid 1:1 so resolvia nome se a pessoa aparecesse em algum grupo; agora
+    // a agenda alimenta a resolucao de nome (getChatList camada c.push_name / findByJid) e o
+    // resolvePhoneJid. Respeita is_manual_name (nao sobrescreve rename manual do usuario).
+    // phone so de JID discavel (@s.whatsapp.net); @lid nao vira telefone.
+    $insAgenda = $pdo->prepare(
+        'INSERT INTO whatsapp_contacts (account_id, instance_id, remote_jid, push_name, phone, is_group)
+         VALUES (?,?,?,?,?,0)
+         ON DUPLICATE KEY UPDATE
+           push_name = IF(COALESCE(is_manual_name,0)=0 AND VALUES(push_name) IS NOT NULL AND VALUES(push_name) <> "", VALUES(push_name), push_name),
+           phone     = IF(VALUES(phone) IS NOT NULL AND VALUES(phone) <> "", VALUES(phone), phone)'
+    );
+    foreach ($contactMap as $cJid => $cInfo) {
+        if (str_ends_with((string)$cJid, '@g.us')) continue;
+        $cPhone = !str_ends_with((string)$cJid, '@lid')
+            ? preg_replace('/[^0-9]/', '', explode('@', (string)$cJid)[0])
+            : null;
+        if ($cPhone !== null && !preg_match('/^[0-9]{10,15}$/', $cPhone)) $cPhone = null;
+        try { $insAgenda->execute([$ownerId, $instanceId, (string)$cJid, $cInfo['name'] ?? null, $cPhone]); }
+        catch (\Throwable $_) {}
+    }
+
     // 2. Buscar mensagens paginadas — as mais recentes (últimas 20 páginas)
     // A API pagina do mais antigo (p.1) ao mais recente (última página)
     $allMessages = [];

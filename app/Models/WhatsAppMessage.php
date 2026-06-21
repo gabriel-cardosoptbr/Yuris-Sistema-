@@ -583,7 +583,7 @@ class WhatsAppMessage
      * @param string      $search      Busca por nome/telefone
      * @param int|null    $teamId      Filtra pelo setor (NULL = todos; 0 = sem setor)
      */
-    public function getChatList(int $instanceId, string $search = '', ?int $teamId = null, ?int $userId = null, bool $archived = false): array
+    public function getChatList(int $instanceId, string $search = '', ?int $teamId = null, ?int $userId = null, bool $archived = false, int $limit = 500): array
     {
         // JOIN com teams para trazer nome e cor do setor junto com cada chat
         // archived=true → lista apenas arquivadas; false (default) → só não-arquivadas
@@ -666,18 +666,34 @@ class WhatsAppMessage
                      OR c.linked_card_id     IS NOT NULL
                      OR c.linked_processo_id IS NOT NULL
                      OR c.contato_id         IS NOT NULL
+                     -- O2 (cross-instancia): apos reconexao a conta ganha uma instancia
+                     -- nova e as msgs antigas ficam sob a instancia velha; olhar so a
+                     -- instancia atual dava "shell vazio" e escondia a conversa. Agora o
+                     -- EXISTS varre TODAS as instancias da MESMA conta (mesmo tenant).
                      OR EXISTS (SELECT 1 FROM whatsapp_messages mm
-                                 WHERE mm.instance_id = c.instance_id
+                                 WHERE mm.instance_id IN (SELECT wi.id FROM whatsapp_instances wi
+                                         WHERE wi.account_id = (SELECT account_id FROM whatsapp_instances WHERE id = c.instance_id))
                                    AND mm.remote_jid  = c.remote_jid LIMIT 1)
                   )';
         $params = [$instanceId];
 
-        // Filtro de busca por nome ou telefone
+        // Filtro de busca por nome ou telefone. O2: o c.phone as vezes guarda o LID
+        // (nao discavel) e o c.contact_name pode estar vazio/numero; entao a busca tambem
+        // casa o nome/telefone REAIS da agenda (whatsapp_contacts) e o telefone do membro
+        // de grupo (whatsapp_group_members) ligados a este remote_jid.
         if ($search !== '') {
-            $sql .= ' AND (c.contact_name LIKE ? OR c.phone LIKE ?)';
+            $sql .= ' AND (
+                c.contact_name LIKE ? OR c.phone LIKE ?
+                OR EXISTS (SELECT 1 FROM whatsapp_contacts wc
+                            WHERE wc.instance_id = c.instance_id AND wc.remote_jid = c.remote_jid
+                              AND (wc.push_name LIKE ? OR wc.phone LIKE ?))
+                OR EXISTS (SELECT 1 FROM whatsapp_group_members gm
+                            WHERE gm.instance_id = c.instance_id
+                              AND gm.participant_jid COLLATE utf8mb4_unicode_ci = c.remote_jid
+                              AND gm.phone LIKE ?)
+            )';
             $like = '%' . $search . '%';
-            $params[] = $like;
-            $params[] = $like;
+            $params[] = $like; $params[] = $like; $params[] = $like; $params[] = $like; $params[] = $like;
         }
 
         // Filtro por setor:
@@ -706,7 +722,12 @@ class WhatsAppMessage
             }
         }
 
-        $sql .= ' ORDER BY c.is_pinned DESC, c.last_message_at DESC LIMIT 200';
+        // O2: ordena por COALESCE(last_message_at, updated_at, created_at) — chats "shell"
+        // criados sem last_message_at (NULL) afundavam (NULL DESC vai pro fim) e caiam fora
+        // do limite, sumindo da lista. LIMIT parametrizado (default 500, "Carregar mais"
+        // amplia) — antes era fixo em 200 e a 201a conversa ficava invisivel.
+        $limit = max(50, min(2000, $limit));
+        $sql .= ' ORDER BY c.is_pinned DESC, COALESCE(c.last_message_at, c.updated_at, c.created_at) DESC LIMIT ' . (int)$limit;
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
