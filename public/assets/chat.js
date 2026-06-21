@@ -1061,7 +1061,7 @@ const ChatApp = (() => {
       <div class="msg-quoted-bar"></div>
       <div style="flex:1;min-width:0">
         <div style="font-size:.72rem;font-weight:700;color:#7EB8F6">${esc(sender)}</div>
-        <div class="msg-quoted-text">${esc(preview)}</div>
+        <div class="msg-quoted-text">${formatMentions(esc(preview), state.currentJid)}</div>
       </div>
     </div>`;
   }
@@ -2713,7 +2713,9 @@ const ChatApp = (() => {
     }
     if (preview.length > 80) preview = preview.slice(0, 77) + '…';
 
-    text.textContent = (info.sender ? info.sender + ': ' : '') + preview;
+    // Resolve @menção (número → @Nome) na prévia, igual à bolha da mensagem. O nome
+    // do autor e o texto são escapados; innerHTML porque formatMentions devolve <span>.
+    text.innerHTML = (info.sender ? esc(info.sender) + ': ' : '') + formatMentions(esc(preview), state.currentJid);
     bar.style.display = 'flex';
     closeMsgMenu();
     // Foca o input pra digitar a resposta
