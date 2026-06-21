@@ -74,6 +74,24 @@ try {
                 // Sem timeout, a Evolution lenta segurava o request ~20s e, com
                 // vários cliques, saturava o pool de conexões do navegador.
                 $evo->setTimeout(6);
+
+                // ── GRUPO: a foto vem pelo próprio JID (@g.us) ────────────────────
+                // O fetchProfilePictureUrl aceita o group JID como "number" (Baileys).
+                // Grupo não tem telefone, então não passa pela resolução de telefone
+                // abaixo. Antes, foto de grupo só vinha do "Sincronizar" (fetchAllGroups);
+                // agora abre/atualiza on-demand igual 1:1.
+                if (str_ends_with($jid, '@g.us')) {
+                    $res = $evo->getProfilePicture($instName, $jid);
+                    $picUrl = $res['profilePictureUrl'] ?? ($res['profile_pic_url'] ?? null);
+                    if ($picUrl) {
+                        $pdo->prepare(
+                            'UPDATE whatsapp_chats SET profile_pic_url = ?
+                             WHERE instance_id = ? AND remote_jid = ?'
+                        )->execute([$picUrl, $instanceId, $jid]);
+                    }
+                    echo json_encode(['ok' => true, 'profile_pic_url' => $picUrl]);
+                    exit;
+                }
                 // ── Resolve o TELEFONE real (dialável) pra buscar a foto ──────────
                 // A Evolution só devolve foto pelo telefone (10-13 díg.); o LID
                 // ('@lid', 14+ díg.) NÃO resolve. À PROVA DE BALAS (não depende do

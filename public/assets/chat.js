@@ -2351,6 +2351,27 @@ const ChatApp = (() => {
 
   // ── Grupo: header (foto + contador) + modal de membros ───────────────────
   // Chamado em openChat. Se nao for grupo, esconde elementos extra.
+  // Aplica (ou limpa) a foto no avatar do topo da conversa e o deixa CLICÁVEL pra
+  // abrir a foto cheia no lightbox (igual WhatsApp). url vazio = volta pra inicial.
+  function setHeaderAvatarPhoto(url) {
+    const avatar = qs('#activeAvatar');
+    if (!avatar) return;
+    if (url) {
+      avatar.textContent = '';
+      avatar.style.backgroundImage = `url("${url}")`;
+      avatar.style.backgroundSize = 'cover';
+      avatar.style.backgroundPosition = 'center';
+      avatar.style.cursor = 'pointer';
+      avatar.title = 'Ver foto';
+      avatar.onclick = () => openImage(url);
+    } else {
+      avatar.style.backgroundImage = '';
+      avatar.style.cursor = '';
+      avatar.title = '';
+      avatar.onclick = null;
+    }
+  }
+
   function updateGroupHeader(jid, chatObj) {
     const isGroup = jid && jid.endsWith('@g.us');
     const subEl   = qs('#activePhone');
@@ -2358,29 +2379,24 @@ const ChatApp = (() => {
     // Foto do chat (profile_pic_url ja sincronizado em whatsapp_chats)
     const avatar = qs('#activeAvatar');
     if (avatar) {
-      // Reset (caso conversa anterior tenha imagem)
-      avatar.style.backgroundImage = '';
       const pic = chatObj && chatObj.profile_pic_url;
       if (pic) {
-        avatar.textContent = '';
-        avatar.style.backgroundImage = `url("${pic}")`;
-        avatar.style.backgroundSize  = 'cover';
-        avatar.style.backgroundPosition = 'center';
-      } else if (jid && !isGroup) {
-        // Lazy fetch: conversa 1:1 sem foto cacheada → busca na Evolution
-        // Sem isso, 9 de 10 conversas 1:1 ficam só com a inicial cinza.
-        fetchProfilePicLazy(jid, chatObj && chatObj.real_phone).then(picUrl => {
-          // Só aplica se ainda estiver na mesma conversa (user pode ter trocado)
-          if (state.currentJid === jid && picUrl && avatar) {
-            avatar.textContent = '';
-            avatar.style.backgroundImage = `url("${picUrl}")`;
-            avatar.style.backgroundSize = 'cover';
-            avatar.style.backgroundPosition = 'center';
-            // Atualiza state.chats pra sidebar mostrar foto também
-            const c = state.chats.find(x => x.remote_jid === jid);
-            if (c) { c.profile_pic_url = picUrl; renderChatList(); }
-          }
-        });
+        setHeaderAvatarPhoto(pic);               // foto cacheada + clicável pra ampliar
+      } else {
+        setHeaderAvatarPhoto(null);              // reset (conversa anterior podia ter foto)
+        if (jid) {
+          // Lazy fetch da foto: 1:1 pelo telefone real, GRUPO pelo próprio JID.
+          // Sem isso, 9 de 10 conversas (e TODO grupo novo) ficavam só na inicial.
+          fetchProfilePicLazy(jid, chatObj && chatObj.real_phone).then(picUrl => {
+            // Só aplica se ainda estiver na mesma conversa (user pode ter trocado)
+            if (state.currentJid === jid && picUrl) {
+              setHeaderAvatarPhoto(picUrl);
+              // Atualiza state.chats pra sidebar mostrar foto também
+              const c = state.chats.find(x => x.remote_jid === jid);
+              if (c) { c.profile_pic_url = picUrl; renderChatList(); }
+            }
+          });
+        }
       }
     }
 
@@ -2539,13 +2555,12 @@ const ChatApp = (() => {
     if (_photoBatchRunning) return;
     _photoBatchRunning = true;
     try {
-      const alvos = (state.chats || []).filter(c =>
-        c && c.remote_jid
-        && !c.profile_pic_url
-        && !String(c.remote_jid).endsWith('@g.us')
-        && !_picFetchAttempts.has(c.remote_jid)
-        && (c.real_phone || /^\d{10,13}$/.test(String(c.phone || '')))
-      );
+      const alvos = (state.chats || []).filter(c => {
+        if (!c || !c.remote_jid || c.profile_pic_url || _picFetchAttempts.has(c.remote_jid)) return false;
+        // Grupo: a foto vem pelo próprio JID (sem telefone). 1:1: precisa de telefone real.
+        if (String(c.remote_jid).endsWith('@g.us')) return true;
+        return !!(c.real_phone || /^\d{10,13}$/.test(String(c.phone || '')));
+      });
       for (const c of alvos) {
         if (!state.chats.some(x => x.remote_jid === c.remote_jid)) continue; // saiu da lista
         const url = await fetchProfilePicLazy(c.remote_jid, c.real_phone || c.phone);

@@ -278,14 +278,18 @@ try {
                     $gjid = $g['id'] ?? null;
                     if (!$gjid) continue;
                     $subj = $g['subject'] ?? ($g['subjectName'] ?? null);
-                    if ($subj) {
+                    // Foto do grupo: grava a pictureUrl quando vier no evento (antes só o
+                    // nome era persistido → grupo novo ficava sem foto até "Sincronizar").
+                    $gpic = $g['pictureUrl'] ?? ($g['profilePictureUrl'] ?? ($g['profilePicUrl'] ?? null));
+                    if ($subj || $gpic) {
                         $pdo->prepare(
-                            'INSERT INTO whatsapp_chats (account_id, instance_id, remote_jid, contact_name, is_group)
-                             VALUES (?,?,?,?,1)
+                            'INSERT INTO whatsapp_chats (account_id, instance_id, remote_jid, contact_name, profile_pic_url, is_group)
+                             VALUES (?,?,?,?,?,1)
                              ON DUPLICATE KEY UPDATE
-                               account_id   = IF(account_id IS NULL, VALUES(account_id), account_id),
-                               contact_name = IF(COALESCE(is_manual_name,0)=0 AND VALUES(contact_name) IS NOT NULL AND VALUES(contact_name) <> "", VALUES(contact_name), contact_name)'
-                        )->execute([$accountId, $instanceId, $gjid, $subj]);
+                               account_id      = IF(account_id IS NULL, VALUES(account_id), account_id),
+                               contact_name    = IF(COALESCE(is_manual_name,0)=0 AND VALUES(contact_name) IS NOT NULL AND VALUES(contact_name) <> "", VALUES(contact_name), contact_name),
+                               profile_pic_url = IF(VALUES(profile_pic_url) IS NOT NULL AND VALUES(profile_pic_url) <> "", VALUES(profile_pic_url), profile_pic_url)'
+                        )->execute([$accountId, $instanceId, $gjid, $subj, $gpic]);
                     }
                     if (!empty($g['participants']) && is_array($g['participants'])) {
                         upsertGroupParticipants($pdo, $accountId, $instanceId, $gjid, $g['participants']);
