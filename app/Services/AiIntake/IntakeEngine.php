@@ -38,14 +38,14 @@ final class IntakeEngine
 
     /** Banco de perguntas (texto deterministico por chave; copy Yuris, sem travessao). */
     private const QUESTIONS = [
-        'nome'       => 'Como posso te chamar?',
-        'motivo'     => 'Me conta rapidinho o que aconteceu?',
+        'nome'       => 'Qual o seu nome, por favor?',
+        'motivo'     => 'Poderia me contar, brevemente, o que aconteceu?',
         'quando'     => 'Quando isso aconteceu?',
         'processo'   => 'Já existe algum processo sobre esse assunto?',
-        'prazo'      => 'Tem algum prazo, intimação ou audiência marcada?',
-        'documentos' => 'Você tem algum documento sobre o caso?',
+        'prazo'      => 'Existe algum prazo, intimação ou audiência marcada?',
+        'documentos' => 'Você tem algum documento relacionado ao caso?',
         'cidade'     => 'Em qual cidade isso aconteceu?',
-        'area'       => 'Sobre qual assunto jurídico você precisa de ajuda?',
+        'area'       => 'Sobre qual área jurídica você precisa de ajuda?',
     ];
 
     public function __construct(\PDO $pdo, LlmProviderInterface $provider)
@@ -105,8 +105,8 @@ final class IntakeEngine
             $collected['has_documents'] = true;
             $collected['mentioned_documents'] = array_values(array_unique(array_merge($collected['mentioned_documents'] ?? [], [$messageType])));
             $reply = ($messageType === 'audio')
-                ? 'Recebi o seu audio. Por aqui eu nao analiso o conteudo, mas vou registrar para a equipe avaliar. Se puder, me conte por escrito do que se trata.'
-                : 'Recebi o seu arquivo e vou deixa-lo registrado para a equipe analisar.';
+                ? 'Recebi o seu áudio. Por aqui não consigo analisar o conteúdo, mas vou registrá-lo para a equipe avaliar. Se possível, descreva por escrito do que se trata.'
+                : 'Recebi o seu arquivo e vou registrá-lo para a equipe analisar.';
             $this->repo->updateSession($sid, ['collected_data_json' => $collected, 'last_message_at' => date('Y-m-d H:i:s')]);
             $aiMsgId = $this->repo->recordSystem($accountId, $sid, $reply);
             return $this->reply($sid, $aiMsgId, $reply, false, null, 'media_ack');
@@ -164,8 +164,9 @@ final class IntakeEngine
             $structured['enough_for_handoff'] = true;
         }
 
-        // 10) Mescla dados coletados (guarda se ja havia relato, p/ empatia so 1x)
+        // 10) Mescla dados coletados (guarda se ja havia relato/nome, p/ empatia e nome so 1x)
         $hadReport = !empty($collected['main_report']);
+        $hadName   = !empty($collected['name']);
         $collected = $this->mergeExtracted($collected, $structured['extracted_data']);
 
         // 11) Decisao de controle (BACKEND)
@@ -201,7 +202,7 @@ final class IntakeEngine
 
         // Spam / nao-juridico -> encerra com cordialidade
         if ($intent === 'non_legal') {
-            $reply = 'Obrigado pelo contato. Este canal e do atendimento juridico do escritorio. Se precisar de ajuda juridica, e so escrever por aqui.';
+            $reply = 'Agradeço o seu contato. Este canal é destinado ao atendimento jurídico do escritório. Caso precise de ajuda jurídica, estou à disposição.';
             $this->repo->updateSession($sid, $baseUpd + ['status' => 'completed', 'current_state' => 'completed', 'closed_at' => date('Y-m-d H:i:s')]);
             $aiMsgId = $this->repo->recordBotSent($accountId, $sid, null, null, $reply, $structured, $res['usage'] ?? [], $res['latency_ms'] ?? null, true);
             return $this->reply($sid, $aiMsgId, $reply, false, $structured, 'out_of_scope');
@@ -228,6 +229,7 @@ final class IntakeEngine
         // Depois personaliza pelo primeiro nome do lead e nao repete a empatia.
         $leadFirst = $this->firstName($collected['name'] ?? '');
         $firstReportNow = empty($hadReport) && !empty($collected['main_report']); // empatia so 1x
+        $nameJustGiven  = empty($hadName)   && !empty($collected['name']);        // nome citado so 1x
 
         if ($firstTurn) {
             // Abre com a saudacao do advogado (verbatim, se cadastrada) e JA engaja a
@@ -244,7 +246,7 @@ final class IntakeEngine
                 $key = $this->pickNextKey($collected, $asked); // nunca repetir
             }
             if ($key) { $asked[] = $key; $qcount++; }
-            $reply = $this->composeQuestion($cfg, $structured, $key, $collected, $leadFirst, $firstReportNow);
+            $reply = $this->composeQuestion($cfg, $structured, $key, $collected, $leadFirst, $firstReportNow, $nameJustGiven);
             $state = IntakeStateMachine::decide((string)$session['current_state'], $structured, ['will_ask' => true]);
         }
 
@@ -274,7 +276,14 @@ final class IntakeEngine
         $hNm  = $hOff !== '' ? (', ' . $hOff) : '';
         $reply = $critical
             ? ($cfg['urgency_message'] ?: ('Entendi a urgência' . $hNm . '. Vou registrar com prioridade e já encaminhar para a nossa equipe. 🙏'))
-            : ($cfg['handoff_message'] ?: ('Perfeito' . $hNm . '! 👍 Registrei as informações iniciais e vou encaminhar o seu atendimento para a nossa equipe dar continuidade.'));
+            : ($cfg['handoff_message'] ?: 'Perfeito! 👍 Registrei as informações iniciais e vou encaminhar o seu atendimento para a nossa equipe dar continuidade.');
+        // Fecho com o nome p/ conexao: so 1x, so em handoff NAO urgente, e se o nome ainda nao
+        // aparecer no texto. Quebra de frase limpa (evita "." colado em emoji).
+        if (!$critical && $hOff !== '' && mb_stripos($reply, $hOff) === false) {
+            $reply = rtrim($reply);
+            $sep = preg_match('/[\p{L}\p{N}]$/u', $reply) ? '. ' : ' ';
+            $reply .= $sep . 'Obrigado pela preferência, ' . $hOff . '.';
+        }
 
         $this->repo->updateSession($sid, [
             'collected_data_json' => $collected,
@@ -319,25 +328,35 @@ final class IntakeEngine
         }
         // Engajamento: SEMPRE puxa a conversa em seguida (pede o nome ou acolhe o relato).
         if (empty($collected['name'])) {
-            return $open . ' Pra começar, como posso te chamar?';
+            return $open . ' Para começar, qual o seu nome, por favor?';
         }
         $nm = $leadFirst !== '' ? (', ' . $leadFirst) : '';
         if ($firstReportNow) {
-            return $open . ' Poxa' . $nm . ', imagino o quanto isso é chato. 🙏 ' . $this->questionText($key, 'Me conta rapidinho o que aconteceu?');
+            return $open . ' Sinto muito' . $nm . '. Imagino o quanto essa situação é difícil. 🙏 ' . $this->questionText($key, 'Poderia me contar o que aconteceu?');
         }
-        return $open . ' Me conta rapidinho' . $nm . ', o que aconteceu?';
+        return $open . ' Para começar' . $nm . ', poderia me contar o que aconteceu?';
     }
 
     /** Demais turnos: ack curto e personalizado (empatia so 1x), depois a pergunta. */
-    private function composeQuestion(array $cfg, array $structured, ?string $key, array $collected, string $leadFirst = '', bool $firstReportNow = false): string
+    private function composeQuestion(array $cfg, array $structured, ?string $key, array $collected, string $leadFirst = '', bool $firstReportNow = false, bool $nameJustGiven = false): string
     {
-        $q  = $this->questionText($key, 'Pode me dar mais um detalhe sobre a sua situação?');
-        $nm = $leadFirst !== '' ? (', ' . $leadFirst) : '';
-        if (($structured['urgency_level'] ?? 'normal') !== 'normal') $ack = 'Entendi a situação' . $nm . '. ';
-        elseif ($firstReportNow)                                     $ack = 'Poxa' . $nm . ', imagino o quanto isso é chato. 🙏 ';
-        elseif (!empty($collected['main_report']))                   $ack = 'Certo' . $nm . '. ';
-        elseif ($nm !== '')                                          $ack = 'Perfeito' . $nm . '! ';
-        else                                                         $ack = '';
+        $q      = $this->questionText($key, 'Poderia me dar mais detalhes sobre a sua situação?');
+        $first  = $leadFirst;
+        $urgent = (($structured['urgency_level'] ?? 'normal') !== 'normal');
+        // O nome do lead e citado UMA unica vez (no turno em que ele se identifica) e a empatia
+        // tambem so 1x (no turno do relato). No meio da conversa: SO a pergunta, sem "certo" e
+        // sem repetir o nome — objetividade. O fecho com nome volta no handoff.
+        if ($nameJustGiven && $first !== '') {
+            $ack = $firstReportNow
+                ? ('Sinto muito, ' . $first . '. Imagino o quanto essa situação é difícil. 🙏 ')  // nome + empatia, 1x
+                : ('Perfeito, ' . $first . '! ');
+        } elseif ($urgent) {
+            $ack = 'Entendi a situação. ';
+        } elseif ($firstReportNow) {
+            $ack = 'Sinto muito. Imagino o quanto essa situação é difícil. 🙏 ';
+        } else {
+            $ack = '';
+        }
         return trim($ack . $q);
     }
 
@@ -361,12 +380,12 @@ final class IntakeEngine
         $info = $this->jdec($cfg['office_information_json'] ?? null);
         $parts = [];
         if (!empty($cfg['office_description'])) $parts[] = (string)$cfg['office_description'];
-        if (!empty($info['horario']))  $parts[] = 'Horario de atendimento: ' . $info['horario'] . '.';
+        if (!empty($info['horario']))  $parts[] = 'Horário de atendimento: ' . $info['horario'] . '.';
         if (!empty($info['telefone'])) $parts[] = 'Telefone: ' . $info['telefone'] . '.';
-        if (!empty($info['endereco'])) $parts[] = 'Endereco: ' . $info['endereco'] . '.';
+        if (!empty($info['endereco'])) $parts[] = 'Endereço: ' . $info['endereco'] . '.';
         if (!empty($info['site']))     $parts[] = 'Site: ' . $info['site'] . '.';
-        $txt = $parts ? implode(' ', $parts) : 'Posso te ajudar com o pre-atendimento juridico do escritorio.';
-        return $txt . ' Existe alguma situacao juridica em que possamos ajudar?';
+        $txt = $parts ? implode(' ', $parts) : 'Posso ajudar com o pré-atendimento jurídico do escritório.';
+        return $txt . ' Existe alguma situação jurídica em que possamos ajudar?';
     }
 
     // ─────────────────────────── Prompt / contexto ───────────────────────────
