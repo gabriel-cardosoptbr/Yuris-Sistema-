@@ -200,7 +200,14 @@ try {
                 // Ignora auto-nome ("Voce"/"you"/"eu"): rotularia o chat errado.
                 if (in_array(mb_strtolower(trim((string)$name)), ['voce','você','you','eu'], true)) continue;
                 $isGroup = str_ends_with((string)$jid, '@g.us') ? 1 : 0;
-                $phone   = $isGroup ? null : preg_replace('/[^0-9]/', '', explode('@', (string)$jid)[0]);
+                // @lid (id de privacidade do WhatsApp) NAO e telefone discavel: nao derivar
+                // phone dos seus digitos. Antes gravava o numero interno do @lid como
+                // "telefone real" em whatsapp_contacts.phone, poluindo a coluna e enganando
+                // resolvePhoneJid (que passava a "resolver" o @lid pra um numero invalido).
+                // So @s.whatsapp.net vira phone. Mesmo padrao do sync.php.
+                $phone   = ($isGroup || str_ends_with((string)$jid, '@lid'))
+                    ? null
+                    : preg_replace('/[^0-9]/', '', explode('@', (string)$jid)[0]);
 
                 // a) nome de exibição no chat (não sobrescreve rename manual)
                 $pdo->prepare(
@@ -950,6 +957,12 @@ function runAgentReply(array $task): void
         // a mensagem do robo aparecer NA HORA no preview da lista (upsertChat) e dentro da
         // conversa aberta. Dedup por (instance_id, wamid): quando o eco chegar, o save()
         // encontra a linha e so atualiza o status (nao duplica).
+        // created_at do outbound: usa o messageTimestamp da Evolution (mesmo relogio do
+        // inbound) quando disponivel. Sem isso, o relogio do servidor (se adiantado)
+        // gravaria a msg do bot "no futuro" e empurraria o cursor do poll a frente,
+        // escondendo a proxima msg do cliente ate reentrar. Fallback: hora local.
+        $evoTs     = $resp['messageTimestamp'] ?? null;
+        $createdAt = (is_numeric($evoTs) && (int)$evoTs > 0) ? date('Y-m-d H:i:s', (int)$evoTs) : date('Y-m-d H:i:s');
         try {
             require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
             (new WhatsAppMessage())->save([
@@ -961,7 +974,7 @@ function runAgentReply(array $task): void
                 'message_content' => $reply,
                 'direction'       => 'outbound',
                 'status'          => 'sent',
-                'created_at'      => date('Y-m-d H:i:s'),
+                'created_at'      => $createdAt,
             ]);
         } catch (\Throwable $_) { /* espelho local nao pode derrubar o envio ja feito */ }
     } catch (\Throwable $e) {

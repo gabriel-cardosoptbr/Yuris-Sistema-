@@ -515,7 +515,14 @@ const ChatApp = (() => {
 
       if (state.currentJid) {
         await refreshLiveMessages(); // a cada 4s: busca mensagens novas na Evolution API
-        await pollNewMessages();
+        if (state.lastMsgId) {
+          await pollNewMessages();
+        } else {
+          // Conversa aberta VAZIA: ainda sem cursor (lastMsgId=0). Se a 1a mensagem
+          // chegou (no refresh acima ou via webhook), recarrega pra exibi-la sem o
+          // usuario precisar sair e reentrar. Espelha a logica do openChat().
+          await loadMessages();
+        }
       }
     } catch (e) { /* silencioso — não derruba o intervalo por um erro pontual */ }
     finally { _tickRunning = false; }
@@ -642,7 +649,7 @@ const ChatApp = (() => {
            <span class="chat-item-sector-name" style="color:${esc(chat.team_cor || '#7A8898')}">${esc(chat.team_nome)}</span>
          </div>` : '';
 
-    return `<div class="chat-item${isActive}" onclick="ChatApp.openChat('${esc(chat.remote_jid)}','${name}','${esc(chat.phone || '')}')">
+    return `<div class="chat-item${isActive}" onclick="ChatApp.openChatByJid('${esc(chat.remote_jid)}')">
       <div class="chat-avatar">${avatarHtml}</div>
       <div class="chat-item-info">
         <div class="chat-item-row1">
@@ -729,6 +736,17 @@ const ChatApp = (() => {
       if (state.lastMsgId) pollNewMessages();                  // já tinha msgs → anexa as novas
       else loadMessages().then(scrollToBottom).catch(() => {}); // estava vazia → carrega o que veio
     }).catch(() => {});
+  }
+
+  // Abre a conversa SO pelo JID. O remote_jid nunca tem aspas/apostrofo (e
+  // 'digits@s.whatsapp.net' | 'id@lid' | 'id@g.us'), ao contrario do NOME do contato:
+  // interpolar o nome no onclick quebrava com apostrofo (ex.: "D'Avila") e era uma
+  // pequena superficie de injecao. Aqui resolvemos nome/telefone do state.chats.
+  function openChatByJid(jid) {
+    const chat = state.chats.find(c => c.remote_jid === jid);
+    const nm   = chat ? (resolveSenderName(chat.display_name) || resolveSenderName(chat.contact_name) || '') : '';
+    const ph   = chat ? (chat.phone || '') : '';
+    openChat(jid, nm, ph);
   }
 
   function closeChat() {
@@ -3002,7 +3020,7 @@ const ChatApp = (() => {
   return {
     init, checkStatus, connectWhatsApp, disconnectWhatsApp,
     manualReconnect, dismissDisconnectAlert,
-    refreshQr, loadChats, openChat, closeChat,
+    refreshQr, loadChats, openChat, openChatByJid, closeChat,
     loadMessages, refreshMessages, pollNewMessages,
     send, sendMedia, onKeyDown, autoResize,
     onFileSelected, clearFile,

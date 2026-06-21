@@ -207,6 +207,13 @@ if ($saveBase64 && str_contains($saveBase64, ',')) {
     $saveBase64 = explode(',', $saveBase64, 2)[1];
 }
 
+// created_at do outbound: prefere o messageTimestamp da Evolution (mesmo relogio do
+// inbound). Sem isso, se o relogio do servidor estiver adiantado, a msg enviada ficava
+// "no futuro" e empurrava o cursor do poll a frente, escondendo a proxima msg do cliente
+// ate sair/reentrar na conversa. Fallback: hora local.
+$evoTs     = $res['messageTimestamp'] ?? null;
+$createdAt = (is_numeric($evoTs) && (int)$evoTs > 0) ? date('Y-m-d H:i:s', (int)$evoTs) : date('Y-m-d H:i:s');
+
 $msgId = $msgModel->save([
     'instance_id'     => $instanceId,
     'wamid'           => $wamid,
@@ -222,7 +229,7 @@ $msgId = $msgModel->save([
     'direction'       => 'outbound',
     'status'          => 'sent',
     'quoted_wamid'    => $quotedId,
-    'created_at'      => date('Y-m-d H:i:s'),
+    'created_at'      => $createdAt,
 ]);
 
 echo json_encode([

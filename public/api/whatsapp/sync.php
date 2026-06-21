@@ -90,6 +90,15 @@ try {
             $contactMap[$cJid] = ['name' => $cName, 'pic' => $cPic];
         }
     }
+    // Indexa contatos tambem por DIGITOS do telefone. O contactMap e chaveado pelo JID
+    // exato do findContacts; quando o chat chega como @lid (resolvido p/ telefone) ou com
+    // sufixo de JID diferente (@c.us vs @s.whatsapp.net), a chave exata nao casa e o nome
+    // 1:1 cai pro numero. Com o indice por digitos, ainda resolvemos pelo telefone.
+    $contactByDigits = [];
+    foreach ($contactMap as $cJid => $cInfo) {
+        $cd = preg_replace('/[^0-9]/', '', explode('@', (string)$cJid)[0]);
+        if ($cd && strlen($cd) >= 10) $contactByDigits[$cd] = $cInfo;
+    }
 
     // 2. Buscar mensagens paginadas — as mais recentes (últimas 20 páginas)
     // A API pagina do mais antigo (p.1) ao mais recente (última página)
@@ -111,6 +120,42 @@ try {
         $records = $apiResp['messages']['records'] ?? [];
         if (empty($records)) continue;
         $allMessages = array_merge($allMessages, $records);
+    }
+
+    // 2b. COBERTURA POR CONVERSA (fix "conversas que nao vem"): o passe global acima
+    // so cobre as ~1000 mensagens mais recentes da INSTANCIA inteira; em conta movimentada
+    // os grupos ativos consomem essa cota e as conversas 1:1 antigas/paradas nunca entram
+    // na lista. Aqui enumeramos as conversas conhecidas (grupos + agenda do findContacts +
+    // chats ja no banco) e buscamos 1 pagina recente POR JID (where.key.remoteJid), dentro
+    // do orcamento de tempo. Assim cada conversa entra na lista mesmo com ultima mensagem
+    // antiga. ADITIVO: o dedup por (instance_id, wamid) no save() evita duplicar com o passe
+    // global; para por orcamento (partial=true) e converge no proximo clique em Sincronizar.
+    $seenJids = [];
+    foreach ($allMessages as $r0) {
+        $j0 = $r0['key']['remoteJid'] ?? null;
+        if ($j0) $seenJids[$j0] = true;
+    }
+    $coverJids = [];
+    foreach (array_keys($groupMap)   as $gj) $coverJids[(string)$gj] = true; // todos os grupos
+    foreach (array_keys($contactMap) as $cj) $coverJids[(string)$cj] = true; // agenda (findContacts)
+    try {
+        $dbq = $pdo->prepare('SELECT remote_jid FROM whatsapp_chats WHERE instance_id = ?');
+        $dbq->execute([$instanceId]);
+        foreach ($dbq->fetchAll(PDO::FETCH_COLUMN) as $dj) { if ($dj) $coverJids[(string)$dj] = true; }
+    } catch (\Throwable $_) {}
+
+    foreach (array_keys($coverJids) as $cj) {
+        if (isset($seenJids[$cj])) continue; // ja coberto pelo passe global recente
+        if (str_ends_with((string)$cj, '@broadcast') || str_contains((string)$cj, '@newsletter')) continue;
+        if ($overBudget()) { $partial = true; break; } // parou por tempo: clicar Sincronizar de novo
+        try {
+            $resp = $evo->findMessages($name, (string)$cj, 50, 1); // 1 pagina recente por JID
+        } catch (\Throwable $_) { continue; } // um JID que falha nao derruba o sync
+        $recs = $resp['messages']['records'] ?? [];
+        if ($recs) {
+            $allMessages   = array_merge($allMessages, $recs);
+            $seenJids[$cj] = true;
+        }
     }
 
     // 2c. Mapa telefone(dígitos) → NOME real, pra exibir nome em vez de número em
@@ -154,9 +199,13 @@ try {
             $ex->execute([(int)$instanceId, $jid]);
             if (!$ex->fetchColumn()) { continue; }
         }
+        // 1:1: tenta a chave EXATA do contactMap e, se nao casar, o indice por DIGITOS
+        // do telefone (resolve @lid ja convertido p/ telefone e variacao de sufixo de JID).
+        $jidDigits = preg_replace('/[^0-9]/', '', explode('@', (string)$jid)[0]);
+        $cInfo1a1  = $contactMap[$jid] ?? ($contactByDigits[$jidDigits] ?? null);
         $cname    = $isGroup
             ? ($groupMap[$jid]['name'] ?? $info['pushName'] ?? null)
-            : ($contactMap[$jid]['name'] ?? $info['pushName'] ?? null);
+            : ($cInfo1a1['name'] ?? $info['pushName'] ?? null);
         // Não armazena LIDs como nomes
         if ($cname && preg_match('/^\d{12,}$/', (string)$cname)) $cname = null;
         // Nao rotula com auto-nome ("Voce"/"you"/"eu").
@@ -165,7 +214,7 @@ try {
         $phone    = ($isGroup || str_ends_with($jid, '@lid')) ? null : preg_replace('/[^0-9]/', '', explode('@', $jid)[0]);
         $pic      = $isGroup
             ? ($groupMap[$jid]['pic'] ?? null)
-            : ($contactMap[$jid]['pic'] ?? null);
+            : ($cInfo1a1['pic'] ?? null);
 
         $pdo->prepare(
             'INSERT INTO whatsapp_chats

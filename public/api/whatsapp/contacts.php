@@ -146,9 +146,24 @@ try {
         $name = trim($payload['push_name']  ?? '');
         if (!$jid) { http_response_code(400); echo json_encode(['error' => 'remote_jid obrigatório']); exit; }
 
+        // Rename MANUAL: marca is_manual_name=1 pra o webhook (contacts.update, linha ~216)
+        // e o sync NUNCA sobrescreverem o nome digitado pelo usuario. Espelha em
+        // whatsapp_chats.contact_name, que e a 1a camada do display_name da lista quando
+        // is_manual_name=1 (getChatList). Se o usuario LIMPAR o nome, volta a resolucao
+        // automatica (is_manual_name=0) e nao grava nome vazio por cima do existente.
+        $manual = ($name !== '') ? 1 : 0;
         $pdo->prepare(
-            'UPDATE whatsapp_contacts SET push_name = ? WHERE instance_id = ? AND remote_jid = ?'
-        )->execute([$name, $instanceId, $jid]);
+            'UPDATE whatsapp_contacts SET push_name = ?, is_manual_name = ? WHERE instance_id = ? AND remote_jid = ?'
+        )->execute([$name, $manual, $instanceId, $jid]);
+        if ($name !== '') {
+            $pdo->prepare(
+                'UPDATE whatsapp_chats SET contact_name = ?, is_manual_name = 1 WHERE instance_id = ? AND remote_jid = ?'
+            )->execute([$name, $instanceId, $jid]);
+        } else {
+            $pdo->prepare(
+                'UPDATE whatsapp_chats SET is_manual_name = 0 WHERE instance_id = ? AND remote_jid = ?'
+            )->execute([$instanceId, $jid]);
+        }
 
         echo json_encode(['ok' => true]);
         exit;
