@@ -944,6 +944,26 @@ function runAgentReply(array $task): void
             try { $engine->repo()->attachWamid((int)$result['ai_message_id'], (string)$wamidOut, null); }
             catch (\Throwable $_) {}
         }
+
+        // TEMPO REAL: persiste a resposta do bot em whatsapp_messages JA (igual ao envio
+        // manual em send.php), em vez de esperar o eco fromMe voltar pelo webhook. Isso faz
+        // a mensagem do robo aparecer NA HORA no preview da lista (upsertChat) e dentro da
+        // conversa aberta. Dedup por (instance_id, wamid): quando o eco chegar, o save()
+        // encontra a linha e so atualiza o status (nao duplica).
+        try {
+            require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
+            (new WhatsAppMessage())->save([
+                'account_id'      => $ownerAcc,
+                'instance_id'     => (int)$task['instance_id'],
+                'wamid'           => $wamidOut,
+                'remote_jid'      => (string)$task['remote_jid'],
+                'message_type'    => 'text',
+                'message_content' => $reply,
+                'direction'       => 'outbound',
+                'status'          => 'sent',
+                'created_at'      => date('Y-m-d H:i:s'),
+            ]);
+        } catch (\Throwable $_) { /* espelho local nao pode derrubar o envio ja feito */ }
     } catch (\Throwable $e) {
         // Não vaza detalhe; só log server-side (LGPD). Ja estamos depois do 200.
         error_log('[whatsapp/agent] runAgentReply falhou: ' . $e->getMessage());
