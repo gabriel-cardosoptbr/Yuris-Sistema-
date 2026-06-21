@@ -215,17 +215,13 @@ final class IntakeEngine
         $firstReportNow = empty($hadReport) && !empty($collected['main_report']); // empatia so 1x
 
         if ($firstTurn) {
-            if (!empty($cfg['initial_message'])) {
-                // Liberdade do advogado: a saudacao e EXATAMENTE a que ele cadastrou,
-                // sem o sistema emendar nada. O nome do lead e pedido no proximo turno.
-                $reply = trim((string)$cfg['initial_message']);
-            } else {
-                $key = empty($collected['name'])
-                    ? 'nome'
-                    : ($structured['suggested_next_question_key'] ?: $this->pickNextKey($collected, $asked));
-                $reply = $this->composeFirstTurn($cfg, $collected, $leadFirst, $firstReportNow, $key);
-                if ($key) { $asked[] = $key; } // marca; nao conta no limite no 1o turno
-            }
+            // Abre com a saudacao do advogado (verbatim, se cadastrada) e JA engaja a
+            // conversa (pede o nome ou acolhe o relato) — nunca deixa no vacuo apos o "oi".
+            $key = empty($collected['name'])
+                ? 'nome'
+                : ($structured['suggested_next_question_key'] ?: $this->pickNextKey($collected, $asked));
+            $reply = $this->composeFirstTurn($cfg, $collected, $leadFirst, $firstReportNow, $key);
+            if ($key) { $asked[] = $key; } // marca; nao conta no limite no 1o turno
             $state = 'greeting';
         } else {
             $key = $structured['suggested_next_question_key'] ?: $this->pickNextKey($collected, $asked);
@@ -298,16 +294,23 @@ final class IntakeEngine
     {
         $office = $cfg['office_name'] ?: 'nosso escritorio';
         $agent  = $this->firstName($cfg['name'] ?? '');
-        $open = 'Olá! 👋 Seja bem-vindo(a) ao ' . $office . '.';
-        $who = $agent !== '' ? (' Aqui é ' . $agent . ', do pré-atendimento. 🙂') : '';
+        // Abertura: a saudacao do advogado (verbatim) tem prioridade — nao alteramos o texto
+        // dele. So quando NAO ha saudacao cadastrada montamos a automatica (escritorio + agente).
+        if (!empty($cfg['initial_message'])) {
+            $open = rtrim(trim((string)$cfg['initial_message']));
+        } else {
+            $open = 'Olá! 👋 Seja bem-vindo(a) ao ' . $office . '.'
+                  . ($agent !== '' ? (' Aqui é ' . $agent . ', do pré-atendimento. 🙂') : '');
+        }
+        // Engajamento: SEMPRE puxa a conversa em seguida (pede o nome ou acolhe o relato).
         if (empty($collected['name'])) {
-            return $open . $who . ' Pra começar, como posso te chamar?';
+            return $open . ' Pra começar, como posso te chamar?';
         }
         $nm = $leadFirst !== '' ? (', ' . $leadFirst) : '';
         if ($firstReportNow) {
-            return $open . $who . ' Poxa' . $nm . ', imagino o quanto isso é chato. 🙏 ' . $this->questionText($key, 'Me conta rapidinho o que aconteceu?');
+            return $open . ' Poxa' . $nm . ', imagino o quanto isso é chato. 🙏 ' . $this->questionText($key, 'Me conta rapidinho o que aconteceu?');
         }
-        return $open . $who . ' Me conta rapidinho' . $nm . ', o que aconteceu?';
+        return $open . ' Me conta rapidinho' . $nm . ', o que aconteceu?';
     }
 
     /** Demais turnos: ack curto e personalizado (empatia so 1x), depois a pergunta. */
