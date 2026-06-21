@@ -737,6 +737,11 @@ const ChatApp = (() => {
     const msgsEl = qs('#chatMessages');
     if (msgsEl) msgsEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#4A5568;font-size:.82rem">Carregando mensagens…</div>';
 
+    // O3 mark_read OTIMISTA: zera as não-lidas localmente JÁ, antes do request. Sem isto,
+    // um loadChats do tick (4s) podia correr antes do mark_read confirmar no servidor e o
+    // badge "voltava". Atualiza tanto o chatObj quanto a cópia em state.chats.
+    if (chatObj) chatObj.unread_count = 0;
+
     // Atualiza lista (item ativo)
     renderChatList();
 
@@ -885,6 +890,7 @@ const ChatApp = (() => {
 
   async function pollNewMessages() {
     if (!state.currentJid || !state.lastMsgId) return;
+    if (_chatSearchOpen) return; // O3: busca na conversa aberta — não anexa msg nova por cima
     try {
       const r = await apiFetch(
         API.messages + '?jid=' + encodeURIComponent(state.currentJid)
@@ -2413,11 +2419,16 @@ const ChatApp = (() => {
   // Abre/fecha barra de busca acima das mensagens. Debounce 300ms enquanto
   // digita. Endpoint messages.php?search=texto retorna até 50 matches.
   let _searchTimer = null;
+  // O3: enquanto a busca DENTRO da conversa está aberta, o #chatMessages mostra os
+  // resultados; o poll de 4s NÃO pode anexar mensagens novas por cima (misturaria
+  // resultado de busca com msg ao vivo). pollNewMessages checa esta flag.
+  let _chatSearchOpen = false;
   function toggleChatSearch() {
     const bar = qs('#chatSearchBar');
     if (!bar) return;
     if (bar.style.display === 'none' || !bar.style.display) {
       bar.style.display = 'flex';
+      _chatSearchOpen = true;
       const inp = qs('#chatSearchInput');
       if (inp) { inp.value = ''; inp.focus(); }
       qs('#chatSearchCount').textContent = '';
@@ -2427,6 +2438,7 @@ const ChatApp = (() => {
   }
 
   function closeChatSearch() {
+    _chatSearchOpen = false;
     const bar = qs('#chatSearchBar');
     if (bar) bar.style.display = 'none';
     qs('#chatSearchInput').value = '';

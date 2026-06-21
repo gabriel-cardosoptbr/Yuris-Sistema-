@@ -370,13 +370,15 @@ try {
             $displayName = $realName ?? ($phoneNum ? formatBrPhone($phoneNum) : null);
 
             // a) Mapa global de contatos (necessário pra resolver @menções de LID)
+            // O3: grava account_id do dono (antes ficava NULL — defesa em profundidade).
             $pdo->prepare(
-                'INSERT INTO whatsapp_contacts (instance_id, remote_jid, push_name, phone)
-                 VALUES (?,?,?,?)
+                'INSERT INTO whatsapp_contacts (account_id, instance_id, remote_jid, push_name, phone)
+                 VALUES (?,?,?,?,?)
                  ON DUPLICATE KEY UPDATE
-                   phone     = IF(VALUES(phone) IS NOT NULL, VALUES(phone), phone),
-                   push_name = IF(VALUES(push_name) IS NOT NULL, VALUES(push_name), push_name)'
-            )->execute([$instanceId, $pLid, $displayName, $phoneNum]);
+                   account_id = IF(account_id IS NULL, VALUES(account_id), account_id),
+                   phone      = IF(VALUES(phone) IS NOT NULL, VALUES(phone), phone),
+                   push_name  = IF(VALUES(push_name) IS NOT NULL, VALUES(push_name), push_name)'
+            )->execute([$ownerId, $instanceId, $pLid, $displayName, $phoneNum]);
             $contacts++;
 
             // b) Vínculo grupo → membro + role

@@ -215,6 +215,9 @@ $evoTs     = $res['messageTimestamp'] ?? null;
 $createdAt = (is_numeric($evoTs) && (int)$evoTs > 0) ? date('Y-m-d H:i:s', (int)$evoTs) : date('Y-m-d H:i:s');
 
 $msgId = $msgModel->save([
+    // O3: account_id explícito do dono do canal (antes o save() resolvia via 2 SELECTs
+    // extras a cada envio). $ch já traz o dono resolvido no backend.
+    'account_id'      => (int)($ch['owner_account_id'] ?? 0) ?: null,
     'instance_id'     => $instanceId,
     'wamid'           => $wamid,
     'remote_jid'      => $remoteJid,

@@ -42,6 +42,9 @@ try {
     $name       = $ch['instance_name'];
     $instanceId = (int)$ch['channel_id'];
     $evo        = new EvolutionApiService($cfg);
+    // O3: timeout curto (consistencia com sync.php/refresh_chat.php). Sem isso, a
+    // Evolution lenta podia segurar o discover ~20s e empilhar no polling de 32s.
+    $evo->setTimeout(8);
 
     // account_id do DONO do canal (nao do visualizador) — pra gravar no chat sem NULL.
     $ownerStmt = $pdo->prepare('SELECT account_id FROM whatsapp_instances WHERE id = ? LIMIT 1');
@@ -124,6 +127,11 @@ try {
             $caption  = $msgObj[$msgTypeRaw]['caption'] ?? null;
             $fname    = $msgObj[$msgTypeRaw]['fileName'] ?? null;
             $mime     = $msgObj[$msgTypeRaw]['mimetype'] ?? null;
+            // O3: grava raw_payload das mensagens de midia (igual sync.php/refresh_chat.php).
+            // Sem isso, midia descoberta SO pelo discover nao abria (o proxy media.php precisa
+            // do payload pra baixar o binario sob demanda).
+            $isMedia    = in_array($type, ['image','video','audio','document','sticker']);
+            $rawPayload = $isMedia ? json_encode($r, JSON_UNESCAPED_UNICODE) : null;
 
             $msgModel->save([
                 'instance_id'     => $instanceId,
