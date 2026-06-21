@@ -649,7 +649,7 @@ const ChatApp = (() => {
     const nameRaw   = resolved || formatPhone(realPhone) || (chat.is_group == 1 ? 'Grupo' : 'Contato');
     const initial   = (nameRaw || '?').charAt(0).toUpperCase();
     const name      = esc(nameRaw);
-    const preview = esc(chat.last_message_content || '');
+    const preview = formatMentionsPlain(esc(chat.last_message_content || ''), chat.remote_jid);
     const time    = chat.last_message_at ? formatTime(chat.last_message_at) : '';
     const unread  = chat.unread_count > 0
       ? `<span class="chat-unread-badge">${chat.unread_count > 99 ? '99+' : chat.unread_count}</span>` : '';
@@ -2613,6 +2613,18 @@ const ChatApp = (() => {
       }
       // Pending: marca pra re-resolver quando cache popular
       return `${pre}<span class="msg-mention" data-mention-num="${num}">@${num}</span>`;
+    });
+  }
+
+  // Igual ao formatMentions, mas devolve TEXTO puro (sem <span> azul) — usado no
+  // preview da lista lateral, onde a menção deve se misturar ao texto cinza. Recebe o
+  // texto JA escapado; @<num> sem nome conhecido segue como número. (contactsLidMap e
+  // groupMembersCache populam ao abrir o grupo, então a lista resolve depois disso.)
+  function formatMentionsPlain(text, groupJid) {
+    if (!text) return text;
+    return text.replace(/(^|[\s>(])@(\d{8,})\b/g, (full, pre, num) => {
+      const name = resolveMentionName(num, groupJid);
+      return name ? `${pre}@${esc(name)}` : `${pre}@${num}`;
     });
   }
 
