@@ -7,6 +7,7 @@ require_once __DIR__ . '/IntakeStateMachine.php';
 require_once __DIR__ . '/IntakeSessionRepository.php';
 require_once __DIR__ . '/LlmProviderInterface.php';
 require_once __DIR__ . '/HandoffService.php';
+require_once __DIR__ . '/AgentEvent.php';
 
 /**
  * IntakeEngine — orquestrador do pre-atendimento. UMA chamada de IA por mensagem.
@@ -33,7 +34,12 @@ final class IntakeEngine
     private array  $areaQOrder = [];   // ['area:<key>', ...] na ordem (sort)
     private ?string $areaQFor  = null; // area_code ja carregado (cache de 1 area por request)
 
-    /** Preco estimado por 1M tokens (input, output) — atualizavel. Valores aproximados. */
+    /**
+     * FALLBACK de preco por 1M tokens (input, output). A fonte primaria agora e a
+     * tabela ai_models (migration 107, gerenciavel no Master); ver priceFor(). Este
+     * const so e usado se o modelo nao estiver no catalogo — e nesse caso registra
+     * price_fallback em ai_agent_events para nao subestimar custo em silencio (D3).
+     */
     private const COST = [
         // OpenAI
         'gpt-4o-mini'  => [0.15, 0.60],
@@ -542,22 +548,60 @@ final class IntakeEngine
 
     private function cost(string $model, int $in, int $out, int $cached = 0): float
     {
-        $price = self::COST[$model] ?? null;
-        if ($price === null) {
-            // D3: preco desconhecido -> usa fallback, mas LOGA (1x por modelo). Sem isso o
-            // custo era subestimado em silencio e o circuit breaker mensal ficava corrompido.
-            static $warned = [];
-            if (!isset($warned[$model])) {
-                error_log('[ai_intake] preco desconhecido para o modelo "' . $model . '" — usando fallback gpt-4o-mini; adicione em IntakeEngine::COST');
-                $warned[$model] = true;
-            }
-            $price = self::COST['gpt-4o-mini'];
-        }
-        [$pin, $pout] = $price;
-        // OpenAI cobra input em cache pela METADE. Credita o que veio do cache.
+        [$pin, $pout, $pcached] = $this->priceFor($model);
+        // Credita o input que veio do cache pelo preco de cache (OpenAI ~0.5x; Anthropic ~0.1x).
         $cached   = max(0, min($cached, $in));
         $uncached = $in - $cached;
-        return round($uncached / 1e6 * $pin + $cached / 1e6 * ($pin * 0.5) + $out / 1e6 * $pout, 6);
+        return round($uncached / 1e6 * $pin + $cached / 1e6 * $pcached + $out / 1e6 * $pout, 6);
+    }
+
+    /** Cache de precos por request (ai_models). null = ainda nao carregado. */
+    private ?array $priceCache = null;
+
+    /**
+     * Preco [input, output, cached_input] por 1M tokens para o modelo.
+     * Fonte primaria: ai_models (migration 107). Fallback: COST const. Se cair no
+     * fallback (modelo fora do catalogo), registra price_fallback (1x por modelo)
+     * para o custo nunca ficar subestimado em silencio e corromper o circuit breaker.
+     */
+    private function priceFor(string $model): array
+    {
+        if ($this->priceCache === null) {
+            $this->priceCache = [];
+            try {
+                $st = $this->pdo->query(
+                    "SELECT code, price_in_per_mtok, price_out_per_mtok, price_cached_in_per_mtok
+                       FROM ai_models WHERE price_in_per_mtok IS NOT NULL"
+                );
+                foreach (($st->fetchAll(\PDO::FETCH_ASSOC) ?: []) as $r) {
+                    $pin = (float)$r['price_in_per_mtok'];
+                    $this->priceCache[(string)$r['code']] = [
+                        $pin,
+                        (float)$r['price_out_per_mtok'],
+                        // cached NULL no catalogo -> assume metade do input (comportamento antigo).
+                        $r['price_cached_in_per_mtok'] !== null ? (float)$r['price_cached_in_per_mtok'] : $pin * 0.5,
+                    ];
+                }
+            } catch (\Throwable $_) {
+                // ai_models sem colunas de preco (107 nao aplicada) -> so o COST const responde.
+            }
+        }
+
+        if (isset($this->priceCache[$model])) return $this->priceCache[$model];
+
+        // Fallback: COST const. Loga 1x por modelo (error_log + evento estruturado).
+        static $warned = [];
+        if (!isset($warned[$model])) {
+            $warned[$model] = true;
+            error_log('[ai_intake] preco fora do catalogo ai_models para o modelo "' . $model . '" — usando fallback COST; adicione o modelo/preco em ai_models (Master)');
+            AgentEvent::log($this->pdo, 'price_fallback', ['model' => $model], 'warn');
+        }
+        if (isset(self::COST[$model])) {
+            [$pin, $pout] = self::COST[$model];
+            return [$pin, $pout, $pin * 0.5];
+        }
+        [$pin, $pout] = self::COST['gpt-4o-mini'];
+        return [$pin, $pout, $pin * 0.5];
     }
 
     private function jdec($v): array
