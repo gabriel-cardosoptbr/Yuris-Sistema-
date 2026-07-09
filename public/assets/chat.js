@@ -484,6 +484,7 @@ const ChatApp = (() => {
 
   let _liveRefreshTick = 0;
   let _discoverTick    = 0;
+  let _listTick        = 0;   // H5: throttle do refresh da lista (getChatList) no poll
   // Trava de concorrência do TICK inteiro (não só do refreshLiveMessages):
   // o setInterval é async e não espera o tick anterior terminar. Se a lista ou
   // a Evolution responderem lento, os ticks de 4s EMPILHAM requests, esgotam o
@@ -511,7 +512,10 @@ const ChatApp = (() => {
         if (r && r.new_chats > 0) await loadChats(true);
       }
 
-      await loadChats(true);
+      // H5 (auditoria): a lista (getChatList tem subqueries por linha) nao precisa de 4s.
+      // Refaz a cada ~8s (2 ticks); a conversa ABERTA segue em 4s (refreshLiveMessages/
+      // pollNewMessages abaixo). Corta ~metade da carga do polling da lista.
+      if ((++_listTick % 2) === 0) await loadChats(true);
 
       if (state.currentJid) {
         await refreshLiveMessages(); // a cada 4s: busca mensagens novas na Evolution API
