@@ -882,12 +882,14 @@ class WhatsAppMessage
     }
 
     /** Atualiza status de mensagem outbound. */
-    public function updateStatus(string $wamid, string $status): bool
+    public function updateStatus(int $instanceId, string $wamid, string $status): bool
     {
+        // B5 (auditoria): escopa por instance_id — um wamid repetido entre tenants
+        // (teste/replay/forja) nao altera o status de mensagem de outro tenant.
         $stmt = $this->db->prepare(
-            'UPDATE whatsapp_messages SET status = ? WHERE wamid = ?'
+            'UPDATE whatsapp_messages SET status = ? WHERE instance_id = ? AND wamid = ?'
         );
-        return $stmt->execute([$status, $wamid]);
+        return $stmt->execute([$status, $instanceId, $wamid]);
     }
 
     /** Pinnar/desafixar chat. */

@@ -37,9 +37,9 @@ if ($method === 'GET') {
     $settings = $model->getSettings($accountId);
     if (!empty($settings['evolution_api_key'])) {
         $key = $settings['evolution_api_key'];
-        $settings['evolution_api_key_masked'] = strlen($key) > 8
-            ? str_repeat('*', strlen($key) - 4) . substr($key, -4)
-            : '****';
+        // B7 (auditoria): mascara INTEGRALMENTE — nao expoe os ultimos 4 chars da chave
+        // (combinava com o vetor B3 de forjar eventos). So indica "configurada" + comprimento.
+        $settings['evolution_api_key_masked'] = str_repeat('*', max(4, min(24, strlen($key))));
         $settings['evolution_api_key'] = ''; // não devolve em claro
     }
     echo json_encode(['ok' => true, 'settings' => $settings]);
@@ -101,9 +101,9 @@ if ($method === 'POST') {
     $settings = $model->getSettings($accountId);
     if (!empty($settings['evolution_api_key'])) {
         $key = $settings['evolution_api_key'];
-        $settings['evolution_api_key_masked'] = strlen($key) > 8
-            ? str_repeat('*', strlen($key) - 4) . substr($key, -4)
-            : '****';
+        // B7 (auditoria): mascara INTEGRALMENTE — nao expoe os ultimos 4 chars da chave
+        // (combinava com o vetor B3 de forjar eventos). So indica "configurada" + comprimento.
+        $settings['evolution_api_key_masked'] = str_repeat('*', max(4, min(24, strlen($key))));
         $settings['evolution_api_key'] = '';
     }
     echo json_encode(['ok' => true, 'settings' => $settings]);

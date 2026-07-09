@@ -119,12 +119,20 @@ final class IntakeSessionRepository
         $st->execute([$wamid, $waMsgId, $aiMessageId]);
     }
 
-    /** Anti-loop: o wamid recebido no webhook foi enviado pelo proprio bot? */
-    public function isBotEcho(?string $wamid): bool
+    /**
+     * Anti-loop: o wamid recebido no webhook foi enviado pelo proprio bot NESTE canal?
+     * B6 (auditoria): escopa por channel_id (via sessao) — wamid repetido entre tenants
+     * nao gera falso positivo de eco cross-tenant no anti-loop.
+     */
+    public function isBotEcho(int $channelId, ?string $wamid): bool
     {
         if (!$wamid) return false;
-        $st = $this->pdo->prepare("SELECT 1 FROM ai_intake_messages WHERE wamid = ? AND origin = 'bot' LIMIT 1");
-        $st->execute([$wamid]);
+        $st = $this->pdo->prepare(
+            "SELECT 1 FROM ai_intake_messages m
+               JOIN ai_intake_sessions s ON s.id = m.session_id
+              WHERE m.wamid = ? AND m.origin = 'bot' AND s.channel_id = ? LIMIT 1"
+        );
+        $st->execute([$wamid, $channelId]);
         return (bool)$st->fetchColumn();
     }
 

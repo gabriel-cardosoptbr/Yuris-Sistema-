@@ -129,7 +129,13 @@ try {
             $msgs = $data;
             if (isset($data['key'])) $msgs = [$data]; // único
             foreach ($msgs as $msg) {
-                handleMessageUpsert($msg, $instanceId, $msgModel, $accountId);
+                // C2 (auditoria): isola cada mensagem — uma excecao numa nao pode pular as
+                // demais nem o flushResponse/runAgentReply do restante do lote.
+                try {
+                    handleMessageUpsert($msg, $instanceId, $msgModel, $accountId);
+                } catch (\Throwable $e) {
+                    error_log('[whatsapp/webhook] handleMessageUpsert falhou (mensagem pulada): ' . $e->getMessage());
+                }
             }
             break;
 
@@ -147,7 +153,7 @@ try {
                         'played'                    => 'read',
                         default                     => 'sent',
                     };
-                    $msgModel->updateStatus($wamid, $mapped);
+                    $msgModel->updateStatus($instanceId, $wamid, $mapped);
                 }
             }
             break;
@@ -645,20 +651,28 @@ function maybeHandleHumanSend(int $accountId, int $instanceId, ?string $remoteJi
         $pdo  = Database::getConnection();
         $repo = new \App\Services\AiIntake\IntakeSessionRepository($pdo);
 
-        // 1) eco do proprio bot por wamid -> ignora
-        if ($repo->isBotEcho($wamid)) return;
+        // 1) eco do proprio bot por wamid (escopado por instancia) -> ignora
+        if ($repo->isBotEcho($instanceId, $wamid)) return;
 
         // ha sessao ativa do agente nesta conversa?
         $sess = $repo->findActiveSession($instanceId, $remoteJid);
         if (!$sess) return;
 
-        // 2) defesa extra: conteudo identico a ultima resposta do bot -> tambem e eco
-        $txt = trim((string)$msgContent);
-        if ($txt !== '') {
-            $st = $pdo->prepare("SELECT content FROM ai_intake_messages WHERE session_id = ? AND origin = 'bot' ORDER BY id DESC LIMIT 1");
+        // 2) defesa extra (A2): o eco do bot pode chegar ANTES do attachWamid gravar o wamid
+        //    (corrida entre o webhook do eco e o runAgentReply). Comparamos o texto com as
+        //    ultimas respostas do bot por PREFIXO normalizado — o eco pode vir truncado em
+        //    4096 e/ou com espacos normalizados; o match exato de antes falhava nesses casos.
+        $norm = static fn($s) => mb_strtolower(preg_replace('/\s+/u', ' ', trim((string)$s)));
+        $b = $norm($msgContent);
+        if ($b !== '') {
+            $st = $pdo->prepare("SELECT content FROM ai_intake_messages WHERE session_id = ? AND origin = 'bot' ORDER BY id DESC LIMIT 3");
             $st->execute([(int)$sess['id']]);
-            $last = (string)($st->fetchColumn() ?: '');
-            if ($last !== '' && mb_strtolower(trim($last)) === mb_strtolower($txt)) return;
+            foreach (($st->fetchAll(\PDO::FETCH_COLUMN) ?: []) as $last) {
+                $a = $norm($last);
+                if ($a === '') continue;
+                $min = min(mb_strlen($a), mb_strlen($b));
+                if ($min >= 24 && mb_substr($a, 0, $min) === mb_substr($b, 0, $min)) return; // eco do bot
+            }
         }
 
         // 3) envio manual humano -> pausa o bot (se ainda nao pausado)
@@ -666,6 +680,11 @@ function maybeHandleHumanSend(int $accountId, int $instanceId, ?string $remoteJi
             $repo->pauseForHuman($instanceId, $remoteJid, null);
             error_log('[whatsapp/agent] envio manual humano detectado -> bot pausado em ' . $remoteJid);
         }
+    } catch (\PDOException $e) {
+        // A3 (auditoria): falha de banco (conectividade) NAO pode ser confundida com "sem
+        // sessao ativa". Aqui o bot pode nao ter pausado -> risco de responder por cima do
+        // humano. Loga com tag distinta (metrica/alerta), sem engolir silencioso.
+        error_log('[whatsapp/agent] maybeHandleHumanSend ERRO DE BANCO (takeover pode nao ter pausado): ' . $e->getMessage());
     } catch (\Throwable $e) {
         error_log('[whatsapp/agent] maybeHandleHumanSend falhou: ' . $e->getMessage());
     }

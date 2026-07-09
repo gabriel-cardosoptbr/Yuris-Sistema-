@@ -39,6 +39,18 @@ try {
     $cfg        = $ch['cfg'];
     $name       = $ch['instance_name'];
     $instanceId = (int)$ch['channel_id'];
+
+    // H1 (auditoria): freshness gate por (instance_id, remote_jid). Se esta conversa foi
+    // sincronizada ha menos de 3s, serve do banco e NAO repete o POST a Evolution — evita
+    // N atendentes na mesma conversa gerarem N chamadas identicas a cada 4s. Comparacao no
+    // SQL (mesma TZ). Fail-open: se a coluna nao existir (pre-migration 105), segue o sync.
+    try {
+        $g = $pdo->prepare("SELECT (last_synced_at IS NOT NULL AND last_synced_at > (NOW() - INTERVAL 3 SECOND)) AS fresh
+                              FROM whatsapp_chats WHERE instance_id = ? AND remote_jid = ? LIMIT 1");
+        $g->execute([$instanceId, $remoteJid]);
+        if ((int)$g->fetchColumn() === 1) { echo json_encode(['ok' => true, 'cached' => true, 'checked' => 0, 'saved' => 0]); exit; }
+    } catch (\Throwable $_) { /* sem coluna: fail-open, faz o sync normal */ }
+
     $evo        = new EvolutionApiService($cfg);
     // Não pendurar a conexão se a Evolution estiver lenta/instável (era ilimitado).
     // Esse refresh roda em segundo plano; se estourar o tempo, o banco já foi exibido.
@@ -109,6 +121,9 @@ try {
         ]);
         $saved++;
     }
+
+    // H1: marca o momento do sync p/ o freshness gate dos proximos refresh.
+    try { $pdo->prepare("UPDATE whatsapp_chats SET last_synced_at = NOW() WHERE instance_id = ? AND remote_jid = ?")->execute([$instanceId, $remoteJid]); } catch (\Throwable $_) {}
 
     echo json_encode(['ok' => true, 'checked' => count($msgList), 'saved' => $saved]);
 

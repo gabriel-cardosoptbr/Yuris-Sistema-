@@ -15,6 +15,7 @@ require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
 require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
 require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../../app/Helpers/EnvLoader.php';   // B4: EVOLUTION_TLS_VERIFY
 
 use App\Models\Database;
 use App\Helpers\AccountContext;
@@ -94,13 +95,25 @@ try {
         $url = $msg['media_url'];
         $log[] = "tentando URL direta: $url";
 
+        // B4 (auditoria): so manda a apikey da Evolution se a URL for do PROPRIO host da
+        // Evolution. media_url normalmente e o CDN do WhatsApp (host diferente) — mandar a
+        // credencial pra la vazaria a chave via MITM/redirect. TLS verify configuravel (mesmo
+        // padrao do EvolutionApiService) e redirect so via HTTPS (nunca rebaixa pra HTTP).
+        $sameHost  = parse_url($url, PHP_URL_HOST) !== null
+                  && parse_url($url, PHP_URL_HOST) === parse_url($baseUrl, PHP_URL_HOST);
+        $tlsVerify = !in_array(strtolower(\App\Helpers\EnvLoader::get('EVOLUTION_TLS_VERIFY', 'true')), ['false','0','no','off'], true);
+
         $ch = curl_init($url);
         curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_TIMEOUT        => 15,
-            CURLOPT_HTTPHEADER     => array_filter(["apikey: $apiKey"]),
-            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_RETURNTRANSFER  => true,
+            CURLOPT_FOLLOWLOCATION  => true,
+            CURLOPT_MAXREDIRS       => 3,
+            CURLOPT_PROTOCOLS       => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS,
+            CURLOPT_TIMEOUT         => 15,
+            CURLOPT_HTTPHEADER      => $sameHost ? array_filter(["apikey: $apiKey"]) : [],
+            CURLOPT_SSL_VERIFYPEER  => $tlsVerify,
+            CURLOPT_SSL_VERIFYHOST  => $tlsVerify ? 2 : 0,
         ]);
         $body   = curl_exec($ch);
         $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);

@@ -80,8 +80,8 @@ ok($hcount === 1, "B handoff registrado exatamente 1x (idempotente) [{$hcount}]"
 // ── Scenario C: anti-loop (ledger de wamid do bot) ──
 echo "\n[C] anti-loop por wamid\n";
 $repo->recordBotSent($acct, (int)$sb['id'], 'BOT-ECHO-1', null, 'mensagem do bot', null, [], null, true);
-ok($repo->isBotEcho('BOT-ECHO-1') === true, 'C wamid do bot reconhecido como eco (ignora no webhook)');
-ok($repo->isBotEcho('CLIENTE-XYZ') === false, 'C wamid de cliente NAO e eco');
+ok($repo->isBotEcho($CH, 'BOT-ECHO-1') === true, 'C wamid do bot reconhecido como eco (ignora no webhook)');
+ok($repo->isBotEcho($CH, 'CLIENTE-XYZ') === false, 'C wamid de cliente NAO e eco');
 
 // ── Scenario D: idempotencia (mesmo wamid nao processa 2x) ──
 echo "\n[D] idempotencia de evento\n";

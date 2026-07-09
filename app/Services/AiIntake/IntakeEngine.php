@@ -33,12 +33,21 @@ final class IntakeEngine
     private array  $areaQOrder = [];   // ['area:<key>', ...] na ordem (sort)
     private ?string $areaQFor  = null; // area_code ja carregado (cache de 1 area por request)
 
-    /** Preco estimado por 1M tokens (input, output) — atualizavel. */
+    /** Preco estimado por 1M tokens (input, output) — atualizavel. Valores aproximados. */
     private const COST = [
+        // OpenAI
         'gpt-4o-mini'  => [0.15, 0.60],
         'gpt-4.1-mini' => [0.40, 1.60],
         'gpt-5.4-mini' => [0.75, 4.50],
         'gpt-5.4-nano' => [0.20, 1.25],
+        // Anthropic (D3: sem estes, um modelo Anthropic caia no preco do gpt-4o-mini e
+        // subestimava o custo 5x-100x, corrompendo o circuit breaker mensal de custo).
+        'claude-3-5-haiku-20241022'  => [0.80, 4.00],
+        'claude-3-5-haiku'           => [0.80, 4.00],
+        'claude-haiku-4-5'           => [1.00, 5.00],
+        'claude-3-5-sonnet-20241022' => [3.00, 15.00],
+        'claude-3-5-sonnet'          => [3.00, 15.00],
+        'claude-sonnet-4-5'          => [3.00, 15.00],
     ];
 
     /** Banco de perguntas (texto deterministico por chave; copy Yuris, sem travessao). */
@@ -523,7 +532,18 @@ final class IntakeEngine
 
     private function cost(string $model, int $in, int $out, int $cached = 0): float
     {
-        [$pin, $pout] = self::COST[$model] ?? self::COST['gpt-4o-mini'];
+        $price = self::COST[$model] ?? null;
+        if ($price === null) {
+            // D3: preco desconhecido -> usa fallback, mas LOGA (1x por modelo). Sem isso o
+            // custo era subestimado em silencio e o circuit breaker mensal ficava corrompido.
+            static $warned = [];
+            if (!isset($warned[$model])) {
+                error_log('[ai_intake] preco desconhecido para o modelo "' . $model . '" — usando fallback gpt-4o-mini; adicione em IntakeEngine::COST');
+                $warned[$model] = true;
+            }
+            $price = self::COST['gpt-4o-mini'];
+        }
+        [$pin, $pout] = $price;
         // OpenAI cobra input em cache pela METADE. Credita o que veio do cache.
         $cached   = max(0, min($cached, $in));
         $uncached = $in - $cached;

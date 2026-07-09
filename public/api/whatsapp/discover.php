@@ -41,6 +41,17 @@ try {
     $cfg        = $ch['cfg'];
     $name       = $ch['instance_name'];
     $instanceId = (int)$ch['channel_id'];
+
+    // H1 (auditoria): freshness gate por instancia. Se o discover rodou ha menos de 10s,
+    // serve do banco (evita N atendentes empilharem discovers identicos). Fail-open se a
+    // coluna nao existir (pre-migration 105).
+    try {
+        $g = $pdo->prepare("SELECT (last_discovered_at IS NOT NULL AND last_discovered_at > (NOW() - INTERVAL 10 SECOND)) AS fresh
+                              FROM whatsapp_instances WHERE id = ? LIMIT 1");
+        $g->execute([$instanceId]);
+        if ((int)$g->fetchColumn() === 1) { echo json_encode(['ok' => true, 'cached' => true, 'new_chats' => 0, 'new_messages' => 0]); exit; }
+    } catch (\Throwable $_) { /* sem coluna: fail-open */ }
+
     $evo        = new EvolutionApiService($cfg);
     // O3: timeout curto (consistencia com sync.php/refresh_chat.php). Sem isso, a
     // Evolution lenta podia segurar o discover ~20s e empilhar no polling de 32s.
@@ -153,6 +164,9 @@ try {
             $newMessages++;
         }
     }
+
+    // H1: marca o discover p/ o freshness gate dos proximos.
+    try { $pdo->prepare("UPDATE whatsapp_instances SET last_discovered_at = NOW() WHERE id = ?")->execute([$instanceId]); } catch (\Throwable $_) {}
 
     echo json_encode([
         'ok'           => true,
