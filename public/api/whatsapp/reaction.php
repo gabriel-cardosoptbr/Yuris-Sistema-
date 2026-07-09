@@ -113,11 +113,12 @@ try {
         // Log se Evolution retornou erro (ajuda diagnosticar quando reaction nao
         // aparece no WhatsApp real)
         if (($evoResult['_http'] ?? 0) >= 400) {
+            // F4 (auditoria): mascara dígitos (remoteJid/participant no key, telefone no body).
             error_log(sprintf(
                 '[reaction] Evolution rejeitou: http=%d key=%s body=%s',
                 $evoResult['_http'] ?? 0,
-                json_encode($key),
-                substr(json_encode($evoResult), 0, 500)
+                preg_replace('/\d{5,}/', '*****', json_encode($key)),
+                preg_replace('/\d{5,}/', '*****', substr(json_encode($evoResult), 0, 500))
             ));
         }
     } catch (\Throwable $e) {

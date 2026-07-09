@@ -678,7 +678,7 @@ function maybeHandleHumanSend(int $accountId, int $instanceId, ?string $remoteJi
         // 3) envio manual humano -> pausa o bot (se ainda nao pausado)
         if (!in_array($sess['controller_mode'] ?? '', ['human_takeover', 'bot_paused'], true)) {
             $repo->pauseForHuman($instanceId, $remoteJid, null);
-            error_log('[whatsapp/agent] envio manual humano detectado -> bot pausado em ' . $remoteJid);
+            error_log('[whatsapp/agent] envio manual humano detectado -> bot pausado em ' . preg_replace('/\d{5,}/', '*****', (string)$remoteJid)); // F4: mascara telefone no log
         }
     } catch (\PDOException $e) {
         // A3 (auditoria): falha de banco (conectividade) NAO pode ser confundida com "sem

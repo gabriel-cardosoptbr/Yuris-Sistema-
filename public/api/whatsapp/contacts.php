@@ -151,7 +151,8 @@ try {
             } catch (\Throwable $e) {
                 // Loga o motivo real (antes era engolido em silêncio → impossível
                 // diagnosticar por que a foto não vinha). Não expõe ao cliente.
-                error_log('[whatsapp fetch_pic] jid=' . ($jid ?? '?')
+                // F4 (auditoria): mascara dígitos do JID no log (LGPD — não guardar telefone cru).
+                error_log('[whatsapp fetch_pic] jid=' . preg_replace('/\d{5,}/', '*****', (string)($jid ?? '?'))
                     . ' erro: ' . $e->getMessage()
                     . ' @ ' . basename($e->getFile()) . ':' . $e->getLine());
                 echo json_encode(['ok' => true, 'profile_pic_url' => null, 'note' => 'sem foto disponível']);

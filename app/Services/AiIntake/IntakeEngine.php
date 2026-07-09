@@ -261,7 +261,7 @@ final class IntakeEngine
             $key = empty($collected['name'])
                 ? 'nome'
                 : ($structured['suggested_next_question_key'] ?: $this->pickNextKey($collected, $asked, $areaCode));
-            $reply = $this->composeFirstTurn($cfg, $collected, $leadFirst, $firstReportNow, $key);
+            $reply = $this->composeFirstTurn($cfg, $collected, $leadFirst, $firstReportNow, $key) . $this->aiDisclosure();
             if ($key) { $asked[] = $key; } // marca; nao conta no limite no 1o turno
             $state = 'greeting';
         } else {
@@ -362,6 +362,16 @@ final class IntakeEngine
             return $open . ' Sinto muito' . $nm . '. Imagino o quanto essa situação é difícil. 🙏 ' . $this->questionText($key, 'Poderia me contar o que aconteceu?');
         }
         return $open . ' Para começar' . $nm . ', poderia me contar o que aconteceu?';
+    }
+
+    /**
+     * F3 (LGPD Art. 9, transparência / decisão automatizada): aviso discreto, 1x no 1o turno,
+     * de que o pré-atendimento é feito por assistente virtual (IA). Sufixo do 1o turno; NÃO toca
+     * o prompt mestre nem o texto do advogado (só acrescenta a nota legal ao fim).
+     */
+    private function aiDisclosure(): string
+    {
+        return "\n\n_Este pré-atendimento é feito por um assistente virtual (IA); suas informações são tratadas conforme a Política de Privacidade do escritório._";
     }
 
     /** Demais turnos: ack curto e personalizado (empatia so 1x), depois a pergunta. */
