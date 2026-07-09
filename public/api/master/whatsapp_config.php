@@ -226,7 +226,9 @@ if ($method === 'POST') {
             $pdo->beginTransaction();
             if ($ids) {
                 $ph  = implode(',', array_fill(0, count($ids), '?'));
-                $map = ['whatsapp_messages'=>'mensagens','whatsapp_chats'=>'conversas','whatsapp_contacts'=>'contatos','whatsapp_group_members'=>'membros','whatsapp_reactions'=>'reacoes'];
+                // whatsapp_chat_processos incluido (migration 106 poe FK instance_id RESTRICT):
+                // precisa limpar ANTES de deletar a instancia, senao o RESTRICT bloqueia.
+                $map = ['whatsapp_chat_processos'=>'chat_processos','whatsapp_messages'=>'mensagens','whatsapp_chats'=>'conversas','whatsapp_contacts'=>'contatos','whatsapp_group_members'=>'membros','whatsapp_reactions'=>'reacoes'];
                 foreach ($map as $tbl => $k) {
                     $d = $pdo->prepare("DELETE FROM {$tbl} WHERE instance_id IN ($ph)");
                     $d->execute($ids);

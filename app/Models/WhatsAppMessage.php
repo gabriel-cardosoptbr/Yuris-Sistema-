@@ -185,8 +185,8 @@ class WhatsAppMessage
                 FROM whatsapp_messages m
                 LEFT JOIN whatsapp_group_members gm
                        ON gm.instance_id = m.instance_id
-                      AND gm.group_jid       COLLATE utf8mb4_unicode_ci = m.remote_jid
-                      AND gm.participant_jid COLLATE utf8mb4_unicode_ci = m.participant_jid
+                      AND gm.group_jid       = m.remote_jid
+                      AND gm.participant_jid = m.participant_jid
                 LEFT JOIN whatsapp_contacts cp
                        ON cp.instance_id = m.instance_id
                       AND cp.remote_jid  = m.participant_jid
@@ -200,8 +200,8 @@ class WhatsAppMessage
                       AND q.wamid       = m.quoted_wamid
                 LEFT JOIN whatsapp_group_members qgm
                        ON qgm.instance_id = q.instance_id
-                      AND qgm.group_jid       COLLATE utf8mb4_unicode_ci = q.remote_jid
-                      AND qgm.participant_jid COLLATE utf8mb4_unicode_ci = q.participant_jid
+                      AND qgm.group_jid       = q.remote_jid
+                      AND qgm.participant_jid = q.participant_jid
                 LEFT JOIN whatsapp_contacts qcp
                        ON qcp.instance_id = q.instance_id
                       AND qcp.remote_jid  = q.participant_jid
@@ -265,8 +265,8 @@ class WhatsAppMessage
                 FROM whatsapp_messages m
                 LEFT JOIN whatsapp_group_members gm
                        ON gm.instance_id = m.instance_id
-                      AND gm.group_jid       COLLATE utf8mb4_unicode_ci = m.remote_jid
-                      AND gm.participant_jid COLLATE utf8mb4_unicode_ci = m.participant_jid
+                      AND gm.group_jid       = m.remote_jid
+                      AND gm.participant_jid = m.participant_jid
                 LEFT JOIN whatsapp_contacts cp
                        ON cp.instance_id = m.instance_id
                       AND cp.remote_jid  = m.participant_jid
@@ -280,8 +280,8 @@ class WhatsAppMessage
                       AND q.wamid       = m.quoted_wamid
                 LEFT JOIN whatsapp_group_members qgm
                        ON qgm.instance_id = q.instance_id
-                      AND qgm.group_jid       COLLATE utf8mb4_unicode_ci = q.remote_jid
-                      AND qgm.participant_jid COLLATE utf8mb4_unicode_ci = q.participant_jid
+                      AND qgm.group_jid       = q.remote_jid
+                      AND qgm.participant_jid = q.participant_jid
                 LEFT JOIN whatsapp_contacts qcp
                        ON qcp.instance_id = q.instance_id
                       AND qcp.remote_jid  = q.participant_jid
@@ -336,8 +336,8 @@ class WhatsAppMessage
              FROM whatsapp_messages m
              LEFT JOIN whatsapp_group_members gm
                     ON gm.instance_id     = m.instance_id
-                   AND gm.group_jid       COLLATE utf8mb4_unicode_ci = m.remote_jid
-                   AND gm.participant_jid COLLATE utf8mb4_unicode_ci = m.participant_jid
+                   AND gm.group_jid       = m.remote_jid
+                   AND gm.participant_jid = m.participant_jid
              LEFT JOIN whatsapp_contacts cp
                     ON cp.instance_id = m.instance_id
                    AND cp.remote_jid  = m.participant_jid
@@ -351,8 +351,8 @@ class WhatsAppMessage
                    AND q.wamid       = m.quoted_wamid
              LEFT JOIN whatsapp_group_members qgm
                     ON qgm.instance_id = q.instance_id
-                   AND qgm.group_jid       COLLATE utf8mb4_unicode_ci = q.remote_jid
-                   AND qgm.participant_jid COLLATE utf8mb4_unicode_ci = q.participant_jid
+                   AND qgm.group_jid       = q.remote_jid
+                   AND qgm.participant_jid = q.participant_jid
              LEFT JOIN whatsapp_contacts qcp
                     ON qcp.instance_id = q.instance_id
                    AND qcp.remote_jid  = q.participant_jid
@@ -642,7 +642,7 @@ class WhatsAppMessage
                                 THEN c.phone END,
                            (SELECT gm.phone FROM whatsapp_group_members gm
                              WHERE gm.instance_id = c.instance_id
-                               AND gm.participant_jid COLLATE utf8mb4_unicode_ci = c.remote_jid
+                               AND gm.participant_jid = c.remote_jid
                                AND gm.phone REGEXP \'^[0-9]{10,13}$\' LIMIT 1),
                            (SELECT wc.phone FROM whatsapp_contacts wc
                              WHERE wc.instance_id = c.instance_id
@@ -689,7 +689,7 @@ class WhatsAppMessage
                               AND (wc.push_name LIKE ? OR wc.phone LIKE ?))
                 OR EXISTS (SELECT 1 FROM whatsapp_group_members gm
                             WHERE gm.instance_id = c.instance_id
-                              AND gm.participant_jid COLLATE utf8mb4_unicode_ci = c.remote_jid
+                              AND gm.participant_jid = c.remote_jid
                               AND gm.phone LIKE ?)
             )';
             $like = '%' . $search . '%';
