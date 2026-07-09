@@ -2361,6 +2361,7 @@ const API  = {
   refresh       : '/api/whatsapp/refresh_chat.php',
   contacts      : '/api/whatsapp/contacts.php',
   discover      : '/api/whatsapp/discover.php',
+  poll          : '/api/whatsapp/poll.php',   // 4B: cursor de eventos (events_seq)
   // Auditoria 2026-05-24 — novos endpoints
   groupMembers  : '/api/whatsapp/group_members.php',
   reaction      : '/api/whatsapp/reaction.php',

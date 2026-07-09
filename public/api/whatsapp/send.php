@@ -235,6 +235,10 @@ $msgId = $msgModel->save([
     'created_at'      => $createdAt,
 ]);
 
+// 4B (cursor de eventos): novidade no canal -> outros atendentes/abas veem o envio
+// sem esperar o proximo ciclo cheio. Best-effort (nunca derruba o envio).
+$instModel->bumpEvents($instanceId);
+
 echo json_encode([
     'ok'         => true,
     'message_id' => $msgId,

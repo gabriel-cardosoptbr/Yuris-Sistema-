@@ -324,6 +324,20 @@ try {
             break;
     }
 
+    // 4B (cursor de eventos): sinaliza novidade NESTE canal para o poll barato do front
+    // (chat.js/poll.php) refazer lista + conversa aberta so quando muda. Cobre os eventos
+    // que alteram a conversa/lista; connection/qr ficam de fora (o status ja e lido a
+    // parte). Best-effort (bumpEvents nunca derruba o webhook).
+    if (in_array($event, [
+        'messages.upsert', 'send_message', 'messages.update',
+        'contacts.update', 'contacts.upsert',
+        'chats.upsert', 'chats.update',
+        'groups.upsert', 'groups.update',
+        'group-participants.update', 'groups.participants.update',
+    ], true)) {
+        $instModel->bumpEvents($instanceId);
+    }
+
     echo json_encode(['ok' => true, 'event' => $event]);
 
     // ── ALTA #5: atendimento automático via LLM (após responder 200) ──────────

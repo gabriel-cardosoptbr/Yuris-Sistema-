@@ -484,10 +484,16 @@ const ChatApp = (() => {
 
   let _liveRefreshTick = 0;
   let _discoverTick    = 0;
-  let _listTick        = 0;   // H5: throttle do refresh da lista (getChatList) no poll
+  // 4B (cursor de eventos): o poll pergunta "mudou algo no canal?" (events_seq) a cada
+  // 2s por 1 SELECT-PK barato; so refaz as queries pesadas (lista + conversa) quando o
+  // seq muda. _cursorEnabled cai pra false apos 3 falhas seguidas do poll (ex.: deploy
+  // antigo sem poll.php) e o tick volta ao comportamento antigo (faz o trabalho sempre).
+  let _lastSeq         = null;
+  let _cursorEnabled   = true;
+  let _cursorFails     = 0;
   // Trava de concorrência do TICK inteiro (não só do refreshLiveMessages):
   // o setInterval é async e não espera o tick anterior terminar. Se a lista ou
-  // a Evolution responderem lento, os ticks de 4s EMPILHAM requests, esgotam o
+  // a Evolution responderem lento, os ticks EMPILHAM requests, esgotam o
   // pool de conexões do navegador e a sidebar parece "congelar" (só destrava ao
   // clicar numa conversa, que dispara um loadChats direto). Com esta flag, no
   // máximo UM tick roda por vez; os demais são pulados até o atual voltar.
@@ -495,30 +501,47 @@ const ChatApp = (() => {
   // Listener de visibilidade registrado uma única vez (idempotente entre re-inits).
   let _visBound    = false;
 
-  // Corpo de um ciclo de atualização ao vivo: recarrega a LISTA (preview +
-  // não-lidas + ordenação) e, se houver conversa aberta, anexa as msgs novas.
-  // Reutiliza as funções existentes (loadChats/refreshLiveMessages/pollNewMessages)
-  // — nada de re-render da conversa inteira; o append/dedupe/scroll já é seguro.
+  // Corpo de um ciclo de atualização ao vivo. Com o CURSOR (4B): pergunta barata ao
+  // poll.php se o canal mudou; se NÃO mudou, pula o trabalho pesado (lista + conversa).
+  // O discover roda em cadência própria (~60s), independente do cursor, pois varre
+  // chats que nunca vieram por webhook (e portanto não bumparam o seq).
   async function _chatPollTick() {
     if (_tickRunning) return;            // tick anterior ainda em voo → pula
     if (document.hidden) return;         // aba oculta → não consome rede à toa
     if (state.status !== 'open') return; // só quando o WhatsApp está conectado
     _tickRunning = true;
     try {
+      let doList = false, doConvo = false;
+
+      // 1) DISCOVER (~60s = 30 ticks de 2s): varredura de arrasto na Evolution.
       _discoverTick++;
-      if (_discoverTick >= 8) {      // a cada 32s: descobre chats novos na Evolution API
+      if (_discoverTick >= 30) {
         _discoverTick = 0;
         const r = await apiFetch(API.discover).catch(() => null);
-        if (r && r.new_chats > 0) await loadChats(true);
+        if (r && r.new_chats > 0) doList = true;
       }
 
-      // H5 (auditoria): a lista (getChatList tem subqueries por linha) nao precisa de 4s.
-      // Refaz a cada ~8s (2 ticks); a conversa ABERTA segue em 4s (refreshLiveMessages/
-      // pollNewMessages abaixo). Corta ~metade da carga do polling da lista.
-      if ((++_listTick % 2) === 0) await loadChats(true);
+      // 2) CURSOR: só dispara o trabalho pesado quando events_seq mudou. Na dúvida
+      //    (poll falhou/indisponível), faz o trabalho — nunca perde mensagem.
+      let changed = true;
+      if (_cursorEnabled) {
+        const q = state.instanceId ? ('?channel_id=' + state.instanceId) : '';
+        const p = await apiFetch(API.poll + q, 'GET', null).catch(() => null);
+        if (p && typeof p.seq !== 'undefined') {
+          _cursorFails = 0;
+          changed = (_lastSeq === null) || (p.seq !== _lastSeq);
+          _lastSeq = p.seq;
+        } else {
+          if (++_cursorFails >= 3) _cursorEnabled = false; // fallback: volta ao polling antigo
+          changed = true;
+        }
+      }
+      if (changed) { doList = true; doConvo = true; }
 
-      if (state.currentJid) {
-        await refreshLiveMessages(); // a cada 4s: busca mensagens novas na Evolution API
+      // 3) LISTA + CONVERSA ABERTA (só quando houve novidade)
+      if (doList) await loadChats(true);
+      if (doConvo && state.currentJid) {
+        await refreshLiveMessages(); // busca mensagens novas na Evolution API
         if (state.lastMsgId) {
           await pollNewMessages();
         } else {
@@ -535,13 +558,17 @@ const ChatApp = (() => {
   function startChatPolling() {
     _liveRefreshTick = 0;
     _discoverTick    = 0;
+    _lastSeq         = null;   // 4B: re-baseline do cursor a cada (re)início do polling
+    _cursorEnabled   = true;   // 4B: dá nova chance ao cursor após reconexão
+    _cursorFails     = 0;
     clearInterval(state.pollingTimer);
-    // Único setInterval (guardado em state.pollingTimer) — o clearInterval acima
-    // evita timers duplicados se startChatPolling rodar de novo (ex.: reconexão).
-    state.pollingTimer = setInterval(_chatPollTick, 4000);
+    // 4B: tick de 2s (era 4s). O poll do cursor é 1 SELECT-PK barato; o trabalho
+    // pesado só roda quando events_seq muda, então 2s dá latência ≤2s sem custo ocioso.
+    // clearInterval acima evita timers duplicados se rodar de novo (ex.: reconexão).
+    state.pollingTimer = setInterval(_chatPollTick, 2000);
 
-    // Ao voltar pra aba, faz um catch-up imediato (sem esperar o próximo tick de
-    // 4s), pra lista e contadores ficarem em dia na hora. Registrado só uma vez.
+    // Ao voltar pra aba, faz um catch-up imediato (sem esperar o próximo tick),
+    // pra lista e contadores ficarem em dia na hora. Registrado só uma vez.
     if (!_visBound) {
       _visBound = true;
       document.addEventListener('visibilitychange', () => {

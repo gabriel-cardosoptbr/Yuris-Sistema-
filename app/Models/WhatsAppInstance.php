@@ -264,4 +264,23 @@ class WhatsAppInstance
             fn($id) => $id !== $exceptAccountId
         ));
     }
+
+    /**
+     * 4B (cursor de eventos, Onda 4): incrementa events_seq e carimba last_event_at
+     * da instancia. Todo caminho que ESCREVE mensagem/chat chama isto (webhook, send,
+     * sync/discover quando gravam algo novo). O chat.js faz poll barato desse seq (1
+     * SELECT por PK em poll.php) e so refaz as queries pesadas quando ele muda.
+     *
+     * Best-effort: NUNCA derruba o fluxo chamador. Se a coluna nao existir (migration
+     * 107 nao aplicada) ou o banco falhar, o front simplesmente cai no polling antigo.
+     */
+    public function bumpEvents(int $id): void
+    {
+        if ($id <= 0) return;
+        try {
+            $this->db->prepare(
+                'UPDATE whatsapp_instances SET events_seq = events_seq + 1, last_event_at = NOW() WHERE id = ?'
+            )->execute([$id]);
+        } catch (\Throwable $_) { /* 107 ausente ou DB indisponivel: silencioso */ }
+    }
 }
