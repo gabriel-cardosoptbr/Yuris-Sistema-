@@ -2248,7 +2248,7 @@ const ChatApp = (() => {
   function setText(id, txt) { const e = document.getElementById(id); if (e) e.textContent = txt; }
   function getVal(id)       { const e = document.getElementById(id); return e ? e.value : ''; }
   function setVal(id, val)  { const e = document.getElementById(id); if (e) e.value = val; }
-  function esc(str)         { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function esc(str)         { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
   function modal(id, open)  { const el = document.getElementById(id); if (el) el.classList.toggle('open', open); }
 
   function scrollToBottom() {

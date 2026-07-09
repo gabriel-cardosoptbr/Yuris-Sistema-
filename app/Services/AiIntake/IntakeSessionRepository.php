@@ -72,13 +72,23 @@ final class IntakeSessionRepository
         return (bool)$st->fetchColumn();
     }
 
+    /**
+     * Grava o inbound. IDEMPOTENTE: com o UNIQUE (session_id, wamid, direction) da migration 103,
+     * um webhook duplicado do mesmo wamid nesta sessao faz o INSERT falhar e retorna 0 (o engine
+     * trata 0 como "ja processado" e nao dispara o LLM de novo). wamid nulo nunca colide (varios NULL).
+     */
     public function recordInbound(int $accountId, int $sessionId, ?string $wamid, ?string $content, ?string $type): int
     {
-        return $this->insertMessage([
-            'account_id' => $accountId, 'session_id' => $sessionId, 'wamid' => $wamid,
-            'direction' => 'inbound', 'origin' => 'unknown', 'content' => $content,
-            'message_type' => $type, 'ai_called' => 0,
-        ]);
+        try {
+            return $this->insertMessage([
+                'account_id' => $accountId, 'session_id' => $sessionId, 'wamid' => $wamid,
+                'direction' => 'inbound', 'origin' => 'unknown', 'content' => $content,
+                'message_type' => $type, 'ai_called' => 0,
+            ]);
+        } catch (\PDOException $e) {
+            if ($e->getCode() === '23000' || stripos($e->getMessage(), 'uk_intake_msg') !== false) return 0;
+            throw $e;
+        }
     }
 
     public function recordBotSent(int $accountId, int $sessionId, ?string $wamid, ?int $waMsgId, ?string $content, ?array $structured, array $usage = [], ?int $latency = null, bool $aiCalled = true): int
@@ -158,6 +168,32 @@ final class IntakeSessionRepository
         // espelha no chat (gating legado)
         try {
             $st = $this->pdo->prepare("UPDATE whatsapp_chats SET agent_paused = 1 WHERE instance_id = ? AND remote_jid = ?");
+            $st->execute([$channelId, $remoteJid]);
+        } catch (\Throwable $_) { /* coluna pode nao existir em ambientes antigos */ }
+        return (bool)$sess;
+    }
+
+    /**
+     * Devolve a conversa ao bot (inverso de pauseForHuman). Reativa a sessao ativa
+     * (controller_mode/current_state) e zera agent_paused. SEM isso, uma conversa que
+     * passou por takeover/handoff fica presa em human_takeover/terminal e o bot nunca
+     * mais responde, mesmo com a pausa "desligada" na UI. Nunca reabre sessao encerrada:
+     * findActiveSession ja exige closed_at IS NULL (sessoes completed/out_of_scope ficam de fora).
+     */
+    public function resumeBot(int $channelId, string $remoteJid): bool
+    {
+        $sess = $this->findActiveSession($channelId, $remoteJid);
+        if ($sess && (string)($sess['controller_mode'] ?? '') !== 'bot_active') {
+            // Estado nao-terminal para o gating do engine (isPaused=false + isTerminal=false).
+            $this->updateSession((int)$sess['id'], [
+                'controller_mode' => 'bot_active',
+                'status'          => 'active',
+                'current_state'   => 'collecting_minimum_data',
+            ]);
+        }
+        // espelha no chat (gating legado)
+        try {
+            $st = $this->pdo->prepare("UPDATE whatsapp_chats SET agent_paused = 0 WHERE instance_id = ? AND remote_jid = ?");
             $st->execute([$channelId, $remoteJid]);
         } catch (\Throwable $_) { /* coluna pode nao existir em ambientes antigos */ }
         return (bool)$sess;

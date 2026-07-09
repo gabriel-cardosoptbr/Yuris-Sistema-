@@ -6,20 +6,21 @@
  * agent_configs.enabled da instancia. Atalho do header do Chat WhatsApp; o lugar
  * completo de config continua sendo agente.php.
  *
- * Nivel: owner/admin (e config do canal, nao acao de atendimento). NAO cria config:
- * exige que o agente ja tenha sido configurado em agente.php. Para LIGAR, o canal
- * precisa estar conectado (whatsapp_instances.status='open'), mesmo guard do agent_settings.
+ * Autorizacao POR GRANT de canal (nao por hierarquia matriz/filial):
+ *   - owner/admin (papel) E
+ *   - 'manage' sobre o canal, que e EXCLUSIVO DO DONO do canal (resolveForRequest).
+ * Assim uma filial nao liga/desliga o agente do canal da matriz (e vice-versa),
+ * mesmo com vinculo de visao/compartilhamento.
  *
- * Convive com agent_takeover.php (pausa POR conversa, agent_paused). No webhook o bot
- * responde se: enabled=1 (ESTE toggle) E status='open' E agent_paused=0 (conversa).
- * Logo: desligar aqui = desliga geral; ligar aqui + "Assumir" numa conversa = geral
- * ligado, mas aquela conversa fica com o humano.
+ * NAO cria config: exige que o agente ja tenha sido configurado em agente.php. Para
+ * LIGAR, o canal precisa estar conectado (whatsapp_instances.status='open').
  *
  *   GET  ?instance_id=ID                       -> { ok, instance_id, has_agent, enabled, connected, channel_status, agent_name }
  *   POST { instance_id, enabled:0|1, _csrf }   -> idem (estado novo) + saved:true
  */
 require_once __DIR__ . '/../../../app/Models/Database.php';
 require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
 
 use App\Helpers\AccountContext;
 use App\Models\Database;
@@ -38,27 +39,22 @@ if (!$ctx->isOwnerOrAdmin()) {
     echo json_encode(['error' => 'Apenas owner/admin pode ligar ou desligar o agente do canal']);
     exit;
 }
-
-// Escopo de contas acessiveis (matriz ve filiais; filial ve propria + matriz).
-$scope = $ctx->getAccessibleAccountIds();
-$mid   = $ctx->getPipelineAccountId();
-if ($mid > 0 && !in_array($mid, $scope, true)) $scope[] = $mid;
-$scope = array_values(array_unique(array_filter(array_map('intval', $scope), fn($v) => $v > 0)));
-if (empty($scope)) { http_response_code(403); echo json_encode(['error' => 'Sem acesso']); exit; }
+$accountId = (int)$ctx->getAccountId();
+if ($accountId <= 0) { http_response_code(403); echo json_encode(['error' => 'Sem acesso']); exit; }
 
 $pdo = Database::getConnection();
-$ph = []; $params = [];
-foreach ($scope as $i => $aid) { $k = "a{$i}"; $ph[] = ":{$k}"; $params[$k] = $aid; }
-$inAcc = implode(',', $ph);
 
-$resolveInstance = function (int $instId) use ($pdo, $inAcc, $params): ?array {
-    if ($instId <= 0) return null;
-    $st = $pdo->prepare("SELECT i.id, i.account_id, i.status,
-                                COALESCE(NULLIF(i.display_name,''), i.instance_name) AS channel_name
-                           FROM whatsapp_instances i
-                          WHERE i.id = :iid AND i.account_id IN ($inAcc) LIMIT 1");
-    $st->execute($params + ['iid' => $instId]);
-    return $st->fetch(\PDO::FETCH_ASSOC) ?: null;
+/**
+ * Resolve+autoriza o canal por GRANT (deny-by-default; 403+exit se negar) e devolve
+ * { id, status } do canal autorizado. 'manage' garante que so o DONO administra.
+ */
+$resolveChannel = function (int $instId, string $perm) use ($pdo, $accountId): array {
+    $res = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $instId ?: null, $perm);
+    $ir  = is_array($res['instance_row'] ?? null) ? $res['instance_row'] : [];
+    return [
+        'id'     => (int)$res['channel_id'],
+        'status' => $ir['status'] ?? 'close',
+    ];
 };
 
 $agentState = function (array $inst) use ($pdo): array {
@@ -80,8 +76,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 try {
     if ($method === 'GET') {
-        $inst = $resolveInstance((int)($_GET['instance_id'] ?? 0));
-        if (!$inst) { http_response_code(404); echo json_encode(['error' => 'Canal não encontrado no seu acesso']); exit; }
+        $inst = $resolveChannel((int)($_GET['instance_id'] ?? 0), 'view');
         echo json_encode($agentState($inst));
         exit;
     }
@@ -93,8 +88,8 @@ try {
             http_response_code(400); echo json_encode(['error' => 'CSRF inválido']); exit;
         }
 
-        $inst = $resolveInstance((int)($in['instance_id'] ?? 0));
-        if (!$inst) { http_response_code(404); echo json_encode(['error' => 'Canal não encontrado no seu acesso']); exit; }
+        // 'manage' = exclusivo do dono do canal (filial nao desliga o agente da matriz).
+        $inst = $resolveChannel((int)($in['instance_id'] ?? 0), 'manage');
 
         $enabled = !empty($in['enabled']) ? 1 : 0;
 

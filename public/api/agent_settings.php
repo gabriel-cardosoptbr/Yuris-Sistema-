@@ -33,6 +33,7 @@ require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../../app/Helpers/Crypto.php';        // cifragem padrão (GCM / APP_ENCRYPTION_KEY)
 require_once __DIR__ . '/../../app/Helpers/TotpHelper.php';    // só p/ ler configs LEGADAS (CBC / MFA_ENCRYPTION_KEY)
 require_once __DIR__ . '/../../app/Helpers/EnvLoader.php';
+require_once __DIR__ . '/../../app/Services/WhatsAppChannelAccessService.php'; // autorizacao POR GRANT de canal (nao hierarquia)
 
 use App\Models\Database;
 use App\Helpers\AccountContext;
@@ -80,32 +81,22 @@ function _decryptApiKey(?string $enc): ?string
     }
 }
 
-/** account_ids cujas instâncias a sessão pode vincular: acessíveis + matriz (p/ filial). */
-function _instanceScope(AccountContext $ctx): array
-{
-    $scope = $ctx->getAccessibleAccountIds();
-    $matrizId = $ctx->getPipelineAccountId();
-    if ($matrizId > 0 && !in_array($matrizId, $scope, true)) $scope[] = $matrizId;
-    return array_values(array_unique(array_filter(array_map('intval', $scope), fn($v) => $v > 0)));
-}
-
-/** Retorna a instância SE pertencer ao escopo da sessão; senão null. */
-function _resolveInstance(\PDO $pdo, AccountContext $ctx, int $instanceId): ?array
+/**
+ * Linha rica do canal (display + conta) por id JA AUTORIZADO. Sem escopo: a autorizacao
+ * e feita pelo chamador via WhatsAppChannelAccessService::resolveForRequest (grant de canal).
+ */
+function _loadInstanceDisplayById(\PDO $pdo, int $instanceId): ?array
 {
     if ($instanceId <= 0) return null;
-    $scope = _instanceScope($ctx);
-    if (empty($scope)) return null;
-    $ph = []; $params = ['id' => $instanceId];
-    foreach ($scope as $i => $aid) { $k = "s{$i}"; $ph[] = ":{$k}"; $params[$k] = $aid; }
     $st = $pdo->prepare(
         "SELECT i.id, i.account_id, i.instance_name, i.display_name, i.phone, i.status,
                 a.nome AS account_nome, a.tipo AS account_tipo
            FROM whatsapp_instances i
            INNER JOIN accounts a ON a.id = i.account_id
-          WHERE i.id = :id AND i.account_id IN (" . implode(',', $ph) . ")
+          WHERE i.id = :id
           LIMIT 1"
     );
-    $st->execute($params);
+    $st->execute(['id' => $instanceId]);
     $row = $st->fetch(\PDO::FETCH_ASSOC);
     return $row ?: null;
 }
@@ -201,12 +192,11 @@ if ($method === 'GET') {
         echo json_encode($payload);
         exit;
     }
-    $inst = _resolveInstance($pdo, $ctx, $instanceId);
-    if (!$inst) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Canal não encontrado ou fora do seu acesso']);
-        exit;
-    }
+    // Autoriza POR GRANT de canal (403+exit se negar). 'view' basta pra ler a config.
+    $auth = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $instanceId, 'view');
+    $instanceId = (int)$auth['channel_id'];
+    $inst = _loadInstanceDisplayById($pdo, $instanceId);
+    if (!$inst) { http_response_code(404); echo json_encode(['error' => 'Canal não encontrado']); exit; }
     $cfg = _loadConfigByInstance($pdo, $instanceId);
     $payload = _buildPayload($cfg, $inst);
     $payload['catalog'] = _catalog($pdo);
@@ -231,12 +221,12 @@ if ($method === 'POST') {
         echo json_encode(['error' => 'Selecione um canal WhatsApp (whatsapp_instance_id) para o agente.']);
         exit;
     }
-    $inst = _resolveInstance($pdo, $ctx, $instanceId);
-    if (!$inst) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Canal não encontrado ou fora do seu acesso']);
-        exit;
-    }
+    // Autoriza POR GRANT de canal com 'manage' (exclusivo do DONO): hierarquia matriz/filial
+    // nao concede reconfigurar o agente de canal alheio. 403+exit se negar.
+    $auth = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $instanceId, 'manage');
+    $instanceId = (int)$auth['channel_id'];
+    $inst = _loadInstanceDisplayById($pdo, $instanceId);
+    if (!$inst) { http_response_code(404); echo json_encode(['error' => 'Canal não encontrado']); exit; }
 
     $name     = isset($input['name'])     ? trim((string)$input['name'])     : null;
     $enabled  = isset($input['enabled'])  ? (int)((bool)$input['enabled'])   : null;

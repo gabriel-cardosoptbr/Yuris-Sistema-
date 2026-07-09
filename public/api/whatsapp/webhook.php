@@ -256,7 +256,7 @@ try {
                      VALUES (?,?,?,?,?,?)
                      ON DUPLICATE KEY UPDATE
                        account_id   = IF(account_id IS NULL, VALUES(account_id), account_id),
-                       contact_name = IF(VALUES(contact_name) IS NOT NULL, VALUES(contact_name), contact_name),
+                       contact_name = IF(COALESCE(is_manual_name,0)=0 AND VALUES(contact_name) IS NOT NULL AND VALUES(contact_name) <> "", VALUES(contact_name), contact_name),
                        unread_count = VALUES(unread_count)'
                 );
                 $s->execute([$accountId, $instanceId, $jid, $name, $unread, $isGroup]);
@@ -420,6 +420,9 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
             $cfg       = $instModel->getSettings($accountId);
             $evo       = new EvolutionApiService($cfg);
             $name      = $cfg['evolution_instance'] ?? 'yuris-crm';
+            // E1: este download roda ANTES do 200 do webhook; timeout curto pra nao
+            // pendurar o worker PHP-FPM se a Evolution demorar (o thumbnail abaixo cobre).
+            $evo->setTimeout(3);
             $b64 = $evo->getMediaBase64($name, $msg);
             if ($b64) {
                 $mediaBase64 = str_contains($b64, ',') ? explode(',', $b64, 2)[1] : $b64;
@@ -985,114 +988,4 @@ function runAgentReply(array $task): void
         // Não vaza detalhe; só log server-side (LGPD). Ja estamos depois do 200.
         error_log('[whatsapp/agent] runAgentReply falhou: ' . $e->getMessage());
     }
-}
-
-/**
- * OpenAI Chat Completions via cURL puro (sem SDK).
- * System = prompt salvo; user = texto recebido. Modelo padrão econômico.
- */
-function callOpenAi(string $apiKey, string $prompt, string $userText): ?string
-{
-    $messages = [];
-    if ($prompt !== '') $messages[] = ['role' => 'system', 'content' => $prompt];
-    $messages[] = ['role' => 'user', 'content' => $userText];
-
-    $body = [
-        'model'       => 'gpt-4o-mini',
-        'messages'    => $messages,
-        'max_tokens'  => 600,
-        'temperature' => 0.6,
-    ];
-    $resp = llmHttpPost(
-        'https://api.openai.com/v1/chat/completions',
-        ['Content-Type: application/json', 'Authorization: Bearer ' . $apiKey],
-        $body
-    );
-    if ($resp === null) return null;
-    // Caminho de sucesso: choices[0].message.content
-    $text = $resp['choices'][0]['message']['content'] ?? null;
-    if (!is_string($text) || trim($text) === '') {
-        if (!empty($resp['error']['message'])) {
-            error_log('[whatsapp/agent] OpenAI erro: ' . $resp['error']['message']);
-        }
-        return null;
-    }
-    return $text;
-}
-
-/**
- * Anthropic Messages API via cURL puro (sem SDK).
- * Headers: x-api-key + anthropic-version: 2023-06-01.
- * System = prompt salvo (campo "system"); user = texto recebido.
- */
-function callAnthropic(string $apiKey, string $prompt, string $userText): ?string
-{
-    $body = [
-        'model'      => 'claude-3-5-haiku-20241022',
-        'max_tokens' => 600,
-        'messages'   => [['role' => 'user', 'content' => $userText]],
-    ];
-    if ($prompt !== '') $body['system'] = $prompt;
-
-    $resp = llmHttpPost(
-        'https://api.anthropic.com/v1/messages',
-        [
-            'Content-Type: application/json',
-            'x-api-key: ' . $apiKey,
-            'anthropic-version: 2023-06-01',
-        ],
-        $body
-    );
-    if ($resp === null) return null;
-    // Sucesso: content[] com blocos {type:text, text:...}
-    $text = '';
-    if (!empty($resp['content']) && is_array($resp['content'])) {
-        foreach ($resp['content'] as $block) {
-            if (($block['type'] ?? '') === 'text' && is_string($block['text'] ?? null)) {
-                $text .= $block['text'];
-            }
-        }
-    }
-    if (trim($text) === '') {
-        if (!empty($resp['error']['message'])) {
-            error_log('[whatsapp/agent] Anthropic erro: ' . $resp['error']['message']);
-        }
-        return null;
-    }
-    return $text;
-}
-
-/**
- * POST JSON genérico para a API do LLM via cURL puro.
- * GUARDRAIL (c): timeout CURTO (connect 5s, total 15s). Retorna o array decodado
- * em sucesso, ou null em erro de transporte / resposta não-JSON (logado).
- */
-function llmHttpPost(string $url, array $headers, array $body): ?array
-{
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST           => true,
-        CURLOPT_POSTFIELDS     => json_encode($body),
-        CURLOPT_HTTPHEADER     => $headers,
-        CURLOPT_CONNECTTIMEOUT => 5,
-        CURLOPT_TIMEOUT        => 15,   // (c) timeout curto — não pendura o processo
-        CURLOPT_SSL_VERIFYPEER => true, // APIs públicas: sempre verificar TLS
-        CURLOPT_SSL_VERIFYHOST => 2,
-    ]);
-    $raw   = curl_exec($ch);
-    $http  = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $error = curl_error($ch);
-    curl_close($ch);
-
-    if ($error !== '' || $raw === false) {
-        error_log('[whatsapp/agent] cURL LLM falhou (' . $url . '): ' . $error);
-        return null;
-    }
-    $decoded = json_decode((string)$raw, true);
-    if (!is_array($decoded)) {
-        error_log('[whatsapp/agent] LLM resposta não-JSON (http ' . $http . ')');
-        return null;
-    }
-    return $decoded;
 }

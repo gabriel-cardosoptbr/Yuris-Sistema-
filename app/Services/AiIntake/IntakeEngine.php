@@ -94,11 +94,13 @@ final class IntakeEngine
             return $this->silent($sid, 'paused_or_terminal');
         }
 
-        // 3) Idempotencia da camada IA
-        if ($this->repo->inboundAlreadyProcessed($sid, $wamid)) {
+        // 3) Idempotencia ATOMICA da camada IA: grava o inbound; se o wamid ja foi processado
+        //    nesta sessao, o UNIQUE (uk_intake_msg, migration 103) faz o INSERT retornar 0 e o
+        //    bot fica silencioso — sem disparar o LLM 2x sob webhooks concorrentes/replay.
+        $inboundId = $this->repo->recordInbound($accountId, $sid, $wamid, $userText, $messageType);
+        if ($inboundId === 0 && $wamid !== null && $wamid !== '') {
             return $this->silent($sid, 'duplicate');
         }
-        $this->repo->recordInbound($accountId, $sid, $wamid, $userText, $messageType);
 
         $collected = is_array($session['collected_data_json'] ?? null)
             ? $session['collected_data_json'] : IntakeSchema::defaults()['extracted_data'];
