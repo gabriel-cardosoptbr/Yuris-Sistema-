@@ -28,6 +28,13 @@ ALTER TABLE whatsapp_chats          ADD CONSTRAINT fk_wa_chat_inst FOREIGN KEY (
 ALTER TABLE whatsapp_contacts       ADD CONSTRAINT fk_wa_ctt_inst  FOREIGN KEY (instance_id) REFERENCES whatsapp_instances(id) ON DELETE RESTRICT ON UPDATE RESTRICT;
 ALTER TABLE whatsapp_group_members  ADD CONSTRAINT fk_wa_gm_inst   FOREIGN KEY (instance_id) REFERENCES whatsapp_instances(id) ON DELETE RESTRICT ON UPDATE RESTRICT;
 ALTER TABLE whatsapp_reactions      ADD CONSTRAINT fk_wa_rx_inst   FOREIGN KEY (instance_id) REFERENCES whatsapp_instances(id) ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+-- chat_processos pode ter linha ORFA de delete de instancia antigo (o delete manual do
+-- Master nao limpava chat_processos ate esta onda). Apaga o orfao ANTES da FK, senao
+-- ERROR 1452. Em prod (2026-07-06) foram 2 linhas.
+DELETE cp FROM whatsapp_chat_processos cp
+  LEFT JOIN whatsapp_instances i ON i.id = cp.instance_id
+ WHERE i.id IS NULL;
 ALTER TABLE whatsapp_chat_processos ADD CONSTRAINT fk_wa_cp_inst   FOREIGN KEY (instance_id) REFERENCES whatsapp_instances(id) ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 -- J2 + J3: FK account_id -> accounts(id). Mantem NULL onde ja e nullable (nao forco
