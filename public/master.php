@@ -963,6 +963,42 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
       <div style="font-size:.74rem; color:#9ab0c9; max-width:760px">Configuração GLOBAL do assistente que faz a triagem no WhatsApp. A chave da OpenAI e o prompt valem para TODAS as instâncias; cada escritório só escolhe o canal, as áreas e as mensagens na própria tela do agente. A conexão do WhatsApp (número, QR, token) continua na aba WhatsApp.</div>
     </div>
 
+    <!-- Saude do WhatsApp / Agente (Onda 4 / 4D): status dos canais + webhook vivo + custo/erros -->
+    <div class="mst-card" style="padding:18px; margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:700; margin-bottom:4px">Saúde do WhatsApp / Agente</div>
+          <div style="font-size:.74rem; color:#9ab0c9; max-width:760px">Visão operacional ao vivo: canais conectados, se o <strong>webhook está vivo</strong> (último evento recebido), volume 24h, custo, latência e erros do agente. Um canal <strong>ligado mas sem eventos há mais de 30&nbsp;min</strong> aparece como <span style="color:#f59e0b">webhook silencioso</span> — o pior incidente invisível (Evolution viva, webhook morto, bot mudo).</div>
+        </div>
+        <button onclick="loadWaHealth()" style="padding:8px 14px;background:transparent;border:1px solid rgba(96,165,250,.5);color:#7EB8F7;border-radius:8px;font-weight:600;cursor:pointer;font-size:.8rem">Atualizar</button>
+      </div>
+      <div id="waHealthKpis" style="display:flex;gap:22px;flex-wrap:wrap;margin:16px 2px 8px">
+        <div style="min-width:120px"><div class="mst-kpi-value" id="whCanais">—</div><div class="mst-kpi-label">Canais conectados</div></div>
+        <div style="min-width:130px"><div class="mst-kpi-value" id="whSilent">—</div><div class="mst-kpi-label">Webhook silencioso</div></div>
+        <div style="min-width:130px"><div class="mst-kpi-value" id="whCalls24">—</div><div class="mst-kpi-label">Chamadas de IA (24h)</div></div>
+        <div style="min-width:110px"><div class="mst-kpi-value" id="whCusto24">—</div><div class="mst-kpi-label">Custo (24h, US$)</div></div>
+        <div style="min-width:110px"><div class="mst-kpi-value" id="whCache24">—</div><div class="mst-kpi-label">Cache (24h)</div></div>
+        <div style="min-width:130px"><div class="mst-kpi-value" id="whLat24">—</div><div class="mst-kpi-label">Latência média (24h)</div></div>
+        <div style="min-width:100px"><div class="mst-kpi-value" id="whErr24">—</div><div class="mst-kpi-label">Erros (24h)</div></div>
+      </div>
+      <div style="overflow-x:auto;margin-top:8px">
+        <table class="mst-table" style="width:100%;min-width:720px;border-collapse:collapse;font-size:.8rem">
+          <thead>
+            <tr style="text-align:left;color:#9ab0c9;border-bottom:1px solid rgba(255,255,255,.08)">
+              <th style="padding:8px 10px">Conta</th>
+              <th style="padding:8px 10px">Canal</th>
+              <th style="padding:8px 10px;text-align:center">Status</th>
+              <th style="padding:8px 10px">Webhook (último evento)</th>
+              <th style="padding:8px 10px;text-align:right">Msgs 24h</th>
+              <th style="padding:8px 10px;text-align:right">Bot 24h</th>
+              <th style="padding:8px 10px;text-align:right">Erros 24h</th>
+            </tr>
+          </thead>
+          <tbody id="waHealthBody"><tr><td colspan="7" style="padding:16px;color:#9ab0c9">Carregando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Contas & Consumo do Agente (quem esta ligado + tokens/custo por conta) -->
     <div class="mst-card" style="padding:18px; margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
@@ -2635,7 +2671,7 @@ function loadTab(name) {
   if (name==='operators') loadOperators();
   if (name==='reviews')   loadReviews();
   if (name==='whatsapp') { loadGlobalEvolution(); loadWhatsappConfig(); loadWaChannels(); }
-  if (name==='agente')   { loadAiOpenai(); loadAiPrompt(); loadAiUsage(); loadAiModels(); loadAreaQuestions(); }
+  if (name==='agente')   { loadAiOpenai(); loadAiPrompt(); loadWaHealth(); loadAiUsage(); loadAiModels(); loadAreaQuestions(); }
 }
 
 // ── WhatsApp / Evolution (infra por conta — só super_admin) ────────────────
@@ -2663,6 +2699,43 @@ async function loadWhatsappConfig() {
     </td>
   </tr>`).join('');
 }
+// ── Saude do WhatsApp / Agente (4D): status dos canais + webhook vivo + custo/erros ──
+async function loadWaHealth() {
+  const body = document.getElementById('waHealthBody'); if (!body) return;
+  body.innerHTML = '<tr><td colspan="7" style="padding:16px;color:#9ab0c9">Carregando…</td></tr>';
+  const r = await fj(`${API}/whatsapp_health.php`);
+  if (!r.ok) { body.innerHTML = '<tr><td colspan="7" style="padding:16px;color:#ef4444">Erro ao carregar saúde</td></tr>'; return; }
+  const d = r.data || {}, s = d.summary || {}, list = d.channels || [];
+  const set = (id,v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  set('whCanais', `${_aiN(s.channels_open)}/${_aiN(s.channels_total)}`);
+  const silN = Number(s.channels_silent||0), silEl = document.getElementById('whSilent');
+  if (silEl) { silEl.textContent = _aiN(silN); silEl.style.color = silN > 0 ? '#f59e0b' : ''; }
+  set('whCalls24', _aiN(s.calls_24h));
+  set('whCusto24', _aiUsd(s.cost_24h));
+  set('whCache24', ((Number(s.cache_ratio_24h||0)*100).toFixed(0)) + '%');
+  set('whLat24', (Number(s.avg_latency_24h||0)).toLocaleString('pt-BR') + ' ms');
+  const errEl = document.getElementById('whErr24');
+  if (errEl) { errEl.textContent = _aiN(s.errors_24h); errEl.style.color = Number(s.errors_24h||0) > 0 ? '#ef4444' : ''; }
+  if (!list.length) { body.innerHTML = '<tr><td colspan="7" style="padding:16px;color:#9ab0c9">Nenhum canal.</td></tr>'; return; }
+  body.innerHTML = list.map(c => {
+    const st = c.status === 'open'
+      ? '<span style="background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.4);padding:2px 9px;border-radius:999px;font-size:.7rem;font-weight:700">Conectado</span>'
+      : `<span style="background:rgba(148,163,184,.12);color:#94a3b8;border:1px solid rgba(148,163,184,.35);padding:2px 9px;border-radius:999px;font-size:.7rem;font-weight:700">${esc(c.status||'—')}</span>`;
+    const wh = c.silent
+      ? `<span style="color:#f59e0b;font-weight:600">silencioso</span> <span style="color:#9ab0c9">(${_aiWhen(c.last_event_at)})</span>`
+      : `<span style="color:#9ab0c9">${_aiWhen(c.last_event_at)}</span>`;
+    return `<tr style="border-bottom:1px solid rgba(255,255,255,.05)">
+      <td style="padding:8px 10px">${esc(c.account_nome||'')}</td>
+      <td style="padding:8px 10px">${esc(c.instance_name||'')}</td>
+      <td style="padding:8px 10px;text-align:center">${st}</td>
+      <td style="padding:8px 10px">${wh}</td>
+      <td style="padding:8px 10px;text-align:right">${_aiN(c.msgs_24h)}</td>
+      <td style="padding:8px 10px;text-align:right">${_aiN(c.bot_24h)}</td>
+      <td style="padding:8px 10px;text-align:right">${Number(c.err_24h||0)>0 ? `<span style="color:#ef4444">${_aiN(c.err_24h)}</span>` : _aiN(c.err_24h)}</td>
+    </tr>`;
+  }).join('');
+}
+
 // ── Contas & Consumo do Agente (quem esta ligado + tokens/custo) ───────────
 function _aiN(n){ return Number(n||0).toLocaleString('pt-BR'); }
 function _aiUsd(n){ return 'US$ ' + Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
