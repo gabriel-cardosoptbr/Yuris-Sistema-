@@ -121,6 +121,19 @@ foreach ($policies as $p) {
                              WHERE {$campo} < DATE_SUB(NOW(), INTERVAL :d DAY)
                                AND raw_payload IS NOT NULL AND raw_payload != ''";
                 break;
+            case 'whatsapp_messages_media':
+                // Onda 4 / F1-F2 leve: minimiza o media_base64 (arquivo inline ate ~4MB na
+                // tabela quente) apos N dias. NULL na coluna preserva a linha + metadata
+                // (tipo, caption, media_url, mimetype); midia recente segue viavel via
+                // re-fetch da Evolution no media.php (fallback por url/raw_payload).
+                $sqlCount = "SELECT COUNT(*) FROM whatsapp_messages
+                             WHERE {$campo} < DATE_SUB(NOW(), INTERVAL :d DAY)
+                               AND media_base64 IS NOT NULL AND media_base64 != ''";
+                $sqlDo    = "UPDATE whatsapp_messages
+                             SET media_base64 = NULL
+                             WHERE {$campo} < DATE_SUB(NOW(), INTERVAL :d DAY)
+                               AND media_base64 IS NOT NULL AND media_base64 != ''";
+                break;
             default:
                 $log[] = "[SKIP] {$entidade}: entidade não mapeada (allowlist)";
                 $status = 'error';
