@@ -219,14 +219,31 @@ if (is_file($wh)) {
     }
 } else { skip("webhook.php inexistente"); }
 
-// Strangler do webhook (Onda 4 Pass 1/2): os helpers extraidos existem, expoem os
+// Strangler do webhook (Onda 4 Pass 1/2/3): os helpers extraidos existem, expoem os
 // metodos esperados, e o webhook DELEGA a eles (sem sobrar a funcao global movida).
 // Guarda estrutural (so leitura + reflexao; seguro em prod) contra regressao do refactor.
 $parserF = $ROOT.'/app/Services/WhatsAppWebhookParser.php';
 $entityF = $ROOT.'/app/Services/WhatsAppWebhookEntitySync.php';
-if (is_file($parserF) && is_file($entityF)) {
+$bridgeF = $ROOT.'/app/Services/WhatsAppAgentBridge.php';
+// REDE DE DEPLOY (atomicidade do strangler): se o webhook DELEGA a um helper (WhatsAppXxx::)
+// mas o arquivo do helper NAO existe, o require_once no topo do webhook fatala em runtime — e
+// um deploy incompleto (webhook shipou sem a classe). Aqui isso vira FAIL (nao o SKIP mudo do
+// bloco abaixo), travando o deploy protocol ANTES do graceful. Se o webhook nem delega (checkout
+// pre-strangler), nenhum needle casa e segue pro SKIP normal.
+$whSrc = is_file($wh) ? (string)file_get_contents($wh) : '';
+foreach ([
+    ['WhatsAppWebhookParser::',     $parserF, 'WhatsAppWebhookParser (Pass 1)'],
+    ['WhatsAppWebhookEntitySync::', $entityF, 'WhatsAppWebhookEntitySync (Pass 2)'],
+    ['WhatsAppAgentBridge::',       $bridgeF, 'WhatsAppAgentBridge (Pass 3)'],
+] as [$ndl, $hf, $lbl]) {
+    if (strpos($whSrc, $ndl) !== false && !is_file($hf)) {
+        fail("DEPLOY INCOMPLETO: webhook delega a $lbl mas " . basename($hf) . " nao existe — webhook fatala em runtime (arquivo faltou no commit/pull)");
+    }
+}
+if (is_file($parserF) && is_file($entityF) && is_file($bridgeF)) {
     require_once $parserF;
     require_once $entityF;
+    require_once $bridgeF;
     $okP = class_exists('App\\Services\\WhatsAppWebhookParser')
         && method_exists('App\\Services\\WhatsAppWebhookParser', 'extractMessageContent')
         && method_exists('App\\Services\\WhatsAppWebhookParser', 'extractQuotedWamid')
@@ -237,8 +254,15 @@ if (is_file($parserF) && is_file($entityF)) {
         && method_exists('App\\Services\\WhatsAppWebhookEntitySync', 'syncGroups')
         && method_exists('App\\Services\\WhatsAppWebhookEntitySync', 'syncGroupParticipants')
         && method_exists('App\\Services\\WhatsAppWebhookEntitySync', 'upsertGroupParticipants');
+    $okB = class_exists('App\\Services\\WhatsAppAgentBridge')
+        && method_exists('App\\Services\\WhatsAppAgentBridge', 'maybeQueueAgentReply')
+        && method_exists('App\\Services\\WhatsAppAgentBridge', 'maybeHandleHumanSend')
+        && method_exists('App\\Services\\WhatsAppAgentBridge', 'flushResponse')
+        && method_exists('App\\Services\\WhatsAppAgentBridge', 'decryptAgentApiKey')
+        && method_exists('App\\Services\\WhatsAppAgentBridge', 'runAgentReply');
     $okP ? pass("strangler Pass 1: WhatsAppWebhookParser expoe os 3 parsers") : fail("strangler Pass 1: WhatsAppWebhookParser incompleto");
     $okE ? pass("strangler Pass 2: WhatsAppWebhookEntitySync expoe sync* + upsertGroupParticipants") : fail("strangler Pass 2: WhatsAppWebhookEntitySync incompleto");
+    $okB ? pass("strangler Pass 3: WhatsAppAgentBridge expoe queue/human/flush/decrypt/run") : fail("strangler Pass 3: WhatsAppAgentBridge incompleto");
     if (is_file($wh)) {
         $wc = (string)file_get_contents($wh);
         $deleg = strpos($wc, 'WhatsAppWebhookParser::extractMessageContent') !== false
@@ -249,11 +273,21 @@ if (is_file($parserF) && is_file($entityF)) {
         // A funcao global upsertGroupParticipants foi movida pra classe: NAO pode sobrar no webhook.
         $noGlobalUgp = !preg_match('/^\s*function\s+upsertGroupParticipants\s*\(/m', $wc);
         ($deleg && $noGlobalUgp)
-            ? pass("webhook delega aos helpers do strangler (sem upsertGroupParticipants global)")
+            ? pass("webhook delega aos helpers do strangler Pass 1/2 (sem upsertGroupParticipants global)")
             : fail("webhook nao delega corretamente aos helpers ou ainda tem upsertGroupParticipants global");
+        // Pass 3: webhook delega as 4 chamadas do caminho do agente ao bridge...
+        $delegB = strpos($wc, 'WhatsAppAgentBridge::maybeQueueAgentReply') !== false
+            && strpos($wc, 'WhatsAppAgentBridge::maybeHandleHumanSend') !== false
+            && strpos($wc, 'WhatsAppAgentBridge::flushResponse') !== false
+            && strpos($wc, 'WhatsAppAgentBridge::runAgentReply') !== false;
+        // ...e NENHUMA das 5 funcoes globais do agente pode sobrar no webhook (foram movidas pra classe).
+        $noGlobalAgent = !preg_match('/^\s*function\s+(maybeQueueAgentReply|maybeHandleHumanSend|flushResponse|decryptAgentApiKey|runAgentReply)\s*\(/m', $wc);
+        ($delegB && $noGlobalAgent)
+            ? pass("strangler Pass 3: webhook delega ao WhatsAppAgentBridge (sem as 5 funcoes globais do agente)")
+            : fail("strangler Pass 3: webhook nao delega ao bridge ou ainda tem funcao global do agente");
     }
 } else {
-    skip("helpers do strangler (parser/entitysync) nao encontrados");
+    skip("helpers do strangler (parser/entitysync/bridge) nao encontrados");
 }
 
 // Hash-guard do prompt mestre (INTOCAVEL).
