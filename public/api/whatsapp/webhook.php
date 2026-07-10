@@ -12,10 +12,12 @@ require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
 require_once __DIR__ . '/../../../app/Services/WebhookDispatcher.php';
 require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
+require_once __DIR__ . '/../../../app/Services/WhatsAppWebhookParser.php'; // parsers puros do payload (strangler Pass 1)
 require_once __DIR__ . '/../../../app/Helpers/Crypto.php';     // decifra api_key do agente (GCM / APP_ENCRYPTION_KEY)
 require_once __DIR__ . '/../../../app/Helpers/TotpHelper.php'; // fallback p/ api_key legada (CBC / MFA_ENCRYPTION_KEY)
 
 use App\Models\Database;
+use App\Services\WhatsAppWebhookParser;
 use App\Helpers\Crypto;
 use App\Helpers\TotpHelper;
 
@@ -388,7 +390,7 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
     $createdAt = date('Y-m-d H:i:s', is_numeric($ts) ? (int)$ts : time());
 
     [$msgType, $msgContent, $caption, $mediaUrl, $mimetype, $filename] =
-        extractMessageContent($message);
+        WhatsAppWebhookParser::extractMessageContent($message);
 
     // ── Reaction recebida via webhook ────────────────────────────────────────
     // Grava em whatsapp_reactions (UPSERT por reactor) em vez de criar uma
@@ -420,14 +422,14 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
     // contextInfo (com stanzaId) fica no TOPO do payload (irmão de "message"), NÃO
     // dentro de extendedTextMessage. Sem checar o topo, citar um texto não capturava
     // a citação (bug 2026-05-31). Reply em mídia já vem no sub-objeto da mídia.
-    $quotedWamid = extractQuotedWamid($message);
+    $quotedWamid = WhatsAppWebhookParser::extractQuotedWamid($message);
     if (!$quotedWamid && !empty($msg['contextInfo']['stanzaId'])) {
         $quotedWamid = $msg['contextInfo']['stanzaId'];
     }
     // Snapshot da citação (autor + texto) que o WhatsApp manda EMBUTIDO no
     // contextInfo. Garante que a citação apareça mesmo se a mensagem original
     // não estiver sincronizada no YURIS. Ver migration 089.
-    [$quotedSenderName, $quotedText] = extractQuotedSnapshot($message, $msg);
+    [$quotedSenderName, $quotedText] = WhatsAppWebhookParser::extractQuotedSnapshot($message, $msg);
 
     // Para mídias: tenta baixar base64 completo via Evolution (mídia ainda está em cache local)
     $mediaBase64 = null;
@@ -704,70 +706,6 @@ function maybeHandleHumanSend(int $accountId, int $instanceId, ?string $remoteJi
     }
 }
 
-function extractMessageContent(array $message): array
-{
-    // text
-    if (!empty($message['conversation'])) {
-        return ['text', $message['conversation'], null, null, null, null];
-    }
-    if (!empty($message['extendedTextMessage']['text'])) {
-        return ['text', $message['extendedTextMessage']['text'], null, null, null, null];
-    }
-    // image
-    if (!empty($message['imageMessage'])) {
-        $m = $message['imageMessage'];
-        return ['image', null, $m['caption'] ?? null, $m['url'] ?? null, $m['mimetype'] ?? 'image/jpeg', null];
-    }
-    // video
-    if (!empty($message['videoMessage'])) {
-        $m = $message['videoMessage'];
-        return ['video', null, $m['caption'] ?? null, $m['url'] ?? null, $m['mimetype'] ?? 'video/mp4', null];
-    }
-    // document
-    if (!empty($message['documentMessage'])) {
-        $m = $message['documentMessage'];
-        return ['document', null, $m['caption'] ?? null, $m['url'] ?? null, $m['mimetype'] ?? null, $m['fileName'] ?? null];
-    }
-    if (!empty($message['documentWithCaptionMessage']['message']['documentMessage'])) {
-        $m = $message['documentWithCaptionMessage']['message']['documentMessage'];
-        return ['document', null, $m['caption'] ?? null, $m['url'] ?? null, $m['mimetype'] ?? null, $m['fileName'] ?? null];
-    }
-    // audio
-    if (!empty($message['audioMessage'])) {
-        $m = $message['audioMessage'];
-        return ['audio', null, null, $m['url'] ?? null, $m['mimetype'] ?? 'audio/ogg', null];
-    }
-    // sticker
-    if (!empty($message['stickerMessage'])) {
-        return ['sticker', null, null, $message['stickerMessage']['url'] ?? null, 'image/webp', null];
-    }
-    // reaction — sinalizador; handler trata separado (grava em whatsapp_reactions)
-    if (!empty($message['reactionMessage'])) {
-        return ['reaction', $message['reactionMessage']['text'] ?? '👍', null, null, null, null];
-    }
-    // location → mostra como msg de texto com label amigavel (antes virava "nao suportada")
-    if (!empty($message['locationMessage'])) {
-        $loc = $message['locationMessage'];
-        $lat = $loc['degreesLatitude']  ?? '';
-        $lng = $loc['degreesLongitude'] ?? '';
-        $name = $loc['name'] ?? '';
-        $text = '📍 Localização' . ($name ? ': ' . $name : '') . ($lat && $lng ? " ($lat, $lng)" : '');
-        return ['text', $text, null, null, null, null];
-    }
-    // contato compartilhado
-    if (!empty($message['contactMessage'])) {
-        $name = $message['contactMessage']['displayName'] ?? 'Contato';
-        return ['text', '👤 Contato compartilhado: ' . $name, null, null, null, null];
-    }
-    // enquete (pollCreationMessage)
-    if (!empty($message['pollCreationMessage'])) {
-        $title = $message['pollCreationMessage']['name'] ?? 'Enquete';
-        return ['text', '📊 ' . $title, null, null, null, null];
-    }
-
-    return ['text', null, null, null, null, null];
-}
-
 /**
  * UPSERT de participantes de grupo em whatsapp_group_members.
  * Aceita itens como string (JID puro) ou objeto {id, admin, phoneNumber, pushName}.
@@ -807,76 +745,6 @@ function upsertGroupParticipants(PDO $pdo, ?int $accountId, int $instanceId, str
         };
         $ins->execute([(int)($accountId ?? 0), $instanceId, $groupJid, $pj, $pn, $phone, $role]);
     }
-}
-
-/**
- * Extrai o stanzaId da mensagem citada (reply).
- * Localizado em vários paths dependendo do tipo da msg que carrega o reply.
- */
-function extractQuotedWamid(array $message): ?string
-{
-    // Reply em texto simples
-    if (!empty($message['extendedTextMessage']['contextInfo']['stanzaId'])) {
-        return $message['extendedTextMessage']['contextInfo']['stanzaId'];
-    }
-    // Reply em imagem/video/audio/sticker (todos têm contextInfo dentro do sub)
-    foreach (['imageMessage', 'videoMessage', 'audioMessage', 'stickerMessage', 'documentMessage'] as $sub) {
-        if (!empty($message[$sub]['contextInfo']['stanzaId'])) {
-            return $message[$sub]['contextInfo']['stanzaId'];
-        }
-    }
-    return null;
-}
-
-/**
- * Extrai o SNAPSHOT da mensagem citada (autor + trecho de texto) embutido no
- * contextInfo do payload. O WhatsApp sempre manda esse trecho junto da resposta,
- * então conseguimos exibir a citação mesmo sem ter a mensagem original no banco.
- * Procura o contextInfo em: topo do payload ($msg) → extendedTextMessage → subs de mídia.
- * Retorna [senderName|null, text|null].
- */
-function extractQuotedSnapshot(array $message, array $msg): array
-{
-    // Acha o primeiro contextInfo disponível (topo > texto > mídia)
-    $ci = $msg['contextInfo']
-        ?? ($message['extendedTextMessage']['contextInfo'] ?? null);
-    if (!$ci) {
-        foreach (['imageMessage', 'videoMessage', 'audioMessage', 'stickerMessage', 'documentMessage'] as $sub) {
-            if (!empty($message[$sub]['contextInfo'])) { $ci = $message[$sub]['contextInfo']; break; }
-        }
-    }
-    if (!is_array($ci)) return [null, null];
-
-    // Autor da mensagem citada (JID). Só guardamos se for telefone real — o nome
-    // de verdade é resolvido depois no Model. Aqui guardamos o número como dica.
-    $participant = $ci['participant'] ?? null;
-    $senderName = null;
-    if ($participant && !str_contains((string)$participant, '@lid')) {
-        $digits = preg_replace('/\D/', '', explode('@', (string)$participant)[0]);
-        if ($digits !== '') $senderName = $digits; // Model tenta trocar por nome real
-    }
-
-    // Texto da mensagem citada (vários formatos possíveis no quotedMessage)
-    $qm = $ci['quotedMessage'] ?? [];
-    $text = null;
-    if (is_array($qm)) {
-        $text = $qm['conversation']
-            ?? ($qm['extendedTextMessage']['text'] ?? null)
-            ?? ($qm['imageMessage']['caption'] ?? null)
-            ?? ($qm['videoMessage']['caption'] ?? null)
-            ?? ($qm['documentMessage']['caption'] ?? null)
-            ?? null;
-        if ($text === null) {
-            if (isset($qm['imageMessage']))      $text = '📷 Imagem';
-            elseif (isset($qm['videoMessage']))  $text = '🎥 Vídeo';
-            elseif (isset($qm['audioMessage']))  $text = '🎵 Áudio';
-            elseif (isset($qm['documentMessage'])) $text = '📄 Documento';
-            elseif (isset($qm['stickerMessage'])) $text = '✨ Sticker';
-        }
-    }
-    if (is_string($text) && mb_strlen($text) > 480) $text = mb_substr($text, 0, 477) . '…';
-
-    return [$senderName, $text];
 }
 
 // ── ALTA #5: Agente IA (atendimento automático via LLM) ───────────────────────
