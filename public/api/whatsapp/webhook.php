@@ -12,12 +12,14 @@ require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
 require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
 require_once __DIR__ . '/../../../app/Services/WebhookDispatcher.php';
 require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
-require_once __DIR__ . '/../../../app/Services/WhatsAppWebhookParser.php'; // parsers puros do payload (strangler Pass 1)
+require_once __DIR__ . '/../../../app/Services/WhatsAppWebhookParser.php';     // parsers puros do payload (strangler Pass 1)
+require_once __DIR__ . '/../../../app/Services/WhatsAppWebhookEntitySync.php'; // persistencia de entidades contato/chat/grupo (strangler Pass 2)
 require_once __DIR__ . '/../../../app/Helpers/Crypto.php';     // decifra api_key do agente (GCM / APP_ENCRYPTION_KEY)
 require_once __DIR__ . '/../../../app/Helpers/TotpHelper.php'; // fallback p/ api_key legada (CBC / MFA_ENCRYPTION_KEY)
 
 use App\Models\Database;
 use App\Services\WhatsAppWebhookParser;
+use App\Services\WhatsAppWebhookEntitySync;
 use App\Helpers\Crypto;
 use App\Helpers\TotpHelper;
 
@@ -191,84 +193,13 @@ try {
         // ── Atualização de contato ───────────────────────────────────────
         case 'contacts.update':
         case 'contacts.upsert':
-            // Persiste o nome do contato em DOIS lugares:
-            //   a) whatsapp_chats.contact_name  → nome no topo da conversa 1:1
-            //   b) whatsapp_contacts.push_name  → resolve nome em grupos e 1:1 (JOINs)
-            // Respeita is_manual_name (rename manual do usuário não é sobrescrito).
-            $contacts = $data;
-            if (isset($data['id'])) $contacts = [$data];
-            $pdo = Database::getConnection();
-            foreach ($contacts as $c) {
-                if (!is_array($c)) continue;
-                $jid  = $c['id'] ?? null;
-                $name = $c['pushName'] ?? ($c['name'] ?? ($c['verifiedName'] ?? null));
-                if (!$jid || !$name) continue;
-                // Ignora "nome" que é só número (não é nome de verdade)
-                if (preg_match('/^\d{6,}$/', (string)$name)) continue;
-                // Ignora auto-nome ("Voce"/"you"/"eu"): rotularia o chat errado.
-                if (in_array(mb_strtolower(trim((string)$name)), ['voce','você','you','eu'], true)) continue;
-                $isGroup = str_ends_with((string)$jid, '@g.us') ? 1 : 0;
-                // @lid (id de privacidade do WhatsApp) NAO e telefone discavel: nao derivar
-                // phone dos seus digitos. Antes gravava o numero interno do @lid como
-                // "telefone real" em whatsapp_contacts.phone, poluindo a coluna e enganando
-                // resolvePhoneJid (que passava a "resolver" o @lid pra um numero invalido).
-                // So @s.whatsapp.net vira phone. Mesmo padrao do sync.php.
-                $phone   = ($isGroup || str_ends_with((string)$jid, '@lid'))
-                    ? null
-                    : preg_replace('/[^0-9]/', '', explode('@', (string)$jid)[0]);
-
-                // a) nome de exibição no chat (não sobrescreve rename manual)
-                $pdo->prepare(
-                    'UPDATE whatsapp_chats SET contact_name = ?
-                     WHERE instance_id = ? AND remote_jid = ? AND COALESCE(is_manual_name,0) = 0'
-                )->execute([$name, $instanceId, $jid]);
-
-                // b) tabela de contatos (alimenta a resolução de nome em grupos/1:1)
-                $pdo->prepare(
-                    'INSERT INTO whatsapp_contacts (account_id, instance_id, remote_jid, push_name, phone, is_group)
-                     VALUES (?,?,?,?,?,?)
-                     ON DUPLICATE KEY UPDATE
-                       push_name = IF(COALESCE(is_manual_name,0) = 0, VALUES(push_name), push_name),
-                       phone     = IF(VALUES(phone) IS NOT NULL AND VALUES(phone) <> "", VALUES(phone), phone)'
-                )->execute([$accountId, $instanceId, $jid, $name, $phone, $isGroup]);
-            }
+            WhatsAppWebhookEntitySync::syncContacts($accountId, $instanceId, $data);
             break;
 
         // ── Chats upsert (sincronização inicial) ─────────────────────────
         case 'chats.upsert':
         case 'chats.update':
-            $chats = $data;
-            if (isset($data['id'])) $chats = [$data];
-            $pdo = Database::getConnection();
-            foreach ($chats as $c) {
-                $jid      = $c['id']       ?? null;
-                $name     = $c['name']     ?? null;
-                $unread   = (int)($c['unreadCount'] ?? 0);
-                if (!$jid) continue;
-                // Ignora status/broadcast e newsletter: nao sao conversas (nao viram chat "0").
-                if (str_ends_with((string)$jid, '@broadcast') || str_contains((string)$jid, '@newsletter')) continue;
-                $jid      = WhatsAppMessage::resolvePhoneJid($pdo, (int)$instanceId, $jid); // @lid -> telefone quando conhecido
-                $isGroup  = str_ends_with((string)$jid, '@g.us') ? 1 : 0;
-                // Nao pre-cria shell @lid 1:1 vazio (fantasma): so se ja houver mensagem sob o jid.
-                if (!$isGroup && str_ends_with((string)$jid, '@lid')) {
-                    $ex = $pdo->prepare('SELECT 1 FROM whatsapp_messages WHERE instance_id = ? AND remote_jid = ? LIMIT 1');
-                    $ex->execute([(int)$instanceId, $jid]);
-                    if (!$ex->fetchColumn()) continue;
-                }
-                // Nao rotula com auto-nome ("Voce" etc.)
-                $cn = trim((string)$name);
-                if ($cn !== '' && in_array(mb_strtolower($cn), ['voce','você','you','eu'], true)) $cn = '';
-                $name = $cn !== '' ? $cn : null;
-                $s = $pdo->prepare(
-                    'INSERT INTO whatsapp_chats (account_id, instance_id, remote_jid, contact_name, unread_count, is_group)
-                     VALUES (?,?,?,?,?,?)
-                     ON DUPLICATE KEY UPDATE
-                       account_id   = IF(account_id IS NULL, VALUES(account_id), account_id),
-                       contact_name = IF(COALESCE(is_manual_name,0)=0 AND VALUES(contact_name) IS NOT NULL AND VALUES(contact_name) <> "", VALUES(contact_name), contact_name),
-                       unread_count = VALUES(unread_count)'
-                );
-                $s->execute([$accountId, $instanceId, $jid, $name, $unread, $isGroup]);
-            }
+            WhatsAppWebhookEntitySync::syncChats($accountId, $instanceId, $data);
             break;
 
         // ── Grupos: nome do grupo + participantes ────────────────────────
@@ -277,52 +208,12 @@ try {
         // então um payload inesperado NÃO derruba o webhook (try/catch local).
         case 'groups.upsert':
         case 'groups.update':
-            try {
-                $pdo    = Database::getConnection();
-                $groups = $data;
-                if (isset($data['id'])) $groups = [$data];
-                foreach ($groups as $g) {
-                    if (!is_array($g)) continue;
-                    $gjid = $g['id'] ?? null;
-                    if (!$gjid) continue;
-                    $subj = $g['subject'] ?? ($g['subjectName'] ?? null);
-                    // Foto do grupo: grava a pictureUrl quando vier no evento (antes só o
-                    // nome era persistido → grupo novo ficava sem foto até "Sincronizar").
-                    $gpic = $g['pictureUrl'] ?? ($g['profilePictureUrl'] ?? ($g['profilePicUrl'] ?? null));
-                    if ($subj || $gpic) {
-                        $pdo->prepare(
-                            'INSERT INTO whatsapp_chats (account_id, instance_id, remote_jid, contact_name, profile_pic_url, is_group)
-                             VALUES (?,?,?,?,?,1)
-                             ON DUPLICATE KEY UPDATE
-                               account_id      = IF(account_id IS NULL, VALUES(account_id), account_id),
-                               contact_name    = IF(COALESCE(is_manual_name,0)=0 AND VALUES(contact_name) IS NOT NULL AND VALUES(contact_name) <> "", VALUES(contact_name), contact_name),
-                               profile_pic_url = IF(VALUES(profile_pic_url) IS NOT NULL AND VALUES(profile_pic_url) <> "", VALUES(profile_pic_url), profile_pic_url)'
-                        )->execute([$accountId, $instanceId, $gjid, $subj, $gpic]);
-                    }
-                    if (!empty($g['participants']) && is_array($g['participants'])) {
-                        upsertGroupParticipants($pdo, $accountId, $instanceId, $gjid, $g['participants']);
-                    }
-                }
-            } catch (\Throwable $_) { /* não derruba o webhook */ }
+            WhatsAppWebhookEntitySync::syncGroups($accountId, $instanceId, $data);
             break;
 
         case 'group-participants.update':
         case 'groups.participants.update':
-            try {
-                $pdo    = Database::getConnection();
-                $gjid   = $data['id'] ?? ($data['groupJid'] ?? null);
-                $action = strtolower((string)($data['action'] ?? 'add'));
-                $parts  = $data['participants'] ?? [];
-                if ($gjid && is_array($parts)) {
-                    if (in_array($action, ['remove','leave'], true)) {
-                        $del = $pdo->prepare('DELETE FROM whatsapp_group_members WHERE instance_id = ? AND group_jid = ? AND participant_jid = ?');
-                        foreach ($parts as $pj) { if (is_string($pj) && $pj !== '') $del->execute([$instanceId, $gjid, $pj]); }
-                    } else {
-                        $defaultRole = $action === 'promote' ? 'admin' : 'member';
-                        upsertGroupParticipants($pdo, $accountId, $instanceId, $gjid, $parts, $defaultRole);
-                    }
-                }
-            } catch (\Throwable $_) { /* não derruba o webhook */ }
+            WhatsAppWebhookEntitySync::syncGroupParticipants($accountId, $instanceId, $data);
             break;
     }
 
@@ -703,47 +594,6 @@ function maybeHandleHumanSend(int $accountId, int $instanceId, ?string $remoteJi
         error_log('[whatsapp/agent] maybeHandleHumanSend ERRO DE BANCO (takeover pode nao ter pausado): ' . $e->getMessage());
     } catch (\Throwable $e) {
         error_log('[whatsapp/agent] maybeHandleHumanSend falhou: ' . $e->getMessage());
-    }
-}
-
-/**
- * UPSERT de participantes de grupo em whatsapp_group_members.
- * Aceita itens como string (JID puro) ou objeto {id, admin, phoneNumber, pushName}.
- * Nunca grava número como "nome"; telefone vai na coluna própria.
- */
-function upsertGroupParticipants(PDO $pdo, ?int $accountId, int $instanceId, string $groupJid, array $participants, string $defaultRole = 'member'): void
-{
-    $ins = $pdo->prepare(
-        'INSERT INTO whatsapp_group_members
-           (account_id, instance_id, group_jid, participant_jid, push_name, phone, role)
-         VALUES (?,?,?,?,?,?,?)
-         ON DUPLICATE KEY UPDATE
-           push_name = IF(VALUES(push_name) IS NOT NULL, VALUES(push_name), push_name),
-           phone     = IF(VALUES(phone)     IS NOT NULL, VALUES(phone),     phone),
-           role      = VALUES(role)'
-    );
-    foreach ($participants as $p) {
-        if (is_string($p)) {
-            $pj = $p; $admin = null; $phoneJid = null; $pn = null;
-        } elseif (is_array($p)) {
-            $pj       = $p['id'] ?? ($p['jid'] ?? null);
-            $admin    = $p['admin'] ?? null;
-            $phoneJid = $p['phoneNumber'] ?? null;
-            $pn       = $p['pushName'] ?? ($p['name'] ?? null);
-        } else {
-            continue;
-        }
-        if (!$pj) continue;
-        $src    = $phoneJid ?: $pj;
-        $digits = preg_replace('/[^0-9]/', '', explode('@', (string)$src)[0]);
-        $phone  = ($digits && strlen($digits) >= 10 && strlen($digits) < 14) ? $digits : null;
-        if ($pn !== null && preg_match('/^\d{6,}$/', (string)$pn)) $pn = null; // número não é nome
-        $role   = match ($admin) {
-            'superadmin' => 'superadmin',
-            'admin'      => 'admin',
-            default      => $defaultRole,
-        };
-        $ins->execute([(int)($accountId ?? 0), $instanceId, $groupJid, $pj, $pn, $phone, $role]);
     }
 }
 

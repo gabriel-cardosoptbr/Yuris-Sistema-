@@ -219,6 +219,43 @@ if (is_file($wh)) {
     }
 } else { skip("webhook.php inexistente"); }
 
+// Strangler do webhook (Onda 4 Pass 1/2): os helpers extraidos existem, expoem os
+// metodos esperados, e o webhook DELEGA a eles (sem sobrar a funcao global movida).
+// Guarda estrutural (so leitura + reflexao; seguro em prod) contra regressao do refactor.
+$parserF = $ROOT.'/app/Services/WhatsAppWebhookParser.php';
+$entityF = $ROOT.'/app/Services/WhatsAppWebhookEntitySync.php';
+if (is_file($parserF) && is_file($entityF)) {
+    require_once $parserF;
+    require_once $entityF;
+    $okP = class_exists('App\\Services\\WhatsAppWebhookParser')
+        && method_exists('App\\Services\\WhatsAppWebhookParser', 'extractMessageContent')
+        && method_exists('App\\Services\\WhatsAppWebhookParser', 'extractQuotedWamid')
+        && method_exists('App\\Services\\WhatsAppWebhookParser', 'extractQuotedSnapshot');
+    $okE = class_exists('App\\Services\\WhatsAppWebhookEntitySync')
+        && method_exists('App\\Services\\WhatsAppWebhookEntitySync', 'syncContacts')
+        && method_exists('App\\Services\\WhatsAppWebhookEntitySync', 'syncChats')
+        && method_exists('App\\Services\\WhatsAppWebhookEntitySync', 'syncGroups')
+        && method_exists('App\\Services\\WhatsAppWebhookEntitySync', 'syncGroupParticipants')
+        && method_exists('App\\Services\\WhatsAppWebhookEntitySync', 'upsertGroupParticipants');
+    $okP ? pass("strangler Pass 1: WhatsAppWebhookParser expoe os 3 parsers") : fail("strangler Pass 1: WhatsAppWebhookParser incompleto");
+    $okE ? pass("strangler Pass 2: WhatsAppWebhookEntitySync expoe sync* + upsertGroupParticipants") : fail("strangler Pass 2: WhatsAppWebhookEntitySync incompleto");
+    if (is_file($wh)) {
+        $wc = (string)file_get_contents($wh);
+        $deleg = strpos($wc, 'WhatsAppWebhookParser::extractMessageContent') !== false
+            && strpos($wc, 'WhatsAppWebhookEntitySync::syncContacts') !== false
+            && strpos($wc, 'WhatsAppWebhookEntitySync::syncChats') !== false
+            && strpos($wc, 'WhatsAppWebhookEntitySync::syncGroups') !== false
+            && strpos($wc, 'WhatsAppWebhookEntitySync::syncGroupParticipants') !== false;
+        // A funcao global upsertGroupParticipants foi movida pra classe: NAO pode sobrar no webhook.
+        $noGlobalUgp = !preg_match('/^\s*function\s+upsertGroupParticipants\s*\(/m', $wc);
+        ($deleg && $noGlobalUgp)
+            ? pass("webhook delega aos helpers do strangler (sem upsertGroupParticipants global)")
+            : fail("webhook nao delega corretamente aos helpers ou ainda tem upsertGroupParticipants global");
+    }
+} else {
+    skip("helpers do strangler (parser/entitysync) nao encontrados");
+}
+
 // Hash-guard do prompt mestre (INTOCAVEL).
 try {
     $tpl = $pdo->query("SELECT template FROM ai_prompts WHERE name='pre_atendimento_universal' AND active=1 ORDER BY id DESC LIMIT 1")->fetchColumn();
