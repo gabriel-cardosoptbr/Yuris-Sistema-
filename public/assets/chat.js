@@ -41,6 +41,7 @@ const ChatApp = (() => {
 
   // ── Inicialização ───────────────────────────────────────────
   async function init() {
+    _setupResilience();   // 4B-2: banner offline + backoff + líder de aba (BroadcastChannel)
     await loadSettings();
     await checkStatus();
     startStatusPolling();
@@ -491,6 +492,105 @@ const ChatApp = (() => {
   let _lastSeq         = null;
   let _cursorEnabled   = true;
   let _cursorFails     = 0;
+  // ── 4B-2: resiliência de rede + líder de aba ──────────────────────────────
+  // (a) apiFetch conta falhas de rede/servidor: 3 seguidas mostram um banner "sem
+  //     conexão" (nunca alert nativo) e ligam backoff crescente no poll; a 1a resposta
+  //     OK zera tudo. (b) online/offline do navegador pausa/retoma. (c) Líder de aba via
+  //     BroadcastChannel: com N abas, só UMA pola o cursor; as demais atualizam quando o
+  //     líder anuncia o seq no heartbeat. Sem BroadcastChannel (ou eleição falha), cada
+  //     aba vira seu próprio líder = exatamente o comportamento do 4B-core.
+  let _netFails      = 0;
+  let _netDown       = false;
+  let _backoffUntil  = 0;
+  const _BACKOFF_STEPS = [5000, 10000, 30000]; // espera crescente após falhas de rede
+  let _resilienceBound = false;
+  let _bc         = null;   // BroadcastChannel (null se indisponível)
+  let _tabId      = null;   // id único desta aba (tie-break de liderança)
+  let _isLeader   = true;   // default: sem BC, toda aba é líder (pola sozinha)
+  let _leaderSeen = 0;      // Date.now() do último heartbeat de OUTRA aba líder
+
+  function _netFail() {
+    _netFails++;
+    if (_netFails >= 3) {
+      if (!_netDown) { _netDown = true; _showNetBanner(); }
+      const step = _BACKOFF_STEPS[Math.min(_netFails - 3, _BACKOFF_STEPS.length - 1)];
+      _backoffUntil = Date.now() + step;
+    }
+  }
+  function _netOk() {
+    if (_netFails === 0 && !_netDown) return;
+    _netFails = 0; _backoffUntil = 0;
+    if (_netDown) {
+      _netDown = false; _hideNetBanner();
+      _cursorEnabled = true; _cursorFails = 0; _lastSeq = null; // re-habilita o cursor após recuperar
+      toast('Conexão restabelecida', 'success');
+    }
+  }
+  function _netBannerEl() {
+    let el = document.getElementById('netBanner');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'netBanner';
+      el.setAttribute('role', 'status');
+      el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;'
+        + 'background:#b91c1c;color:#fff;font:600 13px/1.45 -apple-system,Segoe UI,Roboto,sans-serif;'
+        + 'padding:8px 14px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.28);display:none;';
+      el.textContent = 'Sem conexão com o servidor. Tentando reconectar…';
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+  function _showNetBanner() { _netBannerEl().style.display = 'block'; }
+  function _hideNetBanner() { const el = document.getElementById('netBanner'); if (el) el.style.display = 'none'; }
+
+  // Decide liderança desta aba (só o líder pola). Sem BroadcastChannel: líder de si mesmo.
+  function _bcElect() {
+    if (!_bc) { _isLeader = true; return; }
+    if (Date.now() - _leaderSeen > 5000) _isLeader = true; // ninguém liderando → assumo
+  }
+  // Líder transmite heartbeat com o seq atual (os followers sincronizam por ele).
+  function _bcSend(seq) {
+    if (_bc && _isLeader) { try { _bc.postMessage({ t: 'hb', id: _tabId, seq: seq }); } catch (_) {} }
+  }
+  // Follower: atualiza o PRÓPRIO view quando o líder anuncia um seq novo.
+  async function _followerRefresh(seq) {
+    if (_tickRunning || document.hidden || state.status !== 'open') return;
+    if (seq !== undefined && seq === _lastSeq) return;
+    _lastSeq = seq;
+    _tickRunning = true;
+    try {
+      await loadChats(true);
+      if (state.currentJid) {
+        await refreshLiveMessages();
+        if (state.lastMsgId) await pollNewMessages(); else await loadMessages();
+      }
+    } catch (e) { /* silencioso */ } finally { _tickRunning = false; }
+  }
+
+  function _setupResilience() {
+    if (_resilienceBound) return; _resilienceBound = true;
+    _tabId = String(Math.floor(Math.random() * 1e9)) + '_' + Date.now();
+    // (b) online/offline do navegador
+    window.addEventListener('offline', () => { _netDown = true; _showNetBanner(); });
+    window.addEventListener('online', () => {
+      _netFails = 0; _netDown = false; _backoffUntil = 0; _hideNetBanner();
+      if (state.status === 'open') { _lastSeq = null; _chatPollTick(); } // catch-up imediato
+    });
+    // (c) BroadcastChannel: eleição de líder + sync por heartbeat (best-effort)
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        _bc = new BroadcastChannel('yuris_wa_chat');
+        _bc.onmessage = (ev) => {
+          const m = ev.data || {};
+          if (m.t !== 'hb' || m.id === _tabId) return;
+          _leaderSeen = Date.now();
+          if (m.id && _tabId && m.id < _tabId) _isLeader = false; // id menor vence (determinístico)
+          if (!_isLeader && m.seq !== undefined && m.seq !== _lastSeq) _followerRefresh(m.seq);
+        };
+        window.addEventListener('beforeunload', () => { try { _bc.close(); } catch (_) {} });
+      } catch (_) { _bc = null; }
+    }
+  }
   // Trava de concorrência do TICK inteiro (não só do refreshLiveMessages):
   // o setInterval é async e não espera o tick anterior terminar. Se a lista ou
   // a Evolution responderem lento, os ticks EMPILHAM requests, esgotam o
@@ -509,8 +609,14 @@ const ChatApp = (() => {
     if (_tickRunning) return;            // tick anterior ainda em voo → pula
     if (document.hidden) return;         // aba oculta → não consome rede à toa
     if (state.status !== 'open') return; // só quando o WhatsApp está conectado
+    if (Date.now() < _backoffUntil) return; // 4B-2: backoff após falhas de rede
     _tickRunning = true;
     try {
+      // 4B-2: eleição de líder de aba. Só o líder pola o cursor; as outras abas
+      // atualizam via heartbeat do líder (economiza N polls com várias abas abertas).
+      _bcElect();
+      if (!_isLeader) return;
+
       let doList = false, doConvo = false;
 
       // 1) DISCOVER (~60s = 30 ticks de 2s): varredura de arrasto na Evolution.
@@ -551,6 +657,7 @@ const ChatApp = (() => {
           await loadMessages();
         }
       }
+      _bcSend(_lastSeq); // 4B-2: heartbeat do líder (leva o seq atual p/ os followers)
     } catch (e) { /* silencioso — não derruba o intervalo por um erro pontual */ }
     finally { _tickRunning = false; }
   }
@@ -1273,6 +1380,8 @@ const ChatApp = (() => {
   // ── Envio ────────────────────────────────────────────────────
   async function send() {
     if (!state.currentJid) return;
+    // 4B-2: sem conexão → não tenta enviar (preserva o texto num fetch que ia falhar).
+    if (_netDown || navigator.onLine === false) { toast('Sem conexão. Tente novamente ao reconectar.', 'error'); return; }
 
     // Se tem arquivo pendente
     if (state.pendingFile) {
@@ -2373,9 +2482,29 @@ const ChatApp = (() => {
     };
     if (body) opts.body = JSON.stringify(body);
     if (signal) opts.signal = signal;   // permite abortar (ex.: trocar de conversa)
-    const res  = await fetch(url, opts);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Erro HTTP ' + res.status);
+    // 4B-2: rastreia falhas de REDE/servidor (fetch rejeitado, 5xx, resposta não-JSON)
+    // pra ligar o banner "sem conexão" + backoff. Abort (troca de conversa) e erro de app
+    // (4xx com JSON) NÃO contam como queda. Não muda o contrato de throw dos callers.
+    let res;
+    try {
+      res = await fetch(url, opts);
+    } catch (e) {
+      if (e && e.name === 'AbortError') throw e; // abortado de propósito, não é queda
+      _netFail();
+      throw e;
+    }
+    let data = null;
+    try {
+      data = await res.json();
+    } catch (_) {
+      if (res.status >= 500) _netFail(); else _netOk();
+      throw new Error('Resposta inválida do servidor (HTTP ' + res.status + ')');
+    }
+    if (!res.ok) {
+      if (res.status >= 500) _netFail(); else _netOk();
+      throw new Error(data.error || 'Erro HTTP ' + res.status);
+    }
+    _netOk();
     if (data.error) throw new Error(data.error);
     return data;
   }
