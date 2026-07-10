@@ -326,6 +326,94 @@ class EvolutionApiService
         return ['messages' => ['records' => $allRecords]];
     }
 
+    /**
+     * Versão PARALELA de findMessages (página 1) para a fase 2b do sync (H3).
+     * Busca a página mais recente de VÁRIOS remoteJid ao mesmo tempo via curl_multi.
+     * Cada JID dispara EXATAMENTE a mesma requisição que `findMessages($name,$jid,$count,1)`
+     * faria (mesmo endpoint /chat/findMessages, mesmos headers/apikey, mesmo TLS do .env,
+     * mesmo CURLOPT_TIMEOUT, mesmo body com where.key.remoteJid + limit + page:1) — só que
+     * concorrente. Isso multiplica a cobertura de conversas dentro do MESMO orçamento de
+     * tempo do sync (N chamadas de ~1-2s deixam de somar e passam a rodar juntas).
+     *
+     * NÃO usa request() (que é sequencial) de propósito: replica o setup do curl aqui para
+     * disparar tudo num único curl_multi. A configuração do handle é idêntica à do request().
+     *
+     * Retorna [remoteJid => records[]] — o array de mensagens da página 1 por JID. Um JID que
+     * falha (erro de rede/timeout, resposta não-JSON, ou sem records) vem com [] e NUNCA
+     * derruba os outros nem o método — espelha o `catch { continue }` do loop sequencial que
+     * este método substitui. JIDs repetidos/ inválidos são deduplicados/ignorados.
+     *
+     * @param string[] $jids
+     * @return array<string,array>
+     */
+    public function findMessagesMulti(string $name, array $jids, int $count = 50): array
+    {
+        $out  = [];
+        $jids = array_values(array_unique(array_filter($jids, static fn($j) => is_string($j) && $j !== '')));
+        if (!$jids) return $out;
+
+        // TLS idêntico ao request() (lido do .env; padrão TRUE — em prod sempre verifica).
+        if (!class_exists('App\\Helpers\\EnvLoader')) {
+            require_once __DIR__ . '/../Helpers/EnvLoader.php';
+        }
+        \App\Helpers\EnvLoader::load();
+        $tlsVerifySetting = strtolower(\App\Helpers\EnvLoader::get('EVOLUTION_TLS_VERIFY', 'true'));
+        $tlsVerify        = !in_array($tlsVerifySetting, ['false', '0', 'no', 'off'], true);
+
+        $headers = ['Content-Type: application/json', 'Accept: application/json'];
+        if ($this->apiKey) $headers[] = 'apikey: ' . $this->apiKey;
+
+        $url = $this->baseUrl . "/chat/findMessages/{$this->enc($name)}";
+
+        $mh      = curl_multi_init();
+        $handles = []; // remoteJid => CurlHandle
+        foreach ($jids as $jid) {
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT        => $this->timeout,
+                CURLOPT_HTTPHEADER     => $headers,
+                CURLOPT_SSL_VERIFYPEER => $tlsVerify,
+                CURLOPT_SSL_VERIFYHOST => $tlsVerify ? 2 : 0,
+                CURLOPT_POST           => true,
+                CURLOPT_POSTFIELDS     => json_encode([
+                    'where' => ['key' => ['remoteJid' => $jid]],
+                    'limit' => $count,
+                    'page'  => 1,
+                ]),
+            ]);
+            curl_multi_add_handle($mh, $ch);
+            $handles[$jid] = $ch;
+            $out[$jid]     = []; // default: falha/sem records (espelha o sequencial)
+        }
+
+        // Roda todos os handles em paralelo até terminarem (ou darem timeout individual).
+        do {
+            $status = curl_multi_exec($mh, $running);
+            if ($running) {
+                // Bloqueia até haver atividade; -1 (sem fd) → micro-pausa p/ não busy-loop.
+                if (curl_multi_select($mh, 1.0) === -1) usleep(1000);
+            }
+        } while ($running && $status === CURLM_OK);
+
+        // Colhe por JID: mesma extração do request()/findMessages (records ?? []).
+        foreach ($handles as $jid => $ch) {
+            $errno = curl_errno($ch);
+            $raw   = curl_multi_getcontent($ch);
+            if ($errno === 0 && is_string($raw) && $raw !== '') {
+                $decoded = json_decode($raw, true);
+                if (is_array($decoded)) {
+                    $out[$jid] = $decoded['messages']['records'] ?? [];
+                }
+            }
+            curl_multi_remove_handle($mh, $ch);
+            curl_close($ch);
+        }
+        curl_multi_close($mh);
+
+        return $out;
+    }
+
     /** Listar todos os grupos da instância. */
     public function fetchAllGroups(string $name): array
     {

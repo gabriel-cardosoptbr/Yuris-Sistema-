@@ -166,17 +166,34 @@ try {
         foreach ($dbq->fetchAll(PDO::FETCH_COLUMN) as $dj) { if ($dj) $coverJids[(string)$dj] = true; }
     } catch (\Throwable $_) {}
 
+    // H3: cobertura por conversa em LOTES PARALELOS (curl_multi) em vez de 1 JID por vez.
+    // Primeiro monta a lista de JIDs a cobrir (mesmos filtros do sequencial: nao vistos no
+    // passe global, sem broadcast/newsletter); depois busca a pagina 1 de cada em lotes
+    // concorrentes — a MESMA requisicao por JID, so que N ao mesmo tempo, o que multiplica a
+    // cobertura de conversas dentro do MESMO $TIME_BUDGET (antes cada JID somava ~1-2s;
+    // agora um lote inteiro roda junto). Orcamento checado ENTRE lotes.
+    $toCover = [];
     foreach (array_keys($coverJids) as $cj) {
         if (isset($seenJids[$cj])) continue; // ja coberto pelo passe global recente
         if (str_ends_with((string)$cj, '@broadcast') || str_contains((string)$cj, '@newsletter')) continue;
+        $toCover[] = (string)$cj;
+    }
+    // Conexoes paralelas por lote. 5 (nao 10) por conservadorismo: findMessages na Evolution
+    // e LEITURA de banco (nao toca o socket WhatsApp -> sem risco de ban), mas a instancia e
+    // UNICA/sagrada e divide o box apertado (3.8GB/9 containers) com webhook+bot; 5 mantem ~5x
+    // o ganho do sequencial e corta pela metade o pico de memoria/pool na Evolution na rajada.
+    // O teto de tempo e identico ao de 10 (o lote roda em paralelo). Botao de ajuste se surgir
+    // rate-limit: um JID que volte [] degrada com elegancia e converge no proximo Sincronizar.
+    $MULTI_BATCH = 5;
+    foreach (array_chunk($toCover, $MULTI_BATCH) as $batch) {
         if ($overBudget()) { $partial = true; break; } // parou por tempo: clicar Sincronizar de novo
-        try {
-            $resp = $evo->findMessages($name, (string)$cj, 50, 1); // 1 pagina recente por JID
-        } catch (\Throwable $_) { continue; } // um JID que falha nao derruba o sync
-        $recs = $resp['messages']['records'] ?? [];
-        if ($recs) {
-            $allMessages   = array_merge($allMessages, $recs);
-            $seenJids[$cj] = true;
+        // findMessagesMulti NUNCA lanca: um JID que falha/timeout volta com [] (espelha o
+        // catch/continue do loop sequencial que este bloco substitui).
+        foreach ($evo->findMessagesMulti($name, $batch, 50) as $cj => $recs) {
+            if ($recs) {
+                $allMessages   = array_merge($allMessages, $recs);
+                $seenJids[$cj] = true;
+            }
         }
     }
 
