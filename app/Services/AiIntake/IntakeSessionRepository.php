@@ -1,6 +1,8 @@
 <?php
 namespace App\Services\AiIntake;
 
+require_once __DIR__ . '/AgentEvent.php';
+
 /**
  * IntakeSessionRepository — persistencia de sessoes/mensagens/uso do agente (tabelas ai_*).
  *
@@ -91,6 +93,37 @@ final class IntakeSessionRepository
         }
     }
 
+    /** 4C (debounce): id da mensagem inbound (usuário) mais recente da sessão. 0 se nenhuma. */
+    public function latestUserInboundId(int $sessionId): int
+    {
+        $st = $this->pdo->prepare("SELECT COALESCE(MAX(id),0) FROM ai_intake_messages WHERE session_id = ? AND direction = 'inbound'");
+        $st->execute([$sessionId]);
+        return (int)$st->fetchColumn();
+    }
+
+    /**
+     * 4C (agregação de rajada): concatena o TEXTO das mensagens do usuário ainda não
+     * respondidas (desde a última saída do bot) nesta sessão, em ordem. Assim, ao agregar
+     * uma rajada, nenhuma mensagem é descartada. null se não houver texto novo.
+     */
+    public function unansweredUserText(int $sessionId): ?string
+    {
+        $st = $this->pdo->prepare("SELECT COALESCE(MAX(id),0) FROM ai_intake_messages WHERE session_id = ? AND direction = 'outbound'");
+        $st->execute([$sessionId]);
+        $lastOut = (int)$st->fetchColumn();
+        $st = $this->pdo->prepare(
+            "SELECT content FROM ai_intake_messages
+              WHERE session_id = ? AND direction = 'inbound' AND id > ?
+                AND (message_type = 'text' OR message_type IS NULL)
+                AND content IS NOT NULL AND content <> ''
+              ORDER BY id ASC"
+        );
+        $st->execute([$sessionId, $lastOut]);
+        $parts = $st->fetchAll(\PDO::FETCH_COLUMN) ?: [];
+        if (!$parts) return null;
+        return implode("\n", array_map('strval', $parts));
+    }
+
     public function recordBotSent(int $accountId, int $sessionId, ?string $wamid, ?int $waMsgId, ?string $content, ?array $structured, array $usage = [], ?int $latency = null, bool $aiCalled = true): int
     {
         return $this->insertMessage([
@@ -159,12 +192,39 @@ final class IntakeSessionRepository
     }
 
     /**
-     * Pausa o bot por atendimento humano (mesma conversa). Espelha em whatsapp_chats.agent_paused
-     * para compatibilidade com o gating existente do webhook.
+     * ESCRITOR ÚNICO de whatsapp_chats.agent_paused (+ auditoria de quem/quando). 4C (Onda 4):
+     * pauseForHuman, resumeBot e o handoff do engine passam TODOS por aqui, então a suíte de
+     * invariantes garante que nada mais escreve agent_paused fora do repositório (fim da
+     * dessincronia pausa↔sessão que gerou o P0). $paused=true pausa (grava paused_by/at);
+     * false retoma (zera os dois). agent_paused_by/at vieram na migration 107.
+     */
+    public function setChatPaused(int $channelId, string $remoteJid, bool $paused, ?int $userId = null): void
+    {
+        try {
+            if ($paused) {
+                $st = $this->pdo->prepare(
+                    "UPDATE whatsapp_chats SET agent_paused = 1, agent_paused_by = ?, agent_paused_at = NOW()
+                      WHERE instance_id = ? AND remote_jid = ?"
+                );
+                $st->execute([$userId, $channelId, $remoteJid]);
+            } else {
+                $st = $this->pdo->prepare(
+                    "UPDATE whatsapp_chats SET agent_paused = 0, agent_paused_by = NULL, agent_paused_at = NULL
+                      WHERE instance_id = ? AND remote_jid = ?"
+                );
+                $st->execute([$channelId, $remoteJid]);
+            }
+        } catch (\Throwable $_) { /* colunas 107 podem faltar em ambiente antigo */ }
+    }
+
+    /**
+     * Pausa o bot por atendimento humano (mesma conversa). Seta a sessão para human_takeover
+     * e espelha no chat pelo ESCRITOR ÚNICO (setChatPaused, que grava paused_by/at).
      */
     public function pauseForHuman(int $channelId, string $remoteJid, ?int $userId): bool
     {
         $sess = $this->findActiveSession($channelId, $remoteJid);
+        $sid  = $sess ? (int)$sess['id'] : null;
         if ($sess) {
             $this->updateSession((int)$sess['id'], [
                 'controller_mode' => 'human_takeover',
@@ -173,24 +233,21 @@ final class IntakeSessionRepository
                 'current_state'   => 'human_takeover',
             ]);
         }
-        // espelha no chat (gating legado)
-        try {
-            $st = $this->pdo->prepare("UPDATE whatsapp_chats SET agent_paused = 1 WHERE instance_id = ? AND remote_jid = ?");
-            $st->execute([$channelId, $remoteJid]);
-        } catch (\Throwable $_) { /* coluna pode nao existir em ambientes antigos */ }
+        $this->setChatPaused($channelId, $remoteJid, true, $userId);
+        AgentEvent::log($this->pdo, 'paused', ['by' => $userId], 'info', null, $sid, $channelId);
         return (bool)$sess;
     }
 
     /**
      * Devolve a conversa ao bot (inverso de pauseForHuman). Reativa a sessao ativa
-     * (controller_mode/current_state) e zera agent_paused. SEM isso, uma conversa que
-     * passou por takeover/handoff fica presa em human_takeover/terminal e o bot nunca
-     * mais responde, mesmo com a pausa "desligada" na UI. Nunca reabre sessao encerrada:
-     * findActiveSession ja exige closed_at IS NULL (sessoes completed/out_of_scope ficam de fora).
+     * (controller_mode/current_state) e zera agent_paused via o ESCRITOR ÚNICO. SEM isso,
+     * uma conversa que passou por takeover/handoff fica presa em human_takeover/terminal e o
+     * bot nunca mais responde. Nunca reabre sessao encerrada (findActiveSession exige closed_at NULL).
      */
     public function resumeBot(int $channelId, string $remoteJid): bool
     {
         $sess = $this->findActiveSession($channelId, $remoteJid);
+        $sid  = $sess ? (int)$sess['id'] : null;
         if ($sess && (string)($sess['controller_mode'] ?? '') !== 'bot_active') {
             // Estado nao-terminal para o gating do engine (isPaused=false + isTerminal=false).
             $this->updateSession((int)$sess['id'], [
@@ -199,11 +256,8 @@ final class IntakeSessionRepository
                 'current_state'   => 'collecting_minimum_data',
             ]);
         }
-        // espelha no chat (gating legado)
-        try {
-            $st = $this->pdo->prepare("UPDATE whatsapp_chats SET agent_paused = 0 WHERE instance_id = ? AND remote_jid = ?");
-            $st->execute([$channelId, $remoteJid]);
-        } catch (\Throwable $_) { /* coluna pode nao existir em ambientes antigos */ }
+        $this->setChatPaused($channelId, $remoteJid, false);
+        AgentEvent::log($this->pdo, 'resumed', [], 'info', null, $sid, $channelId);
         return (bool)$sess;
     }
 

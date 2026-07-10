@@ -73,18 +73,19 @@ try {
     $chatId = (int)$row['id'];
     $chJid  = (string)$row['remote_jid'];
 
-    $upd = $pdo->prepare('UPDATE whatsapp_chats SET agent_paused = :p WHERE id = :id');
-    $upd->execute(['p' => $paused, 'id' => $chatId]);
-
-    // Ao devolver a conversa para o bot, reativa a sessao do agente (senao fica presa
-    // em human_takeover/terminal e o bot nunca mais responde). Best-effort: nao pode
-    // derrubar a resposta de sucesso do takeover.
-    if ($paused === 0) {
-        try {
-            (new \App\Services\AiIntake\IntakeSessionRepository($pdo))->resumeBot($channelId, $chJid);
-        } catch (\Throwable $e) {
-            error_log('[agent_takeover] resumeBot falhou: ' . $e->getMessage());
+    // 4C: pausa/retomada passam pelo REPOSITÓRIO (escritor único de agent_paused +
+    // consistência com a sessão do agente). Pausar = human_takeover (humano assumiu, grava
+    // paused_by); retomar = reativa o bot. Nada mais escreve agent_paused fora do repo.
+    // Best-effort: não pode derrubar a resposta de sucesso do takeover.
+    $repo = new \App\Services\AiIntake\IntakeSessionRepository($pdo);
+    try {
+        if ($paused === 1) {
+            $repo->pauseForHuman($channelId, $chJid, (int)$uid);
+        } else {
+            $repo->resumeBot($channelId, $chJid);
         }
+    } catch (\Throwable $e) {
+        error_log('[agent_takeover] pausa/retomada falhou: ' . $e->getMessage());
     }
 
     echo json_encode(['ok' => true, 'chat_id' => $chatId, 'agent_paused' => $paused]);

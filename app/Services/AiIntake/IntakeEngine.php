@@ -134,6 +134,22 @@ final class IntakeEngine
             return $this->reply($sid, $aiMsgId, $reply, false, null, 'media_ack');
         }
 
+        // 4.5) Debounce de rajada (4C, opt-in via cfg.burst_debounce_ms; 0 = desligado, sem
+        //      efeito nenhum). Roda APÓS o flushResponse (cliente já recebeu o 200). Espera um
+        //      pouco e deixa a ÚLTIMA mensagem da rajada responder por todas; o turno enviado ao
+        //      modelo é a AGREGAÇÃO das mensagens ainda não respondidas (nada se perde). Só
+        //      SUPRIME chamadas, nunca cria — preserva o "na dúvida não dispara".
+        $debounceMs = (int)($cfg['burst_debounce_ms'] ?? 0);
+        if ($debounceMs > 0 && $inboundId > 0) {
+            usleep(min($debounceMs, 15000) * 1000); // teto de 15s por segurança
+            if ($this->repo->latestUserInboundId($sid) > $inboundId) {
+                AgentEvent::log($this->pdo, 'superseded', [], 'info', $accountId, $sid, $channelId);
+                return $this->silent($sid, 'superseded'); // a última mensagem da rajada responde
+            }
+            $agg = $this->repo->unansweredUserText($sid);
+            if ($agg !== null && $agg !== '') $userText = $agg;
+        }
+
         // 5) Circuit breaker de custo mensal
         $limits = $this->jdec($cfg['usage_limits_json'] ?? null);
         $monthLimit = (float)($limits['monthly_cost_limit'] ?? 0);
@@ -331,11 +347,10 @@ final class IntakeEngine
             'task_id' => $hand['task_id'] ?? ($session['task_id'] ?? null),
             'last_message_at' => date('Y-m-d H:i:s'),
         ]);
-        // pausa o bot na conversa (mesma instancia; humano segue) — espelha agent_paused
-        try {
-            $st = $this->pdo->prepare("UPDATE whatsapp_chats SET agent_paused = 1 WHERE instance_id = ? AND remote_jid = ?");
-            $st->execute([$channelId, $remoteJid]);
-        } catch (\Throwable $_) {}
+        // Espelha a pausa no chat pelo ESCRITOR ÚNICO (4C). O handoff mantém a sessão em
+        // awaiting_human (acima); aqui só marca agent_paused=1 + auditoria, sem tocar o
+        // controller_mode (é o fim normal do fluxo, não human_takeover).
+        $this->repo->setChatPaused($channelId, $remoteJid, true, $hand['user_id'] ?? null);
 
         $aiMsgId = $this->repo->recordBotSent($accountId, $sid, null, null, $reply, $structured, $res['usage'] ?? [], $res['latency_ms'] ?? null, true);
         return $this->reply($sid, $aiMsgId, $reply, true, $structured, 'handoff:' . $reason);

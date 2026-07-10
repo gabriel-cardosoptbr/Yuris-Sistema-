@@ -153,7 +153,7 @@ try {
             AND ( (s.controller_mode IN('human_takeover','awaiting_human','bot_paused') AND COALESCE(c.agent_paused,0)=0)
                OR (s.controller_mode='bot_active' AND c.agent_paused=1) )");
     $n === 0 ? pass("pausa<->sessao: 0 dessincronia entre controller_mode e agent_paused")
-             : warn("pausa<->sessao: $n conversa(s) com controller_mode e agent_paused divergentes (consolidar no 4C)");
+             : fail("pausa<->sessao: $n conversa(s) com controller_mode e agent_paused divergentes (4C rompeu o escritor unico?)");
 } catch (\Throwable $e) { skip("pausa<->sessao: " . $e->getMessage()); }
 
 // -------------------------------------------------------------------------
