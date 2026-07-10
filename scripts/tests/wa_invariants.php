@@ -225,6 +225,7 @@ if (is_file($wh)) {
 $parserF = $ROOT.'/app/Services/WhatsAppWebhookParser.php';
 $entityF = $ROOT.'/app/Services/WhatsAppWebhookEntitySync.php';
 $bridgeF = $ROOT.'/app/Services/WhatsAppAgentBridge.php';
+$authF   = $ROOT.'/app/Services/WhatsAppWebhookAuth.php'; // 2o fator do webhook (B3)
 // REDE DE DEPLOY (atomicidade do strangler): se o webhook DELEGA a um helper (WhatsAppXxx::)
 // mas o arquivo do helper NAO existe, o require_once no topo do webhook fatala em runtime — e
 // um deploy incompleto (webhook shipou sem a classe). Aqui isso vira FAIL (nao o SKIP mudo do
@@ -235,6 +236,7 @@ foreach ([
     ['WhatsAppWebhookParser::',     $parserF, 'WhatsAppWebhookParser (Pass 1)'],
     ['WhatsAppWebhookEntitySync::', $entityF, 'WhatsAppWebhookEntitySync (Pass 2)'],
     ['WhatsAppAgentBridge::',       $bridgeF, 'WhatsAppAgentBridge (Pass 3)'],
+    ['WhatsAppWebhookAuth::',       $authF,   'WhatsAppWebhookAuth (B3)'],
 ] as [$ndl, $hf, $lbl]) {
     if (strpos($whSrc, $ndl) !== false && !is_file($hf)) {
         fail("DEPLOY INCOMPLETO: webhook delega a $lbl mas " . basename($hf) . " nao existe — webhook fatala em runtime (arquivo faltou no commit/pull)");
@@ -288,6 +290,48 @@ if (is_file($parserF) && is_file($entityF) && is_file($bridgeF)) {
     }
 } else {
     skip("helpers do strangler (parser/entitysync/bridge) nao encontrados");
+}
+
+// ── B3: 2o fator do webhook (webhook_token) ──────────────────────────────
+// O webhook valida um segredo DEDICADO (WhatsAppWebhookAuth::verify) alem de
+// resolver o tenant pela apikey. A rede de deploy acima ja trava deploy incompleto
+// (webhook delega ao helper mas o arquivo faltou). Aqui garantimos a FORMA + o uso.
+section("B3 — webhook_token (2o fator do webhook)");
+$whB3 = $ROOT.'/public/api/whatsapp/webhook.php';
+if (!is_file($authF)) {
+    skip("WhatsAppWebhookAuth.php nao encontrado (B3 nao deployado ainda)");
+} else {
+    require_once $authF;
+    $okA = class_exists('App\\Services\\WhatsAppWebhookAuth')
+        && method_exists('App\\Services\\WhatsAppWebhookAuth', 'verify');
+    $okA ? pass("B3: WhatsAppWebhookAuth expoe verify()")
+         : fail("B3: WhatsAppWebhookAuth sem verify()");
+    // A comparacao do token DEVE ser constant-time (hash_equals), nao === (timing attack).
+    $authSrc = (string)file_get_contents($authF);
+    (strpos($authSrc, 'hash_equals') !== false)
+        ? pass("B3: verify() compara o token com hash_equals (timing-safe)")
+        : fail("B3: verify() NAO usa hash_equals (risco de timing attack)");
+    if (is_file($whB3)) {
+        $wcB3 = (string)file_get_contents($whB3);
+        // O webhook delega ao helper e le o token do header dedicado.
+        $delegA = strpos($wcB3, 'WhatsAppWebhookAuth::verify') !== false;
+        $leHdr  = strpos($wcB3, 'HTTP_X_WEBHOOK_TOKEN') !== false;
+        ($delegA && $leHdr)
+            ? pass("B3: webhook delega a WhatsAppWebhookAuth::verify e le X-Webhook-Token")
+            : fail("B3: webhook nao delega ao helper ou nao le HTTP_X_WEBHOOK_TOKEN");
+        // Retrocompat: o webhook precisa tratar o estado COMPAT (token ausente aceito
+        // na janela Fase A->B). A prova de COMPORTAMENTO fica no teste dinamico
+        // wa_webhook_token_test.php; aqui so confirmamos que o webhook o referencia.
+        (strpos($wcB3, 'WhatsAppWebhookAuth::COMPAT') !== false)
+            ? pass("B3: webhook trata o estado COMPAT (token ausente aceito na transicao)")
+            : warn("B3: estado COMPAT nao referenciado no webhook — confirmar modo compativel");
+        // So um token PRESENTE e ERRADO rejeita: o webhook precisa do 401 no ramo REJECT.
+        (strpos($wcB3, 'WhatsAppWebhookAuth::REJECT') !== false && strpos($wcB3, 'http_response_code(401)') !== false)
+            ? pass("B3: webhook rejeita (401) no ramo REJECT (token presente e errado)")
+            : fail("B3: webhook nao tem 401 no ramo REJECT do webhook_token");
+    } else {
+        skip("webhook.php nao encontrado para checar delegacao B3");
+    }
 }
 
 // Hash-guard do prompt mestre (INTOCAVEL).

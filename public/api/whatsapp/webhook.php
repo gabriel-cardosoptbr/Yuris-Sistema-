@@ -15,6 +15,7 @@ require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
 require_once __DIR__ . '/../../../app/Services/WhatsAppWebhookParser.php';     // parsers puros do payload (strangler Pass 1)
 require_once __DIR__ . '/../../../app/Services/WhatsAppWebhookEntitySync.php'; // persistencia de entidades contato/chat/grupo (strangler Pass 2)
 require_once __DIR__ . '/../../../app/Services/WhatsAppAgentBridge.php';       // caminho do agente IA: gating/flush/decrypt/envio (strangler Pass 3)
+require_once __DIR__ . '/../../../app/Services/WhatsAppWebhookAuth.php';       // 2o fator do webhook (webhook_token) — B3
 require_once __DIR__ . '/../../../app/Helpers/Crypto.php';     // decifra api_key do agente (GCM / APP_ENCRYPTION_KEY)
 require_once __DIR__ . '/../../../app/Helpers/TotpHelper.php'; // fallback p/ api_key legada (CBC / MFA_ENCRYPTION_KEY)
 
@@ -22,6 +23,7 @@ use App\Models\Database;
 use App\Services\WhatsAppWebhookParser;
 use App\Services\WhatsAppWebhookEntitySync;
 use App\Services\WhatsAppAgentBridge;
+use App\Services\WhatsAppWebhookAuth;
 use App\Helpers\Crypto;
 use App\Helpers\TotpHelper;
 
@@ -120,6 +122,26 @@ try {
         http_response_code(503);
         echo json_encode(['error' => 'Configuração inconsistente']);
         exit;
+    }
+
+    // ── B3: 2o fator do webhook (webhook_token) — modo compativel ─────────────
+    // Alem de resolver o tenant pela apikey, validamos um segredo DEDICADO ao
+    // webhook (whatsapp_settings.webhook_token), separado da evolution_api_key.
+    // Enquanto o tenant nao tiver token configurado, ou a Evolution ainda nao o
+    // enviar (janela Fase A->B), o webhook segue aceitando (retrocompat). So um
+    // token PRESENTE e ERRADO gera 401. Recebido via header X-Webhook-Token
+    // (HTTP_X_WEBHOOK_TOKEN) ou ?wtoken= (fallback p/ versao da Evolution que nao
+    // honra header custom). Comparacao constant-time em WhatsAppWebhookAuth::verify.
+    $wtProvided = (string)($_SERVER['HTTP_X_WEBHOOK_TOKEN'] ?? ($_GET['wtoken'] ?? ''));
+    switch (WhatsAppWebhookAuth::verify($cfg['webhook_token'] ?? null, $wtProvided)) {
+        case WhatsAppWebhookAuth::REJECT:
+            error_log('[whatsapp/webhook] webhook_token invalido (account_id=' . $accountId . ') — requisicao rejeitada');
+            http_response_code(401);
+            echo json_encode(['error' => 'webhook token inválido']);
+            exit;
+        case WhatsAppWebhookAuth::COMPAT:
+            error_log('[whatsapp/webhook] webhook_token configurado mas ausente na requisicao (modo compat, account_id=' . $accountId . ')');
+            break;
     }
 
     // Cria/encontra instância DENTRO do tenant identificado pela apikey

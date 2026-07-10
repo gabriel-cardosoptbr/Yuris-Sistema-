@@ -2816,11 +2816,17 @@ async function _aiLoadWebhooks(ids) {
       const d = (r && r.ok && r.data) ? r.data : { dest: 'erro' };
       // Quando o webhook aponta pra fora do Yuris (n8n/outro/none), oferece o
       // atalho "→ Yuris" pra reapontar o canal com 1 clique.
-      const canRepoint = d.dest !== 'yuris' && d.dest !== 'noconfig' && d.dest !== 'erro';
-      const extraBtn = canRepoint
+      const hasEvo = d.dest !== 'noconfig' && d.dest !== 'erro';
+      const canRepoint = hasEvo && d.dest !== 'yuris';
+      const repointBtn = canRepoint
         ? ` <button class="btn-mst" style="font-size:.64rem;padding:1px 8px;margin-left:6px" onclick="repointWebhook(${iid})">→ Yuris</button>`
         : '';
-      el.innerHTML = _aiWhkChip(d.dest, d.url) + extraBtn;
+      // 2o fator (webhook_token): gera/rotaciona o segredo dedicado deste canal.
+      // So faz sentido se ha config Evolution (senao nao ha o que proteger).
+      const tokenBtn = hasEvo
+        ? ` <button class="btn-mst" style="font-size:.64rem;padding:1px 8px;margin-left:6px" title="Gera um segredo dedicado (2º fator) que a Evolution passará a enviar em cada webhook. Não altera a Evolution agora, a ativação é uma etapa separada." onclick="rotateWebhookToken(${iid})">Gerar token</button>`
+        : '';
+      el.innerHTML = _aiWhkChip(d.dest, d.url) + repointBtn + tokenBtn;
     } catch (e) { el.innerHTML = _aiWhkChip('erro'); }
   }));
 }
@@ -2837,6 +2843,56 @@ async function repointWebhook(iid) {
     if (res.ok && j.ok !== false) { notifyOk('Webhook apontado pro Yuris'); _aiLoadWebhooks([iid]); }
     else { notifyErr(j.error || 'Erro ao apontar o webhook'); }
   } catch (e) { notifyErr('Erro de rede ao apontar o webhook'); }
+}
+
+// B3 — gera/rotaciona o webhook_token (2o fator dedicado) deste canal. NAO toca a
+// Evolution (isso e a Fase B, feita em janela combinada): so grava o segredo e
+// mostra o valor UMA vez. Se ja existir um token, e substituido.
+async function rotateWebhookToken(iid) {
+  if (!(await Yuris.confirm('Gerar um novo token de webhook (2º fator) para este canal? É um segredo dedicado, separado da chave da Evolution. Isto NÃO altera nada na Evolution ainda: a ativação (fazer a Evolution enviar o token) é uma etapa separada, em janela combinada. Se já houver um token, ele será substituído.', { okLabel: 'Gerar token' }))) return;
+  try {
+    const res = await fetch(`${API}/ai_webhook_token.php`, {
+      method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},
+      body: JSON.stringify({ csrf_token: CSRF, instance_id: iid })
+    });
+    const j = await res.json();
+    if (res.ok && j.ok !== false && j.data) { _showWebhookToken(j.data); }
+    else { notifyErr(j.error || 'Erro ao gerar o token do webhook'); }
+  } catch (e) { notifyErr('Erro de rede ao gerar o token do webhook'); }
+}
+
+// Modal (uma vez) com o token em claro + como a Evolution deve envia-lo. O valor
+// nao aparece mais depois; nas leituras seguintes o painel mascara.
+function _showWebhookToken(d) {
+  document.getElementById('wtkOverlay')?.remove();
+  const tok = d.token || '', hook = d.hook || '', hdr = d.header_name || 'X-Webhook-Token', qp = d.query_param || 'wtoken';
+  const ov = document.createElement('div');
+  ov.id = 'wtkOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(2,6,23,.72);display:flex;align-items:center;justify-content:center;z-index:9999;padding:18px';
+  ov.innerHTML = `
+    <div style="background:#0f1b2d;border:1px solid rgba(96,165,250,.35);border-radius:14px;max-width:560px;width:100%;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.5)">
+      <div style="font-weight:800;font-size:1.02rem;margin-bottom:6px;color:#e6eefb">Token do webhook gerado</div>
+      <div style="font-size:.78rem;color:#9ab0c9;margin-bottom:14px;line-height:1.5">Este é o <strong>2º fator</strong> deste canal, um segredo dedicado (separado da chave da Evolution). <strong style="color:#f7c948">Copie agora</strong>, ele não será mostrado de novo. A ativação na Evolution (fazê-la enviar o token) é uma etapa separada, em janela combinada.</div>
+      <div style="font-size:.7rem;color:#9ab0c9;margin-bottom:4px">Token (256 bits)</div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <input id="wtkVal" readonly value="${esc(tok)}" style="flex:1;background:#0a1424;border:1px solid rgba(255,255,255,.14);border-radius:8px;color:#e6eefb;padding:8px 10px;font-family:monospace;font-size:.74rem">
+        <button class="btn-mst" style="padding:6px 14px" onclick="_copyWebhookToken()">Copiar</button>
+      </div>
+      <div style="font-size:.72rem;color:#9ab0c9;line-height:1.6;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:10px 12px;margin-bottom:16px">
+        <div style="color:#cbd8ea;font-weight:700;margin-bottom:4px">Como a Evolution deverá enviá-lo (etapa seguinte):</div>
+        <div>Header: <code style="color:#7EB8F7">${esc(hdr)}: &lt;token&gt;</code></div>
+        <div>ou na URL: <code style="color:#7EB8F7">${esc(hook)}?...&amp;${esc(qp)}=&lt;token&gt;</code></div>
+      </div>
+      <div style="text-align:right"><button class="btn-mst btn-mst-primary" style="padding:8px 18px" onclick="document.getElementById('wtkOverlay').remove()">Fechar</button></div>
+    </div>`;
+  document.body.appendChild(ov);
+}
+function _copyWebhookToken() {
+  const i = document.getElementById('wtkVal'); if (!i) return;
+  const done = () => notifyOk('Token copiado');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(i.value).then(done).catch(() => { i.select(); document.execCommand('copy'); done(); });
+  } else { i.select(); document.execCommand('copy'); done(); }
 }
 
 async function toggleAiAgent(accountId, enable, btn) {
