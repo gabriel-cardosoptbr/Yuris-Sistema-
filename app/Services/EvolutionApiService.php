@@ -113,7 +113,7 @@ class EvolutionApiService
     // Webhook
     // ────────────────────────────────────────────
 
-    public function setWebhook(string $name, string $url, array $events = []): array
+    public function setWebhook(string $name, string $url, array $events = [], array $extraHeaders = []): array
     {
         if (!$events) {
             $events = [
@@ -138,6 +138,18 @@ class EvolutionApiService
         // garantem a entrega independente do comportamento da versão.
         if ($this->apiKey !== '') {
             $webhook['headers'] = ['apikey' => $this->apiKey, 'Content-Type' => 'application/json'];
+        }
+        // B3 Fase B: headers ADICIONAIS que a Evolution deve ENVIAR em cada webhook
+        // (ex.: 'X-Webhook-Token' = 2o fator dedicado, lido por webhook.php como
+        // HTTP_X_WEBHOOK_TOKEN). Se $extraHeaders vazio, o comportamento e IDENTICO
+        // ao anterior (nenhum header novo).
+        foreach ($extraHeaders as $hk => $hv) {
+            $hk = trim((string) $hk); $hv = (string) $hv;
+            if ($hk === '' || $hv === '') continue;
+            // Nunca sobrescrever os headers reservados de roteamento do tenant.
+            if (in_array(strtolower($hk), ['apikey', 'content-type'], true)) continue;
+            if (!isset($webhook['headers'])) $webhook['headers'] = ['Content-Type' => 'application/json'];
+            $webhook['headers'][$hk] = $hv;
         }
         return $this->request('POST', "/webhook/set/{$this->enc($name)}", ['webhook' => $webhook]);
     }
