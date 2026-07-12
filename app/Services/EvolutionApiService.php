@@ -10,6 +10,7 @@ class EvolutionApiService
     private string $baseUrl;
     private string $apiKey;
     private string $instanceName;
+    private string $webhookToken = ''; // B3 blindagem: 2o fator (X-Webhook-Token) do tenant, reanexado automaticamente em toda reconfiguracao de webhook
     private int    $timeout = 20;
 
     public function __construct(array $settings = [])
@@ -17,6 +18,7 @@ class EvolutionApiService
         $this->baseUrl      = rtrim($settings['evolution_base_url'] ?? 'http://localhost:8080', '/');
         $this->apiKey       = $settings['evolution_api_key']   ?? '';
         $this->instanceName = $settings['evolution_instance']  ?? 'yuris-crm';
+        $this->webhookToken = trim((string) ($settings['webhook_token'] ?? ''));
     }
 
     /**
@@ -75,6 +77,12 @@ class EvolutionApiService
             if ($this->apiKey !== '') {
                 $body['webhook']['headers'] = ['apikey' => $this->apiKey, 'Content-Type' => 'application/json'];
             }
+            // B3 BLINDAGEM: se o tenant ja tem 2o fator E o webhook aponta pro Yuris, a
+            // instancia nova ja nasce enviando o header (nao manda o segredo pra destino externo).
+            if ($this->webhookToken !== '' && stripos($webhookUrl, 'webhook.php') !== false) {
+                if (!isset($body['webhook']['headers'])) $body['webhook']['headers'] = ['Content-Type' => 'application/json'];
+                $body['webhook']['headers']['X-Webhook-Token'] = $this->webhookToken;
+            }
         }
         return $this->request('POST', '/instance/create', $body);
     }
@@ -113,7 +121,7 @@ class EvolutionApiService
     // Webhook
     // ────────────────────────────────────────────
 
-    public function setWebhook(string $name, string $url, array $events = [], array $extraHeaders = []): array
+    public function setWebhook(string $name, string $url, array $events = [], array $extraHeaders = [], bool $autoAttachToken = true): array
     {
         if (!$events) {
             $events = [
@@ -138,6 +146,20 @@ class EvolutionApiService
         // garantem a entrega independente do comportamento da versão.
         if ($this->apiKey !== '') {
             $webhook['headers'] = ['apikey' => $this->apiKey, 'Content-Type' => 'application/json'];
+        }
+        // B3 BLINDAGEM: reanexa AUTOMATICAMENTE o 2o fator (X-Webhook-Token) do tenant
+        // em toda reconfiguracao de webhook, pra nenhum call-site remove-lo por acidente
+        // (ex.: o botao "-> Yuris" do Master, reconexao de canal). NAO reanexa se: o token
+        // nao existe; a URL de destino NAO e o webhook.php do Yuris (evita mandar o segredo
+        // pra um endpoint externo, ex.: n8n, caso o webhook seja reapontado pra fora); o
+        // caller ja passou um X-Webhook-Token explicito; ou pediu opt-out
+        // ($autoAttachToken=false, usado so pelo rollback intencional do _phaseB).
+        if ($autoAttachToken && $this->webhookToken !== '' && stripos($url, 'webhook.php') !== false) {
+            $callerSetToken = false;
+            foreach (array_keys($extraHeaders) as $ehk) {
+                if (strtolower(trim((string) $ehk)) === 'x-webhook-token') { $callerSetToken = true; break; }
+            }
+            if (!$callerSetToken) $extraHeaders['X-Webhook-Token'] = $this->webhookToken;
         }
         // B3 Fase B: headers ADICIONAIS que a Evolution deve ENVIAR em cada webhook
         // (ex.: 'X-Webhook-Token' = 2o fator dedicado, lido por webhook.php como

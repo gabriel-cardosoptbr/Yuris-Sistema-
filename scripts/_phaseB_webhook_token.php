@@ -132,7 +132,8 @@ $isFail = function (array $res): ?string {
 // ── ROLLBACK: re-seta SEM o header (preservando url/eventos atuais) ───────────
 if ($ROLLBACK) {
     echo "== ROLLBACK: setWebhook SEM o header " . HEADER_NAME . " (url/eventos preservados) ==\n";
-    $res = $svc->setWebhook($inst, $curUrl, $curEvents); // sem extraHeaders
+    // [] + autoAttachToken=FALSE: opt-out explicito da blindagem, para REMOVER o cracha de proposito.
+    $res = $svc->setWebhook($inst, $curUrl, $curEvents, [], false);
     if (($err = $isFail($res)) !== null) { fwrite(STDERR, "FALHA no rollback ({$err}). Confira manualmente.\n"); exit(1); }
     echo "setWebhook http=" . ((int) ($res['_http'] ?? 0)) . " [OK] header removido (estado anterior restaurado).\n";
     exit(0);
