@@ -47,14 +47,16 @@ if (!$isCli) {
 
 $SILENT_MIN = 30; // canal open sem evento ha > 30min = silencioso
 $DEDUP_MIN  = 55; // nao alerta o mesmo canal mais de 1x por ~hora
-$BIZ_START  = 8;  // horario comercial (hora local do servidor) — inicio
+$BIZ_START  = 8;  // horario comercial (America/Sao_Paulo, BRT) — inicio
 $BIZ_END    = 20; // horario comercial — fim (exclusivo)
+$BIZ_TZ     = 'America/Sao_Paulo'; // o box roda em UTC; o alarme so faz sentido no fuso do cliente (BR)
 $pdo = Database::getConnection();
 $flagged = [];
 
 // Fora do horario comercial (ou fim de semana), nao ha expectativa de fluxo constante
-// de mensagens -> silencio e normal, nao sintoma de webhook morto.
-$now      = new \DateTime();
+// de mensagens -> silencio e normal, nao sintoma de webhook morto. Calculado no fuso do
+// cliente (BRT), nao no do servidor (UTC), senao a janela fica deslocada ~3h.
+$now      = new \DateTime('now', new \DateTimeZone($BIZ_TZ));
 $dow      = (int)$now->format('N'); // 1=seg .. 7=dom
 $hour     = (int)$now->format('G');
 $isBizTime = $dow <= 6 && $hour >= $BIZ_START && $hour < $BIZ_END;
