@@ -35,6 +35,11 @@ $channels = []; $chOpen = 0; $chSilent = 0;
 try {
     $sql = "SELECT wi.id, wi.instance_name, wi.status, wi.last_event_at, wi.account_id,
                    a.nome AS account_nome, ws.config_value AS webhook_url,
+                   (SELECT (st.config_value IS NOT NULL AND st.config_value <> '')
+                      FROM whatsapp_settings st
+                     WHERE st.account_id = wi.account_id AND st.config_key = 'webhook_token' LIMIT 1) AS has_token,
+                   (SELECT ss.config_value FROM whatsapp_settings ss
+                     WHERE ss.account_id = wi.account_id AND ss.config_key = 'webhook_token_strict' LIMIT 1) AS strict_raw,
                    (SELECT COUNT(*) FROM whatsapp_messages m
                      WHERE m.instance_id = wi.id AND m.created_at > (NOW()-INTERVAL 24 HOUR)) AS msgs_24h,
                    (SELECT COUNT(*) FROM ai_agent_events e
@@ -60,6 +65,7 @@ try {
         if ($open)   $chOpen++;
         if ($silent) $chSilent++;
         $channels[] = [
+            'instance_id'     => (int)$r['id'],
             'account_id'      => (int)$r['account_id'],
             'account_nome'    => $r['account_nome'] ?: ('Conta #' . (int)$r['account_id']),
             'instance_name'   => $r['instance_name'],
@@ -67,6 +73,8 @@ try {
             'last_event_at'   => $r['last_event_at'],
             'silent'          => $silent,
             'routed_to_yuris' => $routedToYuris,
+            'has_token'       => (bool)$r['has_token'],       // canal tem cracha (2o fator) configurado
+            'strict'          => ($r['strict_raw'] === '1'),  // modo estrito ligado (Fase C)
             'msgs_24h'        => (int)$r['msgs_24h'],
             'anomalies_24h'   => (int)$r['anomalies_24h'],
             'rejects_24h'     => (int)$r['rejects_24h'],
@@ -97,7 +105,7 @@ try {
 } catch (\Throwable $e) {}
 
 // ── Resumo (contadores 24h por tipo) ────────────────────────────────────────
-$totals = ['anomalies_24h' => 0, 'rejects_24h' => 0, 'unresolved_24h' => 0, 'errors_24h' => 0, 'compat_24h' => 0, 'silent_24h' => 0];
+$totals = ['anomalies_24h' => 0, 'rejects_24h' => 0, 'unresolved_24h' => 0, 'errors_24h' => 0, 'compat_24h' => 0, 'silent_24h' => 0, 'strict_missing_24h' => 0];
 try {
     $r = $pdo->query(
         "SELECT
@@ -106,17 +114,19 @@ try {
             COALESCE(SUM(code='webhook_unresolved'),0) unr,
             COALESCE(SUM(code='webhook_error'),0) err,
             COALESCE(SUM(code='webhook_compat'),0) cmp,
-            COALESCE(SUM(code='webhook_silent'),0) sil
+            COALESCE(SUM(code='webhook_silent'),0) sil,
+            COALESCE(SUM(code='webhook_strict_missing'),0) sm
           FROM ai_agent_events
          WHERE code LIKE 'webhook\\_%' AND created_at > (NOW()-INTERVAL 24 HOUR)"
     )->fetch(\PDO::FETCH_ASSOC);
     $totals = [
-        'anomalies_24h'  => (int)$r['tot'],
-        'rejects_24h'    => (int)$r['rej'],
-        'unresolved_24h' => (int)$r['unr'],
-        'errors_24h'     => (int)$r['err'],
-        'compat_24h'     => (int)$r['cmp'],
-        'silent_24h'     => (int)$r['sil'],
+        'anomalies_24h'      => (int)$r['tot'],
+        'rejects_24h'        => (int)$r['rej'],
+        'unresolved_24h'     => (int)$r['unr'],
+        'errors_24h'         => (int)$r['err'],
+        'compat_24h'         => (int)$r['cmp'],
+        'silent_24h'         => (int)$r['sil'],
+        'strict_missing_24h' => (int)$r['sm'],
     ];
 } catch (\Throwable $e) {}
 

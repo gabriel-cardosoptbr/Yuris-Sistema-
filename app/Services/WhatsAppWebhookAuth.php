@@ -20,7 +20,14 @@ namespace App\Services;
  *
  * So um token PRESENTE e ERRADO rejeita: isso permite LIGAR o token no Painel
  * (Fase A) ANTES de a Evolution ser reconfigurada para envia-lo (Fase B), sem
- * derrubar a entrega. O endurecimento (token ausente tambem rejeita) e a Fase C.
+ * derrubar a entrega.
+ *
+ * MODO ESTRITO (Fase C, por canal via whatsapp_settings.webhook_token_strict):
+ * quando $strict = true, o token AUSENTE tambem rejeita (COMPAT vira REJECT),
+ * fechando a janela de compatibilidade. So se liga por canal DEPOIS de a aba
+ * "Saude do Webhook" confirmar que aquele canal ja envia o cracha (zero compat).
+ * O estrito nao tem efeito sem token configurado (expected vazio curto-circuita
+ * em OK), entao ligar o estrito num canal sem token e inocuo.
  *
  * A comparacao usa hash_equals (constant-time) para nao vazar o segredo por timing.
  *
@@ -41,9 +48,10 @@ final class WhatsAppWebhookAuth
     /**
      * @param string|null $expected webhook_token gravado no tenant (whatsapp_settings)
      * @param string|null $provided token recebido na requisicao (header X-Webhook-Token ou ?wtoken=)
+     * @param bool         $strict   modo estrito por canal (Fase C): token ausente tambem rejeita
      * @return string self::OK | self::COMPAT | self::REJECT
      */
-    public static function verify(?string $expected, ?string $provided): string
+    public static function verify(?string $expected, ?string $provided, bool $strict = false): string
     {
         $expected = trim((string) $expected);
         if ($expected === '') {
@@ -51,7 +59,10 @@ final class WhatsAppWebhookAuth
         }
         $provided = trim((string) $provided);
         if ($provided === '') {
-            return self::COMPAT; // Evolution ainda nao envia o token (janela Fase A->B)
+            // Fase A->B: por padrao aceita e loga (COMPAT). No modo ESTRITO (Fase C),
+            // ligado por canal so depois que ele ja envia o cracha, o token ausente
+            // tambem rejeita — fecha a janela de compatibilidade.
+            return $strict ? self::REJECT : self::COMPAT;
         }
         return hash_equals($expected, $provided) ? self::OK : self::REJECT;
     }

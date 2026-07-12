@@ -983,11 +983,12 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
               <th style="padding:8px 10px">Canal</th>
               <th style="padding:8px 10px;text-align:center">Status</th>
               <th style="padding:8px 10px">Webhook (último evento)</th>
+              <th style="padding:8px 10px;text-align:center">Crachá (2º fator)</th>
               <th style="padding:8px 10px;text-align:right">Msgs 24h</th>
               <th style="padding:8px 10px;text-align:right">Anomalias 24h</th>
             </tr>
           </thead>
-          <tbody id="whkChannelsBody"><tr><td colspan="6" style="padding:16px;color:#9ab0c9">Carregando…</td></tr></tbody>
+          <tbody id="whkChannelsBody"><tr><td colspan="7" style="padding:16px;color:#9ab0c9">Carregando…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -2796,6 +2797,7 @@ const _whkLabels = {
   webhook_no_auth:'Sem autenticação (401)', webhook_bad_payload:'Payload inválido (400)',
   webhook_no_instance:'Instância ausente (400)', webhook_config_error:'Config inconsistente (503)',
   webhook_error:'Erro interno (500)', webhook_compat:'Crachá ausente (tolerado)', webhook_silent:'Webhook silencioso',
+  webhook_strict_missing:'Crachá ausente em modo estrito (401)',
 };
 function _whkChip(level, label) {
   const c = level==='error' ? ['#ef4444','rgba(239,68,68,.12)','rgba(239,68,68,.4)']
@@ -2803,12 +2805,45 @@ function _whkChip(level, label) {
           :                   ['#94a3b8','rgba(148,163,184,.12)','rgba(148,163,184,.35)'];
   return `<span style="display:inline-block;color:${c[0]};background:${c[1]};border:1px solid ${c[2]};padding:1px 8px;border-radius:999px;font-size:.7rem;font-weight:700">${esc(label)}</span>`;
 }
+// Mapa instance_id -> canal (evita injetar nome/dados no onclick; o toggle busca aqui).
+let _whkChanMap = {};
+// Celula "Crachá (2o fator)": sem crachá / Compat (clicar liga o estrito) / Estrito (clicar desliga).
+function _whkStrictCell(c) {
+  if (!c.has_token) return '<span style="color:#64748b;font-size:.72rem">sem crachá</span>';
+  if (c.strict) {
+    return `<button onclick="toggleWebhookStrict(${c.instance_id})" title="Modo estrito LIGADO: webhook sem o crachá é rejeitado (401). Clique para voltar ao modo tolerante." style="cursor:pointer;color:#34d399;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.45);padding:2px 10px;border-radius:999px;font-size:.7rem;font-weight:700">Estrito ✓</button>`;
+  }
+  return `<button onclick="toggleWebhookStrict(${c.instance_id})" title="Modo tolerante: webhook sem o crachá ainda é aceito. Clique para exigir o crachá (estrito)." style="cursor:pointer;color:#f59e0b;background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.4);padding:2px 10px;border-radius:999px;font-size:.7rem;font-weight:700">Compat · ativar estrito</button>`;
+}
+async function toggleWebhookStrict(iid) {
+  const c = _whkChanMap[iid];
+  if (!c) return;
+  const enable = !c.strict;
+  const nome = c.account_nome || ('Conta #' + (c.account_id||iid));
+  // O 2º fator (webhook_token) e o modo estrito são POR CONTA: compartilhados por TODOS
+  // os canais da conta (whatsapp_settings é chaveado por account_id). Se a conta tiver
+  // mais de um canal, avisa explicitamente que todos são afetados (evita o foot-gun de
+  // achar que é só o canal clicado).
+  const sibs = Object.values(_whkChanMap).filter(x => x.account_id === c.account_id);
+  const multi = sibs.length > 1
+    ? `\n\nATENÇÃO: esta conta tem ${sibs.length} canais (${sibs.map(x=>x.instance_name||('#'+x.instance_id)).join(', ')}). O modo estrito vale para a CONTA inteira, todos passam a exigir o crachá. Confirme que TODOS já o enviam.`
+    : '';
+  const msg = enable
+    ? `Ativar o MODO ESTRITO do 2º fator da conta "${nome}"?\n\nTodo evento que a Evolution enviar SEM o crachá (ou com o crachá errado) será REJEITADO com 401. Só ative depois de confirmar, nesta aba, que os canais dela já não registram "Crachá ausente" — senão param de receber.${multi}`
+    : `Desativar o modo estrito da conta "${nome}"?\n\nO webhook volta a aceitar eventos sem o crachá (modo tolerante).${multi}`;
+  const ok = await Yuris.confirm(msg, { okLabel: enable ? 'Ativar estrito' : 'Desativar', danger: enable });
+  if (!ok) return;
+  const r = await fj(`${API}/ai_webhook_strict.php`, { method:'POST', headers:{'X-CSRF-Token':CSRF}, body: JSON.stringify({ instance_id: iid, enabled: enable, csrf_token: CSRF }) });
+  if (r.ok) { notifyOk(enable ? 'Modo estrito ativado.' : 'Modo estrito desativado.'); loadWebhookHealth(); }
+  else notifyErr(r.error || 'Falha ao alterar o modo estrito.');
+}
 async function loadWebhookHealth() {
   const chB = document.getElementById('whkChannelsBody'), reB = document.getElementById('whkRecentBody');
-  if (chB) chB.innerHTML = '<tr><td colspan="6" style="padding:16px;color:#9ab0c9">Carregando…</td></tr>';
+  if (chB) chB.innerHTML = '<tr><td colspan="7" style="padding:16px;color:#9ab0c9">Carregando…</td></tr>';
   const r = await fj(`${API}/webhook_health.php`);
-  if (!r.ok) { if (chB) chB.innerHTML = '<tr><td colspan="6" style="padding:16px;color:#ef4444">Erro ao carregar</td></tr>'; return; }
+  if (!r.ok) { if (chB) chB.innerHTML = '<tr><td colspan="7" style="padding:16px;color:#ef4444">Erro ao carregar</td></tr>'; return; }
   const d = r.data||{}, s = d.summary||{}, chans = d.channels||[], recent = d.recent||[];
+  _whkChanMap = {}; chans.forEach(c=>{ _whkChanMap[c.instance_id]=c; });
   const set = (id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=v; };
   const setC = (id,n,color)=>{ const e=document.getElementById(id); if(e){ e.textContent=_aiN(n); e.style.color = Number(n||0)>0 ? color : ''; } };
   set('whkCanais', `${_aiN(s.channels_open)}/${_aiN(s.channels_total)}`);
@@ -2817,7 +2852,7 @@ async function loadWebhookHealth() {
   setC('whkUnresolved', s.unresolved_24h, '#ef4444');
   setC('whkErr', s.errors_24h, '#ef4444');
   set('whkAnom', _aiN(s.anomalies_24h));
-  const badge = document.getElementById('whkAlertBadge'), alertN = Number(s.rejects_24h||0)+Number(s.errors_24h||0)+Number(s.unresolved_24h||0);
+  const badge = document.getElementById('whkAlertBadge'), alertN = Number(s.rejects_24h||0)+Number(s.errors_24h||0)+Number(s.unresolved_24h||0)+Number(s.strict_missing_24h||0);
   if (badge) { if (alertN>0){ badge.textContent=alertN; badge.style.display=''; } else badge.style.display='none'; }
   if (chB) chB.innerHTML = chans.length ? chans.map(c=>{
     const st = c.status==='open'
@@ -2832,10 +2867,11 @@ async function loadWebhookHealth() {
       <td style="padding:8px 10px">${esc(c.instance_name||'')}</td>
       <td style="padding:8px 10px;text-align:center">${st}</td>
       <td style="padding:8px 10px">${wh}</td>
+      <td style="padding:8px 10px;text-align:center">${_whkStrictCell(c)}</td>
       <td style="padding:8px 10px;text-align:right">${_aiN(c.msgs_24h)}</td>
       <td style="padding:8px 10px;text-align:right">${an}</td>
     </tr>`;
-  }).join('') : '<tr><td colspan="6" style="padding:16px;color:#9ab0c9">Nenhum canal.</td></tr>';
+  }).join('') : '<tr><td colspan="7" style="padding:16px;color:#9ab0c9">Nenhum canal.</td></tr>';
   if (reB) reB.innerHTML = recent.length ? recent.map(a=>{
     const label = _whkLabels[a.code] || a.code;
     const who = a.account_nome ? esc(a.account_nome) : (a.detail && a.detail.instance ? esc(a.detail.instance) : '<span style="color:#9ab0c9">não identificado</span>');

@@ -45,5 +45,18 @@ check('reject/prefixo_do_certo',     A::verify($T, substr($T, 0, 32)),       A::
 check('reject/caixa_trocada',        A::verify($T, strtoupper($T)),          A::REJECT); // hash_equals e case-sensitive
 check('reject/difere_no_ultimo',     A::verify($T, substr($T, 0, 63) . '0'), A::REJECT); // 1 char de diferenca
 
+// 5) MODO ESTRITO (Fase C, 3o arg = true): o token AUSENTE tambem rejeita (COMPAT vira REJECT).
+//    Fecha a janela de compat, mas SO por canal que ja foi confirmado enviando o cracha.
+check('estrito/provided_vazio_rejeita',   A::verify($T, '',     true), A::REJECT); // era COMPAT sem estrito
+check('estrito/provided_null_rejeita',    A::verify($T, null,   true), A::REJECT);
+check('estrito/provided_espacos_rejeita', A::verify($T, '   ',  true), A::REJECT); // trim -> vazio -> reject
+check('estrito/correto_ainda_OK',         A::verify($T, $T,     true), A::OK);     // caminho feliz inalterado
+check('estrito/errado_ainda_rejeita',     A::verify($T, 'deadbeef', true), A::REJECT);
+// Sem token configurado, o estrito e inocuo (expected vazio curto-circuita em OK): nao trava canal sem cracha.
+check('estrito/sem_token_vazio_OK',       A::verify('',  '',     true), A::OK);
+check('estrito/sem_token_qualquer_OK',    A::verify('',  'lixo', true), A::OK);
+// Retrocompat: sem o 3o arg, o comportamento e o de sempre (token ausente = COMPAT, nao REJECT).
+check('nao_estrito_default/compat',       A::verify($T, ''),           A::COMPAT);
+
 echo "== wa_webhook_token: $pass PASS · $fail FAIL ==\n";
 exit($fail === 0 ? 0 : 1);

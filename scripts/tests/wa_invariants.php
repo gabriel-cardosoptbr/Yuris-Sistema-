@@ -329,6 +329,11 @@ if (!is_file($authF)) {
         (strpos($wcB3, 'WhatsAppWebhookAuth::REJECT') !== false && strpos($wcB3, 'http_response_code(401)') !== false)
             ? pass("B3: webhook rejeita (401) no ramo REJECT (token presente e errado)")
             : fail("B3: webhook nao tem 401 no ramo REJECT do webhook_token");
+        // Fase C (modo estrito por canal): o webhook precisa LER a flag webhook_token_strict
+        // e PASSA-LA ao verify (3o argumento). Sem isso, o estrito nunca teria efeito.
+        (strpos($wcB3, 'webhook_token_strict') !== false)
+            ? pass("B3 Fase C: webhook le a flag webhook_token_strict (modo estrito por canal)")
+            : warn("B3 Fase C: webhook nao referencia webhook_token_strict — modo estrito nao deployado?");
     } else {
         skip("webhook.php nao encontrado para checar delegacao B3");
     }

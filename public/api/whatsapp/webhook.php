@@ -142,10 +142,21 @@ try {
     // (HTTP_X_WEBHOOK_TOKEN) ou ?wtoken= (fallback p/ versao da Evolution que nao
     // honra header custom). Comparacao constant-time em WhatsAppWebhookAuth::verify.
     $wtProvided = (string)($_SERVER['HTTP_X_WEBHOOK_TOKEN'] ?? ($_GET['wtoken'] ?? ''));
-    switch (WhatsAppWebhookAuth::verify($cfg['webhook_token'] ?? null, $wtProvided)) {
+    $wtStrict   = !empty($cfg['webhook_token_strict']); // Fase C: modo estrito por canal
+    switch (WhatsAppWebhookAuth::verify($cfg['webhook_token'] ?? null, $wtProvided, $wtStrict)) {
         case WhatsAppWebhookAuth::REJECT:
-            error_log('[whatsapp/webhook] webhook_token invalido (account_id=' . $accountId . ') — requisicao rejeitada');
-            wh_anomaly('webhook_reject', ['instance' => $instanceName], 'error', $accountId);
+            // Distingue o motivo p/ a aba: token AUSENTE em modo estrito (canal que ja
+            // deveria enviar mas nao enviou) vs token PRESENTE e ERRADO (chave stale/forjada).
+            $wtReason = (trim($wtProvided) === '') ? 'strict_missing' : 'mismatch';
+            error_log('[whatsapp/webhook] webhook_token rejeitado (' . $wtReason . ', account_id=' . $accountId . ')');
+            // Codes DISTINTOS p/ nao compartilharem o mesmo balde de throttle (o wh_anomaly
+            // deduplica por code+instance_id, e aqui instance_id ainda e null): um flood de
+            // 'strict_missing' (canal em rollout do estrito, ainda sem cracha) NUNCA pode
+            // suprimir um 'mismatch' (cracha forjado/stale = sinal de seguranca). Ambos
+            // seguem casando LIKE 'webhook\_%' na aba de saude; o mismatch continua sendo
+            // 'webhook_reject' (o KPI "Cracha invalido" fica preciso = so token errado).
+            wh_anomaly($wtReason === 'strict_missing' ? 'webhook_strict_missing' : 'webhook_reject',
+                ['instance' => $instanceName, 'reason' => $wtReason], 'error', $accountId);
             http_response_code(401);
             echo json_encode(['error' => 'webhook token inválido']);
             exit;
