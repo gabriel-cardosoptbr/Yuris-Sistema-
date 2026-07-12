@@ -385,6 +385,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
     <button class="mst-tab" data-mtab="reviews"><?= $_tabIco('reviews') ?>Revisões <span id="reviewsBadge" style="display:none;background:#dc2626;color:#fff;font-size:.7rem;padding:1px 7px;border-radius:999px;margin-left:5px;font-weight:700"></span></button>
     <button class="mst-tab" data-mtab="whatsapp"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>WhatsApp</button>
     <button class="mst-tab" data-mtab="agente"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="8" cy="16" r="1"/><circle cx="16" cy="16" r="1"/><path d="M12 7v4"/><circle cx="12" cy="5" r="2"/></svg>Agente IA</button>
+    <button class="mst-tab" data-mtab="webhookhealth"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Saúde do Webhook <span id="whkAlertBadge" style="display:none;background:#ef4444;color:#fff;font-size:.7rem;padding:1px 7px;border-radius:999px;margin-left:5px;font-weight:700"></span></button>
   </div>
 
   <!-- ── Visão Geral ── -->
@@ -954,6 +955,58 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
         </div>
       </div>
       <div id="waShareList" style="padding:14px 18px"><div style="color:#9ab0c9">Carregando…</div></div>
+    </div>
+  </section>
+
+  <section class="mst-section" id="msec-webhookhealth">
+    <div class="mst-card" style="padding:18px; margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:700; margin-bottom:4px">Saúde do Webhook</div>
+          <div style="font-size:.74rem; color:#9ab0c9; max-width:820px">Monitoramento do webhook de <strong>entrada</strong> (Evolution &rarr; Yuris): status de cada canal, se está <strong>silencioso</strong>, e as <strong>anomalias</strong> das últimas 24h: crachá inválido (<span style="color:#ef4444">401</span>), remetente não identificado, payload inválido e erros internos. É a porta de entrada de toda mensagem; aqui você vê rejeições e falhas na hora.</div>
+        </div>
+        <button onclick="loadWebhookHealth()" style="padding:8px 14px;background:transparent;border:1px solid rgba(96,165,250,.5);color:#7EB8F7;border-radius:8px;font-weight:600;cursor:pointer;font-size:.8rem">Atualizar</button>
+      </div>
+      <div style="display:flex;gap:22px;flex-wrap:wrap;margin:16px 2px 8px">
+        <div style="min-width:120px"><div class="mst-kpi-value" id="whkCanais">—</div><div class="mst-kpi-label">Canais conectados</div></div>
+        <div style="min-width:130px"><div class="mst-kpi-value" id="whkSilent">—</div><div class="mst-kpi-label">Webhook silencioso</div></div>
+        <div style="min-width:120px"><div class="mst-kpi-value" id="whkReject">—</div><div class="mst-kpi-label">Crachá inválido (24h)</div></div>
+        <div style="min-width:140px"><div class="mst-kpi-value" id="whkUnresolved">—</div><div class="mst-kpi-label">Não identificado (24h)</div></div>
+        <div style="min-width:100px"><div class="mst-kpi-value" id="whkErr">—</div><div class="mst-kpi-label">Erros (24h)</div></div>
+        <div style="min-width:120px"><div class="mst-kpi-value" id="whkAnom">—</div><div class="mst-kpi-label">Anomalias (24h)</div></div>
+      </div>
+      <div style="overflow-x:auto;margin-top:8px">
+        <table class="mst-table" style="width:100%;min-width:720px;border-collapse:collapse;font-size:.8rem">
+          <thead>
+            <tr style="text-align:left;color:#9ab0c9;border-bottom:1px solid rgba(255,255,255,.08)">
+              <th style="padding:8px 10px">Conta</th>
+              <th style="padding:8px 10px">Canal</th>
+              <th style="padding:8px 10px;text-align:center">Status</th>
+              <th style="padding:8px 10px">Webhook (último evento)</th>
+              <th style="padding:8px 10px;text-align:right">Msgs 24h</th>
+              <th style="padding:8px 10px;text-align:right">Anomalias 24h</th>
+            </tr>
+          </thead>
+          <tbody id="whkChannelsBody"><tr><td colspan="6" style="padding:16px;color:#9ab0c9">Carregando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="mst-card" style="padding:18px; margin-bottom:14px">
+      <div style="font-weight:700; margin-bottom:10px">Anomalias recentes do webhook</div>
+      <div style="overflow-x:auto">
+        <table class="mst-table" style="width:100%;min-width:640px;border-collapse:collapse;font-size:.8rem">
+          <thead>
+            <tr style="text-align:left;color:#9ab0c9;border-bottom:1px solid rgba(255,255,255,.08)">
+              <th style="padding:8px 10px">Quando</th>
+              <th style="padding:8px 10px">Tipo</th>
+              <th style="padding:8px 10px">Conta / Canal</th>
+              <th style="padding:8px 10px">Detalhe</th>
+            </tr>
+          </thead>
+          <tbody id="whkRecentBody"><tr><td colspan="4" style="padding:16px;color:#9ab0c9">Carregando…</td></tr></tbody>
+        </table>
+      </div>
     </div>
   </section>
 
@@ -2648,7 +2701,7 @@ function notifyOk(msg) {
 // ── Hash routing ─────────────────────────────────────────────────────────
 // Etapa 8 (LGPD): array atualizado com lgpd, retencao, incidents — antes faltavam
 // e o hash routing caía no fallback de 'overview' ao clicar nessas abas.
-const TABS = ['overview','dashboard','accounts','plans','billing','invoices','payments','expenses','audit','lgpd','retencao','incidents','operators','reviews','whatsapp','agente'];
+const TABS = ['overview','dashboard','accounts','plans','billing','invoices','payments','expenses','audit','lgpd','retencao','incidents','operators','reviews','whatsapp','agente','webhookhealth'];
 function activateTab(name) {
   if (!TABS.includes(name)) name = 'overview';
   document.querySelectorAll('.mst-tab').forEach(t => t.classList.toggle('active', t.dataset.mtab === name));
@@ -2672,6 +2725,7 @@ function loadTab(name) {
   if (name==='reviews')   loadReviews();
   if (name==='whatsapp') { loadGlobalEvolution(); loadWhatsappConfig(); loadWaChannels(); }
   if (name==='agente')   { loadAiOpenai(); loadAiPrompt(); loadWaHealth(); loadAiUsage(); loadAiModels(); loadAreaQuestions(); }
+  if (name==='webhookhealth') loadWebhookHealth();
 }
 
 // ── WhatsApp / Evolution (infra por conta — só super_admin) ────────────────
@@ -2734,6 +2788,65 @@ async function loadWaHealth() {
       <td style="padding:8px 10px;text-align:right">${Number(c.err_24h||0)>0 ? `<span style="color:#ef4444">${_aiN(c.err_24h)}</span>` : _aiN(c.err_24h)}</td>
     </tr>`;
   }).join('');
+}
+
+// ── Saude do Webhook (B3 Bloco 2): status por canal + anomalias (401/erros) ──
+const _whkLabels = {
+  webhook_reject:'Crachá inválido (401)', webhook_unresolved:'Remetente não identificado (401)',
+  webhook_no_auth:'Sem autenticação (401)', webhook_bad_payload:'Payload inválido (400)',
+  webhook_no_instance:'Instância ausente (400)', webhook_config_error:'Config inconsistente (503)',
+  webhook_error:'Erro interno (500)', webhook_compat:'Crachá ausente (tolerado)', webhook_silent:'Webhook silencioso',
+};
+function _whkChip(level, label) {
+  const c = level==='error' ? ['#ef4444','rgba(239,68,68,.12)','rgba(239,68,68,.4)']
+          : level==='warn'  ? ['#f59e0b','rgba(245,158,11,.12)','rgba(245,158,11,.4)']
+          :                   ['#94a3b8','rgba(148,163,184,.12)','rgba(148,163,184,.35)'];
+  return `<span style="display:inline-block;color:${c[0]};background:${c[1]};border:1px solid ${c[2]};padding:1px 8px;border-radius:999px;font-size:.7rem;font-weight:700">${esc(label)}</span>`;
+}
+async function loadWebhookHealth() {
+  const chB = document.getElementById('whkChannelsBody'), reB = document.getElementById('whkRecentBody');
+  if (chB) chB.innerHTML = '<tr><td colspan="6" style="padding:16px;color:#9ab0c9">Carregando…</td></tr>';
+  const r = await fj(`${API}/webhook_health.php`);
+  if (!r.ok) { if (chB) chB.innerHTML = '<tr><td colspan="6" style="padding:16px;color:#ef4444">Erro ao carregar</td></tr>'; return; }
+  const d = r.data||{}, s = d.summary||{}, chans = d.channels||[], recent = d.recent||[];
+  const set = (id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=v; };
+  const setC = (id,n,color)=>{ const e=document.getElementById(id); if(e){ e.textContent=_aiN(n); e.style.color = Number(n||0)>0 ? color : ''; } };
+  set('whkCanais', `${_aiN(s.channels_open)}/${_aiN(s.channels_total)}`);
+  setC('whkSilent', s.channels_silent, '#f59e0b');
+  setC('whkReject', s.rejects_24h, '#ef4444');
+  setC('whkUnresolved', s.unresolved_24h, '#ef4444');
+  setC('whkErr', s.errors_24h, '#ef4444');
+  set('whkAnom', _aiN(s.anomalies_24h));
+  const badge = document.getElementById('whkAlertBadge'), alertN = Number(s.rejects_24h||0)+Number(s.errors_24h||0)+Number(s.unresolved_24h||0);
+  if (badge) { if (alertN>0){ badge.textContent=alertN; badge.style.display=''; } else badge.style.display='none'; }
+  if (chB) chB.innerHTML = chans.length ? chans.map(c=>{
+    const st = c.status==='open'
+      ? '<span style="background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.4);padding:2px 9px;border-radius:999px;font-size:.7rem;font-weight:700">Conectado</span>'
+      : `<span style="background:rgba(148,163,184,.12);color:#94a3b8;border:1px solid rgba(148,163,184,.35);padding:2px 9px;border-radius:999px;font-size:.7rem;font-weight:700">${esc(c.status||'—')}</span>`;
+    const wh = (c.status==='open' && c.routed_to_yuris===false)
+      ? `<span style="color:#94a3b8" title="Webhook aponta para outro destino (ex.: n8n), não para o Yuris — este canal não é monitorado aqui por design">externo</span>`
+      : (c.silent ? `<span style="color:#f59e0b;font-weight:600">silencioso</span> <span style="color:#9ab0c9">(${_aiWhen(c.last_event_at)})</span>` : `<span style="color:#9ab0c9">${_aiWhen(c.last_event_at)}</span>`);
+    const an = Number(c.anomalies_24h||0)>0 ? `<span style="color:${Number(c.rejects_24h||0)>0?'#ef4444':'#f59e0b'}">${_aiN(c.anomalies_24h)}</span>` : _aiN(c.anomalies_24h);
+    return `<tr style="border-bottom:1px solid rgba(255,255,255,.05)">
+      <td style="padding:8px 10px">${esc(c.account_nome||'')}</td>
+      <td style="padding:8px 10px">${esc(c.instance_name||'')}</td>
+      <td style="padding:8px 10px;text-align:center">${st}</td>
+      <td style="padding:8px 10px">${wh}</td>
+      <td style="padding:8px 10px;text-align:right">${_aiN(c.msgs_24h)}</td>
+      <td style="padding:8px 10px;text-align:right">${an}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="6" style="padding:16px;color:#9ab0c9">Nenhum canal.</td></tr>';
+  if (reB) reB.innerHTML = recent.length ? recent.map(a=>{
+    const label = _whkLabels[a.code] || a.code;
+    const who = a.account_nome ? esc(a.account_nome) : (a.detail && a.detail.instance ? esc(a.detail.instance) : '<span style="color:#9ab0c9">não identificado</span>');
+    const det = a.detail ? Object.entries(a.detail).map(([k,v])=>`${esc(k)}=${esc(String(v))}`).join(' · ') : '';
+    return `<tr style="border-bottom:1px solid rgba(255,255,255,.05)">
+      <td style="padding:8px 10px;color:#9ab0c9;white-space:nowrap">${_aiWhen(a.created_at)}</td>
+      <td style="padding:8px 10px">${_whkChip(a.level, label)}</td>
+      <td style="padding:8px 10px">${who}</td>
+      <td style="padding:8px 10px;color:#9ab0c9;font-size:.74rem">${esc(det)}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="4" style="padding:16px;color:#9ab0c9">Nenhuma anomalia registrada.</td></tr>';
 }
 
 // ── Contas & Consumo do Agente (quem esta ligado + tokens/custo) ───────────

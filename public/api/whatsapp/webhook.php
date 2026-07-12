@@ -16,6 +16,7 @@ require_once __DIR__ . '/../../../app/Services/WhatsAppWebhookParser.php';     /
 require_once __DIR__ . '/../../../app/Services/WhatsAppWebhookEntitySync.php'; // persistencia de entidades contato/chat/grupo (strangler Pass 2)
 require_once __DIR__ . '/../../../app/Services/WhatsAppAgentBridge.php';       // caminho do agente IA: gating/flush/decrypt/envio (strangler Pass 3)
 require_once __DIR__ . '/../../../app/Services/WhatsAppWebhookAuth.php';       // 2o fator do webhook (webhook_token) — B3
+require_once __DIR__ . '/../../../app/Services/AiIntake/AgentEvent.php';       // telemetria de anomalias do webhook — B3 Bloco 2
 require_once __DIR__ . '/../../../app/Helpers/Crypto.php';     // decifra api_key do agente (GCM / APP_ENCRYPTION_KEY)
 require_once __DIR__ . '/../../../app/Helpers/TotpHelper.php'; // fallback p/ api_key legada (CBC / MFA_ENCRYPTION_KEY)
 
@@ -45,6 +46,11 @@ $raw     = file_get_contents('php://input');
 $payload = json_decode($raw, true);
 
 if (!is_array($payload)) {
+    // NAO instrumentamos aqui (nem no 'instance ausente' abaixo): estes 2 ramos rodam
+    // ANTES de qualquer conexao ao banco e sao majoritariamente ruido de scanner —
+    // grava-los forcaria 1 conexao+SELECT por request, ampliando a superficie de DoS
+    // pre-auth (B3 Bloco 2, review). Os caminhos de VALOR (401/503/500) sao instrumentados
+    // mais adiante, ja com a conexao aberta pelo WhatsAppInstance.
     http_response_code(400);
     echo json_encode(['error' => 'Payload inválido']);
     exit;
@@ -97,6 +103,7 @@ try {
         if ($cand !== '' && !in_array($cand, $candidatos, true)) $candidatos[] = $cand;
     }
     if (empty($candidatos)) {
+        wh_anomaly('webhook_no_auth', ['instance' => $instanceName, 'event' => $event], 'warn');
         http_response_code(401);
         echo json_encode(['error' => 'apikey obrigatória']);
         exit;
@@ -110,6 +117,7 @@ try {
         if ($accountId !== null) break;
     }
     if ($accountId === null) {
+        wh_anomaly('webhook_unresolved', ['instance' => $instanceName], 'error');
         http_response_code(401);
         echo json_encode(['error' => 'apikey não bate com nenhum tenant configurado']);
         exit;
@@ -119,6 +127,7 @@ try {
     $cfg = $instModel->getSettings($accountId);
     if (empty($cfg['evolution_api_key'])) {
         // sanity check redundante — não deveria ocorrer pois findAccountByApiKey achou
+        wh_anomaly('webhook_config_error', ['instance' => $instanceName], 'error', $accountId);
         http_response_code(503);
         echo json_encode(['error' => 'Configuração inconsistente']);
         exit;
@@ -136,11 +145,13 @@ try {
     switch (WhatsAppWebhookAuth::verify($cfg['webhook_token'] ?? null, $wtProvided)) {
         case WhatsAppWebhookAuth::REJECT:
             error_log('[whatsapp/webhook] webhook_token invalido (account_id=' . $accountId . ') — requisicao rejeitada');
+            wh_anomaly('webhook_reject', ['instance' => $instanceName], 'error', $accountId);
             http_response_code(401);
             echo json_encode(['error' => 'webhook token inválido']);
             exit;
         case WhatsAppWebhookAuth::COMPAT:
             error_log('[whatsapp/webhook] webhook_token configurado mas ausente na requisicao (modo compat, account_id=' . $accountId . ')');
+            wh_anomaly('webhook_compat', ['instance' => $instanceName], 'warn', $accountId);
             break;
     }
 
@@ -276,11 +287,35 @@ try {
     // Nao vaza getMessage/file/line na resposta (LGPD/seguranca — auditoria 2026-06-01).
     // Loga server-side pra diagnostico; cliente recebe so mensagem generica.
     error_log('[whatsapp/webhook] ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+    // Telemetria (B3 Bloco 2): mascara numeros longos (evita PII em stacktrace) e trunca.
+    wh_anomaly('webhook_error', ['msg' => preg_replace('/\d{5,}/', '*****', substr($e->getMessage(), 0, 120))], 'error', $accountId ?? null, $instanceId ?? null);
     http_response_code(500);
     echo json_encode(['error' => 'Erro interno']);
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * B3 Bloco 2: telemetria de ANOMALIA do webhook inbound. Grava em ai_agent_events
+ * (mesma tabela do agente/webhook_silent) pra alimentar a aba "Saude do Webhook" do
+ * Master. Best-effort (NUNCA derruba o webhook) e com THROTTLE anti-flood: no maximo
+ * 1 evento do mesmo (code, instance) a cada 10min — um scanner/ataque batendo no
+ * webhook nao enche a tabela de telemetria. Detalhes NAO devem conter PII crua.
+ */
+function wh_anomaly(string $code, array $detail = [], string $level = 'warn', ?int $accountId = null, ?int $instanceId = null): void
+{
+    try {
+        $pdo = \App\Models\Database::getConnection();
+        $st  = $pdo->prepare(
+            "SELECT 1 FROM ai_agent_events
+              WHERE code = :c AND (instance_id <=> :iid)
+                AND created_at > (NOW() - INTERVAL 10 MINUTE) LIMIT 1"
+        );
+        $st->execute([':c' => substr($code, 0, 40), ':iid' => $instanceId]);
+        if ($st->fetchColumn()) return; // ja registrado ha < 10min: throttle
+        \App\Services\AiIntake\AgentEvent::log($pdo, $code, $detail, $level, $accountId, null, $instanceId);
+    } catch (\Throwable $_) { /* best-effort: telemetria nunca quebra o webhook */ }
+}
 
 function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model, int $accountId): void
 {

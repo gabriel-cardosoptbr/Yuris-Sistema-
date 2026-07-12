@@ -95,6 +95,11 @@ try {
         WaLog::line('webhook_silent', ['instance' => $inst, 'last' => (string)$r['last_event_at']], 'error');
         $flagged[] = $inst;
     }
+
+    // Retencao (B3 Bloco 2): expurga eventos de telemetria com mais de 30 dias — a tabela
+    // ai_agent_events passou a receber tambem as anomalias do webhook, entao nao pode
+    // crescer sem limite. LIMIT evita lock longo (ate 5000 por tick, ~cada 15min). Best-effort.
+    $pdo->exec("DELETE FROM ai_agent_events WHERE created_at < (NOW() - INTERVAL 30 DAY) LIMIT 5000");
 } catch (\Throwable $e) {
     error_log('[whatsapp_health_tick] ' . $e->getMessage());
 }
