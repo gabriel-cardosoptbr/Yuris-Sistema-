@@ -114,8 +114,23 @@ class WhatsAppProvisioningService
             $model->saveSetting($accountId, 'evolution_api_key',  (string)$apikey);
             $model->saveSetting($accountId, 'webhook_url',        $hook);
 
-            // Webhook canonico com ?token (auth da propria instancia).
-            $acctEvo = new \EvolutionApiService(['evolution_base_url' => $base, 'evolution_api_key' => (string)$apikey, 'evolution_instance' => $name]);
+            // B3 auto-provisionamento do 2o fator (cracha): gera o webhook_token AGORA,
+            // ANTES do setWebhook, e o injeta no servico. Como o $hook aponta pro nosso
+            // webhook.php, a blindagem do EvolutionApiService anexa o header X-Webhook-Token
+            // ao envelope -> a Evolution ja nasce mandando o cracha (Fase B automatica).
+            // O modo estrito (Fase C) e ligado depois, sozinho, pelo reconciliador do
+            // whatsapp_health_tick, quando confirmar que o cracha esta chegando limpo.
+            $webhookToken = bin2hex(random_bytes(32)); // 256 bits, mesma convencao da apikey
+            $model->saveSetting($accountId, 'webhook_token', $webhookToken);
+            self::logCrachaEvent($pdo, $accountId, 'webhook_token_autogen', ['instance' => $name, 'by' => 'provisioning']);
+
+            // Webhook canonico com ?token (auth da propria instancia) + cracha via blindagem.
+            $acctEvo = new \EvolutionApiService([
+                'evolution_base_url' => $base,
+                'evolution_api_key'  => (string)$apikey,
+                'evolution_instance' => $name,
+                'webhook_token'      => $webhookToken, // blindagem le daqui e anexa X-Webhook-Token
+            ]);
             $hookUrl = $hook . (strpos($hook, '?') === false ? '?' : '&') . 'token=' . urlencode((string)$apikey);
             $acctEvo->setWebhook($name, $hookUrl);
 
@@ -176,5 +191,25 @@ class WhatsAppProvisioningService
         } catch (\Throwable $e) {
             error_log('[WhatsAppProvisioningService] ensureAgentConfig: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Registra um evento do ciclo de vida do cracha em ai_agent_events (best-effort),
+     * pra a aba "Provisionamento (Cracha)" do Master mostrar o que foi feito/executado.
+     * NUNCA lanca (o provisionamento nao pode falhar por causa de telemetria).
+     */
+    private static function logCrachaEvent(\PDO $pdo, int $accountId, string $code, array $detail = []): void
+    {
+        try {
+            $f = __DIR__ . '/AiIntake/AgentEvent.php';
+            // is_file antes do require: require de arquivo ausente e fatal NAO-capturavel por
+            // try/catch, e o provisionamento NAO pode quebrar por causa de telemetria.
+            if (!class_exists('App\\Services\\AiIntake\\AgentEvent', false) && is_file($f)) {
+                require_once $f;
+            }
+            if (class_exists('App\\Services\\AiIntake\\AgentEvent', false)) {
+                \App\Services\AiIntake\AgentEvent::log($pdo, $code, $detail, 'info', $accountId, null, null);
+            }
+        } catch (\Throwable $_) { /* telemetria e best-effort */ }
     }
 }

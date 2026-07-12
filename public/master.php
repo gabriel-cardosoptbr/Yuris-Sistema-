@@ -386,6 +386,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
     <button class="mst-tab" data-mtab="whatsapp"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>WhatsApp</button>
     <button class="mst-tab" data-mtab="agente"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="8" cy="16" r="1"/><circle cx="16" cy="16" r="1"/><path d="M12 7v4"/><circle cx="12" cy="5" r="2"/></svg>Agente IA</button>
     <button class="mst-tab" data-mtab="webhookhealth"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Saúde do Webhook <span id="whkAlertBadge" style="display:none;background:#ef4444;color:#fff;font-size:.7rem;padding:1px 7px;border-radius:999px;margin-left:5px;font-weight:700"></span></button>
+    <button class="mst-tab" data-mtab="crachas"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><circle cx="8" cy="10" r="4"/><path d="M10.85 12.15 19 21l-2 2-2-2-2 2-1.5-1.5"/></svg>Provisionamento (Crachá) <span id="crhAlertBadge" style="display:none;background:#ef4444;color:#fff;font-size:.7rem;padding:1px 7px;border-radius:999px;margin-left:5px;font-weight:700"></span></button>
   </div>
 
   <!-- ── Visão Geral ── -->
@@ -1006,6 +1007,69 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
             </tr>
           </thead>
           <tbody id="whkRecentBody"><tr><td colspan="4" style="padding:16px;color:#9ab0c9">Carregando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="mst-section" id="msec-crachas">
+    <div class="mst-card" style="padding:18px; margin-bottom:14px">
+      <div style="font-weight:700; margin-bottom:6px">Provisionamento do Crachá (2º fator do webhook)</div>
+      <div style="font-size:.75rem; color:#9ab0c9; max-width:820px; line-height:1.55">
+        O crachá é o segredo dedicado que autentica cada webhook da Evolution (separado da chave da conta). Ele é provisionado <b>100% automático</b>, sem nada manual:
+        <ol style="margin:8px 0 0; padding-left:18px">
+          <li><b>Token gerado</b> na hora que o canal é conectado (no provisionamento da conta).</li>
+          <li><b>Evolution passa a enviar o crachá</b> desde o 1º evento (a blindagem anexa o header <code>X-Webhook-Token</code> no setWebhook).</li>
+          <li><b>Modo estrito ligado sozinho</b> assim que o sistema confirma que o crachá chega limpo (zero "crachá ausente" por 24h). A partir daí, webhook sem o crachá é rejeitado com 401.</li>
+        </ol>
+        Por segurança, o estrito <b>nunca é desligado automaticamente</b>: se um canal já protegido passar a receber requisições sem crachá, ele é sinalizado aqui (não rebaixado, pois seria explorável). Canais roteados pra fora (ex.: n8n) não usam crachá.
+      </div>
+      <div style="display:flex;gap:22px;flex-wrap:wrap;margin:14px 2px 2px">
+        <div style="min-width:80px"><div class="mst-kpi-value" id="crhTotal">—</div><div class="mst-kpi-label">Canais</div></div>
+        <div style="min-width:100px"><div class="mst-kpi-value" id="crhEstrito">—</div><div class="mst-kpi-label">Estrito (100%)</div></div>
+        <div style="min-width:120px"><div class="mst-kpi-value" id="crhTolerante">—</div><div class="mst-kpi-label">Protegido (tolerante)</div></div>
+        <div style="min-width:130px"><div class="mst-kpi-value" id="crhAguardando">—</div><div class="mst-kpi-label">Aguardando Evolution</div></div>
+        <div style="min-width:100px"><div class="mst-kpi-value" id="crhSemCracha">—</div><div class="mst-kpi-label">Sem crachá</div></div>
+        <div style="min-width:70px"><div class="mst-kpi-value" id="crhExterno">—</div><div class="mst-kpi-label">Externo</div></div>
+      </div>
+    </div>
+
+    <div class="mst-card" style="padding:18px; margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-weight:700">Crachá por canal</div>
+        <button onclick="loadCrachas()" style="padding:8px 14px;background:transparent;border:1px solid rgba(96,165,250,.5);color:#7EB8F7;border-radius:8px;font-weight:600;cursor:pointer;font-size:.8rem">Atualizar</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="mst-table" style="width:100%;min-width:760px;border-collapse:collapse;font-size:.8rem">
+          <thead>
+            <tr style="text-align:left;color:#9ab0c9;border-bottom:1px solid rgba(255,255,255,.08)">
+              <th style="padding:8px 10px">Conta</th>
+              <th style="padding:8px 10px">Canal</th>
+              <th style="padding:8px 10px;text-align:center">Status</th>
+              <th style="padding:8px 10px">Etapa do crachá</th>
+              <th style="padding:8px 10px;text-align:center">Token</th>
+              <th style="padding:8px 10px;text-align:center">Estrito</th>
+              <th style="padding:8px 10px">Última ação</th>
+            </tr>
+          </thead>
+          <tbody id="crhChannelsBody"><tr><td colspan="7" style="padding:16px;color:#9ab0c9">Carregando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="mst-card" style="padding:18px; margin-bottom:14px">
+      <div style="font-weight:700; margin-bottom:10px">Histórico do provisionamento (o que foi feito, se executou, se deu problema)</div>
+      <div style="overflow-x:auto">
+        <table class="mst-table" style="width:100%;min-width:640px;border-collapse:collapse;font-size:.8rem">
+          <thead>
+            <tr style="text-align:left;color:#9ab0c9;border-bottom:1px solid rgba(255,255,255,.08)">
+              <th style="padding:8px 10px">Quando</th>
+              <th style="padding:8px 10px">Ação</th>
+              <th style="padding:8px 10px">Conta</th>
+              <th style="padding:8px 10px">Detalhe</th>
+            </tr>
+          </thead>
+          <tbody id="crhEventsBody"><tr><td colspan="4" style="padding:16px;color:#9ab0c9">Carregando…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -2702,7 +2766,7 @@ function notifyOk(msg) {
 // ── Hash routing ─────────────────────────────────────────────────────────
 // Etapa 8 (LGPD): array atualizado com lgpd, retencao, incidents — antes faltavam
 // e o hash routing caía no fallback de 'overview' ao clicar nessas abas.
-const TABS = ['overview','dashboard','accounts','plans','billing','invoices','payments','expenses','audit','lgpd','retencao','incidents','operators','reviews','whatsapp','agente','webhookhealth'];
+const TABS = ['overview','dashboard','accounts','plans','billing','invoices','payments','expenses','audit','lgpd','retencao','incidents','operators','reviews','whatsapp','agente','webhookhealth','crachas'];
 function activateTab(name) {
   if (!TABS.includes(name)) name = 'overview';
   document.querySelectorAll('.mst-tab').forEach(t => t.classList.toggle('active', t.dataset.mtab === name));
@@ -2727,6 +2791,7 @@ function loadTab(name) {
   if (name==='whatsapp') { loadGlobalEvolution(); loadWhatsappConfig(); loadWaChannels(); }
   if (name==='agente')   { loadAiOpenai(); loadAiPrompt(); loadWaHealth(); loadAiUsage(); loadAiModels(); loadAreaQuestions(); }
   if (name==='webhookhealth') loadWebhookHealth();
+  if (name==='crachas') loadCrachas();
 }
 
 // ── WhatsApp / Evolution (infra por conta — só super_admin) ────────────────
@@ -2883,6 +2948,73 @@ async function loadWebhookHealth() {
       <td style="padding:8px 10px;color:#9ab0c9;font-size:.74rem">${esc(det)}</td>
     </tr>`;
   }).join('') : '<tr><td colspan="4" style="padding:16px;color:#9ab0c9">Nenhuma anomalia registrada.</td></tr>';
+}
+
+// ── Provisionamento do Cracha (B3): status automatico do 2o fator por canal ──
+const _crhStage = {
+  estrito:    ['Estrito (100%)',        '#34d399','rgba(16,185,129,.15)','rgba(16,185,129,.45)'],
+  tolerante:  ['Protegido (tolerante)', '#7EB8F7','rgba(96,165,250,.12)','rgba(96,165,250,.4)'],
+  aguardando: ['Aguardando Evolution',  '#f59e0b','rgba(245,158,11,.12)','rgba(245,158,11,.4)'],
+  sem_cracha: ['Sem crachá',            '#94a3b8','rgba(148,163,184,.12)','rgba(148,163,184,.35)'],
+  externo:    ['Externo (n8n)',         '#64748b','rgba(100,116,139,.12)','rgba(100,116,139,.3)'],
+};
+const _crhEvLabels = {
+  webhook_token_autogen:'Crachá gerado (auto)', webhook_strict_auto_enabled:'Estrito ligado (auto)',
+  webhook_strict_enabled:'Estrito ligado (manual)', webhook_compat:'Crachá ausente (tolerado)',
+  webhook_strict_missing:'Crachá ausente em modo estrito (401)', webhook_reject:'Crachá inválido (401)',
+  webhook_config_error:'Config inconsistente (503)',
+};
+function _crhStageChip(stage){
+  const c = _crhStage[stage] || _crhStage.sem_cracha;
+  return `<span style="display:inline-block;color:${c[1]};background:${c[2]};border:1px solid ${c[3]};padding:2px 9px;border-radius:999px;font-size:.7rem;font-weight:700">${c[0]}</span>`;
+}
+async function loadCrachas(){
+  const chB=document.getElementById('crhChannelsBody'), evB=document.getElementById('crhEventsBody');
+  if(chB) chB.innerHTML='<tr><td colspan="7" style="padding:16px;color:#9ab0c9">Carregando…</td></tr>';
+  const r=await fj(`${API}/crachas.php`);
+  if(!r.ok){ if(chB) chB.innerHTML='<tr><td colspan="7" style="padding:16px;color:#ef4444">Erro ao carregar</td></tr>'; return; }
+  const d=r.data||{}, s=d.summary||{}, chans=d.channels||[], evs=d.events||[];
+  const set=(id,v)=>{const e=document.getElementById(id); if(e) e.textContent=v;};
+  set('crhTotal',_aiN(s.total)); set('crhEstrito',_aiN(s.estrito)); set('crhTolerante',_aiN(s.tolerante));
+  set('crhAguardando',_aiN(s.aguardando)); set('crhSemCracha',_aiN(s.sem_cracha)); set('crhExterno',_aiN(s.externo));
+  let alertN=0;
+  chans.forEach(c=>{ if((c.strict && Number(c.pend_24h||0)>0) || Number(c.reject_24h||0)>0) alertN++; });
+  const badge=document.getElementById('crhAlertBadge');
+  if(badge){ if(alertN>0){ badge.textContent=alertN; badge.style.display=''; } else badge.style.display='none'; }
+  if(chB) chB.innerHTML = chans.length ? chans.map(c=>{
+    const st = c.status==='open'
+      ? '<span style="background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.4);padding:2px 9px;border-radius:999px;font-size:.7rem;font-weight:700">Conectado</span>'
+      : `<span style="background:rgba(148,163,184,.12);color:#94a3b8;border:1px solid rgba(148,163,184,.35);padding:2px 9px;border-radius:999px;font-size:.7rem;font-weight:700">${esc(c.status||'—')}</span>`;
+    const tok = c.has_token ? `<span style="color:#34d399" title="${c.token_gen_at?('gerado em '+_aiWhen(c.token_gen_at)):'presente'}">sim</span>` : '<span style="color:#64748b">não</span>';
+    const estr = c.strict
+      ? `<span style="color:#34d399;font-weight:700" title="${c.strict_at?('ligado em '+_aiWhen(c.strict_at)):''}">✓</span>`
+      : (c.stage==='externo' ? '<span style="color:#64748b">—</span>' : '<span style="color:#9ab0c9">aguardando</span>');
+    let extra='';
+    if(c.strict && Number(c.pend_24h||0)>0) extra=' <span style="color:#f59e0b" title="canal estrito recebendo requisição sem crachá — verificar a Evolution">⚠</span>';
+    else if(Number(c.reject_24h||0)>0) extra=' <span style="color:#ef4444" title="crachá inválido recebido (stale/forjado)">⚠</span>';
+    const last = c.strict_at ? ('estrito '+_aiWhen(c.strict_at)) : (c.token_gen_at ? ('token '+_aiWhen(c.token_gen_at)) : '—');
+    return `<tr style="border-bottom:1px solid rgba(255,255,255,.05)">
+      <td style="padding:8px 10px">${esc(c.account_nome||'')}</td>
+      <td style="padding:8px 10px">${esc(c.instance_name||'')}</td>
+      <td style="padding:8px 10px;text-align:center">${st}</td>
+      <td style="padding:8px 10px">${_crhStageChip(c.stage)}${extra}</td>
+      <td style="padding:8px 10px;text-align:center">${tok}</td>
+      <td style="padding:8px 10px;text-align:center">${estr}</td>
+      <td style="padding:8px 10px;color:#9ab0c9;font-size:.74rem">${esc(last)}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7" style="padding:16px;color:#9ab0c9">Nenhum canal.</td></tr>';
+  if(evB) evB.innerHTML = evs.length ? evs.map(e=>{
+    const lvl = e.level==='error'?'#ef4444':(e.level==='warn'?'#f59e0b':'#34d399');
+    const label=_crhEvLabels[e.code]||e.code;
+    const who=e.account_nome?esc(e.account_nome):(e.account_id?('Conta #'+e.account_id):'—');
+    const det=e.detail?Object.entries(e.detail).map(([k,v])=>`${esc(k)}=${esc(String(v))}`).join(' · '):'';
+    return `<tr style="border-bottom:1px solid rgba(255,255,255,.05)">
+      <td style="padding:8px 10px;color:#9ab0c9;white-space:nowrap">${_aiWhen(e.created_at)}</td>
+      <td style="padding:8px 10px"><span style="color:${lvl};font-weight:600">${esc(label)}</span></td>
+      <td style="padding:8px 10px">${who}</td>
+      <td style="padding:8px 10px;color:#9ab0c9;font-size:.74rem">${det}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="4" style="padding:16px;color:#9ab0c9">Nenhuma ação de provisionamento ainda.</td></tr>';
 }
 
 // ── Contas & Consumo do Agente (quem esta ligado + tokens/custo) ───────────

@@ -339,6 +339,43 @@ if (!is_file($authF)) {
     }
 }
 
+// ── B3 auto-provisionamento do cracha (provision gera token + reconciliador liga estrito) ──
+section("B3 auto-cracha — provisionamento automatico");
+$provF = $ROOT . '/app/Services/WhatsAppProvisioningService.php';
+$tickF = $ROOT . '/public/api/whatsapp_health_tick.php';
+$crhF  = $ROOT . '/public/api/master/crachas.php';
+if (is_file($provF)) {
+    $pc = (string)file_get_contents($provF);
+    (strpos($pc, "'webhook_token'") !== false && strpos($pc, 'random_bytes(32)') !== false)
+        ? pass("auto-cracha: provisionamento GERA o webhook_token (256 bits) ao conectar o canal")
+        : fail("auto-cracha: WhatsAppProvisioningService nao gera webhook_token (Fase B nao seria automatica)");
+    (strpos($pc, '=> $webhookToken') !== false)
+        ? pass("auto-cracha: token injetado no EvolutionApiService do setWebhook (blindagem anexa o header)")
+        : warn("auto-cracha: token pode nao chegar ao setWebhook do provisionamento");
+} else { skip("WhatsAppProvisioningService.php nao encontrado"); }
+if (is_file($tickF)) {
+    $tc = (string)file_get_contents($tickF);
+    (strpos($tc, 'webhook_strict_auto_enabled') !== false && strpos($tc, "'webhook_token_strict', '1'") !== false)
+        ? pass("auto-cracha: reconciliador do tick liga o estrito sozinho (webhook_strict_auto_enabled)")
+        : fail("auto-cracha: whatsapp_health_tick sem reconciliador de auto-strict");
+    (strpos($tc, "'webhook_compat','webhook_strict_missing','webhook_reject'") !== false)
+        ? pass("auto-cracha: reconciliador exige ZERO anomalia de cracha em 24h antes de endurecer")
+        : warn("auto-cracha: guard de prontidao do reconciliador nao encontrado — revisar");
+    // Correcao do HIGH da revisao: prova POSITIVA (cracha_ok), nao ausencia de falha.
+    (strpos($tc, "'cracha_ok'") !== false)
+        ? pass("auto-cracha: reconciliador exige PROVA POSITIVA (cracha_ok) — nao endurece canal so-quieto")
+        : fail("auto-cracha: reconciliador SEM cracha_ok — risco de armadilha 401 (silencio != prova)");
+} else { skip("whatsapp_health_tick.php nao encontrado"); }
+if (is_file($whB3)) {
+    $wc2 = (string)file_get_contents($whB3);
+    (strpos($wc2, "'cracha_ok'") !== false)
+        ? pass("auto-cracha: webhook EMITE cracha_ok no caminho feliz (token presente e bate)")
+        : fail("auto-cracha: webhook nao emite cracha_ok — reconciliador nunca teria prova positiva");
+}
+is_file($crhF)
+    ? pass("auto-cracha: endpoint Master crachas.php presente (aba de provisionamento)")
+    : warn("auto-cracha: crachas.php ausente (aba de monitoramento nao deployada?)");
+
 // Hash-guard do prompt mestre (INTOCAVEL).
 try {
     $tpl = $pdo->query("SELECT template FROM ai_prompts WHERE name='pre_atendimento_universal' AND active=1 ORDER BY id DESC LIMIT 1")->fetchColumn();

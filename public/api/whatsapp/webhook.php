@@ -164,6 +164,18 @@ try {
             error_log('[whatsapp/webhook] webhook_token configurado mas ausente na requisicao (modo compat, account_id=' . $accountId . ')');
             wh_anomaly('webhook_compat', ['instance' => $instanceName], 'warn', $accountId);
             break;
+        case WhatsAppWebhookAuth::OK:
+            // Sinal POSITIVO de "cracha valido recebido": so quando o tenant TEM token E a
+            // requisicao trouxe o token (que bateu). Sem essas duas condicoes, OK e apenas
+            // "tenant sem 2o fator" (retrocompat), que NAO prova nada. Este evento e a PROVA
+            // que o reconciliador (whatsapp_health_tick, auto-strict) exige antes de ligar o
+            // estrito sozinho — sem ele, silencio (ausencia de anomalia) seria lido como
+            // sucesso e endureceria canal quieto que nunca mandou o cracha (armadilha 401).
+            // NAO casa LIKE 'webhook\_%' de proposito (nao polui os KPIs de anomalia).
+            if (trim((string)($cfg['webhook_token'] ?? '')) !== '' && trim($wtProvided) !== '') {
+                wh_anomaly('cracha_ok', ['instance' => $instanceName], 'info', $accountId);
+            }
+            break;
     }
 
     // Cria/encontra instância DENTRO do tenant identificado pela apikey
@@ -310,8 +322,15 @@ try {
  * B3 Bloco 2: telemetria de ANOMALIA do webhook inbound. Grava em ai_agent_events
  * (mesma tabela do agente/webhook_silent) pra alimentar a aba "Saude do Webhook" do
  * Master. Best-effort (NUNCA derruba o webhook) e com THROTTLE anti-flood: no maximo
- * 1 evento do mesmo (code, instance) a cada 10min — um scanner/ataque batendo no
- * webhook nao enche a tabela de telemetria. Detalhes NAO devem conter PII crua.
+ * 1 evento do mesmo (code, instance, CONTA) a cada 10min — um scanner/ataque batendo
+ * no webhook nao enche a tabela de telemetria. Detalhes NAO devem conter PII crua.
+ *
+ * O throttle inclui o account_id (nao so instance_id): a maioria dos eventos do 2o
+ * fator (compat/reject/cracha_ok) e gravada ANTES do findOrCreate, com instance_id=NULL;
+ * sem o account_id no balde, todos esses eventos compartilhariam UM balde GLOBAL entre
+ * tenants (o de instance_id NULL), e o evento de uma conta suprimiria o da outra por
+ * 10min. Por-conta, cada tenant tem seu proprio balde. Isso e critico pro sinal
+ * positivo cracha_ok (o reconciliador conta por conta) e pra precisao dos KPIs.
  */
 function wh_anomaly(string $code, array $detail = [], string $level = 'warn', ?int $accountId = null, ?int $instanceId = null): void
 {
@@ -319,10 +338,10 @@ function wh_anomaly(string $code, array $detail = [], string $level = 'warn', ?i
         $pdo = \App\Models\Database::getConnection();
         $st  = $pdo->prepare(
             "SELECT 1 FROM ai_agent_events
-              WHERE code = :c AND (instance_id <=> :iid)
+              WHERE code = :c AND (instance_id <=> :iid) AND (account_id <=> :aid)
                 AND created_at > (NOW() - INTERVAL 10 MINUTE) LIMIT 1"
         );
-        $st->execute([':c' => substr($code, 0, 40), ':iid' => $instanceId]);
+        $st->execute([':c' => substr($code, 0, 40), ':iid' => $instanceId, ':aid' => $accountId]);
         if ($st->fetchColumn()) return; // ja registrado ha < 10min: throttle
         \App\Services\AiIntake\AgentEvent::log($pdo, $code, $detail, $level, $accountId, null, $instanceId);
     } catch (\Throwable $_) { /* best-effort: telemetria nunca quebra o webhook */ }

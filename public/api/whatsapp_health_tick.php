@@ -25,6 +25,7 @@ require_once __DIR__ . '/../../app/Models/Database.php';
 require_once __DIR__ . '/../../app/Helpers/EnvLoader.php';
 require_once __DIR__ . '/../../app/Helpers/WaLog.php';
 require_once __DIR__ . '/../../app/Services/AiIntake/AgentEvent.php';
+require_once __DIR__ . '/../../app/Models/WhatsAppInstance.php'; // reconciliador auto-strict do cracha
 
 use App\Models\Database;
 use App\Helpers\EnvLoader;
@@ -52,6 +53,7 @@ $BIZ_END    = 20; // horario comercial — fim (exclusivo)
 $BIZ_TZ     = 'America/Sao_Paulo'; // o box roda em UTC; o alarme so faz sentido no fuso do cliente (BR)
 $pdo = Database::getConnection();
 $flagged = [];
+$autoStrict = []; // contas que o reconciliador do cracha endureceu neste tick
 
 // Fora do horario comercial (ou fim de semana), nao ha expectativa de fluxo constante
 // de mensagens -> silencio e normal, nao sintoma de webhook morto. Calculado no fuso do
@@ -98,6 +100,59 @@ try {
         $flagged[] = $inst;
     }
 
+    // ── B3 auto-strict (reconciliador do cracha): liga o modo estrito SOZINHO nos canais
+    // que ja PROVARAM mandar o cracha, sem NUNCA criar armadilha de 401. Isto completa o
+    // ciclo automatico do 2o fator: o token e a Fase B nascem no provisionamento
+    // (WhatsAppProvisioningService); aqui o estrito (Fase C) e ligado assim que houver prova.
+    //
+    // PRONTIDAO = prova POSITIVA, nao ausencia de falha (revisao adversarial): o canal so
+    // endurece se, nas ultimas 24h, houve pelo menos 1 evento 'cracha_ok' (cracha PRESENTE e
+    // que BATEU no verify — gravado pelo webhook.php) E ZERO anomalia de cracha
+    // (compat/strict_missing/reject). Silencio NAO conta: sem 'cracha_ok' recente, o canal
+    // fica tolerante (nunca vira estrito por estar so quieto). Alem disso exige last_event_at
+    // RECENTE (< 24h) pra a janela de anomalia ser comparavel a atividade. So grava a flag;
+    // NAO toca a Evolution. NAO desliga sozinho (downgrade seria exploravel): a aba so alerta.
+    try {
+        $cand = $pdo->query(
+            "SELECT wi.account_id, wi.instance_name,
+                    (SELECT s.config_value FROM whatsapp_settings s
+                      WHERE s.account_id = wi.account_id AND s.config_key = 'webhook_token_strict' LIMIT 1) AS strict_flag
+               FROM whatsapp_instances wi
+               JOIN whatsapp_settings wt ON wt.account_id = wi.account_id
+                    AND wt.config_key = 'webhook_token' AND wt.config_value <> ''
+               JOIN whatsapp_settings wu ON wu.account_id = wi.account_id
+                    AND wu.config_key = 'webhook_url' AND wu.config_value LIKE '%/api/whatsapp/webhook.php%'
+              WHERE wi.status = 'open'
+                AND wi.last_event_at IS NOT NULL
+                AND wi.last_event_at > (NOW() - INTERVAL 24 HOUR)"
+        )->fetchAll(\PDO::FETCH_ASSOC);
+        if ($cand) {
+            $wiModel = new \WhatsAppInstance();
+            $badStmt = $pdo->prepare(
+                "SELECT COUNT(*) FROM ai_agent_events
+                  WHERE account_id = ?
+                    AND code IN ('webhook_compat','webhook_strict_missing','webhook_reject')
+                    AND created_at > (NOW() - INTERVAL 24 HOUR)"
+            );
+            $okStmt = $pdo->prepare(
+                "SELECT COUNT(*) FROM ai_agent_events
+                  WHERE account_id = ? AND code = 'cracha_ok'
+                    AND created_at > (NOW() - INTERVAL 24 HOUR)"
+            );
+            foreach ($cand as $c) {
+                if (($c['strict_flag'] ?? '') === '1') continue;          // ja estrito
+                $aid = (int)$c['account_id'];
+                $badStmt->execute([$aid]);
+                if ((int)$badStmt->fetchColumn() > 0) continue;           // teve anomalia de cracha -> nao endurece
+                $okStmt->execute([$aid]);
+                if ((int)$okStmt->fetchColumn() < 1) continue;            // SEM prova positiva de cracha valido -> nao endurece
+                $wiModel->saveSetting($aid, 'webhook_token_strict', '1'); // seguro: cracha provado, liga o estrito
+                AgentEvent::log($pdo, 'webhook_strict_auto_enabled', ['instance' => (string)$c['instance_name'], 'by' => 'reconciler'], 'info', $aid, null, null);
+                $autoStrict[] = $aid;
+            }
+        }
+    } catch (\Throwable $e) { error_log('[whatsapp_health_tick] auto-strict: ' . $e->getMessage()); }
+
     // Retencao (B3 Bloco 2): expurga eventos de telemetria com mais de 30 dias — a tabela
     // ai_agent_events passou a receber tambem as anomalias do webhook, entao nao pode
     // crescer sem limite. LIMIT evita lock longo (ate 5000 por tick, ~cada 15min). Best-effort.
@@ -106,5 +161,5 @@ try {
     error_log('[whatsapp_health_tick] ' . $e->getMessage());
 }
 
-if (!$isCli) echo json_encode(['ok' => true, 'flagged' => $flagged, 'ts' => date('c')]);
-else echo 'webhook_silent flagged: ' . (implode(',', $flagged) ?: '(nenhum)') . "\n";
+if (!$isCli) echo json_encode(['ok' => true, 'flagged' => $flagged, 'auto_strict' => $autoStrict, 'ts' => date('c')]);
+else echo 'webhook_silent flagged: ' . (implode(',', $flagged) ?: '(nenhum)') . ' | auto-strict contas: ' . (implode(',', $autoStrict) ?: '(nenhuma)') . "\n";
