@@ -81,18 +81,37 @@ if ($site !== false) {
 
 // Sonda a porta antes de chamar o Database: getConnection() faz die() e
 // derrubaria o teste inteiro com uma mensagem confusa.
+//
+// O host NÃO pode ser fixo em 127.0.0.1: no XAMPP é isso, mas em produção o
+// app roda em container e fala com o host 'yuris_db'. Com o valor fixo o teste
+// passava "parcial" em produção sem avisar que pulou a metade que importa.
+$dbHost = getenv('DB_HOST') ?: null;
+$dbPort = (int)(getenv('DB_PORT') ?: 0);
+if (!$dbHost) {
+    $envFile = __DIR__ . '/../../.env';
+    if (is_file($envFile)) {
+        foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $linha) {
+            if (preg_match('/^\s*DB_HOST\s*=\s*"?([^"\r\n]+)"?/', $linha, $m)) $dbHost = trim($m[1]);
+            if (preg_match('/^\s*DB_PORT\s*=\s*"?([^"\r\n]+)"?/', $linha, $m)) $dbPort = (int)trim($m[1]);
+        }
+    }
+}
+$dbHost = $dbHost ?: '127.0.0.1';
+$dbPort = $dbPort ?: 3306;
+
 $dbUp = false;
-$sock = @fsockopen('127.0.0.1', 3306, $errno, $errstr, 1.5);
+$sock = @fsockopen($dbHost, $dbPort, $errno, $errstr, 2.5);
 if ($sock) { fclose($sock); $dbUp = true; }
 
 if (!$dbUp) {
-    echo "\n[A] e [B] PULADOS: banco indisponível (127.0.0.1:3306).\n";
-    echo "    Suba o MySQL no painel do XAMPP e rode de novo para cobrir\n";
-    echo "    o fail-soft e a grade semeada.\n";
+    echo "\n[A] e [B] PULADOS: banco indisponível em {$dbHost}:{$dbPort}.\n";
+    echo "    Local: suba o MySQL no painel do XAMPP e rode de novo.\n";
     echo "\n----\n";
     echo "Resultado parcial: $pass ok · $fail falha(s)\n";
+    echo "ATENÇÃO: a cobertura de fail-soft e da grade NÃO foi executada.\n";
     exit($fail > 0 ? 1 : 0);
 }
+echo "  (banco: {$dbHost}:{$dbPort})\n";
 $pdo = \App\Models\Database::getConnection();
 
 echo "\n[A] Fail-soft: banco de pé, conta sem plano configurado -> LIBERA\n";

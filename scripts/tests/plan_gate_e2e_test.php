@@ -28,8 +28,23 @@ function ok(string $n, bool $c, string $d = ''): void {
     else     { $fail++; echo "  [FALHA] $n" . ($d ? " :: $d" : '') . "\n"; }
 }
 
-$sock = @fsockopen('127.0.0.1', 3306, $e1, $e2, 1.5);
-if (!$sock) { echo "Banco indisponível. Suba o MySQL e rode de novo.\n"; exit(2); }
+// Host lido da configuração, não fixo: em produção o app fala com 'yuris_db'.
+$dbHost = getenv('DB_HOST') ?: null;
+$dbPort = (int)(getenv('DB_PORT') ?: 0);
+if (!$dbHost) {
+    $envFile = __DIR__ . '/../../.env';
+    if (is_file($envFile)) {
+        foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $linha) {
+            if (preg_match('/^\s*DB_HOST\s*=\s*"?([^"\r\n]+)"?/', $linha, $m)) $dbHost = trim($m[1]);
+            if (preg_match('/^\s*DB_PORT\s*=\s*"?([^"\r\n]+)"?/', $linha, $m)) $dbPort = (int)trim($m[1]);
+        }
+    }
+}
+$dbHost = $dbHost ?: '127.0.0.1';
+$dbPort = $dbPort ?: 3306;
+
+$sock = @fsockopen($dbHost, $dbPort, $e1, $e2, 2.5);
+if (!$sock) { echo "Banco indisponível em {$dbHost}:{$dbPort}. Suba o MySQL e rode de novo.\n"; exit(2); }
 fclose($sock);
 
 $pdo = Database::getConnection();
