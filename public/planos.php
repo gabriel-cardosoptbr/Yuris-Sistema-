@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Planos e Preços — Yuris Sistema Jurídico</title>
-  <meta name="description" content="Planos do Yuris com tudo incluído: CRM, processos, intimações, financeiro e WhatsApp. A partir de R$ 220/mês, conforme o número de usuários.">
+  <meta name="description" content="Planos do Yuris: CRM, processos, intimações automáticas, financeiro e WhatsApp com agente de IA. A partir de R$ 149/mês, conforme o tamanho do escritório.">
   <meta name="robots" content="index,follow">
   <link rel="canonical" href="https://yuris.com.br/planos">
   <meta name="theme-color" content="#070F1C">
@@ -13,13 +13,13 @@
   <meta property="og:locale" content="pt_BR">
   <meta property="og:url" content="https://yuris.com.br/planos">
   <meta property="og:title" content="Planos e Preços — Yuris Sistema Jurídico">
-  <meta property="og:description" content="Planos com tudo incluído, a partir de R$ 220/mês. CRM, processos, intimações, financeiro e WhatsApp em um só sistema.">
+  <meta property="og:description" content="Planos a partir de R$ 149/mês. CRM, processos, intimações automáticas, financeiro e WhatsApp com IA em um só sistema.">
   <meta property="og:image" content="https://yuris.com.br/assets/img/og-image.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Planos e Preços — Yuris Sistema Jurídico">
-  <meta name="twitter:description" content="Planos com tudo incluído, a partir de R$ 220/mês.">
+  <meta name="twitter:description" content="Planos a partir de R$ 149/mês, com agente de IA no WhatsApp incluído.">
   <meta name="twitter:image" content="https://yuris.com.br/assets/img/og-image.jpg">
   <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
@@ -42,10 +42,10 @@
         "brand": { "@type": "Brand", "name": "Yuris" },
         "url": "https://yuris.com.br/planos",
         "offers": [
-          { "@type": "Offer", "name": "Plano Solo (1 a 2 usuários)", "price": "220.00", "priceCurrency": "BRL", "url": "https://yuris.com.br/planos", "availability": "https://schema.org/InStock" },
-          { "@type": "Offer", "name": "Plano Equipe (até 5 usuários)", "price": "220.00", "priceCurrency": "BRL", "url": "https://yuris.com.br/planos", "availability": "https://schema.org/InStock" },
-          { "@type": "Offer", "name": "Plano Escritório (até 10 usuários)", "price": "370.00", "priceCurrency": "BRL", "url": "https://yuris.com.br/planos", "availability": "https://schema.org/InStock" },
-          { "@type": "Offer", "name": "Plano Studio (até 20 usuários)", "price": "670.00", "priceCurrency": "BRL", "url": "https://yuris.com.br/planos", "availability": "https://schema.org/InStock" }
+          { "@type": "Offer", "name": "Plano Solo (até 2 usuários)", "price": "149.00", "priceCurrency": "BRL", "url": "https://yuris.com.br/planos", "availability": "https://schema.org/InStock" },
+          { "@type": "Offer", "name": "Plano Equipe (até 5 usuários)", "price": "249.00", "priceCurrency": "BRL", "url": "https://yuris.com.br/planos", "availability": "https://schema.org/InStock" },
+          { "@type": "Offer", "name": "Plano Escritório (até 10 usuários)", "price": "449.00", "priceCurrency": "BRL", "url": "https://yuris.com.br/planos", "availability": "https://schema.org/InStock" },
+          { "@type": "Offer", "name": "Plano Studio (até 20 usuários)", "price": "749.00", "priceCurrency": "BRL", "url": "https://yuris.com.br/planos", "availability": "https://schema.org/InStock" }
         ]
       }
     ]
@@ -313,6 +313,142 @@
       margin-top: 6px;
     }
 
+    /* ── Linha do plano anual ── */
+    .plan-annual {
+      font-size: .74rem;
+      color: var(--dim);
+      margin-bottom: 18px;
+      line-height: 1.4;
+    }
+    .plan-annual strong { color: #8FB8DC; font-weight: 700; }
+
+    /* ── Limites do plano (monitores / triagens) ── */
+    .plan-limits {
+      background: rgba(36,78,122,0.16);
+      border: 1px solid rgba(36,78,122,0.28);
+      border-radius: 9px;
+      padding: 10px 12px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .plan-limits div {
+      font-size: .74rem;
+      color: #A8BDD4;
+      line-height: 1.35;
+    }
+    .plan-limits strong { color: #E8F4FF; font-weight: 700; }
+
+    /* ── Faixa Enterprise ── */
+    .enterprise-band {
+      max-width: 1060px;
+      margin: 0 auto 56px;
+      background: linear-gradient(150deg, rgba(20,40,68,.95), rgba(10,22,40,.97));
+      border: 1px solid rgba(176,141,87,0.32);
+      border-radius: 18px;
+      padding: 34px 32px;
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 32px;
+      align-items: center;
+    }
+    .ent-tag {
+      display: inline-block;
+      font-size: .66rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: #C9A227;
+      border: 1px solid rgba(201,162,39,0.35);
+      background: rgba(201,162,39,0.08);
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 14px;
+    }
+    .enterprise-band h2 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #E8F4FF;
+      margin-bottom: 10px;
+      letter-spacing: -.3px;
+    }
+    .enterprise-band > div > p {
+      font-size: .87rem;
+      color: var(--muted);
+      line-height: 1.65;
+      margin-bottom: 22px;
+    }
+    .ent-price {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #C9A227;
+      margin-bottom: 20px;
+    }
+    .ent-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+    }
+    .ent-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+      font-size: .84rem;
+      color: #A8BDD4;
+      line-height: 1.45;
+    }
+    .ent-list li .check {
+      flex-shrink: 0;
+      width: 17px;
+      height: 17px;
+      margin-top: 1px;
+      color: #C9A227;
+    }
+    .ent-btn {
+      display: inline-block;
+      margin-top: 4px;
+      background: transparent;
+      border: 1px solid rgba(201,162,39,0.45);
+      color: #E4C766;
+      font-weight: 700;
+      font-size: .88rem;
+      padding: 13px 28px;
+      border-radius: 10px;
+      text-decoration: none;
+      transition: background .2s, border-color .2s, transform .15s;
+    }
+    .ent-btn:hover {
+      background: rgba(201,162,39,0.10);
+      border-color: rgba(201,162,39,0.65);
+      transform: translateY(-1px);
+    }
+
+    /* ── Add-ons ── */
+    .addons-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 14px;
+      margin-top: 26px;
+      text-align: left;
+    }
+    .addon-item {
+      background: rgba(13,28,48,.8);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+    }
+    .addon-price {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #E8F4FF;
+      margin-bottom: 4px;
+    }
+    .addon-price span { font-size: .72rem; font-weight: 600; color: var(--dim); }
+    .addon-title { font-size: .82rem; font-weight: 700; color: #C8D4E0; margin-bottom: 3px; }
+    .addon-desc  { font-size: .74rem; color: var(--muted); line-height: 1.45; }
+
     /* ── Tabela simples ── */
     .simple-section {
       max-width: 560px;
@@ -459,8 +595,12 @@
     }
     .footer strong { color: var(--muted); }
 
+    @media (max-width: 860px) {
+      .enterprise-band { grid-template-columns: 1fr; gap: 24px; padding: 28px 24px; }
+    }
     @media (max-width: 640px) {
       .plans-grid { grid-template-columns: 1fr; max-width: 400px; }
+      .enterprise-band { max-width: 400px; }
     }
   </style>
 </head>
@@ -473,7 +613,7 @@
   </div>
   <div class="badge-launch">Preço de Lançamento</div>
   <h1>Simples, transparente,<br><span>sem surpresas.</span></h1>
-  <p>Tudo que seu escritório precisa em um único sistema. CRM, processos, financeiro e WhatsApp com IA.</p>
+  <p>Tudo que seu escritório precisa em um único sistema. CRM, processos, intimações automáticas, financeiro e WhatsApp com IA.</p>
 </div>
 
 <!-- ── Cards de plano ── -->
@@ -482,23 +622,29 @@
   <!-- Solo -->
   <div class="plan-card">
     <div class="plan-name">Solo</div>
-    <div class="plan-users">1 a 2 usuários</div>
+    <div class="plan-users">até 2 usuários</div>
     <div class="plan-price">
       <span class="plan-currency">R$</span>
-      <span class="plan-amount">220</span>
+      <span class="plan-amount">149</span>
     </div>
     <div class="plan-period">/mês</div>
-    <div class="per-user" style="margin-bottom:24px;">R$110/usuário</div>
+    <div class="plan-annual">ou <strong>R$ 127/mês</strong> no plano anual</div>
+
+    <div class="plan-limits">
+      <div><strong>1</strong> monitor de intimação</div>
+      <div><strong>50</strong> triagens de IA por mês</div>
+    </div>
 
     <hr class="plan-divider">
     <ul class="plan-features">
       <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Dashboard executivo</li>
       <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> CRM e prospecção</li>
-      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Gestão de processos</li>
+      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Gestão de processos e prazos</li>
+      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Intimações automáticas (DJEN)</li>
       <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Painel financeiro / DRE</li>
-      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Chat WhatsApp integrado</li>
-      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Agente IA no WhatsApp</li>
+      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> WhatsApp + agente de IA</li>
     </ul>
+    <div class="per-user" style="margin-bottom:14px;">R$ 74,50 por usuário</div>
     <a href="https://wa.me/5511991170602?text=Ol%C3%A1%20Bruno%2C%20quero%20o%20plano%20Solo%20do%20Yuris!" target="_blank" rel="noopener" class="plan-btn plan-btn-outline">Começar agora</a>
   </div>
 
@@ -509,20 +655,24 @@
     <div class="plan-users">até 5 usuários</div>
     <div class="plan-price">
       <span class="plan-currency">R$</span>
-      <span class="plan-amount">220</span>
+      <span class="plan-amount">249</span>
     </div>
     <div class="plan-period">/mês</div>
-    <div class="per-user" style="margin-bottom:24px;">R$44/usuário</div>
+    <div class="plan-annual">ou <strong>R$ 212/mês</strong> no plano anual</div>
+
+    <div class="plan-limits">
+      <div><strong>3</strong> monitores de intimação</div>
+      <div><strong>200</strong> triagens de IA por mês</div>
+    </div>
 
     <hr class="plan-divider">
     <ul class="plan-features">
-      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Dashboard executivo</li>
-      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> CRM e prospecção</li>
-      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Gestão de processos</li>
-      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Painel financeiro / DRE</li>
-      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Chat WhatsApp integrado</li>
-      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Agente IA no WhatsApp</li>
+      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Tudo do plano Solo</li>
+      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Chat interno da equipe</li>
+      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Advogados associados</li>
+      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Planejamento comercial e metas</li>
     </ul>
+    <div class="per-user" style="margin-bottom:14px;">R$ 49,80 por usuário</div>
     <a href="https://wa.me/5511991170602?text=Ol%C3%A1%20Bruno%2C%20quero%20o%20plano%20Equipe%20do%20Yuris!" target="_blank" rel="noopener" class="plan-btn plan-btn-primary">Começar agora</a>
   </div>
 
@@ -532,20 +682,24 @@
     <div class="plan-users">até 10 usuários</div>
     <div class="plan-price">
       <span class="plan-currency">R$</span>
-      <span class="plan-amount">370</span>
+      <span class="plan-amount">449</span>
     </div>
     <div class="plan-period">/mês</div>
-    <div class="per-user" style="margin-bottom:24px;">R$37/usuário</div>
+    <div class="plan-annual">ou <strong>R$ 382/mês</strong> no plano anual</div>
+
+    <div class="plan-limits">
+      <div><strong>6</strong> monitores de intimação</div>
+      <div><strong>500</strong> triagens de IA por mês</div>
+    </div>
 
     <hr class="plan-divider">
     <ul class="plan-features">
-      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Dashboard executivo</li>
-      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> CRM e prospecção</li>
-      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Gestão de processos</li>
-      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Painel financeiro / DRE</li>
-      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Chat WhatsApp integrado</li>
-      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Agente IA no WhatsApp</li>
+      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Tudo do plano Equipe</li>
+      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Integração AASP</li>
+      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Filiais vinculadas</li>
+      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Webhooks e automações</li>
     </ul>
+    <div class="per-user" style="margin-bottom:14px;">R$ 44,90 por usuário</div>
     <a href="https://wa.me/5511991170602?text=Ol%C3%A1%20Bruno%2C%20quero%20o%20plano%20Escrit%C3%B3rio%20do%20Yuris!" target="_blank" rel="noopener" class="plan-btn plan-btn-outline">Começar agora</a>
   </div>
 
@@ -555,53 +709,80 @@
     <div class="plan-users">até 20 usuários</div>
     <div class="plan-price">
       <span class="plan-currency">R$</span>
-      <span class="plan-amount">670</span>
+      <span class="plan-amount">749</span>
     </div>
     <div class="plan-period">/mês</div>
-    <div class="per-user" style="margin-bottom:24px;">R$33/usuário</div>
+    <div class="plan-annual">ou <strong>R$ 637/mês</strong> no plano anual</div>
+
+    <div class="plan-limits">
+      <div><strong>12</strong> monitores de intimação</div>
+      <div><strong>1.500</strong> triagens de IA por mês</div>
+    </div>
 
     <hr class="plan-divider">
     <ul class="plan-features">
-      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Dashboard executivo</li>
-      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> CRM e prospecção</li>
-      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Gestão de processos</li>
-      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Painel financeiro / DRE</li>
-      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Chat WhatsApp integrado</li>
-      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Agente IA no WhatsApp</li>
+      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Tudo do plano Escritório</li>
+      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Suporte prioritário</li>
+      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Estrutura completa de filiais e parceiros</li>
     </ul>
+    <div class="per-user" style="margin-bottom:14px;">R$ 37,45 por usuário</div>
     <a href="https://wa.me/5511991170602?text=Ol%C3%A1%20Bruno%2C%20quero%20o%20plano%20Studio%20do%20Yuris!" target="_blank" rel="noopener" class="plan-btn plan-btn-outline">Começar agora</a>
   </div>
 
 </div>
 
-<!-- ── Tabela preço por usuário ── -->
-<div class="simple-section">
-  <h2>Precisa de mais usuários?</h2>
-  <p>A partir do 6° usuário, cada adicional custa R$30/mês.</p>
-  <table class="price-table">
-    <thead>
-      <tr>
-        <th>Usuários</th>
-        <th>Cálculo</th>
-        <th style="text-align:right">Mensalidade</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td>até 5</td><td>plano base</td><td>R$ 220</td></tr>
-      <tr><td>6</td><td>220 + 1×30</td><td>R$ 250</td></tr>
-      <tr><td>7</td><td>220 + 2×30</td><td>R$ 280</td></tr>
-      <tr><td>8</td><td>220 + 3×30</td><td>R$ 310</td></tr>
-      <tr><td>10</td><td>220 + 5×30</td><td>R$ 370</td></tr>
-      <tr><td>15</td><td>220 + 10×30</td><td>R$ 520</td></tr>
-      <tr><td>20</td><td>220 + 15×30</td><td>R$ 670</td></tr>
-    </tbody>
-  </table>
+<!-- ── Enterprise (sob consulta) ── -->
+<div class="enterprise-band">
+  <div>
+    <div class="ent-tag">Enterprise</div>
+    <h2>Para operações que precisam do Yuris moldado a elas.</h2>
+    <p>Acima de 20 usuários, com implantação assistida, migração dos seus dados e integração com os sistemas que seu escritório já usa. Escopo e mensalidade definidos junto com você.</p>
+    <div class="ent-price">Sob consulta</div>
+    <a href="https://wa.me/5511991170602?text=Ol%C3%A1%20Bruno%2C%20quero%20falar%20sobre%20o%20plano%20Enterprise%20do%20Yuris!" target="_blank" rel="noopener" class="ent-btn">Falar com um especialista</a>
+  </div>
+  <div>
+    <ul class="ent-list">
+      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Tudo do plano Studio, sem limite prático de usuários</li>
+      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Implementação assistida, com onboarding guiado</li>
+      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Migração de dados de outra plataforma ou planilhas</li>
+      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Integrações sob medida com os sistemas que você já usa</li>
+      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Treinamento da equipe</li>
+      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Suporte dedicado com SLA</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ── Add-ons ── -->
+<div class="simple-section" style="max-width:860px;">
+  <h2>Precisa de um pouco mais?</h2>
+  <p>Amplie qualquer plano sem precisar subir de faixa. Contrate só o que faltar.</p>
+  <div class="addons-grid">
+
+    <div class="addon-item">
+      <div class="addon-price">R$ 39 <span>/mês</span></div>
+      <div class="addon-title">Usuário adicional</div>
+      <div class="addon-desc">Para quando a equipe cresce além do limite do plano.</div>
+    </div>
+
+    <div class="addon-item">
+      <div class="addon-price">R$ 29 <span>/mês</span></div>
+      <div class="addon-title">Monitor de intimação extra</div>
+      <div class="addon-desc">Uma OAB e UF a mais sendo monitorada automaticamente.</div>
+    </div>
+
+    <div class="addon-item">
+      <div class="addon-price">R$ 19 <span>/mês</span></div>
+      <div class="addon-title">Mais 200 triagens de IA</div>
+      <div class="addon-desc">Para escritórios com alto volume de contato pelo WhatsApp.</div>
+    </div>
+
+  </div>
 </div>
 
 <!-- ── O que está incluído ── -->
 <div class="features-section">
-  <h2>Tudo incluído em todos os planos</h2>
-  <p>Sem módulos extras, sem pegadinhas. Um preço, acesso completo.</p>
+  <h2>Presente em todos os planos</h2>
+  <p>A base do sistema é a mesma desde o plano Solo. O que muda entre os planos é o tamanho da equipe, o volume e os recursos avançados.</p>
   <div class="features-grid">
 
     <div class="feature-item">
@@ -660,7 +841,17 @@
       </div>
       <div>
         <div class="feature-title">Chat WhatsApp + IA</div>
-        <div class="feature-desc">Atendimento integrado e agente de IA configurável no WhatsApp (com a chave de API do seu provedor).</div>
+        <div class="feature-desc">Atendimento integrado no número que o escritório já usa, com agente de IA fazendo a triagem inicial.</div>
+      </div>
+    </div>
+
+    <div class="feature-item">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </div>
+      <div>
+        <div class="feature-title">Intimações Automáticas</div>
+        <div class="feature-desc">Monitoramento diário do DJEN pela OAB. A publicação chega pronta para virar prazo ou tarefa no processo.</div>
       </div>
     </div>
 

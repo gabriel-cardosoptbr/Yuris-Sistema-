@@ -8,6 +8,7 @@ require_once __DIR__ . '/IntakeSessionRepository.php';
 require_once __DIR__ . '/LlmProviderInterface.php';
 require_once __DIR__ . '/HandoffService.php';
 require_once __DIR__ . '/AgentEvent.php';
+require_once __DIR__ . '/../../Helpers/PlanFeature.php';
 
 /**
  * IntakeEngine — orquestrador do pre-atendimento. UMA chamada de IA por mensagem.
@@ -154,6 +155,16 @@ final class IntakeEngine
         $limits = $this->jdec($cfg['usage_limits_json'] ?? null);
         $monthLimit = (float)($limits['monthly_cost_limit'] ?? 0);
         if ($monthLimit > 0 && $this->repo->monthlyCost($accountId) >= $monthLimit) {
+            return $this->doHandoff($cfg, $session, $collected, IntakeSchema::defaults(), $contactId, $remoteJid, $channelId, true, 'limit_reached');
+        }
+
+        // 5b) Franquia de triagens do plano (ai.triagens_mes).
+        //     Degrada como o teto de custo acima: passa para humano em vez de
+        //     devolver erro. O webhook da Evolution NUNCA pode receber 4xx por
+        //     causa de cota, senão ela reenfileira a mensagem.
+        //     Fail-soft embutido no helper: sem plan_features -> segue o fluxo.
+        if (!\App\Helpers\PlanFeature::hasTriagemDisponivel($accountId)) {
+            AgentEvent::log($this->pdo, 'plan_triagem_quota_reached', [], 'warn', $accountId, $sid, $channelId);
             return $this->doHandoff($cfg, $session, $collected, IntakeSchema::defaults(), $contactId, $remoteJid, $channelId, true, 'limit_reached');
         }
 

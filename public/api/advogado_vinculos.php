@@ -26,11 +26,13 @@ require_once __DIR__ . '/../../app/Models/Account.php';
 require_once __DIR__ . '/../../app/Models/AdvogadoVinculo.php';
 require_once __DIR__ . '/../../app/Models/AccountNotification.php';
 require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Helpers/PlanFeature.php';
 
 use App\Models\Account;
 use App\Models\AdvogadoVinculo;
 use App\Models\AccountNotification;
 use App\Helpers\AccountContext;
+use App\Helpers\PlanFeature;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -67,6 +69,12 @@ if ($method === 'GET') {
 // POST — host vincula advogado via código ADV-XXXXXX
 // ─────────────────────────────────────────────────────────────────────────────
 if ($method === 'POST') {
+    // Módulo por plano: vincular advogado associado não entra no plano Solo.
+    // Quem paga pelo recurso é o HOST (quem cria o vínculo), por isso a checagem
+    // fica só aqui no POST e não no GET/PATCH (o advogado do outro lado precisa
+    // conseguir aprovar/recusar independente do plano dele).
+    PlanFeature::assertEnabled($ctx->getAccountId(), PlanFeature::F_ADVOGADOS);
+
     $codigoAdvogado = trim($input['codigo_advogado'] ?? '');
 
     if ($codigoAdvogado === '') {

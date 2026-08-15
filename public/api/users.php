@@ -2,10 +2,12 @@
 require_once __DIR__ . '/../../app/Models/Database.php';
 require_once __DIR__ . '/../../app/Services/WebhookDispatcher.php';
 require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Helpers/PlanFeature.php';
 
 use App\Models\Database;
 use App\Services\WebhookDispatcher;
 use App\Helpers\AccountContext;
+use App\Helpers\PlanFeature;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -167,6 +169,10 @@ if ($method === 'POST') {
         echo json_encode(['error' => 'Apenas owner/admin pode criar usuários']);
         exit;
     }
+
+    // Limite de usuários do plano (402 se estourou). Ordem igual à de
+    // push/monitors.php: permissão primeiro, cota depois, criação por último.
+    PlanFeature::assertCanAddUser($ctx->getAccountId());
 
     $role = $input['role'] ?? 'user';
     if (!in_array($role, ['owner','admin','manager','user','viewer'])) $role = 'user';

@@ -32,9 +32,11 @@ require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
 require_once __DIR__ . '/../../../app/Helpers/EnvLoader.php';
 require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
 require_once __DIR__ . '/../../../app/Helpers/Crypto.php';
+require_once __DIR__ . '/../../../app/Helpers/PlanFeature.php';
 
 use App\Helpers\AccountContext;
 use App\Helpers\Crypto;
+use App\Helpers\PlanFeature;
 use App\Models\AaspIntegration;
 
 session_start(['read_and_close' => true]);
@@ -55,6 +57,13 @@ try {
     $ctx       = AccountContext::fromSession();
     $accountId = $ctx->getAccountId();
     $method    = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+
+    // Módulo por plano (AASP entra a partir do Escritório). Só nas escritas:
+    // o GET continua respondendo lista vazia, para a aba não quebrar na tela
+    // de quem não tem o recurso.
+    if ($method !== 'GET') {
+        PlanFeature::assertEnabled($accountId, PlanFeature::F_AASP);
+    }
 
     // ── GET (lista ou item) — sem CSRF, é só leitura
     if ($method === 'GET') {

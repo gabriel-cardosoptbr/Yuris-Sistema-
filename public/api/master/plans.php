@@ -54,7 +54,10 @@ if ($method === 'POST') {
         'pm'   => (int)($input['preco_mensal_cents'] ?? 0),
         'pa'   => (int)($input['preco_anual_cents']  ?? 0),
         'td'   => (int)($input['trial_dias']         ?? 0),
-        'at'   => !empty($input['ativo']) ? 1 : 1,
+        // Antes era "? 1 : 1" (erro de digitação): os dois ramos davam 1, então
+        // era impossível criar um plano já inativo. Agora respeita o payload,
+        // mantendo 1 como padrão quando a chave nem vem.
+        'at'   => array_key_exists('ativo', $input) ? (!empty($input['ativo']) ? 1 : 0) : 1,
         'ds'   => !empty($input['destaque']) ? 1 : 0,
         'or'   => (int)($input['ordem'] ?? 99),
     ]);
@@ -79,12 +82,23 @@ if ($method === 'PATCH') {
     if (empty($sets)) ApiResponse::badRequest('nada a atualizar');
     $pdo->prepare('UPDATE plans SET ' . implode(', ', $sets) . ' WHERE id = :id')->execute($params);
 
-    // Sincroniza features se enviadas
+    // Sincroniza features se enviadas.
+    //
+    // ANTES: DELETE de TODAS as features do plano + reinserção do que veio no
+    // payload. Isso apagava silenciosamente toda chave que a tela não conhece.
+    // Na prática o Master zerava 'monitors.limit' (semeada pela migration 077)
+    // a cada edição de plano, e como "sem linha" faz o BillingGuard liberar por
+    // fail-soft, o efeito era o INVERSO do pretendido: o plano passava de
+    // "0 monitores" para "monitores ilimitados".
+    //
+    // AGORA: upsert apenas das chaves enviadas (a tabela tem UNIQUE
+    // uk_plan_feature(plan_id, feature_key)). Payload parcial atualiza só o que
+    // mandou e não encosta no resto.
     if (isset($input['features']) && is_array($input['features'])) {
-        $pdo->prepare('DELETE FROM plan_features WHERE plan_id = :pid')->execute(['pid' => $id]);
         $ins = $pdo->prepare(
             'INSERT INTO plan_features (plan_id, feature_key, limit_value, is_enabled)
-             VALUES (:pid, :fk, :lv, :ie)'
+             VALUES (:pid, :fk, :lv, :ie)
+             ON DUPLICATE KEY UPDATE limit_value = VALUES(limit_value), is_enabled = VALUES(is_enabled)'
         );
         foreach ($input['features'] as $f) {
             if (empty($f['feature_key'])) continue;

@@ -1692,6 +1692,10 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
           <div><label class="mst-form-label">Max cards (CRM)</label><input id="feat_max_cards" class="mst-form-input" type="number" min="0"></div>
           <div><label class="mst-form-label">Max filiais</label><input id="feat_max_filiais" class="mst-form-input" type="number" min="0"></div>
         </div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Monitores de intimação</label><input id="feat_monitors_limit" class="mst-form-input" type="number" min="0"></div>
+          <div><label class="mst-form-label">Triagens de IA / mês</label><input id="feat_ai_triagens_mes" class="mst-form-input" type="number" min="0"></div>
+        </div>
 
         <div class="mst-form-section">Módulos liberados</div>
         <div class="mst-form-row">
@@ -1707,6 +1711,18 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
           <div><label class="mst-form-label">API externa</label>
             <select id="feat_integracoes_api" class="mst-form-select"><option value="1">Sim</option><option value="0">Não</option></select>
           </div>
+        </div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Integração AASP</label>
+            <select id="feat_aasp_enabled" class="mst-form-select"><option value="1">Sim</option><option value="0">Não</option></select>
+          </div>
+          <div><label class="mst-form-label">Planejamento comercial</label>
+            <select id="feat_planejamento" class="mst-form-select"><option value="1">Sim</option><option value="0">Não</option></select>
+          </div>
+          <div><label class="mst-form-label">Advogados associados</label>
+            <select id="feat_advogados_associados" class="mst-form-select"><option value="1">Sim</option><option value="0">Não</option></select>
+          </div>
+          <div></div>
         </div>
       </div>
       <div class="mst-modal-foot">
@@ -4369,7 +4385,23 @@ async function fillEditAccPlanos(selectedSlug = '') {
 }
 
 // ── Plan modal (criar / editar) ──────────────────────────────────────────
-const _FEATURE_KEYS = ['max_users','max_processos','max_cards','max_filiais','whatsapp_enabled','chat_interno','webhooks','integracoes_api'];
+// ATENÇÃO: toda chave que o plano usa precisa estar aqui. Antes faltavam
+// 'monitors.limit' (semeada pela migration 077) e, com o antigo PATCH que
+// apagava tudo antes de reinserir, ela sumia a cada edição de plano. O
+// endpoint agora faz upsert, mas manter a lista completa evita a divergência.
+const _FEATURE_KEYS = [
+  'max_users','max_processos','max_cards','max_filiais',
+  'monitors.limit','ai.triagens_mes',
+  'whatsapp_enabled','chat_interno','webhooks','integracoes_api',
+  'aasp_enabled','planejamento','advogados_associados'
+];
+// Chaves tratadas como liga/desliga (as demais são numéricas).
+const _FEATURE_BOOL = new Set([
+  'whatsapp_enabled','chat_interno','webhooks','integracoes_api',
+  'aasp_enabled','planejamento','advogados_associados'
+]);
+// feature_key -> id do campo no DOM ('monitors.limit' -> 'feat_monitors_limit')
+const _featEl = k => document.getElementById('feat_' + k.replace(/\./g, '_'));
 
 function openPlanModal(id) {
   const form = document.getElementById('formPlan');
@@ -4394,11 +4426,15 @@ function openPlanModal(id) {
     const featMap = {};
     (p.features || []).forEach(f => { featMap[f.feature_key] = f; });
     _FEATURE_KEYS.forEach(k => {
-      const el = document.getElementById('feat_' + k);
+      const el = _featEl(k);
       if (!el) return;
       const f = featMap[k];
-      if (k === 'whatsapp_enabled' || k === 'chat_interno' || k === 'webhooks' || k === 'integracoes_api') {
-        el.value = (f && f.is_enabled == 1) ? '1' : '0';
+      if (_FEATURE_BOOL.has(k)) {
+        // Um módulo pode estar desligado de DUAS formas: is_enabled=0 (jeito
+        // que esta tela grava) ou limit_value=0 (jeito que as migrations
+        // semeiam). Ambos precisam aparecer como "Não".
+        const ligado = !!f && f.is_enabled == 1 && Number(f.limit_value) !== 0;
+        el.value = ligado ? '1' : '0';
       } else {
         el.value = (f && f.limit_value !== null && f.limit_value !== undefined) ? f.limit_value : '';
       }
@@ -4410,8 +4446,11 @@ function openPlanModal(id) {
     document.getElementById('planTrial').value = 14;
     document.getElementById('planOrdem').value = 99;
     _FEATURE_KEYS.forEach(k => {
-      const el = document.getElementById('feat_' + k);
-      if (el) el.value = (k === 'whatsapp_enabled' || k === 'chat_interno') ? '1' : (k === 'webhooks' || k === 'integracoes_api') ? '0' : '';
+      const el = _featEl(k);
+      if (!el) return;
+      el.value = _FEATURE_BOOL.has(k)
+        ? ((k === 'whatsapp_enabled' || k === 'chat_interno') ? '1' : '0')
+        : '';
     });
   }
   openModal('modalPlan');
@@ -4424,16 +4463,19 @@ async function submitPlan(ev) {
   const pm = Math.round(parseFloat(document.getElementById('planPM').value || 0) * 100);
   const pa = Math.round(parseFloat(document.getElementById('planPA').value || 0) * 100);
 
-  // Monta lista de features
+  // Monta lista de features (ignora campo ausente no DOM em vez de quebrar)
   const features = _FEATURE_KEYS.map(k => {
-    const el = document.getElementById('feat_' + k);
-    const isBool = (k === 'whatsapp_enabled' || k === 'chat_interno' || k === 'webhooks' || k === 'integracoes_api');
+    const el = _featEl(k);
+    if (!el) return null;
+    const isBool = _FEATURE_BOOL.has(k);
     return {
       feature_key: k,
-      limit_value: isBool ? null : (el.value === '' ? null : parseInt(el.value, 10)),
+      // Booleano grava em limit_value (1/0) E em is_enabled, para ficar igual
+      // ao que as migrations semeiam e não depender de qual campo o leitor olha.
+      limit_value: isBool ? (el.value == '1' ? 1 : 0) : (el.value === '' ? null : parseInt(el.value, 10)),
       is_enabled:  isBool ? (el.value == '1') : true,
     };
-  });
+  }).filter(Boolean);
 
   const body = {
     csrf_token: CSRF,

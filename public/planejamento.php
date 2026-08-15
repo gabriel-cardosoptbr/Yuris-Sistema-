@@ -1,12 +1,16 @@
 <?php
 require_once __DIR__ . '/../app/Models/Database.php';
 require_once __DIR__ . '/../app/Models/User.php';
+require_once __DIR__ . '/../app/Helpers/PlanFeature.php';
 use App\Models\Database;
+use App\Helpers\PlanFeature;
 session_start();
 if (empty($_SESSION['user_id'])) {
     header('Location: /login.php');
     exit;
 }
+// Módulo por plano (Planejamento não entra no plano Solo).
+PlanFeature::assertEnabledPage((int)($_SESSION['account_id'] ?? 0), PlanFeature::F_PLANEJAMENTO);
 $activePage = 'funil';
 ?>
 <!doctype html>

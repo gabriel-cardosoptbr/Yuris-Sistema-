@@ -3,10 +3,12 @@ require_once __DIR__ . '/../../app/Models/Database.php';
 require_once __DIR__ . '/../../app/Models/Account.php';
 require_once __DIR__ . '/../../app/Models/ResourceShare.php';
 require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Helpers/PlanFeature.php';
 require_once __DIR__ . '/../../app/Services/WebhookDispatcher.php';
 
 use App\Models\Database;
 use App\Helpers\AccountContext;
+use App\Helpers\PlanFeature;
 use App\Services\WebhookDispatcher;
 
 session_start();
@@ -20,6 +22,10 @@ $tenantIds = [$accountId];
 if ($_SESSION['user_perfil'] !== 'admin') {
     http_response_code(403); echo json_encode(['error' => 'Forbidden']); exit;
 }
+
+// Módulo por plano. Vale para TODOS os métodos (inclusive GET): se o plano não
+// inclui Webhooks, a conta não lista nem cria endpoint.
+PlanFeature::assertEnabled($accountId, PlanFeature::F_WEBHOOKS);
 
 // Cláusula tenant
 $_whPh = []; $_whParams = [];

@@ -1,12 +1,16 @@
 <?php
 require_once __DIR__ . '/../app/Models/Database.php';
 require_once __DIR__ . '/../app/Services/WebhookDispatcher.php';
+require_once __DIR__ . '/../app/Helpers/PlanFeature.php';
 
 use App\Services\WebhookDispatcher;
+use App\Helpers\PlanFeature;
 
 session_start();
 if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
 if ($_SESSION['user_perfil'] !== 'admin') { header('Location: /dashboard.php'); exit; }
+// Módulo por plano (Webhooks entram só a partir do Escritório).
+PlanFeature::assertEnabledPage((int)($_SESSION['account_id'] ?? 0), PlanFeature::F_WEBHOOKS);
 
 $activePage = 'webhooks';
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));

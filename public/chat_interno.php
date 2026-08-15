@@ -1,10 +1,17 @@
 <?php
 require_once __DIR__ . '/../app/Models/Database.php';
+require_once __DIR__ . '/../app/Helpers/PlanFeature.php';
 session_start();
 if (empty($_SESSION['user_id'])) {
     header('Location: /login.php');
     exit;
 }
+// Módulo por plano (402 + página de bloqueio). Só age com a trava mestra
+// plan_enforcement_enabled ligada; antes disso apenas registra no log.
+\App\Helpers\PlanFeature::assertEnabledPage(
+    (int)($_SESSION['account_id'] ?? 0),
+    \App\Helpers\PlanFeature::F_CHAT_INTERNO
+);
 $activePage = 'chat_interno';
 $uid        = (int)$_SESSION['user_id'];
 $uNome      = htmlspecialchars($_SESSION['user_nome'] ?? 'Usuário');
