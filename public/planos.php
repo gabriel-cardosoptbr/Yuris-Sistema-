@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Planos e Preços — Yuris Sistema Jurídico</title>
-  <meta name="description" content="Planos do Yuris: CRM, processos, intimações automáticas, financeiro e WhatsApp com agente de IA. A partir de R$ 149/mês, conforme o tamanho do escritório.">
+  <title>Planos | Yuris Sistema Jurídico</title>
+  <meta name="description" content="Planos do Yuris: CRM, processos, intimações automáticas, financeiro e WhatsApp com agente de IA. Fale com a gente e encontre o plano ideal para o seu escritório.">
   <meta name="robots" content="index,follow">
   <link rel="canonical" href="https://yuris.com.br/planos">
   <meta name="theme-color" content="#070F1C">
@@ -12,14 +12,14 @@
   <meta property="og:site_name" content="Yuris">
   <meta property="og:locale" content="pt_BR">
   <meta property="og:url" content="https://yuris.com.br/planos">
-  <meta property="og:title" content="Planos e Preços — Yuris Sistema Jurídico">
-  <meta property="og:description" content="Planos a partir de R$ 149/mês. CRM, processos, intimações automáticas, financeiro e WhatsApp com IA em um só sistema.">
+  <meta property="og:title" content="Planos | Yuris Sistema Jurídico">
+  <meta property="og:description" content="CRM, processos, intimações automáticas, financeiro e WhatsApp com IA em um só sistema. Conheça os planos do Yuris.">
   <meta property="og:image" content="https://yuris.com.br/assets/img/og-image.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Planos e Preços — Yuris Sistema Jurídico">
-  <meta name="twitter:description" content="Planos a partir de R$ 149/mês, com agente de IA no WhatsApp incluído.">
+  <meta name="twitter:title" content="Planos | Yuris Sistema Jurídico">
+  <meta name="twitter:description" content="Conheça os planos do Yuris, com agente de IA no WhatsApp incluído.">
   <meta name="twitter:image" content="https://yuris.com.br/assets/img/og-image.jpg">
   <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
@@ -40,13 +40,7 @@
         "description": "Sistema jurídico para advogados e escritórios: processos, prazos, intimações, CRM, financeiro, tarefas e WhatsApp em uma única plataforma.",
         "image": "https://yuris.com.br/assets/img/og-image.jpg",
         "brand": { "@type": "Brand", "name": "Yuris" },
-        "url": "https://yuris.com.br/planos",
-        "offers": [
-          { "@type": "Offer", "name": "Plano Solo (até 2 usuários)", "price": "149.00", "priceCurrency": "BRL", "url": "https://yuris.com.br/planos", "availability": "https://schema.org/InStock" },
-          { "@type": "Offer", "name": "Plano Equipe (até 5 usuários)", "price": "249.00", "priceCurrency": "BRL", "url": "https://yuris.com.br/planos", "availability": "https://schema.org/InStock" },
-          { "@type": "Offer", "name": "Plano Escritório (até 10 usuários)", "price": "449.00", "priceCurrency": "BRL", "url": "https://yuris.com.br/planos", "availability": "https://schema.org/InStock" },
-          { "@type": "Offer", "name": "Plano Studio (até 20 usuários)", "price": "749.00", "priceCurrency": "BRL", "url": "https://yuris.com.br/planos", "availability": "https://schema.org/InStock" }
-        ]
+        "url": "https://yuris.com.br/planos"
       }
     ]
   }
@@ -611,7 +605,6 @@
   <div class="header-logo">
     <img src="/assets/img/logo-144.webp" alt="Yuris" width="52" height="52">
   </div>
-  <div class="badge-launch">Preço de Lançamento</div>
   <h1>Simples, transparente,<br><span>sem surpresas.</span></h1>
   <p>Tudo que seu escritório precisa em um único sistema. CRM, processos, intimações automáticas, financeiro e WhatsApp com IA.</p>
 </div>
@@ -623,12 +616,7 @@
   <div class="plan-card">
     <div class="plan-name">Solo</div>
     <div class="plan-users">até 2 usuários</div>
-    <div class="plan-price">
-      <span class="plan-currency">R$</span>
-      <span class="plan-amount">149</span>
-    </div>
-    <div class="plan-period">/mês</div>
-    <div class="plan-annual">ou <strong>R$ 127/mês</strong> no plano anual</div>
+    <div class="plan-annual">Valor sob consulta</div>
 
     <div class="plan-limits">
       <div><strong>1</strong> monitor de intimação</div>
@@ -644,7 +632,6 @@
       <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Painel financeiro / DRE</li>
       <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> WhatsApp + agente de IA</li>
     </ul>
-    <div class="per-user" style="margin-bottom:14px;">R$ 74,50 por usuário</div>
     <a href="https://wa.me/5511991170602?text=Ol%C3%A1%20Bruno%2C%20quero%20o%20plano%20Solo%20do%20Yuris!" target="_blank" rel="noopener" class="plan-btn plan-btn-outline">Começar agora</a>
   </div>
 
@@ -653,12 +640,7 @@
     <div class="popular-badge">Mais popular</div>
     <div class="plan-name">Equipe</div>
     <div class="plan-users">até 5 usuários</div>
-    <div class="plan-price">
-      <span class="plan-currency">R$</span>
-      <span class="plan-amount">249</span>
-    </div>
-    <div class="plan-period">/mês</div>
-    <div class="plan-annual">ou <strong>R$ 212/mês</strong> no plano anual</div>
+    <div class="plan-annual">Valor sob consulta</div>
 
     <div class="plan-limits">
       <div><strong>3</strong> monitores de intimação</div>
@@ -672,7 +654,6 @@
       <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Advogados associados</li>
       <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Planejamento comercial e metas</li>
     </ul>
-    <div class="per-user" style="margin-bottom:14px;">R$ 49,80 por usuário</div>
     <a href="https://wa.me/5511991170602?text=Ol%C3%A1%20Bruno%2C%20quero%20o%20plano%20Equipe%20do%20Yuris!" target="_blank" rel="noopener" class="plan-btn plan-btn-primary">Começar agora</a>
   </div>
 
@@ -680,12 +661,7 @@
   <div class="plan-card">
     <div class="plan-name">Escritório</div>
     <div class="plan-users">até 10 usuários</div>
-    <div class="plan-price">
-      <span class="plan-currency">R$</span>
-      <span class="plan-amount">449</span>
-    </div>
-    <div class="plan-period">/mês</div>
-    <div class="plan-annual">ou <strong>R$ 382/mês</strong> no plano anual</div>
+    <div class="plan-annual">Valor sob consulta</div>
 
     <div class="plan-limits">
       <div><strong>6</strong> monitores de intimação</div>
@@ -699,7 +675,6 @@
       <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Filiais vinculadas</li>
       <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Webhooks e automações</li>
     </ul>
-    <div class="per-user" style="margin-bottom:14px;">R$ 44,90 por usuário</div>
     <a href="https://wa.me/5511991170602?text=Ol%C3%A1%20Bruno%2C%20quero%20o%20plano%20Escrit%C3%B3rio%20do%20Yuris!" target="_blank" rel="noopener" class="plan-btn plan-btn-outline">Começar agora</a>
   </div>
 
@@ -707,12 +682,7 @@
   <div class="plan-card">
     <div class="plan-name">Studio</div>
     <div class="plan-users">até 20 usuários</div>
-    <div class="plan-price">
-      <span class="plan-currency">R$</span>
-      <span class="plan-amount">749</span>
-    </div>
-    <div class="plan-period">/mês</div>
-    <div class="plan-annual">ou <strong>R$ 637/mês</strong> no plano anual</div>
+    <div class="plan-annual">Valor sob consulta</div>
 
     <div class="plan-limits">
       <div><strong>12</strong> monitores de intimação</div>
@@ -725,7 +695,6 @@
       <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Suporte prioritário</li>
       <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Estrutura completa de filiais e parceiros</li>
     </ul>
-    <div class="per-user" style="margin-bottom:14px;">R$ 37,45 por usuário</div>
     <a href="https://wa.me/5511991170602?text=Ol%C3%A1%20Bruno%2C%20quero%20o%20plano%20Studio%20do%20Yuris!" target="_blank" rel="noopener" class="plan-btn plan-btn-outline">Começar agora</a>
   </div>
 
@@ -759,21 +728,23 @@
   <div class="addons-grid">
 
     <div class="addon-item">
-      <div class="addon-price">R$ 39 <span>/mês</span></div>
       <div class="addon-title">Usuário adicional</div>
       <div class="addon-desc">Para quando a equipe cresce além do limite do plano.</div>
     </div>
 
     <div class="addon-item">
-      <div class="addon-price">R$ 29 <span>/mês</span></div>
       <div class="addon-title">Monitor de intimação extra</div>
       <div class="addon-desc">Uma OAB e UF a mais sendo monitorada automaticamente.</div>
     </div>
 
     <div class="addon-item">
-      <div class="addon-price">R$ 19 <span>/mês</span></div>
       <div class="addon-title">Mais 200 triagens de IA</div>
       <div class="addon-desc">Para escritórios com alto volume de contato pelo WhatsApp.</div>
+    </div>
+
+    <div class="addon-item">
+      <div class="addon-title">+ Implantação opcional</div>
+      <div class="addon-desc">A gente traz os dados do sistema atual do seu escritório para dentro do Yuris e deixa tudo pronto para usar.</div>
     </div>
 
   </div>
