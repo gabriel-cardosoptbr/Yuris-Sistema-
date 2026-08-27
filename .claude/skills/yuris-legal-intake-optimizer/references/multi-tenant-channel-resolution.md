@@ -5,9 +5,9 @@ matriz, filial e grants. O front nunca prova autorização.
 
 ## Fonte de verdade (nomes reais)
 
-- `app/Services/WhatsAppChannelAccessService.php` — camada única de autorização de canal
+- `app/WhatsAppAgente/WhatsAppChannelAccessService.php` — camada única de autorização de canal
   (deny-by-default).
-- `app/Helpers/AccountContext.php` — contexto de conta/usuário/tenant.
+- `app/Core/AccountContext.php` — contexto de conta/usuário/tenant.
 - Tabelas: `whatsapp_instances` (o canal; `id`, `account_id` dono, `instance_name`,
   `status`, `phone`), `whatsapp_settings` (credenciais por `account_id`:
   `evolution_base_url`, `evolution_api_key`, `evolution_instance`),

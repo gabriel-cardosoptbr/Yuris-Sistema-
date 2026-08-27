@@ -13,14 +13,14 @@
  *   POST action=toggle {id}
  *   POST action=delete {id}
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
-require_once __DIR__ . '/../../../app/Helpers/MasterAudit.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
+require_once __DIR__ . '/../../../app/Master/MasterAudit.php';
 
-use App\Helpers\AccountContext;
-use App\Helpers\ApiResponse;
-use App\Helpers\MasterAudit;
+use App\Core\AccountContext;
+use App\Core\ApiResponse;
+use App\Master\MasterAudit;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -30,7 +30,7 @@ $ctx = AccountContext::fromSession();
 $ctx->assertSuperAdmin();
 if (empty($_SESSION['master_mode'])) ApiResponse::forbidden('Acesso somente pelo Painel Master.');
 
-$pdo    = \App\Models\Database::getConnection();
+$pdo    = \App\Core\Database::getConnection();
 $method = $_SERVER['REQUEST_METHOD'];
 
 $PROVIDERS = ['openai', 'anthropic'];

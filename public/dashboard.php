@@ -1,13 +1,13 @@
 <?php
-require_once __DIR__ . '/../app/Models/Database.php';
-require_once __DIR__ . '/../app/Models/User.php';
-require_once __DIR__ . '/../app/Models/Account.php';
-require_once __DIR__ . '/../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../app/Models/DREAccount.php';
-require_once __DIR__ . '/../app/Helpers/AccountContext.php';
-use App\Models\Database;
-use App\Models\DREAccount;
-use App\Helpers\AccountContext;
+require_once __DIR__ . '/../app/Core/Database.php';
+require_once __DIR__ . '/../app/Usuarios/User.php';
+require_once __DIR__ . '/../app/Master/Account.php';
+require_once __DIR__ . '/../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../app/Financas/DREAccount.php';
+require_once __DIR__ . '/../app/Core/AccountContext.php';
+use App\Core\Database;
+use App\Financas\DREAccount;
+use App\Core\AccountContext;
 session_start();
 if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
 $activePage = 'dashboard';

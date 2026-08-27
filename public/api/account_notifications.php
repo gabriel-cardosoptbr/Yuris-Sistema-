@@ -9,12 +9,12 @@
  *          Body: { id: 5 } ou { all: true }
  */
 
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/AccountNotification.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/AccountNotification.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
 
-use App\Models\AccountNotification;
-use App\Helpers\AccountContext;
+use App\Master\AccountNotification;
+use App\Core\AccountContext;
 
 // read_and_close: o endpoint só LÊ a sessão (AccountContext + csrf), nunca escreve.
 // Sem isto, o session_start() segurava o lock de escrita e o fetch da lista podia

@@ -85,10 +85,10 @@ referências.
 | Resolver conta pela instância | `WhatsAppInstance::findAccountByApiKey()` (lê `whatsapp_settings.evolution_api_key`) → `findOrCreate($instanceName,'',$accountId)` |
 | Gating + enfileiramento do bot | `maybeQueueAgentReply()` em `webhook.php` (≈ linha 509) |
 | Execução do bot (LLM + envio) | `runAgentReply()` em `webhook.php` (≈ linha 820), após `flushResponse()` |
-| Serviço de envio (reutilizar) | `app/Services/EvolutionApiService.php` → `sendText()/sendMedia()/sendAudio()` |
+| Serviço de envio (reutilizar) | `app/WhatsAppAgente/EvolutionApiService.php` → `sendText()/sendMedia()/sendAudio()` |
 | Mídia (reutilizar) | `public/api/whatsapp/media.php` (download) e `media_upload.php` |
-| Resolver/autorizar canal | `app/Services/WhatsAppChannelAccessService.php` → `resolveForRequest()`, `check()`, `grant()`, `revoke()` |
-| Contexto de conta/tenant | `app/Helpers/AccountContext.php` → `getAccountId()`, `getAccessibleAccountIds()`, `getPipelineAccountId()`, `isOwnerOrAdmin()` |
+| Resolver/autorizar canal | `app/WhatsAppAgente/WhatsAppChannelAccessService.php` → `resolveForRequest()`, `check()`, `grant()`, `revoke()` |
+| Contexto de conta/tenant | `app/Core/AccountContext.php` → `getAccountId()`, `getAccessibleAccountIds()`, `getPipelineAccountId()`, `isOwnerOrAdmin()` |
 | Config do agente (1 por canal) | tabela `agent_configs` (UNIQUE `uk_agent_instance` em `whatsapp_instance_id`) |
 | Tela de config | `public/agente.php` + `public/api/agent_settings.php` + `public/api/whatsapp/agent_instances.php` |
 | Pausa por humano | tabela `whatsapp_chats.agent_paused` + `public/api/whatsapp/agent_takeover.php` |

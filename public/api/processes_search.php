@@ -7,11 +7,11 @@
  * Retorna: array de { id, numero, cliente_nome }
  */
 
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
 
-use App\Models\Database;
-use App\Helpers\AccountContext;
+use App\Core\Database;
+use App\Core\AccountContext;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');

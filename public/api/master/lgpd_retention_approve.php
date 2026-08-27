@@ -14,20 +14,20 @@
  *
  * Acesso: super_admin com master_mode.
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/Account.php';
-require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../../app/Models/LgpdRequest.php';
-require_once __DIR__ . '/../../../app/Models/LgpdRequestRetentionJustification.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
-require_once __DIR__ . '/../../../app/Helpers/MasterAudit.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Master/Account.php';
+require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../../app/Lgpd/LgpdRequest.php';
+require_once __DIR__ . '/../../../app/Lgpd/LgpdRequestRetentionJustification.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
+require_once __DIR__ . '/../../../app/Master/MasterAudit.php';
 
-use App\Helpers\AccountContext;
-use App\Helpers\ApiResponse;
-use App\Helpers\MasterAudit;
-use App\Models\LgpdRequest;
-use App\Models\LgpdRequestRetentionJustification;
+use App\Core\AccountContext;
+use App\Core\ApiResponse;
+use App\Master\MasterAudit;
+use App\Lgpd\LgpdRequest;
+use App\Lgpd\LgpdRequestRetentionJustification;
 
 session_start();
 $ctx = AccountContext::fromSession();
@@ -52,7 +52,7 @@ if (!$justId) ApiResponse::badRequest('justification_id obrigatório');
 $userId = $ctx->getUserId();
 
 // Carrega dados pra audit e evento
-$pdo = \App\Models\Database::getConnection();
+$pdo = \App\Core\Database::getConnection();
 $st = $pdo->prepare("SELECT request_id, entidade, entidade_id, base_legal_retencao,
                             responsavel_user_id, aprovado_em
                      FROM lgpd_request_retention_justifications WHERE id = ?");

@@ -21,16 +21,16 @@
  * Protegido por CRON_TOKEN (CLI e trusted, mesmo padrao do lgpd_retention_tick).
  * Rodar a cada ~15 min. GET /api/whatsapp_health_tick.php?token=<CRON_TOKEN>  ou CLI.
  */
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Helpers/EnvLoader.php';
-require_once __DIR__ . '/../../app/Helpers/WaLog.php';
-require_once __DIR__ . '/../../app/Services/AiIntake/AgentEvent.php';
-require_once __DIR__ . '/../../app/Models/WhatsAppInstance.php'; // reconciliador auto-strict do cracha
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Core/EnvLoader.php';
+require_once __DIR__ . '/../../app/WhatsAppAgente/WaLog.php';
+require_once __DIR__ . '/../../app/WhatsAppAgente/AiIntake/AgentEvent.php';
+require_once __DIR__ . '/../../app/WhatsAppAgente/WhatsAppInstance.php'; // reconciliador auto-strict do cracha
 
-use App\Models\Database;
-use App\Helpers\EnvLoader;
-use App\Helpers\WaLog;
-use App\Services\AiIntake\AgentEvent;
+use App\Core\Database;
+use App\Core\EnvLoader;
+use App\WhatsAppAgente\WaLog;
+use App\WhatsAppAgente\AiIntake\AgentEvent;
 
 EnvLoader::load();
 $isCli    = (PHP_SAPI === 'cli');

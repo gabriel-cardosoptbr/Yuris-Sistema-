@@ -9,18 +9,18 @@
  * PATCH   /api/master/accounts.php           → atualiza status/plano (suspender/reativar)
  * DELETE  /api/master/accounts.php?id=X      → soft-delete
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/Account.php';
-require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
-require_once __DIR__ . '/../../../app/Helpers/MonitorQuota.php';   // Etapa 6 add-on
-require_once __DIR__ . '/../../../app/Helpers/BillingGuard.php';   // fix #4 — plan_base/override_sum
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Master/Account.php';
+require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
+require_once __DIR__ . '/../../../app/Processos/MonitorQuota.php';   // Etapa 6 add-on
+require_once __DIR__ . '/../../../app/Billing/BillingGuard.php';   // fix #4 — plan_base/override_sum
 
-use App\Helpers\AccountContext;
-use App\Helpers\ApiResponse;
-use App\Helpers\MonitorQuota;
-use App\Models\Database;
+use App\Core\AccountContext;
+use App\Core\ApiResponse;
+use App\Processos\MonitorQuota;
+use App\Core\Database;
 
 session_start();
 $ctx = AccountContext::fromSession();
@@ -110,8 +110,8 @@ if ($method === 'GET') {
         }
         // Inclui detalhamento plan_base / override_sum pra coerência com
         // /api/push/quota.php e /api/master/quotas.php.
-        $monStatus['plan_base']    = \App\Helpers\BillingGuard::getBaseLimit($id, 'monitors.limit');
-        $monStatus['override_sum'] = \App\Helpers\BillingGuard::getOverrideSum($id, 'monitors.limit');
+        $monStatus['plan_base']    = \App\Billing\BillingGuard::getBaseLimit($id, 'monitors.limit');
+        $monStatus['override_sum'] = \App\Billing\BillingGuard::getOverrideSum($id, 'monitors.limit');
         $acc['monitor_quota']      = $monStatus;
 
         ApiResponse::ok($acc);

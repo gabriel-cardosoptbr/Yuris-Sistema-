@@ -17,22 +17,22 @@
 ob_start();
 @ini_set('display_errors', '0');
 
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/Account.php';
-require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../../app/Models/PushMonitor.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
-require_once __DIR__ . '/../../../app/Helpers/MonitorQuota.php';  // Etapa 5 — graceful
-require_once __DIR__ . '/../../../app/Helpers/MonitorAudit.php';
-require_once __DIR__ . '/../../../app/Helpers/BillingGuard.php';
-require_once __DIR__ . '/../../../app/Helpers/MonitorPermission.php'; // audit fix #2 — bypass D3/D7
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Master/Account.php';
+require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../../app/Processos/PushMonitor.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/ErrorReporter.php';
+require_once __DIR__ . '/../../../app/Processos/MonitorQuota.php';  // Etapa 5 — graceful
+require_once __DIR__ . '/../../../app/Processos/MonitorAudit.php';
+require_once __DIR__ . '/../../../app/Billing/BillingGuard.php';
+require_once __DIR__ . '/../../../app/Processos/MonitorPermission.php'; // audit fix #2 — bypass D3/D7
 
-use App\Helpers\AccountContext;
-use App\Helpers\MonitorQuota;
-use App\Helpers\MonitorAudit;
-use App\Models\Database;
-use App\Models\PushMonitor;
+use App\Core\AccountContext;
+use App\Processos\MonitorQuota;
+use App\Processos\MonitorAudit;
+use App\Core\Database;
+use App\Processos\PushMonitor;
 
 session_start(['read_and_close' => true]);
 $csrfSession = $_SESSION['csrf_token'] ?? '';
@@ -136,7 +136,7 @@ try {
             // mesmo advogado com flag advogado_pode_criar_monitor=false ou user
             // perfil='user' sem permissão. Graceful — salva o perfil mesmo
             // sem criar monitor e retorna aviso na resposta.
-            if (!\App\Helpers\MonitorPermission::canCreate($ctx)) {
+            if (!\App\Processos\MonitorPermission::canCreate($ctx)) {
                 $monitorsCreated[] = [
                     'tipo'    => 'oab_or_nome',
                     'valor'   => trim((string)($cur['oab_uf'] ?? '') . (string)($cur['oab'] ?? '')),
@@ -167,7 +167,7 @@ try {
     echo json_encode(['error' => 'Método não suportado (use GET ou PATCH)']);
 
 } catch (\Throwable $e) {
-    \App\Helpers\ErrorReporter::handle($e);
+    \App\Core\ErrorReporter::handle($e);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

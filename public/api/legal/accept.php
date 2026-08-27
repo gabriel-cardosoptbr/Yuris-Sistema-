@@ -18,14 +18,14 @@
  *   gravação de aceite. O fetch que o consome (header X-CSRF-Token) deve viver
  *   no banner/modal de re-aceite em login.php (arquivo de outro dono — ver risks).
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/LegalDocument.php';
-require_once __DIR__ . '/../../../app/Models/TermAcceptance.php';
-require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Lgpd/LegalDocument.php';
+require_once __DIR__ . '/../../../app/Usuarios/TermAcceptance.php';
+require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
 
-use App\Models\LegalDocument;
-use App\Models\TermAcceptance;
-use App\Helpers\ApiResponse;
+use App\Lgpd\LegalDocument;
+use App\Usuarios\TermAcceptance;
+use App\Core\ApiResponse;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -58,7 +58,7 @@ if (!$userId && $email === '') {
 
 // Anti-replay: já aceitou EXATAMENTE este documento recentemente? não duplica
 if ($userId) {
-    $pdo = \App\Models\Database::getConnection();
+    $pdo = \App\Core\Database::getConnection();
     $st = $pdo->prepare(
         "SELECT id FROM term_acceptances
          WHERE user_id = :uid AND legal_document_id = :doc

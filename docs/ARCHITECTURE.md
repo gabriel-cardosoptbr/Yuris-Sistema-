@@ -1,24 +1,144 @@
-Visão geral da arquitetura
+# Arquitetura do Yuris
 
-Estrutura principal do repositório:
-- app/
-  - Controllers/  => Lógica de aplicação e handlers (PHP)
-  - Models/       => Acesso ao banco e modelos (PDO)
-- public/         => Frontend público e rotas (PHP), assets, JS/CSS
-- config/         => Arquivos de configuração (ex: database.php)
-- database/       => Schema e migrations
-- storage/        => Arquivos gerados/armazenamento local
+Monolito PHP 8.2, sem framework, sem Composer, sem npm e **sem etapa de
+build**. O que está no repositório é literalmente o que roda no servidor: o
+deploy em produção é um `git pull` dentro do container.
 
-Fluxo básico
-- Usuário autentica via sessão e acessa páginas em public/*.php.
-- Páginas chamam endpoints em public/api/*.php para leitura/escrita via fetch/ajax.
-- Modelos em app/Models encapsulam acesso ao banco (PDO).
+Isso é uma escolha, não um atraso, e tem consequências que valem entender antes
+de propor mudança estrutural.
 
-Segurança e autenticação
-- Autenticação simples via sessão PHP ($_SESSION['user_id']).
-- CSRF tokens embutidos nas páginas para operações sensíveis.
+## O caminho de uma requisição
 
-Próximos passos arquiteturais sugeridos
-- Mover configurações permanentes para tabela no banco.
-- Adicionar camada de serviços para integração com provedores externos (WhatsApp, OpenAI).
-- Implementar logs/telemetria para conversas do agente.
+```
+navegador
+   |
+Apache (DocumentRoot = public/)
+   |
+public/<pagina>.php            página renderizada no servidor
+   |  fetch/ajax
+public/api/<endpoint>.php      resposta JSON
+   |  require_once
+app/<Dominio>/<Classe>.php     regra de negócio
+   |  PDO
+MySQL
+```
+
+Não existe roteador. **O caminho do arquivo em `public/` é a URL.** Não existe
+autoloader: cada arquivo carrega o que precisa com `require_once` e caminho
+escrito à mão.
+
+## Onde fica cada coisa
+
+| Pasta | Papel | README |
+|---|---|---|
+| `app/` | regra de negócio, organizada **por assunto** | [`../app/README.md`](../app/README.md) |
+| `public/` | tudo que responde por URL: páginas, API, assets | [`../public/README.md`](../public/README.md) |
+| `database/` | schema, 124 migrations, seeds | [`../database/README.md`](../database/README.md) |
+| `bin/` | processos de fundo, chamados por cron | [`../bin/README.md`](../bin/README.md) |
+| `scripts/` | utilitários de linha de comando e as suites de teste | [`../scripts/README.md`](../scripts/README.md) |
+| `config/` | configuração, lida do `.env` | [`../config/README.md`](../config/README.md) |
+| `storage/` | gerado em runtime, fora do git | |
+
+A organização de `app/` por domínio e a regra de manter os READMEs em dia estão
+em [`../CLAUDE.md`](../CLAUDE.md).
+
+## Multi-tenant, a decisão que sustenta o resto
+
+Banco único, schema único, **`account_id` em toda tabela de dado de cliente**.
+É o padrão de Clio, HubSpot e Pipedrive.
+
+Quem resolve de que conta é a sessão é `App\Core\AccountContext`, e é ele também
+que sabe quando uma matriz pode enxergar a filial
+(`getAccessibleAccountIds()`). Nenhuma query cruza `account_id` por conta
+própria.
+
+Hierarquia de um nível só: Matriz → Filial. Acesso de fora (advogado associado)
+é concedido **item a item**, via `ResourceShare`, nunca por herança.
+
+Detalhe em [`MULTITENANCY.md`](MULTITENANCY.md).
+
+## Sessão e autenticação
+
+Sessão PHP, com `$_SESSION['user_id']`, endurecida no
+`App\Usuarios\AuthController` (regeneração de id, expiração). Tokens CSRF nas
+operações sensíveis. 2FA por TOTP implementado à mão, sem biblioteca.
+
+O **Painel Master** tem login e 2FA próprios, separados do login dos
+escritórios. Não é um papel do login comum.
+
+## Assíncrono
+
+Três coisas não acontecem na requisição do usuário, e é de propósito:
+
+- **e-mail**: `Mailer::send()` enfileira em `emails_outbox`
+- **webhook de saída**: o dispatcher enfileira, quem entrega é
+  `bin/webhook_worker.php`, chamado por cron a cada minuto
+- **resposta do agente de IA**: o webhook devolve 200 antes de processar
+  (`flushResponse()` antes de `runAgentReply()`), senão a Evolution reenvia
+
+Todo processo de fundo roda **um lote e sai**, com trava contra execução
+concorrente, e precisa ser idempotente: o agendador atrasa e sobrepõe.
+
+## Degradação combinada
+
+As integrações externas são opcionais e cada uma degrada sozinha: sem Evolution
+o WhatsApp fica indisponível e o resto funciona; sem gateway configurado o
+`NullGateway` responde; sem chave de IA o agente não atende. Isso permite rodar
+o sistema inteiro em desenvolvimento sem nenhuma credencial real, e é também
+por isso que **em dev algumas coisas passam sem realmente acontecer**: ao testar
+cobrança ou agente, confirme qual adapter está ativo.
+
+## O mínimo a rodar antes de dar algo por pronto
+
+Com o MySQL de pé:
+
+```bash
+for f in $(find app public bin scripts config database -name "*.php"); do php -l "$f"; done
+```
+
+```bash
+for t in scripts/tests/*.php; do php "$t"; done
+```
+
+Baseline conhecido em **27/08/2026**:
+
+| Suite | Esperado |
+|---|---|
+| `wa_webhook_parser_test` | 42 PASS · 0 FAIL |
+| `wa_webhook_token_test` | 21 PASS · 0 FAIL |
+| `wa_invariants` | 39 PASS · 0 FAIL |
+| `plan_gate_e2e_test` | 25 ok · 0 falha |
+| `plan_feature_test` | 66 ok · **12 falha (pré-existentes)** |
+
+12 falhas no `plan_feature` é o estado herdado. Acima de 12 é regressão.
+
+Ao mexer em `app/`, verifique também que nenhum `require` ficou apontando para o
+vazio, que todo `use App\...` resolve, e os nomes de classe **dentro de string**
+(`class_exists('App\\Core\\RequestId')`), que nenhuma busca por `use` encontra.
+
+## Limitações conhecidas, assumidas
+
+- **Sem autoloader**: mover arquivo em `app/` exige atualizar quem o carrega, e
+  o erro só aparece em runtime
+- **Cinco classes de WhatsApp no namespace global**, herança de quando não havia
+  namespace. Já causou três bugs em produção (corrigidos em `f7d5ca8`)
+- **`public/` não é agrupável por domínio** sem uma camada de rota que preserve
+  os endereços atuais
+- **Sem suite de teste automatizada de verdade**: as cinco suites de
+  `scripts/tests/` cobrem plano e WhatsApp, o resto é verificado à mão
+
+## Próximos passos, se um dia valer a pena
+
+Em ordem de custo/benefício, do mais barato ao mais caro:
+
+1. **Autoloader por classmap.** Todos os nomes de classe já batem com os nomes
+   de arquivo, então um classmap resolve inclusive as cinco classes globais.
+   Elimina a fragilidade dos 1.108 `require` de uma vez
+2. **Dar namespace às cinco classes globais**, depois do autoloader
+3. **Camada de rota em `public/`**, preservando os endereços atuais. Só então
+   faz sentido agrupar `public/` por domínio
+4. **Ampliar os testes** para os módulos sem cobertura
+
+O que **não** está no caminho: trocar de linguagem ou adotar SPA. O sistema é
+renderizado no servidor, sem build, e isso é o que permite o deploy ser um
+`git pull`.

@@ -4,14 +4,14 @@
  * Retorna as tarefas processuais de todos os processos vinculados a uma tarefa.
  * Mutações (add/toggle/edit/delete) usam processo_tarefas.php diretamente.
  */
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/TenantGuard.php';
 
-use App\Helpers\AccountContext;
-use App\Helpers\TenantGuard;
+use App\Core\AccountContext;
+use App\Core\TenantGuard;
 
 session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');
@@ -30,7 +30,7 @@ function ok($data = null): void {
     exit;
 }
 
-$pdo    = \App\Models\Database::getConnection();
+$pdo    = \App\Core\Database::getConnection();
 $method = $_SERVER['REQUEST_METHOD'];
 $taskId = (int)($_GET['task_id'] ?? 0);
 

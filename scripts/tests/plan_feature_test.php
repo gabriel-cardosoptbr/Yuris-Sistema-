@@ -4,7 +4,7 @@
  *
  * Uso: C:\xampp\php\php.exe scripts/tests/plan_feature_test.php
  *
- * PRECISA DE BANCO. Não dá para testar sem: App\Models\Database::getConnection()
+ * PRECISA DE BANCO. Não dá para testar sem: App\Core\Database::getConnection()
  * faz die() quando a conexão falha (Database.php:45-53), então nenhum código do
  * sistema sobrevive a um banco fora do ar. O fail-soft que importa, e que este
  * teste cobre, é o outro: banco DE PÉ, mas sem a migration 110 / sem assinatura
@@ -15,9 +15,9 @@
  * Parte B: grade de planos semeada pela migration 110.
  */
 
-require_once __DIR__ . '/../../app/Helpers/PlanFeature.php';
+require_once __DIR__ . '/../../app/Billing/PlanFeature.php';
 
-use App\Helpers\PlanFeature;
+use App\Billing\PlanFeature;
 
 $pass = 0; $fail = 0; $skip = 0;
 
@@ -112,7 +112,7 @@ if (!$dbUp) {
     exit($fail > 0 ? 1 : 0);
 }
 echo "  (banco: {$dbHost}:{$dbPort})\n";
-$pdo = \App\Models\Database::getConnection();
+$pdo = \App\Core\Database::getConnection();
 
 echo "\n[A] Fail-soft: banco de pé, conta sem plano configurado -> LIBERA\n";
 

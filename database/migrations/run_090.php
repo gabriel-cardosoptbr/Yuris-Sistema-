@@ -13,9 +13,9 @@
 //
 // Seguro reexecutar: tudo é INSERT IGNORE / IF NOT EXISTS / count-then-insert.
 
-require_once __DIR__ . '/../../app/Models/Database.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
 
-use App\Models\Database;
+use App\Core\Database;
 
 $pdo = Database::getConnection();
 echo "== Migration 090: create_clientes ==\n";

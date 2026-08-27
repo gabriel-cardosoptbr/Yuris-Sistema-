@@ -21,18 +21,18 @@
  *          → cancela vínculo (qualquer lado pode)
  */
 
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Models/AdvogadoVinculo.php';
-require_once __DIR__ . '/../../app/Models/AccountNotification.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../app/Helpers/PlanFeature.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Usuarios/AdvogadoVinculo.php';
+require_once __DIR__ . '/../../app/Master/AccountNotification.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/Billing/PlanFeature.php';
 
-use App\Models\Account;
-use App\Models\AdvogadoVinculo;
-use App\Models\AccountNotification;
-use App\Helpers\AccountContext;
-use App\Helpers\PlanFeature;
+use App\Master\Account;
+use App\Usuarios\AdvogadoVinculo;
+use App\Master\AccountNotification;
+use App\Core\AccountContext;
+use App\Billing\PlanFeature;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -101,7 +101,7 @@ if ($method === 'POST') {
     //   2. users.codigo_vinculo  (xxxx-xxxx-xxxx-xxxx) — código pessoal
     //   3. accounts.codigo_vinculo — código de vínculo da conta tipo='advogado'
     // Em todos os casos, resolve para a conta tipo='advogado' do advogado.
-    $pdo = \App\Models\Database::getConnection();
+    $pdo = \App\Core\Database::getConnection();
 
     // Tentativa 1+2: por código em users
     $stmt = $pdo->prepare(
@@ -357,7 +357,7 @@ if ($method === 'DELETE') {
         exit;
     }
 
-    $pdo  = \App\Models\Database::getConnection();
+    $pdo  = \App\Core\Database::getConnection();
     $stmt = $pdo->prepare("UPDATE advogado_vinculos SET status = 'rejected', updated_at = NOW() WHERE id = :id");
     $ok   = $stmt->execute(['id' => $id]);
 

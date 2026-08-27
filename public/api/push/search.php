@@ -19,24 +19,24 @@
 ob_start();
 @ini_set('display_errors', '0');
 
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/Account.php';
-require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../../app/Models/PushTodayCache.php';
-require_once __DIR__ . '/../../../app/Models/PushQueryLog.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/EnvLoader.php';
-require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
-require_once __DIR__ . '/../../../app/Services/Push/PublicationHasher.php';
-require_once __DIR__ . '/../../../app/Services/Push/ProviderInterface.php';
-require_once __DIR__ . '/../../../app/Services/Push/DjenProvider.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Master/Account.php';
+require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../../app/Processos/PushTodayCache.php';
+require_once __DIR__ . '/../../../app/Processos/PushQueryLog.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/EnvLoader.php';
+require_once __DIR__ . '/../../../app/Core/ErrorReporter.php';
+require_once __DIR__ . '/../../../app/Processos/Monitor/PublicationHasher.php';
+require_once __DIR__ . '/../../../app/Processos/Monitor/ProviderInterface.php';
+require_once __DIR__ . '/../../../app/Processos/Monitor/DjenProvider.php';
 
-use App\Helpers\AccountContext;
-use App\Helpers\EnvLoader;
-use App\Models\PushTodayCache;
-use App\Models\PushQueryLog;
-use App\Services\Push\PublicationHasher;
-use App\Services\Push\DjenProvider;
+use App\Core\AccountContext;
+use App\Core\EnvLoader;
+use App\Processos\PushTodayCache;
+use App\Processos\PushQueryLog;
+use App\Processos\Monitor\PublicationHasher;
+use App\Processos\Monitor\DjenProvider;
 
 session_start(['read_and_close' => true]);
 $csrfSession = $_SESSION['csrf_token'] ?? '';
@@ -237,5 +237,5 @@ try {
             'erro'   => $e->getMessage(),
         ]);
     }
-    \App\Helpers\ErrorReporter::handle($e);
+    \App\Core\ErrorReporter::handle($e);
 }

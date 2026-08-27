@@ -9,19 +9,19 @@
  */
 ob_start();
 
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Task.php';
-require_once __DIR__ . '/../../app/Models/TaskColumn.php';
-require_once __DIR__ . '/../../app/Models/TaskRecurrence.php';
-require_once __DIR__ . '/../../app/Models/TaskReminder.php';
-require_once __DIR__ . '/../../app/Models/TaskLink.php';
-require_once __DIR__ . '/../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../app/Helpers/EnvLoader.php';
-require_once __DIR__ . '/../../app/Helpers/ProcessoAudit.php';
-require_once __DIR__ . '/../../app/Helpers/TaskAudit.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Tarefas/Task.php';
+require_once __DIR__ . '/../../app/Tarefas/TaskColumn.php';
+require_once __DIR__ . '/../../app/Tarefas/TaskRecurrence.php';
+require_once __DIR__ . '/../../app/Tarefas/TaskReminder.php';
+require_once __DIR__ . '/../../app/Tarefas/TaskLink.php';
+require_once __DIR__ . '/../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../app/Core/EnvLoader.php';
+require_once __DIR__ . '/../../app/Processos/ProcessoAudit.php';
+require_once __DIR__ . '/../../app/Tarefas/TaskAudit.php';
 
 // P1 LGPD (2A.4): carrega .env explicitamente — getenv() não funciona sem isso
-\App\Helpers\EnvLoader::load();
+\App\Core\EnvLoader::load();
 
 // ─── LGPD P1 (2A.4): CRON_TOKEN obrigatório, sem fallback hardcoded ──────────
 // Antes desta correção, o fallback era 'yuris_cron_token_change_me' (token
@@ -30,7 +30,7 @@ require_once __DIR__ . '/../../app/Helpers/TaskAudit.php';
 // Agora: exige CRON_TOKEN definido (config/app.php OU env var), aborta se não.
 $configFile = __DIR__ . '/../../config/app.php';
 $config     = file_exists($configFile) ? (require $configFile) : [];
-$envToken   = \App\Helpers\EnvLoader::get('CRON_TOKEN', '');
+$envToken   = \App\Core\EnvLoader::get('CRON_TOKEN', '');
 $cronToken  = $config['cron_token'] ?? ($envToken !== '' ? $envToken : null);
 
 // ─── CLI bypass (Fix 2026-05-26 — auditoria pré-deploy AWS) ──────────────────
@@ -63,12 +63,12 @@ if (!$isCli) {
 }
 // ────────────────────────────────────────────────────────────────────────────
 
-use App\Models\Task;
-use App\Models\TaskColumn;
-use App\Models\TaskRecurrence;
-use App\Models\TaskReminder;
+use App\Tarefas\Task;
+use App\Tarefas\TaskColumn;
+use App\Tarefas\TaskRecurrence;
+use App\Tarefas\TaskReminder;
 
-$pdo = \App\Models\Database::getConnection();
+$pdo = \App\Core\Database::getConnection();
 $log = [];
 
 // ── 1. Recorrências atrasadas ─────────────────────────────────────────────────
@@ -122,12 +122,12 @@ foreach ($recs as $recData) {
 
     // Replica os vínculos da tarefa origem (processo, card, etc.) para a nova instância
     try {
-        $origLinks = \App\Models\TaskLink::findByTask((int)$ultima['id']);
+        $origLinks = \App\Tarefas\TaskLink::findByTask((int)$ultima['id']);
         foreach ($origLinks as $lnk) {
-            \App\Models\TaskLink::add((int)$newId, (string)$lnk['link_type'], (int)$lnk['link_id']);
+            \App\Tarefas\TaskLink::add((int)$newId, (string)$lnk['link_type'], (int)$lnk['link_id']);
         }
         // Propaga ao histórico processual (se vinculada a processo)
-        \App\Helpers\TaskAudit::onRecurringInstance((int)$newId);
+        \App\Tarefas\TaskAudit::onRecurringInstance((int)$newId);
     } catch (\Throwable $_e) { /* não bloqueia o cron */ }
 
     $log[] = "criada instância #{$newId} para recorrencia #{$recData['id']} (prazo {$proximaData})";
@@ -141,14 +141,14 @@ foreach ($pendentes as $r) {
     if ($r['canal'] === 'whatsapp') {
         // tenta enviar via Evolution API se configurado
         try {
-            require_once __DIR__ . '/../../app/Services/EvolutionApiService.php';
+            require_once __DIR__ . '/../../app/WhatsAppAgente/EvolutionApiService.php';
             $cfgStmt = $pdo->query("SELECT config_key, config_value FROM whatsapp_settings");
             $cfg = [];
             foreach ($cfgStmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                 $cfg[$row['config_key']] = $row['config_value'];
             }
             if (!empty($cfg['evolution_base_url']) && !empty($cfg['evolution_api_key']) && !empty($cfg['evolution_instance'])) {
-                $svc = new \App\Services\EvolutionApiService(
+                $svc = new \EvolutionApiService(
                     $cfg['evolution_base_url'], $cfg['evolution_api_key'], $cfg['evolution_instance']
                 );
                 // busca telefone do usuário

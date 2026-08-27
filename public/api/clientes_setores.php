@@ -13,12 +13,12 @@
  * Multi-tenant: cada conta tem seus próprios setores. Sem herança matriz→filial.
  */
 
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/ClienteSetor.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Clientes/ClienteSetor.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
 
-use App\Models\ClienteSetor;
-use App\Helpers\AccountContext;
+use App\Clientes\ClienteSetor;
+use App\Core\AccountContext;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');

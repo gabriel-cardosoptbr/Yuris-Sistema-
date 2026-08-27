@@ -195,7 +195,7 @@ A migration deve, no final, fazer um seed automático de quadros padrão para o 
 
 ## Models PHP
 
-Criar dentro de `app/Models/` seguindo o padrão dos models existentes (PDO, métodos estáticos ou de instância conforme o padrão atual do projeto, validação básica de input):
+Criar dentro de `app/Tarefas/` seguindo o padrão dos models existentes (PDO, métodos estáticos ou de instância conforme o padrão atual do projeto, validação básica de input):
 
 - `Task.php` — CRUD de tarefas, métodos `findByBoard($boardId, $filtros)`, `move($taskId, $columnId, $ordem)`, `complete($taskId, $userId)` (que dispara a geração da próxima instância recorrente), `archive($taskId)`, `withLinks($taskId)` (retorna a tarefa com todos os vínculos resolvidos).
 - `TaskBoard.php` — CRUD de quadros, `findForUser($userId)` retornando quadros pessoais do usuário + quadros compartilhados onde ele é membro.

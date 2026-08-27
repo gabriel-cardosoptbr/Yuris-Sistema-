@@ -10,9 +10,9 @@
 //
 // Idempotente: o ALTER e precedido de check em information_schema.
 
-require_once __DIR__ . '/../../app/Models/Database.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
 
-use App\Models\Database;
+use App\Core\Database;
 
 $pdo = Database::getConnection();
 echo "== Migration 095: task_recurrences.unidade ==\n";

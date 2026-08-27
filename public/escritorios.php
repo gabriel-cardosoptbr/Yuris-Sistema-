@@ -1,9 +1,9 @@
 <?php
-require_once __DIR__ . '/../app/Models/Database.php';
-require_once __DIR__ . '/../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../app/Helpers/MonitorQuota.php';
-require_once __DIR__ . '/../app/Helpers/MonitorPermission.php';
-require_once __DIR__ . '/../app/Helpers/BillingGuard.php';
+require_once __DIR__ . '/../app/Core/Database.php';
+require_once __DIR__ . '/../app/Core/AccountContext.php';
+require_once __DIR__ . '/../app/Processos/MonitorQuota.php';
+require_once __DIR__ . '/../app/Processos/MonitorPermission.php';
+require_once __DIR__ . '/../app/Billing/BillingGuard.php';
 session_start();
 if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
 $activePage = 'escritorios';
@@ -16,14 +16,14 @@ $isAdmin    = in_array($userRole, ['owner', 'admin']) || ($_SESSION['user_perfil
 // ── Aba Monitoramentos (add-on) ─────────────────────────────────────────
 // Dados server-side de cota pra render inicial (evita flash "Carregando…").
 // JS faz refresh depois via /api/push/quota.php (com Cache-Control no-store).
-$ctxEsc            = \App\Helpers\AccountContext::fromSession();
+$ctxEsc            = \App\Core\AccountContext::fromSession();
 $isMatrizEsc       = $ctxEsc->isMatriz();
-$canAllocateEsc    = \App\Helpers\MonitorPermission::canManageQuotaAllocations($ctxEsc);
+$canAllocateEsc    = \App\Processos\MonitorPermission::canManageQuotaAllocations($ctxEsc);
 $canManagePermsEsc = $isAdmin || $ctxEsc->isSuperAdmin();
-$advFlagEsc        = \App\Helpers\MonitorPermission::isAdvogadoAllowedToCreate($accountId);
-$monStatusEsc      = \App\Helpers\MonitorQuota::getQuotaStatus($accountId);
-$monPlanBaseEsc    = \App\Helpers\BillingGuard::getBaseLimit($accountId, 'monitors.limit');
-$monOverrideSumEsc = \App\Helpers\BillingGuard::getOverrideSum($accountId, 'monitors.limit');
+$advFlagEsc        = \App\Processos\MonitorPermission::isAdvogadoAllowedToCreate($accountId);
+$monStatusEsc      = \App\Processos\MonitorQuota::getQuotaStatus($accountId);
+$monPlanBaseEsc    = \App\Billing\BillingGuard::getBaseLimit($accountId, 'monitors.limit');
+$monOverrideSumEsc = \App\Billing\BillingGuard::getOverrideSum($accountId, 'monitors.limit');
 ?>
 <!doctype html>
 <html lang="pt-BR">
@@ -2078,7 +2078,7 @@ const MON_CAN_MANAGE_PERMS = <?= $canManagePermsEsc ? 'true' : 'false' ?>;
 // conta logada — toda matriz vê SEU nome aqui.
 window.MON_MATRIZ_NOME = <?php
     try {
-        $pdo = \App\Models\Database::getConnection();
+        $pdo = \App\Core\Database::getConnection();
         $st  = $pdo->prepare('SELECT nome FROM accounts WHERE id = :id LIMIT 1');
         $st->execute(['id' => $accountId]);
         echo json_encode((string)($st->fetchColumn() ?: 'Matriz'));

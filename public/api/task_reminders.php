@@ -1,14 +1,14 @@
 <?php
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../app/Models/TaskReminder.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../app/Tarefas/TaskReminder.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/TenantGuard.php';
 
-use App\Models\TaskReminder;
-use App\Helpers\AccountContext;
-use App\Helpers\TenantGuard;
+use App\Tarefas\TaskReminder;
+use App\Core\AccountContext;
+use App\Core\TenantGuard;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -47,7 +47,7 @@ if ($method === 'DELETE') {
     $remId = (int)($input['id'] ?? $_GET['id'] ?? 0);
     if ($remId <= 0) fail('id obrigatório');
     // Busca a task associada para validar tenant
-    $pdo  = \App\Models\Database::getConnection();
+    $pdo  = \App\Core\Database::getConnection();
     $stmt = $pdo->prepare('SELECT task_id FROM task_reminders WHERE id = ? LIMIT 1');
     $stmt->execute([$remId]);
     $tid = (int)($stmt->fetchColumn() ?: 0);

@@ -1,11 +1,11 @@
 <?php
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
 
-use App\Models\Database;
-use App\Helpers\AccountContext;
+use App\Core\Database;
+use App\Core\AccountContext;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -56,7 +56,7 @@ if ($method === 'POST') {
     $row = $pdo->prepare("SELECT * FROM taxes WHERE id = :id");
     $row->execute(['id' => $id]);
     $taxRow = $row->fetch(PDO::FETCH_ASSOC);
-    \App\Models\Account::audit($accountId, 'tax.created', [
+    \App\Master\Account::audit($accountId, 'tax.created', [
         'user_id'     => $ctx->getUserId(),
         'entidade'    => 'tax',
         'entidade_id' => $id,
@@ -79,7 +79,7 @@ if ($method === 'PUT') {
     $stmt = $pdo->prepare("UPDATE taxes SET nome = :nome, percentual = :percentual, updated_at = NOW() WHERE id = :id AND ativo = 1 AND account_id IN $tenantIn");
     $stmt->execute(['nome' => $nome, 'percentual' => $percentual, 'id' => $id] + $tenantParams);
     if ($stmt->rowCount() === 0) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
-    \App\Models\Account::audit($accountId, 'tax.updated', [
+    \App\Master\Account::audit($accountId, 'tax.updated', [
         'user_id'     => $ctx->getUserId(),
         'entidade'    => 'tax',
         'entidade_id' => $id,
@@ -99,7 +99,7 @@ if ($method === 'DELETE') {
     $stmt = $pdo->prepare("UPDATE taxes SET ativo = 0, updated_at = NOW() WHERE id = :id AND account_id IN $tenantIn");
     $stmt->execute(['id' => $id] + $tenantParams);
     if ($stmt->rowCount() === 0) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
-    \App\Models\Account::audit($accountId, 'tax.deleted', [
+    \App\Master\Account::audit($accountId, 'tax.deleted', [
         'user_id'     => $ctx->getUserId(),
         'entidade'    => 'tax',
         'entidade_id' => $id,

@@ -1,13 +1,13 @@
 <?php
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Services/WebhookDispatcher.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../app/Helpers/PlanFeature.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Webhooks/WebhookDispatcher.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/Billing/PlanFeature.php';
 
-use App\Models\Database;
-use App\Services\WebhookDispatcher;
-use App\Helpers\AccountContext;
-use App\Helpers\PlanFeature;
+use App\Core\Database;
+use App\Webhooks\WebhookDispatcher;
+use App\Core\AccountContext;
+use App\Billing\PlanFeature;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -340,7 +340,7 @@ if ($method === 'PUT' || $method === 'PATCH') {
     ]));
 
     // LGPD Etapa 4: audit (acao depende do que mudou)
-    \App\Models\Account::audit($accountId, $wEventKey, [
+    \App\Master\Account::audit($accountId, $wEventKey, [
         'user_id'     => $requesterId,
         'entidade'    => 'user',
         'entidade_id' => (int)$id,
@@ -393,7 +393,7 @@ if ($method === 'DELETE') {
             'entity' => 'usuario', 'entity_id' => (int)$id, 'data' => $prevUser,
         ]));
         // LGPD Etapa 4: audit
-        \App\Models\Account::audit($accountId, 'user.deleted', [
+        \App\Master\Account::audit($accountId, 'user.deleted', [
             'user_id'     => $requesterId,
             'entidade'    => 'user',
             'entidade_id' => (int)$id,

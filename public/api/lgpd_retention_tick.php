@@ -14,12 +14,12 @@
  */
 ob_start();
 
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Helpers/EnvLoader.php';
-require_once __DIR__ . '/../../app/Helpers/MasterAudit.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Core/EnvLoader.php';
+require_once __DIR__ . '/../../app/Master/MasterAudit.php';
 
-use App\Models\Database;
-use App\Helpers\EnvLoader;
+use App\Core\Database;
+use App\Core\EnvLoader;
 
 EnvLoader::load();
 
@@ -180,7 +180,7 @@ foreach ($policies as $p) {
 
 // Log no master_audit (informativo)
 try {
-    \App\Helpers\MasterAudit::log(
+    \App\Master\MasterAudit::log(
         'lgpd_retention.tick',
         'retention_policies',
         0,

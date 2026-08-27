@@ -10,14 +10,14 @@
 ob_start();
 @ini_set('display_errors', '0');
 
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/Account.php';
-require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Master/Account.php';
+require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/ErrorReporter.php';
 
-use App\Helpers\AccountContext;
-use App\Models\Database;
+use App\Core\AccountContext;
+use App\Core\Database;
 
 session_start(['read_and_close' => true]);
 
@@ -137,5 +137,5 @@ try {
     echo json_encode(['ok' => true, 'total' => count($items), 'items' => $items]);
 
 } catch (\Throwable $e) {
-    \App\Helpers\ErrorReporter::handle($e);
+    \App\Core\ErrorReporter::handle($e);
 }

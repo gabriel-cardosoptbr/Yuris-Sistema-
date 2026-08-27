@@ -8,17 +8,17 @@
 ob_start();
 @ini_set('display_errors', '0');
 
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/Account.php';
-require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
-require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
-require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/EnvLoader.php';   // B4: EVOLUTION_TLS_VERIFY
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Master/Account.php';
+require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppInstance.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/EvolutionApiService.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppChannelAccessService.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/EnvLoader.php';   // B4: EVOLUTION_TLS_VERIFY
 
-use App\Models\Database;
-use App\Helpers\AccountContext;
+use App\Core\Database;
+use App\Core\AccountContext;
 
 session_start(['read_and_close' => true]);
 $_uid = $_SESSION['user_id'] ?? null;
@@ -101,7 +101,7 @@ try {
         // padrao do EvolutionApiService) e redirect so via HTTPS (nunca rebaixa pra HTTP).
         $sameHost  = parse_url($url, PHP_URL_HOST) !== null
                   && parse_url($url, PHP_URL_HOST) === parse_url($baseUrl, PHP_URL_HOST);
-        $tlsVerify = !in_array(strtolower(\App\Helpers\EnvLoader::get('EVOLUTION_TLS_VERIFY', 'true')), ['false','0','no','off'], true);
+        $tlsVerify = !in_array(strtolower(\App\Core\EnvLoader::get('EVOLUTION_TLS_VERIFY', 'true')), ['false','0','no','off'], true);
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -261,12 +261,12 @@ try {
     // ao cliente em prod. Loga server-side e devolve mensagem generica.
     // Antes, o ramo !$debug fazia `echo 'Erro: ' . $e->getMessage()`, expondo
     // nomes de tabela/coluna/path. Agora ambos os ramos passam pelo ErrorReporter.
-    require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
+    require_once __DIR__ . '/../../../app/Core/ErrorReporter.php';
     if ($debug) {
-        \App\Helpers\ErrorReporter::handle($e);
+        \App\Core\ErrorReporter::handle($e);
     } else {
         // Resposta nao-JSON (este endpoint serve binario): loga e devolve texto generico.
-        \App\Helpers\ErrorReporter::log($e, 'whatsapp/media');
+        \App\Core\ErrorReporter::log($e, 'whatsapp/media');
         if (!headers_sent()) {
             http_response_code(500);
             header('Content-Type: text/plain; charset=utf-8');

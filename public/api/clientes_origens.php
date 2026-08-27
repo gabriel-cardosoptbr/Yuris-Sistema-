@@ -12,12 +12,12 @@
  * Multi-tenant: cada conta tem suas próprias origens. Sem herança.
  */
 
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/ClienteOrigem.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Clientes/ClienteOrigem.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
 
-use App\Models\ClienteOrigem;
-use App\Helpers\AccountContext;
+use App\Clientes\ClienteOrigem;
+use App\Core\AccountContext;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');

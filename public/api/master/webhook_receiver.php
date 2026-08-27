@@ -9,14 +9,14 @@
  *
  * SEM AUTENTICAÇÃO DE USUÁRIO — a auth é via signature do gateway.
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Helpers/EnvLoader.php';
-require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
-require_once __DIR__ . '/../../../app/Services/Billing/Gateway.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Core/EnvLoader.php';
+require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
+require_once __DIR__ . '/../../../app/Billing/Gateway/Gateway.php';
 
-use App\Helpers\ApiResponse;
-use App\Models\Database;
-use App\Services\Billing\Gateway;
+use App\Core\ApiResponse;
+use App\Core\Database;
+use App\Billing\Gateway\Gateway;
 
 header('Content-Type: application/json; charset=utf-8');
 

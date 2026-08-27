@@ -14,12 +14,12 @@
  *
  * Sem dependência de CDN: usa Tailwind do master.php existente.
  */
-require_once __DIR__ . '/../app/Models/Database.php';
-require_once __DIR__ . '/../app/Models/Account.php';
-require_once __DIR__ . '/../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../app/Core/Database.php';
+require_once __DIR__ . '/../app/Master/Account.php';
+require_once __DIR__ . '/../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../app/Core/AccountContext.php';
 
-use App\Helpers\AccountContext;
+use App\Core\AccountContext;
 
 session_start();
 $ctx = AccountContext::fromSession();

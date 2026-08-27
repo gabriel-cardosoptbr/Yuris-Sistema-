@@ -1,0 +1,41 @@
+# Processos/Monitor/ — o motor que busca publicações nos diários
+
+Enquanto a pasta de cima guarda **o que** está sendo monitorado, aqui está
+**como** a busca acontece: os provedores de cada fonte e os runners que rodam
+por cron.
+
+Nada aqui é chamado por uma tela. É tudo disparado por agendamento
+(`public/api/` tem os ticks) e por sincronização.
+
+## Arquivos
+
+| Classe | O que faz |
+|---|---|
+| `ProviderInterface.php` | o contrato que toda fonte tem que cumprir. Fonte nova entra por aqui |
+| `AaspProvider.php` | API de Intimações da AASP. É a fonte principal, e a mais completa: 15 métodos |
+| `DjenProvider.php` | Diário de Justiça Eletrônico Nacional |
+| `PublicationHasher.php` | hash canônico por publicação. **É o que impede duplicata** |
+| `AaspSyncRunner.php` | processa as integrações AASP cujo prazo de sincronização venceu |
+| `PushMonitorRunner.php` | processa os monitoramentos vencidos, chamando o provider certo |
+
+## Como adicionar uma fonte nova
+
+1. Implemente `ProviderInterface`.
+2. Devolva a publicação no formato que o `PublicationHasher` espera, ou o
+   deduplicador não funciona para a fonte nova.
+3. Registre a fonte onde o `PushMonitorRunner` escolhe o provider.
+4. Considere a cota: fonte nova pode mudar o custo do add-on
+   (`../MonitorQuota.php`).
+
+## Regras
+
+**O hash é o contrato de estabilidade.** Mudar a montagem do hash faz toda
+publicação já vista voltar a parecer nova. Se precisar mesmo mudar, o certo é
+versionar o hash e migrar, nunca trocar em cima.
+
+**Runner tem que ser idempotente.** Ele roda por cron e pode rodar duas vezes
+sobre a mesma janela, por atraso ou por reexecução. Rodar de novo não pode
+gerar evento duplicado nem notificar o cliente outra vez.
+
+**Credencial da AASP é do cliente e fica cifrada.** Passa por
+`../../Core/Crypto.php`. Nunca logue o valor, nem em log de erro.

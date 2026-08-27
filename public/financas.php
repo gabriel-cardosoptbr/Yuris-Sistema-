@@ -1,18 +1,18 @@
 <?php
-require_once __DIR__ . '/../app/Models/Database.php';
-require_once __DIR__ . '/../app/Models/User.php';
-require_once __DIR__ . '/../app/Models/Account.php';
-require_once __DIR__ . '/../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../app/Core/Database.php';
+require_once __DIR__ . '/../app/Usuarios/User.php';
+require_once __DIR__ . '/../app/Master/Account.php';
+require_once __DIR__ . '/../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../app/Core/AccountContext.php';
 
 session_start();
 if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
 $activePage = 'dre';
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 
-require_once __DIR__ . '/../app/Models/DREAccount.php';
-use App\Models\DREAccount;
-use App\Helpers\AccountContext;
+require_once __DIR__ . '/../app/Financas/DREAccount.php';
+use App\Financas\DREAccount;
+use App\Core\AccountContext;
 
 // Contexto de tenant — render server-side filtra por conta para evitar "flash" entre contas
 $ctx       = AccountContext::fromSession();
@@ -26,7 +26,7 @@ foreach ($tenantIds as $i => $aid) { $k = "finacc_{$i}"; $_finPh[] = ":{$k}"; $_
 $_finIn = '(' . implode(',', $_finPh) . ')';
 
 $summary   = DREAccount::summary(['account_ids' => $tenantIds]);
-$pdo       = App\Models\Database::getConnection();
+$pdo       = App\Core\Database::getConnection();
 $st        = $pdo->prepare("SELECT COALESCE(SUM(COALESCE(NULLIF(valor_fechado_final,0), NULLIF(valor_proposta,0), IFNULL(valor_estimado,0))),0) as closed_total
                             FROM cards
                             WHERE deleted_at IS NULL

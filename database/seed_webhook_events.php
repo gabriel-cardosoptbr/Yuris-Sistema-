@@ -12,11 +12,11 @@
  * entram nas etapas 10/11 do plano, junto com seus call sites.
  */
 
-require_once __DIR__ . '/../app/Models/Database.php';
-require_once __DIR__ . '/../app/Services/WebhookDispatcher.php';
+require_once __DIR__ . '/../app/Core/Database.php';
+require_once __DIR__ . '/../app/Webhooks/WebhookDispatcher.php';
 
-use App\Models\Database;
-use App\Services\WebhookDispatcher;
+use App\Core\Database;
+use App\Webhooks\WebhookDispatcher;
 
 $pdo = Database::getConnection();
 

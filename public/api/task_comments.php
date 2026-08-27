@@ -1,17 +1,17 @@
 <?php
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../app/Models/TaskComment.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
-require_once __DIR__ . '/../../app/Helpers/ProcessoAudit.php';
-require_once __DIR__ . '/../../app/Helpers/TaskAudit.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../app/Tarefas/TaskComment.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/TenantGuard.php';
+require_once __DIR__ . '/../../app/Processos/ProcessoAudit.php';
+require_once __DIR__ . '/../../app/Tarefas/TaskAudit.php';
 
-use App\Models\TaskComment;
-use App\Helpers\AccountContext;
-use App\Helpers\TenantGuard;
-use App\Helpers\TaskAudit;
+use App\Tarefas\TaskComment;
+use App\Core\AccountContext;
+use App\Core\TenantGuard;
+use App\Tarefas\TaskAudit;
 
 session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');
@@ -53,7 +53,7 @@ if ($method === 'POST') {
 if ($method === 'DELETE') {
     $commentId = (int)($input['id'] ?? $_GET['id'] ?? 0);
     // Busca a task associada ANTES de deletar (TaskAudit precisa do task_id)
-    $pdo  = \App\Models\Database::getConnection();
+    $pdo  = \App\Core\Database::getConnection();
     $stmt = $pdo->prepare('SELECT task_id FROM task_comments WHERE id = ? LIMIT 1');
     $stmt->execute([$commentId]);
     $tid = (int)($stmt->fetchColumn() ?: 0);

@@ -46,7 +46,7 @@ A direção **Matriz → Filial** é automática quando o vínculo está `active
 
 ### Núcleo: AccountContext
 
-[app/Helpers/AccountContext.php](../app/Helpers/AccountContext.php) — extrai o tenant da sessão e calcula os `account_id`s acessíveis.
+[app/Core/AccountContext.php](../app/Core/AccountContext.php) — extrai o tenant da sessão e calcula os `account_id`s acessíveis.
 
 ```php
 $ctx = AccountContext::fromSession();
@@ -63,7 +63,7 @@ Helpers utilitários:
 
 ### Models (filtro IN ao listar)
 
-[Card::list()](../app/Models/Card.php), [Processo::list()](../app/Models/Processo.php), [TaskBoard::findForUser()](../app/Models/TaskBoard.php), [PipelineColumn::listAll()](../app/Models/PipelineColumn.php), [WhatsAppInstance::listAll()](../app/Models/WhatsAppInstance.php) aceitam `account_ids` (array) — passar `$ctx->getAccessibleAccountIds()` direto do endpoint.
+[Card::list()](../app/Prospeccao/Card.php), [Processo::list()](../app/Processos/Processo.php), [TaskBoard::findForUser()](../app/Tarefas/TaskBoard.php), [PipelineColumn::listAll()](../app/Prospeccao/PipelineColumn.php), [WhatsAppInstance::listAll()](../app/WhatsAppAgente/WhatsAppInstance.php) aceitam `account_ids` (array) — passar `$ctx->getAccessibleAccountIds()` direto do endpoint.
 
 Aceitam também `account_id` (int) por compat retroativa.
 

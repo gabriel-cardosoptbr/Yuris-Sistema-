@@ -10,19 +10,19 @@
 ob_start();
 @ini_set('display_errors', '0');
 
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/Account.php';
-require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../../app/Models/PushEvent.php';
-require_once __DIR__ . '/../../../app/Models/PushTodayCache.php';
-require_once __DIR__ . '/../../../app/Models/PushEventUserStatus.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Master/Account.php';
+require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../../app/Processos/PushEvent.php';
+require_once __DIR__ . '/../../../app/Processos/PushTodayCache.php';
+require_once __DIR__ . '/../../../app/Processos/PushEventUserStatus.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/ErrorReporter.php';
 
-use App\Helpers\AccountContext;
-use App\Models\Database;
-use App\Models\PushTodayCache;
-use App\Models\PushEventUserStatus;
+use App\Core\AccountContext;
+use App\Core\Database;
+use App\Processos\PushTodayCache;
+use App\Processos\PushEventUserStatus;
 
 session_start(['read_and_close' => true]);
 
@@ -152,7 +152,7 @@ try {
     ]);
 
 } catch (\Throwable $e) {
-    \App\Helpers\ErrorReporter::handle($e);
+    \App\Core\ErrorReporter::handle($e);
 }
 
 /**

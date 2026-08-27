@@ -1,14 +1,14 @@
 <?php
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/Account.php';
-require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
-require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
-require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
-require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Master/Account.php';
+require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppInstance.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppMessage.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/EvolutionApiService.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppChannelAccessService.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
 
-use App\Helpers\AccountContext;
+use App\Core\AccountContext;
 
 session_start(['read_and_close' => true]);
 $_uid  = $_SESSION['user_id']    ?? null;
@@ -59,7 +59,7 @@ try {
 
 $instModel  = new WhatsAppInstance();
 $msgModel   = new WhatsAppMessage();
-$pdo        = \App\Models\Database::getConnection();
+$pdo        = \App\Core\Database::getConnection();
 
 // Envio = permissão 'send' no canal (deny-by-default). Resolve o canal próprio ou,
 // com a flag ligada, o canal COMPARTILHADO (filial herdando o da matriz). A
@@ -148,7 +148,7 @@ if ($type !== 'text') {
 // Buscamos a mensagem original no DB pra montar a estrutura corretamente.
 $quotedStruct = null;
 if ($quotedId) {
-    $pdo = \App\Models\Database::getConnection();
+    $pdo = \App\Core\Database::getConnection();
     $st = $pdo->prepare(
         'SELECT wamid, remote_jid, participant_jid, direction, message_content, caption, message_type
            FROM whatsapp_messages
@@ -248,6 +248,6 @@ echo json_encode([
 } catch (\Throwable $e) {
     // Auditoria 2026-06-01 MEDIA #32: loga server-side e devolve generico
     // (nunca expõe $e->getMessage() em prod).
-    require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
-    \App\Helpers\ErrorReporter::handle($e);
+    require_once __DIR__ . '/../../../app/Core/ErrorReporter.php';
+    \App\Core\ErrorReporter::handle($e);
 }

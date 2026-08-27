@@ -20,28 +20,28 @@
  */
 ob_start();
 
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/PushTodayCache.php';
-require_once __DIR__ . '/../../../app/Models/PushMonitor.php';
-require_once __DIR__ . '/../../../app/Models/PushQueryLog.php';
-require_once __DIR__ . '/../../../app/Models/AaspIntegration.php';
-require_once __DIR__ . '/../../../app/Helpers/EnvLoader.php';
-require_once __DIR__ . '/../../../app/Helpers/Crypto.php';
-require_once __DIR__ . '/../../../app/Helpers/MasterAudit.php';
-require_once __DIR__ . '/../../../app/Services/Push/PublicationHasher.php';
-require_once __DIR__ . '/../../../app/Services/Push/ProviderInterface.php';
-require_once __DIR__ . '/../../../app/Services/Push/DjenProvider.php';
-require_once __DIR__ . '/../../../app/Services/Push/AaspProvider.php';
-require_once __DIR__ . '/../../../app/Services/Push/PushMonitorRunner.php';
-require_once __DIR__ . '/../../../app/Services/Push/AaspSyncRunner.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Processos/PushTodayCache.php';
+require_once __DIR__ . '/../../../app/Processos/PushMonitor.php';
+require_once __DIR__ . '/../../../app/Processos/PushQueryLog.php';
+require_once __DIR__ . '/../../../app/Processos/AaspIntegration.php';
+require_once __DIR__ . '/../../../app/Core/EnvLoader.php';
+require_once __DIR__ . '/../../../app/Core/Crypto.php';
+require_once __DIR__ . '/../../../app/Master/MasterAudit.php';
+require_once __DIR__ . '/../../../app/Processos/Monitor/PublicationHasher.php';
+require_once __DIR__ . '/../../../app/Processos/Monitor/ProviderInterface.php';
+require_once __DIR__ . '/../../../app/Processos/Monitor/DjenProvider.php';
+require_once __DIR__ . '/../../../app/Processos/Monitor/AaspProvider.php';
+require_once __DIR__ . '/../../../app/Processos/Monitor/PushMonitorRunner.php';
+require_once __DIR__ . '/../../../app/Processos/Monitor/AaspSyncRunner.php';
 
-use App\Models\Database;
-use App\Models\PushTodayCache;
-use App\Models\PushMonitor;
-use App\Models\AaspIntegration;
-use App\Helpers\EnvLoader;
-use App\Services\Push\PushMonitorRunner;
-use App\Services\Push\AaspSyncRunner;
+use App\Core\Database;
+use App\Processos\PushTodayCache;
+use App\Processos\PushMonitor;
+use App\Processos\AaspIntegration;
+use App\Core\EnvLoader;
+use App\Processos\Monitor\PushMonitorRunner;
+use App\Processos\Monitor\AaspSyncRunner;
 
 EnvLoader::load();
 
@@ -165,7 +165,7 @@ try {
 
     // ── Log no master_audit ───────────────────────────────────────────────────
     try {
-        \App\Helpers\MasterAudit::log(
+        \App\Master\MasterAudit::log(
             'push.tick',
             'push_today_cache',
             0,

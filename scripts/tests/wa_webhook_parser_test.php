@@ -4,7 +4,7 @@
  *
  * Rede de segurança do strangler (Onda 4 / 4D, Pass 1). As 3 funções
  * (extractMessageContent / extractQuotedWamid / extractQuotedSnapshot) foram movidas
- * verbatim do public/api/whatsapp/webhook.php para App\Services\WhatsAppWebhookParser.
+ * verbatim do public/api/whatsapp/webhook.php para App\WhatsAppAgente\WhatsAppWebhookParser.
  * Os valores esperados abaixo foram CAPTURADOS da versão LEGADA (harness legado-vs-novo,
  * 42 comparações, 0 divergência) — então este teste crava o comportamento observado, não
  * uma expectativa reinventada. Cobre TODOS os branches. Self-contained (só requer a classe),
@@ -12,9 +12,9 @@
  *
  * Uso: php scripts/tests/wa_webhook_parser_test.php   (exit 0 = tudo passou)
  */
-require_once __DIR__ . '/../../app/Services/WhatsAppWebhookParser.php';
+require_once __DIR__ . '/../../app/WhatsAppAgente/WhatsAppWebhookParser.php';
 
-use App\Services\WhatsAppWebhookParser as P;
+use App\WhatsAppAgente\WhatsAppWebhookParser as P;
 
 $pass = 0; $fail = 0;
 function check(string $label, $actual, $expected): void {

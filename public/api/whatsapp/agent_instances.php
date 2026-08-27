@@ -16,11 +16,11 @@
  *
  * Gate: owner/admin (configurar o canal do agente é ação de gestão).
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
 
-use App\Helpers\AccountContext;
-use App\Models\Database;
+use App\Core\AccountContext;
+use App\Core\Database;
 
 session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');

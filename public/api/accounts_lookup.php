@@ -10,13 +10,13 @@
  * GET /api/accounts_lookup.php?codigo_vinculo=xxxx-xxxx-xxxx-xxxx
  */
 
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
 
-use App\Models\Account;
-use App\Models\Database;
-use App\Helpers\AccountContext;
+use App\Master\Account;
+use App\Core\Database;
+use App\Core\AccountContext;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');

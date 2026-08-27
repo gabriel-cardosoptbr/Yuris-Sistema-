@@ -9,10 +9,10 @@
  * fato exercido. Mantemos este endpoint como validador multipart reutilizável
  * (resposta JSON com base64 já validado por magic bytes).
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
-require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppChannelAccessService.php';
+require_once __DIR__ . '/../../../app/Core/ErrorReporter.php';
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -59,8 +59,8 @@ if (!empty($_FILES['file'])) {
 
     // Gate de canal (Fase 2): só prepara mídia quem tem 'send' em algum canal
     // (próprio ou compartilhado com a flag ligada). Resolvido 100% no backend.
-    $ctxUp = \App\Helpers\AccountContext::fromSession();
-    $pdoUp = \App\Models\Database::getConnection();
+    $ctxUp = \App\Core\AccountContext::fromSession();
+    $pdoUp = \App\Core\Database::getConnection();
     $chUp  = WhatsAppChannelAccessService::resolveForRequest($pdoUp, $ctxUp->getAccountId(), $_POST['channel_id'] ?? null, 'send');
 
     $file     = $_FILES['file'];
@@ -109,7 +109,7 @@ http_response_code(400);
 echo json_encode(['error' => 'Nenhum arquivo enviado']);
 
 } catch (\Throwable $e) {
-    \App\Helpers\ErrorReporter::handle($e);
+    \App\Core\ErrorReporter::handle($e);
 }
 
 function detectMediaType(string $mime): string

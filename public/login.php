@@ -1,9 +1,9 @@
 <?php
-require_once __DIR__ . '/../app/Models/Database.php';
-require_once __DIR__ . '/../app/Models/User.php';
-require_once __DIR__ . '/../app/Controllers/AuthController.php';
+require_once __DIR__ . '/../app/Core/Database.php';
+require_once __DIR__ . '/../app/Usuarios/User.php';
+require_once __DIR__ . '/../app/Usuarios/AuthController.php';
 
-use App\Controllers\AuthController;
+use App\Usuarios\AuthController;
 
 session_start();
 // generate csrf

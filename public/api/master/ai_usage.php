@@ -15,12 +15,12 @@
  *
  *   GET -> { ok, data: { summary:{...}, accounts:[ {...} ] } }
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
 
-use App\Helpers\AccountContext;
-use App\Helpers\ApiResponse;
+use App\Core\AccountContext;
+use App\Core\ApiResponse;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -32,15 +32,15 @@ if (empty($_SESSION['master_mode'])) {
     ApiResponse::forbidden('Acesso somente pelo Painel Master.');
 }
 
-$pdo = \App\Models\Database::getConnection();
+$pdo = \App\Core\Database::getConnection();
 
 /* ─────────────────────────────────────────────────────────────────────────
  * AÇÃO: webhook (leitura ao vivo do destino do webhook de UMA instância).
  * READ-ONLY: usa GET /webhook/find na Evolution. NÃO altera nada.
  * ──────────────────────────────────────────────────────────────────────── */
 if (($_GET['action'] ?? '') === 'webhook') {
-    require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
-    require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
+    require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppInstance.php';
+    require_once __DIR__ . '/../../../app/WhatsAppAgente/EvolutionApiService.php';
 
     $iid = (int)($_GET['instance_id'] ?? 0);
     if ($iid <= 0) ApiResponse::badRequest('instance_id obrigatório.');

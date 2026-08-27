@@ -2,16 +2,16 @@
 ob_start();
 @ini_set('display_errors', '0');
 
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/Account.php';
-require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
-require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
-require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
-require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Master/Account.php';
+require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppInstance.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppMessage.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/EvolutionApiService.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppChannelAccessService.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
 
-use App\Helpers\AccountContext;
+use App\Core\AccountContext;
 
 session_start(['read_and_close' => true]);
 $_uid = $_SESSION['user_id'] ?? null;
@@ -31,7 +31,7 @@ $accountId = $ctx->getAccountId();
 
 try {
     $msgModel   = new WhatsAppMessage();
-    $pdo        = \App\Models\Database::getConnection();
+    $pdo        = \App\Core\Database::getConnection();
 
     // Refresh de uma conversa = 'sync' no canal (deny-by-default). Canal/credenciais
     // resolvidos no backend (dono do canal) — nunca do front.
@@ -128,6 +128,6 @@ try {
     echo json_encode(['ok' => true, 'checked' => count($msgList), 'saved' => $saved]);
 
 } catch (Throwable $e) {
-    require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
-    \App\Helpers\ErrorReporter::handle($e);  // P1 LGPD (2D.1)
+    require_once __DIR__ . '/../../../app/Core/ErrorReporter.php';
+    \App\Core\ErrorReporter::handle($e);  // P1 LGPD (2D.1)
 }

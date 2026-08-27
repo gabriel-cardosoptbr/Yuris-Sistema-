@@ -15,21 +15,21 @@
  * POST action=provision    {account_id}  → cria instância na Evolution + salva config da conta + webhook
  * POST (sem action)        {account_id, ...}  → salva config da conta (manual)
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/Account.php';
-require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
-require_once __DIR__ . '/../../../app/Helpers/MasterAudit.php';
-require_once __DIR__ . '/../../../app/Helpers/Crypto.php';
-require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
-require_once __DIR__ . '/../../../app/Services/WhatsAppProvisioningService.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Master/Account.php';
+require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppInstance.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
+require_once __DIR__ . '/../../../app/Master/MasterAudit.php';
+require_once __DIR__ . '/../../../app/Core/Crypto.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/EvolutionApiService.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppProvisioningService.php';
 
-use App\Helpers\AccountContext;
-use App\Helpers\ApiResponse;
-use App\Helpers\MasterAudit;
-use App\Helpers\Crypto;
+use App\Core\AccountContext;
+use App\Core\ApiResponse;
+use App\Master\MasterAudit;
+use App\Core\Crypto;
 
 session_start();
 header('Cache-Control: no-store');
@@ -39,7 +39,7 @@ if (empty($_SESSION['master_mode'])) {
     ApiResponse::forbidden('Acesso somente pelo Painel Master.');
 }
 
-$pdo    = \App\Models\Database::getConnection();
+$pdo    = \App\Core\Database::getConnection();
 $model  = new WhatsAppInstance();
 $method = $_SERVER['REQUEST_METHOD'];
 

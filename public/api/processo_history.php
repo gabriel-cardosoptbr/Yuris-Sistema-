@@ -1,13 +1,13 @@
 <?php
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/TenantGuard.php';
 
-use App\Models\Database;
-use App\Helpers\AccountContext;
-use App\Helpers\TenantGuard;
+use App\Core\Database;
+use App\Core\AccountContext;
+use App\Core\TenantGuard;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -115,6 +115,6 @@ try {
 
 } catch (\Throwable $e) {
     // P1 LGPD (2D.1): em prod esconde getMessage
-    require_once __DIR__ . '/../../app/Helpers/ErrorReporter.php';
-    \App\Helpers\ErrorReporter::handle($e);
+    require_once __DIR__ . '/../../app/Core/ErrorReporter.php';
+    \App\Core\ErrorReporter::handle($e);
 }

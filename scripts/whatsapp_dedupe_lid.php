@@ -17,10 +17,10 @@
  */
 if (PHP_SAPI !== 'cli') { http_response_code(403); exit('CLI only'); }
 
-require_once __DIR__ . '/../app/Models/Database.php';
-require_once __DIR__ . '/../app/Models/WhatsAppMessage.php';
+require_once __DIR__ . '/../app/Core/Database.php';
+require_once __DIR__ . '/../app/WhatsAppAgente/WhatsAppMessage.php';
 
-use App\Models\Database;
+use App\Core\Database;
 
 $APPLY = in_array('--apply', $argv, true);
 $pdo = Database::getConnection();

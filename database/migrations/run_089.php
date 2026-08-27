@@ -9,9 +9,9 @@
 //    tem contextInfo.stanzaId), preenche quoted_wamid + snapshot a partir do
 //    raw_payload. Só toca linhas ainda não preenchidas — seguro reexecutar.
 
-require_once __DIR__ . '/../../app/Models/Database.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
 
-use App\Models\Database;
+use App\Core\Database;
 
 $pdo = Database::getConnection();
 echo "== Migration 089: whatsapp_quoted_snapshot ==\n";

@@ -1,18 +1,18 @@
 <?php
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
-require_once __DIR__ . '/../../app/Services/WebhookDispatcher.php';
-require_once __DIR__ . '/../../app/Helpers/ErrorReporter.php';
-require_once __DIR__ . '/../../app/Helpers/ProcessoAudit.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/TenantGuard.php';
+require_once __DIR__ . '/../../app/Webhooks/WebhookDispatcher.php';
+require_once __DIR__ . '/../../app/Core/ErrorReporter.php';
+require_once __DIR__ . '/../../app/Processos/ProcessoAudit.php';
 
-use App\Models\Database;
-use App\Helpers\AccountContext;
-use App\Helpers\TenantGuard;
-use App\Helpers\ProcessoAudit;
-use App\Services\WebhookDispatcher;
+use App\Core\Database;
+use App\Core\AccountContext;
+use App\Core\TenantGuard;
+use App\Processos\ProcessoAudit;
+use App\Webhooks\WebhookDispatcher;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -235,6 +235,6 @@ try {
     exit;
 
 } catch (\Throwable $e) {
-    \App\Helpers\ErrorReporter::handle($e);  // P1 LGPD (2D.1)
+    \App\Core\ErrorReporter::handle($e);  // P1 LGPD (2D.1)
     exit;
 }

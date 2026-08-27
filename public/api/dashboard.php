@@ -1,11 +1,11 @@
 <?php
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
 
-use App\Models\Database;
-use App\Helpers\AccountContext;
+use App\Core\Database;
+use App\Core\AccountContext;
 
 // read_and_close: endpoint read-only (não escreve $_SESSION). Sem isto, o
 // session_start() segura o lock de escrita da sessão durante o carregamento/polling

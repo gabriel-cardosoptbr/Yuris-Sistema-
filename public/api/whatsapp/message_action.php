@@ -11,18 +11,17 @@
  * 2) Marca is_deleted = 1 no banco local (filtrado por account_id pra evitar cross-tenant)
  * 3) Frontend renderiza bubble vazia "Mensagem apagada" no lugar
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/Account.php';
-require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
-require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
-require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
-require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Master/Account.php';
+require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppInstance.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppMessage.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/EvolutionApiService.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppChannelAccessService.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/ErrorReporter.php';
 
-use App\Helpers\AccountContext;
-use App\Services\EvolutionApiService;
+use App\Core\AccountContext;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -71,7 +70,7 @@ try {
     // (deny-by-default). Dono sempre tem; conta compartilhada só se concedido
     // explicitamente (off por padrão p/ filial). Canal/credenciais resolvidos no
     // backend (dono do canal), nunca do front.
-    $pdo     = \App\Models\Database::getConnection();
+    $pdo     = \App\Core\Database::getConnection();
     $ch      = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $payload['channel_id'] ?? null, 'delete_messages');
     $cfg     = $ch['cfg'];
     $name    = $ch['instance_name'];
@@ -102,5 +101,5 @@ try {
     echo json_encode(['ok' => true]);
 
 } catch (Throwable $e) {
-    \App\Helpers\ErrorReporter::handle($e);
+    \App\Core\ErrorReporter::handle($e);
 }

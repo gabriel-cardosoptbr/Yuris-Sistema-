@@ -21,7 +21,7 @@ $_perms   = $_SESSION['user_permissions'] ?? [];
 // Reload permissions from DB if session lost them (e.g. after session regeneration)
 if (!$_isAdmin && empty($_perms) && !empty($_SESSION['user_id'])) {
     try {
-        $__pdo = \App\Models\Database::getConnection();
+        $__pdo = \App\Core\Database::getConnection();
         $__ps  = $__pdo->prepare('SELECT page FROM user_permissions WHERE user_id = ?');
         $__ps->execute([$_SESSION['user_id']]);
         $_perms = $__ps->fetchAll(\PDO::FETCH_COLUMN);
@@ -77,12 +77,12 @@ $_notifJsVer  = file_exists($_notifJsPath) ? @filemtime($_notifJsPath) : '1';
 $_notifItems  = null;  // null => mantém "Carregando…" e o JS assume o carregamento
 $_notifUnread = 0;
 try {
-    require_once __DIR__ . '/../../app/Models/AccountNotification.php';
-    require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
-    $__nctx      = \App\Helpers\AccountContext::fromSession();
+    require_once __DIR__ . '/../../app/Master/AccountNotification.php';
+    require_once __DIR__ . '/../../app/Core/AccountContext.php';
+    $__nctx      = \App\Core\AccountContext::fromSession();
     // Só NÃO-LIDAS no sino (caixa de entrada de pendências): ao concluir/marcar
     // lida, o item sai e não reaparece no reload. Histórico fica no banco.
-    $_notifItems = \App\Models\AccountNotification::listForUser($__nctx->getUserId(), $__nctx->getAccountId(), true);
+    $_notifItems = \App\Master\AccountNotification::listForUser($__nctx->getUserId(), $__nctx->getAccountId(), true);
     foreach ($_notifItems as $__n) { if ((int)($__n['lida'] ?? 0) === 0) $_notifUnread++; }
 } catch (\Throwable $__e) { $_notifItems = null; }
 $_notifTempo = function ($raw) {

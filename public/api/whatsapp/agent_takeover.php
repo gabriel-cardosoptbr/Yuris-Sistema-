@@ -17,13 +17,13 @@
  * Identifica a conversa por chat_id OU por (instance_id + remote_jid) OU por remote_jid,
  * sempre DENTRO do canal autorizado.
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
-require_once __DIR__ . '/../../../app/Services/AiIntake/IntakeSessionRepository.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppChannelAccessService.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/AiIntake/IntakeSessionRepository.php';
 
-use App\Helpers\AccountContext;
-use App\Models\Database;
+use App\Core\AccountContext;
+use App\Core\Database;
 
 session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');
@@ -77,7 +77,7 @@ try {
     // consistência com a sessão do agente). Pausar = human_takeover (humano assumiu, grava
     // paused_by); retomar = reativa o bot. Nada mais escreve agent_paused fora do repo.
     // Best-effort: não pode derrubar a resposta de sucesso do takeover.
-    $repo = new \App\Services\AiIntake\IntakeSessionRepository($pdo);
+    $repo = new \App\WhatsAppAgente\AiIntake\IntakeSessionRepository($pdo);
     try {
         if ($paused === 1) {
             $repo->pauseForHuman($channelId, $chJid, (int)$uid);

@@ -15,7 +15,7 @@ regra de projeto, não preferência. Leia antes de qualquer integração de cana
   módulo WhatsApp (e, para provisionamento, do Painel Master). Nunca da tela do agente.
 - **Webhook existente é reutilizado** (`public/api/whatsapp/webhook.php`). Não criar um
   webhook só para o agente.
-- **Serviço de envio existente é reutilizado** (`app/Services/EvolutionApiService.php`).
+- **Serviço de envio existente é reutilizado** (`app/WhatsAppAgente/EvolutionApiService.php`).
 - **Serviço de mídia existente é reutilizado** (`public/api/whatsapp/media.php`).
 - **Mensagens próprias são ignoradas** (`key.fromMe`), para não criar loop.
 - **Eventos são idempotentes** (UNIQUE `(instance_id, wamid)` + checagem no webhook).

@@ -10,12 +10,12 @@
  *
  * CSRF obrigatório em POST/DELETE.
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/Consent.php';
-require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Usuarios/Consent.php';
+require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
 
-use App\Models\Consent;
-use App\Helpers\ApiResponse;
+use App\Usuarios\Consent;
+use App\Core\ApiResponse;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');

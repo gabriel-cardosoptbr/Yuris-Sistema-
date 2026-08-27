@@ -19,17 +19,17 @@
  *   POST action=grant   {channel_id, account_id, perms:{can_view,can_send,can_sync,can_delete_messages}}
  *   POST action=revoke  {channel_id, account_id}
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/Account.php';
-require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
-require_once __DIR__ . '/../../../app/Helpers/MasterAudit.php';
-require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Master/Account.php';
+require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
+require_once __DIR__ . '/../../../app/Master/MasterAudit.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppChannelAccessService.php';
 
-use App\Helpers\AccountContext;
-use App\Helpers\ApiResponse;
-use App\Helpers\MasterAudit;
+use App\Core\AccountContext;
+use App\Core\ApiResponse;
+use App\Master\MasterAudit;
 
 session_start();
 header('Cache-Control: no-store');
@@ -39,7 +39,7 @@ if (empty($_SESSION['master_mode'])) {
     ApiResponse::forbidden('Acesso somente pelo Painel Master.');
 }
 
-$pdo    = \App\Models\Database::getConnection();
+$pdo    = \App\Core\Database::getConnection();
 $method = $_SERVER['REQUEST_METHOD'];
 
 /** Canal (whatsapp_instances) resolvido NO BACKEND, com a conta dona. null se não existe. */

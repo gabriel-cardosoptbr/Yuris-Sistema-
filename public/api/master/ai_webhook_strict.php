@@ -22,15 +22,15 @@
  * Acesso: super_admin em sessao master_mode; escrita exige nivel != viewer + CSRF. Auditado.
  *   POST { instance_id, enabled(bool), csrf_token } -> { ok, data:{ instance_id, strict } }
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
-require_once __DIR__ . '/../../../app/Helpers/MasterAudit.php';
-require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
+require_once __DIR__ . '/../../../app/Master/MasterAudit.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppInstance.php';
 
-use App\Helpers\AccountContext;
-use App\Helpers\ApiResponse;
-use App\Helpers\MasterAudit;
+use App\Core\AccountContext;
+use App\Core\ApiResponse;
+use App\Master\MasterAudit;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');

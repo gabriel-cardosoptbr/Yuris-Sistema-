@@ -1,15 +1,15 @@
 <?php
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Card.php';
-require_once __DIR__ . '/../../app/Models/Contato.php';
-require_once __DIR__ . '/../../app/Models/User.php';
-require_once __DIR__ . '/../../app/Services/WebhookDispatcher.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Prospeccao/Card.php';
+require_once __DIR__ . '/../../app/Prospeccao/Contato.php';
+require_once __DIR__ . '/../../app/Usuarios/User.php';
+require_once __DIR__ . '/../../app/Webhooks/WebhookDispatcher.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
 
-use App\Models\Card;
-use App\Models\Database;
-use App\Services\WebhookDispatcher;
-use App\Helpers\AccountContext;
+use App\Prospeccao\Card;
+use App\Core\Database;
+use App\Webhooks\WebhookDispatcher;
+use App\Core\AccountContext;
 
 // read_and_close: só lê $_SESSION (csrf_token + contexto), nunca escreve. Libera o
 // lock de escrita na hora — evita serializar os AJAX do dashboard e travar o sino.

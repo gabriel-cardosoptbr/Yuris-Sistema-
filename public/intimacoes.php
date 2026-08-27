@@ -1,12 +1,12 @@
 <?php
-require_once __DIR__ . '/../app/Models/Database.php';
-require_once __DIR__ . '/../app/Models/Account.php';
-require_once __DIR__ . '/../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../app/Models/PushTodayCache.php';
-require_once __DIR__ . '/../app/Models/PushEvent.php';
-require_once __DIR__ . '/../app/Models/PushEventUserStatus.php';
-require_once __DIR__ . '/../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../app/Helpers/MonitorPermission.php';
+require_once __DIR__ . '/../app/Core/Database.php';
+require_once __DIR__ . '/../app/Master/Account.php';
+require_once __DIR__ . '/../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../app/Processos/PushTodayCache.php';
+require_once __DIR__ . '/../app/Processos/PushEvent.php';
+require_once __DIR__ . '/../app/Processos/PushEventUserStatus.php';
+require_once __DIR__ . '/../app/Core/AccountContext.php';
+require_once __DIR__ . '/../app/Processos/MonitorPermission.php';
 
 session_start();
 if (empty($_SESSION['user_id'])) {
@@ -14,22 +14,22 @@ if (empty($_SESSION['user_id'])) {
     exit;
 }
 // HARDENING: bloqueia acesso de contas suspensas/canceladas/inativas
-\App\Helpers\AccountContext::fromSession()->assertAccountActive();
+\App\Core\AccountContext::fromSession()->assertAccountActive();
 
 $activePage = 'intimacoes';
 $csrf       = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 
-use App\Helpers\AccountContext;
-use App\Models\PushTodayCache;
-use App\Models\PushEventUserStatus;
+use App\Core\AccountContext;
+use App\Processos\PushTodayCache;
+use App\Processos\PushEventUserStatus;
 
 $ctx        = AccountContext::fromSession();
 $accountId  = $ctx->getAccountId();
 $userId     = (int)$_SESSION['user_id'];
 
 // Add-on Monitoramentos: permissão pra exibir/esconder botão "Solicitar"
-$monitorCanCreate  = \App\Helpers\MonitorPermission::canCreate($ctx);
-$monitorCanRequest = \App\Helpers\MonitorPermission::canRequestMonitor($ctx);
+$monitorCanCreate  = \App\Processos\MonitorPermission::canCreate($ctx);
+$monitorCanRequest = \App\Processos\MonitorPermission::canRequestMonitor($ctx);
 
 $kpiCacheHoje = PushTodayCache::countActive($accountId);
 $kpiNaoLidas  = PushEventUserStatus::countNaoLidas($userId, $accountId);

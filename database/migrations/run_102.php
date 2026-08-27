@@ -8,9 +8,9 @@
  * Idempotente: so adiciona a coluna se ainda nao existir (information_schema).
  * Rollback: ALTER TABLE ai_usage_log DROP COLUMN cached_input_tokens.
  */
-require_once __DIR__ . '/../../app/Models/Database.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
 
-use App\Models\Database;
+use App\Core\Database;
 
 $pdo = Database::getConnection();
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);

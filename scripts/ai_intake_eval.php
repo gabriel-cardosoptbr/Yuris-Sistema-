@@ -7,17 +7,17 @@
  */
 if (PHP_SAPI !== 'cli') { http_response_code(403); exit('CLI only'); }
 
-require_once __DIR__ . '/../app/Models/Database.php';
-require_once __DIR__ . '/../app/Services/AiIntake/IntakeEngine.php';
-require_once __DIR__ . '/../app/Services/AiIntake/FakeProvider.php';
-require_once __DIR__ . '/../app/Services/AiIntake/IntakeSchema.php';
-require_once __DIR__ . '/../app/Services/AiIntake/LlmProviderInterface.php';
+require_once __DIR__ . '/../app/Core/Database.php';
+require_once __DIR__ . '/../app/WhatsAppAgente/AiIntake/IntakeEngine.php';
+require_once __DIR__ . '/../app/WhatsAppAgente/AiIntake/FakeProvider.php';
+require_once __DIR__ . '/../app/WhatsAppAgente/AiIntake/IntakeSchema.php';
+require_once __DIR__ . '/../app/WhatsAppAgente/AiIntake/LlmProviderInterface.php';
 
-use App\Models\Database;
-use App\Services\AiIntake\IntakeEngine;
-use App\Services\AiIntake\FakeProvider;
-use App\Services\AiIntake\IntakeSchema;
-use App\Services\AiIntake\LlmProviderInterface;
+use App\Core\Database;
+use App\WhatsAppAgente\AiIntake\IntakeEngine;
+use App\WhatsAppAgente\AiIntake\FakeProvider;
+use App\WhatsAppAgente\AiIntake\IntakeSchema;
+use App\WhatsAppAgente\AiIntake\LlmProviderInterface;
 
 /** Provider que sempre falha (simula timeout/erro/JSON invalido) -> engine cai p/ handoff. */
 final class FailProvider implements LlmProviderInterface {

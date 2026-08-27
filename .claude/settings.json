@@ -10,7 +10,7 @@
       "PowerShell(& \"c:/xampp/mysql/bin/mysql.exe\" -u root -e \"SHOW DATABASES;\" 2>&1)",
       "PowerShell(& \"c:/xampp/php/php.exe\" -l \"c:/xampp/htdocs/sistema_vendas/public/api/task_boards.php\" 2>&1)",
       "PowerShell(& \"c:/xampp/php/php.exe\" -l \"c:/xampp/htdocs/sistema_vendas/public/api/tasks.php\" 2>&1)",
-      "PowerShell(& \"c:/xampp/php/php.exe\" -l \"c:/xampp/htdocs/sistema_vendas/app/Models/Task.php\" 2>&1)",
+      "PowerShell(& \"c:/xampp/php/php.exe\" -l \"c:/xampp/htdocs/sistema_vendas/app/Tarefas/Task.php\" 2>&1)",
       "PowerShell(& \"c:/xampp/mysql/bin/mysqladmin.exe\" -u root status 2>&1)",
       "PowerShell(& \"c:/xampp/php/php.exe\" \"c:/xampp/htdocs/sistema_vendas/public/api/_test_boards.php\" 2>&1)",
       "PowerShell(& \"c:/xampp/php/php.exe\" \"c:/xampp/htdocs/sistema_vendas/public/api/_test_link_search.php\" 2>&1)",

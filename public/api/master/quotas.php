@@ -14,23 +14,23 @@
  * @since 2026-05-26 (Etapa 6 do add-on Monitoramentos)
  */
 
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
-require_once __DIR__ . '/../../../app/Helpers/MasterAudit.php';
-require_once __DIR__ . '/../../../app/Helpers/MonitorAudit.php';
-require_once __DIR__ . '/../../../app/Helpers/MonitorQuota.php';
-require_once __DIR__ . '/../../../app/Helpers/BillingGuard.php';
-require_once __DIR__ . '/../../../app/Helpers/TenantGuard.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
+require_once __DIR__ . '/../../../app/Master/MasterAudit.php';
+require_once __DIR__ . '/../../../app/Processos/MonitorAudit.php';
+require_once __DIR__ . '/../../../app/Processos/MonitorQuota.php';
+require_once __DIR__ . '/../../../app/Billing/BillingGuard.php';
+require_once __DIR__ . '/../../../app/Core/TenantGuard.php';
 
-use App\Helpers\AccountContext;
-use App\Helpers\ApiResponse;
-use App\Helpers\MasterAudit;
-use App\Helpers\MonitorAudit;
-use App\Helpers\MonitorQuota;
-use App\Helpers\BillingGuard;
-use App\Helpers\TenantGuard;
-use App\Models\Database;
+use App\Core\AccountContext;
+use App\Core\ApiResponse;
+use App\Master\MasterAudit;
+use App\Processos\MonitorAudit;
+use App\Processos\MonitorQuota;
+use App\Billing\BillingGuard;
+use App\Core\TenantGuard;
+use App\Core\Database;
 
 session_start();
 $ctx = AccountContext::fromSession();

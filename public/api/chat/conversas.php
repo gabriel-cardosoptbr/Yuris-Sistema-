@@ -23,11 +23,11 @@
  *   CSRF validado em todos os POSTs
  *   Participação verificada antes de qualquer leitura/escrita
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
 
-use App\Models\Database;
-use App\Helpers\AccountContext;
+use App\Core\Database;
+use App\Core\AccountContext;
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -51,7 +51,7 @@ $body   = [];
 //   1. Da própria conta OU filiais sync ativas
 //   2. OU advogados associados com convite aceito pela conta atual
 // Retorna array dos IDs válidos (subset do input). IDs inválidos são DROPADOS.
-function _validParticipantIds(\PDO $pdo, array $userIds, \App\Helpers\AccountContext $ctx): array
+function _validParticipantIds(\PDO $pdo, array $userIds, \App\Core\AccountContext $ctx): array
 {
     $userIds = array_values(array_unique(array_filter(array_map('intval', $userIds), fn($v) => $v > 0)));
     if (empty($userIds)) return [];

@@ -12,9 +12,9 @@
  * As perguntas sao DETERMINISTICAS e NAO entram no prompt mestre. O modelo so classifica a area;
  * o backend (IntakeEngine) escolhe a pergunta especifica. Sem custo de tokens.
  */
-require_once __DIR__ . '/../../app/Models/Database.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
 
-use App\Models\Database;
+use App\Core\Database;
 
 $pdo = Database::getConnection();
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);

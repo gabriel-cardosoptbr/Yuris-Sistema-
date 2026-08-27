@@ -10,13 +10,13 @@
  * DELETE /api/teams.php?id=5     → soft-delete
  */
 
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Team.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Usuarios/Team.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
 
-use App\Models\Team;
-use App\Helpers\AccountContext;
+use App\Usuarios\Team;
+use App\Core\AccountContext;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -74,7 +74,7 @@ if (!$ctx->isOwnerOrAdmin()) {
  * @param array $members  ids enviados pelo cliente
  * @return array<int>     subconjunto válido (apenas ids acessíveis), únicos
  */
-function _sanitizeTeamMembers(array $members, \App\Helpers\AccountContext $ctx): array {
+function _sanitizeTeamMembers(array $members, \App\Core\AccountContext $ctx): array {
     // getAccessibleUsers(false): inclui inativos também — o seletor da UI pode
     // ter membros que ficaram inativos; a regra aqui é só de TENANT, não de status.
     $allowed = [];
@@ -103,7 +103,7 @@ if ($method === 'POST') {
     $members = _sanitizeTeamMembers(is_array($input['members'] ?? null) ? $input['members'] : [], $ctx);
     Team::setMembers($id, $members);
 
-    \App\Models\Account::audit($accountId, 'team.created', [
+    \App\Master\Account::audit($accountId, 'team.created', [
         'user_id'     => $ctx->getUserId(),
         'entidade'    => 'team',
         'entidade_id' => (int)$id,
@@ -141,7 +141,7 @@ if ($method === 'PUT') {
         Team::setMembers($id, $validMembers);
     }
 
-    \App\Models\Account::audit($accountId, 'team.updated', [
+    \App\Master\Account::audit($accountId, 'team.updated', [
         'user_id'     => $ctx->getUserId(),
         'entidade'    => 'team',
         'entidade_id' => $id,
@@ -163,7 +163,7 @@ if ($method === 'DELETE') {
 
     $ok = Team::delete($id, $accountId);
     if ($ok) {
-        \App\Models\Account::audit($accountId, 'team.deleted', [
+        \App\Master\Account::audit($accountId, 'team.deleted', [
             'user_id'     => $ctx->getUserId(),
             'entidade'    => 'team',
             'entidade_id' => $id,

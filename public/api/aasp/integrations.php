@@ -26,18 +26,18 @@
 ob_start();
 @ini_set('display_errors', '0');
 
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/AaspIntegration.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/EnvLoader.php';
-require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
-require_once __DIR__ . '/../../../app/Helpers/Crypto.php';
-require_once __DIR__ . '/../../../app/Helpers/PlanFeature.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Processos/AaspIntegration.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/EnvLoader.php';
+require_once __DIR__ . '/../../../app/Core/ErrorReporter.php';
+require_once __DIR__ . '/../../../app/Core/Crypto.php';
+require_once __DIR__ . '/../../../app/Billing/PlanFeature.php';
 
-use App\Helpers\AccountContext;
-use App\Helpers\Crypto;
-use App\Helpers\PlanFeature;
-use App\Models\AaspIntegration;
+use App\Core\AccountContext;
+use App\Core\Crypto;
+use App\Billing\PlanFeature;
+use App\Processos\AaspIntegration;
 
 session_start(['read_and_close' => true]);
 $csrfSession = $_SESSION['csrf_token'] ?? '';
@@ -261,5 +261,5 @@ try {
     http_response_code(405);
     echo json_encode(['ok' => false, 'error' => 'Método não suportado: ' . $method]);
 } catch (\Throwable $e) {
-    \App\Helpers\ErrorReporter::handle($e);
+    \App\Core\ErrorReporter::handle($e);
 }

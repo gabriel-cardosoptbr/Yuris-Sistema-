@@ -17,29 +17,29 @@
 ob_start();
 @ini_set('display_errors', '0');
 
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/Account.php';
-require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../../app/Models/PushEvent.php';
-require_once __DIR__ . '/../../../app/Models/PushTodayCache.php';
-require_once __DIR__ . '/../../../app/Models/PushEventUserStatus.php';
-require_once __DIR__ . '/../../../app/Models/PushProcessoLink.php';
-require_once __DIR__ . '/../../../app/Models/Task.php';
-require_once __DIR__ . '/../../../app/Models/TaskBoard.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/TenantGuard.php';
-require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
-require_once __DIR__ . '/../../../app/Helpers/ProcessoAudit.php';
-require_once __DIR__ . '/../../../app/Services/Push/PublicationHasher.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Master/Account.php';
+require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../../app/Processos/PushEvent.php';
+require_once __DIR__ . '/../../../app/Processos/PushTodayCache.php';
+require_once __DIR__ . '/../../../app/Processos/PushEventUserStatus.php';
+require_once __DIR__ . '/../../../app/Processos/PushProcessoLink.php';
+require_once __DIR__ . '/../../../app/Tarefas/Task.php';
+require_once __DIR__ . '/../../../app/Tarefas/TaskBoard.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/TenantGuard.php';
+require_once __DIR__ . '/../../../app/Core/ErrorReporter.php';
+require_once __DIR__ . '/../../../app/Processos/ProcessoAudit.php';
+require_once __DIR__ . '/../../../app/Processos/Monitor/PublicationHasher.php';
 
-use App\Helpers\AccountContext;
-use App\Helpers\TenantGuard;
-use App\Helpers\ProcessoAudit;
-use App\Models\Database;
-use App\Models\PushEvent;
-use App\Models\PushTodayCache;
-use App\Models\PushEventUserStatus;
-use App\Services\Push\PublicationHasher;
+use App\Core\AccountContext;
+use App\Core\TenantGuard;
+use App\Processos\ProcessoAudit;
+use App\Core\Database;
+use App\Processos\PushEvent;
+use App\Processos\PushTodayCache;
+use App\Processos\PushEventUserStatus;
+use App\Processos\Monitor\PublicationHasher;
 
 session_start(['read_and_close' => true]);
 $csrfSession = $_SESSION['csrf_token'] ?? '';
@@ -171,7 +171,7 @@ try {
             // Opcional: criar tarefa no módulo Tarefas
             if (!empty($extra['create_task']) && $data) {
                 try {
-                    $boards = \App\Models\TaskBoard::findForUser($userId, $accountId);
+                    $boards = \App\Tarefas\TaskBoard::findForUser($userId, $accountId);
                     if (empty($boards)) {
                         $resultado['task_warning'] = 'Nenhum board encontrado para criar tarefa. Crie um board primeiro em /tarefas.';
                     } else {
@@ -183,7 +183,7 @@ try {
                         if (!$colId) {
                             $resultado['task_warning'] = 'Board sem colunas. Configure colunas em /tarefas.';
                         } else {
-                            $ev = \App\Models\PushEvent::findByIdForAccount($eventId, $accountId);
+                            $ev = \App\Processos\PushEvent::findByIdForAccount($eventId, $accountId);
                             $titulo = 'Intimação ' . ($ev['tribunal'] ?? '') . ' — '
                                     . ($ev['numero_processo_mascara'] ?: $ev['numero_processo'] ?: 'sem processo');
                             $desc = "Origem: intimação automática\n"
@@ -192,7 +192,7 @@ try {
                                   . "Data: " . ($ev['data_disponibilizacao'] ?? '—') . "\n\n"
                                   . mb_substr($ev['conteudo'] ?? '', 0, 1000);
 
-                            $taskId = \App\Models\Task::create([
+                            $taskId = \App\Tarefas\Task::create([
                                 'board_id'       => $boardId,
                                 'column_id'      => $colId,
                                 'titulo'         => mb_substr($titulo, 0, 200),
@@ -238,7 +238,7 @@ try {
                 ->execute(['p' => $procId, 'id' => $eventId, 'acc' => $accountId]);
 
             // Pega o numero_processo do evento pra registrar auto-link
-            $ev = \App\Models\PushEvent::findByIdForAccount($eventId, $accountId);
+            $ev = \App\Processos\PushEvent::findByIdForAccount($eventId, $accountId);
             $numProc = $ev['numero_processo'] ?? '';
 
             // Auditoria no histórico do processo: origem + OAB + número + publicação.
@@ -263,9 +263,9 @@ try {
 
             if ($numProc !== '') {
                 // Salva mapping permanente — futuras intimações com mesmo número auto-vinculam
-                \App\Models\PushProcessoLink::linkProcesso($accountId, $numProc, $procId, $userId);
+                \App\Processos\PushProcessoLink::linkProcesso($accountId, $numProc, $procId, $userId);
                 // Aplica retroativo: outras intimações passadas com mesmo número ganham vínculo
-                $retroCount = \App\Models\PushProcessoLink::aplicarRetroativo($accountId, $numProc, $procId);
+                $retroCount = \App\Processos\PushProcessoLink::aplicarRetroativo($accountId, $numProc, $procId);
                 $resultado['retroativo_aplicado'] = $retroCount;
                 if ($retroCount > 0) {
                     // Loga o lote retroativo separadamente pra ficar claro no histórico.
@@ -282,13 +282,13 @@ try {
         case 'unlink_process':
             // Remove vínculo da intimação específica + remove auto-link futuro
             $pdo = Database::getConnection();
-            $ev = \App\Models\PushEvent::findByIdForAccount($eventId, $accountId);
+            $ev = \App\Processos\PushEvent::findByIdForAccount($eventId, $accountId);
             $numProc = $ev['numero_processo'] ?? '';
             $procIdAntes = (int)($ev['processo_id'] ?? 0);   // pra logar no processo CORRETO
             $pdo->prepare('UPDATE push_events SET processo_id = NULL WHERE id = :id AND account_id = :acc')
                 ->execute(['id' => $eventId, 'acc' => $accountId]);
             if ($numProc !== '') {
-                \App\Models\PushProcessoLink::unlinkProcesso($accountId, $numProc);
+                \App\Processos\PushProcessoLink::unlinkProcesso($accountId, $numProc);
             }
             // Audit no processo que PERDEU a intimação
             if ($procIdAntes > 0) {
@@ -306,13 +306,13 @@ try {
         case 'create_task':
             // Cria tarefa standalone (sem precisar setar prazo primeiro).
             // Campos: extra.titulo, extra.descricao, extra.prazo_data, extra.responsavel_id
-            $ev = \App\Models\PushEvent::findByIdForAccount($eventId, $accountId);
+            $ev = \App\Processos\PushEvent::findByIdForAccount($eventId, $accountId);
             if (!$ev) {
                 http_response_code(404);
                 echo json_encode(['error' => 'Evento não encontrado']);
                 exit;
             }
-            $boards = \App\Models\TaskBoard::findForUser($userId, $accountId);
+            $boards = \App\Tarefas\TaskBoard::findForUser($userId, $accountId);
             if (empty($boards)) {
                 http_response_code(409);
                 echo json_encode(['error' => 'Nenhum board de tarefas encontrado. Crie um em /tarefas primeiro.']);
@@ -356,7 +356,7 @@ try {
                 ? $extra['prazo_data'] . ' 18:00:00'
                 : null;
 
-            $taskId = \App\Models\Task::create([
+            $taskId = \App\Tarefas\Task::create([
                 'board_id'       => $boardId,
                 'column_id'      => $colId,
                 'titulo'         => mb_substr($titulo, 0, 200),
@@ -377,7 +377,7 @@ try {
             // Cria prazo processual em processo_prazos (não kanban tasks).
             // Requer que a intimação esteja vinculada a um processo (processo_id obrigatório).
             // extra: { descricao, data_limite (Y-m-d), responsavel (nome string), prioridade (baixa|media|alta), observacao }
-            $ev = \App\Models\PushEvent::findByIdForAccount($eventId, $accountId);
+            $ev = \App\Processos\PushEvent::findByIdForAccount($eventId, $accountId);
             if (!$ev) {
                 http_response_code(404);
                 echo json_encode(['error' => 'Evento não encontrado']);
@@ -500,5 +500,5 @@ try {
     echo json_encode($resultado);
 
 } catch (\Throwable $e) {
-    \App\Helpers\ErrorReporter::handle($e);
+    \App\Core\ErrorReporter::handle($e);
 }

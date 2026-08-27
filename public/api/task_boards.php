@@ -1,13 +1,13 @@
 <?php
 require_once __DIR__ . '/_json_guard.php';   // avisos PHP nunca vazam como HTML no JSON (anti "Unexpected token '<'")
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/TaskBoard.php';
-require_once __DIR__ . '/../../app/Models/TaskColumn.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Tarefas/TaskBoard.php';
+require_once __DIR__ . '/../../app/Tarefas/TaskColumn.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
 
-use App\Models\TaskBoard;
-use App\Models\TaskColumn;
-use App\Helpers\AccountContext;
+use App\Tarefas\TaskBoard;
+use App\Tarefas\TaskColumn;
+use App\Core\AccountContext;
 
 session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');
@@ -39,7 +39,7 @@ if ($method === 'GET') {
         // P1 LGPD (2B.3): findById restrito ao tenant; canView idem
         $b = TaskBoard::findById((int)$_GET['id'], $accIds);
         if (!$b || !TaskBoard::canView((int)$_GET['id'], $userId, $accIds)) fail('Não encontrado', 404);
-        $b['colunas']  = \App\Models\TaskColumn::findByBoard($b['id']);
+        $b['colunas']  = \App\Tarefas\TaskColumn::findByBoard($b['id']);
         $b['membros']  = TaskBoard::members($b['id']);
         ok($b);
     }

@@ -1,20 +1,20 @@
 <?php
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Processo.php';
-require_once __DIR__ . '/../../app/Models/Contato.php';
-require_once __DIR__ . '/../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../app/Services/WebhookDispatcher.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
-require_once __DIR__ . '/../../app/Helpers/ProcessoAudit.php';
-require_once __DIR__ . '/../../app/Helpers/ErrorReporter.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Processos/Processo.php';
+require_once __DIR__ . '/../../app/Prospeccao/Contato.php';
+require_once __DIR__ . '/../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../app/Webhooks/WebhookDispatcher.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/TenantGuard.php';
+require_once __DIR__ . '/../../app/Processos/ProcessoAudit.php';
+require_once __DIR__ . '/../../app/Core/ErrorReporter.php';
 
-use App\Services\WebhookDispatcher;
-use App\Models\Processo;
-use App\Models\Database;
-use App\Helpers\AccountContext;
-use App\Helpers\TenantGuard;
-use App\Helpers\ProcessoAudit;
+use App\Webhooks\WebhookDispatcher;
+use App\Processos\Processo;
+use App\Core\Database;
+use App\Core\AccountContext;
+use App\Core\TenantGuard;
+use App\Processos\ProcessoAudit;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -166,5 +166,5 @@ try {
     exit;
 } catch (\Throwable $e) {
     // P1 LGPD (2D.1): erros padronizados — em prod esconde getMessage
-    \App\Helpers\ErrorReporter::handle($e);
+    \App\Core\ErrorReporter::handle($e);
 }

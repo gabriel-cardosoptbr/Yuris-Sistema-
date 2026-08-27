@@ -3,13 +3,13 @@
  * Contato do Encarregado de Dados (DPO) — modelo inicial (LGPD Etapa 5).
  * Lê DPO_NAME, DPO_EMAIL, DPO_PHONE do .env (variáveis vazias → mensagem placeholder).
  */
-require_once __DIR__ . '/../app/Helpers/EnvLoader.php';
-\App\Helpers\EnvLoader::load();
+require_once __DIR__ . '/../app/Core/EnvLoader.php';
+\App\Core\EnvLoader::load();
 
-$dpoNome  = trim(\App\Helpers\EnvLoader::get('DPO_NAME',     ''));
-$dpoEmail = trim(\App\Helpers\EnvLoader::get('DPO_EMAIL',    ''));
-$dpoFone  = trim(\App\Helpers\EnvLoader::get('DPO_PHONE',    ''));
-$dpoEnd   = trim(\App\Helpers\EnvLoader::get('DPO_ADDRESS',  ''));
+$dpoNome  = trim(\App\Core\EnvLoader::get('DPO_NAME',     ''));
+$dpoEmail = trim(\App\Core\EnvLoader::get('DPO_EMAIL',    ''));
+$dpoFone  = trim(\App\Core\EnvLoader::get('DPO_PHONE',    ''));
+$dpoEnd   = trim(\App\Core\EnvLoader::get('DPO_ADDRESS',  ''));
 
 if ($dpoNome === '' && $dpoEmail === '') {
     // Mensagem voltada ao TITULAR (não vazar instrução de infraestrutura ao público).

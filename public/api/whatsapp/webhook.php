@@ -7,26 +7,26 @@
  *  - Não exige CSRF
  *  - Valida opcionalmente via header apikey
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
-require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
-require_once __DIR__ . '/../../../app/Services/WebhookDispatcher.php';
-require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
-require_once __DIR__ . '/../../../app/Services/WhatsAppWebhookParser.php';     // parsers puros do payload (strangler Pass 1)
-require_once __DIR__ . '/../../../app/Services/WhatsAppWebhookEntitySync.php'; // persistencia de entidades contato/chat/grupo (strangler Pass 2)
-require_once __DIR__ . '/../../../app/Services/WhatsAppAgentBridge.php';       // caminho do agente IA: gating/flush/decrypt/envio (strangler Pass 3)
-require_once __DIR__ . '/../../../app/Services/WhatsAppWebhookAuth.php';       // 2o fator do webhook (webhook_token) — B3
-require_once __DIR__ . '/../../../app/Services/AiIntake/AgentEvent.php';       // telemetria de anomalias do webhook — B3 Bloco 2
-require_once __DIR__ . '/../../../app/Helpers/Crypto.php';     // decifra api_key do agente (GCM / APP_ENCRYPTION_KEY)
-require_once __DIR__ . '/../../../app/Helpers/TotpHelper.php'; // fallback p/ api_key legada (CBC / MFA_ENCRYPTION_KEY)
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppInstance.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppMessage.php';
+require_once __DIR__ . '/../../../app/Webhooks/WebhookDispatcher.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/EvolutionApiService.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppWebhookParser.php';     // parsers puros do payload (strangler Pass 1)
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppWebhookEntitySync.php'; // persistencia de entidades contato/chat/grupo (strangler Pass 2)
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppAgentBridge.php';       // caminho do agente IA: gating/flush/decrypt/envio (strangler Pass 3)
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppWebhookAuth.php';       // 2o fator do webhook (webhook_token) — B3
+require_once __DIR__ . '/../../../app/WhatsAppAgente/AiIntake/AgentEvent.php';       // telemetria de anomalias do webhook — B3 Bloco 2
+require_once __DIR__ . '/../../../app/Core/Crypto.php';     // decifra api_key do agente (GCM / APP_ENCRYPTION_KEY)
+require_once __DIR__ . '/../../../app/Usuarios/TotpHelper.php'; // fallback p/ api_key legada (CBC / MFA_ENCRYPTION_KEY)
 
-use App\Models\Database;
-use App\Services\WhatsAppWebhookParser;
-use App\Services\WhatsAppWebhookEntitySync;
-use App\Services\WhatsAppAgentBridge;
-use App\Services\WhatsAppWebhookAuth;
-use App\Helpers\Crypto;
-use App\Helpers\TotpHelper;
+use App\Core\Database;
+use App\WhatsAppAgente\WhatsAppWebhookParser;
+use App\WhatsAppAgente\WhatsAppWebhookEntitySync;
+use App\WhatsAppAgente\WhatsAppAgentBridge;
+use App\WhatsAppAgente\WhatsAppWebhookAuth;
+use App\Core\Crypto;
+use App\Usuarios\TotpHelper;
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -335,7 +335,7 @@ try {
 function wh_anomaly(string $code, array $detail = [], string $level = 'warn', ?int $accountId = null, ?int $instanceId = null): void
 {
     try {
-        $pdo = \App\Models\Database::getConnection();
+        $pdo = \App\Core\Database::getConnection();
         $st  = $pdo->prepare(
             "SELECT 1 FROM ai_agent_events
               WHERE code = :c AND (instance_id <=> :iid) AND (account_id <=> :aid)
@@ -343,7 +343,7 @@ function wh_anomaly(string $code, array $detail = [], string $level = 'warn', ?i
         );
         $st->execute([':c' => substr($code, 0, 40), ':iid' => $instanceId, ':aid' => $accountId]);
         if ($st->fetchColumn()) return; // ja registrado ha < 10min: throttle
-        \App\Services\AiIntake\AgentEvent::log($pdo, $code, $detail, $level, $accountId, null, $instanceId);
+        \App\WhatsAppAgente\AiIntake\AgentEvent::log($pdo, $code, $detail, $level, $accountId, null, $instanceId);
     } catch (\Throwable $_) { /* best-effort: telemetria nunca quebra o webhook */ }
 }
 
@@ -501,12 +501,12 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
     // Fire webhook only for inbound messages (received from contacts)
     if (!$fromMe) {
         // P0 LGPD: resolve account_id da instância para não vazar evento cross-tenant
-        $pdoInst = \App\Models\Database::getConnection();
+        $pdoInst = \App\Core\Database::getConnection();
         $instAccStmt = $pdoInst->prepare('SELECT account_id FROM whatsapp_instances WHERE id = ? LIMIT 1');
         $instAccStmt->execute([$instanceId]);
         $instAcc = $instAccStmt->fetchColumn();
         $ownerAcc = $instAcc !== false && $instAcc !== null ? (int)$instAcc : null;
-        \App\Services\WebhookDispatcher::fire($ownerAcc, 'whatsapp.mensagem', \App\Services\WebhookDispatcher::buildPayload('whatsapp.mensagem', [
+        \App\Webhooks\WebhookDispatcher::fire($ownerAcc, 'whatsapp.mensagem', \App\Webhooks\WebhookDispatcher::buildPayload('whatsapp.mensagem', [
             'entity'    => 'whatsapp_message',
             'entity_id' => $savedId,
             'data' => [

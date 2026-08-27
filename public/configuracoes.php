@@ -1,7 +1,7 @@
 <?php
-require_once __DIR__ . '/../app/Models/Database.php';
-require_once __DIR__ . '/../app/Models/PipelineColumn.php';
-use App\Models\PipelineColumn;
+require_once __DIR__ . '/../app/Core/Database.php';
+require_once __DIR__ . '/../app/Prospeccao/PipelineColumn.php';
+use App\Prospeccao\PipelineColumn;
 session_start();
 if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
 $activePage = 'configuracoes';

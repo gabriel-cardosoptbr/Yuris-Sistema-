@@ -11,12 +11,12 @@
  * SEGURANÇA: account_id SEMPRE vem da sessão, nunca do request.
  */
 
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
 
-use App\Models\Account;
-use App\Helpers\AccountContext;
+use App\Master\Account;
+use App\Core\AccountContext;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');

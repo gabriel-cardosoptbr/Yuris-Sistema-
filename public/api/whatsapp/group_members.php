@@ -9,16 +9,16 @@
  * GET ?jid=120363025@g.us
  *   → { ok:true, group_jid, count, members:[{participant_jid,push_name,phone,role,added_at}] }
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/Account.php';
-require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
-require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
-require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Master/Account.php';
+require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppInstance.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppMessage.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppChannelAccessService.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/ErrorReporter.php';
 
-use App\Helpers\AccountContext;
+use App\Core\AccountContext;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -32,7 +32,7 @@ if (empty($_SESSION['user_id'])) {
 try {
     $ctx       = AccountContext::fromSession();
     $accountId = $ctx->getAccountId();
-    $pdo       = \App\Models\Database::getConnection();
+    $pdo       = \App\Core\Database::getConnection();
 
     // Membros do grupo = 'view' no canal (deny-by-default). instance_id resolvido
     // no backend (canal próprio ou compartilhado, com a flag ligada).
@@ -52,7 +52,7 @@ try {
     // ── Contacts da instancia (pra resolver @mencoes via LID/@s.whatsapp.net) ──
     // O JS usa esse mapping pra trocar '@219507255689296' (LID interno) pelo
     // push_name. Sem isso, mencoes ficavam sem nome resolvido.
-    $pdo = \App\Models\Database::getConnection();
+    $pdo = \App\Core\Database::getConnection();
     $st = $pdo->prepare(
         "SELECT remote_jid, push_name, phone
            FROM whatsapp_contacts
@@ -107,5 +107,5 @@ try {
     ]);
 
 } catch (Throwable $e) {
-    \App\Helpers\ErrorReporter::handle($e);
+    \App\Core\ErrorReporter::handle($e);
 }

@@ -19,16 +19,16 @@
  *   POST action=grant   { filial_account_id, perms:{can_view,can_send,can_sync}, csrf_token }
  *   POST action=revoke  { filial_account_id, csrf_token }
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/Account.php';
-require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
-require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Master/Account.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppInstance.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppChannelAccessService.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
 
-use App\Helpers\AccountContext;
-use App\Helpers\ApiResponse;
-use App\Models\Account;
+use App\Core\AccountContext;
+use App\Core\ApiResponse;
+use App\Master\Account;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -42,7 +42,7 @@ if (!$ctx->isOwnerOrAdmin()) {
 
 $accountId  = $ctx->getAccountId();
 $userId     = $ctx->getUserId();
-$pdo        = \App\Models\Database::getConnection();
+$pdo        = \App\Core\Database::getConnection();
 $model      = new WhatsAppInstance();
 $ownChannel = WhatsAppChannelAccessService::ownChannelId($pdo, $accountId);
 $method     = $_SERVER['REQUEST_METHOD'];
