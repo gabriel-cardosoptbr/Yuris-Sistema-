@@ -3,10 +3,10 @@
 Define os estados do pré-atendimento e as transições. **O estado é do BACKEND, não do modelo.**
 
 **Fonte de verdade (código):**
-- `app/Services/AiIntake/IntakeStateMachine.php` — lista de estados (`STATES`), terminais
+- `app/WhatsAppAgente/AiIntake/IntakeStateMachine.php` — lista de estados (`STATES`), terminais
   (`TERMINAL`) e a transição `decide()`.
-- `app/Services/AiIntake/IntakeEngine.php` — orquestra o turno e grava o estado.
-- `app/Services/AiIntake/IntakeSessionRepository.php` — persistência (`ai_intake_sessions.current_state`,
+- `app/WhatsAppAgente/AiIntake/IntakeEngine.php` — orquestra o turno e grava o estado.
+- `app/WhatsAppAgente/AiIntake/IntakeSessionRepository.php` — persistência (`ai_intake_sessions.current_state`,
   `controller_mode`) + pausa/takeover.
 
 > O modelo **não** emite um campo de estado (não existe `conversation_state` no schema, ver

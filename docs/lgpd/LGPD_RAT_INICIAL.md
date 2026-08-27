@@ -246,15 +246,15 @@ Cada operação loga em `anonymization_log` com motivo + executor + `lgpd_reques
 - `public/configuracoes/privacidade.php` — gestão de consentimentos pelo próprio usuário (Etapa 5E)
 
 ### Models e helpers
-- `app/Models/LegalDocument.php`, `TermAcceptance.php`, `Consent.php` — gestão de termos (Etapa 5A)
-- `app/Models/LgpdRequest.php` — solicitações Art. 18 (Etapa 6A)
-- `app/Models/SecurityIncident.php` — incidentes (Etapa 8B)
-- `app/Models/DataProcessor.php` — operadores (Etapa 9B)
-- `app/Helpers/Anonymizer.php` — substituição de PII Art. 12 (Etapa 7A)
-- `app/Helpers/MasterAudit.php` (expandido com IP/UA/request_id — Etapa 4B)
-- `app/Helpers/RequestId.php` — correlação forense (Etapa 4A)
-- `app/Helpers/ErrorReporter.php` — mensagens seguras em prod (Etapa 2D.1)
-- `app/Helpers/EnvLoader.php` (`validateProduction` — Etapa 2D.2)
+- `app/Lgpd/LegalDocument.php`, `TermAcceptance.php`, `Consent.php` — gestão de termos (Etapa 5A)
+- `app/Lgpd/LgpdRequest.php` — solicitações Art. 18 (Etapa 6A)
+- `app/Master/SecurityIncident.php` — incidentes (Etapa 8B)
+- `app/Lgpd/DataProcessor.php` — operadores (Etapa 9B)
+- `app/Lgpd/Anonymizer.php` — substituição de PII Art. 12 (Etapa 7A)
+- `app/Master/MasterAudit.php` (expandido com IP/UA/request_id — Etapa 4B)
+- `app/Core/RequestId.php` — correlação forense (Etapa 4A)
+- `app/Core/ErrorReporter.php` — mensagens seguras em prod (Etapa 2D.1)
+- `app/Core/EnvLoader.php` (`validateProduction` — Etapa 2D.2)
 
 ### APIs
 - `public/api/lgpd_retention_tick.php` — cron de purge (Etapa 7B)

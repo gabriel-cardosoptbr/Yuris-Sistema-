@@ -279,7 +279,7 @@ sudo mysql -u root -p yuris < yuris-restore.sql
 rm yuris-restore.sql   # apaga o plaintext
 ```
 
-Detalhes em [POLITICA_BACKUP_RECUPERACAO.md](POLITICA_BACKUP_RECUPERACAO.md).
+Detalhes em [POLITICA_BACKUP_RECUPERACAO.md](lgpd/POLITICA_BACKUP_RECUPERACAO.md).
 
 ---
 

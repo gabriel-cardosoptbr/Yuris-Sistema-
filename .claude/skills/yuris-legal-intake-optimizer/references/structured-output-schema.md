@@ -2,7 +2,7 @@
 
 O agente responde **somente** com este JSON. O mesmo schema vale em produção e nos testes.
 
-**Fonte de verdade (código):** `app/Services/AiIntake/IntakeSchema.php`
+**Fonte de verdade (código):** `app/WhatsAppAgente/AiIntake/IntakeSchema.php`
 (`IntakeSchema::jsonSchema()` para o `response_format` e a validação; `IntakeSchema::defaults()`
 para o fallback). Em produção é enviado como `response_format` `json_schema` **strict** da
 OpenAI (envelope `IntakeSchema::responseFormat()`, `name: "pre_atendimento"`, `strict: true`).

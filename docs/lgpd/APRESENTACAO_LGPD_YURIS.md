@@ -232,7 +232,7 @@ Cobre todos os 10 direitos:
 - **Stack:** PHP 8.2 + MariaDB 10.4 + Apache 2.4 (XAMPP em dev, deploy próprio em prod).
 - **Modelo:** SaaS multi-tenant com isolamento por `account_id` em **todas as queries de domínio**.
 - **Padrão de queries:** `PDO` com **prepared statements obrigatórios** (sem concatenação de SQL).
-- **Contexto de tenant:** `App\Helpers\AccountContext::fromSession()` resolve account_id + permissões + hierarquia matriz/filiais.
+- **Contexto de tenant:** `App\Core\AccountContext::fromSession()` resolve account_id + permissões + hierarquia matriz/filiais.
 - **Sessão:** PHP `session_*` com cookies `HttpOnly`, `Secure` (prod), `SameSite=Lax`.
 
 ## 2. Schema de Banco — Tabelas LGPD criadas
@@ -267,13 +267,13 @@ Tabelas com triggers `BEFORE UPDATE/DELETE` disparando `SIGNAL SQLSTATE '45000'`
 
 | Helper | Arquivo | Função |
 |--------|---------|--------|
-| `Anonymizer` | `app/Helpers/Anonymizer.php` | Substitui PII preservando FKs (user, contato, card, processoParte, exportTitular) |
-| `ErrorReporter` | `app/Helpers/ErrorReporter.php` | Mensagens genéricas em prod + correlation_id; logs detalhados internos |
-| `EnvLoader` | `app/Helpers/EnvLoader.php` | `validateProduction()` impede bootstrap sem segredos críticos |
-| `RequestId` | `app/Helpers/RequestId.php` | ID hex de 12 chars propagado em todos os logs |
-| `MasterAudit` | `app/Helpers/MasterAudit.php` | Log de ações do Painel Master (IP + UA + request_id) |
-| `TotpHelper` | `app/Helpers/TotpHelper.php` | TOTP RFC 6238 + AES-256-CBC (`encryptSecret`/`decryptSecret`) |
-| `AccountContext` | `app/Helpers/AccountContext.php` | Resolução de tenant + permissões |
+| `Anonymizer` | `app/Lgpd/Anonymizer.php` | Substitui PII preservando FKs (user, contato, card, processoParte, exportTitular) |
+| `ErrorReporter` | `app/Core/ErrorReporter.php` | Mensagens genéricas em prod + correlation_id; logs detalhados internos |
+| `EnvLoader` | `app/Core/EnvLoader.php` | `validateProduction()` impede bootstrap sem segredos críticos |
+| `RequestId` | `app/Core/RequestId.php` | ID hex de 12 chars propagado em todos os logs |
+| `MasterAudit` | `app/Master/MasterAudit.php` | Log de ações do Painel Master (IP + UA + request_id) |
+| `TotpHelper` | `app/Usuarios/TotpHelper.php` | TOTP RFC 6238 + AES-256-CBC (`encryptSecret`/`decryptSecret`) |
+| `AccountContext` | `app/Core/AccountContext.php` | Resolução de tenant + permissões |
 
 ## 4. APIs e Endpoints
 
@@ -344,7 +344,7 @@ $plain = TotpHelper::decryptSecret($enc);
 ### 5.5 Audit log
 ```php
 // ✅ Em toda ação administrativa relevante
-\App\Models\Account::audit($accountId, 'modulo.acao', [
+\App\Master\Account::audit($accountId, 'modulo.acao', [
     'user_id'     => $userId,
     'entidade'    => 'tipo',
     'entidade_id' => $id,
@@ -412,7 +412,7 @@ catch (\Throwable $e) {
 
 ### Correlação forense
 Cada registro inclui:
-- `request_id` (hex 12) — `App\Helpers\RequestId::get()` gera 1 por requisição
+- `request_id` (hex 12) — `App\Core\RequestId::get()` gera 1 por requisição
 - IP do cliente
 - User-agent (truncado em 255)
 

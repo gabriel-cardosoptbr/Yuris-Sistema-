@@ -205,7 +205,9 @@ sudo php scripts/seed_admin.php
 
 ### Cenário 3 — Banco corrompido (XAMPP power outage)
 
-Ver [xampp_power_outage_recovery.md](../.claude/projects/C--Users-11--claude/memory/xampp_power_outage_recovery.md) (memória interna). Em produção AWS isso não acontece com tanta frequência.
+A receita de recuperação está na memória interna do assistente, em
+`xampp_power_outage_recovery` (fora deste repositório, na pasta pessoal do
+desenvolvedor). Em produção AWS isso não acontece com tanta frequência.
 
 ### Cenário 4 — SSL certificate expirou
 

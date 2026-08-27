@@ -2,7 +2,11 @@
 
 Sistema SaaS multi-tenant para escritórios de advocacia. Pipeline de leads, gestão de processos, intimações automatizadas (DJEN/AASP), WhatsApp multi-tenant, financeiro/DRE, painel master administrativo, conformidade LGPD completa.
 
-**Status:** sistema maduro (174 commits, 70 migrations, 12 etapas LGPD). Stack: PHP 8.2 + MariaDB 10.4+ + Apache 2.4.
+**Status:** em produção, com escritórios reais usando. 124 migrations (001 a 110), 12 etapas LGPD.
+Stack: PHP 8.2 + MySQL 8.0 (producao) / MariaDB 10.4+ (dev) + Apache 2.4.
+
+> Onde comecar a ler o codigo: [`CLAUDE.md`](CLAUDE.md) para as regras do projeto,
+> [`app/README.md`](app/README.md) para o mapa dos dominios. Cada pasta tem o seu README.
 
 ---
 
@@ -30,12 +34,14 @@ Sistema SaaS multi-tenant para escritórios de advocacia. Pipeline de leads, ges
 | Apache | 2.4 | 2.4 + mod_rewrite + mod_ssl + mod_headers |
 | Extensões PHP | `pdo_mysql`, `mbstring`, `curl`, `openssl`, `fileinfo`, `zip`, `xml`, `opcache`, `hash`, `json`, `session` |
 
-**Não usa Composer.** Autoload manual via `require_once`. Namespace `App\Helpers\*`, `App\Models\*`, `App\Services\*`.
+**Não usa Composer.** Não há autoloader: toda classe é carregada por `require_once` com caminho escrito à mão.
+Os namespaces seguem as pastas de domínio (`App\Core\*`, `App\Processos\*`, `App\Tarefas\*`, ...).
+Cinco classes de WhatsApp ficam no namespace global, ver [`app/README.md`](app/README.md).
 
 **Não usa npm/node.** JavaScript é vanilla (sem build step).
 
 **Dependências externas opcionais** (cada uma degrada graciosamente se ausente):
-- **Evolution API** (WhatsApp) — self-hosted, ver [docs/INTEGRACAO_AASP.md](docs/INTEGRACAO_AASP.md) e [docs/DOCUMENTACAO_WEBHOOKS_YURIS.md](docs/DOCUMENTACAO_WEBHOOKS_YURIS.md)
+- **Evolution API** (WhatsApp) — self-hosted, ver [docs/integracao/INTEGRACAO_AASP.md](docs/integracao/INTEGRACAO_AASP.md) e [docs/integracao/DOCUMENTACAO_WEBHOOKS_YURIS.md](docs/integracao/DOCUMENTACAO_WEBHOOKS_YURIS.md)
 - **DJEN/PJE** (intimações públicas) — endpoint público sem auth
 - **AASP** (intimações premium) — exige chave por associado, cifrada at-rest
 - **Stripe/MercadoPago/Asaas** (billing) — gateway escolhido em `BILLING_GATEWAY` no `.env`
@@ -78,7 +84,7 @@ C:/xampp/php/php.exe scripts/seed_admin.php
 
 ## Setup em servidor Linux/Ubuntu (produção)
 
-**Documento principal:** [docs/DEPLOY_AWS_UBUNTU.md](docs/DEPLOY_AWS_UBUNTU.md) — runbook completo passo a passo.
+**Documento principal:** [docs/deploy/DEPLOY_AWS_UBUNTU.md](docs/deploy/DEPLOY_AWS_UBUNTU.md) — runbook completo passo a passo.
 
 Resumo:
 
@@ -117,15 +123,15 @@ sudo chmod 750 /var/www/yuris/storage /var/www/yuris/public/uploads
 sudo chmod 640 /var/www/yuris/.env
 
 # 6. Apache VirtualHost com DocumentRoot=/var/www/yuris/public
-# (template completo em docs/DEPLOY_AWS_UBUNTU.md)
+# (template completo em docs/deploy/DEPLOY_AWS_UBUNTU.md)
 
 # 7. SSL via Let's Encrypt
 sudo certbot --apache -d seu-dominio.com
 
-# 8. Cron jobs (ver docs/DEPLOY_AWS_UBUNTU.md §cron)
+# 8. Cron jobs (ver docs/deploy/DEPLOY_AWS_UBUNTU.md §cron)
 ```
 
-**Antes do go-live**, rode o checklist em [docs/CHECKLIST_DEPLOY_PRODUCAO.md](docs/CHECKLIST_DEPLOY_PRODUCAO.md) — 12 seções (config, banco, web, PHP, LGPD, cron, monitoramento, backup, acessos, testes, comunicação, pós-deploy).
+**Antes do go-live**, rode o checklist em [docs/deploy/CHECKLIST_DEPLOY_PRODUCAO.md](docs/deploy/CHECKLIST_DEPLOY_PRODUCAO.md) — 12 seções (config, banco, web, PHP, LGPD, cron, monitoramento, backup, acessos, testes, comunicação, pós-deploy).
 
 ---
 
@@ -199,72 +205,71 @@ Após primeiro login, **habilite MFA imediatamente** (`/configuracoes/perfil.php
 
 ## Estrutura de pastas
 
+Organizada **por assunto**, não por tipo técnico. O nome da pasta é o nome do
+módulo no menu do sistema. **Cada pasta tem seu `README.md`**, com o que ela
+abriga, o que cada arquivo faz e as regras que valem ali.
+
 ```
 sistema_vendas/
-├── .env.example          # Template de configuração
-├── .env                  # Local (ignorado pelo git)
-├── .gitignore
-├── .htaccess             # Roteamento + bloqueios de pasta
-├── README.md             # Este arquivo
+├── CLAUDE.md             # regras do projeto, LEIA PRIMEIRO
+├── README.md             # este arquivo
+├── .env / .env.example / .gitignore / .htaccess
+├── Dockerfile / docker-compose.yml
 │
-├── app/                  # Backend PHP (não acessível via HTTP)
-│   ├── Controllers/      # AuthController (login/logout)
-│   ├── Helpers/          # AccountContext, TenantGuard, Crypto, EnvLoader, etc.
-│   ├── Models/           # Account, User, Card, Processo, Task, etc. (~45 models)
-│   └── Services/         # Billing, EvolutionApi, WebhookDispatcher, etc.
+├── app/                  # regra de negócio, nada aqui responde por URL
+│   ├── Core/             # Database, AccountContext, TenantGuard, Crypto, .env, Mailer
+│   ├── Usuarios/         # login, 2FA, convites, vínculos, times
+│   ├── Master/           # conta (tenant), Painel Master, incidentes, auditoria
+│   ├── Prospeccao/       # funil de vendas: cards, colunas, contatos
+│   ├── Clientes/         # base de clientes, origens, kanban operacional
+│   ├── Processos/        # processos, histórico, AASP/DJEN
+│   │   └── Monitor/      # motor de busca de publicações (providers + runners)
+│   ├── Tarefas/          # quadros, tarefas, checklists, horas, recorrência
+│   ├── Financas/         # plano de contas do DRE
+│   ├── WhatsAppAgente/   # canal Evolution, webhook de entrada
+│   │   └── AiIntake/     # o agente de pré-atendimento jurídico
+│   ├── Webhooks/         # webhooks de SAÍDA do Yuris
+│   ├── Billing/          # limites e módulos por plano
+│   │   └── Gateway/      # integração com gateway de pagamento
+│   └── Lgpd/             # solicitações do titular, anonimização, documentos legais
 │
-├── bin/
-│   └── webhook_worker.php  # Worker async pra fila de webhooks
-│
-├── config/
-│   └── database.php      # Conexão PDO (lê .env)
+├── public/               # DocumentRoot. O caminho do arquivo É a URL
+│   ├── *.php             # 31 páginas: sistema, login, Master, institucional
+│   ├── api/              # 133 endpoints (master/ whatsapp/ push/ aasp/ chat/ legal/ auth/ lgpd/)
+│   ├── assets/           # CSS e JS, um arquivo por tela, sem build
+│   ├── includes/         # sidebar, cabeçalho de SEO, rodapés
+│   ├── v2/               # landing institucional nova, servida na /
+│   ├── sistema_vendas/Imagens/   # os logos. NÃO mover, é URL usada pelo sidebar
+│   ├── uploads/          # arquivos enviados pelos clientes
+│   └── <slug>/           # 11 páginas de SEO, uma pasta com index.php cada
 │
 ├── database/
-│   ├── schema.sql        # Schema consolidado (importar primeiro)
-│   ├── migrations/       # 001-070 incrementais
-│   ├── seeds/            # seed_demo.sql, seed_processos_mensais.sql
-│   └── seed_webhook_events.php
+│   ├── migrations/       # 124 arquivos, 001 a 110. Nunca editar uma já aplicada
+│   ├── seeds/            # demo, processos, catálogos do agente de IA
+│   ├── auditorias/       # divergências entre migrations e banco real
+│   └── schema.sql
 │
-├── docs/                 # Documentação técnica (não acessível via HTTP)
-│   ├── DEPLOY_AWS_UBUNTU.md
-│   ├── DATABASE_SETUP.md
-│   ├── ENVIRONMENT.md
-│   ├── ROLLBACK.md
-│   ├── CHECKLIST_DEPLOY_PRODUCAO.md
-│   ├── ARCHITECTURE.md
-│   ├── MULTITENANCY.md
-│   ├── SCHEMA_AUDIT.md
-│   ├── LGPD_*            # Suite LGPD completa (16+ docs)
-│   └── ...
-│
-├── Imagens/              # Logos, branding
-├── public/               # DocumentRoot do Apache em produção
-│   ├── index.php         # Landing page institucional one-page
-│   ├── login.php         # Login dos tenants
-│   ├── master_login.php  # Login do painel admin
-│   ├── dashboard.php, juridico.php, prospeccao.php, financas.php, ...
-│   ├── api/              # ~70 endpoints REST
-│   │   ├── master/       # Endpoints do painel admin
-│   │   ├── push/         # Intimações (DJEN/AASP)
-│   │   ├── whatsapp/     # WhatsApp via Evolution
-│   │   ├── chat/         # Chat interno
-│   │   ├── lgpd/         # Solicitações LGPD
-│   │   └── ...
-│   ├── assets/           # CSS, JS, fonts (estático)
-│   ├── includes/         # legal_footer.php, sidebar.php
-│   └── uploads/          # Uploads (writable, .htaccess bloqueando .php)
-│
-├── scripts/              # Scripts CLI utilitários (não acessível via HTTP)
-│   ├── seed_admin.php
-│   ├── check_user.php
-│   └── test_multitenancy_e2e.php
-│
-└── storage/              # Files gerados em runtime (ignorado pelo git)
+├── docs/                 # deploy/ integracao/ lgpd/ auditorias/ produto/ design/ seo/
+├── scripts/              # utilitários de linha de comando
+│   ├── tests/            # as 5 suites. Rodar antes e depois de mexer em app/
+│   └── manutencao/       # operações pontuais já executadas, guardadas como receita
+├── bin/                  # processos de fundo (worker de webhook, roda por cron)
+├── config/               # database.php. Segredo NUNCA aqui, vai no .env
+└── storage/              # gerado em runtime, fora do git
     ├── backups/
-    ├── lgpd_exports/     # Exports de portabilidade (dados pessoais — NUNCA versionar)
-    ├── lgpd_requests/    # Attachments de solicitações LGPD
-    └── recurrence_cron.lock
+    ├── lgpd_exports/     # dados pessoais, NUNCA versionar
+    └── lgpd_requests/
 ```
+
+### A regra de organização
+
+`app/` **não** volta a ter `Models/`, `Helpers/` ou `Services/`: arquivo novo vai
+na pasta do assunto dele. Se serve a três ou mais domínios sem pertencer a
+nenhum, vai em `Core/`. E ao mexer numa pasta, o `README.md` dela é atualizado
+na mesma mudança. Detalhe em [CLAUDE.md](CLAUDE.md).
+
+`public/` mantém a disposição atual de propósito: mover um arquivo de lá muda
+uma URL pública.
 
 ---
 
@@ -278,7 +283,7 @@ php -l public/api/dashboard.php
 php scripts/test_multitenancy_e2e.php
 
 # Verificar conexão com banco
-php -r "require 'config/database.php'; var_dump(\App\Helpers\EnvLoader::get('DB_HOST'));"
+php -r "require 'config/database.php'; var_dump(\App\Core\EnvLoader::get('DB_HOST'));"
 
 # Listar migrations aplicadas vs presentes
 ls database/migrations/*.sql | wc -l
@@ -303,19 +308,19 @@ curl -X POST https://seu-dominio/api/whatsapp/opcache_clear.php \
 
 | Área | Arquivo |
 |---|---|
-| Deploy AWS Ubuntu | [docs/DEPLOY_AWS_UBUNTU.md](docs/DEPLOY_AWS_UBUNTU.md) |
+| Deploy AWS Ubuntu | [docs/deploy/DEPLOY_AWS_UBUNTU.md](docs/deploy/DEPLOY_AWS_UBUNTU.md) |
 | Setup banco | [docs/DATABASE_SETUP.md](docs/DATABASE_SETUP.md) |
 | .env e variáveis | [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) |
-| Rollback | [docs/ROLLBACK.md](docs/ROLLBACK.md) |
-| Checklist pré-deploy | [docs/CHECKLIST_DEPLOY_PRODUCAO.md](docs/CHECKLIST_DEPLOY_PRODUCAO.md) |
+| Rollback | [docs/deploy/ROLLBACK.md](docs/deploy/ROLLBACK.md) |
+| Checklist pré-deploy | [docs/deploy/CHECKLIST_DEPLOY_PRODUCAO.md](docs/deploy/CHECKLIST_DEPLOY_PRODUCAO.md) |
 | Arquitetura | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | Multi-tenancy | [docs/MULTITENANCY.md](docs/MULTITENANCY.md) |
-| Schema do banco | [docs/SCHEMA_AUDIT.md](docs/SCHEMA_AUDIT.md) |
-| LGPD (relatório final) | [docs/RELATORIO_FINAL_LGPD.md](docs/RELATORIO_FINAL_LGPD.md) |
-| LGPD (políticas) | [docs/POLITICA_SEGURANCA_INFORMACAO.md](docs/POLITICA_SEGURANCA_INFORMACAO.md) |
-| Webhooks | [docs/DOCUMENTACAO_WEBHOOKS_YURIS.md](docs/DOCUMENTACAO_WEBHOOKS_YURIS.md) |
-| Integração AASP | [docs/INTEGRACAO_AASP.md](docs/INTEGRACAO_AASP.md) |
-| Auditoria de produção (2026-05-26) | [docs/AUDITORIA_FINAL_2026-05-26.md](docs/AUDITORIA_FINAL_2026-05-26.md) |
+| Schema do banco | [docs/auditorias/SCHEMA_AUDIT.md](docs/auditorias/SCHEMA_AUDIT.md) |
+| LGPD (relatório final) | [docs/lgpd/RELATORIO_FINAL_LGPD.md](docs/lgpd/RELATORIO_FINAL_LGPD.md) |
+| LGPD (políticas) | [docs/lgpd/POLITICA_SEGURANCA_INFORMACAO.md](docs/lgpd/POLITICA_SEGURANCA_INFORMACAO.md) |
+| Webhooks | [docs/integracao/DOCUMENTACAO_WEBHOOKS_YURIS.md](docs/integracao/DOCUMENTACAO_WEBHOOKS_YURIS.md) |
+| Integração AASP | [docs/integracao/INTEGRACAO_AASP.md](docs/integracao/INTEGRACAO_AASP.md) |
+| Auditoria de produção (2026-05-26) | [docs/auditorias/AUDITORIA_FINAL_2026-05-26.md](docs/auditorias/AUDITORIA_FINAL_2026-05-26.md) |
 
 ---
 

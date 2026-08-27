@@ -396,11 +396,11 @@ GROUP BY e.nome, d.status;
 - **Painel**: `/sistema_vendas/public/webhooks.php`
 - **API CRUD**: `/sistema_vendas/public/api/webhooks.php`
 - **Worker**: `php bin/webhook_worker.php` (cron 1min)
-- **Dispatcher**: `app/Services/WebhookDispatcher.php`
-- **Builder**: `app/Services/WebhookPayloadBuilder.php`
-- **SSRF guard**: `app/Helpers/WebhookUrlValidator.php`
-- **PII masker**: `app/Helpers/PayloadMasker.php`
-- **Retry policy**: `app/Services/WebhookRetryPolicy.php`
+- **Dispatcher**: `app/Webhooks/WebhookDispatcher.php`
+- **Builder**: `app/Webhooks/WebhookPayloadBuilder.php`
+- **SSRF guard**: `app/Core/WebhookUrlValidator.php`
+- **PII masker**: `app/Lgpd/PayloadMasker.php`
+- **Retry policy**: `app/Webhooks/WebhookRetryPolicy.php`
 - **Tabelas**: `webhook_endpoints`, `webhook_events`, `webhook_deliveries`, `webhook_event_queue`, `webhook_logs` (legacy)
 - **Migrações**: `database/migrations/067_*.sql` a `070_*.sql`
 - **Seeder de eventos**: `php database/seed_webhook_events.php`

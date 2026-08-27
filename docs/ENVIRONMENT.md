@@ -13,7 +13,7 @@ Cada variável documentada com:
 
 ## Carregamento
 
-`config/database.php` chama `\App\Helpers\EnvLoader::load()` no boot. O loader:
+`config/database.php` chama `\App\Core\EnvLoader::load()` no boot. O loader:
 1. Lê `.env` da raiz do projeto
 2. Cacheia em static var
 3. Disponibiliza via `EnvLoader::get('CHAVE', $default)`
@@ -46,9 +46,9 @@ Em `true`, expõe stack trace e arquivos do servidor em mensagens de erro. NUNCA
 Valor: URL absoluta (com protocolo)
 Default: `http://localhost/sistema_vendas`
 Exemplo prod: `https://yuris.app.br`
-Quem usa: `App\Helpers\Url::base()` (helper de URL), redirects, e-mails transacionais
+Quem usa: `App\Core\Url::base()` (helper de URL), redirects, e-mails transacionais
 
-> Em prod, `APP_URL` SEM o `/sistema_vendas/` final (a menos que use Opção A de [DEPLOY_AWS_UBUNTU.md §12](DEPLOY_AWS_UBUNTU.md)).
+> Em prod, `APP_URL` SEM o `/sistema_vendas/` final (a menos que use Opção A de [DEPLOY_AWS_UBUNTU.md §12](deploy/DEPLOY_AWS_UBUNTU.md)).
 
 ### `APP_TIMEZONE` 🟡
 Default: `America/Sao_Paulo`
@@ -61,7 +61,7 @@ Quem usa: PHP `date.timezone` (mas só se setado via `ini_set`).
 ### `DB_HOST` 🔴
 Default: `127.0.0.1` (dev)
 Exemplo prod: `127.0.0.1` (banco local) ou RDS endpoint
-Quem usa: `App\Models\Database` via `config/database.php`
+Quem usa: `App\Core\Database` via `config/database.php`
 
 ### `DB_NAME` 🔴
 Default: `sistema_vendas` (dev)
@@ -96,7 +96,7 @@ Como gerar:
 echo "base64:$(openssl rand -base64 32)"
 ```
 
-Quem usa: `App\Helpers\TotpHelper` para cifrar `users.mfa_secret`
+Quem usa: `App\Usuarios\TotpHelper` para cifrar `users.mfa_secret`
 
 > ⚠️ **NUNCA rotacione esta chave** depois que algum super_admin habilitou MFA — você perde acesso aos secrets. Para troca segura: decifre todos os secrets com chave antiga, depois cifre de novo com chave nova, dentro de uma transação.
 
@@ -108,7 +108,7 @@ Como gerar:
 echo "base64:$(openssl rand -base64 32)"
 ```
 
-Quem usa: `App\Helpers\Crypto` (AES-256-GCM) para cifrar:
+Quem usa: `App\Core\Crypto` (AES-256-GCM) para cifrar:
 - `aasp_integrations.chave_encrypted`
 - Futuros tokens de terceiros
 
@@ -140,7 +140,7 @@ Default: `null`
 
 **Em `APP_ENV=production`, NÃO pode ser `null`** — `Gateway::driver()` lança RuntimeException e o app não sobe.
 
-Quem usa: `App\Services\Billing\Gateway`, modal de cobrança no Painel Master.
+Quem usa: `App\Billing\Gateway\Gateway`, modal de cobrança no Painel Master.
 
 Credenciais por gateway (preencher de acordo com `BILLING_GATEWAY` escolhido — todas opcionais se gateway = `null`):
 
@@ -261,10 +261,10 @@ Antes de subir, valide manualmente:
 ```bash
 cd /var/www/yuris
 sudo -u www-data php -r "
-require 'app/Helpers/EnvLoader.php';
+require 'app/Core/EnvLoader.php';
 try {
-    \App\Helpers\EnvLoader::load();
-    \App\Helpers\EnvLoader::validateProduction();
+    \App\Core\EnvLoader::load();
+    \App\Core\EnvLoader::validateProduction();
     echo \"OK — .env valido para producao\n\";
 } catch (\Throwable \$e) {
     echo 'ERRO: ' . \$e->getMessage() . \"\n\";

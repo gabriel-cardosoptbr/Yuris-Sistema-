@@ -48,11 +48,11 @@ Aplicadas em `sistema_vendas` (XAMPP local). Backup migrations:
 - `079_billing_cycle_quarterly.sql` — adiciona `quarterly` em ambos enums (subscriptions + overrides)
 
 ### Etapa 2 — Helpers (commit `7e38240`)
-- `app/Helpers/MonitorQuota.php` — `getOwnLimit`, `getAllocationsReceived`, `hasAllocations`, `getEffectiveLimit`, `getCurrentUsage`, `getAggregatedUsage`, `getAvailable`, `getQuotaStatus`, `assertCanCreate`, `resolveMatrizId` (fix posterior)
-- `app/Helpers/MonitorAudit.php` — wrapper de `monitor_audit_log` (allowlist 14 ações, fail-soft, RequestId)
+- `app/Processos/MonitorQuota.php` — `getOwnLimit`, `getAllocationsReceived`, `hasAllocations`, `getEffectiveLimit`, `getCurrentUsage`, `getAggregatedUsage`, `getAvailable`, `getQuotaStatus`, `assertCanCreate`, `resolveMatrizId` (fix posterior)
+- `app/Processos/MonitorAudit.php` — wrapper de `monitor_audit_log` (allowlist 14 ações, fail-soft, RequestId)
 
 ### Etapa 3 — Permissões (commit `4bf87fe`)
-- `app/Helpers/MonitorPermission.php`
+- `app/Processos/MonitorPermission.php`
 - Métodos `canCreate`, `canManageQuotaAllocations`, `canApproveRequest`, `canMasterManage`, `canRequestMonitor`
 - `isAdvogadoAllowedToCreate` + `setAdvogadoAllowedToCreate` (lê/escreve em `accounts.configuracoes` JSON)
 - Asserts equivalentes (lançam 403)
@@ -141,9 +141,9 @@ Smoke test multi-tenant E2E (este turno):
 ## Estado dos arquivos no projeto
 
 ### Criados pelo add-on
-- `app/Helpers/MonitorQuota.php`
-- `app/Helpers/MonitorAudit.php`
-- `app/Helpers/MonitorPermission.php`
+- `app/Processos/MonitorQuota.php`
+- `app/Processos/MonitorAudit.php`
+- `app/Processos/MonitorPermission.php`
 - `public/api/master/quotas.php`
 - `public/api/push/quota.php`
 - `database/migrations/072_*.sql` a `079_*.sql` (8 migrations)
@@ -152,7 +152,7 @@ Smoke test multi-tenant E2E (este turno):
 - `docs/RECON_TENANT_PERMS_2026-05-26.md`
 
 ### Modificados
-- `app/Helpers/BillingGuard.php`
+- `app/Billing/BillingGuard.php`
 - `public/master.php` (várias seções)
 - `public/api/master/accounts.php`
 - `public/api/master/billing.php`
@@ -188,10 +188,10 @@ git -C C:/xampp/htdocs/sistema_vendas status
 
 # Smoke test quota (Silvana, Filial SP, Gabriel)
 cd C:/xampp/htdocs/sistema_vendas && C:/xampp/php/php.exe -r "
-require_once __DIR__ . '/app/Models/Database.php';
-require_once __DIR__ . '/app/Helpers/BillingGuard.php';
-require_once __DIR__ . '/app/Helpers/MonitorQuota.php';
-use App\Helpers\MonitorQuota;
+require_once __DIR__ . '/app/Core/Database.php';
+require_once __DIR__ . '/app/Billing/BillingGuard.php';
+require_once __DIR__ . '/app/Processos/MonitorQuota.php';
+use App\Processos\MonitorQuota;
 foreach ([1,9,72] as \$aid) {
     \$s = MonitorQuota::getQuotaStatus(\$aid);
     printf('#%d limit=%d used=%d avail=%d' . PHP_EOL, \$aid, \$s['effective_limit'], \$s['current_usage'], \$s['available']);

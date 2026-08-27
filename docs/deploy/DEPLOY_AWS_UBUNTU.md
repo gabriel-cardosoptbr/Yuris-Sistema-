@@ -223,7 +223,7 @@ log_error = /var/log/mysql/error.log
 sudo systemctl restart mariadb
 ```
 
-Detalhes do setup do banco em [docs/DATABASE_SETUP.md](DATABASE_SETUP.md).
+Detalhes do setup do banco em [docs/DATABASE_SETUP.md](../DATABASE_SETUP.md).
 
 ---
 
@@ -252,7 +252,7 @@ sudo cp .env.example .env
 sudo nano .env
 ```
 
-**Preencher** (mais detalhes em [docs/ENVIRONMENT.md](ENVIRONMENT.md)):
+**Preencher** (mais detalhes em [docs/ENVIRONMENT.md](../ENVIRONMENT.md)):
 
 ```bash
 # ── App ──
@@ -319,7 +319,7 @@ sudo chmod 640 /var/www/yuris/.env
 
 ## 7. Importar banco
 
-Ver [docs/DATABASE_SETUP.md](DATABASE_SETUP.md). Resumo:
+Ver [docs/DATABASE_SETUP.md](../DATABASE_SETUP.md). Resumo:
 
 ```bash
 # Criar database + user da app
@@ -454,10 +454,10 @@ Alias /sistema_vendas /var/www/yuris/public
 Resultado: URLs ficam `https://seu-dominio.com/sistema_vendas/login.php` (ugly mas funcional).
 
 ### Opção B — Custom URL via DocumentRoot
-Configure DocumentRoot=`/var/www/yuris/public` (já está nas instruções acima) e edite o `.htaccess` raiz pra remover `RewriteBase /sistema_vendas/`. URLs ficam `https://seu-dominio.com/login.php` — mas alguns links internos podem quebrar até que refatoração via `App\Helpers\Url::base()` seja completa.
+Configure DocumentRoot=`/var/www/yuris/public` (já está nas instruções acima) e edite o `.htaccess` raiz pra remover `RewriteBase /sistema_vendas/`. URLs ficam `https://seu-dominio.com/login.php` — mas alguns links internos podem quebrar até que refatoração via `App\Core\Url::base()` seja completa.
 
 ### Opção C — Refatoração completa
-Substituir todos os 458 hits de `/sistema_vendas/` por `<?= \App\Helpers\Url::base() ?>/...` (PHP) e `window.APP_BASE` (JS). Estimativa: 4-6h. Item recomendado pra sprint pós-deploy.
+Substituir todos os 458 hits de `/sistema_vendas/` por `<?= \App\Core\Url::base() ?>/...` (PHP) e `window.APP_BASE` (JS). Estimativa: 4-6h. Item recomendado pra sprint pós-deploy.
 
 > 💡 **Pra primeiro deploy, use Opção A.** Plante DNS rapidamente e refatore depois.
 
@@ -492,7 +492,7 @@ Substituir todos os 458 hits de `/sistema_vendas/` por `<?= \App\Helpers\Url::ba
 | 21 | Login master funciona | ☐ |
 | 22 | Painel Master mostra dashboard com gráficos | ☐ |
 | 23 | Tentar acessar `/database/schema.sql` retorna 403 | ☐ |
-| 24 | Tentar acessar `/app/Models/Database.php` retorna 403 | ☐ |
+| 24 | Tentar acessar `/app/Core/Database.php` retorna 403 | ☐ |
 | 25 | Tentar acessar `/scripts/seed_admin.php` retorna 403 | ☐ |
 | 26 | Tentar acessar `/docs/CHECKLIST_DEPLOY_PRODUCAO.md` retorna 403 | ☐ |
 | 27 | Tentar acessar `/.env` retorna 403 | ☐ |
@@ -510,7 +510,7 @@ Se qualquer um falhar, ver §14 troubleshooting.
 Falta `CRON_TOKEN` no `.env` OU não fez `EnvLoader::load()` ainda. Verifique:
 ```bash
 grep CRON_TOKEN /var/www/yuris/.env
-sudo -u www-data php -r "require '/var/www/yuris/app/Helpers/EnvLoader.php'; \App\Helpers\EnvLoader::load(); var_dump(\App\Helpers\EnvLoader::get('CRON_TOKEN'));"
+sudo -u www-data php -r "require '/var/www/yuris/app/Core/EnvLoader.php'; \App\Core\EnvLoader::load(); var_dump(\App\Core\EnvLoader::get('CRON_TOKEN'));"
 ```
 
 ### "Erro 500 ao logar"
@@ -560,8 +560,8 @@ sudo systemctl status cron
 
 ## Anexos
 
-- [DATABASE_SETUP.md](DATABASE_SETUP.md) — setup detalhado do MariaDB
-- [ENVIRONMENT.md](ENVIRONMENT.md) — cada variável do `.env` explicada
+- [DATABASE_SETUP.md](../DATABASE_SETUP.md) — setup detalhado do MariaDB
+- [ENVIRONMENT.md](../ENVIRONMENT.md) — cada variável do `.env` explicada
 - [ROLLBACK.md](ROLLBACK.md) — voltar pra commit anterior, restore de banco
 - [CHECKLIST_DEPLOY_PRODUCAO.md](CHECKLIST_DEPLOY_PRODUCAO.md) — sign-off LGPD/segurança antes do go-live
-- [AUDITORIA_FINAL_2026-05-26.md](AUDITORIA_FINAL_2026-05-26.md) — relatório de auditoria + bloqueadores
+- [AUDITORIA_FINAL_2026-05-26.md](../auditorias/AUDITORIA_FINAL_2026-05-26.md) — relatório de auditoria + bloqueadores

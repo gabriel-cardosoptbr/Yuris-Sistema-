@@ -114,18 +114,18 @@ Estimativa total: **5-8 dias úteis** de dev intermediário seguindo o plano, em
 ## 4. Arquivos relacionados
 
 ### Models
-- `app/Models/PushMonitor.php` (já existe — vai mudar)
-- `app/Models/PushEvent.php`, `PushTodayCache`, `PushQueryLog`, `PushProcessoLink`, `AaspIntegration` (não mudam)
+- `app/Processos/PushMonitor.php` (já existe — vai mudar)
+- `app/Processos/PushEvent.php`, `PushTodayCache`, `PushQueryLog`, `PushProcessoLink`, `AaspIntegration` (não mudam)
 
 ### Services
-- `app/Services/Push/PushMonitorRunner.php` (não muda — só consome monitors ativos)
-- `app/Services/Push/AaspSyncRunner.php` (idem)
-- `app/Services/Push/DjenProvider.php`, `AaspProvider.php`, `PublicationHasher.php`, `ProviderInterface.php` (não mudam)
+- `app/Processos/Monitor/PushMonitorRunner.php` (não muda — só consome monitors ativos)
+- `app/Processos/Monitor/AaspSyncRunner.php` (idem)
+- `app/Processos/Monitor/DjenProvider.php`, `AaspProvider.php`, `PublicationHasher.php`, `ProviderInterface.php` (não mudam)
 
 ### Helpers
-- `app/Helpers/BillingGuard.php` (vai precisar de pequeno ajuste pra ler override)
-- `app/Helpers/AccountContext.php` (vai ganhar mapping `'monitoramentos'` em `getAccessibleAccountIds`)
-- `app/Helpers/MasterAudit.php` (sem mudança — vai ser chamado)
+- `app/Billing/BillingGuard.php` (vai precisar de pequeno ajuste pra ler override)
+- `app/Core/AccountContext.php` (vai ganhar mapping `'monitoramentos'` em `getAccessibleAccountIds`)
+- `app/Master/MasterAudit.php` (sem mudança — vai ser chamado)
 
 ### Endpoints API
 - `public/api/push/monitors.php` (POST/PATCH/DELETE vão ganhar quota check)
@@ -673,13 +673,13 @@ Sequência **não-destrutiva** dividida em 11 etapas. Cada etapa é commitável 
 - `database/migrations/077_seed_plan_features_monitors_limit.sql`
 
 ### Models
-- `app/Models/AccountQuotaOverride.php`
-- `app/Models/MonitorQuotaAllocation.php`
-- `app/Models/MonitorRequest.php`
+- `app/Master/AccountQuotaOverride.php`
+- `app/Processos/MonitorQuotaAllocation.php`
+- `app/Processos/MonitorRequest.php`
 
 ### Helpers
-- `app/Helpers/MonitorQuota.php` (cálculo de cota)
-- `app/Helpers/MonitorAudit.php` (logger wrapper)
+- `app/Processos/MonitorQuota.php` (cálculo de cota)
+- `app/Processos/MonitorAudit.php` (logger wrapper)
 
 ### Endpoints API
 - `public/api/push/quota.php` (GET)
@@ -699,10 +699,10 @@ Sequência **não-destrutiva** dividida em 11 etapas. Cada etapa é commitável 
 
 | Arquivo | Mudança |
 |---|---|
-| `app/Models/PushMonitor.php` | `create()` aceita `assigned_user_id`, `origem_criacao`, `consome_cota` |
-| `app/Helpers/BillingGuard.php` | `getLimit()` consulta `account_quota_overrides` antes de `plan_features` |
-| `app/Helpers/AccountContext.php` | mapping `'monitoramentos'` → `sync_monitoramentos` (ou `sync_enabled`) |
-| `app/Helpers/Anonymizer.php` | cobrir `monitor_audit_log.dados_antes/depois` |
+| `app/Processos/PushMonitor.php` | `create()` aceita `assigned_user_id`, `origem_criacao`, `consome_cota` |
+| `app/Billing/BillingGuard.php` | `getLimit()` consulta `account_quota_overrides` antes de `plan_features` |
+| `app/Core/AccountContext.php` | mapping `'monitoramentos'` → `sync_monitoramentos` (ou `sync_enabled`) |
+| `app/Lgpd/Anonymizer.php` | cobrir `monitor_audit_log.dados_antes/depois` |
 | `public/api/push/monitors.php` | POST: chamar `BillingGuard::assertCanCreate` + `MonitorAudit::log` |
 | `public/api/push/user_filters.php` | PATCH: try/catch graceful no auto_monitor |
 | `public/intimacoes.php` | modal `monitorsModal` ganha badge de cota |
@@ -953,5 +953,5 @@ Sua escolha: **A** / B ?
 ---
 
 **Documentos de recon que embasaram esta proposta:**
-- [`docs/RECON_PUSH_MONITOR_2026-05-26.md`](RECON_PUSH_MONITOR_2026-05-26.md)
-- [`docs/RECON_TENANT_PERMS_2026-05-26.md`](RECON_TENANT_PERMS_2026-05-26.md)
+- [`docs/RECON_PUSH_MONITOR_2026-05-26.md`](../auditorias/RECON_PUSH_MONITOR_2026-05-26.md)
+- [`docs/RECON_TENANT_PERMS_2026-05-26.md`](../auditorias/RECON_TENANT_PERMS_2026-05-26.md)

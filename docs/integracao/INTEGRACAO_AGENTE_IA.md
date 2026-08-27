@@ -32,7 +32,7 @@ Cliente → WhatsApp → instância Evolution existente
       • persiste em whatsapp_messages + atualiza whatsapp_chats
   → maybeQueueAgentReply()  (só enfileira: carrega agent_config do canal, decifra a chave)
   → [HTTP 200 + flushResponse()]
-  → runAgentReply()  →  App\Services\AiIntake\IntakeEngine::handleInbound()
+  → runAgentReply()  →  App\WhatsAppAgente\AiIntake\IntakeEngine::handleInbound()
 ```
 
 ### Saída
@@ -59,7 +59,7 @@ Humano envia manual (Yuris/celular)  OU  clica "Assumir conversa"
   aplica o limite (3 a 8), decide o handoff efetivo, monta a resposta, cria card/tarefa/
   notificação, registra uso e audita.
 
-`app/Services/AiIntake/`: `IntakeEngine`, `IntakeSchema`, `Taxonomy`, `IntakeStateMachine`,
+`app/WhatsAppAgente/AiIntake/`: `IntakeEngine`, `IntakeSchema`, `Taxonomy`, `IntakeStateMachine`,
 `IntakeSessionRepository`, `HandoffService`, `LlmProviderInterface`, `OpenAiProvider`,
 `AnthropicProvider`, `FakeProvider` (testes).
 
@@ -96,7 +96,7 @@ Prod: `docker exec -i yuris_app php /var/www/html/database/migrations/run_097.ph
 
 ## 6. Structured Output (schema)
 
-Fonte de verdade: `App\Services\AiIntake\IntakeSchema::jsonSchema()` (strict da OpenAI:
+Fonte de verdade: `App\WhatsAppAgente\AiIntake\IntakeSchema::jsonSchema()` (strict da OpenAI:
 `additionalProperties:false`, todos os campos em `required`, sem min/max — validados no
 backend). Campos: `intent, primary_practice_area, secondary_practice_areas,
 classification_confidence, answer_relevant_to_current_question, extracted_data{...},

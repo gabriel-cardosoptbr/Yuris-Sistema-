@@ -116,23 +116,23 @@ Cada trigger dispara `SIGNAL SQLSTATE '45000'` ao tentar modificar/apagar, bloqu
 
 | Arquivo | Etapa | Métodos principais |
 |---------|-------|---------------------|
-| `app/Models/LegalDocument.php` | 5A | findActive, publish |
-| `app/Models/TermAcceptance.php` | 5A | record |
-| `app/Models/Consent.php` | 5A | grant, revoke, listAll, isGranted |
-| `app/Models/LgpdRequest.php` | 6A | create, findByToken, findById, listForAdmin, update, addEvent, countByStatus |
-| `app/Models/SecurityIncident.php` | 8B | create, update (auto-evento em status), markNotifiedAnpd, markNotifiedHolders, generatePublicReport, countByStatus |
-| `app/Models/DataProcessor.php` | 9B | create, update (auto-history), signDpa, deactivate, listForMaster, exportInventory, countByStatus |
+| `app/Lgpd/LegalDocument.php` | 5A | findActive, publish |
+| `app/Usuarios/TermAcceptance.php` | 5A | record |
+| `app/Usuarios/Consent.php` | 5A | grant, revoke, listAll, isGranted |
+| `app/Lgpd/LgpdRequest.php` | 6A | create, findByToken, findById, listForAdmin, update, addEvent, countByStatus |
+| `app/Master/SecurityIncident.php` | 8B | create, update (auto-evento em status), markNotifiedAnpd, markNotifiedHolders, generatePublicReport, countByStatus |
+| `app/Lgpd/DataProcessor.php` | 9B | create, update (auto-history), signDpa, deactivate, listForMaster, exportInventory, countByStatus |
 
 ### 3.4 Helpers (6 novos / expandidos)
 
 | Helper | Etapa | Propósito |
 |--------|-------|-----------|
-| `app/Helpers/TotpHelper.php` | P0 1.9 | RFC 6238 + AES-256-CBC para secrets |
-| `app/Helpers/ErrorReporter.php` | 2D.1 | Mensagem genérica em prod + correlation_id |
-| `app/Helpers/EnvLoader.php` (validateProduction) | 2D.2 | Bloqueia bootstrap em prod sem segredos críticos |
-| `app/Helpers/Anonymizer.php` | 7A | user/contato/card/processoParte/exportTitular |
-| `app/Helpers/RequestId.php` | 4A | Correlação de logs em uma requisição |
-| `app/Helpers/MasterAudit.php` (expandido) | 4B | IP + UA + request_id em todo log |
+| `app/Usuarios/TotpHelper.php` | P0 1.9 | RFC 6238 + AES-256-CBC para secrets |
+| `app/Core/ErrorReporter.php` | 2D.1 | Mensagem genérica em prod + correlation_id |
+| `app/Core/EnvLoader.php` (validateProduction) | 2D.2 | Bloqueia bootstrap em prod sem segredos críticos |
+| `app/Lgpd/Anonymizer.php` | 7A | user/contato/card/processoParte/exportTitular |
+| `app/Core/RequestId.php` | 4A | Correlação de logs em uma requisição |
+| `app/Master/MasterAudit.php` (expandido) | 4B | IP + UA + request_id em todo log |
 
 ### 3.5 APIs (10 novas)
 

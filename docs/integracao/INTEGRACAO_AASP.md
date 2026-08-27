@@ -53,7 +53,7 @@ sua chave AASP no Yuris (uma única vez, via admin do tenant), o sistema:
 
 ### Provider e endpoints
 
-`app/Services/Push/AaspProvider.php` implementa `ProviderInterface` (mesmo
+`app/Processos/Monitor/AaspProvider.php` implementa `ProviderInterface` (mesmo
 padrão do `DjenProvider`). Base URL configurável via `.env` `AASP_BASE_URL`,
 default `https://intimacaoapi.aasp.org.br`.
 
@@ -96,7 +96,7 @@ Campos da AASP → schema normalizado do Yuris:
 
 ### Segurança da credencial
 
-- Cifrada via `app/Helpers/Crypto.php` (AES-256-GCM, versionado `v1:iv:ct:tag`)
+- Cifrada via `app/Core/Crypto.php` (AES-256-GCM, versionado `v1:iv:ct:tag`)
 - Chave mestre em `.env` `APP_ENCRYPTION_KEY` (32 bytes em base64/hex/raw)
 - Mascarada na UI como `****XXXX` (4 últimos chars apenas)
 - URL com chave **sempre mascarada** em logs (`?chave=***MASKED***`)
@@ -239,14 +239,16 @@ database/migrations/
   064_aasp_integration.sql      — tabelas aasp_*
   065_aasp_data_processor.sql   — registro como operador LGPD
 
-app/Helpers/
+app/Core/
   Crypto.php                    — AES-256-GCM
+
+app/Lgpd/
   Anonymizer.php                — cobre aasp_* na purge
 
-app/Models/
+app/Processos/
   AaspIntegration.php           — CRUD multi-tenant + audit
 
-app/Services/Push/
+app/Processos/Monitor/
   AaspProvider.php              — implementa ProviderInterface
   AaspSyncRunner.php            — cron processa integrações vencidas
 
