@@ -10,7 +10,7 @@
 require_once __DIR__ . '/../../../app/Core/Database.php';
 require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppInstance.php';
 require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppMessage.php';
-require_once __DIR__ . '/../../../app/Integracoes/WebhookDispatcher.php';
+require_once __DIR__ . '/../../../app/Webhooks/WebhookDispatcher.php';
 require_once __DIR__ . '/../../../app/WhatsAppAgente/EvolutionApiService.php';
 require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppWebhookParser.php';     // parsers puros do payload (strangler Pass 1)
 require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppWebhookEntitySync.php'; // persistencia de entidades contato/chat/grupo (strangler Pass 2)
@@ -506,7 +506,7 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
         $instAccStmt->execute([$instanceId]);
         $instAcc = $instAccStmt->fetchColumn();
         $ownerAcc = $instAcc !== false && $instAcc !== null ? (int)$instAcc : null;
-        \App\Integracoes\WebhookDispatcher::fire($ownerAcc, 'whatsapp.mensagem', \App\Integracoes\WebhookDispatcher::buildPayload('whatsapp.mensagem', [
+        \App\Webhooks\WebhookDispatcher::fire($ownerAcc, 'whatsapp.mensagem', \App\Webhooks\WebhookDispatcher::buildPayload('whatsapp.mensagem', [
             'entity'    => 'whatsapp_message',
             'entity_id' => $savedId,
             'data' => [

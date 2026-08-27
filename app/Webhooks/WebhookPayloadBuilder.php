@@ -1,5 +1,5 @@
 <?php
-namespace App\Integracoes;
+namespace App\Webhooks;
 
 use App\Lgpd\PayloadMasker;
 use App\Core\Database;

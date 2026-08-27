@@ -1,9 +1,9 @@
 <?php
 require_once __DIR__ . '/../app/Core/Database.php';
-require_once __DIR__ . '/../app/Integracoes/WebhookDispatcher.php';
+require_once __DIR__ . '/../app/Webhooks/WebhookDispatcher.php';
 require_once __DIR__ . '/../app/Billing/PlanFeature.php';
 
-use App\Integracoes\WebhookDispatcher;
+use App\Webhooks\WebhookDispatcher;
 use App\Billing\PlanFeature;
 
 session_start();

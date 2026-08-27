@@ -3,12 +3,12 @@ require_once __DIR__ . '/../../app/Core/Database.php';
 require_once __DIR__ . '/../../app/Prospeccao/Card.php';
 require_once __DIR__ . '/../../app/Prospeccao/Contato.php';
 require_once __DIR__ . '/../../app/Usuarios/User.php';
-require_once __DIR__ . '/../../app/Integracoes/WebhookDispatcher.php';
+require_once __DIR__ . '/../../app/Webhooks/WebhookDispatcher.php';
 require_once __DIR__ . '/../../app/Core/AccountContext.php';
 
 use App\Prospeccao\Card;
 use App\Core\Database;
-use App\Integracoes\WebhookDispatcher;
+use App\Webhooks\WebhookDispatcher;
 use App\Core\AccountContext;
 
 // read_and_close: só lê $_SESSION (csrf_token + contexto), nunca escreve. Libera o

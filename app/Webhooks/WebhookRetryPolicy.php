@@ -1,5 +1,5 @@
 <?php
-namespace App\Integracoes;
+namespace App\Webhooks;
 
 /**
  * WebhookRetryPolicy — backoff exponencial para retries de webhook.

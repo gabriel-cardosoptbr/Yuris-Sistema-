@@ -131,11 +131,11 @@ final class SecurityIncident
 
         // Webhook: security.incident_created (etapa 10/11)
         try {
-            require_once __DIR__ . '/../Integracoes/WebhookDispatcher.php';
-            \App\Integracoes\WebhookDispatcher::fire(
+            require_once __DIR__ . '/../Webhooks/WebhookDispatcher.php';
+            \App\Webhooks\WebhookDispatcher::fire(
                 isset($data['account_id']) ? (int)$data['account_id'] : null,
                 'security.incident_created',
-                \App\Integracoes\WebhookDispatcher::buildPayload('security.incident_created', [
+                \App\Webhooks\WebhookDispatcher::buildPayload('security.incident_created', [
                     'entity'    => 'security_incident',
                     'entity_id' => $id,
                     'data'      => [

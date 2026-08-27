@@ -4,12 +4,12 @@ require_once __DIR__ . '/../../app/Master/Account.php';
 require_once __DIR__ . '/../../app/Master/ResourceShare.php';
 require_once __DIR__ . '/../../app/Core/AccountContext.php';
 require_once __DIR__ . '/../../app/Billing/PlanFeature.php';
-require_once __DIR__ . '/../../app/Integracoes/WebhookDispatcher.php';
+require_once __DIR__ . '/../../app/Webhooks/WebhookDispatcher.php';
 
 use App\Core\Database;
 use App\Core\AccountContext;
 use App\Billing\PlanFeature;
-use App\Integracoes\WebhookDispatcher;
+use App\Webhooks\WebhookDispatcher;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -290,8 +290,8 @@ if ($method === 'POST') {
         $d = $stmt->fetch(\PDO::FETCH_ASSOC);
         if (!$d) { http_response_code(404); echo json_encode(['error' => 'Delivery não encontrada']); exit; }
 
-        require_once __DIR__ . '/../../app/Integracoes/WebhookPayloadBuilder.php';
-        $newEventId = \App\Integracoes\WebhookPayloadBuilder::generateEventId();
+        require_once __DIR__ . '/../../app/Webhooks/WebhookPayloadBuilder.php';
+        $newEventId = \App\Webhooks\WebhookPayloadBuilder::generateEventId();
         $ins = $pdo->prepare(
             "INSERT INTO webhook_deliveries
                (webhook_endpoint_id, account_id, event_code, event_id, payload, request_url, status, tentativa, created_at, updated_at)
@@ -313,7 +313,7 @@ if ($method === 'POST') {
             $row->execute([$newId]);
             $rowData = $row->fetch(\PDO::FETCH_ASSOC);
             if ($rowData) {
-                \App\Integracoes\WebhookDispatcher::processDelivery($pdo, $rowData);
+                \App\Webhooks\WebhookDispatcher::processDelivery($pdo, $rowData);
             }
         }
 

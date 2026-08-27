@@ -3,10 +3,10 @@ require_once __DIR__ . '/../app/Core/Database.php';
 require_once __DIR__ . '/../app/Usuarios/User.php';
 require_once __DIR__ . '/../app/Master/Account.php';
 require_once __DIR__ . '/../app/Master/ResourceShare.php';
-require_once __DIR__ . '/../app/Financeiro/DREAccount.php';
+require_once __DIR__ . '/../app/Financas/DREAccount.php';
 require_once __DIR__ . '/../app/Core/AccountContext.php';
 use App\Core\Database;
-use App\Financeiro\DREAccount;
+use App\Financas\DREAccount;
 use App\Core\AccountContext;
 session_start();
 if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }

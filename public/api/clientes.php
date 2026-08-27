@@ -17,15 +17,15 @@
  */
 
 require_once __DIR__ . '/../../app/Core/Database.php';
-require_once __DIR__ . '/../../app/Prospeccao/Cliente.php';
-require_once __DIR__ . '/../../app/Prospeccao/ClienteSetor.php';
+require_once __DIR__ . '/../../app/Clientes/Cliente.php';
+require_once __DIR__ . '/../../app/Clientes/ClienteSetor.php';
 require_once __DIR__ . '/../../app/Core/AccountContext.php';
-require_once __DIR__ . '/../../app/Integracoes/WebhookDispatcher.php';
+require_once __DIR__ . '/../../app/Webhooks/WebhookDispatcher.php';
 
-use App\Integracoes\WebhookDispatcher;
+use App\Webhooks\WebhookDispatcher;
 
-use App\Prospeccao\Cliente;
-use App\Prospeccao\ClienteSetor;
+use App\Clientes\Cliente;
+use App\Clientes\ClienteSetor;
 use App\Core\AccountContext;
 
 session_start();

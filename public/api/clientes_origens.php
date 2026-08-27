@@ -13,10 +13,10 @@
  */
 
 require_once __DIR__ . '/../../app/Core/Database.php';
-require_once __DIR__ . '/../../app/Prospeccao/ClienteOrigem.php';
+require_once __DIR__ . '/../../app/Clientes/ClienteOrigem.php';
 require_once __DIR__ . '/../../app/Core/AccountContext.php';
 
-use App\Prospeccao\ClienteOrigem;
+use App\Clientes\ClienteOrigem;
 use App\Core\AccountContext;
 
 session_start();

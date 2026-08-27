@@ -4,7 +4,7 @@ require_once __DIR__ . '/../../app/Master/Account.php';
 require_once __DIR__ . '/../../app/Master/ResourceShare.php';
 require_once __DIR__ . '/../../app/Core/AccountContext.php';
 require_once __DIR__ . '/../../app/Core/TenantGuard.php';
-require_once __DIR__ . '/../../app/Integracoes/WebhookDispatcher.php';
+require_once __DIR__ . '/../../app/Webhooks/WebhookDispatcher.php';
 require_once __DIR__ . '/../../app/Core/ErrorReporter.php';
 require_once __DIR__ . '/../../app/Processos/ProcessoAudit.php';
 
@@ -12,7 +12,7 @@ use App\Core\Database;
 use App\Core\AccountContext;
 use App\Core\TenantGuard;
 use App\Processos\ProcessoAudit;
-use App\Integracoes\WebhookDispatcher;
+use App\Webhooks\WebhookDispatcher;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');

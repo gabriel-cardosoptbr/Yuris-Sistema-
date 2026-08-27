@@ -2,7 +2,7 @@
 namespace App\Usuarios;
 
 use App\Usuarios\User;
-use App\Integracoes\WebhookDispatcher;
+use App\Webhooks\WebhookDispatcher;
 
 /**
  * AuthController — login/logout + hardening de sessão.
@@ -156,7 +156,7 @@ class AuthController
         // Idempotente — Consent::grant detecta ativo anterior e não duplica.
         self::recordTermsConsentIfNeeded($user, $ip);
 
-        require_once __DIR__ . '/../Integracoes/WebhookDispatcher.php';
+        require_once __DIR__ . '/../Webhooks/WebhookDispatcher.php';
         // P0 LGPD: passa account_id do usuário que logou, não global
         $loginAcc = isset($user['account_id']) ? (int)$user['account_id'] : null;
         WebhookDispatcher::fire($loginAcc, 'usuario.login', WebhookDispatcher::buildPayload('usuario.login', [

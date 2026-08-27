@@ -1,5 +1,5 @@
 <?php
-namespace App\Prospeccao;
+namespace App\Clientes;
 
 use App\Core\Database;
 

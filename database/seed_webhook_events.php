@@ -13,10 +13,10 @@
  */
 
 require_once __DIR__ . '/../app/Core/Database.php';
-require_once __DIR__ . '/../app/Integracoes/WebhookDispatcher.php';
+require_once __DIR__ . '/../app/Webhooks/WebhookDispatcher.php';
 
 use App\Core\Database;
-use App\Integracoes\WebhookDispatcher;
+use App\Webhooks\WebhookDispatcher;
 
 $pdo = Database::getConnection();
 

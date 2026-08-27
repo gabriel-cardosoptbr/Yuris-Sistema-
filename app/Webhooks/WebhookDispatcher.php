@@ -1,5 +1,5 @@
 <?php
-namespace App\Integracoes;
+namespace App\Webhooks;
 
 use App\Core\Database;
 
@@ -577,8 +577,8 @@ class WebhookDispatcher
             $erro          = 'HTTP ' . ($status ?? 'no_response');
             $retryEnabled  = (int)($hook['retry_enabled'] ?? 1) === 1;
             $maxRetries    = max(1, (int)($hook['max_retries'] ?? 3));
-            if ($retryEnabled && \App\Integracoes\WebhookRetryPolicy::canRetry($tentativa, $maxRetries)) {
-                $nextAt = \App\Integracoes\WebhookRetryPolicy::nextAttemptAt($tentativa);
+            if ($retryEnabled && \App\Webhooks\WebhookRetryPolicy::canRetry($tentativa, $maxRetries)) {
+                $nextAt = \App\Webhooks\WebhookRetryPolicy::nextAttemptAt($tentativa);
                 $pdo->prepare(
                     "UPDATE webhook_deliveries
                        SET status='retrying', tentativa=?, scheduled_retry_at=?,

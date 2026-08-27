@@ -87,11 +87,11 @@ final class LgpdRequest
 
         // Webhook: lgpd.request_created (etapa 10/11)
         try {
-            require_once __DIR__ . '/../Integracoes/WebhookDispatcher.php';
-            \App\Integracoes\WebhookDispatcher::fire(
+            require_once __DIR__ . '/../Webhooks/WebhookDispatcher.php';
+            \App\Webhooks\WebhookDispatcher::fire(
                 isset($data['account_id']) ? (int)$data['account_id'] : null,
                 'lgpd.request_created',
-                \App\Integracoes\WebhookDispatcher::buildPayload('lgpd.request_created', [
+                \App\Webhooks\WebhookDispatcher::buildPayload('lgpd.request_created', [
                     'entity'    => 'lgpd_request',
                     'entity_id' => $id,
                     'data'      => [

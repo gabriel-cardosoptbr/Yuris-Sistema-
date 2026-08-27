@@ -1,5 +1,5 @@
 <?php
-namespace App\Processos;
+namespace App\Lgpd;
 
 /**
  * LegalDocument — versionamento de termos/políticas legais (LGPD).

@@ -91,13 +91,13 @@ final class Consent
         // Webhook: lgpd.consent_given (etapa 10/11) — somente em INSERT novo;
         // re-grant idempotente (caminho `existing`) acima ja retornou sem chegar aqui.
         try {
-            require_once __DIR__ . '/../Integracoes/WebhookDispatcher.php';
+            require_once __DIR__ . '/../Webhooks/WebhookDispatcher.php';
             $isTerms = ($finalidade === 'termos_uso_login');
             $eventCode = $isTerms ? 'lgpd.terms_accepted' : 'lgpd.consent_given';
-            \App\Integracoes\WebhookDispatcher::fire(
+            \App\Webhooks\WebhookDispatcher::fire(
                 isset($data['account_id']) ? (int)$data['account_id'] : null,
                 $eventCode,
-                \App\Integracoes\WebhookDispatcher::buildPayload($eventCode, [
+                \App\Webhooks\WebhookDispatcher::buildPayload($eventCode, [
                     'entity'    => 'lgpd_consent',
                     'entity_id' => $newId,
                     'data'      => [

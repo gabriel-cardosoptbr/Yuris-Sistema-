@@ -1,68 +1,108 @@
 # Máquina de estados da conversa
 
-Define os estados do pré-atendimento e as transições. O campo `conversation_state` do
-Structured Output (ver `structured-output-schema.md`) carrega o estado atual. Na v1, a
-pausa por humano é o booleano `whatsapp_chats.agent_paused`; os demais estados são
-conduzidos pelo modelo via o JSON.
+Define os estados do pré-atendimento e as transições. **O estado é do BACKEND, não do modelo.**
 
-## Estados
+**Fonte de verdade (código):**
+- `app/Services/AiIntake/IntakeStateMachine.php` — lista de estados (`STATES`), terminais
+  (`TERMINAL`) e a transição `decide()`.
+- `app/Services/AiIntake/IntakeEngine.php` — orquestra o turno e grava o estado.
+- `app/Services/AiIntake/IntakeSessionRepository.php` — persistência (`ai_intake_sessions.current_state`,
+  `controller_mode`) + pausa/takeover.
 
-| Estado | Significado | Saída típica |
-|---|---|---|
-| `greeting` | primeiro contato; saudar e identificar-se como assistente virtual | pergunta inicial aberta |
-| `collecting` | coletando fatos essenciais (uma pergunta por vez) | `proxima_pergunta` preenchida |
-| `clarifying` | resolvendo ambiguidade pontual | `proxima_pergunta` específica |
-| `triage` | área + urgência definidas; decidindo encaminhamento | resumo + decisão |
-| `awaiting_human` | encaminhado; aguardando atendente | mensagem de espera; bot pausa |
-| `completed` | pré-atendimento concluído | mensagem de encerramento; `encerrar=true` |
-| `out_of_scope` | tema não atendido / spam | mensagem cordial; encaminhar ou encerrar |
+> O modelo **não** emite um campo de estado (não existe `conversation_state` no schema, ver
+> `structured-output-schema.md`). O modelo fornece **sinais** (`intent`, `urgency_level`,
+> `enough_for_handoff`, `should_handoff_immediately`, `should_stop_bot`, `extracted_data`,
+> `primary_practice_area`, `suggested_next_question_key`); o `IntakeEngine` mapeia esses sinais
+> para um estado **válido** e o grava em `ai_intake_sessions.current_state`. Transições críticas
+> (handoff, encerramento, pausa) são decididas pelo backend.
 
-## Transições (feliz e ramos)
+## Estados (`IntakeStateMachine::STATES`)
+
+| Estado | Significado |
+|---|---|
+| `new` | sessão recém-criada, antes do primeiro turno processado |
+| `greeting` | primeiro contato; saudação/identificação como assistente virtual |
+| `identifying_intent` | descobrindo a intenção (ex.: após info do escritório) |
+| `collecting_initial_report` | coletando o relato inicial (`main_report` ainda vazio) |
+| `identifying_area` | relato existe, mas falta classificar a área (`primary_practice_area`) |
+| `collecting_minimum_data` | coletando os dados mínimos restantes (uma pergunta por vez) |
+| `checking_urgency` | urgência `high`/`critical` detectada; priorizando |
+| `ready_for_handoff` | estado definido para evolução; na v1 o engine vai direto a `awaiting_human` |
+| `awaiting_human` | encaminhado; aguardando atendente (bot pausado, `agent_paused=1`) |
+| `human_takeover` | humano assumiu a conversa (botão "Assumir conversa") |
+| `completed` | pré-atendimento concluído / fora de escopo encerrado |
+| `paused` | bot pausado por outro motivo |
+| `expired` | sessão expirada |
+| `disabled` | agente desligado no canal |
+| `error` | falha tratada |
+
+**Terminais** (`TERMINAL` — bot não atua mais sem ação explícita):
+`awaiting_human`, `human_takeover`, `completed`, `disabled`, `expired`.
+
+## Transição do backend (`IntakeStateMachine::decide`)
+
+`decide($current, $structured, $decision)` resolve o próximo estado a partir do estado atual, dos
+sinais do modelo (`$structured`) e da decisão do backend (`$decision`), nesta ordem:
 
 ```
-greeting
-  → collecting           (cliente respondeu o motivo do contato)
-  → out_of_scope         (spam, engano, ou área não atendida já evidente)
-
-collecting
-  → clarifying           (resposta ambígua ou incompleta)
-  → triage               (fatos essenciais suficientes para classificar)
-  → awaiting_human       (atingiu MAX_PERGUNTAS sem fechar a triagem)
-  → out_of_scope         (ficou claro que a área não é atendida)
-
-clarifying
-  → collecting           (segue coletando)
-  → triage               (resolvido)
-
-triage
-  → awaiting_human       (encaminha para advogado, com resumo)
-  → completed            (pré-atendimento concluído sem necessidade imediata de humano)
-  → out_of_scope         (área não atendida)
-
-awaiting_human
-  → (humano assume; agent_paused=1; bot não atua)
-  → completed            (quando o atendimento humano encerra, se aplicável)
-
-out_of_scope / completed
-  → encerrar = true      (fim da sessão automática)
+out_of_scope (decisão backend)            → completed
+handoff (decisão backend)                 → awaiting_human
+intent == 'office_information' / office_info → identifying_intent
+urgency_level != 'normal'                 → checking_urgency
+extracted_data.main_report vazio          → collecting_initial_report
+primary_practice_area vazio               → identifying_area
+caso geral                                → collecting_minimum_data
 ```
+
+## Fluxo por turno (`IntakeEngine::handleInbound`)
+
+```
+(sem sessão)            → cria sessão  current_state = 'new'
+isPaused() OU terminal  → bot silencioso (só registra a inbound; não responde)
+inbound duplicada       → silencioso (idempotência da camada IA)
+mídia/áudio (não-texto) → confirma recebimento, marca has_documents; NÃO chama o modelo
+
+(mensagem de texto, bot ativo) → 1 chamada ao modelo, depois:
+  intent == 'non_legal'                  → completed   (encerra cordial; closed_at)
+  intent == 'office_information' (s/ handoff) → identifying_intent (responde dados do escritório)
+  handoff efetivo                        → awaiting_human + agent_paused = 1
+  primeiro turno, sem relato, intent unknown → greeting (só saudação)
+  caso geral                             → faz a próxima pergunta; estado = decide(...)
+```
+
+**Handoff efetivo** = `urgency_level == 'critical'` **ou** `intent ∈ {human_request,
+existing_case}` **ou** `should_handoff_immediately` **ou** `enough_for_handoff` **ou** limite de
+perguntas atingido (`max_questions`, 3..8). Detalhe e invariantes em `structured-output-schema.md`.
+
+## Pausa e takeover (`controller_mode` + `agent_paused`)
+
+A coluna `controller_mode` da sessão acompanha o estado: `bot_active`, `bot_paused`,
+`awaiting_human`, `human_takeover`. O takeover humano (botão "Assumir conversa") chama
+`pauseForHuman()`: grava `controller_mode = 'human_takeover'`, `current_state = 'human_takeover'`,
+`status = 'awaiting_human'` e **espelha** `whatsapp_chats.agent_paused = 1` (gating legado do
+webhook). Ver `human-handoff-rules.md`.
 
 ## Regras de transição
 
-- **Uma pergunta por vez.** Cada turno em `collecting`/`clarifying` faz no máximo uma
-  pergunta. `perguntas_feitas` incrementa e nunca passa de `{{MAX_PERGUNTAS}}`.
-- **Não repetir pergunta** já respondida (checar `dados_extraidos` antes de perguntar).
-- **Urgência alta/crítica** acelera para `triage`/`awaiting_human` mesmo sem todos os
-  dados.
-- **Encerramento antecipado**: se `intent = spam` ou área claramente não atendida →
-  `out_of_scope` + `encerrar`.
-- **Takeover** (humano assume a qualquer momento): a conversa entra de fato em pausa
-  (`agent_paused=1`); o modelo não deve gerar novas respostas até liberação.
-- **Idempotência de efeitos**: a criação de card/lead a partir da triagem acontece uma vez
-  por sessão (não duplicar por reprocessamento de evento).
+- **Uma pergunta por vez.** Cada turno em coleta faz no máximo uma pergunta; `question_count`
+  incrementa e nunca passa de `max_questions` (3..8). Ao atingir o limite sem dados suficientes, o
+  backend força o handoff (`awaiting_human`).
+- **Não repetir pergunta** já feita: o engine checa `asked_questions`/`collected_data` e, se a
+  `suggested_next_question_key` já foi usada, escolhe a próxima essencial (`pickNextKey`).
+- **Urgência `high`/`critical`** acelera para `checking_urgency`/handoff mesmo sem todos os dados;
+  `critical` pode ser **forçada no servidor** (`Taxonomy::detectUrgency`).
+- **Encerramento**: `intent == 'non_legal'` → `completed`. Estados terminais e pausa fazem o bot
+  ficar silencioso no próximo turno (só registra a mensagem).
+- **Takeover** (humano assume a qualquer momento): `agent_paused = 1`; o modelo não gera novas
+  respostas até a pausa ser removida por quem tem acesso.
+- **Idempotência de efeitos**: criação de card/lead a partir do handoff acontece **uma vez por
+  sessão** (`HandoffService` reaproveita `prospect_id`/`task_id`); inbound duplicada (mesmo `wamid`)
+  não reprocessa.
 
-## Evolução (pós-v1)
+## Persistência (já implementada)
 
-Persistir o estado e o resumo por sessão (tabela própria de sessão do agente, referenciando
-o canal e a conversa) para: retomar após takeover, registrar quem assumiu/quando, e evitar
-recomeçar do zero. Continuar respeitando a premissa de instância única.
+O estado e o resumo são persistidos **por sessão** na tabela `ai_intake_sessions`
+(`current_state`, `controller_mode`, `summary`, `collected_data_json`, `asked_questions_json`,
+`question_count`, `assigned_user_id`, etc.), referenciando o canal (`channel_id`) e a conversa
+(`remote_jid`). Isso permite retomar após takeover e evitar recomeçar do zero, respeitando a
+premissa de **instância única**.

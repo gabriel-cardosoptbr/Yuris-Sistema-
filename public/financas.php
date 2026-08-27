@@ -10,8 +10,8 @@ if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
 $activePage = 'dre';
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 
-require_once __DIR__ . '/../app/Financeiro/DREAccount.php';
-use App\Financeiro\DREAccount;
+require_once __DIR__ . '/../app/Financas/DREAccount.php';
+use App\Financas\DREAccount;
 use App\Core\AccountContext;
 
 // Contexto de tenant — render server-side filtra por conta para evitar "flash" entre contas

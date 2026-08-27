@@ -28,10 +28,10 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../app/Core/Database.php';
-require_once __DIR__ . '/../app/Integracoes/WebhookDispatcher.php';
+require_once __DIR__ . '/../app/Webhooks/WebhookDispatcher.php';
 
 use App\Core\Database;
-use App\Integracoes\WebhookDispatcher;
+use App\Webhooks\WebhookDispatcher;
 
 $batchSize = (int)($_ENV['WEBHOOK_WORKER_BATCH'] ?? getenv('WEBHOOK_WORKER_BATCH') ?: 50);
 if ($batchSize < 1 || $batchSize > 500) $batchSize = 50;

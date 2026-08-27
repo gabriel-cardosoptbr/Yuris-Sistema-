@@ -8,11 +8,11 @@ require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppMessage.php';
 require_once __DIR__ . '/../../../app/Usuarios/Team.php';
 require_once __DIR__ . '/../../../app/Core/AccountContext.php';
 require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppChannelAccessService.php';
-require_once __DIR__ . '/../../../app/Integracoes/WebhookDispatcher.php';
+require_once __DIR__ . '/../../../app/Webhooks/WebhookDispatcher.php';
 
 use App\Usuarios\Team;
 use App\Core\AccountContext;
-use App\Integracoes\WebhookDispatcher;
+use App\Webhooks\WebhookDispatcher;
 
 session_start(['read_and_close' => true]);
 $_uid  = $_SESSION['user_id']    ?? null;

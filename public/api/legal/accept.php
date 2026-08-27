@@ -19,11 +19,11 @@
  *   no banner/modal de re-aceite em login.php (arquivo de outro dono — ver risks).
  */
 require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/Processos/LegalDocument.php';
+require_once __DIR__ . '/../../../app/Lgpd/LegalDocument.php';
 require_once __DIR__ . '/../../../app/Usuarios/TermAcceptance.php';
 require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
 
-use App\Processos\LegalDocument;
+use App\Lgpd\LegalDocument;
 use App\Usuarios\TermAcceptance;
 use App\Core\ApiResponse;
 

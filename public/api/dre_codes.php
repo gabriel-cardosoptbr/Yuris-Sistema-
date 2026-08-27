@@ -2,10 +2,10 @@
 require_once __DIR__ . '/../../app/Core/Database.php';
 require_once __DIR__ . '/../../app/Master/Account.php';
 require_once __DIR__ . '/../../app/Master/ResourceShare.php';
-require_once __DIR__ . '/../../app/Financeiro/DRECode.php';
+require_once __DIR__ . '/../../app/Financas/DRECode.php';
 require_once __DIR__ . '/../../app/Core/AccountContext.php';
 
-use App\Financeiro\DRECode;
+use App\Financas\DRECode;
 use App\Core\AccountContext;
 
 session_start();

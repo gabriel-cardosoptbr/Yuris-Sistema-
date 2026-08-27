@@ -12,13 +12,13 @@
  */
 
 require_once __DIR__ . '/../app/Core/Database.php';
-require_once __DIR__ . '/../app/Prospeccao/Cliente.php';
-require_once __DIR__ . '/../app/Prospeccao/ClienteSetor.php';
+require_once __DIR__ . '/../app/Clientes/Cliente.php';
+require_once __DIR__ . '/../app/Clientes/ClienteSetor.php';
 require_once __DIR__ . '/../app/Core/AccountContext.php';
 require_once __DIR__ . '/../app/Core/UserOptions.php';
 
 use App\Core\Database;
-use App\Prospeccao\ClienteSetor;
+use App\Clientes\ClienteSetor;
 use App\Core\AccountContext;
 use App\Core\UserOptions;
 

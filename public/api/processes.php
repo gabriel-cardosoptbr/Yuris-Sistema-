@@ -3,13 +3,13 @@ require_once __DIR__ . '/../../app/Core/Database.php';
 require_once __DIR__ . '/../../app/Processos/Processo.php';
 require_once __DIR__ . '/../../app/Prospeccao/Contato.php';
 require_once __DIR__ . '/../../app/Master/ResourceShare.php';
-require_once __DIR__ . '/../../app/Integracoes/WebhookDispatcher.php';
+require_once __DIR__ . '/../../app/Webhooks/WebhookDispatcher.php';
 require_once __DIR__ . '/../../app/Core/AccountContext.php';
 require_once __DIR__ . '/../../app/Core/TenantGuard.php';
 require_once __DIR__ . '/../../app/Processos/ProcessoAudit.php';
 require_once __DIR__ . '/../../app/Core/ErrorReporter.php';
 
-use App\Integracoes\WebhookDispatcher;
+use App\Webhooks\WebhookDispatcher;
 use App\Processos\Processo;
 use App\Core\Database;
 use App\Core\AccountContext;
