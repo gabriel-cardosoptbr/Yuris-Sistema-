@@ -50,7 +50,8 @@ Isso tem uma consequência direta: **mover um arquivo daqui quebra todo mundo
 que o carrega**, e o erro só aparece em runtime, na hora em que a página roda.
 Hoje são 1.108 linhas de `require` espalhadas por 192 arquivos.
 
-Se precisar mover ou renomear algo em `app/`, três coisas têm que mudar juntas:
+Se precisar mover ou renomear algo em `app/`, **quatro** coisas têm que mudar
+juntas. As duas últimas são as que passam despercebidas:
 
 1. o caminho em todo `require_once` que aponta para o arquivo;
 2. a declaração `namespace` dentro do arquivo, e todo `use App\...` que o importa;
@@ -60,8 +61,23 @@ Se precisar mover ou renomear algo em `app/`, três coisas têm que mudar juntas
    if (!class_exists('App\\Core\\RequestId')) { ... }
    method_exists('App\\WhatsAppAgente\\WhatsAppWebhookParser', 'extractQuotedWamid')
    ```
-   Existem cerca de 50 desses. São os mais perigosos: quando erram, não quebram
-   nada, só retornam `false` em silêncio e o comportamento muda sem aviso.
+   Existem cerca de 50 desses. Quando erram, não quebram nada, só retornam
+   `false` em silêncio e o comportamento muda sem aviso.
+4. os **nomes curtos que dependiam do mesmo namespace**. Duas classes no mesmo
+   namespace se enxergam sem `use`:
+   ```php
+   namespace App\Tarefas;
+   $pdo = Database::getConnection();   // resolve App\Tarefas\Database
+   ```
+   Se `Database` sai para outro namespace e o `use` não é adicionado, isso passa
+   a apontar para uma classe inexistente. **`php -l` não pega, carregar o arquivo
+   não pega** (type hint só resolve na chamada), e a página só quebra quando
+   aquela linha específica executa. Foi o que aconteceu em 27/08/2026: 28
+   referências assim, e duas telas (Intimações e Escritórios) fatalavam.
+
+Ao dividir um namespace, procure o que era irmão antes e virou estrangeiro
+depois. Só uma varredura autenticada, que executa as páginas de verdade, prova
+que não sobrou nenhum.
 
 Depois de mexer, o mínimo a rodar está em [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md).
 

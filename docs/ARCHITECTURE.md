@@ -113,8 +113,27 @@ Baseline conhecido em **27/08/2026**:
 12 falhas no `plan_feature` é o estado herdado. Acima de 12 é regressão.
 
 Ao mexer em `app/`, verifique também que nenhum `require` ficou apontando para o
-vazio, que todo `use App\...` resolve, e os nomes de classe **dentro de string**
-(`class_exists('App\\Core\\RequestId')`), que nenhuma busca por `use` encontra.
+vazio e que todo `use App\...` resolve.
+
+### As duas formas que o lint não pega
+
+1. **Nome de classe dentro de string**
+   (`class_exists('App\\Core\\RequestId')`), cerca de 50 no repositório. Quando
+   erram, retornam `false` em silêncio.
+2. **Nome curto que dependia do mesmo namespace.** Duas classes no mesmo
+   namespace se enxergam sem `use`. Ao dividir um namespace, o nome curto passa
+   a apontar para uma classe inexistente, e **nem `php -l` nem carregar o
+   arquivo percebem**: type hint só resolve na chamada.
+
+Por isso **mudança estrutural em `app/` exige varredura autenticada**. Sem
+sessão, as páginas internas redirecionam para o login antes de executar a linha
+que quebra: o teste passa e dá falsa segurança. Em 27/08/2026 a varredura
+anônima deu 164/164 e havia 28 referências quebradas, com duas telas fatalando.
+
+Para criar a sessão sem alterar dado, replique o que o `AuthController` grava
+(só `SELECT`), escreva o arquivo de sessão e mande o `PHPSESSID` como cookie.
+Teste com pelo menos dois perfis: um `owner`/super admin e um `member`, porque
+o caminho de permissão é diferente.
 
 ## Limitações conhecidas, assumidas
 

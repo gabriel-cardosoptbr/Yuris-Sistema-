@@ -98,10 +98,19 @@ ok/12 falha**. As 12 falhas do `plan_feature` são **pré-existentes**: 12 é o
 esperado, acima de 12 é regressão sua.
 
 Ao mexer em `app/`, confira também que nenhum `require` ficou apontando para o
-vazio e que todo `use App\...` resolve. E lembre dos nomes de classe **dentro de
-string** (`class_exists('App\\Core\\RequestId')`), que nenhuma busca por `use`
-encontra: são cerca de 50, e quando erram não quebram nada, só retornam `false`
-em silêncio.
+vazio e que todo `use App\...` resolve. E lembre das duas formas que **nenhuma
+dessas checagens pega**:
+
+- nomes de classe **dentro de string** (`class_exists('App\\Core\\RequestId')`),
+  cerca de 50: quando erram, retornam `false` em silêncio;
+- **nomes curtos que dependiam do mesmo namespace**: duas classes no mesmo
+  namespace se enxergam sem `use`, então mover uma delas quebra a outra sem que
+  `php -l` ou carregar o arquivo percebam (type hint só resolve na chamada).
+
+**Por isso, mudança estrutural em `app/` exige varredura autenticada**, com
+sessão de verdade, executando as páginas e os endpoints. Sem sessão, as páginas
+internas redirecionam para o login antes de executar a linha que quebra, e o
+teste passa dando falsa segurança. Foi exatamente o que aconteceu em 27/08/2026.
 
 ## Riscos deste projeto, em ordem de gravidade
 
