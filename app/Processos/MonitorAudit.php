@@ -2,6 +2,7 @@
 namespace App\Processos;
 
 use App\Core\Database;
+use App\Core\RequestId;
 
 /**
  * MonitorAudit — wrapper para inserir em monitor_audit_log.

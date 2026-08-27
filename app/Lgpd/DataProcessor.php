@@ -1,6 +1,8 @@
 <?php
 namespace App\Lgpd;
 
+use App\Core\Database;
+
 /**
  * DataProcessor — inventário de terceiros (operadores) que tratam dados
  * pessoais em nome da Yuris (LGPD Art. 5 VII + Art. 33 + Art. 39).

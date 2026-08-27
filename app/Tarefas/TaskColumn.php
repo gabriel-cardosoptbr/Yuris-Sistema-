@@ -1,6 +1,8 @@
 <?php
 namespace App\Tarefas;
 
+use App\Core\Database;
+
 class TaskColumn
 {
     public static function findByBoard(int $boardId): array

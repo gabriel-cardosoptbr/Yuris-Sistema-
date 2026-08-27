@@ -1,6 +1,8 @@
 <?php
 namespace App\Tarefas;
 
+use App\Core\Database;
+
 class TaskTimeEntry
 {
     public static function findByTask(int $taskId): array

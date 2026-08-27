@@ -1,6 +1,8 @@
 <?php
 namespace App\Lgpd;
 
+use App\Core\Database;
+
 /**
  * LgpdRequestRetentionJustification — justificativa estruturada quando um
  * dado NÃO pode ser excluído/anonimizado em resposta a solicitação LGPD.

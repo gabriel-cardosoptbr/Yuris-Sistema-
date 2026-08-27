@@ -1,6 +1,8 @@
 <?php
 namespace App\Master;
 
+use App\Core\Database;
+
 /**
  * SecurityIncident — incidentes de segurança envolvendo dados pessoais
  * (LGPD Art. 48 — comunicação obrigatória à ANPD e aos titulares afetados).

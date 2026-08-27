@@ -2,6 +2,7 @@
 namespace App\Tarefas;
 
 use App\Core\Database;
+use App\Processos\ProcessoAudit;
 
 /**
  * TaskAudit — propaga eventos de Tarefa Kanban para o histórico do processo vinculado.

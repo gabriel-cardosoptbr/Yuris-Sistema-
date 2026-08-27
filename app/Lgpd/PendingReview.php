@@ -1,6 +1,8 @@
 <?php
 namespace App\Lgpd;
 
+use App\Core\Database;
+
 /**
  * PendingReview — itens pendentes de revisão/conclusão antes do go-live.
  *

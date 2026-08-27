@@ -1,6 +1,8 @@
 <?php
 namespace App\Lgpd;
 
+use App\Core\Database;
+
 /**
  * LgpdRequest — solicitações dos titulares de dados pessoais (LGPD Art. 18).
  *

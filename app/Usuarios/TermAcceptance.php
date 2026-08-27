@@ -1,6 +1,9 @@
 <?php
 namespace App\Usuarios;
 
+use App\Core\Database;
+use App\Lgpd\LegalDocument;
+
 /**
  * TermAcceptance — registro de aceite de documento legal pelo titular (LGPD Art. 8º).
  *

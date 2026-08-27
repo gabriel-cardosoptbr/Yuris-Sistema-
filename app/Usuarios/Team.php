@@ -1,6 +1,8 @@
 <?php
 namespace App\Usuarios;
 
+use App\Core\Database;
+
 class Team
 {
     /**

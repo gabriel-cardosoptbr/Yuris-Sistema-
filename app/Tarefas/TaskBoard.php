@@ -1,6 +1,8 @@
 <?php
 namespace App\Tarefas;
 
+use App\Core\Database;
+
 class TaskBoard
 {
     /**

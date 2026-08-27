@@ -2,6 +2,7 @@
 namespace App\Processos;
 
 use App\Core\Database;
+use App\Core\AccountContext;
 
 /**
  * MonitorPermission — regras de autorização do add-on Monitoramentos.

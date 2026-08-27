@@ -1,6 +1,8 @@
 <?php
 namespace App\Lgpd;
 
+use App\Core\Database;
+
 /**
  * LgpdRequestAttachment — múltiplos anexos por solicitação LGPD.
  *

@@ -1,6 +1,8 @@
 <?php
 namespace App\Lgpd;
 
+use App\Core\Database;
+
 /**
  * LgpdRequestModule — registra quais módulos foram pesquisados durante o
  * atendimento a uma solicitação LGPD (Art. 18). Cada busca em uma fonte

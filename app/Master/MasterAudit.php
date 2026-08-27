@@ -2,6 +2,7 @@
 namespace App\Master;
 
 use App\Core\Database;
+use App\Core\RequestId;
 
 /**
  * MasterAudit — wrapper para inserir em master_audit_log.

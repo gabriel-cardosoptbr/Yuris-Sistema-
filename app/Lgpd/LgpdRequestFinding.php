@@ -2,6 +2,7 @@
 namespace App\Lgpd;
 
 use App\Lgpd\PIIMasker;
+use App\Core\Database;
 
 /**
  * LgpdRequestFinding — cada dado pessoal encontrado em uma busca LGPD.

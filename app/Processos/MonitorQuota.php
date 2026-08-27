@@ -2,6 +2,7 @@
 namespace App\Processos;
 
 use App\Core\Database;
+use App\Billing\BillingGuard;
 
 /**
  * MonitorQuota — cálculo de cota de monitoramentos (add-on do plano).

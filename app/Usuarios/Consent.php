@@ -1,6 +1,8 @@
 <?php
 namespace App\Usuarios;
 
+use App\Core\Database;
+
 /**
  * Consent — consentimentos granulares LGPD (Art. 8º, Art. 18 IX).
  *

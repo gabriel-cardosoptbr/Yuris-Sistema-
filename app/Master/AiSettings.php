@@ -1,6 +1,8 @@
 <?php
 namespace App\Master;
 
+use App\Core\Crypto;
+
 require_once __DIR__ . '/../Core/Crypto.php';
 
 /**
