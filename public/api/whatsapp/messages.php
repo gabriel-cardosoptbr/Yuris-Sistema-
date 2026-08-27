@@ -2,15 +2,15 @@
 ob_start();
 @ini_set('display_errors', '0');
 
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/Account.php';
-require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
-require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
-require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Master/Account.php';
+require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppInstance.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppMessage.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppChannelAccessService.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
 
-use App\Helpers\AccountContext;
+use App\Core\AccountContext;
 
 session_start(['read_and_close' => true]);
 
@@ -42,7 +42,7 @@ if (!$remoteJid) {
 
 try {
     $msgModel   = new WhatsAppMessage();
-    $pdo        = \App\Models\Database::getConnection();
+    $pdo        = \App\Core\Database::getConnection();
 
     // Leitura do histórico = 'view' no canal (deny-by-default). Resolve o canal
     // próprio ou, com a flag ligada, o compartilhado (filial herdando o da matriz).
@@ -67,6 +67,6 @@ try {
     ]);
 } catch (Throwable $e) {
     // P1 LGPD (2D.1): em prod esconde getMessage/file/line; em dev mantém debug
-    require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
-    \App\Helpers\ErrorReporter::handle($e);
+    require_once __DIR__ . '/../../../app/Core/ErrorReporter.php';
+    \App\Core\ErrorReporter::handle($e);
 }

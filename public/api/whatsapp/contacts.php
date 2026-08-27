@@ -2,16 +2,16 @@
 ob_start();
 @ini_set('display_errors', '0');
 
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/Account.php';
-require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
-require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
-require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Master/Account.php';
+require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppInstance.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/EvolutionApiService.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppChannelAccessService.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
 
-use App\Models\Database;
-use App\Helpers\AccountContext;
+use App\Core\Database;
+use App\Core\AccountContext;
 // NB (auditoria 2026-06-01, BAIXA #25): removido `use App\Services\EvolutionApiService`.
 // A classe EvolutionApiService e GLOBAL (sem namespace) — este import resolvia para um
 // FQCN inexistente e nunca era usado (instanciamos via \EvolutionApiService mais abaixo).
@@ -191,6 +191,6 @@ try {
     http_response_code(405); echo json_encode(['error' => 'Method not allowed']);
 
 } catch (Throwable $e) {
-    require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
-    \App\Helpers\ErrorReporter::handle($e);  // P1 LGPD (2D.1)
+    require_once __DIR__ . '/../../../app/Core/ErrorReporter.php';
+    \App\Core\ErrorReporter::handle($e);  // P1 LGPD (2D.1)
 }

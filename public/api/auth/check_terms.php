@@ -11,11 +11,11 @@
  *
  * Não vaza se o e-mail existe no sistema: sempre retorna 200 com bool.
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
 
-use App\Models\Database;
-use App\Helpers\ApiResponse;
+use App\Core\Database;
+use App\Core\ApiResponse;
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');

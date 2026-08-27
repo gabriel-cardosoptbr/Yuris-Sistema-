@@ -1,14 +1,14 @@
 <?php
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../app/Models/TaskTimeEntry.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../app/Tarefas/TaskTimeEntry.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/TenantGuard.php';
 
-use App\Models\TaskTimeEntry;
-use App\Helpers\AccountContext;
-use App\Helpers\TenantGuard;
+use App\Tarefas\TaskTimeEntry;
+use App\Core\AccountContext;
+use App\Core\TenantGuard;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');

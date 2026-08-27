@@ -1,14 +1,14 @@
 <?php
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../app/Models/TaskBoard.php';
-require_once __DIR__ . '/../../app/Models/TaskColumn.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../app/Tarefas/TaskBoard.php';
+require_once __DIR__ . '/../../app/Tarefas/TaskColumn.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
 
-use App\Models\TaskBoard;
-use App\Models\TaskColumn;
-use App\Helpers\AccountContext;
+use App\Tarefas\TaskBoard;
+use App\Tarefas\TaskColumn;
+use App\Core\AccountContext;
 
 session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');

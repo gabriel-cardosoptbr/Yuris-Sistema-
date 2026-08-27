@@ -5,10 +5,10 @@
  * GET  ?conversa_id=X&after_id=Y            — novas mensagens (polling)
  * POST                                       — envia mensagem
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-use App\Models\Database;
-use App\Helpers\AccountContext;
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+use App\Core\Database;
+use App\Core\AccountContext;
 
 session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');

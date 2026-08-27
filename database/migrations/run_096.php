@@ -7,9 +7,9 @@
 // Cria a tabela de autorização explícita de canal + coluna can_delete_messages +
 // backfill das linhas de DONO para instâncias já existentes. Idempotente.
 
-require_once __DIR__ . '/../../app/Models/Database.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
 
-use App\Models\Database;
+use App\Core\Database;
 
 $pdo = Database::getConnection();
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);

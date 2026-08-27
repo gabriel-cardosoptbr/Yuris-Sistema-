@@ -10,9 +10,9 @@
  *
  * Uso: php scripts/tests/wa_webhook_token_test.php   (exit 0 = tudo passou)
  */
-require_once __DIR__ . '/../../app/Services/WhatsAppWebhookAuth.php';
+require_once __DIR__ . '/../../app/WhatsAppAgente/WhatsAppWebhookAuth.php';
 
-use App\Services\WhatsAppWebhookAuth as A;
+use App\WhatsAppAgente\WhatsAppWebhookAuth as A;
 
 $pass = 0; $fail = 0;
 function check(string $label, $actual, $expected): void {

@@ -2,14 +2,14 @@
 ob_start();
 @ini_set('display_errors', '0');
 
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/Account.php';
-require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
-require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Master/Account.php';
+require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppInstance.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppChannelAccessService.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
 
-use App\Helpers\AccountContext;
+use App\Core\AccountContext;
 
 session_start(['read_and_close' => true]);
 
@@ -26,7 +26,7 @@ $tenantIds = $ctx->getAccessibleAccountIds('whatsapp');
 if (empty($tenantIds)) $tenantIds = [$ctx->getAccountId()];
 
 try {
-    $pdo = \App\Models\Database::getConnection();
+    $pdo = \App\Core\Database::getConnection();
 
     // Gate de canal (Fase 2): exige 'view' em algum canal (próprio ou compartilhado
     // com a flag ligada). A RESOLUÇÃO do contato abaixo continua escopada pelas
@@ -133,6 +133,6 @@ try {
 } catch (\Throwable $e) {
     // Auditoria 2026-06-01 MEDIA #32: nao vaza $e->getMessage() em prod
     // (antes devolvia a mensagem real no JSON). Loga server-side e devolve generico.
-    require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
-    \App\Helpers\ErrorReporter::handle($e);
+    require_once __DIR__ . '/../../../app/Core/ErrorReporter.php';
+    \App\Core\ErrorReporter::handle($e);
 }

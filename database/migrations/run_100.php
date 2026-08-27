@@ -9,9 +9,9 @@
  * edicoes do admin ao reaplicar). Rollback: DROP TABLE ai_models (so volta a lista fixa
  * de fallback no codigo).
  */
-require_once __DIR__ . '/../../app/Models/Database.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
 
-use App\Models\Database;
+use App\Core\Database;
 
 $pdo = Database::getConnection();
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);

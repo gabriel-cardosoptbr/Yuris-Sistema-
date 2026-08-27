@@ -1,15 +1,15 @@
 <?php
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../app/Helpers/PlanFeature.php';
-require_once __DIR__ . '/../../app/Services/WebhookDispatcher.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/Billing/PlanFeature.php';
+require_once __DIR__ . '/../../app/Integracoes/WebhookDispatcher.php';
 
-use App\Models\Database;
-use App\Helpers\AccountContext;
-use App\Helpers\PlanFeature;
-use App\Services\WebhookDispatcher;
+use App\Core\Database;
+use App\Core\AccountContext;
+use App\Billing\PlanFeature;
+use App\Integracoes\WebhookDispatcher;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -227,7 +227,7 @@ if ($method === 'POST') {
         // Agora o resultado reflete a entrega REAL (status HTTP) e nunca promete sucesso falso.
         $res     = WebhookDispatcher::deliverTest($pdo, $hook, $payload);
         $ok      = $res['status'] === 'success';
-        \App\Models\Account::audit($accountId, 'webhook.tested', [
+        \App\Master\Account::audit($accountId, 'webhook.tested', [
             'user_id'     => $_SESSION['user_id'] ?? null,
             'entidade'    => 'webhook',
             'entidade_id' => (int)$id,
@@ -267,7 +267,7 @@ if ($method === 'POST') {
         $newSecret = bin2hex(random_bytes(32)); // 64 hex chars = 256 bits
         $pdo->prepare("UPDATE webhook_endpoints SET secret = ?, secret_rotated_at = NOW(), updated_at = NOW() WHERE id = ?")
             ->execute([$newSecret, $id]);
-        \App\Models\Account::audit($accountId, 'webhook.secret_rotated', [
+        \App\Master\Account::audit($accountId, 'webhook.secret_rotated', [
             'user_id'     => $_SESSION['user_id'] ?? null,
             'entidade'    => 'webhook',
             'entidade_id' => (int)$id,
@@ -290,8 +290,8 @@ if ($method === 'POST') {
         $d = $stmt->fetch(\PDO::FETCH_ASSOC);
         if (!$d) { http_response_code(404); echo json_encode(['error' => 'Delivery não encontrada']); exit; }
 
-        require_once __DIR__ . '/../../app/Services/WebhookPayloadBuilder.php';
-        $newEventId = \App\Services\WebhookPayloadBuilder::generateEventId();
+        require_once __DIR__ . '/../../app/Integracoes/WebhookPayloadBuilder.php';
+        $newEventId = \App\Integracoes\WebhookPayloadBuilder::generateEventId();
         $ins = $pdo->prepare(
             "INSERT INTO webhook_deliveries
                (webhook_endpoint_id, account_id, event_code, event_id, payload, request_url, status, tentativa, created_at, updated_at)
@@ -313,11 +313,11 @@ if ($method === 'POST') {
             $row->execute([$newId]);
             $rowData = $row->fetch(\PDO::FETCH_ASSOC);
             if ($rowData) {
-                \App\Services\WebhookDispatcher::processDelivery($pdo, $rowData);
+                \App\Integracoes\WebhookDispatcher::processDelivery($pdo, $rowData);
             }
         }
 
-        \App\Models\Account::audit($accountId, 'webhook.resent', [
+        \App\Master\Account::audit($accountId, 'webhook.resent', [
             'user_id'     => $_SESSION['user_id'] ?? null,
             'entidade'    => 'webhook_delivery',
             'entidade_id' => $newId,
@@ -337,8 +337,8 @@ if ($method === 'POST') {
     if (!$nome || !$url) { http_response_code(400); echo json_encode(['error' => 'Nome e URL são obrigatórios']); exit; }
     if (!filter_var($url, FILTER_VALIDATE_URL)) { http_response_code(400); echo json_encode(['error' => 'URL inválida']); exit; }
     // Etapa 4: SSRF guard
-    require_once __DIR__ . '/../../app/Helpers/WebhookUrlValidator.php';
-    [$urlOk, $urlErr] = \App\Helpers\WebhookUrlValidator::isPublicUrl($url);
+    require_once __DIR__ . '/../../app/Core/WebhookUrlValidator.php';
+    [$urlOk, $urlErr] = \App\Core\WebhookUrlValidator::isPublicUrl($url);
     if (!$urlOk) { http_response_code(400); echo json_encode(['error' => 'URL bloqueada: ' . $urlErr]); exit; }
 
     // Etapa 8: campos novos (defaults seguros)
@@ -371,7 +371,7 @@ if ($method === 'POST') {
     ]);
     $newId = (int)$pdo->lastInsertId();
     if ($ok) {
-        \App\Models\Account::audit($accountId, 'webhook.created', [
+        \App\Master\Account::audit($accountId, 'webhook.created', [
             'user_id'     => $_SESSION['user_id'] ?? null,
             'entidade'    => 'webhook',
             'entidade_id' => $newId,
@@ -400,8 +400,8 @@ if ($method === 'PUT' || $method === 'PATCH') {
     if (isset($input['url'])) {
         $newUrl = trim($input['url']);
         // Etapa 4: SSRF guard tambem na edicao
-        require_once __DIR__ . '/../../app/Helpers/WebhookUrlValidator.php';
-        [$urlOk, $urlErr] = \App\Helpers\WebhookUrlValidator::isPublicUrl($newUrl);
+        require_once __DIR__ . '/../../app/Core/WebhookUrlValidator.php';
+        [$urlOk, $urlErr] = \App\Core\WebhookUrlValidator::isPublicUrl($newUrl);
         if (!$urlOk) { http_response_code(400); echo json_encode(['error' => 'URL bloqueada: ' . $urlErr]); exit; }
         $fields[] = 'url = ?';
         $params[] = $newUrl;
@@ -463,7 +463,7 @@ if ($method === 'PUT' || $method === 'PATCH') {
     $stmt = $pdo->prepare("UPDATE webhook_endpoints SET " . implode(', ', $fields) . " WHERE id = ? AND account_id IN $tenantInPos");
     $stmt->execute($params);
     if ($stmt->rowCount() === 0) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
-    \App\Models\Account::audit($accountId, 'webhook.updated', [
+    \App\Master\Account::audit($accountId, 'webhook.updated', [
         'user_id'     => $_SESSION['user_id'] ?? null,
         'entidade'    => 'webhook',
         'entidade_id' => $id,
@@ -484,7 +484,7 @@ if ($method === 'DELETE') {
     $stmt = $pdo->prepare("UPDATE webhook_endpoints SET deleted_at = NOW() WHERE id = :id AND account_id IN $tenantIn");
     $stmt->execute(['id' => $id] + $_whParams);
     if ($stmt->rowCount() === 0) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
-    \App\Models\Account::audit($accountId, 'webhook.deleted', [
+    \App\Master\Account::audit($accountId, 'webhook.deleted', [
         'user_id'     => $_SESSION['user_id'] ?? null,
         'entidade'    => 'webhook',
         'entidade_id' => $id,

@@ -13,23 +13,23 @@
 ob_start();
 @ini_set('display_errors', '0');
 
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/Account.php';
-require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../../app/Models/PushMonitor.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
-require_once __DIR__ . '/../../../app/Helpers/MonitorQuota.php';  // Etapa 5
-require_once __DIR__ . '/../../../app/Helpers/MonitorAudit.php';  // Etapa 5
-require_once __DIR__ . '/../../../app/Helpers/MonitorPermission.php'; // audit fix #1
-require_once __DIR__ . '/../../../app/Helpers/BillingGuard.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Master/Account.php';
+require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../../app/Processos/PushMonitor.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/ErrorReporter.php';
+require_once __DIR__ . '/../../../app/Processos/MonitorQuota.php';  // Etapa 5
+require_once __DIR__ . '/../../../app/Processos/MonitorAudit.php';  // Etapa 5
+require_once __DIR__ . '/../../../app/Processos/MonitorPermission.php'; // audit fix #1
+require_once __DIR__ . '/../../../app/Billing/BillingGuard.php';
 
-use App\Helpers\AccountContext;
-use App\Helpers\MonitorQuota;
-use App\Helpers\MonitorAudit;
-use App\Helpers\MonitorPermission;
-use App\Models\Database;
-use App\Models\PushMonitor;
+use App\Core\AccountContext;
+use App\Processos\MonitorQuota;
+use App\Processos\MonitorAudit;
+use App\Processos\MonitorPermission;
+use App\Core\Database;
+use App\Processos\PushMonitor;
 
 session_start(['read_and_close' => true]);
 $csrfSession = $_SESSION['csrf_token'] ?? '';
@@ -222,5 +222,5 @@ try {
     }
 
 } catch (\Throwable $e) {
-    \App\Helpers\ErrorReporter::handle($e);
+    \App\Core\ErrorReporter::handle($e);
 }

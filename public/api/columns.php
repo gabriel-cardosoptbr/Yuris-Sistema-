@@ -1,12 +1,12 @@
 <?php
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/PipelineColumn.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Prospeccao/PipelineColumn.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
 
-use App\Models\PipelineColumn;
-use App\Helpers\AccountContext;
+use App\Prospeccao\PipelineColumn;
+use App\Core\AccountContext;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -60,7 +60,7 @@ if ($method === 'POST') {
     _denyInheritedWrite($isInherited);
     $input['account_id'] = $pipelineAccountId;          // injeta tenant dono do pipeline
     $id = PipelineColumn::create($input);
-    \App\Models\Account::audit($accountId, 'column.created', [
+    \App\Master\Account::audit($accountId, 'column.created', [
         'user_id'     => $ctx->getUserId(),
         'entidade'    => 'pipeline_column',
         'entidade_id' => (int)$id,
@@ -81,7 +81,7 @@ if ($method === 'PUT' || $method === 'PATCH') {
     $colId = (int)$input['id'];
     $ok = PipelineColumn::update($colId, $input, $tenantIds);
     if (!$ok) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
-    \App\Models\Account::audit($accountId, 'column.updated', [
+    \App\Master\Account::audit($accountId, 'column.updated', [
         'user_id'     => $ctx->getUserId(),
         'entidade'    => 'pipeline_column',
         'entidade_id' => $colId,
@@ -98,7 +98,7 @@ if ($method === 'DELETE') {
     $colId = (int)$id;
     $ok = PipelineColumn::delete($colId, $tenantIds);
     if (!$ok) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
-    \App\Models\Account::audit($accountId, 'column.deleted', [
+    \App\Master\Account::audit($accountId, 'column.deleted', [
         'user_id'     => $ctx->getUserId(),
         'entidade'    => 'pipeline_column',
         'entidade_id' => $colId,

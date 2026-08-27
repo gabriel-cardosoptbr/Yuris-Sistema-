@@ -1,10 +1,10 @@
 <?php
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
 
-use App\Helpers\AccountContext;
+use App\Core\AccountContext;
 
 // read_and_close: endpoint read-only (não escreve $_SESSION). Libera o lock de
 // escrita na hora — evita serializar os AJAX do dashboard e travar o sino.
@@ -47,7 +47,7 @@ function safeScalar($pdo, $sql, $params = [], $default = 0) {
 }
 
 try {
-    $pdo = App\Models\Database::getConnection();
+    $pdo = App\Core\Database::getConnection();
 
     // Nota (auditoria #4): este endpoint devolve SOMENTE o que os consumidores
     // realmente usam — by_lawyer (gráfico de carga por advogado em
@@ -145,6 +145,6 @@ try {
 } catch (\Throwable $e) {
     // P1 LGPD (rule #4): nunca vaza $e->getMessage() em prod — loga server-side
     // e devolve mensagem genérica via ErrorReporter (padrão do projeto).
-    require_once __DIR__ . '/../../app/Helpers/ErrorReporter.php';
-    \App\Helpers\ErrorReporter::handle($e);
+    require_once __DIR__ . '/../../app/Core/ErrorReporter.php';
+    \App\Core\ErrorReporter::handle($e);
 }

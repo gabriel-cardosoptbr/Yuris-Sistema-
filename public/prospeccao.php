@@ -1,15 +1,15 @@
 <?php
-require_once __DIR__ . '/../app/Models/Database.php';
-require_once __DIR__ . '/../app/Models/PipelineColumn.php';
-require_once __DIR__ . '/../app/Models/Account.php';
-require_once __DIR__ . '/../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../app/Helpers/UserOptions.php';
+require_once __DIR__ . '/../app/Core/Database.php';
+require_once __DIR__ . '/../app/Prospeccao/PipelineColumn.php';
+require_once __DIR__ . '/../app/Master/Account.php';
+require_once __DIR__ . '/../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../app/Core/AccountContext.php';
+require_once __DIR__ . '/../app/Core/UserOptions.php';
 
-use App\Models\Database;
-use App\Models\PipelineColumn;
-use App\Helpers\AccountContext;
-use App\Helpers\UserOptions;
+use App\Core\Database;
+use App\Prospeccao\PipelineColumn;
+use App\Core\AccountContext;
+use App\Core\UserOptions;
 
 session_start();
 if (empty($_SESSION['user_id'])) {

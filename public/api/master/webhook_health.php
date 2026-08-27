@@ -10,13 +10,13 @@
  *
  * Acesso: super_admin em sessao master_mode. GET.
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
 
-use App\Helpers\AccountContext;
-use App\Helpers\ApiResponse;
-use App\Models\Database;
+use App\Core\AccountContext;
+use App\Core\ApiResponse;
+use App\Core\Database;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');

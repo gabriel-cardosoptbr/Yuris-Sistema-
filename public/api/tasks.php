@@ -1,22 +1,22 @@
 <?php
 require_once __DIR__ . '/_json_guard.php';   // avisos PHP nunca vazam como HTML no JSON (anti "Unexpected token '<'")
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/TaskBoard.php';
-require_once __DIR__ . '/../../app/Models/TaskColumn.php';
-require_once __DIR__ . '/../../app/Models/TaskRecurrence.php';
-require_once __DIR__ . '/../../app/Models/TaskLink.php';
-require_once __DIR__ . '/../../app/Models/Task.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../app/Helpers/ProcessoAudit.php';
-require_once __DIR__ . '/../../app/Helpers/TaskAudit.php';
-require_once __DIR__ . '/../../app/Services/RecurrenceCronService.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Tarefas/TaskBoard.php';
+require_once __DIR__ . '/../../app/Tarefas/TaskColumn.php';
+require_once __DIR__ . '/../../app/Tarefas/TaskRecurrence.php';
+require_once __DIR__ . '/../../app/Tarefas/TaskLink.php';
+require_once __DIR__ . '/../../app/Tarefas/Task.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/Processos/ProcessoAudit.php';
+require_once __DIR__ . '/../../app/Tarefas/TaskAudit.php';
+require_once __DIR__ . '/../../app/Tarefas/RecurrenceCronService.php';
 
-use App\Models\Task;
-use App\Models\TaskBoard;
-use App\Models\TaskColumn;
-use App\Models\TaskRecurrence;
-use App\Helpers\AccountContext;
-use App\Helpers\TaskAudit;
+use App\Tarefas\Task;
+use App\Tarefas\TaskBoard;
+use App\Tarefas\TaskColumn;
+use App\Tarefas\TaskRecurrence;
+use App\Core\AccountContext;
+use App\Tarefas\TaskAudit;
 
 session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');
@@ -63,7 +63,7 @@ if ($method === 'GET') {
     if (!$boardId || !TaskBoard::canView($boardId, $userId, $accIds)) fail('Sem acesso', 403);
 
     // Cron interno: gera instâncias atrasadas de tarefas recorrentes (máx. 1x/hora)
-    \App\Services\RecurrenceCronService::tickIfDue();
+    \App\Tarefas\RecurrenceCronService::tickIfDue();
 
     $filtros = [];
     if (isset($_GET['column_id']))     $filtros['column_id']     = (int)$_GET['column_id'];
@@ -168,7 +168,7 @@ if ($method === 'PUT') {
 
     // recorrência: criar nova, atualizar existente ou desativar
     if (array_key_exists('recorrencia', $input)) {
-        $pdo = \App\Models\Database::getConnection();
+        $pdo = \App\Core\Database::getConnection();
         if (empty($input['recorrencia'])) {
             // desativar
             if ($task['recorrencia_id']) {

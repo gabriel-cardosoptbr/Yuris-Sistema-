@@ -16,18 +16,18 @@
  * Uso:  C:\xampp\php\php.exe scripts\test_multitenancy_e2e.php
  */
 
-require __DIR__ . '/../app/Models/Database.php';
-require __DIR__ . '/../app/Models/Account.php';
-require __DIR__ . '/../app/Models/AccountVinculo.php';
-require __DIR__ . '/../app/Models/ResourceShare.php';
-require __DIR__ . '/../app/Models/Processo.php';
-require __DIR__ . '/../app/Helpers/AccountContext.php';
+require __DIR__ . '/../app/Core/Database.php';
+require __DIR__ . '/../app/Master/Account.php';
+require __DIR__ . '/../app/Usuarios/AccountVinculo.php';
+require __DIR__ . '/../app/Master/ResourceShare.php';
+require __DIR__ . '/../app/Processos/Processo.php';
+require __DIR__ . '/../app/Core/AccountContext.php';
 
-use App\Models\Database;
-use App\Models\Account;
-use App\Models\AccountVinculo;
-use App\Models\ResourceShare;
-use App\Models\Processo;
+use App\Core\Database;
+use App\Master\Account;
+use App\Usuarios\AccountVinculo;
+use App\Master\ResourceShare;
+use App\Processos\Processo;
 
 // Inicia sessão antes de qualquer output (evita warning quando AccountContext::fromSession a recria)
 if (PHP_SAPI === 'cli') @session_start();
@@ -56,7 +56,7 @@ $_CREATED = ['accounts' => [], 'users' => [], 'processos' => [], 'vinculos' => [
 
 register_shutdown_function(function () use (&$_CREATED) {
     try {
-        $pdo = \App\Models\Database::getConnection();
+        $pdo = \App\Core\Database::getConnection();
         // Ordem: shares → vinculos → processos → users → accounts (FK-safe)
         if ($_CREATED['shares']) {
             $in = implode(',', array_map('intval', $_CREATED['shares']));
@@ -128,7 +128,7 @@ step('4. Matriz vê processos da filial vinculada (gap M→F)');
 $_SESSION = ['user_id'=>1,'account_id'=>1,'account_tipo'=>'matriz','user_role'=>'owner'];
 if (session_status() === PHP_SESSION_NONE) session_start();
 $_SESSION = ['user_id'=>1,'account_id'=>1,'account_tipo'=>'matriz','user_role'=>'owner'];
-$ctxMatriz = App\Helpers\AccountContext::fromSession();
+$ctxMatriz = App\Core\AccountContext::fromSession();
 $acessoMatriz = $ctxMatriz->getAccessibleAccountIds();
 assert_contains($acessoMatriz, 1, "Matriz tem acesso ao próprio account_id");
 assert_contains($acessoMatriz, $filialId, "Matriz herdou acesso à filial id=$filialId");
@@ -141,7 +141,7 @@ info("Matriz enxerga " . count($processosVistosPelaMatriz) . " processos no tota
 // ── 5. Filial NÃO vê processos da matriz ────────────────────────────────────────
 step('5. Filial NÃO vê processos da matriz (assimetria)');
 $_SESSION = ['user_id'=>$adminFilialId,'account_id'=>$filialId,'account_tipo'=>'filial','user_role'=>'owner'];
-$ctxFilial = App\Helpers\AccountContext::fromSession();
+$ctxFilial = App\Core\AccountContext::fromSession();
 $acessoFilial = $ctxFilial->getAccessibleAccountIds();
 assert_eq(count($acessoFilial), 1, "Filial só vê o próprio tenant");
 assert_eq($acessoFilial[0], $filialId, "Filial->accessible == [filialId]");
@@ -209,7 +209,7 @@ ok("Share matriz→advogado criado id=$advShareId (processo #$procFilialId)");
 // ── 9. Advogado vê SÓ o processo compartilhado ─────────────────────────────────
 step('9. Advogado vê APENAS o processo convidado');
 $_SESSION = ['user_id'=>$advUserId,'account_id'=>$advAccountId,'account_tipo'=>'matriz','user_role'=>'owner'];
-$ctxAdv = App\Helpers\AccountContext::fromSession();
+$ctxAdv = App\Core\AccountContext::fromSession();
 $acessoAdv = $ctxAdv->getAccessibleAccountIds();
 assert_eq($acessoAdv, [$advAccountId], "Advogado vê só sua própria conta (isolada)");
 
@@ -251,7 +251,7 @@ ok("Share individual user_id=$advUserId criado id=$shareUserId");
 
 // Filtro deve considerar to_user_id
 $_SESSION = ['user_id'=>$advUserId,'account_id'=>$advAccountId,'account_tipo'=>'matriz','user_role'=>'owner'];
-$ctxAdv2 = App\Helpers\AccountContext::fromSession();
+$ctxAdv2 = App\Core\AccountContext::fromSession();
 $processosAdv2 = Processo::list([
     'account_ids' => $ctxAdv2->getAccessibleAccountIds(),
     'user_id'     => $ctxAdv2->getUserId(),

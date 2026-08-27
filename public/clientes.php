@@ -11,16 +11,16 @@
  *   - Setores são por tenant (matriz cria os dela, filial cria os dela)
  */
 
-require_once __DIR__ . '/../app/Models/Database.php';
-require_once __DIR__ . '/../app/Models/Cliente.php';
-require_once __DIR__ . '/../app/Models/ClienteSetor.php';
-require_once __DIR__ . '/../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../app/Helpers/UserOptions.php';
+require_once __DIR__ . '/../app/Core/Database.php';
+require_once __DIR__ . '/../app/Prospeccao/Cliente.php';
+require_once __DIR__ . '/../app/Prospeccao/ClienteSetor.php';
+require_once __DIR__ . '/../app/Core/AccountContext.php';
+require_once __DIR__ . '/../app/Core/UserOptions.php';
 
-use App\Models\Database;
-use App\Models\ClienteSetor;
-use App\Helpers\AccountContext;
-use App\Helpers\UserOptions;
+use App\Core\Database;
+use App\Prospeccao\ClienteSetor;
+use App\Core\AccountContext;
+use App\Core\UserOptions;
 
 session_start();
 if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }

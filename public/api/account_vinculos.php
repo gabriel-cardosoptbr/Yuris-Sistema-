@@ -28,16 +28,16 @@
  *   4. Matriz PATCH { id, action: "aprovar" } → status = active
  */
 
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Models/AccountVinculo.php';
-require_once __DIR__ . '/../../app/Models/AccountNotification.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Usuarios/AccountVinculo.php';
+require_once __DIR__ . '/../../app/Master/AccountNotification.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
 
-use App\Models\Account;
-use App\Models\AccountVinculo;
-use App\Models\AccountNotification;
-use App\Helpers\AccountContext;
+use App\Master\Account;
+use App\Usuarios\AccountVinculo;
+use App\Master\AccountNotification;
+use App\Core\AccountContext;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -110,7 +110,7 @@ if ($method === 'POST') {
     $vinculoId = AccountVinculo::solicitar($matriz['id'], $ctx->getAccountId(), $ctx->getUserId());
 
     // Notifica owners/admins da Matriz
-    $pdo  = \App\Models\Database::getConnection();
+    $pdo  = \App\Core\Database::getConnection();
     $stmt = $pdo->prepare(
         "SELECT id FROM users WHERE account_id = :acc AND role IN ('owner','admin') AND deleted_at IS NULL"
     );
@@ -219,7 +219,7 @@ if ($method === 'PATCH') {
                 echo json_encode(['error' => 'Vínculo precisa estar ativo para configurar sincronização']);
                 exit;
             }
-            $pdoUp = \App\Models\Database::getConnection();
+            $pdoUp = \App\Core\Database::getConnection();
             $stmtUp = $pdoUp->prepare(
                 'UPDATE account_vinculos
                  SET sync_enabled   = :se,
@@ -289,7 +289,7 @@ if ($method === 'DELETE') {
         exit;
     }
 
-    $pdo  = \App\Models\Database::getConnection();
+    $pdo  = \App\Core\Database::getConnection();
     $stmt = $pdo->prepare("UPDATE account_vinculos SET status = 'rejected', updated_at = NOW() WHERE id = :id");
     $ok   = $stmt->execute(['id' => $id]);
 

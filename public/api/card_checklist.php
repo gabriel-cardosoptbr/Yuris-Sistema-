@@ -1,16 +1,16 @@
 <?php
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../app/Models/CardChecklist.php';
-require_once __DIR__ . '/../../app/Models/Card.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../app/Prospeccao/CardChecklist.php';
+require_once __DIR__ . '/../../app/Prospeccao/Card.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/TenantGuard.php';
 
-use App\Models\CardChecklist;
-use App\Models\Card;
-use App\Helpers\AccountContext;
-use App\Helpers\TenantGuard;
+use App\Prospeccao\CardChecklist;
+use App\Prospeccao\Card;
+use App\Core\AccountContext;
+use App\Core\TenantGuard;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -18,13 +18,13 @@ header('Content-Type: application/json; charset=utf-8');
 $ctx = AccountContext::fromSession();
 
 // Helper: descobre card_id de um checklist_item e valida tenant
-function cc_assertItemTenant(\App\Helpers\AccountContext $ctx, int $checklistId): int {
-    $pdo = \App\Models\Database::getConnection();
+function cc_assertItemTenant(\App\Core\AccountContext $ctx, int $checklistId): int {
+    $pdo = \App\Core\Database::getConnection();
     $stmt = $pdo->prepare('SELECT card_id FROM card_checklist_items WHERE id = ? LIMIT 1');
     $stmt->execute([$checklistId]);
     $cid = (int)($stmt->fetchColumn() ?: 0);
     if (!$cid) { http_response_code(404); echo json_encode(['error' => 'Item não encontrado']); exit; }
-    \App\Helpers\TenantGuard::assertCardAcessivel($ctx, $cid);
+    \App\Core\TenantGuard::assertCardAcessivel($ctx, $cid);
     return $cid;
 }
 
@@ -57,11 +57,11 @@ if ($method === 'POST') {
     TenantGuard::assertCardAcessivel($ctx, $card_id);
     $id = CardChecklist::create($card_id, $descricao, $_SESSION['user_id']);
     // log history entry
-    $pdo = \App\Models\Database::getConnection();
+    $pdo = \App\Core\Database::getConnection();
     $h = $pdo->prepare('INSERT INTO card_history (card_id, usuario_id, acao, campo_alterado, valor_anterior, valor_novo, created_at) VALUES (:card_id, :usuario_id, :acao, :campo_alterado, :valor_anterior, :valor_novo, NOW())');
     $h->execute(['card_id'=>$card_id,'usuario_id'=>$_SESSION['user_id'],'acao'=>'checklist_add','campo_alterado'=>'checklist_item','valor_anterior'=>'','valor_novo'=>$descricao]);
     // recalc percent
-    $pct = \App\Models\Card::recalculateChecklistPercent($card_id);
+    $pct = \App\Prospeccao\Card::recalculateChecklistPercent($card_id);
     echo json_encode(['success'=>true,'id'=>$id,'checklist_percentual'=>$pct]);
     exit;
 }
@@ -78,7 +78,7 @@ if ($method === 'PATCH') {
         TenantGuard::assertCardAcessivel($ctx, $card_id);
         $ok = CardChecklist::updateOrders($card_id, $input['reorder']);
         if ($ok) {
-            $h = \App\Models\Database::getConnection()->prepare('INSERT INTO card_history (card_id, usuario_id, acao, campo_alterado, valor_anterior, valor_novo, created_at) VALUES (:card_id, :usuario_id, :acao, :campo_alterado, :valor_anterior, :valor_novo, NOW())');
+            $h = \App\Core\Database::getConnection()->prepare('INSERT INTO card_history (card_id, usuario_id, acao, campo_alterado, valor_anterior, valor_novo, created_at) VALUES (:card_id, :usuario_id, :acao, :campo_alterado, :valor_anterior, :valor_novo, NOW())');
             $h->execute([
                 'card_id' => $card_id,
                 'usuario_id' => $_SESSION['user_id'],
@@ -101,7 +101,7 @@ if ($method === 'PATCH') {
         $descricao = trim($input['descricao']);
         if ($descricao === '') { http_response_code(400); echo json_encode(['error'=>'Missing descricao']); exit; }
         // fetch previous value for history
-        $pdo = \App\Models\Database::getConnection();
+        $pdo = \App\Core\Database::getConnection();
         $r = $pdo->prepare('SELECT card_id, titulo AS descricao FROM card_checklist_items WHERE id = :id LIMIT 1');
         $r->execute(['id'=>$id]);
         $row = $r->fetch();
@@ -120,7 +120,7 @@ if ($method === 'PATCH') {
     $ok = CardChecklist::toggle($id, $marcado);
     if ($ok) {
         // fetch card_id for history
-        $pdo = \App\Models\Database::getConnection();
+        $pdo = \App\Core\Database::getConnection();
         $r = $pdo->prepare('SELECT card_id FROM card_checklist_items WHERE id = :id LIMIT 1');
         $r->execute(['id'=>$id]);
         $row = $r->fetch();
@@ -128,7 +128,7 @@ if ($method === 'PATCH') {
         $h = $pdo->prepare('INSERT INTO card_history (card_id, usuario_id, acao, campo_alterado, valor_anterior, valor_novo, created_at) VALUES (:card_id, :usuario_id, :acao, :campo_alterado, :valor_anterior, :valor_novo, NOW())');
         $h->execute(['card_id'=>$card_id,'usuario_id'=>$_SESSION['user_id'],'acao'=>'checklist_toggle','campo_alterado'=>'checklist_item','valor_anterior'=>($marcado?0:1),'valor_novo'=>($marcado?1:0)]);
         // recalc percent
-        $pct = \App\Models\Card::recalculateChecklistPercent($card_id);
+        $pct = \App\Prospeccao\Card::recalculateChecklistPercent($card_id);
     }
     echo json_encode(['success'=>(bool)$ok,'checklist_percentual'=>$pct ?? null]);
     exit;
@@ -139,7 +139,7 @@ if ($method === 'DELETE') {
     if (!$id) { http_response_code(400); echo json_encode(['error'=>'Missing id']); exit; }
     cc_assertItemTenant($ctx, (int)$id);
     // find card_id before delete
-    $pdo = \App\Models\Database::getConnection();
+    $pdo = \App\Core\Database::getConnection();
     $r = $pdo->prepare('SELECT card_id, titulo AS descricao FROM card_checklist_items WHERE id = :id LIMIT 1');
     $r->execute(['id'=>$id]);
     $row = $r->fetch();
@@ -150,7 +150,7 @@ if ($method === 'DELETE') {
         $h = $pdo->prepare('INSERT INTO card_history (card_id, usuario_id, acao, campo_alterado, valor_anterior, valor_novo, created_at) VALUES (:card_id, :usuario_id, :acao, :campo_alterado, :valor_anterior, :valor_novo, NOW())');
         $h->execute(['card_id'=>$card_id,'usuario_id'=>$_SESSION['user_id'],'acao'=>'checklist_delete','campo_alterado'=>'checklist_item','valor_anterior'=>$descricao,'valor_novo'=>'']);
         // recalc percent
-        $pct = \App\Models\Card::recalculateChecklistPercent($card_id);
+        $pct = \App\Prospeccao\Card::recalculateChecklistPercent($card_id);
     }
     echo json_encode(['success'=>(bool)$ok,'checklist_percentual'=>$pct ?? null]);
     exit;

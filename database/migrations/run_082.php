@@ -7,9 +7,9 @@
 // Adiciona a flag de "Assumir conversa" (pausa o agente por conversa).
 // Idempotente: check em information_schema antes do ADD COLUMN.
 
-require_once __DIR__ . '/../../app/Models/Database.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
 
-use App\Models\Database;
+use App\Core\Database;
 
 $pdo = Database::getConnection();
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);

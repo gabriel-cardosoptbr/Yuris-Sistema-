@@ -1,15 +1,15 @@
 <?php
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
-require_once __DIR__ . '/../../app/Helpers/ProcessoAudit.php';
-require_once __DIR__ . '/../../app/Helpers/TaskAudit.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/TenantGuard.php';
+require_once __DIR__ . '/../../app/Processos/ProcessoAudit.php';
+require_once __DIR__ . '/../../app/Tarefas/TaskAudit.php';
 
-use App\Helpers\AccountContext;
-use App\Helpers\TenantGuard;
-use App\Helpers\TaskAudit;
+use App\Core\AccountContext;
+use App\Core\TenantGuard;
+use App\Tarefas\TaskAudit;
 
 session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');
@@ -52,7 +52,7 @@ if ($method === 'GET') {
         $attId = (int)($_GET['id'] ?? 0);
         if (!$attId) fail('id obrigatório');
 
-        $pdo = \App\Models\Database::getConnection();
+        $pdo = \App\Core\Database::getConnection();
         $row = $pdo->prepare('SELECT * FROM task_attachments WHERE id = ? LIMIT 1');
         $row->execute([$attId]);
         $att = $row->fetch(\PDO::FETCH_ASSOC);
@@ -93,7 +93,7 @@ if ($method === 'GET') {
     if (!$taskId) fail('task_id obrigatório');
     TenantGuard::assertTaskAcessivel($ctx, $taskId);
 
-    $pdo  = \App\Models\Database::getConnection();
+    $pdo  = \App\Core\Database::getConnection();
     $stmt = $pdo->prepare('SELECT * FROM task_attachments WHERE task_id = ? ORDER BY created_at DESC');
     $stmt->execute([$taskId]);
     $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -135,7 +135,7 @@ if ($method === 'POST') {
     $dest         = $dir . $randomPrefix . '_' . $safeName;
     if (!move_uploaded_file($file['tmp_name'], $dest)) fail('Falha ao salvar arquivo');
 
-    $pdo = \App\Models\Database::getConnection();
+    $pdo = \App\Core\Database::getConnection();
     $pdo->prepare('INSERT INTO task_attachments (task_id, file_path, file_name, mime_type, file_size, uploaded_by) VALUES (?,?,?,?,?,?)')
         ->execute([$taskId, str_replace(__DIR__ . '/..', '', $dest), $file['name'], $mime, $file['size'], $userId]);
     // Propaga ao histórico processual se a tarefa está vinculada a processo(s)
@@ -148,7 +148,7 @@ if ($method === 'DELETE') {
     if (!$csrf || $csrf !== ($_SESSION['csrf_token'] ?? '')) fail('CSRF inválido');
 
     $id  = (int)($input['id'] ?? 0);
-    $pdo = \App\Models\Database::getConnection();
+    $pdo = \App\Core\Database::getConnection();
     $row = $pdo->prepare('SELECT * FROM task_attachments WHERE id = ? AND uploaded_by = ?');
     $row->execute([$id, $userId]);
     $att = $row->fetch(\PDO::FETCH_ASSOC);

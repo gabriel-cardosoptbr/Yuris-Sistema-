@@ -18,7 +18,7 @@
  *   - owner/admin apenas (configurar o canal do agente é ação de gestão)
  *   - whatsapp_instance_id precisa pertencer ao escopo acessível (matriz/filial)
  *   - enabled=1 só é aceito se o canal estiver conectado (status='open')
- *   - api_key cifrada com App\Helpers\Crypto (AES-256-GCM); GET devolve só masked
+ *   - api_key cifrada com App\Core\Crypto (AES-256-GCM); GET devolve só masked
  *   - POST exige CSRF
  *
  * Endpoints:
@@ -26,19 +26,19 @@
  *   GET                 → defaults vazios (nenhum canal selecionado)
  *   POST                → upsert por whatsapp_instance_id
  */
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../app/Helpers/Crypto.php';        // cifragem padrão (GCM / APP_ENCRYPTION_KEY)
-require_once __DIR__ . '/../../app/Helpers/TotpHelper.php';    // só p/ ler configs LEGADAS (CBC / MFA_ENCRYPTION_KEY)
-require_once __DIR__ . '/../../app/Helpers/EnvLoader.php';
-require_once __DIR__ . '/../../app/Services/WhatsAppChannelAccessService.php'; // autorizacao POR GRANT de canal (nao hierarquia)
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/Crypto.php';        // cifragem padrão (GCM / APP_ENCRYPTION_KEY)
+require_once __DIR__ . '/../../app/Usuarios/TotpHelper.php';    // só p/ ler configs LEGADAS (CBC / MFA_ENCRYPTION_KEY)
+require_once __DIR__ . '/../../app/Core/EnvLoader.php';
+require_once __DIR__ . '/../../app/WhatsAppAgente/WhatsAppChannelAccessService.php'; // autorizacao POR GRANT de canal (nao hierarquia)
 
-use App\Models\Database;
-use App\Helpers\AccountContext;
-use App\Helpers\Crypto;
-use App\Helpers\TotpHelper;
+use App\Core\Database;
+use App\Core\AccountContext;
+use App\Core\Crypto;
+use App\Usuarios\TotpHelper;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -366,7 +366,7 @@ if ($method === 'POST') {
         }
     }
 
-    \App\Models\Account::audit($ownerAccountId, 'agent_settings.updated', [
+    \App\Master\Account::audit($ownerAccountId, 'agent_settings.updated', [
         'user_id'     => $userId,
         'entidade'    => 'agent_config',
         'entidade_id' => $instanceId,

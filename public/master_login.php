@@ -28,14 +28,14 @@
  *   • Nenhum log em texto plano de credenciais
  *   • Sessão de "mfa_pending" expira em 5 minutos
  */
-require_once __DIR__ . '/../app/Models/Database.php';
-require_once __DIR__ . '/../app/Models/User.php';
-require_once __DIR__ . '/../app/Helpers/EnvLoader.php';
-require_once __DIR__ . '/../app/Helpers/TotpHelper.php';
+require_once __DIR__ . '/../app/Core/Database.php';
+require_once __DIR__ . '/../app/Usuarios/User.php';
+require_once __DIR__ . '/../app/Core/EnvLoader.php';
+require_once __DIR__ . '/../app/Usuarios/TotpHelper.php';
 
-use App\Models\Database;
-use App\Models\User;
-use App\Helpers\TotpHelper;
+use App\Core\Database;
+use App\Usuarios\User;
+use App\Usuarios\TotpHelper;
 
 // ── Cookie params seguros antes do session_start ────────────────────────────
 if (session_status() === PHP_SESSION_NONE && !headers_sent()) {

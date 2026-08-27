@@ -1,12 +1,12 @@
 <?php
-require_once __DIR__ . '/../app/Models/Database.php';
-require_once __DIR__ . '/../app/Models/Account.php';
-require_once __DIR__ . '/../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../app/Core/Database.php';
+require_once __DIR__ . '/../app/Master/Account.php';
+require_once __DIR__ . '/../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../app/Core/AccountContext.php';
 session_start();
 if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
 // HARDENING: bloqueia acesso de contas suspensas/canceladas/inativas
-\App\Helpers\AccountContext::fromSession()->assertAccountActive();
+\App\Core\AccountContext::fromSession()->assertAccountActive();
 $activePage = 'tarefas';
 $csrf       = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 $userId     = (int)$_SESSION['user_id'];
@@ -16,7 +16,7 @@ $userName   = htmlspecialchars($_SESSION['user_nome'] ?? '');
 $origin_accounts = [];
 $origin_self     = ['id' => 0, 'tipo' => 'matriz', 'nome' => ''];
 try {
-    $ctx_t = \App\Helpers\AccountContext::fromSession();
+    $ctx_t = \App\Core\AccountContext::fromSession();
     $origin_self = [
         'id'   => $ctx_t->getAccountId(),
         'tipo' => $ctx_t->getAccountTipo(),
@@ -27,7 +27,7 @@ try {
         // via getAccessibleAccountIds (canonico), respeitando sync_tarefas das filiais.
         $accessibleIds = $ctx_t->getAccessibleAccountIds('tarefas');
         if (count($accessibleIds) > 1) {
-            $pdo_t = \App\Models\Database::getConnection();
+            $pdo_t = \App\Core\Database::getConnection();
             $ph_t  = implode(',', array_fill(0, count($accessibleIds), '?'));
             $stmt_t = $pdo_t->prepare(
                 "SELECT id, nome, tipo

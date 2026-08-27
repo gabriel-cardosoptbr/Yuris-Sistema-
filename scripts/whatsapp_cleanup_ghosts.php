@@ -16,8 +16,8 @@
  */
 if (PHP_SAPI !== 'cli') { http_response_code(403); exit('CLI only'); }
 
-require_once __DIR__ . '/../app/Models/Database.php';
-use App\Models\Database;
+require_once __DIR__ . '/../app/Core/Database.php';
+use App\Core\Database;
 
 $APPLY = in_array('--apply', $argv, true);
 $pdo = Database::getConnection();

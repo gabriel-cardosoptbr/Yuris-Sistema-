@@ -1,13 +1,13 @@
 <?php
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../app/Models/DREAccount.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../app/Financeiro/DREAccount.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
 
-use App\Models\DREAccount;
-use App\Models\Database;
-use App\Helpers\AccountContext;
+use App\Financeiro\DREAccount;
+use App\Core\Database;
+use App\Core\AccountContext;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -152,7 +152,7 @@ if ($method === 'POST') {
     if (empty($input['nome'])) { http_response_code(400); echo json_encode(['error' => 'Missing nome']); exit; }
     $input['account_id'] = $accountId;     // injeta tenant (NUNCA do body)
     $id = DREAccount::create($input);
-    \App\Models\Account::audit($accountId, 'dre.created', [
+    \App\Master\Account::audit($accountId, 'dre.created', [
         'user_id'     => $ctx->getUserId(),
         'entidade'    => 'dre_account',
         'entidade_id' => (int)$id,
@@ -174,7 +174,7 @@ if ($method === 'PUT' || $method === 'PATCH') {
     $dadosAntes = DREAccount::find($dreId, $tenantIds);
     $ok = DREAccount::update($dreId, $input, $tenantIds);
     if (!$ok) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
-    \App\Models\Account::audit($accountId, 'dre.updated', [
+    \App\Master\Account::audit($accountId, 'dre.updated', [
         'user_id'     => $ctx->getUserId(),
         'entidade'    => 'dre_account',
         'entidade_id' => $dreId,
@@ -192,7 +192,7 @@ if ($method === 'DELETE') {
     $dadosAntes = DREAccount::find($dreId, $tenantIds);
     $ok = DREAccount::softDelete($dreId, $tenantIds);
     if (!$ok) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
-    \App\Models\Account::audit($accountId, 'dre.deleted', [
+    \App\Master\Account::audit($accountId, 'dre.deleted', [
         'user_id'     => $ctx->getUserId(),
         'entidade'    => 'dre_account',
         'entidade_id' => $dreId,

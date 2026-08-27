@@ -2,17 +2,17 @@
 ob_start();
 @ini_set('display_errors', '0');
 
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
-require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
-require_once __DIR__ . '/../../../app/Models/Team.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
-require_once __DIR__ . '/../../../app/Services/WebhookDispatcher.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppInstance.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppMessage.php';
+require_once __DIR__ . '/../../../app/Usuarios/Team.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppChannelAccessService.php';
+require_once __DIR__ . '/../../../app/Integracoes/WebhookDispatcher.php';
 
-use App\Models\Team;
-use App\Helpers\AccountContext;
-use App\Services\WebhookDispatcher;
+use App\Usuarios\Team;
+use App\Core\AccountContext;
+use App\Integracoes\WebhookDispatcher;
 
 session_start(['read_and_close' => true]);
 $_uid  = $_SESSION['user_id']    ?? null;
@@ -31,7 +31,7 @@ $accountId = $ctx->getAccountId();
 try {
     $msgModel   = new WhatsAppMessage();
     $method     = $_SERVER['REQUEST_METHOD'];
-    $pdo        = \App\Models\Database::getConnection();
+    $pdo        = \App\Core\Database::getConnection();
 
     // Lista/anotações de conversa = 'view' no canal (deny-by-default). Resolve o
     // canal próprio ou, com a flag ligada, o compartilhado (filial herdando o da
@@ -125,7 +125,7 @@ try {
                 $linkCardId = isset($payload['card_id']) && $payload['card_id'] ? (int)$payload['card_id'] : null;
                 $linkUserId = isset($payload['user_id']) && $payload['user_id'] ? (int)$payload['user_id'] : null;
                 if ($linkCardId || $linkUserId) {
-                    $pdoChk = \App\Models\Database::getConnection();
+                    $pdoChk = \App\Core\Database::getConnection();
                     $accIds = $ctx->getAccessibleAccountIds('prospeccao');
                     if (empty($accIds)) $accIds = [$accountId];
                     $ph = implode(',', array_fill(0, count($accIds), '?'));
@@ -219,6 +219,6 @@ try {
 
 } catch (Throwable $e) {
     // P1 LGPD (2D.1): em prod esconde getMessage/file/line
-    require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
-    \App\Helpers\ErrorReporter::handle($e);
+    require_once __DIR__ . '/../../../app/Core/ErrorReporter.php';
+    \App\Core\ErrorReporter::handle($e);
 }

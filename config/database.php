@@ -5,14 +5,14 @@
 // PRODUÇÃO: criar um .env na raiz com as credenciais reais.
 // Veja .env.example pra referência.
 
-require_once __DIR__ . '/../app/Helpers/EnvLoader.php';
+require_once __DIR__ . '/../app/Core/EnvLoader.php';
 
-\App\Helpers\EnvLoader::load();
+\App\Core\EnvLoader::load();
 
 return [
-    'host'    => \App\Helpers\EnvLoader::get('DB_HOST',    '127.0.0.1'),
-    'dbname'  => \App\Helpers\EnvLoader::get('DB_NAME',    'sistema_vendas'),
-    'user'    => \App\Helpers\EnvLoader::get('DB_USER',    'root'),
-    'pass'    => \App\Helpers\EnvLoader::get('DB_PASS',    ''),
-    'charset' => \App\Helpers\EnvLoader::get('DB_CHARSET', 'utf8mb4'),
+    'host'    => \App\Core\EnvLoader::get('DB_HOST',    '127.0.0.1'),
+    'dbname'  => \App\Core\EnvLoader::get('DB_NAME',    'sistema_vendas'),
+    'user'    => \App\Core\EnvLoader::get('DB_USER',    'root'),
+    'pass'    => \App\Core\EnvLoader::get('DB_PASS',    ''),
+    'charset' => \App\Core\EnvLoader::get('DB_CHARSET', 'utf8mb4'),
 ];

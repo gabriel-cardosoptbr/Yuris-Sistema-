@@ -12,16 +12,16 @@
  *
  * @since 2026-05-26 (Etapa 5 add-on Monitoramentos)
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
-require_once __DIR__ . '/../../../app/Helpers/MonitorQuota.php';
-require_once __DIR__ . '/../../../app/Helpers/BillingGuard.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
+require_once __DIR__ . '/../../../app/Processos/MonitorQuota.php';
+require_once __DIR__ . '/../../../app/Billing/BillingGuard.php';
 
-use App\Helpers\AccountContext;
-use App\Helpers\ApiResponse;
-use App\Helpers\MonitorQuota;
-use App\Helpers\BillingGuard;
+use App\Core\AccountContext;
+use App\Core\ApiResponse;
+use App\Processos\MonitorQuota;
+use App\Billing\BillingGuard;
 
 session_start(['read_and_close' => true]);
 

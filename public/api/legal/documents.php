@@ -19,12 +19,12 @@
  *   /api/legal/accept.php) deve ser plugado nas páginas/banner — arquivos de
  *   outro dono (includes/legal_page.php, login.php) — ver risks.
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/LegalDocument.php';
-require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Processos/LegalDocument.php';
+require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
 
-use App\Models\LegalDocument;
-use App\Helpers\ApiResponse;
+use App\Processos\LegalDocument;
+use App\Core\ApiResponse;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');

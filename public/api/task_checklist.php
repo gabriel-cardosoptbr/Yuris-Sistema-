@@ -2,21 +2,21 @@
 error_reporting(0);
 ini_set('display_errors', '0');
 
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../app/Models/TaskChecklist.php';
-require_once __DIR__ . '/../../app/Models/Task.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
-require_once __DIR__ . '/../../app/Helpers/ProcessoAudit.php';
-require_once __DIR__ . '/../../app/Helpers/TaskAudit.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../app/Tarefas/TaskChecklist.php';
+require_once __DIR__ . '/../../app/Tarefas/Task.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/TenantGuard.php';
+require_once __DIR__ . '/../../app/Processos/ProcessoAudit.php';
+require_once __DIR__ . '/../../app/Tarefas/TaskAudit.php';
 
-use App\Models\TaskChecklist;
-use App\Models\Task;
-use App\Helpers\AccountContext;
-use App\Helpers\TenantGuard;
-use App\Helpers\TaskAudit;
+use App\Tarefas\TaskChecklist;
+use App\Tarefas\Task;
+use App\Core\AccountContext;
+use App\Core\TenantGuard;
+use App\Tarefas\TaskAudit;
 
 session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');
@@ -38,13 +38,13 @@ function tcOk($d = null): void { echo json_encode(['ok'=>true,'data'=>$d]); exit
 $action = $_GET['action'] ?? null;
 
 // Helper local: descobre o task_id de um checklist_item e valida tenant
-function tc_assertChecklistTenant(\App\Helpers\AccountContext $ctx, int $checklistId): void {
-    $pdo = \App\Models\Database::getConnection();
+function tc_assertChecklistTenant(\App\Core\AccountContext $ctx, int $checklistId): void {
+    $pdo = \App\Core\Database::getConnection();
     $stmt = $pdo->prepare('SELECT task_id FROM task_checklist_items WHERE id = ? LIMIT 1');
     $stmt->execute([$checklistId]);
     $tid = (int)($stmt->fetchColumn() ?: 0);
     if (!$tid) { http_response_code(404); echo json_encode(['ok' => false, 'error' => 'Item não encontrado']); exit; }
-    \App\Helpers\TenantGuard::assertTaskAcessivel($ctx, $tid);
+    \App\Core\TenantGuard::assertTaskAcessivel($ctx, $tid);
 }
 
 try {
@@ -63,7 +63,7 @@ try {
             if (!$id) tcFail('id obrigatório');
             tc_assertChecklistTenant($ctx, $id);
             // Captura info do item antes do toggle pra logar bem
-            $pdo  = \App\Models\Database::getConnection();
+            $pdo  = \App\Core\Database::getConnection();
             $stmt = $pdo->prepare('SELECT task_id, descricao, concluido FROM task_checklist_items WHERE id = ?');
             $stmt->execute([$id]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -96,7 +96,7 @@ try {
         if (empty($input['descricao'])) tcFail('Descrição obrigatória');
         tc_assertChecklistTenant($ctx, $id);
         // Captura task_id pro audit
-        $pdo  = \App\Models\Database::getConnection();
+        $pdo  = \App\Core\Database::getConnection();
         $stmt = $pdo->prepare('SELECT task_id FROM task_checklist_items WHERE id = ?');
         $stmt->execute([$id]);
         $tid = (int)($stmt->fetchColumn() ?: 0);
@@ -110,7 +110,7 @@ try {
         if (!$id) tcFail('id obrigatório');
         tc_assertChecklistTenant($ctx, $id);
         // Captura task_id e descrição antes de deletar
-        $pdo  = \App\Models\Database::getConnection();
+        $pdo  = \App\Core\Database::getConnection();
         $stmt = $pdo->prepare('SELECT task_id, descricao FROM task_checklist_items WHERE id = ?');
         $stmt->execute([$id]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);

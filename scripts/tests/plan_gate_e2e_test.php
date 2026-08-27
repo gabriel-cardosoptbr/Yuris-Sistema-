@@ -14,10 +14,10 @@
  * o que for parecido".
  */
 
-require_once __DIR__ . '/../../app/Helpers/PlanFeature.php';
+require_once __DIR__ . '/../../app/Billing/PlanFeature.php';
 
-use App\Helpers\PlanFeature;
-use App\Models\Database;
+use App\Billing\PlanFeature;
+use App\Core\Database;
 
 $MARCADOR = '__plan_gate_e2e__@teste.invalid';
 $pass = 0; $fail = 0;
@@ -200,8 +200,8 @@ function rodarSub(int $accountId, string $metodo, string $feature): array
     $php  = PHP_BINARY;
     $base = str_replace('\\', '/', dirname(__DIR__, 2));
     $code = <<<PHP
-require_once '{$base}/app/Helpers/PlanFeature.php';
-use App\\Helpers\\PlanFeature;
+require_once '{$base}/app/Billing/PlanFeature.php';
+use App\\Billing\\PlanFeature;
 if ('{$metodo}' === 'assertCanAddUser') { PlanFeature::assertUnderLimit({$accountId}, PlanFeature::F_MAX_USERS, 99, 'usuários'); }
 else { PlanFeature::assertEnabled({$accountId}, '{$feature}'); }
 PHP;

@@ -12,17 +12,17 @@
  * anterior do mesmo reactor). Frontend agrega por emoji e renderiza
  * abaixo da bubble alvo.
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/Account.php';
-require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../../app/Models/WhatsAppInstance.php';
-require_once __DIR__ . '/../../../app/Models/WhatsAppMessage.php';
-require_once __DIR__ . '/../../../app/Services/EvolutionApiService.php';
-require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Master/Account.php';
+require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppInstance.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppMessage.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/EvolutionApiService.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppChannelAccessService.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/ErrorReporter.php';
 
-use App\Helpers\AccountContext;
+use App\Core\AccountContext;
 use App\Services\EvolutionApiService;
 
 session_start();
@@ -64,7 +64,7 @@ try {
 
     // Reagir é equivalente a ENVIAR → permissão 'send' no canal (deny-by-default).
     // Canal/credenciais resolvidos no backend (dono do canal), nunca do front.
-    $pdo        = \App\Models\Database::getConnection();
+    $pdo        = \App\Core\Database::getConnection();
     $ch         = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $payload['channel_id'] ?? null, 'send');
     $instanceId = (int)$ch['channel_id'];
     $ownerId    = (int)$ch['owner_account_id'];
@@ -99,7 +99,7 @@ try {
             'fromMe'    => (bool)$fromMe,
         ];
         if (str_ends_with($jid, '@g.us')) {
-            $pdoLk = \App\Models\Database::getConnection();
+            $pdoLk = \App\Core\Database::getConnection();
             $stLk = $pdoLk->prepare(
                 'SELECT participant_jid FROM whatsapp_messages
                   WHERE instance_id = ? AND wamid = ? LIMIT 1'
@@ -137,5 +137,5 @@ try {
     ]);
 
 } catch (Throwable $e) {
-    \App\Helpers\ErrorReporter::handle($e);
+    \App\Core\ErrorReporter::handle($e);
 }

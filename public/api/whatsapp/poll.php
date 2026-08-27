@@ -15,11 +15,11 @@
  * muito mais leve que o getChatList antigo (subqueries por linha). Um cache curto da
  * decisao (APCu/sessao) pode entrar depois se o profiling mostrar que a authz esquenta.
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Services/WhatsAppChannelAccessService.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppChannelAccessService.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
 
-use App\Helpers\AccountContext;
+use App\Core\AccountContext;
 
 session_start(['read_and_close' => true]); // le a sessao e libera o lock (poll concorrente)
 $uid = $_SESSION['user_id'] ?? null;
@@ -29,7 +29,7 @@ if (!$uid) { http_response_code(401); echo json_encode(['error' => 'Unauthorized
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') { http_response_code(405); echo json_encode(['error' => 'Method not allowed']); exit; }
 
 try {
-    $pdo       = \App\Models\Database::getConnection();
+    $pdo       = \App\Core\Database::getConnection();
     $ctx       = AccountContext::fromSession();
     $accountId = $ctx->getAccountId();
     $reqChannel = (isset($_GET['channel_id']) && (int)$_GET['channel_id'] > 0) ? (int)$_GET['channel_id'] : null;

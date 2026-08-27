@@ -8,10 +8,10 @@
  *
  * Visual: usa classes utilitárias do legal_page.php (respondem ao tema).
  */
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/LgpdRequest.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Lgpd/LgpdRequest.php';
 
-use App\Models\LgpdRequest;
+use App\Lgpd\LgpdRequest;
 
 $token = trim((string)($_GET['token'] ?? ''));
 $valido = (strlen($token) === 64 && ctype_xdigit($token));

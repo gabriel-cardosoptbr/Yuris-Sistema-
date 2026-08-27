@@ -11,9 +11,9 @@
  *
  * Seguro reexecutar: cada passo é idempotente.
  */
-require_once __DIR__ . '/../../app/Models/Database.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
 
-use App\Models\Database;
+use App\Core\Database;
 
 $pdo = Database::getConnection();
 $db  = (string)$pdo->query('SELECT DATABASE()')->fetchColumn();

@@ -15,19 +15,19 @@
  *   - Valida vínculo ativo entre as contas antes de compartilhar
  */
 
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../app/Models/AccountNotification.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../app/Helpers/ProcessoAudit.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../app/Master/AccountNotification.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/Processos/ProcessoAudit.php';
 
-use App\Models\Account;
-use App\Models\Database;
-use App\Models\ResourceShare;
-use App\Models\AccountNotification;
-use App\Helpers\AccountContext;
-use App\Helpers\ProcessoAudit;
+use App\Master\Account;
+use App\Core\Database;
+use App\Master\ResourceShare;
+use App\Master\AccountNotification;
+use App\Core\AccountContext;
+use App\Processos\ProcessoAudit;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -89,7 +89,7 @@ if (in_array($method, ['POST', 'DELETE', 'PATCH'])) {
 if ($method === 'GET') {
     // Lista módulos liberados PELA conta atual (shares de tipo module emitidos por ela)
     if (!empty($_GET['listar_modulos'])) {
-        $pdo  = \App\Models\Database::getConnection();
+        $pdo  = \App\Core\Database::getConnection();
         $stmt = $pdo->prepare(
             "SELECT rs.*, a.nome AS to_account_nome, tu.nome AS to_user_nome
              FROM resource_shares rs
@@ -109,7 +109,7 @@ if ($method === 'GET') {
     // Traz codigo_vinculo (conta) + codigo_advogado (user) + tipo da conta destino,
     // pra UI mostrar info completa do destinatario.
     if (!empty($_GET['listar_meus'])) {
-        $pdo  = \App\Models\Database::getConnection();
+        $pdo  = \App\Core\Database::getConnection();
         $stmt = $pdo->prepare(
             "SELECT rs.*,
                     a.nome  AS to_account_nome,
@@ -244,8 +244,8 @@ if ($method === 'POST') {
         // P1 LGPD (2D.1): InvalidArgumentException tem mensagem segura
         // (validação de input) — mantém visível ao cliente mesmo em prod
         // mas usa o helper pra padronizar resposta + correlation_id
-        require_once __DIR__ . '/../../app/Helpers/ErrorReporter.php';
-        \App\Helpers\ErrorReporter::handle($e, 400, $e->getMessage());
+        require_once __DIR__ . '/../../app/Core/ErrorReporter.php';
+        \App\Core\ErrorReporter::handle($e, 400, $e->getMessage());
     }
 
     // Notifica a conta de destino (se especificada)

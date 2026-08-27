@@ -9,13 +9,13 @@
  *
  * Acesso: super_admin apenas. READ-ONLY. Fail-soft (uma agregacao que falhe nao derruba o resto).
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
 
-use App\Helpers\AccountContext;
-use App\Helpers\ApiResponse;
-use App\Models\Database;
+use App\Core\AccountContext;
+use App\Core\ApiResponse;
+use App\Core\Database;
 
 session_start();
 $ctx = AccountContext::fromSession();

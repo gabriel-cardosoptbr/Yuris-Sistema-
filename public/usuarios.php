@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../app/Models/Database.php';
+require_once __DIR__ . '/../app/Core/Database.php';
 session_start();
 if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
 $activePage = 'usuarios';

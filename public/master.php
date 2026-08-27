@@ -1,8 +1,8 @@
 <?php
-require_once __DIR__ . '/../app/Models/Database.php';
-require_once __DIR__ . '/../app/Models/Account.php';
-require_once __DIR__ . '/../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../app/Core/Database.php';
+require_once __DIR__ . '/../app/Master/Account.php';
+require_once __DIR__ . '/../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../app/Core/AccountContext.php';
 
 session_start();
 // Não logado → manda pro portal dedicado (não pro login regular)
@@ -20,7 +20,7 @@ if (empty($_SESSION['master_mode'])) {
     exit;
 }
 
-use App\Helpers\AccountContext;
+use App\Core\AccountContext;
 
 $ctx = AccountContext::fromSession();
 if (!$ctx->isSuperAdmin()) {
@@ -42,7 +42,7 @@ $saLevel = $ctx->getSuperAdminLevel() ?: 'operator';
 // Modo opt-in — não bloqueia login, apenas chama atenção.
 $mfaEnabled = false;
 try {
-    $pdoMfa = \App\Models\Database::getConnection();
+    $pdoMfa = \App\Core\Database::getConnection();
     $sMfa = $pdoMfa->prepare('SELECT mfa_enabled FROM super_admins WHERE user_id = :uid AND ativo = 1 LIMIT 1');
     $sMfa->execute(['uid' => $ctx->getUserId()]);
     $mfaEnabled = (int)$sMfa->fetchColumn() === 1;

@@ -1,17 +1,17 @@
 <?php
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../app/Models/TaskLink.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
-require_once __DIR__ . '/../../app/Helpers/ProcessoAudit.php';
-require_once __DIR__ . '/../../app/Helpers/TaskAudit.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../app/Tarefas/TaskLink.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/TenantGuard.php';
+require_once __DIR__ . '/../../app/Processos/ProcessoAudit.php';
+require_once __DIR__ . '/../../app/Tarefas/TaskAudit.php';
 
-use App\Models\TaskLink;
-use App\Helpers\AccountContext;
-use App\Helpers\TenantGuard;
-use App\Helpers\TaskAudit;
+use App\Tarefas\TaskLink;
+use App\Core\AccountContext;
+use App\Core\TenantGuard;
+use App\Tarefas\TaskAudit;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -66,7 +66,7 @@ if ($method === 'DELETE') {
     if ($linkRowId <= 0) fail('id obrigatório');
 
     // Busca o vínculo para validar tenant ANTES de remover
-    $pdo  = \App\Models\Database::getConnection();
+    $pdo  = \App\Core\Database::getConnection();
     $stmt = $pdo->prepare('SELECT task_id, link_type, link_id FROM task_links WHERE id = ? LIMIT 1');
     $stmt->execute([$linkRowId]);
     $row = $stmt->fetch(\PDO::FETCH_ASSOC);

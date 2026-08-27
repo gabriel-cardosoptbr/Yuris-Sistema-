@@ -1,10 +1,10 @@
 <?php
-require_once __DIR__ . '/../app/Models/Database.php';
-require_once __DIR__ . '/../app/Services/WebhookDispatcher.php';
-require_once __DIR__ . '/../app/Helpers/PlanFeature.php';
+require_once __DIR__ . '/../app/Core/Database.php';
+require_once __DIR__ . '/../app/Integracoes/WebhookDispatcher.php';
+require_once __DIR__ . '/../app/Billing/PlanFeature.php';
 
-use App\Services\WebhookDispatcher;
-use App\Helpers\PlanFeature;
+use App\Integracoes\WebhookDispatcher;
+use App\Billing\PlanFeature;
 
 session_start();
 if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }

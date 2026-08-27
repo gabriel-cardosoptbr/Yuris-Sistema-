@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../app/Models/Database.php';
+require_once __DIR__ . '/../app/Core/Database.php';
 
 // Usage: php scripts/check_user.php login password
 if ($argc < 3) {
@@ -10,7 +10,7 @@ $login = $argv[1];
 $pwd = $argv[2];
 
 // Use the Database class directly
-$db = \App\Models\Database::getConnection();
+$db = \App\Core\Database::getConnection();
 $stmt = $db->prepare('SELECT id, nome, login, senha_hash, perfil, deleted_at FROM users WHERE login = :login LIMIT 1');
 $stmt->execute(['login' => $login]);
 $user = $stmt->fetch();

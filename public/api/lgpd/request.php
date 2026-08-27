@@ -8,16 +8,16 @@
  *
  * Endpoint admin (super_admin) fica em /api/master/lgpd_requests.php.
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/LgpdRequest.php';
-require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
-require_once __DIR__ . '/../../../app/Helpers/EnvLoader.php';
-require_once __DIR__ . '/../../../app/Services/Mailer.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Lgpd/LgpdRequest.php';
+require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
+require_once __DIR__ . '/../../../app/Core/EnvLoader.php';
+require_once __DIR__ . '/../../../app/Core/Mailer.php';
 
-use App\Models\LgpdRequest;
-use App\Models\Database;
-use App\Helpers\ApiResponse;
-use App\Helpers\EnvLoader;
+use App\Lgpd\LgpdRequest;
+use App\Core\Database;
+use App\Core\ApiResponse;
+use App\Core\EnvLoader;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -124,7 +124,7 @@ if ($method === 'POST') {
                     . ' (' . htmlspecialchars($email) . ')'
                     . '<br><strong>Link de acompanhamento:</strong> ' . htmlspecialchars($url)
                     . '</p><p>Acesse o Painel Master &rarr; aba LGPD para responder.</p>';
-            \App\Services\Mailer::send([
+            \App\Core\Mailer::send([
                 'account_id'   => null,   // notificação sistêmica
                 'to_email'     => $dpoEmail,
                 'to_name'      => 'DPO Yuris',

@@ -8,14 +8,14 @@
  *
  *   POST { account_id, enabled (0|1) }  -> { ok, data:{ account_id, enabled, configs, account_nome } }
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
-require_once __DIR__ . '/../../../app/Helpers/MasterAudit.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
+require_once __DIR__ . '/../../../app/Master/MasterAudit.php';
 
-use App\Helpers\AccountContext;
-use App\Helpers\ApiResponse;
-use App\Helpers\MasterAudit;
+use App\Core\AccountContext;
+use App\Core\ApiResponse;
+use App\Master\MasterAudit;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -27,7 +27,7 @@ if (empty($_SESSION['master_mode'])) {
     ApiResponse::forbidden('Acesso somente pelo Painel Master.');
 }
 
-$pdo = \App\Models\Database::getConnection();
+$pdo = \App\Core\Database::getConnection();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405); echo json_encode(['ok' => false, 'error' => 'Método não permitido']); exit;

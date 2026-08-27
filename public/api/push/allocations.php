@@ -39,20 +39,20 @@
 ob_start();
 @ini_set('display_errors', '0');
 
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
-require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
-require_once __DIR__ . '/../../../app/Helpers/MonitorQuota.php';
-require_once __DIR__ . '/../../../app/Helpers/MonitorAudit.php';
-require_once __DIR__ . '/../../../app/Helpers/MonitorPermission.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
+require_once __DIR__ . '/../../../app/Core/ErrorReporter.php';
+require_once __DIR__ . '/../../../app/Processos/MonitorQuota.php';
+require_once __DIR__ . '/../../../app/Processos/MonitorAudit.php';
+require_once __DIR__ . '/../../../app/Processos/MonitorPermission.php';
 
-use App\Helpers\AccountContext;
-use App\Helpers\ApiResponse;
-use App\Helpers\MonitorQuota;
-use App\Helpers\MonitorAudit;
-use App\Helpers\MonitorPermission;
-use App\Models\Database;
+use App\Core\AccountContext;
+use App\Core\ApiResponse;
+use App\Processos\MonitorQuota;
+use App\Processos\MonitorAudit;
+use App\Processos\MonitorPermission;
+use App\Core\Database;
 
 session_start(['read_and_close' => true]);
 $csrfSession = $_SESSION['csrf_token'] ?? '';
@@ -125,7 +125,7 @@ try {
             echo json_encode(['ok' => false, 'error' => 'Método não suportado']);
     }
 } catch (\Throwable $e) {
-    \App\Helpers\ErrorReporter::handle($e);
+    \App\Core\ErrorReporter::handle($e);
 }
 
 // ───────────────────────────────────────────────────────────────────────

@@ -20,11 +20,11 @@
  *   docker exec -w /var/www/html yuris_app php scripts/_phaseB_webhook_token.php <account_id> --apply    # BACKUP + adiciona o header + verifica
  *   docker exec -w /var/www/html yuris_app php scripts/_phaseB_webhook_token.php <account_id> --rollback # remove o header (preservando url/eventos)
  */
-require_once __DIR__ . '/../app/Models/Database.php';
-require_once __DIR__ . '/../app/Models/WhatsAppInstance.php';
-require_once __DIR__ . '/../app/Services/EvolutionApiService.php';
+require_once __DIR__ . '/../app/Core/Database.php';
+require_once __DIR__ . '/../app/WhatsAppAgente/WhatsAppInstance.php';
+require_once __DIR__ . '/../app/WhatsAppAgente/EvolutionApiService.php';
 
-use App\Models\Database;
+use App\Core\Database;
 
 if (PHP_SAPI !== 'cli') { http_response_code(403); exit("CLI only\n"); }
 

@@ -18,9 +18,9 @@
 if (PHP_SAPI !== 'cli') { http_response_code(403); exit("CLI only\n"); }
 
 $ROOT = dirname(__DIR__, 2);
-require_once $ROOT . '/app/Models/Database.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
 
-use App\Models\Database;
+use App\Core\Database;
 
 /**
  * Baseline do prompt mestre (ai_prompts.template, name='pre_atendimento_universal').
@@ -222,10 +222,10 @@ if (is_file($wh)) {
 // Strangler do webhook (Onda 4 Pass 1/2/3): os helpers extraidos existem, expoem os
 // metodos esperados, e o webhook DELEGA a eles (sem sobrar a funcao global movida).
 // Guarda estrutural (so leitura + reflexao; seguro em prod) contra regressao do refactor.
-$parserF = $ROOT.'/app/Services/WhatsAppWebhookParser.php';
-$entityF = $ROOT.'/app/Services/WhatsAppWebhookEntitySync.php';
-$bridgeF = $ROOT.'/app/Services/WhatsAppAgentBridge.php';
-$authF   = $ROOT.'/app/Services/WhatsAppWebhookAuth.php'; // 2o fator do webhook (B3)
+$parserF = $ROOT.'/app/WhatsAppAgente/WhatsAppWebhookParser.php';
+$entityF = $ROOT.'/app/WhatsAppAgente/WhatsAppWebhookEntitySync.php';
+$bridgeF = $ROOT.'/app/WhatsAppAgente/WhatsAppAgentBridge.php';
+$authF   = $ROOT.'/app/WhatsAppAgente/WhatsAppWebhookAuth.php'; // 2o fator do webhook (B3)
 // REDE DE DEPLOY (atomicidade do strangler): se o webhook DELEGA a um helper (WhatsAppXxx::)
 // mas o arquivo do helper NAO existe, o require_once no topo do webhook fatala em runtime — e
 // um deploy incompleto (webhook shipou sem a classe). Aqui isso vira FAIL (nao o SKIP mudo do
@@ -246,22 +246,22 @@ if (is_file($parserF) && is_file($entityF) && is_file($bridgeF)) {
     require_once $parserF;
     require_once $entityF;
     require_once $bridgeF;
-    $okP = class_exists('App\\Services\\WhatsAppWebhookParser')
-        && method_exists('App\\Services\\WhatsAppWebhookParser', 'extractMessageContent')
-        && method_exists('App\\Services\\WhatsAppWebhookParser', 'extractQuotedWamid')
-        && method_exists('App\\Services\\WhatsAppWebhookParser', 'extractQuotedSnapshot');
-    $okE = class_exists('App\\Services\\WhatsAppWebhookEntitySync')
-        && method_exists('App\\Services\\WhatsAppWebhookEntitySync', 'syncContacts')
-        && method_exists('App\\Services\\WhatsAppWebhookEntitySync', 'syncChats')
-        && method_exists('App\\Services\\WhatsAppWebhookEntitySync', 'syncGroups')
-        && method_exists('App\\Services\\WhatsAppWebhookEntitySync', 'syncGroupParticipants')
-        && method_exists('App\\Services\\WhatsAppWebhookEntitySync', 'upsertGroupParticipants');
-    $okB = class_exists('App\\Services\\WhatsAppAgentBridge')
-        && method_exists('App\\Services\\WhatsAppAgentBridge', 'maybeQueueAgentReply')
-        && method_exists('App\\Services\\WhatsAppAgentBridge', 'maybeHandleHumanSend')
-        && method_exists('App\\Services\\WhatsAppAgentBridge', 'flushResponse')
-        && method_exists('App\\Services\\WhatsAppAgentBridge', 'decryptAgentApiKey')
-        && method_exists('App\\Services\\WhatsAppAgentBridge', 'runAgentReply');
+    $okP = class_exists('App\\WhatsAppAgente\\WhatsAppWebhookParser')
+        && method_exists('App\\WhatsAppAgente\\WhatsAppWebhookParser', 'extractMessageContent')
+        && method_exists('App\\WhatsAppAgente\\WhatsAppWebhookParser', 'extractQuotedWamid')
+        && method_exists('App\\WhatsAppAgente\\WhatsAppWebhookParser', 'extractQuotedSnapshot');
+    $okE = class_exists('App\\WhatsAppAgente\\WhatsAppWebhookEntitySync')
+        && method_exists('App\\WhatsAppAgente\\WhatsAppWebhookEntitySync', 'syncContacts')
+        && method_exists('App\\WhatsAppAgente\\WhatsAppWebhookEntitySync', 'syncChats')
+        && method_exists('App\\WhatsAppAgente\\WhatsAppWebhookEntitySync', 'syncGroups')
+        && method_exists('App\\WhatsAppAgente\\WhatsAppWebhookEntitySync', 'syncGroupParticipants')
+        && method_exists('App\\WhatsAppAgente\\WhatsAppWebhookEntitySync', 'upsertGroupParticipants');
+    $okB = class_exists('App\\WhatsAppAgente\\WhatsAppAgentBridge')
+        && method_exists('App\\WhatsAppAgente\\WhatsAppAgentBridge', 'maybeQueueAgentReply')
+        && method_exists('App\\WhatsAppAgente\\WhatsAppAgentBridge', 'maybeHandleHumanSend')
+        && method_exists('App\\WhatsAppAgente\\WhatsAppAgentBridge', 'flushResponse')
+        && method_exists('App\\WhatsAppAgente\\WhatsAppAgentBridge', 'decryptAgentApiKey')
+        && method_exists('App\\WhatsAppAgente\\WhatsAppAgentBridge', 'runAgentReply');
     $okP ? pass("strangler Pass 1: WhatsAppWebhookParser expoe os 3 parsers") : fail("strangler Pass 1: WhatsAppWebhookParser incompleto");
     $okE ? pass("strangler Pass 2: WhatsAppWebhookEntitySync expoe sync* + upsertGroupParticipants") : fail("strangler Pass 2: WhatsAppWebhookEntitySync incompleto");
     $okB ? pass("strangler Pass 3: WhatsAppAgentBridge expoe queue/human/flush/decrypt/run") : fail("strangler Pass 3: WhatsAppAgentBridge incompleto");
@@ -302,8 +302,8 @@ if (!is_file($authF)) {
     skip("WhatsAppWebhookAuth.php nao encontrado (B3 nao deployado ainda)");
 } else {
     require_once $authF;
-    $okA = class_exists('App\\Services\\WhatsAppWebhookAuth')
-        && method_exists('App\\Services\\WhatsAppWebhookAuth', 'verify');
+    $okA = class_exists('App\\WhatsAppAgente\\WhatsAppWebhookAuth')
+        && method_exists('App\\WhatsAppAgente\\WhatsAppWebhookAuth', 'verify');
     $okA ? pass("B3: WhatsAppWebhookAuth expoe verify()")
          : fail("B3: WhatsAppWebhookAuth sem verify()");
     // A comparacao do token DEVE ser constant-time (hash_equals), nao === (timing attack).
@@ -341,7 +341,7 @@ if (!is_file($authF)) {
 
 // ── B3 auto-provisionamento do cracha (provision gera token + reconciliador liga estrito) ──
 section("B3 auto-cracha — provisionamento automatico");
-$provF = $ROOT . '/app/Services/WhatsAppProvisioningService.php';
+$provF = $ROOT . '/app/WhatsAppAgente/WhatsAppProvisioningService.php';
 $tickF = $ROOT . '/public/api/whatsapp_health_tick.php';
 $crhF  = $ROOT . '/public/api/master/crachas.php';
 if (is_file($provF)) {

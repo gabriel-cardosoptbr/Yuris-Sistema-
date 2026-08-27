@@ -1,16 +1,16 @@
 <?php
-require_once __DIR__ . '/../app/Models/Database.php';
-require_once __DIR__ . '/../app/Models/Processo.php';
-require_once __DIR__ . '/../app/Models/Account.php';
-require_once __DIR__ . '/../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../app/Core/Database.php';
+require_once __DIR__ . '/../app/Processos/Processo.php';
+require_once __DIR__ . '/../app/Master/Account.php';
+require_once __DIR__ . '/../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../app/Core/AccountContext.php';
 session_start();
 if (empty($_SESSION['user_id'])) {
     header('Location: /login.php');
     exit;
 }
 // HARDENING: bloqueia acesso de contas suspensas/canceladas/inativas
-\App\Helpers\AccountContext::fromSession()->assertAccountActive();
+\App\Core\AccountContext::fromSession()->assertAccountActive();
 $activePage = 'processos';
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 
@@ -21,7 +21,7 @@ $system_users    = [];
 $origin_accounts = [];   // contas acessíveis (própria + filiais ativas) — alimenta filtro de Origem
 $origin_self     = ['id' => 0, 'tipo' => 'matriz', 'nome' => ''];
 try {
-    $ctx_users    = \App\Helpers\AccountContext::fromSession();
+    $ctx_users    = \App\Core\AccountContext::fromSession();
     $system_users = $ctx_users->getAccessibleUsers();
 
     $origin_self = [
@@ -35,7 +35,7 @@ try {
         // (canonico, ja le account_vinculos) em vez do matriz_id morto.
         $accessibleIds = $ctx_users->getAccessibleAccountIds('processos');
         if (count($accessibleIds) > 1) {
-            $pdo_o = \App\Models\Database::getConnection();
+            $pdo_o = \App\Core\Database::getConnection();
             $ph_o  = implode(',', array_fill(0, count($accessibleIds), '?'));
             $stmt_o = $pdo_o->prepare(
                 "SELECT id, nome, tipo

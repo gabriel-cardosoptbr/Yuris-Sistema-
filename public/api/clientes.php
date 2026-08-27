@@ -16,17 +16,17 @@
  *   - assertCanRead/Write valida ownership ou share
  */
 
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Cliente.php';
-require_once __DIR__ . '/../../app/Models/ClienteSetor.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../app/Services/WebhookDispatcher.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Prospeccao/Cliente.php';
+require_once __DIR__ . '/../../app/Prospeccao/ClienteSetor.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/Integracoes/WebhookDispatcher.php';
 
-use App\Services\WebhookDispatcher;
+use App\Integracoes\WebhookDispatcher;
 
-use App\Models\Cliente;
-use App\Models\ClienteSetor;
-use App\Helpers\AccountContext;
+use App\Prospeccao\Cliente;
+use App\Prospeccao\ClienteSetor;
+use App\Core\AccountContext;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');

@@ -12,22 +12,22 @@
  *
  * Acesso: super_admin com master_mode.
  */
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/Account.php';
-require_once __DIR__ . '/../../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/ApiResponse.php';
-require_once __DIR__ . '/../../../app/Helpers/Anonymizer.php';
-require_once __DIR__ . '/../../../app/Helpers/MasterAudit.php';
-require_once __DIR__ . '/../../../app/Models/LgpdRequest.php';
-require_once __DIR__ . '/../../../app/Models/LgpdRequestRetentionJustification.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Master/Account.php';
+require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
+require_once __DIR__ . '/../../../app/Lgpd/Anonymizer.php';
+require_once __DIR__ . '/../../../app/Master/MasterAudit.php';
+require_once __DIR__ . '/../../../app/Lgpd/LgpdRequest.php';
+require_once __DIR__ . '/../../../app/Lgpd/LgpdRequestRetentionJustification.php';
 
-use App\Helpers\AccountContext;
-use App\Helpers\ApiResponse;
-use App\Helpers\Anonymizer;
-use App\Helpers\MasterAudit;
-use App\Models\LgpdRequest;
-use App\Models\LgpdRequestRetentionJustification;
+use App\Core\AccountContext;
+use App\Core\ApiResponse;
+use App\Lgpd\Anonymizer;
+use App\Master\MasterAudit;
+use App\Lgpd\LgpdRequest;
+use App\Lgpd\LgpdRequestRetentionJustification;
 
 session_start();
 $ctx = AccountContext::fromSession();
@@ -76,7 +76,7 @@ if ($method === 'POST' && ($_GET['action'] ?? null) === 'preview_impact') {
     $entidadeId = (int)($input['entidade_id'] ?? 0);
     if (!$entidadeId) ApiResponse::badRequest('entidade_id obrigatório');
 
-    $pdo = \App\Models\Database::getConnection();
+    $pdo = \App\Core\Database::getConnection();
     $impact = ['entidade' => $entidade, 'entidade_id' => $entidadeId, 'vinculos' => []];
 
     switch ($entidade) {

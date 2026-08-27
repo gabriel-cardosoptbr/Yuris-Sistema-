@@ -226,8 +226,8 @@ Saida (apenas JSON): intent="new_intake", primary_practice_area="criminal", urge
 - Mensagem nova do cliente: {{user_message}}
 - Formato de saida: responda somente com o objeto JSON do schema de pre-atendimento, com todos os campos obrigatorios e nenhum campo extra.
 PROMPT,
-  // Snapshot do schema (secao 23). A fonte de verdade em runtime e App\Services\AiIntake\IntakeSchema.
-  'schema_ref' => 'App\\Services\\AiIntake\\IntakeSchema::jsonSchema',
+  // Snapshot do schema (secao 23). A fonte de verdade em runtime e App\WhatsAppAgente\AiIntake\IntakeSchema.
+  'schema_ref' => 'App\\WhatsAppAgente\\AiIntake\\IntakeSchema::jsonSchema',
 ],
 
 ];

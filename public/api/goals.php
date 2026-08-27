@@ -1,13 +1,13 @@
 <?php
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../app/Helpers/TenantGuard.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/TenantGuard.php';
 
-use App\Models\Database;
-use App\Helpers\AccountContext;
-use App\Helpers\TenantGuard;
+use App\Core\Database;
+use App\Core\AccountContext;
+use App\Core\TenantGuard;
 
 // read_and_close: só lê $_SESSION (csrf via TenantGuard), nunca escreve. Libera o
 // lock de escrita na hora — evita serializar os AJAX do dashboard e travar o sino.
@@ -112,7 +112,7 @@ try {
         $row = $pdo->prepare('SELECT * FROM goals WHERE id = :id');
         $row->execute(['id' => $gid]);
         $goalRow = $row->fetch(PDO::FETCH_ASSOC);
-        \App\Models\Account::audit($accountId, $wasUpdate ? 'goal.updated' : 'goal.created', [
+        \App\Master\Account::audit($accountId, $wasUpdate ? 'goal.updated' : 'goal.created', [
             'user_id'     => $uid,
             'entidade'    => 'goal',
             'entidade_id' => $gid,
@@ -136,7 +136,7 @@ try {
             echo json_encode(['error' => 'Sem permissão']);
             exit;
         }
-        \App\Models\Account::audit($accountId, 'goal.deleted', [
+        \App\Master\Account::audit($accountId, 'goal.deleted', [
             'user_id'     => $uid,
             'entidade'    => 'goal',
             'entidade_id' => $id,

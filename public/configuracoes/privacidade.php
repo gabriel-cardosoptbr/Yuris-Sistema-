@@ -13,14 +13,14 @@
  * Padrão visual: idêntico às demais páginas do app (page-layout + main-content
  * + page-header, ver configuracoes.php / dashboard.php).
  */
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../app/Models/Consent.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../app/Usuarios/Consent.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
 
-use App\Helpers\AccountContext;
-use App\Models\Consent;
+use App\Core\AccountContext;
+use App\Usuarios\Consent;
 
 session_start();
 if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }

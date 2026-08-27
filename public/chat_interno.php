@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../app/Models/Database.php';
-require_once __DIR__ . '/../app/Helpers/PlanFeature.php';
+require_once __DIR__ . '/../app/Core/Database.php';
+require_once __DIR__ . '/../app/Billing/PlanFeature.php';
 session_start();
 if (empty($_SESSION['user_id'])) {
     header('Location: /login.php');
@@ -8,9 +8,9 @@ if (empty($_SESSION['user_id'])) {
 }
 // Módulo por plano (402 + página de bloqueio). Só age com a trava mestra
 // plan_enforcement_enabled ligada; antes disso apenas registra no log.
-\App\Helpers\PlanFeature::assertEnabledPage(
+\App\Billing\PlanFeature::assertEnabledPage(
     (int)($_SESSION['account_id'] ?? 0),
-    \App\Helpers\PlanFeature::F_CHAT_INTERNO
+    \App\Billing\PlanFeature::F_CHAT_INTERNO
 );
 $activePage = 'chat_interno';
 $uid        = (int)$_SESSION['user_id'];

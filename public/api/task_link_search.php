@@ -1,10 +1,10 @@
 <?php
-require_once __DIR__ . '/../../app/Models/Database.php';
-require_once __DIR__ . '/../../app/Models/Account.php';
-require_once __DIR__ . '/../../app/Models/ResourceShare.php';
-require_once __DIR__ . '/../../app/Helpers/AccountContext.php';
+require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/Master/Account.php';
+require_once __DIR__ . '/../../app/Master/ResourceShare.php';
+require_once __DIR__ . '/../../app/Core/AccountContext.php';
 
-use App\Helpers\AccountContext;
+use App\Core\AccountContext;
 
 session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');
@@ -16,7 +16,7 @@ $type  = $_GET['type']  ?? '';
 $q     = trim($_GET['q'] ?? '');
 $limit = min((int)($_GET['limit'] ?? 15), 50);
 $like  = '%' . $q . '%';
-$pdo   = \App\Models\Database::getConnection();
+$pdo   = \App\Core\Database::getConnection();
 $items = [];
 
 // Monta uma cláusula IN escopada por módulo. O escopo de tarefas (BAIXA #19)

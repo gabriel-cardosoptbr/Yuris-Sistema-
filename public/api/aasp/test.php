@@ -26,19 +26,19 @@
 ob_start();
 @ini_set('display_errors', '0');
 
-require_once __DIR__ . '/../../../app/Models/Database.php';
-require_once __DIR__ . '/../../../app/Models/AaspIntegration.php';
-require_once __DIR__ . '/../../../app/Helpers/AccountContext.php';
-require_once __DIR__ . '/../../../app/Helpers/EnvLoader.php';
-require_once __DIR__ . '/../../../app/Helpers/ErrorReporter.php';
-require_once __DIR__ . '/../../../app/Services/Push/PublicationHasher.php';
-require_once __DIR__ . '/../../../app/Services/Push/ProviderInterface.php';
-require_once __DIR__ . '/../../../app/Services/Push/AaspProvider.php';
+require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/Processos/AaspIntegration.php';
+require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/Core/EnvLoader.php';
+require_once __DIR__ . '/../../../app/Core/ErrorReporter.php';
+require_once __DIR__ . '/../../../app/Processos/Monitor/PublicationHasher.php';
+require_once __DIR__ . '/../../../app/Processos/Monitor/ProviderInterface.php';
+require_once __DIR__ . '/../../../app/Processos/Monitor/AaspProvider.php';
 
-use App\Helpers\AccountContext;
-use App\Helpers\EnvLoader;
-use App\Models\AaspIntegration;
-use App\Services\Push\AaspProvider;
+use App\Core\AccountContext;
+use App\Core\EnvLoader;
+use App\Processos\AaspIntegration;
+use App\Processos\Monitor\AaspProvider;
 
 session_start(['read_and_close' => true]);
 $csrfSession = $_SESSION['csrf_token'] ?? '';
@@ -172,5 +172,5 @@ try {
         ]);
     }
 } catch (\Throwable $e) {
-    \App\Helpers\ErrorReporter::handle($e);
+    \App\Core\ErrorReporter::handle($e);
 }
