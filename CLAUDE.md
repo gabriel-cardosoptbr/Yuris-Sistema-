@@ -92,9 +92,9 @@ for f in $(find app public bin scripts config database -name "*.php"); do php -l
 for t in scripts/tests/*.php; do php "$t"; done
 ```
 
-Baseline conhecido em 27/08/2026: `wa_webhook_parser` 42/0 · `wa_webhook_token`
-21/0 · `wa_invariants` 39/0 · `plan_gate_e2e` 25 ok/0 · `plan_feature` **66
-ok/12 falha**. As 12 falhas do `plan_feature` são **pré-existentes**: 12 é o
+Baseline conhecido em 27/08/2026: `class_refs` 3407 referências, todas
+resolvem · `wa_webhook_parser` 42/0 · `wa_webhook_token` 21/0 · `wa_invariants`
+39/0 · `plan_gate_e2e` 25 ok/0 · `plan_feature` **66 ok/12 falha**. As 12 falhas do `plan_feature` são **pré-existentes**: 12 é o
 esperado, acima de 12 é regressão sua.
 
 Ao mexer em `app/`, confira também que nenhum `require` ficou apontando para o
@@ -107,10 +107,15 @@ dessas checagens pega**:
   namespace se enxergam sem `use`, então mover uma delas quebra a outra sem que
   `php -l` ou carregar o arquivo percebam (type hint só resolve na chamada).
 
-**Por isso, mudança estrutural em `app/` exige varredura autenticada**, com
-sessão de verdade, executando as páginas e os endpoints. Sem sessão, as páginas
-internas redirecionam para o login antes de executar a linha que quebra, e o
-teste passa dando falsa segurança. Foi exatamente o que aconteceu em 27/08/2026.
+**Quem pega as duas é o `scripts/tests/class_refs_test.php`**, que confere
+estaticamente se todo nome de classe do projeto resolve, inclusive em caminho de
+código que nenhuma requisição executa. Rode-o sempre que mexer em namespace,
+mover arquivo ou renomear classe.
+
+**Mudança estrutural em `app/` também pede varredura autenticada**, com sessão
+de verdade, porque o teste estático não pega erro de lógica. Sem sessão, as
+páginas internas redirecionam para o login antes de executar a linha que quebra,
+e o teste passa dando falsa segurança. Foi o que aconteceu em 27/08/2026.
 
 ## Riscos deste projeto, em ordem de gravidade
 

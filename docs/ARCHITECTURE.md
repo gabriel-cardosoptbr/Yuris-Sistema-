@@ -104,6 +104,7 @@ Baseline conhecido em **27/08/2026**:
 
 | Suite | Esperado |
 |---|---|
+| `class_refs_test` | 3407 referências, todas resolvem |
 | `wa_webhook_parser_test` | 42 PASS · 0 FAIL |
 | `wa_webhook_token_test` | 21 PASS · 0 FAIL |
 | `wa_invariants` | 39 PASS · 0 FAIL |
@@ -125,10 +126,16 @@ vazio e que todo `use App\...` resolve.
    a apontar para uma classe inexistente, e **nem `php -l` nem carregar o
    arquivo percebem**: type hint só resolve na chamada.
 
-Por isso **mudança estrutural em `app/` exige varredura autenticada**. Sem
-sessão, as páginas internas redirecionam para o login antes de executar a linha
-que quebra: o teste passa e dá falsa segurança. Em 27/08/2026 a varredura
-anônima deu 164/164 e havia 28 referências quebradas, com duas telas fatalando.
+**A defesa principal contra as duas é o `scripts/tests/class_refs_test.php`**,
+que confere estaticamente se todo nome de classe do projeto resolve, inclusive
+em caminho de código que nenhuma requisição executa. Ele foi validado contra o
+commit quebrado: acusa as 131 referências, e fica limpo depois da correção.
+
+Ainda assim, **mudança estrutural em `app/` também pede varredura autenticada**,
+porque o teste estático não pega erro de lógica. Sem sessão, as páginas internas
+redirecionam para o login antes de executar a linha que quebra: o teste passa e
+dá falsa segurança. Em 27/08/2026 a varredura anônima deu 164/164 e havia 28
+referências quebradas, com duas telas fatalando.
 
 Para criar a sessão sem alterar dado, replique o que o `AuthController` grava
 (só `SELECT`), escreva o arquivo de sessão e mande o `PHPSESSID` como cookie.
@@ -143,8 +150,9 @@ o caminho de permissão é diferente.
   namespace. Já causou três bugs em produção (corrigidos em `f7d5ca8`)
 - **`public/` não é agrupável por domínio** sem uma camada de rota que preserve
   os endereços atuais
-- **Sem suite de teste automatizada de verdade**: as cinco suites de
-  `scripts/tests/` cobrem plano e WhatsApp, o resto é verificado à mão
+- **Cobertura de teste concentrada**: das seis suites de `scripts/tests/`, o
+  `class_refs_test` cobre o projeto inteiro, mas as outras cinco cobrem só
+  plano e WhatsApp; o resto é verificado à mão
 
 ## Próximos passos, se um dia valer a pena
 

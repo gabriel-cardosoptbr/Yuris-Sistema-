@@ -9,6 +9,7 @@ executa de propósito, com `php scripts/<arquivo>.php`.
 
 | Script | Cobre | Precisa de banco? |
 |---|---|---|
+| `tests/class_refs_test.php` | **toda referência a classe do projeto resolve?** | não |
 | `tests/wa_webhook_parser_test.php` | parsers do payload da Evolution | não |
 | `tests/wa_webhook_token_test.php` | segundo fator do webhook | não |
 | `tests/wa_invariants.php` | invariantes do módulo WhatsApp e do agente | sim |
@@ -18,12 +19,30 @@ executa de propósito, com `php scripts/<arquivo>.php`.
 Baseline conhecido em **27/08/2026**, com o MySQL de pé:
 
 ```
-wa_webhook_parser   42 PASS · 0 FAIL
-wa_webhook_token    21 PASS · 0 FAIL
-wa_invariants       39 PASS · 0 FAIL
-plan_gate_e2e       25 ok  · 0 falha
-plan_feature        66 ok  · 12 falha    <- as 12 sao PRE-EXISTENTES
+class_refs          3407 referencias · todas resolvem
+wa_webhook_parser     42 PASS · 0 FAIL
+wa_webhook_token      21 PASS · 0 FAIL
+wa_invariants         39 PASS · 0 FAIL
+plan_gate_e2e         25 ok  · 0 falha
+plan_feature          66 ok  · 12 falha    <- as 12 sao PRE-EXISTENTES
 ```
+
+### O que o `class_refs_test` pega, e por que ele existe
+
+Ele confere estaticamente, com o tokenizer do PHP, se **todo nome de classe
+citado no projeto resolve para uma classe que existe**, aplicando as regras
+reais do PHP (`\X` global; `X` vira o `use` se houver, senão
+`NamespaceAtual\X`, sem fallback para o global).
+
+Nasceu de um caso real: ao dividir um namespace em 27/08/2026, 131 referências
+passaram a apontar para o vazio, e **nada do que se costuma rodar pegou**. `php
+-l` não resolve nome de classe; carregar o arquivo também não, porque type hint
+só resolve na chamada; e a varredura HTTP sem sessão redireciona para o login
+antes da linha quebrar, então deu 164/164 "sem fatal" com o sistema quebrado.
+
+É o único teste aqui que cobre **caminho de código que nenhuma requisição
+executa**. Rode-o sempre que mexer em namespace, mover arquivo ou renomear
+classe.
 
 As 12 falhas do `plan_feature` são anteriores à reorganização de pastas. **Se
 você vir 12, é o estado herdado. Acima de 12, é sua.** Compare sempre com este
