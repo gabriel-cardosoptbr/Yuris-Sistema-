@@ -148,7 +148,7 @@ foreach ($pendentes as $r) {
                 $cfg[$row['config_key']] = $row['config_value'];
             }
             if (!empty($cfg['evolution_base_url']) && !empty($cfg['evolution_api_key']) && !empty($cfg['evolution_instance'])) {
-                $svc = new \App\Services\EvolutionApiService(
+                $svc = new \EvolutionApiService(
                     $cfg['evolution_base_url'], $cfg['evolution_api_key'], $cfg['evolution_instance']
                 );
                 // busca telefone do usuário

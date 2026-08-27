@@ -22,7 +22,6 @@ require_once __DIR__ . '/../../../app/Core/AccountContext.php';
 require_once __DIR__ . '/../../../app/Core/ErrorReporter.php';
 
 use App\Core\AccountContext;
-use App\Services\EvolutionApiService;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
