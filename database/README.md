@@ -8,7 +8,7 @@ ser testado nos dois.
 
 | Pasta / arquivo | O que é |
 |---|---|
-| `migrations/` | 124 arquivos, numerados de `001` a `110`. É o histórico de como o schema chegou ao que é hoje |
+| `migrations/` | 125 arquivos, numerados de `001` a `111`. É o histórico de como o schema chegou ao que é hoje |
 | `seeds/` | dados iniciais: `seed_demo.sql`, `seed_processos_mensais.sql`, e os catálogos do agente de IA (`ai_intake_catalog.php`, `ai_area_questions.php`, `ai_prompt_v2.php`, `ai_prompt_v3.php`) |
 | `schema.sql` | retrato do schema completo |
 | `db_schema_local.tsv` | dump das colunas do banco local, útil para conferir divergência |
@@ -28,6 +28,26 @@ de criar.
 **Há dois formatos, `.sql` e `run_NNN.php`.** O `.php` existe para migration
 que precisa de lógica (ler dado, decidir, transformar), o que SQL puro não
 resolve. As mais recentes são php.
+
+### A 111 é o exemplo de por que testar em banco descartável
+
+A migration 111 (isola `contatos` por conta, bug B1) passou no banco de
+desenvolvimento de primeira, porque aqui **nenhum** contato estava compartilhado
+entre contas. Rodada num banco descartável com o cenário ruim montado de
+propósito, quebrou na hora: ela tentava criar a cópia do contato **antes** de
+trocar o UNIQUE global, e o índice recusava. O erro só apareceria em produção.
+
+Molde que funcionou:
+
+```bash
+mysqldump -u root sistema_vendas > dump.sql
+mysql -u root -e "CREATE DATABASE yuris_migtest"
+mysql -u root yuris_migtest < dump.sql
+# insira à mão o caso ruim que o dev não tem, e só então rode a migration
+```
+
+Lembre que **o `.env` vence a variável de ambiente** (ver `../config/README.md`):
+`DB_NAME=yuris_migtest php ...` não basta.
 
 **Teste a migration antes de produção.** O DAVIQ usa um banco `migtest`
 descartável para isso, e a receita vale aqui: rodar contra cópia, conferir,

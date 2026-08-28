@@ -117,9 +117,8 @@ register_shutdown_function(function () use (&$CRIADO) {
             // trigger de linha no MySQL.
             $pdo->exec("DELETE FROM lgpd_requests WHERE id IN ($in)");
         }
-        // contatos criados pelo dedupe nascem com account_id NULL (ver D6 nos
-        // debitos), entao nao sao alcancados pela limpeza por conta: precisam
-        // ser apagados por id.
+        // contatos sao apagados por id porque alguns podem ter nascido sem
+        // account_id antes da migration 111 (bug B1).
         if ($CRIADO['contatos']) {
             $in = implode(',', array_map('intval', $CRIADO['contatos']));
             $pdo->exec("DELETE FROM contatos WHERE id IN ($in)");
@@ -237,6 +236,46 @@ $listaB = Cliente::list(['account_ids' => [$accB]]);
 $idsB = array_column($listaB, 'id');
 ok('ISOLAMENTO: conta B não enxerga cliente da conta A',
     !in_array((int)$cliComTel, array_map('intval', $idsB), true));
+
+// ── Regressão do bug B1 (migration 111) ─────────────────────────────────────
+// Até 27/08/2026 `contatos.telefone` era UNIQUE GLOBAL: dois escritórios com um
+// cliente de MESMO telefone caíam na mesma linha de contato, e o nome exibido
+// era o de quem cadastrou primeiro. O histórico do processo e o vínculo da
+// tarefa resolvem o nome do contato por id, sem filtro de conta, então isso
+// aparecia na tela do escritório errado.
+$setorB = okSemErro('cria setor na conta B', fn() => ClienteSetor::create([
+    'account_id' => $accB, 'nome' => "Novo B {$RUN}", 'ordem' => 1,
+]));
+$telCompartilhado = '11' . random_int(900000000, 999999999);
+
+$cliA = okSemErro('conta A cria cliente com um telefone', fn() => Cliente::create([
+    'account_id' => $accA, 'setor_id' => $setorA,
+    'nome' => "Cliente Com Telefone A {$RUN}", 'telefone' => $telCompartilhado,
+], $userA));
+$cliB = okSemErro('conta B cria cliente com o MESMO telefone', fn() => Cliente::create([
+    'account_id' => $accB, 'setor_id' => $setorB,
+    'nome' => "Cliente Com Telefone B {$RUN}", 'telefone' => $telCompartilhado,
+], $userB));
+
+$rA = $cliA ? Cliente::find((int)$cliA) : null;
+$rB = $cliB ? Cliente::find((int)$cliB) : null;
+if ($rA && !empty($rA['contato_id'])) { $CRIADO['contatos'][] = (int)$rA['contato_id']; }
+if ($rB && !empty($rB['contato_id'])) { $CRIADO['contatos'][] = (int)$rB['contato_id']; }
+
+ok('B1: mesmo telefone em contas diferentes gera contatos DIFERENTES',
+    $rA !== null && $rB !== null && !empty($rA['contato_id']) && !empty($rB['contato_id'])
+    && (int)$rA['contato_id'] !== (int)$rB['contato_id']);
+
+$ctA = ($rA && !empty($rA['contato_id'])) ? Contato::find((int)$rA['contato_id']) : null;
+$ctB = ($rB && !empty($rB['contato_id'])) ? Contato::find((int)$rB['contato_id']) : null;
+ok('B1: cada contato pertence à sua própria conta',
+    $ctA !== null && $ctB !== null
+    && (int)($ctA['account_id'] ?? 0) === $accA
+    && (int)($ctB['account_id'] ?? 0) === $accB);
+ok('B1: cada escritório vê o nome que ELE digitou',
+    $ctB !== null && str_contains((string)$ctB['nome'], 'Telefone B'));
+ok('B1: Contato::find com conta errada não devolve o contato do outro',
+    $ctB !== null && Contato::find((int)$rB['contato_id'], $accA) === null);
 
 /* ═══════════════════════════════════════════════════════════════════════════
    PROSPECÇÃO

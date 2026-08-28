@@ -13,9 +13,17 @@ Uma pasta pequena e com uma regra só: **aqui não mora segredo**.
 
 ```
 .env (raiz, fora do git)  ->  EnvLoader  ->  config/database.php  ->  Database
-                                   ^
-                          ambiente do processo vence o .env
 ```
+
+> **Atenção, e é contraintuitivo:** o **`.env` vence a variável de ambiente**.
+> `EnvLoader::load()` despeja o arquivo em `$_ENV`, e `get()` consulta `$_ENV`
+> **antes** de `getenv()`. Ou seja, `DB_NAME=outro php script.php` **não** muda
+> nada se `DB_NAME` estiver no `.env`.
+>
+> Em Docker isso importa: variável passada ao contêiner é ignorada para toda
+> chave que já exista no `.env` da imagem ou do volume. Para apontar a aplicação
+> a outro banco (testar uma migration, por exemplo), edite o `.env` ou
+> sobrescreva `$_ENV` depois de `EnvLoader::load()`.
 
 Em desenvolvimento, sem `.env`, o padrão é o XAMPP local (`127.0.0.1`, base
 `sistema_vendas`, usuário `root`, senha vazia) e o sistema sobe sem

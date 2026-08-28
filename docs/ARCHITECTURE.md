@@ -43,7 +43,7 @@ O autoloader mapeia namespace para pasta (`App\Processos\Processo` →
 |---|---|---|
 | `app/` | regra de negócio, organizada **por assunto** | [`../app/README.md`](../app/README.md) |
 | `public/` | tudo que responde por URL: páginas, API, assets | [`../public/README.md`](../public/README.md) |
-| `database/` | schema, 124 migrations, seeds | [`../database/README.md`](../database/README.md) |
+| `database/` | schema, 125 migrations, seeds | [`../database/README.md`](../database/README.md) |
 | `bin/` | processos de fundo, chamados por cron | [`../bin/README.md`](../bin/README.md) |
 | `scripts/` | utilitários de linha de comando e as suites de teste | [`../scripts/README.md`](../scripts/README.md) |
 | `config/` | configuração, lida do `.env` | [`../config/README.md`](../config/README.md) |
@@ -120,7 +120,7 @@ Baseline conhecido em **27/08/2026**:
 | `wa_invariants` | 39 PASS · 0 FAIL |
 | `plan_gate_e2e_test` | 25 ok · 0 falha |
 | `plan_feature_test` | 79 ok · 0 falha |
-| `dominios_test` | 44 ok · 0 falha |
+| `dominios_test` | 51 ok · 0 falha |
 
 **Tudo verde é o esperado; qualquer falha é regressão.** Até 27/08/2026 o
 `plan_feature` fechava em `66 ok · 12 falha`, tratadas como dívida herdada. Eram

@@ -164,7 +164,8 @@ class Card
             require_once __DIR__ . '/Contato.php';
             $contatoId = \App\Prospeccao\Contato::findOrCreateByPhone(
                 $data['cliente_nome'] ?? '',
-                $data['telefone_whatsapp']
+                $data['telefone_whatsapp'],
+                (int)($data['account_id'] ?? 0)
             );
             if ($contatoId) {
                 $pdo->prepare('UPDATE cards SET contato_id = ? WHERE id = ?')
@@ -201,13 +202,14 @@ class Card
 
         // Resolve contato_id se telefone foi atualizado
         if (array_key_exists('telefone_whatsapp', $data) && !empty($data['telefone_whatsapp'])) {
-            require_once __DIR__ . '/Contato.php';
-            $nome = $data['cliente_nome'] ?? null;
-            if (!$nome) {
-                $existing = self::find($id);
-                $nome = $existing['cliente_nome'] ?? '';
-            }
-            $contatoId = \App\Prospeccao\Contato::findOrCreateByPhone($nome, $data['telefone_whatsapp']);
+            // o card existente e quem diz de qual conta e o contato
+            $existing = self::find($id);
+            $nome = $data['cliente_nome'] ?? ($existing['cliente_nome'] ?? '');
+            $contatoId = \App\Prospeccao\Contato::findOrCreateByPhone(
+                $nome,
+                $data['telefone_whatsapp'],
+                (int)($existing['account_id'] ?? 0)
+            );
             if ($contatoId) {
                 $fields[]              = 'contato_id = :contato_id';
                 $params['contato_id']  = $contatoId;

@@ -26,7 +26,7 @@ wa_webhook_token      21 PASS · 0 FAIL
 wa_invariants         39 PASS · 0 FAIL
 plan_gate_e2e         25 ok  · 0 falha
 plan_feature          79 ok  · 0 falha
-dominios              44 ok  · 0 falha
+dominios              51 ok  · 0 falha
 ```
 
 **Tudo verde é o esperado.** Qualquer falha é regressão.

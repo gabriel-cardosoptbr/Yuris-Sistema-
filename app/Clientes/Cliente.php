@@ -130,7 +130,8 @@ class Cliente
         if ($phoneForDedupe) {
             $contatoId = \App\Prospeccao\Contato::findOrCreateByPhone(
                 (string)$data['nome'],
-                $phoneForDedupe
+                $phoneForDedupe,
+                $accountId
             );
         }
 
@@ -226,7 +227,8 @@ class Cliente
             if ($phoneNew) {
                 $cid = \App\Prospeccao\Contato::findOrCreateByPhone(
                     (string)($data['nome'] ?? $before['nome'] ?? ''),
-                    $phoneNew
+                    $phoneNew,
+                    (int)($before['account_id'] ?? 0)
                 );
                 if ($cid) { $fields[] = 'contato_id = :contato_id'; $params['contato_id'] = $cid; }
             }

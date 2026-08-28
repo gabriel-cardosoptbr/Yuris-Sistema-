@@ -48,7 +48,9 @@ final class HandoffService
         // ── Contato (dedupe por telefone) ──
         $contatoId = $p['contact_id'] ?? null;
         if (!$contatoId && $phone) {
-            try { $contatoId = Contato::findOrCreateByPhone($nome, $phone); } catch (\Throwable $_) {}
+            try {
+                $contatoId = Contato::findOrCreateByPhone($nome, $phone, $accountId);
+            } catch (\Throwable $_) {}
         }
 
         // ── Card de Prospeccao (idempotente) ──

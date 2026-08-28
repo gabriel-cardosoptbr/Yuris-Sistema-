@@ -942,7 +942,9 @@ class WhatsAppMessage
         // Quando um card é vinculado, propaga o contato_id do card para o chat
         $contatoId = null;
         if (!empty($links['linked_card_id'])) {
-            $cardRow = $this->db->prepare('SELECT contato_id, cliente_nome FROM cards WHERE id = ? LIMIT 1');
+            // account_id do card entra na busca: o contato e criado dentro da
+            // conta dona do card (migration 111, bug B1)
+            $cardRow = $this->db->prepare('SELECT contato_id, cliente_nome, account_id FROM cards WHERE id = ? LIMIT 1');
             $cardRow->execute([$links['linked_card_id']]);
             $cardData  = $cardRow->fetch(\PDO::FETCH_ASSOC) ?: [];
             $contatoId = $cardData['contato_id'] ?? null;
@@ -954,7 +956,8 @@ class WhatsAppMessage
                 if ($isLid) {
                     $contatoId = \App\Prospeccao\Contato::findOrCreateByJid(
                         $cardData['cliente_nome'] ?? 'Contato',
-                        $remoteJid
+                        $remoteJid,
+                        (int)($cardData['account_id'] ?? 0)
                     );
                     // Atualiza card com o novo contato_id
                     if ($contatoId) {
