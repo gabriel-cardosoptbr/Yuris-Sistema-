@@ -28,7 +28,16 @@
  */
 $raiz = strtr(dirname(__DIR__, 2), DIRECTORY_SEPARATOR, '/');
 
-// 1) carrega tudo de app/ para saber o que existe
+// 1) carrega tudo de app/ para saber o que existe.
+//
+// O bootstrap vem PRIMEIRO de propósito. Sem o autoloader registrado, este
+// laço depende da ordem em que o sistema de arquivos devolve os arquivos: se
+// `DjenProvider` (que faz `implements ProviderInterface`) for carregado antes
+// da interface, o PHP fatala na declaração. Isso passava no Windows e quebrava
+// no Linux, onde a ordem é outra. Com o autoloader, a interface é resolvida na
+// hora, qualquer que seja a ordem.
+require_once $raiz . '/app/bootstrap.php';
+
 $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($raiz . '/app'));
 foreach ($it as $f) {
     if ($f->isFile() && $f->getExtension() === 'php') {
