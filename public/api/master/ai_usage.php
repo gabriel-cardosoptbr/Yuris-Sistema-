@@ -15,12 +15,12 @@
  *
  *   GET -> { ok, data: { summary:{...}, accounts:[ {...} ] } }
  */
-require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/Core/AccountContext.php';
-require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
+require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\AccountContext;
 use App\Core\ApiResponse;
+use App\WhatsAppAgente\EvolutionApiService;
+use App\WhatsAppAgente\WhatsAppInstance;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -45,7 +45,7 @@ if (($_GET['action'] ?? '') === 'webhook') {
     $iid = (int)($_GET['instance_id'] ?? 0);
     if ($iid <= 0) ApiResponse::badRequest('instance_id obrigatório.');
 
-    $wi   = new \WhatsAppInstance();
+    $wi   = new WhatsAppInstance();
     $inst = $wi->find($iid);                       // super admin: sem escopo de conta
     if (!$inst) ApiResponse::badRequest('Instância não encontrada.');
 
@@ -59,7 +59,7 @@ if (($_GET['action'] ?? '') === 'webhook') {
     }
 
     try {
-        $svc = new \EvolutionApiService($cfg);
+        $svc = new EvolutionApiService($cfg);
         $svc->setTimeout(8);
         $resp = $svc->getWebhook($name);
         $url  = $resp['url'] ?? $resp['webhook']['url'] ?? ($resp['data']['url'] ?? null);

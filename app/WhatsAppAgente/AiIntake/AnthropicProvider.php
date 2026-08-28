@@ -1,8 +1,6 @@
 <?php
 namespace App\WhatsAppAgente\AiIntake;
 
-require_once __DIR__ . '/LlmProviderInterface.php';
-
 /**
  * AnthropicProvider — fallback. A Anthropic Messages API nao tem response_format
  * json_schema como a OpenAI; aqui pedimos JSON estrito pelo prompt e validamos no backend

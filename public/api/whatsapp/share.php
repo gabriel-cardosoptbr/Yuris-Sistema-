@@ -19,16 +19,13 @@
  *   POST action=grant   { filial_account_id, perms:{can_view,can_send,can_sync}, csrf_token }
  *   POST action=revoke  { filial_account_id, csrf_token }
  */
-require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/Master/Account.php';
-require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppInstance.php';
-require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppChannelAccessService.php';
-require_once __DIR__ . '/../../../app/Core/AccountContext.php';
-require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
+require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\AccountContext;
 use App\Core\ApiResponse;
 use App\Master\Account;
+use App\WhatsAppAgente\WhatsAppChannelAccessService;
+use App\WhatsAppAgente\WhatsAppInstance;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');

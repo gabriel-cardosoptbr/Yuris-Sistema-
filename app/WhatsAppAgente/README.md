@@ -48,16 +48,23 @@ O detalhe completo, com diagramas, está na skill de desenvolvimento em
 ### O agente
 [`AiIntake/`](AiIntake/) — o motor de pré-atendimento jurídico.
 
-## Cuidado: cinco classes daqui são globais
+## Todas as classes daqui têm namespace (desde 27/08/2026)
 
-`WhatsAppInstance`, `WhatsAppMessage`, `EvolutionApiService`,
-`WhatsAppChannelAccessService` e `WhatsAppProvisioningService` **não declaram
-namespace**. Chame-as como `\EvolutionApiService`, nunca como
-`\App\WhatsAppAgente\EvolutionApiService`.
+Cinco delas viviam no namespace global por herança: `WhatsAppInstance`,
+`WhatsAppMessage`, `EvolutionApiService`, `WhatsAppChannelAccessService` e
+`WhatsAppProvisioningService`. Chamavam-se `\EvolutionApiService`, e essa
+exceção já tinha causado **três bugs em produção** (lembrete recorrente que
+nunca enviava, reagir e apagar mensagem dando 500, corrigidos em `f7d5ca8`).
 
-Isso já causou três bugs em produção (lembrete recorrente que nunca enviava,
-reagir e apagar mensagem dando 500), corrigidos no commit `f7d5ca8`. As demais
-classes da pasta têm namespace normal.
+Hoje todas são `App\WhatsAppAgente\*`, como o resto do projeto. Se você
+encontrar `\EvolutionApiService` em código antigo, script solto ou runbook
+fora do repositório, está desatualizado.
+
+Detalhe que mordeu na conversão: esses arquivos eram globais, então `PDO` neles
+resolvia para a classe nativa. Com namespace, `PDO` passou a significar
+`App\WhatsAppAgente\PDO`. Por isso `WhatsAppInstance` e `WhatsAppMessage`
+ganharam `use PDO;`. Vale para qualquer classe nativa (`Exception`,
+`DateTime`...) ao dar namespace a um arquivo que não tinha.
 
 ## Regras que derrubam o módulo se ignoradas
 

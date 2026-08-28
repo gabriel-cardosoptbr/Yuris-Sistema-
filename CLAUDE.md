@@ -13,9 +13,17 @@ isolamento entre contas é a garantia mais importante do sistema.
   no repositório é o que roda
 - Desenvolvimento local: `http://localhost:8090`
 
-Não há autoloader. Toda classe é carregada por `require_once` com caminho
-escrito à mão. Isso está detalhado em [`app/README.md`](app/README.md), e é a
-primeira coisa a entender antes de mover qualquer arquivo.
+**Existe autoloader** desde 27/08/2026: [`app/bootstrap.php`](app/bootstrap.php),
+20 linhas de `spl_autoload_register` que mapeiam namespace para pasta. Todo ponto
+de entrada carrega o bootstrap e nada mais:
+
+```php
+require_once __DIR__ . '/../app/bootstrap.php';
+use App\Processos\Processo;
+```
+
+Antes disso eram 1.077 `require_once` com caminho à mão, em 192 arquivos.
+Detalhe em [`app/README.md`](app/README.md).
 
 ---
 
@@ -92,10 +100,14 @@ for f in $(find app public bin scripts config database -name "*.php"); do php -l
 for t in scripts/tests/*.php; do php "$t"; done
 ```
 
-Baseline conhecido em 27/08/2026: `class_refs` 3407 referências, todas
-resolvem · `wa_webhook_parser` 42/0 · `wa_webhook_token` 21/0 · `wa_invariants`
-39/0 · `plan_gate_e2e` 25 ok/0 · `plan_feature` **66 ok/12 falha**. As 12 falhas do `plan_feature` são **pré-existentes**: 12 é o
-esperado, acima de 12 é regressão sua.
+Baseline em 27/08/2026: `class_refs` 3411 referências + 323 requires, todos
+resolvem ·
+`wa_webhook_parser` 42/0 · `wa_webhook_token` 21/0 · `wa_invariants` 39/0 ·
+`plan_gate_e2e` 25 ok/0 · `plan_feature` 79 ok/0.
+
+**Tudo verde é o esperado.** As 12 falhas antigas do `plan_feature` eram o teste
+exigindo os preços que saíram da página pública; foram corrigidas, e o bloco
+hoje confere a decisão nova (nenhum valor visível, JSON-LD sem `offers`).
 
 Ao mexer em `app/`, confira também que nenhum `require` ficou apontando para o
 vazio e que todo `use App\...` resolve. E lembre das duas formas que **nenhuma
@@ -126,8 +138,8 @@ e o teste passa dando falsa segurança. Foi o que aconteceu em 27/08/2026.
    por conta, usada ao mesmo tempo pelo chat humano e pelo agente. Segunda
    instância, segundo QR ou webhook paralelo derrubam o módulo. Ver
    [`app/WhatsAppAgente/README.md`](app/WhatsAppAgente/README.md).
-3. **Mudar caminho de arquivo sem atualizar quem o carrega.** Sem autoloader, o
-   erro só aparece em runtime.
+3. **Namespace que deixa de espelhar a pasta.** É o que o autoloader usa para
+   achar o arquivo. Pasta nova exige namespace igual, ou a classe some.
 4. **Editar migration já aplicada.** Não muda os bancos onde já rodou. Correção
    é migration nova.
 5. **Prazo de LGPD.** Solicitação de titular e incidente têm prazo legal. Ver

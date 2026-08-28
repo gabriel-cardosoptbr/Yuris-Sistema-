@@ -10,9 +10,7 @@
  *
  * CSRF obrigatório em POST/DELETE.
  */
-require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/Usuarios/Consent.php';
-require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
+require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Usuarios\Consent;
 use App\Core\ApiResponse;

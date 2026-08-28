@@ -11,8 +11,7 @@
  *
  * Não vaza se o e-mail existe no sistema: sempre retorna 200 com bool.
  */
-require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
+require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\Database;
 use App\Core\ApiResponse;

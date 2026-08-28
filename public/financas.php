@@ -1,16 +1,11 @@
 <?php
-require_once __DIR__ . '/../app/Core/Database.php';
-require_once __DIR__ . '/../app/Usuarios/User.php';
-require_once __DIR__ . '/../app/Master/Account.php';
-require_once __DIR__ . '/../app/Master/ResourceShare.php';
-require_once __DIR__ . '/../app/Core/AccountContext.php';
+require_once __DIR__ . '/../app/bootstrap.php';
 
 session_start();
 if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
 $activePage = 'dre';
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 
-require_once __DIR__ . '/../app/Financas/DREAccount.php';
 use App\Financas\DREAccount;
 use App\Core\AccountContext;
 

@@ -1,4 +1,6 @@
 <?php
+use App\WhatsAppAgente\EvolutionApiService;
+
 /**
  * Cron interno — rodar diariamente à meia-noite.
  * Protegido por token: GET /api/tasks_recurrence_tick.php?token=SEU_TOKEN
@@ -9,16 +11,7 @@
  */
 ob_start();
 
-require_once __DIR__ . '/../../app/Core/Database.php';
-require_once __DIR__ . '/../../app/Tarefas/Task.php';
-require_once __DIR__ . '/../../app/Tarefas/TaskColumn.php';
-require_once __DIR__ . '/../../app/Tarefas/TaskRecurrence.php';
-require_once __DIR__ . '/../../app/Tarefas/TaskReminder.php';
-require_once __DIR__ . '/../../app/Tarefas/TaskLink.php';
-require_once __DIR__ . '/../../app/Master/ResourceShare.php';
-require_once __DIR__ . '/../../app/Core/EnvLoader.php';
-require_once __DIR__ . '/../../app/Processos/ProcessoAudit.php';
-require_once __DIR__ . '/../../app/Tarefas/TaskAudit.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 // P1 LGPD (2A.4): carrega .env explicitamente — getenv() não funciona sem isso
 \App\Core\EnvLoader::load();
@@ -148,7 +141,7 @@ foreach ($pendentes as $r) {
                 $cfg[$row['config_key']] = $row['config_value'];
             }
             if (!empty($cfg['evolution_base_url']) && !empty($cfg['evolution_api_key']) && !empty($cfg['evolution_instance'])) {
-                $svc = new \EvolutionApiService(
+                $svc = new EvolutionApiService(
                     $cfg['evolution_base_url'], $cfg['evolution_api_key'], $cfg['evolution_instance']
                 );
                 // busca telefone do usuário

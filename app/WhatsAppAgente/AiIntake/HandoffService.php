@@ -1,11 +1,6 @@
 <?php
 namespace App\WhatsAppAgente\AiIntake;
 
-require_once __DIR__ . '/../../Core/Database.php';
-require_once __DIR__ . '/../../Prospeccao/Contato.php';
-require_once __DIR__ . '/../../Prospeccao/Card.php';
-require_once __DIR__ . '/../../Master/AccountNotification.php';
-
 use App\Prospeccao\Contato;
 use App\Prospeccao\Card;
 use App\Master\AccountNotification;

@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../app/Core/Database.php';
+require_once __DIR__ . '/../app/bootstrap.php';
 
 // Usage: php scripts/check_user.php login password
 if ($argc < 3) {

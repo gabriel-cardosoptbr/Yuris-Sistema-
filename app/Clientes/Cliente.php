@@ -128,7 +128,6 @@ class Cliente
         $contatoId = null;
         $phoneForDedupe = self::_pickDedupePhone($data);
         if ($phoneForDedupe) {
-            require_once __DIR__ . '/Contato.php';
             $contatoId = \App\Prospeccao\Contato::findOrCreateByPhone(
                 (string)$data['nome'],
                 $phoneForDedupe
@@ -225,7 +224,6 @@ class Cliente
         if (array_key_exists('telefone', $data) || array_key_exists('whatsapp', $data)) {
             $phoneNew = self::_pickDedupePhone(array_merge((array)$before, $data));
             if ($phoneNew) {
-                require_once __DIR__ . '/Contato.php';
                 $cid = \App\Prospeccao\Contato::findOrCreateByPhone(
                     (string)($data['nome'] ?? $before['nome'] ?? ''),
                     $phoneNew

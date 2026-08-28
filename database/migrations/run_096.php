@@ -7,7 +7,7 @@
 // Cria a tabela de autorização explícita de canal + coluna can_delete_messages +
 // backfill das linhas de DONO para instâncias já existentes. Idempotente.
 
-require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Core\Database;
 

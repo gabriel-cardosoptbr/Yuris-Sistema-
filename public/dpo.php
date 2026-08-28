@@ -3,7 +3,7 @@
  * Contato do Encarregado de Dados (DPO) — modelo inicial (LGPD Etapa 5).
  * Lê DPO_NAME, DPO_EMAIL, DPO_PHONE do .env (variáveis vazias → mensagem placeholder).
  */
-require_once __DIR__ . '/../app/Core/EnvLoader.php';
+require_once __DIR__ . '/../app/bootstrap.php';
 \App\Core\EnvLoader::load();
 
 $dpoNome  = trim(\App\Core\EnvLoader::get('DPO_NAME',     ''));

@@ -7,7 +7,7 @@
 // Adiciona a flag de "Assumir conversa" (pausa o agente por conversa).
 // Idempotente: check em information_schema antes do ADD COLUMN.
 
-require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Core\Database;
 

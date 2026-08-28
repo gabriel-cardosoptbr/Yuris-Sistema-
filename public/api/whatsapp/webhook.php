@@ -7,18 +7,7 @@
  *  - Não exige CSRF
  *  - Valida opcionalmente via header apikey
  */
-require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppInstance.php';
-require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppMessage.php';
-require_once __DIR__ . '/../../../app/Webhooks/WebhookDispatcher.php';
-require_once __DIR__ . '/../../../app/WhatsAppAgente/EvolutionApiService.php';
-require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppWebhookParser.php';     // parsers puros do payload (strangler Pass 1)
-require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppWebhookEntitySync.php'; // persistencia de entidades contato/chat/grupo (strangler Pass 2)
-require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppAgentBridge.php';       // caminho do agente IA: gating/flush/decrypt/envio (strangler Pass 3)
-require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppWebhookAuth.php';       // 2o fator do webhook (webhook_token) — B3
-require_once __DIR__ . '/../../../app/WhatsAppAgente/AiIntake/AgentEvent.php';       // telemetria de anomalias do webhook — B3 Bloco 2
-require_once __DIR__ . '/../../../app/Core/Crypto.php';     // decifra api_key do agente (GCM / APP_ENCRYPTION_KEY)
-require_once __DIR__ . '/../../../app/Usuarios/TotpHelper.php'; // fallback p/ api_key legada (CBC / MFA_ENCRYPTION_KEY)
+require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\Database;
 use App\WhatsAppAgente\WhatsAppWebhookParser;

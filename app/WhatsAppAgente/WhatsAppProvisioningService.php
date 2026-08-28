@@ -1,4 +1,5 @@
 <?php
+namespace App\WhatsAppAgente;
 /**
  * WhatsAppProvisioningService — provisionamento (idempotente, best-effort) de
  * instância WhatsApp na Evolution para uma conta (matriz / advogado / filial).
@@ -14,10 +15,6 @@
  *    não devolve a chave num formato fixo no create.
  */
 
-require_once __DIR__ . '/EvolutionApiService.php';
-require_once __DIR__ . '/WhatsAppInstance.php';
-require_once __DIR__ . '/../Core/Crypto.php';
-require_once __DIR__ . '/WhatsAppChannelAccessService.php';
 
 class WhatsAppProvisioningService
 {

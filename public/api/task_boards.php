@@ -1,9 +1,6 @@
 <?php
 require_once __DIR__ . '/_json_guard.php';   // avisos PHP nunca vazam como HTML no JSON (anti "Unexpected token '<'")
-require_once __DIR__ . '/../../app/Core/Database.php';
-require_once __DIR__ . '/../../app/Tarefas/TaskBoard.php';
-require_once __DIR__ . '/../../app/Tarefas/TaskColumn.php';
-require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Tarefas\TaskBoard;
 use App\Tarefas\TaskColumn;

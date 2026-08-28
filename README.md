@@ -34,9 +34,16 @@ Stack: PHP 8.2 + MySQL 8.0 (producao) / MariaDB 10.4+ (dev) + Apache 2.4.
 | Apache | 2.4 | 2.4 + mod_rewrite + mod_ssl + mod_headers |
 | Extensões PHP | `pdo_mysql`, `mbstring`, `curl`, `openssl`, `fileinfo`, `zip`, `xml`, `opcache`, `hash`, `json`, `session` |
 
-**Não usa Composer.** Não há autoloader: toda classe é carregada por `require_once` com caminho escrito à mão.
-Os namespaces seguem as pastas de domínio (`App\Core\*`, `App\Processos\*`, `App\Tarefas\*`, ...).
-Cinco classes de WhatsApp ficam no namespace global, ver [`app/README.md`](app/README.md).
+**Não usa Composer**, mas **tem autoloader**: `app/bootstrap.php`, 20 linhas de `spl_autoload_register`
+que mapeiam namespace para pasta. Todo ponto de entrada carrega o bootstrap e nada mais:
+
+```php
+require_once __DIR__ . '/../app/bootstrap.php';
+use App\Processos\Processo;
+```
+
+O namespace espelha a pasta, **sem exceção** (`App\Core\*` → `app/Core/`, `App\Tarefas\*` → `app/Tarefas/`).
+Ver [`app/README.md`](app/README.md).
 
 **Não usa npm/node.** JavaScript é vanilla (sem build step).
 
@@ -217,6 +224,7 @@ sistema_vendas/
 ├── Dockerfile / docker-compose.yml
 │
 ├── app/                  # regra de negócio, nada aqui responde por URL
+│   ├── bootstrap.php     # o autoloader. É o único require de um ponto de entrada
 │   ├── Core/             # Database, AccountContext, TenantGuard, Crypto, .env, Mailer
 │   ├── Usuarios/         # login, 2FA, convites, vínculos, times
 │   ├── Master/           # conta (tenant), Painel Master, incidentes, auditoria

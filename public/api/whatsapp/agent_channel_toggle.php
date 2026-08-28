@@ -18,12 +18,11 @@
  *   GET  ?instance_id=ID                       -> { ok, instance_id, has_agent, enabled, connected, channel_status, agent_name }
  *   POST { instance_id, enabled:0|1, _csrf }   -> idem (estado novo) + saved:true
  */
-require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/Core/AccountContext.php';
-require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppChannelAccessService.php';
+require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\AccountContext;
 use App\Core\Database;
+use App\WhatsAppAgente\WhatsAppChannelAccessService;
 
 session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');

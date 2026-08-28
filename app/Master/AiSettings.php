@@ -3,7 +3,6 @@ namespace App\Master;
 
 use App\Core\Crypto;
 
-require_once __DIR__ . '/../Core/Crypto.php';
 
 /**
  * AiSettings — config GLOBAL de IA da plataforma (Inovaize), em app_settings (key/value).

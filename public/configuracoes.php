@@ -1,6 +1,5 @@
 <?php
-require_once __DIR__ . '/../app/Core/Database.php';
-require_once __DIR__ . '/../app/Prospeccao/PipelineColumn.php';
+require_once __DIR__ . '/../app/bootstrap.php';
 use App\Prospeccao\PipelineColumn;
 session_start();
 if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }

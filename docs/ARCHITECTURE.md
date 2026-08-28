@@ -23,9 +23,19 @@ app/<Dominio>/<Classe>.php     regra de negócio
 MySQL
 ```
 
-Não existe roteador. **O caminho do arquivo em `public/` é a URL.** Não existe
-autoloader: cada arquivo carrega o que precisa com `require_once` e caminho
-escrito à mão.
+Não existe roteador. **O caminho do arquivo em `public/` é a URL.**
+
+Existe autoloader (`app/bootstrap.php`), então um ponto de entrada faz **um só**
+require e usa as classes direto:
+
+```php
+require_once __DIR__ . '/../app/bootstrap.php';
+use App\Processos\Processo;
+```
+
+O autoloader mapeia namespace para pasta (`App\Processos\Processo` →
+`app/Processos/Processo.php`). Até 27/08/2026 não havia autoloader: eram 1.077
+`require_once` com caminho escrito à mão, em 192 arquivos.
 
 ## Onde fica cada coisa
 
@@ -104,14 +114,17 @@ Baseline conhecido em **27/08/2026**:
 
 | Suite | Esperado |
 |---|---|
-| `class_refs_test` | 3407 referências, todas resolvem |
+| `class_refs_test` | 3411 referências + 323 requires, todos resolvem |
 | `wa_webhook_parser_test` | 42 PASS · 0 FAIL |
 | `wa_webhook_token_test` | 21 PASS · 0 FAIL |
 | `wa_invariants` | 39 PASS · 0 FAIL |
 | `plan_gate_e2e_test` | 25 ok · 0 falha |
-| `plan_feature_test` | 66 ok · **12 falha (pré-existentes)** |
+| `plan_feature_test` | 79 ok · 0 falha |
 
-12 falhas no `plan_feature` é o estado herdado. Acima de 12 é regressão.
+**Tudo verde é o esperado; qualquer falha é regressão.** Até 27/08/2026 o
+`plan_feature` fechava em `66 ok · 12 falha`, tratadas como dívida herdada. Eram
+as asserções de preço da página pública, que deixaram de valer quando o produto
+tirou os valores de `planos.php`. O teste estava velho, não o código.
 
 Ao mexer em `app/`, verifique também que nenhum `require` ficou apontando para o
 vazio e que todo `use App\...` resolve.
@@ -144,10 +157,11 @@ o caminho de permissão é diferente.
 
 ## Limitações conhecidas, assumidas
 
-- **Sem autoloader**: mover arquivo em `app/` exige atualizar quem o carrega, e
-  o erro só aparece em runtime
-- **Cinco classes de WhatsApp no namespace global**, herança de quando não havia
-  namespace. Já causou três bugs em produção (corrigidos em `f7d5ca8`)
+- **O autoloader depende do namespace espelhar a pasta.** Pasta nova com
+  namespace divergente faz a classe sumir, sem erro de sintaxe. É o preço de
+  não usar Composer, e o `class_refs_test` é quem cobre isso
+- **Carregar um arquivo de classe isolado não funciona**: as dependências vêm
+  do autoloader, então script, cron e `php -r` carregam `app/bootstrap.php`
 - **`public/` não é agrupável por domínio** sem uma camada de rota que preserve
   os endereços atuais
 - **Cobertura de teste concentrada**: das seis suites de `scripts/tests/`, o
@@ -158,10 +172,8 @@ o caminho de permissão é diferente.
 
 Em ordem de custo/benefício, do mais barato ao mais caro:
 
-1. **Autoloader por classmap.** Todos os nomes de classe já batem com os nomes
-   de arquivo, então um classmap resolve inclusive as cinco classes globais.
-   Elimina a fragilidade dos 1.108 `require` de uma vez
-2. **Dar namespace às cinco classes globais**, depois do autoloader
+1. ~~**Autoloader**~~ — **feito em 27/08/2026** (`app/bootstrap.php`)
+2. ~~**Namespace nas cinco classes globais**~~ — **feito em 27/08/2026**
 3. **Camada de rota em `public/`**, preservando os endereços atuais. Só então
    faz sentido agrupar `public/` por domínio
 4. **Ampliar os testes** para os módulos sem cobertura

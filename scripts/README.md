@@ -9,7 +9,7 @@ executa de propósito, com `php scripts/<arquivo>.php`.
 
 | Script | Cobre | Precisa de banco? |
 |---|---|---|
-| `tests/class_refs_test.php` | **toda referência a classe do projeto resolve?** | não |
+| `tests/class_refs_test.php` | **toda referência a classe resolve, e todo `require` aponta para arquivo real** | não |
 | `tests/wa_webhook_parser_test.php` | parsers do payload da Evolution | não |
 | `tests/wa_webhook_token_test.php` | segundo fator do webhook | não |
 | `tests/wa_invariants.php` | invariantes do módulo WhatsApp e do agente | sim |
@@ -19,13 +19,15 @@ executa de propósito, com `php scripts/<arquivo>.php`.
 Baseline conhecido em **27/08/2026**, com o MySQL de pé:
 
 ```
-class_refs          3407 referencias · todas resolvem
+class_refs          3411 referencias + 323 requires · todos resolvem
 wa_webhook_parser     42 PASS · 0 FAIL
 wa_webhook_token      21 PASS · 0 FAIL
 wa_invariants         39 PASS · 0 FAIL
 plan_gate_e2e         25 ok  · 0 falha
-plan_feature          66 ok  · 12 falha    <- as 12 sao PRE-EXISTENTES
+plan_feature          79 ok  · 0 falha
 ```
+
+**Tudo verde é o esperado.** Qualquer falha é regressão.
 
 ### O que o `class_refs_test` pega, e por que ele existe
 
@@ -40,13 +42,29 @@ passaram a apontar para o vazio, e **nada do que se costuma rodar pegou**. `php
 só resolve na chamada; e a varredura HTTP sem sessão redireciona para o login
 antes da linha quebrar, então deu 164/164 "sem fatal" com o sistema quebrado.
 
+Desde 27/08/2026 ele também confere se **todo `require` aponta para arquivo que
+existe**. Isso entrou depois de um caso real: ao mover `Cliente.php` de pasta, um
+`require __DIR__ . '/Contato.php'` **dentro de um método** ficou apontando para o
+vazio. Não aparecia no lint nem no carregamento, e a varredura HTTP não pegava
+porque só o POST de criar/editar cliente executa aquela linha.
+
 É o único teste aqui que cobre **caminho de código que nenhuma requisição
 executa**. Rode-o sempre que mexer em namespace, mover arquivo ou renomear
 classe.
 
-As 12 falhas do `plan_feature` são anteriores à reorganização de pastas. **Se
-você vir 12, é o estado herdado. Acima de 12, é sua.** Compare sempre com este
-baseline em vez de esperar tudo verde.
+### As 12 falhas antigas do `plan_feature` acabaram
+
+Durante meses a suíte fechava em `66 ok · 12 falha`, e as 12 eram tratadas como
+dívida herdada que ninguém tinha investigado. Investigadas em 27/08/2026: eram
+**as asserções de preço da página pública**, que deixaram de valer quando o
+produto decidiu tirar os valores de `planos.php` e tratar preço por consulta.
+O teste é que estava velho, não o código.
+
+Hoje o mesmo bloco confere a decisão nova, e é mais forte do que era: nenhum
+`R$` na página, nenhum dos valores da grade, JSON-LD sem `offers`/`price` (para
+o Google não anunciar um preço que a página não mostra), um "Valor sob consulta"
+por plano e o CTA de contato. Validado injetando um preço de propósito: acusa em
+três frentes.
 
 Sem MySQL de pé, os três que dependem de banco pulam blocos e o resultado não
 significa nada.

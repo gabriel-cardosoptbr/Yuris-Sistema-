@@ -9,7 +9,7 @@
 //    tem contextInfo.stanzaId), preenche quoted_wamid + snapshot a partir do
 //    raw_payload. Só toca linhas ainda não preenchidas — seguro reexecutar.
 
-require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Core\Database;
 

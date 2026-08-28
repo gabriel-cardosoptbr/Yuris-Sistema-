@@ -18,10 +18,7 @@
  *   gravação de aceite. O fetch que o consome (header X-CSRF-Token) deve viver
  *   no banner/modal de re-aceite em login.php (arquivo de outro dono — ver risks).
  */
-require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/Lgpd/LegalDocument.php';
-require_once __DIR__ . '/../../../app/Usuarios/TermAcceptance.php';
-require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
+require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Lgpd\LegalDocument;
 use App\Usuarios\TermAcceptance;

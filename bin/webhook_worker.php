@@ -27,8 +27,7 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../app/Core/Database.php';
-require_once __DIR__ . '/../app/Webhooks/WebhookDispatcher.php';
+require_once __DIR__ . '/../app/bootstrap.php';
 
 use App\Core\Database;
 use App\Webhooks\WebhookDispatcher;

@@ -10,10 +10,7 @@
  * DELETE /api/teams.php?id=5     → soft-delete
  */
 
-require_once __DIR__ . '/../../app/Core/Database.php';
-require_once __DIR__ . '/../../app/Usuarios/Team.php';
-require_once __DIR__ . '/../../app/Master/Account.php';
-require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Usuarios\Team;
 use App\Core\AccountContext;

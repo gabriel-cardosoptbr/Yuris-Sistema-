@@ -261,7 +261,7 @@ Antes de subir, valide manualmente:
 ```bash
 cd /var/www/yuris
 sudo -u www-data php -r "
-require 'app/Core/EnvLoader.php';
+require 'app/bootstrap.php';
 try {
     \App\Core\EnvLoader::load();
     \App\Core\EnvLoader::validateProduction();

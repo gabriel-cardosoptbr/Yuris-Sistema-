@@ -6,9 +6,6 @@ namespace App\Core;
 // Era a causa raiz do bug: a matriz não puxava processos/cards da filial
 // quando o endpoint esquecia o require, porque listFiliaisVinculadas
 // lançava "Class Account not found" e o try/catch silenciava.
-require_once __DIR__ . '/Database.php';
-require_once __DIR__ . '/../Master/Account.php';
-require_once __DIR__ . '/../Master/ResourceShare.php';
 
 use App\Core\Database;
 use App\Master\ResourceShare;

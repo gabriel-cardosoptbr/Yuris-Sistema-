@@ -9,7 +9,7 @@
  * edicoes do admin ao reaplicar). Rollback: DROP TABLE ai_models (so volta a lista fixa
  * de fallback no codigo).
  */
-require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Core\Database;
 

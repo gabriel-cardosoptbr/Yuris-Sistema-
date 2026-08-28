@@ -44,6 +44,11 @@ sozinho: quem manda no que o cliente pode fazer é a conta, no banco.
 `../../scripts/tests/plan_feature_test.php` e
 `../../scripts/tests/plan_gate_e2e_test.php`. Rode os dois ao mexer em plano.
 
-Aviso de estado: em 27/08/2026 o `plan_feature_test` tinha **12 falhas
-pré-existentes**, anteriores à reorganização de pastas. Se você vir 12 falhas,
-é o estado herdado, não uma regressão sua. Acima de 12, é sua.
+As duas fecham em verde (`plan_feature` 79 ok · 0 falha, `plan_gate_e2e` 25 ok ·
+0 falha). Qualquer falha é regressão.
+
+O `plan_feature` também guarda uma decisão de produto: **a página pública não
+mostra valor**, o preço é tratado por consulta. Ele confere que nenhum `R$` e
+nenhum valor da grade aparece em `planos.php`, e que o JSON-LD não tem
+`offers`/`price`, para o Google não anunciar um preço que a página não mostra.
+Se você reintroduzir preço na página, é lá que vai apitar.

@@ -10,7 +10,7 @@
  *
  * Uso: php scripts/tests/wa_webhook_token_test.php   (exit 0 = tudo passou)
  */
-require_once __DIR__ . '/../../app/WhatsAppAgente/WhatsAppWebhookAuth.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\WhatsAppAgente\WhatsAppWebhookAuth as A;
 

@@ -4,6 +4,9 @@ namespace App\WhatsAppAgente;
 use App\Core\Database;
 use App\Core\Crypto;
 use App\Usuarios\TotpHelper;
+use App\WhatsAppAgente\EvolutionApiService;
+use App\WhatsAppAgente\WhatsAppInstance;
+use App\WhatsAppAgente\WhatsAppMessage;
 
 /**
  * WhatsAppAgentBridge — caminho do AGENTE IA (ALTA #5) do webhook da Evolution.
@@ -17,7 +20,7 @@ use App\Usuarios\TotpHelper;
  *   - runAgentReply        : chama o LLM + envia via EvolutionApiService::sendText
  *
  * Diferenca em relacao ao original e SO: (a) qualificacao de namespace (\PDO,
- * \WhatsAppInstance, \WhatsAppMessage, \EvolutionApiService sao globais; Database/Crypto/
+ * WhatsAppInstance, WhatsAppMessage, EvolutionApiService sao globais; Database/Crypto/
  * TotpHelper via use; AiIntake\* e AiSettings ja vinham qualificados com \), (b) a chamada
  * interna decryptAgentApiKey -> self::decryptAgentApiKey e (c) os require_once LAZY tiveram
  * o path __DIR__ ajustado (a classe vive em app/WhatsAppAgente/, nao em public/api/whatsapp/).
@@ -283,9 +286,9 @@ class WhatsAppAgentBridge
 
             // Envia pela MESMA instancia — credenciais do DONO do canal (account do agent_config).
             $ownerAcc  = (int)($cfg['account_id'] ?? $task['account_id']);
-            $instModel = new \WhatsAppInstance();
+            $instModel = new WhatsAppInstance();
             $sett      = $instModel->getSettings($ownerAcc);
-            $evo       = new \EvolutionApiService($sett);
+            $evo       = new EvolutionApiService($sett);
             $name      = $sett['evolution_instance'] ?? 'yuris-crm';
             $resp      = $evo->sendText($name, (string)$task['remote_jid'], $reply);
             if (!empty($resp['_error'])) {
@@ -314,7 +317,7 @@ class WhatsAppAgentBridge
             $createdAt = (is_numeric($evoTs) && (int)$evoTs > 0) ? date('Y-m-d H:i:s', (int)$evoTs) : date('Y-m-d H:i:s');
             try {
                 require_once __DIR__ . '/WhatsAppMessage.php';
-                (new \WhatsAppMessage())->save([
+                (new WhatsAppMessage())->save([
                     'account_id'      => $ownerAcc,
                     'instance_id'     => (int)$task['instance_id'],
                     'wamid'           => $wamidOut,

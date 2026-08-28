@@ -1,8 +1,6 @@
 <?php
 namespace App\WhatsAppAgente\AiIntake;
 
-require_once __DIR__ . '/LlmProviderInterface.php';
-
 /**
  * OpenAiProvider — Chat Completions com Structured Outputs (response_format json_schema
  * strict). Modelo economico default gpt-4o-mini. Uma chamada por mensagem.

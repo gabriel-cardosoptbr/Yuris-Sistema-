@@ -510,7 +510,7 @@ Se qualquer um falhar, ver §14 troubleshooting.
 Falta `CRON_TOKEN` no `.env` OU não fez `EnvLoader::load()` ainda. Verifique:
 ```bash
 grep CRON_TOKEN /var/www/yuris/.env
-sudo -u www-data php -r "require '/var/www/yuris/app/Core/EnvLoader.php'; \App\Core\EnvLoader::load(); var_dump(\App\Core\EnvLoader::get('CRON_TOKEN'));"
+sudo -u www-data php -r "require '/var/www/yuris/app/bootstrap.php'; \App\Core\EnvLoader::load(); var_dump(\App\Core\EnvLoader::get('CRON_TOKEN'));"
 ```
 
 ### "Erro 500 ao logar"

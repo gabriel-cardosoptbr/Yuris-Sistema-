@@ -1,7 +1,8 @@
 <?php
-require_once __DIR__ . '/../Core/Database.php';
+namespace App\WhatsAppAgente;
 
 use App\Core\Database;
+use PDO;
 
 class WhatsAppInstance
 {

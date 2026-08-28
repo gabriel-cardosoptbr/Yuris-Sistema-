@@ -35,61 +35,86 @@ palavra que está na tela.
 | [`Billing/`](Billing/) | página Planos, e travas espalhadas pelo sistema | limites e módulos por plano, gateway de pagamento (`Gateway/`) |
 | [`Lgpd/`](Lgpd/) | LGPD, DPO, Termos, Privacidade | solicitações do titular, anonimização, mascaramento de PII, documentos legais |
 
-## Como o código é carregado (leia antes de mover qualquer arquivo)
+## Como o código é carregado
 
-**O projeto não tem autoloader.** Não existe Composer, nem
-`spl_autoload_register`. Toda classe é carregada por um `require_once` com o
-caminho escrito à mão:
+**Existe um autoloader**, em [`bootstrap.php`](bootstrap.php). Não é Composer:
+são 20 linhas de `spl_autoload_register` que mapeiam namespace para pasta.
+
+Quem precisa de uma classe carrega o bootstrap **uma vez** e usa:
 
 ```php
-require_once __DIR__ . '/../../app/Processos/Processo.php';
+require_once __DIR__ . '/../app/bootstrap.php';
 use App\Processos\Processo;
+
+$lista = Processo::list([...]);      // Processo.php carrega sozinho
 ```
 
-Isso tem uma consequência direta: **mover um arquivo daqui quebra todo mundo
-que o carrega**, e o erro só aparece em runtime, na hora em que a página roda.
-Hoje são 1.108 linhas de `require` espalhadas por 192 arquivos.
+```
+App\Processos\Processo          ->  app/Processos/Processo.php
+App\WhatsAppAgente\AiIntake\X   ->  app/WhatsAppAgente/AiIntake/X.php
+```
 
-Se precisar mover ou renomear algo em `app/`, **quatro** coisas têm que mudar
-juntas. As duas últimas são as que passam despercebidas:
+**O namespace espelha a pasta, sem exceção.** Se você criar uma pasta nova,
+o namespace tem que acompanhar, ou a classe não é encontrada.
 
-1. o caminho em todo `require_once` que aponta para o arquivo;
-2. a declaração `namespace` dentro do arquivo, e todo `use App\...` que o importa;
+### O que isso mudou, e por que importa
+
+Até 27/08/2026 não havia autoloader: cada página carregava classe por classe,
+com o caminho escrito à mão. Eram **1.077 linhas de `require_once` em 192
+arquivos**, e mover um arquivo daqui quebrava todo mundo que o carregava, com o
+erro aparecendo só em runtime.
+
+Hoje, **mover um arquivo dentro de `app/` não exige caçar quem o carrega.**
+Continua exigindo três coisas:
+
+1. a declaração `namespace` do arquivo tem que continuar espelhando a pasta;
+2. todo `use App\...` que o importa;
 3. os nomes de classe **escritos dentro de string**, que nenhuma busca por
    `use` encontra:
    ```php
    if (!class_exists('App\\Core\\RequestId')) { ... }
    method_exists('App\\WhatsAppAgente\\WhatsAppWebhookParser', 'extractQuotedWamid')
    ```
-   Existem cerca de 50 desses. Quando erram, não quebram nada, só retornam
-   `false` em silêncio e o comportamento muda sem aviso.
-4. os **nomes curtos que dependiam do mesmo namespace**. Duas classes no mesmo
-   namespace se enxergam sem `use`:
-   ```php
-   namespace App\Tarefas;
-   $pdo = Database::getConnection();   // resolve App\Tarefas\Database
-   ```
-   Se `Database` sai para outro namespace e o `use` não é adicionado, isso passa
-   a apontar para uma classe inexistente. **`php -l` não pega, carregar o arquivo
-   não pega** (type hint só resolve na chamada), e a página só quebra quando
-   aquela linha específica executa. Foi o que aconteceu em 27/08/2026: 28
-   referências assim, e duas telas (Intimações e Escritórios) fatalavam.
 
-Ao dividir um namespace, procure o que era irmão antes e virou estrangeiro
-depois. Só uma varredura autenticada, que executa as páginas de verdade, prova
-que não sobrou nenhum.
+E um cuidado que sobrevive ao autoloader: **nome curto que depende do mesmo
+namespace**. Duas classes no mesmo namespace se enxergam sem `use`:
+
+```php
+namespace App\Tarefas;
+$pdo = Database::getConnection();   // resolve App\Tarefas\Database
+```
+
+Se `Database` sai para outro namespace e o `use` não é adicionado, isso aponta
+para uma classe inexistente. `php -l` não pega, e a página só quebra quando
+aquela linha executa. Foi o que aconteceu em 27/08/2026: 28 referências assim,
+com duas telas fatalando.
+
+**Quem pega tudo isso é `../scripts/tests/class_refs_test.php`**, que confere
+estaticamente se toda referência a classe do projeto resolve, inclusive em
+caminho que nenhuma requisição executa. Rode-o ao mexer em namespace ou mover
+arquivo.
+
+### Carregar um arquivo de classe isolado não funciona mais
+
+Antes, `require 'app/Billing/PlanFeature.php'` funcionava sozinho, porque o
+próprio arquivo puxava suas dependências. Isso acabou: as dependências agora
+vêm do autoloader. Em script, cron ou `php -r`, carregue **o bootstrap**:
+
+```php
+require '/var/www/yuris/app/bootstrap.php';
+```
+
+### O fuso horário mora no bootstrap
+
+`date_default_timezone_set('UTC')` ficava no topo de `Core/Database.php` e valia
+porque todo mundo carregava aquele arquivo de cara. Com autoloader, `Database.php`
+só carrega no **primeiro uso** da classe, e um `date()` antes disso pegaria o
+fuso do php.ini: timestamp errado, sem erro nenhum. Por isso o fuso passou para
+o bootstrap, que roda primeiro. (Segue também em `Database.php`, como rede.)
 
 Depois de mexer, o mínimo a rodar está em [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md).
 
-## Duas inconsistências conhecidas, de propósito
-
-**Cinco classes de WhatsApp não declaram namespace** e vivem no namespace
-global: `WhatsAppInstance`, `WhatsAppMessage`, `EvolutionApiService`,
-`WhatsAppChannelAccessService` e `WhatsAppProvisioningService`. Elas se chamam
-`\EvolutionApiService`, não `\App\WhatsAppAgente\EvolutionApiService`. Dar
-namespace a elas é mudança de comportamento, com risco próprio, e ficou para um
-passo separado. Já causou três bugs em produção (corrigidos no commit
-`f7d5ca8`), então **ao chamar uma delas, confira se a classe é global**.
+## Uma inconsistência conhecida, de propósito
 
 **`Contato` está em `Prospeccao/`** mas é usado também por Processos e pelo
 handoff do agente de IA. Ficou onde nasceu; se um dia virar entidade

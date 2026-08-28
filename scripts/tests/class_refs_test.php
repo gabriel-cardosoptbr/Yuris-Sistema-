@@ -198,21 +198,88 @@ foreach ($dir as $f) {
 }
 
 echo "referencias de classe conferidas: $conferidos\n";
-if (!$problemas) {
-    echo "todas resolvem para uma classe existente.\n";
+
+/* ─────────────────────────────────────────────────────────────────────────
+   PARTE 2 — todo `require` aponta para arquivo que existe?
+
+   O autoloader cobre as CLASSES, mas ainda existe require aninhado (lazy load
+   dentro de metodo) e require de bootstrap. Se o alvo nao existe, o PHP fatala
+   na hora em que aquela linha executa, nao antes.
+
+   Isto entrou depois de um caso real: ao mover Cliente.php para outra pasta,
+   um `require __DIR__ . '/Contato.php'` DENTRO de um metodo ficou apontando
+   para o vazio. Nao aparecia no lint, nao aparecia no carregamento, e a
+   varredura HTTP nao pegava porque so o POST de criar/editar cliente executa
+   aquela linha.
+   ───────────────────────────────────────────────────────────────────────── */
+$reqQuebrados = [];
+$reqTotal = 0;
+$dir2 = new RecursiveIteratorIterator(
+    new RecursiveCallbackFilterIterator(
+        new RecursiveDirectoryIterator($raiz, RecursiveDirectoryIterator::SKIP_DOTS),
+        function ($a) use ($ignorar) {
+            return !($a->isDir() && in_array($a->getFilename(), $ignorar, true));
+        }
+    )
+);
+foreach ($dir2 as $f) {
+    if (!$f->isFile() || $f->getExtension() !== 'php') {
+        continue;
+    }
+    $caminho = str_replace('\\', '/', $f->getPathname());
+    $rel = str_replace($raiz . '/', '', $caminho);
+    $src = (string)file_get_contents($caminho);
+    // tira comentario, para nao acusar exemplo de uso em docblock
+    $src = preg_replace_callback('~/\*.*?\*/~s',
+        fn($m) => preg_replace('/[^\n]/', ' ', $m[0]), $src);
+    $src = preg_replace('~//[^\n]*~', '', $src);
+
+    if (!preg_match_all(
+        '~(?:require|include)(?:_once)?\s*(__DIR__|dirname\(__DIR__(?:,\s*(\d+))?\))\s*\.\s*\'([^\']+)\'~',
+        $src, $ms, PREG_SET_ORDER)) {
+        continue;
+    }
+    foreach ($ms as $m) {
+        $base = dirname($caminho);
+        if ($m[1] !== '__DIR__') {
+            $niveis = $m[2] !== '' ? (int)$m[2] : 1;
+            for ($i = 0; $i < $niveis; $i++) {
+                $base = dirname($base);
+            }
+        }
+        $reqTotal++;
+        $alvo = $base . '/' . ltrim($m[3], '/');
+        if (!is_file($alvo)) {
+            $reqQuebrados[] = $rel . '  ->  ' . $m[3];
+        }
+    }
+}
+echo 'requires conferidos: ' . $reqTotal . "\n";
+
+if (!$problemas && !$reqQuebrados) {
+    echo "\ntodas resolvem para uma classe existente, e todo require aponta para arquivo real.\n";
     exit(0);
 }
 
-// agrupa por FQCN nao resolvido
-$porFqcn = [];
-foreach ($problemas as $p) {
-    $porFqcn[$p['resolve']][] = $p['arq'] . ':' . $p['linha'];
+if ($problemas) {
+    $porFqcn = [];
+    foreach ($problemas as $p) {
+        $porFqcn[$p['resolve']][] = $p['arq'] . ':' . $p['linha'];
+    }
+    echo "\nCLASSES QUE NAO RESOLVEM (" . count($problemas) . " referencias, "
+       . count($porFqcn) . " nomes):\n\n";
+    ksort($porFqcn);
+    foreach ($porFqcn as $fqcn => $onde) {
+        echo "  $fqcn  (" . count($onde) . "x)\n";
+        foreach (array_slice($onde, 0, 4) as $o) echo "      $o\n";
+        if (count($onde) > 4) echo "      ... +" . (count($onde) - 4) . "\n";
+    }
 }
-echo "\nNAO RESOLVEM (" . count($problemas) . " referencias, " . count($porFqcn) . " nomes):\n\n";
-ksort($porFqcn);
-foreach ($porFqcn as $fqcn => $onde) {
-    echo "  $fqcn  (" . count($onde) . "x)\n";
-    foreach (array_slice($onde, 0, 4) as $o) echo "      $o\n";
-    if (count($onde) > 4) echo "      ... +" . (count($onde) - 4) . "\n";
+
+if ($reqQuebrados) {
+    echo "\nREQUIRES APONTANDO PARA ARQUIVO INEXISTENTE (" . count($reqQuebrados) . "):\n\n";
+    foreach ($reqQuebrados as $r) {
+        echo "  $r\n";
+    }
 }
 exit(1);

@@ -1,10 +1,6 @@
 <?php
 namespace App\WhatsAppAgente\AiIntake;
 
-require_once __DIR__ . '/LlmProviderInterface.php';
-require_once __DIR__ . '/IntakeSchema.php';
-require_once __DIR__ . '/Taxonomy.php';
-
 /**
  * FakeProvider — provedor DETERMINISTICO para testes (modo local, sem consumir creditos).
  *

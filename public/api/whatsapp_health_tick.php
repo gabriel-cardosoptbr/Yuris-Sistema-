@@ -21,16 +21,13 @@
  * Protegido por CRON_TOKEN (CLI e trusted, mesmo padrao do lgpd_retention_tick).
  * Rodar a cada ~15 min. GET /api/whatsapp_health_tick.php?token=<CRON_TOKEN>  ou CLI.
  */
-require_once __DIR__ . '/../../app/Core/Database.php';
-require_once __DIR__ . '/../../app/Core/EnvLoader.php';
-require_once __DIR__ . '/../../app/WhatsAppAgente/WaLog.php';
-require_once __DIR__ . '/../../app/WhatsAppAgente/AiIntake/AgentEvent.php';
-require_once __DIR__ . '/../../app/WhatsAppAgente/WhatsAppInstance.php'; // reconciliador auto-strict do cracha
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Core\Database;
 use App\Core\EnvLoader;
 use App\WhatsAppAgente\WaLog;
 use App\WhatsAppAgente\AiIntake\AgentEvent;
+use App\WhatsAppAgente\WhatsAppInstance;
 
 EnvLoader::load();
 $isCli    = (PHP_SAPI === 'cli');
@@ -127,7 +124,7 @@ try {
                 AND wi.last_event_at > (NOW() - INTERVAL 24 HOUR)"
         )->fetchAll(\PDO::FETCH_ASSOC);
         if ($cand) {
-            $wiModel = new \WhatsAppInstance();
+            $wiModel = new WhatsAppInstance();
             $badStmt = $pdo->prepare(
                 "SELECT COUNT(*) FROM ai_agent_events
                   WHERE account_id = ?

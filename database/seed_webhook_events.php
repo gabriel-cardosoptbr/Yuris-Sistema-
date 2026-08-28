@@ -12,8 +12,7 @@
  * entram nas etapas 10/11 do plano, junto com seus call sites.
  */
 
-require_once __DIR__ . '/../app/Core/Database.php';
-require_once __DIR__ . '/../app/Webhooks/WebhookDispatcher.php';
+require_once __DIR__ . '/../app/bootstrap.php';
 
 use App\Core\Database;
 use App\Webhooks\WebhookDispatcher;

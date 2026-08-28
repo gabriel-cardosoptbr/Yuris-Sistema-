@@ -20,20 +20,7 @@
  */
 ob_start();
 
-require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/Processos/PushTodayCache.php';
-require_once __DIR__ . '/../../../app/Processos/PushMonitor.php';
-require_once __DIR__ . '/../../../app/Processos/PushQueryLog.php';
-require_once __DIR__ . '/../../../app/Processos/AaspIntegration.php';
-require_once __DIR__ . '/../../../app/Core/EnvLoader.php';
-require_once __DIR__ . '/../../../app/Core/Crypto.php';
-require_once __DIR__ . '/../../../app/Master/MasterAudit.php';
-require_once __DIR__ . '/../../../app/Processos/Monitor/PublicationHasher.php';
-require_once __DIR__ . '/../../../app/Processos/Monitor/ProviderInterface.php';
-require_once __DIR__ . '/../../../app/Processos/Monitor/DjenProvider.php';
-require_once __DIR__ . '/../../../app/Processos/Monitor/AaspProvider.php';
-require_once __DIR__ . '/../../../app/Processos/Monitor/PushMonitorRunner.php';
-require_once __DIR__ . '/../../../app/Processos/Monitor/AaspSyncRunner.php';
+require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\Database;
 use App\Processos\PushTodayCache;

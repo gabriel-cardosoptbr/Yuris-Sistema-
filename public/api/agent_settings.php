@@ -26,19 +26,13 @@
  *   GET                 → defaults vazios (nenhum canal selecionado)
  *   POST                → upsert por whatsapp_instance_id
  */
-require_once __DIR__ . '/../../app/Core/Database.php';
-require_once __DIR__ . '/../../app/Master/Account.php';
-require_once __DIR__ . '/../../app/Master/ResourceShare.php';
-require_once __DIR__ . '/../../app/Core/AccountContext.php';
-require_once __DIR__ . '/../../app/Core/Crypto.php';        // cifragem padrão (GCM / APP_ENCRYPTION_KEY)
-require_once __DIR__ . '/../../app/Usuarios/TotpHelper.php';    // só p/ ler configs LEGADAS (CBC / MFA_ENCRYPTION_KEY)
-require_once __DIR__ . '/../../app/Core/EnvLoader.php';
-require_once __DIR__ . '/../../app/WhatsAppAgente/WhatsAppChannelAccessService.php'; // autorizacao POR GRANT de canal (nao hierarquia)
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Core\Database;
 use App\Core\AccountContext;
 use App\Core\Crypto;
 use App\Usuarios\TotpHelper;
+use App\WhatsAppAgente\WhatsAppChannelAccessService;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');

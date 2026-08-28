@@ -22,11 +22,7 @@
  * Acesso: super_admin em sessao master_mode; escrita exige nivel != viewer + CSRF. Auditado.
  *   POST { instance_id, enabled(bool), csrf_token } -> { ok, data:{ instance_id, strict } }
  */
-require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/Core/AccountContext.php';
-require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
-require_once __DIR__ . '/../../../app/Master/MasterAudit.php';
-require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppInstance.php';
+require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\AccountContext;
 use App\Core\ApiResponse;

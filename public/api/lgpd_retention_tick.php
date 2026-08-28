@@ -14,9 +14,7 @@
  */
 ob_start();
 
-require_once __DIR__ . '/../../app/Core/Database.php';
-require_once __DIR__ . '/../../app/Core/EnvLoader.php';
-require_once __DIR__ . '/../../app/Master/MasterAudit.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Core\Database;
 use App\Core\EnvLoader;

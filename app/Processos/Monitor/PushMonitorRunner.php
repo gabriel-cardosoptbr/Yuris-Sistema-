@@ -1,13 +1,6 @@
 <?php
 namespace App\Processos\Monitor;
 
-require_once __DIR__ . '/../../Core/Database.php';
-require_once __DIR__ . '/../PushMonitor.php';
-require_once __DIR__ . '/../PushTodayCache.php';
-require_once __DIR__ . '/../PushQueryLog.php';
-require_once __DIR__ . '/../../Master/AccountNotification.php';
-require_once __DIR__ . '/../../Core/EnvLoader.php';
-
 use App\Processos\PushMonitor;
 use App\Processos\PushTodayCache;
 use App\Processos\PushQueryLog;

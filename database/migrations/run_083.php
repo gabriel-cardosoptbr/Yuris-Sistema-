@@ -6,7 +6,7 @@
 //
 // Cria a tabela app_settings (key/value global). Idempotente: CREATE TABLE IF NOT EXISTS.
 
-require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Core\Database;
 

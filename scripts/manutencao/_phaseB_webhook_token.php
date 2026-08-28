@@ -20,11 +20,11 @@
  *   docker exec -w /var/www/html yuris_app php scripts/_phaseB_webhook_token.php <account_id> --apply    # BACKUP + adiciona o header + verifica
  *   docker exec -w /var/www/html yuris_app php scripts/_phaseB_webhook_token.php <account_id> --rollback # remove o header (preservando url/eventos)
  */
-require_once __DIR__ . '/../app/Core/Database.php';
-require_once __DIR__ . '/../app/WhatsAppAgente/WhatsAppInstance.php';
-require_once __DIR__ . '/../app/WhatsAppAgente/EvolutionApiService.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Core\Database;
+use App\WhatsAppAgente\EvolutionApiService;
+use App\WhatsAppAgente\WhatsAppInstance;
 
 if (PHP_SAPI !== 'cli') { http_response_code(403); exit("CLI only\n"); }
 
@@ -44,7 +44,7 @@ $EVENTS_FALLBACK = ['MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'SEND_MESSAGE', 'CONTA
 
 $pdo = Database::getConnection();
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-$wi  = new \WhatsAppInstance();
+$wi  = new WhatsAppInstance();
 $cfg = $wi->getSettings($ACCOUNT_ID);
 $base = (string) ($cfg['evolution_base_url'] ?? '');
 $key  = (string) ($cfg['evolution_api_key']  ?? '');
@@ -85,7 +85,7 @@ if ($tok === '') {
     }
 }
 
-$svc = new \EvolutionApiService($cfg);
+$svc = new EvolutionApiService($cfg);
 $svc->setTimeout(15);
 
 // ── DRY-RUN (default): nao toca a Evolution ──────────────────────────────────

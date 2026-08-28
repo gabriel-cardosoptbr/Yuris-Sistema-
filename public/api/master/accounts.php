@@ -9,13 +9,7 @@
  * PATCH   /api/master/accounts.php           → atualiza status/plano (suspender/reativar)
  * DELETE  /api/master/accounts.php?id=X      → soft-delete
  */
-require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/Master/Account.php';
-require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
-require_once __DIR__ . '/../../../app/Core/AccountContext.php';
-require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
-require_once __DIR__ . '/../../../app/Processos/MonitorQuota.php';   // Etapa 6 add-on
-require_once __DIR__ . '/../../../app/Billing/BillingGuard.php';   // fix #4 — plan_base/override_sum
+require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\AccountContext;
 use App\Core\ApiResponse;

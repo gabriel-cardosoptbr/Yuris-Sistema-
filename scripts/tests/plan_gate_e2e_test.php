@@ -14,7 +14,7 @@
  * o que for parecido".
  */
 
-require_once __DIR__ . '/../../app/Billing/PlanFeature.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Billing\PlanFeature;
 use App\Core\Database;
@@ -199,8 +199,10 @@ function rodarSub(int $accountId, string $metodo, string $feature): array
 {
     $php  = PHP_BINARY;
     $base = str_replace('\\', '/', dirname(__DIR__, 2));
+    // carrega o bootstrap, nao o arquivo da classe: desde o autoloader, quem
+    // resolve as dependencias (BillingGuard, Database) e o spl_autoload_register
     $code = <<<PHP
-require_once '{$base}/app/Billing/PlanFeature.php';
+require_once '{$base}/app/bootstrap.php';
 use App\\Billing\\PlanFeature;
 if ('{$metodo}' === 'assertCanAddUser') { PlanFeature::assertUnderLimit({$accountId}, PlanFeature::F_MAX_USERS, 99, 'usuários'); }
 else { PlanFeature::assertEnabled({$accountId}, '{$feature}'); }

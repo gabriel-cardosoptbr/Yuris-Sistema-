@@ -19,9 +19,7 @@
  *   /api/legal/accept.php) deve ser plugado nas páginas/banner — arquivos de
  *   outro dono (includes/legal_page.php, login.php) — ver risks.
  */
-require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/Lgpd/LegalDocument.php';
-require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
+require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Lgpd\LegalDocument;
 use App\Core\ApiResponse;

@@ -1,15 +1,12 @@
 <?php
+use App\WhatsAppAgente\EvolutionApiService;
+use App\WhatsAppAgente\WhatsAppChannelAccessService;
+use App\WhatsAppAgente\WhatsAppMessage;
+
 ob_start();
 @ini_set('display_errors', '0');
 
-require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/Master/Account.php';
-require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
-require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppInstance.php';
-require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppMessage.php';
-require_once __DIR__ . '/../../../app/WhatsAppAgente/EvolutionApiService.php';
-require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppChannelAccessService.php';
-require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\AccountContext;
 

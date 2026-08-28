@@ -8,7 +8,7 @@
  * Idempotente: desativa as versoes anteriores do prompt GLOBAL e insere/atualiza a v2
  * (ativa). Reusa o schema_json do prompt existente (secao 23). Reaplicar e seguro.
  */
-require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Core\Database;
 
