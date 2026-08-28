@@ -100,10 +100,13 @@ for f in $(find app public bin scripts config database -name "*.php"); do php -l
 for t in scripts/tests/*.php; do php "$t"; done
 ```
 
-Baseline conhecido em 27/08/2026: `class_refs` 3407 referências, todas
-resolvem · `wa_webhook_parser` 42/0 · `wa_webhook_token` 21/0 · `wa_invariants`
-39/0 · `plan_gate_e2e` 25 ok/0 · `plan_feature` **66 ok/12 falha**. As 12 falhas do `plan_feature` são **pré-existentes**: 12 é o
-esperado, acima de 12 é regressão sua.
+Baseline em 27/08/2026: `class_refs` 3407 referências todas resolvem ·
+`wa_webhook_parser` 42/0 · `wa_webhook_token` 21/0 · `wa_invariants` 39/0 ·
+`plan_gate_e2e` 25 ok/0 · `plan_feature` 79 ok/0.
+
+**Tudo verde é o esperado.** As 12 falhas antigas do `plan_feature` eram o teste
+exigindo os preços que saíram da página pública; foram corrigidas, e o bloco
+hoje confere a decisão nova (nenhum valor visível, JSON-LD sem `offers`).
 
 Ao mexer em `app/`, confira também que nenhum `require` ficou apontando para o
 vazio e que todo `use App\...` resolve. E lembre das duas formas que **nenhuma

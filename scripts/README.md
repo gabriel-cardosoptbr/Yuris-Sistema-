@@ -24,8 +24,10 @@ wa_webhook_parser     42 PASS · 0 FAIL
 wa_webhook_token      21 PASS · 0 FAIL
 wa_invariants         39 PASS · 0 FAIL
 plan_gate_e2e         25 ok  · 0 falha
-plan_feature          66 ok  · 12 falha    <- as 12 sao PRE-EXISTENTES
+plan_feature          79 ok  · 0 falha
 ```
+
+**Tudo verde é o esperado.** Qualquer falha é regressão.
 
 ### O que o `class_refs_test` pega, e por que ele existe
 
@@ -44,9 +46,19 @@ antes da linha quebrar, então deu 164/164 "sem fatal" com o sistema quebrado.
 executa**. Rode-o sempre que mexer em namespace, mover arquivo ou renomear
 classe.
 
-As 12 falhas do `plan_feature` são anteriores à reorganização de pastas. **Se
-você vir 12, é o estado herdado. Acima de 12, é sua.** Compare sempre com este
-baseline em vez de esperar tudo verde.
+### As 12 falhas antigas do `plan_feature` acabaram
+
+Durante meses a suíte fechava em `66 ok · 12 falha`, e as 12 eram tratadas como
+dívida herdada que ninguém tinha investigado. Investigadas em 27/08/2026: eram
+**as asserções de preço da página pública**, que deixaram de valer quando o
+produto decidiu tirar os valores de `planos.php` e tratar preço por consulta.
+O teste é que estava velho, não o código.
+
+Hoje o mesmo bloco confere a decisão nova, e é mais forte do que era: nenhum
+`R$` na página, nenhum dos valores da grade, JSON-LD sem `offers`/`price` (para
+o Google não anunciar um preço que a página não mostra), um "Valor sob consulta"
+por plano e o CTA de contato. Validado injetando um preço de propósito: acusa em
+três frentes.
 
 Sem MySQL de pé, os três que dependem de banco pulam blocos e o resultado não
 significa nada.

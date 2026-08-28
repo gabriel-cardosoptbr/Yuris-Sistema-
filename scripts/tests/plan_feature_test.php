@@ -54,22 +54,41 @@ $site = @file_get_contents($sitePath);
 ok('public/planos.php legível', $site !== false);
 
 if ($site !== false) {
+    // A página pública NÃO mostra valor: decisão do produto em 27/08/2026, o
+    // preço passou a ser tratado por consulta. O que se confere aqui é
+    // justamente isso, porque é o tipo de coisa que volta sem ninguém notar
+    // (basta alguém "restaurar" um bloco de preço numa edição futura).
+    ok('nenhum "R$" na página pública',
+        !preg_match('/R\$\s*\d/u', $site));
+
     foreach ($GRADE as $slug => $g) {
-        ok("site mostra R$ {$g['mensal']} ({$g['nome']})",
-            str_contains($site, '<span class="plan-amount">' . $g['mensal'] . '</span>'));
-        ok("site mostra anual R$ {$g['anual']} ({$g['nome']})",
-            str_contains($site, 'R$ ' . $g['anual'] . '/mês'));
-        ok("JSON-LD tem {$g['mensal']}.00 ({$g['nome']})",
-            str_contains($site, '"price": "' . $g['mensal'] . '.00"'));
+        ok("valor mensal de {$g['nome']} não aparece",
+            !preg_match('/\b' . $g['mensal'] . '\b/', $site));
+        ok("valor anual de {$g['nome']} não aparece",
+            !preg_match('/\b' . $g['anual'] . '\b/', $site));
+    }
+    // Preços de grades antigas também não podem ressurgir.
+    foreach (['220', '370', '670'] as $velho) {
+        ok("preço antigo R$ $velho não aparece", !preg_match('/\b' . $velho . '\b/', $site));
+    }
+
+    // Structured data não pode contradizer o que está visível: JSON-LD com
+    // "offers"/"price" faria o Google anunciar um preço que a página não mostra.
+    ok('JSON-LD sem bloco de offers', !str_contains($site, '"offers"'));
+    ok('JSON-LD sem campo price',     !str_contains($site, '"price"'));
+
+    // No lugar do valor, cada plano leva para a conversa.
+    ok('um "Valor sob consulta" por plano (' . count($GRADE) . ')',
+        substr_count($site, 'Valor sob consulta') === count($GRADE));
+    ok('CTA de contato presente', str_contains($site, 'wa.me'));
+
+    // O que a página CONTINUA mostrando: os limites de cada plano, que são a
+    // informação real de comparação agora que o valor saiu.
+    foreach ($GRADE as $slug => $g) {
         ok("site mostra {$g['triagens']} triagens ({$g['nome']})",
             str_contains($site, '<strong>' . $g['triagens'] . '</strong> triagens'));
         ok("site mostra {$g['monitores']} monitor(es) ({$g['nome']})",
             str_contains($site, '<strong>' . $g['monitores'] . '</strong> monitor'));
-    }
-    // Os preços antigos não podem ter sobrado em lugar nenhum.
-    foreach (['220', '370', '670'] as $velho) {
-        ok("preço antigo R$ $velho não aparece mais",
-            !str_contains($site, '<span class="plan-amount">' . $velho . '</span>'));
     }
     ok('faixa Enterprise presente', str_contains($site, 'enterprise-band'));
     ok('add-ons presentes', str_contains($site, 'addon-item'));

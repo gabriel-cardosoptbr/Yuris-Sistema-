@@ -119,9 +119,12 @@ Baseline conhecido em **27/08/2026**:
 | `wa_webhook_token_test` | 21 PASS · 0 FAIL |
 | `wa_invariants` | 39 PASS · 0 FAIL |
 | `plan_gate_e2e_test` | 25 ok · 0 falha |
-| `plan_feature_test` | 66 ok · **12 falha (pré-existentes)** |
+| `plan_feature_test` | 79 ok · 0 falha |
 
-12 falhas no `plan_feature` é o estado herdado. Acima de 12 é regressão.
+**Tudo verde é o esperado; qualquer falha é regressão.** Até 27/08/2026 o
+`plan_feature` fechava em `66 ok · 12 falha`, tratadas como dívida herdada. Eram
+as asserções de preço da página pública, que deixaram de valer quando o produto
+tirou os valores de `planos.php`. O teste estava velho, não o código.
 
 Ao mexer em `app/`, verifique também que nenhum `require` ficou apontando para o
 vazio e que todo `use App\...` resolve.
