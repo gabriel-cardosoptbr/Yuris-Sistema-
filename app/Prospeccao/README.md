@@ -31,6 +31,22 @@ O telefone é normalizado para só dígitos com DDI 55, e `null` quando tem meno
 de 10 dígitos. É essa normalização que permite casar um contato do CRM com uma
 conversa do WhatsApp, então mudá-la tem efeito no módulo de Comunicação.
 
+### Bug aberto: o contato NÃO é isolado por conta
+
+`contatos.telefone` tem **UNIQUE global**, sem `account_id`, e
+`findOrCreateByPhone()` não preenche `account_id`. Consequência reproduzida em
+27/08/2026: **dois escritórios com um cliente de mesmo telefone compartilham a
+mesma linha de contato**, e o nome exibido é o de quem cadastrou primeiro.
+
+Onde isso aparece: `../Processos/ProcessoAudit.php` (histórico do processo) e
+`../Tarefas/TaskLink.php` (vínculo da tarefa) resolvem o nome do contato por id,
+**sem filtro de conta**.
+
+Não foi corrigido porque a correção mexe em dado de produção (separar contatos já
+compartilhados exige decidir de quem é o nome atual). Registrado como **B1** em
+`Bugs Críticos` no cofre. **Ao mexer em `Contato`, não presuma isolamento por
+conta: hoje ele não existe.**
+
 ## Regras
 
 **Card sempre listado com filtro de conta.** `Card::list()` exige `account_id`
