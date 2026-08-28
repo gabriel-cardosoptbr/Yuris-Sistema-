@@ -120,6 +120,7 @@ Baseline conhecido em **27/08/2026**:
 | `wa_invariants` | 39 PASS · 0 FAIL |
 | `plan_gate_e2e_test` | 25 ok · 0 falha |
 | `plan_feature_test` | 79 ok · 0 falha |
+| `dominios_test` | 44 ok · 0 falha |
 
 **Tudo verde é o esperado; qualquer falha é regressão.** Até 27/08/2026 o
 `plan_feature` fechava em `66 ok · 12 falha`, tratadas como dívida herdada. Eram
@@ -164,9 +165,10 @@ o caminho de permissão é diferente.
   do autoloader, então script, cron e `php -r` carregam `app/bootstrap.php`
 - **`public/` não é agrupável por domínio** sem uma camada de rota que preserve
   os endereços atuais
-- **Cobertura de teste concentrada**: das seis suites de `scripts/tests/`, o
-  `class_refs_test` cobre o projeto inteiro, mas as outras cinco cobrem só
-  plano e WhatsApp; o resto é verificado à mão
+- **Cobertura de teste**: as sete suites de `scripts/tests/` cobrem o projeto
+  estaticamente (`class_refs_test`), plano, WhatsApp e a escrita dos domínios de
+  negócio (`dominios_test`). O que ainda não tem teste é a camada HTTP: os
+  endpoints são exercitados por varredura manual, não por asserção
 
 ## Próximos passos, se um dia valer a pena
 

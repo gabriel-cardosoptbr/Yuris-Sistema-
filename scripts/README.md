@@ -15,6 +15,7 @@ executa de propósito, com `php scripts/<arquivo>.php`.
 | `tests/wa_invariants.php` | invariantes do módulo WhatsApp e do agente | sim |
 | `tests/plan_feature_test.php` | limites e módulos por plano | sim |
 | `tests/plan_gate_e2e_test.php` | enforcement de plano ponta a ponta | sim |
+| `tests/dominios_test.php` | **escrita real** em Clientes, Prospecção, Processos, Tarefas, Finanças e LGPD, + isolamento entre contas | sim |
 
 Baseline conhecido em **27/08/2026**, com o MySQL de pé:
 
@@ -25,6 +26,7 @@ wa_webhook_token      21 PASS · 0 FAIL
 wa_invariants         39 PASS · 0 FAIL
 plan_gate_e2e         25 ok  · 0 falha
 plan_feature          79 ok  · 0 falha
+dominios              44 ok  · 0 falha
 ```
 
 **Tudo verde é o esperado.** Qualquer falha é regressão.
@@ -51,6 +53,27 @@ porque só o POST de criar/editar cliente executa aquela linha.
 É o único teste aqui que cobre **caminho de código que nenhuma requisição
 executa**. Rode-o sempre que mexer em namespace, mover arquivo ou renomear
 classe.
+
+### O que o `dominios_test` cobre, e por que ele existe
+
+É o único teste que **escreve de verdade** nos domínios de negócio. Cria duas
+contas descartáveis, exercita criar/atualizar/listar em Clientes, Prospecção,
+Processos, Tarefas, Finanças e LGPD, e exige que **a segunda conta não enxergue
+nada da primeira**, domínio por domínio.
+
+Nasceu do caso de 27/08/2026: um `require` quebrado dentro de `Cliente::create()`
+chegou à main porque só era alcançável **criando cliente com telefone**, e nada
+automatizado fazia isso. O `class_refs_test` pega o sintoma estático; este pega o
+comportamento. Validado reintroduzindo o bug: os dois acusam.
+
+Cobre também garantias que não são de código: o histórico de solicitação LGPD é
+**imutável no banco** (trigger recusa UPDATE e DELETE), e o teste exige que
+continue assim, porque uma migration futura poderia recriar a tabela sem os
+triggers e ninguém notaria.
+
+**Limpa o que cria**, num `register_shutdown_function` que roda mesmo se uma
+asserção falhar, e reclama em `stderr` se alguma tabela recusar a limpeza. Não
+toca em dado pré-existente.
 
 ### As 12 falhas antigas do `plan_feature` acabaram
 
