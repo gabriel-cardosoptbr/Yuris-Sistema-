@@ -21,11 +21,7 @@
  * Protegido por CRON_TOKEN (CLI e trusted, mesmo padrao do lgpd_retention_tick).
  * Rodar a cada ~15 min. GET /api/whatsapp_health_tick.php?token=<CRON_TOKEN>  ou CLI.
  */
-require_once __DIR__ . '/../../app/Core/Database.php';
-require_once __DIR__ . '/../../app/Core/EnvLoader.php';
-require_once __DIR__ . '/../../app/WhatsAppAgente/WaLog.php';
-require_once __DIR__ . '/../../app/WhatsAppAgente/AiIntake/AgentEvent.php';
-require_once __DIR__ . '/../../app/WhatsAppAgente/WhatsAppInstance.php'; // reconciliador auto-strict do cracha
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Core\Database;
 use App\Core\EnvLoader;

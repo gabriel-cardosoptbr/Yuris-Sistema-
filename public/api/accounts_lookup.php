@@ -10,9 +10,7 @@
  * GET /api/accounts_lookup.php?codigo_vinculo=xxxx-xxxx-xxxx-xxxx
  */
 
-require_once __DIR__ . '/../../app/Core/Database.php';
-require_once __DIR__ . '/../../app/Master/Account.php';
-require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Master\Account;
 use App\Core\Database;

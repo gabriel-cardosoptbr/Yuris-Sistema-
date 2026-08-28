@@ -2,15 +2,7 @@
 error_reporting(0);
 ini_set('display_errors', '0');
 
-require_once __DIR__ . '/../../app/Core/Database.php';
-require_once __DIR__ . '/../../app/Master/Account.php';
-require_once __DIR__ . '/../../app/Master/ResourceShare.php';
-require_once __DIR__ . '/../../app/Tarefas/TaskChecklist.php';
-require_once __DIR__ . '/../../app/Tarefas/Task.php';
-require_once __DIR__ . '/../../app/Core/AccountContext.php';
-require_once __DIR__ . '/../../app/Core/TenantGuard.php';
-require_once __DIR__ . '/../../app/Processos/ProcessoAudit.php';
-require_once __DIR__ . '/../../app/Tarefas/TaskAudit.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Tarefas\TaskChecklist;
 use App\Tarefas\Task;

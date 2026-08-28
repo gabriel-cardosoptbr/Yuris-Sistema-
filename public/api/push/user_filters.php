@@ -17,16 +17,7 @@
 ob_start();
 @ini_set('display_errors', '0');
 
-require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/Master/Account.php';
-require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
-require_once __DIR__ . '/../../../app/Processos/PushMonitor.php';
-require_once __DIR__ . '/../../../app/Core/AccountContext.php';
-require_once __DIR__ . '/../../../app/Core/ErrorReporter.php';
-require_once __DIR__ . '/../../../app/Processos/MonitorQuota.php';  // Etapa 5 — graceful
-require_once __DIR__ . '/../../../app/Processos/MonitorAudit.php';
-require_once __DIR__ . '/../../../app/Billing/BillingGuard.php';
-require_once __DIR__ . '/../../../app/Processos/MonitorPermission.php'; // audit fix #2 — bypass D3/D7
+require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\AccountContext;
 use App\Processos\MonitorQuota;

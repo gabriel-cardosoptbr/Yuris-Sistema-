@@ -12,7 +12,7 @@
  * As perguntas sao DETERMINISTICAS e NAO entram no prompt mestre. O modelo so classifica a area;
  * o backend (IntakeEngine) escolhe a pergunta especifica. Sem custo de tokens.
  */
-require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Core\Database;
 

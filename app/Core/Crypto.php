@@ -1,8 +1,6 @@
 <?php
 namespace App\Core;
 
-require_once __DIR__ . '/EnvLoader.php';
-
 /**
  * Crypto — utilitário simétrico AES-256-GCM pra cifrar credenciais at-rest.
  *

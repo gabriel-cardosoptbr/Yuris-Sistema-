@@ -9,16 +9,7 @@
  */
 ob_start();
 
-require_once __DIR__ . '/../../app/Core/Database.php';
-require_once __DIR__ . '/../../app/Tarefas/Task.php';
-require_once __DIR__ . '/../../app/Tarefas/TaskColumn.php';
-require_once __DIR__ . '/../../app/Tarefas/TaskRecurrence.php';
-require_once __DIR__ . '/../../app/Tarefas/TaskReminder.php';
-require_once __DIR__ . '/../../app/Tarefas/TaskLink.php';
-require_once __DIR__ . '/../../app/Master/ResourceShare.php';
-require_once __DIR__ . '/../../app/Core/EnvLoader.php';
-require_once __DIR__ . '/../../app/Processos/ProcessoAudit.php';
-require_once __DIR__ . '/../../app/Tarefas/TaskAudit.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 // P1 LGPD (2A.4): carrega .env explicitamente — getenv() não funciona sem isso
 \App\Core\EnvLoader::load();

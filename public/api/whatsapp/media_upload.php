@@ -9,10 +9,7 @@
  * fato exercido. Mantemos este endpoint como validador multipart reutilizável
  * (resposta JSON com base64 já validado por magic bytes).
  */
-require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/Core/AccountContext.php';
-require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppChannelAccessService.php';
-require_once __DIR__ . '/../../../app/Core/ErrorReporter.php';
+require_once __DIR__ . '/../../../app/bootstrap.php';
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');

@@ -10,7 +10,7 @@
  * Rollback: reativar a v2 (UPDATE ai_prompts SET active=1 WHERE version='v2' ...; e
  * active=0 nas demais) ou pelo editor do Painel Master (aba Agente IA, historico).
  */
-require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Core\Database;
 

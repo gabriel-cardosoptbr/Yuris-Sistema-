@@ -1,12 +1,5 @@
 <?php
-require_once __DIR__ . '/../app/Core/Database.php';
-require_once __DIR__ . '/../app/Master/Account.php';
-require_once __DIR__ . '/../app/Master/ResourceShare.php';
-require_once __DIR__ . '/../app/Processos/PushTodayCache.php';
-require_once __DIR__ . '/../app/Processos/PushEvent.php';
-require_once __DIR__ . '/../app/Processos/PushEventUserStatus.php';
-require_once __DIR__ . '/../app/Core/AccountContext.php';
-require_once __DIR__ . '/../app/Processos/MonitorPermission.php';
+require_once __DIR__ . '/../app/bootstrap.php';
 
 session_start();
 if (empty($_SESSION['user_id'])) {

@@ -1,15 +1,6 @@
 <?php
 namespace App\WhatsAppAgente\AiIntake;
 
-require_once __DIR__ . '/IntakeSchema.php';
-require_once __DIR__ . '/Taxonomy.php';
-require_once __DIR__ . '/IntakeStateMachine.php';
-require_once __DIR__ . '/IntakeSessionRepository.php';
-require_once __DIR__ . '/LlmProviderInterface.php';
-require_once __DIR__ . '/HandoffService.php';
-require_once __DIR__ . '/AgentEvent.php';
-require_once __DIR__ . '/../../Billing/PlanFeature.php';
-
 /**
  * IntakeEngine — orquestrador do pre-atendimento. UMA chamada de IA por mensagem.
  *

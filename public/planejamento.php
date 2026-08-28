@@ -1,7 +1,5 @@
 <?php
-require_once __DIR__ . '/../app/Core/Database.php';
-require_once __DIR__ . '/../app/Usuarios/User.php';
-require_once __DIR__ . '/../app/Billing/PlanFeature.php';
+require_once __DIR__ . '/../app/bootstrap.php';
 use App\Core\Database;
 use App\Billing\PlanFeature;
 session_start();

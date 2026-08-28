@@ -6,7 +6,7 @@
 // Antes, o require_once gerava fatal error (path inexistente) e os realpaths
 // no array $files retornavam false → opcache_invalidate/touch eram pulados
 // silenciosamente. Endpoint só fazia opcache_reset() global.
-require_once __DIR__ . '/../../../app/Core/Database.php';
+require_once __DIR__ . '/../../../app/bootstrap.php';
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 if (empty($_SESSION['user_id'])) { http_response_code(401); echo json_encode(['error'=>'Unauthorized']); exit; }

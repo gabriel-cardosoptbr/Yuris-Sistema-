@@ -9,10 +9,7 @@
  *
  * SEM AUTENTICAÇÃO DE USUÁRIO — a auth é via signature do gateway.
  */
-require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/Core/EnvLoader.php';
-require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
-require_once __DIR__ . '/../../../app/Billing/Gateway/Gateway.php';
+require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\ApiResponse;
 use App\Core\Database;

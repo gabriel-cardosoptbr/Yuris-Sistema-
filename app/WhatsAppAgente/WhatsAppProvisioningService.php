@@ -14,10 +14,6 @@
  *    não devolve a chave num formato fixo no create.
  */
 
-require_once __DIR__ . '/EvolutionApiService.php';
-require_once __DIR__ . '/WhatsAppInstance.php';
-require_once __DIR__ . '/../Core/Crypto.php';
-require_once __DIR__ . '/WhatsAppChannelAccessService.php';
 
 class WhatsAppProvisioningService
 {

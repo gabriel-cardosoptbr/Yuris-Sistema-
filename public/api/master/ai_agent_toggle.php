@@ -8,10 +8,7 @@
  *
  *   POST { account_id, enabled (0|1) }  -> { ok, data:{ account_id, enabled, configs, account_nome } }
  */
-require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/Core/AccountContext.php';
-require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
-require_once __DIR__ . '/../../../app/Master/MasterAudit.php';
+require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\AccountContext;
 use App\Core\ApiResponse;

@@ -15,9 +15,7 @@
  * muito mais leve que o getChatList antigo (subqueries por linha). Um cache curto da
  * decisao (APCu/sessao) pode entrar depois se o profiling mostrar que a authz esquenta.
  */
-require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppChannelAccessService.php';
-require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\AccountContext;
 

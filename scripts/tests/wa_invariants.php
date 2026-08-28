@@ -18,7 +18,7 @@
 if (PHP_SAPI !== 'cli') { http_response_code(403); exit("CLI only\n"); }
 
 $ROOT = dirname(__DIR__, 2);
-require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Core\Database;
 

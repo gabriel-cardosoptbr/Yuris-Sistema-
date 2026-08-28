@@ -47,7 +47,7 @@ if (PHP_SAPI !== 'cli') {
     exit("Este script só roda via CLI (php scripts/seed_admin.php).\n");
 }
 
-require __DIR__ . '/../app/Core/Database.php';
+require_once __DIR__ . '/../app/bootstrap.php';
 
 use App\Core\Database;
 

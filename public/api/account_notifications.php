@@ -9,9 +9,7 @@
  *          Body: { id: 5 } ou { all: true }
  */
 
-require_once __DIR__ . '/../../app/Core/Database.php';
-require_once __DIR__ . '/../../app/Master/AccountNotification.php';
-require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Master\AccountNotification;
 use App\Core\AccountContext;

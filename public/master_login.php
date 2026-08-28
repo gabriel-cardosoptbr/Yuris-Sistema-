@@ -28,10 +28,7 @@
  *   • Nenhum log em texto plano de credenciais
  *   • Sessão de "mfa_pending" expira em 5 minutos
  */
-require_once __DIR__ . '/../app/Core/Database.php';
-require_once __DIR__ . '/../app/Usuarios/User.php';
-require_once __DIR__ . '/../app/Core/EnvLoader.php';
-require_once __DIR__ . '/../app/Usuarios/TotpHelper.php';
+require_once __DIR__ . '/../app/bootstrap.php';
 
 use App\Core\Database;
 use App\Usuarios\User;

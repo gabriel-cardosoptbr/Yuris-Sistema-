@@ -16,10 +16,7 @@
  *   POST action=activate {id}                  -> ativa uma versao existente (rollback)
  *   POST action=delete {id}                    -> exclui uma versao (nunca a ativa nem a ultima)
  */
-require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/Core/AccountContext.php';
-require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
-require_once __DIR__ . '/../../../app/Master/MasterAudit.php';
+require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\AccountContext;
 use App\Core\ApiResponse;

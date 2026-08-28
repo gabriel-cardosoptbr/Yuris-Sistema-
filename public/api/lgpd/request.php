@@ -8,11 +8,7 @@
  *
  * Endpoint admin (super_admin) fica em /api/master/lgpd_requests.php.
  */
-require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/Lgpd/LgpdRequest.php';
-require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
-require_once __DIR__ . '/../../../app/Core/EnvLoader.php';
-require_once __DIR__ . '/../../../app/Core/Mailer.php';
+require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Lgpd\LgpdRequest;
 use App\Core\Database;

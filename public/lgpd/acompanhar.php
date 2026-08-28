@@ -8,8 +8,7 @@
  *
  * Visual: usa classes utilitárias do legal_page.php (respondem ao tema).
  */
-require_once __DIR__ . '/../../app/Core/Database.php';
-require_once __DIR__ . '/../../app/Lgpd/LgpdRequest.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Lgpd\LgpdRequest;
 

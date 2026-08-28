@@ -16,8 +16,7 @@
  *
  * Gate: owner/admin (configurar o canal do agente é ação de gestão).
  */
-require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\AccountContext;
 use App\Core\Database;

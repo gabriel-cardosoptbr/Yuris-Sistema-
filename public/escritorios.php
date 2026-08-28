@@ -1,9 +1,5 @@
 <?php
-require_once __DIR__ . '/../app/Core/Database.php';
-require_once __DIR__ . '/../app/Core/AccountContext.php';
-require_once __DIR__ . '/../app/Processos/MonitorQuota.php';
-require_once __DIR__ . '/../app/Processos/MonitorPermission.php';
-require_once __DIR__ . '/../app/Billing/BillingGuard.php';
+require_once __DIR__ . '/../app/bootstrap.php';
 session_start();
 if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
 $activePage = 'escritorios';

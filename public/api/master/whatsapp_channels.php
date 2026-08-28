@@ -19,13 +19,7 @@
  *   POST action=grant   {channel_id, account_id, perms:{can_view,can_send,can_sync,can_delete_messages}}
  *   POST action=revoke  {channel_id, account_id}
  */
-require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/Master/Account.php';
-require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
-require_once __DIR__ . '/../../../app/Core/AccountContext.php';
-require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
-require_once __DIR__ . '/../../../app/Master/MasterAudit.php';
-require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppChannelAccessService.php';
+require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\AccountContext;
 use App\Core\ApiResponse;

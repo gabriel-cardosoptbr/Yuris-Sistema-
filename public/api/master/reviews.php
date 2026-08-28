@@ -16,14 +16,7 @@
  *
  * Toda mutação registrada em master_audit_log.
  */
-require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/Master/Account.php';
-require_once __DIR__ . '/../../../app/Master/ResourceShare.php';
-require_once __DIR__ . '/../../../app/Lgpd/PendingReview.php';
-require_once __DIR__ . '/../../../app/Core/AccountContext.php';
-require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
-require_once __DIR__ . '/../../../app/Master/MasterAudit.php';
-require_once __DIR__ . '/../../../app/Core/RequestId.php';
+require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\AccountContext;
 use App\Core\ApiResponse;

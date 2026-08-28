@@ -13,9 +13,17 @@ isolamento entre contas é a garantia mais importante do sistema.
   no repositório é o que roda
 - Desenvolvimento local: `http://localhost:8090`
 
-Não há autoloader. Toda classe é carregada por `require_once` com caminho
-escrito à mão. Isso está detalhado em [`app/README.md`](app/README.md), e é a
-primeira coisa a entender antes de mover qualquer arquivo.
+**Existe autoloader** desde 27/08/2026: [`app/bootstrap.php`](app/bootstrap.php),
+20 linhas de `spl_autoload_register` que mapeiam namespace para pasta. Todo ponto
+de entrada carrega o bootstrap e nada mais:
+
+```php
+require_once __DIR__ . '/../app/bootstrap.php';
+use App\Processos\Processo;
+```
+
+Antes disso eram 1.077 `require_once` com caminho à mão, em 192 arquivos.
+Detalhe em [`app/README.md`](app/README.md).
 
 ---
 
@@ -126,8 +134,8 @@ e o teste passa dando falsa segurança. Foi o que aconteceu em 27/08/2026.
    por conta, usada ao mesmo tempo pelo chat humano e pelo agente. Segunda
    instância, segundo QR ou webhook paralelo derrubam o módulo. Ver
    [`app/WhatsAppAgente/README.md`](app/WhatsAppAgente/README.md).
-3. **Mudar caminho de arquivo sem atualizar quem o carrega.** Sem autoloader, o
-   erro só aparece em runtime.
+3. **Namespace que deixa de espelhar a pasta.** É o que o autoloader usa para
+   achar o arquivo. Pasta nova exige namespace igual, ou a classe some.
 4. **Editar migration já aplicada.** Não muda os bancos onde já rodou. Correção
    é migration nova.
 5. **Prazo de LGPD.** Solicitação de titular e incidente têm prazo legal. Ver

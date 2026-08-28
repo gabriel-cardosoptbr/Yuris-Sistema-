@@ -13,11 +13,7 @@
  * Padrão visual: idêntico às demais páginas do app (page-layout + main-content
  * + page-header, ver configuracoes.php / dashboard.php).
  */
-require_once __DIR__ . '/../../app/Core/Database.php';
-require_once __DIR__ . '/../../app/Master/Account.php';
-require_once __DIR__ . '/../../app/Master/ResourceShare.php';
-require_once __DIR__ . '/../../app/Usuarios/Consent.php';
-require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Core\AccountContext;
 use App\Usuarios\Consent;

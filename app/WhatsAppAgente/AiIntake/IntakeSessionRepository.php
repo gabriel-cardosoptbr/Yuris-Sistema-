@@ -1,8 +1,6 @@
 <?php
 namespace App\WhatsAppAgente\AiIntake;
 
-require_once __DIR__ . '/AgentEvent.php';
-
 /**
  * IntakeSessionRepository — persistencia de sessoes/mensagens/uso do agente (tabelas ai_*).
  *

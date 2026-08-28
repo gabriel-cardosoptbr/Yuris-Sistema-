@@ -4,11 +4,7 @@
  * Retorna as tarefas processuais de todos os processos vinculados a uma tarefa.
  * Mutações (add/toggle/edit/delete) usam processo_tarefas.php diretamente.
  */
-require_once __DIR__ . '/../../app/Core/Database.php';
-require_once __DIR__ . '/../../app/Master/Account.php';
-require_once __DIR__ . '/../../app/Master/ResourceShare.php';
-require_once __DIR__ . '/../../app/Core/AccountContext.php';
-require_once __DIR__ . '/../../app/Core/TenantGuard.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Core\AccountContext;
 use App\Core\TenantGuard;

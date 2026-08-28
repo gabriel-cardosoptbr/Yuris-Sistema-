@@ -12,9 +12,7 @@
  * Multi-tenant: cada conta tem suas próprias origens. Sem herança.
  */
 
-require_once __DIR__ . '/../../app/Core/Database.php';
-require_once __DIR__ . '/../../app/Clientes/ClienteOrigem.php';
-require_once __DIR__ . '/../../app/Core/AccountContext.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Clientes\ClienteOrigem;
 use App\Core\AccountContext;

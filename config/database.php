@@ -5,7 +5,7 @@
 // PRODUÇÃO: criar um .env na raiz com as credenciais reais.
 // Veja .env.example pra referência.
 
-require_once __DIR__ . '/../app/Core/EnvLoader.php';
+require_once __DIR__ . '/../app/bootstrap.php';
 
 \App\Core\EnvLoader::load();
 

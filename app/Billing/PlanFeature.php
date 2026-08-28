@@ -35,9 +35,6 @@
 
 namespace App\Billing;
 
-require_once __DIR__ . '/BillingGuard.php';
-require_once __DIR__ . '/../Core/Database.php';
-
 use App\Core\Database;
 
 final class PlanFeature

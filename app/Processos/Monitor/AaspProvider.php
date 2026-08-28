@@ -1,9 +1,6 @@
 <?php
 namespace App\Processos\Monitor;
 
-require_once __DIR__ . '/ProviderInterface.php';
-require_once __DIR__ . '/PublicationHasher.php';
-
 /**
  * AaspProvider — integração com a API de Intimações da AASP.
  *

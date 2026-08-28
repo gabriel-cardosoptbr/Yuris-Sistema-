@@ -22,9 +22,6 @@
  *   // $ch['owner_account_id'] / $ch['instance_name'] resolvidos no backend.
  */
 
-require_once __DIR__ . '/../Core/Database.php';
-require_once __DIR__ . '/WhatsAppInstance.php';
-require_once __DIR__ . '/../Core/EnvLoader.php';
 
 class WhatsAppChannelAccessService
 {

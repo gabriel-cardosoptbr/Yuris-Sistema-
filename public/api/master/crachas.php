@@ -12,9 +12,7 @@
  * So LE a telemetria (ai_agent_events codes webhook_*) + whatsapp_settings/instances. NAO
  * expoe o valor do token. Read-only, fail-soft. Acesso: super_admin em master_mode. GET.
  */
-require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/Core/AccountContext.php';
-require_once __DIR__ . '/../../../app/Core/ApiResponse.php';
+require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\AccountContext;
 use App\Core\ApiResponse;

@@ -17,10 +17,7 @@
  * Identifica a conversa por chat_id OU por (instance_id + remote_jid) OU por remote_jid,
  * sempre DENTRO do canal autorizado.
  */
-require_once __DIR__ . '/../../../app/Core/Database.php';
-require_once __DIR__ . '/../../../app/Core/AccountContext.php';
-require_once __DIR__ . '/../../../app/WhatsAppAgente/WhatsAppChannelAccessService.php';
-require_once __DIR__ . '/../../../app/WhatsAppAgente/AiIntake/IntakeSessionRepository.php';
+require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\AccountContext;
 use App\Core\Database;

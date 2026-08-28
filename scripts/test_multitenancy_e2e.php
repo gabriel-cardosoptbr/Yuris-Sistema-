@@ -16,12 +16,7 @@
  * Uso:  C:\xampp\php\php.exe scripts\test_multitenancy_e2e.php
  */
 
-require __DIR__ . '/../app/Core/Database.php';
-require __DIR__ . '/../app/Master/Account.php';
-require __DIR__ . '/../app/Usuarios/AccountVinculo.php';
-require __DIR__ . '/../app/Master/ResourceShare.php';
-require __DIR__ . '/../app/Processos/Processo.php';
-require __DIR__ . '/../app/Core/AccountContext.php';
+require_once __DIR__ . '/../app/bootstrap.php';
 
 use App\Core\Database;
 use App\Master\Account;

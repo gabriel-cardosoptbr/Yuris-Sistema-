@@ -8,7 +8,7 @@
  * Idempotente: so adiciona a coluna se ainda nao existir (information_schema).
  * Rollback: ALTER TABLE ai_usage_log DROP COLUMN cached_input_tokens.
  */
-require_once __DIR__ . '/../../app/Core/Database.php';
+require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Core\Database;
 

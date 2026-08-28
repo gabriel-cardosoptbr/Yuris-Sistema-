@@ -14,10 +14,7 @@
  *
  * Sem dependência de CDN: usa Tailwind do master.php existente.
  */
-require_once __DIR__ . '/../app/Core/Database.php';
-require_once __DIR__ . '/../app/Master/Account.php';
-require_once __DIR__ . '/../app/Master/ResourceShare.php';
-require_once __DIR__ . '/../app/Core/AccountContext.php';
+require_once __DIR__ . '/../app/bootstrap.php';
 
 use App\Core\AccountContext;
 
