@@ -100,7 +100,8 @@ for f in $(find app public bin scripts config database -name "*.php"); do php -l
 for t in scripts/tests/*.php; do php "$t"; done
 ```
 
-Baseline em 27/08/2026: `class_refs` 3407 referências todas resolvem ·
+Baseline em 27/08/2026: `class_refs` 3411 referências + 323 requires, todos
+resolvem ·
 `wa_webhook_parser` 42/0 · `wa_webhook_token` 21/0 · `wa_invariants` 39/0 ·
 `plan_gate_e2e` 25 ok/0 · `plan_feature` 79 ok/0.
 

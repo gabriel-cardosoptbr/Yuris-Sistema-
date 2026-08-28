@@ -9,7 +9,7 @@ executa de propósito, com `php scripts/<arquivo>.php`.
 
 | Script | Cobre | Precisa de banco? |
 |---|---|---|
-| `tests/class_refs_test.php` | **toda referência a classe do projeto resolve?** | não |
+| `tests/class_refs_test.php` | **toda referência a classe resolve, e todo `require` aponta para arquivo real** | não |
 | `tests/wa_webhook_parser_test.php` | parsers do payload da Evolution | não |
 | `tests/wa_webhook_token_test.php` | segundo fator do webhook | não |
 | `tests/wa_invariants.php` | invariantes do módulo WhatsApp e do agente | sim |
@@ -19,7 +19,7 @@ executa de propósito, com `php scripts/<arquivo>.php`.
 Baseline conhecido em **27/08/2026**, com o MySQL de pé:
 
 ```
-class_refs          3407 referencias · todas resolvem
+class_refs          3411 referencias + 323 requires · todos resolvem
 wa_webhook_parser     42 PASS · 0 FAIL
 wa_webhook_token      21 PASS · 0 FAIL
 wa_invariants         39 PASS · 0 FAIL
@@ -41,6 +41,12 @@ passaram a apontar para o vazio, e **nada do que se costuma rodar pegou**. `php
 -l` não resolve nome de classe; carregar o arquivo também não, porque type hint
 só resolve na chamada; e a varredura HTTP sem sessão redireciona para o login
 antes da linha quebrar, então deu 164/164 "sem fatal" com o sistema quebrado.
+
+Desde 27/08/2026 ele também confere se **todo `require` aponta para arquivo que
+existe**. Isso entrou depois de um caso real: ao mover `Cliente.php` de pasta, um
+`require __DIR__ . '/Contato.php'` **dentro de um método** ficou apontando para o
+vazio. Não aparecia no lint nem no carregamento, e a varredura HTTP não pegava
+porque só o POST de criar/editar cliente executa aquela linha.
 
 É o único teste aqui que cobre **caminho de código que nenhuma requisição
 executa**. Rode-o sempre que mexer em namespace, mover arquivo ou renomear

@@ -114,7 +114,7 @@ Baseline conhecido em **27/08/2026**:
 
 | Suite | Esperado |
 |---|---|
-| `class_refs_test` | 3407 referências, todas resolvem |
+| `class_refs_test` | 3411 referências + 323 requires, todos resolvem |
 | `wa_webhook_parser_test` | 42 PASS · 0 FAIL |
 | `wa_webhook_token_test` | 21 PASS · 0 FAIL |
 | `wa_invariants` | 39 PASS · 0 FAIL |
