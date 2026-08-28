@@ -1,4 +1,7 @@
 <?php
+use App\WhatsAppAgente\WhatsAppChannelAccessService;
+use App\WhatsAppAgente\WhatsAppInstance;
+
 /**
  * media.php — Proxy de mídia com fallback duplo:
  * 1. Tenta URL direta com API key (funciona se Evolution armazena localmente)

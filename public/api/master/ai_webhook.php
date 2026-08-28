@@ -15,6 +15,8 @@ require_once __DIR__ . '/../../../app/bootstrap.php';
 use App\Core\AccountContext;
 use App\Core\ApiResponse;
 use App\Master\MasterAudit;
+use App\WhatsAppAgente\EvolutionApiService;
+use App\WhatsAppAgente\WhatsAppInstance;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -50,7 +52,7 @@ if ($method === 'POST') {
     // 1) Carrega o canal (sem escopo — Master vê tudo).
     $iid = (int)($in['instance_id'] ?? 0);
     if ($iid <= 0) ApiResponse::badRequest('instance_id obrigatório.');
-    $wi   = new \WhatsAppInstance();
+    $wi   = new WhatsAppInstance();
     $inst = $wi->find($iid);
     if (!$inst) ApiResponse::badRequest('Instância não encontrada.');
 
@@ -74,7 +76,7 @@ if ($method === 'POST') {
     $urlFinal = $hook . (strpos($hook, '?') === false ? '?' : '&') . 'token=' . urlencode($apiKey);
 
     // 5) Reaponta e verifica.
-    $evo = new \EvolutionApiService($cfg);
+    $evo = new EvolutionApiService($cfg);
     $setResp = $evo->setWebhook($instName, $urlFinal, REPOINT_EVENTS);
 
     $setHttp = (int)($setResp['_http'] ?? 0);

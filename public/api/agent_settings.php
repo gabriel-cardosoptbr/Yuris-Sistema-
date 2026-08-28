@@ -32,6 +32,7 @@ use App\Core\Database;
 use App\Core\AccountContext;
 use App\Core\Crypto;
 use App\Usuarios\TotpHelper;
+use App\WhatsAppAgente\WhatsAppChannelAccessService;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');

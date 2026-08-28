@@ -1,4 +1,6 @@
 <?php
+use App\WhatsAppAgente\WhatsAppChannelAccessService;
+
 /**
  * media_upload.php — recebe arquivo via multipart e devolve base64 + MIME validado.
  *

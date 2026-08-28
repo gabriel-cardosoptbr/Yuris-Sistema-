@@ -1,4 +1,5 @@
 <?php
+namespace App\WhatsAppAgente;
 /**
  * WhatsAppProvisioningService — provisionamento (idempotente, best-effort) de
  * instância WhatsApp na Evolution para uma conta (matriz / advogado / filial).

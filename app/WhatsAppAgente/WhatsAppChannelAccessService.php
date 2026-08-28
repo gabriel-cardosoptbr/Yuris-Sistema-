@@ -1,4 +1,7 @@
 <?php
+namespace App\WhatsAppAgente;
+
+use App\WhatsAppAgente\WhatsAppInstance;
 /**
  * WhatsAppChannelAccessService — camada ÚNICA de autorização de canal WhatsApp.
  *
@@ -249,7 +252,7 @@ class WhatsAppChannelAccessService
     public static function resolveForRequest(\PDO $pdo, int $accountId, $requestedChannelId, string $perm): array
     {
         if ($accountId <= 0) self::deny();
-        $model = new \WhatsAppInstance();
+        $model = new WhatsAppInstance();
 
         $channelId = null;
 

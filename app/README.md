@@ -114,15 +114,7 @@ o bootstrap, que roda primeiro. (Segue também em `Database.php`, como rede.)
 
 Depois de mexer, o mínimo a rodar está em [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md).
 
-## Duas inconsistências conhecidas, de propósito
-
-**Cinco classes de WhatsApp não declaram namespace** e vivem no namespace
-global: `WhatsAppInstance`, `WhatsAppMessage`, `EvolutionApiService`,
-`WhatsAppChannelAccessService` e `WhatsAppProvisioningService`. Elas se chamam
-`\EvolutionApiService`, não `\App\WhatsAppAgente\EvolutionApiService`. Dar
-namespace a elas é mudança de comportamento, com risco próprio, e ficou para um
-passo separado. Já causou três bugs em produção (corrigidos no commit
-`f7d5ca8`), então **ao chamar uma delas, confira se a classe é global**.
+## Uma inconsistência conhecida, de propósito
 
 **`Contato` está em `Prospeccao/`** mas é usado também por Processos e pelo
 handoff do agente de IA. Ficou onde nasceu; se um dia virar entidade

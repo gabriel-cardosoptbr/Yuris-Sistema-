@@ -47,22 +47,5 @@ spl_autoload_register(static function (string $classe): void {
         if (is_file($arquivo)) {
             require_once $arquivo;
         }
-        return;
-    }
-
-    // Classes que ainda vivem no namespace global (ver D2 em docs/).
-    static $globais = [
-        'EvolutionApiService'          => 'WhatsAppAgente/EvolutionApiService.php',
-        'WhatsAppChannelAccessService' => 'WhatsAppAgente/WhatsAppChannelAccessService.php',
-        'WhatsAppInstance'             => 'WhatsAppAgente/WhatsAppInstance.php',
-        'WhatsAppMessage'              => 'WhatsAppAgente/WhatsAppMessage.php',
-        'WhatsAppProvisioningService'  => 'WhatsAppAgente/WhatsAppProvisioningService.php',
-    ];
-    if (isset($globais[$classe])) {
-        $arquivo = __DIR__ . DIRECTORY_SEPARATOR
-                 . str_replace('/', DIRECTORY_SEPARATOR, $globais[$classe]);
-        if (is_file($arquivo)) {
-            require_once $arquivo;
-        }
     }
 });

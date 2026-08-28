@@ -159,8 +159,6 @@ o caminho de permissão é diferente.
   não usar Composer, e o `class_refs_test` é quem cobre isso
 - **Carregar um arquivo de classe isolado não funciona**: as dependências vêm
   do autoloader, então script, cron e `php -r` carregam `app/bootstrap.php`
-- **Cinco classes de WhatsApp no namespace global**, herança de quando não havia
-  namespace. Já causou três bugs em produção (corrigidos em `f7d5ca8`)
 - **`public/` não é agrupável por domínio** sem uma camada de rota que preserve
   os endereços atuais
 - **Cobertura de teste concentrada**: das seis suites de `scripts/tests/`, o
@@ -172,9 +170,7 @@ o caminho de permissão é diferente.
 Em ordem de custo/benefício, do mais barato ao mais caro:
 
 1. ~~**Autoloader**~~ — **feito em 27/08/2026** (`app/bootstrap.php`)
-2. **Dar namespace às cinco classes globais.** Ficou barato agora que o
-   autoloader existe, e o `class_refs_test` prova que nenhum chamador ficou
-   para trás
+2. ~~**Namespace nas cinco classes globais**~~ — **feito em 27/08/2026**
 3. **Camada de rota em `public/`**, preservando os endereços atuais. Só então
    faz sentido agrupar `public/` por domínio
 4. **Ampliar os testes** para os módulos sem cobertura

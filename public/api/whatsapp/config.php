@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\AccountContext;
+use App\WhatsAppAgente\WhatsAppInstance;
 
 session_start(['read_and_close' => true]);
 $_uid  = $_SESSION['user_id']    ?? null;

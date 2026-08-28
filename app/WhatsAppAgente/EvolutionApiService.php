@@ -1,4 +1,5 @@
 <?php
+namespace App\WhatsAppAgente;
 /**
  * EvolutionApiService — camada de integração com a Evolution API.
  *

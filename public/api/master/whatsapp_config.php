@@ -21,6 +21,9 @@ use App\Core\AccountContext;
 use App\Core\ApiResponse;
 use App\Master\MasterAudit;
 use App\Core\Crypto;
+use App\WhatsAppAgente\EvolutionApiService;
+use App\WhatsAppAgente\WhatsAppInstance;
+use App\WhatsAppAgente\WhatsAppProvisioningService;
 
 session_start();
 header('Cache-Control: no-store');

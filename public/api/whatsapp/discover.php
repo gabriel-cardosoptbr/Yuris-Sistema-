@@ -1,4 +1,8 @@
 <?php
+use App\WhatsAppAgente\EvolutionApiService;
+use App\WhatsAppAgente\WhatsAppChannelAccessService;
+use App\WhatsAppAgente\WhatsAppMessage;
+
 /**
  * discover.php — varre páginas de mensagens da Evolution API
  * para descobrir chats/mensagens novas sem depender do webhook.

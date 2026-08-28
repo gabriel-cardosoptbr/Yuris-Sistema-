@@ -27,6 +27,7 @@ use App\Core\Database;
 use App\Core\EnvLoader;
 use App\WhatsAppAgente\WaLog;
 use App\WhatsAppAgente\AiIntake\AgentEvent;
+use App\WhatsAppAgente\WhatsAppInstance;
 
 EnvLoader::load();
 $isCli    = (PHP_SAPI === 'cli');
@@ -123,7 +124,7 @@ try {
                 AND wi.last_event_at > (NOW() - INTERVAL 24 HOUR)"
         )->fetchAll(\PDO::FETCH_ASSOC);
         if ($cand) {
-            $wiModel = new \WhatsAppInstance();
+            $wiModel = new WhatsAppInstance();
             $badStmt = $pdo->prepare(
                 "SELECT COUNT(*) FROM ai_agent_events
                   WHERE account_id = ?

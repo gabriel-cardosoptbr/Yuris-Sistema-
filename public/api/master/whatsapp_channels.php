@@ -24,6 +24,7 @@ require_once __DIR__ . '/../../../app/bootstrap.php';
 use App\Core\AccountContext;
 use App\Core\ApiResponse;
 use App\Master\MasterAudit;
+use App\WhatsAppAgente\WhatsAppChannelAccessService;
 
 session_start();
 header('Cache-Control: no-store');

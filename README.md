@@ -42,8 +42,8 @@ require_once __DIR__ . '/../app/bootstrap.php';
 use App\Processos\Processo;
 ```
 
-O namespace espelha a pasta, sem exceção (`App\Core\*` → `app/Core/`, `App\Tarefas\*` → `app/Tarefas/`).
-Cinco classes de WhatsApp ainda ficam no namespace global, ver [`app/README.md`](app/README.md).
+O namespace espelha a pasta, **sem exceção** (`App\Core\*` → `app/Core/`, `App\Tarefas\*` → `app/Tarefas/`).
+Ver [`app/README.md`](app/README.md).
 
 **Não usa npm/node.** JavaScript é vanilla (sem build step).
 

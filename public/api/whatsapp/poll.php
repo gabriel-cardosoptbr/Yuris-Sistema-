@@ -18,6 +18,7 @@
 require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\AccountContext;
+use App\WhatsAppAgente\WhatsAppChannelAccessService;
 
 session_start(['read_and_close' => true]); // le a sessao e libera o lock (poll concorrente)
 $uid = $_SESSION['user_id'] ?? null;
