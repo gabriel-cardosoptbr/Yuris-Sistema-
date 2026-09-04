@@ -14,6 +14,9 @@
 require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\AccountContext;
+use App\WhatsAppAgente\EvolutionApiService;
+use App\WhatsAppAgente\WhatsAppChannelAccessService;
+use App\WhatsAppAgente\WhatsAppMessage;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');

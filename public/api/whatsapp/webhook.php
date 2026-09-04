@@ -16,6 +16,9 @@ use App\WhatsAppAgente\WhatsAppAgentBridge;
 use App\WhatsAppAgente\WhatsAppWebhookAuth;
 use App\Core\Crypto;
 use App\Usuarios\TotpHelper;
+use App\WhatsAppAgente\WhatsAppInstance;
+use App\WhatsAppAgente\EvolutionApiService;
+use App\WhatsAppAgente\WhatsAppMessage;
 
 header('Content-Type: application/json; charset=utf-8');
 

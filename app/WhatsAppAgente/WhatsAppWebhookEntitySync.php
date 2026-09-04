@@ -9,7 +9,7 @@ use App\Core\Database;
  * Strangler do webhook.php (Onda 4 / 4D, Pass 2 = I4). Os blocos inline do switch que
  * gravavam contatos, chats e grupos foram movidos VERBATIM para ca (mesma SQL, mesma
  * ordem, mesmos guards). Diferenca em relacao ao original e SO qualificacao de namespace
- * (\PDO, \WhatsAppMessage, Database via use, self::upsertGroupParticipants) — comportamento
+ * (\PDO, \App\WhatsAppAgente\WhatsAppMessage, Database via use, self::upsertGroupParticipants) — comportamento
  * neutro, provado por: (a) diff normalizado vs HEAD (corpos byte-identicos), (b) harness de
  * equivalencia legado-vs-novo em nivel de banco rodado localmente (14 cenarios em transacoes
  * com rollback -> linhas identicas nas 3 tabelas) e (c) a guarda estrutural em
@@ -86,7 +86,7 @@ class WhatsAppWebhookEntitySync
             if (!$jid) continue;
             // Ignora status/broadcast e newsletter: nao sao conversas (nao viram chat "0").
             if (str_ends_with((string)$jid, '@broadcast') || str_contains((string)$jid, '@newsletter')) continue;
-            $jid      = \WhatsAppMessage::resolvePhoneJid($pdo, (int)$instanceId, $jid); // @lid -> telefone quando conhecido
+            $jid      = \App\WhatsAppAgente\WhatsAppMessage::resolvePhoneJid($pdo, (int)$instanceId, $jid); // @lid -> telefone quando conhecido
             $isGroup  = str_ends_with((string)$jid, '@g.us') ? 1 : 0;
             // Nao pre-cria shell @lid 1:1 vazio (fantasma): so se ja houver mensagem sob o jid.
             if (!$isGroup && str_ends_with((string)$jid, '@lid')) {

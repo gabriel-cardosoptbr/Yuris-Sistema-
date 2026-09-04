@@ -79,11 +79,25 @@ foreach ($dir as $f) {
     if (!$tokens) {
         continue;
     }
-    // classes declaradas NO PROPRIO arquivo contam como existentes
+    // Classes declaradas NO PROPRIO arquivo contam como existentes, mas SEMPRE
+    // com o namespace do arquivo.
+    //
+    // Registrar o nome curto no global era um furo grave deste teste: quando
+    // WhatsAppInstance.php (namespace App\WhatsAppAgente) declarava
+    // `class WhatsAppInstance`, o nome curto entrava como se existisse no
+    // namespace global. Com isso, uma chamada `new \WhatsAppInstance()` (global) em
+    // OUTRO arquivo passava batida, mesmo depois de a classe ter ganhado
+    // namespace. Foi exatamente assim que 3 chamadas quebradas em
+    // WhatsAppProvisioningService sobreviveram ao teste, e o provisionamento de
+    // canal de WhatsApp foi para produção quebrado em 04/09/2026.
     if (preg_match_all('/^\s*(?:final\s+|abstract\s+)*(?:class|interface|trait)\s+(\w+)/mi',
                        $fonte, $mm)) {
+        $nsArquivo = '';
+        if (preg_match('/^namespace\s+([A-Za-z\\\\]+)\s*;/m', $fonte, $nm)) {
+            $nsArquivo = trim($nm[1], '\\') . '\\';
+        }
         foreach ($mm[1] as $c) {
-            $existe[strtolower($c)] = true;
+            $existe[strtolower($nsArquivo . $c)] = true;
         }
     }
 

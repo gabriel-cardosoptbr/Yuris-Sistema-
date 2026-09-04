@@ -49,7 +49,7 @@ if ($method === 'POST') {
     // 1) Carrega o canal (sem escopo — Master ve tudo).
     $iid = (int)($in['instance_id'] ?? 0);
     if ($iid <= 0) ApiResponse::badRequest('instance_id obrigatório.');
-    $wi   = new \WhatsAppInstance();
+    $wi   = new \App\WhatsAppAgente\WhatsAppInstance();
     $inst = $wi->find($iid);
     if (!$inst) ApiResponse::badRequest('Instância não encontrada.');
     $aid = (int)$inst['account_id'];

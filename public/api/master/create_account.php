@@ -52,6 +52,7 @@ use App\Core\ApiResponse;
 use App\Master\MasterAudit;
 use App\Core\Database;
 use App\Master\AccountBootstrapSeeder;
+use App\WhatsAppAgente\WhatsAppProvisioningService;
 
 session_start();
 $ctx = AccountContext::fromSession();

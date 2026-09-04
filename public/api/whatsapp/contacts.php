@@ -8,9 +8,9 @@ require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\Database;
 use App\Core\AccountContext;
-// NB (auditoria 2026-06-01, BAIXA #25): removido `use App\Services\EvolutionApiService`.
+// NB (auditoria 2026-06-01, BAIXA #25): removido `use App\Services\App\WhatsAppAgente\EvolutionApiService`.
 // A classe EvolutionApiService e GLOBAL (sem namespace) — este import resolvia para um
-// FQCN inexistente e nunca era usado (instanciamos via \EvolutionApiService mais abaixo).
+// FQCN inexistente e nunca era usado (instanciamos via \App\WhatsAppAgente\EvolutionApiService mais abaixo).
 
 session_start(['read_and_close' => true]);
 $_csrf = $_SESSION['csrf_token'] ?? '';
@@ -61,11 +61,11 @@ try {
             if (!$jid) { http_response_code(400); echo json_encode(['error' => 'jid obrigatório']); exit; }
             try {
                 // NB: a classe EvolutionApiService é GLOBAL (sem namespace). O
-                // `use App\Services\EvolutionApiService` do topo deste arquivo está
+                // `use App\Services\App\WhatsAppAgente\EvolutionApiService` do topo deste arquivo está
                 // ERRADO e fazia `new EvolutionApiService` resolver pra um FQCN
                 // inexistente → "Class not found" → foto nunca vinha. Forçamos o
                 // namespace global com a barra inicial.
-                $evo = new \EvolutionApiService($cfg);
+                $evo = new \App\WhatsAppAgente\EvolutionApiService($cfg);
                 // Foto de perfil é "nice-to-have": não pode pendurar a conexão.
                 // Sem timeout, a Evolution lenta segurava o request ~20s e, com
                 // vários cliques, saturava o pool de conexões do navegador.

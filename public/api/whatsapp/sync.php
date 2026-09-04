@@ -8,6 +8,9 @@ require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\Database;
 use App\Core\AccountContext;
+use App\WhatsAppAgente\WhatsAppMessage;
+use App\WhatsAppAgente\EvolutionApiService;
+use App\WhatsAppAgente\WhatsAppChannelAccessService;
 
 session_start(['read_and_close' => true]);
 $_uid  = $_SESSION['user_id']    ?? null;

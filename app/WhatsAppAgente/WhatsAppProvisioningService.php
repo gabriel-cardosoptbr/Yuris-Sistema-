@@ -64,7 +64,7 @@ class WhatsAppProvisioningService
                 return ['success' => false, 'error' => 'accountId invalido'];
             }
 
-            $model = new \WhatsAppInstance();
+            $model = new \App\WhatsAppAgente\WhatsAppInstance();
 
             // Idempotencia: ja configurada? nao recria.
             $existing = $model->getSettings($accountId);
@@ -83,7 +83,7 @@ class WhatsAppProvisioningService
             $name  = substr($slug, 0, 24) . '-' . $accountId;
             $token = bin2hex(random_bytes(18));
 
-            $globalEvo = new \EvolutionApiService(['evolution_base_url' => $base, 'evolution_api_key' => $adminKey]);
+            $globalEvo = new \App\WhatsAppAgente\EvolutionApiService(['evolution_base_url' => $base, 'evolution_api_key' => $adminKey]);
             $res = $globalEvo->createInstance($name, '', $token);
             if (!empty($res['_error'])) {
                 return ['success' => false, 'error' => 'Evolution recusou criar a instancia: ' . $res['_error']];
@@ -122,7 +122,7 @@ class WhatsAppProvisioningService
             self::logCrachaEvent($pdo, $accountId, 'webhook_token_autogen', ['instance' => $name, 'by' => 'provisioning']);
 
             // Webhook canonico com ?token (auth da propria instancia) + cracha via blindagem.
-            $acctEvo = new \EvolutionApiService([
+            $acctEvo = new \App\WhatsAppAgente\EvolutionApiService([
                 'evolution_base_url' => $base,
                 'evolution_api_key'  => (string)$apikey,
                 'evolution_instance' => $name,
@@ -138,7 +138,7 @@ class WhatsAppProvisioningService
             // a camada WhatsAppChannelAccessService usa como base (deny-by-default).
             $channelId = (int)($inst['id'] ?? 0);
             if ($channelId > 0) {
-                \WhatsAppChannelAccessService::grant($pdo, $channelId, $accountId, 'owner', [], null);
+                \App\WhatsAppAgente\WhatsAppChannelAccessService::grant($pdo, $channelId, $accountId, 'owner', [], null);
                 self::ensureAgentConfig($pdo, $accountId, $channelId, $accountName);
             }
 

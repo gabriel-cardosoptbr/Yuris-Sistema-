@@ -18,7 +18,7 @@ $YURIS_HOOK = 'https://yuris.com.br/api/whatsapp/webhook.php';
 $pdo = Database::getConnection();
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-$wi  = new \WhatsAppInstance();
+$wi  = new \App\WhatsAppAgente\WhatsAppInstance();
 $cfg = $wi->getSettings($ACCOUNT_ID);
 $base = $cfg['evolution_base_url'] ?? '';
 $key  = $cfg['evolution_api_key'] ?? '';
@@ -28,7 +28,7 @@ if ($base === '' || $key === '' || $inst === '') {
     exit(1);
 }
 
-$svc = new \EvolutionApiService($cfg);
+$svc = new \App\WhatsAppAgente\EvolutionApiService($cfg);
 $svc->setTimeout(15);
 
 echo "== FASE 2 — repoint webhook (conta #{$ACCOUNT_ID}, instancia '{$inst}') ==\n\n";
