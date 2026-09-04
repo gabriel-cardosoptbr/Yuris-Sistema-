@@ -121,6 +121,7 @@ Baseline conhecido em **27/08/2026**:
 | `plan_gate_e2e_test` | 25 ok · 0 falha |
 | `plan_feature_test` | 79 ok · 0 falha |
 | `dominios_test` | 51 ok · 0 falha |
+| `djen_filtros_test` | 8 ok · 0 falha |
 
 **Tudo verde é o esperado; qualquer falha é regressão.** Até 27/08/2026 o
 `plan_feature` fechava em `66 ok · 12 falha`, tratadas como dívida herdada. Eram
@@ -165,7 +166,7 @@ o caminho de permissão é diferente.
   do autoloader, então script, cron e `php -r` carregam `app/bootstrap.php`
 - **`public/` não é agrupável por domínio** sem uma camada de rota que preserve
   os endereços atuais
-- **Cobertura de teste**: as sete suites de `scripts/tests/` cobrem o projeto
+- **Cobertura de teste**: as oito suites de `scripts/tests/` cobrem o projeto
   estaticamente (`class_refs_test`), plano, WhatsApp e a escrita dos domínios de
   negócio (`dominios_test`). O que ainda não tem teste é a camada HTTP: os
   endpoints são exercitados por varredura manual, não por asserção

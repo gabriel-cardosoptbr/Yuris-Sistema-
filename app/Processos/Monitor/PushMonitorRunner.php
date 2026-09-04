@@ -114,9 +114,15 @@ final class PushMonitorRunner
                 throw new \RuntimeException("Tipo de monitoramento '{$tipo}' não suportado nesta versão");
         }
 
-        // Filtro AND adicional: nome_complementar — usado pra combinar OAB+Nome
-        // numa busca única (precisão 100% — evita homônimos com mesma OAB)
-        if ($nomeComp !== '' && empty($filters['nome_advogado'])) {
+        // nome_complementar SÓ entra quando não há OAB.
+        //
+        // Tendo OAB, mandar o nome junto não aumenta precisão (a OAB já é única)
+        // e cria risco de FALSO NEGATIVO: a mesma advogada aparece na DJEN ora
+        // como "MARIA FERNANDA ASSIS ROMAO", ora "MARIA FERNANDA ASSIS ROMÃO".
+        // Se o casamento por nome apertar, a publicação dela some do monitor sem
+        // ninguém perceber, que é o pior defeito possível neste módulo: prazo
+        // perdido. Sem OAB, o nome é o único filtro disponível e vai mesmo.
+        if ($nomeComp !== '' && empty($filters['nome_advogado']) && empty($filters['numero_oab'])) {
             $filters['nome_advogado'] = $nomeComp;
         }
 

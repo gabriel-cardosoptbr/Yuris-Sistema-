@@ -16,6 +16,7 @@ executa de propósito, com `php scripts/<arquivo>.php`.
 | `tests/plan_feature_test.php` | limites e módulos por plano | sim |
 | `tests/plan_gate_e2e_test.php` | enforcement de plano ponta a ponta | sim |
 | `tests/dominios_test.php` | **escrita real** em Clientes, Prospecção, Processos, Tarefas, Finanças e LGPD, + isolamento entre contas | sim |
+| `tests/djen_filtros_test.php` | **a OAB manda na busca do DJEN**: com OAB o nome não vai junto, e o nome de exibição nunca vira filtro | não |
 
 Baseline conhecido em **27/08/2026**, com o MySQL de pé:
 
@@ -27,6 +28,7 @@ wa_invariants         39 PASS · 0 FAIL
 plan_gate_e2e         25 ok  · 0 falha
 plan_feature          79 ok  · 0 falha
 dominios              51 ok  · 0 falha
+djen_filtros           8 ok  · 0 falha
 ```
 
 **Tudo verde é o esperado.** Qualquer falha é regressão.

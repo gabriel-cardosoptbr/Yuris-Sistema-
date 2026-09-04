@@ -76,6 +76,20 @@ try {
         $filters['data_fim']    = $hoje;
     }
 
+    // ── OAB manda: tendo OAB, o nome não vai junto ──────────────────────────
+    // A OAB identifica o advogado unicamente; o nome só introduz ruído (grafia
+    // com/sem acento, nome de casada, abreviação). Esta regra também existe no
+    // front (collectFilters), e é repetida aqui de propósito: o servidor não
+    // pode depender do cliente mandar o payload certo.
+    //
+    // O caso real que originou isto: uma busca chegou com numero_oab vazio e
+    // nome_advogado = "Maria Fernanda" (o nome de exibição do usuário, curto).
+    // A DJEN devolveu 500 publicações de dezenas de advogadas homônimas, que
+    // foram parar no cache do escritório. Com a OAB, a mesma janela devolve 7.
+    if ($filters['numero_oab'] !== '' && $filters['nome_advogado'] !== '') {
+        $filters['nome_advogado'] = '';
+    }
+
     // ── Validação pré-voo: datas futuras quebram a DJEN com 422 ─────────
     // A DJEN só tem publicações até o dia útil corrente. Se o relógio do
     // servidor está no futuro (ex: ambiente de teste em 2026), a chamada

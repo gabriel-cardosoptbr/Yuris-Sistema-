@@ -14,6 +14,15 @@ Nada aqui é chamado por uma tela. É tudo disparado por agendamento
 | `ProviderInterface.php` | o contrato que toda fonte tem que cumprir. Fonte nova entra por aqui |
 | `AaspProvider.php` | API de Intimações da AASP. É a fonte principal, e a mais completa: 15 métodos |
 | `DjenProvider.php` | Diário de Justiça Eletrônico Nacional |
+
+**A OAB manda, e o nome fica de fora quando ela existe.** A OAB identifica o
+advogado unicamente; o nome só traz risco. Um caso real de 04/09/2026: uma busca
+saiu com a OAB vazia e o nome curto do usuário ("Maria Fernanda"), e a DJEN
+devolveu **1.300 publicações de 82 advogadas homônimas**, que entraram no cache
+do escritório. Com a OAB, a mesma janela devolve 7. Pior ainda seria o inverso:
+a mesma advogada aparece na DJEN ora como `ROMAO`, ora `ROMÃO`, então filtrar
+por nome junto com a OAB arrisca **esconder** publicação dela, que é prazo
+perdido. Travado em `../../../scripts/tests/djen_filtros_test.php`.
 | `PublicationHasher.php` | hash canônico por publicação. **É o que impede duplicata** |
 | `AaspSyncRunner.php` | processa as integrações AASP cujo prazo de sincronização venceu |
 | `PushMonitorRunner.php` | processa os monitoramentos vencidos, chamando o provider certo |

@@ -704,15 +704,26 @@
       const nomeInputVal = ($('filterNomeAdv')?.value || '').trim();
       // Pra OAB usamos formato "UF + numero" que o DjenProvider sabe normalizar
       const oabFromProfile  = (p.oab || '') ? ((p.oab_uf || '') + p.oab) : '';
-      const nomeFromProfile = p.nome_advogado || p.nome || '';
+      // NUNCA usar p.nome como nome de advogado: p.nome é o nome de exibição do
+      // usuário no sistema ("Maria Fernanda"), não o nome profissional. Buscar a
+      // DJEN por um nome curto assim devolve TODOS os homônimos do país — no caso
+      // real que originou esta correção, "Maria Fernanda" trouxe 1.300 publicações
+      // de 82 advogadas diferentes. Só o campo explícito nome_advogado serve.
+      const nomeFromProfile = p.nome_advogado || '';
+
+      const oab  = oabInputVal  || oabFromProfile;
+      const nome = nomeInputVal || nomeFromProfile;
 
       const f = {
-        numero_oab:      oabInputVal     || oabFromProfile,
+        numero_oab:      oab,
         sigla_tribunal:  $('filterTribunal')?.value        || '',
         numero_processo: $('filterProcesso')?.value.trim() || '',
         data_inicio:     opts.ignoreDates ? '' : ($('filterDataInicio')?.value || ''),
         data_fim:        opts.ignoreDates ? '' : ($('filterDataFim')?.value    || ''),
-        nome_advogado:   nomeInputVal    || nomeFromProfile,
+        // A OAB identifica o advogado unicamente. Tendo OAB, o nome só pode
+        // atrapalhar (grafia com/sem acento, nome de casada, abreviação), então
+        // não vai junto. Sem OAB, o nome é o único filtro possível.
+        nome_advogado:   oab ? '' : nome,
       };
       // Aplica filtros de status no state (não vão pro provider — usados em loadPersistidos)
       this.state.filters.lida      = $('fNaoLidas')?.checked ? 0 : ($('fLidas')?.checked ? 1 : null);
