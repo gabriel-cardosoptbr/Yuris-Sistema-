@@ -112,17 +112,74 @@ if ($method === 'GET') {
         $ch   = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $_GET['channel_id'] ?? null, 'manage');
         $cfg  = $ch['cfg'];
         $name = $ch['instance_name'];
+
+        // ── Canal sem credencial da Evolution: falhar FALANDO ───────────────
+        // Sem base_url/api_key, o EvolutionApiService cai nos defaults dele
+        // (http://localhost:8080, chave vazia), a chamada morre e o QR volta
+        // string vazia. Antes disto o endpoint respondia {ok:true, qr:""}: a
+        // tela recebia "sucesso", não desenhava nada e o usuário ficava
+        // olhando um espaço em branco sem saber que faltava configurar o canal.
+        // Erro de configuração tem que dizer o que configurar.
+        $faltando = [];
+        if (trim((string)($cfg['evolution_base_url'] ?? '')) === '') $faltando[] = 'URL da Evolution';
+        if (trim((string)($cfg['evolution_api_key']  ?? '')) === '') $faltando[] = 'chave de API';
+        if ($faltando) {
+            http_response_code(409);
+            echo json_encode([
+                'ok'            => false,
+                'error'         => 'Canal do WhatsApp ainda não configurado para esta conta: falta '
+                                 . implode(' e ', $faltando) . '. '
+                                 . 'A conexão é provisionada no Painel Master, em Configurações de WhatsApp.',
+                'code'          => 'canal_nao_configurado',
+                'faltando'      => $faltando,
+                'instance_name' => $name,
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
         $evo  = new EvolutionApiService($cfg);
         $res  = $evo->connectInstance($name);
 
         $qr = $res['base64'] ?? ($res['qrcode']['base64'] ?? ($res['code'] ?? ''));
-        if ($qr) {
-            // Garante prefixo data URI
-            if (!str_starts_with($qr, 'data:')) {
-                $qr = 'data:image/png;base64,' . $qr;
+
+        // Evolution respondeu, mas sem QR. Os dois motivos normais são: já está
+        // conectado (não há o que escanear) ou a instância não existe lá. Em
+        // qualquer caso, devolver {ok:true, qr:""} deixa a tela muda.
+        if (!$qr) {
+            $estado = '';
+            try {
+                $st = $evo->getConnectionState($name);
+                $estado = (string)($st['instance']['state'] ?? $st['state'] ?? '');
+            } catch (\Throwable $e) { /* estado é só para a mensagem */ }
+
+            if ($estado === 'open') {
+                echo json_encode([
+                    'ok'       => true,
+                    'qr'       => '',
+                    'conectado' => true,
+                    'mensagem' => 'Este número já está conectado, não há QR para escanear.',
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
             }
-            $model->updateQrCode((int)$ch['channel_id'], $qr);
+
+            http_response_code(502);
+            echo json_encode([
+                'ok'            => false,
+                'error'         => 'A Evolution respondeu sem QR Code'
+                                 . ($estado !== '' ? " (estado do canal: {$estado})" : '')
+                                 . '. Tente novamente; se persistir, o canal precisa ser reprovisionado no Painel Master.',
+                'code'          => 'qr_vazio',
+                'estado'        => $estado,
+                'instance_name' => $name,
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
         }
+
+        // Garante prefixo data URI
+        if (!str_starts_with($qr, 'data:')) {
+            $qr = 'data:image/png;base64,' . $qr;
+        }
+        $model->updateQrCode((int)$ch['channel_id'], $qr);
 
         echo json_encode(['ok' => true, 'qr' => $qr]);
         exit;

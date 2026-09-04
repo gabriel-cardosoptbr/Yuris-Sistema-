@@ -277,8 +277,16 @@ class WhatsAppChannelAccessService
 
         // (d) bootstrap do próprio — só se a conta não tem NENHUM vínculo.
         if ($channelId === null && !self::hasAnyGrant($pdo, $accountId)) {
-            $cfg0     = $model->getSettings($accountId);
-            $instName = $cfg0['evolution_instance'] ?? 'yuris-crm';
+            $cfg0 = $model->getSettings($accountId);
+            // O fallback precisa ser ÚNICO POR CONTA. Antes era o literal
+            // 'yuris-crm', então toda conta ainda não provisionada criava um
+            // canal com o MESMO nome de instância: em 04/09/2026 havia duas
+            // contas diferentes com um canal 'yuris-crm'. Enquanto não há
+            // credencial isso é inofensivo (nenhuma delas fala com a Evolution),
+            // mas no dia em que fossem configuradas contra a mesma Evolution
+            // passariam a dividir o MESMO WhatsApp, que é vazamento entre
+            // escritórios.
+            $instName = $cfg0['evolution_instance'] ?? ('yuris-conta-' . $accountId);
             $row      = $model->findOrCreate($instName, '', $accountId);
             $channelId = (int)$row['id'];
             self::grant($pdo, $channelId, $accountId, 'owner', [], null); // idempotente

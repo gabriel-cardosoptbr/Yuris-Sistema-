@@ -393,6 +393,55 @@ try {
     }
 } catch (\Throwable $e) { skip("hash do prompt mestre: " . $e->getMessage()); }
 
+// ── QR do WhatsApp: canal sem credencial tem que FALAR ──────────────────────
+// Caso real (04/09/2026): uma conta sem whatsapp_settings clicava em conectar e
+// nada aparecia. O EvolutionApiService caía nos defaults dele
+// (http://localhost:8080 + chave vazia), a chamada morria, o QR voltava string
+// vazia e o endpoint respondia {ok:true, qr:""}. A tela recebia "sucesso" e
+// desenhava um vazio, sem dizer que faltava provisionar o canal.
+section("QR: canal nao configurado precisa devolver erro, nao sucesso mudo");
+
+$qrFile = $ROOT . '/public/api/whatsapp/instances.php';
+if (!is_file($qrFile)) {
+    skip("instances.php inexistente");
+} else {
+    $qrSrc = (string) file_get_contents($qrFile);
+
+    (strpos($qrSrc, "'canal_nao_configurado'") !== false)
+        ? pass("QR: falta de credencial vira erro com codigo canal_nao_configurado")
+        : fail("QR: sem credencial da Evolution o endpoint volta a responder ok:true com QR vazio");
+
+    (strpos($qrSrc, "evolution_base_url") !== false && strpos($qrSrc, "evolution_api_key") !== false)
+        ? pass("QR: confere base_url E api_key antes de chamar a Evolution")
+        : fail("QR: nao valida as credenciais antes de chamar a Evolution");
+
+    (strpos($qrSrc, "'qr_vazio'") !== false)
+        ? pass("QR: Evolution respondendo sem QR tambem vira mensagem, nao silencio")
+        : fail("QR: resposta sem QR volta a ser sucesso mudo");
+}
+
+// ── Nome de instancia no bootstrap: unico por conta ─────────────────────────
+// O fallback era o literal 'yuris-crm', entao TODA conta ainda nao provisionada
+// criava canal com o mesmo nome. Duas contas chegaram a ter 'yuris-crm'. Sem
+// credencial ninguem fala com a Evolution e nao ha dano, mas configuradas
+// contra a mesma Evolution passariam a dividir o MESMO WhatsApp.
+section("Bootstrap de canal: nome de instancia nao pode colidir entre contas");
+
+$accFile = $ROOT . '/app/WhatsAppAgente/WhatsAppChannelAccessService.php';
+if (!is_file($accFile)) {
+    skip("WhatsAppChannelAccessService inexistente");
+} else {
+    $accSrc = (string) file_get_contents($accFile);
+
+    (bool) preg_match("/evolution_instance.\]\s*\?\?\s*\(.yuris-conta-.\s*\.\s*\\\$accountId\)/", $accSrc)
+        ? pass("fallback do nome da instancia inclui o accountId")
+        : fail("fallback do nome da instancia voltou a ser fixo: contas diferentes colidem no mesmo canal");
+
+    !preg_match("/evolution_instance.\]\s*\?\?\s*.yuris-crm./", $accSrc)
+        ? pass("nao ha mais fallback literal 'yuris-crm'")
+        : fail("fallback literal 'yuris-crm' de volta");
+}
+
 // -------------------------------------------------------------------------
 echo "\n===================================================================\n";
 echo " RESULTADO: $PASSES PASS · $WARNS WARN · $FAILS FAIL\n";

@@ -66,6 +66,41 @@ resolvia para a classe nativa. Com namespace, `PDO` passou a significar
 ganharam `use PDO;`. Vale para qualquer classe nativa (`Exception`,
 `DateTime`...) ao dar namespace a um arquivo que não tinha.
 
+## O QR só aparece se o canal estiver provisionado
+
+O QR vem da Evolution, e a Evolution só responde com as credenciais da conta em
+`whatsapp_settings` (`evolution_base_url`, `evolution_api_key`,
+`evolution_instance`). **Conta sem essas credenciais não tem como gerar QR.**
+
+Isso mordeu em 04/09/2026: uma conta sem `whatsapp_settings` clicava em conectar
+e não aparecia nada, sem mensagem. O `EvolutionApiService` caía nos defaults do
+construtor (`http://localhost:8080` e chave vazia), a chamada morria, o QR
+voltava string vazia e o endpoint respondia `{ok:true, qr:""}`. A tela recebia
+**sucesso** e desenhava um vazio.
+
+Hoje `public/api/whatsapp/instances.php?action=qr` responde:
+
+| Situação | Resposta |
+|---|---|
+| sem `base_url` ou `api_key` | **409**, `code: canal_nao_configurado`, dizendo o que falta |
+| Evolution respondeu sem QR, canal `open` | `ok:true` + `conectado:true` ("já está conectado") |
+| Evolution respondeu sem QR, outro estado | **502**, `code: qr_vazio`, com o estado do canal |
+
+**Quem provisiona é o Painel Master**, em Configurações de WhatsApp. Travado em
+`../../scripts/tests/wa_invariants.php`.
+
+### O nome da instância no bootstrap é único por conta
+
+Quando uma conta ainda não tem `evolution_instance`, o
+`WhatsAppChannelAccessService` cria um canal com nome de fallback. Esse fallback
+**era o literal `yuris-crm`**, então toda conta não provisionada nascia com o
+mesmo nome, e em 04/09/2026 duas contas diferentes tinham um canal `yuris-crm`.
+
+Sem credencial isso é inofensivo (nenhuma fala com a Evolution), mas no dia em
+que fossem configuradas contra a mesma Evolution passariam a dividir o **mesmo
+WhatsApp**: vazamento entre escritórios, da mesma família do bug B1 dos
+contatos. Hoje o fallback é `yuris-conta-{accountId}`.
+
 ## Regras que derrubam o módulo se ignoradas
 
 **Uma instância por conta, sempre.** Vale para código novo, migration nova e
