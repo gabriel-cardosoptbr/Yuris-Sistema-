@@ -442,6 +442,53 @@ if (!is_file($accFile)) {
         : fail("fallback literal 'yuris-crm' de volta");
 }
 
+// -- Agente de IA nasce DESLIGADO -------------------------------------------
+// Pedido explicito do Yuri em 04/09/2026: o agente nunca pode comecar ligado.
+// Um agente que nasce ligado responde sozinho no WhatsApp do escritorio antes
+// de alguem revisar prompt, areas de atuacao e mensagens. Sao 4 portas por onde
+// um agent_config nasce, e TODAS tem que criar desligado.
+section("Agente de IA: sempre nasce desligado");
+
+// 1) DDL: a coluna nao pode ter DEFAULT 1.
+$ddl = $ROOT . '/database/migrations/048_agent_configs.sql';
+if (!is_file($ddl)) {
+    skip("048_agent_configs.sql inexistente");
+} else {
+    $ddlSrc = (string) file_get_contents($ddl);
+    (bool) preg_match('/enabled\s+TINYINT\(1\)\s+NOT NULL\s+DEFAULT\s+0/i', $ddlSrc)
+        ? pass("DDL: agent_configs.enabled tem DEFAULT 0")
+        : fail("DDL: agent_configs.enabled deixou de ter DEFAULT 0 (agente nasceria ligado)");
+}
+
+// 2) Provisionamento automatico de canal: literal 0 no INSERT.
+$provFile = $ROOT . '/app/WhatsAppAgente/WhatsAppProvisioningService.php';
+if (!is_file($provFile)) {
+    skip("WhatsAppProvisioningService inexistente");
+} else {
+    $provSrc = (string) file_get_contents($provFile);
+    (bool) preg_match("/VALUES\s*\(\?,\?,\?,\?,0,'inactive'/", $provSrc)
+        ? pass("provisionamento cria agent_config com enabled=0 e status inactive")
+        : fail("provisionamento nao cria mais o agente desligado");
+}
+
+// 3) e 4) Telas que criam config (conta e Master): default 0 quando nao vier valor.
+foreach ([
+    'public/api/agent_settings.php'         => 'tela Agente de IA da conta',
+    'public/api/master/ai_agent_config.php' => 'tela do Master',
+] as $rel => $rotulo) {
+    $f = $ROOT . '/' . $rel;
+    if (!is_file($f)) { skip("$rel inexistente"); continue; }
+    $src = (string) file_get_contents($f);
+    (bool) preg_match('~\'en\'\s*=>\s*\$enabled\s*\?\?\s*0~', $src)
+        ? pass("$rotulo: INSERT usa enabled=0 por padrao")
+        : fail("$rotulo: INSERT deixou de nascer com enabled=0");
+
+    (bool) preg_match('~\'st\'\s*=>\s*\$status\s*\?\?\s*\'inactive\'~', $src)
+        ? pass("$rotulo: INSERT usa status inactive por padrao")
+        : fail("$rotulo: INSERT deixou de nascer com status inactive");
+}
+
+
 // -------------------------------------------------------------------------
 echo "\n===================================================================\n";
 echo " RESULTADO: $PASSES PASS · $WARNS WARN · $FAILS FAIL\n";
