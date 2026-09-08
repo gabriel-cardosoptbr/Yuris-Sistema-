@@ -37,7 +37,28 @@ $corpo     = $LEGAL_PAGE['corpo_html'] ?? '<p>Conteúdo em revisão.</p>';
 <?php endif; ?>
   <meta name="robots" content="index,follow">
   <!-- Canonical na forma limpa (sem .php) — em produção o nginx serve /privacidade etc. -->
-  <link rel="canonical" href="https://yuris.com.br/<?= htmlspecialchars(basename($_SERVER['SCRIPT_NAME'] ?? '', '.php')) ?>">
+<?php
+    /*
+     * O caminho vem do Router quando a pagina e servida por rota: ali
+     * SCRIPT_NAME vale '/index.php' (o front controller), e derivar dele daria
+     * canonical "/index" em TODA pagina legal. Fora de rota, SCRIPT_NAME vale.
+     *
+     * class_exists porque metade das paginas legais (cookies, termos, lgpd,
+     * privacidade, lgpd/solicitar) nao carrega o bootstrap: sem a guarda, o
+     * include fatalava nelas.
+     */
+    $__canonica = class_exists('App\\Core\\Router') ? \App\Core\Router::caminhoAtual() : null;
+    if ($__canonica === null) {
+        // Caminho INTEIRO, nao so o basename. Com basename, /lgpd/solicitar.php
+        // publicava canonical "/solicitar", endereco que nao existe.
+        $__s = (string) ($_SERVER['SCRIPT_NAME'] ?? '');
+        $__canonica = preg_replace('/\.php$/', '', $__s);
+        if ($__canonica === '' || $__canonica[0] !== '/') {
+            $__canonica = '/' . $__canonica;
+        }
+    }
+?>
+  <link rel="canonical" href="https://yuris.com.br<?= htmlspecialchars($__canonica) ?>">
   <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">

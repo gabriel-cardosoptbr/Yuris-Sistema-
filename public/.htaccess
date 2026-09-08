@@ -1,0 +1,29 @@
+# =============================================================================
+# public/.htaccess — liga a camada de rota (debito D3, 08/09/2026)
+#
+# O DocumentRoot aponta para esta pasta, em desenvolvimento e em producao.
+# Requer mod_rewrite + AllowOverride All, que ja valem nos dois lugares:
+#   · producao: /etc/apache2/conf-enabled/docker-php.conf da AllowOverride All
+#     em /var/www/, e rewrite_module esta carregado;
+#   · local:    o vhost da porta 8090 da AllowOverride All neste diretorio.
+#
+# O ARQUIVO QUE EXISTE CONTINUA SENDO SERVIDO PELO APACHE, SEM PASSAR PELO PHP.
+# As duas RewriteCond abaixo sao a garantia disso: so cai no front controller o
+# que nao existe no disco. Por isso o raio de acao desta mudanca e exatamente
+# "as URLs que hoje dariam 404", e nenhuma pagina existente muda de caminho.
+# =============================================================================
+
+# Sem listagem de diretorio. Producao ja tem isto pelo docker-php.conf; o vhost
+# local NAO tinha (Options Indexes), entao /assets/ listava arquivos so aqui.
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Alvo relativo (sem barra inicial): resolve para public/index.php
+    # independentemente de o DocumentRoot ser public/ (porta 8090 e producao)
+    # ou a raiz do repositorio (porta 80 do XAMPP).
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule . index.php [L]
+</IfModule>

@@ -7,6 +7,7 @@ Uma pasta pequena e com uma regra só: **aqui não mora segredo**.
 | Arquivo | O que é |
 |---|---|
 | `database.php` | monta a configuração de conexão. Lê do `.env` pelo `EnvLoader` e cai em padrões de XAMPP quando não encontra |
+| `rotas.php` | a tabela de rotas de `public/`. Só o que a sondagem automática não resolve sozinha: a home, e página que more fora de `public/`. **Mudar uma chave daqui muda um endereço público** |
 | `.htaccess` | bloqueia acesso web a esta pasta |
 
 ## Como a configuração é resolvida

@@ -73,13 +73,42 @@ database/README.md · scripts/README.md · bin/README.md · config/README.md
 docs/README.md
 ```
 
-### 3. `public/` não é reorganizado sem uma camada de rota
+### 3. `public/` só se reorganiza pela camada de rota
 
-O caminho do arquivo em `public/` **é a URL**. Mover `public/processos.php`
-muda o endereço `/processos.php` e quebra link salvo, link em e-mail já
-enviado, e webhook cadastrado. Agrupar `public/` por domínio exige antes uma
-camada que preserve os endereços atuais, e isso é decisão de arquitetura, não
-de pasta.
+O caminho do arquivo em `public/` **era** a URL. Mover `public/processos.php`
+mudava o endereço `/processos.php` e quebrava link salvo, link em e-mail já
+enviado, e webhook cadastrado.
+
+**Desde 08/09/2026 existe a camada de rota** (débito D3):
+[`app/Core/Router.php`](app/Core/Router.php) + a tabela declarada em
+[`config/rotas.php`](config/rotas.php) + o front controller
+[`public/index.php`](public/index.php), ligado pelo `public/.htaccess`.
+
+O gatilho é deliberadamente estreito:
+
+```apache
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . index.php [L]
+```
+
+**Arquivo que existe continua servido direto pelo Apache.** O router só vê URL
+que antes daria 404, e é por isso que ligar a camada não alterou nenhuma página.
+
+Duas regras que saíram disso, e valem para toda sessão futura:
+
+- **O `require` da página roteada acontece em `public/index.php`, no escopo
+  global, nunca dentro de um método.** Página PHP de topo de pilha espera escopo
+  global: incluindo de dentro de um método, as variáveis de topo do arquivo
+  incluído viram locais dele e todo `global $x` de partial passa a ler vazio. Foi
+  assim que a home perdeu o ícone do WhatsApp em todos os botões, e só a
+  comparação de corpo pegou (status e tamanho não acusaram).
+- **Acrescentar chave em `config/rotas.php` é seguro; renomear não é.** A chave
+  é um endereço público.
+
+Mover páginas para fora de `public/` passou a ser possível, mas continua sendo
+decisão à parte: as páginas dependem de `public/includes/`, então mover página
+implica mover view junto.
 
 ### 4. Material que não é código do sistema fica fora do repositório
 
@@ -100,10 +129,17 @@ for f in $(find app public bin scripts config database -name "*.php"); do php -l
 for t in scripts/tests/*.php; do php "$t"; done
 ```
 
-Baseline em 27/08/2026: `class_refs` 3411 referências + 323 requires, todos
+Baseline em 08/09/2026: `class_refs` 3512 referências + 330 requires, todos
 resolvem ·
-`wa_webhook_parser` 42/0 · `wa_webhook_token` 21/0 · `wa_invariants` 39/0 ·
-`plan_gate_e2e` 25 ok/0 · `plan_feature` 79 ok/0 · `dominios` 51 ok/0 · `djen_filtros` 8 ok/0.
+`wa_webhook_parser` 69/0 · `wa_webhook_token` 21/0 · `wa_invariants` 61/0 ·
+`rotas` 24/0 · `plan_gate_e2e` 25 ok/0 · `plan_feature` 79 ok/0 ·
+`dominios` 51 ok/0 · `djen_filtros` 8 ok/0.
+
+Ao mexer em `public/`, rode também a **varredura diferencial autenticada**
+(`scripts/tests/varredura_urls.php`), capturando antes e depois e comparando.
+Varredura anônima não serve: página interna redireciona para o login antes de
+executar a linha que quebra, e em 27/08/2026 uma varredura anônima deu 164/164
+com o sistema quebrado.
 
 **Tudo verde é o esperado.** As 12 falhas antigas do `plan_feature` eram o teste
 exigindo os preços que saíram da página pública; foram corrigidas, e o bloco

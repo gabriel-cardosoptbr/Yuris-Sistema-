@@ -17,19 +17,41 @@ executa de propósito, com `php scripts/<arquivo>.php`.
 | `tests/plan_gate_e2e_test.php` | enforcement de plano ponta a ponta | sim |
 | `tests/dominios_test.php` | **escrita real** em Clientes, Prospecção, Processos, Tarefas, Finanças e LGPD, + isolamento entre contas | sim |
 | `tests/djen_filtros_test.php` | **a OAB manda na busca do DJEN**: com OAB o nome não vai junto, e o nome de exibição nunca vira filtro | não |
+| `tests/rotas_test.php` | **a camada de rota de `public/`**: o `.htaccess` só desvia o que não existe, o `require` acontece em escopo global, `includes/` e `uploads/` não saem por rota, e toda página resolve pelo endereço limpo | não |
+| `tests/varredura_urls.php` | não é suíte, é **ferramenta**: captura status e corpo de toda URL de `public/`, com sessão de owner e de member, para comparação diferencial antes/depois de mudança estrutural | sim |
 
-Baseline conhecido em **27/08/2026**, com o MySQL de pé:
+Baseline conhecido em **08/09/2026**, com o MySQL de pé:
 
 ```
-class_refs          3411 referencias + 323 requires · todos resolvem
-wa_webhook_parser     42 PASS · 0 FAIL
+class_refs          3512 referencias + 330 requires · todos resolvem
+wa_webhook_parser     69 PASS · 0 FAIL
 wa_webhook_token      21 PASS · 0 FAIL
-wa_invariants         39 PASS · 0 FAIL
+wa_invariants         61 PASS · 0 FAIL
+rotas                 24 PASS · 0 FAIL
 plan_gate_e2e         25 ok  · 0 falha
 plan_feature          79 ok  · 0 falha
 dominios              51 ok  · 0 falha
 djen_filtros           8 ok  · 0 falha
 ```
+
+### A varredura diferencial, e por que ela é autenticada
+
+`varredura_urls.php` existe por uma lição cara: em 27/08/2026 uma varredura
+**anônima** deu 164/164 com o sistema quebrado, porque página interna redireciona
+para o login **antes** de executar a linha que fatalava. A varredura de hoje monta
+duas sessões (owner e member) replicando o que o `AuthController` grava, só com
+`SELECT`, e compara status, redirect e corpo normalizado.
+
+```bash
+php scripts/tests/varredura_urls.php --out=antes.json
+# ... a mudança ...
+php scripts/tests/varredura_urls.php --out=depois.json
+php scripts/tests/varredura_urls.php --antes=antes.json --depois=depois.json
+```
+
+Ela só faz `GET` e **não varre `public/api/`** por padrão: endpoint com sessão
+válida pode mutar dado. Foi ela que pegou, no D3, a home perdendo o ícone do
+WhatsApp em todos os botões: mudança invisível em status, visível só no corpo.
 
 **Tudo verde é o esperado.** Qualquer falha é regressão.
 

@@ -3,17 +3,48 @@
 O `DocumentRoot` aponta para cá, em desenvolvimento e em produção. Tudo o que
 existe aqui **é acessível por URL**; tudo o que está fora daqui não é.
 
-Consequência prática, e é o motivo desta pasta não ter sido reorganizada junto
-com o `app/`:
+Era esse o motivo de esta pasta nunca ter sido reorganizada junto com o `app/`:
 
-> **O caminho do arquivo é a URL.** `public/processos.php` responde em
-> `/processos.php`. Mover o arquivo muda o endereço, e quebra link salvo, link
-> em e-mail de convite já enviado, e webhook cadastrado apontando para o
+> **O caminho do arquivo era a URL.** `public/processos.php` respondia em
+> `/processos.php`. Mover o arquivo mudava o endereço, e quebrava link salvo,
+> link em e-mail de convite já enviado, e webhook cadastrado apontando para o
 > endereço antigo.
 
-Por isso `public/` mantém a disposição que sempre teve. Reorganizar aqui exige
-antes uma camada de rota que preserve os endereços atuais, e isso é mudança de
-arquitetura, não de pasta. Fica como decisão separada.
+## A camada de rota (desde 08/09/2026)
+
+Desde o D3 existe uma camada de rota, e ela desfaz esse acoplamento: o endereço
+público deixou de ser consequência do lugar do arquivo.
+
+| Peça | Papel |
+|---|---|
+| `.htaccess` | o gatilho. Manda para o front controller **só o que não existe no disco** (`RewriteCond !-f` e `!-d`) |
+| `index.php` | o front controller. É o `DirectoryIndex` da raiz e o destino do fallback |
+| [`../config/rotas.php`](../config/rotas.php) | a tabela de rotas declarada |
+| [`../app/Core/Router.php`](../app/Core/Router.php) | resolve URL → arquivo |
+
+**Arquivo que existe continua sendo servido direto pelo Apache, sem passar pelo
+PHP.** É por isso que ligar a camada não mexeu em nenhuma página: o router só vê
+URL que antes daria 404.
+
+Ordem de resolução: tabela declarada, depois sondagem em `public/`
+(`/x` → `x.php`, `/x/` → `x/index.php`), depois 404 brandado.
+
+Três coisas mudaram de fato ao ligar isso:
+
+1. **A URL limpa passou a valer também em desenvolvimento.** Antes `/dashboard`
+   só funcionava em produção, por rewrite no nginx do host, fora do repositório;
+   local dava 404. Agora os dois ambientes se comportam igual.
+2. **O 404 brandado voltou a existir em produção.** O `ErrorDocument` que
+   ativava o `404.php` morava num `zz-yuris.conf` que não existe mais no
+   contêiner, então endereço errado devolvia a página padrão do Apache,
+   expondo a versão do servidor. Agora quem responde é o `404.php`.
+3. **Página nova em pasta deixou de depender do vhost.** A lista de slugs do
+   nginx continua lá, mas não é mais a única coisa entre a página e um 404 que
+   só aparece em produção.
+
+Reorganizar de fato os arquivos daqui virou possível, mas continua sendo uma
+decisão à parte: as páginas ainda dependem de `includes/`, então mover páginas
+para fora de `public/` implica mover as views junto.
 
 ## O que tem aqui
 
@@ -64,9 +95,11 @@ limpa `/crm-juridico/` em vez de `/crm-juridico.php`. `ai/` guarda as versões e
 markdown para consumo por LLM.
 
 > **Atenção ao criar página-pasta nova:** em produção existe uma camada de
-> nginx que trata URL limpa, e ela lista os slugs. Página nova exige atualizar
-> o vhost, senão responde 404 só em produção, funcionando em local. Detalhe em
-> [`../docs/seo/`](../docs/seo/).
+> nginx que trata URL limpa, e ela **lista os slugs à mão**. Desde a camada de
+> rota a página nova já responde mesmo sem o vhost saber dela, porque o fallback
+> cai no front controller. Ainda assim, atualize a lista: sem ela `/slug` ganha
+> um 301 a mais e `/slug/` deixa de ser servido pelo `DirectoryIndex`. Detalhe
+> em [`../docs/seo/`](../docs/seo/).
 
 ## Regras
 
@@ -82,3 +115,11 @@ formato precisa ser o mesmo em toda a API.
 
 **Ao renomear ou mover algo daqui, você mudou uma URL.** Trate como mudança
 externa: verifique link em e-mail, webhook cadastrado e o vhost de produção.
+Mover um arquivo hoje é possível sem mudar o endereço, desde que a rota antiga
+seja declarada em [`../config/rotas.php`](../config/rotas.php); o que não se faz
+é renomear a chave da rota.
+
+**`scripts/tests/rotas_test.php` é a defesa desta pasta.** Ele confere que o
+`.htaccess` ainda preserva arquivo existente, que toda página resolve pelo
+endereço limpo, que `includes/` e `uploads/` não saem por rota, e que o
+`require` acontece em escopo global.
