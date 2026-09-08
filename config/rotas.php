@@ -58,4 +58,36 @@ return [
         'canonica' => '/',
     ],
 
+    /* ---------------------------------------------------------------------
+     * LGPD: a pasta que sombreava a pagina
+     * ---------------------------------------------------------------------
+     * Existia public/lgpd.php (a pagina publica "LGPD & Seguranca") E a pasta
+     * public/lgpd/ (as telas do titular). A pasta ganhava do arquivo: o mod_dir
+     * respondia 301 para /lgpd/, que nao tinha index.php, e o resultado em
+     * producao era 403. Como /lgpd.php e link no rodape de TODA pagina legal e
+     * da landing, e o nginx converte .php para a forma limpa, o visitante
+     * percorria /lgpd.php -> 301 /lgpd -> 301 /lgpd/ -> 403.
+     *
+     * As duas telas do titular sairam de public/ e foram para
+     * app/Lgpd/Paginas/. O conflito de nome acabou (/lgpd resolve para
+     * public/lgpd.php pela sondagem normal) e, morando fora de public/, elas
+     * tem UM endereco so: o declarado aqui. Renomear a pasta dentro de public/
+     * nao bastaria, porque o Apache serve arquivo existente direto, sem
+     * consultar o router, e o caminho fisico viraria um segundo endereco
+     * indexavel para a mesma pagina.
+     *
+     * OS ENDERECOS ABAIXO NAO PODEM MUDAR NUNCA. O link de acompanhamento
+     * (/lgpd/acompanhar.php?token=...) e montado em public/api/lgpd/request.php
+     * e ENVIADO POR E-MAIL ao titular de dados. E-mail ja enviado nao se
+     * corrige. As duas formas continuam valendo, com e sem .php.
+     */
+    '/lgpd/solicitar' => [
+        'arquivo'  => 'app/Lgpd/Paginas/solicitar.php',
+        'canonica' => '/lgpd/solicitar',
+    ],
+    '/lgpd/acompanhar' => [
+        'arquivo'  => 'app/Lgpd/Paginas/acompanhar.php',
+        'canonica' => '/lgpd/acompanhar',
+    ],
+
 ];

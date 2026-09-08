@@ -160,6 +160,13 @@ final class Router
         $sem = rtrim($caminho, '/');
         $candidatos = [];
         if ($sem !== '') {
+            // O caminho ja com .php. Na pratica o Apache serve esses direto e
+            // eles nao chegam aqui, mas sem este candidato o router responderia
+            // null para /pagina.php, e a resolucao ficaria dependendo de QUEM
+            // chamou em vez de so do endereco.
+            if (str_ends_with($sem, '.php')) {
+                $candidatos[] = [$publico . $sem, substr($sem, 0, -4)];
+            }
             $candidatos[] = [$publico . $sem . '.php', $sem];
         }
         $candidatos[] = [$publico . $caminho . (str_ends_with($caminho, '/') ? '' : '/') . 'index.php', rtrim($caminho, '/') . '/'];

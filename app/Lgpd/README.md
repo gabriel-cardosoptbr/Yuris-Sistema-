@@ -4,6 +4,11 @@ Telas: **LGPD** (`public/lgpd.php`), **DPO** (`public/dpo.php`), **Termos**
 (`public/termos.php`), **Privacidade** (`public/privacidade.php`), **Cookies**
 (`public/cookies.php`).
 
+As duas telas do **titular de dados** (`/lgpd/solicitar` e `/lgpd/acompanhar`)
+não estão em `public/`: moram em [`Paginas/`](Paginas/) e respondem pela camada
+de rota. O README de lá explica por quê, e os endereços delas são permanentes
+porque vão por e-mail ao titular.
+
 Esta pasta tem uma característica que nenhuma outra tem: **o que está aqui é
 obrigação legal, com prazo**. Uma solicitação de titular tem prazo de resposta,
 um incidente tem prazo de notificação. Quando algo aqui falha, o efeito não é

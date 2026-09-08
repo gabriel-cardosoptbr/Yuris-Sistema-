@@ -27,7 +27,7 @@ class_refs          3512 referencias + 330 requires · todos resolvem
 wa_webhook_parser     69 PASS · 0 FAIL
 wa_webhook_token      21 PASS · 0 FAIL
 wa_invariants         61 PASS · 0 FAIL
-rotas                 24 PASS · 0 FAIL
+rotas                 37 PASS · 0 FAIL
 plan_gate_e2e         25 ok  · 0 falha
 plan_feature          79 ok  · 0 falha
 dominios              51 ok  · 0 falha
@@ -52,6 +52,11 @@ php scripts/tests/varredura_urls.php --antes=antes.json --depois=depois.json
 Ela só faz `GET` e **não varre `public/api/`** por padrão: endpoint com sessão
 válida pode mutar dado. Foi ela que pegou, no D3, a home perdendo o ícone do
 WhatsApp em todos os botões: mudança invisível em status, visível só no corpo.
+
+O inventário vem de dois lugares: os arquivos de `public/` **e as chaves de
+`config/rotas.php`**. Sem a segunda fonte a varredura ficaria cega exatamente
+onde a camada de rota atua, porque página que sai de `public/` sumiria do
+inventário e a captura "depois" não teria como acusar que ela quebrou.
 
 **Tudo verde é o esperado.** Qualquer falha é regressão.
 

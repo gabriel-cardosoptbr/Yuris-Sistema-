@@ -105,6 +105,15 @@ Duas regras que saíram disso, e valem para toda sessão futura:
   comparação de corpo pegou (status e tamanho não acusaram).
 - **Acrescentar chave em `config/rotas.php` é seguro; renomear não é.** A chave
   é um endereço público.
+- **Página que sai de `public/` tem de sair de verdade.** Renomear a pasta ali
+  dentro não basta: arquivo que existe em `public/` é servido direto pelo
+  Apache, sem passar pelo router, e o caminho físico vira um segundo endereço
+  público para a mesma página.
+- **Pasta não pode ter o nome de uma página.** `public/lgpd/` sombreava
+  `public/lgpd.php`: o `mod_dir` respondia 301 para `/lgpd/`, que não tinha
+  índice, e dava 403. Não há conserto no `.htaccess`, porque o `mod_dir` marca a
+  requisição como diretório antes do `mod_rewrite` rodar. `rotas_test.php`
+  bloqueia sombra nova.
 
 Mover páginas para fora de `public/` passou a ser possível, mas continua sendo
 decisão à parte: as páginas dependem de `public/includes/`, então mover página
@@ -132,7 +141,7 @@ for t in scripts/tests/*.php; do php "$t"; done
 Baseline em 08/09/2026: `class_refs` 3512 referências + 330 requires, todos
 resolvem ·
 `wa_webhook_parser` 69/0 · `wa_webhook_token` 21/0 · `wa_invariants` 61/0 ·
-`rotas` 24/0 · `plan_gate_e2e` 25 ok/0 · `plan_feature` 79 ok/0 ·
+`rotas` 37/0 · `plan_gate_e2e` 25 ok/0 · `plan_feature` 79 ok/0 ·
 `dominios` 51 ok/0 · `djen_filtros` 8 ok/0.
 
 Ao mexer em `public/`, rode também a **varredura diferencial autenticada**

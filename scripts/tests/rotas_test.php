@@ -237,7 +237,101 @@ if ($home !== null && str_replace('\\', '/', $home['arquivo']) === $PUBLICO . '/
 }
 
 /* ===================================================================== */
-secao('6. Canonical das paginas legais nao depende do front controller');
+secao('6. Pasta nao pode sombrear pagina de mesmo nome');
+/* ===================================================================== */
+
+/*
+ * O caso que motivou esta secao: existiam public/lgpd.php e a pasta
+ * public/lgpd/. O mod_dir enxerga a pasta primeiro e responde 301 para /lgpd/,
+ * que nao tinha index.php, e em producao isso terminava em 403. Como
+ * /lgpd.php e link no rodape de TODA pagina legal e da landing, o visitante
+ * percorria /lgpd.php -> 301 /lgpd -> 301 /lgpd/ -> 403.
+ *
+ * Nao da para consertar no .htaccess: o mod_dir marca a requisicao como
+ * diretorio ANTES do mod_rewrite rodar, e nenhuma substituicao interna desfaz
+ * isso (testado com [L], [PT], [DPI], [END], alvo relativo e absoluto). So
+ * redirect externo vence, e esse entra em laco com a regra do nginx que
+ * converte .php para a forma limpa. A saida e nao ter o conflito.
+ */
+$conhecidas = [
+    // Aceita por ora: em producao o nginx reescreve /configuracoes para
+    // /configuracoes.php antes de chegar ao Apache, entao o sintoma nao
+    // aparece la. E divida, nao conserto: some no dia que essas duas telas
+    // sairem de public/configuracoes/, como as do LGPD sairam.
+    'configuracoes',
+];
+$sombras = [];
+foreach (glob($PUBLICO . '/*.php') as $arq) {
+    $nome = basename($arq, '.php');
+    if (is_dir($PUBLICO . '/' . $nome)) {
+        $sombras[] = $nome;
+    }
+}
+foreach ($sombras as $nome) {
+    if (in_array($nome, $conhecidas, true)) {
+        echo "  [NOTA] sombra conhecida e aceita: public/$nome.php x public/$nome/\n";
+        continue;
+    }
+    fail("pasta public/$nome/ sombreia a pagina public/$nome.php (o /$nome vai dar 403)");
+}
+$novas = array_diff($sombras, $conhecidas);
+if ($novas === []) {
+    pass('nenhuma sombra nova entre pagina e pasta de mesmo nome');
+}
+if (!in_array('lgpd', $sombras, true)) {
+    pass('o conflito public/lgpd.php x public/lgpd/ nao existe mais');
+} else {
+    fail('o conflito do LGPD voltou');
+}
+
+/* ===================================================================== */
+secao('7. Enderecos do LGPD que estao em e-mail ja enviado');
+/* ===================================================================== */
+
+/*
+ * O link de acompanhamento (/lgpd/acompanhar.php?token=...) e montado em
+ * public/api/lgpd/request.php e ENVIADO POR E-MAIL ao titular de dados.
+ * E-mail ja enviado nao se corrige: estes enderecos sao permanentes.
+ */
+$permanentes = [
+    '/lgpd/solicitar'       => 'app/Lgpd/Paginas/solicitar.php',
+    '/lgpd/solicitar.php'   => 'app/Lgpd/Paginas/solicitar.php',
+    '/lgpd/acompanhar'      => 'app/Lgpd/Paginas/acompanhar.php',
+    '/lgpd/acompanhar.php'  => 'app/Lgpd/Paginas/acompanhar.php',
+];
+foreach ($permanentes as $url => $esperado) {
+    $r = Router::resolve($url);
+    $ok = $r !== null
+        && str_replace('\\', '/', $r['arquivo']) === $ROOT . '/' . $esperado;
+    if ($ok) {
+        pass("$url continua respondendo");
+    } else {
+        fail("$url QUEBROU (resolveu para " . var_export($r['arquivo'] ?? null, true) . ')');
+    }
+}
+
+// A pagina publica do LGPD voltou a ser alcancavel nas tres formas.
+foreach (['/lgpd', '/lgpd/', '/lgpd.php'] as $url) {
+    $r = Router::resolve($url);
+    if ($r !== null && str_replace('\\', '/', $r['arquivo']) === $PUBLICO . '/lgpd.php') {
+        pass("$url serve a pagina publica do LGPD");
+    } else {
+        fail("$url nao serve public/lgpd.php");
+    }
+}
+
+// Fora de public/ = um endereco so. Se voltarem para dentro, o Apache passa a
+// servi-las tambem pelo caminho fisico, criando uma segunda URL indexavel.
+foreach (['app/Lgpd/Paginas/solicitar.php', 'app/Lgpd/Paginas/acompanhar.php'] as $rel) {
+    if (is_file($ROOT . '/' . $rel) && !str_starts_with($ROOT . '/' . $rel, $PUBLICO . '/')) {
+        pass("$rel mora fora de public/: tem um endereco so");
+    } else {
+        fail("$rel voltou para dentro de public/");
+    }
+}
+
+/* ===================================================================== */
+secao('8. Canonical das paginas legais nao depende do front controller');
 /* ===================================================================== */
 
 $legal = file_get_contents($PUBLICO . '/includes/legal_page.php');

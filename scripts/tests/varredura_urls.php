@@ -111,6 +111,20 @@ foreach ($it as $f) {
     }
 }
 $urls[] = '/';
+
+// URLs declaradas em config/rotas.php. SEM ISTO a varredura fica cega
+// exatamente onde a camada de rota atua: pagina que sai de public/ some do
+// inventario, e a captura "depois" nao teria como acusar que ela quebrou.
+$arqRotas = $raiz . '/config/rotas.php';
+if (is_file($arqRotas)) {
+    foreach ((array) require $arqRotas as $rotaUrl => $_def) {
+        $urls[] = $rotaUrl;
+        if ($rotaUrl !== '/' && !str_ends_with($rotaUrl, '.php')) {
+            $urls[] = $rotaUrl . '.php';   // a forma com extensao tambem tem de valer
+        }
+    }
+}
+
 // URLs que NAO existem: provam qual e o comportamento de 404
 $urls[] = '/pagina-que-nao-existe-d3';
 $urls[] = '/pagina-que-nao-existe-d3.php';

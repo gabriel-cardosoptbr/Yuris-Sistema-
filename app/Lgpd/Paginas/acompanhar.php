@@ -8,7 +8,7 @@
  *
  * Visual: usa classes utilitárias do legal_page.php (respondem ao tema).
  */
-require_once __DIR__ . '/../../app/bootstrap.php';
+require_once __DIR__ . '/../../bootstrap.php';
 
 use App\Lgpd\LgpdRequest;
 
@@ -125,4 +125,7 @@ $LEGAL_PAGE = [
     'versao'     => '',
     'corpo_html' => $corpo,
 ];
-require __DIR__ . '/../includes/legal_page.php';
+// A view ainda mora em public/includes/. Este alcance de app/ para public/
+// e o acoplamento conhecido que sobra: mover pagina para fora de public/
+// resolve o endereco, nao a view. Ver public/README.md.
+require __DIR__ . '/../../../public/includes/legal_page.php';

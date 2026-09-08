@@ -42,9 +42,21 @@ Três coisas mudaram de fato ao ligar isso:
    nginx continua lá, mas não é mais a única coisa entre a página e um 404 que
    só aparece em produção.
 
-Reorganizar de fato os arquivos daqui virou possível, mas continua sendo uma
-decisão à parte: as páginas ainda dependem de `includes/`, então mover páginas
-para fora de `public/` implica mover as views junto.
+Reorganizar de fato os arquivos daqui virou possível. A primeira página a sair
+foi a dupla do titular de dados, que estava em `public/lgpd/` e foi para
+[`../app/Lgpd/Paginas/`](../app/Lgpd/Paginas/): a pasta sombreava
+`public/lgpd.php` e derrubava o link do rodapé em 403.
+
+Duas coisas que essa primeira mudança ensinou, e valem para as próximas:
+
+- **Renomear a pasta dentro de `public/` não resolve.** Arquivo que existe aqui
+  é servido direto pelo Apache, sem passar pelo router, então o caminho físico
+  vira um **segundo endereço público** para a mesma página. Só sair de `public/`
+  dá um endereço só.
+- **A view continua aqui.** A página movida ainda faz `require` de
+  `public/includes/legal_page.php`. Mover página para fora resolve o endereço,
+  não a view; o acoplamento `app/` → `public/includes/` é o que sobra para um
+  próximo passo.
 
 ## O que tem aqui
 
@@ -82,7 +94,7 @@ stub em `index.php`; a v1 ficou guardada. Ver
 | `v2/` | a landing institucional nova (`index.php` + `partials/` + `data/`), servida na `/` |
 | `sistema_vendas/Imagens/` | os três logos, servidos em `/sistema_vendas/Imagens/`. **Não mova:** `sidebar.php`, `login.php` e as páginas legais apontam para essa URL. O nome é herança de quando o app era servido em `/sistema_vendas/` |
 | `uploads/` | arquivos enviados pelos clientes |
-| `lgpd/`, `configuracoes/` | telas secundárias desses módulos |
+| `configuracoes/` | telas secundárias de Configurações. **Atenção:** esta pasta sombreia `configuracoes.php`, do mesmo jeito que `lgpd/` sombreava `lgpd.php`. Hoje não aparece porque em produção o nginx reescreve `/configuracoes` antes de chegar ao Apache, mas é dívida: some no dia que estas telas saírem daqui |
 
 ### Páginas de SEO
 `automacao-juridica/` · `blog/` · `controle-de-processos/` · `crm-juridico/` ·
