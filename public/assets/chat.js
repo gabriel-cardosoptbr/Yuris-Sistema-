@@ -318,13 +318,18 @@ const ChatApp = (() => {
     }
   }
 
-  function chatConfirm(msg) {
+  // `okLabel` importa: o overlay nasceu so para desconectar o WhatsApp e tinha
+  // "Desconectar" fixo no botao. Reusado em outras confirmacoes, dizia ao usuario
+  // que ele ia desconectar o numero quando na verdade ia, por exemplo, desligar o
+  // agente. Cada chamada passa o rotulo da SUA acao; o padrao continua "Confirmar".
+  function chatConfirm(msg, opts) {
+    const okLabel = (opts && opts.okLabel) || 'Confirmar';
     return new Promise(resolve => {
       const overlay = document.getElementById('chatConfirmOverlay');
       if (!overlay) {
         // Fallback: usa Yuris.confirm (sem "localhost diz")
         if (window.Yuris && typeof Yuris.confirm === 'function') {
-          Yuris.confirm(msg).then(resolve);
+          Yuris.confirm(msg, { okLabel }).then(resolve);
         } else {
           resolve(window.confirm(msg));
         }
@@ -334,14 +339,21 @@ const ChatApp = (() => {
       overlay.style.display = 'flex';
       const yes = document.getElementById('chatConfirmYes');
       const no  = document.getElementById('chatConfirmNo');
-      function done(v) { overlay.style.display = 'none'; yes.onclick = null; no.onclick = null; resolve(v); }
+      const labelAnterior = yes.textContent;
+      yes.textContent = okLabel;
+      function done(v) {
+        overlay.style.display = 'none';
+        yes.textContent = labelAnterior; // devolve o botao ao estado que estava
+        yes.onclick = null; no.onclick = null;
+        resolve(v);
+      }
       yes.onclick = () => done(true);
       no.onclick  = () => done(false);
     });
   }
 
   async function disconnectWhatsApp() {
-    if (!await chatConfirm('Deseja desconectar o WhatsApp?')) return;
+    if (!await chatConfirm('Deseja desconectar o WhatsApp?', { okLabel: 'Desconectar' })) return;
     try {
       await apiFetch(API.instances, 'POST', { _csrf: CSRF, action: 'logout' });
       setConnectionStatus('close');
@@ -3062,7 +3074,8 @@ const ChatApp = (() => {
       toast('Mensagem muito antiga — sem ID para apagar no WhatsApp', 'error');
       return;
     }
-    if (!confirm('Apagar esta mensagem para todos? Esta ação não pode ser desfeita.')) return;
+    // Dialogo da identidade, nunca o do navegador (que mostra "localhost diz").
+    if (!(await chatConfirm('Apagar esta mensagem para todos? Esta ação não pode ser desfeita.', { okLabel: 'Apagar mensagem' }))) return;
 
     try {
       await apiFetch(API.messageAction, 'POST', {
@@ -3227,7 +3240,7 @@ const ChatApp = (() => {
     const msg = turnOn
       ? 'Ligar o agente de IA neste canal? Ele passará a responder automaticamente as conversas (menos as que você assumir).'
       : 'Desligar o agente de IA no canal inteiro? Nenhuma conversa será respondida automaticamente.';
-    if (!confirm(msg)) return;
+    if (!(await chatConfirm(msg, { okLabel: turnOn ? 'Ligar agente' : 'Desligar agente' }))) return;
     try {
       const r = await apiFetch('/api/whatsapp/agent_channel_toggle.php', 'POST', { _csrf: CSRF, instance_id: state.instanceId, enabled: turnOn ? 1 : 0 });
       if (r && r.ok) { renderAgentToggle(r); toast(turnOn ? 'Agente ligado no canal' : 'Agente desligado no canal', 'success'); }

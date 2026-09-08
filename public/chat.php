@@ -2517,7 +2517,7 @@ const API  = {
     <p id="chatConfirmMsg" style="margin:0 0 22px;color:#d6eaff;font-size:.92rem;line-height:1.5;"></p>
     <div style="display:flex;justify-content:flex-end;gap:10px;">
       <button id="chatConfirmNo"  style="padding:8px 20px;border-radius:8px;border:1px solid rgba(148,163,184,.25);background:transparent;color:#9ab0c9;cursor:pointer;font-size:.85rem;">Cancelar</button>
-      <button id="chatConfirmYes" style="padding:8px 20px;border-radius:8px;border:none;background:#dc2626;color:#fff;cursor:pointer;font-size:.85rem;font-weight:600;">Desconectar</button>
+      <button id="chatConfirmYes" style="padding:8px 20px;border-radius:8px;border:none;background:#dc2626;color:#fff;cursor:pointer;font-size:.85rem;font-weight:600;">Confirmar</button>
     </div>
   </div>
 </div>

@@ -563,6 +563,32 @@ if (!is_file($syncF)) {
 }
 
 
+// -- Chat WhatsApp: nunca dialogo nativo do navegador ---------------------
+// Regra fixa do projeto: confirmacao e aviso saem no dialogo/toast da identidade,
+// nunca no do navegador (que aparece como "localhost diz"). O `alert` global ja e
+// substituido por Yuris.notify em yuris-ui.js, mas `confirm` NAO tem substituto
+// global — precisa ser chamado explicitamente. Duas chamadas nativas tinham
+// sobrado no chat (apagar mensagem e ligar/desligar o agente).
+section("Chat WhatsApp: sem dialogo nativo do navegador");
+
+$chatJs = $ROOT . '/public/assets/chat.js';
+if (!is_file($chatJs)) {
+    skip("chat.js inexistente");
+} else {
+    $js = (string) file_get_contents($chatJs);
+    // confirm( sem ser precedido por ponto (window.confirm no fallback e legitimo)
+    // nem fazer parte de chatConfirm(
+    $nativos = preg_match_all('~(?<![.\w])confirm\s*\(~', $js, $mm);
+    $nativos === 0
+        ? pass("nenhum confirm() nativo solto no chat.js")
+        : fail("voltou confirm() nativo no chat.js ($nativos ocorrencia(s)): aparece como \"localhost diz\"");
+
+    str_contains($js, 'await chatConfirm(')
+        ? pass("confirmacoes do chat usam chatConfirm (dialogo da identidade)")
+        : fail("chat.js nao usa mais chatConfirm");
+}
+
+
 // -------------------------------------------------------------------------
 echo "\n===================================================================\n";
 echo " RESULTADO: $PASSES PASS · $WARNS WARN · $FAILS FAIL\n";
