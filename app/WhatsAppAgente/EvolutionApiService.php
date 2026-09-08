@@ -461,10 +461,19 @@ class EvolutionApiService
         return $this->request('GET', "/group/findGroupInfos/{$this->enc($name)}?groupJid=" . urlencode($groupJid));
     }
 
+    /**
+     * Agenda de contatos da instancia (nome + foto de perfil).
+     *
+     * O path e /chat/findContacts. Ficou como /contact/findContacts ate 08/09/2026,
+     * que a Evolution v2 responde 404 — ou seja, a busca de contatos NUNCA funcionou,
+     * em conta nenhuma. O 404 vinha como array de erro e o chamador o tratava como
+     * "lista com poucos itens", entao falhava calado: nome e foto de conversa 1:1
+     * simplesmente nunca eram preenchidos.
+     */
     public function findContacts(string $name, string $query = ''): array
     {
         $body = $query ? ['where' => ['pushName' => $query]] : new \stdClass();
-        return $this->request('POST', "/contact/findContacts/{$this->enc($name)}", $body);
+        return $this->request('POST', "/chat/findContacts/{$this->enc($name)}", $body);
     }
 
     public function getProfilePicture(string $name, string $number): array

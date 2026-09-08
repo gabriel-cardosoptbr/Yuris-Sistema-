@@ -78,12 +78,19 @@ try {
     $apiContacts = $evo->findContacts($name);
     $contactList = is_array($apiContacts) ? (isset($apiContacts[0]) ? $apiContacts : ($apiContacts['contacts'] ?? [])) : [];
     foreach ($contactList as $c) {
-        $cJid = $c['id'] ?? null;
-        if (!$cJid) continue;
+        // O JID vem em `remoteJid`. O campo `id` da Evolution v2 e o id INTERNO do
+        // registro (ex.: cmtn9seml3huam64jech7xxhe), que nunca casa com chat nenhum.
+        $cJid = $c['remoteJid'] ?? $c['id'] ?? null;
+        if (!$cJid || !str_contains((string)$cJid, '@')) continue;
         $cName = $c['pushName'] ?? $c['name'] ?? null;
         $cPic  = $c['profilePicUrl'] ?? null;
-        if ($cName && !preg_match('/^\d{12,}$/', (string)$cName)) {
-            $contactMap[$cJid] = ['name' => $cName, 'pic' => $cPic];
+        $temNome = $cName && !preg_match('/^\d{12,}$/', (string)$cName);
+        // Guarda tambem quem NAO tem nome mas TEM foto. No formato @lid (identificador
+        // de privacidade do WhatsApp) o nome vem vazio na origem — confirmado em
+        // fetchProfile/whatsappNumbers/findContacts, todos com name "". Antes esse
+        // contato era descartado inteiro e a FOTO ia junto, mesmo existindo.
+        if ($temNome || $cPic) {
+            $contactMap[$cJid] = ['name' => $temNome ? $cName : null, 'pic' => $cPic];
         }
     }
     // Indexa contatos tambem por DIGITOS do telefone. O contactMap e chaveado pelo JID

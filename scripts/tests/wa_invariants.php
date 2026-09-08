@@ -489,6 +489,44 @@ foreach ([
 }
 
 
+// -- Agenda de contatos: path da Evolution --------------------------------
+// Em 08/09/2026 descobrimos que findContacts apontava para /contact/findContacts,
+// que a Evolution v2 responde 404. A busca de contatos NUNCA funcionou, em conta
+// nenhuma: nome e foto de conversa 1:1 nunca eram preenchidos. E falhava calado,
+// porque o array de erro do 404 chegava ao chamador como se fosse uma lista curta.
+// Com o path certo a mesma instancia devolve 1.752 contatos, 955 com foto.
+section("Agenda de contatos: endpoint correto e foto preservada sem nome");
+
+$evoFile = $ROOT . '/app/WhatsAppAgente/EvolutionApiService.php';
+if (!is_file($evoFile)) {
+    skip("EvolutionApiService inexistente");
+} else {
+    $evoSrc = (string) file_get_contents($evoFile);
+    (bool) preg_match('~findContacts.*?/chat/findContacts/~s', $evoSrc)
+        ? pass("findContacts usa /chat/findContacts")
+        : fail("findContacts voltou a apontar para um path que a Evolution nao tem");
+
+    !str_contains($evoSrc, '/contact/findContacts/')
+        ? pass("nao ha mais /contact/findContacts (404 silencioso)")
+        : fail("/contact/findContacts de volta: agenda volta a vir vazia sem erro");
+}
+
+$syncFile = $ROOT . '/public/api/whatsapp/sync.php';
+if (!is_file($syncFile)) {
+    skip("sync.php inexistente");
+} else {
+    $syncSrc = (string) file_get_contents($syncFile);
+
+    (bool) preg_match('~\$cJid\s*=\s*\$c\[.remoteJid.\]~', $syncSrc)
+        ? pass("sync le o JID do contato em remoteJid (nao no id interno)")
+        : fail("sync voltou a usar \$c['id'] como JID: nunca casa com um chat");
+
+    (bool) preg_match('~if\s*\(\s*\$temNome\s*\|\|\s*\$cPic\s*\)~', $syncSrc)
+        ? pass("contato SEM nome mas COM foto e preservado (caso @lid)")
+        : fail("contato sem nome voltou a ser descartado, e a foto vai junto");
+}
+
+
 // -------------------------------------------------------------------------
 echo "\n===================================================================\n";
 echo " RESULTADO: $PASSES PASS · $WARNS WARN · $FAILS FAIL\n";
