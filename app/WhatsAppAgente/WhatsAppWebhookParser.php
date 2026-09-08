@@ -73,6 +73,14 @@ class WhatsAppWebhookParser
             $name = $message['contactMessage']['displayName'] ?? 'Contato';
             return ['text', '👤 Contato compartilhado: ' . $name, null, null, null, null];
         }
+        // varios contatos de uma vez (irmao de contactMessage)
+        if (!empty($message['contactsArrayMessage'])) {
+            $ca = $message['contactsArrayMessage'];
+            $qtd = is_array($ca['contacts'] ?? null) ? count($ca['contacts']) : 0;
+            $nome = trim((string)($ca['displayName'] ?? ''));
+            $rot = '👤 Contatos compartilhados' . ($qtd ? " ($qtd)" : '') . ($nome !== '' ? ': ' . $nome : '');
+            return ['text', $rot, null, null, null, null];
+        }
         // enquete (pollCreationMessage)
         if (!empty($message['pollCreationMessage'])) {
             $title = $message['pollCreationMessage']['name'] ?? 'Enquete';
@@ -87,6 +95,35 @@ class WhatsAppWebhookParser
             $titulo = trim((string)($h['hydratedTitleText'] ?? ''));
             $corpo  = trim((string)($h['hydratedContentText'] ?? ''));
             $texto  = trim($titulo . ($titulo !== '' && $corpo !== '' ? "\n" : '') . $corpo);
+            if ($texto !== '') {
+                return ['text', $texto, null, null, null, null];
+            }
+        }
+        // menu de botoes (WhatsApp Business): o texto fica em contentText.
+        // Visto em producao 08/09/2026 no canal da conta 83 — mensagens de
+        // renegociacao chegavam e nao apareciam na tela.
+        if (!empty($message['buttonsMessage'])) {
+            $b = $message['buttonsMessage'];
+            $texto = trim((string)($b['contentText'] ?? ($b['headerText'] ?? '')));
+            if ($texto !== '') {
+                return ['text', $texto, null, null, null, null];
+            }
+        }
+        // resposta a um botao desses (o que a pessoa clicou)
+        if (!empty($message['buttonsResponseMessage']['selectedDisplayText'])) {
+            return ['text', (string)$message['buttonsResponseMessage']['selectedDisplayText'], null, null, null, null];
+        }
+        // menu de lista e a resposta dele (mesma familia dos botoes)
+        if (!empty($message['listMessage'])) {
+            $l = $message['listMessage'];
+            $texto = trim((string)($l['description'] ?? ($l['title'] ?? '')));
+            if ($texto !== '') {
+                return ['text', $texto, null, null, null, null];
+            }
+        }
+        if (!empty($message['listResponseMessage'])) {
+            $lr = $message['listResponseMessage'];
+            $texto = trim((string)($lr['title'] ?? ($lr['singleSelectReply']['selectedRowId'] ?? '')));
             if ($texto !== '') {
                 return ['text', $texto, null, null, null, null];
             }

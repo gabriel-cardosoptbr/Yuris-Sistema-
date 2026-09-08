@@ -72,6 +72,16 @@ $novos = [
     'template_so_corpo'        => [['templateMessage' => ['hydratedTemplate' => ['hydratedContentText' => 'So corpo']]], ['text', 'So corpo', null, null, null, null]],
     'template_fourRow'         => [['templateMessage' => ['hydratedFourRowTemplate' => ['hydratedContentText' => 'Quatro linhas']]], ['text', 'Quatro linhas', null, null, null, null]],
     'template_vazio'           => [['templateMessage' => ['hydratedTemplate' => []]],                            ['text', null, null, null, null, null]],
+    // botoes/lista: vistos em producao DEPOIS do primeiro fix, ainda gravavam vazio
+    'buttonsMessage'           => [['buttonsMessage' => ['contentText' => 'Se voce ja pagou']],                    ['text', 'Se voce ja pagou', null, null, null, null]],
+    'buttonsMessage_header'    => [['buttonsMessage' => ['headerText' => 'So header']],                            ['text', 'So header', null, null, null, null]],
+    'buttonsMessage_vazio'     => [['buttonsMessage' => ['buttons' => []]],                                        ['text', null, null, null, null, null]],
+    'buttonsResponse'          => [['buttonsResponseMessage' => ['selectedDisplayText' => 'conferir propostas']],  ['text', 'conferir propostas', null, null, null, null]],
+    'contactsArray'            => [['contactsArrayMessage' => ['contacts' => [1,2,3]]],                          ['text', '👤 Contatos compartilhados (3)', null, null, null, null]],
+    'contactsArray_com_nome'   => [['contactsArrayMessage' => ['contacts' => [1], 'displayName' => 'Equipe']],     ['text', '👤 Contatos compartilhados (1): Equipe', null, null, null, null]],
+    'listMessage'              => [['listMessage' => ['description' => 'Escolha um item']],                        ['text', 'Escolha um item', null, null, null, null]],
+    'listMessage_so_titulo'    => [['listMessage' => ['title' => 'Menu']],                                         ['text', 'Menu', null, null, null, null]],
+    'listResponse'             => [['listResponseMessage' => ['title' => 'Opcao 2']],                              ['text', 'Opcao 2', null, null, null, null]],
     'templateButtonReply'      => [['templateButtonReplyMessage' => ['selectedDisplayText' => 'Quero sim']],     ['text', 'Quero sim', null, null, null, null]],
     // interativa
     'interactive_com_texto'    => [['interactiveMessage' => ['body' => ['text' => 'Escolha uma opcao']]],         ['text', 'Escolha uma opcao', null, null, null, null]],
