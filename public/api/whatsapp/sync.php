@@ -10,6 +10,7 @@ use App\Core\Database;
 use App\Core\AccountContext;
 use App\WhatsAppAgente\WhatsAppMessage;
 use App\WhatsAppAgente\EvolutionApiService;
+use App\WhatsAppAgente\WhatsAppWebhookParser;
 use App\WhatsAppAgente\WhatsAppChannelAccessService;
 
 session_start(['read_and_close' => true]);
@@ -299,22 +300,28 @@ try {
             }
         }
 
-        $type = match ($msgTypeRaw) {
-            'imageMessage'    => 'image',
-            'videoMessage'    => 'video',
-            'audioMessage'    => 'audio',
-            'documentMessage' => 'document',
-            'stickerMessage'  => 'sticker',
-            default           => 'text',
-        };
-        $content  = $msgObj['conversation'] ?? ($msgObj['extendedTextMessage']['text'] ?? null);
-        $mediaUrl = $msgObj[$msgTypeRaw]['url']      ?? null;
-        $caption  = $msgObj[$msgTypeRaw]['caption']  ?? null;
-        $fname    = $msgObj[$msgTypeRaw]['fileName']  ?? null;
-        $mime     = $msgObj[$msgTypeRaw]['mimetype']  ?? null;
+        // MESMO parser do webhook. Ate 08/09/2026 o sync tinha uma SEGUNDA
+        // implementacao aqui, mais pobre: `default => 'text'` (qualquer tipo
+        // desconhecido virava texto) e o conteudo saia so de conversation /
+        // extendedTextMessage. Resultado: no historico importado, template,
+        // botoes, lista, localizacao, contato e enquete entravam como linha
+        // VAZIA, e reacao virava mensagem. Duas implementacoes do mesmo parser
+        // divergem sozinhas com o tempo — agora e uma so.
+        [$type, $content, $caption, $mediaUrl, $mime, $fname] =
+            WhatsAppWebhookParser::extractMessageContent($msgObj);
 
-        $isMedia    = in_array($type, ['image','video','audio','document','sticker']);
-        $rawPayload = $isMedia ? json_encode($r, JSON_UNESCAPED_UNICODE) : null;
+        // protocolo (troca de chave de grupo etc) nao e mensagem de ninguem
+        if ($type === 'ignore') { continue; }
+        // reacao tem tabela propria (whatsapp_reactions), preenchida pelo webhook;
+        // aqui ela so viraria uma linha de texto vazia no historico
+        if ($type === 'reaction') { continue; }
+
+        $isMedia = in_array($type, ['image','video','audio','document','sticker'], true);
+        // Guarda o payload tambem quando NAO conseguimos extrair texto. E o que
+        // permite reparar depois: das 296 linhas vazias que sobraram do bug
+        // anterior, 295 eram irrecuperaveis justamente por nao ter payload.
+        $semTexto   = ($content === null || $content === '') && ($caption === null || $caption === '');
+        $rawPayload = ($isMedia || $semTexto) ? json_encode($r, JSON_UNESCAPED_UNICODE) : null;
 
         // Mídia: NÃO baixa binário pesado aqui (getBase64) — isso é SÍNCRONO e, se a
         // Evolution/WhatsApp estiver lenta ou caída, cada chamada trava ~20s e o sync

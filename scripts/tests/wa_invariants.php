@@ -527,6 +527,42 @@ if (!is_file($syncFile)) {
 }
 
 
+// -- Um parser so, para webhook e sync ------------------------------------
+// O sync tinha uma SEGUNDA implementacao do parser, mais pobre que a do webhook:
+// `default => 'text'` e conteudo so de conversation/extendedTextMessage. No
+// historico importado, template/botoes/lista/localizacao/contato/enquete viravam
+// linha VAZIA e reacao virava mensagem. Duas implementacoes da mesma regra
+// divergem sozinhas com o tempo; esta secao existe para a divergencia nao voltar.
+section("Parser de mensagem: um so, compartilhado entre webhook e sync");
+
+$syncF = $ROOT . '/public/api/whatsapp/sync.php';
+if (!is_file($syncF)) {
+    skip("sync.php inexistente");
+} else {
+    $s = (string) file_get_contents($syncF);
+
+    str_contains($s, 'WhatsAppWebhookParser::extractMessageContent')
+        ? pass("sync usa o parser compartilhado")
+        : fail("sync deixou de usar WhatsAppWebhookParser (parser duplicado de volta?)");
+
+    !preg_match("~'stickerMessage'\s*=>\s*'sticker',\s*\n\s*default\s*=>\s*'text',~", $s)
+        ? pass("sync nao tem mais o match proprio com default => text")
+        : fail("sync voltou a ter parser proprio: tipo desconhecido vira texto vazio");
+
+    (bool) preg_match('~\$type\s*===\s*\'ignore\'\s*\)\s*\{\s*continue~', $s)
+        ? pass("sync descarta protocolo em vez de gravar linha vazia")
+        : fail("sync voltou a gravar mensagem de protocolo");
+
+    (bool) preg_match('~\$type\s*===\s*\'reaction\'\s*\)\s*\{\s*continue~', $s)
+        ? pass("sync nao grava reacao como mensagem")
+        : fail("sync grava reacao como mensagem de texto vazia");
+
+    (bool) preg_match('~\$rawPayload\s*=\s*\(\$isMedia\s*\|\|\s*\$semTexto\)~', $s)
+        ? pass("sync guarda o payload quando nao extrai texto (permite reparo depois)")
+        : fail("sync voltou a descartar o payload de mensagem sem texto: perda definitiva");
+}
+
+
 // -------------------------------------------------------------------------
 echo "\n===================================================================\n";
 echo " RESULTADO: $PASSES PASS · $WARNS WARN · $FAILS FAIL\n";
