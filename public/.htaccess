@@ -13,9 +13,14 @@
 # "as URLs que hoje dariam 404", e nenhuma pagina existente muda de caminho.
 # =============================================================================
 
-# Sem listagem de diretorio. Producao ja tem isto pelo docker-php.conf; o vhost
-# local NAO tinha (Options Indexes), entao /assets/ listava arquivos so aqui.
-Options -Indexes
+# DELIBERADAMENTE SEM "Options -Indexes" AQUI.
+# A diretiva Options so e aceita em .htaccess se o AllowOverride incluir Options.
+# Hoje e "All" nos dois ambientes, mas se algum dia alguem apertar para
+# "AllowOverride FileInfo" (que ainda permitiria o rewrite abaixo), o Apache
+# passa a responder 500 em TODA requisicao desta pasta, e nao existe <IfModule>
+# que proteja disso. Em producao a diretiva seria redundante: o
+# /etc/apache2/conf-enabled/docker-php.conf ja da Options -Indexes em /var/www/.
+# Listagem de diretorio no ambiente local se resolve no vhost local, nao aqui.
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
