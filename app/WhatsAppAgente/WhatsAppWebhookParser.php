@@ -79,6 +79,57 @@ class WhatsAppWebhookParser
             return ['text', '📊 ' . $title, null, null, null, null];
         }
 
+        // template (newsletter/marketing): o texto NAO fica em conversation, e sim
+        // dentro do template hidratado. Sem isto a mensagem era gravada vazia.
+        if (!empty($message['templateMessage'])) {
+            $h = $message['templateMessage']['hydratedTemplate']
+              ?? ($message['templateMessage']['hydratedFourRowTemplate'] ?? []);
+            $titulo = trim((string)($h['hydratedTitleText'] ?? ''));
+            $corpo  = trim((string)($h['hydratedContentText'] ?? ''));
+            $texto  = trim($titulo . ($titulo !== '' && $corpo !== '' ? "\n" : '') . $corpo);
+            if ($texto !== '') {
+                return ['text', $texto, null, null, null, null];
+            }
+        }
+        // resposta a botao de template
+        if (!empty($message['templateButtonReplyMessage']['selectedDisplayText'])) {
+            return ['text', (string)$message['templateButtonReplyMessage']['selectedDisplayText'], null, null, null, null];
+        }
+        // mensagem interativa (lista/botoes)
+        if (!empty($message['interactiveMessage'])) {
+            $i = $message['interactiveMessage'];
+            $texto = trim((string)($i['body']['text'] ?? ($i['header']['title'] ?? '')));
+            if ($texto !== '') {
+                return ['text', $texto, null, null, null, null];
+            }
+            return ['text', '[Mensagem interativa]', null, null, null, null];
+        }
+        // album: as fotos chegam em mensagens proprias; esta e so o agrupador
+        if (!empty($message['albumMessage'])) {
+            return ['text', '[Álbum]', null, null, null, null];
+        }
+        // mensagem criptografada que nao conseguimos abrir (enquete/edicao secreta):
+        // rotula em vez de virar linha em branco, senao some da conversa sem explicacao
+        if (!empty($message['secretEncryptedMessage'])) {
+            return ['text', '[Mensagem criptografada]', null, null, null, null];
+        }
+
+        // ── PROTOCOLO, nao e conversa ────────────────────────────────────────
+        // senderKeyDistributionMessage e a troca de chave de criptografia que o
+        // WhatsApp manda em TODO grupo; protocolMessage/pinInChat sao acoes, nao
+        // mensagens. Antes caiam no fallback abaixo e viravam linha 'text' VAZIA,
+        // que ainda por cima sobrescrevia o preview da conversa (o "..." que o
+        // usuario via na lista). No canal de uma advogada real isso era 690 de
+        // 1.554 linhas, 57% do total.
+        // So ignora quando o payload NAO tem nenhuma outra parte: uma mensagem de
+        // verdade pode vir acompanhada de senderKeyDistributionMessage, e nesse
+        // caso ela ja foi tratada nos branches acima.
+        $protocolo = ['senderKeyDistributionMessage', 'protocolMessage', 'pinInChatMessage', 'messageContextInfo'];
+        $partes = array_keys($message);
+        if ($partes !== [] && array_diff($partes, $protocolo) === []) {
+            return ['ignore', null, null, null, null, null];
+        }
+
         return ['text', null, null, null, null, null];
     }
 

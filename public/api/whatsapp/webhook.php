@@ -364,6 +364,14 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
     [$msgType, $msgContent, $caption, $mediaUrl, $mimetype, $filename] =
         WhatsAppWebhookParser::extractMessageContent($message);
 
+    // ── Protocolo (nao e mensagem de ninguem) ────────────────────────────────
+    // senderKeyDistributionMessage e a troca de chave que o WhatsApp manda em TODO
+    // grupo. Antes virava linha 'text' VAZIA no historico e sobrescrevia o preview
+    // da conversa na lista, que aparecia como "...". Descarta igual reaction faz.
+    if ($msgType === 'ignore') {
+        return; // nao salva como mensagem
+    }
+
     // ── Reaction recebida via webhook ────────────────────────────────────────
     // Grava em whatsapp_reactions (UPSERT por reactor) em vez de criar uma
     // msg ghost. Sem isso o painel não atualizava pílulas quando alguém reagia

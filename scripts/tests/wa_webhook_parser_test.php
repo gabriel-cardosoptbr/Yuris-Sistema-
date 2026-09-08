@@ -52,6 +52,40 @@ $mc = [
 ];
 foreach ($mc as $label => [$in, $exp]) check("mc/$label", P::extractMessageContent($in), $exp);
 
+// ── Tipos que ANTES viravam ['text', null] silenciosamente ───────────────────
+// Diagnostico de 08/09/2026 no canal de uma advogada real: 881 de 1.554 linhas
+// (57%) estavam vazias. 690 eram senderKeyDistributionMessage (protocolo de grupo),
+// e o resto era texto que existia no payload mas o parser nao sabia ler. Linha
+// vazia nao e inofensiva: ela sobrescreve o preview da conversa na lista, que o
+// usuario ve como "...".
+$novos = [
+    // protocolo puro -> descartar, nao gravar
+    'protocolo_senderKey'      => [['senderKeyDistributionMessage' => ['groupId' => 'x@g.us']],                  ['ignore', null, null, null, null, null]],
+    'protocolo_com_ctxinfo'    => [['senderKeyDistributionMessage' => ['groupId' => 'x'], 'messageContextInfo' => ['a' => 1]], ['ignore', null, null, null, null, null]],
+    'protocolo_protocolMsg'    => [['protocolMessage' => ['type' => 'REVOKE']],                                  ['ignore', null, null, null, null, null]],
+    'protocolo_pinInChat'      => [['pinInChatMessage' => ['key' => []], 'senderKeyDistributionMessage' => []],  ['ignore', null, null, null, null, null]],
+    // mensagem DE VERDADE que vem acompanhada de protocolo NAO pode ser descartada
+    'texto_junto_com_protoc'   => [['conversation' => 'Oi', 'senderKeyDistributionMessage' => ['groupId' => 'x']], ['text', 'Oi', null, null, null, null]],
+    'imagem_junto_com_protoc'  => [['imageMessage' => ['url' => 'http://x/i'], 'senderKeyDistributionMessage' => []], ['image', null, null, 'http://x/i', 'image/jpeg', null]],
+    // template: o texto existe, so estava em outro campo
+    'template_titulo_e_corpo'  => [['templateMessage' => ['hydratedTemplate' => ['hydratedTitleText' => 'Promo', 'hydratedContentText' => 'Ultima chance']]], ['text', "Promo\nUltima chance", null, null, null, null]],
+    'template_so_corpo'        => [['templateMessage' => ['hydratedTemplate' => ['hydratedContentText' => 'So corpo']]], ['text', 'So corpo', null, null, null, null]],
+    'template_fourRow'         => [['templateMessage' => ['hydratedFourRowTemplate' => ['hydratedContentText' => 'Quatro linhas']]], ['text', 'Quatro linhas', null, null, null, null]],
+    'template_vazio'           => [['templateMessage' => ['hydratedTemplate' => []]],                            ['text', null, null, null, null, null]],
+    'templateButtonReply'      => [['templateButtonReplyMessage' => ['selectedDisplayText' => 'Quero sim']],     ['text', 'Quero sim', null, null, null, null]],
+    // interativa
+    'interactive_com_texto'    => [['interactiveMessage' => ['body' => ['text' => 'Escolha uma opcao']]],         ['text', 'Escolha uma opcao', null, null, null, null]],
+    'interactive_so_header'    => [['interactiveMessage' => ['header' => ['title' => 'Titulo']]],                 ['text', 'Titulo', null, null, null, null]],
+    'interactive_sem_texto'    => [['interactiveMessage' => ['nativeFlowMessage' => []]],                         ['text', '[Mensagem interativa]', null, null, null, null]],
+    // rotulos em vez de linha em branco
+    'album'                    => [['albumMessage' => ['expectedImageCount' => 3]],                               ['text', '[Álbum]', null, null, null, null]],
+    'secretEncrypted'          => [['secretEncryptedMessage' => ['encPayload' => [1,2,3]]],                       ['text', '[Mensagem criptografada]', null, null, null, null]],
+    // desconhecido de verdade continua como antes (nao regride)
+    'desconhecido'             => [['algumTipoNovoMessage' => ['x' => 1]],                                        ['text', null, null, null, null, null]],
+    'message_vazio'            => [[],                                                                            ['text', null, null, null, null, null]],
+];
+foreach ($novos as $label => [$in, $exp]) check("mc/$label", P::extractMessageContent($in), $exp);
+
 // ── extractQuotedWamid ───────────────────────────────────────────────────────
 $qw = [
     'text_reply'     => [['extendedTextMessage' => ['contextInfo' => ['stanzaId' => 'WAMID_TXT']]], 'WAMID_TXT'],
