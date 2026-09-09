@@ -1,6 +1,6 @@
 # public/api/ — os endpoints REST
 
-135 endpoints. Cada arquivo `.php` é um endpoint, e o caminho do arquivo é a
+136 endpoints. Cada arquivo `.php` é um endpoint, e o caminho do arquivo é a
 URL: `public/api/whatsapp/send.php` responde em `/api/whatsapp/send.php`.
 
 **Mover um arquivo daqui muda a URL de uma chamada que o front já faz.** Vale a
@@ -10,7 +10,7 @@ mesma restrição de [`../README.md`](../README.md).
 
 | Local | Qtd | O que é |
 |---|---|---|
-| raiz de `api/` | 48 | os endpoints dos módulos de Operação e Gestão: cards, clientes, tarefas, processos, usuários, times, DRE, metas, webhooks, mais `prospeccao_conversao.php` ("Tornar cliente") e `timeline.php` (a linha do tempo única) |
+| raiz de `api/` | 49 | os endpoints dos módulos de Operação e Gestão: cards, clientes, tarefas, processos, usuários, times, DRE, metas, webhooks, mais `prospeccao_conversao.php` ("Tornar cliente") e `timeline.php` (a linha do tempo única) e `cliente_vinculos.php` (conversa e tarefa vindas da prospecção) |
 | `master/` | 42 | **tudo do Painel Master**: contas, filiais, planos, pagamentos, cotas, auditoria, LGPD, config de IA, canais de WhatsApp |
 | `whatsapp/` | 22 | canal, chat, envio, mídia, e o `webhook.php` que recebe da Evolution |
 | `push/` | 11 | monitoramento de publicações: monitores, cotas, permissões, busca, `tick.php` |

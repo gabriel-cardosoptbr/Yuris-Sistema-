@@ -13,6 +13,7 @@ oportunidade de venda vive em [`../Prospeccao/`](../Prospeccao/).
 | `Cliente.php` | o cliente: cadastro, listagem por conta, movimentação entre setores. `registrarEvento()` é o ponto público por onde outros módulos escrevem no histórico dele, para o formato não divergir |
 | `ClienteOrigem.php` | de onde o cliente veio (indicação, site, anúncio). Lista editável por conta, não é enum fixo |
 | `ClienteSetor.php` | as colunas do kanban de Clientes, também editáveis por conta |
+| `VinculosCliente.php` | o que está ligado ao cliente e mora do lado da prospecção: conversa de WhatsApp e tarefa. Resolve pelas prospecções de origem em vez de duplicar o vínculo. **Tarefa não tem `account_id`**: a conta vem do quadro, e o JOIN em `task_boards` é o que impede vazamento entre escritórios |
 
 ## Por que origem e setor são tabela, e não constante no código
 

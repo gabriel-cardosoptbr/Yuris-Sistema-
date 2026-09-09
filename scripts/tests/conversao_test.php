@@ -277,6 +277,120 @@ if (!$temProcessos) {
 }
 
 /* ===================================================================== */
+secao('Teste 1c — conversa de WhatsApp e tarefa acompanham o cliente');
+/* ===================================================================== */
+
+// Conversa e tarefa são amarradas à PROSPECÇÃO (whatsapp_chats.linked_card_id e
+// task_links.link_type='card'). Nenhuma tem coluna para cliente. A ficha do
+// cliente as resolve pelas prospecções de origem, sem duplicar vínculo.
+$cardV = novoCard(['_rot' => 'com-vinculos', 'telefone_whatsapp' => '11955559999'], $ACC_A, $colunaA, $PREFIXO, $USER);
+
+$chatId = null; $taskId = null;
+try {
+    $inst = $pdo->query("SELECT id FROM whatsapp_instances WHERE account_id = $ACC_A LIMIT 1")->fetchColumn() ?: null;
+    /*
+     * JID único por execução, e não um número fixo. `whatsapp_chats` tem UNIQUE
+     * em (instance_id, remote_jid): com JID fixo, uma execução que morresse no
+     * meio deixava a linha para trás e ENVENENAVA a próxima, que falhava ao
+     * inserir e passava batido pulando as asserções de WhatsApp. Foi o que
+     * aconteceu aqui antes de virar teste.
+     */
+    $jidTeste = '55119' . substr(preg_replace('/\D/', '', (string) crc32($PREFIXO)) . '00000000', 0, 8) . '@s.whatsapp.net';
+    $pdo->prepare('INSERT INTO whatsapp_chats (account_id, instance_id, remote_jid, contact_name, linked_card_id) VALUES (?,?,?,?,?)')
+        ->execute([$ACC_A, $inst, $jidTeste, $PREFIXO . ' conversa', $cardV]);
+    $chatId = (int) $pdo->lastInsertId();
+} catch (\Throwable $e) { }
+
+try {
+    $board = $pdo->query("SELECT id FROM task_boards WHERE account_id = $ACC_A LIMIT 1")->fetchColumn();
+    $colT  = $pdo->query("SELECT id FROM task_columns WHERE board_id = $board LIMIT 1")->fetchColumn();
+    if ($board && $colT) {
+        $pdo->prepare('INSERT INTO tasks (board_id, column_id, titulo, status, criado_por_id) VALUES (?,?,?,?,?)')
+            ->execute([$board, $colT, $PREFIXO . ' ligar para o cliente', 'ativa', $USER]);
+        $taskId = (int) $pdo->lastInsertId();
+        $pdo->prepare('INSERT INTO task_links (task_id, link_type, link_id) VALUES (?,?,?)')
+            ->execute([$taskId, 'card', $cardV]);
+    }
+} catch (\Throwable $e) { }
+
+if ($chatId === null && $taskId === null) {
+    echo "  [SKIP] não foi possível montar conversa nem tarefa de teste
+";
+} else {
+    $rV = ConversaoCliente::converter($cardV, $ACC_A, [$ACC_A], $USER);
+    ok($rV['ok'] === true, 'a conversão com conversa e tarefa foi concluída');
+    if ($rV['ok']) {
+        $criados['clientes'][] = $rV['cliente_id'];
+
+        if ($chatId !== null) {
+            $conv = \App\Clientes\VinculosCliente::conversas($rV['cliente_id'], [$ACC_A]);
+            ok(count($conv) === 1, 'a conversa de WhatsApp aparece na ficha do cliente');
+
+            // Sem duplicar: o vínculo original continua apontando para o card.
+            $stC = $pdo->prepare('SELECT linked_card_id FROM whatsapp_chats WHERE id = ?');
+            $stC->execute([$chatId]);
+            ok((int) $stC->fetchColumn() === $cardV, 'a conversa NÃO perdeu o vínculo com a prospecção');
+
+            ok(\App\Clientes\VinculosCliente::conversas($rV['cliente_id'], [$ACC_B]) === [],
+                'a conversa não atravessa para outra conta');
+        }
+
+        if ($taskId !== null) {
+            $tar = \App\Clientes\VinculosCliente::tarefas($rV['cliente_id'], [$ACC_A]);
+            ok(count($tar) === 1, 'a tarefa aparece na ficha do cliente');
+            ok(\App\Clientes\VinculosCliente::tarefas($rV['cliente_id'], [$ACC_B]) === [],
+                'a ficha do cliente responde vazia para outra conta');
+
+            /*
+             * O caso que exercita o filtro de conta DENTRO da consulta.
+             *
+             * A asserção acima passa pela primeira guarda: cardsDoCliente() já
+             * devolve vazio para outra conta, e a consulta nem roda. Sem este
+             * cenário, o JOIN em task_boards ficaria sem teste, e um dia
+             * alguém o removeria sem nada acusar.
+             *
+             * Aqui a tarefa mora num quadro de OUTRA conta e está ligada ao card
+             * DESTA. A primeira guarda deixa passar (o card é da conta certa) e
+             * só o JOIN impede o vazamento.
+             */
+            $boardB = $pdo->query("SELECT id FROM task_boards WHERE account_id = $ACC_B LIMIT 1")->fetchColumn();
+            $colB   = $boardB ? $pdo->query("SELECT id FROM task_columns WHERE board_id = $boardB LIMIT 1")->fetchColumn() : null;
+            if (!$boardB || !$colB) {
+                echo "  [SKIP] conta B sem quadro de tarefas: o filtro por quadro não foi exercitado
+";
+            } else {
+                $pdo->prepare('INSERT INTO tasks (board_id, column_id, titulo, status, criado_por_id) VALUES (?,?,?,?,?)')
+                    ->execute([$boardB, $colB, $PREFIXO . ' tarefa de OUTRA conta', 'ativa', $USER]);
+                $taskB = (int) $pdo->lastInsertId();
+                $pdo->prepare('INSERT INTO task_links (task_id, link_type, link_id) VALUES (?,?,?)')
+                    ->execute([$taskB, 'card', $cardV]);
+
+                $tarComIntruso = \App\Clientes\VinculosCliente::tarefas($rV['cliente_id'], [$ACC_A]);
+                $titulos = array_column($tarComIntruso, 'titulo');
+                $vazou = false;
+                foreach ($titulos as $t) {
+                    if (str_contains((string) $t, 'OUTRA conta')) { $vazou = true; }
+                }
+                ok(!$vazou, 'tarefa de quadro de outra conta NÃO entra na ficha (filtro por task_boards)');
+
+                $pdo->prepare('DELETE FROM task_links WHERE task_id = ?')->execute([$taskB]);
+                $pdo->prepare('DELETE FROM tasks WHERE id = ?')->execute([$taskB]);
+            }
+        }
+    }
+}
+
+if ($taskId !== null) {
+    $pdo->prepare('DELETE FROM task_links WHERE task_id = ?')->execute([$taskId]);
+    $pdo->prepare('DELETE FROM tasks WHERE id = ?')->execute([$taskId]);
+}
+if ($chatId !== null) {
+    $pdo->prepare('DELETE FROM whatsapp_chats WHERE id = ?')->execute([$chatId]);
+}
+// Rede de segurança: qualquer conversa de execução anterior que tenha ficado.
+try { $pdo->prepare("DELETE FROM whatsapp_chats WHERE contact_name LIKE 'TESTE-CONV-%'")->execute(); } catch (\Throwable $e) {}
+
+/* ===================================================================== */
 secao('Teste 2 — a timeline do cliente inclui o que houve ANTES da conversão');
 /* ===================================================================== */
 

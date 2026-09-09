@@ -696,6 +696,19 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
         <div id="cliProcessos" style="display:flex; flex-direction:column; gap:6px;"></div>
       </div>
 
+      <!-- Conversas de WhatsApp: resolvidas pelas prospecções de origem.
+           Nada é copiado na conversão, ver App\Clientes\VinculosCliente. -->
+      <div id="cliConversasBlock" style="display:none; margin-top:16px;">
+        <h3 style="font-size:.84rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:0 0 8px;">Conversas de WhatsApp</h3>
+        <div id="cliConversas"></div>
+      </div>
+
+      <!-- Tarefas ligadas às prospecções de origem -->
+      <div id="cliTarefasBlock" style="display:none; margin-top:16px;">
+        <h3 style="font-size:.84rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:0 0 8px;">Tarefas</h3>
+        <div id="cliTarefas"></div>
+      </div>
+
       <!-- Origem do cliente: como esta pessoa entrou no sistema -->
       <div id="cliOrigemBlock" style="display:none; margin-top:16px;">
         <h3 style="font-size:.84rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:0 0 8px;">Origem</h3>
@@ -1187,6 +1200,7 @@ window.Clientes = (function () {
             // cliente com os das prospeccoes que apontam para ele. E por isso
             // que ela NAO recomeca no dia da conversao.
             renderOrigemCliente(c);
+            carregarVinculosCliente(c.id);
             carregarTimelineCliente(c.id);
 
             // Botão arquivar: só pra clientes próprios e não-arquivados
@@ -1352,6 +1366,62 @@ window.Clientes = (function () {
         }
         desenharFiltrosCliente();
         desenharTimelineCliente();
+    }
+
+    /**
+     * Conversas de WhatsApp e tarefas que moram do lado da PROSPECCAO.
+     *
+     * Nada foi copiado na conversao: /api/cliente_vinculos.php resolve as duas
+     * listas pelas prospeccoes que apontam para este cliente. Se a pessoa voltar
+     * como prospeccao nova ligada ao mesmo cliente, entra aqui sozinha.
+     */
+    async function carregarVinculosCliente(clienteId) {
+        const blocoC = $('#cliConversasBlock');
+        const listaC = $('#cliConversas');
+        const blocoT = $('#cliTarefasBlock');
+        const listaT = $('#cliTarefas');
+
+        [blocoC, blocoT].forEach(b => { if (b) b.style.display = 'none'; });
+
+        let dados;
+        try {
+            const r = await fetch('/api/cliente_vinculos.php?cliente_id=' + encodeURIComponent(clienteId));
+            if (!r.ok) return;
+            dados = await r.json();
+        } catch (e) { return; }
+
+        const conversas = (dados && dados.conversas) || [];
+        const tarefas   = (dados && dados.tarefas)   || [];
+
+        if (conversas.length && blocoC && listaC) {
+            listaC.innerHTML = conversas.map(c => {
+                const nome = c.contact_name || c.remote_jid || 'Conversa';
+                const num  = String(c.remote_jid || '').split('@')[0];
+                return '<a href="/chat.php?jid=' + encodeURIComponent(c.remote_jid || '') + '"' +
+                    ' style="display:flex; justify-content:space-between; gap:8px; padding:8px 10px; border-radius:8px;' +
+                    ' background:rgba(16,185,129,.08); border:1px solid rgba(52,211,153,.18); text-decoration:none; color:inherit; margin-bottom:6px;">' +
+                    '<span style="font-weight:600">' + escapeHtml(nome) + '</span>' +
+                    '<span style="color:var(--muted); font-size:.78rem">' + escapeHtml(num) + '</span></a>';
+            }).join('');
+            blocoC.style.display = '';
+        }
+
+        if (tarefas.length && blocoT && listaT) {
+            const rotuloStatus = { ativa: 'Ativa', concluida: 'Concluida', arquivada: 'Arquivada' };
+            const corStatus    = { ativa: '#93c5fd', concluida: '#6ee7b7', arquivada: '#94a3b8' };
+            listaT.innerHTML = tarefas.map(t => {
+                const st = t.status || 'ativa';
+                const prazo = t.prazo ? fmtDate(t.prazo) : '';
+                return '<a href="/tarefas.php?open=' + encodeURIComponent(t.id) + '"' +
+                    ' style="display:flex; justify-content:space-between; gap:8px; padding:8px 10px; border-radius:8px;' +
+                    ' background:rgba(96,165,250,.08); border:1px solid rgba(96,165,250,.15); text-decoration:none; color:inherit; margin-bottom:6px;">' +
+                    '<span style="font-weight:600' + (st === 'concluida' ? ';opacity:.6;text-decoration:line-through' : '') + '">' +
+                        escapeHtml(t.titulo || ('#' + t.id)) + '</span>' +
+                    '<span style="font-size:.78rem; color:' + (corStatus[st] || '#94a3b8') + '">' +
+                        escapeHtml(rotuloStatus[st] || st) + (prazo ? ' &bull; ' + escapeHtml(prazo) : '') + '</span></a>';
+            }).join('');
+            blocoT.style.display = '';
+        }
     }
 
     function closeClienteModal() { hideModal('modalCliente'); }
