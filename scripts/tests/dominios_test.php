@@ -127,8 +127,21 @@ register_shutdown_function(function () use (&$CRIADO) {
             $in = implode(',', array_map('intval', $CRIADO['accounts']));
             // Ordem importa: filhos antes de accounts. Nomes conferidos contra o
             // schema real (clientes_setores e clientes_origens, no plural).
+            /*
+             * `clientes_history` NAO entra nesta lista desde a migration 127.
+             *
+             * Ela ganhou trigger de imutabilidade (LGPD Art. 37), como as outras
+             * cinco tabelas de historico ja tinham desde a migration 053. O
+             * DELETE aqui passava a ser recusado sempre, e o aviso de "nao
+             * consegui limpar" aparecia a cada execucao, treinando quem le a
+             * ignorar um aviso que existe para ser levado a serio.
+             *
+             * As linhas ficam orfas no banco de desenvolvimento, e e o mesmo que
+             * acontece com `card_history` no conversao_test: historico de
+             * registro apagado nao aparece em tela nenhuma, porque toda leitura
+             * de timeline faz JOIN na entidade dona.
+             */
             $tabelas = [
-                'clientes_history'  => 'account_id',
                 'clientes'          => 'account_id',
                 'clientes_setores'  => 'account_id',
                 'clientes_origens'  => 'account_id',
