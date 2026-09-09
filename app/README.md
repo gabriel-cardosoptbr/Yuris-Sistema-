@@ -27,6 +27,7 @@ palavra que está na tela.
 | [`Master/`](Master/) | Painel Master, Gestão › Escritórios | conta (tenant), notificações, incidentes de segurança, auditoria do master |
 | [`Prospeccao/`](Prospeccao/) | Operação › Prospecção | funil de vendas: cards, colunas do kanban, contatos |
 | [`Clientes/`](Clientes/) | Operação › Clientes | base de clientes do escritório, origens, kanban operacional |
+| [`Crm/`](Crm/) | as duas telas acima | o que vale para prospecção **e** cliente: documentos, etiquetas, campos personalizados, contatos registrados. `Entidade` é o portão único de tenancy dos vínculos polimórficos |
 | [`Processos/`](Processos/) | Jurídico › Processos e Intimações | processos, histórico, AASP/DJEN e o motor de monitoramento (`Monitor/`) |
 | [`Tarefas/`](Tarefas/) | Operação › Tarefas | tarefas, quadros, checklists, apontamento de horas, recorrência |
 | [`Financas/`](Financas/) | Gestão › Finanças | plano de contas do DRE |
