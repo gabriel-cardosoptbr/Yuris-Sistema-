@@ -26,7 +26,11 @@ $input  = json_decode(file_get_contents('php://input'), true) ?? [];
 // SEM A CHAVE AQUI O CHECKBOX SALVA NADA, em silencio: o INSERT e filtrado
 // por esta lista.
 $_validPages = ['dashboard','planejamento','prospeccao','financas','processos','juridico','usuarios','agente','chat','chat_interno','configuracoes',
-                'prospeccao.converter_cliente'];
+                'prospeccao.converter_cliente',
+                // Fase 2 do CRM: criar/renomear/arquivar etiqueta e campo
+                // personalizado. Aplicar etiqueta e preencher campo NAO passam
+                // por aqui: sao uso normal da ficha. Ver App\Crm\Permissao.
+                'crm.catalogos_gerenciar'];
 
 // GET: list or single — FILTRADO POR CONTA (tenant isolation)
 if ($method === 'GET') {

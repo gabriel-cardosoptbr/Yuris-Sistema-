@@ -1141,6 +1141,11 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
     const ALL_ACTIONS = [
       { key:'prospeccao.converter_cliente', label:'Tornar cliente', depende:'prospeccao', padrao:true,
         ajuda:'Converter uma prospecção em cliente' },
+      // Fase 2 do CRM. Aplicar etiqueta e preencher campo personalizado é uso
+      // normal da ficha e não passa por aqui: esta chave é só para MEXER no
+      // catálogo do escritório, que muda o que todo mundo vê.
+      { key:'crm.catalogos_gerenciar', label:'Gerenciar etiquetas e campos personalizados', depende:'configuracoes', padrao:true,
+        ajuda:'Criar, renomear e arquivar etiquetas e campos personalizados do escritório. Aplicar e preencher não exige esta permissão.' },
     ];
 
     /** Desenha as ações no MESMO grid das telas, para os coletores existentes
