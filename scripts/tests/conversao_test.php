@@ -150,6 +150,54 @@ if (!$r1['ok']) {
 }
 
 /* ===================================================================== */
+secao('Teste 1b — os PROCESSOS da prospecção acompanham o cliente');
+/* ===================================================================== */
+
+// Processo aberto enquanto a pessoa era lead ficava apontando só para a
+// prospecção, e a ficha do cliente nascia sem os casos dela.
+$temProcessos = false;
+try {
+    $pdo->query('SELECT card_id, cliente_id FROM processos LIMIT 0');
+    $temProcessos = true;
+} catch (\Throwable $e) {}
+
+if (!$temProcessos) {
+    echo "  [SKIP] tabela processos sem as colunas de vínculo
+";
+} else {
+    $cardP = novoCard(['_rot' => 'com-processo', 'telefone_whatsapp' => '11987650077'], $ACC_A, $colunaA, $PREFIXO, $USER);
+
+    // Um processo de teste ligado à prospecção.
+    $colsProc = $pdo->query('SHOW COLUMNS FROM processos')->fetchAll(\PDO::FETCH_COLUMN);
+    $campos = ['account_id' => $ACC_A, 'card_id' => $cardP];
+    if (in_array('cliente_nome', $colsProc, true)) $campos['cliente_nome'] = $PREFIXO . ' com-processo';
+    if (in_array('numero_processo', $colsProc, true)) $campos['numero_processo'] = '0000000-00.2026.8.26.0000';
+    if (in_array('titulo', $colsProc, true)) $campos['titulo'] = $PREFIXO . ' caso';
+
+    $cols = implode(', ', array_keys($campos));
+    $phs  = ':' . implode(', :', array_keys($campos));
+    $pdo->prepare("INSERT INTO processos ($cols) VALUES ($phs)")->execute($campos);
+    $procId = (int) $pdo->lastInsertId();
+
+    $rP = ConversaoCliente::converter($cardP, $ACC_A, [$ACC_A], $USER);
+    ok($rP['ok'] === true, 'a conversão com processo vinculado foi concluída');
+    if ($rP['ok']) {
+        $criados['clientes'][] = $rP['cliente_id'];
+        $st = $pdo->prepare('SELECT card_id, cliente_id FROM processos WHERE id = ?');
+        $st->execute([$procId]);
+        $proc = $st->fetch(\PDO::FETCH_ASSOC);
+
+        ok((int) $proc['cliente_id'] === (int) $rP['cliente_id'], 'o processo passou a apontar para o cliente');
+        ok((int) $proc['card_id'] === $cardP, 'o processo NÃO perdeu o vínculo com a prospecção de origem');
+
+        $evP = Timeline::paraCliente($rP['cliente_id'], [$ACC_A]);
+        ok(in_array('processos_vinculados', array_column($evP, 'acao'), true),
+            'a transferência dos processos virou evento na timeline');
+    }
+    $pdo->prepare('DELETE FROM processos WHERE id = ?')->execute([$procId]);
+}
+
+/* ===================================================================== */
 secao('Teste 2 — a timeline do cliente inclui o que houve ANTES da conversão');
 /* ===================================================================== */
 
@@ -244,10 +292,13 @@ if ($r1['ok']) {
     ok($r7['criado'] === false, 'NÃO criou um segundo cliente');
     ok((int) $r7['cliente_id'] === (int) $r1['cliente_id'], 'apontou para o cliente que já existia');
 
-    $totalCli = (int) $pdo->query(
-        "SELECT COUNT(*) FROM clientes WHERE account_id = $ACC_A AND nome LIKE '" . $PREFIXO . "%' AND deleted_at IS NULL"
-    )->fetchColumn();
-    ok($totalCli === 1, "existe UM cliente para as duas prospecções (encontrados: $totalCli)");
+    // Contar por prefixo seria frouxo: outros testes desta suíte criam clientes
+    // com o mesmo prefixo. O que prova a ausência de "João 2" é que as DUAS
+    // prospecções apontam para o MESMO id de cliente.
+    $st7 = $pdo->prepare('SELECT COUNT(DISTINCT cliente_id) FROM cards WHERE id IN (?, ?)');
+    $st7->execute([$card1, $card6]);
+    $distintos = (int) $st7->fetchColumn();
+    ok($distintos === 1, "as duas prospecções apontam para UM único cliente (distintos: $distintos)");
 
     // A timeline do cliente passa a incluir a segunda jornada.
     $ev7 = Timeline::paraCliente($r1['cliente_id'], [$ACC_A]);

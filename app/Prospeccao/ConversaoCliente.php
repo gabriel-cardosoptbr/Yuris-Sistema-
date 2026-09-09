@@ -257,6 +257,36 @@ final class ConversaoCliente
                 )->execute(['cont' => (int) $card['contato_id'], 'id' => $clienteId, 'acc' => $contaDoCard]);
             }
 
+            // ── Os PROCESSOS acompanham ──────────────────────────────────────
+            // Processo aberto enquanto a pessoa era lead ficava apontando so
+            // para a prospeccao, e a ficha do cliente nascia sem os casos dela:
+            // o que mais importa naquele cadastro. Agora o vinculo passa a
+            // apontar TAMBEM para o cliente.
+            //
+            // `card_id` e mantido de proposito: e o rastro de que aquele
+            // processo entrou pela prospecao. Sobrescrever apagaria a origem, e
+            // rastreabilidade e justamente o ponto desta funcionalidade.
+            //
+            // `cliente_id IS NULL` evita roubar processo ja atribuido a outro
+            // cliente, no caso de a mesma prospeccao ser religada.
+            $up = $pdo->prepare(
+                'UPDATE processos
+                    SET cliente_id = :cli
+                  WHERE card_id = :card
+                    AND account_id = :acc
+                    AND cliente_id IS NULL'
+            );
+            $up->execute(['cli' => $clienteId, 'card' => $cardId, 'acc' => $contaDoCard]);
+            $processosLigados = $up->rowCount();
+
+            if ($processosLigados > 0) {
+                Cliente::registrarEvento($clienteId, $contaDoCard, $userId, 'processos_vinculados', [
+                    'quantidade' => $processosLigados,
+                    'card_id'    => $cardId,
+                ]);
+                self::registrarNoCard($cardId, $userId, 'processos_vinculados', 'cliente_id', null, (string) $processosLigados);
+            }
+
             $ok = $pdo->prepare(
                 'UPDATE cards
                     SET cliente_id = :cli, convertido_em = NOW(), convertido_por = :uid,
