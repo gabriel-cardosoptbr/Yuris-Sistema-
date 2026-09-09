@@ -185,13 +185,19 @@ function montaSessao(PDO $pdo, int $userId): ?array
  * /logout.php, que destroi a sessao: sem isto tudo que vem DEPOIS de "logout"
  * na ordem alfabetica seria varrido deslogado, e a varredura mentiria.
  */
-function regravaSessao(string $sid, string $payload): void
+/** Caminho do arquivo de sessao no disco, para o SID dado. */
+function caminhoSessao(string $sid): string
 {
     $dir = ini_get('session.save_path') ?: sys_get_temp_dir();
-    if (str_contains($dir, ';')) {
+    if (str_contains($dir, ';')) {          // formato "N;MODE;/caminho"
         $dir = substr($dir, strrpos($dir, ';') + 1);
     }
-    file_put_contents(rtrim($dir, '/\\') . DIRECTORY_SEPARATOR . 'sess_' . $sid, $payload);
+    return rtrim($dir, '/\\') . DIRECTORY_SEPARATOR . 'sess_' . $sid;
+}
+
+function regravaSessao(string $sid, string $payload): void
+{
+    file_put_contents(caminhoSessao($sid), $payload);
 }
 
 $identidades = ['anon' => null];
@@ -274,6 +280,16 @@ foreach ($urls as $u) {
         ];
         $total++;
     }
+}
+
+// Apaga os arquivos de sessao criados aqui. Sem isto a varredura deixa uma
+// sessao VALIDA por identidade a cada execucao no diretorio de sessoes, e
+// depois de algumas rodadas sao dezenas de credenciais vivas esquecidas la.
+foreach ($identidades as $sid) {
+    if ($sid === null) {
+        continue;
+    }
+    @unlink(caminhoSessao($sid));
 }
 
 $destino = $opt['out'] ?? null;
