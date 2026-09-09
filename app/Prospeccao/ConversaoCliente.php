@@ -287,6 +287,41 @@ final class ConversaoCliente
                 self::registrarNoCard($cardId, $userId, 'processos_vinculados', 'cliente_id', null, (string) $processosLigados);
             }
 
+            /* ── FASE 2: as ETIQUETAS e os CAMPOS PERSONALIZADOS acompanham ───
+             *
+             * Estes dois COPIAM, ao contrário de anexo, interação e histórico,
+             * que a ficha do cliente lê pelo escopo das prospecções de origem
+             * sem duplicar nada.
+             *
+             * A razão da diferença: anexo e interação são FATO, e fato tem uma
+             * data e um autor que não mudam. Etiqueta e campo personalizado são
+             * OPINIÃO EDITÁVEL. Se fossem herdados por leitura, tirar a etiqueta
+             * "lead frio" da ficha do cliente exigiria editar o card antigo, o
+             * que é ação a distância e ninguém descobre sozinho.
+             *
+             * Copiadas UMA VEZ, aqui, dentro da transação: se qualquer passo
+             * abaixo falhar, elas voltam junto com o resto.
+             *
+             * Campo personalizado só é copiado onde o cliente está VAZIO. Numa
+             * vinculação a cliente que já existe, o que ele já tem preenchido
+             * vale mais que o que o lead trouxe.
+             */
+            $tagsCopiadas = \App\Crm\Tag::copiarCardParaCliente($cardId, $clienteId, $contaDoCard, $userId);
+            if ($tagsCopiadas !== []) {
+                Cliente::registrarEvento($clienteId, $contaDoCard, $userId, 'tags_da_prospeccao', [
+                    'campo' => 'etiquetas',
+                    'para'  => implode(', ', $tagsCopiadas),
+                ]);
+            }
+
+            $camposCopiados = \App\Crm\CampoPersonalizado::copiarCardParaCliente($cardId, $clienteId, $contaDoCard, $userId);
+            if ($camposCopiados !== []) {
+                Cliente::registrarEvento($clienteId, $contaDoCard, $userId, 'campos_da_prospeccao', [
+                    'campo' => 'campos personalizados',
+                    'para'  => implode(', ', $camposCopiados),
+                ]);
+            }
+
             $ok = $pdo->prepare(
                 'UPDATE cards
                     SET cliente_id = :cli, convertido_em = NOW(), convertido_por = :uid,
@@ -354,12 +389,56 @@ final class ConversaoCliente
             'bairro'         => $card['bairro'] ?? null,
             'cidade'         => $card['cidade'] ?? null,
             'uf'             => $card['uf'] ?? null,
-            'origem'         => 'prospeccao',
+            /*
+             * O CANAL DE AQUISICAO, quando a prospeccao tem um (migration 127).
+             *
+             * Antes ficava 'prospeccao' fixo, que responde COMO a pessoa entrou
+             * no sistema, e isso `card_origem_id` ja responde melhor e sem
+             * ambiguidade. O que a coluna `origem` precisa dizer e DE ONDE o
+             * lead veio: indicacao, anuncio, site, evento. Essa e a pergunta que
+             * o escritorio faz para decidir onde investir.
+             *
+             * Cai de volta em 'prospeccao' quando o card nao tem canal, para nao
+             * inventar dado nem deixar a coluna vazia.
+             */
+            'origem'         => self::canalDoCard($card) ?? 'prospeccao',
             'status'         => 'ativo',
             // A descricao da prospeccao e o motivo/interesse dela. Perder isso na
             // conversao seria perder por que aquela pessoa procurou o escritorio.
             'observacoes'    => self::observacoesDoCard($card),
         ];
+    }
+
+    /**
+     * O slug do canal de aquisicao da prospeccao, ou null.
+     *
+     * Le `clientes_origens` conferindo a conta: `origem_id` e id de catalogo, e
+     * catalogo tambem e por conta. Sem o filtro de account_id, um id de canal de
+     * outro escritorio gravaria o slug dele no cliente daqui.
+     *
+     * A tabela chama "clientes_origens" e serve os dois lados desde a migration
+     * 127. E de proposito: os dois lendo do MESMO catalogo e o que faz o canal
+     * atravessar a conversao sem tradutor no meio.
+     */
+    private static function canalDoCard(array $card): ?string
+    {
+        $origemId = (int) ($card['origem_id'] ?? 0);
+        if ($origemId <= 0) {
+            return null;
+        }
+        try {
+            $st = Database::getConnection()->prepare(
+                'SELECT slug FROM clientes_origens WHERE id = ? AND account_id = ? LIMIT 1'
+            );
+            $st->execute([$origemId, (int) ($card['account_id'] ?? 0)]);
+            $slug = $st->fetchColumn();
+            return $slug === false ? null : (string) $slug;
+        } catch (\Throwable $e) {
+            // Base sem a migration 127: o card nem tem origem_id, então nunca
+            // chega aqui. O catch existe para o caso de a tabela de catálogo
+            // faltar, e aí o comportamento certo é o de antes.
+            return null;
+        }
     }
 
     private static function observacoesDoCard(array $card): ?string

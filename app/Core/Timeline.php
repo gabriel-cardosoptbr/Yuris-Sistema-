@@ -42,8 +42,14 @@ namespace App\Core;
  */
 final class Timeline
 {
-    /** Categorias usadas pelos filtros da UI. */
-    public const CATEGORIAS = ['cadastro', 'comercial', 'processos', 'whatsapp', 'documentos', 'tarefas', 'sistema'];
+    /**
+     * Categorias usadas pelos filtros da UI.
+     *
+     * 'documentos' e 'interacoes' ficaram vazias da Fase 1 ate a Fase 2: a
+     * primeira ja estava declarada esperando os anexos, a segunda entrou junto
+     * com App\Crm\Interacao.
+     */
+    public const CATEGORIAS = ['cadastro', 'comercial', 'interacoes', 'processos', 'whatsapp', 'documentos', 'tarefas', 'sistema'];
 
     /**
      * Timeline de uma prospeccao. So os eventos dela.
@@ -57,6 +63,7 @@ final class Timeline
             return [];
         }
         $eventos = self::eventosDeCards([$cardId], $accountIds);
+        $eventos = array_merge($eventos, self::eventosDeInteracoes(['card'], [$cardId], $accountIds));
         return self::ordena($eventos);
     }
 
@@ -79,6 +86,19 @@ final class Timeline
         if ($cardIds !== []) {
             $eventos = array_merge($eventos, self::eventosDeCards($cardIds, $accountIds));
         }
+
+        /*
+         * Interacoes do cliente MAIS as das prospeccoes de origem, no mesmo
+         * escopo que o historico. E o que faz a ligacao feita quando a pessoa
+         * ainda era lead continuar na timeline depois da conversao.
+         */
+        $entidades = ['cliente'];
+        $ids       = [$clienteId];
+        foreach ($cardIds as $cardId) {
+            $entidades[] = 'card';
+            $ids[]       = (int) $cardId;
+        }
+        $eventos = array_merge($eventos, self::eventosDeInteracoes($entidades, $ids, $accountIds));
 
         return self::ordena($eventos);
     }
@@ -208,16 +228,100 @@ final class Timeline
                 continue;
             }
 
+            /*
+             * Evento que NAO e 'updated' pode carregar campo/de/para no JSON.
+             * E o formato que App\Crm\Auditoria grava para os eventos da Fase 2
+             * (anexo, tag, campo personalizado, interacao editada). Sem ler estas
+             * tres chaves, a timeline do cliente mostraria "tag aplicada" sem
+             * dizer qual tag, enquanto o mesmo evento no lado da prospeccao
+             * mostraria o nome, porque card_history tem colunas proprias.
+             */
             $saida[] = self::evento(
                 (string) $r['created_at'],
                 $r['user_nome'] ?: ($r['user_login'] ?: null),
                 (string) ($r['acao'] ?? ''),
-                null,
-                null,
-                null,
+                is_array($depois) && isset($depois['campo']) ? (string) $depois['campo'] : null,
+                is_array($depois) ? ($depois['de']   ?? null) : null,
+                is_array($depois) ? ($depois['para'] ?? null) : null,
                 'cliente',
                 (int) $r['cliente_id'],
                 'cliente'
+            );
+        }
+        return $saida;
+    }
+
+    /**
+     * Interacoes e notas internas como eventos da timeline.
+     *
+     * Le `crm_interacoes` DIRETO, e nao o historico, por dois motivos:
+     *
+     *  1. A interacao tem `ocorrido_em` proprio, que pode ser bem antes de
+     *     `created_at`. A ligacao de ontem registrada hoje tem de aparecer no
+     *     lugar de ontem, e nenhuma tabela de auditoria sabe representar isso:
+     *     ela so tem a hora em que a linha foi escrita.
+     *  2. Registrar interacao NAO grava evento de auditoria (ver o cabecalho de
+     *     App\Crm\Interacao). Se gravasse, o mesmo fato apareceria duas vezes na
+     *     mesma tela, uma vindo daqui e outra do historico.
+     *
+     * O tenant sai direto de `crm_interacoes.account_id`, que existe e e NOT NULL,
+     * diferente de card_history.
+     *
+     * @param array<int,string> $entidades alinhado com $ids
+     * @param array<int,int>    $ids
+     */
+    private static function eventosDeInteracoes(array $entidades, array $ids, array $accountIds): array
+    {
+        if ($entidades === [] || $accountIds === []) {
+            return [];
+        }
+
+        $partes = [];
+        $params = [];
+        foreach ($entidades as $i => $ent) {
+            $partes[] = '(i.entidade = ? AND i.entidade_id = ?)';
+            $params[] = $ent;
+            $params[] = (int) $ids[$i];
+        }
+        $inAcc = implode(',', array_fill(0, count($accountIds), '?'));
+
+        $st = Database::getConnection()->prepare(
+            'SELECT i.id, i.entidade, i.entidade_id, i.tipo, i.direcao, i.assunto,
+                    i.conteudo, i.ocorrido_em, i.duracao_min,
+                    u.nome AS user_nome, u.login AS user_login
+               FROM crm_interacoes i
+          LEFT JOIN users u ON u.id = i.created_by
+              WHERE (' . implode(' OR ', $partes) . ')
+                AND i.deleted_at IS NULL
+                AND i.account_id IN (' . $inAcc . ')'
+        );
+        $st->execute(array_merge($params, $accountIds));
+
+        $saida = [];
+        foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+            $tipo   = (string) $r['tipo'];
+            $rotulo = \App\Crm\Interacao::ROTULOS[$tipo] ?? $tipo;
+
+            // 'para' carrega o texto legivel do evento: assunto, ou o comeco do
+            // conteudo quando nao ha assunto. A UI ja sabe renderizar 'para'.
+            $texto = trim((string) ($r['assunto'] ?? ''));
+            if ($texto === '') {
+                $texto = mb_substr(trim((string) ($r['conteudo'] ?? '')), 0, 140);
+            }
+            if ($r['duracao_min'] !== null && (int) $r['duracao_min'] > 0) {
+                $texto .= ' (' . (int) $r['duracao_min'] . ' min)';
+            }
+
+            $saida[] = self::evento(
+                (string) $r['ocorrido_em'],
+                $r['user_nome'] ?: ($r['user_login'] ?: null),
+                $tipo === 'nota' ? 'nota_interna' : 'interacao_registrada',
+                $rotulo,
+                null,
+                $texto !== '' ? $texto : null,
+                (string) $r['entidade'],
+                (int) $r['entidade_id'],
+                $r['entidade'] === 'card' ? 'prospeccao' : 'cliente'
             );
         }
         return $saida;
@@ -255,6 +359,11 @@ final class Timeline
     private static function categoria(string $acao, ?string $campo): string
     {
         $a = strtolower($acao);
+        // Antes de 'whatsapp': uma interacao do tipo WhatsApp e interacao
+        // registrada a mao, nao mensagem trocada no chat. Sao filtros diferentes.
+        if (str_contains($a, 'interacao') || str_contains($a, 'nota_interna')) {
+            return 'interacoes';
+        }
         if (str_contains($a, 'whatsapp') || str_contains($a, 'chat') || str_contains($a, 'conversa')) {
             return 'whatsapp';
         }

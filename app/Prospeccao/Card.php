@@ -132,13 +132,21 @@ class Card
         $pdo = Database::getConnection();
         // titulo: usa o que veio; senão usa cliente_nome (preserva título visível em outros lugares)
         $titulo = trim($data['titulo'] ?? $data['cliente_nome'] ?? '');
+
+        // origem_id (canal de aquisição, migration 127) só entra no INSERT se a
+        // coluna existir. Mesma defesa que list() usa para cliente_id: em base
+        // sem a migration o cadastro não pode quebrar.
+        $temOrigem = self::_temColunaOrigem();
+        $colOrigem = $temOrigem ? ', origem_id' : '';
+        $valOrigem = $temOrigem ? ', :origem_id' : '';
+
         $stmt = $pdo->prepare('INSERT INTO cards
               (account_id, titulo, cliente_nome, empresa_nome, telefone_whatsapp, email,
                cpf_cnpj, rg, nome_mae,
                cep, logradouro, numero, complemento, bairro, cidade, uf,
                responsavel_user_id, coluna_id, ordem_na_coluna,
                valor_estimado, valor_proposta, valor_fechado_final,
-               data_prevista_fechamento, data_fechamento, descricao, status,
+               data_prevista_fechamento, data_fechamento, descricao, status' . $colOrigem . ',
                created_at, updated_at)
             VALUES
               (:account_id, :titulo, :cliente_nome, :empresa_nome, :telefone_whatsapp, :email,
@@ -146,9 +154,14 @@ class Card
                :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :uf,
                :responsavel_user_id, :coluna_id, :ordem_na_coluna,
                :valor_estimado, :valor_proposta, :valor_fechado_final,
-               :data_prevista_fechamento, :data_fechamento, :descricao, :status,
+               :data_prevista_fechamento, :data_fechamento, :descricao, :status' . $valOrigem . ',
                NOW(), NOW())');
-        $stmt->execute([
+        $origemId = $temOrigem ? self::_intOrNull($data['origem_id'] ?? null) : null;
+        if ($origemId !== null && !self::_origemDaConta($origemId, (int)$data['account_id'])) {
+            $origemId = null; // canal de outra conta: ver o comentário em update()
+        }
+
+        $stmt->execute(($temOrigem ? ['origem_id' => $origemId] : []) + [
             'account_id'   => $data['account_id'],
             'titulo'       => $titulo ?: null,
             'cliente_nome' => $data['cliente_nome'] ?? '',
@@ -258,6 +271,14 @@ class Card
                      'responsavel_user_id','coluna_id','ordem_na_coluna',
                      'valor_estimado','valor_proposta','valor_fechado_final',
                      'data_prevista_fechamento','data_fechamento','descricao','status'];
+
+        // Canal de aquisição (migration 127). Entra na lista de campos
+        // permitidos só quando a coluna existe, e daí em diante o histórico
+        // campo a campo de _logCampos() cuida dele sem tratamento especial.
+        if (self::_temColunaOrigem()) {
+            $allowed[] = 'origem_id';
+        }
+
         $dateCols   = ['data_prevista_fechamento','data_fechamento'];
         $digitsOnly = ['cpf_cnpj','cep'];
         foreach ($allowed as $k) {
@@ -266,6 +287,7 @@ class Card
                 if      (in_array($k, $dateCols,   true)) $params[$k] = self::_normalizeDate($data[$k]);
                 elseif  (in_array($k, $digitsOnly, true)) $params[$k] = self::_cleanDigitsOrNull($data[$k]);
                 elseif  ($k === 'uf')                     $params[$k] = self::_normalizeUf($data[$k]);
+                elseif  ($k === 'origem_id')              $params[$k] = self::_intOrNull($data[$k]);
                 else                                       $params[$k] = $data[$k];
             }
         }
@@ -294,6 +316,17 @@ class Card
         // auditoria da prospecção tinha um buraco do tamanho do cadastro
         // inteiro.
         $antes = self::find($id);
+
+        // Canal de aquisição de OUTRA conta não entra. O catálogo
+        // (clientes_origens) é por conta, e uma sessão matriz editando card de
+        // filial mandaria o id do catálogo da matriz. Gravar assim deixaria o
+        // card com um canal que a conversão depois não consegue resolver, e o
+        // dado sumiria em silêncio no meio do caminho.
+        if (array_key_exists('origem_id', $params) && $params['origem_id'] !== null && $antes) {
+            if (!self::_origemDaConta((int)$params['origem_id'], (int)($antes['account_id'] ?? 0))) {
+                $params['origem_id'] = null;
+            }
+        }
 
         $sql = 'UPDATE cards SET ' . implode(', ', $fields) . ', updated_at = NOW() WHERE id = :id';
         $stmt = $pdo->prepare($sql);
@@ -487,6 +520,48 @@ class Card
     }
 
     /** trim + null se vazio. Usado em campos cadastrais (RG, nome_mae, logradouro, etc.). */
+    /**
+     * A coluna origem_id existe? (migration 127)
+     *
+     * Cacheado em static porque create() e update() perguntam a cada chamada, e
+     * numa importação de leads isso seria um SELECT extra por card.
+     */
+    private static function _temColunaOrigem(): bool
+    {
+        static $tem = null;
+        if ($tem === null) {
+            try {
+                Database::getConnection()->query('SELECT origem_id FROM cards LIMIT 0');
+                $tem = true;
+            } catch (\Throwable $e) {
+                $tem = false;
+            }
+        }
+        return $tem;
+    }
+
+    /** O canal pertence a esta conta? O catálogo clientes_origens é por conta. */
+    private static function _origemDaConta(int $origemId, int $accountId): bool
+    {
+        if ($origemId <= 0 || $accountId <= 0) return false;
+        try {
+            $st = Database::getConnection()->prepare(
+                'SELECT 1 FROM clientes_origens WHERE id = ? AND account_id = ? LIMIT 1'
+            );
+            $st->execute([$origemId, $accountId]);
+            return (bool)$st->fetchColumn();
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /** "" e "0" viram NULL: canal não escolhido é ausência, não canal zero. */
+    private static function _intOrNull($v): ?int
+    {
+        if ($v === null || $v === '' || (int)$v <= 0) return null;
+        return (int)$v;
+    }
+
     private static function _trimOrNull($v): ?string
     {
         if ($v === null) return null;

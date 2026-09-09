@@ -85,30 +85,57 @@ final class VinculosCliente
      */
     public static function tarefas(int $clienteId, array $accountIds): array
     {
-        $cards = Timeline::cardsDoCliente($clienteId, $accountIds);
-        if ($cards === []) {
+        $accountIds = self::inteiros($accountIds);
+        if ($accountIds === [] || $clienteId <= 0) {
             return [];
         }
-        $accountIds = self::inteiros($accountIds);
+        $cards = Timeline::cardsDoCliente($clienteId, $accountIds);
+
         $pdo = Database::getConnection();
-        $inC = implode(',', array_fill(0, count($cards), '?'));
         $inA = implode(',', array_fill(0, count($accountIds), '?'));
 
+        /*
+         * DOIS caminhos, uma consulta.
+         *
+         *   link_type='card'     tarefa da prospecção que originou o cliente
+         *   link_type='cliente'  tarefa marcada direto na ficha do cliente
+         *
+         * O segundo só existe desde a migration 127, que ACRESCENTOU 'cliente'
+         * ao ENUM de task_links.link_type. Antes dela, um cliente cadastrado à
+         * mão, que nunca foi prospecção, não tinha como ter compromisso próprio:
+         * a tarefa só chegava até ele por dentro do card de origem.
+         *
+         * O bloco de card só entra no OR quando existe card, senão o IN () ficaria
+         * vazio e o SQL não compila.
+         */
+        $ors    = ["(tl.link_type = 'cliente' AND tl.link_id = ?)"];
+        $params = [$clienteId];
+
+        if ($cards !== []) {
+            $inC      = implode(',', array_fill(0, count($cards), '?'));
+            $ors[]    = "(tl.link_type = 'card' AND tl.link_id IN ($inC))";
+            $params   = array_merge($params, $cards);
+        }
+
         // O JOIN em task_boards não é enfeite: é de onde vem a conta da tarefa.
+        // O GROUP BY não é estatística: uma tarefa pode estar ligada ao cliente E
+        // ao card de origem ao mesmo tempo, e ela é uma tarefa só. Sem ele a
+        // ficha mostraria a mesma tarefa duas vezes. Todas as colunas não
+        // agregadas estão no GROUP BY, então ONLY_FULL_GROUP_BY aceita.
         $st = $pdo->prepare(
             "SELECT t.id, t.titulo, t.status, t.prazo, t.prioridade,
                     u.nome AS responsavel_nome,
-                    tl.link_id AS origem_card_id
+                    MAX(CASE WHEN tl.link_type = 'card' THEN tl.link_id END) AS origem_card_id
                FROM task_links tl
                JOIN tasks       t ON t.id = tl.task_id
                JOIN task_boards b ON b.id = t.board_id
           LEFT JOIN users       u ON u.id = t.responsavel_id
-              WHERE tl.link_type = 'card'
-                AND tl.link_id IN ($inC)
+              WHERE (" . implode(' OR ', $ors) . ")
                 AND b.account_id IN ($inA)
+           GROUP BY t.id, t.titulo, t.status, t.prazo, t.prioridade, u.nome
            ORDER BY (t.status = 'concluida'), t.prazo IS NULL, t.prazo, t.id DESC"
         );
-        $st->execute(array_merge($cards, $accountIds));
+        $st->execute(array_merge($params, $accountIds));
         return $st->fetchAll(\PDO::FETCH_ASSOC);
     }
 
