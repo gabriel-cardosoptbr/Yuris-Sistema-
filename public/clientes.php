@@ -89,6 +89,10 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
   <link rel="stylesheet" href="/assets/fog.css">
   <link rel="stylesheet" href="/assets/sidebar.css?v=19">
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+  <!-- Fase 2 do CRM: etiquetas, campos personalizados, documentos e contatos.
+       O mesmo módulo roda em prospeccao.php: os quatro blocos são idênticos nos
+       dois lados e duplicá-los garantiria duas versões divergindo. -->
+  <script src="/assets/crm-fase2.js?v=<?= @filemtime(__DIR__ . '/assets/crm-fase2.js') ?: 1 ?>"></script>
   <style>
     :root {
       --bg-main: #070F1C;
@@ -684,6 +688,12 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
         </div>
       </div>
 
+      <!-- Fase 2 do CRM: etiquetas, campos personalizados, documentos e contatos
+           registrados. O módulo crm-fase2.js monta os quatro blocos aqui dentro.
+           Documento e contato registrado incluem os das prospecções de origem,
+           sem cópia: quem costura é cards.cliente_id. -->
+      <div id="cliCrm"></div>
+
       <!-- Processos vinculados (só no modo edição) — reverse lookup do cliente_id -->
       <div id="cliProcessosBlock" style="display:none; margin-top:16px;">
         <div style="display:flex; align-items:center; justify-content:space-between; margin:0 0 8px;">
@@ -1152,6 +1162,10 @@ window.Clientes = (function () {
         $('#cliForm').reset();
         $('#cliId').value = '';
         $('#cliHistoryBlock').style.display = 'none';
+        // Etiqueta, documento e contato precisam de um cliente para pendurar em.
+        // Antes do primeiro Salvar não existe id, então os blocos não aparecem:
+        // oferecer campo que não tem onde gravar é pior que não oferecer.
+        CrmFase2.limpar('#cliCrm');
         $('#btnArquivarCliente').style.display = 'none';
         $('#btnSalvarCliente').textContent = 'Cadastrar';
         // setor default = primeiro
@@ -1203,6 +1217,17 @@ window.Clientes = (function () {
             carregarVinculosCliente(c.id);
             carregarTimelineCliente(c.id);
 
+            // Fase 2: etiqueta, campo personalizado, documento e contato.
+            // `aoMudar` recarrega a timeline porque gravar qualquer um deles
+            // escreve no histórico, e a linha nova tem de aparecer sem F5.
+            CrmFase2.montar({
+                entidade: 'cliente',
+                id:       c.id,
+                host:     '#cliCrm',
+                csrf:     window.YURIS_CTX.csrf,
+                aoMudar:  () => carregarTimelineCliente(c.id)
+            });
+
             // Botão arquivar: só pra clientes próprios e não-arquivados
 
             const isOwn = (parseInt(c.account_id, 10) === window.YURIS_CTX.accountId);
@@ -1228,11 +1253,11 @@ window.Clientes = (function () {
     // ══════════════════════════════════════════════════════════════════════════
 
     const TL_ROTULO = {
-        cadastro: 'Cadastro', comercial: 'Comercial', processos: 'Processos',
+        cadastro: 'Cadastro', comercial: 'Comercial', interacoes: 'Contatos', processos: 'Processos',
         whatsapp: 'WhatsApp', documentos: 'Documentos', tarefas: 'Tarefas', sistema: 'Sistema'
     };
     const TL_COR = {
-        cadastro: '#93c5fd', comercial: '#34d399', processos: '#c4b5fd',
+        cadastro: '#93c5fd', comercial: '#34d399', interacoes: '#f0abfc', processos: '#c4b5fd',
         whatsapp: '#6ee7b7', documentos: '#fcd34d', tarefas: '#fdba74', sistema: '#94a3b8'
     };
     const TL_CAMPO = {

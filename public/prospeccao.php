@@ -57,6 +57,45 @@ try {
     }
 } catch (\Throwable $e) { /* fallback vazio */ }
 
+/*
+ * CANAL DE AQUISIÇÃO (bloco E da Fase 2, migration 127).
+ *
+ * Lê `clientes_origens`, o catálogo que já existia por conta com dez canais
+ * semeados (indicação, anúncio, site, redes sociais, evento, captação ativa…).
+ * Reusar em vez de criar um catálogo só da prospecção é o que faz o canal
+ * SOBREVIVER à conversão: os dois lados leem da mesma tabela, então
+ * ConversaoCliente copia o slug direto para `clientes.origem`.
+ *
+ * Cuidado de nome: o filtro "Origem" desta tela é MATRIZ/FILIAL, coisa
+ * completamente diferente. Aqui é de onde o lead veio.
+ *
+ * Só o catálogo da conta da sessão: Card::create/update recusam canal de outra
+ * conta, então oferecer os das filiais seria oferecer o que vai ser recusado.
+ */
+$canais_aquisicao = [];
+try {
+    $pdo_c   = Database::getConnection();
+    $stmt_c  = $pdo_c->prepare(
+        'SELECT id, nome FROM clientes_origens
+          WHERE account_id = ? AND ativo = 1
+       ORDER BY ordem, nome'
+    );
+    $stmt_c->execute([AccountContext::fromSession()->getAccountId()]);
+    $canais_aquisicao = $stmt_c->fetchAll(PDO::FETCH_ASSOC);
+} catch (\Throwable $e) { /* conta sem catálogo: o seletor fica vazio, não quebra */ }
+
+/** <option> dos canais, com o selecionado marcado. */
+function canal_options(array $canais, $selecionado = null): string
+{
+    $out = '<option value="">— Não informado —</option>';
+    foreach ($canais as $c) {
+        $sel  = ((string)$selecionado === (string)$c['id']) ? ' selected' : '';
+        $out .= '<option value="' . (int)$c['id'] . '"' . $sel . '>'
+              . htmlspecialchars((string)$c['nome']) . '</option>';
+    }
+    return $out;
+}
+
 function normalize_stage_label(string $text): string
 {
     $text = trim($text);
@@ -111,6 +150,9 @@ function column_display_name(array $col): string
   <link rel="stylesheet" href="/assets/fog.css">
   <link rel="stylesheet" href="/assets/sidebar.css?v=19">
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+  <!-- Fase 2 do CRM: etiquetas, campos personalizados, documentos e contatos.
+       O mesmo módulo roda em clientes.php. -->
+  <script src="/assets/crm-fase2.js?v=<?= @filemtime(__DIR__ . '/assets/crm-fase2.js') ?: 1 ?>"></script>
   <style>
     :root {
       --bg-main: #070F1C;
@@ -1261,6 +1303,12 @@ function column_display_name(array $col): string
                 <input name="empresa_nome" class="form-input">
               </label>
               <label class="form-group">
+                <span class="form-label">Canal de aquisição</span>
+                <select name="origem_id" class="form-select">
+                  <?= canal_options($canais_aquisicao) ?>
+                </select>
+              </label>
+              <label class="form-group">
                 <span class="form-label">WhatsApp</span>
                 <input name="telefone_whatsapp" class="form-input" placeholder="551199999999">
               </label>
@@ -1401,6 +1449,12 @@ function column_display_name(array $col): string
               <label class="form-group">
                 <span class="form-label">Empresa / origem</span>
                 <input name="empresa_nome" class="form-input">
+              </label>
+              <label class="form-group">
+                <span class="form-label">Canal de aquisição</span>
+                <select name="origem_id" class="form-select">
+                  <?= canal_options($canais_aquisicao) ?>
+                </select>
               </label>
               <label class="form-group">
                 <span class="form-label">WhatsApp</span>
@@ -1565,6 +1619,14 @@ function column_display_name(array $col): string
           <div class="form-section" id="conversaoSection" style="display:none">
             <div class="form-section-title">Convertida em cliente</div>
             <div id="conversaoInfo" style="font-size:.85rem;color:#9ab0c9;line-height:1.7"></div>
+          </div>
+
+          <!-- Fase 2 do CRM: etiquetas, campos personalizados, documentos e
+               contatos registrados. O módulo crm-fase2.js monta os quatro blocos
+               aqui dentro, e é o MESMO módulo da ficha do cliente. -->
+          <div class="form-section" id="crmFase2Section">
+            <div class="form-section-title">Etiquetas, campos, documentos e contatos</div>
+            <div id="cardCrm"></div>
           </div>
 
           <!-- Histórico: a trajetória inteira do lead, do primeiro evento em diante. -->
@@ -2454,11 +2516,11 @@ function column_display_name(array $col): string
     // desenha o que o backend consolidou.
 
     const ROTULO_CATEGORIA = {
-      cadastro: 'Cadastro', comercial: 'Comercial', processos: 'Processos',
+      cadastro: 'Cadastro', comercial: 'Comercial', interacoes: 'Contatos', processos: 'Processos',
       whatsapp: 'WhatsApp', documentos: 'Documentos', tarefas: 'Tarefas', sistema: 'Sistema'
     };
     const COR_CATEGORIA = {
-      cadastro: '#93c5fd', comercial: '#34d399', processos: '#c4b5fd',
+      cadastro: '#93c5fd', comercial: '#34d399', interacoes: '#f0abfc', processos: '#c4b5fd',
       whatsapp: '#6ee7b7', documentos: '#fcd34d', tarefas: '#fdba74', sistema: '#94a3b8'
     };
 
@@ -2901,6 +2963,10 @@ function column_display_name(array $col): string
       if (form.bairro)       form.bairro.value       = card.bairro || '';
       if (form.cidade)       form.cidade.value       = card.cidade || '';
       if (form.uf)           form.uf.value           = card.uf || '';
+      // Canal de aquisição (migration 127). O `if` não é paranoia: em base sem a
+      // migration a coluna não existe, o card vem sem a chave, e o select ficaria
+      // com "Não informado" em vez de dar erro de JS no meio do preenchimento.
+      if (form.origem_id)    form.origem_id.value    = card.origem_id || '';
       renderColumnSelectOptions('editColunaId', card.coluna_id || '');
 
       const parsedDesc = splitDescricao(card.descricao || '');
@@ -2918,6 +2984,19 @@ function column_display_name(array $col): string
       await loadProcessosDoCliente(card.id);
       carregarTimeline(card.id);
       carregarConversao(card.id);
+
+      // Fase 2: etiqueta, campo personalizado, documento e contato registrado.
+      // O MESMO módulo da ficha do cliente. `aoMudar` recarrega a timeline porque
+      // gravar qualquer um deles escreve em card_history, e o evento novo precisa
+      // aparecer sem fechar o modal.
+      CrmFase2.montar({
+        entidade: 'card',
+        id:       card.id,
+        host:     '#cardCrm',
+        csrf:     csrf,
+        aoMudar:  () => carregarTimeline(card.id)
+      });
+
       openModal('modalEdit');
       // Guarda o ID aberto na URL sem recarregar (para navegação cross-page)
       history.replaceState(null,'',`?open=${cardId}`);

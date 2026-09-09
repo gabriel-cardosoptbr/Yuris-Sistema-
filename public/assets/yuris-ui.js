@@ -359,6 +359,21 @@
     'convertido_cliente':      'Converteu a prospecção em cliente',
     'convertido_de_prospeccao':'Cliente criado a partir de uma prospecção',
     'prospeccao_vinculada':    'Prospecção vinculada a este cliente',
+    // Fase 2 do CRM (09/09/2026): anexo, tag, campo personalizado, interação.
+    // As chaves são as mesmas nos dois lados: App\Crm\Auditoria grava em
+    // card_history ou em clientes_history conforme a entidade, com a mesma ação.
+    'anexo_adicionado':        'Anexou um documento',
+    'anexo_removido':          'Removeu um documento',
+    'tag_aplicada':            'Aplicou uma etiqueta',
+    'tag_removida':            'Removeu uma etiqueta',
+    'campo_personalizado':     'Alterou um campo personalizado',
+    'interacao_registrada':    'Registrou um contato',
+    'nota_interna':            'Escreveu uma nota interna',
+    'interacao_editada':       'Editou um contato registrado',
+    'interacao_removida':      'Removeu um contato registrado',
+    'canal_definido':          'Definiu o canal de aquisição',
+    'tags_da_prospeccao':      'Etiquetas herdadas da prospecção',
+    'campos_da_prospeccao':    'Campos personalizados herdados da prospecção',
     'stage_changed':        'Etapa alterada',
     'responsavel_changed':  'Responsável alterado',
     'assigned':             'Atribuído',
