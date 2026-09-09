@@ -90,4 +90,32 @@ return [
         'canonica' => '/lgpd/acompanhar',
     ],
 
+    /* ---------------------------------------------------------------------
+     * Configuracoes: a mesma sombra do LGPD
+     * ---------------------------------------------------------------------
+     * public/configuracoes/ sombreava public/configuracoes.php exatamente como
+     * public/lgpd/ sombreava public/lgpd.php. Nao aparecia porque em producao o
+     * nginx reescreve /configuracoes para /configuracoes.php antes de chegar ao
+     * Apache, mas bastava essa regra do vhost mudar para a tela de
+     * Configuracoes cair em 403, do mesmo jeito que a do LGPD caiu.
+     *
+     * A pasta deixou de existir. O Centro de Privacidade foi para
+     * app/Lgpd/Paginas/ (e o assunto dele: consentimento e revogacao, Art. 18
+     * IX). O nome do arquivo ficou 'centro-privacidade.php' para nao se
+     * confundir com public/privacidade.php, que e a Politica de Privacidade
+     * publica: sao paginas diferentes.
+     */
+    '/configuracoes/privacidade' => [
+        'arquivo'  => 'app/Lgpd/Paginas/centro-privacidade.php',
+        'canonica' => '/configuracoes/privacidade',
+    ],
+
+    // Tela desativada em 26/05/2026: o conteudo virou a aba "Monitoramentos"
+    // dentro de /escritorios.php. Era um arquivo so com um header('Location'),
+    // que sumiu: o desvio agora e declarado aqui, junto das outras rotas.
+    '/configuracoes/monitoramentos' => [
+        'redirect' => '/escritorios.php#monitoramentos',
+        'status'   => 301,
+    ],
+
 ];

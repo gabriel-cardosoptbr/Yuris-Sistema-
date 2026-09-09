@@ -194,6 +194,17 @@ if ($tabela === []) {
     fail('config/rotas.php vazio — a rota "/" (home) e obrigatoria');
 }
 foreach ($tabela as $url => $def) {
+    // Rota que so redireciona nao tem arquivo: o alvo tem de ser INTERNO,
+    // senao a tabela vira um open redirect com cara de configuracao.
+    if (is_array($def) && isset($def['redirect'])) {
+        $d = (string) $def['redirect'];
+        if ($d !== '' && $d[0] === '/' && !str_starts_with($d, '//')) {
+            pass("rota $url redireciona para $d");
+        } else {
+            fail("rota $url redireciona para fora do site: $d");
+        }
+        continue;
+    }
     $arq = $ROOT . '/' . ltrim(is_array($def) ? $def['arquivo'] : $def, '/');
     if (is_file($arq)) {
         pass("rota $url -> " . (is_array($def) ? $def['arquivo'] : $def));
@@ -201,6 +212,21 @@ foreach ($tabela as $url => $def) {
         fail("rota $url aponta para arquivo inexistente: $arq");
     }
 }
+
+// Redirect para fora do site nao pode passar, venha de onde vier.
+Router::definirTabela(['/vazando' => ['redirect' => 'https://exemplo.invalido/x']]);
+if (Router::resolve('/vazando') === null) {
+    pass('redirect para outro dominio e recusado');
+} else {
+    fail('a tabela aceitou redirect para outro dominio');
+}
+Router::definirTabela(['/vazando2' => ['redirect' => '//exemplo.invalido/x']]);
+if (Router::resolve('/vazando2') === null) {
+    pass('redirect com "//" (outro host) e recusado');
+} else {
+    fail('a tabela aceitou redirect com "//"');
+}
+Router::definirTabela(null);
 
 // A razao de ser do D3: uma pagina pode morar FORA de public/ e ainda responder
 // pelo mesmo endereco. Provado com um arquivo temporario, para nao depender de
@@ -253,13 +279,9 @@ secao('6. Pasta nao pode sombrear pagina de mesmo nome');
  * redirect externo vence, e esse entra em laco com a regra do nginx que
  * converte .php para a forma limpa. A saida e nao ter o conflito.
  */
-$conhecidas = [
-    // Aceita por ora: em producao o nginx reescreve /configuracoes para
-    // /configuracoes.php antes de chegar ao Apache, entao o sintoma nao
-    // aparece la. E divida, nao conserto: some no dia que essas duas telas
-    // sairem de public/configuracoes/, como as do LGPD sairam.
-    'configuracoes',
-];
+// Vazia de proposito: as duas sombras que existiam (lgpd e configuracoes)
+// foram desfeitas. Sombra nova e FAIL, sem excecao.
+$conhecidas = [];
 $sombras = [];
 foreach (glob($PUBLICO . '/*.php') as $arq) {
     $nome = basename($arq, '.php');
@@ -278,10 +300,12 @@ $novas = array_diff($sombras, $conhecidas);
 if ($novas === []) {
     pass('nenhuma sombra nova entre pagina e pasta de mesmo nome');
 }
-if (!in_array('lgpd', $sombras, true)) {
-    pass('o conflito public/lgpd.php x public/lgpd/ nao existe mais');
-} else {
-    fail('o conflito do LGPD voltou');
+foreach (['lgpd', 'configuracoes'] as $antiga) {
+    if (!in_array($antiga, $sombras, true)) {
+        pass("o conflito public/$antiga.php x public/$antiga/ nao existe mais");
+    } else {
+        fail("o conflito de $antiga voltou");
+    }
 }
 
 /* ===================================================================== */
@@ -328,6 +352,37 @@ foreach (['app/Lgpd/Paginas/solicitar.php', 'app/Lgpd/Paginas/acompanhar.php'] a
     } else {
         fail("$rel voltou para dentro de public/");
     }
+}
+
+/* ===================================================================== */
+secao('7b. Enderecos de Configuracoes que estavam em uso');
+/* ===================================================================== */
+
+$r = Router::resolve('/configuracoes/privacidade');
+if ($r !== null && str_replace('\\', '/', $r['arquivo']) === $ROOT . '/app/Lgpd/Paginas/centro-privacidade.php') {
+    pass('/configuracoes/privacidade continua respondendo (link da sidebar)');
+} else {
+    fail('/configuracoes/privacidade QUEBROU');
+}
+$r = Router::resolve('/configuracoes/privacidade.php');
+if ($r !== null && str_replace('\\', '/', $r['arquivo']) === $ROOT . '/app/Lgpd/Paginas/centro-privacidade.php') {
+    pass('/configuracoes/privacidade.php continua respondendo');
+} else {
+    fail('/configuracoes/privacidade.php QUEBROU');
+}
+foreach (['/configuracoes/monitoramentos', '/configuracoes/monitoramentos.php'] as $u) {
+    $r = Router::resolve($u);
+    if ($r !== null && ($r['redirect'] ?? null) === '/escritorios.php#monitoramentos') {
+        pass("$u continua redirecionando para a aba de Monitoramentos");
+    } else {
+        fail("$u perdeu o redirecionamento");
+    }
+}
+$r = Router::resolve('/configuracoes');
+if ($r !== null && str_replace('\\', '/', $r['arquivo']) === $PUBLICO . '/configuracoes.php') {
+    pass('/configuracoes serve a tela de Configuracoes, nao a pasta');
+} else {
+    fail('/configuracoes nao serve public/configuracoes.php');
 }
 
 /* ===================================================================== */

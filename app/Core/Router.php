@@ -133,6 +133,24 @@ final class Router
                 continue;
             }
             $rota = $tabela[$chave];
+
+            // Rota que so redireciona. Serve para endereco que MUDOU: em vez de
+            // deixar um arquivo-carcaca em public/ so com um header('Location'),
+            // o desvio fica declarado junto das outras rotas, num lugar so.
+            if (is_array($rota) && isset($rota['redirect'])) {
+                $destino = (string) $rota['redirect'];
+                // Interno e obrigatorio: sem esquema, sem host, sem "//".
+                if ($destino === '' || $destino[0] !== '/' || str_starts_with($destino, '//')) {
+                    return null;
+                }
+                return [
+                    'redirect' => $destino,
+                    'status'   => (int) ($rota['status'] ?? 301),
+                    'canonica' => $rota['canonica'] ?? $chave,
+                    'origem'   => 'tabela',
+                ];
+            }
+
             $arq  = $raiz . '/' . ltrim(is_array($rota) ? $rota['arquivo'] : $rota, '/');
             if (!is_file($arq)) {
                 return null;   // rota declarada apontando para o vazio: nao inventa
@@ -227,6 +245,10 @@ final class Router
         $rota = self::resolve($uri);
 
         if ($rota !== null) {
+            if (isset($rota['redirect'])) {
+                header('Location: ' . $rota['redirect'], true, $rota['status']);
+                return null;
+            }
             self::$rotaAtual = $rota;
             return $rota['arquivo'];
         }

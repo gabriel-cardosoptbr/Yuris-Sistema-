@@ -54,9 +54,17 @@ Duas coisas que essa primeira mudança ensinou, e valem para as próximas:
   vira um **segundo endereço público** para a mesma página. Só sair de `public/`
   dá um endereço só.
 - **A view continua aqui.** A página movida ainda faz `require` de
-  `public/includes/legal_page.php`. Mover página para fora resolve o endereço,
-  não a view; o acoplamento `app/` → `public/includes/` é o que sobra para um
-  próximo passo.
+  `public/includes/legal_page.php` e de `public/includes/sidebar.php`. Mover
+  página para fora resolve o endereço, não a view; o acoplamento
+  `app/` → `public/includes/` é o que sobra para um próximo passo.
+
+`public/configuracoes/` foi pelo mesmo motivo e para o mesmo lugar: sombreava
+`public/configuracoes.php`. Não aparecia porque em produção o nginx reescreve
+`/configuracoes` antes de chegar ao Apache, mas bastava essa regra do vhost
+mudar para a tela de Configurações cair em 403 igual à do LGPD.
+
+**Nenhuma pasta daqui pode ter o nome de uma página.** `rotas_test.php` barra
+sombra nova, sem lista de exceção.
 
 ## O que tem aqui
 
@@ -94,7 +102,6 @@ stub em `index.php`; a v1 ficou guardada. Ver
 | `v2/` | a landing institucional nova (`index.php` + `partials/` + `data/`), servida na `/` |
 | `sistema_vendas/Imagens/` | os três logos, servidos em `/sistema_vendas/Imagens/`. **Não mova:** `sidebar.php`, `login.php` e as páginas legais apontam para essa URL. O nome é herança de quando o app era servido em `/sistema_vendas/` |
 | `uploads/` | arquivos enviados pelos clientes |
-| `configuracoes/` | telas secundárias de Configurações. **Atenção:** esta pasta sombreia `configuracoes.php`, do mesmo jeito que `lgpd/` sombreava `lgpd.php`. Hoje não aparece porque em produção o nginx reescreve `/configuracoes` antes de chegar ao Apache, mas é dívida: some no dia que estas telas saírem daqui |
 
 ### Páginas de SEO
 `automacao-juridica/` · `blog/` · `controle-de-processos/` · `crm-juridico/` ·

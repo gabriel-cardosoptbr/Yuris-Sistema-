@@ -34,7 +34,7 @@ palavra que está na tela.
 | [`Webhooks/`](Webhooks/) | Automações › Webhooks | webhooks de **saída** do Yuris para sistemas do cliente |
 | [`Billing/`](Billing/) | página Planos, e travas espalhadas pelo sistema | limites e módulos por plano, gateway de pagamento (`Gateway/`) |
 | [`Lgpd/`](Lgpd/) | LGPD, DPO, Termos, Privacidade | solicitações do titular, anonimização, mascaramento de PII, documentos legais |
-| [`Lgpd/Paginas/`](Lgpd/Paginas/) | as telas públicas do titular | `solicitar` e `acompanhar`: páginas web, não classes. Moram fora de `public/` e respondem pela camada de rota |
+| [`Lgpd/Paginas/`](Lgpd/Paginas/) | telas de privacidade servidas por rota | `solicitar`, `acompanhar` e o Centro de Privacidade: páginas web, não classes. Moram fora de `public/` porque a pasta lá sombreava a página de mesmo nome |
 
 ## Como o código é carregado
 

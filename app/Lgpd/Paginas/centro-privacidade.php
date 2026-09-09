@@ -13,7 +13,7 @@
  * Padrão visual: idêntico às demais páginas do app (page-layout + main-content
  * + page-header, ver configuracoes.php / dashboard.php).
  */
-require_once __DIR__ . '/../../app/bootstrap.php';
+require_once __DIR__ . '/../../bootstrap.php';
 
 use App\Core\AccountContext;
 use App\Usuarios\Consent;
@@ -171,7 +171,11 @@ $activePage     = 'privacidade';
   <div class="page-layout">
 
     <!-- ── Sidebar ── (mesmo include de todas as páginas) -->
-    <?php include __DIR__ . '/../includes/sidebar.php'; ?>
+    <?php
+        /* A view ainda mora em public/includes/: mover a pagina para fora de
+           public/ resolve o endereco, nao a view. Ver public/README.md. */
+        include __DIR__ . '/../../../public/includes/sidebar.php';
+    ?>
 
     <!-- ── Conteúdo principal ── -->
     <section class="main-content space-y-4">

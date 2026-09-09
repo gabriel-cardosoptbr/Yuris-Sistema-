@@ -8,11 +8,22 @@ respondem porque a camada de rota as declara em
 |---|---|---|
 | `solicitar.php` | `/lgpd/solicitar` | formulário de solicitação do titular (LGPD Art. 18) |
 | `acompanhar.php` | `/lgpd/acompanhar?token=…` | acompanhamento por token, sem login |
+| `centro-privacidade.php` | `/configuracoes/privacidade` | Centro de Privacidade do usuário logado: consentimentos e revogação. **Exige login** |
+
+O nome `centro-privacidade.php` não é o do endereço de propósito: existe também
+`public/privacidade.php`, que é a **Política de Privacidade pública**. São
+páginas diferentes, e o nome evita confundir uma com a outra. Quem liga o
+endereço ao arquivo é [`../../../config/rotas.php`](../../../config/rotas.php).
+
+A tela desativada `/configuracoes/monitoramentos` não tem arquivo: o conteúdo
+virou a aba "Monitoramentos" dentro de `/escritorios.php` em 26/05/2026, e o
+desvio 301 é declarado direto na tabela de rotas, sem arquivo-carcaça.
 
 ## Por que elas saíram de `public/`
 
 Existia `public/lgpd.php` (a página pública "LGPD & Segurança") **e** a pasta
-`public/lgpd/` com estas duas telas. A pasta ganhava do arquivo: o `mod_dir` do
+`public/lgpd/` com as duas telas do titular. `public/configuracoes/` fazia o
+mesmo com `public/configuracoes.php`. A pasta ganhava do arquivo: o `mod_dir` do
 Apache via o diretório primeiro e respondia **301 para `/lgpd/`**, que não tinha
 `index.php`, e em produção isso terminava em **403**.
 
