@@ -90,6 +90,85 @@ function novoCard(array $extra, int $acc, int $col, string $prefixo, int $user):
     return $id;
 }
 
+/**
+ * Sessão de teste com a lista de permissões que EU escolho, para exercitar o
+ * gate sem depender de como os usuários do banco estão configurados.
+ * Só SELECT: nada no banco é alterado.
+ */
+function montaSessaoTeste(PDO $pdo, int $userId, array $perms): string
+{
+    $st = $pdo->prepare(
+        'SELECT u.*, a.tipo AS acc_tipo, a.nome AS acc_nome, a.plano AS acc_plano
+           FROM users u LEFT JOIN accounts a ON a.id = u.account_id WHERE u.id = ?'
+    );
+    $st->execute([$userId]);
+    $u = $st->fetch(PDO::FETCH_ASSOC);
+
+    /*
+     * O arquivo de sessão é escrito À MÃO, sem session_start(): a suíte já
+     * imprimiu resultado antes de chegar aqui, e session_id() recusa mudar
+     * depois de qualquer saída ("headers already sent"), inclusive em CLI.
+     * O formato do handler 'php' é: chave|valor_serializado, concatenados.
+     */
+    $sid   = 'convtest' . bin2hex(random_bytes(8));
+    $dados = [
+        'user_id'          => (int) $u['id'],
+        'user_nome'        => $u['nome'],
+        'user_perfil'      => 'user',      // não-admin: é quem passa pela lista
+        'user_role'        => 'member',
+        'account_id'       => (int) $u['account_id'],
+        'account_tipo'     => $u['acc_tipo'] ?? 'matriz',
+        'account_nome'     => $u['acc_nome'] ?? '',
+        'account_plano'    => $u['acc_plano'] ?? 'basico',
+        'user_permissions' => $perms,
+        'csrf_token'       => str_repeat('a', 32),
+    ];
+
+    $payload = '';
+    foreach ($dados as $k => $v) {
+        $payload .= $k . '|' . serialize($v);
+    }
+    file_put_contents(caminhoSessaoTeste($sid), $payload);
+    return $sid;
+}
+
+function caminhoSessaoTeste(string $sid): string
+{
+    $dir = ini_get('session.save_path') ?: sys_get_temp_dir();
+    if (str_contains($dir, ';')) {
+        $dir = substr($dir, strrpos($dir, ';') + 1);
+    }
+    return rtrim($dir, '/\\') . DIRECTORY_SEPARATOR . 'sess_' . $sid;
+}
+
+/** Não deixa sessão válida para trás: é credencial viva no disco. */
+function limpaSessaoTeste(string $sid): void
+{
+    @unlink(caminhoSessaoTeste($sid));
+}
+
+/** GET quando $body é null; POST com JSON + CSRF quando não é. */
+function httpJson(string $url, string $sid, ?array $body = null): array
+{
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 15,
+        CURLOPT_COOKIE         => 'PHPSESSID=' . $sid,
+    ]);
+    if ($body !== null) {
+        curl_setopt_array($ch, [
+            CURLOPT_POST       => true,
+            CURLOPT_POSTFIELDS => json_encode($body, JSON_UNESCAPED_UNICODE),
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'X-CSRF-TOKEN: ' . str_repeat('a', 32)],
+        ]);
+    }
+    $resp   = curl_exec($ch);
+    $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    return ['status' => $status, 'json' => json_decode((string) $resp, true)];
+}
+
 /* ===================================================================== */
 secao('Teste 1 — converter preservando os dados da prospecção');
 /* ===================================================================== */
@@ -320,6 +399,50 @@ $fonte = file_get_contents(__DIR__ . '/../../public/api/prospeccao_conversao.php
 ok(str_contains($fonte, 'podeConverter()'), 'o endpoint checa permissão');
 ok(preg_match('/if \(!podeConverter\(\)\)/', $fonte) === 1, 'a checagem bloqueia quem não tem');
 ok(str_contains($fonte, 'hash_equals'), 'o endpoint valida CSRF na escrita');
+
+// A chave tem de estar na lista branca da API de usuários, senão o checkbox da
+// tela salva NADA, em silêncio: o INSERT é filtrado por essa lista.
+$fonteUsers = file_get_contents(__DIR__ . '/../../public/api/users.php');
+ok(str_contains($fonteUsers, ConversaoCliente::PERMISSAO),
+    'a chave está na lista branca de user_permissions (senão o checkbox não salva)');
+
+/*
+ * O bloqueio de verdade, por HTTP, com duas sessões reais: uma com a permissão
+ * e outra sem. Só roda se o servidor local responder, porque a suíte precisa
+ * continuar executável em máquina sem Apache de pé.
+ */
+$base = getenv('YURIS_BASE') ?: 'http://localhost:8090';
+$vivo = @file_get_contents($base . '/login.php', false, stream_context_create(['http' => ['timeout' => 3, 'ignore_errors' => true]]));
+
+if ($vivo === false) {
+    echo "  [SKIP] servidor em $base não respondeu; o bloqueio por HTTP não foi exercido
+";
+} else {
+    $comPerm = montaSessaoTeste($pdo, $USER, [ConversaoCliente::PERMISSAO, 'prospeccao']);
+    $semPerm = montaSessaoTeste($pdo, $USER, ['prospeccao']);
+
+    $previaCom = httpJson($base . '/api/prospeccao_conversao.php?card_id=' . $card3, $comPerm);
+    $previaSem = httpJson($base . '/api/prospeccao_conversao.php?card_id=' . $card3, $semPerm);
+
+    ok(($previaCom['json']['pode_converter'] ?? null) === true,  'com a permissão, a prévia libera o botão');
+    ok(($previaSem['json']['pode_converter'] ?? null) === false, 'sem a permissão, o botão não aparece');
+
+    $post = httpJson(
+        $base . '/api/prospeccao_conversao.php',
+        $semPerm,
+        ['card_id' => $card3]
+    );
+    ok($post['status'] === 403, "sem a permissão, converter devolve 403 (veio {$post['status']})");
+    ok(($post['json']['code'] ?? '') === 'sem_permissao', 'a recusa vem com código próprio');
+
+    // O card não pode ter sido convertido pela tentativa negada.
+    $stP = $pdo->prepare('SELECT cliente_id FROM cards WHERE id = ?');
+    $stP->execute([$card3]);
+    ok($stP->fetchColumn() === null, 'a tentativa negada NÃO converteu a prospecção');
+
+    limpaSessaoTeste($comPerm);
+    limpaSessaoTeste($semPerm);
+}
 
 /* ===================================================================== */
 secao('Teste 9 — isolamento entre contas');

@@ -1129,6 +1129,43 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
       { key:'configuracoes',label:'Configurações' },
     ];
 
+    // AÇÕES são outra coisa das telas acima. As 11 de cima respondem "pode abrir
+    // esta tela?"; estas respondem "pode executar esta ação?". Dividem a mesma
+    // tabela (user_permissions.page), e o ponto no nome é o que garante que uma
+    // ação nunca colida com nome de tela.
+    //
+    // `padrao: true` faz a caixinha nascer marcada em usuário novo: a decisão foi
+    // que converter é parte do trabalho normal de quem usa a Prospecção, e quem
+    // não quiser desmarca. `depende` deixa visível que a ação não faz sentido
+    // sem acesso à tela.
+    const ALL_ACTIONS = [
+      { key:'prospeccao.converter_cliente', label:'Tornar cliente', depende:'prospeccao', padrao:true,
+        ajuda:'Converter uma prospecção em cliente' },
+    ];
+
+    /** Desenha as ações no MESMO grid das telas, para os coletores existentes
+     *  (#permsGrid / #createPermsGrid input:checked) continuarem valendo. */
+    function appendAcoes(grid, marcadas, usarPadrao) {
+      const sep = document.createElement('div');
+      sep.style.cssText = 'grid-column:1/-1;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:#7f9dbf;margin:6px 0 2px';
+      sep.textContent = 'Ações';
+      grid.appendChild(sep);
+
+      ALL_ACTIONS.forEach(a => {
+        const marcada = usarPadrao ? !!a.padrao : marcadas.includes(a.key);
+        const item = document.createElement('label');
+        item.className = 'perm-item' + (marcada ? ' checked' : '');
+        item.style.gridColumn = '1/-1';
+        item.title = a.ajuda || '';
+        item.innerHTML = '<input type="checkbox" name="perm_' + a.key + '" value="' + a.key + '"' + (marcada ? ' checked' : '') + '>' +
+                         '<span>' + a.label + ' <span style="opacity:.6;font-weight:400">(dentro de ' +
+                         (ALL_PAGES.find(p => p.key === a.depende)?.label || a.depende) + ')</span></span>';
+        const input = item.querySelector('input');
+        input.addEventListener('change', function(){ item.classList.toggle('checked', this.checked); });
+        grid.appendChild(item);
+      });
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
     function escapeHtml(s){ return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : ''; }
 
@@ -1313,6 +1350,7 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
         item.querySelector('input').addEventListener('change', () => item.classList.toggle('checked', item.querySelector('input').checked));
         grid.appendChild(item);
       });
+      appendAcoes(grid, [], true);   // usuário novo: ação vem marcada
     }
     renderCreatePermsGrid();
 
@@ -1373,6 +1411,7 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
         });
         grid.appendChild(item);
       });
+      appendAcoes(grid, checkedPages, false);   // edição: reflete o que já tem
     }
 
     function getCheckedPerms() {

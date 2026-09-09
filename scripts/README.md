@@ -28,7 +28,7 @@ wa_webhook_parser     69 PASS · 0 FAIL
 wa_webhook_token      21 PASS · 0 FAIL
 wa_invariants         61 PASS · 0 FAIL
 rotas                 47 PASS · 0 FAIL
-conversao             52 PASS · 0 FAIL  (só em dev: escreve no banco)
+conversao             58 PASS · 0 FAIL  (só em dev: escreve no banco)
 plan_gate_e2e         25 ok  · 0 falha
 plan_feature          79 ok  · 0 falha
 dominios              51 ok  · 0 falha

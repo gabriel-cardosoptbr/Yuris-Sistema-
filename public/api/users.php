@@ -16,7 +16,17 @@ $accountId = $ctx->getAccountId();
 $method = $_SERVER['REQUEST_METHOD'];
 $input  = json_decode(file_get_contents('php://input'), true) ?? [];
 
-$_validPages = ['dashboard','planejamento','prospeccao','financas','processos','juridico','usuarios','agente','chat','chat_interno','configuracoes'];
+// Lista branca do que pode virar linha em user_permissions.
+// As 11 primeiras respondem "pode ABRIR esta tela?". A ultima, com ponto no
+// nome, responde "pode EXECUTAR esta acao?". Sao conceitos diferentes que
+// dividem a mesma tabela de proposito: o ponto garante que uma chave de acao
+// nunca colida com nome de tela, e o curinga '*' de owner/admin continua
+// valendo para as duas sem tratamento especial.
+//
+// SEM A CHAVE AQUI O CHECKBOX SALVA NADA, em silencio: o INSERT e filtrado
+// por esta lista.
+$_validPages = ['dashboard','planejamento','prospeccao','financas','processos','juridico','usuarios','agente','chat','chat_interno','configuracoes',
+                'prospeccao.converter_cliente'];
 
 // GET: list or single — FILTRADO POR CONTA (tenant isolation)
 if ($method === 'GET') {
