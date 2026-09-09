@@ -91,10 +91,15 @@ class Cliente
                     s.cor  AS setor_cor,
                     u.nome AS responsavel_nome,
                     a.nome AS origin_account_nome,
-                    a.tipo AS origin_account_tipo
+                    a.tipo AS origin_account_tipo,
+                    -- Quem converteu: o bloco Origem mostra o nome, não o id.
+                    -- LEFT JOIN porque cliente de cadastro manual não tem
+                    -- conversão nenhuma, e isso não é erro.
+                    uc.nome AS convertido_por_nome
                FROM clientes c
           LEFT JOIN clientes_setores s ON s.id = c.setor_id
           LEFT JOIN users  u           ON u.id = c.responsavel_id
+          LEFT JOIN users  uc          ON uc.id = c.convertido_por
           LEFT JOIN accounts a         ON a.id = c.account_id
               WHERE c.id = :id
               LIMIT 1"
@@ -342,6 +347,29 @@ class Cliente
         );
         $stmt->execute(['id' => $id]);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Registra um evento no histórico do cliente a partir de FORA da classe.
+     *
+     * Existe porque a linha do tempo do cliente não é alimentada só pelo CRUD
+     * daqui: a conversão de uma prospecção (App\Prospeccao\ConversaoCliente) e,
+     * no futuro, vínculos de processo, documento e WhatsApp precisam escrever
+     * nela. Sem este ponto de entrada, cada um desses inventaria o próprio
+     * INSERT em clientes_history e o formato divergiria.
+     *
+     * O account_id é exigido e não é lido daqui de propósito: quem chama já
+     * validou a conta, e passar explicitamente deixa o cross-tenant visível na
+     * chamada em vez de escondido dentro do método.
+     */
+    public static function registrarEvento(
+        int $clienteId,
+        int $accountId,
+        ?int $userId,
+        string $acao,
+        ?array $detalhes = null
+    ): void {
+        self::_logHistory($clienteId, $accountId, $userId, $acao, null, $detalhes);
     }
 
     // ───────── helpers ──────────────────────────────────────────────

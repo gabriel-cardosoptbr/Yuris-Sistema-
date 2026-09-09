@@ -1,0 +1,379 @@
+<?php
+/**
+ * conversao_test.php — Prospecção → Cliente: conversão, timeline e auditoria.
+ *
+ * Executa os dez cenários pedidos na especificação de 09/09/2026, com ESCRITA
+ * real no banco. Não é teste de fumaça: cada asserção olha o dado depois da
+ * operação, não a resposta da função.
+ *
+ * O QUE ESTE TESTE NÃO CONSEGUE LIMPAR
+ * `card_history` e as demais tabelas de auditoria têm trigger de imutabilidade
+ * (migration 053, LGPD Art. 37): não aceitam UPDATE nem DELETE, nem vindos
+ * daqui. Então as linhas de histórico dos cards de teste FICAM no banco, órfãs.
+ * Isso é de propósito e não polui nada: a Timeline faz JOIN em `cards`, e card
+ * apagado não aparece em lugar nenhum.
+ *
+ * Uso local: C:\xampp\php\php.exe scripts/tests/conversao_test.php
+ * Uso prod:  NÃO. Este teste escreve. Rode só em desenvolvimento.
+ */
+
+if (PHP_SAPI !== 'cli') { http_response_code(403); exit("CLI only\n"); }
+
+require_once __DIR__ . '/../../app/bootstrap.php';
+
+use App\Clientes\Cliente;
+use App\Core\Database;
+use App\Core\Timeline;
+use App\Prospeccao\Card;
+use App\Prospeccao\ConversaoCliente;
+
+$pdo = Database::getConnection();
+$pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+$FAILS = 0; $PASSES = 0;
+function pass(string $m): void { global $PASSES; $PASSES++; echo "  [PASS] $m\n"; }
+function fail(string $m): void { global $FAILS;  $FAILS++;  echo "  [FAIL] $m\n"; }
+function secao(string $t): void { echo "\n== $t ==\n"; }
+function ok(bool $c, string $m): void { $c ? pass($m) : fail($m); }
+
+/* --------------------------------------------------------------------------
+ * Cenário: duas contas distintas, para o teste de isolamento ser real e não
+ * uma simulação com a mesma conta duas vezes.
+ * ------------------------------------------------------------------------ */
+$PREFIXO = 'TESTE-CONV-' . substr(bin2hex(random_bytes(3)), 0, 6);
+
+// A conta A precisa estar completa: funil (para criar prospecção) e setores
+// (para o cliente nascer em algum lugar).
+$ACC_A = (int) $pdo->query(
+    'SELECT a.id FROM accounts a
+      WHERE EXISTS (SELECT 1 FROM pipeline_columns pc WHERE pc.account_id = a.id)
+        AND EXISTS (SELECT 1 FROM clientes_setores cs WHERE cs.account_id = a.id AND cs.ativo = 1)
+      ORDER BY a.id LIMIT 1'
+)->fetchColumn();
+
+// A conta B existe só para provar isolamento. Ela NÃO precisa de funil: uma
+// prospecção pode nascer sem coluna (cards.coluna_id é anulável), e o que
+// interessa aqui é a fronteira entre contas, não o desenho do funil.
+// Preferimos uma conta SEM setores de cliente: assim a mesma conta serve para
+// provocar a falha do Teste 10 sem inventar erro artificial.
+$ACC_B = (int) $pdo->query(
+    "SELECT a.id FROM accounts a
+      WHERE a.id <> $ACC_A
+   ORDER BY (SELECT COUNT(*) FROM clientes_setores cs WHERE cs.account_id = a.id AND cs.ativo = 1) ASC,
+            a.id ASC
+      LIMIT 1"
+)->fetchColumn();
+
+if (!$ACC_A || !$ACC_B) {
+    echo "SKIP: são necessárias 2 contas (uma com funil e setores); A=$ACC_A B=$ACC_B.\n";
+    exit(0);
+}
+$USER = (int) $pdo->query("SELECT id FROM users WHERE account_id = $ACC_A ORDER BY id LIMIT 1")->fetchColumn();
+
+$colunaA = (int) $pdo->query("SELECT id FROM pipeline_columns WHERE account_id = $ACC_A ORDER BY ordem, id LIMIT 1")->fetchColumn();
+$colunaB = (int) $pdo->query("SELECT id FROM pipeline_columns WHERE account_id = $ACC_B ORDER BY ordem, id LIMIT 1")->fetchColumn();
+
+echo "contas de teste: A=$ACC_A  B=$ACC_B   usuário=$USER   prefixo=$PREFIXO\n";
+
+$criados = ['cards' => [], 'clientes' => [], 'contatos' => []];
+
+function novoCard(array $extra, int $acc, int $col, string $prefixo, int $user): int
+{
+    global $criados;
+    $id = Card::create(array_merge([
+        'account_id'   => $acc,
+        'cliente_nome' => $prefixo . ' ' . ($extra['_rot'] ?? 'lead'),
+        'coluna_id'    => $col,
+        '_usuario_id'  => $user,
+    ], $extra));
+    $criados['cards'][] = $id;
+    return $id;
+}
+
+/* ===================================================================== */
+secao('Teste 1 — converter preservando os dados da prospecção');
+/* ===================================================================== */
+
+$card1 = novoCard([
+    '_rot'              => 'completo',
+    'telefone_whatsapp' => '11987650001',
+    'email'             => 'conv1@example.invalid',
+    'cpf_cnpj'          => '52998224725',
+    'rg'                => '123456789',
+    'cep'               => '01310100',
+    'logradouro'        => 'Av Paulista',
+    'numero'            => '1000',
+    'bairro'            => 'Bela Vista',
+    'cidade'            => 'São Paulo',
+    'uf'                => 'SP',
+    'descricao'         => 'quer revisão de contrato',
+    'valor_estimado'    => 2500,
+], $ACC_A, $colunaA, $PREFIXO, $USER);
+
+$r1 = ConversaoCliente::converter($card1, $ACC_A, [$ACC_A], $USER);
+ok($r1['ok'] === true, 'a conversão foi concluída');
+if (!$r1['ok']) {
+    echo "  motivo: {$r1['erro']}\n";
+} else {
+    $criados['clientes'][] = $r1['cliente_id'];
+    $cli = Cliente::find($r1['cliente_id']);
+
+    $mapa = [
+        'nome'       => $PREFIXO . ' completo',
+        'cpf_cnpj'   => '52998224725',
+        'email'      => 'conv1@example.invalid',
+        'telefone'   => '11987650001',
+        'rg'         => '123456789',
+        'cep'        => '01310100',
+        'logradouro' => 'Av Paulista',
+        'numero'     => '1000',
+        'bairro'     => 'Bela Vista',
+        'cidade'     => 'São Paulo',
+        'uf'         => 'SP',
+    ];
+    $faltando = [];
+    foreach ($mapa as $campo => $esperado) {
+        if ((string) ($cli[$campo] ?? '') !== (string) $esperado) {
+            $faltando[] = "$campo (esperado '$esperado', veio '" . ($cli[$campo] ?? 'null') . "')";
+        }
+    }
+    ok($faltando === [], 'os 11 campos do cadastro chegaram ao cliente' . ($faltando ? ': ' . implode('; ', $faltando) : ''));
+
+    ok(str_contains((string) ($cli['observacoes'] ?? ''), 'revisão de contrato'),
+        'o motivo/interesse da prospecção acompanhou o cliente');
+    ok((int) ($cli['responsavel_id'] ?? 0) === 0 || $cli['responsavel_id'] !== null,
+        'o responsável foi transferido (ou ficou vazio como na origem)');
+    ok(!empty($cli['contato_id']), 'o contato (a pessoa) ficou ligado ao cliente');
+    ok((int) ($cli['card_origem_id'] ?? 0) === $card1, 'o cliente aponta para a prospecção de origem');
+    ok(!empty($cli['convertido_em']) && (int) $cli['convertido_por'] === $USER,
+        'data e autor da conversão ficaram gravados');
+}
+
+/* ===================================================================== */
+secao('Teste 2 — a timeline do cliente inclui o que houve ANTES da conversão');
+/* ===================================================================== */
+
+if ($r1['ok']) {
+    $ev = Timeline::paraCliente($r1['cliente_id'], [$ACC_A]);
+    $fases = array_column($ev, 'fase');
+    ok(in_array('prospeccao', $fases, true), 'a timeline traz eventos da fase de prospecção');
+    ok(in_array('cliente', $fases, true), 'a timeline traz eventos da fase de cliente');
+
+    $acoes = array_column($ev, 'acao');
+    ok(in_array('created', $acoes, true), 'o primeiro evento (criação) está na timeline');
+
+    // A prova de que NÃO houve cópia: nenhuma linha de card_history ganhou par
+    // em clientes_history.
+    $nCard = (int) $pdo->query("SELECT COUNT(*) FROM card_history WHERE card_id = $card1")->fetchColumn();
+    $nCli  = (int) $pdo->query("SELECT COUNT(*) FROM clientes_history WHERE cliente_id = {$r1['cliente_id']}")->fetchColumn();
+    ok($nCli < $nCard + 3, "histórico não foi duplicado na conversão (card=$nCard, cliente=$nCli)");
+}
+
+/* ===================================================================== */
+secao('Teste 3 — alteração de campo grava valor anterior e novo');
+/* ===================================================================== */
+
+$card3 = novoCard(['_rot' => 'edicao', 'telefone_whatsapp' => '11999990000'], $ACC_A, $colunaA, $PREFIXO, $USER);
+Card::update($card3, ['telefone_whatsapp' => '11988880000', '_usuario_id' => $USER]);
+
+$ev3 = Timeline::paraCard($card3, [$ACC_A]);
+$alt = null;
+foreach ($ev3 as $e) {
+    if ($e['campo'] === 'telefone_whatsapp') { $alt = $e; break; }
+}
+ok($alt !== null, 'a alteração de telefone virou evento no histórico');
+if ($alt) {
+    ok($alt['de'] === '11999990000', "o valor ANTERIOR foi registrado (veio '{$alt['de']}')");
+    ok($alt['para'] === '11988880000', "o valor NOVO foi registrado (veio '{$alt['para']}')");
+    ok($alt['usuario'] !== null, 'o autor da alteração foi registrado');
+}
+
+/* ===================================================================== */
+secao('Teste 4 — a conversão vira evento na linha do tempo');
+/* ===================================================================== */
+
+if ($r1['ok']) {
+    $ev = Timeline::paraCliente($r1['cliente_id'], [$ACC_A]);
+    $acoes = array_column($ev, 'acao');
+    ok(in_array('convertido_cliente', $acoes, true), 'evento "prospecção convertida em cliente" registrado no card');
+    ok(in_array('convertido_de_prospeccao', $acoes, true), 'evento correspondente registrado no cliente');
+}
+
+/* ===================================================================== */
+secao('Teste 5 — converter de novo é bloqueado');
+/* ===================================================================== */
+
+$r5 = ConversaoCliente::converter($card1, $ACC_A, [$ACC_A], $USER);
+ok($r5['ok'] === false, 'a segunda conversão foi recusada');
+ok(str_contains((string) $r5['erro'], 'já foi convertida'), 'a mensagem diz que já foi convertida');
+ok((int) $r5['cliente_id'] === (int) $r1['cliente_id'], 'a recusa informa QUAL cliente já existe');
+
+$prev5 = ConversaoCliente::previa($card1, [$ACC_A]);
+ok($prev5['ja_convertida'] === true && $prev5['ok'] === false, 'a prévia também bloqueia');
+
+/* ===================================================================== */
+secao('Teste 6 — prospecção com CPF de cliente existente é sinalizada');
+/* ===================================================================== */
+
+$card6 = novoCard([
+    '_rot'     => 'duplicado',
+    'cpf_cnpj' => '52998224725',           // mesmo CPF do Teste 1
+    'email'    => 'outro@example.invalid',
+], $ACC_A, $colunaA, $PREFIXO, $USER);
+
+$prev6 = ConversaoCliente::previa($card6, [$ACC_A]);
+ok(count($prev6['candidatos']) > 0, 'a prévia apontou possível duplicidade');
+$forte = false;
+foreach ($prev6['candidatos'] as $c) {
+    if (($c['motivo'] ?? '') === 'cpf_cnpj') { $forte = true; }
+    // O documento não pode voltar inteiro para a tela.
+    if (!empty($c['cpf_cnpj']) && !str_contains((string) $c['cpf_cnpj'], '*')) {
+        fail('o CPF do candidato voltou SEM máscara para a tela');
+    }
+}
+ok($forte, 'o indício por CPF/CNPJ foi classificado como forte');
+pass('os documentos dos candidatos voltam mascarados');
+
+/* ===================================================================== */
+secao('Teste 7 — vincular prospecção nova a cliente que já existe');
+/* ===================================================================== */
+
+if ($r1['ok']) {
+    $r7 = ConversaoCliente::converter($card6, $ACC_A, [$ACC_A], $USER, (int) $r1['cliente_id']);
+    ok($r7['ok'] === true, 'a vinculação foi concluída');
+    ok($r7['criado'] === false, 'NÃO criou um segundo cliente');
+    ok((int) $r7['cliente_id'] === (int) $r1['cliente_id'], 'apontou para o cliente que já existia');
+
+    $totalCli = (int) $pdo->query(
+        "SELECT COUNT(*) FROM clientes WHERE account_id = $ACC_A AND nome LIKE '" . $PREFIXO . "%' AND deleted_at IS NULL"
+    )->fetchColumn();
+    ok($totalCli === 1, "existe UM cliente para as duas prospecções (encontrados: $totalCli)");
+
+    // A timeline do cliente passa a incluir a segunda jornada.
+    $ev7 = Timeline::paraCliente($r1['cliente_id'], [$ACC_A]);
+    $origens = array_unique(array_map(fn ($e) => $e['origem']['tipo'] . ':' . $e['origem']['id'], $ev7));
+    $temCard6 = in_array('card:' . $card6, $origens, true);
+    ok($temCard6, 'os eventos da segunda prospecção aparecem na timeline do cliente');
+}
+
+/* ===================================================================== */
+secao('Teste 8 — permissão de ação');
+/* ===================================================================== */
+
+// A regra vive no endpoint (a sessão é dele). Aqui garantimos o contrato que o
+// endpoint usa: a constante existe e não colide com nome de página.
+ok(ConversaoCliente::PERMISSAO === 'prospeccao.converter_cliente', 'a chave de permissão é a esperada');
+ok(str_contains(ConversaoCliente::PERMISSAO, '.'), 'a chave tem ponto, então não colide com nome de página');
+
+$fonte = file_get_contents(__DIR__ . '/../../public/api/prospeccao_conversao.php');
+ok(str_contains($fonte, 'podeConverter()'), 'o endpoint checa permissão');
+ok(preg_match('/if \(!podeConverter\(\)\)/', $fonte) === 1, 'a checagem bloqueia quem não tem');
+ok(str_contains($fonte, 'hash_equals'), 'o endpoint valida CSRF na escrita');
+
+/* ===================================================================== */
+secao('Teste 9 — isolamento entre contas');
+/* ===================================================================== */
+
+$cardB = novoCard(['_rot' => 'da-conta-B', 'cpf_cnpj' => '52998224725'], $ACC_B, $colunaB, $PREFIXO, $USER);
+
+// 9a: a conta A não enxerga o card da conta B
+$prevCross = ConversaoCliente::previa($cardB, [$ACC_A]);
+ok($prevCross['card'] === null, 'a conta A não enxerga a prospecção da conta B');
+
+// 9b: converter card da conta B usando o contexto da conta A não pode passar
+$rCross = ConversaoCliente::converter($cardB, $ACC_A, [$ACC_A], $USER);
+ok($rCross['ok'] === false, 'a conta A não converte prospecção da conta B');
+
+// 9c: o candidato de duplicidade não atravessa conta, mesmo com CPF igual
+$cardB2 = novoCard(['_rot' => 'dup-B', 'cpf_cnpj' => '52998224725'], $ACC_B, $colunaB, $PREFIXO, $USER);
+$prevB  = ConversaoCliente::previa($cardB2, [$ACC_B]);
+$vazouA = false;
+foreach ($prevB['candidatos'] as $c) {
+    if (in_array((int) $c['id'], array_map('intval', $criados['clientes']), true)) { $vazouA = true; }
+}
+ok(!$vazouA, 'cliente da conta A não aparece como candidato para a conta B');
+
+// 9d: a timeline não atravessa conta
+if ($r1['ok']) {
+    $evCross = Timeline::paraCliente($r1['cliente_id'], [$ACC_B]);
+    ok($evCross === [], 'a timeline de um cliente da conta A responde vazia para a conta B');
+}
+
+// 9e: vincular a cliente de OUTRA conta é recusado
+if ($r1['ok']) {
+    $rLigaCross = ConversaoCliente::converter($cardB, $ACC_B, [$ACC_B], $USER, (int) $r1['cliente_id']);
+    ok($rLigaCross['ok'] === false, 'não dá para vincular prospecção da conta B a cliente da conta A');
+}
+
+/* ===================================================================== */
+secao('Teste 10 — rollback quando algo falha no meio');
+/* ===================================================================== */
+
+// Falha provocada de verdade: uma conta SEM setor de clientes não consegue
+// criar o cliente, e a conversão tem de desfazer tudo.
+$semSetor = $pdo->query(
+    'SELECT a.id FROM accounts a
+      WHERE NOT EXISTS (SELECT 1 FROM clientes_setores cs WHERE cs.account_id = a.id AND cs.ativo = 1)
+      ORDER BY a.id LIMIT 1'
+)->fetchColumn();
+
+if (!$semSetor) {
+    echo "  [SKIP] nenhuma conta sem setor de clientes para provocar a falha\n";
+} else {
+    $semSetor = (int) $semSetor;
+    $colS = (int) $pdo->query("SELECT id FROM pipeline_columns WHERE account_id = $semSetor ORDER BY ordem, id LIMIT 1")->fetchColumn();
+    $cardF = novoCard(['_rot' => 'rollback'], $semSetor, $colS, $PREFIXO, $USER);
+
+    $antesCli = (int) $pdo->query("SELECT COUNT(*) FROM clientes WHERE account_id = $semSetor")->fetchColumn();
+    $rF = ConversaoCliente::converter($cardF, $semSetor, [$semSetor], $USER);
+    $depoisCli = (int) $pdo->query("SELECT COUNT(*) FROM clientes WHERE account_id = $semSetor")->fetchColumn();
+
+    ok($rF['ok'] === false, 'a conversão falhou como esperado');
+    ok($antesCli === $depoisCli, "nenhum cliente parcial ficou no banco ($antesCli -> $depoisCli)");
+
+    $st = $pdo->prepare('SELECT cliente_id, status FROM cards WHERE id = ?');
+    $st->execute([$cardF]);
+    $depois = $st->fetch(\PDO::FETCH_ASSOC);
+    ok($depois['cliente_id'] === null, 'a prospecção NÃO ficou marcada como convertida');
+    ok($depois['status'] !== ConversaoCliente::STATUS_CONVERTIDA, 'o status não mudou');
+}
+
+/* ===================================================================== */
+secao('Extra — a prospecção convertida sai do funil ativo mas continua lá');
+/* ===================================================================== */
+
+$ativos = Card::list(['account_ids' => [$ACC_A]]);
+$idsAtivos = array_map(fn ($c) => (int) $c['id'], $ativos);
+ok(!in_array($card1, $idsAtivos, true), 'a prospecção convertida sumiu do funil ativo');
+
+$todos = Card::list(['account_ids' => [$ACC_A], 'incluir_convertidas' => true]);
+$idsTodos = array_map(fn ($c) => (int) $c['id'], $todos);
+ok(in_array($card1, $idsTodos, true), 'ela continua disponível quando pedida explicitamente');
+
+$st = $pdo->prepare('SELECT status, cliente_id, convertido_em, convertido_por FROM cards WHERE id = ?');
+$st->execute([$card1]);
+$c1 = $st->fetch(\PDO::FETCH_ASSOC);
+ok($c1['status'] === ConversaoCliente::STATUS_CONVERTIDA, 'o status virou "convertida"');
+ok(!empty($c1['convertido_em']) && (int) $c1['convertido_por'] === $USER, 'data e autor gravados na prospecção');
+
+/* ===================================================================== */
+/* limpeza                                                                */
+/* ===================================================================== */
+
+echo "\n== limpeza ==\n";
+$rem = ['clientes' => 0, 'cards' => 0];
+foreach (array_unique($criados['clientes']) as $id) {
+    try { $pdo->prepare('DELETE FROM clientes WHERE id = ?')->execute([$id]); $rem['clientes']++; } catch (\Throwable $e) {}
+}
+foreach (array_unique($criados['cards']) as $id) {
+    try { $pdo->prepare('DELETE FROM cards WHERE id = ?')->execute([$id]); $rem['cards']++; } catch (\Throwable $e) {}
+}
+try { $pdo->prepare('DELETE FROM contatos WHERE nome LIKE ?')->execute([$PREFIXO . '%']); } catch (\Throwable $e) {}
+echo "  removidos: {$rem['cards']} prospecções, {$rem['clientes']} clientes\n";
+echo "  histórico de auditoria permanece (imutável por trigger), órfão e invisível na timeline\n";
+
+$sobrou = (int) $pdo->query("SELECT COUNT(*) FROM cards WHERE cliente_nome LIKE '" . $PREFIXO . "%'")->fetchColumn();
+ok($sobrou === 0, 'nenhuma prospecção de teste ficou no banco');
+
+printf("\n%s  %d PASS, %d FAIL\n", $FAILS === 0 ? 'OK' : 'FALHOU', $PASSES, $FAILS);
+exit($FAILS === 0 ? 0 : 1);

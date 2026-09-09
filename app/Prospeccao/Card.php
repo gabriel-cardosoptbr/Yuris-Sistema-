@@ -78,6 +78,28 @@ class Card
             $sql .= ' AND c.status = :status';
             $params['status'] = $filters['status'];
         }
+        // Prospecção convertida sai do FUNIL ATIVO, mas não do banco: ela
+        // continua consultável por quem pedir explicitamente (relatório, filtro,
+        // auditoria) passando incluir_convertidas. Some da visão de trabalho
+        // porque o funil é a fila do que ainda está em aberto, e um lead já
+        // fechado ali só atrapalha a leitura do que falta fazer.
+        //
+        // A checagem de coluna existente é a mesma defesa que o resto do método
+        // usa: em base sem a migration 126 a consulta não pode quebrar.
+        if (empty($filters['incluir_convertidas'])) {
+            static $temColunaCliente = null;
+            if ($temColunaCliente === null) {
+                try {
+                    $pdo->query('SELECT cliente_id FROM cards LIMIT 0');
+                    $temColunaCliente = true;
+                } catch (\Throwable $e) {
+                    $temColunaCliente = false;
+                }
+            }
+            if ($temColunaCliente) {
+                $sql .= ' AND c.cliente_id IS NULL';
+            }
+        }
         $sql .= ' ORDER BY c.coluna_id, c.ordem_na_coluna, c.updated_at DESC';
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
@@ -173,7 +195,56 @@ class Card
             }
         }
 
+        // Primeiro evento da linha do tempo. Sem ele a timeline do lead começa
+        // no meio da história, e depois da conversão o cliente não teria como
+        // mostrar quando e por quem entrou no sistema.
+        if ($id) {
+            self::logEvento($id, $data['_usuario_id'] ?? null, 'created');
+        }
+
         return $id;
+    }
+
+    /**
+     * Uma linha em card_history. É o único ponto que escreve nessa tabela fora
+     * de move()/bulkUpdateOrders(), para o formato não divergir entre quem
+     * registra criação, alteração de campo e conversão.
+     *
+     * Falha em silêncio de propósito: histórico não pode derrubar a operação
+     * que ele está descrevendo.
+     */
+    public static function logEvento(
+        $cardId,
+        $usuarioId = null,
+        string $acao = 'updated',
+        ?string $campo = null,
+        $de = null,
+        $para = null
+    ): void {
+        try {
+            $pdo = Database::getConnection();
+            if (!class_exists('App\\Core\\RequestId')) {
+                require_once __DIR__ . '/../Core/RequestId.php';
+            }
+            $pdo->prepare(
+                'INSERT INTO card_history
+                   (card_id, usuario_id, acao, campo_alterado, valor_anterior, valor_novo,
+                    ip, user_agent, request_id, created_at)
+                 VALUES (:card_id, :usuario_id, :acao, :campo, :de, :para, :ip, :ua, :rid, NOW())'
+            )->execute([
+                'card_id'    => (int)$cardId,
+                'usuario_id' => $usuarioId,
+                'acao'       => $acao,
+                'campo'      => $campo,
+                'de'         => $de === null ? null : (string)$de,
+                'para'       => $para === null ? null : (string)$para,
+                'ip'         => $_SERVER['REMOTE_ADDR'] ?? null,
+                'ua'         => substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255),
+                'rid'        => \App\Core\RequestId::get(),
+            ]);
+        } catch (\Throwable $e) {
+            // silencioso
+        }
     }
 
     public static function update($id, $data)
@@ -216,9 +287,57 @@ class Card
             }
         }
 
+        // Estado ANTES da escrita, para o histórico dizer o que mudou.
+        // Até 09/09/2026 este método não registrava nada: só move() e
+        // bulkUpdateOrders() escreviam em card_history. Ou seja, alterar o
+        // telefone ou o responsável de um lead não deixava rastro nenhum, e a
+        // auditoria da prospecção tinha um buraco do tamanho do cadastro
+        // inteiro.
+        $antes = self::find($id);
+
         $sql = 'UPDATE cards SET ' . implode(', ', $fields) . ', updated_at = NOW() WHERE id = :id';
         $stmt = $pdo->prepare($sql);
-        return $stmt->execute($params);
+        $ok   = $stmt->execute($params);
+
+        if ($ok && $antes) {
+            self::_logCampos($id, $antes, $params, $data['_usuario_id'] ?? null);
+        }
+        return $ok;
+    }
+
+    /**
+     * Uma linha de card_history POR CAMPO que mudou de valor, com o valor
+     * anterior e o novo.
+     *
+     * Um único "registro atualizado" não serve para auditoria: seis meses
+     * depois ninguém sabe se o que mudou foi uma vírgula na descrição ou o
+     * telefone de contato do cliente.
+     */
+    private static function _logCampos($id, array $antes, array $params, $usuarioId = null): void
+    {
+        // Ruído não é histórico: campos de ordenação mudam a cada arrastar de
+        // card e já são registrados por move()/bulkUpdateOrders().
+        $ignorar = ['id', 'ordem_na_coluna', 'contato_id'];
+
+        foreach ($params as $campo => $novo) {
+            if (in_array($campo, $ignorar, true)) continue;
+            if (!array_key_exists($campo, $antes)) continue;
+
+            $de = $antes[$campo];
+            // Comparação frouxa de propósito: o banco devolve '0.00' onde o
+            // formulário manda '0', e isso não é uma alteração.
+            if ((string)$de === (string)$novo) continue;
+            if (($de === null || $de === '') && ($novo === null || $novo === '')) continue;
+
+            self::logEvento(
+                $id,
+                $usuarioId,
+                $campo === 'coluna_id' ? 'stage_changed' : 'updated',
+                $campo,
+                $de,
+                $novo
+            );
+        }
     }
 
     public static function move($id, $coluna_id, $ordem_na_coluna, $usuario_id = null)

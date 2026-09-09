@@ -1559,6 +1559,22 @@ function column_display_name(array $col): string
             <div class="form-section-title">Conversa WhatsApp</div>
             <div id="chatVinculoCard"></div>
           </div>
+
+          <!-- Convertida em cliente: some do funil ativo, mas continua aqui,
+               apontando para onde a pessoa foi parar. -->
+          <div class="form-section" id="conversaoSection" style="display:none">
+            <div class="form-section-title">Convertida em cliente</div>
+            <div id="conversaoInfo" style="font-size:.85rem;color:#9ab0c9;line-height:1.7"></div>
+          </div>
+
+          <!-- Histórico: a trajetória inteira do lead, do primeiro evento em diante. -->
+          <div class="form-section" id="historicoSection">
+            <div class="form-section-title">Histórico</div>
+            <div id="tlFiltros" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
+            <div id="tlLista" style="max-height:340px;overflow-y:auto;padding-right:4px">
+              <div style="color:#9ab0c9;font-size:.82rem">Carregando histórico...</div>
+            </div>
+          </div>
         </div>
 
         <!-- Modal de busca e vínculo de processo (fora do form para não colidir) -->
@@ -1579,6 +1595,8 @@ function column_display_name(array $col): string
         <div class="modal-footer">
           <button type="button" id="cancelEdit" class="btn ghost">Cancelar</button>
           <button type="button" id="openWhatsapp" class="btn soft">WhatsApp</button>
+          <button type="button" id="btnTornarCliente" class="btn soft"
+                  style="background:rgba(16,185,129,.16); border-color:rgba(52,211,153,.45); color:#a7f3d0;">Tornar cliente</button>
           <button type="submit" id="saveCard" class="btn primary">Salvar</button>
           <button type="button" id="deleteCard" class="btn soft" style="background:rgba(239,68,68,0.16); border-color:rgba(239,68,68,0.45); color:#ffcccc;">Excluir</button>
         </div>
@@ -2428,6 +2446,267 @@ function column_display_name(array $col): string
     }
 
     // ── Processos do Cliente ─────────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════════
+    // TIMELINE + CONVERSAO EM CLIENTE
+    // ══════════════════════════════════════════════════════════════════════════
+    // A timeline vem de /api/timeline.php, que junta o historico da prospeccao
+    // com o do cliente quando ja houve conversao. Nada e montado aqui: a tela so
+    // desenha o que o backend consolidou.
+
+    const ROTULO_CATEGORIA = {
+      cadastro: 'Cadastro', comercial: 'Comercial', processos: 'Processos',
+      whatsapp: 'WhatsApp', documentos: 'Documentos', tarefas: 'Tarefas', sistema: 'Sistema'
+    };
+    const COR_CATEGORIA = {
+      cadastro: '#93c5fd', comercial: '#34d399', processos: '#c4b5fd',
+      whatsapp: '#6ee7b7', documentos: '#fcd34d', tarefas: '#fdba74', sistema: '#94a3b8'
+    };
+
+    let _tlEventos = [];
+    let _tlFiltro  = 'todos';
+
+    function rotuloCampo(c) {
+      const m = {
+        cliente_nome: 'nome', empresa_nome: 'empresa', telefone_whatsapp: 'telefone',
+        email: 'e-mail', cpf_cnpj: 'CPF/CNPJ', rg: 'RG', nome_mae: 'nome da mãe',
+        cep: 'CEP', logradouro: 'logradouro', numero: 'número', complemento: 'complemento',
+        bairro: 'bairro', cidade: 'cidade', uf: 'UF', descricao: 'descrição',
+        responsavel_user_id: 'responsável', coluna_id: 'etapa', status: 'status',
+        valor_estimado: 'valor estimado', valor_proposta: 'proposta',
+        valor_fechado_final: 'valor fechado', cliente_id: 'cliente',
+        data_prevista_fechamento: 'previsão de fechamento', data_fechamento: 'fechamento'
+      };
+      return m[c] || (c || '').replace(/_/g, ' ');
+    }
+
+    function desenharTimeline() {
+      const lista = byId('tlLista');
+      if (!lista) return;
+      const eventos = _tlFiltro === 'todos'
+        ? _tlEventos
+        : _tlEventos.filter(e => e.categoria === _tlFiltro);
+
+      if (!eventos.length) {
+        lista.innerHTML = '<div style="color:#9ab0c9;font-size:.82rem">Nenhum evento neste filtro.</div>';
+        return;
+      }
+
+      lista.innerHTML = eventos.map(e => {
+        const cor  = COR_CATEGORIA[e.categoria] || '#94a3b8';
+        const quem = e.usuario || 'sistema';
+        const acao = (window.Yuris && Yuris.translateAuditAcao) ? Yuris.translateAuditAcao(e.acao) : e.acao;
+        let corpo = escapeHtml(acao);
+        if (e.campo) corpo += ' <span style="opacity:.75">(' + escapeHtml(rotuloCampo(e.campo)) + ')</span>';
+
+        let dePara = '';
+        if (e.de !== null || e.para !== null) {
+          dePara =
+            '<div style="margin-top:4px;font-size:.76rem;line-height:1.6">' +
+              '<span style="color:#94a3b8">Anterior:</span> <span style="color:#cbd5e1">' + escapeHtml(e.de || 'vazio') + '</span><br>' +
+              '<span style="color:#94a3b8">Novo:</span> <span style="color:#e2e8f0">' + escapeHtml(e.para || 'vazio') + '</span>' +
+            '</div>';
+        }
+
+        // O selo de fase e o que deixa visivel que aquele evento aconteceu
+        // enquanto a pessoa ainda era prospeccao.
+        const selo = e.fase === 'prospeccao'
+          ? '<span style="font-size:.68rem;padding:1px 6px;border-radius:999px;background:rgba(96,165,250,.15);color:#93c5fd;margin-left:6px">prospecção</span>'
+          : '<span style="font-size:.68rem;padding:1px 6px;border-radius:999px;background:rgba(16,185,129,.15);color:#6ee7b7;margin-left:6px">cliente</span>';
+
+        return '' +
+          '<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid rgba(96,165,250,.10)">' +
+            '<div style="width:8px;height:8px;border-radius:50%;background:' + cor + ';margin-top:6px;flex-shrink:0"></div>' +
+            '<div style="flex:1;min-width:0">' +
+              '<div style="font-size:.83rem;color:#dbeafe">' + corpo + selo + '</div>' +
+              '<div style="font-size:.74rem;color:#9ab0c9;margin-top:2px">' +
+                escapeHtml(quem) + ' &bull; ' + escapeHtml(formatDateTime(e.quando)) +
+              '</div>' + dePara +
+            '</div>' +
+          '</div>';
+      }).join('');
+    }
+
+    function desenharFiltrosTimeline() {
+      const box = byId('tlFiltros');
+      if (!box) return;
+      const usadas = ['todos'].concat(
+        Object.keys(ROTULO_CATEGORIA).filter(c => _tlEventos.some(e => e.categoria === c))
+      );
+      box.innerHTML = usadas.map(c => {
+        const ativo = c === _tlFiltro;
+        const rot = c === 'todos' ? 'Todos' : ROTULO_CATEGORIA[c];
+        return '<button type="button" data-tl-filtro="' + c + '" style="' +
+          'padding:4px 10px;border-radius:999px;font-size:.74rem;cursor:pointer;' +
+          'border:1px solid ' + (ativo ? 'rgba(96,165,250,.55)' : 'rgba(96,165,250,.18)') + ';' +
+          'background:' + (ativo ? 'rgba(37,99,235,.28)' : 'transparent') + ';' +
+          'color:' + (ativo ? '#dbeafe' : '#9ab0c9') + '">' + escapeHtml(rot) + '</button>';
+      }).join('');
+      box.querySelectorAll('[data-tl-filtro]').forEach(b => {
+        b.addEventListener('click', () => {
+          _tlFiltro = b.getAttribute('data-tl-filtro');
+          desenharFiltrosTimeline();
+          desenharTimeline();
+        });
+      });
+    }
+
+    async function carregarTimeline(cardId) {
+      const lista = byId('tlLista');
+      if (lista) lista.innerHTML = '<div style="color:#9ab0c9;font-size:.82rem">Carregando histórico...</div>';
+      _tlEventos = []; _tlFiltro = 'todos';
+      try {
+        const r = await fetch('/api/timeline.php?entidade=card&id=' + encodeURIComponent(cardId));
+        const j = await r.json();
+        _tlEventos = (j && j.eventos) || [];
+      } catch (e) {
+        if (lista) lista.innerHTML = '<div style="color:#fca5a5;font-size:.82rem">Não foi possível carregar o histórico.</div>';
+        return;
+      }
+      desenharFiltrosTimeline();
+      desenharTimeline();
+    }
+
+    // Estado da conversao: decide se o botao aparece e o que o aviso mostra.
+    let _conversaoAtual = null;
+
+    async function carregarConversao(cardId) {
+      const btn   = byId('btnTornarCliente');
+      const secao = byId('conversaoSection');
+      const info  = byId('conversaoInfo');
+      _conversaoAtual = null;
+      if (secao) secao.style.display = 'none';
+      if (btn)   btn.style.display = 'none';
+
+      try {
+        const r = await fetch('/api/prospeccao_conversao.php?card_id=' + encodeURIComponent(cardId));
+        if (!r.ok) return;
+        const j = await r.json();
+        _conversaoAtual = j;
+
+        if (j.ja_convertida && j.cliente_id) {
+          if (secao && info) {
+            info.innerHTML =
+              'Esta prospecção virou o cliente ' +
+              '<a href="/clientes.php?open=' + j.cliente_id + '" style="color:#6ee7b7;font-weight:600">' +
+              escapeHtml(j.cliente_nome || ('#' + j.cliente_id)) + '</a>.' +
+              '<br><span style="opacity:.8">Ela continua aqui para auditoria, fora do funil ativo.</span>';
+            secao.style.display = '';
+          }
+          if (btn) {
+            btn.style.display = '';
+            btn.disabled = true;
+            btn.textContent = 'Já convertida';
+            btn.style.opacity = '.55';
+            btn.style.cursor = 'not-allowed';
+          }
+          return;
+        }
+
+        if (btn && j.pode_converter) {
+          btn.style.display = '';
+          btn.disabled = false;
+          btn.textContent = 'Tornar cliente';
+          btn.style.opacity = '';
+          btn.style.cursor = '';
+        }
+      } catch (e) { /* silencioso: o botao simplesmente nao aparece */ }
+    }
+
+    /**
+     * Decisao de duplicidade. NAO cria cliente em silencio quando ja existe um
+     * parecido: mostra os candidatos e deixa a pessoa escolher.
+     * Resolve com {acao:'novo'|'vincular'|'abrir'|'cancelar', clienteId}.
+     */
+    function perguntarDuplicidade(candidatos) {
+      return new Promise(resolve => {
+        const ov = document.createElement('div');
+        ov.style.cssText = 'position:fixed;inset:0;background:rgba(2,6,23,.82);z-index:4000;display:flex;align-items:center;justify-content:center;padding:24px';
+        const forca = { forte: 'CPF/CNPJ igual', media: 'e-mail igual', fraca: 'telefone parecido' };
+        ov.innerHTML =
+          '<div style="background:linear-gradient(165deg,rgba(10,24,46,.99),rgba(7,18,36,.99));border:1px solid rgba(96,165,250,.28);border-radius:14px;width:min(560px,96vw);max-height:86vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.8)">' +
+            '<div style="padding:18px 20px 10px"><div style="font-size:1rem;font-weight:700;color:#dbeafe">Já existe um cliente possivelmente correspondente</div>' +
+            '<div style="font-size:.82rem;color:#9ab0c9;margin-top:4px">Confira antes de criar um cadastro novo.</div></div>' +
+            '<div style="padding:0 20px;overflow-y:auto;flex:1">' +
+              candidatos.map(c =>
+                '<div style="border:1px solid rgba(96,165,250,.18);border-radius:10px;padding:10px 12px;margin-bottom:8px">' +
+                  '<div style="color:#e2e8f0;font-weight:600;font-size:.9rem">' + escapeHtml(c.nome || ('#' + c.id)) + '</div>' +
+                  '<div style="color:#9ab0c9;font-size:.78rem;margin-top:3px">' +
+                    (c.cpf_cnpj ? 'CPF/CNPJ: ' + escapeHtml(c.cpf_cnpj) + '<br>' : '') +
+                    (c.telefone ? 'Telefone: ' + escapeHtml(c.telefone) + '<br>' : '') +
+                    (c.email ? 'E-mail: ' + escapeHtml(c.email) : '') +
+                  '</div>' +
+                  '<div style="font-size:.72rem;color:#fcd34d;margin-top:4px">Indício: ' + escapeHtml(forca[c.forca] || c.forca) + '</div>' +
+                  '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">' +
+                    '<button type="button" data-acao="abrir" data-id="' + c.id + '" style="padding:5px 10px;border-radius:7px;font-size:.76rem;cursor:pointer;background:transparent;border:1px solid rgba(96,165,250,.3);color:#93c5fd">Abrir cliente existente</button>' +
+                    '<button type="button" data-acao="vincular" data-id="' + c.id + '" style="padding:5px 10px;border-radius:7px;font-size:.76rem;cursor:pointer;background:rgba(16,185,129,.18);border:1px solid rgba(52,211,153,.4);color:#a7f3d0">Vincular a este cliente</button>' +
+                  '</div>' +
+                '</div>').join('') +
+            '</div>' +
+            '<div style="padding:14px 20px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid rgba(96,165,250,.12)">' +
+              '<button type="button" data-acao="cancelar" style="padding:8px 14px;border-radius:8px;font-size:.82rem;cursor:pointer;background:transparent;border:1px solid rgba(148,163,184,.3);color:#9ab0c9">Cancelar</button>' +
+              '<button type="button" data-acao="novo" style="padding:8px 14px;border-radius:8px;font-size:.82rem;cursor:pointer;background:rgba(37,99,235,.28);border:1px solid rgba(96,165,250,.45);color:#dbeafe">Criar cliente novo mesmo assim</button>' +
+            '</div>' +
+          '</div>';
+        document.body.appendChild(ov);
+        ov.addEventListener('click', ev => {
+          const b = ev.target.closest('[data-acao]');
+          if (!b) return;
+          ov.remove();
+          resolve({ acao: b.getAttribute('data-acao'), clienteId: parseInt(b.getAttribute('data-id') || '0', 10) || null });
+        });
+      });
+    }
+
+    async function tornarCliente() {
+      const cardId = _currentCardId;
+      if (!cardId) return;
+
+      const j = _conversaoAtual;
+      if (j && j.ja_convertida && j.cliente_id) {
+        Yuris.notify('Esta prospecção já foi convertida no cliente #' + j.cliente_id + '.', { type: 'warning' });
+        return;
+      }
+
+      let clienteExistenteId = null;
+      const candidatos = (j && j.candidatos) || [];
+
+      if (candidatos.length) {
+        const escolha = await perguntarDuplicidade(candidatos);
+        if (escolha.acao === 'cancelar') return;
+        if (escolha.acao === 'abrir') { window.location.href = '/clientes.php?open=' + escolha.clienteId; return; }
+        if (escolha.acao === 'vincular') clienteExistenteId = escolha.clienteId;
+      } else {
+        const ok = await Yuris.confirm(
+          'Converter esta prospecção em cliente? Ela sai do funil ativo, continua disponível para auditoria e o histórico segue no cliente.',
+          { okLabel: 'Tornar cliente' }
+        );
+        if (!ok) return;
+      }
+
+      const btn = byId('btnTornarCliente');
+      if (btn) { btn.disabled = true; btn.textContent = 'Convertendo...'; }
+
+      try {
+        const r = await fetch('/api/prospeccao_conversao.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+          body: JSON.stringify({ card_id: cardId, cliente_existente_id: clienteExistenteId })
+        });
+        const res = await r.json();
+        if (!r.ok || !res.success) {
+          Yuris.notify(res.error || 'Não foi possível converter.', { type: 'error' });
+          if (btn) { btn.disabled = false; btn.textContent = 'Tornar cliente'; }
+          return;
+        }
+        Yuris.notify(res.criado ? 'Prospecção convertida em cliente.' : 'Prospecção vinculada ao cliente existente.', { type: 'success' });
+        // Abre o card do cliente logo em seguida, para a pessoa continuar de onde parou.
+        window.location.href = '/clientes.php?open=' + res.cliente_id;
+      } catch (e) {
+        Yuris.notify('Falha de rede ao converter.', { type: 'error' });
+        if (btn) { btn.disabled = false; btn.textContent = 'Tornar cliente'; }
+      }
+    }
+
     let _currentCardId  = null; // card aberto no momento
     let _currentChatJid = null; // jid da conversa vinculada ao card aberto
     let _allProcsCache  = [];   // cache de todos os processos para o modal de busca
@@ -2637,6 +2916,8 @@ function column_display_name(array $col): string
       _currentCardId = card.id;
       renderChatVinculo(card.linked_chat_jid || null);
       await loadProcessosDoCliente(card.id);
+      carregarTimeline(card.id);
+      carregarConversao(card.id);
       openModal('modalEdit');
       // Guarda o ID aberto na URL sem recarregar (para navegação cross-page)
       history.replaceState(null,'',`?open=${cardId}`);
@@ -2663,6 +2944,7 @@ function column_display_name(array $col): string
       });
       byId('cancelCreate').addEventListener('click', () => closeModal('modalCreate'));
       byId('cancelEdit').addEventListener('click', () => closeModal('modalEdit'));
+      byId('btnTornarCliente').addEventListener('click', tornarCliente);
       byId('cancelColumns').addEventListener('click', () => closeModal('modalColumns'));
 
       // btnToggleFilters removido: filtros sempre visíveis na toolbar

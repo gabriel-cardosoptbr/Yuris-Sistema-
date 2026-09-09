@@ -355,6 +355,10 @@
     'checklist_reorder':    'Checklist reordenado',
     // Status / fluxo
     'status_changed':       'Status alterado',
+    // Prospeccao -> Clientes (conversao, 09/09/2026)
+    'convertido_cliente':      'Converteu a prospecção em cliente',
+    'convertido_de_prospeccao':'Cliente criado a partir de uma prospecção',
+    'prospeccao_vinculada':    'Prospecção vinculada a este cliente',
     'stage_changed':        'Etapa alterada',
     'responsavel_changed':  'Responsável alterado',
     'assigned':             'Atribuído',

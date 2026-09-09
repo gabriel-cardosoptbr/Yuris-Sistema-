@@ -19,6 +19,7 @@ operacional de quem já é cliente.
 | `CardChecklist.php` | checklist dentro do card |
 | `PipelineColumn.php` | as colunas do funil, configuráveis por conta |
 | `Contato.php` | pessoa por trás do card: nome, telefone normalizado, e-mail |
+| `ConversaoCliente.php` | **"Tornar cliente"**: converte a prospecção, ou a liga a um cliente que já existe. Transacional, com detecção de duplicidade por CPF/CNPJ, e-mail e telefone. Não apaga a prospecção nem copia histórico |
 
 ## Sobre o `Contato`
 

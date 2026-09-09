@@ -21,6 +21,7 @@ dele é aqui. Se serve a um só, ele pertence à pasta daquele domínio.
 | `EnvLoader.php` | parser de `.env` sem dependência externa |
 | `Url.php` | monta URL respeitando o base path da aplicação |
 | `Router.php` | **a camada de rota de `public/`.** Resolve URL para o arquivo que responde por ela: primeiro a tabela declarada em `config/rotas.php`, depois sondagem em `public/`. Devolve o caminho, não inclui; quem inclui é `public/index.php`, porque página PHP de topo de pilha espera escopo global |
+| `Timeline.php` | **a linha do tempo única de uma pessoa.** Junta `card_history` e `clientes_history`, que têm formatos diferentes, e faz a timeline do cliente incluir o que aconteceu enquanto ele ainda era prospecção. Lê junto em vez de copiar |
 | `UserOptions.php` | renderiza `<select>` de usuários, usado por várias telas |
 | `WebhookUrlValidator.php` | proteção contra SSRF nas URLs de webhook que o cliente cadastra: bloqueia IP interno, localhost e afins |
 | `Mailer.php` | fila de e-mail transacional. `send()` **enfileira** em `emails_outbox`, não envia na hora. Quem envia é o worker |

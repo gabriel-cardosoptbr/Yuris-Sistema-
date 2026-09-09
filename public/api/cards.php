@@ -106,6 +106,8 @@ if ($method === 'POST') {
     $data['valor_estimado']      = isset($data['valor_estimado'])      ? normalize_money($data['valor_estimado'])      : 0;
     $data['valor_proposta']      = isset($data['valor_proposta'])      ? normalize_money($data['valor_proposta'])      : 0;
     $data['valor_fechado_final'] = isset($data['valor_fechado_final']) ? normalize_money($data['valor_fechado_final']) : 0;
+    // Quem criou, para o primeiro evento da linha do tempo ter autor.
+    $data['_usuario_id'] = $user_id;
     $id = Card::create($data);
     $createdCard = Card::find($id);
     WebhookDispatcher::fire($accountId, 'card.created', WebhookDispatcher::buildPayload('card.created', [
@@ -159,6 +161,10 @@ if ($method === 'PUT' || $method === 'PATCH') {
     if (isset($input['valor_estimado'])) $input['valor_estimado'] = normalize_money($input['valor_estimado']);
     if (isset($input['valor_proposta'])) $input['valor_proposta'] = normalize_money($input['valor_proposta']);
     if (isset($input['valor_fechado_final'])) $input['valor_fechado_final'] = normalize_money($input['valor_fechado_final']);
+    // _usuario_id não é campo do card: é quem está editando, para o histórico
+    // saber de quem foi a alteração. Card::update() ignora chaves fora da
+    // whitelist, então isso não chega ao UPDATE.
+    $input['_usuario_id'] = $user_id;
     $ok = Card::update($id, $input);
     if ($ok) {
         $updatedCard = Card::find($id);

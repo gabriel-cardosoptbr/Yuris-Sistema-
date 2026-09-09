@@ -696,10 +696,18 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
         <div id="cliProcessos" style="display:flex; flex-direction:column; gap:6px;"></div>
       </div>
 
-      <!-- Histórico (só no modo edição) -->
+      <!-- Origem do cliente: como esta pessoa entrou no sistema -->
+      <div id="cliOrigemBlock" style="display:none; margin-top:16px;">
+        <h3 style="font-size:.84rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:0 0 8px;">Origem</h3>
+        <div id="cliOrigemBox" style="font-size:.85rem; line-height:1.9;"></div>
+      </div>
+
+      <!-- Histórico (só no modo edição). A timeline vem de /api/timeline.php e
+           inclui os eventos de quando esta pessoa ainda era prospecção. -->
       <div id="cliHistoryBlock" style="display:none; margin-top:16px;">
         <h3 style="font-size:.84rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:0 0 8px;">Histórico</h3>
-        <div class="history-list" id="cliHistory"></div>
+        <div id="cliTlFiltros" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;"></div>
+        <div class="history-list" id="cliTimeline" style="max-height:340px; overflow-y:auto;"></div>
       </div>
 
       <div class="modal-foot">
@@ -1174,27 +1182,15 @@ window.Clientes = (function () {
             $('#cliCepStatus').textContent = '';
             $('#btnSalvarCliente').textContent = 'Salvar';
 
-            // Histórico
-            const histBlock = $('#cliHistoryBlock');
-            const histList  = $('#cliHistory');
-            if (Array.isArray(c.history) && c.history.length > 0) {
-                histList.innerHTML = c.history.map(h => {
-                    const who = h.user_nome || h.user_login || 'sistema';
-                    const acaoLabel = (window.Yuris && Yuris.translateAuditAcao)
-                        ? Yuris.translateAuditAcao(h.acao)
-                        : (h.acao || '');
-                    return `<div class="history-item">
-                        <span class="acao">${escapeHtml(acaoLabel)}</span> por <strong>${escapeHtml(who)}</strong>
-                        <time>${escapeHtml(fmtDate(h.created_at))}</time>
-                    </div>`;
-                }).join('');
-                histBlock.style.display = '';
-            } else {
-                histList.innerHTML = '<div class="history-item">Sem histórico ainda.</div>';
-                histBlock.style.display = '';
-            }
+            // ── Origem do cliente + linha do tempo unica ─────────────────────
+            // A timeline vem de /api/timeline.php, que junta os eventos do
+            // cliente com os das prospeccoes que apontam para ele. E por isso
+            // que ela NAO recomeca no dia da conversao.
+            renderOrigemCliente(c);
+            carregarTimelineCliente(c.id);
 
             // Botão arquivar: só pra clientes próprios e não-arquivados
+
             const isOwn = (parseInt(c.account_id, 10) === window.YURIS_CTX.accountId);
             $('#btnArquivarCliente').style.display = (isOwn && !c.deleted_at) ? '' : 'none';
             // Form fields: read-only se for de filial (matriz vendo cliente de filial)
@@ -1211,6 +1207,151 @@ window.Clientes = (function () {
             console.error('[Clientes] openEditModal', e);
             notify('Falha ao abrir cliente: ' + e.message, 'error');
         }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // ORIGEM DO CLIENTE + TIMELINE UNICA
+    // ══════════════════════════════════════════════════════════════════════════
+
+    const TL_ROTULO = {
+        cadastro: 'Cadastro', comercial: 'Comercial', processos: 'Processos',
+        whatsapp: 'WhatsApp', documentos: 'Documentos', tarefas: 'Tarefas', sistema: 'Sistema'
+    };
+    const TL_COR = {
+        cadastro: '#93c5fd', comercial: '#34d399', processos: '#c4b5fd',
+        whatsapp: '#6ee7b7', documentos: '#fcd34d', tarefas: '#fdba74', sistema: '#94a3b8'
+    };
+    const TL_CAMPO = {
+        cliente_nome: 'nome', empresa_nome: 'empresa', telefone_whatsapp: 'telefone',
+        nome: 'nome', telefone: 'telefone', whatsapp: 'WhatsApp', email: 'e-mail',
+        cpf_cnpj: 'CPF/CNPJ', rg: 'RG', nome_mae: 'nome da mãe', cep: 'CEP',
+        logradouro: 'logradouro', numero: 'número', complemento: 'complemento',
+        bairro: 'bairro', cidade: 'cidade', uf: 'UF', descricao: 'descrição',
+        responsavel_user_id: 'responsável', responsavel_id: 'responsável',
+        coluna_id: 'etapa', setor_id: 'setor', status: 'status', origem: 'origem',
+        observacoes: 'observações', cliente_id: 'cliente'
+    };
+
+    let _tlCliEventos = [];
+    let _tlCliFiltro  = 'todos';
+
+    /**
+     * Bloco "Origem do cliente": responde como aquela pessoa entrou no sistema.
+     * E o que permite, depois, medir taxa de conversao e tempo ate converter.
+     */
+    function renderOrigemCliente(c) {
+        const box = $('#cliOrigemBox');
+        if (!box) return;
+
+        const veioDeProspeccao = !!c.card_origem_id;
+        const linhas = [];
+
+        linhas.push('<div><span style="color:var(--muted)">Origem do cliente:</span> <strong>' +
+            escapeHtml(veioDeProspeccao ? 'Prospecção' : (c.origem || 'Cadastro manual')) + '</strong></div>');
+
+        if (veioDeProspeccao) {
+            linhas.push('<div><span style="color:var(--muted)">Prospecção original:</span> ' +
+                '<a href="/prospeccao.php?open=' + c.card_origem_id + '" style="color:#93c5fd;font-weight:600">#PRO-' +
+                String(c.card_origem_id).padStart(6, '0') + '</a></div>');
+        }
+        if (c.origem) {
+            linhas.push('<div><span style="color:var(--muted)">Origem comercial:</span> ' + escapeHtml(c.origem) + '</div>');
+        }
+        if (c.created_at) {
+            linhas.push('<div><span style="color:var(--muted)">Primeira entrada:</span> ' + escapeHtml(fmtDate(c.created_at)) + '</div>');
+        }
+        if (c.convertido_em) {
+            linhas.push('<div><span style="color:var(--muted)">Data da conversão:</span> ' + escapeHtml(fmtDate(c.convertido_em)) + '</div>');
+        }
+        if (c.convertido_por_nome) {
+            linhas.push('<div><span style="color:var(--muted)">Convertido por:</span> ' + escapeHtml(c.convertido_por_nome) + '</div>');
+        }
+
+        box.innerHTML = linhas.join('');
+        const bloco = $('#cliOrigemBlock');
+        if (bloco) bloco.style.display = '';
+    }
+
+    function desenharTimelineCliente() {
+        const lista = $('#cliTimeline');
+        if (!lista) return;
+        const eventos = _tlCliFiltro === 'todos'
+            ? _tlCliEventos
+            : _tlCliEventos.filter(e => e.categoria === _tlCliFiltro);
+
+        if (!eventos.length) {
+            lista.innerHTML = '<div class="history-item">Nenhum evento neste filtro.</div>';
+            return;
+        }
+
+        lista.innerHTML = eventos.map(e => {
+            const cor  = TL_COR[e.categoria] || '#94a3b8';
+            const quem = e.usuario || 'sistema';
+            const acao = (window.Yuris && Yuris.translateAuditAcao) ? Yuris.translateAuditAcao(e.acao) : e.acao;
+            let corpo = escapeHtml(acao);
+            if (e.campo) corpo += ' <span style="opacity:.75">(' + escapeHtml(TL_CAMPO[e.campo] || e.campo) + ')</span>';
+
+            let dePara = '';
+            if (e.de !== null || e.para !== null) {
+                dePara = '<div style="margin-top:4px;font-size:.76rem;line-height:1.6">' +
+                    '<span style="color:var(--muted)">Anterior:</span> ' + escapeHtml(e.de || 'vazio') + '<br>' +
+                    '<span style="color:var(--muted)">Novo:</span> ' + escapeHtml(e.para || 'vazio') + '</div>';
+            }
+
+            const selo = e.fase === 'prospeccao'
+                ? '<span style="font-size:.68rem;padding:1px 6px;border-radius:999px;background:rgba(96,165,250,.15);color:#93c5fd;margin-left:6px">prospecção</span>'
+                : '';
+
+            return '<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid rgba(96,165,250,.10)">' +
+                '<div style="width:8px;height:8px;border-radius:50%;background:' + cor + ';margin-top:6px;flex-shrink:0"></div>' +
+                '<div style="flex:1;min-width:0">' +
+                    '<div style="font-size:.83rem">' + corpo + selo + '</div>' +
+                    '<div style="font-size:.74rem;color:var(--muted);margin-top:2px">' +
+                        escapeHtml(quem) + ' &bull; ' + escapeHtml(fmtDate(e.quando)) + '</div>' + dePara +
+                '</div></div>';
+        }).join('');
+    }
+
+    function desenharFiltrosCliente() {
+        const box = $('#cliTlFiltros');
+        if (!box) return;
+        const usadas = ['todos'].concat(
+            Object.keys(TL_ROTULO).filter(c => _tlCliEventos.some(e => e.categoria === c))
+        );
+        box.innerHTML = usadas.map(c => {
+            const ativo = c === _tlCliFiltro;
+            const rot = c === 'todos' ? 'Todos' : TL_ROTULO[c];
+            return '<button type="button" data-tlc="' + c + '" style="' +
+                'padding:4px 10px;border-radius:999px;font-size:.74rem;cursor:pointer;' +
+                'border:1px solid ' + (ativo ? 'rgba(96,165,250,.55)' : 'rgba(96,165,250,.18)') + ';' +
+                'background:' + (ativo ? 'rgba(37,99,235,.28)' : 'transparent') + ';' +
+                'color:' + (ativo ? '#dbeafe' : 'var(--muted)') + '">' + escapeHtml(rot) + '</button>';
+        }).join('');
+        box.querySelectorAll('[data-tlc]').forEach(b => {
+            b.addEventListener('click', () => {
+                _tlCliFiltro = b.getAttribute('data-tlc');
+                desenharFiltrosCliente();
+                desenharTimelineCliente();
+            });
+        });
+    }
+
+    async function carregarTimelineCliente(clienteId) {
+        const bloco = $('#cliHistoryBlock');
+        const lista = $('#cliTimeline');
+        if (bloco) bloco.style.display = '';
+        if (lista) lista.innerHTML = '<div class="history-item">Carregando histórico...</div>';
+        _tlCliEventos = []; _tlCliFiltro = 'todos';
+        try {
+            const r = await fetch('/api/timeline.php?entidade=cliente&id=' + encodeURIComponent(clienteId));
+            const j = await r.json();
+            _tlCliEventos = (j && j.eventos) || [];
+        } catch (e) {
+            if (lista) lista.innerHTML = '<div class="history-item">Não foi possível carregar o histórico.</div>';
+            return;
+        }
+        desenharFiltrosCliente();
+        desenharTimelineCliente();
     }
 
     function closeClienteModal() { hideModal('modalCliente'); }

@@ -10,7 +10,7 @@ oportunidade de venda vive em [`../Prospeccao/`](../Prospeccao/).
 
 | Classe | O que faz |
 |---|---|
-| `Cliente.php` | o cliente: cadastro, listagem por conta, movimentação entre setores |
+| `Cliente.php` | o cliente: cadastro, listagem por conta, movimentação entre setores. `registrarEvento()` é o ponto público por onde outros módulos escrevem no histórico dele, para o formato não divergir |
 | `ClienteOrigem.php` | de onde o cliente veio (indicação, site, anúncio). Lista editável por conta, não é enum fixo |
 | `ClienteSetor.php` | as colunas do kanban de Clientes, também editáveis por conta |
 
