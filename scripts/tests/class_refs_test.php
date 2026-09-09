@@ -40,9 +40,25 @@ require_once $raiz . '/app/bootstrap.php';
 
 $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($raiz . '/app'));
 foreach ($it as $f) {
-    if ($f->isFile() && $f->getExtension() === 'php') {
-        require_once $f->getPathname();
+    if (!$f->isFile() || $f->getExtension() !== 'php') {
+        continue;
     }
+    /*
+     * Carregar so quem DECLARA classe. Desde 08/09/2026 existe pagina web em
+     * app/ (app/Lgpd/Paginas/, que a camada de rota serve), e `require` numa
+     * pagina nao "colhe uma classe": EXECUTA a pagina. O sintoma foi este teste
+     * abrindo sessao, consultando banco e cuspindo HTML no meio da suite, com
+     * dois PHP Warning de "headers already sent".
+     *
+     * Pular demais nao passa despercebido: se um arquivo de classe de verdade
+     * ficar de fora, as referencias a ela deixam de resolver e o proprio teste
+     * FALHA. O risco e assimetrico a favor da seguranca.
+     */
+    $fonte = file_get_contents($f->getPathname());
+    if (!preg_match('/^\s*(?:abstract\s+|final\s+|readonly\s+)*(?:class|interface|trait|enum)\s+\w/mi', $fonte)) {
+        continue;
+    }
+    require_once $f->getPathname();
 }
 $existe = [];
 foreach (array_merge(get_declared_classes(), get_declared_interfaces(), get_declared_traits()) as $c) {

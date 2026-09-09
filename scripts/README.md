@@ -9,7 +9,7 @@ executa de propósito, com `php scripts/<arquivo>.php`.
 
 | Script | Cobre | Precisa de banco? |
 |---|---|---|
-| `tests/class_refs_test.php` | **toda referência a classe resolve, e todo `require` aponta para arquivo real** | não |
+| `tests/class_refs_test.php` | **toda referência a classe resolve, e todo `require` aponta para arquivo real**. Carrega de `app/` só quem declara classe: desde que existe página web ali (`app/Lgpd/Paginas/`), dar `require` numa página a **executaria** | não |
 | `tests/wa_webhook_parser_test.php` | parsers do payload da Evolution | não |
 | `tests/wa_webhook_token_test.php` | segundo fator do webhook | não |
 | `tests/wa_invariants.php` | invariantes do módulo WhatsApp e do agente | sim |
@@ -23,7 +23,7 @@ executa de propósito, com `php scripts/<arquivo>.php`.
 Baseline conhecido em **08/09/2026**, com o MySQL de pé:
 
 ```
-class_refs          3512 referencias + 330 requires · todos resolvem
+class_refs          3528 referencias + 330 requires · todos resolvem
 wa_webhook_parser     69 PASS · 0 FAIL
 wa_webhook_token      21 PASS · 0 FAIL
 wa_invariants         61 PASS · 0 FAIL
