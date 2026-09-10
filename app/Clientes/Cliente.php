@@ -150,6 +150,8 @@ class Cliente
             'cpf_cnpj'       => self::_cleanDigits($data['cpf_cnpj'] ?? null),
             'rg'             => self::_trimOrNull($data['rg'] ?? null),
             'nome_mae'       => self::_trimOrNull($data['nome_mae'] ?? null),
+            // Aniversario (migration 128): alimenta o relatorio mensal de parabens.
+            'data_nascimento' => self::_normalizeNascimento($data['data_nascimento'] ?? null),
             'telefone'       => self::_trimOrNull($data['telefone'] ?? null),
             'whatsapp'       => self::_trimOrNull($data['whatsapp'] ?? null),
             'email'          => self::_trimOrNull($data['email'] ?? null),
@@ -172,13 +174,13 @@ class Cliente
 
         $sql = "INSERT INTO clientes
                   (account_id, contato_id, setor_id, responsavel_id, nome,
-                   tipo_cliente, cpf_cnpj, rg, nome_mae, telefone, whatsapp, email,
+                   tipo_cliente, cpf_cnpj, rg, nome_mae, data_nascimento, telefone, whatsapp, email,
                    cep, logradouro, numero, complemento, bairro, cidade, uf,
                    origem, status, ordem_no_setor, observacoes,
                    created_by, updated_by, created_at, updated_at)
                 VALUES
                   (:account_id, :contato_id, :setor_id, :responsavel_id, :nome,
-                   :tipo_cliente, :cpf_cnpj, :rg, :nome_mae, :telefone, :whatsapp, :email,
+                   :tipo_cliente, :cpf_cnpj, :rg, :nome_mae, :data_nascimento, :telefone, :whatsapp, :email,
                    :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :uf,
                    :origem, :status, :ordem_no_setor, :observacoes,
                    :created_by, :updated_by, NOW(), NOW())";
@@ -201,7 +203,7 @@ class Cliente
 
         $allowed = [
             'setor_id','responsavel_id','nome','tipo_cliente','cpf_cnpj',
-            'rg','nome_mae',
+            'rg','nome_mae','data_nascimento',
             'telefone','whatsapp','email',
             'cep','logradouro','numero','complemento','bairro','cidade','uf',
             'origem','status',
@@ -216,6 +218,7 @@ class Cliente
             if     ($k === 'cpf_cnpj' || $k === 'cep') $v = self::_cleanDigits($v);
             elseif ($k === 'tipo_cliente') $v = in_array($v, ['PF','PJ'], true) ? $v : 'PF';
             elseif ($k === 'uf')        $v = self::_normalizeUf($v);
+            elseif ($k === 'data_nascimento') $v = self::_normalizeNascimento($v);
             // origem agora é slug livre — validação (existe em clientes_origens?)
             // fica no endpoint pra permitir backward-compat com slugs legados.
             elseif ($k === 'setor_id' || $k === 'responsavel_id' || $k === 'ordem_no_setor') $v = $v === null || $v === '' ? null : (int)$v;
@@ -381,6 +384,32 @@ class Cliente
         if ($w !== '') return $w;
         $t = trim((string)($data['telefone'] ?? ''));
         return $t !== '' ? $t : null;
+    }
+
+    /**
+     * Data de nascimento normalizada para Y-m-d, ou null.
+     *
+     * Aceita o que o formulario manda (Y-m-d do input date) e o que a pessoa
+     * digita a mao (d/m/Y). Data invalida vira NULL em vez de erro: o cadastro
+     * inteiro nao pode ser recusado por causa do campo mais opcional dele.
+     *
+     * Recusa data no FUTURO e mais de 130 anos atras. Nao e preciosismo: os dois
+     * casos aparecem por engano de digitacao (o ano com dois digitos virando
+     * 2068, por exemplo) e envenenariam o relatorio de aniversariantes.
+     */
+    private static function _normalizeNascimento($v): ?string
+    {
+        if ($v === null) return null;
+        $s = trim((string)$v);
+        if ($s === '') return null;
+
+        $d = \DateTime::createFromFormat('Y-m-d', $s) ?: \DateTime::createFromFormat('d/m/Y', $s);
+        if (!$d) return null;
+
+        $ano = (int)$d->format('Y');
+        if ($d > new \DateTime('today') || $ano < (int)date('Y') - 130) return null;
+
+        return $d->format('Y-m-d');
     }
 
     private static function _trimOrNull($v): ?string

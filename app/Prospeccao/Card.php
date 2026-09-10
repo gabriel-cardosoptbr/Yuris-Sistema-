@@ -140,6 +140,11 @@ class Card
         $colOrigem = $temOrigem ? ', origem_id' : '';
         $valOrigem = $temOrigem ? ', :origem_id' : '';
 
+        // Aniversario (migration 128). Mesma sonda: base sem a migration nao pode
+        // quebrar o cadastro de lead.
+        $temNasc = self::_temColunaNascimento();
+        if ($temNasc) { $colOrigem .= ', data_nascimento'; $valOrigem .= ', :data_nascimento'; }
+
         $stmt = $pdo->prepare('INSERT INTO cards
               (account_id, titulo, cliente_nome, empresa_nome, telefone_whatsapp, email,
                cpf_cnpj, rg, nome_mae,
@@ -161,7 +166,9 @@ class Card
             $origemId = null; // canal de outra conta: ver o comentário em update()
         }
 
-        $stmt->execute(($temOrigem ? ['origem_id' => $origemId] : []) + [
+        $stmt->execute(($temOrigem ? ['origem_id' => $origemId] : [])
+                     + ($temNasc ? ['data_nascimento' => self::_normalizeDate($data['data_nascimento'] ?? null)] : [])
+                     + [
             'account_id'   => $data['account_id'],
             'titulo'       => $titulo ?: null,
             'cliente_nome' => $data['cliente_nome'] ?? '',
@@ -272,14 +279,19 @@ class Card
                      'valor_estimado','valor_proposta','valor_fechado_final',
                      'data_prevista_fechamento','data_fechamento','descricao','status'];
 
+        $dateCols = ['data_prevista_fechamento','data_fechamento'];
+
         // Canal de aquisição (migration 127). Entra na lista de campos
         // permitidos só quando a coluna existe, e daí em diante o histórico
         // campo a campo de _logCampos() cuida dele sem tratamento especial.
         if (self::_temColunaOrigem()) {
             $allowed[] = 'origem_id';
         }
+        if (self::_temColunaNascimento()) {
+            $allowed[]  = 'data_nascimento';
+            $dateCols[] = 'data_nascimento';   // normaliza "" e "0000-00-00" para NULL
+        }
 
-        $dateCols   = ['data_prevista_fechamento','data_fechamento'];
         $digitsOnly = ['cpf_cnpj','cep'];
         foreach ($allowed as $k) {
             if (array_key_exists($k, $data)) {
@@ -553,6 +565,21 @@ class Card
         } catch (\Throwable $e) {
             return false;
         }
+    }
+
+    /** A coluna data_nascimento existe? (migration 128) */
+    private static function _temColunaNascimento(): bool
+    {
+        static $tem = null;
+        if ($tem === null) {
+            try {
+                Database::getConnection()->query('SELECT data_nascimento FROM cards LIMIT 0');
+                $tem = true;
+            } catch (\Throwable $e) {
+                $tem = false;
+            }
+        }
+        return $tem;
     }
 
     /** "" e "0" viram NULL: canal não escolhido é ausência, não canal zero. */

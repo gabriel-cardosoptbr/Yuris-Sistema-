@@ -447,6 +447,10 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Novo Cliente
           </button>
+          <button type="button" class="btn btn-ghost" id="btnAniversariantes" title="Quem faz aniversário no mês, com o WhatsApp pronto">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-8H4v8"/><path d="M2 13h20"/><path d="M12 13V9"/><path d="M9 9a3 3 0 0 1 3-3 3 3 0 0 1 3 3"/><path d="M12 3v1"/></svg>
+            Aniversariantes
+          </button>
           <button type="button" class="btn btn-ghost" id="btnGerenciarSetores" title="Gerenciar setores">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="14" y2="18"/></svg>
             Gerenciar Setores
@@ -575,6 +579,11 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
         <div class="field">
           <label for="cliRg">RG</label>
           <input type="text" id="cliRg" name="rg" class="form-input" placeholder="00.000.000-0" maxlength="30">
+        </div>
+
+        <div class="field">
+          <label for="cliNascimento">Data de nascimento</label>
+          <input type="date" id="cliNascimento" name="data_nascimento" class="form-input">
         </div>
 
         <div class="field full">
@@ -739,6 +748,27 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
         <button type="submit" class="btn" id="btnSalvarCliente">Salvar</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────────
+     MODAL: Aniversariantes do mês
+     Existe porque o pedido não era "guardar a data", era "ter um motivo para
+     voltar a falar com quem já é cliente". Por isso a lista entrega o WhatsApp
+     pronto e a idade que a pessoa completa, que é o que se precisa para
+     escrever a mensagem sem abrir outra tela.
+─────────────────────────────────────────────────────────────────── -->
+<div class="modal-shell" id="modalAniversariantes" role="dialog" aria-modal="true" aria-labelledby="manivTitle">
+  <div class="modal-panel" style="max-width:620px">
+    <div class="modal-head">
+      <h2 id="manivTitle">Aniversariantes</h2>
+      <button type="button" class="modal-x" onclick="Clientes.closeAniversariantes()" aria-label="Fechar">&times;</button>
+    </div>
+    <div style="padding:0 20px 8px">
+      <select id="anivMes" class="form-select" style="max-width:230px"></select>
+      <div id="anivCobertura" style="font-size:.78rem;color:var(--muted);margin-top:8px"></div>
+    </div>
+    <div id="anivLista" style="padding:4px 20px 20px;max-height:420px;overflow-y:auto"></div>
   </div>
 </div>
 
@@ -1189,6 +1219,7 @@ window.Clientes = (function () {
             $('#cliCpfCnpj').value  = c.cpf_cnpj || '';
             $('#cliRg').value       = c.rg || '';
             $('#cliNomeMae').value  = c.nome_mae || '';
+            $('#cliNascimento').value = c.data_nascimento || '';
             $('#cliTelefone').value = c.telefone || '';
             $('#cliWhatsapp').value = c.whatsapp || '';
             $('#cliEmail').value    = c.email || '';
@@ -1613,6 +1644,79 @@ window.Clientes = (function () {
     }
 
     // ── Modal helpers ─────────────────────────────────────────────
+    // ── Aniversariantes do mês ────────────────────────────────────
+    const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                   'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+    async function openAniversariantes() {
+        showModal('modalAniversariantes');
+        await carregarAniversariantes(new Date().getMonth() + 1);
+    }
+    function closeAniversariantes() { hideModal('modalAniversariantes'); }
+
+    async function carregarAniversariantes(mes) {
+        const lista = $('#anivLista');
+        lista.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:12px 0">Carregando…</div>';
+        let d;
+        try {
+            const r = await fetch('/api/clientes_aniversariantes.php?mes=' + mes, { credentials: 'same-origin' });
+            d = await r.json();
+            if (!r.ok || !d.success) throw new Error();
+        } catch (e) {
+            lista.innerHTML = '<div style="color:#fca5a5;font-size:.85rem;padding:12px 0">Não foi possível carregar.</div>';
+            return;
+        }
+
+        // O seletor mostra a contagem de cada mês: assim a pessoa vê onde há
+        // gente antes de clicar, em vez de passear por doze meses vazios.
+        const sel = $('#anivMes');
+        sel.innerHTML = MESES.map((nome, i) => {
+            const m = i + 1, n = (d.por_mes && d.por_mes[m]) || 0;
+            return `<option value="${m}"${m === d.mes ? ' selected' : ''}>${nome}${n ? ' (' + n + ')' : ''}</option>`;
+        }).join('');
+        sel.onchange = () => carregarAniversariantes(parseInt(sel.value, 10));
+
+        // A cobertura vai em voz alta de propósito: um relatório que enxerga 3 de
+        // 46 clientes precisa dizer isso, senão o escritório conclui que só tem
+        // três aniversários no ano e nunca preenche o campo.
+        const cob = d.cobertura || { com: 0, sem: 0 };
+        $('#anivCobertura').innerHTML = cob.sem > 0
+            ? `${cob.com} cliente(s) com data preenchida. <strong>${cob.sem} ainda sem data</strong>, e esses não aparecem em mês nenhum.`
+            : `${cob.com} cliente(s) com data preenchida.`;
+
+        const itens = d.aniversariantes || [];
+        if (!itens.length) {
+            lista.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:12px 0">Ninguém faz aniversário em ' +
+                              escapeHtml(MESES[d.mes - 1]) + '.</div>';
+            return;
+        }
+
+        lista.innerHTML = itens.map(a => {
+            const dia = String(a.dia).padStart(2, '0');
+            const selo = a.hoje
+                ? '<span style="font-size:.7rem;padding:2px 8px;border-radius:999px;background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.3);color:#fbbf24">hoje</span>'
+                : (a.ja_passou ? '<span style="font-size:.7rem;color:var(--muted)">já passou</span>' : '');
+            const msg = encodeURIComponent(`Olá ${a.nome}! Passando para desejar um feliz aniversário. Conte com a gente!`);
+            const wa = a.whatsapp_digits
+                ? `<a href="https://wa.me/${a.whatsapp_digits}?text=${msg}" target="_blank" rel="noopener"
+                      style="font-size:.78rem;color:#6ee7b7;text-decoration:none;white-space:nowrap">Parabenizar</a>`
+                : '<span style="font-size:.75rem;color:var(--muted);white-space:nowrap">sem WhatsApp</span>';
+            const resp = a.responsavel_nome ? ' • ' + escapeHtml(a.responsavel_nome) : '';
+            return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;
+                                padding:10px 12px;border:1px solid var(--border);border-radius:9px;margin-bottom:6px">
+                      <span style="min-width:0">
+                        <strong style="font-size:.88rem">${escapeHtml(a.nome)}</strong> ${selo}
+                        <div style="font-size:.76rem;color:var(--muted)">
+                          dia ${dia} • faz ${a.idade_que_faz} anos${resp}
+                        </div>
+                      </span>
+                      <a href="#" onclick="Clientes.closeAniversariantes();Clientes.openEditModal(${a.id});return false;"
+                         style="font-size:.78rem;color:#60a5fa;text-decoration:none;white-space:nowrap">Abrir ficha</a>
+                      ${wa}
+                    </div>`;
+        }).join('');
+    }
+
     function showModal(id) { const m = $('#' + id); if (m) m.classList.add('open'); }
     function hideModal(id) { const m = $('#' + id); if (m) m.classList.remove('open'); }
 
@@ -1757,6 +1861,7 @@ window.Clientes = (function () {
     document.addEventListener('DOMContentLoaded', () => {
         $('#btnNovoCliente')?.addEventListener('click', openCreateModal);
         $('#btnGerenciarSetores')?.addEventListener('click', openSetoresModal);
+        $('#btnAniversariantes')?.addEventListener('click', openAniversariantes);
 
         // Deep-link ?open=ID — abre o cliente direto (ex: vindo do vínculo de
         // processo "Ver ficha na aba Clientes"). Auditoria 2026-06-01.
@@ -1969,6 +2074,7 @@ window.Clientes = (function () {
         openOrigensModal, closeOrigensModal,
         createOrigem, updateOrigem, archiveOrigem,
         viaCepLookup,
+        openAniversariantes, closeAniversariantes,
     };
 })();
 </script>

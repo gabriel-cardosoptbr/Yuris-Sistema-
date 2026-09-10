@@ -379,6 +379,10 @@ final class ConversaoCliente
             'cpf_cnpj'       => $card['cpf_cnpj'] ?? null,
             'rg'             => $card['rg'] ?? null,
             'nome_mae'       => $card['nome_mae'] ?? null,
+            // Aniversario (migration 128): perguntado no funil, usado depois no
+            // relatorio de parabens. Se nao acompanhasse, teria de ser perguntado
+            // de novo a alguem que ja e cliente.
+            'data_nascimento' => $card['data_nascimento'] ?? null,
             'telefone'       => $card['telefone_whatsapp'] ?? null,
             'whatsapp'       => $card['telefone_whatsapp'] ?? null,
             'email'          => $card['email'] ?? null,

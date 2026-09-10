@@ -1336,6 +1336,10 @@ function column_display_name(array $col): string
                 <span class="form-label">RG</span>
                 <input name="rg" class="form-input" placeholder="00.000.000-0" maxlength="30">
               </label>
+              <label class="form-group">
+                <span class="form-label">Data de nascimento</span>
+                <input name="data_nascimento" type="date" class="form-input">
+              </label>
               <label class="form-group" style="grid-column: 1 / -1;">
                 <span class="form-label">Nome da mãe</span>
                 <input name="nome_mae" class="form-input" maxlength="190" autocomplete="off">
@@ -1483,6 +1487,10 @@ function column_display_name(array $col): string
               <label class="form-group">
                 <span class="form-label">RG</span>
                 <input name="rg" class="form-input" placeholder="00.000.000-0" maxlength="30">
+              </label>
+              <label class="form-group">
+                <span class="form-label">Data de nascimento</span>
+                <input name="data_nascimento" type="date" class="form-input">
               </label>
               <label class="form-group" style="grid-column: 1 / -1;">
                 <span class="form-label">Nome da mãe</span>
@@ -2956,6 +2964,9 @@ function column_display_name(array $col): string
       if (form.cpf_cnpj)     form.cpf_cnpj.value     = card.cpf_cnpj || '';
       if (form.rg)           form.rg.value           = card.rg || '';
       if (form.nome_mae)     form.nome_mae.value     = card.nome_mae || '';
+      // Aniversario (migration 128). O input date so aceita Y-m-d, que e
+      // exatamente o formato que a coluna DATE devolve.
+      if (form.data_nascimento) form.data_nascimento.value = card.data_nascimento || '';
       if (form.cep)          form.cep.value          = card.cep || '';
       if (form.logradouro)   form.logradouro.value   = card.logradouro || '';
       if (form.numero)       form.numero.value       = card.numero || '';
