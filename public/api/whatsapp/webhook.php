@@ -544,6 +544,43 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
         'created_at'      => $createdAt,
     ]);
 
+    /* ── IDENTIDADE: costura @lid e telefone antes que a informação se perca ──
+     *
+     * O Baileys 7 manda `remoteJidAlt` (e `participantAlt` dentro de grupo) com
+     * o TELEFONE REAL por trás do @lid, e a Evolution repassa. Medido nesta
+     * instalação: 377 de 1.094 payloads trazem o Alt, e nas mensagens recebidas
+     * são 249 de 329 @lid, ou seja 76%.
+     *
+     * Essa é a ÚNICA fonte do vínculo: a tabela `Contact` da Evolution guarda o
+     * @lid e o telefone como dois contatos separados, sem coluna nenhuma ligando
+     * um ao outro. Se não gravarmos aqui, a prova passa e é jogada fora.
+     *
+     * Vale para os DOIS sentidos: mensagem enviada também traz o Alt (128 de 176
+     * outbound na amostra), e o par é igualmente verdadeiro.
+     *
+     * Depois do save() e best-effort: identidade é enriquecimento, e não pode
+     * derrubar a gravação da mensagem, que é o que não pode faltar.
+     */
+    try {
+        $end = \App\WhatsAppAgente\Identidade::enderecosDaKey($key);
+        if ($end['lid'] !== null || $end['phone'] !== null) {
+            \App\WhatsAppAgente\Identidade::registrar(
+                $accountId,
+                $instanceId,
+                $end['jid'],
+                $end['lid'],
+                $end['phone'],
+                // pushName é de quem ESCREVEU. Em mensagem própria ele é o nome
+                // do dono da conta, não do contato: por isso não vira nome ali.
+                $fromMe ? null : $pushName,
+                'messages_upsert',
+                $createdAt
+            );
+        }
+    } catch (\Throwable $e) {
+        error_log('[whatsapp/webhook] Identidade falhou (mensagem preservada): ' . $e->getMessage());
+    }
+
     // Fire webhook only for inbound messages (received from contacts)
     if (!$fromMe) {
         // P0 LGPD: resolve account_id da instância para não vazar evento cross-tenant

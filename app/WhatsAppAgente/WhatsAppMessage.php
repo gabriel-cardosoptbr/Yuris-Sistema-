@@ -600,6 +600,19 @@ class WhatsAppMessage
                        t.cor  AS team_cor,
                        COALESCE(
                            CASE WHEN COALESCE(c.is_manual_name,0)=1 THEN c.contact_name END,
+                           -- A IDENTIDADE CONSOLIDADA (migration 129) vem logo depois do
+                           -- rename manual da conversa, e antes de qualquer pushName solto.
+                           -- Ela ja guarda o MELHOR nome conhecido com a origem e o peso
+                           -- (manual > crm > agenda > pushName), entao aqui nao se decide
+                           -- prioridade de novo: quem decidiu foi Identidade::melhorNome.
+                           -- Casa tanto pelo lid quanto pelo jid porque a mesma pessoa
+                           -- pode ter conversa aberta por qualquer um dos dois enderecos.
+                           (SELECT idn.nome FROM whatsapp_identidades idn
+                             WHERE idn.instance_id = c.instance_id
+                               AND (idn.lid = c.remote_jid OR idn.jid = c.remote_jid)
+                               AND idn.nome IS NOT NULL
+                               AND idn.nome REGEXP \'[A-Za-z]\'
+                             ORDER BY idn.nome_peso DESC LIMIT 1),
                            (SELECT mi.contact_name FROM whatsapp_messages mi
                              WHERE mi.instance_id IN (SELECT wi.id FROM whatsapp_instances wi
                                      WHERE wi.account_id = (SELECT account_id FROM whatsapp_instances WHERE id = c.instance_id))
@@ -638,6 +651,16 @@ class WhatsAppMessage
                        -- longo, não-discável). Quando o remote_jid é @lid, busca o
                        -- telefone verdadeiro em group_members/contacts por aquele LID.
                        COALESCE(
+                           -- A IDENTIDADE CONSOLIDADA primeiro (migration 129): o
+                           -- telefone dela veio de key.remoteJidAlt, ou seja, do
+                           -- proprio WhatsApp dizendo qual numero esta por tras
+                           -- daquele @lid. E a fonte mais confiavel que existe,
+                           -- melhor que deduzir por grupo ou por agenda.
+                           (SELECT wi.phone FROM whatsapp_identidades wi
+                             WHERE wi.instance_id = c.instance_id
+                               AND (wi.lid = c.remote_jid OR wi.jid = c.remote_jid)
+                               AND wi.phone REGEXP \'^[0-9]{10,13}$\'
+                             LIMIT 1),
                            CASE WHEN c.remote_jid NOT LIKE \'%@lid\'
                                      AND c.phone REGEXP \'^[0-9]{10,13}$\'
                                 THEN c.phone END,
