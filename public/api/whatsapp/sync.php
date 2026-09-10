@@ -13,21 +13,88 @@ use App\WhatsAppAgente\EvolutionApiService;
 use App\WhatsAppAgente\WhatsAppWebhookParser;
 use App\WhatsAppAgente\WhatsAppChannelAccessService;
 
-session_start(['read_and_close' => true]);
-$_uid  = $_SESSION['user_id']    ?? null;
-$_csrf = $_SESSION['csrf_token'] ?? '';
-header('Content-Type: application/json; charset=utf-8');
-if (!$_uid) { http_response_code(401); echo json_encode(['error'=>'Unauthorized']); exit; }
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); echo json_encode(['error'=>'Method not allowed']); exit; }
+/*
+ * ─────────────────────────────────────────────────────────────────────────────
+ * DOIS MODOS: A TELA E A LINHA DE COMANDO
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Pela TELA, o sync tem orçamento de 22 segundos e pode parar no meio
+ * (partial=true). É proposital: nenhuma chamada à Evolution pode pendurar a
+ * página, e a lição do 504 em produção está no comentário do orçamento.
+ *
+ * Só que esse mesmo teto torna impossível fechar uma lacuna grande. Em 10/09/2026
+ * o canal da conta 83 tinha 126 conversas e mais de 24 horas de mensagens
+ * presentes na Evolution e ausentes aqui. Pela tela, cada clique cobria um
+ * punhado; a advogada clicava "Sincronizar" e concluía, com razão, que não
+ * adiantava nada.
+ *
+ * Por LINHA DE COMANDO não existe página para travar. O modo CLI usa orçamento
+ * largo e serve para duas coisas: fechar uma lacuna de uma vez, e rodar no cron
+ * como RECONCILIAÇÃO periódica, para que uma falha de entrega do webhook nunca
+ * mais signifique mensagem perdida em silêncio.
+ *
+ * O modo CLI dispensa sessão e CSRF porque não há navegador: quem executa já tem
+ * shell no servidor. `PHP_SAPI === 'cli'` é a única porta, então isto NÃO é
+ * alcançável pela web.
+ *
+ * Uso: docker exec -i yuris_app php /var/www/html/public/api/whatsapp/sync.php --instance=14
+ *      (sem --instance, percorre TODOS os canais com status 'open')
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+$MODO_CLI = (PHP_SAPI === 'cli');
 
-$payload = json_decode(file_get_contents('php://input'), true) ?? [];
-if (empty($payload['_csrf']) || $payload['_csrf'] !== $_csrf) {
-    http_response_code(403); echo json_encode(['error'=>'CSRF inválido']); exit;
+if ($MODO_CLI) {
+    $argIns = null;
+    foreach ($argv ?? [] as $a) {
+        if (strncmp($a, '--instance=', 11) === 0) { $argIns = (int)substr($a, 11); }
+    }
+    $pdoCli = Database::getConnection();
+    if ($argIns) {
+        $alvos = [$argIns];
+    } else {
+        $alvos = array_map('intval', $pdoCli->query(
+            "SELECT id FROM whatsapp_instances WHERE status = 'open' ORDER BY id"
+        )->fetchAll(\PDO::FETCH_COLUMN));
+    }
+    if (!$alvos) { fwrite(STDERR, "Nenhum canal conectado.
+"); exit(1); }
+
+    // Uma instância por processo: o corpo abaixo trabalha com um canal só. Com
+    // vários alvos, reinvoca a si mesmo, o que também isola falha de um canal.
+    if (count($alvos) > 1) {
+        foreach ($alvos as $i) {
+            echo "
+=== canal $i ===
+";
+            passthru(PHP_BINARY . ' ' . escapeshellarg(__FILE__) . ' --instance=' . (int)$i);
+        }
+        exit(0);
+    }
+
+    $instanceIdCli = (int)$alvos[0];
+    $row = $pdoCli->prepare('SELECT id, account_id, instance_name, status FROM whatsapp_instances WHERE id = ? LIMIT 1');
+    $row->execute([$instanceIdCli]);
+    $insRow = $row->fetch(\PDO::FETCH_ASSOC);
+    if (!$insRow) { fwrite(STDERR, "Canal $instanceIdCli não existe.
+"); exit(1); }
+    $accountId = (int)$insRow['account_id'];
+    $payload   = ['import_messages' => true];
+} else {
+    session_start(['read_and_close' => true]);
+    $_uid  = $_SESSION['user_id']    ?? null;
+    $_csrf = $_SESSION['csrf_token'] ?? '';
+    header('Content-Type: application/json; charset=utf-8');
+    if (!$_uid) { http_response_code(401); echo json_encode(['error'=>'Unauthorized']); exit; }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); echo json_encode(['error'=>'Method not allowed']); exit; }
+
+    $payload = json_decode(file_get_contents('php://input'), true) ?? [];
+    if (empty($payload['_csrf']) || $payload['_csrf'] !== $_csrf) {
+        http_response_code(403); echo json_encode(['error'=>'CSRF inválido']); exit;
+    }
+
+    // P0 LGPD (1.8): contexto de tenant — settings/instance now per-tenant
+    $ctx       = AccountContext::fromSession();
+    $accountId = $ctx->getAccountId();
 }
-
-// P0 LGPD (1.8): contexto de tenant — settings/instance now per-tenant
-$ctx       = AccountContext::fromSession();
-$accountId = $ctx->getAccountId();
 
 try {
     $msgModel   = new WhatsAppMessage();
@@ -36,7 +103,20 @@ try {
     // Sincronizar = permissão 'sync' no canal (deny-by-default). Resolve o canal
     // próprio ou, com a flag ligada, o compartilhado (filial herdando o da matriz).
     // Tudo (instância, credenciais, dono) resolvido no backend, nunca do front.
-    $ch         = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $payload['channel_id'] ?? null, 'sync');
+    // Pela tela, a permissão de sincronizar é resolvida por GRANT de canal. Pela
+    // linha de comando não há sessão para resolver contra: quem executa já tem
+    // shell no servidor, e o canal é escolhido explicitamente por --instance.
+    if ($MODO_CLI) {
+        $cfgCli = (new \App\WhatsAppAgente\WhatsAppInstance())->getSettings($accountId);
+        $ch = [
+            'cfg'              => $cfgCli,
+            'instance_name'    => (string)$insRow['instance_name'],
+            'channel_id'       => (int)$insRow['id'],
+            'owner_account_id' => (int)$insRow['account_id'],
+        ];
+    } else {
+        $ch = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $payload['channel_id'] ?? null, 'sync');
+    }
     $cfg        = $ch['cfg'];
     $name       = $ch['instance_name'];
     $instanceId = (int)$ch['channel_id'];
@@ -44,7 +124,9 @@ try {
     $evo        = new EvolutionApiService($cfg);
     // Timeout curto: nenhuma chamada à Evolution pode pendurar a tela do usuário.
     // Com a Evolution lenta/instável, cada chamada falha em até 8s (em vez de 20s).
-    $evo->setTimeout(8);
+    // 8s pela tela (nada pode pendurar a página). Pela linha de comando não há
+    // página, e chamada curta demais só faz a lacuna demorar mais a fechar.
+    $evo->setTimeout($MODO_CLI ? 30 : 8);
 
     $synced   = 0;
     $messages = 0;
@@ -58,8 +140,11 @@ try {
     // de chamadas. Ao estourar, o sync PARA e devolve JSON com o que já tem
     // (partial=true) — degrada com elegância, nunca trava.
     $startedAt   = time();
-    $TIME_BUDGET = 22; // teto total do sync, bem abaixo de qualquer timeout de proxy/PHP
-    @set_time_limit(45); // rede de segurança; o controle REAL é o $TIME_BUDGET acima
+    // 22s pela tela, bem abaixo de qualquer timeout de proxy/PHP. Pela linha de
+    // comando, 10 minutos: é o que permite fechar de uma vez uma lacuna de dias,
+    // que era justamente o que a tela não conseguia.
+    $TIME_BUDGET = $MODO_CLI ? 600 : 22;
+    @set_time_limit($MODO_CLI ? 0 : 45); // rede de segurança; o controle REAL é o $TIME_BUDGET acima
     $overBudget = function () use ($startedAt, $TIME_BUDGET) {
         return (time() - $startedAt) >= $TIME_BUDGET;
     };
@@ -442,13 +527,25 @@ try {
         }
     }
 
-    echo json_encode([
-        'ok'       => true,
-        'synced'   => $synced,
-        'messages' => $messages,
-        'contacts' => $contacts,
-        'partial'  => $partial, // true = parou por tempo; clique Sincronizar de novo p/ continuar
-    ]);
+    if ($MODO_CLI) {
+        printf("  canal %d (%s), conta %d
+", $instanceId, $name, $ownerId);
+        printf("  conversas: %d   mensagens novas: %d   contatos: %d
+", $synced, $messages, $contacts);
+        echo $partial
+            ? "  PARCIAL: parou por tempo. Rode de novo para continuar de onde parou.
+"
+            : "  completo.
+";
+    } else {
+        echo json_encode([
+            'ok'       => true,
+            'synced'   => $synced,
+            'messages' => $messages,
+            'contacts' => $contacts,
+            'partial'  => $partial, // true = parou por tempo; clique Sincronizar de novo p/ continuar
+        ]);
+    }
 
 } catch (Throwable $e) {
     require_once __DIR__ . '/../../../app/Core/ErrorReporter.php';
