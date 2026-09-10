@@ -234,14 +234,29 @@ try {
         if (str_ends_with($jid, '@broadcast') || str_contains($jid, '@newsletter')) continue;
         $jid      = WhatsAppMessage::resolvePhoneJid($pdo, (int)$instanceId, $jid); // @lid -> telefone quando conhecido (anti-duplicacao)
         $isGroup  = str_ends_with($jid, '@g.us') ? 1 : 0;
-        // Nao pre-cria shell @lid 1:1 vazio (fantasma): se o @lid nao resolveu pra telefone
-        // e nao ha NENHUMA mensagem sob esse jid no banco, pula. A conversa real vive sob o
-        // telefone; o chat-list da Evolution lista o @lid mesmo sem msgs nossas -> shell vazio.
-        if (!$isGroup && str_ends_with($jid, '@lid')) {
-            $ex = $pdo->prepare('SELECT 1 FROM whatsapp_messages WHERE instance_id = ? AND remote_jid = ? LIMIT 1');
-            $ex->execute([(int)$instanceId, $jid]);
-            if (!$ex->fetchColumn()) { continue; }
-        }
+        /*
+         * AQUI HAVIA UMA TRAVA ANTI-FANTASMA, e ela impedia conversa NOVA de entrar.
+         *
+         * Ela pulava todo @lid 1:1 que ainda nao tivesse NENHUMA mensagem no nosso
+         * banco, para nao criar "shell" vazio a partir do chat-list da Evolution,
+         * que lista @lid mesmo sem mensagem nossa.
+         *
+         * O problema: este laco NAO percorre o chat-list. Ele percorre `$jidMap`,
+         * que e derivado de `$allMessages`, ou seja, das mensagens que a Evolution
+         * REALMENTE devolveu. Se um JID chegou ate aqui, ele tem mensagem. O
+         * cenario que a trava defendia nao existe neste caminho: ela sobrou de
+         * quando o sync usava findChats, antes do refactor que o cabecalho deste
+         * arquivo anuncia ("via findMessages (nao findChats)").
+         *
+         * O efeito real era o oposto do pretendido: conversa 1:1 nova, que chega
+         * como @lid e por definicao ainda nao tem mensagem nossa, NUNCA podia ser
+         * importada. Encontrado em 10/09/2026 num canal com 40 mensagens presentes
+         * na Evolution e ausentes no Yuris, das quais 36 eram texto simples. Era
+         * por isso que apertar "Sincronizar" nao trazia nada.
+         *
+         * O shell vazio continua barrado, so que pelo lugar certo: um JID sem
+         * mensagem nao entra em $jidMap, entao nem chega neste laco.
+         */
         // 1:1: tenta a chave EXATA do contactMap e, se nao casar, o indice por DIGITOS
         // do telefone (resolve @lid ja convertido p/ telefone e variacao de sufixo de JID).
         $jidDigits = preg_replace('/[^0-9]/', '', explode('@', (string)$jid)[0]);
