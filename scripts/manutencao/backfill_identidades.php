@@ -151,37 +151,80 @@ foreach ($canais as $canal) {
     linha("  contatos do WhatsApp com nome: {$nomesAgenda}");
 
     /* ─── 3. CRM: o nome que o escritório usa ────────────────────────────── */
+    /*
+     * Casa pelo telefone DA IDENTIDADE, não pelo `whatsapp_contacts.phone`.
+     *
+     * A primeira versão casava pelo contato da Evolution e trouxe ZERO nomes em
+     * todos os canais. Motivo: em conversa @lid aquele campo guarda o LID, não o
+     * telefone, então a comparação nunca podia bater. É exatamente o problema
+     * que a identidade existe para resolver, e o backfill estava ignorando a
+     * própria solução que acabara de montar. Por isso esta fonte roda DEPOIS das
+     * anteriores: ela precisa que o telefone real já esteja consolidado.
+     *
+     * Duas portas de entrada, nesta ordem:
+     *   a) a conversa está VINCULADA a um card ou cliente: o nome é autoritativo,
+     *      alguém do escritório fez o vínculo à mão. Não depende de telefone.
+     *   b) o telefone da identidade bate com o de um cliente ou card, pelos
+     *      últimos 8 dígitos (o número aparece com e sem 55, com e sem o nono).
+     */
     $nomesCrm = 0;
+
+    // (a) vínculo explícito da conversa
     $st = $pdo->prepare(
-        "SELECT c.remote_jid, ch.linked_card_id, ch.contato_id,
-                -- COLLATE explicito: `clientes` e `cards` sao utf8mb4_general_ci e as
-                -- tabelas de WhatsApp sao utf8mb4_unicode_ci. Sem declarar, o MySQL
-                -- recusa a comparacao com Illegal mix of collations. Declarar aqui
-                -- e o certo: mudar a colacao de `clientes` seria ALTER numa tabela
-                -- grande de producao para resolver um SELECT de manutencao.
+        "SELECT ch.remote_jid,
+                (SELECT cd.cliente_nome FROM cards cd
+                  WHERE cd.id = ch.linked_card_id AND cd.deleted_at IS NULL LIMIT 1) AS nome_card,
+                (SELECT ct.nome FROM contatos ct
+                  WHERE ct.id = ch.contato_id AND ct.deleted_at IS NULL LIMIT 1) AS nome_contato
+           FROM whatsapp_chats ch
+          WHERE ch.instance_id = ? AND ch.remote_jid NOT LIKE '%@g.us'
+            AND (ch.linked_card_id IS NOT NULL OR ch.contato_id IS NOT NULL)"
+    );
+    $st->execute([$iid]);
+    foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $c) {
+        $nome = trim((string) ($c['nome_card'] ?: $c['nome_contato'] ?: ''));
+        if ($nome === '') { continue; }
+        $nomesCrm++;
+        if ($dryRun) { continue; }
+        $ident = Identidade::porEndereco($iid, (string) $c['remote_jid']);
+        if ($ident) { Identidade::registrarNome((int) $ident['id'], $nome, 'crm'); }
+    }
+
+    // (b) telefone da identidade contra o telefone do CRM
+    /*
+     * COLLATE explicito: `clientes` e `cards` sao utf8mb4_general_ci e as tabelas
+     * de WhatsApp sao utf8mb4_unicode_ci. Sem declarar, o MySQL recusa a
+     * comparacao com Illegal mix of collations. Declarar aqui e o certo: mudar a
+     * colacao de `clientes` seria ALTER numa tabela grande de producao para
+     * resolver um SELECT de manutencao.
+     */
+    $st = $pdo->prepare(
+        "SELECT i.id, i.phone,
                 (SELECT cli.nome FROM clientes cli
                   WHERE cli.account_id = ? AND cli.deleted_at IS NULL
-                    AND RIGHT(REGEXP_REPLACE(COALESCE(cli.whatsapp, cli.telefone, ''), '[^0-9]', ''), 8) COLLATE utf8mb4_unicode_ci
-                      = RIGHT(REGEXP_REPLACE(COALESCE(c.phone,''), '[^0-9]', ''), 8) COLLATE utf8mb4_unicode_ci
-                    AND LENGTH(REGEXP_REPLACE(COALESCE(c.phone,''), '[^0-9]', '')) >= 8
+                    AND RIGHT(REGEXP_REPLACE(COALESCE(NULLIF(cli.whatsapp,''), cli.telefone, ''), '[^0-9]', ''), 8) COLLATE utf8mb4_unicode_ci
+                      = RIGHT(i.phone, 8) COLLATE utf8mb4_unicode_ci
                   LIMIT 1) AS nome_cliente,
                 (SELECT cd.cliente_nome FROM cards cd
-                  WHERE cd.id = ch.linked_card_id AND cd.deleted_at IS NULL LIMIT 1) AS nome_card
-           FROM whatsapp_chats ch
-           JOIN whatsapp_contacts c ON c.instance_id = ch.instance_id AND c.remote_jid = ch.remote_jid
-          WHERE ch.instance_id = ? AND ch.remote_jid NOT LIKE '%@g.us'"
+                  WHERE cd.account_id = ? AND cd.deleted_at IS NULL
+                    AND RIGHT(REGEXP_REPLACE(COALESCE(cd.telefone_whatsapp,''), '[^0-9]', ''), 8) COLLATE utf8mb4_unicode_ci
+                      = RIGHT(i.phone, 8) COLLATE utf8mb4_unicode_ci
+                  LIMIT 1) AS nome_card
+           FROM whatsapp_identidades i
+          WHERE i.instance_id = ? AND i.phone IS NOT NULL AND LENGTH(i.phone) >= 8"
     );
-    $st->execute([$acc, $iid]);
+    $st->execute([$acc, $acc, $iid]);
     foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $c) {
         $nome = trim((string) ($c['nome_cliente'] ?: $c['nome_card'] ?: ''));
         if ($nome === '') { continue; }
         $nomesCrm++;
         if ($dryRun) { continue; }
-
-        $ident = Identidade::porEndereco($iid, (string) $c['remote_jid']);
-        if ($ident) { Identidade::registrarNome((int) $ident['id'], $nome, 'crm'); }
+        Identidade::registrarNome((int) $c['id'], $nome, 'crm');
     }
-    linha("  nomes vindos de cliente/prospecção: {$nomesCrm}");
+    // Em dry-run a porta (b) sempre conta 0: ela consulta `whatsapp_identidades`,
+    // que o dry-run justamente não gravou. Dizer isso, senão o número engana.
+    linha("  nomes vindos de cliente/prospecção: {$nomesCrm}"
+        . ($dryRun ? '   (só o vínculo explícito; casar por telefone exige a tabela já gravada)' : ''));
 
     /* ─── 4. CONVERSAS: identidade para todo mundo, mesmo sem nome ───────── */
     $conversas = 0;
