@@ -44,8 +44,10 @@ $MODO_CLI = (PHP_SAPI === 'cli');
 
 if ($MODO_CLI) {
     $argIns = null;
+    $argCompleto = false;
     foreach ($argv ?? [] as $a) {
         if (strncmp($a, '--instance=', 11) === 0) { $argIns = (int)substr($a, 11); }
+        if ($a === '--completo') { $argCompleto = true; }
     }
     $pdoCli = Database::getConnection();
     if ($argIns) {
@@ -55,17 +57,14 @@ if ($MODO_CLI) {
             "SELECT id FROM whatsapp_instances WHERE status = 'open' ORDER BY id"
         )->fetchAll(\PDO::FETCH_COLUMN));
     }
-    if (!$alvos) { fwrite(STDERR, "Nenhum canal conectado.
-"); exit(1); }
+    if (!$alvos) { fwrite(STDERR, "Nenhum canal conectado.\n"); exit(1); }
 
     // Uma instância por processo: o corpo abaixo trabalha com um canal só. Com
     // vários alvos, reinvoca a si mesmo, o que também isola falha de um canal.
     if (count($alvos) > 1) {
         foreach ($alvos as $i) {
-            echo "
-=== canal $i ===
-";
-            passthru(PHP_BINARY . ' ' . escapeshellarg(__FILE__) . ' --instance=' . (int)$i);
+            echo "\n=== canal $i ===\n";
+            passthru(PHP_BINARY . ' ' . escapeshellarg(__FILE__) . ' --instance=' . (int)$i . ($argCompleto ? ' --completo' : ''));
         }
         exit(0);
     }
@@ -74,8 +73,7 @@ if ($MODO_CLI) {
     $row = $pdoCli->prepare('SELECT id, account_id, instance_name, status FROM whatsapp_instances WHERE id = ? LIMIT 1');
     $row->execute([$instanceIdCli]);
     $insRow = $row->fetch(\PDO::FETCH_ASSOC);
-    if (!$insRow) { fwrite(STDERR, "Canal $instanceIdCli não existe.
-"); exit(1); }
+    if (!$insRow) { fwrite(STDERR, "Canal $instanceIdCli não existe.\n"); exit(1); }
     $accountId = (int)$insRow['account_id'];
     $payload   = ['import_messages' => true];
 } else {
@@ -97,6 +95,31 @@ if ($MODO_CLI) {
 }
 
 try {
+    /*
+     * ─────────────────────────────────────────────────────────────────────────
+     * MODO LEVE: NÃO PERGUNTAR AO WHATSAPP O QUE NÃO PRECISA
+     * ─────────────────────────────────────────────────────────────────────────
+     * `findMessages` lê o banco da própria Evolution e não custa nada ao
+     * WhatsApp. Já `fetchAllGroups` e, sobretudo, `fetchGroupInfo` (que roda UMA
+     * VEZ POR GRUPO) consultam o WhatsApp de verdade.
+     *
+     * Pela tela isso nunca chegava ao fim: o orçamento de 22s interrompia o laço
+     * de grupos no meio. No modo CLI, com 600s, ele vai até o último grupo. Em
+     * 10/09/2026 duas execuções minhas com 50 grupos geraram 226 erros
+     * `rate-overlimit` do Baileys no log da Evolution, ou seja, o WhatsApp
+     * limitando a conexão dela. Uma conexão limitada atrasa e derruba entrega de
+     * mensagem, que é justamente o que a reconciliação existe para consertar.
+     *
+     * O trabalho da reconciliação é achar MENSAGEM que o webhook não entregou.
+     * Nome de grupo e lista de participantes chegam pelo caminho normal
+     * (`groups.upsert`, `group-participants.update`). Pular isso no cron não é
+     * concessão, é escopo.
+     *
+     * Por isso o CLI nasce LEVE. `--completo` pede a volta inteira, e existe
+     * para o dia em que faltar nome de grupo, com quem executa sabendo o preço.
+     * ───────────────────────────────────────────────────────────────────────── */
+    $MODO_LEVE = $MODO_CLI && empty($argCompleto);
+
     $msgModel   = new WhatsAppMessage();
     $pdo        = Database::getConnection();
 
@@ -151,7 +174,7 @@ try {
 
     // 1. Buscar nomes reais dos grupos
     $groupMap = [];
-    $apiGroups = $evo->fetchAllGroups($name);
+    $apiGroups = $MODO_LEVE ? [] : $evo->fetchAllGroups($name);
     if (is_array($apiGroups)) {
         foreach ($apiGroups as $g) {
             if (empty($g['id'])) continue;
@@ -479,6 +502,8 @@ try {
     // whatsapp_group_members ficava vazia → modal de membros usava fallback
     // frágil pelos last messages do chat (sem role, sem completude).
     foreach (array_keys($groupMap) as $gJid) {
+        // Modo leve: é AQUI que mora o custo. Uma consulta ao WhatsApp por grupo.
+        if ($MODO_LEVE) { break; }
         // Para de buscar info de grupo se já gastamos o orçamento de tempo —
         // evita travar o sync inteiro quando a Evolution está lenta/caída.
         if ($overBudget()) { $partial = true; break; }
@@ -528,15 +553,14 @@ try {
     }
 
     if ($MODO_CLI) {
-        printf("  canal %d (%s), conta %d
-", $instanceId, $name, $ownerId);
-        printf("  conversas: %d   mensagens novas: %d   contatos: %d
-", $synced, $messages, $contacts);
+        printf("  canal %d (%s), conta %d%s\n", $instanceId, $name, $ownerId,
+               $MODO_LEVE ? "  [leve: sem consultar o WhatsApp]" : "  [completo]");
+        printf("  conversas: %d   mensagens novas: %d   contatos: %d\n", $synced, $messages, $contacts);
         echo $partial
             ? "  PARCIAL: parou por tempo. Rode de novo para continuar de onde parou.
-"
+\n"
             : "  completo.
-";
+\n";
     } else {
         echo json_encode([
             'ok'       => true,
