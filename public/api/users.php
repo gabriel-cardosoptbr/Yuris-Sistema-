@@ -30,7 +30,12 @@ $_validPages = ['dashboard','planejamento','prospeccao','financas','processos','
                 // Fase 2 do CRM: criar/renomear/arquivar etiqueta e campo
                 // personalizado. Aplicar etiqueta e preencher campo NAO passam
                 // por aqui: sao uso normal da ficha. Ver App\Crm\Permissao.
-                'crm.catalogos_gerenciar'];
+                'crm.catalogos_gerenciar',
+                // Relatorios: a chave existe para o administrador poder TIRAR de
+                // alguem. Ela nao e exigida para ver a tela (a sidebar aceita
+                // qualquer um dos modulos-fonte), e nao amplia nada: cada fonte
+                // continua filtrada pelo modulo dela dentro de /api/relatorios.php.
+                'relatorios'];
 
 // GET: list or single — FILTRADO POR CONTA (tenant isolation)
 if ($method === 'GET') {

@@ -1346,6 +1346,9 @@ try {
           </div>
 
           <div class="proc-modal-footer" style="padding:14px 0 0;border-top:none;background:transparent;margin-top:4px">
+            <!-- Ver o comentario do mesmo botao em clientes.php: o id vem do campo
+                 escondido do formulario. -->
+            <button type="button" id="btnRelatorioProcesso" class="proc-btn-cancel">Relatório completo</button>
             <button type="button" id="cancelProcess" class="proc-btn-cancel">Cancelar</button>
             <button type="submit" class="proc-btn-save">Salvar Processo</button>
           </div>
@@ -1898,6 +1901,33 @@ try {
     </div>
   </div>
 
+<script>
+/* ---------------------------------------------------------------------------
+ * Relatório completo (dossiê)
+ *
+ * O id vem do campo escondido `#processForm input[name="id"]` do próprio formulário, e NAO de uma
+ * variável interna da tela. Se amanhã a tela mudar como guarda o registro
+ * aberto, este botão continua certo.
+ *
+ * Registro ainda não salvo não tem histórico para imprimir, e nesse caso o
+ * aviso é toast da identidade, nunca `alert` do navegador.
+ * ------------------------------------------------------------------------- */
+(function () {
+  var btn = document.getElementById('btnRelatorioProcesso');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    var campo = document.querySelector('#processForm input[name="id"]');
+    var id = campo ? parseInt(campo.value, 10) : 0;
+    if (!id) {
+      var msg = 'Salve o processo antes de gerar o relatório.';
+      if (window.Yuris && Yuris.toast) Yuris.toast(msg, 'warn');
+      else if (window.showToast) showToast(msg, 'error');
+      return;
+    }
+    window.open('/dossie.php?entidade=processo&id=' + id, '_blank', 'noopener');
+  });
+})();
+</script>
 </body>
 </html>
 

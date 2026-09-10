@@ -1664,6 +1664,9 @@ function column_display_name(array $col): string
 
         <div class="modal-footer">
           <button type="button" id="cancelEdit" class="btn ghost">Cancelar</button>
+          <!-- Ver o comentario do mesmo botao em clientes.php: o id vem do campo
+               escondido do formulario. -->
+          <button type="button" id="btnRelatorioCard" class="btn soft">Relatório completo</button>
           <button type="button" id="openWhatsapp" class="btn soft">WhatsApp</button>
           <button type="button" id="btnTornarCliente" class="btn soft"
                   style="background:rgba(16,185,129,.16); border-color:rgba(52,211,153,.45); color:#a7f3d0;">Tornar cliente</button>
@@ -3600,6 +3603,33 @@ function column_display_name(array $col): string
   </script>
   <script src="assets/dashboard.js?v=13"></script>
   <script src="/assets/fog.js"></script>
+<script>
+/* ---------------------------------------------------------------------------
+ * Relatório completo (dossiê)
+ *
+ * O id vem do campo escondido `#editForm input[name="id"]` do próprio formulário, e NAO de uma
+ * variável interna da tela. Se amanhã a tela mudar como guarda o registro
+ * aberto, este botão continua certo.
+ *
+ * Registro ainda não salvo não tem histórico para imprimir, e nesse caso o
+ * aviso é toast da identidade, nunca `alert` do navegador.
+ * ------------------------------------------------------------------------- */
+(function () {
+  var btn = document.getElementById('btnRelatorioCard');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    var campo = document.querySelector('#editForm input[name="id"]');
+    var id = campo ? parseInt(campo.value, 10) : 0;
+    if (!id) {
+      var msg = 'Salve a prospecção antes de gerar o relatório.';
+      if (window.Yuris && Yuris.toast) Yuris.toast(msg, 'warn');
+      else if (window.showToast) showToast(msg, 'error');
+      return;
+    }
+    window.open('/dossie.php?entidade=card&id=' + id, '_blank', 'noopener');
+  });
+})();
+</script>
 </body>
 </html>
 

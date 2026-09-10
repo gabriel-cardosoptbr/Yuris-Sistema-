@@ -104,6 +104,39 @@ final class Timeline
     }
 
     /**
+     * Timeline de um PROCESSO.
+     *
+     * Entrou depois das outras duas, junto com o modulo de relatorios, porque o
+     * processo era a unica entidade grande do sistema sem linha do tempo
+     * unificada: a tela dele lia `processo_history` direto, com LIMIT 50, e
+     * prazo e tarefa nao apareciam em lugar nenhum do rastro.
+     *
+     * Tres fontes viram um so rastro:
+     *
+     *   processo_history   o que alguem fez no processo (JOIN em `processos`
+     *                      porque a tabela NAO tem account_id, mesmo problema
+     *                      de card_history)
+     *   processo_prazos    cada prazo cadastrado e um fato datado
+     *   processo_tarefas   idem para tarefa do processo
+     *
+     * Prazo e tarefa entram pelo `created_at`, que e quando o fato foi
+     * registrado. A data-limite do prazo vai no texto do evento, e nao no
+     * `quando`: colocar o vencimento futuro na linha do tempo jogaria o evento
+     * para o topo antes de ele existir.
+     *
+     * @param int[] $accountIds contas que a sessao alcanca
+     */
+    public static function paraProcesso(int $processoId, array $accountIds): array
+    {
+        $accountIds = self::inteiros($accountIds);
+        if ($accountIds === [] || $processoId <= 0) {
+            return [];
+        }
+        $eventos = self::eventosDeProcesso($processoId, $accountIds);
+        return self::ordena($eventos);
+    }
+
+    /**
      * Ids das prospeccoes que apontam para este cliente, dentro das contas
      * acessiveis. E a consulta que costura a timeline.
      *
@@ -181,6 +214,123 @@ final class Timeline
             );
         }
         return $saida;
+    }
+
+    /**
+     * O rastro do processo: historico, prazos e tarefas.
+     *
+     * O JOIN em `processos` NAO e conveniencia. Nenhuma das tres tabelas tem
+     * account_id proprio: quem tem a conta e o processo. Consultar
+     * processo_history sem esse JOIN atravessaria contas, exatamente como em
+     * card_history.
+     *
+     * SEM LIMIT, de proposito. A tela lia com LIMIT 50 porque so precisava
+     * mostrar o comeco; um relatorio que promete "historico completo" nao pode
+     * cortar em 50 e nao dizer nada.
+     */
+    private static function eventosDeProcesso(int $processoId, array $accountIds): array
+    {
+        $pdo   = Database::getConnection();
+        $inAcc = implode(',', array_fill(0, count($accountIds), '?'));
+        $saida = [];
+
+        /*
+         * `processo_history` nao guarda usuario_id, guarda `user_email` como
+         * texto, e `author_account_nome` quando o autor era de outra conta
+         * (matriz agindo na filial). Preferimos o nome quando existe: um
+         * relatorio impresso com e-mail cru fica pior de ler.
+         */
+        $st = $pdo->prepare(
+            "SELECT h.id, h.created_at, h.acao, h.descricao, h.user_email,
+                    h.author_account_nome
+               FROM processo_history h
+               JOIN processos p ON p.id = h.processo_id
+              WHERE h.processo_id = ?
+                AND p.account_id IN ($inAcc)"
+        );
+        $st->execute(array_merge([$processoId], $accountIds));
+        foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+            $autor = trim((string) ($r['user_email'] ?? ''));
+            if ($autor === '' || $autor === 'sistema') {
+                $autor = trim((string) ($r['author_account_nome'] ?? ''));
+            }
+            $saida[] = self::evento(
+                (string) $r['created_at'],
+                $autor !== '' ? $autor : null,
+                (string) ($r['acao'] ?? ''),
+                null,
+                null,
+                $r['descricao'] ?: null,
+                'processo',
+                $processoId,
+                'processo'
+            );
+        }
+
+        // Prazos. `data_limite` vai no TEXTO, nao no `quando`: ver o cabecalho
+        // de paraProcesso.
+        $st = $pdo->prepare(
+            "SELECT z.id, z.created_at, z.descricao, z.data_limite, z.status, z.responsavel
+               FROM processo_prazos z
+               JOIN processos p ON p.id = z.processo_id
+              WHERE z.processo_id = ?
+                AND p.account_id IN ($inAcc)"
+        );
+        $st->execute(array_merge([$processoId], $accountIds));
+        foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+            $texto = trim((string) ($r['descricao'] ?? ''));
+            if (!empty($r['data_limite'])) {
+                $texto .= ' (limite ' . self::dataBr((string) $r['data_limite']) . ')';
+            }
+            $saida[] = self::evento(
+                (string) $r['created_at'],
+                $r['responsavel'] ?: null,
+                'prazo_processo',
+                'Prazo',
+                null,
+                trim($texto) !== '' ? trim($texto) : null,
+                'processo',
+                $processoId,
+                'processo'
+            );
+        }
+
+        // Tarefas do processo. Sao as da aba do processo, tabela propria, NAO as
+        // de `tasks`: aquelas ligam por task_links e pertencem ao quadro.
+        $st = $pdo->prepare(
+            "SELECT t.id, t.created_at, t.titulo, t.concluido, t.responsavel, t.data_tarefa
+               FROM processo_tarefas t
+               JOIN processos p ON p.id = t.processo_id
+              WHERE t.processo_id = ?
+                AND p.account_id IN ($inAcc)"
+        );
+        $st->execute(array_merge([$processoId], $accountIds));
+        foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+            $texto = trim((string) ($r['titulo'] ?? ''));
+            if (!empty($r['concluido'])) {
+                $texto .= ' (concluída)';
+            }
+            $saida[] = self::evento(
+                (string) $r['created_at'],
+                $r['responsavel'] ?: null,
+                'tarefa_registrada',
+                'Tarefa',
+                null,
+                $texto !== '' ? $texto : null,
+                'processo',
+                $processoId,
+                'processo'
+            );
+        }
+
+        return $saida;
+    }
+
+    /** dd/mm/aaaa a partir de um DATE/DATETIME do banco. Devolve o cru se nao souber ler. */
+    private static function dataBr(string $iso): string
+    {
+        $d = \DateTimeImmutable::createFromFormat('Y-m-d', substr($iso, 0, 10));
+        return $d ? $d->format('d/m/Y') : $iso;
     }
 
     /** clientes_history do cliente. Tem account_id proprio, entao filtra direto. */

@@ -1,0 +1,307 @@
+/* =============================================================================
+   relatorios.css — a folha do dossiê e a tela de listagens.
+   =============================================================================
+
+   REGRA CENTRAL: o documento é CLARO, sempre.
+
+   O resto do Yuris é escuro, e há tentação de manter. Mas este arquivo existe
+   para virar papel: fundo escuro impresso ou gasta um cartucho inteiro, ou (o
+   que acontece na prática, porque o navegador desmarca "gráficos de fundo" por
+   padrão) sai texto branco em folha branca, ou seja, em branco.
+
+   Então a folha é clara na tela também. O que a pessoa vê é o que sai na
+   impressora, e isso vale mais que a coerência de tema.
+
+   A moldura ao redor da folha acompanha o tema do sistema, porque ela não é
+   impressa: `.no-print` some, e no @media print a folha vira a página inteira.
+   ========================================================================== */
+
+:root {
+  --doc-tinta:      #16202f;
+  --doc-tinta-fraca:#5b6b80;
+  --doc-linha:      #dfe5ec;
+  --doc-linha-forte:#b9c3d0;
+  --doc-papel:      #ffffff;
+  --doc-realce:     #f3f6fa;
+  --doc-azul:       #1d4ed8;
+
+  --doc-fora:       #070f1c;
+  --doc-barra:      #0d1c30;
+  --doc-barra-borda:#1c3050;
+  --doc-barra-texto:#cbd5e1;
+}
+
+/* ---------------------------------------------------------------- moldura -- */
+
+.doc-body {
+  margin: 0;
+  padding: 0 0 48px;
+  background: var(--doc-fora);
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--doc-tinta);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.doc-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 20px;
+  background: var(--doc-barra);
+  border-bottom: 1px solid var(--doc-barra-borda);
+  color: var(--doc-barra-texto);
+}
+
+.doc-bar-info { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.doc-bar-info strong {
+  font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 46vw;
+}
+.doc-bar-tag {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  padding: 3px 9px; border-radius: 999px;
+  background: rgba(96,165,250,.14); color: #93c5fd; border: 1px solid rgba(96,165,250,.28);
+  white-space: nowrap;
+}
+.doc-bar-acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.btn-doc {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--doc-barra-borda);
+  background: transparent;
+  color: var(--doc-barra-texto);
+  font: inherit; font-size: 13px; font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn-doc:hover { background: rgba(148,163,184,.1); }
+.btn-doc-primario { background: var(--doc-azul); border-color: var(--doc-azul); color: #fff; }
+.btn-doc-primario:hover { background: #1e40af; }
+
+/* ------------------------------------------------------------------ folha -- */
+
+.folha {
+  background: var(--doc-papel);
+  color: var(--doc-tinta);
+  max-width: 210mm;          /* A4 */
+  margin: 24px auto;
+  padding: 22mm 18mm;
+  box-shadow: 0 18px 50px rgba(0,0,0,.45);
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.folha-topo {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 24px; flex-wrap: wrap;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--doc-linha-forte);
+}
+.folha-conta {
+  margin: 0 0 2px;
+  font-size: 11px; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--doc-tinta-fraca);
+}
+.folha-topo h1 { margin: 0; font-size: 23px; line-height: 1.25; font-weight: 700; }
+.folha-sub { margin: 3px 0 0; color: var(--doc-tinta-fraca); font-size: 13px; }
+.folha-meta {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+  font-size: 11.5px; color: var(--doc-tinta-fraca); white-space: nowrap;
+}
+
+.resumo {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin: 16px 0 4px;
+}
+.resumo-item {
+  flex: 1 1 92px;
+  padding: 9px 12px;
+  background: var(--doc-realce);
+  border: 1px solid var(--doc-linha);
+  border-radius: 6px;
+  text-align: center;
+}
+.resumo-item strong { display: block; font-size: 19px; line-height: 1.1; }
+.resumo-item span { font-size: 11px; color: var(--doc-tinta-fraca); }
+
+.bloco { margin-top: 22px; }
+.bloco h2 {
+  margin: 0 0 10px;
+  font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .09em;
+  color: var(--doc-tinta-fraca);
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--doc-linha);
+  display: flex; align-items: center; gap: 8px;
+}
+.bloco h2 .conta {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0;
+  padding: 1px 7px; border-radius: 999px;
+  background: var(--doc-realce); border: 1px solid var(--doc-linha);
+  color: var(--doc-tinta-fraca);
+}
+.vazio { margin: 0; color: var(--doc-tinta-fraca); font-style: italic; }
+
+/* pares rótulo/valor em duas colunas, que viram uma no celular e no papel
+   estreito */
+.pares { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 22px; margin: 0; }
+.par { display: grid; grid-template-columns: 34% 1fr; gap: 10px; padding: 3px 0; border-bottom: 1px dotted var(--doc-linha); }
+.par dt { margin: 0; color: var(--doc-tinta-fraca); font-size: 12px; }
+.par dd { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
+
+.chips { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  padding: 2px 10px; border-radius: 999px;
+  background: var(--doc-realce); border: 1px solid var(--doc-linha-forte);
+  font-size: 12px;
+}
+
+/* Tabela larga rola dentro do próprio bloco: a folha nunca rola de lado. */
+.tabela-rolagem { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead th {
+  text-align: left; font-weight: 600; font-size: 11px;
+  text-transform: uppercase; letter-spacing: .05em;
+  color: var(--doc-tinta-fraca);
+  padding: 6px 8px;
+  background: var(--doc-realce);
+  border-bottom: 1px solid var(--doc-linha-forte);
+}
+tbody td { padding: 6px 8px; border-bottom: 1px solid var(--doc-linha); vertical-align: top; overflow-wrap: break-word; }
+/* Coluna espremida partia "20/01/2026" ao meio, virando "20/01/20 / 26". Numa
+   folha de processo isso não é feio, é errado: o leitor vê duas datas. A tabela
+   ganha largura mínima e o container rola de lado quando não couber, em vez de
+   espremer. */
+.rel-resultado table { min-width: 940px; }
+.rel-resultado tbody td, .rel-resultado thead th { white-space: nowrap; }
+/* As colunas de texto longo continuam podendo quebrar: sem isto, um nome de vara
+   com 60 caracteres empurraria a tabela para 2000px. Quem diz quais são é a
+   própria Listagem, em `colunas_livres`, e não um palpite do CSS. */
+.rel-resultado tbody td.livre, .rel-resultado thead th.livre { white-space: normal; min-width: 150px; }
+tbody tr:nth-child(even) td { background: #fafbfd; }
+
+.linha-tempo { list-style: none; margin: 0; padding: 0; }
+.evento {
+  display: grid; grid-template-columns: 118px 1fr; gap: 14px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--doc-linha);
+}
+.evento-quando { color: var(--doc-tinta-fraca); font-size: 11.5px; white-space: nowrap; }
+.evento-corpo p { margin: 0; }
+.evento-acao { font-weight: 600; }
+.evento-campo, .evento-fase {
+  font-weight: 400; font-size: 11px;
+  padding: 1px 7px; border-radius: 999px; margin-left: 6px;
+  background: var(--doc-realce); border: 1px solid var(--doc-linha); color: var(--doc-tinta-fraca);
+}
+.evento-valores { font-size: 12px; margin-top: 2px !important; overflow-wrap: anywhere; }
+.evento-valores .de { color: var(--doc-tinta-fraca); text-decoration: line-through; }
+.evento-valores .seta { margin: 0 6px; color: var(--doc-tinta-fraca); }
+.evento-quem { font-size: 11.5px; color: var(--doc-tinta-fraca); margin-top: 2px !important; }
+
+.folha-rodape {
+  margin-top: 26px; padding-top: 10px;
+  border-top: 1px solid var(--doc-linha);
+  font-size: 11px; color: var(--doc-tinta-fraca);
+}
+
+/* ------------------------------------------------------------ impressão -- */
+
+@page { size: A4; margin: 14mm; }
+
+@media print {
+  /* Fundo branco de verdade: se o navegador estiver sem "gráficos de fundo", a
+     moldura escura viraria uma faixa cinza no topo de toda página. */
+  .doc-body { background: #fff; padding: 0; }
+  .no-print { display: none !important; }
+
+  .folha {
+    max-width: none; width: auto;
+    margin: 0; padding: 0;
+    box-shadow: none; border-radius: 0;
+    font-size: 10.5pt;
+  }
+
+  /* Nada de linha, evento ou par partido no meio pela quebra de página. */
+  .evento, .par, .resumo-item, tr { break-inside: avoid; page-break-inside: avoid; }
+  /* O bloco pode quebrar (tabela longa precisa), mas nunca começa com o título
+     órfão no rodapé da página anterior. */
+  .bloco { break-inside: auto; }
+  .bloco h2 { break-after: avoid; page-break-after: avoid; }
+  /* Cabeçalho de tabela repetido em cada página: sem isso a segunda página de
+     uma tabela longa vira uma grade de números sem nome de coluna. */
+  thead { display: table-header-group; }
+  tbody tr:nth-child(even) td { background: transparent; }
+  .resumo-item, thead th, .chip, .evento-campo, .evento-fase, .bloco h2 .conta { background: transparent; }
+
+  a[href]::after { content: ""; }  /* não imprimir a URL depois dos links */
+}
+
+/* ============================================================================
+   TELA DE LISTAGENS (relatorios.php)
+   Aqui o tema é o do sistema: é tela de trabalho, não folha. A impressão dela
+   reaproveita as mesmas regras acima, porque a tabela é a mesma coisa.
+   ========================================================================== */
+
+.rel-filtros {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
+  padding: 14px 16px;
+  background: var(--doc-barra);
+  border: 1px solid var(--doc-barra-borda);
+  border-radius: 10px;
+  margin-bottom: 14px;
+}
+.rel-campo { display: flex; flex-direction: column; gap: 4px; min-width: 130px; }
+.rel-campo label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; }
+.rel-campo select, .rel-campo input {
+  background: #0a1626; color: #e2e8f0;
+  border: 1px solid var(--doc-barra-borda); border-radius: 7px;
+  padding: 7px 9px; font: inherit; font-size: 13px;
+  min-height: 36px;
+}
+.rel-campo input::placeholder { color: #64748b; }
+.rel-acoes { display: flex; gap: 8px; margin-left: auto; }
+
+.rel-aviso {
+  margin: 0 0 12px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: rgba(234,179,8,.1);
+  border: 1px solid rgba(234,179,8,.3);
+  color: #fde68a;
+  font-size: 13px;
+}
+
+.rel-resultado {
+  background: var(--doc-papel);
+  border-radius: 10px;
+  padding: 18px;
+  overflow: hidden;
+}
+.rel-resultado .rel-cabeca {
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 16px; flex-wrap: wrap;
+  margin-bottom: 12px; padding-bottom: 10px;
+  border-bottom: 2px solid var(--doc-linha-forte);
+}
+.rel-resultado h2 { margin: 0; font-size: 18px; color: var(--doc-tinta); }
+.rel-resultado .rel-meta { font-size: 12px; color: var(--doc-tinta-fraca); }
+.rel-vazio { padding: 34px 12px; text-align: center; color: var(--doc-tinta-fraca); }
+
+@media (max-width: 720px) {
+  .pares { grid-template-columns: 1fr; }
+  .par { grid-template-columns: 42% 1fr; }
+  .evento { grid-template-columns: 1fr; gap: 2px; }
+  .folha { padding: 16px; margin: 12px; }
+  .doc-bar-info strong { max-width: 100%; }
+}

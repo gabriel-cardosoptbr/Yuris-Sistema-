@@ -1127,6 +1127,13 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
       { key:'chat',         label:'WhatsApp' },
       { key:'chat_interno', label:'Chat Interno' },
       { key:'configuracoes',label:'Configurações' },
+      // Relatórios: marcar aqui NÃO é obrigatório para a tela aparecer. Ela
+      // já aparece para quem enxerga Clientes, Prospecção ou Processos, porque
+      // uma permissão nova nasce desmarcada e esconderia o módulo de todo mundo
+      // no dia da entrega. Esta caixinha existe para o caso oposto: tirar
+      // Relatórios de alguém que vê os módulos. E ela não amplia nada, cada
+      // fonte continua filtrada pelo módulo dela.
+      { key:'relatorios',   label:'Relatórios' },
     ];
 
     // AÇÕES são outra coisa das telas acima. As 11 de cima respondem "pode abrir

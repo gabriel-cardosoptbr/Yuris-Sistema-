@@ -743,6 +743,11 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
       </div>
 
       <div class="modal-foot">
+        <!-- Relatorio completo: abre o dossie em aba propria. O id sai do proprio
+             campo escondido do formulario, e nao de uma variavel de JS, para o
+             botao continuar certo se a tela mudar o jeito de guardar o registro
+             aberto. Cliente ainda nao salvo nao tem historico para imprimir. -->
+        <button type="button" class="btn btn-ghost" id="btnRelatorioCliente" onclick="abrirDossieCliente()">Relatório completo</button>
         <button type="button" class="btn btn-ghost" id="btnArquivarCliente" style="display:none;" onclick="Clientes.archiveCliente()">Arquivar</button>
         <button type="button" class="btn btn-ghost" onclick="Clientes.closeClienteModal()">Cancelar</button>
         <button type="submit" class="btn" id="btnSalvarCliente">Salvar</button>
@@ -2079,5 +2084,32 @@ window.Clientes = (function () {
 })();
 </script>
 
+<script>
+/* ---------------------------------------------------------------------------
+ * Relatório completo (dossiê)
+ *
+ * O id vem do campo escondido `#cliId` do próprio formulário, e NAO de uma
+ * variável interna da tela. Se amanhã a tela mudar como guarda o registro
+ * aberto, este botão continua certo.
+ *
+ * Registro ainda não salvo não tem histórico para imprimir, e nesse caso o
+ * aviso é toast da identidade, nunca `alert` do navegador.
+ * ------------------------------------------------------------------------- */
+(function () {
+  var btn = document.getElementById('btnRelatorioCliente');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    var campo = document.querySelector('#cliId');
+    var id = campo ? parseInt(campo.value, 10) : 0;
+    if (!id) {
+      var msg = 'Salve o cliente antes de gerar o relatório.';
+      if (window.Yuris && Yuris.toast) Yuris.toast(msg, 'warn');
+      else if (window.showToast) showToast(msg, 'error');
+      return;
+    }
+    window.open('/dossie.php?entidade=cliente&id=' + id, '_blank', 'noopener');
+  });
+})();
+</script>
 </body>
 </html>
