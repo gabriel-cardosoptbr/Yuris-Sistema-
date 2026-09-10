@@ -797,7 +797,7 @@ const ChatApp = (() => {
     // backend mesmo quando o chat guardou o LID) formatado. Nunca exibe o LID cru.
     const resolved  = resolveSenderName(chat.display_name) || resolveSenderName(chat.contact_name);
     const realPhone = chat.real_phone || (/^\d{10,13}$/.test(String(chat.phone || '')) ? chat.phone : '');
-    const nameRaw   = resolved || formatPhone(realPhone) || (chat.is_group == 1 ? 'Grupo' : 'Contato');
+    const nameRaw   = resolved || formatPhone(realPhone) || rotuloSemNome(chat.remote_jid, chat.is_group == 1);
     const initial   = (nameRaw || '?').charAt(0).toUpperCase();
     const name      = esc(nameRaw);
     const preview = formatMentionsPlain(esc(chat.last_message_content || ''), chat.remote_jid);
@@ -868,7 +868,7 @@ const ChatApp = (() => {
     // número discável (10-13 díg.). Sem telefone → vazio (melhor que o LID).
     const headerPhone = (chatObj && chatObj.real_phone)
                      || (/^\d{10,13}$/.test(String(phone || '')) ? phone : '');
-    const displayName = name || formatPhone(headerPhone) || ((chatObj && chatObj.is_group == 1) ? 'Grupo' : 'Contato');
+    const displayName = name || formatPhone(headerPhone) || rotuloSemNome(jid, chatObj && chatObj.is_group == 1);
     const initial     = (displayName || '?').charAt(0).toUpperCase();
     const el = document.getElementById('activeAvatar');
     if (el) el.textContent = initial;
@@ -2006,6 +2006,32 @@ const ChatApp = (() => {
     }
   }
 
+  /**
+   * Rótulo para conversa sem nome E sem telefone.
+   *
+   * ---------------------------------------------------------------------
+   * POR QUE ISTO EXISTE
+   * ---------------------------------------------------------------------
+   * O WhatsApp passou a usar `@lid`, um identificador de privacidade que
+   * esconde o número. Quando a pessoa nunca mandou pushName e não está nos
+   * contatos do aparelho, o nome não existe em lugar nenhum: nem aqui, nem na
+   * Evolution. Conferido em 10/09/2026 no canal da conta 83: das 26 conversas
+   * sem nome, a Evolution conhecia 20 e não tinha nome utilizável para NENHUMA.
+   *
+   * Não dá para inventar o nome. O que dava para consertar era outra coisa, e
+   * pior: as 26 apareciam TODAS como "Contato", indistinguíveis entre si. A
+   * advogada não conseguia nem dizer qual era qual para renomear.
+   *
+   * Agora cada uma ganha um sufixo estável tirado do próprio identificador.
+   * Não é o telefone e não finge ser: é só o suficiente para diferenciar uma
+   * linha da outra e permitir renomear pela tela de Contatos.
+   */
+  function rotuloSemNome(jid, isGroup) {
+    if (isGroup) return 'Grupo';
+    const id = String(jid || '').split('@')[0].replace(/[^0-9]/g, '');
+    return id.length >= 4 ? 'Contato ' + id.slice(-4) : 'Contato';
+  }
+
   // ── Cadastro rápido a partir da conversa ─────────────────────
   //
   // O relato foi direto: "esse negócio de vincular está confundindo totalmente
@@ -2032,7 +2058,7 @@ const ChatApp = (() => {
     const nome = (document.getElementById('activeName') || {}).textContent || '';
 
     _cadRapido = {
-      nome: (nome === 'Contato' || nome === 'Grupo') ? '' : nome.trim(),
+      nome: (/^Contato( \d+)?$/.test(nome.trim()) || nome.trim() === 'Grupo') ? '' : nome.trim(),
       telefone: String(tel || '')
     };
 
