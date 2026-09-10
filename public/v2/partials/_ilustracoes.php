@@ -87,6 +87,31 @@ if (!function_exists('lp2_ill')) {
             <path class="ill-draw" style="--d:.9s" d="M196 44 l40 14 v26 c0 26 -20 38 -40 46 c-20 -8 -40 -20 -40 -46 v-26 z" fill="rgba(126,184,246,.06)" stroke="var(--lp2-blue-glow)" stroke-width="2.5"/>
             <g class="ill-pop" style="--d:1.6s"><rect x="186" y="84" width="20" height="16" rx="3" fill="var(--lp2-gold)"/><path d="M189 84 v-5 a7 7 0 0 1 14 0 v5" fill="none" stroke="var(--lp2-gold)" stroke-width="2.5"/></g>',
 
+        // CLIENTES — a linha do tempo segue reta e a ficha se completa: documento,
+        // etiquetas e campos. O ponto dourado no meio da linha e a conversao, que
+        // e um EVENTO no meio da historia, nao o comeco de outra.
+        'v-clientes' => '
+            <line x1="52" y1="30" x2="52" y2="140" stroke="var(--lp2-border-strong)" stroke-width="2"/>
+            <line class="ill-draw" style="--d:.25s" x1="52" y1="30" x2="52" y2="140" stroke="var(--lp2-cyan)" stroke-width="2"/>
+            <circle class="ill-pop" style="--d:.35s" cx="52" cy="34"  r="6" fill="var(--lp2-bg-1)" stroke="var(--lp2-blue-glow)" stroke-width="2"/>
+            <circle class="ill-pop" style="--d:.60s" cx="52" cy="70"  r="6" fill="var(--lp2-bg-1)" stroke="var(--lp2-blue-glow)" stroke-width="2"/>
+            <circle class="ill-pop" style="--d:.85s" cx="52" cy="104" r="7.5" fill="var(--lp2-gold-soft)" stroke="var(--lp2-gold)" stroke-width="2.5"/>
+            <circle class="ill-pop" style="--d:1.1s" cx="52" cy="138" r="6" fill="var(--lp2-bg-1)" stroke="var(--lp2-blue-glow)" stroke-width="2"/>
+            <g class="ill-rise" style="--d:.5s">
+              <rect x="86" y="30" width="182" height="110" rx="8" fill="var(--lp2-card)" stroke="var(--lp2-metal)" stroke-width="2"/>
+              <line x1="102" y1="50" x2="188" y2="50" stroke="var(--lp2-text-mute)" stroke-width="3.5"/>
+              <line x1="102" y1="62" x2="152" y2="62" stroke="var(--lp2-border-strong)" stroke-width="3"/>
+            </g>
+            <rect class="ill-pop" style="--d:1.15s" x="102" y="76" width="46" height="15" rx="7.5" fill="none" stroke="var(--lp2-cyan)" stroke-width="2"/>
+            <rect class="ill-pop" style="--d:1.3s"  x="154" y="76" width="56" height="15" rx="7.5" fill="none" stroke="var(--lp2-gold)" stroke-width="2"/>
+            <g class="ill-rise" style="--d:1.5s">
+              <path d="M102 104 h24 l10 10 v20 h-34 z" fill="var(--lp2-card-2)" stroke="var(--lp2-blue-glow)" stroke-width="2"/>
+              <path d="M126 104 v10 h10" fill="none" stroke="var(--lp2-blue-glow)" stroke-width="2"/>
+            </g>
+            <line class="ill-draw" style="--d:1.65s" x1="152" y1="112" x2="212" y2="112" stroke="var(--lp2-text-mute)" stroke-width="3"/>
+            <line class="ill-draw" style="--d:1.8s"  x1="152" y1="124" x2="192" y2="124" stroke="var(--lp2-border-strong)" stroke-width="3"/>
+            <g class="ill-pop" style="--d:2s"><circle cx="240" cy="120" r="12" fill="var(--lp2-bg-0)" stroke="#4ADE80" stroke-width="2"/><path d="M234 120 l4 4 l8 -9" stroke="#4ADE80" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>',
+
         // MATRIZ E FILIAL — matriz no centro, filiais surgindo e sincronizando
         'v-matriz' => '
             <line x1="150" y1="85" x2="64"  y2="48"  stroke="var(--lp2-border-strong)" stroke-width="2"/>

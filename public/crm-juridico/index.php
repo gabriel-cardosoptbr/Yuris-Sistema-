@@ -34,9 +34,10 @@ $SEO_PAGE = [
   <li><strong>Checklist por card</strong> — os passos da etapa (documentos a receber, proposta a enviar, reunião a agendar) ficam registrados no próprio card, com o que já foi feito e o que está pendente.</li>
   <li><strong>Vínculo com o contato</strong> — o card aponta para o cadastro central do cliente; nada de criar um registro paralelo só para o comercial.</li>
   <li><strong>Vínculo com processo</strong> — quando a negociação envolve um caso já existente, o card se liga a ele e o histórico fica conectado.</li>
-  <li><strong>Card vira processo</strong> — fechou o contrato? O card é convertido em processo, levando contato e contexto junto. Sem redigitar dados, sem retrabalho.</li>
+  <li><strong>Card vira cliente</strong> — fechou o contrato? Um clique transforma a prospecção em cliente, e o histórico não recomeça: a linha do tempo continua do primeiro contato em diante, com os documentos, as etiquetas, as conversas e as tarefas acompanhando. O sistema ainda avisa se aquele cliente já existe, antes de duplicar.</li>
+  <li><strong>E o processo nasce dali</strong> — o processo pode ser aberto direto da prospecção, levando contato e contexto junto. Sem redigitar dados, sem retrabalho.</li>
 </ul>
-<p>Esse último ponto é o que separa o funil jurídico de um quadro Kanban qualquer: o destino natural do lead que fecha não é uma coluna chamada "ganho" — é um processo com prazos, tarefas e responsável definido. Veja como essa continuidade funciona em <a href="/controle-de-processos/">controle de processos</a>.</p>
+<p>Esses dois pontos são o que separa o funil jurídico de um quadro Kanban qualquer: o destino natural do lead que fecha não é uma coluna chamada "ganho" — é um cliente de verdade, com histórico contínuo, e um processo com prazos, tarefas e responsável definido. Veja como essa continuidade funciona em <a href="/controle-de-processos/">controle de processos</a>.</p>
 
 <h2>Contatos centralizados, sem duplicidade</h2>
 <p>Em muitos escritórios, a mesma pessoa existe três vezes: uma na planilha do comercial, outra no sistema de processos e uma terceira na agenda do financeiro. Cada cópia envelhece de um jeito — telefone desatualizado aqui, e-mail errado ali. No Yuris, o cadastro de <strong>clientes e contatos é único</strong>: o mesmo registro é reaproveitado pelo card do funil, pelo processo, pelo atendimento e pelo <a href="/financeiro-juridico/">financeiro do escritório</a>. Atualizou em um lugar, atualizou em todos — e o sistema evita duplicidade na origem.</p>
@@ -53,7 +54,7 @@ $SEO_PAGE = [
   </thead>
   <tbody>
     <tr><td><strong>Entidades</strong></td><td>Lead, empresa, negócio</td><td>Contato, card, processo, prazo, intimação</td></tr>
-    <tr><td><strong>Fim do funil</strong></td><td>Coluna "ganho" — e o resto fica fora</td><td>Card vira processo, com contexto preservado</td></tr>
+    <tr><td><strong>Fim do funil</strong></td><td>Coluna "ganho" — e o resto fica fora</td><td>Card vira cliente com histórico contínuo, e o processo nasce dali</td></tr>
     <tr><td><strong>Cadastro</strong></td><td>Duplicado entre CRM e sistema jurídico</td><td>Contato único, reaproveitado por toda a operação</td></tr>
     <tr><td><strong>Atendimento</strong></td><td>WhatsApp fora do sistema ou via terceiros</td><td>WhatsApp integrado, vinculado a cliente e processo</td></tr>
     <tr><td><strong>Prazos e intimações</strong></td><td>Não existem como conceito</td><td>Conectados ao processo que nasceu do funil</td></tr>
@@ -89,7 +90,7 @@ HTML,
         ],
         [
             'q' => 'Como o lead vira processo no Yuris?',
-            'a' => 'O lead entra no funil como um card no Kanban, vinculado a um contato do cadastro central. A equipe conduz a negociação pelas etapas, com checklist e histórico no próprio card. Quando o contrato fecha, o card é convertido em processo — contato, contexto e vínculos vão junto, sem redigitar dados e sem retrabalho.',
+            'a' => 'O lead entra no funil como um card no Kanban, vinculado a um contato do cadastro central. A equipe conduz a negociação pelas etapas, com checklist e histórico no próprio card. Quando o contrato fecha, o card vira cliente com um clique, e o histórico não recomeça: a ficha do cliente mostra tudo desde o primeiro contato, com documentos, etiquetas, conversas e tarefas acompanhando. O processo também pode ser aberto direto dali, sem redigitar dados e sem retrabalho.',
         ],
         [
             'q' => 'O WhatsApp fica integrado ao CRM jurídico?',

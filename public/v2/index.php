@@ -62,6 +62,7 @@ $secoes = [
     'secao-08-intimacoes',
     'secao-09-comunicacao',
     'secao-10-operacao',
+    'secao-10b-cliente',
     'secao-11-gestao',
     'secao-11b-vinculos',
     'secao-12-automacao',

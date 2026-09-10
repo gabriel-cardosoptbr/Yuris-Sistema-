@@ -626,7 +626,7 @@
     <hr class="plan-divider">
     <ul class="plan-features">
       <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Dashboard executivo</li>
-      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> CRM e prospecção</li>
+      <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> CRM, prospecção e ficha completa do cliente</li>
       <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Gestão de processos e prazos</li>
       <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Intimações automáticas (DJEN)</li>
       <li><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Painel financeiro / DRE</li>
@@ -771,8 +771,8 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       </div>
       <div>
-        <div class="feature-title">CRM e Prospecção</div>
-        <div class="feature-desc">Pipeline Kanban de clientes, funil de vendas e simulador de metas.</div>
+        <div class="feature-title">CRM, Prospecção e Clientes</div>
+        <div class="feature-desc">Funil Kanban, conversão em cliente sem perder o histórico, documentos, etiquetas e campos do escritório.</div>
       </div>
     </div>
 

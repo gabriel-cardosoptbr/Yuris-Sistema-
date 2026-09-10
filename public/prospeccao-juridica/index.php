@@ -49,7 +49,7 @@ $SEO_PAGE = [
 <p>O lead é vinculado a um contato no cadastro central do sistema — o mesmo usado por processos, atendimento e financeiro. Isso elimina a duplicidade clássica: a pessoa que chegou como interessada não é recadastrada quando fecha contrato; o histórico comercial a acompanha. Se a conversa acontece pelo WhatsApp integrado, as mensagens ficam vinculadas a esse mesmo contato, dentro do sistema, e não no aparelho pessoal de alguém.</p>
 
 <h3>Do funil ao processo</h3>
-<p>Quando o interessado decide contratar, o card vira processo sem retrabalho: os dados do contato e o contexto da negociação seguem juntos. A operação jurídica começa onde a comercial terminou — no mesmo <a href="/sistema-juridico/">sistema jurídico</a>, com histórico preservado.</p>
+<p>Quando o interessado decide contratar, o card vira cliente com um clique, sem retrabalho: o histórico da negociação continua na ficha dele, e o processo nasce dali com o contexto junto. A operação jurídica começa onde a comercial terminou — no mesmo <a href="/sistema-juridico/">sistema jurídico</a>, com histórico preservado.</p>
 
 <h2>Controle improvisado vs. funil organizado</h2>
 <div class="sp-tabela-wrap">
@@ -62,7 +62,7 @@ $SEO_PAGE = [
     <tr><td><strong>Follow-up</strong></td><td>Depende de alguém lembrar</td><td>Card com etapa, responsável e checklist</td></tr>
     <tr><td><strong>Conversa</strong></td><td>WhatsApp pessoal, sem registro</td><td>Atendimento vinculado ao contato no sistema</td></tr>
     <tr><td><strong>Visão do conjunto</strong></td><td>Ninguém sabe quantas conversas estão abertas</td><td>Kanban mostra o funil inteiro de uma vez</td></tr>
-    <tr><td><strong>Fechamento</strong></td><td>Recadastro manual e dados perdidos</td><td>Card vira processo com histórico junto</td></tr>
+    <tr><td><strong>Fechamento</strong></td><td>Recadastro manual e dados perdidos</td><td>Card vira cliente e o histórico continua, sem recomeçar</td></tr>
     <tr><td><strong>Quem não fechou</strong></td><td>Some sem desfecho registrado</td><td>Registro encerrado com motivo e contexto</td></tr>
   </tbody>
 </table>
@@ -100,7 +100,7 @@ HTML,
         ],
         [
             'q' => 'Como um lead vira processo no Yuris?',
-            'a' => 'O lead entra no funil como card do CRM em Kanban, vinculado a um contato do cadastro central. O card avança pelas etapas com checklist e responsável e, quando o interessado contrata, é convertido em processo — sem recadastro. Os dados do contato e o histórico da negociação seguem junto para a operação jurídica.',
+            'a' => 'O lead entra no funil como card do CRM em Kanban, vinculado a um contato do cadastro central. O card avança pelas etapas com checklist e responsável e, quando o interessado contrata, vira cliente com um clique — sem recadastro. O histórico da negociação não recomeça: documentos, etiquetas, conversas de WhatsApp e tarefas seguem junto, e o processo pode ser aberto direto dali.',
         ],
         [
             'q' => 'Os leads ficam duplicados com os clientes no sistema?',

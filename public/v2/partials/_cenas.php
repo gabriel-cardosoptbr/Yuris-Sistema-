@@ -88,7 +88,7 @@ if (!function_exists('lp2_scene')) {
               <div class="dm-col"><span class="dm-coltag">Cliente</span></div>
             </div>
             <div class="dm-lead dm-el">Construtora Lima<small>Lead, R$ 12.000</small></div>
-            <span class="dm-flag dm-funnel-done dm-el">Convertido em novo processo</span>
+            <span class="dm-flag dm-funnel-done dm-el">Tornou-se cliente, com o histórico junto</span>
           </div>
         <?php break;
 
@@ -159,6 +159,49 @@ if (!function_exists('lp2_scene')) {
                 <span class="dm-bar dm-bar-hot" style="--h:92%"><b></b><i>Jun</i></span>
               </div>
             </div>
+          </div>
+        <?php break;
+
+        // ──────────────── DO LEAD AO CLIENTE (a linha do tempo que nao recomeca) ────────────────
+        // A cena mostra UMA lista so, com a conversao no meio dela. E esse o ponto:
+        // quem ve precisa perceber que os eventos de antes continuam ali depois.
+        case 'cliente': ?>
+          <div class="lp2-demo dm-chat" data-feature-scene="cliente" aria-hidden="true">
+            <div class="dm-card dm-el">
+              <span class="dm-tag">Ficha do cliente</span>
+              <div class="dm-num">Construtora Lima</div>
+              <div class="dm-badges">
+                <span class="dm-badge">Trabalhista</span>
+                <span class="dm-badge dm-resp">Prioridade alta</span>
+                <span class="dm-badge">Indicação</span>
+              </div>
+            </div>
+            <ul class="dm-timeline">
+              <li class="dm-el"><time>12/03</time> Entrou como prospecção <span class="dm-pill">indicação</span></li>
+              <li class="dm-el"><time>14/03</time> Ligação registrada, 18 min</li>
+              <li class="dm-el"><time>19/03</time> Contrato anexado</li>
+              <li class="dm-el dm-hot" data-hot><time>02/04</time> Tornou-se cliente</li>
+              <li class="dm-el"><time>08/04</time> Processo distribuído</li>
+            </ul>
+            <span class="dm-chip">O histórico não recomeça: a conversão é um evento, não um recomeço</span>
+          </div>
+        <?php break;
+
+        // ──────────────── ABA CLIENTES (ficha completa) ────────────────
+        case 'tab-clientes': ?>
+          <div class="lp2-demo dm-tab-chat" data-tab-scene="clientes" aria-hidden="true">
+            <div class="dm-conv"><span class="dm-avatar">CL</span><div class="dm-conv-b"><b>Construtora Lima</b><span>Cliente desde 02/04, veio de indicação</span></div></div>
+            <div class="dm-card">
+              <span class="dm-tag">O que acompanha a ficha</span>
+              <div class="dm-row"><span>Documentos</span><b>4 arquivos</b></div>
+              <div class="dm-row"><span>Contatos registrados</span><b>7 registros</b></div>
+              <div class="dm-row"><span>Campo personalizado</span><b>NIT, admissão</b></div>
+            </div>
+            <div class="dm-badges">
+              <span class="dm-badge">Trabalhista</span>
+              <span class="dm-badge dm-resp">Prioridade alta</span>
+            </div>
+            <span class="dm-chip">Conversas, tarefas e processos vêm junto da prospecção</span>
           </div>
         <?php break;
 

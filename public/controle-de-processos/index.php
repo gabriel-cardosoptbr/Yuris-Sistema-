@@ -67,8 +67,8 @@ $SEO_PAGE = [
 </table>
 </div>
 
-<h2>Do comercial ao jurídico: o card vira processo</h2>
-<p>O controle começa antes mesmo de o número do processo existir. No funil comercial do Yuris, cada oportunidade é um card no Kanban, com checklist e vínculo com o contato. Quando a proposta fecha, o card se converte em processo — sem redigitar dados, sem cadastro duplicado. O cliente do funil é o mesmo cliente do processo, do atendimento e do financeiro, porque o cadastro central é único e reaproveitado por todos os módulos.</p>
+<h2>Do comercial ao jurídico: o card vira cliente, e o processo nasce dali</h2>
+<p>O controle começa antes mesmo de o número do processo existir. No funil comercial do Yuris, cada oportunidade é um card no Kanban, com checklist e vínculo com o contato. Quando a proposta fecha, o card vira cliente com um clique, e o processo nasce dali — sem redigitar dados, sem cadastro duplicado. O histórico não recomeça: a ficha do cliente mostra tudo desde o primeiro contato. O cliente do funil é o mesmo cliente do processo, do atendimento e do financeiro, porque o cadastro central é único e reaproveitado por todos os módulos.</p>
 
 <h2>Vínculos entre advogados e permissões por escopo</h2>
 <p>Processo raramente é trabalho de uma pessoa só. O Yuris permite vincular mais de um advogado ao mesmo processo, cada um enxergando o mesmo histórico, os mesmos prazos e as mesmas tarefas. As permissões por escopo definem quem vê e quem altera o quê — inclusive em estruturas com matriz e filiais, onde o acesso precisa respeitar a unidade. A organização da equipe em torno dos processos é parte da <a href="/gestao-escritorio-advocacia/">gestão do escritório de advocacia</a> como um todo.</p>
