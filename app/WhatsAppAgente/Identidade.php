@@ -207,6 +207,23 @@ final class Identidade
         $jid   = $jid !== null && trim($jid) !== '' ? trim($jid) : null;
         $lid   = $lid !== null && trim($lid) !== '' ? trim($lid) : null;
 
+        /*
+         * O LID NUNCA É O TELEFONE. Achado no backfill de produção de 10/09/2026:
+         * `7623902498956@lid` entrou com "telefone" 7623902498956, porque
+         * `whatsapp_chats.phone` às vezes guarda o próprio LID e ele por acaso
+         * tem 13 dígitos, passando na validação de tamanho.
+         *
+         * Um número desses não disca. Mostrá-lo na tela seria pior que não
+         * mostrar nada: ela ligaria para um número que não existe. Então quando
+         * os dígitos do "telefone" são os mesmos do LID, não é telefone.
+         */
+        if ($phone !== null && $lid !== null) {
+            $digitosLid = self::analisarJid($lid)['digitos'];
+            if ($digitosLid !== '' && $digitosLid === $phone) {
+                $phone = null;
+            }
+        }
+
         if ($jid === null && $lid === null && $phone === null) {
             return null;
         }

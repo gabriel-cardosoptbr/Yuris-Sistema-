@@ -60,13 +60,15 @@ echo "Cenário: instância $INST da conta $ACC\n";
 $FONE_A = '5599900010001';
 $FONE_B = '5599900010002';
 $FONE_C = '5599900010003';
+$FONE_D = '5599900010004';
 $LID_A  = '777700000000001@lid';
 $LID_B  = '777700000000002@lid';
 $LID_C  = '777700000000003@lid';
 
 $limpar = function () use ($pdo) {
     $pdo->exec("DELETE FROM whatsapp_identidades
-                 WHERE phone LIKE '55999000%' OR jid LIKE '55999000%' OR lid LIKE '7777%'");
+                 WHERE phone LIKE '55999000%' OR jid LIKE '55999000%'
+                    OR lid LIKE '7777%' OR lid = '7623902498956@lid'");
 };
 $limpar();
 
@@ -204,6 +206,29 @@ eq(null, Identidade::registrar($ACC, $INST, null, null, '123', 'Fone Curto', 'cr
    'telefone inválido sozinho não cria identidade');
 
 /* ===================================================================== */
+secao('o LID nunca vira telefone');
+
+/*
+ * Caso REAL, achado no backfill de produção de 10/09/2026: o LID
+ * `7623902498956@lid` entrou com "telefone" 7623902498956, porque
+ * `whatsapp_chats.phone` às vezes guarda o próprio LID e ele por acaso tem 13
+ * dígitos. Um número desses não disca: mostrá-lo é pior que não mostrar nada.
+ */
+$LID_FALSO = '7623902498956@lid';
+$idFalso = Identidade::registrar($ACC, $INST, null, $LID_FALSO, '7623902498956', 'Falso Telefone', 'crm');
+ok($idFalso !== null, 'a identidade é criada mesmo assim (o LID vale, é endereço)');
+$lf = Identidade::porEndereco($INST, $LID_FALSO);
+eq(null, $lf['phone'], 'mas os dígitos do próprio LID NÃO viram telefone');
+eq(null, $lf['jid'],   'e nenhum JID é montado a partir deles');
+$pdo->prepare('DELETE FROM whatsapp_identidades WHERE id = ?')->execute([(int) $idFalso]);
+
+// Um LID com um telefone de VERDADE junto continua funcionando.
+$idOk = Identidade::registrar($ACC, $INST, null, $LID_FALSO, $FONE_D, null, 'messages_upsert');
+$lo = Identidade::porEndereco($INST, $LID_FALSO);
+eq($FONE_D, $lo['phone'], 'telefone diferente do LID entra normalmente');
+$pdo->prepare('DELETE FROM whatsapp_identidades WHERE id = ?')->execute([(int) $idOk]);
+
+/* ===================================================================== */
 secao('a FUSÃO: o Alt prova que o LID e o telefone são a mesma pessoa');
 
 // Duas identidades separadas, como o histórico realmente produz: uma nasceu do
@@ -314,7 +339,8 @@ echo "\n== limpeza ==\n";
 $limpar();
 $sobra = (int) $pdo->query(
     "SELECT COUNT(*) FROM whatsapp_identidades
-      WHERE phone LIKE '55999000%' OR jid LIKE '55999000%' OR lid LIKE '7777%'"
+      WHERE phone LIKE '55999000%' OR jid LIKE '55999000%'
+         OR lid LIKE '7777%' OR lid = '7623902498956@lid'"
 )->fetchColumn();
 eq(0, $sobra, 'nenhuma identidade de teste ficou no banco');
 
