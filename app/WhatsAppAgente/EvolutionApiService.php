@@ -127,6 +127,13 @@ class EvolutionApiService
         if (!$events) {
             $events = [
                 'MESSAGES_UPSERT', 'MESSAGES_UPDATE',
+                // MESSAGES_DELETE entrou em 10/09/2026. Sem ele, apagar a mensagem
+                // no celular nao fazia efeito nenhum na tela: o Yuris ja sabia
+                // tratar o evento (WhatsAppMessage::markDeletedByWamid), mas a
+                // Evolution nunca o enviava, entao a mensagem continuava exibida
+                // como se o sistema estivesse guardando o que a pessoa mandou
+                // apagar. Canal novo passa a nascer com ele.
+                'MESSAGES_DELETE',
                 'CONNECTION_UPDATE', 'QRCODE_UPDATED',
                 'CONTACTS_UPDATE',  'CONTACTS_UPSERT', 'CHATS_UPSERT',
                 'GROUPS_UPSERT', 'GROUP_UPDATE', 'GROUP_PARTICIPANTS_UPDATE',
