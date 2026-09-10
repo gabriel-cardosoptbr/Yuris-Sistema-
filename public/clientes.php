@@ -1760,6 +1760,25 @@ window.Clientes = (function () {
 
         // Deep-link ?open=ID — abre o cliente direto (ex: vindo do vínculo de
         // processo "Ver ficha na aba Clientes"). Auditoria 2026-06-01.
+        // Cadastro rapido vindo do Chat WhatsApp: abre a ficha nova ja com o
+        // nome e o telefone da conversa. Mesmo caminho do lado da prospeccao.
+        try {
+            const p = new URLSearchParams(location.search);
+            if (p.get('novo_cadastro')) {
+                const nome = p.get('nome') || '';
+                const tel  = p.get('telefone') || '';
+                history.replaceState({}, '', location.pathname);
+                setTimeout(() => {
+                    try {
+                        openCreateModal();
+                        if (nome) $('#cliNome').value = nome;
+                        if (tel)  { $('#cliWhatsapp').value = tel; $('#cliTelefone').value = tel; }
+                        $('#cliNome').focus();
+                    } catch (e) {}
+                }, 400);
+            }
+        } catch (e) {}
+
         try {
             const openId = new URLSearchParams(location.search).get('open');
             if (openId) {

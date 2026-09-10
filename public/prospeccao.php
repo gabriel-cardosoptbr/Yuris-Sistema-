@@ -3110,6 +3110,23 @@ function column_display_name(array $col): string
           alert(msg);
           return;
         }
+        // Veio do "Cadastrar" de uma conversa? Amarra a conversa ao card recem
+        // criado. Sem isto a pessoa teria de voltar ao chat e vincular a mao,
+        // que e exatamente o passo que este caminho existe para eliminar.
+        const jidPendente = this.dataset.vincularJid;
+        if (jidPendente && json.id) {
+          try {
+            // `action` vai no CORPO, nao na query: chats.php le $payload['action'].
+            await fetch('/api/whatsapp/chats.php', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf},
+              // chats.php confere `_csrf` no CORPO, nao o header X-CSRF-TOKEN.
+              body: JSON.stringify({ action: 'link', remote_jid: jidPendente, card_id: json.id, _csrf: csrf })
+            });
+          } catch (e) { /* o card ja existe; o vinculo e bonus */ }
+          delete this.dataset.vincularJid;
+        }
+
         closeModal('modalCreate');
         this.reset();
         await loadAll();
@@ -3511,6 +3528,9 @@ function column_display_name(array $col): string
         const u = new URL(location.href);
         u.searchParams.delete('open');
         u.searchParams.delete('contato');
+        // Cadastro rapido vindo do chat: sem limpar, um F5 reabriria o modal
+        // com os mesmos dados e a pessoa cadastraria duas vezes a mesma pessoa.
+        ['novo_cadastro', 'nome', 'telefone', 'jid'].forEach(k => u.searchParams.delete(k));
         const qs = u.searchParams.toString();
         history.replaceState(null, '', u.pathname + (qs ? '?' + qs : '') + u.hash);
       } catch (e) {}
@@ -3527,6 +3547,33 @@ function column_display_name(array $col): string
 
       // Se foi reload (F5/Ctrl+R), aborta auto-open mesmo com params presentes
       if (isReload) return;
+
+      // ── Cadastro rapido vindo do Chat WhatsApp ──────────────────────────
+      // O botao "Cadastrar" da conversa manda nome, telefone e o jid. Aqui o
+      // modal abre JA PREENCHIDO: e o que substitui o "Vincular", que obrigava
+      // a procurar um registro que ainda nao existe.
+      if (params.get('novo_cadastro')) {
+        const nome = params.get('nome') || '';
+        const tel  = params.get('telefone') || '';
+        const jid  = params.get('jid') || '';
+        _cleanUrlParams();
+        if (!columnsCache || columnsCache.length === 0) {
+          if (window.Yuris) Yuris.toast('Crie uma coluna no funil antes de cadastrar o lead.', 'error');
+          return;
+        }
+        renderColumnSelectOptions('createColunaId');
+        const f = byId('createForm');
+        if (f) {
+          if (f.cliente_nome)      f.cliente_nome.value      = nome;
+          if (f.telefone_whatsapp) f.telefone_whatsapp.value = tel;
+          // Guarda o jid para amarrar a conversa ao card assim que ele for salvo,
+          // sem obrigar a pessoa a voltar no chat para vincular.
+          f.dataset.vincularJid = jid;
+        }
+        openModal('modalCreate');
+        setTimeout(() => { try { f.cliente_nome.focus(); } catch(e){} }, 120);
+        return;
+      }
 
       // Navegação fresca: auto-abre o card solicitado
       if (openId) { openEditModal(openId); return; }

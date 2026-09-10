@@ -212,6 +212,48 @@ try {
             }
             break;
 
+        // ── Mensagem apagada no celular ("apagar para todos") ────────────
+        //
+        // Este evento CHEGAVA e caía no default do switch, descartado em
+        // silêncio. Era por isso que apagar a mensagem no celular não fazia
+        // efeito nenhum na tela do Yuris.
+        //
+        // O formato varia entre versões da Evolution, e as três formas abaixo
+        // já foram vistas em campo. Tratar só uma delas seria consertar o bug
+        // em parte das instalações e não em outras:
+        //
+        //   {key: {...}}            uma mensagem
+        //   [{key: {...}}, ...]     lote
+        //   {keys: [{...}, ...]}    lote no formato antigo
+        case 'messages.delete':
+        case 'message.delete':
+            $alvos = [];
+            if (isset($data['keys']) && is_array($data['keys'])) {
+                $alvos = $data['keys'];
+            } elseif (isset($data['key'])) {
+                $alvos = [$data];
+            } elseif (isset($data['id'])) {
+                $alvos = [['key' => $data]];   // já é a própria key, sem envelope
+            } elseif (is_array($data)) {
+                $alvos = $data;
+            }
+
+            foreach ($alvos as $alvo) {
+                // Aceita tanto {key:{id}} quanto {id} solto.
+                $wamid = $alvo['key']['id'] ?? ($alvo['id'] ?? null);
+                if (!$wamid) {
+                    continue;
+                }
+                try {
+                    $msgModel->markDeletedByWamid($instanceId, (string) $wamid);
+                } catch (\Throwable $e) {
+                    // Uma exclusão que falha não pode derrubar as outras do lote,
+                    // mesmo padrão do handleMessageUpsert.
+                    error_log('[whatsapp/webhook] markDeletedByWamid falhou: ' . $e->getMessage());
+                }
+            }
+            break;
+
         // ── Atualização de conexão ───────────────────────────────────────
         case 'connection.update':
             $state = strtolower($data['state'] ?? ($data['connection'] ?? 'close'));
@@ -273,6 +315,10 @@ try {
     // parte). Best-effort (bumpEvents nunca derruba o webhook).
     if (in_array($event, [
         'messages.upsert', 'send_message', 'messages.update',
+        // Sem 'messages.delete' aqui, a mensagem sumiria no banco e continuaria
+        // na tela até alguém sair e voltar: o front só refaz a lista quando o
+        // cursor de eventos do canal muda.
+        'messages.delete', 'message.delete',
         'contacts.update', 'contacts.upsert',
         'chats.upsert', 'chats.update',
         'groups.upsert', 'groups.update',
@@ -529,6 +575,20 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
         // $isNewInbound exclui replays/duplicatas (não re-dispara o LLM).
         if ($isNewInbound) {
             WhatsAppAgentBridge::maybeQueueAgentReply($accountId, $instanceId, $remoteJid, $msgType, $msgContent, $wamid, $pushName);
+
+            // ── Captação automática: quem escreve já vira card na prospecção ──
+            //
+            // Fica sob $isNewInbound de propósito. A Evolution reenvia histórico
+            // ao reconectar, e sem essa guarda uma reconexão criaria um card para
+            // cada mensagem antiga de cada conversa: o funil da advogada viraria
+            // lixo em um minuto.
+            //
+            // Depois do save() porque o serviço olha `whatsapp_chats` para saber
+            // se a conversa já tem vínculo, e é o save que garante que o chat
+            // existe. Antes dele, toda conversa pareceria nova.
+            //
+            // Desligado por padrão; ver App\Prospeccao\CaptacaoAutomatica.
+            \App\Prospeccao\CaptacaoAutomatica::daMensagem($accountId, $instanceId, $remoteJid, $pushName);
         }
     } else {
         // fromMe: distingue o ECO do proprio bot (ignora, anti-loop) do ENVIO MANUAL por um

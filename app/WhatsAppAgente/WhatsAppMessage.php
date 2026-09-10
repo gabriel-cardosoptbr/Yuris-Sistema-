@@ -893,6 +893,85 @@ class WhatsAppMessage
         return $stmt->execute([$status, $instanceId, $wamid]);
     }
 
+    /**
+     * Marca como apagada a mensagem que o WhatsApp avisou ter sido excluída
+     * (evento `messages.delete`, o "apagar para todos").
+     *
+     * ---------------------------------------------------------------------
+     * POR QUE ISTO NÃO EXISTIA
+     * ---------------------------------------------------------------------
+     * O webhook tratava `messages.upsert`, `messages.update`, `chats.*`,
+     * `contacts.*` e `connection.update`. `messages.delete` chegava e era
+     * DESCARTADO em silêncio pelo `default` do switch. Resultado: a advogada
+     * apagava a mensagem no celular e ela continuava na tela do Yuris, como se
+     * o sistema estivesse guardando o que ela pediu para sumir.
+     *
+     * ---------------------------------------------------------------------
+     * MARCA, NÃO APAGA
+     * ---------------------------------------------------------------------
+     * `is_deleted = 1`, e não DELETE, pelo mesmo motivo que o resto do sistema
+     * usa soft delete: a conversa é prova de atendimento, e "havia uma mensagem
+     * aqui e ela foi apagada" é informação diferente de "nunca houve mensagem".
+     * O front já sabe desenhar isso (chat.js lê `is_deleted` e escreve
+     * "Mensagem apagada"), então nada muda na tela além do texto certo.
+     *
+     * ---------------------------------------------------------------------
+     * O PREVIEW DA LISTA TAMBÉM PRECISA MUDAR
+     * ---------------------------------------------------------------------
+     * `whatsapp_chats.last_message_content` é denormalizado. Sem o segundo
+     * UPDATE, a mensagem sumiria de dentro da conversa e continuaria estampada
+     * na lista de conversas, que é onde ela mais incomoda.
+     *
+     * Só troca o preview quando o texto guardado é o da mensagem apagada: se
+     * outra mensagem chegou depois, o preview atual é dela e está certo.
+     *
+     * Escopado por `instance_id`, como `updateStatus`: um wamid repetido entre
+     * tenants (replay, teste, forja) não pode apagar mensagem de outro.
+     *
+     * @return bool true se alguma linha foi marcada
+     */
+    public function markDeletedByWamid(int $instanceId, string $wamid): bool
+    {
+        if ($wamid === '') {
+            return false;
+        }
+
+        // Guarda o que era preciso ANTES de marcar: depois do UPDATE não há como
+        // saber qual conversa era, nem se o texto batia com o preview.
+        $st = $this->db->prepare(
+            'SELECT id, remote_jid, message_content
+               FROM whatsapp_messages
+              WHERE instance_id = ? AND wamid = ?
+              LIMIT 1'
+        );
+        $st->execute([$instanceId, $wamid]);
+        $msg = $st->fetch(\PDO::FETCH_ASSOC);
+        if (!$msg) {
+            return false; // exclusão de mensagem que nunca chegou aqui
+        }
+
+        $up = $this->db->prepare(
+            'UPDATE whatsapp_messages
+                SET is_deleted = 1
+              WHERE instance_id = ? AND wamid = ? AND COALESCE(is_deleted,0) = 0'
+        );
+        $up->execute([$instanceId, $wamid]);
+        if ($up->rowCount() < 1) {
+            return false; // já estava marcada: evento repetido, nada a fazer
+        }
+
+        $texto = (string) ($msg['message_content'] ?? '');
+        if ($texto !== '') {
+            $this->db->prepare(
+                'UPDATE whatsapp_chats
+                    SET last_message_content = ?
+                  WHERE instance_id = ? AND remote_jid = ? AND last_message_content = ?'
+            )->execute(['Mensagem apagada', $instanceId, (string) $msg['remote_jid'], $texto]);
+        }
+
+        return true;
+    }
+
     /** Pinnar/desafixar chat. */
     public function togglePin(int $instanceId, string $remoteJid): bool
     {

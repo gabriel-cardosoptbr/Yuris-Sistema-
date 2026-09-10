@@ -1848,6 +1848,16 @@ $isSuper       = !empty($_SESSION['is_super_admin']);
           <svg style="display:inline;width:13px;height:13px;margin-right:5px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="8" cy="16" r="1"/><circle cx="16" cy="16" r="1"/><path d="M12 7v4"/><circle cx="12" cy="5" r="2"/></svg>
           <span id="btnAgentToggleLabel">Agente</span>
         </button>
+        <!-- Captacao automatica: quem manda mensagem vira card na prospeccao.
+             Fica ao lado do toggle do agente porque as duas sao decisoes do
+             MESMO tipo: o que o sistema faz sozinho quando alguem escreve.
+             Nasce desligada; a lista de conversas de um escritorio real tem
+             banco e cobranca, e ligar para todo mundo encheria o funil. -->
+        <button class="conn-btn-secondary" id="btnCaptacaoToggle" onclick="ChatApp.toggleCaptacao()" style="display:none"
+                title="Quando ligada, cada pessoa nova que mandar mensagem vira um card na Prospeccao, ja vinculado a conversa">
+          <svg style="display:inline;width:13px;height:13px;margin-right:5px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          <span id="btnCaptacaoToggleLabel">Captacao</span>
+        </button>
         <button class="conn-btn-secondary" id="btnDisconnect" onclick="ChatApp.disconnectWhatsApp()" style="display:none">
           Desconectar
         </button>
@@ -2017,6 +2027,16 @@ $isSuper       = !empty($_SESSION['is_super_admin']);
                       style="width:auto;padding:0 10px;gap:5px;font-size:.75rem;font-weight:600;color:#F59E0B;border-color:rgba(245,158,11,.3)">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:13px;height:13px;flex-shrink:0"><path d="M18 11V6a2 2 0 0 0-4 0"/><path d="M14 10V4a2 2 0 0 0-4 0v2"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
                 <span id="btnTakeoverLabel">Assumir</span>
+              </button>
+
+              <!-- Cadastro rapido: pega nome e telefone da conversa e abre a tela
+                   certa com o formulario JA ABERTO e preenchido. Nasceu do relato
+                   de que "Vincular" confunde: pedir para a pessoa procurar o
+                   registro que ainda nao existe e o passo que sobra. -->
+              <button class="chat-icon-btn" onclick="ChatApp.abrirCadastroRapido()" title="Cadastrar esta pessoa"
+                      style="width:auto;padding:0 10px;gap:5px;font-size:.75rem;font-weight:600;color:#6EE7A0;border-color:rgba(110,231,160,.3)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:13px;height:13px;flex-shrink:0"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                Cadastrar
               </button>
 
               <button class="chat-icon-btn" onclick="ChatApp.openLinkModal()" title="Vincular ao sistema"
@@ -2218,6 +2238,42 @@ $isSuper       = !empty($_SESSION['is_super_admin']);
     <div class="modal-footer">
       <button class="conn-btn-secondary" onclick="ChatApp.closeSettings()">Cancelar</button>
       <button class="conn-btn-primary"   onclick="ChatApp.saveSettings()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Cadastro rapido a partir da conversa ── -->
+<div class="modal-overlay" id="cadastroRapidoModal" onclick="if(event.target===this)ChatApp.fecharCadastroRapido()">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-header">
+      <h3>Cadastrar no sistema</h3>
+      <button class="modal-close" onclick="ChatApp.fecharCadastroRapido()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.82rem;color:#7A8898;margin:0 0 12px">
+        O nome e o telefone desta conversa v&atilde;o preenchidos, e o formul&aacute;rio abre pronto.
+      </p>
+      <div style="display:flex;gap:8px;align-items:center;padding:10px 12px;border-radius:10px;
+                  background:rgba(126,184,247,.06);border:1px solid rgba(126,184,247,.16);margin-bottom:14px">
+        <span style="font-weight:700;font-size:.9rem" id="cadRapidoNome">&mdash;</span>
+        <span style="color:#7A8898;font-size:.8rem" id="cadRapidoTel"></span>
+      </div>
+      <div style="display:grid;gap:8px">
+        <button class="chat-icon-btn" onclick="ChatApp.cadastrarComo('prospeccao')"
+                style="width:100%;height:auto;padding:12px;justify-content:flex-start;gap:10px;
+                       font-size:.86rem;font-weight:600;color:#7EB8F7;border-color:rgba(126,184,247,.28)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;flex-shrink:0"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          <span style="text-align:left">Como prospec&ccedil;&atilde;o<br><small style="font-weight:400;color:#7A8898">Entra no funil comercial</small></span>
+        </button>
+        <button class="chat-icon-btn" onclick="ChatApp.cadastrarComo('cliente')"
+                style="width:100%;height:auto;padding:12px;justify-content:flex-start;gap:10px;
+                       font-size:.86rem;font-weight:600;color:#6EE7A0;border-color:rgba(110,231,160,.28)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;flex-shrink:0"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+          <span style="text-align:left">Como cliente<br><small style="font-weight:400;color:#7A8898">J&aacute; fechou, vai direto para a base</small></span>
+        </button>
+      </div>
     </div>
   </div>
 </div>

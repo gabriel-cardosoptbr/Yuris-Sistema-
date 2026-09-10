@@ -215,6 +215,7 @@ const ChatApp = (() => {
     state.status = status;
     if (instance && instance.id) state.instanceId = Number(instance.id);
     loadAgentToggle();
+    loadCaptacaoToggle();
     const dot   = qs('#waDot');
     const label = qs('#waStatusLabel');
     const badge = qs('#connBadge');
@@ -2005,12 +2006,75 @@ const ChatApp = (() => {
     }
   }
 
+  // ── Cadastro rápido a partir da conversa ─────────────────────
+  //
+  // O relato foi direto: "esse negócio de vincular está confundindo totalmente
+  // elas, elas esperam algo automático". Vincular pede que a pessoa PROCURE um
+  // registro que muitas vezes ainda não existe. Este caminho faz o contrário:
+  // pega o nome e o telefone que a conversa já tem e abre a tela certa com o
+  // formulário aberto e preenchido.
+  //
+  // Para conversa nova isso nem é mais necessário quando a captação automática
+  // está ligada (o card nasce sozinho). Isto aqui atende as conversas que JÁ
+  // existiam antes, que no caso dela são 92.
+  function abrirCadastroRapido() {
+    if (!state.currentJid) return;
+
+    const chat = state.chats.find(c => c.remote_jid === state.currentJid);
+    if (chat && chat.is_group == 1) {
+      if (window.Yuris && Yuris.toast) Yuris.toast('Grupo não vira cadastro. Abra a conversa da pessoa.', 'info');
+      return;
+    }
+
+    // Mesma resolução do cabeçalho: nome tratado e telefone REAL, nunca o LID.
+    const tel = (chat && chat.real_phone)
+             || (/^\d{10,13}$/.test(String(chat && chat.phone || '')) ? chat.phone : '');
+    const nome = (document.getElementById('activeName') || {}).textContent || '';
+
+    _cadRapido = {
+      nome: (nome === 'Contato' || nome === 'Grupo') ? '' : nome.trim(),
+      telefone: String(tel || '')
+    };
+
+    if (!_cadRapido.nome && !_cadRapido.telefone) {
+      if (window.Yuris && Yuris.toast) {
+        Yuris.toast('Esta conversa não tem nome nem telefone identificado ainda.', 'error');
+      }
+      return;
+    }
+
+    setText('cadRapidoNome', _cadRapido.nome || 'Sem nome');
+    setText('cadRapidoTel',  _cadRapido.telefone ? formatPhone(_cadRapido.telefone) : 'sem telefone');
+    const m = qs('#cadastroRapidoModal');
+    if (m) m.classList.add('open');
+  }
+
+  function fecharCadastroRapido() {
+    const m = qs('#cadastroRapidoModal');
+    if (m) m.classList.remove('open');
+  }
+
+  // Abre a tela de destino com os parâmetros que fazem o modal de cadastro
+  // aparecer já preenchido. `jid` vai junto para a tela conseguir amarrar a
+  // conversa ao registro assim que ele for salvo, sem a pessoa voltar aqui.
+  function cadastrarComo(destino) {
+    const p = new URLSearchParams();
+    p.set('novo_cadastro', '1');
+    if (_cadRapido.nome)     p.set('nome', _cadRapido.nome);
+    if (_cadRapido.telefone) p.set('telefone', _cadRapido.telefone);
+    if (state.currentJid)    p.set('jid', state.currentJid);
+
+    const url = (destino === 'cliente' ? '/clientes.php?' : '/prospeccao.php?') + p.toString();
+    fecharCadastroRapido();
+    window.location.href = url;
+  }
   // ── Vincular ─────────────────────────────────────────────────
   // ── Link pickers ─────────────────────────────────────────────
   let _linkData         = { cards: [], processos: [], users: [], teams: [] };
   let _linkPicker       = { card: null, processos: [], user: null }; // processos: array
   let _linkClickOutside = null;
   let _autoOpenDone     = false;
+  let _cadRapido        = { nome: '', telefone: '' };
 
   const _PICKER_CFG = {
     card    : { dropdown: 'pickerCardDropdown',  list: 'pickerCardList',  search: 'pickerCardSearch',  nameEl: 'pickerCardName',  trigger: 'pickerCard' },
@@ -3212,6 +3276,66 @@ const ChatApp = (() => {
       if (/owner|admin|acesso|unauthorized|encontrad/i.test(e.message || '')) state._agentToggleFetchedFor = state.instanceId;
     }
   }
+  // ── Captação automática (por conta) ──────────────────────────
+  // Espelha o padrão do toggle do agente: o botão mostra o estado atual e um
+  // clique alterna. Some para quem não pode mexer.
+  async function loadCaptacaoToggle() {
+    try {
+      const r = await apiFetch('/api/whatsapp/captacao_toggle.php');
+      if (!r || !r.ok || !r.pode_alterar) return;
+      renderCaptacaoToggle(!!r.ligada);
+    } catch (e) { /* botão simplesmente não aparece */ }
+  }
+
+  function renderCaptacaoToggle(ligada) {
+    const btn = qs('#btnCaptacaoToggle'); const lbl = qs('#btnCaptacaoToggleLabel');
+    if (!btn) return;
+    btn.style.display = 'inline-flex';
+    btn.dataset.ligada = ligada ? '1' : '0';
+    if (ligada) {
+      lbl.textContent = 'Captação: Ligada';
+      btn.style.color = '#10b981'; btn.style.borderColor = 'rgba(16,185,129,.45)';
+      btn.title = 'Cada pessoa nova que mandar mensagem vira card na Prospecção, já vinculado à conversa. Clique para desligar.';
+    } else {
+      lbl.textContent = 'Captação: Desligada';
+      btn.style.color = '#9ab0c9'; btn.style.borderColor = 'rgba(160,180,210,.3)';
+      btn.title = 'Mensagem nova não cria card sozinha. Clique para ligar a captação automática.';
+    }
+  }
+
+  async function toggleCaptacao() {
+    const btn = qs('#btnCaptacaoToggle'); if (!btn) return;
+    const ligando = btn.dataset.ligada !== '1';
+
+    if (ligando) {
+      const ok = await (window.Yuris && Yuris.confirm
+        ? Yuris.confirm(
+            'A partir de agora, toda pessoa NOVA que mandar mensagem vira um card na Prospecção, já vinculado à conversa.\n\n' +
+            'Vale para quem ainda não é card nem cliente. Grupos ficam de fora.',
+            { title: 'Ligar captação automática', okLabel: 'Ligar', type: 'info' })
+        : Promise.resolve(false));
+      if (!ok) return;
+    }
+
+    btn.disabled = true;
+    try {
+      const r = await apiFetch('/api/whatsapp/captacao_toggle.php', 'POST', { ligada: ligando ? 1 : 0, _csrf: CSRF });
+
+      if (!r || !r.ok) {
+        if (window.Yuris) Yuris.toast((r && r.error) || 'Não foi possível salvar.', 'error');
+        return;
+      }
+      renderCaptacaoToggle(!!r.ligada);
+      if (window.Yuris) {
+        Yuris.toast(r.ligada ? 'Captação automática ligada.' : 'Captação automática desligada.', 'success');
+      }
+    } catch (e) {
+      if (window.Yuris) Yuris.toast('Falha de conexão.', 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
   function renderAgentToggle(r) {
     const btn = qs('#btnAgentToggle'); const lbl = qs('#btnAgentToggleLabel'); if (!btn) return;
     btn.style.display = 'inline-flex';
@@ -3265,6 +3389,8 @@ const ChatApp = (() => {
     syncChats,
     openContacts, closeContacts, saveContactName,
     openLinkModal, closeLinkModal, saveLink,
+    toggleCaptacao, loadCaptacaoToggle,
+    abrirCadastroRapido, fecharCadastroRapido, cadastrarComo,
     openLinkPicker, filterLinkPicker, selectLinkItem, clearLinkItem, removeLinkedProcesso,
     toggleSectorDropdown, setSectorDirect,
     openImage,
