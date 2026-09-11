@@ -175,6 +175,27 @@ if ($method === 'PUT' || $method === 'PATCH') {
             $eventKey = 'card.responsavel_changed';
         }
         $ownerAcc = (int)($updatedCard['account_id'] ?? $prevCard['account_id'] ?? $accountId);
+
+        /*
+         * NOTIFICACAO DE RESPONSAVEL. O bloco acima ja tinha o `prev` e ja
+         * detectava a troca, para o webhook: reaproveitar isso e melhor que
+         * recalcular, porque duas deteccoes da mesma coisa divergem com o tempo.
+         *
+         * Avisa os DOIS lados: quem entrou e quem saiu. O segundo importa,
+         * porque quem era responsavel precisa saber que nao e mais, senao segue
+         * contando com um compromisso que ja nao e dele.
+         */
+        if ($eventKey === 'card.responsavel_changed') {
+            \App\Notificacoes\Aviso::responsavel(
+                $ownerAcc, 'card', (int)$id,
+                (string)($updatedCard['cliente_nome'] ?? $updatedCard['titulo'] ?? ('#' . $id)),
+                (int)($input['responsavel_user_id'] ?? 0) ?: null,
+                (int)($prevCard['responsavel_user_id'] ?? 0) ?: null,
+                $user_id,
+                \App\Notificacoes\Movimento::urlDe('card', (int)$id)
+            );
+        }
+
         WebhookDispatcher::fire($ownerAcc, $eventKey, WebhookDispatcher::buildPayload($eventKey, [
             'entity' => 'card', 'entity_id' => $id, 'card_id' => $id,
             'data' => $updatedCard, 'previous_data' => $prevCard,

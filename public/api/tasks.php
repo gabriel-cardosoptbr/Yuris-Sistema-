@@ -157,6 +157,32 @@ if ($method === 'PUT') {
 
     if (!empty($changes)) TaskAudit::onTaskUpdated($id, $changes);
 
+    /*
+     * NOTIFICACAO DE RESPONSAVEL. O $changes acima ja foi montado para o
+     * historico processual e ja contem `responsavel_id` quando ele mudou:
+     * reaproveitar e melhor que comparar de novo.
+     *
+     * A conta vem do QUADRO, nao da tarefa: `tasks` nao tem account_id.
+     */
+    if (isset($changes['responsavel_id'])) {
+        try {
+            $pdoN = \App\Core\Database::getConnection();
+            $stN  = $pdoN->prepare('SELECT b.account_id FROM tasks t JOIN task_boards b ON b.id = t.board_id WHERE t.id = ? LIMIT 1');
+            $stN->execute([$id]);
+            $accTarefa = (int) ($stN->fetchColumn() ?: 0);
+            if ($accTarefa > 0) {
+                \App\Notificacoes\Aviso::responsavel(
+                    $accTarefa, 'tarefa', $id,
+                    (string)($input['titulo'] ?? $task['titulo'] ?? ('#' . $id)),
+                    (int)$changes['responsavel_id'][1] ?: null,
+                    (int)$changes['responsavel_id'][0] ?: null,
+                    $userId,
+                    \App\Notificacoes\Movimento::urlDe('tarefa', $id)
+                );
+            }
+        } catch (\Throwable $e) { /* aviso nunca derruba a edicao */ }
+    }
+
     // recorrência: criar nova, atualizar existente ou desativar
     if (array_key_exists('recorrencia', $input)) {
         $pdo = \App\Core\Database::getConnection();

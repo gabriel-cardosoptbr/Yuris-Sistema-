@@ -115,6 +115,22 @@ try {
             }
             // Usa account_id do processo (preserva ownership em shares)
             $ownerAcc = (int)($updated['account_id'] ?? $prev['account_id'] ?? $accountId);
+
+            /*
+             * NOTIFICACAO DE RESPONSAVEL. Ver o comentario equivalente em
+             * cards.php: reaproveita a deteccao que ja existia para o webhook.
+             */
+            if ($eventKey === 'processo.responsavel_changed') {
+                \App\Notificacoes\Aviso::responsavel(
+                    $ownerAcc, 'processo', (int)$id,
+                    (string)($updated['numero_cnj'] ?? $updated['numero'] ?? ('#' . $id)),
+                    (int)($input['responsavel_user_id'] ?? 0) ?: null,
+                    (int)($prev['responsavel_user_id'] ?? 0) ?: null,
+                    isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null,
+                    \App\Notificacoes\Movimento::urlDe('processo', (int)$id)
+                );
+            }
+
             WebhookDispatcher::fire($ownerAcc, $eventKey, WebhookDispatcher::buildPayload($eventKey, [
                 'entity' => 'processo', 'entity_id' => (int)$id, 'processo_id' => (int)$id,
                 'cliente_id' => $updated['contato_id'] ?? null,

@@ -265,6 +265,20 @@ class Card
         } catch (\Throwable $e) {
             // silencioso
         }
+
+        /*
+         * NOTIFICACAO: todo movimento avisa.
+         *
+         * Fica AQUI, e nao em cada endpoint, porque esta e uma das quatro
+         * funcoes por onde todo movimento obrigatoriamente passa. O que for
+         * escrito amanha ja nasce avisando, sem ninguem precisar lembrar.
+         *
+         * Best-effort e DEPOIS do INSERT do historico: aviso nunca derruba a
+         * operacao que ele descreve, e historico e mais importante que aviso.
+         */
+        try {
+            \App\Notificacoes\Movimento::registrar('card', (int)$cardId, $acao, $usuarioId ? (int)$usuarioId : null, $campo);
+        } catch (\Throwable $e) { /* silencioso */ }
     }
 
     public static function update($id, $data)

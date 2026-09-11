@@ -130,12 +130,17 @@
     var html = items.map(function (it) {
       var naoLida = !(it.lida == 1 || it.lida === true);
       if (naoLida) anyUnread = true;
+      // 'movimento' é acompanhamento do escritório: chega, mas não grita.
+      // Marcado e mais apagado, para o olho separar do que é dirigido a você.
+      var mov    = (it.natureza === 'movimento');
       var titulo = esc(it.titulo || 'Notificação');
       var msg    = it.mensagem ? '<p class="yuris-notif-item-msg">' + esc(it.mensagem) + '</p>' : '';
-      var dot    = naoLida ? '<span class="yuris-notif-dot" aria-hidden="true"></span>' : '';
-      return '<button type="button" class="yuris-notif-item' + (naoLida ? ' is-unread' : '') + '"' +
-             ' data-id="' + (parseInt(it.id, 10) || 0) + '" data-unread="' + (naoLida ? '1' : '0') + '">' +
-               '<span class="yuris-notif-item-titulo">' + dot + titulo + '</span>' +
+      var dot    = (naoLida && !mov) ? '<span class="yuris-notif-dot" aria-hidden="true"></span>' : '';
+      var tag    = mov ? '<span class="notif-tag-mov">movimento</span>' : '';
+      var url    = it.url ? ' data-url="' + esc(it.url) + '"' : '';
+      return '<button type="button" class="yuris-notif-item' + (naoLida ? ' is-unread' : '') + (mov ? ' is-mov' : '') + '"' +
+             ' data-id="' + (parseInt(it.id, 10) || 0) + '" data-unread="' + (naoLida ? '1' : '0') + '"' + url + '>' +
+               '<span class="yuris-notif-item-titulo">' + dot + tag + titulo + '</span>' +
                msg +
                '<span class="yuris-notif-item-time">' + tempoRelativo(it.created_at) + '</span>' +
              '</button>';
@@ -163,12 +168,19 @@
   // Clicar = CONCLUIR: marca como lida no servidor e REMOVE o item da lista (o sino
   // só mostra pendências, então some e não volta no reload). Feedback = o fade-out.
   function marcarLida(id, itemEl) {
-    if (!id) { dismissItem(itemEl); return; }
+    // Para onde o aviso leva. Um aviso que diz "Processo X mudou de etapa" e não
+    // abre o processo obriga a pessoa a procurar, e aí ela para de clicar.
+    var destino = itemEl && itemEl.dataset ? (itemEl.dataset.url || '') : '';
+
+    if (!id) { dismissItem(itemEl); if (destino) window.location.href = destino; return; }
     var wasUnread = !itemEl || itemEl.dataset.unread === '1';
     fetchJson({ method: 'PATCH', body: { id: id, csrf_token: CSRF } }).then(function (data) {
       if (!data || !data.success) return; // falhou → mantém o item
       if (wasUnread) setBadge(Math.max(0, currentBadgeCount() - 1));
       dismissItem(itemEl);
+      // Navega DEPOIS de marcar: se navegasse antes, a página trocaria no meio
+      // do PATCH e o aviso voltaria no próximo carregamento.
+      if (destino) window.location.href = destino;
     });
   }
 

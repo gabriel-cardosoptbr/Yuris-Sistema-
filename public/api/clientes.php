@@ -169,8 +169,26 @@ if ($method === 'PUT') {
         _assertSetorBelongsToAccount((int)$input['setor_id'], (int)$cli['account_id']);
     }
 
+    /*
+     * NOTIFICACAO DE RESPONSAVEL. Aqui, diferente de cards.php e processes.php,
+     * o bloco NAO guardava o estado anterior, entao a comparacao e feita com o
+     * `$cli` que o _assertClienteTenant ja carregou. Nada de consulta nova.
+     */
+    $respAntes = (int)($cli['responsavel_id'] ?? 0);
+    $respDepois = array_key_exists('responsavel_id', $input) ? (int)$input['responsavel_id'] : $respAntes;
+
     try {
         $ok = Cliente::update($id, $input, $userId);
+        if ($ok && $respDepois !== $respAntes) {
+            \App\Notificacoes\Aviso::responsavel(
+                (int)$cli['account_id'], 'cliente', $id,
+                (string)($input['nome'] ?? $cli['nome'] ?? ('#' . $id)),
+                $respDepois ?: null,
+                $respAntes ?: null,
+                $userId,
+                \App\Notificacoes\Movimento::urlDe('cliente', $id)
+            );
+        }
         if ($ok) { try { WebhookDispatcher::fire((int)$cli['account_id'], 'cliente.updated', WebhookDispatcher::buildPayload('cliente.updated', [
             'entity' => 'cliente', 'entity_id' => $id, 'cliente_id' => $id, 'data' => ['id' => $id],
         ])); } catch (\Throwable $_) {} }

@@ -145,6 +145,35 @@ if ($method === 'POST') {
             if (!$valid->fetchColumn()) continue; // referencia fora do tenant — descarta mencao
 
             $stmtM->execute([$msgId, $tipo, $refId, $texto, $url, $myAccountId]);
+
+            /*
+             * A MENCAO PASSA A CHEGAR.
+             *
+             * A mencao existia desde a migration 037 e ninguem NUNCA era
+             * avisado: ela ficava gravada, bonita, e a pessoa mencionada so
+             * descobria por acaso, se abrisse a conversa certa.
+             *
+             * So `usuario` gera aviso. Mencionar um processo ou um cliente e
+             * uma referencia, nao um chamado: nao existe "pessoa" do outro lado
+             * para avisar, e avisar o responsavel por ele transformaria toda
+             * citacao em cobranca.
+             *
+             * Aviso::mencao ja recusa avisar quem menciona a si mesmo e ja
+             * confere se o destinatario e desta conta.
+             */
+            if ($tipo === 'usuario') {
+                try {
+                    \App\Notificacoes\Aviso::mencao(
+                        $myAccountId,
+                        $refId,
+                        (string)($_SESSION['user_nome'] ?? 'Alguém'),
+                        'No chat interno',
+                        $texto,
+                        $uid,
+                        '/chat_interno.php?conversa=' . $convId
+                    );
+                } catch (\Throwable $e) { /* aviso nunca derruba o envio */ }
+            }
         }
     }
 

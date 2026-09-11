@@ -497,6 +497,30 @@ $nCols   = count($columns);
             <h3 style="font-size:.95rem;font-weight:600;color:#dbeafe;margin-bottom:4px">Notificações e Alertas</h3>
             <p style="font-size:.78rem;color:var(--muted)">Configure os canais e tipos de alertas do sistema</p>
           </div>
+
+          <!-- ── O QUE EU RECEBO NO SINO ──────────────────────────────────────
+               Este bloco é o ÚNICO desta tela que grava no servidor, em
+               notificacao_preferencias, via /api/notificacao_preferencias.php.
+
+               Os blocos abaixo (canais e tipos de alerta) são antigos e só
+               guardam no navegador: mudar ali não altera comportamento nenhum
+               do sistema. Ficaram no lugar para não sumir sem aviso da tela de
+               quem já os conhecia.
+
+               A preferência é SEMPRE do próprio usuário logado: não existe
+               parâmetro de usuário na API, nem para administrador. Preferência
+               de notificação é do dono do ouvido. -->
+          <div class="cfg-block" id="prefsNotifReais">
+            <div class="cfg-section-title">🔔 O que eu recebo no sino</div>
+            <div class="cfg-section-body" id="prefsNotifLista">
+              <p style="font-size:.78rem;color:var(--muted)">Carregando…</p>
+            </div>
+            <p style="font-size:.72rem;color:var(--muted);margin-top:8px">
+              Salva sozinho ao marcar. <strong>Prazos e menções</strong> continuam contando no número
+              vermelho do sino; <strong>movimentações</strong> aparecem na lista sem estourar o contador.
+            </p>
+          </div>
+
           <div class="cfg-block">
             <div class="cfg-section-title">📣 Canais de notificação</div>
             <div class="cfg-section-body">
@@ -837,6 +861,61 @@ $nCols   = count($columns);
     {id:'nInativo',  key:'cfg_notif_inativo',  def:false},
   ]);
   wireSaveBtn('btnSaveNotifs','Notificações salvas');
+
+  // ── Preferências REAIS do sino ──────────────────────────────────────────────
+  // Salva no servidor a cada clique, sem botão: uma preferência que exige
+  // "Salvar" é uma preferência que metade das pessoas deixa sem salvar.
+  (function(){
+    const caixa = document.getElementById('prefsNotifLista');
+    if (!caixa) return;
+    // O token vem do PHP da propria pagina. Depender so do same-origin do
+    // TenantGuard funcionaria, mas deixaria a chamada frágil a qualquer aperto
+    // futuro na regra, e o sintoma seria a preferencia parar de salvar calada.
+    const CSRF = <?= json_encode($csrf) ?>;
+
+    function desenhar(rotulos, prefs){
+      caixa.innerHTML = Object.keys(rotulos).map(function(k){
+        const on = prefs[k] !== false;
+        return '<div class="toggle-row">' +
+                 '<div><div class="toggle-label">' + rotulos[k] + '</div></div>' +
+                 '<label class="toggle-wrap"><input type="checkbox" data-pref="' + k + '"' +
+                 (on ? ' checked' : '') + '><span class="toggle-slider"></span></label>' +
+               '</div>';
+      }).join('');
+      caixa.querySelectorAll('input[data-pref]').forEach(function(inp){
+        inp.addEventListener('change', function(){
+          fetch('/api/notificacao_preferencias.php', {
+            method: 'PUT',
+            headers: {'Content-Type':'application/json','X-CSRF-Token': CSRF},
+            credentials: 'same-origin',
+            body: JSON.stringify({ chave: inp.dataset.pref, ativo: inp.checked, csrf_token: CSRF })
+          }).then(function(r){ return r.json(); }).then(function(d){
+            if (!d || !d.success) {
+              // Volta o visual ao estado real: caixinha marcada que não gravou
+              // é pior que erro visível, porque a pessoa acha que desligou.
+              inp.checked = !inp.checked;
+              if (window.Yuris) Yuris.toast('Não foi possível salvar a preferência.', 'error');
+            } else if (window.Yuris) {
+              Yuris.toast('Preferência salva.', 'success');
+            }
+          }).catch(function(){
+            inp.checked = !inp.checked;
+            if (window.Yuris) Yuris.toast('Não foi possível salvar a preferência.', 'error');
+          });
+        });
+      });
+    }
+
+    fetch('/api/notificacao_preferencias.php', {credentials:'same-origin'})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d && d.success) desenhar(d.rotulos, d.preferencias);
+        else caixa.innerHTML = '<p style="font-size:.78rem;color:var(--muted)">Não foi possível carregar.</p>';
+      })
+      .catch(function(){
+        caixa.innerHTML = '<p style="font-size:.78rem;color:var(--muted)">Não foi possível carregar.</p>';
+      });
+  })();
 
   wireToggles([
     {id:'secInact', key:'cfg_sec_secInact', def:true},

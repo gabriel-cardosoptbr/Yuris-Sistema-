@@ -99,6 +99,21 @@ class ProcessoAudit
             // Auditoria nunca quebra a operação principal — apenas loga em error_log
             error_log('ProcessoAudit::log error: ' . $e->getMessage());
         }
+
+        /*
+         * NOTIFICACAO: todo movimento avisa. Ver o cabecalho de
+         * App\Notificacoes\Movimento: este e um dos QUATRO gravadores de
+         * historico do sistema, e por isso e daqui que o aviso sai.
+         *
+         * Best-effort e DEPOIS do INSERT: aviso nunca derruba a operacao.
+         */
+        try {
+            // O processo guarda o autor como TEXTO (user_email), nao como id.
+            // Para a regra "ninguem e avisado do proprio ato" funcionar aqui,
+            // o id vem da sessao, que e de onde o proprio $user saiu.
+            $uid = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null;
+            \App\Notificacoes\Movimento::registrar('processo', $processoId, $acao, $uid, $descricao);
+        } catch (\Throwable $e) { /* silencioso */ }
     }
 
     /**

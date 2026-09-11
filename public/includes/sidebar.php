@@ -136,9 +136,13 @@ $_notifTempo = function ($raw) {
           <?php elseif (empty($_notifItems)): ?>
             <div class="yuris-notif-empty">Nenhuma notificação.</div>
           <?php else: foreach ($_notifItems as $__n):
-              $__unread = ((int)($__n['lida'] ?? 0) === 0); ?>
-            <button type="button" class="yuris-notif-item<?= $__unread ? ' is-unread' : '' ?>" data-id="<?= (int)($__n['id'] ?? 0) ?>" data-unread="<?= $__unread ? '1' : '0' ?>">
-              <span class="yuris-notif-item-titulo"><?php if ($__unread): ?><span class="yuris-notif-dot" aria-hidden="true"></span><?php endif; ?><?= htmlspecialchars((string)($__n['titulo'] ?? 'Notificação'), ENT_QUOTES, 'UTF-8') ?></span>
+              $__unread = ((int)($__n['lida'] ?? 0) === 0);
+              // 'movimento' e acompanhamento do escritorio: fica mais apagado e
+              // marcado, para o olho separar na hora do que e dirigido a voce.
+              $__mov = (($__n['natureza'] ?? 'dirigido') === 'movimento');
+              $__url = trim((string)($__n['url'] ?? '')); ?>
+            <button type="button" class="yuris-notif-item<?= $__unread ? ' is-unread' : '' ?><?= $__mov ? ' is-mov' : '' ?>" data-id="<?= (int)($__n['id'] ?? 0) ?>" data-unread="<?= $__unread ? '1' : '0' ?>"<?= $__url !== '' ? ' data-url="' . htmlspecialchars($__url, ENT_QUOTES, 'UTF-8') . '"' : '' ?>>
+              <span class="yuris-notif-item-titulo"><?php if ($__unread && !$__mov): ?><span class="yuris-notif-dot" aria-hidden="true"></span><?php endif; ?><?php if ($__mov): ?><span class="notif-tag-mov">movimento</span><?php endif; ?><?= htmlspecialchars((string)($__n['titulo'] ?? 'Notificação'), ENT_QUOTES, 'UTF-8') ?></span>
               <?php if (!empty($__n['mensagem'])): ?><p class="yuris-notif-item-msg"><?= htmlspecialchars((string)$__n['mensagem'], ENT_QUOTES, 'UTF-8') ?></p><?php endif; ?>
               <span class="yuris-notif-item-time"><?= htmlspecialchars($_notifTempo($__n['created_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
             </button>
@@ -162,6 +166,15 @@ $_notifTempo = function ($raw) {
     }
     .yuris-notif-btn:hover { background: rgba(96,165,250,0.18); color: #e8f4ff; }
     .yuris-notif-btn.has-unread { color: #e8f4ff; }
+    /* Movimento e acompanhamento, nao cobranca: chega, mas nao grita. */
+    .yuris-notif-item.is-mov { opacity: .72; }
+    .yuris-notif-item.is-mov:hover { opacity: 1; }
+    .notif-tag-mov {
+      display: inline-block; margin-right: 6px; padding: 1px 6px; border-radius: 999px;
+      font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+      background: rgba(148,163,184,.16); border: 1px solid rgba(148,163,184,.3); color: #94a3b8;
+      vertical-align: middle;
+    }
     .yuris-notif-ico svg { width: 18px; height: 18px; display: block; }
     .yuris-notif-badge {
       position: absolute; top: -5px; right: -5px; min-width: 17px; height: 17px; padding: 0 4px;

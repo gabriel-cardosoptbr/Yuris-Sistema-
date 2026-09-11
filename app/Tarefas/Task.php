@@ -345,6 +345,20 @@ class Task
             substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255),
             \App\Core\RequestId::get(),
         ]);
+
+        /*
+         * NOTIFICACAO: todo movimento avisa.
+         *
+         * Fica AQUI, e nao em cada endpoint, porque esta e uma das quatro
+         * funcoes por onde todo movimento obrigatoriamente passa. O que for
+         * escrito amanha ja nasce avisando, sem ninguem precisar lembrar.
+         *
+         * Best-effort e DEPOIS do INSERT do historico: aviso nunca derruba a
+         * operacao que ele descreve, e historico e mais importante que aviso.
+         */
+        try {
+            \App\Notificacoes\Movimento::registrar('tarefa', $taskId, $acao, $userId);
+        } catch (\Throwable $e) { /* silencioso */ }
     }
 
     public static function dueToday(int $userId): array

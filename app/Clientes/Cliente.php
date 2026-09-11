@@ -465,6 +465,19 @@ class Cliente
                 'dep' => $depois !== null ? json_encode($depois, JSON_UNESCAPED_UNICODE) : null,
             ]);
         } catch (\Throwable $e) { /* silent */ }
+
+        /*
+         * NOTIFICACAO: todo movimento avisa. Ver o cabecalho de
+         * App\Notificacoes\Movimento: este e um dos QUATRO gravadores de
+         * historico do sistema, e por isso e daqui que o aviso sai.
+         *
+         * Best-effort e DEPOIS do INSERT: aviso nunca derruba a operacao.
+         */
+        try {
+            // O campo que mudou enriquece a mensagem quando o evento tem um.
+            $campo = is_array($depois) && isset($depois['campo']) ? (string) $depois['campo'] : null;
+            \App\Notificacoes\Movimento::registrar('cliente', $clienteId, $acao, $userId, $campo);
+        } catch (\Throwable $e) { /* silencioso */ }
     }
 
     // ───────── multi-tenant helpers (espelham Card/PipelineColumn) ───
