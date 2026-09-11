@@ -73,6 +73,15 @@ try {
                    e.classe_nome, e.titulo, e.resumo, e.conteudo, e.url_origem,
                    e.hash_externo, e.hash_conteudo,
                    e.created_at, e.updated_at,
+                   -- payload_original ENTRA aqui, e e apagado logo abaixo, antes
+                   -- de sair na resposta. Sem ele, listPhpExtractAdvogados e
+                   -- listPhpExtractPartes devolviam lista vazia para TODO evento
+                   -- persistido, e as linhas "Parte(s):" e "Adv:" so apareciam
+                   -- nos itens do cache do dia, que carregam o payload por outro
+                   -- caminho. Efeito na tela: a publicacao aparecia formatada
+                   -- enquanto era cache e PERDIA a formatacao ao virar
+                   -- permanente, que e o contrario do esperado.
+                   e.payload_original,
                    COALESCE(s.lida, 0)      AS lida,
                    s.lida_em,
                    COALESCE(s.favorita, 0)  AS favorita,
@@ -165,6 +174,10 @@ function listPhpExtractAdvogados(array $it): array
 
     // DJEN: campo destinatarioadvogados (array de objetos com .advogado)
     if (!empty($payload['destinatarioadvogados']) && is_array($payload['destinatarioadvogados'])) {
+        // Dedupe, que o ramo da AASP ja fazia e este nao. O tribunal manda o
+        // mesmo advogado mais de uma vez quando ele representa duas partes do
+        // mesmo processo, e a lista saia com o nome repetido lado a lado.
+        $vistos = [];
         foreach ($payload['destinatarioadvogados'] as $da) {
             $adv = $da['advogado'] ?? [];
             if (!is_array($adv)) continue;
@@ -172,6 +185,10 @@ function listPhpExtractAdvogados(array $it): array
             $oab  = trim((string)($adv['numero_oab'] ?? ''));
             $uf   = trim((string)($adv['uf_oab'] ?? ''));
             if ($nome === '' && $oab === '') continue;
+            // A OAB identifica unicamente; sem ela, cai no nome.
+            $chave = $oab !== '' ? mb_strtoupper($uf . '-' . $oab) : mb_strtoupper($nome);
+            if (isset($vistos[$chave])) continue;
+            $vistos[$chave] = true;
             $advs[] = ['nome' => $nome, 'oab' => $oab, 'uf' => $uf];
         }
     }
