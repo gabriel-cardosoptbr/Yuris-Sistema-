@@ -75,11 +75,26 @@
            'T' + p(d.getHours()) + ':' + p(d.getMinutes());
   }
 
-  const CSS_TITULO = 'font-size:.84rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0;';
-  const CSS_LINK   = 'font-size:.78rem;color:#60a5fa;text-decoration:none;cursor:pointer;';
-  const CSS_VAZIO  = 'font-size:.8rem;color:var(--muted);opacity:.75;';
-  const CSS_ITEM   = 'display:flex;justify-content:space-between;gap:10px;align-items:center;' +
-                     'padding:8px 10px;border-radius:8px;border:1px solid var(--border);margin-bottom:6px;';
+  /*
+   * O ESTILO VEM DE crm-fase2.css, E NAO DE CLASSE EMPRESTADA DA TELA.
+   *
+   * Aqui havia quatro constantes de estilo inline (CSS_TITULO, CSS_LINK,
+   * CSS_VAZIO, CSS_ITEM) e, pior, o modulo emitia as classes `btn`,
+   * `btn-ghost` e `form-input` torcendo para a tela hospedeira as ter.
+   *
+   * As duas telas onde ele roda TEM, e com significados diferentes:
+   *
+   *   clientes.php     .btn = azul solido     variante: .btn-ghost  (hifen)
+   *   prospeccao.php   .btn = TRANSPARENTE    variante: .btn.ghost  (espaco)
+   *
+   * Efeito na tela: o botao "Registrar" virava texto sem fundo na Prospeccao, e
+   * "Aplicar"/"Anexar" pediam uma classe que ali nao existe. O mesmo bloco, dois
+   * visuais, nenhum igual ao resto do sistema.
+   *
+   * Agora as classes sao do proprio modulo (crm-titulo, crm-link, crm-vazio,
+   * crm-item, crm-btn, crm-input), todas escopadas em `.crm-bloco`. Ele fica
+   * igual nas duas telas de hoje, e igual numa terceira amanha.
+   */
 
   /* ===================================================================== */
   /* a instancia                                                           */
@@ -147,7 +162,7 @@
     function bloco(titulo, chave) {
       return '<div class="crm-bloco" data-bloco="' + chave + '" style="margin-top:16px;">' +
              '  <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 8px;">' +
-             '    <h3 style="' + CSS_TITULO + '">' + esc(titulo) + '</h3>' +
+             '    <h3 class="crm-titulo">' + esc(titulo) + '</h3>' +
              '    <div data-acoes="' + chave + '" style="display:flex;gap:12px;align-items:center;"></div>' +
              '  </div>' +
              '  <div data-corpo="' + chave + '"></div>' +
@@ -189,15 +204,15 @@
     const listaId = 'crmTagsCat_' + this.entidade + '_' + this.id;
     corpo.innerHTML =
       '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px;">' +
-        (chips || '<span style="' + CSS_VAZIO + '">Nenhuma etiqueta.</span>') +
+        (chips || '<span class="crm-vazio">Nenhuma etiqueta.</span>') +
       '</div>' +
       '<div style="display:flex;gap:6px;align-items:center;">' +
-        '<input list="' + listaId + '" data-nova-tag class="form-input" placeholder="Etiqueta…" ' +
-               'maxlength="60" style="max-width:230px;font-size:.82rem;padding:6px 9px;">' +
+        '<input list="' + listaId + '" data-nova-tag class="crm-input" placeholder="Etiqueta…" ' +
+               'maxlength="60" style="max-width:230px;">' +
         '<datalist id="' + listaId + '">' +
           (catalogo || []).map(function (c) { return '<option value="' + esc(c.nome) + '">'; }).join('') +
         '</datalist>' +
-        '<button type="button" data-add-tag class="btn btn-ghost" style="font-size:.78rem;padding:6px 12px;">Aplicar</button>' +
+        '<button type="button" data-add-tag class="crm-btn crm-btn-ghost">Aplicar</button>' +
       '</div>';
 
     corpo.querySelectorAll('[data-tirar]').forEach(function (a) {
@@ -230,7 +245,7 @@
     const acoes = this.acoes('tags');
     if (acoes) {
       acoes.innerHTML = this.podeGerenciar
-        ? '<a href="#" data-gerenciar-tags style="' + CSS_LINK + '">Gerenciar etiquetas</a>'
+        ? '<a href="#" data-gerenciar-tags class="crm-link">Gerenciar etiquetas</a>'
         : '';
       const link = acoes.querySelector('[data-gerenciar-tags]');
       if (link) {
@@ -280,26 +295,26 @@
     cx.setAttribute('data-cat-tags', '1');
     cx.style.cssText = 'margin-top:10px;padding:10px;border:1px dashed var(--border);border-radius:8px;';
     cx.innerHTML =
-      '<div style="' + CSS_VAZIO + 'margin-bottom:8px;">' +
+      '<div class="crm-vazio" style="margin-bottom:8px;">' +
         'Etiqueta arquivada sai do seletor e continua aparecendo onde já estava: ' +
         'apagar o vínculo reescreveria o passado.' +
       '</div>' +
       ((d.catalogo || []).length
         ? (d.catalogo || []).map(function (c) {
-            return '<div style="' + CSS_ITEM + '">' +
+            return '<div class="crm-item">' +
               '<span style="display:flex;gap:8px;align-items:center;">' +
                 '<input type="color" data-cor="' + c.id + '" value="' + esc(c.cor || '#64748b') + '" ' +
                        'style="width:26px;height:26px;border:none;background:none;padding:0;cursor:pointer;">' +
                 '<input type="text" data-nome="' + c.id + '" value="' + esc(c.nome) + '" maxlength="60" ' +
-                       'class="form-input" style="font-size:.82rem;padding:5px 8px;max-width:200px;">' +
+                       'class="crm-input" style="max-width:200px;">' +
               '</span>' +
               '<span style="display:flex;gap:12px;align-items:center;">' +
-                '<span style="' + CSS_VAZIO + '">' + (parseInt(c.usos, 10) || 0) + ' uso(s)</span>' +
-                '<a href="#" data-salvar-tag="' + c.id + '" style="' + CSS_LINK + '">Salvar</a>' +
-                '<a href="#" data-arquivar-tag="' + c.id + '" style="' + CSS_LINK + 'color:#fca5a5;">Arquivar</a>' +
+                '<span class="crm-vazio">' + (parseInt(c.usos, 10) || 0) + ' uso(s)</span>' +
+                '<a href="#" data-salvar-tag="' + c.id + '" class="crm-link">Salvar</a>' +
+                '<a href="#" data-arquivar-tag="' + c.id + '" class="crm-link crm-link-perigo">Arquivar</a>' +
               '</span></div>';
           }).join('')
-        : '<div style="' + CSS_VAZIO + '">Nenhuma etiqueta no catálogo ainda. ' +
+        : '<div class="crm-vazio">Nenhuma etiqueta no catálogo ainda. ' +
           'Digite um nome no campo acima para criar a primeira.</div>');
 
     corpo.appendChild(cx);
@@ -351,7 +366,7 @@
     const self = this;
 
     if (!campos.length) {
-      corpo.innerHTML = '<div style="' + CSS_VAZIO + '">' +
+      corpo.innerHTML = '<div class="crm-vazio">' +
         'Nenhum campo personalizado configurado' +
         (this.podeGerenciar ? '. Use “Gerenciar campos” para criar o primeiro.' : '.') +
         '</div>';
@@ -360,7 +375,7 @@
         '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">' +
           campos.map(function (c) { return entrada(c); }).join('') +
         '</div>' +
-        '<div style="margin-top:8px;"><button type="button" data-salvar-campos class="btn btn-ghost" ' +
+        '<div style="margin-top:8px;"><button type="button" data-salvar-campos class="crm-btn crm-btn-ghost" ' +
         'style="font-size:.78rem;padding:6px 12px;">Salvar campos</button></div>';
 
       corpo.querySelector('[data-salvar-campos]').addEventListener('click', function () { self.salvarCampos(campos); });
@@ -369,7 +384,7 @@
     const acoes = this.acoes('campos');
     if (acoes) {
       acoes.innerHTML = this.podeGerenciar
-        ? '<a href="#" data-gerenciar-campos style="' + CSS_LINK + '">Gerenciar campos</a>'
+        ? '<a href="#" data-gerenciar-campos class="crm-link">Gerenciar campos</a>'
         : '';
       const link = acoes.querySelector('[data-gerenciar-campos]');
       if (link) link.addEventListener('click', function (ev) { ev.preventDefault(); self.gerenciarCampos(); });
@@ -380,7 +395,7 @@
       const k     = esc(c.chave);
       const rot   = esc(c.rotulo) + (parseInt(c.obrigatorio, 10) ? ' <span style="color:#fca5a5">*</span>' : '');
       const v     = c.valor == null ? '' : String(c.valor);
-      const base  = 'class="form-input" style="font-size:.84rem;" data-campo="' + k + '"';
+      const base  = 'class="crm-input" data-campo="' + k + '"';
       let controle;
 
       switch (c.tipo) {
@@ -424,7 +439,7 @@
       }
 
       const quem = c.atualizado_por_nome
-        ? '<div style="' + CSS_VAZIO + 'margin-top:2px;">' + esc(c.atualizado_por_nome) +
+        ? '<div class="crm-vazio" style="margin-top:2px;">' + esc(c.atualizado_por_nome) +
           ' • ' + esc(fmtDataHora(c.updated_at)) + '</div>'
         : '';
 
@@ -486,36 +501,36 @@
     cx.setAttribute('data-cat-campos', '1');
     cx.style.cssText = 'margin-top:10px;padding:10px;border:1px dashed var(--border);border-radius:8px;';
     cx.innerHTML =
-      '<div style="' + CSS_VAZIO + 'margin-bottom:8px;">' +
+      '<div class="crm-vazio" style="margin-bottom:8px;">' +
         'O tipo não muda depois de criado: trocar o tipo de um campo já preenchido deixaria ' +
         'valor inválido para trás. Quem precisa de outro tipo arquiva e cria outro campo.' +
       '</div>' +
       ((d.definicoes || []).length
         ? (d.definicoes || []).map(function (c) {
-            return '<div style="' + CSS_ITEM + '">' +
-              '<span><strong style="font-size:.84rem;">' + esc(c.rotulo) + '</strong> ' +
-                '<span style="' + CSS_VAZIO + '">' + esc(ROTULO_TIPO[c.tipo] || c.tipo) +
+            return '<div class="crm-item">' +
+              '<span><strong>' + esc(c.rotulo) + '</strong> ' +
+                '<span class="crm-vazio">' + esc(ROTULO_TIPO[c.tipo] || c.tipo) +
                 ' • ' + esc(c.aplica_em === 'ambos' ? 'cliente e prospecção' : c.aplica_em) +
                 (parseInt(c.obrigatorio, 10) ? ' • obrigatório' : '') + '</span></span>' +
-              '<a href="#" data-arquivar-campo="' + c.id + '" style="' + CSS_LINK + 'color:#fca5a5;">Arquivar</a>' +
+              '<a href="#" data-arquivar-campo="' + c.id + '" class="crm-link crm-link-perigo">Arquivar</a>' +
               '</div>';
           }).join('')
-        : '<div style="' + CSS_VAZIO + '">Nenhum campo personalizado ainda.</div>') +
+        : '<div class="crm-vazio">Nenhum campo personalizado ainda.</div>') +
       '<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);' +
            'display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;align-items:end;">' +
-        '<div class="field"><label style="font-size:.76rem;">Nome do campo</label>' +
-          '<input type="text" data-novo-rotulo class="form-input" maxlength="120" placeholder="NIT, Data de admissão…" style="font-size:.82rem;"></div>' +
-        '<div class="field"><label style="font-size:.76rem;">Tipo</label><select data-novo-tipo class="form-input" style="font-size:.82rem;">' +
+        '<div class="field"><label class="crm-rotulo">Nome do campo</label>' +
+          '<input type="text" data-novo-rotulo class="crm-input" maxlength="120" placeholder="NIT, Data de admissão…"></div>' +
+        '<div class="field"><label class="crm-rotulo">Tipo</label><select data-novo-tipo class="crm-input">' +
           Object.keys(ROTULO_TIPO).map(function (t) { return '<option value="' + t + '">' + esc(ROTULO_TIPO[t]) + '</option>'; }).join('') +
         '</select></div>' +
-        '<div class="field"><label style="font-size:.76rem;">Aparece em</label><select data-novo-aplica class="form-input" style="font-size:.82rem;">' +
+        '<div class="field"><label class="crm-rotulo">Aparece em</label><select data-novo-aplica class="crm-input">' +
           '<option value="ambos">Cliente e prospecção</option>' +
           '<option value="cliente">Só cliente</option>' +
           '<option value="card">Só prospecção</option>' +
         '</select></div>' +
-        '<div class="field" data-wrap-opcoes style="display:none;"><label style="font-size:.76rem;">Opções (uma por linha)</label>' +
-          '<textarea data-novo-opcoes class="form-input" rows="3" style="font-size:.82rem;"></textarea></div>' +
-        '<div><button type="button" data-criar-campo class="btn" style="font-size:.78rem;padding:7px 14px;">Criar campo</button></div>' +
+        '<div class="field" data-wrap-opcoes style="display:none;"><label class="crm-rotulo">Opções (uma por linha)</label>' +
+          '<textarea data-novo-opcoes class="crm-input" rows="3"></textarea></div>' +
+        '<div><button type="button" data-criar-campo class="crm-btn">Criar campo</button></div>' +
       '</div>';
 
     corpo.appendChild(cx);
@@ -589,24 +604,49 @@
               : '';
             const meta = [a.enviado_por_nome, fmtDataHora(a.created_at), fmtTamanho(a.file_size)]
               .filter(Boolean).map(esc).join(' • ');
-            return '<div style="' + CSS_ITEM + '">' +
+            return '<div class="crm-item">' +
               '<span style="min-width:0;">' +
                 '<a href="' + esc(a.download_url) + '" style="font-weight:600;font-size:.84rem;color:#93c5fd;text-decoration:none;">' +
                   esc(a.file_name) + '</a> ' + selo +
-                (a.descricao ? '<div style="' + CSS_VAZIO + '">' + esc(a.descricao) + '</div>' : '') +
-                '<div style="' + CSS_VAZIO + '">' + meta + '</div>' +
+                (a.descricao ? '<div class="crm-vazio">' + esc(a.descricao) + '</div>' : '') +
+                '<div class="crm-vazio">' + meta + '</div>' +
               '</span>' +
-              '<a href="#" data-tirar-anexo="' + a.id + '" style="' + CSS_LINK + 'color:#fca5a5;">Remover</a>' +
+              '<a href="#" data-tirar-anexo="' + a.id + '" class="crm-link crm-link-perigo">Remover</a>' +
               '</div>';
           }).join('')
-        : '<div style="' + CSS_VAZIO + '">Nenhum documento.</div>') +
-      '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px;">' +
-        '<input type="file" data-arquivo style="font-size:.8rem;max-width:230px;">' +
-        '<input type="text" data-descricao class="form-input" placeholder="Descrição (opcional)" ' +
-               'maxlength="255" style="max-width:220px;font-size:.82rem;padding:6px 9px;">' +
-        '<button type="button" data-subir class="btn btn-ghost" style="font-size:.78rem;padding:6px 12px;">Anexar</button>' +
-        '<span style="' + CSS_VAZIO + '">até ' + maxMB + ' MB</span>' +
+        : '<div class="crm-vazio">Nenhum documento.</div>') +
+      /*
+       * O `<input type="file">` fica INVISÍVEL por cima de um rótulo que parece
+       * botão. O widget nativo ("Escolher arquivo | Nenhum arquivo escolhido",
+       * cinza) não é estilizável: nem cor, nem borda, nem o texto, que vem
+       * travado do sistema operacional. Era o elemento mais destoante do bloco.
+       *
+       * O input continua existindo e recebendo o clique, então teclado e leitor
+       * de tela seguem funcionando: some o visual nativo, não o controle.
+       */
+      '<div class="crm-linha" style="margin-top:8px;">' +
+        '<label class="crm-arquivo">' +
+          '<span class="crm-btn crm-btn-ghost">Escolher arquivo</span>' +
+          '<input type="file" data-arquivo>' +
+        '</label>' +
+        '<span class="crm-arquivo-nome" data-arquivo-nome>Nenhum arquivo escolhido</span>' +
+        '<input type="text" data-descricao class="crm-input" placeholder="Descrição (opcional)" ' +
+               'maxlength="255" style="max-width:210px;">' +
+        '<button type="button" data-subir class="crm-btn">Anexar</button>' +
+        '<span class="crm-vazio">até ' + maxMB + ' MB</span>' +
       '</div>';
+
+    // O nome do arquivo escolhido é escrito aqui, porque o rótulo nativo que
+    // fazia isso foi escondido junto com o resto do widget.
+    const campoArq = corpo.querySelector('[data-arquivo]');
+    const nomeArq  = corpo.querySelector('[data-arquivo-nome]');
+    if (campoArq && nomeArq) {
+      campoArq.addEventListener('change', function () {
+        const f = campoArq.files && campoArq.files[0];
+        nomeArq.textContent = f ? f.name : 'Nenhum arquivo escolhido';
+        nomeArq.title = f ? f.name : '';
+      });
+    }
 
     corpo.querySelectorAll('[data-tirar-anexo]').forEach(function (a) {
       a.addEventListener('click', async function (ev) {
@@ -673,28 +713,28 @@
     const tipos = this.tiposInteracao || {};
 
     corpo.innerHTML =
-      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;align-items:end;' +
-           'padding:10px;border:1px dashed var(--border);border-radius:8px;margin-bottom:10px;">' +
-        '<div class="field"><label style="font-size:.76rem;">Tipo</label><select data-i-tipo class="form-input" style="font-size:.82rem;">' +
+      '<div class="crm-grade" style="padding:12px;border:1px dashed var(--border);' +
+           'border-radius:10px;margin-bottom:10px;">' +
+        '<div class="field"><label class="crm-rotulo">Tipo</label><select data-i-tipo class="crm-input">' +
           Object.keys(tipos).map(function (t) { return '<option value="' + esc(t) + '">' + esc(tipos[t]) + '</option>'; }).join('') +
         '</select></div>' +
-        '<div class="field" data-wrap-direcao><label style="font-size:.76rem;">Direção</label><select data-i-direcao class="form-input" style="font-size:.82rem;">' +
+        '<div class="field" data-wrap-direcao><label class="crm-rotulo">Direção</label><select data-i-direcao class="crm-input">' +
           '<option value="">—</option><option value="entrada">Recebemos</option>' +
           '<option value="saida">Nós procuramos</option><option value="interna">Interna</option>' +
         '</select></div>' +
-        '<div class="field"><label style="font-size:.76rem;">Quando aconteceu</label>' +
-          '<input type="datetime-local" data-i-quando class="form-input" value="' + agoraLocal() + '" style="font-size:.82rem;"></div>' +
-        '<div class="field" data-wrap-duracao><label style="font-size:.76rem;">Duração (min)</label>' +
-          '<input type="number" min="0" data-i-duracao class="form-input" placeholder="30" style="font-size:.82rem;"></div>' +
-        '<div class="field" style="grid-column:1/-1;"><label style="font-size:.76rem;">Assunto</label>' +
-          '<input type="text" data-i-assunto class="form-input" maxlength="180" style="font-size:.82rem;"></div>' +
-        '<div class="field" style="grid-column:1/-1;"><label style="font-size:.76rem;">O que foi tratado</label>' +
-          '<textarea data-i-conteudo class="form-input" rows="3" maxlength="20000" style="font-size:.82rem;"></textarea></div>' +
-        '<div style="grid-column:1/-1;"><button type="button" data-i-salvar class="btn" style="font-size:.78rem;padding:7px 14px;">Registrar</button></div>' +
+        '<div class="field"><label class="crm-rotulo">Quando aconteceu</label>' +
+          '<input type="datetime-local" data-i-quando class="crm-input" value="' + agoraLocal() + '"></div>' +
+        '<div class="field" data-wrap-duracao><label class="crm-rotulo">Duração (min)</label>' +
+          '<input type="number" min="0" data-i-duracao class="crm-input" placeholder="30"></div>' +
+        '<div class="field crm-grade-larga"><label class="crm-rotulo">Assunto</label>' +
+          '<input type="text" data-i-assunto class="crm-input" maxlength="180"></div>' +
+        '<div class="field crm-grade-larga"><label class="crm-rotulo">O que foi tratado</label>' +
+          '<textarea data-i-conteudo class="crm-input" rows="3" maxlength="20000"></textarea></div>' +
+        '<div class="crm-grade-larga"><button type="button" data-i-salvar class="crm-btn">Registrar</button></div>' +
       '</div>' +
       (lista.length
         ? lista.map(function (i) { return item(i); }).join('')
-        : '<div style="' + CSS_VAZIO + '">Nenhum contato registrado.</div>');
+        : '<div class="crm-vazio">Nenhum contato registrado.</div>');
 
     // Nota interna não tem direção nem duração: ninguém ligou para ninguém.
     const selTipo = corpo.querySelector('[data-i-tipo]');
@@ -731,7 +771,7 @@
       // "anotado depois" é honesto: o registro atrasado aparece na data do fato,
       // e sem esse aviso pareceria que foi digitado na hora.
       const atraso = i.retroativo
-        ? '<span style="' + CSS_VAZIO + '" title="Registrado em ' + esc(fmtDataHora(i.created_at)) + '">anotado depois</span>'
+        ? '<span class="crm-vazio" title="Registrado em ' + esc(fmtDataHora(i.created_at)) + '">anotado depois</span>'
         : '';
       const dir = { entrada: 'recebemos', saida: 'nós procuramos', interna: 'interna' }[i.direcao] || '';
       const meta = [i.registrado_por_nome, fmtDataHora(i.ocorrido_em), dir,
@@ -741,15 +781,15 @@
       return '<div style="padding:9px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;">' +
         '<div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;">' +
           '<span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">' +
-            '<strong style="font-size:.82rem;">' + esc(i.tipo_rotulo) + '</strong>' + selo + atraso +
-            (i.assunto ? '<span style="font-size:.84rem;">' + esc(i.assunto) + '</span>' : '') +
+            '<strong>' + esc(i.tipo_rotulo) + '</strong>' + selo + atraso +
+            (i.assunto ? '<span>' + esc(i.assunto) + '</span>' : '') +
           '</span>' +
-          '<a href="#" data-tirar-interacao="' + i.id + '" style="' + CSS_LINK + 'color:#fca5a5;">Remover</a>' +
+          '<a href="#" data-tirar-interacao="' + i.id + '" class="crm-link crm-link-perigo">Remover</a>' +
         '</div>' +
         (i.conteudo
           ? '<div style="font-size:.84rem;white-space:pre-wrap;margin-top:4px;">' + esc(i.conteudo) + '</div>'
           : '') +
-        '<div style="' + CSS_VAZIO + 'margin-top:4px;">' + meta + '</div>' +
+        '<div class="crm-vazio" style="margin-top:4px;">' + meta + '</div>' +
       '</div>';
     }
   };

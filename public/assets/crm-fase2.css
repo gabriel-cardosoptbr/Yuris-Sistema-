@@ -1,0 +1,263 @@
+/* =============================================================================
+   crm-fase2.css — o visual do bloco "Etiquetas, campos, documentos e contatos".
+   =============================================================================
+
+   POR QUE ESTE ARQUIVO EXISTE
+   ---------------------------------------------------------------------------
+   O módulo da Fase 2 roda em DUAS telas, Prospecção e Clientes, e até aqui ele
+   emitia `class="btn"` e `class="btn btn-ghost"` torcendo para a tela ter essas
+   classes. As duas têm, e com significados DIFERENTES:
+
+     clientes.php     .btn  = azul sólido        variante: .btn-ghost  (hífen)
+     prospeccao.php   .btn  = TRANSPARENTE       variante: .btn.ghost  (espaço)
+
+   Resultado na tela: o botão "Registrar" virava texto sem fundo na Prospecção,
+   e "Aplicar"/"Anexar" pediam uma classe que ali não existe. O mesmo bloco, dois
+   visuais, e nenhum dos dois igual ao resto do sistema.
+
+   A correção não é escolher outra classe emprestada: é o módulo trazer o próprio
+   estilo. Assim ele fica igual nas duas telas de hoje, e igual numa terceira
+   amanhã, sem depender do que `.btn` significa lá dentro.
+
+   ---------------------------------------------------------------------------
+   TUDO ESCOPADO EM .crm-bloco
+   ---------------------------------------------------------------------------
+   Nenhum seletor daqui vaza para fora do bloco. O módulo é hóspede em telas
+   grandes e cheias de CSS próprio: soltar um `.btn` global aqui quebraria a tela
+   que o hospeda, que é exatamente o problema ao contrário.
+
+   O padrão seguido é o de `clientes.php`, que é o mais próximo do resto do
+   sistema: botão azul sólido, campo com fundo escuro e borda, raio de 9 a 10px.
+   ========================================================================== */
+
+.crm-bloco {
+  --crm-borda:      var(--border, rgba(96,165,250,.22));
+  --crm-fundo:      rgba(15,30,55,.55);
+  --crm-texto:      var(--text, #e2e8f0);
+  --crm-apagado:    var(--muted, #94a3b8);
+  --crm-azul:       #3b82f6;
+  --crm-azul-forte: #2563eb;
+}
+
+html[data-theme="light"] .crm-bloco {
+  --crm-borda:   #cbd5e1;
+  --crm-fundo:   #ffffff;
+  --crm-texto:   #0f172a;
+  --crm-apagado: #64748b;
+}
+
+/* ------------------------------------------------------------- campos -- */
+
+.crm-bloco .crm-input,
+.crm-bloco select.crm-input,
+.crm-bloco textarea.crm-input {
+  background: var(--crm-fundo);
+  border: 1px solid var(--crm-borda);
+  border-radius: 9px;
+  padding: 8px 11px;
+  color: var(--crm-texto);
+  font-size: .85rem;
+  font-family: inherit;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  /* `appearance:none` tira o visual nativo do select e do campo de data, que
+     no Windows vem cinza claro e destoa do tema escuro inteiro. */
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.crm-bloco textarea.crm-input {
+  resize: vertical;
+  min-height: 74px;
+  line-height: 1.5;
+}
+
+.crm-bloco .crm-input:focus {
+  outline: 2px solid rgba(59,130,246,.45);
+  outline-offset: 1px;
+  border-color: rgba(59,130,246,.6);
+}
+
+.crm-bloco .crm-input::placeholder { color: var(--crm-apagado); opacity: .7; }
+
+/* A seta do select sai do `appearance:none`, então volta desenhada aqui. */
+.crm-bloco select.crm-input {
+  padding-right: 30px;
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  background-size: 13px;
+}
+
+/* O ícone de calendário do campo de data nasce preto no tema escuro e some no
+   fundo. `invert` é o único caminho: o navegador não expõe a cor dele. */
+.crm-bloco input[type="date"].crm-input::-webkit-calendar-picker-indicator,
+.crm-bloco input[type="datetime-local"].crm-input::-webkit-calendar-picker-indicator {
+  filter: invert(1) opacity(.55);
+  cursor: pointer;
+}
+html[data-theme="light"] .crm-bloco input[type="date"].crm-input::-webkit-calendar-picker-indicator,
+html[data-theme="light"] .crm-bloco input[type="datetime-local"].crm-input::-webkit-calendar-picker-indicator {
+  filter: none;
+}
+
+.crm-bloco .crm-rotulo {
+  display: block;
+  font-size: .72rem;
+  color: var(--crm-apagado);
+  margin-bottom: 4px;
+  /* `text-transform:none` NAO e redundante: clientes.php tem uma regra global
+     que poe TODO `label` em maiuscula, e prospeccao.php nao. Sem isto, o mesmo
+     bloco sai com "TIPO" numa tela e "Tipo" na outra, que e exatamente o
+     sintoma que este arquivo existe para acabar. */
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+}
+
+/* ------------------------------------------------------------- botões -- */
+
+.crm-bloco .crm-btn {
+  background: linear-gradient(180deg, var(--crm-azul), var(--crm-azul-forte));
+  color: #fff;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: filter .12s, background .12s;
+}
+.crm-bloco .crm-btn:hover:not(:disabled) { filter: brightness(1.08); }
+.crm-bloco .crm-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.crm-bloco .crm-btn-ghost {
+  background: transparent;
+  border-color: var(--crm-borda);
+  color: var(--crm-texto);
+}
+.crm-bloco .crm-btn-ghost:hover:not(:disabled) {
+  background: rgba(96,165,250,.1);
+  filter: none;
+}
+
+.crm-bloco .crm-link {
+  font-size: .78rem;
+  color: #60a5fa;
+  text-decoration: none;
+  cursor: pointer;
+}
+.crm-bloco .crm-link:hover { text-decoration: underline; }
+.crm-bloco .crm-link-perigo { color: #fca5a5; }
+
+/* ------------------------------------------------- escolher arquivo -- */
+
+/*
+   O `<input type="file">` nativo é o "Escolher arquivo | Nenhum arquivo
+   escolhido" cinza do navegador. Ele NÃO é estilizável: nem cor, nem borda, nem
+   o texto em português travado do sistema operacional.
+
+   Então ele fica invisível por cima de um rótulo que parece botão, e o nome do
+   arquivo escolhido é escrito ao lado pelo JS. O input continua existindo e
+   recebendo o clique, então teclado e leitor de tela seguem funcionando: some o
+   visual nativo, não o controle.
+*/
+.crm-bloco .crm-arquivo {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.crm-bloco .crm-arquivo input[type="file"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.crm-bloco .crm-arquivo-nome {
+  font-size: .78rem;
+  color: var(--crm-apagado);
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------- etiquetas -- */
+
+.crm-bloco .crm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: .76rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.crm-bloco .crm-chip-x {
+  text-decoration: none;
+  color: inherit;
+  opacity: .55;
+  font-weight: 700;
+}
+.crm-bloco .crm-chip-x:hover { opacity: 1; }
+
+/* --------------------------------------------------------- estrutura -- */
+
+.crm-bloco .crm-titulo {
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--crm-apagado);
+  margin: 0;
+  font-weight: 600;
+}
+
+.crm-bloco .crm-vazio {
+  font-size: .8rem;
+  color: var(--crm-apagado);
+  opacity: .8;
+}
+
+.crm-bloco .crm-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 9px;
+  border: 1px solid var(--crm-borda);
+  margin-bottom: 6px;
+}
+
+.crm-bloco .crm-linha {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Formulário de contato: cai para uma coluna no celular, sem media query,
+   porque o modal que hospeda o bloco já é estreito de si. */
+.crm-bloco .crm-grade {
+  display: grid;
+  /* 170px e o minimo em que um `datetime-local` cabe sem cortar a hora: com
+     150px ele saia como "11/09/2026 20:0". */
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+.crm-bloco .crm-grade-larga { grid-column: 1 / -1; }

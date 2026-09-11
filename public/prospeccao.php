@@ -152,6 +152,11 @@ function column_display_name(array $col): string
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
   <!-- Fase 2 do CRM: etiquetas, campos personalizados, documentos e contatos.
        O mesmo módulo roda em clientes.php. -->
+  <!-- O bloco da Fase 2 traz o PROPRIO estilo, escopado em .crm-bloco. Antes ele
+       emprestava `.btn` e `.form-input` da tela, e as duas telas onde ele roda
+       definem essas classes de forma DIFERENTE: o mesmo bloco saia com dois
+       visuais, e o botao "Registrar" virava texto sem fundo na Prospeccao. -->
+  <link rel="stylesheet" href="/assets/crm-fase2.css?v=<?= @filemtime(__DIR__ . '/assets/crm-fase2.css') ?: 1 ?>">
   <script src="/assets/crm-fase2.js?v=<?= @filemtime(__DIR__ . '/assets/crm-fase2.js') ?: 1 ?>"></script>
   <style>
     :root {
