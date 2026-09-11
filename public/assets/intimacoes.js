@@ -34,6 +34,9 @@
       // Fallback robusto: se yurisNotify não existir, usa toast visual próprio
       this.notify    = window.yurisNotify || ((m, t) => this._toast(m, t));
       this.userProfile = { oab: '', oab_uf: '', nome_advogado: '', nome: '' };
+      // O que vai em negrito na tela. Vem dos MONITORES da conta, não só da OAB
+      // do perfil pessoal: ver destaquesDoTenant() em api/push/user_filters.php.
+      this.destaques = { oabs: [], nomes: [] };
       this.bindEvents();
       this.initDatePicker();
       // Detect aba ativa inicial — DJEN por padrão (data-tab="djen" no HTML)
@@ -755,6 +758,12 @@
         this.userProfile = data.filters || {};
         this.userProfile.missing = data.missing || [];
         this.userProfile.hasMonitors = !!data.has_monitors;
+        if (data.destaques) {
+          this.destaques = {
+            oabs:  Array.isArray(data.destaques.oabs)  ? data.destaques.oabs  : [],
+            nomes: Array.isArray(data.destaques.nomes) ? data.destaques.nomes : [],
+          };
+        }
         this.applyUserDefaults();
         this.updateProfileNudge();
       } catch (e) {
@@ -971,16 +980,27 @@
       return `<div class="int-pub-partes"><strong>Parte(s):</strong> ${lista}</div>`;
     },
 
-    /** Renderiza linha "Adv: Nome1 (UF-OAB1), ..." destacando OAB do user. */
+    /** É uma das OABs que esta conta monitora? */
+    _oabMonitorada(oab, uf) {
+      const n = String(oab || '').replace(/\D/g, '');
+      if (!n) return false;
+      const u = String(uf || '').toUpperCase();
+      return (this.destaques.oabs || []).some(d =>
+        d.oab === n && (!d.uf || !u || d.uf === u)
+      );
+    },
+
+    /** Renderiza linha "Adv: Nome1 (UF-OAB1), ..." destacando as OABs monitoradas. */
     _renderAdvogadosLine(advs) {
       if (!Array.isArray(advs) || !advs.length) return '';
-      const myOab = (this.userProfile && this.userProfile.oab || '').replace(/\D/g, '');
-      const myUf  = (this.userProfile && this.userProfile.oab_uf || '').toUpperCase();
       const esc = (s) => this._esc(s);
       const parts = advs.slice(0, 8).map(a => {
         const oab = (a.oab || '').replace(/\D/g, '');
         const uf  = (a.uf || '').toUpperCase();
-        const isMine = myOab && oab === myOab && (!myUf || uf === myUf);
+        // Antes comparava só com a OAB do PERFIL do usuário logado. Quem não
+        // tinha OAB no perfil não via nada em negrito, e a segunda OAB
+        // monitorada pela conta nunca aparecia destacada.
+        const isMine = this._oabMonitorada(oab, uf);
         const label = `${esc(a.nome || '?')} (${esc(uf)}-${esc(oab)})`;
         return isMine ? `<strong style="color:#34D399;">${label} ✓</strong>` : label;
       });
@@ -1023,7 +1043,7 @@
             <div class="int-pub-orgao">${esc(orgao)}</div>
             ${this._renderPartesLine(it.partes)}
             ${this._renderAdvogadosLine(it.advogados)}
-            <div class="int-pub-text" data-text-len="${texto.length}">${esc(this._formatLegal(texto))}${texto.length > 400 ? '<div class="int-pub-text-fade"></div>' : ''}</div>
+            <div class="int-pub-text" data-text-len="${texto.length}">${this._realcar(esc(this._formatLegal(texto)))}${texto.length > 400 ? '<div class="int-pub-text-fade"></div>' : ''}</div>
             ${texto.length > 400
               ? `<button class="int-pub-text-toggle" data-action="toggle-text" data-hash="${esc(it.hash_conteudo)}">Ver tudo (${texto.length.toLocaleString('pt-BR')} caracteres)</button>`
               : ''}
@@ -2121,6 +2141,66 @@
       if (!btn) return;
       const validated = (this._aaspFormSignature() === this.aaspState.lastTestSignature);
       btn.textContent = validated ? 'Salvar como ativa ✓' : 'Salvar integração';
+    },
+
+    /**
+     * Põe em negrito, DENTRO do corpo da publicação, a OAB e o nome que esta
+     * conta monitora.
+     *
+     * Por que existe: a linha "Adv:" estruturada só aparece quando a publicação
+     * traz a lista de advogados separada. Em boa parte delas não traz, e o mesmo
+     * advogado aparece cru no meio do texto, sem destaque nenhum. Na tela ficava
+     * assim: o MESMO advogado em negrito num card e apagado no card de baixo.
+     *
+     * SEGURANÇA: recebe o HTML JÁ ESCAPADO e só insere <strong>. A agulha também
+     * é escapada antes de virar regex, senão um nome com `&` ou `<` não casaria
+     * com o texto escapado, e pior, poderia injetar marcação.
+     */
+    _realcar(htmlEscapado) {
+      const d = this.destaques || { oabs: [], nomes: [] };
+      const agulhas = [];
+
+      (d.oabs || []).forEach(o => { if (o && o.oab) agulhas.push(String(o.oab)); });
+      // Nome curto casaria pedaço de outra palavra. Oito já exige nome e sobrenome.
+      (d.nomes || []).forEach(n => { if (n && String(n).length >= 8) agulhas.push(String(n)); });
+
+      if (!agulhas.length) return htmlEscapado;
+
+      // Mais longa primeiro: assim o nome inteiro ganha do pedaço dele.
+      agulhas.sort((a, b) => b.length - a.length);
+
+      /*
+       * Escapa caractere a caractere: o que não é letra, dígito, acento ou
+       * espaço ganha barra invertida. É mais verboso que uma classe de regex, e
+       * é de propósito: nome de advogado tem ponto, hífen e apóstrofo, e uma
+       * classe mal montada aqui vira busca que não casa nada, em silêncio.
+       *
+       * A barra vem de fromCharCode porque escrevê-la literal neste arquivo
+       * atravessa shell e heredoc, e some no caminho.
+       */
+      const BARRA = String.fromCharCode(92);
+      const escaparRegex = (t) => this._esc(t).split('').map(function (ch) {
+        return /[0-9A-Za-zÀ-ÿ ]/.test(ch) ? ch : BARRA + ch;
+      }).join('');
+
+      /*
+       * UMA passada só, com alternância, e não um replace por agulha.
+       *
+       * Com um laço, a segunda agulha era procurada no HTML que a primeira já
+       * havia marcado: "BRUNO CARREIRA" casava DENTRO de
+       * "<strong>BRUNO CARREIRA FERREIRA</strong>" e saía realce dentro de
+       * realce. Numa passada só, cada trecho é consumido uma vez.
+       *
+       * Fronteira à mão, sem borda de palavra: em JS ela não entende acento, e
+       * nome de advogado é cheio deles. Aqui a fronteira é "não é letra nem
+       * dígito".
+       */
+      const LETRA = '0-9A-Za-zÀ-ÿ';
+      const re = new RegExp(
+        '(^|[^' + LETRA + '])((?:' + agulhas.map(escaparRegex).join('|') + '))(?![' + LETRA + '])',
+        'gi'
+      );
+      return htmlEscapado.replace(re, '$1<strong class="int-realce">$2</strong>');
     },
 
     /** Escape HTML mínimo (defesa contra XSS em mensagens dinâmicas). */

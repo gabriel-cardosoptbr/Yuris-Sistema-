@@ -75,6 +75,8 @@ try {
             // Antes filtrava por created_by=userId, mas isso fazia o modal "Configure perfil"
             // abrir indevidamente quando outro user do mesmo tenant já tinha configurado.
             'has_monitors' => PushUserFiltersHelpers::countMonitorsForTenant($pdo, $accountId) > 0,
+            // O que a tela deve destacar em negrito. Ver destaquesDoTenant().
+            'destaques'    => PushUserFiltersHelpers::destaquesDoTenant($pdo, $accountId, $filters),
         ]);
         exit;
     }
@@ -178,6 +180,73 @@ class PushUserFiltersHelpers {
         );
         $stmt->execute(['acc' => $accountId]);
         return (int)$stmt->fetchColumn();
+    }
+
+    /**
+     * O que deve aparecer em NEGRITO na tela de Intimações.
+     *
+     * Antes, o destaque usava SÓ a OAB do perfil pessoal do usuário logado. Dois
+     * furos que isso criava:
+     *
+     *  1. A conta pode monitorar mais de uma OAB. As outras nunca eram
+     *     destacadas, mesmo sendo o motivo de a publicação estar ali.
+     *  2. Quem não tem OAB no perfil (secretária, estagiário, sócio
+     *     administrador) não via NADA em negrito, embora estivesse olhando
+     *     exatamente as publicações que a conta monitora.
+     *
+     * Agora vem dos MONITORES da conta, que é quem de fato define o que está
+     * sendo acompanhado, mais o perfil pessoal como reforço.
+     *
+     * `nome_complementar` entra porque em muitas publicações o número da OAB não
+     * aparece no corpo, só o nome do advogado.
+     *
+     * @return array{oabs:array<int,array{oab:string,uf:string}>,nomes:string[]}
+     */
+    public static function destaquesDoTenant(\PDO $pdo, int $accountId, array $perfil): array
+    {
+        $oabs  = [];
+        $nomes = [];
+
+        $push = static function (array &$lista, string $chave, $valor) {
+            if ($valor !== '' && !isset($lista[$chave])) { $lista[$chave] = $valor; }
+        };
+
+        try {
+            $stmt = $pdo->prepare(
+                "SELECT valor_monitorado, uf, nome_complementar
+                   FROM push_monitors
+                  WHERE account_id = :acc
+                    AND tipo_monitoramento = 'oab'
+                    AND status IN ('ativo','pausado')"
+            );
+            $stmt->execute(['acc' => $accountId]);
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $m) {
+                $oab = preg_replace('/\D/', '', (string)($m['valor_monitorado'] ?? ''));
+                $uf  = strtoupper(trim((string)($m['uf'] ?? '')));
+                if ($oab !== '') { $push($oabs, $oab . '|' . $uf, ['oab' => $oab, 'uf' => $uf]); }
+
+                $nome = trim((string)($m['nome_complementar'] ?? ''));
+                // Nome curto demais casaria pedaço de outra palavra no corpo da
+                // publicação. Oito caracteres já exige nome e sobrenome.
+                if (mb_strlen($nome) >= 8) { $push($nomes, mb_strtolower($nome), $nome); }
+            }
+        } catch (\Throwable $e) {
+            // Destaque é enfeite útil, não função crítica: sem ele a tela ainda
+            // funciona, então nunca derruba a resposta.
+            error_log('[user_filters] destaques: ' . $e->getMessage());
+        }
+
+        // O perfil pessoal reforça, não substitui.
+        $oabPerfil = preg_replace('/\D/', '', (string)($perfil['oab'] ?? ''));
+        if ($oabPerfil !== '') {
+            $push($oabs, $oabPerfil . '|' . strtoupper((string)($perfil['oab_uf'] ?? '')), [
+                'oab' => $oabPerfil, 'uf' => strtoupper((string)($perfil['oab_uf'] ?? '')),
+            ]);
+        }
+        $nomePerfil = trim((string)($perfil['nome_advogado'] ?? ''));
+        if (mb_strlen($nomePerfil) >= 8) { $push($nomes, mb_strtolower($nomePerfil), $nomePerfil); }
+
+        return ['oabs' => array_values($oabs), 'nomes' => array_values($nomes)];
     }
 
     /** Conta apenas monitores criados pelo próprio user (uso interno se precisar). */

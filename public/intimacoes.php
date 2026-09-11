@@ -465,6 +465,22 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
       border-left: 2px solid rgba(96,165,250,.3);
     }
     .int-pub-partes strong, .int-pub-advs strong { color: #9CA3AF; }
+
+    /* ── Realce do que a conta monitora, DENTRO do corpo da publicação ──
+       Antes, o destaque só existia na linha "Adv:" estruturada. Boa parte das
+       publicações não traz essa lista separada, e o mesmo advogado aparecia cru
+       no meio do texto: em negrito num card e apagado no card de baixo.
+
+       Verde igual ao da linha "Adv:", de propósito: é a mesma informação, e
+       duas cores para a mesma coisa fariam o olho procurar diferença que não
+       existe. O `strong` herda o tamanho do corpo para não engordar a linha. */
+    .int-realce {
+      color: #34D399;
+      font-weight: 700;
+      background: rgba(52,211,153,.10);
+      border-radius: 3px;
+      padding: 0 2px;
+    }
     /* Borda esquerda diferenciada: partes (vermelho/laranja sutil) vs advogados (azul) */
     .int-pub-partes { border-left-color: rgba(251,191,36,.4); }
     html[data-theme="light"] .int-pub-partes,
