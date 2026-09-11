@@ -74,8 +74,18 @@ $log = [];
  * cerca de 5 segundos. Trabalho em lote mora no cron, que e aqui.
  */
 $renovadas = \App\Tarefas\RecurrenceCronService::executar();
-echo "  tarefas recorrentes vencidas renovadas: $renovadas
-";
+
+/*
+ * A contagem entra no LOG, e nao num echo.
+ *
+ * O arquivo abre com ob_start() e fecha com ob_end_clean(): qualquer `echo`
+ * daqui e DESCARTADO, e nao apareceria no yuris-cron.log. A operacao ficaria
+ * cega justamente na parte que passou a ser responsabilidade deste cron.
+ *
+ * (A primeira versao punha esta linha junto do `$log = []`, LA EM CIMA, antes
+ * de `$renovadas` existir: nunca registrava nada.)
+ */
+$log[] = "renovadas {$renovadas} tarefa(s) recorrente(s) vencida(s)";
 
 $recs = TaskRecurrence::allActive();
 foreach ($recs as $recData) {
