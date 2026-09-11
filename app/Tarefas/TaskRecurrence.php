@@ -79,8 +79,24 @@ class TaskRecurrence
 
             case 'mensal':
                 $diaMes = (int)($this->data['dia_mes'] ?? $dt->format('d'));
+
+                /*
+                 * O DIA 1 ANTES DE SOMAR O MÊS NÃO É FRESCURA.
+                 *
+                 * `(new DateTime('2026-01-31'))->modify('+1 month')` dá
+                 * 2026-03-03, porque o PHP transborda: fevereiro não tem 31.
+                 * O código antigo somava o mês primeiro e só depois procurava o
+                 * último dia, mas já do mês TRANSBORDADO. Resultado: uma tarefa
+                 * mensal do dia 31 caía em 31 de MARÇO e PULAVA FEVEREIRO
+                 * inteiro. Num escritório de advocacia, prazo mensal que pula um
+                 * mês é prazo perdido.
+                 *
+                 * Indo para o dia 1, a soma do mês nunca transborda, e só então
+                 * o dia certo é escolhido, limitado ao tamanho do mês de destino:
+                 * 31 de janeiro vira 28 (ou 29) de fevereiro.
+                 */
+                $dt->setDate((int)$dt->format('Y'), (int)$dt->format('m'), 1);
                 $dt->modify('+1 month');
-                // fallback pro último dia se o mês não tiver aquele dia
                 $maxDia = (int)$dt->format('t');
                 $dt->setDate((int)$dt->format('Y'), (int)$dt->format('m'), min($diaMes, $maxDia));
                 break;
@@ -90,7 +106,14 @@ class TaskRecurrence
                 break;
 
             case 'custom':
-                $unit = $this->data['unidade'] ?? 'day';
+                // Allowlist: `modify('+1 unidade_qualquer')` NAO lança, apenas
+                // emite warning e devolve a data intocada. Sem isto, uma unidade
+                // inválida vira uma recorrência que nunca anda, e quem chama fica
+                // girando sem entender por quê.
+                $unit = (string)($this->data['unidade'] ?? 'day');
+                if (!in_array($unit, ['day', 'week', 'month', 'year'], true)) {
+                    $unit = 'day';
+                }
                 $dt->modify("+{$int} {$unit}");
                 break;
         }
@@ -102,6 +125,77 @@ class TaskRecurrence
         }
 
         return $dt->format('Y-m-d H:i:s');
+    }
+
+    /**
+     * A próxima data que ainda está NO FUTURO.
+     *
+     * ---------------------------------------------------------------------
+     * POR QUE ISTO EXISTE, SEPARADO DE calcularProximaData()
+     * ---------------------------------------------------------------------
+     * `calcularProximaData()` avança UM período, e para quem acabou de concluir
+     * uma tarefa isso é o certo: concluiu a de hoje, a próxima é a da semana que
+     * vem.
+     *
+     * Mas para uma tarefa que está vencida há meses, avançar um período deixa
+     * ela AINDA vencida. O renovador automático então a pegava de novo na
+     * próxima passada, e de novo, e de novo. Medido em produção em 12/09/2026:
+     * 214 tarefas recorrentes vencidas sendo reprocessadas a CADA abertura da
+     * tela de Tarefas, sem nunca convergir, e gravando 214 linhas de histórico
+     * imutável por vez. Era a origem das 14.508 linhas em `task_history` para
+     * 344 tarefas.
+     *
+     * Aqui a data avança até passar de agora. Uma passada resolve, e a tarefa
+     * sai da lista de vencidas de verdade.
+     *
+     * ---------------------------------------------------------------------
+     * AS DUAS PROTEÇÕES CONTRA LAÇO INFINITO, E POR QUE SÃO DUAS
+     * ---------------------------------------------------------------------
+     * A que realmente protege é a comparação `$proxima === $data`: se a data
+     * não andou (intervalo zero, unidade inválida), para na hora. Essa é a
+     * única falha capaz de girar para sempre.
+     *
+     * O teto de voltas é a segunda linha, para um caso que eu não tenha
+     * previsto. Ele precisa ser ALTO: uma tarefa diária parada desde 2020 são
+     * mais de 2.000 voltas até alcançar hoje. A primeira versão tinha teto 400 e
+     * o teste pegou: a data parava em 2021 e a tarefa continuava vencida, que é
+     * justamente o defeito que este método existe para acabar.
+     *
+     * 20.000 cobre mais de 50 anos de recorrência diária e roda em poucos
+     * milissegundos, porque é só aritmética de calendário.
+     *
+     * @param  string $dataAtual prazo atual, vencido ou não
+     * @return string 'Y-m-d H:i:s' no futuro, ou '' se a recorrência acabou
+     */
+    public function proximaDataFutura(string $dataAtual): string
+    {
+        $agora = new \DateTime();
+        $data  = $dataAtual;
+
+        for ($volta = 0; $volta < 20000; $volta++) {
+            $proxima = $this->calcularProximaData($data);
+
+            // '' significa que passou da data_fim: a recorrência terminou.
+            if ($proxima === '') {
+                return '';
+            }
+
+            // A data não andou: intervalo inválido. Para aqui em vez de girar.
+            if ($proxima === $data) {
+                return $proxima;
+            }
+
+            if (new \DateTime($proxima) > $agora) {
+                return $proxima;
+            }
+            $data = $proxima;
+        }
+
+        // Teto atingido. Devolve o que deu, e registra: 20 mil voltas sem
+        // alcançar hoje é sinal de recorrência mal configurada, não de uso real.
+        error_log('[TaskRecurrence] proximaDataFutura: teto de voltas na recorrência #'
+                  . ($this->data['id'] ?? '?') . ' a partir de ' . $dataAtual);
+        return $data;
     }
 
     public function gerarProximaInstancia(array $taskConcluida): int|false

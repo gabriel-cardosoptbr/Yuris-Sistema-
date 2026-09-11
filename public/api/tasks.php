@@ -53,8 +53,19 @@ if ($method === 'GET') {
     $boardId = (int)($_GET['board_id'] ?? 0);
     if (!$boardId || !TaskBoard::canView($boardId, $userId, $accIds)) fail('Sem acesso', 403);
 
-    // Cron interno: gera instâncias atrasadas de tarefas recorrentes (máx. 1x/hora)
-    \App\Tarefas\RecurrenceCronService::tickIfDue();
+    /*
+     * AQUI RODAVA UM CRON, DENTRO DA ESPERA DA PESSOA.
+     *
+     * `RecurrenceCronService::tickIfDue()` prometia rodar no máximo uma vez por
+     * hora, controlado por um arquivo de trava em `storage/`. Em produção a
+     * pasta era do root, o Apache não conseguia escrever, a gravação falhava em
+     * silêncio, e a trava ficou congelada por 102 dias. Com a trava parada, o
+     * "máximo uma vez por hora" virou TODA abertura da tela: 214 tarefas
+     * recorrentes vencidas, 24 ms cada, cerca de 5 segundos de espera por vez.
+     *
+     * A renovação agora é do cron do servidor (tasks_recurrence_tick.php), que
+     * é onde trabalho em lote deve morar. Listar tarefa voltou a ser só listar.
+     */
 
     $filtros = [];
     if (isset($_GET['column_id']))     $filtros['column_id']     = (int)$_GET['column_id'];

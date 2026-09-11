@@ -65,6 +65,18 @@ $pdo = \App\Core\Database::getConnection();
 $log = [];
 
 // ── 1. Recorrências atrasadas ─────────────────────────────────────────────────
+/*
+ * RENOVAR AS VENCIDAS vem primeiro, e passou a ser feito AQUI.
+ *
+ * Isto rodava dentro de `GET /api/tasks.php`, na espera do usuário, por causa
+ * de um desenho "piggyback" que dependia de uma trava em arquivo. A trava parou
+ * de gravar em producao e o trabalho passou a rodar em toda abertura de tela,
+ * cerca de 5 segundos. Trabalho em lote mora no cron, que e aqui.
+ */
+$renovadas = \App\Tarefas\RecurrenceCronService::executar();
+echo "  tarefas recorrentes vencidas renovadas: $renovadas
+";
+
 $recs = TaskRecurrence::allActive();
 foreach ($recs as $recData) {
     // última instância desta recorrência

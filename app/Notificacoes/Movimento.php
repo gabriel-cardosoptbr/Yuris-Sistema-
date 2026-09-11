@@ -51,8 +51,18 @@ final class Movimento
      *
      * `reorder` é arrastar dentro da mesma coluna. `viewed`/`opened` seriam
      * ruído puro caso passem a ser registrados.
+     *
+     * `renovada_auto` entrou em 12/09/2026, depois de medir: o renovador de
+     * tarefas recorrentes processava 214 tarefas de uma vez, e cada uma virava
+     * um aviso "Tarefa X foi alterada, pelo sistema". Duzentos e catorze avisos
+     * de uma coisa que ninguém pediu e ninguém vai ler.
+     *
+     * É exatamente o ruído que as duas naturezas de aviso existem para evitar, e
+     * eu não previ que um trabalho em lote passaria por `Task::history`. A regra
+     * que fica: MOVIMENTO É O QUE UMA PESSOA FEZ. Renovação automática em massa
+     * é manutenção do sistema, não movimento de escritório.
      */
-    public const IGNORADAS = ['reorder', 'reordered', 'viewed', 'opened', 'listed'];
+    public const IGNORADAS = ['reorder', 'reordered', 'viewed', 'opened', 'listed', 'renovada_auto'];
 
     /**
      * Verbos, em português, para o texto do aviso.

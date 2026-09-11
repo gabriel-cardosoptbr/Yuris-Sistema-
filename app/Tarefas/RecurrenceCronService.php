@@ -7,18 +7,31 @@ use App\Tarefas\TaskColumn;
 use App\Tarefas\TaskRecurrence;
 
 /**
- * RecurrenceCronService
+ * RecurrenceCronService — renova tarefas recorrentes vencidas.
  *
- * Dispara a geração de instâncias de tarefas recorrentes diretamente
- * dentro do processo PHP — sem cron externo, sem Task Scheduler.
+ * ---------------------------------------------------------------------------
+ * ELE NÃO RODA MAIS DENTRO DA REQUISIÇÃO DO USUÁRIO
+ * ---------------------------------------------------------------------------
+ * O desenho original era um "piggyback": `GET /api/tasks.php` chamava
+ * `tickIfDue()` e, no máximo uma vez por hora, o trabalho era feito ali mesmo.
+ * A hora era controlada por um arquivo de trava em `storage/`.
  *
- * Funciona como piggyback: é chamado a cada GET /api/tasks.php?board_id=X
- * mas só executa a lógica real uma vez por hora (controlado por arquivo de lock).
+ * Em produção isso desandou de um jeito que ninguém veria olhando o código:
  *
- * Fluxo:
- *   1. Verifica se o lock file tem menos de 1 hora → se sim, sai imediatamente.
- *   2. Atualiza o lock file com o timestamp atual.
- *   3. Varre task_recurrences ativas e cria instâncias atrasadas que não existem.
+ *   - `storage/` pertencia ao root, e o Apache NÃO conseguia escrever nela
+ *   - `updateLock()` falhava, e a falha era engolida pelo try/catch
+ *   - a trava ficou congelada em 01/06, 102 dias parada
+ *   - logo `isDue()` respondia SEMPRE que sim
+ *
+ * Resultado medido em 12/09/2026: o renovador rodava em TODA abertura da tela,
+ * processando 214 tarefas a 24 ms cada, ou seja cerca de 5 segundos de espera
+ * para a pessoa, toda vez. E gravava 214 linhas de histórico imutável por vez,
+ * que é de onde vinham as 14.508 linhas em `task_history` para 344 tarefas.
+ *
+ * A lição vale mais que a correção: uma trava em arquivo que falha em silêncio
+ * não degrada, ela DESLIGA a proteção inteira. Hoje `run()` é chamado só pelo
+ * cron de verdade do servidor, e `tickIfDue()` continua existindo para quem não
+ * tem cron, mas avisa alto quando não consegue gravar a trava.
  */
 class RecurrenceCronService
 {
@@ -32,12 +45,43 @@ class RecurrenceCronService
     {
         try {
             if (!self::isDue()) return;
-            self::updateLock();
+
+            /*
+             * A TRAVA PRECISA GRAVAR DE VERDADE ANTES DE RODAR.
+             *
+             * Antes era `updateLock(); run();`, e como a gravação falhava em
+             * silêncio (pasta sem permissão), `isDue()` respondia sempre que sim
+             * e o renovador rodava em TODA requisição, e não uma vez por hora.
+             * Cinco segundos de espera por abertura de tela.
+             *
+             * Agora, se a trava não gravou, NÃO roda: rodar sem trava é pior que
+             * não rodar, porque vira trabalho pesado repetido a cada clique. O
+             * aviso no log é a única forma de isso não voltar a passar
+             * despercebido por três meses.
+             */
+            if (!self::updateLock()) {
+                error_log('[RecurrenceCronService] trava nao gravavel em ' . self::LOCK_FILE
+                          . ' — renovacao NAO executada nesta requisicao. '
+                          . 'Corrija a permissao de storage/ ou use o cron do servidor.');
+                return;
+            }
+
             self::run();
         } catch (\Throwable $e) {
             // falha silenciosa — não pode quebrar a resposta principal
             error_log('[RecurrenceCronService] ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Executa a renovação SEM trava e SEM piggyback: é o ponto de entrada do
+     * cron de verdade do servidor.
+     *
+     * @return int quantas tarefas foram renovadas
+     */
+    public static function executar(): int
+    {
+        return self::run();
     }
 
     // ── Internos ─────────────────────────────────────────────────────────────
@@ -49,15 +93,21 @@ class RecurrenceCronService
         return (time() - (int)file_get_contents($file)) >= self::INTERVAL_SEC;
     }
 
-    private static function updateLock(): void
+    /** @return bool true se a trava foi mesmo gravada no disco. */
+    private static function updateLock(): bool
     {
         $dir = dirname(self::LOCK_FILE);
-        if (!is_dir($dir)) mkdir($dir, 0755, true);
-        file_put_contents(self::LOCK_FILE, (string)time(), LOCK_EX);
+        if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
+            return false;
+        }
+        // `@` porque a falha aqui é esperada em ambiente com permissão errada, e
+        // quem decide o que fazer com ela é o chamador, não um warning no HTML.
+        return @file_put_contents(self::LOCK_FILE, (string) time(), LOCK_EX) !== false;
     }
 
-    private static function run(): void
+    private static function run(): int
     {
+        $renovadas = 0;
         $pdo = Database::getConnection();
 
         // Busca tarefas recorrentes ativas com prazo já vencido.
@@ -80,7 +130,15 @@ class RecurrenceCronService
                 $rec = TaskRecurrence::loadById((int)$taskData['recorrencia_id']);
                 if (!$rec) continue;
 
-                $proximaData = $rec->calcularProximaData($taskData['prazo'] ?? date('Y-m-d'));
+                /*
+                 * `proximaDataFutura`, e NAO `calcularProximaData`.
+                 *
+                 * A segunda avanca UM periodo. Numa tarefa vencida ha meses, ela
+                 * continuava vencida depois de avancar, voltava na passada
+                 * seguinte, e assim para sempre: as mesmas 214 tarefas,
+                 * reprocessadas e re-historiadas em toda abertura de tela.
+                 */
+                $proximaData = $rec->proximaDataFutura($taskData['prazo'] ?? date('Y-m-d'));
 
                 // data_fim atingida → desativa a recorrência
                 if ($proximaData === '' || $proximaData === false) {
@@ -100,10 +158,13 @@ class RecurrenceCronService
                     ['prazo' => $taskData['prazo']],
                     ['prazo' => $proximaData]
                 );
+                $renovadas++;
 
             } catch (\Throwable $e) {
                 error_log('[RecurrenceCronService] tarefa #' . $taskData['id'] . ': ' . $e->getMessage());
             }
         }
+
+        return $renovadas;
     }
 }
