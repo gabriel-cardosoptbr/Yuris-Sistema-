@@ -21,8 +21,27 @@
  *                      tem usuário de verdade
  *   tasks              responsavel_id é id, vai direto para ele
  *
- * Janela: vence hoje, vence amanhã, ou já venceu e continua em aberto. O
+ * Janela: vence hoje, vence amanhã, ou venceu há pouco e continua em aberto. O
  * vencido é o mais importante dos três e é o que o sistema mais escondia.
+ *
+ * ---------------------------------------------------------------------------
+ * DOIS LIMITES, MEDIDOS CONTRA A BASE REAL ANTES DE LIGAR
+ * ---------------------------------------------------------------------------
+ * O dry-run em produção devolveu 344 itens na janela, e UMA pessoa sozinha
+ * levaria 102. O contador vermelho marcaria 102 no primeiro dia, e a pessoa
+ * mutaria o sino antes de ler o primeiro aviso. Cumprir o pedido assim seria
+ * o mesmo que não cumprir.
+ *
+ *   LIMITE_ATRASO_DIAS  prazo vencido há mais de 30 dias não é prazo, é dado
+ *                       abandonado. Avisar todo dia sobre maio, para sempre, é
+ *                       barulho que nunca para e ensina a ignorar o sino.
+ *
+ *   MAX_POR_PESSOA      ninguém recebe mais que 10 por rodada. O que passar
+ *                       disso vira UMA linha de resumo, "e mais 92 vencendo",
+ *                       que leva para a tela de tarefas. Dez avisos a pessoa lê;
+ *                       cem ela apaga sem olhar.
+ *
+ * Os mais urgentes vêm primeiro, então o corte nunca engole o que vence hoje.
  *
  * ---------------------------------------------------------------------------
  * RODAR DUAS VEZES NO MESMO DIA NÃO DUPLICA
@@ -64,9 +83,37 @@ if (!$cli) {
 $pdo = Database::getConnection();
 $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
+/** Prazo vencido há mais que isto é dado abandonado, não compromisso. */
+const LIMITE_ATRASO_DIAS = 30;
+
+/** Teto por pessoa por rodada. O excedente vira uma linha de resumo. */
+const MAX_POR_PESSOA = 10;
+
 $hoje    = date('Y-m-d');
 $criados = 0;
 $olhados = 0;
+
+/*
+ * Quantos avisos cada pessoa já levou nesta rodada, e quantos sobraram.
+ * O resumo do excedente é emitido no fim, uma linha por pessoa.
+ */
+$porPessoa  = [];
+$excedente  = [];
+$contaDe    = [];
+
+/** Cabe mais um aviso para esta pessoa? Se não, contabiliza o excedente. */
+function cabe(int $userId, int $accountId): bool
+{
+    global $porPessoa, $excedente, $contaDe;
+    $contaDe[$userId] = $accountId;
+    $atual = $porPessoa[$userId] ?? 0;
+    if ($atual >= MAX_POR_PESSOA) {
+        $excedente[$userId] = ($excedente[$userId] ?? 0) + 1;
+        return false;
+    }
+    $porPessoa[$userId] = $atual + 1;
+    return true;
+}
 
 function quando(string $data, string $hoje): string
 {
@@ -95,7 +142,9 @@ $st = $pdo->prepare(
         AND p.responsavel_user_id IS NOT NULL
         AND z.data_limite IS NOT NULL
         AND z.data_limite <= DATE_ADD(CURDATE(), INTERVAL 1 DAY)
-        AND (z.status IS NULL OR LOWER(z.status) NOT IN ('concluido','concluído','cancelado','feito'))"
+        AND z.data_limite >= DATE_SUB(CURDATE(), INTERVAL " . LIMITE_ATRASO_DIAS . " DAY)
+        AND (z.status IS NULL OR LOWER(z.status) NOT IN ('concluido','concluído','cancelado','feito'))
+   ORDER BY z.data_limite ASC"
 );
 $st->execute();
 
@@ -105,6 +154,7 @@ foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $z) {
     $texto = trim((string) ($z['descricao'] ?? '')) ?: 'Prazo';
 
     if ($dryRun) { continue; }
+    if (!cabe((int) $z['responsavel_user_id'], (int) $z['account_id'])) { continue; }
 
     $id = Aviso::paraUsuario((int) $z['account_id'], (int) $z['responsavel_user_id'], [
         'tipo'        => 'prazo.vencendo',
@@ -133,7 +183,9 @@ $st = $pdo->prepare(
       WHERE t.responsavel_id IS NOT NULL
         AND t.prazo IS NOT NULL
         AND DATE(t.prazo) <= DATE_ADD(CURDATE(), INTERVAL 1 DAY)
-        AND t.status = 'ativa'"
+        AND DATE(t.prazo) >= DATE_SUB(CURDATE(), INTERVAL " . LIMITE_ATRASO_DIAS . " DAY)
+        AND t.status = 'ativa'
+   ORDER BY t.prazo ASC"
 );
 $st->execute();
 
@@ -142,6 +194,7 @@ foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $t) {
     $data = substr((string) $t['prazo'], 0, 10);
 
     if ($dryRun) { continue; }
+    if (!cabe((int) $t['responsavel_id'], (int) $t['account_id'])) { continue; }
 
     $id = Aviso::paraUsuario((int) $t['account_id'], (int) $t['responsavel_id'], [
         'tipo'        => 'tarefa.vencendo',
@@ -157,7 +210,30 @@ foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $t) {
     if ($id > 0) { $criados++; }
 }
 
-$msg = "prazos e tarefas na janela: $olhados   avisos criados: $criados"
+/* ===========================================================================
+ * 3. O excedente, numa linha por pessoa
+ *
+ * Quem passou do teto recebe "e mais N vencendo" em vez de N avisos. A linha
+ * leva para a tela de tarefas, que e onde da para resolver em lote.
+ * ========================================================================= */
+$resumos = 0;
+foreach ($excedente as $userId => $quantos) {
+    if ($dryRun || $quantos <= 0) { continue; }
+    $id = Aviso::paraUsuario((int) $contaDe[$userId], (int) $userId, [
+        'tipo'        => 'prazo.resumo',
+        // "itens", nao "items": o plural de item em portugues e irregular, e
+        // appendar 's' produzia "E mais 2 items vencendo".
+        'titulo'      => 'E mais ' . $quantos . ' ' . ($quantos === 1 ? 'item' : 'itens') . ' vencendo',
+        'mensagem'    => 'Além dos ' . MAX_POR_PESSOA . ' mais urgentes acima. Abra Tarefas para ver a lista completa.',
+        'url'         => '/tarefas.php',
+        'preferencia' => 'prazo',
+        'chave_dedupe'=> 'prazo-resumo:' . $userId . ':' . $hoje,
+        'janela_min'  => Aviso::JANELA_DIARIA_MIN,
+    ]);
+    if ($id > 0) { $resumos++; $criados++; }
+}
+
+$msg = "prazos e tarefas na janela: $olhados   avisos criados: $criados   (resumos de excedente: $resumos)"
      . ($dryRun ? '   (DRY-RUN: nada foi gravado)' : '');
 
 if ($cli) {
