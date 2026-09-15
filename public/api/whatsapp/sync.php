@@ -333,7 +333,23 @@ try {
         $jid  = $key2['remoteJid'] ?? null;
         if (!$jid) continue;
         if (!isset($jidMap[$jid])) {
-            $jidMap[$jid] = ['pushName' => $r['pushName'] ?? null];
+            $jidMap[$jid] = ['pushName' => null];
+        }
+        /*
+         * AQUI SE PEGAVA A PRIMEIRA MENSAGEM, FOSSE DE QUEM FOSSE.
+         *
+         * `pushName` e o nome de QUEM MANDOU. Se a primeira mensagem da conversa
+         * era nossa, a conversa herdava o nome do dono do numero. Em 15/09/2026,
+         * 21 conversas do canal da conta 83 exibiam "Advogada Maria Fernanda" no
+         * lugar do nome do cliente.
+         *
+         * `nomeDeContatoNaMensagem` devolve null para mensagem nossa, entao o laco
+         * segue procurando ate achar uma RECEBIDA. Conversa que so tem mensagem
+         * nossa fica sem nome aqui, e a leitura cai no contato/identidade, que e o
+         * certo: melhor sem nome que com o nome errado.
+         */
+        if ($jidMap[$jid]['pushName'] === null) {
+            $jidMap[$jid]['pushName'] = WhatsAppMessage::nomeDeContatoNaMensagem($r);
         }
     }
 
@@ -369,8 +385,17 @@ try {
         // do telefone (resolve @lid ja convertido p/ telefone e variacao de sufixo de JID).
         $jidDigits = preg_replace('/[^0-9]/', '', explode('@', (string)$jid)[0]);
         $cInfo1a1  = $contactMap[$jid] ?? ($contactByDigits[$jidDigits] ?? null);
+        /*
+         * GRUPO NAO TEM pushName, TEM ASSUNTO.
+         *
+         * O fallback para `$info['pushName']` num grupo pegava o nome de um
+         * PARTICIPANTE qualquer e o pendurava como nome do grupo. Foi assim que
+         * 2 grupos passaram a se chamar "Advogada Maria Fernanda". Sem o fallback,
+         * grupo sem assunto conhecido fica sem nome aqui e o proximo `groups.upsert`
+         * traz o assunto de verdade.
+         */
         $cname    = $isGroup
-            ? ($groupMap[$jid]['name'] ?? $info['pushName'] ?? null)
+            ? ($groupMap[$jid]['name'] ?? null)
             : ($cInfo1a1['name'] ?? $info['pushName'] ?? null);
         // Não armazena LIDs como nomes
         if ($cname && preg_match('/^\d{12,}$/', (string)$cname)) $cname = null;
@@ -388,7 +413,12 @@ try {
              VALUES (?,?,?,?,?,?,?,0)
              ON DUPLICATE KEY UPDATE
                account_id      = IF(account_id IS NULL, VALUES(account_id), account_id),
-               contact_name    = IF(VALUES(contact_name) IS NOT NULL AND VALUES(contact_name) != "", VALUES(contact_name), contact_name),
+               -- `is_manual_name` NAO estava aqui, e so aqui. Os outros tres lugares
+               -- que escrevem nome de conversa (webhook contacts.upsert, chats.upsert
+               -- e upsertChat) respeitam a renomeacao manual; este apagava por cima.
+               -- Na conta 83 ninguem tinha renomeado nada ainda, entao nada se perdeu,
+               -- mas o primeiro "Sincronizar" depois de uma renomeacao a desfaria.
+               contact_name    = IF(COALESCE(is_manual_name,0) = 0 AND VALUES(contact_name) IS NOT NULL AND VALUES(contact_name) != "", VALUES(contact_name), contact_name),
                profile_pic_url = IF(VALUES(profile_pic_url) IS NOT NULL, VALUES(profile_pic_url), profile_pic_url)'
         )->execute([$ownerId, $instanceId, $jid, $cname, $phone, $isGroup, $pic]);
         $synced++;

@@ -866,31 +866,111 @@ class WhatsAppMessage
 
     /**
      * Normaliza um remote_jid @lid (id de privacidade do WhatsApp) para o JID de telefone
-     * (<numero>@s.whatsapp.net) QUANDO ja conhecemos o numero real do contato (de grupos em
-     * comum / contatos). Senao, devolve o jid cru. Evita criar/duplicar a conversa sob o @lid
-     * quando o telefone ja e conhecido. Prevencao da duplicacao @lid x telefone.
+     * (<numero>@s.whatsapp.net) QUANDO ja conhecemos o numero real do contato. Senao,
+     * devolve o jid cru. Evita criar/duplicar a conversa sob o @lid quando o telefone ja
+     * e conhecido. Prevencao da duplicacao @lid x telefone.
+     *
+     * ---------------------------------------------------------------------------
+     * POR QUE A IDENTIDADE VIROU A PRIMEIRA FONTE (15/09/2026)
+     * ---------------------------------------------------------------------------
+     * A Evolution 2.3.7 passou a entregar o telefone real em `key.remoteJid`, no
+     * lugar do `@lid`. Medido no canal da conta 83: as 23 mensagens 1:1 das 17h
+     * vieram todas como `@lid`, e as 7 das 18h vieram todas como telefone.
+     *
+     * A troca e boa, mas o payload novo NAO manda mais o par junto: `remoteJidAlt`
+     * passou a repetir o proprio telefone. No momento em que a mensagem chega, a
+     * Evolution ja nao conta mais quem e aquela pessoa no endereco antigo.
+     *
+     * A unica coisa no sistema que sabe que `66086829560004@lid` e `5511996447605`
+     * e a tabela `whatsapp_identidades` (migration 129), que guardou o par enquanto
+     * ele ainda vinha. Sem consultar ela aqui, cada contato que escrevesse abriria
+     * conversa NOVA e em branco, com o historico preso na antiga. Ja tinha
+     * acontecido com 6 pessoas nas primeiras horas apos a atualizacao.
+     *
+     * As duas fontes antigas continuam, atras: elas resolvem casos que a identidade
+     * ainda nao viu, e sao independentes dela.
      */
     public static function resolvePhoneJid(\PDO $db, int $instanceId, ?string $jid): ?string
     {
         if (!$jid || !str_ends_with($jid, '@lid')) return $jid;
-        // Fonte confiavel 1: participante de grupo (phoneNumber real).
-        $st = $db->prepare("SELECT phone FROM whatsapp_group_members
-                             WHERE instance_id = ? AND participant_jid = ? AND phone REGEXP '^[0-9]{10,15}$'
+
+        /*
+         * Digitos do proprio @lid. Servem de trava no fim: um "telefone" igual a
+         * eles nao e telefone, e o numero interno do LID lido como se fosse
+         * discavel. Um numero que nao disca e PIOR que nenhum, porque parece certo.
+         */
+        $digitosLid = preg_replace('/[^0-9]/', '', explode('@', $jid)[0]);
+
+        // Fonte 1: identidade consolidada. Maior confianca, porque foi escrita com
+        // peso por origem e ja passou pela validacao de telefone discavel.
+        $st = $db->prepare("SELECT phone FROM whatsapp_identidades
+                             WHERE instance_id = ? AND lid = ? AND phone REGEXP '^[0-9]{10,15}$'
                              LIMIT 1");
         $st->execute([$instanceId, $jid]);
         $phone = $st->fetchColumn();
+
         if (!$phone) {
-            // Fonte 2: contato ja com telefone resolvido.
+            // Fonte 2: participante de grupo (phoneNumber real).
+            $st = $db->prepare("SELECT phone FROM whatsapp_group_members
+                                 WHERE instance_id = ? AND participant_jid = ? AND phone REGEXP '^[0-9]{10,15}$'
+                                 LIMIT 1");
+            $st->execute([$instanceId, $jid]);
+            $phone = $st->fetchColumn();
+        }
+        if (!$phone) {
+            // Fonte 3: contato ja com telefone resolvido.
             $st = $db->prepare("SELECT phone FROM whatsapp_contacts
                                  WHERE instance_id = ? AND remote_jid = ? AND phone REGEXP '^[0-9]{10,15}$'
                                  LIMIT 1");
             $st->execute([$instanceId, $jid]);
             $phone = $st->fetchColumn();
         }
-        if ($phone && preg_match('/^[0-9]{10,15}$/', (string)$phone)) {
+
+        if ($phone && preg_match('/^[0-9]{10,15}$/', (string)$phone) && (string)$phone !== $digitosLid) {
             return $phone . '@s.whatsapp.net';
         }
         return $jid; // sem telefone confiavel: mantem @lid (nao quebra o fluxo atual)
+    }
+
+    /**
+     * O nome do CONTATO que uma mensagem crua da Evolution carrega, ou null.
+     *
+     * ---------------------------------------------------------------------------
+     * POR QUE ISTO PRECISOU VIRAR FUNCAO
+     * ---------------------------------------------------------------------------
+     * `pushName` e o nome de quem MANDOU a mensagem. Numa mensagem recebida, isso
+     * e o contato. Numa mensagem ENVIADA por nos, isso e o nome do dono do numero.
+     *
+     * O `sync.php` derivava o nome da conversa da primeira mensagem que encontrasse
+     * daquele JID, sem olhar `fromMe`. Quando a primeira era nossa, a conversa
+     * inteira passava a se chamar como a advogada. Medido em 15/09/2026 no canal da
+     * conta 83: 21 conversas exibindo "Advogada Maria Fernanda", ou seja, ela
+     * abrindo a lista e vendo o proprio nome no lugar do nome de 19 clientes e de
+     * 2 grupos.
+     *
+     * O caminho do webhook (`upsertChat`) ja se protegia disso. O do Sincronizar,
+     * nao. Agora os dois usam a mesma regra, e ela e testavel isolada.
+     */
+    public static function nomeDeContatoNaMensagem(array $mensagem): ?string
+    {
+        // Mensagem nossa: o pushName e o nome do dono do numero, nao do contato.
+        if (!empty($mensagem['key']['fromMe'])) {
+            return null;
+        }
+
+        $nome = trim((string)($mensagem['pushName'] ?? ''));
+        if ($nome === '') {
+            return null;
+        }
+        // "Nome" que e so numero e LID ou telefone, nao nome.
+        if (preg_match('/^\d{6,}$/', $nome)) {
+            return null;
+        }
+        // Auto-nome: rotularia a conversa com o nome de quem esta olhando.
+        if (in_array(mb_strtolower($nome), ['voce', 'você', 'you', 'eu'], true)) {
+            return null;
+        }
+        return $nome;
     }
 
     /** Contar mensagens novas (para badge). */

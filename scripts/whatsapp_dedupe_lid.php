@@ -1,12 +1,23 @@
 <?php
 /**
- * whatsapp_dedupe_lid.php — corrige 3 problemas de dados do Chat WhatsApp:
- *   (A) account_id NULL em whatsapp_chats  -> backfill pela instancia.
- *   (B) contact_name = "Voce/voce/you/eu"  -> zera (a leitura cai no nome/telefone real).
- *   (C) duplicacao @lid x telefone          -> funde a conversa @lid na do telefone
- *       (quando o telefone real e conhecido via grupos/contatos), repontando
- *       whatsapp_messages / whatsapp_contacts / whatsapp_group_members /
- *       whatsapp_reactions / ai_intake_sessions e consolidando flags/vinculos.
+ * whatsapp_dedupe_lid.php — corrige 4 problemas de dados do Chat WhatsApp:
+ *   (A)  account_id NULL em whatsapp_chats  -> backfill pela instancia.
+ *   (B)  contact_name = "Voce/voce/you/eu"  -> zera (a leitura cai no nome/telefone real).
+ *   (B2) contact_name = nome do DONO do numero -> zera. A conversa exibia o nome da
+ *        propria advogada no lugar do nome do cliente, e isso nao parece defeito
+ *        na tela. Causa corrigida em sync.php; aqui se limpa o que ficou.
+ *   (C)  duplicacao @lid x telefone         -> funde a conversa @lid na do telefone
+ *        (quando o telefone real e conhecido), repontando whatsapp_messages /
+ *        whatsapp_contacts / whatsapp_group_members / whatsapp_reactions /
+ *        ai_intake_sessions e consolidando flags/vinculos.
+ *
+ * A ORDEM IMPORTA: (B2) roda antes de (C). A fusao copia o nome da conversa @lid
+ * para a do telefone quando esta ultima esta sem nome; se o nome errado ainda
+ * estivesse la, a fusao o levaria adiante em vez de enterra-lo.
+ *
+ * 15/09/2026: a resolucao do telefone passou a ser a MESMA do runtime
+ * (WhatsAppMessage::resolvePhoneJid), que consulta a tabela de identidade. Era a
+ * copia local, sem a identidade, que fazia este script achar pouca coisa.
  *
  * SEGURANCA: por padrao roda em DRY-RUN (so conta, nao altera). Para aplicar:
  *   php scripts/whatsapp_dedupe_lid.php --apply
@@ -48,18 +59,72 @@ if ($APPLY && $voce > 0) {
     echo "    -> contact_name zerado em {$n} chats (leitura usa nome/telefone real)\n";
 }
 
+/* ── (B2) conversa com o nome do DONO do numero ──────────────────── */
+/*
+ * O irmao do caso (B), e mais perigoso que ele.
+ *
+ * "Voce" pelo menos avisa que esta errado. Ja uma conversa que exibe o nome da
+ * propria advogada parece certa: ela abre a lista e ve o proprio nome no lugar do
+ * nome do cliente, sem nenhum sinal de que aquilo e defeito. Medido em 15/09/2026
+ * no canal da conta 83: 21 conversas assim, 19 de pessoa e 2 de grupo.
+ *
+ * A causa foi corrigida em `sync.php` (o nome saia da primeira mensagem, mesmo
+ * sendo nossa). Aqui se limpa o que ja ficou gravado.
+ *
+ * ZERA em vez de adivinhar o certo: sem nome, a leitura cai no contato e na
+ * identidade, que sabem quem e. Escrever um palpite por cima seria trocar um erro
+ * visivel por um invisivel.
+ *
+ * `is_manual_name = 1` NAO e tocado: se alguem escolheu aquele nome a mao, ele e
+ * intencional, ainda que coincida com o nome do dono.
+ */
+echo "\n[B2] conversas exibindo o nome do proprio dono do numero\n";
+$donos = $pdo->query(
+    "SELECT id, COALESCE(NULLIF(TRIM(profile_name),''), NULLIF(TRIM(display_name),'')) AS nome
+       FROM whatsapp_instances
+      WHERE COALESCE(NULLIF(TRIM(profile_name),''), NULLIF(TRIM(display_name),'')) IS NOT NULL"
+)->fetchAll(PDO::FETCH_ASSOC);
+
+$totalDono = 0;
+foreach ($donos as $d) {
+    $st = $pdo->prepare(
+        "SELECT COUNT(*) FROM whatsapp_chats
+          WHERE instance_id = ? AND COALESCE(is_manual_name,0) = 0 AND TRIM(contact_name) = ?"
+    );
+    $st->execute([(int)$d['id'], $d['nome']]);
+    $n = (int)$st->fetchColumn();
+    if ($n === 0) continue;
+    $totalDono += $n;
+    echo "    instancia #{$d['id']} (\"{$d['nome']}\"): {$n} conversa(s)\n";
+    if ($APPLY) {
+        $up = $pdo->prepare(
+            "UPDATE whatsapp_chats SET contact_name = NULL
+              WHERE instance_id = ? AND COALESCE(is_manual_name,0) = 0 AND TRIM(contact_name) = ?"
+        );
+        $up->execute([(int)$d['id'], $d['nome']]);
+        echo "      -> nome zerado em " . $up->rowCount() . " (leitura cai no contato/identidade)\n";
+    }
+}
+echo "    total: {$totalDono}\n";
+
 /* ── (C) duplicacao @lid x telefone ──────────────────────────────── */
 echo "\n[C] duplicacao @lid x telefone\n";
 
-// helper: resolve telefone real de um @lid (grupos/contatos), igual ao runtime
+/*
+ * Resolve o telefone real de um @lid CHAMANDO A REGRA DO RUNTIME.
+ *
+ * Antes havia aqui uma copia da regra, com o comentario "igual ao runtime". Ela
+ * deixou de ser igual no dia em que o runtime ganhou a tabela de identidade como
+ * fonte: este script continuou olhando so grupos e contatos e, por isso, resolvia
+ * um punhado de conversas quando o sistema ja sabia o telefone de 87.
+ *
+ * Duas copias da mesma regra so ficam iguais ate alguem mexer numa delas. Agora e
+ * uma so, e corrigir a resolucao num lugar conserta os dois caminhos.
+ */
 function resolvePhone(PDO $pdo, int $inst, string $lidJid): ?string {
-    foreach (['whatsapp_group_members' => 'participant_jid', 'whatsapp_contacts' => 'remote_jid'] as $tbl => $col) {
-        $st = $pdo->prepare("SELECT phone FROM {$tbl} WHERE instance_id=? AND {$col}=? AND phone REGEXP '^[0-9]{10,15}$' LIMIT 1");
-        $st->execute([$inst, $lidJid]);
-        $p = $st->fetchColumn();
-        if ($p) return (string)$p;
-    }
-    return null;
+    $alvo = \App\WhatsAppAgente\WhatsAppMessage::resolvePhoneJid($pdo, $inst, $lidJid);
+    if (!$alvo || $alvo === $lidJid || !str_ends_with($alvo, '@s.whatsapp.net')) return null;
+    return explode('@', $alvo)[0];
 }
 
 $lidChats = $pdo->query("SELECT id, instance_id, remote_jid, contact_name
