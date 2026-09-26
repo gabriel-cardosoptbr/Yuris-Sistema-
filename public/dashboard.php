@@ -232,6 +232,11 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
       background:#015DFC !important; color:#FFFFFF !important; border-color:transparent !important; border-radius:999px !important; box-shadow:none !important;
     }
     html[data-theme="light"] .filter-btn.primary:hover, html[data-theme="light"] .meta-widget-btn.primary:hover{ background:#0043C4 !important; }
+    /* html[data-theme="light"] .meta-widget-btn.primary (mais abaixo, no <style>
+       sem produto) repõe box-shadow: 0 3px 10px — mesma especificidade da regra
+       acima, e como vem depois no documento, vence o empate. Seletor por id
+       ganha de qualquer jeito, sem depender de ordem. */
+    html[data-theme="light"] #editMonthMeta{ box-shadow:none !important; }
     html[data-theme="light"] .filter-input, html[data-theme="light"] #dashFilterOrigin{ background:#FFFFFF !important; border:1px solid rgba(17,29,45,0.08) !important; border-radius:10px !important; color:#3D3D3D !important; }
     html[data-theme="light"] .alert-pill{ font-size:11px !important; font-weight:700 !important; }
     html[data-theme="light"] .alert-danger{ background:#FFCCCC !important; color:#B00000 !important; border-color:#F0A0A0 !important; }
