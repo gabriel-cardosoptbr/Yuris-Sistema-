@@ -4,6 +4,13 @@
  * por baixo é o MESMO AuthController::attemptLogin() do login.php padrão, sem
  * autenticação paralela. O hidden `login_page` diz ao AuthController pra
  * devolver erro de senha ou logout aqui, não no /login.php do Yuris.
+ *
+ * CSS transcrito de propósito das classes .mkt-* do Fleetiflow real
+ * (frontend/src/modules/marketing/marketing.css e components/FundoAnimado.tsx
+ * do projeto Fleetiflow), não reinventado: mesmo fundo (gradiente + malha +
+ * manchas animadas), mesmo cartão de vidro, mesmos inputs e botão. O seletor
+ * de perfil (despachante/concessionária/etc.) do login original não existe
+ * aqui de propósito — essa conta é só admin único.
  */
 require_once __DIR__ . '/../app/bootstrap.php';
 
@@ -41,63 +48,121 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     :root{
       --ff-blue:#015DFC; --ff-blue-deep:#0B2A6B; --ff-cyan:#6FD6E8;
       --ff-ink:#0C1B33; --ff-ink-soft:#45526B;
-      --ff-glass: rgba(255,255,255,0.6); --ff-glass-border: rgba(255,255,255,0.7);
+      --ff-glass: rgba(255,255,255,0.55); --ff-glass-border: rgba(255,255,255,0.65);
     }
     *{box-sizing:border-box}
+    html,body{margin:0; padding:0}
     body{
-      margin:0; min-height:100vh; font-family:'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif;
-      color:var(--ff-ink);
-      background:
-        radial-gradient(ellipse at 15% 15%, rgba(1,93,252,0.16) 0%, transparent 55%),
-        radial-gradient(ellipse at 85% 85%, rgba(111,214,232,0.22) 0%, transparent 55%),
-        #F2F5FA;
-      display:flex; align-items:center; justify-content:center; padding:32px 16px;
+      min-height:100vh; font-family:'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif;
+      color:var(--ff-ink); position:relative; overflow-x:hidden;
+      background: linear-gradient(180deg, #EAF2FF 0%, #F5F9FF 22%, #FFFFFF 45%, #F3F7FF 70%, #E8F0FF 100%);
     }
-    .ff-wrap{width:100%; max-width:420px; display:flex; flex-direction:column; align-items:center; gap:22px}
-    .ff-logo{display:block; text-decoration:none}
-    .ff-logo img{height:52px; width:auto; display:block}
+    h1{margin:0; font-family:'Manrope',sans-serif}
+    p{margin:0}
+
+    /* ── Fundo: malha diagonal panning + manchas de cor à deriva ──
+       Transcrito de FundoAnimado.tsx / .mkt-mesh / .mkt-blob (Fleetiflow real). */
+    .mkt-mesh{
+      position:absolute; inset:0; z-index:0; pointer-events:none; opacity:.55;
+      background-image:
+        repeating-linear-gradient(115deg, rgba(1,93,252,0.09) 0px, rgba(1,93,252,0.09) 1px, transparent 1px, transparent 96px),
+        repeating-linear-gradient(25deg, rgba(111,214,232,0.10) 0px, rgba(111,214,232,0.10) 1px, transparent 1px, transparent 96px);
+      background-size:600px 600px, 600px 600px;
+      animation: mktMeshPan 70s linear infinite;
+      mask-image: linear-gradient(180deg, black 0%, black 70%, transparent 100%);
+      -webkit-mask-image: linear-gradient(180deg, black 0%, black 70%, transparent 100%);
+    }
+    @keyframes mktMeshPan{ from{background-position:0px 0px,0px 0px} to{background-position:600px 480px,-480px 600px} }
+    .mkt-blob{ position:absolute; border-radius:50%; filter:blur(70px); opacity:.55; pointer-events:none; z-index:0; }
+    @keyframes mktDrift1{ 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(40px,-30px) scale(1.08)} }
+    @keyframes mktDrift2{ 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-50px,30px) scale(1.05)} }
+    @keyframes mktDrift3{ 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(30px,40px) scale(1.1)} }
+    @media (prefers-reduced-motion: reduce){ .mkt-mesh, .mkt-blob{ animation:none !important } }
+
+    .ff-wrap{
+      min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:22px; padding:40px 16px; position:relative; z-index:1;
+    }
+    .ff-logo{display:block; text-decoration:none; max-width:100%}
+    /* Logo deitado é bem largo (proporção ~5.7:1): limita pela LARGURA, não
+       pela altura, senão estoura a tela em celular estreito. */
+    .ff-logo img{width:min(320px, 100%); height:auto; display:block}
+
+    /* ── Cartão de vidro: mesmos valores de .mkt-glass + .mkt-login-card ── */
     .ff-card{
-      width:100%; background:var(--ff-glass); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
-      border:1px solid var(--ff-glass-border); border-radius:20px; padding:32px 28px;
-      box-shadow:0 24px 56px rgba(12,27,51,0.16);
+      width:100%; max-width:460px; border-radius:24px; padding:32px;
+      background:var(--ff-glass); backdrop-filter:blur(22px) saturate(160%); -webkit-backdrop-filter:blur(22px) saturate(160%);
+      border:1px solid var(--ff-glass-border);
+      box-shadow:0 20px 60px rgba(11,42,107,0.14), inset 0 1px 0 rgba(255,255,255,0.6);
     }
-    h1{margin:0; font-size:24px; font-weight:800; letter-spacing:-.4px; text-align:center}
-    .ff-sub{margin:8px 0 24px; font-size:14px; color:var(--ff-ink-soft); text-align:center}
+    .ff-title{font-size:26px; font-weight:800; letter-spacing:-.4px; text-align:center; color:var(--ff-ink)}
+    .ff-sub{margin:8px 0 26px; font-size:14px; color:var(--ff-ink-soft); text-align:center}
+
     .field{margin-bottom:14px}
     .field label{display:block; margin-bottom:6px; font-size:12px; font-weight:700; color:var(--ff-ink-soft)}
     .field .rel{position:relative}
-    .field input{
-      width:100%; padding:12px 13px; border-radius:10px; border:1px solid rgba(12,27,51,0.14);
-      background:#fff; color:var(--ff-ink); font:inherit; font-size:14px; outline:none; transition:border-color .15s;
+
+    /* ── Input: mesmos valores de .mkt-input (sem ícone, o original não tem) ── */
+    .mkt-input{
+      width:100%; height:46px; padding:0 14px; border-radius:12px;
+      border:1px solid rgba(12,27,51,0.16); background:rgba(255,255,255,0.85);
+      color:var(--ff-ink); font-family:inherit; font-size:15px; outline:none;
+      transition:border-color .2s ease, box-shadow .2s ease;
     }
-    .field input:focus{border-color:var(--ff-blue)}
-    .field input.with-icon{padding-left:38px}
-    .field .icon{position:absolute; left:11px; top:50%; transform:translateY(-50%); opacity:.55}
-    .password-toggle{position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; padding:6px; cursor:pointer}
+    .mkt-input:focus{ border-color:var(--ff-blue); box-shadow:0 0 0 3px rgba(1,93,252,0.15); }
+    .mkt-input.with-toggle{padding-right:40px}
+    .password-toggle{
+      position:absolute; right:6px; top:50%; transform:translateY(-50%);
+      background:none; border:none; padding:6px; cursor:pointer; display:flex; color:var(--ff-ink-soft);
+    }
+
     .row{display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:13px; margin:14px 0 0}
     .row label{display:flex; align-items:center; gap:7px; color:var(--ff-ink-soft); cursor:pointer}
+
+    /* ── Botão: mesmos valores de .mkt-btn-primary (pílula, mesmo gradiente) ── */
     .btn-primary{
-      display:block; width:100%; padding:13px; margin-top:20px; border:none; border-radius:12px; cursor:pointer;
-      background:linear-gradient(135deg, var(--ff-blue) 0%, var(--ff-blue-deep) 100%);
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      width:100%; height:48px; margin-top:22px; border:none; border-radius:999px; cursor:pointer;
+      background:linear-gradient(135deg, var(--ff-blue) 0%, #0043C4 100%);
       color:#fff; font-weight:700; font-size:15px; font-family:inherit;
-      box-shadow:0 10px 24px rgba(1,93,252,0.30); transition:filter .15s, transform .1s;
+      box-shadow:0 12px 28px rgba(1,93,252,0.35);
+      transition:transform .25s ease, box-shadow .25s ease, filter .25s ease;
     }
-    .btn-primary:hover{filter:brightness(1.06)}
-    .btn-primary:active{transform:translateY(1px)}
+    .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 18px 36px rgba(1,93,252,0.45); filter:brightness(1.06); }
+    .btn-primary:active{ transform:translateY(1px) scale(.99); }
+    .btn-primary[disabled]{ opacity:.7; cursor:default; transform:none !important; }
+
     .flash{background:rgba(196,61,61,0.10); color:#B03030; padding:10px 12px; border-radius:10px; border:1px solid rgba(196,61,61,0.25); margin-bottom:14px; font-size:13px}
-    .ff-footer{font-size:12px; color:var(--ff-ink-soft); opacity:.8; text-align:center}
+    .ff-footer{font-size:12px; color:var(--ff-ink-soft); opacity:.8; text-align:center; position:relative; z-index:1}
     #termsField a{color:var(--ff-blue)}
+
+    /* ── Entrada em cascata: logo, cartão, rodapé (.mkt-login-entra) ── */
+    @media (prefers-reduced-motion: no-preference){
+      /* Sem opacity:0 fixo aqui de propósito: o fill-mode "backwards" já cobre
+         o estado ANTES da animação começar; opacity fixo sobreviveria ao
+         fim da animação e deixaria o elemento invisível para sempre. */
+      .ff-entra{ animation: ffEntra .7s cubic-bezier(.22,1,.36,1) backwards; }
+      .ff-entra-2{ animation-delay:.14s }
+      .ff-entra-3{ animation-delay:.28s }
+      @keyframes ffEntra{ from{opacity:0; transform:translateY(28px)} to{opacity:1; transform:translateY(0)} }
+    }
+
     @media (max-width:420px){ .ff-card{padding:24px 20px} }
   </style>
 </head>
 <body>
+  <div class="mkt-mesh" aria-hidden="true"></div>
+  <div class="mkt-blob" style="width:520px;height:520px;top:-160px;left:-120px;background:radial-gradient(circle, var(--ff-blue) 0%, transparent 70%);animation:mktDrift1 22s ease-in-out infinite" aria-hidden="true"></div>
+  <div class="mkt-blob" style="width:460px;height:460px;top:120px;right:-160px;background:radial-gradient(circle, var(--ff-cyan) 0%, transparent 70%);animation:mktDrift2 26s ease-in-out infinite" aria-hidden="true"></div>
+  <div class="mkt-blob" style="width:600px;height:600px;top:60vh;left:-200px;background:radial-gradient(circle, #B9D4FF 0%, transparent 70%);animation:mktDrift3 24s ease-in-out infinite" aria-hidden="true"></div>
+
   <div class="ff-wrap">
-    <a href="/" class="ff-logo" title="Fleetiflow">
+    <a href="/" class="ff-logo ff-entra" title="Fleetiflow">
       <img src="/sistema_vendas/Imagens/fleetiflow-horizontal.png" alt="Fleetiflow">
     </a>
 
-    <div class="ff-card">
-      <h1>Entrar</h1>
+    <div class="ff-card ff-entra ff-entra-2">
+      <h1 class="ff-title">Entrar</h1>
       <p class="ff-sub">Central Comercial</p>
 
       <?php if ($flash): ?>
@@ -111,18 +176,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <div class="field">
           <label>E-mail</label>
-          <div class="rel">
-            <span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#45526B" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg></span>
-            <input name="login" type="email" placeholder="voce@fleetiflow.com.br" required class="with-icon" autocomplete="username">
-          </div>
+          <input class="mkt-input" name="login" type="email" placeholder="voce@fleetiflow.com.br" required autocomplete="username">
         </div>
 
         <div class="field">
           <label>Senha</label>
           <div class="rel">
-            <span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#45526B" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
-            <input id="password" name="password" type="password" required class="with-icon" autocomplete="current-password">
-            <button type="button" class="password-toggle" aria-label="Mostrar senha"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#45526B" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            <input class="mkt-input with-toggle" id="password" name="password" type="password" required autocomplete="current-password">
+            <button type="button" class="password-toggle" aria-label="Mostrar senha"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
           </div>
         </div>
 
@@ -142,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </form>
     </div>
 
-    <div class="ff-footer">&copy; <?=date('Y')?> Fleetiflow &middot; Todos os direitos reservados</div>
+    <div class="ff-footer ff-entra ff-entra-3">&copy; <?=date('Y')?> Fleetiflow &middot; Todos os direitos reservados</div>
   </div>
 
   <script src="/assets/cookie-consent.js?v=1"></script>
