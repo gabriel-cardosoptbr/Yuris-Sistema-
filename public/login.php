@@ -1,6 +1,14 @@
 <?php
 require_once __DIR__ . '/../app/bootstrap.php';
 
+// Domínio próprio do Fleetiflow CRM: quem digitar /login.php direto num
+// domínio Fleetiflow (ver App\Core\ProductHost) recebe o login Fleetiflow,
+// sem redirect HTTP, a URL na barra do navegador não muda.
+if (\App\Core\ProductHost::isFleetiflow()) {
+    require __DIR__ . '/login-fleetiflow.php';
+    exit;
+}
+
 use App\Usuarios\AuthController;
 
 session_start();

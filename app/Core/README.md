@@ -19,6 +19,7 @@ dele é aqui. Se serve a um só, ele pertence à pasta daquele domínio.
 | `RequestId.php` | ID de 12 hex por request HTTP, para amarrar as linhas de log de uma mesma chamada |
 | `Crypto.php` | AES-256-GCM para cifrar credencial em repouso (chave da Evolution, token de gateway). Nunca guarde credencial em texto puro |
 | `EnvLoader.php` | parser de `.env` sem dependência externa |
+| `ProductHost.php` | domínio próprio do Fleetiflow CRM: decide pelo `Host` da requisição (não pela conta) qual produto um VISITANTE SEM SESSÃO encontra em `/` e `/login.php`. Lista de domínios em `FLEETIFLOW_DOMAINS` no `.env`. Não confundir com `Account::getProduto()` — este é sobre a porta de entrada, aquele é sobre o que a conta já logada vê |
 | `Url.php` | monta URL respeitando o base path da aplicação |
 | `Router.php` | **a camada de rota de `public/`.** Resolve URL para o arquivo que responde por ela: primeiro a tabela declarada em `config/rotas.php`, depois sondagem em `public/`. Devolve o caminho, não inclui; quem inclui é `public/index.php`, porque página PHP de topo de pilha espera escopo global |
 | `Timeline.php` | **a linha do tempo única de uma pessoa.** Junta `card_history` e `clientes_history`, que têm formatos diferentes, e faz a timeline do cliente incluir o que aconteceu enquanto ele ainda era prospecção. Lê junto em vez de copiar |

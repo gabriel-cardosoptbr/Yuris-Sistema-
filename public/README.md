@@ -85,6 +85,15 @@ a conta de mesmo nome (edição CRM/comercial, sem jurídico). Visual próprio,
 mas posta para o **mesmo** `AuthController::attemptLogin()` do login padrão,
 sem autenticação paralela — ver `../app/Usuarios/README.md`.
 
+**Domínio próprio, mesmo servidor.** `index.php` (raiz `/`) e `login.php`
+chamam `App\Core\ProductHost::isFleetiflow()` antes de qualquer outra coisa:
+se o `Host` da requisição estiver em `FLEETIFLOW_DOMAINS` (`.env`), servem
+`login-fleetiflow.php` por `require` (sem redirect HTTP, a URL na barra do
+navegador não muda). Pré-requisito no Apache: o domínio precisa de um
+`ServerAlias` (ou um segundo `<VirtualHost>`) apontando pro **mesmo**
+`DocumentRoot` — sem isso a requisição nem chega no PHP. Ver o exemplo já
+existente em produção/dev para `yuris.local` no vhost do projeto.
+
 ### Painel Master (super admin da Inovaize, separado do login normal)
 `master.php` · `master_login.php` · `master_logout.php` · `master_mfa_setup.php`
 

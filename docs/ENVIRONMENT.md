@@ -54,6 +54,18 @@ Quem usa: `App\Core\Url::base()` (helper de URL), redirects, e-mails transaciona
 Default: `America/Sao_Paulo`
 Quem usa: PHP `date.timezone` (mas só se setado via `ini_set`).
 
+### `FLEETIFLOW_DOMAINS` 🟡
+Valor: domínios separados por vírgula, sem protocolo e sem porta
+Default: vazio (nenhum domínio serve Fleetiflow; tudo continua Yuris)
+Exemplo: `crm.fleetiflow.com.br`
+Quem usa: `App\Core\ProductHost::atual()` — decide se `/` e `/login.php`
+servem a landing/login do Fleetiflow ou do Yuris, pelo `Host` da requisição.
+
+> Cada domínio listado aqui também precisa de um `ServerAlias` (ou um segundo
+> `<VirtualHost>` com o MESMO `DocumentRoot`) no Apache, e de DNS apontando
+> pro Elastic IP desta instância. Sem isso a requisição não chega no PHP, e
+> esta variável não faz nada sozinha.
+
 ---
 
 ## ── Banco de dados ──

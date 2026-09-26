@@ -25,6 +25,15 @@
 
 require_once __DIR__ . '/../app/bootstrap.php';
 
+// Domínio próprio do Fleetiflow CRM (ver App\Core\ProductHost): mesmo
+// container, mesmo backend, SEM redirect HTTP. Só troca o que a raiz "/"
+// serve; toda outra rota continua resolvendo normalmente pelo Router.
+$__rota = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+if (($__rota === '/' || $__rota === '') && \App\Core\ProductHost::isFleetiflow()) {
+    require __DIR__ . '/login-fleetiflow.php';
+    exit;
+}
+
 $__arquivoDaRota = \App\Core\Router::resolveRequisicao();
 
 if ($__arquivoDaRota !== null) {
