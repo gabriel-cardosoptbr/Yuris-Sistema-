@@ -223,7 +223,7 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
     html[data-theme="light"] .meta-widget .meta-label{ font-size:12px !important; color:#767676 !important; text-transform:none !important; letter-spacing:0 !important; }
     html[data-theme="light"] .filter-btn, html[data-theme="light"] .meta-widget-btn.secondary, html[data-theme="light"] #reportDashboardBtn{
       background:#FFFFFF !important; border:1px solid rgba(17,29,45,0.08) !important; color:#575757 !important; border-radius:999px !important;
-      font-weight:700 !important; box-shadow:0 1px 2px rgba(17,29,45,0.06) !important;
+      font-weight:700 !important; box-shadow:none !important;
     }
     html[data-theme="light"] .meta-widget-btn.secondary, html[data-theme="light"] #reportDashboardBtn{ color:#015DFC !important; }
     html[data-theme="light"] .filter-btn:hover{ background:#F1F1F2 !important; color:#3D3D3D !important; }
