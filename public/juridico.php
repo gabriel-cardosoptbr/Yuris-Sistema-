@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../app/bootstrap.php';
 session_start();
 if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
+\App\Core\AccountContext::fromSession()->assertModuloJuridicoDisponivelPage();
 $activePage = 'juridico';
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 ?>

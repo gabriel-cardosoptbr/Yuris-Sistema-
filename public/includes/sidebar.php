@@ -86,6 +86,16 @@ try {
     $_notifItems = \App\Master\AccountNotification::listForUser($__nctx->getUserId(), $__nctx->getAccountId(), true);
     foreach ($_notifItems as $__n) { if ((int)($__n['lida'] ?? 0) === 0) $_notifUnread++; }
 } catch (\Throwable $__e) { $_notifItems = null; }
+
+// Produto da conta: 'yuris' (padrão) ou 'fleetiflow'. Reaproveita o contexto
+// já resolvido acima para notificações quando existir, para não abrir uma
+// segunda conexão à toa. Falha => assume 'yuris' (identidade de sempre).
+$_isFleetiflow = false;
+try {
+    $__brandCtx = $__nctx ?? \App\Core\AccountContext::fromSession();
+    $_isFleetiflow = $__brandCtx->getProduto() === 'fleetiflow';
+} catch (\Throwable $__e) { /* mantém identidade Yuris se algo falhar */ }
+
 $_notifTempo = function ($raw) {
     $ts = $raw ? strtotime((string)$raw) : 0; if (!$ts) return '';
     $d = max(0, time() - $ts);
@@ -104,7 +114,11 @@ $_notifTempo = function ($raw) {
 
   <!-- ── Marca ── -->
   <div class="sidebar-brand" style="display:block;background:rgba(30,58,95,0.22);border:1px solid rgba(191,199,213,0.12);border-radius:11px;padding:4px 8px;margin-bottom:10px;text-align:center;">
+    <?php if ($_isFleetiflow): ?>
+    <img src="/sistema_vendas/Imagens/fleetiflow-horizontal.png" alt="Fleetiflow" style="max-width:100%;max-height:160px;object-fit:contain;display:block;margin:0 auto;">
+    <?php else: ?>
     <img src="/sistema_vendas/Imagens/Logo.png" alt="Yuris" style="max-width:100%;max-height:160px;object-fit:contain;display:block;margin:0 auto;">
+    <?php endif; ?>
   </div>
 
   <!-- ── Usuário logado ── -->
@@ -294,6 +308,13 @@ $_notifTempo = function ($raw) {
       ]],
     ];
 
+    // Conta Fleetiflow (CRM comercial) não enxerga o grupo Jurídico: nem o
+    // link, nem a aba. Isolamento de dado já é automático por account_id;
+    // isto é só a navegação não oferecer o que a conta não pode acessar.
+    if ($_isFleetiflow) {
+        $_sections = array_values(array_filter($_sections, fn($_s) => $_s['key'] !== 'juridico'));
+    }
+
     foreach ($_sections as $_sec):
         // Filtra items que o user pode ver
         $_visible = [];
@@ -355,8 +376,13 @@ $_notifTempo = function ($raw) {
 
   <!-- ── Rodapé da sidebar ── -->
   <div style="padding:10px 18px 0;text-align:center;border-top:1px solid rgba(96,165,250,0.1);">
+    <?php if ($_isFleetiflow): ?>
+    <p style="font-size:.9rem;font-weight:700;color:#e8f4ff;margin:0 0 2px;letter-spacing:.5px;">Fleetiflow</p>
+    <p style="font-size:.72rem;color:#6b8299;margin:0 0 8px;">Central Comercial</p>
+    <?php else: ?>
     <p style="font-size:.9rem;font-weight:700;color:#e8f4ff;margin:0 0 2px;letter-spacing:.5px;">Yuris</p>
     <p style="font-size:.72rem;color:#6b8299;margin:0 0 8px;">Sistema Jurídico Inteligente</p>
+    <?php endif; ?>
     <?php if (_sidebarCan('configuracoes')): ?>
     <a href="configuracoes/privacidade.php"
        title="Privacidade e consentimentos LGPD"
@@ -383,6 +409,17 @@ $_notifTempo = function ($raw) {
     <span>Prospecção</span>
   </a>
 
+  <?php if ($_isFleetiflow): ?>
+  <a href="clientes.php"<?= $_ap === 'clientes' ? ' class="active"' : '' ?>>
+    <span class="mob-icon" aria-hidden="true"><?= $_svg['clientes'] ?></span>
+    <span>Clientes</span>
+  </a>
+
+  <a href="tarefas.php"<?= $_ap === 'tarefas' ? ' class="active"' : '' ?>>
+    <span class="mob-icon" aria-hidden="true"><?= $_svg['tarefas'] ?></span>
+    <span>Tarefas</span>
+  </a>
+  <?php else: ?>
   <a href="processos.php"<?= $_ap === 'processos' ? ' class="active"' : '' ?>>
     <span class="mob-icon" aria-hidden="true"><?= $_svg['processos'] ?></span>
     <span>Processos</span>
@@ -392,6 +429,7 @@ $_notifTempo = function ($raw) {
     <span class="mob-icon" aria-hidden="true"><?= $_svg['juridico'] ?></span>
     <span>Jurídico</span>
   </a>
+  <?php endif; ?>
 
   <a href="financas.php"<?= $_ap === 'dre' ? ' class="active"' : '' ?>>
     <span class="mob-icon" aria-hidden="true"><?= $_svg['financas'] ?></span>

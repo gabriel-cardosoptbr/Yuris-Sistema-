@@ -36,6 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 
 try {
     $ctx       = AccountContext::fromSession();
+    $ctx->assertModuloJuridicoDisponivel();
     $accountId = $ctx->getAccountId();
     $userId    = (int)$_SESSION['user_id'];
     $pdo       = Database::getConnection();

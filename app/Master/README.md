@@ -11,7 +11,7 @@ Gestão › Escritórios.
 
 | Classe | O que faz |
 |---|---|
-| `Account.php` | a conta, ou tenant. Toda tabela de dado de cliente tem `account_id` apontando para cá. Guarda também o tipo (matriz ou filial), o código de vínculo e os módulos habilitados (`features`) |
+| `Account.php` | a conta, ou tenant. Toda tabela de dado de cliente tem `account_id` apontando para cá. Guarda também o tipo (matriz ou filial) e o código de vínculo. O **produto** da conta (`getProduto()`: `'yuris'` padrão ou `'fleetiflow'`) e a disponibilidade do jurídico (`moduloJuridicoDisponivel()`) vivem em `configuracoes.produto` (JSON já existente na tabela, zero migration) — não confundir com plano/billing, que é `Billing/PlanFeature` |
 | `AccountBootstrapSeeder.php` | popula a primeira casca de uma conta nova: colunas de funil, quadro de tarefas, plano de contas. Sem isso o cliente entra num sistema vazio |
 | `AccountNotification.php` | avisos que o Painel Master manda para as contas |
 | `ResourceShare.php` | compartilhamento seletivo de card, processo ou contato entre contas vinculadas. O modelo é o "Share" do Notion / ACL do Drive: acesso é concedido item a item, nunca herdado |

@@ -13,6 +13,7 @@ if (empty($_SESSION['user_id'])) {
 }
 // HARDENING: bloqueia acesso de contas suspensas/canceladas/inativas
 AccountContext::fromSession()->assertAccountActive();
+$moduloJuridico = AccountContext::fromSession()->moduloJuridicoDisponivel(); // false só para conta Fleetiflow (sem módulo jurídico)
 $activePage = 'prospeccao';
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 $columns = PipelineColumn::listAll();
@@ -1609,6 +1610,7 @@ function column_display_name(array $col): string
             </div>
           </div>
 
+          <?php if ($moduloJuridico): ?>
           <div class="form-section" id="processosClienteSection">
             <div class="form-section-title">Processos do Cliente</div>
 
@@ -1621,6 +1623,7 @@ function column_display_name(array $col): string
               <button type="button" id="btnCriarProcessoCliente" style="padding:8px 14px;border-radius:8px;background:transparent;border:1px solid rgba(96,165,250,.2);color:#9ab0c9;cursor:pointer;font-size:.82rem">+ Criar novo processo para este cliente</button>
             </div>
           </div>
+          <?php endif; ?>
 
           <div class="form-section" id="chatVinculoSection">
             <div class="form-section-title">Conversa WhatsApp</div>

@@ -53,6 +53,7 @@ if ($method === 'POST') {
 
 try {
     $ctx       = AccountContext::fromSession();
+    $ctx->assertModuloJuridicoDisponivel();
     $accountId = $ctx->getAccountId();
 
     if ($method === 'GET') {

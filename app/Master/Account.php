@@ -27,6 +27,33 @@ class Account
         return $row ?: null;
     }
 
+    /**
+     * Produto que esta conta usa: 'yuris' (padrão, sistema jurídico completo)
+     * ou 'fleetiflow' (edição CRM/comercial, sem módulos jurídicos).
+     *
+     * Lido de `configuracoes.produto` (JSON livre, zero migration). Ausente
+     * ou inválido => 'yuris', fail-soft para não afetar nenhuma conta
+     * existente que nunca teve esse campo.
+     */
+    public static function getProduto(array $account): string
+    {
+        $config = json_decode((string)($account['configuracoes'] ?? ''), true);
+        $produto = is_array($config) ? ($config['produto'] ?? 'yuris') : 'yuris';
+        return $produto === 'fleetiflow' ? 'fleetiflow' : 'yuris';
+    }
+
+    /**
+     * Os módulos jurídicos (Processos, Intimações, Painel Jurídico, AASP)
+     * fazem parte da experiência desta conta?
+     *
+     * Hoje só a edição 'yuris' os tem. Centralizado aqui para que, se um
+     * terceiro produto aparecer no futuro, só esta função precise mudar.
+     */
+    public static function moduloJuridicoDisponivel(array $account): bool
+    {
+        return self::getProduto($account) === 'yuris';
+    }
+
     public static function findByCodigoVinculo(string $codigo): ?array
     {
         // Aceita active/trial/overdue — mesma whitelist do AuthController.

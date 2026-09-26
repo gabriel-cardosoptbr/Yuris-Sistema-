@@ -13,8 +13,8 @@ mesma restrição de [`../README.md`](../README.md).
 | raiz de `api/` | 49 | os endpoints dos módulos de Operação e Gestão: cards, clientes, tarefas, processos, usuários, times, DRE, metas, webhooks, mais `prospeccao_conversao.php` ("Tornar cliente") e `timeline.php` (a linha do tempo única) e `cliente_vinculos.php` (conversa e tarefa vindas da prospecção) |
 | `master/` | 42 | **tudo do Painel Master**: contas, filiais, planos, pagamentos, cotas, auditoria, LGPD, config de IA, canais de WhatsApp |
 | `whatsapp/` | 22 | canal, chat, envio, mídia, e o `webhook.php` que recebe da Evolution |
-| `push/` | 11 | monitoramento de publicações: monitores, cotas, permissões, busca, `tick.php` |
-| `aasp/` | 4 | integração AASP: configurar, testar, buscar, sincronizar |
+| `push/` | 11 | monitoramento de publicações: monitores, cotas, permissões, busca, `tick.php`. Bloqueado (403) para conta `produto=fleetiflow`, exceto `tick.php`, que é cron sem conta única (ver abaixo) |
+| `aasp/` | 4 | integração AASP: configurar, testar, buscar, sincronizar. Bloqueado (403) para conta `produto=fleetiflow` |
 | `chat/` | 3 | chat interno entre usuários do escritório |
 | `legal/` | 3 | documentos legais, aceite e consentimento |
 | `auth/` | 1 | checagem de termos pendentes no login |
@@ -38,9 +38,10 @@ Todo endpoint segue a mesma ordem, e sair dela é onde os bugs aparecem:
 1. `require_once` das classes de [`../../app/`](../../app/) que vai usar
 2. `session_start()` e checagem de sessão
 3. **contexto de conta** (`AccountContext`), antes de qualquer query
-4. validação da entrada
-5. a operação
-6. resposta por `ApiResponse`, erro por `ErrorReporter`
+4. se o endpoint é jurídico (Processos, Intimações, `aasp/`, `push/`, `juridico_metrics.php`, `advogado_vinculos.php`): `$ctx->assertModuloJuridicoDisponivel()` logo em seguida — bloqueia 403 para conta `produto=fleetiflow`. Ver [`../../app/Core/README.md`](../../app/Core/README.md)
+5. validação da entrada
+6. a operação
+7. resposta por `ApiResponse`, erro por `ErrorReporter`
 
 ## Regras
 

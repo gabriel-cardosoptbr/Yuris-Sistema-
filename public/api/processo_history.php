@@ -14,6 +14,7 @@ header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 TenantGuard::requireSameOriginOrCsrf();
 
 $ctx       = AccountContext::fromSession();
+$ctx->assertModuloJuridicoDisponivel();
 $tenantIds = $ctx->getAccessibleAccountIds('processos');
 
 $pdo = Database::getConnection();

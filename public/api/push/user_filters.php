@@ -42,6 +42,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 try {
     $ctx       = AccountContext::fromSession();
+    $ctx->assertModuloJuridicoDisponivel();
     $accountId = $ctx->getAccountId();
     $userId    = (int)$_SESSION['user_id'];
     $pdo       = Database::getConnection();

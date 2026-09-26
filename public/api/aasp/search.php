@@ -65,6 +65,7 @@ if (empty($payload['_csrf']) || !hash_equals($csrfSession, (string)$payload['_cs
 
 try {
     $ctx       = AccountContext::fromSession();
+    $ctx->assertModuloJuridicoDisponivel();
     $accountId = $ctx->getAccountId();
 
     // ── Validar datas ──────────────────────────────────────────────────────

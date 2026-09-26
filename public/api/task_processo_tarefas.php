@@ -14,6 +14,7 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache, no-store, must-revalidate');
 
 $ctx       = AccountContext::fromSession();
+$ctx->assertModuloJuridicoDisponivel();
 $tenantIds = $ctx->getAccessibleAccountIds('processos');
 
 function fail(string $msg, int $code = 400): void {

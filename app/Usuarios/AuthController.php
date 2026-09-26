@@ -30,10 +30,17 @@ class AuthController
     {
         self::ensureSessionStarted();
 
+        // De qual tela de login este POST veio? Todo redirect de falha volta
+        // pra lá, não sempre pra /login.php — senão um erro de senha na tela
+        // de uma marca (ex.: Fleetiflow) devolveria a pessoa pro login Yuris.
+        // Whitelist fixa: nunca usar o valor do POST cru num header Location
+        // (open redirect).
+        $loginPage = self::sanitizeLoginPage($_POST['login_page'] ?? null);
+
         // ── CSRF ────────────────────────────────────────────────────────────
         if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== ($_SESSION['csrf_token'] ?? '')) {
             $_SESSION['flash_error'] = 'Token inválido.';
-            header('Location: /login.php');
+            header('Location: ' . $loginPage);
             exit;
         }
 
@@ -44,7 +51,7 @@ class AuthController
         // ── Rate limit ──────────────────────────────────────────────────────
         if (self::isRateLimited($ip, $login)) {
             $_SESSION['flash_error'] = 'Muitas tentativas. Tente novamente em 15 minutos.';
-            header('Location: /login.php');
+            header('Location: ' . $loginPage);
             exit;
         }
 
@@ -54,14 +61,14 @@ class AuthController
         if (!$user || !password_verify($password, $user['senha_hash'])) {
             self::logFailedAttempt($ip, $login);
             $_SESSION['flash_error'] = 'Usuário ou senha inválidos.';
-            header('Location: /login.php');
+            header('Location: ' . $loginPage);
             exit;
         }
 
         // Usuário soft-deleted ou status inativo
         if (!empty($user['deleted_at']) || (isset($user['status']) && $user['status'] !== 'active')) {
             $_SESSION['flash_error'] = 'Esta conta está inativa. Contate o administrador.';
-            header('Location: /login.php');
+            header('Location: ' . $loginPage);
             exit;
         }
 
@@ -94,7 +101,7 @@ class AuthController
                     'inactive'  => 'Conta inativa. Contate o suporte.',
                 ];
                 $_SESSION['flash_error'] = $msgMap[$account['status']] ?? 'Conta sem permissão de acesso.';
-                header('Location: /login.php');
+                header('Location: ' . $loginPage);
                 exit;
             }
         }
@@ -171,6 +178,20 @@ class AuthController
     public static function logout()
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
+
+        // Decide a tela de volta ANTES de limpar a sessão: conta Fleetiflow
+        // sai pro login Fleetiflow, não pro login Yuris padrão.
+        $loginPage = '/login.php';
+        try {
+            if (!empty($_SESSION['account_id'])) {
+                require_once __DIR__ . '/../Master/Account.php';
+                $acc = \App\Master\Account::findById((int) $_SESSION['account_id']);
+                if ($acc && \App\Master\Account::getProduto($acc) === 'fleetiflow') {
+                    $loginPage = '/login-fleetiflow.php';
+                }
+            }
+        } catch (\Throwable $_e) { /* mantém /login.php */ }
+
         foreach (array_keys($_SESSION) as $k) unset($_SESSION[$k]);
 
         // Remove cookie da sessão (defesa em profundidade)
@@ -182,8 +203,19 @@ class AuthController
         }
 
         session_destroy();
-        header('Location: /login.php');
+        header('Location: ' . $loginPage);
         exit;
+    }
+
+    /**
+     * Só aceita uma tela de login conhecida. Nunca usar o valor cru do POST
+     * num header Location: um `login_page` arbitrário seria open redirect.
+     * Nova tela de login com marca própria soma-se aqui.
+     */
+    private static function sanitizeLoginPage(?string $page): string
+    {
+        $allowed = ['/login.php', '/login-fleetiflow.php'];
+        return in_array($page, $allowed, true) ? $page : '/login.php';
     }
 
     // ──────────────────────────────────────────────────────────────────────

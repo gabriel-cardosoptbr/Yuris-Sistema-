@@ -22,6 +22,7 @@ use App\Billing\BillingGuard;
 session_start(['read_and_close' => true]);
 
 $ctx       = AccountContext::fromSession();
+$ctx->assertModuloJuridicoDisponivel();
 $accountId = $ctx->getAccountId();
 
 $status = MonitorQuota::getQuotaStatus($accountId);

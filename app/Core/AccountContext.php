@@ -187,6 +187,73 @@ class AccountContext
         exit;
     }
 
+    /** Cache da linha completa de `accounts` (inclui `configuracoes`), por instância. */
+    private ?array $_cachedAccountRow = null;
+
+    private function _accountRow(): array
+    {
+        if ($this->_cachedAccountRow !== null) return $this->_cachedAccountRow;
+        return $this->_cachedAccountRow = Account::findById($this->accountId) ?? [];
+    }
+
+    /**
+     * Produto desta conta: 'yuris' (padrão) ou 'fleetiflow'.
+     * Ver `App\Master\Account::getProduto()`.
+     */
+    public function getProduto(): string
+    {
+        return Account::getProduto($this->_accountRow());
+    }
+
+    /**
+     * Os módulos jurídicos (Processos, Intimações, Painel Jurídico, AASP)
+     * estão disponíveis para esta sessão? Super admin nunca é bloqueado,
+     * mesma regra de `assertAccountActive()`.
+     */
+    public function moduloJuridicoDisponivel(): bool
+    {
+        if ($this->isSuperAdmin()) return true;
+        return Account::moduloJuridicoDisponivel($this->_accountRow());
+    }
+
+    /**
+     * Aborta com 403 + JSON se o jurídico não estiver disponível para esta
+     * conta. Use no topo de endpoints de API jurídicos (processes.php,
+     * juridico_metrics.php, api/aasp/*, api/push/* etc), logo após
+     * `AccountContext::fromSession()`.
+     */
+    public function assertModuloJuridicoDisponivel(): void
+    {
+        if ($this->moduloJuridicoDisponivel()) return;
+        $this->_forbidden('Módulo jurídico não disponível para esta conta.');
+    }
+
+    /**
+     * Variante para TELA (não API): mostra página de bloqueio em vez de JSON.
+     * Use no topo dos .php de página jurídica, depois de assertAccountActive().
+     * Mesmo molde visual de PlanFeature::assertEnabledPage().
+     */
+    public function assertModuloJuridicoDisponivelPage(): void
+    {
+        if ($this->moduloJuridicoDisponivel()) return;
+
+        http_response_code(403);
+        echo '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">'
+           . '<meta name="viewport" content="width=device-width,initial-scale=1">'
+           . '<title>Recurso não disponível</title>'
+           . '<style>body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#0b1220;color:#e6edf7;'
+           . 'display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px}'
+           . '.b{max-width:460px;text-align:center;background:#111c2f;border:1px solid #22344f;border-radius:16px;padding:38px 32px}'
+           . 'h1{font-size:1.25rem;margin:0 0 12px}p{color:#93a4bd;line-height:1.6;font-size:.94rem;margin:0 0 24px}'
+           . 'a{display:inline-block;background:#1E5299;color:#fff;text-decoration:none;padding:11px 22px;border-radius:9px;font-weight:600}'
+           . '</style></head><body><div class="b">'
+           . '<h1>Recurso não disponível nesta conta</h1>'
+           . '<p>Este módulo não faz parte da sua conta.</p>'
+           . '<a href="/dashboard.php">Voltar ao início</a>'
+           . '</div></body></html>';
+        exit;
+    }
+
     public function isOwnerOrAdmin(): bool
     {
         return in_array($this->role, ['owner', 'admin']);

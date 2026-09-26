@@ -55,6 +55,7 @@ if (empty($payload['_csrf']) || $payload['_csrf'] !== $csrfSession) {
 
 try {
     $ctx        = AccountContext::fromSession();
+    $ctx->assertModuloJuridicoDisponivel();
     $accountId  = $ctx->getAccountId();
     $mode       = ($payload['mode'] ?? 'cache_hoje') === 'manual' ? 'manual' : 'cache_hoje';
     $rawFilters = is_array($payload['filters'] ?? null) ? $payload['filters'] : [];

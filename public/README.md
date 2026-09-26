@@ -78,7 +78,12 @@ Cada uma corresponde a um domínio em [`../app/`](../app/); a tabela de
 equivalência está em [`../app/README.md`](../app/README.md).
 
 ### Entrada e sessão
-`login.php` · `logout.php` · `404.php`
+`login.php` · `login-fleetiflow.php` · `logout.php` · `404.php`
+
+`login-fleetiflow.php` é a tela de login com a identidade do Fleetiflow, para
+a conta de mesmo nome (edição CRM/comercial, sem jurídico). Visual próprio,
+mas posta para o **mesmo** `AuthController::attemptLogin()` do login padrão,
+sem autenticação paralela — ver `../app/Usuarios/README.md`.
 
 ### Painel Master (super admin da Inovaize, separado do login normal)
 `master.php` · `master_login.php` · `master_logout.php` · `master_mfa_setup.php`
@@ -97,10 +102,10 @@ stub em `index.php`; a v1 ficou guardada. Ver
 | Pasta | O que é |
 |---|---|
 | `api/` | ~130 endpoints REST. Tem [README próprio](api/README.md) |
-| `includes/` | pedaços de página reaproveitados: `sidebar.php`, `seo_head.php`, `legal_page.php`, rodapés |
+| `includes/` | pedaços de página reaproveitados: `sidebar.php`, `seo_head.php`, `legal_page.php`, rodapés. `sidebar.php` resolve `AccountContext::getProduto()` uma vez (`$_isFleetiflow`) e troca logo, rodapé, grupo "Jurídico" do menu e as duas primeiras abas da barra mobile conforme o produto da conta |
 | `assets/` | CSS, JS e imagens. Um arquivo JS por tela (`processos.js`, `tarefas.js`), mais `design-system.css` e `yuris-theme.css` |
 | `v2/` | a landing institucional nova (`index.php` + `partials/` + `data/`), servida na `/` |
-| `sistema_vendas/Imagens/` | os três logos, servidos em `/sistema_vendas/Imagens/`. **Não mova:** `sidebar.php`, `login.php` e as páginas legais apontam para essa URL. O nome é herança de quando o app era servido em `/sistema_vendas/` |
+| `sistema_vendas/Imagens/` | os logos, servidos em `/sistema_vendas/Imagens/`: 3 do Yuris (`Logo.png`, `Logo Loguin.png`, `YURIS.png`) + 4 do Fleetiflow (`fleetiflow-horizontal.png`, `fleetiflow-icone.png`, `fleetiflow-completa.png`, `fleetiflow-texto.png`, cópia dos arquivos oficiais da marca). **Não mova:** `sidebar.php`, `login.php`, `login-fleetiflow.php` e as páginas legais apontam para essa URL. O nome é herança de quando o app era servido em `/sistema_vendas/` |
 | `uploads/` | arquivos enviados pelos clientes |
 
 ### Páginas de SEO

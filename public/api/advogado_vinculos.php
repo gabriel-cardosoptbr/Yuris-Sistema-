@@ -33,6 +33,7 @@ session_start();
 header('Content-Type: application/json; charset=utf-8');
 
 $ctx    = AccountContext::fromSession();
+$ctx->assertModuloJuridicoDisponivel();
 $method = $_SERVER['REQUEST_METHOD'];
 $input  = json_decode(file_get_contents('php://input'), true) ?? [];
 

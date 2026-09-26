@@ -9,6 +9,7 @@ session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');
 
 $ctx       = AccountContext::fromSession();
+$ctx->assertModuloJuridicoDisponivel();
 $tenantIds = $ctx->getAccessibleAccountIds('juridico');
 if (empty($tenantIds)) $tenantIds = [0]; // guard contra SQL "IN ()" inválido
 

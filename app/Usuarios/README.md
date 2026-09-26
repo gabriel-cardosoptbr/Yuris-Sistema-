@@ -16,7 +16,7 @@ Yuris, e eles não são a mesma coisa.
 
 | Classe | O que faz |
 |---|---|
-| `AuthController.php` | login, logout e endurecimento da sessão (regenera id, expira, marca cookie) |
+| `AuthController.php` | login, logout e endurecimento da sessão (regenera id, expira, marca cookie). Agnóstico de marca: qualquer tela de login pode postar aqui, desde que mande `login_page` com o próprio caminho (whitelist em `sanitizeLoginPage()`, contra open redirect) — assim erro de senha e logout voltam pra tela de origem (`/login.php` ou `/login-fleetiflow.php`), não sempre pro login Yuris |
 | `User.php` | o usuário em si: busca por login, por id |
 | `TotpHelper.php` | 2FA por TOTP, RFC 6238 implementado à mão (HMAC-SHA1, janela de 30s, 6 dígitos). Sem biblioteca externa |
 | `AdvogadoConvite.php` | convite por token para advogado associado, com expiração |

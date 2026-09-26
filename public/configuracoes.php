@@ -3,6 +3,7 @@ require_once __DIR__ . '/../app/bootstrap.php';
 use App\Prospeccao\PipelineColumn;
 session_start();
 if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
+$moduloJuridico = \App\Core\AccountContext::fromSession()->moduloJuridicoDisponivel(); // false só para conta Fleetiflow (sem módulo jurídico)
 $activePage = 'configuracoes';
 $csrf    = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 $columns = PipelineColumn::listAll();
@@ -433,14 +434,17 @@ $nCols   = count($columns);
       <!-- Nav tabs -->
       <div class="cfg-panel" style="padding:14px 18px">
         <div class="cfg-tabs" id="cfgTabs">
+          <?php if ($moduloJuridico): ?>
           <button class="cfg-tab active" data-tab="juridico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M12 3v18"/><path d="M5 6l7-3 7 3"/><path d="M5 6 2 13h6z"/><path d="M19 6l-3 7h6z"/><line x1="3" y1="18" x2="21" y2="18"/></svg> Jurídico</button>
-          <button class="cfg-tab" data-tab="notificacoes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Notificações</button>
+          <?php endif; ?>
+          <button class="cfg-tab<?= $moduloJuridico ? '' : ' active' ?>" data-tab="notificacoes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Notificações</button>
           <button class="cfg-tab" data-tab="aparencia"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg> Aparência</button>
           <button class="cfg-tab" data-tab="links"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Atalhos</button>
           <button class="cfg-tab" data-tab="seguranca"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Segurança</button>
         </div>
       </div>
 
+      <?php if ($moduloJuridico): ?>
       <!-- ── SECTION: Jurídico ── (default) -->
       <div class="cfg-section active" id="sec-juridico">
         <div class="cfg-panel space-y-4">
@@ -489,9 +493,10 @@ $nCols   = count($columns);
           </div>
         </div>
       </div>
+      <?php endif; ?>
 
       <!-- ── SECTION: Notificações ── -->
-      <div class="cfg-section" id="sec-notificacoes">
+      <div class="cfg-section<?= $moduloJuridico ? '' : ' active' ?>" id="sec-notificacoes">
         <div class="cfg-panel space-y-4">
           <div>
             <h3 style="font-size:.95rem;font-weight:600;color:#dbeafe;margin-bottom:4px">Notificações e Alertas</h3>
@@ -645,18 +650,22 @@ $nCols   = count($columns);
               <div><div class="link-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg> Planejamento Comercial</div><div class="link-card-sub">Meta mensal, honorário médio, simulações de funil</div></div>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
+            <?php if ($moduloJuridico): ?>
             <a href="juridico.php" class="link-card">
               <div><div class="link-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M12 3v18"/><path d="M5 6l7-3 7 3"/><path d="M5 6 2 13h6z"/><path d="M19 6l-3 7h6z"/><line x1="3" y1="18" x2="21" y2="18"/></svg> Painel Jurídico</div><div class="link-card-sub">Alertas de prazo, diagnóstico processual, gráficos</div></div>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
+            <?php endif; ?>
             <a href="financas.php" class="link-card">
               <div><div class="link-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M9 9h4.5a1.5 1.5 0 0 1 0 3h-5a1.5 1.5 0 0 0 0 3H15"/></svg> Central Financeira (DRE)</div><div class="link-card-sub">Categorias, centros de custo, lançamentos, metas financeiras</div></div>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
+            <?php if ($moduloJuridico): ?>
             <a href="processos.php" class="link-card">
               <div><div class="link-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg> Gestão Processual</div><div class="link-card-sub">Tipos de ação, responsáveis, prazos e calendário</div></div>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
+            <?php endif; ?>
           </div>
         </div>
       </div>

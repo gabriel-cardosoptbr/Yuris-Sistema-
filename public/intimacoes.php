@@ -8,6 +8,7 @@ if (empty($_SESSION['user_id'])) {
 }
 // HARDENING: bloqueia acesso de contas suspensas/canceladas/inativas
 \App\Core\AccountContext::fromSession()->assertAccountActive();
+\App\Core\AccountContext::fromSession()->assertModuloJuridicoDisponivelPage();
 
 $activePage = 'intimacoes';
 $csrf       = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));

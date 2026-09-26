@@ -69,6 +69,7 @@ if (in_array($method, ['POST', 'PATCH', 'DELETE'], true)) {
 
 try {
     $ctx       = AccountContext::fromSession();
+    $ctx->assertModuloJuridicoDisponivel();
     $accountId = $ctx->getAccountId();
     $userId    = $ctx->getUserId();
     $pdo       = Database::getConnection();

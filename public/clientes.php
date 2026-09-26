@@ -23,6 +23,7 @@ if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
 
 $ctx = AccountContext::fromSession();
 $ctx->assertAccountActive();
+$moduloJuridico = $ctx->moduloJuridicoDisponivel(); // false só para conta Fleetiflow (sem módulo jurídico)
 
 // Permission gate
 $_isAdmin = strtolower((string)($_SESSION['user_perfil'] ?? '')) === 'admin';
@@ -708,6 +709,7 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
            sem cópia: quem costura é cards.cliente_id. -->
       <div id="cliCrm"></div>
 
+      <?php if ($moduloJuridico): ?>
       <!-- Processos vinculados (só no modo edição) — reverse lookup do cliente_id -->
       <div id="cliProcessosBlock" style="display:none; margin-top:16px;">
         <div style="display:flex; align-items:center; justify-content:space-between; margin:0 0 8px;">
@@ -719,6 +721,7 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
         </div>
         <div id="cliProcessos" style="display:flex; flex-direction:column; gap:6px;"></div>
       </div>
+      <?php endif; ?>
 
       <!-- Conversas de WhatsApp: resolvidas pelas prospecções de origem.
            Nada é copiado na conversão, ver App\Clientes\VinculosCliente. -->

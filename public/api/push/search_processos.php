@@ -34,6 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 
 try {
     $ctx   = AccountContext::fromSession();
+    $ctx->assertModuloJuridicoDisponivel();
 
     $q     = trim((string)($_GET['q'] ?? ''));
     $limit = max(1, min(50, (int)($_GET['limit'] ?? 10)));

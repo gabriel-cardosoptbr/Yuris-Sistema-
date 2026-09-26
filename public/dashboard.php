@@ -10,6 +10,7 @@ $activePage = 'dashboard';
 // Contexto de tenant — obrigatório para evitar vazamento entre contas.
 $ctx       = AccountContext::fromSession();
 $ctx->assertAccountActive(); // bloqueia conta suspensa/cancelada/inativa
+$moduloJuridico = $ctx->moduloJuridicoDisponivel(); // false só para conta Fleetiflow (sem módulo jurídico)
 $tenantIds = $ctx->getAccessibleAccountIds('dashboard');
 // Guard: array vazio quebraria SQL IN (). Garante pelo menos o próprio account_id (0 = nenhum match).
 if (empty($tenantIds)) $tenantIds = [0];
@@ -396,8 +397,13 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
       <div class="dash-panel page-header">
         <div class="page-header-inner">
           <div class="page-header-text">
+            <?php if ($moduloJuridico): ?>
             <h2 class="page-header-title">Dashboard Executivo</h2>
             <p class="page-header-subtitle">Visão completa — Comercial · Financeiro · Jurídico · Operacional</p>
+            <?php else: ?>
+            <h2 class="page-header-title">Dashboard Comercial</h2>
+            <p class="page-header-subtitle">Visão completa — Prospecção · Vendas · Atendimento · Performance</p>
+            <?php endif; ?>
             <?php if (count($origin_accounts) > 1):
               // Indicador visual do escopo ativo (matriz com filiais/advogados).
               // FIX (auditoria 2026-06-01 — MÉDIA #9): rotula cada conta pelo TIPO
@@ -549,6 +555,7 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
         </div>
       </div>
 
+      <?php if ($moduloJuridico): ?>
       <!-- ── JURÍDICO KPIs (JS loads from API) ── -->
       <div>
         <div class="section-eyebrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block;vertical-align:middle;margin-right:4px"><path d="M12 3v18"/><path d="M5 6l7-3 7 3"/><path d="M5 6 2 13h6z"/><path d="M19 6l-3 7h6z"/><line x1="3" y1="18" x2="21" y2="18"/></svg> Jurídico — Processos</div>
@@ -579,6 +586,7 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
           </div>
         </div>
       </div>
+      <?php endif; ?>
 
       <!-- ── Filtros e Meta ── -->
       <div class="dash-panel compact">
@@ -629,6 +637,7 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
         <canvas id="revenueChart" style="max-height:240px"></canvas>
       </div>
 
+      <?php if ($moduloJuridico): ?>
       <!-- ── GRÁFICOS JURÍDICOS ── -->
       <div class="section-eyebrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block;vertical-align:middle;margin-right:4px"><path d="M12 3v18"/><path d="M5 6l7-3 7 3"/><path d="M5 6 2 13h6z"/><path d="M19 6l-3 7h6z"/><line x1="3" y1="18" x2="21" y2="18"/></svg> Análise Jurídica</div>
       <div class="charts-2col" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
@@ -651,7 +660,9 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
           <canvas id="dashTypesChart" style="max-height:240px"></canvas>
         </div>
       </div>
+      <?php endif; ?>
 
+      <?php if ($moduloJuridico): ?>
       <!-- ── PROCESSOS PRÓXIMOS ── -->
       <div>
         <div class="section-eyebrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block;vertical-align:middle;margin-right:4px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Processos Próximos</div>
@@ -686,6 +697,7 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
           </div>
         </div>
       </div>
+      <?php endif; ?>
 
     </section>
   </div>
@@ -949,7 +961,7 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
     } else {
       setEl('metaProgresso', '0% da meta');
     }
-    el.innerHTML = 'Hoje o escritório possui ' + (parts.length ? parts.join(', ') : 'dados sendo carregados') + '.';
+    el.innerHTML = 'Hoje <?= $moduloJuridico ? "o escritório" : "a operação" ?> possui ' + (parts.length ? parts.join(', ') : 'dados sendo carregados') + '.';
   }
 
   // ── Alerts ────────────────────────────────────────────────────────────────
@@ -982,7 +994,7 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
     if (dreReceita > 0 && dreDespesa / dreReceita > 0.7)
       alerts.push({cls:'alert-warn', icon:_icoMoney, msg:`Custos altos: ${Math.round((dreDespesa/dreReceita)*100)}% da receita`});
     if (!alerts.length)
-      alerts.push({cls:'alert-ok', icon:_icoCheck, msg:'Escritório operando normalmente — sem alertas críticos'});
+      alerts.push({cls:'alert-ok', icon:_icoCheck, msg:'<?= $moduloJuridico ? "Escritório" : "Operação" ?> operando normalmente — sem alertas críticos'});
 
     const container = document.getElementById('alertsContainer');
     if (!container) return;

@@ -127,6 +127,7 @@ significa nada.
 | Script | O que faz |
 |---|---|
 | `seed_admin.php` | cria o usuário admin inicial |
+| `create_fleetiflow_account.php` | cria a conta Fleetiflow (edição CRM/comercial): mesma sequência do Painel Master (`accounts` + `users` + `subscriptions` + `AccountBootstrapSeeder`), já com `configuracoes.produto=fleetiflow`. Idempotente por rejeição: aborta se já existir conta ou login com o mesmo nome, não duplica |
 | `check_user.php` | inspeciona um usuário |
 | `test_multitenancy_e2e.php` | testa o isolamento entre contas ponta a ponta |
 

@@ -49,6 +49,7 @@ if ($userId === 0) {
 
 try {
     $ctx       = AccountContext::fromSession();
+    $ctx->assertModuloJuridicoDisponivel();
     $accountId = $ctx->getAccountId();
     $method    = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 

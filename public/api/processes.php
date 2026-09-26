@@ -21,6 +21,7 @@ TenantGuard::requireSameOriginOrCsrf();
 
 // Carrega contexto de tenant — aborta com 401 se sessão inválida
 $ctx       = AccountContext::fromSession();
+$ctx->assertModuloJuridicoDisponivel();
 $accountId = $ctx->getAccountId();  // NUNCA lido do request
 
 // Garante que a coluna card_id existe na tabela processos
