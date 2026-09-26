@@ -111,7 +111,7 @@ stub em `index.php`; a v1 ficou guardada. Ver
 | Pasta | O que é |
 |---|---|
 | `api/` | ~130 endpoints REST. Tem [README próprio](api/README.md) |
-| `includes/` | pedaços de página reaproveitados: `sidebar.php`, `seo_head.php`, `legal_page.php`, rodapés. `sidebar.php` resolve `AccountContext::getProduto()` uma vez (`$_isFleetiflow`) e troca logo, rodapé, grupo "Jurídico" do menu e as duas primeiras abas da barra mobile conforme o produto da conta |
+| `includes/` | pedaços de página reaproveitados: `sidebar.php`, `seo_head.php`, `legal_page.php`, rodapés. `sidebar.php` resolve `AccountContext::getProduto()` uma vez (`$_isFleetiflow`) e troca logo, rodapé, grupo "Jurídico" do menu e as duas primeiras abas da barra mobile conforme o produto da conta. Também força o tema **claro** do Yuris (existente, não é novo) na primeira visita da conta Fleetiflow e sobrescreve as variáveis de cor (`--yuris-accent` etc.) pelo azul da marca — sem tocar `yuris-theme.css`, então nenhuma conta Yuris é afetada |
 | `assets/` | CSS, JS e imagens. Um arquivo JS por tela (`processos.js`, `tarefas.js`), mais `design-system.css` e `yuris-theme.css` |
 | `v2/` | a landing institucional nova (`index.php` + `partials/` + `data/`), servida na `/` |
 | `sistema_vendas/Imagens/` | os logos, servidos em `/sistema_vendas/Imagens/`: 3 do Yuris (`Logo.png`, `Logo Loguin.png`, `YURIS.png`) + 4 do Fleetiflow (`fleetiflow-horizontal.png`, `fleetiflow-icone.png`, `fleetiflow-completa.png`, `fleetiflow-texto.png`, cópia dos arquivos oficiais da marca). **Não mova:** `sidebar.php`, `login.php`, `login-fleetiflow.php` e as páginas legais apontam para essa URL. O nome é herança de quando o app era servido em `/sistema_vendas/` |

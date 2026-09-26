@@ -106,6 +106,38 @@ $_notifTempo = function ($raw) {
     return date('d/m/Y', $ts);
 };
 ?>
+<?php if ($_isFleetiflow): ?>
+<!-- Identidade Fleetiflow: o produto real é claro, então a conta entra no
+     tema claro do Yuris (já existe e é testado em yuris-theme.css; não
+     reinventamos um) na PRIMEIRA visita, sem brigar depois com uma escolha
+     que a pessoa já fez (ver localStorage.yuris_theme).
+     As variáveis de cor abaixo são as MESMAS que o tema claro do Yuris já usa
+     em toda a sidebar/cards/inputs — só trocamos o valor pelo azul do
+     Fleetiflow. Nenhum seletor novo, nenhum arquivo novo, zero risco pras
+     contas Yuris (que nunca carregam este bloco, condicionado a
+     $_isFleetiflow). -->
+<script>
+(function(){
+  try {
+    if (localStorage.getItem('yuris_theme') === null) {
+      document.documentElement.setAttribute('data-theme', 'light');
+      localStorage.setItem('yuris_theme', 'light');
+    }
+  } catch (e) {}
+})();
+</script>
+<style>
+  :root{
+    --yuris-primary:   #0B2A6B !important;
+    --yuris-accent:    #015DFC !important;
+    --yuris-blue-deep: #0B2A6B !important;
+    --primary:         #015DFC !important;
+    --brand:           #015DFC !important;
+    --icon-color:      #015DFC !important;
+  }
+  .sidebar-user-avatar{ background: linear-gradient(135deg, #0B2A6B, #015DFC) !important; }
+</style>
+<?php endif; ?>
 <!-- Yuris UI lib (notify/confirm/prompt sem "localhost diz"). Auto-polyfills window.alert. -->
 <script src="/assets/yuris-ui.js?v=<?= $_uiLibVer ?>"></script>
 <!-- LGPD Etapa 5: banner de cookies — auto-inicializa, só aparece se ainda não respondeu -->
