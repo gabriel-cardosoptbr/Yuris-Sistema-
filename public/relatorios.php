@@ -31,6 +31,7 @@ if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
 
 $ctx = AccountContext::fromSession();
 $ctx->assertAccountActive();
+$isFleetiflow = $ctx->getProduto() === 'fleetiflow'; // abas e filtros claros, não a barra escura de relatorios.css
 
 $_isAdmin = strtolower((string) ($_SESSION['user_perfil'] ?? '')) === 'admin';
 $_perms   = (array) ($_SESSION['user_permissions'] ?? []);
@@ -130,6 +131,39 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
       .content, main { margin-left:0 !important; }
     }
   </style>
+  <?php if ($isFleetiflow): ?>
+  <!-- relatorios.css é sempre escuro nessas duas peças (.rel-aba, .rel-filtros),
+       de propósito: o resto do sistema é escuro. Só a folha/tabela (.folha,
+       .rel-resultado) é clara sempre, pra imprimir bem — essa parte já está OK
+       pro Fleetiflow e não muda aqui. Vem depois no <head>, então bate o empate
+       de especificidade com as regras sem tema de relatorios.css sem precisar
+       de !important; mantemos o prefixo mesmo assim, pelo padrão do resto do
+       bloco Fleetiflow (sidebar.php, dashboard.php). -->
+  <style>
+    html[data-theme="light"] .rel-topo p{ color:#676767 !important; }
+    html[data-theme="light"] .rel-aba{
+      background:#FFFFFF !important; border:1px solid rgba(17,29,45,0.08) !important;
+      color:#676767 !important; border-radius:999px !important; font-weight:600 !important;
+    }
+    html[data-theme="light"] .rel-aba:hover{ background:#F1F1F2 !important; color:#3D3D3D !important; }
+    html[data-theme="light"] .rel-aba.ativa{ background:#015DFC !important; border-color:#015DFC !important; color:#FFFFFF !important; }
+    html[data-theme="light"] .rel-filtros{
+      background:#FFFFFF !important; border:1px solid rgba(17,29,45,0.08) !important; border-radius:14px !important;
+    }
+    html[data-theme="light"] .rel-campo label{ color:#767676 !important; }
+    html[data-theme="light"] .rel-campo select, html[data-theme="light"] .rel-campo input{
+      background:#F6F7F9 !important; color:#3D3D3D !important; border:1px solid rgba(17,29,45,0.08) !important;
+    }
+    html[data-theme="light"] .rel-campo input::placeholder{ color:#8B97A8 !important; }
+    html[data-theme="light"] .btn-doc{
+      background:#FFFFFF !important; border:1px solid rgba(17,29,45,0.08) !important; color:#575757 !important; border-radius:999px !important;
+    }
+    html[data-theme="light"] .btn-doc:hover{ background:#F1F1F2 !important; color:#3D3D3D !important; }
+    html[data-theme="light"] .btn-doc-primario{ background:#015DFC !important; border-color:#015DFC !important; color:#FFFFFF !important; }
+    html[data-theme="light"] .btn-doc-primario:hover{ background:#0043C4 !important; }
+    html[data-theme="light"] .rel-aviso{ background:#FFF6E6 !important; border-color:#EDD09A !important; color:#8F6000 !important; }
+  </style>
+  <?php endif; ?>
 </head>
 <body>
   <!-- .page-layout e a convencao do resto do sistema (ver processos.php): e ele
