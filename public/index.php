@@ -26,10 +26,11 @@
 require_once __DIR__ . '/../app/bootstrap.php';
 
 // Domínio próprio do Fleetiflow CRM (ver App\Core\ProductHost): mesmo
-// container, mesmo backend, SEM redirect HTTP. Só troca o que a raiz "/"
-// serve; toda outra rota continua resolvendo normalmente pelo Router.
+// container, mesmo backend, SEM redirect HTTP. Só troca o que a raiz serve;
+// toda outra rota continua resolvendo normalmente pelo Router. "/index.php"
+// conta como raiz porque o nginx de produção reescreve "/" para ele.
 $__rota = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
-if (($__rota === '/' || $__rota === '') && \App\Core\ProductHost::isFleetiflow()) {
+if (in_array($__rota, ['/', '', '/index.php'], true) && \App\Core\ProductHost::isFleetiflow()) {
     require __DIR__ . '/login-fleetiflow.php';
     exit;
 }
