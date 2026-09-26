@@ -77,6 +77,15 @@ sombra nova, sem lista de exceção.
 Cada uma corresponde a um domínio em [`../app/`](../app/); a tabela de
 equivalência está em [`../app/README.md`](../app/README.md).
 
+`dashboard.php` tem um bloco `if ($isFleetiflow)` no `<head>` que transcreve
+o visual do dashboard real do Fleetiflow (`tokens.css`, `superficies.ts`,
+`CardIndicador.tsx`, `GraficoRosca.tsx` do app React): fonte Manrope, canvas
+`#F6F7F9`, cards brancos de raio 14 sem sombra (sombra só no hover), KPI com
+ícone lucide monocromático no canto, títulos de seção em caixa alta com ícone
+azul, paleta categórica azul/roxo/âmbar/laranja nos gráficos e o funil de
+etapas desenhado como rosca. A conta Fleetiflow também não chama as APIs
+jurídicas do dashboard (responderiam 403). Fora do `if`, nada muda.
+
 ### Entrada e sessão
 `login.php` · `login-fleetiflow.php` · `logout.php` · `404.php`
 
@@ -112,7 +121,7 @@ stub em `index.php`; a v1 ficou guardada. Ver
 |---|---|
 | `api/` | ~130 endpoints REST. Tem [README próprio](api/README.md) |
 | `includes/` | pedaços de página reaproveitados: `sidebar.php`, `seo_head.php`, `legal_page.php`, rodapés. `sidebar.php` resolve `AccountContext::getProduto()` uma vez (`$_isFleetiflow`) e troca logo, rodapé, grupo "Jurídico" do menu e as duas primeiras abas da barra mobile conforme o produto da conta. Também força o tema **claro** do Yuris (existente, não é novo) na primeira visita da conta Fleetiflow e sobrescreve as variáveis de cor (`--yuris-accent` etc.) pelo azul da marca — sem tocar `yuris-theme.css`, então nenhuma conta Yuris é afetada |
-| `assets/` | CSS, JS e imagens. Um arquivo JS por tela (`processos.js`, `tarefas.js`), mais `design-system.css` e `yuris-theme.css` |
+| `assets/` | CSS, JS e imagens. Um arquivo JS por tela (`processos.js`, `tarefas.js`), mais `design-system.css` e `yuris-theme.css`. `dashboard.js` lê um tema de gráficos opcional em `window.YURIS_CHART_THEME` (cores das séries, raio e espessura das barras, tensão da linha, funil em rosca, fonte); sem ele, os valores são os de sempre do Yuris |
 | `v2/` | a landing institucional nova (`index.php` + `partials/` + `data/`), servida na `/` |
 | `sistema_vendas/Imagens/` | os logos, servidos em `/sistema_vendas/Imagens/`: 3 do Yuris (`Logo.png`, `Logo Loguin.png`, `YURIS.png`) + 4 do Fleetiflow (`fleetiflow-horizontal.png`, `fleetiflow-icone.png`, `fleetiflow-completa.png`, `fleetiflow-texto.png`, cópia dos arquivos oficiais da marca). **Não mova:** `sidebar.php`, `login.php`, `login-fleetiflow.php` e as páginas legais apontam para essa URL. O nome é herança de quando o app era servido em `/sistema_vendas/` |
 | `uploads/` | arquivos enviados pelos clientes |

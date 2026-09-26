@@ -11,6 +11,7 @@ $activePage = 'dashboard';
 $ctx       = AccountContext::fromSession();
 $ctx->assertAccountActive(); // bloqueia conta suspensa/cancelada/inativa
 $moduloJuridico = $ctx->moduloJuridicoDisponivel(); // false só para conta Fleetiflow (sem módulo jurídico)
+$isFleetiflow   = $ctx->getProduto() === 'fleetiflow'; // identidade visual do Fleetiflow (cards, gráficos, fonte)
 $tenantIds = $ctx->getAccessibleAccountIds('dashboard');
 // Guard: array vazio quebraria SQL IN (). Garante pelo menos o próprio account_id (0 = nenhum match).
 if (empty($tenantIds)) $tenantIds = [0];
@@ -157,7 +158,7 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Dashboard Executivo — Yuris</title>
+  <title><?= $isFleetiflow ? 'Dashboard — Fleetiflow CRM' : 'Dashboard Executivo — Yuris' ?></title>
   <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -166,6 +167,105 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
   <link rel="stylesheet" href="/assets/fog.css">
   <link rel="stylesheet" href="/assets/sidebar.css?v=19">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+  <?php if ($isFleetiflow): ?>
+  <!-- Fleetiflow: fonte, tema dos gráficos e superfícies transcritos do app real
+       (frontend/src/styles/tokens.css, components/ui/superficies.ts, CardIndicador.tsx,
+       BlocoDaSessao.tsx, GraficoRosca.tsx). Tudo dentro deste if: conta Yuris não muda. -->
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script>
+    window.YURIS_CHART_THEME = {
+      tick: '#676767', grid: 'rgba(17,29,45,0.06)', legenda: '#575757',
+      fechados: '#015DFC', fechadosBorda: '#015DFC', projecao: '#835FF2', projecaoBorda: '#835FF2', meta: '#A9C6FF',
+      receita: '#017801', receitaArea: 'rgba(1,120,1,0.10)', metaLinha: '#767676',
+      barraRaio: 3, barraMax: 26, linhaTension: 0, pontoFundo: '#FFFFFF', pontoRaio: 3.5,
+      funil: ['#015DFC','#835FF2','#6D9DFD','#FDAD0D','#F55902','#A9C6FF','#013DF2','#767676'],
+      funilLegenda: '#575757', funilComoRosca: true, roscaTexto: '#3D3D3D', roscaTextoFraco: '#767676', roscaRotulo: 'leads',
+      swatchTamanho: 9, swatchRaio: '50%', legendaLinha: '#575757',
+      tooltipFundo: '#FFFFFF', tooltipBorda: 'rgba(17,29,45,0.08)', tooltipTitulo: '#3D3D3D', tooltipCorpo: '#575757',
+      fonte: "'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif"
+    };
+  </script>
+  <style>
+    /* Prefixo html[data-theme="light"] em tudo: é o que o yuris-theme.css usa, e
+       !important só desempata por especificidade. O sidebar já força o tema claro
+       na primeira visita da conta Fleetiflow. */
+    html[data-theme="light"] body{ background:#F6F7F9 !important; background-image:none !important; font-family:'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif !important; color:#3D3D3D; font-variant-numeric:tabular-nums; }
+    html[data-theme="light"] .dash-panel, html[data-theme="light"] .chart-card, html[data-theme="light"] #projectionPanel,
+    html[data-theme="light"] #funnelPanel, html[data-theme="light"] .kpi-card, html[data-theme="light"] .page-header{
+      background:#FFFFFF !important; border:1px solid rgba(17,29,45,0.08) !important; border-radius:14px !important;
+      box-shadow:none !important; padding:20px !important;
+      transition:transform 260ms cubic-bezier(.2,0,0,1), box-shadow 260ms cubic-bezier(.2,0,0,1), border-color 260ms cubic-bezier(.2,0,0,1) !important;
+    }
+    html[data-theme="light"] .dash-panel.compact{ padding:14px 20px !important; }
+    html[data-theme="light"] .kpi-card:hover, html[data-theme="light"] .chart-card:hover,
+    html[data-theme="light"] #projectionPanel:hover, html[data-theme="light"] #funnelPanel:hover{
+      transform:translateY(-3px); border-color:#A9C6FF !important;
+      box-shadow:0 12px 28px rgba(17,29,45,0.12), 0 4px 8px rgba(17,29,45,0.05) !important;
+    }
+    html[data-theme="light"] .kpi-cols-5, html[data-theme="light"] .kpi-cols-4, html[data-theme="light"] .charts-2col{ gap:16px !important; }
+    html[data-theme="light"] .kpi-card{ min-height:0 !important; display:flex; flex-direction:column; gap:14px; }
+    html[data-theme="light"] .kpi-dot{ display:none !important; }
+    html[data-theme="light"] .kpi-card .kpi-label{ display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:13px !important; font-weight:600 !important; color:#575757 !important; text-transform:none !important; letter-spacing:0 !important; }
+    html[data-theme="light"] .kpi-card .kpi-label .ff-ico{ display:inline-flex; color:#767676; flex:none; }
+    html[data-theme="light"] .kpi-card .kpi-value{ margin-top:0 !important; font-size:24px !important; font-weight:800 !important; color:#3D3D3D !important; line-height:1 !important; letter-spacing:-0.02em !important; }
+    html[data-theme="light"] .kpi-card #opportunitiesValue, html[data-theme="light"] .kpi-card #clientsActiveValue, html[data-theme="light"] .kpi-card #dreMargem{ font-size:30px !important; }
+    html[data-theme="light"] .kpi-card .kpi-foot{ margin-top:0 !important; font-size:12px !important; color:#767676 !important; }
+    html[data-theme="light"] .section-eyebrow{ display:flex; align-items:center; gap:8px; margin:28px 0 12px !important; font-size:13px !important; font-weight:800 !important; letter-spacing:0.06em !important; color:#676767 !important; }
+    html[data-theme="light"] .section-eyebrow svg{ width:15px !important; height:15px !important; margin-right:0 !important; color:#015DFC !important; stroke-width:2; }
+    html[data-theme="light"] .chart-title, html[data-theme="light"] #projectionPanel h3, html[data-theme="light"] #funnelPanel h3{ font-size:16px !important; font-weight:700 !important; color:#3D3D3D !important; margin-bottom:14px !important; }
+    html[data-theme="light"] #projectionPanel h4{ font-size:12px !important; font-weight:500 !important; color:#676767 !important; }
+    html[data-theme="light"] #projectionPanel hr{ border-color:rgba(17,29,45,0.08) !important; }
+    html[data-theme="light"] #funnelChart{ height:auto !important; min-height:0 !important; margin-top:0 !important; }
+    html[data-theme="light"] .page-header-title{ color:#3D3D3D !important; }
+    html[data-theme="light"] .page-header-subtitle{ color:#676767 !important; }
+    html[data-theme="light"] .exec-summary, html[data-theme="light"] .meta-widget{ background:#F6F7F9 !important; border:1px solid rgba(17,29,45,0.08) !important; border-radius:10px !important; color:#575757 !important; }
+    html[data-theme="light"] .exec-summary strong, html[data-theme="light"] .meta-widget .meta-val{ color:#3D3D3D !important; }
+    html[data-theme="light"] .meta-widget .meta-label{ font-size:12px !important; color:#767676 !important; text-transform:none !important; letter-spacing:0 !important; }
+    html[data-theme="light"] .filter-btn, html[data-theme="light"] .meta-widget-btn.secondary, html[data-theme="light"] #reportDashboardBtn{
+      background:#FFFFFF !important; border:1px solid rgba(17,29,45,0.08) !important; color:#575757 !important; border-radius:999px !important;
+      font-weight:700 !important; box-shadow:0 1px 2px rgba(17,29,45,0.06) !important;
+    }
+    html[data-theme="light"] .meta-widget-btn.secondary, html[data-theme="light"] #reportDashboardBtn{ color:#015DFC !important; }
+    html[data-theme="light"] .filter-btn:hover{ background:#F1F1F2 !important; color:#3D3D3D !important; }
+    html[data-theme="light"] #reportDashboardBtn:hover{ background:#015DFC !important; color:#FFFFFF !important; }
+    html[data-theme="light"] .filter-btn.primary, html[data-theme="light"] .meta-widget-btn.primary, html[data-theme="light"] .adash-btn-primary{
+      background:#015DFC !important; color:#FFFFFF !important; border-color:transparent !important; border-radius:999px !important; box-shadow:none !important;
+    }
+    html[data-theme="light"] .filter-btn.primary:hover, html[data-theme="light"] .meta-widget-btn.primary:hover{ background:#0043C4 !important; }
+    html[data-theme="light"] .filter-input, html[data-theme="light"] #dashFilterOrigin{ background:#FFFFFF !important; border:1px solid rgba(17,29,45,0.08) !important; border-radius:10px !important; color:#3D3D3D !important; }
+    html[data-theme="light"] .alert-pill{ font-size:11px !important; font-weight:700 !important; }
+    html[data-theme="light"] .alert-danger{ background:#FFCCCC !important; color:#B00000 !important; border-color:#F0A0A0 !important; }
+    html[data-theme="light"] .alert-warn{ background:#FFF6E6 !important; color:#8F6000 !important; border-color:#EDD09A !important; }
+    html[data-theme="light"] .alert-ok{ background:#DCFFDC !important; color:#017801 !important; border-color:#A3DFA3 !important; }
+    html[data-theme="light"] .alert-info{ background:#D6E4FF !important; color:#015DFC !important; border-color:#A9C6FF !important; }
+  </style>
+  <script>
+    // Ícone monocromático no canto do card de KPI (CardIndicador.tsx: 17px, traço 1.8,
+    // cor --text-faint). Traçados do lucide, a mesma biblioteca do Fleetiflow.
+    document.addEventListener('DOMContentLoaded', function(){
+      var ICONES = {
+        closedValue:        '<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
+        metaTopValue:       '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+        projectionValue:    '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
+        opportunitiesValue: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+        clientsActiveValue: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/>',
+        dreReceita:         '<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
+        dreDespesa:         '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
+        dreLucro:           '<circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/>',
+        dreMargem:          '<line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>'
+      };
+      document.querySelectorAll('.kpi-card').forEach(function(card){
+        var valor = card.querySelector('.kpi-value'), label = card.querySelector('.kpi-label');
+        var d = valor && ICONES[valor.id];
+        if (!d || !label) return;
+        var ico = document.createElement('span');
+        ico.className = 'ff-ico';
+        ico.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>';
+        label.appendChild(ico);
+      });
+    });
+  </script>
+  <?php endif; ?>
   <style>
     :root {
       --bg-main: #081526;
@@ -883,7 +983,7 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
 </script>
 
 <!-- ── Scripts ── -->
-<script src="assets/dashboard.js?v=13"></script>
+<script src="assets/dashboard.js?v=14"></script>
 <script src="/assets/fog.js"></script>
 
 <!-- ── Dashboard extended: jurídico + resumo + alertas ── -->
@@ -1137,10 +1237,12 @@ function fmtBRL($n){ return 'R$ ' . number_format($n, 2, ',', '.'); }
 
   // ── Main load ─────────────────────────────────────────────────────────────
   async function loadExtended(start, end){
-    const [pRes, mRes] = await Promise.all([
+    // Conta sem módulo jurídico: as duas APIs respondem 403, então nem chama.
+    const MODULO_JURIDICO = <?= $moduloJuridico ? 'true' : 'false' ?>;
+    const [pRes, mRes] = MODULO_JURIDICO ? await Promise.all([
       fetch(PROC_API,{credentials:'same-origin'}).then(r=>r.ok?r.json():null).catch(()=>null),
       fetch(METRICS_API,{credentials:'same-origin'}).then(r=>r.ok?r.json():null).catch(()=>null),
-    ]);
+    ]) : [null, null];
 
     let processes = [];
     if (pRes){ if(Array.isArray(pRes.data)) processes=pRes.data; else if(Array.isArray(pRes)) processes=pRes; }

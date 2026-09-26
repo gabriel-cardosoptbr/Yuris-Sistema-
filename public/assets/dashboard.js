@@ -1,14 +1,61 @@
 // ── Tema-aware chart colors ───────────────────────────────────────────────
 // Lidos uma vez no carregamento. Após trocar tema, F5 reaplica.
 const _IS_LIGHT = document.documentElement.getAttribute('data-theme') === 'light';
-const CHART_TICK   = _IS_LIGHT ? '#5A6B7E'              : '#8FAFC8';
-const CHART_GRID   = _IS_LIGHT ? 'rgba(15,31,54,0.10)'  : 'rgba(96,165,250,0.06)';
-const CHART_LEGEND = _IS_LIGHT ? '#0F1F36'              : '#A8BDD4';
+
+// Tema dos gráficos. A página pode sobrescrever qualquer chave em
+// window.YURIS_CHART_THEME antes de carregar este arquivo (a conta Fleetiflow
+// faz isso em dashboard.php); sem override, os valores são os de sempre do Yuris.
+const CT = Object.assign({
+  tick:            _IS_LIGHT ? '#5A6B7E'             : '#8FAFC8',
+  grid:            _IS_LIGHT ? 'rgba(15,31,54,0.10)' : 'rgba(96,165,250,0.06)',
+  legenda:         _IS_LIGHT ? '#0F1F36'             : '#A8BDD4',
+  fechados:        '#1A3A5C',
+  fechadosBorda:   '#244E7A',
+  projecao:        '#3D6A96',
+  projecaoBorda:   '#4A7AAA',
+  meta:            '#3D6A96',
+  receita:         '#4E8FD4',
+  receitaArea:     'rgba(78,143,212,0.10)',
+  metaLinha:       '#94A3B8',
+  barraRaio:       2,
+  barraMax:        undefined,
+  linhaTension:    0.35,
+  pontoFundo:      null,      // null = mesma cor da linha (ponto cheio)
+  pontoRaio:       4,
+  funil:           ['#244E7A','#3D6A96','#1A3A5C','#4A6A8A','#6B8DAA','#507090','#2A4A68','#365A7A'],
+  funilLegenda:    '#A8BDD4',
+  funilComoRosca:  false,     // true = etapas em rosca (arcos), não em trapézios
+  roscaTexto:      '#0F1F36',
+  roscaTextoFraco: '#8B97A8',
+  roscaRotulo:     'leads',
+  swatchTamanho:   12,
+  swatchRaio:      '3px',
+  legendaLinha:    '#C8DDEF',
+  tooltipFundo:    'rgba(6,16,34,0.96)',
+  tooltipBorda:    'rgba(78,143,212,0.25)',
+  tooltipTitulo:   '#93C5FD',
+  tooltipCorpo:    '#C8DDEF',
+  fonte:           null
+}, window.YURIS_CHART_THEME || {});
+
+const CHART_TICK   = CT.tick;
+const CHART_GRID   = CT.grid;
+const CHART_LEGEND = CT.legenda;
 // Aplica como defaults pra qualquer chart criado depois desta linha
 if (typeof Chart !== 'undefined' && Chart.defaults) {
   Chart.defaults.color = CHART_LEGEND;
   if (Chart.defaults.plugins && Chart.defaults.plugins.legend && Chart.defaults.plugins.legend.labels) {
     Chart.defaults.plugins.legend.labels.color = CHART_LEGEND;
+    if (CT.swatchRaio === '50%') {
+      Chart.defaults.plugins.legend.labels.usePointStyle = true;
+      Chart.defaults.plugins.legend.labels.pointStyle = 'circle';
+      Chart.defaults.plugins.legend.labels.pointStyleWidth = CT.swatchTamanho;
+    }
+  }
+  if (CT.fonte && Chart.defaults.font) Chart.defaults.font.family = CT.fonte;
+  if (window.YURIS_CHART_THEME && window.YURIS_CHART_THEME.grid && Chart.defaults.scale && Chart.defaults.scale.grid) {
+    Chart.defaults.scale.grid.color = CT.grid;
+    Chart.defaults.borderColor = CT.grid;
   }
 }
 
@@ -252,8 +299,8 @@ async function loadDashboard(start, end){
       const projData = {
         labels: aggLabels,
         datasets: [
-          { label: 'Fechados', data: [closedVal], backgroundColor: '#1A3A5C', borderColor: '#244E7A', yAxisID: 'y', borderRadius: 2, borderSkipped: false },
-          { label: 'Projeção', data: [projVal], backgroundColor: '#3D6A96', borderColor: '#4A7AAA', yAxisID: 'y', borderRadius: 2, borderSkipped: false }
+          { label: 'Fechados', data: [closedVal], backgroundColor: CT.fechados, borderColor: CT.fechadosBorda, yAxisID: 'y', borderRadius: CT.barraRaio, borderSkipped: false, maxBarThickness: CT.barraMax },
+          { label: 'Projeção', data: [projVal], backgroundColor: CT.projecao, borderColor: CT.projecaoBorda, yAxisID: 'y', borderRadius: CT.barraRaio, borderSkipped: false, maxBarThickness: CT.barraMax }
         ]
       };
       const projCfg = {
@@ -700,8 +747,8 @@ async function renderDiffChart(periods, closedData, goalsData){
       data: {
         labels: labels,
         datasets: [
-          { label: 'Meta', data: goalsData, backgroundColor: '#3D6A96', yAxisID: 'y', borderRadius: 2, borderSkipped: false },
-          { label: 'Fechados', data: closedData, backgroundColor: '#1A3A5C', yAxisID: 'y', borderRadius: 2, borderSkipped: false }
+          { label: 'Meta', data: goalsData, backgroundColor: CT.meta, yAxisID: 'y', borderRadius: CT.barraRaio, borderSkipped: false, maxBarThickness: CT.barraMax },
+          { label: 'Fechados', data: closedData, backgroundColor: CT.fechados, yAxisID: 'y', borderRadius: CT.barraRaio, borderSkipped: false, maxBarThickness: CT.barraMax }
         ]
       },
       options: {
@@ -758,12 +805,12 @@ function renderFunnel(byColumn){
     if (!container) return; // nothing to draw here
     container.innerHTML = '';
     if (legendEl) legendEl.innerHTML = '';
-    // blue palette institutional — azul/prata/grafite
-    const colors = ['#244E7A','#3D6A96','#1A3A5C','#4A6A8A','#6B8DAA','#507090','#2A4A68','#365A7A'];
+    const colors = CT.funil;
     if (!byColumn || byColumn.length === 0) {
       container.innerHTML = '<div class="text-center text-gray-500 py-8">Sem dados</div>';
       return;
     }
+    if (CT.funilComoRosca) { renderRosca(container, legendEl, byColumn, colors); return; }
     const N = byColumn.length;
     // compute SVG viewBox height from container so funnel fills the card vertically
     const rect = container.getBoundingClientRect();
@@ -933,7 +980,7 @@ function renderFunnel(byColumn){
     if (legendEl){
       const items = byColumn.map((r,i)=>{
         const color = colors[i % colors.length];
-        return `<div style="display:flex;align-items:center;gap:8px;color:#A8BDD4;font-size:13px"><div style="width:12px;height:12px;background:${color};border-radius:3px"></div><div>${escapeHtml(r.nome)}</div></div>`;
+        return `<div style="display:flex;align-items:center;gap:8px;color:${CT.funilLegenda};font-size:13px"><div style="width:${CT.swatchTamanho}px;height:${CT.swatchTamanho}px;background:${color};border-radius:${CT.swatchRaio}"></div><div>${escapeHtml(r.nome)}</div></div>`;
       }).join('');
       legendEl.style.marginTop = '8px';
       legendEl.innerHTML = `<div style="display:flex;justify-content:center;gap:18px;flex-wrap:wrap">${items}</div>`;
@@ -941,9 +988,57 @@ function renderFunnel(byColumn){
   } catch(err){ console.error('funnel render err', err); }
 }
 
+// Etapas em rosca: transcrição do GraficoRosca.tsx do Fleetiflow (r 70, traço 26,
+// respiro 6 entre fatias, pontas redondas, arco mínimo 26 para a fatia não sumir,
+// total no centro e legenda em lista com bolinha, nome, valor e %).
+function renderRosca(container, legendEl, byColumn, colors){
+  const TAM = 180, RAIO = 70, ESP = 26, RESPIRO = 6, ARCO_MIN = 26;
+  const circ = 2 * Math.PI * RAIO;
+  const rows = byColumn.map((r, i) => ({ idx: i, nome: r.nome || '', count: Math.max(0, Number(r.count || 0)) }));
+  const total = rows.reduce((s, r) => s + r.count, 0);
+  const visiveis = rows.filter(r => r.count > 0);
+  const N = visiveis.length;
+  let arcos = [];
+  if (N > 0) {
+    const disponivel = circ - N * RESPIRO;
+    arcos = visiveis.map(r => (r.count / total) * disponivel);
+    // fatias abaixo do mínimo sobem até ele; o excedente sai das maiores, proporcionalmente
+    const pequenas = arcos.map(a => a < ARCO_MIN);
+    const deficit = arcos.reduce((s, a, i) => s + (pequenas[i] ? ARCO_MIN - a : 0), 0);
+    const somaGrandes = arcos.reduce((s, a, i) => s + (pequenas[i] ? 0 : a), 0) || 1;
+    arcos = arcos.map((a, i) => pequenas[i] ? ARCO_MIN : Math.max(ARCO_MIN, a - deficit * (a / somaGrandes)));
+  }
+  const partes = [`<svg viewBox="0 0 ${TAM} ${TAM}" width="${TAM}" height="${TAM}" role="img" style="flex:none;display:block">`, `<g transform="rotate(-90 ${TAM/2} ${TAM/2})">`];
+  if (N === 0) partes.push(`<circle cx="${TAM/2}" cy="${TAM/2}" r="${RAIO}" fill="none" stroke="${CT.roscaTrilho || '#F1F1F2'}" stroke-width="${ESP}"/>`);
+  let inicio = 0;
+  visiveis.forEach((r, i) => {
+    const traco = Math.max(0, arcos[i] - ESP);
+    const cor = colors[r.idx % colors.length];
+    partes.push(`<circle cx="${TAM/2}" cy="${TAM/2}" r="${RAIO}" fill="none" stroke="${cor}" stroke-width="${ESP}" stroke-linecap="round" stroke-dasharray="${traco} ${circ}" stroke-dashoffset="${-(inicio + ESP / 2)}"><title>${escapeHtml(r.nome)}: ${r.count}</title></circle>`);
+    inicio += arcos[i] + RESPIRO;
+  });
+  partes.push('</g>');
+  partes.push(`<text x="${TAM/2}" y="${TAM/2 - 2}" text-anchor="middle" style="fill:${CT.roscaTexto};font-size:20px;font-weight:800">${total}</text>`);
+  partes.push(`<text x="${TAM/2}" y="${TAM/2 + 16}" text-anchor="middle" style="fill:${CT.roscaTextoFraco};font-size:10px;text-transform:uppercase;letter-spacing:.04em">${escapeHtml(CT.roscaRotulo)}</text>`);
+  partes.push('</svg>');
+  const lista = rows.map((r, i) => {
+    const cor = colors[i % colors.length];
+    const pct = total ? Math.round((r.count / total) * 1000) / 10 : 0;
+    return `<div style="display:flex;align-items:center;gap:8px;font-size:12px">` +
+      `<span style="width:9px;height:9px;border-radius:50%;background:${cor};flex:none"></span>` +
+      `<span style="flex:1;color:${CT.funilLegenda};text-align:left">${escapeHtml(r.nome)}</span>` +
+      `<span style="font-weight:700;color:${CT.roscaTexto}">${r.count}</span>` +
+      `<span style="color:${CT.roscaTextoFraco};min-width:42px;text-align:right">${pct}%</span></div>`;
+  }).join('');
+  container.style.height = 'auto';
+  container.innerHTML = `<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;justify-content:center">${partes.join('')}<div style="display:flex;flex-direction:column;gap:8px;min-width:150px;flex:1">${lista}</div></div>`;
+  if (legendEl) legendEl.innerHTML = '';
+}
+
 // Re-renderiza o funil duas vezes para compensar mudanças de layout que ocorrem após o primeiro render
 function rerenderFunnelAligned(){
   if (!Array.isArray(window._lastByColumn)) return;
+  if (CT.funilComoRosca) { renderFunnel(window._lastByColumn); return; }
   syncFunnelHeightToProjectionPanel();
   renderFunnel(window._lastByColumn);
   const chart = document.getElementById('funnelChart');
@@ -990,15 +1085,15 @@ function renderRevenueChart(periods, closedData, metaValue){
     let running = 0;
     closedData.forEach(v => { running += parseNumberFlexible(v); cumulative.push(running); });
 
-    const receitaColor = '#4E8FD4';
-    const metaColor    = '#94A3B8';
+    const receitaColor = CT.receita;
+    const metaColor    = CT.metaLinha;
     const cfg = {
       type: 'line',
       data: {
         labels: labels,
         datasets: [
-          { label: 'Receita', type: 'line', data: cumulative, borderColor: receitaColor, borderWidth: 2.5, pointBackgroundColor: receitaColor, pointRadius: 4, pointHoverRadius: 6, backgroundColor: 'rgba(78,143,212,0.10)', fill: true, tension: 0.35, yAxisID: 'y' },
-          { label: 'Meta',    type: 'line', data: metaData,   borderColor: metaColor,    borderWidth: 1.8, borderDash: [6,4], pointBackgroundColor: metaColor, pointRadius: 3, pointHoverRadius: 5, backgroundColor: 'rgba(148,163,184,0.05)', fill: false, tension: 0, yAxisID: 'y' }
+          { label: 'Receita', type: 'line', data: cumulative, borderColor: receitaColor, borderWidth: CT.pontoFundo ? 2 : 2.5, pointBackgroundColor: CT.pontoFundo || receitaColor, pointBorderColor: receitaColor, pointBorderWidth: CT.pontoFundo ? 2 : 0, pointRadius: CT.pontoRaio, pointHoverRadius: CT.pontoRaio + 2, backgroundColor: CT.receitaArea, fill: true, tension: CT.linhaTension, yAxisID: 'y' },
+          { label: 'Meta',    type: 'line', data: metaData,   borderColor: metaColor,    borderWidth: 1.8, borderDash: [6,4], pointBackgroundColor: CT.pontoFundo || metaColor, pointBorderColor: metaColor, pointBorderWidth: CT.pontoFundo ? 2 : 0, pointRadius: 3, pointHoverRadius: 5, backgroundColor: 'rgba(148,163,184,0.05)', fill: false, tension: 0, yAxisID: 'y' }
         ]
       },
       options: {
@@ -1012,15 +1107,15 @@ function renderRevenueChart(periods, closedData, metaValue){
         plugins: {
           legend: {
             position: 'top',
-            labels: { color: '#C8DDEF', usePointStyle: true, pointStyleWidth: 12, padding: 20, font: { size: 12 } }
+            labels: { color: CT.legendaLinha, usePointStyle: true, pointStyleWidth: CT.swatchTamanho, padding: 20, font: { size: 12 } }
           },
           tooltip: {
-            backgroundColor: 'rgba(6,16,34,0.96)',
-            borderColor: 'rgba(78,143,212,0.25)',
+            backgroundColor: CT.tooltipFundo,
+            borderColor: CT.tooltipBorda,
             borderWidth: 1,
-            titleColor: '#93C5FD',
+            titleColor: CT.tooltipTitulo,
             titleFont: { size: 12, weight: '600' },
-            bodyColor: '#C8DDEF',
+            bodyColor: CT.tooltipCorpo,
             bodyFont: { size: 12 },
             padding: 14,
             cornerRadius: 10,
