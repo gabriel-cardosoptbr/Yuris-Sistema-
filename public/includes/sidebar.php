@@ -136,74 +136,97 @@ $_notifTempo = function ($raw) {
     --icon-color:      #015DFC !important;
   }
 
-  /* ── Menu lateral no idioma visual real do Fleetiflow (AppShell.tsx +
-       global.css do projeto): fundo branco liso, item SEM cartão/borda por
-       padrão — só ícone + texto, cor muda no hover, e o ativo é um tom claro
-       da marca (não o degradê azul forte que o Yuris usa). Reescreve por
-       cima de sidebar.css (que é !important em tudo), então precisa da mesma
-       arma: !important, e só entra em vigor pra esta conta. ── */
-  /* yuris-theme.css tem regras "html[data-theme=light] .sidebar ..." — mais
-     específicas que ".sidebar ..." sozinho. Pra vencer (mesmo vindo depois no
-     documento, !important só resolve empate por especificidade primeiro),
-     repetimos o MESMO prefixo em cada seletor abaixo. */
-  html[data-theme="light"] .sidebar{ background:#FFFFFF !important; }
-  .sidebar-brand{ background:none !important; border:none !important; box-shadow:none !important; padding:0 6px !important; margin-bottom:22px !important; text-align:left !important; }
-
-  html[data-theme="light"] .sidebar nav a{
-    background:none !important;
-    border:1px solid transparent !important;
-    color:#676767 !important;
-    font-weight:500 !important;
+  /* ── Menu lateral transcrito da AppShell.tsx + global.css do Fleetiflow:
+       coluna branca inteira encostada na borda (260px, borda direita sutil),
+       item plano só com ícone + texto, hover cinza, ativo em azul claro com
+       texto escuro e ícone azul. Reescreve sidebar.css e yuris-theme.css (que
+       são !important em tudo) e só entra em vigor pra esta conta. ── */
+  /* REGRA DO BLOCO: todo seletor leva o prefixo html[data-theme="light"] e,
+     onde o yuris-theme.css desce até .label / svg *, descemos também. Sem
+     isso o tema claro do Yuris vence por especificidade (foi o que deixou o
+     item ativo com letra branca sobre azul claro e uma sombra por item). */
+  html[data-theme="light"] body, html[data-theme="light"] .page-layout{
+    background:#F6F7F9 !important; background-image:none !important;
+    font-family:'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif !important;
   }
-  html[data-theme="light"] .sidebar nav a .icon svg{ stroke:#676767 !important; }
-  html[data-theme="light"] .sidebar nav a:hover{
-    background:#F1F1F2 !important;
-    border-color:transparent !important;
-    color:#3D3D3D !important;
-  }
-  html[data-theme="light"] .sidebar nav a:hover .icon svg{ stroke:#3D3D3D !important; }
-  html[data-theme="light"] .sidebar nav a.active{
-    background:#D6E4FF !important;
-    border-color:transparent !important;
-    color:#3D3D3D !important;
-    font-weight:700 !important;
+  html[data-theme="light"] main.px-6{ padding-left:0 !important; padding-top:0 !important; padding-bottom:0 !important; }
+  html[data-theme="light"] .main-content{ padding:24px 0 24px !important; }
+  html[data-theme="light"] .sidebar{
+    width:260px !important; min-width:260px !important; max-width:260px !important;
+    min-height:100vh !important; max-height:100vh !important;
+    padding:16px 12px !important; gap:0 !important; border-radius:0 !important;
+    background:#FFFFFF !important; background-image:none !important;
+    border:none !important; border-right:1px solid rgba(17,29,45,0.08) !important;
     box-shadow:none !important;
   }
-  html[data-theme="light"] .sidebar nav a.active .icon svg{ stroke:#015DFC !important; }
+  html[data-theme="light"] .sidebar::before{ display:none !important; }
 
+  html[data-theme="light"] .sidebar-brand{
+    background:none !important; border:none !important; box-shadow:none !important;
+    border-radius:0 !important; padding:2px 8px !important; margin:0 0 18px !important; text-align:left !important;
+  }
+  html[data-theme="light"] .sidebar-brand a span{ color:#3D3D3D !important; }
+
+  html[data-theme="light"] .sidebar-user{
+    background:#FFFFFF !important; border:1px solid rgba(17,29,45,0.08) !important;
+    border-radius:12px !important; box-shadow:none !important; margin:0 0 8px !important;
+  }
+  html[data-theme="light"] .sidebar-user-avatar{ background:linear-gradient(135deg,#0B2A6B,#015DFC) !important; color:#FFFFFF !important; box-shadow:none !important; }
+  html[data-theme="light"] .sidebar-user-name{ color:#3D3D3D !important; }
+  html[data-theme="light"] .sidebar-user-badge--admin,
+  html[data-theme="light"] .sidebar-user-badge--manager,
+  html[data-theme="light"] .sidebar-user-badge--user,
+  html[data-theme="light"] .sidebar-user-badge--default{ background:#D6E4FF !important; color:#015DFC !important; border:none !important; }
+  html[data-theme="light"] .yuris-notif-btn{ background:#FFFFFF !important; border:1px solid rgba(17,29,45,0.08) !important; color:#676767 !important; border-radius:10px !important; }
+  html[data-theme="light"] .yuris-notif-btn:hover{ background:#F1F1F2 !important; color:#3D3D3D !important; }
+  html[data-theme="light"] .sidebar-status, html[data-theme="light"] #dashboardStatus{ color:#767676 !important; padding:0 8px 10px !important; }
+
+  html[data-theme="light"] .sidebar nav{ gap:2px !important; }
+  html[data-theme="light"] .sidebar-group{ gap:2px !important; }
+  html[data-theme="light"] .sidebar-group-items{ gap:2px !important; padding-left:8px !important; }
+  html[data-theme="light"] .sidebar-group.open .sidebar-group-items{ margin-top:0 !important; }
+
+  html[data-theme="light"] .sidebar nav a,
   html[data-theme="light"] .sidebar-group-toggle{
-    background:none !important;
-    border:1px solid transparent !important;
-    color:#676767 !important;
-    box-shadow:none !important;
+    background:none !important; border:1px solid transparent !important; box-shadow:none !important;
+    border-radius:10px !important; padding:9px 12px !important; gap:10px !important;
+    color:#676767 !important; font-size:14px !important; font-weight:500 !important;
+    transition:background 160ms cubic-bezier(.2,0,0,1), color 160ms cubic-bezier(.2,0,0,1) !important;
   }
-  html[data-theme="light"] .sidebar-group-toggle:hover{
-    background:#F1F1F2 !important;
-    border-color:transparent !important;
-    color:#3D3D3D !important;
-  }
-  html[data-theme="light"] .sidebar-group-toggle .sidebar-group-icon svg{ stroke:#676767 !important; }
-  html[data-theme="light"] .sidebar-group-chevron{ stroke:#8A96A8 !important; }
-  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle{
-    background:#A9C6FF !important;
-    border-color:transparent !important;
-    font-weight:700 !important;
-    box-shadow:none !important;
-  }
-  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle,
+  html[data-theme="light"] .sidebar nav a .label,
+  html[data-theme="light"] .sidebar-group-toggle .sidebar-group-label{ color:inherit !important; font-size:14px !important; font-weight:inherit !important; }
+  html[data-theme="light"] .sidebar nav a .icon, html[data-theme="light"] .sidebar nav a .icon svg,
+  html[data-theme="light"] .sidebar-group-toggle .sidebar-group-icon, html[data-theme="light"] .sidebar-group-toggle .sidebar-group-icon svg{ width:18px !important; height:18px !important; min-width:18px !important; }
+  html[data-theme="light"] .sidebar nav a .icon svg, html[data-theme="light"] .sidebar nav a .icon svg *,
+  html[data-theme="light"] .sidebar-group-toggle .sidebar-group-icon svg, html[data-theme="light"] .sidebar-group-toggle .sidebar-group-icon svg *{ stroke:#676767 !important; }
+  html[data-theme="light"] .sidebar-group-chevron{ stroke:#8A96A8 !important; opacity:1 !important; }
+
+  html[data-theme="light"] .sidebar nav a:hover,
+  html[data-theme="light"] .sidebar-group-toggle:hover{ background:#F1F1F2 !important; border-color:transparent !important; color:#3D3D3D !important; box-shadow:none !important; }
+  html[data-theme="light"] .sidebar nav a:hover .icon svg, html[data-theme="light"] .sidebar nav a:hover .icon svg *,
+  html[data-theme="light"] .sidebar-group-toggle:hover .sidebar-group-icon svg, html[data-theme="light"] .sidebar-group-toggle:hover .sidebar-group-icon svg *{ stroke:#3D3D3D !important; }
+
+  html[data-theme="light"] .sidebar nav a.active{ background:#D6E4FF !important; border-color:transparent !important; color:#3D3D3D !important; font-weight:700 !important; box-shadow:none !important; }
+  html[data-theme="light"] .sidebar nav a.active .label{ color:#3D3D3D !important; }
+  html[data-theme="light"] .sidebar nav a.active .icon svg, html[data-theme="light"] .sidebar nav a.active .icon svg *{ stroke:#015DFC !important; }
+
+  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle{ background:#A9C6FF !important; border-color:transparent !important; color:#3D3D3D !important; font-weight:700 !important; box-shadow:none !important; }
   html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-label,
   html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle *{ color:#3D3D3D !important; }
   html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-icon svg,
   html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-icon svg *,
   html[data-theme="light"] .sidebar-group.has-active .sidebar-group-chevron{ stroke:#015DFC !important; }
 
-  /* Usuário logado: cartão claro (não o navy translúcido do tema escuro
-     herdado), avatar com o gradiente da marca. */
-  .sidebar-user{ background:#F6F7F9 !important; border:1px solid rgba(17,29,45,0.08) !important; }
-  .sidebar-user-avatar{ background: linear-gradient(135deg, #0B2A6B, #015DFC) !important; }
-  .sidebar-user-name{ color:#3D3D3D !important; }
-  .sidebar-status{ color:#8A96A8 !important; }
+  html[data-theme="light"] .sidebar nav a.is-logout:hover{ background:#FFCCCC !important; color:#B00000 !important; }
+  html[data-theme="light"] .sidebar nav a.is-logout:hover .icon svg, html[data-theme="light"] .sidebar nav a.is-logout:hover .icon svg *{ stroke:#B00000 !important; }
+
+  html[data-theme="light"] .sidebar-footer{ margin-top:auto !important; padding:14px 8px 0 !important; border-top:1px solid rgba(17,29,45,0.08) !important; }
+  html[data-theme="light"] .sidebar-footer p:first-child{ color:#3D3D3D !important; }
+  html[data-theme="light"] .sidebar-footer p{ color:#767676 !important; }
+  html[data-theme="light"] .sidebar-footer a{ color:#767676 !important; border-bottom:none !important; }
+  html[data-theme="light"] .sidebar-footer a:hover{ color:#015DFC !important; }
 </style>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <?php endif; ?>
 <!-- Yuris UI lib (notify/confirm/prompt sem "localhost diz"). Auto-polyfills window.alert. -->
 <script src="/assets/yuris-ui.js?v=<?= $_uiLibVer ?>"></script>
@@ -480,7 +503,7 @@ $_notifTempo = function ($raw) {
   </nav>
 
   <!-- ── Rodapé da sidebar ── -->
-  <div style="padding:10px 18px 0;text-align:center;border-top:1px solid rgba(96,165,250,0.1);">
+  <div class="sidebar-footer" style="padding:10px 18px 0;text-align:center;border-top:1px solid rgba(96,165,250,0.1);">
     <?php if ($_isFleetiflow): ?>
     <p style="font-size:.9rem;font-weight:700;color:#e8f4ff;margin:0 0 2px;letter-spacing:.5px;">Fleetiflow</p>
     <p style="font-size:.72rem;color:#6b8299;margin:0 0 8px;">Central Comercial</p>
