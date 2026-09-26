@@ -135,7 +135,74 @@ $_notifTempo = function ($raw) {
     --brand:           #015DFC !important;
     --icon-color:      #015DFC !important;
   }
+
+  /* ── Menu lateral no idioma visual real do Fleetiflow (AppShell.tsx +
+       global.css do projeto): fundo branco liso, item SEM cartão/borda por
+       padrão — só ícone + texto, cor muda no hover, e o ativo é um tom claro
+       da marca (não o degradê azul forte que o Yuris usa). Reescreve por
+       cima de sidebar.css (que é !important em tudo), então precisa da mesma
+       arma: !important, e só entra em vigor pra esta conta. ── */
+  /* yuris-theme.css tem regras "html[data-theme=light] .sidebar ..." — mais
+     específicas que ".sidebar ..." sozinho. Pra vencer (mesmo vindo depois no
+     documento, !important só resolve empate por especificidade primeiro),
+     repetimos o MESMO prefixo em cada seletor abaixo. */
+  html[data-theme="light"] .sidebar{ background:#FFFFFF !important; }
+  .sidebar-brand{ background:none !important; border:none !important; box-shadow:none !important; padding:0 6px !important; margin-bottom:22px !important; text-align:left !important; }
+
+  html[data-theme="light"] .sidebar nav a{
+    background:none !important;
+    border:1px solid transparent !important;
+    color:#676767 !important;
+    font-weight:500 !important;
+  }
+  html[data-theme="light"] .sidebar nav a .icon svg{ stroke:#676767 !important; }
+  html[data-theme="light"] .sidebar nav a:hover{
+    background:#F1F1F2 !important;
+    border-color:transparent !important;
+    color:#3D3D3D !important;
+  }
+  html[data-theme="light"] .sidebar nav a:hover .icon svg{ stroke:#3D3D3D !important; }
+  html[data-theme="light"] .sidebar nav a.active{
+    background:#D6E4FF !important;
+    border-color:transparent !important;
+    color:#3D3D3D !important;
+    font-weight:700 !important;
+    box-shadow:none !important;
+  }
+  html[data-theme="light"] .sidebar nav a.active .icon svg{ stroke:#015DFC !important; }
+
+  html[data-theme="light"] .sidebar-group-toggle{
+    background:none !important;
+    border:1px solid transparent !important;
+    color:#676767 !important;
+    box-shadow:none !important;
+  }
+  html[data-theme="light"] .sidebar-group-toggle:hover{
+    background:#F1F1F2 !important;
+    border-color:transparent !important;
+    color:#3D3D3D !important;
+  }
+  html[data-theme="light"] .sidebar-group-toggle .sidebar-group-icon svg{ stroke:#676767 !important; }
+  html[data-theme="light"] .sidebar-group-chevron{ stroke:#8A96A8 !important; }
+  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle{
+    background:#A9C6FF !important;
+    border-color:transparent !important;
+    font-weight:700 !important;
+    box-shadow:none !important;
+  }
+  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle,
+  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-label,
+  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle *{ color:#3D3D3D !important; }
+  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-icon svg,
+  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-icon svg *,
+  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-chevron{ stroke:#015DFC !important; }
+
+  /* Usuário logado: cartão claro (não o navy translúcido do tema escuro
+     herdado), avatar com o gradiente da marca. */
+  .sidebar-user{ background:#F6F7F9 !important; border:1px solid rgba(17,29,45,0.08) !important; }
   .sidebar-user-avatar{ background: linear-gradient(135deg, #0B2A6B, #015DFC) !important; }
+  .sidebar-user-name{ color:#3D3D3D !important; }
+  .sidebar-status{ color:#8A96A8 !important; }
 </style>
 <?php endif; ?>
 <!-- Yuris UI lib (notify/confirm/prompt sem "localhost diz"). Auto-polyfills window.alert. -->
@@ -147,7 +214,13 @@ $_notifTempo = function ($raw) {
   <!-- ── Marca ── -->
   <div class="sidebar-brand" style="display:block;background:rgba(30,58,95,0.22);border:1px solid rgba(191,199,213,0.12);border-radius:11px;padding:4px 8px;margin-bottom:10px;text-align:center;">
     <?php if ($_isFleetiflow): ?>
-    <img src="/sistema_vendas/Imagens/fleetiflow-horizontal.png" alt="Fleetiflow" style="max-width:100%;max-height:160px;object-fit:contain;display:block;margin:0 auto;">
+    <!-- Ícone + texto, igual à AppShell real do Fleetiflow (não a imagem
+         composta): lá a marca também é ícone + <span> renderizado, não um PNG
+         com o nome desenhado dentro. -->
+    <a href="dashboard.php" style="display:flex;align-items:center;gap:11px;text-decoration:none">
+      <img src="/sistema_vendas/Imagens/fleetiflow-icone.png" alt="" style="height:30px;width:auto;flex:none;display:block">
+      <span style="font-size:18px;font-weight:800;letter-spacing:-.4px;color:#3D3D3D;white-space:nowrap">Fleetiflow</span>
+    </a>
     <?php else: ?>
     <img src="/sistema_vendas/Imagens/Logo.png" alt="Yuris" style="max-width:100%;max-height:160px;object-fit:contain;display:block;margin:0 auto;">
     <?php endif; ?>
