@@ -281,6 +281,13 @@ class Task
             ['status' => $task['status'], 'prazo' => $task['prazo']],
             ['status' => 'concluida']);
 
+        // Foto da entrega para o OTIF, com o prazo e o checklist de AGORA: a
+        // recorrente troca o prazo logo abaixo. Concluir de novo o que já está
+        // concluído não é entrega nova.
+        if (($task['status'] ?? '') !== 'concluida') {
+            TaskEntrega::registrarConclusao($task, $userId);
+        }
+
         if ($task['recorrencia_id']) {
             $rec = TaskRecurrence::loadById((int)$task['recorrencia_id']);
             if ($rec) {

@@ -23,6 +23,11 @@ mesma restrição de [`../README.md`](../README.md).
 `_json_guard.php` começa com `_` de propósito: não é endpoint, é peça incluída
 pelos outros.
 
+`otif.php` devolve o OTIF das tarefas (JSON, ou planilha com `formato=csv`),
+com a mesma regra de visibilidade da tela `desempenho.php`: dono/admin vê a
+equipe, os demais só o próprio, e `colaborador` é ignorado para quem não é
+admin. Só GET.
+
 ## Os três endpoints que não são chamados por tela
 
 `tasks_recurrence_tick.php`, `lgpd_retention_tick.php`,

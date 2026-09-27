@@ -16,6 +16,7 @@ executa de propósito, com `php scripts/<arquivo>.php`.
 | `tests/plan_feature_test.php` | limites e módulos por plano | sim |
 | `tests/plan_gate_e2e_test.php` | enforcement de plano ponta a ponta | sim |
 | `tests/dominios_test.php` | **escrita real** em Clientes, Prospecção, Processos, Tarefas, Finanças e LGPD, + isolamento entre contas | sim |
+| `tests/otif_test.php` | **OTIF das tarefas**: regra de uma entrega, conversão de fuso (prazo local x relógio UTC), denominador por compromisso, série mensal, período da URL, e a foto gravada na conclusão (integração dentro de transação desfeita no fim) | sim |
 | `tests/djen_filtros_test.php` | **a OAB manda na busca do DJEN**: com OAB o nome não vai junto, e o nome de exibição nunca vira filtro | não |
 | `tests/rotas_test.php` | **a camada de rota de `public/`**: o `.htaccess` só desvia o que não existe, o `require` acontece em escopo global, `includes/` e `uploads/` não saem por rota, e toda página resolve pelo endereço limpo | não |
 | `tests/varredura_urls.php` | não é suíte, é **ferramenta**: captura status e corpo de toda URL de `public/`, com sessão de owner e de member, para comparação diferencial antes/depois de mudança estrutural | sim |

@@ -146,6 +146,11 @@ class RecurrenceCronService
                     continue;
                 }
 
+                // A ocorrência venceu sem ninguém concluir: é um compromisso não
+                // entregue, e entra no OTIF do responsável. Grava antes de o
+                // prazo avançar, senão o prazo que venceu se perde.
+                TaskEntrega::registrarPerdida($taskData);
+
                 // Renova in-place: mesma coluna, mesmo card, só avança o prazo
                 $pdo->prepare(
                     "UPDATE tasks SET prazo = ? WHERE id = ?"

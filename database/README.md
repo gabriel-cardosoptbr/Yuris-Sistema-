@@ -8,7 +8,7 @@ ser testado nos dois.
 
 | Pasta / arquivo | O que é |
 |---|---|
-| `migrations/` | 125 arquivos, numerados de `001` a `111`. É o histórico de como o schema chegou ao que é hoje |
+| `migrations/` | numeradas a partir de `001`; a mais recente é `run_131.php` (`task_entregas`, a base do OTIF das tarefas, com o retroativo reconstruído do `task_history`). É o histórico de como o schema chegou ao que é hoje |
 | `seeds/` | dados iniciais: `seed_demo.sql`, `seed_processos_mensais.sql`, e os catálogos do agente de IA (`ai_intake_catalog.php`, `ai_area_questions.php`, `ai_prompt_v2.php`, `ai_prompt_v3.php`) |
 | `schema.sql` | retrato do schema completo |
 | `db_schema_local.tsv` | dump das colunas do banco local, útil para conferir divergência |

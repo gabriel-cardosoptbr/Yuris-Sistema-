@@ -72,7 +72,13 @@ sombra nova, sem lista de exceção.
 `dashboard.php` · `planejamento.php` · `prospeccao.php` · `clientes.php` ·
 `tarefas.php` · `processos.php` · `intimacoes.php` · `juridico.php` ·
 `chat.php` · `chat_interno.php` · `financas.php` · `usuarios.php` ·
-`escritorios.php` · `agente.php` · `webhooks.php` · `configuracoes.php`
+`escritorios.php` · `agente.php` · `webhooks.php` · `configuracoes.php` ·
+`relatorios.php` · `desempenho.php`
+
+`desempenho.php` (Gestão › Desempenho) é o OTIF das tarefas por colaborador:
+ranking, evolução mensal e a lista do que tirou o OTIF de cada um. Dono/admin
+vê a equipe; os demais, só o próprio. Regras em
+[`../app/Tarefas/README.md`](../app/Tarefas/README.md).
 
 Cada uma corresponde a um domínio em [`../app/`](../app/); a tabela de
 equivalência está em [`../app/README.md`](../app/README.md).

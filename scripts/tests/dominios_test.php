@@ -105,6 +105,8 @@ register_shutdown_function(function () use (&$CRIADO) {
         $pdo = Database::getConnection();
         if ($CRIADO['boards']) {
             $in = implode(',', array_map('intval', $CRIADO['boards']));
+            // Concluir tarefa grava a foto do OTIF (migration 131): sai antes da tarefa.
+            try { $pdo->exec("DELETE FROM task_entregas WHERE task_id IN (SELECT id FROM tasks WHERE board_id IN ($in))"); } catch (\Throwable $e) { /* tabela ainda não migrada */ }
             $pdo->exec("DELETE FROM tasks WHERE board_id IN ($in)");
             $pdo->exec("DELETE FROM task_columns WHERE board_id IN ($in)");
             $pdo->exec("DELETE FROM task_boards WHERE id IN ($in)");
