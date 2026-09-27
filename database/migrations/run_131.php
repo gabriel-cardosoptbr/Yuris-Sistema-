@@ -127,7 +127,8 @@ $novas   = [];
 $ignoradas = ['reconclusao' => 0, 'sem_conta' => 0, 'perdida_sem_prazo' => 0, 'perdida_repetida' => 0];
 
 // 2a. Conclusões registradas no histórico.
-$sqlConcl = "SELECT h.task_id, h.user_id, h.antes_json, h.created_at, t.responsavel_id, b.account_id
+$concluidasRec = []; // (recorrência|prazo) que foram entregues: não podem virar perdida
+$sqlConcl = "SELECT h.task_id, h.user_id, h.antes_json, h.created_at, t.responsavel_id, t.recorrencia_id, b.account_id
                FROM task_history h
                JOIN tasks t        ON t.id = h.task_id
                JOIN task_boards b  ON b.id = t.board_id
@@ -140,6 +141,7 @@ foreach ($pdo->query($sqlConcl) as $r) {
 
     $tid   = (int) $r['task_id'];
     $prazo = !empty($antes['prazo']) ? (string) $antes['prazo'] : null;
+    if ($prazo !== null && $r['recorrencia_id'] !== null) $concluidasRec['r' . $r['recorrencia_id'] . '|' . $prazo] = true;
     [$tot, $feitos] = $check[$tid] ?? [0, 0];
     $av = TaskEntrega::avaliar($prazo, TaskEntrega::paraHorarioLocal((string) $r['created_at']), $tot, $feitos);
     $novas[] = [
@@ -177,8 +179,14 @@ foreach ($pdo->query($sqlSemHist) as $r) {
 $semHistorico = count($novas) - $doHistorico;
 
 // 2c. Ocorrências recorrentes que venceram sem conclusão.
+//
+// Deduplica por (RECORRÊNCIA, prazo), e não por tarefa: o sistema antigo criava
+// uma linha por ciclo, e essas duplicatas invisíveis no quadro também eram
+// renovadas pelo cron. Medido em produção em 27/09/2026: 17.614 eventos por
+// tarefa, 836 por recorrência. Uma ocorrência é um compromisso, não importa
+// quantas linhas-fantasma ela tinha.
 $vistas = [];
-$sqlPerd = "SELECT h.task_id, h.antes_json, t.responsavel_id, b.account_id
+$sqlPerd = "SELECT h.task_id, h.antes_json, t.responsavel_id, t.recorrencia_id, b.account_id
               FROM task_history h
               JOIN tasks t       ON t.id = h.task_id
               JOIN task_boards b ON b.id = t.board_id
@@ -189,8 +197,10 @@ foreach ($pdo->query($sqlPerd) as $r) {
     $prazo = !empty($antes['prazo']) ? (string) $antes['prazo'] : null;
     if ($prazo === null) { $ignoradas['perdida_sem_prazo']++; continue; }
     if ((int) $r['account_id'] <= 0) { $ignoradas['sem_conta']++; continue; }
-    $chave = $r['task_id'] . '|' . $prazo;
+    $chave = ($r['recorrencia_id'] !== null ? 'r' . $r['recorrencia_id'] : 't' . $r['task_id']) . '|' . $prazo;
     if (isset($vistas[$chave])) { $ignoradas['perdida_repetida']++; continue; }
+    // A instância visível foi concluída nesse prazo; a duplicata renovada não é perda.
+    if (isset($concluidasRec[$chave])) { $ignoradas['perdida_ja_entregue'] = ($ignoradas['perdida_ja_entregue'] ?? 0) + 1; continue; }
     $vistas[$chave] = true;
 
     $tid = (int) $r['task_id'];

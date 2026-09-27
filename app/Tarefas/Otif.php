@@ -151,7 +151,8 @@ final class Otif
         }
 
         // Em atraso, ao vivo: aberta, com prazo vencido no horário local.
-        // Quadro desativado não assombra a nota de ninguém.
+        // Quadro desativado não assombra a nota de ninguém, e de recorrência só
+        // conta a instância que o quadro mostra (ver TaskEntrega::instanciaVisivel).
         $filtroUsuarioT = $apenasUsuario !== null ? ' AND t.responsavel_id = ?' : '';
         $sqlAberto = "SELECT t.id, t.titulo, t.responsavel_id, t.prazo
                         FROM tasks t
@@ -159,6 +160,10 @@ final class Otif
                        WHERE b.account_id IN ($in) AND b.ativo = 1
                          AND t.status = 'ativa' AND t.prazo IS NOT NULL
                          AND t.prazo < ? AND t.prazo >= ? AND t.prazo < ?
+                         AND (t.recorrencia_id IS NULL OR t.id = (
+                               SELECT t2.id FROM tasks t2
+                                WHERE t2.recorrencia_id = t.recorrencia_id AND t2.status <> 'arquivada'
+                                ORDER BY t2.prazo DESC, t2.id DESC LIMIT 1))
                          $filtroUsuarioT";
         $p2 = array_merge($contas, [TaskEntrega::agoraLocal(), $de . ' 00:00:00', date('Y-m-d', strtotime($ate . ' +1 day')) . ' 00:00:00']);
         if ($apenasUsuario !== null) $p2[] = $apenasUsuario;

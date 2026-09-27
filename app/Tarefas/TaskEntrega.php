@@ -140,6 +140,7 @@ final class TaskEntrega
         try {
             $prazo = !empty($task['prazo']) ? (string) $task['prazo'] : null;
             if ($prazo === null || strtotime($prazo) >= strtotime(self::agoraLocal())) return;
+            if (!self::instanciaVisivel($task)) return;
 
             $conta = self::contaDoQuadro((int) ($task['board_id'] ?? 0));
             if ($conta <= 0) return;
@@ -162,6 +163,27 @@ final class TaskEntrega
         } catch (\Throwable $e) {
             error_log('[TaskEntrega::registrarPerdida] tarefa #' . ($task['id'] ?? '?') . ': ' . $e->getMessage());
         }
+    }
+
+    /**
+     * A instância que o quadro MOSTRA para esta recorrência: a de prazo mais
+     * recente (desempate pelo id), mesma regra de Task::findByBoard.
+     *
+     * O sistema antigo de recorrência criava uma linha nova por ciclo, e essas
+     * linhas continuam ativas, invisíveis no quadro, sendo renovadas pelo cron
+     * todo dia. Medido em produção em 27/09/2026: 317 linhas recorrentes ativas
+     * para só 8 recorrências. Contar perda por linha inflaria o OTIF de quem
+     * nem consegue ver (nem concluir) as duplicatas.
+     */
+    public static function instanciaVisivel(array $task): bool
+    {
+        if (empty($task['recorrencia_id'])) return true;
+        $st = Database::getConnection()->prepare(
+            "SELECT id FROM tasks WHERE recorrencia_id = ? AND status <> 'arquivada'
+              ORDER BY prazo DESC, id DESC LIMIT 1"
+        );
+        $st->execute([(int) $task['recorrencia_id']]);
+        return (int) $st->fetchColumn() === (int) $task['id'];
     }
 
     /** Usado também pela migration 131, para o retroativo sair no mesmo formato. */

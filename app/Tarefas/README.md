@@ -70,6 +70,12 @@ Regras que valem para quem mexer aqui:
   (`TaskEntrega::paraHorarioLocal`). Sem isso, quem conclui até 3h antes sai
   atrasado. O cron também renova em UTC, por isso `registrarPerdida` só conta
   depois do vencimento local.
+- **De recorrência, só conta a instância que o quadro mostra**
+  (`TaskEntrega::instanciaVisivel`, mesma regra do `findByBoard`). O sistema
+  antigo criava uma linha por ciclo e essas duplicatas seguem ativas e sendo
+  renovadas pelo cron: em produção, em 27/09/2026, eram 317 linhas para 8
+  recorrências. O retroativo deduplica por (recorrência, prazo) e descarta a
+  perda de ocorrência que foi concluída na instância visível.
 - **Gravar a foto nunca derruba a conclusão**: se falhar, vai para o log.
 - **Linhas `retroativo`** foram reconstruídas pela migration a partir do
   `task_history`, com o checklist atual; a tela avisa quantas entram no período.

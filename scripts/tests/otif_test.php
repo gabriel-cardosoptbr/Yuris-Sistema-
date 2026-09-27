@@ -173,6 +173,24 @@ if (!$temTabela || !$quadro || !$quadro['usuario']) {
         $c->execute([$tid2]);
         ok('prazo vencido no horário local: conta 1 perdida', (int) $c->fetchColumn() === 1);
 
+        // Duplicata de recorrência (sistema antigo): só a instância visível no
+        // quadro conta perdida. Mesma regra de Task::findByBoard.
+        $pdo->prepare("INSERT INTO task_recurrences (tipo, intervalo, data_inicio, ativa) VALUES ('diaria', 1, CURDATE(), 1)")->execute();
+        $rec = (int) $pdo->lastInsertId();
+        $prazoVencido = date('Y-m-d H:i:s', strtotime(TaskEntrega::agoraLocal() . ' -5 hours'));
+        $dups = [];
+        foreach ([1, 2] as $i) {
+            $dups[] = (int) Task::create([
+                'board_id' => $quadro['id'], 'column_id' => $quadro['coluna'], 'titulo' => "[otif_test] dup $i",
+                'prazo' => $prazoVencido, 'responsavel_id' => $uid, 'criado_por_id' => $uid, 'recorrencia_id' => $rec,
+            ]);
+        }
+        TaskEntrega::registrarPerdida(Task::findById($dups[0]));
+        TaskEntrega::registrarPerdida(Task::findById($dups[1]));
+        $c->execute([$dups[0]]); $nInvisivel = (int) $c->fetchColumn();
+        $c->execute([$dups[1]]); $nVisivel   = (int) $c->fetchColumn();
+        ok('duplicata invisível da recorrência não conta perdida; a visível conta 1', $nInvisivel === 0 && $nVisivel === 1);
+
         $hoje = substr(TaskEntrega::agoraLocal(), 0, 10);
         $rel  = Otif::relatorio([$conta], $hoje, $hoje, $uid);
         $m    = $rel['foco']['metricas'];
