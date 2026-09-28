@@ -131,7 +131,40 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Kanban SEMPRE como visualização inicial ao entrar/recarregar a página:
   // re-renderiza com os dados já carregados e destaca o botão Kanban.
   setView('kanban');
+
+  // Link direto para uma tarefa: /tarefas.php?tarefa=ID. É o link que o sino
+  // manda no aviso "você é o responsável" (Movimento::urlDe). Até 28/09/2026 a
+  // tela ignorava o parâmetro: abria no primeiro quadro e a pessoa tinha que
+  // procurar a tarefa sozinha, quando conseguia enxergar o quadro.
+  try { await abrirTarefaDoLink(); } catch (e) { console.warn('[Tarefas] link direto:', e); }
 });
+
+async function abrirTarefaDoLink() {
+  const params = new URLSearchParams(location.search);
+  const id = parseInt(params.get('tarefa') || '', 10);
+  if (!id) return;
+
+  // Tira o parâmetro da barra: recarregar a página não reabre a tarefa, e o
+  // botão voltar não fica preso nela.
+  params.delete('tarefa');
+  const resto = params.toString();
+  history.replaceState(null, '', location.pathname + (resto ? '?' + resto : '') + location.hash);
+
+  let t = null;
+  try { t = (await GET(`/tasks.php?id=${id}`))?.data || null; } catch (_) { t = null; }
+  if (!t) {
+    showToast('Essa tarefa não existe mais ou você não tem acesso a ela.', { type: 'warn' });
+    return;
+  }
+  // Se o quadro da tarefa está na lista da pessoa, abre nele, para a tarefa
+  // aparecer no kanban por trás do painel. Se não está (quadro pessoal de outra
+  // pessoa, em que ela é só a responsável), abre o painel direto.
+  if (boards.some(b => Number(b.id) === Number(t.board_id)) && (!currentBoard || Number(currentBoard.id) !== Number(t.board_id))) {
+    await selectBoard(t.board_id);
+    renderBoardSelect();
+  }
+  await openDrawer(id);
+}
 
 /* ── Carregar usuários ────────────────────────────────────────────────────── */
 async function loadUsers() {
@@ -557,7 +590,19 @@ async function refreshDrawer() {
   document.getElementById('dPrazoTipo').value = t.prazo_tipo;
   document.getElementById('dPrazo').value     = t.prazo ? t.prazo.slice(0,16) : '';
   document.getElementById('dResponsavel').value = t.responsavel_id || '';
-  document.getElementById('dColuna').value    = t.column_id;
+  // A tarefa pode ser de um quadro que não é o aberto (link do aviso de
+  // responsável, tarefa num quadro pessoal alheio). Aí o select só tem as
+  // colunas do quadro aberto e ficaria vazio. Mostra a coluna real da tarefa
+  // como única opção, para o painel não mentir. O servidor ignora coluna que
+  // não seja do quadro da tarefa, então salvar não a tira do lugar.
+  const selCol = document.getElementById('dColuna');
+  if (!currentBoard || Number(t.board_id) !== Number(currentBoard.id)) {
+    const rotulo = [t.board_nome, t.coluna_nome].filter(Boolean).join(' · ') || 'Coluna atual';
+    selCol.innerHTML = `<option value="${Number(t.column_id)}">${esc(rotulo)}</option>`;
+  } else if (![...selCol.options].some(o => Number(o.value) === Number(t.column_id))) {
+    renderColSelect('dColuna', columns);
+  }
+  selCol.value = t.column_id;
 
   // recorrência
   const rec = t.recorrencia;

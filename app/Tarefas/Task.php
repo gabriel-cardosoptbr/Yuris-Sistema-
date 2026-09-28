@@ -89,12 +89,18 @@ class Task
                    c.nome AS criador_nome,
                    b.account_id AS origin_account_id,
                    a.nome       AS origin_account_nome,
-                   a.tipo       AS origin_account_tipo
+                   a.tipo       AS origin_account_tipo,
+                   b.nome       AS board_nome,
+                   -- nome da coluna: o painel da tarefa mostra a coluna real
+                   -- quando a tarefa é de um quadro que não está aberto na tela
+                   -- (link do aviso de responsável).
+                   col.nome     AS coluna_nome
             FROM tasks t
             LEFT JOIN users u ON u.id = t.responsavel_id
             LEFT JOIN users c ON c.id = t.criado_por_id
             LEFT JOIN task_boards b ON b.id = t.board_id
             LEFT JOIN accounts    a ON a.id = b.account_id
+            LEFT JOIN task_columns col ON col.id = t.column_id
             WHERE t.id = ?
         ');
         $stmt->execute([$id]);

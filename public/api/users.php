@@ -322,16 +322,29 @@ if ($method === 'PUT' || $method === 'PATCH') {
     $fields = [];
     $params = ['id'=>$id];
 
-    // prevent removing the last admin
-    if ($perfil !== null) {
-        $stmtCheck = $pdo->prepare('SELECT perfil FROM users WHERE id = :id LIMIT 1');
-        $stmtCheck->execute(['id'=>$id]);
-        $oldPerfil = $stmtCheck->fetchColumn();
-        if ($oldPerfil === 'admin' && $perfil !== 'admin') {
-            $stmtCount = $pdo->prepare("SELECT COUNT(*) FROM users WHERE perfil = 'admin' AND deleted_at IS NULL AND id != :id");
-            $stmtCount->execute(['id'=>$id]);
-            $cnt = (int)$stmtCount->fetchColumn();
-            if ($cnt <= 0) { http_response_code(400); echo json_encode(['success'=>false,'error'=>'Cannot remove last admin']); exit; }
+    // Não deixa o escritório ficar sem administrador.
+    //
+    // A contagem era do SISTEMA INTEIRO (`WHERE perfil = 'admin'`, sem conta):
+    // como sempre existe admin em algum outro escritório, a trava nunca
+    // disparava, e dava para rebaixar o último admin de uma conta. Agora conta
+    // só a conta do usuário, e reconhece admin por qualquer um dos dois campos,
+    // porque ainda existem contas antigas com perfil e nível desalinhados.
+    $eraAdmin  = ($alvo['perfil'] === 'admin') || in_array($alvo['role'], ['owner', 'admin'], true);
+    $novoPerfil = $input['perfil'] ?? $alvo['perfil'];
+    $novoRole   = $input['role']   ?? $alvo['role'];
+    $seraAdmin  = ($novoPerfil === 'admin') || in_array($novoRole, ['owner', 'admin'], true);
+    if (!$isRoot && $eraAdmin && !$seraAdmin) {
+        $stmtCount = $pdo->prepare(
+            "SELECT COUNT(*) FROM users
+              WHERE account_id = (SELECT account_id FROM users WHERE id = :id1)
+                AND id != :id2 AND deleted_at IS NULL
+                AND (perfil = 'admin' OR role IN ('owner','admin'))"
+        );
+        $stmtCount->execute(['id1' => $id, 'id2' => $id]);
+        if ((int)$stmtCount->fetchColumn() <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Este é o último administrador do escritório. Promova outra pessoa antes de rebaixá-lo.']);
+            exit;
         }
     }
     // detecta colunas opcionais (senha_texto foi REMOVIDA — Fase 0 audit)

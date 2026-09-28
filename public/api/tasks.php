@@ -115,6 +115,9 @@ if ($method === 'POST') {
     if ($action === 'move') {
         $task = Task::findById((int)($input['id'] ?? 0));
         if (!$task || !TaskBoard::canView((int)$task['board_id'], $userId, $accIds, $isAdmin)) fail('Não encontrado', 404);
+        // Mesma regra da edição: só move para coluna do PRÓPRIO quadro.
+        $colMove = TaskColumn::findById((int)($input['column_id'] ?? 0));
+        if (!$colMove || (int)$colMove['board_id'] !== (int)$task['board_id']) fail('Coluna inválida para este quadro', 400);
         Task::move((int)$task['id'], (int)$input['column_id'], (int)($input['ordem'] ?? 0), $userId);
         // Propaga ao histórico processual se a tarefa está vinculada a algum processo
         $colNome = null;
@@ -188,6 +191,28 @@ if ($method === 'PUT') {
     foreach ($diffFields as $f) {
         if (array_key_exists($f, $input) && (string)($task[$f] ?? '') !== (string)$input[$f]) {
             $changes[$f] = [(string)($task[$f] ?? ''), (string)$input[$f]];
+        }
+    }
+
+    /*
+     * A COLUNA TEM QUE SER DO QUADRO DA TAREFA.
+     *
+     * `Task::update` grava `column_id` do jeito que chegar. Dois jeitos de isso
+     * dar errado, ambos achados em 28/09/2026:
+     *
+     *  - o painel da tarefa manda a coluna escolhida no select, e o select mostra
+     *    as colunas do quadro ABERTO. Quem abre pelo link do aviso uma tarefa de
+     *    outro quadro (o responsável de uma tarefa num quadro pessoal alheio) ficava
+     *    com o select vazio, e salvar gravava coluna vazia: a tarefa sumia do kanban.
+     *  - qualquer `column_id` era aceito, inclusive de outro quadro.
+     *
+     * Coluna vazia, inexistente ou de outro quadro é ignorada: o resto da edição
+     * vale, a tarefa fica onde estava.
+     */
+    if (array_key_exists('column_id', $input)) {
+        $colDestino = (int)$input['column_id'] > 0 ? TaskColumn::findById((int)$input['column_id']) : false;
+        if (!$colDestino || (int)$colDestino['board_id'] !== (int)$task['board_id']) {
+            unset($input['column_id']);
         }
     }
 

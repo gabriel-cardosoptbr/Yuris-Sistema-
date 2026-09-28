@@ -186,6 +186,29 @@ foreach (['public/api/task_boards.php', 'public/api/task_columns.php', 'public/a
 }
 
 /* ===================================================================== */
+secao('7. coluna tem que ser do quadro da tarefa, e o último admin é da CONTA');
+/* ===================================================================== */
+
+$putTasks = substr($fonteTasks, strpos($fonteTasks, "if (\$method === 'PUT')"));
+ok(str_contains($putTasks, "(int)\$colDestino['board_id'] !== (int)\$task['board_id']"),
+   'edição: coluna de outro quadro (ou vazia) é ignorada');
+$posUnset  = strpos($putTasks, 'unset($input[\'column_id\'])');
+$posUpdate = strpos($putTasks, 'Task::update($id, $input');
+// strpos devolve false quando não acha, e false < número é VERDADEIRO no PHP:
+// sem checar os dois, este teste passava no código antigo, que nem tinha a trava.
+ok($posUnset !== false && $posUpdate !== false && $posUnset < $posUpdate,
+   'edição: a checagem da coluna vem ANTES de gravar');
+ok(str_contains($fonteTasks, "(int)\$colMove['board_id'] !== (int)\$task['board_id']) fail("),
+   'arrastar: recusa coluna de outro quadro');
+
+ok(!str_contains($fonteUsers, "WHERE perfil = 'admin' AND deleted_at IS NULL AND id != :id"),
+   'a contagem de admins não é mais do sistema inteiro');
+ok(str_contains($fonteUsers, 'WHERE account_id = (SELECT account_id FROM users WHERE id = :id1)'),
+   'a contagem de admins é da conta do usuário');
+ok(str_contains($fonteUsers, "(perfil = 'admin' OR role IN ('owner','admin'))"),
+   'admin é reconhecido por qualquer um dos dois campos (contas antigas desalinhadas)');
+
+/* ===================================================================== */
 secao('limpeza');
 /* ===================================================================== */
 
