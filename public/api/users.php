@@ -25,7 +25,7 @@ $input  = json_decode(file_get_contents('php://input'), true) ?? [];
 //
 // SEM A CHAVE AQUI O CHECKBOX SALVA NADA, em silencio: o INSERT e filtrado
 // por esta lista.
-$_validPages = ['dashboard','planejamento','prospeccao','financas','processos','juridico','usuarios','agente','chat','chat_interno','configuracoes',
+$_validPages = ['dashboard','planejamento','prospeccao','clientes','tarefas','financas','processos','juridico','usuarios','escritorios','agente','chat','chat_interno','configuracoes',
                 'prospeccao.converter_cliente',
                 // Fase 2 do CRM: criar/renomear/arquivar etiqueta e campo
                 // personalizado. Aplicar etiqueta e preencher campo NAO passam

@@ -38,3 +38,23 @@ a enxergar por herança de conta, isso é vazamento.
 **Papel não é hierarquia automática.** `owner` e `admin` têm poderes
 diferentes e explícitos; não presuma que um contém o outro sem conferir a
 checagem real.
+
+**Toda página gate por permissão exige a chave nas DUAS listas.** A whitelist
+do servidor (`$_validPages` em `../../public/api/users.php`) e o grid de
+checkbox do formulário (`ALL_PAGES` em `../../public/usuarios.php`). Faltando
+em qualquer uma, o checkbox marca mas o `INSERT` em `user_permissions` é
+descartado em silêncio — achado em 28/09/2026: `clientes` e `tarefas` nunca
+estiveram em nenhuma das duas, e nenhum usuário perfil `user` jamais conseguiu
+acesso real a essas duas páginas por aqui (`clientes.php` bloqueia de verdade
+quem não tem a permissão; `tarefas.php` não bloqueia, então só o item do menu
+sumia). Página nova gated por `_sidebarCan()` no `sidebar.php`: acrescente a
+chave nos dois lugares na mesma mudança.
+
+**A seção "Permissões de Acesso" do modal Criar Usuário precisa aparecer
+sozinha, sem o admin precisar tocar no campo Perfil.** Ela é escondida por CSS
+e só um listener de `change` no `<select>` a revelava — como `user` já vem
+selecionado por padrão no HTML, quem cria alguém sem mexer nesse campo nunca
+via as permissões, e o usuário nascia sem nenhuma (mesmo bug de 28/09/2026,
+raiz do problema acima). `usuarios.php` agora sincroniza a visibilidade uma vez
+ao carregar e de novo toda vez que o modal reabre (`btnNewUser`), não só em
+`change`.

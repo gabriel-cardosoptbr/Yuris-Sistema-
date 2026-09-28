@@ -1119,10 +1119,17 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
       { key:'dashboard',    label:'Dashboard' },
       { key:'planejamento', label:'Planejamento' },
       { key:'prospeccao',   label:'Prospecção' },
+      // Clientes e Tarefas: faltavam aqui (e na whitelist do servidor) desde
+      // sempre. Sem a chave, o checkbox existia ou não, mas o INSERT em
+      // user_permissions era descartado em silêncio — nenhum usuário 'user'
+      // jamais conseguiu acesso real a estas duas páginas por aqui.
+      { key:'clientes',     label:'Clientes' },
+      { key:'tarefas',      label:'Tarefas' },
       { key:'financas',     label:'Finanças' },
       { key:'processos',    label:'Processos' },
       { key:'juridico',     label:'Jurídico' },
       { key:'usuarios',     label:'Usuários' },
+      { key:'escritorios',  label:'Escritórios' },
       { key:'agente',       label:'Agente' },
       { key:'chat',         label:'WhatsApp' },
       { key:'chat_interno', label:'Chat Interno' },
@@ -1328,7 +1335,14 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
     const closeModal = id => document.getElementById(id)?.classList.add('hidden');
 
     document.getElementById('btnRefresh').addEventListener('click', loadUsers);
-    document.getElementById('btnNewUser').addEventListener('click', () => openModal('modalCreateUser'));
+    document.getElementById('btnNewUser').addEventListener('click', () => {
+      // Reabrir sem resetar arrastaria o Perfil/checkboxes da última vez que o
+      // modal foi usado (ex.: ficou em 'admin', escondendo a seção de novo).
+      document.getElementById('createUserForm').reset();
+      renderCreatePermsGrid();
+      syncCreatePermsVisibility();
+      openModal('modalCreateUser');
+    });
     document.getElementById('cancelCreateUser').addEventListener('click',  () => closeModal('modalCreateUser'));
     document.getElementById('cancelCreateUserX').addEventListener('click', () => closeModal('modalCreateUser'));
     document.getElementById('cancelEditUser').addEventListener('click',  () => closeModal('modalEditUser'));
@@ -1366,13 +1380,17 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
     }
     renderCreatePermsGrid();
 
-    document.querySelector('[name=perfil]', document.getElementById('createUserForm'))?.addEventListener?.('change', function(){
-      document.getElementById('createPermsSection').style.display = this.value === 'user' ? 'block' : 'none';
-    });
-    // trigger on select inside the form
-    document.getElementById('createUserForm').querySelector('select[name=perfil]').addEventListener('change', function(){
-      document.getElementById('createPermsSection').style.display = this.value !== 'admin' ? 'block' : 'none';
-    });
+    // Mostra/esconde a seção de Permissões de acordo com o Perfil escolhido.
+    // BUG (achado 28/09/2026): isto só rodava no evento 'change' do select. Como
+    // 'user' já vem selecionado por padrão no HTML, quem cria o usuário sem
+    // tocar no campo Perfil NUNCA via a seção de permissões — e o usuário era
+    // criado sem nenhuma permissão, sem acesso a página nenhuma do sistema.
+    function syncCreatePermsVisibility() {
+      const perfil = document.getElementById('createUserForm').querySelector('select[name=perfil]').value;
+      document.getElementById('createPermsSection').style.display = perfil !== 'admin' ? 'block' : 'none';
+    }
+    document.getElementById('createUserForm').querySelector('select[name=perfil]').addEventListener('change', syncCreatePermsVisibility);
+    syncCreatePermsVisibility();
 
     // ── Create user ───────────────────────────────────────────────────────────
     document.getElementById('createUserForm').addEventListener('submit', async function(e){
