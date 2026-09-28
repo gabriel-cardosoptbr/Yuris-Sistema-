@@ -194,6 +194,8 @@ if ($method === 'POST') {
     if (!in_array($role, ['owner','admin','manager','user','viewer'])) $role = 'user';
     // Protege: somente owner pode criar outro owner
     if ($role === 'owner' && !$ctx->isOwner()) $role = 'admin';
+    // Perfil e Nivel nao podem discordar: ver User::alinharPerfilENivel.
+    [$perfil, $role] = \App\Usuarios\User::alinharPerfilENivel($perfil, $role);
 
     $hash = password_hash($senha, PASSWORD_BCRYPT);
 
@@ -260,6 +262,56 @@ if ($method === 'PUT' || $method === 'PATCH') {
             echo json_encode(['error' => 'Usuário não encontrado no seu tenant']);
             exit;
         }
+    }
+    // ───────────────────────────────────────────────────────────────────────────
+
+    // ─── QUEM PODE MUDAR NÍVEL DE ACESSO (28/09/2026) ─────────────────────────
+    // Até aqui a edição checava só se o alvo era do mesmo tenant. NÃO checava se
+    // quem pedia era admin. Um usuário comum, pela própria sessão, conseguia:
+    //   - se promover a owner/admin mandando `role` no corpo;
+    //   - trocar senha e nível de OUTRO usuário do escritório, inclusive do dono;
+    //   - se dar permissão para qualquer página.
+    // A tela não oferece isso a um usuário comum, mas a API aceitava.
+    $souAdmin      = $ctx->isOwnerOrAdmin();
+    $souDono       = $ctx->isOwner();
+    $editandoOutro = ((int)$id !== $requesterId);
+
+    $stAlvo = $pdo->prepare('SELECT perfil, role FROM users WHERE id = :id LIMIT 1');
+    $stAlvo->execute(['id' => $id]);
+    $alvo = $stAlvo->fetch(PDO::FETCH_ASSOC) ?: ['perfil' => 'user', 'role' => 'user'];
+
+    $negar = function (string $msg) { http_response_code(403); echo json_encode(['success' => false, 'error' => $msg]); exit; };
+
+    if (!$souAdmin) {
+        if ($editandoOutro) $negar('Apenas owner/admin pode editar outros usuários');
+        // O formulário manda perfil e nível sempre, iguais aos atuais. Só é
+        // tentativa de promoção quando o valor MUDA.
+        if (isset($input['role'])   && $input['role']   !== $alvo['role'])   $negar('Você não pode alterar o próprio nível de acesso');
+        if (isset($input['perfil']) && $input['perfil'] !== $alvo['perfil']) $negar('Você não pode alterar o próprio perfil');
+        if (isset($input['permissions'])) {
+            $stP = $pdo->prepare('SELECT page FROM user_permissions WHERE user_id = ?');
+            $stP->execute([$id]);
+            $atuais  = $stP->fetchAll(PDO::FETCH_COLUMN);
+            $pedidas = is_array($input['permissions']) ? array_values($input['permissions']) : [];
+            sort($atuais); sort($pedidas);
+            if ($atuais !== $pedidas) $negar('Você não pode alterar as próprias permissões');
+        }
+    }
+    if (!$souDono) {
+        // Admin não cria dono e não mexe no dono (senha, nível, perfil).
+        if (($input['role'] ?? null) === 'owner' && $alvo['role'] !== 'owner') $negar('Apenas o proprietário pode conceder o nível Proprietário');
+        if ($editandoOutro && $alvo['role'] === 'owner') $negar('Apenas o proprietário pode editar o proprietário');
+    }
+
+    // Perfil e Nível não podem discordar: ver User::alinharPerfilENivel. Quando
+    // só um dos dois vem, o outro é o atual do banco.
+    if (isset($input['perfil']) || isset($input['role'])) {
+        [$pAl, $rAl] = \App\Usuarios\User::alinharPerfilENivel(
+            $input['perfil'] ?? $alvo['perfil'],
+            $input['role']   ?? $alvo['role']
+        );
+        if (isset($input['perfil']) || $pAl !== $alvo['perfil']) $input['perfil'] = $pAl;
+        if (isset($input['role'])   || $rAl !== $alvo['role'])   $input['role']   = $rAl;
     }
     // ───────────────────────────────────────────────────────────────────────────
 

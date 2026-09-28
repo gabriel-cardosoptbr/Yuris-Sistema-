@@ -34,11 +34,33 @@ function ok(mixed $data = null): void {
 }
 
 function canEditTask(array $task, int $userId, bool $isAdmin, array $accIds = []): bool {
-    if ($isAdmin) return true;
+    /*
+     * AQUI HAVIA UM `if ($isAdmin) return true;` NA PRIMEIRA LINHA.
+     *
+     * `Task::findById` não filtra por conta. Com o atalho vindo antes de qualquer
+     * checagem de tenant, o dono ou admin de QUALQUER escritório concluía,
+     * editava ou arquivava tarefa de OUTRO escritório só trocando o id, que é
+     * sequencial. Encontrado em 28/09/2026 ao investigar por que um admin novo
+     * não via os quadros.
+     *
+     * O poder de admin continua existindo, mas agora mora em TaskBoard::acesso e
+     * só vale para quadros das contas acessíveis ao usuário. Sem contas, nega.
+     */
+    if (!$accIds) return false;
+
+    // A tarefa tem que pertencer a um quadro das contas do usuário. É esta linha
+    // que torna seguras as duas regras abaixo: sem ela, "sou o criador" valeria
+    // para qualquer id.
+    $contaDaTarefa = (int)($task['origin_account_id'] ?? 0);
+    if (!in_array($contaDaTarefa, array_map('intval', $accIds), true)) return false;
+
+    // Quem criou e quem é responsável editam a PRÓPRIA tarefa, inclusive num
+    // quadro pessoal de outra pessoa: é assim que o responsável consegue
+    // concluir o que lhe foi delegado.
     if ((int)$task['criado_por_id'] === $userId) return true;
     if ((int)$task['responsavel_id'] === $userId) return true;
-    // P1 LGPD (2B.3): escopa por tenant também via canEdit
-    return TaskBoard::canEdit((int)$task['board_id'], $userId, $accIds ?: null);
+
+    return TaskBoard::canEdit((int)$task['board_id'], $userId, $accIds, $isAdmin);
 }
 
 $action = $_GET['action'] ?? null;
@@ -47,11 +69,16 @@ $action = $_GET['action'] ?? null;
 if ($method === 'GET') {
     if (isset($_GET['id'])) {
         $task = Task::withDetails((int)$_GET['id']);
-        if (!$task || !TaskBoard::canView((int)$task['board_id'], $userId, $accIds)) fail('Não encontrado', 404);
+        // Abre a tarefa quem pode ver o quadro OU quem pode editá-la (criador e
+        // responsável). Sem o segundo caso, o responsável de uma tarefa num quadro
+        // pessoal recebia o aviso "você é o responsável", podia concluí-la, mas
+        // ao abrir dava "não encontrado".
+        if (!$task || !(TaskBoard::canView((int)$task['board_id'], $userId, $accIds, $isAdmin)
+                        || canEditTask($task, $userId, $isAdmin, $accIds))) fail('Não encontrado', 404);
         ok($task);
     }
     $boardId = (int)($_GET['board_id'] ?? 0);
-    if (!$boardId || !TaskBoard::canView($boardId, $userId, $accIds)) fail('Sem acesso', 403);
+    if (!$boardId || !TaskBoard::canView($boardId, $userId, $accIds, $isAdmin)) fail('Sem acesso', 403);
 
     /*
      * AQUI RODAVA UM CRON, DENTRO DA ESPERA DA PESSOA.
@@ -87,7 +114,7 @@ if ($method === 'POST') {
     // move (drag-and-drop)
     if ($action === 'move') {
         $task = Task::findById((int)($input['id'] ?? 0));
-        if (!$task || !TaskBoard::canView((int)$task['board_id'], $userId, $accIds)) fail('Não encontrado', 404);
+        if (!$task || !TaskBoard::canView((int)$task['board_id'], $userId, $accIds, $isAdmin)) fail('Não encontrado', 404);
         Task::move((int)$task['id'], (int)$input['column_id'], (int)($input['ordem'] ?? 0), $userId);
         // Propaga ao histórico processual se a tarefa está vinculada a algum processo
         $colNome = null;
@@ -113,7 +140,7 @@ if ($method === 'POST') {
     // criar
     $boardId  = (int)($input['board_id']  ?? 0);
     $columnId = (int)($input['column_id'] ?? 0);
-    if (!$boardId || !TaskBoard::canEdit($boardId, $userId, $accIds)) fail('Sem permissão', 403);
+    if (!$boardId || !TaskBoard::canEdit($boardId, $userId, $accIds, $isAdmin)) fail('Sem permissão', 403);
     if (empty($input['titulo'])) fail('Título obrigatório');
 
     // coluna padrão se não informada

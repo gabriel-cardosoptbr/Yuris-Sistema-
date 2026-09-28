@@ -1593,12 +1593,23 @@ function bindModals() {
   document.getElementById('ebSave').addEventListener('click', async () => {
     const nome = document.getElementById('ebNome').value.trim();
     if (!nome || !currentBoard) return;
-    await PUT('/task_boards.php', {
-      id: currentBoard.id,
-      nome,
-      tipo: document.getElementById('ebTipo').value,
-      cor:  document.getElementById('ebCor').value
-    });
+    // Num quadro compartilhado a equipe edita as tarefas, mas renomear e trocar o
+    // tipo é só de quem administra o quadro (TaskBoard::canManage). Sem este
+    // try, o 403 virava erro solto no console e o modal ficava parado sem aviso.
+    try {
+      await PUT('/task_boards.php', {
+        id: currentBoard.id,
+        nome,
+        tipo: document.getElementById('ebTipo').value,
+        cor:  document.getElementById('ebCor').value
+      });
+    } catch (e) {
+      let msg = 'Não foi possível salvar o quadro.';
+      try { msg = JSON.parse(e.message).error || msg; } catch (_) {}
+      if (msg === 'Sem permissão') msg = 'Só quem administra este quadro pode renomeá-lo ou mudar o tipo.';
+      showToast(msg, { type: 'error' });
+      return;
+    }
     document.getElementById('modalEditBoard').classList.remove('open');
     await loadBoards(currentBoard.id); // mantém o quadro atual após editar nome
   });

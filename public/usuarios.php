@@ -1392,6 +1392,36 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
     document.getElementById('createUserForm').querySelector('select[name=perfil]').addEventListener('change', syncCreatePermsVisibility);
     syncCreatePermsVisibility();
 
+    // ── Perfil e Nível de acesso andam juntos ────────────────────────────────
+    // São dois selects lado a lado que dizem quase a mesma coisa: "Perfil" é o
+    // selo ADMIN e a tela de permissões; "Nível de acesso" é o que o sistema de
+    // fato usa para decidir o que a pessoa pode fazer. Em 28/09/2026 uma conta
+    // foi criada com Perfil = Administrador e Nível = Usuário (o padrão, que
+    // ninguém tocou): aparecia ADMIN e se comportava como usuário comum.
+    // Mudar um agora ajusta o outro. O servidor aplica a mesma regra
+    // (User::alinharPerfilENivel) para quem chegar sem passar por aqui.
+    function sincronizarPerfilNivel(selPerfil, selNivel) {
+      if (!selPerfil || !selNivel) return;
+      const ehAdmin = (v) => v === 'owner' || v === 'admin';
+      selPerfil.addEventListener('change', () => {
+        if (selPerfil.value === 'admin' && !ehAdmin(selNivel.value)) selNivel.value = 'admin';
+        if (selPerfil.value !== 'admin' && ehAdmin(selNivel.value))  selNivel.value = 'user';
+      });
+      selNivel.addEventListener('change', () => {
+        const alvo = ehAdmin(selNivel.value) ? 'admin' : 'user';
+        if (selPerfil.value !== alvo) {
+          selPerfil.value = alvo;
+          // avisa quem mostra/esconde a seção de permissões
+          selPerfil.dispatchEvent(new Event('change'));
+        }
+      });
+    }
+    sincronizarPerfilNivel(
+      document.getElementById('createUserForm').querySelector('select[name=perfil]'),
+      document.getElementById('createUserForm').querySelector('select[name=role]')
+    );
+    sincronizarPerfilNivel(document.getElementById('editPerfil'), document.getElementById('editRole'));
+
     // ── Create user ───────────────────────────────────────────────────────────
     document.getElementById('createUserForm').addEventListener('submit', async function(e){
       e.preventDefault();

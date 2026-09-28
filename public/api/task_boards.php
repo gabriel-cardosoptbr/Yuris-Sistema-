@@ -35,13 +35,13 @@ if ($method === 'GET') {
     if (isset($_GET['id'])) {
         // P1 LGPD (2B.3): findById restrito ao tenant; canView idem
         $b = TaskBoard::findById((int)$_GET['id'], $accIds);
-        if (!$b || !TaskBoard::canView((int)$_GET['id'], $userId, $accIds)) fail('Não encontrado', 404);
+        if (!$b || !TaskBoard::canView((int)$_GET['id'], $userId, $accIds, $isAdmin)) fail('Não encontrado', 404);
         $b['colunas']  = \App\Tarefas\TaskColumn::findByBoard($b['id']);
         $b['membros']  = TaskBoard::members($b['id']);
         ok($b);
     }
     // Matriz vê os boards das filiais vinculadas; filial vê só os seus
-    ok(TaskBoard::findForUser($userId, $ctx->getAccessibleAccountIds('tarefas')));
+    ok(TaskBoard::findForUser($userId, $accIds, $isAdmin));
 }
 
 if (in_array($method, ['POST','PUT','DELETE'])) {
@@ -51,7 +51,8 @@ if (in_array($method, ['POST','PUT','DELETE'])) {
 if ($method === 'POST') {
     if ($action === 'members') {
         $boardId = (int)($input['board_id'] ?? 0);
-        if (!TaskBoard::canEdit($boardId, $userId, $accIds)) fail('Sem permissão', 403);
+        // Gerenciar membros e administrar o quadro, não editar tarefas: canManage.
+        if (!TaskBoard::canManage($boardId, $userId, $accIds, $isAdmin)) fail('Sem permissão', 403);
         $op = $input['op'] ?? 'add';
         if ($op === 'remove') {
             TaskBoard::removeMember($boardId, (int)$input['user_id']);
@@ -74,7 +75,9 @@ if ($method === 'POST') {
 
 if ($method === 'PUT') {
     $id = (int)($input['id'] ?? $_GET['id'] ?? 0);
-    if (!TaskBoard::canEdit($id, $userId, $accIds)) fail('Sem permissão', 403);
+    // Renomear e trocar o tipo é administrar o quadro. Com canEdit, qualquer
+    // pessoa da equipe poderia transformar um quadro compartilhado em pessoal.
+    if (!TaskBoard::canManage($id, $userId, $accIds, $isAdmin)) fail('Sem permissão', 403);
     TaskBoard::update($id, $input);
     ok();
 }

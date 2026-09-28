@@ -13,6 +13,7 @@ header('Cache-Control: no-cache, no-store, must-revalidate');
 $ctx    = AccountContext::fromSession();
 $userId = $ctx->getUserId();
 $accIds = $ctx->getAccessibleAccountIds('tarefas');
+$isAdmin = $ctx->isOwnerOrAdmin();   // admin enxerga e edita os quadros das contas dele (TaskBoard::acesso)
 $method = $_SERVER['REQUEST_METHOD'];
 $input  = json_decode(file_get_contents('php://input'), true) ?? [];
 
@@ -31,7 +32,7 @@ $action = $_GET['action'] ?? null;
 
 if ($method === 'GET') {
     $boardId = (int)($_GET['board_id'] ?? 0);
-    if (!$boardId || !TaskBoard::canView($boardId, $userId, $accIds)) fail('Sem acesso', 403);
+    if (!$boardId || !TaskBoard::canView($boardId, $userId, $accIds, $isAdmin)) fail('Sem acesso', 403);
     ok(TaskColumn::findByBoard($boardId));
 }
 
@@ -42,12 +43,12 @@ if (in_array($method, ['POST','PUT','DELETE'])) {
 if ($method === 'POST') {
     if ($action === 'reorder') {
         $boardId = (int)($input['board_id'] ?? 0);
-        if (!TaskBoard::canEdit($boardId, $userId, $accIds)) fail('Sem permissão', 403);
+        if (!TaskBoard::canEdit($boardId, $userId, $accIds, $isAdmin)) fail('Sem permissão', 403);
         TaskColumn::reorder($boardId, $input['ids'] ?? []);
         ok();
     }
     $boardId = (int)($input['board_id'] ?? 0);
-    if (!TaskBoard::canEdit($boardId, $userId, $accIds)) fail('Sem permissão', 403);
+    if (!TaskBoard::canEdit($boardId, $userId, $accIds, $isAdmin)) fail('Sem permissão', 403);
     if (empty($input['nome'])) fail('Nome obrigatório');
     $id = TaskColumn::create([
         'board_id'           => $boardId,
@@ -64,7 +65,7 @@ if ($method === 'PUT') {
     $col = TaskColumn::findById($id);
     // MEDIA #23: passa $accIds (escopo de tenant) — antes canEdit era chamado sem
     // o conjunto acessível, divergindo do GET/POST e do resto do módulo Tarefas.
-    if (!$col || !TaskBoard::canEdit($col['board_id'], $userId, $accIds)) fail('Sem permissão', 403);
+    if (!$col || !TaskBoard::canEdit($col['board_id'], $userId, $accIds, $isAdmin)) fail('Sem permissão', 403);
     TaskColumn::update($id, $input);
     ok();
 }
@@ -73,7 +74,7 @@ if ($method === 'DELETE') {
     $id  = (int)($input['id'] ?? $_GET['id'] ?? 0);
     $col = TaskColumn::findById($id);
     // MEDIA #23: idem PUT — escopa canEdit por tenant.
-    if (!$col || !TaskBoard::canEdit($col['board_id'], $userId, $accIds)) fail('Sem permissão', 403);
+    if (!$col || !TaskBoard::canEdit($col['board_id'], $userId, $accIds, $isAdmin)) fail('Sem permissão', 403);
     try {
         TaskColumn::delete($id);
         ok();

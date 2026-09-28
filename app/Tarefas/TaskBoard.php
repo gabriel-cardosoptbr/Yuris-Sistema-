@@ -6,11 +6,42 @@ use App\Core\Database;
 class TaskBoard
 {
     /**
+     * QUEM ENXERGA E QUEM EDITA UM QUADRO (28/09/2026)
+     *
+     * Até esta data a regra era uma só: dono ou membro. E não existia nenhuma
+     * tela para adicionar membro (a API aceitava, nenhum botão chamava). Medido em
+     * produção: ZERO membros em todo o sistema, 14 quadros ativos, 10 deles
+     * marcados "Compartilhado". Ou seja, todo quadro só era visível para quem o
+     * criou, e "Compartilhado" era só um rótulo.
+     *
+     * Consequências reais: um administrador criado depois abria Tarefas e via
+     * "Nenhum quadro"; e 281 tarefas estavam atribuídas a alguém que não conseguia
+     * abrir o quadro onde elas moram.
+     *
+     * A regra agora, numa função só (`acesso`):
+     *
+     *   dono do quadro            vê e edita
+     *   membro (owner/editor)     vê e edita          membro "leitor": só vê
+     *   admin/owner da conta      vê e edita todos os quadros das contas dele
+     *   quadro "compartilhado"    toda a equipe da conta vê e edita
+     *   quadro "pessoal"          ninguém além dos acima
+     *
+     * ADMIN E EQUIPE SÓ VALEM COM O ESCOPO DE CONTA. Sem `$accountIds`, o
+     * `findById` não filtra por tenant; se "compartilhado" valesse ali, o quadro
+     * compartilhado de um escritório ficaria visível para outro. Nesse caso sobra
+     * só dono e membro, que é o comportamento antigo.
+     *
+     * Renomear, trocar o tipo e gerenciar membros é `canManage`, mais restrito que
+     * `canEdit`: qualquer pessoa da equipe mexe nas TAREFAS de um quadro
+     * compartilhado, mas não transforma o quadro em pessoal nem o apaga.
+     */
+
+    /**
      * Lista os boards visíveis para o usuário DENTRO da sua conta (tenant).
      * Aceita um único accountId (legado) OU um array de account_ids
      * (sessão matriz vê boards das filiais vinculadas).
      */
-    public static function findForUser(int $userId, int|array $accountIds): array
+    public static function findForUser(int $userId, int|array $accountIds, bool $isAdmin = false): array
     {
         $ids = is_array($accountIds)
             ? array_values(array_filter(array_map('intval', $accountIds), fn($v) => $v > 0))
@@ -18,7 +49,7 @@ class TaskBoard
         if (empty($ids)) return [];
 
         $ph     = [];
-        $params = ['uid1' => $userId, 'uid2' => $userId];
+        $params = ['uid1' => $userId, 'uid2' => $userId, 'adm' => $isAdmin ? 1 : 0];
         foreach ($ids as $i => $aid) {
             $k          = "tbacc_{$i}";
             $ph[]       = ":{$k}";
@@ -39,7 +70,10 @@ class TaskBoard
             LEFT JOIN accounts a ON a.id = b.account_id
             WHERE b.ativo = 1
               AND b.account_id IN ({$inSql})
-              AND (b.owner_id = :uid1 OR m.user_id IS NOT NULL)
+              AND (b.owner_id = :uid1
+                   OR m.user_id IS NOT NULL
+                   OR b.tipo = 'compartilhado'
+                   OR :adm = 1)
             ORDER BY
               CASE WHEN a.tipo = 'matriz' THEN 0 ELSE 1 END,
               a.nome ASC,
@@ -148,32 +182,67 @@ class TaskBoard
     }
 
     /**
-     * Pode editar o board?
+     * O nível de acesso de um usuário a um quadro, ou null se não tem nenhum.
+     *
+     * @return 'dono'|'admin'|'editor'|'leitor'|'equipe'|null
+     */
+    public static function acesso(array $board, int $userId, bool $isAdmin, bool $comEscopo): ?string
+    {
+        if ((int)$board['owner_id'] === $userId) return 'dono';
+
+        $pdo  = Database::getConnection();
+        $stmt = $pdo->prepare('SELECT papel FROM task_board_members WHERE board_id = ? AND user_id = ?');
+        $stmt->execute([(int)$board['id'], $userId]);
+        $papel = $stmt->fetchColumn();
+        if ($papel !== false) {
+            return in_array($papel, ['owner', 'editor'], true) ? 'editor' : 'leitor';
+        }
+
+        // Daqui para baixo o acesso vem da CONTA, não de vínculo com o quadro.
+        // Só vale quando o quadro já foi buscado dentro das contas do usuário.
+        if (!$comEscopo) return null;
+
+        if ($isAdmin) return 'admin';
+        if (($board['tipo'] ?? '') === 'compartilhado') return 'equipe';
+        return null;
+    }
+
+    /**
+     * Pode editar o CONTEÚDO do board (tarefas, colunas)?
      *
      * P1 LGPD (2B.3): $accountIds opcional — quando informado, findById restringe
      * ao tenant antes de checar membership. Antes, admin de tenant A podia
      * adicionar-se como member de board de tenant B (IDOR via board_id conhecido).
      */
-    public static function canEdit(int $boardId, int $userId, int|array|null $accountIds = null): bool
+    public static function canEdit(int $boardId, int $userId, int|array|null $accountIds = null, bool $isAdmin = false): bool
     {
         $board = self::findById($boardId, $accountIds);
         if (!$board) return false;
-        if ((int)$board['owner_id'] === $userId) return true;
-        $pdo = Database::getConnection();
-        $stmt = $pdo->prepare('SELECT papel FROM task_board_members WHERE board_id = ? AND user_id = ?');
-        $stmt->execute([$boardId, $userId]);
-        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-        return $row && in_array($row['papel'], ['owner','editor']);
+        $a = self::acesso($board, $userId, $isAdmin, $accountIds !== null);
+        return in_array($a, ['dono', 'admin', 'editor', 'equipe'], true);
     }
 
-    public static function canView(int $boardId, int $userId, int|array|null $accountIds = null): bool
+    public static function canView(int $boardId, int $userId, int|array|null $accountIds = null, bool $isAdmin = false): bool
     {
         $board = self::findById($boardId, $accountIds);
         if (!$board) return false;
-        if ((int)$board['owner_id'] === $userId) return true;
-        $pdo = Database::getConnection();
-        $stmt = $pdo->prepare('SELECT id FROM task_board_members WHERE board_id = ? AND user_id = ?');
+        return self::acesso($board, $userId, $isAdmin, $accountIds !== null) !== null;
+    }
+
+    /**
+     * Pode mexer no QUADRO em si: renomear, trocar tipo, gerenciar membros.
+     * A equipe de um quadro compartilhado edita as tarefas, mas não isto.
+     */
+    public static function canManage(int $boardId, int $userId, int|array|null $accountIds = null, bool $isAdmin = false): bool
+    {
+        $board = self::findById($boardId, $accountIds);
+        if (!$board) return false;
+        $a = self::acesso($board, $userId, $isAdmin, $accountIds !== null);
+        if (in_array($a, ['dono', 'admin'], true)) return true;
+        // membro com papel "owner" também administra
+        $pdo  = Database::getConnection();
+        $stmt = $pdo->prepare("SELECT 1 FROM task_board_members WHERE board_id = ? AND user_id = ? AND papel = 'owner'");
         $stmt->execute([$boardId, $userId]);
-        return (bool)$stmt->fetch();
+        return (bool)$stmt->fetchColumn();
     }
 }
