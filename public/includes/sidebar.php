@@ -150,8 +150,22 @@ $_notifTempo = function ($raw) {
     background:#F6F7F9 !important; background-image:none !important;
     font-family:'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif !important;
   }
-  html[data-theme="light"] main.px-6{ padding-left:0 !important; padding-top:0 !important; padding-bottom:0 !important; }
-  html[data-theme="light"] .main-content{ padding:24px 0 24px !important; }
+  /* O envoltório da barra muda de página para página: main.px-6 (a maioria),
+     main.rel-wrap, main.o-wrap, main com padding inline (chat_interno,
+     webhooks) e .layout sem .page-layout (clientes.php). Uma regra por classe
+     deixava a barra colada em umas telas e flutuando com margem cinza em
+     outras. Regra genérica: quem CONTÉM a barra perde o padding, e o irmão da
+     barra recupera o respiro. */
+  html[data-theme="light"] main:has(> .page-layout > .sidebar),
+  html[data-theme="light"] main:has(> .sidebar),
+  html[data-theme="light"] .layout:has(> .sidebar),
+  html[data-theme="light"] .page-layout:has(> .sidebar){ padding:0 !important; }
+  html[data-theme="light"] .page-layout:has(> .sidebar) > :not(.sidebar),
+  html[data-theme="light"] .layout:has(> .sidebar) > :not(.sidebar){ padding:24px 24px 24px 0 !important; min-width:0; box-sizing:border-box; }
+  @media (max-width:900px){
+    html[data-theme="light"] .page-layout:has(> .sidebar) > :not(.sidebar),
+    html[data-theme="light"] .layout:has(> .sidebar) > :not(.sidebar){ padding:16px !important; }
+  }
   html[data-theme="light"] .sidebar{
     width:260px !important; min-width:260px !important; max-width:260px !important;
     min-height:100vh !important; max-height:100vh !important;
