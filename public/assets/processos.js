@@ -684,7 +684,20 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
   // ── Load columns for year ─────────────────────────────────────────────────
-  // Busca processos filtrados pelo ano selecionado e repopula o kanban inteiro
+  // Busca processos filtrados pelo ano selecionado e repopula o kanban inteiro.
+  //
+  // O CACHE MORA AQUI, E NÃO NUM INTERCEPTO MAIS ABAIXO.
+  //
+  // Até 28/09/2026 esta função só renderizava, e quem guardava os processos no
+  // cache da busca era uma versão substituta, atribuída por cima dela lá na seção
+  // "Sistema de busca e filtros". Só que a CARGA INICIAL da tela roda antes dessa
+  // substituição: ela chamava esta versão aqui, o cache ficava vazio, e
+  // `_applyAndRender` saía na primeira linha. Na prática a pesquisa não fazia nada
+  // ao abrir a tela, e só "voltava a funcionar" depois de trocar o ano ou salvar
+  // um processo, que chamavam a versão substituta.
+  //
+  // Uma função só, que guarda e filtra, não depende de ordem de execução.
+  let _allProcessesCache = []; // todos os processos do ano, antes dos filtros da barra
   async function loadColumnsForYear(year){
     const url = new URL(api, window.location.origin);
     url.searchParams.set('from', year+'-01-01');
@@ -692,9 +705,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
     url.searchParams.set('_ts',  Date.now());
     const res = await fetch(url.toString(),{credentials:'same-origin',cache:'no-store'});
     if (!res.ok) throw new Error('Erro carregando colunas');
-    const j    = await res.json();
-    const data = j.data||[];
-    renderColumns(data);
+    const j = await res.json();
+    _allProcessesCache = j.data || [];
+    const filtered = _applyFilters(_allProcessesCache);
+    renderColumns(filtered);
+    _updateFilterCount(_allProcessesCache.length, filtered.length);
   }
 
   // ── Year selector ──────────────────────────────────────────────────────────
@@ -714,7 +729,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   loadUpcoming(yearFilter.value);
 
   // ── Sistema de busca e filtros ─────────────────────────────────────────────
-  let _allProcessesCache = []; // cache de todos os processos carregados
+  // O cache `_allProcessesCache` é declarado e preenchido em loadColumnsForYear.
 
   // Popula o select de responsável (filtro da barra) com agrupamento por conta.
   // Mantém o <option value=""> "Todos os responsáveis" já presente no HTML.
@@ -748,8 +763,22 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const from   = document.getElementById('procFilterDateFrom')?.value || '';
     const to     = document.getElementById('procFilterDateTo')?.value || '';
     const origin = document.getElementById('procFilterOrigin')?.value || '';
+    // Número de processo se digita de muitos jeitos: "0001234-56.2026", "000123456"
+    // ou colado do PDF com espaço. Compara também só os DÍGITOS dos dois lados,
+    // para "00012345" achar "0001234-5/2026". Só quando o termo tem 3+ dígitos,
+    // senão "1" casaria com quase tudo.
+    const txtDig = txt.replace(/\D/g, '');
     return procs.filter(p => {
-      if (txt && !_norm(p.numero).includes(txt) && !_norm(p.cliente_nome).includes(txt) && !_norm(p.setor_nome).includes(txt) && !_norm(p.parte_contraria).includes(txt)) return false;
+      if (txt) {
+        const acha =
+          _norm(p.numero).includes(txt) ||
+          _norm(p.cliente_nome).includes(txt) ||
+          _norm(p.setor_nome).includes(txt) ||
+          _norm(p.parte_contraria).includes(txt) ||
+          _norm(p.vara_comarca).includes(txt) ||
+          (txtDig.length >= 3 && String(p.numero || '').replace(/\D/g, '').includes(txtDig));
+        if (!acha) return false;
+      }
       if (stat && p.status !== stat) return false;
       if (resp && String(p.responsavel_user_id) !== resp) return false;
       if (from && p.proximo_prazo && p.proximo_prazo < from) return false;
@@ -786,22 +815,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
       row.style.display = filteredIds.has(row.getAttribute('data-id')) ? '' : 'none';
     });
   }
-
-  // Intercepta loadColumnsForYear para armazenar o cache completo
-  const _origLoadColumns = loadColumnsForYear;
-  loadColumnsForYear = async function(year) {
-    const url = new URL(api, window.location.origin);
-    url.searchParams.set('from', year+'-01-01');
-    url.searchParams.set('to',   year+'-12-31');
-    url.searchParams.set('_ts',  Date.now());
-    const res = await fetch(url.toString(),{credentials:'same-origin',cache:'no-store'});
-    if (!res.ok) throw new Error('Erro carregando colunas');
-    const j = await res.json();
-    _allProcessesCache = j.data || [];
-    const filtered = _applyFilters(_allProcessesCache);
-    renderColumns(filtered);
-    _updateFilterCount(_allProcessesCache.length, filtered.length);
-  };
 
   // Eventos dos campos de filtro
   ['procSearchText','procFilterStatus','procFilterResp','procFilterDateFrom','procFilterDateTo','procFilterOrigin'].forEach(id => {
