@@ -235,6 +235,42 @@ $_notifTempo = function ($raw) {
   html[data-theme="light"] .sidebar nav a.is-logout:hover{ background:#FFCCCC !important; color:#B00000 !important; }
   html[data-theme="light"] .sidebar nav a.is-logout:hover .icon svg, html[data-theme="light"] .sidebar nav a.is-logout:hover .icon svg *{ stroke:#B00000 !important; }
 
+  /* ── Superfícies planas em TODAS as telas (superficies.ts do Fleetiflow:
+       "cartão parado é PLANO: só borda sobre o canvas, sem sombra nenhuma").
+       Cada tela do Yuris tem a própria classe de painel, e todas carregam a
+       sombra do tema claro do Yuris (ou, em clientes.php, a do tema escuro
+       vazando). Inventário feito em 28/09/2026 com a conta Fleetiflow, tela a
+       tela. Modal, gaveta e o painel do sino continuam com sombra: flutuam. ── */
+  html[data-theme="light"] .page-header, html[data-theme="light"] .card-shell, html[data-theme="light"] .card,
+  html[data-theme="light"] .kpi-card, html[data-theme="light"] .chart-card, html[data-theme="light"] .chart-box,
+  html[data-theme="light"] .dash-panel, html[data-theme="light"] .proc-panel, html[data-theme="light"] .jur-panel,
+  html[data-theme="light"] .dre-panel, html[data-theme="light"] .cfg-panel, html[data-theme="light"] .usr-panel,
+  html[data-theme="light"] .agt-panel, html[data-theme="light"] .panel, html[data-theme="light"] .es-card,
+  html[data-theme="light"] .chat-kpi, html[data-theme="light"] .chat-panel, html[data-theme="light"] .summary-box,
+  html[data-theme="light"] .bottleneck-note, html[data-theme="light"] .yuris-card,
+  html[data-theme="light"] #projectionPanel, html[data-theme="light"] #funnelPanel{
+    background:#FFFFFF !important; background-image:none !important;
+    border:1px solid rgba(17,29,45,0.08) !important; border-radius:14px !important; box-shadow:none !important;
+  }
+  html[data-theme="light"] .page-header h1, html[data-theme="light"] .page-header h2, html[data-theme="light"] .page-header .page-header-title{ color:#3D3D3D !important; }
+  html[data-theme="light"] .page-header p, html[data-theme="light"] .page-header .page-header-subtitle{ color:#676767 !important; }
+
+  /* Botões primários: pílula azul da marca, sem sombra (btn-primary do Fleetiflow). */
+  html[data-theme="light"] .btn.primary, html[data-theme="light"] .btn-primary, html[data-theme="light"] .usr-btn-primary,
+  html[data-theme="light"] .cfg-btn-primary, html[data-theme="light"] .agt-btn-primary, html[data-theme="light"] .conn-btn-primary,
+  html[data-theme="light"] .tk-modal-btn-primary, html[data-theme="light"] .modal-btn-save{
+    background:#015DFC !important; background-image:none !important; color:#FFFFFF !important;
+    border-color:transparent !important; border-radius:999px !important; box-shadow:none !important;
+  }
+  html[data-theme="light"] .btn.primary:hover, html[data-theme="light"] .btn-primary:hover, html[data-theme="light"] .usr-btn-primary:hover,
+  html[data-theme="light"] .cfg-btn-primary:hover, html[data-theme="light"] .agt-btn-primary:hover, html[data-theme="light"] .conn-btn-primary:hover,
+  html[data-theme="light"] .tk-modal-btn-primary:hover, html[data-theme="light"] .modal-btn-save:hover{ background:#0043C4 !important; }
+
+  /* Aba ativa: fundo azul-claro da marca, sem sombra. */
+  html[data-theme="light"] .tab-btn.active, html[data-theme="light"] .cfg-tab.active, html[data-theme="light"] .es-tab.active{
+    background:#D6E4FF !important; color:#015DFC !important; border-color:transparent !important; box-shadow:none !important;
+  }
+
   html[data-theme="light"] .sidebar-footer{ margin-top:auto !important; padding:14px 8px 0 !important; border-top:1px solid rgba(17,29,45,0.08) !important; }
   html[data-theme="light"] .sidebar-footer p:first-child{ color:#3D3D3D !important; }
   html[data-theme="light"] .sidebar-footer p{ color:#767676 !important; }
