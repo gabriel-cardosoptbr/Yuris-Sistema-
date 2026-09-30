@@ -94,10 +94,12 @@ try {
     // ── Colunas do funil (estado atual, sem filtro de data) ───────────────────
     // qtd = todos os cards da coluna (como a distribuição de sempre); abertos e
     // valor consideram só os sem data de fechamento, que é o que ainda está em jogo.
+    // O "c.id IS NOT NULL" importa: coluna vazia vem do LEFT JOIN com tudo nulo,
+    // e "data_fechamento IS NULL" contaria essa linha fantasma como um card aberto.
     $cols = $q("SELECT pc.id, pc.nome, pc.slug, pc.cor, pc.ordem, pc.conta_funil, pc.conta_oportunidade, pc.conta_fechado, pc.conta_perdido,
                        COUNT(c.id) AS qtd,
-                       COALESCE(SUM(CASE WHEN $ABERTO THEN 1 ELSE 0 END),0) AS abertos,
-                       COALESCE(SUM(CASE WHEN $ABERTO THEN $VALOR ELSE 0 END),0) AS valor
+                       COALESCE(SUM(CASE WHEN c.id IS NOT NULL AND $ABERTO THEN 1 ELSE 0 END),0) AS abertos,
+                       COALESCE(SUM(CASE WHEN c.id IS NOT NULL AND $ABERTO THEN $VALOR ELSE 0 END),0) AS valor
                 FROM pipeline_columns pc
                 LEFT JOIN cards c ON c.coluna_id = pc.id AND $baseCard
                 WHERE pc.account_id IN $inAcc

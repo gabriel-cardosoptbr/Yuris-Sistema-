@@ -222,15 +222,20 @@
   function desenharPerformance(j) {
     const serie = j.serie || [], gran = GRAN_NOME[j.periodo.granularidade] || 'dia';
     const area = $('perfArea'), leg = $('perfLegenda');
-    const temDado = serie.some(p => p.receita > 0 || p.vendas > 0 || p.leads > 0);
     if (graficoPerf) { graficoPerf.destroy(); graficoPerf = null; }
-    if (!temDado) {
-      area.innerHTML = vazio('Ainda não há movimento neste período', 'A performance aparece assim que entrarem leads ou vendas no intervalo escolhido.', { href: '/prospeccao.php', rotulo: 'Ver pipeline' });
-      area.style.height = 'auto'; leg.innerHTML = ''; $('perfSub').textContent = 'Sem dados no período'; return;
+    const aba = estado.abaPerf;
+    const temReceita = serie.some(p => p.receita > 0), temVendas = serie.some(p => p.vendas > 0), temLeads = serie.some(p => p.leads > 0);
+    // Estado vazio por aba: nada de eixo em R$ 0,00 / R$ 0,50 quando não há o que mostrar.
+    let vazioAba = null;
+    if (aba === 'receita' && !temReceita) vazioAba = ['Nenhuma receita fechada neste período', temLeads ? 'Leads entraram, mas nenhuma venda foi concluída no intervalo. A aba Vendas mostra o que entrou.' : 'A performance aparece assim que houver vendas no intervalo escolhido.'];
+    else if (aba === 'vendas' && !temVendas && !temLeads) vazioAba = ['Ainda não há movimento neste período', 'Vendas e leads aparecem aqui assim que houver movimentação no intervalo.'];
+    else if (aba === 'conversao' && (!temVendas || !temLeads)) vazioAba = ['Sem base para calcular a conversão', temLeads ? 'Há leads no período, mas nenhuma venda concluída ainda.' : 'A conversão precisa de leads e vendas no mesmo intervalo.'];
+    if (vazioAba) {
+      area.innerHTML = vazio(vazioAba[0], vazioAba[1], { href: '/prospeccao.php', rotulo: 'Ver pipeline' });
+      area.style.height = 'auto'; leg.innerHTML = ''; $('perfSub').textContent = 'Sem dados para esta visão no período'; return;
     }
     area.style.height = ''; area.innerHTML = '<canvas id="perfCanvas"></canvas>';
     const labels = serie.map(p => p.label);
-    const aba = estado.abaPerf;
     let datasets, sub, legenda, escalaY;
     if (aba === 'receita') {
       const temMeta = serie.some(p => p.meta !== null);
@@ -384,27 +389,40 @@
       area.style.height = 'auto'; leg.innerHTML = ''; $('evoSub').textContent = 'Sem dados'; return;
     }
     area.style.height = ''; area.innerHTML = '<canvas id="evoCanvas"></canvas>';
-    const temMeta = serie.some(p => p.meta !== null);
-    $('evoSub').textContent = { dia: 'Últimos 30 dias', semana: 'Últimas 16 semanas', mes: 'Últimos 12 meses' }[estado.granEvo] + ': receita realizada' + (temMeta ? ', meta' : '') + ' e novos leads';
-    leg.innerHTML = `<span><i style="background:${COR.marca}"></i>Receita fechada</span>` + (temMeta ? '<span><i class="tracejado"></i>Meta</span>' : '') + `<span><i style="background:${COR.violeta}"></i>Novos leads (eixo direito)</span>`;
-    const datasets = [
-      { type: 'bar', label: 'Receita', data: serie.map(p => p.receita), backgroundColor: COR.marca, hoverBackgroundColor: COR.marcaForte, borderRadius: 4, borderSkipped: false, maxBarThickness: 26, yAxisID: 'y', order: 3 },
-      { type: 'line', label: 'Novos leads', data: serie.map(p => p.leads), borderColor: COR.violeta, borderWidth: 2, pointRadius: 2.5, pointBackgroundColor: '#fff', pointBorderColor: COR.violeta, pointBorderWidth: 2, tension: 0.3, yAxisID: 'y2', order: 1 }
-    ];
-    if (temMeta) datasets.splice(1, 0, { type: 'line', label: 'Meta', data: serie.map(p => p.meta), borderColor: COR.texto4, borderDash: [5, 4], borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 3, tension: 0, yAxisID: 'y', order: 2 });
+    const janela = { dia: 'Últimos 30 dias', semana: 'Últimas 16 semanas', mes: 'Últimos 12 meses' }[estado.granEvo];
+    const temReceita = serie.some(p => p.receita > 0), temMeta = temReceita && serie.some(p => p.meta !== null);
+    let datasets, escalas;
+    if (temReceita) {
+      $('evoSub').textContent = janela + ': receita realizada' + (temMeta ? ', meta' : '') + ' e novos leads';
+      leg.innerHTML = `<span><i style="background:${COR.marca}"></i>Receita fechada</span>` + (temMeta ? '<span><i class="tracejado"></i>Meta</span>' : '') + `<span><i style="background:${COR.violeta}"></i>Novos leads (eixo direito)</span>`;
+      datasets = [
+        { type: 'bar', label: 'Receita', data: serie.map(p => p.receita), backgroundColor: COR.marca, hoverBackgroundColor: COR.marcaForte, borderRadius: 4, borderSkipped: false, maxBarThickness: 26, yAxisID: 'y', order: 3 },
+        { type: 'line', label: 'Novos leads', data: serie.map(p => p.leads), borderColor: COR.violeta, borderWidth: 2, pointRadius: 2.5, pointBackgroundColor: '#fff', pointBorderColor: COR.violeta, pointBorderWidth: 2, tension: 0.3, yAxisID: 'y2', order: 1 }
+      ];
+      if (temMeta) datasets.splice(1, 0, { type: 'line', label: 'Meta', data: serie.map(p => p.meta), borderColor: COR.texto4, borderDash: [5, 4], borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 3, tension: 0, yAxisID: 'y', order: 2 });
+      escalas = {
+        y: { beginAtZero: true, grid: { color: COR.grade }, border: { display: false, dash: [3, 3] }, ticks: { callback: v => fmtMoeda(v), maxTicksLimit: 5 } },
+        y2: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, border: { display: false }, ticks: { precision: 0, maxTicksLimit: 5, color: COR.violeta } }
+      };
+    } else {
+      // Ainda sem receita: só a entrada de leads, sem eixo em R$ zerado.
+      $('evoSub').textContent = janela + ': novos leads e vendas (ainda sem receita fechada)';
+      leg.innerHTML = `<span><i style="background:${COR.marcaMedia}"></i>Novos leads</span><span><i style="background:${COR.bom}"></i>Vendas fechadas</span>`;
+      datasets = [
+        { type: 'bar', label: 'Novos leads', data: serie.map(p => p.leads), backgroundColor: COR.marcaMedia, borderRadius: 4, borderSkipped: false, maxBarThickness: 26, yAxisID: 'y', order: 2 },
+        { type: 'bar', label: 'Vendas fechadas', data: serie.map(p => p.vendas), backgroundColor: COR.bom, borderRadius: 4, borderSkipped: false, maxBarThickness: 26, yAxisID: 'y', order: 1 }
+      ];
+      escalas = { y: { beginAtZero: true, grid: { color: COR.grade }, border: { display: false, dash: [3, 3] }, ticks: { precision: 0, maxTicksLimit: 5 } } };
+    }
     graficoEvo = new Chart($('evoCanvas').getContext('2d'), {
       data: { labels: serie.map(p => p.label), datasets },
       options: {
         responsive: true, maintainAspectRatio: false, animation: { duration: 500, easing: 'easeOutQuart' },
         interaction: { mode: 'index', intersect: false },
         plugins: { legend: { display: false }, tooltip: Object.assign({}, tooltipPadrao, { callbacks: {
-          label: c => ' ' + c.dataset.label + ': ' + (c.dataset.yAxisID === 'y2' ? inteiro.format(c.parsed.y) : fmtMoeda(c.parsed.y))
+          label: c => ' ' + c.dataset.label + ': ' + (c.dataset.label === 'Receita' || c.dataset.label === 'Meta' ? fmtMoeda(c.parsed.y) : inteiro.format(c.parsed.y))
         } }) },
-        scales: {
-          x: { grid: { display: false }, border: { display: false }, ticks: { maxTicksLimit: 16, maxRotation: 0, autoSkip: true } },
-          y: { beginAtZero: true, grid: { color: COR.grade }, border: { display: false, dash: [3, 3] }, ticks: { callback: v => fmtMoeda(v), maxTicksLimit: 5 } },
-          y2: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, border: { display: false }, ticks: { precision: 0, maxTicksLimit: 5, color: COR.violeta } }
-        }
+        scales: Object.assign({ x: { grid: { display: false }, border: { display: false }, ticks: { maxTicksLimit: 16, maxRotation: 0, autoSkip: true } } }, escalas)
       }
     });
   }
