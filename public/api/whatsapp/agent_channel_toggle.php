@@ -56,16 +56,21 @@ $resolveChannel = function (int $instId, string $perm) use ($pdo, $accountId): a
     ];
 };
 
-$agentState = function (array $inst) use ($pdo): array {
+// Conta Fleetiflow: o agente do canal é a Vitória (n8n), que não se configura na tela
+// Agente de IA (essa é da triagem jurídica). A chave aparece pronta para ligar e, ao
+// ligar, a configuração mínima é criada. Ver App\WhatsAppAgente\SdrFleetiflow.
+$ehFleetiflow = \App\WhatsAppAgente\SdrFleetiflow::contaUsa($accountId);
+
+$agentState = function (array $inst) use ($pdo, $ehFleetiflow): array {
     $st = $pdo->prepare("SELECT id, enabled, name FROM agent_configs WHERE whatsapp_instance_id = ? LIMIT 1");
     $st->execute([(int)$inst['id']]);
     $cfg = $st->fetch(\PDO::FETCH_ASSOC);
     return [
         'ok'             => true,
         'instance_id'    => (int)$inst['id'],
-        'has_agent'      => $cfg ? true : false,
+        'has_agent'      => ($cfg || $ehFleetiflow) ? true : false,
         'enabled'        => $cfg ? (bool)$cfg['enabled'] : false,
-        'agent_name'     => $cfg['name'] ?? null,
+        'agent_name'     => $cfg['name'] ?? ($ehFleetiflow ? \App\WhatsAppAgente\SdrFleetiflow::NOME_AGENTE : null),
         'channel_status' => $inst['status'] ?: 'close',
         'connected'      => ($inst['status'] === 'open'),
     ];
@@ -94,7 +99,23 @@ try {
 
         $chk = $pdo->prepare("SELECT id FROM agent_configs WHERE whatsapp_instance_id = ? LIMIT 1");
         $chk->execute([(int)$inst['id']]);
-        if (!$chk->fetchColumn()) {
+        $temConfig = (bool)$chk->fetchColumn();
+
+        if ($ehFleetiflow && $enabled === 1 && \App\WhatsAppAgente\SdrFleetiflow::url() === '') {
+            http_response_code(409);
+            echo json_encode(['error' => 'A Vitória ainda não está conectada neste servidor (FLEETIFLOW_SDR_WEBHOOK_URL).']);
+            exit;
+        }
+        if ($ehFleetiflow && !$temConfig) {
+            $pdo->prepare("INSERT INTO agent_configs (account_id, user_id, whatsapp_instance_id, name, enabled, status, updated_by)
+                           VALUES (:acc, :uid, :iid, :nome, 0, 'inactive', :uid2)")
+                ->execute([
+                    'acc' => $accountId, 'uid' => (int)$uid, 'iid' => (int)$inst['id'],
+                    'nome' => \App\WhatsAppAgente\SdrFleetiflow::NOME_AGENTE, 'uid2' => (int)$uid,
+                ]);
+            $temConfig = true;
+        }
+        if (!$temConfig) {
             http_response_code(400);
             echo json_encode(['error' => 'Configure o agente neste canal antes, na tela Agente de IA.', 'need_setup' => true]);
             exit;

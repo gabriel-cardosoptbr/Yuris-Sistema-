@@ -232,6 +232,16 @@ $msgId = $msgModel->save([
     'created_at'      => $createdAt,
 ]);
 
+// Fleetiflow: quem responde pelo Chat assume a conversa, e a Vitória (IA de
+// pré-qualificação) para de responder nela, como no botão "Assumir conversa".
+// Sem isto ela continuaria respondendo por cima do vendedor. Best-effort.
+try {
+    $donoCanal = (int)($ch['owner_account_id'] ?? 0);
+    if (\App\WhatsAppAgente\SdrFleetiflow::contaUsa($donoCanal)) {
+        \App\WhatsAppAgente\SdrFleetiflow::pausar($instanceId, $remoteJid, (int)$_uid);
+    }
+} catch (\Throwable $_) {}
+
 // 4B (cursor de eventos): novidade no canal -> outros atendentes/abas veem o envio
 // sem esperar o proximo ciclo cheio. Best-effort (nunca derruba o envio).
 $instModel->bumpEvents($instanceId);

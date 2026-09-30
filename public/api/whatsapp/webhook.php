@@ -660,7 +660,7 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
         // toggle enabled. fromMe já está excluído por estarmos dentro de !$fromMe;
         // $isNewInbound exclui replays/duplicatas (não re-dispara o LLM).
         if ($isNewInbound) {
-            WhatsAppAgentBridge::maybeQueueAgentReply($accountId, $instanceId, $remoteJid, $msgType, $msgContent, $wamid, $pushName);
+            WhatsAppAgentBridge::maybeQueueAgentReply($accountId, $instanceId, $remoteJid, $msgType, $msgContent, $wamid, $pushName, is_array($msg) ? $msg : null);
 
             // ── Captação automática: quem escreve já vira card na prospecção ──
             //
@@ -679,6 +679,6 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
     } else {
         // fromMe: distingue o ECO do proprio bot (ignora, anti-loop) do ENVIO MANUAL por um
         // humano via Yuris/celular (sinal de atendimento humano -> pausa o bot na conversa).
-        WhatsAppAgentBridge::maybeHandleHumanSend($accountId, $instanceId, $remoteJid, $wamid, $msgContent);
+        WhatsAppAgentBridge::maybeHandleHumanSend($accountId, $instanceId, $remoteJid, $wamid, $msgContent, is_array($msg) ? ($msg['source'] ?? null) : null);
     }
 }

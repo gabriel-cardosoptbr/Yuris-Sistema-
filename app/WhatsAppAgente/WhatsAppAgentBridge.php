@@ -55,7 +55,7 @@ class WhatsAppAgentBridge
      *   (e) respeita o toggle: só dispara se houver agent_config com enabled=1.
      *   + só mensagens de TEXTO com conteúdo não-vazio.
      */
-    public static function maybeQueueAgentReply(int $accountId, int $instanceId, ?string $remoteJid, string $msgType, ?string $msgContent, ?string $wamid = null, ?string $pushName = null): void
+    public static function maybeQueueAgentReply(int $accountId, int $instanceId, ?string $remoteJid, string $msgType, ?string $msgContent, ?string $wamid = null, ?string $pushName = null, ?array $bruto = null): void
     {
         try {
             // (a) só chat individual — grupos terminam em @g.us
@@ -97,6 +97,21 @@ class WhatsAppAgentBridge
             $st->execute([$instanceId]);
             $cfg = $st->fetch(\PDO::FETCH_ASSOC);
             if (!$cfg) return; // sem agente ativo conectado para este canal → não responde
+
+            // Conta Fleetiflow: o agente do canal é a Vitória (n8n), não a triagem
+            // jurídica. Chave ligada + conversa não pausada => encaminha a mensagem
+            // crua da Evolution, depois do 200. Ver SdrFleetiflow.
+            if (SdrFleetiflow::contaUsa((int)$cfg['account_id'])) {
+                if ($bruto === null) return;
+                $GLOBALS['__agent_tasks'][] = [
+                    'destino'     => 'sdr_fleetiflow',
+                    'account_id'  => (int)$cfg['account_id'],
+                    'instance_id' => $instanceId,
+                    'remote_jid'  => $remoteJid,
+                    'payload'     => $bruto,
+                ];
+                return;
+            }
 
             // Provider: o do agente, ou OpenAI por padrao (a chave OpenAI e GLOBAL, no Master).
             $provider = strtolower(trim((string)($cfg['provider'] ?? ''))) ?: 'openai';
@@ -146,10 +161,17 @@ class WhatsAppAgentBridge
      *    (human takeover na mesma conversa, mesma instancia).
      * NUNCA usa apenas fromMe para decidir (fromMe da Evolution e historicamente nao confiavel).
      */
-    public static function maybeHandleHumanSend(int $accountId, int $instanceId, ?string $remoteJid, ?string $wamid, ?string $msgContent): void
+    public static function maybeHandleHumanSend(int $accountId, int $instanceId, ?string $remoteJid, ?string $wamid, ?string $msgContent, ?string $origem = null): void
     {
         try {
             if (!$remoteJid || str_ends_with($remoteJid, '@g.us') || str_ends_with($remoteJid, '@broadcast') || str_contains($remoteJid, '@newsletter')) return;
+
+            // Conta Fleetiflow: não há sessão de triagem; quem decide é a origem.
+            // Digitado no aparelho do número = pessoa do time assumiu a conversa.
+            if (SdrFleetiflow::contaUsa($accountId)) {
+                SdrFleetiflow::pausarSeFoiNoAparelho($instanceId, $remoteJid, $origem);
+                return;
+            }
             require_once __DIR__ . '/AiIntake/IntakeSessionRepository.php';
             $pdo  = Database::getConnection();
             $repo = new \App\WhatsAppAgente\AiIntake\IntakeSessionRepository($pdo);
@@ -255,6 +277,11 @@ class WhatsAppAgentBridge
      */
     public static function runAgentReply(array $task): void
     {
+        // Conta Fleetiflow: só entrega para a Vitória; ela responde pela Evolution.
+        if (($task['destino'] ?? '') === 'sdr_fleetiflow') {
+            SdrFleetiflow::encaminhar($task);
+            return;
+        }
         try {
             require_once __DIR__ . '/AiIntake/IntakeEngine.php';
             require_once __DIR__ . '/AiIntake/OpenAiProvider.php';

@@ -254,7 +254,7 @@ final class CaptacaoAutomatica
      * `account_vinculos` quando a conta não tem coluna própria: sem isso, toda
      * filial ficaria de fora da captação.
      */
-    private static function primeiraColuna(\PDO $pdo, int $accountId): ?int
+    public static function primeiraColuna(\PDO $pdo, int $accountId): ?int
     {
         $st = $pdo->prepare(
             'SELECT id FROM pipeline_columns WHERE account_id = ? ORDER BY ordem, id LIMIT 1'
