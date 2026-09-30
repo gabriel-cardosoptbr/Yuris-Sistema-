@@ -1037,6 +1037,21 @@ $marcaChat     = $isFleetiflow ? 'Fleetiflow' : 'Yuris';
     #chatToast.show { transform: translateY(0); opacity: 1; }
     #chatToast.error { border-color: rgba(176,96,112,.3); color: #B06070; }
     #chatToast.success { border-color: rgba(122,189,160,.3); color: #7ABDA0; }
+<?php if ($isFleetiflow): ?>
+    /* Fleetiflow (tema claro): o aviso escuro com texto verde-acinzentado não
+       dava para ler. Fundo branco, texto escuro e a cor só na faixa lateral. */
+    #chatToast {
+      background: #FFFFFF;
+      color: #0F172A;
+      border: 1px solid #E2E8F0;
+      border-left: 4px solid #015DFC;
+      box-shadow: 0 10px 28px rgba(15,23,42,.18);
+      font-size: .88rem;
+      font-weight: 600;
+    }
+    #chatToast.success { border-color: #E2E8F0; border-left-color: #16A34A; color: #14532D; }
+    #chatToast.error   { border-color: #E2E8F0; border-left-color: #DC2626; color: #7F1D1D; }
+<?php endif; ?>
 
     /* Alerta de desconexão */
     #disconnectAlert {

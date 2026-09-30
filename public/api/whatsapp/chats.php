@@ -66,6 +66,17 @@ try {
         // O2: paginação da lista. limit cresce via "Carregar mais" no front (default 500).
         // has_more = retornou o teto cheio (pode haver mais). O front sempre refaz a lista
         // inteira com o limit atual (compatível com o refresh de 4s, sem merge/duplicata).
+        // Conta Fleetiflow: conversa solta com card de mesmo telefone é ligada antes
+        // de listar, para a etapa do Chat ser sempre a coluna do card na Prospecção.
+        try {
+            $donoCanal = (int)($ch['owner_account_id'] ?? 0);
+            if (\App\WhatsAppAgente\SdrFleetiflow::contaUsa($donoCanal)) {
+                \App\WhatsAppAgente\SdrFleetiflow::ligarConversasSoltas($pdo, $donoCanal, $instanceId);
+            }
+        } catch (\Throwable $e) {
+            error_log('[chats] ligar conversas soltas falhou: ' . $e->getMessage());
+        }
+
         $listLimit = isset($_GET['limit']) ? max(50, min(2000, (int)$_GET['limit'])) : 500;
         $chats     = $msgModel->getChatList($instanceId, $search, $teamFilter, $userFilter, $archived, $listLimit);
 

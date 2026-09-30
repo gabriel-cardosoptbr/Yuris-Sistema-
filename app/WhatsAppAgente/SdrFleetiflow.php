@@ -491,6 +491,57 @@ final class SdrFleetiflow
     }
 
     /**
+     * Conversa individual sem card vivo, cujo telefone já é card da conta: liga as
+     * duas. Cobre o que os outros caminhos deixam passar (conversa que entrou pela
+     * sincronização e não pelo webhook, card criado à mão na Prospecção, card
+     * apagado e refeito). Não cria card: conversa sem card de mesmo telefone não é
+     * lead (equipe, fornecedor), e quem decide é a pessoa escolhendo a etapa.
+     * Chamado na lista do Chat, então a etapa aparece no próximo refresh.
+     *
+     * @return int quantas conversas foram ligadas
+     */
+    public static function ligarConversasSoltas(\PDO $pdo, int $accountId, int $instanceId): int
+    {
+        $st = $pdo->prepare(
+            "SELECT w.remote_jid,
+                    COALESCE(
+                      (SELECT i.phone FROM whatsapp_identidades i
+                        WHERE i.instance_id = w.instance_id AND (i.lid = w.remote_jid OR i.jid = w.remote_jid)
+                          AND i.phone REGEXP '^[0-9]{10,13}$' LIMIT 1),
+                      CASE WHEN w.remote_jid LIKE '%@s.whatsapp.net' THEN SUBSTRING_INDEX(w.remote_jid, '@', 1) END
+                    ) AS fone
+               FROM whatsapp_chats w
+          LEFT JOIN cards c ON c.id = w.linked_card_id AND c.deleted_at IS NULL
+              WHERE w.instance_id = ? AND w.is_group = 0
+                AND w.remote_jid NOT LIKE '%@g.us' AND w.remote_jid NOT LIKE '%@broadcast'
+                AND c.id IS NULL"
+        );
+        $st->execute([$instanceId]);
+        $soltas = $st->fetchAll(\PDO::FETCH_ASSOC);
+        if (!$soltas) return 0;
+
+        $busca = $pdo->prepare(
+            "SELECT id FROM cards
+              WHERE account_id = ? AND deleted_at IS NULL
+                AND RIGHT(REGEXP_REPLACE(COALESCE(telefone_whatsapp,''), '[^0-9]', ''), 8) = ?
+           ORDER BY id DESC LIMIT 1"
+        );
+        $modelo = new WhatsAppMessage();
+        $ligadas = 0;
+        foreach ($soltas as $s) {
+            $fone = preg_replace('/[^0-9]/', '', (string)$s['fone']);
+            if (strlen($fone) < 10) continue;
+            $busca->execute([$accountId, substr($fone, -8)]);
+            $cardId = (int)($busca->fetchColumn() ?: 0);
+            if ($cardId <= 0) continue;
+            // Vínculo antigo apontando para card apagado sai junto.
+            $modelo->linkChat($instanceId, (string)$s['remote_jid'], ['linked_card_id' => $cardId]);
+            $ligadas++;
+        }
+        return $ligadas;
+    }
+
+    /**
      * Alguém do time respondeu pelo Chat do CRM: a Vitória sai da conversa e o
      * card vai para "Em atendimento pelo especialista" (se ainda estava com a IA).
      */

@@ -2234,6 +2234,34 @@ function column_display_name(array $col): string
       applyFiltersAndRender();
     }
 
+    // Fleetiflow: a etapa também muda pelo Chat e pela Vitória. O quadro se refaz
+    // sozinho a cada 15 s (só se algo mudou), sem o "Carregando..." e nunca com
+    // um card sendo arrastado, um modal aberto ou a aba escondida.
+    if (<?= $moduloJuridico ? 'false' : 'true' ?>) {
+      const assinaturaDo = (porColuna) => JSON.stringify(Object.keys(porColuna).sort().map(k =>
+        [k, (porColuna[k] || []).map(c => c.id + ':' + c.coluna_id + ':' + c.updated_at + ':' + (c.linked_chat_jid || ''))]));
+      setInterval(async function () {
+        if (document.hidden) return;
+        if (_justDragged || document.querySelector('.sortable-chosen, .sortable-drag, .sortable-ghost')) return;
+        if (['modalCreate', 'modalEdit', 'modalColumns'].some(id => { const m = byId(id); return m && !m.classList.contains('hidden'); })) return;
+        const cols = Array.from(document.querySelectorAll('.kanban-col'));
+        const novo = {};
+        try {
+          await Promise.all(cols.map(async col => {
+            const colId = col.getAttribute('data-coluna-id');
+            const res = await fetch(apiCards + '?coluna_id=' + colId, { headers: { 'Accept': 'application/json' } });
+            const json = await res.json();
+            novo[colId] = json.data || [];
+          }));
+        } catch (e) { return; }
+        const atual = {};
+        Object.keys(novo).forEach(k => { atual[k] = cardsCacheByColumn[k] || []; });
+        if (assinaturaDo(novo) === assinaturaDo(atual)) return;
+        Object.assign(cardsCacheByColumn, novo);
+        applyFiltersAndRender();
+      }, 15000);
+    }
+
     function openModal(id) {
       const el = byId(id);
       if (!el) return;
