@@ -82,6 +82,7 @@ final class Identidade
         'contacts_upsert' => 60,   // agenda do celular, via evento da Evolution
         'find_contacts'   => 55,   // agenda do celular, via consulta
         'messages_upsert' => 40,   // pushName: o apelido que a pessoa escolheu
+        'perfil_comercial'=> 30,   // DEDUZIDO do perfil comercial (descrição/site): ver PerfilComercial
         'fallback'        => 10,   // o telefone formatado
     ];
 

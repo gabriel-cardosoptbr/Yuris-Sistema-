@@ -23,6 +23,12 @@ mesma restrição de [`../README.md`](../README.md).
 `_json_guard.php` começa com `_` de propósito: não é endpoint, é peça incluída
 pelos outros.
 
+`whatsapp/contacts.php` tem, além de `fetch_pic`, a action `resolve_name`: para
+conversa 1:1 sem nome, deduz o nome da conta comercial e grava na identidade
+(ver `PerfilComercial` em [`../../app/WhatsAppAgente/README.md`](../../app/WhatsAppAgente/README.md)).
+Só aceita `jid` de conversa que já existe no canal resolvido, para não virar
+consulta de perfil de número arbitrário.
+
 `otif.php` devolve o OTIF das tarefas (JSON, ou planilha com `formato=csv`),
 com a mesma regra de visibilidade da tela `desempenho.php`: dono/admin vê a
 equipe, os demais só o próprio, e `colaborador` é ignorado para quem não é

@@ -36,6 +36,7 @@ O detalhe completo, com diagramas, está na skill de desenvolvimento em
 | `WhatsAppProvisioningService.php` | provisionamento idempotente do canal ao conectar, inclusive geração do `webhook_token` |
 | `WhatsAppChannelAccessService.php` | **camada única de autorização de canal.** Resolve se a sessão pode usar aquele canal, incluindo o caso filial usando canal da matriz |
 | `WaLog.php` | log de uma linha em JSON, com chaves padronizadas, para todo o módulo |
+| `PerfilComercial.php` | o nome de conta **comercial** do WhatsApp. Conta Business manda `pushName` vazio e a conversa aparecia só com o telefone; aqui o nome é **deduzido** do perfil comercial que a Evolution entrega (descrição "X é uma...", domínio do site) e gravado em `Identidade` com a origem `perfil_comercial`, que pesa **menos que o pushName**: qualquer nome real o substitui, e na dúvida fica null (a tela segue mostrando o telefone). Uma consulta à Evolution a cada 30 dias por contato, registrada em `whatsapp_identidades.perfil_comercial_em` (migration 132). Disparado pela lista do Chat (`contacts.php`, action `resolve_name`), nunca pelo webhook |
 
 ### O webhook de entrada
 | Classe | O que faz |

@@ -156,6 +156,35 @@ try {
             }
         }
 
+        // ── action: resolve_name ──────────────────────────────────────────────
+        // Conversa 1:1 SEM nome: conta comercial manda pushName vazio, então o
+        // nome é deduzido do perfil comercial (descrição/site) e gravado na
+        // identidade com o peso mais baixo. No máximo uma consulta à Evolution
+        // a cada 30 dias por contato. Ver App\WhatsAppAgente\PerfilComercial.
+        if ($action === 'resolve_name') {
+            $jid = trim((string)($payload['jid'] ?? ''));
+            if ($jid === '') { http_response_code(400); echo json_encode(['error' => 'jid obrigatório']); exit; }
+            try {
+                // Só conversa que EXISTE neste canal: o jid vem do front, e sem
+                // esta checagem o endpoint viraria consulta de perfil de qualquer número.
+                $ex = $pdo->prepare('SELECT 1 FROM whatsapp_chats WHERE instance_id = ? AND remote_jid = ? LIMIT 1');
+                $ex->execute([$instanceId, $jid]);
+                if (!$ex->fetchColumn()) { echo json_encode(['ok' => true, 'name' => null]); exit; }
+
+                $evo = new \App\WhatsAppAgente\EvolutionApiService($cfg);
+                $evo->setTimeout(6); // enriquecimento: não pode pendurar a conexão
+                $r = \App\WhatsAppAgente\PerfilComercial::resolver(
+                    (int)$ch['owner_account_id'], $instanceId, $jid, $evo, $instName
+                );
+                echo json_encode(['ok' => true, 'name' => $r['nome']]);
+            } catch (\Throwable $e) {
+                error_log('[whatsapp resolve_name] jid=' . preg_replace('/\d{5,}/', '*****', $jid)
+                    . ' erro: ' . $e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine());
+                echo json_encode(['ok' => true, 'name' => null]);
+            }
+            exit;
+        }
+
         // ── action default: editar push_name custom ───────────────────────────
         $jid  = trim($payload['remote_jid'] ?? '');
         $name = trim($payload['push_name']  ?? '');

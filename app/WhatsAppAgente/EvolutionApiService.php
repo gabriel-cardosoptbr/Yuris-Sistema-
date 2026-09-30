@@ -483,6 +483,16 @@ class EvolutionApiService
         return $this->request('POST', "/chat/findContacts/{$this->enc($name)}", $body);
     }
 
+    /**
+     * Perfil COMERCIAL de um número (descrição, site, categoria, endereço).
+     * É o que sobra para identificar conta Business, que manda pushName vazio.
+     * Ver App\WhatsAppAgente\PerfilComercial.
+     */
+    public function fetchBusinessProfile(string $name, string $number): array
+    {
+        return $this->request('POST', "/chat/fetchBusinessProfile/{$this->enc($name)}", ['number' => $number]);
+    }
+
     public function getProfilePicture(string $name, string $number): array
     {
         // Evolution v2: foto de perfil = POST /chat/fetchProfilePictureUrl/{instance}

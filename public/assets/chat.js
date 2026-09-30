@@ -721,6 +721,7 @@ const ChatApp = (() => {
       state.hasMoreChats = !!r.has_more;
       renderChatList();
       prefetchSidebarPhotos();   // fotos da lista em background (gentil, não bloqueia)
+      prefetchSidebarNames();    // nome de conta comercial (pushName vazio), idem
       setText('kpiChats',  String(state.chats.length));
       setText('kpiUnread', String(r.total_unread || 0));
 
@@ -2833,6 +2834,45 @@ const ChatApp = (() => {
         await new Promise(r => setTimeout(r, 150)); // respiro: gentil com Evolution + pool
       }
     } finally { _photoBatchRunning = false; }
+  }
+
+  // ── Nome das conversas SEM nome (contas comerciais) ───────────────────────
+  // WhatsApp Business de empresa manda pushName vazio: a conversa aparecia só
+  // com o telefone. O backend deduz o nome do perfil comercial (descrição/site)
+  // e grava na identidade; aqui só pedimos, uma conversa por vez, e atualizamos
+  // a lista quando o nome chega. O servidor consulta a Evolution no máximo uma
+  // vez a cada 30 dias por contato, então reabrir a tela não repete o custo.
+  const _nameFetchAttempts = new Set();
+  let _nameBatchRunning = false;
+  function _temNomeReal(chat) {
+    const n = resolveSenderName(chat.display_name) || resolveSenderName(chat.contact_name);
+    return /[A-Za-zÀ-ÿ]/.test(n || '');   // telefone formatado não conta como nome
+  }
+  async function prefetchSidebarNames() {
+    if (_nameBatchRunning) return;
+    _nameBatchRunning = true;
+    try {
+      const alvos = (state.chats || []).filter(c =>
+        c && c.remote_jid && String(c.remote_jid).endsWith('@s.whatsapp.net')
+        && c.is_group != 1 && !_temNomeReal(c) && !_nameFetchAttempts.has(c.remote_jid)
+      ).slice(0, 40);   // teto por passada: gentil com a Evolution
+      for (const c of alvos) {
+        _nameFetchAttempts.add(c.remote_jid);
+        let r = null;
+        try {
+          r = await apiFetch(API.contacts, 'POST', { _csrf: CSRF, action: 'resolve_name', jid: c.remote_jid });
+        } catch (e) { /* enriquecimento: falha não aparece para o usuário */ }
+        if (r && r.name) {
+          const ch = state.chats.find(x => x.remote_jid === c.remote_jid);
+          if (ch) {
+            ch.display_name = r.name;
+            renderChatList();
+            if (state.currentJid === c.remote_jid) { state.currentName = r.name; setText('activeName', r.name); }
+          }
+        }
+        await new Promise(res => setTimeout(res, 150));
+      }
+    } finally { _nameBatchRunning = false; }
   }
 
   // ── Menções em grupos: @<numero> → @<NomeReal> ─────────────────────────
