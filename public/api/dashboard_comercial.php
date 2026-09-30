@@ -247,23 +247,29 @@ try {
         'avancou' => $porBucket[$b['chave']]['avancou'] ?? 0, 'descartado' => $porBucket[$b['chave']]['descartado'] ?? 0,
     ], $serie);
     // Funil da coorte: quantos desses leads passaram por cada etapa (etapa atual
-    // ou qualquer movimentação registrada em card_history para ela).
-    $alcancaram = [];
-    foreach ($q("SELECT x.coluna_id, COUNT(DISTINCT x.card_id) AS n FROM (
-                    SELECT c.id AS card_id, c.coluna_id FROM cards c WHERE $baseCard AND DATE(c.created_at) BETWEEN :s AND :e
-                    UNION
-                    SELECT c.id, h.para_coluna_id FROM cards c JOIN card_history h ON h.card_id = c.id AND h.acao = 'moved' AND h.para_coluna_id IS NOT NULL
-                     WHERE $baseCard AND DATE(c.created_at) BETWEEN :s AND :e
-                 ) x WHERE x.coluna_id IS NOT NULL GROUP BY x.coluna_id", $p)->fetchAll(PDO::FETCH_ASSOC) as $r) {
-        $alcancaram[(int)$r['coluna_id']] = (int)$r['n'];
-    }
-    $prospFunil = [];
-    foreach ($pipeline as $pc) {
-        if (!$pc['funil'] && !$pc['fechado']) continue;
-        $n = $pc['id'] === $primeiraFunil ? $atual['leads'] : ($alcancaram[$pc['id']] ?? 0);
-        $prospFunil[] = ['id' => $pc['id'], 'nome' => $pc['nome'], 'slug' => $pc['slug'], 'qtd' => $n, 'grupo' => $grupoCol[$pc['id']],
-                         'pct' => $atual['leads'] > 0 ? round($n / $atual['leads'] * 100, 1) : null];
-    }
+    // ou qualquer movimentação registrada em card_history para ela). Roda para o
+    // período e para o anterior equivalente, que o radar compara.
+    $funilCoorte = function (string $s, string $e, int $entraram) use ($q, $baseCard, $tp, $pipeline, $primeiraFunil, $grupoCol) {
+        $alc = [];
+        foreach ($q("SELECT x.coluna_id, COUNT(DISTINCT x.card_id) AS n FROM (
+                        SELECT c.id AS card_id, c.coluna_id FROM cards c WHERE $baseCard AND DATE(c.created_at) BETWEEN :s AND :e
+                        UNION
+                        SELECT c.id, h.para_coluna_id FROM cards c JOIN card_history h ON h.card_id = c.id AND h.acao = 'moved' AND h.para_coluna_id IS NOT NULL
+                         WHERE $baseCard AND DATE(c.created_at) BETWEEN :s AND :e
+                     ) x WHERE x.coluna_id IS NOT NULL GROUP BY x.coluna_id", $tp + ['s' => $s, 'e' => $e])->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $alc[(int)$r['coluna_id']] = (int)$r['n'];
+        }
+        $funil = [];
+        foreach ($pipeline as $pc) {
+            if (!$pc['funil'] && !$pc['fechado']) continue;
+            $n = $pc['id'] === $primeiraFunil ? $entraram : ($alc[$pc['id']] ?? 0);
+            $funil[] = ['id' => $pc['id'], 'nome' => $pc['nome'], 'slug' => $pc['slug'], 'qtd' => $n, 'grupo' => $grupoCol[$pc['id']],
+                        'pct' => $entraram > 0 ? round($n / $entraram * 100, 1) : null];
+        }
+        return [$funil, $alc];
+    };
+    [$prospFunil, $alcancaram] = $funilCoorte($start, $end, $atual['leads']);
+    [$prospFunilAnt] = $funilCoorte($antStart, $antEnd, $anterior['leads']);
     $prospDescartados = 0;
     foreach ($pipeline as $pc) { if (($grupoCol[$pc['id']] ?? '') === 'descartado') $prospDescartados += $alcancaram[$pc['id']] ?? 0; }
 
@@ -307,7 +313,7 @@ try {
         'meta'        => $meta,
         'serie'       => $serie,
         'atividade_semana' => $mapa,
-        'prospeccao'  => ['serie' => $prospSerie, 'funil' => $prospFunil, 'entraram' => $atual['leads'], 'descartados' => $prospDescartados],
+        'prospeccao'  => ['serie' => $prospSerie, 'funil' => $prospFunil, 'funil_anterior' => $prospFunilAnt, 'entraram' => $atual['leads'], 'entraram_anterior' => $anterior['leads'], 'descartados' => $prospDescartados],
         'evolucao'    => $evolucao,
         'atividades'  => $atividades,
         'responsaveis'=> array_map(fn($u) => ['id' => (int)$u['id'], 'nome' => $u['nome']], $resp),

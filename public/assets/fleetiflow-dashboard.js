@@ -48,7 +48,7 @@
     origin: raiz.dataset.origin || '', abaPerf: 'receita', granEvo: 'mes',
     dados: null, ativLimite: 5, ativBusca: '', ativEtapa: '', corEtapa: {}
   };
-  let graficoPerf = null, graficoEvo = null, graficoProsp = null;
+  let graficoPerf = null, graficoEvo = null, graficoProsp = null, graficoRadar = null;
 
   // ── Componentes reutilizáveis ─────────────────────────────────────────────
   const ICO_SOBE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>';
@@ -344,6 +344,7 @@
         }
       });
     }
+    desenharRadar(pr, j);
     // Funil da coorte
     const fa = $('funilArea');
     if (!(pr.entraram > 0)) {
@@ -361,6 +362,42 @@
     }).join('') + '</div>' +
       `<div class="ffc-funil-rodape"><span><b>${inteiro.format(pr.entraram)}</b> entraram</span><span><b>${inteiro.format(pr.descartados)}</b> descartados (${pr.entraram ? fmtPct(pr.descartados / pr.entraram * 100) : '—'})</span></div>`;
     $('funilSub').textContent = 'Por onde os ' + inteiro.format(pr.entraram) + ' leads já passaram';
+  }
+
+  /** Radar: % dos leads que passaram por cada etapa, este período × anterior. */
+  const NOME_CURTO = s => String(s || '').replace(/\s*[—–-]\s.*$/, '').replace(' automático', '').replace('Demonstração / negociação', 'Negociação').replace('Venda concluída', 'Venda').replace('Em atendimento pelo especialista', 'Especialista').replace('Em qualificação', 'Qualificação');
+  function desenharRadar(pr, j) {
+    const area = $('radarArea'), leg = $('radarLegenda');
+    if (graficoRadar) { graficoRadar.destroy(); graficoRadar = null; }
+    // Sem o eixo de entrada (sempre 100%): o radar mostra até onde os leads chegaram.
+    const etapas = (pr.funil || []).filter(e => e.grupo !== 'novo');
+    if (!(pr.entraram > 0) || etapas.length < 3) {
+      area.innerHTML = vazio('Sem leads no período', 'O radar mostra a proporção dos leads que chegou a cada etapa.');
+      area.style.height = 'auto'; leg.innerHTML = ''; return;
+    }
+    area.style.height = ''; area.innerHTML = '<canvas id="radarCanvas"></canvas>';
+    const ant = pr.funil_anterior || [], temAnt = pr.entraram_anterior > 0;
+    const pctAnt = etapas.map(e => { const x = ant.find(a => a.id === e.id); return x && x.pct !== null ? x.pct : 0; });
+    $('radarSub').textContent = temAnt ? `Este período (${inteiro.format(pr.entraram)} leads) contra o anterior (${inteiro.format(pr.entraram_anterior)})` : 'Proporção dos leads que chegou a cada etapa';
+    leg.innerHTML = `<span><i style="background:${COR.marca}"></i>Este período</span>` + (temAnt ? '<span><i class="tracejado"></i>Período anterior</span>' : '');
+    const datasets = [{ label: 'Este período', data: etapas.map(e => e.pct || 0), borderColor: COR.marca, backgroundColor: 'rgba(1,93,252,0.16)', borderWidth: 2, pointRadius: 3.5, pointBackgroundColor: '#fff', pointBorderColor: COR.marca, pointBorderWidth: 2, tension: 0.15, fill: true }];
+    if (temAnt) datasets.push({ label: 'Período anterior', data: pctAnt, borderColor: COR.texto4, backgroundColor: 'rgba(118,118,118,0.06)', borderDash: [5, 4], borderWidth: 1.5, pointRadius: 2.5, pointBackgroundColor: '#fff', pointBorderColor: COR.texto4, pointBorderWidth: 1.5, tension: 0.15, fill: true });
+    graficoRadar = new Chart($('radarCanvas').getContext('2d'), {
+      type: 'radar',
+      data: { labels: etapas.map(e => NOME_CURTO(e.nome)), datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: { duration: 500, easing: 'easeOutQuart' },
+        elements: { line: { borderJoinStyle: 'round', borderCapStyle: 'round' } },
+        plugins: { legend: { display: false }, tooltip: Object.assign({}, tooltipPadrao, { callbacks: {
+          label: c => { const e = etapas[c.dataIndex]; const n = c.datasetIndex === 0 ? e.qtd : ((ant.find(a => a.id === e.id) || {}).qtd || 0); return ' ' + c.dataset.label + ': ' + fmtPct(c.parsed.r) + ' (' + inteiro.format(n) + ')'; }
+        } }) },
+        scales: { r: {
+          beginAtZero: true, suggestedMax: 10, ticks: { display: false, maxTicksLimit: 5 },
+          grid: { color: COR.grade, circular: true }, angleLines: { color: COR.grade },
+          pointLabels: { color: COR.texto3, font: { size: 10.5, weight: '600' }, padding: 6 }
+        } }
+      }
+    });
   }
 
   // ── 3c. Mapa de calor: atividade do pipeline por dia da semana × 3h ───────
