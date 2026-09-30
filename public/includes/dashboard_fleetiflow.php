@@ -49,7 +49,7 @@ function ffc_kpi(string $id, string $rotulo, string $ico, string $tom = '', stri
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light"||t===null)document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
   <link rel="stylesheet" href="/assets/yuris-theme.css?v=42">
   <link rel="stylesheet" href="/assets/sidebar.css?v=19">
-  <link rel="stylesheet" href="/assets/fleetiflow-dashboard.css?v=8">
+  <link rel="stylesheet" href="/assets/fleetiflow-dashboard.css?v=9">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -127,13 +127,6 @@ function ffc_kpi(string $id, string $rotulo, string $ico, string $tom = '', stri
       <!-- ── 2. Prospecção: card único na linha toda (gráfico + funil da coorte) ── -->
       <div class="ffc-grade">
         <div class="ffc-card ffc-col-12" id="cardProspeccao">
-          <div class="ffc-card-cab">
-            <div>
-              <h2 class="ffc-card-titulo">Prospecção</h2>
-              <div class="ffc-card-sub" id="prospSub">Leads que entraram por dia e em que pé estão hoje</div>
-            </div>
-            <a class="ffc-btn ffc-btn--mini ffc-btn--link" href="/prospeccao.php">Abrir prospecção</a>
-          </div>
           <div class="ffc-prosp">
             <div class="ffc-prosp-radar">
               <div class="ffc-prosp-funil-cab"><b>Perfil do funil</b><span id="radarSub">Este período contra o anterior</span></div>
@@ -141,6 +134,10 @@ function ffc_kpi(string $id, string $rotulo, string $ico, string $tom = '', stri
               <div class="ffc-legenda" id="radarLegenda"></div>
             </div>
             <div class="ffc-prosp-grafico">
+              <div class="ffc-prosp-funil-cab ffc-prosp-cab-linha">
+                <div><b>Prospecção</b><span id="prospSub">Leads que entraram por dia e em que pé estão hoje</span></div>
+                <a class="ffc-btn ffc-btn--mini ffc-btn--link" href="/prospeccao.php">Abrir prospecção</a>
+              </div>
               <div class="ffc-grafico" id="prospArea"><canvas id="prospCanvas"></canvas></div>
               <div class="ffc-legenda" id="prospLegenda"></div>
             </div>

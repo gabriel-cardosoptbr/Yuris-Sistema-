@@ -209,6 +209,9 @@
 .ffc-prosp-funil-cab{ display:flex; flex-direction:column; gap:2px; }
 .ffc-prosp-funil-cab b{ font-size:13px; font-weight:700; color:var(--ffc-texto); }
 .ffc-prosp-funil-cab span{ font-size:12px; color:var(--ffc-texto-4); }
+.ffc-prosp-cab-linha{ flex-direction:row; align-items:flex-start; justify-content:space-between; gap:10px; }
+.ffc-prosp-cab-linha > div{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+.ffc-prosp-funil-cab b{ font-size:14px; }
 @container (max-width: 1100px){
   .ffc-prosp{ grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
   .ffc-prosp-grafico{ grid-column:1 / -1; order:-1; }
