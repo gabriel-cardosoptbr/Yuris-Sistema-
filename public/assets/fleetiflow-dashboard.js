@@ -86,7 +86,7 @@
   /** Rosca em SVG: fatias com ponta reta e um vão fixo de 3px entre elas, para
    *  nunca ficarem grudadas; fatia pequena sobe até um mínimo visível. */
   function rosca(itens, total, rotulo) {
-    const TAM = 136, R = 54, ESP = 16, VAO = 3, MIN = 5;
+    const TAM = 168, R = 67, ESP = 19, VAO = 3, MIN = 6;
     const circ = 2 * Math.PI * R;
     const vis = itens.filter(i => i.qtd > 0);
     let arcos = [];
@@ -105,8 +105,8 @@
       svg += `<circle cx="${TAM / 2}" cy="${TAM / 2}" r="${R}" fill="none" stroke="${i.cor}" stroke-width="${ESP}" stroke-linecap="butt" stroke-dasharray="${arcos[k]} ${circ}" stroke-dashoffset="${-ini}"><title>${esc(i.nome)}: ${i.qtd}</title></circle>`;
       ini += arcos[k] + VAO;
     });
-    svg += `</g><text x="${TAM / 2}" y="${TAM / 2 - 1}" text-anchor="middle" style="fill:${COR.texto};font-size:25px;font-weight:800;letter-spacing:-0.02em">${inteiro.format(total)}</text>`;
-    svg += `<text x="${TAM / 2}" y="${TAM / 2 + 14}" text-anchor="middle" style="fill:${COR.texto4};font-size:8px;font-weight:700;letter-spacing:.08em">${esc(rotulo).toUpperCase()}</text></svg>`;
+    svg += `</g><text x="${TAM / 2}" y="${TAM / 2 - 1}" text-anchor="middle" style="fill:${COR.texto};font-size:30px;font-weight:800;letter-spacing:-0.02em">${inteiro.format(total)}</text>`;
+    svg += `<text x="${TAM / 2}" y="${TAM / 2 + 16}" text-anchor="middle" style="fill:${COR.texto4};font-size:9px;font-weight:700;letter-spacing:.08em">${esc(rotulo).toUpperCase()}</text></svg>`;
     return svg;
   }
 

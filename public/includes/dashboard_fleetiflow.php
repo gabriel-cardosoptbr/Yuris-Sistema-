@@ -49,7 +49,7 @@ function ffc_kpi(string $id, string $rotulo, string $ico, string $tom = '', stri
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light"||t===null)document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
   <link rel="stylesheet" href="/assets/yuris-theme.css?v=42">
   <link rel="stylesheet" href="/assets/sidebar.css?v=19">
-  <link rel="stylesheet" href="/assets/fleetiflow-dashboard.css?v=5">
+  <link rel="stylesheet" href="/assets/fleetiflow-dashboard.css?v=6">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -149,7 +149,7 @@ function ffc_kpi(string $id, string $rotulo, string $ico, string $tom = '', stri
 
       <!-- ── 3. Performance (8) + Pipeline (4) ───────────────────────────── -->
       <div class="ffc-grade">
-        <div class="ffc-card ffc-col-8 ffc-meio" id="cardPerformance">
+        <div class="ffc-card ffc-col-7 ffc-meio" id="cardPerformance">
           <div class="ffc-card-cab">
             <div>
               <h2 class="ffc-card-titulo">Performance comercial</h2>
@@ -165,7 +165,7 @@ function ffc_kpi(string $id, string $rotulo, string $ico, string $tom = '', stri
           <div class="ffc-legenda" id="perfLegenda"></div>
         </div>
 
-        <div class="ffc-card ffc-col-4 ffc-meio" id="cardPipeline">
+        <div class="ffc-card ffc-col-5 ffc-meio" id="cardPipeline">
           <div class="ffc-card-cab">
             <div>
               <h2 class="ffc-card-titulo">Distribuição do pipeline</h2>
@@ -268,6 +268,6 @@ function ffc_kpi(string $id, string $rotulo, string $ico, string $tom = '', stri
 </div>
 <div class="ffc-toast" id="ffcToast" role="status" aria-live="polite"></div>
 
-<script src="/assets/fleetiflow-dashboard.js?v=6"></script>
+<script src="/assets/fleetiflow-dashboard.js?v=7"></script>
 </body>
 </html>
