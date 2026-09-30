@@ -733,7 +733,21 @@ const ChatApp = (() => {
       // Auto-abre conversa quando veio via ?jid= da aba de Prospecção
       if (!_autoOpenDone && typeof AUTO_OPEN_JID !== 'undefined' && AUTO_OPEN_JID && state.status === 'open') {
         _autoOpenDone = true;
-        const target = state.chats.find(c => c.remote_jid === AUTO_OPEN_JID);
+        let target = state.chats.find(c => c.remote_jid === AUTO_OPEN_JID);
+        // Fleetiflow: o botão WhatsApp do card manda o telefone quando o card ainda
+        // não tem conversa ligada. O WhatsApp às vezes guarda o celular sem o 9, então
+        // casa pelos últimos 8 dígitos; sem conversa nenhuma, abre uma nova no número.
+        if (!target && window.CHAT_ETAPA_FUNIL) {
+          const fim = String(AUTO_OPEN_JID).split('@')[0].replace(/\D/g, '').slice(-8);
+          if (fim.length === 8) {
+            target = state.chats.find(c => c.is_group != 1 && (
+              String(c.real_phone || '').slice(-8) === fim ||
+              String(c.remote_jid || '').split('@')[0].slice(-8) === fim));
+          }
+          if (!target && /^\d{10,13}@s\.whatsapp\.net$/.test(AUTO_OPEN_JID)) {
+            openChat(AUTO_OPEN_JID, '', AUTO_OPEN_JID.split('@')[0]);
+          }
+        }
         if (target) openChat(target.remote_jid, target.contact_name, target.phone);
       }
     } catch(e) {

@@ -2622,7 +2622,7 @@ const API  = {
   }
 })();
 </script>
-<script src="/assets/chat.js?v=69"></script>
+<script src="/assets/chat.js?v=70"></script>
 <script>
 // Lightbox init
 (function(){

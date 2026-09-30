@@ -2012,7 +2012,7 @@ function column_display_name(array $col): string
             '<span>Resp.: <strong>' + escapeHtml(responsavel) + '</strong></span>' +
           '</div>' +
           '<div class="card-actions">' +
-            '<button type="button" class="wa-btn js-whatsapp ' + (hasWhatsapp ? '' : 'disabled') + '" data-phone="' + escapeHtml(card.telefone_whatsapp || '') + '">' + (hasWhatsapp ? 'WhatsApp' : 'Sem WhatsApp') + '</button>' +
+            '<button type="button" class="wa-btn js-whatsapp ' + (hasWhatsapp ? '' : 'disabled') + '" data-phone="' + escapeHtml(card.telefone_whatsapp || '') + '" data-jid="' + escapeHtml(card.linked_chat_jid || '') + '">' + (hasWhatsapp ? 'WhatsApp' : 'Sem WhatsApp') + '</button>' +
             (card.linked_chat_jid
               ? '<a href="/chat.php?jid=' + encodeURIComponent(card.linked_chat_jid) + '" class="chat-link-btn" title="Abrir conversa no Chat" onclick="event.stopPropagation()">' +
                   '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.38 1.27 4.79L2.05 22l5.38-1.37c1.37.74 2.93 1.16 4.61 1.16 5.45 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.13-2.9-7A9.83 9.83 0 0 0 12.04 2z"/></svg>' +
@@ -2261,8 +2261,19 @@ function column_display_name(array $col): string
       });
     }
 
-    function openWhatsApp(rawPhone) {
+    function openWhatsApp(rawPhone, jid) {
       const phone = String(rawPhone || '').replace(/\D/g, '');
+      // Fleetiflow: o atendimento é pelo número da conta, dentro do CRM. Abre a
+      // conversa no Chat (a ligada ao card; sem ela, pelo telefone), nunca o wa.me.
+      if (<?= $moduloJuridico ? 'false' : 'true' ?>) {
+        const alvo = jid || (phone ? phone + '@s.whatsapp.net' : '');
+        if (!alvo) {
+          alert('WhatsApp não preenchido para este lead.');
+          return;
+        }
+        window.location.href = '/chat.php?jid=' + encodeURIComponent(alvo);
+        return;
+      }
       if (!phone) {
         alert('WhatsApp não preenchido para este lead.');
         return;
@@ -3007,6 +3018,7 @@ function column_display_name(array $col): string
       byId('descricaoHidden').value = composeDescricao(parsedDesc.main, parsedDesc.notes);
 
       byId('openWhatsapp').setAttribute('data-phone', card.telefone_whatsapp || '');
+      byId('openWhatsapp').setAttribute('data-jid', card.linked_chat_jid || '');
 
       // Movido para Gestão Processual
       // await loadChecklist(card.id);
@@ -3085,7 +3097,7 @@ function column_display_name(array $col): string
       });
 
       byId('openWhatsapp').addEventListener('click', function() {
-        openWhatsApp(this.getAttribute('data-phone'));
+        openWhatsApp(this.getAttribute('data-phone'), this.getAttribute('data-jid'));
       });
     }
 
@@ -3258,7 +3270,7 @@ function column_display_name(array $col): string
             alert('Este lead não possui WhatsApp cadastrado.');
             return;
           }
-          openWhatsApp(waBtn.getAttribute('data-phone'));
+          openWhatsApp(waBtn.getAttribute('data-phone'), waBtn.getAttribute('data-jid'));
           return;
         }
 
