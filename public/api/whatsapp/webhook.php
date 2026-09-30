@@ -174,6 +174,15 @@ try {
     // Cria/encontra instância DENTRO do tenant identificado pela apikey
     $row        = $instModel->findOrCreate($instanceName, '', $accountId);
     $instanceId = (int)$row['id'];
+
+    // A Evolution v2 manda o envio feito pela API como 'send.message' (com ponto),
+    // e o switch abaixo só conhecia 'send_message': tudo o que o n8n da Fleetiflow
+    // envia (robô, Vitória, cadência) passava reto e a conversa só aparecia quando
+    // o lead respondia. Só na conta Fleetiflow, para não mudar o que o agente
+    // jurídico entende como eco do próprio bot nas outras contas.
+    if ($event === 'send.message' && \App\WhatsAppAgente\SdrFleetiflow::contaUsa($accountId)) {
+        $event = 'send_message';
+    }
     // ────────────────────────────────────────────────────────────────────────
 
     switch ($event) {
