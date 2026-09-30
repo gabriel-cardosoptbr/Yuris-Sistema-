@@ -208,7 +208,32 @@ function ffc_kpi(string $id, string $rotulo, string $ico, string $tom = '', stri
         </div>
       </div>
 
-      <!-- ── 5. Atividade no pipeline (4) + Evolução comercial (8) ────────── -->
+      <!-- ── 5. Financeiro (DRE): os cards separam os blocos de gráficos ──── -->
+      <div class="ffc-secao"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M9 9h4.5a1.5 1.5 0 0 1 0 3h-5a1.5 1.5 0 0 0 0 3H15"/></svg> Financeiro</div>
+      <div class="ffc-grade" id="ffcDre">
+        <div class="ffc-card ffc-kpi ffc-col-3" id="dreReceitaCard">
+          <div class="ffc-kpi-topo"><span class="ffc-kpi-rotulo">Receita operacional</span><span class="ffc-kpi-ico ffc-kpi-ico--bom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg></span></div>
+          <div class="ffc-kpi-valor" id="dreReceita"><?= fmtBRL($dre_receita) ?></div>
+          <div class="ffc-kpi-pe">vendas fechadas + receitas do DRE</div>
+        </div>
+        <div class="ffc-card ffc-kpi ffc-col-3">
+          <div class="ffc-kpi-topo"><span class="ffc-kpi-rotulo">Custos operacionais</span><span class="ffc-kpi-ico ffc-kpi-ico--laranja"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg></span></div>
+          <div class="ffc-kpi-valor" id="dreDespesa"><?= fmtBRL($dre_despesa) ?></div>
+          <div class="ffc-kpi-pe">despesas do período</div>
+        </div>
+        <div class="ffc-card ffc-kpi ffc-col-3">
+          <div class="ffc-kpi-topo"><span class="ffc-kpi-rotulo">Lucro líquido</span><span class="ffc-kpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span></div>
+          <div class="ffc-kpi-valor" id="dreLucro"><?= fmtBRL($dre_lucro) ?></div>
+          <div class="ffc-kpi-pe">receita menos custos</div>
+        </div>
+        <div class="ffc-card ffc-kpi ffc-col-3">
+          <div class="ffc-kpi-topo"><span class="ffc-kpi-rotulo">Margem</span><span class="ffc-kpi-ico ffc-kpi-ico--ambar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></span></div>
+          <div class="ffc-kpi-valor" id="dreMargem"><?= $dre_margem ?>%</div>
+          <div class="ffc-kpi-pe" id="dreMargemPe"><?= $dre_receita > 0 ? ($dre_margem >= 40 ? 'saudável' : ($dre_margem >= 15 ? 'atenção' : 'crítica')) : 'sem receita no período' ?></div>
+        </div>
+      </div>
+
+      <!-- ── 6. Atividade no pipeline (4) + Evolução comercial (8) ────────── -->
       <div class="ffc-grade">
         <div class="ffc-card ffc-col-4 ffc-meio" id="cardCalor">
           <div class="ffc-card-cab">
@@ -233,31 +258,6 @@ function ffc_kpi(string $id, string $rotulo, string $ico, string $tom = '', stri
           </div>
           <div class="ffc-grafico ffc-grafico--alto" id="evoArea"><canvas id="evoCanvas"></canvas></div>
           <div class="ffc-legenda" id="evoLegenda"></div>
-        </div>
-      </div>
-
-      <!-- ── 6. Financeiro (DRE), mantido abaixo da dobra ────────────────── -->
-      <div class="ffc-secao"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M9 9h4.5a1.5 1.5 0 0 1 0 3h-5a1.5 1.5 0 0 0 0 3H15"/></svg> Financeiro</div>
-      <div class="ffc-grade" id="ffcDre">
-        <div class="ffc-card ffc-kpi ffc-col-3" id="dreReceitaCard">
-          <div class="ffc-kpi-topo"><span class="ffc-kpi-rotulo">Receita operacional</span><span class="ffc-kpi-ico ffc-kpi-ico--bom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg></span></div>
-          <div class="ffc-kpi-valor" id="dreReceita"><?= fmtBRL($dre_receita) ?></div>
-          <div class="ffc-kpi-pe">vendas fechadas + receitas do DRE</div>
-        </div>
-        <div class="ffc-card ffc-kpi ffc-col-3">
-          <div class="ffc-kpi-topo"><span class="ffc-kpi-rotulo">Custos operacionais</span><span class="ffc-kpi-ico ffc-kpi-ico--laranja"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg></span></div>
-          <div class="ffc-kpi-valor" id="dreDespesa"><?= fmtBRL($dre_despesa) ?></div>
-          <div class="ffc-kpi-pe">despesas do período</div>
-        </div>
-        <div class="ffc-card ffc-kpi ffc-col-3">
-          <div class="ffc-kpi-topo"><span class="ffc-kpi-rotulo">Lucro líquido</span><span class="ffc-kpi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span></div>
-          <div class="ffc-kpi-valor" id="dreLucro"><?= fmtBRL($dre_lucro) ?></div>
-          <div class="ffc-kpi-pe">receita menos custos</div>
-        </div>
-        <div class="ffc-card ffc-kpi ffc-col-3">
-          <div class="ffc-kpi-topo"><span class="ffc-kpi-rotulo">Margem</span><span class="ffc-kpi-ico ffc-kpi-ico--ambar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></span></div>
-          <div class="ffc-kpi-valor" id="dreMargem"><?= $dre_margem ?>%</div>
-          <div class="ffc-kpi-pe" id="dreMargemPe"><?= $dre_receita > 0 ? ($dre_margem >= 40 ? 'saudável' : ($dre_margem >= 15 ? 'atenção' : 'crítica')) : 'sem receita no período' ?></div>
         </div>
       </div>
 
