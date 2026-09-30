@@ -49,7 +49,7 @@ function ffc_kpi(string $id, string $rotulo, string $ico, string $tom = '', stri
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light"||t===null)document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
   <link rel="stylesheet" href="/assets/yuris-theme.css?v=42">
   <link rel="stylesheet" href="/assets/sidebar.css?v=19">
-  <link rel="stylesheet" href="/assets/fleetiflow-dashboard.css?v=6">
+  <link rel="stylesheet" href="/assets/fleetiflow-dashboard.css?v=7">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -206,9 +206,18 @@ function ffc_kpi(string $id, string $rotulo, string $ico, string $tom = '', stri
         </div>
       </div>
 
-      <!-- ── 5. Evolução comercial (12) ──────────────────────────────────── -->
+      <!-- ── 5. Atividade no pipeline (4) + Evolução comercial (8) ────────── -->
       <div class="ffc-grade">
-        <div class="ffc-card ffc-col-12" id="cardEvolucao">
+        <div class="ffc-card ffc-col-4 ffc-meio" id="cardCalor">
+          <div class="ffc-card-cab">
+            <div>
+              <h2 class="ffc-card-titulo">Atividade no pipeline</h2>
+              <div class="ffc-card-sub" id="calorSub">Quando os leads se movem, por dia e hora</div>
+            </div>
+          </div>
+          <div id="calorArea"></div>
+        </div>
+        <div class="ffc-card ffc-col-8 ffc-meio" id="cardEvolucao">
           <div class="ffc-card-cab">
             <div>
               <h2 class="ffc-card-titulo">Evolução comercial</h2>
@@ -268,6 +277,6 @@ function ffc_kpi(string $id, string $rotulo, string $ico, string $tom = '', stri
 </div>
 <div class="ffc-toast" id="ffcToast" role="status" aria-live="polite"></div>
 
-<script src="/assets/fleetiflow-dashboard.js?v=8"></script>
+<script src="/assets/fleetiflow-dashboard.js?v=9"></script>
 </body>
 </html>

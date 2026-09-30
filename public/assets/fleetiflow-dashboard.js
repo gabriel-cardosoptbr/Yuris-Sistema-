@@ -172,6 +172,7 @@
       desenharPerformance(j);
       desenharPipeline(j);
       desenharProspeccao(j);
+      desenharCalor(j);
       desenharMeta(j);
       desenharAtividades(j);
       desenharEvolucao(j);
@@ -360,6 +361,32 @@
     }).join('') + '</div>' +
       `<div class="ffc-funil-rodape"><span><b>${inteiro.format(pr.entraram)}</b> entraram</span><span><b>${inteiro.format(pr.descartados)}</b> descartados (${pr.entraram ? fmtPct(pr.descartados / pr.entraram * 100) : '—'})</span></div>`;
     $('funilSub').textContent = 'Por onde os ' + inteiro.format(pr.entraram) + ' leads já passaram';
+  }
+
+  // ── 3c. Mapa de calor: atividade do pipeline por dia da semana × 3h ───────
+  const DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+  function desenharCalor(j) {
+    const area = $('calorArea'), mapa = j.atividade_semana || [];
+    const total = mapa.reduce((s, m) => s + m.n, 0);
+    if (!total) {
+      area.innerHTML = vazio('Sem movimentação no período', 'Cada quadrinho mostra quantas vezes os leads entraram ou mudaram de etapa naquele dia e horário.');
+      $('calorSub').textContent = 'Quando os leads se movem, por dia e hora'; return;
+    }
+    const grade = Array.from({ length: 7 }, () => new Array(8).fill(0));
+    let max = 0, pico = null;
+    mapa.forEach(m => { if (m.dia >= 0 && m.dia < 7 && m.bloco >= 0 && m.bloco < 8) { grade[m.dia][m.bloco] += m.n; if (grade[m.dia][m.bloco] > max) { max = grade[m.dia][m.bloco]; pico = [m.dia, m.bloco]; } } });
+    // 5 degraus na cor da marca: a intensidade cresce com a quantidade.
+    const tom = n => n === 0 ? 'n0' : '';
+    const cor = n => { if (!n) return ''; const t = 0.18 + 0.82 * (n / max); return `background:rgba(1,93,252,${(0.12 + 0.88 * t).toFixed(2)})`; };
+    let html = '<div class="ffc-calor"><span></span>' + Array.from({ length: 8 }, (_, b) => `<span class="rot-h">${b * 3}h</span>`).join('');
+    grade.forEach((linha, d) => {
+      html += `<span class="rot">${DIAS[d]}</span>` + linha.map((n, b) => `<span class="cel ${tom(n)}" style="${cor(n)}" title="${DIAS[d]} ${b * 3}h–${b * 3 + 3}h: ${n} movimenta${n === 1 ? 'ção' : 'ções'}"></span>`).join('');
+    });
+    html += '</div>';
+    html += `<div class="ffc-calor-rodape"><span>Pico: <b>${pico ? DIAS[pico[0]] + ' ' + pico[1] * 3 + 'h–' + (pico[1] * 3 + 3) + 'h' : '—'}</b></span>` +
+      `<span class="ffc-calor-escala">menos <i style="background:rgba(1,93,252,0.12)"></i><i style="background:rgba(1,93,252,0.35)"></i><i style="background:rgba(1,93,252,0.6)"></i><i style="background:rgba(1,93,252,0.85)"></i><i style="background:#015DFC"></i> mais</span></div>`;
+    area.innerHTML = html;
+    $('calorSub').textContent = inteiro.format(total) + ' movimentações no período, por dia e hora';
   }
 
   // ── 4. Meta ───────────────────────────────────────────────────────────────

@@ -117,7 +117,7 @@ Receita/Vendas/Conversão; pipeline em rosca com lista e chips do que está fora
 do funil; prospecção (leads que entraram por dia, empilhados pelo que viraram)
 e funil da coorte (por quais etapas esses leads já passaram, via `card_history`); meta do mês em barra de progresso com ritmo e projeção; tabela de
 atividades recentes (busca, filtro por etapa, "Ver todas", linha abre o card por
-`prospeccao.php?open=`); evolução por dia/semana/mês; e o financeiro (DRE)
+`prospeccao.php?open=`); mapa de calor da atividade no pipeline (dia da semana × bloco de 3h, de `card_history`); evolução por dia/semana/mês; e o financeiro (DRE)
 abaixo da dobra. Sem dados o lugar do gráfico mostra um estado vazio, nunca um
 eixo zerado. Os dados vêm de uma chamada a `api/dashboard_comercial.php`
 (`assets/fleetiflow-dashboard.js`); o visual está em

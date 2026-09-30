@@ -267,6 +267,17 @@ try {
     $prospDescartados = 0;
     foreach ($pipeline as $pc) { if (($grupoCol[$pc['id']] ?? '') === 'descartado') $prospDescartados += $alcancaram[$pc['id']] ?? 0; }
 
+    // ── Atividade no pipeline: dia da semana × bloco de 3h, no período ────────
+    // Conta toda movimentação registrada em card_history (criação, captação,
+    // mudança de etapa, campo alterado) dos cards da conta.
+    $mapa = [];
+    foreach ($q("SELECT WEEKDAY(h.created_at) AS dia, FLOOR(HOUR(h.created_at) / 3) AS bloco, COUNT(*) AS n
+                 FROM card_history h JOIN cards c ON c.id = h.card_id
+                 WHERE $baseCard AND DATE(h.created_at) BETWEEN :s AND :e
+                 GROUP BY dia, bloco", $tp + ['s' => $start, 'e' => $end])->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $mapa[] = ['dia' => (int)$r['dia'], 'bloco' => (int)$r['bloco'], 'n' => (int)$r['n']];
+    }
+
     // ── Atividades recentes: últimos cards movimentados ───────────────────────
     $ativ = $q("SELECT c.id, c.cliente_nome, c.empresa_nome, c.titulo, c.status, c.updated_at, c.created_at, c.data_fechamento,
                        $VALOR AS valor, pc.nome AS etapa, pc.cor AS etapa_cor, pc.slug AS etapa_slug, u.nome AS responsavel
@@ -295,6 +306,7 @@ try {
         'pipeline'    => $pipeline,
         'meta'        => $meta,
         'serie'       => $serie,
+        'atividade_semana' => $mapa,
         'prospeccao'  => ['serie' => $prospSerie, 'funil' => $prospFunil, 'entraram' => $atual['leads'], 'descartados' => $prospDescartados],
         'evolucao'    => $evolucao,
         'atividades'  => $atividades,
