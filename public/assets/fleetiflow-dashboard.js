@@ -83,15 +83,18 @@
   }
 
   /** Rosca em SVG: fatias com respiro, total no centro. itens = [{nome, qtd, cor}]. */
-  /** Rosca em SVG: fatias com ponta reta e um vão fixo de 3px entre elas, para
-   *  nunca ficarem grudadas; fatia pequena sobe até um mínimo visível. */
+  /** Rosca em SVG: fatias de ponta redonda com um vão fixo de 3px entre elas.
+   *  A ponta redonda avança ESP/2 para cada lado, então o traço visível é
+   *  (arco - ESP) e começa em ESP/2; assim o vão se mantém e nada gruda.
+   *  Fatia pequena sobe até um mínimo que ainda mostra a ponta redonda. */
   function rosca(itens, total, rotulo) {
-    const TAM = 168, R = 67, ESP = 19, VAO = 3, MIN = 6;
+    const TAM = 168, R = 67, ESP = 19, VAO = 3, MIN = ESP + 3;
     const circ = 2 * Math.PI * R;
     const vis = itens.filter(i => i.qtd > 0);
     let arcos = [];
-    if (vis.length) {
-      const disp = circ - (vis.length > 1 ? vis.length * VAO : 0);
+    if (vis.length === 1) arcos = [circ];
+    else if (vis.length) {
+      const disp = circ - vis.length * VAO;
       arcos = vis.map(i => (i.qtd / total) * disp);
       const peq = arcos.map(a => a < MIN);
       const deficit = arcos.reduce((s, a, k) => s + (peq[k] ? MIN - a : 0), 0);
@@ -102,7 +105,10 @@
     if (!vis.length) svg += `<circle cx="${TAM / 2}" cy="${TAM / 2}" r="${R}" fill="none" stroke="#F1F1F2" stroke-width="${ESP}"/>`;
     let ini = 0;
     vis.forEach((i, k) => {
-      svg += `<circle cx="${TAM / 2}" cy="${TAM / 2}" r="${R}" fill="none" stroke="${i.cor}" stroke-width="${ESP}" stroke-linecap="butt" stroke-dasharray="${arcos[k]} ${circ}" stroke-dashoffset="${-ini}"><title>${esc(i.nome)}: ${i.qtd}</title></circle>`;
+      const unica = vis.length === 1;
+      const traco = unica ? circ : Math.max(0.2, arcos[k] - ESP);
+      const inicio = unica ? 0 : ini + ESP / 2;
+      svg += `<circle cx="${TAM / 2}" cy="${TAM / 2}" r="${R}" fill="none" stroke="${i.cor}" stroke-width="${ESP}" stroke-linecap="${unica ? 'butt' : 'round'}" stroke-dasharray="${traco} ${circ}" stroke-dashoffset="${-inicio}"><title>${esc(i.nome)}: ${i.qtd}</title></circle>`;
       ini += arcos[k] + VAO;
     });
     svg += `</g><text x="${TAM / 2}" y="${TAM / 2 - 1}" text-anchor="middle" style="fill:${COR.texto};font-size:30px;font-weight:800;letter-spacing:-0.02em">${inteiro.format(total)}</text>`;
@@ -241,15 +247,15 @@
     let datasets, sub, legenda, escalaY;
     if (aba === 'receita') {
       const temMeta = serie.some(p => p.meta !== null);
-      datasets = [{ type: 'bar', label: 'Receita', data: serie.map(p => p.receita), backgroundColor: COR.marca, hoverBackgroundColor: COR.marcaForte, borderRadius: 4, borderSkipped: false, maxBarThickness: 22, order: 2 }];
+      datasets = [{ type: 'bar', label: 'Receita', data: serie.map(p => p.receita), backgroundColor: COR.marca, hoverBackgroundColor: COR.marcaForte, borderRadius: 6, borderSkipped: false, maxBarThickness: 22, order: 2 }];
       if (temMeta) datasets.push({ type: 'line', label: 'Meta proporcional', data: serie.map(p => p.meta), borderColor: COR.texto4, borderDash: [5, 4], borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 3, tension: 0, order: 1 });
       sub = `Receita realizada por ${gran}` + (temMeta ? ', contra a meta proporcional' : '');
       legenda = `<span><i style="background:${COR.marca}"></i>Receita fechada</span>` + (temMeta ? '<span><i class="tracejado"></i>Meta proporcional ao período</span>' : '');
       escalaY = { ticks: { callback: v => fmtMoeda(v), maxTicksLimit: 5 } };
     } else if (aba === 'vendas') {
       datasets = [
-        { type: 'bar', label: 'Vendas', data: serie.map(p => p.vendas), backgroundColor: COR.bom, borderRadius: 4, borderSkipped: false, maxBarThickness: 22, order: 2 },
-        { type: 'bar', label: 'Novos leads', data: serie.map(p => p.leads), backgroundColor: COR.marcaMedia, borderRadius: 4, borderSkipped: false, maxBarThickness: 22, order: 3 }
+        { type: 'bar', label: 'Vendas', data: serie.map(p => p.vendas), backgroundColor: COR.bom, borderRadius: 6, borderSkipped: false, maxBarThickness: 22, order: 2 },
+        { type: 'bar', label: 'Novos leads', data: serie.map(p => p.leads), backgroundColor: COR.marcaMedia, borderRadius: 6, borderSkipped: false, maxBarThickness: 22, order: 3 }
       ];
       sub = `Vendas fechadas e leads que entraram, por ${gran}`;
       legenda = `<span><i style="background:${COR.bom}"></i>Vendas fechadas</span><span><i style="background:${COR.marcaMedia}"></i>Novos leads</span>`;
@@ -321,7 +327,7 @@
         type: 'bar',
         data: { labels: pr.serie.map(p => p.label), datasets: ordem.map((g, i) => ({
           label: GRUPO[g].nome, data: pr.serie.map(p => p[g]), backgroundColor: GRUPO[g].cor, stack: 'leads',
-          borderRadius: i === ordem.length - 1 ? 4 : 0, borderSkipped: false, maxBarThickness: 22
+          borderRadius: 6, borderSkipped: false, maxBarThickness: 22
         })) },
         options: {
           responsive: true, maintainAspectRatio: false, animation: { duration: 500, easing: 'easeOutQuart' },
@@ -456,7 +462,7 @@
       $('evoSub').textContent = janela + ': receita realizada' + (temMeta ? ', meta' : '') + ' e novos leads';
       leg.innerHTML = `<span><i style="background:${COR.marca}"></i>Receita fechada</span>` + (temMeta ? '<span><i class="tracejado"></i>Meta</span>' : '') + `<span><i style="background:${COR.violeta}"></i>Novos leads (eixo direito)</span>`;
       datasets = [
-        { type: 'bar', label: 'Receita', data: serie.map(p => p.receita), backgroundColor: COR.marca, hoverBackgroundColor: COR.marcaForte, borderRadius: 4, borderSkipped: false, maxBarThickness: 26, yAxisID: 'y', order: 3 },
+        { type: 'bar', label: 'Receita', data: serie.map(p => p.receita), backgroundColor: COR.marca, hoverBackgroundColor: COR.marcaForte, borderRadius: 6, borderSkipped: false, maxBarThickness: 26, yAxisID: 'y', order: 3 },
         { type: 'line', label: 'Novos leads', data: serie.map(p => p.leads), borderColor: COR.violeta, borderWidth: 2, pointRadius: 2.5, pointBackgroundColor: '#fff', pointBorderColor: COR.violeta, pointBorderWidth: 2, tension: 0.3, yAxisID: 'y2', order: 1 }
       ];
       if (temMeta) datasets.splice(1, 0, { type: 'line', label: 'Meta', data: serie.map(p => p.meta), borderColor: COR.texto4, borderDash: [5, 4], borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 3, tension: 0, yAxisID: 'y', order: 2 });
@@ -469,8 +475,8 @@
       $('evoSub').textContent = janela + ': novos leads e vendas (ainda sem receita fechada)';
       leg.innerHTML = `<span><i style="background:${COR.marcaMedia}"></i>Novos leads</span><span><i style="background:${COR.bom}"></i>Vendas fechadas</span>`;
       datasets = [
-        { type: 'bar', label: 'Novos leads', data: serie.map(p => p.leads), backgroundColor: COR.marcaMedia, borderRadius: 4, borderSkipped: false, maxBarThickness: 26, yAxisID: 'y', order: 2 },
-        { type: 'bar', label: 'Vendas fechadas', data: serie.map(p => p.vendas), backgroundColor: COR.bom, borderRadius: 4, borderSkipped: false, maxBarThickness: 26, yAxisID: 'y', order: 1 }
+        { type: 'bar', label: 'Novos leads', data: serie.map(p => p.leads), backgroundColor: COR.marcaMedia, borderRadius: 6, borderSkipped: false, maxBarThickness: 26, yAxisID: 'y', order: 2 },
+        { type: 'bar', label: 'Vendas fechadas', data: serie.map(p => p.vendas), backgroundColor: COR.bom, borderRadius: 6, borderSkipped: false, maxBarThickness: 26, yAxisID: 'y', order: 1 }
       ];
       escalas = { y: { beginAtZero: true, grid: { color: COR.grade }, border: { display: false, dash: [3, 3] }, ticks: { precision: 0, maxTicksLimit: 5 } } };
     }
