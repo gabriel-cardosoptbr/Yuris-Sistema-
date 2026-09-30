@@ -1,6 +1,6 @@
 # public/api/ — os endpoints REST
 
-136 endpoints. Cada arquivo `.php` é um endpoint, e o caminho do arquivo é a
+137 endpoints. Cada arquivo `.php` é um endpoint, e o caminho do arquivo é a
 URL: `public/api/whatsapp/send.php` responde em `/api/whatsapp/send.php`.
 
 **Mover um arquivo daqui muda a URL de uma chamada que o front já faz.** Vale a
@@ -10,7 +10,7 @@ mesma restrição de [`../README.md`](../README.md).
 
 | Local | Qtd | O que é |
 |---|---|---|
-| raiz de `api/` | 49 | os endpoints dos módulos de Operação e Gestão: cards, clientes, tarefas, processos, usuários, times, DRE, metas, webhooks, mais `prospeccao_conversao.php` ("Tornar cliente") e `timeline.php` (a linha do tempo única) e `cliente_vinculos.php` (conversa e tarefa vindas da prospecção) |
+| raiz de `api/` | 50 | os endpoints dos módulos de Operação e Gestão: cards, clientes, tarefas, processos, usuários, times, DRE, metas, webhooks, mais `prospeccao_conversao.php` ("Tornar cliente") e `timeline.php` (a linha do tempo única) e `cliente_vinculos.php` (conversa e tarefa vindas da prospecção) |
 | `master/` | 42 | **tudo do Painel Master**: contas, filiais, planos, pagamentos, cotas, auditoria, LGPD, config de IA, canais de WhatsApp |
 | `whatsapp/` | 22 | canal, chat, envio, mídia, e o `webhook.php` que recebe da Evolution |
 | `push/` | 11 | monitoramento de publicações: monitores, cotas, permissões, busca, `tick.php`. Bloqueado (403) para conta `produto=fleetiflow`, exceto `tick.php`, que é cron sem conta única (ver abaixo) |
@@ -19,6 +19,15 @@ mesma restrição de [`../README.md`](../README.md).
 | `legal/` | 3 | documentos legais, aceite e consentimento |
 | `auth/` | 1 | checagem de termos pendentes no login |
 | `lgpd/` | 1 | solicitação do titular, aberta ao público |
+
+`dashboard_comercial.php` alimenta o cockpit comercial da conta Fleetiflow
+(`includes/dashboard_fleetiflow.php`) numa chamada só: KPIs do período e do
+período anterior equivalente (mesma quantidade de dias, terminando na véspera),
+distribuição do pipeline pelas flags `conta_funil`/`conta_oportunidade` das
+colunas, meta do mês (`goals`), série do período por dia/semana/mês, evolução
+(12 meses, 16 semanas, 30 dias), últimos 25 cards movimentados e a lista de
+responsáveis. Aceita `start`, `end`, `responsavel` e `origin`; sem período,
+últimos 30 dias. Só lê, e toda query filtra `account_id IN (contas acessíveis)`.
 
 `_json_guard.php` começa com `_` de propósito: não é endpoint, é peça incluída
 pelos outros.

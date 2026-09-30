@@ -106,14 +106,23 @@ com texto ilegível sobre a bolha branca.
 `prospeccao.php` troca título, cabeçalho e o nome do modal ("Novo Lead
 Jurídico") quando a conta não tem módulo jurídico (`$moduloJuridico`).
 
-`dashboard.php` tem um bloco `if ($isFleetiflow)` no `<head>` que transcreve
-o visual do dashboard real do Fleetiflow (`tokens.css`, `superficies.ts`,
-`CardIndicador.tsx`, `GraficoRosca.tsx` do app React): fonte Manrope, canvas
-`#F6F7F9`, cards brancos de raio 14 sem sombra (sombra só no hover), KPI com
-ícone lucide monocromático no canto, títulos de seção em caixa alta com ícone
-azul, paleta categórica azul/roxo/âmbar/laranja nos gráficos e o funil de
-etapas desenhado como rosca. A conta Fleetiflow também não chama as APIs
-jurídicas do dashboard (responderiam 403). Fora do `if`, nada muda.
+`dashboard.php` calcula tenant, filtro de origem e DRE e, se a conta tem
+produto `fleetiflow`, entrega em `includes/dashboard_fleetiflow.php` e sai. Essa
+página é o **cockpit comercial** (30/09/2026): cabeçalho com período (7/30/90
+dias, mês, mês passado, ano, personalizado; persiste em sessão pelo mesmo
+`api/dashboard_settings.php`), filtro por responsável e menu de ações; seis
+KPIs pequenos com comparação ao período anterior equivalente (leads, oportunidades,
+vendas, receita em destaque, conversão, ticket); performance com abas
+Receita/Vendas/Conversão; pipeline em rosca com lista e chips do que está fora
+do funil; meta do mês em barra de progresso com ritmo e projeção; tabela de
+atividades recentes (busca, filtro por etapa, "Ver todas", linha abre o card por
+`prospeccao.php?open=`); evolução por dia/semana/mês; e o financeiro (DRE)
+abaixo da dobra. Sem dados o lugar do gráfico mostra um estado vazio, nunca um
+eixo zerado. Os dados vêm de uma chamada a `api/dashboard_comercial.php`
+(`assets/fleetiflow-dashboard.js`); o visual está em
+`assets/fleetiflow-dashboard.css`, tudo com prefixo `.ffc-` e componentes
+reutilizáveis (`ffc_kpi()` no PHP e `window.FleetiflowDash` no JS) para os
+próximos painéis da Fleetiflow. A conta Yuris nunca passa por esse `require`.
 
 ### Entrada e sessão
 `login.php` · `login-fleetiflow.php` · `logout.php` · `404.php`
@@ -149,8 +158,8 @@ stub em `index.php`; a v1 ficou guardada. Ver
 | Pasta | O que é |
 |---|---|
 | `api/` | ~130 endpoints REST. Tem [README próprio](api/README.md) |
-| `includes/` | pedaços de página reaproveitados: `sidebar.php`, `seo_head.php`, `legal_page.php`, rodapés. `sidebar.php` resolve `AccountContext::getProduto()` uma vez (`$_isFleetiflow`) e troca logo, rodapé, grupo "Jurídico" do menu e as duas primeiras abas da barra mobile conforme o produto da conta. Para a conta Fleetiflow troca também "Yuris" por "Fleetiflow" no título da aba (23 páginas escrevem o nome no `<title>`; a troca é feita num script só, aqui). Também força o tema **claro** do Yuris (existente, não é novo) na primeira visita da conta Fleetiflow e, num `<style>` só dessa conta, redesenha a barra como a `AppShell` real do Fleetiflow (coluna branca de 260px encostada na borda, item plano, ativo `#D6E4FF` com texto `#3D3D3D`, canvas `#F6F7F9`, fonte Manrope). Regra do bloco: todo seletor leva o prefixo `html[data-theme="light"]` e desce até `.label` / `svg *` onde o `yuris-theme.css` desce, senão o tema claro do Yuris vence por especificidade. O envoltório da barra varia por página (`main.px-6`, `main.rel-wrap`, `main.o-wrap`, `main` com padding inline, `.layout` sem `.page-layout` em `clientes.php`), então o bloco usa `:has(> .sidebar)`: quem contém a barra perde o padding e o irmão dela ganha `24px 24px 24px 0`. Página nova com outro envoltório entra sozinha nessa regra; não crie regra por classe de página. Sem tocar `yuris-theme.css`, então nenhuma conta Yuris é afetada |
-| `assets/` | CSS, JS e imagens. Um arquivo JS por tela (`processos.js`, `tarefas.js`), mais `design-system.css` e `yuris-theme.css`. `dashboard.js` lê um tema de gráficos opcional em `window.YURIS_CHART_THEME` (cores das séries, raio e espessura das barras, tensão da linha, funil em rosca, fonte); sem ele, os valores são os de sempre do Yuris |
+| `includes/` | pedaços de página reaproveitados: `sidebar.php`, `seo_head.php`, `legal_page.php`, rodapés, e `dashboard_fleetiflow.php` (a página inteira do cockpit comercial, incluída por `dashboard.php` só para a conta Fleetiflow). `sidebar.php` resolve `AccountContext::getProduto()` uma vez (`$_isFleetiflow`) e troca logo, rodapé, grupo "Jurídico" do menu e as duas primeiras abas da barra mobile conforme o produto da conta. Para a conta Fleetiflow troca também "Yuris" por "Fleetiflow" no título da aba (23 páginas escrevem o nome no `<title>`; a troca é feita num script só, aqui). Também força o tema **claro** do Yuris (existente, não é novo) na primeira visita da conta Fleetiflow e, num `<style>` só dessa conta, redesenha a barra como a `AppShell` real do Fleetiflow (coluna branca de 260px encostada na borda, item plano, ativo `#D6E4FF` com texto `#3D3D3D`, canvas `#F6F7F9`, fonte Manrope). Regra do bloco: todo seletor leva o prefixo `html[data-theme="light"]` e desce até `.label` / `svg *` onde o `yuris-theme.css` desce, senão o tema claro do Yuris vence por especificidade. O envoltório da barra varia por página (`main.px-6`, `main.rel-wrap`, `main.o-wrap`, `main` com padding inline, `.layout` sem `.page-layout` em `clientes.php`), então o bloco usa `:has(> .sidebar)`: quem contém a barra perde o padding e o irmão dela ganha `24px 24px 24px 0`. Página nova com outro envoltório entra sozinha nessa regra; não crie regra por classe de página. Sem tocar `yuris-theme.css`, então nenhuma conta Yuris é afetada |
+| `assets/` | CSS, JS e imagens. Um arquivo JS por tela (`processos.js`, `tarefas.js`), mais `design-system.css` e `yuris-theme.css`. `dashboard.js` lê um tema de gráficos opcional em `window.YURIS_CHART_THEME` (cores das séries, raio e espessura das barras, tensão da linha, funil em rosca, fonte); sem ele, os valores são os de sempre do Yuris. `fleetiflow-dashboard.js` + `fleetiflow-dashboard.css` são o cockpit comercial da conta Fleetiflow, independentes do `dashboard.js` |
 | `v2/` | a landing institucional nova (`index.php` + `partials/` + `data/`), servida na `/` |
 | `sistema_vendas/Imagens/` | os logos, servidos em `/sistema_vendas/Imagens/`: 3 do Yuris (`Logo.png`, `Logo Loguin.png`, `YURIS.png`) + 4 do Fleetiflow (`fleetiflow-horizontal.png`, `fleetiflow-icone.png`, `fleetiflow-completa.png`, `fleetiflow-texto.png`, cópia dos arquivos oficiais da marca). **Não mova:** `sidebar.php`, `login.php`, `login-fleetiflow.php` e as páginas legais apontam para essa URL. O nome é herança de quando o app era servido em `/sistema_vendas/` |
 | `uploads/` | arquivos enviados pelos clientes |
