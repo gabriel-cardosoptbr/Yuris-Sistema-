@@ -83,6 +83,14 @@ vê a equipe; os demais, só o próprio. Regras em
 Cada uma corresponde a um domínio em [`../app/`](../app/); a tabela de
 equivalência está em [`../app/README.md`](../app/README.md).
 
+`chat.php` trava a página em 100% da altura da janela, sem rolagem, e divide
+o espaço entre cabeçalho, KPIs e o painel (lista + conversa). Em tela baixa
+isso zerava a lista: em 30/09/2026, num notebook com zoom de 125% (cerca de
+1093x500 úteis), o contador dizia "7 conversas" e a lista tinha 0px de altura.
+Um `@media (max-height: 820px)` destrava a rolagem da página e dá ao painel
+altura garantida de quase uma tela. Ao mexer nesse layout, teste em 1093x500 e
+1280x720, não só em monitor grande.
+
 `dashboard.php` tem um bloco `if ($isFleetiflow)` no `<head>` que transcreve
 o visual do dashboard real do Fleetiflow (`tokens.css`, `superficies.ts`,
 `CardIndicador.tsx`, `GraficoRosca.tsx` do app React): fonte Manrope, canvas

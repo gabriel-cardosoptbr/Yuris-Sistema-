@@ -1111,6 +1111,23 @@ $isSuper       = !empty($_SESSION['is_super_admin']);
       .chat-panel { flex-direction: column; }
     }
 
+    /* Tela BAIXA (notebook 1366x768 com zoom de 125%, 1280x720...): a página toda
+       é travada em 100vh sem rolagem, e o cabeçalho + KPIs + filtros ocupavam a
+       altura inteira. A lista de conversas (min-height:0) encolhia até ALTURA
+       ZERO: o contador dizia "7 conversas" e a lista aparecia vazia. Medido em
+       30/09/2026 em 1093x500: lista com 0px. Aqui a página volta a rolar e o
+       painel do chat ganha altura garantida, quase uma tela inteira, com a
+       rolagem interna de lista e mensagens preservada. O !important vence os
+       style="" inline do <main>, do .page-layout e do .main-content. */
+    @media (max-height: 820px) and (min-width: 769px) {
+      body { overflow: auto !important; }
+      main.page-above-fog { height: auto !important; min-height: 100vh; overflow: visible !important; }
+      main.page-above-fog > .page-layout,
+      main.page-above-fog .main-content,
+      .chat-main { overflow: visible !important; min-height: auto !important; }
+      .chat-panel { flex: 0 0 auto !important; height: max(420px, calc(100vh - 32px)); min-height: 420px !important; }
+    }
+
     /* ═════════════════════════════════════════════════════════════════════
        AUDITORIA 2026-05-24 — novos componentes:
        reply bar, file preview rico, msg actions menu, reactions, group members,
