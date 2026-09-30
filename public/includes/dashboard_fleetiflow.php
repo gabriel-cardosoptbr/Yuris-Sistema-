@@ -268,6 +268,6 @@ function ffc_kpi(string $id, string $rotulo, string $ico, string $tom = '', stri
 </div>
 <div class="ffc-toast" id="ffcToast" role="status" aria-live="polite"></div>
 
-<script src="/assets/fleetiflow-dashboard.js?v=5"></script>
+<script src="/assets/fleetiflow-dashboard.js?v=6"></script>
 </body>
 </html>

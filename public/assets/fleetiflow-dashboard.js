@@ -83,13 +83,15 @@
   }
 
   /** Rosca em SVG: fatias com respiro, total no centro. itens = [{nome, qtd, cor}]. */
+  /** Rosca em SVG: fatias com ponta reta e um vão fixo de 3px entre elas, para
+   *  nunca ficarem grudadas; fatia pequena sobe até um mínimo visível. */
   function rosca(itens, total, rotulo) {
-    const TAM = 136, R = 54, ESP = 16, RESPIRO = 4, MIN = 6;
+    const TAM = 136, R = 54, ESP = 16, VAO = 3, MIN = 5;
     const circ = 2 * Math.PI * R;
     const vis = itens.filter(i => i.qtd > 0);
     let arcos = [];
     if (vis.length) {
-      const disp = circ - vis.length * RESPIRO;
+      const disp = circ - (vis.length > 1 ? vis.length * VAO : 0);
       arcos = vis.map(i => (i.qtd / total) * disp);
       const peq = arcos.map(a => a < MIN);
       const deficit = arcos.reduce((s, a, k) => s + (peq[k] ? MIN - a : 0), 0);
@@ -100,9 +102,8 @@
     if (!vis.length) svg += `<circle cx="${TAM / 2}" cy="${TAM / 2}" r="${R}" fill="none" stroke="#F1F1F2" stroke-width="${ESP}"/>`;
     let ini = 0;
     vis.forEach((i, k) => {
-      const traco = Math.max(0.5, arcos[k] - (vis.length > 1 ? ESP * 0.35 : 0));
-      svg += `<circle cx="${TAM / 2}" cy="${TAM / 2}" r="${R}" fill="none" stroke="${i.cor}" stroke-width="${ESP}" stroke-linecap="round" stroke-dasharray="${traco} ${circ}" stroke-dashoffset="${-(ini + (vis.length > 1 ? ESP * 0.175 : 0))}"><title>${esc(i.nome)}: ${i.qtd}</title></circle>`;
-      ini += arcos[k] + RESPIRO;
+      svg += `<circle cx="${TAM / 2}" cy="${TAM / 2}" r="${R}" fill="none" stroke="${i.cor}" stroke-width="${ESP}" stroke-linecap="butt" stroke-dasharray="${arcos[k]} ${circ}" stroke-dashoffset="${-ini}"><title>${esc(i.nome)}: ${i.qtd}</title></circle>`;
+      ini += arcos[k] + VAO;
     });
     svg += `</g><text x="${TAM / 2}" y="${TAM / 2 - 1}" text-anchor="middle" style="fill:${COR.texto};font-size:25px;font-weight:800;letter-spacing:-0.02em">${inteiro.format(total)}</text>`;
     svg += `<text x="${TAM / 2}" y="${TAM / 2 + 14}" text-anchor="middle" style="fill:${COR.texto4};font-size:8px;font-weight:700;letter-spacing:.08em">${esc(rotulo).toUpperCase()}</text></svg>`;
