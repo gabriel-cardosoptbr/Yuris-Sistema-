@@ -168,20 +168,22 @@
 @container (max-width: 480px){
   .ffc .ffc-tabela .col-quando{ display:none; }
 }
-.ffc-rosca{ display:flex; align-items:center; gap:14px; }
+.ffc-rosca{ display:flex; align-items:center; gap:22px; padding:4px 0 2px; }
 /* Card estreito (4 colunas em tela média): rosca em cima, lista embaixo, nomes inteiros. */
 @container (max-width: 380px){
-  .ffc-rosca{ flex-direction:column; align-items:stretch; gap:10px; }
-  .ffc-rosca-svg{ margin:0 auto; }
+  .ffc-rosca{ flex-direction:column; align-items:stretch; gap:12px; }
+  .ffc-rosca-svg{ margin:0 auto; width:124px; height:124px; }
 }
-.ffc-rosca-svg{ width:118px; height:118px; flex:none; }
-.ffc-rosca-lista{ flex:1; min-width:0; display:flex; flex-direction:column; gap:7px; }
-.ffc-rosca-item{ display:flex; align-items:center; gap:7px; font-size:12px; color:var(--ffc-texto-2); }
+.ffc-rosca-svg{ width:136px; height:136px; flex:none; }
+.ffc-rosca-lista{ flex:1; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:9px; }
+.ffc-rosca-item{ display:flex; align-items:center; gap:9px; font-size:12px; line-height:1.2; color:var(--ffc-texto-2); }
 .ffc-rosca-item i{ width:8px; height:8px; border-radius:50%; flex:none; }
 .ffc-rosca-item .nome{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .ffc-rosca-item b{ color:var(--ffc-texto); font-weight:800; min-width:22px; text-align:right; }
-.ffc-rosca-item .pct{ color:var(--ffc-texto-4); min-width:38px; text-align:right; font-size:11px; }
-.ffc-fora-funil{ display:flex; gap:6px; flex-wrap:wrap; padding-top:10px; border-top:1px solid var(--ffc-borda); }
+.ffc-rosca-item .pct{ color:var(--ffc-texto-4); min-width:44px; text-align:right; font-size:11px; }
+.ffc-fora-funil{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; padding-top:12px; margin-top:2px; border-top:1px solid var(--ffc-borda); }
+.ffc-fora-funil .ffc-chip{ justify-content:space-between; height:26px; padding:0 10px; min-width:0; }
+.ffc-fora-funil .ffc-chip span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .ffc-chip{
   display:inline-flex; align-items:center; gap:5px; height:22px; padding:0 8px; border-radius:999px;
   background:var(--ffc-neutro); font-size:11px; font-weight:700; color:var(--ffc-texto-3);

@@ -84,7 +84,7 @@
 
   /** Rosca em SVG: fatias com respiro, total no centro. itens = [{nome, qtd, cor}]. */
   function rosca(itens, total, rotulo) {
-    const TAM = 118, R = 46, ESP = 15, RESPIRO = 4, MIN = 6;
+    const TAM = 136, R = 54, ESP = 16, RESPIRO = 4, MIN = 6;
     const circ = 2 * Math.PI * R;
     const vis = itens.filter(i => i.qtd > 0);
     let arcos = [];
@@ -104,8 +104,8 @@
       svg += `<circle cx="${TAM / 2}" cy="${TAM / 2}" r="${R}" fill="none" stroke="${i.cor}" stroke-width="${ESP}" stroke-linecap="round" stroke-dasharray="${traco} ${circ}" stroke-dashoffset="${-(ini + (vis.length > 1 ? ESP * 0.175 : 0))}"><title>${esc(i.nome)}: ${i.qtd}</title></circle>`;
       ini += arcos[k] + RESPIRO;
     });
-    svg += `</g><text x="${TAM / 2}" y="${TAM / 2 - 1}" text-anchor="middle" style="fill:${COR.texto};font-size:22px;font-weight:800;letter-spacing:-0.02em">${inteiro.format(total)}</text>`;
-    svg += `<text x="${TAM / 2}" y="${TAM / 2 + 13}" text-anchor="middle" style="fill:${COR.texto4};font-size:7.5px;font-weight:700;letter-spacing:.08em">${esc(rotulo).toUpperCase()}</text></svg>`;
+    svg += `</g><text x="${TAM / 2}" y="${TAM / 2 - 1}" text-anchor="middle" style="fill:${COR.texto};font-size:25px;font-weight:800;letter-spacing:-0.02em">${inteiro.format(total)}</text>`;
+    svg += `<text x="${TAM / 2}" y="${TAM / 2 + 14}" text-anchor="middle" style="fill:${COR.texto4};font-size:8px;font-weight:700;letter-spacing:.08em">${esc(rotulo).toUpperCase()}</text></svg>`;
     return svg;
   }
 
@@ -291,7 +291,7 @@
     }).join('');
     const chips = fora.map(p => {
       const tom = p.fechado ? 'ffc-chip--bom' : p.perdido ? 'ffc-chip--ruim' : '';
-      return `<span class="ffc-chip ${tom}" title="${esc(p.nome)}">${esc(p.nome)} <b>${p.qtd}</b></span>`;
+      return `<span class="ffc-chip ${tom}" title="${esc(p.nome)}"><span>${esc(p.nome)}</span><b>${p.qtd}</b></span>`;
     }).join('');
     area.innerHTML = `<div class="ffc-rosca">${rosca(funil, total, 'oportunidades')}<div class="ffc-rosca-lista">${lista}</div></div>` + (chips ? `<div class="ffc-fora-funil">${chips}</div>` : '');
   }
