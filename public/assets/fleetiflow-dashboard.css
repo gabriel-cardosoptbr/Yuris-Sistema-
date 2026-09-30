@@ -64,8 +64,10 @@
 .ffc .ffc-btn--marca:hover{ background:var(--ffc-marca-forte); color:#fff; }
 .ffc .ffc-btn--ico{ width:34px; padding:0; justify-content:center; }
 .ffc .ffc-btn--mini{ height:28px; padding:0 10px; font-size:12px; }
-.ffc .ffc-btn--link{ border-color:transparent; background:transparent; color:var(--ffc-marca); padding:0 6px; }
-.ffc .ffc-btn--link:hover{ background:rgba(1,93,252,0.07); color:var(--ffc-marca-forte); }
+/* Antes era só texto azul; agora todo link de ação é botão, igual ao "Editar". */
+.ffc .ffc-btn--link{ color:var(--ffc-texto-2); }
+.ffc .ffc-btn--link:hover{ color:var(--ffc-texto); }
+.ffc a.ffc-btn, .ffc a.ffc-btn:hover{ text-decoration:none !important; }
 .ffc .ffc-btn.girando svg{ animation:ffc-gira .8s linear infinite; }
 @keyframes ffc-gira{ to{ transform:rotate(360deg); } }
 

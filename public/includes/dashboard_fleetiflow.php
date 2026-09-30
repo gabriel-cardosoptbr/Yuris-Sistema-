@@ -49,7 +49,7 @@ function ffc_kpi(string $id, string $rotulo, string $ico, string $tom = '', stri
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light"||t===null)document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
   <link rel="stylesheet" href="/assets/yuris-theme.css?v=42">
   <link rel="stylesheet" href="/assets/sidebar.css?v=19">
-  <link rel="stylesheet" href="/assets/fleetiflow-dashboard.css?v=9">
+  <link rel="stylesheet" href="/assets/fleetiflow-dashboard.css?v=10">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
