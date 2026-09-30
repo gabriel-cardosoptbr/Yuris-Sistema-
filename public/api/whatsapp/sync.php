@@ -493,7 +493,7 @@ try {
                 $mediaIsFull = 1;
             } else {
                 $thumb = $msgObj[$msgTypeRaw]['jpegThumbnail'] ?? null;
-                if ($thumb) {
+                if (is_string($thumb) && $thumb !== '') {
                     $mediaBase64 = str_contains($thumb, ',') ? explode(',', $thumb, 2)[1] : $thumb;
                     if (!$mime) $mime = 'image/jpeg';
                 }

@@ -88,8 +88,23 @@ o espaço entre cabeçalho, KPIs e o painel (lista + conversa). Em tela baixa
 isso zerava a lista: em 30/09/2026, num notebook com zoom de 125% (cerca de
 1093x500 úteis), o contador dizia "7 conversas" e a lista tinha 0px de altura.
 Um `@media (max-height: 820px)` destrava a rolagem da página e dá ao painel
-altura garantida de quase uma tela. Ao mexer nesse layout, teste em 1093x500 e
-1280x720, não só em monitor grande.
+altura garantida. A altura é **o que sobra da tela abaixo do cabeçalho**, com
+piso de 420px: um script no fim da página mede onde o painel começa e publica
+em `--chat-topo`. A primeira versão dava ao painel a tela inteira, e em
+1366x768 o campo de digitar ficava fora da tela (era preciso rolar a página
+para responder). Ao mexer nesse layout, teste em 1093x500, 1280x720 e
+1366x768, não só em monitor grande, e confira que o campo de digitar aparece.
+
+`chat.php` resolve a edição do produto (`$isFleetiflow`) para três coisas: o
+nome na aba, a variável `window.CHAT_MARCA` (o `chat.js` reescreve o título
+com o contador de não lidas) e `window.CHAT_SEM_JURIDICO`, que tira "Processos
+Jurídicos" do modal Vincular e evita a chamada a `/api/processes.php` (403
+nessa conta). Aviso de mídia indisponível, nome de documento e legenda têm
+regra própria para o tema claro: o estilo escuro embutido virava bloco cinza
+com texto ilegível sobre a bolha branca.
+
+`prospeccao.php` troca título, cabeçalho e o nome do modal ("Novo Lead
+Jurídico") quando a conta não tem módulo jurídico (`$moduloJuridico`).
 
 `dashboard.php` tem um bloco `if ($isFleetiflow)` no `<head>` que transcreve
 o visual do dashboard real do Fleetiflow (`tokens.css`, `superficies.ts`,
@@ -134,7 +149,7 @@ stub em `index.php`; a v1 ficou guardada. Ver
 | Pasta | O que é |
 |---|---|
 | `api/` | ~130 endpoints REST. Tem [README próprio](api/README.md) |
-| `includes/` | pedaços de página reaproveitados: `sidebar.php`, `seo_head.php`, `legal_page.php`, rodapés. `sidebar.php` resolve `AccountContext::getProduto()` uma vez (`$_isFleetiflow`) e troca logo, rodapé, grupo "Jurídico" do menu e as duas primeiras abas da barra mobile conforme o produto da conta. Também força o tema **claro** do Yuris (existente, não é novo) na primeira visita da conta Fleetiflow e, num `<style>` só dessa conta, redesenha a barra como a `AppShell` real do Fleetiflow (coluna branca de 260px encostada na borda, item plano, ativo `#D6E4FF` com texto `#3D3D3D`, canvas `#F6F7F9`, fonte Manrope). Regra do bloco: todo seletor leva o prefixo `html[data-theme="light"]` e desce até `.label` / `svg *` onde o `yuris-theme.css` desce, senão o tema claro do Yuris vence por especificidade. O envoltório da barra varia por página (`main.px-6`, `main.rel-wrap`, `main.o-wrap`, `main` com padding inline, `.layout` sem `.page-layout` em `clientes.php`), então o bloco usa `:has(> .sidebar)`: quem contém a barra perde o padding e o irmão dela ganha `24px 24px 24px 0`. Página nova com outro envoltório entra sozinha nessa regra; não crie regra por classe de página. Sem tocar `yuris-theme.css`, então nenhuma conta Yuris é afetada |
+| `includes/` | pedaços de página reaproveitados: `sidebar.php`, `seo_head.php`, `legal_page.php`, rodapés. `sidebar.php` resolve `AccountContext::getProduto()` uma vez (`$_isFleetiflow`) e troca logo, rodapé, grupo "Jurídico" do menu e as duas primeiras abas da barra mobile conforme o produto da conta. Para a conta Fleetiflow troca também "Yuris" por "Fleetiflow" no título da aba (23 páginas escrevem o nome no `<title>`; a troca é feita num script só, aqui). Também força o tema **claro** do Yuris (existente, não é novo) na primeira visita da conta Fleetiflow e, num `<style>` só dessa conta, redesenha a barra como a `AppShell` real do Fleetiflow (coluna branca de 260px encostada na borda, item plano, ativo `#D6E4FF` com texto `#3D3D3D`, canvas `#F6F7F9`, fonte Manrope). Regra do bloco: todo seletor leva o prefixo `html[data-theme="light"]` e desce até `.label` / `svg *` onde o `yuris-theme.css` desce, senão o tema claro do Yuris vence por especificidade. O envoltório da barra varia por página (`main.px-6`, `main.rel-wrap`, `main.o-wrap`, `main` com padding inline, `.layout` sem `.page-layout` em `clientes.php`), então o bloco usa `:has(> .sidebar)`: quem contém a barra perde o padding e o irmão dela ganha `24px 24px 24px 0`. Página nova com outro envoltório entra sozinha nessa regra; não crie regra por classe de página. Sem tocar `yuris-theme.css`, então nenhuma conta Yuris é afetada |
 | `assets/` | CSS, JS e imagens. Um arquivo JS por tela (`processos.js`, `tarefas.js`), mais `design-system.css` e `yuris-theme.css`. `dashboard.js` lê um tema de gráficos opcional em `window.YURIS_CHART_THEME` (cores das séries, raio e espessura das barras, tensão da linha, funil em rosca, fonte); sem ele, os valores são os de sempre do Yuris |
 | `v2/` | a landing institucional nova (`index.php` + `partials/` + `data/`), servida na `/` |
 | `sistema_vendas/Imagens/` | os logos, servidos em `/sistema_vendas/Imagens/`: 3 do Yuris (`Logo.png`, `Logo Loguin.png`, `YURIS.png`) + 4 do Fleetiflow (`fleetiflow-horizontal.png`, `fleetiflow-icone.png`, `fleetiflow-completa.png`, `fleetiflow-texto.png`, cópia dos arquivos oficiais da marca). **Não mova:** `sidebar.php`, `login.php`, `login-fleetiflow.php` e as páginas legais apontam para essa URL. O nome é herança de quando o app era servido em `/sistema_vendas/` |

@@ -20,6 +20,12 @@ class WhatsAppWebhookParser
      */
     public static function extractMessageContent(array $message): array
     {
+        // Mensagem temporária, de visualização única e documento com legenda chegam
+        // DENTRO de um envelope (ephemeralMessage, viewOnceMessage...). Sem abrir o
+        // envelope nenhum branch abaixo casava, e a mensagem virava linha vazia
+        // ("Mensagem não suportada") numa conversa com mensagens temporárias ligadas.
+        $message = MidiaCache::desembrulhar($message);
+
         // text
         if (!empty($message['conversation'])) {
             return ['text', $message['conversation'], null, null, null, null];
@@ -35,6 +41,11 @@ class WhatsAppWebhookParser
         // video
         if (!empty($message['videoMessage'])) {
             $m = $message['videoMessage'];
+            return ['video', null, $m['caption'] ?? null, $m['url'] ?? null, $m['mimetype'] ?? 'video/mp4', null];
+        }
+        // recado em vídeo (o vídeo redondo): é um vídeo como outro qualquer
+        if (!empty($message['ptvMessage'])) {
+            $m = $message['ptvMessage'];
             return ['video', null, $m['caption'] ?? null, $m['url'] ?? null, $m['mimetype'] ?? 'video/mp4', null];
         }
         // document

@@ -16,6 +16,7 @@ require_once __DIR__ . '/../../../app/bootstrap.php';
 use App\Core\Database;
 use App\Core\AccountContext;
 use App\WhatsAppAgente\EvolutionApiService;
+use App\WhatsAppAgente\MidiaCache;
 
 session_start(['read_and_close' => true]);
 $_uid = $_SESSION['user_id'] ?? null;
@@ -85,6 +86,17 @@ try {
 
     // ── 1. Cache: base64 já salvo no banco ──────────────────────────────────
     $base64 = $msg['media_base64'] ?? null;
+    // O cache pode ser só a MINIATURA que o webhook gravou quando o download do
+    // arquivo não terminou a tempo. Servir isso como se fosse o arquivo entregava
+    // um "PDF" que era um JPEG (não abria) e uma foto borrada para sempre. Aqui a
+    // miniatura sai do caminho e o arquivo de verdade é buscado na Evolution; ela
+    // só volta no fim, e só para FOTO, se a busca falhar. Ver MidiaCache.
+    $miniatura = null;
+    if ($base64 && MidiaCache::ehMiniatura((string)$base64, $msg['raw_payload'] ?? null, (string)$msgType, $msg['media_mimetype'] ?? null)) {
+        $miniatura = MidiaCache::semPrefixo((string)$base64);
+        $base64    = null;
+        $log[]     = 'cache DB tem só a miniatura: buscando o arquivo';
+    }
     if ($base64) { $log[] = 'fonte: cache DB'; }
 
     // ── 2. Tenta URL direta via proxy curl (apenas imagens — podem estar em cache local do Evolution) ────
@@ -137,9 +149,9 @@ try {
 
         if ($isMedia) {
             $log[] = "URL direta OK ($status, " . strlen($body) . " bytes)";
-            // Cacheia como base64 apenas se pequeno o suficiente
+            // Cacheia como base64 apenas se couber na coluna
             $base64 = base64_encode($body);
-            if (strlen($base64) < 4_000_000) {
+            if (MidiaCache::cabeNoBanco($base64, $pdo)) {
                 try {
                     $pdo->prepare('UPDATE whatsapp_messages SET media_base64 = ? WHERE id = ?')
                         ->execute([$base64, $msgId]);
@@ -187,20 +199,14 @@ try {
                 if (str_contains($b64clean, ',')) {
                     $b64clean = explode(',', $b64clean, 2)[1];
                 }
-                // Valida magic bytes do binário resultante
-                $binCheck = base64_decode(substr($b64clean, 0, 12));
-                $validDecrypted = $binCheck && (
-                    str_starts_with($binCheck, "\xFF\xD8")  // JPEG
-                 || str_starts_with($binCheck, "\x89PNG")  // PNG
-                 || str_starts_with($binCheck, "GIF8")     // GIF
-                 || str_starts_with($binCheck, "RIFF")     // WebP
-                 || str_starts_with($binCheck, "OggS")     // OGG
-                 || str_starts_with($binCheck, "ID3")      // MP3
-                );
-                $log[] = 'getBase64 OK, tamanho=' . strlen($b64) . ', magic_ok=' . ($validDecrypted ? 'SIM' : 'NAO');
+                // Só guarda arquivo de verdade que caiba na coluna. A lista de
+                // assinaturas antes só tinha imagem, OGG e MP3: PDF, planilha, Word e
+                // vídeo MP4 nunca eram guardados, e sumiam quando o payload cru era
+                // apagado pela retenção (30 dias). Ver MidiaCache::conteudoReconhecido.
+                $validDecrypted = MidiaCache::podeGuardar($b64clean, $msg['media_mimetype'] ?? null, $pdo);
+                $log[] = 'getBase64 OK, tamanho=' . strlen($b64) . ', guardar=' . ($validDecrypted ? 'SIM' : 'NAO');
                 $base64 = $b64;
-                // Só cacheia se conteúdo é mídia real (não criptografado)
-                if ($validDecrypted && strlen($b64) < 4_000_000) {
+                if ($validDecrypted) {
                     try {
                         $pdo->prepare('UPDATE whatsapp_messages SET media_base64 = ? WHERE id = ?')
                             ->execute([$b64clean, $msgId]);  // salva sem prefixo
@@ -208,7 +214,7 @@ try {
                         $log[] = 'cache DB ignorado: ' . $cacheErr->getMessage();
                     }
                 } else {
-                    $log[] = 'base64 grande demais para cachear (' . round(strlen($b64)/1024/1024, 1) . 'MB) — servindo sem cache';
+                    $log[] = 'não guardado (tipo não reconhecido ou maior que a coluna, ' . round(strlen($b64)/1024/1024, 1) . 'MB): servindo sem cache';
                 }
             } else {
                 $log[] = 'getBase64 retornou vazio/null';
@@ -220,9 +226,22 @@ try {
         $log[] = 'raw_payload não disponível — sincronize para atualizar';
     }
 
+    // O arquivo não veio e o que existe é a miniatura. Para FOTO ela ainda serve
+    // (imagem pequena é melhor que nada) e sai sem cache no navegador, para a
+    // próxima abertura tentar o arquivo de novo. Para documento, vídeo e áudio
+    // não serve: responder 404 faz a tela dizer "indisponível" em vez de entregar
+    // um arquivo com o nome certo e o conteúdo errado.
+    $soMiniatura = false;
+    if (!$base64 && $miniatura !== null && $msgType === 'image') {
+        $base64      = $miniatura;
+        $soMiniatura = true;
+        $msg['media_mimetype'] = 'image/jpeg';
+        $log[] = 'arquivo indisponível: servindo a miniatura';
+    }
+
     if ($debug) {
         header('Content-Type: application/json');
-        echo json_encode(['ok' => (bool)$base64, 'log' => $log, 'has_url' => !empty($msg['media_url']), 'has_payload' => !empty($msg['raw_payload']), 'has_cache' => !empty($msg['media_base64'])]);
+        echo json_encode(['ok' => (bool)$base64, 'log' => $log, 'so_miniatura' => $soMiniatura, 'has_url' => !empty($msg['media_url']), 'has_payload' => !empty($msg['raw_payload']), 'has_cache' => !empty($msg['media_base64'])]);
         exit;
     }
 
@@ -246,10 +265,14 @@ try {
     $mime   = explode(';', $msg['media_mimetype'] ?: 'application/octet-stream')[0];
 
     header('Content-Type: ' . $mime);
-    header('Cache-Control: private, max-age=86400');
+    header('Cache-Control: ' . ($soMiniatura ? 'no-store' : 'private, max-age=86400'));
+    if ($soMiniatura) header('X-Midia-Miniatura: 1');
     header('Content-Length: ' . strlen($binary));
     if ($msg['media_filename']) {
-        header('Content-Disposition: inline; filename="' . addslashes($msg['media_filename']) . '"');
+        // Nome com acento ou aspas: a forma simples vai só em ASCII e a forma
+        // RFC 5987 leva o nome exato para os navegadores atuais.
+        $nomeAscii = preg_replace('/[^\x20-\x7E]|["\\\\]/', '_', (string)$msg['media_filename']);
+        header('Content-Disposition: inline; filename="' . $nomeAscii . '"; filename*=UTF-8\'\'' . rawurlencode((string)$msg['media_filename']));
     }
     echo $binary;
 

@@ -29,6 +29,15 @@ conversa 1:1 sem nome, deduz o nome da conta comercial e grava na identidade
 Só aceita `jid` de conversa que já existe no canal resolvido, para não virar
 consulta de perfil de número arbitrário.
 
+`whatsapp/media.php` entrega foto, áudio, vídeo e documento de uma mensagem.
+O que está guardado pode ser só a miniatura: nesse caso ele busca o arquivo de
+verdade na Evolution e grava por cima, e se não conseguir responde **404**
+para documento, vídeo e áudio (foto ainda mostra a miniatura). Nunca entregue
+o conteúdo da coluna sem passar por `MidiaCache::ehMiniatura`. O
+`whatsapp/webhook.php` faz uma segunda tentativa de download depois do 200,
+para mídia nova que não baixou nos 3s. Detalhe em
+[`../../app/WhatsAppAgente/README.md`](../../app/WhatsAppAgente/README.md).
+
 `otif.php` devolve o OTIF das tarefas (JSON, ou planilha com `formato=csv`),
 com a mesma regra de visibilidade da tela `desempenho.php`: dono/admin vê a
 equipe, os demais só o próprio, e `colaborador` é ignorado para quem não é

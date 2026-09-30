@@ -24,6 +24,13 @@ class WhatsAppMessage
         if (isset($data['wamid']) && $data['wamid'] === '') {
             $data['wamid'] = null;
         }
+        // Mídia que não cabe na coluna (MEDIUMTEXT) fica de fora ANTES de tentar
+        // gravar: o INSERT falhava e levava a mensagem inteira junto. Sem o binário
+        // a mensagem entra normalmente e a mídia sai sob demanda pelo media.php.
+        if (!MidiaCache::cabeNoBanco($data['media_base64'] ?? null, $this->db)) {
+            $data['media_base64']  = null;
+            $data['media_is_full'] = 0;
+        }
         // Se tiver wamid, verificar duplicata
         if (!empty($data['wamid'])) {
             $stmt = $this->db->prepare(
@@ -77,9 +84,19 @@ class WhatsAppMessage
                 }
                 if ($sets) {
                     $params[] = $existing;
-                    $this->db->prepare(
-                        'UPDATE whatsapp_messages SET ' . implode(', ', $sets) . ' WHERE id = ?'
-                    )->execute($params);
+                    try {
+                        $this->db->prepare(
+                            'UPDATE whatsapp_messages SET ' . implode(', ', $sets) . ' WHERE id = ?'
+                        )->execute($params);
+                    } catch (\PDOException $e) {
+                        // O banco recusou (pacote maior que o max_allowed_packet, por
+                        // exemplo). Se havia mídia no meio, refaz sem ela: status, nome
+                        // e data não podem ficar para trás por causa do binário.
+                        if (empty($data['media_base64'])) throw $e;
+                        $semMidia = $data;
+                        $semMidia['media_base64'] = null;
+                        return $this->save($semMidia);
+                    }
                 }
                 return (int)$existing;
             }
@@ -140,6 +157,16 @@ class WhatsAppMessage
                 $dup->execute([$data['instance_id'], $data['wamid']]);
                 $dupId = $dup->fetchColumn();
                 if ($dupId) return (int)$dupId;
+            }
+            // Não era duplicata. Se a mensagem levava mídia, a causa mais provável é
+            // o tamanho do binário: grava sem ele em vez de perder a mensagem. A
+            // conversa mostra a mensagem e a mídia sai sob demanda pelo media.php.
+            if (!empty($data['media_base64'])) {
+                error_log('[whatsapp/mensagem] insert com midia recusado, gravando sem o binario: ' . $e->getMessage());
+                $semMidia = $data;
+                $semMidia['media_base64']  = null;
+                $semMidia['media_is_full'] = 0;
+                return $this->save($semMidia);
             }
             throw $e;
         }

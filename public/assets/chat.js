@@ -99,7 +99,7 @@ const ChatApp = (() => {
   function updateTitleBadge() {
     const total = (state.chats || []).reduce((s, c) => s + (parseInt(c.unread_count, 10) || 0), 0);
     state.unreadTotal = total;
-    const base = 'Yuris';
+    const base = window.CHAT_MARCA || 'Yuris';
     document.title = total > 0 ? `(${total}) ${base}` : base;
   }
 
@@ -1319,7 +1319,7 @@ const ChatApp = (() => {
                      onclick="ChatApp.openImage('${mUrl}')">
                   <img class="msg-image" src="${mUrl}" alt="Imagem"
                        onerror="this.parentElement.onclick=null;this.style.display='none';this.nextElementSibling.style.display='flex'">
-                  <div style="display:none;align-items:center;gap:6px;padding:10px 14px;background:rgba(30,40,60,.6);border:1px solid rgba(148,163,184,.15);border-radius:8px;color:#6B7887;font-size:.8rem;cursor:default;">
+                  <div class="msg-indisp" style="display:none">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                     Imagem indisponível
                   </div>
@@ -1327,7 +1327,7 @@ const ChatApp = (() => {
 
       case 'video':
         return `<video controls style="max-width:280px;max-height:200px;border-radius:8px;display:block" src="${mUrl}"
-                       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"></video><div style="display:none;align-items:center;gap:6px;padding:8px 12px;background:rgba(30,40,60,.6);border:1px solid rgba(148,163,184,.15);border-radius:8px;color:#6B7887;font-size:.78rem;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>Vídeo expirado (não está mais disponível)</div>${caption ? `<span class="msg-caption">${caption}</span>` : ''}`;
+                       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"></video><div class="msg-indisp" style="display:none"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>Vídeo expirado (não está mais disponível)</div>${caption ? `<span class="msg-caption">${caption}</span>` : ''}`;
 
       case 'audio':
         // onerror: se o proxy devolver 404 (mídia antiga já expirada no WhatsApp),
@@ -1337,7 +1337,7 @@ const ChatApp = (() => {
           <audio controls src="${mUrl}" style="max-width:240px;height:36px" preload="metadata"
                  onloadedmetadata="ChatApp.fixAudioDuration(this)"
                  onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"></audio>
-          <div style="display:none;align-items:center;gap:6px;padding:8px 12px;background:rgba(30,40,60,.6);border:1px solid rgba(148,163,184,.15);border-radius:8px;color:#6B7887;font-size:.78rem;">
+          <div class="msg-indisp" style="display:none">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
             Áudio expirado (não está mais disponível)
           </div>
@@ -1351,7 +1351,7 @@ const ChatApp = (() => {
             <audio controls src="${mUrl}" style="max-width:240px;height:36px" preload="metadata"
                    onloadedmetadata="ChatApp.fixAudioDuration(this)"
                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"></audio>
-            <div style="display:none;align-items:center;gap:6px;padding:8px 12px;background:rgba(30,40,60,.6);border:1px solid rgba(148,163,184,.15);border-radius:8px;color:#6B7887;font-size:.78rem;">
+            <div class="msg-indisp" style="display:none">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
               Áudio expirado (não está mais disponível)
             </div>
@@ -1360,10 +1360,14 @@ const ChatApp = (() => {
         }
         // Arquivo de vídeo enviado como documento → renderiza como vídeo
         if (mime.startsWith('video/')) {
-          return `<video controls style="max-width:280px;max-height:200px;border-radius:8px;display:block" src="${mUrl}"></video>${caption ? `<span class="msg-caption">${caption}</span>` : ''}`;
+          return `<video controls style="max-width:280px;max-height:200px;border-radius:8px;display:block" src="${mUrl}"
+                         onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"></video><div class="msg-indisp" style="display:none"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>Vídeo expirado (não está mais disponível)</div>${caption ? `<span class="msg-caption">${caption}</span>` : ''}`;
         }
-        // Demais documentos → link de download
-        return `<a class="msg-doc" href="${mUrl}" target="_blank" rel="noopener" download="${esc(msg.media_filename || 'documento')}">
+        // Demais documentos → download. O clique passa por baixarDocumento, que só
+        // salva o arquivo se ele veio de verdade: com o link direto, um documento
+        // expirado era baixado como um arquivo com o nome certo e um erro dentro.
+        return `<a class="msg-doc" href="${mUrl}" target="_blank" rel="noopener" download="${esc(msg.media_filename || 'documento')}"
+                   data-msg-id="${esc(msg.id)}" data-nome="${esc(msg.media_filename || 'documento')}" onclick="ChatApp.baixarDocumento(event)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
           ${esc(msg.media_filename || 'Documento')}
         </a>${caption ? `<span class="msg-caption">${caption}</span>` : ''}`;
@@ -1499,6 +1503,10 @@ const ChatApp = (() => {
           id           : r.message_id,
           direction    : 'outbound',
           message_type : file.type,
+          // Nome e tipo do arquivo: sem eles o documento recém-enviado aparecia
+          // como "Documento" até a conversa ser reaberta.
+          media_filename: file.filename || null,
+          media_mimetype: file.mimetype || null,
           caption,
           status       : 'sent',
           created_at   : new Date().toISOString(),
@@ -2378,10 +2386,14 @@ const ChatApp = (() => {
     // Carrega dados lazy (paralelo) — teams agora via for_chat_filter
     if (!_linkData.cards.length || !_linkData.users.length) {
       try {
+        // Cada lista falha sozinha: antes um erro em qualquer uma das três
+        // (resposta que não era JSON) deixava o modal sem card nenhum para escolher.
+        // Conta sem módulo jurídico nem pergunta pelos processos (daria 403).
+        const lista = (url) => fetch(url, { credentials: 'same-origin' }).then(r => r.json()).catch(() => []);
         const [rCards, rProcessos, rUsers] = await Promise.all([
-          fetch('/api/cards.php',    { credentials: 'same-origin' }).then(r => r.json()),
-          fetch('/api/processes.php',{ credentials: 'same-origin' }).then(r => r.json()),
-          fetch('/api/users.php',    { credentials: 'same-origin' }).then(r => r.json()),
+          lista('/api/cards.php'),
+          window.CHAT_SEM_JURIDICO ? Promise.resolve([]) : lista('/api/processes.php'),
+          lista('/api/users.php'),
         ]);
         _linkData.cards    = Array.isArray(rCards)    ? rCards    : (rCards.data    || []);
         _linkData.processos= Array.isArray(rProcessos)? rProcessos: (rProcessos.data|| []);
@@ -2476,6 +2488,36 @@ const ChatApp = (() => {
       await loadChats(true); // atualiza lista para refletir o vínculo
     } catch(e) {
       toast('Erro ao salvar: ' + (e.message || 'verifique a conexão'), 'error');
+    }
+  }
+
+  // ── Baixar documento ─────────────────────────────────────────
+  // Busca o arquivo antes de salvar. Se o proxy responder erro (mídia que já
+  // expirou no WhatsApp), avisa na tela em vez de entregar um arquivo quebrado.
+  async function baixarDocumento(ev) {
+    const el = ev && ev.currentTarget;
+    if (!el || !el.dataset.msgId) return;      // sem dados: segue o link normal
+    ev.preventDefault();
+    if (el.dataset.baixando === '1') return;
+    el.dataset.baixando = '1';
+    el.style.opacity = '.6';
+    try {
+      const r = await fetch(MEDIA_PROXY + encodeURIComponent(el.dataset.msgId), { credentials: 'same-origin' });
+      if (!r.ok) throw new Error('http ' + r.status);
+      const blob = await r.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url;
+      a.download = el.dataset.nome || 'documento';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (e) {
+      toast('Este documento não está mais disponível para baixar.', 'error');
+    } finally {
+      el.dataset.baixando = '';
+      el.style.opacity = '';
     }
   }
 
@@ -3331,6 +3373,9 @@ const ChatApp = (() => {
     if (!state.instanceId) { btn.style.display = 'none'; return; }
     // Ja carregado para este canal? Nao refaz a cada tick do polling (~6s).
     if (state._agentToggleFetchedFor === state.instanceId && btn.dataset.mode) return;
+    // Quem não é dono/admin recebe 403. A trava de cima exige o botão já desenhado,
+    // o que nunca acontece nesse caso: a consulta se repetia a cada 6s, para sempre.
+    if (state._agentToggleNegado === state.instanceId) { btn.style.display = 'none'; return; }
     try {
       const r = await apiFetch('/api/whatsapp/agent_channel_toggle.php?instance_id=' + state.instanceId);
       if (!r || r.ok !== true) { btn.style.display = 'none'; return; }
@@ -3339,7 +3384,10 @@ const ChatApp = (() => {
     } catch (e) {
       // 403 (nao owner/admin) ou 404 (sem canal no escopo): esconde e nao fica re-tentando neste canal
       btn.style.display = 'none';
-      if (/owner|admin|acesso|unauthorized|encontrad/i.test(e.message || '')) state._agentToggleFetchedFor = state.instanceId;
+      if (/owner|admin|acesso|unauthorized|encontrad/i.test(e.message || '')) {
+        state._agentToggleFetchedFor = state.instanceId;
+        state._agentToggleNegado     = state.instanceId;
+      }
     }
   }
   // ── Captação automática (por conta) ──────────────────────────
@@ -3459,7 +3507,7 @@ const ChatApp = (() => {
     abrirCadastroRapido, fecharCadastroRapido, cadastrarComo,
     openLinkPicker, filterLinkPicker, selectLinkItem, clearLinkItem, removeLinkedProcesso,
     toggleSectorDropdown, setSectorDirect,
-    openImage,
+    openImage, baixarDocumento,
     // P2 wire-up (2026-05-25)
     setReply, cancelReply,
     toggleMsgMenu, closeMsgMenu, fixAudioDuration,

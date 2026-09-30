@@ -38,6 +38,11 @@ O detalhe completo, com diagramas, está na skill de desenvolvimento em
 | `WaLog.php` | log de uma linha em JSON, com chaves padronizadas, para todo o módulo |
 | `PerfilComercial.php` | o nome de conta **comercial** do WhatsApp. Conta Business manda `pushName` vazio e a conversa aparecia só com o telefone; aqui o nome é **deduzido** do perfil comercial que a Evolution entrega (descrição "X é uma...", domínio do site) e gravado em `Identidade` com a origem `perfil_comercial`, que pesa **menos que o pushName**: qualquer nome real o substitui, e na dúvida fica null (a tela segue mostrando o telefone). Uma consulta à Evolution a cada 30 dias por contato, registrada em `whatsapp_identidades.perfil_comercial_em` (migration 132). Disparado pela lista do Chat (`contacts.php`, action `resolve_name`), nunca pelo webhook |
 
+### A mídia
+| Classe | O que faz |
+|---|---|
+| `MidiaCache.php` | as regras do que pode morar em `whatsapp_messages.media_base64`. Diz se o que está guardado é o **arquivo** ou só a **miniatura** (`ehMiniatura`), quais conteúdos podem ser guardados (`conteudoReconhecido`, `podeGuardar`), qual é o teto real do banco (`limiteDoBanco`), abre os envelopes de mensagem temporária e de visualização única (`desembrulhar`) e faz a segunda tentativa de download depois do 200 do webhook (`completar`). Tudo puro, menos `limiteDoBanco` e `completar` |
+
 ### O webhook de entrada
 | Classe | O que faz |
 |---|---|
@@ -101,6 +106,47 @@ Sem credencial isso é inofensivo (nenhuma fala com a Evolution), mas no dia em
 que fossem configuradas contra a mesma Evolution passariam a dividir o **mesmo
 WhatsApp**: vazamento entre escritórios, da mesma família do bug B1 dos
 contatos. Hoje o fallback é `yuris-conta-{accountId}`.
+
+## A mídia: arquivo, miniatura e prazo
+
+`media_base64` guardava duas coisas sem distinção: o arquivo de verdade ou a
+miniatura (`jpegThumbnail`) que o webhook e o sync gravam como quebra-galho
+quando o download não termina a tempo. O `media.php` entregava o que estivesse
+lá. Resultado, medido em 30/09/2026: documento baixado como "PDF" que era um
+JPEG de 1 KB (não abria), vídeo que nunca tocava e foto borrada para sempre,
+porque o arquivo inteiro nunca mais era buscado.
+
+O caminho de hoje:
+
+1. **Na chegada (webhook):** tenta o arquivo em 3s, antes do 200. Se não deu,
+   grava a miniatura e agenda a **segunda tentativa** (`MidiaCache::completar`,
+   15s de prazo), que roda depois do 200 e depois do agente. Só para mensagem
+   NOVA e das últimas 24h: reenvio de histórico numa reconexão não agenda nada. No máximo 3 por
+   requisição.
+2. **Na abertura (`media.php`):** se o cache é a miniatura, ela sai do caminho e
+   o arquivo é buscado na Evolution e gravado por cima. Se a busca falha, FOTO
+   ainda mostra a miniatura (sem cache no navegador, para tentar de novo);
+   documento, vídeo e áudio respondem 404, e a tela diz "indisponível" em vez
+   de entregar arquivo com o nome certo e o conteúdo errado.
+3. **O que pode ser guardado:** arquivo reconhecido pelos primeiros bytes
+   (imagem, OGG, MP3, AAC, PDF, Office, MP4, WebM, ZIP...) ou texto declarado
+   como texto, até o menor entre 15 MB de base64 (a coluna é `MEDIUMTEXT`) e o
+   `max_allowed_packet` do servidor. Antes só imagem, OGG e MP3 até 4 MB.
+
+**Mídia não pode derrubar a mensagem.** `WhatsAppMessage::save()` tira o
+binário que não cabe antes de gravar, e se o banco recusar mesmo assim, grava a
+mensagem sem ele. Antes o INSERT falhava e a mensagem inteira era pulada.
+
+**O prazo é política, não defeito.** A retenção LGPD
+(`public/api/lgpd_retention_tick.php`, migrations 051 e 108) apaga o
+`raw_payload` aos **30 dias** e o `media_base64` aos **90 dias**. O texto da
+conversa fica para sempre; foto, áudio e documento com mais de 90 dias mostram
+"expirado". Mídia que não foi guardada nos primeiros 30 dias não tem mais como
+ser buscada, porque a chave de decifrar estava no payload. Por isso guardar na
+chegada importa: depois não há segunda chance. Mudar esses prazos é decisão de
+produto e de LGPD, em `retention_policies`, não de código.
+
+Travado em `../../scripts/tests/wa_midia_test.php`.
 
 ## Regras que derrubam o módulo se ignoradas
 

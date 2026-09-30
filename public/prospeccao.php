@@ -142,7 +142,7 @@ function column_display_name(array $col): string
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Central de Prospecção Jurídica - Yuris</title>
+  <title><?= $moduloJuridico ? 'Central de Prospecção Jurídica - Yuris' : 'Central de Prospecção - Fleetiflow' ?></title>
   <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -1166,8 +1166,10 @@ function column_display_name(array $col): string
           <div class="card-shell page-header">
             <div class="page-header-inner">
               <div class="page-header-text">
-                <h2 class="page-header-title">Central de Prospecção Jurídica</h2>
-                <p class="page-header-subtitle">Gestão comercial em formato Kanban para escritórios de advocacia, com foco em previsibilidade e produtividade.</p>
+                <h2 class="page-header-title"><?= $moduloJuridico ? 'Central de Prospecção Jurídica' : 'Central de Prospecção' ?></h2>
+                <p class="page-header-subtitle"><?= $moduloJuridico
+                    ? 'Gestão comercial em formato Kanban para escritórios de advocacia, com foco em previsibilidade e produtividade.'
+                    : 'Gestão comercial em formato Kanban, com foco em previsibilidade e produtividade.' ?></p>
               </div>
             </div>
           </div>
@@ -1291,7 +1293,7 @@ function column_display_name(array $col): string
   <div id="modalCreate" class="modal-shell hidden">
     <div class="modal-panel">
       <div class="modal-header">
-        <div class="modal-title">Novo Lead Jurídico</div>
+        <div class="modal-title"><?= $moduloJuridico ? 'Novo Lead Jurídico' : 'Novo Lead' ?></div>
         <div class="modal-subtitle">Cadastre os dados principais para iniciar o atendimento comercial.</div>
       </div>
       <form id="createForm" class="modal-form">

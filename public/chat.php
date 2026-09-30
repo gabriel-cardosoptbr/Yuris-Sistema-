@@ -8,6 +8,14 @@ $auto_open_jid = isset($_GET['jid']) ? trim($_GET['jid']) : '';
 // Fase 5: a config da conexão Evolution (infra) é gerida no Painel Master.
 // No painel da conta, só o super_admin vê a engrenagem de Configurações.
 $isSuper       = !empty($_SESSION['is_super_admin']);
+// Edição do produto: a conta Fleetiflow (CRM comercial) não tem módulo jurídico,
+// então o modal de vínculo não oferece processos e a aba leva o nome dela.
+// Falhou a leitura => identidade Yuris de sempre.
+$isFleetiflow  = false;
+try {
+    $isFleetiflow = \App\Core\AccountContext::fromSession()->getProduto() === 'fleetiflow';
+} catch (\Throwable $e) { /* mantém Yuris */ }
+$marcaChat     = $isFleetiflow ? 'Fleetiflow' : 'Yuris';
 ?>
 <!doctype html>
 <html lang="pt-BR">
@@ -15,7 +23,7 @@ $isSuper       = !empty($_SESSION['is_super_admin']);
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#070F1C">
-  <title>Chat WhatsApp — Yuris</title>
+  <title>Chat WhatsApp — <?= htmlspecialchars($marcaChat) ?></title>
   <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
@@ -631,6 +639,35 @@ $isSuper       = !empty($_SESSION['is_super_admin']);
       flex-shrink: 0;
     }
     .msg-audio audio { max-width: 240px; height: 36px; }
+
+    /* Aviso de mídia indisponível (foto, vídeo ou áudio que já expirou).
+       Antes o estilo era escuro e embutido em cada caixa: no tema claro virava
+       um bloco cinza-escuro com texto ilegível no meio da conversa. */
+    .msg-indisp {
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      background: rgba(30,40,60,.6);
+      border: 1px solid rgba(148,163,184,.15);
+      border-radius: 8px;
+      color: #6B7887;
+      font-size: .78rem;
+    }
+    html[data-theme="light"] .msg-indisp {
+      background: #F1F3F6;
+      border-color: rgba(17,29,45,.10);
+      color: #676767;
+    }
+    /* Nome do documento e legenda da mídia: o azul-claro do tema escuro ficava
+       quase invisível sobre a bolha branca do tema claro. */
+    html[data-theme="light"] .msg-doc {
+      color: #1E3A5F;
+      background: rgba(17,29,45,.05);
+      border: 1px solid rgba(17,29,45,.08);
+      font-weight: 600;
+    }
+    html[data-theme="light"] .msg-doc:hover { background: rgba(17,29,45,.09); }
+    html[data-theme="light"] .msg-caption { color: #4A5568; }
     .msg-caption { display: block; font-size: .78rem; color: #A8BDD4; margin-top: 4px; }
 
     /* Meta da mensagem */
@@ -1116,16 +1153,23 @@ $isSuper       = !empty($_SESSION['is_super_admin']);
        altura inteira. A lista de conversas (min-height:0) encolhia até ALTURA
        ZERO: o contador dizia "7 conversas" e a lista aparecia vazia. Medido em
        30/09/2026 em 1093x500: lista com 0px. Aqui a página volta a rolar e o
-       painel do chat ganha altura garantida, quase uma tela inteira, com a
-       rolagem interna de lista e mensagens preservada. O !important vence os
-       style="" inline do <main>, do .page-layout e do .main-content. */
+       painel do chat ganha altura garantida, com a rolagem interna de lista e
+       mensagens preservada. O !important vence os style="" inline do <main>, do
+       .page-layout e do .main-content.
+
+       A altura é o que SOBRA da tela abaixo do cabeçalho (--chat-topo, medido
+       pelo script no fim da página), com piso de 420px. Antes era a tela inteira
+       menos 32px: em 1366x768 o painel começava em 223px e terminava em 959px,
+       então o campo de digitar ficava fora da tela e era preciso rolar a página
+       para responder. Agora em 768px de altura cabe tudo sem rolar; a rolagem da
+       página só aparece quando a tela é baixa demais até para o piso. */
     @media (max-height: 820px) and (min-width: 769px) {
       body { overflow: auto !important; }
       main.page-above-fog { height: auto !important; min-height: 100vh; overflow: visible !important; }
       main.page-above-fog > .page-layout,
       main.page-above-fog .main-content,
       .chat-main { overflow: visible !important; min-height: auto !important; }
-      .chat-panel { flex: 0 0 auto !important; height: max(420px, calc(100vh - 32px)); min-height: 420px !important; }
+      .chat-panel { flex: 0 0 auto !important; height: max(420px, calc(100vh - var(--chat-topo, 240px) - 24px)); min-height: 420px !important; }
     }
 
     /* ═════════════════════════════════════════════════════════════════════
@@ -2329,8 +2373,8 @@ $isSuper       = !empty($_SESSION['is_super_admin']);
         </a>
       </div>
 
-      <!-- Processos — lista com múltiplos -->
-      <div class="form-field">
+      <!-- Processos — lista com múltiplos (só para conta com módulo jurídico) -->
+      <div class="form-field"<?= $isFleetiflow ? ' style="display:none"' : '' ?>>
         <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
           <span>Processos Jurídicos</span>
         </label>
@@ -2422,6 +2466,8 @@ $isSuper       = !empty($_SESSION['is_super_admin']);
 
 <script>
 const CSRF          = <?= json_encode($csrf) ?>;
+window.CHAT_MARCA        = <?= json_encode($marcaChat) ?>;
+window.CHAT_SEM_JURIDICO = <?= $isFleetiflow ? 'true' : 'false' ?>;
 const AUTO_OPEN_JID = <?= json_encode($auto_open_jid) ?>;
 const API  = {
   config        : '/api/whatsapp/config.php',
@@ -2541,7 +2587,27 @@ const API  = {
 #imgLightboxDownload:hover { background: rgba(37,99,235,.3); border-color: rgba(96,165,250,.5); }
 </style>
 
-<script src="/assets/chat.js?v=67"></script>
+<script>
+// Mede onde o painel do chat começa e publica em --chat-topo, que a regra de
+// tela baixa usa para o painel caber no que sobra da tela (ver o CSS).
+(function () {
+  function medir() {
+    var p = document.querySelector('.chat-panel');
+    if (!p) return;
+    var topo = Math.round(p.getBoundingClientRect().top + (window.scrollY || 0));
+    document.documentElement.style.setProperty('--chat-topo', topo + 'px');
+  }
+  medir();
+  window.addEventListener('load', medir);
+  window.addEventListener('resize', medir);
+  // Cabeçalho que muda de altura (aviso de desconexão, botões que quebram linha).
+  if (window.ResizeObserver) {
+    var alvo = document.querySelector('.chat-main');
+    if (alvo) new ResizeObserver(medir).observe(alvo);
+  }
+})();
+</script>
+<script src="/assets/chat.js?v=68"></script>
 <script>
 // Lightbox init
 (function(){

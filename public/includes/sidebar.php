@@ -108,6 +108,9 @@ $_notifTempo = function ($raw) {
 };
 ?>
 <?php if ($_isFleetiflow): ?>
+<!-- Nome na aba do navegador: 23 páginas escrevem "Yuris" no <title>. Em vez de
+     uma condição em cada uma, a troca é feita aqui, só para a conta Fleetiflow. -->
+<script>(function(){try{if(/Yuris/.test(document.title))document.title=document.title.replace(/Yuris/g,"Fleetiflow");}catch(e){}})();</script>
 <!-- Identidade Fleetiflow: o produto real é claro, então a conta entra no
      tema claro do Yuris (já existe e é testado em yuris-theme.css; não
      reinventamos um) na PRIMEIRA visita, sem brigar depois com uma escolha

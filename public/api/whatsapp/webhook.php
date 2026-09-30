@@ -19,6 +19,7 @@ use App\Usuarios\TotpHelper;
 use App\WhatsAppAgente\WhatsAppInstance;
 use App\WhatsAppAgente\EvolutionApiService;
 use App\WhatsAppAgente\WhatsAppMessage;
+use App\WhatsAppAgente\MidiaCache;
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -337,10 +338,35 @@ try {
     // user_abort) — a Evolution recebe o 200 imediatamente e nós seguimos o
     // processamento em "background" no mesmo processo. Qualquer falha no LLM é
     // engolida em runAgentReply (try/catch) e só vai pro log.
+    $jaLiberou = false;
     if (!empty($GLOBALS['__agent_tasks'])) {
         WhatsAppAgentBridge::flushResponse();
+        $jaLiberou = true;
         foreach ($GLOBALS['__agent_tasks'] as $task) {
             WhatsAppAgentBridge::runAgentReply($task);
+        }
+    }
+
+    // ── Mídia que não baixou nos 3s: segunda tentativa, DEPOIS do 200 ─────────
+    // O download dentro do webhook tem tempo curto de propósito (não pode segurar
+    // a Evolution). Quando não dava tempo, ficava só a miniatura e o arquivo nunca
+    // mais era buscado sozinho: dependia de alguém abrir a mídia antes de o payload
+    // cru ser apagado pela retenção. Aqui a busca é refeita com calma, depois de a
+    // Evolution já ter o 200 e depois do agente (responder o cliente vem primeiro).
+    // No máximo 3 por requisição, e nunca derruba nada: ver MidiaCache::completar.
+    if (!empty($GLOBALS['__media_tasks'])) {
+        if (!$jaLiberou) WhatsAppAgentBridge::flushResponse();
+        foreach (array_slice($GLOBALS['__media_tasks'], 0, 3) as $mt) {
+            try {
+                $cfgM = $instModel->getSettings((int)$mt['account_id']);
+                $evoM = new EvolutionApiService($cfgM);
+                $evoM->setTimeout(15);
+                MidiaCache::completar(
+                    Database::getConnection(), $evoM,
+                    (string)($cfgM['evolution_instance'] ?? 'yuris-crm'),
+                    (int)$mt['message_id'], (array)$mt['payload'], $mt['mime'] ?? null
+                );
+            } catch (\Throwable $_) {}
         }
     }
 
@@ -479,16 +505,30 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
         } catch (\Throwable $_) {}
 
         // Fallback: thumbnail embarcado (jpegThumbnail)
-        if (!$mediaBase64) {
-            $subMap = ['image'=>'imageMessage','video'=>'videoMessage','sticker'=>'stickerMessage','document'=>'documentMessage'];
-            $subKey = $subMap[$msgType] ?? null;
-            if ($subKey) {
-                $thumb = $message[$subKey]['jpegThumbnail'] ?? null;
-                if ($thumb) {
-                    $mediaBase64 = str_contains($thumb, ',') ? explode(',', $thumb, 2)[1] : $thumb;
-                }
-            }
+        // MidiaCache::miniaturaDoPayload abre envelope (mensagem temporária, legenda)
+        // e só aceita string: o Buffer vindo como objeto de bytes fazia str_contains
+        // lançar TypeError, e a mensagem inteira era pulada.
+        if (!$mediaBase64 && $msgType !== 'audio') {
+            $mediaBase64 = MidiaCache::miniaturaDoPayload($msg);
         }
+    }
+
+    // O arquivo não veio nos 3s. Se a mensagem é NOVA e RECENTE, deixa marcada para
+    // a segunda tentativa depois do 200. Ficam de fora o reenvio de histórico
+    // (mensagem que já existe) e a mensagem antiga que o banco ainda não conhecia:
+    // uma reconexão despeja centenas delas de uma vez, e segurar um processo por
+    // mensagem à espera de mídia velha travaria o servidor. Mídia antiga continua
+    // saindo sob demanda pelo media.php.
+    $midiaPendente = false;
+    $recente = is_numeric($ts) && (time() - (int)$ts) < 86400;
+    if ($isMediaType && !$mediaIsFull && !empty($wamid) && $recente) {
+        try {
+            $jaTem = Database::getConnection()->prepare(
+                'SELECT 1 FROM whatsapp_messages WHERE instance_id = ? AND wamid = ? LIMIT 1'
+            );
+            $jaTem->execute([$instanceId, $wamid]);
+            $midiaPendente = ($jaTem->fetchColumn() === false);
+        } catch (\Throwable $_) {}
     }
 
     $phone = preg_replace('/[^0-9]/', '', explode('@', $remoteJid)[0]);
@@ -543,6 +583,15 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
         'raw_payload'     => json_encode($msg),
         'created_at'      => $createdAt,
     ]);
+
+    if ($midiaPendente && $savedId) {
+        $GLOBALS['__media_tasks'][] = [
+            'account_id' => $accountId,
+            'message_id' => (int)$savedId,
+            'payload'    => $msg,
+            'mime'       => $mimetype,
+        ];
+    }
 
     /* ── IDENTIDADE: costura @lid e telefone antes que a informação se perca ──
      *
