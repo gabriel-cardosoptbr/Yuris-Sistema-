@@ -238,7 +238,7 @@ $msgId = $msgModel->save([
 try {
     $donoCanal = (int)($ch['owner_account_id'] ?? 0);
     if (\App\WhatsAppAgente\SdrFleetiflow::contaUsa($donoCanal)) {
-        \App\WhatsAppAgente\SdrFleetiflow::pausar($instanceId, $remoteJid, (int)$_uid);
+        \App\WhatsAppAgente\SdrFleetiflow::pessoaAssumiu($donoCanal, $instanceId, $remoteJid, (int)$_uid);
     }
 } catch (\Throwable $_) {}
 

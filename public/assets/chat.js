@@ -720,6 +720,11 @@ const ChatApp = (() => {
       state.chats = r.chats || [];
       state.hasMoreChats = !!r.has_more;
       renderChatList();
+      // Etapa movida na Prospecção ou pela Vitória aparece sem reabrir a conversa.
+      if (state.currentJid) {
+        const aberto = state.chats.find(c => c.remote_jid === state.currentJid);
+        if (aberto) updateStageBadge(aberto);
+      }
       prefetchSidebarPhotos();   // fotos da lista em background (gentil, não bloqueia)
       prefetchSidebarNames();    // nome de conta comercial (pushName vazio), idem
       setText('kpiChats',  String(state.chats.length));
@@ -878,6 +883,7 @@ const ChatApp = (() => {
 
     // Badge de setor — atualiza com o chat atual (pode ter team_id já carregado)
     updateSectorBadge(chatObj || null);
+    updateStageBadge(chatObj || null);
 
     // Botão "Assumir conversa" — reflete o estado de pausa do agente nesta conversa
     renderTakeoverBtn(!!(chatObj && (chatObj.agent_paused == 1 || chatObj.agent_paused === true)));
@@ -2380,6 +2386,95 @@ const ChatApp = (() => {
     }
   }
 
+  // ── Etapa do funil no Header (conta Fleetiflow) ─────────────
+  // A etapa é a coluna do card ligado à conversa: trocar aqui move o card na
+  // Prospecção, e o que mudar lá (ou a Vitória mover) aparece aqui no refresh da
+  // lista, que já traz card_coluna_id / card_etapa_nome / card_etapa_cor.
+  let _stageCols = null;
+  let _stageShown = '';
+
+  function updateStageBadge(chat) {
+    const wrap = qs('#stageBadgeWrap');
+    if (!wrap || !window.CHAT_ETAPA_FUNIL) return;
+    const individual = chat && chat.is_group != 1;
+    wrap.style.display = individual ? 'block' : 'none';
+    const chave = individual ? (chat.remote_jid + '|' + (chat.card_coluna_id || '')) : '';
+    if (chave === _stageShown) return;
+    _stageShown = chave;
+    if (!individual) return;
+
+    const btn  = qs('#stageBadgeBtn');
+    const dot  = qs('#stageDot');
+    const name = qs('#stageBadgeName');
+    if (chat.card_coluna_id && chat.card_etapa_nome) {
+      const color = chat.card_etapa_cor || '#6B7887';
+      dot.style.background = color;
+      name.textContent     = chat.card_etapa_nome;
+      btn.style.setProperty('--sector-color', color);
+      btn.classList.add('has-sector');
+    } else {
+      dot.style.background = '#4A5568';
+      name.textContent     = 'Sem etapa';
+      btn.classList.remove('has-sector');
+    }
+  }
+
+  async function toggleStageDropdown(e) {
+    if (e) e.stopPropagation();
+    const dd = qs('#stageDropdown');
+    if (!dd) return;
+    if (dd.style.display !== 'none') { dd.style.display = 'none'; return; }
+
+    if (!_stageCols) {
+      try {
+        const r = await apiFetch('/api/whatsapp/chat_etapa.php');
+        _stageCols = r.colunas || [];
+      } catch (err) { _stageCols = null; toast('Erro ao carregar as etapas', 'error'); return; }
+    }
+    const chat  = state.chats.find(c => c.remote_jid === state.currentJid);
+    const atual = chat && chat.card_coluna_id ? String(chat.card_coluna_id) : null;
+
+    dd.innerHTML = _stageCols.length === 0
+      ? '<div class="sector-dd-item" style="color:#4A5568;cursor:default">Nenhuma etapa no funil</div>'
+      : _stageCols.map(c => `
+        <div class="sector-dd-item${atual === String(c.id) ? ' active' : ''}"
+             onclick="ChatApp.setStageDirect(${Number(c.id)})">
+          <span class="sector-dd-dot" style="background:${esc(c.cor || '#6B7887')}"></span>
+          ${esc(c.nome)}
+        </div>`).join('');
+    dd.style.display = 'block';
+
+    setTimeout(() => {
+      document.addEventListener('click', function _close() {
+        if (dd) dd.style.display = 'none';
+        document.removeEventListener('click', _close);
+      }, { once: true });
+    }, 0);
+  }
+
+  async function setStageDirect(colunaId) {
+    const dd = qs('#stageDropdown');
+    if (dd) dd.style.display = 'none';
+    if (!state.currentJid) return;
+    const jid = state.currentJid;
+    try {
+      const r = await apiFetch('/api/whatsapp/chat_etapa.php', 'POST', {
+        _csrf: CSRF, remote_jid: jid, coluna_id: colunaId,
+      });
+      const chat = state.chats.find(c => c.remote_jid === jid);
+      if (chat) {
+        chat.linked_card_id  = r.card_id;
+        chat.card_coluna_id  = r.coluna_id;
+        chat.card_etapa_nome = r.nome;
+        chat.card_etapa_cor  = r.cor;
+        if (state.currentJid === jid) updateStageBadge(chat);
+      }
+      toast('Etapa: ' + r.nome, 'success');
+    } catch (err) {
+      toast(err.message || 'Erro ao mudar a etapa', 'error');
+    }
+  }
+
   async function openLinkModal() {
     if (!state.currentJid) return;
 
@@ -3507,6 +3602,7 @@ const ChatApp = (() => {
     abrirCadastroRapido, fecharCadastroRapido, cadastrarComo,
     openLinkPicker, filterLinkPicker, selectLinkItem, clearLinkItem, removeLinkedProcesso,
     toggleSectorDropdown, setSectorDirect,
+    toggleStageDropdown, setStageDirect,
     openImage, baixarDocumento,
     // P2 wire-up (2026-05-25)
     setReply, cancelReply,

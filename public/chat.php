@@ -2077,6 +2077,20 @@ $marcaChat     = $isFleetiflow ? 'Fleetiflow' : 'Yuris';
                 <div id="sectorDropdown" class="sector-dropdown" style="display:none"></div>
               </div>
 
+<?php if ($isFleetiflow): ?>
+              <!-- ── Etapa do funil: é a coluna do card na Prospecção (mesmo dado) ── -->
+              <div id="stageBadgeWrap" style="position:relative;display:none">
+                <button id="stageBadgeBtn" class="chat-icon-btn sector-badge-btn"
+                        onclick="ChatApp.toggleStageDropdown(event)"
+                        title="Etapa do funil (a mesma da Prospecção)">
+                  <span id="stageDot" class="sector-dot"></span>
+                  <span id="stageBadgeName" style="font-size:.72rem;font-weight:600;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Etapa</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:10px;height:10px;flex-shrink:0;opacity:.6"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div id="stageDropdown" class="sector-dropdown" style="display:none"></div>
+              </div>
+<?php endif; ?>
+
               <!-- Busca dentro da conversa atual -->
               <button class="chat-icon-btn" onclick="ChatApp.toggleChatSearch()" title="Buscar nesta conversa" id="btnChatSearch">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -2468,6 +2482,7 @@ $marcaChat     = $isFleetiflow ? 'Fleetiflow' : 'Yuris';
 const CSRF          = <?= json_encode($csrf) ?>;
 window.CHAT_MARCA        = <?= json_encode($marcaChat) ?>;
 window.CHAT_SEM_JURIDICO = <?= $isFleetiflow ? 'true' : 'false' ?>;
+window.CHAT_ETAPA_FUNIL  = <?= $isFleetiflow ? 'true' : 'false' ?>;
 const AUTO_OPEN_JID = <?= json_encode($auto_open_jid) ?>;
 const API  = {
   config        : '/api/whatsapp/config.php',
@@ -2607,7 +2622,7 @@ const API  = {
   }
 })();
 </script>
-<script src="/assets/chat.js?v=68"></script>
+<script src="/assets/chat.js?v=69"></script>
 <script>
 // Lightbox init
 (function(){

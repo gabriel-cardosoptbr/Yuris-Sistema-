@@ -151,35 +151,15 @@ final class SdrFleetiflow
             $st->execute([$channelId, $remoteJid]);
             $cardId = (int)($st->fetchColumn() ?: 0) ?: null;
 
+            if (!$cardId && $fone !== '') {
+                $cardId = self::garantirCard($accountId, $channelId, $remoteJid, $fone, $contato, $empresa);
+            }
             if ($cardId) {
                 $card = \App\Prospeccao\Card::find($cardId);
                 $antes = trim((string)($card['descricao'] ?? ''));
                 \App\Prospeccao\Card::update($cardId, ['descricao' => trim($antes . "\n\n" . $resumo)]);
-            } else {
-                $coluna = \App\Prospeccao\CaptacaoAutomatica::primeiraColuna($pdo, $accountId);
-                if ($coluna !== null) {
-                    $nome = $empresa !== '' ? $empresa : ($contato !== '' ? $contato
-                        : ($fone !== '' ? \App\Prospeccao\CaptacaoAutomatica::telefoneLegivel($fone) : 'Lead do WhatsApp'));
-                    $cardId = \App\Prospeccao\Card::create([
-                        'account_id'        => $accountId,
-                        'cliente_nome'      => mb_substr($contato !== '' ? $contato : $nome, 0, 180),
-                        'empresa_nome'      => $empresa !== '' ? mb_substr($empresa, 0, 180) : null,
-                        'titulo'            => mb_substr($nome, 0, 180),
-                        'telefone_whatsapp' => $fone !== '' ? $fone : null,
-                        'coluna_id'         => $coluna,
-                        'ordem_na_coluna'   => 0,
-                        'status'            => 'aberto',
-                        'descricao'         => $resumo,
-                        '_usuario_id'       => null,
-                    ]);
-                    $cardId = $cardId ? (int)$cardId : null;
-                    if ($cardId) {
-                        $pdo->prepare('UPDATE whatsapp_chats SET linked_card_id = ? WHERE instance_id = ? AND remote_jid = ? AND linked_card_id IS NULL')
-                            ->execute([$cardId, $channelId, $remoteJid]);
-                    }
-                }
-            }
-            if ($cardId) {
+                if ($empresa !== '') self::nomearSeAnonimo($cardId, $empresa);
+                self::moverEtapa($accountId, $cardId, 'qualificado');
                 \App\Prospeccao\Card::logEvento($cardId, null, 'qualificado_vitoria', 'descricao', null, 'Lead qualificado pela Vitória');
             }
         } catch (\Throwable $e) {
@@ -200,6 +180,335 @@ final class SdrFleetiflow
         }
 
         return ['ok' => true, 'card_id' => $cardId];
+    }
+
+    /* ===================================================================== */
+    /* Funil: todo lead da prospecção vira card, e a etapa anda com a conversa */
+    /* ===================================================================== */
+
+    /**
+     * Etapas do funil Fleetiflow, espelho do funil do Kommo usado no SDR da
+     * Schumaher (corretor -> especialista, visita -> demonstração). A chave é o
+     * que a Vitória e a cadência mandam; o slug é como a coluna é achada. Renomear
+     * a coluna na tela muda o slug, e aí a automação deixa de mover para ela.
+     */
+    public const ETAPAS = [
+        'novo'         => ['Novos leads',                           'novos-leads',                         '#f9deff'],
+        'qualificacao' => ['Em qualificação',                       'em-qualificacao',                     '#ffff99'],
+        'followup'     => ['Follow-up automático',                  'follow-up-automatico',                '#99ccff'],
+        'qualificado'  => ['Qualificado — aguardando especialista', 'qualificado-aguardando-especialista', '#ffcc66'],
+        'especialista' => ['Em atendimento pelo especialista',      'em-atendimento-pelo-especialista',    '#ffcccc'],
+        'negociacao'   => ['Demonstração / negociação',             'demonstracao-negociacao',             '#f9deff'],
+        'bloqueado'    => ['Bloqueado',                             'bloqueado',                           '#99ccff'],
+        'fora_escopo'  => ['Fora do escopo',                        'fora-do-escopo',                      '#f2f3f4'],
+        'venda'        => ['Venda concluída',                       'venda-concluida',                     '#CCFF66'],
+        'perdido'      => ['Perdido / desqualificado',              'perdido-desqualificado',              '#D5D8DB'],
+    ];
+
+    /**
+     * De onde a AUTOMAÇÃO pode tirar o card para cada destino. Fora destas
+     * etapas o card é de uma pessoa: quem arrastou para "Demonstração" não vê a
+     * IA puxar de volta para "Em qualificação". Negociação e venda só à mão.
+     */
+    private const AUTO_DE = [
+        'qualificacao' => ['novo', 'followup'],
+        'followup'     => ['novo', 'qualificacao'],
+        'qualificado'  => ['novo', 'qualificacao', 'followup'],
+        'especialista' => ['novo', 'qualificacao', 'followup', 'qualificado'],
+        'bloqueado'    => ['novo', 'qualificacao', 'followup'],
+        'fora_escopo'  => ['novo', 'qualificacao', 'followup'],
+        'perdido'      => ['novo', 'qualificacao', 'followup'],
+    ];
+
+    /**
+     * Deixa o funil da conta igual a ETAPAS, na ordem. Idempotente. As colunas do
+     * seed padrão viram etapas equivalentes (renomeadas, com os cards dentro);
+     * "Proposta enviada" só sai se nunca teve card, senão fica no fim.
+     *
+     * @return list<string> o que foi feito, para o log do script
+     */
+    public static function montarFunil(\PDO $pdo, int $accountId): array
+    {
+        $herdadas = [
+            'especialista' => ['leads-em-atendimento', 'prospeccao'],
+            'negociacao'   => ['negociacao-juridica', 'negociacao'],
+            'venda'        => ['contrato-fechado', 'fechado'],
+        ];
+        // [conta_funil, conta_oportunidade, conta_fechado, conta_perdido]
+        $flags = [
+            'novo' => [1,0,0,0], 'qualificacao' => [1,0,0,0], 'followup' => [1,0,0,0],
+            'qualificado' => [1,1,0,0], 'especialista' => [1,1,0,0], 'negociacao' => [1,1,0,0],
+            'bloqueado' => [0,0,0,0], 'fora_escopo' => [0,0,0,0], 'venda' => [0,0,1,0], 'perdido' => [0,0,0,1],
+        ];
+
+        $st = $pdo->prepare('SELECT id, slug FROM pipeline_columns WHERE account_id = ?');
+        $st->execute([$accountId]);
+        $porSlug = [];
+        foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) { $porSlug[(string)$r['slug']] = (int)$r['id']; }
+
+        $feito = [];
+        $ordem = 1;
+        foreach (self::ETAPAS as $k => [$nome, $slug, $cor]) {
+            $id = $porSlug[$slug] ?? null;
+            if ($id === null) {
+                foreach ($herdadas[$k] ?? [] as $antigo) {
+                    if (isset($porSlug[$antigo])) { $id = $porSlug[$antigo]; unset($porSlug[$antigo]); break; }
+                }
+            }
+            [$fu, $op, $fe, $pe] = $flags[$k];
+            $dados = ['nome' => $nome, 'cor' => $cor, 'ordem' => $ordem, 'conta_funil' => $fu,
+                      'conta_oportunidade' => $op, 'conta_fechado' => $fe, 'conta_perdido' => $pe];
+            if ($id !== null) {
+                \App\Prospeccao\PipelineColumn::update($id, $dados, [$accountId]);
+                $feito[] = "coluna #$id -> $nome";
+            } else {
+                $id = (int)\App\Prospeccao\PipelineColumn::create($dados + ['account_id' => $accountId]);
+                $feito[] = "criada #$id $nome";
+            }
+            // Slug fixo: o slugify depende do iconv do servidor.
+            $pdo->prepare('UPDATE pipeline_columns SET slug = ? WHERE id = ?')->execute([$slug, $id]);
+            unset($porSlug[$slug]);
+            $ordem++;
+        }
+
+        // Sobras do seed (ex.: "Proposta enviada"): sai se nunca teve card, senão vai para o fim.
+        foreach ($porSlug as $slug => $id) {
+            $st = $pdo->prepare('SELECT COUNT(*) FROM cards WHERE coluna_id = ?');
+            $st->execute([$id]);
+            if ((int)$st->fetchColumn() === 0) {
+                \App\Prospeccao\PipelineColumn::delete($id, [$accountId]);
+                $feito[] = "removida #$id ($slug, sem cards)";
+            } else {
+                \App\Prospeccao\PipelineColumn::update($id, ['ordem' => $ordem++], [$accountId]);
+                $feito[] = "mantida #$id ($slug, tem cards) no fim";
+            }
+        }
+        return $feito;
+    }
+
+    /** "Qualificado — aguardando especialista" -> "qualificado-aguardando-especialista" */
+    private static function chaveTexto(string $s): string
+    {
+        $s = strtr(mb_strtolower($s), ['á'=>'a','à'=>'a','â'=>'a','ã'=>'a','é'=>'e','ê'=>'e','í'=>'i',
+                                       'ó'=>'o','ô'=>'o','õ'=>'o','ú'=>'u','ü'=>'u','ç'=>'c']);
+        return trim((string)preg_replace('/[^a-z0-9]+/', '-', $s), '-');
+    }
+
+    /** @return array<string,int> chave da etapa => id da coluna, só as que existem */
+    public static function colunasDaConta(\PDO $pdo, int $accountId): array
+    {
+        $st = $pdo->prepare('SELECT id, slug, nome FROM pipeline_columns WHERE account_id = ? ORDER BY ordem, id');
+        $st->execute([$accountId]);
+        $porSlug = [];
+        // Pelo nome também: o slugify do PipelineColumn depende do iconv do
+        // servidor e pode perder o "ç"/"ã"; o nome normalizado aqui não.
+        foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+            $porSlug[self::chaveTexto((string)$r['nome'])] ??= (int)$r['id'];
+            $porSlug[(string)$r['slug']] ??= (int)$r['id'];
+        }
+        $out = [];
+        foreach (self::ETAPAS as $k => [, $slug]) {
+            if (isset($porSlug[$slug])) $out[$k] = $porSlug[$slug];
+        }
+        return $out;
+    }
+
+    /**
+     * Garante que o lead tem card e que a conversa aponta para ele. Procura
+     * primeiro a conversa já ligada, depois um card com o mesmo telefone (últimos
+     * 8 dígitos, como a captação), e só então cria em "Novos leads".
+     *
+     * Robô de apresentação, Vitória e webhook chamam isto quase no mesmo segundo
+     * para o mesmo número; o GET_LOCK por telefone impede dois cards.
+     *
+     * @return int|null id do card, ou null quando não dá (sem telefone, cliente, sem coluna)
+     */
+    public static function garantirCard(
+        int $accountId,
+        ?int $instanceId,
+        ?string $remoteJid,
+        string $telefone,
+        ?string $nome = null,
+        ?string $empresa = null
+    ): ?int {
+        $pdo  = \App\Core\Database::getConnection();
+        $fone = preg_replace('/[^0-9]/', '', $telefone);
+        if (strlen($fone) < 10 || strlen($fone) > 13) return null;
+        $fim  = substr($fone, -8);
+
+        $trava = 'sdr_card_' . $accountId . '_' . $fim;
+        $st = $pdo->prepare('SELECT GET_LOCK(?, 5)');
+        $st->execute([$trava]);
+        try {
+            $cardId = null;
+            if ($instanceId && $remoteJid) {
+                $st = $pdo->prepare(
+                    'SELECT wc.linked_card_id FROM whatsapp_chats wc
+                       JOIN cards c ON c.id = wc.linked_card_id AND c.deleted_at IS NULL
+                      WHERE wc.instance_id = ? AND wc.remote_jid = ? LIMIT 1'
+                );
+                $st->execute([$instanceId, $remoteJid]);
+                $cardId = (int)($st->fetchColumn() ?: 0) ?: null;
+            }
+
+            if (!$cardId) {
+                $st = $pdo->prepare(
+                    "SELECT id FROM cards
+                      WHERE account_id = ? AND deleted_at IS NULL
+                        AND RIGHT(REGEXP_REPLACE(COALESCE(telefone_whatsapp,''), '[^0-9]', ''), 8) = ?
+                   ORDER BY id DESC LIMIT 1"
+                );
+                $st->execute([$accountId, $fim]);
+                $cardId = (int)($st->fetchColumn() ?: 0) ?: null;
+            }
+
+            if (!$cardId) {
+                // Quem já é cliente não volta para o funil de prospecção.
+                $st = $pdo->prepare(
+                    "SELECT 1 FROM clientes
+                      WHERE account_id = ? AND deleted_at IS NULL
+                        AND (RIGHT(REGEXP_REPLACE(COALESCE(whatsapp,''), '[^0-9]', ''), 8) = ?
+                          OR RIGHT(REGEXP_REPLACE(COALESCE(telefone,''), '[^0-9]', ''), 8) = ?)
+                      LIMIT 1"
+                );
+                $st->execute([$accountId, $fim, $fim]);
+                if ($st->fetchColumn()) return null;
+
+                $colunas = self::colunasDaConta($pdo, $accountId);
+                $coluna  = $colunas['novo'] ?? \App\Prospeccao\CaptacaoAutomatica::primeiraColuna($pdo, $accountId);
+                if ($coluna === null) return null;
+
+                $empresa = trim((string)$empresa);
+                $rotulo  = $empresa !== '' ? $empresa : trim((string)$nome);
+                if ($rotulo === '' || preg_match('/^[+0-9 ()-]+$/', $rotulo)) {
+                    $rotulo = \App\Prospeccao\CaptacaoAutomatica::telefoneLegivel($fone);
+                }
+                $rotulo = mb_substr($rotulo, 0, 180);
+
+                $cardId = (int)\App\Prospeccao\Card::create([
+                    'account_id'        => $accountId,
+                    'titulo'            => $rotulo,
+                    'cliente_nome'      => $rotulo,
+                    'empresa_nome'      => $empresa !== '' ? mb_substr($empresa, 0, 180) : null,
+                    'telefone_whatsapp' => $fone,
+                    'coluna_id'         => $coluna,
+                    'ordem_na_coluna'   => 0,
+                    'status'            => 'aberto',
+                    'descricao'         => 'Lead da prospecção ativa pelo WhatsApp (Fleeti Flow).',
+                    '_usuario_id'       => null,
+                ]) ?: null;
+                if (!$cardId) return null;
+                \App\Prospeccao\Card::logEvento($cardId, null, 'captado_whatsapp', 'telefone', null, $fone);
+            } elseif (trim((string)$empresa) !== '') {
+                self::nomearSeAnonimo($cardId, (string)$empresa);
+            }
+
+            if ($instanceId && $remoteJid) {
+                $st = $pdo->prepare('SELECT linked_card_id FROM whatsapp_chats WHERE instance_id = ? AND remote_jid = ? LIMIT 1');
+                $st->execute([$instanceId, $remoteJid]);
+                $atual = $st->fetch(\PDO::FETCH_ASSOC);
+                // Só amarra conversa solta: vínculo feito à mão não é desfeito aqui.
+                if ($atual !== false && empty($atual['linked_card_id'])) {
+                    (new WhatsAppMessage())->linkChat($instanceId, $remoteJid, ['linked_card_id' => $cardId]);
+                }
+            }
+            return $cardId;
+        } finally {
+            $pdo->prepare('SELECT RELEASE_LOCK(?)')->execute([$trava]);
+        }
+    }
+
+    /**
+     * O card nasceu com o telefone no nome (a mensagem saiu antes de alguém dizer
+     * qual empresa era). Quando o nome da empresa chega, ele entra no lugar. Nome
+     * que alguém já escreveu não é tocado.
+     */
+    private static function nomearSeAnonimo(int $cardId, string $empresa): void
+    {
+        $empresa = mb_substr(trim($empresa), 0, 180);
+        $card = \App\Prospeccao\Card::find($cardId);
+        if (!$card) return;
+        $dados = [];
+        if (trim((string)($card['empresa_nome'] ?? '')) === '') $dados['empresa_nome'] = $empresa;
+        foreach (['cliente_nome', 'titulo'] as $campo) {
+            $v = trim((string)($card[$campo] ?? ''));
+            if ($v === '' || preg_match('/^[+0-9 ()-]+$/', $v)) $dados[$campo] = $empresa;
+        }
+        if ($dados) \App\Prospeccao\Card::update($cardId, $dados);
+    }
+
+    /**
+     * Move o card para a etapa, se a automação pode. Devolve true quando moveu.
+     * Com $forcar (pessoa escolhendo no Chat) a regra de origem não vale.
+     */
+    public static function moverEtapa(int $accountId, int $cardId, string $etapa, ?int $usuarioId = null, bool $forcar = false): bool
+    {
+        if (!isset(self::ETAPAS[$etapa])) return false;
+        $pdo = \App\Core\Database::getConnection();
+        $colunas = self::colunasDaConta($pdo, $accountId);
+        if (!isset($colunas[$etapa])) return false;
+
+        $card = \App\Prospeccao\Card::find($cardId);
+        if (!$card || (int)$card['account_id'] !== $accountId) return false;
+        $atual = (int)($card['coluna_id'] ?? 0);
+        if ($atual === $colunas[$etapa]) return false;
+
+        if (!$forcar) {
+            $etapaAtual = array_search($atual, $colunas, true);
+            if ($etapaAtual === false || !in_array($etapaAtual, self::AUTO_DE[$etapa] ?? [], true)) return false;
+        }
+        return (bool)\App\Prospeccao\Card::move($cardId, $colunas[$etapa], 0, $usuarioId);
+    }
+
+    /**
+     * Webhook: mensagem nova numa conversa individual de conta Fleetiflow, nos
+     * DOIS sentidos. A captação da Yuris só olha mensagem recebida, e a
+     * prospecção ativa começa com a NOSSA mensagem: por isso o lead que ainda não
+     * respondeu nunca virava card. Mensagem digitada no aparelho = uma pessoa do
+     * time atendendo, então o card vai para "Em atendimento pelo especialista".
+     */
+    public static function aoMensagem(int $accountId, int $instanceId, string $remoteJid, array $key, bool $fromMe, ?string $origem, ?string $pushName, $ts): void
+    {
+        try {
+            // Reenvio de histórico ao reconectar não é conversa nova.
+            if (is_numeric($ts) && abs(time() - (int)$ts) > 900) return;
+
+            if (str_ends_with($remoteJid, '@s.whatsapp.net')) {
+                $fone = explode('@', $remoteJid)[0];
+            } elseif (str_ends_with($remoteJid, '@lid') && str_ends_with((string)($key['remoteJidAlt'] ?? ''), '@s.whatsapp.net')) {
+                $fone = explode('@', (string)$key['remoteJidAlt'])[0];
+            } else {
+                return; // grupo, canal, ou @lid sem telefone
+            }
+
+            $cardId = self::garantirCard($accountId, $instanceId, $remoteJid, $fone, $fromMe ? null : $pushName);
+            if ($cardId && $fromMe && in_array(strtolower((string)$origem), self::APARELHO, true)) {
+                self::moverEtapa($accountId, $cardId, 'especialista');
+            }
+        } catch (\Throwable $e) {
+            error_log('[sdr_fleetiflow] card da conversa falhou (mensagem preservada): ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Alguém do time respondeu pelo Chat do CRM: a Vitória sai da conversa e o
+     * card vai para "Em atendimento pelo especialista" (se ainda estava com a IA).
+     */
+    public static function pessoaAssumiu(int $accountId, int $instanceId, string $remoteJid, ?int $userId): void
+    {
+        self::pausar($instanceId, $remoteJid, $userId);
+        try {
+            $pdo = \App\Core\Database::getConnection();
+            $st = $pdo->prepare('SELECT linked_card_id FROM whatsapp_chats WHERE instance_id = ? AND remote_jid = ? LIMIT 1');
+            $st->execute([$instanceId, $remoteJid]);
+            $cardId = (int)($st->fetchColumn() ?: 0) ?: null;
+            if (!$cardId && str_ends_with($remoteJid, '@s.whatsapp.net')) {
+                $cardId = self::garantirCard($accountId, $instanceId, $remoteJid, explode('@', $remoteJid)[0]);
+            }
+            if ($cardId) self::moverEtapa($accountId, $cardId, 'especialista', $userId);
+        } catch (\Throwable $e) {
+            error_log('[sdr_fleetiflow] etapa do atendimento humano falhou: ' . $e->getMessage());
+        }
     }
 
     /** Pausa a Vitória numa conversa (mesmo escritor do "Assumir conversa"). */

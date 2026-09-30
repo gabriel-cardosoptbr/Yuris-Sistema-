@@ -625,6 +625,11 @@ class WhatsAppMessage
         $sql = 'SELECT c.*,
                        t.nome AS team_nome,
                        t.cor  AS team_cor,
+                       -- Etapa do funil = coluna do card ligado (o Chat da conta
+                       -- Fleetiflow mostra e troca por aqui; ver chat_etapa.php).
+                       cd.coluna_id AS card_coluna_id,
+                       pcol.nome    AS card_etapa_nome,
+                       pcol.cor     AS card_etapa_cor,
                        COALESCE(
                            CASE WHEN COALESCE(c.is_manual_name,0)=1 THEN c.contact_name END,
                            -- A IDENTIDADE CONSOLIDADA (migration 129) vem logo depois do
@@ -703,6 +708,8 @@ class WhatsAppMessage
                        ) AS real_phone
                 FROM whatsapp_chats c
                 LEFT JOIN teams t ON t.id = c.team_id AND t.deleted_at IS NULL
+                LEFT JOIN cards cd ON cd.id = c.linked_card_id AND cd.deleted_at IS NULL
+                LEFT JOIN pipeline_columns pcol ON pcol.id = cd.coluna_id
                 WHERE c.instance_id = ? AND c.is_archived = ' . ($archived ? '1' : '0') . '
                   -- Esconde status/broadcast e newsletter (nao sao conversas).
                   AND c.remote_jid NOT LIKE \'%@broadcast\'

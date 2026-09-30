@@ -9,8 +9,8 @@
  *   1. `accounts.configuracoes` já nasce com {"produto":"fleetiflow"} — é o que
  *      `AccountContext::getProduto()`/`moduloJuridicoDisponivel()` leem para
  *      esconder e bloquear o jurídico só para esta conta.
- *   2. Depois do seed padrão, renomeia a etapa "Negociação jurídica" do funil
- *      para "Negociação" e remove o setor "Jurídico" de Clientes NESTA conta
+ *   2. Depois do seed padrão, troca o funil pelo da prospecção Fleetiflow
+ *      (SdrFleetiflow::montarFunil) e remove o setor "Jurídico" de Clientes NESTA conta
  *      (dado, não código — os outros 7 setores/a etapa em si continuam
  *      genéricos e servem normalmente).
  *   3. Usa `Account::audit()` (grava direto em account_audit_log), não
@@ -150,10 +150,9 @@ try {
 
     // 5. Ajusta terminologia herdada do seed padrão que soa jurídica —
     //    dado da conta, não código: o próximo admin pode editar por trás da UI.
-    $pdo->prepare(
-        "UPDATE pipeline_columns SET nome = 'Negociação'
-          WHERE account_id = :aid AND slug = 'negociacao-juridica'"
-    )->execute(['aid' => $accountId]);
+    //    O funil vira o da prospecção Fleetiflow (espelho do Kommo), o mesmo que a
+    //    Vitória e a cadência movem. Ver SdrFleetiflow::ETAPAS.
+    \App\WhatsAppAgente\SdrFleetiflow::montarFunil($pdo, $accountId);
     $pdo->prepare(
         "DELETE FROM clientes_setores WHERE account_id = :aid AND slug = 'juridico'"
     )->execute(['aid' => $accountId]);

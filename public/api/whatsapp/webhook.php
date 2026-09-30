@@ -630,6 +630,16 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
         error_log('[whatsapp/webhook] Identidade falhou (mensagem preservada): ' . $e->getMessage());
     }
 
+    // Conta Fleetiflow: a prospecção é ativa, então o lead nasce com a NOSSA
+    // mensagem, não com a dele. Enviada ou recebida, conversa individual nova vira
+    // card em "Novos leads" já ligado a ela. Ver SdrFleetiflow::aoMensagem.
+    if (\App\WhatsAppAgente\SdrFleetiflow::contaUsa($accountId)) {
+        \App\WhatsAppAgente\SdrFleetiflow::aoMensagem(
+            $accountId, $instanceId, $remoteJid, $key, $fromMe,
+            is_array($msg) ? ($msg['source'] ?? null) : null, $pushName, $ts
+        );
+    }
+
     // Fire webhook only for inbound messages (received from contacts)
     if (!$fromMe) {
         // P0 LGPD: resolve account_id da instância para não vazar evento cross-tenant

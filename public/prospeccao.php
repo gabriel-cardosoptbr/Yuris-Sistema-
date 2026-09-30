@@ -118,6 +118,12 @@ function normalize_stage_label(string $text): string
 
 function column_display_name(array $col): string
 {
+    // Fleetiflow tem funil próprio (o do Kommo): o nome da coluna vale como está.
+    // Os apelidos abaixo são do funil jurídico e trocariam "Novos leads" por
+    // "Leads em atendimento" e "Demonstração / negociação" por "Negociação jurídica".
+    if (!$GLOBALS['moduloJuridico']) {
+        return (string)($col['nome'] ?? 'Etapa comercial');
+    }
     $slug = normalize_stage_label((string)($col['slug'] ?? ''));
     $nome = normalize_stage_label((string)($col['nome'] ?? ''));
     $base = $slug !== '' ? $slug : $nome;
@@ -1777,6 +1783,8 @@ function column_display_name(array $col): string
     }
 
     function stageDisplayName(column) {
+      // Fleetiflow: nome da coluna como está (ver column_display_name no PHP).
+      if (<?= $moduloJuridico ? 'false' : 'true' ?>) return column.nome || 'Etapa comercial';
       const slug = normalizeText(column.slug || '');
       const nome = normalizeText(column.nome || '');
       const base = slug || nome;
