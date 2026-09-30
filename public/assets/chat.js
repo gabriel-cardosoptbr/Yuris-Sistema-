@@ -3461,9 +3461,10 @@ const ChatApp = (() => {
         estilo = ['Com a Vitória', '#015DFC', '#FFFFFF', '#015DFC', 'A Vitória (IA) está atendendo esta conversa. Clique para assumir.'];
       }
       lbl.textContent = estilo[0];
-      btn.style.background = estilo[1];
-      btn.style.color = estilo[2];
-      btn.style.borderColor = estilo[3];
+      // 'important': o tema claro da Fleetiflow força fundo branco nos botões do cabeçalho.
+      btn.style.setProperty('background', estilo[1], 'important');
+      btn.style.setProperty('color', estilo[2], 'important');
+      btn.style.setProperty('border-color', estilo[3], 'important');
       btn.title = estilo[4];
       btn.dataset.estado = estilo[0];
       return;
