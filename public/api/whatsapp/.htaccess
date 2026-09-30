@@ -1,0 +1,8 @@
+# Webhook da Evolution: a mensagem de mídia chega com o arquivo em base64 no
+# próprio corpo (áudio, documento, vídeo). Com o padrão do PHP (8M) um arquivo
+# de uns 6 MB já era descartado e a mensagem sumia do Chat. Vale só para esta
+# pasta. O nginx do host também precisa aceitar (client_max_body_size 64m em /api/).
+<IfModule mod_php.c>
+    php_value post_max_size 64M
+    php_value upload_max_filesize 64M
+</IfModule>
