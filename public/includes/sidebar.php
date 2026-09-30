@@ -356,6 +356,15 @@ $_notifTempo = function ($raw) {
   html[data-theme="light"] .sidebar-footer.sb-rodape a.active::after{ content:''; position:absolute; right:0; top:50%; width:3px; height:22px; border-radius:999px; background:#015DFC; transform:translateY(-50%); }
   html[data-theme="light"] .sidebar-footer.sb-rodape a.is-logout:hover{ background:#FFF1F1 !important; color:#B00000 !important; }
   html[data-theme="light"] .sidebar-footer.sb-rodape a.is-logout:hover .icon svg{ stroke:#B00000; }
+
+  /* Tela estreita (mesmo corte em que sidebar.css mostra a .mobile-tabbar):
+     248px de menu espremiam o conteúdo. A barra de abas de baixo já faz a
+     navegação; o menu lateral some, e os dois nunca aparecem juntos. */
+  @media (max-width:900px){
+    html[data-theme="light"] .sidebar{ display:none !important; }
+    html[data-theme="light"] .page-layout:has(> .sidebar) > :not(.sidebar),
+    html[data-theme="light"] .layout:has(> .sidebar) > :not(.sidebar){ padding:16px 16px 84px !important; }
+  }
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <?php endif; ?>
