@@ -111,6 +111,16 @@ $_notifTempo = function ($raw) {
 <!-- Nome na aba do navegador: 23 páginas escrevem "Yuris" no <title>. Em vez de
      uma condição em cada uma, a troca é feita aqui, só para a conta Fleetiflow. -->
 <script>(function(){try{if(/Yuris/.test(document.title))document.title=document.title.replace(/Yuris/g,"Fleetiflow");}catch(e){}})();</script>
+<!-- Ícone da aba: 24 páginas apontam para o favicon do Yuris (a balança). Aqui ele é
+     trocado pelo "F" da Fleetiflow. O ?v= muda a URL de propósito: o Chrome guarda o
+     favicon por endereço, e sem isso a aba continuaria com a balança por dias. -->
+<script>(function(){try{
+  var L=document.querySelectorAll('link[rel~="icon"],link[rel="apple-touch-icon"]');
+  for(var i=0;i<L.length;i++){L[i].parentNode.removeChild(L[i]);}
+  [['icon','32x32','/assets/fleetiflow-favicon-32.png?v=1'],['icon','192x192','/assets/fleetiflow-favicon-192.png?v=1'],['apple-touch-icon','180x180','/assets/fleetiflow-apple-touch-icon.png?v=1']].forEach(function(d){
+    var l=document.createElement('link');l.rel=d[0];l.type='image/png';l.sizes=d[1];l.href=d[2];document.head.appendChild(l);
+  });
+}catch(e){}})();</script>
 <!-- Identidade Fleetiflow: o produto real é claro, então a conta entra no
      tema claro do Yuris (já existe e é testado em yuris-theme.css; não
      reinventamos um) na PRIMEIRA visita, sem brigar depois com uma escolha

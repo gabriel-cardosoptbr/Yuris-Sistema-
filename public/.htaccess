@@ -25,6 +25,15 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
+    # Ícone da aba no domínio do CRM Fleetiflow: as páginas (login, legais, as sem
+    # sidebar) apontam para o favicon do Yuris, e aqui o Apache entrega o "F" da
+    # Fleetiflow no lugar, só para este host. Yuris continua com o dele.
+    # Mesmo host de FLEETIFLOW_DOMAINS no .env; outro domínio novo = outra linha aqui.
+    RewriteCond %{HTTP_HOST} ^crm\.fleetiflow\.com\.br$ [NC]
+    RewriteRule ^assets/favicon-(32|192)\.png$ assets/fleetiflow-favicon-$1.png [L]
+    RewriteCond %{HTTP_HOST} ^crm\.fleetiflow\.com\.br$ [NC]
+    RewriteRule ^favicon\.ico$ assets/fleetiflow-favicon-32.png [L]
+
     # Alvo relativo (sem barra inicial): resolve para public/index.php
     # independentemente de o DocumentRoot ser public/ (porta 8090 e producao)
     # ou a raiz do repositorio (porta 80 do XAMPP).

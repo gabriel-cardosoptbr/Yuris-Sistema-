@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Entrar — Fleetiflow</title>
   <meta name="robots" content="noindex,follow">
-  <link rel="icon" type="image/png" href="/sistema_vendas/Imagens/fleetiflow-icone.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/fleetiflow-favicon-32.png?v=1"><link rel="icon" type="image/png" sizes="192x192" href="/assets/fleetiflow-favicon-192.png?v=1"><link rel="apple-touch-icon" href="/assets/fleetiflow-apple-touch-icon.png?v=1">
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script>/* ff_terms_preboot — mesma lógica do login padrão: sem flash de reaceite */
     (function(){try{
