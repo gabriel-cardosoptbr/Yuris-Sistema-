@@ -49,7 +49,7 @@ function ffc_kpi(string $id, string $rotulo, string $ico, string $tom = '', stri
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light"||t===null)document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
   <link rel="stylesheet" href="/assets/yuris-theme.css?v=42">
   <link rel="stylesheet" href="/assets/sidebar.css?v=19">
-  <link rel="stylesheet" href="/assets/fleetiflow-dashboard.css?v=3">
+  <link rel="stylesheet" href="/assets/fleetiflow-dashboard.css?v=4">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -154,6 +154,29 @@ function ffc_kpi(string $id, string $rotulo, string $ico, string $tom = '', stri
         </div>
       </div>
 
+      <!-- ── 2b. Prospecção: entrada de leads (7) + funil da coorte (5) ──── -->
+      <div class="ffc-grade">
+        <div class="ffc-card ffc-col-7 ffc-meio" id="cardProspeccao">
+          <div class="ffc-card-cab">
+            <div>
+              <h2 class="ffc-card-titulo">Prospecção</h2>
+              <div class="ffc-card-sub" id="prospSub">Leads que entraram por dia e em que pé estão hoje</div>
+            </div>
+          </div>
+          <div class="ffc-grafico" id="prospArea"><canvas id="prospCanvas"></canvas></div>
+          <div class="ffc-legenda" id="prospLegenda"></div>
+        </div>
+        <div class="ffc-card ffc-col-5 ffc-meio" id="cardFunilProsp">
+          <div class="ffc-card-cab">
+            <div>
+              <h2 class="ffc-card-titulo">Funil de prospecção</h2>
+              <div class="ffc-card-sub" id="funilSub">Por onde os leads do período já passaram</div>
+            </div>
+          </div>
+          <div id="funilArea"></div>
+        </div>
+      </div>
+
       <!-- ── 3. Meta (4) + Atividades (8) ────────────────────────────────── -->
       <div class="ffc-grade">
         <div class="ffc-card ffc-col-4 ffc-meio" id="cardMeta">
@@ -245,6 +268,6 @@ function ffc_kpi(string $id, string $rotulo, string $ico, string $tom = '', stri
 </div>
 <div class="ffc-toast" id="ffcToast" role="status" aria-live="polite"></div>
 
-<script src="/assets/fleetiflow-dashboard.js?v=3"></script>
+<script src="/assets/fleetiflow-dashboard.js?v=4"></script>
 </body>
 </html>

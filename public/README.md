@@ -114,7 +114,8 @@ dias, mês, mês passado, ano, personalizado; persiste em sessão pelo mesmo
 KPIs pequenos com comparação ao período anterior equivalente (leads, oportunidades,
 vendas, receita em destaque, conversão, ticket); performance com abas
 Receita/Vendas/Conversão; pipeline em rosca com lista e chips do que está fora
-do funil; meta do mês em barra de progresso com ritmo e projeção; tabela de
+do funil; prospecção (leads que entraram por dia, empilhados pelo que viraram)
+e funil da coorte (por quais etapas esses leads já passaram, via `card_history`); meta do mês em barra de progresso com ritmo e projeção; tabela de
 atividades recentes (busca, filtro por etapa, "Ver todas", linha abre o card por
 `prospeccao.php?open=`); evolução por dia/semana/mês; e o financeiro (DRE)
 abaixo da dobra. Sem dados o lugar do gráfico mostra um estado vazio, nunca um

@@ -86,7 +86,8 @@
 /* ── Grade de 12 colunas ───────────────────────────────────────────────── */
 .ffc-grade{ display:grid; grid-template-columns:repeat(12, minmax(0,1fr)); gap:var(--ffc-gap); }
 .ffc-col-2{ grid-column:span 2; } .ffc-col-3{ grid-column:span 3; } .ffc-col-4{ grid-column:span 4; }
-.ffc-col-6{ grid-column:span 6; } .ffc-col-8{ grid-column:span 8; } .ffc-col-12{ grid-column:span 12; }
+.ffc-col-5{ grid-column:span 5; } .ffc-col-6{ grid-column:span 6; } .ffc-col-7{ grid-column:span 7; }
+.ffc-col-8{ grid-column:span 8; } .ffc-col-12{ grid-column:span 12; }
 
 /* ── Card base ─────────────────────────────────────────────────────────── */
 .ffc-card{
@@ -192,6 +193,19 @@
 .ffc-chip--bom{ background:var(--ffc-bom-fundo); color:var(--ffc-bom); } .ffc-chip--bom b{ color:var(--ffc-bom); }
 .ffc-chip--ruim{ background:var(--ffc-ruim-fundo); color:var(--ffc-ruim); } .ffc-chip--ruim b{ color:var(--ffc-ruim); }
 
+/* ── Funil de prospecção (barras horizontais, coorte do período) ───────── */
+.ffc-funil{ display:flex; flex-direction:column; gap:9px; }
+.ffc-funil-item{ display:grid; grid-template-columns:minmax(0,1fr) 30px 46px; align-items:center; gap:8px; font-size:12px; color:var(--ffc-texto-2); }
+.ffc-funil-item .nome{ display:flex; align-items:center; gap:7px; min-width:0; }
+.ffc-funil-item .nome span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ffc-funil-item .nome i{ width:7px; height:7px; border-radius:50%; flex:none; }
+.ffc-funil-item b{ color:var(--ffc-texto); font-weight:800; text-align:right; }
+.ffc-funil-item .pct{ color:var(--ffc-texto-4); text-align:right; font-size:11px; }
+.ffc-funil-barra{ grid-column:1 / -1; height:7px; border-radius:999px; background:var(--ffc-neutro); overflow:hidden; margin-top:-3px; }
+.ffc-funil-barra i{ display:block; height:100%; border-radius:999px; background:var(--ffc-marca); transition:width .6s cubic-bezier(.2,0,0,1); }
+.ffc-funil-rodape{ display:flex; justify-content:space-between; gap:8px; padding-top:10px; margin-top:2px; border-top:1px solid var(--ffc-borda); font-size:12px; color:var(--ffc-texto-3); flex-wrap:wrap; }
+.ffc-funil-rodape b{ color:var(--ffc-texto); }
+
 /* ── Meta em progresso ─────────────────────────────────────────────────── */
 .ffc-meta-valor{ font-size:24px; font-weight:800; color:var(--ffc-texto); letter-spacing:-0.02em; line-height:1; }
 .ffc-meta-valor small{ font-size:12px; font-weight:600; color:var(--ffc-texto-4); margin-left:6px; letter-spacing:0; }
@@ -286,13 +300,13 @@
 }
 @media (max-width:1180px){
   .ffc-kpi{ grid-column:span 4; }
-  .ffc-col-8, .ffc-col-4, .ffc-col-3{ grid-column:span 12; }
-  .ffc-col-8.ffc-meio, .ffc-col-4.ffc-meio{ grid-column:span 6; }
+  .ffc-col-8, .ffc-col-7, .ffc-col-5, .ffc-col-4, .ffc-col-3{ grid-column:span 12; }
+  .ffc-col-8.ffc-meio, .ffc-col-7.ffc-meio, .ffc-col-5.ffc-meio, .ffc-col-4.ffc-meio{ grid-column:span 6; }
 }
 @media (max-width:768px){
   .ffc{ gap:12px; }
   .ffc-kpi{ grid-column:span 6; min-height:104px; }
-  .ffc-col-8.ffc-meio, .ffc-col-4.ffc-meio{ grid-column:span 12; }
+  .ffc-col-8.ffc-meio, .ffc-col-7.ffc-meio, .ffc-col-5.ffc-meio, .ffc-col-4.ffc-meio{ grid-column:span 12; }
   .ffc-grade{ gap:12px; }
   .ffc-card{ padding:14px; }
   .ffc-grafico{ height:190px; }

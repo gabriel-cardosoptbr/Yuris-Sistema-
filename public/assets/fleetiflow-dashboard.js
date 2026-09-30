@@ -48,7 +48,7 @@
     origin: raiz.dataset.origin || '', abaPerf: 'receita', granEvo: 'mes',
     dados: null, ativLimite: 5, ativBusca: '', ativEtapa: '', corEtapa: {}
   };
-  let graficoPerf = null, graficoEvo = null;
+  let graficoPerf = null, graficoEvo = null, graficoProsp = null;
 
   // ── Componentes reutilizáveis ─────────────────────────────────────────────
   const ICO_SOBE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>';
@@ -164,6 +164,7 @@
       desenharKpis(j);
       desenharPerformance(j);
       desenharPipeline(j);
+      desenharProspeccao(j);
       desenharMeta(j);
       desenharAtividades(j);
       desenharEvolucao(j);
@@ -294,6 +295,64 @@
       return `<span class="ffc-chip ${tom}" title="${esc(p.nome)}"><span>${esc(p.nome)}</span><b>${p.qtd}</b></span>`;
     }).join('');
     area.innerHTML = `<div class="ffc-rosca">${rosca(funil, total, 'oportunidades')}<div class="ffc-rosca-lista">${lista}</div></div>` + (chips ? `<div class="ffc-fora-funil">${chips}</div>` : '');
+  }
+
+  // ── 3b. Prospecção: entrada de leads e funil da coorte ────────────────────
+  const GRUPO = {
+    novo:       { nome: 'Ainda sem resposta', cor: COR.marcaMedia },
+    andamento:  { nome: 'Em qualificação / follow-up', cor: COR.marca },
+    avancou:    { nome: 'Avançaram no funil', cor: COR.bom },
+    descartado: { nome: 'Descartados', cor: '#D5D8DB' }
+  };
+  function desenharProspeccao(j) {
+    const pr = j.prospeccao || { serie: [], funil: [], entraram: 0, descartados: 0 };
+    const area = $('prospArea'), leg = $('prospLegenda'), gran = GRAN_NOME[j.periodo.granularidade] || 'dia';
+    if (graficoProsp) { graficoProsp.destroy(); graficoProsp = null; }
+    if (!(pr.entraram > 0)) {
+      area.innerHTML = vazio('Nenhum lead entrou neste período', 'Os leads abordados pela Vitória e os cards criados na prospecção aparecem aqui por ' + gran + '.', { href: '/prospeccao.php', rotulo: 'Abrir prospecção' });
+      area.style.height = 'auto'; leg.innerHTML = ''; $('prospSub').textContent = 'Sem entrada de leads no período';
+    } else {
+      area.style.height = ''; area.innerHTML = '<canvas id="prospCanvas"></canvas>';
+      $('prospSub').textContent = `${inteiro.format(pr.entraram)} leads entraram, por ${gran}, e em que pé estão hoje`;
+      const ordem = ['avancou', 'andamento', 'novo', 'descartado'];
+      leg.innerHTML = ordem.map(g => `<span><i style="background:${GRUPO[g].cor}"></i>${GRUPO[g].nome}</span>`).join('');
+      graficoProsp = new Chart($('prospCanvas').getContext('2d'), {
+        type: 'bar',
+        data: { labels: pr.serie.map(p => p.label), datasets: ordem.map((g, i) => ({
+          label: GRUPO[g].nome, data: pr.serie.map(p => p[g]), backgroundColor: GRUPO[g].cor, stack: 'leads',
+          borderRadius: i === ordem.length - 1 ? 4 : 0, borderSkipped: false, maxBarThickness: 22
+        })) },
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: { duration: 500, easing: 'easeOutQuart' },
+          interaction: { mode: 'index', intersect: false },
+          plugins: { legend: { display: false }, tooltip: Object.assign({}, tooltipPadrao, { filter: c => c.parsed.y > 0, callbacks: {
+            label: c => ' ' + c.dataset.label + ': ' + inteiro.format(c.parsed.y),
+            footer: items => { const t = items.reduce((s, c) => s + c.parsed.y, 0); return t ? 'Total: ' + inteiro.format(t) : ''; }
+          } }) },
+          scales: {
+            x: { stacked: true, grid: { display: false }, border: { display: false }, ticks: { maxTicksLimit: 12, maxRotation: 0, autoSkip: true } },
+            y: { stacked: true, beginAtZero: true, grid: { color: COR.grade }, border: { display: false, dash: [3, 3] }, ticks: { precision: 0, maxTicksLimit: 5 } }
+          }
+        }
+      });
+    }
+    // Funil da coorte
+    const fa = $('funilArea');
+    if (!(pr.entraram > 0)) {
+      fa.innerHTML = vazio('Sem leads no período', 'O funil mostra por quais etapas os leads que entraram já passaram.');
+      $('funilSub').textContent = 'Por onde os leads do período já passaram'; return;
+    }
+    const max = Math.max(1, ...pr.funil.map(f => f.qtd));
+    const cores = { novo: COR.marcaMedia, andamento: COR.marca, avancou: COR.bom };
+    fa.innerHTML = '<div class="ffc-funil">' + pr.funil.map(f => {
+      const cor = estado.corEtapa[f.slug] || cores[f.grupo] || COR.marca;
+      return `<div class="ffc-funil-item" title="${esc(f.nome)}: ${f.qtd} de ${pr.entraram}">
+        <div class="nome"><i style="background:${cor}"></i><span>${esc(f.nome)}</span></div><b>${inteiro.format(f.qtd)}</b><span class="pct">${f.pct === null ? '—' : fmtPct(f.pct)}</span>
+        <div class="ffc-funil-barra"><i style="width:${Math.round(f.qtd / max * 100)}%;background:${cor}"></i></div>
+      </div>`;
+    }).join('') + '</div>' +
+      `<div class="ffc-funil-rodape"><span><b>${inteiro.format(pr.entraram)}</b> entraram</span><span><b>${inteiro.format(pr.descartados)}</b> descartados (${pr.entraram ? fmtPct(pr.descartados / pr.entraram * 100) : '—'})</span></div>`;
+    $('funilSub').textContent = 'Por onde os ' + inteiro.format(pr.entraram) + ' leads do período já passaram';
   }
 
   // ── 4. Meta ───────────────────────────────────────────────────────────────

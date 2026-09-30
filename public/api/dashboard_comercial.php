@@ -218,6 +218,55 @@ try {
         }
     }
 
+    // ── Prospecção: a coorte dos leads que ENTRARAM no período ────────────────
+    // Cada coluna é classificada pelas flags: a primeira do funil é "novo", as
+    // outras sem conta_oportunidade são "andamento" (qualificação, follow-up),
+    // conta_oportunidade/conta_fechado é "avancou", e o resto (perdido, fora do
+    // escopo, bloqueado) é "descartado". Serve para qualquer conta, sem slug fixo.
+    $grupoCol = []; $primeiraFunil = null;
+    foreach ($pipeline as $pc) {
+        if ($pc['funil'] && $primeiraFunil === null) $primeiraFunil = $pc['id'];
+        $col = null; foreach ($cols as $c0) { if ((int)$c0['id'] === $pc['id']) { $col = $c0; break; } }
+        $oport = $col && (int)$col['conta_oportunidade'] === 1;
+        if ($pc['id'] === $primeiraFunil)          $grupoCol[$pc['id']] = 'novo';
+        elseif ($pc['fechado'] || $oport)          $grupoCol[$pc['id']] = 'avancou';
+        elseif ($pc['funil'])                      $grupoCol[$pc['id']] = 'andamento';
+        else                                       $grupoCol[$pc['id']] = 'descartado';
+    }
+    $p = $tp + ['s' => $start, 'e' => $end];
+    // Série: leads criados por bucket, empilhados pelo grupo da etapa atual.
+    $kC = sprintf($TPL[$gran], 'c.created_at', 'c.created_at');
+    $porBucket = [];
+    foreach ($q("SELECT $kC AS k, c.coluna_id, COUNT(*) AS n FROM cards c WHERE $baseCard AND DATE(c.created_at) BETWEEN :s AND :e GROUP BY k, c.coluna_id", $p)->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $g = $grupoCol[(int)$r['coluna_id']] ?? 'novo';
+        $porBucket[$r['k']][$g] = ($porBucket[$r['k']][$g] ?? 0) + (int)$r['n'];
+    }
+    $prospSerie = array_map(fn($b) => [
+        'chave' => $b['chave'], 'label' => $b['label'],
+        'novo' => $porBucket[$b['chave']]['novo'] ?? 0, 'andamento' => $porBucket[$b['chave']]['andamento'] ?? 0,
+        'avancou' => $porBucket[$b['chave']]['avancou'] ?? 0, 'descartado' => $porBucket[$b['chave']]['descartado'] ?? 0,
+    ], $serie);
+    // Funil da coorte: quantos desses leads passaram por cada etapa (etapa atual
+    // ou qualquer movimentação registrada em card_history para ela).
+    $alcancaram = [];
+    foreach ($q("SELECT x.coluna_id, COUNT(DISTINCT x.card_id) AS n FROM (
+                    SELECT c.id AS card_id, c.coluna_id FROM cards c WHERE $baseCard AND DATE(c.created_at) BETWEEN :s AND :e
+                    UNION
+                    SELECT c.id, h.para_coluna_id FROM cards c JOIN card_history h ON h.card_id = c.id AND h.acao = 'moved' AND h.para_coluna_id IS NOT NULL
+                     WHERE $baseCard AND DATE(c.created_at) BETWEEN :s AND :e
+                 ) x WHERE x.coluna_id IS NOT NULL GROUP BY x.coluna_id", $p)->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $alcancaram[(int)$r['coluna_id']] = (int)$r['n'];
+    }
+    $prospFunil = [];
+    foreach ($pipeline as $pc) {
+        if (!$pc['funil'] && !$pc['fechado']) continue;
+        $n = $pc['id'] === $primeiraFunil ? $atual['leads'] : ($alcancaram[$pc['id']] ?? 0);
+        $prospFunil[] = ['id' => $pc['id'], 'nome' => $pc['nome'], 'slug' => $pc['slug'], 'qtd' => $n, 'grupo' => $grupoCol[$pc['id']],
+                         'pct' => $atual['leads'] > 0 ? round($n / $atual['leads'] * 100, 1) : null];
+    }
+    $prospDescartados = 0;
+    foreach ($pipeline as $pc) { if (($grupoCol[$pc['id']] ?? '') === 'descartado') $prospDescartados += $alcancaram[$pc['id']] ?? 0; }
+
     // ── Atividades recentes: últimos cards movimentados ───────────────────────
     $ativ = $q("SELECT c.id, c.cliente_nome, c.empresa_nome, c.titulo, c.status, c.updated_at, c.created_at, c.data_fechamento,
                        $VALOR AS valor, pc.nome AS etapa, pc.cor AS etapa_cor, pc.slug AS etapa_slug, u.nome AS responsavel
@@ -246,6 +295,7 @@ try {
         'pipeline'    => $pipeline,
         'meta'        => $meta,
         'serie'       => $serie,
+        'prospeccao'  => ['serie' => $prospSerie, 'funil' => $prospFunil, 'entraram' => $atual['leads'], 'descartados' => $prospDescartados],
         'evolucao'    => $evolucao,
         'atividades'  => $atividades,
         'responsaveis'=> array_map(fn($u) => ['id' => (int)$u['id'], 'nome' => $u['nome']], $resp),
