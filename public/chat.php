@@ -1051,6 +1051,31 @@ $marcaChat     = $isFleetiflow ? 'Fleetiflow' : 'Yuris';
     }
     #chatToast.success { border-color: #E2E8F0; border-left-color: #16A34A; color: #14532D; }
     #chatToast.error   { border-color: #E2E8F0; border-left-color: #DC2626; color: #7F1D1D; }
+
+    /* Aguardando resposta: filtro + janela de pendências */
+    .chat-filter-btn.pend-filtro { color: #B45309; border-color: #FCD34D; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+    .chat-filter-btn.pend-filtro.active { background: #FEF3C7; color: #92400E; border-color: #F59E0B; }
+    .pend-count { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #F59E0B; color: #fff; font-size: .68rem; font-weight: 800; align-items: center; justify-content: center; }
+    #pendModal { position: fixed; inset: 0; background: rgba(15,23,42,.45); z-index: 2500; display: none; align-items: flex-start; justify-content: center; padding: 60px 16px 16px; }
+    #pendModal.show { display: flex; }
+    .pend-box { background: #fff; color: #0F172A; width: 100%; max-width: 640px; max-height: calc(100vh - 90px); border-radius: 16px; box-shadow: 0 24px 60px rgba(15,23,42,.3); display: flex; flex-direction: column; overflow: hidden; }
+    .pend-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 18px 20px 12px; border-bottom: 1px solid #E2E8F0; }
+    .pend-head h3 { margin: 0; font-size: 1.05rem; font-weight: 800; color: #0F172A; }
+    .pend-head p { margin: 4px 0 0; font-size: .82rem; color: #475569; }
+    .pend-fechar { background: none; border: 0; font-size: 1.5rem; line-height: 1; color: #64748B; cursor: pointer; }
+    .pend-lista { overflow-y: auto; padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 10px; }
+    .pend-item { border: 1px solid #E2E8F0; border-radius: 12px; padding: 12px 14px; }
+    .pend-topo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .pend-tag { font-size: .7rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; }
+    .pend-nome { font-size: .92rem; color: #0F172A; }
+    .pend-tempo { margin-left: auto; font-size: .75rem; color: #64748B; }
+    .pend-motivo { margin-top: 6px; font-size: .84rem; color: #1E293B; }
+    .pend-etapa { color: #64748B; font-size: .76rem; margin-left: 6px; }
+    .pend-previa { margin-top: 6px; font-size: .8rem; color: #475569; font-style: italic; }
+    .pend-acoes { margin-top: 10px; display: flex; gap: 8px; }
+    .pend-abrir { background: #015DFC; color: #fff; border: 0; border-radius: 8px; padding: 7px 14px; font-weight: 700; font-size: .8rem; cursor: pointer; }
+    .pend-dispensar { background: #fff; color: #475569; border: 1px solid #CBD5E1; border-radius: 8px; padding: 7px 12px; font-weight: 600; font-size: .8rem; cursor: pointer; }
+    .pend-vazio { padding: 28px; text-align: center; color: #475569; font-size: .9rem; }
 <?php endif; ?>
 
     /* Alerta de desconexão */
@@ -2004,6 +2029,12 @@ $marcaChat     = $isFleetiflow ? 'Fleetiflow' : 'Yuris';
           <div class="chat-filters">
             <button class="chat-filter-btn active" data-filter="all"        onclick="ChatApp.setFilter('all')">Todas</button>
             <button class="chat-filter-btn"         data-filter="unread"    onclick="ChatApp.setFilter('unread')">Não lidas</button>
+<?php if ($isFleetiflow): ?>
+            <!-- Onde a automação parou e uma pessoa precisa olhar (api/whatsapp/pendentes.php) -->
+            <button class="chat-filter-btn pend-filtro" data-filter="aguardando" onclick="ChatApp.setFilter('aguardando'); ChatApp.abrirPendentes()">
+              Aguardando <span id="pendCount" class="pend-count" style="display:none">0</span>
+            </button>
+<?php endif; ?>
             <button class="chat-filter-btn"         data-filter="groups"    onclick="ChatApp.setFilter('groups')">Grupos</button>
             <button class="chat-filter-btn"         data-filter="individual" onclick="ChatApp.setFilter('individual')">Individuais</button>
             <button class="chat-filter-btn"         data-filter="pinned"    onclick="ChatApp.setFilter('pinned')">Fixadas</button>
@@ -2490,6 +2521,22 @@ $marcaChat     = $isFleetiflow ? 'Fleetiflow' : 'Yuris';
   </div>
 </div>
 
+<?php if ($isFleetiflow): ?>
+<!-- Aguardando resposta: abre sozinha uma vez por sessão quando há pendência -->
+<div id="pendModal" onclick="if (event.target === this) ChatApp.fecharPendentes()">
+  <div class="pend-box" role="dialog" aria-labelledby="pendTitulo">
+    <div class="pend-head">
+      <div>
+        <h3 id="pendTitulo">Aguardando resposta</h3>
+        <p>Conversas em que a automação parou e o lead está esperando uma pessoa.</p>
+      </div>
+      <button class="pend-fechar" onclick="ChatApp.fecharPendentes()" aria-label="Fechar">&times;</button>
+    </div>
+    <div id="pendLista" class="pend-lista"></div>
+  </div>
+</div>
+<?php endif; ?>
+
 <!-- Input de captura de áudio oculto -->
 <input type="file" id="audioFileInput" style="display:none" accept="audio/*" onchange="ChatApp.onAudioFileSelected(this)">
 
@@ -2637,7 +2684,7 @@ const API  = {
   }
 })();
 </script>
-<script src="/assets/chat.js?v=72"></script>
+<script src="/assets/chat.js?v=73"></script>
 <script>
 // Lightbox init
 (function(){

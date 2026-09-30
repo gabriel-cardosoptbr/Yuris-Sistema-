@@ -216,6 +216,7 @@ const ChatApp = (() => {
     if (instance && instance.id) state.instanceId = Number(instance.id);
     loadAgentToggle();
     loadCaptacaoToggle();
+    if (window.CHAT_ETAPA_FUNIL && status === 'open') carregarPendentes();
     const dot   = qs('#waDot');
     const label = qs('#waStatusLabel');
     const badge = qs('#connBadge');
@@ -785,6 +786,10 @@ const ChatApp = (() => {
     if (state.filter === 'groups')     chats = chats.filter(c => c.is_group == 1);
     if (state.filter === 'individual') chats = chats.filter(c => c.is_group != 1);
     if (state.filter === 'pinned')     chats = chats.filter(c => c.is_pinned == 1);
+    if (state.filter === 'aguardando') {
+      const esperando = new Set(_pend.itens.map(i => i.remote_jid));
+      chats = chats.filter(c => esperando.has(c.remote_jid));
+    }
     // Arquivadas: API filtra por padrão is_archived=0; quando filter=archived
     // o servidor já retorna apenas arquivadas (parâmetro ?archived=1 em loadChats).
     // Aqui apenas mantém a lista que veio do servidor.
@@ -2404,6 +2409,103 @@ const ChatApp = (() => {
     }
   }
 
+  // ── Aguardando resposta (conta Fleetiflow) ──────────────────
+  // Conversas de lead em que a automação parou (lead qualificado, follow-up
+  // interrompido, robô/IA da loja, conversa assumida) e o lead está esperando.
+  // Vem de /api/whatsapp/pendentes.php; a janela abre sozinha uma vez por sessão.
+  const _pend = { itens: [], ultimo: 0, carregando: false };
+  const PEND_COR = {
+    qualificado: ['#FEF3C7', '#92400E', 'Qualificado'],
+    voce:        ['#DCFCE7', '#166534', 'Com o time'],
+    sem_ia:      ['#F1F5F9', '#334155', 'Vitória desligada'],
+    followup:    ['#DBEAFE', '#1E40AF', 'Follow-up interrompido'],
+    vitoria:     ['#FCE7F3', '#9D174D', 'Vitória parou'],
+  };
+
+  async function carregarPendentes(forcar) {
+    if (!window.CHAT_ETAPA_FUNIL || _pend.carregando) return;
+    if (!forcar && Date.now() - _pend.ultimo < 30000) return;
+    _pend.carregando = true;
+    try {
+      const r = await apiFetch('/api/whatsapp/pendentes.php');
+      _pend.itens = r.itens || [];
+      _pend.ultimo = Date.now();
+    } catch (e) {
+      return;
+    } finally {
+      _pend.carregando = false;
+    }
+    const n = _pend.itens.length;
+    const cnt = qs('#pendCount');
+    if (cnt) { cnt.textContent = String(n); cnt.style.display = n ? 'inline-flex' : 'none'; }
+    if (state.filter === 'aguardando') renderChatList();
+    if (qs('#pendModal')?.classList.contains('show')) renderPendentes();
+    let visto = false;
+    try { visto = sessionStorage.getItem('pend_popup_visto') === '1'; } catch (_) {}
+    if (n > 0 && !visto) {
+      try { sessionStorage.setItem('pend_popup_visto', '1'); } catch (_) {}
+      abrirPendentes();
+    }
+  }
+
+  function renderPendentes() {
+    const lista = qs('#pendLista');
+    if (!lista) return;
+    if (!_pend.itens.length) {
+      lista.innerHTML = '<div class="pend-vazio">Nada esperando por você agora. 🎉</div>';
+      return;
+    }
+    lista.innerHTML = _pend.itens.map(i => {
+      const cor = PEND_COR[i.tipo] || PEND_COR.vitoria;
+      const tempo = i.minutos >= 60 ? `há ${Math.floor(i.minutos / 60)}h${String(i.minutos % 60).padStart(2, '0')}` : `há ${i.minutos} min`;
+      return `
+        <div class="pend-item">
+          <div class="pend-topo">
+            <span class="pend-tag" style="background:${cor[0]};color:${cor[1]}">${esc(cor[2])}</span>
+            <strong class="pend-nome">${esc(i.nome || '')}</strong>
+            <span class="pend-tempo">${esc(tempo)}</span>
+          </div>
+          <div class="pend-motivo">${esc(i.motivo)} <span class="pend-etapa">Etapa: ${esc(i.etapa || '—')}</span></div>
+          <div class="pend-previa">“${esc(i.previa || '')}”</div>
+          <div class="pend-acoes">
+            <button class="pend-abrir" onclick="ChatApp.abrirPendente('${esc(i.remote_jid)}')">Abrir conversa</button>
+            <button class="pend-dispensar" onclick="ChatApp.dispensarPendente('${esc(i.remote_jid)}')" title="Não precisa responder (ex.: menu de robô). Volta se o lead escrever de novo.">Dispensar</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function abrirPendentes() {
+    const m = qs('#pendModal');
+    if (!m) return;
+    renderPendentes();
+    m.classList.add('show');
+  }
+
+  function fecharPendentes() {
+    qs('#pendModal')?.classList.remove('show');
+  }
+
+  function abrirPendente(jid) {
+    fecharPendentes();
+    const c = state.chats.find(x => x.remote_jid === jid);
+    openChat(jid, c ? c.contact_name : '', c ? c.phone : String(jid).split('@')[0]);
+  }
+
+  async function dispensarPendente(jid) {
+    try {
+      await apiFetch('/api/whatsapp/pendentes.php', 'POST', { _csrf: CSRF, remote_jid: jid });
+      _pend.itens = _pend.itens.filter(i => i.remote_jid !== jid);
+      renderPendentes();
+      const cnt = qs('#pendCount');
+      if (cnt) { cnt.textContent = String(_pend.itens.length); cnt.style.display = _pend.itens.length ? 'inline-flex' : 'none'; }
+      if (state.filter === 'aguardando') renderChatList();
+      toast('Dispensado. Volta se o lead escrever de novo.', 'success');
+    } catch (e) {
+      toast(e.message || 'Não foi possível dispensar', 'error');
+    }
+  }
+
   // ── Etapa do funil no Header (conta Fleetiflow) ─────────────
   // A etapa é a coluna do card ligado à conversa: trocar aqui move o card na
   // Prospecção, e o que mudar lá (ou a Vitória mover) aparece aqui no refresh da
@@ -3653,6 +3755,7 @@ const ChatApp = (() => {
     openLinkPicker, filterLinkPicker, selectLinkItem, clearLinkItem, removeLinkedProcesso,
     toggleSectorDropdown, setSectorDirect,
     toggleStageDropdown, setStageDirect,
+    abrirPendentes, fecharPendentes, abrirPendente, dispensarPendente,
     openImage, baixarDocumento,
     // P2 wire-up (2026-05-25)
     setReply, cancelReply,
