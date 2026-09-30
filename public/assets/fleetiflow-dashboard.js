@@ -340,7 +340,7 @@
     const fa = $('funilArea');
     if (!(pr.entraram > 0)) {
       fa.innerHTML = vazio('Sem leads no período', 'O funil mostra por quais etapas os leads que entraram já passaram.');
-      $('funilSub').textContent = 'Por onde os leads do período já passaram'; return;
+      $('funilSub').textContent = 'Por onde os leads já passaram'; return;
     }
     const max = Math.max(1, ...pr.funil.map(f => f.qtd));
     const cores = { novo: COR.marcaMedia, andamento: COR.marca, avancou: COR.bom };
@@ -352,7 +352,7 @@
       </div>`;
     }).join('') + '</div>' +
       `<div class="ffc-funil-rodape"><span><b>${inteiro.format(pr.entraram)}</b> entraram</span><span><b>${inteiro.format(pr.descartados)}</b> descartados (${pr.entraram ? fmtPct(pr.descartados / pr.entraram * 100) : '—'})</span></div>`;
-    $('funilSub').textContent = 'Por onde os ' + inteiro.format(pr.entraram) + ' leads do período já passaram';
+    $('funilSub').textContent = 'Por onde os ' + inteiro.format(pr.entraram) + ' leads já passaram';
   }
 
   // ── 4. Meta ───────────────────────────────────────────────────────────────
