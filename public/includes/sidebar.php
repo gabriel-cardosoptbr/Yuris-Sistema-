@@ -179,73 +179,122 @@ $_notifTempo = function ($raw) {
     html[data-theme="light"] .page-layout:has(> .sidebar) > :not(.sidebar),
     html[data-theme="light"] .layout:has(> .sidebar) > :not(.sidebar){ padding:16px !important; }
   }
+  /* ── Menu lateral no mesmo desenho do app Fleetiflow (30/09/2026, redesign
+       "clean/premium"): branco, 248px, itens de 38px sem caixa, títulos de
+       grupo miúdos em caixa alta, e o ATIVO marcado por três coisas somadas:
+       texto e ícone no azul da marca, o ícone dentro de um disco azul e uma
+       barra fina de 3px na extremidade DIREITA. A área do menu rola sozinha
+       (fina, só no hover); marca no topo e rodapé fixos. ── */
   html[data-theme="light"] .sidebar{
-    width:260px !important; min-width:260px !important; max-width:260px !important;
-    min-height:100vh !important; max-height:100vh !important;
-    padding:16px 12px !important; gap:0 !important; border-radius:0 !important;
+    width:248px !important; min-width:248px !important; max-width:248px !important;
+    height:100vh !important; min-height:100vh !important; max-height:100vh !important;
+    padding:0 !important; gap:0 !important; border-radius:0 !important;
+    display:flex !important; flex-direction:column !important;
     background:#FFFFFF !important; background-image:none !important;
     border:none !important; border-right:1px solid rgba(17,29,45,0.08) !important;
-    box-shadow:none !important;
+    box-shadow:none !important; overflow:hidden !important;
+    position:sticky !important; top:0 !important;
   }
   html[data-theme="light"] .sidebar::before{ display:none !important; }
 
+  /* Topo: marca. */
   html[data-theme="light"] .sidebar-brand{
+    flex:none !important; height:64px !important; display:flex !important; align-items:center !important;
     background:none !important; border:none !important; box-shadow:none !important;
-    border-radius:0 !important; padding:2px 8px !important; margin:0 0 18px !important; text-align:left !important;
+    border-radius:0 !important; padding:0 18px !important; margin:0 !important; text-align:left !important;
   }
-  html[data-theme="light"] .sidebar-brand a span{ color:#3D3D3D !important; }
+  html[data-theme="light"] .sidebar-brand a img{ height:28px !important; }
+  html[data-theme="light"] .sidebar-brand a span{ color:#3D3D3D !important; font-size:17px !important; }
 
+  /* Pessoa logada: vai para o RODAPÉ (order), sem caixa, com o sino ao lado. */
   html[data-theme="light"] .sidebar-user{
-    background:#FFFFFF !important; border:1px solid rgba(17,29,45,0.08) !important;
-    border-radius:12px !important; box-shadow:none !important; margin:0 0 8px !important;
+    order:10 !important; flex:none !important;
+    display:flex !important; align-items:center !important; gap:10px !important;
+    background:none !important; border:none !important; border-top:1px solid rgba(17,29,45,0.08) !important;
+    border-radius:0 !important; box-shadow:none !important; margin:0 !important; padding:10px 14px 12px 16px !important;
   }
-  html[data-theme="light"] .sidebar-user-avatar{ background:linear-gradient(135deg,#0B2A6B,#015DFC) !important; color:#FFFFFF !important; box-shadow:none !important; }
-  html[data-theme="light"] .sidebar-user-name{ color:#3D3D3D !important; }
+  html[data-theme="light"] .sidebar-user-avatar{ width:32px !important; height:32px !important; font-size:12px !important; background:#015DFC !important; background-image:none !important; color:#FFFFFF !important; box-shadow:none !important; border-radius:50% !important; }
+  html[data-theme="light"] .sidebar-user-info{ min-width:0 !important; }
+  html[data-theme="light"] .sidebar-user-name{ color:#3D3D3D !important; font-size:12.5px !important; font-weight:600 !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; }
   html[data-theme="light"] .sidebar-user-badge--admin,
   html[data-theme="light"] .sidebar-user-badge--manager,
   html[data-theme="light"] .sidebar-user-badge--user,
-  html[data-theme="light"] .sidebar-user-badge--default{ background:#D6E4FF !important; color:#015DFC !important; border:none !important; }
-  html[data-theme="light"] .yuris-notif-btn{ background:#FFFFFF !important; border:1px solid rgba(17,29,45,0.08) !important; color:#676767 !important; border-radius:10px !important; }
+  html[data-theme="light"] .sidebar-user-badge--default{ background:none !important; color:#767676 !important; border:none !important; padding:0 !important; font-size:10px !important; letter-spacing:.05em !important; text-transform:uppercase !important; }
+  html[data-theme="light"] .yuris-notif-btn{ width:30px !important; height:30px !important; background:none !important; border:none !important; color:#767676 !important; border-radius:8px !important; }
   html[data-theme="light"] .yuris-notif-btn:hover{ background:#F1F1F2 !important; color:#3D3D3D !important; }
-  html[data-theme="light"] .sidebar-status, html[data-theme="light"] #dashboardStatus{ color:#767676 !important; padding:0 8px 10px !important; }
+  html[data-theme="light"] .yuris-notif-badge{ border-color:#FFFFFF !important; }
+  html[data-theme="light"] .yuris-notif-panel{ top:auto !important; bottom:16px !important; left:256px !important; }
+  /* Sem "última atualização" no menu: informação de painel, não de navegação. */
+  html[data-theme="light"] .sidebar-status, html[data-theme="light"] #dashboardStatus{ display:none !important; }
 
-  html[data-theme="light"] .sidebar nav{ gap:2px !important; }
-  html[data-theme="light"] .sidebar-group{ gap:2px !important; }
-  html[data-theme="light"] .sidebar-group-items{ gap:2px !important; padding-left:8px !important; }
+  /* A área que rola. */
+  html[data-theme="light"] .sidebar nav.sidebar-nav-grouped{
+    flex:1 1 auto !important; min-height:0 !important; overflow-y:auto !important; overflow-x:hidden !important;
+    display:flex !important; flex-direction:column !important; gap:0 !important;
+    padding:8px 12px 12px !important; margin:0 !important;
+    scrollbar-width:thin; scrollbar-color:transparent transparent;
+  }
+  html[data-theme="light"] .sidebar nav.sidebar-nav-grouped:hover{ scrollbar-color:rgba(17,29,45,0.18) transparent; }
+  html[data-theme="light"] .sidebar nav.sidebar-nav-grouped::-webkit-scrollbar{ width:5px; }
+  html[data-theme="light"] .sidebar nav.sidebar-nav-grouped::-webkit-scrollbar-thumb{ background:transparent; border-radius:999px; }
+  html[data-theme="light"] .sidebar nav.sidebar-nav-grouped:hover::-webkit-scrollbar-thumb{ background:rgba(17,29,45,0.18); }
+
+  /* Título miúdo de seção (só a conta Fleetiflow imprime) e 22px de ar entre grupos. */
+  html[data-theme="light"] .sb-titulo{ display:block; margin:0 0 6px; padding:0 12px; font-size:10.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#767676; }
+  html[data-theme="light"] .sidebar-group{ gap:0 !important; margin-top:22px !important; padding:0 !important; }
+  html[data-theme="light"] .sidebar-group-items{ gap:2px !important; padding:2px 0 0 8px !important; margin:0 !important; }
   html[data-theme="light"] .sidebar-group.open .sidebar-group-items{ margin-top:0 !important; }
 
+  /* Linha do item e do cabeçalho de grupo: 38px, raio 9px, ícone 17px num círculo de 30px. */
   html[data-theme="light"] .sidebar nav a,
   html[data-theme="light"] .sidebar-group-toggle{
-    background:none !important; border:1px solid transparent !important; box-shadow:none !important;
-    border-radius:10px !important; padding:9px 12px !important; gap:10px !important;
-    color:#676767 !important; font-size:14px !important; font-weight:500 !important;
-    transition:background 160ms cubic-bezier(.2,0,0,1), color 160ms cubic-bezier(.2,0,0,1) !important;
+    position:relative !important; display:flex !important; align-items:center !important;
+    min-height:38px !important; width:100% !important;
+    background:none !important; border:none !important; box-shadow:none !important;
+    border-radius:9px !important; padding:0 10px !important; gap:10px !important; margin:0 !important;
+    color:#575757 !important; font-size:13.5px !important; font-weight:500 !important;
+    transition:background 180ms cubic-bezier(.2,0,0,1), color 180ms cubic-bezier(.2,0,0,1) !important;
   }
   html[data-theme="light"] .sidebar nav a .label,
-  html[data-theme="light"] .sidebar-group-toggle .sidebar-group-label{ color:inherit !important; font-size:14px !important; font-weight:inherit !important; }
-  html[data-theme="light"] .sidebar nav a .icon, html[data-theme="light"] .sidebar nav a .icon svg,
-  html[data-theme="light"] .sidebar-group-toggle .sidebar-group-icon, html[data-theme="light"] .sidebar-group-toggle .sidebar-group-icon svg{ width:18px !important; height:18px !important; min-width:18px !important; }
+  html[data-theme="light"] .sidebar-group-toggle .sidebar-group-label{ flex:1 !important; min-width:0 !important; overflow:hidden !important; text-overflow:ellipsis !important; white-space:nowrap !important; color:inherit !important; font-size:13.5px !important; font-weight:inherit !important; }
+  html[data-theme="light"] .sidebar nav a .icon,
+  html[data-theme="light"] .sidebar-group-toggle .sidebar-group-icon{
+    display:inline-flex !important; align-items:center !important; justify-content:center !important;
+    width:30px !important; height:30px !important; min-width:30px !important; border-radius:50% !important;
+    background:none !important; transition:background 180ms cubic-bezier(.2,0,0,1) !important;
+  }
+  html[data-theme="light"] .sidebar nav a .icon svg,
+  html[data-theme="light"] .sidebar-group-toggle .sidebar-group-icon svg{ width:17px !important; height:17px !important; min-width:17px !important; }
   html[data-theme="light"] .sidebar nav a .icon svg, html[data-theme="light"] .sidebar nav a .icon svg *,
-  html[data-theme="light"] .sidebar-group-toggle .sidebar-group-icon svg, html[data-theme="light"] .sidebar-group-toggle .sidebar-group-icon svg *{ stroke:#676767 !important; }
-  html[data-theme="light"] .sidebar-group-chevron{ stroke:#8A96A8 !important; opacity:1 !important; }
+  html[data-theme="light"] .sidebar-group-toggle .sidebar-group-icon svg, html[data-theme="light"] .sidebar-group-toggle .sidebar-group-icon svg *{ stroke:#676767 !important; stroke-width:1.75 !important; }
+  html[data-theme="light"] .sidebar-group-chevron{ width:14px !important; height:14px !important; stroke:#767676 !important; stroke-width:2 !important; opacity:1 !important; }
 
   html[data-theme="light"] .sidebar nav a:hover,
-  html[data-theme="light"] .sidebar-group-toggle:hover{ background:#F1F1F2 !important; border-color:transparent !important; color:#3D3D3D !important; box-shadow:none !important; }
+  html[data-theme="light"] .sidebar-group-toggle:hover{ background:#F1F1F2 !important; color:#3D3D3D !important; box-shadow:none !important; }
   html[data-theme="light"] .sidebar nav a:hover .icon svg, html[data-theme="light"] .sidebar nav a:hover .icon svg *,
   html[data-theme="light"] .sidebar-group-toggle:hover .sidebar-group-icon svg, html[data-theme="light"] .sidebar-group-toggle:hover .sidebar-group-icon svg *{ stroke:#3D3D3D !important; }
 
-  html[data-theme="light"] .sidebar nav a.active{ background:#D6E4FF !important; border-color:transparent !important; color:#3D3D3D !important; font-weight:700 !important; box-shadow:none !important; }
-  html[data-theme="light"] .sidebar nav a.active .label{ color:#3D3D3D !important; }
-  html[data-theme="light"] .sidebar nav a.active .icon svg, html[data-theme="light"] .sidebar nav a.active .icon svg *{ stroke:#015DFC !important; }
+  /* ATIVO: texto e ícone na marca, disco azul atrás do ícone, fundo quase nada, barra à direita. */
+  html[data-theme="light"] .sidebar nav a.active{ background:rgba(1,93,252,0.07) !important; color:#013DF2 !important; font-weight:600 !important; box-shadow:none !important; }
+  html[data-theme="light"] .sidebar nav a.active .label{ color:#013DF2 !important; }
+  html[data-theme="light"] .sidebar nav a.active .icon{ background:#015DFC !important; }
+  html[data-theme="light"] .sidebar nav a.active .icon svg, html[data-theme="light"] .sidebar nav a.active .icon svg *{ stroke:#FFFFFF !important; stroke-width:2.1 !important; }
+  html[data-theme="light"] .sidebar nav a.active::after,
+  html[data-theme="light"] .sidebar-group.has-active:not(.open) .sidebar-group-toggle::after{
+    content:''; position:absolute; right:0; top:50%; width:3px; height:22px; border-radius:999px;
+    background:#015DFC; transform:translateY(-50%);
+  }
 
-  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle{ background:#A9C6FF !important; border-color:transparent !important; color:#3D3D3D !important; font-weight:700 !important; box-shadow:none !important; }
-  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-label,
-  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle *{ color:#3D3D3D !important; }
+  /* Grupo com filho ativo: texto e ícone na marca, sem disco (o disco é do filho).
+     Fechado, a barra vai para ele, senão a pessoa perde a pista. */
+  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle{ background:none !important; color:#013DF2 !important; font-weight:600 !important; box-shadow:none !important; }
+  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle:hover{ background:#F1F1F2 !important; }
+  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-label{ color:#013DF2 !important; }
   html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-icon svg,
-  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-icon svg *,
+  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-icon svg *{ stroke:#015DFC !important; stroke-width:2.1 !important; }
   html[data-theme="light"] .sidebar-group.has-active .sidebar-group-chevron{ stroke:#015DFC !important; }
 
-  html[data-theme="light"] .sidebar nav a.is-logout:hover{ background:#FFCCCC !important; color:#B00000 !important; }
+  html[data-theme="light"] .sidebar nav a.is-logout:hover{ background:#FFF1F1 !important; color:#B00000 !important; }
   html[data-theme="light"] .sidebar nav a.is-logout:hover .icon svg, html[data-theme="light"] .sidebar nav a.is-logout:hover .icon svg *{ stroke:#B00000 !important; }
 
   /* ── Superfícies planas em TODAS as telas (superficies.ts do Fleetiflow:
@@ -284,11 +333,29 @@ $_notifTempo = function ($raw) {
     background:#D6E4FF !important; color:#015DFC !important; border-color:transparent !important; box-shadow:none !important;
   }
 
-  html[data-theme="light"] .sidebar-footer{ margin-top:auto !important; padding:14px 8px 0 !important; border-top:1px solid rgba(17,29,45,0.08) !important; }
-  html[data-theme="light"] .sidebar-footer p:first-child{ color:#3D3D3D !important; }
-  html[data-theme="light"] .sidebar-footer p{ color:#767676 !important; }
-  html[data-theme="light"] .sidebar-footer a{ color:#767676 !important; border-bottom:none !important; }
-  html[data-theme="light"] .sidebar-footer a:hover{ color:#015DFC !important; }
+  /* Rodapé fixo: linhas de menu (mesmo desenho dos itens) + a pessoa logada. */
+  html[data-theme="light"] .sidebar-footer.sb-rodape{
+    order:9 !important; flex:none !important; margin:0 !important;
+    display:flex !important; flex-direction:column !important; gap:2px !important;
+    padding:10px 12px 8px !important; border-top:1px solid rgba(17,29,45,0.08) !important; text-align:left !important;
+  }
+  html[data-theme="light"] .sidebar-footer.sb-rodape a{
+    position:relative !important; display:flex !important; align-items:center !important;
+    min-height:38px !important; padding:0 10px !important; gap:10px !important;
+    border-radius:9px !important; text-decoration:none !important;
+    color:#575757 !important; font-size:13.5px !important; font-weight:500 !important; letter-spacing:0 !important;
+    transition:background 180ms cubic-bezier(.2,0,0,1), color 180ms cubic-bezier(.2,0,0,1) !important;
+  }
+  html[data-theme="light"] .sidebar-footer.sb-rodape a .icon{ display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:50%; }
+  html[data-theme="light"] .sidebar-footer.sb-rodape a .icon svg{ width:17px; height:17px; stroke:#676767; stroke-width:1.75; }
+  html[data-theme="light"] .sidebar-footer.sb-rodape a:hover{ background:#F1F1F2 !important; color:#3D3D3D !important; }
+  html[data-theme="light"] .sidebar-footer.sb-rodape a:hover .icon svg{ stroke:#3D3D3D; }
+  html[data-theme="light"] .sidebar-footer.sb-rodape a.active{ background:rgba(1,93,252,0.07) !important; color:#013DF2 !important; font-weight:600 !important; }
+  html[data-theme="light"] .sidebar-footer.sb-rodape a.active .icon{ background:#015DFC; }
+  html[data-theme="light"] .sidebar-footer.sb-rodape a.active .icon svg{ stroke:#FFFFFF; stroke-width:2.1; }
+  html[data-theme="light"] .sidebar-footer.sb-rodape a.active::after{ content:''; position:absolute; right:0; top:50%; width:3px; height:22px; border-radius:999px; background:#015DFC; transform:translateY(-50%); }
+  html[data-theme="light"] .sidebar-footer.sb-rodape a.is-logout:hover{ background:#FFF1F1 !important; color:#B00000 !important; }
+  html[data-theme="light"] .sidebar-footer.sb-rodape a.is-logout:hover .icon svg{ stroke:#B00000; }
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <?php endif; ?>
@@ -440,6 +507,7 @@ $_notifTempo = function ($raw) {
   <nav aria-label="Páginas do sistema" class="sidebar-nav-grouped">
 
     <?php if (_sidebarCan('dashboard')): ?>
+    <?php if ($_isFleetiflow): ?><div class="sb-titulo">Geral</div><?php endif; ?>
     <a href="dashboard.php" class="sidebar-overview-link<?= $_ap === 'dashboard' ? ' active' : '' ?>"<?= $_ap === 'dashboard' ? ' aria-current="page"' : '' ?>>
       <span class="icon" aria-hidden="true"><?= $_svg['dashboard'] ?></span>
       <span class="label">Visão Geral</span>
@@ -505,8 +573,11 @@ $_notifTempo = function ($raw) {
     // Conta Fleetiflow (CRM comercial) não enxerga o grupo Jurídico: nem o
     // link, nem a aba. Isolamento de dado já é automático por account_id;
     // isto é só a navegação não oferecer o que a conta não pode acessar.
+    // Configurações e Sair vão para o rodapé fixo (mesmo desenho do app
+    // Fleetiflow), então o grupo Sistema some do meio da lista para eles não
+    // aparecerem duas vezes.
     if ($_isFleetiflow) {
-        $_sections = array_values(array_filter($_sections, fn($_s) => $_s['key'] !== 'juridico'));
+        $_sections = array_values(array_filter($_sections, fn($_s) => $_s['key'] !== 'juridico' && $_s['key'] !== 'sistema'));
     }
 
     foreach ($_sections as $_sec):
@@ -569,14 +640,31 @@ $_notifTempo = function ($raw) {
   </nav>
 
   <!-- ── Rodapé da sidebar ── -->
+  <?php if ($_isFleetiflow): ?>
+  <!-- Rodapé fixo, igual ao do app Fleetiflow: Configurações, Privacidade e
+       Sair como linhas de menu; a pessoa logada (.sidebar-user) vem logo
+       abaixo por `order` no CSS. Sem o letreiro "Fleetiflow / Central
+       Comercial": a marca já está no topo. -->
+  <div class="sidebar-footer sb-rodape">
+    <?php if (_sidebarCan('configuracoes')): ?>
+    <a href="configuracoes.php"<?= $_ap === 'configuracoes' ? ' class="active" aria-current="page"' : '' ?>>
+      <span class="icon" aria-hidden="true"><?= $_svg['config'] ?></span>
+      <span class="label">Configurações</span>
+    </a>
+    <a href="configuracoes/privacidade.php"<?= $_ap === 'privacidade' ? ' class="active" aria-current="page"' : '' ?> title="Privacidade e consentimentos LGPD">
+      <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+      <span class="label">Privacidade</span>
+    </a>
+    <?php endif; ?>
+    <a href="logout.php" class="is-logout">
+      <span class="icon" aria-hidden="true"><?= $_svg['sair'] ?></span>
+      <span class="label">Sair</span>
+    </a>
+  </div>
+  <?php else: ?>
   <div class="sidebar-footer" style="padding:10px 18px 0;text-align:center;border-top:1px solid rgba(96,165,250,0.1);">
-    <?php if ($_isFleetiflow): ?>
-    <p style="font-size:.9rem;font-weight:700;color:#e8f4ff;margin:0 0 2px;letter-spacing:.5px;">Fleetiflow</p>
-    <p style="font-size:.72rem;color:#6b8299;margin:0 0 8px;">Central Comercial</p>
-    <?php else: ?>
     <p style="font-size:.9rem;font-weight:700;color:#e8f4ff;margin:0 0 2px;letter-spacing:.5px;">Yuris</p>
     <p style="font-size:.72rem;color:#6b8299;margin:0 0 8px;">Sistema Jurídico Inteligente</p>
-    <?php endif; ?>
     <?php if (_sidebarCan('configuracoes')): ?>
     <a href="configuracoes/privacidade.php"
        title="Privacidade e consentimentos LGPD"
@@ -587,6 +675,7 @@ $_notifTempo = function ($raw) {
     </a>
     <?php endif; ?>
   </div>
+  <?php endif; ?>
 
 </aside>
 
