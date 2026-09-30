@@ -723,7 +723,11 @@ const ChatApp = (() => {
       // Etapa movida na Prospecção ou pela Vitória aparece sem reabrir a conversa.
       if (state.currentJid) {
         const aberto = state.chats.find(c => c.remote_jid === state.currentJid);
-        if (aberto) updateStageBadge(aberto);
+        if (aberto) {
+          updateStageBadge(aberto);
+          // Quem está com a conversa muda junto (pausa, etapa de follow-up).
+          if (window.CHAT_ETAPA_FUNIL) renderTakeoverBtn(aberto.agent_paused == 1 || aberto.agent_paused === true);
+        }
       }
       prefetchSidebarPhotos();   // fotos da lista em background (gentil, não bloqueia)
       prefetchSidebarNames();    // nome de conta comercial (pushName vazio), idem
@@ -3440,6 +3444,30 @@ const ChatApp = (() => {
     const btn = document.getElementById('btnTakeover');
     const lbl = document.getElementById('btnTakeoverLabel');
     if (!btn || !lbl) return;
+    // Fleetiflow: o botão diz com quem a conversa está (Vitória, cadência de
+    // follow-up ou uma pessoa), preenchido, para ninguém responder por cima.
+    if (window.CHAT_ETAPA_FUNIL) {
+      const ligado = (qs('#btnAgentToggle')?.dataset.mode === 'on');
+      const chat   = state.chats.find(c => c.remote_jid === state.currentJid);
+      const etapa  = chat ? String(chat.card_etapa_nome || '') : '';
+      let estilo;
+      if (paused) {
+        estilo = ['Com você', '#16A34A', '#FFFFFF', '#16A34A', 'Você assumiu esta conversa: a Vitória e o follow-up não escrevem aqui. Clique para devolver para a Vitória.'];
+      } else if (!ligado) {
+        estilo = ['Assumir', 'transparent', '#64748B', 'rgba(100,116,139,.35)', 'A Vitória está desligada no canal: ninguém responde sozinho. Clique para marcar que você assumiu.'];
+      } else if (/follow-up/i.test(etapa)) {
+        estilo = ['Com o follow-up', '#DBEAFE', '#1D4ED8', '#93C5FD', 'Lead ainda sem resposta: a cadência de follow-up está com ele. Clique para assumir.'];
+      } else {
+        estilo = ['Com a Vitória', '#015DFC', '#FFFFFF', '#015DFC', 'A Vitória (IA) está atendendo esta conversa. Clique para assumir.'];
+      }
+      lbl.textContent = estilo[0];
+      btn.style.background = estilo[1];
+      btn.style.color = estilo[2];
+      btn.style.borderColor = estilo[3];
+      btn.title = estilo[4];
+      btn.dataset.estado = estilo[0];
+      return;
+    }
     if (paused) {
       lbl.textContent = 'Liberar IA';
       btn.title = 'Você assumiu esta conversa. Clique para reativar o agente.';
@@ -3466,7 +3494,9 @@ const ChatApp = (() => {
       if (r && r.ok) {
         if (chatObj) chatObj.agent_paused = next;
         renderTakeoverBtn(next === 1);
-        toast(next ? 'Você assumiu a conversa, o agente foi pausado aqui' : 'Agente reativado nesta conversa', 'success');
+        toast(window.CHAT_ETAPA_FUNIL
+          ? (next ? 'Você assumiu: a Vitória não responde mais nesta conversa' : 'Conversa devolvida para a Vitória')
+          : (next ? 'Você assumiu a conversa, o agente foi pausado aqui' : 'Agente reativado nesta conversa'), 'success');
       }
     } catch (e) {
       toast(e.message || 'Não foi possível alterar o atendimento', 'error');
@@ -3577,6 +3607,11 @@ const ChatApp = (() => {
       btn.style.color = '#9ab0c9'; btn.style.borderColor = 'rgba(160,180,210,.3)';
       btn.title = 'O agente está desligado neste canal. Clique para ligar.';
       btn.dataset.mode = 'off';
+    }
+    // Fleetiflow: o indicador "com quem está" depende da chave do canal.
+    if (window.CHAT_ETAPA_FUNIL && state.currentJid) {
+      const c = state.chats.find(x => x.remote_jid === state.currentJid);
+      renderTakeoverBtn(!!(c && (c.agent_paused == 1 || c.agent_paused === true)));
     }
   }
   async function toggleAgentChannel() {
