@@ -1,0 +1,303 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   ff-ficha.css: a ficha (modal) do lead e do cliente na edição CRM, no
+   desenho do Fleetiflow. Carregado só quando $edicaoCrm é verdadeiro, em
+   prospeccao.php e clientes.php. Conta jurídica nunca recebe este arquivo.
+
+   O que ele faz: a classe .ff-modal no .modal-panel troca o visual inteiro
+   do modal (painel, cabeçalho, seções numeradas com ícone, campos, rodapé),
+   e o ff-ficha.js monta por cima a faixa de resumo (.ff-resumo), as abas
+   (.ff-abas) e as duas colunas (.ff-colunas). O DOM dos formulários NÃO
+   muda de nome: os mesmos inputs, ids e names de sempre, só reorganizados.
+
+   Prefixo html[data-theme="light"] onde o yuris-theme.css já é !important
+   para o mesmo seletor (painel, seção, título, label, input, botões).
+   Cores da marca em var(--ff-marca*) (menu lateral, Marca::paleta).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.ff-modal{
+  --ff-azul:var(--ff-marca, #015DFC); --ff-azul-forte:var(--ff-marca-forte, #013DF2);
+  --ff-azul-suave:var(--ff-marca-suave, #D6E4FF); --ff-azul-media:var(--ff-marca-media, #A9C6FF);
+  --ff-texto:#1F2937; --ff-texto-2:#3D3D3D; --ff-texto-3:#575757; --ff-texto-4:#767676; --ff-texto-5:#9AA3B2;
+  --ff-borda:rgba(17,29,45,.08); --ff-borda-2:rgba(17,29,45,.14); --ff-fundo:#F4F6F9; --ff-card:#FFFFFF;
+  --ff-verde:#15803D; --ff-verde-fundo:#DCFCE7; --ff-verde-borda:#86EFAC; --ff-zap:#25D366;
+  --ff-vermelho:#B91C1C; --ff-vermelho-fundo:#FEE2E2; --ff-ambar:#B45309; --ff-ambar-fundo:#FFF4D6;
+  --ff-roxo:#6D4AFF; --ff-roxo-fundo:#EFEAFE;
+  font-family:'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+.ff-modal *{ box-sizing:border-box; }
+
+/* ── Painel ─────────────────────────────────────────────────────────────── */
+html[data-theme="light"] .modal-panel.ff-modal, .modal-panel.ff-modal{
+  width:min(1180px, 96vw) !important; max-width:min(1180px, 96vw) !important; max-height:calc(100vh - 40px) !important;
+  display:flex !important; flex-direction:column; padding:0 !important; margin:0 auto;
+  background:#FFFFFF !important; background-image:none !important; border:1px solid rgba(17,29,45,.10) !important;
+  border-radius:18px !important; box-shadow:0 30px 80px rgba(17,29,45,.28) !important; color:var(--ff-texto) !important; overflow:hidden;
+}
+.ff-modal > form, .ff-modal .modal-form{ display:flex; flex-direction:column; min-height:0; flex:1 1 auto; }
+
+/* ── Cabeçalho: título à esquerda, número e data à direita, X ───────────── */
+html[data-theme="light"] .ff-modal .modal-header, .ff-modal .modal-header, .ff-modal .modal-head{
+  display:grid !important; grid-template-columns:minmax(0,1fr) auto auto; grid-template-areas:"titulo meta fechar" "sub meta fechar";
+  column-gap:16px; row-gap:2px; align-items:start; flex:none;
+  padding:22px 24px 0 !important; margin:0 !important; border:0 !important; background:#FFFFFF !important;
+}
+html[data-theme="light"] .ff-modal .modal-title, .ff-modal .modal-title, .ff-modal .ff-titulo{
+  grid-area:titulo; margin:0; font-size:22px !important; font-weight:800 !important; letter-spacing:-.02em; line-height:1.2; color:var(--ff-texto) !important;
+}
+.ff-modal .modal-subtitle, .ff-modal .ff-subtitulo{ grid-area:sub; margin:0 !important; font-size:13px !important; color:var(--ff-texto-4) !important; }
+.ff-meta{ grid-area:meta; text-align:right; font-size:12px; color:var(--ff-texto-4); line-height:1.6; padding-top:3px; white-space:nowrap; }
+.ff-meta b{ display:block; font-weight:700; color:var(--ff-texto-3); }
+.ff-fechar{
+  grid-area:fechar; width:34px; height:34px; border-radius:10px; border:1px solid var(--ff-borda-2) !important; background:#FFFFFF !important;
+  color:var(--ff-texto-2) !important; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; padding:0; margin:0;
+}
+.ff-fechar:hover{ background:#F1F3F6 !important; }
+.ff-fechar svg{ width:16px; height:16px; }
+/* clientes.php: o h2 e o X nativos saem de cena; a ficha monta os seus. */
+.ff-cliente .modal-head > h2, .ff-cliente .modal-head > .close{ display:none !important; }
+
+/* ── Faixa de resumo ────────────────────────────────────────────────────── */
+.ff-resumo{
+  display:flex; align-items:stretch; margin:18px 24px 0; flex:none; background:#FFFFFF; border:1px solid var(--ff-borda);
+  border-radius:14px; box-shadow:0 1px 2px rgba(17,29,45,.04); overflow:hidden;
+}
+.ff-cel{ display:flex; flex-direction:column; justify-content:center; gap:7px; padding:14px 18px; min-width:0; flex:1 1 150px; border-left:1px solid var(--ff-borda); }
+.ff-cel:first-child{ border-left:0; flex:1.6 1 240px; flex-direction:row; align-items:center; gap:14px; }
+.ff-cel:first-child > div{ min-width:0; display:flex; flex-direction:column; gap:5px; }
+.ff-cel-rotulo{ display:block; font-size:10.5px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--ff-texto-4); line-height:1; }
+.ff-cel-valor{ display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700; color:var(--ff-texto); min-width:0; min-height:32px; }
+.ff-cel-valor .ff-txt{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+.ff-cel-valor .ff-nome{ font-size:18px; font-weight:800; letter-spacing:-.01em; }
+.ff-logo{ width:50px; height:50px; border-radius:12px; background:#F1F3F6; border:1px solid var(--ff-borda); display:inline-flex; align-items:center; justify-content:center; color:var(--ff-texto-2); flex:none; font-weight:800; font-size:18px; }
+.ff-logo svg{ width:22px; height:22px; }
+.ff-link{ display:inline-flex; width:26px; height:26px; border-radius:7px; align-items:center; justify-content:center; color:var(--ff-texto-5); background:transparent; border:0; cursor:pointer; padding:0; flex:none; text-decoration:none; }
+.ff-link:hover{ color:var(--ff-azul-forte); background:var(--ff-azul-suave); }
+.ff-link svg{ width:15px; height:15px; }
+.ff-vazio-txt{ color:var(--ff-texto-5); font-weight:500; }
+
+/* Select em pílula (etapa, status, setor) */
+.ff-modal .ff-sel{
+  appearance:none !important; -webkit-appearance:none !important; height:32px !important; padding:0 30px 0 12px !important; border-radius:999px !important;
+  border:0 !important; font:inherit !important; font-size:13px !important; font-weight:700 !important; line-height:32px; cursor:pointer; max-width:100%; min-width:0; width:auto !important;
+  color:var(--ff-azul-forte) !important; background-color:var(--ff-azul-suave) !important; box-shadow:none !important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23013DF2' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
+  background-repeat:no-repeat !important; background-position:right 10px center !important; background-size:13px !important;
+}
+.ff-modal .ff-sel:disabled{ opacity:.7; cursor:default; }
+.ff-modal .ff-sel.ff-sel-neutro{ color:var(--ff-texto-2) !important; background-color:#F1F3F6 !important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23575757' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important; }
+.ff-pill{ display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 12px; border-radius:999px; font-size:13px; font-weight:700; background:#F1F3F6; color:var(--ff-texto-2); white-space:nowrap; }
+.ff-pill-ok{ background:var(--ff-verde-fundo); color:var(--ff-verde); }
+.ff-pill-pausa{ background:var(--ff-ambar-fundo); color:var(--ff-ambar); }
+.ff-pill-off{ background:#EEF2F7; color:#475569; }
+
+/* Termômetro */
+.ff-termo{ display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 12px 0 10px; border-radius:999px; border:0; font:inherit; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; }
+.ff-termo svg{ width:14px; height:14px; }
+.ff-termo:hover{ filter:brightness(.96); box-shadow:0 0 0 2px rgba(17,29,45,.08); }
+.ff-termo-quente{ background:#FEE2E2; color:#B91C1C; }
+.ff-termo-morno{ background:#FFF4D6; color:#B45309; }
+.ff-termo-frio{ background:#E8F1FF; color:#1D4ED8; }
+.ff-termo-congelado{ background:#EEF2F7; color:#475569; }
+.ff-termo .ff-mao{ width:6px; height:6px; border-radius:50%; background:currentColor; opacity:.6; }
+
+/* Responsável: avatar com iniciais, nome, papel e um select invisível por cima */
+.ff-resp{ position:relative; display:flex; align-items:center; gap:10px; min-width:0; cursor:pointer; }
+.ff-avatar{ width:34px; height:34px; border-radius:50%; background:var(--ff-azul-suave); color:var(--ff-azul-forte); display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; flex:none; }
+.ff-avatar.ff-avatar-vazio{ background:#F1F3F6; color:var(--ff-texto-5); }
+.ff-resp-txt{ min-width:0; display:flex; flex-direction:column; gap:1px; }
+.ff-resp-nome{ font-size:13.5px; font-weight:700; color:var(--ff-texto); line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ff-resp-sub{ font-size:11px; color:var(--ff-texto-4); font-weight:500; white-space:nowrap; }
+.ff-resp > svg{ width:14px; height:14px; color:var(--ff-texto-5); flex:none; }
+.ff-modal .ff-resp-sel{ position:absolute; inset:0; width:100% !important; height:100% !important; opacity:0; cursor:pointer; margin:0; padding:0; border:0; }
+.ff-modal .ff-resp-sel:disabled{ cursor:default; }
+
+/* WhatsApp */
+.ff-zap-ico{ width:30px; height:30px; border-radius:50%; background:var(--ff-zap); color:#FFFFFF; display:inline-flex; align-items:center; justify-content:center; flex:none; }
+.ff-zap-ico svg{ width:17px; height:17px; }
+.ff-zap-ico.ff-zap-off{ background:#E5E7EB; color:#9CA3AF; }
+
+/* ── Abas ───────────────────────────────────────────────────────────────── */
+.ff-abas{ display:flex; gap:2px; margin:14px 24px 0; flex:none; border-bottom:1px solid var(--ff-borda); overflow-x:auto; scrollbar-width:none; }
+.ff-abas::-webkit-scrollbar{ display:none; }
+.ff-modal .ff-aba{
+  display:inline-flex; align-items:center; gap:8px; height:44px; padding:0 16px; border:0 !important; border-bottom:2px solid transparent !important; margin:0 0 -1px; border-radius:0 !important;
+  background:none !important; box-shadow:none !important; font:inherit; font-size:14px; font-weight:600; color:var(--ff-texto-3) !important; cursor:pointer; white-space:nowrap;
+}
+.ff-modal .ff-aba svg{ width:16px; height:16px; }
+.ff-modal .ff-aba:hover{ color:var(--ff-texto) !important; }
+.ff-modal .ff-aba.ativa{ color:var(--ff-azul-forte) !important; border-bottom-color:var(--ff-azul) !important; }
+
+/* ── Corpo em duas colunas ──────────────────────────────────────────────── */
+html[data-theme="light"] .ff-modal .modal-body, .ff-modal .modal-body, .ff-modal .ff-corpo{
+  flex:1 1 auto !important; min-height:0; overflow:auto; padding:18px 24px 22px !important; background:var(--ff-fundo) !important; -webkit-overflow-scrolling:touch;
+}
+.ff-colunas{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; align-items:start; }
+.ff-col{ display:flex; flex-direction:column; gap:16px; min-width:0; }
+.ff-modal[data-ff-aba]:not([data-ff-aba="geral"]) .ff-colunas{ grid-template-columns:minmax(0,1fr); }
+.ff-modal[data-ff-aba]:not([data-ff-aba="geral"]) .ff-col{ display:contents; }
+.ff-modal .form-section.ff-oculta, .ff-modal .ff-aviso-aba.ff-oculta{ display:none !important; }
+.ff-aviso-aba{ padding:28px 18px; text-align:center; color:var(--ff-texto-4); font-size:13.5px; background:#FFFFFF; border:1px dashed var(--ff-borda-2); border-radius:14px; }
+
+/* ── Seções: numeradas, com ícone, recolhíveis ──────────────────────────── */
+html[data-theme="light"] .ff-modal .form-section, .ff-modal .form-section{
+  margin:0 !important; padding:16px 18px 18px !important; border-radius:14px !important; background:#FFFFFF !important; background-image:none !important;
+  border:1px solid var(--ff-borda) !important; box-shadow:0 1px 2px rgba(17,29,45,.04) !important; min-width:0;
+}
+html[data-theme="light"] .ff-modal .form-section-title, .ff-modal .form-section-title{
+  display:flex; align-items:center; gap:10px; margin:0 0 14px !important; font-size:15px !important; font-weight:700 !important; letter-spacing:-.01em;
+  color:var(--ff-texto) !important; cursor:pointer; user-select:none; text-transform:none !important;
+}
+.ff-modal .form-section-title::after{
+  content:''; margin-left:auto; margin-right:4px; width:9px; height:9px; border-right:2px solid var(--ff-texto-5); border-bottom:2px solid var(--ff-texto-5);
+  transform:translateY(2px) rotate(-135deg); transition:transform .15s; flex:none;
+}
+.ff-modal .form-section.ff-fechada .form-section-title::after{ transform:translateY(-2px) rotate(45deg); }
+.ff-modal .form-section.ff-fechada .form-section-title{ margin-bottom:0 !important; }
+.ff-modal .form-section.ff-fechada > :not(.form-section-title){ display:none !important; }
+.ff-ico{ width:28px; height:28px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; flex:none; background:var(--ff-azul-suave); color:var(--ff-azul-forte); }
+.ff-ico svg{ width:15px; height:15px; }
+.ff-ico-roxo{ background:var(--ff-roxo-fundo); color:var(--ff-roxo); }
+.ff-ico-verde{ background:var(--ff-verde-fundo); color:var(--ff-verde); }
+.ff-ico-ambar{ background:var(--ff-ambar-fundo); color:var(--ff-ambar); }
+.ff-ico-cinza{ background:#F1F3F6; color:var(--ff-texto-3); }
+/* Bloco já existente embrulhado numa seção (clientes.php): tira a margem e o h3 duplicado. */
+.ff-modal .form-section > [id]{ margin-top:0 !important; }
+.ff-modal .form-section > [id] > h3:first-child, .ff-modal .form-section > [id] > div:first-child > h3{ display:none !important; }
+.ff-modal .ff-remover{ display:none !important; }
+
+/* ── Campos ─────────────────────────────────────────────────────────────── */
+.ff-modal .form-grid{ gap:12px 14px; }
+html[data-theme="light"] .ff-modal .form-label, .ff-modal .form-label, .ff-modal .field label{
+  display:block; font-size:12.5px !important; font-weight:600 !important; color:var(--ff-texto-3) !important; text-transform:none !important; letter-spacing:0 !important; margin:0 0 6px !important;
+}
+.ff-modal .form-group{ gap:0; }
+html[data-theme="light"] .ff-modal .form-input, html[data-theme="light"] .ff-modal .form-select, html[data-theme="light"] .ff-modal .form-textarea,
+.ff-modal .form-input, .ff-modal .form-select, .ff-modal .form-textarea{
+  height:40px; padding:0 12px !important; border-radius:10px !important; border:1px solid var(--ff-borda-2) !important; background-color:#FFFFFF !important;
+  color:var(--ff-texto) !important; font-family:inherit !important; font-size:13.5px !important; font-weight:500; box-shadow:none !important; color-scheme:light;
+}
+.ff-modal textarea.form-input, .ff-modal .form-textarea{ height:auto; min-height:88px; padding:10px 12px !important; line-height:1.5; resize:vertical; }
+html[data-theme="light"] .ff-modal .form-select, .ff-modal .form-select, .ff-modal select.form-input{
+  appearance:none !important; -webkit-appearance:none !important; padding-right:32px !important; cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23676767' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
+  background-repeat:no-repeat !important; background-position:right 11px center !important; background-size:13px !important;
+}
+html[data-theme="light"] .ff-modal .form-input:focus, html[data-theme="light"] .ff-modal .form-select:focus, html[data-theme="light"] .ff-modal .form-textarea:focus,
+.ff-modal .form-input:focus, .ff-modal .form-select:focus, .ff-modal .form-textarea:focus{
+  outline:none; border-color:var(--ff-azul-media) !important; box-shadow:0 0 0 3px rgba(1,93,252,.12) !important;
+}
+.ff-modal .form-input::placeholder, .ff-modal .form-textarea::placeholder{ color:#A0A7B4 !important; opacity:1; }
+.ff-modal .form-input:disabled, .ff-modal .form-select:disabled{ background-color:#F6F7F9 !important; color:var(--ff-texto-4) !important; }
+.ff-modal .calendar-btn{ color:var(--ff-texto-5) !important; }
+.ff-modal .cep-status, .ff-modal #cliCepStatus{ color:var(--ff-texto-5) !important; }
+
+/* ── Rodapé ─────────────────────────────────────────────────────────────── */
+html[data-theme="light"] .ff-modal .modal-footer, .ff-modal .modal-footer, .ff-modal .modal-foot{
+  position:static !important; display:flex; justify-content:flex-end; align-items:center; gap:10px; flex-wrap:wrap; flex:none;
+  margin:0 !important; padding:14px 24px !important; border-top:1px solid var(--ff-borda) !important; background:#FFFFFF !important; background-image:none !important;
+}
+.ff-modal .modal-footer .btn, .ff-modal .modal-foot .btn{
+  height:40px; padding:0 16px !important; border-radius:10px !important; font-family:inherit !important; font-size:13.5px !important; font-weight:700 !important;
+  display:inline-flex; align-items:center; gap:8px; width:auto !important; box-shadow:none !important; text-transform:none !important; letter-spacing:0; line-height:1; transition:background .15s;
+}
+.ff-modal .modal-footer .btn svg, .ff-modal .modal-foot .btn svg{ width:15px; height:15px; flex:none; }
+html[data-theme="light"] .ff-modal .btn.ghost, .ff-modal .btn.ghost, .ff-modal .btn.btn-ghost{ background:#F1F3F6 !important; border:1px solid transparent !important; color:var(--ff-texto-2) !important; }
+.ff-modal .btn.ghost:hover, .ff-modal .btn.btn-ghost:hover{ background:#E6E9EE !important; }
+html[data-theme="light"] .ff-modal .btn.soft, .ff-modal .btn.soft, .ff-modal .ff-btn-borda{ background:#FFFFFF !important; border:1px solid var(--ff-borda-2) !important; color:var(--ff-texto) !important; }
+.ff-modal .btn.soft:hover, .ff-modal .ff-btn-borda:hover{ background:#F6F7F9 !important; }
+html[data-theme="light"] .ff-modal .btn.primary, .ff-modal .btn.primary, .ff-modal .ff-btn-principal{ background:var(--ff-azul) !important; border:1px solid var(--ff-azul) !important; color:#FFFFFF !important; }
+.ff-modal .btn.primary:hover, .ff-modal .ff-btn-principal:hover{ background:var(--ff-azul-forte) !important; border-color:var(--ff-azul-forte) !important; }
+.ff-modal .btn.primary svg, .ff-modal .ff-btn-principal svg{ color:#FFFFFF !important; stroke:#FFFFFF !important; }
+.ff-modal .ff-btn-destaque{ background:#FFFFFF !important; border:1px solid var(--ff-azul-media) !important; color:var(--ff-azul-forte) !important; }
+.ff-modal .ff-btn-destaque:hover{ background:var(--ff-azul-suave) !important; }
+.ff-modal .ff-btn-perigo{ background:#FFF1F1 !important; border:1px solid #FFCCCC !important; color:#B00000 !important; }
+.ff-modal .ff-btn-perigo:hover{ background:#FFE4E4 !important; }
+.ff-modal .ff-btn-perigo svg{ color:#B00000 !important; stroke:#B00000 !important; }
+
+/* ── Conteúdo herdado com cor em linha (conversa, histórico, processos) ──── */
+.ff-modal [style*="color:#9ab0c9"], .ff-modal [style*="color:#94a3b8"], .ff-modal [style*="color: #9ab0c9"], .ff-modal [style*="color: #94a3b8"]{ color:var(--ff-texto-4) !important; }
+.ff-modal [style*="color:#dbeafe"], .ff-modal [style*="color:#e2e8f0"], .ff-modal [style*="color:#cbd5e1"], .ff-modal [style*="color:#e2f0ff"], .ff-modal [style*="color:#d6eaff"]{ color:var(--ff-texto) !important; }
+.ff-modal [style*="color:#6ee7b7"]{ color:var(--ff-verde) !important; }
+.ff-modal [style*="color:#93c5fd"], .ff-modal [style*="color:#60a5fa"]{ color:var(--ff-azul-forte) !important; }
+.ff-modal [style*="color:#fca5a5"]{ color:#B91C1C !important; }
+.ff-modal [style*="background:rgba(14,28,50"]{ background:#F6F7F9 !important; border-color:var(--ff-borda) !important; }
+.ff-modal [style*="rgba(96,165,250,.10)"]{ border-bottom-color:var(--ff-borda) !important; }
+.ff-modal [style*="background:rgba(96,165,250,.15)"]{ background:var(--ff-azul-suave) !important; color:var(--ff-azul-forte) !important; }
+.ff-modal [style*="background:rgba(16,185,129,.15)"]{ background:var(--ff-verde-fundo) !important; color:var(--ff-verde) !important; }
+/* Filtros do histórico */
+.ff-modal [data-tl-filtro]{ font-family:inherit !important; font-weight:600 !important; background:#FFFFFF !important; border:1px solid var(--ff-borda-2) !important; color:var(--ff-texto-3) !important; }
+.ff-modal [data-tl-filtro][style*="rgba(37,99,235,.28)"]{ background:var(--ff-azul-suave) !important; border-color:transparent !important; color:var(--ff-azul-forte) !important; }
+/* Conversa vinculada (prospeccao.php) e conversas do cliente (clientes.php) */
+.ff-modal #chatVinculoCard > div[style*="border:1px solid rgba(37,211,102"]{ background:#F0FDF4 !important; border:1px solid var(--ff-verde-borda) !important; border-radius:12px !important; }
+.ff-modal #chatVinculoCard > div[style*="border:1px solid rgba(37,211,102"] > div > div:last-child{ color:var(--ff-texto-2) !important; font-weight:600; }
+.ff-modal #chatVinculoCard a, .ff-modal #cliConversas a{ background:var(--ff-verde-fundo) !important; border:1px solid var(--ff-verde-borda) !important; color:var(--ff-verde) !important; border-radius:10px !important; }
+.ff-modal #chatVinculoCard a:hover, .ff-modal #cliConversas a:hover{ background:#BBF7D0 !important; }
+.ff-modal #chatVinculoCard > div[style*="rgba(37,211,102"] svg{ stroke:var(--ff-verde) !important; }
+.ff-modal #chatVinculoCard > div > div > div:first-child > span{ color:var(--ff-verde) !important; }
+
+/* ── Etiquetas, campos, documentos e contatos (crm-fase2) ───────────────── */
+.ff-modal .crm-bloco{ margin-top:14px !important; }
+.ff-modal .crm-bloco:first-child{ margin-top:0 !important; }
+.ff-modal .crm-bloco .crm-titulo{ font-size:11px !important; font-weight:700 !important; letter-spacing:.07em !important; text-transform:uppercase !important; color:var(--ff-texto-4) !important; margin:0 !important; }
+.ff-modal .crm-bloco .crm-link{ color:var(--ff-azul-forte) !important; font-weight:600; font-size:12.5px; }
+.ff-modal .crm-bloco .crm-link-perigo{ color:#B00000 !important; }
+.ff-modal .crm-bloco .crm-vazio{ color:var(--ff-texto-4) !important; font-size:12.5px; }
+.ff-modal .crm-bloco .crm-btn{ background:var(--ff-azul) !important; border-radius:10px !important; font-family:inherit !important; font-weight:700 !important; color:#FFFFFF !important; border:1px solid var(--ff-azul) !important; }
+.ff-modal .crm-bloco .crm-btn:hover{ background:var(--ff-azul-forte) !important; }
+.ff-modal .crm-bloco .crm-btn.crm-btn-ghost{ background:#FFFFFF !important; color:var(--ff-texto) !important; border:1px solid var(--ff-borda-2) !important; }
+.ff-modal .crm-bloco .crm-input{ border-radius:10px !important; border-color:var(--ff-borda-2) !important; background:#FFFFFF !important; color:var(--ff-texto) !important; font-family:inherit !important; }
+.ff-modal .crm-bloco .crm-input:focus{ outline:none !important; border-color:var(--ff-azul-media) !important; box-shadow:0 0 0 3px rgba(1,93,252,.12) !important; }
+/* A linha de anexar vira uma área tracejada, como a do Fleetiflow. */
+.ff-modal .crm-bloco[data-bloco="anexos"] .crm-linha:last-child{
+  border:1.5px dashed var(--ff-azul-media); border-radius:12px; padding:14px !important; background:#FAFBFF; justify-content:center; flex-wrap:wrap; margin-top:10px !important;
+}
+
+/* ── Menu do termômetro (dentro da ficha) ───────────────────────────────── */
+.ff-menu{ position:fixed; z-index:9600; min-width:220px; padding:6px; border-radius:12px; background:#FFFFFF; border:1px solid rgba(17,29,45,.10); box-shadow:0 12px 32px rgba(17,29,45,.16); font-family:'Manrope',system-ui,sans-serif; }
+.ff-menu button{ display:block; width:100%; text-align:left; padding:8px 10px; border:0; border-radius:8px; background:none; cursor:pointer; font:inherit; font-size:.84rem; font-weight:600; color:#1F2937; }
+.ff-menu button:hover{ background:#F3F4F6; }
+.ff-menu .mt-quente{ color:#B91C1C; } .ff-menu .mt-morno{ color:#B45309; } .ff-menu .mt-frio{ color:#1D4ED8; } .ff-menu .mt-congelado{ color:#475569; }
+.ff-menu .mt-auto{ color:#676767; font-weight:500; border-bottom:1px solid rgba(17,29,45,.07); border-radius:8px 8px 0 0; }
+.ff-menu button.ativo{ background:#F1F3F6; }
+
+/* ── Telas estreitas ────────────────────────────────────────────────────── */
+@media (max-width: 920px){
+  .ff-colunas{ grid-template-columns:minmax(0,1fr) !important; }
+  .ff-col{ display:contents; }
+  .ff-resumo{ flex-wrap:wrap; margin:14px 16px 0; }
+  .ff-cel{ flex:1 1 46%; border-left:0; border-top:1px solid var(--ff-borda); }
+  .ff-cel:first-child{ flex-basis:100%; border-top:0; }
+  .ff-abas{ margin:12px 16px 0; }
+  html[data-theme="light"] .ff-modal .modal-header, .ff-modal .modal-header, .ff-modal .modal-head{ grid-template-columns:minmax(0,1fr) auto; grid-template-areas:"titulo fechar" "sub fechar" "meta meta"; padding:18px 16px 0 !important; }
+  .ff-meta{ text-align:left; padding-top:8px; }
+  html[data-theme="light"] .ff-modal .modal-body, .ff-modal .modal-body, .ff-modal .ff-corpo{ padding:14px 16px 18px !important; }
+  html[data-theme="light"] .ff-modal .modal-footer, .ff-modal .modal-footer, .ff-modal .modal-foot{ padding:12px 16px !important; justify-content:stretch; }
+  .ff-modal .modal-footer .btn, .ff-modal .modal-foot .btn{ flex:1 1 45%; justify-content:center; }
+}
+
+/* Modal sem colunas (Novo Lead): as seções se espaçam sozinhas. */
+.ff-modal .modal-body > .form-section + .form-section{ margin-top:16px !important; }
+/* clientes.php: a casca do modal tem 4vh de margem em cima e embaixo. */
+html[data-theme="light"] .modal-panel.ff-modal.ff-cliente, .modal-panel.ff-modal.ff-cliente{ max-height:92vh !important; }
+
+/* Pesos das células da faixa: nome e responsável pedem mais espaço. */
+.ff-cel:first-child{ justify-content:flex-start; }
+.ff-cel[data-cel="cliente"]{ flex:1.5 1 230px; }
+.ff-cel[data-cel="resp"]{ flex:1.3 1 170px; }
+.ff-cel[data-cel="zap"]{ flex:1.2 1 170px; }
+.ff-cel[data-cel="termo"], .ff-cel[data-cel="valor"], .ff-cel[data-cel="origem"]{ flex:.9 1 130px; }
+
+/* Janela baixa ou estreita: a faixa e as abas ocupariam a tela inteira e o
+   corpo ficaria com 30px. Então o painel inteiro rola, com o rodapé grudado. */
+@media (max-width: 920px), (max-height: 720px){
+  html[data-theme="light"] .modal-panel.ff-modal, .modal-panel.ff-modal{ overflow:auto !important; }
+  .ff-modal > form, .ff-modal .modal-form{ flex:none; }
+  html[data-theme="light"] .ff-modal .modal-body, .ff-modal .modal-body, .ff-modal .ff-corpo{ flex:none !important; overflow:visible !important; }
+  html[data-theme="light"] .ff-modal .modal-footer, .ff-modal .modal-footer, .ff-modal .modal-foot{ position:sticky !important; bottom:0; z-index:3; }
+}
+
+/* Cadastro novo (clientes.php): só a coluna de dados existe, então ela ocupa a largura toda. */
+.ff-modal.ff-um .ff-colunas{ grid-template-columns:minmax(0,1fr); }
+.ff-modal.ff-um .ff-col{ display:contents; }
+.ff-modal.ff-um .ff-col-dir{ display:none !important; }

@@ -195,6 +195,11 @@ function column_display_name(array $col): string
        visuais, e o botao "Registrar" virava texto sem fundo na Prospeccao. -->
   <link rel="stylesheet" href="/assets/crm-fase2.css?v=<?= @filemtime(__DIR__ . '/assets/crm-fase2.css') ?: 1 ?>">
   <script src="/assets/crm-fase2.js?v=<?= @filemtime(__DIR__ . '/assets/crm-fase2.js') ?: 1 ?>"></script>
+<?php if ($edicaoCrm): ?>
+  <!-- Ficha do lead e do cliente no desenho do Fleetiflow: só a edição CRM carrega. -->
+  <link rel="stylesheet" href="/assets/ff-ficha.css?v=<?= @filemtime(__DIR__ . '/assets/ff-ficha.css') ?: 1 ?>">
+  <script src="/assets/ff-ficha.js?v=<?= @filemtime(__DIR__ . '/assets/ff-ficha.js') ?: 1 ?>"></script>
+<?php endif; ?>
   <style>
     :root {
       --bg-main: #070F1C;
@@ -4216,6 +4221,136 @@ function column_display_name(array $col): string
     enableDatePickers();
     bindCalendarButtons();
   </script>
+<?php if ($edicaoCrm): ?>
+  <script>
+  // ── Ficha do lead no desenho do Fleetiflow (ff-ficha.js + ff-ficha.css) ──
+  // Só a edição CRM chega aqui. Nada do formulário muda de nome: as seções que
+  // já existem ganham número, ícone e aba, entram em duas colunas, e uma faixa
+  // de resumo (cliente, etapa, termômetro, responsável, WhatsApp, valor) espelha
+  // os campos do formulário, nos dois sentidos. Os selects da faixa NÃO têm
+  // `name`, para não irem junto no FormData do Salvar.
+  (function () {
+    const F = window.FfFicha;
+    const shell = document.getElementById('modalEdit');
+    if (!F || !shell) return;
+    const painel = shell.querySelector('.modal-panel');
+    const form   = document.getElementById('editForm');
+    const corpo  = form.querySelector('.modal-body');
+    const ESPECIALISTA = <?= json_encode((string)($crmEspecialista ?? '')) ?>;
+    painel.classList.add('ff-modal');
+
+    // Seções localizadas pelo campo que carregam: o id do campo é estável, o texto do título não.
+    const sec = (campo) => { const el = form.elements[campo]; return el ? el.closest('.form-section') : null; };
+    const s1 = sec('cliente_nome'), s2 = sec('cpf_cnpj'), s3 = sec('cep'), s4 = sec('valor_estimado'), s5 = sec('data_prevista_fechamento');
+    const s6 = document.getElementById('editDescricaoMain').closest('.form-section');
+    const s7 = document.getElementById('chatVinculoSection'), sConv = document.getElementById('conversaoSection');
+    const s8 = document.getElementById('crmFase2Section'), sH = document.getElementById('historicoSection');
+    F.secao(s1, 1, 'Dados principais', 'doc');
+    F.secao(s2, 2, 'Dados pessoais', 'pessoa');
+    F.secao(s3, 3, 'Endereço', 'pino', 'roxo');
+    F.secao(s4, 4, 'Comercial', 'dolar', 'verde');
+    F.secao(s5, 5, 'Datas', 'calendario', 'roxo');
+    F.secao(s6, 6, 'Observações', 'nota', 'ambar');
+    F.secao(s7, 7, 'Conversa WhatsApp', 'zap', 'verde');
+    F.secao(sConv, 0, 'Convertida em cliente', 'bandeira', 'verde');
+    F.secao(s8, 8, 'Etiquetas, campos e documentos', 'clipe');
+    F.secao(sH, 0, 'Histórico', 'relogio', 'cinza');
+    [s1, s2, s3, s6, sConv].forEach(s => F.emAbas(s, ['geral']));
+    [s4, s5].forEach(s => F.emAbas(s, ['geral', 'comercial']));
+    F.emAbas(s7, ['geral', 'whatsapp']);
+    F.emAbas(s8, ['geral', 'arquivos']);
+    F.emAbas(sH, ['historico']);
+    F.colunas(corpo, [s1, s2, s3], [s4, s5, s6, s7, sConv, s8, sH]);
+
+    // Cabeçalho (número e data à direita, X), faixa de resumo e abas.
+    const cab   = F.cabecalho(painel.querySelector('.modal-header'), () => closeModal('modalEdit'));
+    const faixa = F.resumo(painel, form, [
+      { chave: 'cliente', rotulo: 'Cliente / Empresa' }, { chave: 'etapa', rotulo: 'Etapa atual' }, { chave: 'termo', rotulo: 'Temperatura' },
+      { chave: 'resp', rotulo: 'Responsável' }, { chave: 'zap', rotulo: 'WhatsApp' }, { chave: 'valor', rotulo: 'Valor proposta' }
+    ]);
+    const abas = F.abas(painel, form, [
+      { chave: 'geral', rotulo: 'Visão geral', icone: 'grade' }, { chave: 'comercial', rotulo: 'Comercial', icone: 'dolar' },
+      { chave: 'whatsapp', rotulo: 'WhatsApp', icone: 'zap' }, { chave: 'arquivos', rotulo: 'Arquivos', icone: 'clipe' },
+      { chave: 'historico', rotulo: 'Histórico', icone: 'relogio' }
+    ], () => { corpo.scrollTop = 0; });
+
+    // Rodapé: ícones e cores da ficha nos botões que já existem.
+    F.botao(byId('btnRelatorioCard'), 'doc');
+    F.botao(byId('openWhatsapp'), 'chat');
+    F.botao(byId('btnTornarCliente'), 'pessoa', 'ff-btn-destaque');
+    F.botao(byId('saveCard'), 'salvar');
+    F.botao(byId('deleteCard'), 'lixo', 'ff-btn-perigo');
+
+    let cardAtual = null;
+    function acharCard(id) {
+      for (const k in cardsCacheByColumn) {
+        const c = (cardsCacheByColumn[k] || []).find(x => String(x.id) === String(id));
+        if (c) return c;
+      }
+      return null;
+    }
+
+    function atualizar() {
+      const c = cardAtual || {};
+      cab.meta(F.codigo('LD', form.id.value), F.fmtDataHora(c.created_at));
+      const nome = form.cliente_nome.value.trim() || form.empresa_nome.value.trim();
+      F.celulaNome(faixa.valor('cliente'), nome, 'Sem nome', 'predio', () => byId('btnRelatorioCard').click(), 'Relatório completo');
+      F.celulaSelect(faixa.valor('etapa'), form.coluna_id);
+      // O mesmo cálculo do card do quadro, com o que está no formulário agora.
+      const t = getTemperatureBadge(Object.assign({}, c, { temperatura: form.temperatura ? form.temperatura.value : '', coluna_id: form.coluna_id.value }), 0);
+      faixa.set('termo', F.termo(t.chave, t.label, !!t.manual, t.porque || ''));
+      F.celulaResponsavel(faixa.valor('resp'), form.responsavel_user_id, (uid) => String(uid) === ESPECIALISTA ? 'Especialista' : 'Consultor comercial');
+      F.celulaWhatsapp(faixa.valor('zap'), form.telefone_whatsapp.value, () => byId('openWhatsapp').click());
+      const vp = F.numero(form.valor_proposta.value) || F.numero(form.valor_estimado.value);
+      faixa.set('valor', '<span class="ff-pill">' + F.esc(F.fmtBRL(vp)) + '</span>');
+    }
+
+    // Selo do termômetro na faixa: troca o select do formulário; grava no Salvar.
+    faixa.el.addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-termo]');
+      if (!b || !form.temperatura) return;
+      F.menuTermo(b, form.temperatura.value, (v) => {
+        form.temperatura.value = v;
+        form.temperatura.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    });
+    form.addEventListener('input', atualizar);
+    form.addEventListener('change', atualizar);
+    // Campo obrigatório vazio numa aba escondida: volta para a Visão geral antes
+    // de o navegador tentar focar o campo.
+    form.addEventListener('invalid', () => abas.mostrar('geral'), true);
+
+    F.aoAbrir(shell, async () => {
+      abas.mostrar('geral');
+      painel.querySelectorAll('.form-section.ff-fechada').forEach(s => s.classList.remove('ff-fechada'));
+      cardAtual = acharCard(form.id.value);
+      if (!cardAtual) {
+        try {
+          const j = await fetch(apiCards + '?id=' + encodeURIComponent(form.id.value)).then(r => r.json());
+          cardAtual = (j.data && j.data[0]) || j.data || null;
+        } catch (e) { cardAtual = null; }
+      }
+      atualizar();
+    });
+    abas.mostrar('geral');
+
+    // Modal "Novo Lead": a mesma roupa, sem faixa nem abas.
+    const create = document.getElementById('modalCreate');
+    if (create) {
+      const pc = create.querySelector('.modal-panel'), fc = document.getElementById('createForm');
+      pc.classList.add('ff-modal');
+      const secC = (campo) => { const el = fc.elements[campo]; return el ? el.closest('.form-section') : null; };
+      F.secao(secC('cliente_nome'), 1, 'Dados principais', 'doc');
+      F.secao(secC('cpf_cnpj'), 2, 'Dados pessoais', 'pessoa');
+      F.secao(secC('cep'), 3, 'Endereço', 'pino', 'roxo');
+      F.secao(secC('valor_estimado'), 4, 'Comercial', 'dolar', 'verde');
+      F.secao(secC('descricao') || (fc.querySelector('textarea') && fc.querySelector('textarea').closest('.form-section')), 5, 'Observações', 'nota', 'ambar');
+      F.cabecalho(pc.querySelector('.modal-header'), () => closeModal('modalCreate'));
+      F.botao(fc.querySelector('button[type="submit"]'), 'salvar');
+    }
+  })();
+  </script>
+<?php endif; ?>
   <script src="assets/dashboard.js?v=13"></script>
   <script src="/assets/fog.js"></script>
 <script>

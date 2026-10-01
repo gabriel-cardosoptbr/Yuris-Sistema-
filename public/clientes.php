@@ -24,6 +24,7 @@ if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
 $ctx = AccountContext::fromSession();
 $ctx->assertAccountActive();
 $moduloJuridico = $ctx->moduloJuridicoDisponivel(); // false só para conta Fleetiflow (sem módulo jurídico)
+$edicaoCrm = !$moduloJuridico; // ficha do cliente no desenho do Fleetiflow (ff-ficha.css/js)
 
 // Permission gate
 $_isAdmin = strtolower((string)($_SESSION['user_perfil'] ?? '')) === 'admin';
@@ -99,6 +100,11 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
        visuais, e o botao "Registrar" virava texto sem fundo na Prospeccao. -->
   <link rel="stylesheet" href="/assets/crm-fase2.css?v=<?= @filemtime(__DIR__ . '/assets/crm-fase2.css') ?: 1 ?>">
   <script src="/assets/crm-fase2.js?v=<?= @filemtime(__DIR__ . '/assets/crm-fase2.js') ?: 1 ?>"></script>
+<?php if ($edicaoCrm): ?>
+  <!-- Ficha do lead e do cliente no desenho do Fleetiflow: só a edição CRM carrega. -->
+  <link rel="stylesheet" href="/assets/ff-ficha.css?v=<?= @filemtime(__DIR__ . '/assets/ff-ficha.css') ?: 1 ?>">
+  <script src="/assets/ff-ficha.js?v=<?= @filemtime(__DIR__ . '/assets/ff-ficha.js') ?: 1 ?>"></script>
+<?php endif; ?>
   <style>
     :root {
       --bg-main: #070F1C;
@@ -2088,6 +2094,8 @@ window.Clientes = (function () {
         createOrigem, updateOrigem, archiveOrigem,
         viaCepLookup,
         openAniversariantes, closeAniversariantes,
+        // Só leitura: a ficha da edição CRM (ff-ficha) mostra número e data do cliente aberto.
+        clienteAtual: () => state.currentCliente,
     };
 })();
 </script>
@@ -2119,5 +2127,145 @@ window.Clientes = (function () {
   });
 })();
 </script>
+<?php if ($edicaoCrm): ?>
+<script>
+// ── Ficha do cliente no desenho do Fleetiflow (ff-ficha.js + ff-ficha.css) ──
+// Só a edição CRM chega aqui. Os campos (.field) do formulário são os mesmos,
+// com os mesmos ids e names: aqui eles só são agrupados em seções numeradas,
+// em duas colunas e abas, e uma faixa de resumo (cliente, status, setor,
+// responsável, WhatsApp, origem) espelha o formulário nos dois sentidos. Os
+// selects da faixa NÃO têm `name` e ficam fora do <form>.
+(function () {
+  const F = window.FfFicha;
+  const shell = document.getElementById('modalCliente');
+  if (!F || !shell) return;
+  const $ = (s, r) => (r || document).querySelector(s);
+  const painel = shell.querySelector('.modal-panel');
+  const form   = document.getElementById('cliForm');
+  const head   = painel.querySelector('.modal-head');
+  painel.classList.add('ff-modal', 'ff-cliente');
+
+  // Título próprio (o h2 nativo recebe o nome do cliente; aqui o nome vai para a faixa).
+  const tit = document.createElement('div'); tit.className = 'ff-titulo';
+  const sub = document.createElement('div'); sub.className = 'ff-subtitulo';
+  head.appendChild(tit); head.appendChild(sub);
+  const cab = F.cabecalho(head, () => window.Clientes.closeClienteModal());
+
+  // Seções a partir dos campos. Os separadores antigos ("Endereço" e a linha
+  // tracejada das observações) saem: a seção já faz esse papel.
+  const grade = form.querySelector('.form-grid');
+  grade.querySelectorAll('.field.full > label:not([for])').forEach(l => l.closest('.field').classList.add('ff-remover'));
+  const campo = (id) => { const el = document.getElementById(id); return el ? el.closest('.field') : null; };
+  const g = (ids) => { const d = document.createElement('div'); d.className = 'form-grid'; ids.forEach(id => { const f = campo(id); if (f) d.appendChild(f); }); return d; };
+  const fObs = campo('cliObs'); if (fObs) fObs.removeAttribute('style');
+  const s1 = F.envolver([g(['cliNome', 'cliTipo', 'cliOrigem', 'cliStatus', 'cliSetor', 'cliResp', 'cliTelefone', 'cliWhatsapp', 'cliEmail'])]);
+  const s2 = F.envolver([g(['cliCpfCnpj', 'cliRg', 'cliNascimento', 'cliNomeMae'])]);
+  const s3 = F.envolver([g(['cliCep', 'cliUf', 'cliLogradouro', 'cliNumero', 'cliComplemento', 'cliBairro', 'cliCidade'])]);
+  const s4 = F.envolver([g(['cliObs'])]);
+  const bConv = $('#cliConversasBlock'), bTar = $('#cliTarefasBlock'), bOri = $('#cliOrigemBlock'), bCrm = $('#cliCrm'), bHist = $('#cliHistoryBlock');
+  const s5 = F.envolver([bConv]), s6 = F.envolver([bTar]), s7 = F.envolver([bOri]), s8 = F.envolver([bCrm]), sH = F.envolver([bHist]);
+  F.secao(s1, 1, 'Dados principais', 'doc');
+  F.secao(s2, 2, 'Dados pessoais', 'pessoa');
+  F.secao(s3, 3, 'Endereço', 'pino', 'roxo');
+  F.secao(s4, 4, 'Observações', 'nota', 'ambar');
+  F.secao(s5, 5, 'Conversas de WhatsApp', 'zap', 'verde');
+  F.secao(s6, 6, 'Tarefas', 'tarefa', 'ambar');
+  F.secao(s7, 7, 'Origem', 'bandeira', 'cinza');
+  F.secao(s8, 8, 'Etiquetas, campos e documentos', 'clipe');
+  F.secao(sH, 0, 'Histórico', 'relogio', 'cinza');
+  const avisoZap = document.createElement('div');
+  avisoZap.className = 'ff-aviso-aba';
+  avisoZap.textContent = 'Nenhuma conversa de WhatsApp ligada a este cliente. As conversas vêm das prospecções de origem.';
+  [s1, s2, s3, s4, s6, s7].forEach(s => F.emAbas(s, ['geral']));
+  F.emAbas(s5, ['geral', 'whatsapp']);
+  F.emAbas(avisoZap, ['whatsapp']);
+  F.emAbas(s8, ['geral', 'arquivos']);
+  F.emAbas(sH, ['historico']);
+
+  // Corpo rolável no lugar da grade antiga, em duas colunas.
+  const corpo = document.createElement('div');
+  corpo.className = 'ff-corpo';
+  form.insertBefore(corpo, grade);
+  grade.remove();
+  F.colunas(corpo, [s1, s2, s3, s4], [s5, avisoZap, s6, s7, s8, sH]);
+
+  // Os blocos antigos aparecem e somem por `style.display`; a seção que os
+  // embrulha segue o mesmo destino, e a aba WhatsApp mostra um aviso no vazio.
+  function espelhar(bloco, secao, aviso) {
+    if (!bloco) { secao.style.display = 'none'; return; }
+    const f = () => {
+      const oculto = bloco.style.display === 'none';
+      secao.style.display = oculto ? 'none' : '';
+      if (aviso) aviso.style.display = oculto ? '' : 'none';
+      if (typeof renumerar === 'function') renumerar();
+    };
+    new MutationObserver(f).observe(bloco, { attributes: true, attributeFilter: ['style'] });
+    f();
+  }
+  const SECOES = [s1, s2, s3, s4, s5, s6, s7, s8];
+  const renumerar = () => F.renumerar(SECOES);
+  espelhar(bConv, s5, avisoZap); espelhar(bTar, s6); espelhar(bOri, s7); espelhar(bHist, sH);
+  if (bCrm) {
+    const fc = () => { s8.style.display = bCrm.children.length ? '' : 'none'; renumerar(); };
+    new MutationObserver(fc).observe(bCrm, { childList: true });
+    fc();
+  }
+
+  // Faixa de resumo e abas, entre o cabeçalho e o formulário.
+  const faixa = F.resumo(painel, form, [
+    { chave: 'cliente', rotulo: 'Cliente' }, { chave: 'status', rotulo: 'Status' }, { chave: 'setor', rotulo: 'Setor' },
+    { chave: 'resp', rotulo: 'Responsável' }, { chave: 'zap', rotulo: 'WhatsApp' }, { chave: 'origem', rotulo: 'Origem' }
+  ]);
+  const abas = F.abas(painel, form, [
+    { chave: 'geral', rotulo: 'Visão geral', icone: 'grade' }, { chave: 'whatsapp', rotulo: 'WhatsApp', icone: 'zap' },
+    { chave: 'arquivos', rotulo: 'Arquivos', icone: 'clipe' }, { chave: 'historico', rotulo: 'Histórico', icone: 'relogio' }
+  ], () => { corpo.scrollTop = 0; });
+
+  // Rodapé: Cancelar, Relatório, Arquivar, Salvar, com ícone.
+  const bCancelar = form.querySelector('.modal-foot .btn-ghost[onclick*="closeClienteModal"]');
+  if (bCancelar) bCancelar.style.order = '0';
+  F.botao($('#btnRelatorioCliente'), 'doc', 'ff-btn-borda'); $('#btnRelatorioCliente').style.order = '1';
+  F.botao($('#btnArquivarCliente'), 'arquivar', 'ff-btn-perigo'); $('#btnArquivarCliente').style.order = '2';
+  F.botao($('#btnSalvarCliente'), 'salvar', 'ff-btn-principal'); $('#btnSalvarCliente').style.order = '3';
+
+  function atualizar() {
+    const id = $('#cliId').value, novo = !id;
+    tit.textContent = novo ? 'Novo Cliente' : 'Gestão Completa do Cliente';
+    sub.textContent = novo ? 'Cadastre os dados principais. Etiquetas, documentos e histórico aparecem depois do primeiro Cadastrar.'
+                           : 'Atualize dados cadastrais, atendimento e histórico com rastreabilidade.';
+    painel.classList.toggle('ff-um', novo);
+    faixa.el.style.display = novo ? 'none' : '';
+    abas.el.style.display  = novo ? 'none' : '';
+    const c = (window.Clientes && Clientes.clienteAtual && Clientes.clienteAtual()) || {};
+    cab.meta(novo ? '' : F.codigo('CL', id), novo ? '' : F.fmtDataHora(c.created_at));
+    if (novo) return;
+    const nome = $('#cliNome').value.trim();
+    F.celulaNome(faixa.valor('cliente'), nome, 'Sem nome', $('#cliTipo').value === 'PJ' ? 'predio' : (nome ? F.iniciais(nome) : 'pessoa'),
+                 () => $('#btnRelatorioCliente').click(), 'Relatório completo');
+    const st = F.celulaSelect(faixa.valor('status'), $('#cliStatus'));
+    st.classList.toggle('ff-sel-neutro', st.value !== 'ativo');
+    F.celulaSelect(faixa.valor('setor'), $('#cliSetor'), 'ff-sel-neutro');
+    F.celulaResponsavel(faixa.valor('resp'), $('#cliResp'), 'Responsável interno');
+    const zap = $('#cliWhatsapp').value || $('#cliTelefone').value;
+    F.celulaWhatsapp(faixa.valor('zap'), zap, () => {
+      const d = String(zap).replace(/\D/g, '');
+      if (d) location.href = '/chat.php?jid=' + encodeURIComponent((d.length <= 11 ? '55' + d : d) + '@s.whatsapp.net');
+    });
+    const oSel = $('#cliOrigem'), o = oSel.options[oSel.selectedIndex];
+    faixa.set('origem', '<span class="ff-pill">' + F.esc(o && oSel.value ? o.textContent.trim() : 'Não informada') + '</span>');
+  }
+  form.addEventListener('input', atualizar);
+  form.addEventListener('change', atualizar);
+  form.addEventListener('invalid', () => abas.mostrar('geral'), true);
+  F.aoAbrir(shell, () => {
+    abas.mostrar('geral');
+    painel.querySelectorAll('.form-section.ff-fechada').forEach(s => s.classList.remove('ff-fechada'));
+    atualizar();
+  });
+  abas.mostrar('geral');
+  atualizar();
+})();
+</script>
+<?php endif; ?>
 </body>
 </html>

@@ -115,6 +115,34 @@ filtros não mudaram. O formulário ganha "Tipo do lead" (texto com sugestões,
 `datalist`) e "Termômetro" (automático ou escolhido), migration 134. O selo de temperatura do card é clicável (menu: automático, quente, morno, frio, congelado) e dono/admin tem o botão **Termômetro**, que define a regra da conta (`/api/crm_termometro.php`). Dono/admin vê na barra o seletor **Especialista do WhatsApp** (`/api/crm_especialista.php`): quem vira consultor do card que entra em atendimento pelo celular ou WhatsApp Web. A edição
 jurídica renderiza o card de sempre.
 
+Na mesma edição, a **ficha do lead e a do cliente** (os modais "Gestão Completa
+do Lead", "Novo Lead" e o de `clientes.php`) têm o desenho do Fleetiflow
+(01/10/2026): `assets/ff-ficha.css` + `assets/ff-ficha.js`, carregados só quando
+`$edicaoCrm`. O `ff-ficha.js` oferece as peças (`window.FfFicha`: faixa de resumo,
+abas, duas colunas, seção numerada com ícone e recolhível, menu do termômetro,
+formatadores) e cada página monta a sua ficha num `<script>` próprio dentro de
+`if ($edicaoCrm)`, no fim do arquivo. **O DOM do formulário não muda de nome**:
+mesmos inputs, ids e names, só reorganizados (`prospeccao.php` renomeia e
+redistribui as seções que já existem; `clientes.php` agrupa os `.field` em
+seções novas e embrulha os blocos de conversas, tarefas, origem, etiquetas e
+histórico). Faixa de resumo: no lead, cliente, etapa (select espelhado),
+temperatura (selo clicável, o mesmo cálculo do card do quadro), responsável
+(avatar com select transparente por cima), WhatsApp e valor da proposta; no
+cliente, nome, status, setor, responsável, WhatsApp e origem. Os selects da
+faixa **não têm `name` e ficam fora do `<form>`**, para não irem no FormData do
+Salvar. Abas: Visão geral (duas colunas), Comercial, WhatsApp, Arquivos e
+Histórico (o cliente não tem Comercial); campo obrigatório vazio numa aba
+escondida volta para a Visão geral (`invalid` em captura). Janela estreita ou
+baixa (`max-width: 920px` ou `max-height: 720px`) rola o painel inteiro, com o
+rodapé grudado. Os blocos do cliente que aparecem e somem por `style.display`
+arrastam a seção que os embrulha, e as seções visíveis são renumeradas
+(`FfFicha.renumerar`); cadastro novo (`.ff-um`) esconde a coluna da direita. A
+conta jurídica não carrega nada disso, e os blocos condicionais ficam em
+`<?php if ($edicaoCrm): ?>` **com as tags na coluna zero**: o PHP engole a
+quebra de linha depois de `?>`, mas não os espaços antes de `<?php`, e a
+varredura diferencial acusou 6 divergências por 4 espaços vazados no HTML do
+Yuris antes de isso ser corrigido.
+
 `dashboard.php` calcula tenant, filtro de origem e DRE e, se a conta tem
 produto `fleetiflow`, entrega em `includes/dashboard_fleetiflow.php` e sai. Essa
 página é o **cockpit comercial** (30/09/2026): cabeçalho com período (7/30/90
@@ -170,7 +198,7 @@ stub em `index.php`; a v1 ficou guardada. Ver
 |---|---|
 | `api/` | ~130 endpoints REST. Tem [README próprio](api/README.md) |
 | `includes/` | pedaços de página reaproveitados: `sidebar.php`, `seo_head.php`, `legal_page.php`, rodapés, e `dashboard_fleetiflow.php` (a página inteira do cockpit comercial, incluída por `dashboard.php` só para a conta Fleetiflow). `sidebar.php` resolve `AccountContext::getProduto()` uma vez (`$_isFleetiflow`) e troca logo, rodapé, grupo "Jurídico" do menu e as duas primeiras abas da barra mobile conforme o produto da conta. Para a conta Fleetiflow troca também "Yuris" por "Fleetiflow" no título da aba (23 páginas escrevem o nome no `<title>`; a troca é feita num script só, aqui). Também força o tema **claro** do Yuris (existente, não é novo) na primeira visita da conta Fleetiflow e, num `<style>` só dessa conta, redesenha a barra como a `AppShell` real do Fleetiflow (coluna branca de 260px encostada na borda, item plano, ativo `#D6E4FF` com texto `#3D3D3D`, canvas `#F6F7F9`, fonte Manrope). Regra do bloco: todo seletor leva o prefixo `html[data-theme="light"]` e desce até `.label` / `svg *` onde o `yuris-theme.css` desce, senão o tema claro do Yuris vence por especificidade. O envoltório da barra varia por página (`main.px-6`, `main.rel-wrap`, `main.o-wrap`, `main` com padding inline, `.layout` sem `.page-layout` em `clientes.php`), então o bloco usa `:has(> .sidebar)`: quem contém a barra perde o padding e o irmão dela ganha `24px 24px 24px 0`. Página nova com outro envoltório entra sozinha nessa regra; não crie regra por classe de página. Sem tocar `yuris-theme.css`, então nenhuma conta Yuris é afetada |
-| `assets/` | CSS, JS e imagens. Um arquivo JS por tela (`processos.js`, `tarefas.js`), mais `design-system.css` e `yuris-theme.css`. `dashboard.js` lê um tema de gráficos opcional em `window.YURIS_CHART_THEME` (cores das séries, raio e espessura das barras, tensão da linha, funil em rosca, fonte); sem ele, os valores são os de sempre do Yuris. `fleetiflow-dashboard.js` + `fleetiflow-dashboard.css` são o cockpit comercial da conta Fleetiflow, independentes do `dashboard.js` |
+| `assets/` | CSS, JS e imagens. Um arquivo JS por tela (`processos.js`, `tarefas.js`), mais `design-system.css` e `yuris-theme.css`. `dashboard.js` lê um tema de gráficos opcional em `window.YURIS_CHART_THEME` (cores das séries, raio e espessura das barras, tensão da linha, funil em rosca, fonte); sem ele, os valores são os de sempre do Yuris. `fleetiflow-dashboard.js` + `fleetiflow-dashboard.css` são o cockpit comercial da conta Fleetiflow, independentes do `dashboard.js`. `ff-ficha.js` + `ff-ficha.css` são a ficha do lead e do cliente da edição CRM (prefixo `.ff-`, `window.FfFicha`), carregados por `prospeccao.php` e `clientes.php` só quando `$edicaoCrm` |
 | `v2/` | a landing institucional nova (`index.php` + `partials/` + `data/`), servida na `/` |
 | `sistema_vendas/Imagens/` | os logos, servidos em `/sistema_vendas/Imagens/`: 3 do Yuris (`Logo.png`, `Logo Loguin.png`, `YURIS.png`) + 4 do Fleetiflow (`fleetiflow-horizontal.png`, `fleetiflow-icone.png`, `fleetiflow-completa.png`, `fleetiflow-texto.png`, cópia dos arquivos oficiais da marca). **Não mova:** `sidebar.php`, `login.php`, `login-fleetiflow.php` e as páginas legais apontam para essa URL. O nome é herança de quando o app era servido em `/sistema_vendas/` |
 | `uploads/` | arquivos enviados pelos clientes |
