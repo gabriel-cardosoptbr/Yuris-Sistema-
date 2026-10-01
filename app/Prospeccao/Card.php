@@ -41,7 +41,8 @@ class Card
                            a.tipo AS origin_account_tipo,
                            c.account_id AS origin_account_id,
                            (SELECT remote_jid FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_jid,
-                           (SELECT last_message_at FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_last_at
+                           (SELECT last_message_at FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_last_at,
+                           (SELECT last_message_from_me FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_last_from_me
                     FROM cards c
                     LEFT JOIN accounts a ON a.id = c.account_id
                     WHERE c.deleted_at IS NULL
@@ -63,7 +64,8 @@ class Card
                               NULL AS origin_account_tipo,
                               c.account_id AS origin_account_id,
                               (SELECT remote_jid FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_jid,
-                           (SELECT last_message_at FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_last_at
+                           (SELECT last_message_at FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_last_at,
+                           (SELECT last_message_from_me FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_last_from_me
                        FROM cards c WHERE c.deleted_at IS NULL';
             $params = [];
         }
@@ -117,7 +119,8 @@ class Card
                     a.tipo AS origin_account_tipo,
                     c.account_id AS origin_account_id,
                     (SELECT remote_jid FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_jid,
-                           (SELECT last_message_at FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_last_at
+                           (SELECT last_message_at FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_last_at,
+                           (SELECT last_message_from_me FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_last_from_me
              FROM cards c
              LEFT JOIN accounts a ON a.id = c.account_id
              WHERE c.id = :id AND c.deleted_at IS NULL LIMIT 1'

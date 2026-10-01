@@ -53,7 +53,7 @@ hash do conteúdo, não o id da conta, e só sai PNG/JPEG/WebP com `nosniff` e C
 fechada. `master/marca.php` lê e grava a marca (só super admin, CSRF,
 auditoria); `master/create_account.php` aceita `edicao: 'crm'` com a marca.
 
-`crm_termometro.php` lê e grava a regra do termômetro da edição CRM (`App\Prospeccao\Termometro`). GET para todos da conta; POST só dono/admin, com CSRF; `{padrao: true}` volta ao padrão; conta jurídica recebe 403.
+`crm_termometro.php` lê e grava a regra do termômetro da edição CRM (`App\Prospeccao\Termometro`): `{etapas: {chave: nível}, quente_dias, morno_dias, frio_dias, resposta_esquenta}`; etapa que faltar vem do padrão, nível inválido dá 422. GET para todos da conta; POST só dono/admin, com CSRF; `{padrao: true}` volta ao padrão; conta jurídica recebe 403.
 
 `crm_especialista.php` lê e grava o especialista padrão da edição CRM (quem vira consultor do card quando a conversa é respondida pelo celular ou WhatsApp Web). GET para todos da conta; POST só dono/admin, com CSRF; conta jurídica recebe 403.
 

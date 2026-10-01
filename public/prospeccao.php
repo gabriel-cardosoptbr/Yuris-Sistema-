@@ -1288,6 +1288,27 @@ function column_display_name(array $col): string
     .termo-etapas strong{ display:block; margin-bottom:6px; font-size:.82rem; color:#1F2937; }
     .termo-chk{ display:flex; align-items:center; gap:8px; padding:3px 0; font-size:.82rem; color:#3D3D3D; cursor:pointer; }
     @media (max-width:640px){ .termo-grade{ grid-template-columns:1fr 1fr; } .termo-etapas{ grid-template-columns:1fr; } }
+    /* Termômetro misto: temperatura de partida por etapa, exemplos ao vivo. */
+    .termo-tabela{ display:flex; flex-direction:column; gap:6px; }
+    .termo-linha{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(17,29,45,.06); }
+    .termo-linha:last-child{ border-bottom:0; }
+    .termo-etapa-nome{ font-size:.84rem; font-weight:600; color:#1F2937; min-width:0; }
+    .termo-seg{ display:inline-flex; flex:none; padding:3px; gap:2px; border-radius:10px; background:#F1F3F6; }
+    .termo-seg label{ position:relative; cursor:pointer; }
+    .termo-seg input{ position:absolute; opacity:0; pointer-events:none; }
+    .termo-seg span{ display:inline-block; padding:5px 10px; border-radius:8px; font-size:.76rem; font-weight:700; color:#767676; transition:background .12s, color .12s; }
+    .termo-seg label:hover span{ color:#1F2937; }
+    .termo-seg .ts-quente input:checked + span{ background:#FEE2E2; color:#B91C1C; }
+    .termo-seg .ts-morno input:checked + span{ background:#FFF4D6; color:#B45309; }
+    .termo-seg .ts-frio input:checked + span{ background:#E8F1FF; color:#1D4ED8; }
+    .termo-seg .ts-congelado input:checked + span{ background:#E2E8F0; color:#334155; }
+    .termo-seg input:focus-visible + span{ outline:2px solid rgba(1,93,252,.4); }
+    .termo-resp{ align-items:flex-start; line-height:1.5; }
+    .termo-resp input{ margin-top:3px; }
+    .termo-exemplos{ list-style:none; margin:0; padding:0; display:grid; grid-template-columns:1fr 1fr; gap:6px 18px; }
+    .termo-exemplos li{ display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:.8rem; color:#3D3D3D; padding:4px 0; border-bottom:1px dashed rgba(17,29,45,.08); }
+    .termo-exemplos .rt{ font-weight:800; white-space:nowrap; }
+    @media (max-width:640px){ .termo-linha{ flex-direction:column; align-items:flex-start; } .termo-exemplos{ grid-template-columns:1fr; } }
 
     /* Seletor do especialista padrão, na barra de botões. */
     .crm-esp{ display:inline-flex; align-items:center; gap:8px; margin-left:4px; font-size:.78rem; font-weight:600; color:#676767; }
@@ -1892,37 +1913,43 @@ function column_display_name(array $col): string
     <div class="modal-panel" style="width:min(720px, 96vw);">
       <div class="modal-header">
         <div class="modal-title">Termômetro dos leads</div>
-        <div class="modal-subtitle">Defina o que faz um lead ser quente, morno, frio ou congelado. O card mostra a temperatura no canto de cima; clicando nela dá para escolher à mão, e a escolha manual vale mais que a regra.</div>
+        <div class="modal-subtitle">A temperatura junta três coisas: a etapa do funil, o tempo sem contato e a resposta do lead. Clicando no selo do card dá para escolher à mão, e a escolha manual vale mais que a regra.</div>
       </div>
       <form id="formTermometro" class="modal-form">
         <div class="modal-body">
           <div class="form-section">
-            <div class="form-section-title">1. Pelo tempo desde o último contato</div>
-            <p class="termo-ajuda">Último contato é a última mensagem da conversa ligada ao card ou, sem conversa, a última alteração do card.</p>
+            <div class="form-section-title">1. A etapa dá a temperatura de partida</div>
+            <p class="termo-ajuda">É também o teto: o lead nunca fica mais quente que a etapa dele. Quem esquenta um lead para quente é gente atendendo.</p>
+            <div class="termo-tabela">
+              <?php foreach ($crmNomesEtapas as $__k => $__n): if ($__k === 'venda') continue; ?>
+              <div class="termo-linha">
+                <span class="termo-etapa-nome"><?= htmlspecialchars($__n) ?></span>
+                <div class="termo-seg" role="radiogroup" aria-label="<?= htmlspecialchars($__n) ?>">
+                  <?php foreach (['quente' => 'Quente', 'morno' => 'Morno', 'frio' => 'Frio', 'congelado' => 'Congelado'] as $__v => $__r): ?>
+                  <label class="ts-<?= $__v ?>"><input type="radio" name="etapa_<?= htmlspecialchars($__k) ?>" data-etapa="<?= htmlspecialchars($__k) ?>" value="<?= $__v ?>"><span><?= $__r ?></span></label>
+                  <?php endforeach; ?>
+                </div>
+              </div>
+              <?php endforeach; ?>
+            </div>
+          </div>
+          <div class="form-section">
+            <div class="form-section-title">2. O tempo sem contato esfria</div>
+            <p class="termo-ajuda">Passou do limite, o lead cai de nível mesmo numa etapa quente. O tempo nunca esquenta. Último contato é a última mensagem da conversa ligada ao card ou, sem conversa, a última alteração do card.</p>
             <div class="termo-grade">
               <label class="termo-nivel tn-quente"><span>Quente</span><span class="tn-linha">até <input name="quente_dias" type="number" min="0" max="365" required> dias</span></label>
               <label class="termo-nivel tn-morno"><span>Morno</span><span class="tn-linha">até <input name="morno_dias" type="number" min="1" max="365" required> dias</span></label>
               <label class="termo-nivel tn-frio"><span>Frio</span><span class="tn-linha">até <input name="frio_dias" type="number" min="2" max="365" required> dias</span></label>
-              <div class="termo-nivel tn-congelado"><span>Congelado</span>mais que isso, ou nunca</div>
+              <div class="termo-nivel tn-congelado"><span>Congelado</span><span class="tn-linha">mais de <b id="termoCongelaDias"></b> dias</span></div>
             </div>
-            <p id="termoResumo" class="termo-resumo"></p>
           </div>
           <div class="form-section">
-            <div class="form-section-title">2. Pela etapa (vale mais que o tempo)</div>
-            <div class="termo-etapas">
-              <div>
-                <strong>Sempre quente</strong>
-                <?php foreach ($crmNomesEtapas as $__k => $__n): if (in_array($__k, ['venda'], true)) continue; ?>
-                <label class="termo-chk"><input type="checkbox" name="etapas_quentes" value="<?= htmlspecialchars($__k) ?>"> <?= htmlspecialchars($__n) ?></label>
-                <?php endforeach; ?>
-              </div>
-              <div>
-                <strong>Sempre congelado</strong>
-                <?php foreach ($crmNomesEtapas as $__k => $__n): if (in_array($__k, ['venda'], true)) continue; ?>
-                <label class="termo-chk"><input type="checkbox" name="etapas_congeladas" value="<?= htmlspecialchars($__k) ?>"> <?= htmlspecialchars($__n) ?></label>
-                <?php endforeach; ?>
-              </div>
-            </div>
+            <div class="form-section-title">3. A resposta do lead esquenta</div>
+            <label class="termo-chk termo-resp"><input type="checkbox" name="resposta_esquenta"> <span>Lead que mandou a última mensagem nos últimos <b id="termoRespDias"></b> dias sobe para <b class="rt rt-morno">Morno</b>: ele está esperando resposta. Vale para lead novo e em follow-up que respondeu.</span></label>
+          </div>
+          <div class="form-section">
+            <div class="form-section-title">Como fica com esta regra</div>
+            <ul id="termoResumo" class="termo-exemplos"></ul>
           </div>
         </div>
         <div class="modal-footer">
@@ -2141,28 +2168,21 @@ function column_display_name(array $col): string
       if (manual === 'morno')  return { label: 'Morno',  cls: 'badge-warm', chave: 'morno',  manual: true };
       if (manual === 'frio')   return { label: 'Frio',   cls: 'badge-cold', chave: 'frio',   manual: true };
       if (manual === 'congelado') return { label: 'Congelado', cls: 'badge-cold', chave: 'congelado', manual: true };
-      // Edição CRM: a regra da conta (botão "Termômetro"), espelho de
-      // App\Prospeccao\Termometro::classificar. Etapa vence o tempo sem contato.
-      if (EDICAO_CRM && TERMOMETRO) {
+      // Edição CRM: a regra MISTA da conta (botão "Termômetro"), espelho de
+      // App\Prospeccao\Termometro::detalhar. A etapa dá a partida e o teto, o
+      // tempo sem contato só esfria, e a resposta do lead esquenta até morno.
+      if (EDICAO_CRM && TERMOMETRO && TERMOMETRO.etapas) {
         const ROT = { quente: ['Quente', 'badge-hot'], morno: ['Morno', 'badge-warm'], frio: ['Frio', 'badge-cold'], congelado: ['Congelado', 'badge-cold'] };
         const col = getColumnById(card.coluna_id);
         const etapa = col ? (SLUG_ETAPA[col.slug] || null) : null;
-        let chave, porque;
-        if (etapa && (TERMOMETRO.etapas_congeladas || []).includes(etapa)) { chave = 'congelado'; porque = 'etapa ' + (NOMES_ETAPAS[etapa] || etapa); }
-        else if (etapa && (TERMOMETRO.etapas_quentes || []).includes(etapa)) { chave = 'quente'; porque = 'etapa ' + (NOMES_ETAPAS[etapa] || etapa); }
-        else {
-          const ultimo = card.linked_chat_last_at || card.updated_at || card.created_at;
-          const d = ultimo ? new Date(String(ultimo).replace(' ', 'T')) : null;
-          // max(0): o banco grava em UTC e o navegador lê como hora local; sem isso
-          // um contato de agora aparecia "há -1 dias".
-          const dias = d && !Number.isNaN(d.getTime()) ? Math.max(0, Math.floor((Date.now() - d.getTime()) / 86400000)) : null;
-          if (dias === null) { chave = 'congelado'; porque = 'sem contato registrado'; }
-          else {
-            chave = dias <= TERMOMETRO.quente_dias ? 'quente' : dias <= TERMOMETRO.morno_dias ? 'morno' : dias <= TERMOMETRO.frio_dias ? 'frio' : 'congelado';
-            porque = dias === 0 ? 'contato hoje' : 'último contato há ' + dias + (dias === 1 ? ' dia' : ' dias');
-          }
-        }
-        return { label: ROT[chave][0], cls: ROT[chave][1], chave, porque };
+        const ultimo = card.linked_chat_last_at || card.updated_at || card.created_at;
+        const d = ultimo ? new Date(String(ultimo).replace(' ', 'T')) : null;
+        // max(0): o banco grava em UTC e o navegador lê como hora local; sem isso
+        // um contato de agora aparecia "há -1 dias".
+        const dias = d && !Number.isNaN(d.getTime()) ? Math.max(0, Math.floor((Date.now() - d.getTime()) / 86400000)) : null;
+        const leadFalou = !!card.linked_chat_jid && String(card.linked_chat_last_from_me) === '0';
+        const r = termoDetalhar(TERMOMETRO, etapa, dias, leadFalou);
+        return { label: ROT[r.nivel][0], cls: ROT[r.nivel][1], chave: r.nivel, porque: termoPorque(r.motivo, etapa, dias) };
       }
       let score = 0;
       if (toNumber(card.valor_proposta) >= 15000 || toNumber(card.valor_estimado) >= 20000) score += 2;
@@ -2244,36 +2264,89 @@ function column_display_name(array $col): string
       if (_fecharTermo) { document.removeEventListener('click', _fecharTermo, true); _fecharTermo = null; }
     }
 
+    // ── Termômetro misto: espelho de App\Prospeccao\Termometro::detalhar ──
+    const TERMO_NIVEIS = ['quente', 'morno', 'frio', 'congelado'];
+    function termoDetalhar(regra, etapa, dias, leadFalou) {
+      const temEtapa = etapa && regra.etapas && regra.etapas[etapa];
+      const base = temEtapa ? regra.etapas[etapa] : 'quente';
+      if (base === 'congelado') return { nivel: 'congelado', motivo: 'etapa' };
+      let nivel = base, motivo = temEtapa ? 'etapa' : 'tempo';
+      if (dias !== null) {
+        const peloTempo = dias <= regra.quente_dias ? 'quente' : dias <= regra.morno_dias ? 'morno' : dias <= regra.frio_dias ? 'frio' : 'congelado';
+        if (TERMO_NIVEIS.indexOf(peloTempo) > TERMO_NIVEIS.indexOf(base)) { nivel = peloTempo; motivo = 'esfriou'; }
+      }
+      if (regra.resposta_esquenta && leadFalou && dias !== null && dias <= regra.quente_dias && (nivel === 'frio' || nivel === 'congelado')) {
+        nivel = 'morno'; motivo = 'respondeu';
+      }
+      return { nivel, motivo };
+    }
+    function termoPorque(motivo, etapa, dias) {
+      const nomeEtapa = etapa ? (NOMES_ETAPAS[etapa] || etapa) : '';
+      const quando = dias === null ? 'sem contato registrado' : dias === 0 ? 'contato hoje' : 'último contato há ' + dias + (dias === 1 ? ' dia' : ' dias');
+      if (motivo === 'respondeu') return 'o lead respondeu ' + (dias === 0 ? 'hoje' : 'há ' + dias + (dias === 1 ? ' dia' : ' dias')) + ' e espera resposta';
+      if (motivo === 'esfriou')   return 'etapa ' + nomeEtapa + ', mas esfriou: ' + quando;
+      if (motivo === 'etapa')     return 'etapa ' + nomeEtapa + ' · ' + quando;
+      return quando;
+    }
+
     // ── Botão "Termômetro": a regra da conta ─────────────────────────────
     function abrirModalTermometro() {
       const f = byId('formTermometro');
       if (!f || !TERMOMETRO) return;
-      f.quente_dias.value = TERMOMETRO.quente_dias;
-      f.morno_dias.value  = TERMOMETRO.morno_dias;
-      f.frio_dias.value   = TERMOMETRO.frio_dias;
-      f.querySelectorAll('input[name="etapas_quentes"]').forEach(c => { c.checked = (TERMOMETRO.etapas_quentes || []).includes(c.value); });
-      f.querySelectorAll('input[name="etapas_congeladas"]').forEach(c => { c.checked = (TERMOMETRO.etapas_congeladas || []).includes(c.value); });
+      preencherFormTermo(TERMOMETRO);
       atualizarResumoTermo();
       openModal('modalTermometro');
     }
+    function preencherFormTermo(regra) {
+      const f = byId('formTermometro');
+      f.quente_dias.value = regra.quente_dias;
+      f.morno_dias.value  = regra.morno_dias;
+      f.frio_dias.value   = regra.frio_dias;
+      f.resposta_esquenta.checked = !!regra.resposta_esquenta;
+      f.querySelectorAll('.termo-seg input[type="radio"]').forEach(r => {
+        r.checked = (regra.etapas || {})[r.getAttribute('data-etapa')] === r.value;
+      });
+    }
+    // A regra como está no formulário agora (o resumo ao vivo e o Salvar usam a mesma).
+    function regraDoFormTermo() {
+      const f = byId('formTermometro');
+      const etapas = {};
+      f.querySelectorAll('.termo-seg input[type="radio"]:checked').forEach(r => { etapas[r.getAttribute('data-etapa')] = r.value; });
+      return {
+        etapas,
+        quente_dias: f.quente_dias.value, morno_dias: f.morno_dias.value, frio_dias: f.frio_dias.value,
+        resposta_esquenta: f.resposta_esquenta.checked,
+      };
+    }
+    // Exemplos calculados com a regra do formulário, para o dono ver o efeito antes de salvar.
+    const TERMO_EXEMPLOS = [
+      ['Lead novo do disparo, sem resposta', 'novo', 0, false],
+      ['Lead novo que respondeu hoje', 'novo', 0, true],
+      ['Em qualificação com a IA, conversa de ontem', 'qualificacao', 1, true],
+      ['Em follow-up, sem resposta há 5 dias', 'followup', 5, false],
+      ['Em atendimento, conversa de hoje', 'especialista', 0, false],
+      ['Em atendimento, esquecido há 4 dias', 'especialista', 4, false],
+      ['Demonstração marcada, contato ontem', 'negociacao', 1, false],
+      ['Lead novo parado há 40 dias', 'novo', 40, false],
+    ];
     function atualizarResumoTermo() {
       const f = byId('formTermometro');
       if (!f) return;
-      const q = f.quente_dias.value, m = f.morno_dias.value, fr = f.frio_dias.value;
-      byId('termoResumo').innerHTML =
-        '<span class="rt rt-quente">Quente</span> último contato há até ' + escapeHtml(q) + ' dia(s) · ' +
-        '<span class="rt rt-morno">Morno</span> até ' + escapeHtml(m) + ' · ' +
-        '<span class="rt rt-frio">Frio</span> até ' + escapeHtml(fr) + ' · ' +
-        '<span class="rt rt-congelado">Congelado</span> mais de ' + escapeHtml(fr) + ' dias ou nunca';
+      const r = regraDoFormTermo();
+      const regra = Object.assign({}, r, { quente_dias: +r.quente_dias, morno_dias: +r.morno_dias, frio_dias: +r.frio_dias });
+      const ROT = { quente: 'Quente', morno: 'Morno', frio: 'Frio', congelado: 'Congelado' };
+      byId('termoResumo').innerHTML = TERMO_EXEMPLOS.map(([txt, etapa, dias, falou]) => {
+        const n = termoDetalhar(regra, etapa, dias, falou).nivel;
+        return '<li><span>' + escapeHtml(txt) + '</span><b class="rt rt-' + n + '">' + ROT[n] + '</b></li>';
+      }).join('');
+      const fr = f.frio_dias.value, q = f.quente_dias.value;
+      const fdq = byId('termoRespDias'); if (fdq) fdq.textContent = q;
+      const fc = byId('termoCongelaDias'); if (fc) fc.textContent = fr;
     }
     async function salvarTermometro(ev, padrao) {
       if (ev) ev.preventDefault();
       const f = byId('formTermometro');
-      const corpo = padrao ? { padrao: true } : {
-        quente_dias: f.quente_dias.value, morno_dias: f.morno_dias.value, frio_dias: f.frio_dias.value,
-        etapas_quentes:    [...f.querySelectorAll('input[name="etapas_quentes"]:checked')].map(c => c.value),
-        etapas_congeladas: [...f.querySelectorAll('input[name="etapas_congeladas"]:checked')].map(c => c.value),
-      };
+      const corpo = padrao ? { padrao: true } : regraDoFormTermo();
       try {
         const r = await fetch('/api/crm_termometro.php', {
           method: 'POST', credentials: 'same-origin',
@@ -2296,6 +2369,7 @@ function column_display_name(array $col): string
       if (f) {
         f.addEventListener('submit', ev => salvarTermometro(ev, false));
         f.addEventListener('input', atualizarResumoTermo);
+        f.addEventListener('change', atualizarResumoTermo);
         byId('termoPadrao').addEventListener('click', () => salvarTermometro(null, true));
         byId('termoCancelar').addEventListener('click', () => closeModal('modalTermometro'));
       }

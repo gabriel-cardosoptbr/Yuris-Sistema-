@@ -7,39 +7,66 @@ use App\Master\Account;
 /**
  * Termometro: o que faz um lead da edição CRM ser quente, morno, frio ou congelado.
  *
- * Antes o termômetro do card era uma conta fixa herdada do jurídico (valor,
- * checklist e prazo), que não fala de prospecção: quase todo lead aparecia
- * "Morno". Agora cada conta define a regra no botão "Termômetro" da Prospecção,
- * guardada em `accounts.configuracoes.termometro`:
+ * A regra é MISTA (01/10/2026). Só dias não serve: lead novo de disparo não pode
+ * nascer quente só porque o card foi criado hoje. Então a temperatura sai de três
+ * coisas, nesta ordem:
  *
- *   {
- *     "quente_dias": 2,   último contato há até 2 dias        -> Quente
- *     "morno_dias":  7,   até 7 dias                          -> Morno
- *     "frio_dias":   30,  até 30 dias                         -> Frio
- *                         mais que isso, ou nunca             -> Congelado
- *     "etapas_quentes":    ["qualificado","especialista","negociacao"],
- *     "etapas_congeladas": ["bloqueado","fora_escopo","perdido"]
- *   }
+ *   1. A ETAPA dá a temperatura de partida, que é também o TETO. O padrão segue o
+ *      funil do SDR:
+ *        Novos leads            frio       (disparo, ninguém respondeu ainda)
+ *        Em qualificação        morno      (respondeu, a IA está conversando)
+ *        Follow-up automático   frio       (parou de responder)
+ *        Qualificado, Em atendimento, Demonstração   quente
+ *        Bloqueado, Fora do escopo, Perdido          congelado
+ *      Coluna fora do funil padrão parte de quente, e só o tempo decide.
  *
- * A ETAPA vence o tempo (lead em negociação é quente mesmo sem mensagem hoje;
- * lead perdido é congelado mesmo com mensagem recente), e a temperatura
- * escolhida à mão no card (`cards.temperatura`) vence tudo. "Último contato" é a
- * última mensagem da conversa ligada ao card, ou a última alteração do card.
+ *   2. O TEMPO SEM CONTATO só esfria, nunca esquenta: quem passa de `quente_dias`
+ *      sem contato não pode ser mais que morno, de `morno_dias` não mais que frio,
+ *      de `frio_dias` fica congelado. Lead em atendimento esquecido há 4 dias cai
+ *      para morno; lead novo parado há 40 dias congela.
+ *
+ *   3. A RESPOSTA DO LEAD esquenta até morno (`resposta_esquenta`): se a última
+ *      mensagem da conversa é do lead, e de até `quente_dias` atrás, ele está
+ *      esperando resposta. Lead novo ou em follow-up que respondeu vira morno;
+ *      quem já é morno ou quente não muda (quem esquenta para quente é a etapa,
+ *      isto é, gente atendendo).
+ *
+ * Etapa congelada não esquenta com nada. A temperatura escolhida à mão no card
+ * (`cards.temperatura`) vence tudo. "Último contato" é a última mensagem da
+ * conversa ligada ao card ou, sem conversa, a última alteração do card.
+ *
+ * Gravado em `accounts.configuracoes.termometro`:
+ *   { "etapas": {"novo":"frio", ...}, "quente_dias": 2, "morno_dias": 7,
+ *     "frio_dias": 30, "resposta_esquenta": true }
+ * O formato antigo (etapas_quentes / etapas_congeladas) é ignorado: o que faltar
+ * vem do padrão.
  *
  * A tela da Prospecção aplica a mesma regra em JS (getTemperatureBadge) com a
- * configuração que esta classe entrega. `classificar()` é o espelho em PHP,
- * PURO, usado pelos testes.
+ * configuração que esta classe entrega. `detalhar()` é o espelho em PHP, PURO,
+ * usado pelos testes.
  */
 final class Termometro
 {
+    /** Do mais quente para o mais frio: a posição é a "distância" do quente. */
     public const NIVEIS = ['quente', 'morno', 'frio', 'congelado'];
 
     public const PADRAO = [
+        'etapas' => [
+            'novo'         => 'frio',
+            'qualificacao' => 'morno',
+            'followup'     => 'frio',
+            'qualificado'  => 'quente',
+            'especialista' => 'quente',
+            'negociacao'   => 'quente',
+            'bloqueado'    => 'congelado',
+            'fora_escopo'  => 'congelado',
+            'venda'        => 'quente',
+            'perdido'      => 'congelado',
+        ],
         'quente_dias'       => 2,
         'morno_dias'        => 7,
         'frio_dias'         => 30,
-        'etapas_quentes'    => ['qualificado', 'especialista', 'negociacao'],
-        'etapas_congeladas' => ['bloqueado', 'fora_escopo', 'perdido'],
+        'resposta_esquenta' => true,
     ];
 
     /** Chaves de etapa aceitas (as do funil comercial, App\WhatsAppAgente\SdrFleetiflow::ETAPAS). */
@@ -55,15 +82,16 @@ final class Termometro
         $cfg = json_decode((string)($conta['configuracoes'] ?? ''), true);
         $t = is_array($cfg) && is_array($cfg['termometro'] ?? null) ? $cfg['termometro'] : [];
         try {
-            return self::normalizar($t + self::PADRAO);
+            return self::normalizar($t);
         } catch (\InvalidArgumentException $e) {
             return self::PADRAO; // gravado inválido à mão: volta ao padrão, nunca quebra a tela
         }
     }
 
     /**
-     * Confere e limpa a regra vinda da tela. Lança InvalidArgumentException com
-     * mensagem para o usuário. PURA.
+     * Confere e limpa a regra vinda da tela. O que faltar vem do padrão; etapa
+     * desconhecida é descartada. Lança InvalidArgumentException com mensagem
+     * para o usuário. PURA.
      */
     public static function normalizar(array $in): array
     {
@@ -78,17 +106,28 @@ final class Termometro
         if (!($dias['quente_dias'] < $dias['morno_dias'] && $dias['morno_dias'] < $dias['frio_dias'])) {
             throw new \InvalidArgumentException('Os dias têm de crescer: quente < morno < frio.');
         }
+
+        $etapas = self::PADRAO['etapas'];
         $validas = self::etapasValidas();
-        $etapas = static fn($lista) => array_values(array_unique(array_filter(
-            is_array($lista) ? array_map('strval', $lista) : [],
-            static fn($e) => in_array($e, $validas, true)
-        )));
-        $quentes    = $etapas($in['etapas_quentes'] ?? []);
-        $congeladas = $etapas($in['etapas_congeladas'] ?? []);
-        if (array_intersect($quentes, $congeladas)) {
-            throw new \InvalidArgumentException('Uma etapa não pode ser quente e congelada ao mesmo tempo.');
+        foreach ($validas as $e) {
+            if (!isset($etapas[$e])) $etapas[$e] = 'quente';
         }
-        return $dias + ['etapas_quentes' => $quentes, 'etapas_congeladas' => $congeladas];
+        if (isset($in['etapas']) && !is_array($in['etapas'])) {
+            throw new \InvalidArgumentException('Etapas inválidas.');
+        }
+        foreach ((array)($in['etapas'] ?? []) as $e => $nivel) {
+            if (!in_array((string)$e, $validas, true)) continue;
+            $nivel = strtolower(trim((string)$nivel));
+            if (!in_array($nivel, self::NIVEIS, true)) {
+                throw new \InvalidArgumentException('Temperatura de etapa inválida: use quente, morno, frio ou congelado.');
+            }
+            $etapas[(string)$e] = $nivel;
+        }
+
+        $resp = $in['resposta_esquenta'] ?? self::PADRAO['resposta_esquenta'];
+        $resp = is_bool($resp) ? $resp : in_array(strtolower((string)$resp), ['1', 'true', 'on', 'sim'], true);
+
+        return ['etapas' => $etapas] + $dias + ['resposta_esquenta' => $resp];
     }
 
     /** Grava a regra da conta, preservando o resto de `configuracoes`. */
@@ -105,22 +144,51 @@ final class Termometro
             ->execute([json_encode($cfg, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $accountId]);
     }
 
-    /**
-     * A temperatura de um card. PURA (o espelho da tela).
-     *
-     * @param ?string $manual   cards.temperatura (escolhida à mão), ou null
-     * @param ?string $etapa    chave da etapa do card ('novo', 'negociacao'...), ou null
-     * @param ?int    $diasSemContato dias desde o último contato, null = nunca
-     */
-    public static function classificar(array $regra, ?string $manual, ?string $etapa, ?int $diasSemContato): string
+    /** O mais frio dos dois níveis. */
+    private static function maisFrio(string $a, string $b): string
     {
-        if ($manual !== null && in_array($manual, self::NIVEIS, true)) return $manual;
-        if ($etapa !== null && in_array($etapa, $regra['etapas_congeladas'], true)) return 'congelado';
-        if ($etapa !== null && in_array($etapa, $regra['etapas_quentes'], true)) return 'quente';
-        if ($diasSemContato === null) return 'congelado';
-        if ($diasSemContato <= $regra['quente_dias']) return 'quente';
-        if ($diasSemContato <= $regra['morno_dias'])  return 'morno';
-        if ($diasSemContato <= $regra['frio_dias'])   return 'frio';
-        return 'congelado';
+        return array_search($a, self::NIVEIS, true) >= array_search($b, self::NIVEIS, true) ? $a : $b;
+    }
+
+    /**
+     * A temperatura de um card e o porquê. PURA (o espelho da tela).
+     *
+     * @param ?string $manual          cards.temperatura (escolhida à mão), ou null
+     * @param ?string $etapa           chave da etapa do card ('novo', 'negociacao'...), ou null
+     * @param ?int    $diasSemContato  dias desde o último contato, null = sem registro
+     * @param bool    $leadFalouPorUltimo  a última mensagem da conversa é do lead
+     * @return array{nivel:string, motivo:string}
+     */
+    public static function detalhar(array $regra, ?string $manual, ?string $etapa, ?int $diasSemContato, bool $leadFalouPorUltimo = false): array
+    {
+        if ($manual !== null && in_array($manual, self::NIVEIS, true)) {
+            return ['nivel' => $manual, 'motivo' => 'escolhido à mão'];
+        }
+        $base = ($etapa !== null && isset($regra['etapas'][$etapa])) ? $regra['etapas'][$etapa] : 'quente';
+        $motivo = $etapa !== null && isset($regra['etapas'][$etapa]) ? 'etapa' : 'tempo';
+        if ($base === 'congelado') {
+            return ['nivel' => 'congelado', 'motivo' => 'etapa'];
+        }
+        $nivel = $base;
+        if ($diasSemContato !== null) {
+            $peloTempo = $diasSemContato <= $regra['quente_dias'] ? 'quente'
+                : ($diasSemContato <= $regra['morno_dias'] ? 'morno'
+                : ($diasSemContato <= $regra['frio_dias'] ? 'frio' : 'congelado'));
+            $novo = self::maisFrio($base, $peloTempo);
+            if ($novo !== $base) { $nivel = $novo; $motivo = 'esfriou'; }
+        }
+        if (!empty($regra['resposta_esquenta']) && $leadFalouPorUltimo
+            && $diasSemContato !== null && $diasSemContato <= $regra['quente_dias']
+            && in_array($nivel, ['frio', 'congelado'], true)) {
+            $nivel = 'morno';
+            $motivo = 'respondeu';
+        }
+        return ['nivel' => $nivel, 'motivo' => $motivo];
+    }
+
+    /** Só o nível (atalho de detalhar). PURA. */
+    public static function classificar(array $regra, ?string $manual, ?string $etapa, ?int $diasSemContato, bool $leadFalouPorUltimo = false): string
+    {
+        return self::detalhar($regra, $manual, $etapa, $diasSemContato, $leadFalouPorUltimo)['nivel'];
     }
 }
