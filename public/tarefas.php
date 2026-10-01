@@ -8,6 +8,10 @@ $activePage = 'tarefas';
 $csrf       = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 $userId     = (int)$_SESSION['user_id'];
 $userName   = htmlspecialchars($_SESSION['user_nome'] ?? '');
+// Edição CRM (conta sem módulo jurídico): a ficha da tarefa tem o desenho do
+// Fleetiflow (assets/ff-ficha.css e .js). A edição jurídica não muda.
+$edicaoCrm  = false;
+try { $edicaoCrm = !\App\Core\AccountContext::fromSession()->moduloJuridicoDisponivel(); } catch (\Throwable $e) { /* Yuris */ }
 
 // Contas acessíveis (própria + filiais ativas, se matriz) — alimenta filtro de Origem
 $origin_accounts = [];
@@ -53,6 +57,10 @@ try {
   <link rel="stylesheet" href="/assets/fog.css">
   <link rel="stylesheet" href="/assets/sidebar.css?v=19">
   <link rel="stylesheet" href="/assets/tarefas.css?v=13">
+<?php if ($edicaoCrm): ?>
+  <link rel="stylesheet" href="/assets/ff-ficha.css?v=<?= @filemtime(__DIR__ . '/assets/ff-ficha.css') ?: 1 ?>">
+  <script src="/assets/ff-ficha.js?v=<?= @filemtime(__DIR__ . '/assets/ff-ficha.js') ?: 1 ?>"></script>
+<?php endif; ?>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body {
@@ -705,5 +713,144 @@ window.YURIS_SHOW_ORIGIN_STRIP = true;
 <!-- Helper de selects de usuário agrupados por Matriz/Filial (carrega ANTES do tarefas.js) -->
 <script src="/assets/user_select.js?v=2"></script>
 <script src="/assets/tarefas.js?v=<?= filemtime(__DIR__ . '/assets/tarefas.js') ?>"></script>
+<?php if ($edicaoCrm): ?>
+<script>
+// ── Ficha da tarefa no desenho do Fleetiflow (ff-ficha.js + ff-ficha.css) ──
+// Só a edição CRM chega aqui. O painel da tarefa (#tkDrawer) mantém todos os
+// ids, abas e painéis: aqui ele ganha cabeçalho, faixa de resumo (título
+// editável, prioridade, prazo, responsável, coluna, quadro), seções numeradas
+// em duas colunas na aba Geral, e um rodapé com Arquivar, Concluir e Salvar.
+// A aba "Tarefas Processuais" e o vínculo "Processo" somem: não existem nesta
+// edição. Os selects da faixa não têm name e espelham os do painel.
+(function () {
+  const F = window.FfFicha;
+  const drawer = document.getElementById('tkDrawer');
+  if (!F || !drawer) return;
+  const $ = (s, r) => (r || document).querySelector(s);
+  document.body.classList.add('ff-quadro');
+  drawer.classList.add('ff-modal', 'ff-tarefa');
+
+  // Cabeçalho próprio no alto do painel.
+  const header = $('.tk-drawer-header', drawer);
+  const cabEl = document.createElement('div');
+  cabEl.className = 'ff-cab';
+  cabEl.innerHTML = '<div class="ff-titulo">Gestão da Tarefa</div><div class="ff-subtitulo">Atualize dados, prazo, checklist e histórico com rastreabilidade.</div>';
+  drawer.insertBefore(cabEl, header);
+  const cab = F.cabecalho(cabEl, () => closeDrawer());
+
+  // Faixa de resumo entre o cabeçalho e as abas.
+  const faixa = F.resumo(drawer, header, [
+    { chave: 'tarefa', rotulo: 'Tarefa' }, { chave: 'prio', rotulo: 'Prioridade' }, { chave: 'prazo', rotulo: 'Prazo' },
+    { chave: 'resp', rotulo: 'Responsável' }, { chave: 'coluna', rotulo: 'Coluna' }, { chave: 'quadro', rotulo: 'Quadro' }
+  ]);
+  // O título editável vai para a primeira célula, com a "logo" da tarefa.
+  const celTarefa = faixa.celula('tarefa');
+  const logo = document.createElement('span'); logo.className = 'ff-logo'; logo.innerHTML = F.ico('tarefa');
+  celTarefa.insertBefore(logo, celTarefa.firstChild);
+  const wrap = document.createElement('div');
+  while (logo.nextSibling) wrap.appendChild(logo.nextSibling);
+  celTarefa.appendChild(wrap);
+  faixa.valor('tarefa').appendChild($('#dTitle'));
+
+  // Abas: ícones, e a aba processual some.
+  const ICONES_ABA = { geral: 'grade', checklist: 'tarefa', vinculos: 'clipe', anexos: 'clipe', lembretes: 'relogio', comentarios: 'chat', historico: 'relogio' };
+  drawer.querySelectorAll('.tk-tab').forEach(b => {
+    const k = b.dataset.tab;
+    if (k === 'proc-tarefas') { b.classList.add('ff-ocultar'); return; }
+    b.insertAdjacentHTML('afterbegin', F.ico(ICONES_ABA[k] || 'grade'));
+  });
+  const btnProc = drawer.querySelector('.tk-link-type-btn[data-type="processo"]');
+  if (btnProc) {
+    btnProc.classList.add('ff-ocultar');
+    const btnCard = drawer.querySelector('.tk-link-type-btn[data-type="card"]');
+    if (btnCard) { btnCard.textContent = 'Lead'; if (btnProc.classList.contains('active')) { btnProc.classList.remove('active'); btnCard.classList.add('active'); } }
+    // O tipo em uso (let de topo do tarefas.js) nascia 'processo'; sem isto a busca de vínculo procurava processos até o primeiro clique.
+    if (typeof currentLinkType !== 'undefined' && currentLinkType === 'processo') currentLinkType = 'card';
+  }
+
+  // Aba Geral em duas colunas: descrição e recorrência à esquerda, planejamento à direita.
+  const geral = $('#pane-geral');
+  const fDesc = $('#dDescricao').closest('.tk-field');
+  const campos = [$('#dPrioridade').closest('.tk-row-2'), $('#dPrazo').closest('.tk-row-2'), $('#dColuna').closest('.tk-field')];
+  const rec = $('#dRecSection');
+  // O Salvar sai da linha ANTES de ela ser removida: ele volta no rodapé.
+  const bSave = $('#dBtnSave');
+  const linhaSalvar = bSave.parentElement;
+  bSave.remove();
+  const s1 = F.envolver([fDesc]), s2 = F.envolver([rec]), s3 = F.envolver(campos);
+  F.secao(s1, 1, 'Descrição', 'nota', 'ambar');
+  F.secao(s2, 2, 'Recorrência', 'relogio', 'roxo');
+  F.secao(s3, 3, 'Planejamento', 'calendario');
+  F.colunas(geral, [s1, s2], [s3]);
+  linhaSalvar.remove();
+
+  // Demais abas: o conteúdo entra numa seção com título.
+  const SECOES = { checklist: ['Checklist', 'tarefa', 'verde'], vinculos: ['Vínculos', 'clipe', ''], anexos: ['Anexos', 'clipe', ''], lembretes: ['Lembretes', 'relogio', 'ambar'], comentarios: ['Comentários', 'chat', ''], historico: ['Histórico', 'relogio', 'cinza'] };
+  Object.keys(SECOES).forEach(k => {
+    const pane = document.getElementById('pane-' + k);
+    if (!pane) return;
+    const s = F.envolver(Array.from(pane.children));
+    F.secao(s, 0, SECOES[k][0], SECOES[k][1], SECOES[k][2]);
+    pane.appendChild(s);
+  });
+
+  // Rodapé: Arquivar, Concluir e Salvar, que já existem, só mudam de lugar.
+  const rodape = document.createElement('div');
+  rodape.className = 'modal-footer';
+  const bArq = $('#dBtnArquivar'), bOk = $('#dBtnConcluir');
+  bArq.classList.add('btn'); bOk.classList.add('btn'); bSave.classList.add('btn');
+  F.botao(bArq, 'arquivar', 'ff-btn-perigo'); F.botao(bOk, 'tarefa', 'ff-btn-destaque'); F.botao(bSave, 'salvar', 'ff-btn-principal');
+  bOk.childNodes.forEach(n => { if (n.nodeType === 3) n.textContent = n.textContent.replace('✓', '').trim() ? ' Concluir' : ''; });
+  rodape.appendChild(bArq); rodape.appendChild(bOk); rodape.appendChild(bSave);
+  drawer.appendChild(rodape);
+  $('#dBtnClose').classList.add('ff-ocultar');
+
+  let tarefa = null;
+  function prazoTexto(v) {
+    if (!v) return '<span class="ff-txt ff-vazio-txt">Sem prazo</span>';
+    const d = new Date(v);
+    if (isNaN(d.getTime())) return F.esc(v);
+    const dias = Math.round((d.setHours(0,0,0,0) - new Date().setHours(0,0,0,0)) / 86400000);
+    const concluida = tarefa && tarefa.status === 'concluida';
+    let rel = dias === 0 ? 'hoje' : dias === 1 ? 'amanhã' : dias > 1 ? 'em ' + dias + ' dias' : dias === -1 ? 'ontem' : 'há ' + (-dias) + ' dias';
+    const atrasada = dias < 0 && !concluida;
+    return '<span class="ff-txt' + (atrasada ? ' ff-cel-prazo-atraso' : '') + '">' + F.esc(F.fmtDataHora(v).replace(' · ', ' ')) + '</span>' +
+           '<span class="ff-pill' + (atrasada ? ' ff-pill-off ff-cel-prazo-atraso' : dias <= 1 ? ' ff-pill-pausa' : '') + '">' + (atrasada ? 'atrasada, ' : '') + rel + '</span>';
+  }
+  let atualizar = function () {
+    cab.meta(F.codigo('TR', openTaskId), F.fmtDataHora(tarefa && tarefa.created_at));
+    const pr = F.celulaSelect(faixa.valor('prio'), $('#dPrioridade'));
+    pr.className = 'ff-sel ' + ({ urgente: 'ff-sel-vermelho', alta: 'ff-sel-vermelho', media: 'ff-sel-ambar', baixa: 'ff-sel-neutro' }[pr.value] || '');
+    faixa.set('prazo', prazoTexto($('#dPrazo').value));
+    F.celulaResponsavel(faixa.valor('resp'), $('#dResponsavel'), 'Responsável');
+    F.celulaSelect(faixa.valor('coluna'), $('#dColuna'), 'ff-sel-neutro');
+    const q = tarefa && tarefa.board_nome ? tarefa.board_nome : (typeof currentBoard !== 'undefined' && currentBoard ? currentBoard.nome : '');
+    faixa.set('quadro', '<span class="ff-pill">' + F.esc(q || 'Quadro') + '</span>' + (tarefa && tarefa.status === 'concluida' ? '<span class="ff-pill ff-pill-ok">Concluída</span>' : ''));
+  };
+  // O título cresce com o texto, em vez de cortar numa linha.
+  const tit = $('#dTitle');
+  const crescer = () => { tit.style.height = 'auto'; tit.style.height = Math.max(28, tit.scrollHeight) + 'px'; };
+  tit.addEventListener('input', crescer);
+  const _atualizar = atualizar;
+  atualizar = function () { _atualizar(); crescer(); };
+  geral.addEventListener('input', atualizar);
+  geral.addEventListener('change', atualizar);
+
+  // Quando o painel carrega a tarefa (refreshDrawer é global do tarefas.js),
+  // a faixa lê a tarefa de novo para o número, a data e o quadro.
+  const _refresh = refreshDrawer;
+  refreshDrawer = async function () {
+    await _refresh.apply(this, arguments);
+    try { const r = await GET('/tasks.php?id=' + openTaskId); tarefa = (r && r.data) || null; } catch (e) { tarefa = null; }
+    atualizar();
+  };
+  F.aoAbrir(document.getElementById('tkDrawerOverlay'), () => {
+    drawer.querySelectorAll('.form-section.ff-fechada').forEach(s => s.classList.remove('ff-fechada'));
+    $('.tk-drawer-body', drawer).scrollTop = 0;
+    atualizar();
+  });
+})();
+</script>
+<?php endif; ?>
 </body>
 </html>

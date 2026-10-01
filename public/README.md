@@ -103,6 +103,17 @@ agrupar os resultados por tipo e entender os tokens novos `@[tar|id|titulo]`
 Na edição jurídica o HTML é o de sempre, com o `?v=` do script trocado. O aviso de
 WhatsApp desconectado não aparece no Chat Interno.
 
+`tarefas.php`, na edição CRM (`$edicaoCrm`), veste o painel da tarefa (`#tkDrawer`)
+com a mesma ficha: cabeçalho "Gestão da Tarefa" com número e data, faixa com o
+título editável, prioridade, prazo (com "em N dias" ou "atrasada"), responsável,
+coluna e quadro, aba Geral em duas colunas (Descrição e Recorrência à esquerda,
+Planejamento à direita), as demais abas dentro de uma seção, e o rodapé com
+Arquivar, Concluir e Salvar (os botões de sempre, só mudam de lugar). A aba
+"Tarefas Processuais" e o vínculo "Processo" somem, e "Card CRM" vira "Lead". O
+card do Kanban ganha o desenho do Fleetiflow por CSS (`.ff-quadro`). Tudo num
+`<script>` no fim do arquivo, dentro de `if ($edicaoCrm)`; ids, abas e o
+`tarefas.js` não mudam (o bloco embrulha `refreshDrawer` para reler a tarefa).
+
 `chat.php` aceita `?conversa=<id>` na edição CRM: o id vira o jid no servidor, só
 se a conversa é do canal que a conta pode ver, e a tela abre nela como faz com
 `?jid=`.

@@ -301,3 +301,80 @@ html[data-theme="light"] .modal-panel.ff-modal.ff-cliente, .modal-panel.ff-modal
 .ff-modal.ff-um .ff-colunas{ grid-template-columns:minmax(0,1fr); }
 .ff-modal.ff-um .ff-col{ display:contents; }
 .ff-modal.ff-um .ff-col-dir{ display:none !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Ficha da tarefa (tarefas.php, .tk-drawer.ff-modal.ff-tarefa). O painel da
+   tarefa não é um .modal-panel: tem header próprio, abas próprias (.tk-tab) e
+   painéis (.tk-tab-pane). As regras abaixo o levam ao mesmo desenho. O
+   tarefas.css é !important em quase tudo no tema claro, daí o prefixo.
+   ═══════════════════════════════════════════════════════════════════════ */
+html[data-theme="light"] .tk-drawer.ff-modal, .tk-drawer.ff-modal{
+  width:min(1100px, 96vw) !important; max-width:min(1100px, 96vw) !important; height:auto !important; max-height:calc(100vh - 40px) !important;
+  background:#FFFFFF !important; background-image:none !important; border:1px solid rgba(17,29,45,.10) !important; border-radius:18px !important;
+  box-shadow:0 30px 80px rgba(17,29,45,.28) !important; overflow:hidden; display:flex; flex-direction:column;
+}
+.ff-modal .ff-cab{ display:grid; grid-template-columns:minmax(0,1fr) auto auto; grid-template-areas:"titulo meta fechar" "sub meta fechar"; column-gap:16px; row-gap:2px; align-items:start; padding:22px 24px 0; flex:none; }
+html[data-theme="light"] .ff-modal .tk-drawer-header, .ff-modal .tk-drawer-header{ padding:0 !important; border:0 !important; gap:0 !important; background:#FFFFFF !important; flex:none; }
+.ff-modal .tk-drawer-title-row{ display:none !important; }
+/* o título editável mora na primeira célula da faixa */
+html[data-theme="light"] .ff-modal .ff-cel .tk-drawer-title, .ff-modal .ff-cel .tk-drawer-title{
+  width:100%; min-height:28px; padding:0 !important; border:0 !important; border-bottom:1px dashed transparent !important; border-radius:0 !important; background:transparent !important; box-shadow:none !important;
+  font-family:inherit !important; font-size:18px !important; font-weight:800 !important; letter-spacing:-.01em; color:var(--ff-texto) !important; -webkit-text-fill-color:var(--ff-texto) !important; line-height:1.3; resize:none;
+}
+.ff-modal .ff-cel .tk-drawer-title:hover{ border-bottom-color:var(--ff-borda-2) !important; }
+.ff-modal .ff-cel .tk-drawer-title:focus{ outline:none; border-bottom-color:var(--ff-azul) !important; }
+.ff-cel-prazo-atraso{ color:#B91C1C; }
+.ff-modal .ff-sel.ff-sel-vermelho{ color:#B91C1C !important; background-color:#FEE2E2 !important; }
+.ff-modal .ff-sel.ff-sel-ambar{ color:#B45309 !important; background-color:#FFF4D6 !important; }
+/* abas: as .tk-tab ganham o visual das .ff-aba */
+html[data-theme="light"] .ff-modal .tk-tabs, .ff-modal .tk-tabs{ padding:0 !important; border-bottom:1px solid var(--ff-borda) !important; margin:14px 24px 0; gap:2px; scrollbar-width:none; }
+html[data-theme="light"] .ff-modal .tk-tab, .ff-modal .tk-tab{ height:44px; padding:0 16px !important; font-size:14px !important; font-weight:600 !important; color:var(--ff-texto-3) !important; border-bottom:2px solid transparent !important; margin-bottom:-1px; display:inline-flex; align-items:center; gap:8px; background:none !important; }
+html[data-theme="light"] .ff-modal .tk-tab.active, .ff-modal .tk-tab.active, .ff-modal .tk-tab:hover{ color:var(--ff-azul-forte) !important; }
+html[data-theme="light"] .ff-modal .tk-tab.active, .ff-modal .tk-tab.active{ border-bottom-color:var(--ff-azul) !important; }
+.ff-modal .tk-tab svg{ width:16px; height:16px; }
+/* corpo: rola o corpo, não o painel da aba */
+html[data-theme="light"] .ff-modal .tk-drawer-body, .ff-modal .tk-drawer-body{ flex:1 1 auto; min-height:0; overflow:auto !important; padding:18px 24px 22px; background:var(--ff-fundo) !important; display:block !important; }
+html[data-theme="light"] .ff-modal .tk-tab-pane, .ff-modal .tk-tab-pane{ overflow:visible !important; padding:0 !important; gap:16px; flex:none; }
+.ff-modal .tk-tab-pane.active{ display:flex !important; flex-direction:column; }
+/* campos do tarefas.css: tira o truque do inset shadow e o fundo escuro */
+html[data-theme="light"] .ff-modal .tk-field label, .ff-modal .tk-field label{ font-size:12.5px !important; font-weight:600 !important; color:var(--ff-texto-3) !important; text-transform:none !important; letter-spacing:0 !important; }
+html[data-theme="light"] .ff-modal .tk-field input, html[data-theme="light"] .ff-modal .tk-field select, html[data-theme="light"] .ff-modal .tk-field textarea,
+.ff-modal .tk-field input, .ff-modal .tk-field select, .ff-modal .tk-field textarea, .ff-modal .tk-inline-input, .ff-modal .tk-comment-input{
+  background:#FFFFFF !important; box-shadow:none !important; border:1px solid var(--ff-borda-2) !important; border-radius:10px !important;
+  color:var(--ff-texto) !important; -webkit-text-fill-color:var(--ff-texto) !important; font-family:inherit !important; font-size:13.5px !important; padding:0 12px !important; height:40px; color-scheme:light !important;
+}
+.ff-modal .tk-field textarea, .ff-modal .tk-inline-input, .ff-modal .tk-comment-input{ height:auto; min-height:88px; padding:10px 12px !important; line-height:1.5; }
+.ff-modal .tk-comment-input{ min-height:44px; }
+.ff-modal .tk-field input:focus, .ff-modal .tk-field select:focus, .ff-modal .tk-field textarea:focus{ border-color:var(--ff-azul-media) !important; box-shadow:0 0 0 3px rgba(1,93,252,.12) !important; }
+.ff-modal .tk-field select{ appearance:none !important; -webkit-appearance:none !important; padding-right:32px !important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23676767' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
+  background-repeat:no-repeat !important; background-position:right 11px center !important; background-size:13px !important; }
+.ff-modal .tk-row-2{ gap:12px 14px; }
+.ff-modal .form-section > .tk-field + .tk-field, .ff-modal .form-section > .tk-row-2 + .tk-field, .ff-modal .form-section > .tk-field + .tk-row-2, .ff-modal .form-section > .tk-row-2 + .tk-row-2{ margin-top:12px; }
+html[data-theme="light"] .ff-modal .tk-recurrence-section, .ff-modal .tk-recurrence-section{ background:transparent !important; border:0 !important; padding:0 !important; margin:0 !important; }
+html[data-theme="light"] .ff-modal .tk-toggle-label, .ff-modal .tk-toggle-label{ color:var(--ff-texto) !important; font-weight:600; }
+.ff-modal #dRecFields{ margin-top:12px; }
+/* conteúdo com estilo em linha (checklist, anexos, lembretes) */
+.ff-modal [style*="rgba(5,18,39"]{ background:#FFFFFF !important; border-color:var(--ff-borda-2) !important; color:var(--ff-texto) !important; color-scheme:light !important; border-radius:10px !important; }
+.ff-modal button[style*="rgba(37,99,235,.25)"]{ background:var(--ff-azul) !important; border-color:var(--ff-azul) !important; color:#FFFFFF !important; border-radius:10px !important; font-family:inherit !important; font-weight:700 !important; }
+.ff-modal [style*="rgba(255,255,255,.08)"]{ background:#E6E9EE !important; }
+.ff-modal #dCheckProgressBar{ background:var(--ff-azul) !important; }
+html[data-theme="light"] .ff-modal .tk-check-item, .ff-modal .tk-check-item{ background:#FFFFFF !important; border:1px solid var(--ff-borda) !important; border-radius:10px !important; }
+html[data-theme="light"] .ff-modal .tk-chk-box, .ff-modal .tk-chk-box{ border-color:var(--ff-borda-2) !important; border-radius:6px !important; }
+.ff-modal .tk-link-type-btn{ border-radius:999px !important; font-family:inherit !important; font-weight:600 !important; }
+html[data-theme="light"] .ff-modal .tk-link-type-btn.active, .ff-modal .tk-link-type-btn.active{ background:var(--ff-azul-suave) !important; color:var(--ff-azul-forte) !important; border-color:transparent !important; }
+.ff-modal .tk-comment-send, .ff-modal .tk-btn-ok{ background:var(--ff-azul) !important; background-image:none !important; color:#FFFFFF !important; border-radius:10px !important; font-family:inherit !important; font-weight:700 !important; }
+.ff-modal .ff-ocultar{ display:none !important; }
+
+/* Quadro de tarefas da edição CRM (.ff-quadro no body): o card do Kanban no mesmo desenho. */
+html[data-theme="light"] .ff-quadro .tk-card{ border-radius:14px !important; border:1px solid rgba(17,29,45,.08) !important; border-left-width:4px !important; box-shadow:none !important; font-family:'Manrope',system-ui,sans-serif; }
+html[data-theme="light"] .ff-quadro .tk-card:hover{ box-shadow:0 6px 18px rgba(17,29,45,.08) !important; border-color:rgba(17,29,45,.16) !important; }
+html[data-theme="light"] .ff-quadro .tk-card[data-prioridade="baixa"]{ border-left-color:#8DA2BE !important; }
+html[data-theme="light"] .ff-quadro .tk-card[data-prioridade="media"]{ border-left-color:var(--ff-marca, #015DFC) !important; }
+html[data-theme="light"] .ff-quadro .tk-card[data-prioridade="alta"]{ border-left-color:#F59E0B !important; }
+html[data-theme="light"] .ff-quadro .tk-card[data-prioridade="urgente"]{ border-left-color:#EF4444 !important; }
+html[data-theme="light"] .ff-quadro .tk-card-title{ color:#1F2937 !important; font-weight:700 !important; }
+html[data-theme="light"] .ff-quadro .tk-avatar-sm{ background:var(--ff-marca-suave, #D6E4FF) !important; color:var(--ff-marca-forte, #013DF2) !important; font-weight:800 !important; }
+html[data-theme="light"] .ff-quadro .tk-badge{ border-radius:999px !important; font-weight:700 !important; }
+/* o título editável ocupa a célula inteira e cresce com o texto */
+.ff-modal .ff-cel .ff-cel-valor .tk-drawer-title{ flex:1 1 auto; min-width:0; height:auto; overflow:hidden; }
