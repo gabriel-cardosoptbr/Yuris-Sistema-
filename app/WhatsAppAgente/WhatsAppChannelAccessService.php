@@ -163,14 +163,22 @@ class WhatsAppChannelAccessService
         return array_map('intval', $st->fetchAll(\PDO::FETCH_COLUMN) ?: []);
     }
 
-    /** Canal PRÓPRIO da conta (onde ela é dona). null se não tiver. */
+    /**
+     * Canal PRÓPRIO da conta (onde ela é dona). null se não tiver.
+     *
+     * Com vários números na conta, o padrão é o CONECTADO (o mais novo entre os
+     * conectados). Antes era só "o mais novo": cadastrar um número novo, ainda
+     * sem QR lido, fazia tudo que não escolhe número (link de conversa, aviso de
+     * queda, menções) apontar para um número desligado.
+     */
     public static function ownChannelId(\PDO $pdo, int $accountId): ?int
     {
         if ($accountId <= 0) return null;
         $st = $pdo->prepare(
-            "SELECT channel_id FROM whatsapp_channel_accounts
-              WHERE account_id = ? AND access_type = 'owner' AND revoked_at IS NULL
-              ORDER BY channel_id DESC LIMIT 1"
+            "SELECT wca.channel_id FROM whatsapp_channel_accounts wca
+               LEFT JOIN whatsapp_instances wi ON wi.id = wca.channel_id
+              WHERE wca.account_id = ? AND wca.access_type = 'owner' AND wca.revoked_at IS NULL
+              ORDER BY (wi.status = 'open') DESC, wca.channel_id DESC LIMIT 1"
         );
         $st->execute([$accountId]);
         $v = $st->fetchColumn();
@@ -298,8 +306,13 @@ class WhatsAppChannelAccessService
         $ch = self::assert($pdo, $accountId, (int)$channelId, $perm);
 
         // (3) config Evolution SEMPRE do DONO do canal — nunca do front/filial.
-        $cfg     = $model->getSettings((int)$ch['owner_account_id']);
         $instRow = $model->find((int)$ch['channel_id']); // já autorizado; sem escopo
+        // Chave e nome da instância DO NÚMERO (conta com vários números): ver
+        // WhatsAppInstance::cfgDoCanal. Número sem chave própria usa a da conta.
+        $cfg     = WhatsAppInstance::aplicarCanal(
+            $model->getSettings((int)$ch['owner_account_id']),
+            is_array($instRow) ? $instRow : []
+        );
 
         return [
             'channel_id'       => (int)$ch['channel_id'],

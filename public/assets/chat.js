@@ -37,6 +37,10 @@ const ChatApp = (() => {
     recording    : false,
     pendingFile  : null,      // { base64, mimetype, filename, type }
     settings     : {},
+    // Conta com vários números de WhatsApp: o número que esta tela está vendo.
+    // null = o servidor decide (o número padrão da conta), como sempre foi.
+    // Definido pela barra de números (chat-numeros.js) via ChatApp.trocarCanal.
+    canalId      : null,
   };
 
   // ── Inicialização ───────────────────────────────────────────
@@ -564,7 +568,7 @@ const ChatApp = (() => {
   }
   // Líder transmite heartbeat com o seq atual (os followers sincronizam por ele).
   function _bcSend(seq) {
-    if (_bc && _isLeader) { try { _bc.postMessage({ t: 'hb', id: _tabId, seq: seq }); } catch (_) {} }
+    if (_bc && _isLeader) { try { _bc.postMessage({ t: 'hb', id: _tabId, seq: seq, canal: state.canalId || null }); } catch (_) {} }
   }
   // Follower: atualiza o PRÓPRIO view quando o líder anuncia um seq novo.
   async function _followerRefresh(seq) {
@@ -597,6 +601,7 @@ const ChatApp = (() => {
         _bc.onmessage = (ev) => {
           const m = ev.data || {};
           if (m.t !== 'hb' || m.id === _tabId) return;
+          if ((m.canal || null) !== (state.canalId || null)) return; // aba em outro número
           _leaderSeen = Date.now();
           if (m.id && _tabId && m.id < _tabId) _isLeader = false; // id menor vence (determinístico)
           if (!_isLeader && m.seq !== undefined && m.seq !== _lastSeq) _followerRefresh(m.seq);
@@ -2632,7 +2637,7 @@ const ChatApp = (() => {
     let _vinculosCarregados = false;
     try {
       const rv = await fetch(
-        '/api/whatsapp/contato_vinculos.php?jid=' + encodeURIComponent(state.currentJid),
+        _comCanal('/api/whatsapp/contato_vinculos.php?jid=' + encodeURIComponent(state.currentJid)),
         { credentials: 'same-origin' }
       ).then(r => r.json());
 
@@ -2839,7 +2844,20 @@ const ChatApp = (() => {
   }
 
   // ── HTTP helper ──────────────────────────────────────────────
+  // Número escolhido em toda chamada do pacote WhatsApp (GET na query, POST no
+  // corpo), sem precisar lembrar em cada ponto. Não sobrescreve quem já mandou.
+  // media.php fica de fora: o número sai da própria mensagem no servidor.
+  function _comCanal(url) {
+    if (!state.canalId || url.indexOf('/api/whatsapp/') === -1 || url.indexOf('media.php') !== -1) return url;
+    if (/[?&]channel_id=/.test(url)) return url;
+    return url + (url.indexOf('?') === -1 ? '?' : '&') + 'channel_id=' + encodeURIComponent(state.canalId);
+  }
+
   async function apiFetch(url, method = 'GET', body = null, signal = null) {
+    if (state.canalId && url.indexOf('/api/whatsapp/') !== -1) {
+      if (method === 'GET' || !body) url = _comCanal(url);
+      else if (body && typeof body === 'object' && body.channel_id === undefined) body = Object.assign({}, body, { channel_id: state.canalId });
+    }
     const opts = {
       method,
       cache  : 'no-store',
@@ -2931,7 +2949,7 @@ const ChatApp = (() => {
     }
 
     // Fetch dos membros e atualiza sublabel + handler de click + popula cache de menções
-    fetch('/api/whatsapp/group_members.php?jid=' + encodeURIComponent(jid), {
+    fetch(_comCanal('/api/whatsapp/group_members.php?jid=' + encodeURIComponent(jid)), {
       credentials: 'same-origin'
     })
       .then(r => r.json())
@@ -3740,7 +3758,36 @@ const ChatApp = (() => {
     }
   }
 
+  // ── Vários números: trocar o número que a tela está vendo ─────────────────
+  // Fecha a conversa aberta, esvazia a lista e refaz o status do número novo;
+  // se ele estiver conectado, setConnectionStatus recarrega a lista e o polling.
+  function definirCanal(id) { state.canalId = id ? Number(id) : null; }
+  function canalAtual() { return state.canalId; }
+  async function trocarCanal(id) {
+    const novo = id ? Number(id) : null;
+    if (novo === state.canalId) return;
+    clearInterval(state.pollingTimer);
+    clearTimeout(state.qrTimer);
+    state.canalId     = novo;
+    state.instanceId  = null;
+    state.status      = 'close';   // força o "acabou de conectar" do número novo
+    state.chats       = [];
+    state.currentJid  = null;
+    state.currentName = '';
+    state.lastMsgId   = 0;
+    state.lastMsgAt   = '';
+    _lastSeq          = null;
+    _discDismissed    = false;
+    const qr = qs('#qrCodeImg'); if (qr) qr.removeAttribute('src');
+    const qrBox = qs('#qrContainer'); if (qrBox) qrBox.classList.remove('visible');
+    setText('kpiChats', '—'); setText('kpiUnread', '—'); setText('kpiPhone', '—');
+    renderChatList();
+    closeChat();
+    await checkStatus();
+  }
+
   return {
+    definirCanal, canalAtual, trocarCanal,
     init, checkStatus, connectWhatsApp, disconnectWhatsApp,
     manualReconnect, dismissDisconnectAlert,
     refreshQr, loadChats, loadMoreChats, openChat, openChatByJid, closeChat,

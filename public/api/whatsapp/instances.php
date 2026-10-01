@@ -104,6 +104,75 @@ if ($method === 'GET') {
         exit;
     }
 
+    if ($action === 'numeros') {
+        // Os números (canais) que a conta enxerga, com o resumo do topo do chat:
+        // quantos, quantos conectados, quantos caídos, quantos nunca conectaram.
+        // Leitura (view): qualquer usuário do chat vê qual número está no ar.
+        // Projeção mínima, como o 'list': nunca token, webhook ou QR.
+        //
+        // ?atualizar=1 (só owner/admin) pergunta à Evolution o estado real de
+        // cada número antes de responder; sem ele, vale o último estado gravado
+        // (o webhook connection.update e o polling do número aberto mantêm em dia).
+        $viewable = WhatsAppChannelAccessService::viewableChannelIds($pdo, $accountId);
+        $atualizar = $canManage && !empty($_GET['atualizar']);
+        $padrao = WhatsAppChannelAccessService::ownChannelId($pdo, $accountId);
+
+        $naoLidas = [];
+        if ($viewable) {
+            $in = implode(',', array_fill(0, count($viewable), '?'));
+            $st = $pdo->prepare(
+                "SELECT instance_id, COALESCE(SUM(unread_count),0) FROM whatsapp_chats
+                  WHERE instance_id IN ($in) AND is_archived = 0 GROUP BY instance_id"
+            );
+            $st->execute($viewable);
+            foreach ($st->fetchAll(\PDO::FETCH_NUM) as [$iid, $n]) $naoLidas[(int)$iid] = (int)$n;
+        }
+
+        $out = [];
+        $resumo = ['total' => 0, 'conectados' => 0, 'caidos' => 0, 'nunca_conectados' => 0];
+        foreach ($viewable as $cid) {
+            $r = $model->find((int)$cid);
+            if (!$r) continue;
+            $status = (string)($r['status'] ?? 'close');
+
+            if ($atualizar) {
+                try {
+                    $evo = new EvolutionApiService($model->cfgDoCanal((int)$cid));
+                    $evo->setTimeout(4);
+                    $st = $evo->getConnectionState((string)$r['instance_name']);
+                    $vivo = strtolower((string)($st['instance']['state'] ?? ($st['state'] ?? '')));
+                    if (in_array($vivo, ['open', 'close', 'connecting', 'qr'], true) && $vivo !== $status) {
+                        $model->updateStatus((int)$cid, $vivo);
+                        $status = $vivo;
+                    }
+                } catch (\Throwable $_) { /* fica o último estado gravado */ }
+            }
+
+            // Caído = já esteve conectado (tem número gravado) e não está agora.
+            // Nunca conectado = ainda sem QR lido nenhuma vez.
+            $temNumero = trim((string)($r['phone'] ?? '')) !== '';
+            $situacao  = $status === 'open' ? 'conectado' : ($temNumero ? 'caido' : 'nunca_conectado');
+            $resumo['total']++;
+            $resumo[$situacao === 'conectado' ? 'conectados' : ($situacao === 'caido' ? 'caidos' : 'nunca_conectados')]++;
+
+            $out[] = [
+                'id'            => (int)$r['id'],
+                'nome'          => $r['display_name'] ?: ($r['instance_name'] ?? ''),
+                'phone'         => $r['phone'] ?? null,
+                'status'        => $status,
+                'situacao'      => $situacao,
+                'nao_lidas'     => $naoLidas[(int)$r['id']] ?? 0,
+                'ultimo_evento' => $r['last_event_at'] ?? null,
+                'padrao'        => ((int)$r['id'] === (int)$padrao),
+                'is_own'        => ((int)($r['account_id'] ?? 0) === $accountId),
+            ];
+        }
+        // Ordem estável: conectados primeiro, depois por criação.
+        usort($out, fn($a, $b) => [$a['situacao'] !== 'conectado', $a['id']] <=> [$b['situacao'] !== 'conectado', $b['id']]);
+        echo json_encode(['ok' => true, 'numeros' => $out, 'resumo' => $resumo, 'pode_gerenciar' => $canManage], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     // Daqui pra baixo (qr / list / GET default) é gestão/leitura de config: exige owner/admin.
     if (!$canManage) { $denyManage(); }
 
@@ -229,6 +298,33 @@ if ($method === 'POST') {
 
     $action = $payload['action'] ?? '';
 
+    if ($action === 'adicionar_numero') {
+        // Mais um número de WhatsApp na conta. Cria a instância na Evolution e a
+        // linha do número; o QR vem depois, pelo 'connect' com o channel_id novo.
+        $nome = trim((string)($payload['nome'] ?? ''));
+        if ($nome === '') { echo json_encode(['ok' => false, 'error' => 'Dê um nome ao número (ex.: Comercial, Suporte).'], JSON_UNESCAPED_UNICODE); exit; }
+        $acc = $pdo->prepare('SELECT nome FROM accounts WHERE id = ?');
+        $acc->execute([$accountId]);
+        $r = \App\WhatsAppAgente\WhatsAppProvisioningService::adicionarNumero($pdo, $accountId, (string)$acc->fetchColumn(), $nome);
+        if (empty($r['success'])) {
+            echo json_encode(['ok' => false, 'error' => $r['error'] ?? 'Não foi possível criar o número.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        echo json_encode(['ok' => true, 'channel_id' => (int)$r['channel_id']]);
+        exit;
+    }
+
+    if ($action === 'renomear') {
+        // Só o nome de exibição ("Comercial", "Número 2"). O nome da instância na
+        // Evolution não muda: é a chave de roteamento dos eventos.
+        $chR  = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $payload['channel_id'] ?? null, 'manage');
+        $nome = trim(mb_substr((string)($payload['nome'] ?? ''), 0, 150));
+        if ($nome === '') { echo json_encode(['ok' => false, 'error' => 'O nome não pode ficar vazio.'], JSON_UNESCAPED_UNICODE); exit; }
+        $pdo->prepare('UPDATE whatsapp_instances SET display_name = ? WHERE id = ?')->execute([$nome, (int)$chR['channel_id']]);
+        echo json_encode(['ok' => true, 'nome' => $nome], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     // conectar/criar/restart/logout/webhook são GESTÃO do canal → 'manage'.
     // 'manage' é exclusivo do dono: conta com canal compartilhado é negada aqui.
     $ch   = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $payload['channel_id'] ?? null, 'manage');
@@ -298,7 +394,8 @@ if ($method === 'POST') {
         // headers customizados (a query string SEMPRE é enviada). Não duplica se o
         // usuário já tiver colocado token. A URL "limpa" (sem token) é a que fica
         // salva/exibida na tela — o token é detalhe interno da integração.
-        $tenantKey = (string)($cfg['evolution_api_key'] ?? '');
+        // Chave da CONTA (não a do número): é por ela que o webhook acha o tenant.
+        $tenantKey = (string)($cfg['evolution_api_key_conta'] ?? ($cfg['evolution_api_key'] ?? ''));
         $urlFinal  = $url;
         if ($tenantKey !== '' && !preg_match('/[?&]token=/i', $url)) {
             $urlFinal .= (strpos($url, '?') === false ? '?' : '&') . 'token=' . urlencode($tenantKey);

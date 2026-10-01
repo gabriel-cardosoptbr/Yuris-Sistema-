@@ -30,10 +30,10 @@ O detalhe completo, com diagramas, está na skill de desenvolvimento em
 ### O canal
 | Classe | O que faz |
 |---|---|
-| `WhatsAppInstance.php` | a instância da Evolution ligada à conta: status, dono, nome |
+| `WhatsAppInstance.php` | a instância da Evolution ligada à conta (um **número**): status, dono, nome. `cfgDoCanal()`/`aplicarCanal()` montam a config da Evolution **de um número** (chave e nome da instância dele), para conta com vários números |
 | `WhatsAppMessage.php` | mensagens do chat, gravadas por `wamid` |
 | `EvolutionApiService.php` | a camada de integração com a Evolution: `sendText`, `sendMedia`, `sendAudio`, webhook. **Todo envio passa por aqui**, 30 métodos |
-| `WhatsAppProvisioningService.php` | provisionamento idempotente do canal ao conectar, inclusive geração do `webhook_token` |
+| `WhatsAppProvisioningService.php` | provisionamento idempotente do canal ao conectar, inclusive geração do `webhook_token`. `adicionarNumero()` cria mais um número numa conta que já tem o primeiro (teto `MAX_NUMEROS_POR_CONTA`) |
 | `WhatsAppChannelAccessService.php` | **camada única de autorização de canal.** Resolve se a sessão pode usar aquele canal, incluindo o caso filial usando canal da matriz |
 | `WaLog.php` | log de uma linha em JSON, com chaves padronizadas, para todo o módulo |
 | `PerfilComercial.php` | o nome de conta **comercial** do WhatsApp. Conta Business manda `pushName` vazio e a conversa aparecia só com o telefone; aqui o nome é **deduzido** do perfil comercial que a Evolution entrega (descrição "X é uma...", domínio do site) e gravado em `Identidade` com a origem `perfil_comercial`, que pesa **menos que o pushName**: qualquer nome real o substitui, e na dúvida fica null (a tela segue mostrando o telefone). Uma consulta à Evolution a cada 30 dias por contato, registrada em `whatsapp_identidades.perfil_comercial_em` (migration 132). Disparado pela lista do Chat (`contacts.php`, action `resolve_name`), nunca pelo webhook |
@@ -173,8 +173,25 @@ celular no período chega na sincronização e entra no critério.
 
 ## Regras que derrubam o módulo se ignoradas
 
-**Uma instância por conta, sempre.** Vale para código novo, migration nova e
-tela nova.
+**Uma instância da Evolution por NÚMERO; a conta pode ter vários números**
+(desde 01/10/2026; antes era "uma instância por conta, sempre"). Como funciona:
+
+- O **primeiro** número continua como sempre: nome e chave em `whatsapp_settings`
+  (`evolution_instance`, `evolution_api_key`). Essa chave é a de **roteamento**:
+  é por ela que o `webhook.php` identifica a conta.
+- Cada número **adicional** guarda a própria chave em
+  `whatsapp_instances.evolution_token` e tem o webhook com `?token=<chave da
+  CONTA>`. O evento chega na conta certa, e o `instance` do payload diz o número.
+  `findAccountByApiKey` também aceita a chave do número, para a Evolution que só
+  manda o header.
+- **Quem fala com a Evolution sobre um número usa a config DO NÚMERO**:
+  `resolveForRequest` já devolve `cfg` assim; fora dele, `cfgDoCanal($instanceId)`.
+  Nunca `getSettings($conta)['evolution_instance']` para responder ou baixar
+  mídia: com dois números, sai pelo número errado.
+- O número **padrão** (quem não manda `channel_id`) é o conectado mais novo
+  (`ownChannelId`), não só o mais novo.
+- O chat da edição Fleetiflow mostra uma aba por número (`public/assets/chat-numeros.js`)
+  e o `chat.js` manda `channel_id` em toda chamada do pacote.
 
 **O webhook responde 200 antes de processar.** `flushResponse()` vem antes de
 `runAgentReply()`. Se inverter, a Evolution considera falha e reenvia.

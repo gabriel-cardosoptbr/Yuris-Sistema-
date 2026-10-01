@@ -120,6 +120,16 @@ colorida na lateral (a prioridade fica no selo). Tudo num
 se a conversa é do canal que a conta pode ver, e a tela abre nela como faz com
 `?jid=`.
 
+`chat.php`, na edição Fleetiflow, mostra no topo a barra de **números de
+WhatsApp** da conta (`assets/chat-numeros.js` + `assets/chat-numeros.css`):
+resumo (quantos, conectados, caídos, nunca conectados), uma aba por número com
+nome, telefone e não lidas, renomear e adicionar número (owner/admin). A aba
+escolhida vira `ChatApp.trocarCanal(id)`, e o `chat.js` passa a mandar
+`channel_id` em toda chamada de `/api/whatsapp/`. Os dados vêm de
+`instances.php?action=numeros` (`&atualizar=1` pergunta o estado real à
+Evolution). O número escolhido fica no `localStorage`, por conta; `?numero=<id>`
+na URL também escolhe.
+
 `chat.php` resolve a edição do produto (`$isFleetiflow`) para três coisas: o
 nome na aba, a variável `window.CHAT_MARCA` (o `chat.js` reescreve o título
 com o contador de não lidas) e `window.CHAT_SEM_JURIDICO`, que tira "Processos

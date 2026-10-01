@@ -1990,6 +1990,13 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
       <!-- Corpo do chat (preenche o restante da altura) -->
       <main class="chat-main">
 
+    <?php if ($isFleetiflow): ?>
+    <!-- Vários números de WhatsApp na conta: resumo + uma aba por número
+         (assets/chat-numeros.js). Some sozinha se a conta não tem número. -->
+    <link rel="stylesheet" href="/assets/chat-numeros.css?v=1">
+    <div class="ff-numeros" id="ffNumeros"></div>
+    <?php endif; ?>
+
     <!-- KPIs -->
     <div class="chat-kpis" id="chatKpis">
       <div class="chat-kpi">
@@ -2706,7 +2713,14 @@ const API  = {
   }
 })();
 </script>
-<script src="/assets/chat.js?v=74"></script>
+<script src="/assets/chat.js?v=75"></script>
+<?php if ($isFleetiflow): ?>
+<script>
+window.CSRF_CHAT     = <?= json_encode($csrf) ?>;
+window.CHAT_CONTA_ID = <?= (int)($__ctxChat->getAccountId() ?? 0) ?>;
+</script>
+<script src="/assets/chat-numeros.js?v=1"></script>
+<?php endif; ?>
 <script>
 // Lightbox init
 (function(){

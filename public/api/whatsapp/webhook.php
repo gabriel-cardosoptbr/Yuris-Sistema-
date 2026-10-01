@@ -370,7 +370,10 @@ try {
         if (!$jaLiberou) WhatsAppAgentBridge::flushResponse();
         foreach (array_slice($GLOBALS['__media_tasks'], 0, 3) as $mt) {
             try {
-                $cfgM = $instModel->getSettings((int)$mt['account_id']);
+                // Chave e instância DO NÚMERO que recebeu a mídia (conta com vários números).
+                $cfgM = !empty($mt['instance_id'])
+                    ? $instModel->cfgDoCanal((int)$mt['instance_id'])
+                    : $instModel->getSettings((int)$mt['account_id']);
                 $evoM = new EvolutionApiService($cfgM);
                 $evoM->setTimeout(15);
                 MidiaCache::completar(
@@ -503,7 +506,8 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
         try {
             $instModel = new WhatsAppInstance();
             // P0 LGPD (1.8): settings per-tenant — resolve pelo accountId do webhook
-            $cfg       = $instModel->getSettings($accountId);
+            // Chave e instância DO NÚMERO que recebeu (conta com vários números).
+            $cfg       = $instModel->cfgDoCanal($instanceId, $instModel->getSettings($accountId));
             $evo       = new EvolutionApiService($cfg);
             $name      = $cfg['evolution_instance'] ?? 'yuris-crm';
             // E1: este download roda ANTES do 200 do webhook; timeout curto pra nao
@@ -599,6 +603,7 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
     if ($midiaPendente && $savedId) {
         $GLOBALS['__media_tasks'][] = [
             'account_id' => $accountId,
+            'instance_id' => $instanceId,
             'message_id' => (int)$savedId,
             'payload'    => $msg,
             'mime'       => $mimetype,

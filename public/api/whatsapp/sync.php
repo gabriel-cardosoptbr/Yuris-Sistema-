@@ -130,7 +130,7 @@ try {
     // linha de comando não há sessão para resolver contra: quem executa já tem
     // shell no servidor, e o canal é escolhido explicitamente por --instance.
     if ($MODO_CLI) {
-        $cfgCli = (new \App\WhatsAppAgente\WhatsAppInstance())->getSettings($accountId);
+        $cfgCli = (new \App\WhatsAppAgente\WhatsAppInstance())->cfgDoCanal((int)$insRow['id']);
         $ch = [
             'cfg'              => $cfgCli,
             'instance_name'    => (string)$insRow['instance_name'],

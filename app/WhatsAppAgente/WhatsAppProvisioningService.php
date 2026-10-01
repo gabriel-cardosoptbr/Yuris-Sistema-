@@ -149,6 +149,106 @@ class WhatsAppProvisioningService
         }
     }
 
+    /** Teto de números por conta: cada um é uma sessão aberta na Evolution. */
+    const MAX_NUMEROS_POR_CONTA = 10;
+
+    /**
+     * Cria MAIS UM número (instância) na Evolution para uma conta que já tem o
+     * primeiro. Conta sem nenhum ainda passa pelo provision() normal, e o
+     * número criado ganha o nome pedido.
+     *
+     * Diferença para o primeiro número: a chave do número novo NÃO vai para as
+     * settings da conta (lá continua a do primeiro, que é a chave de roteamento
+     * do webhook). Ela fica em whatsapp_instances.evolution_token, e o webhook
+     * do número novo aponta com ?token=<chave da CONTA> — assim os eventos dele
+     * chegam no mesmo tenant, e o nome da instância no evento diz de qual número
+     * são. Ver WhatsAppInstance::cfgDoCanal.
+     *
+     * @return array{success:bool, channel_id?:int, instance?:string, error?:string}
+     */
+    public static function adicionarNumero(\PDO $pdo, int $accountId, string $accountName, string $nomeDoNumero): array
+    {
+        try {
+            if ($accountId <= 0) return ['success' => false, 'error' => 'Conta inválida.'];
+            $nomeDoNumero = trim(mb_substr($nomeDoNumero, 0, 150));
+            $model = new \App\WhatsAppAgente\WhatsAppInstance();
+            $cfg   = $model->getSettings($accountId);
+
+            // Conta ainda sem número nenhum: é o provisionamento de sempre.
+            if (empty($cfg['evolution_instance']) || empty($cfg['evolution_api_key'])) {
+                $r = self::provision($pdo, $accountId, $accountName);
+                if (!empty($r['success']) && !empty($r['channel_id']) && $nomeDoNumero !== '') {
+                    $pdo->prepare('UPDATE whatsapp_instances SET display_name = ? WHERE id = ? AND account_id = ?')
+                        ->execute([$nomeDoNumero, (int)$r['channel_id'], $accountId]);
+                }
+                return $r;
+            }
+
+            $qtd = $pdo->prepare('SELECT COUNT(*) FROM whatsapp_instances WHERE account_id = ?');
+            $qtd->execute([$accountId]);
+            if ((int)$qtd->fetchColumn() >= self::MAX_NUMEROS_POR_CONTA) {
+                return ['success' => false, 'error' => 'Limite de ' . self::MAX_NUMEROS_POR_CONTA . ' números por conta atingido.'];
+            }
+
+            [$base, $hook, $adminKey] = self::globalCfg($pdo);
+            if ($base === '' || $adminKey === '') {
+                return ['success' => false, 'error' => 'A Evolution não está configurada no Painel Master (URL e chave administrativa).'];
+            }
+
+            // Nome único NA EVOLUTION (o servidor é compartilhado entre contas):
+            // slug + id da conta + sufixo aleatório.
+            $slug = strtolower((string)preg_replace('/[^a-zA-Z0-9]/', '', $accountName)) ?: 'conta';
+            $name = substr($slug, 0, 20) . '-' . $accountId . '-' . bin2hex(random_bytes(3));
+            $token = bin2hex(random_bytes(18));
+
+            $globalEvo = new \App\WhatsAppAgente\EvolutionApiService(['evolution_base_url' => $base, 'evolution_api_key' => $adminKey]);
+            $res = $globalEvo->createInstance($name, '', $token);
+            if (!empty($res['_error'])) {
+                return ['success' => false, 'error' => 'A Evolution recusou criar o número: ' . $res['_error']];
+            }
+
+            // Chave REAL da instância (mesma leitura do provision()).
+            $apikey = null;
+            try {
+                foreach ((array)$globalEvo->fetchInstances() as $it) {
+                    $nm = $it['name'] ?? $it['instanceName'] ?? ($it['instance']['instanceName'] ?? ($it['instance']['name'] ?? null));
+                    if ($nm === $name) { $apikey = $it['token'] ?? $it['apikey'] ?? ($it['instance']['token'] ?? null); break; }
+                }
+            } catch (\Throwable $_) {}
+            if (!$apikey) {
+                $apikey = $res['hash']['apikey'] ?? (is_string($res['hash'] ?? null) ? $res['hash'] : null)
+                       ?? $res['instance']['apikey'] ?? $res['instance']['token'] ?? $token;
+            }
+
+            // Webhook: mesma URL da conta, com a chave da CONTA no ?token (roteia o
+            // tenant) e o crachá da conta (2º fator), como o primeiro número.
+            $hookConta = (string)($cfg['webhook_url'] ?? '') ?: $hook;
+            $hookUrl   = $hookConta . (strpos($hookConta, '?') === false ? '?' : '&') . 'token=' . urlencode((string)$cfg['evolution_api_key']);
+            $evoNumero = new \App\WhatsAppAgente\EvolutionApiService([
+                'evolution_base_url' => (string)($cfg['evolution_base_url'] ?? '') ?: $base,
+                'evolution_api_key'  => (string)$apikey,
+                'evolution_instance' => $name,
+                'webhook_token'      => (string)($cfg['webhook_token'] ?? ''),
+            ]);
+            $evoNumero->setWebhook($name, $hookUrl);
+
+            $inst = $model->findOrCreate($name, $nomeDoNumero !== '' ? $nomeDoNumero : $name, $accountId);
+            $channelId = (int)($inst['id'] ?? 0);
+            if ($channelId <= 0) return ['success' => false, 'error' => 'Não foi possível gravar o número.'];
+            $pdo->prepare('UPDATE whatsapp_instances SET evolution_token = ? WHERE id = ? AND account_id = ?')
+                ->execute([(string)$apikey, $channelId, $accountId]);
+
+            \App\WhatsAppAgente\WhatsAppChannelAccessService::grant($pdo, $channelId, $accountId, 'owner', [], null);
+            self::ensureAgentConfig($pdo, $accountId, $channelId, $accountName);
+            self::logCrachaEvent($pdo, $accountId, 'numero_adicional_criado', ['instance' => $name]);
+
+            return ['success' => true, 'channel_id' => $channelId, 'instance' => $name];
+        } catch (\Throwable $e) {
+            error_log('[WhatsAppProvisioningService] adicionarNumero: ' . $e->getMessage());
+            return ['success' => false, 'error' => 'Não foi possível criar o número agora. Tente de novo em instantes.'];
+        }
+    }
+
     /**
      * Onboarding ZERO-TOQUE do agente de IA: cria o agent_config da conta JA configurado
      * mas DESLIGADO (enabled=0). A conta nasce pronta (webhook no Yuris + agente no banco,

@@ -314,7 +314,9 @@ class WhatsAppAgentBridge
             // Envia pela MESMA instancia — credenciais do DONO do canal (account do agent_config).
             $ownerAcc  = (int)($cfg['account_id'] ?? $task['account_id']);
             $instModel = new WhatsAppInstance();
-            $sett      = $instModel->getSettings($ownerAcc);
+            // Chave e instância DO NÚMERO que recebeu a mensagem: com vários números
+            // na conta, responder pela instância da conta mandava pelo número errado.
+            $sett      = $instModel->cfgDoCanal((int)$task['instance_id'], $instModel->getSettings($ownerAcc));
             $evo       = new EvolutionApiService($sett);
             $name      = $sett['evolution_instance'] ?? 'yuris-crm';
             $resp      = $evo->sendText($name, (string)$task['remote_jid'], $reply);

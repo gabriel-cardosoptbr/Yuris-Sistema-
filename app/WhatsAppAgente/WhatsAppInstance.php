@@ -177,6 +177,42 @@ class WhatsAppInstance
     }
 
     /**
+     * Config da Evolution para UM NÚMERO (canal), não para a conta.
+     *
+     * Uma conta pode ter vários números. As settings da conta guardam a chave
+     * do PRIMEIRO número (o do provisionamento), e na Evolution v2 a chave de
+     * uma instância não abre outra. Por isso cada número adicional guarda a
+     * própria chave em `whatsapp_instances.evolution_token`, e quem vai falar
+     * com a Evolution sobre um número usa esta config:
+     *
+     *  - evolution_api_key      = chave DO NÚMERO (cai na da conta se o número
+     *                             não tiver chave própria, que é o caso do 1º);
+     *  - evolution_instance     = nome da instância DO NÚMERO;
+     *  - evolution_api_key_conta = a chave da CONTA, intacta. É ela que vai no
+     *                             ?token= do webhook, porque é por ela que o
+     *                             webhook.php identifica o tenant.
+     *
+     * @param array|null $cfgConta settings da conta dona (evita reler se o caller já tem)
+     */
+    public function cfgDoCanal(int $instanceId, ?array $cfgConta = null): array
+    {
+        $row = $this->find($instanceId);
+        if (!$row) return $cfgConta ?? [];
+        $cfg = $cfgConta ?? $this->getSettings((int)$row['account_id']);
+        return self::aplicarCanal($cfg, $row);
+    }
+
+    /** Mesma regra de cfgDoCanal, quando o caller já tem a linha do número em mãos. */
+    public static function aplicarCanal(array $cfg, array $instRow): array
+    {
+        $cfg['evolution_api_key_conta'] = (string)($cfg['evolution_api_key'] ?? '');
+        $token = trim((string)($instRow['evolution_token'] ?? ''));
+        if ($token !== '') $cfg['evolution_api_key'] = $token;
+        if (!empty($instRow['instance_name'])) $cfg['evolution_instance'] = (string)$instRow['instance_name'];
+        return $cfg;
+    }
+
+    /**
      * Salvar configuração — agora PER-TENANT.
      * UNIQUE composto (account_id, config_key) garante idempotência por tenant.
      */
@@ -207,7 +243,16 @@ class WhatsAppInstance
     {
         if ($apiKey === '') return null;
         $ids = $this->accountsUsingApiKey($apiKey);
-        if (!$ids) return null;
+        if (!$ids) {
+            // Número ADICIONAL da conta: a chave dele mora na linha do número
+            // (whatsapp_instances.evolution_token), não nas settings da conta.
+            // O webhook dele já leva ?token=<chave da conta>; isto cobre a versão
+            // da Evolution que só manda o header apikey (= chave do número).
+            $st = $this->db->prepare('SELECT account_id FROM whatsapp_instances WHERE evolution_token = ? LIMIT 1');
+            $st->execute([$apiKey]);
+            $acc = $st->fetchColumn();
+            return $acc === false ? null : (int)$acc;
+        }
 
         // Blindagem contra "divergência de conta": a MESMA evolution_api_key
         // configurada em mais de um tenant torna a identificação ambígua — o

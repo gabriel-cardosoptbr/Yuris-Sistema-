@@ -68,7 +68,8 @@ try {
 
     $instModel = new WhatsAppInstance();
     // 3) Credenciais SEMPRE do DONO do canal (nunca da conta requisitante/front).
-    $cfg       = $instModel->getSettings((int)$chk['owner_account_id']);
+    //    Chave e instância DO NÚMERO da mensagem (conta com vários números).
+    $cfg       = $instModel->cfgDoCanal((int)$msg['instance_id'], $instModel->getSettings((int)$chk['owner_account_id']));
     $name      = $chk['instance_name'];
     $apiKey    = $cfg['evolution_api_key']  ?? '';
     $baseUrl   = rtrim($cfg['evolution_base_url'] ?? 'http://localhost:8080', '/');

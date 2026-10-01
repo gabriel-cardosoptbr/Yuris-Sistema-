@@ -1,0 +1,69 @@
+/* chat-numeros.css — barra de números de WhatsApp no topo do chat (edição Fleetiflow).
+   Mesma linguagem dos cartões do chat: branco, borda #E2E8F0, marca #015DFC. */
+.ff-numeros { display: flex; flex-direction: column; gap: 10px; margin: 0 0 12px; }
+.ff-numeros:empty { display: none; }
+
+.ffn-topo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ffn-resumo { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0; }
+.ffn-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 999px;
+  background: #FFFFFF; border: 1px solid #E2E8F0;
+  font-size: .76rem; font-weight: 700; color: #0F172A; font-variant-numeric: tabular-nums;
+}
+.ffn-chip i { width: 7px; height: 7px; border-radius: 50%; background: #94A3B8; }
+.ffn-chip.ffn-ok i { background: #16A34A; }
+.ffn-chip.ffn-ruim { color: #B91C1C; border-color: #FECACA; background: #FEF2F2; }
+.ffn-chip.ffn-ruim i { background: #DC2626; }
+.ffn-chip.ffn-zero { color: #64748B; background: #FFFFFF; border-color: #E2E8F0; }
+.ffn-chip.ffn-zero i { background: #CBD5E1; }
+
+.ffn-add {
+  border: 1px solid var(--ff-marca, #015DFC); color: var(--ff-marca, #015DFC); background: #FFFFFF;
+  border-radius: 999px; padding: 6px 14px; font-size: .78rem; font-weight: 700; cursor: pointer;
+}
+.ffn-add:hover { background: #EEF4FF; }
+
+.ffn-abas { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+.ffn-aba {
+  position: relative; flex: 0 0 auto;
+  display: grid; grid-template-columns: auto 1fr auto; grid-template-rows: auto auto;
+  column-gap: 8px; align-items: center;
+  min-width: 170px; max-width: 260px; padding: 9px 12px;
+  background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px;
+  cursor: pointer; transition: border-color .15s, box-shadow .15s;
+}
+.ffn-aba:hover { border-color: #CBD5E1; }
+.ffn-aba:focus-visible { outline: 2px solid var(--ff-marca, #015DFC); outline-offset: 2px; }
+.ffn-aba.ativa { border-color: var(--ff-marca, #015DFC); box-shadow: 0 0 0 1px var(--ff-marca, #015DFC) inset; background: #F5F8FF; }
+.ffn-ponto { grid-row: 1 / span 2; width: 9px; height: 9px; border-radius: 50%; background: #CBD5E1; }
+.ffn-conectado .ffn-ponto { background: #16A34A; box-shadow: 0 0 0 3px #DCFCE7; }
+.ffn-caido .ffn-ponto { background: #DC2626; box-shadow: 0 0 0 3px #FEE2E2; }
+.ffn-nome { font-size: .84rem; font-weight: 700; color: #0F172A; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ffn-fone { grid-column: 2; font-size: .72rem; color: #64748B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.ffn-caido .ffn-fone { color: #B91C1C; }
+.ffn-badge {
+  grid-column: 3; grid-row: 1; justify-self: end;
+  min-width: 20px; padding: 1px 6px; border-radius: 999px;
+  background: var(--ff-marca, #015DFC); color: #FFFFFF; font-size: .68rem; font-weight: 800; text-align: center;
+}
+.ffn-renomear {
+  grid-column: 3; grid-row: 2; justify-self: end;
+  border: 0; background: transparent; color: #64748B; cursor: pointer; padding: 2px; line-height: 0;
+}
+.ffn-renomear svg { width: 14px; height: 14px; }
+.ffn-renomear:hover { color: var(--ff-marca, #015DFC); }
+
+.ffn-modal-fundo { position: fixed; inset: 0; background: rgba(15, 23, 42, .45); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 16px; }
+.ffn-modal { width: 100%; max-width: 420px; background: #FFFFFF; border-radius: 14px; padding: 20px; box-shadow: 0 20px 50px rgba(15, 23, 42, .25); display: flex; flex-direction: column; gap: 10px; }
+.ffn-modal h3 { margin: 0; font-size: 1rem; color: #0F172A; }
+.ffn-modal p { margin: 0; font-size: .82rem; color: #64748B; line-height: 1.5; }
+.ffn-modal input { height: 38px; border: 1px solid #CBD5E1; border-radius: 8px; padding: 0 12px; font-size: .9rem; color: #0F172A; }
+.ffn-modal input:focus { outline: 2px solid var(--ff-marca, #015DFC); outline-offset: 0; border-color: transparent; }
+.ffn-erro { font-size: .78rem; color: #B91C1C; }
+.ffn-acoes { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.ffn-acoes button { border-radius: 8px; padding: 8px 14px; font-size: .82rem; font-weight: 700; cursor: pointer; }
+.ffn-sec { background: #FFFFFF; border: 1px solid #E2E8F0; color: #334155; }
+.ffn-pri { background: var(--ff-marca, #015DFC); border: 0; color: #FFFFFF; }
+
+@media (max-width: 640px) { .ffn-aba { min-width: 150px; } }
