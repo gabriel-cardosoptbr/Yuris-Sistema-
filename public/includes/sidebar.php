@@ -92,10 +92,15 @@ try {
 // já resolvido acima para notificações quando existir, para não abrir uma
 // segunda conexão à toa. Falha => assume 'yuris' (identidade de sempre).
 $_isFleetiflow = false;
+$_marca        = null;
 try {
     $__brandCtx = $__nctx ?? \App\Core\AccountContext::fromSession();
     $_isFleetiflow = $__brandCtx->getProduto() === 'fleetiflow';
+    // Edição CRM: a marca (nome, cor, logo) é da conta. A Fleetiflow original,
+    // sem marca gravada, recebe os mesmos valores que estavam escritos aqui.
+    if ($_isFleetiflow) $_marca = $__brandCtx->getMarca();
 } catch (\Throwable $__e) { /* mantém identidade Yuris se algo falhar */ }
+if ($_isFleetiflow && $_marca === null) $_marca = \App\Master\Marca::padraoFleetiflow();
 
 $_notifTempo = function ($raw) {
     $ts = $raw ? strtotime((string)$raw) : 0; if (!$ts) return '';
@@ -108,17 +113,18 @@ $_notifTempo = function ($raw) {
 };
 ?>
 <?php if ($_isFleetiflow): ?>
-<!-- Nome na aba do navegador: 23 páginas escrevem "Yuris" no <title>. Em vez de
-     uma condição em cada uma, a troca é feita aqui, só para a conta Fleetiflow. -->
-<script>(function(){try{if(/Yuris/.test(document.title))document.title=document.title.replace(/Yuris/g,"Fleetiflow");}catch(e){}})();</script>
+<!-- Nome na aba do navegador: as páginas escrevem "Yuris" ou "Fleetiflow" no <title>. Em vez de
+     uma condição em cada uma, a troca pelo nome da marca é feita aqui, só para a edição CRM. -->
+<script>window.MARCA=<?= json_encode(['nome' => $_marca['nome'], 'cor' => $_marca['cor'], 'paleta' => $_marca['paleta'], 'agente' => $_marca['agente']], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;
+(function(){try{var re=/Yuris|Fleetiflow/g;if(re.test(document.title))document.title=document.title.replace(re,window.MARCA.nome);}catch(e){}})();</script>
 <!-- Ícone da aba: 24 páginas apontam para o favicon do Yuris (a balança). Aqui ele é
-     trocado pelo "F" da Fleetiflow. O ?v= muda a URL de propósito: o Chrome guarda o
+     trocado pelo ícone da marca (o "F" da Fleetiflow, ou o enviado no Master). O ?v= muda a URL de propósito: o Chrome guarda o
      favicon por endereço, e sem isso a aba continuaria com a balança por dias. -->
 <script>(function(){try{
   var L=document.querySelectorAll('link[rel~="icon"],link[rel="apple-touch-icon"]');
   for(var i=0;i<L.length;i++){L[i].parentNode.removeChild(L[i]);}
-  [['icon','32x32','/assets/fleetiflow-favicon-32.png?v=1'],['icon','192x192','/assets/fleetiflow-favicon-192.png?v=1'],['apple-touch-icon','180x180','/assets/fleetiflow-apple-touch-icon.png?v=1']].forEach(function(d){
-    var l=document.createElement('link');l.rel=d[0];l.type='image/png';l.sizes=d[1];l.href=d[2];document.head.appendChild(l);
+  <?php if ($_marca['personalizada']): ?>[['icon','any',<?= json_encode($_marca['favicon_url'], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>]]<?php else: ?>[['icon','32x32','/assets/fleetiflow-favicon-32.png?v=1'],['icon','192x192','/assets/fleetiflow-favicon-192.png?v=1'],['apple-touch-icon','180x180','/assets/fleetiflow-apple-touch-icon.png?v=1']]<?php endif; ?>.forEach(function(d){
+    var l=document.createElement('link');l.rel=d[0];l.sizes=d[1];l.href=d[2];document.head.appendChild(l);
   });
 }catch(e){}})();</script>
 <!-- Identidade Fleetiflow: o produto real é claro, então a conta entra no
@@ -141,13 +147,21 @@ $_notifTempo = function ($raw) {
 })();
 </script>
 <style>
+  /* Cores da marca da conta (App\Master\Marca::paleta). Todo o bloco abaixo
+     usa estas variáveis em vez do azul do Fleetiflow escrito à mão. */
   :root{
-    --yuris-primary:   #0B2A6B !important;
-    --yuris-accent:    #015DFC !important;
-    --yuris-blue-deep: #0B2A6B !important;
-    --primary:         #015DFC !important;
-    --brand:           #015DFC !important;
-    --icon-color:      #015DFC !important;
+<?php foreach (['marca' => 'ff-marca', 'forte' => 'ff-marca-forte', 'suave' => 'ff-marca-suave', 'media' => 'ff-marca-media',
+                'clara' => 'ff-marca-clara', 'escura' => 'ff-marca-escura', 'rgb' => 'ff-marca-rgb', 'texto' => 'ff-marca-texto'] as $__k => $__v): ?>
+    --<?= $__v ?>: <?= htmlspecialchars($_marca['paleta'][$__k]) ?>;
+<?php endforeach; ?>
+  }
+  :root{
+    --yuris-primary:   var(--ff-marca-escura) !important;
+    --yuris-accent:    var(--ff-marca) !important;
+    --yuris-blue-deep: var(--ff-marca-escura) !important;
+    --primary:         var(--ff-marca) !important;
+    --brand:           var(--ff-marca) !important;
+    --icon-color:      var(--ff-marca) !important;
   }
 
   /* ── Menu lateral transcrito da AppShell.tsx + global.css do Fleetiflow:
@@ -213,7 +227,7 @@ $_notifTempo = function ($raw) {
     background:none !important; border:none !important; border-top:1px solid rgba(17,29,45,0.08) !important;
     border-radius:0 !important; box-shadow:none !important; margin:0 !important; padding:10px 14px 12px 16px !important;
   }
-  html[data-theme="light"] .sidebar-user-avatar{ width:32px !important; height:32px !important; font-size:12px !important; background:#015DFC !important; background-image:none !important; color:#FFFFFF !important; box-shadow:none !important; border-radius:50% !important; }
+  html[data-theme="light"] .sidebar-user-avatar{ width:32px !important; height:32px !important; font-size:12px !important; background:var(--ff-marca) !important; background-image:none !important; color:var(--ff-marca-texto) !important; box-shadow:none !important; border-radius:50% !important; }
   html[data-theme="light"] .sidebar-user-info{ min-width:0 !important; }
   html[data-theme="light"] .sidebar-user-name{ color:#3D3D3D !important; font-size:12.5px !important; font-weight:600 !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; }
   html[data-theme="light"] .sidebar-user-badge--admin,
@@ -275,24 +289,24 @@ $_notifTempo = function ($raw) {
   html[data-theme="light"] .sidebar-group-toggle:hover .sidebar-group-icon svg, html[data-theme="light"] .sidebar-group-toggle:hover .sidebar-group-icon svg *{ stroke:#3D3D3D !important; }
 
   /* ATIVO: texto e ícone na marca, disco azul atrás do ícone, fundo quase nada, barra à direita. */
-  html[data-theme="light"] .sidebar nav a.active{ background:rgba(1,93,252,0.07) !important; color:#013DF2 !important; font-weight:600 !important; box-shadow:none !important; }
-  html[data-theme="light"] .sidebar nav a.active .label{ color:#013DF2 !important; }
-  html[data-theme="light"] .sidebar nav a.active .icon{ background:#015DFC !important; }
-  html[data-theme="light"] .sidebar nav a.active .icon svg, html[data-theme="light"] .sidebar nav a.active .icon svg *{ stroke:#FFFFFF !important; stroke-width:2.1 !important; }
+  html[data-theme="light"] .sidebar nav a.active{ background:rgba(var(--ff-marca-rgb),0.07) !important; color:var(--ff-marca-forte) !important; font-weight:600 !important; box-shadow:none !important; }
+  html[data-theme="light"] .sidebar nav a.active .label{ color:var(--ff-marca-forte) !important; }
+  html[data-theme="light"] .sidebar nav a.active .icon{ background:var(--ff-marca) !important; }
+  html[data-theme="light"] .sidebar nav a.active .icon svg, html[data-theme="light"] .sidebar nav a.active .icon svg *{ stroke:var(--ff-marca-texto) !important; stroke-width:2.1 !important; }
   html[data-theme="light"] .sidebar nav a.active::after,
   html[data-theme="light"] .sidebar-group.has-active:not(.open) .sidebar-group-toggle::after{
     content:''; position:absolute; right:0; top:50%; width:3px; height:22px; border-radius:999px;
-    background:#015DFC; transform:translateY(-50%);
+    background:var(--ff-marca); transform:translateY(-50%);
   }
 
   /* Grupo com filho ativo: texto e ícone na marca, sem disco (o disco é do filho).
      Fechado, a barra vai para ele, senão a pessoa perde a pista. */
-  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle{ background:none !important; color:#013DF2 !important; font-weight:600 !important; box-shadow:none !important; }
+  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle{ background:none !important; color:var(--ff-marca-forte) !important; font-weight:600 !important; box-shadow:none !important; }
   html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle:hover{ background:#F1F1F2 !important; }
-  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-label{ color:#013DF2 !important; }
+  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-label{ color:var(--ff-marca-forte) !important; }
   html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-icon svg,
-  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-icon svg *{ stroke:#015DFC !important; stroke-width:2.1 !important; }
-  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-chevron{ stroke:#015DFC !important; }
+  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-icon svg *{ stroke:var(--ff-marca) !important; stroke-width:2.1 !important; }
+  html[data-theme="light"] .sidebar-group.has-active .sidebar-group-chevron{ stroke:var(--ff-marca) !important; }
 
   html[data-theme="light"] .sidebar nav a.is-logout:hover{ background:#FFF1F1 !important; color:#B00000 !important; }
   html[data-theme="light"] .sidebar nav a.is-logout:hover .icon svg, html[data-theme="light"] .sidebar nav a.is-logout:hover .icon svg *{ stroke:#B00000 !important; }
@@ -321,16 +335,16 @@ $_notifTempo = function ($raw) {
   html[data-theme="light"] .btn.primary, html[data-theme="light"] .btn-primary, html[data-theme="light"] .usr-btn-primary,
   html[data-theme="light"] .cfg-btn-primary, html[data-theme="light"] .agt-btn-primary, html[data-theme="light"] .conn-btn-primary,
   html[data-theme="light"] .tk-modal-btn-primary, html[data-theme="light"] .modal-btn-save{
-    background:#015DFC !important; background-image:none !important; color:#FFFFFF !important;
+    background:var(--ff-marca) !important; background-image:none !important; color:var(--ff-marca-texto) !important;
     border-color:transparent !important; border-radius:999px !important; box-shadow:none !important;
   }
   html[data-theme="light"] .btn.primary:hover, html[data-theme="light"] .btn-primary:hover, html[data-theme="light"] .usr-btn-primary:hover,
   html[data-theme="light"] .cfg-btn-primary:hover, html[data-theme="light"] .agt-btn-primary:hover, html[data-theme="light"] .conn-btn-primary:hover,
-  html[data-theme="light"] .tk-modal-btn-primary:hover, html[data-theme="light"] .modal-btn-save:hover{ background:#0043C4 !important; }
+  html[data-theme="light"] .tk-modal-btn-primary:hover, html[data-theme="light"] .modal-btn-save:hover{ background:var(--ff-marca-forte) !important; }
 
   /* Aba ativa: fundo azul-claro da marca, sem sombra. */
   html[data-theme="light"] .tab-btn.active, html[data-theme="light"] .cfg-tab.active, html[data-theme="light"] .es-tab.active{
-    background:#D6E4FF !important; color:#015DFC !important; border-color:transparent !important; box-shadow:none !important;
+    background:var(--ff-marca-suave) !important; color:var(--ff-marca) !important; border-color:transparent !important; box-shadow:none !important;
   }
 
   /* Rodapé fixo: linhas de menu (mesmo desenho dos itens) + a pessoa logada. */
@@ -350,10 +364,10 @@ $_notifTempo = function ($raw) {
   html[data-theme="light"] .sidebar-footer.sb-rodape a .icon svg{ width:17px; height:17px; stroke:#676767; stroke-width:1.75; }
   html[data-theme="light"] .sidebar-footer.sb-rodape a:hover{ background:#F1F1F2 !important; color:#3D3D3D !important; }
   html[data-theme="light"] .sidebar-footer.sb-rodape a:hover .icon svg{ stroke:#3D3D3D; }
-  html[data-theme="light"] .sidebar-footer.sb-rodape a.active{ background:rgba(1,93,252,0.07) !important; color:#013DF2 !important; font-weight:600 !important; }
-  html[data-theme="light"] .sidebar-footer.sb-rodape a.active .icon{ background:#015DFC; }
-  html[data-theme="light"] .sidebar-footer.sb-rodape a.active .icon svg{ stroke:#FFFFFF; stroke-width:2.1; }
-  html[data-theme="light"] .sidebar-footer.sb-rodape a.active::after{ content:''; position:absolute; right:0; top:50%; width:3px; height:22px; border-radius:999px; background:#015DFC; transform:translateY(-50%); }
+  html[data-theme="light"] .sidebar-footer.sb-rodape a.active{ background:rgba(var(--ff-marca-rgb),0.07) !important; color:var(--ff-marca-forte) !important; font-weight:600 !important; }
+  html[data-theme="light"] .sidebar-footer.sb-rodape a.active .icon{ background:var(--ff-marca); }
+  html[data-theme="light"] .sidebar-footer.sb-rodape a.active .icon svg{ stroke:var(--ff-marca-texto); stroke-width:2.1; }
+  html[data-theme="light"] .sidebar-footer.sb-rodape a.active::after{ content:''; position:absolute; right:0; top:50%; width:3px; height:22px; border-radius:999px; background:var(--ff-marca); transform:translateY(-50%); }
   html[data-theme="light"] .sidebar-footer.sb-rodape a.is-logout:hover{ background:#FFF1F1 !important; color:#B00000 !important; }
   html[data-theme="light"] .sidebar-footer.sb-rodape a.is-logout:hover .icon svg{ stroke:#B00000; }
 
@@ -381,8 +395,13 @@ $_notifTempo = function ($raw) {
          composta): lá a marca também é ícone + <span> renderizado, não um PNG
          com o nome desenhado dentro. -->
     <a href="dashboard.php" style="display:flex;align-items:center;gap:11px;text-decoration:none">
-      <img src="/sistema_vendas/Imagens/fleetiflow-icone.png" alt="" style="height:30px;width:auto;flex:none;display:block">
-      <span style="font-size:18px;font-weight:800;letter-spacing:-.4px;color:#3D3D3D;white-space:nowrap">Fleetiflow</span>
+      <?php if (!empty($_marca['icone_url'])): ?>
+      <img src="<?= htmlspecialchars($_marca['icone_url']) ?>" alt="" style="height:30px;width:auto;max-width:44px;object-fit:contain;flex:none;display:block">
+      <?php else: ?>
+      <!-- Marca sem ícone enviado: a inicial na cor da marca. -->
+      <span aria-hidden="true" style="width:30px;height:30px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--ff-marca);color:var(--ff-marca-texto);font-weight:800;font-size:16px"><?= htmlspecialchars($_marca['inicial']) ?></span>
+      <?php endif; ?>
+      <span style="font-size:18px;font-weight:800;letter-spacing:-.4px;color:#3D3D3D;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><?= htmlspecialchars($_marca['nome']) ?></span>
     </a>
     <?php else: ?>
     <img src="/sistema_vendas/Imagens/Logo.png" alt="Yuris" style="max-width:100%;max-height:160px;object-fit:contain;display:block;margin:0 auto;">

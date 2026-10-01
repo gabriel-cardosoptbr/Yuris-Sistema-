@@ -15,12 +15,17 @@
   if (!raiz) return;
 
   // ── Tokens (os mesmos do fleetiflow-dashboard.css) ────────────────────────
+  // Os tons da marca vêm da conta (window.MARCA, escrito pelo menu lateral a
+  // partir de App\Master\Marca). Sem ele, o azul do Fleetiflow de sempre.
+  const PM = (window.MARCA && window.MARCA.paleta) || {};
   const COR = {
-    marca: '#015DFC', marcaForte: '#013DF2', marcaSuave: '#D6E4FF', marcaMedia: '#A9C6FF', marcaClara: '#6D9DFD',
+    marca: PM.marca || '#015DFC', marcaForte: PM.forte || '#013DF2', marcaSuave: PM.suave || '#D6E4FF',
+    marcaMedia: PM.media || '#A9C6FF', marcaClara: PM.clara || '#6D9DFD',
     violeta: '#835FF2', ambar: '#FDAD0D', laranja: '#F55902', bom: '#017801', ruim: '#B00000',
     texto: '#3D3D3D', texto3: '#676767', texto4: '#767676', grade: 'rgba(17,29,45,0.06)', borda: 'rgba(17,29,45,0.08)'
   };
-  const PALETA = ['#015DFC', '#6D9DFD', '#835FF2', '#FDAD0D', '#F55902', '#013DF2', '#A9C6FF', '#B57600', '#017801', '#767676'];
+  const MARCA_RGB = PM.rgb || '1,93,252';
+  const PALETA = [COR.marca, COR.marcaClara, '#835FF2', '#FDAD0D', '#F55902', COR.marcaForte, COR.marcaMedia, '#B57600', '#017801', '#767676'];
   const FONTE = "'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif";
 
   const moeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
@@ -291,7 +296,7 @@
     const fora = j.pipeline.filter(p => !p.funil);
     const total = funil.reduce((s, p) => s + p.qtd, 0);
     if (!total && !fora.some(p => p.qtd > 0)) {
-      area.innerHTML = vazio('Nenhuma oportunidade no funil', 'Os leads abordados pela Vitória e os cards criados na prospecção aparecem aqui.', { href: '/prospeccao.php', rotulo: 'Abrir prospecção' });
+      area.innerHTML = vazio('Nenhuma oportunidade no funil', 'Os leads abordados pelo agente e os cards criados na prospecção aparecem aqui.', { href: '/prospeccao.php', rotulo: 'Abrir prospecção' });
       return;
     }
     const lista = funil.map(p => {
@@ -317,7 +322,7 @@
     const area = $('prospArea'), leg = $('prospLegenda'), gran = GRAN_NOME[j.periodo.granularidade] || 'dia';
     if (graficoProsp) { graficoProsp.destroy(); graficoProsp = null; }
     if (!(pr.entraram > 0)) {
-      area.innerHTML = vazio('Nenhum lead entrou neste período', 'Os leads abordados pela Vitória e os cards criados na prospecção aparecem aqui por ' + gran + '.', { href: '/prospeccao.php', rotulo: 'Abrir prospecção' });
+      area.innerHTML = vazio('Nenhum lead entrou neste período', 'Os leads abordados pelo agente e os cards criados na prospecção aparecem aqui por ' + gran + '.', { href: '/prospeccao.php', rotulo: 'Abrir prospecção' });
       area.style.height = 'auto'; leg.innerHTML = ''; $('prospSub').textContent = 'Sem entrada de leads no período';
     } else {
       area.style.height = ''; area.innerHTML = '<canvas id="prospCanvas"></canvas>';
@@ -380,7 +385,7 @@
     const pctAnt = etapas.map(e => { const x = ant.find(a => a.id === e.id); return x && x.pct !== null ? x.pct : 0; });
     $('radarSub').textContent = temAnt ? `Este período (${inteiro.format(pr.entraram)} leads) contra o anterior (${inteiro.format(pr.entraram_anterior)})` : 'Proporção dos leads que chegou a cada etapa';
     leg.innerHTML = `<span><i style="background:${COR.marca}"></i>Este período</span>` + (temAnt ? '<span><i class="tracejado"></i>Período anterior</span>' : '');
-    const datasets = [{ label: 'Este período', data: etapas.map(e => e.pct || 0), borderColor: COR.marca, backgroundColor: 'rgba(1,93,252,0.16)', borderWidth: 2, pointRadius: 3.5, pointBackgroundColor: '#fff', pointBorderColor: COR.marca, pointBorderWidth: 2, tension: 0.15, fill: true }];
+    const datasets = [{ label: 'Este período', data: etapas.map(e => e.pct || 0), borderColor: COR.marca, backgroundColor: `rgba(${MARCA_RGB},0.16)`, borderWidth: 2, pointRadius: 3.5, pointBackgroundColor: '#fff', pointBorderColor: COR.marca, pointBorderWidth: 2, tension: 0.15, fill: true }];
     if (temAnt) datasets.push({ label: 'Período anterior', data: pctAnt, borderColor: COR.texto4, backgroundColor: 'rgba(118,118,118,0.06)', borderDash: [5, 4], borderWidth: 1.5, pointRadius: 2.5, pointBackgroundColor: '#fff', pointBorderColor: COR.texto4, pointBorderWidth: 1.5, tension: 0.15, fill: true });
     graficoRadar = new Chart($('radarCanvas').getContext('2d'), {
       type: 'radar',
@@ -414,14 +419,14 @@
     mapa.forEach(m => { if (m.dia >= 0 && m.dia < 7 && m.bloco >= 0 && m.bloco < 8) { grade[m.dia][m.bloco] += m.n; if (grade[m.dia][m.bloco] > max) { max = grade[m.dia][m.bloco]; pico = [m.dia, m.bloco]; } } });
     // 5 degraus na cor da marca: a intensidade cresce com a quantidade.
     const tom = n => n === 0 ? 'n0' : '';
-    const cor = n => { if (!n) return ''; const t = 0.18 + 0.82 * (n / max); return `background:rgba(1,93,252,${(0.12 + 0.88 * t).toFixed(2)})`; };
+    const cor = n => { if (!n) return ''; const t = 0.18 + 0.82 * (n / max); return `background:rgba(${MARCA_RGB},${(0.12 + 0.88 * t).toFixed(2)})`; };
     let html = '<div class="ffc-calor"><span></span>' + Array.from({ length: 8 }, (_, b) => `<span class="rot-h">${b * 3}h</span>`).join('');
     grade.forEach((linha, d) => {
       html += `<span class="rot">${DIAS[d]}</span>` + linha.map((n, b) => `<span class="cel ${tom(n)}" style="${cor(n)}" title="${DIAS[d]} ${b * 3}h–${b * 3 + 3}h: ${n} movimenta${n === 1 ? 'ção' : 'ções'}"></span>`).join('');
     });
     html += '</div>';
     html += `<div class="ffc-calor-rodape"><span>Pico: <b>${pico ? DIAS[pico[0]] + ' ' + pico[1] * 3 + 'h–' + (pico[1] * 3 + 3) + 'h' : '—'}</b></span>` +
-      `<span class="ffc-calor-escala">menos <i style="background:rgba(1,93,252,0.12)"></i><i style="background:rgba(1,93,252,0.35)"></i><i style="background:rgba(1,93,252,0.6)"></i><i style="background:rgba(1,93,252,0.85)"></i><i style="background:#015DFC"></i> mais</span></div>`;
+      `<span class="ffc-calor-escala">menos <i style="background:rgba(${MARCA_RGB},0.12)"></i><i style="background:rgba(${MARCA_RGB},0.35)"></i><i style="background:rgba(${MARCA_RGB},0.6)"></i><i style="background:rgba(${MARCA_RGB},0.85)"></i><i style="background:${COR.marca}"></i> mais</span></div>`;
     area.innerHTML = html;
     $('calorSub').textContent = inteiro.format(total) + ' movimentações no período, por dia e hora';
   }

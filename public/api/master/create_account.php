@@ -52,6 +52,7 @@ use App\Core\ApiResponse;
 use App\Master\MasterAudit;
 use App\Core\Database;
 use App\Master\AccountBootstrapSeeder;
+use App\Master\Marca;
 use App\WhatsAppAgente\WhatsAppProvisioningService;
 
 session_start();
@@ -74,6 +75,35 @@ if (!in_array($tipo, ['matriz','advogado'], true)) {
     ApiResponse::badRequest("tipo inválido (use 'matriz' ou 'advogado')");
 }
 $isAdvogado = ($tipo === 'advogado');
+
+// ─── Edição: Yuris (jurídico, padrão) ou CRM comercial (padrão Fleetiflow) ──
+// A edição CRM é a MESMA conta do Yuris com `configuracoes.produto =
+// 'fleetiflow'`: jurídico oculto e bloqueado, funil comercial, e a marca
+// (nome, cor, logo) da empresa. Antes só existia pelo script
+// scripts/create_fleetiflow_account.php. Advogado-solo é jurídico por definição.
+$edicao = ($input['edicao'] ?? 'yuris') === 'crm' ? 'crm' : 'yuris';
+if ($edicao === 'crm' && $isAdvogado) {
+    ApiResponse::badRequest('Advogado solo é sempre da edição jurídica.');
+}
+$marcaCrm = null;
+$imagensCrm = [];
+if ($edicao === 'crm') {
+    $mIn = is_array($input['marca'] ?? null) ? $input['marca'] : [];
+    if (trim((string)($mIn['nome'] ?? '')) === '') $mIn['nome'] = trim($acc['nome'] ?? '');
+    try {
+        $marcaCrm = Marca::normalizar($mIn);
+        foreach (Marca::TIPOS as $t) {
+            $bruto = $input[$t] ?? null;
+            if (is_string($bruto) && $bruto !== '') {
+                $bin = Marca::decodificarUpload($bruto);
+                Marca::validarImagem($bin);
+                $imagensCrm[$t] = $bin;
+            }
+        }
+    } catch (\InvalidArgumentException $e) {
+        ApiResponse::badRequest($e->getMessage());
+    }
+}
 
 // ─── Validações básicas ─────────────────────────────────────────────────────
 $nome = trim($acc['nome'] ?? '');
@@ -104,6 +134,12 @@ $planId = (int) ($sub['plan_id'] ?? 0);
 if ($planId <= 0) ApiResponse::badRequest('plan_id é obrigatório');
 
 $pdo = Database::getConnection();
+
+// Domínio de marca é a porta de entrada de UMA conta: dois donos, e o login
+// mostraria a marca errada.
+if ($marcaCrm && $marcaCrm['dominio'] !== null && Marca::contaPorDominio($pdo, $marcaCrm['dominio']) !== null) {
+    ApiResponse::badRequest('Este domínio já é usado pela marca de outra conta.');
+}
 
 // ─── Plano existe e está ativo? ─────────────────────────────────────────────
 $plano = $pdo->prepare("SELECT * FROM plans WHERE id = :pid LIMIT 1");
@@ -177,17 +213,20 @@ if ($isAdvogado) {
 try {
     $pdo->beginTransaction();
 
-    // 1. INSERT accounts (tipo dinâmico: matriz ou advogado)
+    // 1. INSERT accounts (tipo dinâmico: matriz ou advogado). A edição CRM nasce
+    //    com configuracoes.produto; a jurídica não grava a coluna (como sempre).
     $stmtA = $pdo->prepare(
         "INSERT INTO accounts
            (nome, razao_social, cnpj, email, telefone, cidade, estado,
-            tipo, codigo_vinculo, plano, status, created_at, updated_at)
+            tipo, codigo_vinculo, plano, status, created_at, updated_at"
+        . ($edicao === 'crm' ? ', configuracoes' : '') . ")
          VALUES
            (:nome, :rs, :cnpj, :em, :tel, :ci, :uf,
-            :tipo, :codigo, :plano, :status, NOW(), NOW())"
+            :tipo, :codigo, :plano, :status, NOW(), NOW()"
+        . ($edicao === 'crm' ? ', :config' : '') . ")"
     );
     $codigo = implode('-', str_split(bin2hex(random_bytes(8)), 4));
-    $stmtA->execute([
+    $paramsA = [
         'nome'   => $nome,
         'rs'     => trim($acc['razao_social'] ?? '') ?: null,
         'cnpj'   => $cnpj,
@@ -199,7 +238,11 @@ try {
         'codigo' => $codigo,
         'plano'  => $plano['slug'],
         'status' => $accStatus,
-    ]);
+    ];
+    if ($edicao === 'crm') {
+        $paramsA['config'] = json_encode(['produto' => 'fleetiflow'], JSON_UNESCAPED_UNICODE);
+    }
+    $stmtA->execute($paramsA);
     $accountId = (int) $pdo->lastInsertId();
 
     // 2. INSERT users (admin) — para advogado solo, também é_advogado=1, oab, oab_uf
@@ -325,14 +368,31 @@ try {
     // Admin pode renomear/reordenar/arquivar a qualquer momento pela UI.
     $seedCounts = AccountBootstrapSeeder::bootstrapNew($pdo, $accountId, $tipo, $userId);
 
+    // 5b. Edição CRM: os mesmos passos de scripts/create_fleetiflow_account.php
+    //     (funil comercial no lugar do jurídico, sem o setor "Jurídico" em
+    //     Clientes) e a marca da empresa, com logo e ícone.
+    if ($edicao === 'crm') {
+        \App\WhatsAppAgente\SdrFleetiflow::montarFunil($pdo, $accountId);
+        $pdo->prepare("DELETE FROM clientes_setores WHERE account_id = :aid AND slug = 'juridico'")
+            ->execute(['aid' => $accountId]);
+        $hashes = [];
+        foreach ($imagensCrm as $t => $bin) {
+            $hashes[$t] = Marca::salvarArquivo($pdo, $accountId, $t, $bin);
+        }
+        Marca::gravar($pdo, $accountId, $marcaCrm, $hashes);
+    }
+
     // 6. Audit
     MasterAudit::log(
         'account.create',
         'account',
         $accountId,
-        "Conta '{$nome}' (tipo: {$tipo}) criada via Painel Master",
+        "Conta '{$nome}' (tipo: {$tipo}" . ($edicao === 'crm' ? ', edição CRM' : '') . ") criada via Painel Master",
         [
             'tipo'         => $tipo,
+            'edicao'       => $edicao,
+            'marca'        => $marcaCrm ? ['nome' => $marcaCrm['nome'], 'cor' => $marcaCrm['cor'], 'dominio' => $marcaCrm['dominio'],
+                                           'logo' => isset($imagensCrm['logo']), 'icone' => isset($imagensCrm['icone'])] : null,
             'plano'        => $plano['slug'],
             'status'       => $accStatus,
             'admin_email'  => $admEmail,
@@ -370,6 +430,7 @@ try {
         'subscription_id' => $subId,
         'codigo_vinculo'  => $codigo,
         'tipo'            => $tipo,
+        'edicao'          => $edicao,
     ];
     if ($senhaGerada)    $payload['senha_gerada']    = $senhaTexto;
     if ($codigoAdvogado) $payload['codigo_advogado'] = $codigoAdvogado;

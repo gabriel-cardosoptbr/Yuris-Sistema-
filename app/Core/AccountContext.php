@@ -206,6 +206,15 @@ class AccountContext
     }
 
     /**
+     * Marca da conta da edição CRM (nome, cor, logo). Ver App\Master\Marca.
+     * Conta Yuris recebe a marca padrão do CRM e não deve usar isto.
+     */
+    public function getMarca(): array
+    {
+        return \App\Master\Marca::daConta($this->_accountRow());
+    }
+
+    /**
      * Os módulos jurídicos (Processos, Intimações, Painel Jurídico, AASP)
      * estão disponíveis para esta sessão? Super admin nunca é bloqueado,
      * mesma regra de `assertAccountActive()`.

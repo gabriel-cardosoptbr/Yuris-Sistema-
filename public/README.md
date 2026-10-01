@@ -128,8 +128,9 @@ próximos painéis da Fleetiflow. A conta Yuris nunca passa por esse `require`.
 ### Entrada e sessão
 `login.php` · `login-fleetiflow.php` · `logout.php` · `404.php`
 
-`login-fleetiflow.php` é a tela de login com a identidade do Fleetiflow, para
-a conta de mesmo nome (edição CRM/comercial, sem jurídico). Visual próprio,
+`login-fleetiflow.php` é a tela de login da edição CRM comercial. Mostra a
+marca da conta dona do domínio da requisição (nome, cor, logo, subtítulo, ver
+`App\Master\Marca`), ou a do Fleetiflow quando o domínio não é de nenhuma marca. Visual próprio,
 mas posta para o **mesmo** `AuthController::attemptLogin()` do login padrão,
 sem autenticação paralela — ver `../app/Usuarios/README.md`.
 

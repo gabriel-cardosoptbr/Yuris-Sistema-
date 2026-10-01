@@ -64,6 +64,53 @@ final class SdrFleetiflow
     }
 
     /**
+     * Para onde vai a mensagem do agente de pré-venda DESTA conta.
+     *
+     * A edição CRM agora serve várias marcas, e o endereço do `.env` é o da
+     * Vitória, do Fleetiflow. Ele só vale para a conta sem marca própria (a
+     * Fleetiflow original). Conta com marca própria usa o endereço gravado na
+     * marca pelo Painel Master, ou nenhum: sem isso, ligar o agente numa conta
+     * nova mandaria os leads dela para o robô do Fleetiflow.
+     */
+    public static function urlDaConta(int $accountId): string
+    {
+        $m = self::marcaDaConta($accountId);
+        if ($m === null || !$m['personalizada']) return self::url();
+        return (string)($m['agente_webhook'] ?? '');
+    }
+
+    /** Token do cabeçalho: só o do `.env`, e só para o endereço do `.env`. */
+    private static function tokenDaConta(int $accountId): string
+    {
+        $m = self::marcaDaConta($accountId);
+        if ($m !== null && $m['personalizada']) return '';
+        return trim((string)EnvLoader::get('FLEETIFLOW_SDR_WEBHOOK_TOKEN', ''));
+    }
+
+    /** Nome do agente na chave do Chat: a Vitória no Fleetiflow, o da marca nas outras. */
+    public static function nomeAgenteDaConta(int $accountId): string
+    {
+        $m = self::marcaDaConta($accountId);
+        if ($m === null || !$m['personalizada']) return self::NOME_AGENTE;
+        return $m['agente']['nome'] !== 'IA' ? $m['agente']['nome'] : 'Agente de pré-venda';
+    }
+
+    /** @var array<int,?array> */
+    private static array $marcas = [];
+
+    private static function marcaDaConta(int $accountId): ?array
+    {
+        if (array_key_exists($accountId, self::$marcas)) return self::$marcas[$accountId];
+        try {
+            $conta = Account::findById($accountId);
+            $m = $conta ? \App\Master\Marca::daConta($conta) : null;
+        } catch (\Throwable $e) {
+            $m = null;
+        }
+        return self::$marcas[$accountId] = $m;
+    }
+
+    /**
      * Entrega a mensagem crua da Evolution (com key.remoteJidAlt, que traz o
      * telefone real de um @lid) para a Vitória. Roda DEPOIS do 200 à Evolution,
      * como o resto do agente. Nunca propaga exceção.
@@ -72,9 +119,10 @@ final class SdrFleetiflow
      */
     public static function encaminhar(array $task): void
     {
-        $url = self::url();
+        $conta = (int)($task['account_id'] ?? 0);
+        $url   = self::urlDaConta($conta);
         if ($url === '') {
-            error_log('[sdr_fleetiflow] FLEETIFLOW_SDR_WEBHOOK_URL vazio: mensagem não encaminhada');
+            error_log('[sdr_fleetiflow] conta ' . $conta . ' sem endereço de agente: mensagem não encaminhada');
             return;
         }
         try {
@@ -85,7 +133,7 @@ final class SdrFleetiflow
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
             $cabecalhos = ['Content-Type: application/json'];
-            $token = trim((string)EnvLoader::get('FLEETIFLOW_SDR_WEBHOOK_TOKEN', ''));
+            $token = self::tokenDaConta($conta);
             if ($token !== '') $cabecalhos[] = 'X-Fleetiflow-Token: ' . $token;
 
             $ch = curl_init($url);

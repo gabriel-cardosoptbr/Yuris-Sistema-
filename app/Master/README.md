@@ -7,11 +7,37 @@ super admin da Inovaize para administrar as contas.
 Telas: Painel Master (`public/master.php`, `public/api/master/`) e
 Gestão › Escritórios.
 
+## Edição CRM: uma conta por marca
+
+A edição CRM comercial (a da Fleetiflow) não é outro sistema: é a mesma conta
+do Yuris com `configuracoes.produto = 'fleetiflow'`, que esconde e bloqueia o
+jurídico. Para atender outra empresa no mesmo padrão (Inovaize, Autodoc...) se
+cria **uma conta**, não um projeto novo:
+
+1. Painel Master, botão **+ Conta CRM** (ou "+ Matriz" e Edição = CRM).
+2. Preencher a marca: nome, cor, logo, ícone, e opcionalmente domínio e agente.
+3. O `create_account.php` faz o mesmo que `scripts/create_fleetiflow_account.php`
+   (funil comercial do `SdrFleetiflow::montarFunil`, sem o setor "Jurídico"), e
+   grava a marca. A marca se edita depois pelo detalhe da conta, "Editar marca".
+
+Trocar a edição de uma conta que já existe **não** é feito pelo Master: esconder
+ou mostrar o jurídico de uma conta com dado dentro é decisão à parte.
+
+**O agente de IA é por conta.** A Vitória (n8n do Fleetiflow, endereço no
+`.env`) só atende a conta sem marca própria. Conta com marca usa o endereço
+gravado na marca, ou fica sem agente. Sem essa separação, ligar o agente numa
+conta nova mandaria os leads dela para o robô do Fleetiflow.
+
+**Domínio próprio** precisa de duas coisas: o domínio na marca (feito no
+Master, faz a tela de login sair com a marca certa) e o DNS + certificado +
+bloco do nginx no servidor, que continuam sendo configuração de infraestrutura.
+
 ## Arquivos
 
 | Classe | O que faz |
 |---|---|
 | `Account.php` | a conta, ou tenant. Toda tabela de dado de cliente tem `account_id` apontando para cá. Guarda também o tipo (matriz ou filial) e o código de vínculo. O **produto** da conta (`getProduto()`: `'yuris'` padrão ou `'fleetiflow'`) e a disponibilidade do jurídico (`moduloJuridicoDisponivel()`) vivem em `configuracoes.produto` (JSON já existente na tabela, zero migration) — não confundir com plano/billing, que é `Billing/PlanFeature` |
+| `Marca.php` | a **marca** de uma conta da edição CRM comercial: nome, subtítulo, cor (e a paleta derivada dela), logo, ícone, domínio próprio e o agente de IA de pré-venda. Mora em `configuracoes.marca` (JSON) e as imagens em `account_marca_arquivos` (migration 133), servidas por `/api/marca_arquivo.php?h=<sha1>`. Conta CRM **sem** marca gravada é a Fleetiflow original e recebe exatamente os valores que estavam escritos no código (`padraoFleetiflow()`). Ver a seção "Edição CRM: uma conta por marca" abaixo |
 | `AccountBootstrapSeeder.php` | popula a primeira casca de uma conta nova: colunas de funil, quadro de tarefas, plano de contas. Sem isso o cliente entra num sistema vazio |
 | `AccountNotification.php` | avisos que o Painel Master manda para as contas |
 | `ResourceShare.php` | compartilhamento seletivo de card, processo ou contato entre contas vinculadas. O modelo é o "Share" do Notion / ACL do Drive: acesso é concedido item a item, nunca herdado |

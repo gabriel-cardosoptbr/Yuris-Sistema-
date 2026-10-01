@@ -8,7 +8,7 @@ ser testado nos dois.
 
 | Pasta / arquivo | O que é |
 |---|---|
-| `migrations/` | numeradas a partir de `001`; a mais recente é `run_132.php` (`whatsapp_identidades.perfil_comercial_em`, que registra a consulta do perfil comercial para não repeti-la a cada abertura do Chat); antes dela, `run_131.php` (`task_entregas`, a base do OTIF das tarefas, com o retroativo reconstruído do `task_history`). É o histórico de como o schema chegou ao que é hoje |
+| `migrations/` | numeradas a partir de `001`; a mais recente é `run_133.php` (`account_marca_arquivos`, o logo e o ícone da marca de cada conta da edição CRM); antes dela, `run_132.php` (`whatsapp_identidades.perfil_comercial_em`, que registra a consulta do perfil comercial para não repeti-la a cada abertura do Chat); antes dela, `run_131.php` (`task_entregas`, a base do OTIF das tarefas, com o retroativo reconstruído do `task_history`). É o histórico de como o schema chegou ao que é hoje |
 | `seeds/` | dados iniciais: `seed_demo.sql`, `seed_processos_mensais.sql`, e os catálogos do agente de IA (`ai_intake_catalog.php`, `ai_area_questions.php`, `ai_prompt_v2.php`, `ai_prompt_v3.php`) |
 | `schema.sql` | retrato do schema completo |
 | `db_schema_local.tsv` | dump das colunas do banco local, útil para conferir divergência |

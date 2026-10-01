@@ -17,6 +17,7 @@ executa de propósito, com `php scripts/<arquivo>.php`.
 | `tests/plan_gate_e2e_test.php` | enforcement de plano ponta a ponta | sim |
 | `tests/dominios_test.php` | **escrita real** em Clientes, Prospecção, Processos, Tarefas, Finanças e LGPD, + isolamento entre contas | sim |
 | `tests/perfil_comercial_test.php` | **nome de conta comercial do WhatsApp**: os casos reais dão o nome certo e os duvidosos dão null; o peso fica abaixo do pushName; e `resolver()` grava, não consulta a Evolution duas vezes e não atropela nome real (Evolution simulada, transação desfeita no fim) | sim |
+| `tests/marca_test.php` | **a marca das contas da edição CRM**: a Fleetiflow original continua idêntica (paleta tom a tom, arquivos, Vitória), as validações recusam cor, domínio, endereço de agente e imagem inválidos (inclusive SVG e domínio do Yuris), a gravação preserva o `produto`, o domínio leva à conta certa, e conta de outra marca **não** cai na Vitória (transação desfeita no fim) | sim |
 | `tests/wa_midia_test.php` | **o arquivo de mídia do WhatsApp**: miniatura não é servida como se fosse o arquivo, PDF/Office/MP4 passam a ser guardados, mídia grande demais não derruba a mensagem, mensagem temporária e de visualização única são lidas, a segunda tentativa de download grava o arquivo e nunca grava lixo (Evolution simulada), e a ficha do cliente acha a conversa pelo número dele sem atravessar para outra conta (transação desfeita no fim) | sim |
 | `tests/otif_test.php` | **OTIF das tarefas**: regra de uma entrega, conversão de fuso (prazo local x relógio UTC), denominador por compromisso, série mensal, período da URL, e a foto gravada na conclusão (integração dentro de transação desfeita no fim) | sim |
 | `tests/djen_filtros_test.php` | **a OAB manda na busca do DJEN**: com OAB o nome não vai junto, e o nome de exibição nunca vira filtro | não |
@@ -130,7 +131,7 @@ significa nada.
 | Script | O que faz |
 |---|---|
 | `seed_admin.php` | cria o usuário admin inicial |
-| `create_fleetiflow_account.php` | cria a conta Fleetiflow (edição CRM/comercial): mesma sequência do Painel Master (`accounts` + `users` + `subscriptions` + `AccountBootstrapSeeder`), já com `configuracoes.produto=fleetiflow`. Idempotente por rejeição: aborta se já existir conta ou login com o mesmo nome, não duplica |
+| `create_fleetiflow_account.php` | **hoje se usa o Painel Master** (botão "+ Conta CRM"), que faz o mesmo e ainda grava a marca. O script cria a conta Fleetiflow (edição CRM/comercial): mesma sequência do Painel Master (`accounts` + `users` + `subscriptions` + `AccountBootstrapSeeder`), já com `configuracoes.produto=fleetiflow`. Idempotente por rejeição: aborta se já existir conta ou login com o mesmo nome, não duplica |
 | `check_user.php` | inspeciona um usuário |
 | `test_multitenancy_e2e.php` | testa o isolamento entre contas ponta a ponta |
 

@@ -182,7 +182,7 @@ function dataBr(?string $v, bool $hora = true): string
     html[data-theme="light"]{
       --o-fundo:#F6F7F9; --o-borda:rgba(17,29,45,.08); --o-sutil:rgba(17,29,45,.05);
       --o-texto:#575757; --o-forte:#3D3D3D; --o-fraco:#676767; --o-apagado:#767676;
-      --o-acento:#015DFC; --o-acento-suave:#D6E4FF; --o-trilho:#F1F1F2;
+      --o-acento:var(--ff-marca, #015DFC); --o-acento-suave:var(--ff-marca-suave, #D6E4FF); --o-trilho:#F1F1F2;
       --o-bom:#017801; --o-bom-bg:#DCFFDC; --o-atencao:#8F6000; --o-atencao-bg:#FFF6E6;
       --o-ruim:#B00000; --o-ruim-bg:#FFCCCC; --o-input:#F6F7F9;
       --o-fonte:'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif;

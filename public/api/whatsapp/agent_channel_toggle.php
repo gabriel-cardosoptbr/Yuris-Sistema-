@@ -60,8 +60,10 @@ $resolveChannel = function (int $instId, string $perm) use ($pdo, $accountId): a
 // Agente de IA (essa é da triagem jurídica). A chave aparece pronta para ligar e, ao
 // ligar, a configuração mínima é criada. Ver App\WhatsAppAgente\SdrFleetiflow.
 $ehFleetiflow = \App\WhatsAppAgente\SdrFleetiflow::contaUsa($accountId);
+// Nome do agente desta conta: a Vitória no Fleetiflow, o da marca nas outras.
+$nomeAgenteCrm = $ehFleetiflow ? \App\WhatsAppAgente\SdrFleetiflow::nomeAgenteDaConta($accountId) : null;
 
-$agentState = function (array $inst) use ($pdo, $ehFleetiflow): array {
+$agentState = function (array $inst) use ($pdo, $ehFleetiflow, $nomeAgenteCrm): array {
     $st = $pdo->prepare("SELECT id, enabled, name FROM agent_configs WHERE whatsapp_instance_id = ? LIMIT 1");
     $st->execute([(int)$inst['id']]);
     $cfg = $st->fetch(\PDO::FETCH_ASSOC);
@@ -70,7 +72,7 @@ $agentState = function (array $inst) use ($pdo, $ehFleetiflow): array {
         'instance_id'    => (int)$inst['id'],
         'has_agent'      => ($cfg || $ehFleetiflow) ? true : false,
         'enabled'        => $cfg ? (bool)$cfg['enabled'] : false,
-        'agent_name'     => $cfg['name'] ?? ($ehFleetiflow ? \App\WhatsAppAgente\SdrFleetiflow::NOME_AGENTE : null),
+        'agent_name'     => $cfg['name'] ?? $nomeAgenteCrm,
         'channel_status' => $inst['status'] ?: 'close',
         'connected'      => ($inst['status'] === 'open'),
     ];
@@ -101,9 +103,9 @@ try {
         $chk->execute([(int)$inst['id']]);
         $temConfig = (bool)$chk->fetchColumn();
 
-        if ($ehFleetiflow && $enabled === 1 && \App\WhatsAppAgente\SdrFleetiflow::url() === '') {
+        if ($ehFleetiflow && $enabled === 1 && \App\WhatsAppAgente\SdrFleetiflow::urlDaConta($accountId) === '') {
             http_response_code(409);
-            echo json_encode(['error' => 'A Vitória ainda não está conectada neste servidor (FLEETIFLOW_SDR_WEBHOOK_URL).']);
+            echo json_encode(['error' => 'O agente de pré-venda desta conta ainda não tem endereço configurado. Ele é definido no Painel Master, na marca da conta.']);
             exit;
         }
         if ($ehFleetiflow && !$temConfig) {
@@ -111,7 +113,7 @@ try {
                            VALUES (:acc, :uid, :iid, :nome, 0, 'inactive', :uid2)")
                 ->execute([
                     'acc' => $accountId, 'uid' => (int)$uid, 'iid' => (int)$inst['id'],
-                    'nome' => \App\WhatsAppAgente\SdrFleetiflow::NOME_AGENTE, 'uid2' => (int)$uid,
+                    'nome' => $nomeAgenteCrm, 'uid2' => (int)$uid,
                 ]);
             $temConfig = true;
         }

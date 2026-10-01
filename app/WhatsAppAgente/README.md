@@ -43,6 +43,11 @@ O detalhe completo, com diagramas, está na skill de desenvolvimento em
 |---|---|
 | `MidiaCache.php` | as regras do que pode morar em `whatsapp_messages.media_base64`. Diz se o que está guardado é o **arquivo** ou só a **miniatura** (`ehMiniatura`), quais conteúdos podem ser guardados (`conteudoReconhecido`, `podeGuardar`), qual é o teto real do banco (`limiteDoBanco`), abre os envelopes de mensagem temporária e de visualização única (`desembrulhar`) e faz a segunda tentativa de download depois do 200 do webhook (`completar`). Tudo puro, menos `limiteDoBanco` e `completar` |
 
+### O agente de pré-venda da edição CRM
+| Classe | O que faz |
+|---|---|
+| `SdrFleetiflow.php` | o funil comercial automático (card em "Novos leads", etapas, pendentes) vale para **toda** conta da edição CRM. O encaminhamento ao agente de IA não: `urlDaConta()` devolve o endereço do `.env` (a Vitória) só para a conta sem marca própria, e o endereço gravado na marca para as outras, ou vazio (agente desligado, o botão de ligar recusa com aviso). `nomeAgenteDaConta()` dá o nome que aparece no Chat |
+
 ### O webhook de entrada
 | Classe | O que faz |
 |---|---|

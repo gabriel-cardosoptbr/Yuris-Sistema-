@@ -2413,13 +2413,18 @@ const ChatApp = (() => {
   // Conversas de lead em que a automação parou (lead qualificado, follow-up
   // interrompido, robô/IA da loja, conversa assumida) e o lead está esperando.
   // Vem de /api/whatsapp/pendentes.php; a janela abre sozinha uma vez por sessão.
+  // Agente de pré-venda da conta (chat.php): a Vitória no Fleetiflow, o da marca
+  // nas outras contas da edição CRM. AG_COM = com artigo, para o meio da frase.
+  const AG     = window.CHAT_AGENTE || { nome: 'Vitória', artigo: 'a' };
+  const AG_VIT = AG.nome === 'Vitória';
+  const AG_COM = (AG.artigo ? AG.artigo + ' ' : '') + AG.nome;
   const _pend = { itens: [], ultimo: 0, carregando: false };
   const PEND_COR = {
     qualificado: ['#FEF3C7', '#92400E', 'Qualificado'],
     voce:        ['#DCFCE7', '#166534', 'Com o time'],
-    sem_ia:      ['#F1F5F9', '#334155', 'Vitória desligada'],
+    sem_ia:      ['#F1F5F9', '#334155', AG_VIT ? 'Vitória desligada' : 'Agente desligado'],
     followup:    ['#DBEAFE', '#1E40AF', 'Follow-up interrompido'],
-    vitoria:     ['#FCE7F3', '#9D174D', 'Vitória parou'],
+    vitoria:     ['#FCE7F3', '#9D174D', AG_VIT ? 'Vitória parou' : 'Agente parou'],
   };
 
   async function carregarPendentes(forcar) {
@@ -3554,13 +3559,13 @@ const ChatApp = (() => {
       const etapa  = chat ? String(chat.card_etapa_nome || '') : '';
       let estilo;
       if (paused) {
-        estilo = ['Com você', '#16A34A', '#FFFFFF', '#16A34A', 'Você assumiu esta conversa: a Vitória e o follow-up não escrevem aqui. Clique para devolver para a Vitória.'];
+        estilo = ['Com você', '#16A34A', '#FFFFFF', '#16A34A', `Você assumiu esta conversa: ${AG_COM} e o follow-up não escrevem aqui. Clique para devolver para ${AG_COM}.`];
       } else if (!ligado) {
-        estilo = ['Assumir', 'transparent', '#64748B', 'rgba(100,116,139,.35)', 'A Vitória está desligada no canal: ninguém responde sozinho. Clique para marcar que você assumiu.'];
+        estilo = ['Assumir', 'transparent', '#64748B', 'rgba(100,116,139,.35)', `${AG_VIT ? 'A Vitória está desligada' : 'O agente está desligado'} no canal: ninguém responde sozinho. Clique para marcar que você assumiu.`];
       } else if (/follow-up/i.test(etapa)) {
         estilo = ['Com o follow-up', '#DBEAFE', '#1D4ED8', '#93C5FD', 'Lead ainda sem resposta: a cadência de follow-up está com ele. Clique para assumir.'];
       } else {
-        estilo = ['Com a Vitória', '#015DFC', '#FFFFFF', '#015DFC', 'A Vitória (IA) está atendendo esta conversa. Clique para assumir.'];
+        estilo = ['Com ' + AG_COM, (window.MARCA && window.MARCA.cor) || '#015DFC', (window.MARCA && window.MARCA.paleta && window.MARCA.paleta.texto) || '#FFFFFF', (window.MARCA && window.MARCA.cor) || '#015DFC', `${AG_VIT ? 'A Vitória (IA)' : 'O agente (IA)'} está atendendo esta conversa. Clique para assumir.`];
       }
       lbl.textContent = estilo[0];
       // 'important': o tema claro da Fleetiflow força fundo branco nos botões do cabeçalho.
@@ -3598,7 +3603,7 @@ const ChatApp = (() => {
         if (chatObj) chatObj.agent_paused = next;
         renderTakeoverBtn(next === 1);
         toast(window.CHAT_ETAPA_FUNIL
-          ? (next ? 'Você assumiu: a Vitória não responde mais nesta conversa' : 'Conversa devolvida para a Vitória')
+          ? (next ? `Você assumiu: ${AG_COM} não responde mais nesta conversa` : `Conversa devolvida para ${AG_COM}`)
           : (next ? 'Você assumiu a conversa, o agente foi pausado aqui' : 'Agente reativado nesta conversa'), 'success');
       }
     } catch (e) {

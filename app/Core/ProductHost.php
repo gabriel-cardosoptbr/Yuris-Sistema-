@@ -40,7 +40,38 @@ final class ProductHost
         foreach (self::dominiosFleetiflow() as $dominio) {
             if ($host === $dominio) return self::$produtoAtual = self::FLEETIFLOW;
         }
+        // Domínio cadastrado na marca de uma conta CRM pelo Painel Master
+        // (crm.inovaize.com.br etc.): também é porta da edição CRM, sem mexer
+        // no .env. Domínio do Yuris nem chega a consultar (Marca recusa).
+        if (self::contaDoHost() !== null) return self::$produtoAtual = self::FLEETIFLOW;
         return self::$produtoAtual = self::YURIS;
+    }
+
+    /** @var array|null|false false = ainda não procurado */
+    private static array|null|false $contaDoHost = false;
+
+    /** A conta CRM cujo domínio de marca é o Host desta requisição, ou null. */
+    public static function contaDoHost(): ?array
+    {
+        if (self::$contaDoHost !== false) return self::$contaDoHost;
+        $host = strtolower(trim((string) ($_SERVER['HTTP_HOST'] ?? '')));
+        $host = (string) preg_replace('/:\d+$/', '', $host);
+        try {
+            return self::$contaDoHost = \App\Master\Marca::contaPorDominio(Database::getConnection(), $host);
+        } catch (\Throwable $e) {
+            error_log('[product_host] ' . $e->getMessage());
+            return self::$contaDoHost = null;
+        }
+    }
+
+    /**
+     * A marca que a tela de login deste domínio mostra: a da conta dona do
+     * domínio, ou a do Fleetiflow (domínios do .env e qualquer outro).
+     */
+    public static function marcaDoHost(): array
+    {
+        $conta = self::contaDoHost();
+        return $conta ? \App\Master\Marca::daConta($conta) : \App\Master\Marca::padraoFleetiflow();
     }
 
     public static function isFleetiflow(): bool

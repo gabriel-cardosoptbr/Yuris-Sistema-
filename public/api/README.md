@@ -47,6 +47,12 @@ o conteúdo da coluna sem passar por `MidiaCache::ehMiniatura`. O
 para mídia nova que não baixou nos 3s. Detalhe em
 [`../../app/WhatsAppAgente/README.md`](../../app/WhatsAppAgente/README.md).
 
+`marca_arquivo.php?h=<sha1>` entrega o logo ou o ícone da marca de uma conta.
+É **sem sessão** de propósito (o logo aparece na tela de login); o endereço é o
+hash do conteúdo, não o id da conta, e só sai PNG/JPEG/WebP com `nosniff` e CSP
+fechada. `master/marca.php` lê e grava a marca (só super admin, CSRF,
+auditoria); `master/create_account.php` aceita `edicao: 'crm'` com a marca.
+
 `otif.php` devolve o OTIF das tarefas (JSON, ou planilha com `formato=csv`),
 com a mesma regra de visibilidade da tela `desempenho.php`: dono/admin vê a
 equipe, os demais só o próprio, e `colaborador` é ignorado para quem não é

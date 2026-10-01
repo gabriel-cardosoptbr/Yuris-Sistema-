@@ -338,6 +338,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
       <button class="mst-action-btn" onclick="openModalAccount('matriz')">+ Matriz</button>
       <button class="mst-action-btn mst-action-btn-secondary" onclick="openModalFilial()">+ Filial</button>
       <button class="mst-action-btn mst-action-btn-secondary" onclick="openModalAccount('advogado')">+ Advogado</button>
+      <button class="mst-action-btn mst-action-btn-secondary" onclick="openModalAccount('matriz','crm')" title="Conta da edição CRM comercial (padrão Fleetiflow), com a marca da empresa">+ Conta CRM</button>
     </div>
   </div>
 
@@ -1354,6 +1355,61 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
           </div>
         </div>
 
+        <!-- Edição: a mesma conta, com ou sem o jurídico. CRM = padrão Fleetiflow,
+             com a marca da empresa (App\Master\Marca). Só para matriz. -->
+        <div id="edicaoRow">
+          <div class="mst-form-section">Edição do sistema</div>
+          <div class="mst-form-row">
+            <div>
+              <label class="mst-form-label">Edição</label>
+              <select name="edicao" id="selEdicao" class="mst-form-select" onchange="toggleEdicaoCrm()">
+                <option value="yuris">Jurídico (Yuris)</option>
+                <option value="crm">CRM comercial (padrão Fleetiflow)</option>
+              </select>
+              <div class="mst-form-help">CRM comercial: sem módulo jurídico, funil de vendas, e o nome, a cor e o logo da empresa.</div>
+            </div>
+          </div>
+        </div>
+        <div id="marcaFields" style="display:none">
+          <div class="mst-form-section">Marca</div>
+          <div class="mst-form-row">
+            <div><label class="mst-form-label">Nome da marca *</label><input name="marca_nome" class="mst-form-input" maxlength="60" placeholder="se vazio, usa o nome da conta"></div>
+            <div><label class="mst-form-label">Subtítulo</label><input name="marca_subtitulo" class="mst-form-input" maxlength="60" placeholder="Central Comercial"></div>
+            <div>
+              <label class="mst-form-label">Cor principal</label>
+              <div style="display:flex;gap:8px;align-items:center">
+                <input type="color" name="marca_cor_picker" value="#015DFC" style="width:44px;height:36px;padding:0;border:0;background:none;cursor:pointer" oninput="this.form.marca_cor.value=this.value.toUpperCase()">
+                <input name="marca_cor" class="mst-form-input" value="#015DFC" maxlength="7" oninput="if(/^#[0-9a-fA-F]{6}$/.test(this.value))this.form.marca_cor_picker.value=this.value">
+              </div>
+            </div>
+          </div>
+          <div class="mst-form-row">
+            <div>
+              <label class="mst-form-label">Logo (horizontal, tela de login)</label>
+              <input type="file" name="marca_logo" accept="image/png,image/jpeg,image/webp" class="mst-form-input">
+              <div class="mst-form-help">PNG, JPG ou WebP, até 1,5 MB. Fundo transparente fica melhor.</div>
+            </div>
+            <div>
+              <label class="mst-form-label">Ícone (menu e aba do navegador)</label>
+              <input type="file" name="marca_icone" accept="image/png,image/jpeg,image/webp" class="mst-form-input">
+              <div class="mst-form-help">Quadrado. Sem ícone, aparece a inicial na cor da marca.</div>
+            </div>
+          </div>
+          <div class="mst-form-row">
+            <div>
+              <label class="mst-form-label">Domínio próprio (opcional)</label>
+              <input name="marca_dominio" class="mst-form-input" placeholder="crm.empresa.com.br">
+              <div class="mst-form-help">Login com esta marca nesse endereço. O DNS e o certificado do domínio são configurados no servidor.</div>
+            </div>
+            <div><label class="mst-form-label">Nome do agente de IA (opcional)</label><input name="marca_agente_nome" class="mst-form-input" maxlength="40" placeholder="ex: Ana"></div>
+            <div>
+              <label class="mst-form-label">Endereço do agente (opcional)</label>
+              <input name="marca_agente_webhook" class="mst-form-input" placeholder="https://n8n.../webhook/...">
+              <div class="mst-form-help">Sem endereço, o agente de IA fica desligado nesta conta.</div>
+            </div>
+          </div>
+        </div>
+
         <div class="mst-form-section" id="adminSection">Administrador da Conta</div>
         <div class="mst-form-row">
           <div><label class="mst-form-label" id="admNomeLabel">Nome *</label><input name="adm_nome" class="mst-form-input" required></div>
@@ -1437,6 +1493,64 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
       <div class="mst-modal-foot">
         <button type="button" class="btn-mst" onclick="closeModal('modalAccount')">Cancelar</button>
         <button type="submit" class="btn-mst btn-mst-primary">Criar Conta</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Marca da conta (edição CRM) -->
+<div class="mst-modal-backdrop" id="modalMarca" onclick="if(event.target===this)closeModal('modalMarca')">
+  <div class="mst-modal lg">
+    <div class="mst-modal-header">
+      <h3 class="mst-modal-title">Marca da conta</h3>
+      <button class="mst-modal-close" onclick="closeModal('modalMarca')">×</button>
+    </div>
+    <form id="formMarca" onsubmit="submitMarca(event)">
+      <input type="hidden" name="account_id">
+      <div class="mst-modal-body">
+        <div id="marcaAviso" style="display:none;background:rgba(96,165,250,.08);border-left:3px solid #60a5fa;padding:10px 12px;border-radius:6px;font-size:.82rem;margin-bottom:12px">
+          Esta conta usa a marca padrão (Fleetiflow, com a agente Vitória). Ao salvar, ela passa a usar a marca deste formulário, e o agente de IA só fica ligado se tiver endereço abaixo.
+        </div>
+        <div class="mst-form-row">
+          <div><label class="mst-form-label">Nome da marca *</label><input name="nome" class="mst-form-input" maxlength="60" required></div>
+          <div><label class="mst-form-label">Subtítulo</label><input name="subtitulo" class="mst-form-input" maxlength="60" placeholder="Central Comercial"></div>
+          <div>
+            <label class="mst-form-label">Cor principal</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="color" name="cor_picker" value="#015DFC" style="width:44px;height:36px;padding:0;border:0;background:none;cursor:pointer" oninput="this.form.cor.value=this.value.toUpperCase()">
+              <input name="cor" class="mst-form-input" maxlength="7" oninput="if(/^#[0-9a-fA-F]{6}$/.test(this.value))this.form.cor_picker.value=this.value">
+            </div>
+          </div>
+        </div>
+        <div class="mst-form-row">
+          <div>
+            <label class="mst-form-label">Logo (horizontal) · atual: <span id="marcaLogoAtual"></span></label>
+            <input type="file" name="logo" accept="image/png,image/jpeg,image/webp" class="mst-form-input">
+            <label style="display:flex;gap:6px;align-items:center;font-size:.78rem;margin-top:4px"><input type="checkbox" name="remover_logo"> remover o logo atual</label>
+          </div>
+          <div>
+            <label class="mst-form-label">Ícone (quadrado) · atual: <span id="marcaIconeAtual"></span></label>
+            <input type="file" name="icone" accept="image/png,image/jpeg,image/webp" class="mst-form-input">
+            <label style="display:flex;gap:6px;align-items:center;font-size:.78rem;margin-top:4px"><input type="checkbox" name="remover_icone"> remover o ícone atual</label>
+          </div>
+        </div>
+        <div class="mst-form-row">
+          <div>
+            <label class="mst-form-label">Domínio próprio</label>
+            <input name="dominio" class="mst-form-input" placeholder="crm.empresa.com.br">
+            <div class="mst-form-help">O DNS e o certificado do domínio são configurados no servidor.</div>
+          </div>
+          <div><label class="mst-form-label">Nome do agente de IA</label><input name="agente_nome" class="mst-form-input" maxlength="40" placeholder="ex: Ana"></div>
+          <div>
+            <label class="mst-form-label">Endereço do agente</label>
+            <input name="agente_webhook" class="mst-form-input" placeholder="https://n8n.../webhook/...">
+            <div class="mst-form-help">Sem endereço, o agente de IA fica desligado nesta conta.</div>
+          </div>
+        </div>
+      </div>
+      <div class="mst-modal-foot">
+        <button type="button" class="btn-mst" onclick="closeModal('modalMarca')">Cancelar</button>
+        <button type="submit" class="btn-mst btn-mst-primary">Salvar marca</button>
       </div>
     </form>
   </div>
@@ -2761,6 +2875,75 @@ const _EXP_CAT_LBL = {
   juridico:'Jurídico', outros:'Outros'
 };
 
+// ── Marca (edição CRM comercial) ─────────────────────────────────────────
+function renderMarcaDetalhe(m) {
+  if (m.edicao !== 'crm') {
+    return `<div class="mst-detail-grid" style="margin-bottom:10px"><div class="mst-detail-item"><div class="label">Edição</div><div class="value">Jurídico (Yuris)</div></div></div>`;
+  }
+  const k = m.marca || {};
+  const img = (u, h) => u ? `<img src="${esc(u)}" alt="" style="height:${h}px;max-width:180px;object-fit:contain;background:#fff;border-radius:6px;padding:3px">` : '<span style="opacity:.6">não enviado</span>';
+  return `<div class="mst-form-section" style="margin-top:0">Edição CRM comercial · Marca</div>
+  <div class="mst-detail-grid" style="margin-bottom:10px">
+    <div class="mst-detail-item"><div class="label">Nome</div><div class="value">${esc(k.nome || '—')}${k.personalizada ? '' : ' <small style="opacity:.7">(padrão Fleetiflow)</small>'}</div></div>
+    <div class="mst-detail-item"><div class="label">Cor</div><div class="value"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;background:${esc(k.cor || '#015DFC')}"></span> ${esc(k.cor || '')}</div></div>
+    <div class="mst-detail-item"><div class="label">Domínio</div><div class="value">${esc(k.dominio || '—')}</div></div>
+    <div class="mst-detail-item"><div class="label">Logo</div><div class="value">${img(k.logo_url, 28)}</div></div>
+    <div class="mst-detail-item"><div class="label">Ícone</div><div class="value">${img(k.icone_url, 28)}</div></div>
+    <div class="mst-detail-item"><div class="label">Agente de IA</div><div class="value">${esc((k.agente && k.agente.nome) || '—')}${k.personalizada ? (k.agente_webhook ? ' · conectado' : ' · sem endereço (desligado)') : ' · endereço do servidor'}</div></div>
+  </div>`;
+}
+
+async function openMarcaModal(accountId) {
+  const r = await fj(`${API}/marca.php?account_id=${accountId}`);
+  if (!r.ok) return notifyErr(r.error || 'Falha ao carregar a marca');
+  const k = r.data.marca || {};
+  const g = r.data.gravada || {};
+  const f = document.getElementById('formMarca');
+  f.reset();
+  f.account_id.value       = accountId;
+  f.nome.value             = k.nome || '';
+  f.subtitulo.value        = k.subtitulo || '';
+  f.cor.value              = k.cor || '#015DFC';
+  f.cor_picker.value       = k.cor || '#015DFC';
+  f.dominio.value          = k.dominio || '';
+  f.agente_nome.value      = g.agente_nome || '';
+  f.agente_webhook.value   = g.agente_webhook || '';
+  document.getElementById('marcaLogoAtual').innerHTML  = k.personalizada && k.logo_url  ? `<img src="${esc(k.logo_url)}"  alt="" style="height:30px;max-width:160px;object-fit:contain;background:#fff;border-radius:6px;padding:3px">` : '<span style="opacity:.6">nenhum</span>';
+  document.getElementById('marcaIconeAtual').innerHTML = k.personalizada && k.icone_url ? `<img src="${esc(k.icone_url)}" alt="" style="height:30px;width:30px;object-fit:contain;background:#fff;border-radius:6px;padding:3px">` : '<span style="opacity:.6">nenhum</span>';
+  document.getElementById('marcaAviso').style.display = k.personalizada ? 'none' : '';
+  // O detalhe da conta fica por cima (vem depois no HTML): fecha antes. Salvar reabre.
+  closeModal('modalDetalhe');
+  openModal('modalMarca');
+}
+
+async function submitMarca(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  const body = {
+    csrf_token: CSRF,
+    account_id: parseInt(f.account_id.value, 10),
+    marca: {
+      nome: f.nome.value.trim(), subtitulo: f.subtitulo.value.trim(), cor: f.cor.value.trim(),
+      dominio: f.dominio.value.trim(), agente_nome: f.agente_nome.value.trim(), agente_webhook: f.agente_webhook.value.trim(),
+    },
+  };
+  try {
+    const logo  = await lerArquivoComoDataUrl(f.logo);
+    const icone = await lerArquivoComoDataUrl(f.icone);
+    if (logo)  body.logo  = logo;  else if (f.remover_logo.checked)  body.logo  = 'remover';
+    if (icone) body.icone = icone; else if (f.remover_icone.checked) body.icone = 'remover';
+  } catch (e) { return notifyErr(e.message); }
+  const r = await fj(`${API}/marca.php`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRF-Token': CSRF},
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) return notifyErr(r.error || 'Falha ao salvar a marca');
+  closeModal('modalMarca');
+  notifyOk('Marca salva. Quem estiver logado na conta vê a mudança ao recarregar a página.');
+  viewAcc(body.account_id);
+}
+
 async function fj(url, opts={}) {
   const r = await fetch(url, {credentials:'same-origin', ...opts});
   let j; try { j = await r.json(); } catch(e){ j = {ok:false, error: 'JSON inválido', http: r.status}; }
@@ -3742,7 +3925,29 @@ window.addEventListener('hashchange', () => activateTab((location.hash||'').repl
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
-async function openModalAccount(tipo) {
+// Edição CRM: mostra os campos de marca. Só faz sentido para matriz.
+function toggleEdicaoCrm() {
+  const sel = document.getElementById('selEdicao');
+  const crm = sel && sel.value === 'crm' && document.getElementById('accountTipo').value === 'matriz';
+  document.getElementById('marcaFields').style.display = crm ? '' : 'none';
+  document.getElementById('accountModalTitle').textContent =
+    document.getElementById('accountTipo').value === 'advogado' ? 'Novo Advogado (Conta Própria)' : (crm ? 'Nova Conta CRM' : 'Nova Matriz');
+}
+
+// Lê um arquivo escolhido como data URL (o backend valida tipo e tamanho).
+function lerArquivoComoDataUrl(input) {
+  const f = input && input.files && input.files[0];
+  if (!f) return Promise.resolve(null);
+  if (f.size > 1500000) return Promise.reject(new Error(`"${f.name}" passa de 1,5 MB.`));
+  return new Promise((ok, falha) => {
+    const fr = new FileReader();
+    fr.onload = () => ok(fr.result);
+    fr.onerror = () => falha(new Error(`Não foi possível ler "${f.name}".`));
+    fr.readAsDataURL(f);
+  });
+}
+
+async function openModalAccount(tipo, edicao) {
   tipo = tipo || 'matriz';
   // Carrega lista de planos
   const r = await fj(`${API}/plans.php`);
@@ -3772,6 +3977,10 @@ async function openModalAccount(tipo) {
   // tipo dirige obrigatoriedade dos campos OAB no DOM
   document.querySelector('[name="adm_oab"]').required    = isAdv;
   document.querySelector('[name="adm_oab_uf"]').required = isAdv;
+  // Edição: advogado-solo é sempre jurídico.
+  document.getElementById('edicaoRow').style.display = isAdv ? 'none' : '';
+  document.getElementById('selEdicao').value = (!isAdv && edicao === 'crm') ? 'crm' : 'yuris';
+  toggleEdicaoCrm();
 
   openModal('modalAccount');
 }
@@ -3849,6 +4058,24 @@ async function submitAccount(ev) {
     body.admin.oab    = f.adm_oab.value.trim();
     body.admin.oab_uf = f.adm_oab_uf.value.trim().toUpperCase();
   }
+  // Edição CRM: marca e imagens vão junto, a conta já nasce com elas.
+  if (tipo === 'matriz' && f.edicao.value === 'crm') {
+    body.edicao = 'crm';
+    body.marca = {
+      nome:           f.marca_nome.value.trim() || body.account.nome,
+      subtitulo:      f.marca_subtitulo.value.trim(),
+      cor:            f.marca_cor.value.trim(),
+      dominio:        f.marca_dominio.value.trim(),
+      agente_nome:    f.marca_agente_nome.value.trim(),
+      agente_webhook: f.marca_agente_webhook.value.trim(),
+    };
+    try {
+      const logo  = await lerArquivoComoDataUrl(f.marca_logo);
+      const icone = await lerArquivoComoDataUrl(f.marca_icone);
+      if (logo)  body.logo  = logo;
+      if (icone) body.icone = icone;
+    } catch (e) { return notifyErr(e.message); }
+  }
   // Monitoramento (add-on opcional). Só envia se checkbox marcada E qtd > 0.
   // Backend (create_account.php) faz o INSERT em account_quota_overrides
   // dentro da mesma transação — falha aqui = rollback de tudo.
@@ -3874,7 +4101,7 @@ async function submitAccount(ev) {
   });
   if (!r.ok) return notifyErr(r.error || 'Falha ao criar conta');
   closeModal('modalAccount');
-  notifyOk(tipo === 'advogado' ? 'Advogado solo criado!' : 'Matriz criada com sucesso!');
+  notifyOk(tipo === 'advogado' ? 'Advogado solo criado!' : (body.edicao === 'crm' ? 'Conta CRM criada com sucesso!' : 'Matriz criada com sucesso!'));
   if (r.data.senha_gerada) {
     Yuris.notify(`Senha temporária gerada: ${r.data.senha_gerada}`, {type:'info', duration:12000});
   }
@@ -4081,9 +4308,17 @@ async function viewAcc(id) {
 
   document.getElementById('detalheBody').innerHTML = html;
 
+  // Edição e marca (edição CRM). Carrega à parte para não atrasar o detalhe.
+  const mr = await fj(`${API}/marca.php?account_id=${d.id}`);
+  const ehCrm = !!(mr.ok && mr.data && mr.data.edicao === 'crm');
+  if (mr.ok && mr.data) {
+    document.getElementById('detalheBody').insertAdjacentHTML('afterbegin', renderMarcaDetalhe(mr.data));
+  }
+
   // Footer actions
   let foot = '';
   foot += `<button class="btn-mst btn-mst-primary" onclick="openEditAccount(${d.id})">Editar dados</button>`;
+  if (ehCrm) foot += `<button class="btn-mst btn-mst-primary" onclick="openMarcaModal(${d.id})">Editar marca</button>`;
   if (sub && sub.id) {
     // openSubModal lê de _subsCache (populada só ao abrir a aba Assinaturas).
     // Ao editar a assinatura direto pelo detalhe da conta, a aba pode nunca

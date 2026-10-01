@@ -12,10 +12,16 @@ $isSuper       = !empty($_SESSION['is_super_admin']);
 // então o modal de vínculo não oferece processos e a aba leva o nome dela.
 // Falhou a leitura => identidade Yuris de sempre.
 $isFleetiflow  = false;
+$marcaConta    = null;
 try {
-    $isFleetiflow = \App\Core\AccountContext::fromSession()->getProduto() === 'fleetiflow';
+    $__ctxChat    = \App\Core\AccountContext::fromSession();
+    $isFleetiflow = $__ctxChat->getProduto() === 'fleetiflow';
+    if ($isFleetiflow) $marcaConta = $__ctxChat->getMarca();
 } catch (\Throwable $e) { /* mantém Yuris */ }
-$marcaChat     = $isFleetiflow ? 'Fleetiflow' : 'Yuris';
+if ($isFleetiflow && $marcaConta === null) $marcaConta = \App\Master\Marca::padraoFleetiflow();
+// Nome na aba e agente de pré-venda: os da marca da conta (App\Master\Marca).
+$marcaChat     = $isFleetiflow ? $marcaConta['nome'] : 'Yuris';
+$agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
 ?>
 <!doctype html>
 <html lang="pt-BR">
@@ -1044,7 +1050,7 @@ $marcaChat     = $isFleetiflow ? 'Fleetiflow' : 'Yuris';
       background: #FFFFFF;
       color: #0F172A;
       border: 1px solid #E2E8F0;
-      border-left: 4px solid #015DFC;
+      border-left: 4px solid var(--ff-marca, #015DFC);
       box-shadow: 0 10px 28px rgba(15,23,42,.18);
       font-size: .88rem;
       font-weight: 600;
@@ -1073,7 +1079,7 @@ $marcaChat     = $isFleetiflow ? 'Fleetiflow' : 'Yuris';
     .pend-etapa { color: #64748B; font-size: .76rem; margin-left: 6px; }
     .pend-previa { margin-top: 6px; font-size: .8rem; color: #475569; font-style: italic; }
     .pend-acoes { margin-top: 10px; display: flex; gap: 8px; }
-    .pend-abrir { background: #015DFC; color: #fff; border: 0; border-radius: 8px; padding: 7px 14px; font-weight: 700; font-size: .8rem; cursor: pointer; }
+    .pend-abrir { background: var(--ff-marca, #015DFC); color: #fff; border: 0; border-radius: 8px; padding: 7px 14px; font-weight: 700; font-size: .8rem; cursor: pointer; }
     .pend-dispensar { background: #fff; color: #475569; border: 1px solid #CBD5E1; border-radius: 8px; padding: 7px 12px; font-weight: 600; font-size: .8rem; cursor: pointer; }
     .pend-vazio { padding: 28px; text-align: center; color: #475569; font-size: .9rem; }
 <?php endif; ?>
@@ -2543,6 +2549,7 @@ $marcaChat     = $isFleetiflow ? 'Fleetiflow' : 'Yuris';
 <script>
 const CSRF          = <?= json_encode($csrf) ?>;
 window.CHAT_MARCA        = <?= json_encode($marcaChat) ?>;
+window.CHAT_AGENTE       = <?= json_encode($agenteChat, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
 window.CHAT_SEM_JURIDICO = <?= $isFleetiflow ? 'true' : 'false' ?>;
 window.CHAT_ETAPA_FUNIL  = <?= $isFleetiflow ? 'true' : 'false' ?>;
 const AUTO_OPEN_JID = <?= json_encode($auto_open_jid) ?>;
@@ -2684,7 +2691,7 @@ const API  = {
   }
 })();
 </script>
-<script src="/assets/chat.js?v=73"></script>
+<script src="/assets/chat.js?v=74"></script>
 <script>
 // Lightbox init
 (function(){

@@ -16,6 +16,12 @@ require_once __DIR__ . '/../app/bootstrap.php';
 
 use App\Usuarios\AuthController;
 
+// Marca desta porta de entrada: a da conta dona do domínio (cadastrado no
+// Painel Master), ou a do Fleetiflow. Ver App\Core\ProductHost::marcaDoHost.
+$mk  = \App\Core\ProductHost::marcaDoHost();
+$mkP = $mk['paleta'];
+$h   = static fn($v) => htmlspecialchars((string) $v, ENT_QUOTES);
+
 session_start();
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(16));
 $flash = $_SESSION['flash_error'] ?? null;
@@ -30,9 +36,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Entrar — Fleetiflow</title>
+  <title>Entrar — <?= $h($mk['nome']) ?></title>
   <meta name="robots" content="noindex,follow">
+  <?php if ($mk['personalizada']): ?>
+  <link rel="icon" href="<?= $h($mk['favicon_url']) ?>">
+  <?php else: ?>
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/fleetiflow-favicon-32.png?v=1"><link rel="icon" type="image/png" sizes="192x192" href="/assets/fleetiflow-favicon-192.png?v=1"><link rel="apple-touch-icon" href="/assets/fleetiflow-apple-touch-icon.png?v=1">
+  <?php endif; ?>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script>/* ff_terms_preboot — mesma lógica do login padrão: sem flash de reaceite */
     (function(){try{
@@ -46,7 +56,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </script>
   <style>
     :root{
-      --ff-blue:#015DFC; --ff-blue-deep:#0B2A6B; --ff-cyan:#6FD6E8;
+      --ff-blue:<?= $h($mkP['marca']) ?>; --ff-blue-deep:<?= $h($mkP['escura']) ?>; --ff-cyan:<?= $mk['personalizada'] ? $h($mkP['clara']) : '#6FD6E8' ?>;
+      --ff-blue-forte:<?= $mk['personalizada'] ? $h($mkP['forte']) : '#0043C4' ?>; --ff-rgb:<?= $h($mkP['rgb']) ?>; --ff-texto:<?= $h($mkP['texto']) ?>;
       --ff-ink:#0C1B33; --ff-ink-soft:#45526B;
       --ff-glass: rgba(255,255,255,0.55); --ff-glass-border: rgba(255,255,255,0.65);
     }
@@ -65,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .mkt-mesh{
       position:absolute; inset:0; z-index:0; pointer-events:none; opacity:.55;
       background-image:
-        repeating-linear-gradient(115deg, rgba(1,93,252,0.09) 0px, rgba(1,93,252,0.09) 1px, transparent 1px, transparent 96px),
+        repeating-linear-gradient(115deg, rgba(var(--ff-rgb),0.09) 0px, rgba(var(--ff-rgb),0.09) 1px, transparent 1px, transparent 96px),
         repeating-linear-gradient(25deg, rgba(111,214,232,0.10) 0px, rgba(111,214,232,0.10) 1px, transparent 1px, transparent 96px);
       background-size:600px 600px, 600px 600px;
       animation: mktMeshPan 70s linear infinite;
@@ -109,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       color:var(--ff-ink); font-family:inherit; font-size:15px; outline:none;
       transition:border-color .2s ease, box-shadow .2s ease;
     }
-    .mkt-input:focus{ border-color:var(--ff-blue); box-shadow:0 0 0 3px rgba(1,93,252,0.15); }
+    .mkt-input:focus{ border-color:var(--ff-blue); box-shadow:0 0 0 3px rgba(var(--ff-rgb),0.15); }
     .mkt-input.with-toggle{padding-right:40px}
     .password-toggle{
       position:absolute; right:6px; top:50%; transform:translateY(-50%);
@@ -123,12 +134,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .btn-primary{
       display:flex; align-items:center; justify-content:center; gap:8px;
       width:100%; height:48px; margin-top:22px; border:none; border-radius:999px; cursor:pointer;
-      background:linear-gradient(135deg, var(--ff-blue) 0%, #0043C4 100%);
+      background:linear-gradient(135deg, var(--ff-blue) 0%, var(--ff-blue-forte) 100%);
       color:#fff; font-weight:700; font-size:15px; font-family:inherit;
-      box-shadow:0 12px 28px rgba(1,93,252,0.35);
+      box-shadow:0 12px 28px rgba(var(--ff-rgb),0.35);
       transition:transform .25s ease, box-shadow .25s ease, filter .25s ease;
     }
-    .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 18px 36px rgba(1,93,252,0.45); filter:brightness(1.06); }
+    .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 18px 36px rgba(var(--ff-rgb),0.45); filter:brightness(1.06); }
     .btn-primary:active{ transform:translateY(1px) scale(.99); }
     .btn-primary[disabled]{ opacity:.7; cursor:default; transform:none !important; }
 
@@ -157,13 +168,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="mkt-blob" style="width:600px;height:600px;top:60vh;left:-200px;background:radial-gradient(circle, #B9D4FF 0%, transparent 70%);animation:mktDrift3 24s ease-in-out infinite" aria-hidden="true"></div>
 
   <div class="ff-wrap">
-    <a href="/" class="ff-logo ff-entra" title="Fleetiflow">
-      <img src="/sistema_vendas/Imagens/fleetiflow-horizontal.png" alt="Fleetiflow">
+    <a href="/" class="ff-logo ff-entra" title="<?= $h($mk['nome']) ?>">
+      <?php if (!empty($mk['logo_url'])): ?>
+      <img src="<?= $h($mk['logo_url']) ?>" alt="<?= $h($mk['nome']) ?>">
+      <?php else: ?>
+      <!-- Marca sem logo horizontal enviado: ícone (ou inicial) + nome. -->
+      <span style="display:inline-flex;align-items:center;gap:12px;text-decoration:none">
+        <?php if (!empty($mk['icone_url'])): ?>
+        <img src="<?= $h($mk['icone_url']) ?>" alt="" style="height:44px;width:auto">
+        <?php else: ?>
+        <span style="width:44px;height:44px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;background:var(--ff-blue);color:var(--ff-texto);font-weight:800;font-size:22px"><?= $h($mk['inicial']) ?></span>
+        <?php endif; ?>
+        <span style="font-size:26px;font-weight:800;letter-spacing:-.5px;color:var(--ff-ink)"><?= $h($mk['nome']) ?></span>
+      </span>
+      <?php endif; ?>
     </a>
 
     <div class="ff-card ff-entra ff-entra-2">
       <h1 class="ff-title">Entrar</h1>
-      <p class="ff-sub">Central Comercial</p>
+      <p class="ff-sub"><?= $h($mk['subtitulo']) ?></p>
 
       <?php if ($flash): ?>
         <div class="flash"><?=htmlspecialchars($flash)?></div>
@@ -176,7 +199,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <div class="field">
           <label>E-mail</label>
-          <input class="mkt-input" name="login" type="email" placeholder="voce@fleetiflow.com.br" required autocomplete="username">
+          <input class="mkt-input" name="login" type="email" placeholder="<?= $mk['personalizada'] ? 'voce@empresa.com.br' : 'voce@fleetiflow.com.br' ?>" required autocomplete="username">
         </div>
 
         <div class="field">
@@ -203,7 +226,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </form>
     </div>
 
-    <div class="ff-footer ff-entra ff-entra-3">&copy; <?=date('Y')?> Fleetiflow &middot; Todos os direitos reservados</div>
+    <div class="ff-footer ff-entra ff-entra-3">&copy; <?=date('Y')?> <?= $h($mk['nome']) ?> &middot; Todos os direitos reservados</div>
   </div>
 
   <script src="/assets/cookie-consent.js?v=1"></script>
