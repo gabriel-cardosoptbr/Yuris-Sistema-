@@ -1060,18 +1060,18 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
     #chatToast.success { border-color: rgba(122,189,160,.3); color: #7ABDA0; }
 <?php if ($isFleetiflow): ?>
     /* Fleetiflow (tema claro): o aviso escuro com texto verde-acinzentado não
-       dava para ler. Fundo branco, texto escuro e a cor só na faixa lateral. */
+       dava para ler. Fundo branco, texto escuro, e o tipo do aviso na cor do
+       texto (sem faixa colorida na lateral). */
     #chatToast {
       background: #FFFFFF;
       color: #0F172A;
       border: 1px solid #E2E8F0;
-      border-left: 4px solid var(--ff-marca, #015DFC);
       box-shadow: 0 10px 28px rgba(15,23,42,.18);
       font-size: .88rem;
       font-weight: 600;
     }
-    #chatToast.success { border-color: #E2E8F0; border-left-color: #16A34A; color: #14532D; }
-    #chatToast.error   { border-color: #E2E8F0; border-left-color: #DC2626; color: #7F1D1D; }
+    #chatToast.success { border-color: #BBF7D0; color: #14532D; }
+    #chatToast.error   { border-color: #FECACA; color: #7F1D1D; }
 
     /* Aguardando resposta: filtro + janela de pendências */
     .chat-filter-btn.pend-filtro { color: #B45309; border-color: #FCD34D; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }

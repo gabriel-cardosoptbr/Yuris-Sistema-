@@ -741,7 +741,7 @@ window.YURIS_SHOW_ORIGIN_STRIP = true;
   // Faixa de resumo entre o cabeçalho e as abas.
   const faixa = F.resumo(drawer, header, [
     { chave: 'tarefa', rotulo: 'Tarefa' }, { chave: 'prio', rotulo: 'Prioridade' }, { chave: 'prazo', rotulo: 'Prazo' },
-    { chave: 'resp', rotulo: 'Responsável' }, { chave: 'coluna', rotulo: 'Coluna' }, { chave: 'quadro', rotulo: 'Quadro' }
+    { chave: 'resp', rotulo: 'Responsável' }, { chave: 'coluna', rotulo: 'Coluna' }
   ]);
   // O título editável vai para a primeira célula, com a "logo" da tarefa.
   const celTarefa = faixa.celula('tarefa');
@@ -823,13 +823,15 @@ window.YURIS_SHOW_ORIGIN_STRIP = true;
     pr.className = 'ff-sel ' + ({ urgente: 'ff-sel-vermelho', alta: 'ff-sel-vermelho', media: 'ff-sel-ambar', baixa: 'ff-sel-neutro' }[pr.value] || '');
     faixa.set('prazo', prazoTexto($('#dPrazo').value));
     F.celulaResponsavel(faixa.valor('resp'), $('#dResponsavel'), 'Responsável');
-    F.celulaSelect(faixa.valor('coluna'), $('#dColuna'), 'ff-sel-neutro');
-    const q = tarefa && tarefa.board_nome ? tarefa.board_nome : (typeof currentBoard !== 'undefined' && currentBoard ? currentBoard.nome : '');
-    faixa.set('quadro', '<span class="ff-pill">' + F.esc(q || 'Quadro') + '</span>' + (tarefa && tarefa.status === 'concluida' ? '<span class="ff-pill ff-pill-ok">Concluída</span>' : ''));
+    const celCol = faixa.valor('coluna');
+    F.celulaSelect(celCol, $('#dColuna'), 'ff-sel-neutro');
+    let ok = celCol.querySelector('.ff-pill-ok');
+    if (!ok) { ok = document.createElement('span'); ok.className = 'ff-pill ff-pill-ok'; ok.textContent = 'Concluída'; celCol.appendChild(ok); }
+    ok.style.display = tarefa && tarefa.status === 'concluida' ? '' : 'none';
   };
   // O título cresce com o texto, em vez de cortar numa linha.
   const tit = $('#dTitle');
-  const crescer = () => { tit.style.height = 'auto'; tit.style.height = Math.max(28, tit.scrollHeight) + 'px'; };
+  const crescer = () => { tit.style.height = 'auto'; tit.style.height = Math.max(28, tit.scrollHeight + 4) + 'px'; };
   tit.addEventListener('input', crescer);
   const _atualizar = atualizar;
   atualizar = function () { _atualizar(); crescer(); };

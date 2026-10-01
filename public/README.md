@@ -105,12 +105,14 @@ WhatsApp desconectado não aparece no Chat Interno.
 
 `tarefas.php`, na edição CRM (`$edicaoCrm`), veste o painel da tarefa (`#tkDrawer`)
 com a mesma ficha: cabeçalho "Gestão da Tarefa" com número e data, faixa com o
-título editável, prioridade, prazo (com "em N dias" ou "atrasada"), responsável,
-coluna e quadro, aba Geral em duas colunas (Descrição e Recorrência à esquerda,
+título editável, prioridade, prazo (data em cima, "em N dias" ou "atrasada"
+embaixo), responsável e coluna (com o selo "Concluída" quando for o caso; a
+célula de quadro saiu, a pessoa já está no quadro), aba Geral em duas colunas (Descrição e Recorrência à esquerda,
 Planejamento à direita), as demais abas dentro de uma seção, e o rodapé com
 Arquivar, Concluir e Salvar (os botões de sempre, só mudam de lugar). A aba
 "Tarefas Processuais" e o vínculo "Processo" somem, e "Card CRM" vira "Lead". O
-card do Kanban ganha o desenho do Fleetiflow por CSS (`.ff-quadro`). Tudo num
+card do Kanban ganha o desenho do Fleetiflow por CSS (`.ff-quadro`), sem faixa
+colorida na lateral (a prioridade fica no selo). Tudo num
 `<script>` no fim do arquivo, dentro de `if ($edicaoCrm)`; ids, abas e o
 `tarefas.js` não mudam (o bloco embrulha `refreshDrawer` para reler a tarefa).
 
@@ -157,7 +159,25 @@ Salvar. Abas: Visão geral (duas colunas), Comercial, WhatsApp, Arquivos e
 Histórico (o cliente não tem Comercial); campo obrigatório vazio numa aba
 escondida volta para a Visão geral (`invalid` em captura). Janela estreita ou
 baixa (`max-width: 920px` ou `max-height: 720px`) rola o painel inteiro, com o
-rodapé grudado. Os blocos do cliente que aparecem e somem por `style.display`
+rodapé grudado.
+
+**Regras de desenho da edição CRM (01/10/2026), pedidas pelo cliente:**
+
+- **Nada de faixa colorida na lateral esquerda** de card, aviso ou bloco
+  (`border-left` grosso colorido, sombra `inset` na esquerda). É marca de
+  interface gerada por IA. Estado (temperatura, prioridade, atraso) vai em selo,
+  cor do texto ou borda inteira. Saíram do card de lead (`.card-mini.lc`), do
+  card de tarefa (`.ff-quadro .tk-card`), do aviso do chat (`#chatToast`) e dos
+  avisos do `yuris-ui.js` (`.yui-toast`, sobrescrito no bloco Fleetiflow do
+  `sidebar.php`).
+- **Nada de informação cortada com reticências.** A faixa de resumo quebra
+  linha (`flex-wrap`, células com `flex-basis: auto`, divisórias pelo `gap` de
+  1px sobre o fundo cinza) em vez de encolher as células; nome do lead, do
+  cliente e do responsável quebram linha; os selects em pílula medem pela opção
+  escolhida (`field-sizing: content`); peso de crescimento nunca abaixo de 1,
+  para a célula que desce sozinha ocupar a linha toda.
+
+Os blocos do cliente que aparecem e somem por `style.display`
 arrastam a seção que os embrulha, e as seções visíveis são renumeradas
 (`FfFicha.renumerar`); cadastro novo (`.ff-um`) esconde a coluna da direita. A
 conta jurídica não carrega nada disso, e os blocos condicionais ficam em

@@ -1197,20 +1197,18 @@ function column_display_name(array $col): string
     /* ══════════════════════════════════════════════════════════════════════
        Card de lead da edição CRM (.card-mini.lc): o desenho do Fleetiflow.
        Termômetro e tipo no alto, inicial da empresa, cidade, potencial mensal,
-       último ou próximo contato, consultor e ações. Borda esquerda na cor do
-       termômetro. Cores da marca em var(--ff-*) (menu lateral). Prefixo
+       último ou próximo contato, consultor e ações. A temperatura aparece só no
+       selo: nada de faixa colorida na lateral. Cores da marca em var(--ff-*) (menu lateral). Prefixo
        html[data-theme="light"] onde o yuris-theme.css já é !important.
        ══════════════════════════════════════════════════════════════════════ */
     html[data-theme="light"] .card-mini.lc{
       padding:10px 12px 10px 14px !important; margin-bottom:10px; border-radius:14px !important;
-      border:1px solid rgba(17,29,45,.08) !important; border-left:4px solid #8DA2BE !important;
+      border:1px solid rgba(17,29,45,.08) !important;
       box-shadow:none !important; font-family:'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif; cursor:pointer;
     }
     html[data-theme="light"] .card-mini.lc:hover{ border-color:rgba(17,29,45,.16) !important; box-shadow:0 6px 18px rgba(17,29,45,.08) !important; transform:none; }
-    html[data-theme="light"] .card-mini.lc.lc-frio{ border-left-color:#3B82F6 !important; }
-    html[data-theme="light"] .card-mini.lc.lc-morno{ border-left-color:#F59E0B !important; }
-    html[data-theme="light"] .card-mini.lc.lc-quente{ border-left-color:#EF4444 !important; }
-    html[data-theme="light"] .card-mini.lc.is-overdue{ border-left-color:#EF4444 !important; }
+    /* atrasado: a borda inteira fica rosada (o yuris-theme.css põe faixa de 3px na esquerda) */
+    html[data-theme="light"] .card-mini.lc.is-overdue{ border:1px solid #FCA5A5 !important; }
     .card-mini.lc .card-drag-handle{ position:absolute; top:6px; left:50%; transform:translateX(-50%); opacity:0; }
     .card-mini.lc:hover .card-drag-handle{ opacity:.5; }
     .card-mini.lc svg{ width:14px; height:14px; flex:none; }
@@ -1264,7 +1262,6 @@ function column_display_name(array $col): string
     .card-mini.lc .lc-termo:hover{ filter:brightness(.96); box-shadow:0 0 0 2px rgba(17,29,45,.08); }
     .lc-termo-mao{ margin-left:2px; font-size:1rem; line-height:0; opacity:.6; }
     html[data-theme="light"] .lc-congelado .lc-termo{ background:#EEF2F7; color:#475569; }
-    html[data-theme="light"] .card-mini.lc.lc-congelado{ border-left-color:#94A3B8 !important; }
     html[data-theme="light"] .card-mini.lc.lc-congelado .lc-nome{ color:#64748B !important; }
     .menu-termo{ position:absolute; z-index:9500; min-width:220px; padding:6px; border-radius:12px; background:#FFFFFF;
       border:1px solid rgba(17,29,45,.10); box-shadow:0 12px 32px rgba(17,29,45,.16); font-family:'Manrope',system-ui,sans-serif; }
@@ -1525,7 +1522,7 @@ function column_display_name(array $col): string
               <label class="form-group">
                 <span class="form-label">Termômetro</span>
                 <select name="temperatura" class="form-select">
-                  <option value="">Automático (regra do termômetro)</option>
+                  <option value="" title="Segue a regra do termômetro">Automático</option>
                   <option value="congelado">Congelado</option>
                   <option value="frio">Frio</option>
                   <option value="morno">Morno</option>
@@ -1694,7 +1691,7 @@ function column_display_name(array $col): string
               <label class="form-group">
                 <span class="form-label">Termômetro</span>
                 <select name="temperatura" class="form-select">
-                  <option value="">Automático (regra do termômetro)</option>
+                  <option value="" title="Segue a regra do termômetro">Automático</option>
                   <option value="congelado">Congelado</option>
                   <option value="frio">Frio</option>
                   <option value="morno">Morno</option>

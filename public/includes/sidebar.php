@@ -324,6 +324,8 @@ $_notifTempo = function ($raw) {
   html[data-theme="light"] .sidebar-group-toggle:hover .sidebar-group-icon svg, html[data-theme="light"] .sidebar-group-toggle:hover .sidebar-group-icon svg *{ stroke:#3D3D3D !important; }
 
   /* ATIVO: texto e ícone na marca, disco azul atrás do ícone, fundo quase nada, barra à direita. */
+  /* Sem faixa colorida na lateral dos avisos: o ícone já diz o tipo. */
+  .yui-toast{ border-left-width:1px !important; }
   html[data-theme="light"] .sidebar nav a.active{ background:rgba(var(--ff-marca-rgb),0.07) !important; color:var(--ff-marca-forte) !important; font-weight:600 !important; box-shadow:none !important; }
   html[data-theme="light"] .sidebar nav a.active .label{ color:var(--ff-marca-forte) !important; }
   html[data-theme="light"] .sidebar nav a.active .icon{ background:var(--ff-marca) !important; }
