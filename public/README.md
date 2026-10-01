@@ -116,6 +116,15 @@ colorida na lateral (a prioridade fica no selo). Tudo num
 `<script>` no fim do arquivo, dentro de `if ($edicaoCrm)`; ids, abas e o
 `tarefas.js` não mudam (o bloco embrulha `refreshDrawer` para reler a tarefa).
 
+Ainda na edição CRM (01/10/2026), o card do Kanban não mostra a faixa
+MATRIZ/FILIAL (`window.YURIS_SHOW_ORIGIN_STRIP` vira false: é conceito do
+escritório com filiais) e passa a contar mais da tarefa: trecho da descrição,
+responsável com nome e "Criada por X · data" (`.tk-card-crm`, montado no
+`buildCard` do `tarefas.js` quando `window.TK_EDICAO_CRM`). Quem cria é o
+responsável por padrão: o modal de nova tarefa já vem com o usuário marcado, e
+`api/tasks.php` (POST) grava o criador quando nenhum responsável vem, inclusive
+pelo "+ Adicionar tarefa" da coluna. Troca-se depois, dentro da tarefa.
+
 `chat.php` aceita `?conversa=<id>` na edição CRM: o id vira o jid no servidor, só
 se a conversa é do canal que a conta pode ver, e a tela abre nela como faz com
 `?jid=`.

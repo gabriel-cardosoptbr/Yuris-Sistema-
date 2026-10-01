@@ -430,9 +430,29 @@ function buildCard(t) {
     </div>`;
   }
 
+  // Edição CRM: o card conta mais da tarefa sem precisar abrir. Um trecho da
+  // descrição, o responsável (com nome, não só a inicial), quem criou e quando.
+  const crm = !!window.TK_EDICAO_CRM;
+  if (crm) el.classList.add('tk-card-crm');
+  const descricaoCurta = crm && t.descricao ? String(t.descricao).replace(/\s+/g, ' ').trim().slice(0, 140) : '';
+  const criadaEm = crm && t.created_at ? dataHoraCurta(t.created_at) : '';
+  const descCrm = descricaoCurta ? `<div class="tk-card-desc">${esc(descricaoCurta)}</div>` : '';
+  const infoCrm = crm ? `
+    <div class="tk-card-info">
+      <div class="tk-ci-linha" title="Responsável">
+        ${t.responsavel_nome
+          ? `<span class="tk-avatar-sm">${esc(t.responsavel_nome.charAt(0).toUpperCase())}</span><span class="tk-ci-val">${esc(t.responsavel_nome)}</span>`
+          : `<span class="tk-avatar-sm tk-avatar-vazio">?</span><span class="tk-ci-val tk-ci-vazio">Sem responsável</span>`}
+      </div>
+      <div class="tk-ci-linha tk-ci-criacao">
+        Criada${t.criador_nome ? ` por <strong>${esc(t.criador_nome)}</strong>` : ''}${criadaEm ? ` · ${criadaEm}` : ''}
+      </div>
+    </div>` : '';
+
   el.innerHTML = `
     ${originStripHtml}
     <div class="tk-card-title">${esc(t.titulo)}${recIcon}</div>
+    ${descCrm}
     <div class="tk-card-meta">
       <span class="tk-badge tk-badge-${t.prioridade}">${labelPrioridade(t.prioridade)}</span>
       ${prazoStr ? `<span class="tk-prazo${atrasado?' atrasado':''}">
@@ -440,12 +460,13 @@ function buildCard(t) {
         ${prazoStr}
       </span>` : ''}
     </div>
+    ${infoCrm}
     <div class="tk-card-footer">
       <div class="tk-card-icons">
         ${t.total_comentarios > 0 ? `<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>${t.total_comentarios}</span>` : ''}
         ${checkTotal > 0 ? `<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>${checkFeito}/${checkTotal}</span>` : ''}
       </div>
-      ${t.responsavel_nome ? `<div class="tk-avatar-sm">${esc(t.responsavel_nome.charAt(0).toUpperCase())}</div>` : ''}
+      ${t.responsavel_nome && !crm ? `<div class="tk-avatar-sm">${esc(t.responsavel_nome.charAt(0).toUpperCase())}</div>` : ''}
     </div>
     ${checkTotal > 0 ? `<div class="tk-checklist-bar"><div class="tk-checklist-progress" style="width:${barPct}%"></div></div>` : ''}
     ${recStatusCard(t)}
@@ -1476,6 +1497,11 @@ function bindTopbar() {
     searchTimer = setTimeout(() => { filters.busca = e.target.value; loadTasks(); }, 350);
   });
   document.getElementById('tkBtnNewTask').addEventListener('click', () => {
+    // Edição CRM: quem cria já vem como responsável; dá para trocar no próprio modal.
+    const ntResp = document.getElementById('ntResponsavel');
+    if (window.TK_EDICAO_CRM && ntResp && !ntResp.value && window.YURIS_USER_ID) {
+      ntResp.value = String(window.YURIS_USER_ID);
+    }
     document.getElementById('modalNewTask').classList.add('open');
   });
   document.getElementById('tkBtnNewBoard').addEventListener('click', () => {
@@ -1890,6 +1916,15 @@ function recStatusCard(t) {
 }
 
 /* ── Utilitários de exibição ────────────────────────────────────────────────── */
+/** "01/10 14:32" (ou "01/10/25 14:32" fora do ano corrente): a criação no card. */
+function dataHoraCurta(str) {
+  const d = new Date(String(str).replace(' ', 'T'));
+  if (isNaN(d)) return '';
+  const opts = { day: '2-digit', month: '2-digit' };
+  if (d.getFullYear() !== new Date().getFullYear()) opts.year = '2-digit';
+  return d.toLocaleDateString('pt-BR', opts) + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
 function formatDate(str) {
   if (!str) return '—';
   try {

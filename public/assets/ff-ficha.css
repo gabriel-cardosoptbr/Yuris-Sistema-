@@ -383,5 +383,21 @@ html[data-theme="light"] .ff-quadro .tk-card:hover{ box-shadow:0 6px 18px rgba(1
 html[data-theme="light"] .ff-quadro .tk-card-title{ color:#1F2937 !important; font-weight:700 !important; }
 html[data-theme="light"] .ff-quadro .tk-avatar-sm{ background:var(--ff-marca-suave, #D6E4FF) !important; color:var(--ff-marca-forte, #013DF2) !important; font-weight:800 !important; }
 html[data-theme="light"] .ff-quadro .tk-badge{ border-radius:999px !important; font-weight:700 !important; }
+/* Card da edição CRM (.tk-card-crm, tarefas.js): trecho da descrição, responsável
+   com nome e "Criada por X · data". Um pouco mais alto e com respiro. */
+.ff-quadro .tk-card-crm{ padding:14px 14px 12px !important; display:flex; flex-direction:column; gap:8px; }
+.ff-quadro .tk-card-crm .tk-card-title{ font-size:.9rem !important; line-height:1.35 !important; margin:0 !important; }
+.ff-quadro .tk-card-crm .tk-card-meta{ margin:0 !important; }
+.ff-quadro .tk-card-crm .tk-card-footer{ margin:0 !important; }
+.ff-quadro .tk-card-crm .tk-card-footer:not(:has(span)){ display:none; }
+.ff-quadro .tk-card-desc{ font-size:.78rem; color:#64748B; line-height:1.45; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.ff-quadro .tk-card-info{ display:flex; flex-direction:column; gap:6px; padding-top:8px; border-top:1px solid rgba(17,29,45,.07); }
+.ff-quadro .tk-ci-linha{ display:flex; align-items:center; gap:8px; min-width:0; font-size:.76rem; color:#64748B; }
+.ff-quadro .tk-ci-linha .tk-avatar-sm{ flex:none; width:22px !important; height:22px !important; font-size:.68rem !important; }
+.ff-quadro .tk-ci-val{ color:#1F2937; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ff-quadro .tk-ci-vazio{ color:#94A3B8; font-weight:500; }
+html[data-theme="light"] .ff-quadro .tk-avatar-sm.tk-avatar-vazio{ background:#F1F5F9 !important; color:#94A3B8 !important; }
+.ff-quadro .tk-ci-linha.tk-ci-criacao{ display:block; line-height:1.4; }
+.ff-quadro .tk-ci-criacao strong{ color:#334155; font-weight:700; }
 /* o título editável ocupa a célula inteira e cresce com o texto */
 .ff-modal .ff-cel .ff-cel-valor .tk-drawer-title{ flex:1 1 auto; min-width:0; height:auto; overflow:hidden; }

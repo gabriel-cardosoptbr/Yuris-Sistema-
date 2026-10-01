@@ -613,7 +613,10 @@ window.YURIS_USER_NAME = <?= json_encode($_SESSION['user_nome'] ?? '') ?>;
 // (mesmo em filial isolada ou matriz sem filiais).
 window.YURIS_ACCOUNT_SELF      = <?= json_encode($origin_self, JSON_UNESCAPED_UNICODE) ?>;
 window.YURIS_ORIGIN_ACCOUNTS   = <?= json_encode($origin_accounts, JSON_UNESCAPED_UNICODE) ?>;
-window.YURIS_SHOW_ORIGIN_STRIP = true;
+// Edição CRM: a faixa MATRIZ/FILIAL é conceito do jurídico (escritório com
+// filiais) e não diz nada ali; o card mostra quem criou, quando e o responsável.
+window.YURIS_SHOW_ORIGIN_STRIP = <?= $edicaoCrm ? 'false' : 'true' ?>;
+window.TK_EDICAO_CRM           = <?= $edicaoCrm ? 'true' : 'false' ?>;
 </script>
 <!-- ── Modal de confirmação customizado ── -->
 <div id="tkConfirmOverlay" style="

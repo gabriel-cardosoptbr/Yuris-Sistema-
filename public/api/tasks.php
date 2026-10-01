@@ -22,6 +22,11 @@ $input   = json_decode(file_get_contents('php://input'), true) ?? [];
 // P1 LGPD (2B.3): contas acessíveis para escopar TaskBoard::canView/canEdit
 $accIds  = $ctx->getAccessibleAccountIds('tarefas');
 
+/** Conta da edição CRM (sem módulo jurídico), a mesma regra do tarefas.php. */
+function tkEdicaoCrm(): bool {
+    try { return !AccountContext::fromSession()->moduloJuridicoDisponivel(); } catch (\Throwable $e) { return false; }
+}
+
 function csrfOk(): bool {
     $tok = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? $_POST['csrf_token'] ?? ($GLOBALS['input']['csrf_token'] ?? null);
     return $tok && $tok === ($_SESSION['csrf_token'] ?? '');
@@ -169,7 +174,9 @@ if ($method === 'POST') {
         'prioridade'     => $input['prioridade'] ?? 'media',
         'prazo'          => $input['prazo'] ?? null,
         'prazo_tipo'     => $input['prazo_tipo'] ?? 'interno',
-        'responsavel_id' => $input['responsavel_id'] ?? null,
+        // Edição CRM: sem responsável escolhido, quem cria é o responsável
+        // (pedido do dono do produto, 01/10/2026). Troca-se depois na tarefa.
+        'responsavel_id' => ($input['responsavel_id'] ?? null) ?: (tkEdicaoCrm() ? $userId : null),
         'criado_por_id'  => $userId,
         'recorrencia_id' => $recId,
     ]);
