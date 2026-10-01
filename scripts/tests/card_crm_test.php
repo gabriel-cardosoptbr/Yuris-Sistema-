@@ -15,6 +15,7 @@
 require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Prospeccao\Card;
+use App\WhatsAppAgente\SdrFleetiflow;
 
 $OK = 0;
 $FALHAS = [];
@@ -32,6 +33,15 @@ ok('vazio e inválido viram NULL (automática)', Card::_temperatura('') === null
 ok('tipo é limpo de HTML e espaços', Card::_tipoLead('  <b>Concessionária</b>   premium ') === 'Concessionária premium');
 ok('tipo vazio vira NULL', Card::_tipoLead('   ') === null && Card::_tipoLead(null) === null);
 ok('tipo é cortado em 60 caracteres', mb_strlen((string) Card::_tipoLead(str_repeat('a', 80))) === 60);
+
+echo "\n== 1b. Quem digitou a mensagem própria (WhatsApp Web x API) ==\n";
+// Na Evolution 2.3.7 a API dispara só send.message; messages.upsert com fromMe é
+// alguém digitando no celular ou no WhatsApp Web, mesmo com source "web".
+ok('WhatsApp Web (messages.upsert, source web) conta como pessoa', SdrFleetiflow::origemEfetiva('messages.upsert', 'web') === 'aparelho');
+ok('celular (messages.upsert, source android) conta como pessoa', SdrFleetiflow::origemEfetiva('messages.upsert', 'android') === 'aparelho');
+ok('envio pela API (send.message, source web) NÃO conta como pessoa', SdrFleetiflow::origemEfetiva('send.message', 'web') === 'web');
+ok('evento já ajustado (send_message) continua sendo API', SdrFleetiflow::origemEfetiva('send_message', 'web') === 'web');
+ok('sem evento, vale a origem que a Evolution mandou', SdrFleetiflow::origemEfetiva('', 'ios') === 'ios');
 
 echo "\n== 2. Gravação e lista (banco, desfeito no fim) ==\n";
 try {

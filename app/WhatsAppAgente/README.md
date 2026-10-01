@@ -46,7 +46,7 @@ O detalhe completo, com diagramas, está na skill de desenvolvimento em
 ### O agente de pré-venda da edição CRM
 | Classe | O que faz |
 |---|---|
-| `SdrFleetiflow.php` | o funil comercial automático (card em "Novos leads", etapas, pendentes) vale para **toda** conta da edição CRM. O encaminhamento ao agente de IA não: `urlDaConta()` devolve o endereço do `.env` (a Vitória) só para a conta sem marca própria, e o endereço gravado na marca para as outras, ou vazio (agente desligado, o botão de ligar recusa com aviso). `nomeAgenteDaConta()` dá o nome que aparece no Chat |
+| `SdrFleetiflow.php` | o funil comercial automático (card em "Novos leads", etapas, pendentes) vale para **toda** conta da edição CRM. O encaminhamento ao agente de IA não: `urlDaConta()` devolve o endereço do `.env` (a Vitória) só para a conta sem marca própria, e o endereço gravado na marca para as outras, ou vazio (agente desligado, o botão de ligar recusa com aviso). `nomeAgenteDaConta()` dá o nome que aparece no Chat. **Quem digitou a mensagem própria** sai de `origemEfetiva()`: o `source` da Evolution é "web" tanto para envio pela API quanto para o WhatsApp Web, então o que vale é o evento (na 2.3.7, `emitOwnEvents: false` faz a API disparar só `send.message`; `messages.upsert` com fromMe é alguém digitando). Mensagem de pessoa leva o card para "Em atendimento pelo especialista" e pausa a IA na conversa; envio do robô ou da Vitória não. O webhook guarda `$eventoOriginal` antes de converter `send.message` em `send_message` |
 
 ### O webhook de entrada
 | Classe | O que faz |

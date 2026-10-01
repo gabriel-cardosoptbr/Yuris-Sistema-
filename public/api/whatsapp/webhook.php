@@ -180,6 +180,9 @@ try {
     // envia (robô, Vitória, cadência) passava reto e a conversa só aparecia quando
     // o lead respondia. Só na conta Fleetiflow, para não mudar o que o agente
     // jurídico entende como eco do próprio bot nas outras contas.
+    // O evento como a Evolution mandou, antes do ajuste abaixo: é o que diz se a
+    // mensagem própria foi digitada por uma pessoa (ver SdrFleetiflow::origemEfetiva).
+    $eventoOriginal = $event;
     if ($event === 'send.message' && \App\WhatsAppAgente\SdrFleetiflow::contaUsa($accountId)) {
         $event = 'send_message';
     }
@@ -196,7 +199,7 @@ try {
                 // C2 (auditoria): isola cada mensagem — uma excecao numa nao pode pular as
                 // demais nem o flushResponse/runAgentReply do restante do lote.
                 try {
-                    handleMessageUpsert($msg, $instanceId, $msgModel, $accountId);
+                    handleMessageUpsert($msg, $instanceId, $msgModel, $accountId, $eventoOriginal);
                 } catch (\Throwable $e) {
                     error_log('[whatsapp/webhook] handleMessageUpsert falhou (mensagem pulada): ' . $e->getMessage());
                 }
@@ -420,7 +423,7 @@ function wh_anomaly(string $code, array $detail = [], string $level = 'warn', ?i
     } catch (\Throwable $_) { /* best-effort: telemetria nunca quebra o webhook */ }
 }
 
-function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model, int $accountId): void
+function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model, int $accountId, string $eventoOriginal = ''): void
 {
     $key       = $msg['key']       ?? [];
     $message   = $msg['message']   ?? [];
@@ -645,7 +648,8 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
     if (\App\WhatsAppAgente\SdrFleetiflow::contaUsa($accountId)) {
         \App\WhatsAppAgente\SdrFleetiflow::aoMensagem(
             $accountId, $instanceId, $remoteJid, $key, $fromMe,
-            is_array($msg) ? ($msg['source'] ?? null) : null, $pushName, $ts
+            \App\WhatsAppAgente\SdrFleetiflow::origemEfetiva($eventoOriginal, is_array($msg) ? ($msg['source'] ?? null) : null),
+            $pushName, $ts
         );
     }
 
@@ -698,6 +702,12 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
     } else {
         // fromMe: distingue o ECO do proprio bot (ignora, anti-loop) do ENVIO MANUAL por um
         // humano via Yuris/celular (sinal de atendimento humano -> pausa o bot na conversa).
-        WhatsAppAgentBridge::maybeHandleHumanSend($accountId, $instanceId, $remoteJid, $wamid, $msgContent, is_array($msg) ? ($msg['source'] ?? null) : null);
+        // Conta CRM: a origem leva em conta o evento (WhatsApp Web chega como
+        // source "web", igual à API). Nas outras contas, a origem de sempre.
+        $origemEnvio = is_array($msg) ? ($msg['source'] ?? null) : null;
+        if (\App\WhatsAppAgente\SdrFleetiflow::contaUsa($accountId)) {
+            $origemEnvio = \App\WhatsAppAgente\SdrFleetiflow::origemEfetiva($eventoOriginal, $origemEnvio);
+        }
+        WhatsAppAgentBridge::maybeHandleHumanSend($accountId, $instanceId, $remoteJid, $wamid, $msgContent, $origemEnvio);
     }
 }

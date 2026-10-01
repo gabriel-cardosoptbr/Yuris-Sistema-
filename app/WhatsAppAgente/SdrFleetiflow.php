@@ -37,8 +37,34 @@ final class SdrFleetiflow
     /** Nome que aparece na chave do Chat quando o canal é Fleetiflow. */
     public const NOME_AGENTE = 'Vitória (pré-qualificação)';
 
-    /** Origens de mensagem própria que são uma pessoa no aparelho, não a API. */
-    private const APARELHO = ['android', 'ios', 'desktop'];
+    /**
+     * Origens de mensagem própria que são uma pessoa digitando, não a API.
+     * 'aparelho' não vem da Evolution: é o que origemEfetiva() devolve quando o
+     * evento prova que foi digitado (ver lá).
+     */
+    private const APARELHO = ['android', 'ios', 'desktop', 'aparelho'];
+
+    /**
+     * De onde veio uma mensagem PRÓPRIA (fromMe), para saber se foi gente.
+     *
+     * O campo `source` da Evolution não basta: mensagem enviada pela API (o robô,
+     * a Vitória, o Chat do CRM) e mensagem digitada no WhatsApp Web chegam as duas
+     * com source "web". Assim, a especialista que respondia pelo WhatsApp Web no
+     * computador não movia o card para "Em atendimento pelo especialista" nem
+     * pausava a Vitória (visto em 01/10/2026: só 6 envios pelo Chat em dois dias,
+     * o resto pelo WhatsApp Web, e a coluna ficava vazia).
+     *
+     * O que separa é o EVENTO. Na Evolution 2.3.7 o socket roda com
+     * `emitOwnEvents: false`: o envio pela API dispara só `send.message`, e o
+     * `messages.upsert` com fromMe só existe quando a mensagem foi digitada num
+     * aparelho do número (celular, WhatsApp Web, app de desktop). Conferido no
+     * código-fonte da 2.3.7 (whatsapp.baileys.service.ts). PURA.
+     */
+    public static function origemEfetiva(string $evento, ?string $source): ?string
+    {
+        if (strtolower($evento) === 'messages.upsert') return 'aparelho';
+        return $source;
+    }
 
     /** @var array<int,bool> produto por conta, dentro da mesma requisição */
     private static array $cache = [];
