@@ -587,6 +587,28 @@ $_notifTempo = function ($raw) {
     // aparecerem duas vezes.
     if ($_isFleetiflow) {
         $_sections = array_values(array_filter($_sections, fn($_s) => $_s['key'] !== 'juridico' && $_s['key'] !== 'sistema'));
+
+        // Financeiro em grupo próprio, logo depois de Gestão (pedido do dono do
+        // produto, 2026-09-30): dinheiro não é mais um item perdido entre
+        // Usuários e Escritórios. Mesmo item, mesma permissão, só muda de lugar.
+        $_itemFinancas = null;
+        foreach ($_sections as &$_s) {
+            if ($_s['key'] !== 'gestao') continue;
+            foreach ($_s['items'] as $_i => $_it) {
+                if ($_it['href'] === 'financas.php') { $_itemFinancas = $_it; unset($_s['items'][$_i]); }
+            }
+            $_s['items'] = array_values($_s['items']);
+        }
+        unset($_s);
+        if ($_itemFinancas) {
+            $_posGestao = array_search('gestao', array_column($_sections, 'key'), true);
+            array_splice($_sections, $_posGestao === false ? count($_sections) : $_posGestao + 1, 0, [[
+                'key' => 'financeiro',
+                'label' => 'Financeiro',
+                'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>',
+                'items' => [$_itemFinancas],
+            ]]);
+        }
     }
 
     foreach ($_sections as $_sec):
