@@ -112,10 +112,14 @@ class EvolutionApiService
         return $this->request('DELETE', "/instance/delete/{$this->enc($name)}");
     }
 
-    /** Reiniciar instância. */
+    /**
+     * Reiniciar instância. Na Evolution v2 é POST: o PUT antigo respondia 404
+     * ("Cannot PUT /instance/restart/..."), então o "Reconectar" do chat nunca
+     * reiniciava nada (conferido na 2.3.7 em 01/10/2026).
+     */
     public function restartInstance(string $name): array
     {
-        return $this->request('PUT', "/instance/restart/{$this->enc($name)}");
+        return $this->request('POST', "/instance/restart/{$this->enc($name)}");
     }
 
     // ────────────────────────────────────────────
