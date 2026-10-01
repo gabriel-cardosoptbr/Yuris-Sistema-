@@ -160,6 +160,7 @@ Estes **alteram dados**. Leia o script antes, e faça backup.
 | Script | O que faz |
 |---|---|
 | `_phaseB_webhook_token.php` | liga o `webhook_token` na Evolution de um canal. **Roda em dry-run por padrão**, só age com `--apply` ou `--rollback` |
+| `especialista_retroativo.php` | move para "Em atendimento pelo especialista" os cards de conversas já respondidas por uma pessoa (celular ou WhatsApp Web), na edição CRM. Mostra antes a contagem de mensagens próprias por status e origem, que é a prova do critério. **Simulação por padrão**, `--aplicar` move, `--dias=N` muda a janela |
 | `_phase2_repoint_silvana.php` | reaponta o webhook de uma instância específica para o Yuris. Imprime o webhook atual antes de trocar, para permitir voltar |
 
 Os dois são de fases de migração já concluídas, guardados porque documentam

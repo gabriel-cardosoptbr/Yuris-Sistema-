@@ -153,6 +153,22 @@ produto e de LGPD, em `retention_policies`, não de código.
 
 Travado em `../../scripts/tests/wa_midia_test.php`.
 
+## Canal caído: o aviso nas telas da edição CRM
+
+Em 30/09/2026 o canal da Fleetiflow caiu (Evolution, código 401: o aparelho
+desconectou o WhatsApp) e ninguém percebeu por horas: nenhuma mensagem entrava,
+o funil parou e o robô recebia 404 ao atualizar etapa. Desde então o menu
+lateral (`public/includes/sidebar.php`) mostra no topo de toda tela da edição CRM
+um aviso quando o canal configurado da conta não está `open`, com a hora do
+último evento recebido e, para dono/admin, o botão para reconectar no Chat.
+Canal sem credencial não alarma. Reconectar é sempre ler o QR de novo.
+
+`scripts/manutencao/especialista_retroativo.php` move para "Em atendimento pelo
+especialista" os cards de conversas que uma pessoa já respondeu (mensagem própria
+sem status `PENDING` no payload). Simulação por padrão; `--aplicar` move. Depois
+de reconectar um canal que ficou fora, rode-o: o que a pessoa respondeu pelo
+celular no período chega na sincronização e entra no critério.
+
 ## Regras que derrubam o módulo se ignoradas
 
 **Uma instância por conta, sempre.** Vale para código novo, migration nova e

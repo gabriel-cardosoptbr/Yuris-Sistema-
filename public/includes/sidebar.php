@@ -102,6 +102,39 @@ try {
 } catch (\Throwable $__e) { /* mantém identidade Yuris se algo falhar */ }
 if ($_isFleetiflow && $_marca === null) $_marca = \App\Master\Marca::padraoFleetiflow();
 
+// ── Aviso de WhatsApp fora do ar (edição CRM) ─────────────────────────────
+// Em 30/09/2026 o canal caiu (Evolution, código 401: o aparelho desconectou o
+// WhatsApp) e ninguém percebeu: as respostas da especialista e os leads novos
+// ficaram só no celular, e o funil parou. Aqui, se o canal da conta está
+// configurado e não está conectado, toda tela mostra um aviso no topo, com a
+// hora do último evento recebido e o caminho para reconectar. Fora do Chat, que
+// já tem o próprio aviso e a tela de QR. Uma consulta leve por página; falha
+// silenciosa (nunca derruba a tela).
+$_avisoWa = null;
+if ($_isFleetiflow && $_ap !== 'chat') {
+    try {
+        $__accW = (int)$__brandCtx->getAccountId();
+        $__stW  = \App\Core\Database::getConnection()->prepare(
+            "SELECT wi.status, wi.last_event_at
+               FROM whatsapp_instances wi
+              WHERE wi.account_id = ?
+                AND EXISTS (SELECT 1 FROM whatsapp_settings s
+                             WHERE s.account_id = wi.account_id AND s.config_key = 'evolution_api_key'
+                               AND COALESCE(s.config_value, '') <> '')
+           ORDER BY (wi.status = 'open') DESC, wi.id DESC LIMIT 1"
+        );
+        $__stW->execute([$__accW]);
+        $__canalW = $__stW->fetch(\PDO::FETCH_ASSOC);
+        if ($__canalW && $__canalW['status'] !== 'open') {
+            $__ultW = $__canalW['last_event_at'] ? strtotime((string)$__canalW['last_event_at'] . ' UTC') : 0;
+            $_avisoWa = [
+                'desde'  => $__ultW ? (new \DateTime('@' . $__ultW))->setTimezone(new \DateTimeZone('America/Sao_Paulo'))->format('d/m \à\s H:i') : null,
+                'admin'  => $__brandCtx->isOwnerOrAdmin(),
+            ];
+        }
+    } catch (\Throwable $__e) { $_avisoWa = null; }
+}
+
 $_notifTempo = function ($raw) {
     $ts = $raw ? strtotime((string)$raw) : 0; if (!$ts) return '';
     $d = max(0, time() - $ts);
@@ -728,6 +761,41 @@ $_notifTempo = function ($raw) {
   <?php endif; ?>
 
 </aside>
+<?php if ($_avisoWa): ?>
+<!-- Aviso de WhatsApp fora do ar (ver o bloco PHP no topo). Nasce aqui e o script
+     abaixo o coloca no topo da área de conteúdo, ao lado do menu. -->
+<div id="avisoWhatsapp" role="alert" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 16px;padding:12px 16px;border-radius:12px;background:#FEF2F2;border:1px solid #FECACA;color:#7F1D1D;font-family:'Manrope',system-ui,sans-serif;font-size:.88rem;line-height:1.4">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+  <div style="flex:1;min-width:220px">
+    <strong style="color:#991B1B">WhatsApp desconectado.</strong>
+    Mensagens novas não estão entrando no sistema, os cards não andam sozinhos e o agente de IA não responde<?= $_avisoWa['desde'] ? ' (último evento recebido em ' . htmlspecialchars($_avisoWa['desde']) . ')' : '' ?>.
+    <?= $_avisoWa['admin'] ? 'Reconecte lendo o QR Code com o celular do número.' : 'Avise um administrador da conta para reconectar.' ?>
+  </div>
+  <?php if ($_avisoWa['admin']): ?>
+  <a href="/chat.php" style="flex:none;display:inline-flex;align-items:center;height:34px;padding:0 16px;border-radius:999px;background:#B91C1C;color:#FFFFFF;font-weight:700;text-decoration:none">Reconectar agora</a>
+  <?php endif; ?>
+</div>
+<script>
+(function () {
+  // Roda depois do carregamento: o menu vem ANTES do conteúdo no HTML, então
+  // enquanto este script é lido a área de conteúdo ainda nem existe.
+  function posicionar() {
+  try {
+    var aviso = document.getElementById('avisoWhatsapp');
+    var menu  = document.querySelector('aside.sidebar');
+    if (!aviso || !menu) return;
+    // A área de conteúdo é o primeiro irmão do menu que não é script/estilo.
+    var alvo = menu.nextElementSibling;
+    while (alvo && /^(SCRIPT|STYLE|LINK|NAV|DIV)$/.test(alvo.tagName) && (alvo.tagName !== 'DIV' || alvo === aviso)) alvo = alvo.nextElementSibling;
+    if (alvo) { alvo.insertBefore(aviso, alvo.firstChild); return; }
+    // Sem irmão de conteúdo: fica fixo no rodapé da tela, sem cobrir o menu.
+    aviso.style.cssText += ';position:fixed;left:276px;right:16px;bottom:16px;z-index:9000;margin:0;box-shadow:0 10px 30px rgba(127,29,29,.18)';
+  } catch (e) {}
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', posicionar); else posicionar();
+})();
+</script>
+<?php endif; ?>
 
 <!-- ── Barra de navegação mobile ── -->
 <nav class="mobile-tabbar" role="navigation" aria-label="Navegação principal">
