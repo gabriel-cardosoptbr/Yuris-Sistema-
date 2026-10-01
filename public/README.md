@@ -112,7 +112,7 @@ potencial mensal, último contato (última mensagem do WhatsApp ligado, ou a
 e as ações. Mesmas classes de gancho do card jurídico (`.card-mini`,
 `.js-whatsapp`, `.chat-link-btn`, `.card-drag-handle`), então clique, arrastar e
 filtros não mudaram. O formulário ganha "Tipo do lead" (texto com sugestões,
-`datalist`) e "Termômetro" (automático ou escolhido), migration 134. Dono/admin vê na barra o seletor **Especialista do WhatsApp** (`/api/crm_especialista.php`): quem vira consultor do card que entra em atendimento pelo celular ou WhatsApp Web. A edição
+`datalist`) e "Termômetro" (automático ou escolhido), migration 134. O selo de temperatura do card é clicável (menu: automático, quente, morno, frio, congelado) e dono/admin tem o botão **Termômetro**, que define a regra da conta (`/api/crm_termometro.php`). Dono/admin vê na barra o seletor **Especialista do WhatsApp** (`/api/crm_especialista.php`): quem vira consultor do card que entra em atendimento pelo celular ou WhatsApp Web. A edição
 jurídica renderiza o card de sempre.
 
 `dashboard.php` calcula tenant, filtro de origem e DRE e, se a conta tem

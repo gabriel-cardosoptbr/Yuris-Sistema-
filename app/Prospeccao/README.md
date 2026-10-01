@@ -15,6 +15,7 @@ operacional de quem já é cliente.
 
 | Classe | O que faz |
 |---|---|
+| `Termometro.php` | o **termômetro** dos leads da edição CRM: quente, morno, frio ou congelado. Regra por conta em `configuracoes.termometro` (dias desde o último contato e etapas que forçam quente ou congelado), editada no botão "Termômetro" da Prospecção. A escolha manual no card (`cards.temperatura`) vence a etapa, que vence o tempo. `classificar()` é PURA e é o espelho do `getTemperatureBadge` da tela |
 | `Card.php` | o card do funil. Listagem, movimentação entre colunas, reordenação em lote. Na edição CRM leva também `tipo_lead` (texto curto) e `temperatura` (frio, morno, quente, ou NULL = automática), migration 134, e a lista traz `linked_chat_last_at` (última mensagem do WhatsApp ligado) para o "último contato" do card |
 | `CardChecklist.php` | checklist dentro do card |
 | `PipelineColumn.php` | as colunas do funil, configuráveis por conta |

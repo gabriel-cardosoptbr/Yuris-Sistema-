@@ -581,11 +581,11 @@ class Card
         return $tem;
     }
 
-    /** Termômetro escolhido pelo consultor. Fora de frio/morno/quente vira NULL (automático). */
+    /** Termômetro escolhido pelo consultor. Fora de quente/morno/frio/congelado vira NULL (automático). */
     public static function _temperatura(mixed $v): ?string
     {
         $t = strtolower(trim((string) $v));
-        return in_array($t, ['frio', 'morno', 'quente'], true) ? $t : null;
+        return in_array($t, ['frio', 'morno', 'quente', 'congelado'], true) ? $t : null;
     }
 
     /** Tipo do lead: texto curto e limpo, ou NULL. */

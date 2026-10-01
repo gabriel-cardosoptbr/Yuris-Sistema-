@@ -22,6 +22,20 @@ $edicaoCrm = !$moduloJuridico;
 // conversa é respondida pelo celular/WhatsApp Web. Só dono/admin escolhe.
 $crmPodeEspecialista = false;
 $crmEspecialista     = null;
+// Termômetro da edição CRM: a regra da conta (App\Prospeccao\Termometro) e o
+// mapa slug da coluna -> chave da etapa, para a tela classificar como o PHP.
+$crmTermometro  = $edicaoCrm ? \App\Prospeccao\Termometro::PADRAO : null;
+$crmSlugEtapa   = [];
+$crmNomesEtapas = [];
+if ($edicaoCrm) {
+    try {
+        $crmTermometro = \App\Prospeccao\Termometro::daConta((int)AccountContext::fromSession()->getAccountId());
+        foreach (\App\WhatsAppAgente\SdrFleetiflow::ETAPAS as $__k => [$__nome, $__slug]) {
+            $crmSlugEtapa[$__slug] = $__k;
+            $crmNomesEtapas[$__k]  = $__nome;
+        }
+    } catch (\Throwable $e) { /* fica a regra padrão */ }
+}
 if ($edicaoCrm) {
     try {
         $__ctxE = AccountContext::fromSession();
@@ -1240,6 +1254,36 @@ function column_display_name(array $col): string
     html[data-theme="light"] .lc-seta{ display:inline-flex; color:#9AA3B2; }
     html[data-theme="light"] .lc-seta svg{ width:16px; height:16px; }
 
+    /* Termômetro: selo clicável, nível congelado, menu de troca e modal da regra. */
+    .card-mini.lc .lc-termo{ border:0; cursor:pointer; font:inherit; font-size:.74rem; font-weight:700; }
+    .card-mini.lc .lc-termo:hover{ filter:brightness(.96); box-shadow:0 0 0 2px rgba(17,29,45,.08); }
+    .lc-termo-mao{ margin-left:2px; font-size:1rem; line-height:0; opacity:.6; }
+    html[data-theme="light"] .lc-congelado .lc-termo{ background:#EEF2F7; color:#475569; }
+    html[data-theme="light"] .card-mini.lc.lc-congelado{ border-left-color:#94A3B8 !important; }
+    html[data-theme="light"] .card-mini.lc.lc-congelado .lc-nome{ color:#64748B !important; }
+    .menu-termo{ position:absolute; z-index:9500; min-width:220px; padding:6px; border-radius:12px; background:#FFFFFF;
+      border:1px solid rgba(17,29,45,.10); box-shadow:0 12px 32px rgba(17,29,45,.16); font-family:'Manrope',system-ui,sans-serif; }
+    .menu-termo button{ display:block; width:100%; text-align:left; padding:8px 10px; border:0; border-radius:8px; background:none; cursor:pointer; font-size:.84rem; font-weight:600; color:#1F2937; }
+    .menu-termo button:hover{ background:#F3F4F6; }
+    .menu-termo .mt-quente{ color:#B91C1C; } .menu-termo .mt-morno{ color:#B45309; } .menu-termo .mt-frio{ color:#1D4ED8; } .menu-termo .mt-congelado{ color:#475569; }
+    .menu-termo .mt-auto{ color:#676767; font-weight:500; border-bottom:1px solid rgba(17,29,45,.07); border-radius:8px 8px 0 0; }
+    .termo-ajuda{ font-size:.78rem; color:#767676; margin:0 0 10px; }
+    .termo-grade{ display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; }
+    .termo-nivel{ display:flex; flex-direction:column; gap:6px; padding:10px 12px; border-radius:12px; font-size:.8rem; color:#3D3D3D; border:1px solid rgba(17,29,45,.08); }
+    .termo-nivel > span:first-child{ font-weight:800; font-size:.84rem; }
+    .tn-linha{ display:flex; align-items:center; gap:6px; font-weight:500 !important; color:#3D3D3D !important; }
+    .termo-nivel input{ width:70px; height:32px; padding:0 8px; border-radius:8px; border:1px solid rgba(17,29,45,.16); }
+    .tn-quente{ background:#FEF2F2; } .tn-quente span{ color:#B91C1C; }
+    .tn-morno{ background:#FFF7E6; } .tn-morno span{ color:#B45309; }
+    .tn-frio{ background:#EFF6FF; } .tn-frio span{ color:#1D4ED8; }
+    .tn-congelado{ background:#F1F5F9; } .tn-congelado span{ color:#475569; }
+    .termo-resumo{ margin:10px 0 0; font-size:.78rem; color:#575757; line-height:1.7; }
+    .termo-resumo .rt{ font-weight:700; } .rt-quente{ color:#B91C1C; } .rt-morno{ color:#B45309; } .rt-frio{ color:#1D4ED8; } .rt-congelado{ color:#475569; }
+    .termo-etapas{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .termo-etapas strong{ display:block; margin-bottom:6px; font-size:.82rem; color:#1F2937; }
+    .termo-chk{ display:flex; align-items:center; gap:8px; padding:3px 0; font-size:.82rem; color:#3D3D3D; cursor:pointer; }
+    @media (max-width:640px){ .termo-grade{ grid-template-columns:1fr 1fr; } .termo-etapas{ grid-template-columns:1fr; } }
+
     /* Seletor do especialista padrão, na barra de botões. */
     .crm-esp{ display:inline-flex; align-items:center; gap:8px; margin-left:4px; font-size:.78rem; font-weight:600; color:#676767; }
     .crm-esp select{ height:38px; min-width:170px; padding:0 10px; border-radius:10px; }
@@ -1278,6 +1322,9 @@ function column_display_name(array $col): string
                 <button id="btnNewCard" class="btn primary" type="button">＋ Novo Cliente</button>
                 <button id="btnColumns" class="btn soft" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06A2 2 0 1 1 2.27 17.8l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09c.7 0 1.27-.43 1.51-1a1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 6.3 2.27l.06.06c.5.5 1.2.75 1.82.33A1.65 1.65 0 0 0 9.69 1.5 1.65 1.65 0 0 0 9.7 1H12a2 2 0 1 1 0 4h-.09c-.7 0-1.27.43-1.51 1a1.65 1.65 0 0 0 .33 1.82l.06.06A2 2 0 1 1 17.73 6.2l-.06.06c-.5.5-.75 1.2-.33 1.82.32.56.32 1.28.32 1.82V12a2 2 0 1 1 4 0v.09c0 .7.43 1.27 1 1.51z"/></svg> Alterar Colunas</button>
                 <!-- Removidos: btnRefresh (auto-reload já acontece em create/edit/move) e btnToggleFilters (filtros sempre visíveis abaixo) -->
+                <?php if ($edicaoCrm && $crmPodeEspecialista): ?>
+                <button id="btnTermometro" class="btn soft" type="button" title="O que faz um lead ser quente, morno, frio ou congelado"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg> Termômetro</button>
+                <?php endif; ?>
                 <?php if ($edicaoCrm && $crmPodeEspecialista): ?>
                 <!-- Especialista padrão: responsável do card quando a conversa é
                      respondida pelo celular ou WhatsApp Web (não dá para saber quem
@@ -1452,7 +1499,8 @@ function column_display_name(array $col): string
               <label class="form-group">
                 <span class="form-label">Termômetro</span>
                 <select name="temperatura" class="form-select">
-                  <option value="">Automático (valor, checklist e prazo)</option>
+                  <option value="">Automático (regra do termômetro)</option>
+                  <option value="congelado">Congelado</option>
                   <option value="frio">Frio</option>
                   <option value="morno">Morno</option>
                   <option value="quente">Quente</option>
@@ -1620,7 +1668,8 @@ function column_display_name(array $col): string
               <label class="form-group">
                 <span class="form-label">Termômetro</span>
                 <select name="temperatura" class="form-select">
-                  <option value="">Automático (valor, checklist e prazo)</option>
+                  <option value="">Automático (regra do termômetro)</option>
+                  <option value="congelado">Congelado</option>
                   <option value="frio">Frio</option>
                   <option value="morno">Morno</option>
                   <option value="quente">Quente</option>
@@ -1832,6 +1881,55 @@ function column_display_name(array $col): string
     </div>
   </div>
 
+  <?php if ($edicaoCrm && $crmPodeEspecialista): ?>
+  <!-- Termômetro: a regra da conta (App\Prospeccao\Termometro). -->
+  <div id="modalTermometro" class="modal-shell hidden">
+    <div class="modal-panel" style="width:min(720px, 96vw);">
+      <div class="modal-header">
+        <div class="modal-title">Termômetro dos leads</div>
+        <div class="modal-subtitle">Defina o que faz um lead ser quente, morno, frio ou congelado. O card mostra a temperatura no canto de cima; clicando nela dá para escolher à mão, e a escolha manual vale mais que a regra.</div>
+      </div>
+      <form id="formTermometro" class="modal-form">
+        <div class="modal-body">
+          <div class="form-section">
+            <div class="form-section-title">1. Pelo tempo desde o último contato</div>
+            <p class="termo-ajuda">Último contato é a última mensagem da conversa ligada ao card ou, sem conversa, a última alteração do card.</p>
+            <div class="termo-grade">
+              <label class="termo-nivel tn-quente"><span>Quente</span><span class="tn-linha">até <input name="quente_dias" type="number" min="0" max="365" required> dias</span></label>
+              <label class="termo-nivel tn-morno"><span>Morno</span><span class="tn-linha">até <input name="morno_dias" type="number" min="1" max="365" required> dias</span></label>
+              <label class="termo-nivel tn-frio"><span>Frio</span><span class="tn-linha">até <input name="frio_dias" type="number" min="2" max="365" required> dias</span></label>
+              <div class="termo-nivel tn-congelado"><span>Congelado</span>mais que isso, ou nunca</div>
+            </div>
+            <p id="termoResumo" class="termo-resumo"></p>
+          </div>
+          <div class="form-section">
+            <div class="form-section-title">2. Pela etapa (vale mais que o tempo)</div>
+            <div class="termo-etapas">
+              <div>
+                <strong>Sempre quente</strong>
+                <?php foreach ($crmNomesEtapas as $__k => $__n): if (in_array($__k, ['venda'], true)) continue; ?>
+                <label class="termo-chk"><input type="checkbox" name="etapas_quentes" value="<?= htmlspecialchars($__k) ?>"> <?= htmlspecialchars($__n) ?></label>
+                <?php endforeach; ?>
+              </div>
+              <div>
+                <strong>Sempre congelado</strong>
+                <?php foreach ($crmNomesEtapas as $__k => $__n): if (in_array($__k, ['venda'], true)) continue; ?>
+                <label class="termo-chk"><input type="checkbox" name="etapas_congeladas" value="<?= htmlspecialchars($__k) ?>"> <?= htmlspecialchars($__n) ?></label>
+                <?php endforeach; ?>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="termoPadrao" class="btn ghost" style="margin-right:auto">Voltar ao padrão</button>
+          <button type="button" id="termoCancelar" class="btn ghost">Cancelar</button>
+          <button type="submit" class="btn primary">Salvar termômetro</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <?php endif; ?>
+
   <div id="modalColumns" class="modal-shell hidden">
     <div class="modal-panel" style="width:min(760px, 96vw);">
       <div class="modal-header">
@@ -1897,6 +1995,9 @@ function column_display_name(array $col): string
     const csrf = '<?=htmlspecialchars($csrf)?>';
     const usersMap = <?=json_encode($usersMap, JSON_UNESCAPED_UNICODE)?>;
     const EDICAO_CRM = <?= $edicaoCrm ? 'true' : 'false' ?>;
+    let   TERMOMETRO = <?= json_encode($crmTermometro, JSON_UNESCAPED_UNICODE) ?>;
+    const SLUG_ETAPA = <?= json_encode((object)$crmSlugEtapa, JSON_UNESCAPED_UNICODE) ?>;
+    const NOMES_ETAPAS = <?= json_encode((object)$crmNomesEtapas, JSON_UNESCAPED_UNICODE) ?>;
     const TIPOS_LEAD_PADRAO = <?= json_encode($tiposLeadPadrao, JSON_UNESCAPED_UNICODE) ?>;
     let columnsCache = <?=json_encode($columns, JSON_UNESCAPED_UNICODE)?>;
 
@@ -2034,6 +2135,30 @@ function column_display_name(array $col): string
       if (manual === 'quente') return { label: 'Quente', cls: 'badge-hot',  chave: 'quente', manual: true };
       if (manual === 'morno')  return { label: 'Morno',  cls: 'badge-warm', chave: 'morno',  manual: true };
       if (manual === 'frio')   return { label: 'Frio',   cls: 'badge-cold', chave: 'frio',   manual: true };
+      if (manual === 'congelado') return { label: 'Congelado', cls: 'badge-cold', chave: 'congelado', manual: true };
+      // Edição CRM: a regra da conta (botão "Termômetro"), espelho de
+      // App\Prospeccao\Termometro::classificar. Etapa vence o tempo sem contato.
+      if (EDICAO_CRM && TERMOMETRO) {
+        const ROT = { quente: ['Quente', 'badge-hot'], morno: ['Morno', 'badge-warm'], frio: ['Frio', 'badge-cold'], congelado: ['Congelado', 'badge-cold'] };
+        const col = getColumnById(card.coluna_id);
+        const etapa = col ? (SLUG_ETAPA[col.slug] || null) : null;
+        let chave, porque;
+        if (etapa && (TERMOMETRO.etapas_congeladas || []).includes(etapa)) { chave = 'congelado'; porque = 'etapa ' + (NOMES_ETAPAS[etapa] || etapa); }
+        else if (etapa && (TERMOMETRO.etapas_quentes || []).includes(etapa)) { chave = 'quente'; porque = 'etapa ' + (NOMES_ETAPAS[etapa] || etapa); }
+        else {
+          const ultimo = card.linked_chat_last_at || card.updated_at || card.created_at;
+          const d = ultimo ? new Date(String(ultimo).replace(' ', 'T')) : null;
+          // max(0): o banco grava em UTC e o navegador lê como hora local; sem isso
+          // um contato de agora aparecia "há -1 dias".
+          const dias = d && !Number.isNaN(d.getTime()) ? Math.max(0, Math.floor((Date.now() - d.getTime()) / 86400000)) : null;
+          if (dias === null) { chave = 'congelado'; porque = 'sem contato registrado'; }
+          else {
+            chave = dias <= TERMOMETRO.quente_dias ? 'quente' : dias <= TERMOMETRO.morno_dias ? 'morno' : dias <= TERMOMETRO.frio_dias ? 'frio' : 'congelado';
+            porque = dias === 0 ? 'contato hoje' : 'último contato há ' + dias + (dias === 1 ? ' dia' : ' dias');
+          }
+        }
+        return { label: ROT[chave][0], cls: ROT[chave][1], chave, porque };
+      }
       let score = 0;
       if (toNumber(card.valor_proposta) >= 15000 || toNumber(card.valor_estimado) >= 20000) score += 2;
       if (checklistPct >= 70) score += 2;
@@ -2062,7 +2187,114 @@ function column_display_name(array $col): string
       zap:      '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.38 1.27 4.79L2.05 22l5.38-1.37c1.37.74 2.93 1.16 4.61 1.16 5.45 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.13-2.9-7A9.83 9.83 0 0 0 12.04 2zm0 18.1c-1.5 0-2.97-.4-4.25-1.16l-.3-.18-3.19.81.85-3.1-.2-.32a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.32-8.12 8.32zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.22.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18-.06-.1-.22-.16-.47-.28z"/></svg>',
       chat:     '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>',
       seta:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
+      gelo:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6.5v11L12 22l8-4.5v-11L12 2z"/><path d="M4 6.5 12 11l8-4.5M12 11v11"/></svg>',
     };
+
+    // ── Trocar a temperatura de um card direto no quadro ─────────────────
+    // Clique no selo do termômetro: menu com Automático e os quatro níveis.
+    // Grava em cards.temperatura pelo mesmo PUT do formulário de edição.
+    function abrirMenuTermo(botao) {
+      fecharMenuTermo();
+      const cardId = botao.getAttribute('data-card-id');
+      const menu = document.createElement('div');
+      menu.id = 'menuTermo';
+      menu.className = 'menu-termo';
+      menu.innerHTML = [['', 'Automático (regra do termômetro)'], ['quente', 'Quente'], ['morno', 'Morno'], ['frio', 'Frio'], ['congelado', 'Congelado']]
+        .map(([v, t]) => '<button type="button" data-valor="' + v + '" class="mt-' + (v || 'auto') + '">' + t + '</button>').join('');
+      document.body.appendChild(menu);
+      const r = botao.getBoundingClientRect();
+      menu.style.top  = (window.scrollY + r.bottom + 6) + 'px';
+      menu.style.left = Math.min(window.scrollX + r.left, window.scrollX + document.documentElement.clientWidth - menu.offsetWidth - 12) + 'px';
+      menu.addEventListener('click', async function (ev) {
+        const b = ev.target.closest('button[data-valor]');
+        if (!b) return;
+        ev.stopPropagation();
+        fecharMenuTermo();
+        try {
+          const res = await fetch(apiCards, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+            body: JSON.stringify({ id: cardId, temperatura: b.getAttribute('data-valor') })
+          }).then(x => x.json());
+          if (!res.success) throw new Error();
+          if (window.Yuris && Yuris.toast) Yuris.toast(b.getAttribute('data-valor') ? 'Termômetro: ' + b.textContent : 'Termômetro automático', 'success');
+          await loadAll();
+        } catch (e) {
+          if (window.Yuris && Yuris.toast) Yuris.toast('Não foi possível trocar o termômetro.', 'error');
+        }
+      });
+      // Fecha ao clicar fora. Ignora o próprio menu e os selos (o selo reabre o
+      // menu do card dele) e é removido junto com o menu, para não sobrar um
+      // ouvinte que feche a PRÓXIMA abertura no mesmo clique.
+      _fecharTermo = function (ev) {
+        if (ev.target.closest('#menuTermo') || ev.target.closest('.lc-termo')) return;
+        fecharMenuTermo();
+      };
+      setTimeout(() => { if (_fecharTermo) document.addEventListener('click', _fecharTermo, true); }, 0);
+    }
+    let _fecharTermo = null;
+    function fecharMenuTermo() {
+      const m = document.getElementById('menuTermo');
+      if (m) m.remove();
+      if (_fecharTermo) { document.removeEventListener('click', _fecharTermo, true); _fecharTermo = null; }
+    }
+
+    // ── Botão "Termômetro": a regra da conta ─────────────────────────────
+    function abrirModalTermometro() {
+      const f = byId('formTermometro');
+      if (!f || !TERMOMETRO) return;
+      f.quente_dias.value = TERMOMETRO.quente_dias;
+      f.morno_dias.value  = TERMOMETRO.morno_dias;
+      f.frio_dias.value   = TERMOMETRO.frio_dias;
+      f.querySelectorAll('input[name="etapas_quentes"]').forEach(c => { c.checked = (TERMOMETRO.etapas_quentes || []).includes(c.value); });
+      f.querySelectorAll('input[name="etapas_congeladas"]').forEach(c => { c.checked = (TERMOMETRO.etapas_congeladas || []).includes(c.value); });
+      atualizarResumoTermo();
+      openModal('modalTermometro');
+    }
+    function atualizarResumoTermo() {
+      const f = byId('formTermometro');
+      if (!f) return;
+      const q = f.quente_dias.value, m = f.morno_dias.value, fr = f.frio_dias.value;
+      byId('termoResumo').innerHTML =
+        '<span class="rt rt-quente">Quente</span> último contato há até ' + escapeHtml(q) + ' dia(s) · ' +
+        '<span class="rt rt-morno">Morno</span> até ' + escapeHtml(m) + ' · ' +
+        '<span class="rt rt-frio">Frio</span> até ' + escapeHtml(fr) + ' · ' +
+        '<span class="rt rt-congelado">Congelado</span> mais de ' + escapeHtml(fr) + ' dias ou nunca';
+    }
+    async function salvarTermometro(ev, padrao) {
+      if (ev) ev.preventDefault();
+      const f = byId('formTermometro');
+      const corpo = padrao ? { padrao: true } : {
+        quente_dias: f.quente_dias.value, morno_dias: f.morno_dias.value, frio_dias: f.frio_dias.value,
+        etapas_quentes:    [...f.querySelectorAll('input[name="etapas_quentes"]:checked')].map(c => c.value),
+        etapas_congeladas: [...f.querySelectorAll('input[name="etapas_congeladas"]:checked')].map(c => c.value),
+      };
+      try {
+        const r = await fetch('/api/crm_termometro.php', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+          body: JSON.stringify(corpo)
+        }).then(x => x.json());
+        if (!r.ok) { if (window.Yuris && Yuris.toast) Yuris.toast(r.error || 'Não foi possível salvar.', 'error'); return; }
+        TERMOMETRO = r.regra;
+        closeModal('modalTermometro');
+        applyFiltersAndRender();
+        if (window.Yuris && Yuris.toast) Yuris.toast('Termômetro atualizado.', 'success');
+      } catch (e) {
+        if (window.Yuris && Yuris.toast) Yuris.toast('Falha de conexão.', 'error');
+      }
+    }
+    document.addEventListener('DOMContentLoaded', function () {
+      const b = byId('btnTermometro');
+      if (b) b.addEventListener('click', abrirModalTermometro);
+      const f = byId('formTermometro');
+      if (f) {
+        f.addEventListener('submit', ev => salvarTermometro(ev, false));
+        f.addEventListener('input', atualizarResumoTermo);
+        byId('termoPadrao').addEventListener('click', () => salvarTermometro(null, true));
+        byId('termoCancelar').addEventListener('click', () => closeModal('modalTermometro'));
+      }
+    });
 
     function lcInicial(texto) {
       const t = String(texto || '').trim();
@@ -2141,8 +2373,10 @@ function column_display_name(array $col): string
         originStripHtml +
         '<div class="card-drag-handle" title="Arrastar"><svg viewBox="0 0 18 10" xmlns="http://www.w3.org/2000/svg"><rect y="0" width="18" height="2" rx="1"/><rect y="4" width="18" height="2" rx="1"/><rect y="8" width="18" height="2" rx="1"/></svg></div>' +
         '<div class="lc-topo">' +
-          '<span class="lc-termo" title="' + (temp.manual ? 'Termômetro definido pelo consultor' : 'Termômetro automático (valor, checklist e prazo)') + '">' +
-            (temp.chave === 'frio' ? LC_ICONES.frio : LC_ICONES.fogo) + escapeHtml(temp.label) + '</span>' +
+          '<button type="button" class="lc-termo" data-card-id="' + escapeHtml(card.id) + '" title="' +
+            escapeHtml((temp.manual ? 'Definido à mão' : 'Automático: ' + (temp.porque || 'regra do termômetro')) + '. Clique para trocar.') + '">' +
+            (temp.chave === 'congelado' ? LC_ICONES.gelo : temp.chave === 'frio' ? LC_ICONES.frio : LC_ICONES.fogo) + escapeHtml(temp.label) +
+            (temp.manual ? '<span class="lc-termo-mao" aria-label="definido à mão">•</span>' : '') + '</button>' +
           (card.tipo_lead ? '<span class="lc-tipo">' + LC_ICONES.tipo + escapeHtml(card.tipo_lead) + '</span>' : '<span class="lc-tipo lc-tipo-vazio">' + LC_ICONES.tipo + 'Sem tipo</span>') +
         '</div>' +
         '<div class="lc-id">' +
@@ -3613,6 +3847,15 @@ function column_display_name(array $col): string
             return;
           }
           openWhatsApp(waBtn.getAttribute('data-phone'), waBtn.getAttribute('data-jid'));
+          return;
+        }
+
+        // Selo do termômetro: abre o menu de troca, não o card.
+        const termoBtn = e.target.closest('.lc-termo');
+        if (termoBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          abrirMenuTermo(termoBtn);
           return;
         }
 
