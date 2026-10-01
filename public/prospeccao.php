@@ -14,6 +14,11 @@ if (empty($_SESSION['user_id'])) {
 // HARDENING: bloqueia acesso de contas suspensas/canceladas/inativas
 AccountContext::fromSession()->assertAccountActive();
 $moduloJuridico = AccountContext::fromSession()->moduloJuridicoDisponivel(); // false só para conta Fleetiflow (sem módulo jurídico)
+// Edição CRM comercial: o card do quadro é o do Fleetiflow (termômetro, tipo do
+// lead, potencial mensal, último contato, consultor) e o formulário ganha os
+// campos tipo_lead e temperatura (migration 134). A edição jurídica não muda.
+$edicaoCrm = !$moduloJuridico;
+$tiposLeadPadrao = ['Concessionária', 'Despachante', 'Loja multimarcas', 'Gestão de Frota', 'Frota Corporativa', 'Locadora', 'Oficina', 'Outro'];
 $activePage = 'prospeccao';
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 $columns = PipelineColumn::listAll();
@@ -1157,6 +1162,78 @@ function column_display_name(array $col): string
         width: 100%;
       }
     }
+
+    <?php if ($edicaoCrm): ?>
+    /* ══════════════════════════════════════════════════════════════════════
+       Card de lead da edição CRM (.card-mini.lc): o desenho do Fleetiflow.
+       Termômetro e tipo no alto, inicial da empresa, cidade, potencial mensal,
+       último ou próximo contato, consultor e ações. Borda esquerda na cor do
+       termômetro. Cores da marca em var(--ff-*) (menu lateral). Prefixo
+       html[data-theme="light"] onde o yuris-theme.css já é !important.
+       ══════════════════════════════════════════════════════════════════════ */
+    html[data-theme="light"] .card-mini.lc{
+      padding:10px 12px 10px 14px !important; margin-bottom:10px; border-radius:14px !important;
+      border:1px solid rgba(17,29,45,.08) !important; border-left:4px solid #8DA2BE !important;
+      box-shadow:none !important; font-family:'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif; cursor:pointer;
+    }
+    html[data-theme="light"] .card-mini.lc:hover{ border-color:rgba(17,29,45,.16) !important; box-shadow:0 6px 18px rgba(17,29,45,.08) !important; transform:none; }
+    html[data-theme="light"] .card-mini.lc.lc-frio{ border-left-color:#3B82F6 !important; }
+    html[data-theme="light"] .card-mini.lc.lc-morno{ border-left-color:#F59E0B !important; }
+    html[data-theme="light"] .card-mini.lc.lc-quente{ border-left-color:#EF4444 !important; }
+    html[data-theme="light"] .card-mini.lc.is-overdue{ border-left-color:#EF4444 !important; }
+    .card-mini.lc .card-drag-handle{ position:absolute; top:6px; left:50%; transform:translateX(-50%); opacity:0; }
+    .card-mini.lc:hover .card-drag-handle{ opacity:.5; }
+    .card-mini.lc svg{ width:14px; height:14px; flex:none; }
+
+    .lc-topo{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+    .lc-termo{ display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; font-size:.74rem; font-weight:700; line-height:1; }
+    html[data-theme="light"] .lc-frio .lc-termo{ background:#E8F1FF; color:#1D4ED8; }
+    html[data-theme="light"] .lc-morno .lc-termo{ background:#FFF4D6; color:#B45309; }
+    html[data-theme="light"] .lc-quente .lc-termo{ background:#FEE2E2; color:#B91C1C; }
+    html[data-theme="light"] .lc-tipo{ display:inline-flex; align-items:center; gap:5px; font-size:.74rem; font-weight:600; color:#676767 !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+    html[data-theme="light"] .lc-tipo svg{ width:13px; height:13px; }
+    html[data-theme="light"] .lc-tipo-vazio{ color:#A0A7B4 !important; font-weight:500; }
+
+    .lc-id{ display:flex; align-items:center; gap:10px; margin-bottom:10px; min-width:0; }
+    html[data-theme="light"] .lc-logo{ width:40px; height:40px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center;
+      background:#F1F3F6; border:1px solid rgba(17,29,45,.08); color:#3D3D3D !important; font-weight:800; font-size:.9rem; letter-spacing:-.02em; }
+    .lc-quem{ min-width:0; }
+    html[data-theme="light"] .card-mini.lc .lc-nome{ color:#1F2937 !important; font-weight:700 !important; font-size:.92rem; line-height:1.25; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    html[data-theme="light"] .lc-local{ color:#767676 !important; font-size:.76rem; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+    .lc-dados{ display:grid; grid-template-columns:1fr 1fr; gap:8px; padding-top:9px; border-top:1px solid rgba(17,29,45,.07); }
+    .lc-dado{ display:flex; align-items:flex-start; gap:6px; min-width:0; }
+    html[data-theme="light"] .lc-dado > svg{ color:#9AA3B2; margin-top:2px; }
+    html[data-theme="light"] .lc-dado small{ display:block; color:#767676 !important; font-size:.68rem; line-height:1.2; }
+    html[data-theme="light"] .lc-dado .lc-v{ display:block; color:#1F2937 !important; font-weight:700; font-size:.8rem; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    html[data-theme="light"] .lc-dado .lc-v em{ font-style:normal; font-weight:600; color:#767676 !important; }
+
+    html[data-theme="light"] .lc-atraso{ display:flex; align-items:center; gap:8px; margin-top:9px; padding:7px 10px; border-radius:9px; background:#FEE2E2; }
+    html[data-theme="light"] .lc-atraso > svg{ color:#B91C1C; }
+    html[data-theme="light"] .lc-atraso .lc-v{ display:block; color:#B91C1C !important; font-weight:700; font-size:.78rem; }
+    html[data-theme="light"] .lc-atraso small{ display:block; color:#B91C1C !important; opacity:.85; font-size:.68rem; }
+
+    .lc-rodape{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:10px; padding-top:9px; border-top:1px solid rgba(17,29,45,.07); }
+    html[data-theme="light"] .lc-resp{ display:inline-flex; align-items:center; gap:7px; color:#3D3D3D !important; font-size:.8rem; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    html[data-theme="light"] .lc-resp-vazio{ color:#A0A7B4 !important; font-weight:500; }
+    html[data-theme="light"] .lc-avatar{ width:26px; height:26px; border-radius:50%; flex:none; display:inline-flex; align-items:center; justify-content:center;
+      background:var(--ff-marca-suave, #D6E4FF); color:var(--ff-marca-forte, #013DF2) !important; font-size:.7rem; font-weight:800; }
+    .lc-acoes{ display:inline-flex; align-items:center; gap:6px; flex:none; }
+    html[data-theme="light"] .card-mini.lc .lc-zap{ width:30px; height:30px; border-radius:8px; border:0 !important; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; padding:0;
+      background:#25D366 !important; color:#FFFFFF !important; }
+    html[data-theme="light"] .card-mini.lc .lc-zap svg{ width:17px; height:17px; }
+    html[data-theme="light"] .card-mini.lc .lc-zap.disabled{ background:#E5E7EB !important; color:#9CA3AF !important; cursor:not-allowed; }
+    html[data-theme="light"] .card-mini.lc .lc-chat{ display:inline-flex; align-items:center; gap:5px; height:30px; padding:0 11px; border-radius:8px; border:0 !important; text-decoration:none;
+      background:var(--ff-marca-suave, #D6E4FF) !important; color:var(--ff-marca-forte, #013DF2) !important; font-size:.78rem; font-weight:700; }
+    html[data-theme="light"] .card-mini.lc .lc-chat:hover{ background:var(--ff-marca-media, #A9C6FF) !important; }
+    html[data-theme="light"] .lc-seta{ display:inline-flex; color:#9AA3B2; }
+    html[data-theme="light"] .lc-seta svg{ width:16px; height:16px; }
+
+    /* Cabeçalho da coluna: título escuro, contador na cor da marca, "N leads" embaixo. */
+    html[data-theme="light"] .kanban-col .col-title{ color:#1F2937 !important; font-size:1rem; }
+    html[data-theme="light"] .kanban-col .col-pill{ background:var(--ff-marca-suave, #D6E4FF) !important; color:var(--ff-marca-forte, #013DF2) !important; border-color:transparent !important; }
+    html[data-theme="light"] .kanban-col .col-subtitle{ color:#767676 !important; }
+    <?php endif; ?>
   </style>
 </head>
 <body>
@@ -1296,6 +1373,7 @@ function column_display_name(array $col): string
     </div>
   </main>
 
+  <?php if ($edicaoCrm): ?><datalist id="tiposLead"><?php foreach ($tiposLeadPadrao as $t): ?><option value="<?= htmlspecialchars($t) ?>"></option><?php endforeach; ?></datalist><?php endif; ?>
   <div id="modalCreate" class="modal-shell hidden">
     <div class="modal-panel">
       <div class="modal-header">
@@ -1336,6 +1414,22 @@ function column_display_name(array $col): string
                 <span class="form-label">E-mail</span>
                 <input name="email" type="email" class="form-input" placeholder="contato@cliente.com">
               </label>
+              <?php if ($edicaoCrm): ?>
+              <!-- Card da edição CRM (migration 134): o que aparece no alto do card. -->
+              <label class="form-group">
+                <span class="form-label">Tipo do lead</span>
+                <input name="tipo_lead" class="form-input" list="tiposLead" maxlength="60" placeholder="Concessionária, Despachante..." autocomplete="off">
+              </label>
+              <label class="form-group">
+                <span class="form-label">Termômetro</span>
+                <select name="temperatura" class="form-select">
+                  <option value="">Automático (valor, checklist e prazo)</option>
+                  <option value="frio">Frio</option>
+                  <option value="morno">Morno</option>
+                  <option value="quente">Quente</option>
+                </select>
+              </label>
+              <?php endif; ?>
             </div>
           </div>
 
@@ -1488,6 +1582,22 @@ function column_display_name(array $col): string
                 <span class="form-label">E-mail</span>
                 <input name="email" type="email" class="form-input" placeholder="contato@cliente.com">
               </label>
+              <?php if ($edicaoCrm): ?>
+              <!-- Card da edição CRM (migration 134): o que aparece no alto do card. -->
+              <label class="form-group">
+                <span class="form-label">Tipo do lead</span>
+                <input name="tipo_lead" class="form-input" list="tiposLead" maxlength="60" placeholder="Concessionária, Despachante..." autocomplete="off">
+              </label>
+              <label class="form-group">
+                <span class="form-label">Termômetro</span>
+                <select name="temperatura" class="form-select">
+                  <option value="">Automático (valor, checklist e prazo)</option>
+                  <option value="frio">Frio</option>
+                  <option value="morno">Morno</option>
+                  <option value="quente">Quente</option>
+                </select>
+              </label>
+              <?php endif; ?>
             </div>
           </div>
 
@@ -1757,6 +1867,8 @@ function column_display_name(array $col): string
     const apiCards = '/api/cards.php';
     const csrf = '<?=htmlspecialchars($csrf)?>';
     const usersMap = <?=json_encode($usersMap, JSON_UNESCAPED_UNICODE)?>;
+    const EDICAO_CRM = <?= $edicaoCrm ? 'true' : 'false' ?>;
+    const TIPOS_LEAD_PADRAO = <?= json_encode($tiposLeadPadrao, JSON_UNESCAPED_UNICODE) ?>;
     let columnsCache = <?=json_encode($columns, JSON_UNESCAPED_UNICODE)?>;
 
     // Identifica origem do registro (matriz/filial) — controla:
@@ -1888,6 +2000,11 @@ function column_display_name(array $col): string
     }
 
     function getTemperatureBadge(card, checklistPct) {
+      // Termômetro escolhido pelo consultor (migration 134) vence o automático.
+      const manual = String(card.temperatura || '').toLowerCase();
+      if (manual === 'quente') return { label: 'Quente', cls: 'badge-hot',  chave: 'quente', manual: true };
+      if (manual === 'morno')  return { label: 'Morno',  cls: 'badge-warm', chave: 'morno',  manual: true };
+      if (manual === 'frio')   return { label: 'Frio',   cls: 'badge-cold', chave: 'frio',   manual: true };
       let score = 0;
       if (toNumber(card.valor_proposta) >= 15000 || toNumber(card.valor_estimado) >= 20000) score += 2;
       if (checklistPct >= 70) score += 2;
@@ -1895,9 +2012,141 @@ function column_display_name(array $col): string
       const days = businessDaysUntil(card.data_prevista_fechamento);
       if (days !== null && days <= 5) score += 1;
 
-      if (score >= 3) return { label: 'Quente', cls: 'badge-hot' };
-      if (score >= 1) return { label: 'Morno', cls: 'badge-warm' };
-      return { label: 'Frio', cls: 'badge-cold' };
+      if (score >= 3) return { label: 'Quente', cls: 'badge-hot',  chave: 'quente' };
+      if (score >= 1) return { label: 'Morno',  cls: 'badge-warm', chave: 'morno' };
+      return { label: 'Frio', cls: 'badge-cold', chave: 'frio' };
+    }
+
+    // ── Card da edição CRM (desenho do Fleetiflow) ───────────────────────
+    // Termômetro e tipo no alto, inicial da empresa como "logo", cidade, o
+    // potencial mensal, o último ou o próximo contato, e o consultor com as
+    // ações. Mesmas classes de gancho do card jurídico (.card-mini, .js-whatsapp,
+    // .chat-link-btn, .card-drag-handle): o clique, o arrastar e o filtro do
+    // Sortable continuam iguais.
+    const LC_ICONES = {
+      frio:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M4.9 6.5l14.2 11M19.1 6.5 4.9 17.5M12 2l-2.5 2.5M12 2l2.5 2.5M12 22l-2.5-2.5M12 22l2.5-2.5"/></svg>',
+      fogo:   '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c-4.4 0-7-2.9-7-6.6 0-2.7 1.6-4.6 3-6.2.3 1.4 1 2.4 2 3 0-3.5 1.5-7.2 4.5-9.2-.3 2.3.6 3.9 1.9 5.4C17.9 10.3 19 12.3 19 15.4 19 19.1 16.4 22 12 22z"/></svg>',
+      tipo:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 10h.01M15 10h.01M9 14h.01M15 14h.01"/></svg>',
+      dinheiro: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M17 6.5c0-1.9-2.2-3-5-3s-5 1.1-5 3 2.2 3 5 3 5 1.1 5 3-2.2 3-5 3-5-1.1-5-3"/></svg>',
+      relogio:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+      alerta:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>',
+      zap:      '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.38 1.27 4.79L2.05 22l5.38-1.37c1.37.74 2.93 1.16 4.61 1.16 5.45 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.13-2.9-7A9.83 9.83 0 0 0 12.04 2zm0 18.1c-1.5 0-2.97-.4-4.25-1.16l-.3-.18-3.19.81.85-3.1-.2-.32a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.32-8.12 8.32zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.22.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18-.06-.1-.22-.16-.47-.28z"/></svg>',
+      chat:     '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>',
+      seta:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
+    };
+
+    function lcInicial(texto) {
+      const t = String(texto || '').trim();
+      if (!t) return '?';
+      const partes = t.split(/\s+/).filter(Boolean);
+      const ini = partes.length > 1 ? partes[0][0] + partes[1][0] : t.slice(0, 1);
+      return ini.toUpperCase();
+    }
+
+    // "Hoje 10:24", "Ontem 16:20", "22/09 14:10". Data só (prazo) sai sem hora.
+    function lcQuando(valor, soData) {
+      if (!valor) return null;
+      const d = new Date(String(valor).replace(' ', 'T') + (soData ? 'T00:00:00' : ''));
+      if (Number.isNaN(d.getTime())) return String(valor);
+      const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+      const dia = new Date(d); dia.setHours(0, 0, 0, 0);
+      const diff = Math.round((dia - hoje) / 86400000);
+      const hora = soData ? '' : ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      if (diff === 0)  return 'Hoje' + hora;
+      if (diff === -1) return 'Ontem' + hora;
+      if (diff === 1)  return 'Amanhã' + hora;
+      return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + hora;
+    }
+
+    function renderCardCrm(card, column, colId) {
+      const checklistPct = getChecklistPct(card);
+      const temp = getTemperatureBadge(card, checklistPct);
+      const valorEstimado = toNumber(card.valor_estimado);
+      const valorFechado  = toNumber(card.valor_fechado_final);
+      const _df = String(card.data_fechamento || '').trim();
+      const hasFechamento = _df.length > 0 && !_df.startsWith('0000');
+      const valor = hasFechamento && valorFechado > 0 ? valorFechado : valorEstimado;
+      const responsavel = usersMap[String(card.responsavel_user_id || '')] || '';
+      const hasWhatsapp = String(card.telefone_whatsapp || '').replace(/\D/g, '').length >= 10;
+      const dueDays = businessDaysUntil(card.data_prevista_fechamento);
+      const fechada = isClosedColumn(column);
+      const isOverdue = dueDays !== null && dueDays < 0 && !fechada;
+      const nome  = card.cliente_nome || card.empresa_nome || 'Lead sem nome';
+      const local = [card.cidade, card.uf].filter(Boolean).join(' · ')
+                 || (card.empresa_nome && card.empresa_nome !== card.cliente_nome ? card.empresa_nome : '')
+                 || 'Local não informado';
+
+      // Um só horário no card: o próximo contato quando há prazo à frente, senão
+      // o último contato (última mensagem do WhatsApp ligado, ou a última mexida).
+      let rotuloQuando = 'Último contato';
+      let quando = lcQuando(card.linked_chat_last_at || card.updated_at || card.created_at, false) || '—';
+      if (hasFechamento && card.data_fechamento) {
+        rotuloQuando = 'Fechado em'; quando = lcQuando(card.data_fechamento, true);
+      } else if (card.data_prevista_fechamento && dueDays !== null && dueDays >= 0 && !fechada) {
+        rotuloQuando = 'Próximo contato'; quando = lcQuando(card.data_prevista_fechamento, true);
+      }
+
+      const div = document.createElement('div');
+      div.className = 'card-mini lc lc-' + temp.chave + (isOverdue ? ' is-overdue' : '');
+      div.setAttribute('data-id', card.id);
+      div.setAttribute('data-coluna-id', colId);
+      div.setAttribute('data-temp', temp.chave);
+
+      let originStripHtml = '';
+      const originTipo = String(card.origin_account_tipo || '').toLowerCase();
+      // Faixa de origem só para card de FILIAL: o nome da própria conta em cima de
+      // cada card ("MATRIZ · Fleetiflow") é ruído no quadro comercial.
+      if (window.YURIS_SHOW_ORIGIN_STRIP && originTipo && originTipo !== 'matriz') {
+        div.setAttribute('data-origin-tipo', originTipo);
+        const cls = originTipo === 'matriz' ? 'is-matriz' : originTipo === 'advogado' ? 'is-advogado' : 'is-filial';
+        originStripHtml = '<div class="card-origin-strip ' + cls + '"><span class="org-label">' + (originTipo === 'matriz' ? 'MATRIZ' : 'FILIAL') + '</span>' +
+          '<span class="org-name">' + escapeHtml(String(card.origin_account_nome || '')) + '</span></div>';
+      }
+
+      const atrasoHtml = isOverdue
+        ? '<div class="lc-atraso">' + LC_ICONES.alerta + '<div><span class="lc-v">Ação em atraso</span><small>Deveria ter sido feita ' +
+            (dueDays === -1 ? 'ontem' : 'há ' + Math.abs(dueDays) + ' dias úteis') + '</small></div></div>'
+        : '';
+
+      div.innerHTML =
+        originStripHtml +
+        '<div class="card-drag-handle" title="Arrastar"><svg viewBox="0 0 18 10" xmlns="http://www.w3.org/2000/svg"><rect y="0" width="18" height="2" rx="1"/><rect y="4" width="18" height="2" rx="1"/><rect y="8" width="18" height="2" rx="1"/></svg></div>' +
+        '<div class="lc-topo">' +
+          '<span class="lc-termo" title="' + (temp.manual ? 'Termômetro definido pelo consultor' : 'Termômetro automático (valor, checklist e prazo)') + '">' +
+            (temp.chave === 'frio' ? LC_ICONES.frio : LC_ICONES.fogo) + escapeHtml(temp.label) + '</span>' +
+          (card.tipo_lead ? '<span class="lc-tipo">' + LC_ICONES.tipo + escapeHtml(card.tipo_lead) + '</span>' : '<span class="lc-tipo lc-tipo-vazio">' + LC_ICONES.tipo + 'Sem tipo</span>') +
+        '</div>' +
+        '<div class="lc-id">' +
+          '<span class="lc-logo">' + escapeHtml(lcInicial(card.empresa_nome || nome)) + '</span>' +
+          '<div class="lc-quem"><div class="card-client lc-nome">' + escapeHtml(nome) + '</div><div class="lc-local">' + escapeHtml(local) + '</div></div>' +
+        '</div>' +
+        '<div class="lc-dados">' +
+          '<div class="lc-dado">' + LC_ICONES.dinheiro + '<div><small>Potencial</small><span class="lc-v">' + (valor > 0 ? formatMoney(valor).replace(',00', '') + '<em>/mês</em>' : 'a definir') + '</span></div></div>' +
+          '<div class="lc-dado">' + LC_ICONES.relogio + '<div><small>' + rotuloQuando + '</small><span class="lc-v">' + escapeHtml(quando) + '</span></div></div>' +
+        '</div>' +
+        atrasoHtml +
+        '<div class="lc-rodape">' +
+          (responsavel
+            ? '<span class="lc-resp"><span class="lc-avatar">' + escapeHtml(lcInicial(responsavel)) + '</span>' + escapeHtml(responsavel.split(' ')[0]) + '</span>'
+            : '<span class="lc-resp lc-resp-vazio"><span class="lc-avatar">?</span>Sem consultor</span>') +
+          '<span class="lc-acoes">' +
+            '<button type="button" class="lc-zap js-whatsapp ' + (hasWhatsapp ? '' : 'disabled') + '" title="' + (hasWhatsapp ? 'Abrir no WhatsApp' : 'Sem WhatsApp cadastrado') + '" data-phone="' + escapeHtml(card.telefone_whatsapp || '') + '" data-jid="' + escapeHtml(card.linked_chat_jid || '') + '">' + LC_ICONES.zap + '</button>' +
+            (card.linked_chat_jid
+              ? '<a href="/chat.php?jid=' + encodeURIComponent(card.linked_chat_jid) + '" class="chat-link-btn lc-chat" title="Abrir a conversa no Chat" onclick="event.stopPropagation()">' + LC_ICONES.chat + 'Chat</a>'
+              : '') +
+            '<span class="lc-seta" aria-hidden="true">' + LC_ICONES.seta + '</span>' +
+          '</span>' +
+        '</div>';
+      return div;
+    }
+
+    // Sugestões do campo "Tipo do lead": os padrões mais o que a conta já usa.
+    function atualizarTiposLead() {
+      const dl = byId('tiposLead');
+      if (!dl) return;
+      const usados = new Set(TIPOS_LEAD_PADRAO);
+      Object.values(cardsCacheByColumn).forEach(lista => (lista || []).forEach(c => { if (c.tipo_lead) usados.add(String(c.tipo_lead)); }));
+      dl.innerHTML = [...usados].sort((a, b) => a.localeCompare(b, 'pt-BR')).map(t => '<option value="' + escapeHtml(t) + '"></option>').join('');
     }
 
     function getFollowUpBadge(card, column, checklistPct) {
@@ -1925,6 +2174,12 @@ function column_display_name(array $col): string
       const el = byId('col-count-' + colId);
       if (!el) return;
       el.textContent = filtered + '/' + total;
+      // Edição CRM: a linha de baixo do cabeçalho diz quantos leads há, em vez de
+      // repetir o nome da etapa (que já é o título).
+      if (EDICAO_CRM) {
+        const sub = el.closest('.kanban-col')?.querySelector('.col-subtitle');
+        if (sub) sub.textContent = total === 1 ? '1 lead' : total + ' leads';
+      }
     }
 
     function getChecklistPct(card) {
@@ -1943,6 +2198,12 @@ function column_display_name(array $col): string
       }
 
       const column = getColumnById(colId);
+
+      if (EDICAO_CRM) {
+        cards.forEach(card => listEl.appendChild(renderCardCrm(card, column, colId)));
+        atualizarTiposLead();
+        return;
+      }
 
       cards.forEach(card => {
         const div = document.createElement('div');
@@ -3038,6 +3299,9 @@ function column_display_name(array $col): string
       // migration a coluna não existe, o card vem sem a chave, e o select ficaria
       // com "Não informado" em vez de dar erro de JS no meio do preenchimento.
       if (form.origem_id)    form.origem_id.value    = card.origem_id || '';
+      // Card da edição CRM (migration 134): tipo e termômetro escolhidos pelo consultor.
+      if (form.tipo_lead)    form.tipo_lead.value    = card.tipo_lead || '';
+      if (form.temperatura)  form.temperatura.value  = card.temperatura || '';
       renderColumnSelectOptions('editColunaId', card.coluna_id || '');
 
       const parsedDesc = splitDescricao(card.descricao || '');

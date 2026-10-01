@@ -104,7 +104,16 @@ regra própria para o tema claro: o estilo escuro embutido virava bloco cinza
 com texto ilegível sobre a bolha branca.
 
 `prospeccao.php` troca título, cabeçalho e o nome do modal ("Novo Lead
-Jurídico") quando a conta não tem módulo jurídico (`$moduloJuridico`).
+Jurídico") quando a conta não tem módulo jurídico (`$moduloJuridico`). Nessa
+edição (`$edicaoCrm`) o **card do quadro é o do Fleetiflow** (`renderCardCrm`,
+classes `.lc-*`): termômetro e tipo do lead no alto, inicial da empresa, cidade,
+potencial mensal, último contato (última mensagem do WhatsApp ligado, ou a
+última mexida) ou próximo contato (prazo à frente), aviso de atraso, consultor
+e as ações. Mesmas classes de gancho do card jurídico (`.card-mini`,
+`.js-whatsapp`, `.chat-link-btn`, `.card-drag-handle`), então clique, arrastar e
+filtros não mudaram. O formulário ganha "Tipo do lead" (texto com sugestões,
+`datalist`) e "Termômetro" (automático ou escolhido), migration 134. A edição
+jurídica renderiza o card de sempre.
 
 `dashboard.php` calcula tenant, filtro de origem e DRE e, se a conta tem
 produto `fleetiflow`, entrega em `includes/dashboard_fleetiflow.php` e sai. Essa

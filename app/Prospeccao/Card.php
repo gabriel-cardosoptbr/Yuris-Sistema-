@@ -40,7 +40,8 @@ class Card
                            a.nome AS origin_account_nome,
                            a.tipo AS origin_account_tipo,
                            c.account_id AS origin_account_id,
-                           (SELECT remote_jid FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_jid
+                           (SELECT remote_jid FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_jid,
+                           (SELECT last_message_at FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_last_at
                     FROM cards c
                     LEFT JOIN accounts a ON a.id = c.account_id
                     WHERE c.deleted_at IS NULL
@@ -61,7 +62,8 @@ class Card
                               NULL AS origin_account_nome,
                               NULL AS origin_account_tipo,
                               c.account_id AS origin_account_id,
-                              (SELECT remote_jid FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_jid
+                              (SELECT remote_jid FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_jid,
+                           (SELECT last_message_at FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_last_at
                        FROM cards c WHERE c.deleted_at IS NULL';
             $params = [];
         }
@@ -114,7 +116,8 @@ class Card
                     a.nome AS origin_account_nome,
                     a.tipo AS origin_account_tipo,
                     c.account_id AS origin_account_id,
-                    (SELECT remote_jid FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_jid
+                    (SELECT remote_jid FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_jid,
+                           (SELECT last_message_at FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_last_at
              FROM cards c
              LEFT JOIN accounts a ON a.id = c.account_id
              WHERE c.id = :id AND c.deleted_at IS NULL LIMIT 1'
@@ -145,6 +148,10 @@ class Card
         $temNasc = self::_temColunaNascimento();
         if ($temNasc) { $colOrigem .= ', data_nascimento'; $valOrigem .= ', :data_nascimento'; }
 
+        // Tipo e termômetro do lead (migration 134, card da edição CRM). Mesma sonda.
+        $temCrm = self::_temColunasCrm();
+        if ($temCrm) { $colOrigem .= ', tipo_lead, temperatura'; $valOrigem .= ', :tipo_lead, :temperatura'; }
+
         $stmt = $pdo->prepare('INSERT INTO cards
               (account_id, titulo, cliente_nome, empresa_nome, telefone_whatsapp, email,
                cpf_cnpj, rg, nome_mae,
@@ -168,6 +175,7 @@ class Card
 
         $stmt->execute(($temOrigem ? ['origem_id' => $origemId] : [])
                      + ($temNasc ? ['data_nascimento' => self::_normalizeDate($data['data_nascimento'] ?? null)] : [])
+                     + ($temCrm ? ['tipo_lead' => self::_tipoLead($data['tipo_lead'] ?? null), 'temperatura' => self::_temperatura($data['temperatura'] ?? null)] : [])
                      + [
             'account_id'   => $data['account_id'],
             'titulo'       => $titulo ?: null,
@@ -305,6 +313,10 @@ class Card
             $allowed[]  = 'data_nascimento';
             $dateCols[] = 'data_nascimento';   // normaliza "" e "0000-00-00" para NULL
         }
+        if (self::_temColunasCrm()) {
+            $allowed[] = 'tipo_lead';
+            $allowed[] = 'temperatura';
+        }
 
         $digitsOnly = ['cpf_cnpj','cep'];
         foreach ($allowed as $k) {
@@ -314,6 +326,8 @@ class Card
                 elseif  (in_array($k, $digitsOnly, true)) $params[$k] = self::_cleanDigitsOrNull($data[$k]);
                 elseif  ($k === 'uf')                     $params[$k] = self::_normalizeUf($data[$k]);
                 elseif  ($k === 'origem_id')              $params[$k] = self::_intOrNull($data[$k]);
+                elseif  ($k === 'tipo_lead')              $params[$k] = self::_tipoLead($data[$k]);
+                elseif  ($k === 'temperatura')            $params[$k] = self::_temperatura($data[$k]);
                 else                                       $params[$k] = $data[$k];
             }
         }
@@ -552,6 +566,35 @@ class Card
      * Cacheado em static porque create() e update() perguntam a cada chamada, e
      * numa importação de leads isso seria um SELECT extra por card.
      */
+    /** As colunas do card da edição CRM (migration 134) existem nesta base? */
+    private static function _temColunasCrm(): bool
+    {
+        static $tem = null;
+        if ($tem === null) {
+            try {
+                Database::getConnection()->query('SELECT tipo_lead, temperatura FROM cards LIMIT 0');
+                $tem = true;
+            } catch (\Throwable $e) {
+                $tem = false;
+            }
+        }
+        return $tem;
+    }
+
+    /** Termômetro escolhido pelo consultor. Fora de frio/morno/quente vira NULL (automático). */
+    public static function _temperatura(mixed $v): ?string
+    {
+        $t = strtolower(trim((string) $v));
+        return in_array($t, ['frio', 'morno', 'quente'], true) ? $t : null;
+    }
+
+    /** Tipo do lead: texto curto e limpo, ou NULL. */
+    public static function _tipoLead(mixed $v): ?string
+    {
+        $t = trim((string) preg_replace('/\s+/u', ' ', strip_tags((string) $v)));
+        return $t === '' ? null : mb_substr($t, 0, 60);
+    }
+
     private static function _temColunaOrigem(): bool
     {
         static $tem = null;

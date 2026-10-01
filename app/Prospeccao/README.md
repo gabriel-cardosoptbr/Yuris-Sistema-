@@ -15,7 +15,7 @@ operacional de quem já é cliente.
 
 | Classe | O que faz |
 |---|---|
-| `Card.php` | o card do funil. Listagem, movimentação entre colunas, reordenação em lote |
+| `Card.php` | o card do funil. Listagem, movimentação entre colunas, reordenação em lote. Na edição CRM leva também `tipo_lead` (texto curto) e `temperatura` (frio, morno, quente, ou NULL = automática), migration 134, e a lista traz `linked_chat_last_at` (última mensagem do WhatsApp ligado) para o "último contato" do card |
 | `CardChecklist.php` | checklist dentro do card |
 | `PipelineColumn.php` | as colunas do funil, configuráveis por conta |
 | `Contato.php` | pessoa por trás do card: nome, telefone normalizado, e-mail |
