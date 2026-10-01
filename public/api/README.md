@@ -53,6 +53,8 @@ hash do conteúdo, não o id da conta, e só sai PNG/JPEG/WebP com `nosniff` e C
 fechada. `master/marca.php` lê e grava a marca (só super admin, CSRF,
 auditoria); `master/create_account.php` aceita `edicao: 'crm'` com a marca.
 
+`crm_especialista.php` lê e grava o especialista padrão da edição CRM (quem vira consultor do card quando a conversa é respondida pelo celular ou WhatsApp Web). GET para todos da conta; POST só dono/admin, com CSRF; conta jurídica recebe 403.
+
 `otif.php` devolve o OTIF das tarefas (JSON, ou planilha com `formato=csv`),
 com a mesma regra de visibilidade da tela `desempenho.php`: dono/admin vê a
 equipe, os demais só o próprio, e `colaborador` é ignorado para quem não é

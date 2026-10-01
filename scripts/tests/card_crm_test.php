@@ -98,6 +98,63 @@ if (!$pdo || !$temCol || !$conta) {
     }
 }
 
+echo "\n== 3. Quem vira o consultor do card em atendimento (banco, desfeito no fim) ==\n";
+try {
+    $pdo  = $pdo ?? \App\Core\Database::getConnection();
+    $alvo = $pdo->query("SELECT wi.id AS inst, wi.account_id AS acc, u.id AS dono
+                           FROM whatsapp_instances wi
+                           JOIN accounts a ON a.id = wi.account_id AND a.deleted_at IS NULL
+                           JOIN users u ON u.account_id = wi.account_id AND u.deleted_at IS NULL AND u.status = 'active'
+                          WHERE a.configuracoes LIKE '%\"produto\":\"fleetiflow\"%'
+                       ORDER BY wi.id, u.id LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
+} catch (\Throwable $e) { $alvo = null; }
+if (!$alvo) {
+    echo "  [pulado] precisa de uma conta da edição CRM com canal e usuário\n";
+} else {
+    $pdo->beginTransaction();
+    try {
+        [$INST, $ACC, $DONO] = [(int)$alvo['inst'], (int)$alvo['acc'], (int)$alvo['dono']];
+        $col = SdrFleetiflow::colunasDaConta($pdo, $ACC);
+        $pdo->prepare("INSERT INTO users (account_id, nome, login, senha_hash, perfil, role, status) VALUES (?, 'Especialista Teste', ?, 'x', 'user', 'member', 'active')")
+            ->execute([$ACC, 'esp.teste.' . bin2hex(random_bytes(4)) . '@local']);
+        $esp = (int)$pdo->lastInsertId();
+        $novo = function (string $fone, ?int $resp = null) use ($ACC, $INST, $col, $pdo) {
+            $id = (int)Card::create(['account_id' => $ACC, 'cliente_nome' => "Teste $fone", 'telefone_whatsapp' => $fone,
+                                     'coluna_id' => $col['qualificado'], 'responsavel_user_id' => $resp]);
+            $pdo->prepare("INSERT INTO whatsapp_chats (account_id, instance_id, remote_jid, phone, is_group, linked_card_id) VALUES (?,?,?,?,0,?)")
+                ->execute([$ACC, $INST, "$fone@s.whatsapp.net", $fone, $id]);
+            return $id;
+        };
+        $resp = fn(int $id) => (int)(Card::find($id)['responsavel_user_id'] ?? 0);
+
+        $a = $novo('5511955559001');
+        SdrFleetiflow::pessoaAssumiu($ACC, $INST, '5511955559001@s.whatsapp.net', $DONO);
+        ok('resposta pelo Chat: quem respondeu vira o consultor', $resp($a) === $DONO);
+
+        $b = $novo('5511955559002');
+        SdrFleetiflow::aoMensagem($ACC, $INST, '5511955559002@s.whatsapp.net', [], true, 'aparelho', null, time());
+        ok('pelo WhatsApp Web sem especialista padrão: card fica sem consultor', $resp($b) === 0);
+
+        ok('especialista padrão de outra conta é recusado', SdrFleetiflow::definirEspecialistaPadrao($ACC, -1) === false);
+        SdrFleetiflow::definirEspecialistaPadrao($ACC, $esp);
+        $c = $novo('5511955559003');
+        SdrFleetiflow::aoMensagem($ACC, $INST, '5511955559003@s.whatsapp.net', [], true, 'aparelho', null, time());
+        ok('pelo WhatsApp Web com especialista padrão: ele vira o consultor', $resp($c) === $esp);
+
+        $d = $novo('5511955559004', $DONO);
+        SdrFleetiflow::aoMensagem($ACC, $INST, '5511955559004@s.whatsapp.net', [], true, 'aparelho', null, time());
+        ok('card que já tinha consultor não é trocado', $resp($d) === $DONO);
+
+        $e = $novo('5511955559005');
+        SdrFleetiflow::aoMensagem($ACC, $INST, '5511955559005@s.whatsapp.net', [], true, 'web', null, time());
+        ok('envio do robô pela API não atribui consultor', $resp($e) === 0);
+    } catch (\Throwable $ex) {
+        ok('consultor do atendimento sem exceção: ' . $ex->getMessage(), false);
+    } finally {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+    }
+}
+
 echo "\n----\n";
 if (!$FALHAS) {
     echo "Resultado: {$OK} ok · 0 falha(s)\n";

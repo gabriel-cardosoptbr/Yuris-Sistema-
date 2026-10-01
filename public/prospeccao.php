@@ -18,6 +18,17 @@ $moduloJuridico = AccountContext::fromSession()->moduloJuridicoDisponivel(); // 
 // lead, potencial mensal, último contato, consultor) e o formulário ganha os
 // campos tipo_lead e temperatura (migration 134). A edição jurídica não muda.
 $edicaoCrm = !$moduloJuridico;
+// Especialista padrão (edição CRM): quem vira responsável do card quando a
+// conversa é respondida pelo celular/WhatsApp Web. Só dono/admin escolhe.
+$crmPodeEspecialista = false;
+$crmEspecialista     = null;
+if ($edicaoCrm) {
+    try {
+        $__ctxE = AccountContext::fromSession();
+        $crmPodeEspecialista = $__ctxE->isOwnerOrAdmin();
+        $crmEspecialista     = \App\WhatsAppAgente\SdrFleetiflow::especialistaPadrao((int)$__ctxE->getAccountId());
+    } catch (\Throwable $e) { /* sem o seletor */ }
+}
 $tiposLeadPadrao = ['Concessionária', 'Despachante', 'Loja multimarcas', 'Gestão de Frota', 'Frota Corporativa', 'Locadora', 'Oficina', 'Outro'];
 $activePage = 'prospeccao';
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
@@ -1229,6 +1240,10 @@ function column_display_name(array $col): string
     html[data-theme="light"] .lc-seta{ display:inline-flex; color:#9AA3B2; }
     html[data-theme="light"] .lc-seta svg{ width:16px; height:16px; }
 
+    /* Seletor do especialista padrão, na barra de botões. */
+    .crm-esp{ display:inline-flex; align-items:center; gap:8px; margin-left:4px; font-size:.78rem; font-weight:600; color:#676767; }
+    .crm-esp select{ height:38px; min-width:170px; padding:0 10px; border-radius:10px; }
+
     /* Cabeçalho da coluna: título escuro, contador na cor da marca, "N leads" embaixo. */
     html[data-theme="light"] .kanban-col .col-title{ color:#1F2937 !important; font-size:1rem; }
     html[data-theme="light"] .kanban-col .col-pill{ background:var(--ff-marca-suave, #D6E4FF) !important; color:var(--ff-marca-forte, #013DF2) !important; border-color:transparent !important; }
@@ -1263,6 +1278,20 @@ function column_display_name(array $col): string
                 <button id="btnNewCard" class="btn primary" type="button">＋ Novo Cliente</button>
                 <button id="btnColumns" class="btn soft" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06A2 2 0 1 1 2.27 17.8l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09c.7 0 1.27-.43 1.51-1a1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 6.3 2.27l.06.06c.5.5 1.2.75 1.82.33A1.65 1.65 0 0 0 9.69 1.5 1.65 1.65 0 0 0 9.7 1H12a2 2 0 1 1 0 4h-.09c-.7 0-1.27.43-1.51 1a1.65 1.65 0 0 0 .33 1.82l.06.06A2 2 0 1 1 17.73 6.2l-.06.06c-.5.5-.75 1.2-.33 1.82.32.56.32 1.28.32 1.82V12a2 2 0 1 1 4 0v.09c0 .7.43 1.27 1 1.51z"/></svg> Alterar Colunas</button>
                 <!-- Removidos: btnRefresh (auto-reload já acontece em create/edit/move) e btnToggleFilters (filtros sempre visíveis abaixo) -->
+                <?php if ($edicaoCrm && $crmPodeEspecialista): ?>
+                <!-- Especialista padrão: responsável do card quando a conversa é
+                     respondida pelo celular ou WhatsApp Web (não dá para saber quem
+                     digitou). Ver SdrFleetiflow::atribuirEspecialista. -->
+                <label class="crm-esp" title="Quem vira o consultor do card quando a conversa é respondida pelo celular ou pelo WhatsApp Web">
+                  <span>Especialista do WhatsApp</span>
+                  <select id="crmEspecialista" class="field-control">
+                    <option value="">— ninguém —</option>
+                    <?php foreach ($users as $__u): if ((int)($__u['account_id'] ?? 0) !== (int)AccountContext::fromSession()->getAccountId()) continue; ?>
+                    <option value="<?= (int)$__u['id'] ?>"<?= (int)$__u['id'] === (int)$crmEspecialista ? ' selected' : '' ?>><?= htmlspecialchars($__u['nome']) ?></option>
+                    <?php endforeach; ?>
+                  </select>
+                </label>
+                <?php endif; ?>
 
               </div>
 
@@ -2139,6 +2168,27 @@ function column_display_name(array $col): string
         '</div>';
       return div;
     }
+
+    // Especialista padrão (seletor na barra, só dono/admin da edição CRM).
+    (function () {
+      const sel = document.getElementById('crmEspecialista');
+      if (!sel) return;
+      sel.addEventListener('change', async function () {
+        try {
+          const r = await fetch('/api/crm_especialista.php', {
+            method: 'POST', credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+            body: JSON.stringify({ user_id: this.value ? parseInt(this.value, 10) : 0 })
+          }).then(x => x.json());
+          const msg = r.ok
+            ? (this.value ? 'Especialista do WhatsApp: ' + this.options[this.selectedIndex].text : 'Especialista do WhatsApp removido')
+            : (r.error || 'Não foi possível salvar.');
+          if (window.Yuris && Yuris.toast) Yuris.toast(msg, r.ok ? 'success' : 'error');
+        } catch (e) {
+          if (window.Yuris && Yuris.toast) Yuris.toast('Falha de conexão.', 'error');
+        }
+      });
+    })();
 
     // Sugestões do campo "Tipo do lead": os padrões mais o que a conta já usa.
     function atualizarTiposLead() {

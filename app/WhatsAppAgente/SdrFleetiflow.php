@@ -558,6 +558,9 @@ final class SdrFleetiflow
             $cardId = self::garantirCard($accountId, $instanceId, $remoteJid, $fone, $fromMe ? null : $pushName);
             if ($cardId && $fromMe && in_array(strtolower((string)$origem), self::APARELHO, true)) {
                 self::moverEtapa($accountId, $cardId, 'especialista');
+                // Celular ou WhatsApp Web: não se sabe QUEM digitou. Vale o
+                // responsável já marcado na conversa, ou o especialista padrão.
+                self::atribuirEspecialista($accountId, $cardId, null, $instanceId, $remoteJid);
             }
         } catch (\Throwable $e) {
             error_log('[sdr_fleetiflow] card da conversa falhou (mensagem preservada): ' . $e->getMessage());
@@ -630,10 +633,91 @@ final class SdrFleetiflow
             if (!$cardId && str_ends_with($remoteJid, '@s.whatsapp.net')) {
                 $cardId = self::garantirCard($accountId, $instanceId, $remoteJid, explode('@', $remoteJid)[0]);
             }
-            if ($cardId) self::moverEtapa($accountId, $cardId, 'especialista', $userId);
+            if ($cardId) {
+                self::moverEtapa($accountId, $cardId, 'especialista', $userId);
+                // Pelo Chat do CRM sabemos quem respondeu: essa pessoa é a especialista.
+                self::atribuirEspecialista($accountId, $cardId, $userId, $instanceId, $remoteJid);
+            }
         } catch (\Throwable $e) {
             error_log('[sdr_fleetiflow] etapa do atendimento humano falhou: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Card em atendimento tem de dizer QUEM atende. Antes o card ia para "Em
+     * atendimento pelo especialista" e ficava "Sem consultor" (01/10/2026).
+     *
+     * Só preenche card SEM responsável (quem já tem consultor não é trocado) e só
+     * com usuário ativo da própria conta. Ordem de quem vira o responsável:
+     *   1. quem respondeu pelo Chat do CRM ($userId);
+     *   2. o responsável marcado na conversa (whatsapp_chats.linked_user_id);
+     *   3. o especialista padrão da conta (configuracoes.sdr.especialista_padrao),
+     *      para o que é respondido pelo celular ou WhatsApp Web, onde não há
+     *      como saber quem digitou.
+     *
+     * @return int|null o usuário atribuído, ou null se nada mudou
+     */
+    public static function atribuirEspecialista(int $accountId, int $cardId, ?int $userId, ?int $instanceId = null, ?string $remoteJid = null): ?int
+    {
+        try {
+            $pdo  = \App\Core\Database::getConnection();
+            $card = \App\Prospeccao\Card::find($cardId);
+            if (!$card || (int)$card['account_id'] !== $accountId) return null;
+            if ((int)($card['responsavel_user_id'] ?? 0) > 0) return null;
+
+            $candidatos = [$userId];
+            if ($instanceId && $remoteJid) {
+                $st = $pdo->prepare('SELECT linked_user_id FROM whatsapp_chats WHERE instance_id = ? AND remote_jid = ? LIMIT 1');
+                $st->execute([$instanceId, $remoteJid]);
+                $candidatos[] = (int)($st->fetchColumn() ?: 0) ?: null;
+            }
+            $candidatos[] = self::especialistaPadrao($accountId);
+
+            foreach ($candidatos as $uid) {
+                if (!$uid || !self::usuarioAtivoDaConta($pdo, $accountId, (int)$uid)) continue;
+                \App\Prospeccao\Card::update($cardId, ['responsavel_user_id' => (int)$uid, '_usuario_id' => $userId]);
+                return (int)$uid;
+            }
+        } catch (\Throwable $e) {
+            error_log('[sdr_fleetiflow] responsável do atendimento falhou: ' . $e->getMessage());
+        }
+        return null;
+    }
+
+    /** Especialista padrão da conta (quem atende pelo celular), ou null. */
+    public static function especialistaPadrao(int $accountId): ?int
+    {
+        $conta = Account::findById($accountId);
+        $cfg = json_decode((string)($conta['configuracoes'] ?? ''), true);
+        $uid = is_array($cfg) ? (int)($cfg['sdr']['especialista_padrao'] ?? 0) : 0;
+        return $uid > 0 ? $uid : null;
+    }
+
+    /**
+     * Grava (ou limpa, com null) o especialista padrão, preservando o resto de
+     * `configuracoes` (produto, marca...). Recusa usuário de outra conta.
+     */
+    public static function definirEspecialistaPadrao(int $accountId, ?int $userId): bool
+    {
+        $pdo = \App\Core\Database::getConnection();
+        if ($userId !== null && !self::usuarioAtivoDaConta($pdo, $accountId, $userId)) return false;
+        $st = $pdo->prepare('SELECT configuracoes FROM accounts WHERE id = ? LIMIT 1');
+        $st->execute([$accountId]);
+        $cfg = json_decode((string)$st->fetchColumn(), true);
+        if (!is_array($cfg)) $cfg = [];
+        if (!isset($cfg['sdr']) || !is_array($cfg['sdr'])) $cfg['sdr'] = [];
+        if ($userId === null) unset($cfg['sdr']['especialista_padrao']);
+        else $cfg['sdr']['especialista_padrao'] = $userId;
+        if ($cfg['sdr'] === []) unset($cfg['sdr']);
+        return $pdo->prepare('UPDATE accounts SET configuracoes = ?, updated_at = NOW() WHERE id = ?')
+            ->execute([json_encode($cfg, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $accountId]);
+    }
+
+    private static function usuarioAtivoDaConta(\PDO $pdo, int $accountId, int $userId): bool
+    {
+        $st = $pdo->prepare("SELECT 1 FROM users WHERE id = ? AND account_id = ? AND deleted_at IS NULL AND status = 'active' LIMIT 1");
+        $st->execute([$userId, $accountId]);
+        return (bool)$st->fetchColumn();
     }
 
     /** Pausa a Vitória numa conversa (mesmo escritor do "Assumir conversa"). */
