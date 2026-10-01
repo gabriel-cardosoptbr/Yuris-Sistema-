@@ -57,6 +57,169 @@ $limit = min((int)($_GET['limit'] ?? 20), 50);
 
 $result = [];
 
+// ── Edição CRM (conta sem módulo jurídico): o @ sugere o que existe NELA ─────
+// Pessoas, leads, clientes, tarefas e conversas de WhatsApp; processo não existe
+// nessa edição e não aparece. Cada resultado traz o contexto que ajuda a escolher
+// (etapa do lead, setor do cliente, quadro e prazo da tarefa, telefone da
+// conversa). Prefixo digitado escolhe o tipo e sai da busca: "@lead fiat" busca
+// "fiat" nos leads. Em "Todos", no máximo 4 por tipo, para todos aparecerem.
+// A edição jurídica nunca entra aqui: o caminho dela, abaixo, não mudou.
+if (!$ctx->moduloJuridicoDisponivel()) {
+    $tipos = ['usuario', 'card', 'cliente', 'tarefa', 'conversa'];
+    if (!in_array($type, array_merge(['auto'], $tipos), true)) $type = 'auto';
+    if ($type === 'auto') {
+        $prefixos = [
+            'card'     => '/^(lead|leads|card|cards)\b\s*/u',
+            'cliente'  => '/^(cliente|clientes|cli)\b\s*/u',
+            'tarefa'   => '/^(tarefa|tarefas|tar)\b\s*/u',
+            'conversa' => '/^(conversa|conversas|zap|whats|whatsapp|wpp)\b\s*/u',
+            'usuario'  => '/^(pessoa|pessoas|usuario|usuário|equipe)\b\s*/u',
+        ];
+        foreach ($prefixos as $t => $re) {
+            if (preg_match($re, mb_strtolower($q))) {
+                $type = $t;
+                $q = trim((string)preg_replace($re, '', mb_strtolower($q)));
+                $like = '%' . $q . '%';
+                break;
+            }
+        }
+    }
+    $mostra = fn(string $t) => $type === 'auto' || $type === $t;
+    $porTipo = $type === 'auto' ? 4 : $limit;
+    $res = [];
+    $dataBr = static function (?string $d): string {
+        $ts = $d ? strtotime($d) : 0;
+        return $ts ? date('d/m', $ts) : '';
+    };
+
+    if ($mostra('usuario') && $usersIn) {
+        $s = $pdo->prepare(
+            "SELECT u.id, u.nome, u.role, u.account_id, a.nome AS account_nome, a.tipo AS account_tipo
+               FROM users u LEFT JOIN accounts a ON a.id = u.account_id
+              WHERE u.deleted_at IS NULL AND u.status = 'active'
+                AND u.account_id IN $usersIn AND u.nome LIKE ?
+              ORDER BY (u.id = ?) ASC, u.nome LIMIT " . $porTipo
+        );
+        $s->execute(array_merge($usersParams, [$like, $uid]));
+        $papel = ['owner' => 'Dono da conta', 'admin' => 'Administrador', 'manager' => 'Gestor', 'user' => 'Equipe'];
+        foreach ($s->fetchAll() as $r) {
+            $res[] = [
+                'tipo' => 'usuario', 'id' => (int)$r['id'], 'display' => $r['nome'],
+                'sub' => ((int)$r['id'] === (int)$uid ? 'Você · ' : '') . ($papel[$r['role'] ?? ''] ?? 'Equipe'),
+                'token' => '@[user|' . $r['id'] . '|' . $r['nome'] . ']', 'url' => '/usuarios.php',
+                'account_id' => (int)$r['account_id'], 'account_nome' => $r['account_nome'] ?? '', 'account_tipo' => $r['account_tipo'] ?? 'matriz',
+            ];
+        }
+    }
+
+    if ($mostra('card') && $cardIn) {
+        $s = $pdo->prepare(
+            "SELECT c.id, c.cliente_nome, c.empresa_nome, c.telefone_whatsapp, pc.nome AS etapa, u.nome AS resp
+               FROM cards c
+               LEFT JOIN pipeline_columns pc ON pc.id = c.coluna_id
+               LEFT JOIN users u ON u.id = c.responsavel_user_id
+              WHERE c.deleted_at IS NULL AND c.account_id IN $cardIn
+                AND (c.cliente_nome LIKE ? OR c.empresa_nome LIKE ? OR c.telefone_whatsapp LIKE ?)
+              ORDER BY c.updated_at DESC LIMIT " . $porTipo
+        );
+        $s->execute(array_merge($cardParams, [$like, $like, $like]));
+        foreach ($s->fetchAll() as $r) {
+            $display = $r['cliente_nome'] ?: ($r['empresa_nome'] ?: 'Lead sem nome');
+            $sub = array_filter([$r['etapa'] ?? '', $r['resp'] ? 'com ' . $r['resp'] : 'sem consultor']);
+            $res[] = [
+                'tipo' => 'card', 'id' => (int)$r['id'], 'display' => $display, 'sub' => implode(' · ', $sub),
+                'token' => '@[card|' . $r['id'] . '|' . $display . ']', 'url' => '/prospeccao.php?open=' . $r['id'],
+            ];
+        }
+    }
+
+    if ($mostra('cliente') && $cliIn) {
+        $s = $pdo->prepare(
+            "SELECT cl.id, cl.nome, cl.whatsapp, cl.telefone, cs.nome AS setor
+               FROM clientes cl LEFT JOIN clientes_setores cs ON cs.id = cl.setor_id
+              WHERE cl.deleted_at IS NULL AND cl.account_id IN $cliIn
+                AND (cl.nome LIKE ? OR cl.cpf_cnpj LIKE ? OR cl.whatsapp LIKE ?)
+              ORDER BY cl.updated_at DESC LIMIT " . $porTipo
+        );
+        $s->execute(array_merge($cliParams, [$like, $like, $like]));
+        foreach ($s->fetchAll() as $r) {
+            $display = $r['nome'] ?: 'Cliente sem nome';
+            $res[] = [
+                'tipo' => 'cliente', 'id' => (int)$r['id'], 'display' => $display,
+                'sub' => implode(' · ', array_filter([$r['setor'] ?? '', $r['whatsapp'] ?: ($r['telefone'] ?? '')])),
+                'token' => '@[cli|' . $r['id'] . '|' . $display . ']', 'url' => '/clientes.php?open=' . $r['id'],
+            ];
+        }
+    }
+
+    // Tarefas: só de quadro que a pessoa enxerga (a mesma regra de
+    // TaskBoard::acesso: dono, membro, admin da conta ou quadro compartilhado).
+    [$tarIn, $tarParams] = $buildIn($ctx->getAccessibleAccountIds('tarefas'));
+    if ($mostra('tarefa') && $tarIn) {
+        $admin = $ctx->isOwnerOrAdmin() ? 1 : 0;
+        $s = $pdo->prepare(
+            "SELECT t.id, t.titulo, t.prazo, t.status, b.nome AS quadro, u.nome AS resp
+               FROM tasks t
+               JOIN task_boards b ON b.id = t.board_id
+               LEFT JOIN users u ON u.id = t.responsavel_id
+              WHERE b.account_id IN $tarIn AND b.ativo = 1
+                AND (b.owner_id = ? OR ? = 1 OR b.tipo = 'compartilhado'
+                     OR EXISTS (SELECT 1 FROM task_board_members m WHERE m.board_id = b.id AND m.user_id = ?))
+                AND t.titulo LIKE ?
+              ORDER BY (t.status = 'concluida') ASC, (t.prazo IS NULL) ASC, t.prazo ASC, t.id DESC
+              LIMIT " . $porTipo
+        );
+        $s->execute(array_merge($tarParams, [$uid, $admin, $uid, $like]));
+        foreach ($s->fetchAll() as $r) {
+            $display = $r['titulo'] ?: 'Tarefa sem título';
+            $sub = [$r['quadro'] ?? ''];
+            if (($r['status'] ?? '') === 'concluida') $sub[] = 'concluída';
+            elseif ($r['prazo']) $sub[] = 'prazo ' . $dataBr($r['prazo']);
+            if ($r['resp']) $sub[] = $r['resp'];
+            $res[] = [
+                'tipo' => 'tarefa', 'id' => (int)$r['id'], 'display' => $display, 'sub' => implode(' · ', array_filter($sub)),
+                'token' => '@[tar|' . $r['id'] . '|' . $display . ']', 'url' => '/tarefas.php?tarefa=' . $r['id'],
+            ];
+        }
+    }
+
+    // Conversas: as do canal de WhatsApp que a pessoa pode ver (a mesma
+    // resolução do Chat, deny-by-default). Sem canal, sem conversas.
+    if ($mostra('conversa')) {
+        try {
+            // resolveRequestedChannel + check, e NAO resolveForRequest: aquele encerra a
+            // requisição com 403 quando nega e pode criar canal; aqui negar é só não listar.
+            $W = \App\WhatsAppAgente\WhatsAppChannelAccessService::class;
+            $cid = $W::resolveRequestedChannel($pdo, (int)$ctx->getAccountId(), null);
+            $ch = $cid ? $W::check($pdo, (int)$ctx->getAccountId(), $cid, 'view') : null;
+            $inst = (int)($ch['channel_id'] ?? 0);
+        } catch (\Throwable $e) { $inst = 0; }
+        if ($inst > 0) {
+            $s = $pdo->prepare(
+                "SELECT w.id, w.contact_name, w.phone, w.remote_jid, w.last_message_at, c.cliente_nome AS lead
+                   FROM whatsapp_chats w LEFT JOIN cards c ON c.id = w.linked_card_id AND c.deleted_at IS NULL
+                  WHERE w.instance_id = ? AND w.is_group = 0
+                    AND (w.contact_name LIKE ? OR w.phone LIKE ? OR c.cliente_nome LIKE ?)
+                  ORDER BY w.last_message_at DESC LIMIT " . $porTipo
+            );
+            $s->execute([$inst, $like, $like, $like]);
+            foreach ($s->fetchAll() as $r) {
+                $fone = $r['phone'] ?: explode('@', (string)$r['remote_jid'])[0];
+                $display = $r['contact_name'] ?: ($r['lead'] ?: $fone);
+                $sub = array_filter([$fone !== $display ? $fone : '', $r['lead'] && $r['lead'] !== $display ? 'lead ' . $r['lead'] : '',
+                                     $r['last_message_at'] ? 'última ' . $dataBr($r['last_message_at']) : '']);
+                $res[] = [
+                    'tipo' => 'conversa', 'id' => (int)$r['id'], 'display' => $display, 'sub' => implode(' · ', $sub),
+                    'token' => '@[zap|' . $r['id'] . '|' . $display . ']', 'url' => '/chat.php?conversa=' . $r['id'],
+                ];
+            }
+        }
+    }
+
+    echo json_encode(['ok' => true, 'crm' => true, 'data' => array_slice($res, 0, $type === 'auto' ? 20 : $limit)]);
+    exit;
+}
+
 // ── Detecta tipo pelo prefixo digitado ────────────────────────────────────
 // @pro... → processos | @card... → cards | @cli...|@cliente... → clientes | resto → usuários
 $qLower = strtolower($q);

@@ -158,8 +158,10 @@ Travado em `../../scripts/tests/wa_midia_test.php`.
 Em 30/09/2026 o canal da Fleetiflow caiu (Evolution, código 401: o aparelho
 desconectou o WhatsApp) e ninguém percebeu por horas: nenhuma mensagem entrava,
 o funil parou e o robô recebia 404 ao atualizar etapa. Desde então o menu
-lateral (`public/includes/sidebar.php`) mostra no topo de toda tela da edição CRM
-um aviso quando o canal configurado da conta não está `open`, com a hora do
+lateral (`public/includes/sidebar.php`) mostra no topo de toda tela da edição CRM,
+menos o Chat (que tem o próprio aviso) e o Chat Interno (conversa da equipe, nada
+a ver com o canal; lá o aviso ainda tomava a tela inteira por causa do layout em
+colunas), um aviso quando o canal configurado da conta não está `open`, com a hora do
 último evento recebido e, para dono/admin, o botão para reconectar no Chat.
 Canal sem credencial não alarma. Reconectar é sempre ler o QR de novo.
 

@@ -111,7 +111,9 @@ if ($_isFleetiflow && $_marca === null) $_marca = \App\Master\Marca::padraoFleet
 // já tem o próprio aviso e a tela de QR. Uma consulta leve por página; falha
 // silenciosa (nunca derruba a tela).
 $_avisoWa = null;
-if ($_isFleetiflow && $_ap !== 'chat') {
+// Fora do WhatsApp (que tem o próprio aviso de conexão) e do Chat Interno, que é
+// conversa da equipe e nada tem a ver com o canal.
+if ($_isFleetiflow && !in_array($_ap, ['chat', 'chat_interno'], true)) {
     try {
         $__accW = (int)$__brandCtx->getAccountId();
         $__stW  = \App\Core\Database::getConnection()->prepare(

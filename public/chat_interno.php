@@ -15,6 +15,10 @@ $activePage = 'chat_interno';
 $uid        = (int)$_SESSION['user_id'];
 $uNome      = htmlspecialchars($_SESSION['user_nome'] ?? 'Usuário');
 $csrf       = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
+// Edição CRM (conta sem módulo jurídico): o @ sugere pessoas, leads, clientes,
+// tarefas e conversas de WhatsApp, e não processos. A edição jurídica não muda.
+$edicaoCrm  = false;
+try { $edicaoCrm = !\App\Core\AccountContext::fromSession()->moduloJuridicoDisponivel(); } catch (\Throwable $e) { /* Yuris */ }
 ?>
 <!doctype html>
 <html lang="pt-BR">
@@ -28,6 +32,28 @@ $csrf       = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
   <link rel="stylesheet" href="/assets/yuris-theme.css?v=42">
   <link rel="stylesheet" href="/assets/sidebar.css?v=19">
+<?php if ($edicaoCrm): ?>
+  <style>
+    /* @ da edição CRM: cores dos tipos novos (lead usa as do card). */
+    .ci-mention--cli { background: #3B2A05; color: #FCD34D; border: 1px solid #D9770644; }
+    .ci-mention--tar { background: #3F1D2E; color: #F9A8D4; border: 1px solid #DB277744; }
+    .ci-mention--zap { background: #052E16; color: #86EFAC; border: 1px solid #16A34A44; }
+    .ci-mention-icon--cli { color: #F59E0B; background: rgba(245,158,11,.12); }
+    .ci-mention-icon--tar { color: #EC4899; background: rgba(236,72,153,.12); }
+    .ci-mention-icon--zap { color: #22C55E; background: rgba(34,197,94,.12); }
+    html[data-theme="light"] .ci-mention--cli { background: #FEF3C7 !important; color: #B45309 !important; border-color: #FCD34D !important; }
+    html[data-theme="light"] .ci-mention--tar { background: #FCE7F3 !important; color: #BE185D !important; border-color: #F9A8D4 !important; }
+    html[data-theme="light"] .ci-mention--zap { background: #DCFCE7 !important; color: #15803D !important; border-color: #86EFAC !important; }
+    html[data-theme="light"] .ci-mention-icon.ci-mention-icon--card { color: #047857 !important; background: #D1FAE5 !important; border-color: #6EE7B7 !important; }
+    html[data-theme="light"] .ci-mention-icon.ci-mention-icon--cli  { color: #B45309 !important; background: #FEF3C7 !important; border-color: #FCD34D !important; }
+    html[data-theme="light"] .ci-mention-icon.ci-mention-icon--tar  { color: #BE185D !important; background: #FCE7F3 !important; border-color: #F9A8D4 !important; }
+    html[data-theme="light"] .ci-mention-icon.ci-mention-icon--zap  { color: #15803D !important; background: #DCFCE7 !important; border-color: #86EFAC !important; }
+    .ci-mention-label { white-space: nowrap; }
+    .ci-mpanel-tabs { flex-wrap: wrap; }
+    .ci-mpanel-dica { padding: 6px 12px 8px; border-top: 1px solid var(--line); font-size: .68rem; color: var(--muted); }
+    .ci-mpanel-dica b { font-weight: 600; color: var(--text); }
+  </style>
+<?php endif; ?>
   <style>
     :root {
       --bg:           #070F1C;
@@ -637,20 +663,31 @@ $csrf       = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
       <div class="ci-mention-panel" id="ciMentionPanel">
         <div class="ci-mpanel-head">
           <input class="ci-mpanel-search" id="ciMpanelSearch"
-                 placeholder="Buscar usuário, processo ou card…"
+                 placeholder="<?= $edicaoCrm ? 'Buscar pessoa, lead, cliente, tarefa ou conversa…' : 'Buscar usuário, processo ou card…' ?>"
                  oninput="CI.onMpanelSearch(this.value)"
                  onkeydown="CI.onMpanelKey(event)">
           <button class="ci-mpanel-close" onclick="CI.closeMentionPanel()">×</button>
         </div>
         <div class="ci-mpanel-tabs">
           <button class="ci-mtab active" data-tab="auto"     onclick="CI.setMentionTab('auto',this)">Todos</button>
+<?php if ($edicaoCrm): ?>
+          <button class="ci-mtab"        data-tab="usuario"  onclick="CI.setMentionTab('usuario',this)">Pessoas</button>
+          <button class="ci-mtab"        data-tab="card"     onclick="CI.setMentionTab('card',this)">Leads</button>
+          <button class="ci-mtab"        data-tab="cliente"  onclick="CI.setMentionTab('cliente',this)">Clientes</button>
+          <button class="ci-mtab"        data-tab="tarefa"   onclick="CI.setMentionTab('tarefa',this)">Tarefas</button>
+          <button class="ci-mtab"        data-tab="conversa" onclick="CI.setMentionTab('conversa',this)">Conversas</button>
+<?php else: ?>
           <button class="ci-mtab"        data-tab="usuario"  onclick="CI.setMentionTab('usuario',this)">Usuários</button>
           <button class="ci-mtab"        data-tab="processo" onclick="CI.setMentionTab('processo',this)">Processos</button>
           <button class="ci-mtab"        data-tab="card"     onclick="CI.setMentionTab('card',this)">Cards</button>
+<?php endif; ?>
         </div>
         <div class="ci-mpanel-results" id="ciMpanelResults">
           <div class="ci-mpanel-empty">Digite para buscar…</div>
         </div>
+<?php if ($edicaoCrm): ?>
+        <div class="ci-mpanel-dica">Atalhos: <b>@lead</b>, <b>@cliente</b>, <b>@tarefa</b>, <b>@zap</b> ou <b>@pessoa</b> seguido do nome.</div>
+<?php endif; ?>
       </div>
       <div class="ci-input-row">
         <textarea class="ci-textarea" id="ciTextarea" rows="1"
@@ -664,7 +701,7 @@ $csrf       = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
           </svg>
         </button>
       </div>
-      <div class="ci-mention-hint">@ para mencionar usuário, processo ou card</div>
+      <div class="ci-mention-hint">@ para mencionar <?= $edicaoCrm ? 'pessoa, lead, cliente, tarefa ou conversa' : 'usuário, processo ou card' ?></div>
     </div>
   </main>
 </div>
@@ -762,6 +799,9 @@ const CI_API  = {
   users     : '/api/users.php',
 };
 </script>
-<script src="/assets/chat_interno.js?v=4"></script>
+<?php if ($edicaoCrm): ?>
+<script>window.CI_CRM = true;</script>
+<?php endif; ?>
+<script src="/assets/chat_interno.js?v=5"></script>
 </body>
 </html>

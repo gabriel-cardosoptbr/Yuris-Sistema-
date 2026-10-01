@@ -15,7 +15,7 @@ mesma restrição de [`../README.md`](../README.md).
 | `whatsapp/` | 22 | canal, chat, envio, mídia, e o `webhook.php` que recebe da Evolution |
 | `push/` | 11 | monitoramento de publicações: monitores, cotas, permissões, busca, `tick.php`. Bloqueado (403) para conta `produto=fleetiflow`, exceto `tick.php`, que é cron sem conta única (ver abaixo) |
 | `aasp/` | 4 | integração AASP: configurar, testar, buscar, sincronizar. Bloqueado (403) para conta `produto=fleetiflow` |
-| `chat/` | 3 | chat interno entre usuários do escritório |
+| `chat/` | 3 | chat interno entre usuários do escritório. `mencoes.php` é a busca do @: na edição jurídica, usuários, processos, cards e clientes; na edição CRM (conta sem módulo jurídico) um ramo próprio busca pessoas, leads (com etapa e consultor), clientes (setor e WhatsApp), tarefas (só de quadro que a pessoa enxerga, a regra de `TaskBoard::acesso`) e conversas de WhatsApp (do canal que a conta pode ver, por `resolveRequestedChannel` + `check`, que não encerram a requisição nem criam canal), com no máximo 4 por tipo em "Todos" e atalho por prefixo (`@lead fiat`, `@cliente`, `@tarefa`, `@zap`, `@pessoa`). `mensagens.php` grava a menção só depois de conferir que a referência é da conta, e a tarefa só se a pessoa vê o quadro |
 | `legal/` | 3 | documentos legais, aceite e consentimento |
 | `auth/` | 1 | checagem de termos pendentes no login |
 | `lgpd/` | 1 | solicitação do titular, aberta ao público |

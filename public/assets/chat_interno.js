@@ -23,6 +23,11 @@ const CI = (() => {
   };
 
   // Estado de menções
+  // Edição CRM (window.CI_CRM, posto por chat_interno.php): o @ também menciona
+  // tarefa (@[tar|id|titulo]) e conversa de WhatsApp (@[zap|id|nome]), e o card
+  // se chama "Lead". Na edição jurídica tudo segue como sempre foi.
+  const EH_CRM = !!window.CI_CRM;
+
   const mention = {
     active   : false,
     atPos    : -1,
@@ -115,15 +120,18 @@ const CI = (() => {
 
   // ── Parsear menções ──────────────────────────────────────────────────────
   // Tokens: @[user|id|nome] @[proc|id|nome] @[card|id|nome] @[cli|id|nome]
+  //         @[tar|id|titulo] @[zap|id|nome] (edição CRM, migration 135)
   function parseMentions(text) {
-    return esc(text).replace(/@\[(user|proc|card|cli)\|(\d+)\|([^\]]+)\]/g, (_, tipo, id, display) => {
+    return esc(text).replace(/@\[(user|proc|card|cli|tar|zap)\|(\d+)\|([^\]]+)\]/g, (_, tipo, id, display) => {
       const urls = {
         user: '/usuarios.php',
         proc: '/processos.php?open=' + id,
         card: '/prospeccao.php?open=' + id,
         cli : '/clientes.php?open=' + id,
+        tar : '/tarefas.php?tarefa=' + id,
+        zap : '/chat.php?conversa=' + id,
       };
-      const labels = { user: 'Usuário', proc: 'Processo', card: 'Card', cli: 'Cliente' };
+      const labels = { user: EH_CRM ? 'Pessoa' : 'Usuário', proc: 'Processo', card: EH_CRM ? 'Lead' : 'Card', cli: 'Cliente', tar: 'Tarefa', zap: 'Conversa' };
       return `<a href="${urls[tipo] || '#'}" class="ci-mention ci-mention--${tipo}">` +
              `<span class="ci-mention-label">${labels[tipo]}</span>${esc(display)}</a>`;
     });
@@ -974,9 +982,9 @@ const CI = (() => {
   }
 
   function extractMencoes(texto) {
-    const re = /@\[(user|proc|card|cli)\|(\d+)\|([^\]]+)\]/g;
+    const re = /@\[(user|proc|card|cli|tar|zap)\|(\d+)\|([^\]]+)\]/g;
     const out = [];
-    const tipoMap = { user: 'usuario', proc: 'processo', card: 'card', cli: 'cliente' };
+    const tipoMap = { user: 'usuario', proc: 'processo', card: 'card', cli: 'cliente', tar: 'tarefa', zap: 'conversa' };
     // MEDIA #2/#3 (auditoria 2026-06-01): a url_destino persistida em
     // chat_mencoes precisa ser o MESMO param que a página de destino lê no
     // auto-open. Antes gravava ?card=/?id= (links mortos — prospeccao/processos
@@ -987,6 +995,8 @@ const CI = (() => {
       proc: id => '/processos.php?open=' + id,
       card: id => '/prospeccao.php?open=' + id,
       cli : id => '/clientes.php?open=' + id,
+      tar : id => '/tarefas.php?tarefa=' + id,
+      zap : id => '/chat.php?conversa=' + id,
     };
     let m;
     while ((m = re.exec(texto)) !== null) {
@@ -1087,14 +1097,16 @@ const CI = (() => {
       el.innerHTML = `<div class="ci-mpanel-empty">Nenhum resultado${q ? ' para "' + esc(q) + '"' : ''}</div>`;
       return;
     }
-    const groups    = { usuario: [], processo: [], card: [] };
-    const labelMap  = { usuario: 'Usuários', processo: 'Processos', card: 'Cards' };
+    const groups    = EH_CRM ? { usuario: [], card: [], cliente: [], tarefa: [], conversa: [] } : { usuario: [], processo: [], card: [] };
+    const labelMap  = EH_CRM ? { usuario: 'Pessoas', card: 'Leads', cliente: 'Clientes', tarefa: 'Tarefas', conversa: 'Conversas de WhatsApp' }
+                             : { usuario: 'Usuários', processo: 'Processos', card: 'Cards' };
     results.forEach(item => { (groups[item.tipo] || groups.card).push(item); });
 
     let html = '', globalIdx = 0;
     const renderItem = (item, idx) => {
-      const iconClass = item.tipo === 'processo' ? '--proc' : item.tipo === 'card' ? '--card' : '';
-      const letter    = item.tipo === 'usuario' ? avatarInitial(item.display) : item.tipo === 'processo' ? 'P' : 'C';
+      const ICONE     = { processo: ['--proc', 'P'], card: ['--card', EH_CRM ? 'L' : 'C'], cliente: ['--cli', 'C'], tarefa: ['--tar', 'T'], conversa: ['--zap', 'W'] };
+      const iconClass = (ICONE[item.tipo] || ['', 'C'])[0];
+      const letter    = item.tipo === 'usuario' ? avatarInitial(item.display) : (ICONE[item.tipo] || ['', 'C'])[1];
       return `<div class="ci-mention-item${mention.focusIdx === idx ? ' focused' : ''}" onclick="CI.selectMentionItem(${idx})">
         <div class="ci-mention-icon ci-mention-icon${iconClass}">${letter}</div>
         <div class="ci-mention-text">
@@ -1146,7 +1158,7 @@ const CI = (() => {
     };
 
     if (_mpanelTab === 'auto') {
-      ['usuario','processo','card'].forEach(tipo => {
+      Object.keys(groups).forEach(tipo => {
         if (!groups[tipo].length) return;
         html += `<div class="ci-mpanel-section">${labelMap[tipo]}</div>`;
         if (tipo === 'usuario') {

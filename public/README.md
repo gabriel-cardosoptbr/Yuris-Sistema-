@@ -95,6 +95,18 @@ em `--chat-topo`. A primeira versão dava ao painel a tela inteira, e em
 para responder). Ao mexer nesse layout, teste em 1093x500, 1280x720 e
 1366x768, não só em monitor grande, e confira que o campo de digitar aparece.
 
+`chat_interno.php`, na edição CRM (`$edicaoCrm`), troca as abas do @ por Pessoas,
+Leads, Clientes, Tarefas e Conversas (sem Processos), mostra os atalhos de
+prefixo e põe `window.CI_CRM = true`; o `assets/chat_interno.js` usa isso para
+agrupar os resultados por tipo e entender os tokens novos `@[tar|id|titulo]`
+(abre `/tarefas.php?tarefa=`) e `@[zap|id|nome]` (abre `/chat.php?conversa=`).
+Na edição jurídica o HTML é o de sempre, com o `?v=` do script trocado. O aviso de
+WhatsApp desconectado não aparece no Chat Interno.
+
+`chat.php` aceita `?conversa=<id>` na edição CRM: o id vira o jid no servidor, só
+se a conversa é do canal que a conta pode ver, e a tela abre nela como faz com
+`?jid=`.
+
 `chat.php` resolve a edição do produto (`$isFleetiflow`) para três coisas: o
 nome na aba, a variável `window.CHAT_MARCA` (o `chat.js` reescreve o título
 com o contador de não lidas) e `window.CHAT_SEM_JURIDICO`, que tira "Processos

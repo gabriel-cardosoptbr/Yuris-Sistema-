@@ -116,7 +116,8 @@ if ($method === 'POST') {
 
             // ALTA #1: 'cliente' agora é um tipo de menção de primeira classe
             // (a tabela `clientes`). Enum estendido na migration 094.
-            if (!in_array($tipo, ['usuario','processo','card','cliente'])) continue;
+            // 'tarefa' e 'conversa' (migration 135): o @ da edição CRM.
+            if (!in_array($tipo, ['usuario','processo','card','cliente','tarefa','conversa'])) continue;
             if (!$refId || !$texto || !$url) continue;
 
             // SEGURANCA (auditoria 2026-06-01): valida a referencia ESCOPADA por
@@ -127,6 +128,7 @@ if ($method === 'POST') {
                 'card'     => 'prospeccao',
                 'processo' => 'processos',
                 'cliente'  => 'clientes',
+                'tarefa'   => 'tarefas',
                 default    => 'chat',
             };
             $accIds   = $ctx->getAccessibleAccountIds($scopeMod);
@@ -137,12 +139,18 @@ if ($method === 'POST') {
                 'processo' => "SELECT id FROM processos WHERE id = ? AND deleted_at IS NULL AND account_id IN ($phRef) LIMIT 1",
                 'card'     => "SELECT id FROM cards      WHERE id = ? AND deleted_at IS NULL AND account_id IN ($phRef) LIMIT 1",
                 'cliente'  => "SELECT id FROM clientes   WHERE id = ? AND deleted_at IS NULL AND account_id IN ($phRef) LIMIT 1",
+                // tarefa devolve o QUADRO, para conferir abaixo que a pessoa o enxerga
+                'tarefa'   => "SELECT t.board_id FROM tasks t JOIN task_boards b ON b.id = t.board_id WHERE t.id = ? AND b.account_id IN ($phRef) LIMIT 1",
+                'conversa' => "SELECT id FROM whatsapp_chats WHERE id = ? AND account_id IN ($phRef) LIMIT 1",
                 default    => null,
             };
             if (!$sqlRef) continue;
             $valid = $pdo->prepare($sqlRef);
             $valid->execute(array_merge([$refId], $accIds));
-            if (!$valid->fetchColumn()) continue; // referencia fora do tenant — descarta mencao
+            $refOk = $valid->fetchColumn();
+            if (!$refOk) continue; // referencia fora do tenant — descarta mencao
+            // Tarefa de quadro pessoal de outra pessoa não vira menção (mesma regra da tela de tarefas).
+            if ($tipo === 'tarefa' && !\App\Tarefas\TaskBoard::canView((int)$refOk, (int)$uid, $accIds, $ctx->isOwnerOrAdmin())) continue;
 
             $stmtM->execute([$msgId, $tipo, $refId, $texto, $url, $myAccountId]);
 

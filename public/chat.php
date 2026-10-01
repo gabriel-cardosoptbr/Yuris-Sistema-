@@ -19,6 +19,21 @@ try {
     if ($isFleetiflow) $marcaConta = $__ctxChat->getMarca();
 } catch (\Throwable $e) { /* mantém Yuris */ }
 if ($isFleetiflow && $marcaConta === null) $marcaConta = \App\Master\Marca::padraoFleetiflow();
+// ?conversa=<id>: o link da menção de conversa do Chat Interno (edição CRM).
+// O id vira o jid aqui, só se a conversa é do canal que a conta pode ver.
+if ($auto_open_jid === '' && $isFleetiflow && !empty($_GET['conversa'])) {
+    try {
+        $__pdoC = \App\Core\Database::getConnection();
+        $__W    = \App\WhatsAppAgente\WhatsAppChannelAccessService::class;
+        $__cid  = $__W::resolveRequestedChannel($__pdoC, (int)$__ctxChat->getAccountId(), null);
+        $__chk  = $__cid ? $__W::check($__pdoC, (int)$__ctxChat->getAccountId(), $__cid, 'view') : null;
+        if ($__chk) {
+            $__stC = $__pdoC->prepare('SELECT remote_jid FROM whatsapp_chats WHERE id = ? AND instance_id = ? LIMIT 1');
+            $__stC->execute([(int)$_GET['conversa'], (int)$__chk['channel_id']]);
+            $auto_open_jid = (string)($__stC->fetchColumn() ?: '');
+        }
+    } catch (\Throwable $e) { /* sem abrir sozinho */ }
+}
 // Nome na aba e agente de pré-venda: os da marca da conta (App\Master\Marca).
 $marcaChat     = $isFleetiflow ? $marcaConta['nome'] : 'Yuris';
 $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
