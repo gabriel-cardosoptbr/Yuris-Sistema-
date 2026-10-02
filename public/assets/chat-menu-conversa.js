@@ -7,7 +7,8 @@
  */
 (function () {
   'use strict';
-  if (!window.ChatApp || typeof ChatApp.acaoConversa !== 'function') return;
+  // ChatApp é `const` no chat.js: existe no escopo global, mas NÃO em window.ChatApp.
+  if (typeof ChatApp === 'undefined' || typeof ChatApp.acaoConversa !== 'function') return;
   const lista = document.getElementById('chatList');
   if (!lista) return;
 

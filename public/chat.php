@@ -2720,7 +2720,7 @@ window.CSRF_CHAT     = <?= json_encode($csrf) ?>;
 window.CHAT_CONTA_ID = <?= (int)($__ctxChat->getAccountId() ?? 0) ?>;
 </script>
 <script src="/assets/chat-numeros.js?v=2"></script>
-<script src="/assets/chat-menu-conversa.js?v=1"></script>
+<script src="/assets/chat-menu-conversa.js?v=2"></script>
 <?php endif; ?>
 <script>
 // Lightbox init
