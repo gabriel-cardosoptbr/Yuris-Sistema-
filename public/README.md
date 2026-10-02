@@ -139,6 +139,13 @@ escolhida vira `ChatApp.trocarCanal(id)`, e o `chat.js` passa a mandar
 Evolution). O número escolhido fica no `localStorage`, por conta; `?numero=<id>`
 na URL também escolhe.
 
+Para não empurrar a conversa para baixo, a barra é uma linha só (abas à
+esquerda; total de conversas do número aberto, resumo e "+ Número" à direita)
+e os cartões Conversas/Não lidas/Conexão/Número somem quando ela existe
+(`.chat-main:has(#ffNumeros:not(:empty)) .chat-kpis`): a aba já mostra
+status, telefone e não lidas. O cabeçalho da conversa aberta ganha
+"via <número> · telefone" (`#ffnVia`, ao lado de `#activePhone`).
+
 `chat.php` resolve a edição do produto (`$isFleetiflow`) para três coisas: o
 nome na aba, a variável `window.CHAT_MARCA` (o `chat.js` reescreve o título
 com o contador de não lidas) e `window.CHAT_SEM_JURIDICO`, que tira "Processos

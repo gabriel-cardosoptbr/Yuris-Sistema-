@@ -73,38 +73,74 @@
     }
   }
 
+  // Uma linha só: as abas à esquerda, o resumo e o "+" à direita. Contador zerado
+  // não aparece (só ocupa lugar); "caído" só aparece quando há algum, em vermelho.
+  // Os cartões Conversas/Não lidas/Conexão/Número saem (chat-numeros.css): a aba
+  // já mostra status, telefone e não lidas, e o total de conversas do número
+  // aberto vem para esta linha (espelhado de #kpiChats, que o chat.js mantém).
   function desenhar() {
     const atual = ChatApp.canalAtual() || (numeros.find((n) => n.padrao) || {}).id;
-    const chips = [
-      ['', resumo.total + (resumo.total === 1 ? ' número' : ' números')],
-      ['ok', resumo.conectados + (resumo.conectados === 1 ? ' conectado' : ' conectados')],
-      ['ruim', resumo.caidos + (resumo.caidos === 1 ? ' caído' : ' caídos')],
-      ['neutro', resumo.nunca_conectados + ' nunca ' + (resumo.nunca_conectados === 1 ? 'conectado' : 'conectados')],
-    ];
+    const chips = [];
+    if (resumo.total > 1) chips.push(['', resumo.total + ' números']);
+    if (resumo.conectados > 0 && resumo.total > 1) chips.push(['ok', resumo.conectados + (resumo.conectados === 1 ? ' conectado' : ' conectados')]);
+    if (resumo.caidos > 0) chips.push(['ruim', resumo.caidos + (resumo.caidos === 1 ? ' caído' : ' caídos')]);
+    if (resumo.nunca_conectados > 0) chips.push(['neutro', resumo.nunca_conectados + ' sem conexão']);
 
     raiz.innerHTML =
-      '<div class="ffn-topo">' +
-        '<div class="ffn-resumo">' +
-          chips.map(([tom, txt], i) =>
-            '<span class="ffn-chip' + (tom ? ' ffn-' + tom : '') + (i > 0 && txt.startsWith('0 ') ? ' ffn-zero' : '') + '">' +
-            (tom ? '<i></i>' : '') + esc(txt) + '</span>').join('') +
-        '</div>' +
-        (podeGerenciar ? '<button type="button" class="ffn-add" data-acao="adicionar">+ Adicionar número</button>' : '') +
-      '</div>' +
       '<div class="ffn-abas" role="tablist" aria-label="Números de WhatsApp">' +
         numeros.map((n) => {
           const ativo = n.id === atual;
-          return '<div class="ffn-aba' + (ativo ? ' ativa' : '') + ' ffn-' + n.situacao + '" role="tab" tabindex="0" aria-selected="' + ativo + '" data-id="' + n.id + '" title="' + esc(ROTULO[n.situacao]) + '">' +
+          const fone = telefone(n.phone);
+          return '<div class="ffn-aba' + (ativo ? ' ativa' : '') + ' ffn-' + n.situacao + '" role="tab" tabindex="0" aria-selected="' + ativo + '" data-id="' + n.id + '" title="' + esc(n.nome + ' · ' + (fone || '') + ' · ' + ROTULO[n.situacao]) + '">' +
             '<i class="ffn-ponto"></i>' +
             '<span class="ffn-nome">' + esc(n.nome) + '</span>' +
-            '<span class="ffn-fone">' + esc(telefone(n.phone) || ROTULO[n.situacao]) + '</span>' +
+            '<span class="ffn-fone">' + esc(fone || ROTULO[n.situacao]) + '</span>' +
             (n.nao_lidas > 0 ? '<span class="ffn-badge">' + (n.nao_lidas > 99 ? '99+' : n.nao_lidas) + '</span>' : '') +
             (ativo && podeGerenciar && n.is_own ? '<button type="button" class="ffn-renomear" data-acao="renomear" data-id="' + n.id + '" title="Renomear número" aria-label="Renomear número">' +
               '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>' : '') +
           '</div>';
         }).join('') +
+      '</div>' +
+      '<div class="ffn-direita">' +
+        '<span class="ffn-conversas" id="ffnConversas"></span>' +
+        chips.map(([tom, txt]) =>
+          '<span class="ffn-chip' + (tom ? ' ffn-' + tom : '') + '">' + (tom ? '<i></i>' : '') + esc(txt) + '</span>').join('') +
+        (podeGerenciar ? '<button type="button" class="ffn-add" data-acao="adicionar" title="Adicionar número">+ Número</button>' : '') +
       '</div>';
+    espelharConversas();
+    marcarConversa(atual);
   }
+
+  // A conversa aberta diz por qual número ela está: "via Fleeti Flow 2 ·
+  // +55 (11) 96708-6541", logo abaixo do nome do contato. A lista só traz
+  // conversas do número da aba, então o número da conversa é o da aba ativa.
+  function marcarConversa(atualId) {
+    const ref = document.getElementById('activePhone');
+    if (!ref) return;
+    let via = document.getElementById('ffnVia');
+    if (!via) {
+      via = document.createElement('div');
+      via.id = 'ffnVia';
+      via.className = 'ffn-via';
+      ref.insertAdjacentElement('afterend', via);
+    }
+    const n = numeros.find((x) => x.id === atualId);
+    if (!n) { via.textContent = ''; return; }
+    const fone = telefone(n.phone);
+    via.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>' +
+      '<span>via <strong>' + esc(n.nome) + '</strong>' + (fone ? ' · ' + esc(fone) : '') + '</span>';
+  }
+
+  // "43 conversas" do número aberto, lido do cartão escondido que o chat.js atualiza.
+  function espelharConversas() {
+    const alvo = document.getElementById('ffnConversas');
+    const fonte = document.getElementById('kpiChats');
+    if (!alvo || !fonte) return;
+    const n = String(fonte.textContent || '').trim();
+    alvo.textContent = /^\d+$/.test(n) ? n + (n === '1' ? ' conversa' : ' conversas') : '';
+  }
+  const kpi = document.getElementById('kpiChats');
+  if (kpi && window.MutationObserver) new MutationObserver(espelharConversas).observe(kpi, { childList: true, characterData: true, subtree: true });
 
   async function escolher(id) {
     id = Number(id);
