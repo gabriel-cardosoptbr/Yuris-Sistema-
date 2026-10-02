@@ -22,10 +22,22 @@
  * Não roda duas vezes por acidente: aborta se já existir um user com o login
  * informado, ou uma conta com esse nome que já seja produto=fleetiflow.
  *
+ * MARCA PRÓPRIA (02/10/2026): com --marca-nome a conta nasce com a marca de
+ * outra empresa, igual ao "+ Conta CRM" do Painel Master (Marca::normalizar,
+ * Marca::salvarArquivo, Marca::gravar), na mesma transação. Logo e ícone são
+ * arquivos PNG, JPEG ou WEBP no disco de quem roda o script. O domínio é
+ * recusado se já for de outra conta. DNS, nginx e certificado continuam à parte.
+ *
  * USO
  *   php scripts/create_fleetiflow_account.php
  *   php scripts/create_fleetiflow_account.php --login=admin@fleetiflow.com.br --nome="Admin Fleetiflow"
  *   php scripts/create_fleetiflow_account.php --password=senhaEscolhida123
+ *   php scripts/create_fleetiflow_account.php --account-nome="Via Autodoc" \
+ *       --login=atendimento@viaautodoc.com.br --nome="Administrador Via Autodoc" \
+ *       --account-email=atendimento@fleetiflow.com.br --razao-social="..." --cnpj=... \
+ *       --telefone=... --cidade=... --estado=SP \
+ *       --marca-nome="Via Autodoc" --marca-subtitulo="Despachante Documentalista" \
+ *       --marca-cor=#D7A525 --dominio=crm.viaautodoc.com.br --logo=/tmp/logo.png --icone=/tmp/icone.png
  */
 
 declare(strict_types=1);
@@ -40,8 +52,11 @@ require_once __DIR__ . '/../app/bootstrap.php';
 use App\Core\Database;
 use App\Master\Account;
 use App\Master\AccountBootstrapSeeder;
+use App\Master\Marca;
 
-$opts = getopt('', ['login:', 'password:', 'nome:', 'account-nome:', 'plano:', 'help']);
+$opts = getopt('', ['login:', 'password:', 'nome:', 'account-nome:', 'plano:', 'help',
+    'account-email:', 'razao-social:', 'cnpj:', 'telefone:', 'cidade:', 'estado:',
+    'marca-nome:', 'marca-subtitulo:', 'marca-cor:', 'dominio:', 'logo:', 'icone:']);
 
 if (isset($opts['help'])) {
     echo file_get_contents(__FILE__);
@@ -62,6 +77,27 @@ if ($senhaProvided) {
     for ($i = 0; $i < 16; $i++) $senha .= $alphabet[random_int(0, strlen($alphabet) - 1)];
 }
 $senhaHash = password_hash($senha, PASSWORD_BCRYPT);
+
+// ─── Marca própria (opcional): valida tudo ANTES de abrir a transação ──────
+$marca = null; $imagens = [];
+if (isset($opts['marca-nome'])) {
+    try {
+        $marca = Marca::normalizar([
+            'nome' => $opts['marca-nome'], 'subtitulo' => $opts['marca-subtitulo'] ?? '',
+            'cor'  => $opts['marca-cor'] ?? '', 'dominio' => $opts['dominio'] ?? '',
+        ]);
+        foreach (Marca::TIPOS as $tipo) {
+            if (empty($opts[$tipo])) continue;
+            $bin = @file_get_contents($opts[$tipo]);
+            if ($bin === false || $bin === '') throw new \InvalidArgumentException("Não consegui ler o arquivo de {$tipo}: {$opts[$tipo]}");
+            Marca::validarImagem($bin);
+            $imagens[$tipo] = $bin;
+        }
+    } catch (\InvalidArgumentException $e) {
+        fwrite(STDERR, 'ERRO na marca: ' . $e->getMessage() . "\n");
+        exit(1);
+    }
+}
 
 try {
     $pdo = Database::getConnection();
@@ -88,6 +124,17 @@ if ($existingId = $dupAcc->fetchColumn()) {
     exit(1);
 }
 
+if ($marca && $marca['dominio'] !== null && Marca::contaPorDominio($pdo, $marca['dominio']) !== null) {
+    fwrite(STDERR, "ERRO: o domínio {$marca['dominio']} já é usado pela marca de outra conta.\n");
+    exit(1);
+}
+$cnpj = preg_replace('/\D/', '', (string) ($opts['cnpj'] ?? '')) ?: null;
+if ($cnpj) {
+    $dupC = $pdo->prepare('SELECT id FROM accounts WHERE cnpj = :c AND deleted_at IS NULL LIMIT 1');
+    $dupC->execute(['c' => $cnpj]);
+    if ($dupC->fetchColumn()) { fwrite(STDERR, "ERRO: já existe uma conta com o CNPJ {$cnpj}.\n"); exit(1); }
+}
+
 // ─── Plano: precisa existir e não ter AASP habilitado (conta não é jurídica) ─
 $plano = $pdo->prepare('SELECT * FROM plans WHERE slug = :s AND ativo = 1 LIMIT 1');
 $plano->execute(['s' => $planoSlug]);
@@ -104,13 +151,18 @@ try {
     $codigoVinculo = implode('-', str_split(bin2hex(random_bytes(8)), 4));
     $stmtA = $pdo->prepare(
         "INSERT INTO accounts
-           (nome, email, tipo, codigo_vinculo, plano, status, configuracoes, created_at, updated_at)
+           (nome, email, razao_social, cnpj, telefone, cidade, estado, tipo, codigo_vinculo, plano, status, configuracoes, created_at, updated_at)
          VALUES
-           (:nome, :email, 'matriz', :codigo, :plano, 'active', :config, NOW(), NOW())"
+           (:nome, :email, :rs, :cnpj, :tel, :ci, :uf, 'matriz', :codigo, :plano, 'active', :config, NOW(), NOW())"
     );
     $stmtA->execute([
         'nome'   => $accountNome,
-        'email'  => $login,
+        'email'  => $opts['account-email'] ?? $login,
+        'rs'     => $opts['razao-social'] ?? null,
+        'cnpj'   => $cnpj,
+        'tel'    => $opts['telefone'] ?? null,
+        'ci'     => $opts['cidade'] ?? null,
+        'uf'     => isset($opts['estado']) ? strtoupper($opts['estado']) : null,
         'codigo' => $codigoVinculo,
         'plano'  => $plano['slug'],
         'config' => json_encode(['produto' => 'fleetiflow'], JSON_UNESCAPED_UNICODE),
@@ -157,6 +209,13 @@ try {
         "DELETE FROM clientes_setores WHERE account_id = :aid AND slug = 'juridico'"
     )->execute(['aid' => $accountId]);
 
+    // 5b. Marca própria (nome, cor, domínio, logo e ícone), como o Painel Master.
+    if ($marca) {
+        $hashes = [];
+        foreach ($imagens as $tipo => $bin) $hashes[$tipo] = Marca::salvarArquivo($pdo, $accountId, $tipo, $bin);
+        Marca::gravar($pdo, $accountId, $marca, $hashes);
+    }
+
     // 6. Auditoria (grava direto — MasterAudit::log() exige sessão HTTP e não
     //    grava nada rodando via CLI, por desenho)
     Account::audit($accountId, 'account.create', [
@@ -170,22 +229,28 @@ try {
             'admin_login' => $login,
             'origem'  => 'scripts/create_fleetiflow_account.php',
             'bootstrap_seed' => $seedCounts,
+            'marca'   => $marca ? ['nome' => $marca['nome'], 'cor' => $marca['cor'], 'dominio' => $marca['dominio'],
+                                    'logo' => isset($imagens['logo']), 'icone' => isset($imagens['icone'])] : null,
         ],
     ]);
 
     $pdo->commit();
 } catch (\Throwable $e) {
     $pdo->rollBack();
-    fwrite(STDERR, "ERRO ao criar a conta Fleetiflow: " . $e->getMessage() . "\n");
+    fwrite(STDERR, "ERRO ao criar a conta: " . $e->getMessage() . "\n");
     fwrite(STDERR, "Transação revertida — nenhum dado foi gravado.\n");
     exit(1);
 }
 
 echo "═══════════════════════════════════════════════════════════════\n";
-echo " FLEETIFLOW — CONTA CRIADA                                     \n";
+echo " CONTA CRM CRIADA                                              \n";
 echo "═══════════════════════════════════════════════════════════════\n";
 echo " Account:      #{$accountId}  ({$accountNome})\n";
 echo " Produto:      fleetiflow (jurídico oculto e bloqueado)\n";
+if ($marca) {
+    echo " Marca:        {$marca['nome']} ({$marca['cor']})" . ($imagens ? ' com ' . implode(' e ', array_keys($imagens)) : '') . "\n";
+    if ($marca['dominio']) echo " Domínio:      {$marca['dominio']}\n";
+}
 echo " Plano:        {$plano['slug']}\n";
 echo " Subscription: #{$subId}\n";
 echo " User:         #{$userId}  ({$nome})\n";
@@ -193,7 +258,7 @@ echo "               role=owner, perfil=admin\n";
 echo "───────────────────────────────────────────────────────────────\n";
 echo " LOGIN\n";
 echo "───────────────────────────────────────────────────────────────\n";
-echo " URL:          http://localhost:8090/login-fleetiflow.php\n";
+echo " URL:          " . ($marca && $marca['dominio'] ? "https://{$marca['dominio']}/" : 'http://localhost:8090/login-fleetiflow.php') . "\n";
 echo " Login:        {$login}\n";
 if (!$senhaProvided) {
     echo " Senha:        {$senha}\n";

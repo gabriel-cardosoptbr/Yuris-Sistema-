@@ -133,7 +133,7 @@ significa nada.
 | Script | O que faz |
 |---|---|
 | `seed_admin.php` | cria o usuário admin inicial |
-| `create_fleetiflow_account.php` | **hoje se usa o Painel Master** (botão "+ Conta CRM"), que faz o mesmo e ainda grava a marca. O script cria a conta Fleetiflow (edição CRM/comercial): mesma sequência do Painel Master (`accounts` + `users` + `subscriptions` + `AccountBootstrapSeeder`), já com `configuracoes.produto=fleetiflow`. Idempotente por rejeição: aborta se já existir conta ou login com o mesmo nome, não duplica |
+| `create_fleetiflow_account.php` | **hoje se usa o Painel Master** (botão "+ Conta CRM"), que faz o mesmo e ainda grava a marca. O script cria a conta Fleetiflow (edição CRM/comercial): mesma sequência do Painel Master (`accounts` + `users` + `subscriptions` + `AccountBootstrapSeeder`), já com `configuracoes.produto=fleetiflow`. Idempotente por rejeição: aborta se já existir conta ou login com o mesmo nome, não duplica. Desde 02/10/2026 aceita **marca própria** (`--marca-nome`, `--marca-subtitulo`, `--marca-cor`, `--dominio`, `--logo`, `--icone`) e os dados da empresa (`--account-email`, `--razao-social`, `--cnpj`, `--telefone`, `--cidade`, `--estado`), gravados na mesma transação como no Painel Master; recusa domínio ou CNPJ que já sejam de outra conta. Foi assim que nasceu a conta da Via Autodoc (`crm.viaautodoc.com.br`) |
 | `check_user.php` | inspeciona um usuário |
 | `test_multitenancy_e2e.php` | testa o isolamento entre contas ponta a ponta |
 
