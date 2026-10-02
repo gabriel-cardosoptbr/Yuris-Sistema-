@@ -178,7 +178,7 @@ function column_display_name(array $col): string
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title><?= $moduloJuridico ? 'Central de Prospecção Jurídica - Yuris' : 'Central de Prospecção - Fleetiflow' ?></title>
+  <title><?= $moduloJuridico ? 'Central de Prospecção Jurídica - Yuris' : 'Central de Prospecção - ' . htmlspecialchars(\App\Core\AccountContext::fromSession()->getMarca()['nome']) ?></title>
   <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">

@@ -79,7 +79,7 @@ function dataBr(?string $v, bool $hora = true): string
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title><?= $isFleetiflow ? 'Desempenho · Fleetiflow CRM' : 'Desempenho · Yuris' ?></title>
+  <title><?= $isFleetiflow ? 'Desempenho · ' . htmlspecialchars($ctx->getMarca()['nome']) . ' CRM' : 'Desempenho · Yuris' ?></title>
   <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png">
   <link rel="icon" type="image/png" sizes="32x32"  href="/assets/favicon-32.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">

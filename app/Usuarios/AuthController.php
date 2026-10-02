@@ -187,7 +187,9 @@ class AuthController
                 require_once __DIR__ . '/../Master/Account.php';
                 $acc = \App\Master\Account::findById((int) $_SESSION['account_id']);
                 if ($acc && \App\Master\Account::getProduto($acc) === 'fleetiflow') {
-                    $loginPage = '/login-fleetiflow.php';
+                    // No domínio da marca o login é a raiz: o nome do arquivo
+                    // (que diz "fleetiflow") não aparece na barra de endereço.
+                    $loginPage = \App\Core\ProductHost::isFleetiflow() ? '/' : '/login-fleetiflow.php';
                 }
             }
         } catch (\Throwable $_e) { /* mantém /login.php */ }
@@ -214,7 +216,8 @@ class AuthController
      */
     private static function sanitizeLoginPage(?string $page): string
     {
-        $allowed = ['/login.php', '/login-fleetiflow.php'];
+        // "/" é o login da edição CRM no domínio da marca (ver index.php).
+        $allowed = ['/login.php', '/login-fleetiflow.php', '/'];
         return in_array($page, $allowed, true) ? $page : '/login.php';
     }
 

@@ -14,6 +14,19 @@
  */
 require_once __DIR__ . '/../app/bootstrap.php';
 
+// Num domínio da edição CRM (crm.fleetiflow.com.br, crm.viaautodoc.com.br...)
+// o login mora na raiz "/": o nome deste arquivo não aparece na barra de
+// endereço, porque o domínio pode ser de outra marca. Quem chega pelo
+// endereço antigo (/login-fleetiflow) vai para a raiz. Só GET/HEAD: um POST
+// redirecionado viraria GET e perderia o login. Fora de domínio CRM (dev em
+// localhost) o arquivo continua abrindo direto.
+if (\App\Core\ProductHost::isFleetiflow()
+    && basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')) === 'login-fleetiflow.php'
+    && in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['GET', 'HEAD'], true)) {
+    header('Location: /', true, 301);
+    exit;
+}
+
 use App\Usuarios\AuthController;
 
 // Marca desta porta de entrada: a da conta dona do domínio (cadastrado no
@@ -234,7 +247,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       <form id="loginForm" method="post" novalidate>
         <input type="hidden" name="csrf_token" value="<?=htmlspecialchars($_SESSION['csrf_token'])?>">
-        <input type="hidden" name="login_page" value="/login-fleetiflow.php">
+        <input type="hidden" name="login_page" value="<?= \App\Core\ProductHost::isFleetiflow() ? '/' : '/login-fleetiflow.php' ?>">
         <input type="hidden" name="aceite_termos_servidor" id="aceite_termos_servidor" value="0">
 
         <div class="field">

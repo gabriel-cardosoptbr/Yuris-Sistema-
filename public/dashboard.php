@@ -166,7 +166,7 @@ if ($isFleetiflow) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title><?= $isFleetiflow ? 'Dashboard — Fleetiflow CRM' : 'Dashboard Executivo — Yuris' ?></title>
+  <title><?= $isFleetiflow ? 'Dashboard — ' . htmlspecialchars($ctx->getMarca()['nome']) . ' CRM' : 'Dashboard Executivo — Yuris' ?></title>
   <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
