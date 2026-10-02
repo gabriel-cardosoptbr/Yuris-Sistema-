@@ -157,6 +157,15 @@ As ações são as de `chats.php`, chamadas por `ChatApp.acaoConversa(jid, acao)
 que valem para qualquer conversa da lista, não só a aberta; cada `.chat-item`
 leva `data-jid` para o menu saber qual é.
 
+Parar o mouse numa conversa da lista por meio segundo mostra uma **prévia** ao
+lado (`assets/chat-previa-conversa.js`, estilos `.ffp-*` em `chat-numeros.css`,
+só na edição Fleetiflow): as últimas 6 mensagens em balões, o autor em grupo e
+quantas não lidas. Lê por `ChatApp.previaConversa(jid)` → `messages.php`, que
+não marca nada como lido, então a conversa continua não lida. A prévia segue o
+`jid`, não o elemento, porque a lista se redesenha a cada poucos segundos; fica
+em cache até chegar mensagem nova (`last_message_at`). Sem mouse (`hover: none`)
+ela não existe, e a conversa aberta não ganha prévia.
+
 `chat.php` resolve a edição do produto (`$isFleetiflow`) para três coisas: o
 nome na aba, a variável `window.CHAT_MARCA` (o `chat.js` reescreve o título
 com o contador de não lidas) e `window.CHAT_SEM_JURIDICO`, que tira "Processos

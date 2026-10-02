@@ -1977,6 +1977,40 @@ const ChatApp = (() => {
     return true;
   }
 
+  // Prévia das últimas mensagens (passar o mouse na lista). Só LÊ: messages.php
+  // não marca nada como lido, então a conversa continua "não lida" para quem
+  // abrir depois. Devolve texto já escapado, do mais antigo para o mais novo.
+  async function previaConversa(jid, limite = 6) {
+    if (!jid) return [];
+    const r = await apiFetch(API.messages + '?jid=' + encodeURIComponent(jid) + '&limit=' + limite);
+    const msgs = (r && r.messages) || [];
+    const ROTULO = { image: 'Foto', video: 'Vídeo', audio: 'Áudio', sticker: 'Figurinha', location: 'Localização', contact: 'Contato', document: 'Documento' };
+    const grupo = jid.endsWith('@g.us');
+    return msgs
+      .slice()
+      .sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')) || (a.id - b.id))
+      .slice(-limite)
+      .map(m => {
+        const tipo = m.message_type || 'text';
+        const apagada = !!(m.is_deleted && m.is_deleted != 0);
+        let texto = String(m.message_content || '').trim();
+        let midia = '';
+        if (apagada) { midia = 'Mensagem apagada'; texto = ''; }
+        else if (tipo !== 'text') {
+          midia = tipo === 'document' && m.media_filename ? String(m.media_filename) : (ROTULO[tipo] || 'Mídia');
+          texto = String(m.caption || '').trim();
+        }
+        const entrada = (m.direction || 'inbound') === 'inbound';
+        return {
+          entrada,
+          autor: grupo && entrada ? esc(resolveSenderName(m.contact_name) || phoneFromJid(m.participant_jid) || '') : '',
+          midia: esc(midia),
+          texto: formatMentionsPlain(esc(texto.length > 280 ? texto.slice(0, 280) + '…' : texto), jid),
+          hora: formatTime(m.created_at),
+        };
+      });
+  }
+
   // ── Sincronizar chats existentes ────────────────────────────
   let _syncTimer = null;
 
@@ -3824,7 +3858,7 @@ const ChatApp = (() => {
   }
 
   return {
-    definirCanal, canalAtual, trocarCanal, dadosConversa, acaoConversa,
+    definirCanal, canalAtual, trocarCanal, dadosConversa, acaoConversa, previaConversa,
     init, checkStatus, connectWhatsApp, disconnectWhatsApp,
     manualReconnect, dismissDisconnectAlert,
     refreshQr, loadChats, loadMoreChats, openChat, openChatByJid, closeChat,
