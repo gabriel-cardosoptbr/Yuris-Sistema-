@@ -85,8 +85,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     h1{margin:0; font-family:'Manrope',sans-serif}
     p{margin:0}
 
-    /* ── Fundo: malha diagonal panning + manchas de cor à deriva ──
-       Transcrito de FundoAnimado.tsx / .mkt-mesh / .mkt-blob (Fleetiflow real). */
+<?php /* Fundo: malha diagonal panning + manchas de cor à deriva. Transcrito de
+   FundoAnimado.tsx / .mkt-mesh / .mkt-blob do app original. Comentário em PHP
+   para não sair no HTML: a tela serve outras marcas. */ ?>
     .mkt-mesh{
       position:absolute; inset:0; z-index:0; pointer-events:none; opacity:.55;
       background-image:
