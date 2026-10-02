@@ -63,7 +63,8 @@ try {
     foreach (array_unique(array_filter([$jid, $fone . '@s.whatsapp.net'])) as $j) {
         $busca->execute([$j]);
         foreach ($busca->fetchAll(\PDO::FETCH_ASSOC) as $r) {
-            if (SdrFleetiflow::contaUsa((int)$r['account_id'])) { $alvo = $r; break 2; }
+            // Só a conta dona do token (a Fleetiflow original): ver contaDoTokenGlobal.
+            if (SdrFleetiflow::contaDoTokenGlobal((int)$r['account_id'])) { $alvo = $r; break 2; }
         }
     }
 
@@ -72,7 +73,7 @@ try {
     if (!$alvo) {
         $contas = [];
         foreach ($pdo->query("SELECT DISTINCT account_id FROM whatsapp_instances WHERE status = 'open'")->fetchAll(\PDO::FETCH_COLUMN) as $a) {
-            if (SdrFleetiflow::contaUsa((int)$a)) $contas[] = (int)$a;
+            if (SdrFleetiflow::contaDoTokenGlobal((int)$a)) $contas[] = (int)$a;
         }
         if (count($contas) !== 1) {
             http_response_code(404); echo json_encode(['error' => 'Conta Fleetiflow não encontrada']); exit;

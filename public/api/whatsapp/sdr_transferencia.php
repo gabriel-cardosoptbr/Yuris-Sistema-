@@ -61,7 +61,8 @@ try {
     }
     $alvo = null;
     foreach ($candidatos as $r) {
-        if (SdrFleetiflow::contaUsa((int)$r['account_id'])) { $alvo = $r; break; }
+        // Só a conta dona do token (a Fleetiflow original): ver contaDoTokenGlobal.
+        if (SdrFleetiflow::contaDoTokenGlobal((int)$r['account_id'])) { $alvo = $r; break; }
     }
     if (!$alvo) {
         http_response_code(404); echo json_encode(['error' => 'Conversa não encontrada']); exit;

@@ -84,6 +84,25 @@ final class SdrFleetiflow
         return self::$cache[$accountId] = $usa;
     }
 
+    /**
+     * A conta é a dona do token do `.env` (FLEETIFLOW_SDR_WEBHOOK_TOKEN), ou seja
+     * a Fleetiflow original, sem marca própria? Os endpoints chamados pelo n8n
+     * da Vitória (sdr_etapa, sdr_transferencia) só podem agir nela.
+     *
+     * Antes eles aceitavam qualquer conta da edição CRM. Com uma conta só, dava
+     * no mesmo; em 02/10/2026 a Inovaize (marca própria) ganhou número aberto e
+     * duas coisas quebraram: o "card antes da conversa" exigia exatamente UMA
+     * conta CRM com número aberto (passou a responder 404 para a Fleetiflow), e
+     * um telefone presente nas duas contas podia levar o robô da Fleetiflow a
+     * mexer no card da outra. Na dúvida (marca ilegível), não é.
+     */
+    public static function contaDoTokenGlobal(int $accountId): bool
+    {
+        if (!self::contaUsa($accountId)) return false;
+        $m = self::marcaDaConta($accountId);
+        return $m !== null && !$m['personalizada'];
+    }
+
     public static function url(): string
     {
         return trim((string)EnvLoader::get('FLEETIFLOW_SDR_WEBHOOK_URL', ''));
