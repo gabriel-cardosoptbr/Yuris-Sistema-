@@ -193,11 +193,7 @@ temperatura (selo clicável, o mesmo cálculo do card do quadro), responsável
 cliente, nome, status, setor, responsável, WhatsApp e origem. Os selects da
 faixa **não têm `name` e ficam fora do `<form>`**, para não irem no FormData do
 Salvar. Abas: Visão geral (duas colunas), Comercial, WhatsApp, Arquivos e
-Histórico (o cliente não tem Comercial, e tem a aba **Saldo**, ícone `dolar`,
-que só aparece quando o cliente tem recarga de saldo feita no app Fleetiflow:
-saldo mais recente, total aprovado e a lista com data, meio, valor e situação,
-lidos de `api/fleetiflow/recargas_do_cliente.php`; ver
-`app/Financas/README.md`); campo obrigatório vazio numa aba
+Histórico (o cliente não tem Comercial); campo obrigatório vazio numa aba
 escondida volta para a Visão geral (`invalid` em captura). Janela estreita ou
 baixa (`max-width: 920px` ou `max-height: 720px`) rola o painel inteiro, com o
 rodapé grudado.
@@ -238,10 +234,7 @@ Receita/Vendas/Conversão; pipeline em rosca com lista e chips do que está fora
 do funil; prospecção (leads que entraram por dia, empilhados pelo que viraram)
 e funil da coorte (por quais etapas esses leads já passaram, via `card_history`); meta do mês em barra de progresso com ritmo e projeção; tabela de
 atividades recentes (busca, filtro por etapa, "Ver todas", linha abre o card por
-`prospeccao.php?open=`); a seção **Saldo e recargas** logo depois do DRE (02/10/2026:
-recarregado no período, recargas aprovadas, ticket médio, em carteira, e a
-tabela das últimas recargas com link para o cliente, de
-`api/fleetiflow/recargas_resumo.php`, no mesmo período); mapa de calor da atividade no pipeline (dia da semana × bloco de 3h, de `card_history`); evolução por dia/semana/mês; e o financeiro (DRE)
+`prospeccao.php?open=`); mapa de calor da atividade no pipeline (dia da semana × bloco de 3h, de `card_history`); evolução por dia/semana/mês; e o financeiro (DRE)
 abaixo dos negócios, como separador antes dos últimos gráficos (a página nunca termina em card). Sem dados o lugar do gráfico mostra um estado vazio, nunca um
 eixo zerado. Os dados vêm de uma chamada a `api/dashboard_comercial.php`
 (`assets/fleetiflow-dashboard.js`); o visual está em
@@ -285,7 +278,7 @@ stub em `index.php`; a v1 ficou guardada. Ver
 |---|---|
 | `api/` | ~130 endpoints REST. Tem [README próprio](api/README.md) |
 | `includes/` | pedaços de página reaproveitados: `sidebar.php`, `seo_head.php`, `legal_page.php`, rodapés, e `dashboard_fleetiflow.php` (a página inteira do cockpit comercial, incluída por `dashboard.php` só para a conta Fleetiflow). `sidebar.php` resolve `AccountContext::getProduto()` uma vez (`$_isFleetiflow`) e troca logo, rodapé, grupo "Jurídico" do menu e as duas primeiras abas da barra mobile conforme o produto da conta. Para a conta Fleetiflow troca também "Yuris" por "Fleetiflow" no título da aba (23 páginas escrevem o nome no `<title>`; a troca é feita num script só, aqui). Também força o tema **claro** do Yuris (existente, não é novo) na primeira visita da conta Fleetiflow e, num `<style>` só dessa conta, redesenha a barra como a `AppShell` real do Fleetiflow (coluna branca de 260px encostada na borda, item plano, ativo `#D6E4FF` com texto `#3D3D3D`, canvas `#F6F7F9`, fonte Manrope). Regra do bloco: todo seletor leva o prefixo `html[data-theme="light"]` e desce até `.label` / `svg *` onde o `yuris-theme.css` desce, senão o tema claro do Yuris vence por especificidade. O envoltório da barra varia por página (`main.px-6`, `main.rel-wrap`, `main.o-wrap`, `main` com padding inline, `.layout` sem `.page-layout` em `clientes.php`), então o bloco usa `:has(> .sidebar)`: quem contém a barra perde o padding e o irmão dela ganha `24px 24px 24px 0`. Página nova com outro envoltório entra sozinha nessa regra; não crie regra por classe de página. Sem tocar `yuris-theme.css`, então nenhuma conta Yuris é afetada |
-| `assets/` | CSS, JS e imagens. Um arquivo JS por tela (`processos.js`, `tarefas.js`), mais `design-system.css` e `yuris-theme.css`. `dashboard.js` lê um tema de gráficos opcional em `window.YURIS_CHART_THEME` (cores das séries, raio e espessura das barras, tensão da linha, funil em rosca, fonte); sem ele, os valores são os de sempre do Yuris. `fleetiflow-dashboard.js` + `fleetiflow-dashboard.css` são o cockpit comercial da conta Fleetiflow, independentes do `dashboard.js`. `ff-ficha.js` + `ff-ficha.css` são a ficha do lead e do cliente da edição CRM (prefixo `.ff-`, `window.FfFicha`), carregados por `prospeccao.php` e `clientes.php` só quando `$edicaoCrm`. `yuris-ui.js` traduz as ações de histórico (`Yuris.translateAuditAcao`) e, desde 02/10/2026, diz quais se leem numa linha só (`Yuris.AUDIT_EM_LINHA` / `Yuris.eventoEmLinha`: as recargas do app Fleetiflow, "Recarga de saldo aprovada: R$ 50,00 por Pix"), consultado pelas linhas do tempo de `clientes.php` e `prospeccao.php`; ação fora da lista segue o desenho Anterior/Novo de sempre |
+| `assets/` | CSS, JS e imagens. Um arquivo JS por tela (`processos.js`, `tarefas.js`), mais `design-system.css` e `yuris-theme.css`. `dashboard.js` lê um tema de gráficos opcional em `window.YURIS_CHART_THEME` (cores das séries, raio e espessura das barras, tensão da linha, funil em rosca, fonte); sem ele, os valores são os de sempre do Yuris. `fleetiflow-dashboard.js` + `fleetiflow-dashboard.css` são o cockpit comercial da conta Fleetiflow, independentes do `dashboard.js`. `ff-ficha.js` + `ff-ficha.css` são a ficha do lead e do cliente da edição CRM (prefixo `.ff-`, `window.FfFicha`), carregados por `prospeccao.php` e `clientes.php` só quando `$edicaoCrm` |
 | `v2/` | a landing institucional nova (`index.php` + `partials/` + `data/`), servida na `/` |
 | `sistema_vendas/Imagens/` | os logos, servidos em `/sistema_vendas/Imagens/`: 3 do Yuris (`Logo.png`, `Logo Loguin.png`, `YURIS.png`) + 4 do Fleetiflow (`fleetiflow-horizontal.png`, `fleetiflow-icone.png`, `fleetiflow-completa.png`, `fleetiflow-texto.png`, cópia dos arquivos oficiais da marca). **Não mova:** `sidebar.php`, `login.php`, `login-fleetiflow.php` e as páginas legais apontam para essa URL. O nome é herança de quando o app era servido em `/sistema_vendas/` |
 | `uploads/` | arquivos enviados pelos clientes |
