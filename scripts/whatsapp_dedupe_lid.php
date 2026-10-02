@@ -23,7 +23,10 @@
  *   php scripts/whatsapp_dedupe_lid.php --apply
  * Tudo escopado por instance_id e em transacao. @lid sem telefone resolvivel NAO e tocado.
  *
- * Uso local: C:\xampp\php\php.exe scripts/whatsapp_dedupe_lid.php [--apply]
+ * --instancia=N limita a fusão (C) a um número só (02/10/2026: usado para a
+ * Inovaize sem tocar nos outros escritórios).
+ *
+ * Uso local: C:\xampp\php\php.exe scripts/whatsapp_dedupe_lid.php [--apply] [--instancia=N]
  * Uso prod:  docker exec -i yuris_app php /var/www/html/scripts/whatsapp_dedupe_lid.php [--apply]
  */
 if (PHP_SAPI !== 'cli') { http_response_code(403); exit('CLI only'); }
@@ -33,6 +36,8 @@ require_once __DIR__ . '/../app/bootstrap.php';
 use App\Core\Database;
 
 $APPLY = in_array('--apply', $argv, true);
+$SO_INSTANCIA = 0;
+foreach ($argv as $a) if (preg_match('/^--instancia=(\d+)$/', $a, $m)) $SO_INSTANCIA = (int) $m[1];
 $pdo = Database::getConnection();
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
@@ -129,8 +134,10 @@ function resolvePhone(PDO $pdo, int $inst, string $lidJid): ?string {
 
 $lidChats = $pdo->query("SELECT id, instance_id, remote_jid, contact_name
                            FROM whatsapp_chats
-                          WHERE is_group=0 AND remote_jid LIKE '%@lid'
+                          WHERE is_group=0 AND remote_jid LIKE '%@lid'"
+                       . ($SO_INSTANCIA > 0 ? " AND instance_id = " . $SO_INSTANCIA : '') . "
                           ORDER BY instance_id, id")->fetchAll(PDO::FETCH_ASSOC);
+if ($SO_INSTANCIA > 0) echo "[C] só a instância {$SO_INSTANCIA}\n";
 
 $tot = count($lidChats); $merge = 0; $convert = 0; $unres = 0;
 $plan = [];

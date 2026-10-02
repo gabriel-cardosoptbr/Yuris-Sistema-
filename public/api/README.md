@@ -32,6 +32,12 @@ responsáveis. Aceita `start`, `end`, `responsavel` e `origin`; sem período,
 `_json_guard.php` começa com `_` de propósito: não é endpoint, é peça incluída
 pelos outros.
 
+`whatsapp/sync.php` (o botão Sincronizar, e `php public/api/whatsapp/sync.php <canal>` na
+linha de comando) aprende o par `@lid` ↔ telefone de cada mensagem (`key.remoteJidAlt`,
+`Identidade::registrar`) antes de montar as conversas, como o webhook já fazia. Sem isso, o
+contato que respondeu pelo `@lid` virava uma conversa separada da que mandamos para o
+telefone (02/10/2026, 26 de 54 conversas no primeiro sync da Inovaize).
+
 `whatsapp/contacts.php` tem, além de `fetch_pic`, a action `resolve_name`: para
 conversa 1:1 sem nome, deduz o nome da conta comercial e grava na identidade
 (ver `PerfilComercial` em [`../../app/WhatsAppAgente/README.md`](../../app/WhatsAppAgente/README.md)).

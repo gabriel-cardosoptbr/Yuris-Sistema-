@@ -326,6 +326,25 @@ try {
         }
     }
 
+    // 2d. IDENTIDADE: aprende o par @lid <-> telefone que a Evolution manda em
+    //     key.remoteJidAlt, ANTES de derivar as conversas. O webhook já fazia
+    //     isso; a sincronização não, e com ela o contato que respondeu pelo @lid
+    //     virava uma conversa separada da que mandamos para o telefone (54
+    //     conversas, 26 duplicadas, no primeiro sync da Inovaize em 02/10/2026).
+    //     Com o par gravado, o resolvePhoneJid abaixo junta as duas. Só o par:
+    //     o nome não vem daqui (pushName de mensagem nossa é o nome do dono).
+    //     Best-effort: identidade é enriquecimento, não derruba o sync.
+    foreach ($allMessages as $r) {
+        $keyId = is_array($r) ? ($r['key'] ?? null) : null;
+        if (!is_array($keyId) || empty($keyId['remoteJidAlt'] ?? $keyId['participantAlt'] ?? null)) continue;
+        try {
+            $end = \App\WhatsAppAgente\Identidade::enderecosDaKey($keyId);
+            if ($end['lid'] !== null && $end['phone'] !== null) {
+                \App\WhatsAppAgente\Identidade::registrar((int) $accountId, (int) $instanceId, $end['jid'], $end['lid'], $end['phone']);
+            }
+        } catch (\Throwable $e) { /* enriquecimento: segue */ }
+    }
+
     // 3. Derivar lista de chats únicos a partir das mensagens
     $jidMap = [];
     foreach ($allMessages as $r) {

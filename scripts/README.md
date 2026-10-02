@@ -152,7 +152,7 @@ Rode o smoke antes de mexer em prompt ou schema do agente. Ver
 | Script | O que faz |
 |---|---|
 | `whatsapp_cleanup_ghosts.php` | remove conversas fantasma |
-| `whatsapp_dedupe_lid.php` | desduplica contatos por LID |
+| `whatsapp_dedupe_lid.php` | desduplica contatos por LID: funde a conversa `@lid` na do telefone quando o par é conhecido (tabela de identidade). Simulação por padrão, `--apply` funde; `--instancia=N` limita a fusão a um número |
 
 Estes **alteram dados**. Leia o script antes, e faça backup.
 
