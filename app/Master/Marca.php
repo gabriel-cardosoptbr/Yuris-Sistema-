@@ -207,17 +207,25 @@ final class Marca
         $hex = self::validarCor($hex) ?? self::COR_PADRAO;
         if ($hex === self::COR_PADRAO) return self::PALETA_FLEETIFLOW;
 
-        $rgb = self::rgb($hex);
+        // A cor principal aparece como texto em fundo branco (links, abas,
+        // valores) e como fundo de botão. Cor clara demais (dourado, amarelo,
+        // laranja) não dá leitura no branco: ela escurece até o contraste
+        // WCAG de 4,5:1. Os tons claros (suave, media, clara) continuam
+        // saindo da cor original, então o fundo dos selos guarda o tom vivo.
+        $original = self::rgb($hex);
+        $rgb      = self::legivelNoBranco($original);
         return [
-            'marca'  => $hex,
+            'marca'  => self::misturar($rgb, [0, 0, 0], 1.0),
             'forte'  => self::misturar($rgb, [0, 0, 0], 0.82),
-            'suave'  => self::misturar($rgb, [255, 255, 255], 0.16),
-            'media'  => self::misturar($rgb, [255, 255, 255], 0.34),
-            'clara'  => self::misturar($rgb, [255, 255, 255], 0.57),
+            'suave'  => self::misturar($original, [255, 255, 255], 0.16),
+            'media'  => self::misturar($original, [255, 255, 255], 0.34),
+            'clara'  => self::misturar($original, [255, 255, 255], 0.57),
             'escura' => self::misturar($rgb, [0, 0, 0], 0.42),
             'rgb'    => implode(',', $rgb),
-            // Cor clara demais (amarelo, verde-limão) com texto branco some.
-            'texto'  => self::luminancia($rgb) > 0.55 ? '#1F2937' : '#FFFFFF',
+            // Texto sobre a cor da marca: o de MAIOR contraste (WCAG) entre o
+            // branco e o grafite #1F2937. O corte antigo (luminância > 0,55)
+            // deixava branco em dourado e laranja, que fica ilegível.
+            'texto'  => self::textoSobre($rgb),
         ];
     }
 
@@ -237,6 +245,25 @@ final class Marca
             $out .= sprintf('%02X', max(0, min(255, $v)));
         }
         return $out;
+    }
+
+    /** A cor, escurecida aos poucos até ter contraste 4,5:1 com o branco. */
+    private static function legivelNoBranco(array $rgb): array
+    {
+        for ($peso = 1.0; $peso > 0.2; $peso -= 0.02) {
+            $c = array_map(static fn (int $v): int => (int) round($v * $peso), $rgb);
+            if (1.05 / (self::luminancia($c) + 0.05) >= 4.5) return $c;
+        }
+        return array_map(static fn (int $v): int => (int) round($v * 0.2), $rgb);
+    }
+
+    /** Branco ou grafite, o que tiver mais contraste (WCAG) com a cor. */
+    private static function textoSobre(array $rgb): string
+    {
+        $l = self::luminancia($rgb);
+        $contrasteBranco  = 1.05 / ($l + 0.05);
+        $contrasteGrafite = ($l + 0.05) / (self::luminancia([0x1F, 0x29, 0x37]) + 0.05);
+        return $contrasteGrafite > $contrasteBranco ? '#1F2937' : '#FFFFFF';
     }
 
     /** Luminância relativa (WCAG), de 0 a 1. */

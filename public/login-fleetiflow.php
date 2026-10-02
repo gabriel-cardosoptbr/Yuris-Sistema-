@@ -66,7 +66,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     body{
       min-height:100vh; font-family:'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif;
       color:var(--ff-ink); position:relative; overflow-x:hidden;
-      background: linear-gradient(180deg, #EAF2FF 0%, #F5F9FF 22%, #FFFFFF 45%, #F3F7FF 70%, #E8F0FF 100%);
+<?php /* Marca própria: o fundo leva os tons da marca; o Fleetiflow segue com o azul de sempre. */ ?>
+      background: <?= $mk['personalizada'] ? 'linear-gradient(180deg, rgba(var(--ff-rgb),0.10) 0%, rgba(var(--ff-rgb),0.04) 22%, #FFFFFF 45%, rgba(var(--ff-rgb),0.05) 70%, rgba(var(--ff-rgb),0.10) 100%)' : 'linear-gradient(180deg, #EAF2FF 0%, #F5F9FF 22%, #FFFFFF 45%, #F3F7FF 70%, #E8F0FF 100%)' ?>;
     }
     h1{margin:0; font-family:'Manrope',sans-serif}
     p{margin:0}
@@ -77,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       position:absolute; inset:0; z-index:0; pointer-events:none; opacity:.55;
       background-image:
         repeating-linear-gradient(115deg, rgba(var(--ff-rgb),0.09) 0px, rgba(var(--ff-rgb),0.09) 1px, transparent 1px, transparent 96px),
-        repeating-linear-gradient(25deg, rgba(111,214,232,0.10) 0px, rgba(111,214,232,0.10) 1px, transparent 1px, transparent 96px);
+        repeating-linear-gradient(25deg, <?= $mk['personalizada'] ? 'rgba(var(--ff-rgb),0.05)' : 'rgba(111,214,232,0.10)' ?> 0px, <?= $mk['personalizada'] ? 'rgba(var(--ff-rgb),0.05)' : 'rgba(111,214,232,0.10)' ?> 1px, transparent 1px, transparent 96px);
       background-size:600px 600px, 600px 600px;
       animation: mktMeshPan 70s linear infinite;
       mask-image: linear-gradient(180deg, black 0%, black 70%, transparent 100%);
@@ -165,7 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="mkt-mesh" aria-hidden="true"></div>
   <div class="mkt-blob" style="width:520px;height:520px;top:-160px;left:-120px;background:radial-gradient(circle, var(--ff-blue) 0%, transparent 70%);animation:mktDrift1 22s ease-in-out infinite" aria-hidden="true"></div>
   <div class="mkt-blob" style="width:460px;height:460px;top:120px;right:-160px;background:radial-gradient(circle, var(--ff-cyan) 0%, transparent 70%);animation:mktDrift2 26s ease-in-out infinite" aria-hidden="true"></div>
-  <div class="mkt-blob" style="width:600px;height:600px;top:60vh;left:-200px;background:radial-gradient(circle, #B9D4FF 0%, transparent 70%);animation:mktDrift3 24s ease-in-out infinite" aria-hidden="true"></div>
+  <div class="mkt-blob" style="width:600px;height:600px;top:60vh;left:-200px;background:radial-gradient(circle, <?= $mk['personalizada'] ? $h($mkP['media']) : '#B9D4FF' ?> 0%, transparent 70%);animation:mktDrift3 24s ease-in-out infinite" aria-hidden="true"></div>
 
   <div class="ff-wrap">
     <a href="/" class="ff-logo ff-entra" title="<?= $h($mk['nome']) ?>">

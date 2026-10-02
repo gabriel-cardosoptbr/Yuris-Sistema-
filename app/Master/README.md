@@ -28,6 +28,17 @@ ou mostrar o jurídico de uma conta com dado dentro é decisão à parte.
 gravado na marca, ou fica sem agente. Sem essa separação, ligar o agente numa
 conta nova mandaria os leads dela para o robô do Fleetiflow.
 
+**Cor da marca legível (02/10/2026).** A cor principal aparece como texto em
+fundo branco (links, abas, valores) e como fundo de botão com texto por cima.
+`Marca::paleta()` escurece a cor escolhida até o contraste WCAG de 4,5:1 com o
+branco quando ela é clara demais (dourado, amarelo, laranja): o dourado
+`#D7A525` da Via Autodoc vira `#927019` nas telas. Os tons claros (`suave`,
+`media`, `clara`) continuam saindo da cor original, e o texto sobre a cor
+(`texto`) é o de maior contraste entre branco e grafite. A cor gravada na marca
+não muda; o logo e o ícone guardam o tom vivo. A tela de login de domínio com
+marca própria (`public/login-fleetiflow.php`) também tinge o fundo, a grade e
+as manchas com a cor da marca; a da Fleetiflow segue com o azul de sempre.
+
 **Domínio próprio** precisa de duas coisas: o domínio na marca (feito no
 Master, faz a tela de login sair com a marca certa) e o DNS + certificado +
 bloco do nginx no servidor, que continuam sendo configuração de infraestrutura.

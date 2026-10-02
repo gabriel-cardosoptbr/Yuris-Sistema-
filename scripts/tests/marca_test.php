@@ -71,7 +71,13 @@ $pal = M::paleta('#7C3AED');
 ok('paleta derivada tem os oito tons', count($pal) === 8 && $pal['marca'] === '#7C3AED' && $pal['rgb'] === '124,58,237');
 ok('tom suave é claro e o escuro é escuro', hexdec(substr($pal['suave'], 1, 2)) > 200 && hexdec(substr($pal['escura'], 1, 2)) < 80);
 ok('cor escura leva texto branco', $pal['texto'] === '#FFFFFF');
-ok('cor clara (amarelo) leva texto escuro', M::paleta('#FDE047')['texto'] === '#1F2937');
+$lumT = static function (string $h): float { $c = array_map(static function ($v) { $s = hexdec($v) / 255; return $s <= 0.03928 ? $s / 12.92 : (($s + 0.055) / 1.055) ** 2.4; }, str_split(ltrim($h, '#'), 2)); return 0.2126 * $c[0] + 0.7152 * $c[1] + 0.0722 * $c[2]; };
+$ouro = M::paleta('#D7A525');
+ok('dourado claro escurece até ler no branco (4,5:1)', $ouro['marca'] !== '#D7A525' && 1.05 / ($lumT($ouro['marca']) + 0.05) >= 4.5);
+ok('dourado: tons claros saem da cor original', $ouro['suave'] === M::paleta('#D7A525')['suave'] && hexdec(substr($ouro['clara'], 1, 2)) > 0xE0);
+ok('dourado escurecido leva texto branco', $ouro['texto'] === '#FFFFFF');
+ok('amarelo também escurece e leva texto branco', M::paleta('#FDE047')['marca'] !== '#FDE047' && M::paleta('#FDE047')['texto'] === '#FFFFFF');
+ok('azul médio e verde escuro levam texto branco', M::paleta('#2563EB')['texto'] === '#FFFFFF' && M::paleta('#0E7A4F')['texto'] === '#FFFFFF');
 ok('nome com HTML é limpo', M::daConta($conta(['nome' => '<b>Auto</b>doc']))['nome'] === 'Autodoc');
 
 echo "\n== 3. Validações ==\n";
