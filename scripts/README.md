@@ -163,6 +163,7 @@ Estes **alteram dados**. Leia o script antes, e faça backup.
 | `_phaseB_webhook_token.php` | liga o `webhook_token` na Evolution de um canal. **Roda em dry-run por padrão**, só age com `--apply` ou `--rollback` |
 | `especialista_retroativo.php` | move para "Em atendimento pelo especialista" os cards de conversas já respondidas por uma pessoa (celular ou WhatsApp Web), na edição CRM. Mostra antes a contagem de mensagens próprias por status e origem, que é a prova do critério. **Simulação por padrão**, `--aplicar` move, `--dias=N` muda a janela |
 | `_phase2_repoint_silvana.php` | reaponta o webhook de uma instância específica para o Yuris. Imprime o webhook atual antes de trocar, para permitir voltar |
+| `vincular_whatsapp.php` | liga a uma conta, como primeiro número, uma instância que **já existe** na Evolution (QR lido fora do sistema), por `WhatsAppProvisioningService::vincularExistente()`. **Só confere por padrão**, `--aplicar` liga. Recusa sem mexer em nada se a conta já tem número, se a instância é de outra conta ou se ela já manda eventos para outro endereço. Usado em 02/10/2026 para o número comercial da Inovaize (conta 119, instância `S1  principal`, com dois espaços) |
 
 Os dois são de fases de migração já concluídas, guardados porque documentam
 **como** a operação foi feita e como desfazê-la. Não rode sem entender o que

@@ -149,6 +149,102 @@ class WhatsAppProvisioningService
         }
     }
 
+    /**
+     * Liga à conta, como PRIMEIRO número, uma instância que JÁ EXISTE na Evolution
+     * (o QR já foi lido fora do sistema). É o provision() sem o createInstance:
+     * grava base, instância e chave em whatsapp_settings, gera o webhook_token,
+     * aponta o webhook da instância para o nosso, cria a linha local, dá a posse
+     * do canal à conta e o agent_configs desligado.
+     *
+     * Recusa, sem mexer em nada, quando: a conta já tem número (use
+     * adicionarNumero), a instância não existe, a chave ou o nome já são de outra
+     * conta, ou a instância já manda eventos para outro endereço (o webhook é um
+     * só por instância: sobrescrever cortaria quem recebe hoje, um n8n por exemplo).
+     *
+     * $simular = true só confere e devolve o que faria.
+     *
+     * @return array{success:bool, simulado?:bool, instance?:string, channel_id?:int, telefone?:string, error?:string}
+     */
+    public static function vincularExistente(\PDO $pdo, int $accountId, string $accountName, string $instanceName, bool $simular = true): array
+    {
+        try {
+            if ($accountId <= 0 || $instanceName === '') return ['success' => false, 'error' => 'Conta ou instância inválida.'];
+            $model = new \App\WhatsAppAgente\WhatsAppInstance();
+            $atual = $model->getSettings($accountId);
+            if (!empty($atual['evolution_instance']) && !empty($atual['evolution_api_key'])) {
+                return ['success' => false, 'error' => "A conta já tem o número {$atual['evolution_instance']}. Número extra é pelo adicionarNumero()."];
+            }
+
+            [$base, $hook, $adminKey] = self::globalCfg($pdo);
+            if ($base === '' || $adminKey === '') return ['success' => false, 'error' => 'Config global da Evolution ausente.'];
+            $globalEvo = new \App\WhatsAppAgente\EvolutionApiService(['evolution_base_url' => $base, 'evolution_api_key' => $adminKey]);
+
+            $item = null;
+            foreach ((array) $globalEvo->fetchInstances() as $it) {
+                $nm = $it['name'] ?? $it['instanceName'] ?? ($it['instance']['instanceName'] ?? ($it['instance']['name'] ?? null));
+                if ($nm === $instanceName) { $item = $it; break; }
+            }
+            if ($item === null) return ['success' => false, 'error' => "Instância \"{$instanceName}\" não existe na Evolution."];
+            $apikey = (string) ($item['token'] ?? $item['apikey'] ?? ($item['instance']['token'] ?? ''));
+            if ($apikey === '') return ['success' => false, 'error' => 'A Evolution não devolveu a chave da instância.'];
+            $estado   = (string) ($item['connectionStatus'] ?? ($item['instance']['status'] ?? ''));
+            $telefone = (string) preg_replace('/@.*$/', '', (string) ($item['ownerJid'] ?? $item['number'] ?? ''));
+            $perfil   = (string) ($item['profileName'] ?? '');
+
+            $conflito = $model->apiKeyConflict($apikey, $accountId);
+            if ($conflito) return ['success' => false, 'error' => 'A chave dessa instância já é de outra conta (' . implode(',', $conflito) . ').'];
+            $st = $pdo->prepare('SELECT DISTINCT account_id FROM whatsapp_instances WHERE instance_name = ? AND account_id <> ?');
+            $st->execute([$instanceName, $accountId]);
+            $outras = $st->fetchAll(\PDO::FETCH_COLUMN);
+            if ($outras) return ['success' => false, 'error' => 'Essa instância já está registrada em outra conta (' . implode(',', $outras) . ').'];
+
+            $acctEvo = new \App\WhatsAppAgente\EvolutionApiService([
+                'evolution_base_url' => $base, 'evolution_api_key' => $apikey, 'evolution_instance' => $instanceName,
+            ]);
+            $wh = $acctEvo->getWebhook($instanceName);
+            if (!empty($wh["_error"]) || (isset($wh["_http"]) && (int) $wh["_http"] >= 400)) {
+                return ["success" => false, "error" => "Não consegui ler o webhook atual da instância; nada foi feito."];
+            }
+            $urlAtual = (string) ($wh['url'] ?? ($wh['webhook']['url'] ?? ''));
+            $nosso = strtok($hook, '?');
+            if ($urlAtual !== '' && strtok($urlAtual, '?') !== $nosso) {
+                return ['success' => false, 'error' => 'A instância já manda eventos para outro endereço (' . parse_url($urlAtual, PHP_URL_HOST) . '). Não sobrescrevo.'];
+            }
+
+            if ($simular) {
+                return ['success' => true, 'simulado' => true, 'instance' => $instanceName, 'telefone' => $telefone,
+                        'estado' => $estado, 'webhook_atual' => $urlAtual === '' ? 'nenhum' : 'o nosso'];
+            }
+
+            $model->saveSetting($accountId, 'evolution_base_url', $base);
+            $model->saveSetting($accountId, 'evolution_instance', $instanceName);
+            $model->saveSetting($accountId, 'evolution_api_key',  $apikey);
+            $model->saveSetting($accountId, 'webhook_url',        $hook);
+            $webhookToken = bin2hex(random_bytes(32));
+            $model->saveSetting($accountId, 'webhook_token', $webhookToken);
+            self::logCrachaEvent($pdo, $accountId, 'webhook_token_autogen', ['instance' => $instanceName, 'by' => 'vincular_existente']);
+
+            $acctEvo = new \App\WhatsAppAgente\EvolutionApiService([
+                'evolution_base_url' => $base, 'evolution_api_key' => $apikey,
+                'evolution_instance' => $instanceName, 'webhook_token' => $webhookToken,
+            ]);
+            $hookUrl = $hook . (strpos($hook, '?') === false ? '?' : '&') . 'token=' . urlencode($apikey);
+            $acctEvo->setWebhook($instanceName, $hookUrl);
+
+            $inst = $model->findOrCreate($instanceName, $perfil !== '' ? $perfil : $instanceName, $accountId);
+            $channelId = (int) ($inst['id'] ?? 0);
+            if ($channelId > 0) {
+                if ($estado === 'open') $model->updateStatus($channelId, 'open', ['phone' => $telefone, 'profile_name' => $perfil ?: null]);
+                \App\WhatsAppAgente\WhatsAppChannelAccessService::grant($pdo, $channelId, $accountId, 'owner', [], null);
+                self::ensureAgentConfig($pdo, $accountId, $channelId, $accountName);
+            }
+            return ['success' => true, 'instance' => $instanceName, 'channel_id' => $channelId, 'telefone' => $telefone, 'estado' => $estado];
+        } catch (\Throwable $e) {
+            error_log('[WhatsAppProvisioningService] vincularExistente: ' . $e->getMessage());
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
     /** Teto de números por conta: cada um é uma sessão aberta na Evolution. */
     const MAX_NUMEROS_POR_CONTA = 10;
 
