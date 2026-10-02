@@ -57,6 +57,16 @@
 .ffn-via svg { flex: none; width: 12px; height: 12px; color: var(--ff-marca, #015DFC); }
 .ffn-via strong { font-weight: 700; }
 
+/* Menu do botão direito na lista de conversas (assets/chat-menu-conversa.js). */
+.ffm-menu { position: fixed; z-index: 10001; min-width: 220px; padding: 6px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px; box-shadow: 0 12px 32px rgba(15, 23, 42, .16); display: flex; flex-direction: column; }
+.ffm-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: 0; border-radius: 7px; background: transparent; color: #0F172A; font-size: .84rem; text-align: left; cursor: pointer; }
+.ffm-item svg { flex: none; width: 16px; height: 16px; color: #64748B; }
+.ffm-item:hover, .ffm-item:focus-visible { background: #F1F5F9; outline: none; }
+.ffm-perigo { color: #B91C1C; }
+.ffm-perigo svg { color: #DC2626; }
+.ffm-perigo:hover, .ffm-perigo:focus-visible { background: #FEF2F2; }
+.ffm-sep { height: 1px; margin: 4px 6px; background: #E2E8F0; }
+
 .ffn-modal-fundo { position: fixed; inset: 0; background: rgba(15, 23, 42, .45); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 16px; }
 .ffn-modal { width: 100%; max-width: 420px; background: #FFFFFF; border-radius: 14px; padding: 20px; box-shadow: 0 20px 50px rgba(15, 23, 42, .25); display: flex; flex-direction: column; gap: 10px; }
 .ffn-modal h3 { margin: 0; font-size: 1rem; color: #0F172A; }

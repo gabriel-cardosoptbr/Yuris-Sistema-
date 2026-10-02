@@ -853,7 +853,7 @@ const ChatApp = (() => {
            <span class="chat-item-sector-name" style="color:${esc(chat.team_cor || '#7A8898')}">${esc(chat.team_nome)}</span>
          </div>` : '';
 
-    return `<div class="chat-item${isActive}" onclick="ChatApp.openChatByJid('${esc(chat.remote_jid)}')">
+    return `<div class="chat-item${isActive}" data-jid="${esc(chat.remote_jid)}" onclick="ChatApp.openChatByJid('${esc(chat.remote_jid)}')">
       <div class="chat-avatar">${avatarHtml}</div>
       <div class="chat-item-info">
         <div class="chat-item-row1">
@@ -1941,6 +1941,40 @@ const ChatApp = (() => {
     } catch(e) {
       toast('Erro ao excluir: ' + (e.message || 'tente novamente'), 'error');
     }
+  }
+
+  // ── Ações sobre QUALQUER conversa da lista (menu do botão direito) ──
+  // As de cima (togglePin, markChatUnread...) só valem para a conversa aberta.
+  function dadosConversa(jid) {
+    return (state.chats || []).find(c => c.remote_jid === jid) || null;
+  }
+
+  async function acaoConversa(jid, acao) {
+    const ACOES = { fixar: 'toggle_pin', lida: 'mark_read', nao_lida: 'mark_unread', arquivar: 'toggle_archive', excluir: 'delete' };
+    if (!jid || !ACOES[acao]) return false;
+    const chat = dadosConversa(jid);
+    if (acao === 'excluir') {
+      const nome = (chat && (chat.display_name || chat.contact_name)) || jid;
+      if (!(await Yuris.confirm(`Excluir a conversa com "${nome}"?\n\nTodas as mensagens locais serão removidas. Esta ação não pode ser desfeita.`, { danger: true, okLabel: 'Excluir conversa' }))) return false;
+    }
+    try {
+      await apiFetch(API.chats, 'POST', { _csrf: CSRF, action: ACOES[acao], remote_jid: jid });
+    } catch (e) {
+      toast('Não deu para concluir: ' + (e.message || 'tente novamente'), 'error');
+      return false;
+    }
+    if (acao === 'lida' && chat) chat.unread_count = 0;
+    if ((acao === 'arquivar' || acao === 'excluir') && jid === state.currentJid) closeChat();
+    const AVISO = {
+      fixar    : chat && chat.is_pinned == 1 ? 'Conversa desafixada' : 'Conversa fixada',
+      lida     : 'Conversa marcada como lida',
+      nao_lida : 'Conversa marcada como não lida',
+      arquivar : chat && chat.is_archived == 1 ? 'Conversa desarquivada' : 'Conversa arquivada',
+      excluir  : 'Conversa excluída',
+    };
+    toast(AVISO[acao], 'success');
+    await loadChats(true);
+    return true;
   }
 
   // ── Sincronizar chats existentes ────────────────────────────
@@ -3790,7 +3824,7 @@ const ChatApp = (() => {
   }
 
   return {
-    definirCanal, canalAtual, trocarCanal,
+    definirCanal, canalAtual, trocarCanal, dadosConversa, acaoConversa,
     init, checkStatus, connectWhatsApp, disconnectWhatsApp,
     manualReconnect, dismissDisconnectAlert,
     refreshQr, loadChats, loadMoreChats, openChat, openChatByJid, closeChat,
