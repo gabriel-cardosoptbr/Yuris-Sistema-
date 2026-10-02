@@ -12,7 +12,7 @@ dele é aqui. Se serve a um só, ele pertence à pasta daquele domínio.
 | Classe | O que faz |
 |---|---|
 | `Database.php` | conexão PDO única com o MySQL. Também força `date()` a produzir timestamp em UTC, independente do php.ini ou do fuso do Windows |
-| `AccountContext.php` | **o coração do multi-tenant.** Diz de que conta é a sessão atual, quais contas ela alcança (matriz enxerga filiais), e qual conta usar ao gravar. Também resolve o **produto** da conta (`getProduto()`, `moduloJuridicoDisponivel()`) e bloqueia página/API jurídica para conta que não é `yuris` (`assertModuloJuridicoDisponivel[Page]()`) — ver `App\Master\Account::getProduto()`. 33 métodos |
+| `AccountContext.php` | **o coração do multi-tenant.** `vendedorCrm()` (02/10/2026): conta da edição CRM e usuário que não é dono nem admin; é a regra única do painel por vendedor (só os próprios valores) e do financeiro só de ADM, sempre false na edição jurídica. Diz de que conta é a sessão atual, quais contas ela alcança (matriz enxerga filiais), e qual conta usar ao gravar. Também resolve o **produto** da conta (`getProduto()`, `moduloJuridicoDisponivel()`) e bloqueia página/API jurídica para conta que não é `yuris` (`assertModuloJuridicoDisponivel[Page]()`) — ver `App\Master\Account::getProduto()`. 33 métodos |
 | `TenantGuard.php` | valida se a sessão pode tocar um recurso específico. Use junto com o `AccountContext`, nunca no lugar dele |
 | `ApiResponse.php` | resposta JSON padronizada dos endpoints. Todo endpoint em `public/api/` deve responder por aqui, para o formato não variar de tela para tela |
 | `ErrorReporter.php` | tratamento padronizado de exceção nos endpoints. Registra o detalhe no log e devolve mensagem genérica ao cliente, exigência da LGPD |

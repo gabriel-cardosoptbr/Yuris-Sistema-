@@ -17,7 +17,8 @@ não usa e o dossiê perder profundidade.
 ## Arquivos
 
 ```
-Dossie.php     monta o dossiê de cliente | card | processo
+Dossie.php     monta o dossiê de cliente | card | processo (card: montar() aceita
+               $soResponsavel; o vendedor da edição CRM só abre o dele)
 Listagem.php   monta a listagem de clientes | prospeccoes | processos
 Planilha.php   transforma qualquer um dos dois em CSV que o Excel abre
 ```

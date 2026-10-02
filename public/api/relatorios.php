@@ -73,7 +73,8 @@ try {
         }
 
         $tenantIds = $ctx->getAccessibleAccountIds(Dossie::MODULOS[$entidade]);
-        $doc       = Dossie::montar($entidade, $id, $tenantIds);
+        // Vendedor da edição CRM: dossiê de card só dos dele (404 para os outros).
+        $doc       = Dossie::montar($entidade, $id, $tenantIds, $ctx->vendedorCrm() ? (int) $ctx->getUserId() : null);
 
         /*
          * 404 para os três casos: não existe, está apagado, não é seu.
@@ -118,6 +119,8 @@ try {
             'busca'          => (string) ($_GET['busca'] ?? ''),
             'ordem'          => (string) ($_GET['ordem'] ?? ''),
         ];
+        // Vendedor da edição CRM: a listagem de prospecção é só dos cards dele.
+        if ($fonte === 'prospeccoes' && $ctx->vendedorCrm()) $filtros['responsavel_id'] = (int) $ctx->getUserId();
 
         $res = Listagem::montar($fonte, $filtros, $tenantIds);
 

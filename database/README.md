@@ -8,6 +8,7 @@ ser testado nos dois.
 
 | Pasta / arquivo | O que é |
 |---|---|
+| `migrations/run_137.php` | `whatsapp_instances.responsavel_user_id`, o vendedor dono do número: o lead que a automação cria por ele nasce com esse responsável (`SdrFleetiflow::donoDoNumero`). Preenchido por `scripts/manutencao/definir_dono_numero.php`. Idempotente, `--dry-run` |
 | `migrations/` | numeradas a partir de `001`; a mais recente é `run_135.php` (`chat_mencoes.tipo` ganha `tarefa` e `conversa`, para o @ do Chat Interno da edição CRM); antes dela, `run_134.php` (`cards.tipo_lead` e `cards.temperatura`, o tipo e o termômetro escolhidos pelo consultor no card da edição CRM); antes dela, `run_133.php` (`account_marca_arquivos`, o logo e o ícone da marca de cada conta da edição CRM); antes dela, `run_132.php` (`whatsapp_identidades.perfil_comercial_em`, que registra a consulta do perfil comercial para não repeti-la a cada abertura do Chat); antes dela, `run_131.php` (`task_entregas`, a base do OTIF das tarefas, com o retroativo reconstruído do `task_history`). É o histórico de como o schema chegou ao que é hoje |
 | `seeds/` | dados iniciais: `seed_demo.sql`, `seed_processos_mensais.sql`, e os catálogos do agente de IA (`ai_intake_catalog.php`, `ai_area_questions.php`, `ai_prompt_v2.php`, `ai_prompt_v3.php`) |
 | `schema.sql` | retrato do schema completo |

@@ -263,6 +263,19 @@ class AccountContext
         exit;
     }
 
+    /**
+     * Vendedor da edição CRM: conta de produto 'fleetiflow' (Fleetiflow, Inovaize,
+     * Via Autodoc) e usuário que não é dono nem admin. Pedido do cliente em
+     * 02/10/2026: o vendedor vê só os próprios leads e valores (painel comercial,
+     * relatórios de prospecção) e não vê o financeiro. Só ADM vê tudo.
+     * A edição jurídica (Yuris) não muda: lá isto é sempre false.
+     */
+    public function vendedorCrm(): bool
+    {
+        if ($this->isOwnerOrAdmin() || $this->isSuperAdmin()) return false;
+        try { return $this->getProduto() === 'fleetiflow'; } catch (\Throwable $e) { return false; }
+    }
+
     public function isOwnerOrAdmin(): bool
     {
         return in_array($this->role, ['owner', 'admin']);

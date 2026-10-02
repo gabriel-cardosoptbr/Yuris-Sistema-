@@ -251,6 +251,12 @@ eixo zerado. Os dados vêm de uma chamada a `api/dashboard_comercial.php`
 reutilizáveis (`ffc_kpi()` no PHP e `window.FleetiflowDash` no JS) para os
 próximos painéis da Fleetiflow. A conta Yuris nunca passa por esse `require`.
 
+**Vendedor da edição CRM** (`AccountContext::vendedorCrm()`, 02/10/2026): o painel
+mostra só os leads, vendas, receita, conversão, ticket e meta dele (a API força o
+filtro), o seletor "Toda a equipe" some, o bloco Financeiro (DRE) não é calculado
+nem desenhado, `financas.php` devolve para o painel e o item Finanças sai do menu
+do celular. Só dono e admin veem tudo. A Prospecção (o quadro) continua da equipe.
+
 ### Entrada e sessão
 `login.php` · `login-fleetiflow.php` · `logout.php` · `404.php`
 

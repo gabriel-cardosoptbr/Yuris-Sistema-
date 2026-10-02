@@ -12,6 +12,7 @@ $ctx       = AccountContext::fromSession();
 $ctx->assertAccountActive(); // bloqueia conta suspensa/cancelada/inativa
 $moduloJuridico = $ctx->moduloJuridicoDisponivel(); // false só para conta Fleetiflow (sem módulo jurídico)
 $isFleetiflow   = $ctx->getProduto() === 'fleetiflow'; // identidade visual do Fleetiflow (cards, gráficos, fonte)
+$vendedorCrm    = $ctx->vendedorCrm(); // vendedor da edição CRM: sem financeiro, só os próprios números
 $tenantIds = $ctx->getAccessibleAccountIds('dashboard');
 // Guard: array vazio quebraria SQL IN (). Garante pelo menos o próprio account_id (0 = nenhum match).
 if (empty($tenantIds)) $tenantIds = [0];
@@ -85,7 +86,8 @@ $_SESSION['deadline_popup_shown'] = true;
 // Filtrado por account_id IN (tenantIds) — uma conta nova vê tudo zerado.
 // Se houver período persistido em sessão, também aplica para não mostrar valores fora do range.
 $dre_receita = $dre_despesa = $dre_lucro = $dre_margem = 0;
-try {
+// Vendedor da edição CRM não vê financeiro: o DRE nem é calculado.
+if (!$vendedorCrm) try {
     $pdo_dre = Database::getConnection();
 
     // Monta cláusula IN(tenantIds)

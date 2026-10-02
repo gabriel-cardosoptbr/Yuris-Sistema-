@@ -213,6 +213,7 @@ function ffc_kpi(string $id, string $rotulo, string $ico, string $tom = '', stri
         </div>
       </div>
 
+<?php /* Vendedor da edição CRM não vê financeiro (AccountContext::vendedorCrm). */ if (empty($vendedorCrm)): ?>
       <!-- ── 5. Financeiro (DRE): os cards separam os blocos de gráficos ──── -->
       <div class="ffc-secao"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M9 9h4.5a1.5 1.5 0 0 1 0 3h-5a1.5 1.5 0 0 0 0 3H15"/></svg> Financeiro</div>
       <div class="ffc-grade" id="ffcDre">
@@ -237,6 +238,7 @@ function ffc_kpi(string $id, string $rotulo, string $ico, string $tom = '', stri
           <div class="ffc-kpi-pe" id="dreMargemPe"><?= $dre_receita > 0 ? ($dre_margem >= 40 ? 'saudável' : ($dre_margem >= 15 ? 'atenção' : 'crítica')) : 'sem receita no período' ?></div>
         </div>
       </div>
+<?php endif; ?>
 
       <!-- ── 6. Atividade no pipeline (4) + Evolução comercial (8) ────────── -->
       <div class="ffc-grade">

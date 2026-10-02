@@ -8,6 +8,9 @@ session_start();
 header('Content-Type: application/json; charset=utf-8');
 
 $ctx       = AccountContext::fromSession();
+// Edição CRM: financeiro é só de ADM (pedido do cliente, 02/10/2026). Vendedor
+// recebe 403 aqui, não só o link escondido no menu. Yuris não muda.
+if ($ctx->vendedorCrm()) { http_response_code(403); echo json_encode(['error' => 'Financeiro disponível só para administradores.']); exit; }
 $accountId = $ctx->getAccountId();
 // Escopo CONSOLIDADO: a matriz enxerga o plano de contas das filiais/advogados vinculados,
 // coerente com financas.php (render) e com o dashboard. Antes hardcodava [$accountId], o que

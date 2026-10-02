@@ -480,6 +480,8 @@ final class SdrFleetiflow
 
                 $cardId = (int)\App\Prospeccao\Card::create([
                     'account_id'        => $accountId,
+                    // O lead é do vendedor dono do número (whatsapp_instances.responsavel_user_id).
+                    'responsavel_user_id' => self::donoDoNumero($pdo, $accountId, $instanceId),
                     'titulo'            => $rotulo,
                     'cliente_nome'      => $rotulo,
                     'empresa_nome'      => $empresa !== '' ? mb_substr($empresa, 0, 180) : null,
@@ -487,13 +489,21 @@ final class SdrFleetiflow
                     'coluna_id'         => $coluna,
                     'ordem_na_coluna'   => 0,
                     'status'            => 'aberto',
-                    'descricao'         => 'Lead da prospecção ativa pelo WhatsApp (Fleeti Flow).',
+                    // Sem o nome do produto: a edição CRM serve outras marcas (Inovaize, Via Autodoc).
+                    'descricao'         => 'Lead da prospecção ativa pelo WhatsApp.',
                     '_usuario_id'       => null,
                 ]) ?: null;
                 if (!$cardId) return null;
                 \App\Prospeccao\Card::logEvento($cardId, null, 'captado_whatsapp', 'telefone', null, $fone);
-            } elseif (trim((string)$empresa) !== '') {
-                self::nomearSeAnonimo($cardId, (string)$empresa);
+            } else {
+                if (trim((string)$empresa) !== '') self::nomearSeAnonimo($cardId, (string)$empresa);
+                // Card que já existia sem responsável passa a ser do dono do número.
+                // Responsável já escolhido (por pessoa ou pelo especialista) não muda.
+                $dono = self::donoDoNumero($pdo, $accountId, $instanceId);
+                if ($dono) {
+                    $pdo->prepare('UPDATE cards SET responsavel_user_id = ? WHERE id = ? AND account_id = ? AND responsavel_user_id IS NULL')
+                        ->execute([$dono, $cardId, $accountId]);
+                }
             }
 
             if ($instanceId && $remoteJid) {
@@ -508,6 +518,31 @@ final class SdrFleetiflow
             return $cardId;
         } finally {
             $pdo->prepare('SELECT RELEASE_LOCK(?)')->execute([$trava]);
+        }
+    }
+
+    /**
+     * O vendedor dono do número (whatsapp_instances.responsavel_user_id, migration
+     * 137): o lead que a automação cria por esse número é dele. Sem número (o robô
+     * avisou antes de a conversa existir), vale o dono quando a conta tem um só.
+     * Usuário de outra conta, inativo ou apagado não conta. Sem a coluna (migration
+     * ainda não aplicada) ou sem dono: null, e o lead nasce sem responsável.
+     */
+    public static function donoDoNumero(\PDO $pdo, int $accountId, ?int $instanceId): ?int
+    {
+        try {
+            $sql = 'SELECT DISTINCT wi.responsavel_user_id FROM whatsapp_instances wi
+                      JOIN users u ON u.id = wi.responsavel_user_id AND u.account_id = wi.account_id
+                                  AND u.deleted_at IS NULL AND u.status = \'active\'
+                     WHERE wi.account_id = ? AND wi.responsavel_user_id IS NOT NULL';
+            $par = [$accountId];
+            if ($instanceId) { $sql .= ' AND wi.id = ?'; $par[] = $instanceId; }
+            $st = $pdo->prepare($sql);
+            $st->execute($par);
+            $donos = array_map('intval', $st->fetchAll(\PDO::FETCH_COLUMN));
+            return count($donos) === 1 ? $donos[0] : null;
+        } catch (\Throwable $e) {
+            return null;
         }
     }
 

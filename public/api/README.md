@@ -20,6 +20,17 @@ mesma restrição de [`../README.md`](../README.md).
 | `auth/` | 1 | checagem de termos pendentes no login |
 | `lgpd/` | 1 | solicitação do titular, aberta ao público |
 
+**Painel por vendedor (02/10/2026).** Na edição CRM, quem não é dono nem admin
+(`AccountContext::vendedorCrm()`) recebe de `dashboard_comercial.php` só os próprios
+cards (`responsavel` forçado para ele no servidor; `?responsavel=` de outro é
+ignorado), só a própria meta e só ele na lista de responsáveis. `relatorios.php`
+faz o mesmo na fonte `prospeccoes` e no dossiê de card (404 para card alheio).
+`dre_accounts.php`, `dre_codes.php` e `taxes.php` respondem 403 para o vendedor:
+financeiro é só de ADM nessa edição. A edição jurídica não muda. Também em
+`dashboard_comercial.php`: as consultas de metas e usuários usam `$tpAcc`, só os
+parâmetros das contas; com `:resp` sobrando o PDO derrubava o painel (HY093), e
+escolher uma pessoa em "Toda a equipe" quebrava a tela.
+
 `dashboard_comercial.php` alimenta o cockpit comercial da conta Fleetiflow
 (`includes/dashboard_fleetiflow.php`) numa chamada só: KPIs do período e do
 período anterior equivalente (mesma quantidade de dias, terminando na véspera),

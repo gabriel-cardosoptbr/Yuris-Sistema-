@@ -76,7 +76,8 @@ if (!$_isAdmin && !in_array('*', $_perms, true) && !in_array($modulo, $_perms, t
     dossie_erro('Acesso negado', 'Você não tem permissão para ver este módulo. Peça ao administrador do escritório.');
 }
 
-$doc = Dossie::montar($entidade, $id, $ctx->getAccessibleAccountIds($modulo));
+// Vendedor da edição CRM: dossiê de card só dos dele.
+$doc = Dossie::montar($entidade, $id, $ctx->getAccessibleAccountIds($modulo), $ctx->vendedorCrm() ? (int) $ctx->getUserId() : null);
 if ($doc === null) {
     dossie_erro('Relatório não encontrado', 'Este registro não existe, foi excluído, ou não pertence ao seu escritório.');
 }

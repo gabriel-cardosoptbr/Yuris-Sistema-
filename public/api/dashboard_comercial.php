@@ -59,12 +59,20 @@ $antEnd   = date('Y-m-d', strtotime($start . ' -1 day'));
 $antStart = date('Y-m-d', strtotime($antEnd . ' -' . ($dias - 1) . ' days'));
 
 $responsavel = isset($_GET['responsavel']) ? (int)$_GET['responsavel'] : 0;
+// Vendedor (edição CRM, não ADM) vê só o que é dele: o filtro é forçado aqui, no
+// servidor, e qualquer ?responsavel= de outro usuário é ignorado. Só ADM escolhe.
+$vendedor = $ctx->vendedorCrm();
+if ($vendedor) $responsavel = (int)$uid;
 
 // Fragmentos de SQL reutilizados. Alias "c" para cards em todas as queries.
 $ph = []; $tp = [];
 foreach (array_values($tenantIds) as $i => $aid) { $ph[] = ":acc$i"; $tp["acc$i"] = (int)$aid; }
 $inAcc    = '(' . implode(',', $ph) . ')';
 $baseCard = "c.deleted_at IS NULL AND c.account_id IN $inAcc";
+// Parâmetros só das contas, para as consultas que não passam por $baseCard (metas,
+// usuários). Mandar :resp para uma consulta que não o usa derruba o PDO (HY093):
+// era por isso que escolher uma pessoa em "Toda a equipe" quebrava o painel.
+$tpAcc = $tp;
 if ($responsavel > 0) { $baseCard .= ' AND c.responsavel_user_id = :resp'; $tp['resp'] = $responsavel; }
 $VALOR    = "COALESCE(NULLIF(c.valor_fechado_final,0), NULLIF(c.valor_proposta,0), IFNULL(c.valor_estimado,0))";
 $FECHADO  = "c.data_fechamento IS NOT NULL AND c.data_fechamento > '0000-00-00'";
@@ -140,8 +148,9 @@ try {
     $mes = min($end, date('Y-m-d'));
     $mesIni = date('Y-m-01', strtotime($mes)); $mesFim = date('Y-m-t', strtotime($mes));
     $metaValor = 0.0;
-    $g = $q("SELECT valor_meta FROM goals WHERE user_id = :uid AND account_id IN $inAcc ORDER BY updated_at DESC, id DESC LIMIT 1", $tp + ['uid' => $uid])->fetchColumn();
-    if ($g === false || (float)$g <= 0) $g = $q("SELECT valor_meta FROM goals WHERE account_id IN $inAcc ORDER BY updated_at DESC, id DESC LIMIT 1", $tp)->fetchColumn();
+    $g = $q("SELECT valor_meta FROM goals WHERE user_id = :uid AND account_id IN $inAcc ORDER BY updated_at DESC, id DESC LIMIT 1", $tpAcc + ['uid' => $uid])->fetchColumn();
+    // Sem meta própria, o ADM cai na meta da conta; o vendedor não (seria a meta de outro).
+    if (!$vendedor && ($g === false || (float)$g <= 0)) $g = $q("SELECT valor_meta FROM goals WHERE account_id IN $inAcc ORDER BY updated_at DESC, id DESC LIMIT 1", $tpAcc)->fetchColumn();
     if ($g !== false) $metaValor = (float)$g;
     $rm = $q("SELECT COUNT(*) AS n, COALESCE(SUM($VALOR),0) AS v FROM cards c WHERE $baseCard AND $FECHADO AND c.data_fechamento BETWEEN :s AND :e", $tp + ['s' => $mesIni, 'e' => $mesFim])->fetch(PDO::FETCH_ASSOC);
     $meta = [
@@ -194,7 +203,7 @@ try {
         'dia'    => [date('Y-m-d', strtotime($fimEvo . ' -29 days')), $fimEvo],
     ];
     $metasMes = [];
-    foreach ($q("SELECT referencia_mes, valor_meta FROM goals WHERE account_id IN $inAcc AND referencia_mes IS NOT NULL AND referencia_mes <> ''", $tp)->fetchAll(PDO::FETCH_ASSOC) as $r) {
+    foreach ($q("SELECT referencia_mes, valor_meta FROM goals WHERE account_id IN $inAcc AND referencia_mes IS NOT NULL AND referencia_mes <> ''" . ($vendedor ? ' AND user_id = :uidm' : ''), $tpAcc + ($vendedor ? ['uidm' => $uid] : []))->fetchAll(PDO::FETCH_ASSOC) as $r) {
         if ((float)$r['valor_meta'] > 0) $metasMes[$r['referencia_mes']] = (float)$r['valor_meta'];
     }
     foreach ($janelas as $g => [$js, $je]) {
@@ -300,7 +309,11 @@ try {
     ], $ativ);
 
     // ── Responsáveis (filtro de equipe) ───────────────────────────────────────
-    $resp = $q("SELECT id, nome FROM users WHERE account_id IN $inAcc AND deleted_at IS NULL AND status = 'active' ORDER BY nome", $tp)->fetchAll(PDO::FETCH_ASSOC);
+    // Vendedor só enxerga a si mesmo na lista: o seletor "Toda a equipe" some (o JS
+    // esconde o seletor quando a lista tem uma pessoa só).
+    $resp = $vendedor
+        ? $q("SELECT id, nome FROM users WHERE id = :me AND account_id IN $inAcc", $tpAcc + ['me' => $uid])->fetchAll(PDO::FETCH_ASSOC)
+        : $q("SELECT id, nome FROM users WHERE account_id IN $inAcc AND deleted_at IS NULL AND status = 'active' ORDER BY nome", $tpAcc)->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode([
         'periodo' => ['start' => $start, 'end' => $end, 'dias' => $dias, 'granularidade' => $gran,

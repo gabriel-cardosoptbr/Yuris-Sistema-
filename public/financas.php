@@ -12,6 +12,8 @@ use App\Core\AccountContext;
 // Contexto de tenant — render server-side filtra por conta para evitar "flash" entre contas
 $ctx       = AccountContext::fromSession();
 $ctx->assertAccountActive(); // bloqueia conta suspensa/cancelada/inativa
+// Edição CRM: financeiro é só de ADM. O vendedor volta para o painel dele.
+if ($ctx->vendedorCrm()) { header('Location: /dashboard.php'); exit; }
 $tenantIds = $ctx->getAccessibleAccountIds('financas');
 if (empty($tenantIds)) $tenantIds = [0]; // guard: evita SQL "IN ()" inválido
 

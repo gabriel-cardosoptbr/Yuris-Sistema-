@@ -836,10 +836,12 @@ $_notifTempo = function ($raw) {
   </a>
   <?php endif; ?>
 
+<?php if (!($_isFleetiflow && !in_array($_SESSION['user_role'] ?? '', ['owner', 'admin'], true))): ?>
   <a href="financas.php"<?= $_ap === 'dre' ? ' class="active"' : '' ?>>
     <span class="mob-icon" aria-hidden="true"><?= $_svg['financas'] ?></span>
     <span>Finanças</span>
   </a>
+<?php endif; ?>
 
 </nav>
 

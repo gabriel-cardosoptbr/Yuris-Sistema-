@@ -84,7 +84,8 @@ final class Dossie
      * @param  int[]  $accountIds contas que a sessao alcanca, JA no modulo certo
      * @return array|null null quando nao existe, esta apagado, ou nao e acessivel
      */
-    public static function montar(string $entidade, int $id, array $accountIds): ?array
+    /** @param int|null $soResponsavel  card: só se for deste responsável (vendedor da edição CRM) */
+    public static function montar(string $entidade, int $id, array $accountIds, ?int $soResponsavel = null): ?array
     {
         $entidade   = strtolower(trim($entidade));
         $accountIds = self::inteiros($accountIds);
@@ -95,7 +96,7 @@ final class Dossie
 
         return match ($entidade) {
             'cliente'  => self::doCliente($id, $accountIds),
-            'card'     => self::doCard($id, $accountIds),
+            'card'     => self::doCard($id, $accountIds, $soResponsavel),
             'processo' => self::doProcesso($id, $accountIds),
         };
     }
@@ -191,7 +192,7 @@ final class Dossie
     /* prospeccao (card)                                                      */
     /* ===================================================================== */
 
-    private static function doCard(int $id, array $accountIds): ?array
+    private static function doCard(int $id, array $accountIds, ?int $soResponsavel = null): ?array
     {
         $pdo = Database::getConnection();
         $in  = implode(',', array_fill(0, count($accountIds), '?'));
@@ -209,10 +210,11 @@ final class Dossie
           LEFT JOIN users             r   ON r.id   = k.responsavel_user_id
           LEFT JOIN clientes          cli ON cli.id = k.cliente_id
           LEFT JOIN accounts          a   ON a.id   = k.account_id
-              WHERE k.id = ? AND k.deleted_at IS NULL AND k.account_id IN ($in)
+              WHERE k.id = ? AND k.deleted_at IS NULL AND k.account_id IN ($in)"
+            . ($soResponsavel !== null ? ' AND k.responsavel_user_id = ?' : '') . "
               LIMIT 1"
         );
-        $st->execute(array_merge([$id], $accountIds));
+        $st->execute(array_merge([$id], $accountIds, $soResponsavel !== null ? [$soResponsavel] : []));
         $k = $st->fetch(\PDO::FETCH_ASSOC);
         if (!$k) {
             return null;
