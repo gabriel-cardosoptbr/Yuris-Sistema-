@@ -95,10 +95,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
       gap:22px; padding:40px 16px; position:relative; z-index:1;
     }
-    .ff-logo{display:block; text-decoration:none; max-width:100%}
-    /* Logo deitado é bem largo (proporção ~5.7:1): limita pela LARGURA, não
-       pela altura, senão estoura a tela em celular estreito. */
-    .ff-logo img{width:min(320px, 100%); height:auto; display:block}
+    /* O <a> tem a largura final (320px ou a tela): se ficasse em "auto", ele
+       mediria pelo tamanho natural do PNG (1000px ou mais) e o logo cairia à
+       esquerda, mesmo com o align-items:center do .ff-wrap. Logo deitado é bem
+       largo (~5.7:1): limita pela LARGURA, senão estoura em celular estreito. */
+    .ff-logo{display:flex; justify-content:center; text-decoration:none; width:min(320px, 100%)}
+    .ff-logo img{width:100%; height:auto; display:block}
 
     /* ── Cartão de vidro: mesmos valores de .mkt-glass + .mkt-login-card ── */
     .ff-card{
@@ -106,6 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       background:var(--ff-glass); backdrop-filter:blur(22px) saturate(160%); -webkit-backdrop-filter:blur(22px) saturate(160%);
       border:1px solid var(--ff-glass-border);
       box-shadow:0 20px 60px rgba(11,42,107,0.14), inset 0 1px 0 rgba(255,255,255,0.6);
+      position:relative;
     }
     .ff-title{font-size:26px; font-weight:800; letter-spacing:-.4px; text-align:center; color:var(--ff-ink)}
     .ff-sub{margin:8px 0 26px; font-size:14px; color:var(--ff-ink-soft); text-align:center}
@@ -139,6 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       color:#fff; font-weight:700; font-size:15px; font-family:inherit;
       box-shadow:0 12px 28px rgba(var(--ff-rgb),0.35);
       transition:transform .25s ease, box-shadow .25s ease, filter .25s ease;
+      position:relative; overflow:hidden;
     }
     .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 18px 36px rgba(var(--ff-rgb),0.45); filter:brightness(1.06); }
     .btn-primary:active{ transform:translateY(1px) scale(.99); }
@@ -157,6 +161,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       .ff-entra-2{ animation-delay:.14s }
       .ff-entra-3{ animation-delay:.28s }
       @keyframes ffEntra{ from{opacity:0; transform:translateY(28px)} to{opacity:1; transform:translateY(0)} }
+
+      /* Dentro do cartão, os campos também entram em cascata, depois dele. */
+      .ff-card .ff-title, .ff-card .ff-sub, .ff-card .flash, .ff-card .field, .ff-card .row, .ff-card .btn-primary{ animation: ffEntra .6s cubic-bezier(.22,1,.36,1) backwards; }
+      .ff-card .ff-title{ animation-delay:.30s } .ff-card .ff-sub{ animation-delay:.36s } .ff-card .flash{ animation-delay:.40s }
+      .ff-card .field:nth-of-type(1){ animation-delay:.44s } .ff-card .field:nth-of-type(2){ animation-delay:.52s }
+      .ff-card .row{ animation-delay:.60s } .ff-card #termsField{ animation-delay:.66s } .ff-card .btn-primary{ animation-delay:.74s }
+
+      /* O logo flutua de leve, sem parar. */
+      .ff-logo img, .ff-logo > span{ animation: ffFlutua 6s ease-in-out 1.2s infinite; }
+      @keyframes ffFlutua{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+
+      /* Aro de luz que percorre a borda do cartão, na cor da marca. Em navegador
+         sem @property o aro fica parado, que é só a borda de sempre. */
+      @property --ff-ang{ syntax:'<angle>'; inherits:false; initial-value:0deg; }
+      .ff-card::before{
+        content:''; position:absolute; inset:-1px; border-radius:25px; padding:1px; pointer-events:none;
+        background:conic-gradient(from var(--ff-ang), transparent 0 62%, rgba(var(--ff-rgb),0.75) 80%, transparent 92%);
+        -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite:exclude;
+        animation: ffAro 7s linear 1s infinite;
+      }
+      @keyframes ffAro{ to{ --ff-ang:360deg } }
+
+      /* Brilho que atravessa o botão de tempos em tempos. */
+      .btn-primary::after{
+        content:''; position:absolute; top:0; bottom:0; left:-60%; width:45%; pointer-events:none;
+        background:linear-gradient(100deg, transparent 0%, rgba(255,255,255,0.38) 50%, transparent 100%);
+        animation: ffBrilho 5s ease-in-out 2s infinite;
+      }
+      @keyframes ffBrilho{ 0%{left:-60%} 28%,100%{left:130%} }
+
+      /* Rótulo acende quando o campo recebe o foco. */
+      .field label{ transition:color .2s ease }
+      .field:focus-within label{ color:var(--ff-blue) }
+      .ff-card:hover{ box-shadow:0 26px 70px rgba(11,42,107,0.18), inset 0 1px 0 rgba(255,255,255,0.6); }
+      .ff-card{ transition:box-shadow .4s ease }
     }
 
     @media (max-width:420px){ .ff-card{padding:24px 20px} }
