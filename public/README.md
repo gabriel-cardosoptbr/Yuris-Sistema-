@@ -259,6 +259,13 @@ marca da conta dona do domínio da requisição (nome, cor, logo, subtítulo, ve
 `App\Master\Marca`), ou a do Fleetiflow quando o domínio não é de nenhuma marca. Visual próprio,
 mas posta para o **mesmo** `AuthController::attemptLogin()` do login padrão,
 sem autenticação paralela — ver `../app/Usuarios/README.md`.
+Desde 02/10/2026 o logo fica centralizado de verdade (o `<a>` tem a largura final
+de 320px; antes media pelo PNG inteiro e caía à esquerda) e a tela tem
+animações só em CSS, todas dentro de `prefers-reduced-motion: no-preference`:
+cascata do título, campos e botão depois do cartão, logo que flutua, aro de
+luz na cor da marca percorrendo a borda do cartão (`@property --ff-ang`; sem
+suporte, fica parado), brilho que atravessa o botão, rótulo que acende no
+foco. Vale para a Fleetiflow e para as marcas próprias.
 
 **Domínio próprio, mesmo servidor.** `index.php` (raiz `/`) e `login.php`
 chamam `App\Core\ProductHost::isFleetiflow()` antes de qualquer outra coisa:
