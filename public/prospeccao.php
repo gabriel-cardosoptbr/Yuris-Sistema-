@@ -1193,7 +1193,7 @@ function column_display_name(array $col): string
       }
     }
 
-    <?php if ($edicaoCrm): ?>
+    <?php if ($edicaoCrm): ob_start(); /* o CSS claro do card gera a cópia escura (TemaEscuroCrm) */ ?>
     /* ══════════════════════════════════════════════════════════════════════
        Card de lead da edição CRM (.card-mini.lc): o desenho do Fleetiflow.
        Termômetro e tipo no alto, inicial da empresa, cidade, potencial mensal,
@@ -1315,7 +1315,7 @@ function column_display_name(array $col): string
     html[data-theme="light"] .kanban-col .col-title{ color:#1F2937 !important; font-size:1rem; }
     html[data-theme="light"] .kanban-col .col-pill{ background:var(--ff-marca-suave, #D6E4FF) !important; color:var(--ff-marca-forte, #013DF2) !important; border-color:transparent !important; }
     html[data-theme="light"] .kanban-col .col-subtitle{ color:#767676 !important; }
-    <?php endif; ?>
+    <?php $__cssCardCrm = (string) ob_get_clean(); echo $__cssCardCrm, \App\Master\TemaEscuroCrm::converter($__cssCardCrm); endif; ?>
   </style>
 </head>
 <body>

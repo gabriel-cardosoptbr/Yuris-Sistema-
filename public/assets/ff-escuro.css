@@ -1,0 +1,67 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Tema escuro da edição CRM (Fleetiflow, Inovaize, Via Autodoc).
+   Carregado pelo menu lateral só nas contas da edição CRM. A barra lateral
+   ganha a cópia escura gerada por App\Master\TemaEscuroCrm; aqui ficam os
+   ajustes das telas que não passam por aquele conversor.
+   Todo seletor leva html:not([data-theme="light"]): no tema claro este
+   arquivo não faz nada.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Painel "Análise comercial" (.ffc, assets/fleetiflow-dashboard.css) ──
+   O painel é todo em variáveis: no escuro, só os valores mudam. A cor da
+   marca continua sendo fundo de botão e de destaque; onde ela é TEXTO entra
+   o tom claro dela (--ff-marca-clara), senão um azul-marinho de marca some
+   no fundo escuro. */
+html:not([data-theme="light"]) .ffc{
+  --ffc-texto:#E7EBF1; --ffc-texto-2:#C5CCD6; --ffc-texto-3:#A3ADBA; --ffc-texto-4:#8C97A6;
+  --ffc-fundo:#0B1017; --ffc-card:#121821; --ffc-neutro:#1C2430;
+  --ffc-borda:rgba(255,255,255,0.08); --ffc-borda-2:rgba(255,255,255,0.12);
+  --ffc-marca-suave:rgba(var(--ff-marca-rgb, 1,93,252),0.20); --ffc-marca-media:rgba(var(--ff-marca-rgb, 1,93,252),0.45);
+  --ffc-bom:#5BE38C; --ffc-bom-fundo:rgba(91,227,140,0.14);
+  --ffc-ruim:#FF8A8A; --ffc-ruim-fundo:rgba(255,138,138,0.14);
+  --ffc-alerta:#F7C24E; --ffc-alerta-fundo:rgba(247,194,78,0.14);
+  color-scheme:dark;
+}
+html:not([data-theme="light"]) .ffc .ffc-abas button[aria-selected="true"],
+html:not([data-theme="light"]) .ffc .ffc-tabela td.acao a:hover,
+html:not([data-theme="light"]) .ffc .ffc-secao svg,
+html:not([data-theme="light"]) .ffc .ffc-kpi-ico{ color:var(--ff-marca-clara, #8DB4FF); }
+html:not([data-theme="light"]) .ffc .ffc-avatar{ color:var(--ff-marca-clara, #8DB4FF); }
+html:not([data-theme="light"]) .ffc .ffc-kpi--destaque .ffc-kpi-ico{ color:#fff; }
+html:not([data-theme="light"]) .ffc .ffc-kpi-ico--violeta{ background:rgba(131,95,242,0.20); color:#B9A4FF; }
+html:not([data-theme="light"]) .ffc .ffc-kpi-ico--ambar{ background:rgba(253,173,13,0.18); color:#F7C24E; }
+html:not([data-theme="light"]) .ffc .ffc-kpi-ico--laranja{ background:rgba(245,89,2,0.20); color:#FF9A5C; }
+html:not([data-theme="light"]) .ffc .ffc-card:hover{ box-shadow:0 8px 22px rgba(0,0,0,0.35); }
+html:not([data-theme="light"]) .ffc .ffc-abas button[aria-selected="true"]{ box-shadow:0 1px 2px rgba(0,0,0,0.4); }
+html:not([data-theme="light"]) .ffc .ffc-calor .cel:hover{ outline-color:var(--ffc-texto); }
+html:not([data-theme="light"]) .ffc-modal{ background:rgba(0,0,0,0.6); }
+html:not([data-theme="light"]) .ffc-modal-caixa{ box-shadow:0 24px 60px rgba(0,0,0,0.55); color:var(--ffc-texto); }
+html:not([data-theme="light"]) .ffc-aviso{ background:#1C2430; }
+/* Campos e seletores do painel (período, equipe) no padrão escuro do navegador. */
+html:not([data-theme="light"]) .ffc select, html:not([data-theme="light"]) .ffc input{ color-scheme:dark; }
+
+/* ── Marca no menu: ícone escuro da marca (azul-marinho) ganha um fundo claro
+   discreto para não sumir na barra escura. ── */
+html:not([data-theme="light"]) .sidebar-brand a img{ background:#F4F6FA; border-radius:8px; padding:2px; box-sizing:border-box; }
+
+/* ── Fichas (lead, cliente, tarefa: assets/ff-ficha.css) ──
+   As regras com o prefixo do tema claro ganham a cópia escura gerada em
+   /api/tema_escuro.php?arquivo=ff-ficha. Aqui ficam as variáveis da ficha,
+   que valem nos dois temas e por isso o conversor não toca. */
+html:not([data-theme="light"]) .ff-modal{
+  --ff-azul-forte:var(--ff-marca-clara, #8DB4FF);
+  --ff-azul-suave:rgba(var(--ff-marca-rgb, 1,93,252),0.20); --ff-azul-media:rgba(var(--ff-marca-rgb, 1,93,252),0.45);
+  --ff-texto:#E7EBF1; --ff-texto-2:#D2D8E0; --ff-texto-3:#A9B2BF; --ff-texto-4:#8C97A6; --ff-texto-5:#6F7A89;
+  --ff-borda:rgba(255,255,255,0.08); --ff-borda-2:rgba(255,255,255,0.14); --ff-fundo:#0E141C; --ff-card:#151C26;
+  --ff-verde:#5BE38C; --ff-verde-fundo:rgba(91,227,140,0.14); --ff-verde-borda:rgba(91,227,140,0.35);
+  --ff-vermelho:#FF8A8A; --ff-vermelho-fundo:rgba(255,138,138,0.14); --ff-ambar:#F7C24E; --ff-ambar-fundo:rgba(247,194,78,0.14);
+  --ff-roxo:#B9A4FF; --ff-roxo-fundo:rgba(131,95,242,0.20);
+  color-scheme:dark;
+}
+
+/* ── Textos que ficavam apagados no escuro (varredura de contraste) ── */
+html:not([data-theme="light"]) .tk-add-inline{ color:#8C97A6; }
+html:not([data-theme="light"]) .tk-add-inline:hover{ color:#C5CCD6; }
+html:not([data-theme="light"]) .chat-list-empty span,
+html:not([data-theme="light"]) #reconnectStatus{ color:#A3ADBA; }
+html:not([data-theme="light"]) .usr-id-tag, html:not([data-theme="light"]) .es-empty{ color:#8C97A6; }

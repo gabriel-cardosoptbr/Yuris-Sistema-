@@ -181,6 +181,7 @@ $_notifTempo = function ($raw) {
   } catch (e) {}
 })();
 </script>
+<?php /* O CSS claro abaixo é capturado para gerar a cópia do tema escuro (TemaEscuroCrm). */ ob_start(); ?>
 <style>
   /* Cores da marca da conta (App\Master\Marca::paleta). Todo o bloco abaixo
      usa estas variáveis em vez do azul do Fleetiflow escrito à mão. */
@@ -417,6 +418,11 @@ $_notifTempo = function ($raw) {
     html[data-theme="light"] .layout:has(> .sidebar) > :not(.sidebar){ padding:16px 16px 84px !important; }
   }
 </style>
+<?php $__cssClaroCrm = (string) ob_get_clean(); echo $__cssClaroCrm, \App\Master\TemaEscuroCrm::estilo($__cssClaroCrm); ?>
+<script src="/assets/ff-escuro.js?v=<?= @filemtime(__DIR__ . '/../assets/ff-escuro.js') ?: 1 ?>"></script>
+<link rel="stylesheet" href="/api/tema_escuro.php?arquivo=ff-ficha&amp;v=<?= max((int) @filemtime(__DIR__ . '/../assets/ff-ficha.css'), (int) @filemtime(__DIR__ . '/../../app/Master/TemaEscuroCrm.php')) ?>">
+<link rel="stylesheet" href="/api/tema_escuro.php?arquivo=chat-numeros&amp;v=<?= max((int) @filemtime(__DIR__ . '/../assets/chat-numeros.css'), (int) @filemtime(__DIR__ . '/../../app/Master/TemaEscuroCrm.php')) ?>">
+<link rel="stylesheet" href="/assets/ff-escuro.css?v=<?= @filemtime(__DIR__ . '/../assets/ff-escuro.css') ?: 1 ?>">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <?php endif; ?>
 <!-- Yuris UI lib (notify/confirm/prompt sem "localhost diz"). Auto-polyfills window.alert. -->

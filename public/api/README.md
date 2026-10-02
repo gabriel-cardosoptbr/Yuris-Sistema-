@@ -31,6 +31,10 @@ financeiro é só de ADM nessa edição. A edição jurídica não muda. Também
 parâmetros das contas; com `:resp` sobrando o PDO derrubava o painel (HY093), e
 escolher uma pessoa em "Toda a equipe" quebrava a tela.
 
+`tema_escuro.php?arquivo=ff-ficha|chat-numeros` devolve a cópia escura de uma folha da
+edição CRM, gerada na hora por `App\Master\TemaEscuroCrm` (lista fechada de arquivos,
+nada de caminho vindo da URL; cache com ETag pela data do arquivo e do conversor).
+
 `dashboard_comercial.php` alimenta o cockpit comercial da conta Fleetiflow
 (`includes/dashboard_fleetiflow.php`) numa chamada só: KPIs do período e do
 período anterior equivalente (mesma quantidade de dias, terminando na véspera),

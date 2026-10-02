@@ -251,6 +251,19 @@ eixo zerado. Os dados vêm de uma chamada a `api/dashboard_comercial.php`
 reutilizáveis (`ffc_kpi()` no PHP e `window.FleetiflowDash` no JS) para os
 próximos painéis da Fleetiflow. A conta Yuris nunca passa por esse `require`.
 
+**Tema escuro da edição CRM (02/10/2026).** O desenho da edição CRM era só claro
+(todo seletor com `html[data-theme="light"]`), e no escuro sobrava o estilo antigo do
+Yuris por cima do HTML novo: grupos do menu como caixas, a engrenagem de Configurações
+do tamanho de meia barra, cards brancos no painel, card de lead desmontado. Agora o
+`App\Master\TemaEscuroCrm` gera a cópia escura do próprio CSS claro: no menu lateral
+(`includes/sidebar.php`), no bloco do card de lead (`prospeccao.php`) e nas folhas
+`ff-ficha.css` e `chat-numeros.css` (servidas escuras por `api/tema_escuro.php`). Os
+ajustes à mão ficam em `assets/ff-escuro.css` (variáveis do painel `.ffc`, das fichas
+`.ff-modal`, textos apagados) e `assets/ff-escuro.js` (grade e rótulos dos gráficos do
+Chart.js, ajustados na configuração antes de o gráfico nascer). Tudo carregado pelo
+menu só nas contas da edição CRM, com seletor `html:not([data-theme="light"])`: o tema
+claro e o Yuris não mudam. A folha de Relatórios continua branca de propósito (é o papel).
+
 **Vendedor da edição CRM** (`AccountContext::vendedorCrm()`, 02/10/2026): o painel
 mostra só os leads, vendas, receita, conversão, ticket e meta dele (a API força o
 filtro), o seletor "Toda a equipe" some, o bloco Financeiro (DRE) não é calculado
