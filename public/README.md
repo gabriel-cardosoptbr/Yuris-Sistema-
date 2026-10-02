@@ -134,7 +134,10 @@ WhatsApp** da conta (`assets/chat-numeros.js` + `assets/chat-numeros.css`):
 resumo (quantos, conectados, caídos, nunca conectados), uma aba por número com
 nome, telefone e não lidas, renomear e adicionar número (owner/admin). A aba
 escolhida vira `ChatApp.trocarCanal(id)`, e o `chat.js` passa a mandar
-`channel_id` em toda chamada de `/api/whatsapp/`. Os dados vêm de
+`channel_id` em toda chamada de `/api/whatsapp/`: no GET na query, no POST na
+query **e** no corpo, porque `chats.php`, `contacts.php` e outros leem o canal
+só de `$_GET` mesmo no POST (sem isso "marcar como lida" zerava a conversa no
+número padrão e o 99+ do número aberto não saía). Os dados vêm de
 `instances.php?action=numeros` (`&atualizar=1` pergunta o estado real à
 Evolution). O número escolhido fica no `localStorage`, por conta; `?numero=<id>`
 na URL também escolhe.

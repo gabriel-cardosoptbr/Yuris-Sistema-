@@ -2844,8 +2844,10 @@ const ChatApp = (() => {
   }
 
   // ── HTTP helper ──────────────────────────────────────────────
-  // Número escolhido em toda chamada do pacote WhatsApp (GET na query, POST no
-  // corpo), sem precisar lembrar em cada ponto. Não sobrescreve quem já mandou.
+  // Número escolhido em toda chamada do pacote WhatsApp, sem precisar lembrar em
+  // cada ponto. Não sobrescreve quem já mandou. No POST vai na query E no corpo:
+  // há endpoint que lê o canal só da query (chats.php) mesmo no POST, e sem isso
+  // "marcar como lida", fixar, arquivar etc. caíam no número padrão da conta.
   // media.php fica de fora: o número sai da própria mensagem no servidor.
   function _comCanal(url) {
     if (!state.canalId || url.indexOf('/api/whatsapp/') === -1 || url.indexOf('media.php') !== -1) return url;
@@ -2855,8 +2857,9 @@ const ChatApp = (() => {
 
   async function apiFetch(url, method = 'GET', body = null, signal = null) {
     if (state.canalId && url.indexOf('/api/whatsapp/') !== -1) {
-      if (method === 'GET' || !body) url = _comCanal(url);
-      else if (body && typeof body === 'object' && body.channel_id === undefined) body = Object.assign({}, body, { channel_id: state.canalId });
+      const canalNoCorpo = body && typeof body === 'object' && body.channel_id !== undefined;
+      if (!canalNoCorpo) url = _comCanal(url);
+      if (body && typeof body === 'object' && !canalNoCorpo) body = Object.assign({}, body, { channel_id: state.canalId });
     }
     const opts = {
       method,

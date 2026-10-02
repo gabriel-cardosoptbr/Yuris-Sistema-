@@ -2713,7 +2713,7 @@ const API  = {
   }
 })();
 </script>
-<script src="/assets/chat.js?v=75"></script>
+<script src="/assets/chat.js?v=76"></script>
 <?php if ($isFleetiflow): ?>
 <script>
 window.CSRF_CHAT     = <?= json_encode($csrf) ?>;
