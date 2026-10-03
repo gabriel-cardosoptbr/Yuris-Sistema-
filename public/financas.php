@@ -15,6 +15,10 @@ $ctx->assertAccountActive(); // bloqueia conta suspensa/cancelada/inativa
 // Edição CRM: financeiro é só de ADM. O vendedor volta para o painel dele.
 if ($ctx->vendedorCrm()) { header('Location: /dashboard.php'); exit; }
 $tenantIds = $ctx->getAccessibleAccountIds('financas');
+// Edição CRM (sem módulo jurídico): a tela ganha o painel de Reembolsos
+// (03/10/2026). O Yuris não muda.
+$edicaoCrm = false;
+try { $edicaoCrm = !$ctx->moduloJuridicoDisponivel(); } catch (\Throwable $e) { /* Yuris */ }
 if (empty($tenantIds)) $tenantIds = [0]; // guard: evita SQL "IN ()" inválido
 
 // Monta cláusula IN(tenantIds) para reuso
@@ -446,6 +450,60 @@ $health_icon         = $margem >= 40 ? '▲' : ($margem >= 15 ? '●' : '▼');
         </div>
       </div>
 
+<?php if ($edicaoCrm):
+  // Sugestões do campo "Para quem": a equipe da conta. Pode ser qualquer nome.
+  $_reembPessoas = [];
+  try {
+      $_rp = $pdo->prepare("SELECT nome FROM users WHERE account_id IN $_finIn AND deleted_at IS NULL AND status = 'active' ORDER BY nome");
+      $_rp->execute($_finParams);
+      $_reembPessoas = $_rp->fetchAll(PDO::FETCH_COLUMN);
+  } catch (\Throwable $e) {}
+?>
+      <!-- ── Reembolsos (edição CRM) ── -->
+      <div class="dre-panel reemb-panel" style="margin-bottom:20px" id="reembPanel">
+        <div class="reemb-cab">
+          <div>
+            <div class="panel-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7.5v9"/><path d="M14.5 9.8c0-.9-1.1-1.6-2.5-1.6s-2.5.7-2.5 1.6 1.1 1.4 2.5 1.7 2.5.8 2.5 1.7-1.1 1.6-2.5 1.6-2.5-.7-2.5-1.6"/></svg>
+              Reembolsos
+            </div>
+            <p class="panel-sub">Quem pagou uma conta da empresa do próprio bolso, quanto a empresa já devolveu e o que falta, à vista ou parcelado</p>
+          </div>
+          <button id="reembNovoBtn" type="button" class="btn btn-primary btn-sm" style="flex-shrink:0">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Novo reembolso
+          </button>
+        </div>
+        <div class="reemb-resumo">
+          <div class="reemb-num"><span>A reembolsar</span><b id="reembAPagar">R$ 0,00</b></div>
+          <div class="reemb-num" id="reembAtrasoCaixa"><span>Em atraso</span><b id="reembAtrasado">R$ 0,00</b></div>
+          <div class="reemb-num reemb-num-ok"><span>Já reembolsado</span><b id="reembPago">R$ 0,00</b></div>
+          <div class="reemb-num"><span>Reembolsos em aberto</span><b id="reembEmAberto">0</b></div>
+        </div>
+        <div class="reemb-filtros">
+          <button type="button" class="btn btn-primary btn-sm" data-filtro="abertos">Em aberto</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-filtro="pagos">Pagos</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-filtro="todos">Todos</button>
+        </div>
+        <div class="dre-table-wrap">
+          <table class="dre-table reemb-tabela" id="reembTabela">
+            <thead>
+              <tr>
+                <th>Para quem</th>
+                <th>Do que</th>
+                <th>Data da despesa</th>
+                <th style="text-align:right">Valor</th>
+                <th>Pagamento</th>
+                <th>Situação</th>
+                <th style="text-align:right">Ações</th>
+              </tr>
+            </thead>
+            <tbody><tr class="empty-row"><td colspan="7">Carregando reembolsos…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <datalist id="reembPessoas"><?php foreach ($_reembPessoas as $_n): ?><option value="<?= htmlspecialchars((string) $_n) ?>"></option><?php endforeach; ?></datalist>
+<?php endif; ?>
       <!-- ── Charts ── -->
       <div class="charts-grid">
         <div class="chart-box" style="display:flex;flex-direction:column;padding:10px 16px">
@@ -1013,6 +1071,128 @@ window.dreUpdateDonutLegend = function(vals) {
   }
 })();
 </script>
+<?php if ($edicaoCrm): ?>
+<!-- ══ MODAL: Reembolso (novo / editar) ══ -->
+<div id="reembModal" class="modal-shell" style="display:none">
+  <div class="modal-panel" style="width:600px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="reembModalTitulo">Novo reembolso</div>
+        <p style="font-size:.72rem;color:var(--muted);margin:4px 0 0">O que a empresa precisa devolver a alguém que pagou uma conta dela</p>
+      </div>
+      <button type="button" class="modal-close" data-fechar="reembModal" aria-label="Fechar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <input type="hidden" id="reembId">
+    <div class="modal-form-grid">
+      <div class="form-group">
+        <label for="reembFavorecido">Para quem</label>
+        <input id="reembFavorecido" type="text" list="reembPessoas" maxlength="150" placeholder="Quem pagou e vai receber" autocomplete="off" />
+      </div>
+      <div class="form-group">
+        <label for="reembData">Data da despesa</label>
+        <input id="reembData" type="date" />
+      </div>
+      <div class="form-group span2">
+        <label for="reembDescricao">Do que</label>
+        <input id="reembDescricao" type="text" maxlength="255" placeholder="Ex: hospedagem do site, combustível da visita ao cliente" autocomplete="off" />
+      </div>
+      <div class="form-group">
+        <label for="reembValor">Valor total (R$)</label>
+        <input id="reembValor" type="text" inputmode="decimal" placeholder="0,00" style="text-align:right" autocomplete="off" />
+      </div>
+      <div class="form-group">
+        <label for="reembParcelas">Como a empresa vai pagar</label>
+        <select id="reembParcelas"></select>
+      </div>
+      <div class="form-group">
+        <label for="reembPrimeiro" id="reembPrimeiroRotulo">Vencimento</label>
+        <input id="reembPrimeiro" type="date" />
+      </div>
+      <div class="form-group">
+        <label>Parcelas</label>
+        <div class="reemb-previa" id="reembPrevia">Informe o valor</div>
+      </div>
+      <div class="form-group span2">
+        <label for="reembObs">Observação (opcional)</label>
+        <textarea id="reembObs" class="form-textarea reemb-textarea" rows="2" maxlength="2000" placeholder="Chave Pix, onde está o comprovante, o que foi combinado com a pessoa"></textarea>
+      </div>
+    </div>
+    <div class="reemb-aviso" id="reembTravado" style="display:none">Este reembolso já tem parcela paga, então o valor e o parcelamento estão travados. Para mudá-los, desfaça os pagamentos em "Parcelas".</div>
+    <div id="reembMsg" class="error-msg"></div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost" data-fechar="reembModal">Cancelar</button>
+      <button type="button" id="reembSalvarBtn" class="btn btn-primary">Salvar reembolso</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: Parcelas de um reembolso ══ -->
+<div id="reembParcelasModal" class="modal-shell" style="display:none">
+  <div class="modal-panel" style="width:640px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="reembParcelasTitulo">Parcelas</div>
+        <p style="font-size:.72rem;color:var(--muted);margin:4px 0 0" id="reembParcelasSub"></p>
+      </div>
+      <button type="button" class="modal-close" data-fechar="reembParcelasModal" aria-label="Fechar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="reemb-pag-data">
+      <label for="reembPagoEm">Data do pagamento</label>
+      <input id="reembPagoEm" type="date" />
+      <span>usada ao marcar uma parcela como paga</span>
+    </div>
+    <div class="dre-table-wrap">
+      <table class="dre-table reemb-tabela">
+        <thead><tr><th>Parcela</th><th>Vencimento</th><th style="text-align:right">Valor</th><th>Situação</th><th style="text-align:right">Ação</th></tr></thead>
+        <tbody id="reembParcelasLinhas"></tbody>
+      </table>
+    </div>
+    <div class="reemb-obs" id="reembParcelasObs" style="display:none"></div>
+    <div id="reembParcelasMsg" class="error-msg"></div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost" data-fechar="reembParcelasModal">Fechar</button>
+      <button type="button" id="reembQuitarBtn" class="btn btn-primary">Marcar todas como pagas</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .reemb-cab { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  .reemb-resumo { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1px; background:rgba(148,163,184,.18); border:1px solid rgba(148,163,184,.18); border-radius:10px; overflow:hidden; margin-bottom:14px; }
+  .reemb-num { background:rgba(8,20,40,.55); padding:10px 14px; display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .reemb-num span { font-size:.63rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; }
+  .reemb-num b { font-size:1.1rem; font-weight:700; color:#e8f4ff; overflow-wrap:anywhere; }
+  .reemb-num-atraso b { color:#fca5a5; }
+  .reemb-num-ok b { color:#6ee7b7; }
+  .reemb-filtros { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:4px; }
+  .reemb-tabela td { white-space:normal; overflow-wrap:anywhere; }
+  .reemb-tabela td.reemb-nowrap { white-space:nowrap; }
+  .reemb-desc small { display:block; color:var(--muted); font-size:.68rem; margin-top:2px; }
+  .reemb-prog { display:flex; flex-direction:column; gap:4px; min-width:120px; }
+  .reemb-prog small { color:var(--muted); font-size:.68rem; }
+  .reemb-barra { height:5px; border-radius:999px; background:rgba(148,163,184,.25); overflow:hidden; }
+  .reemb-barra i { display:block; height:100%; background:#22c55e; border-radius:999px; }
+  .reemb-acoes { display:inline-flex; gap:6px; justify-content:flex-end; }
+  .reemb-tabela td:last-child { white-space:nowrap; }
+  .reemb-previa { font-size:.78rem; padding:8px 10px; border-radius:8px; border:1px dashed rgba(148,163,184,.35); color:var(--muted); min-height:36px; line-height:1.4; }
+  .reemb-textarea { width:100%; resize:vertical; padding:8px 10px; border-radius:8px; font:inherit; font-size:.8rem; background:#081220; border:1px solid rgba(160,180,210,.14); color:#D8E4F0; }
+  .reemb-aviso { margin-top:12px; font-size:.75rem; padding:9px 12px; border-radius:8px; background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.3); color:#fcd34d; }
+  .reemb-pag-data { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; font-size:.75rem; color:var(--muted); }
+  .reemb-pag-data label { font-weight:700; text-transform:uppercase; letter-spacing:.04em; font-size:.65rem; }
+  .reemb-pag-data input { padding:6px 8px; border-radius:8px; font:inherit; font-size:.78rem; background:#081220; border:1px solid rgba(160,180,210,.14); color:#D8E4F0; color-scheme:dark; }
+  .reemb-obs { margin-top:12px; font-size:.78rem; padding:10px 12px; border-radius:8px; border:1px solid rgba(148,163,184,.25); white-space:pre-wrap; overflow-wrap:anywhere; }
+  html[data-theme="light"] .reemb-num { background:#FFFFFF; }
+  html[data-theme="light"] .reemb-num b { color:#0F1F36; }
+  html[data-theme="light"] .reemb-num-atraso b { color:#B91C1C; }
+  html[data-theme="light"] .reemb-num-ok b { color:#15803D; }
+  html[data-theme="light"] .reemb-aviso { color:#92400E; background:#FFFBEB; border-color:#FCD34D; }
+  html[data-theme="light"] .reemb-pag-data input { background:#FFFFFF; border-color:rgba(15,31,54,.18); color:#0F1F36; color-scheme:light; }
+  html[data-theme="light"] .reemb-textarea { background:#FFFFFF; border-color:rgba(15,31,54,.18); color:#0F1F36; }
+  html[data-theme="light"] .reemb-obs { color:#334155; }
+  @media (max-width: 760px) { .reemb-resumo { grid-template-columns:1fr 1fr; } }
+</style>
+<script src="/assets/reembolsos.js?v=<?= @filemtime(__DIR__ . '/assets/reembolsos.js') ?: 1 ?>"></script>
+<?php endif; ?>
 <script src="/assets/dre.js?v=<?=filemtime(__DIR__.'/assets/dre.js')?>"></script>
 <script src="/assets/fog.js"></script>
 </body>

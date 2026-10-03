@@ -31,6 +31,12 @@ financeiro é só de ADM nessa edição. A edição jurídica não muda. Também
 parâmetros das contas; com `:resp` sobrando o PDO derrubava o painel (HY093), e
 escolher uma pessoa em "Toda a equipe" quebrava a tela.
 
+`reembolsos.php` é a API dos reembolsos da tela Finanças (edição CRM): `GET` devolve a
+lista com parcelas, situação e o resumo; `POST {acao}` cria, atualiza, exclui, marca
+parcela como paga (`pagar`), desfaz (`desfazer`) ou quita tudo (`quitar`). CSRF no
+cabeçalho. Vendedor recebe 403, conta Yuris 404; leitura e escrita pela lista de contas
+acessíveis de `financas`. Regras em `app/Financas/README.md`.
+
 `tema_escuro.php?arquivo=ff-ficha|chat-numeros` devolve a cópia escura de uma folha da
 edição CRM, gerada na hora por `App\Master\TemaEscuroCrm` (lista fechada de arquivos,
 nada de caminho vindo da URL; cache com ETag pela data do arquivo e do conversor).

@@ -270,6 +270,13 @@ filtro), o seletor "Toda a equipe" some, o bloco Financeiro (DRE) não é calcul
 nem desenhado, `financas.php` devolve para o painel e o item Finanças sai do menu
 do celular. Só dono e admin veem tudo. A Prospecção (o quadro) continua da equipe.
 
+**Reembolsos na tela Finanças (edição CRM, 03/10/2026).** `financas.php` ganha, só
+quando `$edicaoCrm`, o painel "Reembolsos" (abaixo dos impostos): quem pagou uma conta
+da empresa do próprio bolso, quanto falta devolver, à vista ou parcelado, e um modal
+para marcar cada parcela como paga (ou desfazer). Markup, modais e estilo ficam dentro
+do `if`, o comportamento em `assets/reembolsos.js` e a regra em
+`App\Financas\Reembolso`. O HTML da tela para conta Yuris é idêntico ao de antes.
+
 ### Entrada e sessão
 `login.php` · `login-fleetiflow.php` · `logout.php` · `404.php`
 
