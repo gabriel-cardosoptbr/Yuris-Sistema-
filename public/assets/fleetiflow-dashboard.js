@@ -380,6 +380,11 @@
       area.innerHTML = vazio('Sem leads no período', 'O radar mostra a proporção dos leads que chegou a cada etapa.');
       area.style.height = 'auto'; leg.innerHTML = ''; return;
     }
+    // Todos ainda na etapa de entrada: o radar seria um ponto no centro, que parece defeito.
+    if (!etapas.some(e => e.qtd > 0)) {
+      area.innerHTML = vazio('Nenhum lead avançou de etapa ainda', 'Os ' + inteiro.format(pr.entraram) + ' leads do período ainda estão em Novos leads. O radar aparece quando algum chegar à etapa seguinte.');
+      area.style.height = 'auto'; leg.innerHTML = ''; $('radarSub').textContent = 'Proporção dos leads que chegou a cada etapa'; return;
+    }
     area.style.height = ''; area.innerHTML = '<canvas id="radarCanvas"></canvas>';
     const ant = pr.funil_anterior || [], temAnt = pr.entraram_anterior > 0;
     const pctAnt = etapas.map(e => { const x = ant.find(a => a.id === e.id); return x && x.pct !== null ? x.pct : 0; });
