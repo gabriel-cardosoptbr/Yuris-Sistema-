@@ -271,7 +271,8 @@ nem desenhado, `financas.php` devolve para o painel e o item Finanças sai do me
 do celular. Só dono e admin veem tudo. A Prospecção (o quadro) continua da equipe.
 
 **Reembolsos na tela Finanças (edição CRM, 03/10/2026).** `financas.php` ganha, só
-quando `$edicaoCrm`, o painel "Reembolsos" (abaixo dos impostos): quem pagou uma conta
+quando o módulo está ligado na conta (`$reembolsos`, `Reembolso::habilitado`: edição CRM com
+`configuracoes.modulos.reembolsos`; hoje só a Inovaize), o painel "Reembolsos" (abaixo dos impostos): quem pagou uma conta
 da empresa do próprio bolso, quanto falta devolver, à vista ou parcelado, e um modal
 para marcar cada parcela como paga (ou desfazer). Markup, modais e estilo ficam dentro
 do `if`, o comportamento em `assets/reembolsos.js` e a regra em

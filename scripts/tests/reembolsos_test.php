@@ -4,12 +4,12 @@
  * edição CRM, 03/10/2026).
  *
  * Confere a conta do dinheiro (centavos, divisão das parcelas com soma exata,
- * vencimentos no fim de mês), a situação derivada das parcelas, a validação, e
- * no banco: criar, pagar, desfazer, quitar, a trava de valor com parcela paga,
- * e o isolamento entre contas (outra conta não lê, não altera, não paga, não
- * exclui). Apaga o que criou.
+ * vencimentos no fim de mês), a situação derivada das parcelas, a validação, a
+ * chave por conta (habilitado), e no banco: criar, pagar com quem pagou,
+ * desfazer, quitar, a trava de valor com parcela paga, e o isolamento entre
+ * contas (outra conta não lê, não altera, não paga, não exclui). Apaga o que criou.
  *
- * Precisa da migration 138 e de duas contas quaisquer no banco.
+ * Precisa das migrations 138 e 139 e de duas contas quaisquer no banco.
  * Uso: php scripts/tests/reembolsos_test.php
  */
 require_once __DIR__ . '/../../app/bootstrap.php';
@@ -56,7 +56,15 @@ ok('25 parcelas é recusado', R::validar(['parcelas' => 25] + $base)[1] !== null
 ok('parcela menor que um centavo é recusada', R::validar(['valor_total' => '0,02', 'parcelas' => 3] + $base)[1] !== null);
 ok('data impossível é recusada', R::validar(['data_despesa' => '2026-02-30'] + $base)[1] !== null);
 
-echo "\n== 5. Banco, fluxo e isolamento ==\n";
+echo "\n== 5. Módulo ligado por conta ==\n";
+$cfg = fn(array $c) => ['configuracoes' => json_encode($c)];
+ok('CRM com a chave: ligado', R::habilitado($cfg(['produto' => 'fleetiflow', 'modulos' => ['reembolsos' => true]])));
+ok('CRM sem a chave: desligado', !R::habilitado($cfg(['produto' => 'fleetiflow'])));
+ok('Yuris com a chave: desligado, sempre', !R::habilitado($cfg(['modulos' => ['reembolsos' => true]])));
+ok('chave com valor que não é true: desligado', !R::habilitado($cfg(['produto' => 'fleetiflow', 'modulos' => ['reembolsos' => 1]])));
+ok('conta vazia: desligado', !R::habilitado([]));
+
+echo "\n== 6. Banco, fluxo e isolamento ==\n";
 $pdo = Database::getConnection();
 $contas = $pdo->query("SELECT id FROM accounts ORDER BY id DESC LIMIT 2")->fetchAll(PDO::FETCH_COLUMN);
 if (count($contas) < 2) { echo "  (pulado: precisa de duas contas no banco)\n"; }
@@ -74,17 +82,20 @@ else {
         ok('outra conta não quita', R::quitar($id, [$b], '2026-10-03', null) === false);
         ok('outra conta não exclui', R::excluir($id, [$b]) === false && R::buscar($id, [$a]) !== null);
 
-        ok('paga a primeira parcela', R::marcarParcela($r['parcelas'][0]['id'], [$a], '2026-10-03', null) === $id);
+        ok('nome de quem pagou com mais de 150 caracteres é recusado', R::marcarParcela($r['parcelas'][0]['id'], [$a], '2026-10-03', null, str_repeat('x', 151)) === null);
+        ok('paga a primeira parcela, com quem pagou', R::marcarParcela($r['parcelas'][0]['id'], [$a], '2026-10-03', null, '  Gabriel ') === $id);
         $r = R::buscar($id, [$a]);
+        ok('guarda data e quem pagou (aparado)', $r['parcelas'][0]['pago_em'] === '2026-10-03' && $r['parcelas'][0]['pago_por_nome'] === 'Gabriel');
+        ok('parcela em aberto não tem quem pagou', $r['parcelas'][1]['pago_por_nome'] === null);
         ok('fica "pagando", com 50,00 pago e 100,00 em aberto', $r['qtd_pagas'] === 1 && abs($r['valor_pago'] - 50) < 0.001 && abs($r['valor_aberto'] - 100) < 0.001 && in_array($r['situacao'], ['pagando', 'atrasado'], true));
         [$d2] = R::validar(['valor_total' => '200,00'] + $base);
         ok('com parcela paga, valor não muda', R::atualizar($id, [$a], $d2) !== null && R::buscar($id, [$a])['valor_total'] === 150.0);
         [$d3] = R::validar(['descricao' => 'Hospedagem anual'] + $base);
         ok('com parcela paga, a descrição muda', R::atualizar($id, [$a], $d3) === null && R::buscar($id, [$a])['descricao'] === 'Hospedagem anual');
-        ok('desfaz o pagamento', R::marcarParcela($r['parcelas'][0]['id'], [$a], null, null) === $id && R::buscar($id, [$a])['qtd_pagas'] === 0);
+        ok('desfaz o pagamento e limpa quem pagou', R::marcarParcela($r['parcelas'][0]['id'], [$a], null, null) === $id && ($x = R::buscar($id, [$a]))['qtd_pagas'] === 0 && $x['parcelas'][0]['pago_por_nome'] === null);
         ok('sem parcela paga, valor e parcelamento mudam e as parcelas são refeitas', R::atualizar($id, [$a], ['parcelas' => 2] + $d2) === null
             && ($x = R::buscar($id, [$a]))['qtd_parcelas'] === 2 && $x['valor_total'] === 200.0 && abs($x['parcelas'][1]['valor'] - 100) < 0.001);
-        ok('quita tudo de uma vez', R::quitar($id, [$a], '2026-10-03', null) && R::buscar($id, [$a])['situacao'] === 'pago');
+        ok('quita tudo de uma vez, com quem pagou', R::quitar($id, [$a], '2026-10-03', null, 'Milton') && ($x = R::buscar($id, [$a]))['situacao'] === 'pago' && $x['parcelas'][1]['pago_por_nome'] === 'Milton');
         $res = R::resumo(R::listar([$a]));
         ok('resumo conta o pago', $res['pago'] >= 200.0);
         ok('exclui (lógico) e some da lista', R::excluir($id, [$a]) && R::buscar($id, [$a]) === null);

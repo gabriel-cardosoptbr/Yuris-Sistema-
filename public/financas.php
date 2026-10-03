@@ -15,10 +15,10 @@ $ctx->assertAccountActive(); // bloqueia conta suspensa/cancelada/inativa
 // Edição CRM: financeiro é só de ADM. O vendedor volta para o painel dele.
 if ($ctx->vendedorCrm()) { header('Location: /dashboard.php'); exit; }
 $tenantIds = $ctx->getAccessibleAccountIds('financas');
-// Edição CRM (sem módulo jurídico): a tela ganha o painel de Reembolsos
-// (03/10/2026). O Yuris não muda.
-$edicaoCrm = false;
-try { $edicaoCrm = !$ctx->moduloJuridicoDisponivel(); } catch (\Throwable $e) { /* Yuris */ }
+// Painel de Reembolsos (03/10/2026): só na conta com o módulo ligado
+// (configuracoes.modulos.reembolsos, edição CRM; hoje, a Inovaize). O Yuris não muda.
+$reembolsos = false;
+try { $reembolsos = \App\Financas\Reembolso::habilitado(\App\Master\Account::findById($ctx->getAccountId()) ?? []); } catch (\Throwable $e) { /* sem o módulo */ }
 if (empty($tenantIds)) $tenantIds = [0]; // guard: evita SQL "IN ()" inválido
 
 // Monta cláusula IN(tenantIds) para reuso
@@ -450,7 +450,7 @@ $health_icon         = $margem >= 40 ? '▲' : ($margem >= 15 ? '●' : '▼');
         </div>
       </div>
 
-<?php if ($edicaoCrm):
+<?php if ($reembolsos):
   // Sugestões do campo "Para quem": a equipe da conta. Pode ser qualquer nome.
   $_reembPessoas = [];
   try {
@@ -459,8 +459,8 @@ $health_icon         = $margem >= 40 ? '▲' : ($margem >= 15 ? '●' : '▼');
       $_reembPessoas = $_rp->fetchAll(PDO::FETCH_COLUMN);
   } catch (\Throwable $e) {}
 ?>
-      <!-- ── Reembolsos (edição CRM) ── -->
-      <div class="dre-panel reemb-panel" style="margin-bottom:20px" id="reembPanel">
+      <!-- ── Reembolsos (módulo por conta) ── -->
+      <div class="dre-panel reemb-panel" style="margin-bottom:20px" id="reembPanel" data-usuario="<?= htmlspecialchars((string) ($_SESSION['user_nome'] ?? '')) ?>">
         <div class="reemb-cab">
           <div>
             <div class="panel-title">
@@ -489,7 +489,7 @@ $health_icon         = $margem >= 40 ? '▲' : ($margem >= 15 ? '●' : '▼');
           <table class="dre-table reemb-tabela" id="reembTabela">
             <thead>
               <tr>
-                <th>Para quem</th>
+                <th>Quem pagou a conta</th>
                 <th>Do que</th>
                 <th>Data da despesa</th>
                 <th style="text-align:right">Valor</th>
@@ -1071,7 +1071,7 @@ window.dreUpdateDonutLegend = function(vals) {
   }
 })();
 </script>
-<?php if ($edicaoCrm): ?>
+<?php if ($reembolsos): ?>
 <!-- ══ MODAL: Reembolso (novo / editar) ══ -->
 <div id="reembModal" class="modal-shell" style="display:none">
   <div class="modal-panel" style="width:600px">
@@ -1085,8 +1085,8 @@ window.dreUpdateDonutLegend = function(vals) {
     <input type="hidden" id="reembId">
     <div class="modal-form-grid">
       <div class="form-group">
-        <label for="reembFavorecido">Para quem</label>
-        <input id="reembFavorecido" type="text" list="reembPessoas" maxlength="150" placeholder="Quem pagou e vai receber" autocomplete="off" />
+        <label for="reembFavorecido">Quem pagou a conta</label>
+        <input id="reembFavorecido" type="text" list="reembPessoas" maxlength="150" placeholder="Quem vai receber o reembolso" autocomplete="off" />
       </div>
       <div class="form-group">
         <label for="reembData">Data da despesa</label>
@@ -1136,16 +1136,28 @@ window.dreUpdateDonutLegend = function(vals) {
       </div>
       <button type="button" class="modal-close" data-fechar="reembParcelasModal" aria-label="Fechar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
-    <div class="reemb-pag-data">
-      <label for="reembPagoEm">Data do pagamento</label>
-      <input id="reembPagoEm" type="date" />
-      <span>usada ao marcar uma parcela como paga</span>
-    </div>
     <div class="dre-table-wrap">
       <table class="dre-table reemb-tabela">
         <thead><tr><th>Parcela</th><th>Vencimento</th><th style="text-align:right">Valor</th><th>Situação</th><th style="text-align:right">Ação</th></tr></thead>
         <tbody id="reembParcelasLinhas"></tbody>
       </table>
+    </div>
+    <div class="reemb-pagar" id="reembPagar" style="display:none">
+      <div class="reemb-pagar-tit" id="reembPagarTitulo">Registrar pagamento</div>
+      <div class="modal-form-grid">
+        <div class="form-group">
+          <label for="reembPagoPor">Quem pagou</label>
+          <input id="reembPagoPor" type="text" list="reembPessoas" maxlength="150" placeholder="Quem fez o pagamento" autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label for="reembPagoEm">Data do pagamento</label>
+          <input id="reembPagoEm" type="date" />
+        </div>
+      </div>
+      <div class="reemb-pagar-botoes">
+        <button type="button" class="btn btn-ghost btn-sm" id="reembPagarCancelar">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-sm" id="reembPagarConfirmar">Confirmar pagamento</button>
+      </div>
     </div>
     <div class="reemb-obs" id="reembParcelasObs" style="display:none"></div>
     <div id="reembParcelasMsg" class="error-msg"></div>
@@ -1177,16 +1189,18 @@ window.dreUpdateDonutLegend = function(vals) {
   .reemb-previa { font-size:.78rem; padding:8px 10px; border-radius:8px; border:1px dashed rgba(148,163,184,.35); color:var(--muted); min-height:36px; line-height:1.4; }
   .reemb-textarea { width:100%; resize:vertical; padding:8px 10px; border-radius:8px; font:inherit; font-size:.8rem; background:#081220; border:1px solid rgba(160,180,210,.14); color:#D8E4F0; }
   .reemb-aviso { margin-top:12px; font-size:.75rem; padding:9px 12px; border-radius:8px; background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.3); color:#fcd34d; }
-  .reemb-pag-data { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; font-size:.75rem; color:var(--muted); }
-  .reemb-pag-data label { font-weight:700; text-transform:uppercase; letter-spacing:.04em; font-size:.65rem; }
-  .reemb-pag-data input { padding:6px 8px; border-radius:8px; font:inherit; font-size:.78rem; background:#081220; border:1px solid rgba(160,180,210,.14); color:#D8E4F0; color-scheme:dark; }
+  .reemb-pagar { margin-top:12px; padding:14px; border-radius:10px; border:1px solid rgba(96,165,250,.35); background:rgba(59,130,246,.08); }
+  .reemb-pagar-tit { font-size:.82rem; font-weight:700; margin-bottom:10px; }
+  .reemb-quem { display:block; font-size:.68rem; color:var(--muted); margin-top:3px; overflow-wrap:anywhere; }
+  .reemb-pagar-botoes { display:flex; justify-content:flex-end; gap:8px; margin-top:12px; }
   .reemb-obs { margin-top:12px; font-size:.78rem; padding:10px 12px; border-radius:8px; border:1px solid rgba(148,163,184,.25); white-space:pre-wrap; overflow-wrap:anywhere; }
   html[data-theme="light"] .reemb-num { background:#FFFFFF; }
   html[data-theme="light"] .reemb-num b { color:#0F1F36; }
   html[data-theme="light"] .reemb-num-atraso b { color:#B91C1C; }
   html[data-theme="light"] .reemb-num-ok b { color:#15803D; }
   html[data-theme="light"] .reemb-aviso { color:#92400E; background:#FFFBEB; border-color:#FCD34D; }
-  html[data-theme="light"] .reemb-pag-data input { background:#FFFFFF; border-color:rgba(15,31,54,.18); color:#0F1F36; color-scheme:light; }
+  html[data-theme="light"] .reemb-pagar { background:#F5F8FF; border-color:#BFD3F5; }
+  html[data-theme="light"] .reemb-pagar-tit { color:#0F1F36; }
   html[data-theme="light"] .reemb-textarea { background:#FFFFFF; border-color:rgba(15,31,54,.18); color:#0F1F36; }
   html[data-theme="light"] .reemb-obs { color:#334155; }
   @media (max-width: 760px) { .reemb-resumo { grid-template-columns:1fr 1fr; } }

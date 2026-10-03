@@ -20,11 +20,40 @@ use App\Core\Database;
  *  - A situação não é gravada, sai das parcelas (situacao()).
  *  - Com parcela já paga, valor e parcelamento ficam travados: mudar exigiria
  *    redistribuir dinheiro que já saiu. Desfaz o pagamento antes.
+ *  - Cada pagamento guarda a data e QUEM pagou (texto livre, pago_por_nome,
+ *    migration 139), além do usuário que marcou (pago_por).
+ *  - O módulo é ligado por conta: `configuracoes.modulos.reembolsos = true`
+ *    (habilitado()/ligar()). Pedido de 03/10/2026: só a Inovaize por ora.
  */
 final class Reembolso
 {
     public const MAX_PARCELAS = 24;
     public const MAX_VALOR_CENTAVOS = 999999999; // R$ 9.999.999,99, o teto do DECIMAL(12,2) com folga
+
+    /**
+     * O módulo vale para esta conta? Só edição CRM (sem módulo jurídico) e com
+     * `configuracoes.modulos.reembolsos` ligado. Conta Yuris nunca, mesmo com a chave.
+     */
+    public static function habilitado(array $conta): bool
+    {
+        if (!$conta || \App\Master\Account::moduloJuridicoDisponivel($conta)) return false;
+        $config = json_decode((string) ($conta['configuracoes'] ?? ''), true);
+        return is_array($config) && ($config['modulos']['reembolsos'] ?? false) === true;
+    }
+
+    /** Liga ou desliga o módulo na conta, preservando o resto de `configuracoes`. */
+    public static function ligar(\PDO $pdo, int $accountId, bool $ligado): void
+    {
+        $st = $pdo->prepare('SELECT configuracoes FROM accounts WHERE id = ? LIMIT 1');
+        $st->execute([$accountId]);
+        $config = json_decode((string) $st->fetchColumn(), true);
+        if (!is_array($config)) $config = [];
+        if (!is_array($config['modulos'] ?? null)) $config['modulos'] = [];
+        if ($ligado) $config['modulos']['reembolsos'] = true; else unset($config['modulos']['reembolsos']);
+        if (!$config['modulos']) unset($config['modulos']);
+        $pdo->prepare('UPDATE accounts SET configuracoes = ?, updated_at = NOW() WHERE id = ?')
+            ->execute([json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $accountId]);
+    }
 
     /** "1.234,56", "1234,56", "1234.56" ou número => centavos; null se inválido. */
     public static function centavos($valor): ?int
@@ -168,7 +197,7 @@ final class Reembolso
         [$in2, $p2] = self::inContas($contas, 'pc');
         $ids = array_map(fn($r) => (int) $r['id'], $lista);
         $phIds = []; foreach ($ids as $i => $id) { $phIds[] = ":ri{$i}"; $p2["ri{$i}"] = $id; }
-        $sp = $pdo->prepare("SELECT id, reembolso_id, numero, valor, vencimento, pago_em
+        $sp = $pdo->prepare("SELECT id, reembolso_id, numero, valor, vencimento, pago_em, pago_por_nome
                                FROM reembolso_parcelas
                               WHERE account_id IN $in2 AND reembolso_id IN (" . implode(',', $phIds) . ")
                               ORDER BY reembolso_id, numero");
@@ -197,7 +226,7 @@ final class Reembolso
         $st->execute(['id' => $id] + $p);
         $r = $st->fetch(\PDO::FETCH_ASSOC);
         if (!$r) return [];
-        $sp = $pdo->prepare("SELECT id, reembolso_id, numero, valor, vencimento, pago_em FROM reembolso_parcelas
+        $sp = $pdo->prepare("SELECT id, reembolso_id, numero, valor, vencimento, pago_em, pago_por_nome FROM reembolso_parcelas
                               WHERE reembolso_id = :id AND account_id = :acc ORDER BY numero");
         $sp->execute(['id' => $id, 'acc' => (int) $r['account_id']]);
         return [self::montar($r, $sp->fetchAll(\PDO::FETCH_ASSOC), self::hoje())];
@@ -214,6 +243,7 @@ final class Reembolso
             else { $aberto += $c; if ($pa['vencimento'] < $hoje) $atrasado += $c; }
             $ps[] = ['id' => (int) $pa['id'], 'numero' => (int) $pa['numero'], 'valor' => $c / 100,
                      'vencimento' => $pa['vencimento'], 'pago_em' => $pa['pago_em'] ?: null,
+                     'pago_por_nome' => $paga ? ($pa['pago_por_nome'] ?? null) : null,
                      'atrasada' => !$paga && $pa['vencimento'] < $hoje];
         }
         $proxima = null;
@@ -308,12 +338,15 @@ final class Reembolso
     }
 
     /**
-     * Marca a parcela como paga na data dada, ou desfaz (data null). Devolve o
-     * id do reembolso, ou null se a parcela não é das contas.
+     * Marca a parcela como paga na data dada, por quem pagou, ou desfaz (data
+     * null, que limpa também quem pagou). Devolve o id do reembolso, ou null se a
+     * parcela não é das contas (ou se a data ou o nome são inválidos).
      */
-    public static function marcarParcela(int $parcelaId, array $contas, ?string $pagoEm, ?int $userId): ?int
+    public static function marcarParcela(int $parcelaId, array $contas, ?string $pagoEm, ?int $userId, ?string $pagoPorNome = null): ?int
     {
         if ($pagoEm !== null && !self::dataValida($pagoEm)) return null;
+        $nome = self::nomePagador($pagoPorNome);
+        if ($nome === false) return null;
         $pdo = Database::getConnection();
         [$in, $p] = self::inContas($contas);
         $st = $pdo->prepare("SELECT pa.reembolso_id FROM reembolso_parcelas pa
@@ -322,20 +355,29 @@ final class Reembolso
         $st->execute(['id' => $parcelaId] + $p);
         $reembId = $st->fetchColumn();
         if ($reembId === false) return null;
-        $up = $pdo->prepare("UPDATE reembolso_parcelas SET pago_em = :em, pago_por = :uid WHERE id = :id AND account_id IN $in");
-        $up->execute(['em' => $pagoEm, 'uid' => $pagoEm === null ? null : $userId, 'id' => $parcelaId] + $p);
+        $up = $pdo->prepare("UPDATE reembolso_parcelas SET pago_em = :em, pago_por = :uid, pago_por_nome = :nome WHERE id = :id AND account_id IN $in");
+        $up->execute(['em' => $pagoEm, 'uid' => $pagoEm === null ? null : $userId, 'nome' => $pagoEm === null ? null : $nome, 'id' => $parcelaId] + $p);
         return (int) $reembId;
     }
 
-    /** Marca todas as parcelas em aberto como pagas na data dada. */
-    public static function quitar(int $id, array $contas, string $pagoEm, ?int $userId): bool
+    /** Marca todas as parcelas em aberto como pagas na data dada, por quem pagou. */
+    public static function quitar(int $id, array $contas, string $pagoEm, ?int $userId, ?string $pagoPorNome = null): bool
     {
-        if (!self::dataValida($pagoEm) || !self::buscar($id, $contas)) return false;
+        $nome = self::nomePagador($pagoPorNome);
+        if ($nome === false || !self::dataValida($pagoEm) || !self::buscar($id, $contas)) return false;
         $pdo = Database::getConnection();
         $acc = self::contaDe($pdo, $id);
-        $pdo->prepare("UPDATE reembolso_parcelas SET pago_em = :em, pago_por = :uid WHERE reembolso_id = :id AND account_id = :acc AND pago_em IS NULL")
-            ->execute(['em' => $pagoEm, 'uid' => $userId, 'id' => $id, 'acc' => $acc]);
+        $pdo->prepare("UPDATE reembolso_parcelas SET pago_em = :em, pago_por = :uid, pago_por_nome = :nome WHERE reembolso_id = :id AND account_id = :acc AND pago_em IS NULL")
+            ->execute(['em' => $pagoEm, 'uid' => $userId, 'nome' => $nome, 'id' => $id, 'acc' => $acc]);
         return true;
+    }
+
+    /** Nome de quem pagou: aparado, null se vazio, false se passa de 150 caracteres. */
+    private static function nomePagador(?string $nome): string|null|false
+    {
+        $nome = trim((string) $nome);
+        if ($nome === '') return null;
+        return mb_strlen($nome) > 150 ? false : $nome;
     }
 
     private static function contaDe(\PDO $pdo, int $id): int

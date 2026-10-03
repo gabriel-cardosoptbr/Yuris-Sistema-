@@ -34,7 +34,8 @@ escolher uma pessoa em "Toda a equipe" quebrava a tela.
 `reembolsos.php` é a API dos reembolsos da tela Finanças (edição CRM): `GET` devolve a
 lista com parcelas, situação e o resumo; `POST {acao}` cria, atualiza, exclui, marca
 parcela como paga (`pagar`), desfaz (`desfazer`) ou quita tudo (`quitar`). CSRF no
-cabeçalho. Vendedor recebe 403, conta Yuris 404; leitura e escrita pela lista de contas
+cabeçalho; `pagar` e `quitar` levam `pago_em` e `pago_por_nome` (quem pagou). Vendedor
+recebe 403, conta sem o módulo ligado 404; leitura e escrita pela lista de contas
 acessíveis de `financas`. Regras em `app/Financas/README.md`.
 
 `tema_escuro.php?arquivo=ff-ficha|chat-numeros` devolve a cópia escura de uma folha da

@@ -173,13 +173,20 @@
   });
 
   // ── Parcelas / pagamentos ────────────────────────────────────────────────
+  // Marcar como paga abre o quadro "Registrar pagamento" com quem pagou (já com
+  // o nome de quem está logado) e a data (hoje). Vale para uma parcela ou, em
+  // "Marcar todas como pagas", para todas as em aberto.
+  const usuario = $('reembPanel').dataset.usuario || '';
+  let aPagar = null; // { tipo: 'parcela', id } | { tipo: 'todas' }
+
   function desenharParcelas(r) {
     aberto = r;
+    fecharPagar();
     $('reembParcelasTitulo').textContent = r.favorecido + ': ' + brl(r.valor_total);
     $('reembParcelasSub').textContent = r.descricao + ' · despesa de ' + data(r.data_despesa)
       + (r.situacao === 'pago' ? ' · tudo devolvido' : ' · falta ' + brl(r.valor_aberto));
     $('reembParcelasLinhas').innerHTML = r.parcelas.map(p => {
-      const situ = p.pago_em ? `<span class="tbadge tbadge-receita">Paga em ${data(p.pago_em)}</span>`
+      const situ = p.pago_em ? `<span class="tbadge tbadge-receita">Paga em ${data(p.pago_em)}</span>${p.pago_por_nome ? '<small class="reemb-quem">por ' + esc(p.pago_por_nome) + '</small>' : ''}`
         : p.atrasada ? '<span class="tbadge tbadge-despesa">Atrasada</span>' : '<span class="tbadge tbadge-fixa">A pagar</span>';
       const botao = p.pago_em
         ? `<button type="button" class="btn btn-ghost btn-sm" data-desfazer="${p.id}">Desfazer</button>`
@@ -194,30 +201,59 @@
     $('reembParcelasMsg').style.display = 'none';
   }
 
+  function abrirPagar(alvo) {
+    aPagar = alvo;
+    const r = aberto;
+    if (alvo.tipo === 'parcela') {
+      const p = r.parcelas.find(x => x.id === alvo.id);
+      $('reembPagarTitulo').textContent = 'Registrar pagamento ' + (r.qtd_parcelas > 1 ? `da ${p.numero}ª parcela` : 'do reembolso') + ` (${brl(p.valor)})`;
+    } else {
+      const n = r.qtd_parcelas - r.qtd_pagas;
+      $('reembPagarTitulo').textContent = `Registrar pagamento das ${n} parcelas em aberto (${brl(r.valor_aberto)})`;
+    }
+    if (!$('reembPagoPor').value) $('reembPagoPor').value = usuario;
+    if (!$('reembPagoEm').value) $('reembPagoEm').value = hoje;
+    $('reembParcelasMsg').style.display = 'none';
+    $('reembPagar').style.display = 'block';
+    $('reembPagar').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    setTimeout(() => $('reembPagoPor').focus(), 60);
+  }
+  function fecharPagar() { aPagar = null; $('reembPagar').style.display = 'none'; }
+
   function abrirParcelas(r) {
+    $('reembPagoPor').value = usuario;
     $('reembPagoEm').value = hoje;
     desenharParcelas(r);
     $('reembParcelasModal').style.display = 'flex';
   }
 
   async function acaoParcela(corpo, ok) {
-    const msg = $('reembParcelasMsg');
+    const msg = $('reembParcelasMsg'), btn = $('reembPagarConfirmar');
+    btn.disabled = true;
     try {
       const j = await chamar(corpo);
       if (j.data) desenharParcelas(j.data);
       toast(ok, 'success');
       carregar();
     } catch (e) { msg.textContent = e.message; msg.style.display = 'block'; }
+    finally { btn.disabled = false; }
   }
 
   $('reembParcelasLinhas').addEventListener('click', e => {
     const pagar = e.target.closest('[data-pagar]'), desfazer = e.target.closest('[data-desfazer]');
-    const em = $('reembPagoEm').value || hoje;
-    if (pagar) acaoParcela({ acao: 'pagar', parcela_id: +pagar.dataset.pagar, pago_em: em }, 'Parcela marcada como paga.');
+    if (pagar) abrirPagar({ tipo: 'parcela', id: +pagar.dataset.pagar });
     if (desfazer) acaoParcela({ acao: 'desfazer', parcela_id: +desfazer.dataset.desfazer }, 'Pagamento desfeito.');
   });
-  $('reembQuitarBtn').addEventListener('click', () => {
-    if (aberto) acaoParcela({ acao: 'quitar', id: aberto.id, pago_em: $('reembPagoEm').value || hoje }, 'Reembolso quitado.');
+  $('reembQuitarBtn').addEventListener('click', () => { if (aberto) abrirPagar({ tipo: 'todas' }); });
+  $('reembPagarCancelar').addEventListener('click', fecharPagar);
+  $('reembPagarConfirmar').addEventListener('click', () => {
+    if (!aberto || !aPagar) return;
+    const msg = $('reembParcelasMsg');
+    const quem = $('reembPagoPor').value.trim(), em = $('reembPagoEm').value;
+    if (!quem) { msg.textContent = 'Informe quem fez o pagamento.'; msg.style.display = 'block'; return; }
+    if (!em) { msg.textContent = 'Informe a data do pagamento.'; msg.style.display = 'block'; return; }
+    if (aPagar.tipo === 'parcela') acaoParcela({ acao: 'pagar', parcela_id: aPagar.id, pago_em: em, pago_por_nome: quem }, 'Pagamento registrado.');
+    else acaoParcela({ acao: 'quitar', id: aberto.id, pago_em: em, pago_por_nome: quem }, 'Reembolso quitado.');
   });
 
   // ── Tabela: ações e filtro ───────────────────────────────────────────────
@@ -249,7 +285,11 @@
   const fechar = id => { $(id).style.display = 'none'; };
   document.querySelectorAll('[data-fechar]').forEach(b => b.addEventListener('click', () => fechar(b.dataset.fechar)));
   ['reembModal', 'reembParcelasModal'].forEach(id => $(id).addEventListener('click', e => { if (e.target.id === id) fechar(id); }));
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') ['reembModal', 'reembParcelasModal'].forEach(fechar); });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if ($('reembPagar').style.display === 'block') return fecharPagar();
+    ['reembModal', 'reembParcelasModal'].forEach(fechar);
+  });
 
   carregar();
 })();

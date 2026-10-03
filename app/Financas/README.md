@@ -18,12 +18,16 @@ plano de contas e os códigos.
 
 Pedido da Inovaize (03/10/2026): alguém paga uma conta da empresa do próprio
 bolso e a empresa devolve, à vista ou parcelado. Painel "Reembolsos" em
-`public/financas.php` (só na **edição CRM**, `$edicaoCrm`; o Yuris não muda),
+`public/financas.php` (só nas contas com o módulo ligado, `$reembolsos`; o Yuris não muda),
 `public/api/reembolsos.php` e `public/assets/reembolsos.js`. Tabelas
 `reembolsos` e `reembolso_parcelas` (migration 138). O que vale ali:
 
 - **Financeiro é de ADM.** Vendedor da edição CRM recebe 403 da API (e
-  `financas.php` já o devolve para o painel). Conta Yuris recebe 404.
+  `financas.php` já o devolve para o painel). Conta sem o módulo recebe 404.
+- **Ligado por conta** (03/10/2026, pedido: só a Inovaize): `habilitado()` exige
+  edição CRM **e** `configuracoes.modulos.reembolsos = true`. Conta Yuris nunca,
+  mesmo com a chave. Liga e desliga com `scripts/manutencao/ligar_reembolsos.php`
+  (`ligar()` preserva o resto do JSON). Fleet e Via Autodoc ficam sem o painel.
 - **Toda leitura e escrita recebe a lista de contas acessíveis** e filtra por
   ela, inclusive nas parcelas (que também guardam `account_id`). Reembolso de
   outra conta não existe para quem chama: `buscar` devolve null, `atualizar`,
@@ -42,6 +46,10 @@ bolso e a empresa devolve, à vista ou parcelado. Painel "Reembolsos" em
   redistribuir dinheiro que já saiu). Descrição, favorecido, data e observação
   continuam editáveis. Sem parcela paga, mudar valor, número de parcelas ou o
   primeiro vencimento refaz as parcelas.
+- **Cada pagamento guarda a data e quem pagou** (`pago_por_nome`, texto livre de
+  até 150 caracteres, migration 139; quem paga pode não ser usuário). A tela
+  sugere a equipe e já vem com o nome de quem está logado. `pago_por` continua
+  com o id de quem marcou. Desfazer limpa os dois.
 - **Exclusão é lógica** (`deleted_at`). Cada ação vai para a auditoria da conta
   (`reembolso.created`, `.updated`, `.deleted`, `.parcela_paga`,
   `.parcela_desfeita`, `.quitado`).
