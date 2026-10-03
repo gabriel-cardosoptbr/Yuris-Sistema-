@@ -374,16 +374,11 @@
   function desenharRadar(pr, j) {
     const area = $('radarArea'), leg = $('radarLegenda');
     if (graficoRadar) { graficoRadar.destroy(); graficoRadar = null; }
-    // Sem o eixo de entrada (sempre 100%): o radar mostra até onde os leads chegaram.
-    const etapas = (pr.funil || []).filter(e => e.grupo !== 'novo');
+    // O eixo de entrada (Novos leads, sempre 100%) fica: ele mostra o tamanho da prospecção, e as outras pontas, até onde ela andou.
+    const etapas = pr.funil || [];
     if (!(pr.entraram > 0) || etapas.length < 3) {
       area.innerHTML = vazio('Sem leads no período', 'O radar mostra a proporção dos leads que chegou a cada etapa.');
       area.style.height = 'auto'; leg.innerHTML = ''; return;
-    }
-    // Todos ainda na etapa de entrada: o radar seria um ponto no centro, que parece defeito.
-    if (!etapas.some(e => e.qtd > 0)) {
-      area.innerHTML = vazio('Nenhum lead avançou de etapa ainda', 'Os ' + inteiro.format(pr.entraram) + ' leads do período ainda estão em Novos leads. O radar aparece quando algum chegar à etapa seguinte.');
-      area.style.height = 'auto'; leg.innerHTML = ''; $('radarSub').textContent = 'Proporção dos leads que chegou a cada etapa'; return;
     }
     area.style.height = ''; area.innerHTML = '<canvas id="radarCanvas"></canvas>';
     const ant = pr.funil_anterior || [], temAnt = pr.entraram_anterior > 0;
