@@ -2,7 +2,9 @@
 require_once __DIR__ . '/../app/bootstrap.php';
 session_start();
 if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
-$activePage = 'usuarios';
+// Na edição CRM, "Setores" é item próprio do menu Gestão e abre esta página na
+// aba de setores: o item que brilha é o dele.
+$activePage = (($_GET['tab'] ?? '') === 'setores') ? 'setores' : 'usuarios';
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 ?>
 <!doctype html>
@@ -873,8 +875,8 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
           <div class="usr-panel">
             <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
               <div>
-                <h3 style="font-size:1rem;font-weight:600;color:#dbeafe">Setores do escritório</h3>
-                <p style="font-size:.8rem;color:var(--muted);margin-top:2px">Organize colaboradores em setores para facilitar atribuições e filtros</p>
+                <h3 style="font-size:1rem;font-weight:600;color:#dbeafe">Setores</h3>
+                <p style="font-size:.8rem;color:var(--muted);margin-top:2px">Organize a equipe e as conversas em setores, cada um com o seu gestor, para facilitar atribuições e filtros</p>
               </div>
               <div style="display:flex;gap:8px">
                 <button class="usr-btn-primary" onclick="openCreateTeamModal()">
@@ -1069,7 +1071,7 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
           <div class="usr-modal-fields cols-1">
             <div class="field-group">
               <label class="field-label">Nome do setor</label>
-              <input id="teamNome" class="field-input" placeholder="Ex: Setor Trabalhista">
+              <input id="teamNome" class="field-input" placeholder="Ex: Comercial">
             </div>
             <div class="field-group">
               <label class="field-label">Cor de identificação</label>
@@ -1083,6 +1085,12 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
             <div class="field-group">
               <label class="field-label">Descrição <span style="font-size:.72rem;color:#7a8898;font-weight:400">(opcional)</span></label>
               <input id="teamDesc" class="field-input" placeholder="Breve descrição do setor">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Gestor do setor <span style="font-size:.72rem;color:#7a8898;font-weight:400">(opcional)</span></label>
+              <select id="teamGestor" class="field-input">
+                <option value="">Sem gestor</option>
+              </select>
             </div>
           </div>
         </div>
@@ -1637,12 +1645,14 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
         const extra  = count > 4 ? `<div class="team-avatar-sm" title="${count-4} mais">+${count-4}</div>` : '';
         const cor    = escapeHtml(t.cor || '#3B82F6');
         const label  = count === 0 ? 'Sem membros' : count === 1 ? '1 membro' : `${count} membros`;
+        const gestor = t.gestor_nome ? `<div class="team-desc">Gestor: <strong>${escapeHtml(t.gestor_nome)}</strong></div>` : '';
         return `
         <div class="team-card" style="--team-cor:${cor}">
           <div class="team-card-top">
             <div style="min-width:0">
               <div class="team-name">${escapeHtml(t.nome)}</div>
               ${t.descricao ? `<div class="team-desc">${escapeHtml(t.descricao)}</div>` : ''}
+              ${gestor}
             </div>
             <div class="team-actions">
               <button class="tbl-btn btn-edit" onclick="openEditTeamModal(${t.id})">Editar</button>
@@ -1707,7 +1717,20 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
       renderTeamMembersGrid(checked, q);
     }
 
+    // Gestor do setor: usuários ativos da conta, e o gestor atual mesmo que
+    // tenha ficado inativo (para o select não mostrar um valor que não existe).
+    function fillTeamGestor(selectedId) {
+      const sel = document.getElementById('teamGestor');
+      if (!sel) return;
+      const atual = selectedId ? String(selectedId) : '';
+      const lista = _allUsers.filter(u => u.status === 'active' || String(u.id) === atual);
+      sel.innerHTML = '<option value="">Sem gestor</option>' + lista.map(u =>
+        `<option value="${u.id}"${String(u.id) === atual ? ' selected' : ''}>${escapeHtml(u.nome)}</option>`
+      ).join('');
+    }
+
     function openCreateTeamModal() {
+      fillTeamGestor(null);
       document.getElementById('teamId').value    = '';
       document.getElementById('teamNome').value  = '';
       document.getElementById('teamDesc').value  = '';
@@ -1725,6 +1748,7 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
       const j   = await res.json();
       const t   = j.data;
       if (!t) return;
+      fillTeamGestor(t.gestor_user_id);
       document.getElementById('teamId').value    = t.id;
       document.getElementById('teamNome').value  = t.nome;
       document.getElementById('teamDesc').value  = t.descricao || '';
@@ -1746,7 +1770,8 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 
       if (!nome) { showToast('Nome do setor é obrigatório', 'error'); return; }
 
-      const payload = { nome, cor, descricao: desc, members, csrf_token: csrf };
+      const gestor  = document.getElementById('teamGestor').value;
+      const payload = { nome, cor, descricao: desc, gestor_user_id: gestor ? parseInt(gestor) : null, members, csrf_token: csrf };
       if (id) payload.id = parseInt(id);
 
       const res = await fetch(apiTeams, {
@@ -1785,7 +1810,11 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
     }
     // ── End Teams ───────────────────────────────────────────────────────────────
 
-    loadUsers();
+    // ?tab=setores abre direto na aba Setores (item "Setores" do menu Gestão).
+    // Depois dos usuários, porque o cartão do setor usa os nomes deles.
+    loadUsers().then(() => {
+      if (new URLSearchParams(location.search).get('tab') === 'setores') switchTab('times');
+    });
   </script>
   <script src="/assets/fog.js"></script>
 </body>

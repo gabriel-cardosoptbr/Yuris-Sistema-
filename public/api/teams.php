@@ -6,7 +6,8 @@
  * GET    /api/teams.php          → lista todos os times da conta
  * GET    /api/teams.php?id=5     → retorna time específico com membros
  * POST   /api/teams.php          → cria novo time
- * PUT    /api/teams.php          → atualiza time (nome, cor, descricao, members)
+ * PUT    /api/teams.php          → atualiza time (nome, cor, descricao, gestor_user_id, members)
+ *                                   gestor_user_id: usuário da conta, ou 0/null = sem gestor (migration 140)
  * DELETE /api/teams.php?id=5     → soft-delete
  */
 
@@ -86,6 +87,19 @@ function _sanitizeTeamMembers(array $members, \App\Core\AccountContext $ctx): ar
     return array_keys($valid);
 }
 
+/**
+ * Gestor do setor (migration 140): um usuário que a conta alcança, ou null para
+ * "sem gestor". Mesma regra de tenant dos membros. Devolve false para um id que
+ * não é da conta, e a API recusa em vez de gravar em silêncio sem gestor.
+ *
+ * @return int|null|false
+ */
+function _gestorDoSetor($valor, \App\Core\AccountContext $ctx) {
+    $id = (int)($valor ?? 0);
+    if ($id <= 0) return null;
+    return _sanitizeTeamMembers([$id], $ctx) === [$id] ? $id : false;
+}
+
 // ── POST — criar ──────────────────────────────────────────────────────────────
 if ($method === 'POST') {
     $nome = trim($input['nome'] ?? '');
@@ -93,8 +107,10 @@ if ($method === 'POST') {
 
     $cor      = preg_match('/^#[0-9A-Fa-f]{6}$/', $input['cor'] ?? '') ? $input['cor'] : '#3B82F6';
     $descricao = trim($input['descricao'] ?? '') ?: null;
+    $gestor    = _gestorDoSetor($input['gestor_user_id'] ?? null, $ctx);
+    if ($gestor === false) { http_response_code(422); echo json_encode(['error' => 'Gestor não encontrado nesta conta']); exit; }
 
-    $id = Team::create(['account_id' => $accountId, 'nome' => $nome, 'cor' => $cor, 'descricao' => $descricao]);
+    $id = Team::create(['account_id' => $accountId, 'nome' => $nome, 'cor' => $cor, 'descricao' => $descricao, 'gestor_user_id' => $gestor]);
 
     // FIX (audit #25): só grava membros que pertencem ao tenant.
     $members = _sanitizeTeamMembers(is_array($input['members'] ?? null) ? $input['members'] : [], $ctx);
@@ -108,6 +124,7 @@ if ($method === 'POST') {
             'nome'      => $nome,
             'cor'       => $cor,
             'descricao' => $descricao,
+            'gestor_user_id' => $gestor,
             'members'   => $members,
         ],
     ]);
@@ -128,6 +145,11 @@ if ($method === 'PUT') {
     if (isset($input['nome']))     $data['nome']     = trim($input['nome']);
     if (isset($input['cor']))      $data['cor']      = preg_match('/^#[0-9A-Fa-f]{6}$/', $input['cor']) ? $input['cor'] : $team['cor'];
     if (array_key_exists('descricao', $input)) $data['descricao'] = trim($input['descricao']) ?: null;
+    if (array_key_exists('gestor_user_id', $input)) {
+        $gestor = _gestorDoSetor($input['gestor_user_id'], $ctx);
+        if ($gestor === false) { http_response_code(422); echo json_encode(['error' => 'Gestor não encontrado nesta conta']); exit; }
+        $data['gestor_user_id'] = $gestor;
+    }
 
     Team::update($id, $data);
 

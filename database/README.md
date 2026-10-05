@@ -8,6 +8,7 @@ ser testado nos dois.
 
 | Pasta / arquivo | O que é |
 |---|---|
+| `migrations/run_140.php` | **setor do lead e gestor do setor**: `cards.team_id` (o setor do lead, igual ao da conversa ligada; ver `app/WhatsAppAgente/README.md`) e `teams.gestor_user_id` (o usuário responsável pelo setor). Só cria as colunas e os índices. Idempotente, `--dry-run` |
 | `migrations/run_139.php` | `reembolso_parcelas.pago_por_nome`: quem fez o pagamento de cada parcela (texto livre), gravado junto com a data ao marcar a parcela como paga. Exige a 138 |
 | `migrations/run_138.php` | `reembolsos` e `reembolso_parcelas`: o reembolso (favorecido, descrição, data da despesa, valor total) e uma linha por parcela, com vencimento e `pago_em` (NULL = em aberto). `account_id` nas duas; parcela sai junto com o reembolso (`ON DELETE CASCADE`), mas o reembolso só é excluído logicamente. Regras em `app/Financas/README.md` |
 | `migrations/run_137.php` | `whatsapp_instances.responsavel_user_id`, o vendedor dono do número: o lead que a automação cria por ele nasce com esse responsável (`SdrFleetiflow::donoDoNumero`). Preenchido por `scripts/manutencao/definir_dono_numero.php`. Idempotente, `--dry-run` |

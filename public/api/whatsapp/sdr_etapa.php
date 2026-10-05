@@ -10,16 +10,22 @@
  *
  * Autentica pelo cabeçalho X-Fleetiflow-Token, como sdr_transferencia.php.
  *
- *   Body JSON: { telefone, remote_jid?, empresa?, nome_contato?, etapa? }
+ *   Body JSON: { telefone, remote_jid?, empresa?, nome_contato?, etapa?, setor? }
  *     etapa: novo | qualificacao | followup | qualificado | especialista |
  *            bloqueado | fora_escopo | perdido   (vazio = só garante o card)
- *   200 { ok, card_id, etapa, moveu }   401 token   404 conta   422 dados
+ *     setor: nome do setor do lead ("Concessionária", "Locação"...). Criado na
+ *            conta se não existe (Team::garantirPorNome). Só preenche card e
+ *            conversa SEM setor: a automação não troca o setor escolhido por uma
+ *            pessoa. Precisa da migration 140 para chegar ao card.
+ *   200 { ok, card_id, etapa, moveu, setor_id }   401 token   404 conta   422 dados
  */
 require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\Database;
 use App\Core\EnvLoader;
+use App\Usuarios\Team;
 use App\WhatsAppAgente\SdrFleetiflow;
+use App\WhatsAppAgente\WhatsAppMessage;
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -38,6 +44,7 @@ $in    = json_decode(file_get_contents('php://input'), true) ?? [];
 $jid   = trim((string)($in['remote_jid'] ?? ''));
 $fone  = preg_replace('/[^0-9]/', '', (string)($in['telefone'] ?? ''));
 $etapa = trim((string)($in['etapa'] ?? ''));
+$setor = trim((string)($in['setor'] ?? ''));
 if ($fone === '' && str_ends_with($jid, '@s.whatsapp.net')) {
     $fone = explode('@', $jid)[0];
 }
@@ -91,17 +98,30 @@ try {
         (string)($in['empresa'] ?? '')
     );
     if (!$cardId) {
-        echo json_encode(['ok' => true, 'card_id' => null, 'etapa' => null, 'moveu' => false]); exit;
+        echo json_encode(['ok' => true, 'card_id' => null, 'etapa' => null, 'moveu' => false, 'setor_id' => null]); exit;
     }
 
     $moveu = $etapa !== '' && SdrFleetiflow::moverEtapa($accountId, $cardId, $etapa);
+
+    // Setor do lead. O card recebe já; a conversa recebe se já existe, e se ainda
+    // não existe herda do card quando o webhook ligar as duas (linkChat).
+    $setorId = null;
+    if ($setor !== '') {
+        $setorId = Team::garantirPorNome($accountId, $setor);
+        if ($setorId) {
+            Team::definirSetorDoCard($accountId, $cardId, $setorId, true);
+            if ($alvo['instance_id'] !== null && $alvo['remote_jid']) {
+                (new WhatsAppMessage())->sincronizarSetorComCard((int)$alvo['instance_id'], (string)$alvo['remote_jid'], false);
+            }
+        }
+    }
 
     $st = $pdo->prepare('SELECT coluna_id FROM cards WHERE id = ?');
     $st->execute([$cardId]);
     $agora = array_search((int)$st->fetchColumn(), SdrFleetiflow::colunasDaConta($pdo, $accountId), true);
     $agora = $agora === false ? null : $agora;
 
-    echo json_encode(['ok' => true, 'card_id' => $cardId, 'etapa' => $agora, 'moveu' => $moveu]);
+    echo json_encode(['ok' => true, 'card_id' => $cardId, 'etapa' => $agora, 'moveu' => $moveu, 'setor_id' => $setorId]);
 } catch (\Throwable $e) {
     error_log('[sdr_etapa] ' . $e->getMessage());
     http_response_code(500);

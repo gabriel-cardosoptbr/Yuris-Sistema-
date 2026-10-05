@@ -797,10 +797,13 @@ class WhatsAppMessage
      */
     public function setTeam(int $instanceId, string $remoteJid, ?int $teamId): bool
     {
-        return $this->db->prepare(
+        $ok = $this->db->prepare(
             'UPDATE whatsapp_chats SET team_id = ?
              WHERE instance_id = ? AND remote_jid = ?'
         )->execute([$teamId, $instanceId, $remoteJid]);
+        // O lead ligado à conversa fica no mesmo setor (migration 140).
+        if ($ok) $this->sincronizarSetorComCard($instanceId, $remoteJid, true);
+        return $ok;
     }
 
     /** Zera contador de não lidas de um chat. */
@@ -1238,7 +1241,60 @@ class WhatsAppMessage
             }
         }
 
+        // Setor (migration 140): o setor escolhido junto com o vínculo vale também
+        // para o card; sem setor no pedido, conversa e card completam um ao outro.
+        if (array_key_exists('team_id', $links)) {
+            $this->sincronizarSetorComCard($instanceId, $remoteJid, true);
+        } elseif (!empty($links['linked_card_id'])) {
+            $this->sincronizarSetorComCard($instanceId, $remoteJid, false);
+        }
+
         return true;
+    }
+
+    /**
+     * Mantém o setor da conversa (whatsapp_chats.team_id) e o do lead ligado a
+     * ela (cards.team_id, migration 140) iguais.
+     *
+     * - $conversaManda = true: alguém acabou de escolher (ou tirar) o setor da
+     *   conversa, então o card passa a ter o mesmo, inclusive vazio.
+     * - $conversaManda = false: a conversa acabou de se ligar a um card. Quem não
+     *   tem setor herda o do outro, e nenhum setor já escolhido é trocado. É o que
+     *   cobre o robô de prospecção marcar o card antes de a conversa existir.
+     *
+     * Setor só passa de um lado para o outro dentro da mesma conta.
+     */
+    public function sincronizarSetorComCard(int $instanceId, string $remoteJid, bool $conversaManda): void
+    {
+        if (!\App\Usuarios\Team::temColuna('cards', 'team_id')) return;
+
+        $mesmaConta = 'EXISTS (SELECT 1 FROM teams t WHERE t.id = w.team_id AND t.account_id = c.account_id AND t.deleted_at IS NULL)';
+        try {
+            if ($conversaManda) {
+                $this->db->prepare(
+                    "UPDATE cards c JOIN whatsapp_chats w ON w.linked_card_id = c.id
+                        SET c.team_id = w.team_id
+                      WHERE w.instance_id = ? AND w.remote_jid = ?
+                        AND (w.team_id IS NULL OR $mesmaConta)"
+                )->execute([$instanceId, $remoteJid]);
+                return;
+            }
+            $this->db->prepare(
+                'UPDATE whatsapp_chats w JOIN cards c ON c.id = w.linked_card_id
+                    SET w.team_id = c.team_id
+                  WHERE w.instance_id = ? AND w.remote_jid = ?
+                    AND w.team_id IS NULL AND c.team_id IS NOT NULL'
+            )->execute([$instanceId, $remoteJid]);
+            $this->db->prepare(
+                "UPDATE cards c JOIN whatsapp_chats w ON w.linked_card_id = c.id
+                    SET c.team_id = w.team_id
+                  WHERE w.instance_id = ? AND w.remote_jid = ?
+                    AND c.team_id IS NULL AND w.team_id IS NOT NULL AND $mesmaConta"
+            )->execute([$instanceId, $remoteJid]);
+        } catch (\Throwable $e) {
+            // O setor é um rótulo: falhar aqui não pode derrubar o vínculo nem a mensagem.
+            error_log('[whatsapp] setor da conversa nao passou para o card: ' . $e->getMessage());
+        }
     }
 
     /** Retorna IDs dos processos vinculados a um chat. */

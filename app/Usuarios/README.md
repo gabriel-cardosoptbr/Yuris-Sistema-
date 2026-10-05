@@ -22,7 +22,7 @@ Yuris, e eles não são a mesma coisa.
 | `AdvogadoConvite.php` | convite por token para advogado associado, com expiração |
 | `AdvogadoVinculo.php` | o vínculo já aceito, e o que ele dá acesso |
 | `AccountVinculo.php` | vínculo entre **contas**: matriz e filial. Não confundir com o vínculo de advogado |
-| `Team.php` | times dentro da conta, usados como filtro nas telas |
+| `Team.php` | **setores** (na tela é "Setor"; no banco, `teams`) dentro da conta, com membros e, desde a migration 140 (05/10/2026), um **gestor** (`gestor_user_id`). O setor marca a conversa do WhatsApp (`whatsapp_chats.team_id`) e o lead (`cards.team_id`), e as duas ficam iguais (ver `../WhatsAppAgente/README.md`). `garantirPorNome()` acha ou cria o setor pelo nome, sem diferenciar caixa nem acento, e é como a automação marca o lead sem saber o id. `definirSetorDoCard()` com `soSeVazio` não troca setor escolhido por pessoa e recusa setor de outra conta. `temColuna()` deixa o código funcionar antes de a 140 ser aplicada. Na edição CRM, "Setores" é item próprio do menu Gestão (`usuarios.php?tab=setores`) |
 | `Consent.php` | consentimento granular do titular (LGPD Art. 8º e 18 IX) |
 | `TermAcceptance.php` | registro de que alguém aceitou uma versão específica de um termo. O documento aceito vive em `../Lgpd/LegalDocument.php` |
 
