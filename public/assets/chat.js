@@ -855,9 +855,16 @@ const ChatApp = (() => {
     // Edição CRM (window.CHAT_SETOR_NO_NOME, ligado por chat.php): o setor vai
     // ao lado do nome, e a linha de baixo fica só para a última mensagem (pedido
     // do cliente, 05/10/2026). O Yuris continua com o setor numa linha própria.
-    const setorNoNome = !!window.CHAT_SETOR_NO_NOME && sectorTag;
+    // Toda conversa individual mostra uma etiqueta: sem setor, aparece "Sem setor"
+    // em cinza, para dar para ver o que falta classificar.
+    const semSetor = !!window.CHAT_SETOR_NO_NOME && !sectorTag && chat.is_group != 1
+      ? `<div class="chat-item-sector chat-item-sector--vazio">
+           <span class="chat-item-sector-dot" style="background:#A0A7B4"></span>
+           <span class="chat-item-sector-name" style="color:#8A93A0">Sem setor</span>
+         </div>` : '';
+    const setorNoNome = !!window.CHAT_SETOR_NO_NOME && (sectorTag || semSetor);
     const nomeHtml = setorNoNome
-      ? `<span class="chat-item-nome-setor"><span class="chat-item-name">${name}</span>${sectorTag}</span>`
+      ? `<span class="chat-item-nome-setor"><span class="chat-item-name">${name}</span>${sectorTag || semSetor}</span>`
       : `<span class="chat-item-name">${name}</span>`;
 
     return `<div class="chat-item${isActive}" data-jid="${esc(chat.remote_jid)}" onclick="ChatApp.openChatByJid('${esc(chat.remote_jid)}')">

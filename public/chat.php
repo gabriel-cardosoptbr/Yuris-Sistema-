@@ -2722,7 +2722,7 @@ const API  = {
 <?php if ($isFleetiflow): ?>
 <script>window.CHAT_SETOR_NO_NOME = true; /* setor ao lado do nome na lista */</script>
 <?php endif; ?>
-<script src="/assets/chat.js?v=79"></script>
+<script src="/assets/chat.js?v=80"></script>
 <?php if ($isFleetiflow): ?>
 <script>
 window.CSRF_CHAT     = <?= json_encode($csrf) ?>;

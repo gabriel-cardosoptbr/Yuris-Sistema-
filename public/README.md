@@ -281,7 +281,8 @@ do `if`, o comportamento em `assets/reembolsos.js` e a regra em
 **Setor ao lado do nome no Chat (edição CRM, 05/10/2026).** Na lista de conversas, `chat.php`
 liga `window.CHAT_SETOR_NO_NOME` só quando `$isFleetiflow`, e `assets/chat.js` põe a etiqueta do
 setor ao lado do nome (que quebra a linha em vez de levar reticências); a linha de baixo fica só
-para a última mensagem. No Yuris o setor continua numa linha própria.
+para a última mensagem. Conversa individual sem setor mostra "Sem setor" em cinza, para toda
+conversa ter etiqueta e dar para ver o que falta classificar. No Yuris o setor continua numa linha própria.
 
 ### Entrada e sessão
 `login.php` · `login-fleetiflow.php` · `logout.php` · `404.php`
