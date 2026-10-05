@@ -207,6 +207,15 @@
 .ffc-prosp-radar .ffc-grafico{ flex:1; min-height:220px; height:auto; }
 .ffc-prosp-grafico{ min-width:0; display:flex; flex-direction:column; gap:12px; }
 .ffc-prosp-grafico .ffc-grafico{ flex:1; min-height:210px; height:auto; }
+/* Prospecção em três gráficos pequenos, um por situação, cada um com a sua escala (05/10/2026). */
+.ffc-prosp-grafico .ffc-grafico.ffc-mini-grade{ flex:0 0 auto; min-height:0; height:auto; }
+.ffc-mini-grade{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; }
+.ffc-mini{ border:1px solid var(--ffc-borda); border-radius:12px; padding:10px 12px 8px; display:flex; flex-direction:column; gap:2px; min-width:0; background:var(--ffc-card); }
+.ffc-mini-rot{ display:flex; align-items:flex-start; gap:6px; font-size:12px; font-weight:600; color:var(--ffc-texto-3); line-height:1.3; }
+.ffc-mini-rot i{ width:9px; height:9px; border-radius:2px; flex:0 0 auto; margin-top:3px; }
+.ffc-mini-num{ font-size:22px; font-weight:700; color:var(--ffc-texto); line-height:1.2; }
+.ffc-mini-pico{ font-size:11.5px; color:var(--ffc-texto-4); }
+.ffc-mini-graf{ position:relative; height:110px; margin-top:6px; }
 .ffc-prosp-funil{ min-width:0; padding-left:24px; border-left:1px solid var(--ffc-borda); display:flex; flex-direction:column; gap:10px; }
 .ffc-prosp-funil-cab{ display:flex; flex-direction:column; gap:2px; }
 .ffc-prosp-funil-cab b{ font-size:13px; font-weight:700; color:var(--ffc-texto); }

@@ -320,37 +320,48 @@
   function desenharProspeccao(j) {
     const pr = j.prospeccao || { serie: [], funil: [], entraram: 0, descartados: 0 };
     const area = $('prospArea'), leg = $('prospLegenda'), gran = GRAN_NOME[j.periodo.granularidade] || 'dia';
-    if (graficoProsp) { graficoProsp.destroy(); graficoProsp = null; }
+    if (graficoProsp) { [].concat(graficoProsp).forEach(g => g.destroy()); graficoProsp = null; }
+    area.classList.remove('ffc-mini-grade');
     if (!(pr.entraram > 0)) {
       area.innerHTML = vazio('Nenhum lead entrou neste período', 'Os leads abordados pelo agente e os cards criados na prospecção aparecem aqui por ' + gran + '.', { href: '/prospeccao.php', rotulo: 'Abrir prospecção' });
       area.style.height = 'auto'; leg.innerHTML = ''; $('prospSub').textContent = 'Sem entrada de leads no período';
     } else {
-      area.style.height = ''; area.innerHTML = '<canvas id="prospCanvas"></canvas>';
       $('prospSub').textContent = `${inteiro.format(pr.entraram)} leads entraram, por ${gran}, e em que pé estão hoje`;
-      // Uma barra fina por situação, lado a lado (pedido do cliente, 05/10/2026:
-      // a barra empilhada era difícil de ler). Situação sem nenhum lead no
-      // período sai do gráfico e da legenda, para não deixar um vão em cada dia.
-      const ordem = ['avancou', 'andamento', 'novo', 'descartado'].filter(g => pr.serie.some(p => p[g] > 0));
-      leg.innerHTML = ordem.map(g => `<span><i style="background:${GRUPO[g].cor}"></i>${GRUPO[g].nome}</span>`).join('');
-      graficoProsp = new Chart($('prospCanvas').getContext('2d'), {
+      // Um gráfico pequeno por situação, cada um com a sua escala (pedido do
+      // cliente, 05/10/2026): num gráfico só, um dia de importação grande (476
+      // leads) achatava as outras situações. Cada quadro mostra o total e o pico.
+      // Situação sem nenhum lead no período não ganha quadro.
+      const ordem = ['novo', 'andamento', 'avancou', 'descartado'].filter(g => pr.serie.some(p => p[g] > 0));
+      leg.innerHTML = '';
+      area.style.height = ''; area.classList.add('ffc-mini-grade');
+      area.innerHTML = ordem.map(g => {
+        const total = pr.serie.reduce((s, p) => s + p[g], 0);
+        const pico = pr.serie.reduce((m, p) => p[g] > m[g] ? p : m, pr.serie[0]);
+        return `<div class="ffc-mini">
+          <div class="ffc-mini-rot"><i style="background:${GRUPO[g].cor}"></i><span>${GRUPO[g].nome}</span></div>
+          <div class="ffc-mini-num">${inteiro.format(total)}</div>
+          <div class="ffc-mini-pico">pico: ${inteiro.format(pico[g])} em ${esc(pico.label)}</div>
+          <div class="ffc-mini-graf"><canvas id="prospCanvas-${g}" role="img" aria-label="${esc(GRUPO[g].nome)} por ${gran}"></canvas></div>
+        </div>`;
+      }).join('');
+      graficoProsp = ordem.map(g => new Chart($('prospCanvas-' + g).getContext('2d'), {
         type: 'bar',
-        data: { labels: pr.serie.map(p => p.label), datasets: ordem.map((g, i) => ({
+        data: { labels: pr.serie.map(p => p.label), datasets: [{
           label: GRUPO[g].nome, data: pr.serie.map(p => p[g]), backgroundColor: GRUPO[g].cor,
-          borderRadius: 3, borderSkipped: 'bottom', maxBarThickness: 9, barPercentage: 0.9, categoryPercentage: 0.75
-        })) },
+          borderRadius: 3, borderSkipped: 'bottom', maxBarThickness: 10
+        }] },
         options: {
           responsive: true, maintainAspectRatio: false, animation: { duration: 500, easing: 'easeOutQuart' },
           interaction: { mode: 'index', intersect: false },
-          plugins: { legend: { display: false }, tooltip: Object.assign({}, tooltipPadrao, { filter: c => c.parsed.y > 0, callbacks: {
-            label: c => ' ' + c.dataset.label + ': ' + inteiro.format(c.parsed.y),
-            footer: items => { const t = items.reduce((s, c) => s + c.parsed.y, 0); return t ? 'Total: ' + inteiro.format(t) : ''; }
+          plugins: { legend: { display: false }, tooltip: Object.assign({}, tooltipPadrao, { callbacks: {
+            label: c => ' ' + inteiro.format(c.parsed.y) + (c.parsed.y === 1 ? ' lead' : ' leads')
           } }) },
           scales: {
-            x: { grid: { display: false }, border: { display: false }, ticks: { maxTicksLimit: 12, maxRotation: 0, autoSkip: true } },
-            y: { beginAtZero: true, grid: { color: COR.grade }, border: { display: false, dash: [3, 3] }, ticks: { precision: 0, maxTicksLimit: 5 } }
+            x: { grid: { display: false }, border: { display: false }, ticks: { maxTicksLimit: 4, maxRotation: 0, autoSkip: true } },
+            y: { beginAtZero: true, grid: { color: COR.grade }, border: { display: false, dash: [3, 3] }, ticks: { precision: 0, maxTicksLimit: 3 } }
           }
         }
-      });
+      }));
     }
     desenharRadar(pr, j);
     // Funil da coorte
