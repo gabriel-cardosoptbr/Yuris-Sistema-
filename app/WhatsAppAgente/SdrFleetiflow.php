@@ -171,10 +171,22 @@ final class SdrFleetiflow
             return;
         }
         try {
+            // Por qual número a mensagem chegou (nome da instância na Evolution), igual
+            // ao que a Evolution manda no webhook direto. Com dois números na conta, a
+            // Vitória responde pelo mesmo número em que o lead escreveu (05/10/2026).
+            $instancia = '';
+            if (!empty($task['instance_id'])) {
+                $st = \App\Core\Database::getConnection()->prepare(
+                    'SELECT instance_name FROM whatsapp_instances WHERE id = ? AND account_id = ? LIMIT 1'
+                );
+                $st->execute([(int)$task['instance_id'], $conta]);
+                $instancia = (string)($st->fetchColumn() ?: '');
+            }
             $corpo = json_encode([
-                'event'  => 'messages.upsert',
-                'origem' => 'yuris',
-                'data'   => $task['payload'] ?? [],
+                'event'    => 'messages.upsert',
+                'origem'   => 'yuris',
+                'instance' => $instancia,
+                'data'     => $task['payload'] ?? [],
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
             $cabecalhos = ['Content-Type: application/json'];
