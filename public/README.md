@@ -278,6 +278,11 @@ para marcar cada parcela como paga (ou desfazer). Markup, modais e estilo ficam 
 do `if`, o comportamento em `assets/reembolsos.js` e a regra em
 `App\Financas\Reembolso`. O HTML da tela para conta Yuris é idêntico ao de antes.
 
+**Setor ao lado do nome no Chat (edição CRM, 05/10/2026).** Na lista de conversas, `chat.php`
+liga `window.CHAT_SETOR_NO_NOME` só quando `$isFleetiflow`, e `assets/chat.js` põe a etiqueta do
+setor ao lado do nome (que quebra a linha em vez de levar reticências); a linha de baixo fica só
+para a última mensagem. No Yuris o setor continua numa linha própria.
+
 ### Entrada e sessão
 `login.php` · `login-fleetiflow.php` · `logout.php` · `404.php`
 

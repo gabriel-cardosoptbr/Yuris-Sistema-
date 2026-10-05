@@ -852,15 +852,22 @@ const ChatApp = (() => {
            <span class="chat-item-sector-dot" style="background:${esc(chat.team_cor || '#6B7887')}"></span>
            <span class="chat-item-sector-name" style="color:${esc(chat.team_cor || '#7A8898')}">${esc(chat.team_nome)}</span>
          </div>` : '';
+    // Edição CRM (window.CHAT_SETOR_NO_NOME, ligado por chat.php): o setor vai
+    // ao lado do nome, e a linha de baixo fica só para a última mensagem (pedido
+    // do cliente, 05/10/2026). O Yuris continua com o setor numa linha própria.
+    const setorNoNome = !!window.CHAT_SETOR_NO_NOME && sectorTag;
+    const nomeHtml = setorNoNome
+      ? `<span class="chat-item-nome-setor"><span class="chat-item-name">${name}</span>${sectorTag}</span>`
+      : `<span class="chat-item-name">${name}</span>`;
 
     return `<div class="chat-item${isActive}" data-jid="${esc(chat.remote_jid)}" onclick="ChatApp.openChatByJid('${esc(chat.remote_jid)}')">
       <div class="chat-avatar">${avatarHtml}</div>
       <div class="chat-item-info">
         <div class="chat-item-row1">
-          <span class="chat-item-name">${name}</span>
+          ${nomeHtml}
           <span class="chat-item-time">${time}</span>
         </div>
-        ${sectorTag}
+        ${setorNoNome ? '' : sectorTag}
         <div class="chat-item-row2">
           <span class="chat-item-preview${previewClass}">${preview}</span>
           <span style="display:flex;align-items:center;gap:4px">${pinIcon}${unread}</span>

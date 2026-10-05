@@ -1059,6 +1059,12 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
     #chatToast.error { border-color: rgba(176,96,112,.3); color: #B06070; }
     #chatToast.success { border-color: rgba(122,189,160,.3); color: #7ABDA0; }
 <?php if ($isFleetiflow): ?>
+    /* Setor ao lado do nome na lista de conversas (chat.js, CHAT_SETOR_NO_NOME), e o
+       nome inteiro, sem reticências: quebra de linha em vez de cortar. */
+    .chat-item-nome-setor { display:flex; flex-wrap:wrap; align-items:center; gap:2px 8px; min-width:0; flex:1; margin-right:8px; }
+    .chat-item-nome-setor .chat-item-name { white-space:normal; overflow:visible; text-overflow:clip; max-width:none; overflow-wrap:anywhere; }
+    .chat-item-nome-setor .chat-item-sector { margin:0; }
+    .chat-item-nome-setor .chat-item-sector-name { max-width:none; overflow:visible; }
     /* Fleetiflow (tema claro): o aviso escuro com texto verde-acinzentado não
        dava para ler. Fundo branco, texto escuro, e o tipo do aviso na cor do
        texto (sem faixa colorida na lateral). */
@@ -2713,7 +2719,10 @@ const API  = {
   }
 })();
 </script>
-<script src="/assets/chat.js?v=78"></script>
+<?php if ($isFleetiflow): ?>
+<script>window.CHAT_SETOR_NO_NOME = true; /* setor ao lado do nome na lista */</script>
+<?php endif; ?>
+<script src="/assets/chat.js?v=79"></script>
 <?php if ($isFleetiflow): ?>
 <script>
 window.CSRF_CHAT     = <?= json_encode($csrf) ?>;
