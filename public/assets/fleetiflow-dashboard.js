@@ -327,13 +327,16 @@
     } else {
       area.style.height = ''; area.innerHTML = '<canvas id="prospCanvas"></canvas>';
       $('prospSub').textContent = `${inteiro.format(pr.entraram)} leads entraram, por ${gran}, e em que pé estão hoje`;
-      const ordem = ['avancou', 'andamento', 'novo', 'descartado'];
+      // Uma barra fina por situação, lado a lado (pedido do cliente, 05/10/2026:
+      // a barra empilhada era difícil de ler). Situação sem nenhum lead no
+      // período sai do gráfico e da legenda, para não deixar um vão em cada dia.
+      const ordem = ['avancou', 'andamento', 'novo', 'descartado'].filter(g => pr.serie.some(p => p[g] > 0));
       leg.innerHTML = ordem.map(g => `<span><i style="background:${GRUPO[g].cor}"></i>${GRUPO[g].nome}</span>`).join('');
       graficoProsp = new Chart($('prospCanvas').getContext('2d'), {
         type: 'bar',
         data: { labels: pr.serie.map(p => p.label), datasets: ordem.map((g, i) => ({
-          label: GRUPO[g].nome, data: pr.serie.map(p => p[g]), backgroundColor: GRUPO[g].cor, stack: 'leads',
-          borderRadius: 6, borderSkipped: false, maxBarThickness: 22
+          label: GRUPO[g].nome, data: pr.serie.map(p => p[g]), backgroundColor: GRUPO[g].cor,
+          borderRadius: 3, borderSkipped: 'bottom', maxBarThickness: 9, barPercentage: 0.9, categoryPercentage: 0.75
         })) },
         options: {
           responsive: true, maintainAspectRatio: false, animation: { duration: 500, easing: 'easeOutQuart' },
@@ -343,8 +346,8 @@
             footer: items => { const t = items.reduce((s, c) => s + c.parsed.y, 0); return t ? 'Total: ' + inteiro.format(t) : ''; }
           } }) },
           scales: {
-            x: { stacked: true, grid: { display: false }, border: { display: false }, ticks: { maxTicksLimit: 12, maxRotation: 0, autoSkip: true } },
-            y: { stacked: true, beginAtZero: true, grid: { color: COR.grade }, border: { display: false, dash: [3, 3] }, ticks: { precision: 0, maxTicksLimit: 5 } }
+            x: { grid: { display: false }, border: { display: false }, ticks: { maxTicksLimit: 12, maxRotation: 0, autoSkip: true } },
+            y: { beginAtZero: true, grid: { color: COR.grade }, border: { display: false, dash: [3, 3] }, ticks: { precision: 0, maxTicksLimit: 5 } }
           }
         }
       });
