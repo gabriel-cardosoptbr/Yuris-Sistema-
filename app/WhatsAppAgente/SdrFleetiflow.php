@@ -53,7 +53,7 @@ final class SdrFleetiflow
      * conversa normal, correção, aprovação ou "reiniciar" é o fluxo no n8n, que
      * tem a mesma lista no nó "Configuração (editar aqui)". Mudou aqui, muda lá.
      */
-    private const NUMEROS_TREINO = ['5511925592706'];
+    private const NUMEROS_TREINO = ['5511925592706', '5511930118329'];
 
     /** DDD + 8 últimos dígitos, igual ao chaveFone do n8n (aceita com ou sem 55 e 9). */
     private static function chaveFone(string $fone): string
