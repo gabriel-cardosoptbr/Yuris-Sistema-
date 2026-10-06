@@ -72,12 +72,21 @@ class WhatsAppAgentBridge
 
             // Takeover (botão "Assumir conversa" OU envio manual humano): se a conversa esta
             // pausada, o agente nao responde. agent_paused e por conversa (instance+jid).
+            // Exceção: número de TREINO da Vitória (conta Fleetiflow). Quem testa precisa
+            // sempre chegar nela, para corrigir, aprovar e "reiniciar"; a pausa que tiver
+            // ficado na conversa sai, e o Chat volta a mostrar "Com a Vitória".
+            $treino = SdrFleetiflow::contaUsa($accountId)
+                && SdrFleetiflow::ehTreino($instanceId, $remoteJid, is_array($bruto['key'] ?? null) ? $bruto['key'] : []);
             try {
+                if ($treino) {
+                    require_once __DIR__ . '/AiIntake/IntakeSessionRepository.php';
+                    (new \App\WhatsAppAgente\AiIntake\IntakeSessionRepository($pdo))->setChatPaused($instanceId, $remoteJid, false, null);
+                }
                 $stPause = $pdo->prepare(
                     'SELECT agent_paused FROM whatsapp_chats WHERE instance_id = ? AND remote_jid = ? LIMIT 1'
                 );
                 $stPause->execute([$instanceId, $remoteJid]);
-                if ((int)$stPause->fetchColumn() === 1) return; // conversa assumida por humano
+                if (!$treino && (int)$stPause->fetchColumn() === 1) return; // conversa assumida por humano
             } catch (\Throwable $_p) {
                 error_log('[whatsapp/agent] agent_paused indisponível (migration 082?): ' . $_p->getMessage());
                 return;

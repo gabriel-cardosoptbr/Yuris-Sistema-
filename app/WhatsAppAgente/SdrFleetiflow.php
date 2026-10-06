@@ -30,6 +30,8 @@ use App\Master\Account;
  * Configuração no .env:
  *   FLEETIFLOW_SDR_WEBHOOK_URL    endereço do webhook da Vitória no n8n
  *   FLEETIFLOW_SDR_WEBHOOK_TOKEN  opcional; vai no cabeçalho X-Fleetiflow-Token
+ *   FLEETIFLOW_SDR_NUMEROS_TREINO opcional; telefones de treino além dos de NUMEROS_TREINO,
+ *                                 separados por vírgula
  * Sem a URL nada é encaminhado, e a chave do canal não liga.
  */
 final class SdrFleetiflow
@@ -43,6 +45,61 @@ final class SdrFleetiflow
      * evento prova que foi digitado (ver lá).
      */
     private const APARELHO = ['android', 'ios', 'desktop', 'aparelho'];
+
+    /**
+     * Números de TREINO da Vitória (mesmo esquema do SDR Schumaher): quem fala por
+     * eles é do time, testando. A conversa nunca fica pausada nem vai para o
+     * especialista, para a Vitória sempre receber a mensagem; quem decide se é
+     * conversa normal, correção, aprovação ou "reiniciar" é o fluxo no n8n, que
+     * tem a mesma lista no nó "Configuração (editar aqui)". Mudou aqui, muda lá.
+     */
+    private const NUMEROS_TREINO = ['5511925592706'];
+
+    /** DDD + 8 últimos dígitos, igual ao chaveFone do n8n (aceita com ou sem 55 e 9). */
+    private static function chaveFone(string $fone): string
+    {
+        $d = preg_replace('/\D/', '', $fone);
+        if (strlen($d) >= 12 && str_starts_with($d, '55')) $d = substr($d, 2);
+        if (strlen($d) < 10) return '';
+        return substr($d, 0, 2) . substr($d, -8);
+    }
+
+    /** @return list<string> chaves dos números de treino */
+    private static function chavesTreino(): array
+    {
+        $extra = (string)EnvLoader::get('FLEETIFLOW_SDR_NUMEROS_TREINO', '');
+        $todos = array_merge(self::NUMEROS_TREINO, preg_split('/[,;\s]+/', $extra) ?: []);
+        return array_values(array_filter(array_unique(array_map([self::class, 'chaveFone'], $todos))));
+    }
+
+    /**
+     * Telefone de uma conversa: do próprio JID, do remoteJidAlt de um @lid, ou da
+     * identidade já gravada para o @lid naquele número.
+     */
+    private static function foneDaConversa(int $instanceId, string $remoteJid, array $key = []): string
+    {
+        if (str_ends_with($remoteJid, '@s.whatsapp.net')) return explode('@', $remoteJid)[0];
+        $alt = (string)($key['remoteJidAlt'] ?? '');
+        if (str_ends_with($alt, '@s.whatsapp.net')) return explode('@', $alt)[0];
+        if ($instanceId > 0 && str_ends_with($remoteJid, '@lid')) {
+            try {
+                $st = \App\Core\Database::getConnection()->prepare(
+                    "SELECT phone FROM whatsapp_identidades WHERE instance_id = ? AND (lid = ? OR jid = ?)
+                        AND phone REGEXP '^[0-9]{10,13}$' LIMIT 1"
+                );
+                $st->execute([$instanceId, $remoteJid, $remoteJid]);
+                return (string)($st->fetchColumn() ?: '');
+            } catch (\Throwable $e) { return ''; }
+        }
+        return '';
+    }
+
+    /** A conversa é de um número de treino? */
+    public static function ehTreino(int $instanceId, string $remoteJid, array $key = []): bool
+    {
+        $chave = self::chaveFone(self::foneDaConversa($instanceId, $remoteJid, $key));
+        return $chave !== '' && in_array($chave, self::chavesTreino(), true);
+    }
 
     /**
      * De onde veio uma mensagem PRÓPRIA (fromMe), para saber se foi gente.
@@ -622,7 +679,8 @@ final class SdrFleetiflow
             }
 
             $cardId = self::garantirCard($accountId, $instanceId, $remoteJid, $fone, $fromMe ? null : $pushName);
-            if ($cardId && $fromMe && in_array(strtolower((string)$origem), self::APARELHO, true)) {
+            if ($cardId && $fromMe && in_array(strtolower((string)$origem), self::APARELHO, true)
+                && !self::ehTreino($instanceId, $remoteJid, $key)) {
                 self::moverEtapa($accountId, $cardId, 'especialista');
                 // Celular ou WhatsApp Web: não se sabe QUEM digitou. Vale o
                 // responsável já marcado na conversa, ou o especialista padrão.
@@ -789,6 +847,8 @@ final class SdrFleetiflow
     /** Pausa a Vitória numa conversa (mesmo escritor do "Assumir conversa"). */
     public static function pausar(int $channelId, string $remoteJid, ?int $userId): void
     {
+        // Número de treino: a Vitória precisa continuar recebendo (ver NUMEROS_TREINO).
+        if (self::ehTreino($channelId, $remoteJid)) return;
         try {
             require_once __DIR__ . '/AiIntake/IntakeSessionRepository.php';
             $repo = new \App\WhatsAppAgente\AiIntake\IntakeSessionRepository(\App\Core\Database::getConnection());
