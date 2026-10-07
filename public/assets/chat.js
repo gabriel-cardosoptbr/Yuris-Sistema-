@@ -16,6 +16,8 @@ const ChatApp = (() => {
     teamFilterCor : null,
     userFilter   : null,      // null=todos | 0=sem responsável | N=user específico
     userFilterName: 'Todos os responsáveis',
+    etapaFilter  : null,      // null=todas | 0=conversa sem lead | N=etapa do lead (edição CRM)
+    etapaFilterName: 'Todas as etapas',
     lastMsgId    : 0,
     lastMsgAt    : '',       // created_at da msg mais NOVA carregada (cursor do poll)
     firstMsgId   : 0,        // id da msg mais ANTIGA carregada (desempate do cursor)
@@ -715,6 +717,7 @@ const ChatApp = (() => {
       const params = new URLSearchParams({ search: state.searchTerm });
       if (state.teamFilter !== null) params.set('team_id', String(state.teamFilter));
       if (state.userFilter !== null) params.set('user_id', String(state.userFilter));
+      if (state.etapaFilter !== null) params.set('coluna_id', String(state.etapaFilter));
       // Quando filtro = "archived", pede ao servidor a lista de arquivadas
       // (default sempre vem is_archived=0 — sem isso, lista vem vazia).
       if (state.filter === 'archived') params.set('archived', '1');
@@ -1865,6 +1868,67 @@ const ChatApp = (() => {
     }, 0);
   }
 
+  // ── Filtro por etapa do lead na sidebar (edição CRM) ─────────
+  // null=todas | 0=conversa sem lead | N=etapa N (coluna do card ligado à conversa)
+  async function _carregarEtapas() {
+    if (_stageCols) return _stageCols;
+    try {
+      const r = await apiFetch('/api/whatsapp/chat_etapa.php');
+      _stageCols = r.colunas || [];
+    } catch (err) { _stageCols = null; toast('Erro ao carregar as etapas', 'error'); }
+    return _stageCols;
+  }
+
+  function setEtapaFilter(id, nome, cor) {
+    state.etapaFilter     = id !== undefined ? id : null;
+    state.etapaFilterName = nome || 'Todas as etapas';
+    const dot = qs('#etapaFilterDot'), lbl = qs('#etapaFilterLabel'), btn = qs('#etapaFilterBtn');
+    if (lbl) lbl.textContent = state.etapaFilter === null ? 'Todas as etapas' : (state.etapaFilter === 0 ? 'Sem lead' : state.etapaFilterName);
+    if (dot) dot.style.background = state.etapaFilter ? (cor || '#6B7887') : '#4A5568';
+    if (btn) btn.classList.toggle('active', state.etapaFilter !== null);
+    const dd = qs('#etapaFilterDd');
+    if (dd) dd.style.display = 'none';
+    loadChats();
+  }
+
+  async function toggleEtapaFilterDropdown(e) {
+    if (e) e.stopPropagation();
+    const dd = qs('#etapaFilterDd');
+    if (!dd) return;
+    if (dd.style.display !== 'none') { dd.style.display = 'none'; return; }
+
+    const cols = await _carregarEtapas();
+    if (!cols) return;
+    const atual = state.etapaFilter !== null ? String(state.etapaFilter) : null;
+    let html = `<div class="chat-sector-dd-item${atual === null ? ' active' : ''}" onclick="ChatApp.setEtapaFilter(null)">
+                  <span class="csf-dd-dot" style="background:#4A5568"></span>
+                  Todas as etapas
+                </div>`;
+    if (cols.length) {
+      html += '<hr class="chat-sector-dd-divider">';
+      html += cols.map(c => `
+        <div class="chat-sector-dd-item${atual === String(c.id) ? ' active' : ''}"
+             onclick="ChatApp.setEtapaFilter(${Number(c.id)},'${esc(c.nome)}','${esc(c.cor || '#6B7887')}')">
+          <span class="csf-dd-dot" style="background:${esc(c.cor || '#6B7887')}"></span>
+          ${esc(c.nome)}
+        </div>`).join('');
+      html += '<hr class="chat-sector-dd-divider">';
+      html += `<div class="chat-sector-dd-item${atual === '0' ? ' active' : ''}" onclick="ChatApp.setEtapaFilter(0,'Sem lead')">
+                 <span class="csf-dd-dot" style="background:#6B7887"></span>
+                 Conversa sem lead
+               </div>`;
+    } else {
+      html += '<div class="chat-sector-dd-item" style="color:#4A5568;cursor:default">Nenhuma etapa no funil</div>';
+    }
+    dd.innerHTML = html;
+    dd.style.display = 'block';
+    setTimeout(() => {
+      document.addEventListener('click', function _close() {
+        if (dd) dd.style.display = 'none';
+        document.removeEventListener('click', _close);
+      }, { once: true });
+    }, 0);
+  }
   // ── Pin ──────────────────────────────────────────────────────
   async function togglePin() {
     if (!state.currentJid) return;
@@ -3881,7 +3945,7 @@ const ChatApp = (() => {
     onFileSelected, clearFile,
     toggleAudio, stopRecording, onAudioFileSelected,
     searchChats, setFilter, setTeamFilter, toggleTeamFilterDropdown,
-    setUserFilter, toggleUserFilterDropdown, togglePin,
+    setUserFilter, toggleUserFilterDropdown, setEtapaFilter, toggleEtapaFilterDropdown, togglePin,
     toggleMoreMenu, closeMoreMenu, confirmDeleteChat,
     openSettings, closeSettings, saveSettings, applyWebhook,
     syncChats,

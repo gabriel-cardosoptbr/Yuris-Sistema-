@@ -60,6 +60,8 @@ try {
         //   ?user_id=N  → conversas atribuídas ao user N
         //   ?user_id=0  → conversas sem responsável
         $userFilter = isset($_GET['user_id']) ? (int)$_GET['user_id'] : null;
+        // Filtro por etapa do lead (edição CRM): ?coluna_id=N etapa N, ?coluna_id=0 sem lead.
+        $colunaFilter = isset($_GET['coluna_id']) ? (int)$_GET['coluna_id'] : null;
         // Filtro arquivadas: ?archived=1 lista apenas arquivadas; default = só não-arquivadas
         $archived = !empty($_GET['archived']) && $_GET['archived'] !== '0';
 
@@ -78,7 +80,7 @@ try {
         }
 
         $listLimit = isset($_GET['limit']) ? max(50, min(2000, (int)$_GET['limit'])) : 500;
-        $chats     = $msgModel->getChatList($instanceId, $search, $teamFilter, $userFilter, $archived, $listLimit);
+        $chats     = $msgModel->getChatList($instanceId, $search, $teamFilter, $userFilter, $archived, $listLimit, $colunaFilter);
 
         echo json_encode([
             'ok'          => true,

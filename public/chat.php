@@ -2085,6 +2085,17 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
             <div id="sectorFilterDd" class="chat-sector-dd"></div>
           </div>
 
+<?php if ($isFleetiflow): ?>
+          <!-- Filtro por etapa do lead (edição CRM): Novos leads, Em qualificação... -->
+          <div class="chat-sector-filter">
+            <button id="etapaFilterBtn" class="chat-sector-btn" onclick="ChatApp.toggleEtapaFilterDropdown(event)" title="Filtrar pela etapa do lead">
+              <span class="csf-dot" id="etapaFilterDot"></span>
+              <span class="csf-label" id="etapaFilterLabel">Todas as etapas</span>
+              <svg class="csf-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:10px;height:10px"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div id="etapaFilterDd" class="chat-sector-dd"></div>
+          </div>
+<?php endif; ?>
           <!-- Filtro por responsável (mesmo padrão do setor) -->
           <div class="chat-sector-filter">
             <button id="userFilterBtn" class="chat-sector-btn" onclick="ChatApp.toggleUserFilterDropdown(event)" title="Filtrar por responsável">
@@ -2722,7 +2733,7 @@ const API  = {
 <?php if ($isFleetiflow): ?>
 <script>window.CHAT_SETOR_NO_NOME = true; /* setor ao lado do nome na lista */</script>
 <?php endif; ?>
-<script src="/assets/chat.js?v=80"></script>
+<script src="/assets/chat.js?v=81"></script>
 <?php if ($isFleetiflow): ?>
 <script>
 window.CSRF_CHAT     = <?= json_encode($csrf) ?>;

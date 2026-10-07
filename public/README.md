@@ -284,6 +284,14 @@ setor ao lado do nome (que quebra a linha em vez de levar reticências); a linha
 para a última mensagem. Conversa individual sem setor mostra "Sem setor" em cinza, para toda
 conversa ter etiqueta e dar para ver o que falta classificar. No Yuris o setor continua numa linha própria.
 
+**Filtro por etapa do lead no Chat (edição CRM, 07/10/2026).** Ao lado de "Todos os setores" e "Todos os
+responsáveis", `chat.php` desenha (só quando `$isFleetiflow`) "Todas as etapas": Novos leads, Em
+qualificação... (as colunas do funil, de `api/whatsapp/chat_etapa.php`) e "Conversa sem lead". A etapa é a
+coluna do card ligado à conversa, a mesma do selo do cabeçalho. O filtro é feito no servidor
+(`?coluna_id=` em `api/whatsapp/chats.php`), como o de setor e o de responsável.
+Os setores da Inovaize (Advocacia, Estética) foram cadastrados e marcados com
+`scripts/manutencao/setores_por_segmento.php`.
+
 ### Entrada e sessão
 `login.php` · `login-fleetiflow.php` · `logout.php` · `404.php`
 

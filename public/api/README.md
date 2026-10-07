@@ -31,6 +31,10 @@ financeiro é só de ADM nessa edição. A edição jurídica não muda. Também
 parâmetros das contas; com `:resp` sobrando o PDO derrubava o painel (HY093), e
 escolher uma pessoa em "Toda a equipe" quebrava a tela.
 
+`whatsapp/chats.php` aceita `?coluna_id=N` (etapa do lead ligado à conversa, a coluna do card) e
+`?coluna_id=0` (conversa sem lead), junto de `team_id` e `user_id`; é o filtro "Todas as etapas" do Chat da
+edição CRM (07/10/2026). Sem o parâmetro, a lista é a de sempre.
+
 `reembolsos.php` é a API dos reembolsos da tela Finanças (edição CRM): `GET` devolve a
 lista com parcelas, situação e o resumo; `POST {acao}` cria, atualiza, exclui, marca
 parcela como paga (`pagar`), desfaz (`desfazer`) ou quita tudo (`quitar`). CSRF no
