@@ -199,6 +199,8 @@ function column_display_name(array $col): string
   <!-- Ficha do lead e do cliente no desenho do Fleetiflow: só a edição CRM carrega. -->
   <link rel="stylesheet" href="/assets/ff-ficha.css?v=<?= @filemtime(__DIR__ . '/assets/ff-ficha.css') ?: 1 ?>">
   <script src="/assets/ff-ficha.js?v=<?= @filemtime(__DIR__ . '/assets/ff-ficha.js') ?: 1 ?>"></script>
+  <!-- O WhatsApp do lead na ficha (etapa, quem atende, número nosso, vínculo, conversa). defer: precisa do #chatVinculoCard. -->
+  <script defer src="/assets/ff-conversa.js?v=<?= @filemtime(__DIR__ . '/assets/ff-conversa.js') ?: 1 ?>"></script>
 <?php endif; ?>
   <style>
     :root {
@@ -1240,6 +1242,9 @@ function column_display_name(array $col): string
     html[data-theme="light"] .lc-atraso > svg{ color:#B91C1C; }
     html[data-theme="light"] .lc-atraso .lc-v{ display:block; color:#B91C1C !important; font-weight:700; font-size:.78rem; }
     html[data-theme="light"] .lc-atraso small{ display:block; color:#B91C1C !important; opacity:.85; font-size:.68rem; }
+    /* O número do WhatsApp nosso com quem o lead conversa; o nome inteiro, quebrando linha se precisar. */
+    html[data-theme="light"] .lc-numero{ margin-top:8px; font-size:.72rem; font-weight:600; color:#575757 !important; line-height:1.35; overflow-wrap:anywhere; }
+    html[data-theme="light"] .lc-numero b{ color:#1F2937 !important; font-weight:700; }
 
     .lc-rodape{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:10px; padding-top:9px; border-top:1px solid rgba(17,29,45,.07); }
     html[data-theme="light"] .lc-resp{ display:inline-flex; align-items:center; gap:7px; color:#3D3D3D !important; font-size:.8rem; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -1386,6 +1391,14 @@ function column_display_name(array $col): string
                     <?php endforeach; ?>
                   </select>
                 </label>
+<?php if ($edicaoCrm): ?>
+                <label class="field-group">
+                  <span class="field-label">Número do WhatsApp</span>
+                  <select id="filterChip" class="field-control">
+                    <option value="">Todos os números</option>
+                  </select>
+                </label>
+<?php endif; ?>
                 <label class="field-group">
                   <span class="field-label">Data prevista</span>
                   <input id="filterDate" class="field-control" type="date">
@@ -2464,6 +2477,7 @@ function column_display_name(array $col): string
           '<div class="lc-dado">' + LC_ICONES.relogio + '<div><small>' + rotuloQuando + '</small><span class="lc-v">' + escapeHtml(quando) + '</span></div></div>' +
         '</div>' +
         atrasoHtml +
+        (card.linked_chip_nome ? '<div class="lc-numero" title="Número do WhatsApp deste lead">WhatsApp: <b>' + escapeHtml(card.linked_chip_nome) + '</b></div>' : '') +
         '<div class="lc-rodape">' +
           (responsavel
             ? '<span class="lc-resp"><span class="lc-avatar">' + escapeHtml(lcInicial(responsavel)) + '</span>' + escapeHtml(responsavel.split(' ')[0]) + '</span>'
@@ -2653,6 +2667,7 @@ function column_display_name(array $col): string
         byId('filterResponsible').value ||
         byId('filterStage').value ||
         byId('filterDate').value ||
+        (byId('filterChip') && byId('filterChip').value) ||
         (orig && orig.value)
       );
     }
@@ -2671,6 +2686,11 @@ function column_display_name(array $col): string
       }
       if (responsible && String(card.responsavel_user_id || '') !== String(responsible)) return false;
       if (stage && String(colId) !== String(stage)) return false;
+      const chipEl = byId('filterChip');
+      if (chipEl && chipEl.value) {
+        const chip = String(card.linked_chip_nome || '');
+        if (chipEl.value === '__sem__' ? chip !== '' : chip !== chipEl.value) return false;
+      }
       if (date && String(card.data_prevista_fechamento || '') !== String(date)) return false;
 
       // Filtro de origem: pseudo-valores __matriz__ / __filiais__ / __advogados__
@@ -2823,7 +2843,27 @@ function column_display_name(array $col): string
       });
     }
 
+    // Filtro por número do WhatsApp (edição CRM): as opções são os números que aparecem nos cards.
+    function atualizarOpcoesChip() {
+      const sel = byId('filterChip');
+      if (!sel) return;
+      const nomes = new Set(); let semNumero = false;
+      Object.keys(cardsCacheByColumn).forEach(colId => (cardsCacheByColumn[colId] || []).forEach(c => {
+        if (c.linked_chip_nome) nomes.add(String(c.linked_chip_nome)); else semNumero = true;
+      }));
+      const lista = Array.from(nomes).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+      const chave = lista.join('|') + '#' + semNumero;
+      if (sel.dataset.chave === chave) return;
+      const atual = sel.value;
+      sel.dataset.chave = chave;
+      sel.innerHTML = '<option value="">Todos os números</option>' +
+        lista.map(n => '<option value="' + escapeHtml(n) + '">' + escapeHtml(n) + '</option>').join('') +
+        (semNumero ? '<option value="__sem__">Sem WhatsApp ligado</option>' : '');
+      sel.value = Array.from(sel.options).some(o => o.value === atual) ? atual : '';
+    }
+
     function applyFiltersAndRender() {
+      atualizarOpcoesChip();
       Object.keys(cardsCacheByColumn).forEach(colId => {
         const source = cardsCacheByColumn[colId] || [];
         const filtered = source.filter(card => matchesFilters(card, colId));
@@ -3762,7 +3802,7 @@ function column_display_name(array $col): string
         debounce = setTimeout(run, 180);
       });
 
-      ['filterResponsible', 'filterStage', 'filterDate', 'filterOrigin'].forEach(id => {
+      ['filterResponsible', 'filterStage', 'filterDate', 'filterOrigin', 'filterChip'].forEach(id => {
         const el = byId(id);
         if (el) el.addEventListener('change', run);
       });

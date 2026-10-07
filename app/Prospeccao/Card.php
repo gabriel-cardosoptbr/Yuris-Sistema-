@@ -42,7 +42,9 @@ class Card
                            c.account_id AS origin_account_id,
                            (SELECT remote_jid FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_jid,
                            (SELECT last_message_at FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_last_at,
-                           (SELECT last_message_from_me FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_last_from_me
+                           (SELECT last_message_from_me FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_last_from_me,
+                           -- O número NOSSO com quem o lead conversa (edição CRM mostra no card e filtra por ele)
+                           (SELECT IF(CHAR_LENGTH(TRIM(i.display_name)) > 0, TRIM(i.display_name), i.instance_name) FROM whatsapp_chats w JOIN whatsapp_instances i ON i.id = w.instance_id WHERE w.linked_card_id = c.id ORDER BY w.last_message_at DESC LIMIT 1) AS linked_chip_nome
                     FROM cards c
                     LEFT JOIN accounts a ON a.id = c.account_id
                     WHERE c.deleted_at IS NULL
@@ -65,7 +67,9 @@ class Card
                               c.account_id AS origin_account_id,
                               (SELECT remote_jid FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_jid,
                            (SELECT last_message_at FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_last_at,
-                           (SELECT last_message_from_me FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_last_from_me
+                           (SELECT last_message_from_me FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_last_from_me,
+                           -- O número NOSSO com quem o lead conversa (edição CRM mostra no card e filtra por ele)
+                           (SELECT IF(CHAR_LENGTH(TRIM(i.display_name)) > 0, TRIM(i.display_name), i.instance_name) FROM whatsapp_chats w JOIN whatsapp_instances i ON i.id = w.instance_id WHERE w.linked_card_id = c.id ORDER BY w.last_message_at DESC LIMIT 1) AS linked_chip_nome
                        FROM cards c WHERE c.deleted_at IS NULL';
             $params = [];
         }
@@ -120,7 +124,9 @@ class Card
                     c.account_id AS origin_account_id,
                     (SELECT remote_jid FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_jid,
                            (SELECT last_message_at FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_last_at,
-                           (SELECT last_message_from_me FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_last_from_me
+                           (SELECT last_message_from_me FROM whatsapp_chats WHERE linked_card_id = c.id LIMIT 1) AS linked_chat_last_from_me,
+                           -- O número NOSSO com quem o lead conversa (edição CRM mostra no card e filtra por ele)
+                           (SELECT IF(CHAR_LENGTH(TRIM(i.display_name)) > 0, TRIM(i.display_name), i.instance_name) FROM whatsapp_chats w JOIN whatsapp_instances i ON i.id = w.instance_id WHERE w.linked_card_id = c.id ORDER BY w.last_message_at DESC LIMIT 1) AS linked_chip_nome
              FROM cards c
              LEFT JOIN accounts a ON a.id = c.account_id
              WHERE c.id = :id AND c.deleted_at IS NULL LIMIT 1'

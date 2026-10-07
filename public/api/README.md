@@ -35,6 +35,12 @@ escolher uma pessoa em "Toda a equipe" quebrava a tela.
 `?coluna_id=0` (conversa sem lead), junto de `team_id` e `user_id`; é o filtro "Todas as etapas" do Chat da
 edição CRM (07/10/2026). Sem o parâmetro, a lista é a de sempre.
 
+`whatsapp/card_whatsapp.php?card_id=ID` devolve tudo do WhatsApp de um lead para a ficha do card da edição CRM:
+etapa, setor, quem atende (agente de IA ligado ou pausado, pessoa, responsável), os números nossos ligados à
+conversa (nome, telefone, status, dono) e as 300 mensagens mais recentes em texto. Só lê o banco (não chama a
+Evolution), então responde com o número desconectado. Exige que o card seja de uma conta acessível pelo
+usuário (senão 404) e sessão (senão 401).
+
 `reembolsos.php` é a API dos reembolsos da tela Finanças (edição CRM): `GET` devolve a
 lista com parcelas, situação e o resumo; `POST {acao}` cria, atualiza, exclui, marca
 parcela como paga (`pagar`), desfaz (`desfazer`) ou quita tudo (`quitar`). CSRF no

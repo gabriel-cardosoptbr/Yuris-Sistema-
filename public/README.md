@@ -284,6 +284,17 @@ setor ao lado do nome (que quebra a linha em vez de levar reticências); a linha
 para a última mensagem. Conversa individual sem setor mostra "Sem setor" em cinza, para toda
 conversa ter etiqueta e dar para ver o que falta classificar. No Yuris o setor continua numa linha própria.
 
+**O WhatsApp do lead dentro do card (edição CRM, 07/10/2026).** Na aba WhatsApp da ficha do lead,
+`assets/ff-conversa.js` (carregado por `prospeccao.php` só na edição CRM, com `defer`) desenha, abaixo do
+vínculo, o painel do lead: processo (etapa), quem está atendendo (agente de IA, pessoa que assumiu ou
+responsável), qual WhatsApp nosso está com ele (nome, telefone, conectado ou não), telefone do lead, vínculo
+com a conversa (e o atalho para o Chat), setor, empresa, tipo e cidade, e a conversa, só em texto (mídia vira
+"[Imagem]", "[Áudio]"; nada é baixado). Tudo vem de `api/whatsapp/card_whatsapp.php`, que só lê o que já
+está no banco: funciona com o número desconectado, como backup. O painel redesenha quando a ficha abre um
+card (observa `#chatVinculoCard`) e usa as variáveis `--ff-*` da ficha, com o tema escuro. No quadro, cada
+card mostra "WhatsApp: nome do número" e a barra ganha o filtro "Número do WhatsApp" (opções vêm dos
+próprios cards, mais "Sem WhatsApp ligado").
+
 **Etapa do lead e nome na lista do Chat (edição CRM, 07/10/2026).** Ao lado do setor, cada conversa
 individual mostra a etapa do funil em que o lead está agora (pílula com a cor da etapa, nome inteiro,
 "Sem etapa" em cinza quando não há lead); mudar a etapa pelo cabeçalho atualiza a lista na hora. O

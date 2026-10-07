@@ -750,34 +750,52 @@ final class SdrFleetiflow
     }
 
     /**
-     * Conversa individual sem card vivo, cujo telefone já é card da conta: liga as
-     * duas. Cobre o que os outros caminhos deixam passar (conversa que entrou pela
-     * sincronização e não pelo webhook, card criado à mão na Prospecção, card
-     * apagado e refeito). Não cria card: conversa sem card de mesmo telefone não é
-     * lead (equipe, fornecedor), e quem decide é a pessoa escolhendo a etapa.
-     * Chamado na lista do Chat, então a etapa aparece no próximo refresh.
+     * Separa as conversas individuais da instância que ainda não têm card vivo:
      *
-     * @return int quantas conversas foram ligadas
+     *   ligar  já existe card com o mesmo telefone (últimos 8 dígitos): só falta ligar
+     *   criar  não existe card: precisa nascer (todo contato do WhatsApp é salvo)
+     *   pular  fica de fora, com o motivo: sem telefone conhecido (o WhatsApp só
+     *          mostrou o identificador interno @lid), sem nenhuma mensagem (contato
+     *          da agenda que nunca conversou), o número da própria conta ou número de
+     *          treino da equipe
+     *
+     * Quem já é cliente não vira card (garantirCard devolve null). PURA em relação à
+     * escrita: só lê, para o script de conferência e para ligarConversasSoltas.
+     *
+     * @return array{ligar:list<array{jid:string,fone:string,card_id:int}>,criar:list<array{jid:string,fone:string,nome:string}>,pular:list<array{jid:string,motivo:string}>}
      */
-    public static function ligarConversasSoltas(\PDO $pdo, int $accountId, int $instanceId): int
+    public static function conversasSemCard(\PDO $pdo, int $accountId, int $instanceId): array
     {
         $st = $pdo->prepare(
-            "SELECT w.remote_jid,
+            "SELECT w.remote_jid, w.contact_name,
                     COALESCE(
                       (SELECT i.phone FROM whatsapp_identidades i
                         WHERE i.instance_id = w.instance_id AND (i.lid = w.remote_jid OR i.jid = w.remote_jid)
                           AND i.phone REGEXP '^[0-9]{10,13}$' LIMIT 1),
                       CASE WHEN w.remote_jid LIKE '%@s.whatsapp.net' THEN SUBSTRING_INDEX(w.remote_jid, '@', 1) END
-                    ) AS fone
+                    ) AS fone,
+                    EXISTS (SELECT 1 FROM whatsapp_messages m
+                             WHERE m.instance_id = w.instance_id AND m.remote_jid = w.remote_jid AND m.deleted_at IS NULL) AS tem_msg
                FROM whatsapp_chats w
           LEFT JOIN cards c ON c.id = w.linked_card_id AND c.deleted_at IS NULL
               WHERE w.instance_id = ? AND w.is_group = 0
-                AND w.remote_jid NOT LIKE '%@g.us' AND w.remote_jid NOT LIKE '%@broadcast'
+                AND w.remote_jid NOT LIKE '%@g.us' AND w.remote_jid NOT LIKE '%@broadcast' AND w.remote_jid NOT LIKE '%@newsletter'
                 AND c.id IS NULL"
         );
         $st->execute([$instanceId]);
+        $saida = ['ligar' => [], 'criar' => [], 'pular' => []];
         $soltas = $st->fetchAll(\PDO::FETCH_ASSOC);
-        if (!$soltas) return 0;
+        if (!$soltas) return $saida;
+
+        // Números da própria conta (os chips): conversa com eles não é lead.
+        $proprios = [];
+        $pst = $pdo->prepare('SELECT phone FROM whatsapp_instances WHERE account_id = ?');
+        $pst->execute([$accountId]);
+        foreach ($pst->fetchAll(\PDO::FETCH_COLUMN) as $p) {
+            $k = self::chaveFone((string)$p);
+            if ($k !== '') $proprios[$k] = true;
+        }
+        $treino = array_flip(self::chavesTreino());
 
         $busca = $pdo->prepare(
             "SELECT id FROM cards
@@ -785,19 +803,65 @@ final class SdrFleetiflow
                 AND RIGHT(REGEXP_REPLACE(COALESCE(telefone_whatsapp,''), '[^0-9]', ''), 8) = ?
            ORDER BY id DESC LIMIT 1"
         );
-        $modelo = new WhatsAppMessage();
-        $ligadas = 0;
         foreach ($soltas as $s) {
+            $jid  = (string)$s['remote_jid'];
             $fone = preg_replace('/[^0-9]/', '', (string)$s['fone']);
-            if (strlen($fone) < 10) continue;
+            if (strlen($fone) < 10 || strlen($fone) > 13) {
+                $saida['pular'][] = ['jid' => $jid, 'motivo' => 'sem telefone conhecido (o WhatsApp só mostrou o identificador interno)'];
+                continue;
+            }
             $busca->execute([$accountId, substr($fone, -8)]);
             $cardId = (int)($busca->fetchColumn() ?: 0);
-            if ($cardId <= 0) continue;
-            // Vínculo antigo apontando para card apagado sai junto.
-            $modelo->linkChat($instanceId, (string)$s['remote_jid'], ['linked_card_id' => $cardId]);
-            $ligadas++;
+            if ($cardId > 0) { $saida['ligar'][] = ['jid' => $jid, 'fone' => $fone, 'card_id' => $cardId]; continue; }
+
+            $chave = self::chaveFone($fone);
+            if (!(int)$s['tem_msg'])        $saida['pular'][] = ['jid' => $jid, 'motivo' => 'sem nenhuma mensagem (contato da agenda)'];
+            elseif (isset($proprios[$chave])) $saida['pular'][] = ['jid' => $jid, 'motivo' => 'número da própria conta'];
+            elseif (isset($treino[$chave]))   $saida['pular'][] = ['jid' => $jid, 'motivo' => 'número de treino da equipe'];
+            else {
+                $nome = trim((string)$s['contact_name']);
+                $saida['criar'][] = ['jid' => $jid, 'fone' => $fone, 'nome' => preg_match('/\p{L}/u', $nome) ? $nome : ''];
+            }
         }
-        return $ligadas;
+        return $saida;
+    }
+
+    /**
+     * Garante que TODA conversa individual com telefone tenha card: liga a que já tem
+     * card de mesmo telefone e CRIA o card da que não tem (07/10/2026, pedido: "o lead
+     * pingou no número, tem que criar um card novo; se o WhatsApp cair, os cards são a
+     * base"). Antes só ligava, e conversa sem card ficava de fora. É a rede de
+     * segurança do webhook (SdrFleetiflow::aoMensagem): pega o que ele perdeu (reenvio
+     * de histórico ao reconectar, conversa que entrou pela sincronização, evento
+     * perdido com o número fora do ar). Chamado na lista do Chat, então o card
+     * aparece no próximo refresh. Nunca propaga exceção de um contato para o outro.
+     *
+     * @return int quantas conversas foram ligadas ou ganharam card
+     */
+    public static function ligarConversasSoltas(\PDO $pdo, int $accountId, int $instanceId): int
+    {
+        $plano = self::conversasSemCard($pdo, $accountId, $instanceId);
+        if (!$plano['ligar'] && !$plano['criar']) return 0;
+
+        $modelo = new WhatsAppMessage();
+        $feitas = 0;
+        foreach ($plano['ligar'] as $l) {
+            // Vínculo antigo apontando para card apagado sai junto.
+            $modelo->linkChat($instanceId, $l['jid'], ['linked_card_id' => $l['card_id']]);
+            $feitas++;
+        }
+        foreach ($plano['criar'] as $c) {
+            try {
+                $card = self::garantirCard($accountId, $instanceId, $c['jid'], $c['fone'], $c['nome'] !== '' ? $c['nome'] : null);
+                if ($card) {
+                    self::completarLead($accountId, $card, $instanceId, $c['jid'], null);
+                    $feitas++;
+                }
+            } catch (\Throwable $e) {
+                error_log('[sdr_fleetiflow] card do contato sem card falhou: ' . $e->getMessage());
+            }
+        }
+        return $feitas;
     }
 
     /**
