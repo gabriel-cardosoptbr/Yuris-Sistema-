@@ -14,7 +14,8 @@
  * empresa_nome está vazio; nome que alguém digitou ou que veio da planilha nunca é
  * trocado. Só vale saudação no molde "Oi|Olá, NOME!" na PRIMEIRA mensagem enviada;
  * "pessoal da/do" é tirado ("Oi, pessoal da Avance Motors!" => "Avance Motors").
- * Nome genérico (tudo, pessoal, time...) é descartado. Cada troca entra no histórico
+ * A regra é a de App\WhatsAppAgente\SegmentoLead (a mesma que dá o nome ao lead que nasce
+ * agora, em SdrFleetiflow::completarLead). Nome genérico (tudo, pessoal, time...) é descartado. Cada troca entra no histórico
  * do lead (acao 'updated', com o valor anterior). Tudo dentro da conta informada.
  *
  * IDEMPOTENTE: depois de nomeado o lead sai do filtro. Só confere por padrão.
@@ -27,18 +28,7 @@ declare(strict_types=1);
 if (PHP_SAPI !== 'cli') { http_response_code(403); exit("Só via CLI.\n"); }
 require_once __DIR__ . '/../../app/bootstrap.php';
 
-/** Nome na saudação da abertura, ou '' quando não dá para confiar. */
-function nomePelaSaudacao(string $msg): string
-{
-    if (!preg_match('/^\s*(?:Oi|Olá|Ola)\s*,?\s+(.{2,90}?)\s*!/u', $msg, $m)) return '';
-    $n = trim((string) preg_replace('/\s+/u', ' ', $m[1]));
-    $n = trim((string) preg_replace('/^pessoal\s+d[aeo]s?\s+/iu', '', $n));
-    if ($n === '' || !preg_match('/\p{L}/u', $n)) return '';
-    if (preg_match('/^(tudo|pessoal|time|equipe|amigo|amiga|tudo bem|tudo certo|prezad[oa]s?)\b/iu', $n)) return '';
-    return mb_substr($n, 0, 191);
-}
-
-if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') !== realpath(__FILE__)) return; // incluído por teste: só a função
+use App\WhatsAppAgente\SegmentoLead;
 
 $o = getopt('', ['conta:', 'aplicar']);
 $conta = (int) ($o['conta'] ?? 0);
@@ -70,7 +60,7 @@ foreach ($cards->fetchAll(PDO::FETCH_ASSOC) as $c) {
     $nome = '';
     if ($c['inst'] && $c['jid']) {
         $primeira->execute([(int) $c['inst'], (string) $c['jid']]);
-        $nome = nomePelaSaudacao((string) ($primeira->fetchColumn() ?: ''));
+        $nome = SegmentoLead::nomePelaSaudacao((string) ($primeira->fetchColumn() ?: ''));
     }
     if ($nome === '') { $sem[] = 'lead #' . $c['id'] . ' (' . $c['cliente_nome'] . ')'; continue; }
     echo sprintf("  lead #%-5d %-22s => %s\n", $c['id'], $c['cliente_nome'], $nome);

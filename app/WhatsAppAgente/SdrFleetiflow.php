@@ -664,7 +664,7 @@ final class SdrFleetiflow
      * respondeu nunca virava card. Mensagem digitada no aparelho = uma pessoa do
      * time atendendo, então o card vai para "Em atendimento pelo especialista".
      */
-    public static function aoMensagem(int $accountId, int $instanceId, string $remoteJid, array $key, bool $fromMe, ?string $origem, ?string $pushName, $ts): void
+    public static function aoMensagem(int $accountId, int $instanceId, string $remoteJid, array $key, bool $fromMe, ?string $origem, ?string $pushName, $ts, ?string $texto = null): void
     {
         try {
             // Reenvio de histórico ao reconectar não é conversa nova.
@@ -679,6 +679,7 @@ final class SdrFleetiflow
             }
 
             $cardId = self::garantirCard($accountId, $instanceId, $remoteJid, $fone, $fromMe ? null : $pushName);
+            if ($cardId) self::completarLead($accountId, $cardId, $instanceId, $remoteJid, $fromMe ? $texto : null);
             if ($cardId && $fromMe && in_array(strtolower((string)$origem), self::APARELHO, true)
                 && !self::ehTreino($instanceId, $remoteJid, $key)) {
                 self::moverEtapa($accountId, $cardId, 'especialista');
@@ -688,6 +689,63 @@ final class SdrFleetiflow
             }
         } catch (\Throwable $e) {
             error_log('[sdr_fleetiflow] card da conversa falhou (mensagem preservada): ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Dá nome e setor ao lead que acabou de nascer só com o telefone (07/10/2026).
+     *
+     * A abertura que a conta enviou diz quem é o lead ("Olá, NOME! ...") e de que
+     * segmento ele é ("escritório", "clínica"); ver SegmentoLead. Só preenche o que
+     * está vazio: nome que alguém escreveu e setor que alguém escolheu (ou que o robô
+     * da Fleet mandou pelo sdr_etapa.php) nunca são trocados. Sem abertura (lead que
+     * escreveu primeiro) ou sem prova, não faz nada, e o Chat segue mostrando "Sem
+     * setor" para alguém marcar. Nunca propaga exceção.
+     *
+     * @param ?string $textoAgora texto da mensagem que acabou de sair (só vale se a
+     *                            primeira enviada ainda não estiver gravada)
+     */
+    private static function completarLead(int $accountId, int $cardId, ?int $instanceId, string $remoteJid, ?string $textoAgora): void
+    {
+        try {
+            $card = \App\Prospeccao\Card::find($cardId);
+            if (!$card || (int)($card['account_id'] ?? 0) !== $accountId) return;
+
+            $semNome  = trim((string)($card['empresa_nome'] ?? '')) === '' && !preg_match('/\p{L}/u', (string)($card['cliente_nome'] ?? ''));
+            $comSetor = \App\Usuarios\Team::temColuna('cards', 'team_id');
+            $semSetor = $comSetor && array_key_exists('team_id', $card) && $card['team_id'] === null;
+            if (!$semNome && !$semSetor) return;
+
+            $pdo = \App\Core\Database::getConnection();
+            $abertura = '';
+            if ($instanceId) {
+                $st = $pdo->prepare("SELECT message_content FROM whatsapp_messages
+                                      WHERE instance_id = ? AND remote_jid = ? AND direction = 'outbound'
+                                        AND message_content IS NOT NULL AND message_content <> ''
+                                      ORDER BY created_at ASC, id ASC LIMIT 1");
+                $st->execute([$instanceId, $remoteJid]);
+                $abertura = (string)($st->fetchColumn() ?: '');
+            }
+            if ($abertura === '') $abertura = (string)$textoAgora;
+            if ($abertura === '') return;
+
+            if ($semNome) {
+                $nome = SegmentoLead::nomeDaAbertura($abertura);
+                if ($nome !== '') self::nomearSeAnonimo($cardId, $nome);
+            }
+            if ($semSetor) {
+                $st = $pdo->prepare('SELECT id, nome FROM teams WHERE account_id = ? AND deleted_at IS NULL');
+                $st->execute([$accountId]);
+                $setores = [];
+                foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $s) $setores[(int)$s['id']] = (string)$s['nome'];
+                $setor = SegmentoLead::setorPeloTipo($card['tipo_lead'] ?? null, $setores)
+                      ?? SegmentoLead::setorPelaMensagem($abertura, $setores);
+                if ($setor && \App\Usuarios\Team::definirSetorDoCard($accountId, $cardId, $setor, true) && $instanceId) {
+                    (new WhatsAppMessage())->sincronizarSetorComCard($instanceId, $remoteJid, false);
+                }
+            }
+        } catch (\Throwable $e) {
+            error_log('[sdr_fleetiflow] nome/setor do lead falhou (mensagem preservada): ' . $e->getMessage());
         }
     }
 

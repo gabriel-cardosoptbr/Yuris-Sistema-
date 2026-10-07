@@ -654,7 +654,8 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
         \App\WhatsAppAgente\SdrFleetiflow::aoMensagem(
             $accountId, $instanceId, $remoteJid, $key, $fromMe,
             \App\WhatsAppAgente\SdrFleetiflow::origemEfetiva($eventoOriginal, is_array($msg) ? ($msg['source'] ?? null) : null),
-            $pushName, $ts
+            $pushName, $ts,
+            $msgContent ?? null   // abertura enviada: dela sai o nome e o setor do lead (SegmentoLead)
         );
     }
 

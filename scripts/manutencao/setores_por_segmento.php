@@ -37,8 +37,9 @@ $aplicar = isset($o['aplicar']);
 if ($conta <= 0) exit("Informe --conta=ID.\n");
 
 $SETORES = [
-    'Advocacia' => ['cor' => '#2563EB', 'tipo' => '/advoc/iu',           'msg' => '/escrit[oó]rio|advoc|jur[ií]dic|yuris/iu'],
-    'Estética'  => ['cor' => '#DB2777', 'tipo' => '/est[eé]tic|cl[ií]nic/iu', 'msg' => '/cl[ií]nica|est[eé]tic|biom[eé]dic|harmoniza/iu'],
+    // As palavras vêm de SegmentoLead, a mesma regra que marca o lead que nasce agora.
+    'Advocacia' => ['cor' => '#2563EB', 'tipo' => \App\WhatsAppAgente\SegmentoLead::TIPOS['advocacia'], 'msg' => \App\WhatsAppAgente\SegmentoLead::REGRAS['advocacia']],
+    'Estética'  => ['cor' => '#DB2777', 'tipo' => \App\WhatsAppAgente\SegmentoLead::TIPOS['estetica'],  'msg' => \App\WhatsAppAgente\SegmentoLead::REGRAS['estetica']],
 ];
 
 $pdo = Database::getConnection();
