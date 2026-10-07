@@ -1065,6 +1065,12 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
     .chat-item-nome-setor .chat-item-name { white-space:normal; overflow:visible; text-overflow:clip; max-width:none; overflow-wrap:anywhere; }
     .chat-item-nome-setor .chat-item-sector { margin:0; }
     .chat-item-nome-setor .chat-item-sector-name { max-width:none; overflow:visible; }
+    /* Etapa do lead ao lado do setor: pílula com a cor da etapa (fundo suave, contorno inteiro). */
+    .chat-item-etapa { display:inline-flex; align-items:center; font-size:.65rem; font-weight:600; line-height:1.35; padding:1px 8px; border-radius:999px; border:1px solid transparent; color:#D8E4F0; overflow-wrap:anywhere; }
+    html[data-theme="light"] .chat-item-etapa { color:#1F2937; }
+    .chat-item-etapa--vazio { background:transparent; border-color:rgba(148,163,184,.4); color:#8A93A0; }
+    /* Cabeçalho da conversa: setor e etapa por inteiro, sem reticências. */
+    #sectorBadgeName, #stageBadgeName { max-width:none !important; overflow:visible !important; text-overflow:clip !important; }
     /* Fleetiflow (tema claro): o aviso escuro com texto verde-acinzentado não
        dava para ler. Fundo branco, texto escuro, e o tipo do aviso na cor do
        texto (sem faixa colorida na lateral). */
@@ -2733,7 +2739,7 @@ const API  = {
 <?php if ($isFleetiflow): ?>
 <script>window.CHAT_SETOR_NO_NOME = true; /* setor ao lado do nome na lista */</script>
 <?php endif; ?>
-<script src="/assets/chat.js?v=81"></script>
+<script src="/assets/chat.js?v=82"></script>
 <?php if ($isFleetiflow): ?>
 <script>
 window.CSRF_CHAT     = <?= json_encode($csrf) ?>;

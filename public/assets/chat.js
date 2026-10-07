@@ -712,6 +712,21 @@ const ChatApp = (() => {
   }
 
   // ── Chat list ────────────────────────────────────────────────
+  // Edição CRM: conversa que só tem o número (sem pushName nem nome na agenda) mostra
+  // o nome do lead ligado a ela (empresa, ou o nome do card quando não é um telefone).
+  // Nome real da conversa sempre vence; o mesmo display_name serve à lista, ao
+  // cabeçalho e à busca de quem lê (07/10/2026).
+  function aplicarNomeDoLead(chat) {
+    if (chat.is_group == 1) return;
+    const comLetra = s => /[A-Za-zÀ-ÿ]/.test(s);
+    const real = n => { const r = resolveSenderName(n); return comLetra(r) ? r : ''; };
+    if (real(chat.display_name) || real(chat.contact_name)) return;
+    const emp = String(chat.card_empresa_nome || '').trim();
+    const cli = String(chat.card_cliente_nome || '').trim();
+    const nome = comLetra(emp) ? emp : (comLetra(cli) ? cli : '');
+    if (nome) chat.display_name = nome;
+  }
+
   async function loadChats(silent = false) {
     try {
       const params = new URLSearchParams({ search: state.searchTerm });
@@ -727,6 +742,7 @@ const ChatApp = (() => {
       params.set('limit', String(state.chatLimit || 500));
       const r = await apiFetch(API.chats + '?' + params);
       state.chats = r.chats || [];
+      if (window.CHAT_SETOR_NO_NOME) state.chats.forEach(aplicarNomeDoLead);
       state.hasMoreChats = !!r.has_more;
       renderChatList();
       // Etapa movida na Prospecção ou pela Vitória aparece sem reabrir a conversa.
@@ -865,9 +881,21 @@ const ChatApp = (() => {
            <span class="chat-item-sector-dot" style="background:#A0A7B4"></span>
            <span class="chat-item-sector-name" style="color:#8A93A0">Sem setor</span>
          </div>` : '';
-    const setorNoNome = !!window.CHAT_SETOR_NO_NOME && (sectorTag || semSetor);
+    // A etapa do funil em que o lead está agora (coluna do card ligado à conversa),
+    // ao lado do setor. Conversa individual sem lead: "Sem etapa" em cinza. O nome
+    // da etapa aparece inteiro, quebrando de linha se faltar espaço (07/10/2026).
+    let etapaTag = '';
+    if (window.CHAT_SETOR_NO_NOME && chat.is_group != 1) {
+      if (chat.card_coluna_id && chat.card_etapa_nome) {
+        const cor = /^#[0-9a-f]{6}$/i.test(String(chat.card_etapa_cor || '')) ? chat.card_etapa_cor : '#6B7887';
+        etapaTag = `<span class="chat-item-etapa" title="Etapa do lead" style="background:${cor}38;border-color:${cor}">${esc(chat.card_etapa_nome)}</span>`;
+      } else {
+        etapaTag = '<span class="chat-item-etapa chat-item-etapa--vazio" title="Etapa do lead">Sem etapa</span>';
+      }
+    }
+    const setorNoNome = !!window.CHAT_SETOR_NO_NOME && (sectorTag || semSetor || etapaTag);
     const nomeHtml = setorNoNome
-      ? `<span class="chat-item-nome-setor"><span class="chat-item-name">${name}</span>${sectorTag || semSetor}</span>`
+      ? `<span class="chat-item-nome-setor"><span class="chat-item-name">${name}</span>${sectorTag || semSetor}${etapaTag}</span>`
       : `<span class="chat-item-name">${name}</span>`;
 
     return `<div class="chat-item${isActive}" data-jid="${esc(chat.remote_jid)}" onclick="ChatApp.openChatByJid('${esc(chat.remote_jid)}')">
@@ -2744,6 +2772,7 @@ const ChatApp = (() => {
         chat.card_etapa_nome = r.nome;
         chat.card_etapa_cor  = r.cor;
         if (state.currentJid === jid) updateStageBadge(chat);
+        renderChatList();
       }
       toast('Etapa: ' + r.nome, 'success');
     } catch (err) {

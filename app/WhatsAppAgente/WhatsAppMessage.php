@@ -630,6 +630,10 @@ class WhatsAppMessage
                        -- Etapa do funil = coluna do card ligado (o Chat da conta
                        -- Fleetiflow mostra e troca por aqui; ver chat_etapa.php).
                        cd.coluna_id AS card_coluna_id,
+                       -- Nome do lead: a edição CRM mostra no lugar do número quando a conversa
+                       -- não tem nome próprio (chat.js, aplicarNomeDoLead).
+                       cd.cliente_nome AS card_cliente_nome,
+                       cd.empresa_nome AS card_empresa_nome,
                        pcol.nome    AS card_etapa_nome,
                        pcol.cor     AS card_etapa_cor,
                        COALESCE(

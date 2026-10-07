@@ -284,6 +284,14 @@ setor ao lado do nome (que quebra a linha em vez de levar reticências); a linha
 para a última mensagem. Conversa individual sem setor mostra "Sem setor" em cinza, para toda
 conversa ter etiqueta e dar para ver o que falta classificar. No Yuris o setor continua numa linha própria.
 
+**Etapa do lead e nome na lista do Chat (edição CRM, 07/10/2026).** Ao lado do setor, cada conversa
+individual mostra a etapa do funil em que o lead está agora (pílula com a cor da etapa, nome inteiro,
+"Sem etapa" em cinza quando não há lead); mudar a etapa pelo cabeçalho atualiza a lista na hora. O
+cabeçalho da conversa mostra setor e etapa por inteiro, sem reticências. Conversa que só tem o número
+(sem pushName nem nome na agenda) passa a mostrar o nome do lead ligado a ela (`aplicarNomeDoLead` em
+`assets/chat.js`: empresa, ou o nome do card quando não é um telefone); nome real da conversa sempre
+vence. A lista traz `card_cliente_nome` e `card_empresa_nome` para isso.
+
 **Filtro por etapa do lead no Chat (edição CRM, 07/10/2026).** Ao lado de "Todos os setores" e "Todos os
 responsáveis", `chat.php` desenha (só quando `$isFleetiflow`) "Todas as etapas": Novos leads, Em
 qualificação... (as colunas do funil, de `api/whatsapp/chat_etapa.php`) e "Conversa sem lead". A etapa é a
