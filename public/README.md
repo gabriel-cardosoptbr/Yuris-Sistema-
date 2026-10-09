@@ -284,6 +284,12 @@ setor ao lado do nome (que quebra a linha em vez de levar reticências); a linha
 para a última mensagem. Conversa individual sem setor mostra "Sem setor" em cinza, para toda
 conversa ter etiqueta e dar para ver o que falta classificar. No Yuris o setor continua numa linha própria.
 
+**Botões Disparo e Follow-up no Chat (09/10/2026).** Ao lado de "Agente" e "Captação", `chat.php` tem
+"Disparo: Ligado/Segurado" e "Follow-up: Ligado/Segurado" (`assets/chat.js`, `loadAutomacaoToggle` e
+`toggleAutomacao`). Seguram ou soltam o robô de disparo e a cadência de follow-up do n8n; o n8n pergunta antes
+de cada mensagem, então vale na hora. Só aparecem na conta que os fluxos atendem (a Fleetiflow); quem não é
+owner/admin vê o estado, mas o botão fica travado. Ligar pede confirmação.
+
 **O WhatsApp do lead dentro do card (edição CRM, 07/10/2026).** Na aba WhatsApp da ficha do lead,
 `assets/ff-conversa.js` (carregado por `prospeccao.php` só na edição CRM, com `defer`) desenha, abaixo do
 vínculo, o painel do lead: processo (etapa), quem está atendendo (agente de IA, pessoa que assumiu ou

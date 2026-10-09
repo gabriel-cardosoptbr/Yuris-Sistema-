@@ -222,6 +222,7 @@ const ChatApp = (() => {
     if (instance && instance.id) state.instanceId = Number(instance.id);
     loadAgentToggle();
     loadCaptacaoToggle();
+    loadAutomacaoToggle();
     if (window.CHAT_ETAPA_FUNIL && status === 'open') carregarPendentes();
     const dot   = qs('#waDot');
     const label = qs('#waStatusLabel');
@@ -3836,6 +3837,69 @@ const ChatApp = (() => {
   // ── Captação automática (por conta) ──────────────────────────
   // Espelha o padrão do toggle do agente: o botão mostra o estado atual e um
   // clique alterna. Some para quem não pode mexer.
+  // ── Disparo e follow-up do n8n (AutomacaoSdr) ───────────────
+  // Dois botões: o robô de disparo (abertura para lead novo) e a cadência de
+  // follow-up. O n8n pergunta ao Yuris antes de cada mensagem, então desligar vale
+  // na hora. Só aparecem na conta que os fluxos atendem; quem não é owner/admin vê
+  // o estado, mas não muda.
+  const AUTOMACAO = {
+    disparo:  { btn: '#btnDisparoToggle',  lbl: '#btnDisparoToggleLabel',  nome: 'Disparo',
+                ligado: 'O robô manda a mensagem de abertura para leads novos da planilha. Clique para segurar.',
+                desligado: 'O robô de disparo está segurado: nenhuma abertura sai para lead novo. Clique para ligar.' },
+    followup: { btn: '#btnFollowupToggle', lbl: '#btnFollowupToggleLabel', nome: 'Follow-up',
+                ligado: 'Quem recebeu a abertura e não respondeu recebe os follow-ups da cadência. Clique para segurar.',
+                desligado: 'A cadência de follow-up está segurada: nenhum follow-up sai. Clique para ligar.' },
+  };
+  let _automacaoPode = false;
+
+  async function loadAutomacaoToggle() {
+    try {
+      const r = await apiFetch('/api/whatsapp/automacao_toggle.php');
+      if (!r || !r.ok || !r.disponivel) return;
+      _automacaoPode = !!r.pode_alterar;
+      renderAutomacao('disparo', !!r.disparo);
+      renderAutomacao('followup', !!r.followup);
+    } catch (e) { /* botões simplesmente não aparecem */ }
+  }
+
+  function renderAutomacao(qual, ligado) {
+    const c = AUTOMACAO[qual]; const btn = qs(c.btn); const lbl = qs(c.lbl);
+    if (!btn) return;
+    btn.style.display = 'inline-flex';
+    btn.dataset.ligado = ligado ? '1' : '0';
+    lbl.textContent = c.nome + ': ' + (ligado ? 'Ligado' : 'Segurado');
+    btn.style.color = ligado ? '#10b981' : '#d97706';
+    btn.style.borderColor = ligado ? 'rgba(16,185,129,.45)' : 'rgba(217,119,6,.45)';
+    btn.title = (ligado ? c.ligado : c.desligado) + (_automacaoPode ? '' : ' (só owner ou admin muda)');
+    btn.disabled = !_automacaoPode;
+    btn.style.cursor = _automacaoPode ? 'pointer' : 'default';
+  }
+
+  async function toggleAutomacao(qual) {
+    const c = AUTOMACAO[qual]; const btn = qs(c.btn);
+    if (!btn || !_automacaoPode) return;
+    const ligando = btn.dataset.ligado !== '1';
+    if (ligando && window.Yuris && Yuris.confirm) {
+      const texto = qual === 'disparo'
+        ? 'O robô volta a mandar a mensagem de abertura para os leads novos da planilha, no ritmo configurado no fluxo.'
+        : 'Quem recebeu a abertura e não respondeu volta a receber os follow-ups da cadência.';
+      const ok = await Yuris.confirm(texto, { title: 'Ligar ' + c.nome.toLowerCase(), okLabel: 'Ligar', type: 'info' });
+      if (!ok) return;
+    }
+    btn.disabled = true;
+    try {
+      const r = await apiFetch('/api/whatsapp/automacao_toggle.php', 'POST', { qual: qual, ligado: ligando ? 1 : 0, _csrf: CSRF });
+      if (!r || !r.ok) { if (window.Yuris) Yuris.toast((r && r.error) || 'Não foi possível salvar.', 'error'); return; }
+      renderAutomacao('disparo', !!r.disparo);
+      renderAutomacao('followup', !!r.followup);
+      if (window.Yuris) Yuris.toast(c.nome + (r[qual] ? ' ligado.' : ' segurado: nada sai até você ligar de novo.'), 'success');
+    } catch (e) {
+      if (window.Yuris) Yuris.toast('Falha de conexão.', 'error');
+    } finally {
+      btn.disabled = !_automacaoPode;
+    }
+  }
+
   async function loadCaptacaoToggle() {
     try {
       const r = await apiFetch('/api/whatsapp/captacao_toggle.php');
@@ -3980,7 +4044,7 @@ const ChatApp = (() => {
     syncChats,
     openContacts, closeContacts, saveContactName,
     openLinkModal, closeLinkModal, saveLink,
-    toggleCaptacao, loadCaptacaoToggle,
+    toggleCaptacao, loadCaptacaoToggle, toggleAutomacao, loadAutomacaoToggle,
     abrirCadastroRapido, fecharCadastroRapido, cadastrarComo,
     openLinkPicker, filterLinkPicker, selectLinkItem, clearLinkItem, removeLinkedProcesso,
     toggleSectorDropdown, setSectorDirect,

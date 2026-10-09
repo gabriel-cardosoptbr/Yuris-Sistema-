@@ -35,6 +35,12 @@ escolher uma pessoa em "Toda a equipe" quebrava a tela.
 `?coluna_id=0` (conversa sem lead), junto de `team_id` e `user_id`; é o filtro "Todas as etapas" do Chat da
 edição CRM (07/10/2026). Sem o parâmetro, a lista é a de sempre.
 
+`whatsapp/automacao_toggle.php` (sessão) e `whatsapp/sdr_automacao.php` (n8n, cabeçalho `X-Fleetiflow-Token`)
+são os botões "Disparo" e "Follow-up" do Chat: o primeiro lê (`GET`, com `disponivel` e `pode_alterar`) e
+grava (`POST {qual, ligado, _csrf}`, só owner/admin, só na conta da prospecção); o segundo é o que o robô de
+disparo e a cadência de follow-up perguntam antes de cada mensagem (`{disparo, followup}`). Regra em
+`App\WhatsAppAgente\AutomacaoSdr`.
+
 `whatsapp/card_whatsapp.php?card_id=ID` devolve tudo do WhatsApp de um lead para a ficha do card da edição CRM:
 etapa, setor, quem atende (agente de IA ligado ou pausado, pessoa, responsável), os números nossos ligados à
 conversa (nome, telefone, status, dono) e as 300 mensagens mais recentes em texto. Só lê o banco (não chama a

@@ -1992,6 +1992,17 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
           <svg style="display:inline;width:13px;height:13px;margin-right:5px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
           <span id="btnCaptacaoToggleLabel">Captacao</span>
         </button>
+        <!-- Prospecção automática do n8n (AutomacaoSdr): o disparo de abertura e a
+             cadência de follow-up, ligados e desligados aqui. O n8n pergunta antes
+             de cada mensagem. Só aparecem na conta que os fluxos atendem. -->
+        <button class="conn-btn-secondary" id="btnDisparoToggle" onclick="ChatApp.toggleAutomacao('disparo')" style="display:none">
+          <svg style="display:inline;width:13px;height:13px;margin-right:5px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>
+          <span id="btnDisparoToggleLabel">Disparo</span>
+        </button>
+        <button class="conn-btn-secondary" id="btnFollowupToggle" onclick="ChatApp.toggleAutomacao('followup')" style="display:none">
+          <svg style="display:inline;width:13px;height:13px;margin-right:5px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
+          <span id="btnFollowupToggleLabel">Follow-up</span>
+        </button>
         <button class="conn-btn-secondary" id="btnDisconnect" onclick="ChatApp.disconnectWhatsApp()" style="display:none">
           Desconectar
         </button>
@@ -2739,7 +2750,7 @@ const API  = {
 <?php if ($isFleetiflow): ?>
 <script>window.CHAT_SETOR_NO_NOME = true; /* setor ao lado do nome na lista */</script>
 <?php endif; ?>
-<script src="/assets/chat.js?v=82"></script>
+<script src="/assets/chat.js?v=83"></script>
 <?php if ($isFleetiflow): ?>
 <script>
 window.CSRF_CHAT     = <?= json_encode($csrf) ?>;
