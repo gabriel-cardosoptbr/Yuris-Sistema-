@@ -299,7 +299,32 @@
         if (form.elements.id.value !== id) return;
         if (!r.ok) { lista.innerHTML = '<div class="ffag-vazio">' + esc(r.error || 'Não foi possível carregar.') + '</div>'; return; }
         desenhar(r.data.agendamentos || []);
+        atualizarCardDoQuadro(id, r.data.agendamentos || []);
       });
+    }
+
+    // O card do funil mostra o próximo agendamento (cards.php: proxima_interacao).
+    // Agendou ou desmarcou aqui: o card muda já, sem esperar a próxima leitura.
+    function atualizarCardDoQuadro(id, itens) {
+      var ativos = itens.filter(function (a) { return a.tarefa_status === 'ativa' && a.prazo; })
+        .sort(function (x, y) { return String(x.prazo).localeCompare(String(y.prazo)); });
+      var p = ativos[0];
+      var prox = p ? {
+        tipo: p.tipo, tipo_rotulo: p.tipo_rotulo, prazo: p.prazo, titulo: p.titulo,
+        responsavel_id: p.responsavel_id != null ? +p.responsavel_id : null, responsavel_nome: p.responsavel_nome,
+        atrasada: !!p.atrasada, mensagem_programada: p.envio_status === 'pendente'
+      } : null;
+      try {
+        if (typeof cardsCacheByColumn === 'undefined') return;
+        var mudou = false;
+        Object.keys(cardsCacheByColumn).forEach(function (k) {
+          (cardsCacheByColumn[k] || []).forEach(function (c) {
+            if (String(c.id) !== String(id)) return;
+            if (JSON.stringify(c.proxima_interacao || null) !== JSON.stringify(prox)) { c.proxima_interacao = prox; mudou = true; }
+          });
+        });
+        if (mudou && typeof applyFiltersAndRender === 'function') applyFiltersAndRender();
+      } catch (e) {}
     }
 
     function desenhar(itens) {

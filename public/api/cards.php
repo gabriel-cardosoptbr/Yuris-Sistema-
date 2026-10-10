@@ -41,6 +41,17 @@ if ($method === 'GET') {
     if (isset($_GET['responsavel_user_id'])) $filters['responsavel_user_id']  = (int)$_GET['responsavel_user_id'];
     if (isset($_GET['status']))              $filters['status']               = $_GET['status'];
     $cards = Card::list($filters);
+    // Edição CRM: o card do funil mostra o próximo agendamento do lead
+    // (App\Prospeccao\AgendaDoLead). Falha aqui nunca derruba a lista.
+    if ($ctx->getProduto() === 'fleetiflow' && $cards) {
+        try {
+            $prox = \App\Prospeccao\AgendaDoLead::proximas(array_column($cards, 'id'));
+            foreach ($cards as &$c) $c['proxima_interacao'] = $prox[(int) $c['id']] ?? null;
+            unset($c);
+        } catch (\Throwable $e) {
+            error_log('[cards] proxima_interacao: ' . $e->getMessage());
+        }
+    }
     echo json_encode(['data' => $cards]);
     exit;
 }

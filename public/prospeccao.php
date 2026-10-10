@@ -1236,6 +1236,9 @@ function column_display_name(array $col): string
     html[data-theme="light"] .lc-dado > svg{ color:#9AA3B2; margin-top:2px; }
     html[data-theme="light"] .lc-dado small{ display:block; color:#767676 !important; font-size:.68rem; line-height:1.2; }
     html[data-theme="light"] .lc-dado .lc-v{ display:block; color:#1F2937 !important; font-weight:700; font-size:.8rem; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    html[data-theme="light"] .lc-dado.lc-agendado > svg{ color:var(--ff-marca, #015DFC); }
+    html[data-theme="light"] .lc-dado.lc-agendado .lc-v{ color:var(--ff-marca-forte, #013DF2) !important; }
+    html[data-theme="light"] .lc-dado.lc-agendado-atrasado > svg, html[data-theme="light"] .lc-dado.lc-agendado-atrasado .lc-v{ color:#B91C1C !important; }
     html[data-theme="light"] .lc-dado .lc-v em{ font-style:normal; font-weight:600; color:#767676 !important; }
 
     html[data-theme="light"] .lc-atraso{ display:flex; align-items:center; gap:8px; margin-top:9px; padding:7px 10px; border-radius:9px; background:#FEE2E2; }
@@ -2222,6 +2225,7 @@ function column_display_name(array $col): string
       zap:      '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.38 1.27 4.79L2.05 22l5.38-1.37c1.37.74 2.93 1.16 4.61 1.16 5.45 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.13-2.9-7A9.83 9.83 0 0 0 12.04 2zm0 18.1c-1.5 0-2.97-.4-4.25-1.16l-.3-.18-3.19.81.85-3.1-.2-.32a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.32-8.12 8.32zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.22.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18-.06-.1-.22-.16-.47-.28z"/></svg>',
       chat:     '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>',
       seta:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
+      agenda:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
       gelo:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6.5v11L12 22l8-4.5v-11L12 2z"/><path d="M4 6.5 12 11l8-4.5M12 11v11"/></svg>',
     };
 
@@ -2435,6 +2439,17 @@ function column_display_name(array $col): string
       } else if (card.data_prevista_fechamento && dueDays !== null && dueDays >= 0 && !fechada) {
         rotuloQuando = 'Próximo contato'; quando = lcQuando(card.data_prevista_fechamento, true);
       }
+      // O próximo agendamento do lead (botão "Agendar próxima interação" da ficha)
+      // vence o prazo do card: tem hora, tipo e responsável.
+      const prox = !hasFechamento && !fechada ? card.proxima_interacao : null;
+      let iconeQuando = LC_ICONES.relogio, dicaQuando = '';
+      if (prox) {
+        rotuloQuando = (prox.atrasada ? 'Atrasada: ' : 'Próxima: ') + prox.tipo_rotulo;
+        quando = lcQuando(prox.prazo, false) || '';
+        iconeQuando = LC_ICONES.agenda;
+        dicaQuando = prox.titulo + (prox.responsavel_nome ? ' · responsável: ' + prox.responsavel_nome : '')
+          + (prox.mensagem_programada ? ' · a mensagem sai sozinha no WhatsApp' : '');
+      }
 
       const div = document.createElement('div');
       div.className = 'card-mini lc lc-' + temp.chave + (isOverdue ? ' is-overdue' : '');
@@ -2453,7 +2468,10 @@ function column_display_name(array $col): string
           '<span class="org-name">' + escapeHtml(String(card.origin_account_nome || '')) + '</span></div>';
       }
 
-      const atrasoHtml = isOverdue
+      const atrasoHtml = prox && prox.atrasada
+        ? '<div class="lc-atraso">' + LC_ICONES.alerta + '<div><span class="lc-v">Interação atrasada</span><small>' +
+            escapeHtml(prox.tipo_rotulo + ' marcada para ' + (lcQuando(prox.prazo, false) || '')) + '</small></div></div>'
+        : isOverdue
         ? '<div class="lc-atraso">' + LC_ICONES.alerta + '<div><span class="lc-v">Ação em atraso</span><small>Deveria ter sido feita ' +
             (dueDays === -1 ? 'ontem' : 'há ' + Math.abs(dueDays) + ' dias úteis') + '</small></div></div>'
         : '';
@@ -2474,7 +2492,8 @@ function column_display_name(array $col): string
         '</div>' +
         '<div class="lc-dados">' +
           '<div class="lc-dado">' + LC_ICONES.dinheiro + '<div><small>Potencial</small><span class="lc-v">' + (valor > 0 ? formatMoney(valor).replace(',00', '') + '<em>/mês</em>' : 'a definir') + '</span></div></div>' +
-          '<div class="lc-dado">' + LC_ICONES.relogio + '<div><small>' + rotuloQuando + '</small><span class="lc-v">' + escapeHtml(quando) + '</span></div></div>' +
+          '<div class="lc-dado' + (prox ? ' lc-agendado' + (prox.atrasada ? ' lc-agendado-atrasado' : '') : '') + '"' + (dicaQuando ? ' title="' + escapeHtml(dicaQuando) + '"' : '') + '>' +
+            iconeQuando + '<div><small>' + rotuloQuando + '</small><span class="lc-v">' + escapeHtml(quando) + '</span></div></div>' +
         '</div>' +
         atrasoHtml +
         (card.linked_chip_nome ? '<div class="lc-numero" title="Número do WhatsApp deste lead">WhatsApp: <b>' + escapeHtml(card.linked_chip_nome) + '</b></div>' : '') +
@@ -2900,7 +2919,8 @@ function column_display_name(array $col): string
     // um card sendo arrastado, um modal aberto ou a aba escondida.
     if (<?= $moduloJuridico ? 'false' : 'true' ?>) {
       const assinaturaDo = (porColuna) => JSON.stringify(Object.keys(porColuna).sort().map(k =>
-        [k, (porColuna[k] || []).map(c => c.id + ':' + c.coluna_id + ':' + c.updated_at + ':' + (c.linked_chat_jid || ''))]));
+        [k, (porColuna[k] || []).map(c => c.id + ':' + c.coluna_id + ':' + c.updated_at + ':' + (c.linked_chat_jid || '')
+          + ':' + (c.proxima_interacao ? c.proxima_interacao.prazo + c.proxima_interacao.tipo + c.proxima_interacao.atrasada : ''))]));
       setInterval(async function () {
         if (document.hidden) return;
         if (_justDragged || document.querySelector('.sortable-chosen, .sortable-drag, .sortable-ghost')) return;

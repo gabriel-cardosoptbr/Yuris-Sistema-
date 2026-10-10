@@ -198,6 +198,52 @@ final class AgendaDoLead
     }
 
     /**
+     * O próximo agendamento em aberto de cada lead, para o card do funil: o de
+     * hora mais cedo entre as tarefas ainda ativas (um atrasado vem primeiro).
+     * Só lê agendamento da mesma conta do lead; quem chama já filtrou os cards.
+     *
+     * @param int[] $cardIds
+     * @return array<int, array> card_id => tipo, tipo_rotulo, prazo, titulo,
+     *                           responsavel_id, responsavel_nome, atrasada, mensagem_programada
+     */
+    public static function proximas(array $cardIds, ?string $agora = null): array
+    {
+        $ids = self::ids($cardIds);
+        if (!$ids) return [];
+        $agora = $agora ?? TaskEntrega::agoraLocal();
+        $out = [];
+        foreach (array_chunk($ids, 500) as $lote) {
+            $in = implode(',', array_fill(0, count($lote), '?'));
+            $st = Database::getConnection()->prepare(
+                "SELECT a.card_id, a.tipo, a.envio_status, t.prazo, t.titulo, t.responsavel_id, u.nome AS responsavel_nome
+                   FROM crm_agendamentos a
+                   JOIN cards c       ON c.id = a.card_id AND c.account_id = a.account_id
+                   JOIN tasks t       ON t.id = a.task_id AND t.status = 'ativa' AND t.prazo IS NOT NULL
+                   JOIN task_boards b ON b.id = t.board_id AND b.account_id = a.account_id AND b.ativo = 1
+                   LEFT JOIN users u  ON u.id = t.responsavel_id
+                  WHERE a.card_id IN ($in)
+                  ORDER BY t.prazo ASC, a.id ASC"
+            );
+            $st->execute($lote);
+            foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $card = (int) $r['card_id'];
+                if (isset($out[$card])) continue;
+                $out[$card] = [
+                    'tipo'                => $r['tipo'],
+                    'tipo_rotulo'         => self::TIPOS[$r['tipo']] ?? $r['tipo'],
+                    'prazo'               => (string) $r['prazo'],
+                    'titulo'              => (string) $r['titulo'],
+                    'responsavel_id'      => $r['responsavel_id'] !== null ? (int) $r['responsavel_id'] : null,
+                    'responsavel_nome'    => $r['responsavel_nome'],
+                    'atrasada'            => $r['prazo'] < $agora,
+                    'mensagem_programada' => $r['envio_status'] === 'pendente',
+                ];
+            }
+        }
+        return $out;
+    }
+
+    /**
      * As ações do dia da pessoa: tudo que vence hoje e o que ficou atrasado nos
      * últimos 30 dias, de qualquer quadro das contas dela. É o aviso ao entrar.
      */

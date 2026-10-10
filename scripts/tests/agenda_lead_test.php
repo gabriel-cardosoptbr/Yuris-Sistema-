@@ -188,6 +188,20 @@ if (!$pdo || !$temTabela || !$conta) {
         ok('tarefa concluída na agenda antes da hora cancela a mensagem',
             count($enviadas) === 2 && $pdo->query('SELECT envio_status FROM crm_agendamentos WHERE id = ' . (int) $z['id'])->fetchColumn() === 'cancelada');
 
+        echo "\n== 5b. O card do funil ==\n";
+        $p1 = AgendaDoLead::proximas([(int) $card['id'], (int) $semZap['id']], "$amanha 07:00:00");
+        ok('o card mostra a ligação das 16:00 (a única ainda em aberto)', ($p1[(int) $card['id']]['prazo'] ?? '') === "$amanha 16:00:00" && $p1[(int) $card['id']]['tipo_rotulo'] === 'Ligação');
+        ok('lead sem agendamento não traz nada', !isset($p1[(int) $semZap['id']]));
+        $cedo = AgendaDoLead::criar($card, ['tipo' => 'reuniao', 'quando' => "$amanha 09:30"], $eu, true);
+        $tasks[] = $cedo['task_id'];
+        $p2 = AgendaDoLead::proximas([(int) $card['id']], "$amanha 07:00:00");
+        ok('o mais cedo vence', ($p2[(int) $card['id']]['prazo'] ?? '') === "$amanha 09:30:00" && $p2[(int) $card['id']]['tipo'] === 'reuniao');
+        $p3 = AgendaDoLead::proximas([(int) $card['id']], "$amanha 10:00:00");
+        ok('passada a hora, vem como atrasado', ($p3[(int) $card['id']]['atrasada'] ?? false) === true);
+        AgendaDoLead::concluir((int) $cedo['id'], $acc, $eu);
+        $p4 = AgendaDoLead::proximas([(int) $card['id']], "$amanha 10:00:00");
+        ok('feito, sai do card e volta o seguinte', ($p4[(int) $card['id']]['prazo'] ?? '') === "$amanha 16:00:00" && $p4[(int) $card['id']]['atrasada'] === false);
+
         echo "\n== 6. A agenda de hoje ==\n";
         $h = AgendaDoLead::criar($card, ['tipo' => 'reuniao', 'quando' => "$amanha 08:00"], $eu, true);
         $tasks[] = $h['task_id'];
