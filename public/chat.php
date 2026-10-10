@@ -1071,6 +1071,24 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
     .chat-item-etapa--vazio { background:transparent; border-color:rgba(148,163,184,.4); color:#8A93A0; }
     /* Cabeçalho da conversa: setor e etapa por inteiro, sem reticências. */
     #sectorBadgeName, #stageBadgeName { max-width:none !important; overflow:visible !important; text-overflow:clip !important; }
+    /* Situação da conversa (edição CRM, SituacaoConversa): aparece quando a última
+       palavra é do lead. Faixa inteira sob o cabeçalho, sem barra lateral colorida. */
+    .chat-situacao { display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:9px 18px; font-size:.78rem; line-height:1.45;
+                     background:rgba(245,158,11,.10); border-bottom:1px solid rgba(245,158,11,.28); color:#F3DDB3; }
+    .chat-situacao--info { background:rgba(59,130,246,.10); border-bottom-color:rgba(59,130,246,.28); color:#C9DCF8; }
+    .chat-situacao-ico { width:16px; height:16px; flex-shrink:0; }
+    .chat-situacao-txt { flex:1 1 320px; min-width:0; overflow-wrap:anywhere; }
+    .chat-situacao-tit { font-weight:700; }
+    .chat-situacao-acoes { display:flex; gap:8px; flex-wrap:wrap; }
+    .chat-situacao-btn { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:8px; font-size:.75rem; font-weight:600; font-family:inherit;
+                         cursor:pointer; border:1px solid rgba(245,158,11,.45); background:transparent; color:inherit; }
+    .chat-situacao-btn--principal { background:#D97706; border-color:#D97706; color:#FFFFFF; }
+    .chat-situacao-btn:disabled { opacity:.6; cursor:default; }
+    html[data-theme="light"] .chat-situacao { background:#FFFBEB; border-bottom-color:#FDE68A; color:#78350F; }
+    html[data-theme="light"] .chat-situacao--info { background:#EFF6FF; border-bottom-color:#BFDBFE; color:#1E3A8A; }
+    html[data-theme="light"] .chat-situacao-btn { border-color:#F59E0B; }
+    /* Quem mandou cada mensagem nossa (AutorDaMensagem). */
+    .msg-autor { font-weight:600; margin-right:6px; opacity:.9; }
     /* Fleetiflow (tema claro): o aviso escuro com texto verde-acinzentado não
        dava para ler. Fundo branco, texto escuro, e o tipo do aviso na cor do
        texto (sem faixa colorida na lateral). */
@@ -2199,6 +2217,15 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
               </div>
 <?php endif; ?>
 
+<?php if ($isFleetiflow): ?>
+              <!-- Agendar a próxima interação com o lead da conversa (a mesma janela da
+                   ficha do lead, assets/ff-agenda.js). Só aparece com card ligado. -->
+              <button class="chat-icon-btn" id="btnAgendarChat" onclick="ChatApp.agendarDaConversa()" title="Agendar a próxima interação com este lead"
+                      aria-label="Agendar a próxima interação com este lead" style="display:none">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </button>
+<?php endif; ?>
+
               <!-- Busca dentro da conversa atual -->
               <button class="chat-icon-btn" onclick="ChatApp.toggleChatSearch()" title="Buscar nesta conversa" id="btnChatSearch">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -2267,6 +2294,9 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
           </div>
 
           <!-- Barra de busca dentro da conversa (toggle via header) -->
+          <!-- Situação da conversa: "Aguardando resposta há 3 dias · por quê" (edição CRM) -->
+          <div id="chatSituacao" class="chat-situacao" style="display:none" role="status"></div>
+
           <div id="chatSearchBar" class="chat-search-bar" style="display:none">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;flex-shrink:0;color:#7EB8F6"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input type="text" id="chatSearchInput" placeholder="Buscar nesta conversa…" oninput="ChatApp.onChatSearchInput()" onkeydown="if(event.key==='Escape')ChatApp.closeChatSearch()">
@@ -2750,7 +2780,7 @@ const API  = {
 <?php if ($isFleetiflow): ?>
 <script>window.CHAT_SETOR_NO_NOME = true; /* setor ao lado do nome na lista */</script>
 <?php endif; ?>
-<script src="/assets/chat.js?v=83"></script>
+<script src="/assets/chat.js?v=84"></script>
 <?php if ($isFleetiflow): ?>
 <script>
 window.CSRF_CHAT     = <?= json_encode($csrf) ?>;

@@ -238,6 +238,8 @@ $msgId = $msgModel->save([
 try {
     $donoCanal = (int)($ch['owner_account_id'] ?? 0);
     if (\App\WhatsAppAgente\SdrFleetiflow::contaUsa($donoCanal)) {
+        // O balão mostra "Ana pelo Chat" (AutorDaMensagem).
+        \App\WhatsAppAgente\AutorDaMensagem::registrar($donoCanal, $instanceId, $wamid, 'chat', (int)$_uid);
         \App\WhatsAppAgente\SdrFleetiflow::pessoaAssumiu($donoCanal, $instanceId, $remoteJid, (int)$_uid);
     }
 } catch (\Throwable $_) {}

@@ -35,6 +35,13 @@ escolher uma pessoa em "Toda a equipe" quebrava a tela.
 `?coluna_id=0` (conversa sem lead), junto de `team_id` e `user_id`; é o filtro "Todas as etapas" do Chat da
 edição CRM (07/10/2026). Sem o parâmetro, a lista é a de sempre.
 
+`whatsapp/situacao.php` (sessão, edição CRM) é a linha "Aguardando resposta" do Chat: `GET ?jid=` devolve
+`{disponivel, situacao}` (motivo, desde quando, quem pausou, agente ligado no número da conversa; canal com
+`view`), e `POST {action:'mandar_agente', remote_jid, _csrf}` entrega de novo ao agente as mensagens do lead
+que esperam resposta (canal com `send`; 409 com o motivo quando não pode). Regra em
+`App\WhatsAppAgente\SituacaoConversa`. Na mesma edição, `whatsapp/messages.php` acrescenta `autor`,
+`autor_rotulo` e `autor_deduzido` às mensagens nossas (`App\WhatsAppAgente\AutorDaMensagem`).
+
 `whatsapp/automacao_toggle.php` (sessão) e `whatsapp/sdr_automacao.php` (n8n, cabeçalho `X-Fleetiflow-Token`)
 são os botões "Disparo" e "Follow-up" do Chat: o primeiro lê (`GET`, com `disponivel` e `pode_alterar`) e
 grava (`POST {qual, ligado, _csrf}`, só owner/admin, só na conta da prospecção); o segundo é o que o robô de

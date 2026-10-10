@@ -217,16 +217,23 @@ final class SdrFleetiflow
      * telefone real de um @lid) para a Vitória. Roda DEPOIS do 200 à Evolution,
      * como o resto do agente. Nunca propaga exceção.
      *
-     * @param array{account_id:int,instance_id:int,remote_jid:string,payload:array} $task
+     * Cada entrega fica em sdr_encaminhamentos (migration 142), com o resultado:
+     * é o que deixa o Chat dizer "a Vitória recebeu e não respondeu" ou "a entrega
+     * falhou" (SituacaoConversa). 'origem' é 'webhook' (automática) ou 'manual'
+     * (botão "Mandar para a Vitória").
+     *
+     * @param array{account_id:int,instance_id:int,remote_jid:string,payload:array,origem?:string,user_id?:?int} $task
+     * @return bool entregue (HTTP 2xx/3xx)
      */
-    public static function encaminhar(array $task): void
+    public static function encaminhar(array $task): bool
     {
         $conta = (int)($task['account_id'] ?? 0);
         $url   = self::urlDaConta($conta);
         if ($url === '') {
             error_log('[sdr_fleetiflow] conta ' . $conta . ' sem endereço de agente: mensagem não encaminhada');
-            return;
+            return false;
         }
+        $http = 0; $ok = false;
         try {
             // Por qual número a mensagem chegou (nome da instância na Evolution), igual
             // ao que a Evolution manda no webhook direto. Com dois números na conta, a
@@ -263,13 +270,34 @@ final class SdrFleetiflow
             $http = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $erro = curl_error($ch);
             curl_close($ch);
-            if ($erro !== '' || $http >= 400 || $http === 0) {
+            $ok = $erro === '' && $http > 0 && $http < 400;
+            if (!$ok) {
                 // Telefone mascarado no log (F4).
                 error_log('[sdr_fleetiflow] encaminhamento falhou http=' . $http . ' ' . $erro
                     . ' jid=' . preg_replace('/\d{5,}/', '*****', (string)($task['remote_jid'] ?? '')));
             }
         } catch (\Throwable $e) {
             error_log('[sdr_fleetiflow] encaminhar falhou: ' . $e->getMessage());
+        }
+        self::registrarEntrega($task, $http, $ok);
+        return $ok;
+    }
+
+    /** Grava a entrega ao agente. Best-effort: sem a migration 142, só não grava. */
+    private static function registrarEntrega(array $task, int $http, bool $ok): void
+    {
+        try {
+            $wamid = (string)($task['payload']['key']['id'] ?? '');
+            \App\Core\Database::getConnection()->prepare(
+                'INSERT INTO sdr_encaminhamentos (account_id, instance_id, remote_jid, wamid, origem, http_status, ok, user_id, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            )->execute([
+                (int)($task['account_id'] ?? 0), (int)($task['instance_id'] ?? 0), (string)($task['remote_jid'] ?? ''),
+                $wamid !== '' ? $wamid : null, ($task['origem'] ?? '') === 'manual' ? 'manual' : 'webhook',
+                $http, $ok ? 1 : 0, !empty($task['user_id']) ? (int)$task['user_id'] : null, date('Y-m-d H:i:s'),
+            ]);
+        } catch (\Throwable $e) {
+            error_log('[sdr_fleetiflow] registro da entrega falhou: ' . $e->getMessage());
         }
     }
 

@@ -8,6 +8,7 @@ ser testado nos dois.
 
 | Pasta / arquivo | O que é |
 |---|---|
+| `migrations/run_142.php` | **quem mandou a mensagem e o que foi entregue ao agente** (edição CRM, 10/10/2026): cria `whatsapp_msg_autor` (`instance_id` + `wamid` únicos, `autor` `chat` ou `celular`, `user_id`) e `sdr_encaminhamentos` (cada entrega da mensagem do lead ao agente de pré-venda: origem `webhook` ou `manual`, `http_status`, `ok`, `user_id`). Collation de `whatsapp_messages`. Idempotente, com `--dry-run`. Ver `App\WhatsAppAgente\AutorDaMensagem` e `SituacaoConversa` |
 | `migrations/run_141.php` | **agenda da próxima interação com o lead** (edição CRM): cria `crm_agendamentos` (conta, lead, tarefa, tipo, `lembrete_min`, `lembrete_enviado_para`, mensagem programada e o estado do envio). A data e a hora ficam na tarefa (`tasks.prazo`). Ver `app/Prospeccao/README.md`. Idempotente, `--dry-run` |
 | `migrations/run_140.php` | **setor do lead e gestor do setor**: `cards.team_id` (o setor do lead, igual ao da conversa ligada; ver `app/WhatsAppAgente/README.md`) e `teams.gestor_user_id` (o usuário responsável pelo setor). Só cria as colunas e os índices. Idempotente, `--dry-run` |
 | `migrations/run_139.php` | `reembolso_parcelas.pago_por_nome`: quem fez o pagamento de cada parcela (texto livre), gravado junto com a data ao marcar a parcela como paga. Exige a 138 |

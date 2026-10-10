@@ -56,6 +56,10 @@ try {
         $msgs = $msgModel->findByJid($instanceId, $remoteJid, $limit, $beforeId, $beforeAt !== '' ? $beforeAt : null);
     }
 
+    // Edição CRM: cada mensagem nossa diz quem mandou (robô, Vitória, follow-up,
+    // pessoa pelo Chat, celular). Nas outras contas volta igual. Ver AutorDaMensagem.
+    $msgs = \App\WhatsAppAgente\AutorDaMensagem::rotular((int)($ch['owner_account_id'] ?? 0), $instanceId, $remoteJid, $msgs);
+
     echo json_encode([
         'ok'       => true,
         'messages' => $msgs,

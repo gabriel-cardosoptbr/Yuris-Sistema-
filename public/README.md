@@ -284,6 +284,16 @@ setor ao lado do nome (que quebra a linha em vez de levar reticências); a linha
 para a última mensagem. Conversa individual sem setor mostra "Sem setor" em cinza, para toda
 conversa ter etiqueta e dar para ver o que falta classificar. No Yuris o setor continua numa linha própria.
 
+**Situação da conversa, autor da mensagem e Agendar no Chat (edição CRM, 10/10/2026).** Quando a última
+palavra é do lead, `chat.php` mostra sob o cabeçalho "Aguardando resposta há 3 dias" com o motivo (número fora
+do ar e a Vitória não recebeu, conversa com uma pessoa, agente desligado, entregue e sem resposta...) e, quando
+resolve, o botão "Mandar para a Vitória" ou "Devolver para a Vitória" (`assets/chat.js`, `loadSituacao`,
+`renderSituacao`, `mandarParaAgente`; dados de `api/whatsapp/situacao.php`). Cada balão nosso diz quem mandou
+(`msg-autor`: Robô de disparo, Vitória, Follow-up automático, "Ana pelo Chat", Pelo celular). O botão "Com a
+Vitória / Assumir" passou a usar a chave do agente do número **da conversa**, não a do número selecionado no
+topo. O ícone de calendário no cabeçalho (conversa com card) abre a mesma janela "Agendar próxima interação"
+da ficha do lead (`assets/ff-agenda.js`, `FfAgenda.abrir`). Nada disso aparece fora da edição CRM.
+
 **Botões Disparo e Follow-up no Chat (09/10/2026).** Ao lado de "Agente" e "Captação", `chat.php` tem
 "Disparo: Ligado/Segurado" e "Follow-up: Ligado/Segurado" (`assets/chat.js`, `loadAutomacaoToggle` e
 `toggleAutomacao`). Seguram ou soltam o robô de disparo e a cadência de follow-up do n8n; o n8n pergunta antes

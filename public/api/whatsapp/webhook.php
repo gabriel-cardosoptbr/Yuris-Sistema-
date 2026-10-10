@@ -713,6 +713,10 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
         $origemEnvio = is_array($msg) ? ($msg['source'] ?? null) : null;
         if (\App\WhatsAppAgente\SdrFleetiflow::contaUsa($accountId)) {
             $origemEnvio = \App\WhatsAppAgente\SdrFleetiflow::origemEfetiva($eventoOriginal, $origemEnvio);
+            // Digitada no aparelho do número: o balão mostra "Pelo celular" (AutorDaMensagem).
+            if ($origemEnvio === 'aparelho') {
+                \App\WhatsAppAgente\AutorDaMensagem::registrar($accountId, $instanceId, $wamid, 'celular');
+            }
         }
         WhatsAppAgentBridge::maybeHandleHumanSend($accountId, $instanceId, $remoteJid, $wamid, $msgContent, $origemEnvio);
     }

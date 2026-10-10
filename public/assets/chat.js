@@ -752,7 +752,7 @@ const ChatApp = (() => {
         if (aberto) {
           updateStageBadge(aberto);
           // Quem está com a conversa muda junto (pausa, etapa de follow-up).
-          if (window.CHAT_ETAPA_FUNIL) renderTakeoverBtn(aberto.agent_paused == 1 || aberto.agent_paused === true);
+          if (window.CHAT_ETAPA_FUNIL) { renderTakeoverBtn(aberto.agent_paused == 1 || aberto.agent_paused === true); renderAgendarBtn(); }
         }
       }
       prefetchSidebarPhotos();   // fotos da lista em background (gentil, não bloqueia)
@@ -960,7 +960,11 @@ const ChatApp = (() => {
     updateStageBadge(chatObj || null);
 
     // Botão "Assumir conversa" — reflete o estado de pausa do agente nesta conversa
+    state.situacao = null; state.situacaoJid = null;
+    renderSituacao();
     renderTakeoverBtn(!!(chatObj && (chatObj.agent_paused == 1 || chatObj.agent_paused === true)));
+    loadSituacao(jid);
+    renderAgendarBtn();
 
     // Header de grupo: foto + contador "(N membros)" + click pra abrir lista
     updateGroupHeader(jid, chatObj);
@@ -1174,6 +1178,7 @@ const ChatApp = (() => {
       if (_newest) { state.lastMsgAt = _newest.created_at || state.lastMsgAt; state.lastMsgId = _newest.id; }
 
       if (atBottom) scrollToBottom();
+      if (Date.now() - _sitUltimo > 5000) loadSituacao(state.currentJid);
 
       // Bump imediato do chat atual para o topo + recarrega lista completa
       const lastMsg = msgs[msgs.length - 1];
@@ -1253,11 +1258,15 @@ const ChatApp = (() => {
       ? renderReactions(msg)
       : '';
 
+    // Edição CRM: quem mandou a mensagem nossa (AutorDaMensagem). Deduzido = pelo horário.
+    const autor = (dir === 'outbound' && msg.autor_rotulo)
+      ? `<span class="msg-autor"${msg.autor_deduzido ? ' title="Identificado pelo horário do envio"' : ''}>${esc(msg.autor_rotulo)}</span>` : '';
+
     return `<div class="msg-row ${dir}" id="msg-${msg.id}" data-day-key="${dKey}" data-wamid="${esc(msg.wamid || '')}">
       <div class="msg-bubble">${sender}${quoted}${content}${menuBtn}</div>
       ${reactions}
       <div class="msg-meta">
-        <span>${time}</span>
+        ${autor}<span>${time}</span>
         ${status}
       </div>
     </div>`;
@@ -2772,7 +2781,7 @@ const ChatApp = (() => {
         chat.card_coluna_id  = r.coluna_id;
         chat.card_etapa_nome = r.nome;
         chat.card_etapa_cor  = r.cor;
-        if (state.currentJid === jid) updateStageBadge(chat);
+        if (state.currentJid === jid) { updateStageBadge(chat); renderAgendarBtn(); }
         renderChatList();
       }
       toast('Etapa: ' + r.nome, 'success');
@@ -3742,6 +3751,130 @@ const ChatApp = (() => {
     closeMsgMenu();
   });
 
+  // ── Situação da conversa (edição CRM, SituacaoConversa) ─────────────────────
+  // Quando a última palavra é do lead, uma faixa sob o cabeçalho diz há quanto
+  // tempo, quem atende e por que ninguém respondeu, com o botão "Mandar para a
+  // Vitória" quando isso resolve. Vem pronta do backend (api/whatsapp/situacao.php).
+  const ICO_RELOGIO = '<svg class="chat-situacao-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>';
+  let _sitPedido = 0, _sitUltimo = 0;
+
+  async function loadSituacao(jid) {
+    if (!window.CHAT_ETAPA_FUNIL) return;
+    jid = jid || state.currentJid;
+    if (!jid || jid.endsWith('@g.us')) { state.situacao = null; state.situacaoJid = jid || null; renderSituacao(); return; }
+    const meu = ++_sitPedido;
+    _sitUltimo = Date.now();
+    try {
+      const r = await apiFetch('/api/whatsapp/situacao.php?jid=' + encodeURIComponent(jid));
+      if (meu !== _sitPedido || state.currentJid !== jid) return;
+      state.situacao    = (r && r.ok && r.disponivel) ? r.situacao : null;
+      state.situacaoJid = jid;
+    } catch (e) {
+      if (meu !== _sitPedido) return;
+      state.situacao = null; state.situacaoJid = jid;
+    }
+    renderSituacao();
+    const c = state.chats.find(x => x.remote_jid === jid);
+    if (state.situacao && c) c.agent_paused = state.situacao.pausada ? 1 : 0;
+    renderTakeoverBtn(!!(state.situacao ? state.situacao.pausada : (c && (c.agent_paused == 1 || c.agent_paused === true))));
+  }
+
+  // Tempo entre dois horários do servidor (sem depender do relógio do navegador).
+  function _tempoEntre(de, ate) {
+    const a = Date.parse(String(de).replace(' ', 'T') + 'Z'), b = Date.parse(String(ate).replace(' ', 'T') + 'Z');
+    if (isNaN(a) || isNaN(b)) return '';
+    const min = Math.max(0, Math.round((b - a) / 60000));
+    if (min < 1) return 'menos de 1 minuto';
+    if (min < 60) return min + (min === 1 ? ' minuto' : ' minutos');
+    const h = Math.floor(min / 60);
+    if (h < 24) return h + (h === 1 ? ' hora' : ' horas');
+    const d = Math.floor(h / 24);
+    return d + (d === 1 ? ' dia' : ' dias');
+  }
+
+  // "às 16:39" hoje; "qua. 16:36" ou "Ontem 16:36" nos outros dias (mesmo formato dos balões).
+  function _quando(dt) {
+    const f = formatTime(dt);
+    return /^\d{2}:\d{2}$/.test(f) ? 'às ' + f : f.replace(/^Ontem/, 'ontem');
+  }
+
+  function renderSituacao() {
+    const el = qs('#chatSituacao'); if (!el) return;
+    const s = state.situacao;
+    if (!s || state.situacaoJid !== state.currentJid || !s.aguardando) { el.style.display = 'none'; el.innerHTML = ''; return; }
+    // Nome com artigo ("a Vitória") no meio da frase; com maiúscula no começo.
+    const N = AG_COM, Nc = N.charAt(0).toUpperCase() + N.slice(1);
+    const numero = (s.numero && s.numero.nome) ? s.numero.nome : 'desta conversa';
+    const quando = _quando(s.desde);
+    const pessoa = s.pausada_por || 'uma pessoa do time';
+    let titulo = 'Aguardando resposta há ' + _tempoEntre(s.desde, s.agora);
+    let info = false, texto = '', botoes = '';
+    switch (s.motivo) {
+      case 'chegou_sem_webhook':
+        texto = 'O lead escreveu ' + quando + ', quando o número ' + numero + ' estava fora do ar. A mensagem só entrou depois, pela sincronização, e ' + N + ' não recebeu.'; break;
+      case 'sem_registro':
+        texto = 'O lead escreveu ' + quando + '. ' + Nc + ' deveria ter recebido, mas não há registro de entrega nem de resposta.'; break;
+      case 'entrega_falhou':
+        texto = 'O lead escreveu ' + quando + '. A entrega para ' + N + ' falhou ' + _quando(s.entregue_em) + '.'; break;
+      case 'sem_resposta':
+        texto = Nc + ' recebeu ' + _quando(s.entregue_em) + ' e não respondeu. Pode ter decidido esperar ou passado o lead para o especialista.'; break;
+      case 'respondendo':
+        info = true; titulo = 'Mensagem do lead entregue';
+        texto = Nc + ' recebeu ' + _quando(s.entregue_em) + ' e está respondendo.'; break;
+      case 'pausada':
+        texto = 'A conversa está com ' + pessoa + (s.pausada_em ? ' desde ' + _quando(s.pausada_em).replace(/^às /, 'as ') : '') + ': ' + N + ' não responde aqui. Responda pelo Chat ou devolva para ' + N + '.';
+        botoes = '<button type="button" class="chat-situacao-btn" onclick="ChatApp.toggleTakeover()">Devolver para ' + esc(N) + '</button>'; break;
+      case 'numero_fora':
+        texto = 'O número ' + numero + ' está desconectado: nada sai nem chega por ele agora.'; break;
+      case 'agente_desligado':
+        texto = 'A chave "Agente" do número ' + numero + ' está desligada: ' + N + ' não responde ninguém por ele. Responda pelo Chat.'; break;
+      case 'treino':
+        info = true; titulo = 'Número de treino';
+        texto = Nc + ' responde este número pelo fluxo de treino.'; break;
+      default:
+        texto = 'O lead escreveu ' + quando + '. Esta conta não tem agente de pré-venda: responda pelo Chat.';
+    }
+    if (s.quantas > 1 && !info) titulo += ' · ' + s.quantas + ' mensagens do lead';
+    if (s.pode_mandar) {
+      botoes += '<button type="button" class="chat-situacao-btn chat-situacao-btn--principal" id="btnMandarAgente" onclick="ChatApp.mandarParaAgente()">Mandar para ' + esc(N) + '</button>';
+    }
+    el.className = 'chat-situacao' + (info ? ' chat-situacao--info' : '');
+    el.innerHTML = ICO_RELOGIO
+      + '<div class="chat-situacao-txt"><span class="chat-situacao-tit">' + esc(titulo) + '.</span> ' + esc(texto) + '</div>'
+      + (botoes ? '<div class="chat-situacao-acoes">' + botoes + '</div>' : '');
+    el.style.display = 'flex';
+  }
+
+  async function mandarParaAgente() {
+    const s = state.situacao; const jid = state.currentJid;
+    if (!s || !jid) return;
+    const N = AG_COM;
+    const btn = qs('#btnMandarAgente'); if (btn) btn.disabled = true;
+    try {
+      const r = await apiFetch('/api/whatsapp/situacao.php', 'POST', { _csrf: CSRF, action: 'mandar_agente', remote_jid: jid });
+      if (!r || !r.ok) { toast((r && r.error) || 'Não foi possível mandar.', 'error'); loadSituacao(jid); return; }
+      toast('Mandado para ' + N + '. A resposta aparece aqui em instantes.', 'success');
+      if (state.currentJid === jid) { state.situacao = r.situacao; state.situacaoJid = jid; renderSituacao(); }
+    } catch (e) {
+      toast(e.message || 'Não foi possível mandar.', 'error');
+      loadSituacao(jid);
+    }
+  }
+
+  // ── Agendar a próxima interação pela conversa (assets/ff-agenda.js) ──────────
+  function renderAgendarBtn() {
+    const btn = qs('#btnAgendarChat'); if (!btn) return;
+    const c = state.chats.find(x => x.remote_jid === state.currentJid);
+    btn.style.display = (window.FfAgenda && c && c.linked_card_id) ? '' : 'none';
+  }
+
+  function agendarDaConversa() {
+    const c = state.chats.find(x => x.remote_jid === state.currentJid);
+    if (!c || !c.linked_card_id || !window.FfAgenda) return;
+    const nome = c.card_cliente_nome || c.card_empresa_nome || state.currentName || '';
+    window.FfAgenda.abrir(c.linked_card_id, nome, function () { toast('Próxima interação agendada.', 'success'); });
+  }
+
   // ── API pública ──────────────────────────────────────────────
   // ── Assumir conversa (pausa/retoma o agente de IA SÓ nesta conversa) ────────
   function renderTakeoverBtn(paused) {
@@ -3751,7 +3884,11 @@ const ChatApp = (() => {
     // Fleetiflow: o botão diz com quem a conversa está (Vitória, cadência de
     // follow-up ou uma pessoa), preenchido, para ninguém responder por cima.
     if (window.CHAT_ETAPA_FUNIL) {
-      const ligado = (qs('#btnAgentToggle')?.dataset.mode === 'on');
+      // A chave que vale é a do número DESTA conversa (vem da situação). Antes era a
+      // do número selecionado no topo: com dois números, a conversa do outro podia
+      // aparecer como "agente desligado" e o botão dizia "Assumir" (10/10/2026).
+      const sit    = (state.situacao && state.situacaoJid === state.currentJid) ? state.situacao : null;
+      const ligado = sit && sit.agente ? !!sit.agente.ligado : (qs('#btnAgentToggle')?.dataset.mode === 'on');
       const chat   = state.chats.find(c => c.remote_jid === state.currentJid);
       const etapa  = chat ? String(chat.card_etapa_nome || '') : '';
       let estilo;
@@ -3799,6 +3936,7 @@ const ChatApp = (() => {
       if (r && r.ok) {
         if (chatObj) chatObj.agent_paused = next;
         renderTakeoverBtn(next === 1);
+        loadSituacao(state.currentJid);
         toast(window.CHAT_ETAPA_FUNIL
           ? (next ? `Você assumiu: ${AG_COM} não responde mais nesta conversa` : `Conversa devolvida para ${AG_COM}`)
           : (next ? 'Você assumiu a conversa, o agente foi pausado aqui' : 'Agente reativado nesta conversa'), 'success');
@@ -4045,6 +4183,7 @@ const ChatApp = (() => {
     openContacts, closeContacts, saveContactName,
     openLinkModal, closeLinkModal, saveLink,
     toggleCaptacao, loadCaptacaoToggle, toggleAutomacao, loadAutomacaoToggle,
+    mandarParaAgente, agendarDaConversa, loadSituacao,
     abrirCadastroRapido, fecharCadastroRapido, cadastrarComo,
     openLinkPicker, filterLinkPicker, selectLinkItem, clearLinkItem, removeLinkedProcesso,
     toggleSectorDropdown, setSectorDirect,
