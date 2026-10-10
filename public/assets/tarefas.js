@@ -533,6 +533,12 @@ function renderLista() {
 }
 
 /* ── Calendário ───────────────────────────────────────────────────────────── */
+// Edição CRM: a agenda do lead marca hora (ligação às 14h); o calendário mostra a hora antes do título.
+function calHora(t) {
+  if (!window.TK_EDICAO_CRM || !t.prazo) return '';
+  const h = String(t.prazo).slice(11, 16);
+  return h && h !== '00:00' ? `<b style="font-weight:700;margin-right:4px">${h}</b>` : '';
+}
 function renderCalendario() {
   const year  = calDate.getFullYear();
   const month = calDate.getMonth();
@@ -571,7 +577,7 @@ function renderCalendario() {
     });
 
     cell.innerHTML = `<div class="tk-cal-num">${d}</div>` +
-      dayTasks.slice(0,3).map(t=>`<div class="tk-cal-dot" data-id="${t.id}">${esc(t.titulo)}</div>`).join('');
+      dayTasks.slice(0,3).map(t=>`<div class="tk-cal-dot" data-id="${t.id}">${calHora(t)}${esc(t.titulo)}</div>`).join('');
     if (dayTasks.length > 3) cell.innerHTML += `<div class="tk-cal-dot" style="color:#4A5568;">+${dayTasks.length-3} mais</div>`;
     grid.appendChild(cell);
     cell.querySelectorAll('[data-id]').forEach(d => d.addEventListener('click', e => {

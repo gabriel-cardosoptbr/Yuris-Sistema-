@@ -912,3 +912,15 @@ window.YURIS_NOTIF = Object.assign({}, window.YURIS_NOTIF, {
 });
 </script>
 <script src="/assets/notifications.js?v=<?= $_notifJsVer ?>" defer></script>
+
+<?php if ($_isFleetiflow):
+  // Agenda do lead (edição CRM): botão "Agendar próxima interação" na ficha e
+  // o aviso "Sua agenda de hoje" uma vez por login. Ver app/Prospeccao/AgendaDoLead.php.
+  $_agVer = @filemtime(__DIR__ . '/../assets/ff-agenda.js') ?: '1';
+?>
+<link rel="stylesheet" href="/assets/ff-agenda.css?v=<?= @filemtime(__DIR__ . '/../assets/ff-agenda.css') ?: '1' ?>">
+<script>
+window.FF_AGENDA = { csrf: <?= json_encode($_notifCsrf) ?>, sessao: <?= json_encode(substr(hash('sha256', (string) session_id()), 0, 16)) ?> };
+</script>
+<script src="/assets/ff-agenda.js?v=<?= $_agVer ?>" defer></script>
+<?php endif; ?>

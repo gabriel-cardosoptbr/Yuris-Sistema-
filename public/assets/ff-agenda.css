@@ -1,0 +1,170 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   ff-agenda.css: agenda da próxima interação com o lead (edição CRM).
+   Par do ff-agenda.js. Carregado pelo sidebar.php só em conta Fleetiflow.
+   Três peças: a janela "Agendar próxima interação", a seção "Próxima
+   interação" da ficha do lead e o aviso "Sua agenda de hoje" ao entrar.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.ffag-overlay, .ffag-sec{
+  --ag-azul:var(--ff-marca, #015DFC); --ag-azul-forte:var(--ff-marca-forte, #013DF2);
+  --ag-azul-suave:var(--ff-marca-suave, #D6E4FF); --ag-azul-media:var(--ff-marca-media, #A9C6FF);
+  --ag-texto:#1F2937; --ag-texto-2:#3D3D3D; --ag-texto-3:#575757; --ag-texto-4:#767676;
+  --ag-borda:rgba(17,29,45,.08); --ag-borda-2:rgba(17,29,45,.14); --ag-fundo:#F4F6F9;
+  --ag-verde:#15803D; --ag-verde-fundo:#DCFCE7; --ag-vermelho:#B91C1C; --ag-vermelho-fundo:#FEE2E2;
+  --ag-ambar:#B45309; --ag-ambar-fundo:#FFF4D6; --ag-roxo:#6D4AFF; --ag-roxo-fundo:#EFEAFE;
+  font-family:'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+.ffag-overlay *, .ffag-sec *{ box-sizing:border-box; }
+
+/* ── Janela ─────────────────────────────────────────────────────────────── */
+.ffag-overlay{
+  position:fixed; inset:0; z-index:10050; display:flex; align-items:center; justify-content:center;
+  padding:20px; background:rgba(17,29,45,.42);
+}
+.ffag-overlay[hidden]{ display:none; }
+.ffag-painel{
+  width:min(560px, 100%); max-height:calc(100vh - 40px); display:flex; flex-direction:column;
+  background:#FFFFFF; color:var(--ag-texto); border:1px solid rgba(17,29,45,.10);
+  border-radius:18px; box-shadow:0 30px 80px rgba(17,29,45,.28); overflow:hidden;
+}
+.ffag-painel.ffag-largo{ width:min(620px, 100%); }
+.ffag-cab{ display:flex; align-items:flex-start; gap:14px; padding:20px 22px 14px; }
+.ffag-cab-ico{
+  flex:none; width:40px; height:40px; border-radius:12px; display:inline-flex; align-items:center; justify-content:center;
+  background:var(--ag-azul-suave); color:var(--ag-azul-forte);
+}
+.ffag-cab-ico svg{ width:20px; height:20px; }
+.ffag-cab h3{ margin:0; font-size:18px; font-weight:800; letter-spacing:-.01em; line-height:1.25; color:var(--ag-texto); text-wrap:balance; }
+.ffag-cab p{ margin:3px 0 0; font-size:13px; color:var(--ag-texto-4); }
+.ffag-cab-txt{ flex:1; min-width:0; }
+.ffag-x{
+  flex:none; width:32px; height:32px; border-radius:10px; border:1px solid var(--ag-borda-2); background:#FFFFFF;
+  color:var(--ag-texto-2); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; padding:0;
+}
+.ffag-x:hover{ background:#F1F3F6; }
+.ffag-x svg{ width:15px; height:15px; }
+
+.ffag-corpo{ padding:4px 22px 18px; overflow-y:auto; display:flex; flex-direction:column; gap:16px; }
+.ffag-campo{ display:flex; flex-direction:column; gap:6px; min-width:0; }
+.ffag-rotulo{ font-size:12px; font-weight:700; color:var(--ag-texto-3); letter-spacing:.01em; }
+.ffag-rotulo small{ font-weight:600; color:var(--ag-texto-4); }
+.ffag-linha{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media (max-width:520px){ .ffag-linha{ grid-template-columns:1fr; } }
+
+.ffag-corpo input[type="text"], .ffag-corpo input[type="date"], .ffag-corpo input[type="time"],
+.ffag-corpo select, .ffag-corpo textarea{
+  width:100%; min-height:40px; padding:9px 12px; border-radius:10px; border:1px solid var(--ag-borda-2);
+  background:#FFFFFF; color:var(--ag-texto); font:inherit; font-size:14px; outline:none;
+}
+.ffag-corpo textarea{ min-height:84px; resize:vertical; line-height:1.45; }
+.ffag-corpo input:focus, .ffag-corpo select:focus, .ffag-corpo textarea:focus{
+  border-color:var(--ag-azul); box-shadow:0 0 0 3px var(--ag-azul-suave);
+}
+
+/* Tipo: quatro botões */
+.ffag-tipos{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:8px; }
+@media (max-width:520px){ .ffag-tipos{ grid-template-columns:repeat(2, minmax(0,1fr)); } }
+.ffag-tipo{
+  display:flex; flex-direction:column; align-items:center; gap:6px; padding:11px 6px; border-radius:12px;
+  border:1px solid var(--ag-borda-2); background:#FFFFFF; color:var(--ag-texto-2); cursor:pointer;
+  font:inherit; font-size:13px; font-weight:700;
+}
+.ffag-tipo svg{ width:18px; height:18px; color:var(--ag-texto-4); }
+.ffag-tipo:hover{ background:#F6F7F9; }
+.ffag-tipo[aria-pressed="true"]{ border-color:var(--ag-azul); background:var(--ag-azul-suave); color:var(--ag-azul-forte); }
+.ffag-tipo[aria-pressed="true"] svg{ color:var(--ag-azul-forte); }
+
+/* Atalhos de data */
+.ffag-atalhos{ display:flex; flex-wrap:wrap; gap:6px; }
+.ffag-atalho{
+  padding:6px 11px; border-radius:999px; border:1px solid var(--ag-borda-2); background:#FFFFFF;
+  color:var(--ag-texto-2); font:inherit; font-size:12px; font-weight:700; cursor:pointer;
+}
+.ffag-atalho:hover{ border-color:var(--ag-azul-media); color:var(--ag-azul-forte); background:#F7FAFF; }
+
+/* Mensagem programada */
+.ffag-msg{ border:1px solid var(--ag-borda); background:var(--ag-fundo); border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:10px; }
+.ffag-msg[hidden]{ display:none; }
+.ffag-chave{ display:flex; align-items:flex-start; gap:10px; cursor:pointer; font-size:13px; font-weight:700; color:var(--ag-texto); }
+.ffag-chave input{ margin:2px 0 0; width:16px; height:16px; accent-color:var(--ag-azul); flex:none; }
+.ffag-chave span small{ display:block; margin-top:2px; font-weight:500; color:var(--ag-texto-4); }
+.ffag-sem-zap{ font-size:13px; color:var(--ag-ambar); background:var(--ag-ambar-fundo); border-radius:10px; padding:9px 12px; }
+.ffag-conta{ font-size:11px; color:var(--ag-texto-4); text-align:right; font-variant-numeric:tabular-nums; }
+
+.ffag-erro{ font-size:13px; color:var(--ag-vermelho); background:var(--ag-vermelho-fundo); border-radius:10px; padding:9px 12px; }
+.ffag-erro[hidden]{ display:none; }
+
+.ffag-pe{ display:flex; justify-content:flex-end; align-items:center; gap:8px; padding:14px 22px; border-top:1px solid var(--ag-borda); background:#FFFFFF; flex-wrap:wrap; }
+.ffag-pe .ffag-pe-esq{ margin-right:auto; font-size:12px; color:var(--ag-texto-4); }
+.ffag-btn{
+  display:inline-flex; align-items:center; gap:7px; min-height:38px; padding:8px 16px; border-radius:10px;
+  border:1px solid var(--ag-borda-2); background:#FFFFFF; color:var(--ag-texto); font:inherit; font-size:13px; font-weight:700; cursor:pointer;
+}
+.ffag-btn svg{ width:15px; height:15px; }
+.ffag-btn:hover{ background:#F6F7F9; }
+.ffag-btn:disabled{ opacity:.6; cursor:default; }
+.ffag-btn-principal{ background:var(--ag-azul); border-color:var(--ag-azul); color:#FFFFFF; }
+.ffag-btn-principal:hover{ background:var(--ag-azul-forte); border-color:var(--ag-azul-forte); }
+.ffag-btn-leve{ background:#F1F3F6; border-color:transparent; color:var(--ag-texto-2); }
+.ffag-btn-leve:hover{ background:#E6E9EE; }
+.ffag-overlay button:focus-visible, .ffag-sec button:focus-visible{ outline:2px solid var(--ag-azul); outline-offset:2px; }
+
+/* ── Seção "Próxima interação" da ficha ─────────────────────────────────── */
+.ffag-lista{ display:flex; flex-direction:column; gap:8px; }
+.ffag-vazio{ font-size:13px; color:var(--ag-texto-4); padding:4px 0 2px; }
+.ffag-item{
+  display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:12px; align-items:center;
+  padding:10px 12px; border:1px solid var(--ag-borda); border-radius:12px; background:#FFFFFF;
+}
+.ffag-item.ffag-feito{ background:var(--ag-fundo); }
+.ffag-item.ffag-feito .ffag-item-tit{ color:var(--ag-texto-4); }
+.ffag-quando{
+  display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:52px; padding:5px 6px;
+  border-radius:10px; background:var(--ag-azul-suave); color:var(--ag-azul-forte); line-height:1.1; font-variant-numeric:tabular-nums;
+}
+.ffag-quando b{ font-size:15px; font-weight:800; }
+.ffag-quando span{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+.ffag-item.ffag-atrasada .ffag-quando{ background:var(--ag-vermelho-fundo); color:var(--ag-vermelho); }
+.ffag-item.ffag-feito .ffag-quando{ background:#E9ECF1; color:var(--ag-texto-4); }
+.ffag-item-tit{ font-size:13px; font-weight:700; color:var(--ag-texto); overflow-wrap:anywhere; }
+.ffag-item-sub{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:4px; font-size:12px; color:var(--ag-texto-4); }
+.ffag-pill{ display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700; background:#EEF1F5; color:var(--ag-texto-3); }
+.ffag-pill svg{ width:11px; height:11px; }
+.ffag-pill-azul{ background:var(--ag-azul-suave); color:var(--ag-azul-forte); }
+.ffag-pill-verde{ background:var(--ag-verde-fundo); color:var(--ag-verde); }
+.ffag-pill-vermelho{ background:var(--ag-vermelho-fundo); color:var(--ag-vermelho); }
+.ffag-pill-ambar{ background:var(--ag-ambar-fundo); color:var(--ag-ambar); }
+.ffag-acoes{ display:flex; gap:4px; }
+.ffag-mini{
+  width:30px; height:30px; border-radius:8px; border:1px solid var(--ag-borda-2); background:#FFFFFF; color:var(--ag-texto-3);
+  display:inline-flex; align-items:center; justify-content:center; cursor:pointer; padding:0;
+}
+.ffag-mini svg{ width:14px; height:14px; }
+.ffag-mini:hover{ background:#F1F3F6; color:var(--ag-texto); }
+.ffag-mini.ffag-mini-ok:hover{ background:var(--ag-verde-fundo); color:var(--ag-verde); }
+.ffag-mini.ffag-mini-x:hover{ background:var(--ag-vermelho-fundo); color:var(--ag-vermelho); }
+.ffag-sec-pe{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap; }
+.ffag-sec-pe a{ font-size:12px; font-weight:700; color:var(--ag-azul-forte); text-decoration:none; }
+.ffag-sec-pe a:hover{ text-decoration:underline; }
+
+/* ── Aviso "Sua agenda de hoje" ─────────────────────────────────────────── */
+.ffag-resumo{ display:flex; gap:8px; flex-wrap:wrap; }
+.ffag-dia{ display:flex; flex-direction:column; gap:6px; }
+.ffag-dia-grupo{ font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--ag-texto-4); margin:6px 0 2px; }
+.ffag-dia-item{
+  display:grid; grid-template-columns:54px minmax(0,1fr) auto; gap:12px; align-items:center; width:100%;
+  padding:10px 12px; border-radius:12px; border:1px solid var(--ag-borda); background:#FFFFFF;
+  color:inherit; text-decoration:none; font:inherit; text-align:left; cursor:pointer;
+}
+.ffag-dia-item:hover{ border-color:var(--ag-azul-media); background:#F7FAFF; }
+.ffag-dia-hora{ font-size:15px; font-weight:800; color:var(--ag-azul-forte); font-variant-numeric:tabular-nums; text-align:center; }
+.ffag-dia-item.ffag-atrasada .ffag-dia-hora{ color:var(--ag-vermelho); font-size:12px; line-height:1.2; }
+.ffag-dia-tit{ font-size:13px; font-weight:700; color:var(--ag-texto); overflow-wrap:anywhere; }
+.ffag-dia-sub{ font-size:12px; color:var(--ag-texto-4); margin-top:2px; display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+.ffag-dia-seta{ color:var(--ag-texto-4); }
+.ffag-dia-seta svg{ width:16px; height:16px; }
+
+@media (prefers-reduced-motion:no-preference){
+  .ffag-overlay:not([hidden]) .ffag-painel{ animation:ffag-entra .18s ease-out; }
+  @keyframes ffag-entra{ from{ opacity:0; transform:translateY(8px) scale(.99); } to{ opacity:1; transform:none; } }
+}

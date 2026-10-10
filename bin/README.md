@@ -8,6 +8,7 @@ aqui é **chamado por agendamento**, sem ninguém olhando.
 | Arquivo | O que faz |
 |---|---|
 | `webhook_worker.php` | consome a fila `webhook_deliveries` e entrega os webhooks de saída |
+| `agenda_crm_worker.php` | agenda do lead da edição CRM (`App\Prospeccao\AgendaDoLead`): avisa no sino antes da hora e manda a mensagem programada pelo WhatsApp. A cada minuto: `* * * * * docker exec yuris_app php /var/www/html/bin/agenda_crm_worker.php`. Trava por `GET_LOCK`; a linha vira `enviando` antes do envio, então dois lotes juntos não mandam a mesma mensagem. `AGENDA_CRM_LOG=1` imprime o resumo |
 
 ## Como o worker funciona
 

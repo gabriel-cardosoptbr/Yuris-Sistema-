@@ -99,6 +99,8 @@ auditoria); `master/create_account.php` aceita `edicao: 'crm'` com a marca.
 
 `crm_termometro.php` lê e grava a regra do termômetro da edição CRM (`App\Prospeccao\Termometro`): `{etapas: {chave: nível}, quente_dias, morno_dias, frio_dias, resposta_esquenta}`; etapa que faltar vem do padrão, nível inválido dá 422. GET para todos da conta; POST só dono/admin, com CSRF; `{padrao: true}` volta ao padrão; conta jurídica recebe 403.
 
+`crm_agenda.php` é a agenda da próxima interação com o lead (`App\Prospeccao\AgendaDoLead`), só na edição CRM (conta jurídica recebe 403). GET `?card_id=` devolve os agendamentos do lead, os quadros em que a pessoa pode criar tarefa, a equipe e se há WhatsApp para a mensagem programada (só o número, o destino é resolvido no servidor); GET `?hoje=1` devolve a agenda do dia da pessoa logada. POST com CSRF: `{acao:'criar', card_id, tipo, quando, ...}` (exige escrita no card), `cancelar`, `concluir` e `reenviar` com `{id}`. Erro de validação volta 422 com a mensagem para a tela.
+
 `crm_especialista.php` lê e grava o especialista padrão da edição CRM (quem vira consultor do card quando a conversa é respondida pelo celular ou WhatsApp Web). GET para todos da conta; POST só dono/admin, com CSRF; conta jurídica recebe 403.
 
 `otif.php` devolve o OTIF das tarefas (JSON, ou planilha com `formato=csv`),
