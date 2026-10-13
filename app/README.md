@@ -27,6 +27,7 @@ palavra que está na tela.
 | [`Master/`](Master/) | Painel Master, Gestão › Escritórios | conta (tenant), notificações, incidentes de segurança, auditoria do master |
 | [`Prospeccao/`](Prospeccao/) | Operação › Prospecção | funil de vendas: cards, colunas do kanban, contatos |
 | [`Orcamentos/`](Orcamentos/) | Operação › Orçamentos (só edição CRM) | orçamento do lead com serviços e débitos do veículo, o que o cliente vê e o controle do escritório, e o catálogo de serviços e taxas |
+| [`Plataforma/`](Plataforma/) | Operação › Plataforma e ficha do lead (só edição CRM) | a integração com a plataforma Fleetiflow, só por API: ligar com o código de conexão, lead ligado à conta pelo código FLT, resumo da conta (plano, módulos, uso, dinheiro), upsell e os eventos da plataforma |
 | [`Clientes/`](Clientes/) | Operação › Clientes | base de clientes do escritório, origens, kanban operacional |
 | [`Crm/`](Crm/) | as duas telas acima | o que vale para prospecção **e** cliente: documentos, etiquetas, campos personalizados, contatos registrados. `Entidade` é o portão único de tenancy dos vínculos polimórficos |
 | [`Processos/`](Processos/) | Jurídico › Processos e Intimações | processos, histórico, AASP/DJEN e o motor de monitoramento (`Monitor/`) |
