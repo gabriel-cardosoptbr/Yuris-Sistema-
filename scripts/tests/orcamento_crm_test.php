@@ -62,6 +62,20 @@ $dois = Decomposicao::linha(['quantidade' => 2, 'venda' => 991.82] + $transf);
 ok('quantidade multiplica as taxas', $dois['repasses'] === 609.04 && $dois['honorario'] === 382.78);
 ok('dinheiro aceita "1.234,56"', Catalogo::dinheiro('1.234,56') === 1234.56 && Catalogo::dinheiro('495.91') === 495.91);
 
+// A parte com banco GRAVA (linhas marcadas, apagadas no fim). No servidor, que
+// roda em Docker e é produção, ela só roda com TESTE_NO_SERVIDOR=1: em 13/10/2026
+// este teste rodou lá e deixou rastro numa conta real (APP_ENV de produção diz
+// "development", então não serve de trava).
+if (file_exists('/.dockerenv') && getenv('TESTE_NO_SERVIDOR') !== '1') {
+    echo "
+  [pulado] no servidor (produção) a parte com banco não roda
+";
+    echo "
+Resultado: $OK ok · " . count($FALHAS) . " falha(s)
+";
+    exit($FALHAS ? 1 : 0);
+}
+
 $pdo = null;
 try {
     $pdo = Database::getConnection();
