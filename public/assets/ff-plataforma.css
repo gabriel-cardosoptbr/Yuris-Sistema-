@@ -35,6 +35,12 @@
 .ffpl-evento b { font-weight: 800; }
 .ffpl-evento span { opacity: .65; font-size: 11px; }
 
+.ffpl-meses { display: grid; gap: 4px; }
+.ffpl-mes { display: grid; grid-template-columns: 44px 1fr 40px; align-items: center; gap: 8px; font-size: 11.5px; }
+.ffpl-mes span { opacity: .7; font-variant-numeric: tabular-nums; }
+.ffpl-mes i { display: block; height: 8px; border-radius: 999px; background: var(--ff-marca, #015DFC); }
+.ffpl-mes b { text-align: right; font-variant-numeric: tabular-nums; }
+
 /* Página /plataforma.php */
 .pla-resumo { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
 .pla-resumo .orc-cartao span { display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--o-texto-4); }

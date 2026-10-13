@@ -180,6 +180,21 @@
         num('Usuários', uso(u.usuarios)) + num('Consultas no mês', uso(u.consultasNoMes)) +
         num('Processos abertos', u.processosAbertos) + num('Veículos', u.veiculos) + '</div>';
 
+      var cq = r.consultas;
+      if (cq) {
+        h += '<div class="ffpl-rotulo">Consultas</div><div class="ffpl-grade">' +
+          num('No total', cq.total.toLocaleString('pt-BR')) + num('Neste mês', cq.noMes.toLocaleString('pt-BR')) +
+          num('Média por mês', cq.mediaMensal.toLocaleString('pt-BR')) + num('Pela API', cq.pelaApi.toLocaleString('pt-BR')) +
+          num('Gasto com consultas', real(cq.cobrado.valor)) + num('Sem cobrança', cq.semCobranca.toLocaleString('pt-BR')) + '</div>';
+        if (cq.porMes && cq.porMes.length) {
+          var maior = Math.max.apply(null, cq.porMes.map(function (x) { return x.quantidade; })) || 1;
+          h += '<div class="ffpl-meses">' + cq.porMes.map(function (x) {
+            var p = x.mes.split('-');
+            return '<div class="ffpl-mes"><span>' + p[1] + '/' + p[0].slice(2) + '</span><i style="width:' + Math.max(4, Math.round(x.quantidade / maior * 100)) + '%"></i><b>' + x.quantidade + '</b></div>';
+          }).join('') + '</div>';
+        }
+      }
+
       h += '<div class="ffpl-rotulo">Movimento da conta no mês</div><div class="ffpl-grade">' +
         num('Recebeu', real(m.honorariosRecebidosNoMes)) + num('A receber', real(m.honorariosEmAberto)) +
         num('Consumo de saldo', real(f.consumoNoMes.valor)) + num('Processos novos', u.processosNoMes) + '</div>';

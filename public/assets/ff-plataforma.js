@@ -92,7 +92,7 @@
       h += '<div class="orc-cartao orc-vazio">Nenhum lead ligado ainda. Abra um lead em Prospecção e, na seção "Conta na plataforma", cole o código da conta (FLT-XXXX-XXXX).</div>';
     } else {
       h += '<div class="orc-tabela-wrap"><table class="orc-tabela"><thead><tr>' +
-        '<th>Conta</th><th>Responsável</th><th>Plano</th><th>Situação</th><th>Mensalidade</th><th>Saldo</th><th>Gerou no mês</th><th>Gerou no total</th><th>Módulos</th><th>Pedidos</th><th>Oferecer</th>' +
+        '<th>Conta</th><th>Responsável</th><th>Plano</th><th>Situação</th><th>Mensalidade</th><th>Saldo</th><th>Gerou no mês</th><th>Gerou no total</th><th>Consultas</th><th>Gasto com consultas</th><th>Módulos</th><th>Pedidos</th><th>Oferecer</th>' +
         '</tr></thead><tbody>' + linhas.map(function (l) {
           return '<tr data-card="' + (l.card_id || '') + '">' +
             '<td><div class="orc-forte">' + esc(l.nome || l.codigo) + '</div><div class="orc-mono" style="color:var(--o-texto-4)">' + esc(l.codigo) + '</div></td>' +
@@ -103,6 +103,8 @@
             '<td class="orc-num">' + real(l.saldo) + '</td>' +
             '<td class="orc-num">' + real(l.gerado_mes) + '</td>' +
             '<td class="orc-num orc-forte">' + real(l.gerado_total) + '</td>' +
+            '<td class="orc-num">' + (l.consultas_total == null ? '—' : l.consultas_total.toLocaleString('pt-BR') + (l.consultas_mes ? ' <span style="color:var(--o-texto-4)">(' + l.consultas_mes + ' no mês)</span>' : '')) + '</td>' +
+            '<td class="orc-num">' + real(l.gasto_consultas) + '</td>' +
             '<td class="orc-num">' + l.modulos_ativos + ' de ' + l.modulos_total + '</td>' +
             '<td>' + (l.pedidos_abertos ? '<span class="orc-pill orc-pill-REJEITADO">' + l.pedidos_abertos + ' em aberto</span>' : '—') + '</td>' +
             '<td class="orc-num">' + (l.oportunidades || '—') + '</td></tr>';
