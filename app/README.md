@@ -26,6 +26,7 @@ palavra que está na tela.
 | [`Usuarios/`](Usuarios/) | Gestão › Usuários, tela de login | login, sessão, 2FA, convites, vínculos de advogado, times, consentimento |
 | [`Master/`](Master/) | Painel Master, Gestão › Escritórios | conta (tenant), notificações, incidentes de segurança, auditoria do master |
 | [`Prospeccao/`](Prospeccao/) | Operação › Prospecção | funil de vendas: cards, colunas do kanban, contatos |
+| [`Orcamentos/`](Orcamentos/) | Operação › Orçamentos (só edição CRM) | orçamento do lead com serviços e débitos do veículo, o que o cliente vê e o controle do escritório, e o catálogo de serviços e taxas |
 | [`Clientes/`](Clientes/) | Operação › Clientes | base de clientes do escritório, origens, kanban operacional |
 | [`Crm/`](Crm/) | as duas telas acima | o que vale para prospecção **e** cliente: documentos, etiquetas, campos personalizados, contatos registrados. `Entidade` é o portão único de tenancy dos vínculos polimórficos |
 | [`Processos/`](Processos/) | Jurídico › Processos e Intimações | processos, histórico, AASP/DJEN e o motor de monitoramento (`Monitor/`) |

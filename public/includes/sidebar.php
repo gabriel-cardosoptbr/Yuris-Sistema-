@@ -48,6 +48,7 @@ $_roleCss = match($_userRole) {
 
 /* SVG icons */
 $_svg = [
+    'orcamento' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="M14.5 13.5c0-.8-1.1-1.5-2.5-1.5s-2.5.7-2.5 1.5 1.1 1.3 2.5 1.5 2.5.7 2.5 1.5-1.1 1.5-2.5 1.5-2.5-.7-2.5-1.5"/></svg>',
     'dashboard' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>',
     'funil'     => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l7 8v6l6 4v-10l7-8z"/></svg>',
     'prosp'     => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
@@ -670,6 +671,17 @@ $_notifTempo = function ($raw) {
             ]]);
         }
         unset($_s);
+        // Orçamentos (pedido do dono do produto, 13/10/2026): o mesmo orçamento
+        // da plataforma, com serviços e débitos do veículo. Mesma permissão da
+        // Prospecção, porque o orçamento é do lead.
+        foreach ($_sections as &$_s) {
+            if ($_s['key'] !== 'operacao') continue;
+            $_posProsp = array_search('prospeccao.php', array_column($_s['items'], 'href'), true);
+            array_splice($_s['items'], $_posProsp === false ? count($_s['items']) : $_posProsp + 1, 0, [[
+                'perm' => 'prospeccao', 'href' => 'orcamentos.php', 'active' => 'orcamentos', 'icon' => 'orcamento', 'label' => 'Orçamentos',
+            ]]);
+        }
+        unset($_s);
         if ($_itemFinancas) {
             $_posGestao = array_search('gestao', array_column($_sections, 'key'), true);
             array_splice($_sections, $_posGestao === false ? count($_sections) : $_posGestao + 1, 0, [[
@@ -923,4 +935,5 @@ window.YURIS_NOTIF = Object.assign({}, window.YURIS_NOTIF, {
 window.FF_AGENDA = { csrf: <?= json_encode($_notifCsrf) ?>, sessao: <?= json_encode(substr(hash('sha256', (string) session_id()), 0, 16)) ?> };
 </script>
 <script src="/assets/ff-agenda.js?v=<?= $_agVer ?>" defer></script>
+<script src="/assets/ff-orcamento-lead.js?v=<?= @filemtime(__DIR__ . '/../assets/ff-orcamento-lead.js') ?: '1' ?>" defer></script>
 <?php endif; ?>
