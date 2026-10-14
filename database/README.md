@@ -8,6 +8,7 @@ ser testado nos dois.
 
 | Pasta / arquivo | O que é |
 |---|---|
+| `migrations/run_146.php` | **Projetos** (aba da edição CRM): `projeto_servidores` (servidor e custo mensal, R$ ou US$), `projetos` (cliente, tipo, situação, endereço, stack, servidor + peso no rateio, usuários ativos) e `projeto_itens` (receita ou custo: categoria, fornecedor, valor unitário NULL = a preencher, quantidade, moeda, recorrência, vigência). `account_id` nas três; exclusão lógica. Totais, rateio e pendências não são gravados. Regras em `app/Projetos/README.md`. Idempotente, `--dry-run` |
 | `migrations/run_145.php` | **Vitória nos números de treino só por comando** (edição CRM): `sdr_treino_estado`, uma linha por número de treino, ligado ou não. Desligada por padrão; "#ativar" liga e "#desativar" desliga, mandados do próprio número. Ver `SdrFleetiflow::comandoDeTreino`. Idempotente, `--dry-run` |
 | `migrations/run_144.php` | **integração com a plataforma Fleetiflow** (edição CRM): `plataforma_conexoes` (endereço da API, chave e segredo dos eventos, cifrados), `plataforma_vinculos` (código da conta FLT ↔ lead, com o último resumo lido) e `plataforma_eventos` (eventos recebidos, únicos por id). Ver `app/Plataforma/README.md`. Idempotente, `--dry-run` |
 | `migrations/run_143.php` | **orçamento no CRM** (edição Fleetiflow): `crm_servicos` e `crm_servico_componentes` (catálogo com as taxas: repasse imediato/mensal, cliente vê, custo), `crm_orcamentos` e `crm_orcamento_itens` (serviço ou débito do veículo). Ver `app/Orcamentos/README.md`. Idempotente, `--dry-run` |

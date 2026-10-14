@@ -61,6 +61,14 @@ cabeçalho; `pagar` e `quitar` levam `pago_em` e `pago_por_nome` (quem pagou). V
 recebe 403, conta sem o módulo ligado 404; leitura e escrita pela lista de contas
 acessíveis de `financas`. Regras em `app/Financas/README.md`.
 
+`projetos.php` é a API da aba Projetos (edição CRM): `GET` devolve o painel inteiro
+(projetos com itens, números e pendências; servidores com o rateio; resumo; opções dos
+selects; cotação do dólar). `POST {acao}`: `projeto_salvar`, `projeto_excluir`,
+`item_salvar`, `item_excluir`, `servidor_salvar`, `servidor_excluir`, `cotacao_salvar`;
+toda escrita devolve o painel atualizado. CSRF no cabeçalho. Vendedor recebe 403, conta
+sem o módulo ligado 404; leitura e escrita pela lista de contas acessíveis de
+`financas`. Regras em `app/Projetos/README.md`.
+
 `tema_escuro.php?arquivo=ff-ficha|chat-numeros` devolve a cópia escura de uma folha da
 edição CRM, gerada na hora por `App\Master\TemaEscuroCrm` (lista fechada de arquivos,
 nada de caminho vindo da URL; cache com ETag pela data do arquivo e do conversor).

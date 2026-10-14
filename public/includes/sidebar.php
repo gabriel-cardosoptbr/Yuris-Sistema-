@@ -3,7 +3,8 @@
  * sidebar.php — componente global da sidebar
  * Defina $activePage antes de incluir este arquivo.
  * Valores: 'dashboard' | 'funil' | 'prospeccao' | 'dre' |
- *          'processos' | 'intimacoes' | 'juridico' | 'tarefas' | 'usuarios' | 'agente' | 'configuracoes'
+ *          'processos' | 'intimacoes' | 'juridico' | 'tarefas' | 'usuarios' | 'agente' | 'configuracoes' |
+ *          'projetos' (edição CRM com o módulo ligado)
  */
 $_ap          = (string)($activePage ?? '');
 $_userName    = (string)($_SESSION['user_nome']   ?? 'Usuário');
@@ -62,6 +63,7 @@ $_svg = [
     'desempenho'=> '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>',
     'usuarios'  => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
     'setores'   => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="8.5" y="14" width="7" height="7" rx="1.5"/><path d="M6.5 10v2h11v-2M12 12v2"/></svg>',
+    'projetos'  => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M8 15v-2M12 15v-4M16 15v-3"/></svg>',
     'agente'    => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M12 11V7"/><circle cx="12" cy="5" r="2"/><path d="M8 15h.01M12 15h.01M16 15h.01"/><path d="M7 11V9a5 5 0 0 1 10 0v2"/></svg>',
     'tarefas'   => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
     'chat'         => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>',
@@ -688,12 +690,21 @@ $_notifTempo = function ($raw) {
         }
         unset($_s);
         if ($_itemFinancas) {
+            $_itensFinanceiro = [$_itemFinancas];
+            // Projetos (pedido da Inovaize, 2026-10-14): carteira de projetos com
+            // receita, custo e dossiê. Só na conta com o módulo ligado
+            // (configuracoes.modulos.projetos) e com a mesma permissão de Finanças.
+            try {
+                if (\App\Projetos\Projeto::habilitado(\App\Master\Account::findById((int) $__brandCtx->getAccountId()) ?? [])) {
+                    $_itensFinanceiro[] = ['perm' => 'financas', 'href' => 'projetos.php', 'active' => 'projetos', 'icon' => 'projetos', 'label' => 'Projetos'];
+                }
+            } catch (\Throwable $__e) { /* sem o módulo */ }
             $_posGestao = array_search('gestao', array_column($_sections, 'key'), true);
             array_splice($_sections, $_posGestao === false ? count($_sections) : $_posGestao + 1, 0, [[
                 'key' => 'financeiro',
                 'label' => 'Financeiro',
                 'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>',
-                'items' => [$_itemFinancas],
+                'items' => $_itensFinanceiro,
             ]]);
         }
     }
