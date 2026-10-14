@@ -4,7 +4,7 @@
  * Defina $activePage antes de incluir este arquivo.
  * Valores: 'dashboard' | 'funil' | 'prospeccao' | 'dre' |
  *          'processos' | 'intimacoes' | 'juridico' | 'tarefas' | 'usuarios' | 'agente' | 'configuracoes' |
- *          'projetos' (edição CRM com o módulo ligado)
+ *          'projetos' | 'projeto:<slug>' (edição CRM com o módulo ligado)
  */
 $_ap          = (string)($activePage ?? '');
 $_userName    = (string)($_SESSION['user_nome']   ?? 'Usuário');
@@ -690,23 +690,42 @@ $_notifTempo = function ($raw) {
         }
         unset($_s);
         if ($_itemFinancas) {
-            $_itensFinanceiro = [$_itemFinancas];
-            // Projetos (pedido da Inovaize, 2026-10-14): carteira de projetos com
-            // receita, custo e dossiê. Só na conta com o módulo ligado
-            // (configuracoes.modulos.projetos) e com a mesma permissão de Finanças.
-            try {
-                if (\App\Projetos\Projeto::habilitado(\App\Master\Account::findById((int) $__brandCtx->getAccountId()) ?? [])) {
-                    $_itensFinanceiro[] = ['perm' => 'financas', 'href' => 'projetos.php', 'active' => 'projetos', 'icon' => 'projetos', 'label' => 'Projetos'];
-                }
-            } catch (\Throwable $__e) { /* sem o módulo */ }
             $_posGestao = array_search('gestao', array_column($_sections, 'key'), true);
             array_splice($_sections, $_posGestao === false ? count($_sections) : $_posGestao + 1, 0, [[
                 'key' => 'financeiro',
                 'label' => 'Financeiro',
                 'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>',
-                'items' => $_itensFinanceiro,
+                'items' => [$_itemFinancas],
             ]]);
         }
+
+        // Projetos em pasta própria, logo depois de Comunicação (pedido da
+        // Inovaize, 2026-10-14): Visão geral e, abaixo, cada projeto-mãe não
+        // encerrado, que abre a página dele (com os subprojetos dentro). Só na
+        // conta com o módulo ligado (configuracoes.modulos.projetos) e com a
+        // permissão de Finanças, porque mostra receita e custo.
+        try {
+            $__accProj = (int) $__brandCtx->getAccountId();
+            if (\App\Projetos\Projeto::habilitado(\App\Master\Account::findById($__accProj) ?? [])) {
+                $__stP = \App\Core\Database::getConnection()->prepare(
+                    "SELECT slug, nome FROM projetos WHERE account_id = ? AND parent_id IS NULL AND deleted_at IS NULL AND status <> 'encerrado'
+                      ORDER BY FIELD(status, 'producao', 'desenvolvimento', 'pausado'), nome"
+                );
+                $__stP->execute([$__accProj]);
+                $_itensProjetos = [['perm' => 'financas', 'href' => 'projetos.php', 'active' => 'projetos', 'icon' => 'dashboard', 'label' => 'Visão geral']];
+                foreach ($__stP->fetchAll(\PDO::FETCH_ASSOC) as $__p) {
+                    $_itensProjetos[] = ['perm' => 'financas', 'href' => 'projetos.php?p=' . rawurlencode($__p['slug']),
+                                         'active' => 'projeto:' . $__p['slug'], 'icon' => 'projetos', 'label' => $__p['nome']];
+                }
+                $_posCom = array_search('comunicacao', array_column($_sections, 'key'), true);
+                array_splice($_sections, $_posCom === false ? 1 : $_posCom + 1, 0, [[
+                    'key' => 'projetos',
+                    'label' => 'Projetos',
+                    'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M8 15v-2M12 15v-4M16 15v-3"/></svg>',
+                    'items' => $_itensProjetos,
+                ]]);
+            }
+        } catch (\Throwable $__e) { /* sem o módulo: menu de sempre */ }
     }
 
     foreach ($_sections as $_sec):

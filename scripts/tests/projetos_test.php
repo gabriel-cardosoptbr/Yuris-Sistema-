@@ -184,5 +184,121 @@ else {
     ok('limpeza: nada do teste ficou no banco', $sobra === 0);
 }
 
+echo "\n== 8. Contas: rateio do consumo (migration 147) ==\n";
+use App\Projetos\Conta;
+use App\Projetos\Acesso;
+$ct = fn(array $x) => $x + ['id' => 0, 'status' => 'ativa', 'receita_mensal' => null, 'moeda' => 'BRL', 'usuarios' => null,
+                            'peso_consumo' => '1.00', 'custo_direto' => null, 'inicio' => null];
+$r = Conta::rateio(10000, [$ct(['id' => 1]), $ct(['id' => 2, 'peso_consumo' => '3.00']), $ct(['id' => 3, 'status' => 'cancelada'])], 5.0);
+ok('100,00 pelo peso 1:3 = 25 e 75; cancelada não consome', $r[1]['custo'] === 2500 && $r[2]['custo'] === 7500 && $r[3]['custo'] === 0);
+$r = Conta::rateio(10000, [$ct(['id' => 1]), $ct(['id' => 2]), $ct(['id' => 3])], 5.0);
+ok('100,00 em 3 contas soma exata (33,34 + 33,33 + 33,33)', $r[1]['custo'] + $r[2]['custo'] + $r[3]['custo'] === 10000);
+$r = Conta::rateio(0, [$ct(['id' => 1, 'custo_direto' => '12.50', 'receita_mensal' => '300.00']), $ct(['id' => 2, 'status' => 'teste', 'receita_mensal' => '99.00'])], 5.0);
+ok('custo direto entra só na conta dela', $r[1]['custo'] === 1250 && $r[1]['direto'] === 1250 && $r[2]['custo'] === 0);
+ok('receita só de conta que paga (em teste não conta)', $r[1]['receita'] === 30000 && $r[2]['receita'] === 0);
+ok('conta em dólar convertida', Conta::brl('10.00', 'USD', 5.0) === 5000 && Conta::brl(null, 'BRL', 5.0) === null);
+[$dc, $ec] = Conta::validar(['nome' => 'Escritório X', 'receita_mensal' => '249,00', 'usuarios' => '5', 'peso_consumo' => '2', 'custo_direto' => '']);
+ok('conta válida: receita 249,00, peso 2, sem custo direto', $ec === null && $dc['receita_mensal_centavos'] === 24900 && $dc['peso_consumo'] === 2.0 && $dc['custo_direto_centavos'] === null);
+ok('conta sem nome ou situação inválida é recusada', Conta::validar(['nome' => ''])[1] !== null && Conta::validar(['nome' => 'a', 'status' => 'x'])[1] !== null);
+
+$projC = ['tipo' => 'saas', 'status' => 'producao', 'cliente' => null, 'descricao' => 'x', 'url' => 'https://x', 'servidor_id' => 1,
+          'stack' => 'PHP', 'responsavel' => 'G', 'usuarios_ativos' => null];
+$contasC = [$ct(['id' => 1, 'receita_mensal' => '249.00', 'usuarios' => 4]), $ct(['id' => 2, 'usuarios' => 6, 'custo_direto' => '10.00'])];
+$c = P::calcular($projC, [$it(['valor_unitario' => '90.00'])], 10000, ['nome' => 'EC2', 'valor_mensal' => '100.00'], 5.5, '2026-10-14', $contasC);
+ok('projeto: receita das contas (249) e custo 90 + 100 + 10 direto', $c['receita_mensal'] === 249.0 && $c['custo_mensal'] === 200.0);
+ok('cada conta leva metade do compartilhado (95) + o direto', $c['contas'][1]['custo'] === 95.0 && $c['contas'][2]['custo'] === 105.0);
+ok('custo por usuário da conta: 95 / 4 = 23,75', $c['contas'][1]['custo_por_usuario'] === 23.75);
+ok('usuários do projeto vêm da soma das contas (10)', $c['usuarios'] === 10 && $c['custo_por_usuario'] === 20.0);
+ok('conta ativa sem receita vira pendência', in_array('Quanto paga 1 conta ativa', $c['pendencias'], true));
+$cMae = P::calcular(['tipo' => 'cliente', 'cliente' => 'A', 'servidor_id' => null, 'stack' => null, 'url' => null] + $projC, [], 0, null, 5.5, '2026-10-14', [], true);
+ok('mãe com subprojetos não cobra servidor, endereço, stack nem receita', !array_intersect(['Onde roda (servidor)', 'Endereço de produção', 'Stack (tecnologia)', 'Receita cadastrada'], $cMae['pendencias']));
+
+echo "\n== 9. Evolução e soma da mãe ==\n";
+$evo = P::evolucao(['inicio' => '2026-09-15'], [
+    $it(['natureza' => 'receita', 'categoria' => 'mensalidade', 'valor_unitario' => '500.00', 'inicio' => '2026-08-01']),
+    $it(['valor_unitario' => '120.00', 'recorrencia' => 'anual']),
+    $it(['natureza' => 'receita', 'categoria' => 'implantacao', 'valor_unitario' => '3000.00', 'recorrencia' => 'unico', 'inicio' => '2026-09-10']),
+], [$ct(['id' => 9, 'receita_mensal' => '100.00', 'inicio' => '2026-10-01'])], 2000, 5.5, '2026-10-14', 4);
+ok('4 meses, do mais antigo ao atual', array_column($evo, 'mes') === ['2026-07', '2026-08', '2026-09', '2026-10']);
+ok('julho: só o anual (10/mês), sem servidor (projeto começa em setembro)', $evo[0]['receita'] === 0 && $evo[0]['custo'] === 1000);
+ok('setembro: mensalidade + implantação única; custo com servidor', $evo[2]['receita'] === 350000 && $evo[2]['custo'] === 3000);
+ok('outubro: mensalidade + conta nova', $evo[3]['receita'] === 60000);
+$mae = ['id' => 1, 'parent_id' => null, 'status' => 'producao', 'calc' => $c, 'evolucao' => [['mes' => '2026-10', 'receita' => 10.0, 'custo' => 5.0]]];
+$f1 = ['id' => 2, 'parent_id' => 1, 'status' => 'producao', 'calc' => $c, 'evolucao' => [['mes' => '2026-10', 'receita' => 1.0, 'custo' => 2.0]]];
+$f2 = ['id' => 3, 'parent_id' => 1, 'status' => 'encerrado', 'calc' => $c, 'evolucao' => [['mes' => '2026-10', 'receita' => 99.0, 'custo' => 99.0]]];
+$ag = P::agregar([$mae, $f1, $f2]);
+ok('mãe soma ela + subprojetos ativos (encerrado fora)', $ag[0]['agregado']['receita_mensal'] === 498.0 && $ag[0]['agregado']['subprojetos'] === 1);
+ok('evolução da mãe somada mês a mês', $ag[0]['agregado']['evolucao'][0]['receita'] === 11.0 && $ag[0]['filhos'] === [2, 3]);
+ok('subprojeto sem filhos: agregado = os próprios números', $ag[1]['agregado']['receita_mensal'] === 249.0 && $ag[1]['filhos'] === []);
+
+echo "\n== 10. Banco: hierarquia, contas, acessos e isolamento ==\n";
+$tem147 = (int) $pdo->query("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'projeto_acessos'")->fetchColumn();
+if (!$tem147 || count($contas) < 2) { echo "  (pulado: rode a migration 147 e tenha duas contas)\n"; }
+else {
+    [$a, $b] = array_map('intval', $contas);
+    $marca = 'teste-proj2-' . bin2hex(random_bytes(3));
+    try {
+        [$dm] = P::validarProjeto(['nome' => "$marca mae", 'tipo' => 'cliente']);
+        $mae = P::criarProjeto($a, $dm, null);
+        [$df] = P::validarProjeto(['nome' => "$marca filho", 'tipo' => 'site', 'parent_id' => $mae]);
+        $filho = P::criarProjeto($a, $df, null);
+        $paiDe = fn(int $id) => $pdo->query("SELECT parent_id FROM projetos WHERE id = $id")->fetchColumn();
+        ok('subprojeto criado dentro da mãe', (int) $paiDe($filho) === $mae);
+        [$dn] = P::validarProjeto(['nome' => "$marca neto", 'tipo' => 'site', 'parent_id' => $filho]);
+        $neto = P::criarProjeto($a, $dn, null);
+        ok('só um nível: subprojeto não vira mãe (neto fica no primeiro nível)', $paiDe($neto) === null);
+        [$dm2] = P::validarProjeto(['nome' => "$marca mae", 'tipo' => 'cliente', 'parent_id' => $neto]);
+        P::atualizarProjeto($mae, [$a], $dm2);
+        ok('projeto com subprojetos não vira subprojeto', $paiDe($mae) === null);
+        [$dx] = P::validarProjeto(['nome' => "$marca de fora", 'tipo' => 'site', 'parent_id' => $mae]);
+        $deFora = P::criarProjeto($b, $dx, null);
+        ok('mãe de outra conta não vale', $paiDe($deFora) === null);
+
+        [$dc] = Conta::validar(['nome' => 'Conta A', 'receita_mensal' => '200,00', 'usuarios' => '2']);
+        $cid = Conta::criar($filho, [$a], $dc, null);
+        ok('conta criada no subprojeto; outra conta não cria nele', $cid > 0 && Conta::criar($filho, [$b], $dc, null) === null);
+        ok('outra conta não altera nem exclui a conta', !Conta::atualizar($cid, [$b], $dc) && !Conta::excluir($cid, [$b]));
+
+        [$da] = Acesso::validar(['rotulo' => 'Painel Master', 'url' => 'https://x.test/master', 'usuario' => 'admin', 'senha' => 'S3nh@-teste']);
+        $aid = Acesso::criar($filho, [$a], $da, null);
+        $enc = (string) $pdo->query("SELECT senha_enc FROM projeto_acessos WHERE id = $aid")->fetchColumn();
+        ok('senha gravada cifrada (o texto não aparece no banco)', $enc !== '' && !str_contains($enc, 'S3nh@-teste'));
+        ok('revelar devolve a senha; outra conta não revela', Acesso::revelar($aid, [$a]) === 'S3nh@-teste' && Acesso::revelar($aid, [$b]) === null);
+        [$da2] = Acesso::validar(['rotulo' => 'Painel Master', 'url' => 'https://x.test/master', 'senha' => '']);
+        Acesso::atualizar($aid, [$a], $da2);
+        ok('editar com senha em branco mantém a guardada', Acesso::revelar($aid, [$a]) === 'S3nh@-teste');
+        [$da3] = Acesso::validar(['rotulo' => 'Painel Master', 'limpar_senha' => true]);
+        Acesso::atualizar($aid, [$a], $da3);
+        ok('"apagar senha" apaga', Acesso::revelar($aid, [$a]) === null);
+
+        $painel = P::painel([$a], 5.0);
+        $pm = array_values(array_filter($painel['projetos'], fn($x) => $x['id'] === $mae))[0] ?? null;
+        $pf = array_values(array_filter($painel['projetos'], fn($x) => $x['id'] === $filho))[0] ?? null;
+        ok('painel: mãe traz o filho e soma a receita da conta dele', $pm && $pm['filhos'] === [$filho] && $pm['agregado']['receita_mensal'] === 200.0);
+        ok('painel: acesso sai sem senha, só tem_senha', $pf && !isset($pf['acessos'][0]['senha_enc']) && $pf['acessos'][0]['tem_senha'] === false);
+
+        $log = Conta::sincronizar($pdo, $a, $filho, [['identificador' => 'conta #999', 'nome' => 'Medida', 'plano' => 'Equipe', 'status' => 'ativa',
+            'usuarios' => 3, 'custo_direto_centavos' => 550, 'inicio' => '2026-01-01', 'metricas' => ['mensagens_30d' => 10]]], true);
+        $sid = (int) $pdo->query("SELECT id FROM projeto_contas WHERE projeto_id = $filho AND identificador = 'conta #999'")->fetchColumn();
+        $pdo->prepare("UPDATE projeto_contas SET receita_mensal = 249.00 WHERE id = ?")->execute([$sid]);
+        Conta::sincronizar($pdo, $a, $filho, [['identificador' => 'conta #999', 'nome' => 'Medida', 'plano' => 'Equipe', 'status' => 'ativa',
+            'usuarios' => 4, 'custo_direto_centavos' => 700, 'inicio' => '2026-01-01', 'metricas' => ['mensagens_30d' => 12]]], true);
+        $row = $pdo->query("SELECT usuarios, custo_direto, receita_mensal, origem, (SELECT COUNT(*) FROM projeto_contas WHERE projeto_id = $filho AND identificador = 'conta #999') n FROM projeto_contas WHERE id = $sid")->fetch(PDO::FETCH_ASSOC);
+        ok('sincronização cria e depois atualiza a mesma conta (sem duplicar)', (int) $row['n'] === 1 && (int) $row['usuarios'] === 4 && (float) $row['custo_direto'] === 7.0);
+        ok('sincronização não mexe na receita que a pessoa preencheu', (float) $row['receita_mensal'] === 249.0 && $row['origem'] === 'sync');
+
+        ok('excluir a mãe solta o filho e apaga contas e acessos dela', P::excluirProjeto($mae, [$a]) && $paiDe($filho) === null);
+        P::excluirProjeto($filho, [$a]);
+        ok('excluir projeto leva contas e acessos', (int) $pdo->query("SELECT COUNT(*) FROM projeto_contas WHERE projeto_id = $filho AND deleted_at IS NULL")->fetchColumn() === 0
+            && (int) $pdo->query("SELECT COUNT(*) FROM projeto_acessos WHERE projeto_id = $filho AND deleted_at IS NULL")->fetchColumn() === 0);
+    } finally {
+        $ids = $pdo->query("SELECT id FROM projetos WHERE nome LIKE '$marca%'")->fetchAll(PDO::FETCH_COLUMN) ?: [0];
+        $in = implode(',', array_map('intval', $ids));
+        foreach (['projeto_itens', 'projeto_contas', 'projeto_acessos'] as $t) $pdo->exec("DELETE FROM $t WHERE projeto_id IN ($in)");
+        $pdo->exec("DELETE FROM projetos WHERE nome LIKE '$marca%'");
+    }
+    ok('limpeza: nada do teste ficou no banco', (int) $pdo->query("SELECT COUNT(*) FROM projetos WHERE nome LIKE '$marca%'")->fetchColumn() === 0);
+}
+
 echo "\n----\nResultado: $ok ok · $falhas falha(s)\n";
 exit($falhas > 0 ? 1 : 0);

@@ -25,6 +25,14 @@ use App\Core\Database;
  *  - Arrecadado é o previsto pelo contrato até hoje: cobranças da receita que
  *    já venceram desde o início dela (até o fim, se tiver). Não é extrato.
  *  - Totais, margem, arrecadado e pendências não são gravados: saem daqui.
+ *  - Hierarquia (migration 147): projeto-mãe (`parent_id` NULL) junta os
+ *    subprojetos (Arte Piedosa > streaming, site, B2B). Só um nível: subprojeto
+ *    não tem filho, e projeto com filho não vira subprojeto. Os números da mãe
+ *    são os dela somados aos dos filhos não encerrados (`agregado`).
+ *  - Contas do projeto (App\Projetos\Conta) entram na receita (as que pagam) e
+ *    no custo (custo direto); o custo compartilhado é rateado entre elas.
+ *  - Evolução mensal (`evolucao`): receita e custo mês a mês pelo cadastro
+ *    (vigência dos itens, início das contas e do projeto), para os gráficos.
  *  - O módulo é ligado por conta: `configuracoes.modulos.projetos = true`
  *    (habilitado()/ligar()). Só edição CRM; conta Yuris nunca.
  */
@@ -203,6 +211,8 @@ final class Projeto
         $peso = (int) ($in['servidor_peso'] ?? 1);
         if ($peso < 1 || $peso > 100) return [null, 'O peso no servidor vai de 1 a 100.'];
         $d['servidor_peso'] = $peso;
+        $pai = (int) ($in['parent_id'] ?? 0);
+        $d['parent_id'] = $pai > 0 ? $pai : null;
         return [$d, null];
     }
 
@@ -380,7 +390,8 @@ final class Projeto
      * @param ?int  $custoServidor centavos do rateio; null = servidor sem custo
      * @param ?array $servidor     o servidor ligado (ou null)
      */
-    public static function calcular(array $p, array $itens, ?int $custoServidor, ?array $servidor, float $cotacao, string $hoje): array
+    public static function calcular(array $p, array $itens, ?int $custoServidor, ?array $servidor, float $cotacao, string $hoje,
+                                    array $contas = [], bool $temFilhos = false): array
     {
         $receita = 0; $custoItens = 0; $arrec = 0; $unicoReceita = 0;
         $porCategoria = [];
@@ -404,30 +415,59 @@ final class Projeto
         if ($custoServidor !== null && $custoServidor > 0) {
             $porCategoria['servidor'] = ($porCategoria['servidor'] ?? 0) + $custoServidor;
         }
-        $custo = $custoItens + (int) $custoServidor;
+        // Contas: o custo compartilhado (itens + servidor) é rateado entre elas; a
+        // receita das que pagam e o custo direto de cada uma somam no projeto.
+        $compartilhado = $custoItens + (int) $custoServidor;
+        $rateio = Conta::rateio($compartilhado, $contas, $cotacao);
+        $receitaContas = 0; $diretos = 0; $semReceita = 0; $usuContas = 0; $temUsuContas = false; $porConta = [];
+        foreach ($contas as $c) {
+            $r = $rateio[(int) $c['id']];
+            $pagante = in_array($c['status'], Conta::PAGANTES, true);
+            if ($pagante && $r['receita'] === null) $semReceita++;
+            $receitaContas += (int) $r['receita'];
+            $diretos += $r['direto'];
+            if (Conta::consome($c) && $c['usuarios'] !== null && $c['usuarios'] !== '') { $usuContas += (int) $c['usuarios']; $temUsuContas = true; }
+            $u = (int) ($c['usuarios'] ?? 0);
+            $porConta[(int) $c['id']] = [
+                'receita' => $r['receita'] === null ? null : $r['receita'] / 100.0, 'custo' => $r['custo'] / 100.0,
+                'custo_direto' => $r['direto'] / 100.0,
+                'margem' => $r['receita'] === null ? null : ($r['receita'] - $r['custo']) / 100.0,
+                'custo_por_usuario' => $u > 0 ? round($r['custo'] / $u / 100.0, 2) : null,
+            ];
+        }
+        if ($diretos > 0) $porCategoria['contas'] = ($porCategoria['contas'] ?? 0) + $diretos;
+        $receita += $receitaContas;
+        $custo = $compartilhado + $diretos;
         $margem = $receita - $custo;
 
         // Checklist do dossiê: o que se aplica a este projeto, e se está preenchido.
-        $cobra = in_array($p['tipo'], ['cliente', 'saas'], true) && $p['status'] !== 'encerrado';
+        // Projeto-mãe com subprojetos: servidor, endereço, stack, receita, usuários
+        // e custos são cobrados de cada subprojeto, não da mãe (seria pendência dobrada).
+        $cobra = in_array($p['tipo'], ['cliente', 'saas'], true) && $p['status'] !== 'encerrado' && !$temFilhos;
         $checks = [];
         $checks[] = ['Descrição do projeto', !empty($p['descricao'])];
         if ($p['tipo'] === 'cliente') $checks[] = ['Cliente', !empty($p['cliente'])];
-        if ($p['status'] === 'producao' && $p['tipo'] !== 'automacao') $checks[] = ['Endereço de produção', !empty($p['url'])];
-        $checks[] = ['Onde roda (servidor)', !empty($p['servidor_id']) || $temCustoServidorItem];
-        if ($servidor) $checks[] = ['Custo do servidor ' . $servidor['nome'], $servidor['valor_mensal'] !== null && $servidor['valor_mensal'] !== ''];
-        $checks[] = ['Stack (tecnologia)', !empty($p['stack'])];
-        $checks[] = ['Responsável', !empty($p['responsavel'])];
-        if ($cobra) {
-            $checks[] = ['Receita cadastrada', $temReceita];
-            $checks[] = ['Usuários ativos', $p['usuarios_ativos'] !== null && $p['usuarios_ativos'] !== ''];
+        if (!$temFilhos) {
+            if ($p['status'] === 'producao' && $p['tipo'] !== 'automacao') $checks[] = ['Endereço de produção', !empty($p['url'])];
+            $checks[] = ['Onde roda (servidor)', !empty($p['servidor_id']) || $temCustoServidorItem];
+            $checks[] = ['Stack (tecnologia)', !empty($p['stack'])];
         }
-        $checks[] = ['Custos cadastrados', $custo > 0 || $aPreencher || !empty($p['servidor_id'])];
+        if ($servidor) $checks[] = ['Custo do servidor ' . $servidor['nome'], $servidor['valor_mensal'] !== null && $servidor['valor_mensal'] !== ''];
+        $checks[] = ['Responsável', !empty($p['responsavel'])];
+        $temUsuProjeto = $p['usuarios_ativos'] !== null && $p['usuarios_ativos'] !== '';
+        if ($cobra) {
+            $checks[] = ['Receita cadastrada', $temReceita || $receitaContas > 0];
+            $checks[] = ['Usuários ativos', $temUsuProjeto || $temUsuContas];
+        }
+        if (!$temFilhos) $checks[] = ['Custos cadastrados', $custo > 0 || $aPreencher || !empty($p['servidor_id'])];
         foreach ($aPreencher as $d) $checks[] = ['Valor de ' . $d, false];
         foreach ($semInicio as $d) $checks[] = ['Início da cobrança de ' . $d, false];
+        if ($semReceita) $checks[] = ['Quanto paga' . ($semReceita === 1 ? ' 1 conta ativa' : " cada uma das $semReceita contas ativas"), false];
 
         $pend = []; $ok = 0;
         foreach ($checks as [$rotulo, $feito]) { if ($feito) $ok++; else $pend[] = $rotulo; }
-        $usuarios = (int) ($p['usuarios_ativos'] ?? 0);
+        // Usuários: o número do projeto, se informado; senão a soma das contas.
+        $usuarios = $temUsuProjeto ? (int) $p['usuarios_ativos'] : $usuContas;
 
         return [
             'receita_mensal' => $receita / 100.0,
@@ -441,9 +481,55 @@ final class Projeto
             'arrecadado' => $arrec / 100.0,
             'receita_unica' => $unicoReceita / 100.0,
             'custo_por_categoria' => array_map(fn($c) => $c / 100.0, $porCategoria),
+            'custo_compartilhado' => $compartilhado / 100.0,
+            'usuarios' => ($temUsuProjeto || $temUsuContas) ? $usuarios : null,
+            'qtd_contas' => count(array_filter($contas, [Conta::class, 'consome'])),
+            'contas' => $porConta,
             'pendencias' => $pend,
+            'checks_ok' => $ok, 'checks_total' => count($checks),
             'completude' => $checks ? (int) round($ok / count($checks) * 100) : 100,
         ];
+    }
+
+    /**
+     * Receita e custo mês a mês nos últimos $meses meses (centavos), pelo
+     * cadastro: item vale no mês em que está vigente (único só no mês do início,
+     * e sem início não entra); conta vale a partir do início dela (sem início,
+     * todos os meses); o servidor, a partir do início do projeto (sem início,
+     * todos os meses). É o previsto pelo cadastro, não extrato.
+     *
+     * @return list<array{mes:string,receita:int,custo:int}>
+     */
+    public static function evolucao(array $p, array $itens, array $contas, ?int $custoServidor, float $cotacao, string $hoje, int $meses = 12): array
+    {
+        $base = (new \DateTimeImmutable(substr($hoje, 0, 7) . '-01'))->modify('-' . ($meses - 1) . ' months');
+        $out = [];
+        for ($i = 0; $i < $meses; $i++) {
+            $m = $base->modify("+$i months");
+            $ini = $m->format('Y-m-d'); $fim = $m->format('Y-m-t');
+            $rec = 0; $cus = 0;
+            foreach ($itens as $it) {
+                $t = self::totalItemBrl($it, $cotacao);
+                if ($t === null) continue;
+                if ($it['recorrencia'] === 'unico') {
+                    if (empty($it['inicio']) || $it['inicio'] < $ini || $it['inicio'] > $fim) continue;
+                    $v = $t;
+                } else {
+                    if (!empty($it['inicio']) && $it['inicio'] > $fim) continue;
+                    if (!empty($it['fim']) && $it['fim'] < $ini) continue;
+                    $v = $it['recorrencia'] === 'anual' ? (int) round($t / 12) : $t;
+                }
+                if ($it['natureza'] === 'receita') $rec += $v; else $cus += $v;
+            }
+            if ($custoServidor && (empty($p['inicio']) || $p['inicio'] <= $fim)) $cus += $custoServidor;
+            foreach ($contas as $c) {
+                if (!empty($c['inicio']) && $c['inicio'] > $fim) continue;
+                if (in_array($c['status'], Conta::PAGANTES, true)) $rec += (int) Conta::brl($c['receita_mensal'], $c['moeda'], $cotacao);
+                if (Conta::consome($c)) $cus += (int) Conta::brl($c['custo_direto'], 'BRL', $cotacao);
+            }
+            $out[] = ['mes' => $m->format('Y-m'), 'receita' => $rec, 'custo' => $cus];
+        }
+        return $out;
     }
 
     /* =================================================================
@@ -460,8 +546,10 @@ final class Projeto
     }
 
     /**
-     * Tudo que a tela precisa: projetos (com itens, números e pendências),
-     * servidores (com os projetos de cada um) e o resumo da carteira.
+     * Tudo que a tela precisa: projetos (cada um com itens, contas, acessos sem
+     * senha, números, pendências e evolução; os projetos-mãe também com o
+     * `agregado` deles + filhos), servidores (com os projetos de cada um) e o
+     * resumo da carteira.
      */
     public static function painel(array $contas, float $cotacao, ?string $hoje = null): array
     {
@@ -474,20 +562,36 @@ final class Projeto
         $st->execute($p);
         $servidores = $st->fetchAll(\PDO::FETCH_ASSOC);
 
-        $st = $pdo->prepare("SELECT id, account_id, slug, nome, cliente, tipo, status, descricao, url, repositorio, stack,
+        $st = $pdo->prepare("SELECT id, account_id, parent_id, slug, nome, cliente, tipo, status, descricao, url, repositorio, stack,
                                     servidor_id, servidor_peso, usuarios_ativos, responsavel, inicio, observacao, updated_at
                                FROM projetos WHERE account_id IN $in AND deleted_at IS NULL
                            ORDER BY FIELD(status, 'producao', 'desenvolvimento', 'pausado', 'encerrado'), nome");
         $st->execute($p);
         $projetos = $st->fetchAll(\PDO::FETCH_ASSOC);
+        $idsValidos = array_flip(array_map(fn($x) => (int) $x['id'], $projetos));
+        $maes = [];
+        // Só conta como mãe (pendências ficam nos filhos) quem tem subprojeto ativo.
+        foreach ($projetos as $x) {
+            if ($x['parent_id'] && $x['status'] !== 'encerrado' && isset($idsValidos[(int) $x['parent_id']])) $maes[(int) $x['parent_id']] = true;
+        }
 
-        $st = $pdo->prepare("SELECT id, projeto_id, natureza, categoria, descricao, fornecedor, valor_unitario, quantidade,
-                                    moeda, recorrencia, inicio, fim, observacao
-                               FROM projeto_itens WHERE account_id IN $in AND deleted_at IS NULL
-                           ORDER BY natureza DESC, categoria, descricao");
-        $st->execute($p);
-        $itensPorProjeto = [];
-        foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $it) $itensPorProjeto[(int) $it['projeto_id']][] = $it;
+        $porProjeto = function (string $sql) use ($pdo, $p): array {
+            $st = $pdo->prepare($sql);
+            $st->execute($p);
+            $out = [];
+            foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $l) $out[(int) $l['projeto_id']][] = $l;
+            return $out;
+        };
+        $itensPorProjeto = $porProjeto("SELECT id, projeto_id, natureza, categoria, descricao, fornecedor, valor_unitario, quantidade,
+                                               moeda, recorrencia, inicio, fim, observacao
+                                          FROM projeto_itens WHERE account_id IN $in AND deleted_at IS NULL
+                                      ORDER BY natureza DESC, categoria, descricao");
+        $contasPorProjeto = $porProjeto("SELECT id, projeto_id, nome, identificador, plano, status, receita_mensal, moeda, usuarios,
+                                                peso_consumo, custo_direto, inicio, metricas, origem, sincronizado_em, observacao
+                                           FROM projeto_contas WHERE account_id IN $in AND deleted_at IS NULL
+                                       ORDER BY FIELD(status, 'ativa', 'inadimplente', 'teste', 'cancelada'), nome");
+        $acessosPorProjeto = $porProjeto("SELECT id, projeto_id, rotulo, url, usuario, (senha_enc IS NOT NULL) AS tem_senha, observacao
+                                            FROM projeto_acessos WHERE account_id IN $in AND deleted_at IS NULL ORDER BY rotulo");
 
         $srvPorId = [];
         foreach ($servidores as $s) $srvPorId[(int) $s['id']] = $s;
@@ -495,27 +599,34 @@ final class Projeto
 
         $saida = [];
         $tot = ['ativos' => 0, 'total' => 0, 'receita_mensal' => 0, 'custo_mensal' => 0, 'arrecadado' => 0,
-                'pendencias' => 0, 'usuarios' => 0, 'sem_receita' => 0];
+                'pendencias' => 0, 'usuarios' => 0, 'sem_receita' => 0, 'contas' => 0];
         foreach ($projetos as $pr) {
             $id = (int) $pr['id'];
+            // Mãe apagada ou de outra conta: o projeto sobe para o primeiro nível.
+            if ($pr['parent_id'] && !isset($idsValidos[(int) $pr['parent_id']])) $pr['parent_id'] = null;
             $srv = $pr['servidor_id'] ? ($srvPorId[(int) $pr['servidor_id']] ?? null) : null;
             if (!$srv) $pr['servidor_id'] = null; // servidor apagado ou de outra conta: some do projeto
             // Fora do rateio (projeto encerrado) não paga servidor; null = servidor sem custo informado.
             $custoSrv = ($srv && array_key_exists($id, $rateio)) ? $rateio[$id] : 0;
             $itens = $itensPorProjeto[$id] ?? [];
-            $calc = self::calcular($pr, $itens, $custoSrv, $srv, $cotacao, $hoje);
-            $saida[] = self::formatarProjeto($pr, $itens, $srv, $calc, $cotacao, $hoje);
+            $ctas = $contasPorProjeto[$id] ?? [];
+            $calc = self::calcular($pr, $itens, $custoSrv, $srv, $cotacao, $hoje, $ctas, isset($maes[$id]));
+            $evo = self::evolucao($pr, $itens, $ctas, $custoSrv, $cotacao, $hoje);
+            $saida[] = self::formatarProjeto($pr, $itens, $srv, $calc, $cotacao, $hoje, $ctas, $acessosPorProjeto[$id] ?? [], $evo);
 
             $tot['total']++;
             if ($pr['status'] === 'encerrado') continue;
             if ($pr['status'] === 'producao') $tot['ativos']++;
             $tot['receita_mensal'] += (int) round($calc['receita_mensal'] * 100);
-            $tot['custo_mensal'] += (int) round($calc['custo_itens'] * 100);
+            // Servidor entra pela lista de servidores (inteiro), não pelo rateio.
+            $tot['custo_mensal'] += (int) round(($calc['custo_mensal'] - (float) $calc['custo_servidor']) * 100);
             $tot['arrecadado'] += (int) round($calc['arrecadado'] * 100);
             $tot['pendencias'] += count($calc['pendencias']);
-            $tot['usuarios'] += (int) ($pr['usuarios_ativos'] ?? 0);
+            $tot['usuarios'] += (int) ($calc['usuarios'] ?? 0);
+            $tot['contas'] += $calc['qtd_contas'];
             if (in_array($pr['tipo'], ['cliente', 'saas'], true) && $calc['receita_mensal'] <= 0) $tot['sem_receita']++;
         }
+        $saida = self::agregar($saida);
 
         // Servidor entra inteiro no custo da carteira, mesmo sem projeto ligado:
         // a fatura chega do mesmo jeito.
@@ -547,20 +658,63 @@ final class Projeto
             'servidores' => $srvSaida,
             'resumo' => [
                 'projetos_ativos' => $tot['ativos'], 'projetos_total' => $tot['total'],
+                'projetos_mae' => count(array_filter($saida, fn($x) => $x['parent_id'] === null)),
                 'receita_mensal' => $receita / 100.0, 'custo_mensal' => $custo / 100.0,
                 'margem_mensal' => ($receita - $custo) / 100.0,
                 'margem_pct' => $receita > 0 ? round(($receita - $custo) / $receita * 100, 1) : null,
                 'arrecadado' => $tot['arrecadado'] / 100.0, 'pendencias' => $tot['pendencias'],
-                'usuarios' => $tot['usuarios'], 'sem_receita' => $tot['sem_receita'],
+                'usuarios' => $tot['usuarios'], 'contas' => $tot['contas'], 'sem_receita' => $tot['sem_receita'],
                 'servidores_sem_valor' => $srvSemValor,
             ],
         ];
     }
 
-    private static function formatarProjeto(array $p, array $itens, ?array $srv, array $calc, float $cotacao, string $hoje): array
+    /**
+     * Em cada projeto, `filhos` (ids dos subprojetos) e `agregado`: os números
+     * dele somados aos dos subprojetos não encerrados (projeto sem filho: os
+     * próprios números). A evolução é somada mês a mês.
+     */
+    public static function agregar(array $projetos): array
+    {
+        $filhos = [];
+        foreach ($projetos as $x) if ($x['parent_id']) $filhos[$x['parent_id']][] = $x;
+        foreach ($projetos as &$x) {
+            $grupo = [$x];
+            foreach ($filhos[$x['id']] ?? [] as $f) if ($f['status'] !== 'encerrado' || $x['status'] === 'encerrado') $grupo[] = $f;
+            $a = ['receita_mensal' => 0.0, 'custo_mensal' => 0.0, 'arrecadado' => 0.0, 'pendencias' => 0, 'usuarios' => 0,
+                  'qtd_contas' => 0, 'checks_ok' => 0, 'checks_total' => 0, 'custo_por_categoria' => [], 'evolucao' => []];
+            foreach ($grupo as $g) {
+                $c = $g['calc'];
+                foreach (['receita_mensal', 'custo_mensal', 'arrecadado'] as $k) $a[$k] += $c[$k];
+                $a['pendencias'] += count($c['pendencias']);
+                $a['usuarios'] += (int) ($c['usuarios'] ?? 0);
+                $a['qtd_contas'] += $c['qtd_contas'];
+                $a['checks_ok'] += $c['checks_ok']; $a['checks_total'] += $c['checks_total'];
+                foreach ($c['custo_por_categoria'] as $k => $v) $a['custo_por_categoria'][$k] = ($a['custo_por_categoria'][$k] ?? 0) + $v;
+                foreach ($g['evolucao'] as $i => $e) {
+                    $a['evolucao'][$i] ??= ['mes' => $e['mes'], 'receita' => 0.0, 'custo' => 0.0];
+                    $a['evolucao'][$i]['receita'] += $e['receita']; $a['evolucao'][$i]['custo'] += $e['custo'];
+                }
+            }
+            foreach (['receita_mensal', 'custo_mensal', 'arrecadado'] as $k) $a[$k] = round($a[$k], 2);
+            $a['margem_mensal'] = round($a['receita_mensal'] - $a['custo_mensal'], 2);
+            $a['margem_pct'] = $a['receita_mensal'] > 0 ? round($a['margem_mensal'] / $a['receita_mensal'] * 100, 1) : null;
+            $a['custo_por_usuario'] = $a['usuarios'] > 0 ? round($a['custo_mensal'] / $a['usuarios'], 2) : null;
+            $a['completude'] = $a['checks_total'] ? (int) round($a['checks_ok'] / $a['checks_total'] * 100) : 100;
+            $a['subprojetos'] = count($grupo) - 1;
+            $x['filhos'] = array_map(fn($f) => $f['id'], $filhos[$x['id']] ?? []);
+            $x['agregado'] = $a;
+        }
+        unset($x);
+        return $projetos;
+    }
+
+    private static function formatarProjeto(array $p, array $itens, ?array $srv, array $calc, float $cotacao, string $hoje,
+                                            array $contas = [], array $acessos = [], array $evolucao = []): array
     {
         return [
-            'id' => (int) $p['id'], 'slug' => $p['slug'], 'nome' => $p['nome'], 'cliente' => $p['cliente'],
+            'id' => (int) $p['id'], 'parent_id' => $p['parent_id'] ? (int) $p['parent_id'] : null,
+            'slug' => $p['slug'], 'nome' => $p['nome'], 'cliente' => $p['cliente'],
             'tipo' => $p['tipo'], 'status' => $p['status'], 'descricao' => $p['descricao'], 'url' => $p['url'],
             'repositorio' => $p['repositorio'], 'stack' => $p['stack'],
             'servidor_id' => $p['servidor_id'] ? (int) $p['servidor_id'] : null,
@@ -582,6 +736,23 @@ final class Projeto
                     'vigente' => self::vigente($it, $hoje),
                 ];
             }, $itens),
+            'contas' => array_map(fn($c) => [
+                'id' => (int) $c['id'], 'nome' => $c['nome'], 'identificador' => $c['identificador'], 'plano' => $c['plano'],
+                'status' => $c['status'], 'moeda' => $c['moeda'],
+                'receita_mensal' => $c['receita_mensal'] === null ? null : round((float) $c['receita_mensal'], 2),
+                'usuarios' => $c['usuarios'] === null ? null : (int) $c['usuarios'],
+                'peso_consumo' => round((float) $c['peso_consumo'], 2),
+                'custo_direto' => $c['custo_direto'] === null ? null : round((float) $c['custo_direto'], 2),
+                'inicio' => $c['inicio'], 'origem' => $c['origem'], 'sincronizado_em' => $c['sincronizado_em'],
+                'observacao' => $c['observacao'],
+                'metricas' => $c['metricas'] ? (json_decode((string) $c['metricas'], true) ?: null) : null,
+                'calc' => $calc['contas'][(int) $c['id']] ?? null,
+            ], $contas),
+            'acessos' => array_map(fn($a) => [
+                'id' => (int) $a['id'], 'rotulo' => $a['rotulo'], 'url' => $a['url'], 'usuario' => $a['usuario'],
+                'tem_senha' => (bool) $a['tem_senha'], 'observacao' => $a['observacao'],
+            ], $acessos),
+            'evolucao' => array_map(fn($e) => ['mes' => $e['mes'], 'receita' => $e['receita'] / 100.0, 'custo' => $e['custo'] / 100.0], $evolucao),
             'calc' => $calc,
         ];
     }
@@ -591,9 +762,9 @@ final class Projeto
      * ================================================================= */
 
     /** Conta dona da linha, se ela estiver entre as contas acessíveis; senão null. */
-    private static function contaDa(string $tabela, int $id, array $contas): ?int
+    public static function donoDa(string $tabela, int $id, array $contas): ?int
     {
-        if (!in_array($tabela, ['projetos', 'projeto_itens', 'projeto_servidores'], true)) return null;
+        if (!in_array($tabela, ['projetos', 'projeto_itens', 'projeto_servidores', 'projeto_contas', 'projeto_acessos'], true)) return null;
         $pdo = Database::getConnection();
         [$in, $p] = self::inContas($contas);
         $st = $pdo->prepare("SELECT account_id FROM $tabela WHERE id = :id AND account_id IN $in AND deleted_at IS NULL");
@@ -602,11 +773,37 @@ final class Projeto
         return $acc === false ? null : (int) $acc;
     }
 
+    /** Conta do projeto (para criar coisa dentro dele), ou null se não é das contas. */
+    public static function contaDoProjeto(int $projetoId, array $contas): ?int
+    {
+        return self::donoDa('projetos', $projetoId, $contas);
+    }
+
+    /**
+     * Mãe válida para o projeto: da mesma conta, de primeiro nível, não é ele
+     * mesmo, e ele não tem filhos (só um nível). Devolve o id ou null.
+     */
+    private static function paiValido(?int $paiId, int $accountId, ?int $projetoId): ?int
+    {
+        if (!$paiId || $paiId === $projetoId) return null;
+        $pdo = Database::getConnection();
+        $st = $pdo->prepare("SELECT parent_id FROM projetos WHERE id = ? AND account_id = ? AND deleted_at IS NULL");
+        $st->execute([$paiId, $accountId]);
+        $row = $st->fetch(\PDO::FETCH_ASSOC);
+        if (!$row || $row['parent_id'] !== null) return null;
+        if ($projetoId) {
+            $st = $pdo->prepare("SELECT COUNT(*) FROM projetos WHERE parent_id = ? AND account_id = ? AND deleted_at IS NULL");
+            $st->execute([$projetoId, $accountId]);
+            if ((int) $st->fetchColumn() > 0) return null;
+        }
+        return $paiId;
+    }
+
     /** Servidor só vale se for da mesma conta do projeto. */
     private static function servidorDaConta(?int $servidorId, int $accountId): ?int
     {
         if (!$servidorId) return null;
-        return self::contaDa('projeto_servidores', $servidorId, [$accountId]) === $accountId ? $servidorId : null;
+        return self::donoDa('projeto_servidores', $servidorId, [$accountId]) === $accountId ? $servidorId : null;
     }
 
     private static function decimal(?int $centavos): ?string
@@ -631,29 +828,31 @@ final class Projeto
     {
         $pdo = Database::getConnection();
         $slug = self::slugLivre($pdo, $accountId, $slug ? self::slug($slug) : self::slug($d['nome']));
-        $st = $pdo->prepare("INSERT INTO projetos (account_id, slug, nome, cliente, tipo, status, descricao, url, repositorio, stack,
+        $st = $pdo->prepare("INSERT INTO projetos (account_id, parent_id, slug, nome, cliente, tipo, status, descricao, url, repositorio, stack,
                                                    servidor_id, servidor_peso, usuarios_ativos, responsavel, inicio, observacao, created_by)
-                             VALUES (:acc, :slug, :nome, :cliente, :tipo, :status, :descricao, :url, :repositorio, :stack,
+                             VALUES (:acc, :pai, :slug, :nome, :cliente, :tipo, :status, :descricao, :url, :repositorio, :stack,
                                      :srv, :peso, :usu, :resp, :inicio, :obs, :uid)");
-        $st->execute(self::paramsProjeto($d, $accountId) + ['acc' => $accountId, 'slug' => $slug, 'uid' => $userId]);
+        $st->execute(self::paramsProjeto($d, $accountId, null) + ['acc' => $accountId, 'slug' => $slug, 'uid' => $userId]);
         return (int) $pdo->lastInsertId();
     }
 
     public static function atualizarProjeto(int $id, array $contas, array $d): bool
     {
-        $acc = self::contaDa('projetos', $id, $contas);
+        $acc = self::donoDa('projetos', $id, $contas);
         if ($acc === null) return false;
         $st = Database::getConnection()->prepare("UPDATE projetos SET nome = :nome, cliente = :cliente, tipo = :tipo, status = :status,
                     descricao = :descricao, url = :url, repositorio = :repositorio, stack = :stack, servidor_id = :srv,
-                    servidor_peso = :peso, usuarios_ativos = :usu, responsavel = :resp, inicio = :inicio, observacao = :obs
+                    servidor_peso = :peso, usuarios_ativos = :usu, responsavel = :resp, inicio = :inicio, observacao = :obs,
+                    parent_id = :pai
               WHERE id = :id AND account_id = :acc AND deleted_at IS NULL");
-        $st->execute(self::paramsProjeto($d, $acc) + ['id' => $id, 'acc' => $acc]);
+        $st->execute(self::paramsProjeto($d, $acc, $id) + ['id' => $id, 'acc' => $acc]);
         return true;
     }
 
-    private static function paramsProjeto(array $d, int $accountId): array
+    private static function paramsProjeto(array $d, int $accountId, ?int $projetoId): array
     {
         return [
+            'pai' => self::paiValido($d['parent_id'] ?? null, $accountId, $projetoId),
             'nome' => $d['nome'], 'cliente' => $d['cliente'], 'tipo' => $d['tipo'], 'status' => $d['status'],
             'descricao' => $d['descricao'], 'url' => $d['url'], 'repositorio' => $d['repositorio'], 'stack' => $d['stack'],
             'srv' => self::servidorDaConta($d['servidor_id'], $accountId), 'peso' => $d['servidor_peso'],
@@ -661,13 +860,19 @@ final class Projeto
         ];
     }
 
-    /** Exclusão lógica do projeto e dos itens dele. */
+    /**
+     * Exclusão lógica do projeto e do que é dele (itens, contas, acessos). Os
+     * subprojetos não são apagados: sobem para o primeiro nível.
+     */
     public static function excluirProjeto(int $id, array $contas): bool
     {
-        $acc = self::contaDa('projetos', $id, $contas);
+        $acc = self::donoDa('projetos', $id, $contas);
         if ($acc === null) return false;
         $pdo = Database::getConnection();
-        $pdo->prepare("UPDATE projeto_itens SET deleted_at = NOW() WHERE projeto_id = ? AND account_id = ? AND deleted_at IS NULL")->execute([$id, $acc]);
+        $pdo->prepare("UPDATE projetos SET parent_id = NULL WHERE parent_id = ? AND account_id = ?")->execute([$id, $acc]);
+        foreach (['projeto_itens', 'projeto_contas', 'projeto_acessos'] as $t) {
+            $pdo->prepare("UPDATE $t SET deleted_at = NOW() WHERE projeto_id = ? AND account_id = ? AND deleted_at IS NULL")->execute([$id, $acc]);
+        }
         $pdo->prepare("UPDATE projetos SET deleted_at = NOW() WHERE id = ? AND account_id = ? AND deleted_at IS NULL")->execute([$id, $acc]);
         return true;
     }
@@ -675,7 +880,7 @@ final class Projeto
     /** Cria o item no projeto (da conta do projeto). Devolve o id, ou null se o projeto não é das contas. */
     public static function criarItem(int $projetoId, array $contas, array $d, ?int $userId): ?int
     {
-        $acc = self::contaDa('projetos', $projetoId, $contas);
+        $acc = self::donoDa('projetos', $projetoId, $contas);
         if ($acc === null) return null;
         $pdo = Database::getConnection();
         $st = $pdo->prepare("INSERT INTO projeto_itens (account_id, projeto_id, natureza, categoria, descricao, fornecedor, valor_unitario,
@@ -687,7 +892,7 @@ final class Projeto
 
     public static function atualizarItem(int $id, array $contas, array $d): bool
     {
-        $acc = self::contaDa('projeto_itens', $id, $contas);
+        $acc = self::donoDa('projeto_itens', $id, $contas);
         if ($acc === null) return false;
         $st = Database::getConnection()->prepare("UPDATE projeto_itens SET natureza = :nat, categoria = :cat, descricao = :desc,
                     fornecedor = :forn, valor_unitario = :valor, quantidade = :qtd, moeda = :moeda, recorrencia = :rec,
@@ -708,7 +913,7 @@ final class Projeto
 
     public static function excluirItem(int $id, array $contas): bool
     {
-        $acc = self::contaDa('projeto_itens', $id, $contas);
+        $acc = self::donoDa('projeto_itens', $id, $contas);
         if ($acc === null) return false;
         Database::getConnection()->prepare("UPDATE projeto_itens SET deleted_at = NOW() WHERE id = ? AND account_id = ?")->execute([$id, $acc]);
         return true;
@@ -725,7 +930,7 @@ final class Projeto
 
     public static function atualizarServidor(int $id, array $contas, array $d): bool
     {
-        $acc = self::contaDa('projeto_servidores', $id, $contas);
+        $acc = self::donoDa('projeto_servidores', $id, $contas);
         if ($acc === null) return false;
         $st = Database::getConnection()->prepare("UPDATE projeto_servidores SET nome = :nome, provedor = :prov, endereco = :end,
                     valor_mensal = :valor, moeda = :moeda, observacao = :obs WHERE id = :id AND account_id = :acc AND deleted_at IS NULL");
@@ -742,7 +947,7 @@ final class Projeto
     /** Exclusão lógica; os projetos que rodavam nele ficam sem servidor. */
     public static function excluirServidor(int $id, array $contas): bool
     {
-        $acc = self::contaDa('projeto_servidores', $id, $contas);
+        $acc = self::donoDa('projeto_servidores', $id, $contas);
         if ($acc === null) return false;
         $pdo = Database::getConnection();
         $pdo->prepare("UPDATE projetos SET servidor_id = NULL WHERE servidor_id = ? AND account_id = ?")->execute([$id, $acc]);
@@ -761,7 +966,11 @@ final class Projeto
      *  - servidor casa pelo nome; existente só ganha o que estiver vazio nele;
      *  - projeto casa pelo slug; existente só ganha campo que estiver vazio;
      *  - item casa por natureza + categoria + descrição dentro do projeto;
-     *    existente fica como está.
+     *    existente fica como está;
+     *  - "excluir_itens" tira item do projeto só se ele ainda está sem valor;
+     *  - conta casa pelo nome e acesso pelo rótulo, dentro do projeto (o dossiê
+     *    nunca traz senha: o campo é descartado);
+     *  - "pai" (slug) liga o subprojeto à mãe, se ele ainda não tem mãe.
      *
      * @return list<string> o que foi (ou seria) feito, uma linha por ação
      */
@@ -835,6 +1044,65 @@ final class Projeto
                 $log[] = "   + {$di['natureza']} {$di['categoria']}: {$di['descricao']} ({$valor})";
                 if ($aplicar && $projId > 0) self::criarItem($projId, [$accountId], $di, $userId);
             }
+
+            // Item que o dossiê manda tirar (ex.: "Assinaturas" trocado pelas contas):
+            // só sai se ainda estiver sem valor, ou seja, ninguém preencheu.
+            foreach ((array) ($pr['excluir_itens'] ?? []) as $ex) {
+                if ($projId <= 0) continue;
+                $st = $pdo->prepare("SELECT id FROM projeto_itens WHERE account_id = ? AND projeto_id = ? AND natureza = ? AND categoria = ?
+                                        AND descricao = ? AND valor_unitario IS NULL AND deleted_at IS NULL");
+                $st->execute([$accountId, $projId, $ex['natureza'] ?? '', $ex['categoria'] ?? '', $ex['descricao'] ?? '']);
+                foreach ($st->fetchAll(\PDO::FETCH_COLUMN) as $idEx) {
+                    $log[] = "   - item sem valor retirado: " . ($ex['descricao'] ?? '');
+                    if ($aplicar) $pdo->prepare("UPDATE projeto_itens SET deleted_at = NOW() WHERE id = ? AND account_id = ?")->execute([$idEx, $accountId]);
+                }
+            }
+
+            // Contas: casam pelo nome dentro do projeto; existente fica como está.
+            foreach ((array) ($pr['contas'] ?? []) as $ct) {
+                [$dc, $erroC] = Conta::validar($ct);
+                if ($erroC) { $log[] = "   conta ignorada ({$erroC}): " . ($ct['nome'] ?? '?'); continue; }
+                if ($projId > 0) {
+                    $st = $pdo->prepare("SELECT COUNT(*) FROM projeto_contas WHERE account_id = ? AND projeto_id = ? AND nome = ? AND deleted_at IS NULL");
+                    $st->execute([$accountId, $projId, $dc['nome']]);
+                    if ((int) $st->fetchColumn() > 0) continue;
+                }
+                $log[] = "   + conta: {$dc['nome']}";
+                if ($aplicar && $projId > 0) Conta::criar($projId, [$accountId], $dc, $userId);
+            }
+
+            // Acessos: casam pelo rótulo dentro do projeto. O dossiê nunca traz senha.
+            foreach ((array) ($pr['acessos'] ?? []) as $ac) {
+                unset($ac['senha']);
+                [$da, $erroA] = Acesso::validar($ac);
+                if ($erroA) { $log[] = "   acesso ignorado ({$erroA}): " . ($ac['rotulo'] ?? '?'); continue; }
+                if ($projId > 0) {
+                    $st = $pdo->prepare("SELECT COUNT(*) FROM projeto_acessos WHERE account_id = ? AND projeto_id = ? AND rotulo = ? AND deleted_at IS NULL");
+                    $st->execute([$accountId, $projId, $da['rotulo']]);
+                    if ((int) $st->fetchColumn() > 0) continue;
+                }
+                $log[] = "   + acesso: {$da['rotulo']}" . ($da['url'] ? " ({$da['url']})" : '');
+                if ($aplicar && $projId > 0) Acesso::criar($projId, [$accountId], $da, $userId);
+            }
+        }
+
+        // Segunda passada: subprojeto ganha a mãe ("pai": slug), se ainda não tem.
+        foreach ((array) ($dossie['projetos'] ?? []) as $pr) {
+            if (empty($pr['pai'])) continue;
+            $slug = self::slug((string) ($pr['slug'] ?? $pr['nome'] ?? ''));
+            $pai = self::slug((string) $pr['pai']);
+            $st = $pdo->prepare("SELECT id, parent_id FROM projetos WHERE account_id = ? AND slug = ? AND deleted_at IS NULL LIMIT 1");
+            $st->execute([$accountId, $slug]);
+            $filho = $st->fetch(\PDO::FETCH_ASSOC);
+            $st->execute([$accountId, $pai]);
+            $mae = $st->fetch(\PDO::FETCH_ASSOC);
+            if ($aplicar && (!$filho || !$mae)) { $log[] = "subprojeto {$slug}: mãe {$pai} não encontrada"; continue; }
+            if ($filho && $filho['parent_id'] !== null) continue;
+            $log[] = "subprojeto {$slug} entra em {$pai}";
+            if (!$aplicar) continue;
+            $ok = self::paiValido((int) $mae['id'], $accountId, (int) $filho['id']);
+            if ($ok) self::atualizarCampos($pdo, 'projetos', (int) $filho['id'], $accountId, ['parent_id' => $ok]);
+            else $log[] = "   não ligado: {$pai} já é subprojeto, ou {$slug} tem subprojetos";
         }
         return $log;
     }
@@ -853,7 +1121,7 @@ final class Projeto
     private static function atualizarCampos(\PDO $pdo, string $tabela, int $id, int $accountId, array $campos): void
     {
         $permitidos = [
-            'projetos' => ['cliente', 'descricao', 'url', 'repositorio', 'stack', 'servidor_id', 'usuarios_ativos', 'responsavel', 'inicio', 'observacao'],
+            'projetos' => ['cliente', 'descricao', 'url', 'repositorio', 'stack', 'servidor_id', 'usuarios_ativos', 'responsavel', 'inicio', 'observacao', 'parent_id'],
             'projeto_servidores' => ['provedor', 'endereco', 'valor_mensal', 'observacao'],
         ];
         $set = []; $par = ['id' => $id, 'acc' => $accountId];

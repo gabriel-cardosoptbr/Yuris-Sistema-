@@ -148,7 +148,7 @@ resolvem ·
 `wa_webhook_parser` 69/0 · `wa_webhook_token` 21/0 · `wa_invariants` 61/0 ·
 `rotas` 47/0 · `conversao` 65/0 (só em dev) · `plan_gate_e2e` 25 ok/0 · `plan_feature` 79 ok/0 ·
 `dominios` 51 ok/0 · `djen_filtros` 8 ok/0 · `otif` 35 ok/0 (27/09/2026) · `perfil_comercial` 34 ok/0 (30/09/2026) ·
-`wa_midia` 77 ok/0 (30/09/2026) · `marca` 58 ok/0 (01/10/2026) · `card_crm` 22 ok/0 (01/10/2026) · `termometro` 51 ok/0 (01/10/2026, regra mista) · `setores` 19 ok/0 (05/10/2026, precisa da migration 140) · `agenda_lead` 59 ok/0 (10/10/2026, precisa da migration 141) · `orcamento_crm` 35 ok/0 (13/10/2026, precisa da migration 143) · `plataforma_crm` 24 ok/0 (13/10/2026, precisa da migration 144) · `sdr_treino_comando` 25 ok/0 (14/10/2026, precisa da migration 145) · `situacao_conversa` 42 ok/0 (10/10/2026, precisa da migration 142) · `projetos` 65 ok/0 (14/10/2026, precisa da migration 146).
+`wa_midia` 77 ok/0 (30/09/2026) · `marca` 58 ok/0 (01/10/2026) · `card_crm` 22 ok/0 (01/10/2026) · `termometro` 51 ok/0 (01/10/2026, regra mista) · `setores` 19 ok/0 (05/10/2026, precisa da migration 140) · `agenda_lead` 59 ok/0 (10/10/2026, precisa da migration 141) · `orcamento_crm` 35 ok/0 (13/10/2026, precisa da migration 143) · `plataforma_crm` 24 ok/0 (13/10/2026, precisa da migration 144) · `sdr_treino_comando` 25 ok/0 (14/10/2026, precisa da migration 145) · `situacao_conversa` 42 ok/0 (10/10/2026, precisa da migration 142) · `projetos` 102 ok/0 (14/10/2026, precisa das migrations 146 e 147).
 
 Ao mexer em `public/`, rode também a **varredura diferencial autenticada**
 (`scripts/tests/varredura_urls.php`), capturando antes e depois e comparando.

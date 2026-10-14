@@ -11,6 +11,13 @@
  *   POST {acao:'servidor_salvar', id?, ...}
  *   POST {acao:'servidor_excluir', id}
  *   POST {acao:'cotacao_salvar', valor}     cotação do dólar da conta
+ *   POST {acao:'conta_salvar', id?, projeto_id, ...}  conta do projeto (receita, usuários, consumo)
+ *   POST {acao:'conta_excluir', id}
+ *   POST {acao:'acesso_salvar', id?, projeto_id, rotulo, url, usuario, senha?, limpar_senha?}
+ *   POST {acao:'acesso_excluir', id}
+ *   POST {acao:'acesso_revelar', id}        devolve a senha em claro (auditado)
+ *
+ * Projeto aceita `parent_id` (projeto-mãe). A senha de acesso nunca sai no GET.
  *
  * Financeiro é só de ADM: vendedor da edição CRM recebe 403. Conta sem o módulo
  * ligado (configuracoes.modulos.projetos; Yuris nunca) recebe 404. Toda leitura
@@ -20,10 +27,13 @@
 require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Core\AccountContext;
+use App\Projetos\Acesso;
+use App\Projetos\Conta;
 use App\Projetos\Projeto;
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store'); // a resposta de acesso_revelar traz senha
 
 function responder(int $codigo, array $corpo): void
 {
@@ -47,7 +57,8 @@ function painel(array $contas, float $cotacao): array
 {
     return ['success' => true, 'cotacao_usd' => $cotacao, 'hoje' => Projeto::hoje()] + Projeto::painel($contas, $cotacao) + [
         'opcoes' => ['tipos' => Projeto::TIPOS, 'status' => Projeto::STATUS, 'categorias' => Projeto::CATEGORIAS,
-                     'recorrencias' => Projeto::RECORRENCIAS, 'moedas' => Projeto::MOEDAS],
+                     'recorrencias' => Projeto::RECORRENCIAS, 'moedas' => Projeto::MOEDAS, 'status_conta' => Conta::STATUS,
+                     'cripto' => \App\Core\Crypto::isConfigured()],
     ];
 }
 
@@ -118,6 +129,54 @@ switch ($acao) {
         if (!Projeto::excluirServidor($id, $contas)) responder(404, ['error' => 'Servidor não encontrado.']);
         $audit('servidor_deleted', 'projeto_servidor', $id);
         responder(200, painel($contas, $cotacao));
+
+    case 'conta_salvar':
+        [$d, $erro] = Conta::validar($in);
+        if ($erro) responder(422, ['error' => $erro]);
+        if ($id > 0) {
+            if (!Conta::atualizar($id, $contas, $d)) responder(404, ['error' => 'Conta não encontrada.']);
+            $audit('conta_updated', 'projeto_conta', $id, ['nome' => $d['nome'], 'receita_centavos' => $d['receita_mensal_centavos']]);
+        } else {
+            $novo = Conta::criar((int) ($in['projeto_id'] ?? 0), $contas, $d, $userId);
+            if ($novo === null) responder(404, ['error' => 'Projeto não encontrado.']);
+            $id = $novo;
+            $audit('conta_created', 'projeto_conta', $id, ['projeto_id' => (int) $in['projeto_id'], 'nome' => $d['nome']]);
+        }
+        responder(200, painel($contas, $cotacao) + ['id' => $id]);
+
+    case 'conta_excluir':
+        if (!Conta::excluir($id, $contas)) responder(404, ['error' => 'Conta não encontrada.']);
+        $audit('conta_deleted', 'projeto_conta', $id);
+        responder(200, painel($contas, $cotacao));
+
+    case 'acesso_salvar':
+        [$d, $erro] = Acesso::validar($in);
+        if ($erro) responder(422, ['error' => $erro]);
+        try {
+            if ($id > 0) {
+                if (!Acesso::atualizar($id, $contas, $d)) responder(404, ['error' => 'Acesso não encontrado.']);
+            } else {
+                $novo = Acesso::criar((int) ($in['projeto_id'] ?? 0), $contas, $d, $userId);
+                if ($novo === null) responder(404, ['error' => 'Projeto não encontrado.']);
+                $id = $novo;
+            }
+        } catch (\DomainException $e) {
+            responder(422, ['error' => $e->getMessage()]);
+        }
+        // Nunca a senha no histórico: só se foi trocada ou apagada.
+        $audit('acesso_salvo', 'projeto_acesso', $id, ['rotulo' => $d['rotulo'], 'senha_trocada' => $d['senha'] !== null, 'senha_apagada' => $d['limpar_senha']]);
+        responder(200, painel($contas, $cotacao) + ['id' => $id]);
+
+    case 'acesso_excluir':
+        if (!Acesso::excluir($id, $contas)) responder(404, ['error' => 'Acesso não encontrado.']);
+        $audit('acesso_deleted', 'projeto_acesso', $id);
+        responder(200, painel($contas, $cotacao));
+
+    case 'acesso_revelar':
+        $senha = Acesso::revelar($id, $contas);
+        if ($senha === null) responder(404, ['error' => 'Este acesso não tem senha guardada.']);
+        $audit('acesso_revelado', 'projeto_acesso', $id);
+        responder(200, ['success' => true, 'senha' => $senha]);
 
     case 'cotacao_salvar':
         if (!Projeto::salvarCotacao(\App\Core\Database::getConnection(), $accountId, $in['valor'] ?? '')) {

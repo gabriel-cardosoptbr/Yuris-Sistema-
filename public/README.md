@@ -278,15 +278,19 @@ para marcar cada parcela como paga (ou desfazer). Markup, modais e estilo ficam 
 do `if`, o comportamento em `assets/reembolsos.js` e a regra em
 `App\Financas\Reembolso`. O HTML da tela para conta Yuris é idêntico ao de antes.
 
-**Projetos (edição CRM, 14/10/2026).** `projetos.php` é a aba Financeiro › Projetos: a
-carteira de projetos da conta, com receita, custo e margem por mês, arrecadado, gráficos
-de para onde vai o custo e de quem dá lucro, e o dossiê de cada projeto (ficha, o que
-consome, o que arrecada, pendências). Só na conta com o módulo ligado
-(`Projeto::habilitado`: edição CRM com `configuracoes.modulos.projetos`; hoje só a
-Inovaize) e só para administrador; fora disso devolve para o painel. O item do menu é
-acrescentado pelo `includes/sidebar.php` no grupo Financeiro, com a permissão de
-Finanças. Comportamento em `assets/projetos.js`, estilo em `assets/projetos.css`, regra
-em `App\Projetos\Projeto`.
+**Projetos (edição CRM, 14/10/2026).** `projetos.php` é a pasta Projetos. Sem parâmetro,
+a Visão geral da carteira (indicadores, evolução de 12 meses, custo por categoria, receita
+x custo por projeto e um cartão por projeto-mãe com minigráfico). Com `?p=<slug>`, a página
+do projeto: números dele somados aos subprojetos e as abas Visão geral (gráficos),
+Subprojetos, Contas (quanto cada conta paga e consome, custo por usuário, consumo medido),
+Custos e receitas, Acessos (link, usuário, senha revelada sob pedido) e Ficha e
+pendências; slug que não existe volta para a Visão geral. Na página de um subprojeto o menu
+acende a mãe. Só na conta com o módulo ligado (`Projeto::habilitado`: edição CRM com
+`configuracoes.modulos.projetos`; hoje só a Inovaize) e só para administrador; fora disso
+devolve para o painel. O `includes/sidebar.php` monta a pasta **Projetos** logo depois de
+Comunicação: "Visão geral" e um item por projeto-mãe não encerrado (lido do banco), com a
+permissão de Finanças. Gráficos com Chart.js; comportamento em `assets/projetos.js`,
+estilo em `assets/projetos.css`, regra em `App\Projetos`.
 
 **Setor ao lado do nome no Chat (edição CRM, 05/10/2026).** Na lista de conversas, `chat.php`
 liga `window.CHAT_SETOR_NO_NOME` só quando `$isFleetiflow`, e `assets/chat.js` põe a etiqueta do
