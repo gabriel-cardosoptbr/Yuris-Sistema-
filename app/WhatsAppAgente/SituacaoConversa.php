@@ -19,7 +19,7 @@ use App\Core\Database;
  * ---------------------------------------------------------------------------
  * MOTIVOS (avaliar(), pura)
  * ---------------------------------------------------------------------------
- *   treino             número de treino: a Vitória responde lá pelo fluxo de treino
+ *   treino             número de treino com a Vitória ligada (#ativar): ela responde lá pelo fluxo de treino
  *   sem_agente         conta sem agente de pré-venda configurado
  *   pausada            alguém assumiu a conversa: a Vitória não responde ali
  *   numero_fora        o número da conversa não está conectado
@@ -135,7 +135,8 @@ final class SituacaoConversa
 
         $av = self::avaliar([
             'grupo'             => (int)$c['is_group'] === 1 || str_ends_with($remoteJid, '@g.us'),
-            'treino'            => $crm && SdrFleetiflow::ehTreino($instanceId, $remoteJid),
+            // Número de treino só é 'treino' com a Vitória ligada por #ativar; desligado, é conversa comum.
+            'treino'            => $crm && SdrFleetiflow::ehTreino($instanceId, $remoteJid) && SdrFleetiflow::treinoAtivo($instanceId, $remoteJid),
             'agente_disponivel' => $agenteDisp,
             'numero_aberto'     => strtolower((string)$c['inst_status']) === 'open',
             'agente_ligado'     => $ligado,

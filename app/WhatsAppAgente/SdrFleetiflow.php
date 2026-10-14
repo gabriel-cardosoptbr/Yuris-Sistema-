@@ -102,6 +102,64 @@ final class SdrFleetiflow
     }
 
     /**
+     * Comando do número de treino (14/10/2026): a Vitória fica DESLIGADA nos
+     * números de treino e só recebe a conversa depois de "#ativar". Sem isso, o
+     * número do dono, que é de treino, passava por cima do "Assumir conversa" e
+     * a Vitória entrava na conversa de verdade dele com o número Fleeti Flow.
+     *
+     * @return bool|null true = ligar, false = desligar, null = não é comando. PURA.
+     */
+    public static function comandoDeTreino(string $texto): ?bool
+    {
+        $t = mb_strtolower(trim($texto));
+        $t = strtr($t, ['á' => 'a', 'à' => 'a', 'ã' => 'a', 'â' => 'a', 'é' => 'e', 'ê' => 'e', 'í' => 'i', 'ó' => 'o', 'õ' => 'o', 'ô' => 'o', 'ú' => 'u', 'ç' => 'c']);
+        $t = preg_replace('/\s+/', ' ', rtrim($t, ' .!'));
+        if (in_array($t, ['#ativar', '#ativar vitoria', '#ativar ia', '#vitoria', '#ia on'], true)) return true;
+        if (in_array($t, ['#desativar', '#desativar vitoria', '#desativar ia', '#parar', '#ia off'], true)) return false;
+        return null;
+    }
+
+    /** A Vitória está ligada para este número de treino? Desligada até o primeiro "#ativar". */
+    public static function treinoAtivo(int $instanceId, string $remoteJid, array $key = []): bool
+    {
+        $chave = self::chaveFone(self::foneDaConversa($instanceId, $remoteJid, $key));
+        if ($chave === '') return false;
+        try {
+            $st = \App\Core\Database::getConnection()->prepare('SELECT ativo FROM sdr_treino_estado WHERE chave_fone = ? LIMIT 1');
+            $st->execute([$chave]);
+            return (int)$st->fetchColumn() === 1;
+        } catch (\Throwable $e) {
+            // Sem a migration 145: desligada, que é o lado seguro.
+            return false;
+        }
+    }
+
+    /** Liga ou desliga a Vitória para o número de treino da conversa. */
+    public static function definirTreino(int $instanceId, string $remoteJid, array $key, bool $ativo): bool
+    {
+        $chave = self::chaveFone(self::foneDaConversa($instanceId, $remoteJid, $key));
+        if ($chave === '') return false;
+        try {
+            \App\Core\Database::getConnection()->prepare(
+                'INSERT INTO sdr_treino_estado (chave_fone, ativo, mudado_em) VALUES (?, ?, UTC_TIMESTAMP())
+                 ON DUPLICATE KEY UPDATE ativo = VALUES(ativo), mudado_em = VALUES(mudado_em)'
+            )->execute([$chave, $ativo ? 1 : 0]);
+            return true;
+        } catch (\Throwable $e) {
+            error_log('[sdr_fleetiflow] comando de treino falhou: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /** A resposta do número ao comando. */
+    public static function textoDoComando(bool $ativo): string
+    {
+        return $ativo
+            ? 'Vitória ligada para este número (modo treino). Para desligar, mande #desativar.'
+            : 'Vitória desligada para este número. Para ligar de novo, mande #ativar.';
+    }
+
+    /**
      * De onde veio uma mensagem PRÓPRIA (fromMe), para saber se foi gente.
      *
      * O campo `source` da Evolution não basta: mensagem enviada pela API (o robô,

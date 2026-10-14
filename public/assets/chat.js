@@ -3830,7 +3830,7 @@ const ChatApp = (() => {
         texto = 'A chave "Agente" do número ' + numero + ' está desligada: ' + N + ' não responde ninguém por ele. Responda pelo Chat.'; break;
       case 'treino':
         info = true; titulo = 'Número de treino';
-        texto = Nc + ' responde este número pelo fluxo de treino.'; break;
+        texto = Nc + ' responde este número pelo fluxo de treino. Para desligar, mande #desativar deste número.'; break;
       default:
         texto = 'O lead escreveu ' + quando + '. Esta conta não tem agente de pré-venda: responda pelo Chat.';
     }

@@ -8,6 +8,7 @@ ser testado nos dois.
 
 | Pasta / arquivo | O que é |
 |---|---|
+| `migrations/run_145.php` | **Vitória nos números de treino só por comando** (edição CRM): `sdr_treino_estado`, uma linha por número de treino, ligado ou não. Desligada por padrão; "#ativar" liga e "#desativar" desliga, mandados do próprio número. Ver `SdrFleetiflow::comandoDeTreino`. Idempotente, `--dry-run` |
 | `migrations/run_144.php` | **integração com a plataforma Fleetiflow** (edição CRM): `plataforma_conexoes` (endereço da API, chave e segredo dos eventos, cifrados), `plataforma_vinculos` (código da conta FLT ↔ lead, com o último resumo lido) e `plataforma_eventos` (eventos recebidos, únicos por id). Ver `app/Plataforma/README.md`. Idempotente, `--dry-run` |
 | `migrations/run_143.php` | **orçamento no CRM** (edição Fleetiflow): `crm_servicos` e `crm_servico_componentes` (catálogo com as taxas: repasse imediato/mensal, cliente vê, custo), `crm_orcamentos` e `crm_orcamento_itens` (serviço ou débito do veículo). Ver `app/Orcamentos/README.md`. Idempotente, `--dry-run` |
 | `migrations/run_142.php` | **quem mandou a mensagem e o que foi entregue ao agente** (edição CRM, 10/10/2026): cria `whatsapp_msg_autor` (`instance_id` + `wamid` únicos, `autor` `chat` ou `celular`, `user_id`) e `sdr_encaminhamentos` (cada entrega da mensagem do lead ao agente de pré-venda: origem `webhook` ou `manual`, `http_status`, `ok`, `user_id`). Collation de `whatsapp_messages`. Idempotente, com `--dry-run`. Ver `App\WhatsAppAgente\AutorDaMensagem` e `SituacaoConversa` |

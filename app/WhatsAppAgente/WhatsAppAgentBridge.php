@@ -72,11 +72,34 @@ class WhatsAppAgentBridge
 
             // Takeover (botão "Assumir conversa" OU envio manual humano): se a conversa esta
             // pausada, o agente nao responde. agent_paused e por conversa (instance+jid).
-            // Exceção: número de TREINO da Vitória (conta Fleetiflow). Quem testa precisa
-            // sempre chegar nela, para corrigir, aprovar e "reiniciar"; a pausa que tiver
-            // ficado na conversa sai, e o Chat volta a mostrar "Com a Vitória".
+            // Exceção: número de TREINO da Vitória (conta Fleetiflow) com a Vitória LIGADA
+            // por "#ativar". Quem testa precisa chegar nela, para corrigir, aprovar e
+            // "reiniciar"; a pausa que tiver ficado na conversa sai, e o Chat volta a
+            // mostrar "Com a Vitória". Desligada (o padrão), o número é tratado como
+            // conversa comum e nada vai para ela.
+            $chaveMsg = is_array($bruto['key'] ?? null) ? $bruto['key'] : [];
             $treino = SdrFleetiflow::contaUsa($accountId)
-                && SdrFleetiflow::ehTreino($instanceId, $remoteJid, is_array($bruto['key'] ?? null) ? $bruto['key'] : []);
+                && SdrFleetiflow::ehTreino($instanceId, $remoteJid, $chaveMsg);
+            if ($treino) {
+                // Número de treino: a Vitória fica desligada até o "#ativar" (14/10/2026).
+                // O comando não vai para ela; o número só confirma.
+                $comando = $msgType === 'text' ? SdrFleetiflow::comandoDeTreino($userText) : null;
+                if ($comando !== null) {
+                    if (SdrFleetiflow::definirTreino($instanceId, $remoteJid, $chaveMsg, $comando)) {
+                        $GLOBALS['__agent_tasks'][] = [
+                            'destino'     => 'sdr_treino_aviso',
+                            'account_id'  => $accountId,
+                            'instance_id' => $instanceId,
+                            'remote_jid'  => $remoteJid,
+                            'texto'       => SdrFleetiflow::textoDoComando($comando),
+                        ];
+                    }
+                    return;
+                }
+                // Desligada: nada vai para a Vitória, e a pausa da conversa fica como
+                // está (quem assumiu continua com a conversa).
+                if (!SdrFleetiflow::treinoAtivo($instanceId, $remoteJid, $chaveMsg)) return;
+            }
             try {
                 if ($treino) {
                     require_once __DIR__ . '/AiIntake/IntakeSessionRepository.php';
@@ -289,6 +312,22 @@ class WhatsAppAgentBridge
         // Conta Fleetiflow: só entrega para a Vitória; ela responde pela Evolution.
         if (($task['destino'] ?? '') === 'sdr_fleetiflow') {
             SdrFleetiflow::encaminhar($task);
+            return;
+        }
+        // Confirmação do comando de treino (#ativar / #desativar), pelo mesmo número.
+        if (($task['destino'] ?? '') === 'sdr_treino_aviso') {
+            try {
+                $instModel = new WhatsAppInstance();
+                $sett = $instModel->cfgDoCanal((int)$task['instance_id'], $instModel->getSettings((int)$task['account_id']));
+                $resp = (new EvolutionApiService($sett))->sendText(
+                    $sett['evolution_instance'] ?? 'yuris-crm',
+                    (string)$task['remote_jid'],
+                    (string)$task['texto']
+                );
+                if (!empty($resp['_error'])) error_log('[sdr_fleetiflow] confirmação do comando falhou: ' . $resp['_error']);
+            } catch (\Throwable $e) {
+                error_log('[sdr_fleetiflow] confirmação do comando falhou: ' . $e->getMessage());
+            }
             return;
         }
         try {
