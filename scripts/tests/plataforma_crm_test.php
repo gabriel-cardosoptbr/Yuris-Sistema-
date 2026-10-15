@@ -97,6 +97,7 @@ if (!$pdo || !$temTabela || !$conta) {
     $col = (int) $pdo->query("SELECT id FROM pipeline_columns WHERE account_id = $acc ORDER BY ordem, id LIMIT 1")->fetchColumn();
     $segredo = bin2hex(random_bytes(32));
     $card = 0;
+    $siteCards = [];
     try {
         $pdo->prepare('INSERT INTO plataforma_conexoes (account_id, api_url, chave_cifrada, segredo_eventos_cifrado, nome_conexao, escopos, conectado_em)
                        VALUES (?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())')
@@ -140,9 +141,34 @@ if (!$pdo || !$temTabela || !$conta) {
         $lista = Eventos::doCard($acc, $card);
         ok('a ficha lista os eventos do lead', count($lista) === 1 && $lista[0]['tipo'] === 'solicitacao.criada');
         ok('outra conta não vê os eventos deste lead', Eventos::doCard($acc + 1, $card) === []);
+
+        echo "\n== 4. Assinatura pelo site ==\n";
+        // Telefone que não existe na base: o lead tem de ser novo, não um que já estava lá.
+        $foneSite = '119' . str_pad((string) random_int(0, 99999999), 8, '0', STR_PAD_LEFT);
+        $assinatura = ['id' => uuid(), 'descricao' => 'Fleetiflow Despachante — Essencial', 'valorMensal' => 389.9, 'status' => 'AUTORIZADA',
+            'nome' => 'Ana Teste', 'email' => strtolower($marca) . '@exemplo.com', 'telefone' => $foneSite, 'empresa' => $marca . ' Site', 'documento' => null];
+        $ev1 = ['id' => uuid(), 'tipo' => 'site.assinatura', 'conta' => null, 'origem' => ['tipo' => 'sistema'], 'dados' => ['status' => 'AUTORIZADA', 'assinatura' => $assinatura]];
+        $r1 = Eventos::receber($acc, $ev1);
+        $cardSite = (int) ($r1['card_id'] ?? 0);
+        $siteCards[] = $cardSite;
+        ok('assinatura autorizada vira lead', $cardSite > 0);
+        $c = $pdo->query("SELECT empresa_nome, email, telefone_whatsapp, valor_proposta FROM cards WHERE id = $cardSite")->fetch(\PDO::FETCH_ASSOC);
+        ok('o lead tem empresa, e-mail, WhatsApp com 55 e o valor', $c && $c['empresa_nome'] === $marca . ' Site' && $c['telefone_whatsapp'] === '55' . $foneSite && (float) $c['valor_proposta'] === 389.9);
+        $notaSite = $pdo->query("SELECT assunto FROM crm_interacoes WHERE entidade = 'card' AND entidade_id = $cardSite ORDER BY id DESC LIMIT 1")->fetchColumn();
+        ok('nota "assinatura pelo site ativa"', $notaSite === 'Assinatura pelo site ativa');
+        $ev2 = ['id' => uuid(), 'tipo' => 'site.pagamento', 'conta' => null, 'origem' => ['tipo' => 'sistema'], 'dados' => ['valor' => 389.9, 'assinatura' => ['pagamentosAprovados' => 1] + $assinatura]];
+        ok('a cobrança do mês vai para o mesmo lead', (Eventos::receber($acc, $ev2)['card_id'] ?? 0) === $cardSite);
     } catch (\Throwable $e) {
         ok('sem exceção: ' . $e->getMessage() . ' @' . basename($e->getFile()) . ':' . $e->getLine(), false);
     } finally {
+        foreach (array_filter($siteCards) as $sc) {
+            // Só o que o teste criou: os eventos do site, as notas e os avisos deles.
+            $pdo->exec("DELETE FROM plataforma_eventos WHERE account_id = $acc AND card_id = $sc AND tipo LIKE 'site.%'");
+            $pdo->exec("DELETE FROM crm_interacoes WHERE entidade = 'card' AND entidade_id = $sc AND (assunto LIKE 'Assinatura pelo site%' OR assunto = 'Mensalidade paga pelo site')");
+            $pdo->exec("DELETE FROM account_notifications WHERE entidade = 'card' AND entidade_id = $sc AND tipo = 'plataforma'");
+            // Criado por Card::create, tem histórico imutável: sai por exclusão lógica.
+            $pdo->exec("UPDATE cards SET deleted_at = NOW() WHERE id = $sc AND empresa_nome = " . $pdo->quote($marca . ' Site'));
+        }
         $pdo->exec("DELETE FROM plataforma_eventos WHERE account_id = $acc AND (codigo_conta LIKE 'FLT-ZZTE-%')");
         $pdo->exec("DELETE FROM plataforma_vinculos WHERE account_id = $acc AND codigo_conta LIKE 'FLT-ZZTE-%'");
         $pdo->exec("DELETE FROM plataforma_conexoes WHERE account_id = $acc AND nome_conexao = " . $pdo->quote($marca));

@@ -68,6 +68,13 @@ final class Eventos
         $eventoRow = (int) $pdo->lastInsertId();
         Conexao::marcarEvento($accountId);
 
+        // Assinatura pelo site (página de preços): quem assinou ainda não tem conta.
+        if (str_starts_with($tipo, 'site.')) {
+            $cardId = self::leadDoSite($accountId, $evento);
+            if ($cardId) $pdo->prepare('UPDATE plataforma_eventos SET card_id = ? WHERE id = ?')->execute([$cardId, $eventoRow]);
+            return ['novo' => true, 'card_id' => $cardId];
+        }
+
         $vinculo = $codigo !== '' ? Vinculo::doCodigo($accountId, $codigo) : null;
         if (!$vinculo && $codigo !== '') $vinculo = self::ligarPeloCnpj($accountId, $codigo, $evento);
         if (!$vinculo || !$vinculo['card_id']) return ['novo' => true, 'card_id' => null];
@@ -106,6 +113,112 @@ final class Eventos
         }
 
         return ['novo' => true, 'card_id' => $cardId];
+    }
+
+    /**
+     * O lead pago do site (15/10/2026): quem assinou um plano pela página de
+     * preços vira card, ou o card que já existe para ele (mesma assinatura,
+     * mesmo CNPJ, e-mail ou WhatsApp). Assinatura autorizada vai para "Venda
+     * concluída" com o valor fechado; a conta é aberta pelo time no Master.
+     *
+     * @return int|null o card
+     */
+    private static function leadDoSite(int $accountId, array $evento): ?int
+    {
+        $a = is_array($evento['dados']['assinatura'] ?? null) ? $evento['dados']['assinatura'] : [];
+        $assinaturaId = (string) ($a['id'] ?? '');
+        if ($assinaturaId === '') return null;
+        $pdo = Database::getConnection();
+
+        // 1. Um evento anterior da mesma assinatura já tem card.
+        $st = $pdo->prepare(
+            "SELECT card_id FROM plataforma_eventos
+              WHERE account_id = ? AND card_id IS NOT NULL AND tipo LIKE 'site.%'
+                AND JSON_UNQUOTE(JSON_EXTRACT(payload, '$.dados.assinatura.id')) = ?
+              ORDER BY id DESC LIMIT 1"
+        );
+        $st->execute([$accountId, $assinaturaId]);
+        $cardId = (int) ($st->fetchColumn() ?: 0);
+
+        // 2. Um lead que já existe: mesmo CNPJ, e-mail ou WhatsApp.
+        if (!$cardId) {
+            $doc = preg_replace('/\D/', '', (string) ($a['documento'] ?? ''));
+            $email = strtolower(trim((string) ($a['email'] ?? '')));
+            $fone8 = substr(preg_replace('/\D/', '', (string) ($a['telefone'] ?? '')), -8);
+            $st = $pdo->prepare(
+                "SELECT id FROM cards
+                  WHERE account_id = ? AND deleted_at IS NULL
+                    AND ((? <> '' AND REPLACE(REPLACE(REPLACE(COALESCE(cpf_cnpj,''),'.',''),'-',''),'/','') = ?)
+                      OR (? <> '' AND LOWER(COALESCE(email,'')) = ?)
+                      OR (LENGTH(?) = 8 AND RIGHT(REGEXP_REPLACE(COALESCE(telefone_whatsapp,''), '[^0-9]', ''), 8) = ?))
+                  ORDER BY updated_at DESC LIMIT 1"
+            );
+            $st->execute([$accountId, $doc, $doc, $email, $email, $fone8, $fone8]);
+            $cardId = (int) ($st->fetchColumn() ?: 0);
+        }
+
+        $colunas = \App\WhatsAppAgente\SdrFleetiflow::colunasDaConta($pdo, $accountId);
+        $autorizada = ($a['status'] ?? '') === 'AUTORIZADA';
+        $valor = (float) ($a['valorMensal'] ?? 0);
+
+        // 3. Ninguém: lead novo.
+        if (!$cardId) {
+            $fone = preg_replace('/\D/', '', (string) ($a['telefone'] ?? ''));
+            if ($fone !== '' && strlen($fone) <= 11) $fone = '55' . $fone;
+            $cardId = (int) \App\Prospeccao\Card::create([
+                'account_id'          => $accountId,
+                'titulo'              => (string) ($a['empresa'] ?? $a['nome'] ?? 'Assinatura pelo site'),
+                'cliente_nome'        => (string) ($a['nome'] ?? ''),
+                'empresa_nome'        => (string) ($a['empresa'] ?? ''),
+                'telefone_whatsapp'   => $fone ?: null,
+                'email'               => (string) ($a['email'] ?? '') ?: null,
+                'cpf_cnpj'            => (string) ($a['documento'] ?? '') ?: null,
+                'responsavel_user_id' => \App\WhatsAppAgente\SdrFleetiflow::especialistaPadrao($accountId),
+                'coluna_id'           => $colunas['novo'] ?? null,
+                'valor_proposta'      => $valor,
+                'descricao'           => 'Assinou pela página de preços do site: ' . (string) ($a['descricao'] ?? ''),
+                '_usuario_id'         => null,
+            ]);
+        }
+        if (!$cardId) return null;
+
+        if ($autorizada) {
+            \App\WhatsAppAgente\SdrFleetiflow::moverEtapa($accountId, $cardId, 'venda', null, true);
+            try {
+                \App\Prospeccao\Card::update($cardId, ['valor_proposta' => $valor, 'valor_fechado_final' => $valor, '_usuario_id' => null]);
+            } catch (\Throwable $e) {
+                error_log('[plataforma] valor do lead do site ' . $cardId . ': ' . $e->getMessage());
+            }
+        }
+
+        try {
+            $card = Vinculo::card($accountId, $cardId);
+        } catch (\InvalidArgumentException $e) {
+            return $cardId;
+        }
+        [$assunto, $texto] = self::descrever($evento);
+        Vinculo::nota($accountId, $card, $assunto, $texto, null);
+
+        // Assinatura ativa ou cancelada pede gente: abrir a conta, ou entender o porquê.
+        if (in_array($a['status'] ?? '', ['AUTORIZADA', 'CANCELADA'], true) && ($evento['tipo'] ?? '') === 'site.assinatura') {
+            $dados = [
+                'tipo'         => 'plataforma',
+                'titulo'       => $assunto . ': ' . mb_substr((string) ($a['empresa'] ?? ''), 0, 80),
+                'mensagem'     => mb_substr($texto, 0, 400),
+                'entidade'     => 'card',
+                'entidade_id'  => $cardId,
+                'url'          => '/prospeccao.php?open=' . $cardId,
+                'preferencia'  => 'responsavel',
+                'chave_dedupe' => 'plataforma:' . strtolower((string) ($evento['id'] ?? '')),
+            ];
+            try {
+                if (!empty($card['responsavel_user_id'])) Aviso::paraUsuario($accountId, (int) $card['responsavel_user_id'], $dados);
+                else Aviso::paraConta($accountId, $dados);
+            } catch (\Throwable $e) {
+                error_log('[plataforma] aviso do lead do site: ' . $e->getMessage());
+            }
+        }
+        return $cardId;
     }
 
     /** Sem vínculo: um lead só com o mesmo CNPJ vira o vínculo (e a plataforma fica sabendo). */
@@ -174,6 +287,20 @@ final class Eventos
                 $estorno = ($e['tipo'] ?? '') === 'recarga.estornada';
                 $saldo = isset($d['saldo']) ? ' Saldo agora: ' . self::real((float) $d['saldo']) . '.' : '';
                 return [$estorno ? 'Recarga estornada' : 'Recarga aprovada', 'Recarga de ' . self::real((float) ($r['valor'] ?? 0)) . " por $meio " . ($estorno ? 'estornada' : 'aprovada') . '.' . $saldo];
+            case 'site.assinatura':
+                $a = $d['assinatura'] ?? [];
+                $plano = (string) ($a['descricao'] ?? 'plano');
+                $valor = self::real((float) ($a['valorMensal'] ?? 0));
+                $contato = trim(($a['nome'] ?? '') . ' · ' . ($a['email'] ?? '') . ' · ' . ($a['telefone'] ?? ''), ' ·');
+                return match ($d['status'] ?? '') {
+                    'AUTORIZADA' => ['Assinatura pelo site ativa', "Assinou $plano por $valor/mês no cartão (recorrente). Abra a conta no Master com esse plano.\nContato: $contato"],
+                    'CANCELADA'  => ['Assinatura pelo site cancelada', "A assinatura de $plano ($valor/mês) foi cancelada.\nContato: $contato"],
+                    'PAUSADA'    => ['Assinatura pelo site pausada', "A assinatura de $plano ($valor/mês) foi pausada.\nContato: $contato"],
+                    default      => ['Assinatura pelo site', "Começou a assinar $plano ($valor/mês).\nContato: $contato"],
+                };
+            case 'site.pagamento':
+                $a = $d['assinatura'] ?? [];
+                return ['Mensalidade paga pelo site', 'Cobrança de ' . self::real((float) ($d['valor'] ?? 0)) . ' aprovada (' . (int) ($a['pagamentosAprovados'] ?? 0) . 'ª) de ' . (string) ($a['descricao'] ?? 'plano') . '.'];
             case 'mensalidade.paga':
                 return ['Mensalidade paga', 'Mensalidade ' . ($d['competencia'] ?? '') . ' paga: ' . self::real((float) ($d['valor'] ?? 0)) . $por . '.'];
             default:
