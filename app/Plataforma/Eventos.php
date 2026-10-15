@@ -292,8 +292,11 @@ final class Eventos
                 $plano = (string) ($a['descricao'] ?? 'plano');
                 $valor = self::real((float) ($a['valorMensal'] ?? 0));
                 $contato = trim(($a['nome'] ?? '') . ' · ' . ($a['email'] ?? '') . ' · ' . ($a['telefone'] ?? ''), ' ·');
+                // A ativação (implantação e treinamento) não vai no cartão recorrente: o time cobra à parte.
+                $ativacao = (float) ($a['taxaDeAtivacao'] ?? 0);
+                $cobrarAtivacao = $ativacao > 0 ? ' Cobrar à parte a taxa de ativação de ' . self::real($ativacao) . ' (uma vez).' : '';
                 return match ($d['status'] ?? '') {
-                    'AUTORIZADA' => ['Assinatura pelo site ativa', "Assinou $plano por $valor/mês no cartão (recorrente). Abra a conta no Master com esse plano.\nContato: $contato"],
+                    'AUTORIZADA' => ['Assinatura pelo site ativa', "Assinou $plano por $valor/mês no cartão (recorrente). Abra a conta no Master com esse plano.$cobrarAtivacao\nContato: $contato"],
                     'CANCELADA'  => ['Assinatura pelo site cancelada', "A assinatura de $plano ($valor/mês) foi cancelada.\nContato: $contato"],
                     'PAUSADA'    => ['Assinatura pelo site pausada', "A assinatura de $plano ($valor/mês) foi pausada.\nContato: $contato"],
                     default      => ['Assinatura pelo site', "Começou a assinar $plano ($valor/mês).\nContato: $contato"],

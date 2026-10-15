@@ -145,7 +145,7 @@ if (!$pdo || !$temTabela || !$conta) {
         echo "\n== 4. Assinatura pelo site ==\n";
         // Telefone que não existe na base: o lead tem de ser novo, não um que já estava lá.
         $foneSite = '119' . str_pad((string) random_int(0, 99999999), 8, '0', STR_PAD_LEFT);
-        $assinatura = ['id' => uuid(), 'descricao' => 'Fleetiflow Despachante — Essencial', 'valorMensal' => 389.9, 'status' => 'AUTORIZADA',
+        $assinatura = ['id' => uuid(), 'descricao' => 'Fleetiflow Despachante — Essencial', 'valorMensal' => 389.9, 'taxaDeAtivacao' => 1000, 'status' => 'AUTORIZADA',
             'nome' => 'Ana Teste', 'email' => strtolower($marca) . '@exemplo.com', 'telefone' => $foneSite, 'empresa' => $marca . ' Site', 'documento' => null];
         $ev1 = ['id' => uuid(), 'tipo' => 'site.assinatura', 'conta' => null, 'origem' => ['tipo' => 'sistema'], 'dados' => ['status' => 'AUTORIZADA', 'assinatura' => $assinatura]];
         $r1 = Eventos::receber($acc, $ev1);
@@ -156,6 +156,8 @@ if (!$pdo || !$temTabela || !$conta) {
         ok('o lead tem empresa, e-mail, WhatsApp com 55 e o valor', $c && $c['empresa_nome'] === $marca . ' Site' && $c['telefone_whatsapp'] === '55' . $foneSite && (float) $c['valor_proposta'] === 389.9);
         $notaSite = $pdo->query("SELECT assunto FROM crm_interacoes WHERE entidade = 'card' AND entidade_id = $cardSite ORDER BY id DESC LIMIT 1")->fetchColumn();
         ok('nota "assinatura pelo site ativa"', $notaSite === 'Assinatura pelo site ativa');
+        $textoSite = (string) $pdo->query("SELECT conteudo FROM crm_interacoes WHERE entidade = 'card' AND entidade_id = $cardSite ORDER BY id DESC LIMIT 1")->fetchColumn();
+        ok('a nota manda cobrar a taxa de ativação à parte', str_contains($textoSite, 'Cobrar à parte a taxa de ativação de R$ 1.000,00 (uma vez)'));
         $ev2 = ['id' => uuid(), 'tipo' => 'site.pagamento', 'conta' => null, 'origem' => ['tipo' => 'sistema'], 'dados' => ['valor' => 389.9, 'assinatura' => ['pagamentosAprovados' => 1] + $assinatura]];
         ok('a cobrança do mês vai para o mesmo lead', (Eventos::receber($acc, $ev2)['card_id'] ?? 0) === $cardSite);
     } catch (\Throwable $e) {
