@@ -107,7 +107,8 @@ final class Projeto
         return true;
     }
 
-    private static function mexerConfig(\PDO $pdo, int $accountId, callable $fn): void
+    /** Lê, altera ($fn recebe e devolve o array) e grava `accounts.configuracoes`. Também usada por Evolution. */
+    public static function mexerConfig(\PDO $pdo, int $accountId, callable $fn): void
     {
         $st = $pdo->prepare('SELECT configuracoes FROM accounts WHERE id = ? LIMIT 1');
         $st->execute([$accountId]);

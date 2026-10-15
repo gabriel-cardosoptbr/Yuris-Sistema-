@@ -278,6 +278,17 @@ para marcar cada parcela como paga (ou desfazer). Markup, modais e estilo ficam 
 do `if`, o comportamento em `assets/reembolsos.js` e a regra em
 `App\Financas\Reembolso`. O HTML da tela para conta Yuris é idêntico ao de antes.
 
+**Evolution (edição CRM, 15/10/2026).** `evolution.php` é o item Evolution › Conexões: o
+servidor de WhatsApp da Inovaize como infraestrutura. Indicadores (conexões, conectadas,
+presas reconectando, desconectadas, mensagens, custo e custo por conexão), aviso listando
+as conexões presas, gráficos (situação, mensagens por dia pelas fotos diárias, conexões
+por projeto, volume por instância), tabela por projeto e a tabela das instâncias com o
+projeto de cada uma (seletor agrupado por projeto-mãe; "sugerido" quando veio da conta
+dona). Só leitura no Evolution. Mesma condição da pasta Projetos (módulo ligado e
+administrador); o `includes/sidebar.php` monta o grupo **Evolution** logo depois de
+Projetos. Comportamento em `assets/evolution.js`, estilo em `assets/projetos.css`, regra
+em `App\Projetos\Evolution`.
+
 **Projetos (edição CRM, 14/10/2026).** `projetos.php` é a pasta Projetos. Sem parâmetro,
 a Visão geral da carteira (indicadores, evolução de 12 meses, custo por categoria, receita
 x custo por projeto e um cartão por projeto-mãe com minigráfico). Com `?p=<slug>`, a página

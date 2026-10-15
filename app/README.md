@@ -33,7 +33,7 @@ palavra que está na tela.
 | [`Processos/`](Processos/) | Jurídico › Processos e Intimações | processos, histórico, AASP/DJEN e o motor de monitoramento (`Monitor/`) |
 | [`Tarefas/`](Tarefas/) | Operação › Tarefas | tarefas, quadros, checklists, apontamento de horas, recorrência |
 | [`Financas/`](Financas/) | Gestão › Finanças | plano de contas do DRE |
-| [`Projetos/`](Projetos/) | pasta Projetos do menu (edição CRM, módulo por conta) | carteira de projetos da conta: projetos-mãe e subprojetos, servidores com rateio, receitas e custos, contas de cada projeto com o consumo, acessos com senha cifrada, evolução e o dossiê de pendências |
+| [`Projetos/`](Projetos/) | pasta Projetos do menu (edição CRM, módulo por conta) | carteira de projetos da conta: projetos-mãe e subprojetos, servidores com rateio, receitas e custos, contas de cada projeto com o consumo, acessos com senha cifrada, evolução e o dossiê de pendências; e a aba Evolution (menu Evolution › Conexões: o servidor de WhatsApp, só leitura) |
 | [`WhatsAppAgente/`](WhatsAppAgente/) | Comunicação › WhatsApp, Automações › Agente | canal Evolution, webhook de entrada e o agente de IA (`AiIntake/`) |
 | [`Webhooks/`](Webhooks/) | Automações › Webhooks | webhooks de **saída** do Yuris para sistemas do cliente |
 | [`Billing/`](Billing/) | página Planos, e travas espalhadas pelo sistema | limites e módulos por plano, gateway de pagamento (`Gateway/`) |

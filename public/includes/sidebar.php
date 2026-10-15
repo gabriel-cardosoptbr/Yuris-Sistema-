@@ -4,7 +4,7 @@
  * Defina $activePage antes de incluir este arquivo.
  * Valores: 'dashboard' | 'funil' | 'prospeccao' | 'dre' |
  *          'processos' | 'intimacoes' | 'juridico' | 'tarefas' | 'usuarios' | 'agente' | 'configuracoes' |
- *          'projetos' | 'projeto:<slug>' (edição CRM com o módulo ligado)
+ *          'projetos' | 'projeto:<slug>' | 'evolution' (edição CRM com o módulo ligado)
  */
 $_ap          = (string)($activePage ?? '');
 $_userName    = (string)($_SESSION['user_nome']   ?? 'Usuário');
@@ -723,6 +723,14 @@ $_notifTempo = function ($raw) {
                     'label' => 'Projetos',
                     'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M8 15v-2M12 15v-4M16 15v-3"/></svg>',
                     'items' => $_itensProjetos,
+                ], [
+                    // Evolution (pedido da Inovaize, 2026-10-15): o servidor de WhatsApp
+                    // como infraestrutura (conexões, projetos, volume, custo). Mesma
+                    // condição da pasta Projetos: é a visão da dona da infraestrutura.
+                    'key' => 'evolution',
+                    'label' => 'Evolution',
+                    'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/><path d="M9 11h.01M12 11h.01M15 11h.01"/></svg>',
+                    'items' => [['perm' => 'financas', 'href' => 'evolution.php', 'active' => 'evolution', 'icon' => 'chat', 'label' => 'Conexões']],
                 ]]);
             }
         } catch (\Throwable $__e) { /* sem o módulo: menu de sempre */ }

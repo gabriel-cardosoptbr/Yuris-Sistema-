@@ -12,6 +12,30 @@ master), custos e receitas, e o dossiê do que falta preencher.
 | `Projeto.php` | chave por conta, validação, as contas de dinheiro (equivalente mensal, dólar, rateio de servidor, arrecadado, evolução mês a mês), pendências do dossiê, hierarquia (mãe e subprojetos, `agregar`), o painel que a tela consome, CRUD de projeto, item e servidor, e a importação de um dossiê em JSON |
 | `Conta.php` | contas de um projeto (`projeto_contas`): validação, rateio do custo do projeto entre elas, CRUD e a gravação da medição automática (`sincronizar`) |
 | `Acesso.php` | acessos de um projeto (`projeto_acessos`): link, usuário e senha cifrada; CRUD e `revelar` |
+| `Evolution.php` | a aba **Evolution** (menu Evolution › Conexões): lê o servidor de WhatsApp (só leitura), limpa o fetchInstances, rateia o custo entre as conexões, liga instância a projeto (gravado ou sugerido) e guarda a foto diária (`evolution_snapshots`, migration 148) para o volume por dia |
+
+### A aba Evolution (`Evolution.php`, `public/evolution.php`, `public/api/evolution.php`, `public/assets/evolution.js`)
+
+- **Só leitura no Evolution.** Usa a configuração global do Painel Master
+  (`WhatsAppProvisioningService::globalCfg`: endereço + chave de administrador
+  cifrada) e chama só `GET /` (versão) e `GET /instance/fetchInstances`. Nada aqui
+  conecta, desconecta, reinicia ou apaga instância (risco 2 do CLAUDE.md).
+- O `token` de cada instância vem no fetchInstances e é descartado em
+  `normalizar()`; nunca chega à API nem à tela. Item sem nome é ignorado.
+- Situação: `open` conectada; `connecting` presa tentando reconectar (ocupa o
+  servidor e não funciona; a tela avisa e lista); `close` desconectada.
+- Custo mensal do Evolution informado na tela (`configuracoes.evolution.custo_mensal_centavos`),
+  rateado igual entre as conexões que ocupam o servidor (open e connecting), com
+  soma exata. Por projeto = soma das instâncias dele.
+- Projeto da instância: vínculo gravado (`configuracoes.evolution.vinculos`, nome →
+  projeto da mesma conta) ou, sem vínculo, sugestão: a instância é de uma conta
+  deste sistema (`whatsapp_instances`) cadastrada como conta de um projeto ("conta
+  #N"). A sugestão lê só nome da instância e id da conta, e só das contas já
+  cadastradas nos projetos.
+- O Evolution só dá totais acumulados. Cada abertura da aba grava a foto do dia
+  por instância (mesmo dia atualiza, não duplica); o volume por dia é a diferença
+  entre fotos (primeiro dia desconhecido; instância recriada não dá negativo).
+- Mesma condição da pasta Projetos: conta com o módulo ligado e administrador.
 
 Tela: `public/projetos.php` (`?p=<slug>` abre a página do projeto) +
 `public/assets/projetos.js` + `public/assets/projetos.css`. API:

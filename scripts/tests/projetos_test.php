@@ -113,10 +113,18 @@ ok('Yuris com a chave: desligado, sempre', !P::habilitado($cfg(['modulos' => ['p
 ok('cotação padrão e cotação gravada', P::cotacaoUsd([]) === P::COTACAO_PADRAO && P::cotacaoUsd($cfg(['projetos' => ['cotacao_usd' => 5.12]])) === 5.12);
 
 echo "\n== 7. Banco, fluxo e isolamento ==\n";
-$pdo = Database::getConnection();
-$tem = (int) $pdo->query("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'projeto_itens'")->fetchColumn();
-$contas = $pdo->query("SELECT id FROM accounts ORDER BY id DESC LIMIT 2")->fetchAll(PDO::FETCH_COLUMN);
-if (!$tem) { echo "  (pulado: rode a migration 146)\n"; }
+// As seções com banco GRAVAM (linhas marcadas, apagadas no fim). No servidor
+// (Docker, produção) só rodam com TESTE_NO_SERVIDOR=1, como orcamento_crm e
+// agenda_lead; e sem banco no ar (Database encerraria o script) também pulam.
+$semBanco = null;
+if (file_exists('/.dockerenv') && getenv('TESTE_NO_SERVIDOR') !== '1') $semBanco = 'no servidor (produção) a parte com banco não roda';
+elseif (!($s = @fsockopen(\App\Core\EnvLoader::get('DB_HOST', '127.0.0.1'), (int) \App\Core\EnvLoader::get('DB_PORT', '3306'), $en, $es, 2))) $semBanco = 'banco fora do ar';
+else fclose($s);
+$pdo = $semBanco ? null : Database::getConnection();
+$tem = $semBanco ? 0 : (int) $pdo->query("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'projeto_itens'")->fetchColumn();
+$contas = $semBanco ? [] : $pdo->query("SELECT id FROM accounts ORDER BY id DESC LIMIT 2")->fetchAll(PDO::FETCH_COLUMN);
+if ($semBanco) { echo "  [pulado] $semBanco\n"; }
+elseif (!$tem) { echo "  (pulado: rode a migration 146)\n"; }
 elseif (count($contas) < 2) { echo "  (pulado: precisa de duas contas no banco)\n"; }
 else {
     [$a, $b] = array_map('intval', $contas);
@@ -232,8 +240,9 @@ ok('evolução da mãe somada mês a mês', $ag[0]['agregado']['evolucao'][0]['r
 ok('subprojeto sem filhos: agregado = os próprios números', $ag[1]['agregado']['receita_mensal'] === 249.0 && $ag[1]['filhos'] === []);
 
 echo "\n== 10. Banco: hierarquia, contas, acessos e isolamento ==\n";
-$tem147 = (int) $pdo->query("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'projeto_acessos'")->fetchColumn();
-if (!$tem147 || count($contas) < 2) { echo "  (pulado: rode a migration 147 e tenha duas contas)\n"; }
+$tem147 = $semBanco ? 0 : (int) $pdo->query("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'projeto_acessos'")->fetchColumn();
+if ($semBanco) { echo "  [pulado] $semBanco\n"; }
+elseif (!$tem147 || count($contas) < 2) { echo "  (pulado: rode a migration 147 e tenha duas contas)\n"; }
 else {
     [$a, $b] = array_map('intval', $contas);
     $marca = 'teste-proj2-' . bin2hex(random_bytes(3));

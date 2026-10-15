@@ -61,6 +61,15 @@ cabeçalho; `pagar` e `quitar` levam `pago_em` e `pago_por_nome` (quem pagou). V
 recebe 403, conta sem o módulo ligado 404; leitura e escrita pela lista de contas
 acessíveis de `financas`. Regras em `app/Financas/README.md`.
 
+`evolution.php` é a API da aba Evolution (edição CRM): `GET` lê o Evolution na hora (só
+leitura, configuração global do Painel Master), grava a foto do dia de cada instância e
+devolve instâncias (sem token), resumo, por projeto, histórico diário e a lista de
+projetos (com mãe) para o vínculo; se o Evolution não responde, devolve `erro` e o
+histórico. `POST {acao}`: `vincular` (instância → projeto da conta; 0 desliga) e
+`custo_salvar` (custo mensal; vazio apaga), ambos auditados (`evolution.*`). CSRF no
+cabeçalho, `Cache-Control: no-store`. Vendedor recebe 403, conta sem a pasta Projetos 404.
+Regras em `app/Projetos/README.md`.
+
 `projetos.php` é a API da pasta Projetos (edição CRM): `GET` devolve o painel inteiro
 (projetos com itens, contas, acessos sem senha, números, pendências, evolução e, na mãe,
 o agregado com os subprojetos; servidores com o rateio; resumo; opções dos selects;
