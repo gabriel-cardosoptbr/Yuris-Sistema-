@@ -28,6 +28,7 @@
   const selo = s => { const [t, c] = SITUACAO[s] || [s, 'tbadge-fixa']; return `<span class="tbadge ${c}">${t}</span>`; };
 
   let lista = [], filtro = 'abertos', hoje = hojeLocal(), aberto = null;
+  let usuarios = [], pessoas = [], filtroPessoa = '', filtroTipo = '';
 
   /** "1.234,56" | "1234,56" | "1234.56" => centavos, ou null. */
   function centavos(txt) {
@@ -62,6 +63,8 @@
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || 'erro');
       lista = j.data || []; hoje = j.hoje || hoje;
+      usuarios = j.usuarios || []; pessoas = j.pessoas || [];
+      desenharPessoas();
       const s = j.resumo || {};
       $('reembAPagar').textContent = brl(s.a_pagar);
       $('reembAtrasado').textContent = brl(s.atrasado);
@@ -74,22 +77,65 @@
     }
   }
 
+  // ── Por pessoa (estorno e reembolso, 15/10/2026) ──────────────────────────
+  // O saldo de cada pessoa vem pronto de Reembolso::porPessoa. Clicar no cartão
+  // filtra a tabela por ela; clicar de novo tira o filtro.
+  const chavePessoa = r => r.favorecido_user_id ? 'u' + r.favorecido_user_id : 'n' + String(r.favorecido || '').trim().toLowerCase();
+  const chaveDoResumo = p => p.user_id ? 'u' + p.user_id : 'n' + String(p.nome || '').trim().toLowerCase();
+  const SIT_PESSOA = { quitado: ['Quitado', 'tbadge-receita'], parcial: ['Pago em parte', 'tbadge-variavel'], pendente: ['Pendente', 'tbadge-fixa'], atrasado: ['Em atraso', 'tbadge-despesa'] };
+  const nomeTipo = t => t === 'estorno' ? 'estorno' : 'reembolso';
+
+  function desenharPessoas() {
+    const el = $('reembPessoasLista');
+    if (!pessoas.length) { el.innerHTML = '<div class="reemb-vazio-pessoas">Ninguém tem nada a receber. Os lançamentos aparecem aqui por pessoa.</div>'; }
+    else el.innerHTML = pessoas.map(p => {
+      const [t, c] = SIT_PESSOA[p.situacao] || [p.situacao, 'tbadge-fixa'];
+      const partes = [p.reembolso_aberto > 0 ? 'reembolso ' + brl(p.reembolso_aberto) : '', p.estorno_aberto > 0 ? 'estorno ' + brl(p.estorno_aberto) : ''].filter(Boolean).join(' · ');
+      const k = chaveDoResumo(p);
+      return `<button type="button" class="reemb-pessoa${filtroPessoa === k ? ' ativa' : ''}" data-pessoa="${esc(k)}">
+        <div class="reemb-pessoa-topo"><b>${esc(p.nome)}</b><span class="tbadge ${c}">${t}</span></div>
+        <div class="reemb-pessoa-falta"><span>Falta pagar</span><b>${brl(p.aberto)}</b></div>
+        <small>Já pago ${brl(p.pago)} de ${brl(p.total)}${partes ? '<br>Em aberto: ' + partes : ''}${p.atrasado > 0 ? '<br>' + brl(p.atrasado) + ' em atraso' : ''}</small>
+      </button>`;
+    }).join('');
+    const selP = $('reembFiltroPessoa'), atual = filtroPessoa;
+    selP.innerHTML = '<option value="">Todas as pessoas</option>' + pessoas.map(p => `<option value="${esc(chaveDoResumo(p))}">${esc(p.nome)}</option>`).join('');
+    selP.value = pessoas.some(p => chaveDoResumo(p) === atual) ? atual : '';
+    filtroPessoa = selP.value;
+  }
+
+  $('reembPessoasLista').addEventListener('click', e => {
+    const b = e.target.closest('[data-pessoa]'); if (!b) return;
+    filtroPessoa = filtroPessoa === b.dataset.pessoa ? '' : b.dataset.pessoa;
+    $('reembFiltroPessoa').value = filtroPessoa;
+    document.querySelectorAll('.reemb-pessoa').forEach(x => x.classList.toggle('ativa', x.dataset.pessoa === filtroPessoa));
+    desenhar();
+  });
+  $('reembFiltroPessoa').addEventListener('change', e => {
+    filtroPessoa = e.target.value;
+    document.querySelectorAll('.reemb-pessoa').forEach(x => x.classList.toggle('ativa', x.dataset.pessoa === filtroPessoa));
+    desenhar();
+  });
+  $('reembFiltroTipo').addEventListener('change', e => { filtroTipo = e.target.value; desenhar(); });
+
   function desenhar() {
     const tb = $('reembTabela').tBodies[0];
-    const itens = lista.filter(r => filtro === 'todos' || (filtro === 'pagos' ? r.situacao === 'pago' : r.situacao !== 'pago'));
+    const itens = lista.filter(r => filtro === 'todos' || (filtro === 'pagos' ? r.situacao === 'pago' : r.situacao !== 'pago'))
+      .filter(r => !filtroPessoa || chavePessoa(r) === filtroPessoa)
+      .filter(r => !filtroTipo || (r.tipo || 'reembolso') === filtroTipo);
     if (!itens.length) {
-      const msg = !lista.length ? 'Nenhum reembolso cadastrado. Clique em "Novo reembolso" para começar.'
-        : filtro === 'pagos' ? 'Nenhum reembolso pago ainda.' : 'Nenhum reembolso em aberto. Tudo devolvido.';
+      const msg = !lista.length ? 'Nada cadastrado. Use "Novo reembolso" ou "Novo estorno" para começar.'
+        : filtro === 'pagos' ? 'Nenhum lançamento pago neste filtro.' : 'Nada em aberto neste filtro. Tudo pago.';
       tb.innerHTML = `<tr class="empty-row"><td colspan="7">${msg}</td></tr>`;
       return;
     }
     tb.innerHTML = itens.map(r => {
       const pct = r.qtd_parcelas ? Math.round(r.qtd_pagas / r.qtd_parcelas * 100) : 0;
       const forma = r.qtd_parcelas > 1 ? `${r.qtd_parcelas}x` : 'À vista';
-      const detalhe = r.situacao === 'pago' ? 'Tudo devolvido'
+      const detalhe = r.situacao === 'pago' ? 'Tudo pago'
         : `${r.qtd_pagas} de ${r.qtd_parcelas} paga${r.qtd_parcelas > 1 ? 's' : ''} · falta ${brl(r.valor_aberto)}` + (r.proximo_vencimento ? ` · vence ${data(r.proximo_vencimento)}` : '');
       return `<tr data-id="${r.id}">
-        <td><b>${esc(r.favorecido)}</b></td>
+        <td><b>${esc(r.favorecido)}</b><span class="reemb-tipo reemb-tipo-${esc(r.tipo || 'reembolso')}">${nomeTipo(r.tipo)}</span></td>
         <td class="reemb-desc">${esc(r.descricao)}</td>
         <td class="reemb-nowrap">${data(r.data_despesa)}</td>
         <td class="val-col">${brl(r.valor_total)}</td>
@@ -123,10 +169,39 @@
   ['reembValor', 'reembPrimeiro'].forEach(id => { $(id).addEventListener('input', previa); $(id).addEventListener('change', previa); });
   sel.addEventListener('change', previa);
 
-  function abrirForm(r) {
+  // Tipo muda os textos do formulário; a regra (parcelas, pagamento) é a mesma.
+  function textosDoTipo() {
+    const est = $('reembTipo').value === 'estorno', id = $('reembId').value;
+    $('reembModalTitulo').textContent = (id ? 'Editar ' : 'Novo ') + (est ? 'estorno' : 'reembolso');
+    $('reembModalSub').textContent = est ? 'Um valor que a empresa precisa devolver a uma pessoa' : 'O que a empresa precisa devolver a alguém que pagou uma conta dela';
+    $('reembPessoaRotulo').textContent = est ? 'Para quem é o estorno' : 'Quem pagou a conta';
+    $('reembDataRotulo').textContent = est ? 'Data do estorno' : 'Data da despesa';
+    $('reembDescricao').placeholder = est ? 'Ex: devolução de valor cobrado a mais, devolução de aporte' : 'Ex: hospedagem do site, combustível da visita ao cliente';
+    $('reembSalvarBtn').textContent = est ? 'Salvar estorno' : 'Salvar reembolso';
+  }
+  $('reembTipo').addEventListener('change', textosDoTipo);
+
+  // "Para quem": os usuários da conta, ou "Outra pessoa" com o nome digitado.
+  function preencherPessoas(r) {
+    const s = $('reembPessoa');
+    s.innerHTML = '<option value="">Escolha a pessoa</option>' + usuarios.map(u => `<option value="${u.id}">${esc(u.nome)}</option>`).join('') + '<option value="outra">Outra pessoa…</option>';
+    if (r && r.favorecido_user_id && usuarios.some(u => u.id === r.favorecido_user_id)) s.value = String(r.favorecido_user_id);
+    else if (r) s.value = 'outra';
+    else s.value = '';
+    $('reembFavorecido').value = r && s.value === 'outra' ? r.favorecido : '';
+    $('reembOutraCaixa').style.display = s.value === 'outra' ? '' : 'none';
+  }
+  $('reembPessoa').addEventListener('change', () => {
+    const outra = $('reembPessoa').value === 'outra';
+    $('reembOutraCaixa').style.display = outra ? '' : 'none';
+    if (outra) setTimeout(() => $('reembFavorecido').focus(), 30);
+  });
+
+  function abrirForm(r, tipoNovo) {
     $('reembId').value = r ? r.id : '';
-    $('reembModalTitulo').textContent = r ? 'Editar reembolso' : 'Novo reembolso';
-    $('reembFavorecido').value = r ? r.favorecido : '';
+    $('reembTipo').value = r ? (r.tipo || 'reembolso') : (tipoNovo || 'reembolso');
+    preencherPessoas(r);
+    textosDoTipo();
     $('reembDescricao').value = r ? r.descricao : '';
     $('reembData').value = r ? r.data_despesa : hoje;
     $('reembValor').value = r ? Number(r.valor_total).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
@@ -139,18 +214,21 @@
     $('reembMsg').style.display = 'none';
     previa();
     $('reembModal').style.display = 'flex';
-    setTimeout(() => $('reembFavorecido').focus(), 60);
+    setTimeout(() => $('reembPessoa').focus(), 60);
   }
 
-  $('reembNovoBtn').addEventListener('click', () => abrirForm(null));
+  $('reembNovoBtn').addEventListener('click', () => abrirForm(null, 'reembolso'));
+  $('reembNovoEstornoBtn').addEventListener('click', () => abrirForm(null, 'estorno'));
 
   $('reembSalvarBtn').addEventListener('click', async () => {
     const msg = $('reembMsg'), btn = $('reembSalvarBtn');
     const erro = t => { msg.textContent = t; msg.style.display = 'block'; };
     const c = centavos($('reembValor').value);
-    if (!$('reembFavorecido').value.trim()) return erro('Informe para quem é o reembolso.');
-    if (!$('reembDescricao').value.trim()) return erro('Descreva o que foi pago.');
-    if (!$('reembData').value) return erro('Informe a data da despesa.');
+    const tipo = $('reembTipo').value, pessoa = $('reembPessoa').value;
+    if (!pessoa) return erro(tipo === 'estorno' ? 'Escolha para quem é o estorno.' : 'Escolha quem pagou a conta.');
+    if (pessoa === 'outra' && !$('reembFavorecido').value.trim()) return erro('Informe o nome da pessoa.');
+    if (!$('reembDescricao').value.trim()) return erro(tipo === 'estorno' ? 'Descreva o motivo do estorno.' : 'Descreva o que foi pago.');
+    if (!$('reembData').value) return erro(tipo === 'estorno' ? 'Informe a data do estorno.' : 'Informe a data da despesa.');
     if (c === null || c <= 0) return erro('Informe um valor maior que zero, como 150,00.');
     if (!$('reembPrimeiro').value) return erro('Informe o vencimento.');
     msg.style.display = 'none';
@@ -158,14 +236,15 @@
     btn.disabled = true;
     try {
       await chamar({
-        acao: id ? 'atualizar' : 'criar', id,
-        favorecido: $('reembFavorecido').value.trim(), descricao: $('reembDescricao').value.trim(),
+        acao: id ? 'atualizar' : 'criar', id, tipo,
+        favorecido_user_id: pessoa === 'outra' ? 0 : Number(pessoa),
+        favorecido: pessoa === 'outra' ? $('reembFavorecido').value.trim() : '', descricao: $('reembDescricao').value.trim(),
         data_despesa: $('reembData').value, valor_total: (c / 100).toFixed(2),
         parcelas: parseInt(sel.value, 10) || 1, primeiro_vencimento: $('reembPrimeiro').value,
         observacao: $('reembObs').value.trim(),
       });
       $('reembModal').style.display = 'none';
-      toast(id ? 'Reembolso atualizado.' : 'Reembolso cadastrado.', 'success');
+      toast((tipo === 'estorno' ? 'Estorno ' : 'Reembolso ') + (id ? 'atualizado.' : 'cadastrado.'), 'success');
       if (!id && filtro === 'pagos') definirFiltro('abertos');
       carregar();
     } catch (e) { erro(e.message); }
@@ -183,8 +262,8 @@
     aberto = r;
     fecharPagar();
     $('reembParcelasTitulo').textContent = r.favorecido + ': ' + brl(r.valor_total);
-    $('reembParcelasSub').textContent = r.descricao + ' · despesa de ' + data(r.data_despesa)
-      + (r.situacao === 'pago' ? ' · tudo devolvido' : ' · falta ' + brl(r.valor_aberto));
+    $('reembParcelasSub').textContent = r.descricao + ' · ' + (r.tipo === 'estorno' ? 'estorno de ' : 'despesa de ') + data(r.data_despesa)
+      + (r.situacao === 'pago' ? ' · tudo pago' : ' · falta ' + brl(r.valor_aberto));
     $('reembParcelasLinhas').innerHTML = r.parcelas.map(p => {
       const situ = p.pago_em ? `<span class="tbadge tbadge-receita">Paga em ${data(p.pago_em)}</span>${p.pago_por_nome ? '<small class="reemb-quem">por ' + esc(p.pago_por_nome) + '</small>' : ''}`
         : p.atrasada ? '<span class="tbadge tbadge-despesa">Atrasada</span>' : '<span class="tbadge tbadge-fixa">A pagar</span>';
@@ -206,7 +285,7 @@
     const r = aberto;
     if (alvo.tipo === 'parcela') {
       const p = r.parcelas.find(x => x.id === alvo.id);
-      $('reembPagarTitulo').textContent = 'Registrar pagamento ' + (r.qtd_parcelas > 1 ? `da ${p.numero}ª parcela` : 'do reembolso') + ` (${brl(p.valor)})`;
+      $('reembPagarTitulo').textContent = 'Registrar pagamento ' + (r.qtd_parcelas > 1 ? `da ${p.numero}ª parcela` : 'do ' + nomeTipo(r.tipo)) + ` (${brl(p.valor)})`;
     } else {
       const n = r.qtd_parcelas - r.qtd_pagas;
       $('reembPagarTitulo').textContent = `Registrar pagamento das ${n} parcelas em aberto (${brl(r.valor_aberto)})`;
@@ -253,7 +332,7 @@
     if (!quem) { msg.textContent = 'Informe quem fez o pagamento.'; msg.style.display = 'block'; return; }
     if (!em) { msg.textContent = 'Informe a data do pagamento.'; msg.style.display = 'block'; return; }
     if (aPagar.tipo === 'parcela') acaoParcela({ acao: 'pagar', parcela_id: aPagar.id, pago_em: em, pago_por_nome: quem }, 'Pagamento registrado.');
-    else acaoParcela({ acao: 'quitar', id: aberto.id, pago_em: em, pago_por_nome: quem }, 'Reembolso quitado.');
+    else acaoParcela({ acao: 'quitar', id: aberto.id, pago_em: em, pago_por_nome: quem }, (aberto.tipo === 'estorno' ? 'Estorno' : 'Reembolso') + ' quitado.');
   });
 
   // ── Tabela: ações e filtro ───────────────────────────────────────────────
@@ -263,10 +342,10 @@
     if (b.dataset.acao === 'parcelas') return abrirParcelas(r);
     if (b.dataset.acao === 'editar') return abrirForm(r);
     if (b.dataset.acao === 'excluir') {
-      const pergunta = `Excluir o reembolso de ${r.favorecido} (${brl(r.valor_total)})?` + (r.qtd_pagas ? ' Os pagamentos registrados nele saem junto.' : '');
+      const pergunta = `Excluir o ${nomeTipo(r.tipo)} de ${r.favorecido} (${brl(r.valor_total)})?` + (r.qtd_pagas ? ' Os pagamentos registrados nele saem junto.' : '');
       const sim = window.Yuris && Yuris.confirm ? await Yuris.confirm(pergunta, { danger: true, okLabel: 'Excluir' }) : false;
       if (!sim) return;
-      try { await chamar({ acao: 'excluir', id: r.id }); toast('Reembolso excluído.', 'success'); carregar(); }
+      try { await chamar({ acao: 'excluir', id: r.id }); toast((r.tipo === 'estorno' ? 'Estorno' : 'Reembolso') + ' excluído.', 'success'); carregar(); }
       catch (err) { toast(err.message, 'error'); }
     }
   });

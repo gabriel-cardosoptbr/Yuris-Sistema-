@@ -57,6 +57,19 @@ bolso e a empresa devolve, à vista ou parcelado. Painel "Reembolsos" em
   devolvido e o que está atrasado, mas os números não somam em "Custos
   operacionais". Se um dia entrarem, a despesa é na data do pagamento de cada
   parcela, não na data da despesa.
+- **Estorno e pessoa** (migration 149, 15/10/2026). `reembolsos.tipo` é
+  `reembolso` (a pessoa pagou uma conta da empresa) ou `estorno` (a empresa
+  devolve um valor à pessoa); nos dois a empresa deve à pessoa e parcelas,
+  pagamento e situação funcionam igual. `favorecido_user_id` liga o lançamento a
+  um usuário da conta: `resolverPessoa()` recusa usuário de outra conta ou
+  apagado e copia o nome dele para `favorecido`. Sem usuário, vale o nome
+  digitado (pessoa de fora). Os lançamentos antigos ficaram `reembolso` e sem
+  usuário.
+- **Saldo por pessoa** (`porPessoa()`): agrupa pelo usuário (ou pelo nome, sem
+  diferenciar caixa e espaço) e devolve total devido, pago, falta pagar, em
+  atraso, quanto do aberto é reembolso e quanto é estorno, e a situação:
+  quitado, pago em parte (`parcial`), pendente ou em atraso. Quem tem mais a
+  receber vem primeiro. A tela mostra um cartão por pessoa, que filtra a tabela.
 
 Teste: `scripts/tests/reembolsos_test.php`.
 

@@ -54,8 +54,11 @@ conversa (nome, telefone, status, dono) e as 300 mensagens mais recentes em text
 Evolution), então responde com o número desconectado. Exige que o card seja de uma conta acessível pelo
 usuário (senão 404) e sessão (senão 401).
 
-`reembolsos.php` é a API dos reembolsos da tela Finanças (edição CRM): `GET` devolve a
-lista com parcelas, situação e o resumo; `POST {acao}` cria, atualiza, exclui, marca
+`reembolsos.php` é a API dos reembolsos e estornos da tela Finanças (edição CRM): `GET`
+devolve a lista com parcelas, situação e o resumo, o saldo por pessoa (`pessoas`), os
+usuários da conta (`usuarios`, para o "Para quem") e os tipos; criar e atualizar aceitam
+`tipo` (reembolso|estorno) e `favorecido_user_id`, que precisa ser usuário da conta da
+sessão (senão 422) e dá o nome; `POST {acao}` cria, atualiza, exclui, marca
 parcela como paga (`pagar`), desfaz (`desfazer`) ou quita tudo (`quitar`). CSRF no
 cabeçalho; `pagar` e `quitar` levam `pago_em` e `pago_por_nome` (quem pagou). Vendedor
 recebe 403, conta sem o módulo ligado 404; leitura e escrita pela lista de contas

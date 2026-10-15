@@ -106,5 +106,62 @@ else {
     ok('limpeza: parcelas saem junto (cascade)', $sobra === 0);
 }
 
+echo "\n== 7. Estorno e saldo por pessoa (migration 149) ==\n";
+[$de, $ee] = R::validar(['tipo' => 'estorno', 'favorecido' => '', 'favorecido_user_id' => 5] + $base);
+ok('estorno com pessoa escolhida (sem nome digitado) passa', $ee === null && $de['tipo'] === 'estorno' && $de['favorecido_user_id'] === 5);
+ok('tipo inválido é recusado', R::validar(['tipo' => 'outro'] + $base)[1] !== null);
+ok('sem nome e sem pessoa é recusado', R::validar(['favorecido' => '', 'favorecido_user_id' => 0] + $base)[1] !== null);
+ok('sem tipo continua reembolso (compatível)', R::validar($base)[0]['tipo'] === 'reembolso');
+$lan = fn(array $x) => $x + ['tipo' => 'reembolso', 'favorecido_user_id' => null, 'favorecido' => 'Gabriel', 'valor_total' => 0.0,
+                            'valor_pago' => 0.0, 'valor_aberto' => 0.0, 'valor_atrasado' => 0.0, 'situacao' => 'pendente'];
+$pp = R::porPessoa([
+    $lan(['favorecido_user_id' => 123, 'valor_total' => 300.0, 'valor_pago' => 100.0, 'valor_aberto' => 200.0, 'situacao' => 'pagando']),
+    $lan(['favorecido_user_id' => 123, 'tipo' => 'estorno', 'valor_total' => 50.0, 'valor_aberto' => 50.0]),
+    $lan(['favorecido_user_id' => 124, 'favorecido' => 'Milton', 'valor_total' => 80.0, 'valor_pago' => 80.0, 'situacao' => 'pago']),
+    $lan(['favorecido_user_id' => 125, 'favorecido' => 'Marcelo', 'valor_total' => 40.0, 'valor_aberto' => 40.0, 'valor_atrasado' => 40.0, 'situacao' => 'atrasado']),
+    $lan(['favorecido' => ' fornecedor x ', 'valor_total' => 10.0, 'valor_aberto' => 10.0]),
+    $lan(['favorecido' => 'Fornecedor X', 'valor_total' => 5.0, 'valor_aberto' => 5.0]),
+]);
+$porNome = array_column($pp, null, 'nome');
+ok('agrupa por usuário: Gabriel soma reembolso e estorno', $porNome['Gabriel']['total'] === 350.0 && $porNome['Gabriel']['aberto'] === 250.0
+    && $porNome['Gabriel']['reembolso_aberto'] === 200.0 && $porNome['Gabriel']['estorno_aberto'] === 50.0);
+ok('Gabriel recebeu parte: "pago em parte"', $porNome['Gabriel']['situacao'] === 'parcial' && $porNome['Gabriel']['pago'] === 100.0);
+ok('Milton recebeu tudo: quitado', $porNome['Milton']['situacao'] === 'quitado' && $porNome['Milton']['aberto'] === 0.0);
+ok('Marcelo com parcela vencida: em atraso', $porNome['Marcelo']['situacao'] === 'atrasado');
+ok('sem usuário agrupa pelo nome (sem caixa e espaço)', count($pp) === 4 && $pp[1]['nome'] !== '' );
+ok('ordem: quem tem mais a receber primeiro', $pp[0]['nome'] === 'Gabriel');
+$semNada = array_values(array_filter($pp, fn($x) => $x['user_id'] === null))[0] ?? null;
+ok('pessoa de fora: pendente, 15,00 em aberto', $semNada && $semNada['aberto'] === 15.0 && $semNada['situacao'] === 'pendente');
+
+$tem149 = (int) $pdo->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'reembolsos' AND COLUMN_NAME = 'tipo'")->fetchColumn();
+if (!$tem149 || count($contas) < 2) { echo "  (pulado: rode a migration 149 e tenha duas contas)\n"; }
+else {
+    [$a, $b] = array_map('intval', $contas);
+    $ua = $pdo->query("SELECT id, nome FROM users WHERE account_id = $a AND deleted_at IS NULL LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+    $ub = $pdo->query("SELECT id FROM users WHERE account_id = $b AND deleted_at IS NULL LIMIT 1")->fetchColumn();
+    if (!$ua) { echo "  (pulado: a conta $a não tem usuário)\n"; }
+    else {
+        $criados2 = [];
+        try {
+            [$d] = R::validar(['tipo' => 'estorno', 'favorecido' => 'nome digitado', 'favorecido_user_id' => (int) $ua['id']] + $base);
+            ok('pessoa da própria conta: aceita e o nome vem do cadastro', R::resolverPessoa($a, $d) === null && $d['favorecido'] === $ua['nome']);
+            $id2 = R::criar($a, $d, null); $criados2[] = $id2;
+            $r2 = R::buscar($id2, [$a]);
+            ok('estorno gravado com tipo e pessoa', $r2['tipo'] === 'estorno' && $r2['favorecido_user_id'] === (int) $ua['id']);
+            if ($ub) {
+                [$dx] = R::validar(['favorecido_user_id' => (int) $ub] + $base);
+                ok('usuário de outra conta é recusado', R::resolverPessoa($a, $dx) !== null);
+            }
+            [$d3] = R::validar(['tipo' => 'reembolso', 'favorecido' => 'Fornecedor', 'favorecido_user_id' => 0] + $base);
+            R::atualizar($id2, [$a], $d3);
+            $r3 = R::buscar($id2, [$a]);
+            ok('editar troca o tipo e solta a pessoa', $r3['tipo'] === 'reembolso' && $r3['favorecido_user_id'] === null && $r3['favorecido'] === 'Fornecedor');
+            ok('pessoas da conta não trazem usuário de outra conta', !in_array((int) $ub, array_column(R::pessoasDaConta([$a]), 'id'), true));
+        } finally {
+            foreach ($criados2 as $c) $pdo->prepare("DELETE FROM reembolsos WHERE id = ?")->execute([$c]);
+        }
+    }
+}
+
 echo "\n----\nResultado: $ok ok · $falhas falha(s)\n";
 exit($falhas > 0 ? 1 : 0);

@@ -465,40 +465,51 @@ $health_icon         = $margem >= 40 ? '▲' : ($margem >= 15 ? '●' : '▼');
           <div>
             <div class="panel-title">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7.5v9"/><path d="M14.5 9.8c0-.9-1.1-1.6-2.5-1.6s-2.5.7-2.5 1.6 1.1 1.4 2.5 1.7 2.5.8 2.5 1.7-1.1 1.6-2.5 1.6-2.5-.7-2.5-1.6"/></svg>
-              Reembolsos
+              Reembolsos e estornos
             </div>
-            <p class="panel-sub">Quem pagou uma conta da empresa do próprio bolso, quanto a empresa já devolveu e o que falta, à vista ou parcelado</p>
+            <p class="panel-sub">O que a empresa deve a cada pessoa: reembolso (pagou uma conta da empresa do próprio bolso) ou estorno (valor que a empresa devolve), à vista ou parcelado</p>
           </div>
-          <button id="reembNovoBtn" type="button" class="btn btn-primary btn-sm" style="flex-shrink:0">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Novo reembolso
-          </button>
+          <div class="reemb-botoes">
+            <button id="reembNovoEstornoBtn" type="button" class="btn btn-ghost btn-sm">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Novo estorno
+            </button>
+            <button id="reembNovoBtn" type="button" class="btn btn-primary btn-sm">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Novo reembolso
+            </button>
+          </div>
         </div>
         <div class="reemb-resumo">
-          <div class="reemb-num"><span>A reembolsar</span><b id="reembAPagar">R$ 0,00</b></div>
+          <div class="reemb-num"><span>A pagar às pessoas</span><b id="reembAPagar">R$ 0,00</b></div>
           <div class="reemb-num" id="reembAtrasoCaixa"><span>Em atraso</span><b id="reembAtrasado">R$ 0,00</b></div>
-          <div class="reemb-num reemb-num-ok"><span>Já reembolsado</span><b id="reembPago">R$ 0,00</b></div>
-          <div class="reemb-num"><span>Reembolsos em aberto</span><b id="reembEmAberto">0</b></div>
+          <div class="reemb-num reemb-num-ok"><span>Já pago</span><b id="reembPago">R$ 0,00</b></div>
+          <div class="reemb-num"><span>Lançamentos em aberto</span><b id="reembEmAberto">0</b></div>
         </div>
+        <div class="reemb-pessoas-tit">Por pessoa</div>
+        <div class="reemb-pessoas" id="reembPessoasLista"></div>
         <div class="reemb-filtros">
           <button type="button" class="btn btn-primary btn-sm" data-filtro="abertos">Em aberto</button>
           <button type="button" class="btn btn-ghost btn-sm" data-filtro="pagos">Pagos</button>
           <button type="button" class="btn btn-ghost btn-sm" data-filtro="todos">Todos</button>
+          <span class="reemb-filtro-sep"></span>
+          <select id="reembFiltroPessoa" class="reemb-select-filtro" aria-label="Filtrar por pessoa"><option value="">Todas as pessoas</option></select>
+          <select id="reembFiltroTipo" class="reemb-select-filtro" aria-label="Filtrar por tipo"><option value="">Reembolsos e estornos</option><option value="reembolso">Só reembolsos</option><option value="estorno">Só estornos</option></select>
         </div>
         <div class="dre-table-wrap">
           <table class="dre-table reemb-tabela" id="reembTabela">
             <thead>
               <tr>
-                <th>Quem pagou a conta</th>
+                <th>Para quem</th>
                 <th>Do que</th>
-                <th>Data da despesa</th>
+                <th>Data</th>
                 <th style="text-align:right">Valor</th>
                 <th>Pagamento</th>
                 <th>Situação</th>
                 <th style="text-align:right">Ações</th>
               </tr>
             </thead>
-            <tbody><tr class="empty-row"><td colspan="7">Carregando reembolsos…</td></tr></tbody>
+            <tbody><tr class="empty-row"><td colspan="7">Carregando reembolsos e estornos…</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -1078,18 +1089,26 @@ window.dreUpdateDonutLegend = function(vals) {
     <div class="modal-header">
       <div>
         <div class="modal-title" id="reembModalTitulo">Novo reembolso</div>
-        <p style="font-size:.72rem;color:var(--muted);margin:4px 0 0">O que a empresa precisa devolver a alguém que pagou uma conta dela</p>
+        <p style="font-size:.72rem;color:var(--muted);margin:4px 0 0" id="reembModalSub">O que a empresa precisa devolver a alguém que pagou uma conta dela</p>
       </div>
       <button type="button" class="modal-close" data-fechar="reembModal" aria-label="Fechar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <input type="hidden" id="reembId">
     <div class="modal-form-grid">
       <div class="form-group">
-        <label for="reembFavorecido">Quem pagou a conta</label>
-        <input id="reembFavorecido" type="text" list="reembPessoas" maxlength="150" placeholder="Quem vai receber o reembolso" autocomplete="off" />
+        <label for="reembTipo">Tipo</label>
+        <select id="reembTipo"><option value="reembolso">Reembolso (pagou uma conta da empresa)</option><option value="estorno">Estorno (a empresa devolve um valor)</option></select>
       </div>
       <div class="form-group">
-        <label for="reembData">Data da despesa</label>
+        <label for="reembPessoa" id="reembPessoaRotulo">Para quem</label>
+        <select id="reembPessoa"></select>
+      </div>
+      <div class="form-group span2" id="reembOutraCaixa" style="display:none">
+        <label for="reembFavorecido">Nome da pessoa</label>
+        <input id="reembFavorecido" type="text" maxlength="150" placeholder="Quem vai receber (não é usuário do sistema)" autocomplete="off" />
+      </div>
+      <div class="form-group">
+        <label for="reembData" id="reembDataRotulo">Data da despesa</label>
         <input id="reembData" type="date" />
       </div>
       <div class="form-group span2">
@@ -1176,7 +1195,32 @@ window.dreUpdateDonutLegend = function(vals) {
   .reemb-num b { font-size:1.1rem; font-weight:700; color:#e8f4ff; overflow-wrap:anywhere; }
   .reemb-num-atraso b { color:#fca5a5; }
   .reemb-num-ok b { color:#6ee7b7; }
-  .reemb-filtros { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:4px; }
+  .reemb-filtros { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:4px; align-items:center; }
+  .reemb-filtro-sep { width:1px; height:20px; background:rgba(148,163,184,.25); margin:0 4px; }
+  .reemb-select-filtro { padding:5px 8px; border-radius:6px; font:inherit; font-size:.72rem; background:rgba(8,20,40,.85); border:1px solid rgba(96,165,250,.25); color:#e8f4ff; }
+  .reemb-botoes { display:flex; gap:8px; flex-wrap:wrap; flex-shrink:0; }
+  .reemb-pessoas-tit { font-size:.65rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; margin:0 0 8px; }
+  .reemb-pessoas { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:10px; margin-bottom:16px; }
+  .reemb-pessoa { border:1px solid rgba(148,163,184,.18); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:8px; cursor:pointer; background:rgba(8,20,40,.45); text-align:left; font:inherit; color:inherit; }
+  .reemb-pessoa:hover, .reemb-pessoa.ativa { border-color:rgba(96,165,250,.55); }
+  .reemb-pessoa-topo { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .reemb-pessoa-topo b { font-size:.9rem; overflow-wrap:anywhere; }
+  .reemb-pessoa-falta span { display:block; font-size:.6rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; }
+  .reemb-pessoa-falta b { font-size:1.15rem; font-weight:700; }
+  .reemb-pessoa small { color:var(--muted); font-size:.68rem; line-height:1.4; }
+  .reemb-vazio-pessoas { color:var(--muted); font-size:.78rem; font-style:italic; }
+  .reemb-tipo { display:inline-block; font-size:.6rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:1px 6px; border-radius:999px; margin-top:3px; white-space:nowrap; }
+  .reemb-tabela td:first-child { min-width:140px; }
+  .reemb-tabela td:first-child b { display:block; }
+  .reemb-tabela td.reemb-desc { min-width:170px; }
+  .reemb-tipo-reembolso { background:rgba(14,40,69,.7); color:#6898C0; }
+  .reemb-tipo-estorno { background:rgba(61,48,16,.6); color:#C4A040; }
+  html[data-theme="light"] .reemb-select-filtro { background:#FFFFFF; border-color:rgba(17,29,45,.14); color:#0F1F36; }
+  html[data-theme="light"] .reemb-pessoa { background:#FFFFFF; border-color:rgba(17,29,45,.10); }
+  html[data-theme="light"] .reemb-pessoa:hover, html[data-theme="light"] .reemb-pessoa.ativa { border-color:#93B4FF; }
+  html[data-theme="light"] .reemb-pessoa-topo b, html[data-theme="light"] .reemb-pessoa-falta b { color:#0F1F36; }
+  html[data-theme="light"] .reemb-tipo-reembolso { background:#E8F1FF; color:#1D4ED8; }
+  html[data-theme="light"] .reemb-tipo-estorno { background:#FFF4D6; color:#B45309; }
   .reemb-tabela td { white-space:normal; overflow-wrap:anywhere; }
   .reemb-tabela td.reemb-nowrap { white-space:nowrap; }
   .reemb-desc small { display:block; color:var(--muted); font-size:.68rem; margin-top:2px; }

@@ -277,6 +277,11 @@ da empresa do próprio bolso, quanto falta devolver, à vista ou parcelado, e um
 para marcar cada parcela como paga (ou desfazer). Markup, modais e estilo ficam dentro
 do `if`, o comportamento em `assets/reembolsos.js` e a regra em
 `App\Financas\Reembolso`. O HTML da tela para conta Yuris é idêntico ao de antes.
+Desde 15/10/2026 o painel é "Reembolsos e estornos": botões "Novo reembolso" e "Novo
+estorno", o quadro "Por pessoa" (um cartão por pessoa com quanto falta pagar, quanto já foi
+pago, reembolso e estorno em aberto, e a situação; clicar filtra a tabela), filtros por pessoa
+e por tipo, a etiqueta do tipo em cada linha, e no formulário o tipo e o "Para quem"
+escolhido entre os usuários da conta (ou "Outra pessoa", com o nome digitado).
 
 **Evolution (edição CRM, 15/10/2026).** `evolution.php` é o item Evolution › Conexões: o
 servidor de WhatsApp da Inovaize como infraestrutura. Indicadores (conexões, conectadas,

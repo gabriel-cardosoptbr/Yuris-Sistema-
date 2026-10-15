@@ -2,9 +2,12 @@
 /**
  * /api/reembolsos.php: reembolsos da tela Finanças (edição CRM).
  *
- *   GET                         lista + resumo
- *   POST {acao:'criar', ...}    cria (favorecido, descricao, data_despesa, valor_total,
- *                               parcelas, primeiro_vencimento, observacao)
+ *   GET                         lista + resumo + saldo por pessoa (`pessoas`) + usuários da conta
+ *                               (`usuarios`, para o "Para quem") + tipos
+ *   POST {acao:'criar', ...}    cria (tipo reembolso|estorno, favorecido ou favorecido_user_id,
+ *                               descricao, data_despesa, valor_total, parcelas,
+ *                               primeiro_vencimento, observacao). Com favorecido_user_id, a
+ *                               pessoa tem de ser usuária da conta da sessão, e o nome vem dela.
  *   POST {acao:'atualizar', id, ...}
  *   POST {acao:'excluir', id}
  *   POST {acao:'pagar', parcela_id, pago_em, pago_por_nome}  marca a parcela como paga
@@ -42,7 +45,8 @@ $contas = $ctx->getAccessibleAccountIds('financas') ?: [$accountId];
 $metodo = $_SERVER['REQUEST_METHOD'];
 if ($metodo === 'GET') {
     $lista = Reembolso::listar($contas);
-    responder(200, ['success' => true, 'data' => $lista, 'resumo' => Reembolso::resumo($lista), 'hoje' => Reembolso::hoje()]);
+    responder(200, ['success' => true, 'data' => $lista, 'resumo' => Reembolso::resumo($lista), 'hoje' => Reembolso::hoje(),
+                    'pessoas' => Reembolso::porPessoa($lista), 'usuarios' => Reembolso::pessoasDaConta([$accountId]), 'tipos' => Reembolso::TIPOS]);
 }
 if ($metodo !== 'POST') responder(405, ['error' => 'Método não permitido.']);
 
@@ -59,19 +63,20 @@ $audit = fn(string $evento, int $entidadeId, array $det = []) => \App\Master\Acc
 switch ($acao) {
     case 'criar':
         [$d, $erro] = Reembolso::validar($in);
-        if ($erro) responder(422, ['error' => $erro]);
+        if ($erro || ($erro = Reembolso::resolverPessoa($accountId, $d))) responder(422, ['error' => $erro]);
         $novo = Reembolso::criar($accountId, $d, $userId);
-        $audit('created', $novo, ['favorecido' => $d['favorecido'], 'valor_centavos' => $d['valor_centavos'], 'parcelas' => $d['parcelas']]);
+        $audit('created', $novo, ['tipo' => $d['tipo'], 'favorecido' => $d['favorecido'], 'favorecido_user_id' => $d['favorecido_user_id'],
+                                  'valor_centavos' => $d['valor_centavos'], 'parcelas' => $d['parcelas']]);
         responder(200, ['success' => true, 'data' => Reembolso::buscar($novo, $contas)]);
 
     case 'atualizar':
         [$d, $erro] = Reembolso::validar($in);
-        if ($erro) responder(422, ['error' => $erro]);
+        if ($erro || ($erro = Reembolso::resolverPessoa($accountId, $d))) responder(422, ['error' => $erro]);
         $antes = Reembolso::buscar($id, $contas);
         if (!$antes) responder(404, ['error' => 'Reembolso não encontrado.']);
         if ($erro = Reembolso::atualizar($id, $contas, $d)) responder(422, ['error' => $erro]);
         $audit('updated', $id, ['antes' => ['favorecido' => $antes['favorecido'], 'valor_total' => $antes['valor_total'], 'parcelas' => $antes['qtd_parcelas']],
-                                'depois' => ['favorecido' => $d['favorecido'], 'valor_centavos' => $d['valor_centavos'], 'parcelas' => $d['parcelas']]]);
+                                'depois' => ['tipo' => $d['tipo'], 'favorecido' => $d['favorecido'], 'valor_centavos' => $d['valor_centavos'], 'parcelas' => $d['parcelas']]]);
         responder(200, ['success' => true, 'data' => Reembolso::buscar($id, $contas)]);
 
     case 'excluir':

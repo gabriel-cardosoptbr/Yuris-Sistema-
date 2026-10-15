@@ -24,9 +24,19 @@ use App\Core\Database;
  *    migration 139), além do usuário que marcou (pago_por).
  *  - O módulo é ligado por conta: `configuracoes.modulos.reembolsos = true`
  *    (habilitado()/ligar()). Pedido de 03/10/2026: só a Inovaize por ora.
+ *  - Tipo (migration 149, pedido de 15/10/2026): `reembolso` (a pessoa pagou uma
+ *    conta da empresa) ou `estorno` (a empresa devolve um valor à pessoa). Nos
+ *    dois a empresa deve à pessoa; parcelas, pagamento e situação são iguais.
+ *  - Pessoa: `favorecido_user_id` liga o lançamento a um usuário da MESMA conta
+ *    (resolverPessoa recusa usuário de outra conta ou apagado) e o nome dele vai
+ *    para `favorecido`. Sem usuário, vale o nome digitado (pessoa de fora).
+ *  - porPessoa(): o saldo de cada pessoa (devido, pago, falta, em atraso,
+ *    separando reembolso de estorno) e a situação: quitado, pago em parte,
+ *    pendente ou em atraso.
  */
 final class Reembolso
 {
+    public const TIPOS = ['reembolso' => 'Reembolso', 'estorno' => 'Estorno'];
     public const MAX_PARCELAS = 24;
     public const MAX_VALOR_CENTAVOS = 999999999; // R$ 9.999.999,99, o teto do DECIMAL(12,2) com folga
 
@@ -143,8 +153,11 @@ final class Reembolso
         $prim = (string) ($in['primeiro_vencimento'] ?? '');
         $n = (int) ($in['parcelas'] ?? 1);
         $cent = self::centavos($in['valor_total'] ?? '');
+        $tipo = (string) ($in['tipo'] ?? 'reembolso');
+        $uid = (int) ($in['favorecido_user_id'] ?? 0);
 
-        if ($fav === '') return [null, 'Informe para quem é o reembolso.'];
+        if (!isset(self::TIPOS[$tipo])) return [null, 'Tipo inválido: reembolso ou estorno.'];
+        if ($fav === '' && $uid <= 0) return [null, $tipo === 'estorno' ? 'Informe para quem é o estorno.' : 'Informe para quem é o reembolso.'];
         if (mb_strlen($fav) > 150) return [null, 'O nome do favorecido passa de 150 caracteres.'];
         if ($desc === '') return [null, 'Descreva o que foi pago.'];
         if (mb_strlen($desc) > 255) return [null, 'A descrição passa de 255 caracteres.'];
@@ -157,9 +170,69 @@ final class Reembolso
         if (!self::dataValida($prim)) return [null, 'Informe o vencimento da primeira parcela.'];
 
         return [[
-            'favorecido' => $fav, 'descricao' => $desc, 'observacao' => $obs === '' ? null : $obs,
+            'tipo' => $tipo, 'favorecido' => $fav, 'favorecido_user_id' => $uid > 0 ? $uid : null,
+            'descricao' => $desc, 'observacao' => $obs === '' ? null : $obs,
             'data_despesa' => $data, 'valor_centavos' => $cent, 'parcelas' => $n, 'primeiro_vencimento' => $prim,
         ], null];
+    }
+
+    /**
+     * Com usuário escolhido: confere que é usuário da conta (não apagado) e põe o
+     * nome dele em `favorecido`. Devolve o erro, ou null se está tudo certo.
+     */
+    public static function resolverPessoa(int $accountId, array &$d): ?string
+    {
+        if (empty($d['favorecido_user_id'])) return null;
+        $st = Database::getConnection()->prepare("SELECT nome FROM users WHERE id = ? AND account_id = ? AND deleted_at IS NULL LIMIT 1");
+        $st->execute([(int) $d['favorecido_user_id'], $accountId]);
+        $nome = $st->fetchColumn();
+        if ($nome === false) return 'Essa pessoa não é usuária desta conta.';
+        $d['favorecido'] = mb_substr((string) $nome, 0, 150);
+        return null;
+    }
+
+    /** Usuários ativos das contas, para o "Para quem". @return list<array{id:int,nome:string}> */
+    public static function pessoasDaConta(array $contas): array
+    {
+        [$in, $p] = self::inContas($contas);
+        $st = Database::getConnection()->prepare("SELECT id, nome FROM users WHERE account_id IN $in AND deleted_at IS NULL AND status = 'active' ORDER BY nome");
+        $st->execute($p);
+        return array_map(fn($u) => ['id' => (int) $u['id'], 'nome' => $u['nome']], $st->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
+    /**
+     * O saldo de cada pessoa a partir da lista (listar()). Agrupa pelo usuário
+     * ou, sem usuário, pelo nome. Situação: quitado (nada a pagar), atrasado
+     * (alguma parcela vencida em aberto), parcial (já recebeu algo, falta o
+     * resto) ou pendente (ainda não recebeu nada).
+     *
+     * @return list<array<string,mixed>>
+     */
+    public static function porPessoa(array $lista): array
+    {
+        $g = [];
+        $c = fn($v) => (int) round(((float) $v) * 100);
+        foreach ($lista as $r) {
+            $chave = !empty($r['favorecido_user_id']) ? 'u' . $r['favorecido_user_id'] : 'n' . mb_strtolower(trim((string) $r['favorecido']));
+            $g[$chave] ??= ['user_id' => !empty($r['favorecido_user_id']) ? (int) $r['favorecido_user_id'] : null, 'nome' => $r['favorecido'],
+                            'total' => 0, 'pago' => 0, 'aberto' => 0, 'atrasado' => 0, 'reembolso_aberto' => 0, 'estorno_aberto' => 0,
+                            'qtd' => 0, 'qtd_abertos' => 0];
+            $g[$chave]['total'] += $c($r['valor_total']);
+            $g[$chave]['pago'] += $c($r['valor_pago']);
+            $g[$chave]['aberto'] += $c($r['valor_aberto']);
+            $g[$chave]['atrasado'] += $c($r['valor_atrasado']);
+            $g[$chave][($r['tipo'] ?? 'reembolso') === 'estorno' ? 'estorno_aberto' : 'reembolso_aberto'] += $c($r['valor_aberto']);
+            $g[$chave]['qtd']++;
+            if ($r['situacao'] !== 'pago') $g[$chave]['qtd_abertos']++;
+        }
+        $out = [];
+        foreach ($g as $p) {
+            $p['situacao'] = $p['aberto'] === 0 ? 'quitado' : ($p['atrasado'] > 0 ? 'atrasado' : ($p['pago'] > 0 ? 'parcial' : 'pendente'));
+            foreach (['total', 'pago', 'aberto', 'atrasado', 'reembolso_aberto', 'estorno_aberto'] as $k) $p[$k] = $p[$k] / 100.0;
+            $out[] = $p;
+        }
+        usort($out, fn($a, $b) => $b['aberto'] <=> $a['aberto'] ?: strcmp((string) $a['nome'], (string) $b['nome']));
+        return $out;
     }
 
     private static function dataValida(string $d): bool
@@ -186,7 +259,7 @@ final class Reembolso
     {
         $pdo = Database::getConnection();
         [$in, $p] = self::inContas($contas);
-        $st = $pdo->prepare("SELECT r.id, r.account_id, r.favorecido, r.descricao, r.data_despesa, r.valor_total, r.observacao, r.created_at
+        $st = $pdo->prepare("SELECT r.id, r.account_id, r.tipo, r.favorecido_user_id, r.favorecido, r.descricao, r.data_despesa, r.valor_total, r.observacao, r.created_at
                                FROM reembolsos r
                               WHERE r.account_id IN $in AND r.deleted_at IS NULL
                               ORDER BY r.data_despesa DESC, r.id DESC");
@@ -221,7 +294,7 @@ final class Reembolso
     {
         $pdo = Database::getConnection();
         [$in, $p] = self::inContas($contas);
-        $st = $pdo->prepare("SELECT id, account_id, favorecido, descricao, data_despesa, valor_total, observacao, created_at
+        $st = $pdo->prepare("SELECT id, account_id, tipo, favorecido_user_id, favorecido, descricao, data_despesa, valor_total, observacao, created_at
                                FROM reembolsos WHERE id = :id AND account_id IN $in AND deleted_at IS NULL");
         $st->execute(['id' => $id] + $p);
         $r = $st->fetch(\PDO::FETCH_ASSOC);
@@ -249,7 +322,9 @@ final class Reembolso
         $proxima = null;
         foreach ($ps as $pa) { if (!$pa['pago_em']) { $proxima = $pa['vencimento']; break; } }
         return [
-            'id' => (int) $r['id'], 'favorecido' => $r['favorecido'], 'descricao' => $r['descricao'],
+            'id' => (int) $r['id'], 'tipo' => $r['tipo'] ?? 'reembolso',
+            'favorecido_user_id' => !empty($r['favorecido_user_id']) ? (int) $r['favorecido_user_id'] : null,
+            'favorecido' => $r['favorecido'], 'descricao' => $r['descricao'],
             'data_despesa' => $r['data_despesa'], 'valor_total' => round((float) $r['valor_total'], 2),
             'observacao' => $r['observacao'], 'parcelas' => $ps, 'qtd_parcelas' => count($ps), 'qtd_pagas' => $pagas,
             'valor_pago' => $pago / 100, 'valor_aberto' => $aberto / 100, 'valor_atrasado' => $atrasado / 100,
@@ -277,9 +352,10 @@ final class Reembolso
         $pdo = Database::getConnection();
         $pdo->beginTransaction();
         try {
-            $st = $pdo->prepare("INSERT INTO reembolsos (account_id, favorecido, descricao, data_despesa, valor_total, observacao, created_by)
-                                 VALUES (:acc, :fav, :desc, :data, :valor, :obs, :uid)");
-            $st->execute(['acc' => $accountId, 'fav' => $d['favorecido'], 'desc' => $d['descricao'], 'data' => $d['data_despesa'],
+            $st = $pdo->prepare("INSERT INTO reembolsos (account_id, tipo, favorecido, favorecido_user_id, descricao, data_despesa, valor_total, observacao, created_by)
+                                 VALUES (:acc, :tipo, :fav, :fuid, :desc, :data, :valor, :obs, :uid)");
+            $st->execute(['acc' => $accountId, 'tipo' => $d['tipo'] ?? 'reembolso', 'fav' => $d['favorecido'], 'fuid' => $d['favorecido_user_id'] ?? null,
+                          'desc' => $d['descricao'], 'data' => $d['data_despesa'],
                           'valor' => self::decimal($d['valor_centavos']), 'obs' => $d['observacao'], 'uid' => $userId]);
             $id = (int) $pdo->lastInsertId();
             self::gerarParcelas($pdo, $id, $accountId, $d);
@@ -311,9 +387,11 @@ final class Reembolso
         }
         $pdo->beginTransaction();
         try {
-            $st = $pdo->prepare("UPDATE reembolsos SET favorecido = :fav, descricao = :desc, data_despesa = :data, valor_total = :valor, observacao = :obs
+            $st = $pdo->prepare("UPDATE reembolsos SET tipo = :tipo, favorecido = :fav, favorecido_user_id = :fuid, descricao = :desc,
+                                        data_despesa = :data, valor_total = :valor, observacao = :obs
                                   WHERE id = :id AND account_id = :acc AND deleted_at IS NULL");
-            $st->execute(['fav' => $d['favorecido'], 'desc' => $d['descricao'], 'data' => $d['data_despesa'],
+            $st->execute(['tipo' => $d['tipo'] ?? 'reembolso', 'fav' => $d['favorecido'], 'fuid' => $d['favorecido_user_id'] ?? null,
+                          'desc' => $d['descricao'], 'data' => $d['data_despesa'],
                           'valor' => self::decimal($d['valor_centavos']), 'obs' => $d['observacao'], 'id' => $id, 'acc' => $acc]);
             if ($mudaDinheiro) {
                 $pdo->prepare("DELETE FROM reembolso_parcelas WHERE reembolso_id = :id AND account_id = :acc")->execute(['id' => $id, 'acc' => $acc]);
