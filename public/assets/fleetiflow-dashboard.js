@@ -388,33 +388,42 @@
   function desenharRadar(pr, j) {
     const area = $('radarArea'), leg = $('radarLegenda');
     if (graficoRadar) { graficoRadar.destroy(); graficoRadar = null; }
-    // O eixo de entrada (Novos leads, sempre 100%) sai do radar: com ele, a escala ia até 100 e as
-    // outras etapas (0% a 10%) ficavam todas coladas no centro (16/10/2026). O total vai no subtítulo.
-    const etapas = (pr.funil || []).slice(1);
+    // Novos leads costuma ser a ponta maior: é onde a maioria ainda está. Numa escala linear as outras
+    // etapas (0% a 10%) se colavam no centro e a entrada virava uma barra (16/10/2026); a escala
+    // logarítmica abaixo deixa 100% na borda, 8% perto da metade e até 0,2% visível.
+    const etapas = pr.funil || [];
     if (!(pr.entraram > 0) || etapas.length < 3) {
       area.innerHTML = vazio('Sem leads no período', 'O radar mostra a proporção dos leads que chegou a cada etapa.');
       area.style.height = 'auto'; leg.innerHTML = ''; return;
     }
     area.style.height = ''; area.innerHTML = '<canvas id="radarCanvas"></canvas>';
     const ant = pr.funil_anterior || [], temAnt = pr.entraram_anterior > 0;
-    const pctAnt = etapas.map(e => { const x = ant.find(a => a.id === e.id); return x && x.pct !== null ? x.pct : 0; });
-    $('radarSub').textContent = temAnt ? `% dos ${inteiro.format(pr.entraram)} leads que chegou a cada etapa, contra o período anterior (${inteiro.format(pr.entraram_anterior)})` : `% dos ${inteiro.format(pr.entraram)} leads que chegou a cada etapa`;
-    // Escala em raiz quadrada até a maior etapa: 0,2% e 0,7% saem do centro e o desenho mostra a forma do funil.
+    // Cada etapa é onde o lead está hoje, então as pontas somam 100%: Novos leads é quem ainda não saiu
+    // da entrada (os que entraram menos os que estão nas outras etapas), não o total (16/10/2026).
+    const naEntrada = (total, qtds) => Math.max(0, total - qtds.slice(1).reduce((s, n) => s + n, 0));
+    const qtdEste = etapas.map(e => e.qtd || 0);
+    qtdEste[0] = naEntrada(pr.entraram, qtdEste);
+    const qtdAnt = etapas.map(e => (ant.find(a => a.id === e.id) || {}).qtd || 0);
+    qtdAnt[0] = naEntrada(pr.entraram_anterior || 0, qtdAnt);
+    const pctDe = (n, total) => total > 0 ? n / total * 100 : 0;
+    const pctAnt = qtdAnt.map(n => pctDe(n, pr.entraram_anterior || 0));
+    $('radarSub').textContent = temAnt ? `Onde estão hoje os ${inteiro.format(pr.entraram)} leads do período, contra o anterior (${inteiro.format(pr.entraram_anterior)})` : `Onde estão hoje os ${inteiro.format(pr.entraram)} leads do período`;
     // A dica e o rótulo de cada ponta mostram o percentual real.
-    const pctEste = etapas.map(e => e.pct || 0);
-    const raiz = v => Math.sqrt(Math.max(0, v));
-    const topo = raiz(Math.max(1, ...pctEste, ...(temAnt ? pctAnt : [])));
+    const pctEste = qtdEste.map(n => pctDe(n, pr.entraram));
+    const escala = v => Math.log(1 + Math.max(0, v) / 0.5);
+    // Folga na borda: nem 100% passa de 85% do raio, então ponto nenhum encosta no círculo de fora.
+    const topo = escala(100) / 0.85;
     leg.innerHTML = `<span><i style="background:${COR.marca}"></i>Este período</span>` + (temAnt ? '<span><i class="tracejado"></i>Período anterior</span>' : '');
-    const datasets = [{ label: 'Este período', data: pctEste.map(raiz), borderColor: COR.marca, backgroundColor: `rgba(${MARCA_RGB},0.16)`, borderWidth: 2, pointRadius: 3.5, pointBackgroundColor: '#fff', pointBorderColor: COR.marca, pointBorderWidth: 2, tension: 0.15, fill: true }];
-    if (temAnt) datasets.push({ label: 'Período anterior', data: pctAnt.map(raiz), borderColor: COR.texto4, backgroundColor: 'rgba(118,118,118,0.06)', borderDash: [5, 4], borderWidth: 1.5, pointRadius: 2.5, pointBackgroundColor: '#fff', pointBorderColor: COR.texto4, pointBorderWidth: 1.5, tension: 0.15, fill: true });
+    const datasets = [{ label: 'Este período', data: pctEste.map(escala), borderColor: COR.marca, backgroundColor: `rgba(${MARCA_RGB},0.16)`, borderWidth: 2, pointRadius: 3.5, pointBackgroundColor: '#fff', pointBorderColor: COR.marca, pointBorderWidth: 2, tension: 0.15, fill: true }];
+    if (temAnt) datasets.push({ label: 'Período anterior', data: pctAnt.map(escala), borderColor: COR.texto4, backgroundColor: 'rgba(118,118,118,0.06)', borderDash: [5, 4], borderWidth: 1.5, pointRadius: 2.5, pointBackgroundColor: '#fff', pointBorderColor: COR.texto4, pointBorderWidth: 1.5, tension: 0.15, fill: true });
     graficoRadar = new Chart($('radarCanvas').getContext('2d'), {
       type: 'radar',
-      data: { labels: etapas.map(e => [NOME_CURTO(e.nome), fmtPct(e.pct || 0)]), datasets },
+      data: { labels: etapas.map((e, i) => [NOME_CURTO(e.nome), fmtPct(pctEste[i])]), datasets },
       options: {
         responsive: true, maintainAspectRatio: false, animation: { duration: 500, easing: 'easeOutQuart' },
         elements: { line: { borderJoinStyle: 'round', borderCapStyle: 'round' } },
         plugins: { legend: { display: false }, tooltip: Object.assign({}, tooltipPadrao, { callbacks: {
-          label: c => { const e = etapas[c.dataIndex]; const n = c.datasetIndex === 0 ? e.qtd : ((ant.find(a => a.id === e.id) || {}).qtd || 0); const p = c.datasetIndex === 0 ? pctEste[c.dataIndex] : pctAnt[c.dataIndex]; return ' ' + c.dataset.label + ': ' + fmtPct(p) + ' (' + inteiro.format(n) + ')'; }
+          label: c => { const n = c.datasetIndex === 0 ? qtdEste[c.dataIndex] : qtdAnt[c.dataIndex]; const p = c.datasetIndex === 0 ? pctEste[c.dataIndex] : pctAnt[c.dataIndex]; return ' ' + c.dataset.label + ': ' + fmtPct(p) + ' (' + inteiro.format(n) + ')'; }
         } }) },
         scales: { r: {
           beginAtZero: true, min: 0, max: topo, ticks: { display: false, maxTicksLimit: 5 },
