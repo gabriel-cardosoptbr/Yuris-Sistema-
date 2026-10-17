@@ -2055,6 +2055,9 @@ function column_display_name(array $col): string
     window.YURIS_SHOW_ORIGIN_STRIP  = true;   // faixa sempre visível
 
     const cardsCacheByColumn = {};
+    // Colunas cuja lista ainda está chegando: o redesenho pula essas, para não
+    // trocar o "Carregando..." por "Sem leads nesta etapa" antes da hora.
+    const colunasCarregando = new Set();
     const sortableByColumn = {};
     let columnsSortable = null;
     let checklistSortable = null;
@@ -2884,6 +2887,7 @@ function column_display_name(array $col): string
     function applyFiltersAndRender() {
       atualizarOpcoesChip();
       Object.keys(cardsCacheByColumn).forEach(colId => {
+        if (colunasCarregando.has(String(colId))) return;
         const source = cardsCacheByColumn[colId] || [];
         const filtered = source.filter(card => matchesFilters(card, colId));
         renderCards(colId, filtered);
@@ -2901,6 +2905,7 @@ function column_display_name(array $col): string
         const colId = col.getAttribute('data-coluna-id');
         const listEl = byId('col-' + colId);
         if (listEl) listEl.innerHTML = '<div class="empty-note">Carregando...</div>';
+        colunasCarregando.add(String(colId));
 
         try {
           const res = await fetch(apiCards + '?coluna_id=' + colId, { headers: { 'Accept': 'application/json' } });
@@ -2909,9 +2914,11 @@ function column_display_name(array $col): string
         } catch (e) {
           cardsCacheByColumn[colId] = [];
         }
+        colunasCarregando.delete(String(colId));
+        // Cada coluna aparece assim que chega: a mais cheia (centenas de leads)
+        // não segura as outras no "Carregando...".
+        applyFiltersAndRender();
       }));
-
-      applyFiltersAndRender();
     }
 
     // Fleetiflow: a etapa também muda pelo Chat e pela Vitória. O quadro se refaz
@@ -4482,7 +4489,8 @@ function column_display_name(array $col): string
   })();
   </script>
 <?php endif; ?>
-  <script src="assets/dashboard.js?v=13"></script>
+  <!-- dashboard.js saiu daqui em 16/10/2026: nada nesta tela usa o painel, e ele
+       baixava a lista inteira de cards duas vezes ao abrir (1,5 s cada na Fleetiflow). -->
   <script src="/assets/fog.js"></script>
 <script>
 /* ---------------------------------------------------------------------------

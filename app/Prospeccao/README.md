@@ -62,6 +62,14 @@ qualquer caminho vindo de uma sessão.**
 e nunca deve ser chamado sem ele. A listagem já inclui os cards compartilhados
 com a conta via `resource_shares`, e essa junção é intencional.
 
+**A listagem depende de três índices** (migration 150, 16/10/2026):
+`whatsapp_chats.linked_card_id`, `cards.coluna_id` e `crm_agendamentos.card_id`.
+`Card::list()` faz quatro subconsultas em `whatsapp_chats` por card, e a tela
+de Prospecção chama a listagem uma vez por coluna ao abrir e de novo a cada
+15 s. Sem o índice de `linked_card_id`, cada card varre a tabela de conversas
+inteira: na Fleetiflow (496 leads numa coluna) a tela levava de 3 a 4 s para
+abrir. Subconsulta nova por card precisa de índice na coluna que ela filtra.
+
 **Reordenação é em lote.** Arrastar um card renumera vários; use o caminho de
 `bulkUpdateOrders`, não um update por card, ou a ordem sai inconsistente sob
 concorrência. `../Tarefas/Task.php` segue o mesmo padrão, de propósito.
