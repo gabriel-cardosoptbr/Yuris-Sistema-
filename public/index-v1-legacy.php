@@ -2062,6 +2062,6 @@ $cssVerSp = @filemtime(__DIR__ . '/assets/seo-pages.css') ?: 1;
 </footer>
 
 <script src="/assets/landing.js?v=<?= $jsVer ?>" defer></script>
-<script src="/assets/cookie-consent.js?v=2"></script>
+<script src="/assets/cookie-consent.js?v=3"></script>
 </body>
 </html>

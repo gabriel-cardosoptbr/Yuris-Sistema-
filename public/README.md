@@ -314,6 +314,15 @@ setor ao lado do nome (que quebra a linha em vez de levar reticências); a linha
 para a última mensagem. Conversa individual sem setor mostra "Sem setor" em cinza, para toda
 conversa ter etiqueta e dar para ver o que falta classificar. No Yuris o setor continua numa linha própria.
 
+**Tudo na cor da marca e logo no menu (edição CRM, marca própria, 17/10/2026).** `assets/marca-cores.js`,
+carregado por `includes/sidebar.php` só quando a marca é própria, percorre as folhas de estilo, os `<style>`
+que entram depois e os atributos `style`/`fill`/`stroke`, e troca todo azul fixo (matiz 195 a 250, saturado)
+pela cor da marca: escuro vira o tom forte, médio vira a cor da marca, claro mantém a luminosidade no matiz
+da marca, com a transparência preservada. Verde, vermelho, amarelo e cinza ficam. Assim o azul escrito à mão
+no `yuris-theme.css` (com `!important`), no chat, nas tarefas e nas telas some sem mexer arquivo por arquivo.
+No menu, marca própria com logo mostra o logo inteiro (52px), flutuando devagar (sobe e desce 3px; parado
+para quem pede menos movimento). O aviso de cookies usa `!important` nos botões e está em `?v=3`.
+
 **Aviso de cookies na cor da marca (edição CRM, 17/10/2026).** `assets/cookie-consent.js` lê a cor da marca da
 página (`--ff-rgb` na tela de login de marca, `--ff-marca-rgb` nas telas internas) e, quando ela existe, o aviso
 e a janela de Preferências saem claros como a tela, com botões, links e caixas na cor da marca e a fonte da

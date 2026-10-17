@@ -148,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 
   <!-- LGPD Etapa 5: banner de cookies -->
-  <script src="/assets/cookie-consent.js?v=2"></script>
+  <script src="/assets/cookie-consent.js?v=3"></script>
   <script>
     (function(){
       const btn = document.querySelector('.password-toggle');

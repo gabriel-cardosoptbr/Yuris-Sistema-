@@ -99,6 +99,7 @@
     };
   }
 
+  // Regras de botão com !important: o tema geral (yuris-theme.css) pinta button.primary de azul com !important.
   function estiloDaMarca(c) {
     return `
       <style>
@@ -110,16 +111,16 @@
         #yuris-cookie-banner.ycc-marca .ycc-text strong { color: ${c.tinta}; }
         #yuris-cookie-banner.ycc-marca a, #yuris-cookie-prefs.ycc-marca a { color: ${c.marca}; }
         #yuris-cookie-banner.ycc-marca button, #yuris-cookie-prefs.ycc-marca button {
-          padding: 9px 16px; border-radius: 999px; border: 1px solid rgba(${c.rgb},.35);
-          background: #fff; color: ${c.marca}; cursor: pointer; font: inherit; font-weight: 600;
-          transition: background .12s, box-shadow .12s;
+          padding: 9px 16px !important; border-radius: 999px !important; border: 1px solid rgba(${c.rgb},.35) !important;
+          background: #fff !important; color: ${c.marca} !important; cursor: pointer; font: inherit !important; font-weight: 600 !important;
+          box-shadow: none !important; transition: background .12s, box-shadow .12s;
         }
-        #yuris-cookie-banner.ycc-marca button:hover, #yuris-cookie-prefs.ycc-marca button:hover { background: rgba(${c.rgb},.07); }
+        #yuris-cookie-banner.ycc-marca button:hover, #yuris-cookie-prefs.ycc-marca button:hover { background: rgba(${c.rgb},.07) !important; }
         #yuris-cookie-banner.ycc-marca button.primary, #yuris-cookie-prefs.ycc-marca button.primary {
-          background: linear-gradient(135deg, ${c.marca}, ${c.forte}); color: ${c.sobre}; border: none;
-          box-shadow: 0 8px 20px rgba(${c.rgb},.28);
+          background: linear-gradient(135deg, ${c.marca}, ${c.forte}) !important; color: ${c.sobre} !important; border: none !important;
+          box-shadow: 0 8px 20px rgba(${c.rgb},.28) !important;
         }
-        #yuris-cookie-banner.ycc-marca button.primary:hover, #yuris-cookie-prefs.ycc-marca button.primary:hover { box-shadow: 0 10px 24px rgba(${c.rgb},.38); filter: brightness(1.06); }
+        #yuris-cookie-banner.ycc-marca button.primary:hover, #yuris-cookie-prefs.ycc-marca button.primary:hover { box-shadow: 0 10px 24px rgba(${c.rgb},.38) !important; filter: brightness(1.06); }
         #yuris-cookie-prefs.ycc-marca { background: rgba(${c.rgb},.28); }
         #yuris-cookie-prefs.ycc-marca .ycc-modal {
           background: #fff; color: ${c.tintaSuave}; border: 1px solid rgba(${c.rgb},.18);

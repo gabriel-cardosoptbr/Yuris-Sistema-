@@ -283,7 +283,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="ff-footer ff-entra ff-entra-3">&copy; <?=date('Y')?> <?= $h($mk['nome']) ?> &middot; Todos os direitos reservados</div>
   </div>
 
-  <script src="/assets/cookie-consent.js?v=2"></script>
+  <script src="/assets/cookie-consent.js?v=3"></script>
   <script>
     (function(){
       const btn = document.querySelector('.password-toggle');

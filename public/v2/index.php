@@ -94,6 +94,6 @@ $secoes = [
 <!-- Entrypoint ESM (defer implícito), não bloqueia o render; conteúdo é 100% visível sem JS. -->
 <script type="module" src="/assets/v2/js/main.js?v=<?= $jsVer ?>"></script>
 <!-- Cookie consent (mesmo módulo da v1) -->
-<script src="/assets/cookie-consent.js?v=2"></script>
+<script src="/assets/cookie-consent.js?v=3"></script>
 </body>
 </html>

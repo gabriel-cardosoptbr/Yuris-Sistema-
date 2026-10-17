@@ -157,6 +157,10 @@ $_notifTempo = function ($raw) {
      uma condição em cada uma, a troca pelo nome da marca é feita aqui, só para a edição CRM. -->
 <script>window.MARCA=<?= json_encode(['nome' => $_marca['nome'], 'cor' => $_marca['cor'], 'paleta' => $_marca['paleta'], 'agente' => $_marca['agente']], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;
 (function(){try{var re=/Yuris|Fleetiflow/g;if(re.test(document.title))document.title=document.title.replace(re,window.MARCA.nome);}catch(e){}})();</script>
+<?php if ($_marca['personalizada']): ?>
+<!-- Marca própria: todo azul fixo das telas vira a cor da marca (ver o cabeçalho do arquivo). -->
+<script src="/assets/marca-cores.js?v=<?= @filemtime(__DIR__ . '/../assets/marca-cores.js') ?: 1 ?>"></script>
+<?php endif; ?>
 <!-- Ícone da aba: 24 páginas apontam para o favicon do Yuris (a balança). Aqui ele é
      trocado pelo ícone da marca (o "F" da Fleetiflow, ou o enviado no Master). O ?v= muda a URL de propósito: o Chrome guarda o
      favicon por endereço, e sem isso a aba continuaria com a balança por dias. -->
@@ -259,6 +263,11 @@ $_notifTempo = function ($raw) {
     border-radius:0 !important; padding:0 18px !important; margin:0 !important; text-align:left !important;
   }
   html[data-theme="light"] .sidebar-brand a img{ height:28px !important; }
+  /* Logo da marca própria: ocupa a faixa do topo e flutua devagar (sobe e desce 3px). */
+  html[data-theme="light"] .sidebar-brand:has(.sb-logo-marca){ height:76px !important; }
+  html[data-theme="light"] .sidebar-brand a.sb-logo-marca img{ height:52px !important; width:auto !important; max-width:206px !important; object-fit:contain; display:block; animation:sbLogoFlutua 3.6s ease-in-out infinite; will-change:transform; }
+  @keyframes sbLogoFlutua{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-3px); } }
+  @media (prefers-reduced-motion: reduce){ html[data-theme="light"] .sidebar-brand a.sb-logo-marca img{ animation:none; } }
   html[data-theme="light"] .sidebar-brand a span{ color:#3D3D3D !important; font-size:17px !important; }
 
   /* Pessoa logada: vai para o RODAPÉ (order), sem caixa, com o sino ao lado. */
@@ -433,7 +442,7 @@ $_notifTempo = function ($raw) {
 <!-- Yuris UI lib (notify/confirm/prompt sem "localhost diz"). Auto-polyfills window.alert. -->
 <script src="/assets/yuris-ui.js?v=<?= $_uiLibVer ?>"></script>
 <!-- LGPD Etapa 5: banner de cookies — auto-inicializa, só aparece se ainda não respondeu -->
-<script src="/assets/cookie-consent.js?v=2"></script>
+<script src="/assets/cookie-consent.js?v=3"></script>
 <aside class="sidebar" role="complementary" aria-label="Menu lateral">
 
   <!-- ── Marca ── -->
@@ -442,6 +451,12 @@ $_notifTempo = function ($raw) {
     <!-- Ícone + texto, igual à AppShell real do Fleetiflow (não a imagem
          composta): lá a marca também é ícone + <span> renderizado, não um PNG
          com o nome desenhado dentro. -->
+    <?php if ($_marca['personalizada'] && !empty($_marca['logo_url'])): ?>
+    <!-- Marca própria com logo: o logo inteiro, flutuando devagar (17/10/2026). -->
+    <a href="dashboard.php" class="sb-logo-marca" style="display:flex;align-items:center;text-decoration:none" aria-label="<?= htmlspecialchars($_marca['nome']) ?>">
+      <img src="<?= htmlspecialchars($_marca['logo_url']) ?>" alt="<?= htmlspecialchars($_marca['nome']) ?>">
+    </a>
+    <?php else: ?>
     <a href="dashboard.php" style="display:flex;align-items:center;gap:11px;text-decoration:none">
       <?php if (!empty($_marca['icone_url'])): ?>
       <img src="<?= htmlspecialchars($_marca['icone_url']) ?>" alt="" style="height:30px;width:auto;max-width:44px;object-fit:contain;flex:none;display:block">
@@ -451,6 +466,7 @@ $_notifTempo = function ($raw) {
       <?php endif; ?>
       <span style="font-size:18px;font-weight:800;letter-spacing:-.4px;color:#3D3D3D;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><?= htmlspecialchars($_marca['nome']) ?></span>
     </a>
+    <?php endif; ?>
     <?php else: ?>
     <img src="/sistema_vendas/Imagens/Logo.png" alt="Yuris" style="max-width:100%;max-height:160px;object-fit:contain;display:block;margin:0 auto;">
     <?php endif; ?>
