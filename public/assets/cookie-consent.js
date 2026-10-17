@@ -75,7 +75,65 @@
     });
   }
 
+  /**
+   * Cor da marca da página (edição CRM, 17/10/2026). A tela de login de marca define --ff-rgb e as
+   * telas internas --ff-marca-rgb; com uma delas, o aviso sai claro como a tela, com botões, links e
+   * caixas na cor da marca e a fonte da página. Sem nenhuma (Yuris), fica como sempre foi.
+   */
+  function corDaMarca() {
+    const cs = getComputedStyle(document.documentElement);
+    const bruto = (cs.getPropertyValue('--ff-marca-rgb') || cs.getPropertyValue('--ff-rgb') || '').trim();
+    const m = bruto.match(/^(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})$/);
+    if (!m) return null;
+    const rgb = [+m[1], +m[2], +m[3]];
+    const mistura = (alvo, p) => rgb.map((v, i) => Math.round(v + (alvo[i] - v) * p));
+    const css = c => `rgb(${c.join(',')})`;
+    const lum = c => { const l = c.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * l[0] + 0.7152 * l[1] + 0.0722 * l[2]; };
+    return {
+      rgb: rgb.join(','),
+      marca: css(rgb),
+      forte: css(mistura([0, 0, 0], 0.25)),
+      tinta: css(mistura([0, 0, 0], 0.6)),
+      tintaSuave: css(mistura([60, 60, 60], 0.55)),
+      sobre: lum(rgb) > 0.45 ? '#1f1f1f' : '#ffffff',
+    };
+  }
+
+  function estiloDaMarca(c) {
+    return `
+      <style>
+        #yuris-cookie-banner.ycc-marca {
+          background: rgba(255,255,255,.97); color: ${c.tintaSuave};
+          border-top: 1px solid rgba(${c.rgb},.18); box-shadow: 0 -10px 30px rgba(${c.rgb},.14);
+          font-family: inherit;
+        }
+        #yuris-cookie-banner.ycc-marca .ycc-text strong { color: ${c.tinta}; }
+        #yuris-cookie-banner.ycc-marca a, #yuris-cookie-prefs.ycc-marca a { color: ${c.marca}; }
+        #yuris-cookie-banner.ycc-marca button, #yuris-cookie-prefs.ycc-marca button {
+          padding: 9px 16px; border-radius: 999px; border: 1px solid rgba(${c.rgb},.35);
+          background: #fff; color: ${c.marca}; cursor: pointer; font: inherit; font-weight: 600;
+          transition: background .12s, box-shadow .12s;
+        }
+        #yuris-cookie-banner.ycc-marca button:hover, #yuris-cookie-prefs.ycc-marca button:hover { background: rgba(${c.rgb},.07); }
+        #yuris-cookie-banner.ycc-marca button.primary, #yuris-cookie-prefs.ycc-marca button.primary {
+          background: linear-gradient(135deg, ${c.marca}, ${c.forte}); color: ${c.sobre}; border: none;
+          box-shadow: 0 8px 20px rgba(${c.rgb},.28);
+        }
+        #yuris-cookie-banner.ycc-marca button.primary:hover, #yuris-cookie-prefs.ycc-marca button.primary:hover { box-shadow: 0 10px 24px rgba(${c.rgb},.38); filter: brightness(1.06); }
+        #yuris-cookie-prefs.ycc-marca { background: rgba(${c.rgb},.28); }
+        #yuris-cookie-prefs.ycc-marca .ycc-modal {
+          background: #fff; color: ${c.tintaSuave}; border: 1px solid rgba(${c.rgb},.18);
+          box-shadow: 0 24px 60px rgba(${c.rgb},.25); font-family: inherit; border-radius: 16px;
+        }
+        #yuris-cookie-prefs.ycc-marca h3, #yuris-cookie-prefs.ycc-marca .ycc-cat-label { color: ${c.tinta}; }
+        #yuris-cookie-prefs.ycc-marca p, #yuris-cookie-prefs.ycc-marca .ycc-cat-desc, #yuris-cookie-prefs.ycc-marca .ycc-locked { color: ${c.tintaSuave}; }
+        #yuris-cookie-prefs.ycc-marca .ycc-cat { border-color: rgba(${c.rgb},.16); background: rgba(${c.rgb},.03); }
+        #yuris-cookie-prefs.ycc-marca input[type="checkbox"] { accent-color: ${c.marca}; }
+      </style>`;
+  }
+
   function buildBanner() {
+    const marca = corDaMarca();
     const stored = loadStored();
     if (stored) return; // já respondeu nesta versão
 
@@ -85,7 +143,8 @@
 
     const wrap = document.createElement('div');
     wrap.id = 'yuris-cookie-banner';
-    wrap.innerHTML = `
+    if (marca) wrap.className = 'ycc-marca';
+    wrap.innerHTML = (marca ? estiloDaMarca(marca) : '') + `
       <style>
         #yuris-cookie-banner {
           position: fixed; bottom: 0; left: 0; right: 0;
@@ -158,6 +217,7 @@
     // Preferences modal
     const prefs = document.createElement('div');
     prefs.id = 'yuris-cookie-prefs';
+    if (marca) prefs.classList.add('ycc-marca');
     const catsHtml = Object.entries(CATEGORIES).map(([k, c]) => `
       <div class="ycc-cat">
         <div class="ycc-cat-head">

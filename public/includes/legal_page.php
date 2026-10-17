@@ -349,6 +349,6 @@ $corpo     = $LEGAL_PAGE['corpo_html'] ?? '<p>Conteúdo em revisão.</p>';
     </article>
   </div>
   <!-- LGPD Etapa 5: banner de cookies -->
-  <script src="/assets/cookie-consent.js?v=1"></script>
+  <script src="/assets/cookie-consent.js?v=2"></script>
 </body>
 </html>

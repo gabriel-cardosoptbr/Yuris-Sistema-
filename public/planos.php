@@ -843,7 +843,7 @@
 
 <!-- LGPD Etapa 5: footer com links legais + banner de cookies -->
 <?php include __DIR__ . '/includes/legal_footer.php'; ?>
-<script src="/assets/cookie-consent.js?v=1"></script>
+<script src="/assets/cookie-consent.js?v=2"></script>
 
 </body>
 </html>

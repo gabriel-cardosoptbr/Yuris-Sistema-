@@ -314,6 +314,11 @@ setor ao lado do nome (que quebra a linha em vez de levar reticências); a linha
 para a última mensagem. Conversa individual sem setor mostra "Sem setor" em cinza, para toda
 conversa ter etiqueta e dar para ver o que falta classificar. No Yuris o setor continua numa linha própria.
 
+**Aviso de cookies na cor da marca (edição CRM, 17/10/2026).** `assets/cookie-consent.js` lê a cor da marca da
+página (`--ff-rgb` na tela de login de marca, `--ff-marca-rgb` nas telas internas) e, quando ela existe, o aviso
+e a janela de Preferências saem claros como a tela, com botões, links e caixas na cor da marca e a fonte da
+página. Sem essas variáveis (Yuris) fica o azul-marinho de sempre. As páginas carregam `cookie-consent.js?v=2`.
+
 **Situação da conversa, autor da mensagem e Agendar no Chat (edição CRM, 10/10/2026).** Quando a última
 palavra é do lead, `chat.php` mostra sob o cabeçalho "Aguardando resposta há 3 dias" com o motivo (número fora
 do ar e a Vitória não recebeu, conversa com uma pessoa, agente desligado, entregue e sem resposta...) e, quando

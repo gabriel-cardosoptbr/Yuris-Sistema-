@@ -433,7 +433,7 @@ $_notifTempo = function ($raw) {
 <!-- Yuris UI lib (notify/confirm/prompt sem "localhost diz"). Auto-polyfills window.alert. -->
 <script src="/assets/yuris-ui.js?v=<?= $_uiLibVer ?>"></script>
 <!-- LGPD Etapa 5: banner de cookies — auto-inicializa, só aparece se ainda não respondeu -->
-<script src="/assets/cookie-consent.js?v=1"></script>
+<script src="/assets/cookie-consent.js?v=2"></script>
 <aside class="sidebar" role="complementary" aria-label="Menu lateral">
 
   <!-- ── Marca ── -->
