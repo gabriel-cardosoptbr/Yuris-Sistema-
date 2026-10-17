@@ -2058,6 +2058,35 @@ function column_display_name(array $col): string
     // Colunas cuja lista ainda está chegando: o redesenho pula essas, para não
     // trocar o "Carregando..." por "Sem leads nesta etapa" antes da hora.
     const colunasCarregando = new Set();
+
+    // Sessão: o quadro fica aberto horas e as consultas dele só LEEM a sessão, então
+    // o servidor a apagava depois de 24 min sem regravar (session.gc_maxlifetime).
+    // Enquanto a aba está visível, um aviso leve a cada 10 min a mantém viva; se
+    // mesmo assim ela acabar, o quadro avisa e oferece entrar de novo, sem apagar
+    // os cards da tela.
+    let _sessaoExpirada = false;
+    function sessaoExpirou() {
+      if (_sessaoExpirada) return;
+      _sessaoExpirada = true;
+      const aviso = document.createElement('div');
+      aviso.setAttribute('role', 'alert');
+      aviso.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9999;'
+        + 'display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:12px;'
+        + 'background:#0C1B33;color:#fff;font-size:14px;box-shadow:0 12px 30px rgba(12,27,51,.3);';
+      aviso.innerHTML = '<span>Sua sessão expirou. Os cards na tela podem estar desatualizados.</span>'
+        + '<a href="/login.php" style="background:#015DFC;color:#fff;padding:7px 14px;border-radius:999px;'
+        + 'font-weight:700;text-decoration:none;white-space:nowrap">Entrar de novo</a>';
+      document.body.appendChild(aviso);
+    }
+    async function manterSessaoViva() {
+      if (document.hidden || _sessaoExpirada) return;
+      try {
+        const r = await fetch('/api/auth/sessao_viva.php', { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+        if (r.status === 401) sessaoExpirou();
+      } catch (e) { /* rede caiu: tenta no próximo ciclo */ }
+    }
+    setInterval(manterSessaoViva, 10 * 60 * 1000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) manterSessaoViva(); });
     const sortableByColumn = {};
     let columnsSortable = null;
     let checklistSortable = null;
@@ -2907,14 +2936,25 @@ function column_display_name(array $col): string
         if (listEl) listEl.innerHTML = '<div class="empty-note">Carregando...</div>';
         colunasCarregando.add(String(colId));
 
+        let falhou = false;
         try {
           const res = await fetch(apiCards + '?coluna_id=' + colId, { headers: { 'Accept': 'application/json' } });
-          const json = await res.json();
-          cardsCacheByColumn[colId] = json.data || [];
+          if (res.status === 401) { sessaoExpirou(); falhou = true; }
+          else if (!res.ok) { falhou = true; }
+          else {
+            const json = await res.json();
+            cardsCacheByColumn[colId] = Array.isArray(json.data) ? json.data : [];
+          }
         } catch (e) {
-          cardsCacheByColumn[colId] = [];
+          falhou = true;
         }
         colunasCarregando.delete(String(colId));
+        // Falha não é "etapa vazia": a coluna diz que não carregou, em vez de
+        // afirmar "Sem leads nesta etapa" para quem tem centenas.
+        if (falhou && !(colId in cardsCacheByColumn)) {
+          if (listEl) listEl.innerHTML = '<div class="empty-note">Não foi possível carregar esta etapa. Recarregue a página.</div>';
+          return;
+        }
         // Cada coluna aparece assim que chega: a mais cheia (centenas de leads)
         // não segura as outras no "Carregando...".
         applyFiltersAndRender();
@@ -2929,7 +2969,7 @@ function column_display_name(array $col): string
         [k, (porColuna[k] || []).map(c => c.id + ':' + c.coluna_id + ':' + c.updated_at + ':' + (c.linked_chat_jid || '')
           + ':' + (c.proxima_interacao ? c.proxima_interacao.prazo + c.proxima_interacao.tipo + c.proxima_interacao.atrasada : ''))]));
       setInterval(async function () {
-        if (document.hidden) return;
+        if (document.hidden || _sessaoExpirada) return;
         if (_justDragged || document.querySelector('.sortable-chosen, .sortable-drag, .sortable-ghost')) return;
         if (['modalCreate', 'modalEdit', 'modalColumns'].some(id => { const m = byId(id); return m && !m.classList.contains('hidden'); })) return;
         const cols = Array.from(document.querySelectorAll('.kanban-col'));
@@ -2938,8 +2978,13 @@ function column_display_name(array $col): string
           await Promise.all(cols.map(async col => {
             const colId = col.getAttribute('data-coluna-id');
             const res = await fetch(apiCards + '?coluna_id=' + colId, { headers: { 'Accept': 'application/json' } });
+            // Sessão expirada ou erro do servidor NUNCA vira "coluna vazia": antes,
+            // a resposta 401 sem "data" trocava todos os cards por nada.
+            if (res.status === 401) { sessaoExpirou(); throw new Error('sessao'); }
+            if (!res.ok) throw new Error('http ' + res.status);
             const json = await res.json();
-            novo[colId] = json.data || [];
+            if (!Array.isArray(json.data)) throw new Error('sem lista');
+            novo[colId] = json.data;
           }));
         } catch (e) { return; }
         const atual = {};
