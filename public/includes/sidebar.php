@@ -700,16 +700,25 @@ $_notifTempo = function ($raw) {
             array_splice($_s['items'], $_posProsp === false ? count($_s['items']) : $_posProsp + 1, 0, [[
                 'perm' => 'prospeccao', 'href' => 'orcamentos.php', 'active' => 'orcamentos', 'icon' => 'orcamento', 'label' => 'Orçamentos',
             ], [
-                // Contratos e assinatura eletrônica (app/Contratos, 18/10/2026): mesma
-                // permissão da Prospecção, porque o contrato é do lead e do cliente.
-                'perm' => 'prospeccao', 'href' => 'contratos.php', 'active' => 'contratos', 'icon' => 'contrato', 'label' => 'Contratos',
-            ], [
                 // A carteira de clientes da plataforma Fleetiflow (integração por
                 // API, app/Plataforma): plano, módulos, quanto geram e os pedidos.
                 'perm' => 'prospeccao', 'href' => 'plataforma.php', 'active' => 'plataforma', 'icon' => 'plataforma', 'label' => 'Plataforma',
             ]]);
         }
         unset($_s);
+        // Contratos e assinatura eletrônica (app/Contratos, 18/10/2026): aba própria,
+        // logo abaixo de Operação (pedido do dono do produto, 19/10/2026). Mesma
+        // permissão da Prospecção, porque o contrato é do lead e do cliente.
+        $_posOper = array_search('operacao', array_column($_sections, 'key'), true);
+        array_splice($_sections, $_posOper === false ? 1 : $_posOper + 1, 0, [[
+            'key' => 'contratos',
+            'label' => 'Contratos',
+            'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 17c1.2-1.6 2.2-2.4 3-2.4 1.2 0 .6 2.4 1.8 2.4.7 0 1.4-.7 2.2-1.6"/><line x1="8" y1="11" x2="14" y2="11"/></svg>',
+            'items' => [
+                ['perm' => 'prospeccao', 'href' => 'contratos.php', 'active' => 'contratos', 'icon' => 'contrato', 'label' => 'Contratos'],
+                ['perm' => 'prospeccao', 'href' => 'contratos.php?novo=1', 'active' => 'contratos_novo', 'icon' => 'orcamento', 'label' => 'Novo contrato'],
+            ],
+        ]]);
         if ($_itemFinancas) {
             $_posGestao = array_search('gestao', array_column($_sections, 'key'), true);
             array_splice($_sections, $_posGestao === false ? count($_sections) : $_posGestao + 1, 0, [[

@@ -323,7 +323,7 @@ no `yuris-theme.css` (com `!important`), no chat, nas tarefas e nas telas some s
 No menu, marca própria com logo mostra o logo inteiro (52px), flutuando devagar (sobe e desce 3px; parado
 para quem pede menos movimento). O aviso de cookies usa `!important` nos botões e está em `?v=3`.
 
-**Contratos e assinatura eletrônica (edição CRM, 18/10/2026).** `contratos.php` é a tela da equipe; `assinar.php`
+**Contratos e assinatura eletrônica (edição CRM, 18/10/2026).** `contratos.php` é a tela da equipe, na aba própria "Contratos" do menu (logo abaixo de Operação, com "Contratos" e "Novo contrato"); `assinar.php`
 é a página de quem assina, sem login do CRM: o link chega como `/assinar#t=<token>` (o fragmento não vai ao servidor,
 então não cai em log nem no Referer, e prévia de link não o vê), e `assets/assinar.js` troca o token por uma sessão
 curta e apaga o fragmento. As duas páginas públicas (`assinar.php`, `verificar.php`) mandam `Referrer-Policy:
