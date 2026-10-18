@@ -1,0 +1,54 @@
+/* Página externa de assinatura. A cor vem da marca da conta (--marca, posta pelo assinar.js). */
+:root { --marca: #015DFC; --tinta: #1d1d22; --suave: #5d5d68; --linha: #e6e6ea; --fundo: #f6f6f8; }
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; background: var(--fundo); color: var(--tinta); font-family: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 15px; line-height: 1.5; }
+.ass { max-width: 880px; margin: 0 auto; padding: 18px 16px 8px; }
+.ass-cab { display: flex; justify-content: center; padding: 10px 0 14px; }
+.ass-logo { max-height: 56px; max-width: 240px; object-fit: contain; }
+.ass-empresa { font-weight: 800; font-size: 20px; color: var(--marca); }
+.ass-titulo { text-align: center; margin-bottom: 14px; }
+.ass-titulo h1 { margin: 4px 0 0; font-size: 21px; line-height: 1.3; font-weight: 800; }
+.ass-rot { font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--suave); font-weight: 700; }
+.ass-cartao { background: #fff; border: 1px solid var(--linha); border-radius: 16px; padding: 20px; margin-bottom: 14px; box-shadow: 0 6px 22px rgba(20, 20, 40, .05); }
+.ass-cartao h2 { margin: 0 0 12px; font-size: 16px; font-weight: 800; }
+.ass-cartao p { margin: 0 0 12px; }
+.ass-ola { font-size: 17px; font-weight: 700; }
+.ass-ok { color: #13795b; font-weight: 700; }
+.ass-msg { font-size: 15.5px; text-align: center; margin: 6px 0 !important; }
+.ass-nota { font-size: 12.5px; color: var(--suave); }
+.ass-hash { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11.5px; word-break: break-all; }
+label { display: block; font-size: 12.5px; font-weight: 700; color: var(--suave); margin: 12px 0 6px; }
+input, textarea { width: 100%; font: inherit; color: var(--tinta); padding: 12px 14px; border: 1px solid #d2d2d8; border-radius: 12px; background: #fff; outline: none; }
+input:focus, textarea:focus { border-color: var(--marca); box-shadow: 0 0 0 3px color-mix(in srgb, var(--marca) 18%, transparent); }
+.ass-cod { font-size: 26px; letter-spacing: .5em; text-align: center; font-weight: 700; padding-left: .5em; }
+.ass-btn { display: block; width: 100%; margin-top: 14px; padding: 14px 18px; border: 0; border-radius: 999px; background: var(--marca); color: #fff;
+  font: inherit; font-weight: 700; font-size: 15.5px; cursor: pointer; text-align: center; text-decoration: none; transition: filter .15s, opacity .15s; }
+.ass-btn:hover { filter: brightness(1.07); }
+.ass-btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+.ass-btn-sec { background: #fff; color: var(--marca); border: 1px solid color-mix(in srgb, var(--marca) 45%, transparent); }
+.ass-link { background: none; border: 0; padding: 10px 0 0; color: var(--marca); font: inherit; font-weight: 700; font-size: 13.5px; cursor: pointer; text-decoration: underline; display: inline-block; }
+.ass-link:disabled { color: var(--suave); text-decoration: none; cursor: default; }
+.ass-recusar { color: var(--suave); display: block; margin: 8px auto 0; }
+.ass-aviso { border-radius: 12px; padding: 10px 14px; font-size: 13.5px; margin: 4px 0 10px; background: #f3f3f6; }
+.ass-aviso.ok { background: #e8f6ef; color: #0f5e46; }
+.ass-aviso.erro { background: #fdecec; color: #8a1c1c; }
+.ass-dado { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--linha); font-size: 14px; }
+.ass-dado:last-child { border-bottom: 0; }
+.ass-dado span { color: var(--suave); }
+.ass-dado b { text-align: right; overflow-wrap: anywhere; }
+.ass-bloco { margin-top: 6px; }
+.ass-doc-cab { display: flex; justify-content: space-between; align-items: baseline; }
+.ass-doc-cab .ass-link { padding: 0; }
+.ass-pdf { background: #ececf0; border-radius: 12px; padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 10px; max-height: 70vh; overflow-y: auto; }
+.ass-pdf canvas { background: #fff; box-shadow: 0 2px 10px rgba(0, 0, 0, .12); max-width: 100%; height: auto; }
+.ass-fim-doc { margin: 4px 0 0 !important; }
+.ass-aceite { display: flex; gap: 12px; align-items: flex-start; font-size: 15px; font-weight: 600; color: var(--tinta); margin: 0; cursor: pointer; }
+.ass-aceite input { width: 22px; height: 22px; flex: none; margin-top: 1px; accent-color: var(--marca); }
+.ass-sucesso { text-align: center; }
+.ass-check { width: 58px; height: 58px; border-radius: 50%; background: #e8f6ef; color: #13795b; font-size: 30px; line-height: 58px; margin: 4px auto 10px; font-weight: 800; }
+.ass-carregando { display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--suave); padding: 40px 0; }
+.ass-giro { width: 18px; height: 18px; border: 2px solid #d0d0d8; border-top-color: var(--marca); border-radius: 50%; animation: assGira .8s linear infinite; }
+@keyframes assGira { to { transform: rotate(360deg); } }
+.ass-rodape { max-width: 880px; margin: 0 auto; padding: 8px 16px 28px; font-size: 11.5px; color: var(--suave); text-align: center; }
+.ass-rodape a { color: inherit; }
+@media (max-width: 520px) { .ass-cartao { padding: 16px; border-radius: 14px; } .ass-titulo h1 { font-size: 19px; } .ass-pdf { max-height: none; } }

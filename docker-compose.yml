@@ -6,6 +6,8 @@ services:
       - "8081:80"
     volumes:
       - ./:/var/www/html
+      # Chave do selo dos contratos (app/Contratos): fora do repositório e do banco, só leitura.
+      - /home/ubuntu/yuris-chaves:/run/yuris-chaves:ro
     depends_on:
       - yuris_db
     restart: unless-stopped

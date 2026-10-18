@@ -2,6 +2,10 @@ FROM php:8.2-apache
 
 RUN docker-php-ext-install pdo pdo_mysql mysqli
 
+# qpdf: monta o PDF de conclusão dos contratos (original + comprovante de assinaturas),
+# sem reescrever o original. Ver app/Contratos/Finalizacao.php (18/10/2026).
+RUN apt-get update && apt-get install -y --no-install-recommends qpdf && rm -rf /var/lib/apt/lists/*
+
 RUN a2enmod rewrite
 
 RUN echo 'memory_limit=512M' > /usr/local/etc/php/conf.d/yuris-memory.ini
