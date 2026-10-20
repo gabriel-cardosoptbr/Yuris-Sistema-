@@ -445,9 +445,12 @@ final class Contrato
             . "Para confirmar que é você, vamos mandar um código para este WhatsApp.";
         $r = Entrega::whatsapp($accountId, (string) Cripto::decifrar($p['telefone_cifrado']), $texto);
         if ($r['ok']) $pdo->prepare('UPDATE crm_contrato_convites SET enviado_em = ? WHERE id = ?')->execute([Tempo::agora(), $conviteId]);
+        $vc = $pdo->prepare('SELECT versao_id FROM crm_contrato_convites WHERE id = ?');
+        $vc->execute([$conviteId]);
+        $versaoDoConvite = (int) $vc->fetchColumn();
         Eventos::registrar($contratoId, $r['ok'] ? 'convite_enviado' : 'convite_nao_enviado',
             ['canal' => 'whatsapp', 'contato' => 'WhatsApp terminado em ' . $p['telefone_final']] + ($r['ok'] ? [] : ['erro' => $r['erro'] ?? '']),
-            ['user_id' => $userId, 'participante_id' => $participanteId]);
+            ['user_id' => $userId, 'participante_id' => $participanteId, 'versao_id' => $versaoDoConvite ?: null]);
         return $r;
     }
 
@@ -577,7 +580,11 @@ final class Contrato
                     u.nome AS responsavel, cl.nome AS cliente, COALESCE(NULLIF(cd.cliente_nome,''), cd.empresa_nome, cd.titulo) AS negociacao,
                     c.cliente_id, c.card_id,
                     (SELECT COUNT(*) FROM crm_contrato_participantes p WHERE p.contrato_id = c.id AND p.status <> 'cancelado') AS participantes,
-                    (SELECT COUNT(*) FROM crm_contrato_assinaturas a WHERE a.contrato_id = c.id AND a.versao_id = c.versao_atual_id) AS assinaturas
+                    (SELECT COUNT(*) FROM crm_contrato_assinaturas a WHERE a.contrato_id = c.id AND a.versao_id = c.versao_atual_id) AS assinaturas,
+                    (SELECT v.aberta_em FROM crm_contrato_versoes v WHERE v.id = c.versao_atual_id) AS enviado_em,
+                    (SELECT v.numero FROM crm_contrato_versoes v WHERE v.contrato_id = c.id ORDER BY v.numero DESC LIMIT 1) AS versao,
+                    (SELECT COUNT(DISTINCT e.participante_id) FROM crm_contrato_eventos e
+                      WHERE e.contrato_id = c.id AND e.tipo = 'acesso' AND e.versao_id = c.versao_atual_id) AS abriram
                FROM crm_contratos c
                LEFT JOIN users u ON u.id = c.responsavel_id
                LEFT JOIN clientes cl ON cl.id = c.cliente_id AND cl.account_id = c.account_id
@@ -585,6 +592,17 @@ final class Contrato
               WHERE " . implode(' AND ', $where) . ' ORDER BY c.atualizado_em DESC LIMIT 300'
         );
         $st->execute($args);
+        $linhas = $st->fetchAll(\PDO::FETCH_ASSOC);
+        // Quem participa de cada contrato (nome, papel e situação), para o card.
+        $pessoas = [];
+        if ($linhas) {
+            $ids = implode(',', array_map(fn($r) => (int) $r['id'], $linhas));
+            foreach (Database::getConnection()->query("SELECT contrato_id, nome, papel, status FROM crm_contrato_participantes
+                                                         WHERE contrato_id IN ($ids) AND status <> 'cancelado' ORDER BY ordem, id") as $p) {
+                $pessoas[(int) $p['contrato_id']][] = ['nome' => $p['nome'], 'papel' => self::PAPEIS[$p['papel']] ?? $p['papel'],
+                    'status' => $p['status'], 'status_rotulo' => self::STATUS_PARTICIPANTE[$p['status']] ?? $p['status']];
+            }
+        }
         return array_map(static fn($r) => [
             'id' => (int) $r['id'], 'uuid' => $r['uuid'], 'titulo' => $r['titulo'], 'status' => $r['status'],
             'status_rotulo' => self::STATUS[$r['status']] ?? $r['status'],
@@ -594,7 +612,9 @@ final class Contrato
             'cliente_id' => $r['cliente_id'] ? (int) $r['cliente_id'] : null, 'card_id' => $r['card_id'] ? (int) $r['card_id'] : null,
             'participantes' => (int) $r['participantes'], 'assinaturas' => (int) $r['assinaturas'],
             'codigo_verificacao' => $r['codigo_verificacao'],
-        ], $st->fetchAll(\PDO::FETCH_ASSOC));
+            'enviado_em' => Tempo::local($r['enviado_em']), 'abriram' => (int) $r['abriram'], 'versao' => $r['versao'] ? (int) $r['versao'] : null,
+            'pessoas' => $pessoas[(int) $r['id']] ?? [],
+        ], $linhas);
     }
 
     /** A central da conta: quantos contratos, em que situação, e quanto disco ocupam. */
@@ -660,7 +680,25 @@ final class Contrato
         $convites = [];
         foreach ($cv->fetchAll(\PDO::FETCH_ASSOC) as $x) $convites[(int) $x['participante_id']] = $x;
 
-        $participantes = array_map(static function ($x) use ($porParticipante, $convites) {
+        // Acompanhamento: o que cada participante já fez na versão em assinatura (a partir de quando ela
+        // foi enviada). Abrir o link e ver o PDF não são assinatura nem prova de leitura.
+        $abertaEm = null;
+        if ($c['versao_atual_id']) {
+            $va = $pdo->prepare('SELECT aberta_em FROM crm_contrato_versoes WHERE id = ?');
+            $va->execute([(int) $c['versao_atual_id']]);
+            $abertaEm = $va->fetchColumn() ?: null;
+        }
+        $passos = [];
+        if ($abertaEm) {
+            $ev = $pdo->prepare("SELECT participante_id, tipo, MIN(criado_em) AS primeiro, MAX(criado_em) AS ultimo, COUNT(*) AS vezes
+                                   FROM crm_contrato_eventos WHERE contrato_id = ? AND participante_id IS NOT NULL AND criado_em >= ?
+                                  GROUP BY participante_id, tipo");
+            $ev->execute([$id, $abertaEm]);
+            foreach ($ev->fetchAll(\PDO::FETCH_ASSOC) as $e) {
+                $passos[(int) $e['participante_id']][$e['tipo']] = ['primeiro' => Tempo::local($e['primeiro']), 'ultimo' => Tempo::local($e['ultimo']), 'vezes' => (int) $e['vezes']];
+            }
+        }
+        $participantes = array_map(static function ($x) use ($porParticipante, $convites, $passos) {
             $pid = (int) $x['id'];
             $cvx = $convites[$pid] ?? null;
             return [
@@ -673,8 +711,16 @@ final class Contrato
                 'convite' => $cvx ? ['ultimo' => Tempo::local($cvx['ultimo']), 'enviado' => Tempo::local($cvx['enviado']),
                                       'expira' => Tempo::local($cvx['expira']), 'ativo' => (int) $cvx['vivos'] > 0] : null,
                 'assinaturas' => $porParticipante[$pid] ?? [],
+                'acompanhamento' => self::passosDoParticipante($passos[$pid] ?? []),
             ];
         }, $p->fetchAll(\PDO::FETCH_ASSOC));
+        $eventosTodos = Eventos::doContrato($id);
+        $primeiroEvento = function (string $tipo) use ($eventosTodos) {
+            foreach ($eventosTodos as $e) if ($e['tipo'] === $tipo) return Tempo::local(substr(str_replace('T', ' ', $e['criado_em']), 0, 19));
+            return null;
+        };
+        $obrig = array_filter($participantes, fn($p) => $p['obrigatorio'] && $p['status'] !== 'cancelado');
+        $assinaram = array_filter($obrig, fn($p) => $p['status'] === 'assinou');
 
         $ar = $pdo->prepare("SELECT uuid, tipo, sha256, bytes, criado_em FROM crm_contrato_arquivos WHERE contrato_id = ? AND account_id = ? AND tipo <> 'original' ORDER BY id");
         $ar->execute([$id, $accountId]);
@@ -698,8 +744,38 @@ final class Contrato
             'finalizacao' => ['status' => $c['finalizacao_status'], 'tentativas' => (int) $c['finalizacao_tentativas'], 'erro' => $c['finalizacao_erro']],
             'versao_atual_id' => $c['versao_atual_id'] ? (int) $c['versao_atual_id'] : null,
             'versoes' => $versoes, 'participantes' => $participantes, 'arquivos_finais' => $finais,
-            'eventos' => Eventos::doContrato($id), 'cadeia' => Eventos::verificar($id),
+            'eventos' => $eventosTodos, 'cadeia' => Eventos::verificar($id),
+            'marcos' => [
+                'criado'        => Tempo::local($c['criado_em']),
+                'documento'     => $primeiroEvento('documento_anexado'),
+                'participantes' => count($obrig),
+                'enviado'       => Tempo::local($abertaEm),
+                'assinaturas'   => count($assinaram),
+                'concluido'     => Tempo::local($c['concluido_em']),
+                'encerrado'     => in_array($c['status'], ['recusado', 'expirado', 'cancelado'], true) ? Tempo::local($c['encerrado_em']) : null,
+            ],
             'verificacao_url' => Convite::enderecoBase($accountId) . '/verificar?c=' . $c['codigo_verificacao'],
+        ];
+    }
+
+    /** Os passos de um participante na versão em assinatura, na ordem em que acontecem. */
+    private static function passosDoParticipante(array $ev): array
+    {
+        $q = fn(string $t) => $ev[$t] ?? null;
+        $enviado = $q('convite_enviado');
+        $gerado = $q('convite_reemitido') ?? $q('convite_emitido');
+        $acesso = $q('acesso');
+        $fim = $q('assinado') ?? $q('recusado');
+        return [
+            ['chave' => 'enviado', 'rotulo' => 'Convite enviado', 'quando' => $enviado['ultimo'] ?? null,
+             'obs' => $enviado ? null : ($q('convite_nao_enviado') ? 'O WhatsApp não aceitou o envio' : ($gerado ? 'Link gerado em ' . $gerado['ultimo'] . ', não mandado pelo WhatsApp' : null))],
+            ['chave' => 'abriu', 'rotulo' => 'Abriu o link', 'quando' => $acesso['primeiro'] ?? null,
+             'obs' => ($acesso['vezes'] ?? 0) > 1 ? 'Abriu ' . $acesso['vezes'] . ' vezes, a última em ' . $acesso['ultimo'] : null],
+            ['chave' => 'confirmou', 'rotulo' => 'Confirmou o código', 'quando' => $q('codigo_confirmado')['ultimo'] ?? null,
+             'obs' => $q('codigo_incorreto') ? 'Errou o código ' . $q('codigo_incorreto')['vezes'] . ' vez(es)' : null],
+            ['chave' => 'viu', 'rotulo' => 'Viu o documento', 'quando' => $q('documento_visualizado')['primeiro'] ?? null, 'obs' => null],
+            ['chave' => 'assinou', 'rotulo' => $q('recusado') ? 'Recusou' : 'Assinou', 'quando' => $fim['ultimo'] ?? null,
+             'obs' => $q('cpf_divergente') ? 'CPF diferente do esperado: em revisão' : null, 'recusou' => (bool) $q('recusado')],
         ];
     }
 

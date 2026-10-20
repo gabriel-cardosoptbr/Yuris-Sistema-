@@ -56,6 +56,17 @@ Teste: `scripts/tests/contratos_test.php` (`php -d extension=sodium` no XAMPP lo
    comprovante, o PDF de conclusão e o manifesto selado, e a consulta pública passa a
    conferir tudo.
 
+## Na tela
+
+- **Lista em folhas A4** (`ff-contratos.js`, `folha`): cada contrato é um card com a forma de uma página: situação, código,
+  cliente ou negociação, assinaturas feitas, quantos abriram o link, as iniciais de quem participa (cor pela situação),
+  criado, enviado, prazo ou conclusão e responsável. `Contrato::listar` traz `enviado_em`, `abriram` e `pessoas`.
+- **Acompanhamento na ficha**: as etapas do contrato (criado, PDF anexado, participantes, enviado, assinaturas, concluído
+  ou o encerramento) em `marcos`, e o caminho de cada participante na versão em assinatura em `acompanhamento`
+  (convite enviado, abriu o link, confirmou o código, viu o documento, assinou ou recusou), com horário e observações
+  (abriu várias vezes, errou o código, link gerado mas não mandado, CPF em revisão). Vem dos eventos a partir do envio
+  da versão. Abrir o link e ver o documento não são assinatura nem prova de leitura.
+
 ## Situações
 
 Contrato: `rascunho`, `aguardando`, `parcial`, `concluido`, `recusado`, `expirado`,

@@ -93,20 +93,40 @@
       if (!rs[1].ok) h += '<div class="ctr-aviso vermelho">' + esc(rs[1].error) + '</div>';
       else if (!itens.length) h += '<div class="ctr-cartao ctr-vazio">Nenhum contrato aqui ainda. Use "Novo contrato" para preparar o primeiro.</div>';
       else {
-        h += '<div class="ctr-cartao ctr-rolagem"><table class="ctr-tabela"><thead><tr><th>Contrato</th><th>Cliente / negociação</th><th>Situação</th><th>Assinaturas</th><th>Prazo</th><th>Atualizado</th></tr></thead><tbody>' +
-          itens.map(function (c) {
-            return '<tr class="clicavel" data-id="' + c.id + '"><td><div class="titulo">' + esc(c.titulo) + '</div><div class="ctr-sub">' + esc(c.responsavel || '') + '</div></td>' +
-              '<td>' + esc(c.cliente || c.negociacao || '-') + '</td><td><span class="ctr-pill ' + c.status + '">' + esc(c.status_rotulo) + '</span></td>' +
-              '<td>' + c.assinaturas + ' de ' + c.participantes + '</td><td>' + esc(c.prazo || '-') + '</td><td>' + esc(c.atualizado_em) + '</td></tr>';
-          }).join('') + '</tbody></table></div>';
+        h += '<div class="ctr-folhas">' + itens.map(folha).join('') + '</div>';
       }
       raiz.innerHTML = h;
       raiz.querySelectorAll('.ctr-aba').forEach(function (b) { b.onclick = function () { filtro.status = this.dataset.status; lista(); }; });
       var t; var busca = document.getElementById('ctrBusca');
       busca.oninput = function () { clearTimeout(t); var v = this.value; t = setTimeout(function () { filtro.busca = v; lista(); }, 350); };
       if (filtro.busca) { busca.focus(); busca.setSelectionRange(busca.value.length, busca.value.length); }
-      raiz.querySelectorAll('tr[data-id]').forEach(function (tr) { tr.onclick = function () { ficha(+this.dataset.id); }; });
+      raiz.querySelectorAll('[data-id]').forEach(function (el) {
+        el.onclick = function () { ficha(+this.dataset.id); };
+        el.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ficha(+this.dataset.id); } };
+      });
     });
+  }
+  // Um contrato como uma folha A4: título, cliente, situação, assinaturas, quem participa e datas.
+  function folha(c) {
+    var total = c.participantes, feitas = c.assinaturas, pct = total ? Math.round(feitas / total * 100) : 0;
+    var pessoas = (c.pessoas || []).map(function (p) {
+      var ini = String(p.nome || '?').trim().split(/\s+/).map(function (x) { return x.charAt(0); }).slice(0, 2).join('').toUpperCase();
+      return '<span class="ctr-ava ' + esc(p.status) + '" title="' + esc(p.nome + ' · ' + p.papel + ' · ' + p.status_rotulo) + '">' + esc(ini) + '</span>';
+    }).join('');
+    var linha = function (rot, val, cls) { return val ? '<div class="ctr-folha-dado' + (cls ? ' ' + cls : '') + '"><span>' + esc(rot) + '</span><b>' + esc(val) + '</b></div>' : ''; };
+    var visto = c.enviado_em ? (c.abriram + ' de ' + total + ' abriram o link') : '';
+    return '<div class="ctr-folha" data-id="' + c.id + '" role="button" tabindex="0" aria-label="Abrir ' + esc(c.titulo) + '">' +
+      '<div class="ctr-folha-topo"><span class="ctr-pill ' + c.status + '">' + esc(c.status_rotulo) + '</span><span class="ctr-folha-cod">' + esc(c.codigo_verificacao) + '</span></div>' +
+      '<div class="ctr-folha-titulo">' + esc(c.titulo) + '</div>' +
+      '<div class="ctr-folha-cliente">' + esc(c.cliente || c.negociacao || 'Sem cliente ligado') + '</div>' +
+      '<div class="ctr-folha-linhas" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="curta"></i></div>' +
+      '<div class="ctr-folha-progresso"><div class="ctr-folha-barra"><i style="width:' + pct + '%"></i></div>' +
+        '<div class="ctr-folha-prog-txt"><b>' + feitas + ' de ' + total + '</b> assinatura' + (total === 1 ? '' : 's') + (visto ? ' · ' + esc(visto) : '') + '</div></div>' +
+      (pessoas ? '<div class="ctr-folha-pessoas">' + pessoas + '</div>' : '<div class="ctr-folha-pessoas vazio">Sem participantes ainda</div>') +
+      '<div class="ctr-folha-rodape">' +
+        linha('Criado', c.criado_em) + linha('Enviado', c.enviado_em) + linha(c.status === 'concluido' ? 'Concluído' : 'Prazo', c.status === 'concluido' ? c.concluido_em : (c.prazo || 'Sem prazo')) +
+        linha('Responsável', c.responsavel) +
+      '</div></div>';
   }
   function num(rot, v, sub) { return '<div class="ctr-num"><span>' + esc(rot) + '</span><b>' + esc(v) + '</b><small>' + esc(sub) + '</small></div>'; }
 
@@ -304,6 +324,7 @@
     if (c.motivo_encerramento) h += '<div class="ctr-aviso ' + (c.status === 'concluido' ? 'verde' : 'ambar') + '">' + esc(c.motivo_encerramento) + (c.encerrado_em ? ' · ' + esc(c.encerrado_em) : '') + '</div>';
     if (!c.cadeia.integra) h += '<div class="ctr-aviso vermelho">A trilha de eventos não confere a partir do evento #' + esc(c.cadeia.quebra_em) + '. Avise o suporte: o registro pode ter sido alterado fora do sistema.</div>';
 
+    h += acompanhamento(c);
     h += '<div class="ctr-cartao"><h3>Dados</h3><div class="ctr-grade">' +
       campo('Responsável', c.responsavel) + campo('Cliente', c.cliente) + campo('Negociação', c.negociacao) + campo('Prazo para assinatura', c.prazo || 'Sem prazo') +
       campo('Criado em', c.criado_em) + (c.concluido_em ? campo('Concluído em', c.concluido_em) : '') +
@@ -434,6 +455,46 @@
         });
       };
     });
+  }
+  // Acompanhamento: as etapas do contrato e o caminho de cada participante na versão em assinatura.
+  function acompanhamento(c) {
+    var m = c.marcos || {};
+    var etapas = [
+      { rot: 'Criado', quando: m.criado, ok: !!m.criado },
+      { rot: 'PDF anexado', quando: m.documento, ok: !!m.documento, falta: 'Anexe o PDF' },
+      { rot: 'Participantes', quando: m.participantes ? m.participantes + ' obrigatório' + (m.participantes === 1 ? '' : 's') : '', ok: m.participantes > 0, falta: 'Inclua quem assina' },
+      { rot: 'Enviado', quando: m.enviado, ok: !!m.enviado, falta: 'Ainda não enviado' },
+      { rot: 'Assinaturas', quando: m.participantes ? m.assinaturas + ' de ' + m.participantes : '', ok: m.participantes > 0 && m.assinaturas >= m.participantes, parcial: m.assinaturas > 0 },
+      m.encerrado ? { rot: c.status_rotulo, quando: m.encerrado, ok: false, parado: true } : { rot: 'Concluído', quando: m.concluido, ok: !!m.concluido, falta: 'Aguardando assinaturas' }
+    ];
+    var proxima = etapas.findIndex(function (e) { return !e.ok; });
+    var h = '<div class="ctr-cartao ctr-acomp"><h3>Acompanhamento</h3><ol class="ctr-etapas">' + etapas.map(function (e, i) {
+      var cls = e.parado ? 'parado' : e.ok ? 'feito' : (i === proxima ? 'agora' + (e.parcial ? ' parcial' : '') : '');
+      return '<li class="' + cls + '"><span class="ctr-etapa-ponto">' + (e.ok ? '✓' : (e.parado ? '!' : i + 1)) + '</span><div><b>' + esc(e.rot) + '</b>' +
+        '<small>' + esc(e.quando || (i === proxima ? (e.falta || 'Pendente') : 'Pendente')) + '</small></div></li>';
+    }).join('') + '</ol>';
+    var parts = (c.participantes || []).filter(function (p) { return p.status !== 'cancelado'; });
+    if (parts.length && m.enviado) {
+      h += '<div class="ctr-acomp-pessoas">' + parts.map(function (p) {
+        var passos = p.acompanhamento || [];
+        var feitos = passos.filter(function (x) { return x.quando; }).length;
+        var aviso = '';
+        if (p.status === 'bloqueado') aviso = '<span class="ctr-pill bloqueado">Em revisão</span>';
+        else if (p.status === 'assinou') aviso = '<span class="ctr-pill assinou">Assinou</span>';
+        else if (p.status === 'recusou') aviso = '<span class="ctr-pill recusou">Recusou</span>';
+        else if (passos[0] && passos[0].quando && !(passos[1] && passos[1].quando)) aviso = '<span class="ctr-pill parcial">Ainda não abriu o link</span>';
+        else if (passos[1] && passos[1].quando) aviso = '<span class="ctr-pill aguardando">Abriu, ainda não assinou</span>';
+        else aviso = '<span class="ctr-pill">Convite não enviado</span>';
+        return '<div class="ctr-acomp-pessoa"><div class="ctr-acomp-quem"><b>' + esc(p.nome) + '</b><span>' + esc(p.papel_rotulo) + ' · WhatsApp ' + esc(p.whatsapp) + '</span>' + aviso + '</div>' +
+          '<ol class="ctr-passos">' + passos.map(function (x) {
+            var cls = x.quando ? (x.recusou ? 'recusou' : 'feito') : '';
+            return '<li class="' + cls + '"><span class="ctr-passo-ponto">' + (x.quando ? (x.recusou ? '✕' : '✓') : '') + '</span><div><b>' + esc(x.rotulo) + '</b>' +
+              '<small>' + esc(x.quando || 'Ainda não') + '</small>' + (x.obs ? '<em>' + esc(x.obs) + '</em>' : '') + '</div></li>';
+          }).join('') + '</ol><div class="ctr-acomp-conta">' + feitos + ' de ' + passos.length + ' passos</div></div>';
+      }).join('') + '</div>';
+      h += '<p class="ctr-sub" style="margin:10px 0 0">Abrir o link e ver o documento não são assinatura nem prova de leitura. Horários registrados pelo servidor (Brasília).</p>';
+    }
+    return h + '</div>';
   }
   function campo(rot, v) { return '<div class="ctr-campo"><span>' + esc(rot) + '</span><b>' + esc(v || '-') + '</b></div>'; }
 
