@@ -992,7 +992,7 @@ $_notifTempo = function ($raw) {
     <?= $_avisoWa['admin'] ? 'Reconecte lendo o QR Code com o celular do número.' : 'Avise um administrador da conta para reconectar.' ?>
   </div>
   <?php if ($_avisoWa['admin']): ?>
-  <a href="//chat" style="flex:none;display:inline-flex;align-items:center;height:34px;padding:0 16px;border-radius:999px;background:#B91C1C;color:#FFFFFF;font-weight:700;text-decoration:none">Reconectar agora</a>
+  <a href="/chat" style="flex:none;display:inline-flex;align-items:center;height:34px;padding:0 16px;border-radius:999px;background:#B91C1C;color:#FFFFFF;font-weight:700;text-decoration:none">Reconectar agora</a>
   <?php endif; ?>
 </div>
 <script>
