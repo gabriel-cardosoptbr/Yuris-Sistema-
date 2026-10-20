@@ -87,6 +87,11 @@ switch ($acao) {
             $id = Projeto::criarProjeto($accountId, $d, $userId);
             $audit('created', 'projeto', $id, ['nome' => $d['nome']]);
         }
+        // Área do projeto (ambientes): só quando a tela manda o campo.
+        if (array_key_exists('area', $in)) {
+            try { Projeto::definirArea($id, $contas, $in['area'] === null ? null : (string) $in['area']); }
+            catch (\InvalidArgumentException $e) { responder(422, ['error' => $e->getMessage()]); }
+        }
         responder(200, painel($contas, $cotacao) + ['id' => $id]);
 
     case 'projeto_excluir':

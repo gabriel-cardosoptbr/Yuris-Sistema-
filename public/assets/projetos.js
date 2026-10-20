@@ -505,6 +505,7 @@
     $('pmNome').value = p?.nome || '';
     $('pmTipo').innerHTML = opcoes(P.opcoes.tipos, p?.tipo || 'cliente');
     $('pmStatus').innerHTML = opcoes(P.opcoes.status, p?.status || 'producao');
+    if ($('pmArea')) $('pmArea').value = p?.area || 'software';
     $('pmServidor').innerHTML = '<option value="">Não informado</option>' + P.servidores.map(s => `<option value="${s.id}"${p && p.servidor_id === s.id ? ' selected' : ''}>${esc(s.nome)}</option>`).join('');
     const temFilhos = p && (filhosDe[p.id] || []).length > 0;
     const pai = p ? p.parent_id : (paiPadrao || null);
@@ -525,6 +526,7 @@
   async function salvarProjeto() {
     const corpo = {
       acao: 'projeto_salvar', id: Number($('pmId').value) || 0, nome: $('pmNome').value, tipo: $('pmTipo').value,
+      ...($('pmArea') ? { area: $('pmArea').value } : {}),
       status: $('pmStatus').value, cliente: $('pmCliente').value, responsavel: $('pmResponsavel').value, url: $('pmUrl').value,
       repositorio: $('pmRepo').value, servidor_id: Number($('pmServidor').value) || 0, servidor_peso: Number($('pmPeso').value) || 1,
       stack: $('pmStack').value, usuarios_ativos: $('pmUsuarios').value, inicio: $('pmInicio').value,

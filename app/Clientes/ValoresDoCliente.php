@@ -22,6 +22,8 @@ use App\Core\Database;
  */
 final class ValoresDoCliente
 {
+    /** De que área é a receita (Empresa soma cada linha uma vez, na área dela). */
+    public const AREAS = ['software' => 'Software', 'digital' => 'Digital / Marketing', 'outro' => 'Outro'];
     public const TIPOS = ['mensal' => 'Mensal', 'anual' => 'Anual', 'servico' => 'Serviço avulso', 'fixo' => 'Taxa fixa / única', 'demanda' => 'Por demanda'];
 
     /** @return array{itens:array, resumo:array} */
@@ -42,6 +44,7 @@ final class ValoresDoCliente
             'inicio' => $r['inicio'], 'fim' => $r['fim'], 'ativo' => (bool) $r['ativo'], 'observacao' => $r['observacao'],
             'criado_por' => $r['criado_por_nome'], 'criado_em' => $r['created_at'],
             'contrato_id' => $r['contrato_id'] ? (int) $r['contrato_id'] : null, 'contrato' => $r['contrato_titulo'],
+            'area' => $r['area'] ?? null,
         ], $st->fetchAll(\PDO::FETCH_ASSOC));
         return ['itens' => $itens, 'resumo' => self::resumo($itens)];
     }
@@ -87,6 +90,11 @@ final class ValoresDoCliente
         if ($inicio && $fim && $fim < $inicio) throw new \InvalidArgumentException('O fim não pode ser antes do início.');
         $obs = trim((string) ($d['observacao'] ?? ''));
         $ativo = !isset($d['ativo']) || (bool) $d['ativo'];
+        // Área da receita (ambientes da Inovaize, 20/10/2026): só muda quando vem no
+        // pedido; quem não usa ambientes nunca manda e a coluna fica como está.
+        $temArea = array_key_exists('area', $d);
+        $area = $temArea && $d['area'] !== null && $d['area'] !== '' ? (string) $d['area'] : null;
+        if ($area !== null && !isset(self::AREAS[$area])) throw new \InvalidArgumentException('Área inválida.');
         $pdo = Database::getConnection();
         $id = (int) ($d['id'] ?? 0);
         if ($id) {
@@ -98,6 +106,9 @@ final class ValoresDoCliente
                 $ex->execute([$id, $accountId, $clienteId]);
                 if (!(int) $ex->fetchColumn()) throw new \InvalidArgumentException('Valor não encontrado.');
             }
+            if ($temArea) {
+                $pdo->prepare('UPDATE crm_cliente_valores SET area = ? WHERE id = ? AND account_id = ? AND cliente_id = ?')->execute([$area, $id, $accountId, $clienteId]);
+            }
             CobrancaDoCliente::sincronizar($accountId, $id);
             return $id;
         }
@@ -105,6 +116,7 @@ final class ValoresDoCliente
                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
             ->execute([$accountId, $clienteId, $contrato, $tipo, $desc, $valor, $dia, $inicio, $fim, $ativo ? 1 : 0, $obs ?: null, $userId ?: null]);
         $novo = (int) $pdo->lastInsertId();
+        if ($temArea && $area !== null) $pdo->prepare('UPDATE crm_cliente_valores SET area = ? WHERE id = ?')->execute([$area, $novo]);
         CobrancaDoCliente::sincronizar($accountId, $novo);
         return $novo;
     }

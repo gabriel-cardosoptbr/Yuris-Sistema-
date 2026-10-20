@@ -93,7 +93,16 @@ if ($method === 'GET') {
     if (!empty($_GET['search']))           $filters['search']           = (string)$_GET['search'];
     if (!empty($_GET['include_archived'])) $filters['include_archived'] = true;
 
-    echo json_encode(['data' => Cliente::list($filters)]);
+    $lista = Cliente::list($filters);
+    // Ambientes da Inovaize: ?area=software|digital mostra só os clientes daquela
+    // área (o cadastro é um só; ver App\Ambientes\AreaDoCliente). Sem o módulo, ignora.
+    $areaCli = (string) ($_GET['area'] ?? '');
+    if (in_array($areaCli, ['software', 'digital'], true)
+        && \App\Ambientes\Ambiente::habilitado(\App\Master\Account::findById((int) $accountId) ?? [])) {
+        $daArea = array_flip(\App\Ambientes\AreaDoCliente::clientesDaArea((int) $accountId, $areaCli));
+        $lista = array_values(array_filter($lista, fn($c) => isset($daArea[(int) $c['id']])));
+    }
+    echo json_encode(['data' => $lista]);
     exit;
 }
 

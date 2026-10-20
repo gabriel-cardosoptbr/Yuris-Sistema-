@@ -30,6 +30,10 @@ function ok(mixed $data = null): void {
 }
 
 $action = $_GET['action'] ?? null;
+// Ambientes da Inovaize (app/Ambientes, 20/10/2026): quadro com área, cliente e
+// modelo de colunas. Só na conta com o módulo; nas outras nada disto muda.
+$ambientes = false;
+try { $ambientes = \App\Ambientes\Ambiente::habilitado(\App\Master\Account::findById((int) $accountId) ?? []); } catch (\Throwable $e) { $ambientes = false; }
 
 if ($method === 'GET') {
     if (isset($_GET['id'])) {
@@ -41,7 +45,15 @@ if ($method === 'GET') {
         ok($b);
     }
     // Matriz vê os boards das filiais vinculadas; filial vê só os seus
-    ok(TaskBoard::findForUser($userId, $accIds, $isAdmin));
+    $lista = TaskBoard::findForUser($userId, $accIds, $isAdmin);
+    if ($ambientes) {
+        // ?area=software|digital: só os quadros daquela área (a tela de Tarefas no
+        // ambiente); ?cliente=N: só os daquele cliente. Sem filtro: todos, como sempre.
+        $area = isset($_GET['area']) && isset(\App\Ambientes\QuadroDaArea::AREAS[$_GET['area']]) ? (string) $_GET['area'] : null;
+        $lista = \App\Ambientes\QuadroDaArea::filtrar($lista, $area, !empty($_GET['cliente']) ? (int) $_GET['cliente'] : null);
+        $lista = \App\Ambientes\QuadroDaArea::comNomeDoCliente((int) $accountId, $lista);
+    }
+    ok($lista);
 }
 
 if (in_array($method, ['POST','PUT','DELETE'])) {
@@ -62,6 +74,9 @@ if ($method === 'POST') {
         ok();
     }
     if (empty($input['nome'])) fail('Nome obrigatório');
+    if ($ambientes && (!empty($input['area']) || !empty($input['cliente_id']) || !empty($input['modelo']))) {
+        try { \App\Ambientes\QuadroDaArea::validar((int) $accountId, $input); } catch (\InvalidArgumentException $e) { fail($e->getMessage()); }
+    }
     $id = TaskBoard::create([
         'nome'       => $input['nome'],
         'descricao'  => $input['descricao'] ?? null,
@@ -70,6 +85,10 @@ if ($method === 'POST') {
         'account_id' => $accountId,   // sempre da sessão, nunca do body
         'cor'        => $input['cor'] ?? '#6366f1',
     ]);
+    if ($ambientes && (!empty($input['area']) || !empty($input['cliente_id']) || !empty($input['modelo']))) {
+        \App\Ambientes\QuadroDaArea::definir((int) $accountId, $id, $input);
+        \App\Ambientes\QuadroDaArea::semearColunas($id, !empty($input['modelo']) ? (string) $input['modelo'] : null);
+    }
     ok(['id' => $id]);
 }
 
@@ -78,6 +97,16 @@ if ($method === 'PUT') {
     // Renomear e trocar o tipo é administrar o quadro. Com canEdit, qualquer
     // pessoa da equipe poderia transformar um quadro compartilhado em pessoal.
     if (!TaskBoard::canManage($id, $userId, $accIds, $isAdmin)) fail('Sem permissão', 403);
+    if ($ambientes && (array_key_exists('area', $input) || array_key_exists('cliente_id', $input))) {
+        $b = TaskBoard::findById($id, $accIds);
+        try {
+            \App\Ambientes\QuadroDaArea::definir((int) $b['account_id'], $id, [
+                'area' => array_key_exists('area', $input) ? $input['area'] : ($b['area'] ?? null),
+                'cliente_id' => array_key_exists('cliente_id', $input) ? $input['cliente_id'] : ($b['cliente_id'] ?? null),
+                'modelo' => $b['modelo'] ?? null,
+            ]);
+        } catch (\InvalidArgumentException $e) { fail($e->getMessage()); }
+    }
     TaskBoard::update($id, $input);
     ok();
 }

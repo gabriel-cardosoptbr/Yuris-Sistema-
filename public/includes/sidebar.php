@@ -539,7 +539,18 @@ $_notifTempo = function ($raw) {
   @media (max-width:900px){ .sb-recolher{ display:none !important; } }
 </style>
 <?php endif; ?>
-<aside class="sidebar" role="complementary" aria-label="Menu lateral">
+<?php
+// Ambientes (Inovaize, 20/10/2026): Empresa, Comercial, Software e Digital, cada
+// um com o seu menu e a sua Visão Geral. Só na conta com o módulo ligado; nas
+// outras, $_ambCtx fica null e o menu é o de sempre. Ver app/Ambientes.
+$_ambCtx = null;
+if ($_isFleetiflow) {
+    try {
+        $_ambCtx = \App\Ambientes\Ambiente::contexto($__brandCtx, (string) $_ap, isset($_GET['amb']) ? (string) $_GET['amb'] : null, '_sidebarCan', $_isAdmin);
+    } catch (\Throwable $__e) { $_ambCtx = null; }
+}
+?>
+<aside class="sidebar<?= $_ambCtx ? ' sb-com-ambientes' : '' ?>" role="complementary" aria-label="Menu lateral"<?= $_ambCtx ? ' data-ambiente="' . htmlspecialchars($_ambCtx['atual']) . '" data-ambiente-rotulo="' . htmlspecialchars($_ambCtx['lista'][$_ambCtx['atual']]['rotulo']) . '"' : '' ?>>
 
   <!-- ── Marca ── -->
   <div class="sidebar-brand<?= $_isFleetiflow ? '' : ' sb-marca-yuris' ?>" style="display:block;background:rgba(30,58,95,0.22);border:1px solid rgba(191,199,213,0.12);border-radius:11px;padding:4px 8px;margin-bottom:10px;text-align:center;">
@@ -574,6 +585,30 @@ $_notifTempo = function ($raw) {
     </button>
     <?php endif; ?>
   </div>
+
+  <?php if ($_ambCtx): $__ambA = $_ambCtx['lista'][$_ambCtx['atual']]; ?>
+  <!-- ── Seletor de ambiente (abaixo da logo). A troca passa pela guarda de
+       formulário com alteração pendente (assets/ambientes.js). ── -->
+  <div class="sb-amb" id="sbAmb">
+    <button type="button" class="sb-amb-btn" id="sbAmbBtn" aria-haspopup="listbox" aria-expanded="false" aria-controls="sbAmbLista" title="Ambiente: <?= htmlspecialchars($__ambA['rotulo']) ?>">
+      <span class="sb-amb-ico" aria-hidden="true"><?= $__ambA['icone'] ?></span>
+      <span class="sb-amb-txt"><small>Ambiente</small><b><?= htmlspecialchars($__ambA['rotulo']) ?></b></span>
+      <svg class="sb-amb-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <ul class="sb-amb-lista" id="sbAmbLista" role="listbox" aria-label="Escolher ambiente" hidden>
+      <?php foreach ($_ambCtx['permitidos'] as $__ak): $__ai = $_ambCtx['lista'][$__ak]; ?>
+      <li role="option" aria-selected="<?= $__ak === $_ambCtx['atual'] ? 'true' : 'false' ?>">
+        <a href="<?= htmlspecialchars($__ai['inicio']) ?>" data-amb="<?= htmlspecialchars($__ak) ?>"<?= $__ak === $_ambCtx['atual'] ? ' class="ativo"' : '' ?>>
+          <span class="sb-amb-ico" aria-hidden="true"><?= $__ai['icone'] ?></span>
+          <span class="sb-amb-txt"><b><?= htmlspecialchars($__ai['rotulo']) ?></b><small><?= htmlspecialchars($__ai['descricao']) ?></small></span>
+        </a>
+      </li>
+      <?php endforeach; ?>
+    </ul>
+  </div>
+  <link rel="stylesheet" href="/assets/ambientes.css?v=<?= @filemtime(__DIR__ . '/../assets/ambientes.css') ?: '1' ?>">
+  <script src="/assets/ambientes.js?v=<?= @filemtime(__DIR__ . '/../assets/ambientes.js') ?: '1' ?>" defer></script>
+  <?php endif; ?>
 
   <!-- ── Usuário logado ── -->
   <div class="sidebar-user">
@@ -701,7 +736,13 @@ $_notifTempo = function ($raw) {
   -->
   <nav aria-label="Páginas do sistema" class="sidebar-nav-grouped">
 
-    <?php if (_sidebarCan('dashboard')): ?>
+    <?php if ($_ambCtx): $__ambA = $_ambCtx['lista'][$_ambCtx['atual']]; $__ambVg = $_ap === $__ambA['ativo']; ?>
+    <div class="sb-titulo"><?= htmlspecialchars($__ambA['rotulo']) ?></div>
+    <a href="<?= htmlspecialchars($__ambA['inicio']) ?>" class="sidebar-overview-link<?= $__ambVg ? ' active' : '' ?>"<?= $__ambVg ? ' aria-current="page"' : '' ?>>
+      <span class="icon" aria-hidden="true"><?= $_svg['dashboard'] ?></span>
+      <span class="label">Visão Geral</span>
+    </a>
+    <?php elseif (_sidebarCan('dashboard')): ?>
     <?php if ($_isFleetiflow): ?><div class="sb-titulo">Geral</div><?php endif; ?>
     <a href="/dashboard" class="sidebar-overview-link<?= $_ap === 'dashboard' ? ' active' : '' ?>"<?= $_ap === 'dashboard' ? ' aria-current="page"' : '' ?>>
       <span class="icon" aria-hidden="true"><?= $_svg['dashboard'] ?></span>
@@ -869,6 +910,9 @@ $_notifTempo = function ($raw) {
             }
         } catch (\Throwable $__e) { /* sem o módulo: menu de sempre */ }
     }
+
+    // Ambiente da Inovaize: as mesmas páginas, reorganizadas no menu do ambiente.
+    if ($_ambCtx) $_sections = \App\Ambientes\Ambiente::secoes($_ambCtx['atual'], $_sections, $_grpSvg);
 
     foreach ($_sections as $_sec):
         // Filtra items que o user pode ver
@@ -1174,7 +1218,11 @@ window.FF_AGENDA = { csrf: <?= json_encode($_notifCsrf) ?>, sessao: <?= json_enc
 <script src="/assets/ff-agenda.js?v=<?= $_agVer ?>" defer></script>
 <script src="/assets/ff-orcamento-lead.js?v=<?= @filemtime(__DIR__ . '/../assets/ff-orcamento-lead.js') ?: '1' ?>" defer></script>
 <?php $_ctrVer = \App\Contratos\Permissao::podeVer(); /* contrato: só administração, nunca o vendedor */ ?>
-<script>window.FF_CONTRATOS = <?= $_ctrVer ? 'true' : 'false' ?>;</script>
+<script>window.FF_CONTRATOS = <?= $_ctrVer ? 'true' : 'false' ?>;<?= !empty($_ambCtx) ? ' window.FF_AMBIENTES = true;' : '' ?></script>
+<?php if (!empty($_ambCtx) && $_ap === 'clientes'): /* ambientes: Produção, Entregas e Drive na ficha do cliente */ ?>
+<script src="/assets/ff-drive.js?v=<?= @filemtime(__DIR__ . '/../assets/ff-drive.js') ?: '1' ?>" defer></script>
+<script src="/assets/ff-cliente-operacao.js?v=<?= @filemtime(__DIR__ . '/../assets/ff-cliente-operacao.js') ?: '1' ?>" defer></script>
+<?php endif; ?>
 <?php if ($_ctrVer): ?>
 <script src="/assets/ff-contrato-lead.js?v=<?= @filemtime(__DIR__ . '/../assets/ff-contrato-lead.js') ?: '1' ?>" defer></script>
 <?php endif; ?>

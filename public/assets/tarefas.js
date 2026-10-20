@@ -216,10 +216,17 @@ function buildProcRespOptions(placeholder, selectedName) {
 
 /* ── Carregar quadros ─────────────────────────────────────────────────────── */
 async function loadBoards(selectId = null) {
-  const r = await GET('/task_boards.php');
+  // Ambientes da Inovaize: na tela de uma área (?amb=software|digital) só os
+  // quadros daquela área (window.TK_AREA, ver tarefas-areas.js).
+  const r = await GET('/task_boards.php' + (window.TK_AREA ? '?area=' + encodeURIComponent(window.TK_AREA) : ''));
   boards = r.data || [];
   renderBoardSelect();
-  if (!boards.length) return;
+  if (!boards.length) { if (window.TkAreas) TkAreas.semQuadros(); return; }
+  // ?board=N no endereço (link da ficha do cliente) abre aquele quadro.
+  if (selectId == null && !currentBoard) {
+    const pedido = Number(new URLSearchParams(location.search).get('board')) || 0;
+    if (pedido && boards.some(b => Number(b.id) === pedido)) selectId = pedido;
+  }
 
   // Prioridade de seleção:
   // 1. ID explicitamente solicitado (ex: novo quadro criado)
@@ -238,7 +245,7 @@ async function loadBoards(selectId = null) {
 function renderBoardSelect() {
   const sel = document.getElementById('tkBoardSelect');
   if (!boards.length) { sel.innerHTML = '<option>Nenhum quadro</option>'; return; }
-  sel.innerHTML = boards.map(b => `<option value="${b.id}">${esc(b.nome)}</option>`).join('');
+  sel.innerHTML = boards.map(b => `<option value="${b.id}">${esc(b.cliente_nome ? b.cliente_nome + ' · ' + b.nome : b.nome)}</option>`).join('');
   if (currentBoard) sel.value = currentBoard.id;
 }
 async function selectBoard(boardId) {
@@ -1697,9 +1704,19 @@ function bindModals() {
   document.getElementById('nbSave').addEventListener('click', async () => {
     const nome = document.getElementById('nbNome').value.trim();
     if (!nome) return;
-    const r = await POST('/task_boards.php', {
-      nome, tipo: document.getElementById('nbTipo').value, cor: document.getElementById('nbCor').value
-    });
+    let extras = {};
+    if (window.TkAreas) { extras = TkAreas.camposNovoQuadro(); if (extras === null) return; }
+    let r;
+    try {
+      r = await POST('/task_boards.php', Object.assign({
+        nome, tipo: document.getElementById('nbTipo').value, cor: document.getElementById('nbCor').value
+      }, extras));
+    } catch (e) {
+      let msg = 'Não foi possível criar o quadro.';
+      try { msg = JSON.parse(e.message).error || msg; } catch (_) {}
+      showToast(msg, { type: 'error' });
+      return;
+    }
     document.getElementById('modalNewBoard').classList.remove('open');
     document.getElementById('nbNome').value = '';
     if (r.data?.id) {

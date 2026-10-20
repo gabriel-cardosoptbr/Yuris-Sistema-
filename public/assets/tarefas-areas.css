@@ -1,0 +1,61 @@
+/* tarefas-areas.css: par do tarefas-areas.js (Tarefas nos ambientes da Inovaize).
+   Prefixo .tka-. Claro quando o tema é claro; escuro no resto. */
+.tka-card { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 2px; }
+.tka-et {
+  display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700;
+  background: rgba(148,163,184,.16); color: #cbd5e1; white-space: nowrap;
+}
+.tka-azul { background: rgba(59,130,246,.18); color: #93c5fd; }
+.tka-ambar { background: rgba(245,158,11,.18); color: #fcd34d; }
+.tka-verde { background: rgba(34,197,94,.18); color: #86efac; }
+html[data-theme="light"] .tka-et { background: #EEF0F3; color: #3D3D3D; }
+html[data-theme="light"] .tka-azul { background: #DBEAFE; color: #1D4ED8; }
+html[data-theme="light"] .tka-ambar { background: #FFF4D6; color: #B45309; }
+html[data-theme="light"] .tka-verde { background: #DCFCE7; color: #15803D; }
+
+.tka-vazio { margin: 24px auto; max-width: 460px; text-align: center; display: flex; flex-direction: column; gap: 8px; align-items: center; padding: 28px 20px; }
+.tka-vazio b { font-size: 15px; }
+.tka-vazio span { font-size: 13px; opacity: .8; }
+
+.tka-pane { display: flex; flex-direction: column; gap: 14px; }
+.tka-sec { border: 1px solid rgba(148,163,184,.22); border-radius: 12px; padding: 14px 16px; }
+html[data-theme="light"] .tka-sec { border-color: rgba(17,29,45,.10); background: #FFFFFF; }
+.tka-sec h4 { margin: 0 0 10px; font-size: 13.5px; font-weight: 800; display: flex; justify-content: space-between; gap: 8px; align-items: center; flex-wrap: wrap; }
+.tka-cont { font-size: 12px; font-weight: 700; opacity: .75; }
+.tka-grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.tka-estados { margin-top: 10px; }
+.tka-sec label { display: block; font-size: 11.5px; font-weight: 700; margin-bottom: 4px; opacity: .8; }
+.tka-sec select, .tka-sec input[type="text"], .tka-sec input[type="url"], .tka-sec input[type="month"] {
+  width: 100%; padding: 8px 10px; border-radius: 9px; border: 1px solid rgba(148,163,184,.3); background: transparent; color: inherit; font: inherit; font-size: 13px;
+}
+html[data-theme="light"] .tka-sec select, html[data-theme="light"] .tka-sec input { border-color: rgba(17,29,45,.16); background: #FFFFFF; }
+.tka-data { display: block; font-size: 11px; opacity: .7; margin-top: 3px; }
+.tka-nota { margin: 8px 0 0; font-size: 12px; opacity: .75; line-height: 1.45; }
+.tka-acoes { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.tka-btn {
+  min-height: 34px; padding: 6px 14px; border-radius: 9px; border: 1px solid rgba(148,163,184,.35); background: transparent; color: inherit;
+  font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
+}
+html[data-theme="light"] .tka-btn { border-color: rgba(17,29,45,.16); background: #FFFFFF; }
+.tka-btn:disabled { opacity: .55; cursor: default; }
+.tka-btn:focus-visible { outline: 2px solid var(--ff-marca, #3b82f6); outline-offset: 2px; }
+.tka-principal { background: var(--ff-marca, #2563eb) !important; border-color: var(--ff-marca, #2563eb) !important; color: var(--ff-marca-texto, #fff) !important; }
+.tka-perigo { color: #f87171; }
+html[data-theme="light"] .tka-perigo { color: #B91C1C; }
+.tka-sm { min-height: 28px; padding: 3px 10px; font-size: 12px; }
+.tka-pessoas { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.tka-pessoa { display: inline-flex !important; align-items: center; gap: 6px; font-size: 13px !important; font-weight: 500 !important; opacity: 1 !important; margin: 0 !important; }
+.tka-mats { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.tka-mats li { display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap; padding: 8px 10px; border-radius: 9px; background: rgba(148,163,184,.08); }
+html[data-theme="light"] .tka-mats li { background: #F4F6F9; }
+.tka-mat-nome { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
+.tka-mat-nome b { font-size: 13px; overflow-wrap: anywhere; }
+.tka-mat-nome small { font-size: 11.5px; overflow-wrap: anywhere; }
+.tka-mat-acoes { display: flex; gap: 6px; flex-wrap: wrap; }
+.tka-ok { color: #4ade80; }
+.tka-falta { color: #fbbf24; }
+html[data-theme="light"] .tka-ok { color: #15803D; }
+html[data-theme="light"] .tka-falta { color: #B45309; }
+.tka-add { display: flex; gap: 8px; margin-top: 10px; }
+.tka-add input { flex: 1; }
+.tka-receber { margin-top: 10px; padding: 12px; border-radius: 10px; border: 1px dashed rgba(148,163,184,.4); display: flex; flex-direction: column; gap: 8px; }

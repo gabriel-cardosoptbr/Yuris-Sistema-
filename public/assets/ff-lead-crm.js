@@ -228,7 +228,30 @@
         return opt(x, principal || s.extras.indexOf(x.id) >= 0, principal ? 'Setor principal (o mesmo do Chat)' : '', principal ? ' · principal' : '');
       }).join('') + '</div><div class="fflc-dica">Pode marcar mais de um. Sem setor, o primeiro marcado vira o principal.</div>';
       h += '</div>';
+      // Ambientes da Inovaize: o que o lead quer comprar, para o Comercial
+      // acompanhar as vendas de Software e de Digital separadas.
+      if (window.FF_AMBIENTES) {
+        var ar = estado.data.area_servico || '';
+        h += '<div class="fflc-grupo"><div class="fflc-grupo-tit">Área do serviço</div><div class="fflc-opts" data-area-grupo>' +
+          [['software', 'Software'], ['digital', 'Digital / Marketing'], ['ambos', 'Os dois']].map(function (a) {
+            return '<button type="button" class="fflc-opt' + (ar === a[0] ? ' on' : '') + '" data-area="' + a[0] + '" aria-pressed="' + (ar === a[0]) + '">' + a[1] + '</button>';
+          }).join('') + '</div><div class="fflc-dica">Clique de novo para tirar. É o que separa as vendas por área no Comercial.</div></div>';
+      }
       corpo.innerHTML = h;
+      corpo.querySelectorAll('[data-area]').forEach(function (b) {
+        b.onclick = function () {
+          var nova = b.dataset.area === (estado.data.area_servico || '') ? '' : b.dataset.area;
+          b.disabled = true;
+          fetch('/api/ambientes.php', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-Token': csrf() },
+            body: JSON.stringify({ acao: 'lead_area', card_id: +form.elements.id.value, area: nova }) })
+            .then(function (r) { return r.json(); }).catch(function () { return { ok: false, error: 'Sem conexão.' }; })
+            .then(function (r) {
+              erro.textContent = r.ok ? '' : (r.error || 'Não foi possível salvar.');
+              if (r.ok) estado.data.area_servico = r.area;
+              desenhar();
+            });
+        };
+      });
       corpo.querySelectorAll('[data-v]').forEach(function (b) {
         b.onclick = function () {
           var grupo = b.parentNode.getAttribute('data-grupo'), v = +b.getAttribute('data-v');

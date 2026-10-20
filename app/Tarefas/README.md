@@ -17,6 +17,7 @@ recorrência. A especificação está em
 | `TaskChecklist.php` | checklist dentro da tarefa |
 | `TaskComment.php` | comentários |
 | `TaskLink.php` | vínculo da tarefa com outro recurso (processo, card, cliente) |
+| `TaskParticipante.php` | responsáveis além do principal (`task_participantes`, migration 159): o principal continua em `tasks.responsavel_id`, que é o que OTIF, lembrete e filtros usam; estes aparecem no cartão e nas Visões Gerais. Só gente da conta do quadro |
 | `TaskTimeEntry.php` | apontamento de horas |
 | `TaskReminder.php` | lembretes pendentes, consumidos pelo cron |
 | `TaskRecurrence.php` | a regra de repetição: calcula a próxima data a partir de uma data dada |
@@ -83,3 +84,16 @@ Regras que valem para quem mexer aqui:
   Precisa da permissão de Tarefas, sem chave nova.
 
 Teste: `scripts/tests/otif_test.php`.
+
+## Quadro de área (ambientes da Inovaize, 20/10/2026)
+
+Na conta com ambientes (`app/Ambientes`), o quadro pode ter área (`task_boards.area`:
+software, digital, empresa, comercial), cliente (`cliente_id`) e modelo de colunas
+(`modelo`, que semeia as colunas iniciais). Tudo em `App\Ambientes\QuadroDaArea`;
+`TaskBoard` e as permissões não mudam. `api/task_boards.php` filtra por `?area=` e
+`?cliente=` e aceita os três campos ao criar e editar; a tela (`tarefas.php?amb=digital`
+ou `?amb=software`) mostra só os quadros da área, e `?board=N` abre um quadro direto.
+O cartão de quadro de área ganha a aba "Entrega" (`public/assets/tarefas-areas.js`):
+entrega (`App\Digital\Entrega`), responsáveis a mais, materiais esperados e arquivos do
+Drive do cliente. Quadro sem área segue igual, e nas outras contas nada disto aparece.
+

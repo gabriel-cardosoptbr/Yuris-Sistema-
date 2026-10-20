@@ -1,0 +1,42 @@
+# app/Digital
+
+A operação de **Digital / Marketing** da Inovaize (20/10/2026), por cliente, no
+modelo do Trello. O quadro é o de Tarefas (colunas configuráveis, cartão
+arrastável, título, descrição, responsável, prazo, prioridade, checklist com 2/6,
+comentários, anexos, histórico); esta pasta junta o que é de marketing.
+
+| Arquivo | O que faz |
+|---|---|
+| `Entrega.php` | a entrega de um cartão (`task_entregas_digital`): tipo (post, vídeo, reels...) e quatro estados próprios, cada um com a data em que mudou: produção, aprovação do cliente, entrega e publicação. A contagem do mês por cliente e o previsto x realizado (`resumo`). Quem edita é quem edita o quadro (`cartaoEditavel`) |
+| `Frequencia.php` | a frequência contratada pelo cliente ("6 vídeos por mês", "3 posts por semana"), o previsto do mês |
+| `Material.php` | o material que a entrega precisa (`task_arquivos_esperados`): o que falta e o que chegou, com quem, quando e a referência do arquivo |
+| `Campanha.php` | campanhas de tráfego pago por cliente: plataforma, objetivo, verba mensal, período, situação, link do gerenciador |
+
+API: `public/api/digital.php`. Telas: a aba "Entrega" do cartão
+(`public/assets/tarefas-areas.js`), as abas Produção e Entregas da ficha do cliente
+(`public/assets/ff-cliente-operacao.js`), e Entregas e Campanhas em `/digital`
+(`ambientes-visao.js`). Migration 159. Teste: `scripts/tests/ambientes_test.php`.
+
+## Regras
+
+- **Entrega não é coluna nem checklist.** O cartão vira entrega quando ganha um
+  tipo. As colunas do quadro podem ser etapas, episódios ou campanhas, como o
+  projeto quiser; a contagem de entregas vem dos estados da entrega, e item de
+  checklist nunca conta como entrega.
+- **Cada estado tem dono e data.** Produção (a fazer, em produção, pronto),
+  aprovação (não enviado, aguardando, aprovado, ajustes pedidos), entrega (pendente,
+  entregue) e publicação (não se aplica, pendente, agendado, publicado). Cada
+  mudança vai para o histórico do cartão (`task_history`, `entrega_etapa`).
+- **Receber material não aprova, não entrega, não publica.** Registrar o arquivo
+  recebido (do Drive, ou enviado pela tela, que vai para o Drive do cliente) marca
+  só o recebimento.
+- **Contagem do mês** (`Entrega::resumo`): o mês é a competência da entrega (o mês
+  do prazo do cartão, ou o da criação; editável). Cada entrega tem um estado só, nesta
+  ordem: concluída (entregue), aguardando aprovação, em produção. "Atrasadas" é à
+  parte: as não concluídas com prazo vencido. "Contratadas" é a frequência, e "sem
+  cartão" é o contratado que ainda não virou cartão.
+- **Previsto x realizado**, por tipo: previsto pela frequência (semanal vira mês
+  pelas semanas: 3 por semana em 30 dias = 13), entregues, pendentes. Ex.: 6 vídeos
+  previstos, 4 entregues, 2 pendentes.
+- **Isolamento**: tudo com `account_id`; cliente de outra conta é recusado em
+  quadro, frequência e campanha; vendedor só mexe nos clientes dele.

@@ -617,6 +617,18 @@ window.YURIS_ORIGIN_ACCOUNTS   = <?= json_encode($origin_accounts, JSON_UNESCAPE
 // filiais) e não diz nada ali; o card mostra quem criou, quando e o responsável.
 window.YURIS_SHOW_ORIGIN_STRIP = <?= $edicaoCrm ? 'false' : 'true' ?>;
 window.TK_EDICAO_CRM           = <?= $edicaoCrm ? 'true' : 'false' ?>;
+<?php
+// Ambientes da Inovaize (app/Ambientes): ?amb=software|digital mostra só os
+// quadros da área, e o cartão ganha entrega, materiais e mais responsáveis
+// (assets/tarefas-areas.js). Sem o módulo, nada disto existe.
+$tkAmbientes = false; $tkArea = null;
+try {
+    $tkAmbientes = \App\Ambientes\Ambiente::habilitado(\App\Master\Account::findById((int) \App\Core\AccountContext::fromSession()->getAccountId()) ?? []);
+    if ($tkAmbientes && in_array($_GET['amb'] ?? '', ['software', 'digital'], true)) $tkArea = (string) $_GET['amb'];
+} catch (\Throwable $e) { $tkAmbientes = false; }
+?>
+window.TK_AMBIENTES = <?= $tkAmbientes ? 'true' : 'false' ?>;
+window.TK_AREA      = <?= json_encode($tkArea) ?>;
 </script>
 <!-- ── Modal de confirmação customizado ── -->
 <div id="tkConfirmOverlay" style="
@@ -716,6 +728,11 @@ window.TK_EDICAO_CRM           = <?= $edicaoCrm ? 'true' : 'false' ?>;
 <!-- Helper de selects de usuário agrupados por Matriz/Filial (carrega ANTES do tarefas.js) -->
 <script src="/assets/user_select.js?v=2"></script>
 <script src="/assets/tarefas.js?v=<?= filemtime(__DIR__ . '/assets/tarefas.js') ?>"></script>
+<?php if ($tkAmbientes): ?>
+<link rel="stylesheet" href="/assets/tarefas-areas.css?v=<?= @filemtime(__DIR__ . '/assets/tarefas-areas.css') ?: 1 ?>">
+<script src="/assets/ff-drive.js?v=<?= @filemtime(__DIR__ . '/assets/ff-drive.js') ?: 1 ?>"></script>
+<script src="/assets/tarefas-areas.js?v=<?= @filemtime(__DIR__ . '/assets/tarefas-areas.js') ?: 1 ?>"></script>
+<?php endif; ?>
 <?php if ($edicaoCrm): ?>
 <script>
 // ── Ficha da tarefa no desenho do Fleetiflow (ff-ficha.js + ff-ficha.css) ──

@@ -60,7 +60,15 @@ final class QuadroDoLead
         $s->execute([$accountId, $cardId]);
         $col = $c['coluna_id'] !== null ? (int) $c['coluna_id'] : null;
         $team = $c['team_id'] !== null ? (int) $c['team_id'] : null;
+        // Área do serviço (ambientes da Inovaize): o que o lead quer comprar.
+        $area = null;
+        try {
+            $a = $pdo->prepare('SELECT area_servico FROM cards WHERE id = ? AND account_id = ?');
+            $a->execute([$cardId, $accountId]);
+            $area = $a->fetchColumn() ?: null;
+        } catch (\Throwable $e2) { $area = null; }
         return [
+            'area_servico' => $area,
             'etapas' => ['principal' => $col, 'extras' => array_values(array_filter(array_map('intval', $e->fetchAll(\PDO::FETCH_COLUMN)), fn($x) => $x !== $col))],
             'setores' => ['principal' => $team, 'extras' => array_values(array_filter(array_map('intval', $s->fetchAll(\PDO::FETCH_COLUMN)), fn($x) => $x !== $team))],
         ];

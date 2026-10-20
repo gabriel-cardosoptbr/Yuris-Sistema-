@@ -1,0 +1,151 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   ambientes.css: o seletor de ambiente do menu (Empresa, Comercial, Software,
+   Digital), a guarda de alteração pendente e as Visões Gerais (.amb-).
+   Carregado pelo sidebar.php só na conta com ambientes. Cor da marca em
+   var(--ff-marca*). Claro por padrão; escuro quando o tema não é claro.
+   ═══════════════════════════════════════════════════════════════════════ */
+.sb-amb { position: relative; margin: 0 0 12px; }
+.sb-amb-btn {
+  width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 12px;
+  border: 1px solid rgba(17,29,45,.12); background: #FFFFFF; color: #1F2937; cursor: pointer; text-align: left;
+  font-family: 'Manrope', system-ui, sans-serif; transition: border-color .15s, box-shadow .15s;
+}
+.sb-amb-btn:hover { border-color: var(--ff-marca, #015DFC); }
+.sb-amb-btn:focus-visible { outline: 2px solid var(--ff-marca, #015DFC); outline-offset: 2px; }
+.sb-amb-btn[aria-expanded="true"] { border-color: var(--ff-marca, #015DFC); box-shadow: 0 6px 18px rgba(17,29,45,.10); }
+.sb-amb-ico {
+  width: 32px; height: 32px; flex: none; border-radius: 9px; display: flex; align-items: center; justify-content: center;
+  background: var(--ff-marca, #015DFC); color: var(--ff-marca-texto, #fff);
+}
+.sb-amb-ico svg { width: 17px; height: 17px; stroke: currentColor !important; color: inherit !important; }
+.sb-amb-txt { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.2; }
+.sb-amb-txt small { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #767676; }
+.sb-amb-txt b { font-size: 14px; font-weight: 800; color: #1F2937; overflow-wrap: anywhere; }
+.sb-amb-seta { width: 15px; height: 15px; flex: none; color: #767676; transition: transform .15s; }
+.sb-amb-btn[aria-expanded="true"] .sb-amb-seta { transform: rotate(180deg); }
+
+.sb-amb-lista {
+  position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 60; list-style: none; margin: 0; padding: 6px;
+  background: #FFFFFF; border: 1px solid rgba(17,29,45,.12); border-radius: 12px; box-shadow: 0 16px 36px rgba(17,29,45,.16);
+}
+.sb-amb-lista a {
+  display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 9px; text-decoration: none; color: #1F2937;
+  font-family: 'Manrope', system-ui, sans-serif;
+}
+.sb-amb-lista a .sb-amb-ico { background: rgba(17,29,45,.06); color: #3D3D3D; width: 30px; height: 30px; }
+.sb-amb-lista a .sb-amb-txt b { font-size: 13.5px; }
+.sb-amb-lista a .sb-amb-txt small { text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 11.5px; color: #575757; }
+.sb-amb-lista a:hover, .sb-amb-lista a:focus-visible { background: rgba(17,29,45,.05); outline: none; }
+.sb-amb-lista a.ativo { background: var(--ff-marca-suave, #D6E4FF); }
+.sb-amb-lista a.ativo .sb-amb-ico { background: var(--ff-marca, #015DFC); color: var(--ff-marca-texto, #fff); }
+
+html:not([data-theme="light"]) .sb-amb-btn, html:not([data-theme="light"]) .sb-amb-lista { background: #13213A; border-color: rgba(255,255,255,.12); color: #E7EBF1; }
+html:not([data-theme="light"]) .sb-amb-txt b, html:not([data-theme="light"]) .sb-amb-lista a { color: #E7EBF1; }
+html:not([data-theme="light"]) .sb-amb-txt small, html:not([data-theme="light"]) .sb-amb-seta { color: #8C97A6; }
+html:not([data-theme="light"]) .sb-amb-lista a .sb-amb-txt small { color: #AEB7C4; }
+html:not([data-theme="light"]) .sb-amb-lista a .sb-amb-ico { background: rgba(255,255,255,.08); color: #D2D8E1; }
+html:not([data-theme="light"]) .sb-amb-lista a:hover { background: rgba(255,255,255,.06); }
+html:not([data-theme="light"]) .sb-amb-lista a.ativo { background: rgba(var(--ff-marca-rgb, 1,93,252), .22); }
+
+/* Menu recolhido: só o ícone do ambiente; a lista abre ao lado. */
+@media (min-width: 901px) {
+  html.sb-retraido.sb-retraido .sb-amb-btn { justify-content: center; padding: 6px; }
+  html.sb-retraido.sb-retraido .sb-amb-btn .sb-amb-txt, html.sb-retraido.sb-retraido .sb-amb-btn .sb-amb-seta { display: none; }
+  html.sb-retraido.sb-retraido .sb-amb-lista { left: calc(100% + 8px); right: auto; top: 0; width: 280px; }
+}
+
+/* Guarda de alteração pendente */
+.amb-guarda-fundo { position: fixed; inset: 0; z-index: 10050; background: rgba(7,15,28,.55); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.amb-guarda {
+  width: 100%; max-width: 420px; background: #FFFFFF; color: #1F2937; border-radius: 16px; padding: 20px 22px;
+  box-shadow: 0 24px 60px rgba(7,15,28,.35); font-family: 'Manrope', system-ui, sans-serif;
+}
+.amb-guarda h3 { margin: 0 0 6px; font-size: 16px; font-weight: 800; }
+.amb-guarda p { margin: 0 0 16px; font-size: 13.5px; color: #575757; line-height: 1.5; }
+.amb-guarda-acoes { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.amb-guarda-acoes button {
+  min-height: 38px; padding: 8px 16px; border-radius: 10px; font: 700 13px 'Manrope', system-ui, sans-serif; cursor: pointer;
+  border: 1px solid rgba(17,29,45,.14); background: #FFFFFF; color: #1F2937;
+}
+.amb-guarda-acoes button.principal { background: var(--ff-marca, #015DFC); border-color: var(--ff-marca, #015DFC); color: var(--ff-marca-texto, #fff); }
+.amb-guarda-acoes button:focus-visible { outline: 2px solid var(--ff-marca, #015DFC); outline-offset: 2px; }
+html:not([data-theme="light"]) .amb-guarda { background: #13213A; color: #E7EBF1; }
+html:not([data-theme="light"]) .amb-guarda p { color: #AEB7C4; }
+html:not([data-theme="light"]) .amb-guarda-acoes button { background: #13213A; color: #E7EBF1; border-color: rgba(255,255,255,.16); }
+
+/* ── Visões Gerais (.amb-, sobre os tokens --c- do .ctr de ff-contratos.css) ── */
+.amb-carregando, .amb-vazio { padding: 18px 4px; font-size: 13.5px; color: var(--c-texto-4); }
+.amb-vazio { margin: 0; }
+.amb-kpis { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+a.amb-kpi { text-decoration: none; transition: border-color .15s, transform .15s; }
+a.amb-kpi:hover { border-color: var(--c-marca); }
+a.amb-kpi:focus-visible { outline: 2px solid var(--c-marca); outline-offset: 2px; }
+.amb-kpi b em { font-style: normal; font-size: 16px; color: var(--c-texto-4); font-weight: 700; }
+.amb-kpi small { overflow-wrap: anywhere; }
+.amb-kpi.amb-alerta b { color: var(--c-vermelho); }
+.amb-kpi.amb-atencao b { color: var(--c-ambar); }
+.amb-duas { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+.amb-duas > .amb-cartao { margin-bottom: 0; }
+.amb-duas { margin-bottom: 14px; }
+.amb-cartao { overflow-x: auto; }
+.amb-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.amb-lista li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--c-borda); }
+.amb-lista li:first-child { border-top: 0; }
+.amb-lista li > a, .amb-lista li > span:first-child { display: flex; flex-direction: column; min-width: 0; text-decoration: none; color: var(--c-texto); gap: 2px; }
+.amb-lista li > a:hover b { color: var(--c-marca); }
+.amb-lista b { font-size: 13.5px; font-weight: 700; overflow-wrap: anywhere; }
+.amb-lista small { font-size: 12px; color: var(--c-texto-4); overflow-wrap: anywhere; }
+.amb-pill { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; background: var(--c-cinza-fundo); color: var(--c-texto-2); text-decoration: none; }
+a.amb-pill:hover { background: var(--c-marca-suave); }
+.amb-pill-verm { background: var(--c-vermelho-fundo); color: var(--c-vermelho); }
+.amb-pill-amb { background: var(--c-ambar-fundo); color: var(--c-ambar); }
+.amb-pill-ok { background: var(--c-verde-fundo); color: var(--c-verde); }
+.amb-tab { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 560px; }
+.amb-tab th { text-align: left; font-size: 11.5px; font-weight: 700; color: var(--c-texto-4); text-transform: uppercase; letter-spacing: .04em; padding: 8px 10px; border-bottom: 1px solid var(--c-borda-2); }
+.amb-tab td { padding: 10px; border-bottom: 1px solid var(--c-borda); color: var(--c-texto); vertical-align: top; }
+.amb-tab td a { color: var(--c-marca); font-weight: 700; text-decoration: none; }
+.amb-tab td a.amb-pill { color: var(--c-texto-2); font-weight: 700; margin: 0 4px 4px 0; }
+.amb-tab td small { display: block; margin-top: 2px; }
+.amb-tab td.amb-verm { color: var(--c-vermelho); font-weight: 700; }
+.amb-tab td.amb-amb { color: var(--c-ambar); font-weight: 700; }
+.amb-cinza { color: var(--c-texto-4); font-size: 12px; }
+a.amb-cinza { text-decoration: underline; }
+.amb-prev { display: inline-block; margin: 0 10px 4px 0; font-size: 12.5px; color: var(--c-texto-2); }
+.amb-prev b { font-weight: 700; color: var(--c-texto); }
+.amb-prev em { font-style: normal; color: var(--c-ambar); font-weight: 700; }
+.amb-nota { margin: 0; font-size: 13px; color: var(--c-texto-3); line-height: 1.6; }
+.amb-acoes-linha { white-space: nowrap; }
+.amb-acoes-linha .ctr-btn { margin-left: 4px; }
+.amb-mes { display: inline-flex; align-items: center; gap: 8px; font: 700 12.5px 'Manrope', system-ui, sans-serif; color: #575757; }
+.amb-mes input { padding: 7px 10px; border-radius: 10px; border: 1px solid rgba(17,29,45,.16); background: #fff; color: #1F2937; font: 600 13px 'Manrope', system-ui, sans-serif; }
+html:not([data-theme="light"]) .amb-mes { color: #AEB7C4; }
+html:not([data-theme="light"]) .amb-mes input { background: #13213A; color: #E7EBF1; border-color: rgba(255,255,255,.16); color-scheme: dark; }
+.amb-toast { position: fixed; right: 20px; bottom: 20px; z-index: 10060; background: #15803D; color: #fff; padding: 12px 16px; border-radius: 12px; font: 700 13px 'Manrope', system-ui, sans-serif; box-shadow: 0 12px 30px rgba(7,15,28,.3); max-width: calc(100vw - 40px); }
+.amb-toast-erro { background: #B91C1C; }
+.amb-form { max-width: 640px; max-height: calc(100vh - 32px); overflow-y: auto; }
+.amb-form-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; margin: 10px 0; }
+.amb-form-grade label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; color: var(--c-texto-3); }
+.amb-form-grade .amb-c2 { grid-column: span 2; }
+.amb-form .ctr-erro { color: var(--c-vermelho); font-size: 13px; min-height: 18px; margin-bottom: 8px; }
+@media (max-width: 640px) {
+  .amb-form-grade { grid-template-columns: 1fr; }
+  .amb-form-grade .amb-c2 { grid-column: auto; }
+  .amb-duas { grid-template-columns: 1fr; }
+}
+
+/* Faixa de filtro em Clientes e o bloco por área no painel do Comercial */
+.amb-faixa { margin: 0 0 12px; padding: 10px 14px; border-radius: 12px; background: var(--ff-marca-suave, #D6E4FF); color: #1F2937; font: 500 13px 'Manrope', system-ui, sans-serif; }
+.amb-faixa a { color: var(--ff-marca, #015DFC); font-weight: 700; }
+html:not([data-theme="light"]) .amb-faixa { background: rgba(var(--ff-marca-rgb, 1,93,252), .2); color: #E7EBF1; }
+.amb-comercial { margin: 0 0 16px; padding: 14px 16px; border-radius: 14px; background: #FFFFFF; border: 1px solid rgba(17,29,45,.08); font-family: 'Manrope', system-ui, sans-serif; }
+.amb-comercial-tit { font-size: 13.5px; font-weight: 800; color: #1F2937; margin-bottom: 10px; }
+.amb-comercial-tit small { font-weight: 500; color: #767676; }
+.amb-areas { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.amb-area { padding: 10px 12px; border-radius: 10px; background: #F4F6F9; display: flex; flex-direction: column; gap: 2px; }
+.amb-area span { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #767676; }
+.amb-area b { font-size: 14px; color: #1F2937; }
+.amb-area small { font-size: 12px; color: #575757; }
+html:not([data-theme="light"]) .amb-comercial { background: #13213A; border-color: rgba(255,255,255,.08); }
+html:not([data-theme="light"]) .amb-comercial-tit, html:not([data-theme="light"]) .amb-area b { color: #E7EBF1; }
+html:not([data-theme="light"]) .amb-area { background: rgba(255,255,255,.05); }
+html:not([data-theme="light"]) .amb-area small, html:not([data-theme="light"]) .amb-area span, html:not([data-theme="light"]) .amb-comercial-tit small { color: #AEB7C4; }

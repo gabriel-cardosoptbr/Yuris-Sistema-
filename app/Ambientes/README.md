@@ -1,0 +1,61 @@
+# app/Ambientes
+
+Os **ambientes** da Inovaize (pedido de 20/10/2026): **Empresa**, **Comercial**,
+**Software** e **Digital / Marketing**. Um seletor no topo do menu, abaixo da
+logo, troca o menu inteiro, a Visão Geral, os indicadores e os atalhos. O login é
+o mesmo e os cadastros são os mesmos: o ambiente decide o que o menu mostra e,
+nas telas que mudam por área (Tarefas e Clientes), o filtro. Nada é copiado.
+
+Só vale na conta com o módulo ligado (`accounts.configuracoes.modulos.ambientes`,
+`Ambiente::ligar`), hoje só a Inovaize (conta 119). Nas outras contas o menu e as
+telas são os de sempre.
+
+| Arquivo | O que faz |
+|---|---|
+| `Ambiente.php` | a lista dos ambientes, o menu de cada um (`LAYOUT`, montado em cima das páginas que a pessoa já via no menu de sempre), quem entra em cada um (`podeEntrar`), a regra que decide o ambiente de cada página (`resolver`), o último ambiente por pessoa (`user_ambientes`) e a guarda das Visões Gerais (`exigir`) |
+| `QuadroDaArea.php` | o quadro de Tarefas como quadro de uma área: `task_boards.area`, `cliente_id` e `modelo` (colunas iniciais: etapas, episódios, campanhas, demandas, suporte, livre), filtro da lista e o nome do cliente no seletor |
+| `AreaDoCliente.php` | em que áreas cada cliente está, sem cadastro por área: Software pelo valor com área software ou quadro de Software; Digital pelo valor com área digital, quadro de Digital, frequência contratada ou campanha |
+| `Visao.php` | os números das Visões Gerais (Empresa, Software, Digital) e as vendas por área do serviço do Comercial |
+| `Paginas/visao.php` | a página das Visões Gerais, incluída por `public/empresa.php`, `software.php` e `digital.php` (e as telas Entregas e Campanhas do Digital, `?ver=`) |
+
+Telas: `public/empresa.php`, `public/software.php`, `public/digital.php` (finas),
+`public/assets/ambientes.js` + `ambientes.css` (seletor, guarda de formulário,
+faixa de Clientes, bloco do Comercial) e `ambientes-visao.js` (Visões Gerais,
+Entregas, Campanhas). API: `public/api/ambientes.php`. Migration 159. Teste:
+`scripts/tests/ambientes_test.php`.
+
+## O menu de cada ambiente
+
+| Ambiente | Visão Geral | Menu |
+|---|---|---|
+| Empresa | `/empresa`: receita recorrente por área, recebido no mês, clientes ativos (por área e nas duas), vendas, projetos, entregas, atrasos, pendências e a conexão do Google Drive | Cadastros (Clientes, Usuários, Setores), Contratos, Financeiro, Projetos, Gestão (Tarefas, Relatórios, Desempenho, Escritórios), Infraestrutura (Evolution, Agente, Webhooks) |
+| Comercial | o painel comercial de sempre (`/dashboard`), com o bloco "Vendas por área do serviço" | Vendas (Planejamento, Prospecção, Orçamentos, Plataforma, Clientes), Contratos, Comunicação (WhatsApp, Chat Interno, Agente), Metas e resultados |
+| Software | `/software`: projetos em andamento, quadros de demandas e suporte, responsáveis, próximos prazos e pendências | Operação (Demandas e suporte, Clientes de Software), Projetos, Infraestrutura (Evolution), Equipe |
+| Digital | `/digital`: por cliente, as entregas do mês, o previsto x realizado, aprovações, materiais e campanhas | Operação (Clientes de Digital, Produção, Entregas, Campanhas), Equipe |
+
+A Visão Geral é sempre o primeiro item. Cada item continua com a permissão de
+sempre (o filtro do sidebar não muda); contrato continua só para quem vê contrato
+e Projetos só com o módulo de Projetos.
+
+## Regras
+
+- **O ambiente de cada página** (`resolver`): `?amb=` no endereço, se a pessoa pode
+  entrar; senão, a página que só existe num ambiente decide; página em vários
+  ambientes fica no último usado (se for um deles); página fora de todos
+  (Configurações) também. Link direto e atualizar o navegador mantêm o menu certo.
+  Página que aparece em mais de um ambiente ganha `?amb=` no link do menu.
+- **Quem entra** (`podeEntrar`, mesma regra no seletor, nas páginas e na API):
+  Empresa, dono, administrador ou quem vê Finanças; Comercial, quem vê o painel ou a
+  Prospecção; Software, quem vê Tarefas ou Finanças; Digital, quem vê Tarefas ou
+  Clientes. Vendedor da edição CRM não entra na Empresa; no Digital vê só os
+  próprios clientes.
+- **Sem contar duas vezes** (Empresa): cliente nas duas áreas conta uma vez no total;
+  a receita recorrente soma cada linha de valor uma vez, na área da linha; a venda
+  segue a regra do painel comercial (`CobrancaDoCliente::sqlFechamentoSemDuplicar`)
+  e o mesmo cliente na mesma data é uma venda só.
+- **Alteração pendente**: formulário visível em que a pessoa mexeu e não salvou fica
+  marcado; sair pelo menu ou pelo seletor abre um aviso (modal, sem diálogo do
+  navegador). Enviar o formulário, ou ele sumir da tela, tira a marca.
+- **Título**: o nome do ambiente entra antes do título da página ("Software · ...").
+- Ao trocar o ambiente pelo seletor, a pessoa vai para a Visão Geral dele, e o
+  ambiente fica gravado como o último usado.

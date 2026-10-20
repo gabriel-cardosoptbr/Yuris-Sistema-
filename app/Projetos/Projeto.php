@@ -722,6 +722,7 @@ final class Projeto
             'servidor_nome' => $srv['nome'] ?? null, 'servidor_peso' => (int) $p['servidor_peso'],
             'usuarios_ativos' => $p['usuarios_ativos'] === null ? null : (int) $p['usuarios_ativos'],
             'responsavel' => $p['responsavel'], 'inicio' => $p['inicio'], 'observacao' => $p['observacao'],
+            'area' => $p['area'] ?? null,
             'atualizado_em' => $p['updated_at'],
             'itens' => array_map(function ($it) use ($cotacao, $hoje) {
                 $total = self::totalItemBrl($it, $cotacao);
@@ -865,6 +866,19 @@ final class Projeto
      * Exclusão lógica do projeto e do que é dele (itens, contas, acessos). Os
      * subprojetos não são apagados: sobem para o primeiro nível.
      */
+    /**
+     * Área responsável pelo projeto (ambientes da Inovaize, 20/10/2026): software,
+     * digital ou empresa; vazio = software. Gravada à parte, só quando vem no pedido.
+     */
+    public static function definirArea(int $id, array $contas, ?string $area): void
+    {
+        $area = $area === '' ? null : $area;
+        if ($area !== null && !in_array($area, ['software', 'digital', 'empresa'], true)) throw new \InvalidArgumentException('Área inválida.');
+        $acc = self::donoDa('projetos', $id, $contas);
+        if ($acc === null) return;
+        Database::getConnection()->prepare('UPDATE projetos SET area = ? WHERE id = ? AND account_id = ?')->execute([$area, $id, $acc]);
+    }
+
     public static function excluirProjeto(int $id, array $contas): bool
     {
         $acc = self::donoDa('projetos', $id, $contas);

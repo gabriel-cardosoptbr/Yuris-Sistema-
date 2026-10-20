@@ -64,6 +64,11 @@ Tela: `public/projetos.php` (`?p=<slug>` abre a página do projeto) +
 
 ## Regras
 
+- **Área responsável** (ambientes da Inovaize, 20/10/2026, migration 159):
+  `projetos.area` (software, digital, empresa; vazio = software), gravada à parte
+  por `Projeto::definirArea` só quando a tela manda o campo. É o que coloca o projeto
+  na Visão Geral de Software.
+
 - **Isolamento.** Toda leitura e escrita recebe a lista de contas acessíveis e
   filtra por ela nas seis tabelas. Item, conta e acesso são criados na conta do
   projeto; projeto só liga em servidor e em mãe da **mesma** conta.

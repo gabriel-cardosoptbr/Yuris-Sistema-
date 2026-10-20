@@ -90,6 +90,9 @@ $_fechar = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="
       <div class="form-group span2"><label for="pmPai">Dentro de qual projeto</label><select id="pmPai"></select></div>
       <div class="form-group"><label for="pmTipo">Tipo</label><select id="pmTipo"></select></div>
       <div class="form-group"><label for="pmStatus">Situação</label><select id="pmStatus"></select></div>
+      <?php if (\App\Ambientes\Ambiente::habilitado(\App\Master\Account::findById((int) \App\Core\AccountContext::fromSession()->getAccountId()) ?? [])): /* ambientes: área responsável */ ?>
+      <div class="form-group"><label for="pmArea">Área responsável</label><select id="pmArea"><option value="software">Software</option><option value="digital">Digital / Marketing</option><option value="empresa">Empresa</option></select></div>
+      <?php endif; ?>
       <div class="form-group"><label for="pmCliente">Cliente</label><input id="pmCliente" type="text" maxlength="150" autocomplete="off" placeholder="Quem contratou (vazio se for nosso)"></div>
       <div class="form-group"><label for="pmResponsavel">Responsável</label><input id="pmResponsavel" type="text" maxlength="150" autocomplete="off"></div>
       <div class="form-group"><label for="pmUrl">Endereço de produção</label><input id="pmUrl" type="text" maxlength="255" autocomplete="off" placeholder="https://"></div>

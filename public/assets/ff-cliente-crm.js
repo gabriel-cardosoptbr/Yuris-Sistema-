@@ -366,7 +366,8 @@
         if (i.contrato) det.push('contrato: ' + i.contrato);
         if (!i.ativo) det.push('encerrado');
         if (i.observacao) det.push(i.observacao);
-        return '<div class="ffcli-item' + (i.ativo ? '' : ' encerrado') + '"><div><div class="tit"><span class="ffcli-pill ' + i.tipo + '">' + esc(i.tipo_rotulo) + '</span>' + esc(i.descricao) + '</div>' +
+        var areaTxt = window.FF_AMBIENTES && i.area ? ({ software: 'Software', digital: 'Digital', outro: 'Outro' }[i.area] || i.area) : '';
+        return '<div class="ffcli-item' + (i.ativo ? '' : ' encerrado') + '"><div><div class="tit"><span class="ffcli-pill ' + i.tipo + '">' + esc(i.tipo_rotulo) + '</span>' + (areaTxt ? '<span class="ffcli-pill">' + esc(areaTxt) + '</span>' : '') + esc(i.descricao) + '</div>' +
           (det.length ? '<div class="sub">' + esc(det.join(' · ')) + '</div>' : '') + '</div>' +
           '<div><div class="val">' + REAL.format(i.valor) + (i.tipo === 'mensal' ? '<span class="sub"> /mês</span>' : i.tipo === 'anual' ? '<span class="sub"> /ano</span>' : '') + '</div>' +
           '<div class="acoes"><button type="button" class="ffcli-link" data-editar="' + i.id + '">Editar</button>' +
@@ -439,6 +440,9 @@
         '<div class="c3"><label data-rot-inicio>Começa em</label><input type="date" data-f="inicio" value="' + esc(i.inicio || '') + '"><div class="dica" data-dica-inicio></div></div>' +
         '<div class="c3" data-fim><label>Termina em (opcional)</label><input type="date" data-f="fim" value="' + esc(i.fim || '') + '"></div>' +
         (verContratos ? '<div class="c6"><label>Contrato (opcional)</label><select data-f="contrato_id">' + ops + '</select></div>' : '') +
+        // Ambientes da Inovaize: de que área é a receita (a Empresa soma cada linha uma vez, na área dela).
+        (window.FF_AMBIENTES ? '<div class="c6"><label>Área da receita</label><select data-f="area"><option value="">Sem área</option>' +
+          [['software', 'Software'], ['digital', 'Digital / Marketing'], ['outro', 'Outro']].map(function (a) { return '<option value="' + a[0] + '"' + (i.area === a[0] ? ' selected' : '') + '>' + a[1] + '</option>'; }).join('') + '</select></div>' : '') +
         '<div class="c6"><label>Observação (opcional)</label><input data-f="observacao" maxlength="300" value="' + esc(i.observacao || '') + '"></div>' +
         '<div class="ffcli-erro" data-erro></div>' +
         '<div class="bts"><button type="button" class="ffcli-bt" data-cancelar>Cancelar</button><button type="button" class="ffcli-bt princ" data-salvar>' + (i.id ? 'Salvar alteração' : 'Adicionar') + '</button></div></div>';

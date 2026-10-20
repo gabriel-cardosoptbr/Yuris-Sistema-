@@ -35,6 +35,9 @@ palavra que está na tela.
 | [`Tarefas/`](Tarefas/) | Operação › Tarefas | tarefas, quadros, checklists, apontamento de horas, recorrência |
 | [`Financas/`](Financas/) | Gestão › Finanças | plano de contas do DRE |
 | [`Projetos/`](Projetos/) | pasta Projetos do menu (edição CRM, módulo por conta) | carteira de projetos da conta: projetos-mãe e subprojetos, servidores com rateio, receitas e custos, contas de cada projeto com o consumo, acessos com senha cifrada, evolução e o dossiê de pendências; e a aba Evolution (menu Evolution › Conexões: o servidor de WhatsApp, só leitura) |
+| [`Ambientes/`](Ambientes/) | seletor de ambiente no topo do menu (só a conta com o módulo, hoje a Inovaize) | os ambientes Empresa, Comercial, Software e Digital: menu de cada um sobre as mesmas telas, a regra que decide o ambiente de cada página, o último ambiente por pessoa, as Visões Gerais, o quadro de Tarefas como quadro de uma área e a área de cada cliente sem cadastro duplicado |
+| [`Digital/`](Digital/) | ambiente Digital / Marketing | entregas dos cartões (tipo e os estados de produção, aprovação, entrega e publicação), contagem do mês e previsto x realizado, frequência contratada, material esperado e campanhas de tráfego pago |
+| [`Drive/`](Drive/) | aba Arquivos da ficha do cliente, cartões e Visão Geral da Empresa | Google Drive de cada cliente: conexão OAuth da conta corporativa, pasta por cliente, listagem com a hora da leitura, sincronização automática, envio de arquivo e acessos da equipe |
 | [`WhatsAppAgente/`](WhatsAppAgente/) | Comunicação › WhatsApp, Automações › Agente | canal Evolution, webhook de entrada e o agente de IA (`AiIntake/`) |
 | [`Webhooks/`](Webhooks/) | Automações › Webhooks | webhooks de **saída** do Yuris para sistemas do cliente |
 | [`Billing/`](Billing/) | página Planos, e travas espalhadas pelo sistema | limites e módulos por plano, gateway de pagamento (`Gateway/`) |

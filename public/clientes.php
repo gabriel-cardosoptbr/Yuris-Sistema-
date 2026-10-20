@@ -943,7 +943,8 @@ window.Clientes = (function () {
         try {
             const [resSet, resCli, resOrg] = await Promise.all([
                 fetch('/api/clientes_setores.php', { credentials: 'same-origin' }),
-                fetch('/api/clientes.php',         { credentials: 'same-origin' }),
+                // ?amb=software|digital (ambientes da Inovaize): só os clientes da área.
+                fetch('/api/clientes.php' + (['software', 'digital'].includes(new URLSearchParams(location.search).get('amb')) ? '?area=' + new URLSearchParams(location.search).get('amb') : ''), { credentials: 'same-origin' }),
                 fetch('/api/clientes_origens.php', { credentials: 'same-origin' })
             ]);
             const setData = await resSet.json();
@@ -1891,7 +1892,7 @@ window.Clientes = (function () {
             if (p.get('novo_cadastro')) {
                 const nome = p.get('nome') || '';
                 const tel  = p.get('telefone') || '';
-                history.replaceState({}, '', location.pathname);
+                history.replaceState({}, '', location.pathname + (new URLSearchParams(location.search).get('amb') ? '?amb=' + encodeURIComponent(new URLSearchParams(location.search).get('amb')) : ''));
                 setTimeout(() => {
                     try {
                         openCreateModal();
@@ -1907,7 +1908,7 @@ window.Clientes = (function () {
             const openId = new URLSearchParams(location.search).get('open');
             if (openId) {
                 setTimeout(() => { try { openEditModal(parseInt(openId, 10)); } catch(e){} }, 400);
-                history.replaceState({}, '', location.pathname);
+                history.replaceState({}, '', location.pathname + (new URLSearchParams(location.search).get('amb') ? '?amb=' + encodeURIComponent(new URLSearchParams(location.search).get('amb')) : ''));
             }
         } catch (e) {}
 
