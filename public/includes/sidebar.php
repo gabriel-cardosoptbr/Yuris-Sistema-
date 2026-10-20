@@ -707,16 +707,17 @@ $_notifTempo = function ($raw) {
         }
         unset($_s);
         // Contratos e assinatura eletrônica (app/Contratos, 18/10/2026): aba própria,
-        // logo abaixo de Operação (pedido do dono do produto, 19/10/2026). Mesma
-        // permissão da Prospecção, porque o contrato é do lead e do cliente.
+        // logo abaixo de Operação (pedido do dono do produto, 19/10/2026), e link
+        // DIRETO ('direto'): um clique abre a tela, sem submenu (20/10/2026). O botão
+        // "Novo contrato" fica na própria tela. Mesma permissão da Prospecção.
         $_posOper = array_search('operacao', array_column($_sections, 'key'), true);
         array_splice($_sections, $_posOper === false ? 1 : $_posOper + 1, 0, [[
             'key' => 'contratos',
             'label' => 'Contratos',
             'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 17c1.2-1.6 2.2-2.4 3-2.4 1.2 0 .6 2.4 1.8 2.4.7 0 1.4-.7 2.2-1.6"/><line x1="8" y1="11" x2="14" y2="11"/></svg>',
+            'direto' => true,
             'items' => [
                 ['perm' => 'prospeccao', 'href' => 'contratos.php', 'active' => 'contratos', 'icon' => 'contrato', 'label' => 'Contratos'],
-                ['perm' => 'prospeccao', 'href' => 'contratos.php?novo=1', 'active' => 'contratos_novo', 'icon' => 'orcamento', 'label' => 'Novo contrato'],
             ],
         ]]);
         if ($_itemFinancas) {
@@ -790,6 +791,19 @@ $_notifTempo = function ($raw) {
         foreach ($_visible as $_it) {
             if ($_ap === $_it['active']) { $_hasActive = true; break; }
         }
+        // Seção 'direto' com um item só: a aba é o próprio link (sem submenu nem seta).
+        if (!empty($_sec['direto']) && count($_visible) === 1):
+            $_it = $_visible[0];
+    ?>
+    <div class="sidebar-group<?= $_hasActive ? ' has-active' : '' ?>">
+      <a href="<?= htmlspecialchars($_it['href']) ?>" class="sidebar-group-toggle"<?= $_hasActive ? ' aria-current="page"' : '' ?> style="text-decoration:none">
+        <span class="sidebar-group-icon" aria-hidden="true"><?= $_sec['icon'] ?></span>
+        <span class="sidebar-group-label"><?= htmlspecialchars($_sec['label']) ?></span>
+      </a>
+    </div>
+    <?php
+            continue;
+        endif;
     ?>
     <div class="sidebar-group<?= $_hasActive ? ' open has-active' : '' ?>" data-group="<?= htmlspecialchars($_sec['key']) ?>">
       <button type="button" class="sidebar-group-toggle" aria-expanded="<?= $_hasActive ? 'true' : 'false' ?>" aria-controls="grp-<?= htmlspecialchars($_sec['key']) ?>">
