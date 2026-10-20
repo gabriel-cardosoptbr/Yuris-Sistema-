@@ -91,9 +91,12 @@ try {
             $out = [];
             $fone = fn($t) => ($d = preg_replace('/\D/', '', (string) $t)) && strlen($d) >= 8 ? $d : null;
 
+            $vendedor = \App\Core\AccountContext::vendedorDaSessao();
             if ($tipo !== 'lead' && !$etapa) {
                 $w = ['account_id = ?', 'deleted_at IS NULL'];
                 $args = [$acc];
+                // Vendedor: só os clientes e leads dele.
+                if ($vendedor !== null) { $w[] = 'responsavel_id = ?'; $args[] = $vendedor; }
                 if ($q !== '') {
                     $w[] = "(nome LIKE ? OR REGEXP_REPLACE(COALESCE(cpf_cnpj,''), '[^0-9]', '') LIKE ?
                              OR REGEXP_REPLACE(COALESCE(whatsapp,''), '[^0-9]', '') LIKE ? OR REGEXP_REPLACE(COALESCE(telefone,''), '[^0-9]', '') LIKE ?)";
@@ -114,6 +117,7 @@ try {
                 $nomeL = "COALESCE(NULLIF(c.cliente_nome,''), c.empresa_nome, c.titulo)";
                 $w = ['c.account_id = ?', 'c.deleted_at IS NULL'];
                 $args = [$acc];
+                if ($vendedor !== null) { $w[] = 'c.responsavel_user_id = ?'; $args[] = $vendedor; }
                 if ($q !== '') {
                     $w[] = "(c.cliente_nome LIKE ? OR c.empresa_nome LIKE ? OR c.titulo LIKE ? OR REGEXP_REPLACE(COALESCE(c.telefone_whatsapp,''), '[^0-9]', '') LIKE ?)";
                     array_push($args, $like, $like, $like, $likeD);

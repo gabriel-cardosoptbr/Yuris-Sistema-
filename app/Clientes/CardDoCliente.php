@@ -17,7 +17,8 @@ use App\Core\Database;
  *   contato      o último contato registrado na ficha (crm_interacoes)
  *
  * A tela é public/assets/ff-cliente-crm.js, que redesenha o card do renderCard
- * de clientes.php. Toda consulta filtra pelas contas que a sessão vê.
+ * de clientes.php. Toda consulta filtra pelas contas que a sessão vê; com
+ * $soDoResponsavel (o vendedor), só os clientes de que ele é responsável.
  */
 final class CardDoCliente
 {
@@ -25,7 +26,7 @@ final class CardDoCliente
      * @param int[] $accountIds contas que a sessão vê no quadro
      * @return array{clientes: array<int, array>, setores: array} setores = colunas do quadro da conta
      */
-    public static function quadro(array $accountIds, int $contaAtual): array
+    public static function quadro(array $accountIds, int $contaAtual, ?int $soDoResponsavel = null): array
     {
         $accountIds = array_values(array_filter(array_map('intval', $accountIds)));
         if (!$accountIds) return ['clientes' => [], 'setores' => []];
@@ -38,8 +39,9 @@ final class CardDoCliente
         $st = $pdo->prepare("SELECT c.id, c.account_id, c.setor_id, c.nome, c.tipo_cliente, c.cpf_cnpj, c.whatsapp, c.telefone, c.email, c.cidade, c.uf,
                                     c.status, c.created_at, c.convertido_em, u.nome AS responsavel
                                FROM clientes c LEFT JOIN users u ON u.id = c.responsavel_id
-                              WHERE c.account_id IN ($in) AND c.deleted_at IS NULL");
-        $st->execute($accountIds);
+                              WHERE c.account_id IN ($in) AND c.deleted_at IS NULL"
+            . ($soDoResponsavel !== null ? ' AND c.responsavel_id = ?' : ''));
+        $st->execute($soDoResponsavel !== null ? array_merge($accountIds, [$soDoResponsavel]) : $accountIds);
         foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $c) {
             $id = (int) $c['id'];
             $desde = substr((string) ($c['convertido_em'] ?: $c['created_at']), 0, 10);

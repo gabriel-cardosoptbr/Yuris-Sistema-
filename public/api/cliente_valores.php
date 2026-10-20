@@ -52,10 +52,22 @@ function cvTudo(int $acc, int $cliente): array
     return $d;
 }
 
+// Vendedor da edição CRM: só o cliente de que é responsável.
+$vendedor = \App\Core\AccountContext::vendedorDaSessao();
+function cvDoVendedor(?int $vendedor, int $acc, int $cliente): void
+{
+    if ($vendedor === null || $cliente <= 0) return;
+    $st = \App\Core\Database::getConnection()->prepare('SELECT COUNT(*) FROM clientes WHERE id = ? AND account_id = ? AND responsavel_id = ?');
+    $st->execute([$cliente, $acc, $vendedor]);
+    if (!(int) $st->fetchColumn()) cvResponder(['ok' => false, 'error' => 'Cliente não encontrado.'], 400);
+}
+
 try {
     if ($_SERVER['REQUEST_METHOD'] === 'GET' && !empty($_GET['quadro'])) {
-        cvResponder(['ok' => true] + \App\Clientes\CardDoCliente::quadro($ctx->getAccessibleAccountIds('clientes') ?: [$acc], $acc));
+        $q = \App\Clientes\CardDoCliente::quadro($ctx->getAccessibleAccountIds('clientes') ?: [$acc], $acc, $vendedor);
+        cvResponder(['ok' => true] + $q);
     }
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') cvDoVendedor($vendedor, $acc, (int) ($_GET['cliente_id'] ?? 0));
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         cvResponder(['ok' => true, 'data' => cvTudo($acc, (int) ($_GET['cliente_id'] ?? 0)), 'tipos' => ValoresDoCliente::TIPOS, 'formas' => CobrancaDoCliente::FORMAS,
             'pode_baixar' => !$ctx->vendedorCrm()]);
@@ -65,6 +77,7 @@ try {
     $csrf = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($in['csrf_token'] ?? '');
     if (!$csrf || !hash_equals((string) ($_SESSION['csrf_token'] ?? ''), (string) $csrf)) cvResponder(['ok' => false, 'error' => 'Sessão expirada. Recarregue a página.'], 419);
     $cliente = (int) ($in['cliente_id'] ?? 0);
+    cvDoVendedor($vendedor, $acc, $cliente);
     if (($in['acao'] ?? '') === 'salvar') {
         $id = ValoresDoCliente::salvar($acc, (int) $ctx->getUserId(), $cliente, $in);
         cvResponder(['ok' => true, 'id' => $id, 'data' => cvTudo($acc, $cliente)]);

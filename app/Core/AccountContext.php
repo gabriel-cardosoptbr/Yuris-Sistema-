@@ -270,6 +270,29 @@ class AccountContext
      * relatórios de prospecção) e não vê o financeiro. Só ADM vê tudo.
      * A edição jurídica (Yuris) não muda: lá isto é sempre false.
      */
+    /**
+     * O vendedor da edição CRM logado nesta requisição (id), ou null quando não há
+     * restrição: dono e admin, conta jurídica, e tudo o que roda sem sessão de
+     * usuário (webhook, workers, automações por token). É a regra única de "o
+     * vendedor só vê o que é dele" (leads, clientes, números do WhatsApp), usada
+     * por quem não tem o contexto na mão (App\Crm\Entidade, WhatsAppChannelAccessService).
+     */
+    public static function vendedorDaSessao(): ?int
+    {
+        static $cache = [];
+        $uid = (int) ($_SESSION['user_id'] ?? 0);
+        if (PHP_SAPI === 'cli' || $uid <= 0) return null;
+        if (array_key_exists($uid, $cache)) return $cache[$uid];
+        $cache[$uid] = null;
+        try {
+            $ctx = self::fromSession();
+            if ($ctx->vendedorCrm()) $cache[$uid] = (int) $ctx->getUserId();
+        } catch (\Throwable $e) {
+            $cache[$uid] = null;
+        }
+        return $cache[$uid];
+    }
+
     public function vendedorCrm(): bool
     {
         if ($this->isOwnerOrAdmin() || $this->isSuperAdmin()) return false;

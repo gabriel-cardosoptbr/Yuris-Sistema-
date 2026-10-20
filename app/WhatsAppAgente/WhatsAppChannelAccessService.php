@@ -68,6 +68,29 @@ class WhatsAppChannelAccessService
      *
      * @return array{channel_id:int, owner_account_id:int, instance_name:string, status:string, access_type:string}|null
      */
+    /**
+     * Vendedor da edição CRM (não dono nem admin) logado nesta requisição: só alcança
+     * o número de que é dono (whatsapp_instances.responsavel_user_id, migration 137).
+     * Devolve o id dele, ou null quando não há restrição: dono e admin, conta
+     * jurídica, e tudo o que roda sem sessão de usuário (webhook da Evolution,
+     * workers, automações por token). Pedido de 20/10/2026.
+     */
+    public static function vendedorDaSessao(): ?int
+    {
+        return \App\Core\AccountContext::vendedorDaSessao();
+    }
+
+    /** Dos canais dados, os que o vendedor da sessão pode ver (todos, sem restrição). @param int[] $ids @return int[] */
+    private static function filtrarDoVendedor(\PDO $pdo, array $ids): array
+    {
+        $v = self::vendedorDaSessao();
+        if ($v === null || !$ids) return $ids;
+        $st = $pdo->prepare('SELECT id FROM whatsapp_instances WHERE responsavel_user_id = ? AND id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')');
+        $st->execute(array_merge([$v], $ids));
+        $meus = array_map('intval', $st->fetchAll(\PDO::FETCH_COLUMN) ?: []);
+        return array_values(array_filter($ids, fn($id) => in_array((int) $id, $meus, true)));
+    }
+
     public static function check(\PDO $pdo, int $accountId, int $channelId, string $perm): ?array
     {
         if ($accountId <= 0 || $channelId <= 0) return null;
@@ -75,10 +98,14 @@ class WhatsAppChannelAccessService
         if ($col === null) return null;
 
         // Canal precisa existir (resolve dono + nome no backend, nunca do front).
-        $st = $pdo->prepare('SELECT id, account_id, instance_name, status FROM whatsapp_instances WHERE id = ? LIMIT 1');
+        $st = $pdo->prepare('SELECT id, account_id, instance_name, status, responsavel_user_id FROM whatsapp_instances WHERE id = ? LIMIT 1');
         $st->execute([$channelId]);
         $inst = $st->fetch(\PDO::FETCH_ASSOC);
         if (!$inst) return null;
+
+        // Vendedor só no número de que é dono (ver vendedorDaSessao).
+        $vendedor = self::vendedorDaSessao();
+        if ($vendedor !== null && (int) ($inst['responsavel_user_id'] ?? 0) !== $vendedor) return null;
 
         $grant = self::grantRow($pdo, $accountId, $channelId);
         if (!$grant) return null; // sem vínculo => negado
@@ -160,7 +187,7 @@ class WhatsAppChannelAccessService
             );
         }
         $st->execute([$accountId]);
-        return array_map('intval', $st->fetchAll(\PDO::FETCH_COLUMN) ?: []);
+        return self::filtrarDoVendedor($pdo, array_map('intval', $st->fetchAll(\PDO::FETCH_COLUMN) ?: []));
     }
 
     /**
@@ -174,13 +201,16 @@ class WhatsAppChannelAccessService
     public static function ownChannelId(\PDO $pdo, int $accountId): ?int
     {
         if ($accountId <= 0) return null;
+        // Vendedor: o padrão é o número dele (nenhum, se ainda não tiver).
+        $vendedor = self::vendedorDaSessao();
         $st = $pdo->prepare(
             "SELECT wca.channel_id FROM whatsapp_channel_accounts wca
                LEFT JOIN whatsapp_instances wi ON wi.id = wca.channel_id
-              WHERE wca.account_id = ? AND wca.access_type = 'owner' AND wca.revoked_at IS NULL
+              WHERE wca.account_id = ? AND wca.access_type = 'owner' AND wca.revoked_at IS NULL"
+            . ($vendedor !== null ? ' AND wi.responsavel_user_id = ?' : '') . "
               ORDER BY (wi.status = 'open') DESC, wca.channel_id DESC LIMIT 1"
         );
-        $st->execute([$accountId]);
+        $st->execute($vendedor !== null ? [$accountId, $vendedor] : [$accountId]);
         $v = $st->fetchColumn();
         return $v === false ? null : (int)$v;
     }
@@ -212,11 +242,11 @@ class WhatsAppChannelAccessService
             "SELECT channel_id FROM whatsapp_channel_accounts
               WHERE account_id = ? AND access_type = 'shared'
                 AND revoked_at IS NULL AND can_view = 1
-              ORDER BY created_at DESC, channel_id DESC LIMIT 1"
+              ORDER BY created_at DESC, channel_id DESC"
         );
         $st->execute([$accountId]);
-        $v = $st->fetchColumn();
-        return $v === false ? null : (int)$v;
+        $ids = self::filtrarDoVendedor($pdo, array_map('intval', $st->fetchAll(\PDO::FETCH_COLUMN) ?: []));
+        return $ids ? (int) $ids[0] : null;
     }
 
     /** A conta tem QUALQUER vínculo ativo (dono ou compartilhado)? */

@@ -57,6 +57,11 @@ function _assertClienteTenant(int $id, array $tenantIds): array {
         echo json_encode(['error' => 'Sem permissão']);
         exit;
     }
+    // Vendedor da edição CRM: só o cliente de que é responsável (mesmo 404 de "não existe").
+    $v = \App\Core\AccountContext::vendedorDaSessao();
+    if ($v !== null && (int)($cli['responsavel_id'] ?? 0) !== $v) {
+        http_response_code(404); echo json_encode(['error' => 'Cliente não encontrado']); exit;
+    }
     return $cli;
 }
 
@@ -82,6 +87,8 @@ if ($method === 'GET') {
     $filters = ['account_ids' => $tenantIds];
     if (!empty($_GET['setor_id']))         $filters['setor_id']         = (int)$_GET['setor_id'];
     if (!empty($_GET['responsavel_id']))   $filters['responsavel_id']   = (int)$_GET['responsavel_id'];
+    // Vendedor da edição CRM vê só os clientes dele; sem vendedor, o cliente é dos ADMs.
+    if (($vClientes = \App\Core\AccountContext::vendedorDaSessao()) !== null) $filters['responsavel_id'] = $vClientes;
     if (!empty($_GET['status']))           $filters['status']           = (string)$_GET['status'];
     if (!empty($_GET['search']))           $filters['search']           = (string)$_GET['search'];
     if (!empty($_GET['include_archived'])) $filters['include_archived'] = true;
@@ -94,6 +101,8 @@ if ($method === 'GET') {
 if ($method === 'POST') {
     $data = $input;
     $data['account_id'] = $accountId;  // SEMPRE do contexto (NUNCA do body)
+    // O cliente que o vendedor cadastra nasce dele.
+    if (($vNovo = \App\Core\AccountContext::vendedorDaSessao()) !== null) $data['responsavel_id'] = $vNovo;
 
     // Trava: precisa haver pelo menos 1 setor ativo no tenant
     $setores = ClienteSetor::listAll(['account_ids' => [$accountId]]);
@@ -138,6 +147,9 @@ if ($method === 'PATCH') {
     if (!empty($input['reorder']) && is_array($input['reorder'])) {
         // Valida cada id pertence ao tenant — bulk já filtra, mas valida ANTES
         // (evita gravar history em ids inválidos)
+        if (($vOrdem = \App\Core\AccountContext::vendedorDaSessao()) !== null) {
+            foreach ($input['reorder'] as $it) if (!empty($it['id'])) _assertClienteTenant((int) $it['id'], $tenantIds);
+        }
         $n = Cliente::bulkUpdateOrders($input['reorder'], $tenantIds, $userId);
         echo json_encode(['success' => true, 'updated' => $n]);
         exit;

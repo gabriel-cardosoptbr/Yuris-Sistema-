@@ -64,6 +64,14 @@ final class Listagem
             return self::vazio($fonte);
         }
 
+        // Vendedor da edição CRM: só os leads e os clientes de que é responsável, na
+        // tela, na planilha e na impressão (20/10/2026; antes a página de Relatórios
+        // montava a lista sem esse filtro e o vendedor via a carteira inteira).
+        $vendedor = \App\Core\AccountContext::vendedorDaSessao();
+        if ($vendedor !== null && in_array($fonte, ['prospeccoes', 'clientes'], true)) {
+            $filtros['responsavel_id'] = $vendedor;
+        }
+
         return match ($fonte) {
             'clientes'    => self::clientes($filtros, $accountIds),
             'prospeccoes' => self::prospeccoes($filtros, $accountIds),

@@ -73,8 +73,15 @@ final class Entidade
                 WHERE id = ? AND deleted_at IS NULL AND account_id IN ($in)
                 LIMIT 1";
 
+        // Vendedor da edição CRM: só o cliente ou o lead de que é responsável.
+        $vendedor = \App\Core\AccountContext::vendedorDaSessao();
+        $args = array_merge([$entidadeId], $accountIds);
+        if ($vendedor !== null) {
+            $sql = str_replace('LIMIT 1', ($entidade === self::CLIENTE ? 'AND responsavel_id = ?' : 'AND responsavel_user_id = ?') . ' LIMIT 1', $sql);
+            $args[] = $vendedor;
+        }
         $st = $pdo->prepare($sql);
-        $st->execute(array_merge([$entidadeId], $accountIds));
+        $st->execute($args);
         $r = $st->fetch(\PDO::FETCH_ASSOC);
         if (!$r) {
             return null;

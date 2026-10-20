@@ -42,6 +42,11 @@ try {
         http_response_code(404); echo json_encode(['error' => 'Card não encontrado']); exit;
     }
     $conta = (int)$card['account_id'];
+    // Vendedor da edição CRM: só o lead dele, e só as conversas nos números de que é dono.
+    $vendedor = \App\WhatsAppAgente\WhatsAppChannelAccessService::vendedorDaSessao();
+    if ($vendedor !== null && (int)($card['responsavel_user_id'] ?? 0) !== $vendedor) {
+        http_response_code(404); echo json_encode(['error' => 'Card não encontrado']); exit;
+    }
 
     $um = function (string $sql, array $par) use ($pdo) {
         $s = $pdo->prepare($sql);
@@ -63,6 +68,7 @@ try {
     );
     $st->execute([$conta, $cardId]);
     $chats = $st->fetchAll(PDO::FETCH_ASSOC);
+    if ($vendedor !== null) $chats = array_values(array_filter($chats, fn($c) => (int)($c['dono_id'] ?? 0) === $vendedor));
 
     $nomeUsuario = function (?int $id) use ($um, $conta): ?string {
         if (!$id) return null;

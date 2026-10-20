@@ -53,8 +53,11 @@ $tenantIds = $ctx->getAccessibleAccountIds($modulo);
 $pdo    = Database::getConnection();
 $tabela = $entidade === 'card' ? 'cards' : 'clientes';
 $in     = implode(',', array_fill(0, max(1, count($tenantIds)), '?'));
-$st     = $pdo->prepare("SELECT account_id FROM `$tabela` WHERE id = ? AND deleted_at IS NULL LIMIT 1");
-$st->execute([$id]);
+$vendedor = \App\Core\AccountContext::vendedorDaSessao();
+$colResp  = $entidade === 'card' ? 'responsavel_user_id' : 'responsavel_id';
+$st     = $pdo->prepare("SELECT account_id FROM `$tabela` WHERE id = ? AND deleted_at IS NULL"
+    . ($vendedor !== null ? " AND $colResp = ?" : '') . ' LIMIT 1');
+$st->execute($vendedor !== null ? [$id, $vendedor] : [$id]);
 $dono = $st->fetchColumn();
 
 if ($dono === false) {

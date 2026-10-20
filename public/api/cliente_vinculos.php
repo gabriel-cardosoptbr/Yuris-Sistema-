@@ -48,8 +48,9 @@ $tenantIds = $ctx->getAccessibleAccountIds('clientes');
  * "ainda não tem nada".
  */
 $pdo = Database::getConnection();
-$st  = $pdo->prepare('SELECT account_id FROM clientes WHERE id = ? AND deleted_at IS NULL LIMIT 1');
-$st->execute([$clienteId]);
+$vendedor = \App\Core\AccountContext::vendedorDaSessao();
+$st  = $pdo->prepare('SELECT account_id FROM clientes WHERE id = ? AND deleted_at IS NULL' . ($vendedor !== null ? ' AND responsavel_id = ?' : '') . ' LIMIT 1');
+$st->execute($vendedor !== null ? [$clienteId, $vendedor] : [$clienteId]);
 $dono = $st->fetchColumn();
 
 if ($dono === false) {
