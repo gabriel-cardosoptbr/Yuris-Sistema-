@@ -50,9 +50,13 @@ if ($method === 'GET') {
     $rangeEnd   = isset($_GET['end'])   ? trim($_GET['end'])   : null;
     $hasRange   = dre_is_valid_date($rangeStart) || dre_is_valid_date($rangeEnd);
 
+    // Edição CRM: o card cujo cliente tem valores cadastrados não conta no fechamento;
+    // a receita dele vem das cobranças pagas (recebido_clientes, abaixo).
+    $cardSemDup = $ctx->getProduto() === 'fleetiflow' ? \App\Clientes\CobrancaDoCliente::sqlFechamentoSemDuplicar() : '';
+
     $closed_total = 0.0;
     if ($hasRange) {
-        $cardWhere = "WHERE deleted_at IS NULL AND data_fechamento IS NOT NULL AND data_fechamento > '0000-00-00'" . $cardTenant;
+        $cardWhere = "WHERE deleted_at IS NULL AND data_fechamento IS NOT NULL AND data_fechamento > '0000-00-00'" . $cardTenant . $cardSemDup;
         $cardParams = $tenantParams;
         if (dre_is_valid_date($rangeStart)) { $cardWhere .= ' AND data_fechamento >= :start'; $cardParams['start'] = $rangeStart; }
         if (dre_is_valid_date($rangeEnd))   { $cardWhere .= ' AND data_fechamento <= :end';   $cardParams['end']   = $rangeEnd;   }
@@ -61,11 +65,11 @@ if ($method === 'GET') {
         $closed_total = (float)($st->fetchColumn() ?? 0);
     } elseif (isset($_GET['closed_month']) && preg_match('/^\d{4}-\d{2}$/', $_GET['closed_month'])) {
         $monthFirst = $_GET['closed_month'] . '-01';
-        $st = $pdo->prepare("SELECT COALESCE(SUM(COALESCE(NULLIF(valor_fechado_final,0), NULLIF(valor_proposta,0), IFNULL(valor_estimado,0))),0) as t FROM cards WHERE deleted_at IS NULL AND (status = 'fechado' OR (data_fechamento IS NOT NULL AND data_fechamento > '0000-00-00')) AND (data_fechamento IS NOT NULL AND data_fechamento <= LAST_DAY(:monthFirst))" . $cardTenant);
+        $st = $pdo->prepare("SELECT COALESCE(SUM(COALESCE(NULLIF(valor_fechado_final,0), NULLIF(valor_proposta,0), IFNULL(valor_estimado,0))),0) as t FROM cards WHERE deleted_at IS NULL AND (status = 'fechado' OR (data_fechamento IS NOT NULL AND data_fechamento > '0000-00-00')) AND (data_fechamento IS NOT NULL AND data_fechamento <= LAST_DAY(:monthFirst))" . $cardTenant . $cardSemDup);
         $st->execute([':monthFirst' => $monthFirst] + $tenantParams);
         $closed_total = (float)($st->fetchColumn() ?? 0);
     } else {
-        $st = $pdo->prepare("SELECT COALESCE(SUM(COALESCE(NULLIF(valor_fechado_final,0), NULLIF(valor_proposta,0), IFNULL(valor_estimado,0))),0) as t FROM cards WHERE deleted_at IS NULL AND (status = 'fechado' OR (data_fechamento IS NOT NULL AND data_fechamento > '0000-00-00'))" . $cardTenant);
+        $st = $pdo->prepare("SELECT COALESCE(SUM(COALESCE(NULLIF(valor_fechado_final,0), NULLIF(valor_proposta,0), IFNULL(valor_estimado,0))),0) as t FROM cards WHERE deleted_at IS NULL AND (status = 'fechado' OR (data_fechamento IS NOT NULL AND data_fechamento > '0000-00-00'))" . $cardTenant . $cardSemDup);
         $st->execute($tenantParams);
         $closed_total = (float)($st->fetchColumn() ?? 0);
     }

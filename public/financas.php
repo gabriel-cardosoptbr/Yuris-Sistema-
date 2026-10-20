@@ -35,7 +35,9 @@ $st        = $pdo->prepare("SELECT COALESCE(SUM(COALESCE(NULLIF(valor_fechado_fi
                             FROM cards
                             WHERE deleted_at IS NULL
                               AND (status = 'fechado' OR (data_fechamento IS NOT NULL AND data_fechamento > '0000-00-00'))
-                              AND account_id IN $_finIn");
+                              AND account_id IN $_finIn"
+                              // Edição CRM: cliente com valores cadastrados conta pelas cobranças pagas, não pelo fechamento.
+                              . ($recebClientes ? \App\Clientes\CobrancaDoCliente::sqlFechamentoSemDuplicar() : ''));
 $st->execute($_finParams);
 $row       = $st->fetch();
 $closed_total       = (float)($row['closed_total'] ?? 0);
@@ -388,7 +390,7 @@ $health_icon         = $margem >= 40 ? '▲' : ($margem >= 15 ? '●' : '▼');
         <div class="kpi-card honorarios">
           <div class="kpi-label">Honorários recebidos</div>
           <div class="kpi-value" id="closedOnlyVal"><?=number_format($closed_total,2,',','.')?></div>
-          <div class="kpi-desc">Contratos fechados no CRM</div>
+          <div class="kpi-desc"><?= $recebClientes ? 'Negócios fechados no funil, sem os clientes que já têm valores cadastrados (esses entram em "Recebido de clientes")' : 'Contratos fechados no CRM' ?></div>
           <span class="kpi-badge badge-neutral">CRM</span>
         </div>
         <div class="kpi-card resultado">

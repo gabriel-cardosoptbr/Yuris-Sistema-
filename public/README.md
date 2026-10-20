@@ -281,7 +281,9 @@ O que os clientes pagaram também entra na **receita** do DRE da edição CRM: c
 de clientes" ao lado de "Lançamentos extras", fatia própria na rosca "Composição da receita",
 e soma na receita operacional, no lucro e na margem (servidor e `assets/dre.js`, que recebe
 `recebido_clientes` de `api/dre_accounts.php` ao filtrar o mês). `window.DRE_COM_RECEB` liga
-a terceira fatia só nessa edição.
+a terceira fatia só nessa edição. Para não contar a mesma venda duas vezes, "Honorários
+recebidos" deixa de somar o negócio fechado cujo cliente tem valores cadastrados (exceto
+"por demanda"): esse cliente entra pelo que paga (`CobrancaDoCliente::sqlFechamentoSemDuplicar`).
 
 **Reembolsos na tela Finanças (edição CRM, 03/10/2026).** `financas.php` ganha, só
 quando o módulo está ligado na conta (`$reembolsos`, `Reembolso::habilitado`: edição CRM com

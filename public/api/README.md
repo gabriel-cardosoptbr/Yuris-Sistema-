@@ -28,7 +28,8 @@ faz o mesmo na fonte `prospeccoes` e no dossiê de card (404 para card alheio).
 `dre_accounts.php`, `dre_codes.php` e `taxes.php` respondem 403 para o vendedor:
 financeiro é só de ADM nessa edição. Na edição CRM, o GET de `dre_accounts.php` devolve
 também `recebido_clientes` (cobranças de clientes com baixa, pela data do pagamento, no
-mesmo período ou mês do filtro) e soma esse valor em `combined.receita` (20/10/2026).
+mesmo período ou mês do filtro) e soma esse valor em `combined.receita` (20/10/2026). Nessa edição `closed_total` não soma o
+card cujo cliente tem valores cadastrados (exceto "por demanda"), para não dobrar a receita.
 `crm_anexos.php` leva `contratos` (os documentos da aba Contratos ligados à ficha) na
 listagem da edição CRM, e `crm_contratos.php` aceita `criar_de_anexo` (`{anexo_id}`: o PDF
 anexado na ficha vira contrato do mesmo cliente ou lead). A edição jurídica não muda. Também em

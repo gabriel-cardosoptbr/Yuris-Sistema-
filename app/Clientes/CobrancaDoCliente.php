@@ -136,6 +136,20 @@ final class CobrancaDoCliente
         return $n;
     }
 
+    /**
+     * Pedaço de WHERE (começa com AND) para a soma de "negócios fechados" do financeiro:
+     * tira o card cujo cliente tem valor que vira cobrança (tudo menos "por demanda").
+     * A receita desse cliente passa a ser o que ele paga; contar também o valor do
+     * fechamento dobraria. Cliente só com "por demanda", ou card sem cliente, segue
+     * contando pelo fechamento. Usado em financas.php e api/dre_accounts.php, só na
+     * edição CRM.
+     */
+    public static function sqlFechamentoSemDuplicar(string $cards = 'cards'): string
+    {
+        return " AND NOT ($cards.cliente_id IS NOT NULL AND EXISTS (SELECT 1 FROM crm_cliente_valores vdup
+                   WHERE vdup.account_id = $cards.account_id AND vdup.cliente_id = $cards.cliente_id AND vdup.tipo <> 'demanda'))";
+    }
+
     /** O worker diário: gera o que falta de todos os valores ativos. @return int criadas */
     public static function gerarTodas(?string $hoje = null): int
     {

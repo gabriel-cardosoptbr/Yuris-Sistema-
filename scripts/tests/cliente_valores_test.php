@@ -10,7 +10,8 @@
  *     serviço e taxa (uma só), demanda (nenhuma), sem pilha para trás;
  *   - salvar gera as cobranças; editar refaz as abertas e mantém as pagas; encerrar
  *     cancela; reativar devolve; gerar de novo não duplica; baixa e desfazer;
- *   - remover recusa valor com cobrança paga; outra conta não lê nem grava.
+ *   - remover recusa valor com cobrança paga; outra conta não lê nem grava;
+ *   - negócio fechado de cliente com valores sai da soma de fechamentos (sem dobrar receita).
  *
  * Usa um cliente da conta CRM local 304; as linhas criadas são apagadas no fim.
  * Uso: php scripts/tests/cliente_valores_test.php
@@ -131,9 +132,30 @@ try {
     ok('outra conta não remove', recusa(fn() => V::remover(476, $cli, $b)) !== null);
     V::remover(304, $cli, $b);
     ok('remover apaga a linha e as cobranças abertas dela', !in_array($b, array_column(V::doCliente(304, $cli)['itens'], 'id'), true) && $cobsDe($b) === []);
+
+    // Fechamento sem dobrar: um card fechado da conta passa a apontar para um cliente sem valores.
+    $card = $pdo->query("SELECT id, cliente_id FROM cards WHERE account_id = 304 AND deleted_at IS NULL AND status = 'fechado' ORDER BY id LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
+    // Cliente provisório (apagado no fim), sem valor nenhum.
+    $setor = (int) $pdo->query("SELECT setor_id FROM clientes WHERE id = $cli")->fetchColumn();
+    $pdo->prepare("INSERT INTO clientes (account_id, setor_id, nome) VALUES (304, ?, 'ZZTESTE cliente provisório')")->execute([$setor]);
+    $cli2 = (int) $pdo->lastInsertId();
+    if ($card && $cli2) {
+        $cardOrig = $card;
+        $conta = fn() => (int) $pdo->query("SELECT COUNT(*) FROM cards WHERE id = {$card['id']}" . C::sqlFechamentoSemDuplicar())->fetchColumn();
+        $pdo->exec("UPDATE cards SET cliente_id = $cli2 WHERE id = {$card['id']}");
+        ok('card fechado de cliente sem valores conta pelo fechamento', $conta() === 1);
+        $dv = V::salvar(304, 0, $cli2, ['tipo' => 'demanda', 'descricao' => 'ZZTESTE por demanda', 'valor' => 100]);
+        $criados[] = $dv;
+        ok('cliente só com "por demanda" continua contando pelo fechamento', $conta() === 1);
+        $mv = V::salvar(304, 0, $cli2, ['tipo' => 'mensal', 'descricao' => 'ZZTESTE mensal', 'valor' => 100, 'inicio' => $ini]);
+        $criados[] = $mv;
+        ok('cliente com mensalidade sai da soma de fechamentos', $conta() === 0);
+    }
 } catch (\Throwable $e) {
     $FALHAS[] = $e->getMessage(); echo '  [FALHA] ' . $e->getMessage() . "\n";
 } finally {
+    if (!empty($cardOrig)) $pdo->prepare('UPDATE cards SET cliente_id = ? WHERE id = ?')->execute([$cardOrig['cliente_id'], $cardOrig['id']]);
+    if (!empty($cli2)) { $pdo->exec("DELETE FROM crm_cliente_cobrancas WHERE cliente_id = $cli2"); $pdo->exec("DELETE FROM crm_cliente_valores WHERE cliente_id = $cli2"); $pdo->exec("DELETE FROM clientes WHERE id = $cli2 AND nome = 'ZZTESTE cliente provisório'"); }
     if ($criados) {
         $in = implode(',', array_map('intval', $criados));
         $pdo->exec("DELETE FROM crm_cliente_cobrancas WHERE valor_id IN ($in)");
