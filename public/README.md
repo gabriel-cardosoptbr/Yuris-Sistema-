@@ -264,8 +264,6 @@ Chart.js, ajustados na configuração antes de o gráfico nascer). Tudo carregad
 menu só nas contas da edição CRM, com seletor `html:not([data-theme="light"])`: o tema
 claro e o Yuris não mudam. A folha de Relatórios continua branca de propósito (é o papel).
 
-**Endereço sem ".php" (20/10/2026).** Toda página da raiz abre pelo endereço limpo (`/dashboard`, `/clientes?open=5`) e o antigo com `.php` responde 301 para ele (`App\Core\UrlLimpa`, chamado pelo `app/bootstrap.php`). Os links do `includes/sidebar.php` já saem limpos e absolutos. A API (`/api/*.php`), os formulários (POST), `index.php`, `login-fleetiflow.php` (regra própria) e a página de assinatura (`assinar.php`, estática, sem bootstrap: o link que já foi para o cliente continua igual; `/assinar` também abre) não mudam.
-
 **Recolher o menu (edição CRM, 20/10/2026).** O `includes/sidebar.php` tem um botão
 no topo, ao lado da marca, que recolhe o menu para 72px com só os ícones (o nome
 aparece no `title`) e expande de volta. A classe `sb-retraido` vai no `<html>` por um
