@@ -19,10 +19,29 @@ $accountId = $ctx->getAccountId();   // NUNCA lido do request — sempre da sess
 $method = $_SERVER['REQUEST_METHOD'];
 $input  = json_decode(file_get_contents('php://input'), true) ?? [];
 
+// Vendedor da edição CRM (não dono nem admin) vê e mexe só nos leads dele
+// (responsável), como no painel. Pedido de 20/10/2026: antes a Prospecção
+// mostrava a equipe inteira ao vendedor. O lead que ele cria nasce dele.
+$soMeus = $ctx->vendedorCrm();
+/** 404 se algum dos cards não for do vendedor (mesmo 404 de "não existe"). */
+function cardsDoVendedorOu404(array $ids, int $uid): void
+{
+    $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
+    if (!$ids) return;
+    $st = Database::getConnection()->prepare('SELECT COUNT(*) FROM cards WHERE id IN (' . implode(',', array_fill(0, count($ids), '?')) . ') AND responsavel_user_id = ?');
+    $st->execute(array_merge($ids, [$uid]));
+    if ((int) $st->fetchColumn() !== count($ids)) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Lead não encontrado.']);
+        exit;
+    }
+}
+
 auto_json_response:
 if ($method === 'GET') {
     // busca card individual — valida acesso ao tenant
     if (isset($_GET['id'])) {
+        if ($soMeus) cardsDoVendedorOu404([(int) $_GET['id']], (int) $user_id);
         $card = Card::find((int)$_GET['id']);
         if ($card) {
             $ctx->assertCanRead('card', (int)$_GET['id']);
@@ -39,6 +58,7 @@ if ($method === 'GET') {
     ];
     if (isset($_GET['coluna_id']))           $filters['coluna_id']            = (int)$_GET['coluna_id'];
     if (isset($_GET['responsavel_user_id'])) $filters['responsavel_user_id']  = (int)$_GET['responsavel_user_id'];
+    if ($soMeus)                             $filters['responsavel_user_id']  = (int) $user_id;
     if (isset($_GET['status']))              $filters['status']               = $_GET['status'];
     $cards = Card::list($filters);
     // A lista de uma etapa cheia passa de 800 KB em JSON, e o servidor só comprime
@@ -76,6 +96,7 @@ if ($method === 'POST') {
     // create — injeta account_id da sessão (NUNCA do body)
     $data = $input;
     $data['account_id'] = $accountId;  // tenant ownership definido server-side
+    if ($soMeus) $data['responsavel_user_id'] = (int) $user_id;
 
     // Pipeline efetivo (Opção 2): filial vinculada usa colunas da matriz.
     $pipelineAccountId = $ctx->getPipelineAccountId();
@@ -143,6 +164,7 @@ if ($method === 'PUT' || $method === 'PATCH') {
         // Em lote (20/10/2026): a tela manda centenas de cards; uma consulta para
         // os da própria conta, e assertCanWrite um a um só para os compartilhados.
         $ctx->assertCanWriteMany('card', array_column($input['reorder'], 'id'));
+        if ($soMeus) cardsDoVendedorOu404(array_column($input['reorder'], 'id'), (int) $user_id);
         $ok = Card::bulkUpdateOrders($input['reorder'], $user_id);
         echo json_encode(['success'=>(bool)$ok]);
         exit;
@@ -155,6 +177,7 @@ if ($method === 'PUT' || $method === 'PATCH') {
     // assertCanWrite cobre: owner do recurso (mesma conta) ou share ativo com
     // permissão de escrita. Caso contrário, 403.
     $ctx->assertCanWrite('card', $id);
+    if ($soMeus) cardsDoVendedorOu404([$id], (int) $user_id);
     // ──────────────────────────────────────────────────────────────────────────
 
     if (isset($input['coluna_id']) && isset($input['ordem_na_coluna']) && ($method === 'PATCH')) {
@@ -228,6 +251,7 @@ if ($method === 'DELETE') {
     // Antes desta correção, qualquer admin de qualquer tenant podia deletar
     // cards alheios passando o ID. Agora exige ownership ou share com write.
     $ctx->assertCanWrite('card', (int)$id);
+    if ($soMeus) cardsDoVendedorOu404([(int) $id], (int) $user_id);
     // ──────────────────────────────────────────────────────────────────────────
 
     $prevCard = Card::find((int)$id);

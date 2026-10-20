@@ -282,7 +282,7 @@ da edição CRM); o script de comportamento é o mesmo para as duas edições.
 mostra só os leads, vendas, receita, conversão, ticket e meta dele (a API força o
 filtro), o seletor "Toda a equipe" some, o bloco Financeiro (DRE) não é calculado
 nem desenhado, `financas.php` devolve para o painel e o item Finanças sai do menu
-do celular. Só dono e admin veem tudo. A Prospecção (o quadro) continua da equipe.
+do celular. Só dono e admin veem tudo. Desde 20/10/2026 a Prospecção (o quadro) também: o vendedor vê e mexe só nos leads de que é responsável, e o lead que ele cria nasce dele (`api/cards.php`; antes o quadro mostrava a equipe inteira).
 
 **Recebimentos de clientes na tela Finanças (edição CRM, 20/10/2026).** `financas.php`
 ganha, só na edição CRM (`$recebClientes`), o painel "Recebimentos de clientes" acima dos
