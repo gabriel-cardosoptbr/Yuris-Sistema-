@@ -272,6 +272,11 @@ script curto posto antes do `<aside>` (sem piscar ao carregar) e a escolha fica 
 o grupo aberto, e o grupo da página atual mostra o disco da marca no ícone. Os
 seletores dobram a classe (`html.sb-retraido.sb-retraido`) para ganhar das regras com
 prefixo de tema, claro e escuro. Só tela larga: abaixo de 900px o menu já some.
+Desde o mesmo dia vale também no menu do Yuris jurídico, com o desenho de lá: o botão
+fica no canto da caixa da marca; recolhido (76px), a logo grande dá lugar à balança
+(`assets/favicon-192.png`), a pessoa logada fica só com a inicial e o sino, e o letreiro
+do rodapé some. O CSS do Yuris fica num `<style>` próprio antes do `<aside>` (só fora
+da edição CRM); o script de comportamento é o mesmo para as duas edições.
 
 **Vendedor da edição CRM** (`AccountContext::vendedorCrm()`, 02/10/2026): o painel
 mostra só os leads, vendas, receita, conversão, ticket e meta dele (a API força o

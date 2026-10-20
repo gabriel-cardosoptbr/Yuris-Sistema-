@@ -489,13 +489,53 @@ $_notifTempo = function ($raw) {
 <script src="/assets/yuris-ui.js?v=<?= $_uiLibVer ?>"></script>
 <!-- LGPD Etapa 5: banner de cookies — auto-inicializa, só aparece se ainda não respondeu -->
 <script src="/assets/cookie-consent.js?v=3"></script>
-<?php if ($_isFleetiflow): ?>
 <script>try{if(localStorage.getItem('yuris_menu_retraido')==='1')document.documentElement.classList.add('sb-retraido');}catch(e){}</script>
+<?php if (!$_isFleetiflow): ?>
+<style>
+  /* ── Recolher o menu do Yuris jurídico (20/10/2026), o mesmo da edição CRM com o
+       desenho daqui: recolhido, 76px com só os ícones; a logo grande dá lugar à
+       balança; a pessoa logada fica só com a inicial e o sino; o letreiro do
+       rodapé some. Seletor com a classe dobrada, para ganhar de sidebar.css e
+       do yuris-theme.css (claro e escuro). ── */
+  .sidebar-brand.sb-marca-yuris{ position:relative; }
+  .sb-recolher.sb-recolher-y{
+    position:absolute; top:6px; right:6px; z-index:2; width:28px; height:28px; padding:0;
+    border-radius:8px; border:1px solid rgba(191,199,213,0.22); background:rgba(15,34,56,0.85); color:#B8C5D5;
+    display:inline-flex; align-items:center; justify-content:center; cursor:pointer;
+    transition:background .15s ease, color .15s ease;
+  }
+  .sb-recolher.sb-recolher-y:hover{ background:rgba(20,50,90,0.85); color:#E8F4FF; }
+  html[data-theme="light"] .sb-recolher.sb-recolher-y{ background:#FFFFFF; border-color:#E2E8F0; color:#475569; }
+  html[data-theme="light"] .sb-recolher.sb-recolher-y:hover{ background:#F1F5F9; color:#0F172A; }
+  .sb-recolher svg{ width:15px; height:15px; transition:transform .2s ease; }
+  .sb-recolher:focus-visible{ outline:2px solid #60A5FA; outline-offset:2px; }
+  .sb-logo-mini{ display:none; }
+  @media (min-width:901px){
+    html.sb-retraido.sb-retraido .sidebar{ width:76px !important; min-width:76px !important; max-width:76px !important; }
+    html.sb-retraido.sb-retraido .sidebar-brand.sb-marca-yuris{ padding:8px 0 !important; display:flex !important; flex-direction:column !important; align-items:center !important; gap:6px !important; }
+    html.sb-retraido.sb-retraido .sb-logo-grande{ display:none !important; }
+    html.sb-retraido.sb-retraido .sb-logo-mini{ display:block !important; width:38px; height:38px; object-fit:contain; }
+    html.sb-retraido.sb-retraido .sb-recolher.sb-recolher-y{ position:static !important; }
+    html.sb-retraido.sb-retraido .sb-recolher svg{ transform:rotate(180deg); }
+    html.sb-retraido.sb-retraido .sidebar-user{ flex-direction:column !important; gap:6px !important; padding:8px 0 !important; }
+    html.sb-retraido.sb-retraido .sidebar-user-info{ display:none !important; }
+    html.sb-retraido.sb-retraido .yuris-notif{ margin-left:0 !important; }
+    html.sb-retraido.sb-retraido .sidebar-status{ display:none !important; }
+    html.sb-retraido.sb-retraido .sidebar-group-items{ display:none !important; }
+    html.sb-retraido.sb-retraido .sidebar nav a .label,
+    html.sb-retraido.sb-retraido .sidebar-group-toggle .sidebar-group-label,
+    html.sb-retraido.sb-retraido .sidebar-group-chevron{ display:none !important; }
+    html.sb-retraido.sb-retraido .sidebar nav a,
+    html.sb-retraido.sb-retraido .sidebar-group-toggle{ justify-content:center !important; gap:0 !important; padding-left:0 !important; padding-right:0 !important; }
+    html.sb-retraido.sb-retraido .sidebar-footer{ display:none !important; }
+  }
+  @media (max-width:900px){ .sb-recolher{ display:none !important; } }
+</style>
 <?php endif; ?>
 <aside class="sidebar" role="complementary" aria-label="Menu lateral">
 
   <!-- ── Marca ── -->
-  <div class="sidebar-brand" style="display:block;background:rgba(30,58,95,0.22);border:1px solid rgba(191,199,213,0.12);border-radius:11px;padding:4px 8px;margin-bottom:10px;text-align:center;">
+  <div class="sidebar-brand<?= $_isFleetiflow ? '' : ' sb-marca-yuris' ?>" style="display:block;background:rgba(30,58,95,0.22);border:1px solid rgba(191,199,213,0.12);border-radius:11px;padding:4px 8px;margin-bottom:10px;text-align:center;">
     <?php if ($_isFleetiflow): ?>
     <!-- Ícone + texto, igual à AppShell real do Fleetiflow (não a imagem
          composta): lá a marca também é ícone + <span> renderizado, não um PNG
@@ -520,7 +560,11 @@ $_notifTempo = function ($raw) {
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
     </button>
     <?php else: ?>
-    <img src="/sistema_vendas/Imagens/Logo.png" alt="Yuris" style="max-width:100%;max-height:160px;object-fit:contain;display:block;margin:0 auto;">
+    <img src="/sistema_vendas/Imagens/Logo.png" alt="Yuris" class="sb-logo-grande" style="max-width:100%;max-height:160px;object-fit:contain;display:block;margin:0 auto;">
+    <a href="dashboard.php" aria-label="Yuris"><img src="/assets/favicon-192.png" alt="" class="sb-logo-mini"></a>
+    <button type="button" class="sb-recolher sb-recolher-y" id="sbRecolher" aria-label="Recolher menu" title="Recolher menu" aria-expanded="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+    </button>
     <?php endif; ?>
   </div>
 
@@ -1054,10 +1098,10 @@ $_notifTempo = function ($raw) {
 })();
 </script>
 
-<?php if ($_isFleetiflow): ?>
 <script>
-/* Recolher o menu (edição CRM). Recolhido: só ícones, nome no title; clicar num
-   grupo abre o menu de novo com o grupo aberto. A escolha fica no navegador. */
+/* Recolher o menu (edição CRM e Yuris jurídico). Recolhido: só ícones, nome no
+   title; clicar num grupo abre o menu de novo com o grupo aberto. A escolha fica
+   no navegador. */
 (function () {
   var html = document.documentElement, menu = document.querySelector('aside.sidebar'), bt = document.getElementById('sbRecolher');
   if (!menu || !bt) return;
@@ -1101,7 +1145,6 @@ $_notifTempo = function ($raw) {
   rotular();
 })();
 </script>
-<?php endif; ?>
 <!-- Sino de notificações: config (token CSRF) + lógica. notifications.js lê window.YURIS_NOTIF. -->
 <script>
 window.YURIS_NOTIF = Object.assign({}, window.YURIS_NOTIF, {
