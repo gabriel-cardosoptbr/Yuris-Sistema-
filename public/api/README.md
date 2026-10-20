@@ -96,7 +96,12 @@ edição CRM, gerada na hora por `App\Master\TemaEscuroCrm` (lista fechada de ar
 nada de caminho vindo da URL; cache com ETag pela data do arquivo e do conversor).
 
 `dashboard_comercial.php` alimenta o cockpit comercial da conta Fleetiflow
-(`includes/dashboard_fleetiflow.php`) numa chamada só: KPIs do período e do
+(`includes/dashboard_fleetiflow.php`) numa chamada só. Desde 20/10/2026, **venda** é o
+negócio fechado no funil **e** o valor cadastrado no cliente (mensalidade, anuidade,
+serviço, taxa; "por demanda" não), na data em que começa; mesmo cliente e mesma data é
+uma venda só. Receita fechada, vendas, conversão, ticket médio, a série, a evolução e a
+meta do mês saem dessa fonte única (`$VENDAS`), e o card fechado cujo cliente tem valores
+sai para não contar duas vezes. O resto: KPIs do período e do
 período anterior equivalente (mesma quantidade de dias, terminando na véspera),
 distribuição do pipeline pelas flags `conta_funil`/`conta_oportunidade` das
 colunas, meta do mês (`goals`), série do período por dia/semana/mês, evolução
@@ -138,7 +143,7 @@ auditoria); `master/create_account.php` aceita `edicao: 'crm'` com a marca.
 
 `plataforma.php` é a integração com a plataforma Fleetiflow (`app/Plataforma/`), só na edição CRM. GET `?conexao=1` (a ligação, sem segredo), `?card_id=` (vínculo do lead, resumo da conta e eventos; sem vínculo, sugestões), `&financeiro=1` (mensalidades, recargas, extrato), `?buscar=`, `?planos=1`, `?carteira=1`. POST com CSRF: `conectar`/`desconectar` (dono/admin), `vincular`, `desvincular`, e `modulo`, `plano`, `responder` (admin ou responsável pelo lead, conexão com escopo comercial). Vendedor só nos próprios leads. `plataforma_eventos.php` é máquina a máquina, sem sessão: `?c=<conta>` diz qual segredo conferir e a assinatura HMAC (`X-Fleetiflow-Assinatura`, timestamp de até 10 min) autentica; idempotente pelo id do evento.
 
-`cliente_valores.php` é o Financeiro da ficha do cliente (`App\Clientes\ValoresDoCliente` e `CobrancaDoCliente`): GET `?cliente_id=` as linhas, o resumo, as cobranças com os totais e os contratos do cliente (para o seletor), mais `tipos`, `formas` e `pode_baixar`; POST com CSRF `salvar`, `remover`, `cobranca_pagar`, `cobranca_desfazer` e `cobranca_cancelar` (estas três confirmam que a cobrança é do cliente e da conta, e vendedor da edição CRM recebe 403); quem abre Clientes; cliente de outra conta volta 400.
+`cliente_valores.php` também responde `?quadro=1` (por cliente: setores e total por mês, para o card do quadro de Clientes) e `POST {acao:'setores', cliente_id, setores:[...]}`; o GET do cliente traz `setores` e `setores_conta`, e há `cobranca_reabrir`. `cliente_valores.php` é o Financeiro da ficha do cliente (`App\Clientes\ValoresDoCliente` e `CobrancaDoCliente`): GET `?cliente_id=` as linhas, o resumo, as cobranças com os totais e os contratos do cliente (para o seletor), mais `tipos`, `formas` e `pode_baixar`; POST com CSRF `salvar`, `remover`, `cobranca_pagar`, `cobranca_desfazer` e `cobranca_cancelar` (estas três confirmam que a cobrança é do cliente e da conta, e vendedor da edição CRM recebe 403); quem abre Clientes; cliente de outra conta volta 400.
 
 `recebimentos_clientes.php` é o painel "Recebimentos de clientes" da tela Finanças (edição CRM): GET `?filtro=abertas|atrasadas|pagas` os números do mês e a lista; POST com CSRF `pagar`, `desfazer`, `cancelar`. Financeiro é de ADM: vendedor da edição CRM recebe 403, conta Yuris 404.
 

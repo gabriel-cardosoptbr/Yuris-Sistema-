@@ -11,7 +11,10 @@
  *   - salvar gera as cobranças; editar refaz as abertas e mantém as pagas; encerrar
  *     cancela; reativar devolve; gerar de novo não duplica; baixa e desfazer;
  *   - remover recusa valor com cobrança paga; outra conta não lê nem grava;
- *   - negócio fechado de cliente com valores sai da soma de fechamentos (sem dobrar receita).
+ *   - negócio fechado de cliente com valores sai da soma de fechamentos (sem dobrar receita);
+ *   - "2.500" é dois mil e quinhentos; sem descrição vale o nome do tipo; cobrança
+ *     cancelada à mão com o valor errado volta quando o valor é corrigido; reabrir;
+ *   - setores do cliente (mais de um, só da conta) e o resumo do card do quadro.
  *
  * Usa um cliente da conta CRM local 304; as linhas criadas são apagadas no fim.
  * Uso: php scripts/tests/cliente_valores_test.php
@@ -20,6 +23,7 @@ if (PHP_SAPI !== 'cli') exit;
 require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Clientes\CobrancaDoCliente as C;
+use App\Clientes\SetoresDoCliente as S;
 use App\Clientes\ValoresDoCliente as V;
 use App\Core\Database;
 
@@ -41,6 +45,9 @@ ok('fixo, serviço e anual somados à parte', $r['fixo'] === 1000.0 && $r['servi
 ok('"2.600,00" vira 2600', V::numero('2.600,00') === 2600.0);
 ok('"1234.5" vira 1234.5', V::numero('1234.5') === 1234.5);
 ok('texto não é número', V::numero('abc') === null);
+ok('"2.500" é milhar: 2500', V::numero('2.500') === 2500.0);
+ok('"1.250.000" é milhar: 1250000', V::numero('1.250.000') === 1250000.0);
+ok('"2.5" e "2.50" seguem decimais', V::numero('2.5') === 2.5 && V::numero('2.50') === 2.5);
 
 echo "\n== 2. Cobranças previstas (sem banco) ==\n";
 $hoje = '2026-10-20';
@@ -132,6 +139,37 @@ try {
     ok('outra conta não remove', recusa(fn() => V::remover(476, $cli, $b)) !== null);
     V::remover(304, $cli, $b);
     ok('remover apaga a linha e as cobranças abertas dela', !in_array($b, array_column(V::doCliente(304, $cli)['itens'], 'id'), true) && $cobsDe($b) === []);
+
+    // O caso da Juliana (20/10/2026): "2.500" lido como 2,50, cobranças canceladas à mão, valor corrigido.
+    $j = V::salvar(304, 0, $cli, ['tipo' => 'mensal', 'descricao' => '', 'valor' => '2,50', 'dia_vencimento' => 28, 'inicio' => $ini]);
+    $criados[] = $j;
+    ok('sem descrição vale o nome do tipo', array_values(array_filter(V::doCliente(304, $cli)['itens'], fn($i) => $i['id'] === $j))[0]['descricao'] === 'Mensalidade');
+    foreach ($cobsDe($j, 'aberta') as $c) C::cancelar(304, (int) $c['id']);
+    ok('canceladas à mão ficam canceladas enquanto o valor não muda', C::sincronizar(304, $j) === 0 && $cobsDe($j, 'aberta') === []);
+    V::salvar(304, 0, $cli, ['id' => $j, 'tipo' => 'mensal', 'descricao' => 'Mensalidade', 'valor' => '2.500', 'dia_vencimento' => 28, 'inicio' => $ini]);
+    $voltou = $cobsDe($j, 'aberta');
+    ok('valor corrigido: a cobrança cancelada com o valor errado volta, com o valor certo', count($voltou) === 2 && (float) $voltou[0]['valor'] === 2500.0);
+    C::cancelar(304, (int) $voltou[0]['id']);
+    V::salvar(304, 0, $cli, ['id' => $j, 'tipo' => 'mensal', 'descricao' => 'Mensalidade', 'valor' => '2.500', 'dia_vencimento' => 28, 'inicio' => $ini, 'observacao' => 'só a observação']);
+    ok('cancelada à mão com o valor certo não volta sozinha', count($cobsDe($j, 'aberta')) === 1);
+    C::reabrir(304, (int) $voltou[0]['id']);
+    ok('reabrir devolve a cancelada', count($cobsDe($j, 'aberta')) === 2);
+    ok('outra conta não reabre', recusa(fn() => C::reabrir(476, (int) $voltou[0]['id'])) !== null);
+
+    // Setores do cliente.
+    $teams = array_column(S::daConta(304), 'id');
+    $setOrig = S::doCliente(304, $cli);
+    if (count($teams) >= 2) {
+        ok('cliente fica em dois setores', S::salvar(304, 0, $cli, [$teams[0], $teams[1]]) === array_values(array_intersect(S::doCliente(304, $cli), [$teams[0], $teams[1]])) && count(S::doCliente(304, $cli)) === 2);
+        ok('desmarcar um setor', count(S::salvar(304, 0, $cli, [$teams[0]])) === 1);
+        $q = S::quadro([304]);
+        ok('card do quadro traz setor e total por mês', count($q[$cli]['setores'] ?? []) === 1 && ($q[$cli]['por_mes'] ?? 0) > 0);
+    }
+    $teamOutra = (int) $pdo->query('SELECT id FROM teams WHERE account_id <> 304 AND deleted_at IS NULL ORDER BY id LIMIT 1')->fetchColumn();
+    if ($teamOutra) ok('setor de outra conta é recusado', recusa(fn() => S::salvar(304, 0, $cli, [$teamOutra])) !== null);
+    ok('outra conta não mexe nos setores do cliente', recusa(fn() => S::salvar(476, 0, $cli, [])) !== null);
+    ok('quadro de outra conta não traz o cliente', !isset(S::quadro([476])[$cli]));
+    S::salvar(304, 0, $cli, $setOrig);
 
     // Fechamento sem dobrar: um card fechado da conta passa a apontar para um cliente sem valores.
     $card = $pdo->query("SELECT id, cliente_id FROM cards WHERE account_id = 304 AND deleted_at IS NULL AND status = 'fechado' ORDER BY id LIMIT 1")->fetch(\PDO::FETCH_ASSOC);

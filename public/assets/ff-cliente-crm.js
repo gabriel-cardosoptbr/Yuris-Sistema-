@@ -9,6 +9,9 @@
        App\Clientes\CobrancaDoCliente).
      - "Contratos": os contratos do cliente, "Novo contrato" já ligado a ele e
        "Vincular contrato existente" (os que ainda estão sem cliente).
+     - "Setores": a que setores da conta o cliente pertence (mais de um).
+   No quadro de Clientes, cada card ganha os setores e o total por mês
+   (GET /api/cliente_valores.php?quadro=1), sem mexer no renderCard.
    Carregado pelo sidebar.php em conta CRM; só age se a página tem a ficha.
    ═══════════════════════════════════════════════════════════════════════ */
 (function () {
@@ -55,7 +58,68 @@
     '.ffcli-ctr span:last-child{color:#767676;white-space:nowrap}' +
     '.ffcli-vinc{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}' +
     '.ffcli-vinc select{flex:1;min-width:180px;padding:8px 10px;border:1px solid rgba(17,29,45,.16);border-radius:9px;font:500 13px Manrope,system-ui,sans-serif;background:#fff;color:#1F2937}' +
+    '.ffcli-pill.cancelada{background:#F3F4F6;color:#6B7280}' +
+    '.ffcli-item.cancelada .tit,.ffcli-item.cancelada .val{color:#9CA3AF;text-decoration:line-through}' +
+    '.ffcli-setores{display:flex;flex-wrap:wrap;gap:6px}' +
+    '.ffcli-setopt{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:99px;border:1px solid rgba(17,29,45,.16);background:#fff;font:600 12.5px Manrope,system-ui,sans-serif;color:#374151;cursor:pointer}' +
+    '.ffcli-setopt i{width:8px;height:8px;border-radius:50%;display:inline-block}' +
+    '.ffcli-setopt.on{background:rgba(var(--ff-marca-rgb,1,93,252),.10);border-color:rgba(var(--ff-marca-rgb,1,93,252),.45);color:var(--ff-marca-forte,#013DF2)}' +
+    '.ffcli-card-extra{display:flex;flex-direction:column;gap:6px;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(17,29,45,.10)}' +
+    '.ffcli-card-valor{font-size:13px;font-weight:800;color:#1F2937}.ffcli-card-valor small{font-size:11px;font-weight:600;color:#767676}' +
+    '.ffcli-card-sets{display:flex;flex-wrap:wrap;gap:4px}' +
+    '.ffcli-card-set{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:#F3F4F6;color:#374151}' +
+    '.ffcli-card-set i{width:7px;height:7px;border-radius:50%;display:inline-block}' +
+    'html[data-theme="dark"] .ffcli-card-valor{color:#E5E7EB}html[data-theme="dark"] .ffcli-card-set{background:rgba(255,255,255,.08);color:#E5E7EB}' +
     '@media (max-width:700px){.ffcli-form{grid-template-columns:1fr 1fr}.ffcli-form .c2,.ffcli-form .c3{grid-column:span 1}}';
+
+  // ── Card do quadro de Clientes: setores e total por mês ──────────────
+  var QUADRO = null, pedindoQuadro = null;
+  function corSegura(c) { return /^#[0-9a-fA-F]{3,8}$/.test(c || '') ? c : '#3B82F6'; }
+  function decorarCard(card) {
+    var id = +card.getAttribute('data-cli-id'), d = QUADRO && QUADRO[id];
+    var velho = card.querySelector('.ffcli-card-extra');
+    if (velho) velho.remove();
+    if (!d || (!d.por_mes && !d.avulso && !(d.setores || []).length)) return;
+    var h = '';
+    if (d.por_mes || d.avulso) {
+      h += '<div class="ffcli-card-valor">' + (d.por_mes ? REAL.format(d.por_mes) + '<small> /mês</small>' : '') +
+        (d.avulso ? (d.por_mes ? '<small> · </small>' : '') + REAL.format(d.avulso) + '<small> em serviços e taxas</small>' : '') + '</div>';
+    }
+    if ((d.setores || []).length) {
+      h += '<div class="ffcli-card-sets">' + d.setores.map(function (s) { return '<span class="ffcli-card-set"><i style="background:' + corSegura(s.cor) + '"></i>' + esc(s.nome) + '</span>'; }).join('') + '</div>';
+    }
+    var el = document.createElement('div');
+    el.className = 'ffcli-card-extra';
+    el.innerHTML = h;
+    card.appendChild(el);
+  }
+  function decorarQuadro() { document.querySelectorAll('.cli-card[data-cli-id]').forEach(decorarCard); }
+  function carregarQuadro() {
+    if (pedindoQuadro) return pedindoQuadro;
+    pedindoQuadro = fetch('/api/cliente_valores.php?quadro=1', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(function (r) { if (r.ok) { QUADRO = r.data || {}; decorarQuadro(); } })
+      .catch(function () {})
+      .then(function () { pedindoQuadro = null; });
+    return pedindoQuadro;
+  }
+  function ligarQuadro() {
+    if (!document.querySelector('.cli-card, #modalCliente')) return;
+    if (!document.getElementById('ffCliCss')) { var s = document.createElement('style'); s.id = 'ffCliCss'; s.textContent = CSS; document.head.appendChild(s); }
+    carregarQuadro();
+    // O quadro é redesenhado inteiro (renderBoard): decora de novo o que entrar.
+    new MutationObserver(function (muts) {
+      if (!QUADRO) return;
+      for (var i = 0; i < muts.length; i++) {
+        for (var j = 0; j < muts[i].addedNodes.length; j++) {
+          var n = muts[i].addedNodes[j];
+          if (n.nodeType !== 1) continue;
+          if (n.matches && n.matches('.cli-card[data-cli-id]')) { if (!n.querySelector('.ffcli-card-extra')) decorarCard(n); }
+          else if (n.querySelectorAll) n.querySelectorAll('.cli-card[data-cli-id]').forEach(function (c) { if (!c.querySelector('.ffcli-card-extra')) decorarCard(c); });
+        }
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  }
 
   function montar(tentativa) {
     var modal = document.getElementById('modalCliente'), campoId = document.getElementById('cliId'), F = window.FfFicha;
@@ -63,7 +127,7 @@
     var esq = modal.querySelector('.ff-col-esq'), dir = modal.querySelector('.ff-col-dir');
     if (!F || !esq || !dir) { if ((tentativa || 0) < 40) setTimeout(function () { montar((tentativa || 0) + 1); }, 150); return; }
     if (document.getElementById('ffCliFinanceiro')) return;
-    var st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
+    if (!document.getElementById('ffCliCss')) { var st = document.createElement('style'); st.id = 'ffCliCss'; st.textContent = CSS; document.head.appendChild(st); }
 
     // ── Financeiro ────────────────────────────────────────────────────
     var fin = document.createElement('div');
@@ -74,6 +138,14 @@
     F.emAbas(secFin, ['geral']);
     esq.insertBefore(secFin, esq.children[1] || null);
 
+    // ── Setores ───────────────────────────────────────────────────────
+    var setEl = document.createElement('div');
+    setEl.id = 'ffCliSetores';
+    setEl.innerHTML = '<div data-setores></div><div class="ffcli-erro" data-set-erro></div>';
+    var secSet = F.envolver([setEl]);
+    F.secao(secSet, 0, 'Setores', 'grade', 'ambar');
+    F.emAbas(secSet, ['geral']);
+
     // ── Contratos ─────────────────────────────────────────────────────
     var ctr = document.createElement('div');
     ctr.id = 'ffCliContratos';
@@ -83,6 +155,7 @@
     F.emAbas(secCtr, ['geral']);
     var origem = Array.prototype.find.call(dir.children, function (s) { return s.getAttribute('data-ff-titulo') === 'Origem'; });
     dir.insertBefore(secCtr, origem ? origem.nextSibling : dir.firstChild);
+    dir.insertBefore(secSet, secCtr);
     ctr.querySelector('[data-novo]').onclick = function () { if (campoId.value) location.href = '/contratos.php?novo=1&cliente_id=' + encodeURIComponent(campoId.value); };
 
     // Enter dentro destas seções não envia o formulário do cliente.
@@ -90,7 +163,7 @@
 
     var corpo = fin.querySelector('[data-corpo]');
     var estado = novoEstado(null);
-    function novoEstado(id) { return { cliente: id, itens: [], resumo: null, cobrancas: { itens: [], totais: {} }, contratos: [], podeBaixar: false, editando: null, formAberto: false, pagando: null, verPagas: false }; }
+    function novoEstado(id) { return { cliente: id, itens: [], resumo: null, cobrancas: { itens: [], totais: {} }, contratos: [], podeBaixar: false, editando: null, formAberto: false, pagando: null, verPagas: false, verCanceladas: false, setores: [], setoresConta: [] }; }
 
     function api(metodo, corpoReq, query) {
       var op = { method: metodo, credentials: 'same-origin', headers: { Accept: 'application/json' } };
@@ -100,6 +173,30 @@
     function aplicar(d) {
       estado.itens = d.itens || []; estado.resumo = d.resumo || {};
       estado.cobrancas = d.cobrancas || { itens: [], totais: {} }; estado.contratos = d.contratos || [];
+      estado.setores = d.setores || []; estado.setoresConta = d.setores_conta || [];
+      desenharSetores();
+    }
+
+    var caixaSet = setEl.querySelector('[data-setores]');
+    function desenharSetores() {
+      if (!estado.cliente) { caixaSet.innerHTML = '<div class="ffcli-vazio">Salve o cliente para escolher os setores.</div>'; return; }
+      if (!estado.setoresConta.length) { caixaSet.innerHTML = '<div class="ffcli-vazio">A conta ainda não tem setores. Crie em Configurações, Setores.</div>'; return; }
+      caixaSet.innerHTML = '<div class="ffcli-setores">' + estado.setoresConta.map(function (s) {
+        var on = estado.setores.indexOf(s.id) >= 0;
+        return '<button type="button" class="ffcli-setopt' + (on ? ' on' : '') + '" data-set="' + s.id + '" aria-pressed="' + on + '"><i style="background:' + corSegura(s.cor) + '"></i>' + esc(s.nome) + '</button>';
+      }).join('') + '</div><div class="ffcli-vazio" style="margin-top:6px">Toque para marcar ou desmarcar. Pode ser mais de um.</div>';
+      caixaSet.querySelectorAll('[data-set]').forEach(function (b) {
+        b.onclick = function () {
+          var id = +b.dataset.set, lista = estado.setores.slice(), i = lista.indexOf(id);
+          if (i >= 0) lista.splice(i, 1); else lista.push(id);
+          b.disabled = true;
+          api('POST', { acao: 'setores', cliente_id: estado.cliente, setores: lista }).then(function (r) {
+            b.disabled = false;
+            setEl.querySelector('[data-set-erro]').textContent = r.ok ? '' : (r.error || 'Não foi possível salvar.');
+            if (r.ok) { aplicar(r.data); carregarQuadro(); }
+          });
+        };
+      });
     }
 
     function desenhar() {
@@ -150,6 +247,7 @@
       if (!todas.length) return '';
       var abertas = todas.filter(function (c) { return c.status === 'aberta'; });
       var pagas = todas.filter(function (c) { return c.status === 'paga'; });
+      var canceladas = todas.filter(function (c) { return c.status === 'cancelada'; });
       var h = '<div class="ffcli-sub"><span>Cobranças</span><span>' + abertas.length + ' em aberto · ' + pagas.length + ' paga' + (pagas.length === 1 ? '' : 's') + '</span></div>';
       if (!abertas.length) h += '<div class="ffcli-vazio">Nada em aberto.</div>';
       h += abertas.map(linhaCobranca).join('');
@@ -157,22 +255,28 @@
         if (estado.verPagas) h += pagas.slice().reverse().map(linhaCobranca).join('');
         h += '<div class="ffcli-pe"><button type="button" class="ffcli-link" data-ver-pagas>' + (estado.verPagas ? 'Esconder as pagas' : 'Ver as pagas (' + pagas.length + ')') + '</button></div>';
       }
+      if (canceladas.length) {
+        if (estado.verCanceladas) h += canceladas.map(linhaCobranca).join('');
+        h += '<div class="ffcli-pe"><button type="button" class="ffcli-link" data-ver-canceladas>' + (estado.verCanceladas ? 'Esconder as canceladas' : 'Ver as canceladas (' + canceladas.length + ')') + '</button></div>';
+      }
       return h;
     }
 
     function linhaCobranca(c) {
-      var sit = c.status === 'paga' ? 'paga' : (c.atrasada ? 'atrasada' : 'aberta');
-      var rot = sit === 'paga' ? 'Paga' : (sit === 'atrasada' ? 'Atrasada' : 'Em aberto');
+      var sit = c.status === 'paga' ? 'paga' : (c.status === 'cancelada' ? 'cancelada' : (c.atrasada ? 'atrasada' : 'aberta'));
+      var rot = { paga: 'Paga', cancelada: 'Cancelada', atrasada: 'Atrasada', aberta: 'Em aberto' }[sit];
       var det = ['vence ' + dataBr(c.vencimento)];
       if (c.tipo === 'mensal') det.push('referente a ' + dataBr(c.competencia).slice(3));
       if (c.status === 'paga') det.push('paga em ' + dataBr(c.pago_em) + (c.forma_pagamento ? ' por ' + c.forma_pagamento : '') + (c.valor_pago != null && c.valor_pago !== c.valor ? ', ' + REAL.format(c.valor_pago) : ''));
       if (c.contrato) det.push('contrato: ' + c.contrato);
+      if (c.status === 'cancelada' && c.observacao) det.push(c.observacao.toLowerCase());
       var acoes = '';
       if (estado.podeBaixar) {
         if (c.status === 'aberta') acoes = '<button type="button" class="ffcli-link" data-pagar="' + c.id + '">Marcar como paga</button><button type="button" class="ffcli-link perigo" data-cancelar-cob="' + c.id + '">Cancelar</button>';
         else if (c.status === 'paga') acoes = '<button type="button" class="ffcli-link" data-desfazer="' + c.id + '">Desfazer baixa</button>';
+        else if (c.status === 'cancelada') acoes = '<button type="button" class="ffcli-link" data-reabrir="' + c.id + '">Reabrir</button>';
       }
-      var h = '<div class="ffcli-item"><div><div class="tit"><span class="ffcli-pill ' + sit + '">' + rot + '</span>' + esc(c.descricao) + '</div><div class="sub">' + esc(c.tipo_rotulo + ' · ' + det.join(' · ')) + '</div></div>' +
+      var h = '<div class="ffcli-item' + (sit === 'cancelada' ? ' cancelada' : '') + '"><div><div class="tit"><span class="ffcli-pill ' + sit + '">' + rot + '</span>' + esc(c.descricao) + '</div><div class="sub">' + esc(c.tipo_rotulo + ' · ' + det.join(' · ')) + '</div></div>' +
         '<div><div class="val">' + REAL.format(c.valor) + '</div>' + (acoes ? '<div class="acoes">' + acoes + '</div>' : '') + '</div></div>';
       if (estado.pagando === c.id) {
         var op = Object.keys(FORMAS).map(function (k) { return '<option value="' + k + '">' + FORMAS[k] + '</option>'; }).join('');
@@ -225,7 +329,7 @@
         api('POST', d).then(function (r) {
           sv.disabled = false;
           if (!r.ok) { q('[data-erro]').textContent = r.error || 'Não foi possível salvar.'; return; }
-          aplicar(r.data); estado.formAberto = false; estado.editando = null; desenhar();
+          aplicar(r.data); estado.formAberto = false; estado.editando = null; desenhar(); carregarQuadro();
         });
       };
       var porId = function (id) { return estado.itens.filter(function (i) { return i.id === +id; })[0]; };
@@ -242,6 +346,10 @@
 
       // Cobranças
       var vp = q('[data-ver-pagas]'); if (vp) vp.onclick = function () { estado.verPagas = !estado.verPagas; desenhar(); };
+      var vc = q('[data-ver-canceladas]'); if (vc) vc.onclick = function () { estado.verCanceladas = !estado.verCanceladas; desenhar(); };
+      corpo.querySelectorAll('[data-reabrir]').forEach(function (b) {
+        b.onclick = function () { api('POST', { acao: 'cobranca_reabrir', cliente_id: estado.cliente, id: +b.dataset.reabrir }).then(function (r) { if (r.ok) { aplicar(r.data); desenhar(); } }); };
+      });
       corpo.querySelectorAll('[data-pagar]').forEach(function (b) { b.onclick = function () { estado.pagando = +b.dataset.pagar; desenhar(); }; });
       var bv = q('[data-baixa-cancelar]'); if (bv) bv.onclick = function () { estado.pagando = null; desenhar(); };
       var bo = q('[data-baixa-ok]');
@@ -320,7 +428,8 @@
       if (id === estado.cliente && estado.resumo) return;
       estado = novoEstado(id);
       vincCtr.innerHTML = '';
-      if (!id) { desenhar(); listaCtr.innerHTML = '<div class="ffcli-vazio">Salve o cliente para ligar contratos a ele.</div>'; return; }
+      if (!id) { desenhar(); desenharSetores(); listaCtr.innerHTML = '<div class="ffcli-vazio">Salve o cliente para ligar contratos a ele.</div>'; return; }
+      caixaSet.innerHTML = '<div class="ffcli-vazio">Carregando…</div>';
       corpo.innerHTML = '<div class="ffcli-vazio">Carregando…</div>';
       api('GET', null, '?cliente_id=' + id).then(function (r) {
         if (estado.cliente !== id) return;
@@ -346,6 +455,7 @@
       if (id !== estado.cliente) carregar();
     }, 1000);
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(montar, 0); });
-  else setTimeout(montar, 0);
+  function iniciar() { montar(); ligarQuadro(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(iniciar, 0); });
+  else setTimeout(iniciar, 0);
 })();

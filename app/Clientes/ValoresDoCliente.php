@@ -64,7 +64,9 @@ final class ValoresDoCliente
         $tipo = (string) ($d['tipo'] ?? '');
         if (!isset(self::TIPOS[$tipo])) throw new \InvalidArgumentException('Escolha o tipo do valor.');
         $desc = trim((string) ($d['descricao'] ?? ''));
-        if ($desc === '' || mb_strlen($desc) > 160) throw new \InvalidArgumentException('Descreva o valor (ex.: Mensalidade do sistema).');
+        // Sem descrição, o nome do tipo serve ("Mensalidade", "Serviço"...): o campo vazio não trava o cadastro.
+        if ($desc === '') $desc = ['mensal' => 'Mensalidade', 'anual' => 'Anuidade', 'servico' => 'Serviço', 'fixo' => 'Taxa', 'demanda' => 'Por demanda'][$tipo];
+        if (mb_strlen($desc) > 160) throw new \InvalidArgumentException('Descreva o valor (ex.: Mensalidade do sistema).');
         $valor = self::numero($d['valor'] ?? null);
         if ($valor === null || $valor < 0 || $valor > 99999999) throw new \InvalidArgumentException('Informe um valor válido.');
         $dia = ($d['dia_vencimento'] ?? '') === '' || $d['dia_vencimento'] === null ? null : (int) $d['dia_vencimento'];
@@ -134,6 +136,9 @@ final class ValoresDoCliente
         if ($s === '') return null;
         $s = preg_replace('/[^\d,.\-]/', '', $s) ?? '';
         if (str_contains($s, ',')) $s = str_replace(['.', ','], ['', '.'], $s);
+        // "2.500" e "1.250.000" são milhar à brasileira, não 2,5: ponto seguido de
+        // grupos de exatamente três dígitos, sem vírgula. "2.5" e "1234.56" seguem decimais.
+        elseif (preg_match('/^-?\d{1,3}(\.\d{3})+$/', $s)) $s = str_replace('.', '', $s);
         return is_numeric($s) ? round((float) $s, 2) : null;
     }
 

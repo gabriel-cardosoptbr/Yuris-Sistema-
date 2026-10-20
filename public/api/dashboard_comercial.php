@@ -78,6 +78,28 @@ $VALOR    = "COALESCE(NULLIF(c.valor_fechado_final,0), NULLIF(c.valor_proposta,0
 $FECHADO  = "c.data_fechamento IS NOT NULL AND c.data_fechamento > '0000-00-00'";
 $ABERTO   = "(c.data_fechamento IS NULL OR c.data_fechamento = '0000-00-00')";
 
+// Vendas (20/10/2026): o negócio fechado no funil E o que foi cadastrado no cliente
+// (mensalidade, serviço, taxa, anuidade; "por demanda" não é venda). O valor do
+// cliente vale na data em que começa; mensalidade conta o valor de um mês. Mesmo
+// cliente e mesma data é uma venda só (mensalidade + implantação juntas). O card
+// fechado cujo cliente já tem valores sai, para não contar a mesma venda duas vezes
+// (CobrancaDoCliente::sqlFechamentoSemDuplicar, a mesma regra do DRE).
+$vendasCliente = false;
+try {
+    $vendasCliente = $ctx->getProduto() === 'fleetiflow'
+        && (bool) $pdo->query("SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'crm_cliente_valores'")->fetchColumn();
+} catch (\Throwable $e) { /* sem a tabela: só o funil */ }
+$VENDAS = "(SELECT c.account_id, c.responsavel_user_id AS resp, c.data_fechamento AS dt, $VALOR AS valor, CONCAT('k', c.id) AS venda
+              FROM cards c WHERE c.deleted_at IS NULL AND $FECHADO"
+        . ($vendasCliente ? \App\Clientes\CobrancaDoCliente::sqlFechamentoSemDuplicar('c')
+            . " UNION ALL
+            SELECT v.account_id, cl.responsavel_id, v.inicio, v.valor, CONCAT('c', v.cliente_id, '-', v.inicio)
+              FROM crm_cliente_valores v
+              JOIN clientes cl ON cl.id = v.cliente_id AND cl.account_id = v.account_id AND cl.deleted_at IS NULL
+             WHERE v.tipo <> 'demanda' AND v.inicio IS NOT NULL" : '')
+        . ") x";
+$baseVenda = "x.account_id IN $inAcc" . ($responsavel > 0 ? ' AND x.resp = :resp' : '');
+
 $q = function (string $sql, array $params) use ($pdo) {
     $st = $pdo->prepare($sql);
     $st->execute($params);
@@ -129,10 +151,10 @@ try {
     }
 
     // ── KPIs do período e do anterior ─────────────────────────────────────────
-    $kpiPeriodo = function (string $s, string $e) use ($q, $baseCard, $FECHADO, $VALOR, $tp) {
+    $kpiPeriodo = function (string $s, string $e) use ($q, $baseCard, $VENDAS, $baseVenda, $tp) {
         $p = $tp + ['s' => $s, 'e' => $e];
         $leads = (int)$q("SELECT COUNT(*) FROM cards c WHERE $baseCard AND DATE(c.created_at) BETWEEN :s AND :e", $p)->fetchColumn();
-        $r = $q("SELECT COUNT(*) AS n, COALESCE(SUM($VALOR),0) AS v FROM cards c WHERE $baseCard AND $FECHADO AND c.data_fechamento BETWEEN :s AND :e", $p)->fetch(PDO::FETCH_ASSOC);
+        $r = $q("SELECT COUNT(DISTINCT x.venda) AS n, COALESCE(SUM(x.valor),0) AS v FROM $VENDAS WHERE $baseVenda AND x.dt BETWEEN :s AND :e", $p)->fetch(PDO::FETCH_ASSOC);
         $vendas = (int)$r['n']; $receita = (float)$r['v'];
         return [
             'leads' => $leads, 'vendas' => $vendas, 'receita' => round($receita, 2),
@@ -152,7 +174,7 @@ try {
     // Sem meta própria, o ADM cai na meta da conta; o vendedor não (seria a meta de outro).
     if (!$vendedor && ($g === false || (float)$g <= 0)) $g = $q("SELECT valor_meta FROM goals WHERE account_id IN $inAcc ORDER BY updated_at DESC, id DESC LIMIT 1", $tpAcc)->fetchColumn();
     if ($g !== false) $metaValor = (float)$g;
-    $rm = $q("SELECT COUNT(*) AS n, COALESCE(SUM($VALOR),0) AS v FROM cards c WHERE $baseCard AND $FECHADO AND c.data_fechamento BETWEEN :s AND :e", $tp + ['s' => $mesIni, 'e' => $mesFim])->fetch(PDO::FETCH_ASSOC);
+    $rm = $q("SELECT COUNT(DISTINCT x.venda) AS n, COALESCE(SUM(x.valor),0) AS v FROM $VENDAS WHERE $baseVenda AND x.dt BETWEEN :s AND :e", $tp + ['s' => $mesIni, 'e' => $mesFim])->fetch(PDO::FETCH_ASSOC);
     $meta = [
         'mes' => substr($mesIni, 0, 7), 'valor' => round($metaValor, 2),
         'fechado' => round((float)$rm['v'], 2), 'vendas' => (int)$rm['n'],
@@ -162,11 +184,11 @@ try {
 
     // ── Série do período: dia (≤ 31 dias), semana (≤ 182) ou mês ─────────────
     $gran = $dias <= 31 ? 'dia' : ($dias <= 182 ? 'semana' : 'mes');
-    $kF = sprintf($TPL[$gran], 'c.data_fechamento', 'c.data_fechamento');
+    $kF = sprintf($TPL[$gran], 'x.dt', 'x.dt');
     $kC = sprintf($TPL[$gran], 'c.created_at', 'c.created_at');
     $p = $tp + ['s' => $start, 'e' => $end];
     $porChave = [];
-    foreach ($q("SELECT $kF AS k, COUNT(*) AS n, COALESCE(SUM($VALOR),0) AS v FROM cards c WHERE $baseCard AND $FECHADO AND c.data_fechamento BETWEEN :s AND :e GROUP BY k", $p)->fetchAll(PDO::FETCH_ASSOC) as $r) {
+    foreach ($q("SELECT $kF AS k, COUNT(DISTINCT x.venda) AS n, COALESCE(SUM(x.valor),0) AS v FROM $VENDAS WHERE $baseVenda AND x.dt BETWEEN :s AND :e GROUP BY k", $p)->fetchAll(PDO::FETCH_ASSOC) as $r) {
         $porChave[$r['k']]['vendas'] = (int)$r['n']; $porChave[$r['k']]['receita'] = (float)$r['v'];
     }
     foreach ($q("SELECT $kC AS k, COUNT(*) AS n FROM cards c WHERE $baseCard AND DATE(c.created_at) BETWEEN :s AND :e GROUP BY k", $p)->fetchAll(PDO::FETCH_ASSOC) as $r) {
@@ -207,11 +229,11 @@ try {
         if ((float)$r['valor_meta'] > 0) $metasMes[$r['referencia_mes']] = (float)$r['valor_meta'];
     }
     foreach ($janelas as $g => [$js, $je]) {
-        $kF = sprintf($TPL[$g], 'c.data_fechamento', 'c.data_fechamento');
+        $kF = sprintf($TPL[$g], 'x.dt', 'x.dt');
         $kC = sprintf($TPL[$g], 'c.created_at', 'c.created_at');
         $p = $tp + ['s' => $js, 'e' => $je];
         $m = [];
-        foreach ($q("SELECT $kF AS k, COUNT(*) AS n, COALESCE(SUM($VALOR),0) AS v FROM cards c WHERE $baseCard AND $FECHADO AND c.data_fechamento BETWEEN :s AND :e GROUP BY k", $p)->fetchAll(PDO::FETCH_ASSOC) as $r) { $m[$r['k']]['vendas'] = (int)$r['n']; $m[$r['k']]['receita'] = (float)$r['v']; }
+        foreach ($q("SELECT $kF AS k, COUNT(DISTINCT x.venda) AS n, COALESCE(SUM(x.valor),0) AS v FROM $VENDAS WHERE $baseVenda AND x.dt BETWEEN :s AND :e GROUP BY k", $p)->fetchAll(PDO::FETCH_ASSOC) as $r) { $m[$r['k']]['vendas'] = (int)$r['n']; $m[$r['k']]['receita'] = (float)$r['v']; }
         foreach ($q("SELECT $kC AS k, COUNT(*) AS n FROM cards c WHERE $baseCard AND DATE(c.created_at) BETWEEN :s AND :e GROUP BY k", $p)->fetchAll(PDO::FETCH_ASSOC) as $r) { $m[$r['k']]['leads'] = (int)$r['n']; }
         $cursor = strtotime($js); $fimTs = strtotime($je);
         while ($cursor <= $fimTs) {

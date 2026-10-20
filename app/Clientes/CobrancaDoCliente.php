@@ -22,7 +22,10 @@ use App\Core\Database;
  *
  * Mudou o valor, o dia ou o período: as cobranças ABERTAS a partir de hoje são
  * refeitas; as pagas e as já vencidas ficam como estão. Encerrou o valor: as
- * abertas a partir de hoje viram canceladas.
+ * abertas a partir de hoje viram canceladas. A cancelada à mão continua cancelada,
+ * a não ser que o valor ou o vencimento dela não batam mais com o valor corrigido:
+ * aí ela era a cobrança errada (ex.: "2.500" lido como R$ 2,50 e cancelado) e volta
+ * certa.
  *
  * "Hoje" é o de Brasília. Toda consulta filtra account_id.
  */
@@ -116,12 +119,15 @@ final class CobrancaDoCliente
         // Reativado ou período estendido de novo: a cancelada pelo sistema (não a cancelada à
         // mão) volta a valer se está prevista e não venceu. INSERT IGNORE não a recriaria.
         if ($porComp) {
-            $canc = $pdo->prepare("SELECT id, competencia FROM crm_cliente_cobrancas
-                                    WHERE account_id = ? AND valor_id = ? AND status = 'cancelada' AND observacao IN ('Valor encerrado', 'Fora do período do valor')");
+            $canc = $pdo->prepare("SELECT id, competencia, vencimento, valor, observacao FROM crm_cliente_cobrancas
+                                    WHERE account_id = ? AND valor_id = ? AND status = 'cancelada'
+                                      AND observacao IN ('Valor encerrado', 'Fora do período do valor', 'Cancelada à mão')");
             $canc->execute([$accountId, $valorId]);
             foreach ($canc->fetchAll(\PDO::FETCH_ASSOC) as $c) {
                 $p = $porComp[$c['competencia']] ?? null;
                 if (!$p || $p['vencimento'] < $hoje) continue;
+                // À mão: só volta se era a cobrança errada (valor ou vencimento antigos).
+                if ($c['observacao'] === 'Cancelada à mão' && (float) $c['valor'] === (float) $v['valor'] && $c['vencimento'] === $p['vencimento']) continue;
                 $pdo->prepare("UPDATE crm_cliente_cobrancas SET status = 'aberta', observacao = NULL WHERE id = ?")->execute([(int) $c['id']]);
                 $atualiza->execute([$v['tipo'], $p['vencimento'], $v['valor'], $v['descricao'], $v['contrato_id'] ?: null, (int) $c['id']]);
             }
@@ -167,7 +173,7 @@ final class CobrancaDoCliente
         $st = Database::getConnection()->prepare(
             "SELECT c.*, k.titulo AS contrato_titulo FROM crm_cliente_cobrancas c
                LEFT JOIN crm_contratos k ON k.id = c.contrato_id AND k.account_id = c.account_id
-              WHERE c.account_id = ? AND c.cliente_id = ? AND c.status <> 'cancelada'
+              WHERE c.account_id = ? AND c.cliente_id = ?
               ORDER BY (c.status = 'aberta') DESC, c.vencimento ASC, c.id LIMIT 300"
         );
         $st->execute([$accountId, $clienteId]);
@@ -248,6 +254,14 @@ final class CobrancaDoCliente
         if ($st->rowCount() === 0) throw new \InvalidArgumentException('Cobrança não encontrada ou não está paga.');
     }
 
+    /** Desfaz um cancelamento (à mão ou do sistema). */
+    public static function reabrir(int $accountId, int $id): void
+    {
+        $st = Database::getConnection()->prepare("UPDATE crm_cliente_cobrancas SET status = 'aberta', observacao = NULL WHERE id = ? AND account_id = ? AND status = 'cancelada'");
+        $st->execute([$id, $accountId]);
+        if ($st->rowCount() === 0) throw new \InvalidArgumentException('Cobrança não encontrada ou não está cancelada.');
+    }
+
     public static function cancelar(int $accountId, int $id): void
     {
         $st = Database::getConnection()->prepare("UPDATE crm_cliente_cobrancas SET status = 'cancelada', observacao = 'Cancelada à mão' WHERE id = ? AND account_id = ? AND status = 'aberta'");
@@ -266,6 +280,7 @@ final class CobrancaDoCliente
             'pago_em' => $r['pago_em'], 'valor_pago' => $r['valor_pago'] !== null ? (float) $r['valor_pago'] : null,
             'forma_pagamento' => $r['forma_pagamento'] ? (self::FORMAS[$r['forma_pagamento']] ?? $r['forma_pagamento']) : null,
             'contrato_id' => $r['contrato_id'] ? (int) $r['contrato_id'] : null, 'contrato' => $r['contrato_titulo'] ?? null,
+            'observacao' => $r['observacao'] ?? null,
         ];
     }
 }
