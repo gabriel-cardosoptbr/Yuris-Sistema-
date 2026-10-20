@@ -112,9 +112,10 @@ html:not([data-theme="light"]) .ctr, html:not([data-theme="light"]) .ctr-overlay
 .ctr-sug-nota { padding: 8px 12px; font-size: 12px; color: var(--c-texto-4); border-bottom: 1px solid var(--c-borda); }
 .ctr-marca-check { display: flex !important; gap: 8px; align-items: center; font-weight: 600 !important; color: var(--c-texto-2) !important; }
 @media (max-width: 640px) { .ctr-janela .duas { grid-template-columns: 1fr; } .ctr-evento { flex-direction: column; gap: 2px; } .ctr-evento time { width: auto; } }
-.ctr-filtro-busca { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 0 0 8px; font-size: 12px; color: var(--c-texto-4); }
+.ctr-filtro-busca { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 12px; color: var(--c-texto-4); }
 .ctr-filtro-busca > span { font-weight: 700; }
-.ctr-filtro-busca select { width: auto; min-width: 170px; padding: 6px 10px; font-size: 12.5px; }
+.ctr-filtro-busca select { width: auto; flex: 1 1 130px; min-width: 120px; padding: 6px 10px; font-size: 12.5px; }
+.ctr-filtro-busca .ctr-marca-check { white-space: nowrap; font-size: 12px !important; }
 .ctr-chips { display: inline-flex; border: 1px solid var(--c-borda-2); border-radius: 999px; overflow: hidden; }
 .ctr-chips button { border: 0; background: var(--c-card); color: var(--c-texto-3); font: 700 12px 'Manrope', sans-serif; padding: 6px 12px; cursor: pointer; }
 .ctr-chips button + button { border-left: 1px solid var(--c-borda-2); }

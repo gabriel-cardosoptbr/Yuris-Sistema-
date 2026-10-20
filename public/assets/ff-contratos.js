@@ -132,8 +132,8 @@
         var nCli = it.filter(function (x) { return x.tipo === 'cliente'; }).length, nNeg = it.length - nCli, grupo = '';
         box.innerHTML = '<div class="ctr-sugestoes">' +
           '<div class="ctr-sug-nota">' + (r.todos ? 'Todos: ' : (q ? 'Encontrados: ' : 'Com os filtros: ')) +
-            [(/tipo=lead/.test(filtros) ? null : nCli + ' cliente' + (nCli === 1 ? '' : 's')),
-             (tipo === 'cliente' || /tipo=cliente/.test(filtros) ? null : nNeg + ' negociaç' + (nNeg === 1 ? 'ão' : 'ões'))].filter(Boolean).join(' e ') +
+            [(/tipo=lead/.test(filtros) || (!nCli && nNeg) ? null : nCli + ' cliente' + (nCli === 1 ? '' : 's')),
+             (tipo === 'cliente' || /tipo=cliente/.test(filtros) || (!nNeg && nCli) ? null : nNeg + ' negociaç' + (nNeg === 1 ? 'ão' : 'ões'))].filter(Boolean).join(' e ') +
             (r.todos ? '. Digite para filtrar pelo nome, CPF ou telefone.' : '.') + '</div>' +
           it.map(function (x, i) {
             var cab = '';
@@ -146,16 +146,27 @@
         });
       });
     }
-    inp.addEventListener('focus', function () { if (!inp.dataset.escolhido) buscar(inp.value.trim()); });
+    var fechar = null;
+    inp.addEventListener('focus', function () { clearTimeout(fechar); if (!inp.dataset.escolhido) buscar(inp.value.trim()); });
     inp.addEventListener('input', function () {
       delete inp.dataset.escolhido;
       if (aoLimpar) aoLimpar();
       var q = inp.value.trim(); clearTimeout(t);
       t = setTimeout(function () { buscar(q); }, 250);
     });
-    inp.addEventListener('blur', function () { setTimeout(function () { box.innerHTML = ''; ultima = null; }, 150); });
+    // Fecha a lista ao sair do campo, mas não quando o foco foi para um filtro desta busca
+    // (que recarrega e devolve o foco ao campo): antes a lista sumia ao clicar no filtro.
+    inp.addEventListener('blur', function () {
+      clearTimeout(fechar);
+      fechar = setTimeout(function () {
+        if (document.activeElement === inp) return;
+        var f = ov.querySelector('.ctr-filtro-busca');
+        if (f && f.contains(document.activeElement)) return;
+        box.innerHTML = ''; ultima = null;
+      }, 200);
+    });
     return { escolhido: function () { inp.dataset.escolhido = '1'; },
-             recarregar: function () { delete inp.dataset.escolhido; ultima = null; inp.focus(); buscar(inp.value.trim()); } };
+             recarregar: function () { clearTimeout(fechar); delete inp.dataset.escolhido; ultima = null; buscar(inp.value.trim()); inp.focus({ preventScroll: true }); } };
   }
 
   // ── Criar / editar ─────────────────────────────────────────────────────
