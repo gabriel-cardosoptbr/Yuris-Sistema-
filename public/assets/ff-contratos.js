@@ -111,15 +111,17 @@
   function num(rot, v, sub) { return '<div class="ctr-num"><span>' + esc(rot) + '</span><b>' + esc(v) + '</b><small>' + esc(sub) + '</small></div>'; }
 
   // ── Busca de cliente e negociação (lista ao clicar, filtra ao digitar) ──
-  function buscador(ov, campo, caixa, tipo, aoEscolher, aoLimpar) {
+  function buscador(ov, campo, caixa, tipo, aoEscolher, aoLimpar, extra) {
     var inp = ov.querySelector(campo), box = ov.querySelector(caixa), t, ultima = null;
     var rot = function (x) { return (x.tipo === 'cliente' ? 'Cliente: ' : 'Negociação: ') + x.nome; };
     function buscar(q) {
-      if (ultima === q && box.innerHTML) return;
-      ultima = q;
+      if (ultima === q + (extra ? extra() : '') && box.innerHTML) return;
       box.innerHTML = '<div class="ctr-sugestoes"><div class="ctr-sug-nota">Buscando…</div></div>';
-      api('GET', null, '?buscar=' + encodeURIComponent(q) + (tipo ? '&tipo=' + tipo : '')).then(function (r) {
-        if (ultima !== q) return;
+      var filtros = extra ? extra() : (tipo ? '&tipo=' + tipo : '');
+      ultima = q + filtros;
+      api('GET', null, '?buscar=' + encodeURIComponent(q) + filtros).then(function (r) {
+        if (r.ok && r.etapas && ov.aoEtapas) ov.aoEtapas(r.etapas);
+        if (ultima !== q + filtros) return;
         var it = r.ok ? r.data : [];
         if (!r.ok) { box.innerHTML = '<div class="ctr-sugestoes"><div class="ctr-sug-nota">' + esc(r.error || 'Não foi possível buscar.') + '</div></div>'; return; }
         if (!it.length) {
@@ -129,8 +131,10 @@
         }
         var nCli = it.filter(function (x) { return x.tipo === 'cliente'; }).length, nNeg = it.length - nCli, grupo = '';
         box.innerHTML = '<div class="ctr-sugestoes">' +
-          '<div class="ctr-sug-nota">' + (r.todos ? 'Todos: ' : 'Encontrados: ') + nCli + ' cliente' + (nCli === 1 ? '' : 's') +
-            (tipo === 'cliente' ? '' : ' e ' + nNeg + ' negociaç' + (nNeg === 1 ? 'ão' : 'ões')) + (r.todos ? '. Digite para filtrar pelo nome, CPF ou telefone.' : '.') + '</div>' +
+          '<div class="ctr-sug-nota">' + (r.todos ? 'Todos: ' : (q ? 'Encontrados: ' : 'Com os filtros: ')) +
+            [(/tipo=lead/.test(filtros) ? null : nCli + ' cliente' + (nCli === 1 ? '' : 's')),
+             (tipo === 'cliente' || /tipo=cliente/.test(filtros) ? null : nNeg + ' negociaç' + (nNeg === 1 ? 'ão' : 'ões'))].filter(Boolean).join(' e ') +
+            (r.todos ? '. Digite para filtrar pelo nome, CPF ou telefone.' : '.') + '</div>' +
           it.map(function (x, i) {
             var cab = '';
             if (tipo !== 'cliente' && x.tipo !== grupo) { grupo = x.tipo; cab = '<div class="ctr-sug-grupo">' + (x.tipo === 'cliente' ? 'Clientes' : 'Negociações') + '</div>'; }
@@ -150,7 +154,8 @@
       t = setTimeout(function () { buscar(q); }, 250);
     });
     inp.addEventListener('blur', function () { setTimeout(function () { box.innerHTML = ''; ultima = null; }, 150); });
-    return { escolhido: function () { inp.dataset.escolhido = '1'; } };
+    return { escolhido: function () { inp.dataset.escolhido = '1'; },
+             recarregar: function () { delete inp.dataset.escolhido; ultima = null; inp.focus(); buscar(inp.value.trim()); } };
   }
 
   // ── Criar / editar ─────────────────────────────────────────────────────
@@ -163,14 +168,41 @@
       '<div class="duas"><div><label>Responsável</label><select id="fResp">' + equipe.map(function (u) {
         return '<option value="' + u.id + '"' + ((c.responsavel_id || apoio.eu) === u.id ? ' selected' : '') + '>' + esc(u.nome) + '</option>';
       }).join('') + '</select></div><div><label>Prazo para assinatura</label><input type="date" id="fPrazo" value="' + esc(c.prazo_data || '') + '"></div></div>' +
-      '<label>Cliente ou negociação (opcional)</label><input id="fVinc" autocomplete="off" placeholder="Clique para ver todos ou digite o nome, CPF ou telefone" value="' + esc(vinc) + '"><div id="fSug"></div>' +
+      '<label>Cliente ou negociação (opcional)</label>' +
+      '<div class="ctr-filtro-busca"><span>Mostrar</span><div class="ctr-chips" id="fTipo"><button type="button" data-t="" class="ativo">Todos</button>' +
+        '<button type="button" data-t="cliente">Clientes</button><button type="button" data-t="lead">Negociações</button></div>' +
+        '<select id="fEtapa" aria-label="Etapa do funil"><option value="">Todas as etapas</option></select>' +
+        '<label class="ctr-marca-check" style="margin:0"><input type="checkbox" id="fComNome"> Só com nome</label></div>' +
+      '<input id="fVinc" autocomplete="off" placeholder="Clique para ver todos ou digite o nome, CPF ou telefone" value="' + esc(vinc) + '"><div id="fSug"></div>' +
       '<div class="ctr-erro" id="fErro"></div><div class="ctr-janela-acoes"><button class="ctr-btn" data-fechar>Cancelar</button>' +
       '<button class="ctr-btn ctr-btn-principal" id="fSalvar">' + (c.id ? 'Salvar' : 'Criar contrato') + '</button></div>', function (ov, fechar) {
       var sel = { cliente_id: c.cliente_id || pre.cliente_id || null, card_id: c.card_id || pre.card_id || null };
+      var fTipo = '';
+      var extra = function () {
+        var e = ov.querySelector('#fEtapa').value;
+        return (fTipo ? '&tipo=' + fTipo : '') + (e && fTipo !== 'cliente' ? '&etapa=' + e : '') + (ov.querySelector('#fComNome').checked ? '&com_nome=1' : '');
+      };
+      ov.aoEtapas = function (etapas) {
+        var s = ov.querySelector('#fEtapa');
+        if (s.options.length > 1) return;
+        etapas.forEach(function (e) { var o = document.createElement('option'); o.value = e.id; o.textContent = e.nome; s.appendChild(o); });
+      };
       var bc = buscador(ov, '#fVinc', '#fSug', '', function (x) {
         sel = x.tipo === 'cliente' ? { cliente_id: x.id, card_id: null } : { cliente_id: null, card_id: x.id };
         bc.escolhido();
-      }, function () { sel = { cliente_id: null, card_id: null }; });
+      }, function () { sel = { cliente_id: null, card_id: null }; }, extra);
+      ov.querySelectorAll('#fTipo button').forEach(function (b) {
+        b.onclick = function () {
+          ov.querySelectorAll('#fTipo button').forEach(function (x) { x.classList.toggle('ativo', x === b); });
+          fTipo = b.dataset.t;
+          ov.querySelector('#fEtapa').disabled = fTipo === 'cliente';
+          bc.recarregar();
+        };
+      });
+      ov.querySelector('#fEtapa').onchange = function () { if (this.value && fTipo === 'cliente') return; bc.recarregar(); };
+      ov.querySelector('#fComNome').onchange = function () { bc.recarregar(); };
+      // As etapas do funil já ficam no seletor ao abrir, sem esperar o primeiro clique no campo.
+      api('GET', null, '?buscar=&tipo=lead&etapa=-1').then(function (r) { if (r.ok && r.etapas) ov.aoEtapas(r.etapas); });
       if (vinc) bc.escolhido();
       ov.querySelector('#fSalvar').onclick = function () {
         var b = this; b.disabled = true;
