@@ -79,7 +79,9 @@ $situacao = ['RASCUNHO' => 'Proposta', 'APROVADO' => 'Aprovado', 'CONVERTIDO' =>
     <div class="dados">
       <div><span>Nome</span><?= $e($f['cliente_nome']) ?></div>
       <div><span>CPF/CNPJ</span><?= $e($f['cliente_documento'] ?: '—') ?></div>
+      <?php if (\App\Orcamentos\Orcamento::modoVeiculo(\App\Master\Account::findById($acc) ?? []) || $f['placa']): ?>
       <div><span>Veículo</span><?= $e($f['placa'] ?: 'A definir') ?><?= $f['veiculo'] ? ', ' . $e($f['veiculo']) : '' ?></div>
+      <?php endif; ?>
       <div><span>Atendimento</span><?= $e($f['vendedor_nome'] ?: '—') ?></div>
     </div>
 

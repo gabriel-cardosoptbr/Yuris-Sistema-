@@ -10,6 +10,8 @@ if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
 $ctxOrc = \App\Core\AccountContext::fromSession();
 $ctxOrc->assertAccountActive();
 if ($ctxOrc->getProduto() !== 'fleetiflow') { header('Location: /dashboard.php'); exit; }
+// Veículo (despachante) ou genérico (só serviços): ver App\Orcamentos\Orcamento::modoVeiculo.
+$orcVeiculo = \App\Orcamentos\Orcamento::modoVeiculo(\App\Master\Account::findById((int) $ctxOrc->getAccountId()) ?? []);
 $activePage = 'orcamentos';
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 $cssVer = @filemtime(__DIR__ . '/assets/ff-orcamentos.css') ?: 1;
@@ -46,7 +48,9 @@ $jsVer  = @filemtime(__DIR__ . '/assets/ff-orcamentos.js') ?: 1;
         <div class="page-header-inner">
           <div class="page-header-text">
             <h2 class="page-header-title">Orçamentos</h2>
-            <p class="page-header-subtitle">Serviços e débitos do veículo num orçamento só. O cliente vê as taxas e o honorário; o controle do escritório fica aqui.</p>
+            <p class="page-header-subtitle"><?= $orcVeiculo
+                ? 'Serviços e débitos do veículo num orçamento só. O cliente vê as taxas e o honorário; o controle do escritório fica aqui.'
+                : 'Os serviços do cliente num orçamento só. O cliente vê o que é cobrado; o controle interno (taxas e custos) fica aqui.' ?></p>
           </div>
           <div class="page-header-actions">
             <button id="orcNovo" type="button" class="orc-btn orc-btn-principal">
@@ -63,7 +67,7 @@ $jsVer  = @filemtime(__DIR__ . '/assets/ff-orcamentos.js') ?: 1;
 </main>
 
 <script>
-window.FF_ORC = { csrf: <?= json_encode($csrf) ?>, api: '/api/crm_orcamentos.php' };
+window.FF_ORC = { csrf: <?= json_encode($csrf) ?>, api: '/api/crm_orcamentos.php', veiculo: <?= $orcVeiculo ? 'true' : 'false' ?> };
 </script>
 <script src="/assets/ff-orcamentos.js?v=<?= $jsVer ?>"></script>
 </body>

@@ -25,6 +25,22 @@ use App\Prospeccao\Card;
 final class Orcamento
 {
     public const STATUS = ['RASCUNHO', 'APROVADO', 'REJEITADO', 'CONVERTIDO'];
+
+    /**
+     * Modo veículo (placa, veículo, débitos como IPVA e Detran, honorário) ou
+     * genérico (só serviços), 20/10/2026. Veículo é o da Fleetiflow original (conta
+     * sem marca própria) e o de quem liga `configuracoes.orcamentos.veiculo` (a Via
+     * Autodoc, que também é de documentação de veículo). As outras marcas (Inovaize,
+     * Seller Mentoria) são de outro ramo e veem só serviços.
+     */
+    public static function modoVeiculo(array $account): bool
+    {
+        $c = json_decode((string) ($account['configuracoes'] ?? ''), true);
+        if (is_array($c) && is_array($c['orcamentos'] ?? null) && array_key_exists('veiculo', $c['orcamentos'])) {
+            return (bool) $c['orcamentos']['veiculo'];
+        }
+        return !(is_array($c) && is_array($c['marca'] ?? null) && trim((string) ($c['marca']['nome'] ?? '')) !== '');
+    }
     public const DEBITOS = ['IPVA', 'Multas', 'Dívida ativa', 'Licenciamento', 'Taxas diversas'];
     private const MAX_ITENS = 30;
 

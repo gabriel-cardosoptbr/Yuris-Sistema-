@@ -51,7 +51,7 @@
           if (form.elements.id.value !== id) return;
           if (!r.ok) { lista.innerHTML = '<div class="ffag-vazio">' + esc(r.error || 'Não foi possível carregar.') + '</div>'; return; }
           if (!r.data.length) {
-            lista.innerHTML = '<div class="ffag-vazio">Nenhum orçamento para este lead. Monte um com os serviços e os débitos do veículo.</div>';
+            lista.innerHTML = '<div class="ffag-vazio">Nenhum orçamento para este lead ainda.</div>';
             return;
           }
           lista.innerHTML = r.data.slice(0, 5).map(function (o) {

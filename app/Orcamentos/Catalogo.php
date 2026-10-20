@@ -18,13 +18,18 @@ final class Catalogo
         'Baixa de gravame', 'Regularização de débitos', 'Vistoria', 'Outro',
     ];
 
-    /** Lista com as taxas. Conta sem serviço nenhum ganha a lista inicial. */
+    /**
+     * Lista com as taxas. Conta sem serviço nenhum ganha a lista inicial, mas só no
+     * modo veículo (Orcamento::modoVeiculo): a lista é de despachante, e a marca de
+     * outro ramo (Inovaize, Seller Mentoria) começa vazia e cadastra os próprios
+     * serviços (20/10/2026; antes a Inovaize ganhou "Transferência", "Licenciamento"...).
+     */
     public static function listar(int $accountId, bool $soAtivos = false): array
     {
         $pdo = Database::getConnection();
         $existe = $pdo->prepare('SELECT COUNT(*) FROM crm_servicos WHERE account_id = ?');
         $existe->execute([$accountId]);
-        if ((int) $existe->fetchColumn() === 0) {
+        if ((int) $existe->fetchColumn() === 0 && Orcamento::modoVeiculo(\App\Master\Account::findById($accountId) ?? [])) {
             $ins = $pdo->prepare('INSERT IGNORE INTO crm_servicos (account_id, nome, ordem) VALUES (?,?,?)');
             foreach (self::INICIAIS as $i => $nome) $ins->execute([$accountId, $nome, $i]);
         }

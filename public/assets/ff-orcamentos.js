@@ -13,6 +13,8 @@
   'use strict';
 
   var CFG = window.FF_ORC || {};
+  // Modo veículo (placa, débitos, honorário) ou genérico (só serviços). Ver Orcamento::modoVeiculo.
+  var VEICULO = CFG.veiculo !== false;
   var raiz = document.getElementById('orcApp');
   if (!raiz) return;
 
@@ -82,14 +84,16 @@
     api('GET', estado.aba === 'ativos' ? '' : '?status=' + estado.aba).then(function (r) {
       if (!r.ok) { alvo.innerHTML = '<p class="orc-erro">' + esc(r.error) + '</p>'; return; }
       if (!r.data.length) {
-        alvo.innerHTML = '<div class="orc-cartao orc-vazio">Nenhum orçamento aqui. Monte um com os serviços e os débitos do veículo: o cliente recebe as taxas e o honorário, e o controle do escritório fica na ficha.</div>';
+        alvo.innerHTML = '<div class="orc-cartao orc-vazio">' + (VEICULO
+          ? 'Nenhum orçamento aqui. Monte um com os serviços e os débitos do veículo: o cliente recebe as taxas e o honorário, e o controle do escritório fica na ficha.'
+          : 'Nenhum orçamento aqui. Monte um com os serviços do cliente: ele recebe o que é cobrado, e o controle interno fica na ficha.') + '</div>';
         return;
       }
       alvo.innerHTML = '<div class="orc-tabela-wrap"><table class="orc-tabela"><thead><tr>' +
-        ['Nº', 'Cliente', 'Placa', 'Itens', 'Total', 'Situação', 'Vendedor', 'Criado em'].map(function (c) { return '<th>' + c + '</th>'; }).join('') +
+        ['Nº', 'Cliente'].concat(VEICULO ? ['Placa'] : [], ['Itens', 'Total', 'Situação', 'Vendedor', 'Criado em']).map(function (c) { return '<th>' + c + '</th>'; }).join('') +
         '</tr></thead><tbody>' + r.data.map(function (o) {
           return '<tr data-id="' + o.id + '" tabindex="0"><td class="orc-mono">' + o.numero + '</td><td class="orc-forte">' + esc(o.cliente_nome) + '</td>' +
-            '<td class="orc-mono">' + esc(o.placa || '—') + '</td><td>' + o.itens + '</td><td class="orc-num orc-forte">' + dinheiro(o.total) + '</td>' +
+            (VEICULO ? '<td class="orc-mono">' + esc(o.placa || '—') + '</td>' : '') + '<td>' + o.itens + '</td><td class="orc-num orc-forte">' + dinheiro(o.total) + '</td>' +
             '<td><span class="orc-pill orc-pill-' + o.status + '">' + ROTULO[o.status] + '</span></td><td>' + esc(o.vendedor_nome || '—') + '</td>' +
             '<td class="orc-num">' + dataBr(o.created_at) + '</td></tr>';
         }).join('') + '</tbody></table></div>';
@@ -133,16 +137,16 @@
       var controle = linha('Valor recebido', interno.valor_recebido) +
         interno.saidas.map(function (sd) {
           var det = sd.categoria === 'CUSTO' ? 'custo' : sd.debito ? 'débito do veículo, repasse imediato'
-            : 'repasse ' + (sd.prazo === 'MENSAL' ? 'mensal' : 'imediato') + (sd.visivel_cliente ? '' : ', dentro do honorário do cliente');
+            : 'repasse ' + (sd.prazo === 'MENSAL' ? 'mensal' : 'imediato') + (sd.visivel_cliente ? '' : (VEICULO ? ', dentro do honorário do cliente' : ', dentro do valor do serviço'));
           return linha(sd.descricao, -sd.valor, false, det);
-        }).join('') + linha('Serviço / Honorário', interno.honorario, true, null, interno.honorario >= 0);
+        }).join('') + linha(VEICULO ? 'Serviço / Honorário' : 'Valor líquido do serviço', interno.honorario, true, null, interno.honorario >= 0);
 
       raiz.innerHTML =
         '<button type="button" class="orc-voltar" data-voltar>← Voltar para Orçamentos</button>' +
         '<p class="orc-erro" hidden></p>' +
         '<div class="orc-cartao"><div class="orc-ficha-topo"><h3>Orçamento nº ' + f.numero + ' · ' + esc(f.cliente_nome) + '</h3>' +
           '<span class="orc-pill orc-pill-' + s + '">' + ROTULO[s] + '</span><span style="flex:1"></span>' + botoes + '</div>' +
-          '<div class="orc-ficha-meta"><span>Placa <b>' + esc(f.placa || '—') + '</b>' + (f.veiculo ? ' · ' + esc(f.veiculo) : '') + '</span>' +
+          '<div class="orc-ficha-meta">' + (VEICULO ? '<span>Placa <b>' + esc(f.placa || '—') + '</b>' + (f.veiculo ? ' · ' + esc(f.veiculo) : '') + '</span>' : '') +
           '<span>Vendedor <b>' + esc(f.vendedor_nome || '—') + '</b></span><span>Canal <b>' + esc(f.canal || '—') + '</b></span>' +
           '<span>Criado em <b>' + dataBr(f.created_at) + '</b></span>' + (f.cliente_documento ? '<span>Documento <b>' + esc(f.cliente_documento) + '</b></span>' : '') + '</div>' +
           (f.observacoes ? '<p class="orc-item-sub" style="margin:10px 0 0">' + esc(f.observacoes) + '</p>' : '') +
@@ -212,7 +216,7 @@
     ov.innerHTML =
       '<div class="orc-painel" role="dialog" aria-modal="true" aria-labelledby="orcFormTit">' +
         '<div class="orc-painel-cab"><div><h3 id="orcFormTit">' + (editando ? 'Editar orçamento nº ' + ficha.numero : 'Novo orçamento') + '</h3>' +
-          '<p>' + (editando ? 'Ao salvar, o orçamento volta para rascunho e precisa ser aprovado de novo.' : 'Nasce em rascunho. IPVA, multas e taxas entram como débito do veículo: repasse ao órgão, sem honorário.') + '</p></div>' +
+          '<p>' + (editando ? 'Ao salvar, o orçamento volta para rascunho e precisa ser aprovado de novo.' : (VEICULO ? 'Nasce em rascunho. IPVA, multas e taxas entram como débito do veículo: repasse ao órgão, sem honorário.' : 'Nasce em rascunho e vai para o cliente depois de aprovado.')) + '</p></div>' +
           '<button type="button" class="orc-x" aria-label="Fechar" data-fechar>×</button></div>' +
         '<div class="orc-painel-corpo">' +
           '<p class="orc-erro" hidden></p>' +
@@ -223,8 +227,8 @@
           '</div>' +
           '<div class="orc-dica" data-vinculo></div>' +
           '<div class="orc-grade">' +
-            '<label class="orc-campo"><span>Placa</span><input name="placa" maxlength="10" value="' + esc(base.placa || '') + '" placeholder="AAA0A00"></label>' +
-            '<label class="orc-campo"><span>Veículo (opcional)</span><input name="veiculo" maxlength="120" value="' + esc(base.veiculo || '') + '" placeholder="Marca e modelo"></label>' +
+            (VEICULO ? '<label class="orc-campo"><span>Placa</span><input name="placa" maxlength="10" value="' + esc(base.placa || '') + '" placeholder="AAA0A00"></label>' +
+            '<label class="orc-campo"><span>Veículo (opcional)</span><input name="veiculo" maxlength="120" value="' + esc(base.veiculo || '') + '" placeholder="Marca e modelo"></label>' : '') +
             '<label class="orc-campo"><span>Vendedor</span><select name="vendedor_id"><option value="">Sem vendedor</option>' +
               ap.equipe.map(function (u) {
                 var sel = base.vendedor_id ? base.vendedor_id === u.id : (!editando && u.id === ap.eu);
@@ -232,8 +236,8 @@
               }).join('') + '</select></label>' +
             '<label class="orc-campo"><span>Canal (opcional)</span><input name="canal" maxlength="60" value="' + esc(base.canal || '') + '" placeholder="Indicação, WhatsApp…"></label>' +
           '</div>' +
-          '<div><div class="orc-campo"><span>Serviços e débitos do veículo</span></div><div class="orc-linhas-form" data-linhas></div>' +
-            '<div class="orc-acrescentar" style="margin-top:8px"><button type="button" data-mais="SERVICO">+ Adicionar serviço</button><button type="button" data-mais="DEBITO">+ Adicionar débito do veículo</button></div>' +
+          '<div><div class="orc-campo"><span>' + (VEICULO ? 'Serviços e débitos do veículo' : 'Serviços') + '</span></div><div class="orc-linhas-form" data-linhas></div>' +
+            '<div class="orc-acrescentar" style="margin-top:8px"><button type="button" data-mais="SERVICO">+ Adicionar serviço</button>' + (VEICULO ? '<button type="button" data-mais="DEBITO">+ Adicionar débito do veículo</button>' : '') + '</div>' +
             '<div class="orc-total"><span data-total-rotulo>Total</span><span data-total>R$ 0,00</span></div></div>' +
           '<label class="orc-campo"><span>Observações (opcional, saem na impressão)</span><textarea name="observacoes" maxlength="4000">' + esc(base.observacoes || '') + '</textarea></label>' +
         '</div>' +
@@ -290,8 +294,8 @@
       var valor = l.natureza === 'DEBITO' ? 'debito:' + (ap.debitos.indexOf(l.descricao) >= 0 ? l.descricao : 'Taxas diversas') : String(l.servico_id || '');
       var html = '<option value="">Serviço livre</option><optgroup label="Serviços">' +
         ap.servicos.map(function (s) { return '<option value="' + s.id + '">' + esc(s.nome) + '</option>'; }).join('') +
-        '</optgroup><optgroup label="Débitos do veículo (repasse)">' +
-        ap.debitos.map(function (d) { return '<option value="debito:' + esc(d) + '">' + esc(d) + '</option>'; }).join('') + '</optgroup>';
+        '</optgroup>' + (VEICULO || l.natureza === 'DEBITO' ? '<optgroup label="Débitos do veículo (repasse)">' +
+        ap.debitos.map(function (d) { return '<option value="debito:' + esc(d) + '">' + esc(d) + '</option>'; }).join('') + '</optgroup>' : '');
       return { html: html, valor: valor };
     }
     function subtotal(l) { return numero(l.quantidade || '1') * numero(l.valor_unitario) - numero(l.desconto); }
@@ -384,8 +388,9 @@
 
   function desenharServicos(alvo, servicos) {
     var podeEditar = !estado.apoio || estado.apoio.pode_editar_catalogo;
-    alvo.innerHTML = '<p class="orc-aviso">Cada serviço tem o preço de tabela e as taxas. <b>Repasse imediato</b> sai junto com o processo (Detran); <b>repasse mensal</b> sai numa fatura do mês (SERPRO). ' +
-      '<b>Cliente vê</b> ligado mostra a taxa em linha própria no orçamento; desligado, ela fica dentro do honorário que o cliente lê.' +
+    alvo.innerHTML = '<p class="orc-aviso">Cada serviço tem o preço de tabela e as taxas. ' + (VEICULO
+        ? '<b>Repasse imediato</b> sai junto com o processo (Detran); <b>repasse mensal</b> sai numa fatura do mês (SERPRO). <b>Cliente vê</b> ligado mostra a taxa em linha própria no orçamento; desligado, ela fica dentro do honorário que o cliente lê.'
+        : '<b>Repasse imediato</b> sai junto com a entrega; <b>repasse mensal</b> sai numa fatura do mês. <b>Cliente vê</b> ligado mostra a taxa em linha própria no orçamento; desligado, ela fica dentro do valor do serviço.') +
       (podeEditar ? '' : ' Só o dono ou um administrador altera estes valores.') + '</p><p class="orc-erro" hidden></p>' +
       '<div class="orc-servicos">' + servicos.map(function (s) {
         return '<div class="orc-cartao" data-servico="' + s.id + '"><div class="orc-servico-cab">' +
@@ -404,7 +409,7 @@
               '<button type="button" class="orc-btn orc-btn-sm orc-btn-leve" data-tirar-taxa aria-label="Remover taxa">×</button></div>';
           }).join('') + '</div>' +
           '<div class="orc-taxa-nova"><select data-n="categoria"><option value="REPASSE">Repasse</option><option value="CUSTO">Custo</option></select>' +
-            '<input data-n="descricao" maxlength="120" placeholder="Taxa (ex.: Detran, SERPRO, placa)">' +
+            '<input data-n="descricao" maxlength="120" placeholder="' + (VEICULO ? 'Taxa (ex.: Detran, SERPRO, placa)' : 'Taxa (ex.: imposto, plataforma, licença)') + '">' +
             '<input data-n="valor" inputmode="decimal" placeholder="Valor">' +
             '<select data-n="prazo"><option value="IMEDIATO">Repasse imediato</option><option value="MENSAL">Repasse mensal</option></select>' +
             '<label style="display:inline-flex;gap:5px;align-items:center;font-size:12px;white-space:nowrap"><input type="checkbox" data-n="visivel" checked> Cliente vê</label>' +

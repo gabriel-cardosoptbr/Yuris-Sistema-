@@ -23,8 +23,8 @@ de um despachante: transferência com IPVA e multas da mesma placa, e as taxas d
 | Classe | O que faz |
 |---|---|
 | `Decomposicao.php` | a conta, PURA (não lê banco): cada linha vira repasses, custos, honorário e o que o cliente lê. **É a mesma regra de `backend/src/modules/financeiro/decomposicao-da-venda.ts` da plataforma**: quem muda uma, muda a outra |
-| `Catalogo.php` | os serviços da conta (`crm_servicos`) e as taxas de cada um (`crm_servico_componentes`): REPASSE com prazo (`IMEDIATO`/`MENSAL`) e "cliente vê", ou CUSTO. Conta sem serviço ganha a lista inicial, só com nomes (o preço é do escritório) |
-| `Orcamento.php` | o orçamento (`crm_orcamentos`, `crm_orcamento_itens`): criar, editar, aprovar, rejeitar, reabrir, fechar negócio, a ficha com as duas visões e o texto para o WhatsApp |
+| `Catalogo.php` | a lista inicial de serviços (de despachante) só entra no modo veículo; conta genérica começa vazia (20/10/2026). Os serviços da conta (`crm_servicos`) e as taxas de cada um (`crm_servico_componentes`): REPASSE com prazo (`IMEDIATO`/`MENSAL`) e "cliente vê", ou CUSTO. Conta sem serviço ganha a lista inicial, só com nomes (o preço é do escritório) |
+| `Orcamento.php` | `modoVeiculo()` (20/10/2026): veículo (placa, veículo, débitos como IPVA e Detran, honorário) para a Fleetiflow original (sem marca própria) e para quem liga `configuracoes.orcamentos.veiculo` (Via Autodoc); genérico, só serviços, para as outras marcas (Inovaize, Seller Mentoria). A tela, a impressão e a semente do catálogo seguem o modo. O orçamento (`crm_orcamentos`, `crm_orcamento_itens`): criar, editar, aprovar, rejeitar, reabrir, fechar negócio, a ficha com as duas visões e o texto para o WhatsApp |
 
 ## Regras
 
