@@ -175,6 +175,70 @@ final class Contrato
         Eventos::registrar($id, 'cliente_vinculado', ['cliente_id' => $clienteId ?: null, 'anterior' => $c['cliente_id'] ? (int) $c['cliente_id'] : null], ['user_id' => $userId]);
     }
 
+    /**
+     * Os contratos de um cliente (e dos leads de origem dele) ou de um lead, com os
+     * arquivos de cada um, para a seção "Documentos" da ficha. Do original, só o da
+     * versão atual (no rascunho, a última enviada ao sistema); da conclusão, o PDF
+     * assinado e o comprovante.
+     *
+     * @param int[] $cardIds leads ligados (para cliente: os de origem)
+     */
+    public static function documentosDaFicha(int $accountId, ?int $clienteId, array $cardIds): array
+    {
+        $cond = []; $args = [$accountId];
+        if ($clienteId) { $cond[] = 'c.cliente_id = ?'; $args[] = $clienteId; }
+        $cardIds = array_values(array_filter(array_map('intval', $cardIds)));
+        if ($cardIds) { $cond[] = 'c.card_id IN (' . implode(',', array_fill(0, count($cardIds), '?')) . ')'; array_push($args, ...$cardIds); }
+        if (!$cond) return [];
+        $pdo = Database::getConnection();
+        $st = $pdo->prepare('SELECT c.id, c.titulo, c.status, c.versao_atual_id, v.arquivo_id AS original_id, c.criado_em, c.concluido_em FROM crm_contratos c
+                               LEFT JOIN crm_contrato_versoes v ON v.account_id = c.account_id AND v.id = COALESCE(c.versao_atual_id,
+                                         (SELECT MAX(vv.id) FROM crm_contrato_versoes vv WHERE vv.contrato_id = c.id AND vv.account_id = c.account_id))
+                              WHERE c.account_id = ? AND (' . implode(' OR ', $cond) . ') ORDER BY c.id DESC LIMIT 100');
+        $st->execute($args);
+        $contratos = $st->fetchAll(\PDO::FETCH_ASSOC);
+        if (!$contratos) return [];
+        $ids = array_column($contratos, 'id');
+        $ar = $pdo->prepare("SELECT id, uuid, contrato_id, versao_id, tipo, bytes, criado_em FROM crm_contrato_arquivos
+                              WHERE account_id = ? AND tipo IN ('original', 'conclusao', 'comprovante')
+                                AND contrato_id IN (" . implode(',', array_fill(0, count($ids), '?')) . ') ORDER BY id');
+        $ar->execute(array_merge([$accountId], $ids));
+        $porContrato = [];
+        $rotulos = ['original' => 'Documento enviado para assinatura', 'conclusao' => 'Documento assinado', 'comprovante' => 'Comprovante das assinaturas'];
+        foreach ($ar->fetchAll(\PDO::FETCH_ASSOC) as $a) $porContrato[(int) $a['contrato_id']][] = $a;
+        $out = [];
+        foreach ($contratos as $c) {
+            $arqs = [];
+            foreach ($porContrato[(int) $c['id']] ?? [] as $a) {
+                if ($a['tipo'] === 'original' && (int) $a['id'] !== (int) $c['original_id']) continue;
+                if ($a['tipo'] !== 'original' && (int) $a['versao_id'] !== (int) $c['versao_atual_id']) continue;
+                $arqs[] = ['uuid' => $a['uuid'], 'tipo' => $a['tipo'], 'rotulo' => $rotulos[$a['tipo']], 'bytes' => (int) $a['bytes'],
+                           'criado_em' => Tempo::local($a['criado_em'])];
+            }
+            usort($arqs, fn($x, $y) => array_search($x['tipo'], ['conclusao', 'comprovante', 'original'], true) <=> array_search($y['tipo'], ['conclusao', 'comprovante', 'original'], true));
+            $out[] = ['id' => (int) $c['id'], 'titulo' => $c['titulo'], 'status' => $c['status'], 'status_rotulo' => self::STATUS[$c['status']] ?? $c['status'],
+                      'criado_em' => Tempo::local($c['criado_em']), 'concluido_em' => $c['concluido_em'] ? Tempo::local($c['concluido_em']) : null, 'arquivos' => $arqs];
+        }
+        return $out;
+    }
+
+    /**
+     * "Enviar para assinatura" de um PDF anexado na ficha: cria o contrato ligado ao
+     * mesmo cliente ou lead, com o arquivo como documento. Quem chama confere a posse
+     * do anexo (crm_anexos é da conta) antes.
+     */
+    public static function criarDeAnexo(int $accountId, int $userId, array $anexo, string $bytes): int
+    {
+        $titulo = trim((string) ($anexo['descricao'] ?? '')) ?: preg_replace('/\.pdf$/i', '', (string) $anexo['file_name']);
+        $id = self::criar($accountId, $userId, [
+            'titulo' => mb_substr($titulo ?: 'Contrato', 0, 200),
+            'cliente_id' => $anexo['entidade'] === 'cliente' ? (int) $anexo['entidade_id'] : null,
+            'card_id' => $anexo['entidade'] === 'card' ? (int) $anexo['entidade_id'] : null,
+        ]);
+        self::anexarPdf($accountId, $userId, $id, $bytes, (string) $anexo['file_name']);
+        return $id;
+    }
+
     // ── Documento ─────────────────────────────────────────────────────────
 
     /**

@@ -18,7 +18,7 @@ Daí o nome: é do CRM, os dois lados usam.
 |---|---|
 | `Entidade.php` | **o portão único de tenancy.** `resolver()` recebe (`'cliente'` ou `'card'`, id, contas acessíveis) e devolve a conta DONA, ou `null`. Nenhuma outra classe daqui toca em `clientes` ou `cards` para descobrir dono |
 | `Auditoria.php` | um evento, dois destinos, um formato. Manda para `card_history` (colunas) ou `clientes_history` (JSON) conforme a entidade, com a mesma chamada |
-| `Anexo.php` | documentos. Não toca no filesystem: quem grava e apaga bytes é `public/api/crm_anexos.php` |
+| `Anexo.php` | documentos. Não toca no filesystem: quem grava e apaga bytes é `public/api/crm_anexos.php`. Na edição CRM (20/10/2026) a listagem da API leva junto os contratos da aba Contratos ligados à ficha (`App\Contratos\Contrato::documentosDaFicha`: do cliente, dos leads de origem dele, ou do lead), e PDF anexado ganha "Enviar para assinatura", que vira contrato (`criar_de_anexo` em `crm_contratos.php`). O anexo continua sendo do Crm; o contrato, do Contratos |
 | `Tag.php` | etiquetas, que também são as "classificações" e as "labels": os três nomes, uma estrutura |
 | `CampoPersonalizado.php` | definição de campo por conta, e o valor dele por entidade |
 | `Interacao.php` | contato registrado e nota interna. Uma tabela, porque nota é interação sem contraparte |

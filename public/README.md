@@ -277,6 +277,11 @@ das mensalidades ativas, e a lista (a receber, atrasadas, recebidas nos últimos
 "Marcar como paga" (data, valor recebido, forma), "Desfazer baixa" e "Cancelar". As cobranças
 nascem dos valores combinados na ficha do cliente (`App\Clientes\CobrancaDoCliente`).
 Comportamento e estilo em `assets/recebimentos.js`. O HTML da tela para conta Yuris não muda.
+O que os clientes pagaram também entra na **receita** do DRE da edição CRM: cartão "Recebido
+de clientes" ao lado de "Lançamentos extras", fatia própria na rosca "Composição da receita",
+e soma na receita operacional, no lucro e na margem (servidor e `assets/dre.js`, que recebe
+`recebido_clientes` de `api/dre_accounts.php` ao filtrar o mês). `window.DRE_COM_RECEB` liga
+a terceira fatia só nessa edição.
 
 **Reembolsos na tela Finanças (edição CRM, 03/10/2026).** `financas.php` ganha, só
 quando o módulo está ligado na conta (`$reembolsos`, `Reembolso::habilitado`: edição CRM com

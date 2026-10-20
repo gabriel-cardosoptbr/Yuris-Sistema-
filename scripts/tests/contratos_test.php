@@ -287,6 +287,31 @@ try {
     ok('cancelar não apaga assinatura do outro contrato', (int) $pdo->query("SELECT COUNT(*) FROM crm_contrato_assinaturas WHERE contrato_id = $id")->fetchColumn() === 4);
     $cen = Contrato::central($ACC);
     ok('central conta contratos e bytes', $cen['total'] >= 2 && $cen['bytes_total'] > 0 && $cen['por_status']['concluido'] >= 1);
+
+    echo "
+== 10. Ficha do cliente: vincular, documentos e PDF anexado ==
+";
+    $cliT = (int) $pdo->query("SELECT id FROM clientes WHERE account_id = $ACC AND deleted_at IS NULL ORDER BY id LIMIT 1")->fetchColumn();
+    $cliOutra = (int) $pdo->query("SELECT id FROM clientes WHERE account_id <> $ACC AND deleted_at IS NULL ORDER BY id LIMIT 1")->fetchColumn();
+    if ($cliT) {
+        Contrato::vincularCliente($ACC, $UID, $id, $cliT);
+        $docs = array_column(Contrato::documentosDaFicha($ACC, $cliT, []), null, 'id');
+        $tipos = array_column($docs[$id]['arquivos'] ?? [], 'tipo');
+        ok('contrato vinculado aparece nos documentos da ficha', isset($docs[$id]));
+        ok('documentos trazem o comprovante e o enviado (e o assinado, com qpdf)', in_array('comprovante', $tipos, true) && in_array('original', $tipos, true)
+            && (in_array('conclusao', $tipos, true) || !$temQpdf));
+        ok('outra empresa não vê os documentos do cliente', !in_array($id, array_column(Contrato::documentosDaFicha($OUTRA, $cliT, []), 'id'), true));
+        ok('outra empresa não vincula', recusa(fn() => Contrato::vincularCliente($OUTRA, $UID, $id, $cliT)) !== null);
+        if ($cliOutra) ok('cliente de outra empresa não é vinculado', recusa(fn() => Contrato::vincularCliente($ACC, $UID, $id, $cliOutra)) !== null);
+        $id3 = Contrato::criarDeAnexo($ACC, $UID, ['entidade' => 'cliente', 'entidade_id' => $cliT, 'file_name' => 'Proposta do site.pdf', 'descricao' => ''], $v1);
+        $criados[] = $id3;
+        $c3 = Contrato::doContrato($ACC, $id3);
+        $d3 = array_column(Contrato::documentosDaFicha($ACC, $cliT, []), null, 'id');
+        ok('PDF anexado vira contrato ligado ao cliente, com o documento', (int) $c3['cliente_id'] === $cliT && $c3['titulo'] === 'Proposta do site'
+            && in_array('original', array_column($d3[$id3]['arquivos'] ?? [], 'tipo'), true));
+        Contrato::vincularCliente($ACC, $UID, $id, 0);
+        ok('desvincular tira da ficha', !in_array($id, array_column(Contrato::documentosDaFicha($ACC, $cliT, []), 'id'), true));
+    }
 } catch (\Throwable $e) {
     $FALHAS[] = 'exceção: ' . $e->getMessage();
     echo "  [FALHA] exceção: " . get_class($e) . ': ' . $e->getMessage() . "\n" . $e->getTraceAsString() . "\n";

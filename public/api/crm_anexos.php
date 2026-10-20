@@ -3,7 +3,9 @@
 /**
  * /api/crm_anexos.php — documentos de cliente e de prospeccao (bloco A da Fase 2).
  *
- * GET    ?entidade=cliente|card&id=N        lista (para cliente inclui os das prospeccoes)
+ * GET    ?entidade=cliente|card&id=N        lista (para cliente inclui os das prospeccoes);
+ *                                           na edicao CRM leva tambem `contratos` (os
+ *                                           documentos da aba Contratos ligados a ficha)
  * GET    ?action=download&id=N              baixa um anexo
  * POST   multipart: entidade, id, file[, descricao]
  * DELETE {id}
@@ -154,8 +156,23 @@ if ($metodo === 'GET') {
     $modulo = $entidade === Entidade::CARD ? 'prospeccao' : 'clientes';
     alvoOu404($ctx, $entidade, $id);
 
+    // Edição CRM: os contratos (aba Contratos, assinatura eletrônica) do cliente, dos
+    // leads de origem dele, ou do lead. Ver App\Contratos\Contrato::documentosDaFicha.
+    $contratosDocs = null;
+    if ($ctx->getProduto() === 'fleetiflow' && \App\Contratos\Permissao::podeVer()) {
+        try {
+            [$ents, $ids] = Entidade::escopoLeitura($entidade, $id, $ctx->getAccessibleAccountIds($modulo));
+            $cards = [];
+            foreach ($ents as $i => $e) if ($e === Entidade::CARD) $cards[] = (int) $ids[$i];
+            $contratosDocs = \App\Contratos\Contrato::documentosDaFicha((int) $ctx->getAccountId(), $entidade === Entidade::CLIENTE ? $id : null, $cards);
+        } catch (\Throwable $e) {
+            error_log('[crm_anexos] contratos ' . $e->getMessage());
+        }
+    }
+
     echo json_encode([
         'success' => true,
+        'contratos' => $contratosDocs,
         'anexos'  => Anexo::listar($entidade, $id, $ctx->getAccessibleAccountIds($modulo)),
         'limites' => [
             'tamanho_maximo' => Anexo::TAMANHO_MAXIMO,

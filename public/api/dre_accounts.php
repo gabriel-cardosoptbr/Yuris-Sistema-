@@ -70,6 +70,24 @@ if ($method === 'GET') {
         $closed_total = (float)($st->fetchColumn() ?? 0);
     }
 
+    // Edição CRM: cobranças de clientes com baixa (App\Clientes\CobrancaDoCliente), pela data do pagamento.
+    $recebido_clientes = 0.0;
+    if ($ctx->getProduto() === 'fleetiflow') {
+        try {
+            $rcWhere = "WHERE status = 'paga'" . $cardTenant;
+            $rcParams = $tenantParams;
+            if ($hasRange) {
+                if (dre_is_valid_date($rangeStart)) { $rcWhere .= ' AND pago_em >= :rstart'; $rcParams['rstart'] = $rangeStart; }
+                if (dre_is_valid_date($rangeEnd))   { $rcWhere .= ' AND pago_em <= :rend';   $rcParams['rend']   = $rangeEnd;   }
+            } elseif (isset($_GET['closed_month']) && preg_match('/^\d{4}-\d{2}$/', $_GET['closed_month'])) {
+                $rcWhere .= ' AND pago_em <= LAST_DAY(:rmes)'; $rcParams['rmes'] = $_GET['closed_month'] . '-01';
+            }
+            $st = $pdo->prepare("SELECT COALESCE(SUM(COALESCE(valor_pago, valor)), 0) FROM crm_cliente_cobrancas $rcWhere");
+            $st->execute($rcParams);
+            $recebido_clientes = (float) $st->fetchColumn();
+        } catch (\Throwable $e) { /* sem a tabela (migration 153) */ }
+    }
+
     $dreReceita = (float)($summary['receita'] ?? 0);
     $dreDespesa = (float)($summary['despesa'] ?? 0);
     if ($hasRange) {
@@ -120,13 +138,13 @@ if ($method === 'GET') {
         }
     }
 
-    $combined_receita   = $dreReceita + $closed_total;
+    $combined_receita   = $dreReceita + $closed_total + $recebido_clientes;
     $combined_despesa   = $dreDespesa;
     $combined_resultado = $combined_receita - $combined_despesa;
     $combined_margem    = $combined_receita > 0 ? round(($combined_resultado / $combined_receita) * 100, 1) : 0;
 
     echo json_encode([
-        'data' => $list, 'summary' => $summary, 'closed_total' => $closed_total,
+        'data' => $list, 'summary' => $summary, 'closed_total' => $closed_total, 'recebido_clientes' => $recebido_clientes,
         'combined' => [
             'receita'   => $combined_receita,
             'despesa'   => $combined_despesa,

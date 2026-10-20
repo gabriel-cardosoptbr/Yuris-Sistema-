@@ -145,6 +145,17 @@ inclusive concluído, porque o cliente é cadastro do CRM e não faz parte do do
 assinado. Só quem gerencia o contrato; fica na trilha como `cliente_vinculado`. A ficha
 do cliente usa isso no "Vincular contrato existente" (lista `?lista=1&sem_cliente=1`).
 
+**Na seção "Documentos" da ficha** (cliente e lead, 20/10/2026):
+`Contrato::documentosDaFicha` devolve os contratos do cliente (e dos leads de origem
+dele) ou do lead, com os arquivos de cada um: o documento enviado para assinatura (o
+da versão atual; no rascunho, o da última versão), o PDF assinado e o comprovante. A
+API de anexos (`public/api/crm_anexos.php`) manda isso junto da lista, e os links baixam
+por `?baixar=`, que confere o hash e registra `arquivo_baixado`. No caminho inverso,
+`Contrato::criarDeAnexo` (ação `criar_de_anexo`) transforma um PDF anexado na ficha em
+contrato novo, já ligado ao mesmo cliente ou lead, com o título tirado da descrição do
+anexo (ou do nome do arquivo). A API confere que o anexo é da conta e que a sessão
+alcança a ficha dele antes de ler o arquivo.
+
 ## O que impede e o que detecta alteração
 
 Nada disto é "imutabilidade absoluta". Cada controle, e o que ele faz:

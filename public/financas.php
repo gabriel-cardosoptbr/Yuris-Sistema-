@@ -39,7 +39,16 @@ $st        = $pdo->prepare("SELECT COALESCE(SUM(COALESCE(NULLIF(valor_fechado_fi
 $st->execute($_finParams);
 $row       = $st->fetch();
 $closed_total       = (float)($row['closed_total'] ?? 0);
-$combined_receita   = (float)($summary['receita'] ?? 0) + $closed_total;
+// Edição CRM: o que os clientes pagaram (cobranças com baixa) entra na receita.
+$recebido_clientes  = 0.0;
+if ($recebClientes) {
+    try {
+        $_rc = $pdo->prepare("SELECT COALESCE(SUM(COALESCE(valor_pago, valor)), 0) FROM crm_cliente_cobrancas WHERE status = 'paga' AND account_id IN $_finIn");
+        $_rc->execute($_finParams);
+        $recebido_clientes = (float) $_rc->fetchColumn();
+    } catch (\Throwable $e) { /* sem a tabela (migration 153) */ }
+}
+$combined_receita   = (float)($summary['receita'] ?? 0) + $closed_total + $recebido_clientes;
 $combined_despesa   = (float)($summary['despesa'] ?? 0);
 $combined_resultado = $combined_receita - $combined_despesa;
 
@@ -349,7 +358,7 @@ $health_icon         = $margem >= 40 ? '▲' : ($margem >= 15 ? '●' : '▼');
         <div class="kpi-card receita">
           <div class="kpi-label">Receita operacional</div>
           <div class="kpi-value" id="sumReceita"><?=number_format($combined_receita,2,',','.')?></div>
-          <div class="kpi-desc">Honorários + lançamentos de receita</div>
+          <div class="kpi-desc"><?= $recebClientes ? 'Honorários, lançamentos e recebimentos de clientes' : 'Honorários + lançamentos de receita' ?></div>
           <span class="kpi-badge badge-ok">↑ Receita</span>
         </div>
         <div class="kpi-card despesa">
@@ -388,6 +397,14 @@ $health_icon         = $margem >= 40 ? '▲' : ($margem >= 15 ? '●' : '▼');
           <div class="kpi-desc">Receitas via lançamentos DRE</div>
           <span class="kpi-badge badge-neutral">DRE</span>
         </div>
+<?php if ($recebClientes): ?>
+        <div class="kpi-card receita">
+          <div class="kpi-label">Recebido de clientes</div>
+          <div class="kpi-value" id="recebClientesVal"><?=number_format($recebido_clientes,2,',','.')?></div>
+          <div class="kpi-desc">Mensalidades e serviços pagos</div>
+          <span class="kpi-badge badge-neutral">Clientes</span>
+        </div>
+<?php endif; ?>
       </div>
 
       <!-- ── Health indicator ── -->
@@ -1056,8 +1073,9 @@ document.addEventListener('DOMContentLoaded', function() {
 // ── Charts (Chart.js) — instâncias expostas globalmente para atualização dinâmica ──
 window.dreCharts = {};
 const _fmtR = v => 'R$ ' + Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2});
-const _donutColors = ['#f59e0b','#60a5fa'];
-const _donutLabels = ['Honorários (CRM)','Lançamentos DRE'];
+window.DRE_COM_RECEB = <?= $recebClientes ? 'true' : 'false' ?>;
+const _donutColors = ['#f59e0b','#60a5fa'].concat(window.DRE_COM_RECEB ? ['#34d399'] : []);
+const _donutLabels = ['Honorários (CRM)','Lançamentos DRE'].concat(window.DRE_COM_RECEB ? ['Recebido de clientes'] : []);
 
 window.dreUpdateDonutLegend = function(vals) {
   const legend = document.getElementById('donutLegend');
@@ -1079,6 +1097,7 @@ window.dreUpdateDonutLegend = function(vals) {
   const lucro       = <?=json_encode(round($resultado_real, 2))?>;
   const honorarios  = <?=json_encode(round($closed_total, 2))?>;
   const lancamentos = <?=json_encode(round((float)($summary['receita'] ?? 0), 2))?>;
+  const recebidos   = <?=json_encode(round($recebido_clientes, 2))?>;
 
   // Tema-aware: cores de eixo e grid adaptam ao tema atual
   const _DRE_IS_LIGHT = document.documentElement.getAttribute('data-theme') === 'light';
@@ -1116,10 +1135,10 @@ window.dreUpdateDonutLegend = function(vals) {
   // Donut chart
   const ctxD = document.getElementById('chartDonut');
   if (ctxD) {
-    const donutData = [Math.max(0,honorarios), Math.max(0,lancamentos)];
+    const donutData = [Math.max(0,honorarios), Math.max(0,lancamentos)].concat(window.DRE_COM_RECEB ? [Math.max(0,recebidos)] : []);
     window.dreCharts.donut = new Chart(ctxD, {
       type: 'doughnut',
-      data: { labels: _donutLabels, datasets: [{ data: donutData, backgroundColor: ['rgba(245,158,11,.65)','rgba(96,165,250,.65)'], borderColor: _donutColors, borderWidth: 1.5, hoverOffset: 4 }] },
+      data: { labels: _donutLabels, datasets: [{ data: donutData, backgroundColor: ['rgba(245,158,11,.65)','rgba(96,165,250,.65)','rgba(52,211,153,.65)'], borderColor: _donutColors, borderWidth: 1.5, hoverOffset: 4 }] },
       options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' ' + _fmtR(ctx.raw) } } } }
     });
     window.dreUpdateDonutLegend(donutData);

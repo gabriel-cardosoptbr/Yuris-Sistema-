@@ -127,7 +127,7 @@
       const resultado = sumReceita - sumDespesa;
       // fetch closed_total up to selected month and add to receita, then update resultado
       (async function(){
-        let closed = 0;
+        let closed = 0, recebidos = 0;
         try{
           const month = filters.month || '';
           let url = api;
@@ -135,8 +135,9 @@
           const res = await fetch(url);
           const j = await res.json();
           closed = (j && j.closed_total) ? Number(j.closed_total) : 0;
+          recebidos = (j && j.recebido_clientes) ? Number(j.recebido_clientes) : 0;
         }catch(e){ console.error(e); }
-        const totalReceita   = (sumReceita || 0) + (closed || 0);
+        const totalReceita   = (sumReceita || 0) + (closed || 0) + (recebidos || 0);
         const totalResultado = totalReceita - (sumDespesa || 0);
         const margem         = totalReceita > 0 ? (totalResultado / totalReceita * 100) : 0;
 
@@ -148,6 +149,7 @@
         _s('sumMargem',     margem.toFixed(1).replace('.', ',') + '%');
         _s('closedOnlyVal', fmtMoney(closed || 0));
         _s('sumLancamentos',fmtMoney(sumReceita || 0));
+        _s('recebClientesVal', fmtMoney(recebidos || 0));
 
         // ── Atualiza gráfico de barras ──
         if (window.dreCharts && window.dreCharts.bar) {
@@ -157,7 +159,7 @@
 
         // ── Atualiza gráfico de rosca + legenda ──
         if (window.dreCharts && window.dreCharts.donut) {
-          const donutVals = [Math.max(0, closed || 0), Math.max(0, sumReceita || 0)];
+          const donutVals = [Math.max(0, closed || 0), Math.max(0, sumReceita || 0)].concat(window.DRE_COM_RECEB ? [Math.max(0, recebidos || 0)] : []);
           window.dreCharts.donut.data.datasets[0].data = donutVals;
           window.dreCharts.donut.update();
           if (typeof window.dreUpdateDonutLegend === 'function') window.dreUpdateDonutLegend(donutVals);

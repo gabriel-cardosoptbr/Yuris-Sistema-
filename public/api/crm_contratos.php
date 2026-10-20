@@ -10,6 +10,7 @@
  *   GET  ?baixar=<uuid>           um arquivo (original, comprovante, conclusão, manifesto)
  *   GET  ?evidencias=N            o pacote de evidências em JSON
  *   POST multipart acao=anexar    o PDF (id, arquivo)
+ *   POST {acao:'criar_de_anexo', anexo_id}  contrato novo com o PDF anexado na ficha do cliente ou lead
  *   POST {acao, ...}              criar, atualizar, participante_salvar, participante_remover,
  *                                 enviar, novo_link, liberar, cancelar, config_salvar, reprocessar
  *
@@ -192,6 +193,19 @@ try {
         ?: ctrResponder(['ok' => false, 'error' => 'Só o responsável pelo contrato ou um administrador faz isso.'], 403);
 
     switch ($acao) {
+        case 'criar_de_anexo':
+            // O PDF anexado na ficha (crm_anexos) vira um contrato ligado ao mesmo cliente ou lead.
+            $an = \App\Crm\Anexo::buscar((int) ($in['anexo_id'] ?? 0), [$acc]);
+            $modAn = ($an['entidade'] ?? '') === 'card' ? 'prospeccao' : 'clientes';
+            if (!$an || \App\Crm\Entidade::resolver((string) $an['entidade'], (int) $an['entidade_id'], $ctx->getAccessibleAccountIds($modAn)) === null) {
+                ctrResponder(['ok' => false, 'error' => 'Documento não encontrado.'], 404);
+            }
+            $cam = realpath(__DIR__ . '/..' . $an['file_path']);
+            $raiz = realpath(__DIR__ . '/../uploads');
+            if (!$cam || !$raiz || strncmp($cam, $raiz, strlen($raiz)) !== 0 || !is_file($cam)) ctrResponder(['ok' => false, 'error' => 'Arquivo não encontrado no servidor.'], 404);
+            $bytesAn = (string) file_get_contents($cam);
+            if (!Armazenamento::ehPdf($bytesAn)) ctrResponder(['ok' => false, 'error' => 'Só PDF vai para assinatura.'], 400);
+            ctrResponder(['ok' => true, 'id' => Contrato::criarDeAnexo($acc, $uid, $an, $bytesAn)]);
         case 'criar':
             ctrResponder(['ok' => true, 'id' => Contrato::criar($acc, $uid, $in)]);
         case 'atualizar':

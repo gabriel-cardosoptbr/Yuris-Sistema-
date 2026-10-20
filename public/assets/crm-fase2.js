@@ -583,7 +583,54 @@
   Painel.prototype.carregarAnexos = async function () {
     const d = await this.chamar('/api/crm_anexos.php?entidade=' + this.entidade + '&id=' + this.id);
     if (!d) return;
+    this.contratosDocs = Array.isArray(d.contratos) ? d.contratos : null;
     this.desenharAnexos(d.anexos || [], d.limites || {});
+  };
+
+  /*
+   * Edição CRM: os contratos da aba Contratos (assinatura eletrônica) ligados a esta
+   * ficha aparecem aqui junto dos documentos, com o PDF enviado, o assinado e o
+   * comprovante. `contratosDocs` é null fora da edição CRM: nada muda no Yuris.
+   */
+  Painel.prototype.htmlContratos = function () {
+    const lista = this.contratosDocs;
+    if (!lista || !lista.length) return '';
+    return '<div class="crm-rotulo" style="margin:12px 0 4px;">Contratos (assinatura eletrônica)</div>' +
+      lista.map(function (c) {
+        const arqs = c.arquivos.length
+          ? c.arquivos.map(function (a) {
+              return '<a href="/api/crm_contratos.php?baixar=' + encodeURIComponent(a.uuid) + '" style="font-size:.78rem;color:#93c5fd;text-decoration:none;margin-right:12px;">' +
+                esc(a.rotulo) + '</a>';
+            }).join('')
+          : '<span class="crm-vazio">Ainda sem documento.</span>';
+        const quando = c.concluido_em ? 'assinado em ' + c.concluido_em : 'criado em ' + c.criado_em;
+        return '<div class="crm-item">' +
+          '<span style="min-width:0;">' +
+            '<a href="/contratos.php?id=' + c.id + '" style="font-weight:600;font-size:.84rem;color:#93c5fd;text-decoration:none;">' + esc(c.titulo) + '</a> ' +
+            '<span style="font-size:.7rem;padding:1px 6px;border-radius:999px;' + (c.status === 'concluido'
+              ? 'background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.28);color:#10b981;'
+              : 'background:rgba(148,163,184,.12);border:1px solid rgba(148,163,184,.3);color:#64748b;') + '">' + esc(c.status_rotulo) + '</span>' +
+            '<div class="crm-vazio">' + esc(quando) + '</div>' +
+            '<div>' + arqs + '</div>' +
+          '</span>' +
+          '<a href="/contratos.php?id=' + c.id + '" class="crm-link" style="white-space:nowrap;flex-shrink:0;">Abrir contrato</a>' +
+          '</div>';
+      }).join('');
+  };
+
+  Painel.prototype.enviarParaAssinatura = async function (anexoId, botao) {
+    botao.textContent = 'Criando contrato…';
+    let d = null;
+    try {
+      const r = await fetch('/api/crm_contratos.php', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-Token': this.csrf },
+        body: JSON.stringify({ acao: 'criar_de_anexo', anexo_id: anexoId, csrf_token: this.csrf })
+      });
+      d = await r.json();
+    } catch (e) { d = null; }
+    if (!d || !d.ok) { avisar((d && d.error) || 'Não foi possível criar o contrato.', 'error'); botao.textContent = 'Enviar para assinatura'; return; }
+    location.href = '/contratos.php?id=' + d.id;
   };
 
   Painel.prototype.desenharAnexos = function (anexos, limites) {
@@ -611,10 +658,15 @@
                 (a.descricao ? '<div class="crm-vazio">' + esc(a.descricao) + '</div>' : '') +
                 '<div class="crm-vazio">' + meta + '</div>' +
               '</span>' +
-              '<a href="#" data-tirar-anexo="' + a.id + '" class="crm-link crm-link-perigo">Remover</a>' +
+              '<span style="display:flex;gap:10px;flex-shrink:0;">' +
+                (self.contratosDocs && a.mime_type === 'application/pdf'
+                  ? '<a href="#" data-assinar-anexo="' + a.id + '" class="crm-link" style="white-space:nowrap;">Enviar para assinatura</a>' : '') +
+                '<a href="#" data-tirar-anexo="' + a.id + '" class="crm-link crm-link-perigo">Remover</a>' +
+              '</span>' +
               '</div>';
           }).join('')
-        : '<div class="crm-vazio">Nenhum documento.</div>') +
+        : (self.contratosDocs && self.contratosDocs.length ? '' : '<div class="crm-vazio">Nenhum documento.</div>')) +
+      this.htmlContratos() +
       /*
        * O `<input type="file">` fica INVISÍVEL por cima de um rótulo que parece
        * botão. O widget nativo ("Escolher arquivo | Nenhum arquivo escolhido",
@@ -647,6 +699,13 @@
         nomeArq.title = f ? f.name : '';
       });
     }
+
+    corpo.querySelectorAll('[data-assinar-anexo]').forEach(function (a) {
+      a.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        self.enviarParaAssinatura(parseInt(a.getAttribute('data-assinar-anexo'), 10), a);
+      });
+    });
 
     corpo.querySelectorAll('[data-tirar-anexo]').forEach(function (a) {
       a.addEventListener('click', async function (ev) {
