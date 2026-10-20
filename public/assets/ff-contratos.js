@@ -127,9 +127,14 @@
             'Nenhum ' + (tipo === 'cliente' ? 'cliente cadastrado' : 'cliente ou negociação') + ' ainda.') + '</div></div>';
           return;
         }
-        box.innerHTML = '<div class="ctr-sugestoes">' + (r.recentes ? '<div class="ctr-sug-nota">Mais recentes. Digite para buscar pelo nome, CPF ou telefone.</div>' : '') +
+        var nCli = it.filter(function (x) { return x.tipo === 'cliente'; }).length, nNeg = it.length - nCli, grupo = '';
+        box.innerHTML = '<div class="ctr-sugestoes">' +
+          '<div class="ctr-sug-nota">' + (r.todos ? 'Todos: ' : 'Encontrados: ') + nCli + ' cliente' + (nCli === 1 ? '' : 's') +
+            (tipo === 'cliente' ? '' : ' e ' + nNeg + ' negociaç' + (nNeg === 1 ? 'ão' : 'ões')) + (r.todos ? '. Digite para filtrar pelo nome, CPF ou telefone.' : '.') + '</div>' +
           it.map(function (x, i) {
-            return '<button type="button" data-i="' + i + '"><b>' + esc(rot(x)) + '</b>' + (x.detalhe ? '<span>' + esc(x.detalhe) + '</span>' : '') + '</button>';
+            var cab = '';
+            if (tipo !== 'cliente' && x.tipo !== grupo) { grupo = x.tipo; cab = '<div class="ctr-sug-grupo">' + (x.tipo === 'cliente' ? 'Clientes' : 'Negociações') + '</div>'; }
+            return cab + '<button type="button" data-i="' + i + '"><b>' + esc(x.nome) + '</b>' + (x.detalhe ? '<span>' + esc(x.detalhe) + '</span>' : '') + '</button>';
           }).join('') + '</div>';
         box.querySelectorAll('button').forEach(function (b) {
           b.onmousedown = function (e) { e.preventDefault(); };
@@ -158,7 +163,7 @@
       '<div class="duas"><div><label>Responsável</label><select id="fResp">' + equipe.map(function (u) {
         return '<option value="' + u.id + '"' + ((c.responsavel_id || apoio.eu) === u.id ? ' selected' : '') + '>' + esc(u.nome) + '</option>';
       }).join('') + '</select></div><div><label>Prazo para assinatura</label><input type="date" id="fPrazo" value="' + esc(c.prazo_data || '') + '"></div></div>' +
-      '<label>Cliente ou negociação (opcional)</label><input id="fVinc" autocomplete="off" placeholder="Clique para ver os recentes ou digite o nome, CPF ou telefone" value="' + esc(vinc) + '"><div id="fSug"></div>' +
+      '<label>Cliente ou negociação (opcional)</label><input id="fVinc" autocomplete="off" placeholder="Clique para ver todos ou digite o nome, CPF ou telefone" value="' + esc(vinc) + '"><div id="fSug"></div>' +
       '<div class="ctr-erro" id="fErro"></div><div class="ctr-janela-acoes"><button class="ctr-btn" data-fechar>Cancelar</button>' +
       '<button class="ctr-btn ctr-btn-principal" id="fSalvar">' + (c.id ? 'Salvar' : 'Criar contrato') + '</button></div>', function (ov, fechar) {
       var sel = { cliente_id: c.cliente_id || pre.cliente_id || null, card_id: c.card_id || pre.card_id || null };
@@ -186,7 +191,7 @@
     var papeis = (apoio && apoio.papeis) || {};
     janela('<h3>' + (p.id ? 'Editar participante' : 'Incluir participante') + '</h3>' +
       '<p class="sub">Cada participante recebe o próprio link e confirma pelo WhatsApp informado aqui. Trocar o WhatsApp ou o CPF de quem já foi convidado invalida o link anterior.</p>' +
-      '<label>Cliente cadastrado (opcional)</label><input id="pBusca" autocomplete="off" placeholder="Clique para ver os clientes ou digite o nome, CPF ou telefone" value="' +
+      '<label>Cliente cadastrado (opcional)</label><input id="pBusca" autocomplete="off" placeholder="Clique para ver todos os clientes ou digite o nome, CPF ou telefone" value="' +
         esc(p.cliente_id ? 'Ligado ao cadastro do cliente' : '') + '"><div id="pSug"></div>' +
       '<div class="duas"><div><label>Papel</label><select id="pPapel">' + Object.keys(papeis).map(function (k) {
         return '<option value="' + k + '"' + (p.papel === k ? ' selected' : '') + '>' + esc(papeis[k]) + '</option>';

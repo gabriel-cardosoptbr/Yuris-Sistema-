@@ -73,8 +73,8 @@ try {
             ]]);
         }
         if (isset($_GET['buscar'])) {
-            // Vazio: os clientes e leads mais recentes da conta (a lista aparece ao clicar no campo).
-            // Com texto: pelo nome, CPF/CNPJ ou telefone. ?tipo=cliente traz só clientes.
+            // Vazio: TODOS os clientes e leads da conta, em ordem alfabética (a lista aparece ao
+            // clicar no campo). Com texto: pelo nome, CPF/CNPJ ou telefone. ?tipo=cliente só clientes.
             $q = trim((string) $_GET['buscar']);
             $soClientes = ($_GET['tipo'] ?? '') === 'cliente';
             $like = '%' . str_replace(['%', '_'], ['\%', '\_'], $q) . '%';
@@ -85,7 +85,7 @@ try {
                                               OR REGEXP_REPLACE(COALESCE(whatsapp,''), '[^0-9]', '') LIKE ? OR REGEXP_REPLACE(COALESCE(telefone,''), '[^0-9]', '') LIKE ?)";
             $c = $pdo->prepare("SELECT id, nome, cpf_cnpj, COALESCE(NULLIF(whatsapp,''), telefone) AS telefone FROM clientes
                                  WHERE account_id = ? AND deleted_at IS NULL $filtroC
-                                 ORDER BY " . ($q === '' ? 'updated_at DESC' : 'nome') . ' LIMIT 8');
+                                 ORDER BY nome LIMIT " . ($q === '' ? 2000 : 100));
             $c->execute($q === '' ? [$acc] : [$acc, $like, $likeD, $likeD, $likeD]);
             $out = [];
             $fone = fn($t) => ($d = preg_replace('/\D/', '', (string) $t)) && strlen($d) >= 8 ? $d : null;
@@ -99,14 +99,14 @@ try {
                 $filtroL = $q === '' ? '' : "AND (cliente_nome LIKE ? OR empresa_nome LIKE ? OR titulo LIKE ?
                                                   OR REGEXP_REPLACE(COALESCE(telefone_whatsapp,''), '[^0-9]', '') LIKE ?)";
                 $l = $pdo->prepare("SELECT id, COALESCE(NULLIF(cliente_nome,''), empresa_nome, titulo) AS nome, telefone_whatsapp FROM cards
-                                     WHERE account_id = ? AND deleted_at IS NULL $filtroL ORDER BY updated_at DESC LIMIT 8");
+                                     WHERE account_id = ? AND deleted_at IS NULL $filtroL ORDER BY nome LIMIT " . ($q === '' ? 2000 : 100));
                 $l->execute($q === '' ? [$acc] : [$acc, $like, $like, $like, $likeD]);
                 foreach ($l->fetchAll(\PDO::FETCH_ASSOC) as $r) {
                     $out[] = ['tipo' => 'lead', 'id' => (int) $r['id'], 'nome' => $r['nome'], 'telefone' => $fone($r['telefone_whatsapp']),
                         'detalhe' => $fone($r['telefone_whatsapp']) ? 'tel. final ' . substr($fone($r['telefone_whatsapp']), -4) : ''];
                 }
             }
-            ctrResponder(['ok' => true, 'data' => $out, 'recentes' => $q === '']);
+            ctrResponder(['ok' => true, 'data' => $out, 'todos' => $q === '']);
         }
         if (!empty($_GET['baixar'])) {
             $st = Database::getConnection()->prepare('SELECT a.*, c.titulo FROM crm_contrato_arquivos a JOIN crm_contratos c ON c.id = a.contrato_id WHERE a.uuid = ? AND a.account_id = ?');
