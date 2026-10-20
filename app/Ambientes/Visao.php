@@ -297,20 +297,7 @@ final class Visao
         $st = $pdo->prepare("SELECT COUNT(*) FROM clientes WHERE account_id = ? AND deleted_at IS NULL AND status = 'ativo' AND created_at <= ?");
         foreach ($m12 as $k) { $st->execute([$accountId, date('Y-m-t 23:59:59', strtotime($k . '-01'))]); $base[] = (int) $st->fetchColumn(); }
 
-        // Entregas por mês: contratadas (frequência), concluídas e postadas.
-        $digitais = AreaDoCliente::clientesDaArea($accountId, 'digital');
-        $ent = ['contratadas' => [], 'concluidas' => [], 'publicadas' => [], 'cadastradas' => []];
-        $st = $pdo->prepare("SELECT SUM(e.entrega = 'entregue') AS c, SUM(e.publicacao = 'publicado') AS p, COUNT(*) AS n
-                               FROM task_entregas_digital e JOIN tasks t ON t.id = e.task_id
-                              WHERE e.account_id = ? AND e.competencia = ? AND t.status <> 'arquivada'");
-        foreach ($m6 as $k) {
-            $st->execute([$accountId, $k . '-01']);
-            $r = $st->fetch(\PDO::FETCH_ASSOC);
-            $ent['concluidas'][] = (int) $r['c']; $ent['publicadas'][] = (int) $r['p']; $ent['cadastradas'][] = (int) $r['n'];
-            $tot = 0;
-            foreach (\App\Digital\Frequencia::previstoNoMes($accountId, $k, $digitais) as $porTipo) $tot += array_sum($porTipo);
-            $ent['contratadas'][] = $tot;
-        }
+        $ent = self::entregasPorMes($accountId, $mes, AreaDoCliente::clientesDaArea($accountId, 'digital'));
 
         // Contratos assinados e enviados por mês.
         $ctr = ['assinados' => array_fill_keys($m6, 0), 'enviados' => array_fill_keys($m6, 0)];
@@ -324,31 +311,86 @@ final class Visao
             foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) if (isset($ctr['enviados'][$r['k']])) $ctr['enviados'][$r['k']] = (int) $r['n'];
         } catch (\Throwable $e) { /* sem contratos */ }
 
-        // Tarefas concluídas por semana (8 semanas), por área do quadro.
         $areaDoQuadro = [];
         foreach ($quadrosVisiveis as $b) $areaDoQuadro[(int) $b['id']] = $b['area'] ?: 'outros';
-        $semanas = []; $sem = ['software' => [], 'digital' => [], 'outros' => []];
-        $segunda = strtotime('monday this week', strtotime(substr($agora, 0, 10)));
-        for ($i = 7; $i >= 0; $i--) $semanas[] = date('Y-m-d', strtotime("-$i weeks", $segunda));
-        $porSemana = [];
-        if ($areaDoQuadro) {
-            $st = $pdo->prepare("SELECT board_id, DATE_FORMAT(DATE_SUB(DATE(concluida_em), INTERVAL WEEKDAY(concluida_em) DAY), '%Y-%m-%d') AS k, COUNT(*) AS n
-                                   FROM tasks WHERE board_id IN (" . self::in(array_keys($areaDoQuadro)) . ") AND status = 'concluida' AND concluida_em >= ? GROUP BY board_id, k");
-            $st->execute(array_merge(array_keys($areaDoQuadro), [$semanas[0]]));
-            foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) $porSemana[$areaDoQuadro[(int) $r['board_id']] ?? 'outros'][$r['k']] = ($porSemana[$areaDoQuadro[(int) $r['board_id']] ?? 'outros'][$r['k']] ?? 0) + (int) $r['n'];
-        }
-        foreach ($semanas as $k) foreach (array_keys($sem) as $a) $sem[$a][] = (int) ($porSemana[$a][$k] ?? 0);
+        $fluxo = self::fluxoSemanal($areaDoQuadro, $agora);
 
         return [
             'meses' => array_map([self::class, 'rotuloMes'], $m12),
             'dinheiro' => ['recebido' => array_values($rec), 'previsto' => array_values($prev), 'recorrente' => $mrr],
             'clientes' => ['novos' => array_values($novos), 'base' => $base],
-            'meses6' => array_map([self::class, 'rotuloMes'], $m6),
+            'meses6' => $ent['meses6'],
             'entregas' => $ent,
             'contratos' => ['assinados' => array_values($ctr['assinados']), 'enviados' => array_values($ctr['enviados'])],
-            'semanas' => array_map(fn($d) => substr($d, 8, 2) . '/' . substr($d, 5, 2), $semanas),
-            'tarefas_concluidas' => $sem,
+            'semanas' => $fluxo['semanas'],
+            'tarefas_concluidas' => $fluxo['por_area'],
+            'tarefas_criadas' => $fluxo['criadas'],
         ];
+    }
+
+    /**
+     * Entregas por mês (6 meses até $mes) dos clientes passados: contratadas pela
+     * frequência, cadastradas, concluídas e postadas. Base do gráfico de Marketing
+     * na Empresa e na Visão Geral do Digital.
+     * @param int[] $clienteIds
+     */
+    public static function entregasPorMes(int $accountId, string $mes, array $clienteIds): array
+    {
+        $m6 = self::meses($mes, 6);
+        $out = ['meses6' => array_map([self::class, 'rotuloMes'], $m6), 'contratadas' => [], 'concluidas' => [], 'publicadas' => [], 'cadastradas' => []];
+        $clienteIds = array_values(array_unique(array_map('intval', $clienteIds)));
+        $st = null;
+        if ($clienteIds) {
+            $st = Database::getConnection()->prepare("SELECT SUM(e.entrega = 'entregue') AS c, SUM(e.publicacao = 'publicado') AS p, COUNT(*) AS n
+                                                        FROM task_entregas_digital e JOIN tasks t ON t.id = e.task_id
+                                                       WHERE e.account_id = ? AND e.competencia = ? AND t.status <> 'arquivada' AND e.cliente_id IN (" . self::in($clienteIds) . ')');
+        }
+        foreach ($m6 as $k) {
+            $r = ['c' => 0, 'p' => 0, 'n' => 0];
+            if ($st) { $st->execute(array_merge([$accountId, $k . '-01'], $clienteIds)); $r = $st->fetch(\PDO::FETCH_ASSOC) ?: $r; }
+            $out['concluidas'][] = (int) $r['c']; $out['publicadas'][] = (int) $r['p']; $out['cadastradas'][] = (int) $r['n'];
+            $tot = 0;
+            foreach (\App\Digital\Frequencia::previstoNoMes($accountId, $k, $clienteIds) as $porTipo) $tot += array_sum($porTipo);
+            $out['contratadas'][] = $tot;
+        }
+        return $out;
+    }
+
+    /**
+     * Tarefas criadas e concluídas por semana (8 semanas) nos quadros passados; com
+     * $porArea, as concluídas também separadas por área do quadro.
+     * @param array<int, string> $areaDoQuadro board_id => área ('outros' sem área)
+     */
+    public static function fluxoSemanal(array $areaDoQuadro, ?string $agora = null): array
+    {
+        $agora ??= date('Y-m-d H:i:s');
+        $semanas = [];
+        $segunda = strtotime('monday this week', strtotime(substr($agora, 0, 10)));
+        for ($i = 7; $i >= 0; $i--) $semanas[] = date('Y-m-d', strtotime("-$i weeks", $segunda));
+        $out = ['semanas' => array_map(fn($d) => substr($d, 8, 2) . '/' . substr($d, 5, 2), $semanas), 'criadas' => [], 'concluidas' => [], 'por_area' => ['software' => [], 'digital' => [], 'outros' => []]];
+        $cri = []; $con = []; $porArea = [];
+        if ($areaDoQuadro) {
+            $pdo = Database::getConnection();
+            $in = self::in(array_keys($areaDoQuadro));
+            $st = $pdo->prepare("SELECT board_id, DATE_FORMAT(DATE_SUB(DATE(concluida_em), INTERVAL WEEKDAY(concluida_em) DAY), '%Y-%m-%d') AS k, COUNT(*) AS n
+                                   FROM tasks WHERE board_id IN ($in) AND status = 'concluida' AND concluida_em >= ? GROUP BY board_id, k");
+            $st->execute(array_merge(array_keys($areaDoQuadro), [$semanas[0]]));
+            foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $a = $areaDoQuadro[(int) $r['board_id']] ?: 'outros';
+                $con[$r['k']] = ($con[$r['k']] ?? 0) + (int) $r['n'];
+                $porArea[$a][$r['k']] = ($porArea[$a][$r['k']] ?? 0) + (int) $r['n'];
+            }
+            $st = $pdo->prepare("SELECT DATE_FORMAT(DATE_SUB(DATE(created_at), INTERVAL WEEKDAY(created_at) DAY), '%Y-%m-%d') AS k, COUNT(*) AS n
+                                   FROM tasks WHERE board_id IN ($in) AND created_at >= ? GROUP BY k");
+            $st->execute(array_merge(array_keys($areaDoQuadro), [$semanas[0]]));
+            foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) $cri[$r['k']] = (int) $r['n'];
+        }
+        foreach ($semanas as $k) {
+            $out['criadas'][] = (int) ($cri[$k] ?? 0);
+            $out['concluidas'][] = (int) ($con[$k] ?? 0);
+            foreach (array_keys($out['por_area']) as $a) $out['por_area'][$a][] = (int) ($porArea[$a][$k] ?? 0);
+        }
+        return $out;
     }
 
     // ── Empresa: as seções de cada área ───────────────────────────────────
@@ -461,9 +503,23 @@ final class Visao
         $nomes = array_column($quadros, 'nome', 'id');
         foreach ($t['proximos'] as &$p) $p['quadro'] = $nomes[$p['board_id']] ?? '';
         unset($p);
+        $porStatus = []; $porModelo = [];
+        foreach ($quadros as $q) $porModelo[$q['modelo'] ?: 'livre'] = ($porModelo[$q['modelo'] ?: 'livre'] ?? 0) + $q['abertas'];
+        // Tarefas abertas por prioridade e sem prazo, nos quadros de Software.
+        $prio = ['urgente' => 0, 'alta' => 0, 'media' => 0, 'baixa' => 0]; $semPrazo = 0;
+        if ($ids) {
+            $st = Database::getConnection()->prepare("SELECT t.prioridade, SUM(t.prazo IS NULL) AS sp, COUNT(*) AS n FROM tasks t LEFT JOIN task_columns col ON col.id = t.column_id
+                WHERE t.board_id IN (" . self::in($ids) . ") AND t.status = 'ativa' AND COALESCE(col.is_coluna_concluido, 0) = 0 GROUP BY t.prioridade");
+            $st->execute($ids);
+            foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) { $prio[$r['prioridade']] = (int) $r['n']; $semPrazo += (int) $r['sp']; }
+        }
         return [
             'carteira' => self::projetosCarteira($accountId, 'software'),
             'quadros' => $quadros,
+            'series' => self::fluxoSemanal(array_fill_keys($ids, 'software'), $agora),
+            'por_modelo' => $porModelo,
+            'por_prioridade' => $prio,
+            'sem_prazo' => $semPrazo,
             'tarefas' => ['abertas' => $t['abertas'], 'atrasadas' => $t['atrasadas'], 'sem_responsavel' => $t['sem_responsavel'], 'suporte_abertos' => $suporte],
             'responsaveis' => $t['por_responsavel'],
             'proximos' => $t['proximos'],
@@ -511,8 +567,16 @@ final class Visao
         $nomesQ = array_map(fn($b) => $b['nome'], $dg);
         foreach ($t['proximos'] as &$p) $p['quadro'] = $nomesQ[$p['board_id']] ?? '';
         unset($p);
+        // Por tipo de entrega (post, vídeo...), somando os clientes.
+        $porTipo = [];
+        foreach ($clientes as $c) foreach ($c['por_tipo'] ?? [] as $tipo => $x) {
+            $porTipo[$tipo] ??= ['rotulo' => $x['rotulo'], 'previsto' => 0, 'cadastradas' => 0, 'entregues' => 0, 'publicados' => 0];
+            foreach (['previsto', 'cadastradas', 'entregues', 'publicados'] as $k) $porTipo[$tipo][$k] += (int) ($x[$k] ?? 0);
+        }
         return [
             'mes' => substr($mes, 0, 7),
+            'series' => self::entregasPorMes($accountId, $mes, $clienteIds) + ['fluxo' => self::fluxoSemanal(array_fill_keys(array_keys($dg), 'digital'), $agora)],
+            'por_tipo' => array_values($porTipo),
             'total' => $res['total'] + ['aprovacoes' => array_sum(array_map('intval', $aguardando)), 'campanhas_ativas' => array_sum(array_map('intval', $campanhas)),
                                          'materiais_faltando' => Material::faltando($accountId, array_keys($dg))],
             'clientes' => $clientes,

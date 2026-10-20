@@ -351,30 +351,55 @@
   }
 
   // ── Software ───────────────────────────────────────────────────────────
+  var MODELO = { demandas: 'Demandas', suporte: 'Suporte', etapas: 'Etapas', episodios: 'Episódios', campanhas: 'Campanhas', livre: 'Livre' };
   function software() {
     if (acoes) acoes.innerHTML = CFG.pode.tarefas ? '<a class="ctr-btn ctr-btn-principal" href="/tarefas?amb=software">Abrir quadros</a>' : '';
     pedir('/api/ambientes.php?visao=software').then(function (r) {
       if (!r.ok) return erro(r.error || 'Não foi possível carregar a Visão Geral.');
-      var d = r.data, t = d.tarefas;
-      var h = '<div class="ctr-central amb-kpis">' +
-        kpi('Projetos em andamento', num(d.carteira.length), 'na carteira de projetos', '/projetos?amb=software') +
-        kpi('Quadros de Software', num(d.quadros.length), 'demandas e suporte', '/tarefas?amb=software') +
-        kpi('Tarefas abertas', num(t.abertas), num(t.sem_responsavel) + ' sem responsável') +
-        kpi('Atrasadas', num(t.atrasadas), t.atrasadas ? 'precisam de atenção' : 'tudo no prazo', '', t.atrasadas ? 'alerta' : '') +
-        kpi('Suporte em aberto', num(t.suporte_abertos), 'chamados nos quadros de suporte') +
-        '</div>';
-      var quadros = d.quadros.length ? '<table class="amb-tab"><thead><tr><th>Quadro</th><th>Cliente</th><th>Abertas</th><th>Atrasadas</th><th>Próximo prazo</th></tr></thead><tbody>' +
-        d.quadros.map(function (b) {
-          return '<tr><td><a href="/tarefas?amb=software&board=' + b.id + '">' + esc(b.nome) + '</a></td><td>' + esc(b.cliente || 'Interno') + '</td><td>' + num(b.abertas) + '</td><td' + (b.atrasadas ? ' class="amb-verm"' : '') + '>' + num(b.atrasadas) + '</td><td>' + esc(data(b.proximo) || '-') + '</td></tr>';
-        }).join('') + '</tbody></table>' : vazio('Nenhum quadro de Software. Crie um em "Demandas e suporte" para cada projeto, cliente ou para o suporte.');
-      var STATUS = { desenvolvimento: 'Em desenvolvimento', producao: 'Em produção', pausado: 'Pausado' };
+      var d = r.data, t = d.tarefas, S = d.series, G = [], ids = { sit: gid(), resp: gid(), fluxo: gid(), quadros: gid(), prio: gid(), pessoas: gid() };
+      var porSit = {}, resp = {};
+      d.carteira.forEach(function (p) { porSit[p.status] = (porSit[p.status] || 0) + 1; var rr = p.responsavel || 'Sem responsável'; resp[rr] = (resp[rr] || 0) + 1; });
+      var concl8 = S.concluidas.reduce(function (a, b) { return a + b; }, 0), cri8 = S.criadas.reduce(function (a, b) { return a + b; }, 0);
+      var h = tiles([
+        tile('Projetos em andamento', num(d.carteira.length), Object.keys(porSit).map(function (k) { return num(porSit[k]) + ' ' + (SIT_PROJ[k] || k).toLowerCase(); }).join(' · ')),
+        tile('Quadros', num(d.quadros.length), 'demandas e suporte'),
+        tile('Tarefas abertas', num(t.abertas), num(t.sem_responsavel) + ' sem responsável · ' + num(d.sem_prazo) + ' sem prazo'),
+        tile('Atrasadas', num(t.atrasadas), t.abertas ? Math.round(t.atrasadas / t.abertas * 100) + '% das abertas' : '', t.atrasadas ? 'alerta' : ''),
+        tile('Suporte em aberto', num(t.suporte_abertos), 'chamados nos quadros de suporte'),
+        tile('Concluídas em 8 semanas', num(concl8), num(cri8) + ' criadas no período', cri8 > concl8 ? 'atencao' : '')
+      ]);
+      h += '<div class="amb-grade-3"><div class="amb-span2">' + grafCartao('Fluxo de tarefas por semana', ids.fluxo, 250, 'criadas x concluídas nos quadros de Software') + '</div>' + grafCartao('Tarefas abertas por prioridade', ids.prio, 250) + '</div>';
+      G.push({ id: ids.fluxo, cfg: { type: 'bar', data: { labels: S.semanas, datasets: [
+        { label: 'Criadas', data: S.criadas, backgroundColor: COR.media, borderRadius: 6 },
+        { label: 'Concluídas', data: S.concluidas, backgroundColor: COR.marca, borderRadius: 6 } ] },
+        options: { interaction: { mode: 'index', intersect: false }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: {} } } } });
+      var pr = d.por_prioridade, PRIO = { urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa' }, pk = Object.keys(PRIO);
+      G.push(t.abertas ? rosca(ids.prio, pk.map(function (k) { return PRIO[k]; }), pk.map(function (k) { return pr[k] || 0; }), [COR.vermelho, COR.laranja, COR.marca, COR.cinza], [num(t.abertas), 'abertas'])
+        : rosca(ids.prio, ['Nenhuma aberta'], [1], [escuro() ? '#2A3A55' : '#E5E9F0'], ['0', 'abertas']));
+      var qs = d.quadros.slice().sort(function (a, b) { return b.abertas - a.abertas; }).slice(0, 12);
+      var respK = Object.keys(resp).sort(function (a, b) { return resp[b] - resp[a]; }).slice(0, 10), sitK = Object.keys(porSit);
+      h += '<div class="amb-grade-3">' + grafCartao('Projetos por situação', ids.sit, 240) + grafCartao('Projetos por responsável', ids.resp, 240) + grafCartao('Tarefas abertas por quadro', ids.quadros, 240, 'abertas e atrasadas') + '</div>';
+      G.push(sitK.length ? rosca(ids.sit, sitK.map(function (k) { return SIT_PROJ[k] || k; }), sitK.map(function (k) { return porSit[k]; }), [COR.marca, COR.verde, COR.ambar], [num(d.carteira.length), 'projetos'])
+        : rosca(ids.sit, ['Nenhum projeto'], [1], [escuro() ? '#2A3A55' : '#E5E9F0'], ['0', 'projetos']));
+      G.push({ id: ids.resp, cfg: { type: 'bar', data: { labels: respK, datasets: [{ label: 'Projetos', data: respK.map(function (k) { return resp[k]; }), backgroundColor: COR.marca, borderRadius: 6 }] },
+        options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } }, y: {} } } } });
+      G.push({ id: ids.quadros, cfg: { type: 'bar', data: { labels: qs.map(function (q) { return (q.cliente ? q.cliente + ' · ' : '') + q.nome; }), datasets: [
+        { label: 'Abertas', data: qs.map(function (q) { return q.abertas; }), backgroundColor: COR.marca, borderRadius: 6 },
+        { label: 'Atrasadas', data: qs.map(function (q) { return q.atrasadas; }), backgroundColor: COR.vermelho, borderRadius: 6 } ] },
+        options: { indexAxis: 'y', scales: { x: { beginAtZero: true, ticks: { precision: 0 } }, y: {} } } } });
+      var pes = d.responsaveis.slice(0, 12);
+      h += '<div class="amb-grade-3"><div class="amb-span2">' + grafCartao('Tarefas por pessoa', ids.pessoas, Math.max(220, 32 * pes.length + 70), 'abertas e atrasadas agora') + '</div>' + cartao('Próximos prazos (14 dias)', proximos(d.proximos, 'software')) + '</div>';
+      G.push({ id: ids.pessoas, cfg: { type: 'bar', data: { labels: pes.map(function (p) { return p.nome; }), datasets: [
+        { label: 'Abertas', data: pes.map(function (p) { return p.abertas; }), backgroundColor: COR.marca, borderRadius: 6 },
+        { label: 'Atrasadas', data: pes.map(function (p) { return p.atrasadas; }), backgroundColor: COR.vermelho, borderRadius: 6 } ] },
+        options: { indexAxis: 'y', scales: { x: { beginAtZero: true, ticks: { precision: 0 } }, y: {} } } } });
       var carteira = d.carteira.length ? '<table class="amb-tab"><thead><tr><th>Projeto</th><th>Cliente</th><th>Situação</th><th>Responsável</th></tr></thead><tbody>' +
         d.carteira.map(function (p) {
-          return '<tr><td><a href="/projetos?amb=software&p=' + encodeURIComponent(p.slug) + '">' + esc(p.nome) + '</a></td><td>' + esc(p.cliente || '-') + '</td><td><span class="amb-pill">' + esc(STATUS[p.status] || p.status) + '</span></td><td>' + esc(p.responsavel || 'Sem responsável') + '</td></tr>';
+          return '<tr><td><a href="/projetos?amb=software&p=' + encodeURIComponent(p.slug) + '">' + esc(p.nome) + '</a></td><td>' + esc(p.cliente || '-') + '</td><td><span class="amb-pill">' + esc(SIT_PROJ[p.status] || p.status) + '</span></td><td>' + esc(p.responsavel || 'Sem responsável') + '</td></tr>';
         }).join('') + '</tbody></table>' : vazio('Nenhum projeto de Software em andamento na carteira.');
-      h += cartao('Projetos em andamento', carteira) + cartao('Quadros de demandas e suporte', quadros);
-      h += '<div class="amb-duas">' + cartao('Próximos prazos (14 dias)', proximos(d.proximos, 'software')) + cartao('Responsáveis', responsaveis(d.responsaveis)) + '</div>';
+      h += cartao('Projetos em andamento', carteira);
       app.innerHTML = h;
+      desenharGraficos(G);
     });
   }
 
@@ -391,27 +416,60 @@
     seletorMes();
     pedir('/api/ambientes.php?visao=digital&mes=' + mes).then(function (r) {
       if (!r.ok) return erro(r.error || 'Não foi possível carregar a Visão Geral.');
-      var d = r.data, t = d.total;
-      var h = '<div class="ctr-central amb-kpis">' +
-        kpi('Contratadas no mês', num(t.contratadas), t.nao_cadastradas ? num(t.nao_cadastradas) + ' ainda sem cartão' : 'todas com cartão') +
-        kpi('Em produção', num(t.producao), num(t.cadastradas) + ' cadastradas', '/digital?ver=entregas&mes=' + d.mes) +
-        kpi('Aguardando aprovação', num(t.aprovacao), 'do cliente', '/digital?ver=entregas&mes=' + d.mes, t.aprovacao ? 'atencao' : '') +
-        kpi('Concluídas', num(t.concluidas), 'entregues em ' + mesRotulo(d.mes), '/digital?ver=entregas&mes=' + d.mes) +
-        kpi('Atrasadas', num(t.atrasadas), 'não concluídas com prazo vencido', '/digital?ver=entregas&mes=' + d.mes, t.atrasadas ? 'alerta' : '') +
-        kpi('Materiais faltando', num(t.materiais_faltando), 'esperados e não recebidos') +
-        kpi('Campanhas ativas', num(t.campanhas_ativas), 'tráfego pago', '/digital?ver=campanhas') +
-        '</div>';
-      var linhas = d.clientes.length ? '<table class="amb-tab amb-tab-cli"><thead><tr><th>Cliente</th><th>Previsto x realizado</th><th>Produção</th><th>Aprovação</th><th>Concluídas</th><th>Atrasadas</th><th>Quadros</th></tr></thead><tbody>' +
-        d.clientes.map(function (c) {
-          return '<tr><td><a href="/clientes?amb=digital&open=' + c.id + '">' + esc(c.nome) + '</a>' + (c.campanhas_ativas ? '<small class="amb-cinza">' + num(c.campanhas_ativas) + ' campanha(s) ativa(s)</small>' : '') + '</td>' +
-            '<td>' + previsto(c) + '</td><td>' + num(c.producao) + '</td><td' + (c.aprovacao ? ' class="amb-amb"' : '') + '>' + num(c.aprovacao) + '</td><td>' + num(c.concluidas) + '</td>' +
+      var d = r.data, t = d.total, S = d.series, G = [], ids = { evo: gid(), sit: gid(), cli: gid(), tipo: gid(), post: gid(), fluxo: gid(), pessoas: gid() };
+      var h = tiles([
+        tile('Contratadas', num(t.contratadas), num(t.esperado_ate_hoje) + ' esperadas até hoje'),
+        tile('Concluídas', num(t.concluidas), t.contratadas ? Math.round(t.concluidas / t.contratadas * 100) + '% do contratado' : num(t.cadastradas) + ' cadastradas'),
+        tile('Postadas', num(t.publicadas), num(t.agendadas) + ' agendada(s) · ' + num(t.a_publicar) + ' a postar', t.a_publicar ? 'atencao' : ''),
+        tile('Em produção', num(t.producao)), tile('Aguardando aprovação', num(t.aprovacao), 'do cliente', t.aprovacao ? 'atencao' : ''),
+        tile('Atrasadas', num(t.atrasadas), 'prazo vencido sem entregar', t.atrasadas ? 'alerta' : ''),
+        tile('Sem cartão', num(t.nao_cadastradas), 'contratadas e não cadastradas', t.nao_cadastradas ? 'atencao' : ''),
+        tile('Campanhas ativas', num(t.campanhas_ativas)), tile('Materiais faltando', num(t.materiais_faltando))
+      ]);
+      h += '<div class="amb-grade-3"><div class="amb-span2">' + grafCartao('Entregas por mês, 6 meses', ids.evo, 250, 'contratadas, concluídas e postadas') + '</div>' + grafCartao('Situação das entregas de ' + mesRotulo(d.mes), ids.sit, 250) + '</div>';
+      G.push({ id: ids.evo, cfg: { type: 'bar', data: { labels: S.meses6, datasets: [
+        { label: 'Contratadas', data: S.contratadas, backgroundColor: COR.media, borderRadius: 6 },
+        { label: 'Concluídas', data: S.concluidas, backgroundColor: COR.marca, borderRadius: 6 },
+        { label: 'Postadas', data: S.publicadas, backgroundColor: COR.verde, borderRadius: 6 } ] },
+        options: { interaction: { mode: 'index', intersect: false }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: {} } } } });
+      G.push(rosca(ids.sit, ['Concluídas', 'Aguardando aprovação', 'Em produção', 'Sem cartão'], [t.concluidas, t.aprovacao, t.producao, t.nao_cadastradas], [COR.verde, COR.ambar, COR.marca, COR.cinza], [num(t.contratadas || t.cadastradas), 'no mês']));
+      var cls = d.clientes.slice().sort(function (a, b) { return (b.contratadas || b.cadastradas) - (a.contratadas || a.cadastradas); });
+      var tipos = d.por_tipo || [];
+      h += '<div class="amb-grade-3"><div class="amb-span2">' + grafCartao('Por cliente: contratado, concluído e postado', ids.cli, Math.max(220, 34 * cls.length + 70)) + '</div>' + grafCartao('Por tipo de entrega', ids.tipo, Math.max(220, 34 * tipos.length + 70), 'previsto x entregue x postado') + '</div>';
+      G.push({ id: ids.cli, cfg: { type: 'bar', data: { labels: cls.map(function (c) { return c.nome; }), datasets: [
+        { label: 'Contratadas', data: cls.map(function (c) { return c.contratadas; }), backgroundColor: COR.media, borderRadius: 6 },
+        { label: 'Concluídas', data: cls.map(function (c) { return c.concluidas; }), backgroundColor: COR.marca, borderRadius: 6 },
+        { label: 'Postadas', data: cls.map(function (c) { return c.publicadas; }), backgroundColor: COR.verde, borderRadius: 6 },
+        { label: 'Atrasadas', data: cls.map(function (c) { return c.atrasadas; }), backgroundColor: COR.vermelho, borderRadius: 6 } ] },
+        options: { indexAxis: 'y', scales: { x: { beginAtZero: true, ticks: { precision: 0 } }, y: {} } } } });
+      G.push({ id: ids.tipo, cfg: { type: 'bar', data: { labels: tipos.map(function (x) { return x.rotulo; }), datasets: [
+        { label: 'Previsto', data: tipos.map(function (x) { return x.previsto; }), backgroundColor: COR.media, borderRadius: 6 },
+        { label: 'Entregues', data: tipos.map(function (x) { return x.entregues; }), backgroundColor: COR.marca, borderRadius: 6 },
+        { label: 'Postados', data: tipos.map(function (x) { return x.publicados; }), backgroundColor: COR.verde, borderRadius: 6 } ] },
+        options: { indexAxis: 'y', scales: { x: { beginAtZero: true, ticks: { precision: 0 } }, y: {} } } } });
+      var pes = d.responsaveis.slice(0, 12), F = S.fluxo;
+      h += '<div class="amb-grade-3">' + grafCartao('Fluxo de cartões por semana', ids.fluxo, 240, 'criados x concluídos nos quadros de Digital') + grafCartao('Cartões por pessoa', ids.pessoas, 240, 'abertos e atrasados agora') + cartao('Próximos prazos (14 dias)', proximos(d.proximos, 'digital')) + '</div>';
+      G.push({ id: ids.fluxo, cfg: { type: 'bar', data: { labels: F.semanas, datasets: [
+        { label: 'Criados', data: F.criadas, backgroundColor: COR.media, borderRadius: 6 },
+        { label: 'Concluídos', data: F.concluidas, backgroundColor: COR.marca, borderRadius: 6 } ] },
+        options: { interaction: { mode: 'index', intersect: false }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: {} } } } });
+      G.push({ id: ids.pessoas, cfg: { type: 'bar', data: { labels: pes.map(function (p) { return p.nome; }), datasets: [
+        { label: 'Abertos', data: pes.map(function (p) { return p.abertas; }), backgroundColor: COR.marca, borderRadius: 6 },
+        { label: 'Atrasados', data: pes.map(function (p) { return p.atrasadas; }), backgroundColor: COR.vermelho, borderRadius: 6 } ] },
+        options: { indexAxis: 'y', scales: { x: { beginAtZero: true, ticks: { precision: 0 } }, y: {} } } } });
+      var linhas = cls.length ? '<table class="amb-tab amb-tab-cli"><thead><tr><th>Cliente</th><th>Postagem no mês</th><th>Previsto x realizado</th><th>Ritmo</th><th>Aprovação</th><th>Atrasadas</th><th>Quadros</th></tr></thead><tbody>' +
+        cls.map(function (c) {
+          var ritmo = c.ritmo === 'atrasado' ? '<span class="amb-pill amb-pill-verm">Atrasado: ' + num(c.concluidas) + ' de ' + num(c.esperado_ate_hoje) + ' esperadas</span>' : c.ritmo === 'em_dia' ? '<span class="amb-pill amb-pill-ok">Em dia</span>' : '<span class="amb-pill">Sem frequência</span>';
+          return '<tr><td><a href="/clientes?amb=digital&open=' + c.id + '">' + esc(c.nome) + '</a>' + (c.campanhas_ativas ? '<small class="amb-cinza">' + num(c.campanhas_ativas) + ' campanha(s) ativa(s)</small>' : '') + (c.contratadas && !c.publicadas && !c.concluidas ? '<small class="amb-verm">Nada postado no mês</small>' : '') + '</td>' +
+            '<td><b>' + num(c.publicadas) + '</b> postada(s)<small class="amb-cinza">' + num(c.agendadas) + ' agendada(s) · ' + num(c.a_publicar) + ' a postar</small></td>' +
+            '<td>' + previsto(c) + '</td><td>' + ritmo + '</td><td' + (c.aprovacao ? ' class="amb-amb"' : '') + '>' + num(c.aprovacao) + '</td>' +
             '<td' + (c.atrasadas ? ' class="amb-verm"' : '') + '>' + num(c.atrasadas) + '</td>' +
             '<td>' + (c.quadros.length ? c.quadros.map(function (q) { return '<a class="amb-pill" href="/tarefas?amb=digital&board=' + q.id + '">' + esc(q.nome) + '</a>'; }).join(' ') : '<a class="amb-cinza" href="/tarefas?amb=digital">Criar quadro</a>') + '</td></tr>';
         }).join('') + '</tbody></table>'
-        : vazio('Nenhum cliente de Digital ainda. O cliente entra aqui quando tem frequência contratada, campanha, quadro de produção ou valor da área Digital.');
+        : vazio('Nenhum cliente de Digital ainda. Marque a área na ficha do cliente ou cadastre frequência, campanha ou quadro de produção.');
       h += cartao('Clientes em ' + mesRotulo(d.mes), linhas);
-      h += '<div class="amb-duas">' + cartao('Próximos prazos (14 dias)', proximos(d.proximos, 'digital')) + cartao('Responsáveis', responsaveis(d.responsaveis)) + '</div>';
       app.innerHTML = h;
+      desenharGraficos(G);
     });
   }
 
