@@ -27,7 +27,7 @@ use App\Core\AccountContext;
 use App\Relatorios\Listagem;
 
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: /login'); exit; }
 
 $ctx = AccountContext::fromSession();
 $ctx->assertAccountActive();
@@ -187,7 +187,7 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
       <?php endforeach; ?>
     </nav>
 
-    <form class="rel-filtros no-print" method="get" action="/relatorios.php">
+    <form class="rel-filtros no-print" method="get" action="/relatorios">
       <input type="hidden" name="fonte" value="<?= e($fonte) ?>">
 
       <div class="rel-campo">
@@ -268,7 +268,7 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
 
       <div class="rel-acoes">
         <button type="submit" class="btn-doc btn-doc-primario">Aplicar</button>
-        <a class="btn-doc" href="/relatorios.php?fonte=<?= e($fonte) ?>">Limpar</a>
+        <a class="btn-doc" href="/relatorios?fonte=<?= e($fonte) ?>">Limpar</a>
         <a class="btn-doc" href="<?= e($csvUrl) ?>">Baixar planilha</a>
         <button type="button" class="btn-doc" id="btnImprimirLista">Imprimir</button>
       </div>

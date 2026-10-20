@@ -29,7 +29,7 @@
         <h5>Produto</h5>
         <ul>
           <li><a href="#recursos">Recursos</a></li>
-          <li><a href="/planos.php">Planos</a></li>
+          <li><a href="/planos">Planos</a></li>
           <li><a href="/demonstracao/">Demonstração</a></li>
           <li><a href="/blog/">Blog</a></li>
         </ul>
@@ -39,17 +39,17 @@
         <ul>
           <li><a href="/sobre/">Sobre o Yuris</a></li>
           <li><a href="#para-quem">Para quem é</a></li>
-          <li><a href="/login.php">Entrar</a></li>
+          <li><a href="/login">Entrar</a></li>
         </ul>
       </div>
       <div class="lp2-footer-col">
         <h5>Legal</h5>
         <ul>
-          <li><a href="/privacidade.php">Privacidade</a></li>
-          <li><a href="/termos.php">Termos</a></li>
-          <li><a href="/lgpd.php">LGPD</a></li>
-          <li><a href="/cookies.php">Cookies</a></li>
-          <li><a href="/dpo.php">Encarregado (DPO)</a></li>
+          <li><a href="/privacidade">Privacidade</a></li>
+          <li><a href="/termos">Termos</a></li>
+          <li><a href="/lgpd">LGPD</a></li>
+          <li><a href="/cookies">Cookies</a></li>
+          <li><a href="/dpo">Encarregado (DPO)</a></li>
           <li><a href="#" onclick="if(window.YurisCookies){YurisCookies.open();}return false;">Gerenciar cookies</a></li>
         </ul>
       </div>

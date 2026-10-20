@@ -60,7 +60,7 @@ HTML,
 
     'relacionados' => [
         ['href' => '/sistema-juridico/', 'titulo' => 'Sistema Jurídico',  'desc' => 'O que é e o que o Yuris centraliza na operação do escritório.'],
-        ['href' => '/planos.php',        'titulo' => 'Planos',            'desc' => 'Preços públicos, tudo incluído, a partir de R$ 220/mês.'],
+        ['href' => '/planos',        'titulo' => 'Planos',            'desc' => 'Preços públicos, tudo incluído, a partir de R$ 220/mês.'],
         ['href' => '/demonstracao/',     'titulo' => 'Demonstração',      'desc' => 'Veja o sistema aplicado à rotina do seu escritório.'],
     ],
 ];

@@ -6,10 +6,10 @@
  */
 require_once __DIR__ . '/../app/bootstrap.php';
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: /login'); exit; }
 $ctxPla = \App\Core\AccountContext::fromSession();
 $ctxPla->assertAccountActive();
-if ($ctxPla->getProduto() !== 'fleetiflow') { header('Location: /dashboard.php'); exit; }
+if ($ctxPla->getProduto() !== 'fleetiflow') { header('Location: /dashboard'); exit; }
 $activePage = 'plataforma';
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 $cssOrc = @filemtime(__DIR__ . '/assets/ff-orcamentos.css') ?: 1;

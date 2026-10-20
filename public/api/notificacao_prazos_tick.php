@@ -225,7 +225,7 @@ foreach ($excedente as $userId => $quantos) {
         // appendar 's' produzia "E mais 2 items vencendo".
         'titulo'      => 'E mais ' . $quantos . ' ' . ($quantos === 1 ? 'item' : 'itens') . ' vencendo',
         'mensagem'    => 'Além dos ' . MAX_POR_PESSOA . ' mais urgentes acima. Abra Tarefas para ver a lista completa.',
-        'url'         => '/tarefas.php',
+        'url'         => '/tarefas',
         'preferencia' => 'prazo',
         'chave_dedupe'=> 'prazo-resumo:' . $userId . ':' . $hoje,
         'janela_min'  => Aviso::JANELA_DIARIA_MIN,

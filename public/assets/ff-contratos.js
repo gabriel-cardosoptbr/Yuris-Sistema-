@@ -72,7 +72,7 @@
 
   // ── Lista e central ────────────────────────────────────────────────────
   function lista() {
-    history.replaceState(null, '', '/contratos.php');
+    history.replaceState(null, '', '/contratos');
     raiz.innerHTML = '<div class="ctr-vazio">Carregando…</div>';
     Promise.all([api('GET', null, '?central=1'), api('GET', null, '?lista=1&status=' + encodeURIComponent(filtro.status) + '&busca=' + encodeURIComponent(filtro.busca))]).then(function (rs) {
       var cen = rs[0].ok ? rs[0].data : null, itens = rs[1].ok ? rs[1].data : [];
@@ -303,7 +303,7 @@
 
   // ── Ficha ──────────────────────────────────────────────────────────────
   function ficha(id) {
-    history.replaceState(null, '', '/contratos.php?id=' + id);
+    history.replaceState(null, '', '/contratos?id=' + id);
     raiz.innerHTML = '<div class="ctr-vazio">Carregando…</div>';
     api('GET', null, '?id=' + id).then(function (r) {
       if (!r.ok) { raiz.innerHTML = '<button class="ctr-voltar" id="cVoltar">← Contratos</button><div class="ctr-aviso vermelho">' + esc(r.error) + '</div>'; document.getElementById('cVoltar').onclick = lista; return; }

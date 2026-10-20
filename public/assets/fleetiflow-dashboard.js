@@ -245,7 +245,7 @@
     else if (aba === 'vendas' && !temVendas && !temLeads) vazioAba = ['Ainda não há movimento neste período', 'Vendas e leads aparecem aqui assim que houver movimentação no intervalo.'];
     else if (aba === 'conversao' && (!temVendas || !temLeads)) vazioAba = ['Sem base para calcular a conversão', temLeads ? 'Há leads no período, mas nenhuma venda concluída ainda.' : 'A conversão precisa de leads e vendas no mesmo intervalo.'];
     if (vazioAba) {
-      area.innerHTML = vazio(vazioAba[0], vazioAba[1], { href: '/prospeccao.php', rotulo: 'Ver pipeline' });
+      area.innerHTML = vazio(vazioAba[0], vazioAba[1], { href: '/prospeccao', rotulo: 'Ver pipeline' });
       area.style.height = 'auto'; leg.innerHTML = ''; $('perfSub').textContent = 'Sem dados para esta visão no período'; return;
     }
     area.style.height = ''; area.innerHTML = '<canvas id="perfCanvas"></canvas>';
@@ -296,7 +296,7 @@
     const fora = j.pipeline.filter(p => !p.funil);
     const total = funil.reduce((s, p) => s + p.qtd, 0);
     if (!total && !fora.some(p => p.qtd > 0)) {
-      area.innerHTML = vazio('Nenhuma oportunidade no funil', 'Os leads abordados pelo agente e os cards criados na prospecção aparecem aqui.', { href: '/prospeccao.php', rotulo: 'Abrir prospecção' });
+      area.innerHTML = vazio('Nenhuma oportunidade no funil', 'Os leads abordados pelo agente e os cards criados na prospecção aparecem aqui.', { href: '/prospeccao', rotulo: 'Abrir prospecção' });
       return;
     }
     const lista = funil.map(p => {
@@ -323,7 +323,7 @@
     if (graficoProsp) { [].concat(graficoProsp).forEach(g => g.destroy()); graficoProsp = null; }
     area.classList.remove('ffc-mini-grade');
     if (!(pr.entraram > 0)) {
-      area.innerHTML = vazio('Nenhum lead entrou neste período', 'Os leads abordados pelo agente e os cards criados na prospecção aparecem aqui por ' + gran + '.', { href: '/prospeccao.php', rotulo: 'Abrir prospecção' });
+      area.innerHTML = vazio('Nenhum lead entrou neste período', 'Os leads abordados pelo agente e os cards criados na prospecção aparecem aqui por ' + gran + '.', { href: '/prospeccao', rotulo: 'Abrir prospecção' });
       area.style.height = 'auto'; leg.innerHTML = ''; $('prospSub').textContent = 'Sem entrada de leads no período';
     } else {
       $('prospSub').textContent = `${inteiro.format(pr.entraram)} leads entraram, por ${gran}, e em que pé estão hoje`;
@@ -519,7 +519,7 @@
       (!estado.ativEtapa || a.etapa_slug === estado.ativEtapa) &&
       (!busca || [a.cliente, a.empresa, a.titulo, a.responsavel].some(v => String(v || '').toLowerCase().includes(busca))));
     if (!lista.length) {
-      area.innerHTML = vazio(j.atividades.length ? 'Nada com esse filtro' : 'Nenhuma movimentação ainda', j.atividades.length ? 'Tente outra etapa ou outro nome.' : 'Os negócios aparecem aqui assim que houver cards no pipeline.', j.atividades.length ? null : { href: '/prospeccao.php', rotulo: 'Abrir pipeline' });
+      area.innerHTML = vazio(j.atividades.length ? 'Nada com esse filtro' : 'Nenhuma movimentação ainda', j.atividades.length ? 'Tente outra etapa ou outro nome.' : 'Os negócios aparecem aqui assim que houver cards no pipeline.', j.atividades.length ? null : { href: '/prospeccao', rotulo: 'Abrir pipeline' });
       rodape.innerHTML = ''; return;
     }
     const mostrar = lista.slice(0, estado.ativLimite);
@@ -532,13 +532,13 @@
         <td data-rotulo="Etapa"><span class="ffc-etapa"><i style="background:${cor}"></i><span>${esc(a.etapa || 'Sem etapa')}</span></span></td>
         <td data-rotulo="Responsável" class="col-resp">${a.responsavel ? `<span class="ffc-avatar">${esc(iniciais(a.responsavel))}</span>${esc(a.responsavel.split(' ')[0])}` : '<span style="color:#767676">—</span>'}</td>
         <td data-rotulo="Atualizado" class="col-quando"><span class="quando">${esc(relativo(a.quando))}</span></td>
-        <td class="acao"><a href="/prospeccao.php?open=${a.id}" aria-label="Abrir"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></a></td>
+        <td class="acao"><a href="/prospeccao?open=${a.id}" aria-label="Abrir"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></a></td>
       </tr>`;
     }).join('');
     area.innerHTML = `<table class="ffc-tabela"><thead><tr><th>Cliente</th><th class="col-oport">Oportunidade</th><th>Valor</th><th>Etapa</th><th class="col-resp">Responsável</th><th class="col-quando">Atualizado</th><th></th></tr></thead><tbody>${linhas}</tbody></table>`;
     rodape.innerHTML = `<span>Mostrando ${mostrar.length} de ${lista.length}</span>` +
       (lista.length > estado.ativLimite ? `<button class="ffc-btn ffc-btn--mini ffc-btn--link" type="button" data-ver-todas>Ver todas</button>`
-        : `<a class="ffc-btn ffc-btn--mini ffc-btn--link" href="/prospeccao.php">Abrir pipeline</a>`);
+        : `<a class="ffc-btn ffc-btn--mini ffc-btn--link" href="/prospeccao">Abrir pipeline</a>`);
   }
 
   // ── 6. Evolução ───────────────────────────────────────────────────────────
@@ -549,7 +549,7 @@
     if (graficoEvo) { graficoEvo.destroy(); graficoEvo = null; }
     const gran = GRAN_NOME[estado.granEvo];
     if (!temDado) {
-      area.innerHTML = vazio('Ainda não existem vendas suficientes', `A evolução por ${gran} será exibida assim que houver movimentação comercial.`, { href: '/prospeccao.php', rotulo: 'Ver pipeline' });
+      area.innerHTML = vazio('Ainda não existem vendas suficientes', `A evolução por ${gran} será exibida assim que houver movimentação comercial.`, { href: '/prospeccao', rotulo: 'Ver pipeline' });
       area.style.height = 'auto'; leg.innerHTML = ''; $('evoSub').textContent = 'Sem dados'; return;
     }
     area.style.height = ''; area.innerHTML = '<canvas id="evoCanvas"></canvas>';
@@ -658,7 +658,7 @@
   menu.addEventListener('click', e => {
     const b = e.target.closest('button[data-acao]'); if (!b) return;
     menu.classList.remove('aberto');
-    ({ meta: abrirMeta, exportar, pipeline: () => location.href = '/prospeccao.php', planejamento: () => location.href = '/planejamento.php' })[b.dataset.acao]();
+    ({ meta: abrirMeta, exportar, pipeline: () => location.href = '/prospeccao', planejamento: () => location.href = '/planejamento' })[b.dataset.acao]();
   });
 
   $('perfAbas').addEventListener('click', e => {
@@ -678,7 +678,7 @@
   $('ativEtapa').addEventListener('change', e => { estado.ativEtapa = e.target.value; estado.ativLimite = 5; if (estado.dados) desenharAtividades(estado.dados); });
   $('cardAtividades').addEventListener('click', e => {
     if (e.target.closest('[data-ver-todas]')) { estado.ativLimite = 25; desenharAtividades(estado.dados); return; }
-    const tr = e.target.closest('tr[data-id]'); if (tr && !e.target.closest('a')) location.href = '/prospeccao.php?open=' + tr.dataset.id;
+    const tr = e.target.closest('tr[data-id]'); if (tr && !e.target.closest('a')) location.href = '/prospeccao?open=' + tr.dataset.id;
   });
 
   $('metaEditar').addEventListener('click', abrirMeta);

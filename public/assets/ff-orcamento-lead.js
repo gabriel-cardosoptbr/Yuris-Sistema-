@@ -24,7 +24,7 @@
     var sec = document.createElement('div');
     sec.className = 'form-section ffag-sec';
     sec.id = 'ffOrcamentoSection';
-    sec.innerHTML = '<div class="ffag-lista"></div><div class="ffag-sec-pe"><a href="/orcamentos.php">Ver todos os orçamentos</a>' +
+    sec.innerHTML = '<div class="ffag-lista"></div><div class="ffag-sec-pe"><a href="/orcamentos">Ver todos os orçamentos</a>' +
       '<a class="ffag-btn ffag-btn-leve" data-novo href="#" style="text-decoration:none">+ Novo orçamento</a></div>';
     var agenda = document.getElementById('ffAgendaSection');
     var dir = form.querySelector('.ff-col-dir');
@@ -38,7 +38,7 @@
     sec.querySelector('[data-novo]').addEventListener('click', function (e) {
       e.preventDefault();
       var id = form.elements.id.value;
-      if (id) location.href = '/orcamentos.php?novo=1&card=' + encodeURIComponent(id);
+      if (id) location.href = '/orcamentos?novo=1&card=' + encodeURIComponent(id);
     });
 
     function carregar() {
@@ -55,7 +55,7 @@
             return;
           }
           lista.innerHTML = r.data.slice(0, 5).map(function (o) {
-            return '<a class="ffag-item" href="/orcamentos.php?id=' + o.id + '" style="text-decoration:none">' +
+            return '<a class="ffag-item" href="/orcamentos?id=' + o.id + '" style="text-decoration:none">' +
               '<div class="ffag-quando"><span>Nº</span><b>' + o.numero + '</b></div>' +
               '<div><div class="ffag-item-tit">' + REAL.format(o.total) + (o.placa ? ' · ' + esc(o.placa) : '') + '</div>' +
               '<div class="ffag-item-sub"><span class="ffag-pill' + TOM[o.status] + '">' + ROTULO[o.status] + '</span><span>' + o.itens + (o.itens === 1 ? ' item' : ' itens') + '</span></div></div>' +

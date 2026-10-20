@@ -141,7 +141,7 @@ function ffc_kpi(string $id, string $rotulo, string $ico, string $tom = '', stri
             <div class="ffc-prosp-grafico">
               <div class="ffc-prosp-funil-cab ffc-prosp-cab-linha">
                 <div><b>Prospecção</b><span id="prospSub">Leads que entraram por dia e em que pé estão hoje</span></div>
-                <a class="ffc-btn ffc-btn--mini ffc-btn--link" href="/prospeccao.php">Abrir prospecção</a>
+                <a class="ffc-btn ffc-btn--mini ffc-btn--link" href="/prospeccao">Abrir prospecção</a>
               </div>
               <div class="ffc-grafico" id="prospArea"><canvas id="prospCanvas"></canvas></div>
               <div class="ffc-legenda" id="prospLegenda"></div>
@@ -178,7 +178,7 @@ function ffc_kpi(string $id, string $rotulo, string $ico, string $tom = '', stri
               <h2 class="ffc-card-titulo">Distribuição do pipeline</h2>
               <div class="ffc-card-sub">Onde estão as oportunidades agora</div>
             </div>
-            <a class="ffc-btn ffc-btn--mini ffc-btn--link" href="/prospeccao.php">Ver funil</a>
+            <a class="ffc-btn ffc-btn--mini ffc-btn--link" href="/prospeccao">Ver funil</a>
           </div>
           <div id="pipelineArea"></div>
         </div>

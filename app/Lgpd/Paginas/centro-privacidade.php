@@ -19,7 +19,7 @@ use App\Core\AccountContext;
 use App\Usuarios\Consent;
 
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: /login'); exit; }
 
 $ctx = AccountContext::fromSession();
 $ctx->assertAccountActive();
@@ -237,11 +237,11 @@ $activePage     = 'privacidade';
         </p>
         <div class="links-grid">
           <a class="btn btn-primary" href="/lgpd/solicitar.php">Abrir solicitação LGPD →</a>
-          <a class="btn btn-link" href="/dpo.php">Falar com o DPO</a>
-          <a class="btn btn-link" href="/privacidade.php">Política de Privacidade</a>
-          <a class="btn btn-link" href="/termos.php">Termos de Uso</a>
-          <a class="btn btn-link" href="/cookies.php">Política de Cookies</a>
-          <a class="btn btn-link" href="/lgpd.php">LGPD &amp; Segurança</a>
+          <a class="btn btn-link" href="/dpo">Falar com o DPO</a>
+          <a class="btn btn-link" href="/privacidade">Política de Privacidade</a>
+          <a class="btn btn-link" href="/termos">Termos de Uso</a>
+          <a class="btn btn-link" href="/cookies">Política de Cookies</a>
+          <a class="btn btn-link" href="/lgpd">LGPD &amp; Segurança</a>
           <a class="btn btn-link" href="javascript:if(window.YurisCookies){YurisCookies.open()}">Gerenciar cookies</a>
         </div>
       </div>

@@ -88,7 +88,7 @@
     if (at.responsavel && String(at.quem || '').indexOf(at.responsavel) < 0) extraAt.push('Responsável do card: ' + esc(at.responsavel));
     if (ag && ag.nome) extraAt.push(esc(ag.nome) + (ag.ligado ? (ag.pausado ? ': pausada nesta conversa' : ': ligada') : ': desligada neste número'));
     var vinculo = n
-      ? '<b>Conversa ligada</b><a class="ffw-link" href="/chat.php?jid=' + encodeURIComponent(n.jid) + '">Abrir no Chat</a>'
+      ? '<b>Conversa ligada</b><a class="ffw-link" href="/chat?jid=' + encodeURIComponent(n.jid) + '">Abrir no Chat</a>'
       : '<b style="font-weight:500;color:var(--ff-texto-4,#767676)">Sem conversa ligada</b>';
     var outros = (d.numeros || []).length > 1
       ? '<small>Também falou por: ' + d.numeros.slice(1).map(function (x) { return esc(x.nome); }).join(', ') + '</small>' : '';

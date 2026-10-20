@@ -220,10 +220,10 @@ final class Movimento
     public static function urlDe(string $entidade, int $id): ?string
     {
         return match ($entidade) {
-            'cliente'  => '/clientes.php?abrir=' . $id,
-            'card'     => '/prospeccao.php?card=' . $id,
-            'processo' => '/processos.php?abrir=' . $id,
-            'tarefa'   => '/tarefas.php?tarefa=' . $id,
+            'cliente'  => '/clientes?abrir=' . $id,
+            'card'     => '/prospeccao?card=' . $id,
+            'processo' => '/processos?abrir=' . $id,
+            'tarefa'   => '/tarefas?tarefa=' . $id,
             default    => null,
         };
     }

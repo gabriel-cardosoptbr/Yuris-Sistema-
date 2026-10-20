@@ -20,10 +20,10 @@ namespace App\Core;
  * ──────────────────────────────────────────────────────────────────────
  *
  * // PHP redirect:
- * header('Location: ' . \App\Core\Url::to('/login.php'));
+ * header('Location: ' . \App\Core\Url::to('/login'));
  *
  * // HTML href:
- * <a href="<?= \App\Core\Url::to('/dashboard.php') ?>">Dashboard</a>
+ * <a href="<?= \App\Core\Url::to('/dashboard') ?>">Dashboard</a>
  *
  * // CSS/JS asset:
  * <link rel="stylesheet" href="<?= \App\Core\Url::asset('/assets/style.css') ?>">
@@ -41,9 +41,9 @@ namespace App\Core;
  *   APP_URL=https://yuris.app.br                   →  ""
  *   APP_URL=https://app.com/yuris                  →  "/yuris"
  *
- * to('/login.php') concatena base() + path:
+ * to('/login') concatena base() + path:
  *   dev   →  "/sistema_vendas/login.php"
- *   prod  →  "/login.php"
+ *   prod  →  "/login"
  *
  * asset() mesmo que to() mas com cache-buster opcional via filemtime.
  *
@@ -71,7 +71,7 @@ class Url
     /**
      * Concatena base() + path. Sempre garante uma barra entre eles.
      *
-     * @param string $path  Path relativo iniciando com `/` (ex: '/login.php')
+     * @param string $path  Path relativo iniciando com `/` (ex: '/login')
      */
     public static function to(string $path): string
     {

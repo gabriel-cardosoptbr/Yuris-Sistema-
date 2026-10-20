@@ -8,7 +8,7 @@ use App\Core\UserOptions;
 
 session_start();
 if (empty($_SESSION['user_id'])) {
-    header('Location: /login.php');
+    header('Location: /login');
     exit;
 }
 // HARDENING: bloqueia acesso de contas suspensas/canceladas/inativas
@@ -2074,7 +2074,7 @@ function column_display_name(array $col): string
         + 'display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:12px;'
         + 'background:#0C1B33;color:#fff;font-size:14px;box-shadow:0 12px 30px rgba(12,27,51,.3);';
       aviso.innerHTML = '<span>Sua sessão expirou. Os cards na tela podem estar desatualizados.</span>'
-        + '<a href="/login.php" style="background:#015DFC;color:#fff;padding:7px 14px;border-radius:999px;'
+        + '<a href="/login" style="background:#015DFC;color:#fff;padding:7px 14px;border-radius:999px;'
         + 'font-weight:700;text-decoration:none;white-space:nowrap">Entrar de novo</a>';
       document.body.appendChild(aviso);
     }
@@ -2536,7 +2536,7 @@ function column_display_name(array $col): string
           '<span class="lc-acoes">' +
             '<button type="button" class="lc-zap js-whatsapp ' + (hasWhatsapp ? '' : 'disabled') + '" title="' + (hasWhatsapp ? 'Abrir no WhatsApp' : 'Sem WhatsApp cadastrado') + '" data-phone="' + escapeHtml(card.telefone_whatsapp || '') + '" data-jid="' + escapeHtml(card.linked_chat_jid || '') + '">' + LC_ICONES.zap + '</button>' +
             (card.linked_chat_jid
-              ? '<a href="/chat.php?jid=' + encodeURIComponent(card.linked_chat_jid) + '" class="chat-link-btn lc-chat" title="Abrir a conversa no Chat" onclick="event.stopPropagation()">' + LC_ICONES.chat + 'Chat</a>'
+              ? '<a href="/chat?jid=' + encodeURIComponent(card.linked_chat_jid) + '" class="chat-link-btn lc-chat" title="Abrir a conversa no Chat" onclick="event.stopPropagation()">' + LC_ICONES.chat + 'Chat</a>'
               : '') +
             '<span class="lc-seta" aria-hidden="true">' + LC_ICONES.seta + '</span>' +
           '</span>' +
@@ -2719,7 +2719,7 @@ function column_display_name(array $col): string
           '<div class="card-actions">' +
             '<button type="button" class="wa-btn js-whatsapp ' + (hasWhatsapp ? '' : 'disabled') + '" data-phone="' + escapeHtml(card.telefone_whatsapp || '') + '" data-jid="' + escapeHtml(card.linked_chat_jid || '') + '">' + (hasWhatsapp ? 'WhatsApp' : 'Sem WhatsApp') + '</button>' +
             (card.linked_chat_jid
-              ? '<a href="/chat.php?jid=' + encodeURIComponent(card.linked_chat_jid) + '" class="chat-link-btn" title="Abrir conversa no Chat" onclick="event.stopPropagation()">' +
+              ? '<a href="/chat?jid=' + encodeURIComponent(card.linked_chat_jid) + '" class="chat-link-btn" title="Abrir conversa no Chat" onclick="event.stopPropagation()">' +
                   '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.38 1.27 4.79L2.05 22l5.38-1.37c1.37.74 2.93 1.16 4.61 1.16 5.45 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.13-2.9-7A9.83 9.83 0 0 0 12.04 2z"/></svg>' +
                   'Chat</a>'
               : '') +
@@ -3085,7 +3085,7 @@ function column_display_name(array $col): string
           alert('WhatsApp não preenchido para este lead.');
           return;
         }
-        window.location.href = '/chat.php?jid=' + encodeURIComponent(alvo);
+        window.location.href = '/chat?jid=' + encodeURIComponent(alvo);
         return;
       }
       if (!phone) {
@@ -3503,7 +3503,7 @@ function column_display_name(array $col): string
           if (secao && info) {
             info.innerHTML =
               'Esta prospecção virou o cliente ' +
-              '<a href="/clientes.php?open=' + j.cliente_id + '" style="color:#6ee7b7;font-weight:600">' +
+              '<a href="/clientes?open=' + j.cliente_id + '" style="color:#6ee7b7;font-weight:600">' +
               escapeHtml(j.cliente_nome || ('#' + j.cliente_id)) + '</a>.' +
               '<br><span style="opacity:.8">Ela continua aqui para auditoria, fora do funil ativo.</span>';
             secao.style.display = '';
@@ -3589,7 +3589,7 @@ function column_display_name(array $col): string
       if (candidatos.length) {
         const escolha = await perguntarDuplicidade(candidatos);
         if (escolha.acao === 'cancelar') return;
-        if (escolha.acao === 'abrir') { window.location.href = '/clientes.php?open=' + escolha.clienteId; return; }
+        if (escolha.acao === 'abrir') { window.location.href = '/clientes?open=' + escolha.clienteId; return; }
         if (escolha.acao === 'vincular') clienteExistenteId = escolha.clienteId;
       } else {
         const ok = await Yuris.confirm(
@@ -3616,7 +3616,7 @@ function column_display_name(array $col): string
         }
         Yuris.notify(res.criado ? 'Prospecção convertida em cliente.' : 'Prospecção vinculada ao cliente existente.', { type: 'success' });
         // Abre o card do cliente logo em seguida, para a pessoa continuar de onde parou.
-        window.location.href = '/clientes.php?open=' + res.cliente_id;
+        window.location.href = '/clientes?open=' + res.cliente_id;
       } catch (e) {
         Yuris.notify('Falha de rede ao converter.', { type: 'error' });
         if (btn) { btn.disabled = false; btn.textContent = 'Tornar cliente'; }
@@ -3648,7 +3648,7 @@ function column_display_name(array $col): string
             </div>
             <div style="font-size:.78rem;color:#9ab0c9">${escapeHtml(label)}</div>
           </div>
-          <a href="/chat.php?jid=${encodeURIComponent(jid)}"
+          <a href="/chat?jid=${encodeURIComponent(jid)}"
              style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:rgba(37,211,102,.15);border:1px solid rgba(37,211,102,.35);border-radius:8px;color:#6ee7b7;font-size:.8rem;font-weight:600;text-decoration:none;white-space:nowrap;transition:background .15s"
              onmouseover="this.style.background='rgba(37,211,102,.28)'" onmouseout="this.style.background='rgba(37,211,102,.15)'"
           ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
@@ -3671,7 +3671,7 @@ function column_display_name(array $col): string
               <div style="font-size:.85rem;font-weight:600;color:#e2f0ff">${p.numero||'Processo'} — ${p.tipo_acao||'—'}</div>
               <div style="font-size:.75rem;color:#9ab0c9">${p.status||''} · Prazo: ${prazo}</div>
             </div>
-            <a href="/processos.php?open=${p.id}" style="font-size:.75rem;color:#60a5fa;white-space:nowrap">Ver →</a>
+            <a href="/processos?open=${p.id}" style="font-size:.75rem;color:#60a5fa;white-space:nowrap">Ver →</a>
             <button type="button" onclick="_desvincularProcesso(${p.id})" title="Desvincular processo"
                     style="background:transparent;border:1px solid rgba(239,68,68,.3);color:#fca5a5;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:.72rem;white-space:nowrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
           </div>`;
@@ -3785,7 +3785,7 @@ function column_display_name(array $col): string
     document.getElementById('btnCriarProcessoCliente')?.addEventListener('click', () => {
       if (!_currentCardId) return;
       // Navega para processos.php passando o card_id para pré-selecionar o cliente
-      window.location.href = `/processos.php?new_card_id=${_currentCardId}`;
+      window.location.href = `/processos?new_card_id=${_currentCardId}`;
     });
 
     async function openEditModal(cardId) {
@@ -4613,7 +4613,7 @@ function column_display_name(array $col): string
       else if (window.showToast) showToast(msg, 'error');
       return;
     }
-    window.open('/dossie.php?entidade=card&id=' + id, '_blank', 'noopener');
+    window.open('/dossie?entidade=card&id=' + id, '_blank', 'noopener');
   });
 })();
 </script>

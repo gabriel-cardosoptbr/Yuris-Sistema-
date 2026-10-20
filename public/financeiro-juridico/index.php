@@ -70,7 +70,7 @@ $SEO_PAGE = [
 <p>Escritórios com mais de uma unidade conhecem o dilema: ou cada filial mantém o próprio controle — e o conjunto não fecha —, ou tudo vai para um arquivo único em que qualquer pessoa enxerga qualquer número. No Yuris, o financeiro respeita o <strong>escopo por unidade</strong>: lançamentos, contas e resultados ficam organizados por matriz e filial, e as permissões por escopo definem quem enxerga os números de cada uma. A estrutura multi-tenant garante o isolamento, e a trilha de auditoria registra quem fez o quê — exigência básica quando mais de uma pessoa mexe no financeiro.</p>
 
 <h2>Quanto custa o financeiro do Yuris?</h2>
-<p>O módulo financeiro está incluído em todos os planos — não é cobrado à parte, assim como os demais módulos do sistema. Os valores começam em R$ 220/mês e variam conforme o número de usuários; a tabela completa e atualizada está na <a href="/planos.php">página de planos</a>. Para ver DRE, recorrências e contas aplicadas à realidade do seu escritório, o caminho é agendar uma <a href="/demonstracao/">demonstração</a> com a equipe.</p>
+<p>O módulo financeiro está incluído em todos os planos — não é cobrado à parte, assim como os demais módulos do sistema. Os valores começam em R$ 220/mês e variam conforme o número de usuários; a tabela completa e atualizada está na <a href="/planos">página de planos</a>. Para ver DRE, recorrências e contas aplicadas à realidade do seu escritório, o caminho é agendar uma <a href="/demonstracao/">demonstração</a> com a equipe.</p>
 HTML,
 
     'faq' => [

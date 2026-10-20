@@ -2317,7 +2317,7 @@ const ChatApp = (() => {
     if (_cadRapido.telefone) p.set('telefone', _cadRapido.telefone);
     if (state.currentJid)    p.set('jid', state.currentJid);
 
-    const url = (destino === 'cliente' ? '/clientes.php?' : '/prospeccao.php?') + p.toString();
+    const url = (destino === 'cliente' ? '/clientes?' : '/prospeccao?') + p.toString();
     fecharCadastroRapido();
     window.location.href = url;
   }
@@ -2437,7 +2437,7 @@ const ChatApp = (() => {
     if (type === 'card') {
       const goBtn = qs('#pickerCardGoBtn');
       if (goBtn) {
-        goBtn.href = '/prospeccao.php?open=' + encodeURIComponent(id);
+        goBtn.href = '/prospeccao?open=' + encodeURIComponent(id);
         goBtn.style.display = 'flex';
       }
     }
@@ -2462,7 +2462,7 @@ const ChatApp = (() => {
     container.innerHTML = _linkPicker.processos.map((p, i) =>
       `<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:6px;background:rgba(5,18,39,.7);border:1px solid rgba(96,165,250,.14)">
         <span style="flex:1;font-size:.82rem;color:#C0D8F0">${esc(p.name || String(p.id))}</span>
-        <a href="/processos.php?open=${encodeURIComponent(p.id)}"
+        <a href="/processos?open=${encodeURIComponent(p.id)}"
            class="btn-yuris btn-yuris-sm" title="Abrir processo">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
           Abrir
@@ -4123,7 +4123,7 @@ const ChatApp = (() => {
   async function toggleAgentChannel() {
     const btn = qs('#btnAgentToggle'); if (!btn) return;
     const mode = btn.dataset.mode;
-    if (mode === 'setup') { window.location.href = 'agente.php'; return; }
+    if (mode === 'setup') { window.location.href = '/agente'; return; }
     const turnOn = (mode !== 'on');
     const msg = turnOn
       ? 'Ligar o agente de IA neste canal? Ele passará a responder automaticamente as conversas (menos as que você assumir).'

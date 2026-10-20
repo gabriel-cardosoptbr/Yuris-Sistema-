@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../app/bootstrap.php';
 
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: /login'); exit; }
 $activePage = 'dre';
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 
@@ -13,7 +13,7 @@ use App\Core\AccountContext;
 $ctx       = AccountContext::fromSession();
 $ctx->assertAccountActive(); // bloqueia conta suspensa/cancelada/inativa
 // Edição CRM: financeiro é só de ADM. O vendedor volta para o painel dele.
-if ($ctx->vendedorCrm()) { header('Location: /dashboard.php'); exit; }
+if ($ctx->vendedorCrm()) { header('Location: /dashboard'); exit; }
 $tenantIds = $ctx->getAccessibleAccountIds('financas');
 // Painel de Reembolsos (03/10/2026): só na conta com o módulo ligado
 // (configuracoes.modulos.reembolsos, edição CRM; hoje, a Inovaize). O Yuris não muda.

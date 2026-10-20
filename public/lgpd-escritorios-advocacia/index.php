@@ -77,7 +77,7 @@ $SEO_PAGE = [
 <p>O que um bom sistema faz é tornar essas decisões executáveis: a política de acesso vira permissão configurada, a regra de guarda vira retenção aplicada, o dever de demonstração vira trilha de auditoria. Software é apoio estrutural — não aconselhamento jurídico nem atalho para a conformidade.</p>
 
 <h2>Por onde começar</h2>
-<p>Se o escritório ainda trabalha com planilhas e pastas compartilhadas, o primeiro passo prático é centralizar a operação em um ambiente com controle de acesso e registro — e, a partir daí, construir o programa de conformidade sobre uma base sólida. Para conhecer essa estrutura por dentro, agende uma <a href="/demonstracao/">demonstração</a>; para entender quem constrói o produto e como ele é mantido, veja a página <a href="/sobre/">sobre o Yuris</a>. Os planos são públicos, com tudo incluído, a partir de R$ 220/mês — detalhes na <a href="/planos.php">página de planos</a>.</p>
+<p>Se o escritório ainda trabalha com planilhas e pastas compartilhadas, o primeiro passo prático é centralizar a operação em um ambiente com controle de acesso e registro — e, a partir daí, construir o programa de conformidade sobre uma base sólida. Para conhecer essa estrutura por dentro, agende uma <a href="/demonstracao/">demonstração</a>; para entender quem constrói o produto e como ele é mantido, veja a página <a href="/sobre/">sobre o Yuris</a>. Os planos são públicos, com tudo incluído, a partir de R$ 220/mês — detalhes na <a href="/planos">página de planos</a>.</p>
 HTML,
 
     'faq' => [

@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../app/bootstrap.php';
 session_start();
 if (empty($_SESSION['user_id'])) {
-    header('Location: /login.php');
+    header('Location: /login');
     exit;
 }
 // Módulo por plano (402 + página de bloqueio). Só age com a trava mestra

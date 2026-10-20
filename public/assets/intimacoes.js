@@ -2283,7 +2283,7 @@
 
     /** Monta o HTML do status de vínculo com link "Ver processo →" pro CRM. */
     _actionsVinculoStatusHtml(processoId, label) {
-      const procUrl = '/processos.php?open=' + encodeURIComponent(processoId);
+      const procUrl = '/processos?open=' + encodeURIComponent(processoId);
       const lbl = label ? this._esc(label) + ' ' : '';
       return `<span style="color:#34D399;font-weight:600;">✓ Vinculado ${lbl ? 'a ' + lbl : ''}(#${processoId})</span>
               · <a href="${procUrl}" target="_blank" rel="noopener" class="int-link">Ver processo →</a>
@@ -2466,7 +2466,7 @@
           `Prazo criado no processo #${ctx.item.processo_id}${r.prazo_id ? ' (prazo #' + r.prazo_id + ')' : ''}.`,
           'success',
           { link: {
-            href: '/processos.php?open=' + ctx.item.processo_id,
+            href: '/processos?open=' + ctx.item.processo_id,
             text: 'Ver processo →',
           } }
         );

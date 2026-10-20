@@ -4,7 +4,7 @@ use App\Core\Database;
 use App\Financas\DREAccount;
 use App\Core\AccountContext;
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: /login'); exit; }
 $activePage = 'dashboard';
 
 // Contexto de tenant — obrigatório para evitar vazamento entre contas.
@@ -620,7 +620,7 @@ if ($isFleetiflow) {
               <div class="meta-val" id="metaMonthValue">R$ 0,00</div>
             </div>
             <button id="editMonthMeta" class="meta-widget-btn primary">Editar</button>
-            <button id="calcMetaBtn"   class="meta-widget-btn secondary" onclick="location.href='/planejamento.php'">Calcular</button>
+            <button id="calcMetaBtn"   class="meta-widget-btn secondary" onclick="location.href='/planejamento'">Calcular</button>
           </div>
         </div>
       </div>
@@ -885,7 +885,7 @@ if ($isFleetiflow) {
   document.getElementById('adashClose2').addEventListener('click', close);
   document.getElementById('adashVerBtn').addEventListener('click', () => {
     close();
-    window.location.href = '/juridico.php';
+    window.location.href = '/juridico';
   });
 
   // Só exibe o popup na primeira visita após login (flag controlado pela sessão PHP)

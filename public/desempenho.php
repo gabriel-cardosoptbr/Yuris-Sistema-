@@ -22,7 +22,7 @@ use App\Tarefas\Otif;
 use App\Tarefas\TaskEntrega;
 
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: /login'); exit; }
 
 $ctx = AccountContext::fromSession();
 $ctx->assertAccountActive();
@@ -60,7 +60,7 @@ $atalhos = [
 ];
 
 $qsBase = ['de' => $de, 'ate' => $ate];
-$url    = static fn(array $extra = []) => '/desempenho.php?' . http_build_query(array_merge($qsBase, $extra));
+$url    = static fn(array $extra = []) => '/desempenho?' . http_build_query(array_merge($qsBase, $extra));
 $csvUrl = '/api/otif.php?' . http_build_query(array_merge($qsBase, ['formato' => 'csv'], $foco !== null ? ['colaborador' => $foco] : []));
 
 $activePage = 'desempenho';
@@ -203,7 +203,7 @@ function dataBr(?string $v, bool $hora = true): string
       </div>
     </div>
 
-    <form class="o-card o-filtros" method="get" action="/desempenho.php">
+    <form class="o-card o-filtros" method="get" action="/desempenho">
       <div class="o-campo">
         <label for="f-de">De</label>
         <input type="date" id="f-de" name="de" value="<?= e($de) ?>">
@@ -225,7 +225,7 @@ function dataBr(?string $v, bool $hora = true): string
       <?php endif; ?>
       <div class="o-atalhos">
         <?php foreach ($atalhos as $rotulo => [$a, $b]): ?>
-          <a class="o-pilula<?= ($a === $de && $b === $ate) ? ' ativa' : '' ?>" href="<?= e('/desempenho.php?' . http_build_query(array_merge(['de' => $a, 'ate' => $b], $foco !== null ? ['colaborador' => $foco] : []))) ?>"><?= e($rotulo) ?></a>
+          <a class="o-pilula<?= ($a === $de && $b === $ate) ? ' ativa' : '' ?>" href="<?= e('/desempenho?' . http_build_query(array_merge(['de' => $a, 'ate' => $b], $foco !== null ? ['colaborador' => $foco] : []))) ?>"><?= e($rotulo) ?></a>
         <?php endforeach; ?>
       </div>
       <div class="o-acoes">

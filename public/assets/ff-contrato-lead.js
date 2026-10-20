@@ -23,7 +23,7 @@
     var sec = document.createElement('div');
     sec.className = 'form-section ffag-sec';
     sec.id = 'ffContratoSection';
-    sec.innerHTML = '<div class="ffag-lista"></div><div class="ffag-sec-pe"><a href="/contratos.php">Ver todos os contratos</a>' +
+    sec.innerHTML = '<div class="ffag-lista"></div><div class="ffag-sec-pe"><a href="/contratos">Ver todos os contratos</a>' +
       '<a class="ffag-btn ffag-btn-leve" data-novo href="#" style="text-decoration:none">+ Novo contrato</a></div>';
     var antes = document.getElementById('ffOrcamentoSection') || document.getElementById('ffAgendaSection');
     var dir = form.querySelector('.ff-col-dir');
@@ -37,7 +37,7 @@
     sec.querySelector('[data-novo]').addEventListener('click', function (e) {
       e.preventDefault();
       var id = form.elements.id.value;
-      if (id) location.href = '/contratos.php?novo=1&card_id=' + encodeURIComponent(id);
+      if (id) location.href = '/contratos?novo=1&card_id=' + encodeURIComponent(id);
     });
 
     function carregar() {
@@ -51,7 +51,7 @@
           if (!r.ok) { lista.innerHTML = '<div class="ffag-vazio">' + esc(r.error || 'Não foi possível carregar.') + '</div>'; return; }
           if (!r.data.length) { lista.innerHTML = '<div class="ffag-vazio">Nenhum contrato para este lead.</div>'; return; }
           lista.innerHTML = r.data.slice(0, 5).map(function (c) {
-            return '<a class="ffag-item" href="/contratos.php?id=' + c.id + '" style="text-decoration:none">' +
+            return '<a class="ffag-item" href="/contratos?id=' + c.id + '" style="text-decoration:none">' +
               '<div class="ffag-quando"><span>Assin.</span><b>' + c.assinaturas + '/' + c.participantes + '</b></div>' +
               '<div><div class="ffag-item-tit">' + esc(c.titulo) + '</div>' +
               '<div class="ffag-item-sub"><span class="ffag-pill' + (TOM[c.status] || '') + '">' + esc(c.status_rotulo) + '</span>' +

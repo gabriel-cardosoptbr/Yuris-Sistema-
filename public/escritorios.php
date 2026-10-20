@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../app/bootstrap.php';
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: /login'); exit; }
 $activePage = 'escritorios';
 $csrf       = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 $userRole   = $_SESSION['user_role']  ?? 'user';
@@ -685,7 +685,7 @@ $monOverrideSumEsc = \App\Billing\BillingGuard::getOverrideSum($accountId, 'moni
         <div class="es-card">
           <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
             <div class="es-card-title" style="margin:0">Quantos monitoramentos você tem</div>
-            <a href="/intimacoes.php#monitores"
+            <a href="/intimacoes#monitores"
                class="btn-sm btn-primary"
                title="Abre o cadastro de monitoramentos"
                style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
@@ -1648,8 +1648,8 @@ const RES_TIPO_COLOR = {
   contato : { bg: 'rgba(245,158,11,.16)',  fg: '#fcd34d', bd: 'rgba(245,158,11,.30)' },
 };
 const RES_TIPO_URL = {
-  processo: id => '/processos.php?open=' + id,
-  card    : id => '/prospeccao.php?open=' + id,
+  processo: id => '/processos?open=' + id,
+  card    : id => '/prospeccao?open=' + id,
   contato : id => '/contatos.php?open=' + id,
 };
 

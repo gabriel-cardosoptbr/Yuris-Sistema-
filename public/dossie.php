@@ -34,7 +34,7 @@ use App\Core\AccountContext;
 use App\Relatorios\Dossie;
 
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: /login'); exit; }
 
 $ctx = AccountContext::fromSession();
 $ctx->assertAccountActive();

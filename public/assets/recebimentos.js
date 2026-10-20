@@ -87,7 +87,7 @@
       var acoes = c.status === 'aberta'
         ? '<button type="button" class="btn btn-primary btn-sm" data-pagar="' + c.id + '">Marcar como paga</button><button type="button" class="btn btn-ghost btn-sm" data-cancelar="' + c.id + '">Cancelar</button>'
         : '<button type="button" class="btn btn-ghost btn-sm" data-desfazer="' + c.id + '">Desfazer baixa</button>';
-      var h = '<tr><td><a href="/clientes.php?open=' + c.cliente_id + '"><b>' + esc(c.cliente) + '</b></a></td>' +
+      var h = '<tr><td><a href="/clientes?open=' + c.cliente_id + '"><b>' + esc(c.cliente) + '</b></a></td>' +
         '<td>' + esc(c.descricao) + '<small>' + esc(detalhe.join(' · ')) + '</small></td>' +
         '<td>' + dataBr(c.vencimento) + '</td>' +
         '<td style="text-align:right;white-space:nowrap"><b>' + REAL.format(c.valor) + '</b></td>' +

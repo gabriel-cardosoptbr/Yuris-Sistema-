@@ -106,7 +106,7 @@ if (!$ctx->moduloJuridicoDisponivel()) {
             $res[] = [
                 'tipo' => 'usuario', 'id' => (int)$r['id'], 'display' => $r['nome'],
                 'sub' => ((int)$r['id'] === (int)$uid ? 'Você · ' : '') . ($papel[$r['role'] ?? ''] ?? 'Equipe'),
-                'token' => '@[user|' . $r['id'] . '|' . $r['nome'] . ']', 'url' => '/usuarios.php',
+                'token' => '@[user|' . $r['id'] . '|' . $r['nome'] . ']', 'url' => '/usuarios',
                 'account_id' => (int)$r['account_id'], 'account_nome' => $r['account_nome'] ?? '', 'account_tipo' => $r['account_tipo'] ?? 'matriz',
             ];
         }
@@ -128,7 +128,7 @@ if (!$ctx->moduloJuridicoDisponivel()) {
             $sub = array_filter([$r['etapa'] ?? '', $r['resp'] ? 'com ' . $r['resp'] : 'sem consultor']);
             $res[] = [
                 'tipo' => 'card', 'id' => (int)$r['id'], 'display' => $display, 'sub' => implode(' · ', $sub),
-                'token' => '@[card|' . $r['id'] . '|' . $display . ']', 'url' => '/prospeccao.php?open=' . $r['id'],
+                'token' => '@[card|' . $r['id'] . '|' . $display . ']', 'url' => '/prospeccao?open=' . $r['id'],
             ];
         }
     }
@@ -147,7 +147,7 @@ if (!$ctx->moduloJuridicoDisponivel()) {
             $res[] = [
                 'tipo' => 'cliente', 'id' => (int)$r['id'], 'display' => $display,
                 'sub' => implode(' · ', array_filter([$r['setor'] ?? '', $r['whatsapp'] ?: ($r['telefone'] ?? '')])),
-                'token' => '@[cli|' . $r['id'] . '|' . $display . ']', 'url' => '/clientes.php?open=' . $r['id'],
+                'token' => '@[cli|' . $r['id'] . '|' . $display . ']', 'url' => '/clientes?open=' . $r['id'],
             ];
         }
     }
@@ -178,7 +178,7 @@ if (!$ctx->moduloJuridicoDisponivel()) {
             if ($r['resp']) $sub[] = $r['resp'];
             $res[] = [
                 'tipo' => 'tarefa', 'id' => (int)$r['id'], 'display' => $display, 'sub' => implode(' · ', array_filter($sub)),
-                'token' => '@[tar|' . $r['id'] . '|' . $display . ']', 'url' => '/tarefas.php?tarefa=' . $r['id'],
+                'token' => '@[tar|' . $r['id'] . '|' . $display . ']', 'url' => '/tarefas?tarefa=' . $r['id'],
             ];
         }
     }
@@ -210,7 +210,7 @@ if (!$ctx->moduloJuridicoDisponivel()) {
                                      $r['last_message_at'] ? 'última ' . $dataBr($r['last_message_at']) : '']);
                 $res[] = [
                     'tipo' => 'conversa', 'id' => (int)$r['id'], 'display' => $display, 'sub' => implode(' · ', $sub),
-                    'token' => '@[zap|' . $r['id'] . '|' . $display . ']', 'url' => '/chat.php?conversa=' . $r['id'],
+                    'token' => '@[zap|' . $r['id'] . '|' . $display . ']', 'url' => '/chat?conversa=' . $r['id'],
                 ];
             }
         }
@@ -263,7 +263,7 @@ if ($showUsers && $usersIn) {
             'display'      => $row['nome'],
             'sub'          => ucfirst($row['perfil'] ?? ''),
             'token'        => '@[user|' . $row['id'] . '|' . $row['nome'] . ']',
-            'url'          => '/usuarios.php',
+            'url'          => '/usuarios',
             // Info de organização: usado pelo frontend pra agrupar por conta
             'account_id'   => (int)$row['account_id'],
             'account_nome' => $row['account_nome'] ?? '',
@@ -291,7 +291,7 @@ if ($showProcessos && $procIn) {
             'display' => $display,
             'sub'     => $row['cliente_nome'] ?? '',
             'token'   => '@[proc|' . $row['id'] . '|' . $display . ']',
-            'url'     => '/processos.php?open=' . $row['id'],
+            'url'     => '/processos?open=' . $row['id'],
         ];
     }
 }
@@ -315,7 +315,7 @@ if ($showCards && $cardIn) {
             'display' => $display,
             'sub'     => $row['empresa_nome'] ?? '',
             'token'   => '@[card|' . $row['id'] . '|' . $display . ']',
-            'url'     => '/prospeccao.php?open=' . $row['id'],
+            'url'     => '/prospeccao?open=' . $row['id'],
         ];
     }
 }
@@ -345,7 +345,7 @@ if ($showClientes && $cliIn) {
             'display' => $display,
             'sub'     => $row['cpf_cnpj'] ?? '',
             'token'   => '@[cli|' . $row['id'] . '|' . $display . ']',
-            'url'     => '/clientes.php?open=' . $row['id'],
+            'url'     => '/clientes?open=' . $row['id'],
         ];
     }
 }

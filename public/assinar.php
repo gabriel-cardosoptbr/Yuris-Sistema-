@@ -32,7 +32,7 @@ $c = @filemtime(__DIR__ . '/assets/assinar.css') ?: 1;
   </main>
   <footer class="ass-rodape">
     Assinatura eletrônica com confirmação por código enviado ao WhatsApp. Seus dados são usados só para registrar esta assinatura e
-    comprovar o contrato. <a href="/privacidade.php" target="_blank" rel="noopener noreferrer">Política de Privacidade</a>
+    comprovar o contrato. <a href="/privacidade" target="_blank" rel="noopener noreferrer">Política de Privacidade</a>
   </footer>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/assets/assinar.js?v=<?= $v ?>"></script>

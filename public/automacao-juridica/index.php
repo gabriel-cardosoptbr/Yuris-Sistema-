@@ -78,7 +78,7 @@ $SEO_PAGE = [
 <p>As automações desta página funcionam por regras, sem depender de IA. À parte delas, o Yuris oferece um módulo de agente de IA para o WhatsApp configurável pelo próprio escritório, usando chave de API própria (OpenAI, Anthropic ou Gemini) — o comportamento e os limites são definidos por quem configura, e nada responde clientes sem que o escritório tenha decidido como.</p>
 
 <h2>Por onde começar</h2>
-<p>As automações não são módulos vendidos à parte: intimações, webhooks e recorrências fazem parte da plataforma, em planos com tudo incluído a partir de R$ 220/mês — a tabela completa está na <a href="/planos.php">página de planos</a>. O ponto de partida prático é identificar onde o trabalho repetitivo mais custa hoje no seu escritório: conferência de publicações, avisos à equipe ou lançamentos financeiros — e automatizar primeiro o que dói mais.</p>
+<p>As automações não são módulos vendidos à parte: intimações, webhooks e recorrências fazem parte da plataforma, em planos com tudo incluído a partir de R$ 220/mês — a tabela completa está na <a href="/planos">página de planos</a>. O ponto de partida prático é identificar onde o trabalho repetitivo mais custa hoje no seu escritório: conferência de publicações, avisos à equipe ou lançamentos financeiros — e automatizar primeiro o que dói mais.</p>
 HTML,
 
     'faq' => [

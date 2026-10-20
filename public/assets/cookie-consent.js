@@ -203,8 +203,8 @@
         <div class="ycc-text">
           <strong>Cookies & Privacidade.</strong>
           Usamos cookies essenciais para o login e CSRF, e carregamos fontes/libs de CDN externa que enviam seu IP a terceiros (Google, jsDelivr).
-          Veja nossa <a href="/cookies.php" target="_blank">Política de Cookies</a>
-          e <a href="/privacidade.php" target="_blank">Política de Privacidade</a>.
+          Veja nossa <a href="/cookies" target="_blank">Política de Cookies</a>
+          e <a href="/privacidade" target="_blank">Política de Privacidade</a>.
         </div>
         <div class="ycc-actions">
           <button type="button" data-action="prefs">Preferências</button>

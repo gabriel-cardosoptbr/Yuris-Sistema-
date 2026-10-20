@@ -171,7 +171,7 @@ class AuthController
             'data' => ['id' => $user['id'], 'nome' => $user['nome'], 'perfil' => $user['perfil'], 'ip' => $ip],
         ]));
 
-        header('Location: /dashboard.php');
+        header('Location: /dashboard');
         exit;
     }
 
@@ -181,7 +181,7 @@ class AuthController
 
         // Decide a tela de volta ANTES de limpar a sessão: conta Fleetiflow
         // sai pro login Fleetiflow, não pro login Yuris padrão.
-        $loginPage = '/login.php';
+        $loginPage = '/login';
         try {
             if (!empty($_SESSION['account_id'])) {
                 require_once __DIR__ . '/../Master/Account.php';
@@ -217,8 +217,8 @@ class AuthController
     private static function sanitizeLoginPage(?string $page): string
     {
         // "/" é o login da edição CRM no domínio da marca (ver index.php).
-        $allowed = ['/login.php', '/login-fleetiflow.php', '/'];
-        return in_array($page, $allowed, true) ? $page : '/login.php';
+        $allowed = ['/login', '/login-fleetiflow.php', '/'];
+        return in_array($page, $allowed, true) ? $page : '/login';
     }
 
     // ──────────────────────────────────────────────────────────────────────

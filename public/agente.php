@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../app/bootstrap.php';
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: /login'); exit; }
 $activePage = 'agente';
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 ?>

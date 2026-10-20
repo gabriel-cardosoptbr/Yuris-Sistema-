@@ -19,7 +19,7 @@ use App\Core\AccountContext;
 use App\Core\UserOptions;
 
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: /login'); exit; }
 
 $ctx = AccountContext::fromSession();
 $ctx->assertAccountActive();
@@ -1340,7 +1340,7 @@ window.Clientes = (function () {
 
         if (veioDeProspeccao) {
             linhas.push('<div><span style="color:var(--muted)">Prospecção original:</span> ' +
-                '<a href="/prospeccao.php?open=' + c.card_origem_id + '" style="color:#93c5fd;font-weight:600">#PRO-' +
+                '<a href="/prospeccao?open=' + c.card_origem_id + '" style="color:#93c5fd;font-weight:600">#PRO-' +
                 String(c.card_origem_id).padStart(6, '0') + '</a></div>');
         }
         if (c.origem) {
@@ -1472,7 +1472,7 @@ window.Clientes = (function () {
             listaC.innerHTML = conversas.map(c => {
                 const nome = c.contact_name || c.remote_jid || 'Conversa';
                 const num  = String(c.remote_jid || '').split('@')[0];
-                return '<a href="/chat.php?jid=' + encodeURIComponent(c.remote_jid || '') + '"' +
+                return '<a href="/chat?jid=' + encodeURIComponent(c.remote_jid || '') + '"' +
                     ' style="display:flex; justify-content:space-between; gap:8px; padding:8px 10px; border-radius:8px;' +
                     ' background:rgba(16,185,129,.08); border:1px solid rgba(52,211,153,.18); text-decoration:none; color:inherit; margin-bottom:6px;">' +
                     '<span style="font-weight:600">' + escapeHtml(nome) + '</span>' +
@@ -1487,7 +1487,7 @@ window.Clientes = (function () {
             listaT.innerHTML = tarefas.map(t => {
                 const st = t.status || 'ativa';
                 const prazo = t.prazo ? fmtDate(t.prazo) : '';
-                return '<a href="/tarefas.php?open=' + encodeURIComponent(t.id) + '"' +
+                return '<a href="/tarefas?open=' + encodeURIComponent(t.id) + '"' +
                     ' style="display:flex; justify-content:space-between; gap:8px; padding:8px 10px; border-radius:8px;' +
                     ' background:rgba(96,165,250,.08); border:1px solid rgba(96,165,250,.15); text-decoration:none; color:inherit; margin-bottom:6px;">' +
                     '<span style="font-weight:600' + (st === 'concluida' ? ';opacity:.6;text-decoration:line-through' : '') + '">' +
@@ -1747,7 +1747,7 @@ window.Clientes = (function () {
         const list  = $('#cliProcessos');
         const novo  = $('#cliNovoProcesso');
         if (!block || !list) return;
-        if (novo) novo.href = '/processos.php?new_cliente_id=' + encodeURIComponent(clienteId);
+        if (novo) novo.href = '/processos?new_cliente_id=' + encodeURIComponent(clienteId);
         block.style.display = '';
         list.innerHTML = '<div style="color:var(--muted); font-size:.8rem;">Carregando…</div>';
         try {
@@ -1761,7 +1761,7 @@ window.Clientes = (function () {
             list.innerHTML = procs.map(p => {
                 const num = escapeHtml(p.numero || ('Processo #' + p.id));
                 const st  = escapeHtml(p.status || '');
-                return `<a href="/processos.php?open=${p.id}" style="display:flex; justify-content:space-between; gap:8px; padding:8px 10px; border-radius:8px; background:rgba(96,165,250,.08); border:1px solid rgba(96,165,250,.15); text-decoration:none; color:inherit;">
+                return `<a href="/processos?open=${p.id}" style="display:flex; justify-content:space-between; gap:8px; padding:8px 10px; border-radius:8px; background:rgba(96,165,250,.08); border:1px solid rgba(96,165,250,.15); text-decoration:none; color:inherit;">
                     <span>${num}</span><span style="color:var(--muted); font-size:.76rem;">${st} →</span>
                 </a>`;
             }).join('');
@@ -2123,7 +2123,7 @@ window.Clientes = (function () {
       else if (window.showToast) showToast(msg, 'error');
       return;
     }
-    window.open('/dossie.php?entidade=cliente&id=' + id, '_blank', 'noopener');
+    window.open('/dossie?entidade=cliente&id=' + id, '_blank', 'noopener');
   });
 })();
 </script>
@@ -2249,7 +2249,7 @@ window.Clientes = (function () {
     const zap = $('#cliWhatsapp').value || $('#cliTelefone').value;
     F.celulaWhatsapp(faixa.valor('zap'), zap, () => {
       const d = String(zap).replace(/\D/g, '');
-      if (d) location.href = '/chat.php?jid=' + encodeURIComponent((d.length <= 11 ? '55' + d : d) + '@s.whatsapp.net');
+      if (d) location.href = '/chat?jid=' + encodeURIComponent((d.length <= 11 ? '55' + d : d) + '@s.whatsapp.net');
     });
     const oSel = $('#cliOrigem'), o = oSel.options[oSel.selectedIndex];
     faixa.set('origem', '<span class="ff-pill">' + F.esc(o && oSel.value ? o.textContent.trim() : 'Não informada') + '</span>');

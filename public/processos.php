@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../app/bootstrap.php';
 session_start();
 if (empty($_SESSION['user_id'])) {
-    header('Location: /login.php');
+    header('Location: /login');
     exit;
 }
 // HARDENING: bloqueia acesso de contas suspensas/canceladas/inativas
@@ -1294,7 +1294,7 @@ try {
                 </div>
               </div>
               <div id="proc_card_link" style="display:none;margin-top:8px">
-                <a id="proc_card_link_btn" href="/prospeccao.php" style="font-size:.82rem;color:#60a5fa">Ver ficha do cliente na Prospecção →</a>
+                <a id="proc_card_link_btn" href="/prospeccao" style="font-size:.82rem;color:#60a5fa">Ver ficha do cliente na Prospecção →</a>
               </div>
             </div>
           </div>
@@ -1925,7 +1925,7 @@ try {
       else if (window.showToast) showToast(msg, 'error');
       return;
     }
-    window.open('/dossie.php?entidade=processo&id=' + id, '_blank', 'noopener');
+    window.open('/dossie?entidade=processo&id=' + id, '_blank', 'noopener');
   });
 })();
 </script>

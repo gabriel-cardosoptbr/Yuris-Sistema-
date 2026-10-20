@@ -313,11 +313,11 @@ $corpo     = $LEGAL_PAGE['corpo_html'] ?? '<p>Conteúdo em revisão.</p>';
 <body>
   <div class="legal-shell">
     <div class="legal-header">
-      <a class="legal-brand" href="/planos.php">
+      <a class="legal-brand" href="/planos">
         <img src="/sistema_vendas/Imagens/Logo.png" alt="Yuris">
         <span class="legal-brand-name">Yuris</span>
       </a>
-      <a class="legal-back" href="javascript:history.length>1?history.back():(location.href='/planos.php')">← Voltar</a>
+      <a class="legal-back" href="javascript:history.length>1?history.back():(location.href='/planos')">← Voltar</a>
     </div>
 
     <article class="legal-card">
@@ -338,11 +338,11 @@ $corpo     = $LEGAL_PAGE['corpo_html'] ?? '<p>Conteúdo em revisão.</p>';
 
       <div class="legal-footer">
         <div class="legal-footer-links">
-          <a href="/privacidade.php">Privacidade</a>
-          <a href="/termos.php">Termos</a>
-          <a href="/cookies.php">Cookies</a>
-          <a href="/lgpd.php">LGPD & Segurança</a>
-          <a href="/dpo.php">Contato DPO</a>
+          <a href="/privacidade">Privacidade</a>
+          <a href="/termos">Termos</a>
+          <a href="/cookies">Cookies</a>
+          <a href="/lgpd">LGPD & Segurança</a>
+          <a href="/dpo">Contato DPO</a>
         </div>
         <div>© <?= date('Y') ?> Yuris — Sistema jurídico SaaS</div>
       </div>

@@ -12,7 +12,7 @@ $nav = [
     ['#juridico', 'Jurídico'],
     ['#automacao', 'Automação'],
     ['#seguranca', 'Segurança'],
-    ['/planos.php', 'Planos'],
+    ['/planos', 'Planos'],
     ['#demonstracao', 'Demonstração'],
 ];
 ?>
@@ -30,7 +30,7 @@ $nav = [
     </nav>
 
     <div class="lp2-header-cta">
-      <a href="/login.php" class="lp2-btn lp2-btn-ghost">Entrar</a>
+      <a href="/login" class="lp2-btn lp2-btn-ghost">Entrar</a>
       <a href="<?= wa($ctaMsg) ?>" target="_blank" rel="noopener" class="lp2-btn lp2-btn-primary lp2-btn-wa">
         <?= $waSvg ?>
         Solicitar demonstração
@@ -53,7 +53,7 @@ $nav = [
   <a href="<?= $href ?>"><?= $label ?></a>
   <?php endforeach; ?>
   <div class="lp2-drawer-title">Acesso</div>
-  <a href="/login.php" class="lp2-btn lp2-btn-ghost">Entrar</a>
+  <a href="/login" class="lp2-btn lp2-btn-ghost">Entrar</a>
   <a href="<?= wa($ctaMsg) ?>" target="_blank" rel="noopener" class="lp2-btn lp2-btn-primary lp2-btn-wa">
     <?= $waSvg ?>
     Solicitar demonstração

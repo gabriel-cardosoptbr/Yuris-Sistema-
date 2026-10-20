@@ -112,7 +112,7 @@
       if (!r.ok) { raiz.innerHTML = '<p class="orc-erro">' + esc(r.error) + '</p>'; return; }
       var f = r.data, s = f.status;
       var botoes = '';
-      botoes += '<a class="orc-btn orc-btn-sm" href="/orcamento_imprimir.php?id=' + f.id + '" target="_blank" rel="noopener">Imprimir / PDF</a>';
+      botoes += '<a class="orc-btn orc-btn-sm" href="/orcamento_imprimir?id=' + f.id + '" target="_blank" rel="noopener">Imprimir / PDF</a>';
       if (f.cliente_telefone) {
         var fone = String(f.cliente_telefone).replace(/\D/g, '');
         if (fone.length === 10 || fone.length === 11) fone = '55' + fone;
@@ -123,7 +123,7 @@
       if (s === 'REJEITADO') botoes += '<button type="button" class="orc-btn orc-btn-sm orc-btn-principal" data-acao="reabrir">Reabrir para refazer</button>';
       if (s === 'RASCUNHO') botoes += '<button type="button" class="orc-btn orc-btn-sm orc-btn-principal" data-acao="aprovar">Aprovar</button>';
       if (s === 'APROVADO') botoes += '<button type="button" class="orc-btn orc-btn-sm orc-btn-principal" data-acao="converter">Fechar negócio</button>';
-      if (f.card_id) botoes += '<a class="orc-btn orc-btn-sm" href="/prospeccao.php?open=' + f.card_id + '">Abrir lead</a>';
+      if (f.card_id) botoes += '<a class="orc-btn orc-btn-sm" href="/prospeccao?open=' + f.card_id + '">Abrir lead</a>';
 
       var itens = f.itens.map(function (i) {
         return '<div class="orc-item"><div style="flex:1"><div class="orc-item-tit">' + esc(i.descricao) +

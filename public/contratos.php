@@ -6,10 +6,10 @@
  */
 require_once __DIR__ . '/../app/bootstrap.php';
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: /login'); exit; }
 $ctxCtr = \App\Core\AccountContext::fromSession();
 $ctxCtr->assertAccountActive();
-if ($ctxCtr->getProduto() !== 'fleetiflow' || !\App\Contratos\Permissao::podeVer()) { header('Location: /dashboard.php'); exit; }
+if ($ctxCtr->getProduto() !== 'fleetiflow' || !\App\Contratos\Permissao::podeVer()) { header('Location: /dashboard'); exit; }
 $activePage = 'contratos';
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 $cssVer = @filemtime(__DIR__ . '/assets/ff-contratos.css') ?: 1;

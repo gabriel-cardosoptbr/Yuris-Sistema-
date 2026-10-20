@@ -133,9 +133,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <input type="checkbox" name="aceite_termos" id="aceite_termos" required style="margin-top:3px">
             <span>
               Li e concordo com os
-              <a href="/termos.php" target="_blank" style="color:#9CC7F7">Termos de Uso</a>
+              <a href="/termos" target="_blank" style="color:#9CC7F7">Termos de Uso</a>
               e a
-              <a href="/privacidade.php" target="_blank" style="color:#9CC7F7">Política de Privacidade</a>.
+              <a href="/privacidade" target="_blank" style="color:#9CC7F7">Política de Privacidade</a>.
             </span>
           </label>
         </div>

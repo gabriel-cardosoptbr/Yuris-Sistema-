@@ -1121,7 +1121,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if (label) { label.innerHTML = `✓ ${_esc(nome)} <span style="opacity:.7;font-size:.72rem;font-weight:600">· ${tag}</span>`; label.style.color = '#6ee7b7'; }
       if (lk) lk.style.display = 'block';
       if (linkBtn) {
-        linkBtn.href = isProsp ? `/prospeccao.php?open=${item.id}` : `/clientes.php?open=${item.id}`;
+        linkBtn.href = isProsp ? `/prospeccao?open=${item.id}` : `/clientes?open=${item.id}`;
         linkBtn.textContent = isProsp ? 'Ver ficha na Prospecção →' : 'Ver ficha na aba Clientes →';
       }
       if (limpar) limpar.style.display = 'block';

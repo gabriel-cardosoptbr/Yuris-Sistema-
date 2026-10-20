@@ -121,12 +121,12 @@ $SEO = [
       <a href="/sistema-juridico/">Sistema Jurídico</a>
       <a href="/crm-juridico/">CRM</a>
       <a href="/automacao-juridica/">Automação</a>
-      <a href="/planos.php">Planos</a>
+      <a href="/planos">Planos</a>
       <a href="/blog/">Blog</a>
     </nav>
 
     <div class="lp-header-cta">
-      <a href="/login.php" class="lp-btn lp-btn-ghost">Entrar</a>
+      <a href="/login" class="lp-btn lp-btn-ghost">Entrar</a>
       <a href="<?= wa($pgCtaMsg) ?>" target="_blank" rel="noopener" class="lp-btn lp-btn-primary lp-btn-wa">
         <?= $waSvg ?>
         <?= $h($pgCtaLabel) ?>
@@ -150,10 +150,10 @@ $SEO = [
   <a href="/crm-juridico/">CRM Jurídico</a>
   <a href="/automacao-juridica/">Automação Jurídica</a>
   <a href="/controle-de-processos/">Controle de Processos</a>
-  <a href="/planos.php">Planos</a>
+  <a href="/planos">Planos</a>
   <a href="/blog/">Blog</a>
   <div class="lp-drawer-title">Acesso</div>
-  <a href="/login.php" class="lp-btn lp-btn-ghost">Entrar</a>
+  <a href="/login" class="lp-btn lp-btn-ghost">Entrar</a>
   <a href="<?= wa($pgCtaMsg) ?>" target="_blank" rel="noopener" class="lp-btn lp-btn-primary lp-btn-wa">
     <?= $waSvg ?>
     <?= $h($pgCtaLabel) ?>
@@ -178,7 +178,7 @@ $SEO = [
         <?= $waSvg ?>
         <?= $h($pgCtaLabel) ?>
       </a>
-      <a href="/planos.php" class="lp-btn lp-btn-ghost">Ver planos</a>
+      <a href="/planos" class="lp-btn lp-btn-ghost">Ver planos</a>
     </div>
   </div>
 </section>
@@ -228,7 +228,7 @@ $SEO = [
           <?= $waSvg ?>
           <?= $h($pgCtaLabel) ?>
         </a>
-        <a href="/planos.php" class="lp-btn lp-btn-ghost">Conhecer os planos</a>
+        <a href="/planos" class="lp-btn lp-btn-ghost">Conhecer os planos</a>
       </div>
     </div>
   </div>

@@ -69,7 +69,7 @@ $SEO_PAGE = [
 <p>Se quiser entender quem constrói o produto antes da conversa, a página <a href="/sobre/">sobre o Yuris</a> apresenta o sistema e a forma como ele é mantido.</p>
 
 <h2>E quanto custa depois?</h2>
-<p>Sem surpresa no final: os preços são públicos e têm tudo incluído, sem cobrança por módulo. Os planos começam em R$ 220/mês e variam conforme o número de usuários — a tabela completa e atualizada está na <a href="/planos.php">página de planos</a>. Na própria demonstração, a equipe indica o plano que faz sentido para o tamanho do seu escritório.</p>
+<p>Sem surpresa no final: os preços são públicos e têm tudo incluído, sem cobrança por módulo. Os planos começam em R$ 220/mês e variam conforme o número de usuários — a tabela completa e atualizada está na <a href="/planos">página de planos</a>. Na própria demonstração, a equipe indica o plano que faz sentido para o tamanho do seu escritório.</p>
 <p>Pronto para ver o sistema com os seus casos em mente? <a href="https://wa.me/5511991170602?text=Ol%C3%A1%20Bruno%2C%20quero%20agendar%20uma%20demonstra%C3%A7%C3%A3o%20do%20Yuris%21"><strong>Chame no WhatsApp</strong></a> e agende a demonstração conforme a sua agenda.</p>
 HTML,
 
@@ -94,7 +94,7 @@ HTML,
 
     'relacionados' => [
         ['href' => '/sistema-juridico/', 'titulo' => 'Sistema Jurídico',  'desc' => 'Visão completa da plataforma: processos, prazos, intimações, CRM e financeiro.'],
-        ['href' => '/planos.php',        'titulo' => 'Planos e Preços',   'desc' => 'Valores públicos com tudo incluído, a partir de R$ 220/mês.'],
+        ['href' => '/planos',        'titulo' => 'Planos e Preços',   'desc' => 'Valores públicos com tudo incluído, a partir de R$ 220/mês.'],
         ['href' => '/sobre/',            'titulo' => 'Sobre o Yuris',     'desc' => 'Conheça o Yuris: o que é o produto e como ele é construído.'],
     ],
 ];

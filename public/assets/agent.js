@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   const AGENT_API = '/api/agent_settings.php';
   const INST_API  = '/api/whatsapp/agent_instances.php';
-  const CHAT_URL  = '/chat.php';            // Comunicação -> Chat WhatsApp
+  const CHAT_URL  = '/chat';            // Comunicação -> Chat WhatsApp
   const form = document.getElementById('agentForm');
   if (!form) return;
 

@@ -288,8 +288,8 @@ final class AgendaDoLead
                 'tipo_rotulo'  => $r['tipo'] ? (self::TIPOS[$r['tipo']] ?? $r['tipo']) : 'Tarefa',
                 'mensagem_programada' => $r['envio_status'] === 'pendente',
                 'card_id'      => $card ?: null,
-                'url'          => $card ? '/prospeccao.php?open=' . $card : '/tarefas.php?tarefa=' . (int) $r['id'],
-                'url_tarefa'   => '/tarefas.php?tarefa=' . (int) $r['id'],
+                'url'          => $card ? '/prospeccao?open=' . $card : '/tarefas?tarefa=' . (int) $r['id'],
+                'url_tarefa'   => '/tarefas?tarefa=' . (int) $r['id'],
             ];
         }
         return $out;
@@ -519,7 +519,7 @@ final class AgendaDoLead
                 'mensagem'     => $msg,
                 'entidade'     => 'card',
                 'entidade_id'  => (int) $r['card_id'],
-                'url'          => '/prospeccao.php?open=' . (int) $r['card_id'],
+                'url'          => '/prospeccao?open=' . (int) $r['card_id'],
                 'preferencia'  => 'prazo',
                 'chave_dedupe' => 'agenda:' . $r['id'] . ':' . $r['prazo'],
                 'janela_min'   => Aviso::JANELA_DIARIA_MIN,
@@ -682,7 +682,7 @@ final class AgendaDoLead
             'mensagem'     => $motivo . ' Abra o lead para mandar de novo.',
             'entidade'     => 'card',
             'entidade_id'  => (int) $a['card_id'],
-            'url'          => '/prospeccao.php?open=' . (int) $a['card_id'],
+            'url'          => '/prospeccao?open=' . (int) $a['card_id'],
             'chave_dedupe' => 'agenda-falha:' . $a['id'],
             'janela_min'   => 30,
         ]);

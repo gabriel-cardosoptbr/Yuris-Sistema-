@@ -100,7 +100,7 @@ final class Eventos
                 'mensagem'     => mb_substr($texto, 0, 400),
                 'entidade'     => 'card',
                 'entidade_id'  => $cardId,
-                'url'          => '/prospeccao.php?open=' . $cardId,
+                'url'          => '/prospeccao?open=' . $cardId,
                 'preferencia'  => 'responsavel',
                 'chave_dedupe' => 'plataforma:' . strtolower($id),
             ];
@@ -207,7 +207,7 @@ final class Eventos
                 'mensagem'     => mb_substr($texto, 0, 400),
                 'entidade'     => 'card',
                 'entidade_id'  => $cardId,
-                'url'          => '/prospeccao.php?open=' . $cardId,
+                'url'          => '/prospeccao?open=' . $cardId,
                 'preferencia'  => 'responsavel',
                 'chave_dedupe' => 'plataforma:' . strtolower((string) ($evento['id'] ?? '')),
             ];

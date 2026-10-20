@@ -144,7 +144,7 @@
     if (d.dias_cliente != null) sub.push('cliente ' + haQuanto(d.dias_cliente));
     var h = '<div class="ffc">' + (copia ? '<div class="ffc-aqui">Também neste setor</div>' : '') + '<div class="ffc-topo"><span class="ffc-av" style="background:' + corDoNome(d.nome || '') + '">' + esc(iniciais(d.nome)) + '</span>' +
       '<div class="ffc-id"><div class="ffc-nome">' + esc(d.nome) + '</div>' + (sub.length ? '<div class="ffc-sub">' + esc(sub.join(' · ')) + '</div>' : '') + '</div>' +
-      (d.whatsapp ? '<a class="ffc-zap" data-ffc-zap href="/chat.php?jid=' + encodeURIComponent((d.whatsapp.length <= 11 ? '55' + d.whatsapp : d.whatsapp) + '@s.whatsapp.net') + '" title="Abrir conversa no WhatsApp" aria-label="Abrir conversa no WhatsApp">' + ICO.zap + '</a>' : '') +
+      (d.whatsapp ? '<a class="ffc-zap" data-ffc-zap href="/chat?jid=' + encodeURIComponent((d.whatsapp.length <= 11 ? '55' + d.whatsapp : d.whatsapp) + '@s.whatsapp.net') + '" title="Abrir conversa no WhatsApp" aria-label="Abrir conversa no WhatsApp">' + ICO.zap + '</a>' : '') +
       '</div>';
     // Os outros setores (colunas) do cliente; a coluna onde o card está não se repete.
     var tags = [d.setor].concat(d.extras || []).filter(function (id, i, a) { return id && id !== colunaId && a.indexOf(id) === i; }).map(function (id) {
@@ -290,7 +290,7 @@
     var origem = Array.prototype.find.call(dir.children, function (s) { return s.getAttribute('data-ff-titulo') === 'Origem'; });
     dir.insertBefore(secCtr, origem ? origem.nextSibling : dir.firstChild);
     dir.insertBefore(secSet, secCtr);
-    ctr.querySelector('[data-novo]').onclick = function () { if (campoId.value) location.href = '/contratos.php?novo=1&cliente_id=' + encodeURIComponent(campoId.value); };
+    ctr.querySelector('[data-novo]').onclick = function () { if (campoId.value) location.href = '/contratos?novo=1&cliente_id=' + encodeURIComponent(campoId.value); };
 
     // Enter dentro destas seções não envia o formulário do cliente.
     [fin, ctr].forEach(function (el) { el.addEventListener('keydown', function (e) { if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); var b = fin.querySelector('[data-salvar]'); if (b && fin.contains(e.target)) b.click(); } }); });
@@ -529,7 +529,7 @@
         if (estado.cliente !== id) return;
         if (!r.ok) { listaCtr.innerHTML = '<div class="ffcli-vazio">' + esc(r.error || 'Não foi possível carregar.') + '</div>'; return; }
         listaCtr.innerHTML = r.data.length ? r.data.map(function (c) {
-          return '<a class="ffcli-ctr" href="/contratos.php?id=' + c.id + '"><span>' + esc(c.titulo) + '</span><span>' + esc(c.status_rotulo) + ' · ' + c.assinaturas + '/' + c.participantes + '</span></a>';
+          return '<a class="ffcli-ctr" href="/contratos?id=' + c.id + '"><span>' + esc(c.titulo) + '</span><span>' + esc(c.status_rotulo) + ' · ' + c.assinaturas + '/' + c.participantes + '</span></a>';
         }).join('') : '<div class="ffcli-vazio">Nenhum contrato para este cliente.</div>';
       });
     }

@@ -116,7 +116,7 @@
     Array.prototype.forEach.call(app.querySelectorAll('tr[data-card]'), function (tr) {
       tr.addEventListener('click', function () {
         var id = tr.getAttribute('data-card');
-        if (id) location.href = '/prospeccao.php?open=' + encodeURIComponent(id);
+        if (id) location.href = '/prospeccao?open=' + encodeURIComponent(id);
       });
     });
     var desligar = app.querySelector('[data-desligar]');

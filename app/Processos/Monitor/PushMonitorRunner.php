@@ -250,7 +250,7 @@ final class PushMonitorRunner
                     'tipo'       => $tipo,
                     'valor'      => $valor,
                     'count'      => $count,
-                    'url'        => '/intimacoes.php',
+                    'url'        => '/intimacoes',
                 ],
             ]);
         } catch (\Throwable $e) {

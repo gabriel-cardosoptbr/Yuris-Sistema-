@@ -4,7 +4,7 @@ require_once __DIR__ . '/../app/bootstrap.php';
 session_start();
 // Não logado → manda pro portal dedicado (não pro login regular)
 if (empty($_SESSION['user_id'])) {
-    header('Location: /master_login.php');
+    header('Location: /master_login');
     exit;
 }
 
@@ -13,7 +13,7 @@ if (empty($_SESSION['user_id'])) {
 // precisa fazer login explícito em /master_login.php pra ter master_mode=true.
 // Isso evita que uma sessão sequestrada do app abra o painel master.
 if (empty($_SESSION['master_mode'])) {
-    header('Location: /master_login.php');
+    header('Location: /master_login');
     exit;
 }
 
@@ -26,7 +26,7 @@ if (!$ctx->isSuperAdmin()) {
     http_response_code(403);
     echo '<html><body style="font-family:sans-serif;padding:40px;background:#0a0418;color:#dbe7f5">';
     echo '<h1>Acesso negado</h1><p>Apenas super administradores podem acessar o Painel Master.</p>';
-    echo '<a href="/master_login.php" style="color:#c084fc">← Voltar ao portal master</a>';
+    echo '<a href="/master_login" style="color:#c084fc">← Voltar ao portal master</a>';
     echo '</body></html>';
     exit;
 }
@@ -47,7 +47,7 @@ try {
 
 // Botão "Sair" sempre faz logout do master e volta pro portal isolado.
 // (chegou até aqui = master_mode obrigatoriamente true, asserted acima)
-$exitHref  = '/master_logout.php';
+$exitHref  = '/master_logout';
 $exitLabel = '← Sair (logout)';
 $exitTitle = 'Encerrar sessão e voltar ao portal master';
 ?>
@@ -310,7 +310,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
     <strong>2FA não configurado.</strong>
     <span>O Painel Master tem acesso cross-tenant total — proteja com autenticação em dois fatores.</span>
   </div>
-  <a href="/master_mfa_setup.php"
+  <a href="/master_mfa_setup"
      style="padding:6px 14px;background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;text-decoration:none;border-radius:6px;font-weight:600;font-size:.82rem;white-space:nowrap;">
     Configurar agora →
   </a>

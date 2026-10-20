@@ -155,12 +155,12 @@ $cssVerSp = @filemtime(__DIR__ . '/assets/seo-pages.css') ?: 1;
       <a href="#juridico">Jurídico</a>
       <a href="#automacao">Automação</a>
       <a href="#seguranca">Segurança</a>
-      <a href="/planos.php">Planos</a>
+      <a href="/planos">Planos</a>
       <a href="#demonstracao">Demonstração</a>
     </nav>
 
     <div class="lp-header-cta">
-      <a href="/login.php" class="lp-btn lp-btn-ghost">Entrar</a>
+      <a href="/login" class="lp-btn lp-btn-ghost">Entrar</a>
       <a href="<?= wa('Olá Bruno, quero uma demonstração do Yuris!') ?>" target="_blank" rel="noopener" class="lp-btn lp-btn-primary lp-btn-wa">
         <?= $waSvg ?>
         Solicitar demonstração
@@ -184,10 +184,10 @@ $cssVerSp = @filemtime(__DIR__ . '/assets/seo-pages.css') ?: 1;
   <a href="#juridico">Jurídico</a>
   <a href="#automacao">Automação</a>
   <a href="#seguranca">Segurança</a>
-  <a href="/planos.php">Planos</a>
+  <a href="/planos">Planos</a>
   <a href="#demonstracao">Demonstração</a>
   <div class="lp-drawer-title">Acesso</div>
-  <a href="/login.php" class="lp-btn lp-btn-ghost">Entrar</a>
+  <a href="/login" class="lp-btn lp-btn-ghost">Entrar</a>
   <a href="<?= wa('Olá Bruno, quero uma demonstração do Yuris!') ?>" target="_blank" rel="noopener" class="lp-btn lp-btn-primary lp-btn-wa">
     <?= $waSvg ?>
     Solicitar demonstração
@@ -1907,7 +1907,7 @@ $cssVerSp = @filemtime(__DIR__ . '/assets/seo-pages.css') ?: 1;
       </details>
       <details>
         <summary>Quanto custa o Yuris?</summary>
-        <div class="sp-faq-resposta"><p>Os planos são públicos e começam em R$ 220 por mês, com tudo incluído — sem cobrança separada por módulo. O valor varia conforme o número de usuários do escritório. A tabela completa está na <a href="/planos.php">página de planos</a>.</p></div>
+        <div class="sp-faq-resposta"><p>Os planos são públicos e começam em R$ 220 por mês, com tudo incluído — sem cobrança separada por módulo. O valor varia conforme o número de usuários do escritório. A tabela completa está na <a href="/planos">página de planos</a>.</p></div>
       </details>
       <details>
         <summary>O Yuris serve para advogado autônomo ou só para escritórios?</summary>
@@ -2028,7 +2028,7 @@ $cssVerSp = @filemtime(__DIR__ . '/assets/seo-pages.css') ?: 1;
           <li><a href="#juridico">Jurídico</a></li>
           <li><a href="#automacao">Automações</a></li>
           <li><a href="#integracoes">Integrações</a></li>
-          <li><a href="/planos.php">Planos</a></li>
+          <li><a href="/planos">Planos</a></li>
           <li><a href="/blog/">Blog</a></li>
         </ul>
       </div>
@@ -2039,17 +2039,17 @@ $cssVerSp = @filemtime(__DIR__ . '/assets/seo-pages.css') ?: 1;
           <li><a href="#para-quem">Para quem é</a></li>
           <li><a href="#confianca">Pilares</a></li>
           <li><a href="/demonstracao/">Demonstração</a></li>
-          <li><a href="/login.php">Entrar</a></li>
+          <li><a href="/login">Entrar</a></li>
         </ul>
       </div>
       <div class="lp-footer-col">
         <h5>Legal</h5>
         <ul>
-          <li><a href="/privacidade.php">Privacidade</a></li>
-          <li><a href="/termos.php">Termos</a></li>
-          <li><a href="/lgpd.php">LGPD</a></li>
-          <li><a href="/cookies.php">Cookies</a></li>
-          <li><a href="/dpo.php">Encarregado (DPO)</a></li>
+          <li><a href="/privacidade">Privacidade</a></li>
+          <li><a href="/termos">Termos</a></li>
+          <li><a href="/lgpd">LGPD</a></li>
+          <li><a href="/cookies">Cookies</a></li>
+          <li><a href="/dpo">Encarregado (DPO)</a></li>
           <li><a href="javascript:if(window.YurisCookies){YurisCookies.open()}else{location.reload()}">Gerenciar cookies</a></li>
         </ul>
       </div>

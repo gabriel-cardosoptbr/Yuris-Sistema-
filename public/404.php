@@ -37,7 +37,7 @@ $SEO = [
       <span class="lp-logo-text">YURIS</span>
     </a>
     <div class="lp-header-cta">
-      <a href="/login.php" class="lp-btn lp-btn-ghost">Entrar</a>
+      <a href="/login" class="lp-btn lp-btn-ghost">Entrar</a>
       <a href="<?= wa('Olá Bruno, quero uma demonstração do Yuris!') ?>" target="_blank" rel="noopener" class="lp-btn lp-btn-primary lp-btn-wa">
         <?= $waSvg ?>
         Solicitar demonstração
@@ -66,7 +66,7 @@ $SEO = [
         <h3>Sistema Jurídico</h3>
         <p>O que o Yuris centraliza: processos, prazos, intimações, CRM e financeiro.</p>
       </a>
-      <a class="lp-card" href="/planos.php">
+      <a class="lp-card" href="/planos">
         <h3>Planos</h3>
         <p>Preços públicos, tudo incluído, a partir de R$ 220/mês.</p>
       </a>

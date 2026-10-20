@@ -295,7 +295,7 @@ final class PlanFeature
            . '</style></head><body><div class="b">'
            . '<h1>' . $safe . ' não está no seu plano</h1>'
            . '<p>Este recurso faz parte de um plano superior. Fale com a nossa equipe para liberar o acesso.</p>'
-           . '<a href="/dashboard.php">Voltar ao início</a>'
+           . '<a href="/dashboard">Voltar ao início</a>'
            . '</div></body></html>';
         exit;
     }

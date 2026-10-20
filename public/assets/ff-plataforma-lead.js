@@ -109,7 +109,7 @@
       var d = atual;
       if (!d.ligada) {
         caixa.innerHTML = '<div class="ffag-vazio">O CRM ainda não está ligado à plataforma.' +
-          (d.pode_configurar ? ' <a href="/plataforma.php">Ligar agora</a>' : ' Peça a um administrador.') + '</div>';
+          (d.pode_configurar ? ' <a href="/plataforma">Ligar agora</a>' : ' Peça a um administrador.') + '</div>';
         return;
       }
       if (!d.vinculo) { desenharSemVinculo(d); return; }

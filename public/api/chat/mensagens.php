@@ -178,7 +178,7 @@ if ($method === 'POST') {
                         'No chat interno',
                         $texto,
                         $uid,
-                        '/chat_interno.php?conversa=' . $convId
+                        '/chat_interno?conversa=' . $convId
                     );
                 } catch (\Throwable $e) { /* aviso nunca derruba o envio */ }
             }

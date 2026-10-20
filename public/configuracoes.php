@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../app/bootstrap.php';
 use App\Prospeccao\PipelineColumn;
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: /login'); exit; }
 $moduloJuridico = \App\Core\AccountContext::fromSession()->moduloJuridicoDisponivel(); // false só para conta Fleetiflow (sem módulo jurídico)
 $activePage = 'configuracoes';
 $csrf    = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
@@ -638,11 +638,11 @@ $nCols   = count($columns);
         <div class="cfg-panel">
           <h3 style="font-size:.95rem;font-weight:600;color:#dbeafe;margin-bottom:14px">Atalhos para configurações avançadas</h3>
           <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
-            <a href="agente.php" class="link-card">
+            <a href="/agente" class="link-card">
               <div><div class="link-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M8 8V6a2 2 0 0 1 4 0v2"/><path d="M12 6V4"/><circle cx="9" cy="14" r="1" fill="currentColor"/><circle cx="15" cy="14" r="1" fill="currentColor"/><path d="M8 17h8"/></svg> Agente de IA</div><div class="link-card-sub">Configurar provedor, chave de API e prompt do agente WhatsApp</div></div>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
-            <a href="usuarios.php" class="link-card">
+            <a href="/usuarios" class="link-card">
               <div><div class="link-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Gestão de Usuários</div><div class="link-card-sub">Criar, editar e controlar perfis e acessos</div></div>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
@@ -651,17 +651,17 @@ $nCols   = count($columns);
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
             <?php if ($moduloJuridico): ?>
-            <a href="juridico.php" class="link-card">
+            <a href="/juridico" class="link-card">
               <div><div class="link-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M12 3v18"/><path d="M5 6l7-3 7 3"/><path d="M5 6 2 13h6z"/><path d="M19 6l-3 7h6z"/><line x1="3" y1="18" x2="21" y2="18"/></svg> Painel Jurídico</div><div class="link-card-sub">Alertas de prazo, diagnóstico processual, gráficos</div></div>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
             <?php endif; ?>
-            <a href="financas.php" class="link-card">
+            <a href="/financas" class="link-card">
               <div><div class="link-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M9 9h4.5a1.5 1.5 0 0 1 0 3h-5a1.5 1.5 0 0 0 0 3H15"/></svg> Central Financeira (DRE)</div><div class="link-card-sub">Categorias, centros de custo, lançamentos, metas financeiras</div></div>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
             <?php if ($moduloJuridico): ?>
-            <a href="processos.php" class="link-card">
+            <a href="/processos" class="link-card">
               <div><div class="link-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg> Gestão Processual</div><div class="link-card-sub">Tipos de ação, responsáveis, prazos e calendário</div></div>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
             </a>

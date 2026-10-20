@@ -68,9 +68,9 @@ $LEGAL_PAGE = [
 
 <h2>6. Documentos relacionados</h2>
 <ul>
-  <li><a href="/privacidade.php">Política de Privacidade</a></li>
-  <li><a href="/termos.php">Termos de Uso</a></li>
-  <li><a href="/lgpd.php">LGPD &amp; Segurança</a></li>
+  <li><a href="/privacidade">Política de Privacidade</a></li>
+  <li><a href="/termos">Termos de Uso</a></li>
+  <li><a href="/lgpd">LGPD &amp; Segurança</a></li>
 </ul>
 HTML
 ];

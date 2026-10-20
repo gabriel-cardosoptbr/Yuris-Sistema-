@@ -271,7 +271,7 @@
     var sec = document.createElement('div');
     sec.className = 'form-section ffag-sec';
     sec.id = 'ffAgendaSection';
-    sec.innerHTML = '<div class="ffag-lista"></div><div class="ffag-sec-pe"><a href="/tarefas.php">Ver agenda completa</a>' +
+    sec.innerHTML = '<div class="ffag-lista"></div><div class="ffag-sec-pe"><a href="/tarefas">Ver agenda completa</a>' +
       '<button type="button" class="ffag-btn ffag-btn-leve" data-novo>' + ico('calendario') + '<span>Agendar</span></button></div>';
     var dir = form.querySelector('.ff-col-dir');
     if (dir) dir.insertBefore(sec, dir.firstChild);
@@ -411,7 +411,7 @@
         (hoje.length ? '<div class="ffag-dia-grupo">Hoje</div>' + hoje.map(linha).join('') : '<div class="ffag-vazio">Nada marcado para hoje.</div>') +
         '</div>';
       j.pe.innerHTML = '<button type="button" class="ffag-btn ffag-btn-leve" data-fechar>Fechar</button>' +
-        '<a class="ffag-btn ffag-btn-principal" href="/tarefas.php" style="text-decoration:none">' + ico('calendario') + '<span>Abrir agenda</span></a>';
+        '<a class="ffag-btn ffag-btn-principal" href="/tarefas" style="text-decoration:none">' + ico('calendario') + '<span>Abrir agenda</span></a>';
       j.pe.querySelector('[data-fechar]').addEventListener('click', j.fechar);
     });
   }

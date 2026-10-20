@@ -272,7 +272,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div id="termsField" class="field" style="margin-top:14px;font-size:12.5px;color:var(--ff-ink-soft);line-height:1.5">
           <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer">
             <input type="checkbox" name="aceite_termos" id="aceite_termos" required style="margin-top:3px">
-            <span>Li e concordo com os <a href="/termos.php" target="_blank">Termos de Uso</a> e a <a href="/privacidade.php" target="_blank">Política de Privacidade</a>.</span>
+            <span>Li e concordo com os <a href="/termos" target="_blank">Termos de Uso</a> e a <a href="/privacidade" target="_blank">Política de Privacidade</a>.</span>
           </label>
         </div>
 

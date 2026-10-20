@@ -18,14 +18,14 @@ use App\Core\AccountContext;
 use App\Projetos\Projeto;
 
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: /login'); exit; }
 $activePage = 'evolution';
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 
 $ctx = AccountContext::fromSession();
 $ctx->assertAccountActive();
-if ($ctx->vendedorCrm()) { header('Location: /dashboard.php'); exit; }
-if (!Projeto::habilitado(\App\Master\Account::findById((int) $ctx->getAccountId()) ?? [])) { header('Location: /dashboard.php'); exit; }
+if ($ctx->vendedorCrm()) { header('Location: /dashboard'); exit; }
+if (!Projeto::habilitado(\App\Master\Account::findById((int) $ctx->getAccountId()) ?? [])) { header('Location: /dashboard'); exit; }
 $_evoVer = @filemtime(__DIR__ . '/assets/evolution.js') ?: 1;
 $_cssVer = @filemtime(__DIR__ . '/assets/projetos.css') ?: 1;
 ?>

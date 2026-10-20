@@ -74,7 +74,7 @@ $LEGAL_PAGE = [
     <input type="checkbox" name="aceito_tratamento" required style="margin-top:3px">
     <span>
       Autorizo o tratamento dos dados pessoais informados nesta solicitação <strong>exclusivamente para responder a este pedido</strong>,
-      conforme nossa <a href="/privacidade.php">Política de Privacidade</a>.
+      conforme nossa <a href="/privacidade">Política de Privacidade</a>.
       Estes dados serão usados para identificar você e processar o pedido — não serão utilizados para outras finalidades.
     </span>
   </label>

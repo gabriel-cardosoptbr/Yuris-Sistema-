@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../app/bootstrap.php';
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: /login'); exit; }
 // HARDENING: bloqueia acesso de contas suspensas/canceladas/inativas
 \App\Core\AccountContext::fromSession()->assertAccountActive();
 $activePage = 'tarefas';

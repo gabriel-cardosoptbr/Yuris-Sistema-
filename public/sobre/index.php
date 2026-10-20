@@ -42,7 +42,7 @@ $SEO_PAGE = [
   </tbody>
 </table>
 </div>
-<p>Os planos são públicos, com tudo incluído e valores a partir de R$ 220/mês. A tabela completa e atualizada está na <a href="/planos.php">página de planos</a>.</p>
+<p>Os planos são públicos, com tudo incluído e valores a partir de R$ 220/mês. A tabela completa e atualizada está na <a href="/planos">página de planos</a>.</p>
 
 <h2>Os seis pilares que orientam o produto</h2>
 <p>Toda decisão de produto no Yuris responde a pelo menos um de seis pilares — os mesmos que sustentam a apresentação da plataforma:</p>

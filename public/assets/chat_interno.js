@@ -124,12 +124,12 @@ const CI = (() => {
   function parseMentions(text) {
     return esc(text).replace(/@\[(user|proc|card|cli|tar|zap)\|(\d+)\|([^\]]+)\]/g, (_, tipo, id, display) => {
       const urls = {
-        user: '/usuarios.php',
-        proc: '/processos.php?open=' + id,
-        card: '/prospeccao.php?open=' + id,
-        cli : '/clientes.php?open=' + id,
-        tar : '/tarefas.php?tarefa=' + id,
-        zap : '/chat.php?conversa=' + id,
+        user: '/usuarios',
+        proc: '/processos?open=' + id,
+        card: '/prospeccao?open=' + id,
+        cli : '/clientes?open=' + id,
+        tar : '/tarefas?tarefa=' + id,
+        zap : '/chat?conversa=' + id,
       };
       const labels = { user: EH_CRM ? 'Pessoa' : 'Usuário', proc: 'Processo', card: EH_CRM ? 'Lead' : 'Card', cli: 'Cliente', tar: 'Tarefa', zap: 'Conversa' };
       return `<a href="${urls[tipo] || '#'}" class="ci-mention ci-mention--${tipo}">` +
@@ -991,12 +991,12 @@ const CI = (() => {
     // só abrem via ?open=). Agora todos usam ?open=, alinhado com parseMentions
     // (render) e com mencoes.php (busca).
     const urlMap  = {
-      user: '/usuarios.php',
-      proc: id => '/processos.php?open=' + id,
-      card: id => '/prospeccao.php?open=' + id,
-      cli : id => '/clientes.php?open=' + id,
-      tar : id => '/tarefas.php?tarefa=' + id,
-      zap : id => '/chat.php?conversa=' + id,
+      user: '/usuarios',
+      proc: id => '/processos?open=' + id,
+      card: id => '/prospeccao?open=' + id,
+      cli : id => '/clientes?open=' + id,
+      tar : id => '/tarefas?tarefa=' + id,
+      zap : id => '/chat?conversa=' + id,
     };
     let m;
     while ((m = re.exec(texto)) !== null) {

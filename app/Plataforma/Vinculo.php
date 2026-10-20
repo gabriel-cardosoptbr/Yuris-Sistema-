@@ -159,7 +159,7 @@ final class Vinculo
         $crm = rtrim((string) ($situacao['crm_url'] ?? ''), '/');
         $r = Conexao::api($accountId, 'PUT', '/contas/' . rawurlencode($codigo) . '/vinculo', [
             'referenciaExterna' => (string) $card['id'],
-            'urlExterna'        => $crm !== '' ? $crm . '/prospeccao.php?open=' . (int) $card['id'] : null,
+            'urlExterna'        => $crm !== '' ? $crm . '/prospeccao?open=' . (int) $card['id'] : null,
             'responsavel'       => $responsavel,
         ]);
         if ($r['status'] !== 200) throw new \InvalidArgumentException(Conexao::mensagem($r, 'A plataforma não aceitou o vínculo.'));

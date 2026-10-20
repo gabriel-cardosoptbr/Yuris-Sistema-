@@ -55,7 +55,7 @@ unset($_SESSION['flash_error_master']);
 
 // Se já está logado E é super_admin → atalho direto pro master.php
 if (!empty($_SESSION['user_id']) && !empty($_SESSION['is_super_admin']) && !empty($_SESSION['master_mode'])) {
-    header('Location: /master.php');
+    header('Location: /master');
     exit;
 }
 
@@ -69,13 +69,13 @@ if ($mfaPending && (time() - (int)($mfaPending['started_at'] ?? 0) > 300)) {
     unset($_SESSION['mfa_pending_login']);
     $mfaPending = null;
     $_SESSION['flash_error_master'] = 'Sessão de 2FA expirada. Faça login novamente.';
-    header('Location: /master_login.php');
+    header('Location: /master_login');
     exit;
 }
 
 if ($step === 'otp' && !$mfaPending) {
     // Não há setup pendente; manda pra tela de senha
-    header('Location: /master_login.php');
+    header('Location: /master_login');
     exit;
 }
 
@@ -84,7 +84,7 @@ if ($step === 'otp' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrf = $_POST['csrf_token'] ?? '';
     if (!$csrf || $csrf !== ($_SESSION['csrf_token'] ?? '')) {
         $_SESSION['flash_error_master'] = 'Token inválido. Recarregue a página.';
-        header('Location: /master_login.php?step=otp');
+        header('Location: /master_login?step=otp');
         exit;
     }
 
@@ -101,7 +101,7 @@ if ($step === 'otp' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if ((int)$rl->fetchColumn() >= 5) {
             unset($_SESSION['mfa_pending_login']);
             $_SESSION['flash_error_master'] = 'Muitas tentativas. Tente novamente em 15 minutos.';
-            header('Location: /master_login.php');
+            header('Location: /master_login');
             exit;
         }
     } catch (\Throwable $_e) {}
@@ -127,7 +127,7 @@ if ($step === 'otp' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$sa || !$sa['mfa_secret']) {
         unset($_SESSION['mfa_pending_login']);
         $_SESSION['flash_error_master'] = 'Configuração 2FA inconsistente. Contate suporte.';
-        header('Location: /master_login.php');
+        header('Location: /master_login');
         exit;
     }
 
@@ -159,7 +159,7 @@ if ($step === 'otp' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['flash_error_master'] = $useBackup
             ? 'Backup code inválido ou já utilizado.'
             : 'Código incorreto. Verifique a hora do seu dispositivo.';
-        header('Location: /master_login.php?step=otp');
+        header('Location: /master_login?step=otp');
         exit;
     }
 
@@ -189,7 +189,7 @@ if ($step === 'otp' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             ->execute(['ip' => $ip, 'login' => $rlLogin]);
     } catch (\Throwable $_e) {}
 
-    header('Location: /master.php');
+    header('Location: /master');
     exit;
 }
 
@@ -203,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step !== 'otp') {
     // CSRF
     if (!$csrf || $csrf !== ($_SESSION['csrf_token'] ?? '')) {
         $_SESSION['flash_error_master'] = 'Token inválido. Recarregue a página.';
-        header('Location: /master_login.php');
+        header('Location: /master_login');
         exit;
     }
 
@@ -219,7 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step !== 'otp') {
         $rl->execute(['ip' => $ip, 'login' => $rlLogin]);
         if ((int) $rl->fetchColumn() >= 5) {
             $_SESSION['flash_error_master'] = 'Muitas tentativas. Tente novamente em 15 minutos.';
-            header('Location: /master_login.php');
+            header('Location: /master_login');
             exit;
         }
     } catch (\Throwable $_e) {}
@@ -236,7 +236,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step !== 'otp') {
     if (!$user || !password_verify($pwd, $user['senha_hash'])) {
         $registerFail();
         $_SESSION['flash_error_master'] = 'Credenciais inválidas ou acesso negado.';
-        header('Location: /master_login.php');
+        header('Location: /master_login');
         exit;
     }
 
@@ -244,7 +244,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step !== 'otp') {
     if (!empty($user['deleted_at']) || (isset($user['status']) && $user['status'] !== 'active')) {
         $registerFail();
         $_SESSION['flash_error_master'] = 'Credenciais inválidas ou acesso negado.';
-        header('Location: /master_login.php');
+        header('Location: /master_login');
         exit;
     }
 
@@ -261,7 +261,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step !== 'otp') {
     if (!$sa) {
         $registerFail();
         $_SESSION['flash_error_master'] = 'Credenciais inválidas ou acesso negado.';
-        header('Location: /master_login.php');
+        header('Location: /master_login');
         exit;
     }
 
@@ -305,7 +305,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step !== 'otp') {
             'started_at' => time(),
         ]);
         // Não regenera sessão ainda — só após OTP válido
-        header('Location: /master_login.php?step=otp');
+        header('Location: /master_login?step=otp');
         exit;
     }
     // ──────────────────────────────────────────────────────────────────────────
@@ -335,7 +335,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step !== 'otp') {
             ->execute(['ip' => $ip, 'login' => $rlLogin]);
     } catch (\Throwable $_e) {}
 
-    header('Location: /master.php');
+    header('Location: /master');
     exit;
 }
 ?>
@@ -505,9 +505,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step !== 'otp') {
             <input type="checkbox" name="aceite_termos" required style="margin-top:2px;accent-color:#a855f7">
             <span>
               Li e concordo com os
-              <a href="/termos.php" target="_blank" style="color:#c084fc">Termos de Uso</a>
+              <a href="/termos" target="_blank" style="color:#c084fc">Termos de Uso</a>
               e a
-              <a href="/privacidade.php" target="_blank" style="color:#c084fc">Política de Privacidade</a>.
+              <a href="/privacidade" target="_blank" style="color:#c084fc">Política de Privacidade</a>.
             </span>
           </label>
         </div>
@@ -518,9 +518,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step !== 'otp') {
 
     <div class="ml-foot">
       <?php if ($step === 'otp'): ?>
-        <a href="/master_login.php" onclick="return confirm('Cancelar e voltar ao login?')">← Voltar ao login</a>
+        <a href="/master_login" onclick="return confirm('Cancelar e voltar ao login?')">← Voltar ao login</a>
       <?php else: ?>
-        Procurando o app normal? <a href="/login.php">Ir pro login do sistema</a>
+        Procurando o app normal? <a href="/login">Ir pro login do sistema</a>
       <?php endif; ?>
     </div>
   </main>

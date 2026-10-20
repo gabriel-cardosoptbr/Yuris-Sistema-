@@ -4,7 +4,7 @@ use App\Core\Database;
 use App\Billing\PlanFeature;
 session_start();
 if (empty($_SESSION['user_id'])) {
-    header('Location: /login.php');
+    header('Location: /login');
     exit;
 }
 // Módulo por plano (Planejamento não entra no plano Solo).

@@ -5,8 +5,8 @@ use App\Webhooks\WebhookDispatcher;
 use App\Billing\PlanFeature;
 
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
-if ($_SESSION['user_perfil'] !== 'admin') { header('Location: /dashboard.php'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: /login'); exit; }
+if ($_SESSION['user_perfil'] !== 'admin') { header('Location: /dashboard'); exit; }
 // Módulo por plano (Webhooks entram só a partir do Escritório).
 PlanFeature::assertEnabledPage((int)($_SESSION['account_id'] ?? 0), PlanFeature::F_WEBHOOKS);
 

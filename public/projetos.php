@@ -20,14 +20,14 @@ use App\Core\AccountContext;
 use App\Projetos\Projeto;
 
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: /login'); exit; }
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 
 $ctx = AccountContext::fromSession();
 $ctx->assertAccountActive();
-if ($ctx->vendedorCrm()) { header('Location: /dashboard.php'); exit; }
+if ($ctx->vendedorCrm()) { header('Location: /dashboard'); exit; }
 $_projConta = \App\Master\Account::findById((int) $ctx->getAccountId()) ?? [];
-if (!Projeto::habilitado($_projConta)) { header('Location: /dashboard.php'); exit; }
+if (!Projeto::habilitado($_projConta)) { header('Location: /dashboard'); exit; }
 
 // Página de um projeto: o menu acende o projeto-mãe (o subprojeto não tem item próprio).
 $_slug = trim((string) ($_GET['p'] ?? ''));
@@ -38,7 +38,7 @@ if ($_slug !== '') {
           WHERE p.account_id = ? AND p.slug = ? AND p.deleted_at IS NULL LIMIT 1");
     $_st->execute([(int) $ctx->getAccountId(), $_slug]);
     $_achado = $_st->fetch(\PDO::FETCH_ASSOC);
-    if (!$_achado) { header('Location: /projetos.php'); exit; }
+    if (!$_achado) { header('Location: /projetos'); exit; }
     $activePage = 'projeto:' . ($_achado['mae'] ?: $_achado['slug']);
 }
 $_projVer = @filemtime(__DIR__ . '/assets/projetos.js') ?: 1;

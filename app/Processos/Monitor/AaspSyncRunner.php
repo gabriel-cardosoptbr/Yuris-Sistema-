@@ -252,7 +252,7 @@ final class AaspSyncRunner
                     'integration_id' => $integrationId,
                     'source_id'      => 'aasp',
                     'count'          => $count,
-                    'url'            => '/intimacoes.php',
+                    'url'            => '/intimacoes',
                 ],
             ]);
         } catch (\Throwable $e) {

@@ -23,7 +23,7 @@ $ctx = AccountContext::fromSession();
 $ctx->assertSuperAdmin();
 
 if (empty($_SESSION['master_mode'])) {
-    header('Location: /master_login.php');
+    header('Location: /master_login');
     exit;
 }
 
@@ -121,7 +121,7 @@ $csrf = $_SESSION['csrf_token'];
   <div class="mfa-wrap">
     <div class="mfa-head">
       <h1>Configurar 2FA</h1>
-      <a class="mfa-back" href="/master.php">← Voltar ao Painel Master</a>
+      <a class="mfa-back" href="/master">← Voltar ao Painel Master</a>
     </div>
 
     <!-- Estado atual -->

@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../app/bootstrap.php';
 session_start();
-if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: /login'); exit; }
 // Na edição CRM, "Setores" é item próprio do menu Gestão e abre esta página na
 // aba de setores: o item que brilha é o dele.
 $activePage = (($_GET['tab'] ?? '') === 'setores') ? 'setores' : 'usuarios';

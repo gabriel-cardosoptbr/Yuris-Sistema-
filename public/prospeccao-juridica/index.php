@@ -82,7 +82,7 @@ $SEO_PAGE = [
 <p>Se dois ou mais itens soam familiares, o gargalo não está na procura — está no processo interno. Organizar esse fluxo é parte da <a href="/gestao-escritorio-advocacia/">gestão do escritório de advocacia</a> como um todo: o funil comercial alimenta a operação, e a operação devolve previsibilidade ao funil.</p>
 
 <h2>Quanto custa a prospecção no Yuris?</h2>
-<p>O módulo de Prospecção não é vendido à parte: ele faz parte da plataforma, junto com CRM, processos, tarefas, financeiro e WhatsApp integrado. Os planos são públicos, têm tudo incluído e começam em R$ 220/mês — consulte a <a href="/planos.php">página de planos</a> para a tabela completa por número de usuários.</p>
+<p>O módulo de Prospecção não é vendido à parte: ele faz parte da plataforma, junto com CRM, processos, tarefas, financeiro e WhatsApp integrado. Os planos são públicos, têm tudo incluído e começam em R$ 220/mês — consulte a <a href="/planos">página de planos</a> para a tabela completa por número de usuários.</p>
 HTML,
 
     'faq' => [

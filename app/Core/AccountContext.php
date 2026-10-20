@@ -183,7 +183,7 @@ class AccountContext
             echo json_encode(['ok' => false, 'error' => $msg, 'code' => 'ACCOUNT_BLOCKED']);
             exit;
         }
-        header('Location: /login.php?msg=' . urlencode($msg));
+        header('Location: /login?msg=' . urlencode($msg));
         exit;
     }
 
@@ -258,7 +258,7 @@ class AccountContext
            . '</style></head><body><div class="b">'
            . '<h1>Recurso não disponível nesta conta</h1>'
            . '<p>Este módulo não faz parte da sua conta.</p>'
-           . '<a href="/dashboard.php">Voltar ao início</a>'
+           . '<a href="/dashboard">Voltar ao início</a>'
            . '</div></body></html>';
         exit;
     }

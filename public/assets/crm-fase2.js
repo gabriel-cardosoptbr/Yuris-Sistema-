@@ -606,14 +606,14 @@
         const quando = c.concluido_em ? 'assinado em ' + c.concluido_em : 'criado em ' + c.criado_em;
         return '<div class="crm-item">' +
           '<span style="min-width:0;">' +
-            '<a href="/contratos.php?id=' + c.id + '" style="font-weight:600;font-size:.84rem;color:#93c5fd;text-decoration:none;">' + esc(c.titulo) + '</a> ' +
+            '<a href="/contratos?id=' + c.id + '" style="font-weight:600;font-size:.84rem;color:#93c5fd;text-decoration:none;">' + esc(c.titulo) + '</a> ' +
             '<span style="font-size:.7rem;padding:1px 6px;border-radius:999px;' + (c.status === 'concluido'
               ? 'background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.28);color:#10b981;'
               : 'background:rgba(148,163,184,.12);border:1px solid rgba(148,163,184,.3);color:#64748b;') + '">' + esc(c.status_rotulo) + '</span>' +
             '<div class="crm-vazio">' + esc(quando) + '</div>' +
             '<div>' + arqs + '</div>' +
           '</span>' +
-          '<a href="/contratos.php?id=' + c.id + '" class="crm-link" style="white-space:nowrap;flex-shrink:0;">Abrir contrato</a>' +
+          '<a href="/contratos?id=' + c.id + '" class="crm-link" style="white-space:nowrap;flex-shrink:0;">Abrir contrato</a>' +
           '</div>';
       }).join('');
   };
@@ -630,7 +630,7 @@
       d = await r.json();
     } catch (e) { d = null; }
     if (!d || !d.ok) { avisar((d && d.error) || 'Não foi possível criar o contrato.', 'error'); botao.textContent = 'Enviar para assinatura'; return; }
-    location.href = '/contratos.php?id=' + d.id;
+    location.href = '/contratos?id=' + d.id;
   };
 
   Painel.prototype.desenharAnexos = function (anexos, limites) {

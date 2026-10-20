@@ -79,14 +79,14 @@
     P.projetos.forEach(p => { if (p.parent_id) (filhosDe[p.parent_id] = filhosDe[p.parent_id] || []).push(p); });
     desenharServidores();
     preencherFornecedores();
-    if (SLUG && !porSlug[SLUG]) { location.href = '/projetos.php'; return; }
+    if (SLUG && !porSlug[SLUG]) { location.href = '/projetos'; return; }
     desenhar();
   }
 
   const nomeStatus = st => P.opcoes.status?.[st] || st;
   const selo = st => `<span class="proj-selo st-${esc(st)}">${esc(nomeStatus(st))}</span>`;
   const nomeCat = k => k === 'contas' ? 'Consumo das contas' : (P.opcoes.categorias?.custo?.[k] || P.opcoes.categorias?.receita?.[k] || k);
-  const urlProj = p => '/projetos.php?p=' + encodeURIComponent(p.slug);
+  const urlProj = p => '/projetos?p=' + encodeURIComponent(p.slug);
   const link = u => u ? (/^https?:\/\//i.test(u) ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(u.replace(/^https?:\/\//, ''))}</a>` : esc(u)) : falta();
 
   function barraComp(c, n) {
@@ -286,7 +286,7 @@
     const sub = [p.cliente ? 'Cliente: ' + esc(p.cliente) : '', esc(P.opcoes.tipos?.[p.tipo] || p.tipo), p.url ? link(p.url) : ''].filter(Boolean).join(' &nbsp;·&nbsp; ');
 
     $('projConteudo').outerHTML = `<div id="projConteudo">
-      <nav class="proj-trilha"><a href="/projetos.php">Projetos</a>${mae ? ` › <a href="${urlProj(mae)}">${esc(mae.nome)}</a>` : ''} › <b>${esc(p.nome)}</b></nav>
+      <nav class="proj-trilha"><a href="/projetos">Projetos</a>${mae ? ` › <a href="${urlProj(mae)}">${esc(mae.nome)}</a>` : ''} › <b>${esc(p.nome)}</b></nav>
       <div class="dre-panel page-header"><div class="page-header-inner proj-cab">
         <div class="page-header-text"><h2 class="page-header-title">${esc(p.nome)} ${selo(p.status)}</h2>
           <p class="page-header-subtitle">${sub}</p>
@@ -547,7 +547,7 @@
     const aviso = nf ? ` Os ${nf} subprojeto(s) dele não são apagados: viram projetos principais.` : '';
     if (!(await confirmar(`Excluir o projeto "${p.nome}" com os custos, receitas, contas e acessos dele?${aviso}`))) return;
     try {
-      const destino = p.slug === SLUG ? (p.parent_id && porId[p.parent_id] ? urlProj(porId[p.parent_id]) : '/projetos.php') : null;
+      const destino = p.slug === SLUG ? (p.parent_id && porId[p.parent_id] ? urlProj(porId[p.parent_id]) : '/projetos') : null;
       await chamar({ acao: 'projeto_excluir', id });
       toast('Projeto excluído.', 'success');
       if (destino || !SLUG) location.href = destino || location.href;
