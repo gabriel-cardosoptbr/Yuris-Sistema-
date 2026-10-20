@@ -9,7 +9,8 @@ use App\Core\Database;
  *
  *   cadastro     nome, tipo, documento, contato, cidade, situação, responsável,
  *                cliente desde quando
- *   setores      os setores do cliente (SetoresDoCliente), mais de um
+ *   setores      a coluna principal do quadro e as outras colunas em que o cliente
+ *                também está (SetoresDoCliente)
  *   dinheiro     total por mês, serviços e taxas, o que está em atraso, a próxima
  *                cobrança e o total já recebido (CobrancaDoCliente)
  *   contratos    quantos, assinados e aguardando assinatura (app/Contratos)
@@ -22,7 +23,7 @@ final class CardDoCliente
 {
     /**
      * @param int[] $accountIds contas que a sessão vê no quadro
-     * @return array{clientes: array<int, array>, setores: array}
+     * @return array{clientes: array<int, array>, setores: array} setores = colunas do quadro da conta
      */
     public static function quadro(array $accountIds, int $contaAtual): array
     {
@@ -34,7 +35,7 @@ final class CardDoCliente
         $base = SetoresDoCliente::quadro($accountIds);
         $out = [];
 
-        $st = $pdo->prepare("SELECT c.id, c.account_id, c.nome, c.tipo_cliente, c.cpf_cnpj, c.whatsapp, c.telefone, c.email, c.cidade, c.uf,
+        $st = $pdo->prepare("SELECT c.id, c.account_id, c.setor_id, c.nome, c.tipo_cliente, c.cpf_cnpj, c.whatsapp, c.telefone, c.email, c.cidade, c.uf,
                                     c.status, c.created_at, c.convertido_em, u.nome AS responsavel
                                FROM clientes c LEFT JOIN users u ON u.id = c.responsavel_id
                               WHERE c.account_id IN ($in) AND c.deleted_at IS NULL");
@@ -49,7 +50,8 @@ final class CardDoCliente
                 'cidade' => trim(($c['cidade'] ?: '') . ($c['uf'] ? '/' . $c['uf'] : ''), '/') ?: null,
                 'status' => $c['status'] ?: 'ativo', 'responsavel' => $c['responsavel'] ?: null,
                 'desde' => $desde ?: null, 'dias_cliente' => $desde ? max(0, (int) ((strtotime($hoje) - strtotime($desde)) / 86400)) : null,
-                'setores' => $base[$id]['setores'] ?? [], 'por_mes' => $base[$id]['por_mes'] ?? 0.0, 'avulso' => $base[$id]['avulso'] ?? 0.0,
+                'setor' => $c['setor_id'] !== null ? (int) $c['setor_id'] : null, 'extras' => $base[$id]['extras'] ?? [],
+                'por_mes' => $base[$id]['por_mes'] ?? 0.0, 'avulso' => $base[$id]['avulso'] ?? 0.0,
                 'atrasado' => 0.0, 'atrasadas' => 0, 'proxima' => null, 'recebido' => 0.0,
                 'contratos' => ['total' => 0, 'assinados' => 0, 'aguardando' => 0],
                 'ultimo_contato' => null, 'outra_conta' => (int) $c['account_id'] !== $contaAtual,

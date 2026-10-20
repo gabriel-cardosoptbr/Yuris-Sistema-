@@ -9,12 +9,13 @@
        App\Clientes\CobrancaDoCliente).
      - "Contratos": os contratos do cliente, "Novo contrato" já ligado a ele e
        "Vincular contrato existente" (os que ainda estão sem cliente).
-     - "Setores": a que setores da conta o cliente pertence (mais de um).
+     - "Setores": as colunas do quadro em que o cliente está; a principal é a
+       do cabeçalho da ficha, as outras se marcam aqui (mais de uma).
    No quadro de Clientes, o miolo de cada card é trocado pelo card da edição
    CRM (dinheiro, situação das cobranças, setores, contratos, contato,
-   responsável, WhatsApp; GET /api/cliente_valores.php?quadro=1), e o quadro
-   pode ser visto por situação (as colunas de sempre) ou por setor (o cliente
-   em cada setor dele), sem mexer no renderCard.
+   responsável, WhatsApp; GET /api/cliente_valores.php?quadro=1), e o cliente
+   que está em mais de um setor (coluna) aparece também em cada um deles, sem
+   mexer no renderCard.
    Carregado pelo sidebar.php em conta CRM; só age se a página tem a ficha.
    ═══════════════════════════════════════════════════════════════════════ */
 (function () {
@@ -73,8 +74,7 @@
   // O renderCard de clientes.php continua montando o <article> (arrastar, abrir a
   // ficha); aqui o miolo é trocado pelo card da edição CRM, com os dados de
   // GET /api/cliente_valores.php?quadro=1 (App\Clientes\CardDoCliente).
-  var QUADRO = null, SETORES_CONTA = [], pedindoQuadro = null, VISTA = 'situacao';
-  try { VISTA = localStorage.getItem('ffcli_vista') === 'setor' ? 'setor' : 'situacao'; } catch (e) {}
+  var QUADRO = null, SETORES_CONTA = [], pedindoQuadro = null, observador = null;
   var CSS_QUADRO = '' +
     '.cli-card.ffc-card{padding:0 !important;overflow:hidden;border-radius:14px !important}' +
     '.ffc{padding:13px 14px 12px;display:flex;flex-direction:column;gap:10px;font-family:Manrope,system-ui,sans-serif}' +
@@ -105,11 +105,14 @@
     '.ffc-meta{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ffc-mu,#6B7280);font-weight:600}' +
     '.ffc-meta svg{width:13px;height:13px;flex-shrink:0;opacity:.8}' +
     '.ffc-meta.forte{color:var(--ffc-tx2,#374151)}' +
-    'html[data-theme="dark"] .ffc{--ffc-tx:#F3F4F6;--ffc-tx2:#E5E7EB;--ffc-mu:#9CA3AF;--ffc-bg2:rgba(255,255,255,.08);--ffc-bg3:rgba(255,255,255,.04);--ffc-bd:rgba(255,255,255,.10)}' +
-    '.ffq-vista{display:flex;align-items:center;gap:6px;margin:0 0 10px;font:600 12.5px Manrope,system-ui,sans-serif;color:#6B7280;flex-wrap:wrap}' +
-    '.ffq-vista button{padding:6px 13px;border-radius:99px;border:1px solid rgba(17,29,45,.14);background:#fff;font:700 12.5px Manrope,system-ui,sans-serif;color:#374151;cursor:pointer}' +
-    '.ffq-vista button.on{background:var(--ff-marca,#015DFC);border-color:var(--ff-marca,#015DFC);color:var(--ff-marca-texto,#fff)}' +
-    '.ffq-vista small{font-weight:500;color:#9CA3AF}';
+    'html:not([data-theme="light"]) .ffc{--ffc-tx:#F3F4F6;--ffc-tx2:#E5E7EB;--ffc-mu:#9CA3AF;--ffc-bg2:rgba(255,255,255,.08);--ffc-bg3:rgba(255,255,255,.04);--ffc-bd:rgba(255,255,255,.10)}' +
+    // A cópia do card noutro setor: mesmo visual, sem a classe cli-card (o arrastar
+    // grava a ordem de todo .cli-card da coluna, e a cópia mudaria a coluna principal).
+    '.ffc-copia{display:block;position:relative;overflow:hidden;border-radius:14px;cursor:pointer;background:linear-gradient(180deg,#122a4a 0%,#0f2238 100%);border:1px solid rgba(148,163,184,.25);transition:transform .1s,box-shadow .1s}' +
+    'html[data-theme="light"] .ffc-copia{background:#fff;border-color:#e2e8f0;box-shadow:0 1px 2px rgba(15,23,42,.05)}' +
+    '.ffc-copia:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(59,130,246,.18)}' +
+    '.ffc-aqui{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ffc-mu,#6B7280);margin-bottom:-4px}' +
+    '.ffc-tag.principal{background:transparent;border:1px solid var(--ffc-bd,#E5E7EB)}';
 
   var ICO = {
     zap: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.3-.5.1-1 .1-1.7-.1-.4-.1-.9-.3-1.5-.6-2.6-1.1-4.3-3.7-4.4-3.9-.1-.2-1-1.4-1-2.6s.6-1.9.9-2.1c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 1.9c.1.1.1.3 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.7 1.2 1.6 2 1.1 1 2 1.3 2.3 1.4.3.1.5.1.6-.1l.8-1c.2-.3.4-.2.6-.1l1.8.9c.3.1.5.2.5.3.1.2.1.7-.1 1.3Z"/></svg>',
@@ -133,16 +136,23 @@
   function diasDesde(iso) { if (!iso) return null; var d = new Date(String(iso).replace(' ', 'T')); return isNaN(d) ? null : Math.max(0, Math.floor((Date.now() - d.getTime()) / 86400000)); }
   function dataCurta(iso) { var p = String(iso || '').slice(0, 10).split('-'); return p.length === 3 ? p[2] + '/' + p[1] : ''; }
 
-  function htmlCard(d, origem) {
+  function nomeSetor(id) { for (var i = 0; i < SETORES_CONTA.length; i++) if (SETORES_CONTA[i].id === id) return SETORES_CONTA[i]; return null; }
+  function htmlCard(d, origem, colunaId, copia) {
     var sub = [];
     if (d.tipo) sub.push(d.tipo === 'PF' ? 'Pessoa física' : d.tipo === 'PJ' ? 'Empresa' : d.tipo);
     if (d.cidade) sub.push(d.cidade);
     if (d.dias_cliente != null) sub.push('cliente ' + haQuanto(d.dias_cliente));
-    var h = '<div class="ffc"><div class="ffc-topo"><span class="ffc-av" style="background:' + corDoNome(d.nome || '') + '">' + esc(iniciais(d.nome)) + '</span>' +
+    var h = '<div class="ffc">' + (copia ? '<div class="ffc-aqui">Também neste setor</div>' : '') + '<div class="ffc-topo"><span class="ffc-av" style="background:' + corDoNome(d.nome || '') + '">' + esc(iniciais(d.nome)) + '</span>' +
       '<div class="ffc-id"><div class="ffc-nome">' + esc(d.nome) + '</div>' + (sub.length ? '<div class="ffc-sub">' + esc(sub.join(' · ')) + '</div>' : '') + '</div>' +
       (d.whatsapp ? '<a class="ffc-zap" data-ffc-zap href="/chat.php?jid=' + encodeURIComponent((d.whatsapp.length <= 11 ? '55' + d.whatsapp : d.whatsapp) + '@s.whatsapp.net') + '" title="Abrir conversa no WhatsApp" aria-label="Abrir conversa no WhatsApp">' + ICO.zap + '</a>' : '') +
       '</div>';
-    var tags = (d.setores || []).map(function (s) { return '<span class="ffc-tag"><i style="background:' + corSegura(s.cor) + '"></i>' + esc(s.nome) + '</span>'; });
+    // Os outros setores (colunas) do cliente; a coluna onde o card está não se repete.
+    var tags = [d.setor].concat(d.extras || []).filter(function (id, i, a) { return id && id !== colunaId && a.indexOf(id) === i; }).map(function (id) {
+      var s = nomeSetor(id);
+      if (!s) return '';
+      var principal = id === d.setor;
+      return '<span class="ffc-tag' + (principal ? ' principal' : '') + '"><i style="background:' + corSegura(s.cor) + '"></i>' + esc(s.nome) + (principal ? ' · principal' : '') + '</span>';
+    }).filter(Boolean);
     if (d.status && d.status !== 'ativo') tags.push('<span class="ffc-tag alerta">' + esc(d.status) + '</span>');
     if (origem) tags.push('<span class="ffc-tag sit">' + esc(origem) + '</span>');
     if (tags.length) h += '<div class="ffc-tags" data-ffc-tags>' + tags.join('') + '</div>';
@@ -168,87 +178,54 @@
     return h;
   }
 
+  function pararZap(el) { var z = el.querySelector('[data-ffc-zap]'); if (z) z.addEventListener('click', function (e) { e.stopPropagation(); }); }
+  function colunaDe(el) { var c = el.closest('.setor-col'); return c ? +c.getAttribute('data-setor-id') || null : null; }
   function decorarCard(card) {
     var id = +card.getAttribute('data-cli-id'), d = QUADRO && QUADRO[id];
     if (!d) return;
     // Cliente de outra conta (filial): guarda o nome da origem que vinha na faixa.
     var org = card.querySelector('.org-name');
     var origem = d.outra_conta && org ? org.textContent.trim() : '';
-    card.innerHTML = htmlCard(d, origem);
+    card.innerHTML = htmlCard(d, origem, colunaDe(card), false);
     card.classList.add('ffc-card');
     card.setAttribute('data-ffc', '1');
-    var z = card.querySelector('[data-ffc-zap]');
-    if (z) z.addEventListener('click', function (e) { e.stopPropagation(); });
+    pararZap(card);
+  }
+  // Mexe no quadro sem acordar o próprio observador (senão a cópia geraria cópia).
+  function semObservar(board, fn) {
+    if (observador) observador.disconnect();
+    try { fn(); } finally { if (observador) observador.observe(board, { childList: true, subtree: true }); }
   }
   function decorarQuadro(forcar) {
-    document.querySelectorAll('#board .cli-card[data-cli-id]').forEach(function (c) { if (forcar || c.getAttribute('data-ffc') !== '1') decorarCard(c); });
-    agendarVistaSetor();
-  }
-
-  // ── Visão por setor: uma coluna por setor, o cliente em cada setor dele ──
-  var vistaTimer = null;
-  function agendarVistaSetor() { clearTimeout(vistaTimer); vistaTimer = setTimeout(desenharVistaSetor, 60); }
-  function desenharVistaSetor() {
     var board = document.getElementById('board');
-    if (!board) return;
-    var alvo = document.getElementById('ffBoardSetor');
-    if (VISTA !== 'setor' || !QUADRO) { board.style.display = ''; if (alvo) alvo.style.display = 'none'; return; }
-    if (!alvo) { alvo = document.createElement('div'); alvo.id = 'ffBoardSetor'; alvo.className = 'board'; board.parentNode.insertBefore(alvo, board.nextSibling); }
-    var colunas = SETORES_CONTA.map(function (s) { return { id: s.id, nome: s.nome, cor: s.cor, cards: [] }; });
-    var sem = { id: 0, nome: 'Sem setor', cor: '#9CA3AF', cards: [] };
-    board.querySelectorAll('.cli-card[data-cli-id]').forEach(function (card) {
-      var d = QUADRO[+card.getAttribute('data-cli-id')];
-      var col = card.closest('.setor-col');
-      var situacao = col ? (col.querySelector('.setor-name') || {}).textContent : '';
-      var ids = d ? (d.setores || []).map(function (s) { return s.id; }) : [];
-      var destinos = colunas.filter(function (c) { return ids.indexOf(c.id) >= 0; });
-      if (!destinos.length) destinos = [sem];
-      destinos.forEach(function (c) {
-        var clone = card.cloneNode(true);
-        // Nesta visão a coluna é o setor; a situação (coluna do quadro) vai no card.
-        clone.querySelectorAll('.ffc-tag').forEach(function (t) { if (t.querySelector('i') && ids.length) t.remove(); });
-        if (situacao) {
-          var tags = clone.querySelector('[data-ffc-tags]');
-          if (!tags) { tags = document.createElement('div'); tags.className = 'ffc-tags'; tags.setAttribute('data-ffc-tags', ''); var topo = clone.querySelector('.ffc-topo'); if (topo) topo.after(tags); }
-          var t = document.createElement('span'); t.className = 'ffc-tag sit'; t.textContent = situacao.trim(); tags.insertBefore(t, tags.firstChild);
-        }
-        var z = clone.querySelector('[data-ffc-zap]');
-        if (z) z.addEventListener('click', function (e) { e.stopPropagation(); });
-        c.cards.push(clone);
+    if (!board || !QUADRO) return;
+    semObservar(board, function () {
+      board.querySelectorAll('.cli-card[data-cli-id]').forEach(function (c) { if (forcar || c.getAttribute('data-ffc') !== '1') decorarCard(c); });
+      // O cliente que está em mais de um setor aparece também nas outras colunas.
+      board.querySelectorAll('.ffc-copia').forEach(function (c) { c.remove(); });
+      board.querySelectorAll('.cli-card[data-cli-id]').forEach(function (card) {
+        var id = +card.getAttribute('data-cli-id'), d = QUADRO[id];
+        if (!d || !(d.extras || []).length || d.outra_conta) return;
+        var aqui = colunaDe(card);
+        d.extras.forEach(function (sid) {
+          if (sid === aqui) return;
+          var corpoCol = board.querySelector('.setor-col[data-setor-id="' + sid + '"] .setor-body');
+          if (!corpoCol) return;
+          var cp = document.createElement('article');
+          cp.className = 'ffc-copia is-readonly';
+          cp.setAttribute('data-ffc-cli', String(id));
+          cp.setAttribute('onclick', card.getAttribute('onclick') || '');
+          cp.innerHTML = htmlCard(d, '', sid, true);
+          pararZap(cp);
+          corpoCol.appendChild(cp);
+        });
+      });
+      board.querySelectorAll('.setor-col').forEach(function (col) {
+        var n = col.querySelectorAll('.cli-card, .ffc-copia').length;
+        var cnt = col.querySelector('.setor-count'); if (cnt) cnt.textContent = n;
+        var vazio = col.querySelector('.setor-empty'); if (vazio) vazio.style.display = n ? 'none' : '';
       });
     });
-    if (sem.cards.length) colunas.push(sem);
-    alvo.innerHTML = '';
-    colunas.forEach(function (c) {
-      var sec = document.createElement('section');
-      sec.className = 'setor-col';
-      sec.innerHTML = '<header class="setor-head"><span class="setor-dot" style="background:' + corSegura(c.cor) + '"></span><span class="setor-name">' + esc(c.nome) + '</span><span class="setor-count">' + c.cards.length + '</span></header><div class="setor-body"></div>';
-      var body = sec.querySelector('.setor-body');
-      if (!c.cards.length) body.innerHTML = '<div class="setor-empty">Nenhum cliente neste setor.</div>';
-      c.cards.forEach(function (k) { body.appendChild(k); });
-      alvo.appendChild(sec);
-    });
-    if (!colunas.length) alvo.innerHTML = '<div class="setor-empty" style="padding:24px">A conta ainda não tem setores. Crie em Configurações, Setores, e marque os setores na ficha de cada cliente.</div>';
-    board.style.display = 'none';
-    alvo.style.display = '';
-  }
-  function ligarVista() {
-    var board = document.getElementById('board');
-    if (!board || document.getElementById('ffQuadroVista')) return;
-    var v = document.createElement('div');
-    v.id = 'ffQuadroVista';
-    v.className = 'ffq-vista';
-    v.innerHTML = '<span>Ver quadro por</span><button type="button" data-vista="situacao">Situação</button><button type="button" data-vista="setor">Setor</button>' +
-      '<small data-vista-dica></small>';
-    board.parentNode.insertBefore(v, board);
-    function marcar() {
-      v.querySelectorAll('[data-vista]').forEach(function (b) { b.classList.toggle('on', b.dataset.vista === VISTA); });
-      v.querySelector('[data-vista-dica]').textContent = VISTA === 'setor' ? 'O cliente aparece em cada setor dele. Para mudar a situação, arraste na visão por situação.' : '';
-    }
-    v.querySelectorAll('[data-vista]').forEach(function (b) {
-      b.onclick = function () { VISTA = b.dataset.vista; try { localStorage.setItem('ffcli_vista', VISTA); } catch (e) {} marcar(); desenharVistaSetor(); };
-    });
-    marcar();
   }
 
   function carregarQuadro() {
@@ -264,11 +241,18 @@
     if (!document.getElementById('board')) return;
     if (!document.getElementById('ffCliCss')) { var s = document.createElement('style'); s.id = 'ffCliCss'; s.textContent = CSS; document.head.appendChild(s); }
     if (!document.getElementById('ffQuadroCss')) { var s2 = document.createElement('style'); s2.id = 'ffQuadroCss'; s2.textContent = CSS_QUADRO; document.head.appendChild(s2); }
-    ligarVista();
     carregarQuadro();
     // O quadro é redesenhado inteiro (renderBoard, filtros, arrastar): refaz os cards novos.
-    new MutationObserver(function () { if (QUADRO) decorarQuadro(false); })
-      .observe(document.getElementById('board'), { childList: true, subtree: true });
+    observador = new MutationObserver(function (muts) {
+      if (!QUADRO) return;
+      // Card já desenhado que entrou noutra coluna foi arrastado: o setor principal
+      // mudou, então busca o quadro de novo (etiquetas e cópias certas).
+      var arrastou = muts.some(function (m) { return Array.prototype.some.call(m.addedNodes, function (n) { return n.nodeType === 1 && n.matches && n.matches('.cli-card[data-ffc="1"]'); }); });
+      // A gravação do arrastar (PATCH de clientes.php) vem logo depois: espera ela.
+      if (arrastou) { clearTimeout(ligarQuadro.t); ligarQuadro.t = setTimeout(carregarQuadro, 1500); }
+      decorarQuadro(false);
+    });
+    observador.observe(document.getElementById('board'), { childList: true, subtree: true });
   }
 
   function montar(tentativa) {
@@ -313,7 +297,7 @@
 
     var corpo = fin.querySelector('[data-corpo]');
     var estado = novoEstado(null);
-    function novoEstado(id) { return { cliente: id, itens: [], resumo: null, cobrancas: { itens: [], totais: {} }, contratos: [], podeBaixar: false, editando: null, formAberto: false, pagando: null, verPagas: false, verCanceladas: false, setores: [], setoresConta: [] }; }
+    function novoEstado(id) { return { cliente: id, itens: [], resumo: null, cobrancas: { itens: [], totais: {} }, contratos: [], podeBaixar: false, editando: null, formAberto: false, pagando: null, verPagas: false, verCanceladas: false, setores: { principal: null, extras: [] }, setoresConta: [] }; }
 
     function api(metodo, corpoReq, query) {
       var op = { method: metodo, credentials: 'same-origin', headers: { Accept: 'application/json' } };
@@ -323,21 +307,23 @@
     function aplicar(d) {
       estado.itens = d.itens || []; estado.resumo = d.resumo || {};
       estado.cobrancas = d.cobrancas || { itens: [], totais: {} }; estado.contratos = d.contratos || [];
-      estado.setores = d.setores || []; estado.setoresConta = d.setores_conta || [];
+      estado.setores = d.setores || { principal: null, extras: [] }; estado.setoresConta = d.setores_conta || [];
       desenharSetores();
     }
 
     var caixaSet = setEl.querySelector('[data-setores]');
     function desenharSetores() {
       if (!estado.cliente) { caixaSet.innerHTML = '<div class="ffcli-vazio">Salve o cliente para escolher os setores.</div>'; return; }
-      if (!estado.setoresConta.length) { caixaSet.innerHTML = '<div class="ffcli-vazio">A conta ainda não tem setores. Crie em Configurações, Setores.</div>'; return; }
+      if (!estado.setoresConta.length) { caixaSet.innerHTML = '<div class="ffcli-vazio">O quadro ainda não tem setores. Crie em "Gerenciar Setores".</div>'; return; }
+      var sp = estado.setores.principal, ex = estado.setores.extras || [];
       caixaSet.innerHTML = '<div class="ffcli-setores">' + estado.setoresConta.map(function (s) {
-        var on = estado.setores.indexOf(s.id) >= 0;
-        return '<button type="button" class="ffcli-setopt' + (on ? ' on' : '') + '" data-set="' + s.id + '" aria-pressed="' + on + '"><i style="background:' + corSegura(s.cor) + '"></i>' + esc(s.nome) + '</button>';
-      }).join('') + '</div><div class="ffcli-vazio" style="margin-top:6px">Toque para marcar ou desmarcar. Pode ser mais de um.</div>';
+        var principal = s.id === sp, on = principal || ex.indexOf(s.id) >= 0;
+        return '<button type="button" class="ffcli-setopt' + (on ? ' on' : '') + '"' + (principal ? ' disabled title="Setor principal: mude no cabeçalho da ficha ou arrastando o card"' : ' data-set="' + s.id + '"') +
+          ' aria-pressed="' + on + '"><i style="background:' + corSegura(s.cor) + '"></i>' + esc(s.nome) + (principal ? ' · principal' : '') + '</button>';
+      }).join('') + '</div><div class="ffcli-vazio" style="margin-top:6px">O principal é o do cabeçalho. Marque os outros setores em que o cliente também está: o card aparece em cada um deles no quadro.</div>';
       caixaSet.querySelectorAll('[data-set]').forEach(function (b) {
         b.onclick = function () {
-          var id = +b.dataset.set, lista = estado.setores.slice(), i = lista.indexOf(id);
+          var id = +b.dataset.set, lista = ex.slice(), i = lista.indexOf(id);
           if (i >= 0) lista.splice(i, 1); else lista.push(id);
           b.disabled = true;
           api('POST', { acao: 'setores', cliente_id: estado.cliente, setores: lista }).then(function (r) {

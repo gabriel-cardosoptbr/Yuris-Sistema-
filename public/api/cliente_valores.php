@@ -2,9 +2,9 @@
 /**
  * Valores do cliente: o "Financeiro" da ficha do cliente (App\Clientes\ValoresDoCliente).
  *
- *   GET  ?cliente_id=N             as linhas, o resumo, as cobranças (contas a receber), os contratos e os setores do cliente
- *   GET  ?quadro=1                 o card de cada cliente do quadro (App\Clientes\CardDoCliente) e os setores da conta
- *   POST {acao:'setores', cliente_id, setores:[team_id...]}
+ *   GET  ?cliente_id=N             as linhas, o resumo, as cobranças (contas a receber), os contratos e as colunas do quadro do cliente
+ *   GET  ?quadro=1                 o card de cada cliente do quadro (App\Clientes\CardDoCliente) e as colunas do quadro
+ *   POST {acao:'setores', cliente_id, setores:[clientes_setores.id...]}  as colunas a mais (a principal não muda aqui)
  *   POST {acao:'salvar', cliente_id, id?, tipo, descricao, valor, dia_vencimento, inicio, fim, ativo, observacao, contrato_id}
  *   POST {acao:'remover', cliente_id, id}
  *   POST {acao:'cobranca_pagar', cliente_id, id, pago_em, valor_pago, forma_pagamento}

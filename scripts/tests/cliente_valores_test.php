@@ -14,7 +14,7 @@
  *   - negócio fechado de cliente com valores sai da soma de fechamentos (sem dobrar receita);
  *   - "2.500" é dois mil e quinhentos; sem descrição vale o nome do tipo; cobrança
  *     cancelada à mão com o valor errado volta quando o valor é corrigido; reabrir;
- *   - setores do cliente (mais de um, só da conta), o resumo e o card do quadro.
+ *   - setores do cliente (colunas do quadro: a principal e as outras, só da conta), o resumo e o card.
  *
  * Usa um cliente da conta CRM local 304; as linhas criadas são apagadas no fim.
  * Uso: php scripts/tests/cliente_valores_test.php
@@ -156,24 +156,29 @@ try {
     ok('reabrir devolve a cancelada', count($cobsDe($j, 'aberta')) === 2);
     ok('outra conta não reabre', recusa(fn() => C::reabrir(476, (int) $voltou[0]['id'])) !== null);
 
-    // Setores do cliente.
-    $teams = array_column(S::daConta(304), 'id');
+    // Setores do cliente: as colunas do quadro (a principal em clientes.setor_id, as outras a mais).
+    $cols = array_column(S::daConta(304), 'id');
     $setOrig = S::doCliente(304, $cli);
-    if (count($teams) >= 2) {
-        ok('cliente fica em dois setores', S::salvar(304, 0, $cli, [$teams[0], $teams[1]]) === array_values(array_intersect(S::doCliente(304, $cli), [$teams[0], $teams[1]])) && count(S::doCliente(304, $cli)) === 2);
-        ok('desmarcar um setor', count(S::salvar(304, 0, $cli, [$teams[0]])) === 1);
+    $principal = $setOrig['principal'];
+    $outras = array_values(array_diff($cols, [$principal]));
+    if (count($outras) >= 2) {
+        $r = S::salvar(304, 0, $cli, [$outras[0], $outras[1], $principal]);
+        ok('cliente fica em mais dois setores; a principal não entra nos extras', $r['principal'] === $principal && count($r['extras']) === 2 && !in_array($principal, $r['extras'], true));
+        ok('desmarcar um setor', count(S::salvar(304, 0, $cli, [$outras[0]])['extras']) === 1);
         $q = S::quadro([304]);
-        ok('card do quadro traz setor e total por mês', count($q[$cli]['setores'] ?? []) === 1 && ($q[$cli]['por_mes'] ?? 0) > 0);
+        ok('quadro traz o setor a mais e o total por mês', ($q[$cli]['extras'] ?? []) === [$outras[0]] && ($q[$cli]['por_mes'] ?? 0) > 0);
+        $card = \App\Clientes\CardDoCliente::quadro([304], 304);
+        ok('card traz a coluna principal e as outras', ($card['clientes'][$cli]['setor'] ?? null) === $principal && ($card['clientes'][$cli]['extras'] ?? []) === [$outras[0]]);
     }
-    $teamOutra = (int) $pdo->query('SELECT id FROM teams WHERE account_id <> 304 AND deleted_at IS NULL ORDER BY id LIMIT 1')->fetchColumn();
-    if ($teamOutra) ok('setor de outra conta é recusado', recusa(fn() => S::salvar(304, 0, $cli, [$teamOutra])) !== null);
+    $colOutra = (int) $pdo->query('SELECT id FROM clientes_setores WHERE account_id <> 304 ORDER BY id LIMIT 1')->fetchColumn();
+    if ($colOutra) ok('setor de outra conta é recusado', recusa(fn() => S::salvar(304, 0, $cli, [$colOutra])) !== null);
     ok('outra conta não mexe nos setores do cliente', recusa(fn() => S::salvar(476, 0, $cli, [])) !== null);
     ok('quadro de outra conta não traz o cliente', !isset(S::quadro([476])[$cli]));
     $card = \App\Clientes\CardDoCliente::quadro([304], 304);
     $c852 = $card['clientes'][$cli] ?? null;
     ok('card do cliente traz nome, total por mês, próxima cobrança e contratos', $c852 && $c852['nome'] !== '' && $c852['por_mes'] > 0 && isset($c852['contratos']['total']) && array_key_exists('proxima', $c852));
     ok('card de outra conta não traz o cliente', !isset(\App\Clientes\CardDoCliente::quadro([476], 476)['clientes'][$cli]));
-    S::salvar(304, 0, $cli, $setOrig);
+    S::salvar(304, 0, $cli, $setOrig['extras']);
 
     // Fechamento sem dobrar: um card fechado da conta passa a apontar para um cliente sem valores.
     $card = $pdo->query("SELECT id, cliente_id FROM cards WHERE account_id = 304 AND deleted_at IS NULL AND status = 'fechado' ORDER BY id LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
