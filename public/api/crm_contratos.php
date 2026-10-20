@@ -73,25 +73,40 @@ try {
             ]]);
         }
         if (isset($_GET['buscar'])) {
+            // Vazio: os clientes e leads mais recentes da conta (a lista aparece ao clicar no campo).
+            // Com texto: pelo nome, CPF/CNPJ ou telefone. ?tipo=cliente traz só clientes.
             $q = trim((string) $_GET['buscar']);
-            if (mb_strlen($q) < 2) ctrResponder(['ok' => true, 'data' => []]);
-            $like = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $q) . '%';
+            $soClientes = ($_GET['tipo'] ?? '') === 'cliente';
+            $like = '%' . str_replace(['%', '_'], ['\%', '\_'], $q) . '%';
             $dig = preg_replace('/\D/', '', $q);
-            $likeD = strlen($dig) >= 4 ? '%' . $dig . '%' : '__nada__';
+            $likeD = strlen($dig) >= 3 ? '%' . $dig . '%' : '__nada__';
             $pdo = Database::getConnection();
+            $filtroC = $q === '' ? '' : "AND (nome LIKE ? OR REGEXP_REPLACE(COALESCE(cpf_cnpj,''), '[^0-9]', '') LIKE ?
+                                              OR REGEXP_REPLACE(COALESCE(whatsapp,''), '[^0-9]', '') LIKE ? OR REGEXP_REPLACE(COALESCE(telefone,''), '[^0-9]', '') LIKE ?)";
             $c = $pdo->prepare("SELECT id, nome, cpf_cnpj, COALESCE(NULLIF(whatsapp,''), telefone) AS telefone FROM clientes
-                                 WHERE account_id = ? AND deleted_at IS NULL AND (nome LIKE ? OR REGEXP_REPLACE(COALESCE(cpf_cnpj,''), '[^0-9]', '') LIKE ?)
-                                 ORDER BY nome LIMIT 8");
-            $c->execute([$acc, $like, $likeD]);
-            $l = $pdo->prepare("SELECT id, COALESCE(NULLIF(cliente_nome,''), empresa_nome, titulo) AS nome, telefone_whatsapp FROM cards
-                                 WHERE account_id = ? AND deleted_at IS NULL AND (cliente_nome LIKE ? OR empresa_nome LIKE ? OR titulo LIKE ?)
-                                 ORDER BY updated_at DESC LIMIT 8");
-            $l->execute([$acc, $like, $like, $like]);
+                                 WHERE account_id = ? AND deleted_at IS NULL $filtroC
+                                 ORDER BY " . ($q === '' ? 'updated_at DESC' : 'nome') . ' LIMIT 8');
+            $c->execute($q === '' ? [$acc] : [$acc, $like, $likeD, $likeD, $likeD]);
             $out = [];
-            foreach ($c->fetchAll(\PDO::FETCH_ASSOC) as $r) $out[] = ['tipo' => 'cliente', 'id' => (int) $r['id'], 'nome' => $r['nome'], 'telefone' => $r['telefone'],
-                'cpf' => ($d = preg_replace('/\D/', '', (string) $r['cpf_cnpj'])) && strlen($d) === 11 ? $d : null];
-            foreach ($l->fetchAll(\PDO::FETCH_ASSOC) as $r) $out[] = ['tipo' => 'lead', 'id' => (int) $r['id'], 'nome' => $r['nome'], 'telefone' => $r['telefone_whatsapp']];
-            ctrResponder(['ok' => true, 'data' => $out]);
+            $fone = fn($t) => ($d = preg_replace('/\D/', '', (string) $t)) && strlen($d) >= 8 ? $d : null;
+            foreach ($c->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $doc = preg_replace('/\D/', '', (string) $r['cpf_cnpj']);
+                $out[] = ['tipo' => 'cliente', 'id' => (int) $r['id'], 'nome' => $r['nome'], 'telefone' => $fone($r['telefone']),
+                    'cpf' => strlen($doc) === 11 ? $doc : null,
+                    'detalhe' => trim((strlen($doc) === 11 ? \App\Contratos\Cpf::mascarar($doc) : (strlen($doc) === 14 ? 'CNPJ' : '')) . ($fone($r['telefone']) ? ' · tel. final ' . substr($fone($r['telefone']), -4) : ''), ' ·')];
+            }
+            if (!$soClientes) {
+                $filtroL = $q === '' ? '' : "AND (cliente_nome LIKE ? OR empresa_nome LIKE ? OR titulo LIKE ?
+                                                  OR REGEXP_REPLACE(COALESCE(telefone_whatsapp,''), '[^0-9]', '') LIKE ?)";
+                $l = $pdo->prepare("SELECT id, COALESCE(NULLIF(cliente_nome,''), empresa_nome, titulo) AS nome, telefone_whatsapp FROM cards
+                                     WHERE account_id = ? AND deleted_at IS NULL $filtroL ORDER BY updated_at DESC LIMIT 8");
+                $l->execute($q === '' ? [$acc] : [$acc, $like, $like, $like, $likeD]);
+                foreach ($l->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                    $out[] = ['tipo' => 'lead', 'id' => (int) $r['id'], 'nome' => $r['nome'], 'telefone' => $fone($r['telefone_whatsapp']),
+                        'detalhe' => $fone($r['telefone_whatsapp']) ? 'tel. final ' . substr($fone($r['telefone_whatsapp']), -4) : ''];
+                }
+            }
+            ctrResponder(['ok' => true, 'data' => $out, 'recentes' => $q === '']);
         }
         if (!empty($_GET['baixar'])) {
             $st = Database::getConnection()->prepare('SELECT a.*, c.titulo FROM crm_contrato_arquivos a JOIN crm_contratos c ON c.id = a.contrato_id WHERE a.uuid = ? AND a.account_id = ?');

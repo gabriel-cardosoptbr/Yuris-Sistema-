@@ -110,6 +110,44 @@
   }
   function num(rot, v, sub) { return '<div class="ctr-num"><span>' + esc(rot) + '</span><b>' + esc(v) + '</b><small>' + esc(sub) + '</small></div>'; }
 
+  // ── Busca de cliente e negociação (lista ao clicar, filtra ao digitar) ──
+  function buscador(ov, campo, caixa, tipo, aoEscolher, aoLimpar) {
+    var inp = ov.querySelector(campo), box = ov.querySelector(caixa), t, ultima = null;
+    var rot = function (x) { return (x.tipo === 'cliente' ? 'Cliente: ' : 'Negociação: ') + x.nome; };
+    function buscar(q) {
+      if (ultima === q && box.innerHTML) return;
+      ultima = q;
+      box.innerHTML = '<div class="ctr-sugestoes"><div class="ctr-sug-nota">Buscando…</div></div>';
+      api('GET', null, '?buscar=' + encodeURIComponent(q) + (tipo ? '&tipo=' + tipo : '')).then(function (r) {
+        if (ultima !== q) return;
+        var it = r.ok ? r.data : [];
+        if (!r.ok) { box.innerHTML = '<div class="ctr-sugestoes"><div class="ctr-sug-nota">' + esc(r.error || 'Não foi possível buscar.') + '</div></div>'; return; }
+        if (!it.length) {
+          box.innerHTML = '<div class="ctr-sugestoes"><div class="ctr-sug-nota">' + (q ? 'Nenhum ' + (tipo === 'cliente' ? 'cliente' : 'cliente ou negociação') + ' com "' + esc(q) + '".' :
+            'Nenhum ' + (tipo === 'cliente' ? 'cliente cadastrado' : 'cliente ou negociação') + ' ainda.') + '</div></div>';
+          return;
+        }
+        box.innerHTML = '<div class="ctr-sugestoes">' + (r.recentes ? '<div class="ctr-sug-nota">Mais recentes. Digite para buscar pelo nome, CPF ou telefone.</div>' : '') +
+          it.map(function (x, i) {
+            return '<button type="button" data-i="' + i + '"><b>' + esc(rot(x)) + '</b>' + (x.detalhe ? '<span>' + esc(x.detalhe) + '</span>' : '') + '</button>';
+          }).join('') + '</div>';
+        box.querySelectorAll('button').forEach(function (b) {
+          b.onmousedown = function (e) { e.preventDefault(); };
+          b.onclick = function () { var x = it[+this.dataset.i]; inp.value = rot(x); box.innerHTML = ''; ultima = null; aoEscolher(x); };
+        });
+      });
+    }
+    inp.addEventListener('focus', function () { if (!inp.dataset.escolhido) buscar(inp.value.trim()); });
+    inp.addEventListener('input', function () {
+      delete inp.dataset.escolhido;
+      if (aoLimpar) aoLimpar();
+      var q = inp.value.trim(); clearTimeout(t);
+      t = setTimeout(function () { buscar(q); }, 250);
+    });
+    inp.addEventListener('blur', function () { setTimeout(function () { box.innerHTML = ''; ultima = null; }, 150); });
+    return { escolhido: function () { inp.dataset.escolhido = '1'; } };
+  }
+
   // ── Criar / editar ─────────────────────────────────────────────────────
   function formContrato(c, pre) {
     c = c || {}; pre = pre || {};
@@ -120,31 +158,15 @@
       '<div class="duas"><div><label>Responsável</label><select id="fResp">' + equipe.map(function (u) {
         return '<option value="' + u.id + '"' + ((c.responsavel_id || apoio.eu) === u.id ? ' selected' : '') + '>' + esc(u.nome) + '</option>';
       }).join('') + '</select></div><div><label>Prazo para assinatura</label><input type="date" id="fPrazo" value="' + esc(c.prazo_data || '') + '"></div></div>' +
-      '<label>Cliente ou negociação</label><input id="fVinc" placeholder="Buscar pelo nome ou CPF" value="' + esc(vinc) + '"><div id="fSug"></div>' +
+      '<label>Cliente ou negociação (opcional)</label><input id="fVinc" autocomplete="off" placeholder="Clique para ver os recentes ou digite o nome, CPF ou telefone" value="' + esc(vinc) + '"><div id="fSug"></div>' +
       '<div class="ctr-erro" id="fErro"></div><div class="ctr-janela-acoes"><button class="ctr-btn" data-fechar>Cancelar</button>' +
       '<button class="ctr-btn ctr-btn-principal" id="fSalvar">' + (c.id ? 'Salvar' : 'Criar contrato') + '</button></div>', function (ov, fechar) {
       var sel = { cliente_id: c.cliente_id || pre.cliente_id || null, card_id: c.card_id || pre.card_id || null };
-      var t;
-      ov.querySelector('#fVinc').oninput = function () {
-        var q = this.value; clearTimeout(t);
-        if (!q.trim()) { sel = { cliente_id: null, card_id: null }; ov.querySelector('#fSug').innerHTML = ''; return; }
-        t = setTimeout(function () {
-          api('GET', null, '?buscar=' + encodeURIComponent(q)).then(function (r) {
-            var it = r.ok ? r.data : [];
-            ov.querySelector('#fSug').innerHTML = it.length ? '<div class="ctr-sugestoes">' + it.map(function (x, i) {
-              return '<button type="button" data-i="' + i + '">' + (x.tipo === 'cliente' ? 'Cliente: ' : 'Negociação: ') + esc(x.nome) + '</button>';
-            }).join('') + '</div>' : '';
-            ov.querySelectorAll('#fSug button').forEach(function (b) {
-              b.onclick = function () {
-                var x = it[+this.dataset.i];
-                sel = x.tipo === 'cliente' ? { cliente_id: x.id, card_id: null } : { cliente_id: null, card_id: x.id };
-                ov.querySelector('#fVinc').value = (x.tipo === 'cliente' ? 'Cliente: ' : 'Negociação: ') + x.nome;
-                ov.querySelector('#fSug').innerHTML = '';
-              };
-            });
-          });
-        }, 300);
-      };
+      var bc = buscador(ov, '#fVinc', '#fSug', '', function (x) {
+        sel = x.tipo === 'cliente' ? { cliente_id: x.id, card_id: null } : { cliente_id: null, card_id: x.id };
+        bc.escolhido();
+      }, function () { sel = { cliente_id: null, card_id: null }; });
+      if (vinc) bc.escolhido();
       ov.querySelector('#fSalvar').onclick = function () {
         var b = this; b.disabled = true;
         var corpo = { acao: c.id ? 'atualizar' : 'criar', id: c.id || 0, titulo: ov.querySelector('#fTitulo').value, responsavel_id: +ov.querySelector('#fResp').value || null,
@@ -164,6 +186,8 @@
     var papeis = (apoio && apoio.papeis) || {};
     janela('<h3>' + (p.id ? 'Editar participante' : 'Incluir participante') + '</h3>' +
       '<p class="sub">Cada participante recebe o próprio link e confirma pelo WhatsApp informado aqui. Trocar o WhatsApp ou o CPF de quem já foi convidado invalida o link anterior.</p>' +
+      '<label>Cliente cadastrado (opcional)</label><input id="pBusca" autocomplete="off" placeholder="Clique para ver os clientes ou digite o nome, CPF ou telefone" value="' +
+        esc(p.cliente_id ? 'Ligado ao cadastro do cliente' : '') + '"><div id="pSug"></div>' +
       '<div class="duas"><div><label>Papel</label><select id="pPapel">' + Object.keys(papeis).map(function (k) {
         return '<option value="' + k + '"' + (p.papel === k ? ' selected' : '') + '>' + esc(papeis[k]) + '</option>';
       }).join('') + '</select></div><div><label>WhatsApp (com DDD)</label><input id="pTel" inputmode="tel" placeholder="' + (p.id ? 'Informe de novo para manter ou trocar' : '(11) 99999-0000') + '"></div></div>' +
@@ -176,12 +200,20 @@
       '<button class="ctr-btn ctr-btn-principal" id="pSalvar">Salvar participante</button></div>', function (ov, fechar) {
       var rep = function () { ov.querySelector('#pRep').style.display = ov.querySelector('#pPapel').value === 'representante' || ov.querySelector('#pEmp').value ? '' : 'none'; };
       ov.querySelector('#pPapel').onchange = rep; rep();
+      var clienteId = p.cliente_id || null;
+      var bp = buscador(ov, '#pBusca', '#pSug', 'cliente', function (x) {
+        clienteId = x.id; bp.escolhido();
+        ov.querySelector('#pNome').value = x.nome || '';
+        if (x.telefone) ov.querySelector('#pTel').value = x.telefone;
+        if (x.cpf) ov.querySelector('#pCpf').value = x.cpf.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
+      }, function () { clienteId = null; });
+      if (p.cliente_id) bp.escolhido();
       ov.querySelector('#pSalvar').onclick = function () {
         var b = this; b.disabled = true;
         api('POST', { acao: 'participante_salvar', id: c.id, participante_id: p.id || 0, papel: ov.querySelector('#pPapel').value,
           telefone: ov.querySelector('#pTel').value, nome: ov.querySelector('#pNome').value, cpf: ov.querySelector('#pCpf').value,
           empresa: ov.querySelector('#pEmp').value, cnpj: ov.querySelector('#pCnpj').value, funcao: ov.querySelector('#pFunc').value,
-          obrigatorio: ov.querySelector('#pObrig').checked }).then(function (r) {
+          obrigatorio: ov.querySelector('#pObrig').checked, cliente_id: clienteId }).then(function (r) {
           b.disabled = false;
           if (!r.ok) { ov.querySelector('#pErro').textContent = r.error; return; }
           fechar(); ficha(c.id);
