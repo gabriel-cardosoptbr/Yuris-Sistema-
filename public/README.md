@@ -264,6 +264,8 @@ Chart.js, ajustados na configuração antes de o gráfico nascer). Tudo carregad
 menu só nas contas da edição CRM, com seletor `html:not([data-theme="light"])`: o tema
 claro e o Yuris não mudam. A folha de Relatórios continua branca de propósito (é o papel).
 
+**Endereço sem ".php".** Nos domínios das marcas (crm.fleetiflow, crm.viaautodoc, crm.sellermentoria e, desde 20/10/2026, yuris.inovaize.com) a URL limpa é feita no **nginx do servidor**, fora do repositório: `/etc/nginx/conf.d/yuris-cleanurl.conf` (só GET/HEAD) e, no site de cada domínio, os blocos que mandam `/pagina.php` para `/pagina` (301) e repassam `/pagina` ao Apache como `/pagina.php`; `/api/` passa como está e `/includes/` dá 404. **Não refazer isso no PHP:** o Apache recebe `/pagina.php` mesmo quando o visitante pediu `/pagina`, e um redirecionamento no PHP entra em laço (em 20/10/2026 isso derrubou a Via Autodoc por alguns minutos e foi desfeito). Nos outros domínios, `/pagina` abre pela camada de rota. Os links do menu saem limpos e absolutos (`_sbHrefLimpo()` no `includes/sidebar.php`), para o clique não passar por um 301.
+
 **Recolher o menu (edição CRM, 20/10/2026).** O `includes/sidebar.php` tem um botão
 no topo, ao lado da marca, que recolhe o menu para 72px com só os ícones (o nome
 aparece no `title`) e expande de volta. A classe `sb-retraido` vai no `<html>` por um

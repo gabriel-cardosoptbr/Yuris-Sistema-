@@ -116,6 +116,7 @@ Duas regras que saíram disso, e valem para toda sessão futura:
   antes do `mod_rewrite` rodar. As duas sombras que existiam (`lgpd` e
   `configuracoes`) foram desfeitas tirando as páginas de `public/`, e
   `rotas_test.php` bloqueia sombra nova **sem lista de exceção**.
+- **URL sem ".php" é do nginx, não do PHP** (20/10/2026): nos domínios das marcas o nginx já tira o `.php` e repassa `/pagina` ao Apache como `/pagina.php`; redirecionar no PHP faz laço (derrubou a Via Autodoc por minutos). Ver `public/README.md`. Link novo já nasce limpo (`/clientes`).
 - **Endereço desativado não precisa de arquivo-carcaça.** A tabela de rotas
   aceita `['redirect' => '/destino', 'status' => 301]`, e o destino tem de ser
   interno.
