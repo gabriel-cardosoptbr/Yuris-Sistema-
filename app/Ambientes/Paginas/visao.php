@@ -81,6 +81,9 @@ window.AMB = <?= json_encode([
                'financas' => \App\Ambientes\Ambiente::podePagina('financas'), 'contratos' => \App\Contratos\Permissao::podeVer()],
 ], JSON_UNESCAPED_UNICODE) ?>;
 </script>
+<?php if ($ambientePagina === 'empresa'): /* gráficos da Empresa, o mesmo Chart.js do painel comercial */ ?>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+<?php endif; ?>
 <script src="/assets/ambientes-visao.js?v=<?= $veAmb ?>"></script>
 </body>
 </html>

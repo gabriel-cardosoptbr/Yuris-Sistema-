@@ -218,6 +218,7 @@ final class Visao
             'comercial_areas' => self::comercialPorArea($accountId, $mes),
             'contratos' => $veContratos ? self::contratos($accountId, $mes) : null,
             'equipe' => self::equipe($accountId, $quadrosVisiveis, $mes, $agora),
+            'series' => self::series($accountId, $quadrosVisiveis, $mes, $agora),
             'mes' => substr($mes, 0, 7),
             'receita' => $receita,
             'clientes' => self::clientes($accountId),
@@ -238,6 +239,115 @@ final class Visao
                 'contratos' => $veContratos ? self::contratosAguardando($accountId) : null,
                 'sem_responsavel' => $tSw['sem_responsavel'] + $tDg['sem_responsavel'],
             ],
+        ];
+    }
+
+    // ── Empresa: as séries dos gráficos ───────────────────────────────────
+
+    /** Rótulo "out/26" de um mês AAAA-MM, sem depender do locale do servidor. */
+    public static function rotuloMes(string $mes): string
+    {
+        static $n = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+        return $n[(int) substr($mes, 5, 2) - 1] . '/' . substr($mes, 2, 2);
+    }
+
+    /** @return string[] os N meses até $mes, em AAAA-MM */
+    private static function meses(string $mes, int $n): array
+    {
+        $out = [];
+        $base = strtotime(substr($mes, 0, 7) . '-01');
+        for ($i = $n - 1; $i >= 0; $i--) $out[] = date('Y-m', strtotime("-$i months", $base));
+        return $out;
+    }
+
+    /**
+     * Tudo o que os gráficos da Empresa desenham, numa chamada: 12 meses de
+     * dinheiro e de clientes novos, 6 de entregas e de contratos, 8 semanas de
+     * tarefas concluídas (por área) e a evolução do OTIF.
+     */
+    public static function series(int $accountId, array $quadrosVisiveis, string $mes, ?string $agora = null): array
+    {
+        $agora ??= date('Y-m-d H:i:s');
+        $pdo = Database::getConnection();
+        $m12 = self::meses($mes, 12); $m6 = self::meses($mes, 6);
+        $ini12 = $m12[0] . '-01'; $fim = date('Y-m-t', strtotime($mes . '-01'));
+
+        // Dinheiro: recebido (pago_em) e previsto (vencimento), por mês.
+        $rec = array_fill_keys($m12, 0.0); $prev = array_fill_keys($m12, 0.0);
+        $st = $pdo->prepare("SELECT DATE_FORMAT(pago_em, '%Y-%m') AS k, COALESCE(SUM(COALESCE(valor_pago, valor)), 0) AS v FROM crm_cliente_cobrancas
+                              WHERE account_id = ? AND status = 'paga' AND pago_em BETWEEN ? AND ? GROUP BY k");
+        $st->execute([$accountId, $ini12, $fim]);
+        foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) if (isset($rec[$r['k']])) $rec[$r['k']] = round((float) $r['v'], 2);
+        $st = $pdo->prepare("SELECT DATE_FORMAT(vencimento, '%Y-%m') AS k, COALESCE(SUM(valor), 0) AS v FROM crm_cliente_cobrancas
+                              WHERE account_id = ? AND status <> 'cancelada' AND vencimento BETWEEN ? AND ? GROUP BY k");
+        $st->execute([$accountId, $ini12, $fim]);
+        foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) if (isset($prev[$r['k']])) $prev[$r['k']] = round((float) $r['v'], 2);
+        // Receita recorrente vigente em cada mês (mensal + anual/12 das linhas ativas no mês).
+        $mrr = [];
+        $st = $pdo->prepare("SELECT COALESCE(SUM(CASE tipo WHEN 'mensal' THEN valor WHEN 'anual' THEN valor / 12 ELSE 0 END), 0) FROM crm_cliente_valores
+                              WHERE account_id = ? AND ativo = 1 AND tipo IN ('mensal', 'anual') AND inicio <= ? AND (fim IS NULL OR fim >= ?)");
+        foreach ($m12 as $k) { $st->execute([$accountId, date('Y-m-t', strtotime($k . '-01')), $k . '-01']); $mrr[] = round((float) $st->fetchColumn(), 2); }
+
+        // Clientes novos por mês e base acumulada (ativos criados até o fim do mês).
+        $novos = array_fill_keys($m12, 0);
+        $st = $pdo->prepare("SELECT DATE_FORMAT(created_at, '%Y-%m') AS k, COUNT(*) AS n FROM clientes WHERE account_id = ? AND deleted_at IS NULL AND created_at BETWEEN ? AND ? GROUP BY k");
+        $st->execute([$accountId, $ini12, $fim . ' 23:59:59']);
+        foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) if (isset($novos[$r['k']])) $novos[$r['k']] = (int) $r['n'];
+        $base = [];
+        $st = $pdo->prepare("SELECT COUNT(*) FROM clientes WHERE account_id = ? AND deleted_at IS NULL AND status = 'ativo' AND created_at <= ?");
+        foreach ($m12 as $k) { $st->execute([$accountId, date('Y-m-t 23:59:59', strtotime($k . '-01'))]); $base[] = (int) $st->fetchColumn(); }
+
+        // Entregas por mês: contratadas (frequência), concluídas e postadas.
+        $digitais = AreaDoCliente::clientesDaArea($accountId, 'digital');
+        $ent = ['contratadas' => [], 'concluidas' => [], 'publicadas' => [], 'cadastradas' => []];
+        $st = $pdo->prepare("SELECT SUM(e.entrega = 'entregue') AS c, SUM(e.publicacao = 'publicado') AS p, COUNT(*) AS n
+                               FROM task_entregas_digital e JOIN tasks t ON t.id = e.task_id
+                              WHERE e.account_id = ? AND e.competencia = ? AND t.status <> 'arquivada'");
+        foreach ($m6 as $k) {
+            $st->execute([$accountId, $k . '-01']);
+            $r = $st->fetch(\PDO::FETCH_ASSOC);
+            $ent['concluidas'][] = (int) $r['c']; $ent['publicadas'][] = (int) $r['p']; $ent['cadastradas'][] = (int) $r['n'];
+            $tot = 0;
+            foreach (\App\Digital\Frequencia::previstoNoMes($accountId, $k, $digitais) as $porTipo) $tot += array_sum($porTipo);
+            $ent['contratadas'][] = $tot;
+        }
+
+        // Contratos assinados e enviados por mês.
+        $ctr = ['assinados' => array_fill_keys($m6, 0), 'enviados' => array_fill_keys($m6, 0)];
+        try {
+            $st = $pdo->prepare("SELECT DATE_FORMAT(concluido_em, '%Y-%m') AS k, COUNT(*) AS n FROM crm_contratos WHERE account_id = ? AND status = 'concluido' AND concluido_em BETWEEN ? AND ? GROUP BY k");
+            $st->execute([$accountId, $m6[0] . '-01', $fim . ' 23:59:59']);
+            foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) if (isset($ctr['assinados'][$r['k']])) $ctr['assinados'][$r['k']] = (int) $r['n'];
+            $st = $pdo->prepare("SELECT DATE_FORMAT(v.aberta_em, '%Y-%m') AS k, COUNT(DISTINCT v.contrato_id) AS n FROM crm_contrato_versoes v JOIN crm_contratos c ON c.id = v.contrato_id
+                                  WHERE c.account_id = ? AND v.aberta_em BETWEEN ? AND ? GROUP BY k");
+            $st->execute([$accountId, $m6[0] . '-01', $fim . ' 23:59:59']);
+            foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) if (isset($ctr['enviados'][$r['k']])) $ctr['enviados'][$r['k']] = (int) $r['n'];
+        } catch (\Throwable $e) { /* sem contratos */ }
+
+        // Tarefas concluídas por semana (8 semanas), por área do quadro.
+        $areaDoQuadro = [];
+        foreach ($quadrosVisiveis as $b) $areaDoQuadro[(int) $b['id']] = $b['area'] ?: 'outros';
+        $semanas = []; $sem = ['software' => [], 'digital' => [], 'outros' => []];
+        $segunda = strtotime('monday this week', strtotime(substr($agora, 0, 10)));
+        for ($i = 7; $i >= 0; $i--) $semanas[] = date('Y-m-d', strtotime("-$i weeks", $segunda));
+        $porSemana = [];
+        if ($areaDoQuadro) {
+            $st = $pdo->prepare("SELECT board_id, DATE_FORMAT(DATE_SUB(DATE(concluida_em), INTERVAL WEEKDAY(concluida_em) DAY), '%Y-%m-%d') AS k, COUNT(*) AS n
+                                   FROM tasks WHERE board_id IN (" . self::in(array_keys($areaDoQuadro)) . ") AND status = 'concluida' AND concluida_em >= ? GROUP BY board_id, k");
+            $st->execute(array_merge(array_keys($areaDoQuadro), [$semanas[0]]));
+            foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) $porSemana[$areaDoQuadro[(int) $r['board_id']] ?? 'outros'][$r['k']] = ($porSemana[$areaDoQuadro[(int) $r['board_id']] ?? 'outros'][$r['k']] ?? 0) + (int) $r['n'];
+        }
+        foreach ($semanas as $k) foreach (array_keys($sem) as $a) $sem[$a][] = (int) ($porSemana[$a][$k] ?? 0);
+
+        return [
+            'meses' => array_map([self::class, 'rotuloMes'], $m12),
+            'dinheiro' => ['recebido' => array_values($rec), 'previsto' => array_values($prev), 'recorrente' => $mrr],
+            'clientes' => ['novos' => array_values($novos), 'base' => $base],
+            'meses6' => array_map([self::class, 'rotuloMes'], $m6),
+            'entregas' => $ent,
+            'contratos' => ['assinados' => array_values($ctr['assinados']), 'enviados' => array_values($ctr['enviados'])],
+            'semanas' => array_map(fn($d) => substr($d, 8, 2) . '/' . substr($d, 5, 2), $semanas),
+            'tarefas_concluidas' => $sem,
         ];
     }
 
@@ -320,16 +430,17 @@ final class Visao
         $t = self::tarefas(array_map(fn($b) => (int) $b['id'], $quadrosVisiveis), $agora);
         $de = substr($mes, 0, 7) . '-01';
         $ate = min(date('Y-m-t', strtotime($de)), substr($agora, 0, 10));
-        $otif = null; $porPessoa = [];
+        $otif = null; $porPessoa = []; $evolucao = null;
         if ($ate >= $de) {
             try {
                 $r = \App\Tarefas\Otif::relatorio([$accountId], $de, $ate);
                 $otif = $r['equipe'];
+                $evolucao = $r['evolucao'] ?? null;
                 foreach ($r['colaboradores'] as $c) $porPessoa[(int) $c['user_id']] = $c['otif_pct'];
             } catch (\Throwable $e) { $otif = null; }
         }
         $pessoas = array_map(fn($p) => $p + ['otif_pct' => $porPessoa[$p['id']] ?? null], $t['por_responsavel']);
-        return ['abertas' => $t['abertas'], 'atrasadas' => $t['atrasadas'], 'sem_responsavel' => $t['sem_responsavel'], 'otif' => $otif, 'pessoas' => $pessoas];
+        return ['abertas' => $t['abertas'], 'atrasadas' => $t['atrasadas'], 'sem_responsavel' => $t['sem_responsavel'], 'otif' => $otif, 'pessoas' => $pessoas, 'evolucao' => $evolucao];
     }
 
     // ── Software ──────────────────────────────────────────────────────────
