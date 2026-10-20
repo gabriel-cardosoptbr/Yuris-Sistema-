@@ -264,6 +264,15 @@ Chart.js, ajustados na configuração antes de o gráfico nascer). Tudo carregad
 menu só nas contas da edição CRM, com seletor `html:not([data-theme="light"])`: o tema
 claro e o Yuris não mudam. A folha de Relatórios continua branca de propósito (é o papel).
 
+**Recolher o menu (edição CRM, 20/10/2026).** O `includes/sidebar.php` tem um botão
+no topo, ao lado da marca, que recolhe o menu para 72px com só os ícones (o nome
+aparece no `title`) e expande de volta. A classe `sb-retraido` vai no `<html>` por um
+script curto posto antes do `<aside>` (sem piscar ao carregar) e a escolha fica no
+`localStorage` (`yuris_menu_retraido`). Recolhido, clicar num grupo expande o menu com
+o grupo aberto, e o grupo da página atual mostra o disco da marca no ícone. Os
+seletores dobram a classe (`html.sb-retraido.sb-retraido`) para ganhar das regras com
+prefixo de tema, claro e escuro. Só tela larga: abaixo de 900px o menu já some.
+
 **Vendedor da edição CRM** (`AccountContext::vendedorCrm()`, 02/10/2026): o painel
 mostra só os leads, vendas, receita, conversão, ticket e meta dele (a API força o
 filtro), o seletor "Toda a equipe" some, o bloco Financeiro (DRE) não é calculado

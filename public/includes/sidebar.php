@@ -424,6 +424,51 @@ $_notifTempo = function ($raw) {
   html[data-theme="light"] .sidebar-footer.sb-rodape a.is-logout:hover{ background:#FFF1F1 !important; color:#B00000 !important; }
   html[data-theme="light"] .sidebar-footer.sb-rodape a.is-logout:hover .icon svg{ stroke:#B00000; }
 
+  /* ── Recolher o menu (20/10/2026): botão no topo, ao lado da marca. Recolhido,
+       a barra fica com 72px e só os ícones; o nome aparece no title. A classe
+       sb-retraido fica no <html> (posta antes do menu nascer, sem piscar) e a
+       escolha fica no navegador. O seletor dobra a classe para ganhar das regras
+       com prefixo de tema (claro e escuro). ── */
+  html[data-theme="light"] .sb-recolher{
+    margin-left:auto; flex:none; width:28px; height:28px; padding:0; border-radius:8px;
+    border:1px solid rgba(17,29,45,0.10); background:#FFFFFF; color:#676767;
+    display:inline-flex; align-items:center; justify-content:center; cursor:pointer;
+    transition:background 180ms cubic-bezier(.2,0,0,1), color 180ms cubic-bezier(.2,0,0,1);
+  }
+  html[data-theme="light"] .sb-recolher:hover{ background:#F1F1F2; color:#3D3D3D; }
+  .sb-recolher svg{ width:15px; height:15px; transition:transform 200ms cubic-bezier(.2,0,0,1); }
+  .sb-recolher:focus-visible{ outline:2px solid var(--ff-marca); outline-offset:2px; }
+  @media (min-width:901px){
+    html.sb-retraido.sb-retraido .sidebar{ width:72px !important; min-width:72px !important; max-width:72px !important; }
+    html.sb-retraido.sb-retraido .sidebar-brand{ flex-direction:column !important; justify-content:center !important; gap:8px !important; height:auto !important; min-height:64px !important; padding:12px 0 8px !important; }
+    html.sb-retraido.sb-retraido .sidebar-brand a span:not([aria-hidden]){ display:none !important; }
+    html.sb-retraido.sb-retraido .sidebar-brand a{ gap:0 !important; justify-content:center !important; }
+    html.sb-retraido.sb-retraido .sidebar-brand a.sb-logo-marca img{ max-width:46px !important; height:auto !important; max-height:40px !important; }
+    html.sb-retraido.sb-retraido .sb-recolher{ margin-left:0; }
+    html.sb-retraido.sb-retraido .sb-recolher svg{ transform:rotate(180deg); }
+    html.sb-retraido.sb-retraido .sb-titulo{ display:none !important; }
+    html.sb-retraido.sb-retraido .sidebar nav.sidebar-nav-grouped{ padding:8px 10px 12px !important; }
+    html.sb-retraido.sb-retraido .sidebar-group{ margin-top:4px !important; }
+    html.sb-retraido.sb-retraido .sidebar-group-items{ display:none !important; }
+    html.sb-retraido.sb-retraido .sidebar nav a .label,
+    html.sb-retraido.sb-retraido .sidebar-group-toggle .sidebar-group-label,
+    html.sb-retraido.sb-retraido .sidebar-group-chevron,
+    html.sb-retraido.sb-retraido .sidebar-footer.sb-rodape a .label{ display:none !important; }
+    html.sb-retraido.sb-retraido .sidebar nav a,
+    html.sb-retraido.sb-retraido .sidebar-group-toggle,
+    html.sb-retraido.sb-retraido .sidebar-footer.sb-rodape a{ justify-content:center !important; padding:0 !important; gap:0 !important; }
+    /* Grupo com a página atual dentro: recolhido, o próprio ícone do grupo ganha o disco. */
+    html.sb-retraido.sb-retraido .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-icon{ background:var(--ff-marca) !important; }
+    html.sb-retraido.sb-retraido .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-icon svg,
+    html.sb-retraido.sb-retraido .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-icon svg *{ stroke:var(--ff-marca-texto) !important; }
+    html.sb-retraido.sb-retraido .sidebar-footer.sb-rodape{ padding:10px 10px 8px !important; }
+    html.sb-retraido.sb-retraido .sidebar-user{ flex-direction:column !important; gap:6px !important; padding:10px 0 12px !important; }
+    html.sb-retraido.sb-retraido .sidebar-user-info{ display:none !important; }
+    html.sb-retraido.sb-retraido .yuris-notif{ margin-left:0 !important; }
+    html.sb-retraido.sb-retraido .yuris-notif-panel{ left:80px !important; }
+  }
+  @media (max-width:900px){ .sb-recolher{ display:none !important; } }
+
   /* Tela estreita (mesmo corte em que sidebar.css mostra a .mobile-tabbar):
      248px de menu espremiam o conteúdo. A barra de abas de baixo já faz a
      navegação; o menu lateral some, e os dois nunca aparecem juntos. */
@@ -444,6 +489,9 @@ $_notifTempo = function ($raw) {
 <script src="/assets/yuris-ui.js?v=<?= $_uiLibVer ?>"></script>
 <!-- LGPD Etapa 5: banner de cookies — auto-inicializa, só aparece se ainda não respondeu -->
 <script src="/assets/cookie-consent.js?v=3"></script>
+<?php if ($_isFleetiflow): ?>
+<script>try{if(localStorage.getItem('yuris_menu_retraido')==='1')document.documentElement.classList.add('sb-retraido');}catch(e){}</script>
+<?php endif; ?>
 <aside class="sidebar" role="complementary" aria-label="Menu lateral">
 
   <!-- ── Marca ── -->
@@ -468,6 +516,9 @@ $_notifTempo = function ($raw) {
       <span style="font-size:18px;font-weight:800;letter-spacing:-.4px;color:#3D3D3D;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><?= htmlspecialchars($_marca['nome']) ?></span>
     </a>
     <?php endif; ?>
+    <button type="button" class="sb-recolher" id="sbRecolher" aria-label="Recolher menu" title="Recolher menu" aria-expanded="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+    </button>
     <?php else: ?>
     <img src="/sistema_vendas/Imagens/Logo.png" alt="Yuris" style="max-width:100%;max-height:160px;object-fit:contain;display:block;margin:0 auto;">
     <?php endif; ?>
@@ -1003,6 +1054,54 @@ $_notifTempo = function ($raw) {
 })();
 </script>
 
+<?php if ($_isFleetiflow): ?>
+<script>
+/* Recolher o menu (edição CRM). Recolhido: só ícones, nome no title; clicar num
+   grupo abre o menu de novo com o grupo aberto. A escolha fica no navegador. */
+(function () {
+  var html = document.documentElement, menu = document.querySelector('aside.sidebar'), bt = document.getElementById('sbRecolher');
+  if (!menu || !bt) return;
+  var CHAVE = 'yuris_menu_retraido';
+  function rotular() {
+    menu.querySelectorAll('nav a, .sidebar-group-toggle, .sidebar-footer a').forEach(function (el) {
+      var l = el.querySelector('.label, .sidebar-group-label');
+      if (!l) return;
+      if (html.classList.contains('sb-retraido')) { if (!el.title) { el.title = l.textContent.trim(); el.setAttribute('data-sb-title', '1'); } }
+      else if (el.getAttribute('data-sb-title')) { el.removeAttribute('title'); el.removeAttribute('data-sb-title'); }
+    });
+    var r = html.classList.contains('sb-retraido');
+    bt.setAttribute('aria-label', r ? 'Expandir menu' : 'Recolher menu');
+    bt.title = r ? 'Expandir menu' : 'Recolher menu';
+    bt.setAttribute('aria-expanded', r ? 'false' : 'true');
+  }
+  function definir(r) {
+    html.classList.toggle('sb-retraido', r);
+    try { localStorage.setItem(CHAVE, r ? '1' : '0'); } catch (e) {}
+    rotular();
+  }
+  bt.addEventListener('click', function () { definir(!html.classList.contains('sb-retraido')); });
+  // Recolhido, o clique num grupo abre o menu (e o grupo) em vez de só alternar o grupo escondido.
+  menu.addEventListener('click', function (e) {
+    if (!html.classList.contains('sb-retraido')) return;
+    var tg = e.target.closest('button.sidebar-group-toggle');
+    if (!tg) return;
+    e.stopPropagation();
+    e.preventDefault();
+    var g = tg.closest('.sidebar-group');
+    definir(false);
+    if (g && !g.classList.contains('open')) {
+      g.classList.add('open');
+      tg.setAttribute('aria-expanded', 'true');
+      try {
+        var k = 'yuris_sidebar_groups_v2', st = JSON.parse(localStorage.getItem(k) || '{}') || {};
+        st[g.getAttribute('data-group')] = true; localStorage.setItem(k, JSON.stringify(st));
+      } catch (e2) {}
+    }
+  }, true);
+  rotular();
+})();
+</script>
+<?php endif; ?>
 <!-- Sino de notificações: config (token CSRF) + lógica. notifications.js lê window.YURIS_NOTIF. -->
 <script>
 window.YURIS_NOTIF = Object.assign({}, window.YURIS_NOTIF, {
