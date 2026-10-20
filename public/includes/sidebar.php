@@ -1024,7 +1024,7 @@ window.FF_AGENDA = { csrf: <?= json_encode($_notifCsrf) ?>, sessao: <?= json_enc
 <script src="/assets/ff-agenda.js?v=<?= $_agVer ?>" defer></script>
 <script src="/assets/ff-orcamento-lead.js?v=<?= @filemtime(__DIR__ . '/../assets/ff-orcamento-lead.js') ?: '1' ?>" defer></script>
 <script src="/assets/ff-contrato-lead.js?v=<?= @filemtime(__DIR__ . '/../assets/ff-contrato-lead.js') ?: '1' ?>" defer></script>
-<script src="/assets/ff-contrato-cliente.js?v=<?= @filemtime(__DIR__ . '/../assets/ff-contrato-cliente.js') ?: '1' ?>" defer></script>
+<script src="/assets/ff-cliente-crm.js?v=<?= @filemtime(__DIR__ . '/../assets/ff-cliente-crm.js') ?: '1' ?>" defer></script>
 <link rel="stylesheet" href="/assets/ff-plataforma.css?v=<?= @filemtime(__DIR__ . '/../assets/ff-plataforma.css') ?: '1' ?>">
 <script src="/assets/ff-plataforma-lead.js?v=<?= @filemtime(__DIR__ . '/../assets/ff-plataforma-lead.js') ?: '1' ?>" defer></script>
 <?php endif; ?>

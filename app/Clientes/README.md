@@ -14,6 +14,7 @@ oportunidade de venda vive em [`../Prospeccao/`](../Prospeccao/).
 | `ClienteOrigem.php` | de onde o cliente veio (indicação, site, anúncio). Lista editável por conta, não é enum fixo |
 | `ClienteSetor.php` | as colunas do kanban de Clientes, também editáveis por conta |
 | `VinculosCliente.php` | o que está ligado ao cliente e mora do lado da prospecção: conversa de WhatsApp e tarefa. Resolve pelas prospecções de origem em vez de duplicar o vínculo. A conversa também é achada **pelo número do próprio cliente** (`whatsapp` ou `telefone`, com e sem o nono dígito, inclusive conversa gravada sob `@lid`): cliente cadastrado direto, sem prospecção, abria a ficha sem a conversa. Continua sendo resolução, não vínculo gravado. **Tarefa não tem `account_id`**: a conta vem do quadro, e o JOIN em `task_boards` é o que impede vazamento entre escritórios |
+| `ValoresDoCliente.php` | **o Financeiro da ficha do cliente** (edição CRM, 20/10/2026): os valores combinados, uma linha cada (`crm_cliente_valores`, migration 152): mensal (com dia de vencimento), anual, fixo ou único, por demanda, com início, fim, ativo e observação. `resumo` (pura) soma o total por mês (mensal + anual/12) e os outros à parte, sem linha encerrada ou vencida. Encerrar guarda o histórico; remover é para lançamento errado. API `public/api/cliente_valores.php`; tela por `public/assets/ff-cliente-crm.js`. Teste: `scripts/tests/cliente_valores_test.php` |
 
 ## Por que origem e setor são tabela, e não constante no código
 
