@@ -116,6 +116,7 @@ Duas regras que saíram disso, e valem para toda sessão futura:
   antes do `mod_rewrite` rodar. As duas sombras que existiam (`lgpd` e
   `configuracoes`) foram desfeitas tirando as páginas de `public/`, e
   `rotas_test.php` bloqueia sombra nova **sem lista de exceção**.
+- **O endereço público é sem ".php"** (20/10/2026): `/dashboard.php` responde 301 para `/dashboard` (`App\Core\UrlLimpa`, chamado pelo bootstrap; só GET de página da raiz, nunca API nem formulário). Link novo já nasce limpo (`/clientes`, não `clientes.php`); no menu, `UrlLimpa::href()`.
 - **Endereço desativado não precisa de arquivo-carcaça.** A tabela de rotas
   aceita `['redirect' => '/destino', 'status' => 301]`, e o destino tem de ser
   interno.

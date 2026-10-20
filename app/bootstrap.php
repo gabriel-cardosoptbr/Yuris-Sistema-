@@ -49,3 +49,7 @@ spl_autoload_register(static function (string $classe): void {
         }
     }
 });
+
+// 3) Endereço sem ".php": quem abre /dashboard.php vai para /dashboard (só GET de
+// página da raiz; API, formulário e linha de comando passam direto). Ver Core/UrlLimpa.
+\App\Core\UrlLimpa::redirecionar();

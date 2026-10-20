@@ -542,11 +542,11 @@ $_notifTempo = function ($raw) {
          com o nome desenhado dentro. -->
     <?php if ($_marca['personalizada'] && !empty($_marca['logo_url'])): ?>
     <!-- Marca própria com logo: o logo inteiro, flutuando devagar (17/10/2026). -->
-    <a href="dashboard.php" class="sb-logo-marca" style="display:flex;align-items:center;text-decoration:none" aria-label="<?= htmlspecialchars($_marca['nome']) ?>">
+    <a href="/dashboard" class="sb-logo-marca" style="display:flex;align-items:center;text-decoration:none" aria-label="<?= htmlspecialchars($_marca['nome']) ?>">
       <img src="<?= htmlspecialchars($_marca['logo_url']) ?>" alt="<?= htmlspecialchars($_marca['nome']) ?>">
     </a>
     <?php else: ?>
-    <a href="dashboard.php" style="display:flex;align-items:center;gap:11px;text-decoration:none">
+    <a href="/dashboard" style="display:flex;align-items:center;gap:11px;text-decoration:none">
       <?php if (!empty($_marca['icone_url'])): ?>
       <img src="<?= htmlspecialchars($_marca['icone_url']) ?>" alt="" style="height:30px;width:auto;max-width:44px;object-fit:contain;flex:none;display:block">
       <?php else: ?>
@@ -561,7 +561,7 @@ $_notifTempo = function ($raw) {
     </button>
     <?php else: ?>
     <img src="/sistema_vendas/Imagens/Logo.png" alt="Yuris" class="sb-logo-grande" style="max-width:100%;max-height:160px;object-fit:contain;display:block;margin:0 auto;">
-    <a href="dashboard.php" aria-label="Yuris"><img src="/assets/favicon-192.png" alt="" class="sb-logo-mini"></a>
+    <a href="/dashboard" aria-label="Yuris"><img src="/assets/favicon-192.png" alt="" class="sb-logo-mini"></a>
     <button type="button" class="sb-recolher sb-recolher-y" id="sbRecolher" aria-label="Recolher menu" title="Recolher menu" aria-expanded="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
     </button>
@@ -696,7 +696,7 @@ $_notifTempo = function ($raw) {
 
     <?php if (_sidebarCan('dashboard')): ?>
     <?php if ($_isFleetiflow): ?><div class="sb-titulo">Geral</div><?php endif; ?>
-    <a href="dashboard.php" class="sidebar-overview-link<?= $_ap === 'dashboard' ? ' active' : '' ?>"<?= $_ap === 'dashboard' ? ' aria-current="page"' : '' ?>>
+    <a href="/dashboard" class="sidebar-overview-link<?= $_ap === 'dashboard' ? ' active' : '' ?>"<?= $_ap === 'dashboard' ? ' aria-current="page"' : '' ?>>
       <span class="icon" aria-hidden="true"><?= $_svg['dashboard'] ?></span>
       <span class="label">Visão Geral</span>
     </a>
@@ -891,7 +891,7 @@ $_notifTempo = function ($raw) {
             $_it = $_visible[0];
     ?>
     <div class="sidebar-group<?= $_hasActive ? ' has-active' : '' ?>">
-      <a href="<?= htmlspecialchars($_it['href']) ?>" class="sidebar-group-toggle"<?= $_hasActive ? ' aria-current="page"' : '' ?> style="text-decoration:none">
+      <a href="<?= htmlspecialchars(\App\Core\UrlLimpa::href($_it['href'])) ?>" class="sidebar-group-toggle"<?= $_hasActive ? ' aria-current="page"' : '' ?> style="text-decoration:none">
         <span class="sidebar-group-icon" aria-hidden="true"><?= $_sec['icon'] ?></span>
         <span class="sidebar-group-label"><?= htmlspecialchars($_sec['label']) ?></span>
       </a>
@@ -915,7 +915,7 @@ $_notifTempo = function ($raw) {
             $_isActive = ($_ap === $_it['active']);
             $_extraClass = !empty($_it['is_logout']) ? ' is-logout' : '';
         ?>
-        <a href="<?= htmlspecialchars($_it['href']) ?>"<?= $_isActive ? ' class="active' . $_extraClass . '" aria-current="page"' : ($_extraClass ? ' class="' . trim($_extraClass) . '"' : '') ?>>
+        <a href="<?= htmlspecialchars(\App\Core\UrlLimpa::href($_it['href'])) ?>"<?= $_isActive ? ' class="active' . $_extraClass . '" aria-current="page"' : ($_extraClass ? ' class="' . trim($_extraClass) . '"' : '') ?>>
           <span class="icon" aria-hidden="true"><?= $_svg[$_it['icon']] ?></span>
           <span class="label"><?= htmlspecialchars($_it['label']) ?></span>
         </a>
@@ -942,16 +942,16 @@ $_notifTempo = function ($raw) {
        Comercial": a marca já está no topo. -->
   <div class="sidebar-footer sb-rodape">
     <?php if (_sidebarCan('configuracoes')): ?>
-    <a href="configuracoes.php"<?= $_ap === 'configuracoes' ? ' class="active" aria-current="page"' : '' ?>>
+    <a href="/configuracoes"<?= $_ap === 'configuracoes' ? ' class="active" aria-current="page"' : '' ?>>
       <span class="icon" aria-hidden="true"><?= $_svg['config'] ?></span>
       <span class="label">Configurações</span>
     </a>
-    <a href="configuracoes/privacidade.php"<?= $_ap === 'privacidade' ? ' class="active" aria-current="page"' : '' ?> title="Privacidade e consentimentos LGPD">
+    <a href="/configuracoes/privacidade"<?= $_ap === 'privacidade' ? ' class="active" aria-current="page"' : '' ?> title="Privacidade e consentimentos LGPD">
       <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
       <span class="label">Privacidade</span>
     </a>
     <?php endif; ?>
-    <a href="logout.php" class="is-logout">
+    <a href="/logout" class="is-logout">
       <span class="icon" aria-hidden="true"><?= $_svg['sair'] ?></span>
       <span class="label">Sair</span>
     </a>
@@ -961,7 +961,7 @@ $_notifTempo = function ($raw) {
     <p style="font-size:.9rem;font-weight:700;color:#e8f4ff;margin:0 0 2px;letter-spacing:.5px;">Yuris</p>
     <p style="font-size:.72rem;color:#6b8299;margin:0 0 8px;">Sistema Jurídico Inteligente</p>
     <?php if (_sidebarCan('configuracoes')): ?>
-    <a href="configuracoes/privacidade.php"
+    <a href="/configuracoes/privacidade"
        title="Privacidade e consentimentos LGPD"
        style="font-size:.7rem;color:<?= $_ap === 'privacidade' ? '#93C5FD' : '#6b8299' ?>;text-decoration:none;letter-spacing:.3px;transition:color .15s;<?= $_ap === 'privacidade' ? 'font-weight:600;border-bottom:1px solid rgba(147,197,253,.35);padding-bottom:1px;' : '' ?>"
        onmouseover="this.style.color='#93C5FD'"
@@ -984,7 +984,7 @@ $_notifTempo = function ($raw) {
     <?= $_avisoWa['admin'] ? 'Reconecte lendo o QR Code com o celular do número.' : 'Avise um administrador da conta para reconectar.' ?>
   </div>
   <?php if ($_avisoWa['admin']): ?>
-  <a href="/chat.php" style="flex:none;display:inline-flex;align-items:center;height:34px;padding:0 16px;border-radius:999px;background:#B91C1C;color:#FFFFFF;font-weight:700;text-decoration:none">Reconectar agora</a>
+  <a href="//chat" style="flex:none;display:inline-flex;align-items:center;height:34px;padding:0 16px;border-radius:999px;background:#B91C1C;color:#FFFFFF;font-weight:700;text-decoration:none">Reconectar agora</a>
   <?php endif; ?>
 </div>
 <script>
@@ -1012,40 +1012,40 @@ $_notifTempo = function ($raw) {
 <!-- ── Barra de navegação mobile ── -->
 <nav class="mobile-tabbar" role="navigation" aria-label="Navegação principal">
 
-  <a href="dashboard.php"<?= $_ap === 'dashboard' ? ' class="active"' : '' ?>>
+  <a href="/dashboard"<?= $_ap === 'dashboard' ? ' class="active"' : '' ?>>
     <span class="mob-icon" aria-hidden="true"><?= $_svg['dashboard'] ?></span>
     <span>Visão Geral</span>
   </a>
 
-  <a href="prospeccao.php"<?= $_ap === 'prospeccao' ? ' class="active"' : '' ?>>
+  <a href="/prospeccao"<?= $_ap === 'prospeccao' ? ' class="active"' : '' ?>>
     <span class="mob-icon" aria-hidden="true"><?= $_svg['prosp'] ?></span>
     <span>Prospecção</span>
   </a>
 
   <?php if ($_isFleetiflow): ?>
-  <a href="clientes.php"<?= $_ap === 'clientes' ? ' class="active"' : '' ?>>
+  <a href="/clientes"<?= $_ap === 'clientes' ? ' class="active"' : '' ?>>
     <span class="mob-icon" aria-hidden="true"><?= $_svg['clientes'] ?></span>
     <span>Clientes</span>
   </a>
 
-  <a href="tarefas.php"<?= $_ap === 'tarefas' ? ' class="active"' : '' ?>>
+  <a href="/tarefas"<?= $_ap === 'tarefas' ? ' class="active"' : '' ?>>
     <span class="mob-icon" aria-hidden="true"><?= $_svg['tarefas'] ?></span>
     <span>Tarefas</span>
   </a>
   <?php else: ?>
-  <a href="processos.php"<?= $_ap === 'processos' ? ' class="active"' : '' ?>>
+  <a href="/processos"<?= $_ap === 'processos' ? ' class="active"' : '' ?>>
     <span class="mob-icon" aria-hidden="true"><?= $_svg['processos'] ?></span>
     <span>Processos</span>
   </a>
 
-  <a href="juridico.php"<?= $_ap === 'juridico' ? ' class="active"' : '' ?>>
+  <a href="/juridico"<?= $_ap === 'juridico' ? ' class="active"' : '' ?>>
     <span class="mob-icon" aria-hidden="true"><?= $_svg['juridico'] ?></span>
     <span>Jurídico</span>
   </a>
   <?php endif; ?>
 
 <?php if (!($_isFleetiflow && !in_array($_SESSION['user_role'] ?? '', ['owner', 'admin'], true))): ?>
-  <a href="financas.php"<?= $_ap === 'dre' ? ' class="active"' : '' ?>>
+  <a href="/financas"<?= $_ap === 'dre' ? ' class="active"' : '' ?>>
     <span class="mob-icon" aria-hidden="true"><?= $_svg['financas'] ?></span>
     <span>Finanças</span>
   </a>
