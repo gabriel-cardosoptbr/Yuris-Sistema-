@@ -14,7 +14,7 @@
  *   - negócio fechado de cliente com valores sai da soma de fechamentos (sem dobrar receita);
  *   - "2.500" é dois mil e quinhentos; sem descrição vale o nome do tipo; cobrança
  *     cancelada à mão com o valor errado volta quando o valor é corrigido; reabrir;
- *   - setores do cliente (mais de um, só da conta) e o resumo do card do quadro.
+ *   - setores do cliente (mais de um, só da conta), o resumo e o card do quadro.
  *
  * Usa um cliente da conta CRM local 304; as linhas criadas são apagadas no fim.
  * Uso: php scripts/tests/cliente_valores_test.php
@@ -169,6 +169,10 @@ try {
     if ($teamOutra) ok('setor de outra conta é recusado', recusa(fn() => S::salvar(304, 0, $cli, [$teamOutra])) !== null);
     ok('outra conta não mexe nos setores do cliente', recusa(fn() => S::salvar(476, 0, $cli, [])) !== null);
     ok('quadro de outra conta não traz o cliente', !isset(S::quadro([476])[$cli]));
+    $card = \App\Clientes\CardDoCliente::quadro([304], 304);
+    $c852 = $card['clientes'][$cli] ?? null;
+    ok('card do cliente traz nome, total por mês, próxima cobrança e contratos', $c852 && $c852['nome'] !== '' && $c852['por_mes'] > 0 && isset($c852['contratos']['total']) && array_key_exists('proxima', $c852));
+    ok('card de outra conta não traz o cliente', !isset(\App\Clientes\CardDoCliente::quadro([476], 476)['clientes'][$cli]));
     S::salvar(304, 0, $cli, $setOrig);
 
     // Fechamento sem dobrar: um card fechado da conta passa a apontar para um cliente sem valores.

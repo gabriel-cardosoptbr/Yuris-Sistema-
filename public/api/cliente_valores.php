@@ -3,7 +3,7 @@
  * Valores do cliente: o "Financeiro" da ficha do cliente (App\Clientes\ValoresDoCliente).
  *
  *   GET  ?cliente_id=N             as linhas, o resumo, as cobranças (contas a receber), os contratos e os setores do cliente
- *   GET  ?quadro=1                 por cliente: setores e total por mês (o card do quadro de Clientes)
+ *   GET  ?quadro=1                 o card de cada cliente do quadro (App\Clientes\CardDoCliente) e os setores da conta
  *   POST {acao:'setores', cliente_id, setores:[team_id...]}
  *   POST {acao:'salvar', cliente_id, id?, tipo, descricao, valor, dia_vencimento, inicio, fim, ativo, observacao, contrato_id}
  *   POST {acao:'remover', cliente_id, id}
@@ -54,7 +54,7 @@ function cvTudo(int $acc, int $cliente): array
 
 try {
     if ($_SERVER['REQUEST_METHOD'] === 'GET' && !empty($_GET['quadro'])) {
-        cvResponder(['ok' => true, 'data' => SetoresDoCliente::quadro($ctx->getAccessibleAccountIds('clientes') ?: [$acc])]);
+        cvResponder(['ok' => true] + \App\Clientes\CardDoCliente::quadro($ctx->getAccessibleAccountIds('clientes') ?: [$acc], $acc));
     }
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         cvResponder(['ok' => true, 'data' => cvTudo($acc, (int) ($_GET['cliente_id'] ?? 0)), 'tipos' => ValoresDoCliente::TIPOS, 'formas' => CobrancaDoCliente::FORMAS,
