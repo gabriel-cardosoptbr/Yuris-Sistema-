@@ -137,7 +137,13 @@ Eventos (trilha): criação, documento, participantes, versão fechada e substit
 convite gerado e enviado, acesso, código enviado, incorreto e confirmado,
 identificação, CPF divergente, liberação, documento entregue ao navegador (não é
 prova de leitura), assinatura, recusa, conclusão, expiração, cancelamento, arquivos
-gerados e baixados.
+gerados e baixados, e cliente vinculado.
+
+**Vincular a um cliente** (`Contrato::vincularCliente`, ação `vincular_cliente` da API,
+20/10/2026): liga ou desliga o contrato de um cliente da conta em qualquer situação,
+inclusive concluído, porque o cliente é cadastro do CRM e não faz parte do documento
+assinado. Só quem gerencia o contrato; fica na trilha como `cliente_vinculado`. A ficha
+do cliente usa isso no "Vincular contrato existente" (lista `?lista=1&sem_cliente=1`).
 
 ## O que impede e o que detecta alteração
 

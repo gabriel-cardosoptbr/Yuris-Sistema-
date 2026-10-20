@@ -19,6 +19,9 @@ $tenantIds = $ctx->getAccessibleAccountIds('financas');
 // (configuracoes.modulos.reembolsos, edição CRM; hoje, a Inovaize). O Yuris não muda.
 $reembolsos = false;
 try { $reembolsos = \App\Financas\Reembolso::habilitado(\App\Master\Account::findById($ctx->getAccountId()) ?? []); } catch (\Throwable $e) { /* sem o módulo */ }
+// Recebimentos de clientes (20/10/2026): edição CRM, as cobranças que saem dos
+// valores combinados na ficha do cliente (App\Clientes\CobrancaDoCliente).
+$recebClientes = $ctx->getProduto() === 'fleetiflow';
 if (empty($tenantIds)) $tenantIds = [0]; // guard: evita SQL "IN ()" inválido
 
 // Monta cláusula IN(tenantIds) para reuso
@@ -450,6 +453,47 @@ $health_icon         = $margem >= 40 ? '▲' : ($margem >= 15 ? '●' : '▼');
         </div>
       </div>
 
+<?php if ($recebClientes): ?>
+      <!-- ── Recebimentos de clientes (edição CRM) ── -->
+      <div class="dre-panel receb-panel" style="margin-bottom:20px" id="recebPanel">
+        <div class="receb-cab">
+          <div>
+            <div class="panel-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:5px"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>
+              Recebimentos de clientes
+            </div>
+            <p class="panel-sub">Mensalidades, serviços e taxas combinados na ficha de cada cliente (Clientes, seção Financeiro). As mensalidades entram aqui sozinhas a partir da data em que começam</p>
+          </div>
+        </div>
+        <div class="receb-resumo">
+          <div class="receb-num"><span>A receber este mês</span><b id="recebMes">R$ 0,00</b></div>
+          <div class="receb-num receb-num-atraso"><span>Em atraso</span><b id="recebAtrasado">R$ 0,00</b><small id="recebAtrasadas"></small></div>
+          <div class="receb-num receb-num-ok"><span>Recebido este mês</span><b id="recebRecebido">R$ 0,00</b></div>
+          <div class="receb-num"><span>Previsto no mês que vem</span><b id="recebProximo">R$ 0,00</b></div>
+          <div class="receb-num"><span>Mensalidades ativas</span><b id="recebMrr">R$ 0,00</b></div>
+        </div>
+        <div class="receb-filtros">
+          <button type="button" class="btn btn-primary btn-sm" data-receb-filtro="abertas">A receber</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-receb-filtro="atrasadas">Atrasadas</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-receb-filtro="pagas">Recebidas (90 dias)</button>
+        </div>
+        <div class="dre-table-wrap">
+          <table class="dre-table receb-tabela" id="recebTabela">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Do que</th>
+                <th>Vencimento</th>
+                <th style="text-align:right">Valor</th>
+                <th>Situação</th>
+                <th style="text-align:right">Ações</th>
+              </tr>
+            </thead>
+            <tbody><tr class="empty-row"><td colspan="6">Carregando recebimentos…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+<?php endif; ?>
 <?php if ($reembolsos):
   // Sugestões do campo "Para quem": a equipe da conta. Pode ser qualquer nome.
   $_reembPessoas = [];
@@ -1250,6 +1294,9 @@ window.dreUpdateDonutLegend = function(vals) {
   @media (max-width: 760px) { .reemb-resumo { grid-template-columns:1fr 1fr; } }
 </style>
 <script src="/assets/reembolsos.js?v=<?= @filemtime(__DIR__ . '/assets/reembolsos.js') ?: 1 ?>"></script>
+<?php endif; ?>
+<?php if ($recebClientes): ?>
+<script src="/assets/recebimentos.js?v=<?= @filemtime(__DIR__ . '/assets/recebimentos.js') ?: 1 ?>"></script>
 <?php endif; ?>
 <script src="/assets/dre.js?v=<?=filemtime(__DIR__.'/assets/dre.js')?>"></script>
 <script src="/assets/fog.js"></script>

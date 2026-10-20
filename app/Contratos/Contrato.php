@@ -156,6 +156,25 @@ final class Contrato
         return ['titulo' => $titulo, 'responsavel_id' => $resp, 'cliente_id' => $cliente, 'card_id' => $card, 'prazo_em' => $prazo];
     }
 
+    /**
+     * Liga (ou desliga, com 0) o contrato a um cliente. Vale em qualquer situação: o
+     * cliente é cadastro do CRM, não faz parte do documento assinado.
+     */
+    public static function vincularCliente(int $accountId, int $userId, int $id, int $clienteId): void
+    {
+        $c = self::doContrato($accountId, $id);
+        $pdo = Database::getConnection();
+        if ($clienteId) {
+            $st = $pdo->prepare('SELECT nome FROM clientes WHERE id = ? AND account_id = ? AND deleted_at IS NULL');
+            $st->execute([$clienteId, $accountId]);
+            $nome = $st->fetchColumn();
+            if (!$nome) throw new \InvalidArgumentException('Cliente não encontrado nesta conta.');
+        }
+        $pdo->prepare('UPDATE crm_contratos SET cliente_id = ?, atualizado_em = ? WHERE id = ? AND account_id = ?')
+            ->execute([$clienteId ?: null, Tempo::agora(), $id, $accountId]);
+        Eventos::registrar($id, 'cliente_vinculado', ['cliente_id' => $clienteId ?: null, 'anterior' => $c['cliente_id'] ? (int) $c['cliente_id'] : null], ['user_id' => $userId]);
+    }
+
     // ── Documento ─────────────────────────────────────────────────────────
 
     /**
@@ -573,6 +592,7 @@ final class Contrato
         $args = [$accountId];
         if (!empty($f['status']) && isset(self::STATUS[$f['status']])) { $where[] = 'c.status = ?'; $args[] = $f['status']; }
         if (!empty($f['cliente_id'])) { $where[] = 'c.cliente_id = ?'; $args[] = (int) $f['cliente_id']; }
+        if (!empty($f['sem_cliente'])) $where[] = 'c.cliente_id IS NULL';
         if (!empty($f['card_id'])) { $where[] = 'c.card_id = ?'; $args[] = (int) $f['card_id']; }
         if (!empty($f['busca'])) { $where[] = 'c.titulo LIKE ?'; $args[] = '%' . str_replace(['%', '_'], ['\\%', '\\_'], (string) $f['busca']) . '%'; }
         $st = Database::getConnection()->prepare(

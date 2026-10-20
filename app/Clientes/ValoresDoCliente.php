@@ -9,24 +9,30 @@ use App\Core\Database;
  *
  *   mensal    recorrente todo mês, com dia de vencimento
  *   anual     recorrente uma vez por ano (entra no resumo também dividido por 12)
- *   fixo      pagamento fixo ou único: implantação, taxa de ativação, projeto fechado
+ *   fixo      taxa fixa ou única: implantação, taxa de ativação
+ *   servico   serviço avulso: "fez um site", um projeto, uma entrega (cobrança única)
  *   demanda   cobrado por uso ou por pedido (só o valor de referência)
  *
- * Início e fim opcionais; linha encerrada fica no histórico com "ativo" desligado
- * em vez de ser apagada (apagar só serve para lançamento errado).
+ * "Começa em" é obrigatório (para mensal e anual é de quando a cobrança começa;
+ * para taxa e serviço, a data da cobrança). Fim opcional. Cada valor pode apontar
+ * para um contrato do cliente. Salvar acerta as cobranças (CobrancaDoCliente).
+ * Linha encerrada fica no histórico com "ativo" desligado; remover só serve para
+ * lançamento errado, e não vale para valor que já tem cobrança paga.
  * Toda consulta filtra account_id, e o cliente tem de ser da conta.
  */
 final class ValoresDoCliente
 {
-    public const TIPOS = ['mensal' => 'Mensal', 'anual' => 'Anual', 'fixo' => 'Fixo / único', 'demanda' => 'Por demanda'];
+    public const TIPOS = ['mensal' => 'Mensal', 'anual' => 'Anual', 'servico' => 'Serviço avulso', 'fixo' => 'Taxa fixa / única', 'demanda' => 'Por demanda'];
 
     /** @return array{itens:array, resumo:array} */
     public static function doCliente(int $accountId, int $clienteId): array
     {
         self::conferirCliente($accountId, $clienteId);
         $st = Database::getConnection()->prepare(
-            'SELECT v.*, u.nome AS criado_por_nome FROM crm_cliente_valores v LEFT JOIN users u ON u.id = v.criado_por
-              WHERE v.account_id = ? AND v.cliente_id = ? ORDER BY v.ativo DESC, FIELD(v.tipo, "mensal", "anual", "fixo", "demanda"), v.id'
+            'SELECT v.*, u.nome AS criado_por_nome, k.titulo AS contrato_titulo FROM crm_cliente_valores v
+               LEFT JOIN users u ON u.id = v.criado_por
+               LEFT JOIN crm_contratos k ON k.id = v.contrato_id AND k.account_id = v.account_id
+              WHERE v.account_id = ? AND v.cliente_id = ? ORDER BY v.ativo DESC, FIELD(v.tipo, "mensal", "anual", "servico", "fixo", "demanda"), v.id'
         );
         $st->execute([$accountId, $clienteId]);
         $itens = array_map(static fn($r) => [
@@ -35,6 +41,7 @@ final class ValoresDoCliente
             'dia_vencimento' => $r['dia_vencimento'] !== null ? (int) $r['dia_vencimento'] : null,
             'inicio' => $r['inicio'], 'fim' => $r['fim'], 'ativo' => (bool) $r['ativo'], 'observacao' => $r['observacao'],
             'criado_por' => $r['criado_por_nome'], 'criado_em' => $r['created_at'],
+            'contrato_id' => $r['contrato_id'] ? (int) $r['contrato_id'] : null, 'contrato' => $r['contrato_titulo'],
         ], $st->fetchAll(\PDO::FETCH_ASSOC));
         return ['itens' => $itens, 'resumo' => self::resumo($itens)];
     }
@@ -42,7 +49,7 @@ final class ValoresDoCliente
     /** Totais das linhas ativas. "Por mês" soma mensal + anual/12. Pura, para o teste. */
     public static function resumo(array $itens): array
     {
-        $t = ['mensal' => 0.0, 'anual' => 0.0, 'fixo' => 0.0, 'demanda' => 0.0];
+        $t = ['mensal' => 0.0, 'anual' => 0.0, 'servico' => 0.0, 'fixo' => 0.0, 'demanda' => 0.0];
         $hoje = date('Y-m-d');
         foreach ($itens as $i) {
             if (!$i['ativo'] || (!empty($i['fim']) && $i['fim'] < $hoje)) continue;
@@ -65,33 +72,51 @@ final class ValoresDoCliente
         if (!in_array($tipo, ['mensal', 'anual'], true)) $dia = null;
         $inicio = self::data($d['inicio'] ?? null, 'início');
         $fim = self::data($d['fim'] ?? null, 'fim');
+        if (!$inicio && $tipo !== 'demanda') {
+            throw new \InvalidArgumentException(in_array($tipo, ['mensal', 'anual'], true) ? 'Informe quando a cobrança começa.' : 'Informe a data da cobrança.');
+        }
+        if (in_array($tipo, ['fixo', 'servico'], true)) $fim = null;
+        $contrato = !empty($d['contrato_id']) ? (int) $d['contrato_id'] : null;
+        if ($contrato) {
+            $k = Database::getConnection()->prepare('SELECT id FROM crm_contratos WHERE id = ? AND account_id = ? AND (cliente_id = ? OR cliente_id IS NULL)');
+            $k->execute([$contrato, $accountId, $clienteId]);
+            if (!$k->fetchColumn()) throw new \InvalidArgumentException('Contrato não encontrado para este cliente.');
+        }
         if ($inicio && $fim && $fim < $inicio) throw new \InvalidArgumentException('O fim não pode ser antes do início.');
         $obs = trim((string) ($d['observacao'] ?? ''));
         $ativo = !isset($d['ativo']) || (bool) $d['ativo'];
         $pdo = Database::getConnection();
         $id = (int) ($d['id'] ?? 0);
         if ($id) {
-            $st = $pdo->prepare('UPDATE crm_cliente_valores SET tipo = ?, descricao = ?, valor = ?, dia_vencimento = ?, inicio = ?, fim = ?, ativo = ?, observacao = ?
+            $st = $pdo->prepare('UPDATE crm_cliente_valores SET tipo = ?, descricao = ?, valor = ?, dia_vencimento = ?, inicio = ?, fim = ?, ativo = ?, observacao = ?, contrato_id = ?
                                   WHERE id = ? AND account_id = ? AND cliente_id = ?');
-            $st->execute([$tipo, $desc, $valor, $dia, $inicio, $fim, $ativo ? 1 : 0, $obs ?: null, $id, $accountId, $clienteId]);
+            $st->execute([$tipo, $desc, $valor, $dia, $inicio, $fim, $ativo ? 1 : 0, $obs ?: null, $contrato, $id, $accountId, $clienteId]);
             if ($st->rowCount() === 0) {
                 $ex = $pdo->prepare('SELECT COUNT(*) FROM crm_cliente_valores WHERE id = ? AND account_id = ? AND cliente_id = ?');
                 $ex->execute([$id, $accountId, $clienteId]);
                 if (!(int) $ex->fetchColumn()) throw new \InvalidArgumentException('Valor não encontrado.');
             }
+            CobrancaDoCliente::sincronizar($accountId, $id);
             return $id;
         }
-        $pdo->prepare('INSERT INTO crm_cliente_valores (account_id, cliente_id, tipo, descricao, valor, dia_vencimento, inicio, fim, ativo, observacao, criado_por)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-            ->execute([$accountId, $clienteId, $tipo, $desc, $valor, $dia, $inicio, $fim, $ativo ? 1 : 0, $obs ?: null, $userId ?: null]);
-        return (int) $pdo->lastInsertId();
+        $pdo->prepare('INSERT INTO crm_cliente_valores (account_id, cliente_id, contrato_id, tipo, descricao, valor, dia_vencimento, inicio, fim, ativo, observacao, criado_por)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+            ->execute([$accountId, $clienteId, $contrato, $tipo, $desc, $valor, $dia, $inicio, $fim, $ativo ? 1 : 0, $obs ?: null, $userId ?: null]);
+        $novo = (int) $pdo->lastInsertId();
+        CobrancaDoCliente::sincronizar($accountId, $novo);
+        return $novo;
     }
 
     public static function remover(int $accountId, int $clienteId, int $id): void
     {
-        $st = Database::getConnection()->prepare('DELETE FROM crm_cliente_valores WHERE id = ? AND account_id = ? AND cliente_id = ?');
+        $pdo = Database::getConnection();
+        $p = $pdo->prepare("SELECT COUNT(*) FROM crm_cliente_cobrancas WHERE account_id = ? AND valor_id = ? AND status = 'paga'");
+        $p->execute([$accountId, $id]);
+        if ((int) $p->fetchColumn() > 0) throw new \InvalidArgumentException('Este valor já tem cobrança paga. Use "Encerrar" para parar as próximas.');
+        $st = $pdo->prepare('DELETE FROM crm_cliente_valores WHERE id = ? AND account_id = ? AND cliente_id = ?');
         $st->execute([$id, $accountId, $clienteId]);
         if ($st->rowCount() === 0) throw new \InvalidArgumentException('Valor não encontrado.');
+        $pdo->prepare('DELETE FROM crm_cliente_cobrancas WHERE account_id = ? AND valor_id = ? AND status <> \'paga\'')->execute([$accountId, $id]);
     }
 
     private static function conferirCliente(int $accountId, int $clienteId): void

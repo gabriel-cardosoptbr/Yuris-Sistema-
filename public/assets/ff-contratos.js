@@ -9,7 +9,7 @@
   var filtro = { status: '', busca: '' };
   var EVENTOS = {
     criado: 'Contrato criado', editado: 'Dados editados', documento_anexado: 'PDF anexado', participante_incluido: 'Participante incluído',
-    participante_editado: 'Participante editado', participante_removido: 'Participante removido', versao_fechada: 'Versão fechada para assinatura',
+    participante_editado: 'Participante editado', cliente_vinculado: 'Cliente vinculado', participante_removido: 'Participante removido', versao_fechada: 'Versão fechada para assinatura',
     versao_substituida: 'Versão substituída por uma nova', convite_emitido: 'Convite gerado', convite_reemitido: 'Novo link gerado',
     convite_enviado: 'Convite enviado pelo WhatsApp', convite_nao_enviado: 'Convite não enviado', acesso: 'Link aberto',
     codigo_enviado: 'Código enviado', codigo_nao_enviado: 'Código não enviado', codigo_incorreto: 'Código incorreto',

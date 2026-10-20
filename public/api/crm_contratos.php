@@ -55,7 +55,7 @@ try {
         if (!empty($_GET['lista'])) {
             ctrResponder(['ok' => true, 'data' => Contrato::listar($acc, [
                 'status' => $_GET['status'] ?? '', 'busca' => trim((string) ($_GET['busca'] ?? '')),
-                'cliente_id' => (int) ($_GET['cliente_id'] ?? 0), 'card_id' => (int) ($_GET['card_id'] ?? 0),
+                'cliente_id' => (int) ($_GET['cliente_id'] ?? 0), 'card_id' => (int) ($_GET['card_id'] ?? 0), 'sem_cliente' => !empty($_GET['sem_cliente']),
             ])]);
         }
         if (!empty($_GET['id'])) {
@@ -204,6 +204,10 @@ try {
             }
             $r = Contrato::anexarPdf($acc, $uid, $id, (string) file_get_contents($f['tmp_name']), (string) $f['name']);
             ctrResponder(['ok' => true, 'data' => $r]);
+        case 'vincular_cliente':
+            $gerencia();
+            Contrato::vincularCliente($acc, $uid, $id, (int) ($in['cliente_id'] ?? 0));
+            ctrResponder(['ok' => true]);
         case 'participante_salvar':
             // "id" na ação é o contrato; o participante vem em participante_id.
             ctrResponder(['ok' => true, 'participante_id' => Contrato::salvarParticipante($acc, $uid, $id, ['id' => (int) ($in['participante_id'] ?? 0)] + $in)]);
