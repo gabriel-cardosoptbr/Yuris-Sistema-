@@ -13,7 +13,11 @@
  *   POST {acao:'criar_de_anexo', anexo_id}  contrato novo com o PDF anexado na ficha do cliente ou lead
  *   POST {acao, ...}              criar, atualizar, participante_salvar, participante_remover,
  *                                 enviar, novo_link, liberar, cancelar, config_salvar, reprocessar
+ *   POST {acao:'vincular_crm', id, vendedor_id, cliente_id, card_id}  vendedor responsável e o card do
+ *                                 CRM (lead ou cliente), em qualquer situação; criar e atualizar
+ *                                 também exigem o vínculo
  *
+ * Vendedor da edição CRM não entra aqui (Permissao::podeVer): contrato é só da administração.
  * Cada ação confere a permissão própria no servidor (App\Contratos\Permissao).
  */
 require_once __DIR__ . '/../../app/bootstrap.php';
@@ -222,6 +226,10 @@ try {
             }
             $r = Contrato::anexarPdf($acc, $uid, $id, (string) file_get_contents($f['tmp_name']), (string) $f['name']);
             ctrResponder(['ok' => true, 'data' => $r]);
+        case 'vincular_crm':
+            // Vendedor responsável e o card do CRM (lead ou cliente), em qualquer situação.
+            Contrato::vincularCrm($acc, $uid, $id, $in);
+            ctrResponder(['ok' => true]);
         case 'vincular_cliente':
             $gerencia();
             Contrato::vincularCliente($acc, $uid, $id, (int) ($in['cliente_id'] ?? 0));

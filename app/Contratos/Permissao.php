@@ -9,7 +9,10 @@ use App\Core\Database;
  *
  *   ver / criar / editar / convidar / baixar   quem abre a Prospecção ou tem a
  *                                              chave 'contratos' (o contrato é do
- *                                              lead e do cliente, como o orçamento)
+ *                                              lead e do cliente, como o orçamento),
+ *                                              NUNCA o vendedor da edição CRM: contrato
+ *                                              é sigiloso, só administração
+ *                                              (20/10/2026, AccountContext::vendedorDaSessao)
  *   gerenciar (cancelar, liberar bloqueio,     dono ou administrador da conta, o
  *   ajustar a configuração, reprocessar)       responsável do contrato, ou a chave
  *                                              'contratos.gerenciar'
@@ -36,6 +39,7 @@ final class Permissao
 
     public static function podeVer(): bool
     {
+        if (AccountContext::vendedorDaSessao() !== null) return false;
         return self::pode(self::VER) || self::pode('prospeccao');
     }
 

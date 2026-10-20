@@ -225,7 +225,7 @@ if ($CARD > 0) {
     $r = $pdo->query("SELECT titulo, natureza, url, entidade FROM account_notifications WHERE account_id = $ACC AND tipo LIKE 'movimento.%' LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
     eq('movimento', $r['natureza'], '  e nasce como movimento, não como dirigido');
     eq('card', $r['entidade'], '  sabendo de que entidade fala');
-    ok(str_contains((string) $r['url'], 'prospeccao.php'), '  e com link para a tela certa');
+    ok(str_contains((string) $r['url'], '/prospeccao'), '  e com link para a tela certa');
     // Concordância: "Prospecção foi alterado" é o erro que faz o sistema parecer
     // mal feito antes de a pessoa ler o que o aviso diz.
     ok(str_contains((string) $r['titulo'], 'alterada'), '  com o verbo no feminino, porque Prospecção é feminina');

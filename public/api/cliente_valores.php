@@ -44,9 +44,18 @@ function cvTudo(int $acc, int $cliente): array
 {
     $d = ValoresDoCliente::doCliente($acc, $cliente);
     $d['cobrancas'] = CobrancaDoCliente::doCliente($acc, $cliente);
-    $k = \App\Core\Database::getConnection()->prepare("SELECT id, titulo, status FROM crm_contratos WHERE account_id = ? AND cliente_id = ? ORDER BY id DESC LIMIT 100");
-    $k->execute([$acc, $cliente]);
-    $d['contratos'] = array_map(fn($c) => ['id' => (int) $c['id'], 'titulo' => $c['titulo'], 'status' => $c['status']], $k->fetchAll(\PDO::FETCH_ASSOC));
+    // Contrato é sigiloso: o vendedor não vê a lista nem o nome do contrato da linha.
+    $d['contratos'] = [];
+    if (\App\Contratos\Permissao::podeVer()) {
+        $k = \App\Core\Database::getConnection()->prepare("SELECT id, titulo, status FROM crm_contratos WHERE account_id = ? AND cliente_id = ? ORDER BY id DESC LIMIT 100");
+        $k->execute([$acc, $cliente]);
+        $d['contratos'] = array_map(fn($c) => ['id' => (int) $c['id'], 'titulo' => $c['titulo'], 'status' => $c['status']], $k->fetchAll(\PDO::FETCH_ASSOC));
+    } else {
+        foreach ($d['itens'] as &$it) $it['contrato'] = null;
+        unset($it);
+        foreach ($d['cobrancas']['itens'] as &$it) $it['contrato'] = null;
+        unset($it);
+    }
     $d['setores'] = SetoresDoCliente::doCliente($acc, $cliente);
     $d['setores_conta'] = SetoresDoCliente::daConta($acc);
     return $d;
@@ -79,6 +88,15 @@ try {
     $cliente = (int) ($in['cliente_id'] ?? 0);
     cvDoVendedor($vendedor, $acc, $cliente);
     if (($in['acao'] ?? '') === 'salvar') {
+        // Quem não vê contrato não mexe no vínculo: a linha guarda o contrato que já tinha.
+        if (!\App\Contratos\Permissao::podeVer()) {
+            $in['contrato_id'] = null;
+            if (!empty($in['id'])) {
+                $k = \App\Core\Database::getConnection()->prepare('SELECT contrato_id FROM crm_cliente_valores WHERE id = ? AND account_id = ? AND cliente_id = ?');
+                $k->execute([(int) $in['id'], $acc, $cliente]);
+                $in['contrato_id'] = $k->fetchColumn() ?: null;
+            }
+        }
         $id = ValoresDoCliente::salvar($acc, (int) $ctx->getUserId(), $cliente, $in);
         cvResponder(['ok' => true, 'id' => $id, 'data' => cvTudo($acc, $cliente)]);
     }

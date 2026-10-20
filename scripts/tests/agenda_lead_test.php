@@ -227,7 +227,7 @@ if (!$pdo || !$temTabela || !$conta) {
         ok('não traz a ligação do colega', !in_array($o['task_id'], $ids, true));
         ok('não traz o que já foi feito', !in_array($m['task_id'], $ids, true));
         $item = array_values(array_filter($dia, fn($i) => $i['task_id'] === $h['task_id']))[0] ?? [];
-        ok('com hora, tipo e link para o lead', ($item['hora'] ?? '') === '08:00' && ($item['tipo_rotulo'] ?? '') === 'Reunião' && ($item['url'] ?? '') === '/prospeccao.php?open=' . $card['id']);
+        ok('com hora, tipo e link para o lead', ($item['hora'] ?? '') === '08:00' && ($item['tipo_rotulo'] ?? '') === 'Reunião' && ($item['url'] ?? '') === '/prospeccao?open=' . $card['id']);
         $diaDepois = AgendaDoLead::doDia($eu, [$acc], "$amanha 20:00:00");
         $atrasada = array_values(array_filter($diaDepois, fn($i) => $i['task_id'] === $h['task_id']))[0] ?? [];
         ok('passada a hora, aparece como atrasada', ($atrasada['atrasada'] ?? false) === true);

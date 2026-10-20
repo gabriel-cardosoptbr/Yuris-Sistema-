@@ -9,7 +9,7 @@
   var filtro = { status: '', busca: '' };
   var EVENTOS = {
     criado: 'Contrato criado', editado: 'Dados editados', documento_anexado: 'PDF anexado', participante_incluido: 'Participante incluído',
-    participante_editado: 'Participante editado', cliente_vinculado: 'Cliente vinculado', participante_removido: 'Participante removido', versao_fechada: 'Versão fechada para assinatura',
+    participante_editado: 'Participante editado', cliente_vinculado: 'Cliente vinculado', vinculo_crm: 'Vendedor ou card do CRM alterado', participante_removido: 'Participante removido', versao_fechada: 'Versão fechada para assinatura',
     versao_substituida: 'Versão substituída por uma nova', convite_emitido: 'Convite gerado', convite_reemitido: 'Novo link gerado',
     convite_enviado: 'Convite enviado pelo WhatsApp', convite_nao_enviado: 'Convite não enviado', acesso: 'Link aberto',
     codigo_enviado: 'Código enviado', codigo_nao_enviado: 'Código não enviado', codigo_incorreto: 'Código incorreto',
@@ -118,14 +118,14 @@
     return '<div class="ctr-folha" data-id="' + c.id + '" role="button" tabindex="0" aria-label="Abrir ' + esc(c.titulo) + '">' +
       '<div class="ctr-folha-topo"><span class="ctr-pill ' + c.status + '">' + esc(c.status_rotulo) + '</span><span class="ctr-folha-cod">' + esc(c.codigo_verificacao) + '</span></div>' +
       '<div class="ctr-folha-titulo">' + esc(c.titulo) + '</div>' +
-      '<div class="ctr-folha-cliente">' + esc(c.cliente || c.negociacao || 'Sem cliente ligado') + '</div>' +
+      '<div class="ctr-folha-cliente">' + esc(c.cliente ? 'Cliente: ' + c.cliente : c.negociacao ? 'Lead: ' + c.negociacao : 'Sem lead nem cliente ligado') + '</div>' +
       '<div class="ctr-folha-linhas" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="curta"></i></div>' +
       '<div class="ctr-folha-progresso"><div class="ctr-folha-barra"><i style="width:' + pct + '%"></i></div>' +
         '<div class="ctr-folha-prog-txt"><b>' + feitas + ' de ' + total + '</b> assinatura' + (total === 1 ? '' : 's') + (visto ? ' · ' + esc(visto) : '') + '</div></div>' +
       (pessoas ? '<div class="ctr-folha-pessoas">' + pessoas + '</div>' : '<div class="ctr-folha-pessoas vazio">Sem participantes ainda</div>') +
       '<div class="ctr-folha-rodape">' +
         linha('Criado', c.criado_em) + linha('Enviado', c.enviado_em) + linha(c.status === 'concluido' ? 'Concluído' : 'Prazo', c.status === 'concluido' ? c.concluido_em : (c.prazo || 'Sem prazo')) +
-        linha('Responsável', c.responsavel) +
+        linha('Vendedor', c.vendedor) + linha('Responsável', c.responsavel) +
       '</div></div>';
   }
   function num(rot, v, sub) { return '<div class="ctr-num"><span>' + esc(rot) + '</span><b>' + esc(v) + '</b><small>' + esc(sub) + '</small></div>'; }
@@ -190,16 +190,22 @@
   }
 
   // ── Criar / editar ─────────────────────────────────────────────────────
-  function formContrato(c, pre) {
+  // soCrm: só o lugar do contrato no CRM (vendedor e card), que muda em qualquer situação.
+  function formContrato(c, pre, soCrm) {
     c = c || {}; pre = pre || {};
     var equipe = (apoio && apoio.equipe) || [];
     var vinc = c.cliente ? 'Cliente: ' + c.cliente : c.negociacao ? 'Negociação: ' + c.negociacao : pre.cliente_id ? 'Cliente #' + pre.cliente_id : pre.card_id ? 'Negociação #' + pre.card_id : '';
-    janela('<h3>' + (c.id ? 'Editar contrato' : 'Novo contrato') + '</h3><p class="sub">Depois de criar, anexe o PDF e inclua os participantes.</p>' +
+    var vendedor = '<label>Vendedor responsável</label><select id="fVend"><option value="">O responsável do lead ou do cliente</option>' + equipe.map(function (u) {
+      return '<option value="' + u.id + '"' + (c.vendedor_id === u.id ? ' selected' : '') + '>' + esc(u.nome) + '</option>';
+    }).join('') + '</select>';
+    janela('<h3>' + (soCrm ? 'Vendedor e card do CRM' : c.id ? 'Editar contrato' : 'Novo contrato') + '</h3><p class="sub">' +
+      (soCrm ? 'Cadastro do CRM: não muda o documento nem as assinaturas.' : 'Depois de criar, anexe o PDF e inclua os participantes.') + '</p>' +
+      (soCrm ? vendedor :
       '<label>Título</label><input id="fTitulo" maxlength="200" value="' + esc(c.titulo || '') + '" placeholder="Ex.: Contrato de prestação de serviços">' +
-      '<div class="duas"><div><label>Responsável</label><select id="fResp">' + equipe.map(function (u) {
+      '<div class="duas"><div><label>Responsável pelo contrato</label><select id="fResp">' + equipe.map(function (u) {
         return '<option value="' + u.id + '"' + ((c.responsavel_id || apoio.eu) === u.id ? ' selected' : '') + '>' + esc(u.nome) + '</option>';
-      }).join('') + '</select></div><div><label>Prazo para assinatura</label><input type="date" id="fPrazo" value="' + esc(c.prazo_data || '') + '"></div></div>' +
-      '<label>Cliente ou negociação (opcional)</label>' +
+      }).join('') + '</select></div><div><label>Prazo para assinatura</label><input type="date" id="fPrazo" value="' + esc(c.prazo_data || '') + '"></div></div>' + vendedor) +
+      '<label>Lead da Prospecção ou cliente</label>' +
       '<div class="ctr-filtro-busca"><span>Mostrar</span><div class="ctr-chips" id="fTipo"><button type="button" data-t="" class="ativo">Todos</button>' +
         '<button type="button" data-t="cliente">Clientes</button><button type="button" data-t="lead">Negociações</button></div>' +
         '<select id="fEtapa" aria-label="Etapa do funil"><option value="">Todas as etapas</option></select>' +
@@ -236,9 +242,12 @@
       api('GET', null, '?buscar=&tipo=lead&etapa=-1').then(function (r) { if (r.ok && r.etapas) ov.aoEtapas(r.etapas); });
       if (vinc) bc.escolhido();
       ov.querySelector('#fSalvar').onclick = function () {
+        if (!sel.cliente_id && !sel.card_id) { ov.querySelector('#fErro').textContent = 'Escolha o lead da Prospecção ou o cliente deste contrato.'; return; }
         var b = this; b.disabled = true;
-        var corpo = { acao: c.id ? 'atualizar' : 'criar', id: c.id || 0, titulo: ov.querySelector('#fTitulo').value, responsavel_id: +ov.querySelector('#fResp').value || null,
-          prazo: ov.querySelector('#fPrazo').value, cliente_id: sel.cliente_id, card_id: sel.card_id };
+        var vend = +ov.querySelector('#fVend').value || null;
+        var corpo = soCrm ? { acao: 'vincular_crm', id: c.id, vendedor_id: vend, cliente_id: sel.cliente_id, card_id: sel.card_id }
+          : { acao: c.id ? 'atualizar' : 'criar', id: c.id || 0, titulo: ov.querySelector('#fTitulo').value, responsavel_id: +ov.querySelector('#fResp').value || null,
+          prazo: ov.querySelector('#fPrazo').value, vendedor_id: vend, cliente_id: sel.cliente_id, card_id: sel.card_id };
         api('POST', corpo).then(function (r) {
           b.disabled = false;
           if (!r.ok) { ov.querySelector('#fErro').textContent = r.error; return; }
@@ -325,8 +334,16 @@
     if (!c.cadeia.integra) h += '<div class="ctr-aviso vermelho">A trilha de eventos não confere a partir do evento #' + esc(c.cadeia.quebra_em) + '. Avise o suporte: o registro pode ter sido alterado fora do sistema.</div>';
 
     h += acompanhamento(c);
+    // No CRM: o vendedor e o card a que o contrato pertence (dado do CRM, fora do documento).
+    var cardHref = c.card_id ? '/prospeccao?open=' + c.card_id : c.cliente_id ? '/clientes?open=' + c.cliente_id : '';
+    h += '<div class="ctr-cartao"><h3>No CRM<button class="ctr-btn ctr-btn-sm" id="cCrm">' + (cardHref ? 'Alterar' : 'Vincular') + '</button></h3>' +
+      (cardHref ? '' : '<div class="ctr-aviso ambar">Este contrato não está ligado a nenhum card. Vincule a um lead da Prospecção ou a um cliente.</div>') +
+      '<div class="ctr-grade">' + campo('Vendedor responsável', c.vendedor || 'Não informado') +
+      (c.card_id ? '<div class="ctr-campo"><span>Lead da Prospecção</span><b>' + esc(c.negociacao || 'Lead #' + c.card_id) + ' · <a href="' + cardHref + '">abrir card</a></b></div>' : '') +
+      (c.cliente_id ? '<div class="ctr-campo"><span>Cliente</span><b>' + esc(c.cliente || 'Cliente #' + c.cliente_id) + ' · <a href="/clientes?open=' + c.cliente_id + '">abrir card</a></b></div>' : '') +
+      '</div></div>';
     h += '<div class="ctr-cartao"><h3>Dados</h3><div class="ctr-grade">' +
-      campo('Responsável', c.responsavel) + campo('Cliente', c.cliente) + campo('Negociação', c.negociacao) + campo('Prazo para assinatura', c.prazo || 'Sem prazo') +
+      campo('Responsável pelo contrato', c.responsavel) + campo('Prazo para assinatura', c.prazo || 'Sem prazo') +
       campo('Criado em', c.criado_em) + (c.concluido_em ? campo('Concluído em', c.concluido_em) : '') +
       '<div class="ctr-campo"><span>Código de verificação</span><b>' + esc(c.codigo_verificacao) + ' · <a href="' + esc(c.verificacao_url) + '" target="_blank" rel="noopener noreferrer">consultar</a></b></div>' +
       '<div class="ctr-campo"><span>Identificador</span><b class="ctr-hash">' + esc(c.uuid) + '</b></div></div></div>';
@@ -397,6 +414,7 @@
     var q = function (s) { return raiz.querySelector(s); };
     q('#cVoltar').onclick = lista;
     if (q('#cEditar')) q('#cEditar').onclick = function () { formContrato(c); };
+    if (q('#cCrm')) q('#cCrm').onclick = function () { formContrato(c, null, true); };
     if (q('#cCancelar')) q('#cCancelar').onclick = function () {
       confirmar('Cancelar o fluxo de assinatura', 'Ninguém mais consegue assinar. As assinaturas já feitas ficam registradas; cancelar o fluxo não desfaz um contrato já celebrado.', 'Cancelar fluxo', 'Motivo', function (m) {
         return api('POST', { acao: 'cancelar', id: c.id, motivo: m }).then(function (r) { if (r.ok) ficha(c.id); return r; });

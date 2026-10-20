@@ -1,6 +1,7 @@
 <?php
 namespace App\Prospeccao;
 
+use App\Core\AccountContext;
 use App\Core\Database;
 
 /**
@@ -180,8 +181,8 @@ final class QuadroDoLead
             }
         } catch (\Throwable $e) { /* sem orçamentos */ }
 
-        // Contratos.
-        try {
+        // Contratos. O vendedor não vê contrato (sigiloso, só administração).
+        if (AccountContext::vendedorDaSessao() === null) try {
             $k = $pdo->prepare("SELECT card_id, status, COUNT(*) AS n FROM crm_contratos
                                  WHERE account_id IN ($in) AND card_id IS NOT NULL AND status <> 'cancelado' GROUP BY card_id, status");
             $k->execute($accountIds);

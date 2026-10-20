@@ -58,6 +58,11 @@ $ACC = 304;
 $OUTRA = 476;
 $UID = (int) $pdo->query("SELECT id FROM users WHERE account_id = $ACC AND deleted_at IS NULL ORDER BY id LIMIT 1")->fetchColumn();
 $MARCA = 'ZZTESTE_CTR_' . getmypid();
+// Todo contrato mora num card do CRM (20/10/2026): um lead e um cliente da conta de teste.
+$CARD = $pdo->query("SELECT id, responsavel_user_id FROM cards WHERE account_id = $ACC AND deleted_at IS NULL AND responsavel_user_id IS NOT NULL ORDER BY id LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+$CLI = (int) $pdo->query("SELECT id FROM clientes WHERE account_id = $ACC AND deleted_at IS NULL ORDER BY id LIMIT 1")->fetchColumn();
+$UID_OUTRA = (int) $pdo->query("SELECT id FROM users WHERE account_id = $OUTRA AND deleted_at IS NULL ORDER BY id LIMIT 1")->fetchColumn();
+if (!$CARD || !$CLI) { echo "A conta $ACC precisa de um lead com responsável e de um cliente.\n"; exit(1); }
 
 // WhatsApp falso: guarda as mensagens para o teste ler o link e o código.
 $CAIXA = [];
@@ -100,9 +105,23 @@ try {
     $pdf->texto('Cláusula 1. O contratado presta o serviço; o contratante paga. ' . $MARCA);
     $v1 = $pdf->render();
 
-    ok('sem título é recusado', recusa(fn() => Contrato::criar($ACC, $UID, ['titulo' => ''])) !== null);
-    $id = Contrato::criar($ACC, $UID, ['titulo' => "$MARCA Prestação de serviços", 'prazo' => date('Y-m-d', strtotime('+10 days'))]);
+    ok('sem título é recusado', recusa(fn() => Contrato::criar($ACC, $UID, ['titulo' => '', 'card_id' => $CARD['id']])) !== null);
+    ok('sem lead nem cliente é recusado', recusa(fn() => Contrato::criar($ACC, $UID, ['titulo' => "$MARCA Solto"])) !== null);
+    ok('vendedor de outra conta é recusado', $UID_OUTRA === 0
+        || recusa(fn() => Contrato::criar($ACC, $UID, ['titulo' => "$MARCA Vend", 'card_id' => $CARD['id'], 'vendedor_id' => $UID_OUTRA])) !== null);
+    $id = Contrato::criar($ACC, $UID, ['titulo' => "$MARCA Prestação de serviços", 'card_id' => $CARD['id'], 'prazo' => date('Y-m-d', strtotime('+10 days'))]);
     $criados[] = $id;
+    $fx = Contrato::ficha($ACC, $id);
+    ok('sem escolha, o vendedor é o responsável do lead', $fx['vendedor_id'] === (int) $CARD['responsavel_user_id'] && $fx['vendedor'] !== null);
+    ok('lista traz o vendedor', (function () use ($ACC, $id, $CARD) {
+        foreach (Contrato::listar($ACC, ['card_id' => $CARD['id']]) as $l) if ($l['id'] === $id) return $l['vendedor_id'] === (int) $CARD['responsavel_user_id'];
+        return false;
+    })());
+    ok('tirar o cliente de contrato sem lead é recusado', (function () use ($ACC, $UID, $CLI, $MARCA, &$criados) {
+        $x = Contrato::criar($ACC, $UID, ['titulo' => "$MARCA Só cliente", 'cliente_id' => $CLI]);
+        $criados[] = $x;
+        return recusa(fn() => Contrato::vincularCliente($ACC, $UID, $x, 0)) !== null;
+    })());
     ok('contrato criado em rascunho', Contrato::doContrato($ACC, $id)['status'] === 'rascunho');
     ok('arquivo que não é PDF é recusado', recusa(fn() => Contrato::anexarPdf($ACC, $UID, $id, 'não sou pdf', 'x.pdf')) !== null);
     ok('enviar sem PDF é recusado', recusa(fn() => Contrato::fecharEEnviar($ACC, $UID, $id, true)) !== null);
@@ -263,9 +282,15 @@ try {
     }
     $cad = Eventos::verificar($id);
     ok('corrente de eventos íntegra', $cad['integra'] && $cad['quantidade'] > 20);
+    // Vendedor e card mudam mesmo depois de assinado: é cadastro do CRM, não o documento.
+    Contrato::vincularCrm($ACC, $UID, $id, ['cliente_id' => $CLI, 'vendedor_id' => $UID]);
+    $fx = Contrato::ficha($ACC, $id);
+    ok('assinado: troca vendedor e card no CRM', $fx['vendedor_id'] === $UID && $fx['cliente_id'] === $CLI && $fx['card_id'] === null && $fx['status'] === 'concluido');
+    ok('vínculo no CRM sem card é recusado', recusa(fn() => Contrato::vincularCrm($ACC, $UID, $id, ['vendedor_id' => $UID])) !== null);
+    ok('trilha continua íntegra depois do vínculo', Eventos::verificar($id)['integra']);
 
     echo "\n== 9. Expirado, revogado, cancelado e outra empresa ==\n";
-    $id2 = Contrato::criar($ACC, $UID, ['titulo' => "$MARCA Segundo"]);
+    $id2 = Contrato::criar($ACC, $UID, ['titulo' => "$MARCA Segundo", 'cliente_id' => $CLI]);
     $criados[] = $id2;
     Contrato::anexarPdf($ACC, $UID, $id2, $v1, 'contrato.pdf');
     $q1 = Contrato::salvarParticipante($ACC, $UID, $id2, ['papel' => 'contratante', 'nome' => 'Pedro Prazo Vencido', 'telefone' => '11 98888-0004']);
@@ -309,6 +334,8 @@ try {
         $d3 = array_column(Contrato::documentosDaFicha($ACC, $cliT, []), null, 'id');
         ok('PDF anexado vira contrato ligado ao cliente, com o documento', (int) $c3['cliente_id'] === $cliT && $c3['titulo'] === 'Proposta do site'
             && in_array('original', array_column($d3[$id3]['arquivos'] ?? [], 'tipo'), true));
+        // Com o lead ligado, tirar o cliente pode: o contrato continua num card do CRM.
+        Contrato::vincularCrm($ACC, $UID, $id, ['card_id' => $CARD['id'], 'cliente_id' => $cliT]);
         Contrato::vincularCliente($ACC, $UID, $id, 0);
         ok('desvincular tira da ficha', !in_array($id, array_column(Contrato::documentosDaFicha($ACC, $cliT, []), 'id'), true));
     }

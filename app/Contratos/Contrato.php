@@ -94,9 +94,9 @@ final class Contrato
         for ($i = 0; $i < 5; $i++) {
             try {
                 $pdo->prepare(
-                    'INSERT INTO crm_contratos (uuid, account_id, codigo_verificacao, titulo, responsavel_id, cliente_id, card_id, prazo_em, criado_por, criado_em, atualizado_em)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-                )->execute([$uuid, $accountId, Cripto::codigoVerificacao(), $campos['titulo'], $campos['responsavel_id'] ?? $userId,
+                    'INSERT INTO crm_contratos (uuid, account_id, codigo_verificacao, titulo, responsavel_id, vendedor_id, cliente_id, card_id, prazo_em, criado_por, criado_em, atualizado_em)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                )->execute([$uuid, $accountId, Cripto::codigoVerificacao(), $campos['titulo'], $campos['responsavel_id'] ?? $userId, $campos['vendedor_id'],
                     $campos['cliente_id'], $campos['card_id'], $campos['prazo_em'], $userId, $agora, $agora]);
                 break;
             } catch (\PDOException $e) {
@@ -114,11 +114,13 @@ final class Contrato
         if (in_array($c['status'], ['concluido', 'cancelado', 'recusado', 'expirado'], true)) {
             throw new \InvalidArgumentException('Contrato encerrado não muda.');
         }
-        $campos = self::validarCabecalho($accountId, $d + ['titulo' => $c['titulo']]);
+        // O que não veio no pedido fica como está (o vínculo e o vendedor inclusive).
+        $campos = self::validarCabecalho($accountId, $d + ['titulo' => $c['titulo'], 'cliente_id' => $c['cliente_id'], 'card_id' => $c['card_id'],
+            'vendedor_id' => $c['vendedor_id'] ?? null]);
         Database::getConnection()->prepare(
-            'UPDATE crm_contratos SET titulo = ?, responsavel_id = ?, cliente_id = ?, card_id = ?, prazo_em = ?, atualizado_em = ?
+            'UPDATE crm_contratos SET titulo = ?, responsavel_id = ?, vendedor_id = ?, cliente_id = ?, card_id = ?, prazo_em = ?, atualizado_em = ?
               WHERE id = ? AND account_id = ?'
-        )->execute([$campos['titulo'], $campos['responsavel_id'] ?? $c['responsavel_id'], $campos['cliente_id'], $campos['card_id'],
+        )->execute([$campos['titulo'], $campos['responsavel_id'] ?? $c['responsavel_id'], $campos['vendedor_id'], $campos['cliente_id'], $campos['card_id'],
             $campos['prazo_em'], Tempo::agora(), $id, $accountId]);
         Eventos::registrar($id, 'editado', ['titulo' => $campos['titulo'], 'prazo_em' => $campos['prazo_em']], ['user_id' => $userId]);
     }
@@ -142,10 +144,35 @@ final class Contrato
             if (!$st->fetchColumn()) throw new \InvalidArgumentException('Cliente não encontrado nesta conta.');
         }
         $card = !empty($d['card_id']) ? (int) $d['card_id'] : null;
+        $respCard = null;
         if ($card) {
-            $st = $pdo->prepare('SELECT id FROM cards WHERE id = ? AND account_id = ? AND deleted_at IS NULL');
+            $st = $pdo->prepare('SELECT id, responsavel_user_id FROM cards WHERE id = ? AND account_id = ? AND deleted_at IS NULL');
             $st->execute([$card, $accountId]);
-            if (!$st->fetchColumn()) throw new \InvalidArgumentException('Negociação não encontrada nesta conta.');
+            $linha = $st->fetch(\PDO::FETCH_ASSOC);
+            if (!$linha) throw new \InvalidArgumentException('Negociação não encontrada nesta conta.');
+            $respCard = $linha['responsavel_user_id'] ? (int) $linha['responsavel_user_id'] : null;
+        }
+        // Todo contrato mora num card do CRM (20/10/2026): um lead da Prospecção ou um cliente.
+        if (!$cliente && !$card) throw new \InvalidArgumentException('Vincule o contrato a um lead da Prospecção ou a um cliente.');
+
+        // Vendedor responsável: dado do CRM, fora do documento. Sem escolha, fica o
+        // responsável do lead ou, sem lead, o do cliente.
+        $vendedor = !empty($d['vendedor_id']) ? (int) $d['vendedor_id'] : null;
+        if (!$vendedor) {
+            $vendedor = $respCard;
+            if (!$vendedor && $cliente) {
+                $st = $pdo->prepare('SELECT responsavel_id FROM clientes WHERE id = ? AND account_id = ?');
+                $st->execute([$cliente, $accountId]);
+                $vendedor = (int) $st->fetchColumn() ?: null;
+            }
+        }
+        if ($vendedor) {
+            $st = $pdo->prepare('SELECT id FROM users WHERE id = ? AND account_id = ? AND deleted_at IS NULL');
+            $st->execute([$vendedor, $accountId]);
+            if (!$st->fetchColumn()) {
+                if (!empty($d['vendedor_id'])) throw new \InvalidArgumentException('Vendedor não encontrado nesta conta.');
+                $vendedor = null;
+            }
         }
         $prazo = null;
         if (!empty($d['prazo'])) {
@@ -153,7 +180,27 @@ final class Contrato
             if ($prazo === null) throw new \InvalidArgumentException('Prazo inválido.');
             if (Tempo::passou($prazo)) throw new \InvalidArgumentException('O prazo para assinatura já passou.');
         }
-        return ['titulo' => $titulo, 'responsavel_id' => $resp, 'cliente_id' => $cliente, 'card_id' => $card, 'prazo_em' => $prazo];
+        return ['titulo' => $titulo, 'responsavel_id' => $resp, 'vendedor_id' => $vendedor, 'cliente_id' => $cliente, 'card_id' => $card, 'prazo_em' => $prazo];
+    }
+
+    /**
+     * O lugar do contrato no CRM (20/10/2026): o vendedor responsável e o card a que
+     * ele pertence (lead da Prospecção ou cliente). Vale em qualquer situação,
+     * assinado inclusive: é cadastro do CRM, não muda o documento nem o hash.
+     * Exige o vínculo; o vendedor, sem escolha, vem do lead ou do cliente.
+     */
+    public static function vincularCrm(int $accountId, int $userId, int $id, array $d): void
+    {
+        $c = self::doContrato($accountId, $id);
+        $campos = self::validarCabecalho($accountId, ['titulo' => $c['titulo'], 'cliente_id' => $d['cliente_id'] ?? null,
+            'card_id' => $d['card_id'] ?? null, 'vendedor_id' => $d['vendedor_id'] ?? null]);
+        Database::getConnection()->prepare('UPDATE crm_contratos SET vendedor_id = ?, cliente_id = ?, card_id = ?, atualizado_em = ? WHERE id = ? AND account_id = ?')
+            ->execute([$campos['vendedor_id'], $campos['cliente_id'], $campos['card_id'], Tempo::agora(), $id, $accountId]);
+        Eventos::registrar($id, 'vinculo_crm', [
+            'vendedor_id' => $campos['vendedor_id'], 'cliente_id' => $campos['cliente_id'], 'card_id' => $campos['card_id'],
+            'anterior' => ['vendedor_id' => isset($c['vendedor_id']) ? ((int) $c['vendedor_id'] ?: null) : null,
+                           'cliente_id' => $c['cliente_id'] ? (int) $c['cliente_id'] : null, 'card_id' => $c['card_id'] ? (int) $c['card_id'] : null],
+        ], ['user_id' => $userId]);
     }
 
     /**
@@ -169,6 +216,8 @@ final class Contrato
             $st->execute([$clienteId, $accountId]);
             $nome = $st->fetchColumn();
             if (!$nome) throw new \InvalidArgumentException('Cliente não encontrado nesta conta.');
+        } elseif (empty($c['card_id'])) {
+            throw new \InvalidArgumentException('O contrato precisa ficar ligado a um lead ou a um cliente.');
         }
         $pdo->prepare('UPDATE crm_contratos SET cliente_id = ?, atualizado_em = ? WHERE id = ? AND account_id = ?')
             ->execute([$clienteId ?: null, Tempo::agora(), $id, $accountId]);
@@ -661,7 +710,7 @@ final class Contrato
         if (!empty($f['busca'])) { $where[] = 'c.titulo LIKE ?'; $args[] = '%' . str_replace(['%', '_'], ['\\%', '\\_'], (string) $f['busca']) . '%'; }
         $st = Database::getConnection()->prepare(
             "SELECT c.id, c.uuid, c.titulo, c.status, c.prazo_em, c.criado_em, c.concluido_em, c.atualizado_em, c.codigo_verificacao,
-                    u.nome AS responsavel, cl.nome AS cliente, COALESCE(NULLIF(cd.cliente_nome,''), cd.empresa_nome, cd.titulo) AS negociacao,
+                    u.nome AS responsavel, uv.nome AS vendedor, c.vendedor_id, cl.nome AS cliente, COALESCE(NULLIF(cd.cliente_nome,''), cd.empresa_nome, cd.titulo) AS negociacao,
                     c.cliente_id, c.card_id,
                     (SELECT COUNT(*) FROM crm_contrato_participantes p WHERE p.contrato_id = c.id AND p.status <> 'cancelado') AS participantes,
                     (SELECT COUNT(*) FROM crm_contrato_assinaturas a WHERE a.contrato_id = c.id AND a.versao_id = c.versao_atual_id) AS assinaturas,
@@ -671,6 +720,7 @@ final class Contrato
                       WHERE e.contrato_id = c.id AND e.tipo = 'acesso' AND e.versao_id = c.versao_atual_id) AS abriram
                FROM crm_contratos c
                LEFT JOIN users u ON u.id = c.responsavel_id
+               LEFT JOIN users uv ON uv.id = c.vendedor_id AND uv.account_id = c.account_id
                LEFT JOIN clientes cl ON cl.id = c.cliente_id AND cl.account_id = c.account_id
                LEFT JOIN cards cd ON cd.id = c.card_id AND cd.account_id = c.account_id
               WHERE " . implode(' AND ', $where) . ' ORDER BY c.atualizado_em DESC LIMIT 300'
@@ -693,6 +743,7 @@ final class Contrato
             'prazo' => Tempo::local($r['prazo_em']), 'criado_em' => Tempo::local($r['criado_em']),
             'concluido_em' => Tempo::local($r['concluido_em']), 'atualizado_em' => Tempo::local($r['atualizado_em']),
             'responsavel' => $r['responsavel'], 'cliente' => $r['cliente'], 'negociacao' => $r['negociacao'],
+            'vendedor_id' => $r['vendedor_id'] ? (int) $r['vendedor_id'] : null, 'vendedor' => $r['vendedor'],
             'cliente_id' => $r['cliente_id'] ? (int) $r['cliente_id'] : null, 'card_id' => $r['card_id'] ? (int) $r['card_id'] : null,
             'participantes' => (int) $r['participantes'], 'assinaturas' => (int) $r['assinaturas'],
             'codigo_verificacao' => $r['codigo_verificacao'],
@@ -811,15 +862,17 @@ final class Contrato
         $finais = array_map(static fn($x) => ['uuid' => $x['uuid'], 'tipo' => $x['tipo'], 'sha256' => $x['sha256'], 'bytes' => (int) $x['bytes'],
             'criado_em' => Tempo::local($x['criado_em'])], $ar->fetchAll(\PDO::FETCH_ASSOC));
 
-        $rel = $pdo->prepare('SELECT (SELECT nome FROM users WHERE id = ?) AS resp, (SELECT nome FROM clientes WHERE id = ? AND account_id = ?) AS cli,
+        $rel = $pdo->prepare('SELECT (SELECT nome FROM users WHERE id = ?) AS resp, (SELECT nome FROM users WHERE id = ? AND account_id = ?) AS vend,
+                                     (SELECT nome FROM clientes WHERE id = ? AND account_id = ?) AS cli,
                                      (SELECT COALESCE(NULLIF(cliente_nome,\'\'), empresa_nome, titulo) FROM cards WHERE id = ? AND account_id = ?) AS neg');
-        $rel->execute([(int) $c['responsavel_id'], (int) $c['cliente_id'], $accountId, (int) $c['card_id'], $accountId]);
+        $rel->execute([(int) $c['responsavel_id'], (int) ($c['vendedor_id'] ?? 0), $accountId, (int) $c['cliente_id'], $accountId, (int) $c['card_id'], $accountId]);
         $nomes = $rel->fetch(\PDO::FETCH_ASSOC) ?: [];
 
         return [
             'id' => (int) $c['id'], 'uuid' => $c['uuid'], 'titulo' => $c['titulo'], 'status' => $c['status'],
             'status_rotulo' => self::STATUS[$c['status']] ?? $c['status'], 'codigo_verificacao' => $c['codigo_verificacao'],
             'responsavel_id' => $c['responsavel_id'] ? (int) $c['responsavel_id'] : null, 'responsavel' => $nomes['resp'] ?? null,
+            'vendedor_id' => !empty($c['vendedor_id']) ? (int) $c['vendedor_id'] : null, 'vendedor' => $nomes['vend'] ?? null,
             'cliente_id' => $c['cliente_id'] ? (int) $c['cliente_id'] : null, 'cliente' => $nomes['cli'] ?? null,
             'card_id' => $c['card_id'] ? (int) $c['card_id'] : null, 'negociacao' => $nomes['neg'] ?? null,
             'prazo' => Tempo::local($c['prazo_em']), 'prazo_data' => $c['prazo_em'] ? (new \DateTimeImmutable($c['prazo_em'], new \DateTimeZone('UTC')))->setTimezone(new \DateTimeZone(Tempo::FUSO))->format('Y-m-d') : null,

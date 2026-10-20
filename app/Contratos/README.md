@@ -60,7 +60,11 @@ Teste: `scripts/tests/contratos_test.php` (`php -d extension=sodium` no XAMPP lo
 
 - **Lista em folhas A4** (`ff-contratos.js`, `folha`): cada contrato é um card com a forma de uma página: situação, código,
   cliente ou negociação, assinaturas feitas, quantos abriram o link, as iniciais de quem participa (cor pela situação),
-  criado, enviado, prazo ou conclusão e responsável. `Contrato::listar` traz `enviado_em`, `abriram` e `pessoas`.
+  criado, enviado, prazo ou conclusão, vendedor e responsável. `Contrato::listar` traz `enviado_em`, `abriram`, `pessoas`
+  e `vendedor`.
+- **No CRM** (cartão da ficha, 20/10/2026): o vendedor responsável e o card a que o contrato pertence (lead da
+  Prospecção ou cliente), com "abrir card". "Alterar" troca os dois em qualquer situação, assinado inclusive.
+  Contrato antigo sem card mostra o aviso para vincular.
 - **Acompanhamento na ficha**: as etapas do contrato (criado, PDF anexado, participantes, enviado, assinaturas, concluído
   ou o encerramento) em `marcos`, e o caminho de cada participante na versão em assinatura em `acompanhamento`
   (convite enviado, abriu o link, confirmou o código, viu o documento, assinou ou recusou), com horário e observações
@@ -139,6 +143,20 @@ identificação, CPF divergente, liberação, documento entregue ao navegador (n
 prova de leitura), assinatura, recusa, conclusão, expiração, cancelamento, arquivos
 gerados e baixados, e cliente vinculado.
 
+**Todo contrato mora num card do CRM** (20/10/2026): `criar`, `atualizar` e
+`vincularCrm` recusam contrato sem lead da Prospecção (`card_id`) e sem cliente
+(`cliente_id`), e `vincularCliente(0)` só desliga o cliente quando há lead. O
+formulário diz "Lead da Prospecção ou cliente", sem "(opcional)".
+
+**Vendedor responsável** (`crm_contratos.vendedor_id`, migration 158, 20/10/2026):
+quem fechou o contrato, cadastro do CRM, fora do documento assinado (o PDF e o hash
+não mudam). É diferente de `responsavel_id`, que é quem cuida do contrato na conta.
+Sem escolha no formulário, fica o responsável do lead (`cards.responsavel_user_id`)
+ou, sem lead, o do cliente (`clientes.responsavel_id`); usuário de outra conta é
+recusado. `Contrato::vincularCrm` (ação `vincular_crm`) troca vendedor e card em
+qualquer situação e fica na trilha como `vinculo_crm`. A migration preencheu os
+contratos que já existiam pela mesma regra.
+
 **Vincular a um cliente** (`Contrato::vincularCliente`, ação `vincular_cliente` da API,
 20/10/2026): liga ou desliga o contrato de um cliente da conta em qualquer situação,
 inclusive concluído, porque o cliente é cadastro do CRM e não faz parte do documento
@@ -199,7 +217,7 @@ num serviço de carimbo do tempo RFC 3161).
 
 | Ação | Quem |
 |---|---|
-| ver, criar, editar, anexar, participantes, enviar, gerar ou reenviar link, baixar arquivos e evidências | quem vê a Prospecção ou tem a chave `contratos` |
+| ver, criar, editar, anexar, participantes, enviar, gerar ou reenviar link, baixar arquivos e evidências, vendedor e card do CRM | quem vê a Prospecção ou tem a chave `contratos`, **nunca o vendedor da edição CRM** (20/10/2026: contrato é sigiloso, só administração; `Permissao::podeVer` recusa quem `AccountContext::vendedorDaSessao()` aponta) |
 | cancelar, liberar bloqueio, reprocessar a finalização, ajustar a configuração | dono ou administrador, o responsável pelo contrato, ou a chave `contratos.gerenciar` |
 | evidências com o CPF completo | os mesmos de "cancelar" |
 | abrir convite, pedir e confirmar código, identificar, assinar, recusar, ver o PDF | só a sessão daquele convite |
@@ -207,6 +225,16 @@ num serviço de carimbo do tempo RFC 3161).
 
 Toda consulta filtra `account_id`; o teste confere que outra conta não lê, não lista,
 não cancela nem mexe em participante.
+
+**O vendedor não vê contrato em lugar nenhum** (20/10/2026): o item Contratos some do
+menu, `/contratos` volta para o painel, a API responde 403, o `sidebar.php` não
+carrega `ff-contrato-lead.js` (seção da ficha do lead) e publica
+`window.FF_CONTRATOS = false`, com o que `ff-cliente-crm.js` esconde a seção Contratos
+da ficha do cliente e o seletor de contrato do Financeiro. No servidor, os cards
+(`QuadroDoLead`, `CardDoCliente`) não contam contratos para ele, `cliente_valores.php`
+não manda a lista nem o nome do contrato das linhas e cobranças (e, ao salvar, a linha
+guarda o contrato que já tinha), e os documentos de contrato da seção Documentos já
+dependiam de `podeVer`.
 
 ## Privacidade (LGPD)
 

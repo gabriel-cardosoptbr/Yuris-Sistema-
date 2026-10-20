@@ -290,6 +290,9 @@
     var origem = Array.prototype.find.call(dir.children, function (s) { return s.getAttribute('data-ff-titulo') === 'Origem'; });
     dir.insertBefore(secCtr, origem ? origem.nextSibling : dir.firstChild);
     dir.insertBefore(secSet, secCtr);
+    // Contrato é sigiloso: o vendedor não vê a seção (o servidor também recusa).
+    var verContratos = window.FF_CONTRATOS !== false;
+    if (!verContratos) secCtr.style.display = 'none';
     ctr.querySelector('[data-novo]').onclick = function () { if (campoId.value) location.href = '/contratos?novo=1&cliente_id=' + encodeURIComponent(campoId.value); };
 
     // Enter dentro destas seções não envia o formulário do cliente.
@@ -435,7 +438,7 @@
         '<div class="c6"><label>Descrição</label><input data-f="descricao" maxlength="160" placeholder="Ex.: Mensalidade do sistema, Criação do site, Taxa de implantação" value="' + esc(i.descricao || '') + '"></div>' +
         '<div class="c3"><label data-rot-inicio>Começa em</label><input type="date" data-f="inicio" value="' + esc(i.inicio || '') + '"><div class="dica" data-dica-inicio></div></div>' +
         '<div class="c3" data-fim><label>Termina em (opcional)</label><input type="date" data-f="fim" value="' + esc(i.fim || '') + '"></div>' +
-        '<div class="c6"><label>Contrato (opcional)</label><select data-f="contrato_id">' + ops + '</select></div>' +
+        (verContratos ? '<div class="c6"><label>Contrato (opcional)</label><select data-f="contrato_id">' + ops + '</select></div>' : '') +
         '<div class="c6"><label>Observação (opcional)</label><input data-f="observacao" maxlength="300" value="' + esc(i.observacao || '') + '"></div>' +
         '<div class="ffcli-erro" data-erro></div>' +
         '<div class="bts"><button type="button" class="ffcli-bt" data-cancelar>Cancelar</button><button type="button" class="ffcli-bt princ" data-salvar>' + (i.id ? 'Salvar alteração' : 'Adicionar') + '</button></div></div>';
@@ -524,6 +527,7 @@
     var listaCtr = ctr.querySelector('[data-lista]'), vincCtr = ctr.querySelector('[data-vinc]');
     function getJson(url) { return fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } }).then(function (r) { return r.json(); }).catch(function () { return { ok: false, error: 'Sem conexão.' }; }); }
     function carregarContratos(id) {
+      if (!verContratos) return;
       listaCtr.innerHTML = '<div class="ffcli-vazio">Carregando…</div>';
       getJson('/api/crm_contratos.php?lista=1&cliente_id=' + id).then(function (r) {
         if (estado.cliente !== id) return;

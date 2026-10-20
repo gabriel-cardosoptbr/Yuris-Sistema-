@@ -1,6 +1,7 @@
 <?php
 namespace App\Clientes;
 
+use App\Core\AccountContext;
 use App\Core\Database;
 
 /**
@@ -76,8 +77,8 @@ final class CardDoCliente
             unset($p);
         }
 
-        // Contratos.
-        try {
+        // Contratos. O vendedor não vê contrato (sigiloso, só administração).
+        if (AccountContext::vendedorDaSessao() === null) try {
             $ct = $pdo->prepare("SELECT cliente_id, status, COUNT(*) AS n FROM crm_contratos
                                   WHERE account_id IN ($in) AND cliente_id IS NOT NULL AND status NOT IN ('cancelado') GROUP BY cliente_id, status");
             $ct->execute($accountIds);

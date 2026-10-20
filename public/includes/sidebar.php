@@ -811,9 +811,10 @@ $_notifTempo = function ($raw) {
         // Contratos e assinatura eletrônica (app/Contratos, 18/10/2026): aba própria,
         // logo abaixo de Operação (pedido do dono do produto, 19/10/2026), e link
         // DIRETO ('direto'): um clique abre a tela, sem submenu (20/10/2026). O botão
-        // "Novo contrato" fica na própria tela. Mesma permissão da Prospecção.
+        // "Novo contrato" fica na própria tela. Mesma permissão da Prospecção, mas
+        // NUNCA para o vendedor: contrato é sigiloso, só administração (20/10/2026).
         $_posOper = array_search('operacao', array_column($_sections, 'key'), true);
-        array_splice($_sections, $_posOper === false ? 1 : $_posOper + 1, 0, [[
+        if (\App\Contratos\Permissao::podeVer()) array_splice($_sections, $_posOper === false ? 1 : $_posOper + 1, 0, [[
             'key' => 'contratos',
             'label' => 'Contratos',
             'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 17c1.2-1.6 2.2-2.4 3-2.4 1.2 0 .6 2.4 1.8 2.4.7 0 1.4-.7 2.2-1.6"/><line x1="8" y1="11" x2="14" y2="11"/></svg>',
@@ -1172,7 +1173,11 @@ window.FF_AGENDA = { csrf: <?= json_encode($_notifCsrf) ?>, sessao: <?= json_enc
 </script>
 <script src="/assets/ff-agenda.js?v=<?= $_agVer ?>" defer></script>
 <script src="/assets/ff-orcamento-lead.js?v=<?= @filemtime(__DIR__ . '/../assets/ff-orcamento-lead.js') ?: '1' ?>" defer></script>
+<?php $_ctrVer = \App\Contratos\Permissao::podeVer(); /* contrato: só administração, nunca o vendedor */ ?>
+<script>window.FF_CONTRATOS = <?= $_ctrVer ? 'true' : 'false' ?>;</script>
+<?php if ($_ctrVer): ?>
 <script src="/assets/ff-contrato-lead.js?v=<?= @filemtime(__DIR__ . '/../assets/ff-contrato-lead.js') ?: '1' ?>" defer></script>
+<?php endif; ?>
 <script src="/assets/ff-cliente-crm.js?v=<?= @filemtime(__DIR__ . '/../assets/ff-cliente-crm.js') ?: '1' ?>" defer></script>
 <script src="/assets/ff-lead-crm.js?v=<?= @filemtime(__DIR__ . '/../assets/ff-lead-crm.js') ?: '1' ?>" defer></script>
 <link rel="stylesheet" href="/assets/ff-plataforma.css?v=<?= @filemtime(__DIR__ . '/../assets/ff-plataforma.css') ?: '1' ?>">
