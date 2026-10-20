@@ -41,6 +41,12 @@ if ($method === 'GET') {
     if (isset($_GET['responsavel_user_id'])) $filters['responsavel_user_id']  = (int)$_GET['responsavel_user_id'];
     if (isset($_GET['status']))              $filters['status']               = $_GET['status'];
     $cards = Card::list($filters);
+    // A lista de uma etapa cheia passa de 800 KB em JSON, e o servidor só comprime
+    // HTML. Comprime aqui, só esta resposta (não no servidor inteiro: o webhook do
+    // WhatsApp responde e continua trabalhando, e compressão global seguraria isso).
+    if (str_contains((string) ($_SERVER['HTTP_ACCEPT_ENCODING'] ?? ''), 'gzip') && extension_loaded('zlib') && !ini_get('zlib.output_compression')) {
+        ob_start('ob_gzhandler');
+    }
     // Edição CRM: o card do funil mostra o próximo agendamento do lead
     // (App\Prospeccao\AgendaDoLead). Falha aqui nunca derruba a lista.
     if ($ctx->getProduto() === 'fleetiflow' && $cards) {
@@ -134,11 +140,9 @@ if ($method === 'PUT' || $method === 'PATCH') {
         // ─── LGPD P0: valida tenant em CADA card do batch antes de reordenar ──
         // Antes desta correção, um admin do tenant A podia montar payload com
         // IDs de cards do tenant B e reordená-los/movê-los entre colunas.
-        foreach ($input['reorder'] as $item) {
-            if (!empty($item['id'])) {
-                $ctx->assertCanWrite('card', (int)$item['id']);
-            }
-        }
+        // Em lote (20/10/2026): a tela manda centenas de cards; uma consulta para
+        // os da própria conta, e assertCanWrite um a um só para os compartilhados.
+        $ctx->assertCanWriteMany('card', array_column($input['reorder'], 'id'));
         $ok = Card::bulkUpdateOrders($input['reorder'], $user_id);
         echo json_encode(['success'=>(bool)$ok]);
         exit;

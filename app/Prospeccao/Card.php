@@ -452,49 +452,65 @@ class Card
         return $ok;
     }
 
+    /**
+     * Grava a ordem das colunas depois de um arrastar no quadro (PATCH reorder).
+     *
+     * Corrigido em 20/10/2026. Desde a LGPD Etapa 4B (23/05/2026) o INSERT do
+     * histórico pedia :ip, :ua e :rid sem receber os valores: toda gravação dava
+     * erro, a transação voltava e o card pulava de volta para a coluna antiga. E
+     * mesmo quando funcionava, a tela manda a ordem de TODOS os cards das duas
+     * colunas (centenas): eram uma leitura, uma gravação e uma linha de histórico
+     * por card, e o updated_at de todos ia para agora ("Último contato: hoje").
+     *
+     * Agora: uma leitura só; grava apenas o que mudou. Mudar de etapa grava
+     * coluna, ordem e updated_at e escreve "moved" no histórico (o mesmo de
+     * Card::move, com ip, navegador e request_id). Só a ordem mudou: grava a
+     * ordem e mantém o updated_at, sem histórico.
+     */
     public static function bulkUpdateOrders(array $updates, $usuario_id = null)
     {
         $pdo = Database::getConnection();
+        $ids = array_values(array_unique(array_filter(array_map(fn($u) => (int) ($u['id'] ?? 0), $updates))));
+        if (!$ids) return true;
+        $st = $pdo->prepare('SELECT id, coluna_id, ordem_na_coluna FROM cards WHERE id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')');
+        $st->execute($ids);
+        $atual = [];
+        foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) $atual[(int) $r['id']] = $r;
+        if (!class_exists('App\\Core\\RequestId')) {
+            require_once __DIR__ . '/../Core/RequestId.php';
+        }
         try {
             $pdo->beginTransaction();
-            $uStmt = $pdo->prepare('UPDATE cards SET coluna_id = :coluna_id, ordem_na_coluna = :ordem_na_coluna, updated_at = NOW() WHERE id = :id');
-            // LGPD Etapa 4: ip + user_agent + request_id
-            if (!class_exists('App\\Core\\RequestId')) {
-                require_once __DIR__ . '/../Core/RequestId.php';
-            }
-            $hStmt = $pdo->prepare(
-                'INSERT INTO card_history (card_id, usuario_id, acao, campo_alterado,
-                                           valor_anterior, valor_novo, de_coluna_id, para_coluna_id,
-                                           ip, user_agent, request_id, created_at)
-                 VALUES (:card_id, :usuario_id, :acao, :campo_alterado,
-                         :valor_anterior, :valor_novo, :de_coluna_id, :para_coluna_id,
-                         :ip, :ua, :rid, NOW())'
+            $mover = $pdo->prepare('UPDATE cards SET coluna_id = :coluna_id, ordem_na_coluna = :ordem, updated_at = NOW() WHERE id = :id');
+            $ordem = $pdo->prepare('UPDATE cards SET ordem_na_coluna = :ordem, updated_at = updated_at WHERE id = :id');
+            $hist  = $pdo->prepare(
+                'INSERT INTO card_history (card_id, usuario_id, acao, de_coluna_id, para_coluna_id, ip, user_agent, request_id, created_at)
+                 VALUES (:card_id, :usuario_id, :acao, :de_coluna_id, :para_coluna_id, :ip, :ua, :rid, NOW())'
             );
             foreach ($updates as $up) {
-                $id = (int)($up['id'] ?? 0);
-                if (!$id) continue;
-                $new_col = isset($up['coluna_id']) ? (int)$up['coluna_id'] : null;
-                $new_ord = isset($up['ordem_na_coluna']) ? (int)$up['ordem_na_coluna'] : 0;
-                // fetch current
-                $cur = self::find($id);
-                $de_col = $cur['coluna_id'] ?? null;
-                $prev_ord = $cur['ordem_na_coluna'] ?? null;
-                $uStmt->execute(['coluna_id'=>$new_col,'ordem_na_coluna'=>$new_ord,'id'=>$id]);
-                $hStmt->execute([
-                    'card_id'=>$id,
-                    'usuario_id'=>$usuario_id,
-                    'acao'=>'reorder',
-                    'campo_alterado'=>'coluna_id,ordem_na_coluna',
-                    'valor_anterior'=>json_encode(['coluna_id'=>$de_col,'ordem_na_coluna'=>$prev_ord], JSON_UNESCAPED_UNICODE),
-                    'valor_novo'=>json_encode(['coluna_id'=>$new_col,'ordem_na_coluna'=>$new_ord], JSON_UNESCAPED_UNICODE),
-                    'de_coluna_id'=>$de_col,
-                    'para_coluna_id'=>$new_col
-                ]);
+                $id = (int) ($up['id'] ?? 0);
+                if (!$id || !isset($atual[$id])) continue;
+                $novaCol = isset($up['coluna_id']) ? (int) $up['coluna_id'] : null;
+                $novaOrd = isset($up['ordem_na_coluna']) ? (int) $up['ordem_na_coluna'] : 0;
+                $deCol = $atual[$id]['coluna_id'] !== null ? (int) $atual[$id]['coluna_id'] : null;
+                if ($novaCol !== null && $novaCol !== $deCol) {
+                    $mover->execute(['coluna_id' => $novaCol, 'ordem' => $novaOrd, 'id' => $id]);
+                    $hist->execute([
+                        'card_id' => $id, 'usuario_id' => $usuario_id, 'acao' => 'moved',
+                        'de_coluna_id' => $deCol, 'para_coluna_id' => $novaCol,
+                        'ip'  => $_SERVER['REMOTE_ADDR'] ?? null,
+                        'ua'  => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255),
+                        'rid' => \App\Core\RequestId::get(),
+                    ]);
+                } elseif ((int) $atual[$id]['ordem_na_coluna'] !== $novaOrd) {
+                    $ordem->execute(['ordem' => $novaOrd, 'id' => $id]);
+                }
             }
             $pdo->commit();
             return true;
-        } catch (\Exception $e) {
-            $pdo->rollBack();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            error_log('[Card::bulkUpdateOrders] ' . $e->getMessage());
             return false;
         }
     }

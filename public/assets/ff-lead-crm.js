@@ -270,12 +270,22 @@
     if (!col) return;
     raiz = col.parentElement;
     var st = document.createElement('style'); st.id = 'fflcCss'; st.textContent = CSS; document.head.appendChild(st);
+    // Juntando as mudanças: o quadro chega em lotes e o arrastar mexe no DOM a cada
+    // passo. Durante o arrastar não faz nada; ao soltar, roda uma vez.
+    var pendente = null;
+    function agendar() {
+      clearTimeout(pendente);
+      pendente = setTimeout(function () {
+        if (document.querySelector('.sortable-chosen, .sortable-drag, .sortable-fallback')) { agendar(); return; }
+        aplicar(false);
+      }, 120);
+    }
     observador = new MutationObserver(function (muts) {
       if (!Q) return;
       // Card que mudou de etapa (arrastado): a gravação vem logo depois; relê o quadro.
       var arrastou = muts.some(function (m) { return Array.prototype.some.call(m.addedNodes, function (n) { return n.nodeType === 1 && n.matches && n.matches('.card-mini[data-fflc="1"]'); }); });
       if (arrastou) { clearTimeout(iniciar.t); iniciar.t = setTimeout(carregar, 1500); }
-      aplicar(false);
+      agendar();
     });
     observador.observe(raiz, { childList: true, subtree: true });
     carregar();

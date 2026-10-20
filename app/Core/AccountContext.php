@@ -664,6 +664,35 @@ class AccountContext
     }
 
     /**
+     * assertCanWrite para uma lista (o reorder do quadro manda centenas de cards):
+     * os que pertencem às contas da sessão saem numa consulta só; os outros passam
+     * um a um por assertCanWrite (compartilhamento). Mesma regra, sem uma consulta
+     * por card.
+     * @param int[] $resourceIds
+     */
+    public function assertCanWriteMany(string $resourceType, array $resourceIds): void
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $resourceIds))));
+        if (!$ids) return;
+        $table = self::$_tableMap[$resourceType] ?? null;
+        $donos = [];
+        if ($table) {
+            try {
+                $inClause = $this->buildAccountInClause('t', 'rbm');
+                $ph = [];
+                $params = $inClause['params'];
+                foreach ($ids as $i => $id) { $ph[] = ':rid' . $i; $params['rid' . $i] = $id; }
+                $st = Database::getConnection()->prepare("SELECT t.id FROM {$table} t WHERE t.id IN (" . implode(',', $ph) . ") AND {$inClause['sql']}");
+                $st->execute($params);
+                $donos = array_map('intval', $st->fetchAll(\PDO::FETCH_COLUMN));
+            } catch (\Throwable $e) {
+                $donos = [];
+            }
+        }
+        foreach (array_diff($ids, $donos) as $id) $this->assertCanWrite($resourceType, (int) $id);
+    }
+
+    /**
      * Aborta com 403 se não for owner do recurso (para delete/revogar share).
      */
     public function assertIsOwnerOfResource(string $resourceType, int $resourceId): void

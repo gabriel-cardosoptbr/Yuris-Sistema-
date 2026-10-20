@@ -2625,8 +2625,27 @@ function column_display_name(array $col): string
       const column = getColumnById(colId);
 
       if (EDICAO_CRM) {
-        cards.forEach(card => listEl.appendChild(renderCardCrm(card, column, colId)));
-        atualizarTiposLead();
+        // Etapa cheia (centenas de leads): os primeiros aparecem na hora e o resto
+        // entra em lotes, sem travar a tela. Um redesenho novo da mesma coluna
+        // cancela os lotes do anterior (o token muda).
+        const toks = (renderCards._tok = renderCards._tok || {});
+        const token = toks[colId] = {};
+        const PRIMEIROS = 40, LOTE = 150;
+        const desenhar = (de, ate) => {
+          const frag = document.createDocumentFragment();
+          for (let i = de; i < ate; i++) frag.appendChild(renderCardCrm(cards[i], column, colId));
+          listEl.appendChild(frag);
+        };
+        desenhar(0, Math.min(PRIMEIROS, cards.length));
+        let prox = PRIMEIROS;
+        const seguir = () => {
+          if (toks[colId] !== token) return;
+          if (prox >= cards.length) { atualizarTiposLead(); return; }
+          desenhar(prox, Math.min(prox + LOTE, cards.length));
+          prox += LOTE;
+          setTimeout(seguir, 0);
+        };
+        setTimeout(seguir, 0);
         return;
       }
 
@@ -2882,13 +2901,47 @@ function column_display_name(array $col): string
             if (toColId && toColId !== fromColId) collectOrders(toColId);
             if (!updates.length) return;
 
-            await fetch(apiCards, {
-              method: 'PATCH',
-              headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf},
-              body: JSON.stringify({ reorder: updates, csrf_token: csrf })
-            });
+            let gravou = false;
+            try {
+              const res = await fetch(apiCards, {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf},
+                body: JSON.stringify({ reorder: updates, csrf_token: csrf })
+              });
+              const j = await res.json().catch(() => ({}));
+              gravou = res.ok && !!j.success;
+            } catch (e) { gravou = false; }
 
-            await loadAll();
+            // Não gravou: avisa e o quadro volta ao que está no banco.
+            if (!gravou) {
+              if (window.Yuris && Yuris.toast) Yuris.toast('Não foi possível mover o lead. O quadro voltou ao que estava gravado.', 'error');
+              await loadAll();
+              return;
+            }
+
+            // Gravou: o cache passa a refletir a tela, sem buscar tudo de novo (o
+            // "Carregando..." em todas as colunas, com uma etapa de centenas de leads,
+            // era o que parecia travar). O refresh de 15 s traz o resto do servidor.
+            const porId = {};
+            Object.keys(cardsCacheByColumn).forEach(k => (cardsCacheByColumn[k] || []).forEach(c => { porId[String(c.id)] = c; }));
+            const refletir = colId => {
+              const listaEl = byId('col-' + colId);
+              if (!listaEl) return;
+              const lista = [];
+              listaEl.querySelectorAll(':scope > [data-id]').forEach((node, idx) => {
+                const c = porId[node.getAttribute('data-id')];
+                node.setAttribute('data-coluna-id', colId);
+                if (c) { c.coluna_id = parseInt(colId, 10); c.ordem_na_coluna = idx; lista.push(c); }
+              });
+              cardsCacheByColumn[colId] = lista;
+              setColCount(colId, lista.length, lista.length);
+              const nota = listaEl.querySelector('.empty-note');
+              if (lista.length && nota) nota.remove();
+              if (!lista.length && !nota) listaEl.insertAdjacentHTML('beforeend', '<div class="empty-note">Sem leads nesta etapa</div>');
+            };
+            if (fromColId) refletir(fromColId);
+            if (toColId && toColId !== fromColId) refletir(toColId);
+            updateIndicators(collectRenderedCards());
           }
         });
       });
