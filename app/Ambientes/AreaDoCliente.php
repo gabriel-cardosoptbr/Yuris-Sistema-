@@ -12,6 +12,9 @@ use App\Core\Database;
  *   digital   linha de valor com área digital, quadro da área digital,
  *             frequência contratada ou campanha
  *
+ * e, nas duas, a área marcada direto na ficha (`crm_cliente_areas`, migration
+ * 161): cliente recém-fechado, ainda sem nada cadastrado, já entra na área.
+ *
  * É o filtro de Clientes nos ambientes (`?amb=software`) e a base das contagens
  * por área da Empresa, que contam cada cliente uma vez só.
  */
@@ -36,10 +39,12 @@ final class AreaDoCliente
                     SELECT cliente_id, CONVERT('digital' USING utf8mb4) COLLATE utf8mb4_unicode_ci AS area FROM crm_cliente_frequencias WHERE account_id = :a3
                     UNION ALL
                     SELECT cliente_id, CONVERT('digital' USING utf8mb4) COLLATE utf8mb4_unicode_ci AS area FROM crm_campanhas WHERE account_id = :a4
+                    UNION ALL
+                    SELECT cliente_id, CONVERT(area USING utf8mb4) COLLATE utf8mb4_unicode_ci AS area FROM crm_cliente_areas WHERE account_id = :a6
                 ) x
                 JOIN clientes c ON c.id = x.cliente_id AND c.account_id = :a5 AND c.deleted_at IS NULL
                 WHERE 1 = 1";
-        $p = ['a1' => $accountId, 'a2' => $accountId, 'a3' => $accountId, 'a4' => $accountId, 'a5' => $accountId];
+        $p = ['a1' => $accountId, 'a2' => $accountId, 'a3' => $accountId, 'a4' => $accountId, 'a5' => $accountId, 'a6' => $accountId];
         if ($clienteIds !== null) {
             $ph = [];
             foreach (array_values($clienteIds) as $i => $id) { $ph[] = ":c$i"; $p["c$i"] = (int) $id; }
@@ -50,6 +55,39 @@ final class AreaDoCliente
         $out = [];
         foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) $out[(int) $r['cliente_id']][] = $r['area'];
         return $out;
+    }
+
+    /** Áreas marcadas direto na ficha (só estas; as que vêm do resto não entram aqui). @return string[] */
+    public static function marcadas(int $accountId, int $clienteId): array
+    {
+        $st = Database::getConnection()->prepare('SELECT area FROM crm_cliente_areas WHERE account_id = ? AND cliente_id = ? ORDER BY area');
+        $st->execute([$accountId, $clienteId]);
+        return $st->fetchAll(\PDO::FETCH_COLUMN);
+    }
+
+    /**
+     * Troca as áreas marcadas na ficha. Cliente de outra conta é recusado.
+     * @param string[] $areas
+     */
+    public static function marcar(int $accountId, int $userId, int $clienteId, array $areas): array
+    {
+        $areas = array_values(array_unique(array_map('strval', $areas)));
+        foreach ($areas as $a) if (!in_array($a, self::AREAS, true)) throw new \InvalidArgumentException('Área inválida.');
+        $pdo = Database::getConnection();
+        $c = $pdo->prepare('SELECT id FROM clientes WHERE id = ? AND account_id = ? AND deleted_at IS NULL');
+        $c->execute([$clienteId, $accountId]);
+        if (!$c->fetchColumn()) throw new \InvalidArgumentException('Cliente não encontrado nesta conta.');
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare('DELETE FROM crm_cliente_areas WHERE account_id = ? AND cliente_id = ?')->execute([$accountId, $clienteId]);
+            $ins = $pdo->prepare('INSERT INTO crm_cliente_areas (cliente_id, area, account_id, criado_por) VALUES (?, ?, ?, ?)');
+            foreach ($areas as $a) $ins->execute([$clienteId, $a, $accountId, $userId ?: null]);
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+        return self::marcadas($accountId, $clienteId);
     }
 
     /**

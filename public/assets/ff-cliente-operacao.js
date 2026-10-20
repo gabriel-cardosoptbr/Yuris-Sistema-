@@ -76,10 +76,28 @@
       if (!d) return;
       var areas = d.areas.length ? d.areas.map(function (a) { return '<span class="ff-pill">' + esc(AREA[a] || a) + '</span>'; }).join('') : '<span class="ff-pill ff-pill-pausa">Sem área ainda</span>';
       var r = d.resumo || {};
-      elOper.innerHTML = '<div class="ffop-areas">' + areas + '</div>' +
+      var marc = d.areas_marcadas || [];
+      var botoes = '<div class="ffop-areas" data-marcar>' + [['software', 'Software'], ['digital', 'Digital / Marketing']].map(function (a) {
+        var on = marc.indexOf(a[0]) >= 0;
+        return '<button type="button" class="ffcli-setopt' + (on ? ' on' : '') + '" data-area="' + a[0] + '" aria-pressed="' + on + '">' + a[1] + '</button>';
+      }).join('') + '</div>';
+      elOper.innerHTML = '<div class="ffcli-vazio" style="margin-bottom:4px">Áreas do cliente agora:</div><div class="ffop-areas">' + areas + '</div>' +
+        '<div class="ffcli-vazio" style="margin:8px 0 4px">Marcar a área direto (cliente novo, ainda sem quadro, frequência ou valor):</div>' + botoes +
+        '<div class="ffcli-erro" data-area-erro></div>' +
         '<div class="ffcli-vazio">' + num(d.quadros.length) + ' quadro(s) · ' + num(d.frequencias.length) + ' frequência(s) · ' + num(d.campanhas.filter(function (k) { return k.status === 'ativa'; }).length) + ' campanha(s) ativa(s)' +
         (r.contratadas || r.cadastradas ? ' · ' + num(r.concluidas) + ' de ' + num(r.contratadas || r.cadastradas) + ' entregas do mês concluídas' : '') + '</div>' +
-        '<div class="ffcli-vazio" style="margin-top:4px">O cliente entra em Software ou Digital pelo que contratou (valor com área, frequência, campanha) e pelos quadros da equipe. O cadastro é um só.</div>';
+        '<div class="ffcli-vazio" style="margin-top:4px">O cliente também entra em Software ou Digital pelo que contratou (valor com área, frequência, campanha) e pelos quadros da equipe. O cadastro é um só.</div>';
+      elOper.querySelectorAll('[data-area]').forEach(function (b) {
+        b.onclick = function () {
+          var lista = marc.slice(), i = lista.indexOf(b.dataset.area);
+          if (i >= 0) lista.splice(i, 1); else lista.push(b.dataset.area);
+          b.disabled = true;
+          pedir('', { acao: 'areas', cliente_id: estado.id, areas: lista }).then(function (x) {
+            if (!x.ok) { b.disabled = false; elOper.querySelector('[data-area-erro]').textContent = x.error || 'Não foi possível salvar.'; return; }
+            estado.dados.areas = x.areas; estado.dados.areas_marcadas = x.areas_marcadas; desenharResumo();
+          });
+        };
+      });
     }
     function desenharQuadros() {
       var d = estado.dados;

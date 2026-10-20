@@ -14,7 +14,7 @@ telas são os de sempre.
 |---|---|
 | `Ambiente.php` | a lista dos ambientes, o menu de cada um (`LAYOUT`, montado em cima das páginas que a pessoa já via no menu de sempre), quem entra em cada um (`podeEntrar`), a regra que decide o ambiente de cada página (`resolver`), o último ambiente por pessoa (`user_ambientes`) e a guarda das Visões Gerais (`exigir`) |
 | `QuadroDaArea.php` | o quadro de Tarefas como quadro de uma área: `task_boards.area`, `cliente_id` e `modelo` (colunas iniciais: etapas, episódios, campanhas, demandas, suporte, livre), filtro da lista e o nome do cliente no seletor |
-| `AreaDoCliente.php` | em que áreas cada cliente está, sem cadastro por área: Software pelo valor com área software ou quadro de Software; Digital pelo valor com área digital, quadro de Digital, frequência contratada ou campanha |
+| `AreaDoCliente.php` | em que áreas cada cliente está, sem cadastro duplicado: Software pelo valor com área software ou quadro de Software; Digital pelo valor com área digital, quadro de Digital, frequência contratada ou campanha; e, nas duas, a área **marcada direto na ficha** (`crm_cliente_areas`, migration 161; `marcar`, `marcadas`), para o cliente recém-fechado que ainda não tem nada disso. A ficha mostra os botões em "Operação" (aba Visão geral) |
 | `Visao.php` | os números das Visões Gerais (Empresa, Software, Digital) e as vendas por área do serviço do Comercial. A Empresa junta um bloco por área: `financeiro`, `clientesDetalhe`, `software`, `digital` (marketing), `comercialPorArea`, `contratos` e `equipe` (OTIF do mês por `App\Tarefas\Otif`) |
 | `Paginas/visao.php` | a página das Visões Gerais, incluída por `public/empresa.php`, `software.php` e `digital.php` (e as telas Entregas e Campanhas do Digital, `?ver=`) |
 

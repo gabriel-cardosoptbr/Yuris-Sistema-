@@ -17,6 +17,7 @@
  *   POST {acao:'material_desfazer' | 'material_remover', task_id, id}
  *   POST {acao:'frequencia_salvar', cliente_id, id?, tipo, quantidade, periodo, inicio, fim}
  *   POST {acao:'frequencia_remover', cliente_id, id}
+ *   POST {acao:'areas', cliente_id, areas:['software','digital']}  área marcada direto na ficha
  *   POST {acao:'campanha_salvar', id?, cliente_id, nome, plataforma, ...}
  *   POST {acao:'campanha_remover', id}
  *
@@ -150,6 +151,7 @@ try {
             dgResponder(['ok' => true, 'data' => [
                 'cliente' => ['id' => (int) $cli['id'], 'nome' => $cli['nome']],
                 'areas' => AreaDoCliente::mapa($acc, [(int) $cli['id']])[(int) $cli['id']] ?? [],
+                'areas_marcadas' => AreaDoCliente::marcadas($acc, (int) $cli['id']),
                 'quadros' => array_map(fn($b) => ['id' => (int) $b['id'], 'nome' => $b['nome'], 'area' => $b['area'] ?? null, 'modelo' => $b['modelo'] ?? null]
                     + ($numQuadros['por_quadro'][(int) $b['id']] ?? ['abertas' => 0, 'atrasadas' => 0, 'proximo' => null]), $quadros),
                 'frequencias' => Frequencia::doCliente($acc, (int) $cli['id']),
@@ -201,6 +203,12 @@ try {
         dgResponder(['ok' => true, 'data' => Material::doCartao($tid)]);
     }
 
+    if ($acao === 'areas') {
+        // A área marcada direto na ficha (soma às que vêm do que o cliente contratou).
+        $cli = dgCliente($acc, (int) ($in['cliente_id'] ?? 0), $vendedor);
+        AreaDoCliente::marcar($acc, $uid, (int) $cli['id'], (array) ($in['areas'] ?? []));
+        dgResponder(['ok' => true, 'areas' => AreaDoCliente::mapa($acc, [(int) $cli['id']])[(int) $cli['id']] ?? [], 'areas_marcadas' => AreaDoCliente::marcadas($acc, (int) $cli['id'])]);
+    }
     if ($acao === 'frequencia_salvar' || $acao === 'frequencia_remover') {
         $cli = dgCliente($acc, (int) ($in['cliente_id'] ?? 0), $vendedor);
         if ($acao === 'frequencia_salvar') Frequencia::salvar($acc, $uid, (int) $cli['id'], $in);

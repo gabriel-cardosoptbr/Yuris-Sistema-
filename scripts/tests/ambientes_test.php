@@ -199,6 +199,15 @@ try {
     echo "\n== Mesmo cliente em Software e Digital ==\n";
     $mapa = AreaDoCliente::mapa($ACC, [$cA, $cB]);
     ok('cliente A em Software e Digital (quadros); B em Digital (campanha)', in_array('software', $mapa[$cA], true) && in_array('digital', $mapa[$cA], true) && $mapa[$cB] === ['digital']);
+    $cC = novoCliente("$MARCA Cliente C");
+    ok('cliente sem nada cadastrado fica sem área', !isset(AreaDoCliente::mapa($ACC, [$cC])[$cC]));
+    AreaDoCliente::marcar($ACC, $UID, $cC, ['software', 'digital']);
+    $mc = AreaDoCliente::mapa($ACC, [$cC])[$cC] ?? [];
+    ok('área marcada na ficha coloca o cliente nas duas áreas', in_array('software', $mc, true) && in_array('digital', $mc, true));
+    ok('área inválida é recusada na ficha', recusa(fn() => AreaDoCliente::marcar($ACC, $UID, $cC, ['juridico'])) !== null);
+    ok('outra conta não marca área do cliente', recusa(fn() => AreaDoCliente::marcar($OUTRA, $UID, $cC, ['digital'])) !== null);
+    AreaDoCliente::marcar($ACC, $UID, $cC, ['software']);
+    ok('desmarcar deixa só a área que ficou', AreaDoCliente::marcadas($ACC, $cC) === ['software']);
     $cli = Visao::clientes($ACC);
     $todosAtivos = (int) $pdo->query("SELECT COUNT(*) FROM clientes WHERE account_id = $ACC AND deleted_at IS NULL AND status = 'ativo'")->fetchColumn();
     ok('total de clientes ativos conta cada um uma vez', $cli['ativos'] === $todosAtivos && $cli['nas_duas'] >= 1);
@@ -313,7 +322,7 @@ try {
     if ($criados['valores']) $pdo->exec('DELETE FROM crm_cliente_valores WHERE id IN (' . implode(',', $criados['valores']) . ')');
     if ($criados['clientes']) {
         $cin = implode(',', $criados['clientes']);
-        foreach (['crm_cliente_frequencias', 'crm_campanhas', 'drive_pastas_cliente', 'drive_itens', 'drive_pastas_lidas', 'crm_cliente_cobrancas'] as $t) $pdo->exec("DELETE FROM $t WHERE cliente_id IN ($cin)");
+        foreach (['crm_cliente_areas', 'crm_cliente_frequencias', 'crm_campanhas', 'drive_pastas_cliente', 'drive_itens', 'drive_pastas_lidas', 'crm_cliente_cobrancas'] as $t) $pdo->exec("DELETE FROM $t WHERE cliente_id IN ($cin)");
         $pdo->exec("DELETE FROM clientes WHERE id IN ($cin)");
     }
     $pdo->exec("DELETE FROM drive_contas WHERE account_id = $ACC");
