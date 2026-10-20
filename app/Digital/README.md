@@ -35,6 +35,12 @@ API: `public/api/digital.php`. Telas: a aba "Entrega" do cartão
   ordem: concluída (entregue), aguardando aprovação, em produção. "Atrasadas" é à
   parte: as não concluídas com prazo vencido. "Contratadas" é a frequência, e "sem
   cartão" é o contratado que ainda não virou cartão.
+- **Postado e não postado** (`resumo`): publicadas (publicação "publicado"), agendadas
+  e a postar (publicação "pendente"), por cliente e por tipo; entrega que não vai ao
+  ar fica "não se aplica" e não entra. **Ritmo do mês**: o esperado até hoje é o
+  contratado proporcional aos dias corridos (mês passado: tudo; futuro: nada) e o
+  cliente fica "atrasado" quando as concluídas estão abaixo dele. A Visão Geral da
+  Empresa mostra isso por cliente e marca quem não postou nada no mês.
 - **Previsto x realizado**, por tipo: previsto pela frequência (semanal vira mês
   pelas semanas: 3 por semana em 30 dias = 13), entregues, pendentes. Ex.: 6 vídeos
   previstos, 4 entregues, 2 pendentes.

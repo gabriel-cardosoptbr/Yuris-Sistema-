@@ -162,6 +162,12 @@ try {
     ok('contratadas no mês = 6, sem cartão = 3', $ra['contratadas'] === 6 && $ra['nao_cadastradas'] === 3);
     ok('checklist (3 itens) não entra na contagem de entregas', $ra['cadastradas'] === 4);
     ok('semanal vira mês pelas semanas: 3 por semana em 30 dias = 13', Frequencia::noMes(3, 'semanal', '2026-11') === 13);
+    ok('postagem: 1 publicada (o post entregue sem publicação não conta)', $ra['publicadas'] === 1 && $ra['a_publicar'] === 0 && $pv['publicados'] === 1);
+    $proxMes = date('Y-m-d 12:00:00', strtotime(date('Y-m-01') . ' +1 month'));
+    $rPassado = Entrega::resumo($ACC, $mes, [$cA], $proxMes)['clientes'][$cA];
+    ok('ritmo: mês encerrado com 2 de 6 concluídas está atrasado', $rPassado['esperado_ate_hoje'] === 6 && $rPassado['ritmo'] === 'atrasado');
+    $rInicio = Entrega::resumo($ACC, $mes, [$cA], date('Y-m-01 00:00:01'))['clientes'][$cA];
+    ok('ritmo: no primeiro dia do mês ainda está em dia', $rInicio['esperado_ate_hoje'] === 0 && $rInicio['ritmo'] === 'em_dia');
     ok('cliente de outra conta não aparece no resumo da conta', !isset(Entrega::resumo($OUTRA, $mes, [$cA])['clientes'][$cA]['cadastradas']) || Entrega::resumo($OUTRA, $mes, [$cA])['clientes'][$cA]['cadastradas'] === 0);
     $antes = Entrega::doCartao($t1);
     Entrega::salvar($c1, $UID, ['tipo' => '']);
@@ -215,6 +221,11 @@ try {
         && (bool) array_filter($dg['clientes'], fn($c) => $c['id'] === $cA && $c['aprovacoes'] === 1));
     $emp = Visao::empresa($ACC, $quadros, $mes, true);
     ok('Empresa: pendências de aprovação e materiais', $emp['pendencias']['aprovacoes'] >= 1 && $emp['pendencias']['materiais'] >= 1);
+    ok('Empresa traz o bloco de cada área', isset($emp['financeiro'], $emp['clientes_detalhe'], $emp['software'], $emp['marketing'], $emp['comercial_areas'], $emp['equipe']) && is_array($emp['contratos']));
+    ok('Empresa: financeiro com a receita recorrente por área', $emp['financeiro']['mrr_por_area']['software'] >= 1000 && isset($emp['financeiro']['proximos_7_dias']['valor']));
+    ok('Empresa: marketing lista o cliente com postagem e ritmo', (bool) array_filter($emp['marketing']['clientes'], fn($c) => $c['id'] === $cA && $c['publicadas'] === 1 && isset($c['ritmo'])));
+    ok('Empresa: clientes novos no mês contam os criados agora', $emp['clientes_detalhe']['novos_mes'] >= 2);
+    ok('Empresa sem permissão de contrato não traz contratos', Visao::empresa($ACC, $quadros, $mes, false)['contratos'] === null);
     $criados['cards'][] = $cardArea = (int) $pdo->query("SELECT id FROM cards WHERE account_id = $ACC AND deleted_at IS NULL AND area_servico IS NULL ORDER BY id LIMIT 1")->fetchColumn();
     $pdo->prepare('UPDATE cards SET area_servico = ? WHERE id = ?')->execute(['digital', $cardArea]);
     $com = Visao::comercialPorArea($ACC, $mes);

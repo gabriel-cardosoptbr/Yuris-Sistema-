@@ -78,25 +78,183 @@
   }
 
   // ── Empresa ────────────────────────────────────────────────────────────
+  // A visão de tudo: cada área com o seu bloco (Comercial, Financeiro,
+  // Clientes, Marketing, Software, Contratos, Equipe), mais atrasos e
+  // pendências. O Comercial vem da mesma API do painel comercial, no mês
+  // escolhido, para os números baterem com o painel.
+  var SIT_PROJ = { desenvolvimento: 'Em desenvolvimento', producao: 'Em produção', pausado: 'Pausado' };
+  function pct(v) { return v == null ? '-' : String(v).replace('.', ',') + '%'; }
+  function secao(id, titulo, link, rotuloLink, corpo) {
+    return '<section class="amb-sec" id="' + id + '"><div class="amb-sec-cab"><h2>' + esc(titulo) + '</h2>' +
+      (link ? '<a class="ctr-btn ctr-btn-sm" href="' + esc(link) + '">' + esc(rotuloLink) + '</a>' : '') + '</div>' + corpo + '</section>';
+  }
+  function kpis(lista) { return '<div class="ctr-central amb-kpis">' + lista.join('') + '</div>'; }
+  function barras(itens) {
+    var max = Math.max.apply(null, itens.map(function (i) { return i.v; }).concat([1]));
+    return '<ul class="amb-barras">' + itens.map(function (i) {
+      return '<li><span class="amb-barra-rot">' + esc(i.rot) + '</span><span class="amb-barra"><i style="width:' + Math.round(i.v / max * 100) + '%"></i></span><b>' + esc(i.txt || num(i.v)) + '</b></li>';
+    }).join('') + '</ul>';
+  }
+  function comercialBloco(c, areas) {
+    var a = c.kpis.atual, ant = c.kpis.anterior || {};
+    function dif(atual, antes) {
+      if (antes == null || !antes) return '';
+      var d = Math.round((atual - antes) / antes * 100);
+      return ' <em class="' + (d >= 0 ? 'amb-sobe' : 'amb-desce') + '">' + (d >= 0 ? '+' : '') + d + '% vs mês anterior</em>';
+    }
+    var meta = c.meta && c.meta.valor ? kpi('Meta do mês', brl(c.meta.fechado || 0) + '<em>/' + brl(c.meta.valor) + '</em>', pct(c.meta.valor ? Math.round((c.meta.fechado || 0) / c.meta.valor * 1000) / 10 : null) + ' atingido') : '';
+    var h = kpis([
+      kpi('Novos leads', num(a.leads), dif(a.leads, ant.leads), '/prospeccao'),
+      kpi('Oportunidades', num(a.oportunidades), num(a.em_negociacao) + ' em negociação · ' + brl(a.valor_pipeline) + ' no funil', '/prospeccao'),
+      kpi('Vendas fechadas', num(a.vendas), dif(a.vendas, ant.vendas), '/dashboard?amb=comercial'),
+      kpi('Receita fechada', brl(a.receita), dif(a.receita, ant.receita), '/dashboard?amb=comercial'),
+      kpi('Conversão', pct(a.conversao), num(a.vendas) + ' de ' + num(a.leads) + ' leads'),
+      kpi('Ticket médio', a.ticket != null ? brl(a.ticket) : '-', 'receita por venda'),
+      meta
+    ]);
+    var ROT = { software: 'Software', digital: 'Digital / Marketing', ambos: 'Os dois', sem_area: 'Sem área marcada' };
+    var porArea = ['software', 'digital', 'ambos', 'sem_area'].filter(function (k) { return (areas.abertos[k] || areas.fechados[k]); }).map(function (k) {
+      var ab = areas.abertos[k] || { qtd: 0, valor: 0 }, fe = areas.fechados[k] || { qtd: 0, valor: 0 };
+      return '<li><span>' + ROT[k] + '</span><b>' + num(fe.qtd) + ' fechada(s) · ' + brl(fe.valor) + '</b><small>' + num(ab.qtd) + ' em aberto · ' + brl(ab.valor) + '</small></li>';
+    }).join('');
+    var funil = (c.pipeline || []).filter(function (p) { return p.qtd > 0; }).map(function (p) { return { rot: p.nome, v: p.qtd }; });
+    h += '<div class="amb-duas">' + cartao('Funil agora (leads por etapa)', funil.length ? barras(funil) : vazio('Nenhum lead no funil.')) +
+      cartao('Vendas por área do serviço no mês', porArea ? '<ul class="amb-areas-lista">' + porArea + '</ul>' : vazio('Sem leads com área marcada.')) + '</div>';
+    return h;
+  }
+  function marketingBloco(m, mesSel) {
+    var t = m.total;
+    var h = kpis([
+      kpi('Contratadas no mês', num(t.contratadas), num(t.esperado_ate_hoje) + ' esperadas até hoje'),
+      kpi('Concluídas', num(t.concluidas), num(t.cadastradas) + ' cadastradas', '/digital?ver=entregas&mes=' + mesSel),
+      kpi('Postadas', num(t.publicadas), num(t.agendadas) + ' agendadas · ' + num(t.a_publicar) + ' a postar', '/digital?ver=entregas&mes=' + mesSel, t.a_publicar ? 'atencao' : ''),
+      kpi('Em produção', num(t.producao), num(t.nao_cadastradas) + ' contratadas sem cartão', '', t.nao_cadastradas ? 'atencao' : ''),
+      kpi('Aguardando aprovação', num(t.aprovacao), 'do cliente', '/digital?ver=entregas&mes=' + mesSel, t.aprovacao ? 'atencao' : ''),
+      kpi('Atrasadas', num(t.atrasadas), 'prazo vencido sem entregar', '/digital?ver=entregas&mes=' + mesSel, t.atrasadas ? 'alerta' : ''),
+      kpi('Campanhas ativas', num(t.campanhas_ativas), brl(t.verba_ativa) + ' de verba por mês', '/digital?ver=campanhas'),
+      kpi('Materiais faltando', num(t.materiais_faltando), 'esperados e não recebidos')
+    ]);
+    var linhas = m.clientes.map(function (c) {
+      var ritmo = c.ritmo === 'atrasado' ? '<span class="amb-pill amb-pill-verm">Atrasado: ' + num(c.concluidas) + ' de ' + num(c.esperado_ate_hoje) + ' esperadas até hoje</span>'
+        : c.ritmo === 'em_dia' ? '<span class="amb-pill amb-pill-ok">Em dia</span>' : '<span class="amb-pill">Sem frequência</span>';
+      var semPost = c.contratadas && !c.publicadas && !c.concluidas;
+      return '<tr><td><a href="/clientes?amb=digital&open=' + c.id + '">' + esc(c.nome) + '</a>' + (semPost ? '<small class="amb-verm">Nada postado no mês</small>' : '') + '</td>' +
+        '<td><b>' + num(c.publicadas) + '</b> postada(s)' + (c.contratadas ? ' de ' + num(c.contratadas) : '') + '<small class="amb-cinza">' + num(c.agendadas) + ' agendada(s) · ' + num(c.a_publicar) + ' a postar</small></td>' +
+        '<td>' + previsto(c) + '</td><td>' + ritmo + '</td>' +
+        '<td' + (c.aprovacao ? ' class="amb-amb"' : '') + '>' + num(c.aprovacao) + '</td><td' + (c.atrasadas ? ' class="amb-verm"' : '') + '>' + num(c.atrasadas) + '</td>' +
+        '<td>' + num(c.campanhas_ativas) + '</td></tr>';
+    }).join('');
+    h += cartao('Clientes de marketing: o que foi postado e o que não foi', linhas
+      ? '<table class="amb-tab amb-tab-cli"><thead><tr><th>Cliente</th><th>Postagem no mês</th><th>Previsto x realizado</th><th>Ritmo</th><th>Aprovação</th><th>Atrasadas</th><th>Campanhas</th></tr></thead><tbody>' + linhas + '</tbody></table>'
+      : vazio('Nenhum cliente de Digital ainda. O cliente entra aqui com frequência contratada, campanha, quadro de produção ou valor da área Digital.'));
+    return h;
+  }
+  function softwareBloco(s) {
+    var t = s.tarefas;
+    var porSit = {};
+    s.carteira.forEach(function (p) { porSit[p.status] = (porSit[p.status] || 0) + 1; });
+    var h = kpis([
+      kpi('Projetos em andamento', num(s.carteira.length), Object.keys(porSit).map(function (k) { return num(porSit[k]) + ' ' + (SIT_PROJ[k] || k).toLowerCase(); }).join(' · '), '/projetos?amb=software'),
+      kpi('Quadros de demandas', num(s.quadros.length), 'por projeto ou cliente', '/tarefas?amb=software'),
+      kpi('Tarefas abertas', num(t.abertas), num(t.sem_responsavel) + ' sem responsável', '/software'),
+      kpi('Atrasadas', num(t.atrasadas), t.atrasadas ? 'precisam de atenção' : 'tudo no prazo', '/software', t.atrasadas ? 'alerta' : ''),
+      kpi('Suporte em aberto', num(t.suporte_abertos), 'chamados nos quadros de suporte', '/software')
+    ]);
+    var resp = {};
+    s.carteira.forEach(function (p) { var r = p.responsavel || 'Sem responsável'; resp[r] = (resp[r] || 0) + 1; });
+    var respLista = Object.keys(resp).sort(function (a, b) { return resp[b] - resp[a]; }).map(function (k) { return { rot: k, v: resp[k] }; });
+    h += '<div class="amb-duas">' + cartao('Próximos prazos de Software (14 dias)', proximos(s.proximos.slice(0, 6), 'software')) +
+      cartao('Projetos por responsável', respLista.length ? barras(respLista) : vazio('Nenhum projeto em andamento.')) + '</div>';
+    return h;
+  }
+  function financeiroBloco(f) {
+    var pa = f.mrr_por_area, AREA = { software: 'Software', digital: 'Digital', outro: 'Outro', sem_area: 'Sem área' };
+    var h = kpis([
+      kpi('Receita recorrente', brl(f.mrr), 'Software ' + brl(pa.software) + ' · Digital ' + brl(pa.digital) + ' · outros ' + brl((pa.outro || 0) + (pa.sem_area || 0)), CFG.pode.financas ? '/financas?amb=empresa' : ''),
+      kpi('Previsto no mês', brl(f.previsto), 'cobranças com vencimento no mês'),
+      kpi('Recebido no mês', brl(f.recebido), f.previsto ? pct(Math.round(f.recebido / f.previsto * 1000) / 10) + ' do previsto' : ''),
+      kpi('A receber no mês', brl(f.a_receber), 'em aberto, vencendo no mês'),
+      kpi('Em atraso', brl(f.atrasado), num(f.cobrancas_atrasadas) + ' cobrança(s) vencida(s)', CFG.pode.financas ? '/financas?amb=empresa' : '', f.cobrancas_atrasadas ? 'alerta' : ''),
+      kpi('Próximos 7 dias', brl(f.proximos_7_dias.valor), num(f.proximos_7_dias.qtd) + ' cobrança(s) a vencer'),
+      (f.dre.receita || f.dre.despesa) ? kpi('Plano do DRE (fixos por mês)', brl(f.dre.resultado), 'receita ' + brl(f.dre.receita) + ' · despesa ' + brl(f.dre.despesa), CFG.pode.financas ? '/financas?amb=empresa' : '', f.dre.resultado < 0 ? 'alerta' : '') : ''
+    ]);
+    var areas = Object.keys(f.por_area).map(function (k) { var x = f.por_area[k]; return { rot: AREA[k] || k, v: x.recebido, txt: brl(x.recebido) + ' recebido · ' + brl(x.a_receber) + ' a receber' }; });
+    if (areas.length) h += cartao('Dinheiro do mês por área', barras(areas));
+    return h;
+  }
+  function clientesBloco(c) {
+    var h = kpis([
+      kpi('Clientes ativos', num(c.ativos), num(c.novos_mes) + ' novo(s) no mês', '/clientes?amb=empresa'),
+      kpi('De Software', num(c.software), '', '/clientes?amb=software'),
+      kpi('De Digital', num(c.digital), '', '/clientes?amb=digital'),
+      kpi('Nas duas áreas', num(c.nas_duas), 'contados uma vez no total'),
+      kpi('Sem área', num(c.sem_area), 'nem valor, quadro ou campanha', '', c.sem_area ? 'atencao' : ''),
+      kpi('Inadimplentes', num(c.inadimplentes), 'com cobrança vencida', '', c.inadimplentes ? 'alerta' : ''),
+      kpi('Sem responsável', num(c.sem_responsavel), 'ativos sem dono', '', c.sem_responsavel ? 'atencao' : '')
+    ]);
+    var st = Object.keys(c.por_status || {}).map(function (k) { return { rot: k, v: c.por_status[k] }; });
+    if (st.length > 1) h += cartao('Clientes por situação', barras(st));
+    return h;
+  }
+  function contratosBloco(k) {
+    return kpis([
+      kpi('Aguardando assinatura', num(k.aguardando), 'enviados e não assinados por todos', '/contratos?amb=empresa', k.aguardando ? 'atencao' : ''),
+      kpi('Assinados no mês', num(k.concluidos_mes), num(k.concluidos) + ' assinados no total', '/contratos?amb=empresa'),
+      kpi('Rascunhos', num(k.rascunhos), 'ainda não enviados', '/contratos?amb=empresa'),
+      kpi('Expirados ou recusados', num(k.perdidos), '', '/contratos?amb=empresa', k.perdidos ? 'alerta' : '')
+    ]);
+  }
+  function equipeBloco(e) {
+    var o = e.otif || {};
+    var h = kpis([
+      kpi('OTIF da equipe no mês', pct(o.otif_pct), o.compromissos ? num(o.otif) + ' de ' + num(o.compromissos) + ' no prazo e completas' : 'sem compromissos com prazo', CFG.pode.tarefas ? '/desempenho' : ''),
+      kpi('Tarefas abertas', num(e.abertas), num(e.sem_responsavel) + ' sem responsável'),
+      kpi('Tarefas atrasadas', num(e.atrasadas), '', '', e.atrasadas ? 'alerta' : '')
+    ]);
+    h += cartao('Por pessoa', e.pessoas.length ? '<table class="amb-tab"><thead><tr><th>Pessoa</th><th>Abertas</th><th>Atrasadas</th><th>Próximo prazo</th><th>OTIF no mês</th></tr></thead><tbody>' +
+      e.pessoas.map(function (p) {
+        return '<tr><td>' + esc(p.nome) + '</td><td>' + num(p.abertas) + '</td><td' + (p.atrasadas ? ' class="amb-verm"' : '') + '>' + num(p.atrasadas) + '</td><td>' + esc(data(p.proximo) || '-') + '</td><td>' + pct(p.otif_pct) + '</td></tr>';
+      }).join('') + '</tbody></table>' : vazio('Nenhuma tarefa aberta com responsável.'));
+    return h;
+  }
   function empresa() {
     seletorMes();
-    pedir('/api/ambientes.php?visao=empresa&mes=' + mes).then(function (r) {
+    var ini = mes + '-01', ult = new Date(+mes.slice(0, 4), +mes.slice(5, 7), 0).getDate();
+    Promise.all([
+      pedir('/api/ambientes.php?visao=empresa&mes=' + mes),
+      pedir('/api/dashboard_comercial.php?start=' + ini + '&end=' + mes + '-' + ('0' + ult).slice(-2)).then(function (r) { return r && r.kpis ? r : null; })
+    ]).then(function (res) {
+      var r = res[0], com = res[1];
       if (!r.ok) return erro(r.error || 'Não foi possível carregar a Visão Geral.');
       var d = r.data, rc = d.receita, cl = d.clientes, v = d.vendas, e = d.entregas, a = d.atrasos, p = d.pendencias, pa = rc.mrr_por_area;
-      var h = '<div class="ctr-central amb-kpis">' +
-        kpi('Receita recorrente', brl(rc.mrr), 'Software ' + brl(pa.software) + ' · Digital ' + brl(pa.digital) + (pa.outro || pa.sem_area ? ' · Outros ' + brl((pa.outro || 0) + (pa.sem_area || 0)) : ''), CFG.pode.financas ? '/financas?amb=empresa' : '') +
-        kpi('Recebido em ' + mesRotulo(d.mes), brl(rc.recebido_mes), rc.cobrancas_atrasadas ? brl(rc.atrasado) + ' em atraso (' + num(rc.cobrancas_atrasadas) + ')' : 'Nada em atraso', CFG.pode.financas ? '/financas?amb=empresa' : '', rc.cobrancas_atrasadas ? 'alerta' : '') +
-        kpi('Clientes ativos', num(cl.ativos), 'Software ' + num(cl.software) + ' · Digital ' + num(cl.digital) + ' · nas duas ' + num(cl.nas_duas), '/clientes?amb=empresa') +
-        kpi('Vendas no mês', num(v.qtd), brl(v.valor), '/dashboard?amb=comercial') +
-        kpi('Projetos', num(d.projetos.carteira), 'Quadros: Software ' + num(d.projetos.quadros.software) + ' · Digital ' + num(d.projetos.quadros.digital)) +
-        kpi('Entregas do mês', num(e.concluidas) + '<em>/' + num(e.contratadas || e.cadastradas) + '</em>', num(e.producao) + ' em produção · ' + num(e.aprovacao) + ' aguardando aprovação', '/digital?ver=entregas&mes=' + d.mes) +
-        '</div>';
+      var nav = [['empComercial', 'Comercial'], ['empFinanceiro', 'Financeiro'], ['empClientes', 'Clientes'], ['empMarketing', 'Marketing'], ['empSoftware', 'Software']];
+      if (d.contratos) nav.push(['empContratos', 'Contratos']);
+      nav.push(['empEquipe', 'Equipe'], ['empAtencao', 'Atrasos e pendências']);
+      var h = '<nav class="amb-nav" aria-label="Seções da Visão Geral">' + nav.map(function (n) { return '<a href="#' + n[0] + '">' + n[1] + '</a>'; }).join('') + '</nav>';
+      h += kpis([
+        kpi('Receita recorrente', brl(rc.mrr), 'Software ' + brl(pa.software) + ' · Digital ' + brl(pa.digital), CFG.pode.financas ? '/financas?amb=empresa' : ''),
+        kpi('Recebido em ' + mesRotulo(d.mes), brl(d.financeiro.recebido), rc.cobrancas_atrasadas ? brl(rc.atrasado) + ' em atraso' : 'Nada em atraso', '', rc.cobrancas_atrasadas ? 'alerta' : ''),
+        kpi('Receita fechada (funil)', com ? brl(com.kpis.atual.receita) : '-', com ? num(com.kpis.atual.vendas) + ' venda(s) no mês' : '', '/dashboard?amb=comercial'),
+        kpi('Clientes ativos', num(cl.ativos), 'Software ' + num(cl.software) + ' · Digital ' + num(cl.digital) + ' · nas duas ' + num(cl.nas_duas), '/clientes?amb=empresa'),
+        kpi('Projetos', num(d.projetos.carteira), 'Quadros: Software ' + num(d.projetos.quadros.software) + ' · Digital ' + num(d.projetos.quadros.digital)),
+        kpi('Entregas do mês', num(e.concluidas) + '<em>/' + num(e.contratadas || e.cadastradas) + '</em>', num(d.marketing.total.publicadas) + ' postada(s) · ' + num(e.atrasadas) + ' atrasada(s)', '/digital?ver=entregas&mes=' + d.mes, e.atrasadas ? 'alerta' : '')
+      ]);
+      h += secao('empComercial', 'Comercial', '/dashboard?amb=comercial', 'Abrir painel comercial',
+        com ? comercialBloco(com, d.comercial_areas) : '<div class="ctr-aviso">O painel comercial não respondeu agora. ' + esc(num(v.qtd)) + ' venda(s) no mês, ' + esc(brl(v.valor)) + '.</div>');
+      h += secao('empFinanceiro', 'Financeiro', CFG.pode.financas ? '/financas?amb=empresa' : '', 'Abrir Finanças', financeiroBloco(d.financeiro));
+      h += secao('empClientes', 'Clientes', '/clientes?amb=empresa', 'Abrir Clientes', clientesBloco(d.clientes_detalhe));
+      h += secao('empMarketing', 'Marketing (Digital)', '/digital', 'Abrir Digital', marketingBloco(d.marketing, d.mes));
+      h += secao('empSoftware', 'Software', '/software', 'Abrir Software', softwareBloco(d.software));
+      if (d.contratos) h += secao('empContratos', 'Contratos', '/contratos?amb=empresa', 'Abrir Contratos', contratosBloco(d.contratos));
+      h += secao('empEquipe', 'Equipe', CFG.pode.tarefas ? '/desempenho' : '', 'Abrir Desempenho', equipeBloco(d.equipe));
       var atrasos = [
         ['Tarefas de Software atrasadas', a.tarefas_software, '/software'], ['Tarefas de Digital atrasadas', a.tarefas_digital, '/digital'],
         ['Entregas atrasadas', a.entregas, '/digital?ver=entregas&mes=' + d.mes], ['Cobranças vencidas', a.cobrancas, CFG.pode.financas ? '/financas?amb=empresa' : '', a.cobrancas ? brl(a.cobrancas_valor) : '']
       ];
       var pend = [
         ['Entregas aguardando aprovação do cliente', p.aprovacoes, '/digital?ver=entregas&mes=' + d.mes], ['Materiais esperados ainda não recebidos', p.materiais, '/digital'],
+        ['Entregas a postar', d.marketing.total.a_publicar, '/digital?ver=entregas&mes=' + d.mes],
+        ['Clientes de marketing atrasados no ritmo do mês', d.marketing.clientes.filter(function (c) { return c.ritmo === 'atrasado'; }).length, '/digital'],
         ['Tarefas sem responsável', p.sem_responsavel, '/software']
       ];
       if (p.contratos !== null) pend.splice(2, 0, ['Contratos aguardando assinatura', p.contratos, '/contratos?amb=empresa']);
@@ -106,12 +264,12 @@
           return '<li>' + (x[2] ? '<a href="' + esc(x[2]) + '">' + dentro + '</a>' : '<span>' + dentro + '</span>') + '<span class="amb-pill' + (x[1] ? ' amb-pill-verm' : ' amb-pill-ok') + '">' + num(x[1]) + '</span></li>';
         }).join('') + '</ul>';
       }
-      h += '<div class="amb-duas">' + cartao('Atrasos', linhas(atrasos)) + cartao('Pendências', linhas(pend)) + '</div>';
+      h += secao('empAtencao', 'Atrasos e pendências', '', '', '<div class="amb-duas">' + cartao('Atrasos', linhas(atrasos)) + cartao('Pendências', linhas(pend)) + '</div>');
       if (CFG.admin) h += '<div id="ambDrive"></div>';
       h += cartao('Como os números são contados',
-        '<p class="amb-nota">Cada cliente conta uma vez no total, mesmo quando contrata Software e Digital; "nas duas" mostra quantos estão nas duas áreas. ' +
+        '<p class="amb-nota">O Comercial usa os mesmos números do painel comercial, no mês escolhido. Cada cliente conta uma vez no total, mesmo quando contrata Software e Digital; "nas duas" mostra quantos estão nas duas áreas. ' +
         'A receita recorrente soma cada linha de valor do cliente uma vez, na área da linha. As vendas seguem a regra do painel comercial: o negócio fechado no funil cujo cliente já tem valores cadastrados não conta de novo. ' +
-        'Entregas contam cartões marcados como entrega; item de checklist nunca conta.</p>');
+        'Entregas contam cartões marcados como entrega; item de checklist nunca conta. "Postada" é a entrega com publicação marcada como publicada. O ritmo compara as entregas concluídas com o contratado proporcional aos dias do mês.</p>');
       app.innerHTML = h;
       if (CFG.admin) driveCartao(document.getElementById('ambDrive'));
     });

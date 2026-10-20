@@ -201,7 +201,23 @@ final class Visao
         }
         $receita = self::receita($accountId, $hoje);
         $carteira = self::projetosCarteira($accountId);
+        $marketing = self::digital($accountId, $quadrosVisiveis, $clientesDigitais, $mes, $agora);
+        $verba = 0.0;
+        try {
+            $vb = Database::getConnection()->prepare("SELECT COALESCE(SUM(verba_mensal), 0) FROM crm_campanhas WHERE account_id = ? AND status = 'ativa'");
+            $vb->execute([$accountId]);
+            $verba = round((float) $vb->fetchColumn(), 2);
+        } catch (\Throwable $e) { $verba = 0.0; }
+        $marketing['total']['verba_ativa'] = $verba;
         return [
+            // Cada área com o seu bloco: a Empresa é a visão de tudo.
+            'financeiro' => self::financeiro($accountId, $mes, $hoje),
+            'clientes_detalhe' => self::clientesDetalhe($accountId, $mes, $hoje),
+            'software' => self::software($accountId, $quadrosVisiveis, $agora),
+            'marketing' => $marketing,
+            'comercial_areas' => self::comercialPorArea($accountId, $mes),
+            'contratos' => $veContratos ? self::contratos($accountId, $mes) : null,
+            'equipe' => self::equipe($accountId, $quadrosVisiveis, $mes, $agora),
             'mes' => substr($mes, 0, 7),
             'receita' => $receita,
             'clientes' => self::clientes($accountId),
@@ -223,6 +239,97 @@ final class Visao
                 'sem_responsavel' => $tSw['sem_responsavel'] + $tDg['sem_responsavel'],
             ],
         ];
+    }
+
+    // ── Empresa: as seções de cada área ───────────────────────────────────
+
+    /** Dinheiro do mês: recebido (por área), a receber, em atraso, próximos 7 dias e o plano do DRE. */
+    public static function financeiro(int $accountId, string $mes, ?string $hoje = null): array
+    {
+        $hoje ??= date('Y-m-d');
+        $ini = substr($mes, 0, 7) . '-01'; $fim = date('Y-m-t', strtotime($ini));
+        $pdo = Database::getConnection();
+        $st = $pdo->prepare("SELECT CONVERT(COALESCE(v.area, 'sem_area') USING utf8mb4) COLLATE utf8mb4_unicode_ci AS area,
+                                    COALESCE(SUM(CASE WHEN c.status = 'paga' AND c.pago_em BETWEEN ? AND ? THEN COALESCE(c.valor_pago, c.valor) END), 0) AS recebido,
+                                    COALESCE(SUM(CASE WHEN c.status = 'aberta' AND c.vencimento BETWEEN ? AND ? THEN c.valor END), 0) AS a_receber,
+                                    COALESCE(SUM(CASE WHEN c.status <> 'cancelada' AND c.vencimento BETWEEN ? AND ? THEN c.valor END), 0) AS previsto
+                               FROM crm_cliente_cobrancas c LEFT JOIN crm_cliente_valores v ON v.id = c.valor_id AND v.account_id = c.account_id
+                              WHERE c.account_id = ? GROUP BY area");
+        $st->execute([$ini, $fim, $ini, $fim, $ini, $fim, $accountId]);
+        $porArea = []; $tot = ['recebido' => 0.0, 'a_receber' => 0.0, 'previsto' => 0.0];
+        foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $x) {
+            $porArea[$x['area']] = ['recebido' => round((float) $x['recebido'], 2), 'a_receber' => round((float) $x['a_receber'], 2), 'previsto' => round((float) $x['previsto'], 2)];
+            foreach ($tot as $k => $_) $tot[$k] += (float) $x[$k];
+        }
+        $st = $pdo->prepare("SELECT COUNT(*) AS n, COALESCE(SUM(valor), 0) AS v FROM crm_cliente_cobrancas
+                              WHERE account_id = ? AND status = 'aberta' AND vencimento BETWEEN ? AND ?");
+        $st->execute([$accountId, $hoje, date('Y-m-d', strtotime($hoje . ' +7 days'))]);
+        $prox = $st->fetch(\PDO::FETCH_ASSOC);
+        $dre = ['receita' => 0.0, 'despesa' => 0.0, 'resultado' => 0.0];
+        try { $dre = \App\Financas\DREAccount::summary(['account_ids' => [$accountId]]); } catch (\Throwable $e) { /* sem DRE */ }
+        $rec = self::receita($accountId, $hoje);
+        return [
+            'mrr' => $rec['mrr'], 'mrr_por_area' => $rec['mrr_por_area'],
+            'recebido' => round($tot['recebido'], 2), 'a_receber' => round($tot['a_receber'], 2), 'previsto' => round($tot['previsto'], 2),
+            'por_area' => $porArea, 'atrasado' => $rec['atrasado'], 'cobrancas_atrasadas' => $rec['cobrancas_atrasadas'],
+            'proximos_7_dias' => ['qtd' => (int) $prox['n'], 'valor' => round((float) $prox['v'], 2)],
+            'dre' => ['receita' => round((float) $dre['receita'], 2), 'despesa' => round((float) $dre['despesa'], 2), 'resultado' => round((float) $dre['resultado'], 2)],
+        ];
+    }
+
+    /** A base de clientes: ativos, novos no mês, por área, inadimplentes, sem responsável. */
+    public static function clientesDetalhe(int $accountId, string $mes, ?string $hoje = null): array
+    {
+        $hoje ??= date('Y-m-d');
+        $ini = substr($mes, 0, 7) . '-01'; $fim = date('Y-m-t', strtotime($ini));
+        $pdo = Database::getConnection();
+        $base = self::clientes($accountId);
+        $st = $pdo->prepare("SELECT COUNT(*) FROM clientes WHERE account_id = ? AND deleted_at IS NULL AND DATE(created_at) BETWEEN ? AND ?");
+        $st->execute([$accountId, $ini, $fim]);
+        $novos = (int) $st->fetchColumn();
+        $st = $pdo->prepare("SELECT COUNT(DISTINCT c.cliente_id) FROM crm_cliente_cobrancas c JOIN clientes cl ON cl.id = c.cliente_id AND cl.account_id = c.account_id AND cl.deleted_at IS NULL
+                              WHERE c.account_id = ? AND c.status = 'aberta' AND c.vencimento < ?");
+        $st->execute([$accountId, $hoje]);
+        $inad = (int) $st->fetchColumn();
+        $st = $pdo->prepare("SELECT COUNT(*) FROM clientes WHERE account_id = ? AND deleted_at IS NULL AND status = 'ativo' AND responsavel_id IS NULL");
+        $st->execute([$accountId]);
+        $semResp = (int) $st->fetchColumn();
+        $st = $pdo->prepare("SELECT COALESCE(NULLIF(status, ''), 'sem status') AS s, COUNT(*) AS n FROM clientes WHERE account_id = ? AND deleted_at IS NULL GROUP BY s ORDER BY n DESC");
+        $st->execute([$accountId]);
+        return $base + ['novos_mes' => $novos, 'inadimplentes' => $inad, 'sem_responsavel' => $semResp, 'por_status' => $st->fetchAll(\PDO::FETCH_KEY_PAIR)];
+    }
+
+    public static function contratos(int $accountId, string $mes): array
+    {
+        $ini = substr($mes, 0, 7) . '-01'; $fim = date('Y-m-t 23:59:59', strtotime($ini));
+        try {
+            $st = Database::getConnection()->prepare("SELECT
+                    SUM(status IN ('aguardando', 'parcial')) AS aguardando, SUM(status = 'rascunho') AS rascunhos,
+                    SUM(status = 'concluido' AND concluido_em BETWEEN ? AND ?) AS concluidos_mes, SUM(status = 'concluido') AS concluidos,
+                    SUM(status IN ('expirado', 'recusado')) AS perdidos
+                  FROM crm_contratos WHERE account_id = ?");
+            $st->execute([$ini, $fim, $accountId]);
+            return array_map('intval', $st->fetch(\PDO::FETCH_ASSOC) ?: []);
+        } catch (\Throwable $e) { return []; }
+    }
+
+    /** A equipe: tarefas abertas e atrasadas por pessoa (todos os quadros que se vê) e o OTIF do mês. */
+    public static function equipe(int $accountId, array $quadrosVisiveis, string $mes, ?string $agora = null): array
+    {
+        $agora ??= date('Y-m-d H:i:s');
+        $t = self::tarefas(array_map(fn($b) => (int) $b['id'], $quadrosVisiveis), $agora);
+        $de = substr($mes, 0, 7) . '-01';
+        $ate = min(date('Y-m-t', strtotime($de)), substr($agora, 0, 10));
+        $otif = null; $porPessoa = [];
+        if ($ate >= $de) {
+            try {
+                $r = \App\Tarefas\Otif::relatorio([$accountId], $de, $ate);
+                $otif = $r['equipe'];
+                foreach ($r['colaboradores'] as $c) $porPessoa[(int) $c['user_id']] = $c['otif_pct'];
+            } catch (\Throwable $e) { $otif = null; }
+        }
+        $pessoas = array_map(fn($p) => $p + ['otif_pct' => $porPessoa[$p['id']] ?? null], $t['por_responsavel']);
+        return ['abertas' => $t['abertas'], 'atrasadas' => $t['atrasadas'], 'sem_responsavel' => $t['sem_responsavel'], 'otif' => $otif, 'pessoas' => $pessoas];
     }
 
     // ── Software ──────────────────────────────────────────────────────────

@@ -26,6 +26,12 @@ use App\Tarefas\TaskBoard;
  * contam no estado delas). "Contratadas" vem da frequência do cliente
  * (Frequencia), e "não cadastradas" é o que foi contratado e ainda não virou
  * cartão. Item de checklist nunca conta como entrega.
+ *
+ * POSTAGEM. À parte do estado: publicadas (publicação "publicado"), agendadas
+ * e a publicar (publicação "pendente"); entrega que não vai ao ar fica como
+ * "não se aplica" e não entra. RITMO do mês: o esperado até hoje é o
+ * contratado proporcional aos dias corridos (mês passado: tudo; mês futuro:
+ * nada); o cliente está "atrasado" quando as concluídas ficam abaixo dele.
  */
 final class Entrega
 {
@@ -191,7 +197,8 @@ final class Entrega
     {
         $agora ??= date('Y-m-d H:i:s');
         $mes = substr($mes, 0, 7);
-        $zero = ['contratadas' => 0, 'cadastradas' => 0, 'producao' => 0, 'aprovacao' => 0, 'concluidas' => 0, 'atrasadas' => 0, 'nao_cadastradas' => 0];
+        $zero = ['contratadas' => 0, 'cadastradas' => 0, 'producao' => 0, 'aprovacao' => 0, 'concluidas' => 0, 'atrasadas' => 0, 'nao_cadastradas' => 0,
+                 'publicadas' => 0, 'agendadas' => 0, 'a_publicar' => 0, 'esperado_ate_hoje' => 0];
         $out = ['total' => $zero, 'clientes' => []];
         $clienteIds = array_values(array_unique(array_map('intval', $clienteIds)));
         if (!$clienteIds) return $out;
@@ -199,7 +206,7 @@ final class Entrega
 
         $in = implode(',', array_fill(0, count($clienteIds), '?'));
         $st = Database::getConnection()->prepare(
-            "SELECT e.cliente_id, e.tipo, e.producao, e.aprovacao, e.entrega, t.prazo
+            "SELECT e.cliente_id, e.tipo, e.producao, e.aprovacao, e.entrega, e.publicacao, t.prazo
                FROM task_entregas_digital e JOIN tasks t ON t.id = e.task_id
               WHERE e.account_id = ? AND e.competencia = ? AND e.cliente_id IN ($in) AND t.status <> 'arquivada'"
         );
@@ -211,10 +218,13 @@ final class Entrega
             $out['clientes'][$c]['cadastradas']++;
             $out['clientes'][$c][$k]++;
             if ($sit !== 'concluida' && $e['prazo'] && $e['prazo'] < $agora) $out['clientes'][$c]['atrasadas']++;
+            $pub = ['publicado' => 'publicadas', 'agendado' => 'agendadas', 'pendente' => 'a_publicar'][$e['publicacao']] ?? null;
+            if ($pub) $out['clientes'][$c][$pub]++;
             $pt = &$out['clientes'][$c]['por_tipo'][$e['tipo']];
-            $pt ??= ['previsto' => 0, 'cadastradas' => 0, 'entregues' => 0];
+            $pt ??= ['previsto' => 0, 'cadastradas' => 0, 'entregues' => 0, 'publicados' => 0];
             $pt['cadastradas']++;
             if ($sit === 'concluida') $pt['entregues']++;
+            if ($e['publicacao'] === 'publicado') $pt['publicados']++;
             unset($pt);
         }
 
@@ -222,13 +232,18 @@ final class Entrega
             foreach ($porTipo as $tipo => $qtd) {
                 $out['clientes'][$c]['contratadas'] += $qtd;
                 $pt = &$out['clientes'][$c]['por_tipo'][$tipo];
-                $pt ??= ['previsto' => 0, 'cadastradas' => 0, 'entregues' => 0];
+                $pt ??= ['previsto' => 0, 'cadastradas' => 0, 'entregues' => 0, 'publicados' => 0];
                 $pt['previsto'] += $qtd;
                 unset($pt);
             }
         }
 
+        // Quanto do mês já passou, para o ritmo.
+        $hojeMes = substr($agora, 0, 7);
+        $fracao = $mes < $hojeMes ? 1.0 : ($mes > $hojeMes ? 0.0 : (int) substr($agora, 8, 2) / (int) date('t', strtotime($mes . '-01')));
         foreach ($out['clientes'] as $c => &$r) {
+            $r['esperado_ate_hoje'] = (int) floor($r['contratadas'] * $fracao);
+            $r['ritmo'] = $r['contratadas'] === 0 ? 'sem_meta' : ($r['concluidas'] >= $r['esperado_ate_hoje'] ? 'em_dia' : 'atrasado');
             foreach ($r['por_tipo'] as $tipo => &$pt) {
                 $pt['pendentes'] = max(0, $pt['previsto'] - $pt['entregues']);
                 $pt['rotulo'] = self::TIPOS[$tipo] ?? $tipo;
