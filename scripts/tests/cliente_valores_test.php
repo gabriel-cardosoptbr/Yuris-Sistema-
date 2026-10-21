@@ -61,8 +61,17 @@ $p = C::previstas(['tipo' => 'mensal', 'inicio' => '2026-01-01', 'dia_vencimento
 ok('mensal antiga cadastrada hoje não vira pilha para trás', count($p) === 2 && $p[0]['competencia'] === '2026-10-01');
 $p = C::previstas(['tipo' => 'mensal', 'inicio' => '2026-10-01', 'fim' => '2026-10-31', 'dia_vencimento' => 5, 'ativo' => 1, 'criado_em' => '2026-10-01'], $hoje);
 ok('fim corta as seguintes', count($p) === 1);
-$p = C::previstas(['tipo' => 'mensal', 'inicio' => '2026-10-31', 'ativo' => 1, 'criado_em' => '2026-10-20'], $hoje);
+$p = C::previstas(['tipo' => 'mensal', 'inicio' => '2026-10-31', 'ativo' => 1, 'criado_em' => '2026-10-20'], '2026-11-02');
 ok('sem dia de vencimento usa o dia do início (31 vira 30 em novembro)', count($p) === 2 && $p[1]['vencimento'] === '2026-11-30');
+// O caso do Gabriel (21/10/2026): mensalidade cadastrada abria a deste mês e a do mês que vem.
+$p = C::previstas(['tipo' => 'mensal', 'inicio' => '2026-08-28', 'ativo' => 1, 'criado_em' => '2026-10-21'], '2026-10-21');
+ok('só a próxima a vencer fica em aberto', count($p) === 1 && $p[0]['vencimento'] === '2026-10-28');
+$p = C::previstas(['tipo' => 'mensal', 'inicio' => '2026-08-28', 'ativo' => 1, 'criado_em' => '2026-10-21'], '2026-10-21', ['2026-10-01']);
+ok('paga a próxima, a seguinte aparece', count($p) === 2 && $p[1]['vencimento'] === '2026-11-28');
+$p = C::previstas(['tipo' => 'mensal', 'inicio' => '2026-08-28', 'ativo' => 1, 'criado_em' => '2026-10-21'], '2026-10-29');
+ok('venceu sem pagar: a atrasada e a próxima', count($p) === 2 && $p[1]['vencimento'] === '2026-11-28');
+$p = C::previstas(['tipo' => 'mensal', 'inicio' => '2026-08-28', 'ativo' => 1, 'criado_em' => '2026-10-21'], '2026-10-21', [], '2026-12-31');
+ok('a previsão (painel) vai até a data pedida', count($p) === 3);
 $p = C::previstas(['tipo' => 'anual', 'inicio' => '2026-11-05', 'ativo' => 1, 'criado_em' => '2026-10-20'], $hoje);
 ok('anual: uma no aniversário do início', count($p) === 1 && $p[0]['vencimento'] === '2026-11-05');
 $p = C::previstas(['tipo' => 'servico', 'inicio' => '2026-09-01', 'ativo' => 1, 'criado_em' => '2026-10-20'], $hoje);
@@ -91,7 +100,8 @@ try {
     ok('serviço sem data é recusado', recusa(fn() => V::salvar(304, 0, $cli, ['tipo' => 'servico', 'descricao' => 'A', 'valor' => 1])) === 'Informe a data da cobrança.');
     ok('contrato de outra conta é recusado', recusa(fn() => V::salvar(304, 0, $cli, ['tipo' => 'servico', 'descricao' => 'A', 'valor' => 1, 'inicio' => $ini, 'contrato_id' => 999999999])) !== null);
 
-    $a = V::salvar(304, 0, $cli, ['tipo' => 'mensal', 'descricao' => 'ZZTESTE mensalidade', 'valor' => '2.600,00', 'dia_vencimento' => 28, 'inicio' => $ini]);
+    $diaHoje = (int) substr($ini, 8, 2);
+    $a = V::salvar(304, 0, $cli, ['tipo' => 'mensal', 'descricao' => 'ZZTESTE mensalidade', 'valor' => '2.600,00', 'dia_vencimento' => $diaHoje, 'inicio' => $ini]);
     $criados[] = $a;
     $b = V::salvar(304, 0, $cli, ['tipo' => 'fixo', 'descricao' => 'ZZTESTE implantação', 'valor' => 1000, 'dia_vencimento' => 5, 'inicio' => $ini, 'fim' => '2030-01-01']);
     $criados[] = $b;
@@ -104,24 +114,28 @@ try {
     ok('taxa fixa não guarda dia de vencimento nem fim', $fixo['dia_vencimento'] === null && $fixo['fim'] === null);
 
     $ca = $cobsDe($a);
-    ok('mensalidade gerou as cobranças até o fim do mês que vem', count($ca) === 2 && $ca[0]['status'] === 'aberta' && (float) $ca[0]['valor'] === 2600.0);
+    ok('mensalidade gerou só a próxima a vencer', count($ca) === 1 && $ca[0]['status'] === 'aberta' && (float) $ca[0]['valor'] === 2600.0);
     ok('serviço gerou uma cobrança', count($cobsDe($s)) === 1);
-    ok('gerar de novo não duplica', C::sincronizar(304, $a) === 0 && count($cobsDe($a)) === 2);
+    ok('gerar de novo não duplica', C::sincronizar(304, $a) === 0 && count($cobsDe($a)) === 1);
+    ok('previsto no mês seguinte conta a mensalidade que ainda não abriu', C::previstoEntre(304, $ini, (new \DateTimeImmutable($ini))->modify('first day of next month')->format('Y-m-d'), C::horizonte($ini)) >= 2600.0);
 
     // Paga a primeira, muda o valor: a paga fica, a aberta futura muda.
     C::baixar(304, 0, (int) $ca[0]['id'], ['pago_em' => $ini, 'forma_pagamento' => 'pix']);
     ok('baixa marca paga com o valor cheio', ($x = $cobsDe($a, 'paga')) && (float) $x[0]['valor_pago'] === 2600.0 && $x[0]['forma_pagamento'] === 'pix');
     ok('baixa repetida é recusada', recusa(fn() => C::baixar(304, 0, (int) $ca[0]['id'], [])) !== null);
+    C::sincronizar(304, $a);
+    $ca = $cobsDe($a);
+    ok('paga a próxima, a seguinte abre', count($ca) === 2 && $ca[1]['status'] === 'aberta');
     ok('outra conta não dá baixa', recusa(fn() => C::baixar(476, 0, (int) $ca[1]['id'], [])) !== null);
-    V::salvar(304, 0, $cli, ['id' => $a, 'tipo' => 'mensal', 'descricao' => 'ZZTESTE mensalidade', 'valor' => 2800, 'dia_vencimento' => 28, 'inicio' => $ini]);
+    V::salvar(304, 0, $cli, ['id' => $a, 'tipo' => 'mensal', 'descricao' => 'ZZTESTE mensalidade', 'valor' => 2800, 'dia_vencimento' => $diaHoje, 'inicio' => $ini]);
     $ca2 = $cobsDe($a);
     ok('editar refaz a aberta e mantém a paga', (float) $ca2[0]['valor'] === 2600.0 && $ca2[0]['status'] === 'paga' && (float) $ca2[1]['valor'] === 2800.0);
 
-    V::salvar(304, 0, $cli, ['id' => $a, 'tipo' => 'mensal', 'descricao' => 'ZZTESTE mensalidade', 'valor' => 2800, 'dia_vencimento' => 28, 'inicio' => $ini, 'ativo' => false]);
+    V::salvar(304, 0, $cli, ['id' => $a, 'tipo' => 'mensal', 'descricao' => 'ZZTESTE mensalidade', 'valor' => 2800, 'dia_vencimento' => $diaHoje, 'inicio' => $ini, 'ativo' => false]);
     ok('encerrar cancela a aberta futura', $cobsDe($a, 'aberta') === [] && count($cobsDe($a, 'cancelada')) === 1);
     $d2 = V::doCliente(304, $cli);
     ok('encerrar tira do total por mês', $d2['resumo']['por_mes'] === round($d['resumo']['por_mes'] - 2600, 2));
-    V::salvar(304, 0, $cli, ['id' => $a, 'tipo' => 'mensal', 'descricao' => 'ZZTESTE mensalidade', 'valor' => 2800, 'dia_vencimento' => 28, 'inicio' => $ini, 'ativo' => true]);
+    V::salvar(304, 0, $cli, ['id' => $a, 'tipo' => 'mensal', 'descricao' => 'ZZTESTE mensalidade', 'valor' => 2800, 'dia_vencimento' => $diaHoje, 'inicio' => $ini, 'ativo' => true]);
     ok('reativar devolve a cobrança cancelada', count($cobsDe($a, 'aberta')) === 1);
 
     C::desfazer(304, (int) $ca[0]['id']);
@@ -141,19 +155,19 @@ try {
     ok('remover apaga a linha e as cobranças abertas dela', !in_array($b, array_column(V::doCliente(304, $cli)['itens'], 'id'), true) && $cobsDe($b) === []);
 
     // O caso da Juliana (20/10/2026): "2.500" lido como 2,50, cobranças canceladas à mão, valor corrigido.
-    $j = V::salvar(304, 0, $cli, ['tipo' => 'mensal', 'descricao' => '', 'valor' => '2,50', 'dia_vencimento' => 28, 'inicio' => $ini]);
+    $j = V::salvar(304, 0, $cli, ['tipo' => 'mensal', 'descricao' => '', 'valor' => '2,50', 'dia_vencimento' => $diaHoje, 'inicio' => $ini]);
     $criados[] = $j;
     ok('sem descrição vale o nome do tipo', array_values(array_filter(V::doCliente(304, $cli)['itens'], fn($i) => $i['id'] === $j))[0]['descricao'] === 'Mensalidade');
     foreach ($cobsDe($j, 'aberta') as $c) C::cancelar(304, (int) $c['id']);
     ok('canceladas à mão ficam canceladas enquanto o valor não muda', C::sincronizar(304, $j) === 0 && $cobsDe($j, 'aberta') === []);
-    V::salvar(304, 0, $cli, ['id' => $j, 'tipo' => 'mensal', 'descricao' => 'Mensalidade', 'valor' => '2.500', 'dia_vencimento' => 28, 'inicio' => $ini]);
+    V::salvar(304, 0, $cli, ['id' => $j, 'tipo' => 'mensal', 'descricao' => 'Mensalidade', 'valor' => '2.500', 'dia_vencimento' => $diaHoje, 'inicio' => $ini]);
     $voltou = $cobsDe($j, 'aberta');
-    ok('valor corrigido: a cobrança cancelada com o valor errado volta, com o valor certo', count($voltou) === 2 && (float) $voltou[0]['valor'] === 2500.0);
+    ok('valor corrigido: a cobrança cancelada com o valor errado volta, com o valor certo', count($voltou) === 1 && (float) $voltou[0]['valor'] === 2500.0);
     C::cancelar(304, (int) $voltou[0]['id']);
-    V::salvar(304, 0, $cli, ['id' => $j, 'tipo' => 'mensal', 'descricao' => 'Mensalidade', 'valor' => '2.500', 'dia_vencimento' => 28, 'inicio' => $ini, 'observacao' => 'só a observação']);
-    ok('cancelada à mão com o valor certo não volta sozinha', count($cobsDe($j, 'aberta')) === 1);
+    V::salvar(304, 0, $cli, ['id' => $j, 'tipo' => 'mensal', 'descricao' => 'Mensalidade', 'valor' => '2.500', 'dia_vencimento' => $diaHoje, 'inicio' => $ini, 'observacao' => 'só a observação']);
+    ok('cancelada à mão com o valor certo não volta sozinha', count($cobsDe($j, 'aberta')) === 0);
     C::reabrir(304, (int) $voltou[0]['id']);
-    ok('reabrir devolve a cancelada', count($cobsDe($j, 'aberta')) === 2);
+    ok('reabrir devolve a cancelada', count($cobsDe($j, 'aberta')) === 1);
     ok('outra conta não reabre', recusa(fn() => C::reabrir(476, (int) $voltou[0]['id'])) !== null);
 
     // Setores do cliente: as colunas do quadro (a principal em clientes.setor_id, as outras a mais).

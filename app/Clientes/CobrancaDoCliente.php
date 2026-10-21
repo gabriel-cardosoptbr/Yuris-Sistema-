@@ -15,9 +15,12 @@ use App\Core\Database;
  *   servico
  *   demanda   não gera cobrança (é só valor de referência).
  *
- * Geradas até o fim do mês seguinte (a próxima já aparece) pelo worker diário e
- * sempre que o valor é salvo. (valor_id, competencia) é único: gerar de novo não
- * duplica. Não se gera para trás antes do mês em que o valor foi cadastrado:
+ * Em aberto fica só o que já venceu e a PRÓXIMA a vencer (21/10/2026: cadastrar uma
+ * mensalidade abria a deste mês e a do mês que vem de uma vez). A seguinte aparece
+ * quando a próxima vence ou é paga, e só se vencer até o fim do mês seguinte. Gerada
+ * pelo worker diário e sempre que o valor é salvo. (valor_id, competencia) é único:
+ * gerar de novo não duplica. Aberta futura que deixou de ser a próxima (regra antiga)
+ * é apagada, não cancelada: volta sozinha quando chegar a vez dela. Não se gera para trás antes do mês em que o valor foi cadastrado:
  * mensalidade antiga cadastrada hoje não vira uma pilha de cobranças atrasadas.
  *
  * Mudou o valor, o dia ou o período: as cobranças ABERTAS a partir de hoje são
@@ -39,7 +42,7 @@ final class CobrancaDoCliente
         return (new \DateTimeImmutable('now', new \DateTimeZone('America/Sao_Paulo')))->format('Y-m-d');
     }
 
-    /** Último dia de cobrança gerada: o fim do mês seguinte ao de $hoje. */
+    /** O mais longe que a próxima cobrança pode vencer: o fim do mês seguinte ao de $hoje. */
     public static function horizonte(?string $hoje = null): string
     {
         $h = new \DateTimeImmutable(($hoje ?? self::hoje()) . ' 00:00:00');
@@ -54,14 +57,18 @@ final class CobrancaDoCliente
     }
 
     /**
-     * As cobranças que um valor deve ter (pura, para o teste).
+     * As cobranças que um valor deve ter (pura, para o teste): as que já venceram e a
+     * próxima a vencer, pulando as já pagas ($pagas: competências). Com $ate, a previsão
+     * inteira até essa data (para o "previsto no mês seguinte" do painel).
+     * @param string[] $pagas
      * @return array<int, array{competencia:string, vencimento:string}>
      */
-    public static function previstas(array $v, ?string $hoje = null): array
+    public static function previstas(array $v, ?string $hoje = null, array $pagas = [], ?string $ate = null): array
     {
         $tipo = (string) $v['tipo'];
         if ($tipo === 'demanda' || empty($v['inicio']) || empty($v['ativo'])) return [];
-        $limite = self::horizonte($hoje);
+        $hoje = $hoje ?? self::hoje();
+        $limite = $ate ?? self::horizonte($hoje);
         if (!empty($v['fim']) && $v['fim'] < $limite) $limite = (string) $v['fim'];
         $inicio = (string) $v['inicio'];
         if (in_array($tipo, ['fixo', 'servico'], true)) {
@@ -80,6 +87,8 @@ final class CobrancaDoCliente
             if ($venc > $limite) break;
             if ($comp < $piso && $tipo === 'mensal') continue;
             $out[] = ['competencia' => $comp, 'vencimento' => $venc];
+            // A próxima a vencer (e ainda não paga) é a última: a seguinte espera a vez.
+            if ($ate === null && $venc >= $hoje && !in_array($comp, $pagas, true)) break;
         }
         return $out;
     }
@@ -94,10 +103,14 @@ final class CobrancaDoCliente
         $v = $st->fetch(\PDO::FETCH_ASSOC);
         if (!$v) return 0;
         $v['criado_em'] = $v['created_at'];
+        $pg = $pdo->prepare("SELECT competencia FROM crm_cliente_cobrancas WHERE account_id = ? AND valor_id = ? AND status = 'paga'");
+        $pg->execute([$accountId, $valorId]);
+        $pagas = array_map('strval', $pg->fetchAll(\PDO::FETCH_COLUMN));
 
         // Encerrado, sem cobrança (demanda) ou cobranças abertas que não batem mais: as abertas
         // de hoje em diante saem (canceladas se o valor foi encerrado, refeitas se mudou).
-        $previstas = self::previstas($v, $hoje);
+        $previstas = self::previstas($v, $hoje, $pagas);
+        $ultima = $previstas ? end($previstas)['competencia'] : null;
         $porComp = [];
         foreach ($previstas as $p) $porComp[$p['competencia']] = $p;
         $atualiza = $pdo->prepare('UPDATE crm_cliente_cobrancas SET tipo = ?, vencimento = ?, valor = ?, descricao = ?, contrato_id = ? WHERE id = ?');
@@ -106,6 +119,13 @@ final class CobrancaDoCliente
         $abertas->execute([$accountId, $valorId, $hoje]);
         foreach ($abertas->fetchAll(\PDO::FETCH_ASSOC) as $c) {
             $p = $porComp[$c['competencia']] ?? null;
+            // Ainda não é a vez dela (depois da próxima, dentro do período): sai sem rastro e
+            // volta quando a anterior vencer ou for paga.
+            if (!$p && !empty($v['ativo']) && $ultima !== null && $c['competencia'] > $ultima
+                && (empty($v['fim']) || $c['vencimento'] <= $v['fim'])) {
+                $pdo->prepare("DELETE FROM crm_cliente_cobrancas WHERE id = ? AND status = 'aberta'")->execute([(int) $c['id']]);
+                continue;
+            }
             if (!$p) {
                 $pdo->prepare("UPDATE crm_cliente_cobrancas SET status = 'cancelada', observacao = ? WHERE id = ?")
                     ->execute([empty($v['ativo']) ? 'Valor encerrado' : 'Fora do período do valor', (int) $c['id']]);
@@ -187,6 +207,33 @@ final class CobrancaDoCliente
         return ['itens' => $itens, 'totais' => array_map(fn($x) => round($x, 2), $tot)];
     }
 
+    /**
+     * Quanto vence entre $de e $ate: as cobranças que já existem (menos as canceladas) e,
+     * para o que ainda não foi gerado (a cobrança só abre quando chega a vez), a previsão
+     * dos valores ativos.
+     */
+    public static function previstoEntre(int $accountId, string $hoje, string $de, string $ate): float
+    {
+        $pdo = Database::getConnection();
+        $st = $pdo->prepare('SELECT valor_id, competencia, status, valor FROM crm_cliente_cobrancas WHERE account_id = ? AND vencimento BETWEEN ? AND ?');
+        $st->execute([$accountId, $de, $ate]);
+        $total = 0.0; $tem = [];
+        foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $c) {
+            $tem[(int) $c['valor_id'] . '|' . $c['competencia']] = true;
+            if ($c['status'] !== 'cancelada') $total += (float) $c['valor'];
+        }
+        $vs = $pdo->prepare("SELECT * FROM crm_cliente_valores WHERE account_id = ? AND ativo = 1 AND tipo <> 'demanda' AND inicio IS NOT NULL");
+        $vs->execute([$accountId]);
+        foreach ($vs->fetchAll(\PDO::FETCH_ASSOC) as $v) {
+            $v['criado_em'] = $v['created_at'];
+            foreach (self::previstas($v, $hoje, [], $ate) as $p) {
+                if ($p['vencimento'] < $de || $p['vencimento'] > $ate || isset($tem[(int) $v['id'] . '|' . $p['competencia']])) continue;
+                $total += (float) $v['valor'];
+            }
+        }
+        return round($total, 2);
+    }
+
     /** O painel "Recebimentos de clientes" da tela Finanças. */
     public static function painel(int $accountId, string $filtro = 'abertas'): array
     {
@@ -207,6 +254,7 @@ final class CobrancaDoCliente
         );
         $k->execute([$hoje, $mesFim, $hoje, $hoje, $mesIni, $mesFim, $proxIni, $proxFim, $accountId]);
         $kpi = array_map('floatval', $k->fetch(\PDO::FETCH_ASSOC));
+        $kpi['previsto_proximo'] = self::previstoEntre($accountId, $hoje, $proxIni, $proxFim);
         $mr = $pdo->prepare("SELECT COALESCE(SUM(valor), 0) FROM crm_cliente_valores WHERE account_id = ? AND ativo = 1 AND tipo = 'mensal' AND (fim IS NULL OR fim >= ?)");
         $mr->execute([$accountId, $hoje]);
         $kpi['mensalidades_ativas'] = (float) $mr->fetchColumn();

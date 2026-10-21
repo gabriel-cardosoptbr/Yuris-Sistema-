@@ -445,7 +445,7 @@
       var op = Object.keys(TIPOS).map(function (k) { return '<option value="' + k + '"' + (i.tipo === k ? ' selected' : '') + '>' + TIPOS[k] + '</option>'; }).join('');
       var ops = '<option value="">Sem contrato</option>' + estado.contratos.map(function (c) { return '<option value="' + c.id + '"' + (i.contrato_id === c.id ? ' selected' : '') + '>' + esc(c.titulo) + '</option>'; }).join('');
       return '<div class="ffcli-form"><div class="c2"><label>Tipo</label><select data-f="tipo">' + op + '</select></div>' +
-        '<div class="c2"><label>Valor (R$)</label><input data-f="valor" inputmode="decimal" placeholder="0,00" value="' + (i.valor != null ? String(i.valor).replace('.', ',') : '') + '"></div>' +
+        '<div class="c2"><label>Valor (R$)</label><input data-f="valor" inputmode="decimal" placeholder="0,00" value="' + (i.valor != null ? String(i.valor).replace('.', ',') : '') + '"><div class="dica" data-dica-valor></div></div>' +
         '<div class="c2" data-dia><label>Dia de vencimento</label><input data-f="dia_vencimento" inputmode="numeric" maxlength="2" placeholder="10" value="' + (i.dia_vencimento || '') + '"></div>' +
         '<div class="c6"><label>Descrição</label><input data-f="descricao" maxlength="160" placeholder="Ex.: Mensalidade do sistema, Criação do site, Taxa de implantação" value="' + esc(i.descricao || '') + '"></div>' +
         '<div class="c3"><label data-rot-inicio>Começa em</label><input type="date" data-f="inicio" value="' + esc(i.inicio || '') + '"><div class="dica" data-dica-inicio></div></div>' +
@@ -473,6 +473,27 @@
           q('[data-dica-inicio]').textContent = t === 'mensal' ? 'A primeira mensalidade vence a partir desta data.' : t === 'anual' ? 'A primeira anuidade vence a partir desta data.' : (t === 'demanda' ? '' : 'Gera uma cobrança única nesta data.');
         };
         sel.onchange = ajustar; ajustar();
+      }
+      // Prévia do que vai ser gravado, com a mesma leitura do servidor (ValoresDoCliente::numero):
+      // "800" é 800, "2.500" é 2.500, "1.234,56" é 1.234,56. Quem digita vê o número antes de salvar.
+      var cv = q('[data-f="valor"]'), dv = q('[data-dica-valor]');
+      if (cv && dv) {
+        var lerValor = function (s) {
+          s = String(s || '').trim().replace(/[^\d,.\-]/g, '');
+          if (!s) return null;
+          if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+          else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+          var n = Number(s); return isFinite(n) ? Math.round(n * 100) / 100 : null;
+        };
+        var previa = function () {
+          var n = lerValor(cv.value), t = sel ? sel.value : '';
+          if (cv.value.trim() === '') { dv.textContent = ''; return; }
+          if (n === null) { dv.textContent = 'Valor não reconhecido.'; return; }
+          dv.textContent = 'Fica ' + n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + (t === 'mensal' ? ' por mês' : t === 'anual' ? ' por ano' : '') + '.';
+        };
+        cv.addEventListener('input', previa);
+        if (sel) sel.addEventListener('change', previa);
+        previa();
       }
       var cc = q('[data-cancelar]'); if (cc) cc.onclick = function () { estado.formAberto = false; estado.editando = null; desenhar(); };
       var sv = q('[data-salvar]');
