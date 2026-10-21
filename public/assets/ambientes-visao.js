@@ -81,14 +81,44 @@
   // A visão de tudo, em gráficos: cada área com evolução, distribuição e os
   // números do mês. Chart.js (o mesmo do painel comercial), nas cores da marca.
   var PM = (window.MARCA && window.MARCA.paleta) || {};
-  var COR = { marca: PM.marca || '#015DFC', clara: PM.clara || '#6D9DFD', media: PM.media || '#A9C6FF', forte: PM.forte || '#013DF2',
+  // A cor do ambiente (ambientes.css, html[data-ambiente]) vai na frente das séries; sem ela, a da marca.
+  var estiloRaiz = getComputedStyle(document.documentElement);
+  var ambC = (estiloRaiz.getPropertyValue('--amb-c') || '').trim(), ambC2 = (estiloRaiz.getPropertyValue('--amb-c2') || '').trim();
+  // Tons claros derivados da cor do ambiente (mistura com branco), para as séries secundárias acompanharem.
+  function clarear(hex, p) {
+    var m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return null;
+    var n = parseInt(m[1], 16), r = n >> 16, g = (n >> 8) & 255, bl = n & 255, f = function (c) { return Math.round(c + (255 - c) * p).toString(16).padStart(2, '0'); };
+    return '#' + f(r) + f(g) + f(bl);
+  }
+  var COR = { marca: ambC || PM.marca || '#015DFC', clara: clarear(ambC, .35) || PM.clara || '#6D9DFD', media: clarear(ambC, .62) || PM.media || '#A9C6FF', forte: ambC2 || PM.forte || '#013DF2',
     violeta: '#835FF2', ambar: '#FDAD0D', laranja: '#F55902', verde: '#1A9B4B', vermelho: '#D13C3C', cinza: '#9AA4B2' };
+  if (ambC2 && ambC2 !== COR.violeta) COR.violeta = ambC2;
   var PALETA = [COR.marca, COR.violeta, COR.ambar, COR.verde, COR.laranja, COR.clara, COR.forte, COR.cinza];
   var escuro = function () { return document.documentElement.getAttribute('data-theme') !== 'light'; };
   var graficos = [];
   function gid() { return 'g' + Math.random().toString(36).slice(2, 9); }
   function canvas(id, altura) { return '<div class="amb-graf" style="height:' + (altura || 240) + 'px"><canvas id="' + id + '"></canvas></div>'; }
+  // A navegação rápida acende o link da seção que está na tela.
+  function ligarNav() {
+    var nav = document.querySelector('.amb-nav');
+    if (!nav || nav._ligado || !window.IntersectionObserver) return;
+    nav._ligado = true;
+    var links = {};
+    nav.querySelectorAll('a[href^="#"]').forEach(function (a) { links[a.getAttribute('href').slice(1)] = a; });
+    var vistos = {};
+    function marcar() {
+      var atual = null;
+      Object.keys(links).forEach(function (id) { if (vistos[id] && (!atual || vistos[id] < vistos[atual])) atual = id; });
+      Object.keys(links).forEach(function (id) { links[id].classList.toggle('ativo', id === atual); });
+    }
+    var obs = new IntersectionObserver(function (ents) {
+      ents.forEach(function (e) { if (e.isIntersecting) vistos[e.target.id] = e.boundingClientRect.top; else delete vistos[e.target.id]; });
+      marcar();
+    }, { rootMargin: '-56px 0px -55% 0px', threshold: 0 });
+    Object.keys(links).forEach(function (id) { var s = document.getElementById(id); if (s) obs.observe(s); });
+  }
   function desenharGraficos(lista) {
+    ligarNav();
     if (!window.Chart) return;
     graficos.forEach(function (g) { try { g.destroy(); } catch (e) { /* já saiu da tela */ } });
     graficos = [];

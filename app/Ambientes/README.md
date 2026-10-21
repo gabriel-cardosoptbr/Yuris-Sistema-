@@ -31,7 +31,12 @@ quadro de Clientes e na ficha** (21/10/2026): o `sidebar.php` põe o ambiente em
 `html[data-ambiente]` e o CSS recolore a partir dali os cabeçalhos e contadores das
 colunas, o hover dos cards, as abas, ícones, botões e a faixa do topo da ficha, os
 tiles de números e os quadros internos (entregas, projeto, propostas), com os
-cards entrando um a um; guarda de formulário,
+cards entrando um a um. **As Visões Gerais também** (21/10/2026): a primeira cor
+das séries dos gráficos é a do ambiente (`ambientes-visao.js` lê `--amb-c` e
+`--amb-c2`), os títulos das seções e dos cartões ganham a marca colorida, os
+tiles e KPIs vêm em degradê suave com o número na cor, as barras em degradê, e a
+navegação rápida acende o link da seção que está na tela (IntersectionObserver);
+guarda de formulário,
 faixa de Clientes, bloco do Comercial), `ambientes-visao.js` (Visões Gerais,
 Entregas, Campanhas) e `ff-cliente-operacao.js` (a ficha e o card de cada
 ambiente). API: `public/api/ambientes.php` e `public/api/digital.php`.
