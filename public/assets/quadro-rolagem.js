@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════
    quadro-rolagem.js: rolagem lateral de quadro Kanban (21/10/2026).
    Em todo elemento com [data-rolagem-lateral] (hoje o quadro de Clientes):
-     - uma barra de rolagem também em cima, que anda junto com a de baixo;
+     - a barra de rolagem fica só em cima (a de baixo some);
      - segurar o mouse no fundo do quadro (ou de uma coluna) e arrastar para
        o lado rola o quadro, como no Trello. Segurar um card continua
        movendo o card (SortableJS); link, botão e campo não começam o arrasto.
@@ -11,6 +11,8 @@
 (function () {
   'use strict';
   var CSS = '.qr-topo{overflow-x:auto;overflow-y:hidden;height:14px;margin:0 2px 6px}.qr-topo>div{height:1px}' +
+    // Só a barra de cima: a de baixo some (o quadro continua rolando pela de cima, arrastando e no toque).
+    '.qr-sem-barra{scrollbar-width:none}.qr-sem-barra::-webkit-scrollbar{display:none;height:0}' +
     '.qr-pan{cursor:grab}.qr-pan.qr-arrastando,.qr-pan.qr-arrastando *{cursor:grabbing!important;user-select:none}';
   // O que não começa o arrasto do quadro: card (arrasta o card) e o que é clicável.
   var NAO = '.cli-card, .ffc-copia, .card-mini, a, button, input, select, textarea, label, [contenteditable="true"], [role="button"]';
@@ -54,7 +56,7 @@
     medir();
 
     // ── Arrastar o quadro para o lado ────────────────────────────────────
-    board.classList.add('qr-pan');
+    board.classList.add('qr-pan', 'qr-sem-barra');
     board.addEventListener('pointerdown', function (e) {
       if (e.pointerType !== 'mouse' || e.button !== 0) return;
       if (e.target.closest(NAO)) return;
