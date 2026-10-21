@@ -21,7 +21,7 @@ final class Api
     public const UPLOAD = 'https://www.googleapis.com/upload/drive/v3/files';
     public const PASTA = 'application/vnd.google-apps.folder';
 
-    /** @var null|callable(string $metodo, string $url, array $cabecalhos, ?string $corpo): array{0:int, 1:string} */
+    /** @var null|callable(string $metodo, string $url, array $cabecalhos, ?string $corpo): array{0:int, 1:string, 2?:array} (o 3º: cabeçalhos da resposta, em minúsculas) */
     public static $transporte = null;
 
     public static function clientId(): string { return trim(EnvLoader::get('GOOGLE_DRIVE_CLIENT_ID', '')); }
@@ -97,6 +97,75 @@ final class Api
         if ($json !== null) { $cab['Content-Type'] = 'application/json; charset=utf-8'; $corpo = json_encode($json, JSON_UNESCAPED_UNICODE); }
         [$st, $resp] = self::enviar($metodo, $url, $cab, $corpo);
         return self::resposta($st, $resp);
+    }
+
+    /**
+     * Abre uma sessão de envio "resumable" e devolve o endereço dela. O navegador
+     * manda o arquivo direto para esse endereço (sem passar pelo servidor, então
+     * sem o limite de envio do PHP); o token de acesso nunca sai do servidor. A
+     * origem (o endereço do sistema) é o que libera o CORS da sessão no Google.
+     */
+    public static function abrirEnvio(string $acesso, array $meta, string $mime, int $tamanho, string $origem): string
+    {
+        $cab = ['Authorization' => 'Bearer ' . $acesso, 'Content-Type' => 'application/json; charset=UTF-8', 'X-Upload-Content-Type' => $mime ?: 'application/octet-stream', 'Origin' => $origem];
+        if ($tamanho > 0) $cab['X-Upload-Content-Length'] = (string) $tamanho;
+        $url = self::UPLOAD . '?' . http_build_query(['uploadType' => 'resumable', 'supportsAllDrives' => 'true', 'fields' => 'id,name,mimeType,modifiedTime,webViewLink,size,parents']);
+        if (self::$transporte) {
+            $r = (self::$transporte)('POST', $url, $cab, json_encode($meta, JSON_UNESCAPED_UNICODE));
+            $local = (string) ($r[2]['location'] ?? '');
+            if ($r[0] >= 300 || $local === '') self::resposta($r[0], $r[1] ?: '{}');
+            return $local;
+        }
+        $ch = curl_init($url);
+        $linhas = [];
+        foreach ($cab as $k => $v) $linhas[] = $k . ': ' . $v;
+        $local = '';
+        curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => $linhas, CURLOPT_CONNECTTIMEOUT => 8, CURLOPT_TIMEOUT => 30,
+            CURLOPT_POSTFIELDS => json_encode($meta, JSON_UNESCAPED_UNICODE),
+            CURLOPT_HEADERFUNCTION => function ($c, $linha) use (&$local) { if (stripos($linha, 'location:') === 0) $local = trim(substr($linha, 9)); return strlen($linha); }]);
+        $resp = curl_exec($ch);
+        $st = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($resp === false) throw new DriveErro('Sem conexão com o Google.', 0);
+        if ($st >= 300 || $local === '') self::resposta($st, (string) $resp ?: '{}');
+        if (!preg_match('#^https://(www\.)?googleapis\.com/upload/#', $local)) throw new DriveErro('O Google devolveu um endereço de envio inesperado.', 502);
+        return $local;
+    }
+
+    /**
+     * Baixa um arquivo do Drive em pedaços, sem guardar tudo na memória. $aoComecar
+     * roda uma vez, antes do primeiro pedaço, só se o Google respondeu 200 (é ali
+     * que a tela manda os cabeçalhos do download). Erro do Google vira DriveErro.
+     */
+    public static function transmitir(string $acesso, string $url, callable $aoPedaco, ?callable $aoComecar = null): void
+    {
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        if (!preg_match('/(^|\.)googleapis\.com$/', $host)) throw new DriveErro('Endereço de download inesperado.', 400);
+        $cab = ['Authorization' => 'Bearer ' . $acesso];
+        if (self::$transporte) {
+            [$st, $corpo] = (self::$transporte)('GET', $url, $cab, null);
+            if ($st !== 200) self::resposta($st, $corpo);
+            if ($aoComecar) $aoComecar();
+            $aoPedaco($corpo);
+            return;
+        }
+        $status = 0; $comecou = false; $erro = '';
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $acesso], CURLOPT_FOLLOWLOCATION => true, CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_TIMEOUT => 0, CURLOPT_LOW_SPEED_LIMIT => 1, CURLOPT_LOW_SPEED_TIME => 60,
+            CURLOPT_HEADERFUNCTION => function ($c, $linha) use (&$status) { if (preg_match('#^HTTP/\S+\s+(\d{3})#', $linha, $m)) $status = (int) $m[1]; return strlen($linha); },
+            CURLOPT_WRITEFUNCTION => function ($c, $pedaco) use (&$status, &$comecou, &$erro, $aoPedaco, $aoComecar) {
+                if ($status !== 200) { $erro .= $pedaco; return strlen($pedaco); }
+                if (!$comecou) { $comecou = true; if ($aoComecar) $aoComecar(); }
+                $aoPedaco($pedaco);
+                return strlen($pedaco);
+            }]);
+        $ok = curl_exec($ch);
+        $falha = curl_error($ch);
+        curl_close($ch);
+        if ($status !== 200) self::resposta($status ?: 502, $erro ?: '{}');
+        if ($ok === false && !$comecou) throw new DriveErro('Sem conexão com o Google (' . $falha . ').', 0);
+        if (!$comecou) { if ($aoComecar) $aoComecar(); }
     }
 
     /** Envio de arquivo (multipart: metadados + conteúdo). */

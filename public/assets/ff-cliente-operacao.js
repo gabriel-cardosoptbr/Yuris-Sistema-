@@ -45,6 +45,7 @@
   }
   function aviso(msg, tipo) { if (window.Yuris && window.Yuris.toast) window.Yuris.toast(msg, tipo || 'error'); }
   var AREA = { software: 'Software', digital: 'Digital / Marketing', empresa: 'Empresa', comercial: 'Comercial' };
+  var DRIVE_SVG = '<svg viewBox="0 0 87.3 78" aria-hidden="true"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/><path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg>';
   var PRIO = { urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa' };
   var PUB = { publicado: 'Publicado', agendado: 'Agendado', pendente: 'A publicar', nao_se_aplica: 'Não vai ao ar' };
 
@@ -70,6 +71,9 @@
     '.ffop-pill{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:99px;font-size:11px;font-weight:700;background:#EEF0F3;color:#374151;white-space:nowrap}' +
     '.ffop-pill.publicado,.ffop-pill.ok{background:#D1FAE5;color:#047857}.ffop-pill.agendado{background:#E0F2FE;color:#0369A1}.ffop-pill.pendente,.ffop-pill.atencao{background:#FFF4D6;color:#B45309}.ffop-pill.alerta{background:#FEE2E2;color:#B91C1C}' +
     '.ffop-amb{font-size:12px;font-weight:700;color:var(--ff-marca,#015DFC);margin-top:2px}' +
+    '.ffop-gd{display:inline-flex;align-items:center;gap:5px;margin-left:8px;padding:2px 8px;border-radius:99px;background:rgba(17,29,45,.06);font-size:11px;font-weight:700;vertical-align:middle}.ffop-gd svg{width:14px;height:13px}' +
+    '.ffop-secbar{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin-bottom:8px;font-size:12px}.ffop-secbar .ffcli-vazio{margin-right:auto}' +
+    '.ffop-secnova{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.ffop-secnova input{flex:1;min-width:180px;padding:7px 10px;border-radius:9px;border:1px solid rgba(17,29,45,.16);font:inherit;font-size:13px;background:transparent;color:inherit}' +
     '.ffop-cab{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}' +
     // Card do quadro de Clientes
     '.ffc-op .ffc-op-tit{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ffc-mu,#6B7280);margin-bottom:4px}' +
@@ -227,6 +231,91 @@
     var elDrive = window.FfDrive ? secao('ffOpDrive', 'Google Drive do cliente', 'clipe', '', dir, 'topo') : null;
     function sec(el) { return el && el.closest('.form-section'); }
 
+    // ── Seções do Google Drive (títulos e pastas escolhidos pela equipe) ──
+    function marcaDrive(s) {
+      var t = s.querySelector('.form-section-title');
+      if (t && !t.querySelector('.ffop-gd')) t.insertAdjacentHTML('beforeend', '<span class="ffop-gd" title="Pasta do Google Drive">' + DRIVE_SVG + 'Google Drive</span>');
+    }
+    if (elDrive) marcaDrive(sec(elDrive));
+    var secoesDrive = [], elNovaSecao = null;
+    if (elDrive && AMB !== 'comercial') {
+      elNovaSecao = document.createElement('div');
+      var sNova = F.envolver([elNovaSecao]);
+      F.secao(sNova, 0, 'Nova seção do Drive', 'clipe', '');
+      sNova.setAttribute('data-drive-nova', '1');
+      sNova.classList.add('ff-fechada');
+      dir.insertBefore(sNova, sec(elDrive).nextSibling);
+    }
+    function desenharNovaSecao() {
+      if (!elNovaSecao) return;
+      elNovaSecao.innerHTML = '<div class="ffcli-vazio" style="margin-bottom:6px">Organize a pasta do cliente em seções com título (ex.: "Mídias prontas" em cima, "Mídias editadas" embaixo). ' +
+        'Para usar uma pasta que já existe, abra a pasta no bloco do Drive e clique em "Criar seção com esta pasta". Ou crie aqui uma pasta nova:</div>' +
+        '<div class="ffop-secnova" data-amb-guarda><input type="text" maxlength="120" data-nsec placeholder="Título da seção (vira uma pasta nova dentro da pasta do cliente)"><button type="button" class="ffcli-bt princ" data-nsec-ok>Criar seção</button></div><div class="ffcli-erro" data-nsec-erro></div>';
+      var i = elNovaSecao.querySelector('[data-nsec]');
+      function criar() {
+        if (!i.value.trim()) { i.focus(); return; }
+        pedirDrive('', { acao: 'secao_criar', cliente_id: estado.id, titulo: i.value }).then(function (r) {
+          if (!r.ok) { elNovaSecao.querySelector('[data-nsec-erro]').textContent = r.error || 'Não foi possível criar.'; return; }
+          i.closest('[data-amb-guarda]').removeAttribute('data-amb-sujo');
+          desenharSecoes(r.data);
+          desenharNovaSecao();
+        });
+      }
+      elNovaSecao.querySelector('[data-nsec-ok]').onclick = criar;
+      i.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); criar(); } });
+    }
+    function pedirDrive(qs, corpo) {
+      var o = { credentials: 'same-origin', headers: { Accept: 'application/json' } };
+      if (corpo) { o.method = 'POST'; o.headers['Content-Type'] = 'application/json'; o.headers['X-CSRF-Token'] = CSRF(); o.body = JSON.stringify(corpo); }
+      return fetch('/api/drive.php' + (qs || ''), o).then(function (r) { return r.json(); }).catch(function () { return { ok: false, error: 'Sem conexão.' }; });
+    }
+    function desenharSecoes(lista) {
+      secoesDrive.forEach(function (s) { s.remove(); });
+      secoesDrive = [];
+      if (!elDrive || !estado.id) return;
+      var depois = sec(elDrive);
+      (lista || []).forEach(function (x, k) {
+        var corpo = document.createElement('div');
+        var s = F.envolver([corpo]);
+        F.secao(s, 0, x.titulo, 'clipe', '');
+        s.setAttribute('data-drive-secao', String(x.id));
+        marcaDrive(s);
+        dir.insertBefore(s, depois.nextSibling);
+        depois = s;
+        secoesDrive.push(s);
+        corpo.innerHTML = '<div class="ffop-secbar"><span class="ffcli-vazio">Pasta: ' + esc(x.folder_nome || '') + '</span>' +
+          '<button type="button" class="ffcli-link" data-ren>Renomear</button>' + (k > 0 ? '<button type="button" class="ffcli-link" data-sobe>Subir</button>' : '') +
+          (k < lista.length - 1 ? '<button type="button" class="ffcli-link" data-desce>Descer</button>' : '') + '<button type="button" class="ffcli-link perigo" data-rem>Remover seção</button></div>' +
+          '<div data-sec-msg></div><div data-sec-painel></div>';
+        var msg = corpo.querySelector('[data-sec-msg]');
+        function salvar(c) { pedirDrive('', Object.assign({ cliente_id: estado.id }, c)).then(function (r) { if (!r.ok) { msg.innerHTML = '<div class="ffcli-erro">' + esc(r.error || 'Não foi possível salvar.') + '</div>'; return; } desenharSecoes(r.data); }); }
+        function mover(d) { var ids = lista.map(function (y) { return y.id; }); var j = k + d; ids[k] = ids[j]; ids[j] = x.id; salvar({ acao: 'secao_ordem', ids: ids }); }
+        var bs = corpo.querySelector('[data-sobe]'), bd = corpo.querySelector('[data-desce]');
+        if (bs) bs.onclick = function () { mover(-1); };
+        if (bd) bd.onclick = function () { mover(1); };
+        corpo.querySelector('[data-ren]').onclick = function () {
+          msg.innerHTML = '<div class="ffop-secnova" data-amb-guarda><input type="text" maxlength="120" value="' + esc(x.titulo) + '"><button type="button" class="ffcli-bt princ">Salvar título</button><button type="button" class="ffcli-bt">Cancelar</button></div>';
+          var inp = msg.querySelector('input'), b = msg.querySelectorAll('button');
+          inp.focus(); inp.select();
+          b[0].onclick = function () { salvar({ acao: 'secao_renomear', id: x.id, titulo: inp.value }); };
+          b[1].onclick = function () { msg.innerHTML = ''; };
+          inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); b[0].click(); } });
+        };
+        corpo.querySelector('[data-rem]').onclick = function () {
+          msg.innerHTML = '<div class="ffop-secnova"><span>Remover a seção "' + esc(x.titulo) + '"? A pasta e os arquivos continuam no Drive.</span><button type="button" class="ffcli-bt princ">Remover</button><button type="button" class="ffcli-bt">Cancelar</button></div>';
+          var b = msg.querySelectorAll('button');
+          b[0].onclick = function () { salvar({ acao: 'secao_remover', id: x.id }); };
+          b[1].onclick = function () { msg.innerHTML = ''; };
+        };
+        window.FfDrive.painel(corpo.querySelector('[data-sec-painel]'), estado.id, { raiz: x.folder_id });
+      });
+      aplicar();
+    }
+    function carregarSecoes(id) {
+      if (!elDrive || AMB === 'comercial') return;
+      pedirDrive('?cliente=' + id + '&secoes=1').then(function (r) { if (estado.id === id && r.ok) desenharSecoes(r.data); });
+    }
+
     // A faixa do topo: no Digital o Instagram e no Software o sistema, no lugar da origem.
     var faixa = modal.querySelector('.ff-resumo'), celAmb = null;
     if (faixa && (AMB === 'digital' || AMB === 'software')) {
@@ -246,7 +335,7 @@
         Array.prototype.forEach.call(col.children, function (s) {
           var t = s.getAttribute('data-ff-titulo');
           if (!t) return;
-          var m = MAPA[t];
+          var m = MAPA[t] || (s.hasAttribute('data-drive-secao') || s.hasAttribute('data-drive-nova') ? MAPA['Google Drive do cliente'] : null);
           if (m) s.setAttribute('data-ff-abas', m[CHAVE].join(' '));
           if (s.getAttribute('data-ff-numero') === '1') {
             s.setAttribute('data-ff-numero', '');
@@ -615,7 +704,7 @@
         desenharNegociacoes();
         desenharQuadros(); desenharFrequencia(); desenharCampanhas(); desenharMes(); desenharLista();
       });
-      if (elDrive && (forcar !== true)) window.FfDrive.painel(elDrive, id);
+      if (elDrive && (forcar !== true)) { window.FfDrive.painel(elDrive, id, { aoSecoes: desenharSecoes }); desenharSecoes([]); desenharNovaSecao(); carregarSecoes(id); }
     }
     new MutationObserver(function () {
       if (modal.classList.contains('open')) { aplicar(); carregar(); }

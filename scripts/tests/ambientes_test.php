@@ -2,7 +2,7 @@
 /**
  * ambientes_test.php: os ambientes da Inovaize (app/Ambientes), a operação de
  * Digital (app/Digital) e o Google Drive dos clientes (app/Drive), migrations
- * 159, 160, 161 e 162.
+ * 159 a 163.
  *
  *   - ambiente de cada página (?amb=, página de um ambiente só, último usado),
  *     menu de cada ambiente montado com as páginas que a pessoa já via, e quem
@@ -248,13 +248,26 @@ try {
     echo "\n== Google Drive (Google de mentira) ==\n";
     putenv('GOOGLE_DRIVE_CLIENT_ID=teste'); putenv('GOOGLE_DRIVE_CLIENT_SECRET=teste'); putenv('GOOGLE_DRIVE_DOMINIO=inovaize.com');
     $_ENV['GOOGLE_DRIVE_CLIENT_ID'] = 'teste'; $_ENV['GOOGLE_DRIVE_CLIENT_SECRET'] = 'teste'; $_ENV['GOOGLE_DRIVE_DOMINIO'] = 'inovaize.com';
-    $GOOGLE = ['email' => 'equipe@inovaize.com', 'falhar' => false, 'filhos' => [
+    $GOOGLE = ['email' => 'equipe@inovaize.com', 'falhar' => false, 'novas' => 0, 'publico' => false, 'filhos' => [
         'PASTA_A_000000' => [['id' => 'SUB_1_0000000', 'name' => 'Roteiros', 'mimeType' => Api::PASTA], ['id' => 'ARQ_1_0000000', 'name' => 'logo.png', 'mimeType' => 'image/png', 'modifiedTime' => '2026-10-20T12:00:00Z', 'webViewLink' => 'https://drive.google.com/file/d/ARQ_1_0000000']],
         'SUB_1_0000000' => [['id' => 'ARQ_2_0000000', 'name' => 'roteiro.docx', 'mimeType' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']],
     ], 'mudancas' => []];
     Api::$transporte = function (string $metodo, string $url, array $cab, ?string $corpo) use (&$GOOGLE) {
         if ($GOOGLE['falhar']) return [503, '{"error":{"message":"indisponível"}}'];
         $GOOGLE['chamadas'] = ($GOOGLE['chamadas'] ?? 0) + 1;
+        // Drive completo: envio direto, arquivo enviado, pasta nova, compartilhamento, download.
+        if (str_contains($url, 'uploadType=resumable')) { $GOOGLE['origem'] = $cab['Origin'] ?? ''; return [200, '', ['location' => 'https://www.googleapis.com/upload/drive/v3/files?upload_id=SESSAO1']]; }
+        if (preg_match('#/files/(NOVO_ARQ_0000|FORA_ARQ_0000)\?#', $url, $m) && $metodo === 'GET' && !str_contains($url, 'alt=media'))
+            return [200, json_encode(['id' => $m[1], 'name' => 'enviado.mp4', 'mimeType' => 'video/mp4', 'size' => '5000000000', 'parents' => [$m[1] === 'NOVO_ARQ_0000' ? 'SUB_1_0000000' : 'PASTA_DE_FORA_00']])];
+        if ($metodo === 'POST' && preg_match('#/drive/v3/files\?#', $url)) {
+            $b = json_decode((string) $corpo, true);
+            return [200, json_encode(['id' => 'PASTA_NOVA_' . str_pad((string) (++$GOOGLE['novas']), 4, '0', STR_PAD_LEFT), 'name' => $b['name'], 'mimeType' => Api::PASTA])];
+        }
+        if (str_contains($url, '/permissions/anyoneWithLink') && $metodo === 'DELETE') { $GOOGLE['publico'] = false; return [204, '']; }
+        if (str_contains($url, '/permissions') && $metodo === 'POST' && str_contains((string) $corpo, '"anyone"')) { $GOOGLE['publico'] = true; return [200, '{}']; }
+        if (str_contains($url, '/permissions') && $metodo === 'GET' && !empty($GOOGLE['publico'])) return [200, json_encode(['permissions' => [['id' => 'anyoneWithLink', 'type' => 'anyone', 'role' => 'reader']]])];
+        if (str_contains($url, 'alt=media')) return [200, 'BYTES-DE-' . (preg_match('#/files/([A-Za-z0-9_]+)\?#', $url, $m) ? $m[1] : '?')];
+        if (str_contains($url, '/export?')) return [200, 'DOCX-EXPORTADO'];
         if (str_contains($url, 'googleusercontent.com')) return [200, base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==')];
         if (preg_match('#/files/(ARQ_1_0000000)\?#', $url)) return [200, json_encode(['thumbnailLink' => 'https://lh3.googleusercontent.com/miniatura=s220', 'hasThumbnail' => true])];
         if (str_contains($url, 'oauth2.googleapis.com/token')) return [200, json_encode(['access_token' => 'AT', 'refresh_token' => 'RT', 'expires_in' => 3600])];
@@ -329,6 +342,45 @@ try {
     ok('dentro da pasta: só as subpastas para abrir, e os arquivos para reconhecer', array_column($nv['pastas'], 'nome') === ['Roteiros']
         && in_array('logo.png', array_column($nv['arquivos'], 'nome'), true) && !in_array('Roteiros', array_column($nv['arquivos'], 'nome'), true) && $nv['pasta']['nome'] === 'Cliente A');
     ok('pasta com id inválido é recusada na navegação', recusa(fn() => Pasta::navegar($ACC, "x' or 1=1")) !== null);
+    echo "\n== Drive completo ==\n";
+    $sess = Pasta::abrirEnvio($ACC, $cA, 'SUB_1_0000000', 'video grande.mp4', 'video/mp4', 5000000000, 'https://yuris.inovaize.com');
+    ok('envio direto: a sessão sai do servidor com a origem do sistema (CORS), sem limite de tamanho', str_contains($sess, 'upload_id=') && $GOOGLE['origem'] === 'https://yuris.inovaize.com');
+    ok('envio para pasta fora da árvore do cliente é recusado', recusa(fn() => Pasta::abrirEnvio($ACC, $cA, 'PASTA_DE_FORA_00', 'x.mp4', 'video/mp4', 10, 'https://yuris.inovaize.com')) !== null);
+    ok('envio para outro cliente recusado (a pasta é do A)', recusa(fn() => Pasta::abrirEnvio($ACC, $cB, 'SUB_1_0000000', 'x.mp4', 'video/mp4', 10, 'https://yuris.inovaize.com')) !== null);
+    $env = Pasta::registrarEnviado($ACC, $cA, 'NOVO_ARQ_0000');
+    ok('arquivo enviado direto entra na lista da pasta certa', $env && $env['nome'] === 'enviado.mp4' && Pasta::itemDoCliente($ACC, $cA, 'NOVO_ARQ_0000') !== null);
+    ok('arquivo que caiu fora da pasta do cliente não é registrado', recusa(fn() => Pasta::registrarEnviado($ACC, $cA, 'FORA_ARQ_0000')) !== null);
+    $np = Pasta::novaPasta($ACC, $cA, null, 'Mídias prontas');
+    ok('pasta nova criada dentro da pasta do cliente', $np['pasta'] && $np['nome'] === 'Mídias prontas' && Pasta::pastaDoCliente($ACC, $cA, $np['id']));
+    $cp = Pasta::compartilhamento($ACC, $cA, null);
+    ok('compartilhamento: link da pasta e restrito por padrão', $cp['link'] && $cp['publico'] === null);
+    $cp = Pasta::liberarLink($ACC, $cA, null, true);
+    ok('liberar para quem tiver o link', $cp['publico'] === 'reader');
+    ok('fechar o link de novo', Pasta::liberarLink($ACC, $cA, null, false)['publico'] === null);
+    ok('compartilhamento de pasta de fora recusado', recusa(fn() => Pasta::compartilhamento($ACC, $cA, 'PASTA_DE_FORA_00')) !== null);
+    $saida = ''; $cabs = [];
+    \App\Drive\Baixar::arquivo($ACC, $cA, 'ARQ_1_0000000', function ($c) use (&$cabs) { $cabs = $c; }, function ($b) use (&$saida) { $saida .= $b; });
+    ok('baixar um arquivo: bytes do Google e nome no cabeçalho', $saida === 'BYTES-DE-ARQ_1_0000000' && str_contains($cabs['Content-Disposition'] ?? '', 'logo.png'));
+    ok('baixar arquivo de outro cliente recusado', recusa(fn() => \App\Drive\Baixar::arquivo($ACC, $cB, 'ARQ_1_0000000', fn() => null, fn() => null)) !== null);
+    $doc = \App\Drive\Baixar::como(['id' => 'DOC_00000000', 'nome' => 'Roteiro', 'mime' => 'application/vnd.google-apps.document', 'pasta' => false]);
+    ok('documento do Google baixa convertido para .docx; formulário não baixa', str_contains($doc['url'], '/export?') && $doc['nome'] === 'Roteiro.docx'
+        && \App\Drive\Baixar::como(['id' => 'F', 'nome' => 'f', 'mime' => 'application/vnd.google-apps.form', 'pasta' => false]) === null);
+    $plano = \App\Drive\Baixar::planoZip($ACC, $cA, null, null);
+    $zipBytes = '';
+    \App\Drive\Baixar::zip($ACC, $plano, function ($b) use (&$zipBytes) { $zipBytes .= $b; });
+    ok('baixar tudo: .zip começa e termina como zip e traz os arquivos da pasta', str_starts_with($zipBytes, "PK\x03\x04") && str_contains($zipBytes, "PK\x05\x06") && str_contains($zipBytes, 'BYTES-DE-ARQ_1_0000000'));
+    ok('baixar selecionados: só os escolhidos', count(\App\Drive\Baixar::planoZip($ACC, $cA, null, ['ARQ_1_0000000'])['itens']) === 1);
+    $sec = \App\Drive\Secao::criar($ACC, $UID, $cA, 'Mídias editadas', 'SUB_1_0000000');
+    $sec = \App\Drive\Secao::criar($ACC, $UID, $cA, 'Mídias prontas', null);
+    ok('seções: uma com pasta existente e outra que cria a pasta com o título', count($sec) === 2 && $sec[0]['folder_id'] === 'SUB_1_0000000' && str_starts_with($sec[1]['folder_id'], 'PASTA_NOVA_'));
+    ok('seção com pasta de fora do cliente é recusada', recusa(fn() => \App\Drive\Secao::criar($ACC, $UID, $cA, 'X', 'PASTA_DE_FORA_00')) !== null);
+    ok('seção sem título é recusada', recusa(fn() => \App\Drive\Secao::criar($ACC, $UID, $cA, '  ', 'SUB_1_0000000')) !== null);
+    $sec = \App\Drive\Secao::ordenar($ACC, $cA, [$sec[1]['id'], $sec[0]['id']]);
+    ok('a ordem das seções muda (prontas em cima)', $sec[0]['titulo'] === 'Mídias prontas');
+    ok('renomear a seção', \App\Drive\Secao::renomear($ACC, $cA, $sec[0]['id'], 'Mídias prontas (JUN)')[0]['titulo'] === 'Mídias prontas (JUN)');
+    ok('outra conta não vê nem mexe nas seções', \App\Drive\Secao::listar($OUTRA, $cA) === [] && count(\App\Drive\Secao::remover($OUTRA, $cA, $sec[0]['id'])) === 0
+        && count(\App\Drive\Secao::listar($ACC, $cA)) === 2);
+    ok('remover a seção não mexe no Drive', count(\App\Drive\Secao::remover($ACC, $cA, $sec[1]['id'])) === 1 && Pasta::pastaDoCliente($ACC, $cA, 'SUB_1_0000000'));
     $ac = Pasta::acessos($ACC, $cA, [['id' => 1, 'nome' => 'Equipe', 'email' => 'equipe@inovaize.com'], ['id' => 2, 'nome' => 'Nova', 'email' => 'nova@inovaize.com']]);
     ok('quem da equipe tem e quem não tem acesso no Drive', count($ac['com_acesso']) === 1 && $ac['sem_acesso'][0]['email'] === 'nova@inovaize.com');
     echo "\n== Ficha do cliente por ambiente ==\n";
@@ -392,7 +444,7 @@ try {
     if ($criados['valores']) $pdo->exec('DELETE FROM crm_cliente_valores WHERE id IN (' . implode(',', $criados['valores']) . ')');
     if ($criados['clientes']) {
         $cin = implode(',', $criados['clientes']);
-        foreach (['crm_cliente_perfil', 'crm_cliente_areas', 'crm_cliente_frequencias', 'crm_campanhas', 'drive_pastas_cliente', 'drive_itens', 'drive_pastas_lidas', 'crm_cliente_cobrancas'] as $t) $pdo->exec("DELETE FROM $t WHERE cliente_id IN ($cin)");
+        foreach (['drive_secoes_cliente', 'crm_cliente_perfil', 'crm_cliente_areas', 'crm_cliente_frequencias', 'crm_campanhas', 'drive_pastas_cliente', 'drive_itens', 'drive_pastas_lidas', 'crm_cliente_cobrancas'] as $t) $pdo->exec("DELETE FROM $t WHERE cliente_id IN ($cin)");
         $pdo->exec("DELETE FROM clientes WHERE id IN ($cin)");
     }
     $pdo->exec("DELETE FROM drive_contas WHERE account_id = $ACC");

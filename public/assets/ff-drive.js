@@ -1,6 +1,10 @@
 /* ═══════════════════════════════════════════════════════════════════════
    ff-drive.js: o Google Drive do cliente (ambientes da Inovaize).
-   window.FfDrive.painel(el, clienteId)    a pasta na aba Arquivos da ficha
+   window.FfDrive.painel(el, clienteId[, {raiz, aoSecoes}])  a pasta do cliente (ou de uma
+                                           seção) na ficha: navegar, pré-visualizar, baixar um
+                                           ou tudo (.zip), selecionar, enviar direto ao Google
+                                           (qualquer tamanho, arrastando), nova pasta, link e
+                                           compartilhamento, criar seção com a pasta aberta
    window.FfDrive.escolher(el, clienteId, aoEscolher)  escolher um arquivo
                                            da pasta (material, cartão)
    window.FfDrive.previa({id, nome, tipo, link})  pré-visualizar um arquivo
@@ -29,6 +33,19 @@ window.FfDrive = (function () {
     '.ffd-abrir{display:flex;flex-direction:column;background:none;border:0;padding:0;font:inherit;color:inherit;text-align:left;cursor:pointer;width:100%}.ffd-abrir:hover b{color:var(--ff-marca,#015DFC)}' +
     '.ffd-nav-arqs{font-size:12px;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}.ffd-nav-arqs span{padding:2px 8px;border-radius:99px;background:rgba(17,29,45,.06);overflow-wrap:anywhere}' +
     'html:not([data-theme="light"]) .ffd-nav{border-color:rgba(255,255,255,.10)}html:not([data-theme="light"]) .ffd-nav-arqs span{background:rgba(255,255,255,.08)}' +
+    '.ffd-linkbox{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;padding:8px 10px;border-radius:10px;background:rgba(17,29,45,.04)}.ffd-link-rot{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;opacity:.7}' +
+    '.ffd-linkbox input{flex:1;min-width:180px;padding:6px 9px;border-radius:8px;border:1px solid rgba(17,29,45,.16);font:inherit;font-size:12px;background:transparent;color:inherit}' +
+    '.ffd-pill{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:99px;font-size:11.5px;font-weight:700;background:#EEF0F3;color:#374151}.ffd-pill.ok{background:#D1FAE5;color:#047857}.ffd-pill.restrito{background:#FFF4D6;color:#B45309}' +
+    '[data-link-msg]{font-size:12px;font-weight:700;color:#047857}' +
+    '.ffd-cel{position:relative;display:flex;flex-direction:column;min-width:0}.ffd-cel .ffd-item{border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom:0}.ffd-cel.marcado .ffd-item,.ffd-cel.marcado .ffd-cel-acoes{border-color:var(--ff-marca,#015DFC)}' +
+    '.ffd-cel-acoes{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:6px 10px;border:1px solid rgba(17,29,45,.10);border-top:0;border-radius:0 0 12px 12px;background:var(--ff-card,#fff)}.ffd-cel-acoes small{font-size:11px;opacity:.7}' +
+    '.ffd-marca{position:absolute;top:8px;left:8px;background:#fff;border-radius:6px;padding:3px;display:flex;box-shadow:0 1px 4px rgba(0,0,0,.25)}.ffd-marca input{width:18px;height:18px;margin:0;cursor:pointer}' +
+    '.ffd-selbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 10px;border-radius:10px;background:rgba(var(--ff-marca-rgb,1,93,252),.08)}' +
+    '.ffd-envio{display:grid;grid-template-columns:minmax(0,1fr) 140px 120px;gap:10px;align-items:center;font-size:12px;padding:4px 0}.ffd-envio-nome{overflow-wrap:anywhere}.ffd-envio-nome small{opacity:.7}.ffd-envio-barra{height:6px;border-radius:99px;background:rgba(17,29,45,.10);overflow:hidden}.ffd-envio-barra i{display:block;height:100%;background:var(--ff-marca,#015DFC)}' +
+    '.ffd-envio.ok .ffd-envio-sit{color:#047857;font-weight:700}.ffd-envio.erro .ffd-envio-sit{color:#B91C1C;font-weight:700}.ffd-envio.ok .ffd-envio-barra i{background:#10B981}' +
+    '[data-ffd-solta].soltando{outline:2px dashed var(--ff-marca,#015DFC);outline-offset:4px;border-radius:12px}.ffd-vazia{padding:22px;text-align:center;border:1px dashed rgba(17,29,45,.18);border-radius:12px;font-size:12.5px;opacity:.8}' +
+    '@media (max-width:640px){.ffd-envio{grid-template-columns:1fr}}' +
+    'html:not([data-theme="light"]) .ffd-linkbox{background:rgba(255,255,255,.05)}html:not([data-theme="light"]) .ffd-cel-acoes{background:#13213A;border-color:rgba(255,255,255,.10)}' +
     '.ffd-busca{display:flex;gap:6px}.ffd-busca input{flex:1;padding:7px 10px;border-radius:9px;border:1px solid rgba(17,29,45,.16);font:inherit;background:transparent;color:inherit}' +
     '.ffd-velha{opacity:.65}.ffd-pessoas{display:flex;flex-direction:column;gap:4px}.ffd-pessoas label{display:flex;gap:6px;align-items:center}' +
     'html:not([data-theme="light"]) .ffd-aviso{background:rgba(180,83,9,.25);color:#FDE68A}html:not([data-theme="light"]) .ffd-aviso.erro{background:rgba(185,28,28,.25);color:#FECACA}html:not([data-theme="light"]) .ffd-aviso.ok{background:rgba(21,128,61,.25);color:#BBF7D0}html:not([data-theme="light"]) .ffd-lista li{border-color:rgba(255,255,255,.08)}';
@@ -71,11 +88,12 @@ window.FfDrive = (function () {
     });
   }
   // Pré-visualização dentro do sistema (o visualizador do próprio Drive: imagem, vídeo, PDF, documento).
-  function previa(f) {
+  function previa(f, baixar) {
     var fundo = document.createElement('div');
     fundo.className = 'ffd-prev-fundo';
     fundo.innerHTML = '<div class="ffd-prev" role="dialog" aria-modal="true" aria-label="Pré-visualização de ' + esc(f.nome) + '"><div class="ffd-prev-cab"><span><b>' + esc(f.nome) + '</b><small>' + esc(f.tipo) +
       (f.modificado_em ? ' · atualizado em ' + esc(quando(f.modificado_em)) : '') + '</small></span><span class="ffd-prev-acoes">' +
+      (baixar ? '<a class="ffcli-link" href="' + esc(baixar) + '" download>Baixar</a>' : '') +
       (f.link ? '<a class="ffcli-link" href="' + esc(f.link) + '" target="_blank" rel="noopener noreferrer">Abrir no Drive</a>' : '') +
       '<button type="button" class="ffcli-bt" data-fechar>Fechar</button></span></div>' +
       '<iframe src="https://drive.google.com/file/d/' + encodeURIComponent(f.id) + '/preview" allow="autoplay" title="' + esc(f.nome) + '"></iframe>' +
@@ -93,9 +111,12 @@ window.FfDrive = (function () {
   function botao(txt, attr, principal) { return '<button type="button" class="ffcli-bt' + (principal ? ' princ' : '') + '" ' + attr + '>' + esc(txt) + '</button>'; }
 
   // ── Painel da ficha ──────────────────────────────────────────────────
-  function painel(el, clienteId) {
+  // painel(el, clienteId[, op]): op.raiz = id de uma subpasta (seção do Drive: a navegação
+  // não sobe acima dela); op.aoSecoes(lista) = a ficha redesenha as seções depois de criar uma.
+  function painel(el, clienteId, op) {
+    op = op || {};
     estilo();
-    var est = { cliente: clienteId, pasta: null, dados: null, timer: null, aviso: null };
+    var est = { cliente: clienteId, pasta: op.raiz || null, dados: null, timer: null, aviso: null, selecao: null, enviando: 0 };
     el.innerHTML = '<div class="ffcli-vazio">Carregando o Drive…</div>';
     if (el._ffdTimer) clearInterval(el._ffdTimer);
 
@@ -104,7 +125,7 @@ window.FfDrive = (function () {
     function volta() { return location.pathname + '?open=' + clienteId + (location.search.indexOf('amb=') >= 0 ? '&' + location.search.replace(/^\?/, '').split('&').filter(function (p) { return p.indexOf('amb=') === 0; }).join('&') : ''); }
     function carregar(forcar, pasta) {
       if (est.cliente !== clienteId) return;
-      if (pasta !== undefined) est.pasta = pasta;
+      if (pasta !== undefined) { est.pasta = pasta; est.selecao = null; }
       var qs = '?cliente=' + clienteId + (est.pasta ? '&pasta=' + encodeURIComponent(est.pasta) : '') + (forcar ? '&forcar=1' : '');
       return pedir(qs).then(function (r) {
         if (!document.body.contains(el)) return;
@@ -118,6 +139,9 @@ window.FfDrive = (function () {
       var a = est.aviso; est.aviso = null;
       return '<div class="ffd-aviso ' + (a.ok ? 'ok' : 'erro') + '" role="status">' + esc(a.msg) + '</div>';
     }
+    function urlBaixar(f) { return '/api/drive.php?cliente=' + clienteId + '&baixar=' + encodeURIComponent(f.id); }
+    function urlZip(ids) { return '/api/drive.php?cliente=' + clienteId + '&zip=1' + (est.dados && est.dados.atual_id ? '&pasta=' + encodeURIComponent(est.dados.atual_id) : '') + (ids ? '&ids=' + encodeURIComponent(ids.join(',')) : ''); }
+    function arquivos() { return (est.dados.itens || []).filter(function (f) { return !f.pasta; }); }
     function desenhar() {
       var d = est.dados, c = d.conexao;
       if (!c.configurado) { el.innerHTML = aviso() + '<div class="ffd-aviso">O Google Drive ainda não foi configurado no servidor. Depois de configurado, um administrador conecta a conta corporativa aqui.</div>'; return; }
@@ -127,42 +151,175 @@ window.FfDrive = (function () {
             : '<div class="ffcli-vazio">Peça a um administrador para conectar a conta Google da empresa.</div>');
         return;
       }
-      if (!d.itens) { desenharEscolhaPasta(); return; }
-      var h = aviso() + '<div class="ffd">';
-      h += '<div class="ffd-topo"><div class="ffd-cam">' + d.caminho.map(function (p, i) {
+      if (!d.itens) { if (op.raiz) { el.innerHTML = '<div class="ffd-aviso">O cliente não tem mais a pasta do Drive ligada. Ligue a pasta no bloco "Google Drive do cliente".</div>'; return; } desenharEscolhaPasta(); return; }
+      // Numa seção, o caminho começa na pasta da seção.
+      var cam = d.caminho, k0 = op.raiz ? cam.map(function (p) { return p.id; }).indexOf(op.raiz) : 0;
+      if (k0 > 0) cam = cam.slice(k0);
+      var arqs = arquivos(), sel = est.selecao;
+      var h = aviso() + '<div class="ffd" data-ffd-solta>';
+      h += '<div class="ffd-topo"><div class="ffd-cam">' + cam.map(function (p, i) {
         return (i ? '<span>/</span>' : '') + (p.id === d.atual_id ? '<b>' + esc(p.nome) + '</b>' : '<button type="button" data-pasta="' + esc(p.id) + '">' + esc(p.nome) + '</button>');
-      }).join('') + '</div><div class="ffd-acoes">' + (d.pasta.link ? '<a class="ffcli-link" href="' + esc(d.pasta.link) + '" target="_blank" rel="noopener noreferrer">Abrir pasta no Drive</a>' : '') + '</div></div>';
+      }).join('') + '</div><div class="ffd-acoes">' + botao('Enviar arquivos', 'data-enviar', true) + botao('Nova pasta', 'data-nova') +
+        (arqs.length ? botao('Baixar tudo (.zip)', 'data-zip') + botao(sel ? 'Cancelar seleção' : 'Selecionar', 'data-selecionar') : '') + botao('Atualizar', 'data-atualizar') + '</div></div>';
+      h += '<div class="ffd-linkbox" data-linkbox><span class="ffcli-vazio">Carregando o link da pasta…</span></div>';
+      h += '<div data-nova-form></div><div data-envios></div>';
       if (!d.atual) {
         h += '<div class="ffd-aviso erro" role="alert">Não foi possível ler o Drive agora: ' + esc(d.erro || 'erro desconhecido') + ' ' +
           (d.sincronizado_em ? 'A lista abaixo é a última conhecida, de ' + esc(quando(d.sincronizado_em)) + ', e pode estar desatualizada.' : 'Ainda não há lista desta pasta.') + '</div>';
       }
-      h += d.itens.length ? '<div class="ffd-grade' + (d.atual ? '' : ' ffd-velha') + '">' + d.itens.map(function (f, i) { return cartaoItem(clienteId, f, i); }).join('') + '</div>'
-        : '<div class="ffcli-vazio">Pasta vazia.</div>';
-      h += '<div class="ffd-topo"><span class="ffd-sync">' + (d.sincronizado_em ? (d.atual ? 'Sincronizado ' : 'Última leitura ') + esc(quando(d.sincronizado_em)) : '') + '</span>' +
-        '<span class="ffd-acoes">' + botao('Atualizar', 'data-atualizar') + botao('Enviar arquivo', 'data-enviar') + botao('Acessos da equipe', 'data-acessos') +
-        (c.pode_conectar ? botao('Trocar pasta', 'data-trocar') : '') + '</span></div>';
-      h += '<input type="file" data-arquivo hidden><div data-extra></div></div>';
+      if (sel) h += '<div class="ffd-selbar"><b data-sel-n>' + Object.keys(sel).length + ' selecionado(s)</b>' + botao('Todos', 'data-sel-todos') + botao('Baixar selecionados (.zip)', 'data-sel-zip', true) + '</div>';
+      h += d.itens.length ? '<div class="ffd-grade' + (d.atual ? '' : ' ffd-velha') + '">' + d.itens.map(function (f, i) {
+        if (f.pasta) return cartaoItem(clienteId, f, i);
+        return '<div class="ffd-cel' + (sel && sel[f.id] ? ' marcado' : '') + '">' + cartaoItem(clienteId, f, i) +
+          (sel ? '<label class="ffd-marca" title="Selecionar"><input type="checkbox" data-sel="' + esc(f.id) + '"' + (sel[f.id] ? ' checked' : '') + '></label>' : '') +
+          '<div class="ffd-cel-acoes"><a class="ffcli-link" href="' + urlBaixar(f) + '" download>Baixar</a>' + (f.tamanho ? '<small>' + tam(f.tamanho) + '</small>' : '') + '</div></div>';
+      }).join('') + '</div>' : '<div class="ffd-vazia">Pasta vazia. Arraste arquivos para cá ou use "Enviar arquivos".</div>';
+      h += '<div class="ffd-topo"><span class="ffd-sync">' + (d.sincronizado_em ? (d.atual ? 'Sincronizado ' : 'Última leitura ') + esc(quando(d.sincronizado_em)) : '') + ' · arraste arquivos para dentro do painel para enviar</span>' +
+        '<span class="ffd-acoes">' + botao('Acessos da equipe', 'data-acessos') +
+        (op.aoSecoes && d.atual_id !== (op.raiz || d.pasta.id) ? botao('Criar seção com esta pasta', 'data-secao') : '') +
+        (c.pode_conectar && !op.raiz ? botao('Trocar pasta', 'data-trocar') : '') + '</span></div>';
+      h += '<input type="file" data-arquivo multiple hidden><div data-extra></div></div>';
       el.innerHTML = h;
       ligar();
+      desenharLink();
     }
+    function tam(b) { b = +b || 0; return b >= 1073741824 ? (b / 1073741824).toFixed(1).replace('.', ',') + ' GB' : b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
+
+    // ── Link da pasta e compartilhamento ─────────────────────────────────
+    function desenharLink() {
+      var box = el.querySelector('[data-linkbox]'), pastaId = est.dados.atual_id;
+      if (!box) return;
+      pedir('?cliente=' + clienteId + '&compartilhamento=1&pasta=' + encodeURIComponent(pastaId)).then(function (r) {
+        if (!document.body.contains(box) || !est.dados || est.dados.atual_id !== pastaId) return;
+        if (!r.ok) { box.innerHTML = '<span class="ffcli-vazio">Não foi possível ler o compartilhamento: ' + esc(r.error || '') + '</span>'; return; }
+        var x = r.data;
+        var sit = x.publico ? '<span class="ffd-pill ok">Qualquer pessoa com o link pode ' + (x.publico === 'writer' ? 'editar' : x.publico === 'commenter' ? 'comentar' : 'ver') + '</span>'
+          : x.dominio ? '<span class="ffd-pill">Todos de @' + esc(x.dominio.dominio) + ' com o link</span>'
+          : '<span class="ffd-pill restrito">Restrito: só quem tem acesso' + (x.pessoas ? ' (' + x.pessoas + (x.pessoas === 1 ? ' pessoa)' : ' pessoas)') : '') + '</span>';
+        box.innerHTML = '<span class="ffd-link-rot">Link da pasta</span><input type="text" readonly value="' + esc(x.link) + '" data-link data-amb-ignorar aria-label="Link da pasta">' +
+          botao('Copiar link', 'data-copiar') + '<a class="ffcli-link" href="' + esc(x.link) + '" target="_blank" rel="noopener noreferrer">Abrir no Drive</a>' + sit +
+          (r.pode_mudar ? botao(x.publico ? 'Fechar o link (restrito)' : 'Liberar para quem tiver o link', 'data-publico') : '') + '<span data-link-msg></span>';
+        var inp = box.querySelector('[data-link]'), msg = box.querySelector('[data-link-msg]');
+        box.querySelector('[data-copiar]').onclick = function () {
+          var feito = function () { msg.textContent = 'Link copiado.'; setTimeout(function () { msg.textContent = ''; }, 2500); };
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(x.link).then(feito, function () { inp.select(); document.execCommand('copy'); feito(); });
+          else { inp.select(); document.execCommand('copy'); feito(); }
+        };
+        inp.onclick = function () { inp.select(); };
+        var bp = box.querySelector('[data-publico]');
+        if (bp) bp.onclick = function () {
+          bp.disabled = true; msg.textContent = '';
+          pedir('', { acao: 'link_publico', cliente_id: clienteId, pasta_id: pastaId, abrir: !x.publico }).then(function (y) {
+            if (!y.ok) { bp.disabled = false; msg.textContent = y.error || 'O Drive não deixou mudar.'; return; }
+            desenharLink();
+          });
+        };
+      });
+    }
+
+    // ── Envio direto para o Google (qualquer tamanho), com progresso ─────
+    function enviarArquivos(lista) {
+      var arqs = Array.prototype.slice.call(lista || []);
+      if (!arqs.length) return;
+      var box = el.querySelector('[data-envios]'), pastaId = est.dados.atual_id;
+      var linhas = arqs.map(function (f, i) {
+        var li = document.createElement('div'); li.className = 'ffd-envio';
+        li.innerHTML = '<span class="ffd-envio-nome">' + esc(f.name) + ' <small>' + tam(f.size) + '</small></span><span class="ffd-envio-barra"><i style="width:0%"></i></span><span class="ffd-envio-sit">Na fila</span>';
+        box.appendChild(li); return li;
+      });
+      est.enviando += arqs.length;
+      var i = 0;
+      function proximo() {
+        if (i >= arqs.length) { carregar(true); return; }
+        var f = arqs[i], li = linhas[i]; i++;
+        var barra = li.querySelector('i'), sit = li.querySelector('.ffd-envio-sit');
+        function falhou(m) { sit.textContent = m; li.classList.add('erro'); est.enviando--; proximo(); }
+        sit.textContent = 'Preparando…';
+        pedir('', { acao: 'envio_abrir', cliente_id: clienteId, pasta_id: pastaId, nome: f.name, mime: f.type || 'application/octet-stream', tamanho: f.size }).then(function (r) {
+          if (!r.ok) return falhou(r.error || 'Não foi possível começar o envio.');
+          var x = new XMLHttpRequest();
+          x.open('PUT', r.url);
+          x.setRequestHeader('Content-Type', f.type || 'application/octet-stream');
+          x.upload.onprogress = function (e) { if (e.lengthComputable) { var p = Math.round(100 * e.loaded / e.total); barra.style.width = p + '%'; sit.textContent = p + '%'; } };
+          x.onerror = function () { falhou('A conexão caiu no envio. Tente de novo.'); };
+          x.onload = function () {
+            if (x.status !== 200 && x.status !== 201) return falhou('O Google recusou o envio (HTTP ' + x.status + ').');
+            var j = {}; try { j = JSON.parse(x.responseText); } catch (e) { /* segue sem id */ }
+            sit.textContent = 'Conferindo…';
+            pedir('', { acao: 'envio_registrar', cliente_id: clienteId, file_id: j.id || '' }).then(function (y) {
+              est.enviando--;
+              if (!y.ok) { sit.textContent = y.error || 'Enviado, mas não consegui conferir.'; li.classList.add('erro'); }
+              else { barra.style.width = '100%'; sit.textContent = 'Enviado'; li.classList.add('ok'); }
+              proximo();
+            });
+          };
+          sit.textContent = '0%';
+          x.send(f);
+        });
+      }
+      proximo();
+    }
+
     function ligar() {
       el.querySelectorAll('[data-pasta]').forEach(function (b) { b.onclick = function () { carregar(false, b.dataset.pasta); }; });
-      el.querySelectorAll('[data-ver]').forEach(function (b) { b.onclick = function () { previa(est.dados.itens[+b.dataset.ver]); }; });
+      el.querySelectorAll('[data-ver]').forEach(function (b) {
+        b.onclick = function (e) {
+          var f = est.dados.itens[+b.dataset.ver];
+          if (est.selecao) { e.preventDefault(); if (est.selecao[f.id]) delete est.selecao[f.id]; else est.selecao[f.id] = true; desenhar(); return; }
+          previa(f, urlBaixar(f));
+        };
+      });
       semMiniatura(el);
       var a = el.querySelector('[data-atualizar]');
       if (a) a.onclick = function () { a.disabled = true; a.textContent = 'Atualizando…'; carregar(true); };
       var inp = el.querySelector('[data-arquivo]'), env = el.querySelector('[data-enviar]');
       if (env) env.onclick = function () { inp.click(); };
-      if (inp) inp.onchange = function () {
-        if (!inp.files[0]) return;
-        var fd = new FormData();
-        fd.append('acao', 'enviar'); fd.append('cliente_id', clienteId); fd.append('arquivo', inp.files[0]);
-        if (est.dados.atual_id) fd.append('pasta_id', est.dados.atual_id);
-        env.disabled = true; env.textContent = 'Enviando…';
-        pedir('', fd).then(function (r) {
-          if (!r.ok) { el.querySelector('[data-extra]').innerHTML = '<div class="ffd-aviso erro" role="alert">' + esc(r.error || 'Não foi possível enviar.') + '</div>'; env.disabled = false; env.textContent = 'Enviar arquivo'; return; }
-          carregar(false);
-        });
+      if (inp) inp.onchange = function () { enviarArquivos(inp.files); inp.value = ''; };
+      // Arrastar arquivos do computador para dentro do painel.
+      var zona = el.querySelector('[data-ffd-solta]');
+      if (zona) {
+        zona.addEventListener('dragover', function (e) { if (e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], 'Files') >= 0) { e.preventDefault(); zona.classList.add('soltando'); } });
+        zona.addEventListener('dragleave', function (e) { if (!zona.contains(e.relatedTarget)) zona.classList.remove('soltando'); });
+        zona.addEventListener('drop', function (e) { zona.classList.remove('soltando'); if (e.dataTransfer && e.dataTransfer.files.length) { e.preventDefault(); enviarArquivos(e.dataTransfer.files); } });
+      }
+      var bz = el.querySelector('[data-zip]');
+      if (bz) bz.onclick = function () { location.href = urlZip(null); };
+      var bs = el.querySelector('[data-selecionar]');
+      if (bs) bs.onclick = function () { est.selecao = est.selecao ? null : {}; desenhar(); };
+      el.querySelectorAll('[data-sel]').forEach(function (c) { c.onchange = function () { if (c.checked) est.selecao[c.dataset.sel] = true; else delete est.selecao[c.dataset.sel]; desenhar(); }; });
+      var st = el.querySelector('[data-sel-todos]');
+      if (st) st.onclick = function () { arquivos().forEach(function (f) { est.selecao[f.id] = true; }); desenhar(); };
+      var sz = el.querySelector('[data-sel-zip]');
+      if (sz) sz.onclick = function () { var ids = Object.keys(est.selecao); if (!ids.length) return; location.href = urlZip(ids); };
+      var bn = el.querySelector('[data-nova]');
+      if (bn) bn.onclick = function () {
+        var box = el.querySelector('[data-nova-form]');
+        box.innerHTML = '<div class="ffd-busca" data-amb-guarda><input type="text" maxlength="200" data-nova-nome placeholder="Nome da pasta nova"> ' + botao('Criar pasta', 'data-nova-ok', true) + botao('Cancelar', 'data-nova-x') + '</div><div data-nova-erro></div>';
+        var n = box.querySelector('[data-nova-nome]'); n.focus();
+        function criar() {
+          if (!n.value.trim()) { n.focus(); return; }
+          pedir('', { acao: 'nova_pasta', cliente_id: clienteId, pasta_id: est.dados.atual_id, nome: n.value.trim() }).then(function (r) {
+            if (!r.ok) { box.querySelector('[data-nova-erro]').innerHTML = '<div class="ffd-aviso erro">' + esc(r.error || 'Não foi possível criar.') + '</div>'; return; }
+            carregar(true);
+          });
+        }
+        box.querySelector('[data-nova-ok]').onclick = criar;
+        n.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); criar(); } if (e.key === 'Escape') box.innerHTML = ''; });
+        box.querySelector('[data-nova-x]').onclick = function () { box.innerHTML = ''; };
+      };
+      var bsec = el.querySelector('[data-secao]');
+      if (bsec) bsec.onclick = function () {
+        var box = el.querySelector('[data-extra]'), atual = est.dados.caminho[est.dados.caminho.length - 1];
+        box.innerHTML = '<div class="ffd-aviso">A pasta <b>' + esc(atual.nome) + '</b> vira uma seção própria na ficha, com o título que você der (ex.: Mídias prontas).</div>' +
+          '<div class="ffd-busca" data-amb-guarda><input type="text" maxlength="120" data-sec-titulo placeholder="Título da seção" value="' + esc(atual.nome) + '"> ' + botao('Criar seção', 'data-sec-ok', true) + '</div><div data-sec-erro></div>';
+        var ti = box.querySelector('[data-sec-titulo]'); ti.focus(); ti.select();
+        box.querySelector('[data-sec-ok]').onclick = function () {
+          pedir('', { acao: 'secao_criar', cliente_id: clienteId, titulo: ti.value, pasta_id: atual.id }).then(function (r) {
+            if (!r.ok) { box.querySelector('[data-sec-erro]').innerHTML = '<div class="ffd-aviso erro">' + esc(r.error || 'Não foi possível criar a seção.') + '</div>'; return; }
+            box.innerHTML = '<div class="ffd-aviso ok">Seção criada.</div>';
+            op.aoSecoes(r.data);
+          });
+        };
       };
       var ac = el.querySelector('[data-acessos]');
       if (ac) ac.onclick = function () {
@@ -296,7 +453,7 @@ window.FfDrive = (function () {
     // Atualização automática enquanto o painel está na tela.
     el._ffdTimer = setInterval(function () {
       if (!document.body.contains(el)) { clearInterval(el._ffdTimer); return; }
-      if (!el.offsetParent || !est.dados || !est.dados.itens || el.querySelector('[data-extra] *') || el.querySelector('[data-ref]')) return;
+      if (!el.offsetParent || !est.dados || !est.dados.itens || est.enviando > 0 || est.selecao || el.querySelector('[data-extra] *') || el.querySelector('[data-nova-form] *') || el.querySelector('[data-ref]')) return;
       carregar(false);
     }, 60000);
   }

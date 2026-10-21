@@ -357,6 +357,104 @@ final class Pasta
         return ['com_acesso' => $com, 'sem_acesso' => $sem, 'link_publico' => $qualquer];
     }
 
+    /** A pasta é da árvore do cliente? Senão, recusa. Devolve o id (vazio = a raiz). */
+    private static function pastaValida(int $accountId, int $clienteId, ?string $folderId): string
+    {
+        $raiz = self::daCliente($accountId, $clienteId);
+        if (!$raiz) throw new \InvalidArgumentException('Este cliente ainda não tem pasta do Drive.');
+        $folderId = $folderId ?: $raiz['folder_id'];
+        if (!self::pastaDoCliente($accountId, $clienteId, $folderId)) throw new \InvalidArgumentException('Pasta fora da pasta do cliente.');
+        return $folderId;
+    }
+
+    private static function guardarItem(int $accountId, int $clienteId, array $f, string $parent): void
+    {
+        Database::getConnection()->prepare(
+            'INSERT INTO drive_itens (account_id, cliente_id, file_id, parent_id, nome, mime, modificado_em, link, tamanho, sincronizado_em)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+             ON DUPLICATE KEY UPDATE parent_id = VALUES(parent_id), nome = VALUES(nome), mime = VALUES(mime), modificado_em = VALUES(modificado_em),
+               link = VALUES(link), tamanho = VALUES(tamanho), sincronizado_em = NOW()'
+        )->execute([$accountId, $clienteId, (string) $f['id'], $parent, mb_substr((string) ($f['name'] ?? ''), 0, 255), (string) ($f['mimeType'] ?? 'application/octet-stream'),
+            self::data($f['modifiedTime'] ?? null), $f['webViewLink'] ?? null, isset($f['size']) ? (int) $f['size'] : null]);
+    }
+
+    /**
+     * Abre o envio direto do navegador para o Google (qualquer tamanho), dentro de
+     * uma pasta da árvore do cliente. Devolve o endereço da sessão.
+     */
+    public static function abrirEnvio(int $accountId, int $clienteId, ?string $folderId, string $nome, string $mime, int $tamanho, string $origem): string
+    {
+        $folderId = self::pastaValida($accountId, $clienteId, $folderId);
+        $nome = trim(str_replace(["\r", "\n", '/', '\\'], ' ', $nome));
+        if ($nome === '') throw new \InvalidArgumentException('Arquivo sem nome.');
+        if (!preg_match('#^https?://[a-z0-9.-]+(:\d+)?$#i', $origem)) throw new \InvalidArgumentException('Origem inválida.');
+        return Api::abrirEnvio(Conexao::acesso($accountId), ['name' => mb_substr($nome, 0, 250), 'parents' => [$folderId]], $mime, max(0, $tamanho), $origem);
+    }
+
+    /** Depois do envio direto: confere no Google que o arquivo caiu numa pasta do cliente e guarda na lista. */
+    public static function registrarEnviado(int $accountId, int $clienteId, string $fileId): array
+    {
+        if (!preg_match('/^[A-Za-z0-9_-]{10,}$/', $fileId)) throw new \InvalidArgumentException('Arquivo inválido.');
+        $f = Api::pedir(Conexao::acesso($accountId), 'GET', '/files/' . rawurlencode($fileId),
+            ['fields' => 'id,name,mimeType,modifiedTime,webViewLink,size,parents', 'supportsAllDrives' => 'true']);
+        $pai = (string) (($f['parents'] ?? [])[0] ?? '');
+        if ($pai === '' || !self::pastaDoCliente($accountId, $clienteId, $pai)) throw new \InvalidArgumentException('O arquivo não está numa pasta deste cliente.');
+        self::guardarItem($accountId, $clienteId, $f, $pai);
+        return self::itemDoCliente($accountId, $clienteId, $fileId);
+    }
+
+    /** Pasta nova dentro de uma pasta do cliente. */
+    public static function novaPasta(int $accountId, int $clienteId, ?string $folderId, string $nome): array
+    {
+        $folderId = self::pastaValida($accountId, $clienteId, $folderId);
+        $nome = trim(str_replace(["\r", "\n", '/', '\\'], ' ', $nome));
+        if ($nome === '') throw new \InvalidArgumentException('Dê um nome à pasta.');
+        $f = Api::pedir(Conexao::acesso($accountId), 'POST', '/files', ['supportsAllDrives' => 'true', 'fields' => 'id,name,mimeType,modifiedTime,webViewLink'],
+            ['name' => mb_substr($nome, 0, 200), 'mimeType' => Api::PASTA, 'parents' => [$folderId]]);
+        self::guardarItem($accountId, $clienteId, $f + ['mimeType' => Api::PASTA], $folderId);
+        return self::itemDoCliente($accountId, $clienteId, (string) $f['id']);
+    }
+
+    /** O link de uma pasta do cliente e se ela está aberta para quem tiver o link. */
+    public static function compartilhamento(int $accountId, int $clienteId, ?string $folderId): array
+    {
+        $folderId = self::pastaValida($accountId, $clienteId, $folderId);
+        $acesso = Conexao::acesso($accountId);
+        $f = Api::pedir($acesso, 'GET', '/files/' . rawurlencode($folderId), ['fields' => 'id,name,webViewLink', 'supportsAllDrives' => 'true']);
+        $r = Api::pedir($acesso, 'GET', '/files/' . rawurlencode($folderId) . '/permissions', ['fields' => 'permissions(id,type,role,domain)', 'supportsAllDrives' => 'true']);
+        $publico = null; $dominio = null;
+        foreach ($r['permissions'] ?? [] as $p) {
+            if (($p['type'] ?? '') === 'anyone') $publico = $p['role'] ?? 'reader';
+            if (($p['type'] ?? '') === 'domain') $dominio = ['dominio' => $p['domain'] ?? '', 'papel' => $p['role'] ?? 'reader'];
+        }
+        return ['id' => $folderId, 'nome' => $f['name'] ?? '', 'link' => $f['webViewLink'] ?? ('https://drive.google.com/drive/folders/' . $folderId),
+                'publico' => $publico, 'dominio' => $dominio, 'pessoas' => count(array_filter($r['permissions'] ?? [], fn($p) => in_array($p['type'] ?? '', ['user', 'group'], true)))];
+    }
+
+    /** Abre (leitor) ou fecha a pasta para quem tiver o link. */
+    public static function liberarLink(int $accountId, int $clienteId, ?string $folderId, bool $abrir): array
+    {
+        $folderId = self::pastaValida($accountId, $clienteId, $folderId);
+        $acesso = Conexao::acesso($accountId);
+        if ($abrir) {
+            Api::pedir($acesso, 'POST', '/files/' . rawurlencode($folderId) . '/permissions', ['supportsAllDrives' => 'true'], ['type' => 'anyone', 'role' => 'reader', 'allowFileDiscovery' => false]);
+        } else {
+            Api::pedir($acesso, 'DELETE', '/files/' . rawurlencode($folderId) . '/permissions/anyoneWithLink', ['supportsAllDrives' => 'true']);
+        }
+        return self::compartilhamento($accountId, $clienteId, $folderId);
+    }
+
+    /** Arquivos (não pastas) de uma pasta do cliente, já lidos, para baixar; $ids limita aos escolhidos. */
+    public static function arquivosDaPasta(int $accountId, int $clienteId, ?string $folderId, ?array $ids = null): array
+    {
+        $folderId = self::pastaValida($accountId, $clienteId, $folderId);
+        $st = Database::getConnection()->prepare('SELECT * FROM drive_itens WHERE account_id = ? AND cliente_id = ? AND parent_id = ? AND mime <> ? ORDER BY nome');
+        $st->execute([$accountId, $clienteId, $folderId, Api::PASTA]);
+        $lista = array_map([self::class, 'formatar'], $st->fetchAll(\PDO::FETCH_ASSOC));
+        if ($ids !== null) $lista = array_values(array_filter($lista, fn($i) => in_array($i['id'], $ids, true)));
+        return $lista;
+    }
+
     /** Onde as miniaturas ficam guardadas (cache: pode ser apagado a qualquer hora). */
     public static function pastaMiniaturas(): string
     {

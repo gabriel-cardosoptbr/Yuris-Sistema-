@@ -6,17 +6,39 @@ cliente, a última listagem conhecida e os vínculos com cartões e entregas).
 
 | Arquivo | O que faz |
 |---|---|
-| `Api.php` | a única saída para o Google (OAuth e Drive v3), com o transporte trocável para o teste; erro do Google vira `DriveErro` com mensagem em português |
+| `Api.php` | a única saída para o Google (OAuth e Drive v3), com o transporte trocável para o teste; erro do Google vira `DriveErro` com mensagem em português. `abrirEnvio` abre a sessão de envio direto do navegador (resumable, com a origem do sistema para o CORS) e `transmitir` baixa em pedaços, sem guardar o arquivo |
 | `DriveErro.php` | a falha com motivo curto: revogado, sem_acesso, nao_encontrado, instavel, dominio |
 | `Conexao.php` | a conta Google autorizada da conta do sistema: OAuth, refresh token cifrado (`App\Core\Crypto`), renovação do token, domínio corporativo obrigatório (`GOOGLE_DRIVE_DOMINIO`), desconectar |
-| `Pasta.php` | a pasta de cada cliente: ligar pelo link, pela busca (cada resultado diz em que pasta está) ou **navegando no Drive** como no Google (`navegar`: Meu Drive, Compartilhados comigo, cada drive compartilhado, subpastas e alguns arquivos para reconhecer a pasta, com um campo "Buscar pelo nome" que filtra na hora as pastas da tela, sem acento, e oferece procurar no Drive todo quando não acha; só quem liga a pasta, nunca o vendedor), listar e navegar subpastas com a hora da leitura, enviar arquivo, ver e dar acesso à equipe |
+| `Pasta.php` | a pasta de cada cliente: ligar pelo link, pela busca (cada resultado diz em que pasta está) ou **navegando no Drive** como no Google (`navegar`: Meu Drive, Compartilhados comigo, cada drive compartilhado, subpastas e alguns arquivos para reconhecer a pasta, com um campo "Buscar pelo nome" que filtra na hora as pastas da tela, sem acento, e oferece procurar no Drive todo quando não acha; só quem liga a pasta, nunca o vendedor), listar e navegar subpastas com a hora da leitura, enviar arquivo (pelo servidor, até 2 MB, para o material do cartão; ou direto do navegador, de qualquer tamanho: `abrirEnvio` + `registrarEnviado`, que confere no Google que o arquivo caiu numa pasta do cliente), nova pasta, link e compartilhamento por link (`compartilhamento`, `liberarLink`), ver e dar acesso à equipe |
+| `Baixar.php` | baixar um arquivo (documento do Google vai como .docx, .xlsx, .pptx ou .png; formulário e atalho não) ou vários num .zip, tudo em fluxo; .zip até 2 GB, e o que falhar vai listado num .txt dentro dele |
+| `ZipEmFluxo.php` | o .zip escrito à mão e em fluxo (o PHP de produção não tem a extensão zip e o disco é curto): sem compressão, descritor de dados depois de cada arquivo, nomes em UTF-8, nome repetido ganha "(2)" |
+| `Secao.php` | as **seções do Drive** da ficha (`drive_secoes_cliente`, migration 163): título e pasta da árvore do cliente ("Mídias prontas", "Mídias editadas"), na ordem escolhida; sem pasta, cria uma com o título dentro da pasta do cliente; remover não apaga nada no Drive |
 | `Sincronizacao.php` | a atualização automática pela API de mudanças do Drive (`bin/drive_sync.php`) |
 | `ArquivoDoCartao.php` | arquivo da pasta do cliente vinculado a um cartão (`task_drive_arquivos`) |
 
 API: `public/api/drive.php` (operação) e `public/api/drive_oauth.php` (conectar).
-Tela: `public/assets/ff-drive.js` (aba Arquivos da ficha do cliente e o seletor de
-arquivo do cartão) e o cartão "Google Drive" da Visão Geral da Empresa. Migration
-160. Teste: `scripts/tests/ambientes_test.php` (Google de mentira).
+Tela: `public/assets/ff-drive.js` (o Drive da ficha do cliente, na Visão geral e na
+aba "Drive e arquivos": navegar, pré-visualizar, baixar um ou tudo, selecionar,
+enviar arrastando, nova pasta, link e compartilhamento, criar seção com a pasta
+aberta; e o seletor de arquivo do cartão), as seções em `ff-cliente-operacao.js` e
+o cartão "Google Drive" da Visão Geral da Empresa. Migrations 160 e 163. Teste:
+`scripts/tests/ambientes_test.php` (Google de mentira).
+
+## Regras do Drive completo (21/10/2026)
+
+- **Tudo dentro da árvore do cliente.** Enviar, criar pasta, baixar, ver o link,
+  abrir o compartilhamento e criar seção só valem para pasta ou arquivo visto
+  dentro da pasta ligada ao cliente; pedido de fora é recusado.
+- **Envio direto ao Google.** O PHP de produção aceita até 2 MB por envio; vídeo
+  não passa. O servidor abre a sessão (o token não vai para o navegador) e o
+  navegador manda o arquivo direto, com progresso. Depois, o servidor confere a
+  pasta do arquivo no Google antes de pôr na lista.
+- **Download em fluxo.** O arquivo passa pelo servidor em pedaços (quem baixa não
+  precisa estar logado no Google com acesso à pasta). O .zip é montado enquanto
+  os arquivos chegam, sem disco.
+- **Compartilhamento.** Qualquer pessoa vê o link e se a pasta está restrita ou
+  aberta; abrir ou fechar para quem tiver o link é só para administrador, e abre
+  como leitor.
 
 ## Configuração externa (uma vez)
 
