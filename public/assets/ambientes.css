@@ -57,13 +57,14 @@ html[data-ambiente="digital"], .sb-amb[data-amb="digital"], .sb-amb-lista a[data
   position: relative; display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 11px; text-decoration: none; color: #1F2937;
   font-family: 'Manrope', system-ui, sans-serif; transition: background .15s, transform .15s;
 }
-.sb-amb-lista a .sb-amb-ico { width: 30px; height: 30px; background: rgba(var(--amb-rgb), .12); color: var(--amb-c); backdrop-filter: none; }
+/* Cada ambiente sempre no degradê da sua cor, ativo ou não (pedido de 21/10/2026). */
+.sb-amb-lista a .sb-amb-ico { width: 30px; height: 30px; background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)); color: #FFFFFF; backdrop-filter: none; box-shadow: 0 4px 10px -6px rgba(var(--amb-rgb), .6); }
 .sb-amb-lista a .sb-amb-txt b { font-size: 13.5px; color: #1F2937; }
 .sb-amb-lista a .sb-amb-txt small { text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 11.5px; color: #575757; }
 .sb-amb-lista a:hover, .sb-amb-lista a:focus-visible { background: rgba(var(--amb-rgb), .08); outline: none; transform: translateX(2px); }
 .sb-amb-lista a:hover .sb-amb-ico { transform: scale(1.08); }
 .sb-amb-lista a.ativo { background: rgba(var(--amb-rgb), .10); }
-.sb-amb-lista a.ativo .sb-amb-ico { background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)); color: #FFFFFF; box-shadow: 0 6px 14px -6px rgba(var(--amb-rgb), .7); }
+.sb-amb-lista a.ativo .sb-amb-ico { box-shadow: 0 6px 14px -6px rgba(var(--amb-rgb), .8); }
 .sb-amb-check { width: 16px; height: 16px; flex: none; color: var(--amb-c); opacity: 0; transform: scale(.6); transition: opacity .2s, transform .2s cubic-bezier(.2,.8,.2,1); }
 .sb-amb-lista a.ativo .sb-amb-check { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) {
@@ -73,7 +74,6 @@ html[data-ambiente="digital"], .sb-amb[data-amb="digital"], .sb-amb-lista a[data
 html:not([data-theme="light"]) .sb-amb-lista { background: #13213A; border-color: rgba(255,255,255,.10); box-shadow: 0 22px 48px -12px rgba(0,0,0,.6); }
 html:not([data-theme="light"]) .sb-amb-lista a, html:not([data-theme="light"]) .sb-amb-lista a .sb-amb-txt b { color: #E7EBF1; }
 html:not([data-theme="light"]) .sb-amb-lista a .sb-amb-txt small { color: #AEB7C4; }
-html:not([data-theme="light"]) .sb-amb-lista a .sb-amb-ico { background: rgba(var(--amb-rgb), .22); color: #FFFFFF; }
 html:not([data-theme="light"]) .sb-amb-lista a:hover { background: rgba(var(--amb-rgb), .16); }
 html:not([data-theme="light"]) .sb-amb-lista a.ativo { background: rgba(var(--amb-rgb), .22); }
 
