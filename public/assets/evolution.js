@@ -55,7 +55,8 @@
   /* ── Gráficos ── */
   function cores() {
     const claro = document.documentElement.getAttribute('data-theme') === 'light';
-    const marca = getComputedStyle(document.documentElement).getPropertyValue('--ff-marca').trim() || '#3b82f6';
+    const raiz = getComputedStyle(document.documentElement);
+    const marca = raiz.getPropertyValue('--amb-c').trim() || raiz.getPropertyValue('--ff-marca').trim() || '#3b82f6';
     return { texto: claro ? '#575757' : '#a3adba', grade: claro ? 'rgba(17,29,45,0.08)' : 'rgba(255,255,255,0.08)', marca,
              open: '#10b981', connecting: '#f59e0b', close: '#94a3b8' };
   }

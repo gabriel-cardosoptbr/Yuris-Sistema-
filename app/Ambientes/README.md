@@ -47,7 +47,18 @@ lê `--amb-c` para os gráficos), botão principal e filtro ativo em degradê, K
 cartões de projeto com entrada e hover, aba ativa e marcador dos títulos na cor;
 em Tarefas, botão Nova tarefa, visão ativa, contador das colunas e botões Salvar
 em degradê, cards entrando um a um com hover na cor, dia de hoje do calendário,
-abas e campos do drawer com foco na cor; guarda de formulário,
+abas e campos do drawer com foco na cor. **O resto do sistema** (21/10/2026,
+Financeiro, Contratos, Orçamentos, Plataforma, Relatórios, Desempenho,
+Escritórios, Evolution, Agente, Webhooks, Planejamento, Chat, Chat interno e
+Usuários): o `<body>` troca as variáveis `--ff-marca*` (e `--primary`,
+`--brand`, `--icon-color`, `--o-acento`, `--doc-azul`, `--accent2`) pela cor do
+ambiente e o `.sidebar` recebe de volta as da marca, então toda tela que já lê
+`var(--ff-marca)` muda sozinha; o que era azul fixo (botão principal, aba e
+filtro ativos, KPI, cartão, linha de tabela, campo em foco, selo, avatar, balão
+do chat) tem regra própria em `ambientes.css`, `!important` e com
+`html[data-ambiente]` dobrado porque as regras do tema também são `!important`.
+Os gráficos do Financeiro usam a cor do ambiente na fatia da marca
+(`--amb-rgb`) só na conta com ambientes; guarda de formulário,
 faixa de Clientes, bloco do Comercial), `ambientes-visao.js` (Visões Gerais,
 Entregas, Campanhas) e `ff-cliente-operacao.js` (a ficha e o card de cada
 ambiente). API: `public/api/ambientes.php` e `public/api/digital.php`.

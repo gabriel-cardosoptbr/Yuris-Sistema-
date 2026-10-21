@@ -1076,7 +1076,7 @@ document.addEventListener('DOMContentLoaded', function() {
 window.dreCharts = {};
 const _fmtR = v => 'R$ ' + Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2});
 window.DRE_COM_RECEB = <?= $recebClientes ? 'true' : 'false' ?>;
-const _donutColors = ['#f59e0b','#60a5fa'].concat(window.DRE_COM_RECEB ? ['#34d399'] : []);
+const _donutColors = ['#f59e0b', (document.documentElement.dataset.ambiente && getComputedStyle(document.documentElement).getPropertyValue('--amb-c').trim()) || '#60a5fa'].concat(window.DRE_COM_RECEB ? ['#34d399'] : []);
 const _donutLabels = ['Honorários (CRM)','Lançamentos DRE'].concat(window.DRE_COM_RECEB ? ['Recebido de clientes'] : []);
 
 window.dreUpdateDonutLegend = function(vals) {
@@ -1115,13 +1115,18 @@ window.dreUpdateDonutLegend = function(vals) {
   }
 
   // Bar chart
+  // Na conta com ambientes a fatia da marca segue a cor do ambiente (--amb-rgb); nas outras, o azul de sempre.
+  const _AMB_RGB = document.documentElement.dataset.ambiente ? getComputedStyle(document.documentElement).getPropertyValue('--amb-rgb').trim() : '';
+  const C_MARCA_BG  = _AMB_RGB ? 'rgba(' + _AMB_RGB + ',.55)' : 'rgba(59,130,246,.55)';
+  const C_MARCA     = _AMB_RGB ? 'rgb(' + _AMB_RGB + ')' : '#3b82f6';
+  const C_MARCA_BG2 = _AMB_RGB ? 'rgba(' + _AMB_RGB + ',.65)' : 'rgba(96,165,250,.65)';
   const ctxBar = document.getElementById('chartBarRD');
   if (ctxBar) {
     window.dreCharts.bar = new Chart(ctxBar, {
       type: 'bar',
       data: {
         labels: ['Receita', 'Despesa', 'Lucro líquido'],
-        datasets: [{ data: [receita, despesa, Math.max(0,lucro)], backgroundColor: ['rgba(16,185,129,.55)','rgba(239,68,68,.55)','rgba(59,130,246,.55)'], borderColor: ['#10b981','#ef4444','#3b82f6'], borderWidth: 1.5, borderRadius: 6 }]
+        datasets: [{ data: [receita, despesa, Math.max(0,lucro)], backgroundColor: ['rgba(16,185,129,.55)','rgba(239,68,68,.55)', C_MARCA_BG], borderColor: ['#10b981','#ef4444', C_MARCA], borderWidth: 1.5, borderRadius: 6 }]
       },
       options: {
         responsive: true, maintainAspectRatio: true,
@@ -1140,7 +1145,7 @@ window.dreUpdateDonutLegend = function(vals) {
     const donutData = [Math.max(0,honorarios), Math.max(0,lancamentos)].concat(window.DRE_COM_RECEB ? [Math.max(0,recebidos)] : []);
     window.dreCharts.donut = new Chart(ctxD, {
       type: 'doughnut',
-      data: { labels: _donutLabels, datasets: [{ data: donutData, backgroundColor: ['rgba(245,158,11,.65)','rgba(96,165,250,.65)','rgba(52,211,153,.65)'], borderColor: _donutColors, borderWidth: 1.5, hoverOffset: 4 }] },
+      data: { labels: _donutLabels, datasets: [{ data: donutData, backgroundColor: ['rgba(245,158,11,.65)', C_MARCA_BG2, 'rgba(52,211,153,.65)'], borderColor: _donutColors, borderWidth: 1.5, hoverOffset: 4 }] },
       options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' ' + _fmtR(ctx.raw) } } } }
     });
     window.dreUpdateDonutLegend(donutData);
