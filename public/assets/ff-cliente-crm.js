@@ -44,7 +44,7 @@
     '.ffcli-item .sub{font-size:11.5px;color:#767676}' +
     '.ffcli-item .acoes{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}' +
     '.ffcli-pill{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:99px;margin-right:6px;background:rgba(var(--ff-marca-rgb,1,93,252),.10);color:var(--ff-marca-forte,#013DF2)}' +
-    '.ffcli-pill.fixo{background:#FFF4D6;color:#B45309}.ffcli-pill.demanda{background:#EEF0F3;color:#575757}.ffcli-pill.anual{background:#EFEAFE;color:#6D4AFF}.ffcli-pill.servico{background:#E0F2FE;color:#0369A1}' +
+    '.ffcli-pill.fixo{background:#FFF4D6;color:#B45309}.ffcli-pill.demanda{background:#EEF0F3;color:#575757}.ffcli-pill.anual{background:#DBEAFE;color:#1D4ED8}.ffcli-pill.servico{background:#E0F2FE;color:#0369A1}' +
     '.ffcli-pill.aberta{background:#EEF0F3;color:#374151}.ffcli-pill.atrasada{background:#FEE2E2;color:#B91C1C}.ffcli-pill.paga{background:#D1FAE5;color:#047857}' +
     '.ffcli-link{background:none;border:0;padding:0;font:700 12px Manrope,system-ui,sans-serif;color:var(--ff-marca,#015DFC);cursor:pointer}' +
     '.ffcli-link.perigo{color:#B91C1C}' +
@@ -123,6 +123,24 @@
     fala: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/></svg>'
   };
   var PALETA = ['#2563EB', '#7C3AED', '#DB2777', '#EA580C', '#0D9488', '#16A34A', '#0891B2', '#9333EA', '#C2410C', '#4F46E5'];
+  // Conta com ambientes: os avatares ficam nos tons da cor da marca (marca azul, avatares
+  // azuis), do escuro ao claro, em vez do arco-íris.
+  (function () {
+    var raiz = document.documentElement;
+    if (!raiz.getAttribute('data-ambiente')) return;
+    var m = /^#([0-9a-f]{6})$/i.exec((getComputedStyle(raiz).getPropertyValue('--ff-marca') || '').trim());
+    if (!m) return;
+    var n = parseInt(m[1], 16), r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+    var mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn, h = 0;
+    if (d) h = mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    h *= 60;
+    var hex = function (hh, s, l) {
+      hh = (hh + 360) % 360; var c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((hh / 60) % 2 - 1)), o = l - c / 2;
+      var v = hh < 60 ? [c, x, 0] : hh < 120 ? [x, c, 0] : hh < 180 ? [0, c, x] : hh < 240 ? [0, x, c] : hh < 300 ? [x, 0, c] : [c, 0, x];
+      return '#' + v.map(function (k) { return ('0' + Math.round((k + o) * 255).toString(16)).slice(-2); }).join('');
+    };
+    PALETA = [[0, .30], [0, .40], [-12, .34], [-6, .46], [0, .50], [-12, .42], [-6, .36], [0, .56]].map(function (p) { return hex(h + p[0], .72, p[1]); });
+  })();
   function corSegura(c) { return /^#[0-9a-fA-F]{3,8}$/.test(c || '') ? c : '#3B82F6'; }
   function corDoNome(n) { var h = 0; for (var i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) >>> 0; return PALETA[h % PALETA.length]; }
   function iniciais(n) { var p = String(n || '?').trim().split(/\s+/); return ((p[0] || '?')[0] + (p.length > 1 ? p[p.length - 1][0] : (p[0][1] || ''))).toUpperCase(); }
@@ -492,6 +510,14 @@
           dv.textContent = 'Fica ' + n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + (t === 'mensal' ? ' por mês' : t === 'anual' ? ' por ano' : '') + '.';
         };
         cv.addEventListener('input', previa);
+        // Ao sair do campo, o número é reescrito no formato brasileiro ("800" vira "800,00",
+        // "8000" vira "8.000,00"): o que fica no campo é exatamente o que vai ser gravado.
+        cv.addEventListener('blur', function () {
+          var n = lerValor(cv.value);
+          if (n === null || cv.value.trim() === '') return;
+          cv.value = n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          previa();
+        });
         if (sel) sel.addEventListener('change', previa);
         previa();
       }

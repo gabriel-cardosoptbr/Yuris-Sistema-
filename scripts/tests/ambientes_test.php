@@ -87,6 +87,23 @@ function novoCartao(int $boardId, string $titulo, ?string $prazo = null): int
 }
 
 try {
+    echo "\n== Cores dos ambientes saem da marca ==\n";
+    $matiz = function (string $hex): float {
+        [$r, $g, $b] = array_map(fn($v) => $v / 255, sscanf($hex, '#%02x%02x%02x'));
+        $mx = max($r, $g, $b); $mn = min($r, $g, $b); $d = $mx - $mn;
+        if (!$d) return 0.0;
+        $h = $mx == $r ? fmod(($g - $b) / $d + 6, 6) : ($mx == $g ? ($b - $r) / $d + 2 : ($r - $g) / $d + 4);
+        return $h * 60;
+    };
+    $cores = Ambiente::cores('#1D4678');
+    ok('quatro ambientes com cor', array_keys($cores) === ['empresa', 'comercial', 'software', 'digital']);
+    ok('marca azul: todos azuis (matiz entre 190 e 230, nada de roxo)', count(array_filter($cores, fn($c) => ($m = $matiz($c['c'])) >= 190 && $m <= 230 && ($m2 = $matiz($c['c2'])) >= 190 && $m2 <= 230)) === 4);
+    ok('os quatro são diferentes', count(array_unique(array_column($cores, 'c'))) === 4);
+    ok('rgb confere com o hex', $cores['empresa']['rgb'] === implode(',', sscanf($cores['empresa']['c'], '#%02x%02x%02x')));
+    $verde = Ambiente::cores('#059669');
+    ok('trocou a marca, os ambientes trocam junto (marca verde dá verdes)', count(array_filter($verde, fn($c) => ($m = $matiz($c['c'])) >= 130 && $m <= 175)) === 4);
+    ok('cor inválida cai no padrão', count(Ambiente::cores('roxo')) === 4);
+
     echo "\n== Ambiente de cada página e menu ==\n";
     $todos = array_keys(Ambiente::LISTA);
     ok('?amb= vale quando a pessoa pode entrar', Ambiente::resolver('tarefas', 'digital', 'software', $todos) === 'digital');

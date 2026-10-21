@@ -352,6 +352,7 @@ que entram depois e os atributos `style`/`fill`/`stroke`, e troca todo azul fixo
 pela cor da marca: escuro vira o tom forte, médio vira a cor da marca, claro mantém a luminosidade no matiz
 da marca, com a transparência preservada. Verde, vermelho, amarelo e cinza ficam. Assim o azul escrito à mão
 no `yuris-theme.css` (com `!important`), no chat, nas tarefas e nas telas some sem mexer arquivo por arquivo.
+As variáveis `--amb-*` (cores dos ambientes) ficam de fora: já saem da marca em tons diferentes de propósito (`App\Ambientes\Ambiente::cores`), e achatá-las num tom só apagava a diferença entre os ambientes (21/10/2026).
 No menu, marca própria com logo mostra o logo inteiro (52px), flutuando devagar (sobe e desce 3px; parado
 para quem pede menos movimento). O aviso de cookies usa `!important` nos botões e está em `?v=3`.
 

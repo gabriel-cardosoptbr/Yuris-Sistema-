@@ -643,6 +643,11 @@ if ($_isFleetiflow) {
   </div>
   <script>document.documentElement.setAttribute('data-ambiente', <?= json_encode($_ambCtx['atual']) ?>);</script>
   <link rel="stylesheet" href="/assets/ambientes.css?v=<?= @filemtime(__DIR__ . '/../assets/ambientes.css') ?: '1' ?>">
+  <style>/* As cores dos ambientes saem da cor da marca (App\Ambientes\Ambiente::cores). */
+<?php foreach (\App\Ambientes\Ambiente::cores((string) ($_marca['paleta']['marca'] ?? $_marca['cor'] ?? '')) as $__a => $__c): ?>
+  html[data-ambiente="<?= $__a ?>"], .sb-amb[data-amb="<?= $__a ?>"], .sb-amb-lista a[data-amb="<?= $__a ?>"]{ --amb-c:<?= $__c['c'] ?>; --amb-c2:<?= $__c['c2'] ?>; --amb-rgb:<?= $__c['rgb'] ?>; }
+<?php endforeach; ?>
+  </style>
   <script src="/assets/ambientes.js?v=<?= @filemtime(__DIR__ . '/../assets/ambientes.js') ?: '1' ?>" defer></script>
   <?php endif; ?>
 

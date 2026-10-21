@@ -7,14 +7,10 @@
 /* Cada ambiente tem a sua cor (a da marca fica para o resto do sistema). A cor vale na
    página inteira (html[data-ambiente], posto pelo sidebar.php): seletor, quadro de
    Clientes e ficha do cliente leem --amb-c, --amb-c2 e --amb-rgb.
-   Desde 21/10/2026 os quatro são tons de azul tirados da logo da Inovaize (marinho
-   #1B437C): Empresa no marinho da logo, Comercial no azul royal, Software no azul
-   céu e Digital no anil. */
+   As quatro cores saem da cor da marca (App\Ambientes\Ambiente::cores, emitidas pelo
+   sidebar.php logo depois deste arquivo): mesmo matiz, claridades diferentes. Marca
+   azul dá quatro azuis. Aqui fica só o padrão, a própria marca. */
 html, .sb-amb, .sb-amb-lista a { --amb-c: var(--ff-marca, #015DFC); --amb-c2: var(--ff-marca-forte, #013DF2); --amb-rgb: var(--ff-marca-rgb, 1,93,252); }
-html[data-ambiente="empresa"], .sb-amb[data-amb="empresa"], .sb-amb-lista a[data-amb="empresa"] { --amb-c: #1B437C; --amb-c2: #2E6BC6; --amb-rgb: 27,67,124; }
-html[data-ambiente="comercial"], .sb-amb[data-amb="comercial"], .sb-amb-lista a[data-amb="comercial"] { --amb-c: #1D4ED8; --amb-c2: #3B82F6; --amb-rgb: 29,78,216; }
-html[data-ambiente="software"], .sb-amb[data-amb="software"], .sb-amb-lista a[data-amb="software"] { --amb-c: #0369A1; --amb-c2: #0EA5E9; --amb-rgb: 3,105,161; }
-html[data-ambiente="digital"], .sb-amb[data-amb="digital"], .sb-amb-lista a[data-amb="digital"] { --amb-c: #3730A3; --amb-c2: #6366F1; --amb-rgb: 55,48,163; }
 
 /* Mesma escala dos itens do menu (38px de altura, 12px de recuo lateral, ícone de 30px). */
 .sb-amb { position: relative; margin: 0 12px 6px; }

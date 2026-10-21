@@ -95,6 +95,52 @@ final class Ambiente
         'escritorios.php' => 'escritorios', 'evolution.php' => 'evolution', 'projetos.php*' => 'projetos',
     ];
 
+    /**
+     * A cor de cada ambiente sai da cor da marca (21/10/2026: "é da paleta da cor da
+     * marca; se a coisa é azul, permanece azul"). Mesmo matiz, mudando claridade e
+     * saturação; o Software anda até 12 graus para o lado do verde-água e o Digital 6,
+     * nunca para o lado do roxo (numa marca azul, o lado oposto vira violeta). Marca
+     * azul dá quatro azuis; trocou a marca, os ambientes trocam junto.
+     * @return array<string, array{c:string, c2:string, rgb:string}>
+     */
+    public static function cores(string $hex): array
+    {
+        if (!preg_match('/^#[0-9a-fA-F]{6}$/', $hex)) $hex = '#015DFC';
+        [$h, $s] = self::hsl($hex);
+        // [desvio de matiz, saturação mínima, claridade do começo, claridade do fim]
+        $receita = [
+            'empresa'   => [0,   .55, .30, .46],
+            'comercial' => [0,   .78, .40, .57],
+            'software'  => [-12, .70, .33, .50],
+            'digital'   => [-6,  .80, .46, .64],
+        ];
+        $out = [];
+        foreach ($receita as $amb => [$dh, $sMin, $l1, $l2]) {
+            $sat = min(max($s, $sMin), .85);   // até .85: acima disso verde e amarelo viram neon
+            $c = self::hexDe($h + $dh, $sat, $l1);
+            $out[$amb] = ['c' => $c, 'c2' => self::hexDe($h + $dh, $sat, $l2), 'rgb' => implode(',', sscanf($c, '#%02x%02x%02x'))];
+        }
+        return $out;
+    }
+
+    /** @return array{0:float,1:float,2:float} matiz (graus), saturação e claridade (0 a 1) */
+    private static function hsl(string $hex): array
+    {
+        [$r, $g, $b] = array_map(fn($v) => $v / 255, sscanf($hex, '#%02x%02x%02x'));
+        $mx = max($r, $g, $b); $mn = min($r, $g, $b); $l = ($mx + $mn) / 2; $d = $mx - $mn;
+        if ($d == 0) return [0.0, 0.0, $l];
+        $s = $l > .5 ? $d / (2 - $mx - $mn) : $d / ($mx + $mn);
+        $h = $mx == $r ? fmod(($g - $b) / $d + 6, 6) : ($mx == $g ? ($b - $r) / $d + 2 : ($r - $g) / $d + 4);
+        return [$h * 60, $s, $l];
+    }
+
+    private static function hexDe(float $h, float $s, float $l): string
+    {
+        $h = fmod($h + 360, 360); $c = (1 - abs(2 * $l - 1)) * $s; $x = $c * (1 - abs(fmod($h / 60, 2) - 1)); $m = $l - $c / 2;
+        [$r, $g, $b] = $h < 60 ? [$c, $x, 0] : ($h < 120 ? [$x, $c, 0] : ($h < 180 ? [0, $c, $x] : ($h < 240 ? [0, $x, $c] : ($h < 300 ? [$x, 0, $c] : [$c, 0, $x]))));
+        return sprintf('#%02X%02X%02X', (int) round(($r + $m) * 255), (int) round(($g + $m) * 255), (int) round(($b + $m) * 255));
+    }
+
     public static function habilitado(array $conta): bool
     {
         if (!$conta || \App\Master\Account::moduloJuridicoDisponivel($conta)) return false;

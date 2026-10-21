@@ -10,6 +10,7 @@
  *   claro  (> 62%)               -> a mesma luminosidade, no matiz da marca
  * A transparência de cada cor é mantida. Só mexe em azul (matiz 195 a 250, saturado): verde, vermelho,
  * amarelo e cinza ficam como estão. Carregado por includes/sidebar.php só quando a marca é própria.
+ * As variáveis --amb-* (cores dos ambientes, já derivadas da marca) ficam como estão.
  */
 (function () {
   'use strict';
@@ -69,7 +70,11 @@
   }
   function recolorirEstilo(st) {
     for (var i = 0; i < st.length; i++) {
-      var p = st[i], v = st.getPropertyValue(p), n = recolorir(v);
+      var p = st[i];
+      // As cores dos ambientes (--amb-*) já saem da marca (App\Ambientes\Ambiente::cores) em
+      // tons diferentes de propósito: achatá-las num tom só apagaria a diferença entre eles.
+      if (p.indexOf('--amb-') === 0) continue;
+      var v = st.getPropertyValue(p), n = recolorir(v);
       if (n !== v) st.setProperty(p, n, st.getPropertyPriority(p));
     }
   }
