@@ -7,7 +7,8 @@
      "cliente vê").
    - Ficha com "Para o cliente" (igual à impressão) e "Controle do escritório".
    - Formulário: lead ou cliente, placa, serviços e débitos do veículo.
-   Endereços: ?id=N abre a ficha; ?novo=1&card=N abre o formulário já com o lead.
+   Endereços: ?id=N abre a ficha; ?novo=1&card=N abre o formulário já com o lead;
+   ?novo=1&cliente=N, já com o cliente (botão "+ Nova proposta" da ficha do cliente).
    ═══════════════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
@@ -202,7 +203,7 @@
     var editando = !!ficha;
     var alvo = ficha
       ? { tipo: ficha.card_id ? 'lead' : (ficha.cliente_id ? 'cliente' : null), id: ficha.card_id || ficha.cliente_id || null }
-      : (leadInicial ? { tipo: 'lead', id: leadInicial.id } : { tipo: null, id: null });
+      : (leadInicial ? { tipo: leadInicial.tipo || 'lead', id: leadInicial.id } : { tipo: null, id: null });
     var linhas = ficha && ficha.itens.length
       ? ficha.itens.map(function (i) {
           return { natureza: i.natureza, servico_id: i.servico_id || '', descricao: i.descricao, quantidade: paraTexto(i.quantidade) || '1', valor_unitario: paraTexto(i.valor_unitario), desconto: paraTexto(i.desconto) };
@@ -464,9 +465,11 @@
     if (p.get('id')) { renderFicha(p.get('id')); return; }
     renderLista();
     if (p.get('novo')) {
-      var card = p.get('card');
+      var card = p.get('card'), cliente = p.get('cliente');
       history.replaceState(null, '', location.pathname);
-      if (card) {
+      if (cliente) {
+        api('GET', '?cliente_ref=' + encodeURIComponent(cliente)).then(function (r) { abrirFormulario(null, r.ok ? r.data : null); });
+      } else if (card) {
         api('GET', '?lead=' + encodeURIComponent(card)).then(function (r) { abrirFormulario(null, r.ok ? r.data : null); });
       } else {
         abrirFormulario(null, null);

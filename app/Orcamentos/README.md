@@ -46,4 +46,10 @@ de um despachante: transferência com IPVA e multas da mesma placa, e as taxas d
 - O catálogo (preço e taxas) só muda por dono ou administrador; quem vende só usa.
 - Toda consulta filtra `account_id`; id vindo da tela nunca basta sozinho.
 
+Pela ficha do cliente (Clientes, aba Propostas, nos ambientes da Inovaize): as
+propostas do cliente num quadro pela situação (`App\Ambientes\QuadrosDaFicha`),
+arrastar usa `aprovar`, `converter`, `rejeitar` e `reabrir` desta classe, e "+ Nova
+proposta" abre `orcamentos?novo=1&cliente=N`, o formulário já com o cliente (a API
+devolve o cliente em `?cliente_ref=N`).
+
 Teste: `scripts/tests/orcamento_crm_test.php`. Migration: `database/migrations/run_143.php`.

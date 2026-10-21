@@ -13,9 +13,13 @@
        post), Arquivos (Drive), WhatsApp e Histórico. Sem financeiro,
        contrato, dados pessoais, endereço ou origem.
      - Software: Visão geral (resumo, perfil técnico), Projeto e demandas
-       (quadros de Software, demandas abertas, projetos da pasta Projetos),
+       (o quadro do projeto como no Trello: colunas do quadro, arrastar move a
+       demanda, arquivo do Drive, nova demanda, relatório em Excel; quadros de
+       Software, projetos da pasta Projetos),
        Arquivos, WhatsApp e Histórico. Sem financeiro e sem Digital.
-     - Comercial: a venda: dados, origem, negociações, financeiro, contratos.
+     - Comercial: a venda: dados, origem, negociações, financeiro, contratos,
+       e a aba Propostas (as propostas pela situação, arrastar segue a regra
+       do orçamento, nova proposta já com o cliente, relatório em Excel).
        Sem produção.
      - Empresa: tudo.
    No quadro de Clientes, window.FfCardArea dá o miolo do card de cada
@@ -164,6 +168,8 @@
     'Tarefas': { e: G, c: G, s: ['software'], d: ['producao'] },
     'Etiquetas, campos e documentos': { e: ['geral', 'arquivos'], c: ['geral', 'arquivos'], s: ['arquivos'], d: ['arquivos'] },
     'Quadro de entregas': { e: ['producao'], c: N, s: N, d: ['producao'] },
+    'Quadro do projeto': { e: ['software'], c: N, s: ['software'], d: N },
+    'Quadro de propostas': { e: ['propostas'], c: ['propostas'], s: N, d: N },
     'Quadros de produção e projetos': { e: ['producao'], c: N, s: N, d: ['producao'] },
     'Frequência contratada': { e: ['producao'], c: N, s: N, d: ['producao'] },
     'Campanhas de tráfego pago': { e: ['producao'], c: N, s: N, d: ['producao'] },
@@ -177,13 +183,13 @@
     'Resumo do Software': { e: G, c: N, s: G, d: N },
     'Perfil técnico': { e: ['software'], c: N, s: G, d: N },
     'Quadros de Software': { e: ['software'], c: N, s: ['software'], d: N },
-    'Demandas abertas': { e: ['software'], c: N, s: ['software'], d: N },
+    'Demandas abertas': { e: N, c: N, s: N, d: N },
     'Projetos ligados': { e: ['software'], c: N, s: ['software'], d: N }
   };
   var ABAS = {
     empresa: [['geral', 'Visão geral', 'grade'], ['whatsapp', 'WhatsApp', 'zap'], ['producao', 'Produção', 'tarefa'], ['entregas', 'Entregas', 'calendario'],
-      ['postagem', 'Postagem', 'imagem'], ['software', 'Software', 'codigo'], ['arquivos', 'Drive e arquivos', 'clipe'], ['historico', 'Histórico', 'relogio']],
-    comercial: [['geral', 'Visão geral', 'grade'], ['whatsapp', 'WhatsApp', 'zap'], ['arquivos', 'Arquivos', 'clipe'], ['historico', 'Histórico', 'relogio']],
+      ['postagem', 'Postagem', 'imagem'], ['software', 'Software', 'codigo'], ['propostas', 'Propostas', 'doc'], ['arquivos', 'Drive e arquivos', 'clipe'], ['historico', 'Histórico', 'relogio']],
+    comercial: [['geral', 'Visão geral', 'grade'], ['propostas', 'Propostas', 'doc'], ['whatsapp', 'WhatsApp', 'zap'], ['arquivos', 'Arquivos', 'clipe'], ['historico', 'Histórico', 'relogio']],
     software: [['geral', 'Visão geral', 'grade'], ['software', 'Projeto e demandas', 'codigo'], ['arquivos', 'Drive e arquivos', 'clipe'], ['whatsapp', 'WhatsApp', 'zap'], ['historico', 'Histórico', 'relogio']],
     digital: [['geral', 'Visão geral', 'grade'], ['producao', 'Produção', 'tarefa'], ['entregas', 'Entregas', 'calendario'], ['postagem', 'Postagem', 'imagem'],
       ['arquivos', 'Drive e arquivos', 'clipe'], ['whatsapp', 'WhatsApp', 'zap'], ['historico', 'Histórico', 'relogio']]
@@ -238,6 +244,8 @@
     var elNeg = secao('ffOpNegociacoes', 'Negociações', 'bandeira', 'ambar', dir, origem);
     var elQuadros = secao('ffOpProducao', 'Quadros de produção e projetos', 'tarefa', 'verde', esq);
     var elKb = secao('ffOpKanban', 'Quadro de entregas', 'tarefa', 'verde', esq, 'topo');
+    var elSwKb = secao('ffOpSwKanban', 'Quadro do projeto', 'codigo', 'roxo', esq, 'topo');
+    var elPropKb = secao('ffOpPropostas', 'Quadro de propostas', 'doc', 'ambar', esq, 'topo');
     var elFreq = secao('ffOpFrequencia', 'Frequência contratada', 'calendario', 'ambar', dir);
     var elCamp = secao('ffOpCampanhas', 'Campanhas de tráfego pago', 'bandeira', '', dir);
     var elMes = secao('ffOpMes', 'Entregas do mês', 'calendario', 'verde', esq);
@@ -857,7 +865,176 @@
       });
     }
 
-    var TODOS = [elKb, elOper, elResDg, elResSw, elRedes, elTec, elNeg, elQuadros, elFreq, elCamp, elMes, elLista, elPost, elQSw, elDem, elProj];
+    // ── Arquivo do Drive num cartão (usado pelos quadros da ficha) ───────
+    function ligarArquivosDoCartao(raiz, achar, recarregar) {
+      raiz.querySelectorAll('[data-a-ver]').forEach(function (b) {
+        b.onclick = function () {
+          var p = b.dataset.aVer.split(':'), c = achar(p[0]), f = c && c.arquivos[+p[1]];
+          if (f && window.FfDrive && window.FfDrive.previa) window.FfDrive.previa({ id: f.file_id, nome: f.nome, tipo: f.tipo, link: f.link }, '/api/drive.php?cliente=' + estado.id + '&baixar=' + encodeURIComponent(f.file_id));
+        };
+      });
+      raiz.querySelectorAll('[data-a-desv]').forEach(function (b) {
+        b.onclick = function () {
+          var p = b.dataset.aDesv.split(':');
+          pedirDrive('', { acao: 'cartao_remover', task_id: +p[0], id: +p[1] }).then(function (r) { if (!r.ok) { aviso(r.error || 'Não foi possível desvincular.'); return; } recarregar(); });
+        };
+      });
+      raiz.querySelectorAll('[data-a-vinc]').forEach(function (b) {
+        b.onclick = function () {
+          var box = b.closest('.ffop-kc').querySelector('[data-kc-extra]');
+          if (box.innerHTML) { box.innerHTML = ''; return; }
+          if (!window.FfDrive) { box.innerHTML = '<div class="ffcli-vazio">O Drive não está disponível.</div>'; return; }
+          window.FfDrive.escolher(box, estado.id, function (f) {
+            pedirDrive('', { acao: 'cartao_vincular', task_id: +b.dataset.aVinc, file_id: f.id }).then(function (r) { if (!r.ok) { aviso(r.error || 'Não foi possível vincular.'); return; } recarregar(); });
+          });
+        };
+      });
+      raiz.querySelectorAll('.ffop-kc-mini img').forEach(function (img) {
+        var tirar = function () { var b = img.parentNode; if (b) b.remove(); };
+        if (img.complete && !img.naturalWidth) tirar(); else img.addEventListener('error', tirar);
+      });
+    }
+    function arquivosHtml(tid, arquivos, pode) {
+      var a = (arquivos || [])[0], h = '';
+      if (a && (a.tipo === 'Imagem' || a.tipo === 'Vídeo')) h += '<button type="button" class="ffop-kc-mini" data-a-ver="' + tid + ':0" title="Pré-visualizar ' + esc(a.nome) + '"><img alt="" src="/api/drive.php?cliente=' + estado.id + '&miniatura=' + encodeURIComponent(a.file_id) + '&w=480"></button>';
+      var lista = (arquivos || []).length ? '<div class="ffop-kc-arqs">' + arquivos.map(function (f, k) {
+        return '<span class="ffop-kc-arq"><button type="button" class="ffcli-link" data-a-ver="' + tid + ':' + k + '">' + esc(f.nome) + '</button>' + (pode ? '<button type="button" class="ffop-kc-x" data-a-desv="' + tid + ':' + f.id + '" title="Desvincular" aria-label="Desvincular ' + esc(f.nome) + '">×</button>' : '') + '</span>';
+      }).join('') + '</div>' : '';
+      return { mini: h, lista: lista };
+    }
+    function relatorioForm(box, url, texto) {
+      box.innerHTML = '<div class="ffop-form"><label>De<input type="month" data-rel-de value="' + esc(estado.mes) + '" data-amb-ignorar></label><label>Até<input type="month" data-rel-ate value="' + esc(estado.mes) + '" data-amb-ignorar></label>' +
+        '<button type="button" class="ffcli-bt princ" data-rel-ok>Baixar Excel</button><button type="button" class="ffcli-bt" data-rel-x>Fechar</button></div><div class="ffcli-vazio">' + texto + '</div>';
+      box.querySelector('[data-rel-ok]').onclick = function () { location.href = url + '&de=' + encodeURIComponent(box.querySelector('[data-rel-de]').value) + '&ate=' + encodeURIComponent(box.querySelector('[data-rel-ate]').value); };
+      box.querySelector('[data-rel-x]').onclick = function () { box.innerHTML = ''; };
+    }
+
+    // ── Quadro do projeto (Software), igual ao quadro de Tarefas ─────────
+    var sw = { board: null, dados: null, sortables: [] };
+    var PRIO_CLS = { urgente: 'alerta', alta: 'atencao', media: '', baixa: '' };
+    function desenharSwKanban() {
+      var id = estado.id;
+      if (!id || !elSwKb || MAPA['Quadro do projeto'][CHAVE].length === 0) return;
+      if (!estado.ficha || !estado.ficha.pode_tarefas) { elSwKb.innerHTML = '<div class="ffcli-vazio">Sem acesso aos quadros de Tarefas.</div>'; return; }
+      pedir('?software_quadro=' + id + (sw.board ? '&board=' + sw.board : '')).then(function (r) {
+        if (estado.id !== id) return;
+        if (!r.ok) { elSwKb.innerHTML = '<div class="ffcli-vazio">' + esc(r.error || 'Não foi possível carregar.') + '</div>'; return; }
+        sw.dados = r.data; sw.board = r.data.quadro ? r.data.quadro.id : null;
+        pintarSw();
+      });
+    }
+    function pintarSw() {
+      sw.sortables.forEach(function (s) { try { s.destroy(); } catch (x) { /* saiu da tela */ } });
+      sw.sortables = [];
+      var d = sw.dados, ap = estado.apoio || { equipe: [] };
+      var h = '<div class="ffop-kb-topo">' + (d.quadros.length > 1 ? '<span class="ffop-areas" style="margin:0">' + d.quadros.map(function (q) {
+          return '<button type="button" class="ffcli-setopt' + (d.quadro && q.id === d.quadro.id ? ' on' : '') + '" data-sw-board="' + q.id + '">' + esc(q.nome) + '</button>';
+        }).join('') + '</span>' : (d.quadro ? '<b>' + esc(d.quadro.nome) + '</b>' : '')) +
+        '<span class="ffop-kb-acoes"><button type="button" class="ffcli-bt princ" data-sw-nova>+ Nova demanda</button><button type="button" class="ffcli-bt" data-sw-rel>Baixar relatório (Excel)</button>' +
+        (d.quadro ? '<a class="ffcli-bt" style="text-decoration:none" href="/tarefas?amb=software&board=' + d.quadro.id + '">Abrir quadro completo</a>' : '') + '</span></div><div data-sw-form></div>';
+      if (!d.quadro) {
+        h += '<div class="ffcli-vazio">O cliente ainda não tem quadro de Software. A primeira demanda cria o quadro "Projeto · cliente" com as colunas Backlog, Em desenvolvimento, Revisão, Homologação e Entregue.</div>';
+      } else {
+        h += '<div class="ffop-kb" style="grid-template-columns:repeat(' + d.colunas.length + ',minmax(210px,1fr))">' + d.colunas.map(function (c) {
+          return '<div class="ffop-kb-col"><div class="ffop-kb-cab"><b>' + esc(c.nome) + '</b><span>' + c.cartoes.length + '</span></div><div class="ffop-kb-lista" data-sw-col="' + c.id + '">' + c.cartoes.map(function (t) {
+            var a = arquivosHtml(t.id, t.arquivos, d.pode_editar);
+            return '<div class="ffop-kc' + (d.pode_editar ? '' : ' ffop-ro') + (t.atrasada ? ' atrasada' : '') + '" data-sw-tid="' + t.id + '">' + a.mini + '<b>' + esc(t.titulo) + '</b>' +
+              '<small>' + (t.prazo ? 'prazo ' + esc(data(t.prazo)) : 'sem prazo') + (t.atrasada ? ' · <span class="ffop-pend">atrasada</span>' : '') + (t.responsavel ? ' · ' + esc(t.responsavel) : '') + '</small>' +
+              '<div class="ffop-kc-pills"><span class="ffop-pill ' + (PRIO_CLS[t.prioridade] || '') + '">' + esc(PRIO[t.prioridade] || t.prioridade || '') + '</span>' + (c.concluido && t.concluida_em ? '<span class="ffop-pill ok">Entregue ' + esc(data(t.concluida_em)) + '</span>' : '') + '</div>' +
+              a.lista + '<div class="ffop-kc-acoes">' + (d.pode_editar ? '<button type="button" class="ffcli-link" data-a-vinc="' + t.id + '">Vincular arquivo do Drive</button>' : '') +
+              '<a class="ffcli-link" href="/tarefas?amb=software&board=' + d.quadro.id + '&tarefa=' + t.id + '">Cartão</a></div><div data-kc-extra></div></div>';
+          }).join('') + (c.cartoes.length ? '' : '<div class="ffop-kb-vazio">Arraste uma demanda para cá</div>') + '</div></div>';
+        }).join('') + '</div>';
+      }
+      elSwKb.innerHTML = h;
+      elSwKb.querySelectorAll('[data-sw-board]').forEach(function (b) { b.onclick = function () { sw.board = +b.dataset.swBoard; desenharSwKanban(); }; });
+      elSwKb.querySelector('[data-sw-rel]').onclick = function () {
+        relatorioForm(elSwKb.querySelector('[data-sw-form]'), '/api/digital.php?relatorio_software=' + estado.id, 'A planilha traz cada demanda do período: quadro, etapa, prioridade, responsável, prazo, quando foi criada e quando foi entregue, e o arquivo do Drive.');
+      };
+      elSwKb.querySelector('[data-sw-nova]').onclick = function () {
+        var box = elSwKb.querySelector('[data-sw-form]');
+        box.innerHTML = '<div class="ffop-form" data-amb-guarda><label class="larga">Demanda<input data-nd="titulo" maxlength="255" placeholder="Ex.: Tela de relatórios"></label>' +
+          '<label>Prioridade<select data-nd="prioridade"><option value="media">Média</option><option value="alta">Alta</option><option value="urgente">Urgente</option><option value="baixa">Baixa</option></select></label>' +
+          '<label>Prazo<input type="date" data-nd="prazo"></label><label>Responsável<select data-nd="responsavel_id"><option value="">Ninguém</option>' +
+          (ap.equipe || []).map(function (u) { return '<option value="' + u.id + '">' + esc(u.nome) + '</option>'; }).join('') + '</select></label>' +
+          '<button type="button" class="ffcli-bt princ" data-nd-ok>Criar demanda</button><button type="button" class="ffcli-bt" data-nd-x>Cancelar</button></div><div class="ffcli-erro" data-nd-erro></div>';
+        var t = box.querySelector('[data-nd="titulo"]'); t.focus();
+        function criar() {
+          var corpo = { acao: 'demanda_nova', cliente_id: estado.id, board_id: sw.board };
+          box.querySelectorAll('[data-nd]').forEach(function (i) { corpo[i.getAttribute('data-nd')] = i.value; });
+          pedir('', corpo).then(function (r) {
+            if (!r.ok) { box.querySelector('[data-nd-erro]').textContent = r.error || 'Não foi possível criar.'; return; }
+            box.querySelector('[data-amb-guarda]').removeAttribute('data-amb-sujo');
+            desenharSwKanban(); if (estado.ficha) pedir('?ficha=' + estado.id + '&mes=' + estado.mes).then(function (f) { if (f.ok) { estado.ficha = f.data; desenharResumoSoftware(); desenharQuadrosSoftware(); } });
+          });
+        }
+        box.querySelector('[data-nd-ok]').onclick = criar;
+        t.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); criar(); } });
+        box.querySelector('[data-nd-x]').onclick = function () { box.innerHTML = ''; };
+      };
+      function achar(tid) { var x = null; (d.colunas || []).forEach(function (c) { c.cartoes.forEach(function (t) { if (String(t.id) === String(tid)) x = t; }); }); return x; }
+      ligarArquivosDoCartao(elSwKb, achar, desenharSwKanban);
+      if (window.Sortable && d.pode_editar) elSwKb.querySelectorAll('[data-sw-col]').forEach(function (lista) {
+        sw.sortables.push(new window.Sortable(lista, {
+          group: 'ffop-sw', animation: 140, filter: 'button, a, select, input', preventOnFilter: false, draggable: '.ffop-kc',
+          onEnd: function (ev) {
+            if (ev.from === ev.to) return;
+            pedir('', { acao: 'demanda_mover', task_id: +ev.item.getAttribute('data-sw-tid'), column_id: +ev.to.getAttribute('data-sw-col') }).then(function (r) {
+              if (!r.ok) aviso(r.error || 'Não foi possível mover.');
+              desenharSwKanban();
+            });
+          }
+        }));
+      });
+    }
+
+    // ── Quadro de propostas (Comercial) ──────────────────────────────────
+    var pr = { itens: [], sortables: [] };
+    var PR_COLS = [['RASCUNHO', 'Rascunho'], ['APROVADO', 'Aprovada'], ['CONVERTIDO', 'Negócio fechado'], ['REJEITADO', 'Recusada']];
+    function desenharPropostas() {
+      var id = estado.id;
+      if (!id || !elPropKb || MAPA['Quadro de propostas'][CHAVE].length === 0) return;
+      pedir('?propostas=' + id).then(function (r) {
+        if (estado.id !== id) return;
+        if (!r.ok) { elPropKb.innerHTML = '<div class="ffcli-vazio">' + esc(r.error || 'Não foi possível carregar.') + '</div>'; return; }
+        pr.itens = r.data;
+        pintarPropostas();
+      });
+    }
+    function pintarPropostas() {
+      pr.sortables.forEach(function (s) { try { s.destroy(); } catch (x) { /* saiu da tela */ } });
+      pr.sortables = [];
+      var soma = function (st) { return pr.itens.filter(function (p) { return p.status === st; }).reduce(function (a, p) { return a + p.total; }, 0); };
+      var h = '<div class="ffop-kb-topo"><span class="ffcli-vazio">Fechado ' + esc(brl(soma('CONVERTIDO'))) + ' · Aprovadas ' + esc(brl(soma('APROVADO'))) + ' · Em rascunho ' + esc(brl(soma('RASCUNHO'))) + '</span>' +
+        '<span class="ffop-kb-acoes"><a class="ffcli-bt princ" style="text-decoration:none" href="/orcamentos?novo=1&cliente=' + estado.id + '">+ Nova proposta</a>' +
+        '<a class="ffcli-bt" style="text-decoration:none" href="/api/digital.php?relatorio_propostas=' + estado.id + '">Baixar relatório (Excel)</a></span></div>';
+      h += '<div class="ffop-kb">' + PR_COLS.map(function (c) {
+        var itens = pr.itens.filter(function (p) { return p.status === c[0]; });
+        return '<div class="ffop-kb-col"><div class="ffop-kb-cab"><b>' + c[1] + '</b><span>' + itens.length + '</span></div><div class="ffop-kb-lista" data-pr-col="' + c[0] + '">' + itens.map(function (p) {
+          return '<div class="ffop-kc' + (p.status === 'CONVERTIDO' ? ' ffop-ro' : '') + '" data-pr-id="' + p.id + '"><b>Proposta nº ' + p.numero + ' · ' + esc(brl(p.total)) + '</b>' +
+            (p.itens ? '<small>' + esc(p.itens) + '</small>' : '') + '<small>Criada em ' + esc(dataAno(p.criada_em)) + (p.vendedor ? ' · ' + esc(p.vendedor) : '') + '</small>' +
+            '<div class="ffop-kc-pills">' + (p.aprovada_em ? '<span class="ffop-pill ok">Aprovada ' + esc(data(p.aprovada_em)) + '</span>' : '') + (p.fechada_em ? '<span class="ffop-pill publicado">Fechada ' + esc(data(p.fechada_em)) + '</span>' : '') + '</div>' +
+            '<div class="ffop-kc-acoes"><a class="ffcli-link" href="/orcamentos?id=' + p.id + '">Abrir</a><a class="ffcli-link" href="/orcamento_imprimir.php?id=' + p.id + '" target="_blank" rel="noopener">Imprimir</a>' +
+            (p.lead_id ? '<a class="ffcli-link" href="/prospeccao?open=' + p.lead_id + '">Lead</a>' : '') + '</div></div>';
+        }).join('') + (itens.length ? '' : '<div class="ffop-kb-vazio">' + (c[0] === 'CONVERTIDO' ? 'Arraste uma proposta aprovada para cá' : 'Nada aqui') + '</div>') + '</div></div>';
+      }).join('') + '</div>';
+      if (!pr.itens.length) h += '<div class="ffcli-vazio" style="margin-top:8px">Nenhuma proposta deste cliente. "+ Nova proposta" abre o orçamento já com o cliente.</div>';
+      elPropKb.innerHTML = h;
+      if (window.Sortable) elPropKb.querySelectorAll('[data-pr-col]').forEach(function (lista) {
+        pr.sortables.push(new window.Sortable(lista, {
+          group: 'ffop-pr', animation: 140, filter: '.ffop-ro, a, button', preventOnFilter: false, draggable: '.ffop-kc',
+          onEnd: function (ev) {
+            if (ev.from === ev.to) return;
+            pedir('', { acao: 'proposta_mover', cliente_id: estado.id, id: +ev.item.getAttribute('data-pr-id'), para: ev.to.getAttribute('data-pr-col') }).then(function (r) {
+              if (!r.ok) aviso(r.error || 'Não foi possível mudar a situação.');
+              desenharPropostas();
+            });
+          }
+        }));
+      });
+    }
+
+    var TODOS = [elKb, elSwKb, elPropKb, elOper, elResDg, elResSw, elRedes, elTec, elNeg, elQuadros, elFreq, elCamp, elMes, elLista, elPost, elQSw, elDem, elProj];
     function carregar(forcar) {
       var id = campoId.value ? +campoId.value : null;
       if (!forcar && id === estado.id && estado.dados) return;
@@ -879,7 +1056,7 @@
         desenharResumoDigital(); desenharRedes(); desenharPostagem();
         desenharResumoSoftware(); desenharTecnico(); desenharQuadrosSoftware(); desenharDemandas(); desenharProjetos();
         desenharNegociacoes();
-        desenharQuadros(); desenharFrequencia(); desenharCampanhas(); desenharMes(); desenharLista(); desenharKanban();
+        desenharQuadros(); desenharFrequencia(); desenharCampanhas(); desenharMes(); desenharLista(); desenharKanban(); desenharSwKanban(); desenharPropostas();
       });
       if (elDrive && (forcar !== true)) { window.FfDrive.painel(elDrive, id, { aoSecoes: desenharSecoes }); desenharSecoes([]); desenharNovaSecao(); carregarSecoes(id); }
     }

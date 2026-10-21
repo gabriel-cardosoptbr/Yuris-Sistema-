@@ -15,6 +15,10 @@
  *   GET  ?quadro_clientes=1 [&mes=]       o miolo do card de cada cliente no quadro de Clientes do ambiente
  *   GET  ?producao=N [&mes=]              o quadro de entregas da ficha (aba Produção): entregas do mês com os arquivos do Drive
  *   GET  ?relatorio=N &de=AAAA-MM &ate=AAAA-MM   o relatório de entregas em Excel (.xlsx)
+ *   GET  ?software_quadro=N [&board=ID]   o quadro de Software do cliente (colunas e cartões, como no Trello)
+ *   GET  ?relatorio_software=N &de= &ate=  as demandas de Software do período em Excel
+ *   GET  ?propostas=N                     as propostas (orçamentos) do cliente pela situação
+ *   GET  ?relatorio_propostas=N           as propostas do cliente em Excel
  *   POST {acao:'entrega_salvar', task_id, tipo, producao, aprovacao, entrega, publicacao, competencia}
  *   POST {acao:'participantes', task_id, user_ids:[...]}
  *   POST {acao:'material_adicionar', task_id, nome}
@@ -27,6 +31,9 @@
  *   POST {acao:'campanha_remover', id}
  *   POST {acao:'perfil_salvar', cliente_id, area:'digital'|'software', campos:{...}}
  *   POST {acao:'entrega_link', task_id, link}            link do post publicado
+ *   POST {acao:'demanda_nova', cliente_id, titulo, board_id?, prazo?, prioridade?, responsavel_id?}
+ *   POST {acao:'demanda_mover', task_id, column_id}      arrastar no quadro de Software
+ *   POST {acao:'proposta_mover', cliente_id, id, para:'RASCUNHO'|'APROVADO'|'CONVERTIDO'|'REJEITADO'}
  *   POST {acao:'entrega_nova', cliente_id, titulo, tipo, competencia?, prazo?, responsavel_id?}  vira cartão no quadro de Digital do cliente
  *   POST {acao:'projeto_ligar', cliente_id, projeto_id, ligar}  projeto da pasta Projetos no cliente
  *
@@ -74,6 +81,24 @@ $vendedor = AccountContext::vendedorDaSessao();
 // Projetos: a mesma regra da pasta Projetos (módulo ligado, sem vendedor).
 $podeProjetos = !$ctx->vendedorCrm() && \App\Projetos\Projeto::habilitado(\App\Master\Account::findById($acc) ?? []);
 $podeComercial = Ambiente::podePagina('prospeccao') || Ambiente::podePagina('dashboard');
+// Propostas: a tela Orçamentos da edição CRM.
+$podePropostas = $ctx->getProduto() === 'fleetiflow' && Ambiente::podePagina('orcamentos');
+/** Uma planilha para baixar (nome do arquivo com o cliente). */
+function dgPlanilha(array $abas, string $arquivo): never
+{
+    header_remove('Content-Type');
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: ' . \App\Drive\Baixar::cabecalhoNome($arquivo));
+    header('Cache-Control: private, no-store');
+    \App\Core\PlanilhaXlsx::gerar($abas, function (string $b) { echo $b; });
+    exit;
+}
+function dgNomeDe(int $uid): string
+{
+    $st = Database::getConnection()->prepare('SELECT nome FROM users WHERE id = ?');
+    $st->execute([$uid]);
+    return (string) $st->fetchColumn();
+}
 $mes = preg_match('/^\d{4}-\d{2}$/', (string) ($_GET['mes'] ?? '')) ? (string) $_GET['mes'] : date('Y-m');
 
 /** O cliente da conta que a pessoa pode ver (vendedor: só o dele). */
@@ -203,6 +228,27 @@ try {
             \App\Digital\RelatorioEntregas::gerar($abas, function (string $b) { echo $b; });
             exit;
         }
+        if (!empty($_GET['software_quadro']) || !empty($_GET['relatorio_software'])) {
+            if (!$podeTarefas) dgResponder(['ok' => false, 'error' => 'Sem permissão para Tarefas.'], 403);
+            $cli = dgCliente($acc, (int) ($_GET['software_quadro'] ?? $_GET['relatorio_software']), $vendedor);
+            $visiveis = TaskBoard::findForUser($uid, $accTarefas, $admin);
+            if (!empty($_GET['software_quadro'])) {
+                dgResponder(['ok' => true, 'data' => \App\Ambientes\QuadrosDaFicha::software((int) $cli['id'], $visiveis, !empty($_GET['board']) ? (int) $_GET['board'] : null,
+                    fn(int $bid) => TaskBoard::canEdit($bid, $uid, $accTarefas, $admin))]);
+            }
+            try { $meses = \App\Digital\RelatorioEntregas::meses((string) ($_GET['de'] ?? $mes), (string) ($_GET['ate'] ?? $mes)); }
+            catch (\InvalidArgumentException $e) { http_response_code(400); header('Content-Type: text/plain; charset=utf-8'); echo $e->getMessage(); exit; }
+            $de = $meses[0]; $ate = end($meses);
+            dgPlanilha(\App\Ambientes\QuadrosDaFicha::abasSoftware((string) $cli['nome'], $de, $ate, \App\Ambientes\QuadrosDaFicha::demandasDoPeriodo((int) $cli['id'], $visiveis, $de, $ate), dgNomeDe($uid)),
+                'Demandas ' . $cli['nome'] . ' ' . str_replace('-', '.', $de) . ($ate !== $de ? ' a ' . str_replace('-', '.', $ate) : '') . '.xlsx');
+        }
+        if (!empty($_GET['propostas']) || !empty($_GET['relatorio_propostas'])) {
+            if (!$podePropostas) dgResponder(['ok' => false, 'error' => 'Sem permissão para Orçamentos.'], 403);
+            $cli = dgCliente($acc, (int) ($_GET['propostas'] ?? $_GET['relatorio_propostas']), $vendedor);
+            $lista = \App\Ambientes\QuadrosDaFicha::propostas($acc, (int) $cli['id']);
+            if (!empty($_GET['propostas'])) dgResponder(['ok' => true, 'data' => $lista, 'situacoes' => \App\Ambientes\QuadrosDaFicha::SITUACOES]);
+            dgPlanilha(\App\Ambientes\QuadrosDaFicha::abasPropostas((string) $cli['nome'], $lista, dgNomeDe($uid)), 'Propostas ' . $cli['nome'] . '.xlsx');
+        }
         if (!empty($_GET['quadro_clientes'])) {
             $sql = 'SELECT id FROM clientes WHERE account_id = ? AND deleted_at IS NULL';
             $args = [$acc];
@@ -273,6 +319,26 @@ try {
         dgResponder(['ok' => true, 'data' => Material::doCartao($tid)]);
     }
 
+    if ($acao === 'demanda_nova') {
+        if (!$podeTarefas) dgResponder(['ok' => false, 'error' => 'Sem permissão para Tarefas.'], 403);
+        $cli = dgCliente($acc, (int) ($in['cliente_id'] ?? 0), $vendedor);
+        $tid = \App\Ambientes\QuadrosDaFicha::novaDemanda($acc, $uid, (int) $cli['id'], (string) $cli['nome'], $in, TaskBoard::findForUser($uid, $accTarefas, $admin),
+            fn(int $bid) => TaskBoard::canEdit($bid, $uid, $accTarefas, $admin));
+        dgResponder(['ok' => true, 'task_id' => $tid]);
+    }
+    if ($acao === 'demanda_mover') {
+        if (!$podeTarefas) dgResponder(['ok' => false, 'error' => 'Sem permissão para Tarefas.'], 403);
+        $c = Entrega::cartaoEditavel((int) ($in['task_id'] ?? 0), $uid, $accTarefas, $admin);
+        if ($c['board']['cliente_id']) dgCliente($acc, (int) $c['board']['cliente_id'], $vendedor);
+        \App\Ambientes\QuadrosDaFicha::moverDemanda($c, $uid, (int) ($in['column_id'] ?? 0));
+        dgResponder(['ok' => true]);
+    }
+    if ($acao === 'proposta_mover') {
+        if (!$podePropostas) dgResponder(['ok' => false, 'error' => 'Sem permissão para Orçamentos.'], 403);
+        $cli = dgCliente($acc, (int) ($in['cliente_id'] ?? 0), $vendedor);
+        \App\Ambientes\QuadrosDaFicha::moverProposta($acc, $uid, (int) $cli['id'], (int) ($in['id'] ?? 0), (string) ($in['para'] ?? ''));
+        dgResponder(['ok' => true]);
+    }
     if ($acao === 'entrega_nova') {
         if (!$podeTarefas) dgResponder(['ok' => false, 'error' => 'Sem permissão para Tarefas.'], 403);
         $cli = dgCliente($acc, (int) ($in['cliente_id'] ?? 0), $vendedor);

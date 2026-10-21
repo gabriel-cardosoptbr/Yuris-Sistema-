@@ -87,6 +87,15 @@ try {
             foreach ($c->fetchAll(\PDO::FETCH_ASSOC) as $r) $out[] = ['tipo' => 'cliente', 'id' => (int) $r['id'], 'nome' => (string) $r['nome'], 'documento' => $r['cpf_cnpj'], 'telefone' => $r['telefone']];
             orcResponder(['ok' => true, 'data' => $out]);
         }
+        if (!empty($_GET['cliente_ref'])) {
+            // O cliente para começar um orçamento a partir da ficha dele (Clientes, aba Propostas).
+            $st = \App\Core\Database::getConnection()->prepare(
+                "SELECT id, nome, cpf_cnpj, COALESCE(NULLIF(whatsapp,''), telefone) AS telefone FROM clientes WHERE id = ? AND account_id = ? AND deleted_at IS NULL"
+            );
+            $st->execute([(int) $_GET['cliente_ref'], $acc]);
+            $r = $st->fetch(\PDO::FETCH_ASSOC);
+            orcResponder(['ok' => true, 'data' => $r ? ['tipo' => 'cliente', 'id' => (int) $r['id'], 'nome' => (string) $r['nome'], 'documento' => $r['cpf_cnpj'], 'telefone' => $r['telefone']] : null]);
+        }
         if (!empty($_GET['lead'])) {
             // O lead para começar um orçamento a partir da ficha dele.
             $st = \App\Core\Database::getConnection()->prepare(

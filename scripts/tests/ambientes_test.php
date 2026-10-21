@@ -63,7 +63,7 @@ $UID2 = (int) $pdo->query("SELECT id FROM users WHERE account_id = $ACC AND dele
 $UID_OUTRA = (int) $pdo->query("SELECT id FROM users WHERE account_id = $OUTRA AND deleted_at IS NULL ORDER BY id LIMIT 1")->fetchColumn();
 $CLI_OUTRA = (int) $pdo->query("SELECT id FROM clientes WHERE account_id = $OUTRA AND deleted_at IS NULL ORDER BY id LIMIT 1")->fetchColumn();
 $cfgAntes = $pdo->query("SELECT configuracoes FROM accounts WHERE id = $ACC")->fetchColumn();
-$criados = ['clientes' => [], 'boards' => [], 'valores' => [], 'cards' => [], 'cards_novos' => [], 'projetos' => []];
+$criados = ['clientes' => [], 'boards' => [], 'valores' => [], 'cards' => [], 'cards_novos' => [], 'projetos' => [], 'orcamentos' => []];
 
 function novoCliente(string $nome): int
 {
@@ -447,6 +447,38 @@ try {
     $linhaT1 = array_values(array_filter($abas[0]['linhas'], fn($l) => ($l[1] ?? '') === "$MARCA Vídeo 1"))[0] ?? [];
     ok('relatório em Excel: .xlsx com as abas Entregas e Resumo por mês', str_starts_with($xlsx, "PK\x03\x04") && str_contains($xlsx, 'xl/worksheets/sheet2.xml') && $abas[1]['nome'] === 'Resumo por mês');
     ok('relatório: cada entrega com o arquivo do Drive (link) e o link do post', ($linhaT1[12]['texto'] ?? '') === 'logo.png' && ($linhaT1[11]['link'] ?? '') === 'https://instagram.com/p/ABC/');
+    echo "\n== Quadro do projeto (Software) e de propostas (Comercial) ==\n";
+    $QF = \App\Ambientes\QuadrosDaFicha::class;
+    $sq = $QF::software($cA, $visA, null, $edita);
+    $nomesCols = array_column($sq['colunas'], 'nome');
+    $tAtr = null; foreach ($sq['colunas'] as $c) foreach ($c['cartoes'] as $t) if ($t['titulo'] === "$MARCA Demanda atrasada") $tAtr = $t;
+    ok('quadro do projeto: as colunas do quadro de Software do cliente e a demanda atrasada', $nomesCols === ['Backlog', 'Em desenvolvimento', 'Revisão', 'Homologação', 'Entregue'] && $tAtr && $tAtr['atrasada']);
+    ok('quadro do projeto sem quadro visível vem vazio', $QF::software($cA, [], null, $edita)['quadro'] === null);
+    $cAtr = Entrega::cartaoEditavel($tAtr['id'], $UID, [$ACC], true);
+    $colEnt = end($sq['colunas'])['id'];
+    $QF::moverDemanda($cAtr, $UID, $colEnt);
+    ok('arrastar para Entregue grava quando foi entregue', (int) \App\Tarefas\Task::findById($tAtr['id'])['column_id'] === $colEnt && \App\Tarefas\Task::findById($tAtr['id'])['concluida_em'] !== null);
+    $QF::moverDemanda($cAtr, $UID, $sq['colunas'][1]['id']);
+    ok('voltar de Entregue apaga a data de entrega', \App\Tarefas\Task::findById($tAtr['id'])['concluida_em'] === null);
+    $colOutro = (int) $pdo->query("SELECT id FROM task_columns WHERE board_id = $bDg ORDER BY ordem LIMIT 1")->fetchColumn();
+    ok('coluna de outro quadro é recusada', recusa(fn() => $QF::moverDemanda($cAtr, $UID, $colOutro)) !== null);
+    $dB = $QF::novaDemanda($ACC, $UID, $cB, 'Cliente B', ['titulo' => "$MARCA Login B", 'prioridade' => 'alta'], $visA, $edita);
+    $bSwB = (int) \App\Tarefas\Task::findById($dB)['board_id'];
+    $criados['boards'][] = $bSwB;
+    $qsb = $pdo->query("SELECT area, cliente_id, modelo FROM task_boards WHERE id = $bSwB")->fetch(\PDO::FETCH_ASSOC);
+    ok('cliente sem quadro de Software: "Projeto · Cliente" criado com as colunas de demandas', $qsb['area'] === 'software' && (int) $qsb['cliente_id'] === $cB && $qsb['modelo'] === 'demandas');
+    $rel = $QF::abasSoftware('Cliente A', $mes, $mes, $QF::demandasDoPeriodo($cA, $visA, $mes, $mes), 'Teste');
+    ok('relatório de demandas: uma linha por demanda com etapa e situação', count($rel[0]['linhas']) > 5 && in_array("$MARCA Demanda atrasada", array_column(array_slice($rel[0]['linhas'], 5), 0), true));
+    $orc = \App\Orcamentos\Orcamento::salvar($ACC, ['cliente_id' => $cA, 'cliente_nome' => 'Cliente A', 'itens' => [['natureza' => 'SERVICO', 'descricao' => 'Gestão de conteúdo', 'valor_unitario' => '2500']]], $UID);
+    $criados['orcamentos'][] = $orc;
+    $pp = $QF::propostas($ACC, $cA);
+    ok('propostas do cliente com o total e os itens', count($pp) === 1 && abs($pp[0]['total'] - 2500) < 0.01 && $pp[0]['status'] === 'RASCUNHO' && str_contains($pp[0]['itens'], 'Gestão'));
+    $QF::moverProposta($ACC, $UID, $cA, $orc, 'CONVERTIDO');
+    ok('arrastar de rascunho para Negócio fechado passa por aprovada', $QF::propostas($ACC, $cA)[0]['status'] === 'CONVERTIDO' && $QF::propostas($ACC, $cA)[0]['aprovada_em'] !== null);
+    ok('negócio fechado não muda de situação', recusa(fn() => $QF::moverProposta($ACC, $UID, $cA, $orc, 'REJEITADO')) !== null);
+    ok('proposta de outro cliente ou de outra conta é recusada', recusa(fn() => $QF::moverProposta($ACC, $UID, $cB, $orc, 'APROVADO')) !== null
+        && $QF::propostas($OUTRA, $cA) === []);
+    ok('relatório de propostas com o total fechado', str_contains($QF::abasPropostas('Cliente A', $QF::propostas($ACC, $cA), 'T')[0]['linhas'][2][0], 'R$ 2.500,00'));
     ok('card do quadro sem quadros visíveis não conta demandas', FichaDoCliente::quadro($ACC, [$cA], [], $mes)[$cA]['software']['abertas'] === 0);
 } catch (\Throwable $e) {
     $FALHAS[] = 'exceção: ' . $e->getMessage();
@@ -474,6 +506,11 @@ try {
         $pdo->exec("DELETE FROM clientes WHERE id IN ($cin)");
     }
     $pdo->exec("DELETE FROM drive_contas WHERE account_id = $ACC");
+    if ($criados['orcamentos']) {
+        $oin = implode(',', array_map('intval', $criados['orcamentos']));
+        $pdo->exec("DELETE FROM crm_orcamento_itens WHERE account_id = $ACC AND orcamento_id IN ($oin)");
+        $pdo->exec("DELETE FROM crm_orcamentos WHERE account_id = $ACC AND id IN ($oin)");
+    }
     if ($criados['projetos']) $pdo->exec('DELETE FROM projetos WHERE account_id = ' . $ACC . ' AND id IN (' . implode(',', array_map('intval', $criados['projetos'])) . ')');
     if ($criados['cards_novos']) $pdo->exec('DELETE FROM cards WHERE account_id = ' . $ACC . ' AND id IN (' . implode(',', array_map('intval', $criados['cards_novos'])) . ')');
     if ($criados['cards']) $pdo->exec('UPDATE cards SET area_servico = NULL WHERE id IN (' . implode(',', array_map('intval', $criados['cards'])) . ')');
