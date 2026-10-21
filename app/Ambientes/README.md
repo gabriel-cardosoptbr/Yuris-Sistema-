@@ -41,7 +41,13 @@ variáveis `--ffc-marca*` pela cor do ambiente (`fleetiflow-dashboard.js` lê
 `--amb-c`, `--amb-c2` e `--amb-rgb` para os gráficos), KPI em destaque em degradê,
 KPIs e cartões com entrada e hover coloridos; na Prospecção, o contador de cada
 coluna em degradê, cards de lead entrando um a um com hover na cor e a coluna
-acendendo ao receber um card; guarda de formulário,
+acendendo ao receber um card. **Projetos e Tarefas idem** (21/10/2026): em
+`#projPagina` as variáveis `--ff-marca*` viram a cor do ambiente (`projetos.js`
+lê `--amb-c` para os gráficos), botão principal e filtro ativo em degradê, KPIs e
+cartões de projeto com entrada e hover, aba ativa e marcador dos títulos na cor;
+em Tarefas, botão Nova tarefa, visão ativa, contador das colunas e botões Salvar
+em degradê, cards entrando um a um com hover na cor, dia de hoje do calendário,
+abas e campos do drawer com foco na cor; guarda de formulário,
 faixa de Clientes, bloco do Comercial), `ambientes-visao.js` (Visões Gerais,
 Entregas, Campanhas) e `ff-cliente-operacao.js` (a ficha e o card de cada
 ambiente). API: `public/api/ambientes.php` e `public/api/digital.php`.

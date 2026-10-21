@@ -102,7 +102,9 @@
   /* ── Gráficos ── */
   function cores() {
     const claro = document.documentElement.getAttribute('data-theme') === 'light';
-    const marca = getComputedStyle(document.documentElement).getPropertyValue('--ff-marca').trim() || '#3b82f6';
+    // Nos ambientes da Inovaize (html[data-ambiente], ambientes.css) a cor do ambiente vai na frente da marca.
+    const raiz = getComputedStyle(document.documentElement);
+    const marca = raiz.getPropertyValue('--amb-c').trim() || raiz.getPropertyValue('--ff-marca').trim() || '#3b82f6';
     return { texto: claro ? '#575757' : '#a3adba', grade: claro ? 'rgba(17,29,45,0.08)' : 'rgba(255,255,255,0.08)', marca,
              receita: '#10b981', custo: '#f87171', paleta: [marca, '#f59e0b', '#8b5cf6', '#06b6d4', '#ef4444', '#10b981', '#ec4899', '#64748b', '#84cc16', '#f97316'] };
   }

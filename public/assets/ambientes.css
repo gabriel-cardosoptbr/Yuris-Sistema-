@@ -393,7 +393,87 @@ html[data-ambiente] .card-mini.lc .lc-nome:hover { color: var(--amb-c) !importan
 html[data-ambiente] .card-drag-handle svg { fill: rgba(var(--amb-rgb), .7); }
 html[data-ambiente] .sortable-ghost { background: rgba(var(--amb-rgb), .12) !important; border-color: rgba(var(--amb-rgb), .55) !important; }
 
+/* ── Projetos (#projPagina) na cor do ambiente (21/10/2026) ── */
+html[data-ambiente] #projPagina { --ff-marca: var(--amb-c); --ff-marca-forte: var(--amb-c2); --ff-marca-rgb: var(--amb-rgb); }
+html[data-ambiente] #projPagina .btn-primary { background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)) !important; border-color: transparent !important; color: #FFFFFF !important; box-shadow: 0 6px 14px -8px rgba(var(--amb-rgb), .8) !important; }
+html[data-ambiente] #projPagina .btn-primary:hover { box-shadow: 0 10px 20px -8px rgba(var(--amb-rgb), .9) !important; }
+html[data-ambiente] #projPagina .btn-ghost:hover { border-color: rgba(var(--amb-rgb), .4); color: var(--amb-c); }
+html[data-ambiente] #projPagina .kpi-card { animation: ambEntrar .35s cubic-bezier(.2,.8,.2,1) both; transition: transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .2s, border-color .2s; }
+html[data-ambiente] #projPagina .kpi-card:nth-child(2) { animation-delay: 40ms; } html[data-ambiente] #projPagina .kpi-card:nth-child(3) { animation-delay: 80ms; } html[data-ambiente] #projPagina .kpi-card:nth-child(4) { animation-delay: 120ms; } html[data-ambiente] #projPagina .kpi-card:nth-child(n+5) { animation-delay: 160ms; }
+html[data-ambiente] #projPagina .kpi-card:hover { transform: translateY(-2px) !important; border-color: rgba(var(--amb-rgb), .4) !important; box-shadow: 0 12px 24px -12px rgba(var(--amb-rgb), .5) !important; }
+html[data-ambiente] #projPagina .kpi-card.lucro::before { background: linear-gradient(90deg, var(--amb-c), var(--amb-c2)) !important; }
+html[data-ambiente] #projPagina .kpi-card.lucro .kpi-value { color: var(--amb-c2) !important; }
+html[data-ambiente][data-theme="light"] #projPagina .kpi-card.lucro .kpi-value { color: var(--amb-c) !important; }
+html[data-ambiente] #projPagina .panel-title { display: flex; align-items: center; gap: 8px; }
+html[data-ambiente] #projPagina .panel-title::before { content: ''; width: 6px; height: 6px; border-radius: 50%; flex: none; background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)); }
+html[data-ambiente] #projPagina .proj-card { animation: ambEntrar .35s cubic-bezier(.2,.8,.2,1) both; transition: transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .2s, border-color .2s; }
+html[data-ambiente] #projPagina .proj-card:nth-child(2) { animation-delay: 40ms; } html[data-ambiente] #projPagina .proj-card:nth-child(3) { animation-delay: 80ms; } html[data-ambiente] #projPagina .proj-card:nth-child(4) { animation-delay: 120ms; } html[data-ambiente] #projPagina .proj-card:nth-child(n+5) { animation-delay: 160ms; }
+html[data-ambiente] #projPagina .proj-card:hover { border-color: rgba(var(--amb-rgb), .5); box-shadow: 0 14px 28px -14px rgba(var(--amb-rgb), .5); }
+html[data-ambiente] #projPagina .proj-card-chips span:first-child { background: rgba(var(--amb-rgb), .14); color: var(--amb-c2); }
+html[data-ambiente][data-theme="light"] #projPagina .proj-card-chips span:first-child { color: var(--amb-c); }
+html[data-ambiente] #projPagina .proj-aba { transition: color .15s, border-color .15s; }
+html[data-ambiente] #projPagina .proj-aba:hover { color: var(--amb-c2); }
+html[data-ambiente] #projPagina .proj-aba.ativa { color: var(--amb-c2); border-bottom-color: var(--amb-c); border-image: linear-gradient(90deg, var(--amb-c), var(--amb-c2)) 1; }
+html[data-ambiente][data-theme="light"] #projPagina .proj-aba.ativa { color: var(--amb-c); }
+html[data-ambiente] #projPagina .proj-aba.ativa em { background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)); color: #FFFFFF; }
+html[data-ambiente] #projPagina .proj-tabela tbody tr { transition: background .15s; } html[data-ambiente] #projPagina .proj-tabela tbody tr:hover { background: rgba(var(--amb-rgb), .07); }
+html[data-ambiente] #projPagina .proj-busca:focus, html[data-ambiente] #projPagina .proj-textarea:focus { outline: none; border-color: rgba(var(--amb-rgb), .6); box-shadow: 0 0 0 3px rgba(var(--amb-rgb), .14); }
+html[data-ambiente] #projPagina .proj-links a, html[data-ambiente] #projPagina .proj-acesso-linha a, html[data-ambiente] #projPagina .proj-ficha a, html[data-ambiente] #projPagina .page-header-subtitle a { color: var(--amb-c2); }
+html[data-ambiente][data-theme="light"] #projPagina .proj-links a, html[data-ambiente][data-theme="light"] #projPagina .proj-acesso-linha a, html[data-ambiente][data-theme="light"] #projPagina .proj-ficha a, html[data-ambiente][data-theme="light"] #projPagina .page-header-subtitle a { color: var(--amb-c); }
+html[data-ambiente] #projPagina .proj-acesso { transition: border-color .2s, box-shadow .2s; } html[data-ambiente] #projPagina .proj-acesso:hover { border-color: rgba(var(--amb-rgb), .4); box-shadow: 0 10px 20px -14px rgba(var(--amb-rgb), .5); }
+html[data-ambiente] #projPagina .proj-srv-form { border-color: rgba(var(--amb-rgb), .4); background: rgba(var(--amb-rgb), .07); }
+html[data-ambiente] #projPagina .proj-mini:hover { color: var(--amb-c); border-color: rgba(var(--amb-rgb), .4); }
+html[data-ambiente] #projPagina .proj-secao-cab h3 { display: flex; align-items: center; gap: 8px; }
+html[data-ambiente] #projPagina .proj-secao-cab h3::before { content: ''; width: 6px; height: 6px; border-radius: 50%; flex: none; background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)); }
+
+/* ── Tarefas (.tk-*) na cor do ambiente (21/10/2026) ── */
+html[data-ambiente] .tk-drawer, html[data-ambiente] .tk-modal, html[data-ambiente] .tk-topbar, html[data-ambiente] .tk-kanban { --ff-marca: var(--amb-c); --ff-marca-forte: var(--amb-c2); --ff-marca-rgb: var(--amb-rgb); }
+html[data-ambiente] .tk-btn-new-task, html[data-ambiente] .tk-btn-new-board { background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)); color: #FFFFFF; box-shadow: 0 6px 14px -8px rgba(var(--amb-rgb), .8); transition: transform .15s, box-shadow .2s; }
+html[data-ambiente] .tk-btn-new-task:hover, html[data-ambiente] .tk-btn-new-board:hover { opacity: 1; box-shadow: 0 10px 20px -8px rgba(var(--amb-rgb), .9); }
+html[data-ambiente] .tk-topbar .tk-view-btn { transition: background .15s, color .15s, border-color .15s, box-shadow .2s; }
+html[data-ambiente] .tk-topbar .tk-view-btn:hover { background: rgba(var(--amb-rgb), .1); border-color: rgba(var(--amb-rgb), .4); color: var(--amb-c2); }
+html[data-ambiente][data-theme="light"] .tk-topbar .tk-view-btn:hover { color: var(--amb-c); }
+html[data-ambiente] .tk-topbar .tk-view-btn.active, html[data-ambiente] .tk-topbar .tk-view-btn.active:hover { background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)); border-color: transparent; color: #FFFFFF; box-shadow: 0 6px 14px -8px rgba(var(--amb-rgb), .8); }
+html[data-ambiente] .tk-board-select:focus, html[data-ambiente] .tk-filter-select:focus, html[data-ambiente] .tk-search:focus { border-color: rgba(var(--amb-rgb), .6); box-shadow: 0 0 0 3px rgba(var(--amb-rgb), .14); }
+html[data-ambiente] #tkBtnEditBoard, html[data-ambiente] #tkBtnManageCols { color: var(--amb-c2) !important; border-color: rgba(var(--amb-rgb), .35) !important; }
+html[data-ambiente][data-theme="light"] #tkBtnEditBoard, html[data-ambiente][data-theme="light"] #tkBtnManageCols { color: var(--amb-c) !important; }
+html[data-ambiente] #tkBtnEditBoard:hover, html[data-ambiente] #tkBtnManageCols:hover { background: rgba(var(--amb-rgb), .14) !important; }
+html[data-ambiente] .tk-col { border-color: rgba(var(--amb-rgb), .22); transition: border-color .2s, box-shadow .2s; }
+html[data-ambiente][data-theme="light"] .tk-col { background: linear-gradient(170deg, rgba(var(--amb-rgb), .06), rgba(var(--amb-rgb), .02)), #F8FAFC !important; border-color: rgba(var(--amb-rgb), .22) !important; }
+html[data-ambiente] .tk-col .tk-col-count { background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)); color: #FFFFFF; box-shadow: 0 4px 10px -4px rgba(var(--amb-rgb), .7); }
+html[data-ambiente] .tk-col .tk-add-inline:hover { border-color: rgba(var(--amb-rgb), .5); color: var(--amb-c2); }
+html[data-ambiente][data-theme="light"] .tk-col .tk-add-inline:hover { color: var(--amb-c); }
+html[data-ambiente] .tk-inline-input { border-color: rgba(var(--amb-rgb), .5); }
+html[data-ambiente] .tk-btn-ok, html[data-ambiente] .tk-modal-btn-primary { background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)); color: #FFFFFF; box-shadow: 0 6px 14px -8px rgba(var(--amb-rgb), .8); }
+html[data-ambiente] .tk-btn-ok:hover, html[data-ambiente] .tk-modal-btn-primary:hover { opacity: 1; box-shadow: 0 10px 20px -8px rgba(var(--amb-rgb), .9); }
+html[data-ambiente] .tk-card { animation: ambEntrar .35s cubic-bezier(.2,.8,.2,1) both; transition: transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .2s, border-color .2s; }
+html[data-ambiente] .tk-card:nth-child(2) { animation-delay: 40ms; } html[data-ambiente] .tk-card:nth-child(3) { animation-delay: 80ms; } html[data-ambiente] .tk-card:nth-child(4) { animation-delay: 120ms; } html[data-ambiente] .tk-card:nth-child(n+5) { animation-delay: 160ms; }
+html[data-ambiente] .tk-card:hover { border-color: rgba(var(--amb-rgb), .5); border-left-color: rgba(var(--amb-rgb), .5); box-shadow: 0 14px 28px -12px rgba(var(--amb-rgb), .5); }
+html[data-ambiente][data-theme="light"] .tk-card:hover { border-color: rgba(var(--amb-rgb), .45) !important; box-shadow: 0 12px 24px -12px rgba(var(--amb-rgb), .5) !important; }
+html[data-ambiente] .tk-card[data-prioridade]:hover { border-left-color: inherit; }
+html[data-ambiente] .tk-card.drag-over { border-color: rgba(var(--amb-rgb), .6); background: rgba(var(--amb-rgb), .1); }
+html[data-ambiente] .tk-list-row { transition: background .15s; } html[data-ambiente] .tk-list-row:not(.tk-list-header):hover { background: rgba(var(--amb-rgb), .07); }
+html[data-ambiente] .tk-cal-nav:hover { background: rgba(var(--amb-rgb), .12); border-color: rgba(var(--amb-rgb), .4); }
+html[data-ambiente] .tk-cal-cell { transition: background .15s, border-color .15s; } html[data-ambiente] .tk-cal-cell:hover { border-color: rgba(var(--amb-rgb), .35); }
+html[data-ambiente] .tk-cal-cell.today { border-color: rgba(var(--amb-rgb), .6); background: rgba(var(--amb-rgb), .06); box-shadow: 0 0 0 3px rgba(var(--amb-rgb), .1); }
+html[data-ambiente] .tk-cal-cell.today .tk-cal-num { color: var(--amb-c2); } html[data-ambiente][data-theme="light"] .tk-cal-cell.today .tk-cal-num { color: var(--amb-c); }
+html[data-ambiente] .tk-cal-dot { background: rgba(var(--amb-rgb), .22); color: #FFFFFF; } html[data-ambiente][data-theme="light"] .tk-cal-dot { background: rgba(var(--amb-rgb), .12); color: var(--amb-c); }
+html[data-ambiente] .tk-drawer { box-shadow: 0 32px 80px rgba(0,0,0,.7), 0 0 0 1px rgba(var(--amb-rgb), .25); }
+html[data-ambiente][data-theme="light"] .tk-drawer { box-shadow: 0 24px 60px rgba(15,23,42,.18), 0 0 0 1px rgba(var(--amb-rgb), .2); }
+html[data-ambiente] .tk-drawer-title:focus { border-bottom-color: rgba(var(--amb-rgb), .6); }
+html[data-ambiente] .tk-tabs .tk-tab { transition: color .15s, border-color .15s; }
+html[data-ambiente] .tk-tabs .tk-tab:hover { color: var(--amb-c2); border-bottom-color: rgba(var(--amb-rgb), .4); }
+html[data-ambiente] .tk-tabs .tk-tab.active { color: var(--amb-c2); border-bottom-color: var(--amb-c); border-image: linear-gradient(90deg, var(--amb-c), var(--amb-c2)) 1; }
+html[data-ambiente][data-theme="light"] .tk-tabs .tk-tab:hover, html[data-ambiente][data-theme="light"] .tk-tabs .tk-tab.active { color: var(--amb-c); }
+html[data-ambiente] .tk-field input:focus, html[data-ambiente] .tk-field select:focus, html[data-ambiente] .tk-field textarea:focus { border-color: rgba(var(--amb-rgb), .6); box-shadow: 0 0 0 3px rgba(var(--amb-rgb), .14), 0 0 0 9999px rgba(5,18,39,.92) inset !important; }
+html[data-ambiente][data-theme="light"] .tk-field input:focus, html[data-ambiente][data-theme="light"] .tk-field select:focus, html[data-ambiente][data-theme="light"] .tk-field textarea:focus { border-color: var(--amb-c); box-shadow: 0 0 0 3px rgba(var(--amb-rgb), .16), 0 0 0 9999px #FFFFFF inset !important; }
+html[data-ambiente] .tk-check-item.done .tk-chk-box { background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)); border-color: transparent; }
+html[data-ambiente] .tk-chk-box:hover { border-color: rgba(var(--amb-rgb), .6); }
+html[data-ambiente] .tk-link-type-btn.active { background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)); border-color: transparent; color: #FFFFFF; }
+html[data-ambiente] .tka-principal { background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)) !important; border-color: transparent !important; color: #FFFFFF !important; box-shadow: 0 6px 14px -8px rgba(var(--amb-rgb), .8); }
+
 @media (prefers-reduced-motion: reduce) {
+  html[data-ambiente] #projPagina .kpi-card, html[data-ambiente] #projPagina .proj-card, html[data-ambiente] .tk-card { animation: none !important; transition: none !important; }
   html[data-ambiente] .ffc .ffc-kpi, html[data-ambiente] .card-mini, html[data-ambiente] .ffc .ffc-card, html[data-ambiente] .ffc .ffc-mini { animation: none !important; transition: none !important; }
   html[data-ambiente] .amb-sec, html[data-ambiente] .amb-tile, html[data-ambiente] .amb-kpi, html[data-ambiente] .ctr-cartao.amb-cartao { animation: none !important; transition: none !important; }
 }
