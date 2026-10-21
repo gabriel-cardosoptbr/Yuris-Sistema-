@@ -84,7 +84,6 @@
         pointer-events: auto;
         background: linear-gradient(165deg, rgba(13,28,48,.98), rgba(8,18,35,.98));
         border: 1px solid rgba(96,165,250,.28);
-        border-left-width: 3px;
         border-radius: 10px;
         padding: 12px 16px 12px 14px;
         min-width: 280px; max-width: 420px;
@@ -96,10 +95,10 @@
         animation: yui-slide-in .22s cubic-bezier(.34,1.56,.64,1);
       }
       .yui-toast.is-closing { animation: yui-slide-out .18s ease-in forwards; }
-      .yui-toast-info    { border-left-color: #60A5FA; }
-      .yui-toast-warn    { border-left-color: #F59E0B; }
-      .yui-toast-danger  { border-left-color: #EF4444; }
-      .yui-toast-success { border-left-color: #22C55E; }
+      .yui-toast-info    { border-color: rgba(96,165,250,.55); }
+      .yui-toast-warn    { border-color: rgba(245,158,11,.55); }
+      .yui-toast-danger  { border-color: rgba(239,68,68,.55); }
+      .yui-toast-success { border-color: rgba(34,197,94,.55); }
       .yui-toast-icon { flex: 0 0 18px; margin-top: 1px; }
       .yui-toast-icon svg { width: 18px; height: 18px; stroke-width: 2.2; }
       .yui-toast-info    .yui-toast-icon { color: #60A5FA; }

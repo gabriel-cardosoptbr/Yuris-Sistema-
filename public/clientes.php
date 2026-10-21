@@ -428,7 +428,7 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
     /* History */
     .history-list { max-height: 220px; overflow-y: auto; padding-right: 6px; }
     .history-item {
-      padding: 8px 10px; border-left: 2px solid var(--border);
+      padding: 8px 10px; border-bottom: 1px solid var(--border);
       font-size: .82rem; color: var(--muted); margin-bottom: 6px;
     }
     .history-item .acao { color: var(--text); font-weight: 600; }

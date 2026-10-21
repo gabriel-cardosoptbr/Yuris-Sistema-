@@ -295,7 +295,6 @@ $health_icon         = $margem >= 40 ? '▲' : ($margem >= 15 ? '●' : '▼');
     .exec-summary {
       background: linear-gradient(135deg, rgba(26,58,92,0.10), rgba(36,78,122,0.06));
       border: 1px solid rgba(160,180,210,0.10);
-      border-left: 3px solid #244E7A;
       border-radius: 10px;
       padding: 14px 18px;
       font-size: .82rem;

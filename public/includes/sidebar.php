@@ -353,11 +353,6 @@ $_notifTempo = function ($raw) {
   html[data-theme="light"] .sidebar nav a.active .label{ color:var(--ff-marca-forte) !important; }
   html[data-theme="light"] .sidebar nav a.active .icon{ background:var(--ff-marca) !important; }
   html[data-theme="light"] .sidebar nav a.active .icon svg, html[data-theme="light"] .sidebar nav a.active .icon svg *{ stroke:var(--ff-marca-texto) !important; stroke-width:2.1 !important; }
-  html[data-theme="light"] .sidebar nav a.active::after,
-  html[data-theme="light"] .sidebar-group.has-active:not(.open) .sidebar-group-toggle::after{
-    content:''; position:absolute; right:0; top:50%; width:3px; height:22px; border-radius:999px;
-    background:var(--ff-marca); transform:translateY(-50%);
-  }
 
   /* Grupo com filho ativo: texto e ícone na marca, sem disco (o disco é do filho).
      Fechado, a barra vai para ele, senão a pessoa perde a pista. */
@@ -427,7 +422,6 @@ $_notifTempo = function ($raw) {
   html[data-theme="light"] .sidebar-footer.sb-rodape a.active{ background:rgba(var(--ff-marca-rgb),0.07) !important; color:var(--ff-marca-forte) !important; font-weight:600 !important; }
   html[data-theme="light"] .sidebar-footer.sb-rodape a.active .icon{ background:var(--ff-marca); }
   html[data-theme="light"] .sidebar-footer.sb-rodape a.active .icon svg{ stroke:var(--ff-marca-texto); stroke-width:2.1; }
-  html[data-theme="light"] .sidebar-footer.sb-rodape a.active::after{ content:''; position:absolute; right:0; top:50%; width:3px; height:22px; border-radius:999px; background:var(--ff-marca); transform:translateY(-50%); }
   html[data-theme="light"] .sidebar-footer.sb-rodape a.is-logout:hover{ background:#FFF1F1 !important; color:#B00000 !important; }
   html[data-theme="light"] .sidebar-footer.sb-rodape a.is-logout:hover .icon svg{ stroke:#B00000; }
 

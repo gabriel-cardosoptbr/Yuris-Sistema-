@@ -1225,10 +1225,9 @@ body.lp section[id] {
   /* ── Mockup hero: limita crescimento desproporcional em viewport pequena */
   body.lp .lp-hero-mockup { max-width: 540px; margin: 0 auto; }
 
-  /* ── Vitrine: indicador visual de item ativo mais forte (borda lateral) */
+  /* ── Vitrine: item ativo com a borda inteira acesa (sem faixa lateral) */
   body.lp .lp-vit-item.active {
-    border-left: 3px solid rgba(126,184,246,0.85);
-    padding-left: 17px;
+    border-color: rgba(126,184,246,0.85);
   }
 }
 

@@ -1275,7 +1275,6 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
       padding:8px 12px; margin-bottom:8px;
       background: rgba(37,99,235,.10);
       border: 1px solid rgba(37,99,235,.25);
-      border-left: 3px solid #2563eb;
       border-radius:8px;
     }
     .chat-reply-bar-icon { color:#2563eb; display:flex; flex-shrink:0; }
@@ -1564,15 +1563,12 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
     html[data-theme="light"] .chat-item {
       border-bottom: 1px solid #F1F5F9 !important;
     }
-    /* Hover mais marcante — antes era #EFF6FF (quase invisivel sobre fundo claro).
-       Agora #DBEAFE (blue-100), com borda esquerda azul pra reforcar foco. */
+    /* Hover mais marcante: #EFF6FF ficava quase invisível sobre fundo claro. Sem faixa lateral. */
     html[data-theme="light"] .chat-item:hover {
       background: #DBEAFE !important;
-      box-shadow: inset 3px 0 0 #93C5FD !important;
     }
     html[data-theme="light"] .chat-item.active {
       background: #BFDBFE !important;
-      box-shadow: inset 3px 0 0 #2563EB !important;
     }
     html[data-theme="light"] .chat-item-name    { color: #0F1F36 !important; }
     html[data-theme="light"] .chat-item-time    { color: #94A3B8 !important; }
@@ -1939,7 +1935,6 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
     html[data-theme="light"] .chat-reply-bar {
       background: #EFF6FF !important;
       border-color: #93C5FD !important;
-      border-left-color: #2563EB !important;
     }
     html[data-theme="light"] .chat-reply-bar-text {
       color: #0F1F36 !important;

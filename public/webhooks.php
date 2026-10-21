@@ -678,7 +678,7 @@ $catalog = WebhookDispatcher::catalog();
               <label class="field-label">Headers customizados <span style="color:var(--muted);font-weight:400">(JSON, opcional)</span></label>
               <textarea id="whHeadersCustom" class="field-input" rows="2" placeholder='{"Authorization":"Bearer xxx"}' style="font-family:monospace;font-size:.78rem"></textarea>
             </div>
-            <div id="whRotateSecretBlock" style="display:none;padding:10px;background:rgba(245,158,11,.06);border-left:3px solid #f59e0b;border-radius:4px">
+            <div id="whRotateSecretBlock" style="display:none;padding:10px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.35);border-radius:4px">
               <button type="button" id="whRotateSecret" class="btn btn-warn btn-sm">Rotacionar Secret</button>
               <span style="font-size:.75rem;color:#fbbf24;margin-left:8px">Gera novo secret. Mostrado uma única vez.</span>
             </div>

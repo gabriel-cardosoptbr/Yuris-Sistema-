@@ -57,15 +57,12 @@ html[data-ambiente="digital"], .sb-amb[data-amb="digital"], .sb-amb-lista a[data
   position: relative; display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 11px; text-decoration: none; color: #1F2937;
   font-family: 'Manrope', system-ui, sans-serif; transition: background .15s, transform .15s;
 }
-.sb-amb-lista a::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 3px; background: var(--amb-c); opacity: 0; transition: opacity .15s; }
 .sb-amb-lista a .sb-amb-ico { width: 30px; height: 30px; background: rgba(var(--amb-rgb), .12); color: var(--amb-c); backdrop-filter: none; }
 .sb-amb-lista a .sb-amb-txt b { font-size: 13.5px; color: #1F2937; }
 .sb-amb-lista a .sb-amb-txt small { text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 11.5px; color: #575757; }
 .sb-amb-lista a:hover, .sb-amb-lista a:focus-visible { background: rgba(var(--amb-rgb), .08); outline: none; transform: translateX(2px); }
 .sb-amb-lista a:hover .sb-amb-ico { transform: scale(1.08); }
-.sb-amb-lista a:hover::before { opacity: 1; }
 .sb-amb-lista a.ativo { background: rgba(var(--amb-rgb), .10); }
-.sb-amb-lista a.ativo::before { opacity: 1; }
 .sb-amb-lista a.ativo .sb-amb-ico { background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)); color: #FFFFFF; box-shadow: 0 6px 14px -6px rgba(var(--amb-rgb), .7); }
 .sb-amb-check { width: 16px; height: 16px; flex: none; color: var(--amb-c); opacity: 0; transform: scale(.6); transition: opacity .2s, transform .2s cubic-bezier(.2,.8,.2,1); }
 .sb-amb-lista a.ativo .sb-amb-check { opacity: 1; transform: none; }
@@ -450,9 +447,8 @@ html[data-ambiente] .tk-btn-ok, html[data-ambiente] .tk-modal-btn-primary { back
 html[data-ambiente] .tk-btn-ok:hover, html[data-ambiente] .tk-modal-btn-primary:hover { opacity: 1; box-shadow: 0 10px 20px -8px rgba(var(--amb-rgb), .9); }
 html[data-ambiente] .tk-card { animation: ambEntrar .35s cubic-bezier(.2,.8,.2,1) both; transition: transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .2s, border-color .2s; }
 html[data-ambiente] .tk-card:nth-child(2) { animation-delay: 40ms; } html[data-ambiente] .tk-card:nth-child(3) { animation-delay: 80ms; } html[data-ambiente] .tk-card:nth-child(4) { animation-delay: 120ms; } html[data-ambiente] .tk-card:nth-child(n+5) { animation-delay: 160ms; }
-html[data-ambiente] .tk-card:hover { border-color: rgba(var(--amb-rgb), .5); border-left-color: rgba(var(--amb-rgb), .5); box-shadow: 0 14px 28px -12px rgba(var(--amb-rgb), .5); }
+html[data-ambiente] .tk-card:hover { border-color: rgba(var(--amb-rgb), .5); box-shadow: 0 14px 28px -12px rgba(var(--amb-rgb), .5); }
 html[data-ambiente][data-theme="light"] .tk-card:hover { border-color: rgba(var(--amb-rgb), .45) !important; box-shadow: 0 12px 24px -12px rgba(var(--amb-rgb), .5) !important; }
-html[data-ambiente] .tk-card[data-prioridade]:hover { border-left-color: inherit; }
 html[data-ambiente] .tk-card.drag-over { border-color: rgba(var(--amb-rgb), .6); background: rgba(var(--amb-rgb), .1); }
 html[data-ambiente] .tk-list-row { transition: background .15s; } html[data-ambiente] .tk-list-row:not(.tk-list-header):hover { background: rgba(var(--amb-rgb), .07); }
 html[data-ambiente] .tk-cal-nav:hover { background: rgba(var(--amb-rgb), .12); border-color: rgba(var(--amb-rgb), .4); }
@@ -561,7 +557,7 @@ html[data-ambiente][data-ambiente] .reemb-pessoa.ativa { border-color: var(--amb
 html[data-ambiente][data-ambiente] .kpi-card.receita::before, html[data-ambiente][data-ambiente] .kpi-card.lucro::before, html[data-ambiente][data-ambiente] .kpi-card.margem::before, html[data-ambiente][data-ambiente] .kpi-card.resultado::before { background: var(--amb-grad-h) !important; }
 html[data-ambiente] .panel-title, html[data-ambiente] .chart-title, html[data-ambiente] .es-card-title, html[data-ambiente] .o-card h2 { display: flex; align-items: center; gap: 8px; }
 html[data-ambiente] .panel-title::before, html[data-ambiente] .chart-title::before, html[data-ambiente] .es-card-title::before, html[data-ambiente] .o-card h2::before { content: ''; width: 6px; height: 6px; border-radius: 50%; flex: none; background: var(--amb-grad); }
-html[data-ambiente][data-ambiente] .exec-summary { border-left-color: var(--amb-c) !important; background: linear-gradient(135deg, rgba(var(--amb-rgb), .12), rgba(var(--amb-rgb), .04)) !important; }
+html[data-ambiente][data-ambiente] .exec-summary { background: linear-gradient(135deg, rgba(var(--amb-rgb), .12), rgba(var(--amb-rgb), .04)) !important; }
 
 /* Abas e filtros: o ativo em degradê, o resto acende ao passar o mouse. */
 html[data-ambiente][data-ambiente] .filter-btn:hover, html[data-ambiente][data-ambiente] .tab-btn:hover, html[data-ambiente][data-ambiente] .cfg-tab:hover, html[data-ambiente][data-ambiente] .es-tab:hover, html[data-ambiente][data-ambiente] .doc-tab:hover,
@@ -601,9 +597,8 @@ html[data-ambiente]:not([data-theme="light"]) .perm-item.checked, html[data-ambi
 html[data-ambiente]:not([data-theme="light"]) .ci-type-card.selected, html[data-ambiente]:not([data-theme="light"]) .msg-reaction-pill.me, html[data-ambiente]:not([data-theme="light"]) .ci-conv-item.active, html[data-ambiente]:not([data-theme="light"]) .chat-sector-btn.active { background: rgba(var(--amb-rgb), .22) !important; }
 html[data-ambiente][data-ambiente] .chat-sector-btn.active, html[data-ambiente][data-ambiente] .chat-sector-btn.active .csf-chevron { color: var(--amb-c) !important; }
 html[data-ambiente]:not([data-theme="light"]) .chat-sector-btn.active, html[data-ambiente]:not([data-theme="light"]) .chat-sector-btn.active .csf-chevron { color: var(--amb-c2) !important; }
-html[data-ambiente][data-ambiente] .ci-conv-item.active { border-left-color: var(--amb-c) !important; }
-html[data-ambiente][data-ambiente] .chat-item:hover { background: rgba(var(--amb-rgb), .1) !important; box-shadow: inset 3px 0 0 rgba(var(--amb-rgb), .45) !important; }
-html[data-ambiente][data-ambiente] .chat-item.active { background: rgba(var(--amb-rgb), .18) !important; box-shadow: inset 3px 0 0 var(--amb-c) !important; }
+html[data-ambiente][data-ambiente] .chat-item:hover { background: rgba(var(--amb-rgb), .1) !important; box-shadow: none !important; }
+html[data-ambiente][data-ambiente] .chat-item.active { background: rgba(var(--amb-rgb), .18) !important; box-shadow: none !important; }
 html[data-ambiente]:not([data-theme="light"]) .chat-item:hover { background: rgba(var(--amb-rgb), .14) !important; }
 html[data-ambiente]:not([data-theme="light"]) .chat-item.active { background: rgba(var(--amb-rgb), .26) !important; }
 
@@ -659,7 +654,7 @@ html[data-ambiente][data-ambiente] .msg-row.outbound .msg-bubble { background: l
 html[data-ambiente][data-theme="light"] .msg-row.outbound .msg-bubble { background: linear-gradient(135deg, rgba(var(--amb-rgb), .1), rgba(var(--amb-rgb), .2)) !important; border-color: rgba(var(--amb-rgb), .35) !important; }
 html[data-ambiente]:not([data-theme="light"]) .ci-msg--out .ci-msg-bubble { background: rgba(var(--amb-rgb), .3) !important; }
 html[data-ambiente][data-theme="light"] .ci-msg--out .ci-msg-bubble { background: rgba(var(--amb-rgb), .12) !important; border-color: rgba(var(--amb-rgb), .35) !important; }
-html[data-ambiente][data-ambiente] .chat-reply-bar { background: rgba(var(--amb-rgb), .1) !important; border-color: rgba(var(--amb-rgb), .35) !important; border-left-color: var(--amb-c) !important; }
+html[data-ambiente][data-ambiente] .chat-reply-bar { background: rgba(var(--amb-rgb), .1) !important; border-color: rgba(var(--amb-rgb), .35) !important; }
 html[data-ambiente]:not([data-theme="light"]) .modal-panel, html[data-ambiente]:not([data-theme="light"]) .modal, html[data-ambiente]:not([data-theme="light"]) .usr-modal, html[data-ambiente]:not([data-theme="light"]) .es-modal, html[data-ambiente]:not([data-theme="light"]) .agt-section,
 html[data-ambiente]:not([data-theme="light"]) .ev-section, html[data-ambiente]:not([data-theme="light"]) .channel-box, html[data-ambiente]:not([data-theme="light"]) .payload-preview, html[data-ambiente]:not([data-theme="light"]) .usr-modal-section, html[data-ambiente]:not([data-theme="light"]) .funnel-column { border-color: rgba(var(--amb-rgb), .3) !important; }
 html[data-ambiente]:not([data-theme="light"]) .funnel-shape { border-color: rgba(var(--amb-rgb), .35) !important; background: linear-gradient(140deg, rgba(var(--amb-rgb), .25), rgba(15,32,58,.92)) !important; }

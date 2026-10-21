@@ -1070,14 +1070,14 @@ function column_display_name(array $col): string
 
     .timeline {
       margin-top: 6px;
-      border-left: 2px solid rgba(96, 165, 250, 0.36);
-      padding-left: 12px;
+      padding-left: 2px;
       max-height: 260px;
       overflow: auto;
     }
 
     .timeline-item {
       position: relative;
+      padding-left: 16px;
       margin-bottom: 10px;
       padding-bottom: 8px;
       border-bottom: 1px dashed rgba(148, 163, 184, 0.26);
@@ -1091,8 +1091,8 @@ function column_display_name(array $col): string
     .timeline-item::before {
       content: '';
       position: absolute;
-      left: -17px;
-      top: 3px;
+      left: 0;
+      top: 4px;
       width: 8px;
       height: 8px;
       border-radius: 50%;

@@ -180,7 +180,6 @@
 .tk-card {
   background: linear-gradient(165deg, rgba(14,34,62,.96), rgba(10,22,40,.98));
   border: 1px solid rgba(160,180,210,0.09);
-  border-left: 3px solid transparent;
   border-radius: 10px;
   padding: 11px 12px;
   cursor: pointer;
@@ -253,10 +252,6 @@ html[data-theme="light"] .tk-card-origin-strip.is-advogado {
 }
 
 /* faixa de prioridade */
-.tk-card[data-prioridade="baixa"]   { border-left-color: #475569; }
-.tk-card[data-prioridade="media"]   { border-left-color: #3b82f6; }
-.tk-card[data-prioridade="alta"]    { border-left-color: #f59e0b; }
-.tk-card[data-prioridade="urgente"] { border-left-color: #ef4444; }
 
 
 .tk-card-title {
@@ -1560,7 +1555,6 @@ html[data-theme="light"] .tk-col-count {
 html[data-theme="light"] .tk-card {
   background: #FFFFFF;
   border: 1px solid #E2E8F0;
-  border-left: 3px solid transparent;
   box-shadow: 0 1px 3px rgba(15,23,42,.05);
 }
 html[data-theme="light"] .tk-card:hover {

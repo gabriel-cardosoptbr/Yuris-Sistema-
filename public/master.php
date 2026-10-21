@@ -453,17 +453,17 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
   <section class="mst-section" id="msec-dashboard">
     <!-- Linha 1: Caixa REAL (o que efetivamente entrou e saiu) -->
     <div class="mst-grid-5" style="grid-template-columns:repeat(3,1fr); margin-bottom:14px">
-      <div class="mst-card" style="border-left:3px solid #4ade80">
+      <div class="mst-card" style="border-color:#4ade80">
         <div class="mst-kpi-label">Receita Realizada (mês)</div>
         <div class="mst-kpi-value" id="finReceitaReal" style="color:#4ade80">R$ —</div>
         <div class="mst-kpi-foot">faturas pagas neste mês (caixa real)</div>
       </div>
-      <div class="mst-card" style="border-left:3px solid #fca5a5">
+      <div class="mst-card" style="border-color:#fca5a5">
         <div class="mst-kpi-label">Despesas (mês)</div>
         <div class="mst-kpi-value" id="finDespesa" style="color:#fca5a5">R$ —</div>
         <div class="mst-kpi-foot" id="finMesRef">—</div>
       </div>
-      <div class="mst-card" style="border-left:3px solid #c084fc">
+      <div class="mst-card" style="border-color:#c084fc">
         <div class="mst-kpi-label">Lucro Real (caixa)</div>
         <div class="mst-kpi-value" id="finLucroReal" style="color:#c084fc">R$ —</div>
         <div class="mst-kpi-foot">Receita Realizada − Despesas</div>
@@ -471,17 +471,17 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
     </div>
     <!-- Linha 2: Projeção (potencial baseado em MRR) -->
     <div class="mst-grid-5" style="grid-template-columns:repeat(3,1fr); margin-bottom:18px">
-      <div class="mst-card" style="border-left:3px solid rgba(74,222,128,.5); opacity:.92">
+      <div class="mst-card" style="border-color:rgba(74,222,128,.5); opacity:.92">
         <div class="mst-kpi-label">MRR Projetado</div>
         <div class="mst-kpi-value" id="finMrrProj" style="color:#86efac">R$ —</div>
         <div class="mst-kpi-foot">run rate · inclui trial · active · past_due</div>
       </div>
-      <div class="mst-card" style="border-left:3px solid rgba(74,222,128,.5); opacity:.92">
+      <div class="mst-card" style="border-color:rgba(74,222,128,.5); opacity:.92">
         <div class="mst-kpi-label">MRR Realizado</div>
         <div class="mst-kpi-value" id="finMrrReal" style="color:#86efac">R$ —</div>
         <div class="mst-kpi-foot">só pagantes · active + past_due</div>
       </div>
-      <div class="mst-card" style="border-left:3px solid rgba(192,132,252,.5); opacity:.92">
+      <div class="mst-card" style="border-color:rgba(192,132,252,.5); opacity:.92">
         <div class="mst-kpi-label">Lucro Projetado (mês)</div>
         <div class="mst-kpi-value" id="finLucroProj" style="color:#c4b5fd">R$ —</div>
         <div class="mst-kpi-foot">MRR Projetado − Despesas</div>
@@ -1456,7 +1456,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
           </label>
         </div>
         <div id="monFields" style="display:none">
-          <div style="background:rgba(168,85,247,.08); border-left:3px solid #c084fc; padding:10px 12px; border-radius:6px; font-size:.82rem; color:#A8BDD4; margin-bottom:12px">
+          <div style="background:rgba(168,85,247,.08); border:1px solid #c084fc; padding:10px 12px; border-radius:6px; font-size:.82rem; color:#A8BDD4; margin-bottom:12px">
             Registra contrato comercial de monitoramento. <strong>Não dispara cobrança automática</strong> — gateway ainda não plugado. Os campos de preço/ciclo são metadados que viram MRR.
           </div>
           <div class="mst-form-row">
@@ -1508,7 +1508,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
     <form id="formMarca" onsubmit="submitMarca(event)">
       <input type="hidden" name="account_id">
       <div class="mst-modal-body">
-        <div id="marcaAviso" style="display:none;background:rgba(96,165,250,.08);border-left:3px solid #60a5fa;padding:10px 12px;border-radius:6px;font-size:.82rem;margin-bottom:12px">
+        <div id="marcaAviso" style="display:none;background:rgba(96,165,250,.08);border:1px solid #60a5fa;padding:10px 12px;border-radius:6px;font-size:.82rem;margin-bottom:12px">
           Esta conta usa a marca padrão (Fleetiflow, com a agente Vitória). Ao salvar, ela passa a usar a marca deste formulário, e o agente de IA só fica ligado se tiver endereço abaixo.
         </div>
         <div class="mst-form-row">
@@ -2174,7 +2174,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
     <form onsubmit="submitGrantMonitor(event)">
       <input type="hidden" name="account_id" id="grantMonAccountId">
       <div class="mst-modal-body">
-        <div style="background:rgba(168,207,238,.08); border-left:3px solid #5b9bd5; padding:10px 12px; border-radius:6px; font-size:.82rem; color:#A8BDD4; margin-bottom:14px">
+        <div style="background:rgba(168,207,238,.08); border:1px solid #5b9bd5; padding:10px 12px; border-radius:6px; font-size:.82rem; color:#A8BDD4; margin-bottom:14px">
           Use pra cortesia, promoção, trial estendido ou compensar bug/incidente.
           Cliente vai ver a quantidade liberada IMEDIATAMENTE.
         </div>
@@ -2216,7 +2216,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
     <form onsubmit="submitPurchaseMonitor(event)">
       <input type="hidden" name="account_id" id="purchMonAccountId">
       <div class="mst-modal-body">
-        <div style="background:rgba(91,155,213,.08); border-left:3px solid #5b9bd5; padding:10px 12px; border-radius:6px; font-size:.82rem; color:#A8BDD4; margin-bottom:14px">
+        <div style="background:rgba(91,155,213,.08); border:1px solid #5b9bd5; padding:10px 12px; border-radius:6px; font-size:.82rem; color:#A8BDD4; margin-bottom:14px">
           Registra contrato comercial. Cliente recebe os monitors imediatamente.
           <strong>Não dispara cobrança automática</strong> — gateway ainda não está
           implementado. Os campos de preço/ciclo são metadados.
@@ -2272,7 +2272,7 @@ $exitTitle = 'Encerrar sessão e voltar ao portal master';
     </div>
     <form onsubmit="submitNovaMonitorSub(event)">
       <div class="mst-modal-body">
-        <div style="background:rgba(168,85,247,.08); border-left:3px solid #c084fc; padding:10px 12px; border-radius:6px; font-size:.82rem; color:#A8BDD4; margin-bottom:14px">
+        <div style="background:rgba(168,85,247,.08); border:1px solid #c084fc; padding:10px 12px; border-radius:6px; font-size:.82rem; color:#A8BDD4; margin-bottom:14px">
           Registra contrato comercial de monitoramento (add-on do plano).
           Vai aparecer nesta tela como assinatura ativa. <strong>Não dispara
           cobrança automática</strong> — gateway será integrado em etapa futura.

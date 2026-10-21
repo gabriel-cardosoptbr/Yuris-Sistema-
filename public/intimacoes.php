@@ -113,7 +113,7 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
     /* ── Lista publicações ── */
     .int-day-header {
       margin: 22px 0 10px; padding: 8px 12px;
-      background: rgba(8,20,40,.45); border-left: 3px solid #6898C0;
+      background: rgba(8,20,40,.45);
       border-radius: 4px; color: #93c5fd; font-size: .85rem; font-weight: 600;
     }
     .int-pub-card {
@@ -127,19 +127,19 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
       word-break: break-word; overflow-wrap: anywhere;
     }
     .int-pub-card:hover { border-color: rgba(96,165,250,.32); box-shadow: 0 4px 14px rgba(0,0,0,.35); }
-    .int-pub-card.unread { border-left: 3px solid #f87171; }
+    .int-pub-card.unread { border-color: rgba(248,113,113,.55); }
     /* Card de intimação já vinculada a um processo do CRM — destaque verde */
     .int-pub-card.linked {
-      border-left: 3px solid #10b981;
-      background: linear-gradient(90deg, rgba(16,185,129,.06) 0%, transparent 35%);
+      border-color: rgba(16,185,129,.5);
+      background: rgba(16,185,129,.05);
     }
     .int-pub-card.linked.unread {
       /* Vinculado venceu sobre não-lida visualmente — verde fala "ok, processo conhecido" */
-      border-left-color: #10b981;
+      border-color: rgba(16,185,129,.5);
     }
     html[data-theme="light"] .int-pub-card.linked {
-      border-left-color: #059669 !important;
-      background: linear-gradient(90deg, rgba(16,185,129,.10) 0%, #FFFFFF 35%) !important;
+      border-color: rgba(5,150,105,.45) !important;
+      background: rgba(16,185,129,.06) !important;
     }
     /* Ícone do botão "Ações" — destaque AZUL quando intimação já vinculada */
     .int-icon-btn.is-linked {
@@ -341,14 +341,12 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
       font-size: .82rem; color: #dbeafe;
       margin-bottom: 14px; padding: 8px 11px;
       background: rgba(15,33,60,.5); border-radius: 7px;
-      border-left: 3px solid rgba(96,165,250,.55);
       line-height: 1.45;
     }
     .int-actions-summary strong { color: #ffffff; }
     .int-actions-summary .int-summary-sub { color: #9CA3AF; }
     html[data-theme="light"] .int-actions-summary {
       background: #EEF3FB !important;
-      border-left-color: #2563EB !important;
       color: #0F1F36 !important;
     }
     html[data-theme="light"] .int-actions-summary strong { color: #0A1729 !important; }
@@ -385,8 +383,7 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
     .act-proc-row {
       padding: 9px 11px; cursor: pointer;
       border-bottom: 1px solid rgba(96,165,250,.10);
-      border-left: 3px solid transparent;
-      transition: background .15s, border-left-color .15s;
+      transition: background .15s;
     }
     .act-proc-row:last-child { border-bottom: none; }
     .act-proc-row:hover { background: rgba(96,165,250,.12); }
@@ -394,7 +391,7 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
     .act-proc-row-sub { font-size: .72rem; color: #7A8898; margin-top: 2px; }
     /* Marca a linha do processo já vinculado a essa intimação */
     .act-proc-row.linked {
-      border-left-color: #10b981;
+      border-color: rgba(16,185,129,.5);
       background: rgba(16,185,129,.08);
     }
     .act-proc-row.linked:hover { background: rgba(16,185,129,.14); }
@@ -417,7 +414,7 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
     html[data-theme="light"] .int-link:hover { color: #1E4A8A !important; }
     html[data-theme="light"] .act-proc-row.linked {
       background: rgba(16,185,129,.10) !important;
-      border-left-color: #059669 !important;
+      border-color: rgba(5,150,105,.45) !important;
     }
     html[data-theme="light"] .act-proc-row.linked:hover { background: rgba(16,185,129,.18) !important; }
     html[data-theme="light"] .act-proc-tag {
@@ -463,7 +460,6 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
     .int-pub-partes, .int-pub-advs {
       font-size: .74rem; color: #7A8898; margin-top: 4px; line-height: 1.45;
       padding: 4px 8px; background: rgba(15,33,60,.35); border-radius: 5px;
-      border-left: 2px solid rgba(96,165,250,.3);
     }
     .int-pub-partes strong, .int-pub-advs strong { color: #9CA3AF; }
 
@@ -482,15 +478,11 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
       border-radius: 3px;
       padding: 0 2px;
     }
-    /* Borda esquerda diferenciada: partes (vermelho/laranja sutil) vs advogados (azul) */
-    .int-pub-partes { border-left-color: rgba(251,191,36,.4); }
     html[data-theme="light"] .int-pub-partes,
     html[data-theme="light"] .int-pub-advs {
       background: rgba(37,99,235,.05) !important;
-      border-left-color: rgba(37,99,235,.35) !important;
       color: #5A6B7E !important;
     }
-    html[data-theme="light"] .int-pub-partes { border-left-color: rgba(217,119,6,.5) !important; }
     html[data-theme="light"] .int-pub-partes strong,
     html[data-theme="light"] .int-pub-advs strong { color: #1E2E45 !important; }
 
@@ -498,7 +490,6 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
     .int-aasp-disclaimer {
       background: rgba(36,78,122,.18);
       border: 1px solid rgba(96,165,250,.28);
-      border-left: 3px solid #6898C0;
       border-radius: 8px;
       padding: 12px 14px;
       font-size: .82rem;
@@ -511,7 +502,6 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
     html[data-theme="light"] .int-aasp-disclaimer {
       background: rgba(37,99,235,.06) !important;
       border-color: rgba(37,99,235,.22) !important;
-      border-left-color: #2563EB !important;
       color: #1E2E45 !important;
     }
     html[data-theme="light"] .int-aasp-disclaimer strong { color: #0F1F36 !important; }
@@ -530,10 +520,10 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
       border-color: rgba(15,31,54,.10) !important;
       color: #1E2E45 !important;
     }
-    .int-aasp-int-card.status-active   { border-left: 3px solid #34D399; }
-    .int-aasp-int-card.status-pending  { border-left: 3px solid #FBBF24; }
-    .int-aasp-int-card.status-error    { border-left: 3px solid #F87171; }
-    .int-aasp-int-card.status-inactive { border-left: 3px solid #6B7280; opacity: .7; }
+    .int-aasp-int-card.status-active   { border-color: rgba(52,211,153,.5); }
+    .int-aasp-int-card.status-pending  { border-color: rgba(251,191,36,.5); }
+    .int-aasp-int-card.status-error    { border-color: rgba(248,113,113,.55); }
+    .int-aasp-int-card.status-inactive { opacity: .7; }
     .int-aasp-int-info { flex: 1; min-width: 0; }
     .int-aasp-int-info h4 { font-size: .95rem; font-weight: 600; color: #dbeafe; margin: 0 0 4px; }
     html[data-theme="light"] .int-aasp-int-info h4 { color: #0F1F36 !important; }
@@ -616,12 +606,10 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
     .int-aasp-tip {
       margin-top: 14px; font-size: .78rem; color: #b8c7d6; line-height: 1.6;
       padding: 10px 12px; background: rgba(15,33,60,.5); border-radius: 7px;
-      border-left: 3px solid rgba(96,165,250,.4);
     }
     .int-aasp-tip strong { color: #dbeafe; }
     html[data-theme="light"] .int-aasp-tip {
       background: rgba(248,250,253,.95) !important;
-      border-left-color: #2563EB !important;
       color: #2E3A4F !important;
     }
     html[data-theme="light"] .int-aasp-tip strong { color: #0F1F36 !important; }
@@ -631,12 +619,9 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
     #searchHint strong { color: #dbeafe; }
     html[data-theme="light"] #searchHint {
       background: rgba(37,99,235,.06) !important;
-      border-left-color: #2563EB !important;
       color: #2E3A4F !important;
     }
     html[data-theme="light"] #searchHint strong { color: #0F1F36 !important; }
-    #searchHint.aasp-mode { border-left-color: rgba(139,28,45,.5); }
-    #searchHint.realtime-mode { border-left-color: rgba(251,191,36,.6); }
     /* Test result box */
     #aaspTestResult {
       margin-top: 12px; padding: 11px 13px; border-radius: 8px;
@@ -1227,7 +1212,7 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
           </div>
 
           <!-- Microcopy contextual — atualizada via JS conforme aba + período preenchido -->
-          <div id="searchHint" style="font-size:.72rem;color:#7A8898;line-height:1.45;margin-top:12px;padding:8px 10px;background:rgba(96,165,250,.06);border-radius:6px;border-left:2px solid rgba(96,165,250,.4);">
+          <div id="searchHint" style="font-size:.72rem;color:#7A8898;line-height:1.45;margin-top:12px;padding:8px 10px;background:rgba(96,165,250,.06);border-radius:6px;">
             Vai buscar no <strong>Diário (DJEN)</strong> com os critérios definidos.
           </div>
 

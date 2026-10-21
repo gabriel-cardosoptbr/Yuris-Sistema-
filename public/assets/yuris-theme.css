@@ -166,12 +166,12 @@ body, .page-layout {
 .sidebar nav a:hover {
   background: rgba(20,50,90,0.35) !important;
   color: #A8BDD4 !important;
-  border-left-color: rgba(160,180,210,0.15) !important;
+  border-color: rgba(160,180,210,0.15) !important;
 }
 .sidebar nav a.active {
   background: linear-gradient(90deg, rgba(20,58,100,0.50), rgba(15,40,75,0.30)) !important;
   color: #D8E4F0 !important;
-  border-left-color: #A8BDD4 !important;
+  border-color: rgba(168,189,212,0.35) !important;
   box-shadow: inset 0 0 20px rgba(30,58,95,0.10) !important;
 }
 .sidebar nav a .icon svg { stroke: currentColor !important; }
@@ -818,12 +818,10 @@ html[data-theme="light"] .sidebar nav a { color: #5A6B7E !important; border-left
 html[data-theme="light"] .sidebar nav a:hover {
   background: rgba(37,99,235,0.08) !important;
   color: #1E4A8A !important;
-  border-left-color: rgba(15,31,54,0.20) !important;
 }
 html[data-theme="light"] .sidebar nav a.active {
   background: linear-gradient(90deg, rgba(37,99,235,0.14), rgba(30,74,138,0.08)) !important;
   color: #0F1F36 !important;
-  border-left-color: #1E4A8A !important;
   box-shadow: inset 0 0 20px rgba(37,99,235,0.06) !important;
 }
 
@@ -2080,7 +2078,7 @@ html[data-theme="light"] .card-mini .clique-abrir {
 
 /* Card "is-overdue" (atrasado) — destaque sutil */
 html[data-theme="light"] .card-mini.is-overdue {
-  border-left: 3px solid #B91C1C !important;
+  border-color: rgba(185,28,28,0.45) !important;
 }
 html[data-theme="light"] .card-mini.is-overdue .card-client { color: #0F1F36 !important; }
 
@@ -2609,9 +2607,9 @@ html[data-theme="light"] .proc-card-num    { color: #1E4A8A !important; font-wei
 html[data-theme="light"] .proc-card-client { color: #0F1F36 !important; font-weight: 600 !important; }
 html[data-theme="light"] .proc-card-meta   { color: #5A6B7E !important; }
 html[data-theme="light"] .proc-card-date   { color: #5A6B7E !important; }
-html[data-theme="light"] .proc-card.is-urgent { border-left-color: #B91C1C !important; }
-html[data-theme="light"] .proc-card.is-warn   { border-left-color: #B45309 !important; }
-html[data-theme="light"] .proc-card.is-ok     { border-left-color: #15803D !important; }
+html[data-theme="light"] .proc-card.is-urgent { border-color: rgba(185,28,28,0.45) !important; }
+html[data-theme="light"] .proc-card.is-warn   { border-color: rgba(180,83,9,0.45) !important; }
+html[data-theme="light"] .proc-card.is-ok     { border-color: rgba(21,128,61,0.45) !important; }
 
 /* ── Header da coluna do calendário (Janeiro, Fevereiro, etc.) ── */
 html[data-theme="light"] .proc-col-month { color: #0F1F36 !important; font-weight: 700 !important; }

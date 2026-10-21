@@ -109,11 +109,11 @@ try { $edicaoCrm = !\App\Core\AccountContext::fromSession()->moduloJuridicoDispo
     .ci-conv-list { flex: 1; overflow-y: auto; padding: 6px 0; }
     .ci-conv-item {
       display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer;
-      border-bottom: 1px solid var(--line); border-left: 3px solid transparent; transition: background .12s;
+      border-bottom: 1px solid var(--line); transition: background .12s;
     }
     .ci-conv-item:last-child { border-bottom: none; }
     .ci-conv-item:hover  { background: rgba(255,255,255,.04); }
-    .ci-conv-item.active { background: rgba(59,130,246,.1); border-left-color: var(--accent2); }
+    .ci-conv-item.active { background: rgba(59,130,246,.1); }
 
     /* avatares por tipo */
     .ci-conv-avatar {
@@ -379,7 +379,7 @@ try { $edicaoCrm = !\App\Core\AccountContext::fromSession()->moduloJuridicoDispo
     html[data-theme="light"] .ci-conv-item { border-bottom-color: #F1F5F9 !important; }
     html[data-theme="light"] .ci-conv-item:hover { background: #F8FAFC !important; }
     html[data-theme="light"] .ci-conv-item.active {
-      background: #EFF6FF !important; border-left-color: #2563EB !important;
+      background: #EFF6FF !important;
     }
     html[data-theme="light"] .ci-conv-avatar {
       background: #F1F5F9 !important; border-color: #CBD5E1 !important;

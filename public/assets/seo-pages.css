@@ -80,8 +80,7 @@ body.lp .sp-article a { color: var(--lp-blue-glow); }
 /* Bloco de definição / resposta direta (AEO) */
 body.lp .sp-definicao {
   background: var(--lp-bg-card);
-  border: 1px solid var(--lp-border-md);
-  border-left: 3px solid var(--lp-blue-cyan);
+  border: 1px solid var(--lp-blue-cyan);
   border-radius: 12px;
   padding: 22px 26px;
   margin: 26px 0;
