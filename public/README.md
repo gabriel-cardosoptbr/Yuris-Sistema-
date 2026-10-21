@@ -269,7 +269,7 @@ claro e o Yuris não mudam. A folha de Relatórios continua branca de propósito
 **Recolher o menu (edição CRM, 20/10/2026).** No `includes/sidebar.php`, clicar no
 logo recolhe o menu para 72px com só os ícones (o nome aparece no `title`) e expande
 de volta; desde 21/10/2026 não há mais a seta ao lado da marca (o logo leva o atributo
-`data-sb-recolher`; no computador ele perde o `href` e vira botão, para o navegador não mostrar o endereço no rodapé). No celular o logo continua sendo o link da página inicial. Recolhido, a marca própria mostra o ícone enviado no Painel Master (sem ícone, a ponta esquerda da logo), e logo, seletor de ambiente e itens ficam todos em quadrados de 40px centrados. A classe `sb-retraido` vai no `<html>` por um
+`data-sb-recolher`; no computador ele perde o `href` e vira botão, para o navegador não mostrar o endereço no rodapé). No celular o logo continua sendo o link da página inicial. Recolhido, a marca própria mostra o ícone enviado no Painel Master (sem ícone, a ponta esquerda da logo), e logo, seletor de ambiente e itens ficam todos em quadrados de 40px centrados. A troca é animada: ao fechar os rótulos somem em 160ms (`html.sb-fechando`) e a barra desliza em 320ms; ao abrir a barra desliza e os rótulos aparecem quando ela chegou (`html.sb-abrindo`); com `prefers-reduced-motion` é imediato. A classe `sb-retraido` vai no `<html>` por um
 script curto posto antes do `<aside>` (sem piscar ao carregar) e a escolha fica no
 `localStorage` (`yuris_menu_retraido`). Recolhido, clicar num grupo expande o menu com
 o grupo aberto, e o grupo da página atual mostra o disco da marca no ícone. Os

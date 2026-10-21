@@ -427,6 +427,27 @@ $_notifTempo = function ($raw) {
 
   /* O símbolo só aparece no menu recolhido; a regra da logo no tema claro põe display:block em toda imagem da marca. */
   .sidebar-brand a.sb-logo-marca .sb-logo-icone{ display:none !important; }
+  /* Recolher com movimento (21/10/2026): a largura do menu desliza em 320ms; ao fechar
+     os rótulos somem antes (sb-fechando, 140ms) e ao abrir aparecem depois que a barra
+     chegou (sb-abrindo). Os itens também deslizam de 100% para 40px. */
+  @media (min-width:901px){
+    .sidebar{ transition:width 320ms cubic-bezier(.2,.8,.2,1), min-width 320ms cubic-bezier(.2,.8,.2,1), max-width 320ms cubic-bezier(.2,.8,.2,1) !important; }
+    .sidebar nav a, .sidebar-group-toggle, .sidebar-footer.sb-rodape a, .sb-amb, .sb-amb-btn{ transition:width 320ms cubic-bezier(.2,.8,.2,1), margin 320ms cubic-bezier(.2,.8,.2,1), padding 320ms cubic-bezier(.2,.8,.2,1), background 180ms cubic-bezier(.2,0,0,1), color 180ms cubic-bezier(.2,0,0,1) !important; }
+    .sidebar nav a .label, .sidebar-group-toggle .sidebar-group-label, .sidebar-group-chevron, .sidebar-footer.sb-rodape a .label,
+    .sidebar-user-info, .sb-titulo, .sb-amb-txt, .sb-amb-seta, .sidebar-brand a.sb-logo-marca .sb-logo-inteira, .sidebar-brand a span{ transition:opacity 160ms ease; }
+    html.sb-fechando .sidebar nav a .label, html.sb-fechando .sidebar-group-toggle .sidebar-group-label, html.sb-fechando .sidebar-group-chevron, html.sb-fechando .sidebar-footer.sb-rodape a .label,
+    html.sb-fechando .sidebar-user-info, html.sb-fechando .sb-titulo, html.sb-fechando .sb-amb-txt, html.sb-fechando .sb-amb-seta, html.sb-fechando .sidebar-brand a.sb-logo-marca .sb-logo-inteira, html.sb-fechando .sidebar-brand a span,
+    html.sb-abrindo .sidebar nav a .label, html.sb-abrindo .sidebar-group-toggle .sidebar-group-label, html.sb-abrindo .sidebar-group-chevron, html.sb-abrindo .sidebar-footer.sb-rodape a .label,
+    html.sb-abrindo .sidebar-user-info, html.sb-abrindo .sb-titulo, html.sb-abrindo .sb-amb-txt, html.sb-abrindo .sb-amb-seta, html.sb-abrindo .sidebar-brand a.sb-logo-marca .sb-logo-inteira, html.sb-abrindo .sidebar-brand a span{ opacity:0; }
+    html.sb-fechando .sidebar-group-items{ display:none !important; }
+    html.sb-abrindo .sidebar-brand a.sb-logo-marca .sb-logo-icone{ display:none !important; }
+    html.sb-retraido.sb-retraido .sidebar-brand a.sb-logo-marca .sb-logo-icone{ animation:sbSimboloEntra 260ms cubic-bezier(.2,.8,.2,1) both; }
+    @keyframes sbSimboloEntra{ from{ opacity:0; transform:scale(.7); } to{ opacity:1; transform:none; } }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .sidebar, .sidebar nav a, .sidebar-group-toggle, .sidebar-footer.sb-rodape a, .sb-amb, .sb-amb-btn{ transition:none !important; }
+    html.sb-retraido.sb-retraido .sidebar-brand a.sb-logo-marca .sb-logo-icone{ animation:none !important; }
+  }
   /* Desde 21/10/2026 não há mais a seta: no computador, clicar no logo recolhe e
      expande o menu; no celular o logo continua levando à página inicial. */
   @media (min-width:901px){
@@ -1202,10 +1223,24 @@ if ($_isFleetiflow) {
       }
     });
   }
+  var passo = null;
   function definir(r) {
-    html.classList.toggle('sb-retraido', r);
     try { localStorage.setItem(CHAVE, r ? '1' : '0'); } catch (e) {}
-    rotular();
+    clearTimeout(passo);
+    var rapido = !desktop.matches || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    html.classList.remove('sb-fechando', 'sb-abrindo');
+    if (rapido) { html.classList.toggle('sb-retraido', r); rotular(); return; }
+    if (r) {
+      // Fechar: os rótulos somem, depois a barra desliza.
+      html.classList.add('sb-fechando');
+      passo = setTimeout(function () { html.classList.add('sb-retraido'); html.classList.remove('sb-fechando'); rotular(); }, 140);
+    } else {
+      // Abrir: a barra desliza com os rótulos invisíveis; eles aparecem quando ela chegou.
+      html.classList.add('sb-abrindo');
+      html.classList.remove('sb-retraido');
+      rotular();
+      passo = setTimeout(function () { html.classList.remove('sb-abrindo'); }, 300);
+    }
   }
   alvos.forEach(function (a) {
     a.addEventListener('click', function (e) {
