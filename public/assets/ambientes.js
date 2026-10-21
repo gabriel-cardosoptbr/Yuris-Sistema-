@@ -61,11 +61,27 @@
 
   // ── Seletor ────────────────────────────────────────────────────────────
   var btn = document.getElementById('sbAmbBtn'), lista = document.getElementById('sbAmbLista');
+  var fechando = null;
   function abrir(sim) {
     if (!btn || !lista) return;
     btn.setAttribute('aria-expanded', sim ? 'true' : 'false');
-    lista.hidden = !sim;
-    if (sim) { var a = lista.querySelector('a.ativo') || lista.querySelector('a'); if (a) a.focus(); }
+    clearTimeout(fechando);
+    if (sim) {
+      lista.classList.remove('sb-fechando');
+      // Menu recolhido corta o que sai dele: a lista fica fixa na tela, ao lado do botão.
+      if (document.documentElement.classList.contains('sb-retraido') && window.innerWidth > 900) {
+        var r = btn.getBoundingClientRect();
+        lista.style.position = 'fixed'; lista.style.left = Math.round(r.right + 10) + 'px'; lista.style.top = Math.round(r.top) + 'px'; lista.style.right = 'auto'; lista.style.width = '290px';
+      } else {
+        lista.style.position = ''; lista.style.left = ''; lista.style.top = ''; lista.style.right = ''; lista.style.width = '';
+      }
+      lista.hidden = false;
+      var a = lista.querySelector('a.ativo') || lista.querySelector('a'); if (a) a.focus({ preventScroll: true });
+    } else if (!lista.hidden) {
+      // Some com a animação de fechar; sem animação (movimento reduzido), some direto.
+      lista.classList.add('sb-fechando');
+      fechando = setTimeout(function () { lista.hidden = true; lista.classList.remove('sb-fechando'); }, 170);
+    }
   }
   if (btn && lista) {
     btn.addEventListener('click', function (e) { e.stopPropagation(); abrir(lista.hidden); });

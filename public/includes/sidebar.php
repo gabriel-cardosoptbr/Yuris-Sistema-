@@ -589,18 +589,20 @@ if ($_isFleetiflow) {
   <?php if ($_ambCtx): $__ambA = $_ambCtx['lista'][$_ambCtx['atual']]; ?>
   <!-- ── Seletor de ambiente (abaixo da logo). A troca passa pela guarda de
        formulário com alteração pendente (assets/ambientes.js). ── -->
-  <div class="sb-amb" id="sbAmb">
+  <div class="sb-amb" id="sbAmb" data-amb="<?= htmlspecialchars($_ambCtx['atual']) ?>">
     <button type="button" class="sb-amb-btn" id="sbAmbBtn" aria-haspopup="listbox" aria-expanded="false" aria-controls="sbAmbLista" title="Ambiente: <?= htmlspecialchars($__ambA['rotulo']) ?>">
       <span class="sb-amb-ico" aria-hidden="true"><?= $__ambA['icone'] ?></span>
       <span class="sb-amb-txt"><small>Ambiente</small><b><?= htmlspecialchars($__ambA['rotulo']) ?></b></span>
+      <span class="sb-amb-brilho" aria-hidden="true"></span>
       <svg class="sb-amb-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
     </button>
     <ul class="sb-amb-lista" id="sbAmbLista" role="listbox" aria-label="Escolher ambiente" hidden>
-      <?php foreach ($_ambCtx['permitidos'] as $__ak): $__ai = $_ambCtx['lista'][$__ak]; ?>
-      <li role="option" aria-selected="<?= $__ak === $_ambCtx['atual'] ? 'true' : 'false' ?>">
+      <?php foreach (array_values($_ambCtx['permitidos']) as $__i => $__ak): $__ai = $_ambCtx['lista'][$__ak]; ?>
+      <li role="option" aria-selected="<?= $__ak === $_ambCtx['atual'] ? 'true' : 'false' ?>" style="--i:<?= (int) $__i ?>">
         <a href="<?= htmlspecialchars($__ai['inicio']) ?>" data-amb="<?= htmlspecialchars($__ak) ?>"<?= $__ak === $_ambCtx['atual'] ? ' class="ativo"' : '' ?>>
           <span class="sb-amb-ico" aria-hidden="true"><?= $__ai['icone'] ?></span>
           <span class="sb-amb-txt"><b><?= htmlspecialchars($__ai['rotulo']) ?></b><small><?= htmlspecialchars($__ai['descricao']) ?></small></span>
+          <svg class="sb-amb-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
         </a>
       </li>
       <?php endforeach; ?>

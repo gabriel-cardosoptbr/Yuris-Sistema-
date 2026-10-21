@@ -21,7 +21,12 @@ telas são os de sempre.
 | `Paginas/visao.php` | a página das Visões Gerais, incluída por `public/empresa.php`, `software.php` e `digital.php` (e as telas Entregas e Campanhas do Digital, `?ver=`) |
 
 Telas: `public/empresa.php`, `public/software.php`, `public/digital.php` (finas),
-`public/assets/ambientes.js` + `ambientes.css` (seletor, guarda de formulário,
+`public/assets/ambientes.js` + `ambientes.css` (seletor com **uma cor por
+ambiente** desde 21/10/2026, pedido do dono do produto: botão em degradê na cor
+do ambiente atual (Empresa roxo, Comercial verde, Software azul, Digital rosa),
+ícone em quadradinho colorido, lista que abre com os itens entrando um a um,
+check na opção escolhida e fechamento animado; com o menu recolhido a lista fica
+fixa ao lado do botão, porque o menu corta o que sai dele; guarda de formulário,
 faixa de Clientes, bloco do Comercial), `ambientes-visao.js` (Visões Gerais,
 Entregas, Campanhas) e `ff-cliente-operacao.js` (a ficha e o card de cada
 ambiente). API: `public/api/ambientes.php` e `public/api/digital.php`.
