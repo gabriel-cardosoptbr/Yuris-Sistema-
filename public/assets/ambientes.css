@@ -350,7 +350,51 @@ html:not([data-theme="light"])[data-ambiente] .amb-tile.amb-alerta b, html:not([
 html:not([data-theme="light"])[data-ambiente] .amb-tile.amb-atencao b, html:not([data-theme="light"])[data-ambiente] .amb-kpi.amb-atencao b { color: #FBBF24; }
 html:not([data-theme="light"])[data-ambiente] .amb-areas-lista li, html:not([data-theme="light"])[data-ambiente] .amb-area { background: linear-gradient(160deg, rgba(var(--amb-rgb), .22), rgba(var(--amb-rgb), .06)); border-color: rgba(var(--amb-rgb), .22); }
 html:not([data-theme="light"])[data-ambiente] .amb-faixa { background: linear-gradient(135deg, rgba(var(--amb-rgb), .28), rgba(var(--amb-rgb), .08)); color: #E7EBF1; }
+/* ── Painel comercial (.ffc) e Prospecção na cor do ambiente (21/10/2026) ── */
+html[data-ambiente] .ffc, html[data-ambiente] .ffc-modal {
+  --ffc-marca: var(--amb-c); --ffc-marca-forte: var(--amb-c2); --ffc-marca-suave: rgba(var(--amb-rgb), .14); --ffc-marca-media: rgba(var(--amb-rgb), .45);
+  --ff-marca-rgb: var(--amb-rgb); --ff-marca: var(--amb-c); --ff-marca-forte: var(--amb-c2);
+}
+html[data-ambiente] .ffc .ffc-kpi { transition: transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .2s, border-color .2s; animation: ambEntrar .35s cubic-bezier(.2,.8,.2,1) both; }
+html[data-ambiente] .ffc .ffc-kpi:nth-child(2) { animation-delay: 40ms; } html[data-ambiente] .ffc .ffc-kpi:nth-child(3) { animation-delay: 80ms; } html[data-ambiente] .ffc .ffc-kpi:nth-child(4) { animation-delay: 120ms; } html[data-ambiente] .ffc .ffc-kpi:nth-child(n+5) { animation-delay: 160ms; }
+html[data-ambiente] .ffc .ffc-kpi:hover { transform: translateY(-2px); border-color: rgba(var(--amb-rgb), .4); box-shadow: 0 12px 24px -12px rgba(var(--amb-rgb), .5); }
+html[data-ambiente] .ffc .ffc-kpi:not(.ffc-kpi--destaque) .ffc-kpi-valor { color: var(--amb-c); }
+html[data-ambiente] .ffc .ffc-kpi-ico:not([class*="--"]) { background: rgba(var(--amb-rgb), .12); color: var(--amb-c); }
+html[data-ambiente] .ffc .ffc-kpi--destaque { background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)); border-color: transparent; box-shadow: 0 10px 24px -10px rgba(var(--amb-rgb), .7); }
+html[data-ambiente] .ffc .ffc-kpi--destaque .ffc-kpi-valor { color: #FFFFFF; }
+html[data-ambiente] .ffc .ffc-card { transition: transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .2s, border-color .2s; }
+html[data-ambiente] .ffc .ffc-card:hover { border-color: rgba(var(--amb-rgb), .3); box-shadow: 0 14px 28px -14px rgba(var(--amb-rgb), .45); }
+html[data-ambiente] .ffc .ffc-card-cab h3, html[data-ambiente] .ffc .ffc-card-cab h2 { display: flex; align-items: center; gap: 8px; }
+html[data-ambiente] .ffc .ffc-card-cab h3::before, html[data-ambiente] .ffc .ffc-card-cab h2::before { content: ''; width: 6px; height: 6px; border-radius: 50%; flex: none; background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)); }
+html[data-ambiente] .ffc .ffc-abas button[aria-selected="true"] { background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)); color: #FFFFFF; box-shadow: 0 6px 14px -8px rgba(var(--amb-rgb), .8); }
+html[data-ambiente] .ffc .ffc-funil-barra i, html[data-ambiente] .ffc .ffc-progresso > i:not(.ok):not(.risco) { background: linear-gradient(90deg, var(--amb-c), var(--amb-c2)); }
+html[data-ambiente] .ffc .ffc-mini { transition: transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .2s, border-color .2s; }
+html[data-ambiente] .ffc .ffc-mini:hover { transform: translateY(-2px); border-color: rgba(var(--amb-rgb), .35); box-shadow: 0 10px 20px -12px rgba(var(--amb-rgb), .5); }
+html[data-ambiente] .ffc .ffc-mini-num, html[data-ambiente] .ffc .ffc-meta-valor { color: var(--amb-c); }
+html[data-ambiente] .ffc .ffc-secao::before { content: ''; width: 12px; height: 12px; border-radius: 4px; flex: none; background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)); }
+html[data-ambiente] .ffc .ffc-secao svg { display: none; }
+html[data-ambiente] .ffc .ffc-btn--marca { background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)); box-shadow: 0 6px 14px -8px rgba(var(--amb-rgb), .8); transition: transform .15s, box-shadow .2s; }
+html[data-ambiente] .ffc .ffc-btn--marca:hover { transform: translateY(-1px); box-shadow: 0 10px 20px -8px rgba(var(--amb-rgb), .9); }
+html[data-ambiente] .ffc .ffc-tabela tbody tr { transition: background .15s; } html[data-ambiente] .ffc .ffc-tabela tbody tr:hover { background: rgba(var(--amb-rgb), .05); }
+
+/* Prospecção: colunas do funil e cards de lead. */
+html[data-ambiente] .kanban-col { border-color: rgba(var(--amb-rgb), .22); }
+html[data-ambiente] .kanban-col.drop-target { border-color: rgba(var(--amb-rgb), .6); box-shadow: 0 0 0 3px rgba(var(--amb-rgb), .14); }
+html[data-ambiente] .kanban-col .col-pill, html[data-ambiente][data-theme="light"] .kanban-col .col-pill {
+  background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)) !important; color: #FFFFFF !important; border-color: transparent !important; box-shadow: 0 4px 10px -4px rgba(var(--amb-rgb), .7);
+}
+html[data-ambiente][data-theme="light"] .kanban-col { background: linear-gradient(170deg, rgba(var(--amb-rgb), .06), rgba(var(--amb-rgb), .02)), #F8FAFC; }
+html[data-ambiente] .card-mini { animation: ambEntrar .35s cubic-bezier(.2,.8,.2,1) both; transition: transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .2s, border-color .2s; }
+html[data-ambiente] .card-mini:nth-child(2) { animation-delay: 40ms; } html[data-ambiente] .card-mini:nth-child(3) { animation-delay: 80ms; } html[data-ambiente] .card-mini:nth-child(4) { animation-delay: 120ms; } html[data-ambiente] .card-mini:nth-child(n+5) { animation-delay: 160ms; }
+html[data-ambiente] .card-mini:hover { border-color: rgba(var(--amb-rgb), .55); box-shadow: 0 14px 28px -12px rgba(var(--amb-rgb), .5); }
+html[data-ambiente][data-theme="light"] .card-mini.lc:hover { transform: translateY(-2px); border-color: rgba(var(--amb-rgb), .45) !important; box-shadow: 0 12px 24px -12px rgba(var(--amb-rgb), .5) !important; }
+html[data-ambiente][data-theme="light"] .card-mini.lc .lc-chat:hover { background: rgba(var(--amb-rgb), .22) !important; }
+html[data-ambiente] .card-mini.lc .lc-nome:hover { color: var(--amb-c) !important; }
+html[data-ambiente] .card-drag-handle svg { fill: rgba(var(--amb-rgb), .7); }
+html[data-ambiente] .sortable-ghost { background: rgba(var(--amb-rgb), .12) !important; border-color: rgba(var(--amb-rgb), .55) !important; }
+
 @media (prefers-reduced-motion: reduce) {
+  html[data-ambiente] .ffc .ffc-kpi, html[data-ambiente] .card-mini, html[data-ambiente] .ffc .ffc-card, html[data-ambiente] .ffc .ffc-mini { animation: none !important; transition: none !important; }
   html[data-ambiente] .amb-sec, html[data-ambiente] .amb-tile, html[data-ambiente] .amb-kpi, html[data-ambiente] .ctr-cartao.amb-cartao { animation: none !important; transition: none !important; }
 }
 .amb-cartao h3 small { font-weight: 600; font-size: 11.5px; }

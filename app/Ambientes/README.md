@@ -35,8 +35,13 @@ cards entrando um a um. **As Visões Gerais também** (21/10/2026): a primeira c
 das séries dos gráficos é a do ambiente (`ambientes-visao.js` lê `--amb-c` e
 `--amb-c2`), os títulos das seções e dos cartões ganham a marca colorida, os
 tiles e KPIs vêm em degradê suave com o número na cor, as barras em degradê, e a
-navegação rápida acende o link da seção que está na tela (IntersectionObserver);
-guarda de formulário,
+navegação rápida acende o link da seção que está na tela (IntersectionObserver).
+**O painel comercial e a Prospecção também** (21/10/2026): o painel troca as
+variáveis `--ffc-marca*` pela cor do ambiente (`fleetiflow-dashboard.js` lê
+`--amb-c`, `--amb-c2` e `--amb-rgb` para os gráficos), KPI em destaque em degradê,
+KPIs e cartões com entrada e hover coloridos; na Prospecção, o contador de cada
+coluna em degradê, cards de lead entrando um a um com hover na cor e a coluna
+acendendo ao receber um card; guarda de formulário,
 faixa de Clientes, bloco do Comercial), `ambientes-visao.js` (Visões Gerais,
 Entregas, Campanhas) e `ff-cliente-operacao.js` (a ficha e o card de cada
 ambiente). API: `public/api/ambientes.php` e `public/api/digital.php`.

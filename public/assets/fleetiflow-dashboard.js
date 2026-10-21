@@ -18,13 +18,22 @@
   // Os tons da marca vêm da conta (window.MARCA, escrito pelo menu lateral a
   // partir de App\Master\Marca). Sem ele, o azul do Fleetiflow de sempre.
   const PM = (window.MARCA && window.MARCA.paleta) || {};
+  // Nos ambientes da Inovaize (html[data-ambiente], ambientes.css) a cor do ambiente vai
+  // na frente; os tons claros são a mesma cor misturada com branco.
+  const estiloRaiz = getComputedStyle(document.documentElement);
+  const ambC = (estiloRaiz.getPropertyValue('--amb-c') || '').trim(), ambC2 = (estiloRaiz.getPropertyValue('--amb-c2') || '').trim(), ambRgb = (estiloRaiz.getPropertyValue('--amb-rgb') || '').trim();
+  const clarear = (hex, p) => {
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return null;
+    const n = parseInt(m[1], 16), f = c => Math.round(c + (255 - c) * p).toString(16).padStart(2, '0');
+    return '#' + f(n >> 16) + f((n >> 8) & 255) + f(n & 255);
+  };
   const COR = {
-    marca: PM.marca || '#015DFC', marcaForte: PM.forte || '#013DF2', marcaSuave: PM.suave || '#D6E4FF',
-    marcaMedia: PM.media || '#A9C6FF', marcaClara: PM.clara || '#6D9DFD',
+    marca: ambC || PM.marca || '#015DFC', marcaForte: ambC2 || PM.forte || '#013DF2', marcaSuave: clarear(ambC, .85) || PM.suave || '#D6E4FF',
+    marcaMedia: clarear(ambC, .62) || PM.media || '#A9C6FF', marcaClara: clarear(ambC, .35) || PM.clara || '#6D9DFD',
     violeta: '#835FF2', ambar: '#FDAD0D', laranja: '#F55902', bom: '#017801', ruim: '#B00000',
     texto: '#3D3D3D', texto3: '#676767', texto4: '#767676', grade: 'rgba(17,29,45,0.06)', borda: 'rgba(17,29,45,0.08)'
   };
-  const MARCA_RGB = PM.rgb || '1,93,252';
+  const MARCA_RGB = ambRgb || PM.rgb || '1,93,252';
   const PALETA = [COR.marca, COR.marcaClara, '#835FF2', '#FDAD0D', '#F55902', COR.marcaForte, COR.marcaMedia, '#B57600', '#017801', '#767676'];
   const FONTE = "'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif";
 
