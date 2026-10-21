@@ -266,9 +266,10 @@ claro e o Yuris não mudam. A folha de Relatórios continua branca de propósito
 
 **Endereço sem ".php".** Nos domínios das marcas (crm.fleetiflow, crm.viaautodoc, crm.sellermentoria e, desde 20/10/2026, yuris.inovaize.com) a URL limpa é feita no **nginx do servidor**, fora do repositório: `/etc/nginx/conf.d/yuris-cleanurl.conf` (só GET/HEAD) e, no site de cada domínio, os blocos que mandam `/pagina.php` para `/pagina` (301) e repassam `/pagina` ao Apache como `/pagina.php`; `/api/` passa como está e `/includes/` dá 404. **Não refazer isso no PHP:** o Apache recebe `/pagina.php` mesmo quando o visitante pediu `/pagina`, e um redirecionamento no PHP entra em laço (em 20/10/2026 isso derrubou a Via Autodoc por alguns minutos e foi desfeito). Nos outros domínios, `/pagina` abre pela camada de rota. Os links do menu saem limpos e absolutos (`_sbHrefLimpo()` no `includes/sidebar.php`), para o clique não passar por um 301. Desde o mesmo dia, todo endereço de página que o sistema gera (redirecionamentos de sessão e permissão, retorno do login, links das páginas públicas, notificações, menções do chat e navegações em JavaScript) já sai limpo: `/login`, `/dashboard`, `/clientes?open=5`.
 
-**Recolher o menu (edição CRM, 20/10/2026).** O `includes/sidebar.php` tem um botão
-no topo, ao lado da marca, que recolhe o menu para 72px com só os ícones (o nome
-aparece no `title`) e expande de volta. A classe `sb-retraido` vai no `<html>` por um
+**Recolher o menu (edição CRM, 20/10/2026).** No `includes/sidebar.php`, clicar no
+logo recolhe o menu para 72px com só os ícones (o nome aparece no `title`) e expande
+de volta; desde 21/10/2026 não há mais a seta ao lado da marca (o logo leva o atributo
+`data-sb-recolher`). No celular o logo continua sendo o link da página inicial. A classe `sb-retraido` vai no `<html>` por um
 script curto posto antes do `<aside>` (sem piscar ao carregar) e a escolha fica no
 `localStorage` (`yuris_menu_retraido`). Recolhido, clicar num grupo expande o menu com
 o grupo aberto, e o grupo da página atual mostra o disco da marca no ícone. Os

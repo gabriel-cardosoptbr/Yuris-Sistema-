@@ -6,12 +6,15 @@
    ═══════════════════════════════════════════════════════════════════════ */
 /* Cada ambiente tem a sua cor (a da marca fica para o resto do sistema). A cor vale na
    página inteira (html[data-ambiente], posto pelo sidebar.php): seletor, quadro de
-   Clientes e ficha do cliente leem --amb-c, --amb-c2 e --amb-rgb. */
+   Clientes e ficha do cliente leem --amb-c, --amb-c2 e --amb-rgb.
+   Desde 21/10/2026 os quatro são tons de azul tirados da logo da Inovaize (marinho
+   #1B437C): Empresa no marinho da logo, Comercial no azul royal, Software no azul
+   céu e Digital no anil. */
 html, .sb-amb, .sb-amb-lista a { --amb-c: var(--ff-marca, #015DFC); --amb-c2: var(--ff-marca-forte, #013DF2); --amb-rgb: var(--ff-marca-rgb, 1,93,252); }
-html[data-ambiente="empresa"], .sb-amb[data-amb="empresa"], .sb-amb-lista a[data-amb="empresa"] { --amb-c: #4F46E5; --amb-c2: #7C3AED; --amb-rgb: 79,70,229; }
-html[data-ambiente="comercial"], .sb-amb[data-amb="comercial"], .sb-amb-lista a[data-amb="comercial"] { --amb-c: #059669; --amb-c2: #10B981; --amb-rgb: 5,150,105; }
-html[data-ambiente="software"], .sb-amb[data-amb="software"], .sb-amb-lista a[data-amb="software"] { --amb-c: #0284C7; --amb-c2: #06B6D4; --amb-rgb: 2,132,199; }
-html[data-ambiente="digital"], .sb-amb[data-amb="digital"], .sb-amb-lista a[data-amb="digital"] { --amb-c: #DB2777; --amb-c2: #F97316; --amb-rgb: 219,39,119; }
+html[data-ambiente="empresa"], .sb-amb[data-amb="empresa"], .sb-amb-lista a[data-amb="empresa"] { --amb-c: #1B437C; --amb-c2: #2E6BC6; --amb-rgb: 27,67,124; }
+html[data-ambiente="comercial"], .sb-amb[data-amb="comercial"], .sb-amb-lista a[data-amb="comercial"] { --amb-c: #1D4ED8; --amb-c2: #3B82F6; --amb-rgb: 29,78,216; }
+html[data-ambiente="software"], .sb-amb[data-amb="software"], .sb-amb-lista a[data-amb="software"] { --amb-c: #0369A1; --amb-c2: #0EA5E9; --amb-rgb: 3,105,161; }
+html[data-ambiente="digital"], .sb-amb[data-amb="digital"], .sb-amb-lista a[data-amb="digital"] { --amb-c: #3730A3; --amb-c2: #6366F1; --amb-rgb: 55,48,163; }
 
 /* Mesma escala dos itens do menu (38px de altura, 12px de recuo lateral, ícone de 30px). */
 .sb-amb { position: relative; margin: 0 12px 6px; }

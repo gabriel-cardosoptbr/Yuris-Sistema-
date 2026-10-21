@@ -425,6 +425,14 @@ $_notifTempo = function ($raw) {
   html[data-theme="light"] .sidebar-footer.sb-rodape a.is-logout:hover{ background:#FFF1F1 !important; color:#B00000 !important; }
   html[data-theme="light"] .sidebar-footer.sb-rodape a.is-logout:hover .icon svg{ stroke:#B00000; }
 
+  /* Desde 21/10/2026 não há mais a seta: no computador, clicar no logo recolhe e
+     expande o menu; no celular o logo continua levando à página inicial. */
+  @media (min-width:901px){
+    [data-sb-recolher]{ cursor:pointer; border-radius:10px; transition:opacity 180ms cubic-bezier(.2,0,0,1), transform 180ms cubic-bezier(.2,0,0,1); }
+    [data-sb-recolher]:hover{ opacity:.82; }
+    [data-sb-recolher]:active{ transform:scale(.97); }
+    [data-sb-recolher]:focus-visible{ outline:2px solid var(--ff-marca, #60A5FA); outline-offset:3px; }
+  }
   /* ── Recolher o menu (20/10/2026): botão no topo, ao lado da marca. Recolhido,
        a barra fica com 72px e só os ícones; o nome aparece no title. A classe
        sb-retraido fica no <html> (posta antes do menu nascer, sem piscar) e a
@@ -554,11 +562,11 @@ if ($_isFleetiflow) {
          com o nome desenhado dentro. -->
     <?php if ($_marca['personalizada'] && !empty($_marca['logo_url'])): ?>
     <!-- Marca própria com logo: o logo inteiro, flutuando devagar (17/10/2026). -->
-    <a href="/dashboard" class="sb-logo-marca" style="display:flex;align-items:center;text-decoration:none" aria-label="<?= htmlspecialchars($_marca['nome']) ?>">
+    <a href="/dashboard" class="sb-logo-marca" data-sb-recolher style="display:flex;align-items:center;text-decoration:none" aria-label="<?= htmlspecialchars($_marca['nome']) ?>">
       <img src="<?= htmlspecialchars($_marca['logo_url']) ?>" alt="<?= htmlspecialchars($_marca['nome']) ?>">
     </a>
     <?php else: ?>
-    <a href="/dashboard" style="display:flex;align-items:center;gap:11px;text-decoration:none">
+    <a href="/dashboard" data-sb-recolher style="display:flex;align-items:center;gap:11px;text-decoration:none">
       <?php if (!empty($_marca['icone_url'])): ?>
       <img src="<?= htmlspecialchars($_marca['icone_url']) ?>" alt="" style="height:30px;width:auto;max-width:44px;object-fit:contain;flex:none;display:block">
       <?php else: ?>
@@ -568,15 +576,8 @@ if ($_isFleetiflow) {
       <span style="font-size:18px;font-weight:800;letter-spacing:-.4px;color:#3D3D3D;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><?= htmlspecialchars($_marca['nome']) ?></span>
     </a>
     <?php endif; ?>
-    <button type="button" class="sb-recolher" id="sbRecolher" aria-label="Recolher menu" title="Recolher menu" aria-expanded="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
-    </button>
     <?php else: ?>
-    <img src="/sistema_vendas/Imagens/Logo.png" alt="Yuris" class="sb-logo-grande" style="max-width:100%;max-height:160px;object-fit:contain;display:block;margin:0 auto;">
-    <a href="/dashboard" aria-label="Yuris"><img src="/assets/favicon-192.png" alt="" class="sb-logo-mini"></a>
-    <button type="button" class="sb-recolher sb-recolher-y" id="sbRecolher" aria-label="Recolher menu" title="Recolher menu" aria-expanded="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
-    </button>
+    <a href="/dashboard" data-sb-recolher aria-label="Yuris" style="display:block"><img src="/sistema_vendas/Imagens/Logo.png" alt="Yuris" class="sb-logo-grande" style="max-width:100%;max-height:160px;object-fit:contain;display:block;margin:0 auto;"><img src="/assets/favicon-192.png" alt="" class="sb-logo-mini"></a>
     <?php endif; ?>
   </div>
 
@@ -1152,8 +1153,12 @@ if ($_isFleetiflow) {
    title; clicar num grupo abre o menu de novo com o grupo aberto. A escolha fica
    no navegador. */
 (function () {
-  var html = document.documentElement, menu = document.querySelector('aside.sidebar'), bt = document.getElementById('sbRecolher');
-  if (!menu || !bt) return;
+  // O gatilho é o próprio logo (21/10/2026, a seta saiu). Só no computador: no celular o
+  // menu não recolhe e o logo segue sendo o link da página inicial.
+  var html = document.documentElement, menu = document.querySelector('aside.sidebar');
+  var alvos = menu ? menu.querySelectorAll('[data-sb-recolher]') : [];
+  if (!menu || !alvos.length) return;
+  var desktop = window.matchMedia('(min-width: 901px)');
   var CHAVE = 'yuris_menu_retraido';
   function rotular() {
     menu.querySelectorAll('nav a, .sidebar-group-toggle, .sidebar-footer a').forEach(function (el) {
@@ -1163,16 +1168,32 @@ if ($_isFleetiflow) {
       else if (el.getAttribute('data-sb-title')) { el.removeAttribute('title'); el.removeAttribute('data-sb-title'); }
     });
     var r = html.classList.contains('sb-retraido');
-    bt.setAttribute('aria-label', r ? 'Expandir menu' : 'Recolher menu');
-    bt.title = r ? 'Expandir menu' : 'Recolher menu';
-    bt.setAttribute('aria-expanded', r ? 'false' : 'true');
+    alvos.forEach(function (a) {
+      if (!a.hasAttribute('data-sb-nome')) a.setAttribute('data-sb-nome', a.getAttribute('aria-label') || '');
+      if (desktop.matches) {
+        a.setAttribute('aria-label', r ? 'Expandir menu' : 'Recolher menu');
+        a.title = r ? 'Expandir menu' : 'Recolher menu';
+        a.setAttribute('aria-expanded', r ? 'false' : 'true');
+      } else {
+        var nome = a.getAttribute('data-sb-nome');
+        if (nome) a.setAttribute('aria-label', nome); else a.removeAttribute('aria-label');
+        a.removeAttribute('title'); a.removeAttribute('aria-expanded');
+      }
+    });
   }
   function definir(r) {
     html.classList.toggle('sb-retraido', r);
     try { localStorage.setItem(CHAVE, r ? '1' : '0'); } catch (e) {}
     rotular();
   }
-  bt.addEventListener('click', function () { definir(!html.classList.contains('sb-retraido')); });
+  alvos.forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      if (!desktop.matches) return;
+      e.preventDefault();
+      definir(!html.classList.contains('sb-retraido'));
+    });
+  });
+  if (desktop.addEventListener) desktop.addEventListener('change', rotular);
   // Recolhido, o clique num grupo abre o menu (e o grupo) em vez de só alternar o grupo escondido.
   menu.addEventListener('click', function (e) {
     if (!html.classList.contains('sb-retraido')) return;

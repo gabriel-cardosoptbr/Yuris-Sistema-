@@ -23,7 +23,7 @@ telas são os de sempre.
 Telas: `public/empresa.php`, `public/software.php`, `public/digital.php` (finas),
 `public/assets/ambientes.js` + `ambientes.css` (seletor com **uma cor por
 ambiente** desde 21/10/2026, pedido do dono do produto: botão em degradê na cor
-do ambiente atual (Empresa roxo, Comercial verde, Software azul, Digital rosa),
+do ambiente atual (desde 21/10/2026, tons de azul tirados da logo da Inovaize: Empresa no marinho da logo, Comercial no azul royal, Software no azul céu, Digital no anil),
 ícone em quadradinho colorido, lista que abre com os itens entrando um a um,
 check na opção escolhida e fechamento animado; com o menu recolhido a lista fica
 fixa ao lado do botão, porque o menu corta o que sai dele. **A mesma cor vale no
