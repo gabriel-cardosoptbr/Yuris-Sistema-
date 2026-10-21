@@ -4,12 +4,14 @@
    Carregado pelo sidebar.php só na conta com ambientes. Cor da marca em
    var(--ff-marca*). Claro por padrão; escuro quando o tema não é claro.
    ═══════════════════════════════════════════════════════════════════════ */
-/* Cada ambiente tem a sua cor (a da marca fica para o resto do sistema). */
-.sb-amb, .sb-amb-lista a { --amb-c: var(--ff-marca, #015DFC); --amb-c2: var(--ff-marca-forte, #013DF2); --amb-rgb: var(--ff-marca-rgb, 1,93,252); }
-.sb-amb[data-amb="empresa"], .sb-amb-lista a[data-amb="empresa"] { --amb-c: #4F46E5; --amb-c2: #7C3AED; --amb-rgb: 79,70,229; }
-.sb-amb[data-amb="comercial"], .sb-amb-lista a[data-amb="comercial"] { --amb-c: #059669; --amb-c2: #10B981; --amb-rgb: 5,150,105; }
-.sb-amb[data-amb="software"], .sb-amb-lista a[data-amb="software"] { --amb-c: #0284C7; --amb-c2: #06B6D4; --amb-rgb: 2,132,199; }
-.sb-amb[data-amb="digital"], .sb-amb-lista a[data-amb="digital"] { --amb-c: #DB2777; --amb-c2: #F97316; --amb-rgb: 219,39,119; }
+/* Cada ambiente tem a sua cor (a da marca fica para o resto do sistema). A cor vale na
+   página inteira (html[data-ambiente], posto pelo sidebar.php): seletor, quadro de
+   Clientes e ficha do cliente leem --amb-c, --amb-c2 e --amb-rgb. */
+html, .sb-amb, .sb-amb-lista a { --amb-c: var(--ff-marca, #015DFC); --amb-c2: var(--ff-marca-forte, #013DF2); --amb-rgb: var(--ff-marca-rgb, 1,93,252); }
+html[data-ambiente="empresa"], .sb-amb[data-amb="empresa"], .sb-amb-lista a[data-amb="empresa"] { --amb-c: #4F46E5; --amb-c2: #7C3AED; --amb-rgb: 79,70,229; }
+html[data-ambiente="comercial"], .sb-amb[data-amb="comercial"], .sb-amb-lista a[data-amb="comercial"] { --amb-c: #059669; --amb-c2: #10B981; --amb-rgb: 5,150,105; }
+html[data-ambiente="software"], .sb-amb[data-amb="software"], .sb-amb-lista a[data-amb="software"] { --amb-c: #0284C7; --amb-c2: #06B6D4; --amb-rgb: 2,132,199; }
+html[data-ambiente="digital"], .sb-amb[data-amb="digital"], .sb-amb-lista a[data-amb="digital"] { --amb-c: #DB2777; --amb-c2: #F97316; --amb-rgb: 219,39,119; }
 
 .sb-amb { position: relative; margin: 0 0 12px; }
 .sb-amb-btn {
@@ -76,6 +78,96 @@ html:not([data-theme="light"]) .sb-amb-lista a .sb-amb-txt small { color: #AEB7C
 html:not([data-theme="light"]) .sb-amb-lista a .sb-amb-ico { background: rgba(var(--amb-rgb), .22); color: #FFFFFF; }
 html:not([data-theme="light"]) .sb-amb-lista a:hover { background: rgba(var(--amb-rgb), .16); }
 html:not([data-theme="light"]) .sb-amb-lista a.ativo { background: rgba(var(--amb-rgb), .22); }
+
+/* ── O quadro de Clientes na cor do ambiente (21/10/2026) ──────────────── */
+html[data-ambiente] .setor-head {
+  padding: 8px 10px 10px; margin: -4px -4px 10px; border-bottom: 0; border-radius: 11px;
+  background: linear-gradient(135deg, rgba(var(--amb-rgb), .10), rgba(var(--amb-rgb), .03));
+}
+html[data-ambiente] .setor-name { font-weight: 800; letter-spacing: -.01em; }
+html[data-ambiente] .setor-count { background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)); color: #FFFFFF; font-weight: 800; box-shadow: 0 4px 10px -4px rgba(var(--amb-rgb), .6); }
+html[data-ambiente] .setor-col { transition: border-color .2s, box-shadow .2s; }
+html[data-ambiente] .setor-col:has(.sortable-ghost), html[data-ambiente] .setor-col:has(.cli-card:hover) { border-color: rgba(var(--amb-rgb), .35); }
+html[data-ambiente] .cli-card, html[data-ambiente] .ffc-copia {
+  transition: transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .2s, border-color .2s;
+  animation: ambEntrar .35s cubic-bezier(.2,.8,.2,1) both;
+}
+html[data-ambiente] .cli-card:nth-child(2), html[data-ambiente] .ffc-copia:nth-child(2) { animation-delay: 50ms; }
+html[data-ambiente] .cli-card:nth-child(3), html[data-ambiente] .ffc-copia:nth-child(3) { animation-delay: 100ms; }
+html[data-ambiente] .cli-card:nth-child(4), html[data-ambiente] .ffc-copia:nth-child(4) { animation-delay: 150ms; }
+html[data-ambiente] .cli-card:nth-child(n+5), html[data-ambiente] .ffc-copia:nth-child(n+5) { animation-delay: 200ms; }
+html[data-ambiente] .cli-card:hover, html[data-ambiente] .ffc-copia:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -10px rgba(var(--amb-rgb), .45); border-color: rgba(var(--amb-rgb), .4); }
+html[data-ambiente] .ffc-op .ffc-op-tit { color: var(--amb-c); }
+html[data-ambiente] .ffc-barra i, html[data-ambiente] .ffc-op .ffc-barra i { background: linear-gradient(90deg, var(--amb-c), var(--amb-c2)); }
+html[data-ambiente] .ffc-sit.ok i { background: var(--amb-c2); }
+html[data-ambiente] .ffc-zap { transition: transform .15s; } html[data-ambiente] .ffc-zap:hover { transform: scale(1.08); }
+html[data-ambiente] .qr-topo { scrollbar-color: rgba(var(--amb-rgb), .55) rgba(17,29,45,.06); }
+html[data-ambiente] .qr-topo::-webkit-scrollbar { height: 10px; } html[data-ambiente] .qr-topo::-webkit-scrollbar-thumb { background: linear-gradient(90deg, var(--amb-c), var(--amb-c2)); border-radius: 99px; }
+html[data-ambiente] .qr-topo::-webkit-scrollbar-track { background: rgba(17,29,45,.06); border-radius: 99px; }
+@keyframes ambEntrar { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* ── A ficha do cliente na cor do ambiente ─────────────────────────────── */
+html[data-ambiente] .ff-modal {
+  --ff-azul: var(--amb-c); --ff-azul-forte: var(--amb-c2); --ff-azul-suave: rgba(var(--amb-rgb), .12); --ff-azul-media: rgba(var(--amb-rgb), .45);
+}
+html[data-ambiente] .ff-modal .ff-aba { transition: color .15s, border-color .2s, background .15s; border-radius: 10px 10px 0 0 !important; }
+html[data-ambiente] .ff-modal .ff-aba:hover { background: rgba(var(--amb-rgb), .06) !important; }
+html[data-ambiente] .ff-modal .ff-aba.ativa { color: var(--amb-c) !important; border-bottom-color: var(--amb-c) !important; }
+html[data-ambiente] .ff-modal .ff-aba.ativa svg { animation: ambPulso .35s cubic-bezier(.2,.8,.2,1); }
+@keyframes ambPulso { 0% { transform: scale(.7); } 60% { transform: scale(1.18); } 100% { transform: none; } }
+html[data-ambiente] .ff-modal .ff-resumo { background: linear-gradient(135deg, rgba(var(--amb-rgb), .07), rgba(var(--amb-rgb), .02)) !important; }
+html[data-ambiente] .ff-modal .ff-cel { background: transparent; }
+html[data-ambiente] .ffop-amb {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 3px 10px 3px 6px; border-radius: 999px; font-size: 12px; font-weight: 800; color: #FFFFFF;
+  background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)); box-shadow: 0 6px 14px -8px rgba(var(--amb-rgb), .8);
+}
+html[data-ambiente] .ffop-amb::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.85); flex: none; }
+html[data-ambiente] .ff-modal .form-section { transition: box-shadow .2s, border-color .2s; animation: ambEntrar .3s cubic-bezier(.2,.8,.2,1) both; }
+html[data-ambiente] .ff-modal .form-section:hover { border-color: rgba(var(--amb-rgb), .22) !important; box-shadow: 0 8px 20px -14px rgba(var(--amb-rgb), .5) !important; }
+html[data-ambiente] .ff-modal .ff-ico { transition: transform .2s cubic-bezier(.2,.8,.2,1); }
+html[data-ambiente] .ff-modal .form-section-title:hover .ff-ico { transform: rotate(-6deg) scale(1.08); }
+html[data-ambiente] .ff-modal .ff-btn-principal, html[data-ambiente] .ff-modal .btn.primary {
+  background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)) !important; border-color: transparent !important; box-shadow: 0 8px 18px -8px rgba(var(--amb-rgb), .7); transition: transform .15s, box-shadow .2s;
+}
+html[data-ambiente] .ff-modal .ff-btn-principal:hover, html[data-ambiente] .ff-modal .btn.primary:hover { transform: translateY(-1px); box-shadow: 0 12px 22px -8px rgba(var(--amb-rgb), .8); }
+html[data-ambiente] .ffcli-bt.princ { background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)); border-color: transparent; color: #FFFFFF; box-shadow: 0 6px 14px -8px rgba(var(--amb-rgb), .8); transition: transform .15s, box-shadow .2s; }
+html[data-ambiente] .ffcli-bt.princ:hover { transform: translateY(-1px); box-shadow: 0 10px 20px -8px rgba(var(--amb-rgb), .9); }
+html[data-ambiente] .ffcli-bt { transition: border-color .15s, background .15s; } html[data-ambiente] .ffcli-bt:not(.princ):hover { border-color: rgba(var(--amb-rgb), .5); }
+html[data-ambiente] .ffcli-link { color: var(--amb-c); } html[data-ambiente] .ffcli-link.perigo { color: #B91C1C; }
+html[data-ambiente] .ffcli-setopt.on { background: rgba(var(--amb-rgb), .12); border-color: rgba(var(--amb-rgb), .5); color: var(--amb-c); }
+html[data-ambiente] .ffcli-tot b { color: var(--amb-c); } html[data-ambiente] .ffcli-tot.princ { background: rgba(var(--amb-rgb), .08); border-color: rgba(var(--amb-rgb), .3); }
+html[data-ambiente] .ffcli-pill:not(.fixo):not(.demanda):not(.anual):not(.servico):not(.aberta):not(.atrasada):not(.paga):not(.cancelada) { background: rgba(var(--amb-rgb), .12); color: var(--amb-c); }
+
+/* Os números e os quadros internos da ficha (entregas, projeto, propostas). */
+html[data-ambiente] .ffop-n { background: linear-gradient(160deg, rgba(var(--amb-rgb), .09), rgba(var(--amb-rgb), .03)); border: 1px solid rgba(var(--amb-rgb), .10); animation: ambEntrar .3s cubic-bezier(.2,.8,.2,1) both; }
+html[data-ambiente] .ffop-n b { color: var(--amb-c); }
+html[data-ambiente] .ffop-n.ok b { color: #047857; } html[data-ambiente] .ffop-n.atencao b { color: #B45309; } html[data-ambiente] .ffop-n.alerta b { color: #B91C1C; }
+html[data-ambiente] .ffop-barra i { background: linear-gradient(90deg, var(--amb-c), var(--amb-c2)); }
+html[data-ambiente] .ffop-kb-col { background: linear-gradient(180deg, rgba(var(--amb-rgb), .07), rgba(var(--amb-rgb), .02)); border: 1px solid rgba(var(--amb-rgb), .08); transition: border-color .2s; }
+html[data-ambiente] .ffop-kb-col:has(.ffop-kc:hover), html[data-ambiente] .ffop-kb-col:has(.sortable-ghost) { border-color: rgba(var(--amb-rgb), .35); }
+html[data-ambiente] .ffop-kb-cab b { color: var(--amb-c); font-weight: 800; }
+html[data-ambiente] .ffop-kb-cab span { background: linear-gradient(135deg, var(--amb-c), var(--amb-c2)); color: #FFFFFF; min-width: 22px; text-align: center; }
+html[data-ambiente] .ffop-kb-vazio { border-color: rgba(var(--amb-rgb), .25); }
+html[data-ambiente] .ffop-kc { transition: transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .2s, border-color .2s; animation: ambEntrar .35s cubic-bezier(.2,.8,.2,1) both; }
+html[data-ambiente] .ffop-kc:nth-child(2) { animation-delay: 50ms; } html[data-ambiente] .ffop-kc:nth-child(3) { animation-delay: 100ms; } html[data-ambiente] .ffop-kc:nth-child(n+4) { animation-delay: 150ms; }
+html[data-ambiente] .ffop-kc:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -10px rgba(var(--amb-rgb), .45); border-color: rgba(var(--amb-rgb), .4); }
+html[data-ambiente] .ffop-kc.sortable-chosen { box-shadow: 0 16px 30px -10px rgba(var(--amb-rgb), .6); }
+html[data-ambiente] .ffop-q { transition: transform .15s, background .15s; } html[data-ambiente] .ffop-q:hover { outline: none; background: rgba(var(--amb-rgb), .08); transform: translateX(2px); }
+html[data-ambiente] .ffop-post { transition: transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .2s; animation: ambEntrar .35s cubic-bezier(.2,.8,.2,1) both; }
+html[data-ambiente] .ffop-post:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -10px rgba(var(--amb-rgb), .45); }
+html[data-ambiente] .ffd-item { transition: transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .2s, border-color .2s; }
+html[data-ambiente] .ffd-item:hover { transform: translateY(-2px); border-color: rgba(var(--amb-rgb), .5); box-shadow: 0 12px 24px -10px rgba(var(--amb-rgb), .45); }
+html[data-ambiente] .ffop-gd { background: rgba(var(--amb-rgb), .08); }
+html[data-ambiente] .ffop-secbar .ffcli-vazio, html[data-ambiente] .ffop-cab > b { color: var(--amb-c); font-weight: 800; }
+@media (prefers-reduced-motion: reduce) {
+  html[data-ambiente] .cli-card, html[data-ambiente] .ffc-copia, html[data-ambiente] .ffop-kc, html[data-ambiente] .ffop-post, html[data-ambiente] .ffop-n,
+  html[data-ambiente] .ff-modal .form-section, html[data-ambiente] .ff-modal .ff-aba.ativa svg { animation: none !important; }
+}
+html:not([data-theme="light"])[data-ambiente] .setor-head { background: linear-gradient(135deg, rgba(var(--amb-rgb), .22), rgba(var(--amb-rgb), .06)); }
+html:not([data-theme="light"])[data-ambiente] .ffop-kb-col { background: linear-gradient(180deg, rgba(var(--amb-rgb), .16), rgba(var(--amb-rgb), .05)); border-color: rgba(var(--amb-rgb), .18); }
+html:not([data-theme="light"])[data-ambiente] .ffop-n { background: linear-gradient(160deg, rgba(var(--amb-rgb), .2), rgba(var(--amb-rgb), .06)); border-color: rgba(var(--amb-rgb), .2); }
+html:not([data-theme="light"])[data-ambiente] .ffop-n b { color: #FFFFFF; }
+html:not([data-theme="light"])[data-ambiente] .ff-modal .ff-resumo { background: linear-gradient(135deg, rgba(var(--amb-rgb), .18), rgba(var(--amb-rgb), .05)) !important; }
 
 /* Menu recolhido: só o ícone do ambiente; a lista abre ao lado. */
 @media (min-width: 901px) {

@@ -26,7 +26,12 @@ ambiente** desde 21/10/2026, pedido do dono do produto: botão em degradê na co
 do ambiente atual (Empresa roxo, Comercial verde, Software azul, Digital rosa),
 ícone em quadradinho colorido, lista que abre com os itens entrando um a um,
 check na opção escolhida e fechamento animado; com o menu recolhido a lista fica
-fixa ao lado do botão, porque o menu corta o que sai dele; guarda de formulário,
+fixa ao lado do botão, porque o menu corta o que sai dele. **A mesma cor vale no
+quadro de Clientes e na ficha** (21/10/2026): o `sidebar.php` põe o ambiente em
+`html[data-ambiente]` e o CSS recolore a partir dali os cabeçalhos e contadores das
+colunas, o hover dos cards, as abas, ícones, botões e a faixa do topo da ficha, os
+tiles de números e os quadros internos (entregas, projeto, propostas), com os
+cards entrando um a um; guarda de formulário,
 faixa de Clientes, bloco do Comercial), `ambientes-visao.js` (Visões Gerais,
 Entregas, Campanhas) e `ff-cliente-operacao.js` (a ficha e o card de cada
 ambiente). API: `public/api/ambientes.php` e `public/api/digital.php`.

@@ -608,6 +608,7 @@ if ($_isFleetiflow) {
       <?php endforeach; ?>
     </ul>
   </div>
+  <script>document.documentElement.setAttribute('data-ambiente', <?= json_encode($_ambCtx['atual']) ?>);</script>
   <link rel="stylesheet" href="/assets/ambientes.css?v=<?= @filemtime(__DIR__ . '/../assets/ambientes.css') ?: '1' ?>">
   <script src="/assets/ambientes.js?v=<?= @filemtime(__DIR__ . '/../assets/ambientes.js') ?: '1' ?>" defer></script>
   <?php endif; ?>
