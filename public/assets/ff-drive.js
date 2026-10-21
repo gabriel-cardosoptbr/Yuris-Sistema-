@@ -3,6 +3,7 @@
    window.FfDrive.painel(el, clienteId)    a pasta na aba Arquivos da ficha
    window.FfDrive.escolher(el, clienteId, aoEscolher)  escolher um arquivo
                                            da pasta (material, cartão)
+   window.FfDrive.previa({id, nome, tipo, link})  pré-visualizar um arquivo
    API em /api/drive.php. A lista diz sempre de quando é: "sincronizado às
    14:32"; se o Drive falhar, avisa e marca a lista como a última conhecida.
    Atualiza sozinha a cada minuto enquanto está na tela.
@@ -253,5 +254,6 @@ window.FfDrive = (function () {
     ir(null);
   }
 
-  return { painel: painel, escolher: escolher };
+  // previa(arquivo): a pré-visualização dentro do sistema (aba Postagem da ficha usa).
+  return { painel: painel, escolher: escolher, previa: function (f) { estilo(); previa(f); } };
 })();

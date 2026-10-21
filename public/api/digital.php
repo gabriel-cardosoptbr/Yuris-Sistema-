@@ -10,6 +10,9 @@
  *   GET  ?campanhas=1 [&status=]          campanhas dos clientes que a pessoa vê
  *   GET  ?apoio=1                         tipos, estados, plataformas, modelos de quadro e a equipe
  *   GET  ?clientes=1                      clientes que a pessoa vê (id, nome), para escolher num formulário
+ *   GET  ?ficha=N [&mes=]                 a ficha do cliente nos ambientes: perfil (redes, briefing, perfil
+ *                                         técnico), postagem do mês, Software, projetos ligados e negociações
+ *   GET  ?quadro_clientes=1 [&mes=]       o miolo do card de cada cliente no quadro de Clientes do ambiente
  *   POST {acao:'entrega_salvar', task_id, tipo, producao, aprovacao, entrega, publicacao, competencia}
  *   POST {acao:'participantes', task_id, user_ids:[...]}
  *   POST {acao:'material_adicionar', task_id, nome}
@@ -20,6 +23,9 @@
  *   POST {acao:'areas', cliente_id, areas:['software','digital']}  área marcada direto na ficha
  *   POST {acao:'campanha_salvar', id?, cliente_id, nome, plataforma, ...}
  *   POST {acao:'campanha_remover', id}
+ *   POST {acao:'perfil_salvar', cliente_id, area:'digital'|'software', campos:{...}}
+ *   POST {acao:'entrega_link', task_id, link}            link do post publicado
+ *   POST {acao:'projeto_ligar', cliente_id, projeto_id, ligar}  projeto da pasta Projetos no cliente
  *
  * Só na conta com ambientes. Cartão: a mesma regra de quem vê e edita o quadro
  * (TaskBoard). Cliente: da conta, e do vendedor quando quem pede é vendedor.
@@ -28,6 +34,7 @@ require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Ambientes\Ambiente;
 use App\Ambientes\AreaDoCliente;
+use App\Ambientes\FichaDoCliente;
 use App\Ambientes\QuadroDaArea;
 use App\Core\AccountContext;
 use App\Core\Database;
@@ -61,6 +68,9 @@ $podeClientes = Ambiente::podePagina('clientes');
 if (!$podeTarefas && !$podeClientes) dgResponder(['ok' => false, 'error' => 'Sem permissão.'], 403);
 $accTarefas = $ctx->getAccessibleAccountIds('tarefas') ?: [$acc];
 $vendedor = AccountContext::vendedorDaSessao();
+// Projetos: a mesma regra da pasta Projetos (módulo ligado, sem vendedor).
+$podeProjetos = !$ctx->vendedorCrm() && \App\Projetos\Projeto::habilitado(\App\Master\Account::findById($acc) ?? []);
+$podeComercial = Ambiente::podePagina('prospeccao') || Ambiente::podePagina('dashboard');
 $mes = preg_match('/^\d{4}-\d{2}$/', (string) ($_GET['mes'] ?? '')) ? (string) $_GET['mes'] : date('Y-m');
 
 /** O cliente da conta que a pessoa pode ver (vendedor: só o dele). */
@@ -143,6 +153,31 @@ try {
             }, $st->fetchAll(PDO::FETCH_ASSOC));
             dgResponder(['ok' => true, 'data' => $lista]);
         }
+        if (!empty($_GET['ficha'])) {
+            $cli = dgCliente($acc, (int) $_GET['ficha'], $vendedor);
+            $cid = (int) $cli['id'];
+            $visiveis = $podeTarefas ? TaskBoard::findForUser($uid, $accTarefas, $admin) : [];
+            dgResponder(['ok' => true, 'data' => [
+                'cliente' => ['id' => $cid, 'nome' => $cli['nome']],
+                'mes' => $mes,
+                'perfil' => FichaDoCliente::perfil($acc, $cid),
+                'postagem' => $podeTarefas ? FichaDoCliente::postagem($acc, $cid, $mes, array_map(fn($b) => (int) $b['id'], $visiveis)) : null,
+                'software' => $podeTarefas ? FichaDoCliente::software(QuadroDaArea::filtrar($visiveis, 'software', $cid)) : null,
+                'projetos' => $podeProjetos ? FichaDoCliente::projetos($acc, $cid) : null,
+                'negociacoes' => $podeComercial ? FichaDoCliente::negociacoes($acc, $cid) : null,
+                'pode_tarefas' => $podeTarefas,
+            ]]);
+        }
+        if (!empty($_GET['quadro_clientes'])) {
+            $sql = 'SELECT id FROM clientes WHERE account_id = ? AND deleted_at IS NULL';
+            $args = [$acc];
+            if ($vendedor !== null) { $sql .= ' AND responsavel_id = ?'; $args[] = $vendedor; }
+            $st = Database::getConnection()->prepare($sql . ' ORDER BY id DESC LIMIT 3000');
+            $st->execute($args);
+            $ids = array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN));
+            $visiveis = $podeTarefas ? TaskBoard::findForUser($uid, $accTarefas, $admin) : [];
+            dgResponder(['ok' => true, 'mes' => $mes, 'data' => (object) FichaDoCliente::quadro($acc, $ids, $visiveis, $mes)]);
+        }
         if (!empty($_GET['cliente'])) {
             $cli = dgCliente($acc, (int) $_GET['cliente'], $vendedor);
             $quadros = $podeTarefas ? QuadroDaArea::filtrar(TaskBoard::findForUser($uid, $accTarefas, $admin), null, (int) $cli['id']) : [];
@@ -203,6 +238,21 @@ try {
         dgResponder(['ok' => true, 'data' => Material::doCartao($tid)]);
     }
 
+    if ($acao === 'entrega_link') {
+        if (!$podeTarefas) dgResponder(['ok' => false, 'error' => 'Sem permissão para Tarefas.'], 403);
+        $c = Entrega::cartaoEditavel((int) ($in['task_id'] ?? 0), $uid, $accTarefas, $admin);
+        dgResponder(['ok' => true, 'link' => FichaDoCliente::salvarLinkPublicacao($c, $uid, (string) ($in['link'] ?? ''))]);
+    }
+    if ($acao === 'perfil_salvar') {
+        $cli = dgCliente($acc, (int) ($in['cliente_id'] ?? 0), $vendedor);
+        dgResponder(['ok' => true, 'data' => FichaDoCliente::salvarPerfil($acc, $uid, (int) $cli['id'], (string) ($in['area'] ?? ''), (array) ($in['campos'] ?? []))]);
+    }
+    if ($acao === 'projeto_ligar') {
+        if (!$podeProjetos) dgResponder(['ok' => false, 'error' => 'Projetos disponível só para administradores.'], 403);
+        $cli = dgCliente($acc, (int) ($in['cliente_id'] ?? 0), $vendedor);
+        FichaDoCliente::ligarProjeto($acc, (int) $cli['id'], (int) ($in['projeto_id'] ?? 0), !empty($in['ligar']));
+        dgResponder(['ok' => true, 'data' => FichaDoCliente::projetos($acc, (int) $cli['id'])]);
+    }
     if ($acao === 'areas') {
         // A área marcada direto na ficha (soma às que vêm do que o cliente contratou).
         $cli = dgCliente($acc, (int) ($in['cliente_id'] ?? 0), $vendedor);

@@ -15,7 +15,9 @@
    CRM (dinheiro, situação das cobranças, setores, contratos, contato,
    responsável, WhatsApp; GET /api/cliente_valores.php?quadro=1), e o cliente
    que está em mais de um setor (coluna) aparece também em cada um deles, sem
-   mexer no renderCard.
+   mexer no renderCard. Nos ambientes da Inovaize, window.FfCardArea
+   (ff-cliente-operacao.js) troca o dinheiro pela operação no Digital e no
+   Software e soma a operação ao dinheiro na Empresa.
    Carregado pelo sidebar.php em conta CRM; só age se a página tem a ficha.
    ═══════════════════════════════════════════════════════════════════════ */
 (function () {
@@ -137,7 +139,10 @@
   function dataCurta(iso) { var p = String(iso || '').slice(0, 10).split('-'); return p.length === 3 ? p[2] + '/' + p[1] : ''; }
 
   function nomeSetor(id) { for (var i = 0; i < SETORES_CONTA.length; i++) if (SETORES_CONTA[i].id === id) return SETORES_CONTA[i]; return null; }
-  function htmlCard(d, origem, colunaId, copia) {
+  function htmlCard(d, origem, colunaId, copia, id) {
+    // Nos ambientes (ff-cliente-operacao.js) o miolo muda: Digital mostra entregas e
+    // postagem, Software as demandas, Empresa o dinheiro e a operação.
+    var CA = window.FfCardArea, modo = CA ? CA.modo : 'dinheiro', soOperacao = modo === 'digital' || modo === 'software';
     var sub = [];
     if (d.tipo) sub.push(d.tipo === 'PF' ? 'Pessoa física' : d.tipo === 'PJ' ? 'Empresa' : d.tipo);
     if (d.cidade) sub.push(d.cidade);
@@ -156,7 +161,9 @@
     if (d.status && d.status !== 'ativo') tags.push('<span class="ffc-tag alerta">' + esc(d.status) + '</span>');
     if (origem) tags.push('<span class="ffc-tag sit">' + esc(origem) + '</span>');
     if (tags.length) h += '<div class="ffc-tags" data-ffc-tags>' + tags.join('') + '</div>';
-    if (d.por_mes || d.avulso || d.atrasado || d.proxima) {
+    if (soOperacao) {
+      h += CA.bloco(id, modo);
+    } else if (d.por_mes || d.avulso || d.atrasado || d.proxima) {
       h += '<div class="ffc-din">' +
         (d.por_mes ? '<div class="ffc-valor">' + REAL.format(d.por_mes) + '<small>/mês</small></div>' : (d.avulso ? '<div class="ffc-valor">' + REAL.format(d.avulso) + '<small>em serviços</small></div>' : '')) +
         (d.por_mes && d.avulso ? '<div class="ffc-extra">+ ' + REAL.format(d.avulso) + ' em serviços e taxas</div>' : '');
@@ -167,10 +174,12 @@
     } else {
       h += '<div class="ffc-din vazio">Sem valor combinado. Abra o cliente para cadastrar a mensalidade ou um serviço.</div>';
     }
+    if (modo === 'empresa') h += CA.bloco(id, modo);
     var pe = [];
     pe.push('<span class="ffc-meta' + (d.responsavel ? ' forte' : '') + '" title="Responsável">' + ICO.resp + esc(d.responsavel || 'Sem responsável') + '</span>');
+    if (CA && CA.rodape) pe = pe.concat(CA.rodape(id, modo));
     var k = d.contratos || {};
-    if (k.total) pe.push('<span class="ffc-meta forte" title="Contratos">' + ICO.doc + k.total + (k.total === 1 ? ' contrato' : ' contratos') +
+    if (k.total && !soOperacao) pe.push('<span class="ffc-meta forte" title="Contratos">' + ICO.doc + k.total + (k.total === 1 ? ' contrato' : ' contratos') +
       (k.aguardando ? ' · ' + k.aguardando + ' aguardando assinatura' : (k.assinados ? ' · ' + k.assinados + (k.assinados === 1 ? ' assinado' : ' assinados') : '')) + '</span>');
     var dc = diasDesde(d.ultimo_contato);
     pe.push('<span class="ffc-meta" title="Último contato registrado">' + ICO.fala + (dc == null ? 'Sem contato registrado' : 'Contato ' + (dc === 0 ? 'hoje' : haQuanto(dc))) + '</span>');
@@ -186,7 +195,7 @@
     // Cliente de outra conta (filial): guarda o nome da origem que vinha na faixa.
     var org = card.querySelector('.org-name');
     var origem = d.outra_conta && org ? org.textContent.trim() : '';
-    card.innerHTML = htmlCard(d, origem, colunaDe(card), false);
+    card.innerHTML = htmlCard(d, origem, colunaDe(card), false, id);
     card.classList.add('ffc-card');
     card.setAttribute('data-ffc', '1');
     pararZap(card);
@@ -215,7 +224,7 @@
           cp.className = 'ffc-copia is-readonly';
           cp.setAttribute('data-ffc-cli', String(id));
           cp.setAttribute('onclick', card.getAttribute('onclick') || '');
-          cp.innerHTML = htmlCard(d, '', sid, true);
+          cp.innerHTML = htmlCard(d, '', sid, true, id);
           pararZap(cp);
           corpoCol.appendChild(cp);
         });
@@ -228,6 +237,8 @@
     });
   }
 
+  // Os ambientes redesenham os cards quando os números da operação chegam.
+  window.FfCliCrm = { redesenhar: function () { decorarQuadro(true); } };
   function carregarQuadro() {
     if (pedindoQuadro) return pedindoQuadro;
     pedindoQuadro = fetch('/api/cliente_valores.php?quadro=1', { credentials: 'same-origin', headers: { Accept: 'application/json' } })

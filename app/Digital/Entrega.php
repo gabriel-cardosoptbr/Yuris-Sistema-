@@ -168,6 +168,7 @@ final class Entrega
             'tipo' => $e['tipo'], 'tipo_rotulo' => self::TIPOS[$e['tipo']] ?? $e['tipo'],
             'competencia' => $e['competencia'] ? substr($e['competencia'], 0, 7) : null,
             'producao_em' => $e['producao_em'], 'aprovacao_em' => $e['aprovacao_em'], 'entregue_em' => $e['entregue_em'], 'publicado_em' => $e['publicado_em'],
+            'link_publicacao' => $e['link_publicacao'] ?? null,
         ];
         foreach (self::ESTADOS as $campo => $vals) {
             $out[$campo] = $e[$campo];

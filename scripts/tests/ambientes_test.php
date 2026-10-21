@@ -2,7 +2,7 @@
 /**
  * ambientes_test.php: os ambientes da Inovaize (app/Ambientes), a operação de
  * Digital (app/Digital) e o Google Drive dos clientes (app/Drive), migrations
- * 159 e 160.
+ * 159, 160, 161 e 162.
  *
  *   - ambiente de cada página (?amb=, página de um ambiente só, último usado),
  *     menu de cada ambiente montado com as páginas que a pessoa já via, e quem
@@ -15,6 +15,10 @@
  *   - material recebido não aprova nem entrega; responsáveis a mais; campanha;
  *   - o mesmo cliente em Software e Digital conta uma vez na Empresa, e a receita
  *     por área soma cada linha uma vez;
+ *   - a ficha de cada ambiente (FichaDoCliente, migration 162): perfil por área
+ *     (Instagram pelo link vira usuário, campo de outra área não grava), link do
+ *     post, postagem com a arte do Drive, demandas de Software, projeto ligado
+ *     ao cliente, negociações e o miolo do card do quadro;
  *   - outra conta não lê nem grava nada disso;
  *   - Drive com o Google de mentira: domínio da conta, pasta x arquivo, lista com
  *     a hora da leitura, falha sem vender lista velha como atual, subpasta fora da
@@ -29,6 +33,7 @@ require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Ambientes\Ambiente;
 use App\Ambientes\AreaDoCliente;
+use App\Ambientes\FichaDoCliente;
 use App\Ambientes\QuadroDaArea;
 use App\Ambientes\Visao;
 use App\Core\Database;
@@ -58,7 +63,7 @@ $UID2 = (int) $pdo->query("SELECT id FROM users WHERE account_id = $ACC AND dele
 $UID_OUTRA = (int) $pdo->query("SELECT id FROM users WHERE account_id = $OUTRA AND deleted_at IS NULL ORDER BY id LIMIT 1")->fetchColumn();
 $CLI_OUTRA = (int) $pdo->query("SELECT id FROM clientes WHERE account_id = $OUTRA AND deleted_at IS NULL ORDER BY id LIMIT 1")->fetchColumn();
 $cfgAntes = $pdo->query("SELECT configuracoes FROM accounts WHERE id = $ACC")->fetchColumn();
-$criados = ['clientes' => [], 'boards' => [], 'valores' => [], 'cards' => []];
+$criados = ['clientes' => [], 'boards' => [], 'valores' => [], 'cards' => [], 'cards_novos' => [], 'projetos' => []];
 
 function novoCliente(string $nome): int
 {
@@ -312,6 +317,45 @@ try {
     ok('outro cliente não pega a miniatura do arquivo do A', Pasta::miniatura($ACC, $cB, 'ARQ_1_0000000') === null);
     $ac = Pasta::acessos($ACC, $cA, [['id' => 1, 'nome' => 'Equipe', 'email' => 'equipe@inovaize.com'], ['id' => 2, 'nome' => 'Nova', 'email' => 'nova@inovaize.com']]);
     ok('quem da equipe tem e quem não tem acesso no Drive', count($ac['com_acesso']) === 1 && $ac['sem_acesso'][0]['email'] === 'nova@inovaize.com');
+    echo "\n== Ficha do cliente por ambiente ==\n";
+    $pf = FichaDoCliente::salvarPerfil($ACC, $UID, $cA, 'digital', ['instagram' => 'https://www.instagram.com/inovaize/', 'site' => 'inovaize.com', 'sistema_url' => 'https://nao.deve']);
+    ok('Instagram pelo link vira só o usuário; site ganha https', $pf['instagram'] === 'inovaize' && $pf['site'] === 'https://inovaize.com');
+    ok('campo de outra área não é gravado pelo perfil do Digital', $pf['sistema_url'] === null);
+    ok('usuário de Instagram inválido é recusado', recusa(fn() => FichaDoCliente::salvarPerfil($ACC, $UID, $cA, 'digital', ['instagram' => 'nome com espaço'])) !== null);
+    ok('área de perfil inválida é recusada', recusa(fn() => FichaDoCliente::salvarPerfil($ACC, $UID, $cA, 'juridico', [])) !== null);
+    $pf = FichaDoCliente::salvarPerfil($ACC, $UID, $cA, 'software', ['sistema_url' => 'app.exemplo.com', 'stack' => 'PHP']);
+    ok('perfil técnico grava sem apagar o do Digital', $pf['sistema_url'] === 'https://app.exemplo.com' && $pf['instagram'] === 'inovaize');
+    ok('outra conta não lê o perfil', FichaDoCliente::perfil($OUTRA, $cA)['instagram'] === null);
+    ok('link do post inválido é recusado', recusa(fn() => FichaDoCliente::salvarLinkPublicacao($c1, $UID, 'javascript:alert(1)')) !== null);
+    ok('link do post gravado com https', FichaDoCliente::salvarLinkPublicacao($c1, $UID, 'instagram.com/p/ABC/') === 'https://instagram.com/p/ABC/');
+    ok('o cartão devolve o link do post', (Entrega::doCartao($t1)['link_publicacao'] ?? null) === 'https://instagram.com/p/ABC/');
+    $visA = \App\Tarefas\TaskBoard::findForUser($UID, [$ACC], true);
+    $post = FichaDoCliente::postagem($ACC, $cA, $mes, array_map(fn($b) => (int) $b['id'], $visA));
+    $p1 = array_values(array_filter($post['itens'], fn($i) => $i['task_id'] === $t1))[0] ?? null;
+    ok('postagem do mês traz o link e a arte do Drive do cartão', $p1 && $p1['link_publicacao'] === 'https://instagram.com/p/ABC/' && ($p1['arquivo']['file_id'] ?? '') === 'ARQ_1_0000000');
+    ok('postagem sem quadro visível vem vazia', FichaDoCliente::postagem($ACC, $cA, $mes, [])['itens'] === []);
+    ok('postagem pedida por outra conta vem vazia', FichaDoCliente::postagem($OUTRA, $cA, $mes, array_map(fn($b) => (int) $b['id'], $visA))['itens'] === []);
+    novoCartao($bSw, "$MARCA Demanda atrasada", date('Y-m-d H:i:s', strtotime('-1 day')));
+    $sw = FichaDoCliente::software(QuadroDaArea::filtrar($visA, 'software', $cA));
+    ok('Software do cliente: demandas abertas e atrasadas dos quadros dele', $sw['abertas'] >= 1 && $sw['atrasadas'] >= 1 && count($sw['quadros']) === 1 && $sw['demandas'][0]['atrasada']);
+    $pj = \App\Projetos\Projeto::criarProjeto($ACC, \App\Projetos\Projeto::validarProjeto(['nome' => "$MARCA Projeto", 'tipo' => 'cliente'])[0], $UID);
+    $criados['projetos'][] = $pj;
+    FichaDoCliente::ligarProjeto($ACC, $cA, $pj, true);
+    ok('projeto da pasta Projetos ligado ao cliente', array_column(FichaDoCliente::projetos($ACC, $cA)['ligados'], 'id') === [$pj]);
+    ok('projeto já ligado não vai para outro cliente', recusa(fn() => FichaDoCliente::ligarProjeto($ACC, $cB, $pj, true)) !== null);
+    ok('outra conta não mexe no projeto', recusa(fn() => FichaDoCliente::ligarProjeto($OUTRA, $cA, $pj, false)) !== null);
+    FichaDoCliente::ligarProjeto($ACC, $cA, $pj, false);
+    ok('projeto desligado volta para os livres', in_array($pj, array_column(FichaDoCliente::projetos($ACC, $cA)['livres'], 'id'), true));
+    $pdo->prepare("INSERT INTO cards (account_id, cliente_nome, titulo, valor_fechado_final, status, data_fechamento, cliente_id, created_at, updated_at) VALUES (?, ?, ?, 1500, 'fechado', CURDATE(), ?, NOW(), NOW())")
+        ->execute([$ACC, "$MARCA lead", "$MARCA venda", $cA]);
+    $criados['cards_novos'][] = (int) $pdo->lastInsertId();
+    $ng = FichaDoCliente::negociacoes($ACC, $cA);
+    ok('negociações do cliente: a prospecção de origem e o valor fechado', count($ng['itens']) === 1 && abs($ng['fechado'] - 1500) < 0.01);
+    ok('outra conta não vê as negociações', FichaDoCliente::negociacoes($OUTRA, $cA)['itens'] === []);
+    $q = FichaDoCliente::quadro($ACC, [$cA, $cB], $visA, $mes);
+    ok('card do quadro: entregas do mês, demandas e Instagram por cliente', $q[$cA]['instagram'] === 'inovaize' && $q[$cA]['digital']['cadastradas'] >= 1
+        && $q[$cA]['software']['quadros'] === 1 && $q[$cB]['software']['quadros'] === 0);
+    ok('card do quadro sem quadros visíveis não conta demandas', FichaDoCliente::quadro($ACC, [$cA], [], $mes)[$cA]['software']['abertas'] === 0);
 } catch (\Throwable $e) {
     $FALHAS[] = 'exceção: ' . $e->getMessage();
     echo "  [FALHA] exceção: " . get_class($e) . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine() . "\n";
@@ -334,10 +378,12 @@ try {
     if ($criados['valores']) $pdo->exec('DELETE FROM crm_cliente_valores WHERE id IN (' . implode(',', $criados['valores']) . ')');
     if ($criados['clientes']) {
         $cin = implode(',', $criados['clientes']);
-        foreach (['crm_cliente_areas', 'crm_cliente_frequencias', 'crm_campanhas', 'drive_pastas_cliente', 'drive_itens', 'drive_pastas_lidas', 'crm_cliente_cobrancas'] as $t) $pdo->exec("DELETE FROM $t WHERE cliente_id IN ($cin)");
+        foreach (['crm_cliente_perfil', 'crm_cliente_areas', 'crm_cliente_frequencias', 'crm_campanhas', 'drive_pastas_cliente', 'drive_itens', 'drive_pastas_lidas', 'crm_cliente_cobrancas'] as $t) $pdo->exec("DELETE FROM $t WHERE cliente_id IN ($cin)");
         $pdo->exec("DELETE FROM clientes WHERE id IN ($cin)");
     }
     $pdo->exec("DELETE FROM drive_contas WHERE account_id = $ACC");
+    if ($criados['projetos']) $pdo->exec('DELETE FROM projetos WHERE account_id = ' . $ACC . ' AND id IN (' . implode(',', array_map('intval', $criados['projetos'])) . ')');
+    if ($criados['cards_novos']) $pdo->exec('DELETE FROM cards WHERE account_id = ' . $ACC . ' AND id IN (' . implode(',', array_map('intval', $criados['cards_novos'])) . ')');
     if ($criados['cards']) $pdo->exec('UPDATE cards SET area_servico = NULL WHERE id IN (' . implode(',', array_map('intval', $criados['cards'])) . ')');
     $pdo->prepare('UPDATE accounts SET configuracoes = ? WHERE id = ?')->execute([$cfgAntes, $ACC]);
     $pdo->exec("DELETE FROM user_ambientes WHERE user_id = $UID");

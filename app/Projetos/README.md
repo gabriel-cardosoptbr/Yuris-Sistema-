@@ -49,7 +49,10 @@ Tela: `public/projetos.php` (`?p=<slug>` abre a página do projeto) +
 
 - **Servidor** (`projeto_servidores`): máquina ou hospedagem com custo mensal (R$
   ou US$). Vários projetos dividem o mesmo servidor.
-- **Projeto** (`projetos`): cliente, tipo (SaaS próprio, cliente, interno, site,
+- **Projeto** (`projetos`): cliente (texto livre) e, desde 21/10/2026, `cliente_id`
+  (migration 162): o cadastro do cliente, ligado pela ficha do cliente nos ambientes
+  da Inovaize (aba "Projeto e demandas", `App\Ambientes\FichaDoCliente::ligarProjeto`;
+  um projeto, um cliente). Tipo (SaaS próprio, cliente, interno, site,
   automação), situação (produção, desenvolvimento, pausado, encerrado), endereço,
   repositório, stack, servidor + peso no rateio, usuários ativos, responsável e
   `parent_id` (a mãe, para subprojeto).

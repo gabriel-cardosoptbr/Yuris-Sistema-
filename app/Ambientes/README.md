@@ -16,13 +16,15 @@ telas são os de sempre.
 | `QuadroDaArea.php` | o quadro de Tarefas como quadro de uma área: `task_boards.area`, `cliente_id` e `modelo` (colunas iniciais: etapas, episódios, campanhas, demandas, suporte, livre), filtro da lista e o nome do cliente no seletor |
 | `AreaDoCliente.php` | em que áreas cada cliente está, sem cadastro duplicado: Software pelo valor com área software ou quadro de Software; Digital pelo valor com área digital, quadro de Digital, frequência contratada ou campanha; e, nas duas, a área **marcada direto na ficha** (`crm_cliente_areas`, migration 161; `marcar`, `marcadas`), para o cliente recém-fechado que ainda não tem nada disso. A ficha mostra os botões em "Operação" (aba Visão geral) |
 | `Visao.php` | os números das Visões Gerais (Empresa, Software, Digital) e as vendas por área do serviço do Comercial. A Empresa junta um bloco por área: `financeiro`, `clientesDetalhe`, `software`, `digital` (marketing), `comercialPorArea`, `contratos`, `equipe` (OTIF do mês e evolução por `App\Tarefas\Otif`) e `series` (as séries dos gráficos: 12 meses de dinheiro e de clientes, 6 de entregas e de contratos, 8 semanas de tarefas concluídas por área) |
+| `FichaDoCliente.php` | **a ficha do cliente de cada ambiente** (21/10/2026): o perfil por área (`crm_cliente_perfil`, migration 162: redes, site e briefing da marca no Digital; endereço do sistema, repositório, stack, hospedagem e notas técnicas no Software; cada área grava só os campos dela), a postagem do mês (entregas com a situação da publicação, o link do post e a primeira arte do Drive ligada ao cartão), o link do post (`salvarLinkPublicacao`, quem edita o cartão), o bloco de Software (demandas abertas e atrasadas, concluídas no mês, suporte, quadros), os projetos da pasta Projetos ligados ao cliente (`projetos.cliente_id`), as negociações (as prospecções que apontam para o cliente) e o miolo do card de cada cliente no quadro (`quadro`) |
 | `Paginas/visao.php` | a página das Visões Gerais, incluída por `public/empresa.php`, `software.php` e `digital.php` (e as telas Entregas e Campanhas do Digital, `?ver=`) |
 
 Telas: `public/empresa.php`, `public/software.php`, `public/digital.php` (finas),
 `public/assets/ambientes.js` + `ambientes.css` (seletor, guarda de formulário,
-faixa de Clientes, bloco do Comercial) e `ambientes-visao.js` (Visões Gerais,
-Entregas, Campanhas). API: `public/api/ambientes.php`. Migration 159. Teste:
-`scripts/tests/ambientes_test.php`.
+faixa de Clientes, bloco do Comercial), `ambientes-visao.js` (Visões Gerais,
+Entregas, Campanhas) e `ff-cliente-operacao.js` (a ficha e o card de cada
+ambiente). API: `public/api/ambientes.php` e `public/api/digital.php`.
+Migrations 159, 161 e 162. Teste: `scripts/tests/ambientes_test.php`.
 
 ## O menu de cada ambiente
 
@@ -36,6 +38,29 @@ Entregas, Campanhas). API: `public/api/ambientes.php`. Migration 159. Teste:
 A Visão Geral é sempre o primeiro item. Cada item continua com a permissão de
 sempre (o filtro do sidebar não muda); contrato continua só para quem vê contrato
 e Projetos só com o módulo de Projetos.
+
+## A ficha do cliente em cada ambiente (21/10/2026)
+
+Pedido do dono do produto: cada ambiente abre o cliente como um sistema à parte.
+O cadastro é um só; o ambiente do menu (`aside[data-ambiente]`) decide as abas, as
+seções e o card do quadro (`public/assets/ff-cliente-operacao.js`, dados de
+`api/digital.php?ficha=` e `?quadro_clientes=`):
+
+| Ambiente | Abas | Card do quadro de Clientes |
+|---|---|---|
+| Digital | Visão geral (resumo do mês com ritmo e próximas entregas, redes e marca, operação), Produção, Entregas, Postagem (grade com a arte do Drive, situação, link do post, Instagram), Arquivos (Drive), WhatsApp, Histórico. **Sem** financeiro, contratos, dados pessoais, endereço, origem e negociações | entregas do mês (concluídas de contratadas, barra), postadas, agendadas, com o cliente, ritmo, Instagram e próxima entrega; sem dinheiro |
+| Software | Visão geral (resumo, perfil técnico), Projeto e demandas (quadros de Software, demandas abertas, projetos ligados), Arquivos, WhatsApp, Histórico. Sem financeiro e sem Digital | demandas abertas, atrasadas ou próximo prazo, quadros |
+| Comercial | Visão geral (dados, financeiro, origem, negociações, contratos), WhatsApp, Arquivos, Histórico. Sem produção | o de sempre (dinheiro) |
+| Empresa | tudo: as de cima juntas (Produção, Entregas, Postagem, Software) | dinheiro e uma linha por área ("Digital: 2 de 10 entregas", "Software: 4 demandas abertas") |
+
+- A faixa do topo troca "Origem" por **Instagram** (Digital) ou **Sistema** (Software).
+- Seção que outro script põe na ficha (Financeiro, Contratos, Setores do
+  `ff-cliente-crm.js`) entra no mapa pelo título (`MAPA`); seção nova precisa de
+  linha no mapa, senão aparece onde o script a pôs. As seções ficam sem número
+  (as escondidas deixariam buraco na contagem).
+- O ambiente organiza, não dá permissão: quem não vê Tarefas não recebe postagem
+  nem Software; projetos só com o módulo Projetos e sem vendedor; negociações só
+  para quem vê a Prospecção ou o painel.
 
 ## Regras
 

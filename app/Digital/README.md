@@ -13,9 +13,11 @@ comentários, anexos, histórico); esta pasta junta o que é de marketing.
 | `Campanha.php` | campanhas de tráfego pago por cliente: plataforma, objetivo, verba mensal, período, situação, link do gerenciador |
 
 API: `public/api/digital.php`. Telas: a aba "Entrega" do cartão
-(`public/assets/tarefas-areas.js`), as abas Produção e Entregas da ficha do cliente
-(`public/assets/ff-cliente-operacao.js`), e Entregas e Campanhas em `/digital`
-(`ambientes-visao.js`). Migration 159. Teste: `scripts/tests/ambientes_test.php`.
+(`public/assets/tarefas-areas.js`, com o link do post publicado), as abas Produção,
+Entregas e Postagem da ficha do cliente (`public/assets/ff-cliente-operacao.js`,
+dados de `App\Ambientes\FichaDoCliente`), e Entregas e Campanhas em `/digital`
+(`ambientes-visao.js`). Migrations 159 e 162 (`task_entregas_digital.link_publicacao`).
+Teste: `scripts/tests/ambientes_test.php`.
 
 ## Regras
 

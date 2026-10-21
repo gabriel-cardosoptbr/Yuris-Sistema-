@@ -173,7 +173,11 @@ window.TkAreas = (function () {
         return '<div><label>' + rot + '</label><select data-e="' + k + '"' + dis + '>' + opcoes(ap.estados[k] || {}, e[k]) + '</select>' +
           (data ? '<small class="tka-data">desde ' + esc(String(data).slice(8, 10) + '/' + String(data).slice(5, 7) + ' ' + String(data).slice(11, 16)) + '</small>' : '') + '</div>';
       }).join('') + '</div>' +
-      '<p class="tka-nota">Receber o material não aprova nem entrega: cada estado muda só aqui. As mudanças ficam no Histórico do cartão.</p>';
+      '<p class="tka-nota">Receber o material não aprova nem entrega: cada estado muda só aqui. As mudanças ficam no Histórico do cartão.</p>' +
+      // O link do post publicado: a ficha do cliente (aba Postagem) abre o post por ele.
+      '<div class="tka-add"><input type="url" maxlength="500" data-link-post placeholder="Link do post publicado (Instagram, TikTok...)" value="' + esc(e.link_publicacao || '') + '"' + dis + '>' +
+      (e.link_publicacao ? '<a class="tka-btn" href="' + esc(e.link_publicacao) + '" target="_blank" rel="noopener noreferrer">Abrir post</a>' : '') +
+      (ed ? '<button type="button" class="tka-btn" data-salvar-link>Salvar link</button>' : '') + '</div>';
     }
     if (ed) h += '<div class="tka-acoes"><button type="button" class="tka-btn tka-principal" data-salvar-entrega>Salvar entrega</button></div>';
     h += '</section>';
@@ -224,6 +228,17 @@ window.TkAreas = (function () {
         raiz.removeAttribute('data-amb-sujo');
         cartao.entrega = r.data; doQuadro.entregas[c.task_id] = r.data; desenharCartao(); decorar();
         aviso('Entrega salva.', 'success');
+      });
+    };
+    var bL = raiz.querySelector('[data-salvar-link]');
+    if (bL) bL.onclick = function () {
+      bL.disabled = true;
+      pedir('POST', '', { acao: 'entrega_link', task_id: c.task_id, link: raiz.querySelector('[data-link-post]').value }).then(function (r) {
+        bL.disabled = false;
+        if (!r.ok) return aviso(r.error || 'Não foi possível salvar.');
+        raiz.removeAttribute('data-amb-sujo');
+        cartao.entrega.link_publicacao = r.link; desenharCartao();
+        aviso('Link do post salvo.', 'success');
       });
     };
     var bP = raiz.querySelector('[data-salvar-pessoas]');
