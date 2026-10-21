@@ -5,7 +5,10 @@
    Cada ambiente abre o cliente como um sistema à parte (21/10/2026). O
    cadastro é um só; o ambiente do menu (aside[data-ambiente]) decide as abas
    e as seções:
-     - Digital: Visão geral (resumo do mês, redes e marca), Produção,
+     - Digital: Visão geral (resumo do mês, redes e marca), Produção (quadro
+       de entregas no modelo do Trello: colunas pela situação, arrastar muda a
+       situação, arquivo do Drive em cada entrega, nova entrega e relatório em
+       Excel),
        Entregas, Postagem (grade com a arte do Drive, situação e link do
        post), Arquivos (Drive), WhatsApp e Histórico. Sem financeiro,
        contrato, dados pessoais, endereço ou origem.
@@ -74,6 +77,19 @@
     '.ffop-gd{display:inline-flex;align-items:center;gap:5px;margin-left:8px;padding:2px 8px;border-radius:99px;background:rgba(17,29,45,.06);font-size:11px;font-weight:700;vertical-align:middle}.ffop-gd svg{width:14px;height:13px}' +
     '.ffop-secbar{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin-bottom:8px;font-size:12px}.ffop-secbar .ffcli-vazio{margin-right:auto}' +
     '.ffop-secnova{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.ffop-secnova input{flex:1;min-width:180px;padding:7px 10px;border-radius:9px;border:1px solid rgba(17,29,45,.16);font:inherit;font-size:13px;background:transparent;color:inherit}' +
+    '.ffop-kb-topo{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-bottom:10px}.ffop-kb-acoes{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}' +
+    '.ffop-kb{display:grid;grid-template-columns:repeat(4,minmax(210px,1fr));gap:10px;overflow-x:auto;padding-bottom:4px}' +
+    '.ffop-kb-col{background:rgba(17,29,45,.04);border-radius:12px;padding:8px;display:flex;flex-direction:column;min-width:0}.ffop-kb-cab{display:flex;justify-content:space-between;align-items:center;padding:2px 4px 8px;font-size:12.5px}' +
+    '.ffop-kb-cab span{font-size:11px;font-weight:700;padding:1px 8px;border-radius:99px;background:rgba(17,29,45,.08)}.ffop-kb-lista{display:flex;flex-direction:column;gap:8px;min-height:60px;flex:1}' +
+    '.ffop-kb-vazio{font-size:11.5px;opacity:.6;text-align:center;padding:14px 6px;border:1px dashed rgba(17,29,45,.18);border-radius:10px}' +
+    '.ffop-kc{background:var(--ff-card,#fff);border:1px solid rgba(17,29,45,.10);border-radius:10px;padding:9px 10px;display:flex;flex-direction:column;gap:5px;cursor:grab;font-size:12.5px;min-width:0}' +
+    '.ffop-kc.ffop-ro{cursor:default}.ffop-kc.atrasada{border-color:rgba(185,28,28,.45)}.ffop-kc b{font-size:13px;line-height:1.3;overflow-wrap:anywhere}.ffop-kc small{font-size:11.5px;opacity:.8;overflow-wrap:anywhere}' +
+    '.ffop-kc-mini{border:0;padding:0;margin:-9px -10px 2px;border-radius:10px 10px 0 0;overflow:hidden;cursor:pointer;aspect-ratio:16/9;background:rgba(17,29,45,.05)}.ffop-kc-mini img{width:100%;height:100%;object-fit:cover;display:block}' +
+    '.ffop-kc-pills{display:flex;flex-wrap:wrap;gap:4px}.ffop-kc-arqs{display:flex;flex-direction:column;gap:2px}.ffop-kc-arq{display:flex;align-items:center;gap:4px;min-width:0}.ffop-kc-arq .ffcli-link{text-align:left;overflow-wrap:anywhere}' +
+    '.ffop-kc-x{border:0;background:none;color:#B91C1C;font-size:15px;line-height:1;cursor:pointer;padding:0 2px}.ffop-kc-acoes{display:flex;flex-wrap:wrap;gap:4px 10px}' +
+    '.ffop-kc-ed{display:grid;gap:6px;margin-top:4px}.ffop-kc-ed label{display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:700}.ffop-kc-ed select,.ffop-kc-ed input{padding:6px 8px;border-radius:8px;border:1px solid rgba(17,29,45,.16);font:inherit;font-size:12.5px;background:transparent;color:inherit}' +
+    '.ffop-kc .sortable-ghost,.ffop-kc.sortable-ghost{opacity:.4}' +
+    'html:not([data-theme="light"]) .ffop-kb-col{background:rgba(255,255,255,.04)}html:not([data-theme="light"]) .ffop-kc{background:#13213A;border-color:rgba(255,255,255,.10)}' +
     '.ffop-cab{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}' +
     // Card do quadro de Clientes
     '.ffc-op .ffc-op-tit{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ffc-mu,#6B7280);margin-bottom:4px}' +
@@ -147,6 +163,7 @@
     'Conversas de WhatsApp': { e: ['geral', 'whatsapp'], c: ['geral', 'whatsapp'], s: ['whatsapp'], d: ['whatsapp'] },
     'Tarefas': { e: G, c: G, s: ['software'], d: ['producao'] },
     'Etiquetas, campos e documentos': { e: ['geral', 'arquivos'], c: ['geral', 'arquivos'], s: ['arquivos'], d: ['arquivos'] },
+    'Quadro de entregas': { e: ['producao'], c: N, s: N, d: ['producao'] },
     'Quadros de produção e projetos': { e: ['producao'], c: N, s: N, d: ['producao'] },
     'Frequência contratada': { e: ['producao'], c: N, s: N, d: ['producao'] },
     'Campanhas de tráfego pago': { e: ['producao'], c: N, s: N, d: ['producao'] },
@@ -220,6 +237,7 @@
     var elTec = secao('ffOpTecnico', 'Perfil técnico', 'codigo', '', dir, 'topo');
     var elNeg = secao('ffOpNegociacoes', 'Negociações', 'bandeira', 'ambar', dir, origem);
     var elQuadros = secao('ffOpProducao', 'Quadros de produção e projetos', 'tarefa', 'verde', esq);
+    var elKb = secao('ffOpKanban', 'Quadro de entregas', 'tarefa', 'verde', esq, 'topo');
     var elFreq = secao('ffOpFrequencia', 'Frequência contratada', 'calendario', 'ambar', dir);
     var elCamp = secao('ffOpCampanhas', 'Campanhas de tráfego pago', 'bandeira', '', dir);
     var elMes = secao('ffOpMes', 'Entregas do mês', 'calendario', 'verde', esq);
@@ -680,7 +698,166 @@
       else v.innerHTML = p.sistema_url ? '<a class="ff-pill" href="' + esc(p.sistema_url) + '" target="_blank" rel="noopener noreferrer">' + esc(host(p.sistema_url)) + '</a>' : '<span class="ff-pill ff-pill-off">Não informado</span>';
     }
 
-    var TODOS = [elOper, elResDg, elResSw, elRedes, elTec, elNeg, elQuadros, elFreq, elCamp, elMes, elLista, elPost, elQSw, elDem, elProj];
+    // ── Quadro de entregas (aba Produção, no modelo do Trello) ──────────
+    // Colunas pela situação da entrega; arrastar muda a situação (com a data).
+    var COLS = [['producao', 'Em produção'], ['cliente', 'Com o cliente'], ['entregue', 'Entregue'], ['publicado', 'Publicado']];
+    function colunaDa(e) {
+      if (e.publicacao === 'publicado') return 'publicado';
+      if (e.entrega === 'entregue') return 'entregue';
+      if (e.aprovacao === 'aguardando' || e.aprovacao === 'ajustes') return 'cliente';
+      return 'producao';
+    }
+    // O que muda na entrega ao soltar o card numa coluna.
+    function mudancaPara(col, e) {
+      var pub = e.publicacao === 'publicado' ? 'pendente' : e.publicacao;
+      if (col === 'producao') return { entrega: 'pendente', aprovacao: e.aprovacao === 'aguardando' ? 'nao_enviado' : e.aprovacao, publicacao: pub, producao: e.producao === 'pronto' ? 'em_producao' : e.producao };
+      if (col === 'cliente') return { producao: 'pronto', aprovacao: 'aguardando', entrega: 'pendente', publicacao: pub };
+      if (col === 'entregue') return { producao: 'pronto', aprovacao: e.aprovacao === 'nao_enviado' || e.aprovacao === 'aguardando' || e.aprovacao === 'ajustes' ? 'aprovado' : e.aprovacao, entrega: 'entregue', publicacao: pub };
+      return { producao: 'pronto', aprovacao: e.aprovacao === 'nao_enviado' || e.aprovacao === 'aguardando' || e.aprovacao === 'ajustes' ? 'aprovado' : e.aprovacao, entrega: 'entregue', publicacao: 'publicado' };
+    }
+    var kb = { itens: [], quadros: 0, sortables: [] };
+    function desenharKanban() {
+      var id = estado.id;
+      if (!id) return;
+      if (!estado.ficha || !estado.ficha.pode_tarefas) { elKb.innerHTML = '<div class="ffcli-vazio">Sem acesso aos quadros de Tarefas.</div>'; return; }
+      pedir('?producao=' + id + '&mes=' + estado.mes).then(function (r) {
+        if (estado.id !== id) return;
+        if (!r.ok) { elKb.innerHTML = '<div class="ffcli-vazio">' + esc(r.error || 'Não foi possível carregar.') + '</div>'; return; }
+        kb.itens = r.data; kb.quadros = r.quadros;
+        pintarKanban();
+      });
+    }
+    function cartaoKb(e) {
+      var a = (e.arquivos || [])[0], visual = a && (a.tipo === 'Imagem' || a.tipo === 'Vídeo');
+      var h = '<div class="ffop-kc' + (e.pode_editar ? '' : ' ffop-ro') + (e.atrasada ? ' atrasada' : '') + '" data-tid="' + e.task_id + '">';
+      if (visual) h += '<button type="button" class="ffop-kc-mini" data-ver-arq="' + e.task_id + ':0" title="Pré-visualizar ' + esc(a.nome) + '"><img alt="" src="/api/drive.php?cliente=' + estado.id + '&miniatura=' + encodeURIComponent(a.file_id) + '&w=480"></button>';
+      h += '<b>' + esc(e.titulo) + '</b><small>' + esc(e.tipo_rotulo) + (e.prazo ? ' · prazo ' + esc(data(e.prazo)) : '') + (e.atrasada ? ' · <span class="ffop-pend">atrasada</span>' : '') + (e.responsavel ? ' · ' + esc(e.responsavel) : '') + '</small>';
+      h += '<div class="ffop-kc-pills"><span class="ffop-pill">' + esc(e.producao_rotulo) + '</span><span class="ffop-pill' + (e.aprovacao === 'aprovado' ? ' ok' : e.aprovacao === 'aguardando' ? ' atencao' : e.aprovacao === 'ajustes' ? ' alerta' : '') + '">' + esc(e.aprovacao_rotulo) + '</span>' +
+        (e.entregue_em ? '<span class="ffop-pill ok">Entregue ' + esc(data(e.entregue_em)) + '</span>' : '') + (e.publicado_em ? '<span class="ffop-pill publicado">Publicado ' + esc(data(e.publicado_em)) + '</span>' : '') + '</div>';
+      h += (e.arquivos || []).length ? '<div class="ffop-kc-arqs">' + e.arquivos.map(function (f, k) {
+        return '<span class="ffop-kc-arq"><button type="button" class="ffcli-link" data-ver-arq="' + e.task_id + ':' + k + '">' + esc(f.nome) + '</button>' + (e.pode_editar ? '<button type="button" class="ffop-kc-x" data-desv="' + e.task_id + ':' + f.id + '" title="Desvincular" aria-label="Desvincular ' + esc(f.nome) + '">×</button>' : '') + '</span>';
+      }).join('') + '</div>' : '';
+      h += '<div class="ffop-kc-acoes">' + (e.pode_editar ? '<button type="button" class="ffcli-link" data-vinc="' + e.task_id + '">Vincular arquivo do Drive</button><button type="button" class="ffcli-link" data-edit="' + e.task_id + '">Editar</button>' : '') +
+        (e.link_publicacao ? '<a class="ffcli-link" href="' + esc(e.link_publicacao) + '" target="_blank" rel="noopener noreferrer">Post</a>' : '') +
+        '<a class="ffcli-link" href="/tarefas?amb=digital&board=' + e.board_id + '&tarefa=' + e.task_id + '">Cartão</a></div><div data-kc-extra></div></div>';
+      return h;
+    }
+    function pintarKanban() {
+      kb.sortables.forEach(function (s) { try { s.destroy(); } catch (x) { /* já saiu da tela */ } });
+      kb.sortables = [];
+      var ap = estado.apoio || { tipos: {}, equipe: [] };
+      var ent = kb.itens.filter(function (e) { return e.entrega === 'entregue'; }).length;
+      var h = '<div class="ffop-kb-topo"><label class="ffop-mes" style="margin:0">Mês <input type="month" value="' + esc(estado.mes) + '" data-kb-mes data-amb-ignorar></label>' +
+        '<span class="ffcli-vazio">' + num(kb.itens.length) + ' entrega(s) · ' + num(ent) + ' entregue(s)</span>' +
+        '<span class="ffop-kb-acoes"><button type="button" class="ffcli-bt princ" data-kb-nova>+ Nova entrega</button><button type="button" class="ffcli-bt" data-kb-rel>Baixar relatório (Excel)</button></span></div>' +
+        '<div data-kb-form></div>';
+      h += '<div class="ffop-kb">' + COLS.map(function (c) {
+        var itens = kb.itens.filter(function (e) { return colunaDa(e) === c[0]; });
+        return '<div class="ffop-kb-col"><div class="ffop-kb-cab"><b>' + c[1] + '</b><span>' + itens.length + '</span></div><div class="ffop-kb-lista" data-col="' + c[0] + '">' +
+          itens.map(cartaoKb).join('') + (itens.length ? '' : '<div class="ffop-kb-vazio">Arraste uma entrega para cá</div>') + '</div></div>';
+      }).join('') + '</div>';
+      if (!kb.itens.length) h += '<div class="ffcli-vazio" style="margin-top:8px">Nenhuma entrega neste mês. Use "+ Nova entrega"' + (kb.quadros ? '' : ' (o quadro de produção do cliente é criado sozinho na primeira)') + '.</div>';
+      elKb.innerHTML = h;
+      elKb.querySelector('[data-kb-mes]').onchange = function () { if (this.value) { estado.mes = this.value; carregar(true); } };
+      // Sem miniatura no Drive: o espaço da imagem sai (inclusive se a falha veio antes de ouvir).
+      elKb.querySelectorAll('.ffop-kc-mini img').forEach(function (img) {
+        var tirar = function () { var b = img.parentNode; if (b) b.remove(); };
+        if (img.complete && !img.naturalWidth) tirar(); else img.addEventListener('error', tirar);
+      });
+      elKb.querySelector('[data-kb-nova]').onclick = function () {
+        var box = elKb.querySelector('[data-kb-form]');
+        box.innerHTML = '<div class="ffop-form" data-amb-guarda><label class="larga">Entrega<input data-nf="titulo" maxlength="255" placeholder="Ex.: Vídeo depoimento da Ana"></label>' +
+          '<label>Tipo<select data-nf="tipo">' + Object.keys(ap.tipos).map(function (k) { return '<option value="' + k + '"' + (k === 'video' ? ' selected' : '') + '>' + esc(ap.tipos[k]) + '</option>'; }).join('') + '</select></label>' +
+          '<label>Prazo<input type="date" data-nf="prazo"></label>' +
+          '<label>Responsável<select data-nf="responsavel_id"><option value="">Ninguém</option>' + (ap.equipe || []).map(function (u) { return '<option value="' + u.id + '">' + esc(u.nome) + '</option>'; }).join('') + '</select></label>' +
+          '<button type="button" class="ffcli-bt princ" data-nf-ok>Criar entrega</button><button type="button" class="ffcli-bt" data-nf-x>Cancelar</button></div><div class="ffcli-erro" data-nf-erro></div>';
+        var t = box.querySelector('[data-nf="titulo"]'); t.focus();
+        function criar() {
+          var corpo = { acao: 'entrega_nova', cliente_id: estado.id, competencia: estado.mes };
+          box.querySelectorAll('[data-nf]').forEach(function (i) { corpo[i.getAttribute('data-nf')] = i.value; });
+          var b = box.querySelector('[data-nf-ok]'); b.disabled = true;
+          pedir('', corpo).then(function (r) {
+            b.disabled = false;
+            if (!r.ok) { box.querySelector('[data-nf-erro]').textContent = r.error || 'Não foi possível criar.'; return; }
+            box.querySelector('[data-amb-guarda]').removeAttribute('data-amb-sujo');
+            carregar(true);
+          });
+        }
+        box.querySelector('[data-nf-ok]').onclick = criar;
+        t.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); criar(); } });
+        box.querySelector('[data-nf-x]').onclick = function () { box.innerHTML = ''; };
+      };
+      elKb.querySelector('[data-kb-rel]').onclick = function () {
+        var box = elKb.querySelector('[data-kb-form]');
+        box.innerHTML = '<div class="ffop-form"><label>De<input type="month" data-rel-de value="' + esc(estado.mes) + '" data-amb-ignorar></label><label>Até<input type="month" data-rel-ate value="' + esc(estado.mes) + '" data-amb-ignorar></label>' +
+          '<button type="button" class="ffcli-bt princ" data-rel-ok>Baixar Excel</button><button type="button" class="ffcli-bt" data-rel-x>Fechar</button></div>' +
+          '<div class="ffcli-vazio">A planilha traz cada entrega do período: mês, tipo, prazo, aprovação, quando foi entregue e publicada, o link do post e o arquivo do Drive; e o resumo contratado x entregue por mês.</div>';
+        box.querySelector('[data-rel-ok]').onclick = function () {
+          location.href = '/api/digital.php?relatorio=' + estado.id + '&de=' + encodeURIComponent(box.querySelector('[data-rel-de]').value) + '&ate=' + encodeURIComponent(box.querySelector('[data-rel-ate]').value);
+        };
+        box.querySelector('[data-rel-x]').onclick = function () { box.innerHTML = ''; };
+      };
+      function item(tid) { return kb.itens.filter(function (e) { return String(e.task_id) === String(tid); })[0]; }
+      elKb.querySelectorAll('[data-ver-arq]').forEach(function (b) {
+        b.onclick = function () {
+          var p = b.dataset.verArq.split(':'), e = item(p[0]), f = e && e.arquivos[+p[1]];
+          if (f && window.FfDrive && window.FfDrive.previa) window.FfDrive.previa({ id: f.file_id, nome: f.nome, tipo: f.tipo, link: f.link }, '/api/drive.php?cliente=' + estado.id + '&baixar=' + encodeURIComponent(f.file_id));
+        };
+      });
+      elKb.querySelectorAll('[data-desv]').forEach(function (b) {
+        b.onclick = function () {
+          var p = b.dataset.desv.split(':');
+          pedirDrive('', { acao: 'cartao_remover', task_id: +p[0], id: +p[1] }).then(function (r) { if (!r.ok) { aviso(r.error || 'Não foi possível desvincular.'); return; } desenharKanban(); });
+        };
+      });
+      elKb.querySelectorAll('[data-vinc]').forEach(function (b) {
+        b.onclick = function () {
+          var card = b.closest('.ffop-kc'), box = card.querySelector('[data-kc-extra]');
+          if (box.innerHTML) { box.innerHTML = ''; return; }
+          if (!window.FfDrive) { box.innerHTML = '<div class="ffcli-vazio">O Drive não está disponível.</div>'; return; }
+          window.FfDrive.escolher(box, estado.id, function (f) {
+            pedirDrive('', { acao: 'cartao_vincular', task_id: +b.dataset.vinc, file_id: f.id }).then(function (r) { if (!r.ok) { aviso(r.error || 'Não foi possível vincular.'); return; } desenharKanban(); });
+          });
+        };
+      });
+      elKb.querySelectorAll('[data-edit]').forEach(function (b) {
+        b.onclick = function () {
+          var e = item(b.dataset.edit), card = b.closest('.ffop-kc'), box = card.querySelector('[data-kc-extra]'), es = (estado.apoio || {}).estados || {};
+          if (box.innerHTML) { box.innerHTML = ''; return; }
+          box.innerHTML = '<div class="ffop-kc-ed" data-amb-guarda>' + [['producao', 'Produção'], ['aprovacao', 'Aprovação do cliente'], ['entrega', 'Entrega'], ['publicacao', 'Publicação']].map(function (c) {
+            return '<label>' + c[1] + '<select data-ed="' + c[0] + '">' + Object.keys(es[c[0]] || {}).map(function (k) { return '<option value="' + k + '"' + (k === e[c[0]] ? ' selected' : '') + '>' + esc(es[c[0]][k]) + '</option>'; }).join('') + '</select></label>';
+          }).join('') + '<label>Link do post<input type="url" data-ed-link maxlength="500" value="' + esc(e.link_publicacao || '') + '" placeholder="https://instagram.com/p/..."></label>' +
+            '<button type="button" class="ffcli-bt princ" data-ed-ok>Salvar</button></div>';
+          box.querySelector('[data-ed-ok]').onclick = function () {
+            var corpo = { acao: 'entrega_salvar', task_id: e.task_id }, link = box.querySelector('[data-ed-link]').value;
+            box.querySelectorAll('[data-ed]').forEach(function (s) { corpo[s.getAttribute('data-ed')] = s.value; });
+            pedir('', corpo).then(function (r) {
+              if (!r.ok) { aviso(r.error || 'Não foi possível salvar.'); return; }
+              var depois = (link || '') !== (e.link_publicacao || '') ? pedir('', { acao: 'entrega_link', task_id: e.task_id, link: link }) : Promise.resolve({ ok: true });
+              depois.then(function (x) { if (!x.ok) aviso(x.error || 'Link do post inválido.'); box.querySelector('[data-amb-guarda]').removeAttribute('data-amb-sujo'); carregar(true); });
+            });
+          };
+        };
+      });
+      // Arrastar entre colunas muda a situação.
+      if (window.Sortable) elKb.querySelectorAll('[data-col]').forEach(function (lista) {
+        kb.sortables.push(new window.Sortable(lista, {
+          group: 'ffop-kb', animation: 140, filter: '.ffop-ro, button, a, select, input', preventOnFilter: false, draggable: '.ffop-kc',
+          onEnd: function (ev) {
+            var para = ev.to.getAttribute('data-col');
+            if (ev.from === ev.to) return;
+            var e = item(ev.item.getAttribute('data-tid'));
+            if (!e) return;
+            pedir('', Object.assign({ acao: 'entrega_salvar', task_id: e.task_id }, mudancaPara(para, e))).then(function (r) {
+              if (!r.ok) aviso(r.error || 'Não foi possível mudar a situação.');
+              carregar(true);
+            });
+          }
+        }));
+      });
+    }
+
+    var TODOS = [elKb, elOper, elResDg, elResSw, elRedes, elTec, elNeg, elQuadros, elFreq, elCamp, elMes, elLista, elPost, elQSw, elDem, elProj];
     function carregar(forcar) {
       var id = campoId.value ? +campoId.value : null;
       if (!forcar && id === estado.id && estado.dados) return;
@@ -702,7 +879,7 @@
         desenharResumoDigital(); desenharRedes(); desenharPostagem();
         desenharResumoSoftware(); desenharTecnico(); desenharQuadrosSoftware(); desenharDemandas(); desenharProjetos();
         desenharNegociacoes();
-        desenharQuadros(); desenharFrequencia(); desenharCampanhas(); desenharMes(); desenharLista();
+        desenharQuadros(); desenharFrequencia(); desenharCampanhas(); desenharMes(); desenharLista(); desenharKanban();
       });
       if (elDrive && (forcar !== true)) { window.FfDrive.painel(elDrive, id, { aoSecoes: desenharSecoes }); desenharSecoes([]); desenharNovaSecao(); carregarSecoes(id); }
     }

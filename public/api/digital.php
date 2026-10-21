@@ -13,6 +13,8 @@
  *   GET  ?ficha=N [&mes=]                 a ficha do cliente nos ambientes: perfil (redes, briefing, perfil
  *                                         técnico), postagem do mês, Software, projetos ligados e negociações
  *   GET  ?quadro_clientes=1 [&mes=]       o miolo do card de cada cliente no quadro de Clientes do ambiente
+ *   GET  ?producao=N [&mes=]              o quadro de entregas da ficha (aba Produção): entregas do mês com os arquivos do Drive
+ *   GET  ?relatorio=N &de=AAAA-MM &ate=AAAA-MM   o relatório de entregas em Excel (.xlsx)
  *   POST {acao:'entrega_salvar', task_id, tipo, producao, aprovacao, entrega, publicacao, competencia}
  *   POST {acao:'participantes', task_id, user_ids:[...]}
  *   POST {acao:'material_adicionar', task_id, nome}
@@ -25,6 +27,7 @@
  *   POST {acao:'campanha_remover', id}
  *   POST {acao:'perfil_salvar', cliente_id, area:'digital'|'software', campos:{...}}
  *   POST {acao:'entrega_link', task_id, link}            link do post publicado
+ *   POST {acao:'entrega_nova', cliente_id, titulo, tipo, competencia?, prazo?, responsavel_id?}  vira cartão no quadro de Digital do cliente
  *   POST {acao:'projeto_ligar', cliente_id, projeto_id, ligar}  projeto da pasta Projetos no cliente
  *
  * Só na conta com ambientes. Cartão: a mesma regra de quem vê e edita o quadro
@@ -168,6 +171,38 @@ try {
                 'pode_tarefas' => $podeTarefas,
             ]]);
         }
+        if (!empty($_GET['producao'])) {
+            if (!$podeTarefas) dgResponder(['ok' => false, 'error' => 'Sem permissão para Tarefas.'], 403);
+            $cli = dgCliente($acc, (int) $_GET['producao'], $vendedor);
+            $visiveis = TaskBoard::findForUser($uid, $accTarefas, $admin);
+            $edita = fn(int $bid) => TaskBoard::canEdit($bid, $uid, $accTarefas, $admin);
+            dgResponder(['ok' => true, 'mes' => $mes, 'data' => FichaDoCliente::producao($acc, (int) $cli['id'], $mes, $mes, $visiveis, $edita),
+                'quadros' => count(QuadroDaArea::filtrar($visiveis, 'digital', (int) $cli['id']))]);
+        }
+        if (!empty($_GET['relatorio'])) {
+            if (!$podeTarefas) dgResponder(['ok' => false, 'error' => 'Sem permissão para Tarefas.'], 403);
+            $cli = dgCliente($acc, (int) $_GET['relatorio'], $vendedor);
+            try {
+                $meses = \App\Digital\RelatorioEntregas::meses((string) ($_GET['de'] ?? $mes), (string) ($_GET['ate'] ?? $mes));
+            } catch (\InvalidArgumentException $e) {
+                http_response_code(400); header('Content-Type: text/plain; charset=utf-8'); echo $e->getMessage(); exit;
+            }
+            $de = $meses[0]; $ate = end($meses);
+            $visiveis = TaskBoard::findForUser($uid, $accTarefas, $admin);
+            $entregas = FichaDoCliente::producao($acc, (int) $cli['id'], $de, $ate, $visiveis, fn() => false);
+            $resumo = [];
+            foreach ($meses as $m) $resumo[$m] = Entrega::resumo($acc, $m, [(int) $cli['id']])['clientes'][(int) $cli['id']] ?? [];
+            $st = Database::getConnection()->prepare('SELECT nome FROM users WHERE id = ?');
+            $st->execute([$uid]);
+            $abas = \App\Digital\RelatorioEntregas::abas((string) $cli['nome'], $de, $ate, $entregas, $resumo, (string) $st->fetchColumn());
+            $arquivo = 'Entregas ' . $cli['nome'] . ' ' . str_replace('-', '.', $de) . ($ate !== $de ? ' a ' . str_replace('-', '.', $ate) : '') . '.xlsx';
+            header_remove('Content-Type');
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: ' . \App\Drive\Baixar::cabecalhoNome($arquivo));
+            header('Cache-Control: private, no-store');
+            \App\Digital\RelatorioEntregas::gerar($abas, function (string $b) { echo $b; });
+            exit;
+        }
         if (!empty($_GET['quadro_clientes'])) {
             $sql = 'SELECT id FROM clientes WHERE account_id = ? AND deleted_at IS NULL';
             $args = [$acc];
@@ -238,6 +273,13 @@ try {
         dgResponder(['ok' => true, 'data' => Material::doCartao($tid)]);
     }
 
+    if ($acao === 'entrega_nova') {
+        if (!$podeTarefas) dgResponder(['ok' => false, 'error' => 'Sem permissão para Tarefas.'], 403);
+        $cli = dgCliente($acc, (int) ($in['cliente_id'] ?? 0), $vendedor);
+        $tid = FichaDoCliente::novaEntrega($acc, $uid, (int) $cli['id'], (string) $cli['nome'], $in, TaskBoard::findForUser($uid, $accTarefas, $admin),
+            fn(int $bid) => TaskBoard::canEdit($bid, $uid, $accTarefas, $admin));
+        dgResponder(['ok' => true, 'task_id' => $tid]);
+    }
     if ($acao === 'entrega_link') {
         if (!$podeTarefas) dgResponder(['ok' => false, 'error' => 'Sem permissão para Tarefas.'], 403);
         $c = Entrega::cartaoEditavel((int) ($in['task_id'] ?? 0), $uid, $accTarefas, $admin);

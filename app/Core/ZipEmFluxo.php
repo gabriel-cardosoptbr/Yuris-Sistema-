@@ -1,5 +1,5 @@
 <?php
-namespace App\Drive;
+namespace App\Core;
 
 /**
  * Um .zip escrito em fluxo (21/10/2026): cada arquivo vai para a saída enquanto

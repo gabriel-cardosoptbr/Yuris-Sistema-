@@ -125,6 +125,80 @@ final class FichaDoCliente
         return $out;
     }
 
+    /**
+     * O quadro de entregas da ficha (aba Produção, no modelo do Trello): as
+     * entregas do cliente com competência entre $de e $ate (AAAA-MM), nos quadros
+     * que a pessoa vê, cada uma com os arquivos do Drive ligados ao cartão e se a
+     * pessoa pode editar.
+     * @param array $quadrosVisiveis TaskBoard::findForUser
+     */
+    public static function producao(int $accountId, int $clienteId, string $de, string $ate, array $quadrosVisiveis, callable $podeEditar, ?string $agora = null): array
+    {
+        $agora ??= date('Y-m-d H:i:s');
+        $ids = array_values(array_map(fn($b) => (int) $b['id'], $quadrosVisiveis));
+        if (!$ids) return [];
+        $pdo = Database::getConnection();
+        $st = $pdo->prepare('SELECT e.task_id, e.link_publicacao, t.titulo, t.prazo, t.board_id, b.nome AS quadro, u.nome AS responsavel, t.responsavel_id
+                               FROM task_entregas_digital e JOIN tasks t ON t.id = e.task_id JOIN task_boards b ON b.id = t.board_id
+                               LEFT JOIN users u ON u.id = t.responsavel_id
+                              WHERE e.account_id = ? AND e.cliente_id = ? AND e.competencia BETWEEN ? AND ? AND t.status <> \'arquivada\' AND t.board_id IN (' . self::in($ids) . ')
+                              ORDER BY e.competencia, t.prazo IS NULL, t.prazo, e.task_id');
+        $st->execute(array_merge([$accountId, $clienteId, substr($de, 0, 7) . '-01', substr($ate, 0, 7) . '-01'], $ids));
+        $linhas = $st->fetchAll(\PDO::FETCH_ASSOC);
+        if (!$linhas) return [];
+        $tids = array_map(fn($l) => (int) $l['task_id'], $linhas);
+        $arq = [];
+        $sa = $pdo->prepare('SELECT id, task_id, file_id, nome, mime, link FROM task_drive_arquivos WHERE account_id = ? AND task_id IN (' . self::in($tids) . ') ORDER BY (mime LIKE \'image/%\' OR mime LIKE \'video/%\') DESC, id');
+        $sa->execute(array_merge([$accountId], $tids));
+        foreach ($sa->fetchAll(\PDO::FETCH_ASSOC) as $a) $arq[(int) $a['task_id']][] = ['id' => (int) $a['id'], 'file_id' => $a['file_id'], 'nome' => $a['nome'], 'tipo' => Pasta::tipo((string) $a['mime']), 'link' => $a['link']];
+        $editavel = [];
+        return array_map(function ($l) use ($arq, $agora, $podeEditar, &$editavel) {
+            $e = Entrega::doCartao((int) $l['task_id']) ?? [];
+            $bid = (int) $l['board_id'];
+            $editavel[$bid] ??= (bool) $podeEditar($bid);
+            return $e + ['titulo' => $l['titulo'], 'prazo' => $l['prazo'], 'board_id' => $bid, 'quadro' => $l['quadro'], 'responsavel' => $l['responsavel'],
+                'link_publicacao' => $l['link_publicacao'], 'arquivos' => $arq[(int) $l['task_id']] ?? [], 'pode_editar' => $editavel[$bid],
+                'atrasada' => ($e['entrega'] ?? '') !== 'entregue' && $l['prazo'] && $l['prazo'] < $agora];
+        }, $linhas);
+    }
+
+    /**
+     * Entrega nova direto da ficha: vira um cartão no quadro de Digital do cliente
+     * (o primeiro que a pessoa edita; sem nenhum, cria "Produção · Cliente").
+     * @param array $quadrosVisiveis TaskBoard::findForUser
+     */
+    public static function novaEntrega(int $accountId, int $userId, int $clienteId, string $nomeCliente, array $d, array $quadrosVisiveis, callable $podeEditar): int
+    {
+        $titulo = trim((string) ($d['titulo'] ?? ''));
+        if ($titulo === '') throw new \InvalidArgumentException('Dê um nome à entrega (ex.: Vídeo depoimento).');
+        if (mb_strlen($titulo) > 255) throw new \InvalidArgumentException('Nome longo demais.');
+        $tipo = (string) ($d['tipo'] ?? '');
+        if (!isset(Entrega::TIPOS[$tipo])) throw new \InvalidArgumentException('Escolha o tipo da entrega.');
+        $prazo = trim((string) ($d['prazo'] ?? ''));
+        if ($prazo !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $prazo)) throw new \InvalidArgumentException('Prazo inválido.');
+        $resp = (int) ($d['responsavel_id'] ?? 0) ?: null;
+        if ($resp) {
+            $st = Database::getConnection()->prepare("SELECT id FROM users WHERE id = ? AND account_id = ? AND deleted_at IS NULL");
+            $st->execute([$resp, $accountId]);
+            if (!$st->fetchColumn()) throw new \InvalidArgumentException('Responsável de outra conta.');
+        }
+        $board = null;
+        foreach (QuadroDaArea::filtrar($quadrosVisiveis, 'digital', $clienteId) as $b) if ($podeEditar((int) $b['id'])) { $board = (int) $b['id']; break; }
+        if (!$board) {
+            $board = \App\Tarefas\TaskBoard::create(['nome' => mb_substr('Produção · ' . $nomeCliente, 0, 150), 'tipo' => 'compartilhado', 'owner_id' => $userId, 'account_id' => $accountId, 'cor' => '#6366f1']);
+            QuadroDaArea::definir($accountId, $board, ['area' => 'digital', 'cliente_id' => $clienteId, 'modelo' => 'etapas']);
+            QuadroDaArea::semearColunas($board, 'etapas');
+        }
+        $col = \App\Tarefas\TaskColumn::initialColumn($board);
+        $tid = \App\Tarefas\Task::create(['board_id' => $board, 'column_id' => (int) $col['id'], 'titulo' => $titulo, 'prazo' => $prazo !== '' ? $prazo . ' 18:00:00' : null,
+            'criado_por_id' => $userId, 'responsavel_id' => $resp, 'prioridade' => 'media']);
+        $comp = preg_match('/^\d{4}-\d{2}$/', (string) ($d['competencia'] ?? '')) ? (string) $d['competencia'] : ($prazo !== '' ? substr($prazo, 0, 7) : date('Y-m'));
+        $b = \App\Tarefas\TaskBoard::findById($board, [$accountId]);
+        Entrega::salvar(['task' => \App\Tarefas\Task::findById($tid), 'board' => $b], $userId, ['tipo' => $tipo, 'competencia' => $comp,
+            'publicacao' => in_array($tipo, ['artigo', 'outro', 'campanha'], true) ? 'nao_se_aplica' : 'pendente']);
+        return $tid;
+    }
+
     /** Grava o link do post publicado (quem edita o cartão). */
     public static function salvarLinkPublicacao(array $cartao, int $userId, string $link): ?string
     {

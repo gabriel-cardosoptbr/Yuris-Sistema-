@@ -1,6 +1,8 @@
 <?php
 namespace App\Drive;
 
+use App\Core\ZipEmFluxo;
+
 /**
  * Baixar do Drive do cliente pelo sistema (21/10/2026): um arquivo ou vários num
  * .zip, em fluxo (o servidor repassa os pedaços que chegam do Google, sem guardar
@@ -98,10 +100,10 @@ final class Baixar
         }
         if ($falhas) {
             $zip->adicionar('LEIA - arquivos que falharam.txt', function (callable $escreve) use ($falhas) {
-                $escreve("Estes arquivos não vieram do Google (estão vazios no zip). Baixe de novo ou pelo Drive:
-
-" . implode("
-", $falhas) . "
+                $escreve("Estes arquivos não vieram do Google (estão vazios no zip). Baixe de novo ou pelo Drive:
+
+" . implode("
+", $falhas) . "
 ");
             });
         }

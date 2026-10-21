@@ -421,6 +421,32 @@ try {
     $q = FichaDoCliente::quadro($ACC, [$cA, $cB], $visA, $mes);
     ok('card do quadro: entregas do mês, demandas e Instagram por cliente', $q[$cA]['instagram'] === 'inovaize' && $q[$cA]['digital']['cadastradas'] >= 1
         && $q[$cA]['software']['quadros'] === 1 && $q[$cB]['software']['quadros'] === 0);
+    echo "\n== Quadro de entregas e relatório em Excel ==\n";
+    $edita = fn(int $bid) => \App\Tarefas\TaskBoard::canEdit($bid, $UID, [$ACC], true);
+    $prod = FichaDoCliente::producao($ACC, $cA, $mes, $mes, $visA, $edita);
+    $p1 = array_values(array_filter($prod, fn($e) => $e['task_id'] === $t1))[0] ?? null;
+    ok('quadro de entregas: a entrega com o arquivo do Drive vinculado e se dá para editar', $p1 && ($p1['arquivos'][0]['file_id'] ?? '') === 'ARQ_1_0000000' && $p1['pode_editar'] === true);
+    ok('quadro de entregas sem quadro visível vem vazio', FichaDoCliente::producao($ACC, $cA, $mes, $mes, [], $edita) === []);
+    ok('quadro de entregas de outra conta vem vazio', FichaDoCliente::producao($OUTRA, $cA, $mes, $mes, $visA, $edita) === []);
+    $antes = count($criados['boards']);
+    $nova = FichaDoCliente::novaEntrega($ACC, $UID, $cA, 'Cliente A', ['titulo' => "$MARCA Reels novo", 'tipo' => 'reels', 'competencia' => $mes], $visA, $edita);
+    ok('nova entrega no cliente que já tem quadro de Digital vai para o quadro dele', (int) \App\Tarefas\Task::findById($nova)['board_id'] === $bDg && (Entrega::doCartao($nova)['tipo'] ?? '') === 'reels');
+    $novaB = FichaDoCliente::novaEntrega($ACC, $UID, $cB, 'Cliente B', ['titulo' => "$MARCA Vídeo B", 'tipo' => 'video', 'prazo' => date('Y-m-d')], $visA, $edita);
+    $bNovo = (int) \App\Tarefas\Task::findById($novaB)['board_id'];
+    $criados['boards'][] = $bNovo;
+    $qb = $pdo->query("SELECT area, cliente_id FROM task_boards WHERE id = $bNovo")->fetch(\PDO::FETCH_ASSOC);
+    ok('cliente sem quadro de Digital: o quadro "Produção · Cliente" é criado sozinho', $qb['area'] === 'digital' && (int) $qb['cliente_id'] === $cB);
+    ok('nova entrega sem tipo ou sem nome é recusada', recusa(fn() => FichaDoCliente::novaEntrega($ACC, $UID, $cA, 'A', ['titulo' => 'x', 'tipo' => 'novela'], $visA, $edita)) !== null
+        && recusa(fn() => FichaDoCliente::novaEntrega($ACC, $UID, $cA, 'A', ['titulo' => '  ', 'tipo' => 'video'], $visA, $edita)) !== null);
+    ok('responsável de outra conta é recusado', !$UID_OUTRA || recusa(fn() => FichaDoCliente::novaEntrega($ACC, $UID, $cA, 'A', ['titulo' => 'x', 'tipo' => 'video', 'responsavel_id' => $UID_OUTRA], $visA, $edita)) !== null);
+    ok('relatório: período de mais de 24 meses é recusado', recusa(fn() => \App\Digital\RelatorioEntregas::meses('2020-01', '2026-01')) !== null && count(\App\Digital\RelatorioEntregas::meses($mes, $mes)) === 1);
+    $prod = FichaDoCliente::producao($ACC, $cA, $mes, $mes, $visA, fn() => false);
+    $abas = \App\Digital\RelatorioEntregas::abas('Cliente A', $mes, $mes, $prod, [$mes => Entrega::resumo($ACC, $mes, [$cA])['clientes'][$cA]], 'Teste');
+    $xlsx = '';
+    \App\Digital\RelatorioEntregas::gerar($abas, function ($b) use (&$xlsx) { $xlsx .= $b; });
+    $linhaT1 = array_values(array_filter($abas[0]['linhas'], fn($l) => ($l[1] ?? '') === "$MARCA Vídeo 1"))[0] ?? [];
+    ok('relatório em Excel: .xlsx com as abas Entregas e Resumo por mês', str_starts_with($xlsx, "PK\x03\x04") && str_contains($xlsx, 'xl/worksheets/sheet2.xml') && $abas[1]['nome'] === 'Resumo por mês');
+    ok('relatório: cada entrega com o arquivo do Drive (link) e o link do post', ($linhaT1[12]['texto'] ?? '') === 'logo.png' && ($linhaT1[11]['link'] ?? '') === 'https://instagram.com/p/ABC/');
     ok('card do quadro sem quadros visíveis não conta demandas', FichaDoCliente::quadro($ACC, [$cA], [], $mes)[$cA]['software']['abertas'] === 0);
 } catch (\Throwable $e) {
     $FALHAS[] = 'exceção: ' . $e->getMessage();

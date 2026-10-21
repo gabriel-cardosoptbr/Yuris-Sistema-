@@ -8,6 +8,7 @@ comentários, anexos, histórico); esta pasta junta o que é de marketing.
 | Arquivo | O que faz |
 |---|---|
 | `Entrega.php` | a entrega de um cartão (`task_entregas_digital`): tipo (post, vídeo, reels...) e quatro estados próprios, cada um com a data em que mudou: produção, aprovação do cliente, entrega e publicação. A contagem do mês por cliente e o previsto x realizado (`resumo`). Quem edita é quem edita o quadro (`cartaoEditavel`) |
+| `RelatorioEntregas.php` | o **relatório de entregas em Excel** (21/10/2026): uma linha por entrega do período (mês, entrega, tipo, prazo, produção, aprovação e quando foi aprovada, quando foi entregue e publicada, link do post, arquivo do Drive e os outros, responsável, quadro) e a aba "Resumo por mês" (contratado, cadastradas, entregues, publicadas, pendentes por tipo); até 24 meses; planilha pelo `App\Core\PlanilhaXlsx` |
 | `Frequencia.php` | a frequência contratada pelo cliente ("6 vídeos por mês", "3 posts por semana"), o previsto do mês |
 | `Material.php` | o material que a entrega precisa (`task_arquivos_esperados`): o que falta e o que chegou, com quem, quando e a referência do arquivo |
 | `Campanha.php` | campanhas de tráfego pago por cliente: plataforma, objetivo, verba mensal, período, situação, link do gerenciador |
@@ -18,6 +19,20 @@ Entregas e Postagem da ficha do cliente (`public/assets/ff-cliente-operacao.js`,
 dados de `App\Ambientes\FichaDoCliente`), e Entregas e Campanhas em `/digital`
 (`ambientes-visao.js`). Migrations 159 e 162 (`task_entregas_digital.link_publicacao`).
 Teste: `scripts/tests/ambientes_test.php`.
+
+## O quadro de entregas da ficha (21/10/2026)
+
+Na aba Produção da ficha do cliente (Digital e Empresa), as entregas do mês num
+quadro no modelo do Trello (`App\Ambientes\FichaDoCliente::producao`, tela em
+`ff-cliente-operacao.js`): colunas **Em produção**, **Com o cliente** (aprovação
+aguardando ou ajustes), **Entregue** e **Publicado**. Arrastar o card muda os
+estados com a data (soltar em Entregue marca pronto, aprovado e entregue). Cada
+card tem o arquivo do Drive vinculado (miniatura e pré-visualização, "Vincular
+arquivo do Drive" pela pasta do cliente), "Editar" (os quatro estados e o link do
+post) e o link para o cartão. "+ Nova entrega" cria o cartão no quadro de Digital
+do cliente; sem quadro, cria "Produção · Cliente" sozinho (`novaEntrega`).
+"Baixar relatório (Excel)" gera o `RelatorioEntregas` do período escolhido. Só
+quadros que a pessoa vê; só quem edita o quadro arrasta e edita.
 
 ## Regras
 
