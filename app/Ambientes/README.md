@@ -53,6 +53,9 @@ seções e o card do quadro (`public/assets/ff-cliente-operacao.js`, dados de
 | Comercial | Visão geral (dados, financeiro, origem, negociações, contratos), WhatsApp, Arquivos, Histórico. Sem produção | o de sempre (dinheiro) |
 | Empresa | tudo: as de cima juntas (Produção, Entregas, Postagem, Software) | dinheiro e uma linha por área ("Digital: 2 de 10 entregas", "Software: 4 demandas abertas") |
 
+- **O Google Drive do cliente abre a Visão geral** no Digital, no Software e na
+  Empresa (vincular a pasta, navegar, pré-visualizar, enviar arquivo, acessos) e
+  continua na aba "Drive e arquivos". No Comercial não aparece.
 - A faixa do topo troca "Origem" por **Instagram** (Digital) ou **Sistema** (Software).
 - Seção que outro script põe na ficha (Financeiro, Contratos, Setores do
   `ff-cliente-crm.js`) entra no mapa pelo título (`MAPA`); seção nova precisa de

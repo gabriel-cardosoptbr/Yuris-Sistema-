@@ -148,7 +148,8 @@
     'Campanhas de tráfego pago': { e: ['producao'], c: N, s: N, d: ['producao'] },
     'Entregas do mês': { e: ['entregas'], c: N, s: N, d: ['entregas'] },
     'Lista de entregas': { e: ['entregas'], c: N, s: N, d: ['entregas'] },
-    'Google Drive do cliente': { e: ['arquivos'], c: N, s: ['arquivos'], d: ['arquivos'] },
+    // O Drive abre a Visão geral (vincular pasta, navegar, pré-visualizar) e fica também na aba dele.
+    'Google Drive do cliente': { e: ['geral', 'arquivos'], c: N, s: ['geral', 'arquivos'], d: ['geral', 'arquivos'] },
     'Resumo do Digital': { e: G, c: N, s: N, d: G },
     'Redes e marca': { e: ['postagem'], c: N, s: N, d: G },
     'Postagem do mês': { e: ['postagem'], c: N, s: N, d: ['postagem'] },
@@ -160,11 +161,11 @@
   };
   var ABAS = {
     empresa: [['geral', 'Visão geral', 'grade'], ['whatsapp', 'WhatsApp', 'zap'], ['producao', 'Produção', 'tarefa'], ['entregas', 'Entregas', 'calendario'],
-      ['postagem', 'Postagem', 'imagem'], ['software', 'Software', 'codigo'], ['arquivos', 'Arquivos', 'clipe'], ['historico', 'Histórico', 'relogio']],
+      ['postagem', 'Postagem', 'imagem'], ['software', 'Software', 'codigo'], ['arquivos', 'Drive e arquivos', 'clipe'], ['historico', 'Histórico', 'relogio']],
     comercial: [['geral', 'Visão geral', 'grade'], ['whatsapp', 'WhatsApp', 'zap'], ['arquivos', 'Arquivos', 'clipe'], ['historico', 'Histórico', 'relogio']],
-    software: [['geral', 'Visão geral', 'grade'], ['software', 'Projeto e demandas', 'codigo'], ['arquivos', 'Arquivos', 'clipe'], ['whatsapp', 'WhatsApp', 'zap'], ['historico', 'Histórico', 'relogio']],
+    software: [['geral', 'Visão geral', 'grade'], ['software', 'Projeto e demandas', 'codigo'], ['arquivos', 'Drive e arquivos', 'clipe'], ['whatsapp', 'WhatsApp', 'zap'], ['historico', 'Histórico', 'relogio']],
     digital: [['geral', 'Visão geral', 'grade'], ['producao', 'Produção', 'tarefa'], ['entregas', 'Entregas', 'calendario'], ['postagem', 'Postagem', 'imagem'],
-      ['arquivos', 'Arquivos', 'clipe'], ['whatsapp', 'WhatsApp', 'zap'], ['historico', 'Histórico', 'relogio']]
+      ['arquivos', 'Drive e arquivos', 'clipe'], ['whatsapp', 'WhatsApp', 'zap'], ['historico', 'Histórico', 'relogio']]
   };
   var SUBTITULO = {
     empresa: 'Ficha de Empresa: tudo do cliente, do comercial ao financeiro, à produção e ao software.',
