@@ -67,6 +67,18 @@ final class Api
         return $j;
     }
 
+    /**
+     * Baixa bytes (a miniatura de um arquivo) com o token de acesso. Só endereço
+     * do próprio Google; devolve null quando não há imagem.
+     */
+    public static function baixar(string $acesso, string $url): ?string
+    {
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        if (!preg_match('/(^|\.)(googleusercontent\.com|google\.com|googleapis\.com)$/', $host)) return null;
+        [$st, $corpo] = self::enviar('GET', $url, ['Authorization' => 'Bearer ' . $acesso], null);
+        return $st === 200 && $corpo !== '' ? $corpo : null;
+    }
+
     /** Revoga a autorização no Google (ao desconectar). */
     public static function revogar(string $token): void
     {

@@ -27,6 +27,63 @@ window.FfDrive = (function () {
     '.ffd-busca{display:flex;gap:6px}.ffd-busca input{flex:1;padding:7px 10px;border-radius:9px;border:1px solid rgba(17,29,45,.16);font:inherit;background:transparent;color:inherit}' +
     '.ffd-velha{opacity:.65}.ffd-pessoas{display:flex;flex-direction:column;gap:4px}.ffd-pessoas label{display:flex;gap:6px;align-items:center}' +
     'html:not([data-theme="light"]) .ffd-aviso{background:rgba(180,83,9,.25);color:#FDE68A}html:not([data-theme="light"]) .ffd-aviso.erro{background:rgba(185,28,28,.25);color:#FECACA}html:not([data-theme="light"]) .ffd-aviso.ok{background:rgba(21,128,61,.25);color:#BBF7D0}html:not([data-theme="light"]) .ffd-lista li{border-color:rgba(255,255,255,.08)}';
+  CSS += '.ffd-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}' +
+    '.ffd-item{display:flex;flex-direction:column;border:1px solid rgba(17,29,45,.10);border-radius:12px;overflow:hidden;background:var(--ff-card,#fff);cursor:pointer;text-align:left;padding:0;font:inherit;color:inherit;min-width:0}' +
+    '.ffd-item:hover,.ffd-item:focus-visible{border-color:var(--ff-marca,#015DFC);outline:none;box-shadow:0 6px 16px rgba(17,29,45,.10)}' +
+    '.ffd-mini{position:relative;height:112px;background:rgba(17,29,45,.05);display:flex;align-items:center;justify-content:center;overflow:hidden}' +
+    '.ffd-mini img{width:100%;height:100%;object-fit:cover;display:block}' +
+    '.ffd-mini .ffd-ico{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:700;opacity:.7}.ffd-mini .ffd-ico svg{width:34px;height:34px}' +
+    '.ffd-item-txt{padding:8px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}.ffd-item-txt b{font-size:12.5px;overflow-wrap:anywhere;line-height:1.3}.ffd-item-txt small{font-size:11px;opacity:.7}' +
+    '.ffd-item.pasta .ffd-mini{background:rgba(var(--ff-marca-rgb,1,93,252),.08);color:var(--ff-marca,#015DFC)}' +
+    '.ffd-prev-fundo{position:fixed;inset:0;z-index:10060;background:rgba(7,15,28,.72);display:flex;align-items:center;justify-content:center;padding:16px}' +
+    '.ffd-prev{width:min(1100px,100%);height:min(86vh,900px);background:#fff;border-radius:14px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(7,15,28,.4)}' +
+    '.ffd-prev-cab{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(17,29,45,.10);flex-wrap:wrap}' +
+    '.ffd-prev-cab b{font-size:14px;overflow-wrap:anywhere;color:#1F2937}.ffd-prev-cab small{display:block;font-size:11.5px;color:#767676}.ffd-prev-acoes{display:flex;gap:8px;align-items:center}' +
+    '.ffd-prev iframe{flex:1;border:0;width:100%;background:#F4F6F9}.ffd-prev-nota{padding:6px 14px;font-size:11.5px;color:#767676;border-top:1px solid rgba(17,29,45,.08)}' +
+    'html:not([data-theme="light"]) .ffd-item{background:#13213A;border-color:rgba(255,255,255,.10)}html:not([data-theme="light"]) .ffd-mini{background:rgba(255,255,255,.05)}' +
+    'html:not([data-theme="light"]) .ffd-prev{background:#13213A}html:not([data-theme="light"]) .ffd-prev-cab b{color:#E7EBF1}html:not([data-theme="light"]) .ffd-prev iframe{background:#0F1B2D}';
+
+  var ICO_PASTA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+  var ICO_ARQ = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+  function miniUrl(clienteId, f, w) { return '/api/drive.php?cliente=' + clienteId + '&miniatura=' + encodeURIComponent(f.id) + '&w=' + (w || 480) + '&v=' + encodeURIComponent(f.modificado_em || ''); }
+  // Cartão de um item: pasta abre, arquivo mostra a miniatura (ou o ícone do tipo, se o Drive não tiver).
+  function cartaoItem(clienteId, f, i) {
+    if (f.pasta) return '<button type="button" class="ffd-item pasta" data-pasta="' + esc(f.id) + '"><span class="ffd-mini"><span class="ffd-ico">' + ICO_PASTA + 'Pasta</span></span>' +
+      '<span class="ffd-item-txt"><b>' + esc(f.nome) + '</b><small>' + (f.modificado_em ? 'atualizada em ' + esc(quando(f.modificado_em)) : 'pasta') + '</small></span></button>';
+    return '<button type="button" class="ffd-item" data-ver="' + i + '" title="Pré-visualizar ' + esc(f.nome) + '"><span class="ffd-mini">' +
+      '<img class="ffd-img" loading="lazy" alt="" data-tipo="' + esc(f.tipo) + '" src="' + miniUrl(clienteId, f) + '">' +
+      '</span><span class="ffd-item-txt"><b>' + esc(f.nome) + '</b><small>' + esc(f.tipo) + (f.modificado_em ? ' · ' + esc(quando(f.modificado_em)) : '') + '</small></span></button>';
+  }
+  // Arquivo sem miniatura no Drive (404): no lugar da imagem, o ícone e o tipo.
+  function semMiniatura(raiz) {
+    raiz.querySelectorAll('img.ffd-img').forEach(function (img) {
+      img.addEventListener('error', function () {
+        var s = document.createElement('span');
+        s.className = 'ffd-ico';
+        s.innerHTML = ICO_ARQ + esc(img.getAttribute('data-tipo') || 'Arquivo');
+        img.replaceWith(s);
+      }, { once: true });
+    });
+  }
+  // Pré-visualização dentro do sistema (o visualizador do próprio Drive: imagem, vídeo, PDF, documento).
+  function previa(f) {
+    var fundo = document.createElement('div');
+    fundo.className = 'ffd-prev-fundo';
+    fundo.innerHTML = '<div class="ffd-prev" role="dialog" aria-modal="true" aria-label="Pré-visualização de ' + esc(f.nome) + '"><div class="ffd-prev-cab"><span><b>' + esc(f.nome) + '</b><small>' + esc(f.tipo) +
+      (f.modificado_em ? ' · atualizado em ' + esc(quando(f.modificado_em)) : '') + '</small></span><span class="ffd-prev-acoes">' +
+      (f.link ? '<a class="ffcli-link" href="' + esc(f.link) + '" target="_blank" rel="noopener noreferrer">Abrir no Drive</a>' : '') +
+      '<button type="button" class="ffcli-bt" data-fechar>Fechar</button></span></div>' +
+      '<iframe src="https://drive.google.com/file/d/' + encodeURIComponent(f.id) + '/preview" allow="autoplay" title="' + esc(f.nome) + '"></iframe>' +
+      '<div class="ffd-prev-nota">Se a pré-visualização pedir acesso, sua conta Google ainda não tem acesso à pasta do cliente: veja "Acessos da equipe".</div></div>';
+    document.body.appendChild(fundo);
+    function fechar() { fundo.remove(); document.removeEventListener('keydown', tecla, true); }
+    function tecla(e) { if (e.key === 'Escape') { e.preventDefault(); fechar(); } }
+    document.addEventListener('keydown', tecla, true);
+    fundo.querySelector('[data-fechar]').onclick = fechar;
+    fundo.querySelector('[data-fechar]').focus();
+    fundo.addEventListener('click', function (e) { if (e.target === fundo) fechar(); });
+  }
+
   function estilo() { if (document.getElementById('ffdCss')) return; var s = document.createElement('style'); s.id = 'ffdCss'; s.textContent = CSS; document.head.appendChild(s); }
   function botao(txt, attr, principal) { return '<button type="button" class="ffcli-bt' + (principal ? ' princ' : '') + '" ' + attr + '>' + esc(txt) + '</button>'; }
 
@@ -74,11 +131,8 @@ window.FfDrive = (function () {
         h += '<div class="ffd-aviso erro" role="alert">Não foi possível ler o Drive agora: ' + esc(d.erro || 'erro desconhecido') + ' ' +
           (d.sincronizado_em ? 'A lista abaixo é a última conhecida, de ' + esc(quando(d.sincronizado_em)) + ', e pode estar desatualizada.' : 'Ainda não há lista desta pasta.') + '</div>';
       }
-      h += d.itens.length ? '<ul class="ffd-lista' + (d.atual ? '' : ' ffd-velha') + '">' + d.itens.map(function (f) {
-        return '<li><span class="ffd-nome">' + (f.pasta ? '<button type="button" data-pasta="' + esc(f.id) + '">' + esc(f.nome) + '</button>' : '<b>' + esc(f.nome) + '</b>') +
-          '<small>' + esc(f.tipo) + (f.modificado_em ? ' · atualizado em ' + esc(quando(f.modificado_em)) : '') + '</small></span>' +
-          (f.link ? '<a class="ffcli-link" href="' + esc(f.link) + '" target="_blank" rel="noopener noreferrer">Abrir</a>' : '') + '</li>';
-      }).join('') + '</ul>' : '<div class="ffcli-vazio">Pasta vazia.</div>';
+      h += d.itens.length ? '<div class="ffd-grade' + (d.atual ? '' : ' ffd-velha') + '">' + d.itens.map(function (f, i) { return cartaoItem(clienteId, f, i); }).join('') + '</div>'
+        : '<div class="ffcli-vazio">Pasta vazia.</div>';
       h += '<div class="ffd-topo"><span class="ffd-sync">' + (d.sincronizado_em ? (d.atual ? 'Sincronizado ' : 'Última leitura ') + esc(quando(d.sincronizado_em)) : '') + '</span>' +
         '<span class="ffd-acoes">' + botao('Atualizar', 'data-atualizar') + botao('Enviar arquivo', 'data-enviar') + botao('Acessos da equipe', 'data-acessos') +
         (c.pode_conectar ? botao('Trocar pasta', 'data-trocar') : '') + '</span></div>';
@@ -88,6 +142,8 @@ window.FfDrive = (function () {
     }
     function ligar() {
       el.querySelectorAll('[data-pasta]').forEach(function (b) { b.onclick = function () { carregar(false, b.dataset.pasta); }; });
+      el.querySelectorAll('[data-ver]').forEach(function (b) { b.onclick = function () { previa(est.dados.itens[+b.dataset.ver]); }; });
+      semMiniatura(el);
       var a = el.querySelector('[data-atualizar]');
       if (a) a.onclick = function () { a.disabled = true; a.textContent = 'Atualizando…'; carregar(true); };
       var inp = el.querySelector('[data-arquivo]'), env = el.querySelector('[data-enviar]');
@@ -183,11 +239,14 @@ window.FfDrive = (function () {
         el.innerHTML = '<div class="ffd"><div class="ffd-cam">' + d.caminho.map(function (p, i) {
           return (i ? '<span>/</span>' : '') + (p.id === d.atual_id ? '<b>' + esc(p.nome) + '</b>' : '<button type="button" data-p="' + esc(p.id) + '">' + esc(p.nome) + '</button>');
         }).join('') + '</div>' + (d.atual ? '' : '<div class="ffd-aviso erro">Lista de ' + esc(quando(d.sincronizado_em)) + ': ' + esc(d.erro || '') + '</div>') +
-          (d.itens.length ? '<ul class="ffd-lista">' + d.itens.map(function (f, i) {
-            return '<li><span class="ffd-nome">' + (f.pasta ? '<button type="button" data-p="' + esc(f.id) + '">' + esc(f.nome) + '</button>' : '<b>' + esc(f.nome) + '</b>') + '<small>' + esc(f.tipo) + '</small></span>' +
-              (f.pasta ? '' : botao('Escolher', 'data-i="' + i + '"')) + '</li>';
-          }).join('') + '</ul>' : '<div class="ffcli-vazio">Pasta vazia.</div>') + '</div>';
+          (d.itens.length ? '<div class="ffd-grade">' + d.itens.map(function (f, i) {
+            if (f.pasta) return cartaoItem(clienteId, f, i).replace('data-pasta=', 'data-p=');
+            return '<div class="ffd-item" style="cursor:default">' + cartaoItem(clienteId, f, i).replace(/^<button[^>]*>/, '').replace(/<\/button>$/, '') +
+              '<span class="ffd-item-txt" style="padding-top:0;flex-direction:row;gap:6px">' + botao('Ver', 'data-v="' + i + '"') + botao('Escolher', 'data-i="' + i + '"', true) + '</span></div>';
+          }).join('') + '</div>' : '<div class="ffcli-vazio">Pasta vazia.</div>') + '</div>';
         el.querySelectorAll('[data-p]').forEach(function (b) { b.onclick = function () { ir(b.dataset.p); }; });
+        el.querySelectorAll('[data-v]').forEach(function (b) { b.onclick = function () { previa(d.itens[+b.dataset.v]); }; });
+        semMiniatura(el);
         el.querySelectorAll('[data-i]').forEach(function (b) { b.onclick = function () { var f = d.itens[+b.dataset.i]; aoEscolher({ id: f.id, nome: f.nome, link: f.link }); el.querySelectorAll('[data-i]').forEach(function (x) { x.textContent = 'Escolher'; }); b.textContent = 'Escolhido'; }; });
       });
     }

@@ -7,6 +7,7 @@
  *   GET  ?cliente=N&buscar=texto            pastas da conta Google, para escolher a do cliente
  *   GET  ?cliente=N&acessos=1               quem da equipe tem e quem não tem acesso à pasta no Drive
  *   GET  ?cartao=N                          arquivos do Drive vinculados ao cartão
+ *   GET  ?cliente=N&miniatura=ID [&w=480]   a miniatura do arquivo (imagem; 404 sem miniatura)
  *   POST {acao:'vincular_pasta', cliente_id, referencia}   link ou id da pasta
  *   POST {acao:'desvincular_pasta', cliente_id}
  *   POST {acao:'dar_acesso', cliente_id, emails:[...]}      administrador
@@ -93,6 +94,17 @@ try {
             drResponder(['ok' => true, 'data' => ArquivoDoCartao::doCartao((int) $c['task']['id'])]);
         }
         $cli = drCliente($acc, (int) ($_GET['cliente'] ?? 0), $vendedor);
+        if (!empty($_GET['miniatura'])) {
+            // Imagem, não JSON: só arquivo da árvore do cliente que a pessoa vê.
+            $m = Pasta::miniatura($acc, (int) $cli['id'], (string) $_GET['miniatura'], (int) ($_GET['w'] ?? 480));
+            if (!$m) { http_response_code(404); header('Content-Type: text/plain; charset=utf-8'); echo 'sem miniatura'; exit; }
+            header_remove('Cache-Control');
+            header('Content-Type: ' . $m['mime']);
+            header('Cache-Control: private, max-age=86400');
+            header('X-Content-Type-Options: nosniff');
+            echo $m['bytes'];
+            exit;
+        }
         $estado = Conexao::estado($acc);
         if (isset($_GET['buscar'])) {
             if (!$estado['conectado']) drResponder(['ok' => false, 'error' => 'O Google Drive não está conectado.'], 409);

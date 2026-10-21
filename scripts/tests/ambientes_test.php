@@ -249,6 +249,9 @@ try {
     ], 'mudancas' => []];
     Api::$transporte = function (string $metodo, string $url, array $cab, ?string $corpo) use (&$GOOGLE) {
         if ($GOOGLE['falhar']) return [503, '{"error":{"message":"indisponível"}}'];
+        $GOOGLE['chamadas'] = ($GOOGLE['chamadas'] ?? 0) + 1;
+        if (str_contains($url, 'googleusercontent.com')) return [200, base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==')];
+        if (preg_match('#/files/(ARQ_1_0000000)\?#', $url)) return [200, json_encode(['thumbnailLink' => 'https://lh3.googleusercontent.com/miniatura=s220', 'hasThumbnail' => true])];
         if (str_contains($url, 'oauth2.googleapis.com/token')) return [200, json_encode(['access_token' => 'AT', 'refresh_token' => 'RT', 'expires_in' => 3600])];
         if (str_contains($url, '/about')) return [200, json_encode(['user' => ['emailAddress' => $GOOGLE['email']]])];
         if (preg_match('#/files/([A-Za-z0-9_]+)\?#', $url, $m) && $metodo === 'GET') {
@@ -298,6 +301,15 @@ try {
     ok('pasta não vira vínculo de cartão', recusa(fn() => ArquivoDoCartao::vincular($c1, $UID, 'SUB_1_0000000')) !== null);
     $va = ArquivoDoCartao::vincular($c1, $UID, 'ARQ_1_0000000');
     ok('arquivo da pasta do cliente vinculado ao cartão', $va[0]['nome'] === 'logo.png' && $va[0]['link']);
+    putenv('DRIVE_MINIATURAS=' . sys_get_temp_dir() . '/yuris_teste_miniaturas_' . getmypid());
+    $mini = Pasta::miniatura($ACC, $cA, 'ARQ_1_0000000');
+    ok('miniatura do arquivo da pasta do cliente vem como imagem', $mini !== null && $mini['mime'] === 'image/png');
+    $antes = $GOOGLE['chamadas'];
+    Pasta::miniatura($ACC, $cA, 'ARQ_1_0000000');
+    ok('segunda vez a miniatura vem do cache, sem ir ao Google', $GOOGLE['chamadas'] === $antes);
+    ok('pasta não tem miniatura', Pasta::miniatura($ACC, $cA, 'SUB_1_0000000') === null);
+    ok('arquivo de fora da pasta do cliente não tem miniatura', Pasta::miniatura($ACC, $cA, 'ARQ_DE_FORA_0000') === null);
+    ok('outro cliente não pega a miniatura do arquivo do A', Pasta::miniatura($ACC, $cB, 'ARQ_1_0000000') === null);
     $ac = Pasta::acessos($ACC, $cA, [['id' => 1, 'nome' => 'Equipe', 'email' => 'equipe@inovaize.com'], ['id' => 2, 'nome' => 'Nova', 'email' => 'nova@inovaize.com']]);
     ok('quem da equipe tem e quem não tem acesso no Drive', count($ac['com_acesso']) === 1 && $ac['sem_acesso'][0]['email'] === 'nova@inovaize.com');
 } catch (\Throwable $e) {

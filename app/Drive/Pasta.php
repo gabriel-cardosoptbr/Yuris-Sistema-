@@ -292,6 +292,49 @@ final class Pasta
         return ['com_acesso' => $com, 'sem_acesso' => $sem, 'link_publico' => $qualquer];
     }
 
+    /** Onde as miniaturas ficam guardadas (cache: pode ser apagado a qualquer hora). */
+    public static function pastaMiniaturas(): string
+    {
+        $env = trim(\App\Core\EnvLoader::get('DRIVE_MINIATURAS', ''));
+        $dir = $env !== '' ? $env : dirname(__DIR__, 2) . '/storage/drive_miniaturas';
+        if (!is_dir($dir)) @mkdir($dir, 0775, true);
+        if (!is_dir($dir) || !is_writable($dir)) $dir = sys_get_temp_dir() . '/yuris_drive_miniaturas';
+        if (!is_dir($dir)) @mkdir($dir, 0775, true);
+        return $dir;
+    }
+
+    /**
+     * A miniatura de um arquivo da pasta do cliente (imagem, vídeo, PDF, documento,
+     * planilha: o Drive gera para quase tudo). Só arquivo visto dentro da árvore do
+     * cliente. Guardada em disco pela data de modificação: arquivo alterado no Drive
+     * ganha miniatura nova. Sem miniatura no Drive, null (a tela mostra o ícone).
+     *
+     * @return array{bytes:string, mime:string}|null
+     */
+    public static function miniatura(int $accountId, int $clienteId, string $fileId, int $largura = 480): ?array
+    {
+        $item = self::itemDoCliente($accountId, $clienteId, $fileId);
+        if (!$item || $item['pasta']) return null;
+        $largura = max(120, min(1600, $largura));
+        $chave = preg_replace('/[^A-Za-z0-9_-]/', '', $fileId) . '-' . md5((string) $item['modificado_em']) . '-' . $largura;
+        $arq = self::pastaMiniaturas() . '/' . $chave . '.img';
+        if (is_file($arq) && filesize($arq) > 0) {
+            $bytes = (string) file_get_contents($arq);
+        } elseif (is_file($arq . '.sem')) {
+            return null;
+        } else {
+            $acesso = Conexao::acesso($accountId);
+            $f = Api::pedir($acesso, 'GET', '/files/' . rawurlencode($fileId), ['fields' => 'thumbnailLink,hasThumbnail', 'supportsAllDrives' => 'true']);
+            $link = (string) ($f['thumbnailLink'] ?? '');
+            $bytes = $link !== '' ? Api::baixar($acesso, preg_replace('/=s\d+$/', '', $link) . '=s' . $largura) : null;
+            if ($bytes === null) { @touch($arq . '.sem'); return null; }
+            @file_put_contents($arq, $bytes);
+        }
+        $mime = (new \finfo(FILEINFO_MIME_TYPE))->buffer($bytes) ?: 'image/jpeg';
+        if (!str_starts_with($mime, 'image/')) return null;
+        return ['bytes' => $bytes, 'mime' => $mime];
+    }
+
     /** Dá acesso de edição na pasta a pessoas da equipe (sem e-mail do Google). */
     public static function darAcesso(int $accountId, int $clienteId, array $emails): int
     {

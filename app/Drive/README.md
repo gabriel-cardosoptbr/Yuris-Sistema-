@@ -51,3 +51,14 @@ arquivo do cartão) e o cartão "Google Drive" da Visão Geral da Empresa. Migra
   material esperado, registra o recebimento. Aprovação, entrega e publicação
   continuam com os próprios estados (`App\Digital\Entrega`).
 - Ligar ou trocar a pasta do cliente é da administração (vendedor não).
+- **Pré-visualização em todos os arquivos** (pedido do dono do produto, 20/10/2026):
+  a pasta aparece em grade, cada arquivo com a miniatura que o Drive gera (imagem,
+  vídeo, PDF, documento, planilha). `Pasta::miniatura` busca o `thumbnailLink` e baixa
+  a imagem com o token da conta (`Api::baixar`, só endereço do Google), sempre de
+  arquivo visto na árvore do próprio cliente, e guarda em disco pela data de
+  modificação (`storage/drive_miniaturas`, ou `DRIVE_MINIATURAS`; é cache, pode
+  apagar). Arquivo sem miniatura mostra o ícone do tipo. Clicar abre a
+  pré-visualização dentro do sistema (o visualizador do Drive, `/file/d/ID/preview`),
+  com "Abrir no Drive"; para ver, a conta Google da pessoa precisa ter acesso à
+  pasta ("Acessos da equipe"). O seletor de arquivo do cartão usa a mesma grade, com
+  "Ver" e "Escolher".
