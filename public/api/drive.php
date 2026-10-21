@@ -4,7 +4,9 @@
  *
  *   GET  ?estado=1                          conexão da conta (e o aviso da última tentativa de conectar)
  *   GET  ?cliente=N [&pasta=ID] [&forcar=1]  a pasta do cliente: itens, caminho, hora da leitura e erro
- *   GET  ?cliente=N&buscar=texto            pastas da conta Google, para escolher a do cliente
+ *   GET  ?cliente=N&buscar=texto            pastas da conta Google, para escolher a do cliente (com a pasta-mãe)
+ *   GET  ?cliente=N&navegar=[ID|root|shared] navegar no Drive para escolher a pasta: os lugares (vazio),
+ *                                           Meu Drive, compartilhados comigo, ou as subpastas de uma pasta
  *   GET  ?cliente=N&acessos=1               quem da equipe tem e quem não tem acesso à pasta no Drive
  *   GET  ?cartao=N                          arquivos do Drive vinculados ao cartão
  *   GET  ?cliente=N&miniatura=ID [&w=480]   a miniatura do arquivo (imagem; 404 sem miniatura)
@@ -109,6 +111,11 @@ try {
         if (isset($_GET['buscar'])) {
             if (!$estado['conectado']) drResponder(['ok' => false, 'error' => 'O Google Drive não está conectado.'], 409);
             drResponder(['ok' => true, 'data' => Pasta::buscarPastas($acc, (string) $_GET['buscar'])]);
+        }
+        if (isset($_GET['navegar'])) {
+            if (!$estado['conectado']) drResponder(['ok' => false, 'error' => 'O Google Drive não está conectado.'], 409);
+            if ($vendedor !== null) drResponder(['ok' => false, 'error' => 'Só a administração liga a pasta do cliente.'], 403);
+            drResponder(['ok' => true, 'data' => Pasta::navegar($acc, (string) $_GET['navegar'] ?: null)]);
         }
         if (!empty($_GET['acessos'])) {
             drResponder(['ok' => true, 'data' => Pasta::acessos($acc, (int) $cli['id'], drEquipe($acc, $cli)), 'pode_dar' => $admin]);

@@ -25,6 +25,10 @@ window.FfDrive = (function () {
     '.ffd-lista li:first-child{border-top:0}.ffd-nome{display:flex;flex-direction:column;min-width:0}.ffd-nome b{font-size:13px;overflow-wrap:anywhere}.ffd-nome small{font-size:11.5px;opacity:.7}' +
     '.ffd-nome button{background:none;border:0;padding:0;text-align:left;color:var(--ff-marca,#015DFC);font:inherit;font-weight:700;cursor:pointer}.ffd-acoes{display:flex;gap:6px;flex-wrap:wrap}' +
     '.ffd-sync{font-size:12px;opacity:.8}.ffd-aviso{padding:10px 12px;border-radius:10px;background:#FFF4D6;color:#8A4B06;font-size:12.5px;line-height:1.45}.ffd-aviso.erro{background:#FEE2E2;color:#991B1B}.ffd-aviso.ok{background:#DCFCE7;color:#166534}' +
+    '.ffd-nav{border:1px solid rgba(17,29,45,.10);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:10px}.ffd-nav-topo{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}' +
+    '.ffd-abrir{display:flex;flex-direction:column;background:none;border:0;padding:0;font:inherit;color:inherit;text-align:left;cursor:pointer;width:100%}.ffd-abrir:hover b{color:var(--ff-marca,#015DFC)}' +
+    '.ffd-nav-arqs{font-size:12px;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}.ffd-nav-arqs span{padding:2px 8px;border-radius:99px;background:rgba(17,29,45,.06);overflow-wrap:anywhere}' +
+    'html:not([data-theme="light"]) .ffd-nav{border-color:rgba(255,255,255,.10)}html:not([data-theme="light"]) .ffd-nav-arqs span{background:rgba(255,255,255,.08)}' +
     '.ffd-busca{display:flex;gap:6px}.ffd-busca input{flex:1;padding:7px 10px;border-radius:9px;border:1px solid rgba(17,29,45,.16);font:inherit;background:transparent;color:inherit}' +
     '.ffd-velha{opacity:.65}.ffd-pessoas{display:flex;flex-direction:column;gap:4px}.ffd-pessoas label{display:flex;gap:6px;align-items:center}' +
     'html:not([data-theme="light"]) .ffd-aviso{background:rgba(180,83,9,.25);color:#FDE68A}html:not([data-theme="light"]) .ffd-aviso.erro{background:rgba(185,28,28,.25);color:#FECACA}html:not([data-theme="light"]) .ffd-aviso.ok{background:rgba(21,128,61,.25);color:#BBF7D0}html:not([data-theme="light"]) .ffd-lista li{border-color:rgba(255,255,255,.08)}';
@@ -190,13 +194,19 @@ window.FfDrive = (function () {
       var tr = el.querySelector('[data-trocar]');
       if (tr) tr.onclick = desenharEscolhaPasta;
     }
+    // Escolher a pasta do cliente: navegar no Drive como no Google (Meu Drive,
+    // Compartilhados comigo, drives compartilhados, subpastas) ou procurar pelo nome.
     function desenharEscolhaPasta() {
       var d = est.dados;
-      el.innerHTML = '<div class="ffd">' + aviso() + '<div class="ffcli-vazio">' + (d.pasta ? 'Pasta atual: ' + esc(d.pasta.nome) + '. ' : 'Este cliente ainda não tem pasta do Drive. ') +
-        'Cole o link da pasta ou procure pelo nome.</div><div class="ffd-busca" data-amb-guarda><input type="text" data-ref placeholder="Link da pasta do Drive ou nome para procurar" data-amb-ignorar>' +
+      el.innerHTML = '<div class="ffd">' + aviso() + '<div class="ffcli-vazio">' + (d.pasta ? 'Pasta atual: <b>' + esc(d.pasta.nome) + '</b>. ' : 'Este cliente ainda não tem pasta do Drive. ') +
+        'Navegue pelo Drive abaixo e clique em "Usar esta pasta", ou procure pelo nome, ou cole o link.</div>' +
+        '<div class="ffd-busca" data-amb-guarda><input type="text" data-ref placeholder="Nome da pasta para procurar, ou o link dela" data-amb-ignorar>' +
         botao('Procurar', 'data-procurar') + botao('Usar este link', 'data-usar', true) + '</div><div data-res></div><div data-erro></div>' +
-        (d.pasta ? botao('Cancelar', 'data-cancelar') : '') + '</div>';
+        '<div class="ffd-nav"><div class="ffd-nav-topo"><div class="ffd-cam" data-cam></div><div data-usar-aberta></div></div><div data-nav></div></div>' +
+        (d.pasta ? '<div>' + botao('Cancelar', 'data-cancelar') + '</div>' : '') + '</div>';
       var ref = el.querySelector('[data-ref]'), res = el.querySelector('[data-res]'), err = el.querySelector('[data-erro]');
+      var nav = el.querySelector('[data-nav]'), cam = el.querySelector('[data-cam]'), usarAberta = el.querySelector('[data-usar-aberta]');
+      var pilha = [{ id: null, nome: 'Drive' }];
       function vincular(r) {
         err.innerHTML = '';
         pedir('', { acao: 'vincular_pasta', cliente_id: clienteId, referencia: r }).then(function (x) {
@@ -204,17 +214,53 @@ window.FfDrive = (function () {
           est.pasta = null; carregar(true);
         });
       }
+      function real(id) { return id && id !== 'root' && id !== 'shared'; }
+      function ir(i) {
+        pilha = pilha.slice(0, i + 1);
+        var atual = pilha[pilha.length - 1];
+        cam.innerHTML = pilha.map(function (p, k) {
+          return (k ? '<span>/</span>' : '') + (k === pilha.length - 1 ? '<b>' + esc(p.nome) + '</b>' : '<button type="button" data-cam-i="' + k + '">' + esc(p.nome) + '</button>');
+        }).join('');
+        cam.querySelectorAll('[data-cam-i]').forEach(function (b) { b.onclick = function () { ir(+b.dataset.camI); }; });
+        usarAberta.innerHTML = real(atual.id) ? botao('Usar esta pasta (' + atual.nome + ')', 'data-usar-esta', true) : '';
+        var ua = usarAberta.querySelector('[data-usar-esta]');
+        if (ua) ua.onclick = function () { vincular(atual.id); };
+        nav.innerHTML = '<div class="ffcli-vazio">Abrindo…</div>';
+        pedir('?cliente=' + clienteId + '&navegar=' + encodeURIComponent(atual.id || '')).then(function (x) {
+          if (pilha[pilha.length - 1] !== atual) return;
+          if (!x.ok) { nav.innerHTML = '<div class="ffd-aviso erro" role="alert">' + esc(x.error || 'Não foi possível abrir esta pasta.') + '</div>'; return; }
+          var r = x.data, h = '';
+          if (r.pasta && r.pasta.nome && !atual.nomeOk) { atual.nome = r.pasta.nome; atual.nomeOk = true; ir(pilha.length - 1); return; }
+          h += r.pastas.length ? '<div class="ffd-grade">' + r.pastas.map(function (p, k) {
+            return '<div class="ffd-item pasta" style="cursor:default"><button type="button" class="ffd-abrir" data-abrir="' + k + '" title="Abrir ' + esc(p.nome) + '">' +
+              '<span class="ffd-mini" style="height:72px"><span class="ffd-ico">' + ICO_PASTA + '</span></span>' +
+              '<span class="ffd-item-txt"><b>' + esc(p.nome) + '</b>' + (p.modificado_em ? '<small>atualizada em ' + esc(quando(p.modificado_em)) + '</small>' : '') + '</span></button>' +
+              (r.lugares ? '' : '<span class="ffd-item-txt" style="padding-top:0">' + botao('Usar esta pasta', 'data-escolher="' + k + '"', true) + '</span>') + '</div>';
+          }).join('') + '</div>' : '<div class="ffcli-vazio">' + (r.lugares ? 'Nada para mostrar.' : 'Nenhuma subpasta aqui.') + '</div>';
+          if (r.arquivos.length) h += '<div class="ffd-nav-arqs"><b>Arquivos nesta pasta:</b> ' + r.arquivos.map(function (a) { return '<span>' + esc(a.nome) + '</span>'; }).join('') + (r.mais_arquivos ? '<span>e mais…</span>' : '') + '</div>';
+          nav.innerHTML = h;
+          nav.querySelectorAll('[data-abrir]').forEach(function (b) { b.onclick = function () { var p = r.pastas[+b.dataset.abrir]; pilha.push({ id: p.id, nome: p.nome, nomeOk: true }); ir(pilha.length - 1); }; });
+          nav.querySelectorAll('[data-escolher]').forEach(function (b) { b.onclick = function () { b.disabled = true; vincular(r.pastas[+b.dataset.escolher].id); }; });
+        });
+      }
+      ir(0);
       el.querySelector('[data-usar]').onclick = function () { if (ref.value.trim()) vincular(ref.value.trim()); else ref.focus(); };
-      el.querySelector('[data-procurar]').onclick = function () {
+      function procurar() {
         res.innerHTML = '<div class="ffcli-vazio">Procurando…</div>';
         pedir('?cliente=' + clienteId + '&buscar=' + encodeURIComponent(ref.value.trim())).then(function (x) {
           if (!x.ok) { res.innerHTML = '<div class="ffd-aviso erro">' + esc(x.error || 'Não foi possível procurar.') + '</div>'; return; }
-          res.innerHTML = x.data.length ? '<ul class="ffd-lista">' + x.data.map(function (p) {
-            return '<li><span class="ffd-nome"><b>' + esc(p.nome) + '</b><small>' + (p.modificado_em ? 'atualizada em ' + esc(quando(p.modificado_em)) : '') + '</small></span>' + botao('Usar esta pasta', 'data-id="' + esc(p.id) + '"') + '</li>';
+          res.innerHTML = x.data.length ? '<ul class="ffd-lista">' + x.data.map(function (p, k) {
+            return '<li><span class="ffd-nome"><b>' + esc(p.nome) + '</b><small>' + (p.em ? 'em: ' + esc(p.em) + ' · ' : '') + (p.modificado_em ? 'atualizada em ' + esc(quando(p.modificado_em)) : '') + '</small></span>' +
+              '<span class="ffd-acoes">' + botao('Abrir', 'data-ver-pasta="' + k + '"') + botao('Usar esta pasta', 'data-id="' + esc(p.id) + '"', true) + '</span></li>';
           }).join('') + '</ul>' : '<div class="ffcli-vazio">Nenhuma pasta com esse nome.</div>';
           res.querySelectorAll('[data-id]').forEach(function (b) { b.onclick = function () { vincular(b.dataset.id); }; });
+          res.querySelectorAll('[data-ver-pasta]').forEach(function (b) {
+            b.onclick = function () { var p = x.data[+b.dataset.verPasta]; pilha = [pilha[0], { id: p.id, nome: p.nome, nomeOk: true }]; ir(1); nav.scrollIntoView({ block: 'nearest' }); };
+          });
         });
-      };
+      }
+      el.querySelector('[data-procurar]').onclick = procurar;
+      ref.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); procurar(); } });
       var cc = el.querySelector('[data-cancelar]');
       if (cc) cc.onclick = function () { carregar(false); };
     }

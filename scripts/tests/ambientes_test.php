@@ -264,12 +264,19 @@ try {
             if ($m[1] === 'ARQUIVO_X_0000') return [200, json_encode(['id' => 'ARQUIVO_X_0000', 'name' => 'x.pdf', 'mimeType' => 'application/pdf'])];
             return [404, '{"error":{"message":"nao"}}'];
         }
+        if (str_contains($url, '/drives?')) return [200, json_encode(['drives' => [['id' => 'DRIVE_COMP_0000', 'name' => 'Clientes Inovaize']]])];
         if (str_contains($url, '/permissions')) return [200, json_encode(['permissions' => [['type' => 'user', 'role' => 'writer', 'emailAddress' => 'equipe@inovaize.com']]])];
         if (str_contains($url, '/changes/startPageToken')) return [200, '{"startPageToken":"T1"}'];
         if (str_contains($url, '/changes?')) return [200, json_encode(['newStartPageToken' => 'T2', 'changes' => $GOOGLE['mudancas']])];
         if (str_contains($url, '/files?')) {
             parse_str(parse_url($url, PHP_URL_QUERY), $q);
-            if (preg_match("#'([A-Za-z0-9_]+)' in parents#", (string) ($q['q'] ?? ''), $m)) return [200, json_encode(['files' => $GOOGLE['filhos'][$m[1]] ?? []])];
+            if (preg_match("#'([A-Za-z0-9_]+)' in parents#", (string) ($q['q'] ?? ''), $m)) {
+                $lista = $GOOGLE['filhos'][$m[1]] ?? [];
+                // Navegar pede pastas e arquivos em separado.
+                if (str_contains((string) $q['q'], "mimeType = '" . Api::PASTA . "'")) $lista = array_values(array_filter($lista, fn($f) => $f['mimeType'] === Api::PASTA));
+                if (str_contains((string) $q['q'], "mimeType != '" . Api::PASTA . "'")) $lista = array_values(array_filter($lista, fn($f) => $f['mimeType'] !== Api::PASTA));
+                return [200, json_encode(['files' => $lista])];
+            }
             return [200, json_encode(['files' => [['id' => 'PASTA_A_000000', 'name' => 'Cliente A']]])];
         }
         return [400, '{}'];
@@ -315,6 +322,13 @@ try {
     ok('pasta não tem miniatura', Pasta::miniatura($ACC, $cA, 'SUB_1_0000000') === null);
     ok('arquivo de fora da pasta do cliente não tem miniatura', Pasta::miniatura($ACC, $cA, 'ARQ_DE_FORA_0000') === null);
     ok('outro cliente não pega a miniatura do arquivo do A', Pasta::miniatura($ACC, $cB, 'ARQ_1_0000000') === null);
+    $lug = Pasta::navegar($ACC, null);
+    ok('navegar no Drive começa pelos lugares: Meu Drive, compartilhados e cada drive compartilhado',
+        $lug['lugares'] && array_column($lug['pastas'], 'nome') === ['Meu Drive', 'Compartilhados comigo', 'Clientes Inovaize']);
+    $nv = Pasta::navegar($ACC, 'PASTA_A_000000');
+    ok('dentro da pasta: só as subpastas para abrir, e os arquivos para reconhecer', array_column($nv['pastas'], 'nome') === ['Roteiros']
+        && in_array('logo.png', array_column($nv['arquivos'], 'nome'), true) && !in_array('Roteiros', array_column($nv['arquivos'], 'nome'), true) && $nv['pasta']['nome'] === 'Cliente A');
+    ok('pasta com id inválido é recusada na navegação', recusa(fn() => Pasta::navegar($ACC, "x' or 1=1")) !== null);
     $ac = Pasta::acessos($ACC, $cA, [['id' => 1, 'nome' => 'Equipe', 'email' => 'equipe@inovaize.com'], ['id' => 2, 'nome' => 'Nova', 'email' => 'nova@inovaize.com']]);
     ok('quem da equipe tem e quem não tem acesso no Drive', count($ac['com_acesso']) === 1 && $ac['sem_acesso'][0]['email'] === 'nova@inovaize.com');
     echo "\n== Ficha do cliente por ambiente ==\n";

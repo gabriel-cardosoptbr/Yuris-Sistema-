@@ -75,15 +75,80 @@ final class Pasta
         $pdo->prepare('DELETE FROM drive_pastas_lidas WHERE account_id = ? AND cliente_id = ?')->execute([$accountId, $clienteId]);
     }
 
-    /** Pastas da conta Google pelo nome, para escolher a do cliente. */
+    /**
+     * Pastas da conta Google pelo nome, para escolher a do cliente. Cada uma diz
+     * em que pasta está ("em: Clientes / Ivanna"), porque nomes como "post unico"
+     * se repetem.
+     */
     public static function buscarPastas(int $accountId, string $termo): array
     {
         $termo = trim($termo);
         $q = "mimeType = '" . Api::PASTA . "' and trashed = false";
         if ($termo !== '') $q .= " and name contains '" . str_replace(['\\', "'"], ['\\\\', "\\'"], mb_substr($termo, 0, 80)) . "'";
-        $r = Api::pedir(Conexao::acesso($accountId), 'GET', '/files', ['q' => $q, 'pageSize' => 25, 'orderBy' => 'modifiedTime desc',
-            'fields' => 'files(id,name,webViewLink,modifiedTime)', 'supportsAllDrives' => 'true', 'includeItemsFromAllDrives' => 'true']);
-        return array_map(fn($f) => ['id' => $f['id'], 'nome' => $f['name'], 'link' => $f['webViewLink'] ?? null, 'modificado_em' => self::data($f['modifiedTime'] ?? null)], $r['files'] ?? []);
+        $acesso = Conexao::acesso($accountId);
+        $r = Api::pedir($acesso, 'GET', '/files', ['q' => $q, 'pageSize' => 25, 'orderBy' => 'modifiedTime desc',
+            'fields' => 'files(id,name,webViewLink,modifiedTime,parents)', 'supportsAllDrives' => 'true', 'includeItemsFromAllDrives' => 'true']);
+        $nomes = self::nomesDasPastas($acesso, array_map(fn($f) => (string) (($f['parents'] ?? [])[0] ?? ''), $r['files'] ?? []));
+        return array_map(fn($f) => ['id' => $f['id'], 'nome' => $f['name'], 'link' => $f['webViewLink'] ?? null, 'modificado_em' => self::data($f['modifiedTime'] ?? null),
+            'em' => $nomes[(string) (($f['parents'] ?? [])[0] ?? '')] ?? null], $r['files'] ?? []);
+    }
+
+    /** Nome de cada pasta-mãe (até 15, uma leitura cada). Pasta sem acesso fica sem nome. */
+    private static function nomesDasPastas(string $acesso, array $ids): array
+    {
+        $out = [];
+        foreach (array_slice(array_values(array_unique(array_filter($ids))), 0, 15) as $id) {
+            try {
+                $f = Api::pedir($acesso, 'GET', '/files/' . rawurlencode($id), ['fields' => 'id,name', 'supportsAllDrives' => 'true']);
+                $out[$id] = (string) ($f['name'] ?? '');
+            } catch (\Throwable $e) { /* sem acesso à mãe: segue sem o nome */ }
+        }
+        return $out;
+    }
+
+    /**
+     * Navegar no Drive para escolher a pasta do cliente, como no próprio Google:
+     *   null       os lugares: Meu Drive, Compartilhados comigo e cada drive compartilhado
+     *   'root'     Meu Drive
+     *   'shared'   pastas compartilhadas com a conta
+     *   ID         as subpastas da pasta (ou do drive compartilhado) e alguns arquivos,
+     *              para a pessoa reconhecer a pasta certa
+     */
+    public static function navegar(int $accountId, ?string $pai): array
+    {
+        $acesso = Conexao::acesso($accountId);
+        if ($pai === null || $pai === '') {
+            $lugares = [['id' => 'root', 'nome' => 'Meu Drive', 'tipo' => 'meu'], ['id' => 'shared', 'nome' => 'Compartilhados comigo', 'tipo' => 'compartilhado']];
+            try {
+                $d = Api::pedir($acesso, 'GET', '/drives', ['pageSize' => 100, 'fields' => 'drives(id,name)']);
+                foreach ($d['drives'] ?? [] as $x) $lugares[] = ['id' => $x['id'], 'nome' => $x['name'], 'tipo' => 'drive'];
+            } catch (\Throwable $e) { /* conta sem drives compartilhados */ }
+            return ['pasta' => null, 'pastas' => $lugares, 'arquivos' => [], 'mais_arquivos' => false, 'lugares' => true];
+        }
+        if ($pai !== 'root' && $pai !== 'shared' && !preg_match('/^[A-Za-z0-9_-]{10,}$/', $pai)) throw new \InvalidArgumentException('Pasta inválida.');
+        $base = ['supportsAllDrives' => 'true', 'includeItemsFromAllDrives' => 'true', 'corpora' => 'allDrives'];
+        $dentro = $pai === 'shared' ? 'sharedWithMe' : "'" . $pai . "' in parents";
+        $p = Api::pedir($acesso, 'GET', '/files', $base + ['q' => "$dentro and mimeType = '" . Api::PASTA . "' and trashed = false",
+            'pageSize' => 200, 'orderBy' => 'name', 'fields' => 'files(id,name,modifiedTime,webViewLink)']);
+        $pastas = array_map(fn($f) => ['id' => $f['id'], 'nome' => $f['name'], 'link' => $f['webViewLink'] ?? null, 'modificado_em' => self::data($f['modifiedTime'] ?? null)], $p['files'] ?? []);
+        $arquivos = []; $mais = false; $info = null;
+        if ($pai !== 'shared') {
+            $a = Api::pedir($acesso, 'GET', '/files', $base + ['q' => "$dentro and mimeType != '" . Api::PASTA . "' and trashed = false",
+                'pageSize' => 13, 'orderBy' => 'modifiedTime desc', 'fields' => 'files(id,name,mimeType)']);
+            $lista = $a['files'] ?? [];
+            $mais = count($lista) > 12;
+            $arquivos = array_map(fn($f) => ['nome' => $f['name'], 'tipo' => self::tipo((string) ($f['mimeType'] ?? ''))], array_slice($lista, 0, 12));
+            if ($pai !== 'root') {
+                try {
+                    $f = Api::pedir($acesso, 'GET', '/files/' . rawurlencode($pai), ['fields' => 'id,name,webViewLink,mimeType', 'supportsAllDrives' => 'true']);
+                    $info = ['id' => $f['id'] ?? $pai, 'nome' => $f['name'] ?? '', 'link' => $f['webViewLink'] ?? null];
+                } catch (\Throwable $e) {
+                    // Drive compartilhado: o id é do drive, não de uma pasta.
+                    $info = ['id' => $pai, 'nome' => '', 'link' => null];
+                }
+            }
+        }
+        return ['pasta' => $info, 'pastas' => $pastas, 'arquivos' => $arquivos, 'mais_arquivos' => $mais, 'lugares' => false];
     }
 
     private static function data(?string $iso): ?string
