@@ -100,6 +100,8 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
        visuais, e o botao "Registrar" virava texto sem fundo na Prospeccao. -->
   <link rel="stylesheet" href="/assets/crm-fase2.css?v=<?= @filemtime(__DIR__ . '/assets/crm-fase2.css') ?: 1 ?>">
   <script src="/assets/crm-fase2.js?v=<?= @filemtime(__DIR__ . '/assets/crm-fase2.js') ?: 1 ?>"></script>
+  <!-- Quadro: barra de rolagem também em cima e arrastar para o lado segurando o fundo. -->
+  <script src="/assets/quadro-rolagem.js?v=<?= @filemtime(__DIR__ . '/assets/quadro-rolagem.js') ?: 1 ?>" defer></script>
 <?php if ($edicaoCrm): ?>
   <!-- Ficha do lead e do cliente no desenho do Fleetiflow: só a edição CRM carrega. -->
   <link rel="stylesheet" href="/assets/ff-ficha.css?v=<?= @filemtime(__DIR__ . '/assets/ff-ficha.css') ?: 1 ?>">
@@ -549,7 +551,7 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
         <button type="button" class="btn" onclick="Clientes.openSetoresModal()">Gerenciar Setores</button>
       </div>
     <?php else: ?>
-      <div class="board" id="board"><!-- preenchido por JS --></div>
+      <div class="board" id="board" data-rolagem-lateral><!-- preenchido por JS --></div>
     <?php endif; ?>
   </main>
 </div>

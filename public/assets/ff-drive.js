@@ -202,11 +202,34 @@ window.FfDrive = (function () {
         'Navegue pelo Drive abaixo e clique em "Usar esta pasta", ou procure pelo nome, ou cole o link.</div>' +
         '<div class="ffd-busca" data-amb-guarda><input type="text" data-ref placeholder="Nome da pasta para procurar, ou o link dela" data-amb-ignorar>' +
         botao('Procurar', 'data-procurar') + botao('Usar este link', 'data-usar', true) + '</div><div data-res></div><div data-erro></div>' +
-        '<div class="ffd-nav"><div class="ffd-nav-topo"><div class="ffd-cam" data-cam></div><div data-usar-aberta></div></div><div data-nav></div></div>' +
+        '<div class="ffd-nav"><div class="ffd-nav-topo"><div class="ffd-cam" data-cam></div><div data-usar-aberta></div></div>' +
+        '<div class="ffd-busca"><input type="search" data-filtro placeholder="Buscar pelo nome (nesta pasta)" aria-label="Buscar pasta pelo nome" data-amb-ignorar>' +
+        botao('Procurar no Drive todo', 'data-filtro-drive') + '</div><div data-filtro-info></div><div data-nav></div></div>' +
         (d.pasta ? '<div>' + botao('Cancelar', 'data-cancelar') + '</div>' : '') + '</div>';
       var ref = el.querySelector('[data-ref]'), res = el.querySelector('[data-res]'), err = el.querySelector('[data-erro]');
       var nav = el.querySelector('[data-nav]'), cam = el.querySelector('[data-cam]'), usarAberta = el.querySelector('[data-usar-aberta]');
       var pilha = [{ id: null, nome: 'Drive' }];
+      var filtro = el.querySelector('[data-filtro]'), filtroInfo = el.querySelector('[data-filtro-info]');
+      function normal(v) { return String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+      // Filtra na hora as pastas da tela; sem resultado, oferece procurar no Drive inteiro.
+      function filtrar() {
+        var termo = normal(filtro.value.trim()), itens = nav.querySelectorAll('[data-nome]'), vistos = 0;
+        itens.forEach(function (it) { var ok = !termo || it.getAttribute('data-nome').indexOf(termo) >= 0; it.style.display = ok ? '' : 'none'; if (ok) vistos++; });
+        if (!termo || !itens.length) { filtroInfo.innerHTML = ''; return; }
+        filtroInfo.innerHTML = vistos ? '<div class="ffcli-vazio">' + vistos + (vistos === 1 ? ' pasta' : ' pastas') + ' com "' + esc(filtro.value.trim()) + '" aqui. Não é nenhuma? Use "Procurar no Drive todo".</div>'
+          : '<div class="ffcli-vazio">Nenhuma pasta com "' + esc(filtro.value.trim()) + '" nesta pasta. ' + botao('Procurar "' + filtro.value.trim() + '" no Drive todo', 'data-filtro-drive2') + '</div>';
+        var b2 = filtroInfo.querySelector('[data-filtro-drive2]');
+        if (b2) b2.onclick = procurarNoDrive;
+      }
+      function procurarNoDrive() {
+        if (!filtro.value.trim()) { filtro.focus(); return; }
+        ref.value = filtro.value.trim();
+        procurar();
+        res.scrollIntoView({ block: 'nearest' });
+      }
+      filtro.addEventListener('input', filtrar);
+      filtro.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); if (nav.querySelectorAll('[data-nome]:not([style*="none"])').length === 0) procurarNoDrive(); } });
+      el.querySelector('[data-filtro-drive]').onclick = procurarNoDrive;
       function vincular(r) {
         err.innerHTML = '';
         pedir('', { acao: 'vincular_pasta', cliente_id: clienteId, referencia: r }).then(function (x) {
@@ -225,20 +248,26 @@ window.FfDrive = (function () {
         usarAberta.innerHTML = real(atual.id) ? botao('Usar esta pasta (' + atual.nome + ')', 'data-usar-esta', true) : '';
         var ua = usarAberta.querySelector('[data-usar-esta]');
         if (ua) ua.onclick = function () { vincular(atual.id); };
+        // Segura a altura enquanto carrega: sem isso o painel encolhe e a tela pula.
+        nav.style.minHeight = nav.offsetHeight ? nav.offsetHeight + 'px' : '';
         nav.innerHTML = '<div class="ffcli-vazio">Abrindo…</div>';
+        filtro.value = ''; filtroInfo.innerHTML = '';
         pedir('?cliente=' + clienteId + '&navegar=' + encodeURIComponent(atual.id || '')).then(function (x) {
           if (pilha[pilha.length - 1] !== atual) return;
-          if (!x.ok) { nav.innerHTML = '<div class="ffd-aviso erro" role="alert">' + esc(x.error || 'Não foi possível abrir esta pasta.') + '</div>'; return; }
+          if (!x.ok) { nav.style.minHeight = ''; nav.innerHTML = '<div class="ffd-aviso erro" role="alert">' + esc(x.error || 'Não foi possível abrir esta pasta.') + '</div>'; return; }
           var r = x.data, h = '';
           if (r.pasta && r.pasta.nome && !atual.nomeOk) { atual.nome = r.pasta.nome; atual.nomeOk = true; ir(pilha.length - 1); return; }
           h += r.pastas.length ? '<div class="ffd-grade">' + r.pastas.map(function (p, k) {
-            return '<div class="ffd-item pasta" style="cursor:default"><button type="button" class="ffd-abrir" data-abrir="' + k + '" title="Abrir ' + esc(p.nome) + '">' +
+            return '<div class="ffd-item pasta" style="cursor:default" data-nome="' + esc(normal(p.nome)) + '"><button type="button" class="ffd-abrir" data-abrir="' + k + '" title="Abrir ' + esc(p.nome) + '">' +
               '<span class="ffd-mini" style="height:72px"><span class="ffd-ico">' + ICO_PASTA + '</span></span>' +
               '<span class="ffd-item-txt"><b>' + esc(p.nome) + '</b>' + (p.modificado_em ? '<small>atualizada em ' + esc(quando(p.modificado_em)) + '</small>' : '') + '</span></button>' +
               (r.lugares ? '' : '<span class="ffd-item-txt" style="padding-top:0">' + botao('Usar esta pasta', 'data-escolher="' + k + '"', true) + '</span>') + '</div>';
           }).join('') + '</div>' : '<div class="ffcli-vazio">' + (r.lugares ? 'Nada para mostrar.' : 'Nenhuma subpasta aqui.') + '</div>';
           if (r.arquivos.length) h += '<div class="ffd-nav-arqs"><b>Arquivos nesta pasta:</b> ' + r.arquivos.map(function (a) { return '<span>' + esc(a.nome) + '</span>'; }).join('') + (r.mais_arquivos ? '<span>e mais…</span>' : '') + '</div>';
           nav.innerHTML = h;
+          nav.style.minHeight = '';
+          // Abriu outra pasta: o caminho dela fica à vista (a lista nova começa ali).
+          if (i > 0 || pilha.length > 1) cam.scrollIntoView({ block: 'nearest' });
           nav.querySelectorAll('[data-abrir]').forEach(function (b) { b.onclick = function () { var p = r.pastas[+b.dataset.abrir]; pilha.push({ id: p.id, nome: p.nome, nomeOk: true }); ir(pilha.length - 1); }; });
           nav.querySelectorAll('[data-escolher]').forEach(function (b) { b.onclick = function () { b.disabled = true; vincular(r.pastas[+b.dataset.escolher].id); }; });
         });

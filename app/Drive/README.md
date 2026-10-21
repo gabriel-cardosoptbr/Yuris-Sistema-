@@ -9,7 +9,7 @@ cliente, a última listagem conhecida e os vínculos com cartões e entregas).
 | `Api.php` | a única saída para o Google (OAuth e Drive v3), com o transporte trocável para o teste; erro do Google vira `DriveErro` com mensagem em português |
 | `DriveErro.php` | a falha com motivo curto: revogado, sem_acesso, nao_encontrado, instavel, dominio |
 | `Conexao.php` | a conta Google autorizada da conta do sistema: OAuth, refresh token cifrado (`App\Core\Crypto`), renovação do token, domínio corporativo obrigatório (`GOOGLE_DRIVE_DOMINIO`), desconectar |
-| `Pasta.php` | a pasta de cada cliente: ligar pelo link, pela busca (cada resultado diz em que pasta está) ou **navegando no Drive** como no Google (`navegar`: Meu Drive, Compartilhados comigo, cada drive compartilhado, subpastas e alguns arquivos para reconhecer a pasta; só quem liga a pasta, nunca o vendedor), listar e navegar subpastas com a hora da leitura, enviar arquivo, ver e dar acesso à equipe |
+| `Pasta.php` | a pasta de cada cliente: ligar pelo link, pela busca (cada resultado diz em que pasta está) ou **navegando no Drive** como no Google (`navegar`: Meu Drive, Compartilhados comigo, cada drive compartilhado, subpastas e alguns arquivos para reconhecer a pasta, com um campo "Buscar pelo nome" que filtra na hora as pastas da tela, sem acento, e oferece procurar no Drive todo quando não acha; só quem liga a pasta, nunca o vendedor), listar e navegar subpastas com a hora da leitura, enviar arquivo, ver e dar acesso à equipe |
 | `Sincronizacao.php` | a atualização automática pela API de mudanças do Drive (`bin/drive_sync.php`) |
 | `ArquivoDoCartao.php` | arquivo da pasta do cliente vinculado a um cartão (`task_drive_arquivos`) |
 
