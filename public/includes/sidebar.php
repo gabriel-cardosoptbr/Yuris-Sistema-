@@ -425,6 +425,8 @@ $_notifTempo = function ($raw) {
   html[data-theme="light"] .sidebar-footer.sb-rodape a.is-logout:hover{ background:#FFF1F1 !important; color:#B00000 !important; }
   html[data-theme="light"] .sidebar-footer.sb-rodape a.is-logout:hover .icon svg{ stroke:#B00000; }
 
+  /* O símbolo só aparece no menu recolhido; a regra da logo no tema claro põe display:block em toda imagem da marca. */
+  .sidebar-brand a.sb-logo-marca .sb-logo-icone{ display:none !important; }
   /* Desde 21/10/2026 não há mais a seta: no computador, clicar no logo recolhe e
      expande o menu; no celular o logo continua levando à página inicial. */
   @media (min-width:901px){
@@ -452,7 +454,18 @@ $_notifTempo = function ($raw) {
     html.sb-retraido.sb-retraido .sidebar-brand{ flex-direction:column !important; justify-content:center !important; gap:8px !important; height:auto !important; min-height:64px !important; padding:12px 0 8px !important; }
     html.sb-retraido.sb-retraido .sidebar-brand a span:not([aria-hidden]){ display:none !important; }
     html.sb-retraido.sb-retraido .sidebar-brand a{ gap:0 !important; justify-content:center !important; }
-    html.sb-retraido.sb-retraido .sidebar-brand a.sb-logo-marca img{ max-width:46px !important; height:auto !important; max-height:40px !important; }
+    /* Recolhido (21/10/2026): o símbolo da marca, não a logo inteira encolhida até sumir.
+       Com ícone enviado, ele; sem ícone, a ponta esquerda da logo (onde fica o símbolo). */
+    html.sb-retraido.sb-retraido .sidebar-brand a.sb-logo-marca img{ width:40px !important; height:40px !important; max-width:none !important; max-height:none !important; object-fit:cover; object-position:0 50%; animation:none !important; }
+    html.sb-retraido.sb-retraido .sidebar-brand a.sb-logo-marca.tem-icone .sb-logo-inteira{ display:none !important; }
+    html.sb-retraido.sb-retraido .sidebar-brand a.sb-logo-marca.tem-icone .sb-logo-icone{ display:block !important; object-fit:contain; }
+    html.sb-retraido.sb-retraido .sidebar-brand:has(.sb-logo-marca){ height:auto !important; }
+    /* Itens: um quadrado de 40px centrado; o ativo se marca só pelo disco do ícone. */
+    html.sb-retraido.sb-retraido .sidebar nav a,
+    html.sb-retraido.sb-retraido .sidebar-group-toggle,
+    html.sb-retraido.sb-retraido .sidebar-footer.sb-rodape a{ width:40px !important; min-height:40px !important; height:40px !important; margin:0 auto !important; border-radius:12px !important; }
+    html.sb-retraido.sb-retraido .sidebar nav a.active,
+    html.sb-retraido.sb-retraido .sidebar-footer.sb-rodape a.active{ background:none !important; }
     html.sb-retraido.sb-retraido .sb-recolher{ margin-left:0; }
     html.sb-retraido.sb-retraido .sb-recolher svg{ transform:rotate(180deg); }
     html.sb-retraido.sb-retraido .sb-titulo{ display:none !important; }
@@ -562,8 +575,12 @@ if ($_isFleetiflow) {
          com o nome desenhado dentro. -->
     <?php if ($_marca['personalizada'] && !empty($_marca['logo_url'])): ?>
     <!-- Marca própria com logo: o logo inteiro, flutuando devagar (17/10/2026). -->
-    <a href="/dashboard" class="sb-logo-marca" data-sb-recolher style="display:flex;align-items:center;text-decoration:none" aria-label="<?= htmlspecialchars($_marca['nome']) ?>">
-      <img src="<?= htmlspecialchars($_marca['logo_url']) ?>" alt="<?= htmlspecialchars($_marca['nome']) ?>">
+    <a href="/dashboard" class="sb-logo-marca<?= !empty($_marca['icone_url']) ? ' tem-icone' : '' ?>" data-sb-recolher style="display:flex;align-items:center;text-decoration:none" aria-label="<?= htmlspecialchars($_marca['nome']) ?>">
+      <img src="<?= htmlspecialchars($_marca['logo_url']) ?>" alt="<?= htmlspecialchars($_marca['nome']) ?>" class="sb-logo-inteira">
+      <?php if (!empty($_marca['icone_url'])): ?>
+      <!-- Menu recolhido: só o símbolo da marca (o ícone enviado no Painel Master), não a logo encolhida. -->
+      <img src="<?= htmlspecialchars($_marca['icone_url']) ?>" alt="" class="sb-logo-icone">
+      <?php endif; ?>
     </a>
     <?php else: ?>
     <a href="/dashboard" data-sb-recolher style="display:flex;align-items:center;gap:11px;text-decoration:none">
@@ -1171,11 +1188,15 @@ if ($_isFleetiflow) {
     alvos.forEach(function (a) {
       if (!a.hasAttribute('data-sb-nome')) a.setAttribute('data-sb-nome', a.getAttribute('aria-label') || '');
       if (desktop.matches) {
+        if (a.hasAttribute('href')) { a.setAttribute('data-sb-href', a.getAttribute('href')); a.removeAttribute('href'); }
+        a.setAttribute('role', 'button'); a.setAttribute('tabindex', '0');
         a.setAttribute('aria-label', r ? 'Expandir menu' : 'Recolher menu');
         a.title = r ? 'Expandir menu' : 'Recolher menu';
         a.setAttribute('aria-expanded', r ? 'false' : 'true');
       } else {
         var nome = a.getAttribute('data-sb-nome');
+        if (a.hasAttribute('data-sb-href')) a.setAttribute('href', a.getAttribute('data-sb-href'));
+        a.removeAttribute('role'); a.removeAttribute('tabindex');
         if (nome) a.setAttribute('aria-label', nome); else a.removeAttribute('aria-label');
         a.removeAttribute('title'); a.removeAttribute('aria-expanded');
       }
@@ -1189,6 +1210,11 @@ if ($_isFleetiflow) {
   alvos.forEach(function (a) {
     a.addEventListener('click', function (e) {
       if (!desktop.matches) return;
+      e.preventDefault();
+      definir(!html.classList.contains('sb-retraido'));
+    });
+    a.addEventListener('keydown', function (e) {
+      if (!desktop.matches || (e.key !== 'Enter' && e.key !== ' ')) return;
       e.preventDefault();
       definir(!html.classList.contains('sb-retraido'));
     });

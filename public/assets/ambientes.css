@@ -172,8 +172,11 @@ html:not([data-theme="light"])[data-ambiente] .ff-modal .ff-resumo { background:
 
 /* Menu recolhido: só o ícone do ambiente; a lista abre ao lado. */
 @media (min-width: 901px) {
-  html.sb-retraido.sb-retraido .sb-amb { margin: 0 10px 6px; }
-  html.sb-retraido.sb-retraido .sb-amb-btn { justify-content: center; padding: 3px; }
+  /* Um quadrado de 40px no degradê do ambiente, com o ícone direto nele (sem a caixa clara dentro). */
+  html.sb-retraido.sb-retraido .sb-amb { margin: 0 auto 10px; width: 40px; }
+  html.sb-retraido.sb-retraido .sb-amb-btn { justify-content: center; width: 40px; height: 40px; padding: 0; border-radius: 12px; gap: 0; }
+  html.sb-retraido.sb-retraido .sb-amb-btn .sb-amb-ico { width: 40px; height: 40px; background: transparent; border-radius: 12px; }
+  html.sb-retraido.sb-retraido .sb-amb-btn .sb-amb-ico svg { width: 18px; height: 18px; }
   html.sb-retraido.sb-retraido .sb-amb-btn .sb-amb-txt, html.sb-retraido.sb-retraido .sb-amb-btn .sb-amb-seta, html.sb-retraido.sb-retraido .sb-amb-brilho { display: none; }
   /* A posição da lista vem do ambientes.js (fixa, ao lado do botão): o menu recolhido corta o que sai dele. */
   html.sb-retraido.sb-retraido .sb-amb-lista { transform-origin: top left; }
