@@ -117,15 +117,15 @@ if ($method === 'GET') {
         $atualizar = $canManage && !empty($_GET['atualizar']);
         $padrao = WhatsAppChannelAccessService::ownChannelId($pdo, $accountId);
 
+        // Não lidas por número. Com dono por conversa (DonoDaConversa), o vendedor
+        // conta só as conversas dele e as sem dono: o "99+" do número era do número inteiro.
         $naoLidas = [];
-        if ($viewable) {
-            $in = implode(',', array_fill(0, count($viewable), '?'));
-            $st = $pdo->prepare(
-                "SELECT instance_id, COALESCE(SUM(unread_count),0) FROM whatsapp_chats
-                  WHERE instance_id IN ($in) AND is_archived = 0 GROUP BY instance_id"
-            );
-            $st->execute($viewable);
-            foreach ($st->fetchAll(\PDO::FETCH_NUM) as [$iid, $n]) $naoLidas[(int)$iid] = (int)$n;
+        $vendedorNL = \App\Core\AccountContext::vendedorDaSessao();
+        foreach ($viewable as $iid) {
+            [$soDele, $parDele] = \App\WhatsAppAgente\DonoDaConversa::filtroSql($pdo, (int)$iid, $vendedorNL, 'whatsapp_chats');
+            $st = $pdo->prepare("SELECT COALESCE(SUM(unread_count),0) FROM whatsapp_chats WHERE instance_id = ? AND is_archived = 0" . $soDele);
+            $st->execute(array_merge([(int)$iid], $parDele));
+            $naoLidas[(int)$iid] = (int)$st->fetchColumn();
         }
 
         $out = [];

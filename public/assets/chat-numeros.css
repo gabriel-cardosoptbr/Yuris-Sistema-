@@ -1,10 +1,28 @@
-/* chat-numeros.css — barra de números de WhatsApp no topo do chat (edição Fleetiflow).
-   Mesma linguagem dos cartões do chat: branco, borda #E2E8F0, marca #015DFC. */
-.ff-numeros { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; min-width: 0; }
+/* chat-numeros.css: barra de números de WhatsApp no topo do chat (edição Fleetiflow).
+   Mesma linguagem dos cartões do chat: branco, borda #E2E8F0, marca #015DFC.
+   Desde 22/10/2026 a barra mora na linha do título (dentro do .page-header), ao lado
+   de "Atendendo como": a lista de conversas ganha a altura da linha que ela ocupava. */
+.ff-numeros { display: flex; align-items: center; gap: 10px; margin: 0; min-width: 0; flex: 1 1 auto; }
 .ff-numeros:empty { display: none; }
+.page-header:has(.ff-numeros) .page-header-text { flex: 0 1 auto; }
+.page-header:has(.ff-numeros) .page-header-inner { gap: 14px; }
 /* Os cartões de indicador saem quando a barra existe: a aba do número já diz
    status, telefone e não lidas. Sem a barra (falhou ao carregar), eles voltam. */
-.chat-main:has(#ffNumeros:not(:empty)) .chat-kpis { display: none !important; }
+.main-content:has(#ffNumeros:not(:empty)) .chat-kpis { display: none !important; }
+
+/* Quem está atendendo: iniciais no degradê da marca e o nome. */
+.ffn-eu {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 9px; height: 38px; padding: 0 12px 0 4px;
+  background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 999px; min-width: 0;
+}
+.ffn-eu-ava {
+  width: 30px; height: 30px; border-radius: 50%; flex: none; display: inline-flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--ff-marca, #015DFC), var(--ff-marca-forte, #013DF2)); color: var(--ff-marca-texto, #FFFFFF);
+  font-size: .72rem; font-weight: 800; letter-spacing: .02em; box-shadow: 0 4px 10px -4px rgba(var(--ff-marca-rgb, 1,93,252), .7);
+}
+.ffn-eu-txt { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.ffn-eu-txt small { font-size: .6rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #64748B; }
+.ffn-eu-txt b { font-size: .8rem; font-weight: 700; color: #0F172A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
 
 .ffn-abas { display: flex; gap: 6px; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: thin; padding: 1px; }
 .ffn-aba {
@@ -46,9 +64,10 @@
 .ffn-add:hover { background: #EEF4FF; }
 
 @media (max-width: 900px) {
-  .ff-numeros { flex-wrap: wrap; }
+  .ff-numeros { flex-wrap: wrap; flex-basis: 100%; }
   .ffn-abas { flex-basis: 100%; }
   .ffn-fone { display: none; }
+  .ffn-eu-txt small { display: none; }
 }
 
 /* Por qual número a conversa aberta está (abaixo do nome do contato). */

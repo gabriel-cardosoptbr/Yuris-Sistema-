@@ -1973,6 +1973,26 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
             </h2>
             <p class="page-header-subtitle">Interface de mensagens integrada via Evolution API</p>
           </div>
+<?php if ($isFleetiflow): ?>
+          <!-- Vários números de WhatsApp na conta: uma aba por número e o resumo
+               (assets/chat-numeros.js), na linha do título desde 22/10/2026 para a
+               lista de conversas ganhar altura. Some sozinha se a conta não tem número. -->
+          <link rel="stylesheet" href="/assets/chat-numeros.css?v=<?= @filemtime(__DIR__ . '/assets/chat-numeros.css') ?: 5 ?>">
+          <div class="ff-numeros" id="ffNumeros"></div>
+          <?php
+            // Quem está atendendo (pedido de 22/10/2026): o nome da pessoa logada, com as
+            // iniciais. Com dono por conversa, é em nome dela que a conversa fica.
+            $_euNome = trim((string) ($_SESSION['user_nome'] ?? ''));
+            $_euPartes = preg_split('/\s+/', $_euNome) ?: [];
+            $_euIni = mb_strtoupper(mb_substr($_euPartes[0] ?? '?', 0, 1) . (count($_euPartes) > 1 ? mb_substr(end($_euPartes), 0, 1) : ''));
+          ?>
+          <?php if ($_euNome !== ''): ?>
+          <div class="ffn-eu" title="Você está atendendo como <?= htmlspecialchars($_euNome) ?>">
+            <span class="ffn-eu-ava" aria-hidden="true"><?= htmlspecialchars($_euIni) ?></span>
+            <span class="ffn-eu-txt"><small>Atendendo como</small><b><?= htmlspecialchars($_euNome) ?></b></span>
+          </div>
+          <?php endif; ?>
+<?php endif; ?>
           <div class="page-header-actions">
 <?php if (false): /* OCULTO: config de infra Evolution é 100% do Painel Master (super admin). Removido da tela do chat p/ não confundir nem o super; cliente nunca teve acesso. Modal openSettings mantido no código. */ ?>
         <button class="conn-btn-secondary" onclick="ChatApp.openSettings()" title="Configurações">
@@ -2025,13 +2045,6 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
 
       <!-- Corpo do chat (preenche o restante da altura) -->
       <main class="chat-main">
-
-    <?php if ($isFleetiflow): ?>
-    <!-- Vários números de WhatsApp na conta: resumo + uma aba por número
-         (assets/chat-numeros.js). Some sozinha se a conta não tem número. -->
-    <link rel="stylesheet" href="/assets/chat-numeros.css?v=4">
-    <div class="ff-numeros" id="ffNumeros"></div>
-    <?php endif; ?>
 
     <!-- KPIs -->
     <div class="chat-kpis" id="chatKpis">

@@ -129,8 +129,13 @@ pelo "+ Adicionar tarefa" da coluna. Troca-se depois, dentro da tarefa.
 se a conversa é do canal que a conta pode ver, e a tela abre nela como faz com
 `?jid=`.
 
-`chat.php`, na edição Fleetiflow, mostra no topo a barra de **números de
-WhatsApp** da conta (`assets/chat-numeros.js` + `assets/chat-numeros.css`):
+`chat.php`, na edição Fleetiflow, mostra a barra de **números de
+WhatsApp** da conta (`assets/chat-numeros.js` + `assets/chat-numeros.css`), desde
+22/10/2026 na linha do título (dentro do `.page-header`, a lista de conversas ganhou a
+altura da linha que ela ocupava), ao lado de **"Atendendo como"**, as iniciais no degradê
+da marca e o nome da pessoa logada; as não lidas de cada número vêm de
+`api/whatsapp/instances.php?action=numeros` e, com dono por conversa, contam só as do
+vendedor:
 resumo (quantos, conectados, caídos, nunca conectados), uma aba por número com
 nome, telefone e não lidas, renomear e adicionar número (owner/admin). A aba
 escolhida vira `ChatApp.trocarCanal(id)`, e o `chat.js` passa a mandar
