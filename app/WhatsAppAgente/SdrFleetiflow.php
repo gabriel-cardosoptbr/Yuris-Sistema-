@@ -636,7 +636,7 @@ final class SdrFleetiflow
                 $cardId = (int)\App\Prospeccao\Card::create([
                     'account_id'        => $accountId,
                     // O lead é do vendedor dono do número (whatsapp_instances.responsavel_user_id).
-                    'responsavel_user_id' => self::donoDoNumero($pdo, $accountId, $instanceId),
+                    'responsavel_user_id' => self::donoDoNumero($pdo, $accountId, $instanceId, $remoteJid),
                     'titulo'            => $rotulo,
                     'cliente_nome'      => $rotulo,
                     'empresa_nome'      => $empresa !== '' ? mb_substr($empresa, 0, 180) : null,
@@ -654,7 +654,7 @@ final class SdrFleetiflow
                 if (trim((string)$empresa) !== '') self::nomearSeAnonimo($cardId, (string)$empresa);
                 // Card que já existia sem responsável passa a ser do dono do número.
                 // Responsável já escolhido (por pessoa ou pelo especialista) não muda.
-                $dono = self::donoDoNumero($pdo, $accountId, $instanceId);
+                $dono = self::donoDoNumero($pdo, $accountId, $instanceId, $remoteJid);
                 if ($dono) {
                     $pdo->prepare('UPDATE cards SET responsavel_user_id = ? WHERE id = ? AND account_id = ? AND responsavel_user_id IS NULL')
                         ->execute([$dono, $cardId, $accountId]);
@@ -683,9 +683,15 @@ final class SdrFleetiflow
      * Usuário de outra conta, inativo ou apagado não conta. Sem a coluna (migration
      * ainda não aplicada) ou sem dono: null, e o lead nasce sem responsável.
      */
-    public static function donoDoNumero(\PDO $pdo, int $accountId, ?int $instanceId): ?int
+    public static function donoDoNumero(\PDO $pdo, int $accountId, ?int $instanceId, ?string $remoteJid = null): ?int
     {
         try {
+            // Número com dono por conversa: o lead é de quem é dono da conversa
+            // (ou de quem recebe as conversas novas, se ela ainda não tem dono).
+            if ($instanceId && ($modo = DonoDaConversa::modo($pdo, $instanceId)) !== null) {
+                $doChat = $remoteJid ? DonoDaConversa::dono($pdo, $instanceId, $remoteJid) : null;
+                return $doChat ?? $modo['novas'];
+            }
             $sql = 'SELECT DISTINCT wi.responsavel_user_id FROM whatsapp_instances wi
                       JOIN users u ON u.id = wi.responsavel_user_id AND u.account_id = wi.account_id
                                   AND u.deleted_at IS NULL AND u.status = \'active\'

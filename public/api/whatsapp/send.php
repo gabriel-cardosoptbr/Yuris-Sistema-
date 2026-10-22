@@ -81,6 +81,23 @@ $quotedId   = $payload['quoted_id']  ?? null;
 if (!$remoteJid) {
     http_response_code(400); echo json_encode(['error' => 'remote_jid obrigatório']); exit;
 }
+// Dono por conversa: não escreve na conversa de outro vendedor.
+\App\WhatsAppAgente\DonoDaConversa::exigir($pdo, $instanceId, $remoteJid);
+// Conversa que o vendedor começa por aqui nasce dele (e não de quem recebe as novas).
+$vendedorEnvio = \App\Core\AccountContext::vendedorDaSessao();
+if ($vendedorEnvio !== null && \App\WhatsAppAgente\DonoDaConversa::modo($pdo, $instanceId) !== null) {
+    $existe = $pdo->prepare('SELECT 1 FROM whatsapp_chats WHERE instance_id = ? AND remote_jid = ? LIMIT 1');
+    $existe->execute([$instanceId, $remoteJid]);
+    if (!$existe->fetchColumn()) {
+        register_shutdown_function(function () use ($pdo, $instanceId, $remoteJid, $vendedorEnvio) {
+            try {
+                \App\WhatsAppAgente\DonoDaConversa::passar($pdo, $instanceId, $remoteJid, $vendedorEnvio, null);
+            } catch (\Throwable $e) {
+                error_log('[send] dono da conversa nova: ' . $e->getMessage());
+            }
+        });
+    }
+}
 
 // ─── Auditoria 2026-06-01 MEDIA #38: validação de mídia server-side ──────────
 // media_upload.php (multipart) já validava MIME via finfo contra uma allowlist,

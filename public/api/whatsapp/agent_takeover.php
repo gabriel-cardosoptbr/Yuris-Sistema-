@@ -70,6 +70,7 @@ try {
 
     $chatId = (int)$row['id'];
     $chJid  = (string)$row['remote_jid'];
+    \App\WhatsAppAgente\DonoDaConversa::exigir($pdo, $channelId, $chJid);
 
     // 4C: pausa/retomada passam pelo REPOSITÓRIO (escritor único de agent_paused +
     // consistência com a sessão do agente). Pausar = human_takeover (humano assumiu, grava
@@ -79,6 +80,11 @@ try {
     try {
         if ($paused === 1) {
             $repo->pauseForHuman($channelId, $chJid, (int)$uid);
+            // Dono por conversa: quem assume fica com a conversa (some para o outro).
+            if (\App\WhatsAppAgente\DonoDaConversa::modo($pdo, $channelId) !== null) {
+                try { \App\WhatsAppAgente\DonoDaConversa::passar($pdo, $channelId, $chJid, (int)$uid, \App\Core\AccountContext::vendedorDaSessao()); }
+                catch (\DomainException $e) { error_log('[agent_takeover] dono: ' . $e->getMessage()); }
+            }
         } else {
             $repo->resumeBot($channelId, $chJid);
         }

@@ -36,6 +36,7 @@ try {
     $cfg        = $ch['cfg'];
     $name       = $ch['instance_name'];
     $instanceId = (int)$ch['channel_id'];
+    \App\WhatsAppAgente\DonoDaConversa::exigir($pdo, $instanceId, $remoteJid);
 
     // H1 (auditoria): freshness gate por (instance_id, remote_jid). Se esta conversa foi
     // sincronizada ha menos de 3s, serve do banco e NAO repete o POST a Evolution — evita

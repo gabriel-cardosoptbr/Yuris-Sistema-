@@ -61,6 +61,10 @@ try {
     //    revelar a existência da mídia a quem não tem acesso (anti-enumeração).
     $chk = WhatsAppChannelAccessService::check($pdo, $accountId, (int)$msg['instance_id'], 'view');
     if (!$chk) { http_response_code(404); echo 'Mensagem não encontrada'; exit; }
+    // Dono por conversa: a mídia de conversa de outro vendedor também não existe para ele.
+    if (!\App\WhatsAppAgente\DonoDaConversa::podeVer($pdo, (int)$msg['instance_id'], (string)$msg['remote_jid'], \App\Core\AccountContext::vendedorDaSessao())) {
+        http_response_code(404); echo 'Mensagem não encontrada'; exit;
+    }
 
     // debug=1 expõe respostas cruas da Evolution + erros internos — restrito ao DONO
     // do canal (conta com acesso compartilhado nunca usa o modo diagnóstico). Fase 2 E.

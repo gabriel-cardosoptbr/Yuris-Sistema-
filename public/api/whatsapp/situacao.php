@@ -51,6 +51,7 @@ try {
     $ch = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $canal, $metodo === 'POST' ? 'send' : 'view');
     $dono = (int)$ch['owner_account_id'];
     $instanceId = (int)$ch['channel_id'];
+    \App\WhatsAppAgente\DonoDaConversa::exigir($pdo, $instanceId, $jid);
 
     if (!SdrFleetiflow::contaUsa($dono)) { echo json_encode(['ok' => true, 'disponivel' => false]); exit; }
 

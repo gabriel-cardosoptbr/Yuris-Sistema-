@@ -86,10 +86,10 @@ try {
            FROM whatsapp_chats w
            JOIN cards c ON c.id = w.linked_card_id AND c.deleted_at IS NULL AND c.account_id = ?
            JOIN pipeline_columns pc ON pc.id = c.coluna_id
-          WHERE w.instance_id = ? AND w.is_group = 0 AND w.last_message_at IS NOT NULL
+          WHERE w.instance_id = ? AND w.is_group = 0 AND w.last_message_at IS NOT NULL" . ($filtroDono = \App\WhatsAppAgente\DonoDaConversa::filtroSql($pdo, $instanceId, \App\Core\AccountContext::vendedorDaSessao(), 'w'))[0] . "
        ORDER BY w.last_message_at DESC"
     );
-    $st->execute([$dono, $instanceId]);
+    $st->execute(array_merge([$dono, $instanceId], $filtroDono[1]));
     $porCard = [];
     $pausado = [];
     foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) {

@@ -52,6 +52,9 @@ try {
         }
 
         $action = trim($payload['action'] ?? '');
+        // Dono por conversa: foto, nome e renomear só na conversa que o vendedor pode ver.
+        $jidDono = trim((string)($payload['jid'] ?? $payload['remote_jid'] ?? ''));
+        if ($jidDono !== '') \App\WhatsAppAgente\DonoDaConversa::exigir($pdo, $instanceId, $jidDono);
 
         // ── action: fetch_pic ─────────────────────────────────────────────────
         // Busca foto de perfil on-demand via Evolution API e cacheia em whatsapp_chats.

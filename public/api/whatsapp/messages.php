@@ -46,6 +46,7 @@ try {
     // instance_id e credenciais saem do backend (dono do canal), nunca do front.
     $ch         = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $_GET['channel_id'] ?? null, 'view');
     $instanceId = (int)$ch['channel_id'];
+    \App\WhatsAppAgente\DonoDaConversa::exigir($pdo, $instanceId, $remoteJid);
 
     if ($search !== '') {
         // Busca dentro da conversa: retorna apenas mensagens que matcham

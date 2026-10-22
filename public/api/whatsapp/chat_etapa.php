@@ -66,6 +66,7 @@ try {
     if ($jid === '' || !$coluna) {
         http_response_code(422); echo json_encode(['error' => 'Conversa ou etapa inválida']); exit;
     }
+    \App\WhatsAppAgente\DonoDaConversa::exigir($pdo, $instanceId, $jid);
 
     $st = $pdo->prepare(
         'SELECT wc.linked_card_id FROM whatsapp_chats wc

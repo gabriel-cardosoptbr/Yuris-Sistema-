@@ -67,6 +67,7 @@ try {
     // backend (dono do canal), nunca do front.
     $pdo     = \App\Core\Database::getConnection();
     $ch      = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $payload['channel_id'] ?? null, 'delete_messages');
+    \App\WhatsAppAgente\DonoDaConversa::exigir($pdo, (int) $ch['channel_id'], $jid);
     $cfg     = $ch['cfg'];
     $name    = $ch['instance_name'];
 

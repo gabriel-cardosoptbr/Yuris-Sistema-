@@ -29,7 +29,7 @@ try {
     // com a flag ligada). A RESOLUÇÃO do contato abaixo continua escopada pelas
     // contas acessíveis (CRM próprio do tenant) — a filial não enxerga o CRM da
     // matriz mesmo vendo o chat compartilhado; aqui só se garante o acesso ao canal.
-    WhatsAppChannelAccessService::resolveForRequest($pdo, $ctx->getAccountId(), ($_GET['channel_id'] ?? null), 'view');
+    $chV = WhatsAppChannelAccessService::resolveForRequest($pdo, $ctx->getAccountId(), ($_GET['channel_id'] ?? null), 'view');
 
     $jid = trim($_GET['jid'] ?? '');
 
@@ -37,6 +37,7 @@ try {
         echo json_encode(['ok' => false, 'error' => 'jid obrigatório']);
         exit;
     }
+    \App\WhatsAppAgente\DonoDaConversa::exigir($pdo, (int) $chV['channel_id'], $jid);
 
     // Cláusula IN para filtrar TUDO por tenant
     $ph = []; $tenantParams = [];

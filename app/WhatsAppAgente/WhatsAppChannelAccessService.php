@@ -88,6 +88,9 @@ class WhatsAppChannelAccessService
         $st = $pdo->prepare('SELECT id FROM whatsapp_instances WHERE responsavel_user_id = ? AND id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')');
         $st->execute(array_merge([$v], $ids));
         $meus = array_map('intval', $st->fetchAll(\PDO::FETCH_COLUMN) ?: []);
+        // Número com dono por conversa (DonoDaConversa): todo vendedor da conta entra, e
+        // dentro dele vê só as conversas dele.
+        $meus = array_merge($meus, DonoDaConversa::numerosNoModo($pdo, $ids));
         return array_values(array_filter($ids, fn($id) => in_array((int) $id, $meus, true)));
     }
 
@@ -105,7 +108,8 @@ class WhatsAppChannelAccessService
 
         // Vendedor só no número de que é dono (ver vendedorDaSessao).
         $vendedor = self::vendedorDaSessao();
-        if ($vendedor !== null && (int) ($inst['responsavel_user_id'] ?? 0) !== $vendedor) return null;
+        if ($vendedor !== null && (int) ($inst['responsavel_user_id'] ?? 0) !== $vendedor
+            && !DonoDaConversa::vendedorAlcanca($pdo, (int) $inst['id'], $vendedor)) return null;
 
         $grant = self::grantRow($pdo, $accountId, $channelId);
         if (!$grant) return null; // sem vínculo => negado
@@ -212,6 +216,13 @@ class WhatsAppChannelAccessService
         );
         $st->execute($vendedor !== null ? [$accountId, $vendedor] : [$accountId]);
         $v = $st->fetchColumn();
+        // Vendedor sem número próprio: o número da conta com dono por conversa.
+        if ($v === false && $vendedor !== null) {
+            $todos = $pdo->prepare("SELECT channel_id FROM whatsapp_channel_accounts WHERE account_id = ? AND access_type = 'owner' AND revoked_at IS NULL ORDER BY channel_id DESC");
+            $todos->execute([$accountId]);
+            $noModo = DonoDaConversa::numerosNoModo($pdo, array_map('intval', $todos->fetchAll(\PDO::FETCH_COLUMN) ?: []));
+            foreach ($noModo as $id) { if (DonoDaConversa::vendedorAlcanca($pdo, $id, $vendedor)) return $id; }
+        }
         return $v === false ? null : (int)$v;
     }
 

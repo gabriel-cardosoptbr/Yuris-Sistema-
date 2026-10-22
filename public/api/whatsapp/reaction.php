@@ -61,6 +61,7 @@ try {
     $pdo        = \App\Core\Database::getConnection();
     $ch         = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $payload['channel_id'] ?? null, 'send');
     $instanceId = (int)$ch['channel_id'];
+    \App\WhatsAppAgente\DonoDaConversa::exigir($pdo, $instanceId, $jid);
     $ownerId    = (int)$ch['owner_account_id'];
     $cfg        = $ch['cfg'];
     $name       = $ch['instance_name'];

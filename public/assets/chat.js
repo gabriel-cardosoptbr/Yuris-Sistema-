@@ -743,13 +743,20 @@ const ChatApp = (() => {
       params.set('limit', String(state.chatLimit || 500));
       const r = await apiFetch(API.chats + '?' + params);
       state.chats = r.chats || [];
+      state.donoConversa = r.dono_conversa || null;
       if (window.CHAT_SETOR_NO_NOME) state.chats.forEach(aplicarNomeDoLead);
       state.hasMoreChats = !!r.has_more;
       renderChatList();
       // Etapa movida na Prospecção ou pela Vitória aparece sem reabrir a conversa.
       if (state.currentJid) {
         const aberto = state.chats.find(c => c.remote_jid === state.currentJid);
+        // Dono por conversa: a conversa aberta passou para outra pessoa e sumiu da lista do vendedor.
+        if (!aberto && state.donoConversa && !state.donoConversa.admin && !state.searchTerm && state.filter !== 'archived') {
+          closeChat();
+          toast('Esta conversa passou para outra pessoa', 'success');
+        }
         if (aberto) {
+          renderDono(aberto);
           updateStageBadge(aberto);
           // Quem está com a conversa muda junto (pausa, etapa de follow-up).
           if (window.CHAT_ETAPA_FUNIL) { renderTakeoverBtn(aberto.agent_paused == 1 || aberto.agent_paused === true); renderAgendarBtn(); }
@@ -958,6 +965,7 @@ const ChatApp = (() => {
     // Badge de setor — atualiza com o chat atual (pode ter team_id já carregado)
     updateSectorBadge(chatObj || null);
     updateStageBadge(chatObj || null);
+    renderDono(chatObj || null);
 
     // Botão "Assumir conversa" — reflete o estado de pausa do agente nesta conversa
     state.situacao = null; state.situacaoJid = null;
@@ -2525,6 +2533,64 @@ const ChatApp = (() => {
     }
   }
 
+  // ── Dono da conversa (número com dono por conversa) ─────────────────────
+  // Só aparece quando o número separa as conversas por dono. Mostra quem atende;
+  // o menu tem "Assumir" (passa para mim) e "Passar para" (outra pessoa da equipe).
+  function renderDono(chat) {
+    const wrap = qs('#donoWrap');
+    if (!wrap) return;
+    const m = state.donoConversa;
+    if (!m || !chat || chat.is_group == 1) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+    const meu = String(chat.linked_user_id || '') === String(m.eu);
+    setText('donoNome', chat.linked_user_id ? (meu ? 'Com você' : (chat.dono_nome || 'Outra pessoa')) : 'Sem dono');
+    const btn = qs('#donoBtn');
+    if (btn) btn.title = chat.linked_user_id ? 'Dono da conversa: ' + (chat.dono_nome || '') : 'Conversa sem dono: clique para assumir';
+  }
+
+  function toggleDonoMenu(e) {
+    if (e) e.stopPropagation();
+    const dd = qs('#donoMenu');
+    const m  = state.donoConversa;
+    if (!dd || !m) return;
+    if (dd.style.display !== 'none') { dd.style.display = 'none'; return; }
+    const chat = state.chats.find(c => c.remote_jid === state.currentJid);
+    if (!chat) return;
+    const atual = chat.linked_user_id ? String(chat.linked_user_id) : '';
+    let html = '';
+    if (atual !== String(m.eu)) html += `<div class="sector-dd-item" onclick="ChatApp.setDono(${Number(m.eu)})"><span class="sector-dd-dot" style="background:var(--ff-marca,#015DFC)"></span>Assumir</div>`;
+    // Passar para: admin passa qualquer conversa; o vendedor passa a que é dele.
+    if (m.admin || atual === String(m.eu)) {
+      const outros = (m.equipe || []).filter(u => String(u.id) !== atual && String(u.id) !== String(m.eu));
+      if (outros.length) {
+        if (html) html += '<hr class="sector-dd-divider">';
+        html += '<div class="sector-dd-item" style="cursor:default;opacity:.7;font-size:.7rem;text-transform:uppercase;letter-spacing:.04em">Passar para</div>';
+        html += outros.map(u => `<div class="sector-dd-item" onclick="ChatApp.setDono(${Number(u.id)})"><span class="sector-dd-dot" style="background:#94A3B8"></span>${esc(u.nome)}</div>`).join('');
+      }
+    }
+    if (!html) html = '<div class="sector-dd-item" style="cursor:default;opacity:.7">A conversa é sua</div>';
+    dd.innerHTML = html;
+    dd.style.display = 'block';
+    setTimeout(() => {
+      document.addEventListener('click', function _close() { if (dd) dd.style.display = 'none'; }, { once: true });
+    }, 0);
+  }
+
+  async function setDono(userId) {
+    const dd = qs('#donoMenu');
+    if (dd) dd.style.display = 'none';
+    if (!state.currentJid || !state.donoConversa) return;
+    const eu = String(userId) === String(state.donoConversa.eu);
+    try {
+      await apiFetch(API.chats, 'POST', { _csrf: CSRF, action: 'dono', remote_jid: state.currentJid, user_id: userId });
+      const u = (state.donoConversa.equipe || []).find(x => String(x.id) === String(userId));
+      toast(eu ? 'Você assumiu a conversa' : 'Conversa passada para ' + (u ? u.nome : 'outra pessoa'), 'success');
+      await loadChats(true);
+    } catch (e) {
+      toast(e.message || 'Não foi possível trocar o dono', 'error');
+    }
+  }
+
   // Abre/fecha o dropdown de setores no header
   async function toggleSectorDropdown(e) {
     if (e) e.stopPropagation();
@@ -3937,6 +4003,7 @@ const ChatApp = (() => {
         if (chatObj) chatObj.agent_paused = next;
         renderTakeoverBtn(next === 1);
         loadSituacao(state.currentJid);
+        if (next && state.donoConversa) loadChats(true);   // quem assume fica com a conversa
         toast(window.CHAT_ETAPA_FUNIL
           ? (next ? `Você assumiu: ${AG_COM} não responde mais nesta conversa` : `Conversa devolvida para ${AG_COM}`)
           : (next ? 'Você assumiu a conversa, o agente foi pausado aqui' : 'Agente reativado nesta conversa'), 'success');
@@ -4186,7 +4253,7 @@ const ChatApp = (() => {
     mandarParaAgente, agendarDaConversa, loadSituacao,
     abrirCadastroRapido, fecharCadastroRapido, cadastrarComo,
     openLinkPicker, filterLinkPicker, selectLinkItem, clearLinkItem, removeLinkedProcesso,
-    toggleSectorDropdown, setSectorDirect,
+    toggleSectorDropdown, setSectorDirect, toggleDonoMenu, setDono,
     toggleStageDropdown, setStageDirect,
     abrirPendentes, fecharPendentes, abrirPendente, dispensarPendente,
     openImage, baixarDocumento,

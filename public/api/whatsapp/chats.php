@@ -44,6 +44,7 @@ try {
         if (!empty($_GET['action']) && $_GET['action'] === 'get_processos') {
             $jid = trim($_GET['jid'] ?? '');
             if (!$jid) { echo json_encode(['ok' => false, 'error' => 'jid obrigatório']); exit; }
+            \App\WhatsAppAgente\DonoDaConversa::exigir($pdo, $instanceId, $jid);
             echo json_encode([
                 'ok'          => true,
                 'processo_ids'=> $msgModel->getLinkedProcessos($instanceId, $jid),
@@ -80,13 +81,21 @@ try {
         }
 
         $listLimit = isset($_GET['limit']) ? max(50, min(2000, (int)$_GET['limit'])) : 500;
-        $chats     = $msgModel->getChatList($instanceId, $search, $teamFilter, $userFilter, $archived, $listLimit, $colunaFilter);
+        $vendedorLista = \App\Core\AccountContext::vendedorDaSessao();
+        $chats     = $msgModel->getChatList($instanceId, $search, $teamFilter, $userFilter, $archived, $listLimit, $colunaFilter, $vendedorLista);
 
+        // Dono por conversa: a tela mostra o dono, "Assumir" e "Passar para".
+        $modoDono = \App\WhatsAppAgente\DonoDaConversa::modo($pdo, $instanceId);
         echo json_encode([
             'ok'          => true,
             'chats'       => $chats,
             'has_more'    => count($chats) >= $listLimit,
-            'total_unread'=> $msgModel->getTotalUnread($instanceId),
+            'total_unread'=> $msgModel->getTotalUnread($instanceId, $vendedorLista),
+            'dono_conversa' => $modoDono === null ? null : [
+                'eu'     => (int) $_uid,
+                'admin'  => $vendedorLista === null,
+                'equipe' => \App\WhatsAppAgente\DonoDaConversa::equipe($pdo, $instanceId),
+            ],
         ]);
         exit;
     }
@@ -98,6 +107,20 @@ try {
         }
         $action = $payload['action'] ?? '';
         $jid    = $payload['remote_jid'] ?? '';
+        // Dono por conversa: nenhuma ação na conversa de outro vendedor.
+        if ($jid !== '') \App\WhatsAppAgente\DonoDaConversa::exigir($pdo, $instanceId, (string) $jid);
+
+        // Assumir (passar para si) ou passar para outra pessoa da equipe.
+        if ($action === 'dono') {
+            try {
+                $para = !empty($payload['user_id']) ? (int) $payload['user_id'] : (int) $_uid;
+                \App\WhatsAppAgente\DonoDaConversa::passar($pdo, $instanceId, (string) $jid, $para, \App\Core\AccountContext::vendedorDaSessao());
+                echo json_encode(['ok' => true, 'dono' => $para]);
+            } catch (\DomainException $e) {
+                http_response_code(422); echo json_encode(['ok' => false, 'error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
+            }
+            exit;
+        }
 
         if ($action === 'mark_read') {
             if ($jid) $msgModel->markChatRead($instanceId, $jid);

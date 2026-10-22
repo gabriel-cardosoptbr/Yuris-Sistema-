@@ -68,7 +68,11 @@ try {
     );
     $st->execute([$conta, $cardId]);
     $chats = $st->fetchAll(PDO::FETCH_ASSOC);
-    if ($vendedor !== null) $chats = array_values(array_filter($chats, fn($c) => (int)($c['dono_id'] ?? 0) === $vendedor));
+    // Vendedor: conversas do número dele; no número com dono por conversa, só as conversas dele.
+    if ($vendedor !== null) $chats = array_values(array_filter($chats, fn($c) =>
+        \App\WhatsAppAgente\DonoDaConversa::modo($pdo, (int)$c['instance_id']) !== null
+            ? \App\WhatsAppAgente\DonoDaConversa::podeVer($pdo, (int)$c['instance_id'], (string)$c['remote_jid'], $vendedor)
+            : (int)($c['dono_id'] ?? 0) === $vendedor));
 
     $nomeUsuario = function (?int $id) use ($um, $conta): ?string {
         if (!$id) return null;

@@ -41,6 +41,13 @@ escolher uma pessoa em "Toda a equipe" quebrava a tela.
 `?coluna_id=0` (conversa sem lead), junto de `team_id` e `user_id`; é o filtro "Todas as etapas" do Chat da
 edição CRM (07/10/2026). Sem o parâmetro, a lista é a de sempre.
 
+**Dono por conversa (22/10/2026).** No número com o modo ligado (`App\WhatsAppAgente\DonoDaConversa`), o
+vendedor só recebe na lista, nas não lidas e nos pendentes as conversas dele e as sem dono, e todo endpoint de
+`whatsapp/` que recebe uma conversa responde 404 para a de outro vendedor. `chats.php` devolve
+`dono_conversa: {eu, admin, equipe}` (null fora do modo) e cada conversa traz `dono_nome`; `POST chats.php`
+com `action: 'dono'` assume (sem `user_id`) ou passa para `user_id`. `agent_takeover.php` ao pausar o agente
+também passa a conversa para quem clicou.
+
 `whatsapp/situacao.php` (sessão, edição CRM) é a linha "Aguardando resposta" do Chat: `GET ?jid=` devolve
 `{disponivel, situacao}` (motivo, desde quando, quem pausou, agente ligado no número da conversa; canal com
 `view`), e `POST {action:'mandar_agente', remote_jid, _csrf}` entrega de novo ao agente as mensagens do lead

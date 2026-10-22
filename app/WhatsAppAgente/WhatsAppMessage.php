@@ -613,7 +613,7 @@ class WhatsAppMessage
      * @param int|null    $colunaId    Filtra pela etapa do lead ligado, a coluna do card (NULL = todas; 0 = conversa sem lead).
      *                                 Filtro da edição CRM (07/10/2026); o Yuris não manda.
      */
-    public function getChatList(int $instanceId, string $search = '', ?int $teamId = null, ?int $userId = null, bool $archived = false, int $limit = 500, ?int $colunaId = null): array
+    public function getChatList(int $instanceId, string $search = '', ?int $teamId = null, ?int $userId = null, bool $archived = false, int $limit = 500, ?int $colunaId = null, ?int $vendedor = null): array
     {
         // JOIN com teams para trazer nome e cor do setor junto com cada chat
         // archived=true → lista apenas arquivadas; false (default) → só não-arquivadas
@@ -625,6 +625,7 @@ class WhatsAppMessage
         // telefone/LID) da mensagem inbound mais recente. Cai pro contact_name do
         // chat (respeitando rename manual) só quando não há nome real nas mensagens.
         $sql = 'SELECT c.*,
+                       (SELECT du.nome FROM users du WHERE du.id = c.linked_user_id) AS dono_nome,
                        t.nome AS team_nome,
                        t.cor  AS team_cor,
                        -- Etapa do funil = coluna do card ligado (o Chat da conta
@@ -803,6 +804,11 @@ class WhatsAppMessage
         // criados sem last_message_at (NULL) afundavam (NULL DESC vai pro fim) e caiam fora
         // do limite, sumindo da lista. LIMIT parametrizado (default 500, "Carregar mais"
         // amplia) — antes era fixo em 200 e a 201a conversa ficava invisivel.
+        // Dono por conversa: o vendedor só lista as conversas dele e as sem dono.
+        [$soDele, $parDele] = DonoDaConversa::filtroSql($this->db, $instanceId, $vendedor);
+        $sql .= $soDele;
+        $params = array_merge($params, $parDele);
+
         $limit = max(50, min(2000, $limit));
         $sql .= ' ORDER BY c.is_pinned DESC, COALESCE(c.last_message_at, c.updated_at, c.created_at) DESC LIMIT ' . (int)$limit;
         $stmt = $this->db->prepare($sql);
@@ -918,6 +924,8 @@ class WhatsAppMessage
             $isInbound ? 1 : 0,
             $isGroup ? 1 : 0,
         ]);
+        // Número com dono por conversa: a conversa sem dono ganha um pela data da mensagem.
+        DonoDaConversa::aoSalvarMensagem($this->db, (int) $data['instance_id'], (string) $data['remote_jid'], $data['created_at'] ?? null);
     }
 
     /**
@@ -1030,14 +1038,15 @@ class WhatsAppMessage
     }
 
     /** Contar mensagens novas (para badge). */
-    public function getTotalUnread(int $instanceId): int
+    public function getTotalUnread(int $instanceId, ?int $vendedor = null): int
     {
+        [$soDele, $parDele] = DonoDaConversa::filtroSql($this->db, $instanceId, $vendedor, 'whatsapp_chats');
         $stmt = $this->db->prepare(
             'SELECT COALESCE(SUM(unread_count), 0)
              FROM whatsapp_chats
-             WHERE instance_id = ? AND is_archived = 0'
+             WHERE instance_id = ? AND is_archived = 0' . $soDele
         );
-        $stmt->execute([$instanceId]);
+        $stmt->execute(array_merge([$instanceId], $parDele));
         return (int)$stmt->fetchColumn();
     }
 

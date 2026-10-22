@@ -40,6 +40,7 @@ try {
         echo json_encode(['error' => 'jid de grupo obrigatório (deve terminar com @g.us)']);
         exit;
     }
+    \App\WhatsAppAgente\DonoDaConversa::exigir($pdo, $instanceId, $jid);
 
     $model   = new WhatsAppMessage();
     $members = $model->getGroupMembers($instanceId, $jid);

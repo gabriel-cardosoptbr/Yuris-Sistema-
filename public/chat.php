@@ -2226,6 +2226,17 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               </button>
 
+              <!-- Dono da conversa (número com dono por conversa, 22/10/2026): quem atende.
+                   "Assumir" passa para quem clicou; "Passar para" para outra pessoa. -->
+              <div id="donoWrap" style="position:relative;display:none">
+                <button id="donoBtn" class="chat-icon-btn sector-badge-btn" onclick="ChatApp.toggleDonoMenu(event)" title="Dono da conversa">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;flex-shrink:0"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>
+                  <span id="donoNome" style="font-size:.72rem;font-weight:600;white-space:nowrap">Sem dono</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:10px;height:10px;flex-shrink:0;opacity:.6"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div id="donoMenu" class="sector-dropdown" style="display:none"></div>
+              </div>
+
               <!-- Assumir conversa: pausa/retoma o agente de IA SÓ nesta conversa -->
               <button class="chat-icon-btn" id="btnTakeover" onclick="ChatApp.toggleTakeover()"
                       title="Assumir conversa (pausar o agente)"
@@ -2775,7 +2786,7 @@ const API  = {
 <?php if ($isFleetiflow): ?>
 <script>window.CHAT_SETOR_NO_NOME = true; /* setor ao lado do nome na lista */</script>
 <?php endif; ?>
-<script src="/assets/chat.js?v=84"></script>
+<script src="/assets/chat.js?v=<?= @filemtime(__DIR__ . '/assets/chat.js') ?: 85 ?>"></script>
 <?php if ($isFleetiflow): ?>
 <script>
 window.CSRF_CHAT     = <?= json_encode($csrf) ?>;
