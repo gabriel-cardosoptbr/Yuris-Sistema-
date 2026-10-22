@@ -17,6 +17,22 @@ class WhatsAppMessage
      * Salvar ou atualizar mensagem pelo wamid.
      * Retorna o ID inserido/existente.
      */
+    /** A coluna sent_by_user_id (migration 165) já existe? Lido uma vez por requisição. */
+    private static ?bool $temSentBy = null;
+    public static function temColunaSentBy(\PDO $pdo): bool
+    {
+        if (self::$temSentBy === null) {
+            try {
+                $st = $pdo->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'whatsapp_messages' AND COLUMN_NAME = 'sent_by_user_id'");
+                $st->execute();
+                self::$temSentBy = (int) $st->fetchColumn() > 0;
+            } catch (\Throwable $e) {
+                self::$temSentBy = false;
+            }
+        }
+        return self::$temSentBy;
+    }
+
     public function save(array $data): int
     {
         // Normaliza wamid vazio para NULL. Com o UNIQUE (instance_id, wamid),
@@ -115,13 +131,15 @@ class WhatsAppMessage
             $accountIdResolved = $accId !== false && $accId !== null ? (int)$accId : null;
         }
 
+        // Quem enviou pelo CRM (métricas de atendimento, migration 165): só com a coluna no banco.
+        $comSentBy = self::temColunaSentBy($this->db) && array_key_exists('sent_by_user_id', $data);
         $stmt = $this->db->prepare(
             'INSERT INTO whatsapp_messages
              (account_id, instance_id, wamid, remote_jid, participant_jid, contact_name, phone,
               message_type, message_content, caption, media_url,
               media_mimetype, media_filename, media_base64,
-              direction, status, quoted_wamid, quoted_sender_name, quoted_text, raw_payload, created_at)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
+              direction, status, quoted_wamid, quoted_sender_name, quoted_text, raw_payload, created_at' . ($comSentBy ? ', sent_by_user_id' : '') . ')
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?' . ($comSentBy ? ',?' : '') . ')'
         );
         $insertParams = [
             $accountIdResolved,
@@ -146,6 +164,8 @@ class WhatsAppMessage
             $data['raw_payload']    ?? null,
             $data['created_at']     ?? date('Y-m-d H:i:s'),
         ];
+        if ($comSentBy) $insertParams[] = $data['sent_by_user_id'] !== null ? (int) $data['sent_by_user_id'] : null;
+
         // Idempotência (contingência): com o UNIQUE (instance_id, wamid), uma corrida
         // entre sync e webhook podia tentar inserir a MESMA mensagem 2x. Em vez de
         // duplicar (ou estourar 500), recupera o id já existente e segue.

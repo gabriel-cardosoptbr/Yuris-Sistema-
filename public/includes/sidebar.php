@@ -819,6 +819,8 @@ if ($_isFleetiflow) {
       [ 'key' => 'comunicacao', 'label' => 'Comunicação', 'icon' => $_grpSvg['comunicacao'], 'items' => [
         ['perm'=>'chat',         'href'=>'chat.php',         'active'=>'chat',         'icon'=>'chat',         'label'=>'WhatsApp'],
         ['perm'=>'chat_interno', 'href'=>'chat_interno.php', 'active'=>'chat_interno', 'icon'=>'chat_interno', 'label'=>'Chat Interno'],
+        // Métricas de atendimento do WhatsApp (tempo de resposta por operador): quem vê o Chat vê.
+        ['perm'=>'chat',         'href'=>'atendimento.php',  'active'=>'atendimento',  'icon'=>'desempenho',   'label'=>'Atendimento'],
       ]],
       [ 'key' => 'gestao', 'label' => 'Gestão', 'icon' => $_grpSvg['gestao'], 'items' => [
         // Relatorios ve quem ja enxerga PELO MENOS UMA das tres fontes. Nao

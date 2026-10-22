@@ -247,6 +247,8 @@ $msgId = $msgModel->save([
     'status'          => 'sent',
     'quoted_wamid'    => $quotedId,
     'created_at'      => $createdAt,
+    // Quem digitou (métricas de atendimento, Comunicação › Atendimento).
+    'sent_by_user_id' => (int) $_uid ?: null,
 ]);
 
 // Fleetiflow: quem responde pelo Chat assume a conversa, e a Vitória (IA de

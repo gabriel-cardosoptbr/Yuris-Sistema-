@@ -46,7 +46,7 @@ vendedor só recebe na lista, nas não lidas e nos pendentes as conversas dele e
 `whatsapp/` que recebe uma conversa responde 404 para a de outro vendedor. `chats.php` devolve
 `dono_conversa: {eu, admin, equipe}` (null fora do modo) e cada conversa traz `dono_nome`; `POST chats.php`
 com `action: 'dono'` assume (sem `user_id`) ou passa para `user_id`. `agent_takeover.php` ao pausar o agente
-também passa a conversa para quem clicou.
+também passa a conversa para quem clicou. `send.php` grava `sent_by_user_id` em cada mensagem enviada (quem digitou; métricas de atendimento, migration 165).
 
 `whatsapp/situacao.php` (sessão, edição CRM) é a linha "Aguardando resposta" do Chat: `GET ?jid=` devolve
 `{disponivel, situacao}` (motivo, desde quando, quem pausou, agente ligado no número da conversa; canal com

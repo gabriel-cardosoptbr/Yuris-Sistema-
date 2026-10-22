@@ -73,7 +73,16 @@ sombra nova, sem lista de exceção.
 `tarefas.php` · `processos.php` · `intimacoes.php` · `juridico.php` ·
 `chat.php` · `chat_interno.php` · `financas.php` · `usuarios.php` ·
 `escritorios.php` · `agente.php` · `webhooks.php` · `configuracoes.php` ·
-`relatorios.php` · `desempenho.php`
+`relatorios.php` · `desempenho.php` · `atendimento.php`
+
+`atendimento.php` (Comunicação › Atendimento, 22/10/2026) são as métricas de
+atendimento do WhatsApp: tempo médio e mediana de resposta, % respondido em até
+5 minutos, primeira resposta, conversas sem resposta, quem está esperando agora,
+ranking por operador, dia a dia e distribuição por faixa. Mesma permissão do Chat
+(`chat`); dono/admin vê a equipe e filtra por operador e número, o vendedor da
+edição CRM vê só o próprio. Regras e o porquê em
+`App\WhatsAppAgente\MetricasAtendimento`; quem enviou cada mensagem pelo Chat vem
+de `whatsapp_messages.sent_by_user_id` (migration 165).
 
 `desempenho.php` (Gestão › Desempenho) é o OTIF das tarefas por colaborador:
 ranking, evolução mensal e a lista do que tirou o OTIF de cada um. Dono/admin

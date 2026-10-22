@@ -71,7 +71,7 @@ final class Ambiente
         'comercial' => [
             ['key' => 'com_vendas', 'label' => 'Vendas', 'g' => 'operacao', 'itens' => ['planejamento.php', 'prospeccao.php', 'orcamentos.php', 'plataforma.php', 'clientes.php']],
             ['key' => 'com_contratos', 'label' => 'Contratos', 'g' => 'contratos', 'direto' => true, 'itens' => ['contratos.php']],
-            ['key' => 'com_comunicacao', 'label' => 'Comunicação', 'g' => 'comunicacao', 'itens' => ['chat.php', 'chat_interno.php', 'agente.php']],
+            ['key' => 'com_comunicacao', 'label' => 'Comunicação', 'g' => 'comunicacao', 'itens' => ['chat.php', 'chat_interno.php', 'atendimento.php', 'agente.php']],
             ['key' => 'com_metas', 'label' => 'Metas e resultados', 'g' => 'gestao', 'itens' => ['desempenho.php', 'relatorios.php']],
         ],
         'software' => [
@@ -90,7 +90,7 @@ final class Ambiente
     private const ATIVO_DO_HREF = [
         'planejamento.php' => 'funil', 'prospeccao.php' => 'prospeccao', 'orcamentos.php' => 'orcamentos', 'plataforma.php' => 'plataforma',
         'clientes.php' => 'clientes', 'tarefas.php' => 'tarefas', 'contratos.php' => 'contratos', 'chat.php' => 'chat',
-        'chat_interno.php' => 'chat_interno', 'agente.php' => 'agente', 'webhooks.php' => 'webhooks', 'relatorios.php' => 'relatorios',
+        'chat_interno.php' => 'chat_interno', 'atendimento.php' => 'atendimento', 'agente.php' => 'agente', 'webhooks.php' => 'webhooks', 'relatorios.php' => 'relatorios',
         'desempenho.php' => 'desempenho', 'financas.php' => 'dre', 'usuarios.php' => 'usuarios', 'usuarios.php?tab=setores' => 'setores',
         'escritorios.php' => 'escritorios', 'evolution.php' => 'evolution', 'projetos.php*' => 'projetos',
     ];
