@@ -82,7 +82,7 @@ ranking por operador, dia a dia e distribuição por faixa. Mesma permissão do 
 (`chat`); dono/admin vê a equipe e filtra por operador e número, o vendedor da
 edição CRM vê só o próprio. Regras e o porquê em
 `App\WhatsAppAgente\MetricasAtendimento`; quem enviou cada mensagem pelo Chat vem
-de `whatsapp_messages.sent_by_user_id` (migration 165).
+de `whatsapp_messages.sent_by_user_id` (migration 165). Dono/admin configura ali o **horário comercial** da conta (padrão seg a sex, 08:00 às 18:00); com ele ligado, as métricas contam só o expediente, e a chave "Tempo corrido" mostra as 24 horas. Os horários são de Brasília.
 
 `desempenho.php` (Gestão › Desempenho) é o OTIF das tarefas por colaborador:
 ranking, evolução mensal e a lista do que tirou o OTIF de cada um. Dono/admin

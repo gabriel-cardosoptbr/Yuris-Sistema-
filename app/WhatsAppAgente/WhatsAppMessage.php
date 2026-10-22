@@ -33,6 +33,22 @@ class WhatsAppMessage
         return self::$temSentBy;
     }
 
+    /** A coluna whatsapp_chats.excluida_em (migration 166) já existe? Lido uma vez por requisição. */
+    private static ?bool $temExcluida = null;
+    public static function temColunaExcluida(\PDO $pdo): bool
+    {
+        if (self::$temExcluida === null) {
+            try {
+                $st = $pdo->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'whatsapp_chats' AND COLUMN_NAME = 'excluida_em'");
+                $st->execute();
+                self::$temExcluida = (int) $st->fetchColumn() > 0;
+            } catch (\Throwable $e) {
+                self::$temExcluida = false;
+            }
+        }
+        return self::$temExcluida;
+    }
+
     public function save(array $data): int
     {
         // Normaliza wamid vazio para NULL. Com o UNIQUE (instance_id, wamid),
@@ -737,7 +753,7 @@ class WhatsAppMessage
                 LEFT JOIN teams t ON t.id = c.team_id AND t.deleted_at IS NULL
                 LEFT JOIN cards cd ON cd.id = c.linked_card_id AND cd.deleted_at IS NULL
                 LEFT JOIN pipeline_columns pcol ON pcol.id = cd.coluna_id
-                WHERE c.instance_id = ? AND c.is_archived = ' . ($archived ? '1' : '0') . '
+                WHERE c.instance_id = ? AND c.is_archived = ' . ($archived ? '1' : '0') . (self::temColunaExcluida($this->db) ? ' AND c.excluida_em IS NULL' : '') . '
                   -- Esconde status/broadcast e newsletter (nao sao conversas).
                   AND c.remote_jid NOT LIKE \'%@broadcast\'
                   AND c.remote_jid NOT LIKE \'%@newsletter\'
@@ -929,6 +945,8 @@ class WhatsAppMessage
                last_message_at      = VALUES(last_message_at),
                last_message_from_me = VALUES(last_message_from_me),
                unread_count         = IF(VALUES(last_message_from_me) = 0, unread_count + 1, unread_count)'
+             // Conversa excluída (migration 166) volta para a lista quando chega mensagem nova.
+             . (self::temColunaExcluida($this->db) ? ', excluida_em = NULL' : '')
         );
 
         $stmt->execute([
@@ -1064,7 +1082,7 @@ class WhatsAppMessage
         $stmt = $this->db->prepare(
             'SELECT COALESCE(SUM(unread_count), 0)
              FROM whatsapp_chats
-             WHERE instance_id = ? AND is_archived = 0' . $soDele
+             WHERE instance_id = ? AND is_archived = 0' . (self::temColunaExcluida($this->db) ? ' AND excluida_em IS NULL' : '') . $soDele
         );
         $stmt->execute(array_merge([$instanceId], $parDele));
         return (int)$stmt->fetchColumn();
@@ -1175,14 +1193,22 @@ class WhatsAppMessage
      * e o registro do chat. A conversa retorna automaticamente se
      * novas mensagens chegarem via webhook.
      */
+    /**
+     * "Excluir conversa" (22/10/2026): tira a conversa da lista e GUARDA as mensagens
+     * (histórico e métricas de atendimento). Com a migration 166 só marca
+     * whatsapp_chats.excluida_em; a conversa volta se o contato escrever de novo.
+     * Antes da migration, mantém o comportamento antigo (apagava tudo).
+     */
     public function deleteChat(int $instanceId, string $remoteJid): bool
     {
-        // 1. Remove mensagens
+        if (self::temColunaExcluida($this->db)) {
+            return $this->db->prepare(
+                'UPDATE whatsapp_chats SET excluida_em = NOW(), unread_count = 0, is_pinned = 0 WHERE instance_id = ? AND remote_jid = ?'
+            )->execute([$instanceId, $remoteJid]);
+        }
         $this->db->prepare(
             'DELETE FROM whatsapp_messages WHERE instance_id = ? AND remote_jid = ?'
         )->execute([$instanceId, $remoteJid]);
-
-        // 2. Remove o chat
         return $this->db->prepare(
             'DELETE FROM whatsapp_chats WHERE instance_id = ? AND remote_jid = ?'
         )->execute([$instanceId, $remoteJid]);

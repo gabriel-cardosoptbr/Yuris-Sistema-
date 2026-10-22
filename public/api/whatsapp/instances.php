@@ -123,7 +123,8 @@ if ($method === 'GET') {
         $vendedorNL = \App\Core\AccountContext::vendedorDaSessao();
         foreach ($viewable as $iid) {
             [$soDele, $parDele] = \App\WhatsAppAgente\DonoDaConversa::filtroSql($pdo, (int)$iid, $vendedorNL, 'whatsapp_chats');
-            $st = $pdo->prepare("SELECT COALESCE(SUM(unread_count),0) FROM whatsapp_chats WHERE instance_id = ? AND is_archived = 0" . $soDele);
+            $st = $pdo->prepare("SELECT COALESCE(SUM(unread_count),0) FROM whatsapp_chats WHERE instance_id = ? AND is_archived = 0"
+                . (\App\WhatsAppAgente\WhatsAppMessage::temColunaExcluida($pdo) ? ' AND excluida_em IS NULL' : '') . $soDele);
             $st->execute(array_merge([(int)$iid], $parDele));
             $naoLidas[(int)$iid] = (int)$st->fetchColumn();
         }

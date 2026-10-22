@@ -63,6 +63,25 @@ ok('ranking: quem respondeu mais primeiro', $r['operadores'][0]['user_id'] === 1
 ok('faixa: 5 min bom, 20 atenção, 31 crítico, null sem', M::faixa(5) === 'bom' && M::faixa(20) === 'atencao' && M::faixa(31) === 'ruim' && M::faixa(null) === 'sem');
 ok('duração legível', M::duracao(0.4) === 'menos de 1 min' && M::duracao(32) === '32 min' && M::duracao(65) === '1 h 05' && M::duracao(2880) === '2 d 00 h');
 ok('período: inverte quando de > até e limita a 92 dias', M::periodo('2026-10-21', '2026-10-01') === ['2026-10-01', '2026-10-21'] && M::periodo('2025-01-01', '2026-10-21')[0] === '2026-07-22');
+echo "
+== 1b. Horário comercial e fuso ==
+";
+$h = M::HORARIO_PADRAO;
+ok('22h respondida às 8h05 do dia seguinte: 5 min no comercial, 605 corrido', M::minutosEntre('2026-10-20 22:00:00', '2026-10-21 08:05:00', $h) == 5 && M::minutosEntre('2026-10-20 22:00:00', '2026-10-21 08:05:00') == 605);
+ok('sexta 17h a segunda 9h: 2 horas úteis (fim de semana fechado)', M::minutosEntre('2026-10-23 17:00:00', '2026-10-26 09:00:00', $h) == 120);
+ok('sábado inteiro fora do expediente: zero', M::minutosEntre('2026-10-24 10:00:00', '2026-10-24 11:00:00', $h) == 0);
+ok('horário desligado: tempo corrido', M::minutosEntre('2026-10-20 22:00:00', '2026-10-21 08:05:00', ['ativo' => false, 'dias' => $h['dias']]) == 605);
+$rc = M::calcular([msg($A, 'inbound', '2026-10-20 22:00:00'), msg($A, 'outbound', '2026-10-21 08:05:00', 10)], $donos, $nomes, '2026-10-20', '2026-10-21', $h);
+ok('o relatório usa o horário: a resposta da manhã vale 5 min', $rc['equipe']['respostas'] === 1 && $rc['equipe']['media'] == 5);
+$hn = M::normalizarHorario(['ativo' => 1, 'dias' => [1 => ['08:00', '18:00'], 6 => ['08:00', '12:00'], 7 => ['09:00', '08:00'], 3 => ['25:00', '18:00']]]);
+ok('horário inválido é descartado (fim antes do início, hora 25)', array_keys($hn['dias']) === [1, 6] && $hn['ativo'] === true);
+ok('sem nenhum dia, o horário fica desligado', M::normalizarHorario(['ativo' => 1, 'dias' => []])['ativo'] === false);
+ok('descrição legível', M::descreverHorario($h) === 'Seg a sex, 08:00 às 18:00' && M::descreverHorario($hn) === 'Seg, 08:00 às 18:00 · sáb, 08:00 às 12:00');
+ok('conta sem configuração usa o padrão; configurada usa a dela', M::horarioDaConta([]) === $h && M::horarioDaConta(['configuracoes' => json_encode(['atendimento' => ['horario' => ['ativo' => true, 'dias' => [6 => ['09:00', '13:00']]]]])])['dias'] === [6 => ['09:00', '13:00']]);
+$fusoAntes = date_default_timezone_get(); date_default_timezone_set('UTC');
+ok('o banco em UTC vira horário de Brasília (16h UTC = 13h)', M::paraLocal('2026-10-22 16:00:00') === '2026-10-22 13:00:00' && M::doLocal('2026-10-22 13:00:00') === '2026-10-22 16:00:00');
+date_default_timezone_set($fusoAntes);
+
 $s = M::serieDiaria($r['dias'], '2026-10-19', '2026-10-21');
 ok('série diária preenche os dias sem resposta com zero', $s['respostas'] === [0, 2, 2] && $s['media'][0] === null && $s['rotulos'][0] === '19/10');
 
@@ -79,13 +98,13 @@ else {
             $pdo->prepare("INSERT INTO users (account_id, nome, login, senha_hash, perfil, role, status) VALUES (?, ?, ?, 'x', 'user', 'user', 'active')")->execute([$CONTA, 'ZZMETR ' . $n, 'zzmetr_' . bin2hex(random_bytes(4)) . '@teste.local']);
             $users[$n] = (int) $pdo->lastInsertId();
         }
-        $hoje = date('Y-m-d');
+        $hoje = M::hoje();
         $ins = $pdo->prepare('INSERT INTO whatsapp_messages (account_id, instance_id, wamid, remote_jid, direction, status, message_type, message_content, created_at, sent_by_user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
         $m = function (string $jid, string $dir, string $hora, ?int $por = null) use ($ins, $INST, $CONTA, $hoje) {
-            $ins->execute([$CONTA, $INST, 'ZZMETR' . bin2hex(random_bytes(6)), $jid, $dir, 'sent', 'text', 'ZZMETR', "$hoje $hora", $por]);
+            $ins->execute([$CONTA, $INST, 'ZZMETR' . bin2hex(random_bytes(6)), $jid, $dir, 'sent', 'text', 'ZZMETR', M::doLocal("$hoje $hora"), $por]);
         };
-        $pdo->prepare("INSERT INTO whatsapp_chats (account_id, instance_id, remote_jid, contact_name, linked_user_id, last_message_from_me, last_message_at) VALUES (?, ?, ?, 'ZZMETR um', ?, 0, ?)")->execute([$CONTA, $INST, $jids[0], $users['Isa'], "$hoje 12:00:00"]);
-        $pdo->prepare("INSERT INTO whatsapp_chats (account_id, instance_id, remote_jid, contact_name, linked_user_id, last_message_from_me, last_message_at) VALUES (?, ?, ?, 'ZZMETR dois', ?, 1, ?)")->execute([$CONTA, $INST, $jids[1], $users['Kaue'], "$hoje 10:08:00"]);
+        $pdo->prepare("INSERT INTO whatsapp_chats (account_id, instance_id, remote_jid, contact_name, linked_user_id, last_message_from_me, last_message_at) VALUES (?, ?, ?, 'ZZMETR um', ?, 0, ?)")->execute([$CONTA, $INST, $jids[0], $users['Isa'], M::doLocal("$hoje 12:00:00")]);
+        $pdo->prepare("INSERT INTO whatsapp_chats (account_id, instance_id, remote_jid, contact_name, linked_user_id, last_message_from_me, last_message_at) VALUES (?, ?, ?, 'ZZMETR dois', ?, 1, ?)")->execute([$CONTA, $INST, $jids[1], $users['Kaue'], M::doLocal("$hoje 10:08:00")]);
         $m($jids[0], 'inbound', '09:00:00'); $m($jids[0], 'outbound', '09:06:00', $users['Isa']); $m($jids[0], 'inbound', '12:00:00');
         $m($jids[1], 'inbound', '10:00:00'); $m($jids[1], 'outbound', '10:08:00', $users['Kaue']);
 
@@ -99,6 +118,17 @@ else {
         $relF = M::relatorio($CONTA, [$INST], $hoje, $hoje, null, $users['Isa']);
         ok('filtro por operador (admin): só a Isa, e o "esperando" dela', $relF['foco']['metricas']['respostas'] === 1 && count($relF['aguardando']) === 1);
         ok('outra conta não vê nada (números não são dela)', M::relatorio(476, [], $hoje, $hoje)['equipe']['respostas'] === 0);
+        $msgModel = new \App\WhatsAppAgente\WhatsAppMessage();
+        if (\App\WhatsAppAgente\WhatsAppMessage::temColunaExcluida($pdo)) {
+            $msgModel->deleteChat($INST, $jids[0]);
+            $guardadas = (int) $pdo->query("SELECT COUNT(*) FROM whatsapp_messages WHERE instance_id = $INST AND remote_jid = '{$jids[0]}'")->fetchColumn();
+            ok('excluir a conversa guarda as mensagens', $guardadas === 3);
+            ok('a excluída sai da lista e de "esperando agora", mas continua nas métricas', !in_array($jids[0], array_column($msgModel->getChatList($INST, 'ZZMETR'), 'remote_jid'), true)
+                && !in_array($jids[0], array_column(M::relatorio($CONTA, [$INST], $hoje, $hoje)['aguardando'], 'remote_jid'), true)
+                && M::relatorio($CONTA, [$INST], $hoje, $hoje)['equipe']['respostas'] === 2);
+            $msgModel->upsertChat(['instance_id' => $INST, 'account_id' => $CONTA, 'remote_jid' => $jids[0], 'direction' => 'inbound', 'message_content' => 'volta', 'message_type' => 'text', 'created_at' => date('Y-m-d H:i:s')]);
+            ok('mensagem nova traz a conversa de volta para a lista', in_array($jids[0], array_column($msgModel->getChatList($INST, 'ZZMETR'), 'remote_jid'), true));
+        }
         ok('a lista de operadores e de números vem da conta', in_array($users['Isa'], array_column($rel['operadores_lista'], 'user_id'), true) && array_column($rel['numeros'], 'id') === [$INST]);
     } finally {
         $pdo->exec("DELETE FROM whatsapp_messages WHERE instance_id = $INST AND message_content = 'ZZMETR'");

@@ -2047,7 +2047,7 @@ const ChatApp = (() => {
     closeMoreMenu();
     if (!state.currentJid) return;
     const name = state.currentName || state.currentJid;
-    if (!(await Yuris.confirm(`Excluir a conversa com "${name}"?\n\nTodas as mensagens locais serão removidas. Esta ação não pode ser desfeita.`, { danger: true, okLabel: 'Excluir conversa' }))) return;
+    if (!(await Yuris.confirm(`Excluir a conversa com "${name}"?\n\nA conversa sai da lista. As mensagens ficam guardadas no histórico e nas métricas, e a conversa volta se o contato escrever de novo.`, { danger: true, okLabel: 'Excluir conversa' }))) return;
     deleteChat();
   }
 
@@ -2079,7 +2079,7 @@ const ChatApp = (() => {
     const chat = dadosConversa(jid);
     if (acao === 'excluir') {
       const nome = (chat && (chat.display_name || chat.contact_name)) || jid;
-      if (!(await Yuris.confirm(`Excluir a conversa com "${nome}"?\n\nTodas as mensagens locais serão removidas. Esta ação não pode ser desfeita.`, { danger: true, okLabel: 'Excluir conversa' }))) return false;
+      if (!(await Yuris.confirm(`Excluir a conversa com "${nome}"?\n\nA conversa sai da lista. As mensagens ficam guardadas no histórico e nas métricas, e a conversa volta se o contato escrever de novo.`, { danger: true, okLabel: 'Excluir conversa' }))) return false;
     }
     try {
       await apiFetch(API.chats, 'POST', { _csrf: CSRF, action: ACOES[acao], remote_jid: jid });

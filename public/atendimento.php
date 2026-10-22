@@ -13,6 +13,9 @@
  *   - dono/admin vê a equipe inteira dos números da conta e filtra por operador
  *   - o vendedor da edição CRM vê só o próprio atendimento (as conversas de que é
  *     dono ou que respondeu)
+ *   - dono/admin configura o horário comercial da conta (POST nesta página);
+ *     com ele ligado, as métricas contam só o tempo dentro do expediente, e a
+ *     chave "Tempo corrido" mostra as 24 horas
  */
 
 require_once __DIR__ . '/../app/bootstrap.php';
@@ -47,13 +50,30 @@ $veEquipe = $soVendedor === null;
 $foco   = $veEquipe && isset($_GET['operador']) && $_GET['operador'] !== '' ? max(0, (int) $_GET['operador']) : null;
 $numero = isset($_GET['numero']) && $_GET['numero'] !== '' ? max(0, (int) $_GET['numero']) : null;
 
-$rel = M::relatorio($accountId, $numeros, $de, $ate, $soVendedor, $foco ?: null, $numero ?: null);
+// Horário comercial da conta (configuracoes.atendimento.horario; padrão seg a sex, 08:00 às 18:00).
+$podeConfigurar = $ctx->isOwnerOrAdmin() || $perfilAdmin;
+$csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'horario') {
+    if (!$podeConfigurar || !hash_equals($csrf, (string) ($_POST['_csrf'] ?? ''))) { http_response_code(403); exit('Sem permissão.'); }
+    $dias = [];
+    foreach (M::DIAS_SEMANA as $n => $_) {
+        if (!empty($_POST['dia'][$n])) $dias[$n] = [(string) ($_POST['ini'][$n] ?? ''), (string) ($_POST['fim'][$n] ?? '')];
+    }
+    M::salvarHorario($pdo, $accountId, ['ativo' => !empty($_POST['ativo']), 'dias' => $dias]);
+    header('Location: /atendimento?' . http_build_query(array_filter(['de' => $_POST['de'] ?? null, 'ate' => $_POST['ate'] ?? null, 'salvo' => 1])));
+    exit;
+}
+$horarioConta = M::horarioDaConta(\App\Master\Account::findById($accountId) ?? []);
+$modo = ($_GET['modo'] ?? '') === 'corrido' || !$horarioConta['ativo'] ? 'corrido' : 'comercial';
+$horarioUsado = $modo === 'comercial' ? $horarioConta : null;
+
+$rel = M::relatorio($accountId, $numeros, $de, $ate, $soVendedor, $foco ?: null, $numero ?: null, $horarioUsado);
 $eq  = $rel['foco'] ? $rel['foco']['metricas'] : $rel['equipe'];
 $faixasMostradas = $rel['foco'] ? $rel['foco']['faixas'] : $rel['faixas'];
 $serie = M::serieDiaria($rel['foco'] ? $rel['foco']['dias'] : $rel['dias'], $de, $ate);
 $totalFaixas = array_sum($faixasMostradas);
 
-$hoje = date('Y-m-d');
+$hoje = M::hoje();
 $atalhos = [
     'Hoje'            => [$hoje, $hoje],
     'Últimos 7 dias'  => [date('Y-m-d', strtotime("$hoje -6 days")), $hoje],
@@ -61,7 +81,7 @@ $atalhos = [
     'Este mês'        => [date('Y-m-01', strtotime($hoje)), $hoje],
     'Mês passado'     => [date('Y-m-01', strtotime(date('Y-m-01', strtotime($hoje)) . ' -1 month')), date('Y-m-t', strtotime(date('Y-m-01', strtotime($hoje)) . ' -1 month'))],
 ];
-$qsBase = ['de' => $de, 'ate' => $ate] + ($numero ? ['numero' => $numero] : []);
+$qsBase = ['de' => $de, 'ate' => $ate] + ($numero ? ['numero' => $numero] : []) + ($modo === 'corrido' && $horarioConta['ativo'] ? ['modo' => 'corrido'] : []);
 $url = static fn(array $extra = []) => '/atendimento?' . http_build_query(array_merge($qsBase, $extra));
 $activePage = 'atendimento';
 
@@ -166,6 +186,18 @@ $rotuloFaixa = ['bom' => 'Bom', 'atencao' => 'Atenção', 'ruim' => 'Crítico', 
     .o-faixa{ display:grid; grid-template-columns:110px 1fr 56px; gap:10px; align-items:center; font-size:13px; }
     .o-faixa span:first-child{ color:var(--o-fraco); }
     .o-faixa b{ text-align:right; font-variant-numeric:tabular-nums; color:var(--o-forte); }
+    .o-modo{ display:inline-flex; padding:3px; border-radius:999px; background:var(--o-sutil); gap:2px; }
+    .o-modo a{ height:28px; display:inline-flex; align-items:center; padding:0 12px; border-radius:999px; font-size:12px; font-weight:700; color:var(--o-fraco); text-decoration:none; white-space:nowrap; }
+    .o-modo a.ativa{ background:var(--o-card); color:var(--o-acento); box-shadow:0 1px 3px rgba(15,31,54,.12); }
+    .o-ok{ margin:0 0 16px; padding:10px 14px; border-radius:10px; font-size:12.5px; background:var(--o-bom-bg); color:var(--o-bom); }
+    .o-horario summary{ cursor:pointer; font-weight:700; color:var(--o-forte); font-size:14px; list-style:none; display:flex; justify-content:space-between; gap:12px; align-items:center; }
+    .o-horario summary::-webkit-details-marker{ display:none; }
+    .o-horario summary small{ font-weight:600; color:var(--o-fraco); font-size:12px; }
+    .o-dias{ display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:10px; margin:14px 0; }
+    .o-dia{ display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--o-borda); border-radius:10px; font-size:13px; }
+    .o-dia label{ display:flex; align-items:center; gap:6px; flex:1 1 auto; min-width:0; font-weight:600; color:var(--o-forte); }
+    .o-dia input[type=time]{ flex:none; width:104px; min-height:32px; padding:4px 6px; border-radius:8px; border:1px solid var(--o-borda); background:var(--o-input); color:var(--o-texto); font:inherit; font-size:12.5px; }
+    .o-chave{ display:flex; align-items:center; gap:8px; font-size:13px; color:var(--o-forte); font-weight:600; }
   </style>
   <?php if ($isFleetiflow): ?>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -190,9 +222,18 @@ $rotuloFaixa = ['bom' => 'Bom', 'atencao' => 'Atenção', 'ruim' => 'Crítico', 
     <div class="o-topo">
       <div>
         <h1><?= $veEquipe ? 'Atendimento da equipe' : 'Meu atendimento' ?></h1>
-        <p>Quanto tempo o lead esperou por resposta no WhatsApp. <?= e(dataBr($de, false)) ?> a <?= e(dataBr($ate, false)) ?>.</p>
+        <p>Quanto tempo o lead esperou por resposta no WhatsApp. <?= e(dataBr($de, false)) ?> a <?= e(dataBr($ate, false)) ?>,
+          <?= $modo === 'comercial' ? 'contando só o horário comercial (' . e(M::descreverHorario($horarioConta)) . ')' : 'em tempo corrido, 24 horas por dia' ?>.</p>
       </div>
+      <?php if ($horarioConta['ativo']): ?>
+      <div class="o-modo" role="tablist" aria-label="Como contar o tempo">
+        <a class="<?= $modo === 'comercial' ? 'ativa' : '' ?>" href="<?= e('/atendimento?' . http_build_query(array_merge(array_diff_key($qsBase, ['modo' => 1]), $foco ? ['operador' => $foco] : []))) ?>">Horário comercial</a>
+        <a class="<?= $modo === 'corrido' ? 'ativa' : '' ?>" href="<?= e('/atendimento?' . http_build_query(array_merge($qsBase, ['modo' => 'corrido'], $foco ? ['operador' => $foco] : []))) ?>">Tempo corrido</a>
+      </div>
+      <?php endif; ?>
     </div>
+
+    <?php if (!empty($_GET['salvo'])): ?><p class="o-ok">Horário comercial salvo. As métricas abaixo já usam o expediente novo.</p><?php endif; ?>
 
     <form class="o-card o-filtros" method="get" action="/atendimento">
       <div class="o-campo"><label for="f-de">De</label><input type="date" id="f-de" name="de" value="<?= e($de) ?>"></div>
@@ -224,8 +265,35 @@ $rotuloFaixa = ['bom' => 'Bom', 'atencao' => 'Atenção', 'ruim' => 'Crítico', 
           <a class="o-pilula<?= ($a === $de && $b === $ate) ? ' ativa' : '' ?>" href="<?= e('/atendimento?' . http_build_query(array_merge(['de' => $a, 'ate' => $b], $foco ? ['operador' => $foco] : [], $numero ? ['numero' => $numero] : []))) ?>"><?= e($rotulo) ?></a>
         <?php endforeach; ?>
       </div>
+      <?php if ($modo === 'corrido' && $horarioConta['ativo']): ?><input type="hidden" name="modo" value="corrido"><?php endif; ?>
       <div class="o-acoes"><button type="submit" class="o-btn primario">Aplicar</button></div>
     </form>
+
+    <?php if ($podeConfigurar): ?>
+    <details class="o-card o-horario" style="margin-bottom:16px">
+      <summary>Horário comercial <small><?= e(M::descreverHorario($horarioConta)) ?> · editar</small></summary>
+      <form method="post" action="/atendimento">
+        <input type="hidden" name="acao" value="horario">
+        <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+        <input type="hidden" name="de" value="<?= e($de) ?>"><input type="hidden" name="ate" value="<?= e($ate) ?>">
+        <p class="o-sub" style="margin-top:10px">Com o horário ligado, o tempo de resposta conta só o que cai dentro do expediente: mensagem às 22h respondida às 8h05 vale 5 minutos. Dia desmarcado é fechado.</p>
+        <div class="o-dias">
+          <?php foreach (M::DIAS_SEMANA as $n => $nomeDia): $j = $horarioConta['dias'][$n] ?? null; ?>
+          <div class="o-dia">
+            <label><input type="checkbox" name="dia[<?= $n ?>]" value="1"<?= $j ? ' checked' : '' ?>> <?= e($nomeDia) ?></label>
+            <input type="time" name="ini[<?= $n ?>]" value="<?= e($j[0] ?? '08:00') ?>" aria-label="<?= e($nomeDia) ?>, início">
+            <span class="o-zero">às</span>
+            <input type="time" name="fim[<?= $n ?>]" value="<?= e($j[1] ?? '18:00') ?>" aria-label="<?= e($nomeDia) ?>, fim">
+          </div>
+          <?php endforeach; ?>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+          <label class="o-chave"><input type="checkbox" name="ativo" value="1"<?= $horarioConta['ativo'] ? ' checked' : '' ?>> Contar só o horário comercial nas métricas</label>
+          <button type="submit" class="o-btn primario">Salvar horário</button>
+        </div>
+      </form>
+    </details>
+    <?php endif; ?>
 
     <?php if (!$rel['tem_sent_by']): ?>
       <p class="o-aviso">A coluna que registra quem enviou cada mensagem ainda não existe neste banco (migration 165): as respostas valem para o dono da conversa.</p>
@@ -358,7 +426,8 @@ $rotuloFaixa = ['bom' => 'Bom', 'atencao' => 'Atenção', 'ruim' => 'Crítico', 
         <li><b>Até <?= M::META_BOM ?> min</b>: parte das respostas dadas em até <?= M::META_BOM ?> minutos. Faixas do tempo médio: <span class="o-bom">bom até <?= M::META_BOM ?> min</span>, <span class="o-atencao">atenção até <?= M::META_ATENCAO ?> min</span>, <span class="o-ruim">crítico acima disso</span>.</li>
         <li><b>Quem respondeu</b>: a mensagem enviada pelo Chat conta para quem a digitou. Mensagem do agente de IA fecha a espera do lead mas fica fora do tempo dos operadores. O resto (automação, mensagem antiga) conta para o dono da conversa.</li>
         <li><b>Sem resposta</b>: conversa que terminou o período com a mensagem do contato ainda sem retorno. <b>Esperando agora</b> olha o momento atual, não o período.</li>
-        <li>O tempo é corrido, 24 horas por dia: madrugada e fim de semana contam, porque o lead está esperando de verdade. Grupos ficam de fora.</li>
+        <li><b>Horário comercial</b>: com ele ligado, só conta o tempo dentro do expediente da conta (<?= e(M::descreverHorario($horarioConta)) ?>). Mensagem fora do expediente começa a contar quando ele abre. A chave <b>Tempo corrido</b> mostra as 24 horas, madrugada e fim de semana incluídos.</li>
+        <li>Os horários são de Brasília. Grupos ficam de fora. Conversa excluída no Chat continua contando: as mensagens ficam guardadas.</li>
       </ul>
     </details>
 
