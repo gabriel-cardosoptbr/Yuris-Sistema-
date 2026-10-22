@@ -2,10 +2,9 @@
    Mesma linguagem dos cartões do chat: branco, borda #E2E8F0, marca #015DFC.
    Desde 22/10/2026 a barra mora na linha do título (dentro do .page-header), ao lado
    de "Atendendo como": a lista de conversas ganha a altura da linha que ela ocupava. */
-.ff-numeros { display: flex; align-items: center; gap: 10px; margin: 0; min-width: 0; flex: 1 1 auto; }
+.ff-numeros { display: flex; align-items: center; gap: 10px; margin: 0; min-width: 0; flex: 0 1 auto; }
 .ff-numeros:empty { display: none; }
-.page-header:has(.ff-numeros) .page-header-text { flex: 0 1 auto; }
-.page-header:has(.ff-numeros) .page-header-inner { gap: 14px; }
+.page-header:has(.ff-numeros) .page-header-inner { gap: 12px; }
 /* Os cartões de indicador saem quando a barra existe: a aba do número já diz
    status, telefone e não lidas. Sem a barra (falhou ao carregar), eles voltam. */
 .main-content:has(#ffNumeros:not(:empty)) .chat-kpis { display: none !important; }

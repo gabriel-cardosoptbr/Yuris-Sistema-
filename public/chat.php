@@ -67,6 +67,31 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
       gap: 12px;
     }
 
+    /* ── Barra de filtros acima do painel (22/10/2026) ── */
+    .chat-toolbar {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex-shrink: 0;
+      padding: 8px 10px; border-radius: 12px;
+      border: 1px solid rgba(160,180,210,0.12);
+      background: linear-gradient(145deg, #0D1C30 0%, #09131F 100%);
+    }
+    .chat-toolbar .chat-search { margin: 0; flex: 0 1 260px; min-width: 180px; }
+    .chat-toolbar .chat-search input { height: 34px; padding-top: 0; padding-bottom: 0; border-radius: 999px; }
+    /* Os chips cedem espaço (e rolam de lado quando falta) para os seletores ficarem na mesma linha. */
+    .chat-toolbar .chat-filters { flex: 1 1 240px; flex-wrap: nowrap; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 1px; min-width: 0; }
+    .chat-toolbar .chat-filters::-webkit-scrollbar { display: none; }
+    .chat-toolbar .chat-filter-btn { flex: 0 0 auto; height: 32px; padding: 0 13px; font-size: .74rem; border-radius: 999px; }
+    .chat-toolbar .chat-toolbar-sel { display: flex; gap: 6px; flex: 0 0 auto; margin-left: auto; }
+    .chat-toolbar .chat-sector-filter { margin-top: 0; width: 164px; }
+    .chat-toolbar .chat-sector-btn { height: 32px; padding: 0 10px; border-radius: 999px; }
+    .chat-toolbar .chat-sector-dd { left: auto; right: 0; min-width: 240px; }
+    html[data-theme="light"] .chat-toolbar { background: #FFFFFF !important; border-color: #E2E8F0 !important; }
+    @media (max-width: 900px) {
+      .chat-toolbar .chat-search { flex-basis: 100%; }
+      .chat-toolbar .chat-toolbar-sel { width: 100%; margin-left: 0; flex-wrap: wrap; }
+      .chat-toolbar .chat-sector-filter { flex: 1 1 150px; width: auto; }
+      .chat-toolbar .chat-sector-dd { left: 0; right: auto; }
+    }
+
     /* ── Painel do chat (split view) ── */
     .chat-panel {
       flex: 1;
@@ -93,7 +118,7 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
 
     /* Header da coluna esquerda */
     .chat-sidebar-header {
-      padding: 14px 16px 10px;
+      padding: 12px 16px;
       border-bottom: 1px solid rgba(160,180,210,0.08);
       background: rgba(8,15,26,0.60);
       flex-shrink: 0;
@@ -103,7 +128,6 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 10px;
     }
 
     .chat-sidebar-title h2 {
@@ -2086,19 +2110,10 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
       </div>
     </div>
 
-    <!-- Painel principal split -->
-    <div class="chat-panel">
-
-      <!-- ── Coluna esquerda ── -->
-      <div class="chat-sidebar">
-        <div class="chat-sidebar-header">
-          <div class="chat-sidebar-title">
-            <h2>
-              <span class="wa-status-dot disconnected" id="waDot"></span>
-              Conversas
-            </h2>
-            <span id="waStatusLabel" style="font-size:.7rem;color:#7A8898">Desconectado</span>
-          </div>
+    <!-- Barra de filtros (22/10/2026): busca, situação e os seletores de setor, etapa e
+         responsável numa linha só, acima da lista e das mensagens. Antes ficavam
+         empilhados na coluna da lista e comiam a altura dela. -->
+    <div class="chat-toolbar" id="chatToolbar">
           <div class="chat-search">
             <svg class="chat-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
             <input type="text" id="chatSearch" placeholder="Buscar conversa ou número..." oninput="ChatApp.searchChats(this.value)">
@@ -2117,7 +2132,7 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
             <button class="chat-filter-btn"         data-filter="pinned"    onclick="ChatApp.setFilter('pinned')">Fixadas</button>
             <button class="chat-filter-btn"         data-filter="archived"  onclick="ChatApp.setFilter('archived')">Arquivadas</button>
           </div>
-
+          <div class="chat-toolbar-sel">
           <!-- Filtro por setor -->
           <div class="chat-sector-filter">
             <button id="sectorFilterBtn" class="chat-sector-btn" onclick="ChatApp.toggleTeamFilterDropdown(event)" title="Filtrar por setor">
@@ -2125,7 +2140,7 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
               <span class="csf-label" id="sectorFilterLabel">Todos os setores</span>
               <svg class="csf-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:10px;height:10px"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div id="sectorFilterDd" class="chat-sector-dd"></div>
+            <div id="sectorFilterDd" class="chat-sector-dd" style="display:none"></div>
           </div>
 
 <?php if ($isFleetiflow): ?>
@@ -2136,7 +2151,7 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
               <span class="csf-label" id="etapaFilterLabel">Todas as etapas</span>
               <svg class="csf-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:10px;height:10px"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div id="etapaFilterDd" class="chat-sector-dd"></div>
+            <div id="etapaFilterDd" class="chat-sector-dd" style="display:none"></div>
           </div>
 <?php endif; ?>
           <!-- Filtro por responsável (mesmo padrão do setor) -->
@@ -2146,7 +2161,23 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
               <span class="csf-label" id="userFilterLabel">Todos os responsáveis</span>
               <svg class="csf-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:10px;height:10px"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div id="userFilterDd" class="chat-sector-dd"></div>
+            <div id="userFilterDd" class="chat-sector-dd" style="display:none"></div>
+          </div>
+          </div>
+    </div>
+
+    <!-- Painel principal split -->
+    <div class="chat-panel">
+
+      <!-- ── Coluna esquerda ── -->
+      <div class="chat-sidebar">
+        <div class="chat-sidebar-header">
+          <div class="chat-sidebar-title">
+            <h2>
+              <span class="wa-status-dot disconnected" id="waDot"></span>
+              Conversas
+            </h2>
+            <span id="waStatusLabel" style="font-size:.7rem;color:#7A8898">Desconectado</span>
           </div>
         </div>
         <div class="chat-list" id="chatList">

@@ -129,6 +129,14 @@ pelo "+ Adicionar tarefa" da coluna. Troca-se depois, dentro da tarefa.
 se a conversa é do canal que a conta pode ver, e a tela abre nela como faz com
 `?jid=`.
 
+**Barra de filtros do Chat (22/10/2026).** A busca, os chips de situação (Todas, Não lidas,
+Aguardando, Grupos, Individuais, Fixadas, Arquivadas) e os seletores de setor, etapa e
+responsável saíram da coluna da lista, onde ficavam empilhados, e viraram a `.chat-toolbar`:
+uma linha só acima do painel, com os chips cedendo espaço (rolagem lateral) para os
+seletores ficarem na mesma linha. A coluna da lista ficou só com o título e as conversas.
+Os menus dos seletores (`.chat-sector-dd`) nascem com `display:none` no HTML: o `toggle`
+do `chat.js` lê o estilo inline, e sem isso o primeiro clique só fechava um menu já fechado.
+
 `chat.php`, na edição Fleetiflow, mostra a barra de **números de
 WhatsApp** da conta (`assets/chat-numeros.js` + `assets/chat-numeros.css`), desde
 22/10/2026 na linha do título (dentro do `.page-header`, a lista de conversas ganhou a
