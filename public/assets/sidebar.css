@@ -489,7 +489,116 @@ html[data-theme="light"] .sidebar-group.has-active .sidebar-group-toggle .sideba
   }
 
   .mobile-tabbar a .mob-icon svg { width: 22px; height: 22px; display: block; }
+
+  /* 22/10/2026: altura com a área segura do iPhone, botão "Menu", selo de não lidas,
+     tema claro e a gaveta do menu lateral. */
+  .mobile-tabbar { height: calc(64px + env(safe-area-inset-bottom)) !important; padding-bottom: env(safe-area-inset-bottom) !important; }
+  .mobile-tabbar a, .mobile-tabbar .mob-menu-btn { min-width: 0; }
+  .mobile-tabbar .mob-menu-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; padding: 6px 4px; border: 0; border-radius: 8px;
+    background: none; color: #8A96A8; font-size: 10px; font-weight: 500; font-family: inherit; cursor: pointer;
+  }
+  .mobile-tabbar .mob-icon { position: relative; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+  .mobile-tabbar .mob-icon svg { width: 22px; height: 22px; display: block; }
+  .mobile-tabbar .mob-badge {
+    position: absolute; top: -6px; left: 13px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+    background: #16A34A; color: #FFFFFF; font-size: 10px; font-weight: 800; line-height: 18px; text-align: center; box-shadow: 0 0 0 2px var(--mob-fundo, #070F1C);
+  }
+  html[data-theme="light"] .mobile-tabbar { --mob-fundo: #FFFFFF; background: #FFFFFF !important; border-top: 1px solid rgba(17,29,45,0.08) !important; box-shadow: 0 -6px 20px -12px rgba(15,23,42,.18); }
+  html[data-theme="light"] .mobile-tabbar a, html[data-theme="light"] .mobile-tabbar .mob-menu-btn { color: #64748B; font-weight: 600; }
+  html[data-theme="light"] .mobile-tabbar a.active { color: var(--ff-marca, #1D4ED8); }
+  .mobile-tabbar a.active .mob-icon { transform: translateY(-1px); }
+
+  /* Menu lateral como gaveta: aberto pelo "Menu" da barra de baixo. O seletor dobra
+     a classe para vencer o display:none das regras de tema. */
+  html.sb-mob-aberto.sb-mob-aberto .sidebar, html.sb-mob-aberto[data-theme] .sidebar {
+    display: flex !important; flex-direction: column !important; position: fixed !important; top: 0 !important; left: 0 !important; bottom: 0 !important;
+    width: min(86vw, 320px) !important; min-width: 0 !important; max-width: none !important; height: 100dvh !important; max-height: none !important;
+    z-index: 1250 !important; overflow-y: auto !important; box-shadow: 0 0 40px rgba(15,23,42,.30) !important;
+    padding-top: env(safe-area-inset-top) !important; animation: sbMobEntra .22s cubic-bezier(.2,.8,.2,1);
+  }
+  .sb-mob-fundo { position: fixed; inset: 0; z-index: 1240; background: rgba(15,23,42,.45); animation: sbMobFundo .2s ease; }
+  .sb-mob-fundo[hidden] { display: none; }
+  html.sb-mob-aberto body { overflow: hidden !important; }
 }
+@keyframes sbMobEntra { from { transform: translateX(-100%); } to { transform: none; } }
+@keyframes sbMobFundo { from { opacity: 0; } to { opacity: 1; } }
+@media (min-width: 901px) { .sb-mob-fundo { display: none !important; } }
+
+/* ── Instalar o app (22/10/2026): card da tela inicial, item do menu e a folha
+   com o passo a passo. Escuro por padrão (Yuris), claro no tema claro. ── */
+.sb-instalar-app { display: none; }
+/* O tema claro (sidebar.php) dá respiro a todo filho de .page-layout que não é o
+   menu, pensando na área de conteúdo. A barra de baixo, o card e as folhas também
+   são filhos dele: aqui recuperam o próprio espaçamento. */
+html[data-theme] .page-layout:has(> .sidebar) > .mobile-tabbar.mobile-tabbar.mobile-tabbar { padding: 0 4px env(safe-area-inset-bottom) !important; }
+html[data-theme] .page-layout:has(> .sidebar) > .app-card.app-card.app-card { padding: 14px !important; }
+html[data-theme] .page-layout:has(> .sidebar) > .app-passos-fundo.app-passos-fundo.app-passos-fundo,
+html[data-theme] .page-layout:has(> .sidebar) > .sb-mob-fundo.sb-mob-fundo.sb-mob-fundo { padding: 0 !important; }
+.app-card[hidden], .app-passos-fundo[hidden], .sb-instalar-app[hidden] { display: none !important; }
+.app-card {
+  position: fixed; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 1100;
+  display: grid; grid-template-columns: 48px 1fr; gap: 10px 12px; align-items: center; padding: 14px;
+  border-radius: 18px; background: #0F1B2D; color: #E2E8F0; border: 1px solid rgba(255,255,255,.10);
+  box-shadow: 0 18px 40px -12px rgba(2,6,23,.55); font-family: inherit; animation: appSobe .28s cubic-bezier(.2,.8,.2,1);
+}
+.app-card-ic { width: 48px; height: 48px; border-radius: 12px; display: block; object-fit: cover; box-shadow: 0 0 0 1px rgba(148,163,184,.25); }
+.app-card-txt strong { display: block; font-size: .95rem; line-height: 1.3; margin-bottom: 2px; }
+.app-card-txt span { display: block; font-size: .8rem; line-height: 1.4; color: #94A3B8; }
+.app-card-acoes { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: flex-end; }
+.app-card-acoes button, .app-passos-ok {
+  height: 40px; padding: 0 16px; border-radius: 12px; border: 0; font: 600 .9rem/1 inherit; font-family: inherit; cursor: pointer;
+}
+.app-card-depois { background: transparent; color: #94A3B8; }
+.app-card-ok, .app-passos-ok { background: var(--ff-marca, #2563EB); color: var(--ff-marca-texto, #FFFFFF); min-width: 110px; }
+.app-passos-fundo {
+  position: fixed; inset: 0; z-index: 1400; background: rgba(15,23,42,.5); display: flex; align-items: flex-end; justify-content: center;
+  animation: sbMobFundo .2s ease;
+}
+.app-passos {
+  width: 100%; max-width: 480px; padding: 20px 18px calc(18px + env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0;
+  background: #0F1B2D; color: #E2E8F0; box-shadow: 0 -12px 40px rgba(2,6,23,.4); animation: appSobe .26s cubic-bezier(.2,.8,.2,1);
+  font-family: inherit;
+}
+.app-passos-topo { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.app-passos-topo img { width: 44px; height: 44px; border-radius: 11px; flex: none; }
+.app-passos-topo strong { display: block; font-size: 1.02rem; }
+.app-passos-topo span { display: block; font-size: .8rem; color: #94A3B8; }
+.app-passos-lista { margin: 0 0 18px; padding: 0; list-style: none; counter-reset: passo; }
+.app-passos-lista li {
+  counter-increment: passo; position: relative; padding: 10px 0 10px 40px; font-size: .92rem; line-height: 1.45;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+.app-passos-lista li::before {
+  content: counter(passo); position: absolute; left: 0; top: 9px; width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 800;
+  background: rgba(var(--ff-marca-rgb, 37,99,235), .16); color: var(--ff-marca-clara, #93C5FD);
+}
+.app-passos-lista i { display: inline-flex; vertical-align: -5px; width: 24px; height: 24px; align-items: center; justify-content: center; border-radius: 6px; background: rgba(255,255,255,.08); }
+.app-passos-lista i svg { width: 16px; height: 16px; }
+.app-passos-ok { width: 100%; height: 46px; font-size: 1rem; }
+html[data-theme="light"] .app-card, html[data-theme="light"] .app-passos { background: #FFFFFF; color: #0F172A; border-color: rgba(17,29,45,.08); }
+html[data-theme="light"] .app-card { box-shadow: 0 18px 40px -14px rgba(15,23,42,.35); }
+html[data-theme="light"] .app-card-txt span, html[data-theme="light"] .app-passos-topo span, html[data-theme="light"] .app-card-depois { color: #64748B; }
+html[data-theme="light"] .app-passos-lista li { border-top-color: rgba(17,29,45,.08); }
+html[data-theme="light"] .app-passos-lista li::before { color: var(--ff-marca-forte, #1D4ED8); background: rgba(var(--ff-marca-rgb, 37,99,235), .10); }
+html[data-theme="light"] .app-passos-lista i { background: #F1F5F9; }
+@keyframes appSobe { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (max-width: 900px) {
+  .sb-instalar-app {
+    display: flex; align-items: center; gap: 10px; margin: 6px 12px calc(12px + env(safe-area-inset-bottom)); padding: 12px 14px;
+    border-radius: 12px; border: 1px dashed rgba(148,163,184,.45); background: transparent; color: inherit; font: 600 .88rem/1.2 inherit;
+    font-family: inherit; cursor: pointer; text-align: left; flex: none;
+  }
+  .sb-instalar-ic { width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex: none;
+    background: var(--ff-marca, #2563EB); color: var(--ff-marca-texto, #FFFFFF); }
+  .sb-instalar-ic svg { width: 17px; height: 17px; }
+  /* As regras de ícone do menu pintam todo svg da cor da marca: aqui ele é branco sobre ela. */
+  .sidebar .sb-instalar-app .sb-instalar-ic, .sidebar .sb-instalar-app .sb-instalar-ic svg { color: var(--ff-marca-texto, #FFFFFF) !important; stroke: currentColor !important; }
+}
+@media (min-width: 901px) { .app-card { display: none !important; } }
+/* No app instalado o navegador some: nada a instalar. */
+html.app-instalado .app-card, html.app-instalado .sb-instalar-app { display: none !important; }
 
 /* ══════════════════════════════════
    TEMA CLARO — sidebar group toggles (Operação, Jurídico, Comunicação...)

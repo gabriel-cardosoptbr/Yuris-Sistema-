@@ -51,7 +51,7 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
   <link rel="stylesheet" href="/assets/yuris-theme.css?v=44">
   <link rel="stylesheet" href="/assets/fog.css">
-  <link rel="stylesheet" href="/assets/sidebar.css?v=19">
+  <link rel="stylesheet" href="/assets/sidebar.css?v=20">
   <style>
     /* ── Layout base ── */
     *, *::before, *::after { box-sizing: border-box; }
@@ -1970,6 +1970,8 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
       color: #DC2626 !important;
     }
   </style>
+  <!-- O Chat no celular, como o WhatsApp (22/10/2026): carregado por último para vencer as regras acima. -->
+  <link rel="stylesheet" href="/assets/chat-mobile.css?v=<?= @filemtime(__DIR__ . '/assets/chat-mobile.css') ?: 1 ?>">
 </head>
 <body>
 
@@ -1986,7 +1988,7 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
     <?php include 'includes/sidebar.php'; ?>
 
     <!-- ── Conteúdo principal ── -->
-    <section class="main-content" style="display:flex;flex-direction:column;gap:14px;min-height:0;overflow:hidden">
+    <section class="main-content" id="chatSecao" style="display:flex;flex-direction:column;gap:14px;min-height:0;overflow:hidden">
 
       <!-- Cabeçalho padrão (igual às outras abas) -->
       <div class="dash-panel page-header" style="flex-shrink:0">
@@ -2017,6 +2019,11 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
           </div>
           <?php endif; ?>
 <?php endif; ?>
+          <!-- Celular: os botões do topo ficam guardados aqui (assets/chat-mobile.css). -->
+          <button type="button" class="chat-mob-mais" aria-label="Mais opções" title="Mais opções"
+                  onclick="document.documentElement.classList.toggle('chat-acoes-mob')">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+          </button>
           <div class="page-header-actions">
 <?php if (false): /* OCULTO: config de infra Evolution é 100% do Painel Master (super admin). Removido da tela do chat p/ não confundir nem o super; cliente nunca teve acesso. Modal openSettings mantido no código. */ ?>
         <button class="conn-btn-secondary" onclick="ChatApp.openSettings()" title="Configurações">

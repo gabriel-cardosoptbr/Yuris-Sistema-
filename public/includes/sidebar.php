@@ -586,6 +586,30 @@ if ($_isFleetiflow) {
     } catch (\Throwable $__e) { $_ambCtx = null; }
 }
 ?>
+<?php
+// ── App instalável (PWA, 22/10/2026) ──────────────────────────────────────
+// O manifesto (/api/app_manifest.php), o service worker (/sw.js) e as metas do
+// iPhone entram no <head> por aqui, porque este arquivo é o único que toda tela
+// logada carrega. Nome, cor e ícone são os da marca da conta.
+$_appProduto = $_isFleetiflow ? 'fleetiflow' : 'yuris';
+$_appNome    = $_isFleetiflow ? (string) $_marca['nome'] : 'Yuris';
+$_appCor     = $_isFleetiflow ? (string) ($_marca['paleta']['marca'] ?? $_marca['cor']) : '#081526';
+$_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
+?>
+<script>(function(){try{
+  var h=document.head, A=<?= json_encode(['nome' => $_appNome, 'cor' => $_appCor, 'icone' => $_appIcone], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;
+  function poe(tag, at){ var e=document.createElement(tag); for(var k in at) e.setAttribute(k, at[k]); h.appendChild(e); return e; }
+  var velhos=h.querySelectorAll('link[rel="apple-touch-icon"],link[rel="manifest"],meta[name="theme-color"]');
+  for(var i=0;i<velhos.length;i++) velhos[i].parentNode.removeChild(velhos[i]);
+  poe('link',{rel:'manifest', href:'/api/app_manifest.php', crossorigin:'use-credentials'});
+  poe('link',{rel:'apple-touch-icon', sizes:'180x180', href:A.icone});
+  poe('meta',{name:'theme-color', content:A.cor});
+  poe('meta',{name:'mobile-web-app-capable', content:'yes'});
+  poe('meta',{name:'apple-mobile-web-app-capable', content:'yes'});
+  poe('meta',{name:'apple-mobile-web-app-title', content:A.nome});
+  poe('meta',{name:'apple-mobile-web-app-status-bar-style', content:'default'});
+  if('serviceWorker' in navigator) window.addEventListener('load', function(){ navigator.serviceWorker.register('/sw.js', {scope:'/'}).catch(function(){}); });
+}catch(e){}})();</script>
 <aside class="sidebar<?= $_ambCtx ? ' sb-com-ambientes' : '' ?>" role="complementary" aria-label="Menu lateral"<?= $_ambCtx ? ' data-ambiente="' . htmlspecialchars($_ambCtx['atual']) . '" data-ambiente-rotulo="' . htmlspecialchars($_ambCtx['lista'][$_ambCtx['atual']]['rotulo']) . '"' : '' ?>>
 
   <!-- ── Marca ── -->
@@ -1067,6 +1091,12 @@ if ($_isFleetiflow) {
   </div>
   <?php endif; ?>
 
+  <!-- Celular: "Instalar o app" no fim do menu (some no computador e no app já instalado). -->
+  <button type="button" class="sb-instalar-app" id="sbInstalarApp" hidden onclick="window.appInstalar && appInstalar()">
+    <span class="sb-instalar-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M12 7v7"/><path d="m9 11 3 3 3-3"/><line x1="10.5" y1="18.5" x2="13.5" y2="18.5"/></svg></span>
+    <span>Instalar o app no celular</span>
+  </button>
+
 </aside>
 <?php if ($_avisoWa): ?>
 <!-- Aviso de WhatsApp fora do ar (ver o bloco PHP no topo). Nasce aqui e o script
@@ -1104,49 +1134,181 @@ if ($_isFleetiflow) {
 </script>
 <?php endif; ?>
 
-<!-- ── Barra de navegação mobile ── -->
+<!-- ── Barra de navegação do celular (até 900px), refeita em 22/10/2026 ──
+     Início, Conversas (com as não lidas), as duas telas mais usadas e "Menu",
+     que abre o menu lateral inteiro como gaveta: Chat interno, Atendimento,
+     ambientes e todo o resto ficam a um toque. ── -->
+<?php
+  $_mobInicio = '/dashboard';
+  if (!empty($_ambCtx) && !empty($_ambCtx['lista'][$_ambCtx['atual']]['inicio'])) $_mobInicio = (string) $_ambCtx['lista'][$_ambCtx['atual']]['inicio'];
+  $_mobEhInicio = in_array($_ap, ['dashboard', 'amb_empresa', 'amb_software', 'amb_digital'], true);
+  $_mobItens = [];
+  if ($_isFleetiflow) {
+      if (_sidebarCan('prospeccao')) $_mobItens[] = ['/prospeccao', 'prospeccao', $_svg['prosp'], 'Prospecção'];
+      if (_sidebarCan('tarefas'))    $_mobItens[] = ['/tarefas', 'tarefas', $_svg['tarefas'], 'Tarefas'];
+  } else {
+      if (_sidebarCan('processos'))  $_mobItens[] = ['/processos', 'processos', $_svg['processos'], 'Processos'];
+      if (_sidebarCan('juridico'))   $_mobItens[] = ['/juridico', 'juridico', $_svg['juridico'], 'Jurídico'];
+  }
+?>
 <nav class="mobile-tabbar" role="navigation" aria-label="Navegação principal">
-
-  <a href="/dashboard"<?= $_ap === 'dashboard' ? ' class="active"' : '' ?>>
+  <a href="<?= htmlspecialchars($_mobInicio) ?>"<?= $_mobEhInicio ? ' class="active"' : '' ?>>
     <span class="mob-icon" aria-hidden="true"><?= $_svg['dashboard'] ?></span>
-    <span>Visão Geral</span>
+    <span>Início</span>
   </a>
-
-  <a href="/prospeccao"<?= $_ap === 'prospeccao' ? ' class="active"' : '' ?>>
-    <span class="mob-icon" aria-hidden="true"><?= $_svg['prosp'] ?></span>
-    <span>Prospecção</span>
-  </a>
-
-  <?php if ($_isFleetiflow): ?>
-  <a href="/clientes"<?= $_ap === 'clientes' ? ' class="active"' : '' ?>>
-    <span class="mob-icon" aria-hidden="true"><?= $_svg['clientes'] ?></span>
-    <span>Clientes</span>
-  </a>
-
-  <a href="/tarefas"<?= $_ap === 'tarefas' ? ' class="active"' : '' ?>>
-    <span class="mob-icon" aria-hidden="true"><?= $_svg['tarefas'] ?></span>
-    <span>Tarefas</span>
-  </a>
-  <?php else: ?>
-  <a href="/processos"<?= $_ap === 'processos' ? ' class="active"' : '' ?>>
-    <span class="mob-icon" aria-hidden="true"><?= $_svg['processos'] ?></span>
-    <span>Processos</span>
-  </a>
-
-  <a href="/juridico"<?= $_ap === 'juridico' ? ' class="active"' : '' ?>>
-    <span class="mob-icon" aria-hidden="true"><?= $_svg['juridico'] ?></span>
-    <span>Jurídico</span>
+  <?php if (_sidebarCan('chat')): ?>
+  <a href="/chat"<?= in_array($_ap, ['chat', 'chat_interno', 'atendimento'], true) ? ' class="active"' : '' ?>>
+    <span class="mob-icon" aria-hidden="true"><?= $_svg['chat'] ?><span class="mob-badge" id="mobBadgeChat" hidden></span></span>
+    <span>Conversas</span>
   </a>
   <?php endif; ?>
-
-<?php if (!($_isFleetiflow && !in_array($_SESSION['user_role'] ?? '', ['owner', 'admin'], true))): ?>
-  <a href="/financas"<?= $_ap === 'dre' ? ' class="active"' : '' ?>>
-    <span class="mob-icon" aria-hidden="true"><?= $_svg['financas'] ?></span>
-    <span>Finanças</span>
+  <?php foreach ($_mobItens as [$__h, $__a, $__ic, $__rot]): ?>
+  <a href="<?= $__h ?>"<?= $_ap === $__a ? ' class="active"' : '' ?>>
+    <span class="mob-icon" aria-hidden="true"><?= $__ic ?></span>
+    <span><?= $__rot ?></span>
   </a>
-<?php endif; ?>
-
+  <?php endforeach; ?>
+  <button type="button" class="mob-menu-btn" aria-label="Abrir o menu" aria-controls="sbMobFundo" onclick="window.sbMobMenu && sbMobMenu(true)">
+    <span class="mob-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></span>
+    <span>Menu</span>
+  </button>
 </nav>
+<div class="sb-mob-fundo" id="sbMobFundo" hidden></div>
+<!-- ── Instalar o app (22/10/2026) ──
+     Card na tela inicial do celular e a folha com o passo a passo. No Android
+     (Chrome, Samsung Internet) o botão abre a instalação do próprio navegador;
+     no iPhone, que não deixa um site instalar sozinho, mostra onde tocar.
+     "Agora não" esconde o card por 7 dias; o item no fim do menu fica sempre. -->
+<?php if ($_mobEhInicio): ?>
+<div class="app-card" id="appCard" role="region" aria-label="Instalar o app" hidden>
+  <img class="app-card-ic" src="<?= htmlspecialchars($_appIcone) ?>" alt="" width="48" height="48">
+  <div class="app-card-txt">
+    <strong>Tenha o <?= htmlspecialchars($_appNome) ?> na tela do celular</strong>
+    <span>Abre direto, em tela cheia, como um aplicativo. Ideal para responder as conversas de qualquer lugar.</span>
+  </div>
+  <div class="app-card-acoes">
+    <button type="button" class="app-card-depois" onclick="appAdiar()">Agora não</button>
+    <button type="button" class="app-card-ok" onclick="appInstalar()">Instalar</button>
+  </div>
+</div>
+<?php endif; ?>
+<div class="app-passos-fundo" id="appPassos" hidden>
+  <div class="app-passos" role="dialog" aria-modal="true" aria-labelledby="appPassosTit">
+    <div class="app-passos-topo">
+      <img src="<?= htmlspecialchars($_appIcone) ?>" alt="" width="44" height="44">
+      <div><strong id="appPassosTit">Instalar o <?= htmlspecialchars($_appNome) ?></strong><span id="appPassosSub"></span></div>
+    </div>
+    <ol class="app-passos-lista" id="appPassosLista"></ol>
+    <button type="button" class="app-passos-ok" onclick="appPassos(false)">Entendi</button>
+  </div>
+</div>
+<script>
+(function () {
+  var html = document.documentElement;
+  var instalado = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  if (instalado) { html.classList.add('app-instalado'); window.appInstalar = function () {}; return; }
+  var ua = navigator.userAgent || '';
+  var ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  var samsung = /SamsungBrowser/.test(ua);
+  var toque = (window.matchMedia && matchMedia('(pointer: coarse)').matches) || ios || /Android/.test(ua);
+  var pedido = null;
+  var card = document.getElementById('appCard'), item = document.getElementById('sbInstalarApp');
+  var fundo = document.getElementById('appPassos');
+  var CHAVE = 'app_instalar_adiado';
+
+  function adiado() { try { return Date.now() - (+localStorage.getItem(CHAVE) || 0) < 7 * 864e5; } catch (_) { return false; } }
+  function mostrar() {
+    if (!toque && !pedido) return;
+    if (item) item.hidden = false;
+    if (card && toque && !adiado()) card.hidden = false;
+  }
+  function esconder() { if (card) card.hidden = true; if (item) item.hidden = true; }
+
+  var ICO_COMP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Compartilhar"><path d="M12 3v12"/><path d="m8 7 4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg>';
+  var ICO_MAIS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-label="Adicionar"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8v8M8 12h8"/></svg>';
+  var ICO_PONTOS = '<svg viewBox="0 0 24 24" fill="currentColor" aria-label="Menu"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>';
+  var ICO_LINHAS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-label="Menu"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
+  function passos() {
+    if (ios) return ['No iPhone', [
+      'Toque em <b>Compartilhar</b> <i>' + ICO_COMP + '</i>, na barra do Safari (embaixo, ou em cima no iPad).',
+      'Role a lista e toque em <b>Adicionar à Tela de Início</b> <i>' + ICO_MAIS + '</i>.',
+      'Toque em <b>Adicionar</b>. O ícone aparece na tela do celular.'
+    ]];
+    if (samsung) return ['No Samsung Internet', [
+      'Toque no <b>menu</b> <i>' + ICO_LINHAS + '</i>, no canto de baixo.',
+      'Toque em <b>Adicionar página a</b> e depois em <b>Tela inicial</b>.',
+      'Confirme em <b>Adicionar</b>. O ícone aparece na tela do celular.'
+    ]];
+    return ['No Android', [
+      'Toque no <b>menu</b> <i>' + ICO_PONTOS + '</i>, no canto de cima do Chrome.',
+      'Toque em <b>Instalar app</b> (ou <b>Adicionar à tela inicial</b>).',
+      'Confirme em <b>Instalar</b>. O ícone aparece na tela do celular.'
+    ]];
+  }
+  window.appPassos = function (abrir) {
+    if (!fundo) return;
+    if (abrir) {
+      var p = passos();
+      document.getElementById('appPassosSub').textContent = p[0];
+      document.getElementById('appPassosLista').innerHTML = p[1].map(function (t) { return '<li>' + t + '</li>'; }).join('');
+    }
+    fundo.hidden = !abrir;
+  };
+  window.appInstalar = function () {
+    if (window.sbMobMenu) sbMobMenu(false);
+    if (pedido) {
+      var e = pedido; pedido = null;
+      e.prompt();
+      e.userChoice.then(function (r) { if (r && r.outcome === 'accepted') esconder(); }).catch(function () {});
+      return;
+    }
+    appPassos(true);
+  };
+  window.appAdiar = function () {
+    try { localStorage.setItem(CHAVE, String(Date.now())); } catch (_) {}
+    if (card) card.hidden = true;
+  };
+  if (fundo) fundo.addEventListener('click', function (e) { if (e.target === fundo) appPassos(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && fundo && !fundo.hidden) appPassos(false); });
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); pedido = e; mostrar(); });
+  window.addEventListener('appinstalled', function () { pedido = null; esconder(); });
+  mostrar();
+})();
+</script>
+<script>
+/* Gaveta do menu no celular e as não lidas da aba Conversas (22/10/2026). */
+(function () {
+  var html = document.documentElement, fundo = document.getElementById('sbMobFundo');
+  window.sbMobMenu = function (abrir) {
+    html.classList.toggle('sb-mob-aberto', !!abrir);
+    if (fundo) fundo.hidden = !abrir;
+  };
+  if (fundo) fundo.addEventListener('click', function () { sbMobMenu(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') sbMobMenu(false); });
+  document.addEventListener('click', function (e) {
+    if (!html.classList.contains('sb-mob-aberto')) return;
+    var a = e.target.closest && e.target.closest('aside.sidebar a[href]');
+    if (a) sbMobMenu(false);
+  });
+  var badge = document.getElementById('mobBadgeChat');
+  var celular = window.matchMedia ? window.matchMedia('(max-width: 900px)') : null;
+  if (!badge || !celular) return;
+  function contar() {
+    if (!celular.matches || document.hidden) return;
+    fetch('/api/whatsapp/instances.php?action=numeros', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        var lista = d && (d.numeros || (d.data && d.data.numeros)) || [];
+        var n = 0; lista.forEach(function (x) { n += +(x.nao_lidas || 0); });
+        badge.textContent = n > 99 ? '99+' : String(n);
+        badge.hidden = n <= 0;
+      }).catch(function () {});
+  }
+  contar();
+  setInterval(contar, 60000);
+  document.addEventListener('visibilitychange', contar);
+})();
+</script>
 
 <script>
 (function () {

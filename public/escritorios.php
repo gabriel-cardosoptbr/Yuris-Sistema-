@@ -33,7 +33,7 @@ $monOverrideSumEsc = \App\Billing\BillingGuard::getOverrideSum($accountId, 'moni
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
   <link rel="stylesheet" href="/assets/yuris-theme.css?v=42">
   <link rel="stylesheet" href="/assets/fog.css">
-  <link rel="stylesheet" href="/assets/sidebar.css?v=19">
+  <link rel="stylesheet" href="/assets/sidebar.css?v=20">
   <style>
     /* ── Tabs ── */
     .es-tabs { display:flex; gap:6px; margin-bottom:20px; flex-wrap:wrap; }

@@ -947,6 +947,7 @@ const ChatApp = (() => {
     qs('#connectionScreen').style.display = 'none';
     qs('#chatArea').style.display         = 'flex';
     qs('#chatEmptyState').style.display   = 'none';
+    _abrirNoCelular();
 
     // Header do chat
     const chatObj = state.chats.find(c => c.remote_jid === jid);
@@ -1017,7 +1018,33 @@ const ChatApp = (() => {
     openChat(jid, nm, ph);
   }
 
+  // ── Celular (até 900px): a conversa abre em tela cheia, como no WhatsApp ───
+  // (assets/chat-mobile.css). Abrir põe uma entrada no histórico, então o "voltar"
+  // do celular fecha a conversa e devolve à lista, em vez de sair do Chat.
+  const _mqCelular = window.matchMedia ? window.matchMedia('(max-width: 900px)') : { matches: false };
+  let _histConversa = false, _fechandoPeloVoltar = false;
+  function _abrirNoCelular() {
+    const conteudo = qs('#chatContent');
+    if (conteudo) conteudo.classList.add('mobile-open');
+    if (!_mqCelular.matches) return;
+    document.documentElement.classList.add('chat-aberto-mob');
+    document.documentElement.classList.remove('chat-acoes-mob');
+    if (!_histConversa) { try { history.pushState({ chatConversa: 1 }, ''); _histConversa = true; } catch (_) {} }
+  }
+  window.addEventListener('popstate', function () {
+    if (!_histConversa) return;
+    _histConversa = false;
+    _fechandoPeloVoltar = true;
+    if (state.currentJid) closeChat();
+    _fechandoPeloVoltar = false;
+  });
+
   function closeChat() {
+    document.documentElement.classList.remove('chat-aberto-mob');
+    const conteudoMob = qs('#chatContent');
+    if (conteudoMob) conteudoMob.classList.remove('mobile-open');
+    // Fechou pelo botão da tela: tira a entrada do histórico que a abertura pôs.
+    if (_histConversa && !_fechandoPeloVoltar) { _histConversa = false; try { history.back(); } catch (_) {} }
     state.currentJid  = null;
     state.currentName = '';
     state.lastMsgId   = 0;

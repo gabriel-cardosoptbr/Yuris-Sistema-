@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>Sem conexão</title>
+  <!-- Página do app instalado quando a internet cai (public/sw.js). Sem marca de
+       propósito: ela é a mesma para todas as contas e fica guardada no celular. -->
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center;
+           padding: 24px 16px calc(24px + env(safe-area-inset-bottom)); background: #F4F7FB; color: #0F172A;
+           font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; text-align: center; }
+    .caixa { max-width: 340px; }
+    .icone { width: 64px; height: 64px; margin: 0 auto 18px; border-radius: 20px; display: flex; align-items: center; justify-content: center;
+             background: #E2E8F0; color: #475569; }
+    .icone svg { width: 30px; height: 30px; }
+    h1 { margin: 0 0 8px; font-size: 1.25rem; }
+    p { margin: 0 0 22px; color: #475569; }
+    button { appearance: none; border: 0; border-radius: 12px; padding: 13px 22px; font: 600 1rem/1 inherit; font-family: inherit;
+             background: #1D4ED8; color: #FFFFFF; cursor: pointer; min-width: 180px; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #081526; color: #E2E8F0; }
+      .icone { background: rgba(255,255,255,.08); color: #CBD5E1; }
+      p { color: #94A3B8; }
+    }
+  </style>
+</head>
+<body>
+  <main class="caixa">
+    <div class="icone" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M2 8.82a15 15 0 0 1 4.17-2.65"/><path d="M10.66 5c4.01-.36 8.14.9 11.34 3.76"/><path d="M16.85 11.25a10 10 0 0 1 2.22 1.68"/><path d="M5 13a10 10 0 0 1 5.24-2.76"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+    </div>
+    <h1>Sem conexão com a internet</h1>
+    <p>Assim que o sinal voltar, a tela abre de novo sozinha. Se não abrir, toque no botão abaixo.</p>
+    <button type="button" onclick="location.reload()">Tentar de novo</button>
+  </main>
+  <script>window.addEventListener('online', function () { location.reload(); });</script>
+</body>
+</html>

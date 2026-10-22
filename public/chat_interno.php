@@ -31,7 +31,7 @@ try { $edicaoCrm = !\App\Core\AccountContext::fromSession()->moduloJuridicoDispo
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
   <link rel="stylesheet" href="/assets/yuris-theme.css?v=42">
-  <link rel="stylesheet" href="/assets/sidebar.css?v=19">
+  <link rel="stylesheet" href="/assets/sidebar.css?v=20">
 <?php if ($edicaoCrm): ?>
   <style>
     /* @ da edição CRM: cores dos tipos novos (lead usa as do card). */
@@ -145,6 +145,29 @@ try { $edicaoCrm = !\App\Core\AccountContext::fromSession()->moduloJuridicoDispo
     .ci-main {
       flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden;
       background: var(--panel); border: 1px solid var(--line-md); border-radius: 12px;
+    }
+    .ci-voltar { display: none; }
+    /* ── Celular (até 900px, 22/10/2026): lista em tela cheia; a conversa abre por
+       cima, com voltar, como no WhatsApp. html.ci-aberto-mob vem do chat_interno.js. ── */
+    @media (max-width: 900px) {
+      body { overflow: hidden !important; }
+      body > main { height: 100dvh !important; padding: calc(8px + env(safe-area-inset-top)) 8px calc(72px + env(safe-area-inset-bottom)) !important; }
+      /* A classe repetida vence o respiro de 16px/84px que o tema claro dá ao conteúdo: aqui quem desconta a barra de baixo é o <main>. */
+      html[data-theme] .page-layout:has(> .sidebar) > .ci-wrap.ci-wrap.ci-wrap, .ci-wrap { padding: 0 !important; height: 100% !important; }
+      .ci-wrap { flex-direction: column; }
+      .ci-sidebar { width: 100% !important; min-width: 0 !important; flex: 1 1 auto; }
+      .ci-main { display: none !important; }
+      .ci-conv-item { min-height: 64px; }
+      html.ci-aberto-mob .mobile-tabbar { display: none !important; }
+      html.ci-aberto-mob .ci-sidebar { display: none !important; }
+      html.ci-aberto-mob .ci-main { display: flex !important; position: fixed; inset: 0; z-index: 1000; border-radius: 0; border: 0; height: 100dvh; }
+      html.ci-aberto-mob .ci-header { padding-top: calc(10px + env(safe-area-inset-top)) !important; }
+      .ci-voltar { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; margin-right: 2px; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; flex: none; }
+      .ci-voltar svg { width: 22px; height: 22px; }
+      .ci-msg { max-width: 86% !important; }
+      .ci-msg-bubble { font-size: .92rem !important; }
+      .ci-textarea { font-size: 16px !important; min-height: 42px !important; }
+      #ciInputWrap { padding-bottom: env(safe-area-inset-bottom) !important; }
     }
     .ci-empty {
       flex: 1; display: flex; align-items: center; justify-content: center;
@@ -628,6 +651,10 @@ try { $edicaoCrm = !\App\Core\AccountContext::fromSession()->moduloJuridicoDispo
 
     <!-- Header (oculto até abrir conversa) -->
     <div class="ci-header" id="ciHeader" style="display:none">
+      <!-- Celular: volta para a lista (o "voltar" do aparelho faz o mesmo). -->
+      <button type="button" class="ci-voltar" onclick="CI.voltar()" aria-label="Voltar para as conversas" title="Voltar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
       <div class="ci-header-avatar" id="ciHeaderAvatar">?</div>
       <div class="ci-header-info">
         <div class="ci-header-name">
@@ -802,6 +829,6 @@ const CI_API  = {
 <?php if ($edicaoCrm): ?>
 <script>window.CI_CRM = true;</script>
 <?php endif; ?>
-<script src="/assets/chat_interno.js?v=5"></script>
+<script src="/assets/chat_interno.js?v=<?= @filemtime(__DIR__ . '/assets/chat_interno.js') ?: 6 ?>"></script>
 </body>
 </html>

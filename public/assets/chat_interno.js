@@ -224,6 +224,7 @@ const CI = (() => {
     qs('#ciHeader').style.display     = 'flex';
     qs('#ciMessages').style.display   = 'flex';
     qs('#ciInputWrap').style.display  = 'block';
+    _abrirNoCelular();
     qs('#ciMessages').innerHTML = '<div style="text-align:center;color:var(--muted);font-size:.78rem;padding:20px">Carregando…</div>';
     qs('#ciOptionsMenu')?.classList.remove('open');
 
@@ -363,7 +364,30 @@ const CI = (() => {
     } catch(e) { toast('Falha na conexão', true); }
   }
 
+  // ── Celular (até 900px): a conversa abre por cima da lista, como no WhatsApp.
+  // Abrir põe uma entrada no histórico: o "voltar" do aparelho fecha a conversa.
+  const _mqCelular = window.matchMedia ? window.matchMedia('(max-width: 900px)') : { matches: false };
+  let _histConv = false, _peloVoltar = false;
+  function _abrirNoCelular() {
+    if (!_mqCelular.matches) return;
+    document.documentElement.classList.add('ci-aberto-mob');
+    if (!_histConv) { try { history.pushState({ ciConversa: 1 }, ''); _histConv = true; } catch (_) {} }
+  }
+  function voltar() {
+    document.documentElement.classList.remove('ci-aberto-mob');
+    if (_histConv && !_peloVoltar) { _histConv = false; try { history.back(); } catch (_) {} }
+    _closeActiveConv();
+    renderConvList(state.convCache);
+  }
+  window.addEventListener('popstate', function () {
+    if (!_histConv) return;
+    _histConv = false; _peloVoltar = true;
+    voltar();
+    _peloVoltar = false;
+  });
+
   function _closeActiveConv() {
+    document.documentElement.classList.remove('ci-aberto-mob');
     state.convId   = null;
     state.convData = null;
     stopPolling();
@@ -1206,7 +1230,7 @@ const CI = (() => {
 
   // ── API pública ──────────────────────────────────────────────────────────
   return {
-    init, openConv, loadMore,
+    init, openConv, loadMore, voltar,
     // mensagens
     onInput, onKeyDown, send,
     // menções

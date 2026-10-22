@@ -18,7 +18,7 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
   <link rel="stylesheet" href="/assets/yuris-theme.css?v=42">
   <link rel="stylesheet" href="/assets/fog.css">
-  <link rel="stylesheet" href="/assets/sidebar.css?v=19">
+  <link rel="stylesheet" href="/assets/sidebar.css?v=20">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
   <style>
     :root {

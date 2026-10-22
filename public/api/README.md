@@ -146,6 +146,15 @@ hash do conteúdo, não o id da conta, e só sai PNG/JPEG/WebP com `nosniff` e C
 fechada. `master/marca.php` lê e grava a marca (só super admin, CSRF,
 auditoria); `master/create_account.php` aceita `edicao: 'crm'` com a marca.
 
+`app_manifest.php` é o manifesto do app instalável (PWA, 22/10/2026): nome, cor
+e ícones da marca da conta logada; sem sessão, a marca do domínio
+(`ProductHost`), e no domínio do Yuris, o Yuris. Não tem dado de cliente.
+`app_icone.php?h=<sha1>&l=<180|192|512>` é o ícone do app feito do ícone da
+marca (`App\Core\IconeApp`: quadrado, opaco, no tamanho pedido), com a mesma
+regra do `marca_arquivo.php` (sem sessão, endereço pelo hash, cache de um ano);
+o convertido fica em `sys_get_temp_dir()/yuris_icone_app`, e formato que o
+conversor não lê redireciona para o original.
+
 `crm_termometro.php` lê e grava a regra do termômetro da edição CRM (`App\Prospeccao\Termometro`): `{etapas: {chave: nível}, quente_dias, morno_dias, frio_dias, resposta_esquenta}`; etapa que faltar vem do padrão, nível inválido dá 422. GET para todos da conta; POST só dono/admin, com CSRF; `{padrao: true}` volta ao padrão; conta jurídica recebe 403.
 
 `plataforma.php` é a integração com a plataforma Fleetiflow (`app/Plataforma/`), só na edição CRM. GET `?conexao=1` (a ligação, sem segredo), `?card_id=` (vínculo do lead, resumo da conta e eventos; sem vínculo, sugestões), `&financeiro=1` (mensalidades, recargas, extrato), `?buscar=`, `?planos=1`, `?carteira=1`. POST com CSRF: `conectar`/`desconectar` (dono/admin), `vincular`, `desvincular`, e `modulo`, `plano`, `responder` (admin ou responsável pelo lead, conexão com escopo comercial). Vendedor só nos próprios leads. `plataforma_eventos.php` é máquina a máquina, sem sessão: `?c=<conta>` diz qual segredo conferir e a assinatura HMAC (`X-Fleetiflow-Assinatura`, timestamp de até 10 min) autentica; idempotente pelo id do evento.
