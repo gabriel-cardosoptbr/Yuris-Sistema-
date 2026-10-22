@@ -27,7 +27,15 @@ $input  = json_decode(file_get_contents('php://input'), true) ?? [];
 if ($method === 'GET') {
     if (!empty($_GET['count'])) {
         $count = AccountNotification::countNaoLidas($ctx->getUserId(), $ctx->getAccountId());
-        echo json_encode(['count' => $count]);
+        $resp = ['count' => $count];
+        // "Bling" (22/10/2026): com ?desde=, devolve também os avisos de tempo real novos.
+        // desde=-1 é a primeira pergunta da página: só o ponto de partida, sem tocar nada.
+        if (isset($_GET['desde'])) {
+            $desde = (int) $_GET['desde'];
+            $resp['ultimo'] = AccountNotification::ultimoId($ctx->getUserId(), $ctx->getAccountId());
+            $resp['novos']  = $desde >= 0 ? AccountNotification::novosTempoReal($ctx->getUserId(), $ctx->getAccountId(), $desde) : [];
+        }
+        echo json_encode($resp, JSON_UNESCAPED_UNICODE);
         exit;
     }
 

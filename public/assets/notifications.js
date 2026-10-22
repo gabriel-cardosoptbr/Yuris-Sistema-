@@ -17,7 +17,10 @@
   var CFG  = window.YURIS_NOTIF || {};
   var API  = CFG.api || '/api/account_notifications.php';
   var CSRF = CFG.csrf || '';
-  var POLL_MS = 60000; // atualiza o badge a cada 60s
+  // 20s desde 22/10/2026: a mesma consulta traz os avisos de tempo real (lead novo,
+  // menção) para o "bling" e o aviso na tela (assets/avisos.js, window.YurisAvisos).
+  var POLL_MS = 20000;
+  var ultimoVisto = -1; // maior id de aviso já conhecido; -1 = ainda não perguntou
 
   // Elementos (podem não existir em páginas sem sidebar — então abortamos).
   var elWrap, elBtn, elBadge, elPanel, elList, elMarkAll;
@@ -75,9 +78,16 @@
 
   // ── Badge ──────────────────────────────────────────────────────────────────
   function refreshBadge() {
-    fetchJson({ qs: '?count=1' }).then(function (data) {
+    fetchJson({ qs: '?count=1&desde=' + ultimoVisto }).then(function (data) {
       if (!data || typeof data.count === 'undefined') return;
       setBadge(parseInt(data.count, 10) || 0);
+      // Avisos de tempo real chegados desde a última pergunta: "bling" e aviso na tela.
+      // Na primeira pergunta só guarda o ponto de partida (abrir a página não toca nada).
+      var novos = Array.isArray(data.novos) ? data.novos : [];
+      novos.forEach(function (n) { if (window.YurisAvisos) window.YurisAvisos.mostrar(n); });
+      var ult = parseInt(data.ultimo, 10) || 0;
+      if (ult > ultimoVisto) ultimoVisto = ult;
+      if (ultimoVisto < 0) ultimoVisto = 0;
     });
   }
 
@@ -279,6 +289,9 @@
       var id = parseInt(item.dataset.id, 10) || 0;
       marcarLida(id, item); // clicar = concluir (marca lida + remove da lista)
     });
+
+    // Aviso que chegou pelo push com a página aberta (assets/avisos.js): atualiza já.
+    document.addEventListener('yuris:aviso', function () { refreshBadge(); });
 
     // Badge: carrega já e em polling leve. Pausa quando a aba está oculta.
     refreshBadge();

@@ -49,3 +49,11 @@ spl_autoload_register(static function (string $classe): void {
         }
     }
 });
+
+// 3) "Lembrar" do login (22/10/2026): quem marcou a caixa volta sozinho quando a
+//    sessão do PHP acabou (navegador fechado, app do celular reaberto). Só age
+//    quando o cookie existe; abre a sessão para olhar e fecha em seguida, então a
+//    página continua abrindo a sessão do jeito dela. Ver App\Usuarios\Lembrar.
+if (PHP_SAPI !== 'cli' && !empty($_COOKIE['yuris_lembrar'])) {
+    \App\Usuarios\Lembrar::restaurarSePreciso();
+}

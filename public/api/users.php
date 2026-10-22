@@ -385,6 +385,8 @@ if ($method === 'PUT' || $method === 'PATCH') {
         $params['acc'] = $accountId;
         $sql  = 'UPDATE users SET ' . implode(', ', $fields) . ', updated_at = NOW() WHERE id = :id AND account_id = :acc';
         $pdo->prepare($sql)->execute($params);
+        // Senha nova: nenhum aparelho com "Lembrar" volta sozinho (App\Usuarios\Lembrar).
+        if (isset($params['senha_hash'])) \App\Usuarios\Lembrar::revogarUsuario((int) $id);
     }
 
     $permissionsChanged = false;

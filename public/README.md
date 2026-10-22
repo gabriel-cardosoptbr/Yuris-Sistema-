@@ -465,6 +465,14 @@ no computador nada muda.
     caches.keys().then(k => Promise.all(k.map(n => caches.delete(n))))
       .then(() => self.registration.unregister())));
   ```
+- **Avisos no aparelho e "bling"** (22/10/2026): o `sw.js` também recebe o push (lead novo, menção) e
+  mostra a notificação; com a página aberta e em foco, passa o aviso para ela. `assets/avisos.js` +
+  `avisos.css` (carregados pelo `sidebar.php`, config em `window.YURIS_AVISOS`) tocam o "bling", mostram
+  o aviso no canto da tela, inscrevem o aparelho e desenham o card "Receber os avisos neste aparelho" na
+  tela inicial (no computador também). `configuracoes.php` › Notificações ganhou "Avisos neste aparelho"
+  (de cada pessoa) e "Quem recebe os avisos" (admin). Ver `app/Notificacoes/README.md`.
+- **"Lembrar" no login**: a caixa de `login.php` e `login-fleetiflow.php` agora funciona
+  (`App\Usuarios\Lembrar`, 30 dias) e já vem marcada quando a página abre dentro do app instalado.
 - **Ícones do app**: `assets/app-yuris-{180,192,512}.png` e `assets/app-fleetiflow-{180,192,512}.png`
   foram gerados uma vez (produção não tem GD); marca própria usa `api/app_icone.php`
   (`App\Core\IconeApp`). Conta com marca própria sem ícone cai no ícone do Fleetiflow.

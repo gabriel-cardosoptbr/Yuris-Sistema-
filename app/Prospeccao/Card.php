@@ -237,6 +237,12 @@ class Card
         // mostrar quando e por quem entrou no sistema.
         if ($id) {
             self::logEvento($id, $data['_usuario_id'] ?? null, 'created');
+            // Aviso de lead novo (sino, celular e "bling"), para quem a conta escolheu.
+            \App\Notificacoes\Aviso::leadNovo(
+                (int) $data['account_id'], $id, (string) ($titulo ?: ($data['cliente_nome'] ?? '')),
+                isset($data['_usuario_id']) ? (int) $data['_usuario_id'] : null,
+                (string) ($data['telefone_whatsapp'] ?? '')
+            );
         }
 
         return $id;

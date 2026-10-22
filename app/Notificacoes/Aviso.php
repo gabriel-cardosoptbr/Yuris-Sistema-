@@ -77,6 +77,14 @@ final class Aviso
     /** Um dia, para quem avisa uma vez por dia. */
     public const JANELA_DIARIA_MIN = 1440;
 
+    /**
+     * Tipos de TEMPO REAL (22/10/2026): além do sino, saem na hora como
+     * notificação no celular e no computador (Push) e tocam o "bling" na tela de
+     * quem está com o sistema aberto (notifications.js). Só o que pede ação
+     * agora; prazo do dia continua só no sino (o tick roda de madrugada).
+     */
+    public const TIPOS_TEMPO_REAL = ['lead_novo', 'mencao', 'responsavel.atribuido'];
+
     /* ===================================================================== */
     /* escrita                                                                */
     /* ===================================================================== */
@@ -174,6 +182,35 @@ final class Aviso
             'url'            => $url,
             'preferencia'    => 'mencao',
         ]);
+    }
+
+    /**
+     * "Lead novo: Fulano." Para quem a conta escolheu em Configurações ›
+     * Notificações (App\Notificacoes\Destinatarios). Chamado por Card::create,
+     * então vale para todo caminho de entrada: WhatsApp, site, campanha, API e
+     * cadastro à mão (quem cadastrou não é avisado do próprio cadastro).
+     */
+    public static function leadNovo(int $accountId, int $cardId, string $nome, ?int $origemUserId, string $telefone = ''): void
+    {
+        try {
+            $nome = trim($nome) !== '' ? trim($nome) : ($telefone !== '' ? $telefone : 'sem nome');
+            $partes = array_filter([$telefone !== '' && $telefone !== $nome ? $telefone : '', 'Toque para abrir o lead.']);
+            foreach (Destinatarios::usuarios($accountId, 'lead_novo') as $uid) {
+                self::paraUsuario($accountId, $uid, [
+                    'tipo'           => 'lead_novo',
+                    'titulo'         => 'Lead novo: ' . $nome,
+                    'mensagem'       => implode(' · ', $partes),
+                    'entidade'       => 'card',
+                    'entidade_id'    => $cardId,
+                    'url'            => '/prospeccao?open=' . $cardId,
+                    'origem_user_id' => $origemUserId,
+                    'chave_dedupe'   => 'lead_novo:' . $cardId,
+                    'janela_min'     => self::JANELA_DIARIA_MIN,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            error_log('[Aviso] lead novo: ' . $e->getMessage());
+        }
     }
 
     /* ===================================================================== */
@@ -364,7 +401,17 @@ final class Aviso
                 'chave'   => $chave !== '' ? mb_substr($chave, 0, 120) : null,
             ]);
 
-            return (int) $pdo->lastInsertId();
+            $id = (int) $pdo->lastInsertId();
+
+            // Tempo real: notificação no celular e no computador (Push), no fim da requisição.
+            $tipo = (string) ($dados['tipo'] ?? '');
+            if ($paraUserId !== null && $id > 0 && in_array($tipo, self::TIPOS_TEMPO_REAL, true)) {
+                Push::enfileirar($accountId, $paraUserId, [
+                    'id' => $id, 'tipo' => $tipo, 'titulo' => $titulo,
+                    'corpo' => (string) ($dados['mensagem'] ?? ''), 'url' => (string) ($dados['url'] ?? ''),
+                ]);
+            }
+            return $id;
         } catch (\Throwable $e) {
             error_log('[Aviso] ' . $e->getMessage());
             return 0;

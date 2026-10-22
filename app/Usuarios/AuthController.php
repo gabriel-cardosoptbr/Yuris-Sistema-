@@ -107,6 +107,44 @@ class AuthController
         }
 
         // ── Login OK — popular sessão ──────────────────────────────────────
+        self::abrirSessao($user, $account);
+
+        // "Lembrar": este aparelho volta sozinho por 30 dias (App\Usuarios\Lembrar).
+        if (!empty($_POST['remember'])) {
+            Lembrar::criar((int) $user['id'], (int) ($_SESSION['account_id'] ?? 0));
+        }
+
+        // Rate-limit: zera contador em login bem-sucedido
+        self::clearFailedAttempts($ip, $login);
+
+        // LGPD: persiste aceite dos Termos/Privacidade na primeira vez.
+        // Idempotente — Consent::grant detecta ativo anterior e não duplica.
+        self::recordTermsConsentIfNeeded($user, $ip);
+
+        require_once __DIR__ . '/../Webhooks/WebhookDispatcher.php';
+        // P0 LGPD: passa account_id do usuário que logou, não global
+        $loginAcc = isset($user['account_id']) ? (int)$user['account_id'] : null;
+        WebhookDispatcher::fire($loginAcc, 'usuario.login', WebhookDispatcher::buildPayload('usuario.login', [
+            'entity' => 'usuario', 'entity_id' => $user['id'],
+            'data' => ['id' => $user['id'], 'nome' => $user['nome'], 'perfil' => $user['perfil'], 'ip' => $ip],
+        ]));
+
+        header('Location: /dashboard');
+        exit;
+    }
+
+    /**
+     * Monta a sessão de um usuário que já provou quem é: pela senha
+     * (attemptLogin) ou pelo "Lembrar" (App\Usuarios\Lembrar). Um lugar só,
+     * para a volta pelo "Lembrar" nunca montar uma sessão diferente da do login
+     * (permissões, papel, super admin e o id novo contra fixação).
+     *
+     * @param array      $user    linha de `users`
+     * @param array|null $account linha de `accounts` (id, nome, tipo, plano), ou null no legado
+     */
+    public static function abrirSessao(array $user, ?array $account): void
+    {
+        $pdo = \App\Core\Database::getConnection();
         $_SESSION['user_id']     = $user['id'];
         $_SESSION['user_nome']   = $user['nome'];
         $_SESSION['user_perfil'] = $user['perfil'];
@@ -155,29 +193,15 @@ class AuthController
                     ->execute(['uid' => $user['id']]);
             }
         } catch (\Throwable $_e) { /* tabela ainda não existe — silencioso */ }
-
-        // Rate-limit: zera contador em login bem-sucedido
-        self::clearFailedAttempts($ip, $login);
-
-        // LGPD: persiste aceite dos Termos/Privacidade na primeira vez.
-        // Idempotente — Consent::grant detecta ativo anterior e não duplica.
-        self::recordTermsConsentIfNeeded($user, $ip);
-
-        require_once __DIR__ . '/../Webhooks/WebhookDispatcher.php';
-        // P0 LGPD: passa account_id do usuário que logou, não global
-        $loginAcc = isset($user['account_id']) ? (int)$user['account_id'] : null;
-        WebhookDispatcher::fire($loginAcc, 'usuario.login', WebhookDispatcher::buildPayload('usuario.login', [
-            'entity' => 'usuario', 'entity_id' => $user['id'],
-            'data' => ['id' => $user['id'], 'nome' => $user['nome'], 'perfil' => $user['perfil'], 'ip' => $ip],
-        ]));
-
-        header('Location: /dashboard');
-        exit;
     }
 
     public static function logout()
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
+
+        // Sair desliga o "Lembrar" deste aparelho e para os avisos nele.
+        Lembrar::revogarAtual();
+        \App\Notificacoes\Push::removerDaSessao();
 
         // Decide a tela de volta ANTES de limpar a sessão: conta Fleetiflow
         // sai pro login Fleetiflow, não pro login Yuris padrão.
@@ -229,7 +253,7 @@ class AuthController
      * Inicializa sessão com cookies seguros (HttpOnly + SameSite + Secure).
      * Idempotente — não derruba sessão já iniciada.
      */
-    private static function ensureSessionStarted(): void
+    public static function ensureSessionStarted(): void
     {
         if (session_status() !== PHP_SESSION_NONE) return;
         // Configura ANTES de session_start (no-op se já houver headers enviados)

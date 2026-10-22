@@ -146,6 +146,15 @@ hash do conteúdo, não o id da conta, e só sai PNG/JPEG/WebP com `nosniff` e C
 fechada. `master/marca.php` lê e grava a marca (só super admin, CSRF,
 auditoria); `master/create_account.php` aceita `edicao: 'crm'` com a marca.
 
+`avisos_push.php` é o aparelho que recebe avisos (Web Push, 22/10/2026): GET dá a
+chave pública VAPID; POST `inscrever` (endereço e chaves do navegador, só de
+serviço de push conhecido), `remover` e `testar`. Sempre a própria pessoa.
+`avisos_destinatarios.php` é quem recebe o aviso de lead novo (só dono e admin;
+usuário de outra conta é descartado). `account_notifications.php?count=1&desde=N`
+devolve também `ultimo` e os avisos de tempo real novos (`novos`), que o sino usa
+para o "bling"; `desde=-1` é a primeira pergunta (só o ponto de partida). Ver
+[`../../app/Notificacoes/README.md`](../../app/Notificacoes/README.md).
+
 `app_manifest.php` é o manifesto do app instalável (PWA, 22/10/2026): nome, cor
 e ícones da marca da conta logada; sem sessão, a marca do domínio
 (`ProductHost`), e no domínio do Yuris, o Yuris. Não tem dado de cliente.

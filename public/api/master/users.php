@@ -152,6 +152,7 @@ if ($method === 'POST' && !empty($_GET['reset_password'])) {
     $nova = !empty($input['senha']) ? trim($input['senha']) : _gerarSenhaTmp();
     $pdo->prepare("UPDATE users SET senha_hash = :sh, updated_at = NOW() WHERE id = :id")
         ->execute(['sh' => password_hash($nova, PASSWORD_BCRYPT), 'id' => $id]);
+    \App\Usuarios\Lembrar::revogarUsuario((int) $id);
 
     MasterAudit::log('user.reset_password', 'user', $id, "Senha do usuário '{$nome}' foi resetada");
 
@@ -222,6 +223,7 @@ if ($method === 'PATCH') {
 
     $pdo->prepare('UPDATE users SET ' . implode(', ', $sets) . ', updated_at = NOW() WHERE id = :id')
         ->execute($params);
+    if (isset($params['sh'])) \App\Usuarios\Lembrar::revogarUsuario((int) $id);
 
     MasterAudit::log('user.update', 'user', $id,
         "Usuário '{$prev['nome']}' editado via Painel Master",

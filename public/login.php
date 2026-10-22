@@ -124,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <div class="field anim-item" data-i="4" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
-          <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="remember"> Lembrar</label>
+          <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="remember" value="1"> Lembrar neste aparelho</label>
         </div>
 
         <!-- LGPD Etapa 5: aceite obrigatório de termos (somente na primeira vez por user) -->
@@ -239,5 +239,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
     })();
   </script>
+<!-- "Lembrar" (App/Usuarios/Lembrar, 22/10/2026): no app instalado no celular a caixa
+     já vem marcada; fechar o app não deve pedir a senha de novo. -->
+<script>(function(){try{if((window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true){var c=document.querySelector('input[name="remember"]');if(c)c.checked=true;}}catch(e){}})();</script>
 </body>
 </html>

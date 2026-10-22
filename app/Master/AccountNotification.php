@@ -100,6 +100,34 @@ class AccountNotification
         return (int) $stmt->fetchColumn();
     }
 
+    /**
+     * Avisos de tempo real chegados depois de `$desdeId` (22/10/2026): o que o
+     * sino entrega para o "bling" e o aviso na tela (notifications.js). Só os
+     * não lidos dos últimos 15 minutos: quem abre o sistema de manhã não ouve
+     * a fila da noite inteira.
+     */
+    public static function novosTempoReal(int $userId, int $accountId, int $desdeId): array
+    {
+        $tipos = \App\Notificacoes\Aviso::TIPOS_TEMPO_REAL;
+        $in = implode(',', array_fill(0, count($tipos), '?'));
+        $stmt = Database::getConnection()->prepare(
+            "SELECT id, tipo, titulo, mensagem, url FROM account_notifications
+             WHERE account_id = ? AND user_id = ? AND natureza = 'dirigido' AND lida = 0
+               AND id > ? AND tipo IN ($in) AND created_at >= NOW() - INTERVAL 15 MINUTE
+             ORDER BY id ASC LIMIT 5"
+        );
+        $stmt->execute(array_merge([$accountId, $userId, $desdeId], $tipos));
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /** O maior id de aviso desta pessoa: ponto de partida do "bling" ao abrir a página. */
+    public static function ultimoId(int $userId, int $accountId): int
+    {
+        $stmt = Database::getConnection()->prepare('SELECT COALESCE(MAX(id), 0) FROM account_notifications WHERE account_id = ? AND user_id = ?');
+        $stmt->execute([$accountId, $userId]);
+        return (int) $stmt->fetchColumn();
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // ESCRITA
     // ─────────────────────────────────────────────────────────────────────────

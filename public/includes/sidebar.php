@@ -1184,11 +1184,24 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
   <img class="app-card-ic" src="<?= htmlspecialchars($_appIcone) ?>" alt="" width="48" height="48">
   <div class="app-card-txt">
     <strong>Tenha o <?= htmlspecialchars($_appNome) ?> na tela do celular</strong>
-    <span>Abre direto, em tela cheia, como um aplicativo. Ideal para responder as conversas de qualquer lugar.</span>
+    <span>Abre direto, em tela cheia, como um aplicativo, e avisa na hora quando chega lead novo.</span>
   </div>
   <div class="app-card-acoes">
     <button type="button" class="app-card-depois" onclick="appAdiar()">Agora não</button>
     <button type="button" class="app-card-ok" onclick="appInstalar()">Instalar</button>
+  </div>
+</div>
+<!-- Avisos no aparelho (22/10/2026): aparece quando não há o que instalar (computador,
+     app já instalado ou card de instalar dispensado) e os avisos estão desligados. -->
+<div class="app-card app-card-avisos" id="avisosCard" role="region" aria-label="Receber avisos" hidden>
+  <span class="app-card-ic avisos-card-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+  <div class="app-card-txt">
+    <strong>Receber os avisos neste aparelho</strong>
+    <span>Lead novo e menções chegam na hora, com som, mesmo com o sistema fechado.</span>
+  </div>
+  <div class="app-card-acoes">
+    <button type="button" class="app-card-depois" onclick="YurisAvisos.adiarCard()">Agora não</button>
+    <button type="button" class="app-card-ok" onclick="YurisAvisos.ativarPeloCard()">Ativar</button>
   </div>
 </div>
 <?php endif; ?>
@@ -1453,6 +1466,15 @@ window.YURIS_NOTIF = Object.assign({}, window.YURIS_NOTIF, {
 });
 </script>
 <script src="/assets/notifications.js?v=<?= $_notifJsVer ?>" defer></script>
+<?php
+// Avisos de tempo real (22/10/2026): "bling", aviso na tela e notificação no
+// celular e no computador. Ver assets/avisos.js e App\Notificacoes\Push.
+$_avisosChave = null;
+try { $_avisosChave = \App\Notificacoes\Push::chavePublica(); } catch (\Throwable $__e) { $_avisosChave = null; }
+?>
+<link rel="stylesheet" href="/assets/avisos.css?v=<?= @filemtime(__DIR__ . '/../assets/avisos.css') ?: 1 ?>">
+<script>window.YURIS_AVISOS = <?= json_encode(['csrf' => $_notifCsrf, 'chave' => $_avisosChave, 'usuario' => (int) ($_SESSION['user_id'] ?? 0)], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;</script>
+<script src="/assets/avisos.js?v=<?= @filemtime(__DIR__ . '/../assets/avisos.js') ?: 1 ?>" defer></script>
 
 <?php if ($_isFleetiflow):
   // Agenda do lead (edição CRM): botão "Agendar próxima interação" na ficha e

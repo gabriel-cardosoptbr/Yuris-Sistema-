@@ -265,7 +265,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <div class="row">
-          <label><input type="checkbox" name="remember"> Manter conectado</label>
+          <label><input type="checkbox" name="remember" value="1"> Manter conectado neste aparelho</label>
         </div>
 
         <!-- LGPD: aceite obrigatório de termos, só na primeira vez por usuário -->
@@ -345,5 +345,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
     })();
   </script>
+<!-- "Lembrar" (App/Usuarios/Lembrar, 22/10/2026): no app instalado no celular a caixa
+     já vem marcada; fechar o app não deve pedir a senha de novo. -->
+<script>(function(){try{if((window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true){var c=document.querySelector('input[name="remember"]');if(c)c.checked=true;}}catch(e){}})();</script>
 </body>
 </html>

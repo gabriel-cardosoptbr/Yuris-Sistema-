@@ -4,6 +4,7 @@ use App\Prospeccao\PipelineColumn;
 session_start();
 if (empty($_SESSION['user_id'])) { header('Location: /login'); exit; }
 $moduloJuridico = \App\Core\AccountContext::fromSession()->moduloJuridicoDisponivel(); // false só para conta Fleetiflow (sem módulo jurídico)
+$podeEscolherAvisos = \App\Core\AccountContext::fromSession()->isOwnerOrAdmin(); // "Quem recebe os avisos" (22/10/2026)
 $activePage = 'configuracoes';
 $csrf    = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 $columns = PipelineColumn::listAll();
@@ -526,6 +527,38 @@ $nCols   = count($columns);
             </p>
           </div>
 
+          <!-- ── AVISOS NESTE APARELHO e QUEM RECEBE (22/10/2026) ───────────────
+               Reais, gravam no servidor. O primeiro é de cada pessoa (este celular
+               ou computador recebe notificação; som do "bling"), via assets/avisos.js
+               e /api/avisos_push.php. O segundo é da conta, só para administrador:
+               quem recebe o aviso de lead novo (App\Notificacoes\Destinatarios). -->
+          <div class="cfg-block" id="avisosAparelho">
+            <div class="cfg-section-title">📱 Avisos neste aparelho</div>
+            <div class="cfg-section-body">
+              <div class="toggle-row" style="gap:12px">
+                <div><div class="toggle-label">Notificação no celular ou no computador</div><div class="toggle-sub" id="avisosEstadoTxt">Verificando…</div></div>
+                <button type="button" class="cfg-btn-primary" id="avisosBtn" style="display:none;flex:none"></button>
+              </div>
+              <div class="toggle-row">
+                <div><div class="toggle-label">Som quando chega um aviso</div><div class="toggle-sub">Um "bling" curto, com o sistema aberto</div></div>
+                <label class="toggle-wrap"><input type="checkbox" id="avisosSom"><span class="toggle-slider"></span></label>
+              </div>
+              <div style="padding-top:10px"><button type="button" class="cfg-btn-secondary" id="avisosTestar">Testar um aviso</button></div>
+            </div>
+          </div>
+<?php if ($podeEscolherAvisos): ?>
+          <div class="cfg-block" id="avisosQuem">
+            <div class="cfg-section-title">👥 Quem recebe os avisos</div>
+            <div class="cfg-section-body" id="avisosQuemLista">
+              <p style="font-size:.78rem;color:var(--muted)">Carregando…</p>
+            </div>
+            <p style="font-size:.72rem;color:var(--muted);margin-top:8px">
+              Salva sozinho ao marcar. Quem recebe vê o aviso no sino, ouve o "bling" com o sistema aberto
+              e recebe a notificação no celular se ativou os avisos lá (bloco acima, no aparelho da pessoa).
+            </p>
+          </div>
+<?php endif; ?>
+
           <div class="cfg-block">
             <div class="cfg-section-title">📣 Canais de notificação</div>
             <div class="cfg-section-body">
@@ -750,6 +783,11 @@ $nCols   = count($columns);
       if(sec) sec.classList.add('active');
     });
   });
+  // /configuracoes#avisos abre direto a aba Notificações (link do card de avisos).
+  if (location.hash === '#avisos') {
+    const t = document.querySelector('.cfg-tab[data-tab="notificacoes"]');
+    if (t) t.click();
+  }
 
   // ── Theme switcher (aba Aparência) ─────────────────────────────────────────
   (function initThemeSwitcher(){
@@ -924,6 +962,110 @@ $nCols   = count($columns);
       .catch(function(){
         caixa.innerHTML = '<p style="font-size:.78rem;color:var(--muted)">Não foi possível carregar.</p>';
       });
+  })();
+
+  // ── Avisos neste aparelho (assets/avisos.js, window.YurisAvisos) ────────────
+  // O avisos.js é "defer": roda antes do DOMContentLoaded, depois deste script.
+  document.addEventListener('DOMContentLoaded', function(){
+    const txt = document.getElementById('avisosEstadoTxt');
+    const btn = document.getElementById('avisosBtn');
+    const som = document.getElementById('avisosSom');
+    const tst = document.getElementById('avisosTestar');
+    if (!txt) return;
+    const A = window.YurisAvisos;
+    const FRASES = {
+      ativo:       ['Ligado: lead novo e menções chegam aqui, mesmo com o sistema fechado.', 'Desligar'],
+      inativo:     ['Desligado neste aparelho.', 'Ativar'],
+      bloqueado:   ['Bloqueado pelo navegador. Libere as notificações deste site nas configurações do navegador e volte aqui.', ''],
+      instalar:    ['No iPhone, os avisos funcionam com o app instalado: Compartilhar › Adicionar à Tela de Início, e abra por lá.', ''],
+      sem_suporte: ['Este navegador não recebe notificações. Os avisos continuam no sino e com o "bling".', ''],
+      erro:        ['Não foi possível ativar agora. Tente de novo.', 'Ativar']
+    };
+    function pintar(e){
+      const f = FRASES[e] || FRASES.erro;
+      txt.textContent = f[0];
+      btn.textContent = f[1];
+      btn.style.display = f[1] ? '' : 'none'; // .cfg-btn-primary vence o atributo hidden
+      btn.dataset.estado = e;
+    }
+    if (!A) { pintar('sem_suporte'); return; }
+    A.estado().then(pintar);
+    btn.addEventListener('click', function(){
+      btn.disabled = true;
+      (btn.dataset.estado === 'ativo' ? A.desativar() : A.ativar()).then(function(e){
+        btn.disabled = false;
+        pintar(e);
+        if (e === 'ativo') A.testar();
+      });
+    });
+    som.checked = A.somLigado();
+    som.addEventListener('change', function(){ A.ligarSom(som.checked); if (som.checked) A.bling(); });
+    tst.addEventListener('click', function(){
+      A.estado().then(function(e){
+        if (e === 'ativo') {
+          A.testar().then(function(d){
+            if (!d || !d.success) A.mostrar({ titulo: 'Teste de aviso', mensagem: 'O aviso na tela funciona; a notificação do aparelho não saiu agora.' });
+          });
+        } else {
+          A.mostrar({ titulo: 'Teste de aviso', mensagem: 'É assim que um lead novo aparece com o sistema aberto.', tipo: 'lead_novo' });
+        }
+      });
+    });
+  });
+
+  // ── Quem recebe os avisos (só administrador) ─────────────────────────────────
+  (function(){
+    const caixa = document.getElementById('avisosQuemLista');
+    if (!caixa) return;
+    const CSRF = <?= json_encode($csrf) ?>;
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    function desenhar(d){
+      caixa.innerHTML = d.eventos.map(function(ev){
+        const linhas = d.equipe.map(function(u){
+          const porAdmin = ev.admins && u.admin;
+          const marcado = porAdmin || ev.usuarios.indexOf(u.id) !== -1;
+          const sub = (u.admin ? 'Administrador · ' : '') + (u.aparelhos > 0
+            ? 'avisos ligados em ' + u.aparelhos + (u.aparelhos > 1 ? ' aparelhos' : ' aparelho')
+            : 'ainda não ligou os avisos no celular');
+          return '<div class="toggle-row">' +
+                   '<div><div class="toggle-label">' + esc(u.nome) + '</div><div class="toggle-sub">' + esc(sub) + '</div></div>' +
+                   '<label class="toggle-wrap"' + (porAdmin ? ' title="Recebe por ser administrador"' : '') + '><input type="checkbox" data-ev="' + esc(ev.chave) + '" data-user="' + u.id + '"' +
+                   (marcado ? ' checked' : '') + (porAdmin ? ' disabled' : '') + '><span class="toggle-slider"></span></label>' +
+                 '</div>';
+        }).join('');
+        return '<div style="padding:4px 0 6px"><div class="toggle-label" style="font-weight:700">' + esc(ev.rotulo) + '</div>' +
+                 '<div class="toggle-sub">' + esc(ev.descricao) + '</div></div>' +
+               '<div class="toggle-row"><div><div class="toggle-label">Todos os administradores</div>' +
+                 '<div class="toggle-sub">Quem é ou virar administrador recebe sem precisar marcar</div></div>' +
+                 '<label class="toggle-wrap"><input type="checkbox" data-ev="' + esc(ev.chave) + '" data-admins="1"' + (ev.admins ? ' checked' : '') + '><span class="toggle-slider"></span></label></div>' +
+               linhas;
+      }).join('');
+      caixa.querySelectorAll('input[data-ev]').forEach(function(inp){
+        inp.addEventListener('change', function(){ salvar(inp.dataset.ev); });
+      });
+    }
+
+    function salvar(ev){
+      const admins = !!caixa.querySelector('input[data-ev="' + ev + '"][data-admins]:checked');
+      const usuarios = Array.from(caixa.querySelectorAll('input[data-ev="' + ev + '"][data-user]:checked:not(:disabled)')).map(i => +i.dataset.user);
+      fetch('/api/avisos_destinatarios.php', {
+        method: 'POST', credentials: 'same-origin',
+        headers: {'Content-Type':'application/json','X-CSRF-Token': CSRF},
+        body: JSON.stringify({ evento: ev, admins: admins, usuarios: usuarios })
+      }).then(r => r.json()).then(function(d){
+        if (d && d.success) { desenhar(d); if (window.Yuris) Yuris.toast('Quem recebe os avisos: salvo.', 'success'); }
+        else if (window.Yuris) Yuris.toast('Não foi possível salvar.', 'error');
+      }).catch(function(){ if (window.Yuris) Yuris.toast('Não foi possível salvar.', 'error'); });
+    }
+
+    fetch('/api/avisos_destinatarios.php', {credentials:'same-origin'})
+      .then(r => r.json())
+      .then(function(d){
+        if (d && d.success) desenhar(d);
+        else caixa.innerHTML = '<p style="font-size:.78rem;color:var(--muted)">Não foi possível carregar.</p>';
+      })
+      .catch(function(){ caixa.innerHTML = '<p style="font-size:.78rem;color:var(--muted)">Não foi possível carregar.</p>'; });
   })();
 
   wireToggles([
