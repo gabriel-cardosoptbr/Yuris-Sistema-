@@ -41,7 +41,7 @@ final class IconeApp
     {
         if ($produto !== 'fleetiflow') return '/assets/app-yuris-' . $lado . '.png?v=1';
         if ($marca && !empty($marca['personalizada'])
-            && preg_match('/[?&]h=([0-9a-f]{40})/', (string) ($marca['icone_url'] ?? ''), $m)) {
+            && preg_match('/[?&]h=([0-9a-f]{40})(?![0-9a-f])/', (string) ($marca['icone_url'] ?? ''), $m)) {
             return '/api/app_icone.php?h=' . $m[1] . '&l=' . $lado;
         }
         return '/assets/app-fleetiflow-' . $lado . '.png?v=1';
