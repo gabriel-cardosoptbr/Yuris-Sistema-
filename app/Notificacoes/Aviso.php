@@ -83,7 +83,15 @@ final class Aviso
      * quem está com o sistema aberto (notifications.js). Só o que pede ação
      * agora; prazo do dia continua só no sino (o tick roda de madrugada).
      */
-    public const TIPOS_TEMPO_REAL = ['lead_novo', 'mencao', 'responsavel.atribuido'];
+    public const TIPOS_TEMPO_REAL = ['lead_novo', 'mencao', 'responsavel.atribuido', 'mensagem_nova'];
+
+    /**
+     * Mensagem nova numa conversa que já avisou e não foi aberta: não avisa de novo
+     * nesse prazo (o lead que manda cinco mensagens seguidas é um aviso só). Abrir a
+     * conversa marca o aviso como lido (marcarConversaLida), e a próxima mensagem
+     * volta a avisar.
+     */
+    public const JANELA_MENSAGEM_MIN = 30;
 
     /* ===================================================================== */
     /* escrita                                                                */
@@ -211,6 +219,61 @@ final class Aviso
         } catch (\Throwable $e) {
             error_log('[Aviso] lead novo: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * "Fulano: oi, tudo bem?" Para o DONO da conversa do WhatsApp (23/10/2026,
+     * App\WhatsAppAgente\DonoDaConversa::avisarDono), na hora em que a mensagem
+     * chega pelo webhook. Sino, "bling" e celular, como o lead novo.
+     *
+     * Um aviso por conversa enquanto ele não é lido (até JANELA_MENSAGEM_MIN): sem
+     * isso, cada mensagem de uma rajada viraria uma notificação no celular.
+     */
+    public static function mensagemNova(int $accountId, int $paraUserId, int $instanceId, string $jid, string $nome, string $previa): int
+    {
+        try {
+            $chave = self::chaveConversa($instanceId, $jid);
+            $st = Database::getConnection()->prepare(
+                'SELECT 1 FROM account_notifications
+                  WHERE account_id = ? AND user_id = ? AND chave_dedupe = ? AND lida = 0
+                    AND created_at >= DATE_SUB(NOW(), INTERVAL ' . self::JANELA_MENSAGEM_MIN . ' MINUTE)
+                  LIMIT 1'
+            );
+            $st->execute([$accountId, $paraUserId, $chave]);
+            if ($st->fetchColumn()) return 0;
+            $nome = trim($nome) !== '' ? trim($nome) : 'Contato';
+            return self::paraUsuario($accountId, $paraUserId, [
+                'tipo'         => 'mensagem_nova',
+                'titulo'       => $nome,
+                'mensagem'     => mb_substr(trim($previa), 0, 160),
+                'entidade'     => 'chat',
+                'url'          => '/chat?numero=' . $instanceId . '&jid=' . rawurlencode($jid),
+                'chave_dedupe' => $chave,
+                // A regra de cima (só os não lidos) é a que vale: a janela por tempo
+                // engoliria a resposta que chega logo depois de a conversa ser aberta.
+                'sem_janela'   => true,
+            ]);
+        } catch (\Throwable $e) {
+            error_log('[Aviso] mensagem nova: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /** Abriu a conversa: os avisos de mensagem nova dela, desta pessoa, ficam lidos. */
+    public static function marcarConversaLida(int $accountId, int $userId, int $instanceId, string $jid): void
+    {
+        if ($accountId <= 0 || $userId <= 0 || $jid === '') return;
+        try {
+            Database::getConnection()->prepare(
+                "UPDATE account_notifications SET lida = 1, lida_em = NOW()
+                  WHERE account_id = ? AND user_id = ? AND chave_dedupe = ? AND lida = 0 AND tipo = 'mensagem_nova'"
+            )->execute([$accountId, $userId, self::chaveConversa($instanceId, $jid)]);
+        } catch (\Throwable $e) { /* aviso nunca derruba a leitura da conversa */ }
+    }
+
+    private static function chaveConversa(int $instanceId, string $jid): string
+    {
+        return 'wa_msg:' . $instanceId . ':' . $jid;
     }
 
     /* ===================================================================== */
@@ -374,7 +437,7 @@ final class Aviso
             // REGRA 2: dedupe por janela.
             $chave  = trim((string) ($dados['chave_dedupe'] ?? ''));
             $janela = (int) ($dados['janela_min'] ?? self::JANELA_DEDUPE_MIN);
-            if ($chave !== '' && self::jaAvisado($pdo, $accountId, $paraUserId, $chave, $janela)) {
+            if ($chave !== '' && empty($dados['sem_janela']) && self::jaAvisado($pdo, $accountId, $paraUserId, $chave, $janela)) {
                 return 0;
             }
 

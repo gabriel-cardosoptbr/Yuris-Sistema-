@@ -471,6 +471,9 @@ no computador nada muda.
   o aviso no canto da tela, inscrevem o aparelho e desenham o card "Receber os avisos neste aparelho" na
   tela inicial (no computador também). `configuracoes.php` › Notificações ganhou "Avisos neste aparelho"
   (de cada pessoa) e "Quem recebe os avisos" (admin). Ver `app/Notificacoes/README.md`.
+- **Mensagem nova para o dono da conversa** (23/10/2026): o `avisos.js` não toca nem mostra o aviso da
+  conversa que já está aberta no Chat (`ChatApp.conversaAberta()`, exposto pelo `chat.js`), e clicar no
+  aviso dentro do Chat, no mesmo número, abre a conversa sem recarregar.
 - **"Lembrar" no login**: a caixa de `login.php` e `login-fleetiflow.php` agora funciona
   (`App\Usuarios\Lembrar`, 30 dias) e já vem marcada quando a página abre dentro do app instalado.
 - **Ícones do app**: `assets/app-yuris-{180,192,512}.png` e `assets/app-fleetiflow-{180,192,512}.png`

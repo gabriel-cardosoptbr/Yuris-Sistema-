@@ -158,6 +158,9 @@ devolve também `ultimo` e os avisos de tempo real novos (`novos`), que o sino u
 para o "bling"; `desde=-1` é a primeira pergunta (só o ponto de partida). Ver
 [`../../app/Notificacoes/README.md`](../../app/Notificacoes/README.md).
 
+`whatsapp/messages.php` marca como lido o aviso de mensagem nova da conversa aberta
+(`Aviso::marcarConversaLida`, 23/10/2026): quem está vendo a conversa já viu.
+
 `app_manifest.php` é o manifesto do app instalável (PWA, 22/10/2026): nome, cor
 e ícones da marca da conta logada; sem sessão, a marca do domínio
 (`ProductHost`), e no domínio do Yuris, o Yuris. Não tem dado de cliente.

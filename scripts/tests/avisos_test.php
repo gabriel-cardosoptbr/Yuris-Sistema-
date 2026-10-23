@@ -153,7 +153,64 @@ try {
     ok('ninguém remove o aparelho de outra pessoa', Push::aparelhos($users['Isa'], $CONTA) === 1);
     Push::remover($users['Isa'], $ep);
     ok('a pessoa remove o próprio aparelho', Push::aparelhos($users['Isa'], $CONTA) === 0);
+
+    echo "\n== 6. Mensagem nova para o dono da conversa ==\n";
+    $inst = (int) $pdo->query("SELECT id FROM whatsapp_instances WHERE account_id = $CONTA ORDER BY id LIMIT 1")->fetchColumn();
+    $instAntes = $pdo->query("SELECT dono_conversa_desde, dono_novas_user_id, dono_antigas_user_id FROM whatsapp_instances WHERE id = $inst")->fetch(\PDO::FETCH_ASSOC);
+    $jidK = '5511900002222@s.whatsapp.net'; $jidI = '5511900003333@s.whatsapp.net'; $jidS = '5511900004444@s.whatsapp.net'; $jidG = '120363000000000001@g.us';
+    $novoChat = $pdo->prepare("INSERT INTO whatsapp_chats (account_id, instance_id, remote_jid, contact_name, phone, is_group, linked_user_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $novoChat->execute([$CONTA, $inst, $jidK, 'ZZAVT Cliente do Kauê', '5511900002222', 0, $users['Kaue']]);
+    $novoChat->execute([$CONTA, $inst, $jidI, 'ZZAVT Cliente da Isa', '5511900003333', 0, $users['Isa']]);
+    $novoChat->execute([$CONTA, $inst, $jidS, 'ZZAVT Sem dono', '5511900004444', 0, null]);
+    $novoChat->execute([$CONTA, $inst, $jidG, 'ZZAVT Grupo', '', 1, $users['Kaue']]);
+    $W = \App\WhatsAppAgente\DonoDaConversa::class;
+    $msgs = fn(int $uid) => $pdo->query("SELECT titulo, mensagem, url, lida FROM account_notifications WHERE user_id = $uid AND tipo = 'mensagem_nova' ORDER BY id")->fetchAll(\PDO::FETCH_ASSOC);
+
+    $W::configurar($pdo, $inst, null, null, null);
+    $W::avisarDono($pdo, $inst, $jidK, 'Fulano', 'text', 'oi');
+    ok('número sem dono por conversa não avisa ninguém', $msgs($users['Kaue']) === []);
+
+    $W::configurar($pdo, $inst, '2026-10-22 00:00:00', $users['Kaue'], $users['Isa']);
+    $W::avisarDono($pdo, $inst, $jidK, 'Fulano', 'text', 'Oi, quero saber do plano');
+    $k = $msgs($users['Kaue']);
+    ok('a mensagem avisa o dono da conversa', count($k) === 1 && $k[0]['titulo'] === 'ZZAVT Cliente do Kauê' && $k[0]['mensagem'] === 'Oi, quero saber do plano');
+    ok('o link abre a conversa no número certo', ($k[0]['url'] ?? '') === '/chat?numero=' . $inst . '&jid=' . rawurlencode($jidK));
+    ok('a Isa não é avisada da conversa do Kauê', $msgs($users['Isa']) === []);
+    $W::avisarDono($pdo, $inst, $jidI, null, 'audio', null);
+    $i = $msgs($users['Isa']);
+    ok('a conversa da Isa avisa a Isa, com o tipo da mídia', count($i) === 1 && $i[0]['mensagem'] === 'Áudio');
+    ok('e não avisa o Kauê', count($msgs($users['Kaue'])) === 1);
+
+    $W::avisarDono($pdo, $inst, $jidK, 'Fulano', 'text', 'Mais uma');
+    $W::avisarDono($pdo, $inst, $jidK, 'Fulano', 'image', 'olha a foto');
+    ok('rajada de mensagens com o aviso ainda não lido é um aviso só', count($msgs($users['Kaue'])) === 1);
+    Aviso::marcarConversaLida($CONTA, $users['Kaue'], $inst, $jidK);
+    ok('abrir a conversa marca o aviso como lido', (int) ($msgs($users['Kaue'])[0]['lida'] ?? 0) === 1);
+    Aviso::marcarConversaLida($CONTA, $users['Isa'], $inst, $jidK);
+    ok('abrir não mexe nos avisos de outra pessoa', (int) $msgs($users['Isa'])[0]['lida'] === 0);
+    $W::avisarDono($pdo, $inst, $jidK, 'Fulano', 'image', 'olha a foto');
+    $k = $msgs($users['Kaue']);
+    ok('depois de aberta, a próxima mensagem volta a avisar', count($k) === 2 && $k[1]['mensagem'] === 'Foto: olha a foto');
+
+    $antes = count($msgs($users['Kaue']));
+    $W::avisarDono($pdo, $inst, $jidS, 'Fulano', 'text', 'oi');
+    $W::avisarDono($pdo, $inst, $jidG, 'Fulano', 'text', 'oi grupo');
+    ok('conversa sem dono e grupo não avisam', count($msgs($users['Kaue'])) === $antes && (int) $pdo->query("SELECT COUNT(*) FROM account_notifications WHERE tipo = 'mensagem_nova' AND titulo LIKE 'ZZAVT Sem dono%'")->fetchColumn() === 0);
+    $naFila = array_filter($fila->getValue(), fn($x) => ($x['msg']['tipo'] ?? '') === 'mensagem_nova');
+    ok('a mensagem nova entra na fila do push', count($naFila) === 3);
+    $novos = AccountNotification::novosTempoReal($users['Kaue'], $CONTA, 0);
+    ok('o "bling" encontra a mensagem nova não lida', in_array('ZZAVT Cliente do Kauê', array_column($novos, 'titulo'), true));
+    $fila->setValue(null, []);
+    ok('prévia: texto, mídia com legenda, figurinha sem texto', $W::previa('text', ' oi ') === 'oi' && $W::previa('video', 'veja') === 'Vídeo: veja' && $W::previa('sticker', null) === 'Figurinha' && $W::previa('text', '') === 'Mensagem nova');
 } finally {
+    if (!empty($inst)) {
+        $pdo->exec("DELETE FROM whatsapp_chats WHERE instance_id = $inst AND contact_name LIKE 'ZZAVT %'");
+        if (!empty($instAntes)) {
+            \App\WhatsAppAgente\DonoDaConversa::configurar($pdo, $inst, $instAntes['dono_conversa_desde'],
+                $instAntes['dono_novas_user_id'] !== null ? (int) $instAntes['dono_novas_user_id'] : null,
+                $instAntes['dono_antigas_user_id'] !== null ? (int) $instAntes['dono_antigas_user_id'] : null);
+        }
+    }
     $pdo->prepare('UPDATE accounts SET configuracoes = ? WHERE id = ?')->execute([$cfgAntes, $CONTA]);
     if ($cards) {
         $in = implode(',', array_map('intval', $cards));

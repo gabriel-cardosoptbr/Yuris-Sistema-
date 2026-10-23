@@ -4237,6 +4237,10 @@ const ChatApp = (() => {
   // se ele estiver conectado, setConnectionStatus recarrega a lista e o polling.
   function definirCanal(id) { state.canalId = id ? Number(id) : null; }
   function canalAtual() { return state.canalId; }
+  // O número e a conversa abertos na tela (avisos.js: mensagem nova da conversa que a
+  // pessoa já está vendo não toca o "bling"). instanceId é o número de verdade, mesmo
+  // com um número só (aí canalId fica nulo).
+  function conversaAberta() { return { numero: state.instanceId ? Number(state.instanceId) : null, jid: state.currentJid || null }; }
   async function trocarCanal(id) {
     const novo = id ? Number(id) : null;
     if (novo === state.canalId) return;
@@ -4261,7 +4265,7 @@ const ChatApp = (() => {
   }
 
   return {
-    definirCanal, canalAtual, trocarCanal, dadosConversa, acaoConversa, previaConversa,
+    definirCanal, canalAtual, conversaAberta, trocarCanal, dadosConversa, acaoConversa, previaConversa,
     init, checkStatus, connectWhatsApp, disconnectWhatsApp,
     manualReconnect, dismissDisconnectAlert,
     refreshQr, loadChats, loadMoreChats, openChat, openChatByJid, closeChat,

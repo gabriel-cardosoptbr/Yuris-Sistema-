@@ -47,6 +47,11 @@ try {
     $ch         = WhatsAppChannelAccessService::resolveForRequest($pdo, $accountId, $_GET['channel_id'] ?? null, 'view');
     $instanceId = (int)$ch['channel_id'];
     \App\WhatsAppAgente\DonoDaConversa::exigir($pdo, $instanceId, $remoteJid);
+    // Quem está com a conversa aberta já viu: o aviso de mensagem nova dela fica lido
+    // (vale também para a mensagem que chega enquanto a conversa está na tela).
+    if ($search === '' && $beforeId === 0 && $beforeAt === '') {
+        \App\Notificacoes\Aviso::marcarConversaLida((int)$accountId, (int)$ctx->getUserId(), $instanceId, $remoteJid);
+    }
 
     if ($search !== '') {
         // Busca dentro da conversa: retorna apenas mensagens que matcham

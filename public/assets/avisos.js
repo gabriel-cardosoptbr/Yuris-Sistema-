@@ -62,6 +62,7 @@
   /* ── Aviso na tela ────────────────────────────────────────────────────── */
   var ICONES = {
     lead_novo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>',
+    mensagem_nova: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.2A8.4 8.4 0 0 1 12 3.1a8.4 8.4 0 0 1 9 8.4z"/></svg>',
     padrao: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>'
   };
   function pilha() {
@@ -75,11 +76,26 @@
     }
     return p;
   }
+  // Link do aviso de mensagem nova: /chat?numero=N&jid=J.
+  function daConversa(url) {
+    var m = /^\/chat\?numero=(\d+)&jid=([^&]+)$/.exec(typeof url === 'string' ? url : '');
+    if (!m) return null;
+    try { return { numero: Number(m[1]), jid: decodeURIComponent(m[2]) }; } catch (_) { return null; }
+  }
+  // A pessoa está com esta conversa aberta no Chat (ChatApp do chat.js)?
+  function naTela(conv) {
+    if (!conv || typeof ChatApp === 'undefined' || !ChatApp.conversaAberta) return false;
+    var a = ChatApp.conversaAberta();
+    return a.jid === conv.jid && (!a.numero || a.numero === conv.numero);
+  }
   function mostrar(n) {
     if (!n) return;
     var id = parseInt(n.id, 10) || 0;
     if (id && vistos[id]) return;
     if (id) vistos[id] = 1;
+    var conv = n.tipo === 'mensagem_nova' ? daConversa(n.url) : null;
+    // Mensagem da conversa que já está na tela: nem som nem aviso (o servidor marca lido).
+    if (conv && naTela(conv) && document.visibilityState === 'visible') return;
     bling();
 
     var el = document.createElement('div');
@@ -101,6 +117,11 @@
     el.addEventListener('mouseleave', agendar);
     el.addEventListener('click', function (e) {
       if (e.target.closest('.yav-x')) { fechar(); return; }
+      // Já no Chat, no mesmo número: abre a conversa sem recarregar a página.
+      if (conv && typeof ChatApp !== 'undefined' && ChatApp.conversaAberta) {
+        var a = ChatApp.conversaAberta();
+        if (a.numero === conv.numero) { fechar(); ChatApp.openChatByJid(conv.jid); return; }
+      }
       if (url) location.href = url;
     });
     var p = pilha();

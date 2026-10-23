@@ -149,9 +149,23 @@ outro lado, e avisar o responsável por ele transformaria toda citação em cobr
 Pedido da Inovaize: *"chegou um lead, dá um bling na tela, só pro Kauê e pros
 ADM, pra Isa não"*, e o aviso chegando no celular com o app instalado.
 
-**Quais avisos.** `Aviso::TIPOS_TEMPO_REAL`: `lead_novo`, `mencao` e
-`responsavel.atribuido`. Só o que pede ação agora; o prazo do dia continua só no
-sino, porque o tick roda de madrugada.
+**Quais avisos.** `Aviso::TIPOS_TEMPO_REAL`: `lead_novo`, `mencao`,
+`responsavel.atribuido` e `mensagem_nova`. Só o que pede ação agora; o prazo do dia
+continua só no sino, porque o tick roda de madrugada.
+
+**Mensagem nova para o dono da conversa** (23/10/2026, pedido da Inovaize). No
+número com dono por conversa, a mensagem que chega pelo webhook (nova e com até 10
+minutos) avisa o dono daquela conversa (`DonoDaConversa::avisarDono` →
+`Aviso::mensagemNova`): título com o nome do contato, texto com a mensagem (ou
+"Áudio", "Foto: legenda"), link `/chat?numero=N&jid=J`. Cada um é avisado só das
+conversas dele; grupo, conversa sem dono e número fora do modo não avisam.
+**Um aviso por conversa enquanto não é lido** (até 30 min, `JANELA_MENSAGEM_MIN`):
+o lead que manda cinco mensagens seguidas não vira cinco notificações no celular.
+Abrir a conversa (`api/whatsapp/messages.php` → `marcarConversaLida`) marca o aviso
+como lido, e a próxima mensagem volta a avisar; por isso esse tipo não usa a janela
+de dedupe por tempo (`sem_janela`). Com a conversa aberta na tela, o `avisos.js` não
+toca nem mostra (`ChatApp.conversaAberta()`), e clicar no aviso dentro do Chat abre
+a conversa sem recarregar.
 
 **Lead novo.** `Card::create` chama `Aviso::leadNovo`, então vale para todo
 caminho de entrada (captação do WhatsApp, SDR, site, API, cadastro à mão). O

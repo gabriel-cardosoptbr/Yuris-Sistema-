@@ -142,6 +142,38 @@ final class DonoDaConversa
     }
 
     /**
+     * Mensagem nova recebida (webhook, só a genuinamente nova e recente): avisa o
+     * dono da conversa no sino, com "bling" e no celular (23/10/2026, pedido da
+     * Inovaize: "liga o aviso para o dono da conversa"). Só no número com o modo
+     * ligado, só conversa individual com dono; cada um é avisado só das suas.
+     */
+    public static function avisarDono(\PDO $pdo, int $instanceId, string $jid, ?string $nomeDoPayload, string $tipo, ?string $texto): void
+    {
+        try {
+            $m = self::modo($pdo, $instanceId);
+            if ($m === null || $jid === '' || str_ends_with($jid, '@g.us')) return;
+            $st = $pdo->prepare('SELECT linked_user_id, contact_name, phone FROM whatsapp_chats WHERE instance_id = ? AND remote_jid = ? LIMIT 1');
+            $st->execute([$instanceId, $jid]);
+            $chat = $st->fetch(\PDO::FETCH_ASSOC);
+            if (!$chat || empty($chat['linked_user_id'])) return;
+            $nome = trim((string) ($chat['contact_name'] ?? '')) ?: trim((string) $nomeDoPayload) ?: (string) ($chat['phone'] ?? '');
+            \App\Notificacoes\Aviso::mensagemNova($m['account_id'], (int) $chat['linked_user_id'], $instanceId, $jid, $nome, self::previa($tipo, $texto));
+        } catch (\Throwable $e) {
+            error_log('[dono_conversa] aviso falhou: ' . $e->getMessage());
+        }
+    }
+
+    /** O texto do aviso: a mensagem, ou o tipo da mídia. */
+    public static function previa(string $tipo, ?string $texto): string
+    {
+        $texto = trim((string) $texto);
+        $rotulo = ['image' => 'Foto', 'video' => 'Vídeo', 'audio' => 'Áudio', 'sticker' => 'Figurinha', 'document' => 'Documento',
+                   'location' => 'Localização', 'contact' => 'Contato'][$tipo] ?? '';
+        if ($rotulo === '') return $texto !== '' ? $texto : 'Mensagem nova';
+        return $texto !== '' && $tipo !== 'audio' && $tipo !== 'sticker' ? $rotulo . ': ' . $texto : $rotulo;
+    }
+
+    /**
      * Passa a conversa para $paraUserId ("Assumir" é passar para si). Quem pode: dono e
      * admin (qualquer conversa do número), e o vendedor sobre a conversa que é dele
      * ou está sem dono. O destino tem de ser usuário ativo da conta do número.

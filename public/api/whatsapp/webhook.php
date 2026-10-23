@@ -704,6 +704,13 @@ function handleMessageUpsert(array $msg, int $instanceId, WhatsAppMessage $model
             //
             // Desligado por padrão; ver App\Prospeccao\CaptacaoAutomatica.
             \App\Prospeccao\CaptacaoAutomatica::daMensagem($accountId, $instanceId, $remoteJid, $pushName);
+
+            // Aviso ao dono da conversa (número com dono por conversa): sino, "bling" e
+            // celular. Só mensagem de até 10 minutos: a que a Evolution entrega atrasada
+            // depois de uma queda não acorda ninguém por conversa velha.
+            if (is_numeric($ts) && (time() - (int)$ts) < 600) {
+                \App\WhatsAppAgente\DonoDaConversa::avisarDono(Database::getConnection(), $instanceId, $remoteJid, $pushName, $msgType, $msgContent ?? $caption);
+            }
         }
     } else {
         // fromMe: distingue o ECO do proprio bot (ignora, anti-loop) do ENVIO MANUAL por um
