@@ -11,7 +11,7 @@
  */
 const fs = require('fs');
 const path = require('path');
-const fonte = fs.readFileSync(path.join(__dirname, '..', '..', 'public', 'assets', 'tarefas.js'), 'utf8');
+const fonte = fs.readFileSync(path.join(__dirname, '..', '..', 'public', 'assets', 'tarefas.js'), 'utf8').replace(/\r\n/g, '\n'); // CRLF do Windows (autocrlf) nao pode quebrar as expressoes regulares
 
 let passou = 0, falhou = 0;
 const ok = (c, m) => { if (c) { passou++; console.log('  [PASS] ' + m); } else { falhou++; console.log('  [FAIL] ' + m); } };

@@ -16,7 +16,7 @@ das classes daqui tratam de cota e permissão, e não de processo.
 ### O processo
 | Classe | O que faz |
 |---|---|
-| `Processo.php` | o processo em si: listagem por conta, cadastro, dados da causa |
+| `Processo.php` | o processo em si: listagem por conta, cadastro, dados da causa. `list()` com `from`/`to` (filtro de ano do calendário) devolve o processo cujo prazo OU início cai no período **e todo processo sem prazo**, em qualquer ano: sem isso ele não caía em ano nenhum e sumia da tela (23/10/2026) |
 | `ProcessoAudit.php` | histórico processual garantido no servidor. É a linha do tempo do processo, e o registro não pode depender do front |
 
 ### Integração com as fontes

@@ -84,7 +84,22 @@ class Processo
             $params['status'] = $filters['status'];
         }
         if (!empty($filters['from']) && !empty($filters['to'])) {
-            $sql .= ' AND (p.proximo_prazo BETWEEN :from AND :to OR p.data_inicio BETWEEN :from AND :to)';
+            /*
+             * `OR p.proximo_prazo IS NULL` (23/10/2026): processo SEM PRAZO tem
+             * de vir sempre, em qualquer ano.
+             *
+             * O filtro de ano do calendário só olhava prazo e data de início.
+             * Um processo sem prazo e com início em outro ano (ou sem início)
+             * não caía em ano nenhum: `NULL BETWEEN ...` é falso. Resultado
+             * medido em produção: a conta SOUZA E DIAS tinha 1 processo ativo,
+             * aberto em 2019 e sem prazo. O indicador dizia "1 ativo" e o
+             * calendário de 2026 mostrava "0 processos". Como o seletor de ano
+             * só ia de 2023 a 2027, ela não tinha como achá-lo.
+             *
+             * A tela já tinha uma coluna "Sem prazo" prevista para isso, que
+             * nunca recebia nada pelo mesmo motivo.
+             */
+            $sql .= ' AND (p.proximo_prazo BETWEEN :from AND :to OR p.data_inicio BETWEEN :from AND :to OR p.proximo_prazo IS NULL)';
             $params['from'] = $filters['from'];
             $params['to'] = $filters['to'];
         }

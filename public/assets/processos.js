@@ -94,6 +94,54 @@ document.addEventListener('DOMContentLoaded', ()=>{
     return dt ? dt.getFullYear() : null;
   }
 
+  /*
+   * Decide em que coluna do calendário cada processo cai.
+   *
+   *   com prazo                       -> mês do prazo
+   *   sem prazo, aberto no ano visto  -> mês da abertura (o card diz "Aberto ...")
+   *   sem prazo, aberto em outro ano
+   *   ou sem data nenhuma             -> coluna "Sem prazo"
+   *
+   * A última linha é a que faltava. Antes, `renderColumns` agrupava pelo mês de
+   * qualquer data que achasse, sem olhar o ano, e o servidor nem devolvia o
+   * processo sem prazo de outro ano. O processo sumia da tela (23/10/2026).
+   *
+   * É função pura de propósito: dá para testar sem montar a tela.
+   */
+  function agruparProcessosPorMes(processes, ano){
+    const meses    = Array.from({length:12}, () => []);
+    const semPrazo = [];
+    (processes || []).forEach(p => {
+      const prazo = parseProcessDate(p && p.proximo_prazo);
+      if (prazo){ meses[prazo.getMonth()].push(p); return; }
+      const inicio = parseProcessDate(p && p.data_inicio);
+      if (inicio && inicio.getFullYear() === ano){ meses[inicio.getMonth()].push(p); return; }
+      semPrazo.push(p);
+    });
+    return { meses, semPrazo };
+  }
+
+  /*
+   * Os anos que o seletor oferece: a janela de sempre (próximo ano e três para
+   * trás) MAIS todo ano que aparece em algum prazo ou data de início.
+   *
+   * O seletor era fixo, de anoAtual-3 a anoAtual+1. Processo com prazo vencido
+   * em 2019 não tinha ano para escolher, e o indicador "vencidos" contava um
+   * processo que a pessoa não conseguia abrir. Ano fora de 1990..anoAtual+10 é
+   * descartado: data digitada errada não deve poluir a lista.
+   */
+  function anosDosProcessos(processes, anoAtual){
+    const anos = new Set();
+    for (let y = anoAtual + 1; y >= anoAtual - 3; y--) anos.add(y);
+    (processes || []).forEach(p => {
+      [p && p.proximo_prazo, p && p.data_inicio].forEach(v => {
+        const d = parseProcessDate(v);
+        if (d){ const y = d.getFullYear(); if (y >= 1990 && y <= anoAtual + 10) anos.add(y); }
+      });
+    });
+    return Array.from(anos).sort((a, b) => b - a);
+  }
+
   // ── Urgency logic ──────────────────────────────────────────────────────────
   // Retorna classes CSS e texto de badge de urgência baseados nos dias até o prazo
   function getUrgencyInfo(dt, status){
@@ -266,7 +314,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
           `<div class="proc-col-header"><span class="proc-col-month">${label}</span><span class="proc-col-count">0</span></div>` +
           `<div class="proc-cards-list" id="${containerId}"></div>`;
         const board = columnsWrapper.querySelector('.proc-board');
-        if (board) board.appendChild(col); else columnsWrapper.appendChild(col);
+        // "Sem prazo" é a primeira coluna do quadro (ver renderColumns)
+        if (board) { if (col.getAttribute('data-month') === 'nodate') board.insertBefore(col, board.firstChild); else board.appendChild(col); }
+        else columnsWrapper.appendChild(col);
         container = col.querySelector('.proc-cards-list');
       }
       if (!container) return;
@@ -334,7 +384,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
           `<div class="proc-col-header"><span class="proc-col-month">${label}</span><span class="proc-col-count">1</span></div>` +
           `<div class="proc-cards-list" id="month-${monthIndex}"></div>`;
         const board = columnsWrapper.querySelector('.proc-board');
-        if (board) board.appendChild(col); else columnsWrapper.appendChild(col);
+        // "Sem prazo" é a primeira coluna do quadro (ver renderColumns)
+        if (board) { if (col.getAttribute('data-month') === 'nodate') board.insertBefore(col, board.firstChild); else board.appendChild(col); }
+        else columnsWrapper.appendChild(col);
       }
       const list = col.querySelector('.proc-cards-list');
       if (list){
@@ -506,6 +558,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
       // KPIs e Resumo: sempre o total do tenant, sem filtro de ano
       updateKPIs(allData);
       updateResumo(allData);
+      // O seletor passa a oferecer todo ano que existe nos processos
+      atualizarAnosDoSeletor(allData);
 
       // Agenda: aplica filtro de ano client-side (proximo_prazo OU data_inicio no ano)
       const selYear = year ? parseInt(year, 10) : null;
@@ -581,16 +635,60 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // Agrupamento: usa proximo_prazo quando definido; senão cai pra data_inicio
   // (que sempre é preenchida com a data de abertura). Processo só vai pra "Sem prazo"
   // se ambas estiverem nulas.
+  // HTML de um card do calendário. Serve aos meses e à coluna "Sem prazo": antes
+  // a coluna "Sem prazo" tinha uma cópia simplificada, com tag aberta sem fechar.
+  function cardHtml(p){
+    // Se não tem proximo_prazo, mostra "Aberto DD/MM" da data_inicio (não confunde)
+    const temPrazo = !!parseProcessDate(p.proximo_prazo);
+    const prazo    = temPrazo
+      ? formatProcessDate(p.proximo_prazo)
+      : (p.data_inicio ? 'Aberto ' + formatProcessDate(p.data_inicio) : 'Sem prazo');
+    const dt       = parseProcessDate(p.proximo_prazo);
+    const urg      = getUrgencyInfo(dt, p.status);
+    const badge    = urg.text
+      ? `<span class="proc-badge ${urg.badgeClass}">${urg.text}</span>`
+      : (!temPrazo ? `<span class="proc-badge badge-neutral">Sem prazo</span>` : '');
+    // data-origin-tipo abre o padding-top via CSS quando há faixa
+    const otipo = window.YURIS_SHOW_ORIGIN_STRIP && p.origin_account_tipo
+      ? ` data-origin-tipo="${String(p.origin_account_tipo).toLowerCase()}"`
+      : '';
+    return `<div class="proc-card ${urg.cardClass}" data-id="${p.id}"${otipo}>` +
+        buildOriginStripHtml(p) +
+        `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:2px">` +
+          `<div class="proc-card-num">${p.numero||'-'}</div>${badge}` +
+        `</div>` +
+        `<div class="proc-card-client">${p.cliente_nome||'—'}</div>` +
+        (p.setor_nome   ? `<div class="proc-card-meta">${p.setor_nome}</div>` : '') +
+        (p.vara_comarca ? `<div class="proc-card-meta">${p.vara_comarca}</div>` : '') +
+        `<div class="proc-card-footer">` +
+          `<div class="proc-card-date"${!temPrazo ? ' style="color:var(--muted)"' : ''}>${prazo}</div>` +
+          `<div class="proc-card-actions">` +
+            `<button data-id="${p.id}" class="editBtn proc-btn-sm btn-edit">Editar</button>` +
+            `<button data-id="${p.id}" class="delBtn proc-btn-sm btn-del">Excluir</button>` +
+          `</div>` +
+        `</div>` +
+        buildTaskBar(p) +
+      `</div>`;
+  }
+
   function renderColumns(processes){
-    const groups     = Array.from({length:12},()=>[]);
-    const noDateGroup= [];
-    processes.forEach(p=>{
-      const d = parseProcessDate(p.proximo_prazo) || parseProcessDate(p.data_inicio);
-      if (d){ groups[d.getMonth()].push(p); return; }
-      noDateGroup.push(p);
-    });
+    const agrupado    = agruparProcessosPorMes(processes, parseInt(yearFilter.value, 10));
+    const groups      = agrupado.meses;
+    const noDateGroup = agrupado.semPrazo;
 
     let html = '<div class="proc-board">';
+
+    // "Sem prazo" vai PRIMEIRO, e só aparece quando tem processo. No fim do
+    // quadro ele ficava depois de 12 meses de rolagem horizontal: a pessoa abria
+    // a tela, via "Nenhum processo neste mês" em todas as colunas e concluía que
+    // o processo não existia.
+    if (noDateGroup.length){
+      html += `<div class="proc-col" data-month="nodate">`;
+      html += `<div class="proc-col-header"><span class="proc-col-month">Sem prazo</span><span class="proc-col-count">${noDateGroup.length}</span></div>`;
+      html += `<div class="proc-cards-list" id="month-nodate">`;
+      noDateGroup.forEach(p => { html += cardHtml(p); });
+      html += '</div></div>';
+    }
 
     for (let m=0;m<12;m++){
       const grp   = groups[m];
@@ -601,68 +699,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if (count===0){
         html += '<div class="proc-empty">Nenhum processo<br>neste mês</div>';
       } else {
-        grp.forEach(p=>{
-          // Se não tem proximo_prazo, mostra "Aberto em DD/MM" da data_inicio (não confunde)
-          const temPrazo = !!parseProcessDate(p.proximo_prazo);
-          const prazo    = temPrazo
-            ? formatProcessDate(p.proximo_prazo)
-            : (p.data_inicio ? 'Aberto ' + formatProcessDate(p.data_inicio) : 'Sem prazo');
-          const dt       = parseProcessDate(p.proximo_prazo);
-          const urg      = getUrgencyInfo(dt, p.status);
-          const badge    = urg.text
-            ? `<span class="proc-badge ${urg.badgeClass}">${urg.text}</span>`
-            : (!temPrazo ? `<span class="proc-badge badge-neutral">Sem prazo</span>` : '');
-          // data-origin-tipo abre o padding-top via CSS quando há faixa
-          const otipo = window.YURIS_SHOW_ORIGIN_STRIP && p.origin_account_tipo
-            ? ` data-origin-tipo="${String(p.origin_account_tipo).toLowerCase()}"`
-            : '';
-          html +=
-            `<div class="proc-card ${urg.cardClass}" data-id="${p.id}"${otipo}>` +
-              buildOriginStripHtml(p) +
-              `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:2px">` +
-                `<div class="proc-card-num">${p.numero||'-'}</div>${badge}` +
-              `</div>` +
-              `<div class="proc-card-client">${p.cliente_nome||'—'}</div>` +
-              (p.setor_nome   ? `<div class="proc-card-meta">${p.setor_nome}</div>` : '') +
-              (p.vara_comarca ? `<div class="proc-card-meta">${p.vara_comarca}</div>` : '') +
-              `<div class="proc-card-footer">` +
-                `<div class="proc-card-date"${!temPrazo ? ' style="color:var(--muted)"' : ''}>${prazo}</div>` +
-                `<div class="proc-card-actions">` +
-                  `<button data-id="${p.id}" class="editBtn proc-btn-sm btn-edit">Editar</button>` +
-                  `<button data-id="${p.id}" class="delBtn proc-btn-sm btn-del">Excluir</button>` +
-                `</div>` +
-              `</div>` +
-              buildTaskBar(p) +
-            `</div>`;
-        });
+        grp.forEach(p=>{ html += cardHtml(p); });
       }
       html += '</div></div>';
     }
 
-    if (noDateGroup.length){
-      html += `<div class="proc-col" data-month="nodate">`;
-      html += `<div class="proc-col-header"><span class="proc-col-month">Sem prazo</span><span class="proc-col-count">${noDateGroup.length}</span></div>`;
-      html += `<div class="proc-cards-list" id="month-nodate">`;
-      noDateGroup.forEach(p=>{
-        const otipo = window.YURIS_SHOW_ORIGIN_STRIP && p.origin_account_tipo
-          ? ` data-origin-tipo="${String(p.origin_account_tipo).toLowerCase()}"`
-          : '';
-        html +=
-          `<div class="proc-card" data-id="${p.id}"${otipo}>` +
-            buildOriginStripHtml(p) +
-            `<div class="proc-card-num">${p.numero||'-'}</div>` +
-            `<div class="proc-card-client">${p.cliente_nome||'—'}</div>` +
-            `<div class="proc-card-footer">` +
-              `<div class="proc-card-date" style="color:var(--muted)">Sem prazo</div>` +
-              `<div class="proc-card-actions">` +
-                `<button data-id="${p.id}" class="editBtn proc-btn-sm btn-edit">Editar</button>` +
-                `<button data-id="${p.id}" class="delBtn proc-btn-sm btn-del">Excluir</button>` +
-              `</div>` +
-            buildTaskBar(p) +
-          `</div>`;
-      });
-      html += '</div></div>';
-    }
     html += '</div>';
 
     columnsWrapper.innerHTML = html;
@@ -715,9 +756,22 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // ── Year selector ──────────────────────────────────────────────────────────
   const now  = new Date();
   const curY = now.getFullYear();
-  for (let y=curY+1; y>=curY-3; y--){
-    const opt = document.createElement('option'); opt.value=y; opt.textContent=y; yearFilter.appendChild(opt);
+
+  // Reconstrói as opções com os anos dos processos (ver anosDosProcessos),
+  // preservando o ano que a pessoa está vendo. Só mexe se a lista mudou.
+  function atualizarAnosDoSeletor(processes){
+    const anos  = anosDosProcessos(processes, curY);
+    const atual = yearFilter.value;
+    const igual = anos.length === yearFilter.options.length &&
+                  anos.every((y, i) => String(y) === yearFilter.options[i].value);
+    if (igual) return;
+    yearFilter.innerHTML = '';
+    anos.forEach(y => {
+      const opt = document.createElement('option'); opt.value = y; opt.textContent = y; yearFilter.appendChild(opt);
+    });
+    yearFilter.value = atual || curY;
   }
+  atualizarAnosDoSeletor([]);
   yearFilter.value = curY;
   yearFilter.addEventListener('change', ()=>{
     loadColumnsForYear(yearFilter.value).catch(e=>{ console.error(e); showToast('Erro ao carregar colunas','error'); });

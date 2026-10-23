@@ -27,7 +27,7 @@ const fs = require('fs');
 const path = require('path');
 
 const arquivo = path.join(__dirname, '..', '..', 'public', 'assets', 'processos.js');
-const fonte = fs.readFileSync(arquivo, 'utf8');
+const fonte = fs.readFileSync(arquivo, 'utf8').replace(/\r\n/g, '\n'); // CRLF do Windows (autocrlf) nao pode quebrar as expressoes regulares
 
 let passou = 0, falhou = 0;
 function ok(cond, msg) {

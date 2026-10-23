@@ -16,7 +16,7 @@
  */
 
 const fs = require('fs');
-let src = fs.readFileSync(require('path').join(__dirname, '..', '..', 'docs', 'integracoes', 'n8n-identidade-code-node.js'),'utf8');
+let src = fs.readFileSync(require('path').join(__dirname, '..', '..', 'docs', 'integracoes', 'n8n-identidade-code-node.js'),'utf8').replace(/\r\n/g, '\n'); // CRLF do Windows (autocrlf) quebrava o marcador abaixo
 // Recorta so os helpers (ate a secao de execucao), que e o que da para testar fora do n8n.
 src = src.split('/* ========================================================================== */\n/* execução')[0];
 const mod = new Function(src + '\nreturn {limpar, digitos, telefoneValido, analisar, enderecosDaKey, textoDaMensagem, mensagensDoItem};')();
