@@ -59,7 +59,7 @@ O detalhe completo, com diagramas, está na skill de desenvolvimento em
 |---|---|
 | `WhatsAppWebhookAuth.php` | valida o segundo fator do webhook (header `X-Webhook-Token`), em modo compatível: enquanto a Evolution não manda, a entrega segue |
 | `WhatsAppWebhookParser.php` | parsers **puros** do payload da Evolution. Sem efeito colateral, por isso é o mais fácil de testar |
-| `WhatsAppWebhookEntitySync.php` | persistência das entidades do webhook: contatos, conversas, grupos, participantes |
+| `WhatsAppWebhookEntitySync.php` | persistência das entidades do webhook: contatos, conversas, grupos, participantes. **`syncChats` usa o `remoteJid` do evento** (23/10/2026): na Evolution v2 o `id` do `chats.upsert` é o id interno dela, e usá-lo criava uma conversa vazia com esse código no lugar do número, ao lado da conversa de verdade (C2 Motors, conta 116). Evento sem JID de verdade (com @) não cria nada. As que já existiam saem da lista com `scripts/manutencao/conversas_vazias_duplicadas.php` |
 | `WhatsAppAgentBridge.php` | o caminho do agente dentro do webhook: enfileira resposta, detecta envio humano, devolve o 200 rápido antes de processar |
 
 ### O agente

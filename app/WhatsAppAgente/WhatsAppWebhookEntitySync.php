@@ -77,13 +77,18 @@ class WhatsAppWebhookEntitySync
     {
         if (!is_array($data)) return; // data escalar (payload malformado): noop 200, igual ao HEAD (foreach sobre nao-iteravel)
         $chats = $data;
-        if (isset($data['id'])) $chats = [$data];
+        if (isset($data['id']) || isset($data['remoteJid'])) $chats = [$data];
         $pdo = Database::getConnection();
         foreach ($chats as $c) {
-            $jid      = $c['id']       ?? null;
-            $name     = $c['name']     ?? null;
+            if (!is_array($c)) continue;
+            // Evolution v2: `id` é o id interno dela (ex.: "cmv1fxguf0y04l84iqtzh5jo9") e o
+            // endereço da conversa vem em `remoteJid`. Usar o `id` criava conversa vazia com
+            // esse código no lugar do número, ao lado da conversa de verdade (C2 Motors,
+            // 23/10/2026). Sem um JID de verdade (com @), não cria nada.
+            $jid      = $c['remoteJid'] ?? ($c['id'] ?? null);
+            $name     = $c['name']     ?? ($c['pushName'] ?? null);
             $unread   = (int)($c['unreadCount'] ?? 0);
-            if (!$jid) continue;
+            if (!$jid || !str_contains((string)$jid, '@')) continue;
             // Ignora status/broadcast e newsletter: nao sao conversas (nao viram chat "0").
             if (str_ends_with((string)$jid, '@broadcast') || str_contains((string)$jid, '@newsletter')) continue;
             $jid      = \App\WhatsAppAgente\WhatsAppMessage::resolvePhoneJid($pdo, (int)$instanceId, $jid); // @lid -> telefone quando conhecido
