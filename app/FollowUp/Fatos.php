@@ -19,6 +19,9 @@ use App\WhatsAppAgente\SdrFleetiflow;
  */
 final class Fatos
 {
+    /** O robozinho do card só aparece com mensagem na conversa nos últimos N dias. */
+    public const ROBO_DIAS = 3;
+
     /**
      * @param list<int> $accountIds contas que quem pede pode ver (os cards e os números têm de ser delas)
      * @param list<int> $cardIds
@@ -180,7 +183,11 @@ final class Fatos
             $todas = false;
             foreach ($cads as $c) { if (!$c['etapas']) $todas = true; $etapasComCadencia = array_merge($etapasComCadencia, $c['etapas']); }
             foreach ($fatos as $id => $f) {
-                $item = ['robo' => $f['com_robo'] && $f['tem_entrada'] ? ['nome' => $f['robo_nome']] : null, 'followup' => null];
+                // Robô só em conversa viva: o lead já escreveu e houve mensagem nos últimos
+                // ROBO_DIAS (conversa encerrada há semanas não está "com a Vitória").
+                $ultima = max((int) $f['ultima_entrada'], (int) $f['ultima_saida']);
+                $vivo = $f['com_robo'] && $f['tem_entrada'] && $agora - $ultima <= self::ROBO_DIAS * 86400;
+                $item = ['robo' => $vivo ? ['nome' => $f['robo_nome']] : null, 'followup' => null];
                 if (!$f['chat']) {
                     if ($cads && ($todas || in_array($f['etapa'], $etapasComCadencia, true))) $item['followup'] = ['estado' => 'sem_mensagem'];
                 } else {

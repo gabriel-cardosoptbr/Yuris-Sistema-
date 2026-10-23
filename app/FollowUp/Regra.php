@@ -26,7 +26,9 @@ namespace App\FollowUp;
  * que cutucou o lead à mão conta como um passo dado (não manda dois seguidos).
  *
  * A espera de cada passo conta da NOSSA última mensagem e cai no próximo
- * momento dentro do horário de envio da cadência.
+ * momento dentro do horário de envio da cadência. O limite de dias da cadência
+ * (inicio_max_dias) vale para começar (passo 1) e para retomar: passo vencido há
+ * mais que o limite não sai.
  */
 final class Regra
 {
@@ -60,6 +62,7 @@ final class Regra
         'respondeu'    => 'O lead já respondeu',
         'nao_respondeu'=> 'O lead nunca respondeu',
         'antiga'       => 'A conversa parou há mais tempo do que a cadência começa',
+        'parada'       => 'O passo da vez venceu há mais tempo que o limite: a cadência não recomeça sozinha',
     ];
 
     public const HORARIO_PADRAO = ['dias' => [1, 2, 3, 4, 5, 6], 'de' => '08:00', 'ate' => '18:00'];
@@ -156,8 +159,14 @@ final class Regra
         if ($passo === 1 && $dias > 0 && $agora - $base > $dias * 86400) return $fora('antiga');
 
         $espera = max(self::ESPERA_MIN, (int) ($passos[$passo - 1]['espera_min'] ?? 0));
+        $previsto = self::proximaJanela($base + $espera * 60, (array) ($cad['horario'] ?? []));
+        // Passo vencido há mais que o limite (a cadência ficou parada: número fora do
+        // ar, o fluxo antigo pulou o lead): não manda o passo 3 de uma conversa de
+        // semanas atrás. Simulação na Fleet antes de ligar, 23/10/2026: Vip Motors,
+        // passo 3 vencido em 07/10.
+        if ($passo > 1 && $dias > 0 && $agora - $previsto > $dias * 86400) return $fora('parada');
         $r['estado'] = 'agendado';
-        $r['previsto'] = self::proximaJanela($base + $espera * 60, (array) ($cad['horario'] ?? []));
+        $r['previsto'] = $previsto;
         return $r;
     }
 

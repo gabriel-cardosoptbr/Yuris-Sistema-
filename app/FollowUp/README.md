@@ -41,9 +41,14 @@ ficou com uma pessoa e ninguém mais cutucou).
   nenhuma cadência manda: é a vez de alguém responder a ele.
 - **Começo:** o passo 1 não sai se a nossa mensagem tiver mais de
   `inicio_max_dias` (padrão 3). Evita mandar para conversa antiga quando a
-  cadência é ligada. Quem já está no passo 2 em diante segue.
+  cadência é ligada. O mesmo limite vale para **retomar**: passo 2 em diante
+  vencido há mais dias que o limite não sai (a cadência ficou parada; na
+  simulação da Fleet antes de ligar, a Vip Motors mandaria hoje o passo 3
+  vencido em 07/10).
 - **Com quem:** todas as conversas, só com o robô (agente do número ligado e
   conversa não assumida) ou só com uma pessoa.
+- **O robozinho do card** aparece quando a conversa está com o robô, o lead já
+  escreveu e houve mensagem nos últimos 3 dias (`Fatos::ROBO_DIAS`).
 - Espera mínima de um passo: 30 min. No máximo 10 passos.
 
 ## O envio
