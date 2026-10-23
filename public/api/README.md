@@ -108,7 +108,10 @@ negócio fechado no funil **e** o valor cadastrado no cliente (mensalidade, anui
 serviço, taxa; "por demanda" não), na data em que começa; mesmo cliente e mesma data é
 uma venda só. Receita fechada, vendas, conversão, ticket médio, a série, a evolução e a
 meta do mês saem dessa fonte única (`$VENDAS`), e o card fechado cujo cliente tem valores
-sai para não contar duas vezes. O resto: KPIs do período e do
+sai para não contar duas vezes. **Desde 23/10/2026 a mensalidade entra na receita em
+todo mês em que está ativa** (anuidade no aniversário), não só no mês em que começou:
+"não tá somando todas as mensalidades" (`CobrancaDoCliente::sqlReceitaDosValores`). Só a
+primeira vez conta como venda nova; o ticket médio usa só o valor das vendas novas. O resto: KPIs do período e do
 período anterior equivalente (mesma quantidade de dias, terminando na véspera),
 distribuição do pipeline pelas flags `conta_funil`/`conta_oportunidade` das
 colunas, meta do mês (`goals`), série do período por dia/semana/mês, evolução

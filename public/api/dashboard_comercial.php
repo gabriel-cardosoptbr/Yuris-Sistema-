@@ -79,11 +79,15 @@ $FECHADO  = "c.data_fechamento IS NOT NULL AND c.data_fechamento > '0000-00-00'"
 $ABERTO   = "(c.data_fechamento IS NULL OR c.data_fechamento = '0000-00-00')";
 
 // Vendas (20/10/2026): o negócio fechado no funil E o que foi cadastrado no cliente
-// (mensalidade, serviço, taxa, anuidade; "por demanda" não é venda). O valor do
-// cliente vale na data em que começa; mensalidade conta o valor de um mês. Mesmo
-// cliente e mesma data é uma venda só (mensalidade + implantação juntas). O card
+// (mensalidade, serviço, taxa, anuidade; "por demanda" não é venda). Mesmo cliente
+// e mesma data de início é uma venda só (mensalidade + implantação juntas). O card
 // fechado cujo cliente já tem valores sai, para não contar a mesma venda duas vezes
 // (CobrancaDoCliente::sqlFechamentoSemDuplicar, a mesma regra do DRE).
+// Receita (23/10/2026): a mensalidade entra em TODO mês em que está ativa, não só no
+// mês em que começou (CobrancaDoCliente::sqlReceitaDosValores). Só a primeira vez
+// traz `venda`; as seguintes vêm com venda nula, então COUNT(DISTINCT x.venda) é o
+// número de vendas novas e SUM(x.valor) a receita do período. O ticket médio usa só
+// o valor das vendas novas.
 $vendasCliente = false;
 try {
     $vendasCliente = $ctx->getProduto() === 'fleetiflow'
@@ -92,11 +96,7 @@ try {
 $VENDAS = "(SELECT c.account_id, c.responsavel_user_id AS resp, c.data_fechamento AS dt, $VALOR AS valor, CONCAT('k', c.id) AS venda
               FROM cards c WHERE c.deleted_at IS NULL AND $FECHADO"
         . ($vendasCliente ? \App\Clientes\CobrancaDoCliente::sqlFechamentoSemDuplicar('c')
-            . " UNION ALL
-            SELECT v.account_id, cl.responsavel_id, v.inicio, v.valor, CONCAT('c', v.cliente_id, '-', v.inicio)
-              FROM crm_cliente_valores v
-              JOIN clientes cl ON cl.id = v.cliente_id AND cl.account_id = v.account_id AND cl.deleted_at IS NULL
-             WHERE v.tipo <> 'demanda' AND v.inicio IS NOT NULL" : '')
+            . " UNION ALL " . \App\Clientes\CobrancaDoCliente::sqlReceitaDosValores() : '')
         . ") x";
 $baseVenda = "x.account_id IN $inAcc" . ($responsavel > 0 ? ' AND x.resp = :resp' : '');
 
@@ -154,12 +154,13 @@ try {
     $kpiPeriodo = function (string $s, string $e) use ($q, $baseCard, $VENDAS, $baseVenda, $tp) {
         $p = $tp + ['s' => $s, 'e' => $e];
         $leads = (int)$q("SELECT COUNT(*) FROM cards c WHERE $baseCard AND DATE(c.created_at) BETWEEN :s AND :e", $p)->fetchColumn();
-        $r = $q("SELECT COUNT(DISTINCT x.venda) AS n, COALESCE(SUM(x.valor),0) AS v FROM $VENDAS WHERE $baseVenda AND x.dt BETWEEN :s AND :e", $p)->fetch(PDO::FETCH_ASSOC);
+        $r = $q("SELECT COUNT(DISTINCT x.venda) AS n, COALESCE(SUM(x.valor),0) AS v, COALESCE(SUM(CASE WHEN x.venda IS NOT NULL THEN x.valor END),0) AS vn
+                   FROM $VENDAS WHERE $baseVenda AND x.dt BETWEEN :s AND :e", $p)->fetch(PDO::FETCH_ASSOC);
         $vendas = (int)$r['n']; $receita = (float)$r['v'];
         return [
             'leads' => $leads, 'vendas' => $vendas, 'receita' => round($receita, 2),
             'conversao' => $leads > 0 ? round($vendas / $leads * 100, 1) : null,
-            'ticket' => $vendas > 0 ? round($receita / $vendas, 2) : null,
+            'ticket' => $vendas > 0 ? round((float)$r['vn'] / $vendas, 2) : null,
         ];
     };
     $atual    = $kpiPeriodo($start, $end);

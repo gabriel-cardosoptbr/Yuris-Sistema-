@@ -176,6 +176,38 @@ final class CobrancaDoCliente
                    WHERE vdup.account_id = $cards.account_id AND vdup.cliente_id = $cards.cliente_id AND vdup.tipo <> 'demanda'))";
     }
 
+    /**
+     * A receita dos valores dos clientes, uma linha por vez que o valor é devido
+     * (23/10/2026, "não tá somando todas as mensalidades"): mensal em todo mês, anual
+     * no aniversário, fixo e serviço uma vez, na data. A data é a do vencimento (dia
+     * de vencimento ou o dia do início; dia 31 em mês curto cai no último dia), a
+     * primeira nunca antes do início. Para no fim do valor, no dia em que foi encerrado
+     * (sem fim e inativo) e no fim do mês corrente: o painel não projeta futuro.
+     *
+     * Só a primeira vez é a venda: `venda` vem preenchida nela (cliente + início, a
+     * mesma chave de antes) e nula nas seguintes, então COUNT(DISTINCT venda) segue
+     * contando as vendas novas e SUM(valor) passa a ser a receita do período.
+     * Colunas: account_id, resp, dt, valor, venda. "Por demanda" não entra.
+     */
+    public static function sqlReceitaDosValores(): string
+    {
+        $seq = '(SELECT d.n + 12 * u.n AS n FROM '
+             . '(SELECT 0 n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL SELECT 11) d CROSS JOIN '
+             . '(SELECT 0 n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) u)';
+        $mes = "CASE v.tipo WHEN 'anual' THEN DATE_ADD(DATE_FORMAT(v.inicio, '%Y-%m-01'), INTERVAL s.n YEAR) ELSE DATE_ADD(DATE_FORMAT(v.inicio, '%Y-%m-01'), INTERVAL s.n MONTH) END";
+        return "SELECT o.account_id, o.resp, o.dt, o.valor, CASE WHEN o.n = 0 THEN o.venda END AS venda FROM (
+                  SELECT v.account_id, cl.responsavel_id AS resp, v.valor, s.n, CONCAT('c', v.cliente_id, '-', v.inicio) AS venda,
+                         CASE WHEN v.tipo IN ('fixo', 'servico') THEN v.inicio
+                              ELSE GREATEST(v.inicio, LEAST(LAST_DAY($mes), DATE_ADD($mes, INTERVAL COALESCE(v.dia_vencimento, DAY(v.inicio)) - 1 DAY))) END AS dt,
+                         COALESCE(v.fim, CASE WHEN v.ativo = 0 THEN DATE(v.updated_at) END) AS ate
+                    FROM crm_cliente_valores v
+                    JOIN clientes cl ON cl.id = v.cliente_id AND cl.account_id = v.account_id AND cl.deleted_at IS NULL
+                    JOIN $seq s ON s.n = 0 OR v.tipo = 'mensal' OR (v.tipo = 'anual' AND s.n < 10)
+                   WHERE v.tipo <> 'demanda' AND v.inicio IS NOT NULL
+                ) o
+                WHERE o.n = 0 OR ((o.ate IS NULL OR o.dt <= o.ate) AND o.dt <= LAST_DAY(CURDATE()))";
+    }
+
     /** O worker diário: gera o que falta de todos os valores ativos. @return int criadas */
     public static function gerarTodas(?string $hoje = null): int
     {
