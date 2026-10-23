@@ -155,7 +155,9 @@ final class Fatos
             $f['grupo'] = $f['chat']['grupo'];
             $f['com_robo'] = $f['chat']['robo'];
             $f['robo_nome'] = $f['com_robo'] ? $agenteDaConta[$f['chat']['dono']] : null;
-            if ($f['nome'] === '') $f['nome'] = $f['chat']['contato'];
+            // O nome do contato: o do card, a não ser que ele seja a própria empresa;
+            // aí o nome que a pessoa usa no WhatsApp (Regra::texto descarta se também for a empresa).
+            if ($f['nome'] === '' || Regra::mesmoNome($f['nome'], $f['empresa'])) $f['nome'] = $f['chat']['contato'];
         }
         unset($f);
         return $out;

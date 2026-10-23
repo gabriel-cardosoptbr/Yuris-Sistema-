@@ -73,6 +73,8 @@ ok('sem mensagem nossa não há follow-up', R::situacao($cad, ['saidas' => []] +
 ok('{nome} vira o primeiro nome', R::texto('Oi {nome}, tudo bem?', ['nome' => 'Carla Souza']) === 'Oi Carla, tudo bem?');
 ok('{nome} vazio some sem sobrar espaço', R::texto('Oi {nome}, tudo bem?', ['nome' => '']) === 'Oi, tudo bem?');
 ok('nome que é telefone não entra no texto', R::texto('Oi {nome}!', ['nome' => '+55 11 98888-7777']) === 'Oi!');
+ok('nome que é a própria empresa não entra no texto', R::texto('Oi {nome}, tudo bem?', ['nome' => 'KWM Express', 'empresa' => 'KWM Express Ltda']) === 'Oi, tudo bem?');
+ok('nome de gente com a empresa ao lado entra', R::texto('Oi {nome}!', ['nome' => 'Alanna', 'empresa' => 'KWM Express']) === 'Oi Alanna!');
 ok('{empresa} vira a empresa do card', R::texto('Como está a {empresa}?', ['empresa' => 'Blue Transportes']) === 'Como está a Blue Transportes?');
 
 $a = ['id' => 1, 'ativo' => false] + $cad; $b = ['id' => 2, 'ativo' => true] + $cad; $c = ['id' => 3, 'ativo' => true, 'gatilho' => 'qualquer'] + $cad;

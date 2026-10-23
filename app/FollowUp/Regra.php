@@ -190,14 +190,29 @@ final class Regra
     /**
      * O texto com os campos do lead. {nome} = primeiro nome do contato, {empresa}.
      * Campo vazio some sem deixar espaço sobrando ("Oi {nome}, tudo bem?" → "Oi, tudo bem?").
+     * Nome que é a própria empresa não entra (muito card da prospecção tem o nome da
+     * empresa no campo do contato, e o texto saía "Oi KWM, tudo bem?", 23/10/2026).
      */
     public static function texto(string $modelo, array $vars): string
     {
         $nome = trim((string) ($vars['nome'] ?? ''));
-        $primeiro = $nome !== '' && !preg_match('/^\+?[\d\s()-]+$/', $nome) ? explode(' ', $nome)[0] : '';
-        $t = strtr($modelo, ['{nome}' => $primeiro, '{empresa}' => trim((string) ($vars['empresa'] ?? ''))]);
+        $empresa = trim((string) ($vars['empresa'] ?? ''));
+        $primeiro = $nome !== '' && !preg_match('/^\+?[\d\s()-]+$/', $nome) && !self::mesmoNome($nome, $empresa) ? explode(' ', $nome)[0] : '';
+        $t = strtr($modelo, ['{nome}' => $primeiro, '{empresa}' => $empresa]);
         $t = preg_replace('/[ \t]+([,.!?;:])/u', '$1', $t);
         $t = preg_replace('/[ \t]{2,}/u', ' ', $t);
         return trim((string) $t);
+    }
+
+    /** "KWM Express" e "kwm express ltda" são o mesmo nome? Compara sem acento, caixa e sinais. */
+    public static function mesmoNome(string $a, string $b): bool
+    {
+        $n = function (string $s): string {
+            $s = mb_strtolower($s);
+            $s = strtr($s, ['á' => 'a', 'à' => 'a', 'ã' => 'a', 'â' => 'a', 'é' => 'e', 'ê' => 'e', 'í' => 'i', 'ó' => 'o', 'õ' => 'o', 'ô' => 'o', 'ú' => 'u', 'ç' => 'c']);
+            return (string) preg_replace('/[^a-z0-9]+/', '', $s);
+        };
+        $x = $n($a); $y = $n($b);
+        return $x !== '' && $y !== '' && (str_starts_with($y, $x) || str_starts_with($x, $y));
     }
 }
