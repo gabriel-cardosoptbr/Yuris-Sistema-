@@ -309,9 +309,11 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
       transition: transform .18s, border-color .18s, box-shadow .18s;
     }
     .team-card:hover { transform: translateY(-2px); border-color: rgba(160,180,210,.2); box-shadow: 0 6px 20px rgba(0,0,0,.38); }
-    .team-card::before {
-      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
-      background: var(--team-cor, #3B82F6); border-radius: 12px 0 0 12px;
+    /* A cor do setor é uma bolinha antes do nome (23/10/2026): faixa colorida na
+       lateral do card saiu do desenho do sistema. */
+    .team-name::before {
+      content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+      background: var(--team-cor, #3B82F6); margin-right: 8px; vertical-align: 1px;
     }
     .team-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
     .team-name { font-size: .9rem; font-weight: 700; color: #D8E4F0; }

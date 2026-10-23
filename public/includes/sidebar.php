@@ -529,6 +529,8 @@ $_notifTempo = function ($raw) {
 <link rel="stylesheet" href="/assets/ff-escuro.css?v=<?= @filemtime(__DIR__ . '/../assets/ff-escuro.css') ?: 1 ?>">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <?php endif; ?>
+<!-- O layout acompanha a largura da área da página, não da janela (assets/responsivo.css, 23/10/2026). -->
+<link rel="stylesheet" href="/assets/responsivo.css?v=<?= @filemtime(__DIR__ . '/../assets/responsivo.css') ?: 1 ?>">
 <!-- Yuris UI lib (notify/confirm/prompt sem "localhost diz"). Auto-polyfills window.alert. -->
 <script src="/assets/yuris-ui.js?v=<?= $_uiLibVer ?>"></script>
 <!-- LGPD Etapa 5: banner de cookies — auto-inicializa, só aparece se ainda não respondeu -->

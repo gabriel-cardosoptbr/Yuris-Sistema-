@@ -1,0 +1,62 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   responsivo.css: o layout acompanha a largura da ÁREA da página (23/10/2026).
+   Carregado pelo includes/sidebar.php em toda página com menu, com a versão
+   pela data do arquivo (o navegador não fica com o antigo).
+
+   Por quê: as páginas quebravam o layout pela largura da JANELA (@media), sem
+   descontar os ~250 px do menu lateral. Numa janela de 1300 px a página tem uns
+   1050 px e continuava no desenho "largo": filtros espremidos numa tira, número
+   de indicador cortado ("Indisponíve", "R$ 75.000,0"), cartão sozinho na última
+   linha. Aqui a área da página (.main-content) vira a medida (container query).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.main-content { container-type: inline-size; container-name: pagina; }
+
+/* Cabeçalho: o título não vira uma coluna de uma palavra por linha; os botões
+   da direita quebram linha em vez de passar da tela (Chat). */
+.page-header-text { flex: 1 1 260px; }
+.page-header-actions { flex-wrap: wrap; flex-shrink: 1; min-width: 0; max-width: 100%; }
+
+/* ── Linhas de cartões de indicadores ────────────────────────────────────
+   Contadas pelos filhos, para nunca sobrar um cartão sozinho no fim:
+     4 cartões: 4 → 2 → 1        5 cartões: 5 → 3 → 2 → 1        6 cartões: 6 → 3 → 2 → 1
+   Valem para as linhas que antes tinham colunas fixas (repeat(5,1fr) no
+   atributo style, grid-cols-6 do Tailwind) ou auto-fit que deixava 3 + 1. */
+.main-content :is(.o-kpis, .ctr-central, .ffc-mini-grade, .kpi-grid, .kpi-grid-5, .kpi-grid-6, #topCards):has(> :nth-child(4):last-child) {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+.main-content :is(.o-kpis, .ctr-central, .kpi-grid, .kpi-grid-5, .kpi-grid-6, #topCards):has(> :nth-child(5):last-child) {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+}
+.main-content :is(.o-kpis, .kpi-grid, .kpi-grid-5, .kpi-grid-6, #topCards):has(> :nth-child(6):last-child) {
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+}
+@container pagina (max-width: 1180px) {
+  .main-content :is(.o-kpis, .kpi-grid, .kpi-grid-5, .kpi-grid-6, #topCards):has(> :nth-child(6):last-child) {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+@container pagina (max-width: 920px) {
+  .main-content :is(.o-kpis, .ctr-central, .kpi-grid, .kpi-grid-5, .kpi-grid-6, #topCards):has(> :nth-child(5):last-child) {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+@container pagina (max-width: 860px) {
+  .main-content :is(.o-kpis, .ctr-central, .ffc-mini-grade, .kpi-grid, .kpi-grid-5, .kpi-grid-6, #topCards):has(> :nth-child(4):last-child) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+@container pagina (max-width: 640px) {
+  .main-content :is(.o-kpis, .ctr-central, .kpi-grid, .kpi-grid-5, .kpi-grid-6, #topCards):is(:has(> :nth-child(5):last-child), :has(> :nth-child(6):last-child)) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+@container pagina (max-width: 330px) {
+  .main-content :is(.o-kpis, .ctr-central, .ffc-mini-grade, .kpi-grid, .kpi-grid-5, .kpi-grid-6, #topCards):is(:has(> :nth-child(4):last-child), :has(> :nth-child(5):last-child), :has(> :nth-child(6):last-child)) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+/* O valor do indicador quebra linha se precisar, nunca é cortado. */
+.main-content :is(.kpi-grid, .kpi-grid-5, .kpi-grid-6, #topCards) :is(.kpi-value, .kpi-label) {
+  white-space: normal !important; overflow: visible !important; text-overflow: clip !important; overflow-wrap: anywhere;
+}

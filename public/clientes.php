@@ -155,26 +155,27 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
     }
 
     /* ── Toolbar ──────────────────────────────────────────────────── */
-    /* Padrão espelhado da Prospecção: botões à esquerda (compactos) +
-       filtros em grid auto-fit à direita, com rótulos acima. */
+    /* Como a Prospecção (23/10/2026): duas linhas em toda a largura, botões em
+       cima e filtros embaixo. Em duas colunas ("auto 1fr"), a janela média
+       deixava os filtros numa tira estreita à direita e um vazio à esquerda. */
     .toolbar-grid {
       display: grid;
-      grid-template-columns: auto 1fr;
+      grid-template-columns: minmax(0, 1fr);
       gap: 14px;
-      align-items: end;
     }
     .action-buttons {
-      display: flex; flex-wrap: wrap; gap: 8px; align-self: end;
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
     }
     .action-buttons .btn { white-space: nowrap; }
 
     .filters-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+      gap: 10px 12px;
     }
     .field-group {
       display: flex; flex-direction: column; gap: 5px;
+      justify-content: flex-end;   /* rótulo em duas linhas não desalinha os campos */
       min-width: 0;   /* permite shrink dentro do grid */
     }
     .field-label {
@@ -189,9 +190,6 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
       display: flex; justify-content: flex-end;
     }
 
-    @media (max-width: 1100px) {
-      .toolbar-grid { grid-template-columns: 1fr; }   /* botões em cima, filtros embaixo */
-    }
     @media (max-width: 560px) {
       .filters-grid { grid-template-columns: 1fr; }   /* mobile: 1 filtro por linha */
     }
