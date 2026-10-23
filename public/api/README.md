@@ -55,6 +55,14 @@ que esperam resposta (canal com `send`; 409 com o motivo quando não pode). Regr
 `App\WhatsAppAgente\SituacaoConversa`. Na mesma edição, `whatsapp/messages.php` acrescenta `autor`,
 `autor_rotulo` e `autor_deduzido` às mensagens nossas (`App\WhatsAppAgente\AutorDaMensagem`).
 
+`followup.php` é a tela Operação › Follow-up (`App\FollowUp`, 23/10/2026). GET devolve as cadências, as
+etapas do funil, a chave geral, a fila dos próximos envios (até 150, com data e hora) e os últimos envios.
+POST JSON com `X-CSRF-Token`, só dono/admin: `salvar` (cria ou edita; erro de validação volta 422 com a
+mensagem), `ligar`, `excluir`, `ordenar` e `chave` (a chave geral, a mesma do botão do Chat). O vendedor da
+edição CRM recebe 403. Na edição CRM, a listagem de `cards.php` traz em cada card `followup` (cadência, passo,
+total, `previsto` em ISO 8601, `na_fila`, `desde`, `ultima_saida`, ou `estado: sem_mensagem`) e `robo`
+(`{nome}` quando a conversa está com o robô de pré-venda), ou `null`; falha nessa leitura não derruba a lista.
+
 `whatsapp/automacao_toggle.php` (sessão) e `whatsapp/sdr_automacao.php` (n8n, cabeçalho `X-Fleetiflow-Token`)
 são os botões "Disparo" e "Follow-up" do Chat: o primeiro lê (`GET`, com `disponivel` e `pode_alterar`) e
 grava (`POST {qual, ligado, _csrf}`, só owner/admin, só na conta da prospecção); o segundo é o que o robô de

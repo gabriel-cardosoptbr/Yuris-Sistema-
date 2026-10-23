@@ -27,7 +27,8 @@ if ($esperado === '' || !hash_equals($esperado, $recebido)) { http_response_code
 try {
     $conta = AutomacaoSdr::contaDoRobo();
     if ($conta === null) { http_response_code(404); echo json_encode(['error' => 'Conta da prospecção não encontrada']); exit; }
-    echo json_encode(['ok' => true] + AutomacaoSdr::estado($conta));
+    // Follow-up que o Yuris já faz (Operação › Follow-up) volta `false` para o n8n.
+    echo json_encode(['ok' => true] + AutomacaoSdr::paraOn8n($conta));
 } catch (\Throwable $e) {
     error_log('[sdr_automacao] ' . $e->getMessage());
     http_response_code(500);

@@ -77,6 +77,18 @@ if ($method === 'GET') {
         } catch (\Throwable $e) {
             error_log('[cards] proxima_interacao: ' . $e->getMessage());
         }
+        // Follow-up automático (App\FollowUp): quando sai a próxima mensagem do lead,
+        // e se a conversa está com o robô. Falha aqui nunca derruba a lista.
+        try {
+            $fu = \App\FollowUp\Fatos::paraOFunil($filters['account_ids'], $cards);
+            foreach ($cards as &$c) {
+                $c['followup'] = $fu[(int) $c['id']]['followup'] ?? null;
+                $c['robo']     = $fu[(int) $c['id']]['robo'] ?? null;
+            }
+            unset($c);
+        } catch (\Throwable $e) {
+            error_log('[cards] followup: ' . $e->getMessage());
+        }
     }
     echo json_encode(['data' => $cards]);
     exit;

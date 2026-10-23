@@ -1,6 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════
    quadro-rolagem.js: rolagem lateral de quadro Kanban (21/10/2026).
-   Em todo elemento com [data-rolagem-lateral] (hoje o quadro de Clientes):
+   Em todo elemento com [data-rolagem-lateral] (o quadro de Clientes e, desde
+   23/10/2026, o funil da Prospecção em todas as contas):
      - a barra de rolagem fica só em cima (a de baixo some);
      - segurar o mouse no fundo do quadro (ou de uma coluna) e arrastar para
        o lado rola o quadro, como no Trello. Segurar um card continua

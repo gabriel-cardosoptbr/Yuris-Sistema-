@@ -9,7 +9,9 @@ use App\Core\Database;
  * disparo da Fleet à mão):
  *
  *   disparo   a mensagem de ABERTURA para lead novo da planilha (robô de disparo)
- *   followup  a cadência de follow-up para quem recebeu a abertura e não respondeu
+ *   followup  a cadência de follow-up para quem recebeu a abertura e não respondeu;
+ *             desde 23/10/2026 é também a chave geral do follow-up do próprio
+ *             Yuris (App\FollowUp): desligada, nenhuma cadência da conta manda
  *
  * O Yuris guarda a decisão e o n8n pergunta antes de cada mensagem
  * (api/whatsapp/sdr_automacao.php): desligar vale na hora, até no meio de uma
@@ -41,6 +43,22 @@ final class AutomacaoSdr
             $saida[$porChave[$r['config_key']]] = (string)$r['config_value'] === '1';
         }
         return $saida;
+    }
+
+    /**
+     * O que o n8n recebe em sdr_automacao.php. O follow-up do n8n (só para quem
+     * não respondeu) sai do ar quando o próprio Yuris cuida disso: uma cadência
+     * ativa de "não respondeu" em Operação › Follow-up (App\FollowUp, 23/10/2026).
+     * Assim o lead nunca recebe dois. O botão "Follow-up" do Chat continua
+     * valendo: desligado, nenhum dos dois manda.
+     *
+     * @return array{disparo:bool, followup:bool}
+     */
+    public static function paraOn8n(int $accountId): array
+    {
+        $e = self::estado($accountId);
+        if ($e['followup'] && \App\FollowUp\Cadencia::cobreSemResposta($accountId)) $e['followup'] = false;
+        return $e;
     }
 
     /** Liga ou desliga uma das chaves ('disparo' ou 'followup'). */

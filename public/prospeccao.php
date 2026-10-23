@@ -195,6 +195,8 @@ function column_display_name(array $col): string
        visuais, e o botao "Registrar" virava texto sem fundo na Prospeccao. -->
   <link rel="stylesheet" href="/assets/crm-fase2.css?v=<?= @filemtime(__DIR__ . '/assets/crm-fase2.css') ?: 1 ?>">
   <script src="/assets/crm-fase2.js?v=<?= @filemtime(__DIR__ . '/assets/crm-fase2.js') ?: 1 ?>"></script>
+  <!-- Segurar o fundo do quadro e arrastar para o lado rola o funil (a "mãozinha"), em todas as contas (23/10/2026). -->
+  <script src="/assets/quadro-rolagem.js?v=<?= @filemtime(__DIR__ . '/assets/quadro-rolagem.js') ?: 1 ?>" defer></script>
 <?php if ($edicaoCrm): ?>
   <!-- Ficha do lead e do cliente no desenho do Fleetiflow: só a edição CRM carrega. -->
   <link rel="stylesheet" href="/assets/ff-ficha.css?v=<?= @filemtime(__DIR__ . '/assets/ff-ficha.css') ?: 1 ?>">
@@ -255,19 +257,23 @@ function column_display_name(array $col): string
     .toolbar-grid {
       margin-top: 0;
       display: grid;
-      /* Botões à esquerda ocupam só o que precisam; filtros à direita pegam o resto. */
-      grid-template-columns: auto 1fr;
-      gap: 12px;
-      align-items: end;
+      /* Duas linhas em toda largura: botões em cima, filtros embaixo (23/10/2026).
+         Antes eram duas colunas ("auto 1fr"): a dos botões pegava a largura que
+         queria e, em janela média, os filtros ficavam numa tira estreita, um
+         embaixo do outro, com um vazio enorme à esquerda. */
+      grid-template-columns: minmax(0, 1fr);
+      gap: 14px;
     }
 
     .action-buttons {
       display: flex;
       flex-wrap: wrap;
+      align-items: center;
       gap: 8px;
-      align-self: end;
     }
     .action-buttons .btn { white-space: nowrap; }
+    /* O seletor do especialista vai para a ponta direita da linha dos botões. */
+    .action-buttons .crm-esp { margin-left: auto; }
 
     .btn {
       border-radius: 10px;
@@ -332,9 +338,14 @@ function column_display_name(array $col): string
       display: grid;
       /* auto-fit: tenta caber todos os filtros numa linha; quebra natural quando
          o viewport não comporta. Min 150px evita campos comprimidos demais. */
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+      gap: 10px 12px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(160, 180, 210, 0.12);
     }
+    html[data-theme="light"] .filters-grid { border-top-color: rgba(17, 29, 45, 0.07); }
+    /* Rótulo que quebra em duas linhas não desalinha os campos da mesma linha. */
+    .filters-grid .field-group { justify-content: flex-end; min-width: 0; }
 
     /* ── Empty-pipeline banner ─────────────────────────────────────────
        Mostrado quando o tenant ainda não tem nenhuma coluna no pipeline.
@@ -1157,12 +1168,6 @@ function column_display_name(array $col): string
       }
     }
 
-    @media (max-width: 1200px) {
-      .toolbar-grid {
-        grid-template-columns: 1fr;   /* botões em cima, filtros embaixo */
-      }
-      /* filters-grid auto-fit já se reorganiza sozinho — sem override aqui */
-    }
 
     @media (max-width: 980px) {
       .form-grid,
@@ -1249,6 +1254,51 @@ function column_display_name(array $col): string
     html[data-theme="light"] .lc-numero{ margin-top:8px; font-size:.72rem; font-weight:600; color:#575757 !important; line-height:1.35; overflow-wrap:anywhere; }
     html[data-theme="light"] .lc-numero b{ color:#1F2937 !important; font-weight:700; }
 
+    /* Follow-up automático no card (App\FollowUp, 23/10/2026): quando sai a próxima
+       mensagem, em que passo está e quando foi a nossa. O ponteiro do relógio gira. */
+    html[data-theme="light"] .lc-fu{ display:flex; align-items:center; gap:10px; margin-top:9px; padding:8px 10px; border-radius:11px; background:#EEF4FF; }
+    html[data-theme="light"] .lc-fu-relogio{ width:32px; height:32px; flex:none; border-radius:50%; background:#FFFFFF; display:grid; place-items:center; color:var(--ff-marca, #015DFC); box-shadow:0 1px 3px rgba(17,29,45,0.10); }
+    .card-mini.lc .lc-fu-relogio svg{ width:22px; height:22px; }
+    .card-mini .lc-fu-relogio svg *{ color:var(--ff-marca, #015DFC); }
+    .card-mini .lc-fu.encerrada .lc-fu-relogio svg *{ color:#9CA3AF; }
+    .lc-fu-relogio .ponteiro{ transform-origin:12px 12px; animation:lcGira 8s linear infinite; }
+    .lc-fu.na-fila .lc-fu-relogio .ponteiro{ animation-duration:1.4s; }
+    @keyframes lcGira{ to{ transform:rotate(360deg); } }
+    .lc-fu-txt{ min-width:0; flex:1; }
+    html[data-theme="light"] .lc-fu small{ display:block; color:#676767 !important; font-size:.68rem; line-height:1.35; }
+    html[data-theme="light"] .lc-fu .lc-v{ display:block; color:var(--ff-marca-forte, #013DF2) !important; font-weight:800; font-size:.84rem; line-height:1.3; }
+    .lc-fu-cab{ display:flex; align-items:center; justify-content:space-between; gap:6px; }
+    .lc-fu-trilha{ display:inline-flex; gap:3px; flex:none; }
+    html[data-theme="light"] .lc-fu-trilha i{ width:12px; height:4px; border-radius:2px; background:#CBD5E1; }
+    html[data-theme="light"] .lc-fu-trilha i.feito{ background:#15803D; }
+    html[data-theme="light"] .lc-fu-trilha i.agora{ background:var(--ff-marca, #015DFC); }
+    html[data-theme="light"] .lc-fu.encerrada{ background:#F3F4F6; }
+    html[data-theme="light"] .lc-fu.encerrada .lc-fu-relogio{ color:#9CA3AF; }
+    html[data-theme="light"] .lc-fu.encerrada .lc-v{ color:#575757 !important; }
+    html[data-theme="light"] .lc-fu-espera{ display:flex; align-items:center; gap:6px; margin-top:8px; font-size:.72rem; font-weight:600; color:#767676 !important; }
+    html[data-theme="light"] .lc-fu-espera svg{ color:#9CA3AF; }
+
+    /* Conversa com o robô de pré-venda: o robozinho flutua, pisca e digita. */
+    html[data-theme="light"] .lc-robo{ display:flex; align-items:center; gap:10px; margin-top:9px; padding:8px 10px; border-radius:11px; background:linear-gradient(120deg,#F1EBFF,#E8F1FF); }
+    .lc-robo-cara{ width:32px; height:32px; flex:none; display:grid; place-items:center; animation:lcFlutua 2.6s ease-in-out infinite; }
+    .card-mini.lc .lc-robo-cara svg{ width:30px; height:30px; }
+    .lc-robo-cara .olho{ transform-box:fill-box; transform-origin:center; animation:lcPisca 4s infinite; }
+    .lc-robo-cara .antena{ animation:lcAntena 1.4s ease-in-out infinite; }
+    @keyframes lcFlutua{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-2px); } }
+    @keyframes lcPisca{ 0%,92%,100%{ transform:scaleY(1); } 95%{ transform:scaleY(.1); } }
+    @keyframes lcAntena{ 0%,100%{ opacity:1; } 50%{ opacity:.3; } }
+    html[data-theme="light"] .lc-robo .lc-v{ display:flex; align-items:center; color:#5B21B6 !important; font-weight:800; font-size:.8rem; line-height:1.3; }
+    html[data-theme="light"] .lc-robo small{ display:block; color:#676767 !important; font-size:.68rem; line-height:1.35; }
+    .lc-digitando{ display:inline-flex; gap:3px; margin-left:6px; }
+    .lc-digitando i{ width:5px; height:5px; border-radius:50%; background:#7C3AED; animation:lcDigita 1.2s infinite ease-in-out; }
+    .lc-digitando i:nth-child(2){ animation-delay:.15s; } .lc-digitando i:nth-child(3){ animation-delay:.3s; }
+    @keyframes lcDigita{ 0%,60%,100%{ transform:translateY(0); opacity:.35; } 30%{ transform:translateY(-4px); opacity:1; } }
+    /* Escuro à mão (o degradê não está na paleta do TemaEscuroCrm); .card-mini ganha da cópia convertida. */
+    html:not([data-theme="light"]) .card-mini .lc-robo{ background:linear-gradient(120deg,rgba(124,58,237,0.22),rgba(59,130,246,0.16)); }
+    html:not([data-theme="light"]) .card-mini .lc-robo .lc-v{ color:#C4B5FD !important; }
+    html:not([data-theme="light"]) .card-mini .lc-digitando i{ background:#C4B5FD; }
+    @media (prefers-reduced-motion: reduce){ .lc-fu-relogio .ponteiro, .lc-robo-cara, .lc-robo-cara .olho, .lc-robo-cara .antena, .lc-digitando i{ animation:none; } }
+
     .lc-rodape{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:10px; padding-top:9px; border-top:1px solid rgba(17,29,45,.07); }
     html[data-theme="light"] .lc-resp{ display:inline-flex; align-items:center; gap:7px; color:#3D3D3D !important; font-size:.8rem; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     html[data-theme="light"] .lc-resp-vazio{ color:#A0A7B4 !important; font-weight:500; }
@@ -1316,8 +1366,10 @@ function column_display_name(array $col): string
     @media (max-width:640px){ .termo-linha{ flex-direction:column; align-items:flex-start; } .termo-exemplos{ grid-template-columns:1fr; } }
 
     /* Seletor do especialista padrão, na barra de botões. */
-    .crm-esp{ display:inline-flex; align-items:center; gap:8px; margin-left:4px; font-size:.78rem; font-weight:600; color:#676767; }
-    .crm-esp select{ height:38px; min-width:170px; padding:0 10px; border-radius:10px; }
+    .crm-esp{ display:inline-flex; align-items:center; gap:8px; font-size:.78rem; font-weight:600; color:#676767; }
+    .crm-esp{ flex-wrap:wrap; max-width:100%; }
+    .crm-esp > span{ white-space:nowrap; }
+    .crm-esp select{ width:auto; height:38px; min-width:min(170px, 100%); max-width:100%; padding:0 10px; border-radius:10px; }
 
     /* Cabeçalho da coluna: título escuro, contador na cor da marca, "N leads" embaixo. */
     html[data-theme="light"] .kanban-col .col-title{ color:#1F2937 !important; font-size:1rem; }
@@ -1469,7 +1521,7 @@ function column_display_name(array $col): string
                 </div>
               </div>
             </div>
-            <div class="board" id="board">
+            <div class="board" id="board" data-rolagem-lateral>
               <?php foreach ($columns as $col): ?>
                 <?php $displayName = column_display_name($col); ?>
                 <div class="kanban-col" data-coluna-id="<?=htmlspecialchars((string)$col['id'])?>" data-coluna-nome="<?=htmlspecialchars((string)$col['nome'])?>" data-coluna-slug="<?=htmlspecialchars((string)($col['slug'] ?? ''))?>" data-coluna-fechado="<?=htmlspecialchars((string)($col['conta_fechado'] ?? 0))?>">
@@ -2429,6 +2481,14 @@ function column_display_name(array $col): string
       return ini.toUpperCase();
     }
 
+    // Data e hora gravadas pelo servidor (última mensagem, criação, alteração) estão em
+    // UTC e chegam sem fuso; sem o "Z" o navegador lia como hora local e o card mostrava
+    // o último contato 3 h adiantado (23/10/2026). Prazo digitado pela pessoa não passa aqui.
+    function lcUtc(v) {
+      const s = String(v || '').trim();
+      return /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?$/.test(s) ? s.replace(' ', 'T') + 'Z' : v;
+    }
+
     // "Hoje 10:24", "Ontem 16:20", "22/09 14:10". Data só (prazo) sai sem hora.
     function lcQuando(valor, soData) {
       if (!valor) return null;
@@ -2442,6 +2502,59 @@ function column_display_name(array $col): string
       if (diff === -1) return 'Ontem' + hora;
       if (diff === 1)  return 'Amanhã' + hora;
       return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + hora;
+    }
+
+    // Follow-up automático e robô no card (App\FollowUp\Fatos::paraOFunil). O relógio diz
+    // quando sai a próxima mensagem; o robozinho, que a conversa está com o robô.
+    // Cada traço com fill/stroke próprios: a regra antiga ".card-mini svg" pinta o svg de cinza com !important.
+    const LC_RELOGIO = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2"/><line x1="12" y1="12" x2="12" y2="8.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line class="ponteiro" x1="12" y1="12" x2="15.6" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg>';
+    const LC_ROBO = '<svg viewBox="0 0 32 32" fill="none"><line class="antena" x1="16" y1="3.5" x2="16" y2="7.5" stroke="#7C3AED" stroke-width="1.8" stroke-linecap="round"/><circle class="antena" cx="16" cy="3" r="1.8" fill="#A78BFA"/>' +
+      '<rect x="6" y="7.5" width="20" height="16" rx="6" fill="#7C3AED"/><rect x="9" y="11" width="14" height="8.5" rx="4" fill="#EDE9FE"/>' +
+      '<ellipse class="olho" cx="13" cy="15.2" rx="1.6" ry="2" fill="#4C1D95"/><ellipse class="olho" cx="19" cy="15.2" rx="1.6" ry="2" fill="#4C1D95"/>' +
+      '<rect x="3.5" y="13" width="2.5" height="5" rx="1.2" fill="#A78BFA"/><rect x="26" y="13" width="2.5" height="5" rx="1.2" fill="#A78BFA"/>' +
+      '<rect x="11" y="25" width="10" height="3.5" rx="1.7" fill="#A78BFA"/></svg>';
+    function lcFalta(iso) {
+      const m = Math.round((new Date(iso) - Date.now()) / 60000);
+      if (m <= 0) return 'na fila agora';
+      if (m < 60) return 'em ' + m + ' min';
+      const h = Math.floor(m / 60);
+      if (h < 24) return 'em ' + h + ' h' + (m % 60 ? ' ' + String(m % 60).padStart(2, '0') : '');
+      const d = Math.floor(h / 24);
+      return 'em ' + d + (d === 1 ? ' dia' : ' dias');
+    }
+    function lcFollowUp(card) {
+      const f = card.followup, r = card.robo;
+      let h = '';
+      if (f && (f.estado === 'agendado' || f.estado === 'encerrada')) {
+        let trilha = '<span class="lc-fu-trilha" aria-hidden="true">';
+        for (let i = 1; i <= f.total; i++) {
+          trilha += '<i class="' + (f.estado === 'encerrada' || i < f.passo ? 'feito' : i === f.passo ? 'agora' : '') + '"></i>';
+        }
+        trilha += '</span>';
+        const primeira = f.gatilho === 'sem_resposta' ? 'Disparado ' : 'Nossa mensagem ';
+        const origem = f.passo <= 1 ? primeira + (lcQuando(f.desde, false) || '') : 'Último envio ' + (lcQuando(f.ultima_saida, false) || '');
+        const dica = f.cadencia + (r ? ' · conversa com ' + r.nome : '');
+        if (f.estado === 'agendado') {
+          h = '<div class="lc-fu' + (f.na_fila ? ' na-fila' : '') + '" title="' + escapeHtml(dica) + '">' +
+            '<span class="lc-fu-relogio">' + LC_RELOGIO + '</span><div class="lc-fu-txt">' +
+            '<div class="lc-fu-cab"><small>Follow-up ' + f.passo + ' de ' + f.total + '</small>' + trilha + '</div>' +
+            '<span class="lc-v">' + escapeHtml(f.na_fila ? 'Saindo agora' : (lcQuando(f.previsto, false) || '')) + '</span>' +
+            '<small>' + escapeHtml((f.na_fila ? 'na fila do número' : lcFalta(f.previsto)) + ' · ' + origem) + '</small></div></div>';
+        } else {
+          h = '<div class="lc-fu encerrada" title="' + escapeHtml(dica) + '">' +
+            '<span class="lc-fu-relogio">' + LC_RELOGIO + '</span><div class="lc-fu-txt">' +
+            '<div class="lc-fu-cab"><small>Follow-up ' + f.total + ' de ' + f.total + '</small>' + trilha + '</div>' +
+            '<span class="lc-v">Cadência encerrada</span>' +
+            '<small>' + escapeHtml('Último envio ' + (lcQuando(f.ultima_saida, false) || '') + ' · sem resposta') + '</small></div></div>';
+        }
+      } else if (r) {
+        h = '<div class="lc-robo" title="A conversa está com ' + escapeHtml(r.nome) + '. Assumir a conversa no Chat tira o robô."><span class="lc-robo-cara">' + LC_ROBO + '</span>' +
+          '<div><span class="lc-v">' + escapeHtml(r.nome) + ' atendendo<span class="lc-digitando" aria-hidden="true"><i></i><i></i><i></i></span></span>' +
+          '<small>Última mensagem ' + escapeHtml(lcQuando(lcUtc(card.linked_chat_last_at), false) || '') + '</small></div></div>';
+      } else if (f && f.estado === 'sem_mensagem') {
+        h = '<div class="lc-fu-espera">' + LC_ICONES.relogio + 'Aguardando a primeira mensagem</div>';
+      }
+      return h;
     }
 
     function renderCardCrm(card, column, colId) {
@@ -2465,7 +2578,7 @@ function column_display_name(array $col): string
       // Um só horário no card: o próximo contato quando há prazo à frente, senão
       // o último contato (última mensagem do WhatsApp ligado, ou a última mexida).
       let rotuloQuando = 'Último contato';
-      let quando = lcQuando(card.linked_chat_last_at || card.updated_at || card.created_at, false) || '—';
+      let quando = lcQuando(lcUtc(card.linked_chat_last_at || card.updated_at || card.created_at), false) || '—';
       if (hasFechamento && card.data_fechamento) {
         rotuloQuando = 'Fechado em'; quando = lcQuando(card.data_fechamento, true);
       } else if (card.data_prevista_fechamento && dueDays !== null && dueDays >= 0 && !fechada) {
@@ -2482,6 +2595,8 @@ function column_display_name(array $col): string
         dicaQuando = prox.titulo + (prox.responsavel_nome ? ' · responsável: ' + prox.responsavel_nome : '')
           + (prox.mensagem_programada ? ' · a mensagem sai sozinha no WhatsApp' : '');
       }
+
+      const followHtml = fechada ? '' : lcFollowUp(card);
 
       const div = document.createElement('div');
       div.className = 'card-mini lc lc-' + temp.chave + (isOverdue ? ' is-overdue' : '');
@@ -2528,6 +2643,7 @@ function column_display_name(array $col): string
             iconeQuando + '<div><small>' + rotuloQuando + '</small><span class="lc-v">' + escapeHtml(quando) + '</span></div></div>' +
         '</div>' +
         atrasoHtml +
+        followHtml +
         (card.linked_chip_nome ? '<div class="lc-numero" title="Número do WhatsApp deste lead">WhatsApp: <b>' + escapeHtml(card.linked_chip_nome) + '</b></div>' : '') +
         '<div class="lc-rodape">' +
           (responsavel
