@@ -39,7 +39,9 @@ class AuthController
 
         // ── CSRF ────────────────────────────────────────────────────────────
         if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== ($_SESSION['csrf_token'] ?? '')) {
-            $_SESSION['flash_error'] = 'Token inválido.';
+            // A tela já pega o token novo antes de enviar (assets/login-token.js);
+            // isto sobra para quem está sem JavaScript ou sem rede naquele segundo.
+            $_SESSION['flash_error'] = 'A tela de login ficou aberta muito tempo e expirou. Digite a senha de novo.';
             header('Location: ' . $loginPage);
             exit;
         }

@@ -505,6 +505,14 @@ no computador nada muda.
 ### Entrada e sessão
 `login.php` · `login-fleetiflow.php` · `logout.php` · `404.php`
 
+**Token do login no envio** (28/10/2026): as duas telas de login carregam
+`assets/login-token.js`, que, no envio, busca o token da sessão de agora em
+`api/auth/csrf.php` e só então manda o formulário. A tela aberta há mais de 24 min
+(o PHP apaga a sessão parada) ou reaberta pelo Chrome no dia seguinte carregava o
+token de uma sessão que não existia mais, e o login voltava com "Token inválido."
+sem conferir a senha (o Kauê, da Inovaize, ficou sem entrar). Sem JavaScript ou
+sem rede, a mensagem agora diz que a tela expirou e pede a senha de novo.
+
 `login-fleetiflow.php` é a tela de login da edição CRM comercial. Mostra a
 marca da conta dona do domínio da requisição (nome, cor, logo, subtítulo, ver
 `App\Master\Marca`), ou a do Fleetiflow quando o domínio não é de nenhuma marca. Visual próprio,

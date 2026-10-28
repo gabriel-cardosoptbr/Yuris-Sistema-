@@ -348,5 +348,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!-- "Lembrar" (App/Usuarios/Lembrar, 22/10/2026): no app instalado no celular a caixa
      já vem marcada; fechar o app não deve pedir a senha de novo. -->
 <script>(function(){try{if((window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true){var c=document.querySelector('input[name="remember"]');if(c)c.checked=true;}}catch(e){}})();</script>
+<!-- Token da sessão de agora no envio: tela aberta há muito tempo não falha mais (assets/login-token.js, 28/10/2026). -->
+<script src="/assets/login-token.js?v=<?= @filemtime(__DIR__ . '/assets/login-token.js') ?: 1 ?>"></script>
 </body>
 </html>
