@@ -8,6 +8,12 @@
  *
  * O número escolhido fica guardado no navegador, por conta. O servidor valida
  * tudo de novo: número que a conta não enxerga é recusado lá.
+ *
+ * A mesma pessoa em mais de uma conta (window.CHAT_EMPRESAS com mais de uma,
+ * App\Usuarios\PessoaVinculada, 29/10/2026): a barra traz os números das duas
+ * empresas, cada um com a etiqueta da empresa, e um filtro Todas / empresa. A
+ * lista de conversas junta os números visíveis (ChatApp.definirMulti); clicar num
+ * número foca a lista nele, clicar de novo volta a todos.
  */
 (function () {
   const raiz = document.getElementById('ffNumeros');
@@ -20,6 +26,44 @@
   let numeros = [];
   let resumo  = { total: 0, conectados: 0, caidos: 0, nunca_conectados: 0 };
   let podeGerenciar = false;
+
+  // ── Várias empresas ────────────────────────────────────────────────────────
+  const EMPRESAS = Array.isArray(window.CHAT_EMPRESAS) ? window.CHAT_EMPRESAS : [];
+  const MULTI = EMPRESAS.length > 1;
+  const CHAVE_EMP = 'ff_chat_empresa_' + (EMPRESAS.map((e) => e.user_id).sort().join('_') || '0');
+  let filtroEmpresa = 'todas';   // 'todas' ou o account_id da empresa
+  let foco = null;               // número focado (null = todos os da empresa filtrada)
+  let assinaturaMulti = '';
+  if (MULTI) {
+    try { filtroEmpresa = localStorage.getItem(CHAVE_EMP) || 'todas'; } catch (_) {}
+    if (filtroEmpresa !== 'todas' && !EMPRESAS.some((e) => String(e.account_id) === String(filtroEmpresa))) filtroEmpresa = 'todas';
+    const css = document.createElement('style');
+    css.textContent =
+      '.ffn-empresas{display:inline-flex;gap:4px;padding:3px;border-radius:999px;background:rgba(17,29,45,.05);margin-right:8px;flex:none}' +
+      '.ffn-empresa{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border:0;border-radius:999px;background:transparent;color:inherit;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;opacity:.75}' +
+      '.ffn-empresa.ativa{background:#fff;opacity:1;box-shadow:0 1px 3px rgba(17,29,45,.12)}' +
+      'html:not([data-theme="light"]) .ffn-empresas{background:rgba(255,255,255,.06)}html:not([data-theme="light"]) .ffn-empresa.ativa{background:rgba(255,255,255,.12)}' +
+      '.ffn-empresa i{width:9px;height:9px;border-radius:50%;flex:none}' +
+      '.ffn-emp{font-size:10.5px;font-weight:800;padding:0 6px;border-radius:999px;border:1px solid currentColor;line-height:1.5;white-space:nowrap}' +
+      '.ffn-abas-multi{display:flex;align-items:center;flex-wrap:wrap;gap:6px;min-width:0}';
+    document.head.appendChild(css);
+  }
+  function visiveis() {
+    return numeros.filter((n) => filtroEmpresa === 'todas' || String(n.empresa && n.empresa.account_id) === String(filtroEmpresa));
+  }
+  // Diz ao chat quais números entram na lista; recarrega só quando a escolha mudou.
+  function aplicarMulti(forcar) {
+    const vis = visiveis();
+    if (foco && !vis.some((n) => n.id === foco)) foco = null;
+    const canais = (foco ? vis.filter((n) => n.id === foco) : vis).map((n) => ({
+      id: n.id, nome: n.nome, empresa: n.empresa.conta, cor: n.empresa.cor, atual: !!n.empresa.atual,
+    }));
+    const assinatura = canais.map((c) => c.id).join(',');
+    if (!forcar && assinatura === assinaturaMulti) return;
+    assinaturaMulti = assinatura;
+    ChatApp.definirMulti(canais);
+    ChatApp.loadChats(true);
+  }
 
   // Número escolhido ANTES do init do chat (que roda no DOMContentLoaded): a
   // primeira consulta de status já sai para o número certo.
@@ -53,6 +97,7 @@
   }
 
   async function carregar(atualizar) {
+    if (MULTI) return carregarVarias(atualizar);
     try {
       const d = await api(API + '?action=numeros' + (atualizar ? '&atualizar=1' : ''));
       numeros = d.numeros || [];
@@ -73,12 +118,64 @@
     }
   }
 
+  // Os números de cada empresa da pessoa: o da empresa atual sem parâmetro, os das
+  // outras com ?empresa=, que o servidor responde como o usuário dela lá.
+  async function carregarVarias(atualizar) {
+    try {
+      const partes = await Promise.all(EMPRESAS.map((e) =>
+        api(API + '?action=numeros' + (atualizar ? '&atualizar=1' : '') + (e.atual ? '' : '&empresa=' + e.account_id))
+          .then((d) => ({ e, d })).catch(() => null)));
+      numeros = [];
+      podeGerenciar = false;
+      resumo = { total: 0, conectados: 0, caidos: 0, nunca_conectados: 0 };
+      partes.forEach((p) => {
+        if (!p) return;
+        (p.d.numeros || []).forEach((n) => { n.empresa = p.e; numeros.push(n); });
+        if (p.e.atual) podeGerenciar = !!p.d.pode_gerenciar;
+        const r = p.d.resumo || {};
+        Object.keys(resumo).forEach((k) => { resumo[k] += Number(r[k] || 0); });
+      });
+      aplicarMulti(false);
+      desenhar();
+    } catch (e) {
+      raiz.innerHTML = '';
+    }
+  }
+
+  function desenharMulti() {
+    const vis = visiveis();
+    const conversa = ChatApp.canalAtual();
+    raiz.innerHTML =
+      '<div class="ffn-abas-multi">' +
+        '<div class="ffn-empresas" role="tablist" aria-label="Empresa">' +
+          '<button type="button" class="ffn-empresa' + (filtroEmpresa === 'todas' ? ' ativa' : '') + '" data-empresa="todas">Todas</button>' +
+          EMPRESAS.map((e) => '<button type="button" class="ffn-empresa' + (String(filtroEmpresa) === String(e.account_id) ? ' ativa' : '') + '" data-empresa="' + e.account_id + '"><i style="background:' + esc(e.cor) + '"></i>' + esc(e.conta) + '</button>').join('') +
+        '</div>' +
+        '<div class="ffn-abas" role="tablist" aria-label="Números de WhatsApp">' +
+          vis.map((n) => {
+            const ativo = foco === n.id;
+            const fone = telefone(n.phone);
+            return '<div class="ffn-aba' + (ativo ? ' ativa' : '') + ' ffn-' + n.situacao + '" role="tab" tabindex="0" aria-selected="' + ativo + '" data-id="' + n.id + '" title="' + esc(n.nome + ' · ' + n.empresa.conta + ' · ' + (fone || '') + ' · ' + ROTULO[n.situacao] + (ativo ? ' · clique de novo para ver todos' : ' · clique para ver só este número')) + '">' +
+              '<i class="ffn-ponto"></i>' +
+              '<span class="ffn-nome">' + esc(n.nome) + '</span>' +
+              '<span class="ffn-emp" style="color:' + esc(n.empresa.cor) + '">' + esc(n.empresa.conta) + '</span>' +
+              (n.nao_lidas > 0 ? '<span class="ffn-badge">' + (n.nao_lidas > 99 ? '99+' : n.nao_lidas) + '</span>' : '') +
+            '</div>';
+          }).join('') +
+        '</div>' +
+      '</div>' +
+      '<div class="ffn-direita"><span class="ffn-conversas" id="ffnConversas"></span></div>';
+    espelharConversas();
+    marcarConversa(conversa);
+  }
+
   // Uma linha só: as abas à esquerda, o resumo e o "+" à direita. Contador zerado
   // não aparece (só ocupa lugar); "caído" só aparece quando há algum, em vermelho.
   // Os cartões Conversas/Não lidas/Conexão/Número saem (chat-numeros.css): a aba
   // já mostra status, telefone e não lidas, e o total de conversas do número
   // aberto vem para esta linha (espelhado de #kpiChats, que o chat.js mantém).
   function desenhar() {
+    if (MULTI) return desenharMulti();
     const atual = ChatApp.canalAtual() || (numeros.find((n) => n.padrao) || {}).id;
     const chips = [];
     if (resumo.total > 1) chips.push(['', resumo.total + ' números']);
@@ -128,7 +225,10 @@
     if (!n) { via.textContent = ''; return; }
     const fone = telefone(n.phone);
     via.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>' +
-      '<span>via <strong>' + esc(n.nome) + '</strong>' + (fone ? ' · ' + esc(fone) : '') + '</span>';
+      '<span>via <strong>' + esc(n.nome) + '</strong>' + (fone ? ' · ' + esc(fone) : '') +
+      (MULTI && n.empresa ? ' · <strong style="color:' + esc(n.empresa.cor) + '">' + esc(n.empresa.conta) + '</strong>' +
+        (n.empresa.atual ? '' : ' <small style="opacity:.8">(o lead e a agenda desta conversa ficam na ' + esc(n.empresa.conta) + ': troque de empresa no menu para mexer neles)</small>') : '') +
+      '</span>';
   }
 
   // "43 conversas" do número aberto, lido do cartão escondido que o chat.js atualiza.
@@ -142,8 +242,12 @@
   const kpi = document.getElementById('kpiChats');
   if (kpi && window.MutationObserver) new MutationObserver(espelharConversas).observe(kpi, { childList: true, characterData: true, subtree: true });
 
+  // A conversa aberta mudou de número (pode ser de outra empresa): atualiza o "via".
+  document.addEventListener('chat:canal', (e) => marcarConversa(e.detail && e.detail.canal));
+
   async function escolher(id) {
     id = Number(id);
+    if (MULTI) { foco = foco === id ? null : id; aplicarMulti(true); desenhar(); return; }
     if (!id || id === ChatApp.canalAtual()) return;
     salvar(id);
     ChatApp.definirCanal(null); // força trocarCanal a reconhecer a troca
@@ -205,6 +309,15 @@
   }
 
   raiz.addEventListener('click', (e) => {
+    const emp = e.target.closest('.ffn-empresa');
+    if (emp) {
+      filtroEmpresa = emp.dataset.empresa;
+      try { localStorage.setItem(CHAVE_EMP, filtroEmpresa); } catch (_) {}
+      foco = null;
+      aplicarMulti(true);
+      desenhar();
+      return;
+    }
     const alvo = e.target.closest('[data-acao], .ffn-aba');
     if (!alvo) return;
     if (alvo.dataset.acao === 'adicionar') return void adicionar();

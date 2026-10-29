@@ -39,7 +39,10 @@ Sem essa separação, atender ao pedido ao pé da letra destruiria a utilidade d
 ```
 Aviso.php          o ÚNICO caminho de escrita, com as quatro regras
 Movimento.php      traduz linha de histórico em aviso legível
-Push.php           o aviso no celular e no computador (Web Push), 22/10/2026
+Push.php           o aviso no celular e no computador (Web Push), 22/10/2026; desde
+                   29/10/2026 o aviso de quem trabalha em mais de uma conta
+                   (App\Usuarios\PessoaVinculada) chega também nos aparelhos que
+                   ele cadastrou entrando pela outra conta
 Destinatarios.php  quem recebe cada aviso de tempo real da conta, 22/10/2026
 README.md          este arquivo
 ```

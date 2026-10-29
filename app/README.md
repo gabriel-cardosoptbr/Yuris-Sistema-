@@ -49,6 +49,9 @@ palavra que está na tela.
 
 **Existe um autoloader**, em [`bootstrap.php`](bootstrap.php). Não é Composer:
 são 20 linhas de `spl_autoload_register` que mapeiam namespace para pasta.
+Além dele, o bootstrap faz o fuso, a volta do "Lembrar" e, só em `/api/whatsapp/`,
+a sessão emprestada de quem trabalha em mais de uma conta
+(`Usuarios/PessoaVinculada.php`, 29/10/2026).
 
 Quem precisa de uma classe carrega o bootstrap **uma vez** e usa:
 

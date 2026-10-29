@@ -164,6 +164,18 @@ seletores ficarem na mesma linha. A coluna da lista ficou só com o título e as
 Os menus dos seletores (`.chat-sector-dd`) nascem com `display:none` no HTML: o `toggle`
 do `chat.js` lê o estilo inline, e sem isso o primeiro clique só fechava um menu já fechado.
 
+**A mesma pessoa em mais de uma conta** (29/10/2026, `App\Usuarios\PessoaVinculada`): o
+menu (`includes/sidebar.php`) mostra, abaixo da logo, o bloco **"Empresa"** com as
+empresas da pessoa; um clique troca a sessão para a outra (`api/auth/trocar_empresa.php`)
+e abre a Visão Geral dela. No Chat (`window.CHAT_EMPRESAS`), a barra de números traz os
+números das duas empresas, cada um com a etiqueta da empresa, e o filtro Todas / empresa;
+a lista junta as conversas dos números visíveis, cada uma com a etiqueta
+(`ChatApp.definirMulti`, `openChatNoCanal`), e clicar num número foca a lista nele. A
+conversa de outra empresa abre e responde no número dela (o servidor atende como o
+usuário da pessoa lá); o "via" do topo diz a empresa e que o lead e a agenda daquela
+conversa ficam na outra empresa. `chat-numeros.js` passou a ser chamado com a versão
+pela data do arquivo.
+
 `chat.php`, na edição Fleetiflow, mostra a barra de **números de
 WhatsApp** da conta (`assets/chat-numeros.js` + `assets/chat-numeros.css`), desde
 22/10/2026 na linha do título (dentro do `.page-header`, a lista de conversas ganhou a

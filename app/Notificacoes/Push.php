@@ -151,12 +151,23 @@ final class Push
                 // Teto por pessoa numa requisição: uma rajada vira no máximo 5 avisos.
                 $chave = $item['conta'] . ':' . $item['usuario'];
                 if (($porUsuario[$chave] = ($porUsuario[$chave] ?? 0) + 1) > 5) continue;
-                $st->execute([$item['usuario'], $item['conta']]);
                 $corpo = json_encode(self::mensagem($item['msg']) + ['icone' => self::icone($pdo, $item['conta'])],
                     JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-                foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $ins) {
-                    if (!self::endpointValido((string) $ins['endpoint'])) continue;
-                    $pedidos[] = ['ins' => $ins, 'corpo' => $corpo];
+                // A mesma pessoa em mais de uma conta (PessoaVinculada, 29/10/2026): o
+                // aviso do usuário dela numa conta chega também no aparelho que ela
+                // cadastrou entrando pela outra.
+                $destinos = [[(int) $item['usuario'], (int) $item['conta']]];
+                foreach (\App\Usuarios\PessoaVinculada::contas((int) $item['usuario']) as $c) {
+                    if (!$c['atual']) $destinos[] = [$c['user_id'], $c['account_id']];
+                }
+                $vistos = [];
+                foreach ($destinos as [$uid, $conta]) {
+                    $st->execute([$uid, $conta]);
+                    foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $ins) {
+                        if (isset($vistos[$ins['id']]) || !self::endpointValido((string) $ins['endpoint'])) continue;
+                        $vistos[$ins['id']] = true;
+                        $pedidos[] = ['ins' => $ins, 'corpo' => $corpo];
+                    }
                 }
             }
             return self::despachar($pdo, $k, $pedidos);

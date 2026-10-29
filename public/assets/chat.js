@@ -43,6 +43,11 @@ const ChatApp = (() => {
     // null = o servidor decide (o número padrão da conta), como sempre foi.
     // Definido pela barra de números (chat-numeros.js) via ChatApp.trocarCanal.
     canalId      : null,
+    // A mesma pessoa em mais de uma conta (29/10/2026): a lista junta as conversas
+    // de vários números, de empresas diferentes. null = um número só, como sempre.
+    // Definido pela barra de números (chat-numeros.js) via ChatApp.definirMulti.
+    multi        : null,
+    donoPorCanal : {},
   };
 
   // ── Inicialização ───────────────────────────────────────────
@@ -654,7 +659,7 @@ const ChatApp = (() => {
       let changed = true;
       if (_cursorEnabled) {
         const q = state.instanceId ? ('?channel_id=' + state.instanceId) : '';
-        const p = await apiFetch(API.poll + q, 'GET', null).catch(() => null);
+        const p = state.multi ? await _pollVarios() : await apiFetch(API.poll + q, 'GET', null).catch(() => null);
         if (p && typeof p.seq !== 'undefined') {
           _cursorFails = 0;
           changed = (_lastSeq === null) || (p.seq !== _lastSeq);
@@ -741,7 +746,7 @@ const ChatApp = (() => {
       // servidor sempre devolve a lista inteira até o limit, então o refresh de 4s
       // mantém tudo fresco sem precisar mesclar páginas.
       params.set('limit', String(state.chatLimit || 500));
-      const r = await apiFetch(API.chats + '?' + params);
+      const r = state.multi ? await carregarVarios(params) : await apiFetch(API.chats + '?' + params);
       state.chats = r.chats || [];
       state.donoConversa = r.dono_conversa || null;
       if (window.CHAT_SETOR_NO_NOME) state.chats.forEach(aplicarNomeDoLead);
@@ -749,7 +754,7 @@ const ChatApp = (() => {
       renderChatList();
       // Etapa movida na Prospecção ou pela Vitória aparece sem reabrir a conversa.
       if (state.currentJid) {
-        const aberto = state.chats.find(c => c.remote_jid === state.currentJid);
+        const aberto = acharChat(state.currentJid);
         // Dono por conversa: a conversa aberta passou para outra pessoa e sumiu da lista do vendedor.
         if (!aberto && state.donoConversa && !state.donoConversa.admin && !state.searchTerm && state.filter !== 'archived') {
           closeChat();
@@ -770,7 +775,7 @@ const ChatApp = (() => {
       // Auto-abre conversa quando veio via ?jid= da aba de Prospecção
       if (!_autoOpenDone && typeof AUTO_OPEN_JID !== 'undefined' && AUTO_OPEN_JID && state.status === 'open') {
         _autoOpenDone = true;
-        let target = state.chats.find(c => c.remote_jid === AUTO_OPEN_JID);
+        let target = acharChat(AUTO_OPEN_JID);
         // Fleetiflow: o botão WhatsApp do card manda o telefone quando o card ainda
         // não tem conversa ligada. O WhatsApp às vezes guarda o celular sem o 9, então
         // casa pelos últimos 8 dígitos; sem conversa nenhuma, abre uma nova no número.
@@ -794,7 +799,7 @@ const ChatApp = (() => {
 
   // Sobe o chat para o topo localmente (sem request), igual ao WhatsApp
   function bumpChat(jid, lastContent, fromMe) {
-    const idx = state.chats.findIndex(c => c.remote_jid === jid);
+    const idx = state.chats.indexOf(acharChat(jid));
     if (idx === -1) return;
     const chat = state.chats[idx];
     chat.last_message_content = lastContent;
@@ -868,7 +873,11 @@ const ChatApp = (() => {
     const pinIcon = chat.is_pinned == 1
       ? '<span class="chat-pinned-icon" title="Fixado"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;color:#7EB8F6"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17z"/></svg></span>'
       : '';
-    const isActive = chat.remote_jid === state.currentJid ? ' active' : '';
+    const isActive = chat.remote_jid === state.currentJid && (!state.multi || chat._canal === state.canalId) ? ' active' : '';
+    // Várias empresas: a etiqueta da empresa da conversa, na cor da marca.
+    const corEmp = /^#[0-9a-f]{6}$/i.test(String(chat._cor || '')) ? chat._cor : '#015DFC';
+    const empresaTag = state.multi && chat._empresa
+      ? `<span class="chat-item-empresa" title="Empresa" style="display:inline-flex;align-items:center;padding:1px 7px;border-radius:999px;font-size:10.5px;font-weight:800;line-height:1.5;white-space:nowrap;background:${corEmp}1f;color:${corEmp};border:1px solid ${corEmp}66">${esc(chat._empresa)}</span>` : '';
     const previewClass = chat.last_message_from_me == 1 ? ' outbound' : '';
     const avatarHtml = chat.profile_pic_url
       ? `<img src="${esc(chat.profile_pic_url)}" alt="${initial}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.parentElement.textContent='${initial}'">`
@@ -901,12 +910,15 @@ const ChatApp = (() => {
         etapaTag = '<span class="chat-item-etapa chat-item-etapa--vazio" title="Etapa do lead">Sem etapa</span>';
       }
     }
-    const setorNoNome = !!window.CHAT_SETOR_NO_NOME && (sectorTag || semSetor || etapaTag);
+    const setorNoNome = !!window.CHAT_SETOR_NO_NOME && (sectorTag || semSetor || etapaTag || empresaTag);
     const nomeHtml = setorNoNome
-      ? `<span class="chat-item-nome-setor"><span class="chat-item-name">${name}</span>${sectorTag || semSetor}${etapaTag}</span>`
-      : `<span class="chat-item-name">${name}</span>`;
+      ? `<span class="chat-item-nome-setor"><span class="chat-item-name">${name}</span>${empresaTag}${sectorTag || semSetor}${etapaTag}</span>`
+      : `<span class="chat-item-name">${name}</span>${empresaTag}`;
+    const abrir = state.multi && chat._canal
+      ? `ChatApp.openChatNoCanal(${Number(chat._canal)},'${esc(chat.remote_jid)}')`
+      : `ChatApp.openChatByJid('${esc(chat.remote_jid)}')`;
 
-    return `<div class="chat-item${isActive}" data-jid="${esc(chat.remote_jid)}" onclick="ChatApp.openChatByJid('${esc(chat.remote_jid)}')">
+    return `<div class="chat-item${isActive}" data-jid="${esc(chat.remote_jid)}"${chat._canal ? ` data-canal="${Number(chat._canal)}"` : ''} onclick="${abrir}">
       <div class="chat-avatar">${avatarHtml}</div>
       <div class="chat-item-info">
         <div class="chat-item-row1">
@@ -950,7 +962,7 @@ const ChatApp = (() => {
     _abrirNoCelular();
 
     // Header do chat
-    const chatObj = state.chats.find(c => c.remote_jid === jid);
+    const chatObj = acharChat(jid);
     // Subtítulo do cabeçalho: TELEFONE real, NUNCA o LID cru (id interno @lid). O
     // real_phone já vem resolvido do backend; só cai pro phone quando ele já é um
     // número discável (10-13 díg.). Sem telefone → vazio (melhor que o LID).
@@ -1012,7 +1024,7 @@ const ChatApp = (() => {
   // interpolar o nome no onclick quebrava com apostrofo (ex.: "D'Avila") e era uma
   // pequena superficie de injecao. Aqui resolvemos nome/telefone do state.chats.
   function openChatByJid(jid) {
-    const chat = state.chats.find(c => c.remote_jid === jid);
+    const chat = acharChat(jid);
     const nm   = chat ? (resolveSenderName(chat.display_name) || resolveSenderName(chat.contact_name) || '') : '';
     const ph   = chat ? (chat.phone || '') : '';
     openChat(jid, nm, ph);
@@ -2308,7 +2320,7 @@ const ChatApp = (() => {
   function abrirCadastroRapido() {
     if (!state.currentJid) return;
 
-    const chat = state.chats.find(c => c.remote_jid === state.currentJid);
+    const chat = acharChat(state.currentJid);
     if (chat && chat.is_group == 1) {
       if (window.Yuris && Yuris.toast) Yuris.toast('Grupo não vira cadastro. Abra a conversa da pessoa.', 'info');
       return;
@@ -2581,7 +2593,7 @@ const ChatApp = (() => {
     const m  = state.donoConversa;
     if (!dd || !m) return;
     if (dd.style.display !== 'none') { dd.style.display = 'none'; return; }
-    const chat = state.chats.find(c => c.remote_jid === state.currentJid);
+    const chat = acharChat(state.currentJid);
     if (!chat) return;
     const atual = chat.linked_user_id ? String(chat.linked_user_id) : '';
     let html = '';
@@ -2630,7 +2642,7 @@ const ChatApp = (() => {
     }
 
     await _loadTeams();
-    const chat       = state.chats.find(c => c.remote_jid === state.currentJid);
+    const chat       = acharChat(state.currentJid);
     const currentId  = chat?.team_id ? String(chat.team_id) : null;
 
     let html = '';
@@ -2678,7 +2690,7 @@ const ChatApp = (() => {
       });
 
       // Atualiza o chat local no state imediatamente (sem recarregar tudo)
-      const chat = state.chats.find(c => c.remote_jid === state.currentJid);
+      const chat = acharChat(state.currentJid);
       if (chat) {
         chat.team_id   = teamId || null;
         chat.team_nome = teamNome || null;
@@ -2838,7 +2850,7 @@ const ChatApp = (() => {
         _stageCols = r.colunas || [];
       } catch (err) { _stageCols = null; toast('Erro ao carregar as etapas', 'error'); return; }
     }
-    const chat  = state.chats.find(c => c.remote_jid === state.currentJid);
+    const chat  = acharChat(state.currentJid);
     const atual = chat && chat.card_coluna_id ? String(chat.card_coluna_id) : null;
 
     dd.innerHTML = _stageCols.length === 0
@@ -2868,7 +2880,7 @@ const ChatApp = (() => {
       const r = await apiFetch('/api/whatsapp/chat_etapa.php', 'POST', {
         _csrf: CSRF, remote_jid: jid, coluna_id: colunaId,
       });
-      const chat = state.chats.find(c => c.remote_jid === jid);
+      const chat = acharChat(jid);
       if (chat) {
         chat.linked_card_id  = r.card_id;
         chat.card_coluna_id  = r.coluna_id;
@@ -2937,7 +2949,7 @@ const ChatApp = (() => {
     } catch(e) {}
 
     // ── Fallback: whatsapp_chats.linked_card_id / linked_user_id ────────────
-    const chat = state.chats.find(c => c.remote_jid === state.currentJid);
+    const chat = acharChat(state.currentJid);
     if (chat) {
       // Card: usa linked_card_id do banco sempre que o picker ainda estiver vazio
       if (!_linkPicker.card && chat.linked_card_id) {
@@ -3982,7 +3994,7 @@ const ChatApp = (() => {
       // aparecer como "agente desligado" e o botão dizia "Assumir" (10/10/2026).
       const sit    = (state.situacao && state.situacaoJid === state.currentJid) ? state.situacao : null;
       const ligado = sit && sit.agente ? !!sit.agente.ligado : (qs('#btnAgentToggle')?.dataset.mode === 'on');
-      const chat   = state.chats.find(c => c.remote_jid === state.currentJid);
+      const chat   = acharChat(state.currentJid);
       const etapa  = chat ? String(chat.card_etapa_nome || '') : '';
       let estilo;
       if (paused) {
@@ -4018,7 +4030,7 @@ const ChatApp = (() => {
 
   async function toggleTakeover() {
     if (!state.currentJid) return;
-    const chatObj = state.chats.find(c => c.remote_jid === state.currentJid);
+    const chatObj = acharChat(state.currentJid);
     const cur  = !!(chatObj && (chatObj.agent_paused == 1 || chatObj.agent_paused === true));
     const next = cur ? 0 : 1;
     const body = { _csrf: CSRF, paused: next, remote_jid: state.currentJid };
@@ -4236,6 +4248,58 @@ const ChatApp = (() => {
   // Fecha a conversa aberta, esvazia a lista e refaz o status do número novo;
   // se ele estiver conectado, setConnectionStatus recarrega a lista e o polling.
   function definirCanal(id) { state.canalId = id ? Number(id) : null; }
+
+  // ── Várias empresas na mesma lista (App\Usuarios\PessoaVinculada, 29/10/2026) ──
+  // A pessoa que vende para mais de uma conta vê as conversas dos números das duas
+  // juntas. Cada chamada leva o channel_id do número; o servidor responde como o
+  // usuário dela na conta dona do número (sessão emprestada), com as regras de lá.
+  function acharChat(jid) {
+    if (!state.multi) return state.chats.find(c => c.remote_jid === jid);
+    return state.chats.find(c => c.remote_jid === jid && c._canal === state.canalId) || state.chats.find(c => c.remote_jid === jid);
+  }
+  // canais: [{ id, empresa, cor, atual, nome }]. Lista vazia volta ao número único.
+  function definirMulti(canais) {
+    canais = (canais || []).filter(c => c && c.id).map(c => Object.assign({}, c, { id: Number(c.id) }));
+    state.multi = canais.length ? { canais } : null;
+    if (!state.multi) return;
+    if (!canais.some(c => c.id === state.canalId)) {
+      if (state.currentJid) closeChat();
+      state.canalId = (canais.find(c => c.atual) || canais[0]).id;
+    }
+    _lastSeq = null;
+  }
+  async function carregarVarios(params) {
+    const partes = await Promise.all(state.multi.canais.map(c =>
+      apiFetch(API.chats + '?' + params + '&channel_id=' + c.id).then(r => ({ c, r })).catch(() => null)));
+    const chats = [];
+    let naoLidas = 0, mais = false;
+    state.donoPorCanal = {};
+    partes.forEach(p => {
+      if (!p || !p.r) return;
+      state.donoPorCanal[p.c.id] = p.r.dono_conversa || null;
+      naoLidas += Number(p.r.total_unread || 0);
+      mais = mais || !!p.r.has_more;
+      (p.r.chats || []).forEach(ch => { ch._canal = p.c.id; ch._empresa = p.c.empresa; ch._cor = p.c.cor; ch._outra = !p.c.atual; chats.push(ch); });
+    });
+    chats.sort((a, b) => ((b.is_pinned == 1) - (a.is_pinned == 1)) || String(b.last_message_at || '').localeCompare(String(a.last_message_at || '')));
+    return { chats, total_unread: naoLidas, has_more: mais, dono_conversa: state.donoPorCanal[state.canalId] || null };
+  }
+  async function _pollVarios() {
+    const seqs = await Promise.all(state.multi.canais.map(c =>
+      apiFetch(API.poll + '?channel_id=' + c.id, 'GET', null).then(p => (p && typeof p.seq !== 'undefined') ? p.seq : null).catch(() => null)));
+    return seqs.some(s => s === null) ? null : { seq: seqs.join(',') };
+  }
+  // Abre a conversa no número dela (que pode ser de outra empresa da pessoa).
+  function openChatNoCanal(canal, jid) {
+    canal = Number(canal) || null;
+    if (state.multi && canal && canal !== state.canalId) {
+      state.canalId    = canal;
+      state.instanceId = canal;
+      state.donoConversa = state.donoPorCanal[canal] || null;
+    }
+    openChatByJid(jid);
+    try { document.dispatchEvent(new CustomEvent('chat:canal', { detail: { canal: state.canalId } })); } catch (_) {}
+  }
   function canalAtual() { return state.canalId; }
   // O número e a conversa abertos na tela (avisos.js: mensagem nova da conversa que a
   // pessoa já está vendo não toca o "bling"). instanceId é o número de verdade, mesmo
@@ -4266,6 +4330,7 @@ const ChatApp = (() => {
 
   return {
     definirCanal, canalAtual, conversaAberta, trocarCanal, dadosConversa, acaoConversa, previaConversa,
+    definirMulti, openChatNoCanal,
     init, checkStatus, connectWhatsApp, disconnectWhatsApp,
     manualReconnect, dismissDisconnectAlert,
     refreshQr, loadChats, loadMoreChats, openChat, openChatByJid, closeChat,

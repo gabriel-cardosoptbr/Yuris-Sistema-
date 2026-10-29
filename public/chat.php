@@ -2842,8 +2842,11 @@ const API  = {
 <script>
 window.CSRF_CHAT     = <?= json_encode($csrf) ?>;
 window.CHAT_CONTA_ID = <?= (int)($__ctxChat->getAccountId() ?? 0) ?>;
+// A mesma pessoa em mais de uma conta (App\Usuarios\PessoaVinculada, 29/10/2026): as
+// empresas dela. Com mais de uma, o Chat junta os números das duas, com a etiqueta.
+window.CHAT_EMPRESAS = <?= json_encode(\App\Usuarios\PessoaVinculada::contas((int) ($_SESSION['user_id'] ?? 0)), JSON_UNESCAPED_UNICODE) ?>;
 </script>
-<script src="/assets/chat-numeros.js?v=2"></script>
+<script src="/assets/chat-numeros.js?v=<?= @filemtime(__DIR__ . '/assets/chat-numeros.js') ?: 3 ?>"></script>
 <script src="/assets/chat-menu-conversa.js?v=2"></script>
 <script src="/assets/chat-previa-conversa.js?v=1"></script>
 <?php endif; ?>

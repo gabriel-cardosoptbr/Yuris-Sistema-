@@ -646,6 +646,70 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
     <?php endif; ?>
   </div>
 
+  <?php
+  // Trocar de empresa: a mesma pessoa em mais de uma conta (App\Usuarios\PessoaVinculada,
+  // 29/10/2026). Só aparece para quem tem usuário em outra conta.
+  $__empresas = $_isFleetiflow ? \App\Usuarios\PessoaVinculada::contas((int) ($_SESSION['user_id'] ?? 0)) : [];
+  if ($__empresas):
+    if (empty($_SESSION['csrf_token']) && session_status() === PHP_SESSION_ACTIVE) $_SESSION['csrf_token'] = bin2hex(random_bytes(16));
+  ?>
+  <div class="sb-empresa" id="sbEmpresa" data-csrf="<?= htmlspecialchars((string) ($_SESSION['csrf_token'] ?? '')) ?>">
+    <span class="sb-empresa-rot">Empresa</span>
+    <div class="sb-empresa-opcoes" role="group" aria-label="Trocar de empresa">
+      <?php foreach ($__empresas as $__e): ?>
+      <button type="button" class="sb-empresa-op<?= $__e['atual'] ? ' atual' : '' ?>" data-user="<?= (int) $__e['user_id'] ?>"
+              style="--emp-cor:<?= htmlspecialchars($__e['cor']) ?>" aria-pressed="<?= $__e['atual'] ? 'true' : 'false' ?>"
+              title="<?= htmlspecialchars(($__e['atual'] ? 'Você está na ' : 'Trocar para a ') . $__e['conta']) ?>">
+        <span class="sb-empresa-bola" aria-hidden="true"></span><span class="sb-empresa-nome"><?= htmlspecialchars($__e['conta']) ?></span>
+      </button>
+      <?php endforeach; ?>
+    </div>
+  </div>
+  <style>
+    .sb-empresa{ margin:0 0 10px; padding:8px; border-radius:12px; border:1px solid rgba(160,180,210,.16); background:rgba(160,180,210,.06); }
+    html[data-theme="light"] .sb-empresa{ border-color:rgba(17,29,45,.08); background:#F6F7F9; }
+    .sb-empresa-rot{ display:block; font-size:10.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:#8c97a6; margin:0 0 6px 2px; }
+    .sb-empresa-opcoes{ display:flex; flex-direction:column; gap:4px; }
+    .sb-empresa-op{ display:flex; align-items:center; gap:8px; width:100%; padding:7px 9px; border-radius:9px; border:1px solid transparent; background:transparent; color:inherit; font:inherit; font-size:13px; font-weight:600; cursor:pointer; text-align:left; }
+    .sb-empresa-op:hover{ background:rgba(160,180,210,.12); }
+    html[data-theme="light"] .sb-empresa-op{ color:#3D3D3D; }
+    html[data-theme="light"] .sb-empresa-op:hover{ background:#FFFFFF; }
+    .sb-empresa-op.atual{ border-color:var(--emp-cor); background:rgba(160,180,210,.10); font-weight:800; cursor:default; }
+    html[data-theme="light"] .sb-empresa-op.atual{ background:#FFFFFF; box-shadow:0 1px 3px rgba(17,29,45,.08); }
+    .sb-empresa-bola{ width:10px; height:10px; border-radius:50%; background:var(--emp-cor); flex:none; }
+    .sb-empresa-op.atual .sb-empresa-bola{ box-shadow:0 0 0 3px color-mix(in srgb, var(--emp-cor) 25%, transparent); }
+    .sb-empresa-nome{ min-width:0; overflow-wrap:anywhere; }
+    .sb-empresa-op[disabled]{ opacity:.6; cursor:wait; }
+    html.sb-retraido .sb-empresa{ padding:6px 4px; }
+    html.sb-retraido .sb-empresa-rot, html.sb-retraido .sb-empresa-nome{ display:none; }
+    html.sb-retraido .sb-empresa-op{ justify-content:center; padding:7px 0; }
+  </style>
+  <script>
+  (function () {
+    var caixa = document.getElementById('sbEmpresa');
+    if (!caixa) return;
+    caixa.addEventListener('click', async function (e) {
+      var b = e.target.closest('.sb-empresa-op');
+      if (!b || b.classList.contains('atual')) return;
+      caixa.querySelectorAll('.sb-empresa-op').forEach(function (x) { x.disabled = true; });
+      try {
+        var r = await fetch('/api/auth/trocar_empresa.php', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': caixa.dataset.csrf || '' },
+          body: JSON.stringify({ user_id: Number(b.dataset.user) })
+        });
+        var j = await r.json().catch(function () { return {}; });
+        if (j.ok) { location.href = j.ir || '/dashboard'; return; }
+        if (window.Yuris && Yuris.toast) Yuris.toast(j.error || 'Não foi possível trocar de empresa.', 'error');
+      } catch (_) {
+        if (window.Yuris && Yuris.toast) Yuris.toast('Falha de conexão.', 'error');
+      }
+      caixa.querySelectorAll('.sb-empresa-op').forEach(function (x) { x.disabled = false; });
+    });
+  })();
+  </script>
+  <?php endif; ?>
+
   <?php if ($_ambCtx): $__ambA = $_ambCtx['lista'][$_ambCtx['atual']]; ?>
   <!-- ── Seletor de ambiente (abaixo da logo). A troca passa pela guarda de
        formulário com alteração pendente (assets/ambientes.js). ── -->

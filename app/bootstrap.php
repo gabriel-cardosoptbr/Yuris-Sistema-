@@ -57,3 +57,10 @@ spl_autoload_register(static function (string $classe): void {
 if (PHP_SAPI !== 'cli' && !empty($_COOKIE['yuris_lembrar'])) {
     \App\Usuarios\Lembrar::restaurarSePreciso();
 }
+
+// 4) A mesma pessoa em mais de uma conta (29/10/2026): chamada do WhatsApp para
+//    um número de outra conta da pessoa roda com a sessão do usuário dela naquela
+//    conta, só nesta requisição e sem gravar. Ver App\Usuarios\PessoaVinculada.
+if (PHP_SAPI !== 'cli' && str_starts_with((string) ($_SERVER['SCRIPT_NAME'] ?? ''), '/api/whatsapp/')) {
+    \App\Usuarios\PessoaVinculada::emprestarSessaoSePreciso();
+}

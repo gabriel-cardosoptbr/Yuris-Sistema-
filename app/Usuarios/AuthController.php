@@ -67,6 +67,11 @@ class AuthController
             exit;
         }
 
+        // A mesma pessoa em mais de uma conta (PessoaVinculada, 29/10/2026): a senha
+        // conferida é a do login digitado; num endereço de marca, a sessão abre no
+        // usuário da pessoa na conta daquele endereço.
+        try { $user = PessoaVinculada::doEndereco($user); } catch (\Throwable $e) { /* sem vínculo: segue */ }
+
         // Usuário soft-deleted ou status inativo
         if (!empty($user['deleted_at']) || (isset($user['status']) && $user['status'] !== 'active')) {
             $_SESSION['flash_error'] = 'Esta conta está inativa. Contate o administrador.';
@@ -147,38 +152,7 @@ class AuthController
     public static function abrirSessao(array $user, ?array $account): void
     {
         $pdo = \App\Core\Database::getConnection();
-        $_SESSION['user_id']     = $user['id'];
-        $_SESSION['user_nome']   = $user['nome'];
-        $_SESSION['user_perfil'] = $user['perfil'];
-
-        if ($account) {
-            $_SESSION['account_id']    = (int) $account['id'];
-            $_SESSION['account_tipo']  = $account['tipo'];
-            $_SESSION['account_nome']  = $account['nome'];
-            $_SESSION['account_plano'] = $account['plano'] ?? 'basico';
-        } else {
-            // single-tenant legacy: usa id do usuário como account_id
-            $_SESSION['account_id']    = (int) $user['id'];
-            $_SESSION['account_tipo']  = 'matriz';
-            $_SESSION['account_nome']  = $user['nome'];
-            $_SESSION['account_plano'] = 'basico';
-        }
-
-        // Role (mais granular que perfil)
-        $_SESSION['user_role'] = $user['role'] ?? ($user['perfil'] === 'admin' ? 'owner' : 'user');
-
-        // Page permissions (wildcards pra owner/admin; lista explícita pros demais)
-        if (in_array($_SESSION['user_role'], ['owner', 'admin'], true) || $user['perfil'] === 'admin') {
-            $_SESSION['user_permissions'] = ['*'];
-        } else {
-            try {
-                $stmt = $pdo->prepare('SELECT page FROM user_permissions WHERE user_id = ?');
-                $stmt->execute([$user['id']]);
-                $_SESSION['user_permissions'] = $stmt->fetchAll(\PDO::FETCH_COLUMN);
-            } catch (\Throwable $_e) {
-                $_SESSION['user_permissions'] = [];
-            }
-        }
+        foreach (self::dadosDaSessao($user, $account) as $chave => $valor) $_SESSION[$chave] = $valor;
 
         // Anti-fixation
         session_regenerate_id(true);
@@ -195,6 +169,47 @@ class AuthController
                     ->execute(['uid' => $user['id']]);
             }
         } catch (\Throwable $_e) { /* tabela ainda não existe — silencioso */ }
+    }
+
+    /**
+     * O que a sessão de quem entrou guarda: usuário, conta, nível e permissões por
+     * página. É a parte do login que não depende da requisição; a troca de
+     * empresa e a sessão emprestada do WhatsApp (PessoaVinculada) montam a sessão
+     * por aqui, para valer exatamente a mesma regra.
+     */
+    public static function dadosDaSessao(array $user, ?array $account): array
+    {
+        $s = ['user_id' => $user['id'], 'user_nome' => $user['nome'], 'user_perfil' => $user['perfil']];
+
+        if ($account) {
+            $s['account_id']    = (int) $account['id'];
+            $s['account_tipo']  = $account['tipo'];
+            $s['account_nome']  = $account['nome'];
+            $s['account_plano'] = $account['plano'] ?? 'basico';
+        } else {
+            // single-tenant legacy: usa id do usuário como account_id
+            $s['account_id']    = (int) $user['id'];
+            $s['account_tipo']  = 'matriz';
+            $s['account_nome']  = $user['nome'];
+            $s['account_plano'] = 'basico';
+        }
+
+        // Role (mais granular que perfil)
+        $s['user_role'] = $user['role'] ?? ($user['perfil'] === 'admin' ? 'owner' : 'user');
+
+        // Page permissions (wildcards pra owner/admin; lista explícita pros demais)
+        if (in_array($s['user_role'], ['owner', 'admin'], true) || $user['perfil'] === 'admin') {
+            $s['user_permissions'] = ['*'];
+        } else {
+            try {
+                $stmt = \App\Core\Database::getConnection()->prepare('SELECT page FROM user_permissions WHERE user_id = ?');
+                $stmt->execute([$user['id']]);
+                $s['user_permissions'] = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+            } catch (\Throwable $_e) {
+                $s['user_permissions'] = [];
+            }
+        }
+        return $s;
     }
 
     public static function logout()
