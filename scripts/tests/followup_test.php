@@ -155,7 +155,7 @@ if (!$temTabela || count($cols) < 3) {
         ok('agora o próximo é o passo 2, 18 h depois', $s['passo'] === 2 && $s['previsto'] >= time() + 1080 * 60 - 120);
         $mandados = [];
         $res = Envio::processar($falso, time() + 19 * 3600);
-        ok('o número espera de 5 a 10 min entre envios... e o passo 2 só sai na hora dele', count($mandados) === 1 && ($mandados[0][1] ?? '') === 'passo 2');
+        ok('o número espera de 30 a 40 min entre envios... e o passo 2 só sai na hora dele', count($mandados) === 1 && ($mandados[0][1] ?? '') === 'passo 2');
         $mandados = [];
         Envio::processar($falso, time() + 19 * 3600 + 60);
         ok('logo em seguida não manda de novo', $mandados === []);

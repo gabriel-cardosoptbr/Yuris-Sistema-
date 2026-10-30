@@ -407,7 +407,7 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
             '<td><div class="fu-quando">' + ICO.relogio + esc(quando(p.previsto)) + '</div><div class="fraco">' +
               (p.na_fila ? '<span class="fu-selo atencao">Na fila: sai na próxima vaga do número</span>' : esc(falta(p.previsto))) + '</div></td></tr>';
         }).join('') + '</tbody></table>' +
-        '<p class="fraco" style="margin:12px 2px 0">Cada número manda um follow-up por vez, com 5 a 10 minutos entre um e outro, para o WhatsApp não bloquear. Com muita gente na fila, o horário real pode passar alguns minutos do previsto.</p>';
+        '<p class="fraco" style="margin:12px 2px 0">Cada número manda um follow-up por vez, com 30 a 40 minutos entre um e outro, para o WhatsApp não bloquear. Com muita gente na fila, o horário real pode passar alguns minutos do previsto.</p>';
     }
 
     function desenharHistorico() {

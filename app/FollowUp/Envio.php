@@ -14,9 +14,9 @@ use App\WhatsAppAgente\WhatsAppMessage;
  *
  * Cuidados, na ordem em que acontecem:
  *   - a chave "Follow-up" do Chat da conta (AutomacaoSdr) desligada para tudo;
- *   - um envio por número por rodada, e de 5 a 10 minutos entre um envio e o
+ *   - um envio por número por rodada, e de 30 a 40 minutos entre um envio e o
  *     próximo no mesmo número (o número 1 da Fleet caiu em 05/10/2026 com
- *     envio em rajada; o fluxo do n8n já fazia esse intervalo);
+ *     envio em rajada; era 5 a 10 até 30/10/2026, quando o dono pediu mais espaço);
  *   - logo antes de mandar, relê a conversa e refaz a conta: se o lead
  *     respondeu um segundo antes, não manda;
  *   - a linha de followup_envios nasce `enviando` ANTES do envio, com chave
@@ -26,8 +26,8 @@ use App\WhatsAppAgente\WhatsAppMessage;
  */
 final class Envio
 {
-    public const INTERVALO_MIN = 5;
-    public const INTERVALO_MAX = 10;
+    public const INTERVALO_MIN = 30;
+    public const INTERVALO_MAX = 40;
     public const TENTATIVAS = 3;
     public const REPETE_FALHA_MIN = 20;
     public const ENVIANDO_MAX_MIN = 10;
@@ -125,7 +125,7 @@ final class Envio
     }
 
     /**
-     * O número pode mandar outro follow-up? Espera de 5 a 10 minutos desde o
+     * O número pode mandar outro follow-up? Espera de 30 a 40 minutos desde o
      * último, sorteada pelo id do último envio (fixa entre uma rodada e outra).
      */
     private static function numeroLivre(int $instanceId, int $agora): bool

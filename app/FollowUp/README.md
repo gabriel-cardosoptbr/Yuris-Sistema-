@@ -55,8 +55,9 @@ ficou com uma pessoa e ninguém mais cutucou).
 
 - A chave geral é a mesma do botão "Follow-up" do Chat
   (`AutomacaoSdr`, `sdr_followup_ligado`): desligada, nenhuma cadência manda.
-- **Um envio por número por rodada, e de 5 a 10 min entre um e outro** no mesmo
-  número (o número 1 da Fleet caiu em 05/10/2026 com envio em rajada).
+- **Um envio por número por rodada, e de 30 a 40 min entre um e outro** no mesmo
+  número (o número 1 da Fleet caiu em 05/10/2026 com envio em rajada; era 5 a 10
+  min até 30/10/2026, quando o dono da Fleetiflow pediu mais espaço).
 - Logo antes de mandar, relê a conversa e refaz a conta: se o lead respondeu um
   segundo antes, não manda. Número fora do ar: o lead espera ele voltar.
 - A linha de `followup_envios` nasce `enviando` **antes** do envio, com chave
