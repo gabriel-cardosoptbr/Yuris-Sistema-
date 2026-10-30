@@ -73,7 +73,15 @@ sombra nova, sem lista de exceção.
 `tarefas.php` · `processos.php` · `intimacoes.php` · `juridico.php` ·
 `chat.php` · `chat_interno.php` · `financas.php` · `usuarios.php` ·
 `escritorios.php` · `agente.php` · `webhooks.php` · `configuracoes.php` ·
-`relatorios.php` · `desempenho.php` · `atendimento.php` · `followup.php`
+`relatorios.php` · `desempenho.php` · `atendimento.php` · `followup.php` · `roleta.php`
+
+`roleta.php` (Operação › Roleta, edição CRM, 30/10/2026) é onde o admin divide os
+leads que a prospecção automática aborda entre os atendentes (`App\WhatsAppAgente\Roleta`):
+quem participa, o percentual de cada um (soma 100%, conferida na tela e no servidor) e
+a chave liga/desliga; ao lado, quantos leads cada um recebeu na divisão atual e no
+total, e os últimos sorteios. Só owner/admin, e só na conta que os fluxos do n8n
+atendem (a dona do token da prospecção): o atendente não vê o item no menu e recebe
+403 na página e na API. Dados em `api/whatsapp/roleta.php`.
 
 `followup.php` (Operação › Follow-up, edição CRM, 23/10/2026) é onde a conta
 controla o follow-up automático do WhatsApp (`App\FollowUp`): as cadências

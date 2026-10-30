@@ -69,6 +69,13 @@ grava (`POST {qual, ligado, _csrf}`, só owner/admin, só na conta da prospecç�
 disparo e a cadência de follow-up perguntam antes de cada mensagem (`{disparo, followup}`). Regra em
 `App\WhatsAppAgente\AutomacaoSdr`.
 
+`whatsapp/roleta.php` (sessão, só owner/admin, inclusive para ler) é a tela Operação › Roleta: GET devolve a
+divisão (`ligada`, `participantes` `[{user_id, percentual}]`, `desde`), a equipe ativa, a `contagem` por pessoa
+(`atual` desde a divisão salva e `total`) e os `ultimos` sorteios; `pronta: false` quando a migration 170 não
+rodou. POST `{ligada, participantes, _csrf}` grava (soma diferente de 100, pessoa repetida ou de fora volta 422
+com a mensagem). O sorteio em si é pedido pelo n8n no `whatsapp/sdr_etapa.php` com `roleta: true`, só na
+abertura. Regra em `App\WhatsAppAgente\Roleta`.
+
 `whatsapp/card_whatsapp.php?card_id=ID` devolve tudo do WhatsApp de um lead para a ficha do card da edição CRM:
 etapa, setor, quem atende (agente de IA ligado ou pausado, pessoa, responsável), os números nossos ligados à
 conversa (nome, telefone, status, dono) e as 300 mensagens mais recentes em texto. Só lê o banco (não chama a

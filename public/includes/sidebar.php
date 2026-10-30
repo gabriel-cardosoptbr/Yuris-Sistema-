@@ -59,6 +59,7 @@ $_svg = [
     'contrato'  => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 17c1.2-1.6 2.2-2.4 3-2.4 1.2 0 .6 2.4 1.8 2.4.7 0 1.4-.7 2.2-1.6"/><line x1="8" y1="11" x2="14" y2="11"/></svg>',
     'orcamento' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="M14.5 13.5c0-.8-1.1-1.5-2.5-1.5s-2.5.7-2.5 1.5 1.1 1.3 2.5 1.5 2.5.7 2.5 1.5-1.1 1.5-2.5 1.5-2.5-.7-2.5-1.5"/></svg>',
     'followup' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 4 21 9 16 9"/><polyline points="12 8 12 12 14.5 13.5"/></svg>',
+    'roleta'   => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l6.4 6.4"/><path d="M12 12 3.6 15"/><circle cx="12" cy="12" r="1.6"/></svg>',
     'plataforma' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>',
     'dashboard' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>',
     'funil'     => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l7 8v6l6 4v-10l7-8z"/></svg>',
@@ -985,7 +986,12 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
                 // textos, etapas que ativam e a fila com data e hora. Mesma permissão da
                 // Prospecção, mas não para o vendedor (a fila é da conta inteira).
                 'perm' => 'prospeccao', 'href' => 'followup.php', 'active' => 'followup', 'icon' => 'followup', 'label' => 'Follow-up',
-            ]]));
+            ]], $__brandCtx->isOwnerOrAdmin() && \App\WhatsAppAgente\SdrFleetiflow::contaDoTokenGlobal((int) $__brandCtx->getAccountId()) ? [[
+                // Roleta dos leads da prospecção (App\WhatsAppAgente\Roleta, 30/10/2026):
+                // quem recebe cada lead aberto pelo disparo e em que proporção. Só
+                // owner/admin e só na conta que os fluxos do n8n atendem.
+                'perm' => null, 'always' => true, 'href' => 'roleta.php', 'active' => 'roleta', 'icon' => 'roleta', 'label' => 'Roleta',
+            ]] : []));
         }
         unset($_s);
         // Contratos e assinatura eletrônica (app/Contratos, 18/10/2026): aba própria,

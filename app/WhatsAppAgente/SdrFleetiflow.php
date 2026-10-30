@@ -668,6 +668,8 @@ final class SdrFleetiflow
                 // Só amarra conversa solta: vínculo feito à mão não é desfeito aqui.
                 if ($atual !== false && empty($atual['linked_card_id'])) {
                     (new WhatsAppMessage())->linkChat($instanceId, $remoteJid, ['linked_card_id' => $cardId]);
+                    // Lead sorteado antes de a conversa existir: ela vai para o sorteado.
+                    Roleta::aoLigarConversa($accountId, $cardId, $instanceId, $remoteJid);
                 }
             }
             return $cardId;

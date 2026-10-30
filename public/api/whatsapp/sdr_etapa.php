@@ -10,20 +10,26 @@
  *
  * Autentica pelo cabeçalho X-Fleetiflow-Token, como sdr_transferencia.php.
  *
- *   Body JSON: { telefone, remote_jid?, empresa?, nome_contato?, etapa?, setor? }
+ *   Body JSON: { telefone, remote_jid?, empresa?, nome_contato?, etapa?, setor?, roleta? }
  *     etapa: novo | qualificacao | followup | qualificado | especialista |
  *            bloqueado | fora_escopo | perdido   (vazio = só garante o card)
  *     setor: nome do setor do lead ("Concessionária", "Locação"...). Criado na
  *            conta se não existe (Team::garantirPorNome). Só preenche card e
  *            conversa SEM setor: a automação não troca o setor escolhido por uma
  *            pessoa. Precisa da migration 140 para chegar ao card.
- *   200 { ok, card_id, etapa, moveu, setor_id }   401 token   404 conta   422 dados
+ *     roleta: true só na ABERTURA (robô da planilha e disparo das listas): o lead
+ *            é sorteado entre os atendentes da Roleta (App\WhatsAppAgente\Roleta,
+ *            migration 170) e card e conversa passam a ser do sorteado. Lead já
+ *            sorteado devolve o mesmo; card fora de "Novos leads" ou com
+ *            responsável escolhido por pessoa não muda. Nunca derruba a resposta.
+ *   200 { ok, card_id, etapa, moveu, setor_id, roleta? }   401 token   404 conta   422 dados
  */
 require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\Database;
 use App\Core\EnvLoader;
 use App\Usuarios\Team;
+use App\WhatsAppAgente\Roleta;
 use App\WhatsAppAgente\SdrFleetiflow;
 use App\WhatsAppAgente\WhatsAppMessage;
 
@@ -116,12 +122,29 @@ try {
         }
     }
 
+    // Roleta: depois da etapa, porque só sorteia lead em "Novos leads".
+    $roleta = null;
+    if (!empty($in['roleta'])) {
+        try {
+            $roleta = Roleta::sortear(
+                $accountId, $cardId,
+                $alvo['instance_id'] !== null ? (int)$alvo['instance_id'] : null,
+                $alvo['remote_jid'],
+                (string)($in['origem'] ?? 'disparo')
+            );
+        } catch (\Throwable $e) {
+            error_log('[sdr_etapa] roleta: ' . $e->getMessage());
+            $roleta = ['pulou' => 'erro'];
+        }
+    }
+
     $st = $pdo->prepare('SELECT coluna_id FROM cards WHERE id = ?');
     $st->execute([$cardId]);
     $agora = array_search((int)$st->fetchColumn(), SdrFleetiflow::colunasDaConta($pdo, $accountId), true);
     $agora = $agora === false ? null : $agora;
 
-    echo json_encode(['ok' => true, 'card_id' => $cardId, 'etapa' => $agora, 'moveu' => $moveu, 'setor_id' => $setorId]);
+    echo json_encode(['ok' => true, 'card_id' => $cardId, 'etapa' => $agora, 'moveu' => $moveu, 'setor_id' => $setorId]
+        + ($roleta !== null ? ['roleta' => $roleta] : []), JSON_UNESCAPED_UNICODE);
 } catch (\Throwable $e) {
     error_log('[sdr_etapa] ' . $e->getMessage());
     http_response_code(500);
