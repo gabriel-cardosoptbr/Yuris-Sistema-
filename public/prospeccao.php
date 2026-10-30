@@ -1434,7 +1434,7 @@ function column_display_name(array $col): string
                   <span class="field-label">Responsável</span>
                   <select id="filterResponsible" class="field-control">
                     <option value="">Todos os responsáveis</option>
-                    <?= UserOptions::renderGrouped($users, null, null) ?>
+                    <?= UserOptions::renderGrouped($users, \App\Core\VendedorEmFoco::escolhido(), null) ?>
                   </select>
                 </label>
                 <label class="field-group">
@@ -2859,7 +2859,8 @@ function column_display_name(array $col): string
       const orig = byId('filterOrigin');
       return Boolean(
         byId('filterSearch').value.trim() ||
-        byId('filterResponsible').value ||
+        // O vendedor em foco do menu já vem filtrado do servidor: não trava o arrastar entre etapas.
+        (byId('filterResponsible').value && byId('filterResponsible').value !== String((window.VENDEDOR_EM_FOCO && window.VENDEDOR_EM_FOCO.id) || '')) ||
         byId('filterStage').value ||
         byId('filterDate').value ||
         (byId('filterChip') && byId('filterChip').value) ||

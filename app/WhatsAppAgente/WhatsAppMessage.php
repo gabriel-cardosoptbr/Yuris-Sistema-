@@ -648,8 +648,10 @@ class WhatsAppMessage
      * @param int|null    $teamId      Filtra pelo setor (NULL = todos; 0 = sem setor)
      * @param int|null    $colunaId    Filtra pela etapa do lead ligado, a coluna do card (NULL = todas; 0 = conversa sem lead).
      *                                 Filtro da edição CRM (07/10/2026); o Yuris não manda.
+     * @param int|null    $emFoco      Vendedor em foco (App\Core\VendedorEmFoco, 30/10/2026): só as conversas cujo
+     *                                 lead é dele (cards.responsavel_user_id) e, sem lead, as de que ele é dono.
      */
-    public function getChatList(int $instanceId, string $search = '', ?int $teamId = null, ?int $userId = null, bool $archived = false, int $limit = 500, ?int $colunaId = null, ?int $vendedor = null): array
+    public function getChatList(int $instanceId, string $search = '', ?int $teamId = null, ?int $userId = null, bool $archived = false, int $limit = 500, ?int $colunaId = null, ?int $vendedor = null, ?int $emFoco = null): array
     {
         // JOIN com teams para trazer nome e cor do setor junto com cada chat
         // archived=true → lista apenas arquivadas; false (default) → só não-arquivadas
@@ -834,6 +836,13 @@ class WhatsAppMessage
                 $sql .= ' AND cd.coluna_id = ?';
                 $params[] = $colunaId;
             }
+        }
+
+        // Vendedor em foco: o lead ligado é dele; sem lead, a conversa é dele.
+        if ($emFoco !== null) {
+            $sql .= ' AND (cd.responsavel_user_id = ? OR (cd.id IS NULL AND c.linked_user_id = ?))';
+            $params[] = $emFoco;
+            $params[] = $emFoco;
         }
 
         // O2: ordena por COALESCE(last_message_at, updated_at, created_at) — chats "shell"

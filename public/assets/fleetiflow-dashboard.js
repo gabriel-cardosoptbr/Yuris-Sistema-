@@ -58,7 +58,8 @@
 
   // ── Estado ────────────────────────────────────────────────────────────────
   const estado = {
-    preset: '30d', start: null, end: null, responsavel: '',
+    // Começa no vendedor em foco do menu (sidebar.php), quando o admin escolheu um.
+    preset: '30d', start: null, end: null, responsavel: String((window.VENDEDOR_EM_FOCO && window.VENDEDOR_EM_FOCO.id) || ''),
     origin: raiz.dataset.origin || '', abaPerf: 'receita', granEvo: 'mes',
     dados: null, ativLimite: 5, ativBusca: '', ativEtapa: '', corEtapa: {}
   };

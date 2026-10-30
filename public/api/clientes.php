@@ -88,7 +88,8 @@ if ($method === 'GET') {
     if (!empty($_GET['setor_id']))         $filters['setor_id']         = (int)$_GET['setor_id'];
     if (!empty($_GET['responsavel_id']))   $filters['responsavel_id']   = (int)$_GET['responsavel_id'];
     // Vendedor da edição CRM vê só os clientes dele; sem vendedor, o cliente é dos ADMs.
-    if (($vClientes = \App\Core\AccountContext::vendedorDaSessao()) !== null) $filters['responsavel_id'] = $vClientes;
+    // Para o admin, o vendedor em foco (App\Core\VendedorEmFoco) estreita do mesmo jeito.
+    if (($vClientes = \App\Core\VendedorEmFoco::id()) !== null) $filters['responsavel_id'] = $vClientes;
     if (!empty($_GET['status']))           $filters['status']           = (string)$_GET['status'];
     if (!empty($_GET['search']))           $filters['search']           = (string)$_GET['search'];
     if (!empty($_GET['include_archived'])) $filters['include_archived'] = true;

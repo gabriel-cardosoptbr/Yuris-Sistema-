@@ -102,6 +102,8 @@ if ($method === 'GET') {
     $filtros = [];
     if (isset($_GET['column_id']))     $filtros['column_id']     = (int)$_GET['column_id'];
     if (isset($_GET['responsavel_id']))$filtros['responsavel_id']= (int)$_GET['responsavel_id'];
+    // Sem filtro na tela, vale o vendedor em foco do admin (App\Core\VendedorEmFoco).
+    elseif (($vFoco = \App\Core\VendedorEmFoco::escolhido()) !== null) $filtros['responsavel_id'] = $vFoco;
     if (isset($_GET['prioridade']))    $filtros['prioridade']    = $_GET['prioridade'];
     if (isset($_GET['prazo']))         $filtros['prazo']         = $_GET['prazo'];
     if (isset($_GET['busca']))         $filtros['busca']         = $_GET['busca'];

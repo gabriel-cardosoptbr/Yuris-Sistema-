@@ -172,6 +172,16 @@ seletores ficarem na mesma linha. A coluna da lista ficou só com o título e as
 Os menus dos seletores (`.chat-sector-dd`) nascem com `display:none` no HTML: o `toggle`
 do `chat.js` lê o estilo inline, e sem isso o primeiro clique só fechava um menu já fechado.
 
+**Vendedor em foco** (30/10/2026, `App\Core\VendedorEmFoco`): na edição CRM, para dono e
+admin, o menu (`includes/sidebar.php`) mostra abaixo do ambiente o seletor **"Vendedor"**
+(`assets/vendedor-em-foco.css` e `.js`). Escolhido um vendedor, a página recarrega e todas
+as telas mostram só o que é dele: Chat, Visão Geral, Prospecção, Clientes, Tarefas,
+Orçamentos, Plataforma, Relatórios, Desempenho e Atendimento. Os filtros "Responsável" que
+as telas já tinham (`ffcResponsavel`, `filterResponsible`, `filterResponsavel`,
+`fltResponsavel`, `f-resp`) começam no vendedor escolhido (`window.VENDEDOR_EM_FOCO`) e,
+trocados, trocam o de todas as telas; no Chat o "Todos os responsáveis" vira "Todos os
+vendedores" (`window.CHAT_VENDEDOR_EM_FOCO`).
+
 **A mesma pessoa em mais de uma conta** (29/10/2026, `App\Usuarios\PessoaVinculada`): o
 menu (`includes/sidebar.php`) mostra, abaixo da logo, o bloco **"Empresa"** com as
 empresas da pessoa; um clique troca a sessão para a outra (`api/auth/trocar_empresa.php`)

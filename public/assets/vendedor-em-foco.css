@@ -1,0 +1,59 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   vendedor-em-foco.css: o seletor "Vendedor" do menu da edição CRM
+   (App\Core\VendedorEmFoco). Escolhido um vendedor, todas as telas mostram só
+   o que é dele. Carregado pelo sidebar.php só para dono/admin da edição CRM.
+   Mesma escala do seletor de ambiente (38px, 12px de recuo), mas discreto:
+   branco com borda; com vendedor escolhido, ganha a cor da marca.
+   ═══════════════════════════════════════════════════════════════════════ */
+.sb-vend { position: relative; margin: 0 12px 8px; --vd-c: var(--ff-marca, #015DFC); --vd-rgb: var(--ff-marca-rgb, 1,93,252); }
+.sb-vend-btn {
+  width: 100%; display: flex; align-items: center; gap: 10px; padding: 4px 10px 4px 5px; border-radius: 11px;
+  border: 1px solid rgba(17,29,45,.12); background: #FFFFFF; color: #1F2937; cursor: pointer; text-align: left;
+  font-family: 'Manrope', system-ui, sans-serif; transition: border-color .18s, box-shadow .18s, background .18s;
+}
+.sb-vend-btn:hover { border-color: rgba(var(--vd-rgb), .45); box-shadow: 0 6px 16px -10px rgba(var(--vd-rgb), .6); }
+.sb-vend-btn:focus-visible { outline: 2px solid var(--vd-c); outline-offset: 3px; }
+.sb-vend.ativo .sb-vend-btn { border-color: rgba(var(--vd-rgb), .55); background: rgba(var(--vd-rgb), .07); }
+.sb-vend-ico {
+  width: 30px; height: 30px; flex: none; border-radius: 9px; display: flex; align-items: center; justify-content: center;
+  background: rgba(17,29,45,.06); color: #575757; font-size: 12px; font-weight: 800;
+}
+.sb-vend.ativo .sb-vend-ico { background: var(--vd-c); color: #FFFFFF; }
+.sb-vend-ico svg { width: 16px; height: 16px; }
+.sb-vend-txt { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.15; }
+.sb-vend-txt small { font-size: 9px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: #767676; }
+.sb-vend.ativo .sb-vend-txt small { color: var(--vd-c); }
+.sb-vend-txt b { font-size: 13px; font-weight: 700; color: #1F2937; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-vend-seta { width: 14px; height: 14px; flex: none; color: #767676; transition: transform .25s cubic-bezier(.2,.8,.2,1); }
+.sb-vend-btn[aria-expanded="true"] .sb-vend-seta { transform: rotate(180deg); }
+
+.sb-vend-lista {
+  position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 61; list-style: none; margin: 0; padding: 6px;
+  max-height: 340px; overflow-y: auto;
+  background: #FFFFFF; border: 1px solid rgba(17,29,45,.10); border-radius: 14px; box-shadow: 0 22px 48px -12px rgba(17,29,45,.28), 0 2px 6px rgba(17,29,45,.06);
+}
+.sb-vend-lista[hidden] { display: none !important; }
+.sb-vend-lista button {
+  width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 0; border-radius: 10px; background: transparent;
+  font: 600 13px 'Manrope', system-ui, sans-serif; color: #1F2937; text-align: left; cursor: pointer;
+}
+.sb-vend-lista button:hover, .sb-vend-lista button:focus-visible { background: rgba(var(--vd-rgb), .08); outline: none; }
+.sb-vend-lista button.atual { background: rgba(var(--vd-rgb), .10); color: var(--vd-c); }
+.sb-vend-lista button:disabled { opacity: .6; cursor: progress; }
+.sb-vend-lista .sb-vend-ini { width: 24px; height: 24px; flex: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(17,29,45,.06); font-size: 11px; font-weight: 800; color: #575757; }
+.sb-vend-lista button.atual .sb-vend-ini { background: var(--vd-c); color: #FFFFFF; }
+.sb-vend-lista hr { border: 0; border-top: 1px solid rgba(17,29,45,.08); margin: 4px 0; }
+
+html:not([data-theme="light"]) .sb-vend-btn { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.12); color: #E7EBF1; }
+html:not([data-theme="light"]) .sb-vend-txt b { color: #E7EBF1; }
+html:not([data-theme="light"]) .sb-vend-lista { background: #13213A; border-color: rgba(255,255,255,.10); }
+html:not([data-theme="light"]) .sb-vend-lista button { color: #E7EBF1; }
+
+/* Menu recolhido: só o ícone, como o seletor de ambiente. */
+@media (min-width: 901px) {
+  html.sb-retraido.sb-retraido .sb-vend { margin: 0 auto 10px; width: 40px; }
+  html.sb-retraido.sb-retraido .sb-vend-btn { justify-content: center; width: 40px; height: 40px; padding: 0; gap: 0; }
+  html.sb-retraido.sb-retraido .sb-vend-txt, html.sb-retraido.sb-retraido .sb-vend-seta { display: none; }
+  html.sb-retraido.sb-retraido .sb-vend-lista { left: 0; right: auto; width: 240px; }
+  html.sb-fechando .sb-vend-txt, html.sb-abrindo .sb-vend-txt, html.sb-fechando .sb-vend-seta, html.sb-abrindo .sb-vend-seta { opacity: 0; }
+}

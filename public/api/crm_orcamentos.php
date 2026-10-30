@@ -107,7 +107,8 @@ try {
             orcResponder(['ok' => true, 'data' => $r ? ['tipo' => 'lead', 'id' => (int) $r['id'], 'nome' => (string) $r['nome'], 'documento' => $r['cpf_cnpj'], 'telefone' => $r['telefone_whatsapp']] : null]);
         }
         if (!empty($_GET['card_id'])) orcResponder(['ok' => true, 'data' => Orcamento::listar($acc, null, (int) $_GET['card_id'])]);
-        orcResponder(['ok' => true, 'data' => Orcamento::listar($acc, isset($_GET['status']) ? (string) $_GET['status'] : null)]);
+        // Vendedor em foco (App\Core\VendedorEmFoco): a lista mostra só os orçamentos dele.
+        orcResponder(['ok' => true, 'data' => Orcamento::listar($acc, isset($_GET['status']) ? (string) $_GET['status'] : null, null, \App\Core\VendedorEmFoco::id())]);
     }
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') orcResponder(['ok' => false, 'error' => 'Método não suportado.'], 405);

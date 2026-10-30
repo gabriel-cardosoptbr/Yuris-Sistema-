@@ -63,6 +63,8 @@ $responsavel = isset($_GET['responsavel']) ? (int)$_GET['responsavel'] : 0;
 // servidor, e qualquer ?responsavel= de outro usuário é ignorado. Só ADM escolhe.
 $vendedor = $ctx->vendedorCrm();
 if ($vendedor) $responsavel = (int)$uid;
+// Admin sem escolha na tela: vale o vendedor em foco (App\Core\VendedorEmFoco).
+elseif (!isset($_GET['responsavel'])) $responsavel = (int) (\App\Core\VendedorEmFoco::escolhido() ?? 0);
 
 // Fragmentos de SQL reutilizados. Alias "c" para cards em todas as queries.
 $ph = []; $tp = [];

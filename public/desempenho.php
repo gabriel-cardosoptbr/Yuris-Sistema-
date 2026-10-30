@@ -41,6 +41,8 @@ if (!$perfilAdmin && !in_array('*', $perms, true) && !in_array('tarefas', $perms
 $veEquipe = $ctx->isOwnerOrAdmin() || $perfilAdmin;
 [$de, $ate] = Otif::periodo($_GET['de'] ?? null, $_GET['ate'] ?? null);
 $foco = $veEquipe && isset($_GET['colaborador']) && $_GET['colaborador'] !== '' ? max(0, (int) $_GET['colaborador']) : null;
+// Sem colaborador na URL, vale o vendedor em foco do admin (App\Core\VendedorEmFoco).
+if ($veEquipe && !isset($_GET['colaborador'])) $foco = \App\Core\VendedorEmFoco::escolhido();
 
 $rel = Otif::relatorio(
     $ctx->getAccessibleAccountIds('tarefas'),

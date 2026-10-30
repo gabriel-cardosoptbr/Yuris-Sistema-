@@ -481,7 +481,7 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
           <label class="field-group">
             <span class="field-label">Responsável</span>
             <select id="filterResponsavel" class="form-select">
-              <?= UserOptions::renderGrouped($users, null, 'Todos responsáveis') ?>
+              <?= UserOptions::renderGrouped($users, \App\Core\VendedorEmFoco::escolhido(), 'Todos responsáveis') ?>
             </select>
           </label>
 

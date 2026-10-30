@@ -59,6 +59,8 @@ if ($method === 'GET') {
     if (isset($_GET['coluna_id']))           $filters['coluna_id']            = (int)$_GET['coluna_id'];
     if (isset($_GET['responsavel_user_id'])) $filters['responsavel_user_id']  = (int)$_GET['responsavel_user_id'];
     if ($soMeus)                             $filters['responsavel_user_id']  = (int) $user_id;
+    // Vendedor em foco escolhido pelo admin (App\Core\VendedorEmFoco): o funil mostra só os leads dele.
+    elseif (($vFoco = \App\Core\VendedorEmFoco::escolhido()) !== null) $filters['responsavel_user_id'] = $vFoco;
     if (isset($_GET['status']))              $filters['status']               = $_GET['status'];
     $cards = Card::list($filters);
     // A lista de uma etapa cheia passa de 800 KB em JSON, e o servidor só comprime

@@ -44,9 +44,11 @@ final class Orcamento
     public const DEBITOS = ['IPVA', 'Multas', 'Dívida ativa', 'Licenciamento', 'Taxas diversas'];
     private const MAX_ITENS = 30;
 
-    public static function listar(int $accountId, ?string $status = null, ?int $cardId = null): array
+    /** @param int|null $vendedorId  só os orçamentos deste vendedor (vendedor em foco, 30/10/2026) */
+    public static function listar(int $accountId, ?string $status = null, ?int $cardId = null, ?int $vendedorId = null): array
     {
         $where = ['o.account_id = ?']; $params = [$accountId];
+        if ($vendedorId !== null) { $where[] = 'o.vendedor_id = ?'; $params[] = $vendedorId; }
         if ($status !== null && in_array($status, self::STATUS, true)) { $where[] = 'o.status = ?'; $params[] = $status; }
         elseif ($cardId === null) { $where[] = "o.status <> 'REJEITADO'"; }
         if ($cardId !== null) { $where[] = 'o.card_id = ?'; $params[] = $cardId; }

@@ -143,9 +143,11 @@ try {
 
         if (!empty($_GET['carteira'])) {
             $linhas = Vinculo::carteira($acc);
-            if ($vendedor) {
+            // O vendedor vê a carteira dele; o admin, a do vendedor em foco (App\Core\VendedorEmFoco).
+            $vFoco = $vendedor ? $userId : \App\Core\VendedorEmFoco::escolhido();
+            if ($vFoco) {
                 $st = Database::getConnection()->prepare('SELECT id FROM cards WHERE account_id = ? AND responsavel_user_id = ? AND deleted_at IS NULL');
-                $st->execute([$acc, $userId]);
+                $st->execute([$acc, $vFoco]);
                 $meus = array_map('intval', $st->fetchAll(\PDO::FETCH_COLUMN));
                 $linhas = array_values(array_filter($linhas, fn($l) => $l['card_id'] && in_array($l['card_id'], $meus, true)));
             }

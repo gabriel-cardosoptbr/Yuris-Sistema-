@@ -743,6 +743,41 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
   <script src="/assets/ambientes.js?v=<?= @filemtime(__DIR__ . '/../assets/ambientes.js') ?: '1' ?>" defer></script>
   <?php endif; ?>
 
+  <?php
+  // ── Vendedor em foco (edição CRM, 30/10/2026): dono/admin escolhe um vendedor e
+  //    todas as telas mostram só o que é dele (App\Core\VendedorEmFoco). ──
+  $_vendFoco = null;
+  if ($_isFleetiflow) {
+      try {
+          if (\App\Core\VendedorEmFoco::podeEscolher($__brandCtx)) {
+              $_vendFoco = ['atual' => \App\Core\VendedorEmFoco::escolhido(), 'lista' => \App\Core\VendedorEmFoco::vendedores($__brandCtx)];
+          }
+      } catch (\Throwable $__e) { $_vendFoco = null; }
+  }
+  if ($_vendFoco):
+      $__vfIni = fn ($n) => mb_strtoupper(mb_substr(trim((string) $n), 0, 1, 'UTF-8'), 'UTF-8') ?: '?';
+      $__vfNome = 'Todos os vendedores';
+      foreach ($_vendFoco['lista'] as $__v) if ($__v['id'] === $_vendFoco['atual']) $__vfNome = $__v['nome'];
+  ?>
+  <div class="sb-vend<?= $_vendFoco['atual'] ? ' ativo' : '' ?>" id="sbVend" data-csrf="<?= htmlspecialchars((string) ($_SESSION['csrf_token'] ?? '')) ?>">
+    <button type="button" class="sb-vend-btn" id="sbVendBtn" aria-haspopup="listbox" aria-expanded="false" aria-controls="sbVendLista" title="Vendedor: <?= htmlspecialchars($__vfNome) ?>">
+      <span class="sb-vend-ico" aria-hidden="true"><?php if ($_vendFoco['atual']): ?><?= htmlspecialchars($__vfIni($__vfNome)) ?><?php else: ?><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><?php endif; ?></span>
+      <span class="sb-vend-txt"><small>Vendedor</small><b><?= htmlspecialchars($__vfNome) ?></b></span>
+      <svg class="sb-vend-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <ul class="sb-vend-lista" id="sbVendLista" role="listbox" aria-label="Escolher vendedor" hidden>
+      <li role="option" aria-selected="<?= $_vendFoco['atual'] ? 'false' : 'true' ?>"><button type="button" data-vendedor="0"<?= $_vendFoco['atual'] ? '' : ' class="atual"' ?>><span class="sb-vend-ini" aria-hidden="true">*</span>Todos os vendedores</button></li>
+      <li aria-hidden="true"><hr></li>
+      <?php foreach ($_vendFoco['lista'] as $__v): $__vAt = $__v['id'] === $_vendFoco['atual']; ?>
+      <li role="option" aria-selected="<?= $__vAt ? 'true' : 'false' ?>"><button type="button" data-vendedor="<?= (int) $__v['id'] ?>"<?= $__vAt ? ' class="atual"' : '' ?>><span class="sb-vend-ini" aria-hidden="true"><?= htmlspecialchars($__vfIni($__v['nome'])) ?></span><?= htmlspecialchars($__v['nome']) ?></button></li>
+      <?php endforeach; ?>
+    </ul>
+  </div>
+  <script>window.VENDEDOR_EM_FOCO = <?= json_encode(['id' => $_vendFoco['atual']]) ?>;</script>
+  <link rel="stylesheet" href="/assets/vendedor-em-foco.css?v=<?= @filemtime(__DIR__ . '/../assets/vendedor-em-foco.css') ?: '1' ?>">
+  <script src="/assets/vendedor-em-foco.js?v=<?= @filemtime(__DIR__ . '/../assets/vendedor-em-foco.js') ?: '1' ?>" defer></script>
+  <?php endif; ?>
+
   <!-- ── Usuário logado ── -->
   <div class="sidebar-user">
     <div class="sidebar-user-avatar"><?= htmlspecialchars($_userInitial) ?></div>

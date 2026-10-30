@@ -110,7 +110,8 @@ let dragTaskId  = null;
 let openTaskId  = null;
 
 /* ── Filtros ──────────────────────────────────────────────────────────────── */
-const filters = { responsavel_id: '', prioridade: '', prazo: '', busca: '' };
+// responsavel_id começa no vendedor em foco do menu (sidebar.php), quando o admin escolheu um.
+const filters = { responsavel_id: String((window.VENDEDOR_EM_FOCO && window.VENDEDOR_EM_FOCO.id) || ''), prioridade: '', prazo: '', busca: '' };
 
 /* ── Init ─────────────────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', async () => {
@@ -195,6 +196,7 @@ function populateUserSelects() {
   };
 
   fill('fltResponsavel', 'Responsável');   // filtro da topbar
+  if (filters.responsavel_id && !document.getElementById('fltResponsavel').value) document.getElementById('fltResponsavel').value = filters.responsavel_id;
   fill('dResponsavel',   'Sem responsável'); // modal editar tarefa
   fill('ntResponsavel',  'Sem responsável'); // modal nova tarefa
 }

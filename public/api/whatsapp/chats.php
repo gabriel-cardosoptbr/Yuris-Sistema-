@@ -82,7 +82,9 @@ try {
 
         $listLimit = isset($_GET['limit']) ? max(50, min(2000, (int)$_GET['limit'])) : 500;
         $vendedorLista = \App\Core\AccountContext::vendedorDaSessao();
-        $chats     = $msgModel->getChatList($instanceId, $search, $teamFilter, $userFilter, $archived, $listLimit, $colunaFilter, $vendedorLista);
+        // Vendedor em foco escolhido pelo admin (o vendedor logado já é filtrado acima, pelo dono).
+        $emFoco    = $vendedorLista === null ? \App\Core\VendedorEmFoco::escolhido() : null;
+        $chats     = $msgModel->getChatList($instanceId, $search, $teamFilter, $userFilter, $archived, $listLimit, $colunaFilter, $vendedorLista, $emFoco);
 
         // Dono por conversa: a tela mostra o dono, "Assumir" e "Passar para".
         $modoDono = \App\WhatsAppAgente\DonoDaConversa::modo($pdo, $instanceId);

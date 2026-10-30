@@ -19,6 +19,14 @@ try {
     if ($isFleetiflow) $marcaConta = $__ctxChat->getMarca();
 } catch (\Throwable $e) { /* mantém Yuris */ }
 if ($isFleetiflow && $marcaConta === null) $marcaConta = \App\Master\Marca::padraoFleetiflow();
+// Vendedor em foco (App\Core\VendedorEmFoco): na edição CRM o filtro "responsável"
+// do dono/admin vira o "Vendedor" global, o mesmo do menu, que vale em todas as telas.
+$vendedorEmFoco = null;
+if ($isFleetiflow && isset($__ctxChat) && \App\Core\VendedorEmFoco::podeEscolher($__ctxChat)) {
+    $vendedorEmFoco = ['id' => null, 'nome' => null, 'lista' => \App\Core\VendedorEmFoco::vendedores($__ctxChat)];
+    $__vfId = \App\Core\VendedorEmFoco::escolhido();
+    foreach ($vendedorEmFoco['lista'] as $__v) if ($__v['id'] === $__vfId) { $vendedorEmFoco['id'] = $__vfId; $vendedorEmFoco['nome'] = $__v['nome']; }
+}
 // ?conversa=<id>: o link da menção de conversa do Chat Interno (edição CRM).
 // O id vira o jid aqui, só se a conversa é do canal que a conta pode ver.
 if ($auto_open_jid === '' && $isFleetiflow && !empty($_GET['conversa'])) {
@@ -2161,11 +2169,18 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
             <div id="etapaFilterDd" class="chat-sector-dd" style="display:none"></div>
           </div>
 <?php endif; ?>
-          <!-- Filtro por responsável (mesmo padrão do setor) -->
+          <!-- Filtro por responsável (mesmo padrão do setor). Na edição CRM, para dono/admin,
+               é o Vendedor global: as conversas cujo lead é dele. -->
           <div class="chat-sector-filter">
+<?php if ($vendedorEmFoco): ?>
+            <button id="userFilterBtn" class="chat-sector-btn<?= $vendedorEmFoco['id'] ? ' active' : '' ?>" onclick="ChatApp.toggleUserFilterDropdown(event)" title="Filtrar pelo vendedor (vale em todas as telas)">
+              <span class="csf-dot" id="userFilterDot"<?= $vendedorEmFoco['id'] ? ' style="background:#2563EB"' : '' ?>></span>
+              <span class="csf-label" id="userFilterLabel"><?= htmlspecialchars($vendedorEmFoco['nome'] ?? 'Todos os vendedores') ?></span>
+<?php else: ?>
             <button id="userFilterBtn" class="chat-sector-btn" onclick="ChatApp.toggleUserFilterDropdown(event)" title="Filtrar por responsável">
               <span class="csf-dot" id="userFilterDot"></span>
               <span class="csf-label" id="userFilterLabel">Todos os responsáveis</span>
+<?php endif; ?>
               <svg class="csf-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:10px;height:10px"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div id="userFilterDd" class="chat-sector-dd" style="display:none"></div>
@@ -2695,6 +2710,7 @@ window.CHAT_MARCA        = <?= json_encode($marcaChat) ?>;
 window.CHAT_AGENTE       = <?= json_encode($agenteChat, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
 window.CHAT_SEM_JURIDICO = <?= $isFleetiflow ? 'true' : 'false' ?>;
 window.CHAT_ETAPA_FUNIL  = <?= $isFleetiflow ? 'true' : 'false' ?>;
+window.CHAT_VENDEDOR_EM_FOCO = <?= json_encode($vendedorEmFoco, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
 const AUTO_OPEN_JID = <?= json_encode($auto_open_jid) ?>;
 const API  = {
   config        : '/api/whatsapp/config.php',

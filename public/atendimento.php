@@ -48,6 +48,8 @@ $soVendedor = AccountContext::vendedorDaSessao();
 $veEquipe = $soVendedor === null;
 [$de, $ate] = M::periodo($_GET['de'] ?? null, $_GET['ate'] ?? null);
 $foco   = $veEquipe && isset($_GET['operador']) && $_GET['operador'] !== '' ? max(0, (int) $_GET['operador']) : null;
+// Sem operador na URL, vale o vendedor em foco do admin (App\Core\VendedorEmFoco).
+if ($veEquipe && !isset($_GET['operador'])) $foco = \App\Core\VendedorEmFoco::escolhido();
 $numero = isset($_GET['numero']) && $_GET['numero'] !== '' ? max(0, (int) $_GET['numero']) : null;
 
 // Horário comercial da conta (configuracoes.atendimento.horario; padrão seg a sex, 08:00 às 18:00).

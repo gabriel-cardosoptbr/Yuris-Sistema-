@@ -1881,7 +1881,24 @@ const ChatApp = (() => {
     } catch(e) { _linkData.users = []; }
   }
 
+  // Edição CRM, dono/admin: o filtro é o Vendedor global (App\Core\VendedorEmFoco),
+  // gravado no servidor e lido por todas as telas; a página recarrega com ele.
+  async function _escolherVendedorEmFoco(id) {
+    const dd = qs('#userFilterDd');
+    if (dd) dd.style.display = 'none';
+    try {
+      const r = await fetch('/api/vendedor_em_foco.php', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF },
+        body: JSON.stringify({ vendedor_id: id || null })
+      }).then(r => r.json());
+      if (r.ok) { location.reload(); return; }
+      toast(r.error || 'Não foi possível trocar o vendedor', 'error');
+    } catch (e) { toast('Falha de conexão', 'error'); }
+  }
+
   function setUserFilter(id, nome) {
+    if (window.CHAT_VENDEDOR_EM_FOCO) return _escolherVendedorEmFoco(id);
     state.userFilter     = id !== undefined ? id : null;
     state.userFilterName = nome || 'Todos os responsáveis';
 
@@ -1910,6 +1927,26 @@ const ChatApp = (() => {
 
     if (dd.style.display !== 'none') {
       dd.style.display = 'none';
+      return;
+    }
+
+    const vf = window.CHAT_VENDEDOR_EM_FOCO;
+    if (vf) {
+      const atual = vf.id ? String(vf.id) : null;
+      dd.innerHTML = `<div class="chat-sector-dd-item${atual === null ? ' active' : ''}" onclick="ChatApp.setUserFilter(null)">
+                        <span class="csf-dd-dot" style="background:#4A5568"></span>
+                        Todos os vendedores
+                      </div>`
+        + (vf.lista.length ? `<hr class="chat-sector-dd-divider">` : '')
+        + vf.lista.map(u => `
+        <div class="chat-sector-dd-item${atual === String(u.id) ? ' active' : ''}" onclick="ChatApp.setUserFilter(${u.id})">
+          <span class="csf-dd-dot" style="background:#2563EB"></span>
+          ${esc(u.nome)}
+        </div>`).join('');
+      dd.style.display = 'block';
+      setTimeout(() => {
+        document.addEventListener('click', function _close() { if (dd) dd.style.display = 'none'; }, { once: true });
+      }, 0);
       return;
     }
 

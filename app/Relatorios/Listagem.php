@@ -71,6 +71,10 @@ final class Listagem
         if ($vendedor !== null && in_array($fonte, ['prospeccoes', 'clientes'], true)) {
             $filtros['responsavel_id'] = $vendedor;
         }
+        // Admin sem responsável escolhido na tela: vale o vendedor em foco (30/10/2026).
+        elseif (empty($filtros['responsavel_id']) && ($foco = \App\Core\VendedorEmFoco::escolhido()) !== null) {
+            $filtros['responsavel_id'] = $foco;
+        }
 
         return match ($fonte) {
             'clientes'    => self::clientes($filtros, $accountIds),
