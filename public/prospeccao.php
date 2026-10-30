@@ -2535,11 +2535,20 @@ function column_display_name(array $col): string
         const origem = f.passo <= 1 ? primeira + (lcQuando(f.desde, false) || '') : 'Último envio ' + (lcQuando(f.ultima_saida, false) || '');
         const dica = f.cadencia + (r ? ' · conversa com ' + r.nome : '');
         if (f.estado === 'agendado') {
-          h = '<div class="lc-fu' + (f.na_fila ? ' na-fila' : '') + '" title="' + escapeHtml(dica) + '">' +
+          // Na fila do número (Envio::estimar): a ordem e a faixa de saída (sai_de a
+          // sai_ate; a espera entre envios é sorteada). Fora dela, a data da cadência.
+          const naFila = f.sai_ate ? f.na_fila || (new Date(f.sai_ate) - new Date(f.previsto)) > 60000 : f.na_fila;
+          const sai = f.sai_de || f.previsto;
+          const agora = new Date(f.sai_ate || sai) - Date.now() <= 60000;
+          const hm = iso => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+          const ate = f.sai_ate && hm(f.sai_ate) !== hm(sai) ? ' a ' + hm(f.sai_ate) : '';
+          const quando = agora ? 'Saindo agora' : (lcQuando(sai, false) || '') + (naFila ? ate : '');
+          const sub = naFila && f.ordem ? f.ordem + 'º na fila do número' : (naFila ? 'na fila do número' : lcFalta(sai));
+          h = '<div class="lc-fu' + (naFila || agora ? ' na-fila' : '') + '" title="' + escapeHtml(dica) + '">' +
             '<span class="lc-fu-relogio">' + LC_RELOGIO + '</span><div class="lc-fu-txt">' +
             '<div class="lc-fu-cab"><small>Follow-up ' + f.passo + ' de ' + f.total + '</small>' + trilha + '</div>' +
-            '<span class="lc-v">' + escapeHtml(f.na_fila ? 'Saindo agora' : (lcQuando(f.previsto, false) || '')) + '</span>' +
-            '<small>' + escapeHtml((f.na_fila ? 'na fila do número' : lcFalta(f.previsto)) + ' · ' + origem) + '</small></div></div>';
+            '<span class="lc-v">' + escapeHtml(quando) + '</span>' +
+            '<small>' + escapeHtml(sub + ' · ' + origem) + '</small></div></div>';
         } else {
           h = '<div class="lc-fu encerrada" title="' + escapeHtml(dica) + '">' +
             '<span class="lc-fu-relogio">' + LC_RELOGIO + '</span><div class="lc-fu-txt">' +

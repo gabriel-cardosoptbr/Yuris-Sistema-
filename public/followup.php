@@ -397,17 +397,45 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
           : 'Ligue uma cadência para ver aqui quem recebe a próxima mensagem e quando.') + '</div>';
         return;
       }
-      el.innerHTML = '<table class="fu-tabela"><thead><tr><th>Lead</th><th>Etapa</th><th>Cadência</th><th>Mensagem</th><th>Sai</th></tr></thead><tbody>' +
+      el.innerHTML = '<table class="fu-tabela"><thead><tr><th title="A ordem na fila do número">Ordem</th><th>Lead</th><th>Etapa</th><th>Cadência</th><th>Mensagem</th><th>Sai</th></tr></thead><tbody>' +
         D.proximos.map(function (p) {
-          return '<tr><td class="lead"><a href="/prospeccao?open=' + p.card_id + '">' + esc(p.lead) + '</a><div class="fraco">' +
+          return '<tr><td>' + ordem(p) + '</td><td class="lead"><a href="/prospeccao?open=' + p.card_id + '">' + esc(p.lead) + '</a><div class="fraco">' +
               (p.passo === 1 ? 'Nossa mensagem: ' : 'Último follow-up: ') + esc(quando(p.ultima_saida)) +
               ' · <a href="/chat?numero=' + p.numero + '&jid=' + encodeURIComponent(p.jid) + '" style="font-weight:600">Abrir conversa</a></div></td>' +
             '<td>' + esc(p.etapa) + '</td><td>' + esc(p.cadencia) + '</td>' +
             '<td><div style="display:flex;flex-direction:column;gap:5px">' + trilha(p.passo, p.total) + '<span class="fraco">' + p.passo + ' de ' + p.total + '</span></div></td>' +
-            '<td><div class="fu-quando">' + ICO.relogio + esc(quando(p.previsto)) + '</div><div class="fraco">' +
-              (p.na_fila ? '<span class="fu-selo atencao">Na fila: sai na próxima vaga do número</span>' : esc(falta(p.previsto))) + '</div></td></tr>';
+            '<td>' + saida(p) + '</td></tr>';
         }).join('') + '</tbody></table>' +
-        '<p class="fraco" style="margin:12px 2px 0">Cada número manda um follow-up por vez, com 30 a 40 minutos entre um e outro, para o WhatsApp não bloquear. Com muita gente na fila, o horário real pode passar alguns minutos do previsto.</p>';
+        '<p class="fraco" style="margin:12px 2px 0">Cada número manda um follow-up por vez, com 30 a 40 minutos entre um e outro, para o WhatsApp não bloquear, e só no horário de envio da cadência. Quem já está na fila aparece na ordem em que vai sair, com a faixa de horário prevista (a espera é sorteada, por isso é uma faixa).</p>';
+    }
+
+    // Está na fila do número: já venceu ou a fila segura (sai depois da hora da cadência).
+    function naFila(p) { return p.na_fila || (p.sai_ate && new Date(p.sai_ate) - new Date(p.previsto) > 60000); }
+    function hora(iso) { return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
+    // "em 35 a 50 min", "em 1 h 05 a 1 h 30": a espera entre envios é sorteada (30 a 40 min).
+    function faixa(de, ate) {
+      var m = function (iso) { return Math.max(0, Math.round((new Date(iso) - Date.now()) / 60000)); };
+      var txt = function (n) { return n < 60 ? String(n) : Math.floor(n / 60) + ' h ' + String(n % 60).padStart(2, '0'); };
+      var a = m(de), b = m(ate);
+      if (b <= 1) return 'saindo agora';
+      if (a === b) return 'em ' + txt(a) + (a < 60 ? ' min' : '');
+      return 'em ' + (a <= 1 ? 'instantes' : txt(a)) + ' a ' + txt(b) + (b < 60 ? ' min' : '');
+    }
+
+    // Quando sai: na fila do número, a faixa de horário (sai_de a sai_ate) e a ordem;
+    // fora dela, a data da cadência e quanto falta.
+    function saida(p) {
+      if (!p.sai_de || !naFila(p)) {
+        return '<div class="fu-quando">' + ICO.relogio + esc(quando(p.sai_de || p.previsto)) + '</div><div class="fraco">' + esc(falta(p.sai_de || p.previsto)) + '</div>';
+      }
+      var mesmo = hora(p.sai_de) === hora(p.sai_ate);
+      return '<div class="fu-quando">' + ICO.relogio + esc(quando(p.sai_de) + (mesmo ? '' : ' a ' + hora(p.sai_ate))) + '</div>' +
+        '<div class="fraco">' + esc(faixa(p.sai_de, p.sai_ate)) + '</div>' +
+        '<div class="fraco" style="margin-top:3px">pela cadência: ' + esc(quando(p.previsto)) + '</div>';
+    }
+    function ordem(p) {
+      if (!naFila(p) || !p.ordem) return '<span class="fraco">—</span>';
+      return '<span class="fu-selo ' + (p.ordem === 1 ? 'neutro' : 'atencao') + '">' + p.ordem + 'º</span>';
     }
 
     function desenharHistorico() {

@@ -91,6 +91,20 @@ ok('validação: sem dia da semana é recusada', !Cadencia::validar(['horario' =
 ok('validação: horário que termina antes de começar é recusado', !Cadencia::validar(['horario' => ['dias' => [1], 'de' => '18:00', 'ate' => '08:00']] + $base, [10])['ok']);
 ok('validação: etapa de outra conta é recusada', !Cadencia::validar(['etapas' => [999]] + $base, [10])['ok']);
 
+// Previsão de saída (Envio::estimar): ordem na fila do número e faixa de 30 a 40 min, no horário.
+$ag = fn(int $card, int $inst, int $prev) => ['card_id' => $card, 'fatos' => ['chat' => ['instance_id' => $inst]], 'cadencia' => ['horario' => $h], 'situacao' => ['previsto' => $prev]];
+$A = $sp('2026-10-30 13:45'); // sexta
+$e = Envio::estimar([$ag(1, 7, $A - 3600), $ag(2, 7, $A - 1800), $ag(3, 7, $A - 600)], $A, [7 => $sp('2026-10-30 14:18')]);
+ok('o 1º da fila sai exatamente quando o número libera', $e[1]['ordem'] === 1 && $e[1]['de'] === $sp('2026-10-30 14:18') && $e[1]['ate'] === $sp('2026-10-30 14:18'));
+ok('o 2º sai de 30 a 40 min depois', $e[2]['ordem'] === 2 && $e[2]['de'] === $sp('2026-10-30 14:48') && $e[2]['ate'] === $sp('2026-10-30 14:58') && $e[2]['na_frente'] === 1);
+ok('o 3º, de 60 a 80 min depois do 1º', $e[3]['ordem'] === 3 && $e[3]['de'] === $sp('2026-10-30 15:18') && $e[3]['ate'] === $sp('2026-10-30 15:38'));
+$e = Envio::estimar([$ag(1, 7, $A + 7200)], $A, [7 => 0]);
+ok('sem fila, sai na hora da cadência', $e[1]['de'] === $A + 7200 && $e[1]['ate'] === $A + 7200 && $e[1]['na_frente'] === 0);
+$e = Envio::estimar([$ag(1, 7, $A - 600), $ag(2, 8, $A - 300)], $A, [7 => $A + 3000, 8 => 0]);
+ok('cada número tem a sua fila e a sua ordem', $e[1]['de'] === $A + 3000 && $e[2]['de'] === $A && $e[1]['ordem'] === 1 && $e[2]['ordem'] === 1);
+$e = Envio::estimar([$ag(1, 7, $sp('2026-10-30 17:00')), $ag(2, 7, $sp('2026-10-30 17:10'))], $sp('2026-10-30 17:30'), [7 => $sp('2026-10-30 17:50')]);
+ok('o que não cabe até as 18h sai na próxima janela (sábado 8h)', $e[1]['de'] === $sp('2026-10-30 17:50') && $e[2]['de'] === $sp('2026-10-31 08:00') && $e[2]['ate'] === $sp('2026-10-31 08:00'));
+
 echo "\n== 2. Com banco (conta 304, número 11) ==\n";
 $pdo = Database::getConnection();
 $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
@@ -159,6 +173,19 @@ if (!$temTabela || count($cols) < 3) {
         $mandados = [];
         Envio::processar($falso, time() + 19 * 3600 + 60);
         ok('logo em seguida não manda de novo', $mandados === []);
+
+        // Passo 3 vencido, mas fora do horário de envio: espera a próxima janela.
+        $quando3 = time() + 64 * 3600;
+        $dia3 = (int) (new \DateTimeImmutable('@' . $quando3))->setTimezone(new \DateTimeZone('America/Sao_Paulo'))->format('N');
+        $horario = fn(array $dias) => $pdo->prepare('UPDATE followup_cadencias SET horario = ? WHERE id = ?')
+            ->execute([json_encode(['dias' => $dias, 'de' => '00:00', 'ate' => '23:59']), $cadId]);
+        $horario(array_values(array_diff([1, 2, 3, 4, 5, 6, 7], [$dia3])));
+        $mandados = [];
+        Envio::processar($falso, $quando3);
+        ok('fora do horário da cadência a fila não sai (nem a que já venceu)', $mandados === []);
+        $horario([1, 2, 3, 4, 5, 6, 7]);
+        Envio::processar($falso, $quando3);
+        ok('dentro do horário o passo 3 sai', count($mandados) === 1 && ($mandados[0][1] ?? '') === 'passo 3');
 
         // A resposta chega pelo @lid, numa conversa separada.
         $pdo->prepare('INSERT INTO whatsapp_identidades (account_id, instance_id, phone, jid, lid, nome_peso) VALUES (?,?,?,?,?,0)')->execute([$CONTA, $INST, $fone, $jid, $lid]);

@@ -21,6 +21,8 @@ final class Fatos
 {
     /** O robozinho do card só aparece com mensagem na conversa nos últimos N dias. */
     public const ROBO_DIAS = 3;
+    /** O card calcula a fila do número quando o follow-up dele sai em até N horas. */
+    public const FILA_HORAS = 12;
 
     /**
      * @param list<int> $accountIds contas que quem pede pode ver (os cards e os números têm de ser delas)
@@ -184,6 +186,19 @@ final class Fatos
             $etapasComCadencia = [];
             $todas = false;
             foreach ($cads as $c) { if (!$c['etapas']) $todas = true; $etapasComCadencia = array_merge($etapasComCadencia, $c['etapas']); }
+            $escolhas = [];
+            foreach ($fatos as $id => $f) {
+                if ($f['chat']) $escolhas[$id] = Regra::escolher($cads, $f, $agora);
+            }
+            // Fila do número (Envio::estimar): só quando algum card desta página sai nas
+            // próximas horas, porque pede a fila da conta inteira.
+            $est = [];
+            foreach ($escolhas as [$cad, $sit]) {
+                if ($cad && $sit['estado'] === 'agendado' && $sit['previsto'] <= $agora + self::FILA_HORAS * 3600) {
+                    $est = Envio::estimar(Envio::agendados($acc, $cads, $agora), $agora);
+                    break;
+                }
+            }
             foreach ($fatos as $id => $f) {
                 // Robô só em conversa viva: o lead já escreveu e houve mensagem nos últimos
                 // ROBO_DIAS (conversa encerrada há semanas não está "com a Vitória").
@@ -193,8 +208,8 @@ final class Fatos
                 if (!$f['chat']) {
                     if ($cads && ($todas || in_array($f['etapa'], $etapasComCadencia, true))) $item['followup'] = ['estado' => 'sem_mensagem'];
                 } else {
-                    [$cad, $sit] = Regra::escolher($cads, $f, $agora);
-                    if ($cad) $item['followup'] = self::resumo($cad, $sit, $agora);
+                    [$cad, $sit] = $escolhas[$id];
+                    if ($cad) $item['followup'] = self::resumo($cad, $sit, $agora, $est[$id] ?? null);
                 }
                 if ($item['robo'] || $item['followup']) $res[$id] = $item;
             }
@@ -202,14 +217,21 @@ final class Fatos
         return $res;
     }
 
-    /** Situação para a tela, com as datas em ISO 8601 (o navegador mostra no fuso de quem vê). */
-    public static function resumo(array $cad, array $sit, int $agora): array
+    /**
+     * Situação para a tela, com as datas em ISO 8601 (o navegador mostra no fuso de quem vê).
+     * `previsto` é quando a cadência põe o lead na fila; com $est (Envio::estimar)
+     * vêm a posição na fila do número (`ordem`, `na_frente`) e a faixa em que a
+     * mensagem deve sair (`sai_de` a `sai_ate`, porque a espera é de 30 a 40 min).
+     */
+    public static function resumo(array $cad, array $sit, int $agora, ?array $est = null): array
     {
         $iso = fn(?int $t) => $t ? date('c', $t) : null;
         return [
             'cadencia_id' => $cad['id'], 'cadencia' => $cad['nome'], 'gatilho' => $cad['gatilho'],
             'estado' => $sit['estado'], 'passo' => $sit['passo'], 'total' => $sit['total'],
             'previsto' => $iso($sit['previsto']), 'na_fila' => $sit['previsto'] !== null && $sit['previsto'] <= $agora,
+            'sai_de' => $est ? $iso($est['de']) : null, 'sai_ate' => $est ? $iso($est['ate']) : null,
+            'ordem' => $est ? (int) $est['ordem'] : null, 'na_frente' => $est ? (int) $est['na_frente'] : 0,
             'desde' => $iso($sit['ciclo_desde']), 'ultima_saida' => $iso($sit['ultima_saida']),
         ];
     }

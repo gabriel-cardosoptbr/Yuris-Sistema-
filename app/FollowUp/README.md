@@ -22,7 +22,7 @@ ficou com uma pessoa e ninguém mais cutucou).
 | `Regra.php` | **a conta do próximo follow-up, PURA (sem banco)**. Horário de envio (`proximaJanela`, fuso de Brasília), rajadas, a situação da conversa numa cadência (`situacao`: agendado com data e hora, encerrada ou fora, com o motivo), a escolha da cadência (`escolher`: a primeira ativa em que a conversa cabe) e o texto com `{nome}` e `{empresa}` (nome que é a própria empresa não entra: "Oi, tudo bem?" em vez de "Oi KWM, tudo bem?"). O card, a tela e o envio usam esta mesma conta |
 | `Cadencia.php` | as cadências da conta (tabela `followup_cadencias`): ler, validar o que vem da tela, salvar, ligar/desligar, excluir, ordenar. Nasce desligada. `cobreSemResposta()` diz se uma cadência ativa já cuida de quem não respondeu (aí o n8n sai, ver abaixo) |
 | `Fatos.php` | lê do WhatsApp o que a regra precisa de cada card, em poucas consultas para a lista inteira: a última mensagem do lead, as nossas desde então, por qual número mandar e se a conversa está com o robô de pré-venda. Soma as conversas ligadas ao card **e as @lid do mesmo contato** (`whatsapp_identidades`). `paraOFunil()` é o que o card recebe em `api/cards.php` |
-| `Envio.php` | o envio (chamado por `bin/followup_worker.php` a cada minuto) e a fila da tela (`agendados`), mais o histórico |
+| `Envio.php` | o envio (chamado por `bin/followup_worker.php` a cada minuto) e a fila da tela (`agendados`), mais o histórico. `estimar()` (30/10/2026) simula a fila de cada número e dá a cada follow-up a **ordem** em que sai e a **faixa** de horário (`de` com esperas de 30 min, `ate` com 40, já que a espera é sorteada; a vaga depois do último envio é exata), respeitando o horário da cadência. A tela e o card mostram "1º, 2º..." e "sai em 30 a 40 min" |
 
 ## A regra, em uma tela
 
@@ -58,6 +58,9 @@ ficou com uma pessoa e ninguém mais cutucou).
 - **Um envio por número por rodada, e de 30 a 40 min entre um e outro** no mesmo
   número (o número 1 da Fleet caiu em 05/10/2026 com envio em rajada; era 5 a 10
   min até 30/10/2026, quando o dono da Fleetiflow pediu mais espaço).
+- **Só dentro do horário de envio da cadência, conferido também na hora de
+  mandar** (30/10/2026): antes só a data prevista respeitava o horário, e a fila
+  que já tinha vencido continuaria saindo depois das 18h. Agora espera a próxima janela.
 - Logo antes de mandar, relê a conversa e refaz a conta: se o lead respondeu um
   segundo antes, não manda. Número fora do ar: o lead espera ele voltar.
 - A linha de `followup_envios` nasce `enviando` **antes** do envio, com chave

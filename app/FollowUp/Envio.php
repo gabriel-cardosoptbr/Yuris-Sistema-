@@ -17,6 +17,8 @@ use App\WhatsAppAgente\WhatsAppMessage;
  *   - um envio por número por rodada, e de 30 a 40 minutos entre um envio e o
  *     próximo no mesmo número (o número 1 da Fleet caiu em 05/10/2026 com
  *     envio em rajada; era 5 a 10 até 30/10/2026, quando o dono pediu mais espaço);
+ *   - só dentro do horário de envio da cadência, conferido também na hora de
+ *     mandar: a fila que sobra no fim do expediente sai na próxima janela;
  *   - logo antes de mandar, relê a conversa e refaz a conta: se o lead
  *     respondeu um segundo antes, não manda;
  *   - a linha de followup_envios nasce `enviando` ANTES do envio, com chave
@@ -65,6 +67,9 @@ final class Envio
             $usados = [];
             foreach ($fila as $item) {
                 $inst = (int) $item['fatos']['chat']['instance_id'];
+                // Fora do horário de envio da cadência, espera a próxima janela (a fila
+                // que sobra às 18h não sai à noite; desde 30/10/2026, com 30 a 40 min).
+                if (!self::dentroDoHorario($item['cadencia'], $agora)) continue;
                 if (isset($usados[$inst]) || !self::numeroLivre($inst, $agora)) { $usados[$inst] = true; continue; }
                 $usados[$inst] = true;
                 $r = self::mandar($acc, $item['card_id'], $cads, $enviar, $agora);
@@ -130,14 +135,66 @@ final class Envio
      */
     private static function numeroLivre(int $instanceId, int $agora): bool
     {
+        return self::liberaEm($instanceId) <= $agora;
+    }
+
+    /** Quando o número pode mandar o próximo follow-up (0 = nunca mandou). */
+    private static function liberaEm(int $instanceId): int
+    {
         $st = Database::getConnection()->prepare(
             "SELECT id, atualizado_em FROM followup_envios WHERE instance_id = ? AND status IN ('enviando', 'enviado') ORDER BY atualizado_em DESC LIMIT 1"
         );
         $st->execute([$instanceId]);
         $u = $st->fetch(\PDO::FETCH_ASSOC);
-        if (!$u) return true;
+        if (!$u) return 0;
         $espera = self::INTERVALO_MIN + ((int) $u['id'] % (self::INTERVALO_MAX - self::INTERVALO_MIN + 1));
-        return $agora - (int) strtotime((string) $u['atualizado_em']) >= $espera * 60;
+        return (int) strtotime((string) $u['atualizado_em']) + $espera * 60;
+    }
+
+    /** $agora cai dentro do horário de envio da cadência? */
+    private static function dentroDoHorario(array $cad, int $agora): bool
+    {
+        return Regra::proximaJanela($agora, (array) ($cad['horario'] ?? [])) === $agora;
+    }
+
+    /**
+     * A previsão de saída de cada follow-up agendado, contando a fila do número:
+     * um por vez, 30 a 40 min entre um e outro, e só dentro do horário da
+     * cadência. A data da cadência (`previsto`) é quando o lead ENTRA na fila;
+     * isto diz em que ORDEM ele sai e numa FAIXA de horário (`de` com todas as
+     * esperas de 30 min, `ate` com todas de 40), porque a espera é sorteada.
+     *
+     * Simula o que o worker faz: por número, na ordem de agendados(), cada um sai
+     * no mais tarde entre a data da cadência, a vaga do número e agora, empurrado
+     * para a próxima janela de horário se cair fora dela. A vaga do número depois
+     * do último envio é exata (a espera dele já está sorteada).
+     *
+     * @param list<array{card_id:int, fatos:array, cadencia:array, situacao:array}> $agendados de agendados()
+     * @param array<int,int>|null $livreEm instance_id => quando o número libera (teste injeta; null lê do banco)
+     * @return array<int, array{ordem:int, de:int, ate:int, na_frente:int}> por card_id; ordem começa em 1, por número
+     */
+    public static function estimar(array $agendados, int $agora, ?array $livreEm = null): array
+    {
+        $livre = [];   // instance_id => [vaga mais cedo, vaga mais tarde]
+        $ordem = [];
+        $saida = [];
+        foreach ($agendados as $i) {
+            $inst = (int) $i['fatos']['chat']['instance_id'];
+            if (!isset($livre[$inst])) {
+                $l = $livreEm !== null ? (int) ($livreEm[$inst] ?? 0) : self::liberaEm($inst);
+                $livre[$inst] = [$l, $l];
+                $ordem[$inst] = 0;
+            }
+            $entra = max((int) $i['situacao']['previsto'], $agora);
+            $horario = (array) ($i['cadencia']['horario'] ?? []);
+            $de  = Regra::proximaJanela(max($entra, $livre[$inst][0]), $horario);
+            $ate = Regra::proximaJanela(max($entra, $livre[$inst][1]), $horario);
+            $ordem[$inst]++;
+            // "Na frente": os do mesmo número que saem antes e seguram este (fila de verdade).
+            $saida[(int) $i['card_id']] = ['ordem' => $ordem[$inst], 'de' => $de, 'ate' => $ate, 'na_frente' => $ate > $entra ? $ordem[$inst] - 1 : 0];
+            $livre[$inst] = [$de + self::INTERVALO_MIN * 60, $ate + self::INTERVALO_MAX * 60];
+        }
+        return $saida;
     }
 
     /** @return string enviadas | falhas | puladas */
@@ -149,6 +206,7 @@ final class Envio
         if (!$f || !$f['chat']) return 'puladas';
         [$cad, $sit] = Regra::escolher($cads, $f, $agora);
         if (!$cad || $sit['estado'] !== 'agendado' || $sit['previsto'] > $agora) return 'puladas';
+        if (!self::dentroDoHorario($cad, $agora)) return 'puladas';
 
         $chat = $f['chat'];
         // Número fora do ar: o lead espera ele voltar (não troca de número no meio da conversa).

@@ -56,11 +56,13 @@ que esperam resposta (canal com `send`; 409 com o motivo quando não pode). Regr
 `autor_rotulo` e `autor_deduzido` às mensagens nossas (`App\WhatsAppAgente\AutorDaMensagem`).
 
 `followup.php` é a tela Operação › Follow-up (`App\FollowUp`, 23/10/2026). GET devolve as cadências, as
-etapas do funil, a chave geral, a fila dos próximos envios (até 150, com data e hora) e os últimos envios.
+etapas do funil, a chave geral, a fila dos próximos envios (até 150, com data e hora, na ordem de saída, com
+`ordem` na fila do número, `na_frente` e a faixa `sai_de`/`sai_ate` de `Envio::estimar`) e os últimos envios.
 POST JSON com `X-CSRF-Token`, só dono/admin: `salvar` (cria ou edita; erro de validação volta 422 com a
 mensagem), `ligar`, `excluir`, `ordenar` e `chave` (a chave geral, a mesma do botão do Chat). O vendedor da
 edição CRM recebe 403. Na edição CRM, a listagem de `cards.php` traz em cada card `followup` (cadência, passo,
-total, `previsto` em ISO 8601, `na_fila`, `desde`, `ultima_saida`, ou `estado: sem_mensagem`) e `robo`
+total, `previsto` em ISO 8601, `na_fila`, `desde`, `ultima_saida`, e, quando sai em até 12 h, `ordem`,
+`na_frente`, `sai_de` e `sai_ate`; ou `estado: sem_mensagem`) e `robo`
 (`{nome}` quando a conversa está com o robô de pré-venda), ou `null`; falha nessa leitura não derruba a lista.
 
 `whatsapp/automacao_toggle.php` (sessão) e `whatsapp/sdr_automacao.php` (n8n, cabeçalho `X-Fleetiflow-Token`)
