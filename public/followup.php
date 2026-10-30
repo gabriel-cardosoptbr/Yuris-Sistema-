@@ -434,7 +434,9 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
         '<div class="fraco" style="margin-top:3px">pela cadência: ' + esc(quando(p.previsto)) + '</div>';
     }
     function ordem(p) {
-      if (!naFila(p) || !p.ordem) return '<span class="fraco">—</span>';
+      // A ordem de saída pelo número; destaque para quem já está na fila.
+      if (!p.ordem) return '<span class="fraco">—</span>';
+      if (!naFila(p)) return '<span class="fraco" style="font-weight:700">' + p.ordem + 'º</span>';
       return '<span class="fu-selo ' + (p.ordem === 1 ? 'neutro' : 'atencao') + '">' + p.ordem + 'º</span>';
     }
 
