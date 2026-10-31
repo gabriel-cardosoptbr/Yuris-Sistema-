@@ -419,7 +419,8 @@ final class SdrFleetiflow
                 \App\Prospeccao\Card::update($cardId, ['descricao' => trim($antes . "\n\n" . $resumo)]);
                 if ($empresa !== '') self::nomearSeAnonimo($cardId, $empresa);
                 self::moverEtapa($accountId, $cardId, 'qualificado');
-                \App\Prospeccao\Card::logEvento($cardId, null, 'qualificado_vitoria', 'descricao', null, 'Lead qualificado pela Vitória');
+                $quem = self::quemQualificou($accountId, $cardId);
+                \App\Prospeccao\Card::logEvento($cardId, null, 'qualificado_vitoria', 'descricao', null, 'Lead qualificado ' . $quem);
             }
         } catch (\Throwable $e) {
             error_log('[sdr_fleetiflow] card da transferência falhou: ' . $e->getMessage());
@@ -430,7 +431,7 @@ final class SdrFleetiflow
                 'account_id' => $accountId,
                 'user_id'    => null, // a conta toda vê: quem estiver no Chat assume
                 'tipo'       => 'sdr_fleetiflow.transferencia',
-                'titulo'     => 'Lead qualificado pela Vitória' . ($empresa !== '' ? ': ' . $empresa : ''),
+                'titulo'     => 'Lead qualificado ' . self::quemQualificou($accountId, $cardId) . ($empresa !== '' ? ': ' . $empresa : ''),
                 'mensagem'   => $resumo,
                 'payload'    => ['instance_id' => $channelId, 'remote_jid' => $remoteJid, 'card_id' => $cardId],
             ]);
@@ -1033,6 +1034,16 @@ final class SdrFleetiflow
             error_log('[sdr_fleetiflow] responsável do atendimento falhou: ' . $e->getMessage());
         }
         return null;
+    }
+
+    /**
+     * Quem qualificou o lead, para o histórico e o aviso da equipe: a IA fala em nome do
+     * vendedor do card ("por Kaue (IA)", 31/10/2026); sem vendedor, "pela Vitória".
+     */
+    public static function quemQualificou(int $accountId, ?int $cardId): string
+    {
+        $v = $cardId ? (VendedorDoLead::doscards($accountId, [$cardId])[$cardId] ?? null) : null;
+        return $v ? 'por ' . VendedorDoLead::rotuloIA($v) : 'pela Vitória';
     }
 
     /** Especialista padrão da conta (quem atende pelo celular), ou null. */

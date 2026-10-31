@@ -219,6 +219,9 @@ final class AutorDaMensagem
             $cods = self::classificar($seq, $entregas);
 
             $agente = self::nomeCurto(SdrFleetiflow::nomeAgenteDaConta($ownerAccountId));
+            // A IA fala em nome do vendedor do lead (31/10/2026): o balão diz "Kaue (IA)".
+            $vend = VendedorDoLead::daConversa($ownerAccountId, $instanceId, $remoteJid);
+            if ($vend) $agente = VendedorDoLead::rotuloIA($vend['vendedor']);
             foreach ($msgs as &$m) {
                 $id = (int)($m['id'] ?? 0);
                 if (!isset($cods[$id])) continue;

@@ -109,6 +109,9 @@ try {
     $agora = $pdo->query('SELECT NOW()')->fetchColumn();
     $limite = date('Y-m-d H:i:s', strtotime((string)$agora) - 300);
 
+    // O vendedor de cada lead (31/10/2026): a IA fala em nome dele, então o aviso diz "Kaue (IA)".
+    $vendedorDe = \App\WhatsAppAgente\VendedorDoLead::doscards($dono, array_keys($porCard));
+
     $itens = [];
     foreach ($porCard as $cid => $r) {
         if ((int)$r['last_message_from_me'] === 1) continue;            // a última é nossa
@@ -117,16 +120,22 @@ try {
         $etapa = $etapaDe[(int)$r['coluna_id']] ?? '';
         if (in_array($etapa, $encerradas, true)) continue;
 
+        // Com vendedor, a IA é "Kaue (IA)" (sem artigo); sem ele, "Vitória" como sempre.
+        $nomeIA  = isset($vendedorDe[$cid]) ? \App\WhatsAppAgente\VendedorDoLead::rotuloIA($vendedorDe[$cid]) : null;
+        $pelaIA  = $nomeIA ?? 'a Vitória';
+        $tag     = null;
         if (!empty($pausado[$cid]) || in_array($etapa, ['especialista', 'negociacao'], true)) {
             [$tipo, $motivo] = ['voce', 'A conversa está com o time e o lead respondeu.'];
         } elseif ($etapa === 'qualificado') {
-            [$tipo, $motivo] = ['qualificado', 'Lead qualificado pela Vitória: assuma a conversa.'];
+            [$tipo, $motivo] = ['qualificado', 'Lead qualificado ' . ($nomeIA ? 'por ' . $nomeIA : 'pela Vitória') . ': assuma a conversa.'];
         } elseif (!$iaLigada) {
-            [$tipo, $motivo] = ['sem_ia', 'A Vitória está desligada no canal: ninguém respondeu.'];
+            [$tipo, $motivo] = ['sem_ia', ($nomeIA ? 'A IA' : 'A Vitória') . ' está desligada no canal: ninguém respondeu.'];
+            if ($nomeIA) $tag = 'IA desligada';
         } elseif ($etapa === 'followup') {
-            [$tipo, $motivo] = ['followup', 'Follow-up interrompido: a loja respondeu e a Vitória não seguiu.'];
+            [$tipo, $motivo] = ['followup', 'Follow-up interrompido: a loja respondeu e ' . $pelaIA . ' não seguiu.'];
         } else {
-            [$tipo, $motivo] = ['vitoria', 'A Vitória parou: resposta automática, menu ou outra IA da loja.'];
+            [$tipo, $motivo] = ['vitoria', ($nomeIA ?? 'A Vitória') . ' parou: resposta automática, menu ou outra IA da loja.'];
+            if ($nomeIA) $tag = $nomeIA . ' parou';
         }
 
         $previa = trim(preg_replace('/\s+/', ' ', (string)($r['last_message_content'] ?? '')));
@@ -138,6 +147,7 @@ try {
             'etapa'      => $r['etapa'],
             'tipo'       => $tipo,
             'motivo'     => $motivo,
+            'tag'        => $tag,
             'previa'     => mb_substr($previa, 0, 140),
             'desde'      => $r['last_message_at'],
             'minutos'    => (int)floor((strtotime((string)$agora) - strtotime((string)$r['last_message_at'])) / 60),

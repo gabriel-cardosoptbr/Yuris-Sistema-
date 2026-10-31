@@ -146,6 +146,7 @@ final class SituacaoConversa
             'agora'             => time(),
         ]);
 
+        $vend = $crm ? VendedorDoLead::daConversa($ownerAccountId, $instanceId, $remoteJid) : null;
         $fmt = fn(?int $ts) => $ts ? date('Y-m-d H:i:s', $ts) : null;
         return [
             'aguardando'  => $av['aguardando'],
@@ -155,7 +156,10 @@ final class SituacaoConversa
             'pode_mandar' => $av['pode_mandar'],
             'entregue_em' => $fmt($av['entregue_em']),
             'agente'      => [
-                'nome'       => AutorDaMensagem::nomeCurto(SdrFleetiflow::nomeAgenteDaConta($ownerAccountId)),
+                // A IA fala em nome do vendedor do lead (31/10/2026): "Kaue (IA)", sem artigo;
+                // sem vendedor, o nome da conta ("Vitória"). `com_vendedor` diz qual dos dois.
+                'nome'         => $vend ? VendedorDoLead::rotuloIA($vend['vendedor']) : AutorDaMensagem::nomeCurto(SdrFleetiflow::nomeAgenteDaConta($ownerAccountId)),
+                'com_vendedor' => (bool)$vend,
                 'disponivel' => $agenteDisp,
                 'ligado'     => $ligado,
             ],

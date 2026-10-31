@@ -2748,7 +2748,14 @@ const ChatApp = (() => {
   // nas outras contas da edição CRM. AG_COM = com artigo, para o meio da frase.
   const AG     = window.CHAT_AGENTE || { nome: 'Vitória', artigo: 'a' };
   const AG_VIT = AG.nome === 'Vitória';
-  const AG_COM = (AG.artigo ? AG.artigo + ' ' : '') + AG.nome;
+  const AG_COM_PADRAO = (AG.artigo ? AG.artigo + ' ' : '') + AG.nome;
+  // O nome da IA para ESTA conversa (31/10/2026): a IA fala em nome do vendedor do lead,
+  // então é "Kaue (IA)", sem artigo; sem vendedor, o da conta ("a Vitória"). Vem de situacao.php.
+  const _agDaConversa = () => {
+    const s = (state.situacao && state.situacaoJid === state.currentJid) ? state.situacao : null;
+    return s && s.agente && s.agente.com_vendedor ? s.agente.nome : null;
+  };
+  const agCom = () => _agDaConversa() || AG_COM_PADRAO;
   const _pend = { itens: [], ultimo: 0, carregando: false };
   const PEND_COR = {
     qualificado: ['#FEF3C7', '#92400E', 'Qualificado'],
@@ -2797,7 +2804,7 @@ const ChatApp = (() => {
       return `
         <div class="pend-item">
           <div class="pend-topo">
-            <span class="pend-tag" style="background:${cor[0]};color:${cor[1]}">${esc(cor[2])}</span>
+            <span class="pend-tag" style="background:${cor[0]};color:${cor[1]}">${esc(i.tag || cor[2])}</span>
             <strong class="pend-nome">${esc(i.nome || '')}</strong>
             <span class="pend-tempo">${esc(tempo)}</span>
           </div>
@@ -3945,7 +3952,7 @@ const ChatApp = (() => {
     const s = state.situacao;
     if (!s || state.situacaoJid !== state.currentJid || !s.aguardando) { el.style.display = 'none'; el.innerHTML = ''; return; }
     // Nome com artigo ("a Vitória") no meio da frase; com maiúscula no começo.
-    const N = AG_COM, Nc = N.charAt(0).toUpperCase() + N.slice(1);
+    const N = agCom(), Nc = N.charAt(0).toUpperCase() + N.slice(1);
     const numero = (s.numero && s.numero.nome) ? s.numero.nome : 'desta conversa';
     const quando = _quando(s.desde);
     const pessoa = s.pausada_por || 'uma pessoa do time';
@@ -3990,7 +3997,7 @@ const ChatApp = (() => {
   async function mandarParaAgente() {
     const s = state.situacao; const jid = state.currentJid;
     if (!s || !jid) return;
-    const N = AG_COM;
+    const N = agCom();
     const btn = qs('#btnMandarAgente'); if (btn) btn.disabled = true;
     try {
       const r = await apiFetch('/api/whatsapp/situacao.php', 'POST', { _csrf: CSRF, action: 'mandar_agente', remote_jid: jid });
@@ -4035,13 +4042,13 @@ const ChatApp = (() => {
       const etapa  = chat ? String(chat.card_etapa_nome || '') : '';
       let estilo;
       if (paused) {
-        estilo = ['Com você', '#16A34A', '#FFFFFF', '#16A34A', `Você assumiu esta conversa: ${AG_COM} e o follow-up não escrevem aqui. Clique para devolver para ${AG_COM}.`];
+        estilo = ['Com você', '#16A34A', '#FFFFFF', '#16A34A', `Você assumiu esta conversa: ${agCom()} e o follow-up não escrevem aqui. Clique para devolver para ${agCom()}.`];
       } else if (!ligado) {
-        estilo = ['Assumir', 'transparent', '#64748B', 'rgba(100,116,139,.35)', `${AG_VIT ? 'A Vitória está desligada' : 'O agente está desligado'} no canal: ninguém responde sozinho. Clique para marcar que você assumiu.`];
+        estilo = ['Assumir', 'transparent', '#64748B', 'rgba(100,116,139,.35)', `${_agDaConversa() ? 'A IA está desligada' : (AG_VIT ? 'A Vitória está desligada' : 'O agente está desligado')} no canal: ninguém responde sozinho. Clique para marcar que você assumiu.`];
       } else if (/follow-up/i.test(etapa)) {
         estilo = ['Com o follow-up', '#DBEAFE', '#1D4ED8', '#93C5FD', 'Lead ainda sem resposta: a cadência de follow-up está com ele. Clique para assumir.'];
       } else {
-        estilo = ['Com ' + AG_COM, (window.MARCA && window.MARCA.cor) || '#015DFC', (window.MARCA && window.MARCA.paleta && window.MARCA.paleta.texto) || '#FFFFFF', (window.MARCA && window.MARCA.cor) || '#015DFC', `${AG_VIT ? 'A Vitória (IA)' : 'O agente (IA)'} está atendendo esta conversa. Clique para assumir.`];
+        estilo = ['Com ' + agCom(), (window.MARCA && window.MARCA.cor) || '#015DFC', (window.MARCA && window.MARCA.paleta && window.MARCA.paleta.texto) || '#FFFFFF', (window.MARCA && window.MARCA.cor) || '#015DFC', `${_agDaConversa() || (AG_VIT ? 'A Vitória (IA)' : 'O agente (IA)')} está atendendo esta conversa. Clique para assumir.`];
       }
       lbl.textContent = estilo[0];
       // 'important': o tema claro da Fleetiflow força fundo branco nos botões do cabeçalho.
@@ -4081,7 +4088,7 @@ const ChatApp = (() => {
         loadSituacao(state.currentJid);
         if (next && state.donoConversa) loadChats(true);   // quem assume fica com a conversa
         toast(window.CHAT_ETAPA_FUNIL
-          ? (next ? `Você assumiu: ${AG_COM} não responde mais nesta conversa` : `Conversa devolvida para ${AG_COM}`)
+          ? (next ? `Você assumiu: ${agCom()} não responde mais nesta conversa` : `Conversa devolvida para ${agCom()}`)
           : (next ? 'Você assumiu a conversa, o agente foi pausado aqui' : 'Agente reativado nesta conversa'), 'success');
       }
     } catch (e) {

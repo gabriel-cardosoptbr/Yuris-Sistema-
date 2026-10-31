@@ -242,6 +242,32 @@ try {
         echo "  (sorteio antes do envio pulado: falta a migration 171)\n";
     }
 
+    // Rótulos da equipe (31/10/2026): a IA fala em nome do vendedor do lead, então o Chat, o
+    // card e os avisos dizem "Kaue (IA)". Sem vendedor, o nome da conta ("Vitória").
+    $V = \App\WhatsAppAgente\VendedorDoLead::class;
+    ok('rotulo da IA: primeiro nome e (IA)', $V::rotuloIA('Kaue') === 'Kaue (IA)');
+    if ($inst) {
+        $pn = function (int $uid) use ($pdo): string { $q = $pdo->prepare('SELECT nome FROM users WHERE id = ?'); $q->execute([$uid]); return preg_split('/\s+/', trim((string) $q->fetchColumn()))[0]; };
+        $cv = $novoCard($A);
+        $cs = $novoCard(null);
+        $mapa = $V::doscards($ACC, [$cv, $cs]);
+        ok('vendedor de cada card, em lote (card sem responsável fica de fora)', ($mapa[$cv] ?? null) === $pn($A) && !isset($mapa[$cs]));
+        ok('quem qualificou: por Kaue (IA), ou pela Vitória sem vendedor', \App\WhatsAppAgente\SdrFleetiflow::quemQualificou($ACC, $cv) === 'por ' . $pn($A) . ' (IA)' && \App\WhatsAppAgente\SdrFleetiflow::quemQualificou($ACC, $cs) === 'pela Vitória');
+
+        $jids[] = $jv = '5511944' . random_int(100000, 999999) . '@s.whatsapp.net';
+        $jids[] = $js = '5511944' . random_int(100000, 999999) . '@s.whatsapp.net';
+        $pdo->prepare('INSERT INTO whatsapp_chats (instance_id, remote_jid, linked_card_id) VALUES (?, ?, ?)')->execute([$inst, $jv, $cv]);
+        $pdo->prepare('INSERT INTO whatsapp_chats (instance_id, remote_jid, linked_card_id) VALUES (?, ?, ?)')->execute([$inst, $js, $cs]);
+        $sv = \App\WhatsAppAgente\SituacaoConversa::daConversa($ACC, $inst, $jv);
+        $ss = \App\WhatsAppAgente\SituacaoConversa::daConversa($ACC, $inst, $js);
+        ok('Chat: a situação da conversa traz a IA como o vendedor do lead', $sv && $sv['agente']['nome'] === $pn($A) . ' (IA)' && $sv['agente']['com_vendedor'] === true);
+        ok('Chat: sem vendedor, o nome da conta e sem o marcador', $ss && $ss['agente']['com_vendedor'] === false && !str_contains($ss['agente']['nome'], '(IA)'));
+        $fv = \App\FollowUp\Fatos::porCards([$ACC], [$cv]);
+        ok('card: a leitura do funil traz o vendedor do card', isset($fv[$cv]) && array_key_exists('robo_nome', $fv[$cv]));
+        $msgs = [['id' => 0, 'direction' => 'outbound', 'wamid' => 'x', 'created_at' => date('Y-m-d H:i:s')]];
+        ok('balão: rotular não quebra com vendedor', is_array(\App\WhatsAppAgente\AutorDaMensagem::rotular($ACC, $inst, $jv, $msgs)));
+    }
+
     sleep(1);
     ok('mudar a divisão recomeça a contagem', R::salvar($ACC, [['user_id' => $A, 'percentual' => 50], ['user_id' => $B, 'percentual' => 50]], true) === null && R::config($ACC)['desde'] !== $desde);
     $cont = R::contagem($ACC);

@@ -28,6 +28,39 @@ final class VendedorDoLead
         return $nome === '' ? '' : (preg_split('/\s+/u', $nome)[0] ?? $nome);
     }
 
+    /**
+     * Como a IA aparece para a EQUIPE quando fala em nome do vendedor ("Kaue (IA)"),
+     * nos rótulos do Chat, do card e dos avisos. O "(IA)" é o que separa a IA dela
+     * da pessoa de verdade ("Kaue pelo Chat").
+     */
+    public static function rotuloIA(string $primeiroNome): string
+    {
+        return trim($primeiroNome) . ' (IA)';
+    }
+
+    /**
+     * Primeiro nome do vendedor de cada card, em lote (card sem vendedor fica de fora).
+     * @param int[] $cardIds
+     * @return array<int,string> card_id => primeiro nome
+     */
+    public static function doscards(int $accountId, array $cardIds): array
+    {
+        $cardIds = array_values(array_unique(array_filter(array_map('intval', $cardIds))));
+        if ($accountId <= 0 || !$cardIds) return [];
+        $st = Database::getConnection()->prepare(
+            "SELECT c.id, u.nome FROM cards c
+               JOIN users u ON u.id = c.responsavel_user_id AND u.account_id = c.account_id AND u.deleted_at IS NULL AND u.status = 'active'
+              WHERE c.account_id = ? AND c.id IN (" . implode(',', array_fill(0, count($cardIds), '?')) . ')'
+        );
+        $st->execute(array_merge([$accountId], $cardIds));
+        $out = [];
+        foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+            $n = self::primeiroNome((string)$r['nome']);
+            if ($n !== '') $out[(int)$r['id']] = $n;
+        }
+        return $out;
+    }
+
     /** @return array{user_id:int, nome:string, vendedor:string}|null o usuário ativo da conta */
     public static function doUsuario(int $accountId, int $userId): ?array
     {

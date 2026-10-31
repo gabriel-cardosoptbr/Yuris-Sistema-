@@ -71,6 +71,8 @@ grava (`POST {qual, ligado, _csrf}`, só owner/admin, só na conta da prospecç�
 disparo e a cadência de follow-up perguntam antes de cada mensagem (`{disparo, followup}`). Regra em
 `App\WhatsAppAgente\AutomacaoSdr`.
 
+Os rótulos da IA para a equipe seguem o vendedor do lead (31/10/2026): `whatsapp/situacao.php` devolve `agente.nome` ("Kaue (IA)") e `agente.com_vendedor`, e `whatsapp/pendentes.php` devolve `tag` em cada item ("Kaue (IA) parou", "IA desligada"), com o texto do `motivo` no mesmo nome.
+
 `whatsapp/sdr_roleta.php` (n8n, cabeçalho `X-Fleetiflow-Token`) é a pergunta que o robô da planilha e o disparo das
 listas fazem ANTES de montar a abertura: POST `{telefone, card_id?, tipo, origem}` devolve `{ok, atendente}` com
 `user_id`, `atendente` (nome completo do cadastro) e `vendedor` (o primeiro nome, que entra no lugar de `{vendedor}`

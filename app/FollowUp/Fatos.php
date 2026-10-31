@@ -4,6 +4,7 @@ namespace App\FollowUp;
 use App\Core\Database;
 use App\WhatsAppAgente\AutorDaMensagem;
 use App\WhatsAppAgente\SdrFleetiflow;
+use App\WhatsAppAgente\VendedorDoLead;
 
 /**
  * Fatos: o que Regra precisa saber de cada card, lido do WhatsApp em poucas
@@ -51,6 +52,13 @@ final class Fatos
             ];
         }
         if (!$out) return [];
+
+        // O vendedor de cada card (31/10/2026): a IA fala em nome dele, e o chip do card
+        // diz "Kaue (IA) atendendo". Por conta, porque o card pode ser de uma filial.
+        $vendedorDe = [];
+        $porConta = [];
+        foreach ($out as $idCard => $linha) $porConta[$linha['account_id']][] = $idCard;
+        foreach ($porConta as $acc => $idsConta) $vendedorDe += VendedorDoLead::doscards((int) $acc, $idsConta);
 
         // Conversas ligadas, só em número de conta que quem pede enxerga.
         $ids = array_keys($out);
@@ -156,7 +164,9 @@ final class Fatos
             if (!$f['chat']) continue;
             $f['grupo'] = $f['chat']['grupo'];
             $f['com_robo'] = $f['chat']['robo'];
-            $f['robo_nome'] = $f['com_robo'] ? $agenteDaConta[$f['chat']['dono']] : null;
+            $f['robo_nome'] = $f['com_robo']
+                ? (isset($vendedorDe[$f['card_id']]) ? VendedorDoLead::rotuloIA($vendedorDe[$f['card_id']]) : $agenteDaConta[$f['chat']['dono']])
+                : null;
             // O nome do contato: o do card, a não ser que ele seja a própria empresa;
             // aí o nome que a pessoa usa no WhatsApp (Regra::texto descarta se também for a empresa).
             if ($f['nome'] === '' || Regra::mesmoNome($f['nome'], $f['empresa'])) $f['nome'] = $f['chat']['contato'];
