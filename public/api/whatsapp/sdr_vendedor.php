@@ -11,7 +11,7 @@
  *   Query:     instancia = nome da instância na Evolution (opcional; sem ela vale a
  *              primeira instância da conta)
  *   200 { ok:true, user_id, atendente, vendedor }
- *        vendedor = primeiro nome do cadastro (VendedorDoLead), vai no lugar de {vendedor}
+ *        vendedor = o "Nome nas mensagens" que o vendedor escolheu ou, vazio, o primeiro nome do cadastro (VendedorDoLead), vai no lugar de {vendedor}
  *        atendente = nome completo do cadastro
  *   401 token   404 sem vendedor definido para o número
  *
