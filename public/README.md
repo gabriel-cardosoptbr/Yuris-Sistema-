@@ -73,7 +73,9 @@ sombra nova, sem lista de exceção.
 `tarefas.php` · `processos.php` · `intimacoes.php` · `juridico.php` ·
 `chat.php` · `chat_interno.php` · `financas.php` · `usuarios.php` ·
 `escritorios.php` · `agente.php` · `webhooks.php` · `configuracoes.php` ·
-`relatorios.php` · `desempenho.php` · `atendimento.php` · `followup.php` · `roleta.php`
+`relatorios.php` · `desempenho.php` · `atendimento.php` · `followup.php` · `roleta.php` · `fila.php`
+
+`fila.php` (Operação › Fila, edição CRM, 31/10/2026) é o painel único da prospecção para o admin (`App\WhatsAppAgente\FilaDaProspeccao`): no topo, a próxima abertura com o vendedor da vez, quantos saíram hoje, quantos estão na fila e quantos erros; abas **Aberturas** (robô da planilha e disparo das listas: faltam, saíram hoje, ritmo, término aproximado e a ordem dos próximos com a faixa de horário), **Follow-ups** (a ordem real do motor, com faixa e o marcador "Reprogramado") e **Erros** (follow-ups reprogramados, os que não serão refeitos e as aberturas que os fluxos pularam: sem WhatsApp, número repetido, fora do perfil, já tinha conversa, presas em "enviando"). Tudo aproximado, sem rodapé. Só owner/admin, e só na conta da prospecção; dados em `api/whatsapp/fila.php` e `api/followup.php`.
 
 `roleta.php` (Operação › Roleta, edição CRM, 30/10/2026) é onde o admin divide os
 leads que a prospecção automática aborda entre os atendentes (`App\WhatsAppAgente\Roleta`):

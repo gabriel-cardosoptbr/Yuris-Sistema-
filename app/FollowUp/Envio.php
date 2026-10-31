@@ -150,7 +150,7 @@ final class Envio
                 if (isset($falhas[$k])) {
                     $f = $falhas[$k];
                     $i['falha'] = [
-                        'tentativas' => $f['tentativas'], 'erro' => $f['erro'],
+                        'tentativas' => $f['tentativas'], 'erro' => $f['erro'], 'falhou_em' => $f['quando'],
                         'refaz_em'   => self::refazEm($f['quando'], $f['erro'], (array) ($i['cadencia']['horario'] ?? [])),
                         'esgotada'   => $f['tentativas'] >= self::TENTATIVAS,
                     ];

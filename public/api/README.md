@@ -73,6 +73,8 @@ disparo e a cadência de follow-up perguntam antes de cada mensagem (`{disparo, 
 
 Os rótulos da IA para a equipe seguem o vendedor do lead (31/10/2026): `whatsapp/situacao.php` devolve `agente.nome` ("Kaue (IA)") e `agente.com_vendedor`, e `whatsapp/pendentes.php` devolve `tag` em cada item ("Kaue (IA) parou", "IA desligada"), com o texto do `motivo` no mesmo nome.
 
+`whatsapp/sdr_fila.php` (n8n, cabeçalho `X-Fleetiflow-Token`) recebe o retrato da fila de aberturas que o robô da planilha e o disparo das listas mandam (POST `{fluxo: planilha|listas, retrato: {janela, restantes, por_grupo, enviados_total, enviados_por_dia, pulados, proximos, problemas}}`); `whatsapp/fila.php` (sessão, só owner/admin) devolve o painel das aberturas (`aberturas.fluxos[]` com faltam, saíram hoje, ritmo, término e `proximos` com faixa de uma hora, e `da_vez`). Os follow-ups e os erros deles vêm de `followup.php` (cada item de `proximos` traz `falha` quando falhou antes). Regra em `App\WhatsAppAgente\FilaDaProspeccao`.
+
 `whatsapp/sdr_roleta.php` (n8n, cabeçalho `X-Fleetiflow-Token`) é a pergunta que o robô da planilha e o disparo das
 listas fazem ANTES de montar a abertura: POST `{telefone, card_id?, tipo, origem}` devolve `{ok, atendente}` com
 `user_id`, `atendente` (nome completo do cadastro) e `vendedor` (o primeiro nome, que entra no lugar de `{vendedor}`

@@ -253,7 +253,7 @@ final class Fatos
             'ordem' => $est ? (int) $est['ordem'] : null, 'na_frente' => $est ? (int) $est['na_frente'] : 0,
             'desde' => $iso($sit['ciclo_desde']), 'ultima_saida' => $iso($sit['ultima_saida']),
             // Envio que falhou antes (31/10/2026): é refeito no dia seguinte, no horário da cadência.
-            'falha' => $falha ? ['tentativas' => (int) $falha['tentativas'], 'refaz_em' => $iso((int) $falha['refaz_em']), 'esgotada' => (bool) $falha['esgotada'], 'erro' => (string) $falha['erro']] : null,
+            'falha' => $falha ? ['tentativas' => (int) $falha['tentativas'], 'falhou_em' => $iso((int) ($falha['falhou_em'] ?? 0)), 'teto' => Envio::TENTATIVAS, 'refaz_em' => $iso((int) $falha['refaz_em']), 'esgotada' => (bool) $falha['esgotada'], 'erro' => (string) $falha['erro']] : null,
         ];
     }
 }

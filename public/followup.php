@@ -214,6 +214,9 @@ if ($ctx->isOwnerOrAdmin() && \App\WhatsAppAgente\SdrFleetiflow::contaDoTokenGlo
         <p>As mensagens que o sistema manda sozinho pelo WhatsApp quando o lead fica em silêncio. Aqui você decide quando cada cadência começa, em quais etapas do funil ela vale, os textos e o tempo entre uma mensagem e outra. O card de cada lead mostra quando sai a próxima.</p>
       </div>
       <div class="fu-topo-acoes">
+        <?php if ($ctx->isOwnerOrAdmin() && \App\WhatsAppAgente\SdrFleetiflow::contaDoTokenGlobal((int) $ctx->getAccountId())): ?>
+        <a class="o-btn" href="/fila" title="A ordem de quem vai ser abordado e de quem recebe follow-up, e quem deu erro">Fila e erros</a>
+        <?php endif; ?>
         <?php if ($daVez): ?>
         <a class="o-btn" href="/roleta" title="Recebe o próximo lead que o disparo abordar; a mensagem sai com o nome dele">Vendedor da vez: <b style="margin-left:4px"><?= e($daVez['atendente']) ?></b></a>
         <?php endif; ?>
