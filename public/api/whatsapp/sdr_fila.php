@@ -30,7 +30,7 @@ $recebido = (string)($_SERVER['HTTP_X_FLEETIFLOW_TOKEN'] ?? '');
 if ($esperado === '' || !hash_equals($esperado, $recebido)) { http_response_code(401); echo json_encode(['error' => 'Unauthorized']); exit; }
 
 $bruto = (string)file_get_contents('php://input');
-if (strlen($bruto) > 200000) { http_response_code(413); echo json_encode(['error' => 'Retrato grande demais']); exit; }
+if (strlen($bruto) > 8000000) { http_response_code(413); echo json_encode(['error' => 'Retrato grande demais']); exit; }
 $in = json_decode($bruto, true) ?? [];
 
 try {

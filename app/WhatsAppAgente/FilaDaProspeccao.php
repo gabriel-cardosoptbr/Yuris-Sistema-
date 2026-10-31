@@ -13,7 +13,7 @@ use App\FollowUp\Regra;
  * As aberturas vivem fora do CRM: a fila do robô está na planilha Google e a do disparo das
  * listas no staticData do n8n. Então os dois fluxos mandam ao CRM um RETRATO da fila
  * (api/whatsapp/sdr_fila.php, mesmo token do sdr_etapa.php) e o CRM guarda o último de cada
- * um em whatsapp_settings (`sdr_fila_planilha`, `sdr_fila_listas`, sem migration). Os fluxos
+ * um em sdr_fila_retratos (migration 172, MEDIUMTEXT: a fila INTEIRA, sem corte). Os fluxos
  * só LEEM a fila para montar o retrato: lógica, espera e staticData não mudam.
  *
  * Tudo é APROXIMADO de propósito: as esperas entre envios são sorteadas, então cada lead
@@ -28,10 +28,8 @@ final class FilaDaProspeccao
     ];
     /** Retrato mais velho que isto (minutos) aparece como "desatualizado". */
     public const VELHO_MIN = 45;
-    private const MAX_PROXIMOS = 40;
-    private const MAX_PROBLEMAS = 80;
-
-    private static function chave(string $fluxo): string { return 'sdr_fila_' . $fluxo; }
+    /** Só uma trava de segurança contra lixo: a fila real tem centenas, não milhares. */
+    private const MAX_ITENS = 5000;
 
     /**
      * Guarda o retrato que o n8n mandou, depois de limpar: só os campos conhecidos, com
@@ -64,26 +62,23 @@ final class FilaDaProspeccao
             'problemas' => [],
         ];
         foreach (array_slice((array) ($r['por_grupo'] ?? []), 0, 8, true) as $k => $v) $limpo['por_grupo'][$txt($k, 40)] = $int($v);
-        foreach (array_slice((array) ($r['enviados_por_dia'] ?? []), -14, null, true) as $dia => $n) {
+        foreach (array_slice((array) ($r['enviados_por_dia'] ?? []), -60, null, true) as $dia => $n) {
             if (preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $dia)) $limpo['enviados_por_dia'][(string) $dia] = $int($n);
         }
         foreach (array_slice((array) ($r['pulados'] ?? []), 0, 12, true) as $k => $v) $limpo['pulados'][$txt($k, 40)] = $int($v);
-        foreach (array_slice((array) ($r['proximos'] ?? []), 0, self::MAX_PROXIMOS) as $p) {
+        foreach (array_slice((array) ($r['proximos'] ?? []), 0, self::MAX_ITENS) as $p) {
             $p = (array) $p;
             $limpo['proximos'][] = ['id' => $txt($p['id'] ?? '', 40), 'nome' => $txt($p['nome'] ?? '', 120), 'grupo' => $txt($p['grupo'] ?? '', 40), 'fone' => preg_replace('/\D/', '', (string) ($p['fone'] ?? ''))];
         }
-        foreach (array_slice((array) ($r['problemas'] ?? []), 0, self::MAX_PROBLEMAS) as $p) {
+        foreach (array_slice((array) ($r['problemas'] ?? []), 0, self::MAX_ITENS) as $p) {
             $p = (array) $p;
             $limpo['problemas'][] = ['id' => $txt($p['id'] ?? '', 40), 'nome' => $txt($p['nome'] ?? '', 120), 'status' => $txt($p['status'] ?? '', 40), 'detalhe' => $txt($p['detalhe'] ?? '', 160), 'quando' => $txt($p['quando'] ?? '', 20)];
         }
 
-        $pdo = Database::getConnection();
-        $valor = json_encode($limpo, JSON_UNESCAPED_UNICODE);
-        $st = $pdo->prepare('SELECT id FROM whatsapp_settings WHERE account_id = ? AND config_key = ? LIMIT 1');
-        $st->execute([$accountId, self::chave($fluxo)]);
-        $id = $st->fetchColumn();
-        if ($id) $pdo->prepare('UPDATE whatsapp_settings SET config_value = ?, updated_at = NOW() WHERE id = ?')->execute([$valor, (int) $id]);
-        else $pdo->prepare('INSERT INTO whatsapp_settings (account_id, config_key, config_value, updated_at) VALUES (?, ?, ?, NOW())')->execute([$accountId, self::chave($fluxo), $valor]);
+        Database::getConnection()->prepare(
+            'INSERT INTO sdr_fila_retratos (account_id, fluxo, retrato, atualizado_em) VALUES (?, ?, ?, NOW())
+             ON DUPLICATE KEY UPDATE retrato = VALUES(retrato), atualizado_em = VALUES(atualizado_em)'
+        )->execute([$accountId, $fluxo, json_encode($limpo, JSON_UNESCAPED_UNICODE)]);
         return true;
     }
 
@@ -91,10 +86,14 @@ final class FilaDaProspeccao
     public static function retrato(int $accountId, string $fluxo): ?array
     {
         if (!isset(self::FLUXOS[$fluxo])) return null;
-        $st = Database::getConnection()->prepare('SELECT config_value FROM whatsapp_settings WHERE account_id = ? AND config_key = ? LIMIT 1');
-        $st->execute([$accountId, self::chave($fluxo)]);
-        $j = json_decode((string) $st->fetchColumn(), true);
-        return is_array($j) ? $j : null;
+        try {
+            $st = Database::getConnection()->prepare('SELECT retrato FROM sdr_fila_retratos WHERE account_id = ? AND fluxo = ? LIMIT 1');
+            $st->execute([$accountId, $fluxo]);
+            $j = json_decode((string) $st->fetchColumn(), true);
+            return is_array($j) ? $j : null;
+        } catch (\Throwable $e) {
+            return null; // migration 172 ainda não rodou: o painel diz "sem dados"
+        }
     }
 
     /**

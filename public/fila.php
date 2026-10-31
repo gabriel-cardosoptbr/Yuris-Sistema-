@@ -94,6 +94,8 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
     .fi-aviso[hidden]{ display:none; }
 
     .fi-rolagem{ overflow-x:auto; }
+    .fi-rolagem.alta{ max-height:640px; overflow-y:auto; }
+    .fi-rolagem.alta thead th{ position:sticky; top:0; background:var(--o-card); z-index:1; }
     .fi-tabela{ width:100%; border-collapse:collapse; font-size:13px; }
     .fi-tabela th{ text-align:left; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--o-apagado); padding:8px 10px; border-bottom:1px solid var(--o-borda); white-space:nowrap; }
     .fi-tabela td{ padding:10px; border-bottom:1px solid var(--o-sutil); vertical-align:top; }
@@ -145,7 +147,7 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
     </div>
 
     <section class="fi-painel" data-painel="aberturas"><div class="fi-grade" id="fiAberturas"><div class="o-card fi-vazio">Carregando…</div></div></section>
-    <section class="fi-painel" data-painel="followups" hidden><div class="o-card"><div class="fi-rolagem" id="fiFollowups"></div></div></section>
+    <section class="fi-painel" data-painel="followups" hidden><div class="o-card"><div class="fi-rolagem alta" id="fiFollowups"></div></div></section>
     <section class="fi-painel" data-painel="erros" hidden><div id="fiErros"></div></section>
 
       </div>
@@ -249,8 +251,7 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
         '<div class="fraco" style="margin-top:3px">' + esc(dias) + ', ' + esc(janela.de) + ' às ' + esc(janela.ate) + ' · espera de ' + janela.espera_min + ' a ' + janela.espera_max + ' min entre um e outro</div>' +
         '<div class="fi-chips">' + chips + '</div>' +
         '<p class="fi-aviso"' + (f.desatualizado ? '' : ' hidden') + '>O retrato desta fila foi atualizado ' + esc(atrasoTxt(f.gerado_em)) + ': a ordem pode ter andado.</p>' +
-        (linhas ? '<div class="fi-rolagem"><table class="fi-tabela"><thead><tr><th>Ordem</th><th>Lead</th><th>Lista</th><th>Sai</th></tr></thead><tbody>' + linhas + '</tbody></table></div>' +
-          (f.restantes > (f.proximos || []).length ? '<div class="fraco" style="margin-top:8px">Mostrando os ' + f.proximos.length + ' primeiros de ' + f.restantes + '.</div>' : '')
+        (linhas ? '<div class="fi-rolagem alta"><table class="fi-tabela"><thead><tr><th>Ordem</th><th>Lead</th><th>Lista</th><th>Sai</th></tr></thead><tbody>' + linhas + '</tbody></table></div>'
           : '<div class="fi-vazio">Fila vazia: ninguém esperando abordagem neste fluxo.</div>') + '</div>';
     }
 

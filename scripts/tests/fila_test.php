@@ -45,16 +45,17 @@ ok('o disparo das listas respeita a janela dele (8h às 19h)', F::faixas([['id' 
 echo "\n== 2. Com banco ==\n";
 $pdo = Database::getConnection();
 $ACC = AutomacaoSdr::contaDoRobo();
-$temTabela = (bool) $pdo->query("SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sdr_roleta_sorteios'")->fetchColumn();
+$temTabela = (bool) $pdo->query("SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sdr_roleta_sorteios'")->fetchColumn()
+          && (bool) $pdo->query("SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sdr_fila_retratos'")->fetchColumn();
 if ($ACC === null || !$temTabela) {
-    echo "  (pulado: precisa de exatamente uma conta Fleetiflow sem marca própria e da migration 170)\n";
+    echo "  (pulado: precisa de exatamente uma conta Fleetiflow sem marca própria e das migrations 170 e 172)\n";
     echo "\n$OK ok/" . count($FALHAS) . "\n"; exit($FALHAS ? 1 : 0);
 }
-$chaves = ['sdr_fila_planilha', 'sdr_fila_listas'];
-$guardado = [];
-foreach ($chaves as $c) { $st = $pdo->prepare('SELECT config_value FROM whatsapp_settings WHERE account_id = ? AND config_key = ?'); $st->execute([$ACC, $c]); $guardado[$c] = $st->fetchColumn(); }
+$st = $pdo->prepare('SELECT fluxo, retrato, atualizado_em FROM sdr_fila_retratos WHERE account_id = ?');
+$st->execute([$ACC]);
+$guardado = $st->fetchAll(\PDO::FETCH_ASSOC);
 $sorteiosAntes = (int) $pdo->query("SELECT COUNT(*) FROM sdr_roleta_sorteios WHERE account_id = $ACC AND origem IN ('planilha', 'listas')")->fetchColumn();
-$pdo->prepare("DELETE FROM whatsapp_settings WHERE account_id = ? AND config_key IN ('sdr_fila_planilha', 'sdr_fila_listas')")->execute([$ACC]);
+$pdo->prepare('DELETE FROM sdr_fila_retratos WHERE account_id = ?')->execute([$ACC]);
 try {
     ok('sem retrato, o fluxo aparece "sem dados"', ($p = F::painel($ACC))['fluxos'][0]['sem_dados'] === true && $p['fluxos'][1]['sem_dados'] === true);
     ok('fluxo desconhecido é recusado', F::guardar($ACC, 'outro', []) === false && F::guardar(0, 'planilha', []) === false);
@@ -84,13 +85,18 @@ try {
     ok('cada próximo tem a faixa de uma hora', count($pl['proximos']) === 2 && $pl['proximos'][0]['ate'] - $pl['proximos'][0]['de'] === 3600);
     ok('o que foi pulado e o problema chegam ao painel', $pl['pulados']['sem_whatsapp'] === 4 && $pl['problemas'][0]['status'] === 'sem_whatsapp');
     ok('retrato fresco não aparece como desatualizado', $pl['desatualizado'] === false);
-    $pdo->prepare("UPDATE whatsapp_settings SET config_value = REPLACE(config_value, ?, ?) WHERE account_id = ? AND config_key = 'sdr_fila_planilha'")
+    $pdo->prepare("UPDATE sdr_fila_retratos SET retrato = REPLACE(retrato, ?, ?) WHERE account_id = ? AND fluxo = 'planilha'")
         ->execute([$r['gerado_em'], '2020-01-01 00:00:00', $ACC]);
     ok('retrato velho aparece como desatualizado', F::painel($ACC)['fluxos'][0]['desatualizado'] === true);
+    // Sem limite: a fila inteira, não só os primeiros.
+    $mil = array_map(fn($i) => ['id' => 'l' . $i, 'nome' => 'Lead ' . $i, 'grupo' => 'Grupo', 'fone' => '5511900' . str_pad((string) $i, 6, '0', STR_PAD_LEFT)], range(1, 1000));
+    F::guardar($ACC, 'listas', ['janela' => $listas, 'restantes' => 1000, 'proximos' => $mil, 'problemas' => array_map(fn($i) => ['id' => 'p' . $i, 'status' => 'sem_whatsapp'], range(1, 300))]);
+    $pl2 = F::painel($ACC)['fluxos'][1];
+    ok('a fila inteira é guardada e mostrada (1.000 leads, 300 problemas)', count($pl2['proximos']) === 1000 && count($pl2['problemas']) === 300 && $pl2['proximos'][999]['de'] > $pl2['proximos'][0]['de']);
     ok('a fila vazia não tem término', (F::guardar($ACC, 'listas', ['janela' => $listas, 'restantes' => 0]) && F::painel($ACC)['fluxos'][1]['termino'] === null));
 } finally {
-    $pdo->prepare("DELETE FROM whatsapp_settings WHERE account_id = ? AND config_key IN ('sdr_fila_planilha', 'sdr_fila_listas')")->execute([$ACC]);
-    foreach ($guardado as $c => $v) if ($v !== false) $pdo->prepare('INSERT INTO whatsapp_settings (account_id, config_key, config_value, updated_at) VALUES (?, ?, ?, NOW())')->execute([$ACC, $c, $v]);
+    $pdo->prepare('DELETE FROM sdr_fila_retratos WHERE account_id = ?')->execute([$ACC]);
+    foreach ($guardado as $g) $pdo->prepare('INSERT INTO sdr_fila_retratos (account_id, fluxo, retrato, atualizado_em) VALUES (?, ?, ?, ?)')->execute([$ACC, $g['fluxo'], $g['retrato'], $g['atualizado_em']]);
 }
 echo "\n" . ($FALHAS ? count($FALHAS) . ' FALHA(S): ' . implode(' | ', $FALHAS) : "$OK ok/0") . "\n";
 exit($FALHAS ? 1 : 0);

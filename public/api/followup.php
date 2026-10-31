@@ -55,7 +55,7 @@ try {
             $agendados = Envio::agendados($accountId, $ativas, $agora);
             $est = Envio::estimar($agendados, $agora); // ordem e faixa de saída, com a fila do número
             usort($agendados, fn($a, $b) => [$est[$a['card_id']]['de'] ?? 0, $est[$a['card_id']]['ordem'] ?? 0] <=> [$est[$b['card_id']]['de'] ?? 0, $est[$b['card_id']]['ordem'] ?? 0]);
-            foreach (array_slice($agendados, 0, 150) as $i) {
+            foreach ($agendados as $i) {
                 $f = $i['fatos'];
                 $proximos[] = [
                     'card_id' => $i['card_id'],

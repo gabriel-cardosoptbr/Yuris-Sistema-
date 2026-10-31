@@ -56,7 +56,7 @@ que esperam resposta (canal com `send`; 409 com o motivo quando não pode). Regr
 `autor_rotulo` e `autor_deduzido` às mensagens nossas (`App\WhatsAppAgente\AutorDaMensagem`).
 
 `followup.php` é a tela Operação › Follow-up (`App\FollowUp`, 23/10/2026). GET devolve as cadências, as
-etapas do funil, a chave geral, a fila dos próximos envios (até 150, com data e hora, na ordem de saída, com
+etapas do funil, a chave geral, a fila dos próximos envios (inteira, sem corte, com data e hora, na ordem de saída, com
 `ordem` na fila do número, `na_frente` e a faixa `sai_de`/`sai_ate` de `Envio::estimar` e, quando o envio falhou antes, `falha` {tentativas, refaz_em, esgotada, erro}: o refazer é no dia seguinte, no horário da cadência) e os últimos envios.
 POST JSON com `X-CSRF-Token`, só dono/admin: `salvar` (cria ou edita; erro de validação volta 422 com a
 mensagem), `ligar`, `excluir`, `ordenar` e `chave` (a chave geral, a mesma do botão do Chat). O vendedor da
