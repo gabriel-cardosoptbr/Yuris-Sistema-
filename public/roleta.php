@@ -91,12 +91,15 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
     .ro-pessoas{ display:flex; flex-direction:column; gap:8px; }
     .ro-pessoa{ display:grid; grid-template-columns:minmax(0,1fr) 110px; gap:10px 12px; align-items:center; padding:10px 12px; border:1px solid var(--o-borda); border-radius:12px; }
     .ro-quem{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:12px; align-items:center; cursor:pointer; min-width:0; }
-    .ro-assina{ grid-column:1 / -1; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr)); gap:8px 10px; padding-top:8px; border-top:1px dashed var(--o-borda); }
-    .ro-assina[hidden]{ display:none; }
-    .ro-assina label{ display:flex; flex-direction:column; gap:4px; font-size:11px; font-weight:700; color:var(--o-fraco); text-transform:uppercase; letter-spacing:.04em; }
-    .ro-assina input{ min-height:34px; padding:6px 10px; border-radius:10px; border:1px solid var(--o-borda); background:var(--o-input); color:var(--o-texto); font:inherit; font-size:13px; font-weight:600; text-transform:none; letter-spacing:0; box-sizing:border-box; width:100%; }
     .ro-previa{ grid-column:1 / -1; margin:0; font-size:12px; color:var(--o-fraco); line-height:1.5; }
+    .ro-previa[hidden]{ display:none; }
     .ro-previa b{ color:var(--o-forte); font-weight:600; }
+    .ro-vez{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:16px; border-color:var(--o-acento); }
+    .ro-vez[hidden]{ display:none; }
+    .ro-vez .rotulo{ font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--o-acento); }
+    .ro-vez .quem{ font-size:18px; font-weight:800; color:var(--o-forte); display:flex; align-items:center; gap:8px; }
+    .ro-vez .quem i{ width:12px; height:12px; border-radius:50%; display:inline-block; }
+    .ro-vez .frase{ font-size:12.5px; color:var(--o-fraco); }
     .ro-pessoa.dentro{ border-color:var(--o-acento); background:var(--o-acento-suave); }
     .ro-pessoa input[type=checkbox]{ accent-color:var(--o-acento); width:17px; height:17px; margin:0; }
     .ro-pessoa .nome{ font-size:13.5px; font-weight:700; color:var(--o-forte); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -156,6 +159,11 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
 
     <p class="ro-aviso" id="roAvisoMigration" hidden>A tabela da roleta ainda não foi criada neste servidor (migration 170). Dá para salvar a divisão, mas o sorteio só começa depois dela.</p>
     <p class="ro-aviso" id="roAvisoDesligada" hidden>A roleta está desligada: os leads novos seguem a regra de antes. Ligue e salve para começar a dividir.</p>
+
+    <section class="o-card ro-vez" id="roVez" hidden>
+      <div><div class="rotulo">Vendedor da vez</div><div class="quem"><i id="roVezPonto"></i><span id="roVezNome"></span></div></div>
+      <div class="frase">Recebe o próximo lead que o disparo abordar, e a mensagem já sai com o nome dele: <b id="roVezFrase"></b> Depois dela, o seguinte é sorteado.</div>
+    </section>
 
     <div class="ro-grade">
       <section class="o-card">
@@ -234,30 +242,27 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
           + '<label class="ro-quem"><input type="checkbox"' + (dentro ? ' checked' : '') + '>'
           + '<span style="min-width:0"><span class="nome">' + esc(u.nome) + '</span><br><span class="papel">' + esc(PAPEL[u.role] || u.role) + '</span></span></label>'
           + '<span class="ro-pct"><input type="number" min="1" max="100" step="1" inputmode="numeric" value="' + (dentro ? p.percentual : '') + '"' + (dentro ? '' : ' disabled') + ' aria-label="Percentual de ' + esc(u.nome) + '"><span>%</span></span>'
-          + '<div class="ro-assina"' + (dentro ? '' : ' hidden') + '>'
-          + '<label>Nome na mensagem<input type="text" data-campo="nome" maxlength="40" placeholder="' + esc(primeiroNome(u.nome)) + '" value="' + esc(dentro ? p.nome : '') + '"></label>'
-          + '<label>Como se apresenta<input type="text" data-campo="apresentacao" maxlength="50" placeholder="ex.: o ' + esc(primeiroNome(u.nome)) + ', a ' + esc(primeiroNome(u.nome)) + '" value="' + esc(dentro ? p.apresentacao : '') + '"></label>'
-          + '<p class="ro-previa"></p></div>'
+          + '<p class="ro-previa"' + (dentro ? '' : ' hidden') + '>Na mensagem: <b>“Aqui é ' + esc(primeiroNome(u.nome)) + ', da Fleetiflow.”</b> (primeiro nome do cadastro)</p>'
           + '</div>';
       }).join('') || '<div class="ro-vazio">Nenhum usuário ativo na conta.</div>';
-      document.querySelectorAll('.ro-pessoa').forEach(previa);
       somar();
     }
 
-    // Como a abertura vai sair para esta pessoa (os textos dizem "Sou a Vitória",
-    // "Aqui é a Vitória" e "Vitória, da Fleetiflow"). Sem apresentação, vai sem artigo.
-    function previa(el) {
-      var nome = el.querySelector('[data-campo=nome]').value.trim() || el.dataset.primeiro;
-      var quem = el.querySelector('[data-campo=apresentacao]').value.trim() || nome;
-      el.querySelector('.ro-previa').innerHTML = 'Na abertura: <b>“Sou ' + esc(quem) + ', da Fleetiflow.”</b> · <b>“' + esc(nome) + ', da Fleetiflow.”</b>';
+    // O vendedor da vez: quem recebe o próximo lead aberto pelo disparo (já sorteado).
+    function pintarVez() {
+      var v = D.da_vez;
+      $('roVez').hidden = !D.ligada || !v;
+      if (!v) return;
+      $('roVezNome').textContent = v.atendente;
+      $('roVezFrase').textContent = '“Aqui é ' + v.vendedor + ', da Fleetiflow.”';
+      $('roVezPonto').style.background = corDe(v.user_id);
     }
 
     function lerParticipantes() {
       return Array.prototype.map.call(document.querySelectorAll('.ro-pessoa'), function (el) {
         var cb = el.querySelector('input[type=checkbox]');
         if (!cb.checked) return null;
-        return { user_id: Number(el.dataset.uid), percentual: Number(el.querySelector('input[type=number]').value || 0),
-          nome: el.querySelector('[data-campo=nome]').value.trim(), apresentacao: el.querySelector('[data-campo=apresentacao]').value.trim() };
+        return { user_id: Number(el.dataset.uid), percentual: Number(el.querySelector('input[type=number]').value || 0) };
       }).filter(Boolean);
     }
 
@@ -304,6 +309,7 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
       $('roAvisoDesligada').hidden = !!D.ligada || !(D.participantes || []).length;
       pintarPessoas();
       pintarContagem();
+      pintarVez();
     }
 
     async function carregar() {
@@ -327,16 +333,12 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
         var n = el.querySelector('input[type=number]');
         n.disabled = !ev.target.checked;
         el.classList.toggle('dentro', ev.target.checked);
-        el.querySelector('.ro-assina').hidden = !ev.target.checked;
+        el.querySelector('.ro-previa').hidden = !ev.target.checked;
         if (ev.target.checked && !n.value) n.focus();
       }
       somar();
     });
-    $('roPessoas').addEventListener('input', function (ev) {
-      var el = ev.target.closest('.ro-pessoa');
-      if (el && ev.target.dataset.campo) previa(el);
-      somar();
-    });
+    $('roPessoas').addEventListener('input', somar);
     $('roSalvar').addEventListener('click', function () { salvar($('roLigada').checked); });
     $('roLigada').addEventListener('change', function () {
       if (!lerParticipantes().length || $('roSalvar').disabled) {
@@ -348,7 +350,7 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
     });
 
     carregar();
-    setInterval(function () { if (document.visibilityState === 'visible' && D) api().then(function (j) { if (j.ok && j.disponivel) { D.contagem = j.contagem; D.ultimos = j.ultimos; D.desde = j.desde; pintarContagem(); } }); }, 60000);
+    setInterval(function () { if (document.visibilityState === 'visible' && D) api().then(function (j) { if (j.ok && j.disponivel) { D.contagem = j.contagem; D.ultimos = j.ultimos; D.desde = j.desde; D.da_vez = j.da_vez; pintarContagem(); pintarVez(); } }); }, 60000);
   })();
   </script>
 </body>

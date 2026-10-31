@@ -73,12 +73,13 @@ disparo e a cadência de follow-up perguntam antes de cada mensagem (`{disparo, 
 
 `whatsapp/sdr_roleta.php` (n8n, cabeçalho `X-Fleetiflow-Token`) é a pergunta que o robô da planilha e o disparo das
 listas fazem ANTES de montar a abertura: POST `{telefone, card_id?, tipo, origem}` devolve `{ok, atendente}` com
-`user_id`, `atendente` (nome completo), `nome` (como aparece na mensagem, "Cauê") e `quem` (como se apresenta, "o
-Cauê"), ou `atendente: null` com o `motivo` (roleta desligada, ou `tipo` diferente de `abertura`). Pedir de novo
-para o mesmo lead devolve o mesmo atendente (`Roleta::reservar`).
+`user_id`, `atendente` (nome completo do cadastro) e `vendedor` (o primeiro nome, que entra no lugar de `{vendedor}`
+nos textos), ou `atendente: null` com o `motivo` (roleta desligada, ou `tipo` diferente de `abertura`). Lead novo vai
+para o vendedor da vez (`Roleta::daVez`) e o seguinte já é sorteado; pedir de novo para o mesmo lead devolve o mesmo
+atendente sem gastar a vez (`Roleta::reservar`).
 
 `whatsapp/roleta.php` (sessão, só owner/admin, inclusive para ler) é a tela Operação › Roleta: GET devolve a
-divisão (`ligada`, `participantes` `[{user_id, percentual}]`, `desde`), a equipe ativa, a `contagem` por pessoa
+divisão (`ligada`, `participantes` `[{user_id, percentual}]`, `desde`), o `da_vez` (vendedor que recebe o próximo lead), a equipe ativa, a `contagem` por pessoa
 (`atual` desde a divisão salva e `total`) e os `ultimos` sorteios; `pronta: false` quando a migration 170 não
 rodou. POST `{ligada, participantes, _csrf}` grava (soma diferente de 100, pessoa repetida ou de fora volta 422
 com a mensagem). O sorteio em si é pedido pelo n8n no `whatsapp/sdr_etapa.php` com `roleta: true`, só na

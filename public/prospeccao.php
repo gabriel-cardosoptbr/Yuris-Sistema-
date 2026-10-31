@@ -42,6 +42,12 @@ if ($edicaoCrm) {
         $crmPodeEspecialista = $__ctxE->isOwnerOrAdmin();
         $crmEspecialista     = \App\WhatsAppAgente\SdrFleetiflow::especialistaPadrao((int)$__ctxE->getAccountId());
     } catch (\Throwable $e) { /* sem o seletor */ }
+    // Vendedor da vez da Roleta (quem recebe o próximo lead do disparo): só owner/admin.
+    try {
+        if (!empty($crmPodeEspecialista) && \App\WhatsAppAgente\SdrFleetiflow::contaDoTokenGlobal((int)$__ctxE->getAccountId())) {
+            $crmVendedorDaVez = \App\WhatsAppAgente\Roleta::daVez((int)$__ctxE->getAccountId());
+        }
+    } catch (\Throwable $e) { $crmVendedorDaVez = null; }
 }
 $tiposLeadPadrao = ['Concessionária', 'Despachante', 'Loja multimarcas', 'Gestão de Frota', 'Frota Corporativa', 'Locadora', 'Oficina', 'Outro'];
 $activePage = 'prospeccao';
@@ -1396,6 +1402,9 @@ function column_display_name(array $col): string
                     ? 'Gestão comercial em formato Kanban para escritórios de advocacia, com foco em previsibilidade e produtividade.'
                     : 'Gestão comercial em formato Kanban, com foco em previsibilidade e produtividade.' ?></p>
               </div>
+              <?php if (!empty($crmVendedorDaVez)): ?>
+              <a class="btn soft" href="/roleta" style="margin-left:auto;align-self:center;white-space:nowrap" title="Recebe o próximo lead que o disparo abordar; a mensagem sai com o nome dele">Vendedor da vez: <b style="margin-left:4px"><?= htmlspecialchars($crmVendedorDaVez['atendente']) ?></b></a>
+              <?php endif; ?>
             </div>
           </div>
 

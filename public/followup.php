@@ -35,6 +35,11 @@ if ((!$perfilAdmin && !in_array('*', $perms, true) && !in_array('prospeccao', $p
 $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 $activePage = 'followup';
 function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES, 'UTF-8'); }
+// Vendedor da vez da Roleta (quem recebe o próximo lead do disparo): só para owner/admin.
+$daVez = null;
+if ($ctx->isOwnerOrAdmin() && \App\WhatsAppAgente\SdrFleetiflow::contaDoTokenGlobal((int) $ctx->getAccountId())) {
+    try { $daVez = \App\WhatsAppAgente\Roleta::daVez((int) $ctx->getAccountId()); } catch (\Throwable $e) { $daVez = null; }
+}
 ?>
 <!doctype html>
 <html lang="pt-BR">
@@ -209,6 +214,9 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
         <p>As mensagens que o sistema manda sozinho pelo WhatsApp quando o lead fica em silêncio. Aqui você decide quando cada cadência começa, em quais etapas do funil ela vale, os textos e o tempo entre uma mensagem e outra. O card de cada lead mostra quando sai a próxima.</p>
       </div>
       <div class="fu-topo-acoes">
+        <?php if ($daVez): ?>
+        <a class="o-btn" href="/roleta" title="Recebe o próximo lead que o disparo abordar; a mensagem sai com o nome dele">Vendedor da vez: <b style="margin-left:4px"><?= e($daVez['atendente']) ?></b></a>
+        <?php endif; ?>
         <label class="fu-chave fu-geral" title="Chave geral: desligada, nenhuma cadência da conta manda nada">
           <input type="checkbox" id="fuGeral"><span class="trilho"></span><span id="fuGeralTxt">Follow-up ligado</span>
         </label>
@@ -258,7 +266,7 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
         <div class="fu-campo"><span class="rot">Mensagens</span>
           <div id="fPassos" style="display:flex;flex-direction:column;gap:12px"></div>
           <div class="fu-linha" style="justify-content:space-between">
-            <span class="fu-vars">Campos: <code>{nome}</code> primeiro nome do contato, <code>{empresa}</code> empresa do card. Campo vazio some do texto.</span>
+            <span class="fu-vars">Campos: <code>{nome}</code> primeiro nome do contato, <code>{empresa}</code> empresa do card, <code>{vendedor}</code> primeiro nome do vendedor responsável pelo card (do cadastro). Campo vazio some do texto.</span>
             <button type="button" class="o-btn mini" id="fAddPasso">+ Adicionar mensagem</button>
           </div></div>
       </div>

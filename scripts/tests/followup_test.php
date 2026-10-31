@@ -76,6 +76,8 @@ ok('nome que é telefone não entra no texto', R::texto('Oi {nome}!', ['nome' =>
 ok('nome que é a própria empresa não entra no texto', R::texto('Oi {nome}, tudo bem?', ['nome' => 'KWM Express', 'empresa' => 'KWM Express Ltda']) === 'Oi, tudo bem?');
 ok('nome de gente com a empresa ao lado entra', R::texto('Oi {nome}!', ['nome' => 'Alanna', 'empresa' => 'KWM Express']) === 'Oi Alanna!');
 ok('{empresa} vira a empresa do card', R::texto('Como está a {empresa}?', ['empresa' => 'Blue Transportes']) === 'Como está a Blue Transportes?');
+ok('{vendedor} vira o nome do vendedor do card', R::texto('Aqui é {vendedor}, da Fleetiflow.', ['vendedor' => 'Kaue']) === 'Aqui é Kaue, da Fleetiflow.');
+ok('{vendedor} vazio some sem sobrar espaço', R::texto('Oi {nome}! Aqui é {vendedor}.', ['nome' => 'Ana', 'vendedor' => '']) === 'Oi Ana! Aqui é.');
 
 $a = ['id' => 1, 'ativo' => false] + $cad; $b = ['id' => 2, 'ativo' => true] + $cad; $c = ['id' => 3, 'ativo' => true, 'gatilho' => 'qualquer'] + $cad;
 ok('cadência desligada não conta', R::escolher([$a, $b], $f, $T)[0]['id'] === 2);

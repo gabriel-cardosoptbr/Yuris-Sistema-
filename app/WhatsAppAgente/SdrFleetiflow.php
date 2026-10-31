@@ -304,10 +304,21 @@ final class SdrFleetiflow
                 $st->execute([(int)$task['instance_id'], $conta]);
                 $instancia = (string)($st->fetchColumn() ?: '');
             }
+            // O vendedor do lead (31/10/2026, pedido do dono): a IA se apresenta com o
+            // primeiro nome do cadastro dele, o mesmo que assinou a abertura. Sem
+            // vendedor, null, e a IA segue com o nome dela. Ver VendedorDoLead.
+            $vendedor = null;
+            try {
+                $alt = (string)($task['payload']['key']['remoteJidAlt'] ?? '');
+                $v = VendedorDoLead::daConversa($conta, (int)($task['instance_id'] ?? 0), (string)($task['remote_jid'] ?? ''),
+                    str_ends_with($alt, '@s.whatsapp.net') ? explode('@', $alt)[0] : '');
+                if ($v) $vendedor = ['user_id' => $v['user_id'], 'nome' => $v['vendedor'], 'nome_completo' => $v['nome']];
+            } catch (\Throwable $e) { $vendedor = null; }
             $corpo = json_encode([
                 'event'    => 'messages.upsert',
                 'origem'   => 'yuris',
                 'instance' => $instancia,
+                'vendedor' => $vendedor,
                 'data'     => $task['payload'] ?? [],
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 

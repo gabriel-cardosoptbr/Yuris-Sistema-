@@ -212,7 +212,8 @@ final class Envio
         // Número fora do ar: o lead espera ele voltar (não troca de número no meio da conversa).
         if (!$chat['aberto']) return 'puladas';
         $passo = (int) $sit['passo'];
-        $texto = Regra::texto((string) $cad['passos'][$passo - 1]['texto'], ['nome' => $f['nome'], 'empresa' => $f['empresa']]);
+        $vendedor = \App\WhatsAppAgente\VendedorDoLead::doCard($acc, $cardId);
+        $texto = Regra::texto((string) $cad['passos'][$passo - 1]['texto'], ['nome' => $f['nome'], 'empresa' => $f['empresa'], 'vendedor' => $vendedor['vendedor'] ?? '']);
         if ($texto === '') return 'puladas';
         $chave = [$chat['instance_id'], $chat['remote_jid'], $cad['id'], date('Y-m-d H:i:s', (int) $sit['ciclo_desde']), $passo];
         $quando = date('Y-m-d H:i:s', $agora);

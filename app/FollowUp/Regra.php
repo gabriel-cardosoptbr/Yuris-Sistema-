@@ -188,7 +188,9 @@ final class Regra
     }
 
     /**
-     * O texto com os campos do lead. {nome} = primeiro nome do contato, {empresa}.
+     * O texto com os campos do lead. {nome} = primeiro nome do contato, {empresa},
+     * {vendedor} = primeiro nome do cadastro do vendedor responsável pelo card
+     * (VendedorDoLead, 31/10/2026; muda junto quando o cadastro muda).
      * Campo vazio some sem deixar espaço sobrando ("Oi {nome}, tudo bem?" → "Oi, tudo bem?").
      * Nome que é a própria empresa não entra (muito card da prospecção tem o nome da
      * empresa no campo do contato, e o texto saía "Oi KWM, tudo bem?", 23/10/2026).
@@ -198,7 +200,7 @@ final class Regra
         $nome = trim((string) ($vars['nome'] ?? ''));
         $empresa = trim((string) ($vars['empresa'] ?? ''));
         $primeiro = $nome !== '' && !preg_match('/^\+?[\d\s()-]+$/', $nome) && !self::mesmoNome($nome, $empresa) ? explode(' ', $nome)[0] : '';
-        $t = strtr($modelo, ['{nome}' => $primeiro, '{empresa}' => $empresa]);
+        $t = strtr($modelo, ['{nome}' => $primeiro, '{empresa}' => $empresa, '{vendedor}' => trim((string) ($vars['vendedor'] ?? ''))]);
         $t = preg_replace('/[ \t]+([,.!?;:])/u', '$1', $t);
         $t = preg_replace('/[ \t]{2,}/u', ' ', $t);
         return trim((string) $t);

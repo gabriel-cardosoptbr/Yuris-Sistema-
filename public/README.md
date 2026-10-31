@@ -78,7 +78,7 @@ sombra nova, sem lista de exceção.
 `roleta.php` (Operação › Roleta, edição CRM, 30/10/2026) é onde o admin divide os
 leads que a prospecção automática aborda entre os atendentes (`App\WhatsAppAgente\Roleta`):
 quem participa, o percentual de cada um (soma 100%, conferida na tela e no servidor) e
-a chave liga/desliga; ao lado, quantos leads cada um recebeu na divisão atual e no
+a chave liga/desliga; no topo, o **vendedor da vez** (quem recebe o próximo lead, sorteado de antemão; o mesmo aparece na Prospecção e no Follow-up só para owner/admin) e, ao lado, quantos leads cada um recebeu na divisão atual e no
 total, e os últimos sorteios. Só owner/admin, e só na conta que os fluxos do n8n
 atendem (a dona do token da prospecção): o atendente não vê o item no menu e recebe
 403 na página e na API. Dados em `api/whatsapp/roleta.php`.

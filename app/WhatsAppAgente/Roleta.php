@@ -16,8 +16,14 @@ use App\Core\Database;
  * abertura (sortear), é ligado ao card: o card e a conversa passam a ser do
  * sorteado. Sem a pergunta antes (fluxo antigo), sortear() sorteia na hora.
  *
- * Quem participa, o percentual, o nome que vai na mensagem ("Cauê") e como a
- * pessoa se apresenta ("o Cauê") ficam em whatsapp_settings (chave `sdr_roleta`,
+ * O nome que vai na mensagem é sempre o primeiro nome do cadastro do vendedor
+ * (VendedorDoLead), nunca um campo próprio da roleta (31/10/2026, pedido do dono).
+ *
+ * O VENDEDOR DA VEZ é sorteado de antemão e fica guardado (`sdr_roleta_vez`): o
+ * admin vê na Roleta, na Prospecção e no Follow-up quem recebe o próximo lead. Cada
+ * abertura nova consome o da vez e já sorteia o seguinte (daVez, reservar).
+ *
+ * Quem participa e o percentual ficam em whatsapp_settings (chave `sdr_roleta`,
  * JSON), como AutomacaoSdr; cada sorteio fica em sdr_roleta_sorteios (migrations
  * 170 e 171), que é o histórico, a contagem da tela e a garantia de que o mesmo
  * lead (card ou telefone) não é sorteado duas vezes.
@@ -38,13 +44,12 @@ use App\Core\Database;
 final class Roleta
 {
     public const CHAVE = 'sdr_roleta';
+    /** O vendedor da vez, já sorteado (user_id), em whatsapp_settings. */
+    public const CHAVE_VEZ = 'sdr_roleta_vez';
 
     /**
      * A configuração da conta. Sem registro: desligada e sem participantes.
-     * `nome` é como a pessoa aparece na abertura ("Cauê") e `apresentacao`, como ela
-     * se apresenta, com o artigo ("o Cauê"); vazios valem o primeiro nome do usuário,
-     * sem artigo (assinatura).
-     * @return array{ligada:bool, participantes:array<int,array{user_id:int, percentual:int, nome:string, apresentacao:string}>, desde:?string}
+     * @return array{ligada:bool, participantes:array<int,array{user_id:int, percentual:int}>, desde:?string}
      */
     public static function config(int $accountId): array
     {
@@ -58,8 +63,7 @@ final class Roleta
         foreach ((array)($j['participantes'] ?? []) as $p) {
             $uid = (int)($p['user_id'] ?? 0);
             $pct = (int)($p['percentual'] ?? 0);
-            if ($uid > 0 && $pct > 0) $part[] = ['user_id' => $uid, 'percentual' => $pct,
-                'nome' => trim((string)($p['nome'] ?? '')), 'apresentacao' => trim((string)($p['apresentacao'] ?? ''))];
+            if ($uid > 0 && $pct > 0) $part[] = ['user_id' => $uid, 'percentual' => $pct];
         }
         return ['ligada' => !empty($j['ligada']), 'participantes' => $part, 'desde' => $j['desde'] ?? null];
     }
@@ -67,9 +71,8 @@ final class Roleta
     /**
      * Confere a divisão que a tela mandou. Cada participante tem de ser usuário
      * ativo da conta, sem repetir, com percentual inteiro de 1 a 100, e a soma tem
-     * de dar 100. Nome na mensagem até 40 letras e apresentação até 50, sem
-     * quebra de linha. Devolve a mensagem do primeiro problema, ou null.
-     * @param array<int,array{user_id:mixed, percentual:mixed, nome?:mixed, apresentacao?:mixed}> $participantes
+     * de dar 100. Devolve a mensagem do primeiro problema, ou null.
+     * @param array<int,array{user_id:mixed, percentual:mixed}> $participantes
      */
     public static function validar(int $accountId, array $participantes): ?string
     {
@@ -87,11 +90,6 @@ final class Roleta
             if ($pct === false || $pct < 1 || $pct > 100) return 'Cada percentual tem de ser um número inteiro de 1 a 100.';
             $ativo->execute([$uid, $accountId]);
             if (!$ativo->fetchColumn()) return 'Só entra na roleta quem é usuário ativo da conta.';
-            $nome = (string)($p['nome'] ?? '');
-            $apres = (string)($p['apresentacao'] ?? '');
-            if (mb_strlen(trim($nome)) > 40) return 'O nome na mensagem pode ter até 40 letras.';
-            if (mb_strlen(trim($apres)) > 50) return 'A apresentação pode ter até 50 letras.';
-            if (preg_match('/[\r\n{}]/', $nome . $apres)) return 'O nome e a apresentação não podem ter quebra de linha nem chaves.';
             $soma += $pct;
         }
         if ($soma !== 100) return "Os percentuais somam {$soma}%. A soma tem de dar 100%.";
@@ -109,12 +107,11 @@ final class Roleta
         if ($accountId <= 0) return 'Conta inválida.';
         if ($erro = self::validar($accountId, $participantes)) return $erro;
 
-        $novos = array_map(fn($p) => ['user_id' => (int)$p['user_id'], 'percentual' => (int)$p['percentual'],
-            'nome' => trim((string)($p['nome'] ?? '')), 'apresentacao' => trim((string)($p['apresentacao'] ?? ''))], array_values($participantes));
+        $novos = array_map(fn($p) => ['user_id' => (int)$p['user_id'], 'percentual' => (int)$p['percentual']], array_values($participantes));
         $atual = self::config($accountId);
         $pdo   = Database::getConnection();
-        // Só quem participa e o percentual recomeçam a conta; trocar o nome ou a
-        // ordem em que a tela manda as pessoas, não.
+        // Só quem participa e o percentual recomeçam a conta (e o sorteio do
+        // vendedor da vez); a ordem em que a tela manda as pessoas, não.
         $chave = function (array $ps): string {
             $v = array_map(fn($p) => $p['user_id'] . ':' . $p['percentual'], $ps);
             sort($v);
@@ -133,6 +130,8 @@ final class Roleta
             $pdo->prepare('INSERT INTO whatsapp_settings (account_id, config_key, config_value, updated_at) VALUES (?, ?, ?, NOW())')
                 ->execute([$accountId, self::CHAVE, $valor]);
         }
+        // Divisão nova: o vendedor da vez é sorteado de novo, já na regra nova.
+        if ($desde !== $atual['desde']) self::gravarVez($pdo, $accountId, null);
         \App\Master\Account::audit($accountId, 'sdr.roleta.salva', [
             'user_id' => $userId, 'entidade' => 'whatsapp_settings', 'entidade_id' => null,
             'dados_antes' => $atual, 'detalhes' => ['ligada' => $ligada, 'participantes' => $novos, 'desde' => $desde],
@@ -210,9 +209,8 @@ final class Roleta
             }
             $atual = $card['responsavel_user_id'] !== null ? (int)$card['responsavel_user_id'] : null;
 
-            $pesos = [];
-            foreach ($cfg['participantes'] as $p) $pesos[$p['user_id']] = $p['percentual'];
-            $uid = self::escolher($pesos, self::recebidos($pdo, $accountId, $cfg['desde']));
+            $pesos = self::pesos($cfg);
+            $uid = self::vezAtual($pdo, $accountId, $cfg);
             if (!$uid) return ['pulou' => 'sem participante'];
 
             self::gravar($pdo, $accountId, $cardId, self::digitos($card['telefone_whatsapp'] ?? ''), $uid, $pesos[$uid], $origem, $instanceId, $remoteJid);
@@ -220,6 +218,7 @@ final class Roleta
                 \App\Prospeccao\Card::update($cardId, ['responsavel_user_id' => $uid, '_usuario_id' => null]);
             }
             self::aplicarNaConversa($pdo, $accountId, $uid, $instanceId, $remoteJid);
+            self::proximaVez($pdo, $accountId, $cfg);
             return ['user_id' => $uid, 'nome' => self::nome($pdo, $uid), 'novo' => true];
         } finally {
             $pdo->prepare('SELECT RELEASE_LOCK(?)')->execute([$trava]);
@@ -238,7 +237,7 @@ final class Roleta
      *     já grava no card e na conversa). O card que nascer depois do envio é
      *     ligado em sortear(), pelo sdr_etapa.php.
      *
-     * @return array{user_id:int, atendente:string, nome:string, quem:string, novo:bool}|array{pulou:string}
+     * @return array{user_id:int, atendente:string, vendedor:string, novo:bool}|array{pulou:string}
      */
     public static function reservar(int $accountId, string $telefone, ?int $cardId = null, string $origem = 'disparo'): array
     {
@@ -264,37 +263,55 @@ final class Roleta
             $ja = self::jaSorteado($pdo, $accountId, $card, $fone);
             if ($ja) {
                 if ($card) self::aplicar($pdo, $accountId, $card, $ja, $chat['instance_id'] ?? null, $chat['remote_jid'] ?? null);
-                return self::assinatura($pdo, $cfg, $ja) + ['novo' => false];
+                return self::assinatura($accountId, $ja) + ['novo' => false];
             }
             if ($card && $card['responsavel_user_id'] !== null && !self::podeTrocar($pdo, $accountId, $card, $chat['instance_id'] ?? null)) {
-                return self::assinatura($pdo, $cfg, (int)$card['responsavel_user_id']) + ['novo' => false];
+                return self::assinatura($accountId, (int)$card['responsavel_user_id']) + ['novo' => false];
             }
 
-            $pesos = [];
-            foreach ($cfg['participantes'] as $p) $pesos[$p['user_id']] = $p['percentual'];
-            $uid = self::escolher($pesos, self::recebidos($pdo, $accountId, $cfg['desde']));
+            // Lead novo: vai para o vendedor da vez, e o seguinte já é sorteado.
+            $pesos = self::pesos($cfg);
+            $uid = self::vezAtual($pdo, $accountId, $cfg);
             if (!$uid) return ['pulou' => 'sem participante'];
             self::gravar($pdo, $accountId, $card ? (int)$card['id'] : null, $fone, $uid, $pesos[$uid], $origem, $chat['instance_id'] ?? null, $chat['remote_jid'] ?? null);
             if ($card) self::aplicar($pdo, $accountId, $card, $uid, $chat['instance_id'] ?? null, $chat['remote_jid'] ?? null);
-            return self::assinatura($pdo, $cfg, $uid) + ['novo' => true];
+            self::proximaVez($pdo, $accountId, $cfg);
+            return self::assinatura($accountId, $uid) + ['novo' => true];
         } finally {
             $pdo->prepare('SELECT RELEASE_LOCK(?)')->execute([$trava]);
         }
     }
 
     /**
-     * Como o atendente aparece na abertura: `nome` ("Cauê") e `quem`, a forma de se
-     * apresentar ("o Cauê"). Sem nada configurado vale o primeiro nome do usuário e
-     * `quem` fica igual ao nome, sem artigo ("Aqui é Cauê, da Fleetiflow").
-     * @return array{user_id:int, atendente:string, nome:string, quem:string}
+     * Como o vendedor aparece na mensagem: `vendedor` é o primeiro nome do cadastro
+     * ("Kaue Souza" -> "Kaue"), `atendente` o nome completo. Ver VendedorDoLead.
+     * @return array{user_id:int, atendente:string, vendedor:string}
      */
-    public static function assinatura(\PDO $pdo, array $cfg, int $uid): array
+    public static function assinatura(int $accountId, int $uid): array
     {
-        $completo = self::nome($pdo, $uid);
-        $p = current(array_filter($cfg['participantes'], fn($x) => $x['user_id'] === $uid)) ?: [];
-        $nome = trim((string)($p['nome'] ?? '')) ?: (preg_split('/\s+/', trim($completo))[0] ?? $completo);
-        $quem = trim((string)($p['apresentacao'] ?? '')) ?: $nome;
-        return ['user_id' => $uid, 'atendente' => $completo, 'nome' => $nome, 'quem' => $quem];
+        $completo = self::nome(Database::getConnection(), $uid);
+        return ['user_id' => $uid, 'atendente' => $completo, 'vendedor' => VendedorDoLead::primeiroNome($completo)];
+    }
+
+    /**
+     * O vendedor da vez: quem recebe o próximo lead aberto pelo disparo. Já fica
+     * sorteado (e guardado) antes da mensagem, para o admin ver na tela. null com a
+     * roleta desligada ou sem participantes.
+     * @return array{user_id:int, atendente:string, vendedor:string}|null
+     */
+    public static function daVez(int $accountId): ?array
+    {
+        $cfg = self::config($accountId);
+        if (!$cfg['ligada'] || !$cfg['participantes']) return null;
+        $pdo   = Database::getConnection();
+        $trava = 'sdr_roleta_' . $accountId;
+        $pdo->prepare('SELECT GET_LOCK(?, 5)')->execute([$trava]);
+        try {
+            $uid = self::vezAtual($pdo, $accountId, $cfg);
+            return $uid ? self::assinatura($accountId, $uid) : null;
+        } finally {
+            $pdo->prepare('SELECT RELEASE_LOCK(?)')->execute([$trava]);
+        }
     }
 
     /**
@@ -355,6 +372,46 @@ final class Roleta
         );
         $st->execute([$accountId]);
         return $st->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /** @return array<int,int> user_id => percentual */
+    private static function pesos(array $cfg): array
+    {
+        $pesos = [];
+        foreach ($cfg['participantes'] as $p) $pesos[$p['user_id']] = $p['percentual'];
+        return $pesos;
+    }
+
+    /** O da vez guardado, se ainda participa e está ativo; senão sorteia um agora e guarda. */
+    private static function vezAtual(\PDO $pdo, int $accountId, array $cfg): ?int
+    {
+        $pesos = self::pesos($cfg);
+        $st = $pdo->prepare('SELECT config_value FROM whatsapp_settings WHERE account_id = ? AND config_key = ? LIMIT 1');
+        $st->execute([$accountId, self::CHAVE_VEZ]);
+        $uid = (int)($st->fetchColumn() ?: 0);
+        if ($uid && isset($pesos[$uid]) && VendedorDoLead::doUsuario($accountId, $uid)) return $uid;
+        return self::proximaVez($pdo, $accountId, $cfg);
+    }
+
+    /** Sorteia e guarda o próximo da vez (depois de cada lead entregue). */
+    private static function proximaVez(\PDO $pdo, int $accountId, array $cfg): ?int
+    {
+        $uid = self::escolher(self::pesos($cfg), self::recebidos($pdo, $accountId, $cfg['desde']));
+        self::gravarVez($pdo, $accountId, $uid);
+        return $uid;
+    }
+
+    private static function gravarVez(\PDO $pdo, int $accountId, ?int $uid): void
+    {
+        if ($uid === null) {
+            $pdo->prepare('DELETE FROM whatsapp_settings WHERE account_id = ? AND config_key = ?')->execute([$accountId, self::CHAVE_VEZ]);
+            return;
+        }
+        $st = $pdo->prepare('SELECT id FROM whatsapp_settings WHERE account_id = ? AND config_key = ? LIMIT 1');
+        $st->execute([$accountId, self::CHAVE_VEZ]);
+        $id = $st->fetchColumn();
+        if ($id) $pdo->prepare('UPDATE whatsapp_settings SET config_value = ?, updated_at = NOW() WHERE id = ?')->execute([(string)$uid, (int)$id]);
+        else $pdo->prepare('INSERT INTO whatsapp_settings (account_id, config_key, config_value, updated_at) VALUES (?, ?, ?, NOW())')->execute([$accountId, self::CHAVE_VEZ, (string)$uid]);
     }
 
     /** @return array<int,int> user_id => leads recebidos desde $desde */

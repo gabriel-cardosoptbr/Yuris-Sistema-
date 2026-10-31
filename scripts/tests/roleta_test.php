@@ -183,24 +183,24 @@ try {
             $cards[] = $id;
             return $id;
         };
-        ok('nome com quebra de linha é recusado', R::validar($ACC, [['user_id' => $A, 'percentual' => 100, 'nome' => "Cauê\nX"]]) !== null);
-        ok('nome com mais de 40 letras é recusado', R::validar($ACC, [['user_id' => $A, 'percentual' => 100, 'nome' => str_repeat('a', 41)]]) !== null);
-        $divNomes = [['user_id' => $A, 'percentual' => 70, 'nome' => 'Cauê', 'apresentacao' => 'o Cauê'], ['user_id' => $B, 'percentual' => 30]];
-        ok('salva com o nome e a apresentação', R::salvar($ACC, $divNomes, true) === null && R::config($ACC)['participantes'][0]['apresentacao'] === 'o Cauê');
-        $desdeNomes = R::config($ACC)['desde'];
         sleep(1);
-        R::salvar($ACC, [['user_id' => $B, 'percentual' => 30], ['user_id' => $A, 'percentual' => 70, 'nome' => 'Cauê', 'apresentacao' => 'o Cauê']], true);
-        ok('mudar a ordem das pessoas ou só o nome não recomeça a contagem', R::config($ACC)['desde'] === $desdeNomes);
-        $cfg = R::config($ACC);
-        ok('assinatura configurada: nome e apresentação com artigo', array_intersect_key(R::assinatura($pdo, $cfg, $A), ['nome' => 1, 'quem' => 1]) === ['nome' => 'Cauê', 'quem' => 'o Cauê']);
-        $sb = R::assinatura($pdo, $cfg, $B);
-        ok('sem nada configurado: primeiro nome e sem artigo', $sb['nome'] === $primeiro($B) && $sb['quem'] === $primeiro($B));
+        R::salvar($ACC, [['user_id' => $A, 'percentual' => 70], ['user_id' => $B, 'percentual' => 30]], true);
+        $desde7030 = R::config($ACC)['desde'];
+        sleep(1);
+        R::salvar($ACC, [['user_id' => $B, 'percentual' => 30], ['user_id' => $A, 'percentual' => 70]], true);
+        ok('mudar só a ordem das pessoas não recomeça a contagem', R::config($ACC)['desde'] === $desde7030);
+        ok('o nome é o primeiro nome do cadastro', R::assinatura($ACC, $A)['vendedor'] === $primeiro($A) && R::assinatura($ACC, $B)['vendedor'] === $primeiro($B));
 
+        // Vendedor da vez: sorteado antes da mensagem, guardado, consumido pela abertura.
+        $vez = R::daVez($ACC);
+        ok('o vendedor da vez já está sorteado e não muda ao olhar de novo', $vez && in_array($vez['user_id'], [$A, $B], true) && R::daVez($ACC)['user_id'] === $vez['user_id'] && R::daVez($ACC)['user_id'] === $vez['user_id']);
         $f1 = $fone();
         $r1 = R::reservar($ACC, $f1, null, 'planilha');
-        ok('antes do envio, sem card, sorteia e devolve como assinar', !empty($r1['novo']) && in_array($r1['user_id'], [$A, $B], true) && $r1['quem'] !== '');
+        ok('a abertura nova vai para o vendedor da vez, com o nome do cadastro', !empty($r1['novo']) && $r1['user_id'] === $vez['user_id'] && $r1['vendedor'] === $primeiro($vez['user_id']));
+        $proximo = R::daVez($ACC);
+        ok('depois da abertura, o seguinte já está sorteado', $proximo !== null && in_array($proximo['user_id'], [$A, $B], true));
         $r1b = R::reservar($ACC, $f1, null, 'planilha');
-        ok('perguntar de novo pelo mesmo telefone devolve o mesmo atendente', empty($r1b['novo']) && $r1b['user_id'] === $r1['user_id']);
+        ok('perguntar de novo pelo mesmo telefone devolve o mesmo atendente (e não gasta a vez)', empty($r1b['novo']) && $r1b['user_id'] === $r1['user_id'] && R::daVez($ACC)['user_id'] === $proximo['user_id']);
         $c7 = $cardFone($f1, null); // o card nasce depois do envio
         $s7 = R::sortear($ACC, $c7, null, null, 'planilha');
         ok('o card que nasce depois fica com quem assinou a abertura', $s7['user_id'] === $r1['user_id'] && empty($s7['novo']) && $resp($c7) === $r1['user_id']);
@@ -221,13 +221,20 @@ try {
         if (count($us) >= 3) {
             $C = $us[2];
             sleep(1); // a divisão nova começa a contar no segundo seguinte
-            R::salvar($ACC, [['user_id' => $A, 'percentual' => 50, 'nome' => 'Cauê', 'apresentacao' => 'o Cauê'], ['user_id' => $B, 'percentual' => 30], ['user_id' => $C, 'percentual' => 20, 'nome' => 'Bruno']], true);
+            R::salvar($ACC, [['user_id' => $A, 'percentual' => 50], ['user_id' => $B, 'percentual' => 30], ['user_id' => $C, 'percentual' => 20]], true);
             $conta3 = [$A => 0, $B => 0, $C => 0];
             $assin = [];
-            for ($i = 0; $i < 30; $i++) { $r = R::reservar($ACC, $fone(), null, 'planilha'); $conta3[$r['user_id']]++; $assin[$r['user_id']] = $r['quem']; }
+            $bateu = true;
+            for ($i = 0; $i < 30; $i++) {
+                $vez = R::daVez($ACC);
+                $r = R::reservar($ACC, $fone(), null, 'planilha');
+                $bateu = $bateu && $vez['user_id'] === $r['user_id'];
+                $conta3[$r['user_id']]++; $assin[$r['user_id']] = $r['vendedor'];
+            }
+            ok('em 30 aberturas, cada uma foi para quem a tela mostrava como vendedor da vez', $bateu);
             echo "         30 aberturas 50/30/20: " . json_encode($conta3) . ' assinaturas: ' . json_encode($assin, JSON_UNESCAPED_UNICODE) . "\n";
             ok('terceiro atendente entra na roleta e a divisão fica no percentual (15/9/6, menos de 2 de diferença)', abs($conta3[$A] - 15) < 2 && abs($conta3[$B] - 9) < 2 && abs($conta3[$C] - 6) < 2);
-            ok('cada um assina com o seu nome (Bruno sem artigo)', ($assin[$A] ?? '') === 'o Cauê' && ($assin[$C] ?? '') === 'Bruno' && ($assin[$B] ?? '') === $primeiro($B));
+            ok('cada um assina com o primeiro nome do cadastro', ($assin[$A] ?? '') === $primeiro($A) && ($assin[$B] ?? '') === $primeiro($B) && ($assin[$C] ?? '') === $primeiro($C));
         } else {
             echo "  (terceiro atendente pulado: a conta #$ACC tem só dois usuários ativos)\n";
         }

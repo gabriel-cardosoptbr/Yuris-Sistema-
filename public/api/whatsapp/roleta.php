@@ -5,7 +5,8 @@
  * A tela Operação › Roleta (public/roleta.php): quem recebe os leads que a
  * prospecção automática abre, e em que proporção. Ver App\WhatsAppAgente\Roleta.
  *
- *   GET  -> { ok, disponivel, ligada, participantes, desde, equipe, contagem, ultimos }
+ *   GET  -> { ok, disponivel, ligada, participantes, desde, da_vez, equipe, contagem, ultimos }
+ *           da_vez = o vendedor que recebe o próximo lead ({user_id, atendente, vendedor}), ou null
  *   POST { ligada:0|1, participantes:[{user_id, percentual}], _csrf } -> o mesmo do GET
  *
  * Só owner/admin, para ler e para mudar: o atendente não vê a divisão. Só existe
@@ -40,12 +41,13 @@ $estado = function () use ($accountId): array {
     try {
         $contagem = Roleta::contagem($accountId);
         $ultimos  = Roleta::ultimos($accountId, 20);
+        $daVez    = Roleta::daVez($accountId);
         $pronta   = true;
     } catch (\Throwable $e) {
-        $contagem = []; $ultimos = []; $pronta = false; // migration 170 ainda não rodou
+        $contagem = []; $ultimos = []; $daVez = null; $pronta = false; // migrations 170/171 ainda não rodaram
     }
     return ['ok' => true, 'disponivel' => true, 'pronta' => $pronta] + Roleta::config($accountId)
-        + ['equipe' => $equipe, 'contagem' => $contagem, 'ultimos' => $ultimos];
+        + ['da_vez' => $daVez, 'equipe' => $equipe, 'contagem' => $contagem, 'ultimos' => $ultimos];
 };
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') { echo json_encode($estado(), JSON_UNESCAPED_UNICODE); exit; }

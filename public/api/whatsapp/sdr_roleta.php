@@ -10,10 +10,11 @@
  *   Body JSON: { telefone, card_id?, tipo?, origem? }
  *     tipo:   'abertura' (padrão) sorteia; qualquer outro ('followup') não sorteia
  *     origem: 'planilha' | 'listas' (vai para o histórico da roleta)
- *   200 { ok:true, atendente: { user_id, atendente, nome, quem, novo } | null, motivo? }
- *        nome = como aparece na mensagem ("Cauê"); quem = como se apresenta ("o Cauê",
- *        ou o próprio nome quando não há artigo configurado)
+ *   200 { ok:true, atendente: { user_id, atendente, vendedor, novo } | null, motivo? }
+ *        vendedor = o primeiro nome do cadastro ("Kaue"), que entra no lugar de
+ *        {vendedor} nos textos; atendente = o nome completo do cadastro
  *        atendente null = roleta desligada (o fluxo usa o texto de antes)
+ *   Lead novo vai para o vendedor da vez (Roleta::daVez), e o seguinte já é sorteado.
  *   401 token   404 conta   422 dados
  *
  * Autentica pelo cabeçalho X-Fleetiflow-Token (FLEETIFLOW_SDR_WEBHOOK_TOKEN), como
