@@ -104,6 +104,17 @@ $e = Envio::estimar([$ag(1, 7, $A + 7200)], $A, [7 => 0]);
 ok('sem fila, sai na hora da cadência', $e[1]['de'] === $A + 7200 && $e[1]['ate'] === $A + 7200 && $e[1]['na_frente'] === 0);
 $e = Envio::estimar([$ag(1, 7, $A - 600), $ag(2, 8, $A - 300)], $A, [7 => $A + 3000, 8 => 0]);
 ok('cada número tem a sua fila e a sua ordem', $e[1]['de'] === $A + 3000 && $e[2]['de'] === $A && $e[1]['ordem'] === 1 && $e[2]['ordem'] === 1);
+// Falha pontual (31/10/2026): guardada e refeita no DIA SEGUINTE, no primeiro horário da cadência.
+$erroPontual = 'O WhatsApp não aceitou a mensagem.';
+ok('falha de sexta 17h32 é refeita no sábado às 8h (outro dia, outro horário)', Envio::refazEm($sp('2026-10-30 17:32'), $erroPontual, $h) === $sp('2026-10-31 08:00'));
+ok('falha de sábado vai para a segunda às 8h (domingo fica de fora)', Envio::refazEm($sp('2026-10-31 17:32'), $erroPontual, $h) === $sp('2026-11-02 08:00'));
+ok('falha de madrugada também espera o dia seguinte', Envio::refazEm($sp('2026-11-03 02:00'), $erroPontual, $h) === $sp('2026-11-04 08:00'));
+ok('falha do número (desconectado) continua sendo refeita em 20 min', Envio::refazEm($sp('2026-10-30 17:32'), Envio::ERRO_NUMERO_FORA, $h) === $sp('2026-10-30 17:52') && Envio::refazEm($sp('2026-10-30 17:32'), Envio::ERRO_SEM_PERMISSAO, $h) === $sp('2026-10-30 17:52'));
+$agF = fn(int $card, int $inst, int $prev, int $refaz, bool $esg = false) => $ag($card, $inst, $prev) + ['falha' => ['refaz_em' => $refaz, 'esgotada' => $esg, 'tentativas' => $esg ? 3 : 1, 'erro' => $erroPontual]];
+$e = Envio::estimar([$agF(1, 7, $A - 7200, $sp('2026-10-31 08:00')), $ag(2, 7, $A - 600)], $A, [7 => 0]);
+ok('quem espera para refazer amanhã não empurra quem pode sair hoje', $e[2]['ordem'] === 1 && $e[2]['de'] === $A && $e[1]['ordem'] === 2 && $e[1]['de'] === $sp('2026-10-31 08:00'));
+$e = Envio::estimar([$agF(1, 7, $A - 7200, 0, true), $ag(2, 7, $A - 600)], $A, [7 => 0]);
+ok('quem esgotou as 3 tentativas não entra na fila do número', !isset($e[1]) && $e[2]['ordem'] === 1);
 $e = Envio::estimar([$ag(1, 7, $sp('2026-10-30 17:00')), $ag(2, 7, $sp('2026-10-30 17:10'))], $sp('2026-10-30 17:30'), [7 => $sp('2026-10-30 17:50')]);
 ok('o que não cabe até as 18h sai na próxima janela (sábado 8h)', $e[1]['de'] === $sp('2026-10-30 17:50') && $e[2]['de'] === $sp('2026-10-31 08:00') && $e[2]['ate'] === $sp('2026-10-31 08:00'));
 
@@ -122,7 +133,7 @@ if (!$temTabela || count($cols) < 3) {
     $lid = '9' . $fone . '@lid';
     $statusAntes = $pdo->query("SELECT status FROM whatsapp_instances WHERE id = $INST")->fetchColumn();
     $chaveAntes = $pdo->query("SELECT config_value FROM whatsapp_settings WHERE account_id = $CONTA AND config_key = 'sdr_followup_ligado'")->fetchColumn();
-    $cardId = 0; $cadId = 0;
+    $cardId = 0; $cadId = 0; $extras = [];
     // Cadência que já exista na conta de teste fica desligada durante o teste e volta no fim.
     $ligadasAntes = array_map('intval', $pdo->query("SELECT id FROM followup_cadencias WHERE account_id = $CONTA AND ativo = 1")->fetchAll(\PDO::FETCH_COLUMN));
     $pdo->exec("UPDATE followup_cadencias SET ativo = 0 WHERE account_id = $CONTA");
@@ -186,8 +197,77 @@ if (!$temTabela || count($cols) < 3) {
         Envio::processar($falso, $quando3);
         ok('fora do horário da cadência a fila não sai (nem a que já venceu)', $mandados === []);
         $horario([1, 2, 3, 4, 5, 6, 7]);
-        Envio::processar($falso, $quando3);
-        ok('dentro do horário o passo 3 sai', count($mandados) === 1 && ($mandados[0][1] ?? '') === 'passo 3');
+
+        // Falha pontual: o WhatsApp recusa o passo 3. Fica guardada e é refeita no dia seguinte,
+        // no horário da cadência (não 20 minutos depois), sem travar o número.
+        $recusa = function (string $alvo) use (&$mandados) {
+            return function (array $cfg, string $inst, string $j, string $txt) use ($alvo, &$mandados) {
+                if ($j === $alvo) return ['_error' => 'recusou', '_http' => 400];
+                $mandados[] = [$j, $txt];
+                return ['key' => ['id' => 'ZZFU' . bin2hex(random_bytes(6))]];
+            };
+        };
+        $textos = function () use (&$mandados) { return array_column($mandados, 1); };
+        $envioPasso3 = fn() => $pdo->query("SELECT status, tentativas, erro FROM followup_envios WHERE cadencia_id = $cadId AND passo = 3")->fetch(\PDO::FETCH_ASSOC);
+        $mandados = [];
+        $res = Envio::processar($recusa($jid), $quando3);
+        $e3 = $envioPasso3();
+        ok('o WhatsApp recusa: a falha fica guardada com o motivo', $res['falhas'] === 1 && $e3 && $e3['status'] === 'falhou' && (int) $e3['tentativas'] === 1 && $e3['erro'] === 'O WhatsApp não aceitou a mensagem.');
+        $refaz = Envio::refazEm($quando3, 'O WhatsApp não aceitou a mensagem.', ['dias' => [1, 2, 3, 4, 5, 6, 7], 'de' => '00:00', 'ate' => '23:59']);
+        ok('a nova tentativa é no dia seguinte, depois de 00h', $refaz > $quando3 && (new \DateTimeImmutable('@' . $refaz))->setTimezone(new \DateTimeZone('America/Sao_Paulo'))->format('H:i') === '00:00');
+
+        // Outro lead do mesmo número, com o passo 1 devendo desde logo depois do passo 3 do primeiro.
+        $fone2 = '5511970' . random_int(100000, 999999); $jid2 = $fone2 . '@s.whatsapp.net';
+        $novoLead = function (string $nome, string $empresa, string $foneX, string $jidX, int $aberturaTs) use ($pdo, $CONTA, $INST, $colNovo, $msg, &$extras) {
+            $pdo->prepare('INSERT INTO cards (account_id, coluna_id, titulo, cliente_nome, empresa_nome, telefone_whatsapp, created_at) VALUES (?,?,?,?,?,?, NOW())')
+                ->execute([$CONTA, $colNovo, 'ZZTESTE_FU2', $nome, $empresa, $foneX]);
+            $idX = (int) $pdo->lastInsertId();
+            $pdo->prepare('INSERT INTO whatsapp_chats (account_id, instance_id, remote_jid, contact_name, is_group, linked_card_id, last_message_at) VALUES (?,?,?,?,0,?,?)')
+                ->execute([$CONTA, $INST, $jidX, $nome, $idX, date('Y-m-d H:i:s', $aberturaTs)]);
+            $msg->execute([$CONTA, $INST, 'ZZFU' . bin2hex(random_bytes(6)), $jidX, $foneX, 'text', 'Abertura de teste', 'outbound', 'sent', date('Y-m-d H:i:s', $aberturaTs)]);
+            $extras[] = [$idX, $jidX];
+            return $idX;
+        };
+        $novoLead('Beltrano Souza', 'ZZTESTE Dois', $fone2, $jid2, $quando3 - 6 * 3600 + 130);
+        $mandados = [];
+        Envio::processar($recusa($jid), $quando3 + 21 * 60);
+        ok('21 min depois (a regra antiga refazia aqui) não refaz o passo 3', !in_array('passo 3', $textos(), true));
+        ok('quem espera para refazer não trava o número: o outro lead sai', in_array('Oi Beltrano, passo 1 da ZZTESTE Dois', $textos(), true));
+        $mandados = [];
+        Envio::processar($falso, $refaz - 60);
+        ok('um minuto antes do horário de refazer, nada do passo 3', !in_array('passo 3', $textos(), true));
+        $mandados = [];
+        Envio::processar($falso, $refaz + 3600);
+        $e3 = $envioPasso3();
+        ok('no dia seguinte o passo 3 é refeito e conta a segunda tentativa', in_array('passo 3', $textos(), true) && $e3['status'] === 'enviado' && (int) $e3['tentativas'] === 2);
+        $mandados = [];
+        Envio::processar($falso, $refaz + 3 * 3600);
+        ok('e não é mandado de novo', !in_array('passo 3', $textos(), true));
+
+        // Esgotou as 3 tentativas: não é mais refeito e não trava o número.
+        $base = $refaz + 4 * 86400;
+        $fone3 = '5511960' . random_int(100000, 999999); $jid3 = $fone3 . '@s.whatsapp.net';
+        $novoLead('Sicrano Lima', 'ZZTESTE Tres', $fone3, $jid3, $base - 6 * 3600);
+        $dia = fn(int $n) => $base + $n * 86400 + 4 * 3600;
+        $mandados = [];
+        $falhasDe3 = 0;
+        for ($n = 0; $n < 4; $n++) { $r = Envio::processar($recusa($jid3), $dia($n)); $falhasDe3 += $r['falhas']; }
+        $e3b = $pdo->query("SELECT status, tentativas FROM followup_envios WHERE remote_jid = " . $pdo->quote($jid3) . " AND passo = 1")->fetch(\PDO::FETCH_ASSOC);
+        ok('três tentativas, uma por dia, e para de tentar', $falhasDe3 === 3 && $e3b && $e3b['status'] === 'falhou' && (int) $e3b['tentativas'] === 3);
+        $agFalhou = array_values(array_filter(Envio::agendados($CONTA, Cadencia::daConta($CONTA, true), $dia(2) + 3600), fn($i) => $i['card_id'] === $extras[count($extras) - 1][0]));
+        ok('a fila marca o lead que esgotou as tentativas', count($agFalhou) === 1 && $agFalhou[0]['falha']['esgotada'] === true && $agFalhou[0]['falha']['tentativas'] === 3);
+
+        // A mensagem na verdade saiu (o WhatsApp devolveu erro, mas o chat tem a nossa mensagem): o passo conta como dado.
+        $fone4 = '5511950' . random_int(100000, 999999); $jid4 = $fone4 . '@s.whatsapp.net';
+        $abert4 = $dia(6);
+        $card4 = $novoLead('Fulano Dois', 'ZZTESTE Quatro', $fone4, $jid4, $abert4 - 6 * 3600);
+        $mandados = [];
+        Envio::processar($recusa($jid4), $abert4);
+        $msg->execute([$CONTA, $INST, 'ZZFU' . bin2hex(random_bytes(6)), $jid4, $fone4, 'text', 'Oi Fulano, passo 1 da ZZTESTE Quatro', 'outbound', 'sent', date('Y-m-d H:i:s', $abert4 + 60)]);
+        $refaz4 = Envio::refazEm($abert4, 'O WhatsApp não aceitou a mensagem.', ['dias' => [1, 2, 3, 4, 5, 6, 7], 'de' => '00:00', 'ate' => '23:59']);
+        $mandados = [];
+        Envio::processar($falso, $refaz4 + 3600);
+        ok('se a mensagem saiu de verdade, o passo 1 não é mandado de novo', !in_array('Oi Fulano, passo 1 da ZZTESTE Quatro', $textos(), true));
 
         // A resposta chega pelo @lid, numa conversa separada.
         $pdo->prepare('INSERT INTO whatsapp_identidades (account_id, instance_id, phone, jid, lid, nome_peso) VALUES (?,?,?,?,?,0)')->execute([$CONTA, $INST, $fone, $jid, $lid]);
@@ -208,6 +288,12 @@ if (!$temTabela || count($cols) < 3) {
         if ($ligadasAntes) $pdo->exec('UPDATE followup_cadencias SET ativo = 1 WHERE id IN (' . implode(',', $ligadasAntes) . ')');
         if ($chaveAntes === false) $pdo->exec("DELETE FROM whatsapp_settings WHERE account_id = $CONTA AND config_key = 'sdr_followup_ligado'");
         else $pdo->prepare("UPDATE whatsapp_settings SET config_value = ? WHERE account_id = ? AND config_key = 'sdr_followup_ligado'")->execute([$chaveAntes, $CONTA]);
+        foreach ($extras as [$idX, $jidX]) {
+            $pdo->prepare('DELETE FROM whatsapp_messages WHERE instance_id = ? AND remote_jid = ?')->execute([$INST, $jidX]);
+            $pdo->prepare('DELETE FROM whatsapp_chats WHERE instance_id = ? AND remote_jid = ?')->execute([$INST, $jidX]);
+            $pdo->prepare('DELETE FROM followup_envios WHERE remote_jid = ?')->execute([$jidX]);
+            $pdo->exec("DELETE FROM cards WHERE id = $idX");
+        }
         $pdo->prepare('DELETE FROM whatsapp_messages WHERE instance_id = ? AND remote_jid IN (?, ?)')->execute([$INST, $jid, $lid]);
         $pdo->prepare('DELETE FROM whatsapp_identidades WHERE instance_id = ? AND jid = ?')->execute([$INST, $jid]);
         $pdo->prepare('DELETE FROM whatsapp_chats WHERE instance_id = ? AND remote_jid IN (?, ?)')->execute([$INST, $jid, $lid]);

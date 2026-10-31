@@ -2553,11 +2553,16 @@ function column_display_name(array $col): string
           const ate = f.sai_ate && hm(f.sai_ate) !== hm(sai) ? ' a ' + hm(f.sai_ate) : '';
           const quando = agora ? 'Saindo agora' : (lcQuando(sai, false) || '') + (naFila ? ate : '');
           const sub = naFila && f.ordem ? f.ordem + 'º na fila do número' : (naFila ? 'na fila do número' : lcFalta(sai));
-          h = '<div class="lc-fu' + (naFila || agora ? ' na-fila' : '') + '" title="' + escapeHtml(dica) + '">' +
+          // Falhou antes (o WhatsApp recusou): é refeito no dia seguinte, no horário da cadência.
+          const fl = f.falha;
+          const refaz = fl && !fl.esgotada ? 'Refazendo ' + (lcQuando(fl.refaz_em, false) || '').replace(/^Amanhã/, 'amanhã').replace(/^Hoje/, 'hoje') : null;
+          const tituloLinha = fl ? (fl.esgotada ? 'Falhou ' + fl.tentativas + ' vezes' : refaz) : quando;
+          const subLinha = fl ? (fl.esgotada ? 'sem nova tentativa' : 'falhou ' + fl.tentativas + (fl.tentativas === 1 ? ' vez' : ' vezes')) + ' · ' + origem : sub + ' · ' + origem;
+          h = '<div class="lc-fu' + (naFila || agora || fl ? ' na-fila' : '') + '" title="' + escapeHtml(dica) + '">' +
             '<span class="lc-fu-relogio">' + LC_RELOGIO + '</span><div class="lc-fu-txt">' +
             '<div class="lc-fu-cab"><small>Follow-up ' + f.passo + ' de ' + f.total + '</small>' + trilha + '</div>' +
-            '<span class="lc-v">' + escapeHtml(quando) + '</span>' +
-            '<small>' + escapeHtml(sub + ' · ' + origem) + '</small></div></div>';
+            '<span class="lc-v">' + escapeHtml(tituloLinha) + '</span>' +
+            '<small>' + escapeHtml(subLinha) + '</small></div></div>';
         } else {
           h = '<div class="lc-fu encerrada" title="' + escapeHtml(dica) + '">' +
             '<span class="lc-fu-relogio">' + LC_RELOGIO + '</span><div class="lc-fu-txt">' +

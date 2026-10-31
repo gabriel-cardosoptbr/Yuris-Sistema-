@@ -414,7 +414,7 @@ if ($ctx->isOwnerOrAdmin() && \App\WhatsAppAgente\SdrFleetiflow::contaDoTokenGlo
             '<td><div style="display:flex;flex-direction:column;gap:5px">' + trilha(p.passo, p.total) + '<span class="fraco">' + p.passo + ' de ' + p.total + '</span></div></td>' +
             '<td>' + saida(p) + '</td></tr>';
         }).join('') + '</tbody></table>' +
-        '<p class="fraco" style="margin:12px 2px 0">Cada número manda um follow-up por vez, com 30 a 40 minutos entre um e outro, para o WhatsApp não bloquear, e só no horário de envio da cadência. Quem já está na fila aparece na ordem em que vai sair, com a faixa de horário prevista (a espera é sorteada, por isso é uma faixa).</p>';
+        '<p class="fraco" style="margin:12px 2px 0">Cada número manda um follow-up por vez, com 30 a 40 minutos entre um e outro, para o WhatsApp não bloquear, e só no horário de envio da cadência. Quem já está na fila aparece na ordem em que vai sair, com a faixa de horário prevista (a espera é sorteada, por isso é uma faixa). Se o WhatsApp recusar um envio, ele fica guardado e é refeito no dia seguinte, no primeiro horário da cadência, até 3 vezes; se a mensagem na verdade saiu, o passo conta como dado e não é mandado de novo.</p>';
     }
 
     // Está na fila do número: já venceu ou a fila segura (sai depois da hora da cadência).
@@ -433,13 +433,28 @@ if ($ctx->isOwnerOrAdmin() && \App\WhatsAppAgente\SdrFleetiflow::contaDoTokenGlo
     // Quando sai: na fila do número, a faixa de horário (sai_de a sai_ate) e a ordem;
     // fora dela, a data da cadência e quanto falta.
     function saida(p) {
+      var f = p.falha;
+      // Falhou 3 vezes: não sai mais sozinho, alguém precisa ver este lead.
+      if (f && f.esgotada) {
+        return '<div class="fu-quando">' + ICO.relogio + 'Sem nova tentativa</div>' +
+          '<div class="fraco"><span class="fu-selo ruim">Falhou ' + f.tentativas + ' vezes: não será refeito</span></div>' +
+          '<div class="fraco" style="margin-top:3px">' + esc(f.erro) + '</div>';
+    }
+      var html;
       if (!p.sai_de || !naFila(p)) {
-        return '<div class="fu-quando">' + ICO.relogio + esc(quando(p.sai_de || p.previsto)) + '</div><div class="fraco">' + esc(falta(p.sai_de || p.previsto)) + '</div>';
+        html = '<div class="fu-quando">' + ICO.relogio + esc(quando(p.sai_de || p.previsto)) + '</div><div class="fraco">' + esc(falta(p.sai_de || p.previsto)) + '</div>';
+      } else {
+        var mesmo = hora(p.sai_de) === hora(p.sai_ate);
+        html = '<div class="fu-quando">' + ICO.relogio + esc(quando(p.sai_de) + (mesmo ? '' : ' a ' + hora(p.sai_ate))) + '</div>' +
+          '<div class="fraco">' + esc(faixa(p.sai_de, p.sai_ate)) + '</div>' +
+          '<div class="fraco" style="margin-top:3px">pela cadência: ' + esc(quando(p.previsto)) + '</div>';
       }
-      var mesmo = hora(p.sai_de) === hora(p.sai_ate);
-      return '<div class="fu-quando">' + ICO.relogio + esc(quando(p.sai_de) + (mesmo ? '' : ' a ' + hora(p.sai_ate))) + '</div>' +
-        '<div class="fraco">' + esc(faixa(p.sai_de, p.sai_ate)) + '</div>' +
-        '<div class="fraco" style="margin-top:3px">pela cadência: ' + esc(quando(p.previsto)) + '</div>';
+      // Falhou antes: o envio foi guardado e é refeito no dia seguinte, no horário da cadência.
+      if (f) {
+        html += '<div class="fraco" style="margin-top:4px"><span class="fu-selo atencao">Refazendo ' + esc(quando(f.refaz_em).replace(/^Amanhã/, 'amanhã').replace(/^Hoje/, 'hoje')) + '</span></div>' +
+          '<div class="fraco" style="margin-top:3px">Falhou ' + f.tentativas + (f.tentativas === 1 ? ' vez' : ' vezes') + ': ' + esc(f.erro) + '</div>';
+      }
+      return html;
     }
     function ordem(p) {
       // A ordem de saída pelo número; destaque para quem já está na fila.

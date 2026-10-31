@@ -63,7 +63,7 @@ try {
                     'etapa'   => $nomeColuna[$f['etapa']] ?? '',
                     'jid'     => $f['chat']['remote_jid'],
                     'numero'  => $f['chat']['instance_id'],
-                ] + Fatos::resumo($i['cadencia'], $i['situacao'], $agora, $est[$i['card_id']] ?? null);
+                ] + Fatos::resumo($i['cadencia'], $i['situacao'], $agora, $est[$i['card_id']] ?? null, $i['falha'] ?? null);
             }
         }
         $historico = array_map(fn($h) => [

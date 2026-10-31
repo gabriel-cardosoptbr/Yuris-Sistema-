@@ -65,8 +65,19 @@ ficou com uma pessoa e ninguém mais cutucou).
   segundo antes, não manda. Número fora do ar: o lead espera ele voltar.
 - A linha de `followup_envios` nasce `enviando` **antes** do envio, com chave
   única (conversa, cadência, início do ciclo, passo): dois workers juntos nunca
-  mandam o mesmo passo duas vezes. Falha volta a tentar até 3 vezes, de 20 em 20
-  min, só se aquele passo ainda for o da vez.
+  mandam o mesmo passo duas vezes. Falha volta a tentar até 3 vezes, só se aquele
+  passo ainda for o da vez.
+- **Falha pontual é refeita no dia seguinte** (31/10/2026, pedido do dono: "salva, e
+  refaz em outro horário, no outro dia"): quando o WhatsApp não aceita a mensagem, a
+  linha fica `falhou` com o motivo e a nova tentativa (`Envio::refazEm`) é no primeiro
+  horário da cadência do DIA SEGUINTE (domingo e dia fora da cadência pulam para o
+  próximo), não 20 min depois, sempre respeitando um envio por número a cada 30 a 40
+  min. Antes de refazer, a conversa é relida: se a mensagem na verdade saiu, o passo
+  já conta como dado e não é mandado de novo. Falha do **número** (desconectado, sem
+  permissão) não espera um dia: continua em 20 min. Quem espera para refazer, ou já
+  gastou as 3 tentativas, **não ocupa a vez do número** (antes ocupava, e um lead
+  parado em "falhou" travava a fila inteira dele). A tela mostra "Refazendo amanhã
+  08:00" (e "Falhou 3 vezes: não será refeito"); o card faz o mesmo.
 - Depois de mandar: grava a mensagem na conversa (o card enxerga na hora), move
   o card para a etapa escolhida no primeiro envio (só se ele estiver numa etapa
   da própria cadência) e registra na linha do tempo do lead. **Não pausa o robô**

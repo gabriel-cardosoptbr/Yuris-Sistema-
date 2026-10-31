@@ -203,10 +203,18 @@ final class Fatos
             // Fila do número (Envio::estimar): só quando algum card desta página sai nas
             // próximas horas, porque pede a fila da conta inteira.
             $est = [];
+            $falhaDe = [];
+            $agendados = null;
             foreach ($escolhas as [$cad, $sit]) {
-                if ($cad && $sit['estado'] === 'agendado' && $sit['previsto'] <= $agora + self::FILA_HORAS * 3600) {
-                    $est = Envio::estimar(Envio::agendados($acc, $cads, $agora), $agora);
+                if ($cad && $sit['estado'] === 'agendado') {
+                    $agendados ??= Envio::agendados($acc, $cads, $agora);
                     break;
+                }
+            }
+            if ($agendados) {
+                foreach ($agendados as $ag) $falhaDe[$ag['card_id']] = $ag['falha'] ?? null;
+                foreach ($escolhas as [$cad, $sit]) {
+                    if ($cad && $sit['estado'] === 'agendado' && $sit['previsto'] <= $agora + self::FILA_HORAS * 3600) { $est = Envio::estimar($agendados, $agora); break; }
                 }
             }
             foreach ($fatos as $id => $f) {
@@ -219,7 +227,7 @@ final class Fatos
                     if ($cads && ($todas || in_array($f['etapa'], $etapasComCadencia, true))) $item['followup'] = ['estado' => 'sem_mensagem'];
                 } else {
                     [$cad, $sit] = $escolhas[$id];
-                    if ($cad) $item['followup'] = self::resumo($cad, $sit, $agora, $est[$id] ?? null);
+                    if ($cad) $item['followup'] = self::resumo($cad, $sit, $agora, $est[$id] ?? null, $falhaDe[$id] ?? null);
                 }
                 if ($item['robo'] || $item['followup']) $res[$id] = $item;
             }
@@ -232,8 +240,9 @@ final class Fatos
      * `previsto` é quando a cadência põe o lead na fila; com $est (Envio::estimar)
      * vêm a posição na fila do número (`ordem`, `na_frente`) e a faixa em que a
      * mensagem deve sair (`sai_de` a `sai_ate`, porque a espera é de 30 a 40 min).
+     * Com $falha (de Envio::agendados), o envio que falhou antes e quando será refeito.
      */
-    public static function resumo(array $cad, array $sit, int $agora, ?array $est = null): array
+    public static function resumo(array $cad, array $sit, int $agora, ?array $est = null, ?array $falha = null): array
     {
         $iso = fn(?int $t) => $t ? date('c', $t) : null;
         return [
@@ -243,6 +252,8 @@ final class Fatos
             'sai_de' => $est ? $iso($est['de']) : null, 'sai_ate' => $est ? $iso($est['ate']) : null,
             'ordem' => $est ? (int) $est['ordem'] : null, 'na_frente' => $est ? (int) $est['na_frente'] : 0,
             'desde' => $iso($sit['ciclo_desde']), 'ultima_saida' => $iso($sit['ultima_saida']),
+            // Envio que falhou antes (31/10/2026): é refeito no dia seguinte, no horário da cadência.
+            'falha' => $falha ? ['tentativas' => (int) $falha['tentativas'], 'refaz_em' => $iso((int) $falha['refaz_em']), 'esgotada' => (bool) $falha['esgotada'], 'erro' => (string) $falha['erro']] : null,
         ];
     }
 }

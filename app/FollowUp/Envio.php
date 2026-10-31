@@ -24,14 +24,25 @@ use App\WhatsAppAgente\WhatsAppMessage;
  *   - a linha de followup_envios nasce `enviando` ANTES do envio, com chave
  *     única por (conversa, cadência, início do silêncio, passo): dois workers
  *     juntos, ou o worker rodando de novo, nunca mandam o mesmo passo duas vezes.
- *     Falhou, volta a tentar até 3 vezes, se aquele passo ainda for o da vez.
+ *     Falhou, volta a tentar até 3 vezes, se aquele passo ainda for o da vez;
+ *   - falha pontual (o WhatsApp não aceitou a mensagem) fica guardada e é refeita
+ *     no DIA SEGUINTE, no primeiro horário da cadência (refazEm), não 20 minutos
+ *     depois (pedido do dono, 31/10/2026: "salva, e refaz em outro horário, no outro
+ *     dia"). Antes de refazer, a conversa é relida: se a mensagem na verdade saiu,
+ *     o passo já conta como dado e nada é mandado de novo. Falha do número (fora do
+ *     ar, sem permissão) não espera um dia: continua em 20 minutos. Quem espera para
+ *     refazer, ou já gastou as 3 tentativas, não ocupa a vez do número: os outros
+ *     leads dele seguem.
  */
 final class Envio
 {
     public const INTERVALO_MIN = 30;
     public const INTERVALO_MAX = 40;
     public const TENTATIVAS = 3;
+    /** Falha do NÚMERO (desconectado, sem permissão) é refeita logo; a pontual, no dia seguinte. */
     public const REPETE_FALHA_MIN = 20;
+    public const ERRO_NUMERO_FORA = 'O número está desconectado.';
+    public const ERRO_SEM_PERMISSAO = 'A conta não pode mandar por este número.';
     public const ENVIANDO_MAX_MIN = 10;
     /** Só olha conversas com mensagem nos últimos N dias (a cadência mais longa cabe folgada). */
     public const JANELA_DIAS = 60;
@@ -70,10 +81,14 @@ final class Envio
                 // Fora do horário de envio da cadência, espera a próxima janela (a fila
                 // que sobra às 18h não sai à noite; desde 30/10/2026, com 30 a 40 min).
                 if (!self::dentroDoHorario($item['cadencia'], $agora)) continue;
+                // Falhou antes: espera o dia seguinte (ou já gastou as tentativas) sem ocupar a vez do número.
+                $falha = $item['falha'] ?? null;
+                if ($falha && ($falha['esgotada'] || $falha['refaz_em'] > $agora)) continue;
                 if (isset($usados[$inst]) || !self::numeroLivre($inst, $agora)) { $usados[$inst] = true; continue; }
-                $usados[$inst] = true;
                 $r = self::mandar($acc, $item['card_id'], $cads, $enviar, $agora);
                 $res[$r]++;
+                // Só gasta a vez do número quem de fato tentou mandar.
+                if ($r !== 'puladas') $usados[$inst] = true;
             }
         }
         return $res;
@@ -126,7 +141,58 @@ final class Envio
             }
         }
         usort($saida, fn($a, $b) => $a['situacao']['previsto'] <=> $b['situacao']['previsto']);
+        if ($saida) {
+            $falhas = self::falhasDaConta($accountId);
+            foreach ($saida as &$i) {
+                $c = $i['fatos']['chat'];
+                $k = self::chaveDaFalha((int) $c['instance_id'], (string) $c['remote_jid'], (int) $i['cadencia']['id'], (int) $i['situacao']['ciclo_desde'], (int) $i['situacao']['passo']);
+                $i['falha'] = null;
+                if (isset($falhas[$k])) {
+                    $f = $falhas[$k];
+                    $i['falha'] = [
+                        'tentativas' => $f['tentativas'], 'erro' => $f['erro'],
+                        'refaz_em'   => self::refazEm($f['quando'], $f['erro'], (array) ($i['cadencia']['horario'] ?? [])),
+                        'esgotada'   => $f['tentativas'] >= self::TENTATIVAS,
+                    ];
+                }
+            }
+            unset($i);
+        }
         return $saida;
+    }
+
+    /**
+     * Quando o follow-up que falhou pode ser refeito. Falha pontual (o WhatsApp não
+     * aceitou): o primeiro horário da cadência no DIA SEGUINTE ao da falha (domingo e
+     * dia fora da cadência pulam para o próximo). Falha do número: logo, em 20 min.
+     */
+    public static function refazEm(int $falhouEm, string $erro, array $horario): int
+    {
+        if ($erro === self::ERRO_NUMERO_FORA || $erro === self::ERRO_SEM_PERMISSAO) return $falhouEm + self::REPETE_FALHA_MIN * 60;
+        $amanha = (new \DateTimeImmutable('@' . $falhouEm))->setTimezone(new \DateTimeZone(Regra::FUSO))->modify('+1 day')->setTime(0, 0);
+        return Regra::proximaJanela($amanha->getTimestamp(), $horario);
+    }
+
+    private static function chaveDaFalha(int $instanceId, string $jid, int $cadenciaId, int $ciclo, int $passo): string
+    {
+        return $instanceId . '|' . $jid . '|' . $cadenciaId . '|' . date('Y-m-d H:i:s', $ciclo) . '|' . $passo;
+    }
+
+    /** Os envios da conta que falharam, por chave (conversa, cadência, ciclo, passo). */
+    private static function falhasDaConta(int $accountId): array
+    {
+        $st = Database::getConnection()->prepare(
+            "SELECT instance_id, remote_jid, cadencia_id, ciclo_desde, passo, tentativas, erro, atualizado_em
+               FROM followup_envios WHERE account_id = ? AND status = 'falhou'"
+        );
+        $st->execute([$accountId]);
+        $out = [];
+        foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+            $out[self::chaveDaFalha((int) $r['instance_id'], (string) $r['remote_jid'], (int) $r['cadencia_id'], (int) strtotime((string) $r['ciclo_desde']), (int) $r['passo'])] = [
+                'tentativas' => (int) $r['tentativas'], 'erro' => (string) $r['erro'], 'quando' => (int) strtotime((string) $r['atualizado_em']),
+            ];
+        }
+        return $out;
     }
 
     /**
@@ -175,24 +241,42 @@ final class Envio
      */
     public static function estimar(array $agendados, int $agora, ?array $livreEm = null): array
     {
-        $livre = [];   // instance_id => [vaga mais cedo, vaga mais tarde]
-        $ordem = [];
-        $saida = [];
+        // Por número, na ordem em que o worker anda: de quem já pode sair, o mais antigo
+        // primeiro (a ordem de `agendados`); quem espera para refazer (falha de ontem) só
+        // entra quando chega a hora dele, sem empurrar os que podem sair antes.
+        $porNumero = [];
         foreach ($agendados as $i) {
-            $inst = (int) $i['fatos']['chat']['instance_id'];
-            if (!isset($livre[$inst])) {
-                $l = $livreEm !== null ? (int) ($livreEm[$inst] ?? 0) : self::liberaEm($inst);
-                $livre[$inst] = [$l, $l];
-                $ordem[$inst] = 0;
+            // Sem nova tentativa (esgotou as 3): não sai, então não entra na fila do número.
+            if (!empty($i['falha']['esgotada'])) continue;
+            $i['entra'] = max((int) $i['situacao']['previsto'], $agora, (int) ($i['falha']['refaz_em'] ?? 0));
+            $porNumero[(int) $i['fatos']['chat']['instance_id']][] = $i;
+        }
+        $saida = [];
+        foreach ($porNumero as $inst => $fila) {
+            $l = $livreEm !== null ? (int) ($livreEm[$inst] ?? 0) : self::liberaEm($inst);
+            [$livreDe, $livreAte] = [$l, $l];
+            $ordem = 0;
+            while ($fila) {
+                // O primeiro da fila que já pode sair na hora em que o número libera; se
+                // ninguém pode, o tempo anda até o primeiro que puder.
+                $quando = max($livreDe, $agora);
+                $k = null;
+                foreach ($fila as $idx => $i) { if ($i['entra'] <= $quando) { $k = $idx; break; } }
+                if ($k === null) {
+                    $k = array_key_first($fila);
+                    foreach ($fila as $idx => $i) { if ($i['entra'] < $fila[$k]['entra']) $k = $idx; }
+                }
+                $i = $fila[$k];
+                unset($fila[$k]);
+                $horario = (array) ($i['cadencia']['horario'] ?? []);
+                $de  = Regra::proximaJanela(max($i['entra'], $livreDe), $horario);
+                $ate = Regra::proximaJanela(max($i['entra'], $livreAte), $horario);
+                $ordem++;
+                // "Na frente": os do mesmo número que saem antes e seguram este (fila de verdade).
+                $saida[(int) $i['card_id']] = ['ordem' => $ordem, 'de' => $de, 'ate' => $ate, 'na_frente' => $ate > $i['entra'] ? $ordem - 1 : 0];
+                $livreDe  = $de + self::INTERVALO_MIN * 60;
+                $livreAte = $ate + self::INTERVALO_MAX * 60;
             }
-            $entra = max((int) $i['situacao']['previsto'], $agora);
-            $horario = (array) ($i['cadencia']['horario'] ?? []);
-            $de  = Regra::proximaJanela(max($entra, $livre[$inst][0]), $horario);
-            $ate = Regra::proximaJanela(max($entra, $livre[$inst][1]), $horario);
-            $ordem[$inst]++;
-            // "Na frente": os do mesmo número que saem antes e seguram este (fila de verdade).
-            $saida[(int) $i['card_id']] = ['ordem' => $ordem[$inst], 'de' => $de, 'ate' => $ate, 'na_frente' => $ate > $entra ? $ordem[$inst] - 1 : 0];
-            $livre[$inst] = [$de + self::INTERVALO_MIN * 60, $ate + self::INTERVALO_MAX * 60];
         }
         return $saida;
     }
@@ -226,10 +310,18 @@ final class Envio
             $envioId = (int) $pdo->lastInsertId();
         } catch (\PDOException $e) {
             if ((string) $e->getCode() !== '23000') throw $e;
+            // Já existe: só repete se falhou, ainda há tentativa e chegou o horário de refazer
+            // (o dia seguinte, no horário da cadência; ver refazEm).
+            $st = $pdo->prepare("SELECT erro, atualizado_em FROM followup_envios
+                                  WHERE instance_id = ? AND remote_jid = ? AND cadencia_id = ? AND ciclo_desde = ? AND passo = ?
+                                    AND status = 'falhou' AND tentativas < ?");
+            $st->execute(array_merge($chave, [self::TENTATIVAS]));
+            $antes = $st->fetch(\PDO::FETCH_ASSOC);
+            if (!$antes || $agora < self::refazEm((int) strtotime((string) $antes['atualizado_em']), (string) $antes['erro'], (array) ($cad['horario'] ?? []))) return 'puladas';
             $st = $pdo->prepare("UPDATE followup_envios SET status = 'enviando', tentativas = tentativas + 1, texto = ?, atualizado_em = ?
                                   WHERE instance_id = ? AND remote_jid = ? AND cadencia_id = ? AND ciclo_desde = ? AND passo = ?
-                                    AND status = 'falhou' AND tentativas < ? AND atualizado_em < ?");
-            $st->execute(array_merge([$texto, $quando], $chave, [self::TENTATIVAS, date('Y-m-d H:i:s', $agora - self::REPETE_FALHA_MIN * 60)]));
+                                    AND status = 'falhou' AND tentativas < ? AND atualizado_em = ?");
+            $st->execute(array_merge([$texto, $quando], $chave, [self::TENTATIVAS, $antes['atualizado_em']]));
             if ($st->rowCount() !== 1) return 'puladas';
             $st = $pdo->prepare('SELECT id FROM followup_envios WHERE instance_id = ? AND remote_jid = ? AND cadencia_id = ? AND ciclo_desde = ? AND passo = ?');
             $st->execute($chave);
@@ -238,7 +330,7 @@ final class Envio
 
         $ch = WhatsAppChannelAccessService::check($pdo, $acc, (int) $chat['instance_id'], 'send');
         if (!$ch || strtolower((string) ($ch['status'] ?? '')) !== 'open') {
-            self::falhou($envioId, $ch ? 'O número está desconectado.' : 'A conta não pode mandar por este número.', $agora);
+            self::falhou($envioId, $ch ? self::ERRO_NUMERO_FORA : self::ERRO_SEM_PERMISSAO, $agora);
             return 'falhas';
         }
         try {
