@@ -73,7 +73,7 @@ sombra nova, sem lista de exceção.
 `tarefas.php` · `processos.php` · `intimacoes.php` · `juridico.php` ·
 `chat.php` · `chat_interno.php` · `financas.php` · `usuarios.php` ·
 `escritorios.php` · `agente.php` · `webhooks.php` · `configuracoes.php` ·
-`relatorios.php` · `desempenho.php` · `atendimento.php` · `followup.php` · `roleta.php` · `fila.php`
+`relatorios.php` · `desempenho.php` · `atendimento.php` · `followup.php` · `roleta.php` · `fila.php` · `meu-nome.php`
 
 `fila.php` (Operação › Fila, edição CRM, 31/10/2026) é o painel único da prospecção para o admin (`App\WhatsAppAgente\FilaDaProspeccao`): no topo, a próxima abertura com o vendedor da vez, quantos saíram hoje, quantos estão na fila e quantos erros; abas **Aberturas** (robô da planilha e disparo das listas: faltam, saíram hoje, ritmo, término aproximado e a ordem dos próximos com a faixa de horário), **Follow-ups** (a ordem real do motor, com faixa e o marcador "Reprogramado") e **Erros** (follow-ups reprogramados, os que não serão refeitos e as aberturas que os fluxos pularam: sem WhatsApp, número repetido, fora do perfil, já tinha conversa, presas em "enviando"). Tudo aproximado, sem rodapé. Só owner/admin, e só na conta da prospecção; dados em `api/whatsapp/fila.php` e `api/followup.php`.
 
@@ -83,7 +83,9 @@ quem participa, o percentual de cada um (soma 100%, conferida na tela e no servi
 a chave liga/desliga; no topo, o **vendedor da vez** (quem recebe o próximo lead, sorteado de antemão; o mesmo aparece na Prospecção e no Follow-up só para owner/admin) e, ao lado, quantos leads cada um recebeu na divisão atual e no
 total, e os últimos sorteios. Só owner/admin, e só na conta que os fluxos do n8n
 atendem (a dona do token da prospecção): o atendente não vê o item no menu e recebe
-403 na página e na API. Dados em `api/whatsapp/roleta.php`.
+403 na página e na API. Dados em `api/whatsapp/roleta.php`. Cada pessoa da lista tem o campo **Nome nas mensagens** (31/10/2026): o admin escolhe como ela assina (vazio usa o primeiro nome do cadastro), com a prévia do texto, e salva por `api/whatsapp/meu_nome.php`.
+
+`meu-nome.php` (Operação › Meu nome, edição CRM, 31/10/2026) é onde CADA vendedor escolhe como assina as mensagens do WhatsApp (abertura do disparo, follow-up, apresentação da IA e rótulos da equipe), com a prévia dos textos. Qualquer usuário da conta da prospecção, sem permissão extra; vale para as próximas mensagens. Dados em `api/whatsapp/meu_nome.php`.
 
 `followup.php` (Operação › Follow-up, edição CRM, 23/10/2026) é onde a conta
 controla o follow-up automático do WhatsApp (`App\FollowUp`): as cadências

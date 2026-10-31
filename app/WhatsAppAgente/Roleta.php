@@ -283,14 +283,18 @@ final class Roleta
     }
 
     /**
-     * Como o vendedor aparece na mensagem: `vendedor` é o primeiro nome do cadastro
-     * ("Kaue Souza" -> "Kaue"), `atendente` o nome completo. Ver VendedorDoLead.
+     * Como o vendedor aparece na mensagem: `vendedor` é o "Nome nas mensagens" que ele
+     * escolheu ou, vazio, o primeiro nome do cadastro ("Kaue Souza" -> "Kaue");
+     * `atendente` é o nome completo do cadastro. Ver VendedorDoLead.
      * @return array{user_id:int, atendente:string, vendedor:string}
      */
     public static function assinatura(int $accountId, int $uid): array
     {
-        $completo = self::nome(Database::getConnection(), $uid);
-        return ['user_id' => $uid, 'atendente' => $completo, 'vendedor' => VendedorDoLead::primeiroNome($completo)];
+        $st = Database::getConnection()->prepare('SELECT nome, ' . VendedorDoLead::colunaSql('users') . ' AS escolhido FROM users WHERE id = ? LIMIT 1');
+        $st->execute([$uid]);
+        $r = $st->fetch(\PDO::FETCH_ASSOC) ?: ['nome' => '#' . $uid, 'escolhido' => null];
+        $completo = (string)$r['nome'];
+        return ['user_id' => $uid, 'atendente' => $completo, 'vendedor' => VendedorDoLead::nomeNaMensagem($completo, $r['escolhido'])];
     }
 
     /**

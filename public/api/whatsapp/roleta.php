@@ -19,6 +19,7 @@ use App\Core\AccountContext;
 use App\Core\Database;
 use App\WhatsAppAgente\Roleta;
 use App\WhatsAppAgente\SdrFleetiflow;
+use App\WhatsAppAgente\VendedorDoLead;
 
 session_start(['read_and_close' => true]);
 header('Content-Type: application/json; charset=utf-8');
@@ -35,9 +36,14 @@ if (!$ctx->isOwnerOrAdmin()) { http_response_code(403); echo json_encode(['error
 if ($accountId <= 0 || !SdrFleetiflow::contaDoTokenGlobal($accountId)) { echo json_encode(['ok' => true, 'disponivel' => false]); exit; }
 
 $estado = function () use ($accountId): array {
-    $st = Database::getConnection()->prepare("SELECT id, nome, role FROM users WHERE account_id = ? AND deleted_at IS NULL AND status = 'active' ORDER BY nome");
+    $st = Database::getConnection()->prepare("SELECT id, nome, role, " . VendedorDoLead::colunaSql('users') . " AS escolhido FROM users WHERE account_id = ? AND deleted_at IS NULL AND status = 'active' ORDER BY nome");
     $st->execute([$accountId]);
-    $equipe = array_map(fn($r) => ['id' => (int)$r['id'], 'nome' => (string)$r['nome'], 'role' => (string)$r['role']], $st->fetchAll(\PDO::FETCH_ASSOC));
+    // aparece_como: o nome que sai nas mensagens (o escolhido pelo vendedor ou o primeiro nome do cadastro).
+    $equipe = array_map(fn($r) => [
+        'id' => (int)$r['id'], 'nome' => (string)$r['nome'], 'role' => (string)$r['role'],
+        'nome_mensagens' => $r['escolhido'] !== null ? (string)$r['escolhido'] : '',
+        'aparece_como' => VendedorDoLead::nomeNaMensagem((string)$r['nome'], $r['escolhido']),
+    ], $st->fetchAll(\PDO::FETCH_ASSOC));
     try {
         $contagem = Roleta::contagem($accountId);
         $ultimos  = Roleta::ultimos($accountId, 20);

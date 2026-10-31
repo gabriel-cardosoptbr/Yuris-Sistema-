@@ -91,8 +91,11 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
     .ro-pessoas{ display:flex; flex-direction:column; gap:8px; }
     .ro-pessoa{ display:grid; grid-template-columns:minmax(0,1fr) 110px; gap:10px 12px; align-items:center; padding:10px 12px; border:1px solid var(--o-borda); border-radius:12px; }
     .ro-quem{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:12px; align-items:center; cursor:pointer; min-width:0; }
+    .ro-assina{ grid-column:1 / -1; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:6px 8px; align-items:center; padding-top:8px; border-top:1px solid var(--o-sutil); }
+    .ro-assina label{ grid-column:1 / -1; font-size:11.5px; font-weight:700; color:var(--o-fraco); }
+    .ro-assina input{ min-width:0; min-height:34px; padding:5px 10px; border-radius:10px; border:1px solid var(--o-borda); background:var(--o-input); color:var(--o-texto); font:inherit; font-size:13px; box-sizing:border-box; }
+    .ro-assina .o-btn{ height:34px; padding:0 12px; font-size:12px; }
     .ro-previa{ grid-column:1 / -1; margin:0; font-size:12px; color:var(--o-fraco); line-height:1.5; }
-    .ro-previa[hidden]{ display:none; }
     .ro-previa b{ color:var(--o-forte); font-weight:600; }
     .ro-vez{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:16px; border-color:var(--o-acento); }
     .ro-vez[hidden]{ display:none; }
@@ -242,7 +245,10 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
           + '<label class="ro-quem"><input type="checkbox"' + (dentro ? ' checked' : '') + '>'
           + '<span style="min-width:0"><span class="nome">' + esc(u.nome) + '</span><br><span class="papel">' + esc(PAPEL[u.role] || u.role) + '</span></span></label>'
           + '<span class="ro-pct"><input type="number" min="1" max="100" step="1" inputmode="numeric" value="' + (dentro ? p.percentual : '') + '"' + (dentro ? '' : ' disabled') + ' aria-label="Percentual de ' + esc(u.nome) + '"><span>%</span></span>'
-          + '<p class="ro-previa"' + (dentro ? '' : ' hidden') + '>Na mensagem: <b>“Aqui é ' + esc(primeiroNome(u.nome)) + ', da Fleetiflow.”</b> (primeiro nome do cadastro)</p>'
+          + '<div class="ro-assina"><label for="roNome' + u.id + '">Nome nas mensagens</label>'
+          + '<input type="text" id="roNome' + u.id + '" maxlength="40" autocomplete="off" value="' + esc(u.nome_mensagens || '') + '" placeholder="' + esc(primeiroNome(u.nome)) + '" data-salvo="' + esc(u.nome_mensagens || '') + '">'
+          + '<button type="button" class="o-btn ro-salvar-nome" disabled>Salvar nome</button>'
+          + '<p class="ro-previa">Na mensagem: <b>“Aqui é ' + esc(u.aparece_como || primeiroNome(u.nome)) + ', da Fleetiflow.”</b> ' + (u.nome_mensagens ? '(nome escolhido)' : '(primeiro nome do cadastro; deixe vazio para usar ele)') + '</p></div>'
           + '</div>';
       }).join('') || '<div class="ro-vazio">Nenhum usuário ativo na conta.</div>';
       somar();
@@ -333,12 +339,40 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
         var n = el.querySelector('input[type=number]');
         n.disabled = !ev.target.checked;
         el.classList.toggle('dentro', ev.target.checked);
-        el.querySelector('.ro-previa').hidden = !ev.target.checked;
         if (ev.target.checked && !n.value) n.focus();
       }
       somar();
     });
-    $('roPessoas').addEventListener('input', somar);
+    $('roPessoas').addEventListener('input', function (ev) {
+      var el = ev.target.closest('.ro-pessoa'); if (!el) return;
+      if (ev.target.type === 'text') {
+        // O nome muda a prévia na hora; só vale depois de "Salvar nome".
+        var u = (D.equipe || []).filter(function (x) { return x.id === Number(el.dataset.uid); })[0] || {};
+        var v = ev.target.value.trim();
+        el.querySelector('.ro-previa b').textContent = '“Aqui é ' + (v || primeiroNome(u.nome)) + ', da Fleetiflow.”';
+        el.querySelector('.ro-salvar-nome').disabled = (v === (ev.target.dataset.salvo || ''));
+        return;
+      }
+      somar();
+    });
+    $('roPessoas').addEventListener('click', async function (ev) {
+      var bt = ev.target.closest('.ro-salvar-nome'); if (!bt) return;
+      var el = bt.closest('.ro-pessoa'), campo = el.querySelector('input[type=text]');
+      bt.disabled = true;
+      var r = await fetch('/api/whatsapp/meu_nome.php', {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ _csrf: CSRF, user_id: Number(el.dataset.uid), nome_mensagens: campo.value })
+      });
+      var j = {};
+      try { j = await r.json(); } catch (e) { j = { error: 'Resposta inválida do servidor.' }; }
+      if (!j.ok) { toast(j.error || 'Não foi possível salvar o nome.', 'error'); bt.disabled = false; return; }
+      var u = (D.equipe || []).filter(function (x) { return x.id === j.user_id; })[0];
+      if (u) { u.nome_mensagens = j.nome_mensagens; u.aparece_como = j.aparece_como; }
+      campo.value = j.nome_mensagens; campo.dataset.salvo = j.nome_mensagens;
+      el.querySelector('.ro-previa').innerHTML = 'Na mensagem: <b>“Aqui é ' + esc(j.aparece_como) + ', da Fleetiflow.”</b> ' + (j.nome_mensagens ? '(nome escolhido)' : '(primeiro nome do cadastro; deixe vazio para usar ele)');
+      toast('Nome salvo: as próximas mensagens saem com “' + j.aparece_como + '”.', 'success');
+      var e = await api(); if (e.ok && e.disponivel) { D.da_vez = e.da_vez; pintarVez(); }
+    });
     $('roSalvar').addEventListener('click', function () { salvar($('roLigada').checked); });
     $('roLigada').addEventListener('change', function () {
       if (!lerParticipantes().length || $('roSalvar').disabled) {

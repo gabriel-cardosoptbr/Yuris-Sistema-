@@ -246,6 +246,8 @@ if (!$temTabela || count($cols) < 3) {
 
         // Esgotou as 3 tentativas: não é mais refeito e não trava o número.
         $base = $refaz + 4 * 86400;
+        // Os 4 dias seguidos têm de cair em seg a sáb (a cadência não manda no domingo): começa numa segunda, terça ou quarta.
+        while ((int) (new \DateTimeImmutable('@' . $base))->setTimezone(new \DateTimeZone('America/Sao_Paulo'))->format('N') > 3) $base += 86400;
         $fone3 = '5511960' . random_int(100000, 999999); $jid3 = $fone3 . '@s.whatsapp.net';
         $novoLead('Sicrano Lima', 'ZZTESTE Tres', $fone3, $jid3, $base - 6 * 3600);
         $dia = fn(int $n) => $base + $n * 86400 + 4 * 3600;

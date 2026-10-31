@@ -1032,6 +1032,10 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
                 // de quem vai ser abordado e de quem recebe follow-up, dia e faixa de horário,
                 // e quem deu erro. Só owner/admin, como a Roleta.
                 'perm' => null, 'always' => true, 'href' => 'fila.php', 'active' => 'fila', 'icon' => 'fila', 'label' => 'Fila',
+            ]] : [], \App\WhatsAppAgente\SdrFleetiflow::contaDoTokenGlobal((int) $__brandCtx->getAccountId()) ? [[
+                // "Meu nome" (31/10/2026): cada vendedor escolhe como assina as mensagens do
+                // WhatsApp (App\WhatsAppAgente\VendedorDoLead). Qualquer usuário da conta.
+                'perm' => null, 'always' => true, 'href' => 'meu-nome.php', 'active' => 'meu-nome', 'icon' => 'prosp', 'label' => 'Meu nome',
             ]] : []));
         }
         unset($_s);

@@ -8,9 +8,10 @@ use App\Core\Database;
  * pedido do dono da Fleetiflow: "esse campo a gente sempre vai puxar do vendedor
  * [...] o nome tem que ser de acordo com o que está no sistema, no login de cadastro").
  *
- * O nome é SEMPRE o primeiro nome do cadastro do usuário (users.nome: "Kaue Souza"
- * vira "Kaue"). Não há outro lugar para editar: corrigiu o cadastro, a mensagem
- * muda junto. Usado por:
+ * O nome é o que o vendedor escolheu em "Nome nas mensagens" (users.nome_mensagens,
+ * migration 173: "Kaue Souza", "Souza"...) ou, com o campo vazio, o primeiro nome do
+ * cadastro (users.nome: "Kaue Souza" vira "Kaue"). Não há nome fixo em lugar nenhum:
+ * mudou o campo, a mensagem muda junto (a próxima que sair). Usado por:
  *   - Roleta (a abertura do disparo sai com o nome do sorteado, {vendedor} no n8n);
  *   - App\FollowUp\Envio (a variável {vendedor} das cadências do Yuris);
  *   - SdrFleetiflow::encaminhar (a IA de pré-venda recebe o vendedor do lead e se
@@ -21,11 +22,82 @@ use App\Core\Database;
  */
 final class VendedorDoLead
 {
+    public const NOME_MAX = 40;
+
     /** "Kaue Souza" -> "Kaue". */
     public static function primeiroNome(string $nome): string
     {
         $nome = trim($nome);
         return $nome === '' ? '' : (preg_split('/\s+/u', $nome)[0] ?? $nome);
+    }
+
+    /**
+     * Como o vendedor assina: o que ele escolheu, ou o primeiro nome do cadastro.
+     * @param string|null $escolhido users.nome_mensagens
+     */
+    public static function nomeNaMensagem(string $nomeCadastro, ?string $escolhido): string
+    {
+        $e = trim((string)$escolhido);
+        return $e !== '' ? $e : self::primeiroNome($nomeCadastro);
+    }
+
+    /**
+     * Valida o que o vendedor digitou. Vazio volta ao primeiro nome do cadastro.
+     * Só letras (com acento), espaço, hífen, apóstrofo e ponto: sem número, link,
+     * emoji nem símbolo, para a abertura nunca sair com lixo.
+     * @return array{0:?string, 1:?string} [nome limpo ou null (= usar o cadastro), erro]
+     */
+    public static function sanearNome(string $texto): array
+    {
+        $t = trim(preg_replace('/\s+/u', ' ', $texto) ?? '');
+        if ($t === '') return [null, null];
+        if (mb_strlen($t) < 2) return [null, 'Use pelo menos 2 letras.'];
+        if (mb_strlen($t) > self::NOME_MAX) return [null, 'Use no máximo ' . self::NOME_MAX . ' letras.'];
+        if (!preg_match("/^\\p{L}[\\p{L}\\p{M} '.\\-]*$/u", $t)) return [null, 'Use só letras, espaço, hífen e apóstrofo.'];
+        return [$t, null];
+    }
+
+    /** A coluna users.nome_mensagens existe (migration 173)? Uma consulta por requisição. */
+    public static function temColuna(): bool
+    {
+        static $tem = null;
+        if ($tem === null) {
+            try {
+                $tem = (int)Database::getConnection()->query(
+                    "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'users' AND column_name = 'nome_mensagens'"
+                )->fetchColumn() > 0;
+            } catch (\Throwable $e) { $tem = false; }
+        }
+        return $tem;
+    }
+
+    /** Trecho de SELECT com o nome escolhido (NULL antes da migration 173). */
+    public static function colunaSql(string $alias = 'u'): string
+    {
+        return self::temColuna() ? "$alias.nome_mensagens" : 'NULL';
+    }
+
+    /**
+     * Grava o nome que o vendedor quer nas mensagens. Vazio apaga (volta ao cadastro).
+     * Vai para a auditoria da conta, como a Roleta.
+     * @return string|null mensagem de erro, ou null se gravou
+     */
+    public static function salvarNome(int $accountId, int $userId, string $texto, int $porUserId): ?string
+    {
+        [$nome, $erro] = self::sanearNome($texto);
+        if ($erro) return $erro;
+        if (!self::temColuna()) return 'Recurso ainda não disponível (falta rodar a migration 173).';
+        $pdo = Database::getConnection();
+        $st = $pdo->prepare("SELECT nome, nome_mensagens FROM users WHERE id = ? AND account_id = ? AND deleted_at IS NULL AND status = 'active' LIMIT 1");
+        $st->execute([$userId, $accountId]);
+        $antes = $st->fetch(\PDO::FETCH_ASSOC);
+        if (!$antes) return 'Usuário não encontrado.';
+        $pdo->prepare('UPDATE users SET nome_mensagens = ?, updated_at = NOW() WHERE id = ? AND account_id = ?')->execute([$nome, $userId, $accountId]);
+        \App\Master\Account::audit($accountId, 'sdr.vendedor.nome_mensagens', [
+            'user_id' => $porUserId, 'entidade' => 'users', 'entidade_id' => $userId,
+            'dados_antes' => ['nome_mensagens' => $antes['nome_mensagens']], 'detalhes' => ['nome_mensagens' => $nome],
+        ]);
+        return null;
     }
 
     /**
@@ -48,14 +120,14 @@ final class VendedorDoLead
         $cardIds = array_values(array_unique(array_filter(array_map('intval', $cardIds))));
         if ($accountId <= 0 || !$cardIds) return [];
         $st = Database::getConnection()->prepare(
-            "SELECT c.id, u.nome FROM cards c
+            "SELECT c.id, u.nome, " . self::colunaSql() . " AS escolhido FROM cards c
                JOIN users u ON u.id = c.responsavel_user_id AND u.account_id = c.account_id AND u.deleted_at IS NULL AND u.status = 'active'
               WHERE c.account_id = ? AND c.id IN (" . implode(',', array_fill(0, count($cardIds), '?')) . ')'
         );
         $st->execute(array_merge([$accountId], $cardIds));
         $out = [];
         foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) {
-            $n = self::primeiroNome((string)$r['nome']);
+            $n = self::nomeNaMensagem((string)$r['nome'], $r['escolhido']);
             if ($n !== '') $out[(int)$r['id']] = $n;
         }
         return $out;
@@ -65,11 +137,11 @@ final class VendedorDoLead
     public static function doUsuario(int $accountId, int $userId): ?array
     {
         if ($accountId <= 0 || $userId <= 0) return null;
-        $st = Database::getConnection()->prepare("SELECT nome FROM users WHERE id = ? AND account_id = ? AND deleted_at IS NULL AND status = 'active' LIMIT 1");
+        $st = Database::getConnection()->prepare("SELECT nome, " . self::colunaSql('users') . " AS escolhido FROM users WHERE id = ? AND account_id = ? AND deleted_at IS NULL AND status = 'active' LIMIT 1");
         $st->execute([$userId, $accountId]);
-        $nome = $st->fetchColumn();
-        if ($nome === false) return null;
-        return ['user_id' => $userId, 'nome' => (string)$nome, 'vendedor' => self::primeiroNome((string)$nome)];
+        $r = $st->fetch(\PDO::FETCH_ASSOC);
+        if (!$r) return null;
+        return ['user_id' => $userId, 'nome' => (string)$r['nome'], 'vendedor' => self::nomeNaMensagem((string)$r['nome'], $r['escolhido'])];
     }
 
     /** O vendedor responsável pelo card, ou null. */

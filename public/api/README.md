@@ -77,7 +77,7 @@ Os rótulos da IA para a equipe seguem o vendedor do lead (31/10/2026): `whatsap
 
 `whatsapp/sdr_roleta.php` (n8n, cabeçalho `X-Fleetiflow-Token`) é a pergunta que o robô da planilha e o disparo das
 listas fazem ANTES de montar a abertura: POST `{telefone, card_id?, tipo, origem}` devolve `{ok, atendente}` com
-`user_id`, `atendente` (nome completo do cadastro) e `vendedor` (o primeiro nome, que entra no lugar de `{vendedor}`
+`user_id`, `atendente` (nome completo do cadastro) e `vendedor` (o "Nome nas mensagens" que o vendedor escolheu ou, vazio, o primeiro nome do cadastro, que entra no lugar de `{vendedor}`
 nos textos), ou `atendente: null` com o `motivo` (roleta desligada, ou `tipo` diferente de `abertura`). Lead novo vai
 para o vendedor da vez (`Roleta::daVez`) e o seguinte já é sorteado; pedir de novo para o mesmo lead devolve o mesmo
 atendente sem gastar a vez (`Roleta::reservar`).
@@ -87,7 +87,9 @@ divisão (`ligada`, `participantes` `[{user_id, percentual}]`, `desde`), o `da_v
 (`atual` desde a divisão salva e `total`) e os `ultimos` sorteios; `pronta: false` quando a migration 170 não
 rodou. POST `{ligada, participantes, _csrf}` grava (soma diferente de 100, pessoa repetida ou de fora volta 422
 com a mensagem). O sorteio em si é pedido pelo n8n no `whatsapp/sdr_etapa.php` com `roleta: true`, só na
-abertura. Regra em `App\WhatsAppAgente\Roleta`.
+abertura. Regra em `App\WhatsAppAgente\Roleta`. A equipe de `GET` traz `nome_mensagens` (o que o vendedor escolheu, vazio se não) e `aparece_como` (o nome que sai na mensagem).
+
+`whatsapp/meu_nome.php` (sessão, qualquer usuário da conta da prospecção) é o "Nome nas mensagens" do vendedor (31/10/2026): GET devolve `{nome_cadastro, nome_mensagens, aparece_como, pronta}` do próprio usuário; POST `{nome_mensagens, user_id?, _csrf}` grava (vazio volta ao primeiro nome do cadastro; número, link, emoji ou mais de 40 letras voltam 422). Cada um muda o próprio nome; `user_id` de outra pessoa só para owner/admin (403 para os demais). Cada mudança vai para a auditoria (`sdr.vendedor.nome_mensagens`). `pronta: false` e erro 422 enquanto a migration 173 não rodou.
 
 `whatsapp/card_whatsapp.php?card_id=ID` devolve tudo do WhatsApp de um lead para a ficha do card da edição CRM:
 etapa, setor, quem atende (agente de IA ligado ou pausado, pessoa, responsável), os números nossos ligados à

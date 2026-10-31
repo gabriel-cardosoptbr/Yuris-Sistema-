@@ -194,9 +194,9 @@ final class AutorDaMensagem
                 $uids = array_values(array_unique(array_filter(array_map(fn($g) => (int)$g['user_id'], $gravados))));
                 if ($uids) {
                     $m3 = implode(',', array_fill(0, count($uids), '?'));
-                    $st = $pdo->prepare("SELECT id, nome FROM users WHERE account_id = ? AND id IN ($m3)");
+                    $st = $pdo->prepare('SELECT id, nome, ' . VendedorDoLead::colunaSql('users') . " AS escolhido FROM users WHERE account_id = ? AND id IN ($m3)");
                     $st->execute(array_merge([$ownerAccountId], $uids));
-                    foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $u) $pessoas[(int)$u['id']] = self::primeiroNome((string)$u['nome']);
+                    foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $u) $pessoas[(int)$u['id']] = VendedorDoLead::nomeNaMensagem((string)$u['nome'], $u['escolhido']);
                 }
             }
 
@@ -235,11 +235,5 @@ final class AutorDaMensagem
             error_log('[autor_mensagem] rotular falhou (mensagens seguem sem rótulo): ' . $e->getMessage());
         }
         return $msgs;
-    }
-
-    private static function primeiroNome(string $nome): string
-    {
-        $p = preg_split('/\s+/u', trim($nome)) ?: [];
-        return (string)($p[0] ?? '');
     }
 }

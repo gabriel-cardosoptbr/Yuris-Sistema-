@@ -246,6 +246,16 @@ try {
     // card e os avisos dizem "Kaue (IA)". Sem vendedor, o nome da conta ("Vitória").
     $V = \App\WhatsAppAgente\VendedorDoLead::class;
     ok('rotulo da IA: primeiro nome e (IA)', $V::rotuloIA('Kaue') === 'Kaue (IA)');
+
+    // "Nome nas mensagens" (31/10/2026): o vendedor escolhe como assina; vazio, o primeiro nome do cadastro.
+    ok('nome na mensagem: sem escolha, o primeiro nome do cadastro', $V::nomeNaMensagem('Kaue Souza', null) === 'Kaue' && $V::nomeNaMensagem('Kaue Souza', '  ') === 'Kaue');
+    ok('nome na mensagem: o escolhido vale no lugar do cadastro', $V::nomeNaMensagem('Kaue Souza', 'Souza') === 'Souza' && $V::nomeNaMensagem('Kaue Souza', 'Kaue Souza') === 'Kaue Souza');
+    ok('sanear: vazio volta ao cadastro, espaços sobrando saem', $V::sanearNome('') === [null, null] && $V::sanearNome('   ') === [null, null] && $V::sanearNome('  Kaue   Souza ') === ['Kaue Souza', null]);
+    ok('sanear: aceita acento, hífen e apóstrofo', $V::sanearNome('João-Pedro')[0] === 'João-Pedro' && $V::sanearNome("D'Ávila")[0] === "D'Ávila" && $V::sanearNome('Jr.')[0] === 'Jr.');
+    ok('sanear: recusa 1 letra e mais de 40', $V::sanearNome('A')[1] !== null && $V::sanearNome(str_repeat('a', 41))[1] !== null && $V::sanearNome(str_repeat('a', 40))[1] === null);
+    ok('sanear: recusa número, link, emoji e símbolo', $V::sanearNome('Kaue 2')[1] !== null && $V::sanearNome('kaue.com/promo')[1] !== null && $V::sanearNome('Kaue 🙂')[1] !== null && $V::sanearNome('Kaue @x')[1] !== null && $V::sanearNome('-Kaue')[1] !== null);
+    $nomeAntes = null; $nomeUid = 0;
+
     if ($inst) {
         $pn = function (int $uid) use ($pdo): string { $q = $pdo->prepare('SELECT nome FROM users WHERE id = ?'); $q->execute([$uid]); return preg_split('/\s+/', trim((string) $q->fetchColumn()))[0]; };
         $cv = $novoCard($A);
@@ -266,6 +276,25 @@ try {
         ok('card: a leitura do funil traz o vendedor do card', isset($fv[$cv]) && array_key_exists('robo_nome', $fv[$cv]));
         $msgs = [['id' => 0, 'direction' => 'outbound', 'wamid' => 'x', 'created_at' => date('Y-m-d H:i:s')]];
         ok('balão: rotular não quebra com vendedor', is_array(\App\WhatsAppAgente\AutorDaMensagem::rotular($ACC, $inst, $jv, $msgs)));
+
+        if ($V::temColuna()) {
+            $nomeUid = $A;
+            $q = $pdo->prepare('SELECT nome_mensagens FROM users WHERE id = ?'); $q->execute([$A]); $nomeAntes = $q->fetchColumn();
+            $completoA = (string) $pdo->query('SELECT nome FROM users WHERE id = ' . (int) $A)->fetchColumn();
+            ok('nome escolhido: grava e a abertura sai com ele', $V::salvarNome($ACC, $A, ' Souza  Teste ', $A) === null && R::assinatura($ACC, $A)['vendedor'] === 'Souza Teste');
+            ok('nome escolhido: o cadastro (nome completo) continua o mesmo', R::assinatura($ACC, $A)['atendente'] === $completoA);
+            ok('nome escolhido: vale para a IA, o card e o rótulo da equipe', ($V::doUsuario($ACC, $A)['vendedor'] ?? '') === 'Souza Teste' && ($V::doscards($ACC, [$cv])[$cv] ?? '') === 'Souza Teste' && ($V::doCard($ACC, $cv)['vendedor'] ?? '') === 'Souza Teste' && $V::rotuloIA($V::doCard($ACC, $cv)['vendedor']) === 'Souza Teste (IA)');
+            ok('nome escolhido: o Chat mostra a IA com o nome escolhido', ($sv2 = \App\WhatsAppAgente\SituacaoConversa::daConversa($ACC, $inst, $jv)) && $sv2['agente']['nome'] === 'Souza Teste (IA)');
+            ok('nome escolhido: recusa lixo e não grava', $V::salvarNome($ACC, $A, 'Kaue 2', $A) !== null && R::assinatura($ACC, $A)['vendedor'] === 'Souza Teste');
+            $outra = (int) $pdo->query('SELECT id FROM users WHERE account_id <> ' . (int) $ACC . ' AND deleted_at IS NULL LIMIT 1')->fetchColumn();
+            ok('nome escolhido: não mexe em usuário de outra conta', $outra === 0 || $V::salvarNome($ACC, $outra, 'Intruso', $A) === 'Usuário não encontrado.');
+            ok('nome escolhido: vazio volta ao primeiro nome do cadastro', $V::salvarNome($ACC, $A, '', $A) === null && R::assinatura($ACC, $A)['vendedor'] === $pn($A));
+            $aud = $pdo->prepare("SELECT COUNT(*) FROM account_audit_log WHERE account_id = ? AND acao = 'sdr.vendedor.nome_mensagens' AND entidade_id = ?");
+            $aud->execute([$ACC, $A]);
+            ok('nome escolhido: cada mudança fica na auditoria', (int) $aud->fetchColumn() >= 2);
+        } else {
+            echo "  (nome escolhido pulado: falta a migration 173)\n";
+        }
     }
 
     sleep(1);
@@ -273,6 +302,7 @@ try {
     $cont = R::contagem($ACC);
     ok('a contagem traz os dois com o total', count($cont) >= 2 && array_sum(array_column($cont, 'total')) >= 1);
 } finally {
+    if (!empty($nomeUid)) $pdo->prepare('UPDATE users SET nome_mensagens = ? WHERE id = ?')->execute([$nomeAntes === false ? null : $nomeAntes, $nomeUid]);
     if ($cards) {
         $in = implode(',', array_map('intval', $cards));
         $pdo->exec("DELETE FROM sdr_roleta_sorteios WHERE card_id IN ($in)");
