@@ -71,6 +71,12 @@ grava (`POST {qual, ligado, _csrf}`, só owner/admin, só na conta da prospecç�
 disparo e a cadência de follow-up perguntam antes de cada mensagem (`{disparo, followup}`). Regra em
 `App\WhatsAppAgente\AutomacaoSdr`.
 
+`whatsapp/sdr_roleta.php` (n8n, cabeçalho `X-Fleetiflow-Token`) é a pergunta que o robô da planilha e o disparo das
+listas fazem ANTES de montar a abertura: POST `{telefone, card_id?, tipo, origem}` devolve `{ok, atendente}` com
+`user_id`, `atendente` (nome completo), `nome` (como aparece na mensagem, "Cauê") e `quem` (como se apresenta, "o
+Cauê"), ou `atendente: null` com o `motivo` (roleta desligada, ou `tipo` diferente de `abertura`). Pedir de novo
+para o mesmo lead devolve o mesmo atendente (`Roleta::reservar`).
+
 `whatsapp/roleta.php` (sessão, só owner/admin, inclusive para ler) é a tela Operação › Roleta: GET devolve a
 divisão (`ligada`, `participantes` `[{user_id, percentual}]`, `desde`), a equipe ativa, a `contagem` por pessoa
 (`atual` desde a divisão salva e `total`) e os `ultimos` sorteios; `pronta: false` quando a migration 170 não

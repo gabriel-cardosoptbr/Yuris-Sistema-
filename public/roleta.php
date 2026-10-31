@@ -89,7 +89,14 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
     @media (max-width:980px){ .ro-grade{ grid-template-columns:minmax(0,1fr); } }
 
     .ro-pessoas{ display:flex; flex-direction:column; gap:8px; }
-    .ro-pessoa{ display:grid; grid-template-columns:auto minmax(0,1fr) 110px; gap:12px; align-items:center; padding:10px 12px; border:1px solid var(--o-borda); border-radius:12px; }
+    .ro-pessoa{ display:grid; grid-template-columns:minmax(0,1fr) 110px; gap:10px 12px; align-items:center; padding:10px 12px; border:1px solid var(--o-borda); border-radius:12px; }
+    .ro-quem{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:12px; align-items:center; cursor:pointer; min-width:0; }
+    .ro-assina{ grid-column:1 / -1; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr)); gap:8px 10px; padding-top:8px; border-top:1px dashed var(--o-borda); }
+    .ro-assina[hidden]{ display:none; }
+    .ro-assina label{ display:flex; flex-direction:column; gap:4px; font-size:11px; font-weight:700; color:var(--o-fraco); text-transform:uppercase; letter-spacing:.04em; }
+    .ro-assina input{ min-height:34px; padding:6px 10px; border-radius:10px; border:1px solid var(--o-borda); background:var(--o-input); color:var(--o-texto); font:inherit; font-size:13px; font-weight:600; text-transform:none; letter-spacing:0; box-sizing:border-box; width:100%; }
+    .ro-previa{ grid-column:1 / -1; margin:0; font-size:12px; color:var(--o-fraco); line-height:1.5; }
+    .ro-previa b{ color:var(--o-forte); font-weight:600; }
     .ro-pessoa.dentro{ border-color:var(--o-acento); background:var(--o-acento-suave); }
     .ro-pessoa input[type=checkbox]{ accent-color:var(--o-acento); width:17px; height:17px; margin:0; }
     .ro-pessoa .nome{ font-size:13.5px; font-weight:700; color:var(--o-forte); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -140,7 +147,7 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
     <div class="ro-topo">
       <div>
         <h1>Roleta dos leads</h1>
-        <p>Cada lead que a prospecção automática aborda é sorteado entre as pessoas abaixo, na proporção que você escolher. O card e a conversa do WhatsApp já chegam com o nome de quem vai atender. Lead que alguém já atende não muda de mão.</p>
+        <p>Cada lead que a prospecção automática aborda é sorteado entre as pessoas abaixo, na proporção que você escolher. A primeira mensagem já sai assinada por quem foi sorteado, e o card e a conversa do WhatsApp já chegam com o nome dele. Lead que alguém já atende não muda de mão.</p>
       </div>
       <label class="ro-chave" title="Desligada, o lead segue a regra de antes (o dono do número)">
         <input type="checkbox" id="roLigada"><span class="trilho"></span><span id="roLigadaTxt">Roleta desligada</span>
@@ -216,25 +223,41 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
       return j;
     }
 
+    function primeiroNome(n) { return String(n || '').trim().split(/\s+/)[0] || ''; }
+
     function pintarPessoas() {
-      var pct = {};
-      (D.participantes || []).forEach(function (p) { pct[p.user_id] = p.percentual; });
+      var por = {};
+      (D.participantes || []).forEach(function (p) { por[p.user_id] = p; });
       $('roPessoas').innerHTML = (D.equipe || []).map(function (u) {
-        var dentro = pct[u.id] != null;
-        return '<label class="ro-pessoa' + (dentro ? ' dentro' : '') + '" data-uid="' + u.id + '">'
-          + '<input type="checkbox"' + (dentro ? ' checked' : '') + '>'
-          + '<span style="min-width:0"><span class="nome">' + esc(u.nome) + '</span><br><span class="papel">' + esc(PAPEL[u.role] || u.role) + '</span></span>'
-          + '<span class="ro-pct"><input type="number" min="1" max="100" step="1" inputmode="numeric" value="' + (dentro ? pct[u.id] : '') + '"' + (dentro ? '' : ' disabled') + ' aria-label="Percentual de ' + esc(u.nome) + '"><span>%</span></span>'
-          + '</label>';
+        var p = por[u.id], dentro = !!p;
+        return '<div class="ro-pessoa' + (dentro ? ' dentro' : '') + '" data-uid="' + u.id + '" data-primeiro="' + esc(primeiroNome(u.nome)) + '">'
+          + '<label class="ro-quem"><input type="checkbox"' + (dentro ? ' checked' : '') + '>'
+          + '<span style="min-width:0"><span class="nome">' + esc(u.nome) + '</span><br><span class="papel">' + esc(PAPEL[u.role] || u.role) + '</span></span></label>'
+          + '<span class="ro-pct"><input type="number" min="1" max="100" step="1" inputmode="numeric" value="' + (dentro ? p.percentual : '') + '"' + (dentro ? '' : ' disabled') + ' aria-label="Percentual de ' + esc(u.nome) + '"><span>%</span></span>'
+          + '<div class="ro-assina"' + (dentro ? '' : ' hidden') + '>'
+          + '<label>Nome na mensagem<input type="text" data-campo="nome" maxlength="40" placeholder="' + esc(primeiroNome(u.nome)) + '" value="' + esc(dentro ? p.nome : '') + '"></label>'
+          + '<label>Como se apresenta<input type="text" data-campo="apresentacao" maxlength="50" placeholder="ex.: o ' + esc(primeiroNome(u.nome)) + ', a ' + esc(primeiroNome(u.nome)) + '" value="' + esc(dentro ? p.apresentacao : '') + '"></label>'
+          + '<p class="ro-previa"></p></div>'
+          + '</div>';
       }).join('') || '<div class="ro-vazio">Nenhum usuário ativo na conta.</div>';
+      document.querySelectorAll('.ro-pessoa').forEach(previa);
       somar();
+    }
+
+    // Como a abertura vai sair para esta pessoa (os textos dizem "Sou a Vitória",
+    // "Aqui é a Vitória" e "Vitória, da Fleetiflow"). Sem apresentação, vai sem artigo.
+    function previa(el) {
+      var nome = el.querySelector('[data-campo=nome]').value.trim() || el.dataset.primeiro;
+      var quem = el.querySelector('[data-campo=apresentacao]').value.trim() || nome;
+      el.querySelector('.ro-previa').innerHTML = 'Na abertura: <b>“Sou ' + esc(quem) + ', da Fleetiflow.”</b> · <b>“' + esc(nome) + ', da Fleetiflow.”</b>';
     }
 
     function lerParticipantes() {
       return Array.prototype.map.call(document.querySelectorAll('.ro-pessoa'), function (el) {
         var cb = el.querySelector('input[type=checkbox]');
         if (!cb.checked) return null;
-        return { user_id: Number(el.dataset.uid), percentual: Number(el.querySelector('input[type=number]').value || 0) };
+        return { user_id: Number(el.dataset.uid), percentual: Number(el.querySelector('input[type=number]').value || 0),
+          nome: el.querySelector('[data-campo=nome]').value.trim(), apresentacao: el.querySelector('[data-campo=apresentacao]').value.trim() };
       }).filter(Boolean);
     }
 
@@ -264,7 +287,11 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
           + '<td class="num">' + l.total + '</td></tr>';
       }).join('') || '<tr><td colspan="4" class="ro-vazio">Ninguém na roleta ainda.</td></tr>';
       $('roUltimos').innerHTML = (D.ultimos || []).map(function (s) {
-        return '<tr><td class="lead"><a href="/prospeccao?open=' + Number(s.card_id) + '" style="color:inherit;font-weight:700;text-decoration:none">' + esc(s.titulo || ('Lead #' + s.card_id)) + '</a></td>'
+        // Sorteado antes do envio e o card ainda não nasceu: mostra o telefone.
+        var lead = s.card_id
+          ? '<a href="/prospeccao?open=' + Number(s.card_id) + '" style="color:inherit;font-weight:700;text-decoration:none">' + esc(s.titulo || ('Lead #' + s.card_id)) + '</a>'
+          : '<span style="font-weight:700">' + esc(s.telefone || 'Lead') + '</span> <span class="fraco">enviando…</span>';
+        return '<tr><td class="lead">' + lead + '</td>'
           + '<td class="quem"><span class="ro-ponto" style="background:' + corDe(Number(s.user_id)) + '"></span>' + esc(s.nome || '') + '</td>'
           + '<td class="num"><span class="fraco">' + esc(dataBr(s.created_at)) + '</span></td></tr>';
       }).join('') || '<tr><td class="ro-vazio">Nenhum lead sorteado ainda.</td></tr>';
@@ -300,11 +327,16 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
         var n = el.querySelector('input[type=number]');
         n.disabled = !ev.target.checked;
         el.classList.toggle('dentro', ev.target.checked);
+        el.querySelector('.ro-assina').hidden = !ev.target.checked;
         if (ev.target.checked && !n.value) n.focus();
       }
       somar();
     });
-    $('roPessoas').addEventListener('input', somar);
+    $('roPessoas').addEventListener('input', function (ev) {
+      var el = ev.target.closest('.ro-pessoa');
+      if (el && ev.target.dataset.campo) previa(el);
+      somar();
+    });
     $('roSalvar').addEventListener('click', function () { salvar($('roLigada').checked); });
     $('roLigada').addEventListener('change', function () {
       if (!lerParticipantes().length || $('roSalvar').disabled) {

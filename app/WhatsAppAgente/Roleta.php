@@ -8,12 +8,19 @@ use App\Core\Database;
  * (pedido do dono da Fleetiflow, 30/10/2026: "cada disparo, um vai para um, outro
  * para outro... agora eu quero 70% Cauê e 30% a Vitória").
  *
- * A cada abertura que o n8n manda (robô da planilha e disparo das listas), o
- * sdr_etapa.php chama sortear(): o card do lead e a conversa passam a ser do
- * atendente sorteado. Quem participa e o percentual de cada um ficam em
- * whatsapp_settings (chave `sdr_roleta`, JSON), como AutomacaoSdr; cada sorteio
- * fica em sdr_roleta_sorteios (migration 170), que é o histórico, a contagem da
- * tela e a garantia de que o mesmo lead não é sorteado duas vezes.
+ * O sorteio acontece ANTES do envio (desde 30/10/2026, pedido do dono: "as
+ * primeiras mensagens do Cauê têm que vir com o nome Cauê"): o n8n pergunta em
+ * api/whatsapp/sdr_roleta.php quem é o atendente da vez (reservar) e monta a
+ * abertura com o nome dele. No robô da planilha o card só nasce depois do envio,
+ * então o sorteio fica guardado pelo telefone e, quando o sdr_etapa.php avisa a
+ * abertura (sortear), é ligado ao card: o card e a conversa passam a ser do
+ * sorteado. Sem a pergunta antes (fluxo antigo), sortear() sorteia na hora.
+ *
+ * Quem participa, o percentual, o nome que vai na mensagem ("Cauê") e como a
+ * pessoa se apresenta ("o Cauê") ficam em whatsapp_settings (chave `sdr_roleta`,
+ * JSON), como AutomacaoSdr; cada sorteio fica em sdr_roleta_sorteios (migrations
+ * 170 e 171), que é o histórico, a contagem da tela e a garantia de que o mesmo
+ * lead (card ou telefone) não é sorteado duas vezes.
  *
  * O sorteio é ponderado e equilibrado (escolher): só concorre quem ainda está
  * abaixo da parte dele na divisão atual, e entre esses vale o peso. Assim a conta
@@ -34,7 +41,10 @@ final class Roleta
 
     /**
      * A configuração da conta. Sem registro: desligada e sem participantes.
-     * @return array{ligada:bool, participantes:array<int,array{user_id:int, percentual:int}>, desde:?string}
+     * `nome` é como a pessoa aparece na abertura ("Cauê") e `apresentacao`, como ela
+     * se apresenta, com o artigo ("o Cauê"); vazios valem o primeiro nome do usuário,
+     * sem artigo (assinatura).
+     * @return array{ligada:bool, participantes:array<int,array{user_id:int, percentual:int, nome:string, apresentacao:string}>, desde:?string}
      */
     public static function config(int $accountId): array
     {
@@ -48,7 +58,8 @@ final class Roleta
         foreach ((array)($j['participantes'] ?? []) as $p) {
             $uid = (int)($p['user_id'] ?? 0);
             $pct = (int)($p['percentual'] ?? 0);
-            if ($uid > 0 && $pct > 0) $part[] = ['user_id' => $uid, 'percentual' => $pct];
+            if ($uid > 0 && $pct > 0) $part[] = ['user_id' => $uid, 'percentual' => $pct,
+                'nome' => trim((string)($p['nome'] ?? '')), 'apresentacao' => trim((string)($p['apresentacao'] ?? ''))];
         }
         return ['ligada' => !empty($j['ligada']), 'participantes' => $part, 'desde' => $j['desde'] ?? null];
     }
@@ -56,8 +67,9 @@ final class Roleta
     /**
      * Confere a divisão que a tela mandou. Cada participante tem de ser usuário
      * ativo da conta, sem repetir, com percentual inteiro de 1 a 100, e a soma tem
-     * de dar 100. Devolve a mensagem do primeiro problema, ou null.
-     * @param array<int,array{user_id:mixed, percentual:mixed}> $participantes
+     * de dar 100. Nome na mensagem até 40 letras e apresentação até 50, sem
+     * quebra de linha. Devolve a mensagem do primeiro problema, ou null.
+     * @param array<int,array{user_id:mixed, percentual:mixed, nome?:mixed, apresentacao?:mixed}> $participantes
      */
     public static function validar(int $accountId, array $participantes): ?string
     {
@@ -75,6 +87,11 @@ final class Roleta
             if ($pct === false || $pct < 1 || $pct > 100) return 'Cada percentual tem de ser um número inteiro de 1 a 100.';
             $ativo->execute([$uid, $accountId]);
             if (!$ativo->fetchColumn()) return 'Só entra na roleta quem é usuário ativo da conta.';
+            $nome = (string)($p['nome'] ?? '');
+            $apres = (string)($p['apresentacao'] ?? '');
+            if (mb_strlen(trim($nome)) > 40) return 'O nome na mensagem pode ter até 40 letras.';
+            if (mb_strlen(trim($apres)) > 50) return 'A apresentação pode ter até 50 letras.';
+            if (preg_match('/[\r\n{}]/', $nome . $apres)) return 'O nome e a apresentação não podem ter quebra de linha nem chaves.';
             $soma += $pct;
         }
         if ($soma !== 100) return "Os percentuais somam {$soma}%. A soma tem de dar 100%.";
@@ -92,10 +109,17 @@ final class Roleta
         if ($accountId <= 0) return 'Conta inválida.';
         if ($erro = self::validar($accountId, $participantes)) return $erro;
 
-        $novos = array_map(fn($p) => ['user_id' => (int)$p['user_id'], 'percentual' => (int)$p['percentual']], array_values($participantes));
+        $novos = array_map(fn($p) => ['user_id' => (int)$p['user_id'], 'percentual' => (int)$p['percentual'],
+            'nome' => trim((string)($p['nome'] ?? '')), 'apresentacao' => trim((string)($p['apresentacao'] ?? ''))], array_values($participantes));
         $atual = self::config($accountId);
         $pdo   = Database::getConnection();
-        $chave = fn(array $ps) => implode(',', array_map(fn($p) => $p['user_id'] . ':' . $p['percentual'], $ps));
+        // Só quem participa e o percentual recomeçam a conta; trocar o nome ou a
+        // ordem em que a tela manda as pessoas, não.
+        $chave = function (array $ps): string {
+            $v = array_map(fn($p) => $p['user_id'] . ':' . $p['percentual'], $ps);
+            sort($v);
+            return implode(',', $v);
+        };
         // Relógio do banco, o mesmo de sdr_roleta_sorteios.created_at (UTC em produção).
         $desde = ($atual['desde'] && $chave($atual['participantes']) === $chave($novos)) ? $atual['desde'] : (string)$pdo->query('SELECT NOW()')->fetchColumn();
         $valor = json_encode(['ligada' => $ligada, 'participantes' => $novos, 'desde' => $desde], JSON_UNESCAPED_UNICODE);
@@ -169,34 +193,29 @@ final class Roleta
         $trava = 'sdr_roleta_' . $accountId;
         $pdo->prepare('SELECT GET_LOCK(?, 5)')->execute([$trava]);
         try {
-            $st = $pdo->prepare('SELECT id, account_id, coluna_id, responsavel_user_id FROM cards WHERE id = ? AND deleted_at IS NULL LIMIT 1');
-            $st->execute([$cardId]);
-            $card = $st->fetch(\PDO::FETCH_ASSOC);
-            if (!$card || (int)$card['account_id'] !== $accountId) return ['pulou' => 'card não encontrado'];
+            $card = self::card($pdo, $accountId, $cardId);
+            if (!$card) return ['pulou' => 'card não encontrado'];
 
-            // Sorteado antes: devolve o mesmo e só reaplica na conversa.
-            $st = $pdo->prepare('SELECT user_id FROM sdr_roleta_sorteios WHERE account_id = ? AND card_id = ? LIMIT 1');
-            $st->execute([$accountId, $cardId]);
-            $ja = (int)($st->fetchColumn() ?: 0);
+            // Sorteado antes (pelo card, ou pelo telefone antes de o card nascer):
+            // devolve o mesmo, liga ao card e aplica no card e na conversa.
+            $ja = self::jaSorteado($pdo, $accountId, $card);
             if ($ja) {
-                self::aplicarNaConversa($pdo, $accountId, $ja, $instanceId, $remoteJid);
+                self::aplicar($pdo, $accountId, $card, $ja, $instanceId, $remoteJid);
                 return ['user_id' => $ja, 'nome' => self::nome($pdo, $ja), 'novo' => false];
             }
 
-            $novo = SdrFleetiflow::colunasDaConta($pdo, $accountId)['novo'] ?? null;
-            if ($novo === null || (int)$card['coluna_id'] !== (int)$novo) return ['pulou' => 'card fora de Novos leads'];
-            $atual = $card['responsavel_user_id'] !== null ? (int)$card['responsavel_user_id'] : null;
-            if ($atual !== null && !in_array($atual, self::donosAutomaticos($pdo, $accountId, $instanceId), true)) {
-                return ['pulou' => 'card já tem responsável escolhido'];
+            if (!self::podeTrocar($pdo, $accountId, $card, $instanceId)) {
+                return ['pulou' => (int)$card['coluna_id'] !== (int)(SdrFleetiflow::colunasDaConta($pdo, $accountId)['novo'] ?? 0)
+                    ? 'card fora de Novos leads' : 'card já tem responsável escolhido'];
             }
+            $atual = $card['responsavel_user_id'] !== null ? (int)$card['responsavel_user_id'] : null;
 
             $pesos = [];
             foreach ($cfg['participantes'] as $p) $pesos[$p['user_id']] = $p['percentual'];
             $uid = self::escolher($pesos, self::recebidos($pdo, $accountId, $cfg['desde']));
             if (!$uid) return ['pulou' => 'sem participante'];
 
-            $pdo->prepare('INSERT INTO sdr_roleta_sorteios (account_id, card_id, user_id, percentual, origem, instance_id, remote_jid, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())')
-                ->execute([$accountId, $cardId, $uid, $pesos[$uid], mb_substr($origem, 0, 20), $instanceId, $remoteJid]);
+            self::gravar($pdo, $accountId, $cardId, self::digitos($card['telefone_whatsapp'] ?? ''), $uid, $pesos[$uid], $origem, $instanceId, $remoteJid);
             if ($atual !== $uid) {
                 \App\Prospeccao\Card::update($cardId, ['responsavel_user_id' => $uid, '_usuario_id' => null]);
             }
@@ -205,6 +224,77 @@ final class Roleta
         } finally {
             $pdo->prepare('SELECT RELEASE_LOCK(?)')->execute([$trava]);
         }
+    }
+
+    /**
+     * O atendente da vez para a abertura que o n8n vai mandar AGORA, com o nome que
+     * vai na mensagem. Chamado por api/whatsapp/sdr_roleta.php antes de montar o
+     * texto, nos dois fluxos.
+     *
+     *   - lead já sorteado (pelo card ou pelo telefone): o mesmo atendente;
+     *   - card que já tem responsável escolhido por pessoa, ou fora de "Novos
+     *     leads": assina quem já atende, sem sortear;
+     *   - senão sorteia e guarda pelo telefone (e pelo card, se ele já existe, e aí
+     *     já grava no card e na conversa). O card que nascer depois do envio é
+     *     ligado em sortear(), pelo sdr_etapa.php.
+     *
+     * @return array{user_id:int, atendente:string, nome:string, quem:string, novo:bool}|array{pulou:string}
+     */
+    public static function reservar(int $accountId, string $telefone, ?int $cardId = null, string $origem = 'disparo'): array
+    {
+        $cfg = self::config($accountId);
+        if (!$cfg['ligada'] || !$cfg['participantes']) return ['pulou' => 'roleta desligada'];
+        $fone = self::digitos($telefone);
+        if (strlen($fone) < 10) return ['pulou' => 'telefone inválido'];
+
+        $pdo   = Database::getConnection();
+        $trava = 'sdr_roleta_' . $accountId;
+        $pdo->prepare('SELECT GET_LOCK(?, 5)')->execute([$trava]);
+        try {
+            $card = $cardId ? self::card($pdo, $accountId, $cardId) : null;
+            if (!$card) {
+                $st = $pdo->prepare("SELECT id FROM cards WHERE account_id = ? AND deleted_at IS NULL
+                                        AND RIGHT(REGEXP_REPLACE(COALESCE(telefone_whatsapp,''), '[^0-9]', ''), 8) = ? ORDER BY id DESC LIMIT 1");
+                $st->execute([$accountId, substr($fone, -8)]);
+                $id = (int)($st->fetchColumn() ?: 0);
+                $card = $id ? self::card($pdo, $accountId, $id) : null;
+            }
+            $chat = $card ? self::conversaDoCard($pdo, (int)$card['id']) : null;
+
+            $ja = self::jaSorteado($pdo, $accountId, $card, $fone);
+            if ($ja) {
+                if ($card) self::aplicar($pdo, $accountId, $card, $ja, $chat['instance_id'] ?? null, $chat['remote_jid'] ?? null);
+                return self::assinatura($pdo, $cfg, $ja) + ['novo' => false];
+            }
+            if ($card && $card['responsavel_user_id'] !== null && !self::podeTrocar($pdo, $accountId, $card, $chat['instance_id'] ?? null)) {
+                return self::assinatura($pdo, $cfg, (int)$card['responsavel_user_id']) + ['novo' => false];
+            }
+
+            $pesos = [];
+            foreach ($cfg['participantes'] as $p) $pesos[$p['user_id']] = $p['percentual'];
+            $uid = self::escolher($pesos, self::recebidos($pdo, $accountId, $cfg['desde']));
+            if (!$uid) return ['pulou' => 'sem participante'];
+            self::gravar($pdo, $accountId, $card ? (int)$card['id'] : null, $fone, $uid, $pesos[$uid], $origem, $chat['instance_id'] ?? null, $chat['remote_jid'] ?? null);
+            if ($card) self::aplicar($pdo, $accountId, $card, $uid, $chat['instance_id'] ?? null, $chat['remote_jid'] ?? null);
+            return self::assinatura($pdo, $cfg, $uid) + ['novo' => true];
+        } finally {
+            $pdo->prepare('SELECT RELEASE_LOCK(?)')->execute([$trava]);
+        }
+    }
+
+    /**
+     * Como o atendente aparece na abertura: `nome` ("Cauê") e `quem`, a forma de se
+     * apresentar ("o Cauê"). Sem nada configurado vale o primeiro nome do usuário e
+     * `quem` fica igual ao nome, sem artigo ("Aqui é Cauê, da Fleetiflow").
+     * @return array{user_id:int, atendente:string, nome:string, quem:string}
+     */
+    public static function assinatura(\PDO $pdo, array $cfg, int $uid): array
+    {
+        $completo = self::nome($pdo, $uid);
+        $p = current(array_filter($cfg['participantes'], fn($x) => $x['user_id'] === $uid)) ?: [];
+        $nome = trim((string)($p['nome'] ?? '')) ?: (preg_split('/\s+/', trim($completo))[0] ?? $completo);
+        $quem = trim((string)($p['apresentacao'] ?? '')) ?: $nome;
+        return ['user_id' => $uid, 'atendente' => $completo, 'nome' => $nome, 'quem' => $quem];
     }
 
     /**
@@ -257,7 +347,7 @@ final class Roleta
     public static function ultimos(int $accountId, int $limite = 20): array
     {
         $st = Database::getConnection()->prepare(
-            'SELECT s.card_id, s.user_id, s.percentual, s.origem, s.created_at, u.nome, c.titulo
+            'SELECT s.card_id, s.telefone, s.user_id, s.percentual, s.origem, s.created_at, u.nome, c.titulo
                FROM sdr_roleta_sorteios s
           LEFT JOIN users u ON u.id = s.user_id
           LEFT JOIN cards c ON c.id = s.card_id AND c.account_id = s.account_id
@@ -290,6 +380,75 @@ final class Roleta
             $ids[] = $m['antigas'];
         }
         return array_values(array_unique(array_map('intval', array_filter($ids))));
+    }
+
+    /** @return array<string,mixed>|null o card da conta, com o que a roleta precisa */
+    private static function card(\PDO $pdo, int $accountId, int $cardId): ?array
+    {
+        $st = $pdo->prepare('SELECT id, account_id, coluna_id, responsavel_user_id, telefone_whatsapp FROM cards WHERE id = ? AND deleted_at IS NULL LIMIT 1');
+        $st->execute([$cardId]);
+        $c = $st->fetch(\PDO::FETCH_ASSOC);
+        return $c && (int)$c['account_id'] === $accountId ? $c : null;
+    }
+
+    /** A conversa mais recente ligada ao card. @return array{instance_id:int, remote_jid:string}|null */
+    private static function conversaDoCard(\PDO $pdo, int $cardId): ?array
+    {
+        $st = $pdo->prepare('SELECT instance_id, remote_jid FROM whatsapp_chats WHERE linked_card_id = ? ORDER BY last_message_at DESC LIMIT 1');
+        $st->execute([$cardId]);
+        $r = $st->fetch(\PDO::FETCH_ASSOC);
+        return $r ? ['instance_id' => (int)$r['instance_id'], 'remote_jid' => (string)$r['remote_jid']] : null;
+    }
+
+    /**
+     * Quem já foi sorteado para este lead: pelo card, senão pelo telefone (sorteio
+     * feito antes de o card nascer), que então é ligado ao card. 0 = ninguém.
+     */
+    private static function jaSorteado(\PDO $pdo, int $accountId, ?array $card, string $fone = ''): int
+    {
+        if ($card) {
+            $st = $pdo->prepare('SELECT user_id FROM sdr_roleta_sorteios WHERE account_id = ? AND card_id = ? LIMIT 1');
+            $st->execute([$accountId, (int)$card['id']]);
+            if ($uid = (int)($st->fetchColumn() ?: 0)) return $uid;
+            $fone = $fone !== '' ? $fone : self::digitos($card['telefone_whatsapp'] ?? '');
+        }
+        if (strlen($fone) < 8) return 0;
+        $st = $pdo->prepare('SELECT id, user_id FROM sdr_roleta_sorteios WHERE account_id = ? AND card_id IS NULL AND RIGHT(telefone, 8) = ? ORDER BY id DESC LIMIT 1');
+        $st->execute([$accountId, substr($fone, -8)]);
+        $r = $st->fetch(\PDO::FETCH_ASSOC);
+        if (!$r) return 0;
+        if ($card) $pdo->prepare('UPDATE sdr_roleta_sorteios SET card_id = ? WHERE id = ? AND card_id IS NULL')->execute([(int)$card['id'], (int)$r['id']]);
+        return (int)$r['user_id'];
+    }
+
+    /** A roleta pode dar o card a alguém: está em "Novos leads" e o responsável é vazio ou o automático. */
+    private static function podeTrocar(\PDO $pdo, int $accountId, array $card, ?int $instanceId): bool
+    {
+        $novo = SdrFleetiflow::colunasDaConta($pdo, $accountId)['novo'] ?? null;
+        if ($novo === null || (int)$card['coluna_id'] !== (int)$novo) return false;
+        $atual = $card['responsavel_user_id'] !== null ? (int)$card['responsavel_user_id'] : null;
+        return $atual === null || in_array($atual, self::donosAutomaticos($pdo, $accountId, $instanceId), true);
+    }
+
+    /** Dá o card (se a roleta pode) e a conversa ao sorteado. */
+    private static function aplicar(\PDO $pdo, int $accountId, array $card, int $uid, ?int $instanceId, ?string $remoteJid): void
+    {
+        $atual = $card['responsavel_user_id'] !== null ? (int)$card['responsavel_user_id'] : null;
+        if ($atual !== $uid && self::podeTrocar($pdo, $accountId, $card, $instanceId)) {
+            \App\Prospeccao\Card::update((int)$card['id'], ['responsavel_user_id' => $uid, '_usuario_id' => null]);
+        }
+        self::aplicarNaConversa($pdo, $accountId, $uid, $instanceId, $remoteJid);
+    }
+
+    private static function gravar(\PDO $pdo, int $accountId, ?int $cardId, string $fone, int $uid, int $pct, string $origem, ?int $instanceId, ?string $remoteJid): void
+    {
+        $pdo->prepare('INSERT INTO sdr_roleta_sorteios (account_id, card_id, telefone, user_id, percentual, origem, instance_id, remote_jid, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())')
+            ->execute([$accountId, $cardId, $fone !== '' ? substr($fone, 0, 20) : null, $uid, $pct, mb_substr($origem, 0, 20), $instanceId, $remoteJid]);
+    }
+
+    private static function digitos(?string $v): string
+    {
+        return preg_replace('/\D/', '', (string)$v);
     }
 
     /** A conversa passa a ser do sorteado, se está sem dono ou com o dono automático. */

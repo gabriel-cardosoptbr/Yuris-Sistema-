@@ -90,7 +90,7 @@ if ($ACC === null) {
     echo "\n$ok ok, $falhas falha(s)\n";
     exit($falhas ? 1 : 0);
 }
-$st = $pdo->prepare("SELECT id FROM users WHERE account_id = ? AND deleted_at IS NULL AND status = 'active' ORDER BY id LIMIT 2");
+$st = $pdo->prepare("SELECT id FROM users WHERE account_id = ? AND deleted_at IS NULL AND status = 'active' ORDER BY id LIMIT 3");
 $st->execute([$ACC]);
 $us = array_map('intval', $st->fetchAll(\PDO::FETCH_COLUMN));
 if (count($us) < 2) { echo "  (pulado: a conta #$ACC precisa de dois usuários ativos)\n"; echo "\n$ok ok, $falhas falha(s)\n"; exit($falhas ? 1 : 0); }
@@ -103,6 +103,7 @@ $antes = $st->fetchColumn();
 $colunas = \App\WhatsAppAgente\SdrFleetiflow::colunasDaConta($pdo, $ACC);
 $cards = [];
 $jids = [];
+$fones = [];
 $novoCard = function (?int $resp, ?int $coluna = null) use ($ACC, $colunas, &$cards): int {
     $id = (int) \App\Prospeccao\Card::create([
         'account_id' => $ACC, 'responsavel_user_id' => $resp, 'titulo' => 'Teste roleta', 'cliente_nome' => 'Teste roleta',
@@ -122,7 +123,8 @@ try {
     ok('ninguém é recusado', R::validar($ACC, []) !== null);
 
     $div = [['user_id' => $A, 'percentual' => 70], ['user_id' => $B, 'percentual' => 30]];
-    ok('salva 70/30 desligada', R::salvar($ACC, $div, false) === null && R::config($ACC)['ligada'] === false && R::config($ACC)['participantes'] === $div);
+    $soDivisao = fn(array $ps) => array_map(fn($p) => ['user_id' => $p['user_id'], 'percentual' => $p['percentual']], $ps);
+    ok('salva 70/30 desligada', R::salvar($ACC, $div, false) === null && R::config($ACC)['ligada'] === false && $soDivisao(R::config($ACC)['participantes']) === $div);
     $c1 = $novoCard(null);
     ok('desligada não sorteia', isset(R::sortear($ACC, $c1)['pulou']) && $resp($c1) === null);
 
@@ -170,6 +172,69 @@ try {
         echo "  (conversa pulada: a conta #$ACC não tem número)\n";
     }
 
+    // Sorteio ANTES do envio (reservar, migration 171): a abertura sai com o nome do sorteado.
+    $temTelefone = (bool) $pdo->query("SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'sdr_roleta_sorteios' AND column_name = 'telefone'")->fetchColumn();
+    if ($temTelefone) {
+        $primeiro = function (int $uid) use ($pdo): string { $s = $pdo->prepare('SELECT nome FROM users WHERE id = ?'); $s->execute([$uid]); return preg_split('/\s+/', trim((string) $s->fetchColumn()))[0]; };
+        $fone = function () use (&$fones): string { return $fones[] = '5511977' . random_int(100000, 999999); };
+        $cardFone = function (string $f, ?int $resp) use ($ACC, $colunas, &$cards): int {
+            $id = (int) \App\Prospeccao\Card::create(['account_id' => $ACC, 'responsavel_user_id' => $resp, 'titulo' => 'Teste roleta', 'cliente_nome' => 'Teste roleta',
+                'telefone_whatsapp' => $f, 'coluna_id' => $colunas['novo'], 'ordem_na_coluna' => 0, 'status' => 'aberto', 'descricao' => 'roleta_test', '_usuario_id' => null]);
+            $cards[] = $id;
+            return $id;
+        };
+        ok('nome com quebra de linha é recusado', R::validar($ACC, [['user_id' => $A, 'percentual' => 100, 'nome' => "Cauê\nX"]]) !== null);
+        ok('nome com mais de 40 letras é recusado', R::validar($ACC, [['user_id' => $A, 'percentual' => 100, 'nome' => str_repeat('a', 41)]]) !== null);
+        $divNomes = [['user_id' => $A, 'percentual' => 70, 'nome' => 'Cauê', 'apresentacao' => 'o Cauê'], ['user_id' => $B, 'percentual' => 30]];
+        ok('salva com o nome e a apresentação', R::salvar($ACC, $divNomes, true) === null && R::config($ACC)['participantes'][0]['apresentacao'] === 'o Cauê');
+        $desdeNomes = R::config($ACC)['desde'];
+        sleep(1);
+        R::salvar($ACC, [['user_id' => $B, 'percentual' => 30], ['user_id' => $A, 'percentual' => 70, 'nome' => 'Cauê', 'apresentacao' => 'o Cauê']], true);
+        ok('mudar a ordem das pessoas ou só o nome não recomeça a contagem', R::config($ACC)['desde'] === $desdeNomes);
+        $cfg = R::config($ACC);
+        ok('assinatura configurada: nome e apresentação com artigo', array_intersect_key(R::assinatura($pdo, $cfg, $A), ['nome' => 1, 'quem' => 1]) === ['nome' => 'Cauê', 'quem' => 'o Cauê']);
+        $sb = R::assinatura($pdo, $cfg, $B);
+        ok('sem nada configurado: primeiro nome e sem artigo', $sb['nome'] === $primeiro($B) && $sb['quem'] === $primeiro($B));
+
+        $f1 = $fone();
+        $r1 = R::reservar($ACC, $f1, null, 'planilha');
+        ok('antes do envio, sem card, sorteia e devolve como assinar', !empty($r1['novo']) && in_array($r1['user_id'], [$A, $B], true) && $r1['quem'] !== '');
+        $r1b = R::reservar($ACC, $f1, null, 'planilha');
+        ok('perguntar de novo pelo mesmo telefone devolve o mesmo atendente', empty($r1b['novo']) && $r1b['user_id'] === $r1['user_id']);
+        $c7 = $cardFone($f1, null); // o card nasce depois do envio
+        $s7 = R::sortear($ACC, $c7, null, null, 'planilha');
+        ok('o card que nasce depois fica com quem assinou a abertura', $s7['user_id'] === $r1['user_id'] && empty($s7['novo']) && $resp($c7) === $r1['user_id']);
+        $n = $pdo->prepare('SELECT COUNT(*), MAX(card_id) FROM sdr_roleta_sorteios WHERE account_id = ? AND telefone = ?');
+        $n->execute([$ACC, $f1]);
+        [$qtd, $ligado] = $n->fetch(\PDO::FETCH_NUM);
+        ok('um sorteio só, ligado ao card', (int) $qtd === 1 && (int) $ligado === $c7);
+
+        $f2 = $fone();
+        $c8 = $cardFone($f2, null); // listas: o card já existe
+        $r8 = R::reservar($ACC, $f2, $c8, 'listas');
+        ok('com o card já existente, o sorteado já vai para o card', !empty($r8['novo']) && $resp($c8) === $r8['user_id']);
+        $f3 = $fone();
+        $c9 = $cardFone($f3, $humano);
+        $r9 = R::reservar($ACC, $f3, $c9, 'listas');
+        ok('card que uma pessoa já pegou: assina quem atende, sem sortear', $r9['user_id'] === $humano && empty($r9['novo']) && $resp($c9) === $humano);
+
+        if (count($us) >= 3) {
+            $C = $us[2];
+            sleep(1); // a divisão nova começa a contar no segundo seguinte
+            R::salvar($ACC, [['user_id' => $A, 'percentual' => 50, 'nome' => 'Cauê', 'apresentacao' => 'o Cauê'], ['user_id' => $B, 'percentual' => 30], ['user_id' => $C, 'percentual' => 20, 'nome' => 'Bruno']], true);
+            $conta3 = [$A => 0, $B => 0, $C => 0];
+            $assin = [];
+            for ($i = 0; $i < 30; $i++) { $r = R::reservar($ACC, $fone(), null, 'planilha'); $conta3[$r['user_id']]++; $assin[$r['user_id']] = $r['quem']; }
+            echo "         30 aberturas 50/30/20: " . json_encode($conta3) . ' assinaturas: ' . json_encode($assin, JSON_UNESCAPED_UNICODE) . "\n";
+            ok('terceiro atendente entra na roleta e a divisão fica no percentual (15/9/6, menos de 2 de diferença)', abs($conta3[$A] - 15) < 2 && abs($conta3[$B] - 9) < 2 && abs($conta3[$C] - 6) < 2);
+            ok('cada um assina com o seu nome (Bruno sem artigo)', ($assin[$A] ?? '') === 'o Cauê' && ($assin[$C] ?? '') === 'Bruno' && ($assin[$B] ?? '') === $primeiro($B));
+        } else {
+            echo "  (terceiro atendente pulado: a conta #$ACC tem só dois usuários ativos)\n";
+        }
+    } else {
+        echo "  (sorteio antes do envio pulado: falta a migration 171)\n";
+    }
+
     sleep(1);
     ok('mudar a divisão recomeça a contagem', R::salvar($ACC, [['user_id' => $A, 'percentual' => 50], ['user_id' => $B, 'percentual' => 50]], true) === null && R::config($ACC)['desde'] !== $desde);
     $cont = R::contagem($ACC);
@@ -181,6 +246,7 @@ try {
         // card_history é imutável (gatilho LGPD): o card de teste sai por exclusão lógica.
         $pdo->exec("UPDATE cards SET deleted_at = NOW() WHERE id IN ($in)");
     }
+    foreach ($fones as $f) $pdo->prepare('DELETE FROM sdr_roleta_sorteios WHERE account_id = ? AND telefone = ?')->execute([$ACC, $f]);
     foreach ($jids as $j) $pdo->prepare('DELETE FROM whatsapp_chats WHERE remote_jid = ?')->execute([$j]);
     $pdo->prepare('DELETE FROM whatsapp_settings WHERE account_id = ? AND config_key = ?')->execute([$ACC, R::CHAVE]);
     if ($antes !== false) $pdo->prepare('INSERT INTO whatsapp_settings (account_id, config_key, config_value, updated_at) VALUES (?, ?, ?, NOW())')->execute([$ACC, R::CHAVE, $antes]);
