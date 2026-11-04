@@ -80,8 +80,11 @@ $LEGAL_PAGE = [
   </label>
 
   <button type="submit" id="submitBtn" class="legal-btn-primary">Enviar solicitação</button>
-  <div id="formAlert"></div>
 </form>
+
+<!-- Fora do <form> de propósito: no sucesso o formulário some, e o aviso com o
+     link de acompanhamento é a única entrega ao titular (o e-mail vai só ao DPO). -->
+<div id="formAlert" aria-live="polite" tabindex="-1"></div>
 
 <script>
 document.getElementById('lgpdForm').addEventListener('submit', async (ev) => {
@@ -115,6 +118,9 @@ document.getElementById('lgpdForm').addEventListener('submit', async (ev) => {
       + 'Você também pode reabrir esta página a qualquer momento e usar o link para verificar o status.'
       + '</div>';
     form.style.display = 'none';
+    // O formulário encolheu a página: leva o titular até o aviso, sem depender de rolar.
+    out.focus({ preventScroll: true });
+    out.scrollIntoView({ block: 'center' });
   } catch (e) {
     out.innerHTML = '<div class="legal-alert legal-alert-error">Erro de rede: ' + e.message + '</div>';
     btn.disabled = false; btn.textContent = 'Enviar solicitação';

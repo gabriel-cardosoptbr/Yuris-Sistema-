@@ -49,9 +49,15 @@ e com canonical próprio. Fora de `public/`, o endereço é um só: o declarado.
 
 **Os endereços `/lgpd/solicitar` e `/lgpd/acompanhar` são permanentes.** O link
 de acompanhamento é montado em
-[`../../../public/api/lgpd/request.php`](../../../public/api/lgpd/request.php) e
-**enviado por e-mail ao titular de dados**. E-mail já enviado não se corrige. As
-duas formas valem, com e sem `.php`.
+[`../../../public/api/lgpd/request.php`](../../../public/api/lgpd/request.php),
+**enviado por e-mail ao DPO** e devolvido na tela ao titular. E-mail já enviado não
+se corrige. As duas formas valem, com e sem `.php`.
+
+**O titular só recebe o link pela tela.** A API não manda e-mail para ele, então
+`#formAlert` é a única entrega: fica **fora do `<form>`**, porque o formulário some
+no sucesso. Até 04/11/2026 ele estava dentro, e o titular via a página sem aviso
+nenhum e sem o link. Ao mexer nesse fluxo, teste o caminho de sucesso, não só o de
+erro.
 
 **A view ainda mora em `public/includes/legal_page.php`.** Este é o acoplamento
 conhecido que sobra do D3: mover a página para fora de `public/` resolve o
