@@ -1993,7 +1993,11 @@ html[data-theme="light"] .tk-proc-escolhido button { color: #1D4ED8; }
 @media (max-width: 720px) {
   .tk-list-row.tkc-lista { grid-template-columns: 30px minmax(0,1fr) auto; }
   .tkc-lista > span:nth-child(3), .tkc-lista > span:nth-child(4), .tkc-lista > span:nth-child(6) { display: none; }
-  .tk-tipo-nova { grid-template-columns: 1fr; }
+  .tk-tipo-nova { grid-template-columns: 1fr 1fr; }
+  .tk-tipo-opcao { padding: 8px 10px; }
+  #modalNewTask .tk-row-2, #modalItemProcesso .tk-row-2 { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  #modalNewTask .tk-field, #modalItemProcesso .tk-field { min-width: 0; }
+  #modalNewTask input, #modalNewTask select, #modalItemProcesso input, #modalItemProcesso select { max-width: 100%; box-sizing: border-box; }
 }
 
 /* O tema claro pinta todo svg de azul-marinho: o "+" sumia no botão azul. */
