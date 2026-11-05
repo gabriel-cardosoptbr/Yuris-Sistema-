@@ -76,6 +76,17 @@ if ($selected_origin !== '' && count($origin_accounts) > 1) {
     }
 }
 
+/**
+ * Torna um indicador clicável: leva à tela que tem os registros dele, com o filtro
+ * que reproduz o número. Quem não tem a permissão da tela vê só o número, sem link.
+ */
+function kpiLink(string $perm, string $href, string $rotulo): string
+{
+    if (function_exists('_sidebarCan') && !_sidebarCan($perm)) return '';
+    return ' data-href="' . htmlspecialchars($href, ENT_QUOTES) . '" role="link" tabindex="0"'
+         . ' aria-label="' . htmlspecialchars($rotulo, ENT_QUOTES) . '" title="' . htmlspecialchars($rotulo, ENT_QUOTES) . '"';
+}
+
 // Popup de prazos: aparece somente na primeira visita após login.
 // O logout (session_destroy) limpa o flag automaticamente.
 $show_deadline_popup = empty($_SESSION['deadline_popup_shown']);
@@ -222,6 +233,10 @@ if ($isFleetiflow) {
       padding: 14px 16px; min-height: 96px;
       transition: transform .2s, border-color .2s, box-shadow .2s;
     }
+    /* Indicador que leva aos registros dele (kpiLink). */
+    .kpi-card[data-href] { cursor: pointer; }
+    .kpi-card[data-href]:focus-visible { outline: 2px solid #60A5FA; outline-offset: 2px; }
+    .kpi-card[data-href] .kpi-foot::after { content: ' \2192'; font-weight: 700; }
     .kpi-card:hover { transform: translateY(-3px); border-color: rgba(96,165,250,.4); box-shadow: 0 10px 26px rgba(37,99,235,.2); }
     .kpi-card.kpi-ok     { border-color: rgba(16,185,129,.3); }
     .kpi-card.kpi-ok:hover { border-color: rgba(16,185,129,.55); box-shadow: 0 10px 26px rgba(16,185,129,.18); }
@@ -502,7 +517,7 @@ if ($isFleetiflow) {
       <div>
         <div class="section-eyebrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block;vertical-align:middle;margin-right:4px"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg> Comercial</div>
         <div class="kpi-cols-5" style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">
-          <div class="kpi-card kpi-ok">
+          <div class="kpi-card kpi-ok"<?= kpiLink('prospeccao', '/prospeccao.php?etapa=fechado', 'Ver os contratos fechados') ?>>
             <div class="kpi-dot dot-ok"></div>
             <div class="kpi-label">Contratos Fechados</div>
             <div class="kpi-value" id="closedValue">R$ 0,00</div>
@@ -520,13 +535,13 @@ if ($isFleetiflow) {
             <div class="kpi-value" id="projectionValue">R$ 0,00</div>
             <div class="kpi-foot">forecast do período</div>
           </div>
-          <div class="kpi-card">
+          <div class="kpi-card"<?= kpiLink('prospeccao', '/prospeccao.php', 'Ver as oportunidades no funil') ?>>
             <div class="kpi-dot dot-neutral"></div>
             <div class="kpi-label">Oportunidades</div>
             <div class="kpi-value" id="opportunitiesValue">0</div>
             <div class="kpi-foot">leads no funil</div>
           </div>
-          <div class="kpi-card">
+          <div class="kpi-card"<?= kpiLink('prospeccao', '/prospeccao.php?etapa=fechado', 'Ver os clientes com contrato fechado') ?>>
             <div class="kpi-dot dot-ok"></div>
             <div class="kpi-label">Clientes Ativos</div>
             <div class="kpi-value" id="clientsActiveValue">0</div>
@@ -571,29 +586,63 @@ if ($isFleetiflow) {
       <div>
         <div class="section-eyebrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block;vertical-align:middle;margin-right:4px"><path d="M12 3v18"/><path d="M5 6l7-3 7 3"/><path d="M5 6 2 13h6z"/><path d="M19 6l-3 7h6z"/><line x1="3" y1="18" x2="21" y2="18"/></svg> Jurídico — Processos</div>
         <div class="kpi-cols-4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
-          <div class="kpi-card">
+          <div class="kpi-card"<?= kpiLink('processos', '/processos.php?status=ativos', 'Ver os processos ativos') ?>>
             <div class="kpi-dot dot-neutral" id="dotJurAtivos"></div>
             <div class="kpi-label">Processos Ativos</div>
             <div class="kpi-value" id="jurAtivos">—</div>
             <div class="kpi-foot">total cadastrado ativo</div>
           </div>
-          <div class="kpi-card kpi-danger">
+          <div class="kpi-card kpi-danger"<?= kpiLink('processos', '/processos.php?prazo=hoje', 'Ver os processos com prazo hoje') ?>>
             <div class="kpi-dot dot-danger"></div>
             <div class="kpi-label">Prazos Hoje</div>
             <div class="kpi-value" id="jurHoje">—</div>
             <div class="kpi-foot">vencem hoje</div>
           </div>
-          <div class="kpi-card kpi-warn">
+          <div class="kpi-card kpi-warn"<?= kpiLink('processos', '/processos.php?prazo=semana', 'Ver os processos com prazo em até 7 dias') ?>>
             <div class="kpi-dot dot-warn"></div>
             <div class="kpi-label">Esta Semana</div>
             <div class="kpi-value" id="jurSemana">—</div>
             <div class="kpi-foot">prazos em até 7 dias</div>
           </div>
-          <div class="kpi-card kpi-danger">
+          <div class="kpi-card kpi-danger"<?= kpiLink('processos', '/processos.php?prazo=urgentes', 'Ver os processos com prazo em até 3 dias') ?>>
             <div class="kpi-dot dot-danger"></div>
             <div class="kpi-label">Urgentes</div>
             <div class="kpi-value" id="jurUrgentes">—</div>
             <div class="kpi-foot">prazo até 3 dias</div>
+          </div>
+        </div>
+      </div>
+      <!-- ── PROCESSOS PRÓXIMOS ── -->
+      <div>
+        <div class="section-eyebrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block;vertical-align:middle;margin-right:4px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Processos Próximos</div>
+        <div class="prox-4col" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+          <div class="prox-card">
+            <div class="prox-card-hdr" style="background:rgba(239,68,68,.1);border-bottom-color:rgba(239,68,68,.18)">
+              <span class="prox-card-lbl" style="color:#fca5a5">Hoje</span>
+              <span class="prox-card-cnt" id="dashProxHojeCnt">—</span>
+            </div>
+            <div class="prox-card-list" id="dashProxHoje"></div>
+          </div>
+          <div class="prox-card">
+            <div class="prox-card-hdr" style="background:rgba(245,158,11,.08);border-bottom-color:rgba(245,158,11,.18)">
+              <span class="prox-card-lbl" style="color:#fcd34d">7 dias</span>
+              <span class="prox-card-cnt" id="dashProx7Cnt">—</span>
+            </div>
+            <div class="prox-card-list" id="dashProx7"></div>
+          </div>
+          <div class="prox-card">
+            <div class="prox-card-hdr" style="background:rgba(59,130,246,.08);border-bottom-color:rgba(59,130,246,.18)">
+              <span class="prox-card-lbl" style="color:#93c5fd">15 dias</span>
+              <span class="prox-card-cnt" id="dashProx15Cnt">—</span>
+            </div>
+            <div class="prox-card-list" id="dashProx15"></div>
+          </div>
+          <div class="prox-card">
+            <div class="prox-card-hdr" style="background:rgba(16,185,129,.08);border-bottom-color:rgba(16,185,129,.18)">
+              <span class="prox-card-lbl" style="color:#6ee7b7">30 dias</span>
+              <span class="prox-card-cnt" id="dashProx30Cnt">—</span>
+            </div>
+            <div class="prox-card-list" id="dashProx30"></div>
           </div>
         </div>
       </div>
@@ -673,42 +722,6 @@ if ($isFleetiflow) {
       </div>
       <?php endif; ?>
 
-      <?php if ($moduloJuridico): ?>
-      <!-- ── PROCESSOS PRÓXIMOS ── -->
-      <div>
-        <div class="section-eyebrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block;vertical-align:middle;margin-right:4px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Processos Próximos</div>
-        <div class="prox-4col" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
-          <div class="prox-card">
-            <div class="prox-card-hdr" style="background:rgba(239,68,68,.1);border-bottom-color:rgba(239,68,68,.18)">
-              <span class="prox-card-lbl" style="color:#fca5a5">Hoje</span>
-              <span class="prox-card-cnt" id="dashProxHojeCnt">—</span>
-            </div>
-            <div class="prox-card-list" id="dashProxHoje"></div>
-          </div>
-          <div class="prox-card">
-            <div class="prox-card-hdr" style="background:rgba(245,158,11,.08);border-bottom-color:rgba(245,158,11,.18)">
-              <span class="prox-card-lbl" style="color:#fcd34d">7 dias</span>
-              <span class="prox-card-cnt" id="dashProx7Cnt">—</span>
-            </div>
-            <div class="prox-card-list" id="dashProx7"></div>
-          </div>
-          <div class="prox-card">
-            <div class="prox-card-hdr" style="background:rgba(59,130,246,.08);border-bottom-color:rgba(59,130,246,.18)">
-              <span class="prox-card-lbl" style="color:#93c5fd">15 dias</span>
-              <span class="prox-card-cnt" id="dashProx15Cnt">—</span>
-            </div>
-            <div class="prox-card-list" id="dashProx15"></div>
-          </div>
-          <div class="prox-card">
-            <div class="prox-card-hdr" style="background:rgba(16,185,129,.08);border-bottom-color:rgba(16,185,129,.18)">
-              <span class="prox-card-lbl" style="color:#6ee7b7">30 dias</span>
-              <span class="prox-card-cnt" id="dashProx30Cnt">—</span>
-            </div>
-            <div class="prox-card-list" id="dashProx30"></div>
-          </div>
-        </div>
-      </div>
-      <?php endif; ?>
 
     </section>
   </div>
@@ -818,6 +831,17 @@ if ($isFleetiflow) {
     const dt = new Date(d + 'T00:00:00');
     return dt.toLocaleDateString('pt-BR');
   }
+
+  // Indicador clicável: mouse e teclado (ver kpiLink no PHP).
+  document.addEventListener('click', e => {
+    const c = e.target.closest('.kpi-card[data-href]');
+    if (c) location.href = c.dataset.href;
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const c = e.target.closest && e.target.closest('.kpi-card[data-href]');
+    if (c) { e.preventDefault(); location.href = c.dataset.href; }
+  });
 
   function diffDays(d) {
     if (!d) return 9999;

@@ -119,6 +119,26 @@ class Processo
         return $stmt->fetchAll();
     }
 
+    /**
+     * Link do processo no tribunal, informado à mão quando a busca automática não
+     * traz (migration 174). Devolve o endereço limpo, null se veio vazio, ou false
+     * se não for um endereço web: `javascript:` e `data:` num href executariam
+     * código no navegador de quem clicasse. O sistema nunca acessa este link
+     * sozinho, ele só vira um botão.
+     */
+    public static function normalizarLinkTribunal($valor): string|null|false
+    {
+        $link = trim((string) $valor);
+        if ($link === '') return null;
+        if (!preg_match('~^[a-z][a-z0-9+.-]*:~i', $link)) $link = 'https://' . $link;
+        if (strlen($link) > 500 || preg_match('/[\s<>"\'\x00-\x1f]/', $link)) return false;
+
+        $partes = parse_url($link);
+        if (!$partes || empty($partes['host'])) return false;
+        if (!in_array(strtolower((string) ($partes['scheme'] ?? '')), ['http', 'https'], true)) return false;
+        return $link;
+    }
+
     public static function find($id)
     {
         $pdo = Database::getConnection();
@@ -171,12 +191,12 @@ class Processo
 
         $stmt = $pdo->prepare(
             'INSERT INTO processos
-             (account_id, account_seq, numero, cliente_nome, parte_contraria, cpf_cnpj_parte_contraria, setor_id, vara_comarca,
+             (account_id, account_seq, numero, cliente_nome, parte_contraria, cpf_cnpj_parte_contraria, setor_id, vara_comarca, link_tribunal,
               responsavel_user_id, status, data_inicio, proximo_prazo,
               ultima_movimentacao, observacoes, anexos, alerts, card_id, cliente_id, contato_id,
               created_at, updated_at)
              VALUES
-             (:account_id, :account_seq, :numero, :cliente_nome, :parte_contraria, :cpf_cnpj_parte_contraria, :setor_id, :vara_comarca,
+             (:account_id, :account_seq, :numero, :cliente_nome, :parte_contraria, :cpf_cnpj_parte_contraria, :setor_id, :vara_comarca, :link_tribunal,
               :responsavel_user_id, :status, :data_inicio, :proximo_prazo,
               :ultima_movimentacao, :observacoes, :anexos, :alerts, :card_id, :cliente_id, :contato_id,
               NOW(), NOW())'
@@ -190,6 +210,7 @@ class Processo
             'cpf_cnpj_parte_contraria'  => $data['cpf_cnpj_parte_contraria']  ?? null,
             'setor_id'             => isset($data['setor_id']) && $data['setor_id'] !== '' ? (int)$data['setor_id'] : null,
             'vara_comarca'         => $data['vara_comarca']         ?? null,
+            'link_tribunal'        => $data['link_tribunal']        ?? null,
             'responsavel_user_id'  => $data['responsavel_user_id']  ?? null,
             'status'               => $data['status']               ?? 'ativo',
             // Datas: normaliza "" e "0000-00-00" para NULL (evita lixo no banco).
@@ -213,7 +234,7 @@ class Processo
         $pdo = Database::getConnection();
         $fields = [];
         $params = ['id' => $id];
-        $allowed = ['numero','cliente_nome','parte_contraria','cpf_cnpj_parte_contraria','setor_id','vara_comarca','responsavel_user_id','status','data_inicio','proximo_prazo','ultima_movimentacao','observacoes','anexos','alerts','card_id','cliente_id','contato_id'];
+        $allowed = ['numero','cliente_nome','parte_contraria','cpf_cnpj_parte_contraria','setor_id','vara_comarca','link_tribunal','responsavel_user_id','status','data_inicio','proximo_prazo','ultima_movimentacao','observacoes','anexos','alerts','card_id','cliente_id','contato_id'];
         $dateCols = ['data_inicio','proximo_prazo','ultima_movimentacao'];
         foreach ($allowed as $k) {
             if (array_key_exists($k, $data)) {

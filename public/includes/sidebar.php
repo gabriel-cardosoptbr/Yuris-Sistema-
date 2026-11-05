@@ -972,10 +972,36 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
       ]],
       [ 'key' => 'sistema', 'label' => 'Sistema', 'icon' => $_grpSvg['sistema'], 'items' => [
         ['perm'=>'configuracoes','href'=>'configuracoes.php','active'=>'configuracoes','icon'=>'config','label'=>'Configurações'],
+        // Trocar a própria senha é de todo usuário, mesmo sem a permissão de Configurações.
+        ['perm'=>null,'always'=>!_sidebarCan('configuracoes'),'href'=>'configuracoes.php#seguranca','active'=>'configuracoes','icon'=>'config','label'=>'Segurança'],
         // Sair: sem permissão (sempre visível); marca is_logout pra hover vermelho
         ['perm'=>null,'always'=>true,'is_logout'=>true,'href'=>'logout.php','active'=>'__never__','icon'=>'sair','label'=>'Sair'],
       ]],
     ];
+
+    // Área Comercial (reunião de 23/10/2026): captação e funil separados da
+    // operação do dia a dia e do jurídico. Só reorganiza o menu: mesmas telas, mesmas
+    // permissões, mesmos endereços. A conta Fleetiflow, que é só comercial, continua
+    // com o menu dela.
+    if (!$_isFleetiflow) {
+        $_itensComerciais = [];
+        foreach ($_sections as &$_s) {
+            if ($_s['key'] !== 'operacao') continue;
+            foreach ($_s['items'] as $_i => $_it) {
+                if (in_array($_it['href'], ['planejamento.php', 'prospeccao.php'], true)) {
+                    $_itensComerciais[] = $_it;
+                    unset($_s['items'][$_i]);
+                }
+            }
+            $_s['items'] = array_values($_s['items']);
+        }
+        unset($_s);
+        array_unshift($_sections, [
+            'key' => 'comercial', 'label' => 'Comercial',
+            'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>',
+            'items' => $_itensComerciais,
+        ]);
+    }
 
     // Conta Fleetiflow (CRM comercial) não enxerga o grupo Jurídico: nem o
     // link, nem a aba. Isolamento de dado já é automático por account_id;

@@ -451,6 +451,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if (form.cpf_cnpj_parte_contraria) form.cpf_cnpj_parte_contraria.value = data.cpf_cnpj_parte_contraria || '';
     _fillSetorSelect(data.setor_id || '');
     form.vara_comarca.value   = data.vara_comarca         || '';
+    form.link_tribunal.value  = data.link_tribunal        || '';
+    _mostrarLinkTribunal();
     form.status.value         = data.status               || 'ativo';
     form.data_inicio.value    = data.data_inicio ? data.data_inicio.split(' ')[0] : '';
     form.proximo_prazo.value  = data.proximo_prazo        || '';
@@ -724,6 +726,17 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }));
   }
 
+  // Link do processo no tribunal: "Abrir" só existe com endereço web de verdade.
+  function _mostrarLinkTribunal(){
+    const a = document.getElementById('linkTribunalAbrir');
+    if (!a) return;
+    const v = (form.link_tribunal.value || '').trim();
+    const ok = /^https?:\/\/[^\s]+$/i.test(v);
+    a.style.display = ok ? 'inline-flex' : 'none';
+    if (ok) a.href = v; else a.removeAttribute('href');
+  }
+  form.link_tribunal?.addEventListener('input', _mostrarLinkTribunal);
+
   // ── Load columns for year ─────────────────────────────────────────────────
   // Busca processos filtrados pelo ano selecionado e repopula o kanban inteiro.
   //
@@ -739,10 +752,43 @@ document.addEventListener('DOMContentLoaded', ()=>{
   //
   // Uma função só, que guarda e filtra, não depende de ordem de execução.
   let _allProcessesCache = []; // todos os processos do ano, antes dos filtros da barra
+
+  // Veio de um indicador da Visão Geral (?status=ativos, ?prazo=hoje|semana|urgentes).
+  // O número de lá conta o escritório inteiro, então a lista não pode ficar presa
+  // ao ano escolhido aqui, ou o total clicado não bateria com o total mostrado.
+  const _urlVisao   = new URLSearchParams(location.search);
+  let _prazoDaVisao = ['hoje','semana','urgentes'].includes(_urlVisao.get('prazo')) ? _urlVisao.get('prazo') : '';
+  // "Ativos" da Visão Geral é tudo que não foi arquivado nem encerrado (computeJurKPIs),
+  // o que é mais largo que o status exato "Ativo" do filtro da barra.
+  let _ativosDaVisao = _urlVisao.get('status') === 'ativos';
+  let _todosOsAnos  = !!_prazoDaVisao || _ativosDaVisao;
+  const _ROTULO_VISAO = { hoje: 'Prazos de hoje', semana: 'Prazos em até 7 dias', urgentes: 'Prazos em até 3 dias' };
+  function _desenharFiltroVisao(){
+    const el = document.getElementById('procFiltroVisao');
+    if (!el) return;
+    const rotulo = _prazoDaVisao ? _ROTULO_VISAO[_prazoDaVisao] : (_ativosDaVisao ? 'Processos ativos, todos os anos' : '');
+    el.style.display = rotulo ? 'inline-flex' : 'none';
+    el.querySelector('span').textContent = rotulo;
+  }
+  function _limparFiltroVisao(){
+    _prazoDaVisao  = '';
+    _ativosDaVisao = false;
+    _todosOsAnos   = false;
+    history.replaceState(null, '', location.pathname);
+    _desenharFiltroVisao();
+  }
+  document.getElementById('procFiltroVisao')?.addEventListener('click', () => {
+    _limparFiltroVisao();
+    loadColumnsForYear(yearFilter.value);
+  });
+
   async function loadColumnsForYear(year){
     const url = new URL(api, window.location.origin);
-    url.searchParams.set('from', year+'-01-01');
-    url.searchParams.set('to',   year+'-12-31');
+    _desenharFiltroVisao();
+    if (!_todosOsAnos) {
+      url.searchParams.set('from', year+'-01-01');
+      url.searchParams.set('to',   year+'-12-31');
+    }
     url.searchParams.set('_ts',  Date.now());
     const res = await fetch(url.toString(),{credentials:'same-origin',cache:'no-store'});
     if (!res.ok) throw new Error('Erro carregando colunas');
@@ -774,6 +820,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   atualizarAnosDoSeletor([]);
   yearFilter.value = curY;
   yearFilter.addEventListener('change', ()=>{
+    _limparFiltroVisao();
     loadColumnsForYear(yearFilter.value).catch(e=>{ console.error(e); showToast('Erro ao carregar colunas','error'); });
     loadUpcoming(yearFilter.value);
   });
@@ -837,6 +884,15 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if (resp && String(p.responsavel_user_id) !== resp) return false;
       if (from && p.proximo_prazo && p.proximo_prazo < from) return false;
       if (to   && p.proximo_prazo && p.proximo_prazo > to)   return false;
+      if ((_prazoDaVisao || _ativosDaVisao) && (p.status === 'arquivado' || p.status === 'encerrado')) return false;
+      if (_prazoDaVisao) {
+        // Mesma conta dos indicadores da Visão Geral (computeJurKPIs).
+        const d = parseProcessDate(p.proximo_prazo);
+        if (!d) return false;
+        const hoje = new Date(); hoje.setHours(0,0,0,0);
+        const dias = Math.floor((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - hoje) / 864e5);
+        if (dias < 0 || dias > { hoje: 0, urgentes: 3, semana: 7 }[_prazoDaVisao]) return false;
+      }
       // Filtro de origem: __matriz__ / __filiais__ / id-específico
       if (origin) {
         const tipo = String(p.origin_account_tipo || '').toLowerCase();
@@ -880,6 +936,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('procFilterClear')?.addEventListener('click', () => {
     const ids = ['procSearchText','procFilterStatus','procFilterResp','procFilterDateFrom','procFilterDateTo','procFilterOrigin'];
     ids.forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+    if (_todosOsAnos) { _limparFiltroVisao(); loadColumnsForYear(yearFilter.value); return; }
     _applyAndRender();
   });
 

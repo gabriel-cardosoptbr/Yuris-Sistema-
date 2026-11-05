@@ -76,7 +76,7 @@ function extrai(nome) {
 const campos = {};
 const document = { getElementById: (id) => (id in campos ? { value: campos[id] } : null) };
 // eslint-disable-next-line no-new-func
-const fabrica = new Function('document', extrai('_norm') + '\n' + extrai('_applyFilters') + '\nreturn _applyFilters;');
+const fabrica = new Function('document', "const _prazoDaVisao = '', _ativosDaVisao = false;\n" + extrai('_norm') + '\n' + extrai('_applyFilters') + '\nreturn _applyFilters;');
 const aplicar = fabrica(document);
 
 const procs = [

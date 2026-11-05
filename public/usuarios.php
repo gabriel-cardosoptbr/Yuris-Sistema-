@@ -1033,6 +1033,9 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
                 <label class="field-label">Nova senha <span style="font-size:.72rem;color:#7a8898;font-weight:400">(deixe em branco para não alterar)</span></label>
                 <input id="edit_senha" name="senha" type="text" class="field-input" placeholder="Digite para alterar a senha" style="font-family:monospace;">
               </div>
+              <p id="edit_senha_minha" class="field-label" style="display:none;grid-column:1/-1;font-weight:500;text-transform:none;letter-spacing:0">
+                Sua própria senha fica em <a href="/configuracoes.php#seguranca" style="color:#3B82F6;font-weight:600">Configurações, aba Segurança</a>.
+              </p>
             </div>
           </div>
 
@@ -1516,6 +1519,11 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
         const senhaInput = form.querySelector('[name=senha]');
         senhaInput.value = '';
         senhaInput.placeholder = 'Digite para alterar a senha';
+        // A própria senha mudou de lugar: lá ela pede a senha atual. Aqui fica só
+        // a redefinição da senha de OUTRA pessoa, pelo administrador.
+        const editandoEuMesmo = String(u.id) === String(authUserId);
+        senhaInput.closest('.field-group').style.display = editandoEuMesmo ? 'none' : '';
+        document.getElementById('edit_senha_minha').style.display = editandoEuMesmo ? 'block' : 'none';
 
         // perfil: lock only for root user; name/email/senha always editable
         const perfilSel = document.getElementById('editPerfil');

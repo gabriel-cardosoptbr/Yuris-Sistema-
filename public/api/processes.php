@@ -19,6 +19,20 @@ header('Expires: 0');
 // Cobre POST/PUT/PATCH/DELETE (state-changing). GET é deixado em paz.
 TenantGuard::requireSameOriginOrCsrf();
 
+/** Link do tribunal só entra como endereço web (Processo::normalizarLinkTribunal). */
+function validarLinkTribunal(array $input): array
+{
+    if (!array_key_exists('link_tribunal', $input)) return $input;
+    $link = Processo::normalizarLinkTribunal($input['link_tribunal']);
+    if ($link === false) {
+        http_response_code(422);
+        echo json_encode(['success' => false, 'error' => 'Link do tribunal inválido. Use um endereço http ou https.']);
+        exit;
+    }
+    $input['link_tribunal'] = $link;
+    return $input;
+}
+
 // Carrega contexto de tenant — aborta com 401 se sessão inválida
 $ctx       = AccountContext::fromSession();
 $ctx->assertModuloJuridicoDisponivel();
@@ -63,6 +77,7 @@ try {
 
     if ($method === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true) ?? [];
+        $input = validarLinkTribunal($input);
         $input['account_id'] = $accountId;  // injeta tenant server-side, nunca do body
         // SEGURANCA (auditoria 2026-06-01): valida o tenant das fontes de vinculo
         // ANTES de gravar. Sem isso, um usuario podia mandar card_id/cliente_id de
@@ -87,6 +102,7 @@ try {
 
     if ($method === 'PUT') {
         $input = json_decode(file_get_contents('php://input'), true) ?? [];
+        $input = validarLinkTribunal($input);
         $id = $input['id'] ?? null;
         if (!$id) { http_response_code(400); echo json_encode(['error'=>'Missing id']); exit; }
         // Valida tenant ANTES de atualizar — bloqueia edição cross-tenant

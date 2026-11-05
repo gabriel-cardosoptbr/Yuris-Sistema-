@@ -646,6 +646,18 @@ markdown para consumo por LLM.
 > um 301 a mais e `/slug/` deixa de ser servido pelo `DirectoryIndex`. Detalhe
 > em [`../docs/seo/`](../docs/seo/).
 
+## Menu e Visão Geral (05/11/2026, reunião de 23/10/2026)
+
+- **Comercial** é grupo próprio no menu das contas jurídicas, com Planejamento e
+  Prospecção. Só muda o menu (`includes/sidebar.php`): telas, permissões e endereços
+  são os mesmos. A conta Fleetiflow continua com o menu dela.
+- **Indicadores clicáveis** na Visão Geral (`kpiLink` em `dashboard.php`): Processos
+  Ativos e os três de prazo levam a `processos.php?status=ativos` ou `?prazo=`, com a
+  mesma conta de `computeJurKPIs` e sem o limite do ano, para o número bater.
+  Contratos Fechados e Clientes Ativos levam a `prospeccao.php?etapa=fechado`.
+- **Processos Próximos** (Hoje, 7, 15 e 30 dias) fica logo abaixo de Jurídico, sem
+  mudança na conta dos prazos.
+
 ## Regras
 
 **Nada de credencial nem chave aqui.** Tudo nesta pasta é público por

@@ -4550,6 +4550,18 @@ function column_display_name(array $col): string
       const params    = new URLSearchParams(location.search);
       const openId    = params.get('open');
       const contatoId = params.get('contato');
+
+      // Vindo do indicador "Contratos Fechados" da Visão Geral: leva à etapa.
+      if (params.get('etapa') === 'fechado') {
+        const col = document.querySelector('.kanban-col[data-coluna-fechado="1"]')
+                 || [...document.querySelectorAll('.kanban-col')].find(c => /fechad/i.test(c.dataset.colunaNome || ''));
+        if (col) {
+          col.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+          col.style.outline = '2px solid #3B82F6';
+          col.style.outlineOffset = '2px';
+          setTimeout(() => { col.style.outline = ''; }, 3500);
+        }
+      }
       const isReload  = _isPageReload();
 
       // Sempre limpa a URL — independente de reload ou navegação fresca

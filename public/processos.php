@@ -143,6 +143,18 @@ try {
 
     /* ── Top bar (year + button) ── */
     .proc-topbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .proc-filtro-visao {
+      display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px;
+      border: 1px solid rgba(96,165,250,.4); background: rgba(37,99,235,.14); color: #93c5fd;
+      font-family: inherit; font-size: .75rem; font-weight: 600; cursor: pointer;
+    }
+    html[data-theme="light"] .proc-filtro-visao { background: rgba(37,99,235,.08); color: #1D4ED8; border-color: rgba(37,99,235,.35); }
+    .proc-link-tribunal { display: flex; gap: 8px; align-items: stretch; }
+    .proc-link-tribunal .field-input { flex: 1; min-width: 0; }
+    .proc-link-abrir {
+      display: inline-flex; align-items: center; padding: 0 14px; border-radius: 8px; flex-shrink: 0;
+      background: linear-gradient(135deg, #1E5299, #2D6FAD); color: #fff !important; font-size: .8rem; font-weight: 600; text-decoration: none;
+    }
     .proc-select {
       height: 38px; padding: 0 12px;
       border-radius: 10px; border: 1px solid rgba(96,165,250,.3);
@@ -1099,6 +1111,10 @@ try {
             </div>
             <!-- Contador -->
             <span id="procFilterCount" style="font-size:.78rem;color:#9ab0c9"></span>
+            <button type="button" id="procFiltroVisao" class="proc-filtro-visao" style="display:none" title="Tirar este filtro">
+              <span></span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
           </div>
         </div>
 
@@ -1215,6 +1231,13 @@ try {
               <div class="field-group">
                 <label class="field-label">Vara / Comarca</label>
                 <input name="vara_comarca" class="field-input" placeholder="Ex: 3ª Vara Cível — São Paulo/SP">
+              </div>
+              <div class="field-group" style="grid-column:1/-1">
+                <label class="field-label" for="linkTribunalInput">Link do processo no tribunal</label>
+                <div class="proc-link-tribunal">
+                  <input name="link_tribunal" id="linkTribunalInput" type="url" maxlength="500" class="field-input" placeholder="https://... (cole aqui quando a busca automática não trouxer)">
+                  <a id="linkTribunalAbrir" class="proc-link-abrir" target="_blank" rel="noopener noreferrer" style="display:none">Abrir</a>
+                </div>
               </div>
               <div class="field-group" style="grid-column:1/-1">
                 <label class="field-label">Setor</label>

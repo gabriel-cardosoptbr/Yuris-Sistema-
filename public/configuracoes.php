@@ -187,6 +187,18 @@ $nCols   = count($columns);
     .link-card-title { font-size: .85rem; font-weight: 600; }
     .link-card-sub   { font-size: .73rem; color: var(--muted); margin-top: 2px; }
 
+    .minha-senha { display: flex; flex-direction: column; gap: 12px; }
+    .minha-senha-campos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .minha-senha-campos label { display: flex; flex-direction: column; gap: 5px; font-size: .78rem; font-weight: 600; color: #bcd2ea; }
+    .minha-senha-campos input {
+      width: 100%; padding: 9px 11px; border-radius: 8px; font-family: inherit; font-size: .85rem;
+      background: rgba(5,18,39,.85); border: 1px solid rgba(96,165,250,.22); color: #e6f2ff;
+    }
+    .minha-senha-campos input:focus { outline: 2px solid #3B82F6; outline-offset: 1px; }
+    .minha-senha-nota { font-size: .74rem; color: var(--muted); margin: 0; }
+    html[data-theme="light"] .minha-senha-campos label { color: #334155; }
+    html[data-theme="light"] .minha-senha-campos input { background: #FFFFFF; border-color: #CBD5E1; color: #0F172A; }
+    @media (max-width: 720px) { .minha-senha-campos { grid-template-columns: 1fr; } }
     /* Tema claro: aba Atalhos — cards brancos legíveis */
     html[data-theme="light"] .link-card {
       background: #FFFFFF !important;
@@ -711,6 +723,20 @@ $nCols   = count($columns);
             <p style="font-size:.78rem;color:var(--muted)">Orientações para manter o sistema seguro</p>
           </div>
           <div class="cfg-block">
+            <div class="cfg-section-title"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M21 2l-9.6 9.6M15.5 7.5l3 3"/></svg> Alterar minha senha</div>
+            <form id="formMinhaSenha" class="cfg-section-body minha-senha" autocomplete="off">
+              <div class="minha-senha-campos">
+                <label>Senha atual<input type="password" id="senhaAtual" autocomplete="current-password" required></label>
+                <label>Nova senha<input type="password" id="senhaNova" autocomplete="new-password" minlength="8" required></label>
+                <label>Repita a nova senha<input type="password" id="senhaConfirma" autocomplete="new-password" minlength="8" required></label>
+              </div>
+              <p class="minha-senha-nota">Use pelo menos 8 caracteres. Ao trocar, os acessos com "Lembrar" salvos em outros aparelhos são encerrados. A senha de outro colaborador é redefinida pelo administrador, em Usuários.</p>
+              <div style="display:flex;justify-content:flex-end">
+                <button type="submit" id="btnMinhaSenha" class="cfg-btn-primary">Salvar nova senha</button>
+              </div>
+            </form>
+          </div>
+          <div class="cfg-block">
             <div class="cfg-section-title"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:5px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Políticas de segurança</div>
             <div class="cfg-section-body">
               <div class="toggle-row">
@@ -788,6 +814,40 @@ $nCols   = count($columns);
     const t = document.querySelector('.cfg-tab[data-tab="notificacoes"]');
     if (t) t.click();
   }
+  if (location.hash === '#seguranca') {
+    const t = document.querySelector('.cfg-tab[data-tab="seguranca"]');
+    if (t) t.click();
+  }
+
+  // Trocar a própria senha (api/minha_senha.php). Redefinir a de outra pessoa
+  // continua em Usuários, com a permissão do administrador.
+  document.getElementById('formMinhaSenha')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const atual = document.getElementById('senhaAtual');
+    const nova  = document.getElementById('senhaNova');
+    const conf  = document.getElementById('senhaConfirma');
+    const aviso = (m, t) => window.Yuris ? Yuris.toast(m, t) : null;
+    if (nova.value !== conf.value) { aviso('As duas senhas novas não são iguais.', 'error'); conf.focus(); return; }
+    const btn = document.getElementById('btnMinhaSenha');
+    btn.disabled = true;
+    try {
+      const r = await fetch('/api/minha_senha.php', {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ senha_atual: atual.value, senha_nova: nova.value })
+      });
+      const d = await r.json().catch(() => ({}));
+      if (d.success) {
+        e.target.reset();
+        aviso('Senha alterada.', 'success');
+      } else {
+        aviso(d.error || 'Não foi possível alterar a senha.', 'error');
+      }
+    } catch (err) {
+      aviso('Não foi possível alterar a senha. Tente de novo.', 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  });
 
   // ── Theme switcher (aba Aparência) ─────────────────────────────────────────
   (function initThemeSwitcher(){

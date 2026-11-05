@@ -1,6 +1,6 @@
 # public/api/ — os endpoints REST
 
-137 endpoints. Cada arquivo `.php` é um endpoint, e o caminho do arquivo é a
+139 endpoints. Cada arquivo `.php` é um endpoint, e o caminho do arquivo é a
 URL: `public/api/whatsapp/send.php` responde em `/api/whatsapp/send.php`.
 
 **Mover um arquivo daqui muda a URL de uma chamada que o front já faz.** Vale a
