@@ -892,6 +892,32 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
     .yuris-notif-item-msg { font-size: 11.5px; color: #9fb2cc; margin: 0 0 3px; line-height: 1.4; overflow-wrap: anywhere; }
     .yuris-notif-item-time { font-size: 10.5px; color: #6b8299; }
     .yuris-notif-empty { padding: 22px 14px; text-align: center; color: #6b8299; font-size: 12px; }
+
+    /* Tema claro. O painel foi desenhado só para o escuro: o tema claro clareava o
+       fundo e o título continuava #e8f4ff, branco sobre branco. */
+    html[data-theme="light"] .yuris-notif-panel {
+      background: #FFFFFF !important; border: 1px solid #D5DEE9 !important;
+      box-shadow: 0 18px 44px rgba(15,23,42,.2) !important; opacity: 1 !important;
+      -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+    }
+    html[data-theme="light"] .yuris-notif-head { background: #FFFFFF !important; border-bottom: 1px solid #E7ECF3 !important; }
+    html[data-theme="light"] .yuris-notif-title { color: #0F172A !important; font-size: 14px; }
+    html[data-theme="light"] .yuris-notif-all { color: #1D4ED8 !important; background: none !important; box-shadow: none !important; }
+    html[data-theme="light"] .yuris-notif-all[disabled] { color: #94A3B8 !important; }
+    html[data-theme="light"] .yuris-notif-list { background: #FFFFFF !important; }
+    html[data-theme="light"] .yuris-notif-item {
+      background: #FFFFFF !important; border: 0 !important; box-shadow: none !important;
+      border-radius: 8px; opacity: 1 !important; transform: none !important;
+    }
+    html[data-theme="light"] .yuris-notif-item + .yuris-notif-item { margin-top: 2px; }
+    html[data-theme="light"] .yuris-notif-item.is-unread { background: #EFF5FF !important; }
+    html[data-theme="light"] .yuris-notif-item:hover { background: #E3ECFA !important; }
+    html[data-theme="light"] .yuris-notif-item-titulo { color: #0F172A !important; font-size: 13px; }
+    html[data-theme="light"] .yuris-notif-item-msg { color: #475569 !important; font-size: 12px; }
+    html[data-theme="light"] .yuris-notif-item-time { color: #64748B !important; font-size: 11px; }
+    html[data-theme="light"] .yuris-notif-dot { background: #2563EB !important; }
+    html[data-theme="light"] .yuris-notif-empty { color: #64748B !important; }
+    html[data-theme="light"] .notif-tag-mov { background: #E8EEF5; border-color: #D5DEE9; color: #475569; }
   </style>
 
   <!-- ── Status (última atualização) ── -->
@@ -941,7 +967,7 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
       ]],
       [ 'key' => 'juridico', 'label' => 'Jurídico', 'icon' => $_grpSvg['juridico'], 'items' => [
         ['perm'=>'processos', 'href'=>'processos.php', 'active'=>'processos', 'icon'=>'processos', 'label'=>'Processos'],
-        ['perm'=>'intimacoes','href'=>'intimacoes.php','active'=>'intimacoes','icon'=>'intimacoes','label'=>'Intimações'],
+        ['perm'=>'intimacoes','href'=>'intimacoes.php','active'=>'intimacoes','icon'=>'intimacoes','label'=>'Publicações'],
         ['perm'=>'juridico',  'href'=>'juridico.php',  'active'=>'juridico',  'icon'=>'juridico',  'label'=>'Painel'],
       ]],
       [ 'key' => 'comunicacao', 'label' => 'Comunicação', 'icon' => $_grpSvg['comunicacao'], 'items' => [

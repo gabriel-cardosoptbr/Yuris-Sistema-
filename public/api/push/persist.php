@@ -60,7 +60,7 @@ try {
 
     $action = trim((string)($payload['action'] ?? ''));
     $extra  = is_array($payload['extra'] ?? null) ? $payload['extra'] : [];
-    $allowedActions = ['read','unread','favorite','deadline','comment','link_process','unlink_process','create_task','create_prazo'];
+    $allowedActions = ['read','unread','favorite','deadline','comment','link_process','unlink_process','create_task','create_prazo','tratar'];
     if (!in_array($action, $allowedActions, true)) {
         http_response_code(400);
         echo json_encode(['error' => 'Ação inválida. Use: ' . implode(', ', $allowedActions)]);
@@ -483,6 +483,36 @@ try {
             $resultado['prazo_id']    = (int)$pdo->lastInsertId();
             $resultado['processo_id'] = $procId;
             break;
+
+        case 'tratar':
+            // extra: { status (PushEvent::TRATAMENTOS), nota }
+            try {
+                PushEvent::registrarTratamento($eventId, $accountId, (string)($extra['status'] ?? ''), (string)($extra['nota'] ?? ''), $userId, $_SESSION['user_nome'] ?? null);
+            } catch (\InvalidArgumentException $e) {
+                http_response_code(422);
+                echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+                exit;
+            }
+            $evT = PushEvent::findByIdForAccount($eventId, $accountId);
+            $resultado['tratamento_status'] = $evT['tratamento_status'] ?? null;
+            $resultado['tratamento_nome']   = $evT['tratamento_nome'] ?? null;
+            $resultado['tratamento_em']     = $evT['tratamento_em'] ?? null;
+            $resultado['tratamento_nota']   = $evT['tratamento_nota'] ?? null;
+            if (!empty($evT['processo_id']) && ($extra['status'] ?? '') !== 'pendente') {
+                ProcessoAudit::log((int)$evT['processo_id'], 'Publicação tratada',
+                    'Publicação de ' . ($evT['data_disponibilizacao'] ?? '') . ': ' . (string)$extra['status']
+                    . (trim((string)($extra['nota'] ?? '')) !== '' ? ' (' . trim((string)$extra['nota']) . ')' : ''));
+            }
+            break;
+    }
+
+    // Criar tarefa ou prazo a partir da publicação é uma providência registrada.
+    if (!empty($resultado['task_id'])) {
+        PushEvent::marcarTratadaSePendente($eventId, $accountId, 'Tarefa #' . (int)$resultado['task_id'] . ' criada a partir da publicação.', $userId, $_SESSION['user_nome'] ?? null);
+        $resultado['tratamento_status'] = 'tratada';
+    } elseif (!empty($resultado['prazo_id'])) {
+        PushEvent::marcarTratadaSePendente($eventId, $accountId, 'Prazo #' . (int)$resultado['prazo_id'] . ' criado a partir da publicação.', $userId, $_SESSION['user_nome'] ?? null);
+        $resultado['tratamento_status'] = 'tratada';
     }
 
     echo json_encode($resultado);

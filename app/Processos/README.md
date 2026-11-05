@@ -38,6 +38,27 @@ das classes daqui tratam de cota e permissão, e não de processo.
 | `MonitorPermission.php` | quem pode ver e mexer em monitoramento dentro da conta |
 | `MonitorAudit.php` | grava em `monitor_audit_log` |
 
+## Tratamento das publicações (05/11/2026)
+
+"Lida" é por usuário e não diz se o escritório fez algo. `PushEvent::registrarTratamento`
+guarda o estado do escritório: `pendente`, `tratada`, `sem_providencia` ou `descartada`,
+com autor, data e nota. Cada mudança acrescenta uma linha em `push_event_tratamentos`, que
+nunca é reescrita. Descartar exige motivo, e nada é apagado. Criar tarefa ou prazo a partir
+da publicação marca como tratada, sem pisar num tratamento já registrado.
+
+**Tratar não calcula prazo.** Data de publicação, disponibilização, ciência e termo inicial
+são coisas diferentes, e quem define é o profissional.
+
+**O nome certo é publicação.** A tela chama "Publicações" porque o Diário traz mais que
+intimação: em produção há "Lista de distribuição" junto de "Intimação". O tipo real vem de
+`tipo_comunicacao`. Sem tipo informado, a tela diz "Publicação", nunca "Intimação". A AASP
+continua "intimações" porque esse é o produto dela.
+
+**Janela do DJEN.** O limite de 90 dias era nosso, e a mensagem o atribuía à DJEN. Em consulta
+direta a API respondeu 200 com dados para o ano inteiro de 2024 e de 2025; 2021 veio vazio. A
+busca manual agora aceita até 1 ano e pagina (até 6 páginas de 500). O `count` da API não é
+total confiável: `truncado` sai da última página ter vindo cheia, e a tela avisa.
+
 ## Regras
 
 **Publicação chega por hash, não por comparação de texto.** O

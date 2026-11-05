@@ -145,6 +145,70 @@ class PushEvent
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
+    /** Situações de tratamento da publicação (estado do escritório, não da pessoa). */
+    public const TRATAMENTOS = ['pendente', 'tratada', 'sem_providencia', 'descartada'];
+
+    /**
+     * Registra o tratamento: atualiza o estado e acrescenta uma linha ao histórico
+     * (`push_event_tratamentos`), que nunca é apagado nem reescrito.
+     *
+     * Descartar exige justificativa. Tratar não calcula nem cria prazo: a data de
+     * publicação não é, por si só, o termo inicial, e quem decide é o profissional.
+     *
+     * @return bool false se a publicação não é desta conta
+     */
+    public static function registrarTratamento(int $eventId, int $accountId, string $status, ?string $nota, ?int $userId, ?string $userNome): bool
+    {
+        if (!in_array($status, self::TRATAMENTOS, true)) {
+            throw new \InvalidArgumentException('Situação de tratamento inválida');
+        }
+        $nota = trim((string) $nota);
+        if ($status === 'descartada' && $nota === '') {
+            throw new \InvalidArgumentException('Informe o motivo do descarte.');
+        }
+        $ev = self::findByIdForAccount($eventId, $accountId);
+        if (!$ev) return false;
+
+        $pdo = Database::getConnection();
+        $pdo->prepare(
+            'UPDATE push_events
+                SET tratamento_status = :st, tratamento_nota = :nota, tratamento_user_id = :uid,
+                    tratamento_nome = :nome, tratamento_em = :em
+              WHERE id = :id AND account_id = :acc'
+        )->execute([
+            'st'   => $status,
+            'nota' => $nota !== '' ? $nota : null,
+            'uid'  => $status === 'pendente' ? null : $userId,
+            'nome' => $status === 'pendente' ? null : $userNome,
+            'em'   => $status === 'pendente' ? null : date('Y-m-d H:i:s'),
+            'id'   => $eventId,
+            'acc'  => $accountId,
+        ]);
+        $pdo->prepare(
+            'INSERT INTO push_event_tratamentos (event_id, account_id, status_anterior, status_novo, nota, user_id, user_nome)
+             VALUES (?, ?, ?, ?, ?, ?, ?)'
+        )->execute([$eventId, $accountId, $ev['tratamento_status'] ?? null, $status, $nota !== '' ? $nota : null, $userId, $userNome]);
+        return true;
+    }
+
+    /** Criar tarefa ou prazo a partir da publicação já é uma providência. */
+    public static function marcarTratadaSePendente(int $eventId, int $accountId, string $nota, ?int $userId, ?string $userNome): void
+    {
+        $ev = self::findByIdForAccount($eventId, $accountId);
+        if ($ev && ($ev['tratamento_status'] ?? 'pendente') === 'pendente') {
+            self::registrarTratamento($eventId, $accountId, 'tratada', $nota, $userId, $userNome);
+        }
+    }
+
+    public static function contarPendentes(int $accountId): int
+    {
+        $st = Database::getConnection()->prepare(
+            "SELECT COUNT(*) FROM push_events WHERE account_id = ? AND status = 'ativo' AND tratamento_status = 'pendente'"
+        );
+        $st->execute([$accountId]);
+        return (int) $st->fetchColumn();
+    }
+
     public static function findByIdForAccount(int $id, int $accountId): ?array
     {
         $pdo  = Database::getConnection();

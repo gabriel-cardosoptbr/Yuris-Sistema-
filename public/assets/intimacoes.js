@@ -408,6 +408,11 @@
           this.updateSearchHint();
         });
       });
+      // Tratamento filtra a lista salva na hora, sem precisar de "Filtrar".
+      $('fTratamento')?.addEventListener('change', () => {
+        this.collectFilters();
+        this.loadPersistidos();
+      });
       // Atualiza microcopy ao mudar qualquer filtro
       ['filterPeriodo','filterTribunal','filterProcesso','filterOab','filterNomeAdv'].forEach((id) => {
         $(id)?.addEventListener('change', () => this.updateSearchHint());
@@ -522,7 +527,11 @@
           this.state.items = (data.items || []).map((x) => ({ ...x, _from_search: true }));
           this.render();
           document.getElementById('bannerBuscaManual')?.classList.add('show');
-          this.notify(`${this.state.items.length} resultado(s) — não persistidos.`, 'info');
+          if (data.truncado) {
+            this.notify(`Mostrando as primeiras ${this.state.items.length} publicações, e há mais nesse período. Diminua o período para ver todas.`, 'warn');
+          } else {
+            this.notify(`${this.state.items.length} resultado(s), ainda não salvos.`, 'info');
+          }
         } catch (err) {
           this.notify('Erro: ' + err.message, 'error');
         } finally {
@@ -648,6 +657,7 @@
         if (this.state.filters.lida !== null)     qs.set('lida',      String(this.state.filters.lida));
         if (this.state.filters.favorita !== null) qs.set('favorita',  String(this.state.filters.favorita));
         if (this.state.filters.com_prazo !== null)qs.set('com_prazo', String(this.state.filters.com_prazo));
+        if (this.state.filters.tratamento)        qs.set('tratamento', this.state.filters.tratamento);
         if (f.data_inicio)     qs.set('data_inicio', f.data_inicio);
         if (f.data_fim)        qs.set('data_fim',    f.data_fim);
         if (f.sigla_tribunal)  qs.set('tribunal',    f.sigla_tribunal);
@@ -732,6 +742,7 @@
       this.state.filters.lida      = $('fNaoLidas')?.checked ? 0 : ($('fLidas')?.checked ? 1 : null);
       this.state.filters.favorita  = $('fFavoritas')?.checked ? 1 : null;
       this.state.filters.com_prazo = $('fComPrazo')?.checked  ? 1 : null;
+      this.state.filters.tratamento = $('fTratamento')?.value || '';
       return f;
     },
 
@@ -739,7 +750,8 @@
       document.querySelectorAll('.int-filter-input').forEach((i) => { i.value = ''; });
       document.querySelectorAll('.int-filter-cb input').forEach((c) => { c.checked = (c.id === 'fNaoLidas'); });
       document.getElementById('bannerBuscaManual')?.classList.remove('show');
-      this.state.filters = { lida: 0, favorita: null, com_prazo: null };
+      this.state.filters = { lida: 0, favorita: null, com_prazo: null, tratamento: '' };
+      if (document.getElementById('fTratamento')) document.getElementById('fTratamento').value = '';
       // Limpa também o calendário visual
       this.clearPeriodo();
       // Re-aplica defaults do perfil (se houver)
@@ -897,7 +909,7 @@
         const created = (data.monitors_created || []).filter(m => m.novo);
         let msg = 'Perfil salvo';
         if (created.length) msg += ` (${created.length} monitor(es) criado(s))`;
-        this.notify(msg + '. Buscando suas intimações…', 'success');
+        this.notify(msg + '. Buscando suas publicações…', 'success');
 
         // Re-aplica defaults nos inputs do filtro lateral e dispara busca
         this.applyUserDefaults();
@@ -1023,6 +1035,12 @@
       const hasComment = !!(it.comentario && it.comentario.trim());
       const hasPrazo   = !!it.com_prazo;
       const hasLink    = !!it.processo_id;
+      const tratamento = it.tratamento_status || 'pendente';
+      const ROTULOS    = { pendente: 'Pendente de tratamento', tratada: 'Tratada', sem_providencia: 'Sem providência', descartada: 'Descartada' };
+      const quemTratou = tratamento !== 'pendente' && (it.tratamento_nome || it.tratamento_em)
+        ? ` por ${esc(it.tratamento_nome || 'usuário')}${it.tratamento_em ? ' em ' + esc(this.fmtData(String(it.tratamento_em).slice(0, 10))) : ''}` : '';
+      const notaTratamento = tratamento !== 'pendente' && it.tratamento_nota
+        ? `<div class="int-trat-nota">${esc(it.tratamento_nota)}</div>` : '';
 
       const tagLine = [
         hasComment ? '<span style="color:#93c5fd;" title="Tem comentário">• comentário</span>' : '',
@@ -1037,6 +1055,7 @@
               <span class="int-pub-trib">${esc(it.tribunal)}</span>
               <span><strong>${esc(tipo)}</strong></span>
               <span>Processo: <strong>${esc(procMask)}</strong></span>
+              <span class="int-trat int-trat-${esc(tratamento)}">${ROTULOS[tratamento] || ROTULOS.pendente}${quemTratou}</span>
               ${fromCache ? '<span style="color:#fbbf24;">cache temporário</span>' : ''}
               ${it._from_search ? '<span style="color:#fbbf24;">resultado não persistido</span>' : ''}
             </div>
@@ -1048,8 +1067,14 @@
               ? `<button class="int-pub-text-toggle" data-action="toggle-text" data-hash="${esc(it.hash_conteudo)}">Ver tudo (${texto.length.toLocaleString('pt-BR')} caracteres)</button>`
               : ''}
             ${tagLine ? `<div class="int-pub-meta" style="margin-top:6px;">${tagLine}</div>` : ''}
+            ${notaTratamento}
           </div>
           <div class="int-pub-actions">
+            <button class="int-icon-btn int-icon-tratar" title="Registrar tratamento"
+                    data-action="popup-tratamento" data-hash="${esc(it.hash_conteudo)}" ${eventIdAttr}
+                    style="${tratamento !== 'pendente' ? 'color:#34d399;' : ''}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            </button>
             <button class="int-icon-btn" title="${it.lida ? 'Marcar como não lida' : 'Marcar como lida'}"
                     data-action="${it.lida ? 'unread' : 'read'}" data-hash="${esc(it.hash_conteudo)}" ${eventIdAttr}>
               ${it.lida
@@ -1098,10 +1123,30 @@
         body = `
           <h4>Comentário interno <span class="close-x" data-close="1">×</span></h4>
           <label>Visível apenas para você</label>
-          <textarea id="popInpComment" placeholder="Anotações sobre esta intimação...">${esc(item.comentario || '')}</textarea>
+          <textarea id="popInpComment" placeholder="Anotações sobre esta publicação...">${esc(item.comentario || '')}</textarea>
           <div class="actions">
             <button class="int-btn" data-close="1">Cancelar</button>
             <button class="int-btn primary" data-submit="comment">Salvar</button>
+          </div>`;
+      } else if (action === 'popup-tratamento') {
+        // Abre sugerindo o caminho normal: quem clica em uma pendente vai tratá-la.
+        const atual = item.tratamento_status && item.tratamento_status !== 'pendente' ? item.tratamento_status : 'tratada';
+        const op = (v, t) => `<option value="${v}"${atual === v ? ' selected' : ''}>${t}</option>`;
+        body = `
+          <h4>Tratamento da publicação <span class="close-x" data-close="1">×</span></h4>
+          <label for="popInpTrat">O que foi feito</label>
+          <select id="popInpTrat">
+            ${op('tratada', 'Tratada, providência tomada')}
+            ${op('sem_providencia', 'Analisada, sem necessidade de providência')}
+            ${op('descartada', 'Descartada')}
+            ${op('pendente', 'Voltar para pendente')}
+          </select>
+          <label for="popInpTratNota" style="margin-top:8px;">Providência ou motivo</label>
+          <textarea id="popInpTratNota" placeholder="O que foi feito ou por que não exige providência. Obrigatório ao descartar.">${esc(item.tratamento_nota || '')}</textarea>
+          <p class="int-trat-ajuda">Vale para todo o escritório, e fica registrado quem tratou e quando. Registrar aqui não cria nem calcula prazo.</p>
+          <div class="actions">
+            <button class="int-btn" data-close="1">Cancelar</button>
+            <button class="int-btn primary" data-submit="tratamento">Salvar</button>
           </div>`;
       } else if (action === 'popup-deadline') {
         body = `
@@ -1180,7 +1225,26 @@
 
     async submitActionPopup(submitType, item, eventId, pop) {
       try {
-        if (submitType === 'comment') {
+        if (submitType === 'tratamento') {
+          const status = pop.querySelector('#popInpTrat')?.value || 'tratada';
+          const nota   = (pop.querySelector('#popInpTratNota')?.value || '').trim();
+          if (status === 'descartada' && !nota) {
+            this.notify('Informe o motivo do descarte.', 'warn');
+            pop.querySelector('#popInpTratNota')?.focus();
+            return;
+          }
+          const data = await this.api('POST', '/persist.php', {
+            action: 'tratar', payload: item, event_id: eventId || null, extra: { status, nota },
+          });
+          if (!data.ok) throw new Error(data.error || 'Erro');
+          item.id = data.event_id;
+          item.tratamento_status = data.tratamento_status;
+          item.tratamento_nome   = data.tratamento_nome;
+          item.tratamento_em     = data.tratamento_em;
+          item.tratamento_nota   = data.tratamento_nota;
+          item._from_cache = false;
+          this.notify(status === 'pendente' ? 'Publicação voltou para pendente.' : 'Tratamento registrado.', 'success');
+        } else if (submitType === 'comment') {
           const texto = pop.querySelector('#popInpComment')?.value || '';
           const data = await this.api('POST', '/persist.php', {
             action: 'comment',
@@ -1774,7 +1838,7 @@
         } else if (temPeriodo) {
           hint.innerHTML = `Vai filtrar a lista local (cache + persistidos) pelo período.`;
         } else {
-          hint.innerHTML = `Vai mostrar a lista local (cache do dia + intimações já salvas) com os critérios definidos.`;
+          hint.innerHTML = `Vai mostrar a lista local (cache do dia + publicações já salvas) com os critérios definidos.`;
         }
       }
     },
@@ -2246,7 +2310,7 @@
 
       const procMask = item.numero_processo_mascara || item.numero_processo || '—';
       $('intActionsSummary').innerHTML = `
-        <strong>${this._esc(item.tribunal || '?')}</strong> · ${this._esc(item.tipo_comunicacao || 'Intimação')} ·
+        <strong>${this._esc(item.tribunal || '?')}</strong> · ${this._esc(item.tipo_comunicacao || 'Publicação')} ·
         Processo: <strong>${this._esc(procMask)}</strong><br>
         <span class="int-summary-sub">${this._esc(item.orgao || '—')} · Disponibilizado em ${this.fmtData(item.data_disponibilizacao || '')}</span>
       `;
@@ -2308,7 +2372,7 @@
 
       const desc = $('actPrazoDescricao');
       if (desc && !desc.value) {
-        const base = item.resumo || item.tipo_comunicacao || 'Prazo da intimação';
+        const base = item.resumo || item.tipo_comunicacao || 'Prazo da publicação';
         desc.value = String(base).slice(0, 200);
       }
 
@@ -2385,7 +2449,7 @@
         ctx.item.processo_id = processoId;
         const retro = r.retroativo_aplicado || 0;
         this.notify(
-          `Vinculado a ${label}.${retro > 0 ? ' Aplicado retroativamente em ' + retro + ' intimações antigas.' : ''} ` +
+          `Vinculado a ${label}.${retro > 0 ? ' Aplicado retroativamente em ' + retro + ' publicações antigas.' : ''} ` +
           'Próximas com mesmo CNJ serão auto-vinculadas.',
           'success'
         );
@@ -2402,7 +2466,7 @@
 
     async _actionsDesvincular() {
       const ctx = this._actionsCtx;
-      if (!confirm('Desvincular este processo? Isto remove o link desta intimação E desativa o auto-link futuro pra esse número CNJ.')) return;
+      if (!(await Yuris.confirm('Desvincular este processo? Isto remove o vínculo desta publicação e desativa o vínculo automático futuro para esse número CNJ.', { danger: true, okLabel: 'Desvincular' }))) return;
       try {
         const r = await this.api('POST', '/persist.php', {
           action: 'unlink_process',
@@ -2432,7 +2496,7 @@
     async _actionsCriarPrazo() {
       const ctx = this._actionsCtx;
       if (!ctx.item || !ctx.item.processo_id) {
-        this.notify('Vincule a intimação a um processo antes de criar o prazo.', 'warn');
+        this.notify('Vincule a publicação a um processo antes de criar o prazo.', 'warn');
         return;
       }
       const $ = (id) => document.getElementById(id);

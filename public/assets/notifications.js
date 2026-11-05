@@ -217,8 +217,14 @@
     var maxLeft = window.innerWidth - w - 8;
     if (left > maxLeft) left = maxLeft;
     if (left < 8) left = 8;
-    elPanel.style.top  = Math.round(r.bottom + 8) + 'px';
+    // Sino no meio da tela: a altura acompanha o espaço que sobra, senão o fim da
+    // lista ficava para fora da janela, sem rolagem que alcançasse.
+    var top = r.bottom + 8;
+    var espaco = window.innerHeight - top - 12;
+    if (espaco < 300) { top = Math.max(8, window.innerHeight - 312); espaco = window.innerHeight - top - 12; }
+    elPanel.style.top  = Math.round(top) + 'px';
     elPanel.style.left = Math.round(left) + 'px';
+    elPanel.style.maxHeight = Math.round(espaco) + 'px';
   }
 
   function openPanel() {

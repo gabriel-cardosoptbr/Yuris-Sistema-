@@ -1134,7 +1134,7 @@ try {
             <div class="kpi-dot dot-danger"></div>
             <div class="kpi-label">Vencem Hoje</div>
             <div class="kpi-value" id="kpiHoje">—</div>
-            <div class="kpi-foot">prazo fatal hoje</div>
+            <div class="kpi-foot">prazo vence hoje</div>
           </div>
           <div class="kpi-card kpi-warn">
             <div class="kpi-dot dot-warn"></div>

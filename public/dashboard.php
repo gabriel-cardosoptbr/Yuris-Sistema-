@@ -1015,7 +1015,7 @@ if ($isFleetiflow) {
     const _icoMoney  = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block;vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M9 9h4.5a1.5 1.5 0 0 1 0 3h-5a1.5 1.5 0 0 0 0 3H15"/></svg>';
 
     if (jurKPIs.hoje > 0)
-      alerts.push({cls:'alert-danger', icon:_icoAlert, msg: `${jurKPIs.hoje} prazo${jurKPIs.hoje!==1?'s':''} fatal${jurKPIs.hoje!==1?'is':''} HOJE`});
+      alerts.push({cls:'alert-danger', icon:_icoAlert, msg: `${jurKPIs.hoje} prazo${jurKPIs.hoje!==1?'s':''} vence${jurKPIs.hoje!==1?'m':''} HOJE`});
     if (jurKPIs.urgentes > 0)
       alerts.push({cls:'alert-warn', icon:_icoWarn, msg: `${jurKPIs.urgentes} processo${jurKPIs.urgentes!==1?'s':''} urgente${jurKPIs.urgentes!==1?'s':''} (até 3 dias)`});
     if (metaValue > 0 && closedValue > 0){

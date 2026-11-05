@@ -14,6 +14,7 @@ require_once __DIR__ . '/../../../app/bootstrap.php';
 
 use App\Core\AccountContext;
 use App\Core\Database;
+use App\Processos\PushEvent;
 use App\Processos\PushTodayCache;
 use App\Processos\PushEventUserStatus;
 
@@ -51,8 +52,11 @@ try {
     $fProc     = isset($_GET['processo'])  ? preg_replace('/[^0-9]/', '', $_GET['processo']) : '';
     // source_id: filtra por provider (djen/aasp/datajud/...). Vazio = todos.
     $fSrc      = isset($_GET['source_id']) ? preg_replace('/[^a-z0-9_]/', '', strtolower((string)$_GET['source_id'])) : '';
+    $fTrat     = in_array($_GET['tratamento'] ?? '', PushEvent::TRATAMENTOS, true) ? $_GET['tratamento'] : '';
     $limit     = max(1, min(500, (int)($_GET['limit'] ?? 100)));
     $incCache  = (int)($_GET['include_cache'] ?? 1) === 1;
+    // Item só do cache do dia ainda não foi tratado por ninguém: é pendente.
+    if ($fTrat !== '' && $fTrat !== 'pendente') $incCache = false;
 
     // ── Listar push_events persistidos ────────────────────────────────────────
     $where = ['e.account_id = :acc', 'e.status = "ativo"'];
@@ -66,6 +70,7 @@ try {
     if ($fTrib !== '')    { $where[] = 'e.tribunal = :trib';                 $bind['trib']  = $fTrib; }
     if ($fProc !== '')    { $where[] = 'e.numero_processo = :np';            $bind['np']    = $fProc; }
     if ($fSrc !== '')     { $where[] = 'e.source_id = :src';                 $bind['src']   = $fSrc; }
+    if ($fTrat !== '')    { $where[] = 'e.tratamento_status = :trat';        $bind['trat']  = $fTrat; }
 
     $sql = 'SELECT e.id, e.account_id, e.source_id, e.tribunal,
                    e.data_disponibilizacao, e.data_publicacao,
@@ -74,6 +79,8 @@ try {
                    e.classe_nome, e.titulo, e.resumo, e.conteudo, e.url_origem,
                    e.hash_externo, e.hash_conteudo,
                    e.created_at, e.updated_at,
+                   e.processo_id,
+                   e.tratamento_status, e.tratamento_nota, e.tratamento_nome, e.tratamento_em,
                    -- payload_original ENTRA aqui, e e apagado logo abaixo, antes
                    -- de sair na resposta. Sem ele, listPhpExtractAdvogados e
                    -- listPhpExtractPartes devolviam lista vazia para TODO evento
@@ -151,6 +158,7 @@ try {
         'eventos'   => count($eventos),
         'cache'     => count($cache),
         'nao_lidas' => $naoLidas,
+        'pendentes' => PushEvent::contarPendentes($accountId),
         'items'     => $combined,
     ]);
 

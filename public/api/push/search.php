@@ -112,13 +112,17 @@ try {
         ]);
         exit;
     }
-    // Janela máxima da DJEN: ~90 dias por requisição
+    // O LIMITE DE 90 DIAS ERA NOSSO (corrigido em 05/11/2026). Esta mensagem dizia
+    // que era a DJEN, e não é: em consulta direta a API respondeu 200 com dados para
+    // janelas de um ano inteiro (2024 e 2025). Ficou um teto de um ano por busca,
+    // para a consulta manual caber no tempo da requisição. A cobertura da fonte
+    // continua tendo limite próprio: 2021 voltou vazio.
     if ($dInicio && $dFim) {
         $diff = (strtotime($dFim) - strtotime($dInicio)) / 86400;
-        if ($diff > 90) {
+        if ($diff > 366) {
             http_response_code(400);
             echo json_encode([
-                'error' => "Período muito longo (" . (int)$diff . " dias). Máximo aceito pela DJEN: 90 dias por busca.",
+                'error' => "Período muito longo (" . (int)$diff . " dias). Busque até 1 ano por vez.",
             ]);
             exit;
         }
@@ -159,9 +163,10 @@ try {
     ]);
 
     $started = microtime(true);
-    // Limit 500 cobre períodos longos (~3 meses de busca pesada). DJEN aceita
-    // até 1000, mas 500 é o melhor custo/benefício pra timeout e payload.
-    $result  = $provider->fetchPublications($filters, ['limit' => 500, 'timeout_seconds' => 25]);
+    // Até 6 páginas de 500. Passando disso a resposta avisa (`truncado`), em vez de
+    // cortar calada: publicação que some da busca é publicação esquecida.
+    @set_time_limit(170);
+    $result  = $provider->fetchPublications($filters, ['limit' => 500, 'timeout_seconds' => 25, 'max_paginas' => 6]);
     $items   = $result['items'] ?? [];
 
     // Modo cache_hoje: persistir em push_today_cache (TTL fim do dia)
@@ -207,9 +212,27 @@ try {
         'duracao_ms'       => (int)((microtime(true) - $started) * 1000),
     ]);
 
+    // Resultado da busca que já foi tratado aparece como tratado, e não como pendente.
+    $jaTratadas = [];
+    foreach (array_chunk(array_values(array_filter(array_column($items, 'hash_conteudo'))), 400) as $lote) {
+        $st = \App\Core\Database::getConnection()->prepare(
+            'SELECT id, hash_conteudo, tratamento_status, tratamento_nota, tratamento_nome, tratamento_em
+               FROM push_events WHERE account_id = ? AND hash_conteudo IN (' . implode(',', array_fill(0, count($lote), '?')) . ')'
+        );
+        $st->execute(array_merge([$accountId], $lote));
+        foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $l) $jaTratadas[$l['hash_conteudo']] = $l;
+    }
+
     // Resposta — payload_original NÃO vai pro frontend (LGPD: menos PII no wire)
-    $publicItems = array_map(static function ($it) {
+    $publicItems = array_map(static function ($it) use ($jaTratadas) {
         unset($it['payload_original']);
+        $t = $jaTratadas[$it['hash_conteudo'] ?? ''] ?? null;
+        if ($t) {
+            $it['tratamento_status'] = $t['tratamento_status'];
+            $it['tratamento_nota']   = $t['tratamento_nota'];
+            $it['tratamento_nome']   = $t['tratamento_nome'];
+            $it['tratamento_em']     = $t['tratamento_em'];
+        }
         return $it;
     }, $items);
 
@@ -217,6 +240,7 @@ try {
         'ok'             => true,
         'mode'           => $mode,
         'total'          => count($publicItems),
+        'truncado'       => !empty($result['truncado']),
         'cached'         => $cachedCount,
         'items'          => $publicItems,
         'persistido'     => $mode === 'cache_hoje',

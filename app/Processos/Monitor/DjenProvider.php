@@ -59,6 +59,34 @@ final class DjenProvider implements ProviderInterface
         if (!empty($filters['nome_advogado']))              $query['nomeAdvogado']               = $filters['nome_advogado'];
         $query['itensPorPagina'] = $limit;
 
+        // Sem paginação, tudo o que passasse do `limit` sumia sem aviso.
+        // `max_paginas` padrão 1 mantém os ciclos do cron como sempre foram.
+        $maxPaginas = max(1, (int)($opts['max_paginas'] ?? 1));
+        $itens = [];
+        $meta  = [];
+        // O `count` da API não é o total: num dia com 1.554 itens paginados ele
+        // disse 54, e em períodos longos para em 10.000. O que prova que sobrou
+        // alguma coisa é a última página ter vindo cheia.
+        $sobrou = false;
+        for ($pagina = 1; $pagina <= $maxPaginas; $pagina++) {
+            $r = $this->buscarPagina($query + ['pagina' => $pagina], $timeout);
+            $itens  = array_merge($itens, $r['items']);
+            $meta   = $r['raw_meta'];
+            $sobrou = count($r['items']) >= $limit;
+            if (!$sobrou) break;
+            if ($pagina < $maxPaginas) usleep(250000); // fonte pública: sem rajada
+        }
+
+        return [
+            'items'    => $itens,
+            'total'    => count($itens),
+            'truncado' => $sobrou,
+            'raw_meta' => $meta,
+        ];
+    }
+
+    private function buscarPagina(array $query, int $timeout): array
+    {
         $url = $this->baseUrl . '/comunicacao?' . http_build_query($query);
 
         // ── HTTP GET ──

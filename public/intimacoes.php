@@ -38,7 +38,7 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Intimações — Yuris</title>
+  <title>Publicações — Yuris</title>
   <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
@@ -298,6 +298,38 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
       color: #93c5fd;
     }
     .int-modal-close:hover { background: rgba(176,96,112,.18); color: #f87171; }
+
+    /* ── Tratamento da publicação ── */
+    .int-trat { padding: 2px 9px; border-radius: 999px; font-weight: 600; font-size: .7rem; }
+    .int-trat-pendente        { background: rgba(245,158,11,.16); color: #FCD34D; }
+    .int-trat-tratada         { background: rgba(16,185,129,.16); color: #6EE7B7; }
+    .int-trat-sem_providencia { background: rgba(100,116,139,.22); color: #CBD5E1; }
+    .int-trat-descartada      { background: rgba(239,68,68,.14); color: #FCA5A5; }
+    .int-trat-nota { margin-top: 6px; font-size: .76rem; line-height: 1.4; color: #9FB2C8; overflow-wrap: anywhere; }
+    .int-trat-ajuda { font-size: .72rem; line-height: 1.4; color: #8FA3B8; margin: 8px 0 0; }
+    .int-action-popup select {
+      width: 100%; padding: 8px 10px; background: rgba(8,20,40,.6);
+      border: 1px solid rgba(96,165,250,.2); border-radius: 7px; color: #dbeafe; font-size: .82rem;
+    }
+    html[data-theme="light"] .int-trat-pendente        { background: rgba(245,158,11,.16); color: #92400E; }
+    html[data-theme="light"] .int-trat-tratada         { background: rgba(16,185,129,.14); color: #047857; }
+    html[data-theme="light"] .int-trat-sem_providencia { background: #E8EEF5; color: #475569; }
+    html[data-theme="light"] .int-trat-descartada      { background: rgba(239,68,68,.1); color: #B91C1C; }
+    html[data-theme="light"] .int-trat-nota, html[data-theme="light"] .int-trat-ajuda { color: #52647A; }
+    html[data-theme="light"] .int-action-popup select { background: #FFFFFF; border-color: #CBD5E1; color: #0F172A; }
+
+    html[data-theme="light"] .int-action-popup {
+      background: #FFFFFF !important; border: 1px solid #D5DEE9 !important; box-shadow: 0 18px 44px rgba(15,23,42,.2) !important;
+    }
+    html[data-theme="light"] .int-action-popup h4 { color: #0F172A !important; }
+    html[data-theme="light"] .int-action-popup label { color: #475569 !important; }
+    html[data-theme="light"] .int-action-popup .close-x { color: #64748B !important; }
+    html[data-theme="light"] .int-action-popup textarea,
+    html[data-theme="light"] .int-action-popup input[type=text],
+    html[data-theme="light"] .int-action-popup input[type=date] { background: #FFFFFF !important; border-color: #CBD5E1 !important; color: #0F172A !important; }
+    html[data-theme="light"] .int-popup-suggest { background: #FFFFFF !important; border-color: #CBD5E1 !important; }
+    html[data-theme="light"] .int-popup-suggest-item { color: #0F172A; border-bottom-color: #EDF1F6; }
+    html[data-theme="light"] .int-popup-suggest-item:hover { background: rgba(59,130,246,.08); }
 
     /* ── Popup inline de ação ── */
     .int-action-popup {
@@ -1087,7 +1119,7 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
       <div class="card-shell page-header" style="margin-bottom:16px;flex-shrink:0;">
         <div class="page-header-inner">
           <div class="page-header-text">
-            <h2 class="page-header-title">Intimações</h2>
+            <h2 class="page-header-title">Publicações</h2>
             <p class="page-header-subtitle">Publicações do Diário de Justiça Eletrônico Nacional, busca ativa e leitura de termos.</p>
           </div>
           <div class="page-header-actions">
@@ -1110,7 +1142,7 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
         <div class="card-shell" style="padding:18px;">
           <!-- Tabs no topo -->
           <div class="int-tabs">
-            <div class="int-tab active" data-tab="djen">Intimações publicadas no Diário<span class="int-tab-count" id="kpiNaoLidas"><?= (int)$kpiNaoLidas ?> não lidas</span></div>
+            <div class="int-tab active" data-tab="djen">Publicações no Diário<span class="int-tab-count" id="kpiNaoLidas"><?= (int)$kpiNaoLidas ?> não lidas</span></div>
             <div class="int-tab" data-tab="aasp">Integração AASP<span class="int-tab-count" id="kpiAaspIntegracoes" style="display:none;">0</span></div>
           </div>
 
@@ -1193,6 +1225,14 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
           </div>
 
           <div class="int-filter-section">
+            <label class="int-filter-label" for="fTratamento">Tratamento</label>
+            <select id="fTratamento" class="int-filter-input" style="margin-bottom:12px;">
+              <option value="">Todas</option>
+              <option value="pendente">Pendentes de tratamento</option>
+              <option value="tratada">Tratadas</option>
+              <option value="sem_providencia">Sem providência</option>
+              <option value="descartada">Descartadas</option>
+            </select>
             <label class="int-filter-label">Status</label>
             <div class="int-filter-checkboxes">
               <label class="int-filter-cb"><input type="checkbox" id="fLidas"><span>Lidas</span></label>
@@ -1239,7 +1279,7 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
     <h2>Configure seu perfil de busca</h2>
     <p class="modal-sub">
       Cadastre sua <strong>OAB</strong> e/ou <strong>nome do advogado</strong> uma única vez.
-      Daí em diante o Yuris busca <strong>só suas intimações</strong> automaticamente,
+      Daí em diante o Yuris busca <strong>só suas publicações</strong> automaticamente,
       igual a AASP. Sem isso, a busca traz todas as publicações do tribunal e fica difícil filtrar.
     </p>
 
@@ -1437,7 +1477,7 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
     <span class="int-modal-close" id="monitorsClose" title="Fechar">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </span>
-    <h2>Monitoramento de intimações</h2>
+    <h2>Monitoramento de publicações</h2>
     <p class="modal-sub">A cada ciclo do cron (a cada 10 min), o sistema busca novas publicações para cada monitor ativo. Quando algo novo aparece, você recebe notificação.</p>
 
     <!-- ── Badge de cota (Etapa 5 add-on) ─────────────────────────────
