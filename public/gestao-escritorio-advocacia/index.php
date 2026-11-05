@@ -89,7 +89,7 @@ $SEO_PAGE = [
 <p>O passo mais eficiente é ver esse fluxo rodando com um caso parecido com o seu: a <a href="/demonstracao/">demonstração</a> mostra o Yuris aplicado ao tamanho da sua equipe e ao seu volume de processos.</p>
 
 <h2>Quanto custa um software de gestão para advogados?</h2>
-<p>No Yuris, os planos são públicos e têm tudo incluído — sem cobrança por módulo. Os valores começam em <strong>R$ 220/mês</strong> e variam conforme o número de usuários, do advogado solo ao escritório com até 20 pessoas. A tabela completa e atualizada está na <a href="/planos">página de planos</a>.</p>
+<p>No Yuris, os planos têm tudo incluído, sem cobrança por módulo. O valor é sob consulta e varia conforme o número de usuários, do advogado solo ao escritório com até 20 pessoas. As opções estão na <a href="/planos">página de planos</a>.</p>
 HTML,
 
     'faq' => [
@@ -115,7 +115,7 @@ HTML,
         ],
         [
             'q' => 'Quanto custa o software de gestão Yuris?',
-            'a' => 'Os planos são públicos, com tudo incluído e sem cobrança por módulo. Os valores começam em R$ 220/mês e variam conforme o número de usuários do escritório. A tabela completa está na página de planos, e a demonstração é agendada pelo WhatsApp com a equipe do Yuris.',
+            'a' => 'Os planos têm tudo incluído, sem cobrança por módulo. O valor é sob consulta e varia conforme o número de usuários do escritório. As opções estão na página de planos, e a demonstração é agendada pelo WhatsApp com a equipe do Yuris.',
         ],
     ],
 

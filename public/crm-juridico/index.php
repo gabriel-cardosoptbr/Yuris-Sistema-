@@ -76,7 +76,7 @@ $SEO_PAGE = [
 <p>Dois ou mais itens familiares? O problema não é falta de demanda — é falta de funil.</p>
 
 <h2>Quanto custa um CRM jurídico?</h2>
-<p>No Yuris, o CRM não é módulo vendido à parte: ele já vem incluído na plataforma, junto com processos, intimações, tarefas, financeiro e WhatsApp. Os planos têm tudo incluído e começam em R$ 220/mês, variando conforme o número de usuários. Consulte a <a href="/planos">página de planos</a> para a tabela completa e atualizada.</p>
+<p>No Yuris, o CRM não é módulo vendido à parte: ele já vem incluído na plataforma, junto com processos, intimações, tarefas, financeiro e WhatsApp. Os planos têm tudo incluído, com valor sob consulta conforme o número de usuários. Veja as opções na <a href="/planos">página de planos</a>.</p>
 HTML,
 
     'faq' => [
@@ -102,7 +102,7 @@ HTML,
         ],
         [
             'q' => 'O CRM do Yuris é vendido separadamente?',
-            'a' => 'Não. O CRM faz parte da plataforma Yuris, junto com gestão de processos, intimações, tarefas, financeiro e WhatsApp integrado — os planos têm tudo incluído, sem cobrança por módulo, a partir de R$ 220/mês. Os valores variam conforme o número de usuários e estão públicos na página de planos.',
+            'a' => 'Não. O CRM faz parte da plataforma Yuris, junto com gestão de processos, intimações, tarefas, financeiro e WhatsApp integrado — os planos têm tudo incluído, sem cobrança por módulo. O valor é sob consulta e varia conforme o número de usuários; as opções estão na página de planos.',
         ],
     ],
 

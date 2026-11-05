@@ -1,4 +1,4 @@
-<?php /* secao-15-integracoes.php, #integracoes — grade premium centralizada (4 + 3) */
+<?php /* secao-15-integracoes.php, #integracoes — nó Yuris ligado às ferramentas */
 $integra = [
   ['WhatsApp', 'Atendimento e mensagens', 'whatsapp'],
   ['n8n', 'Automação self-hosted', 'n8n'],
@@ -44,20 +44,18 @@ if (!function_exists('lp2_integra_icon')) {
   }
 }
 ?>
-<section id="integracoes" class="lp2-section">
-  <div class="lp2-container">
+<section id="integracoes" class="ys-section ys-bg-2">
+  <div class="ys-container">
     <?php lp2_head('Integrações', 'Conecte o Yuris ao ecossistema do seu escritório.', 'O sistema foi pensado para evoluir com integrações e automações, permitindo que o escritório conecte dados e fluxos sem ficar preso a processos manuais.'); ?>
-    <ul class="lp2-integra lp2-reveal" role="list">
+    <ul class="ys-integra ys-reveal" role="list">
       <?php foreach ($integra as $i => [$nome, $desc, $key]): ?>
-      <li class="lp2-integra-card" style="--i:<?= $i ?>">
-        <span class="lp2-integra-conn" aria-hidden="true"></span>
-        <span class="lp2-integra-ic" aria-hidden="true"><?= lp2_integra_icon($key) ?></span>
-        <div class="lp2-integra-name"><?= $nome ?></div>
+      <li class="ys-integra-card">
+        <span class="ys-integra-ic" aria-hidden="true"><?= lp2_integra_icon($key) ?></span>
+        <h3><?= $nome ?></h3>
         <p><?= $desc ?></p>
-        <span class="lp2-integra-flow" aria-hidden="true"></span>
       </li>
       <?php endforeach; ?>
     </ul>
-    <div class="lp2-section-cta lp2-reveal"><?= lp2_wa_btn('Olá Bruno, quero integrar o Yuris com as ferramentas do meu escritório!', 'Conectar minhas ferramentas') ?></div>
+    <div class="ys-section-cta ys-reveal"><?= lp2_wa_btn('Olá Bruno, quero integrar o Yuris com as ferramentas do meu escritório!', 'Conectar minhas ferramentas') ?></div>
   </div>
 </section>

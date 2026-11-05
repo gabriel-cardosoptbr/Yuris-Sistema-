@@ -5,8 +5,7 @@
  * Qualquer titular (logado ou não) abre solicitação aqui. Sistema gera token,
  * notifica DPO via Mailer (driver atual = log), e devolve link de acompanhamento.
  *
- * Visual: usa classes utilitárias do legal_page.php que respondem ao tema
- * (claro/escuro via localStorage).
+ * Visual: usa as classes .legal-* de public/assets/site/site-legal.css (tema claro).
  */
 $LEGAL_PAGE = [
     'titulo'    => 'Solicitação de Direitos LGPD',

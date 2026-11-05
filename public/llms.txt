@@ -15,7 +15,7 @@ Idioma: português brasileiro (pt-BR). Categoria: Legal Tech / SaaS jurídico. S
 - [Prospecção Jurídica](https://yuris.com.br/prospeccao-juridica/): organização do funil de leads do escritório
 - [Financeiro Jurídico](https://yuris.com.br/financeiro-juridico/): DRE, recorrências e contas integradas à operação
 - [LGPD para Escritórios](https://yuris.com.br/lgpd-escritorios-advocacia/): proteção de dados como arquitetura
-- [Planos](https://yuris.com.br/planos.php): preços públicos, a partir de R$ 220/mês, tudo incluído
+- [Planos](https://yuris.com.br/planos.php): tudo incluído, valor sob consulta
 - [Sobre](https://yuris.com.br/sobre/): a marca Yuris e os pilares do produto
 - [Demonstração](https://yuris.com.br/demonstracao/): como conhecer o sistema (atendimento via WhatsApp)
 
@@ -47,7 +47,7 @@ Idioma: português brasileiro (pt-BR). Categoria: Legal Tech / SaaS jurídico. S
 
 ## Planos (públicos)
 
-Preço de lançamento, tudo incluído em todos os planos: Solo (1–2 usuários) R$ 220/mês · Equipe (até 5) R$ 220/mês · Escritório (até 10) R$ 370/mês · Studio (até 20) R$ 670/mês. Usuário adicional a partir do 6º: R$ 30/mês. Detalhes: https://yuris.com.br/planos.php
+Tudo incluído em todos os planos, com valor sob consulta: Solo (até 2 usuários) · Equipe (até 5) · Escritório (até 10) · Studio (até 20). Detalhes: https://yuris.com.br/planos.php
 
 ## Resumos em Markdown para IA
 

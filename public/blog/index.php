@@ -22,7 +22,7 @@ $POSTS = [
 $listaPosts = '';
 if ($POSTS) {
     foreach ($POSTS as $p) {
-        $listaPosts .= '<a class="lp-card" href="' . htmlspecialchars($p['href']) . '"><h3>' . htmlspecialchars($p['titulo']) . '</h3><p>' . htmlspecialchars($p['desc']) . '</p></a>';
+        $listaPosts .= '<a class="ys-card is-hover" href="' . htmlspecialchars($p['href']) . '"><h3>' . htmlspecialchars($p['titulo']) . '</h3><p>' . htmlspecialchars($p['desc']) . '</p></a>';
     }
 }
 
@@ -60,7 +60,7 @@ HTML,
 
     'relacionados' => [
         ['href' => '/sistema-juridico/', 'titulo' => 'Sistema Jurídico',  'desc' => 'O que é e o que o Yuris centraliza na operação do escritório.'],
-        ['href' => '/planos',        'titulo' => 'Planos',            'desc' => 'Preços públicos, tudo incluído, a partir de R$ 220/mês.'],
+        ['href' => '/planos',        'titulo' => 'Planos',            'desc' => 'Tudo incluído, sem cobrança por módulo. Valor sob consulta.'],
         ['href' => '/demonstracao/',     'titulo' => 'Demonstração',      'desc' => 'Veja o sistema aplicado à rotina do seu escritório.'],
     ],
 ];

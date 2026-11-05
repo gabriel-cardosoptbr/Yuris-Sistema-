@@ -23,7 +23,7 @@ $SEO_PAGE = [
     'corpo_html' => <<<'HTML'
 <h2>O que é a demonstração do Yuris?</h2>
 <div class="sp-definicao">
-  <p>A <strong>demonstração do Yuris</strong> é uma conversa pelo WhatsApp em que a equipe apresenta o sistema jurídico aplicado ao perfil do seu escritório: volume de processos, tamanho da equipe e forma de atendimento. Não há formulário para preencher nem programa para instalar — você agenda, assiste e decide com os preços públicos na mesa.</p>
+  <p>A <strong>demonstração do Yuris</strong> é uma conversa pelo WhatsApp em que a equipe apresenta o sistema jurídico aplicado ao perfil do seu escritório: volume de processos, tamanho da equipe e forma de atendimento. Não há formulário para preencher nem programa para instalar — você agenda, assiste e decide no seu tempo.</p>
 </div>
 <p>Em vez de um tour genérico por telas, a demonstração parte da sua rotina. Quem trabalha com alto volume vê intimações e prazos; quem vive de captação vê o funil comercial; quem atende pelo WhatsApp vê as conversas vinculadas a cliente e processo. O objetivo é um só: você sair da conversa sabendo se o <a href="/sistema-juridico/">sistema jurídico Yuris</a> resolve o seu problema — não o de um escritório hipotético.</p>
 
@@ -69,7 +69,7 @@ $SEO_PAGE = [
 <p>Se quiser entender quem constrói o produto antes da conversa, a página <a href="/sobre/">sobre o Yuris</a> apresenta o sistema e a forma como ele é mantido.</p>
 
 <h2>E quanto custa depois?</h2>
-<p>Sem surpresa no final: os preços são públicos e têm tudo incluído, sem cobrança por módulo. Os planos começam em R$ 220/mês e variam conforme o número de usuários — a tabela completa e atualizada está na <a href="/planos">página de planos</a>. Na própria demonstração, a equipe indica o plano que faz sentido para o tamanho do seu escritório.</p>
+<p>Sem surpresa no final: os planos têm tudo incluído, sem cobrança por módulo. O valor é sob consulta e varia conforme o número de usuários; veja as opções na <a href="/planos">página de planos</a>. Na própria demonstração, a equipe indica o plano que faz sentido para o tamanho do seu escritório.</p>
 <p>Pronto para ver o sistema com os seus casos em mente? <a href="https://wa.me/5511991170602?text=Ol%C3%A1%20Bruno%2C%20quero%20agendar%20uma%20demonstra%C3%A7%C3%A3o%20do%20Yuris%21"><strong>Chame no WhatsApp</strong></a> e agende a demonstração conforme a sua agenda.</p>
 HTML,
 
@@ -84,17 +84,17 @@ HTML,
         ],
         [
             'q' => 'A demonstração me obriga a contratar o sistema?',
-            'a' => 'Não. A demonstração não obriga contratação: ela existe para você avaliar, com o sistema na tela, se o Yuris resolve a rotina do seu escritório. Os preços são públicos na página de planos, então a decisão pode ser tomada no seu tempo, com todas as informações em mãos.',
+            'a' => 'Não. A demonstração não obriga contratação: ela existe para você avaliar, com o sistema na tela, se o Yuris resolve a rotina do seu escritório. As opções estão na página de planos, e a decisão pode ser tomada no seu tempo, com todas as informações em mãos.',
         ],
         [
             'q' => 'Quanto custa o Yuris depois da demonstração?',
-            'a' => 'Os planos têm tudo incluído, sem cobrança por módulo, e começam em R$ 220/mês — o valor varia conforme o número de usuários do escritório. A tabela completa e atualizada fica na página de planos, pública para qualquer visitante. Durante a demonstração, a equipe indica o plano adequado ao tamanho da sua operação.',
+            'a' => 'Os planos têm tudo incluído, sem cobrança por módulo. O valor é sob consulta e varia conforme o número de usuários do escritório. As opções estão na página de planos, aberta a qualquer visitante. Durante a demonstração, a equipe indica o plano adequado ao tamanho da sua operação.',
         ],
     ],
 
     'relacionados' => [
         ['href' => '/sistema-juridico/', 'titulo' => 'Sistema Jurídico',  'desc' => 'Visão completa da plataforma: processos, prazos, intimações, CRM e financeiro.'],
-        ['href' => '/planos',        'titulo' => 'Planos e Preços',   'desc' => 'Valores públicos com tudo incluído, a partir de R$ 220/mês.'],
+        ['href' => '/planos',        'titulo' => 'Planos',   'desc' => 'Tudo incluído, sem cobrança por módulo. Valor sob consulta.'],
         ['href' => '/sobre/',            'titulo' => 'Sobre o Yuris',     'desc' => 'Conheça o Yuris: o que é o produto e como ele é construído.'],
     ],
 ];

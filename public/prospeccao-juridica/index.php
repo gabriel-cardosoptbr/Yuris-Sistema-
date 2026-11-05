@@ -82,7 +82,7 @@ $SEO_PAGE = [
 <p>Se dois ou mais itens soam familiares, o gargalo não está na procura — está no processo interno. Organizar esse fluxo é parte da <a href="/gestao-escritorio-advocacia/">gestão do escritório de advocacia</a> como um todo: o funil comercial alimenta a operação, e a operação devolve previsibilidade ao funil.</p>
 
 <h2>Quanto custa a prospecção no Yuris?</h2>
-<p>O módulo de Prospecção não é vendido à parte: ele faz parte da plataforma, junto com CRM, processos, tarefas, financeiro e WhatsApp integrado. Os planos são públicos, têm tudo incluído e começam em R$ 220/mês — consulte a <a href="/planos">página de planos</a> para a tabela completa por número de usuários.</p>
+<p>O módulo de Prospecção não é vendido à parte: ele faz parte da plataforma, junto com CRM, processos, tarefas, financeiro e WhatsApp integrado. Os planos têm tudo incluído, com valor sob consulta conforme o número de usuários; veja as opções na <a href="/planos">página de planos</a>.</p>
 HTML,
 
     'faq' => [
@@ -108,7 +108,7 @@ HTML,
         ],
         [
             'q' => 'A prospecção é cobrada à parte nos planos?',
-            'a' => 'Não. Os planos do Yuris têm tudo incluído — prospecção, CRM, processos, tarefas, financeiro, WhatsApp integrado e demais módulos — sem cobrança por módulo. Os valores começam em R$ 220/mês e variam conforme o número de usuários do escritório; a tabela completa está pública na página de planos.',
+            'a' => 'Não. Os planos do Yuris têm tudo incluído — prospecção, CRM, processos, tarefas, financeiro, WhatsApp integrado e demais módulos — sem cobrança por módulo. O valor é sob consulta e varia conforme o número de usuários do escritório; as opções estão na página de planos.',
         ],
     ],
 

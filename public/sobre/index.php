@@ -42,7 +42,7 @@ $SEO_PAGE = [
   </tbody>
 </table>
 </div>
-<p>Os planos são públicos, com tudo incluído e valores a partir de R$ 220/mês. A tabela completa e atualizada está na <a href="/planos">página de planos</a>.</p>
+<p>Os planos têm tudo incluído, com valor sob consulta. As opções estão na <a href="/planos">página de planos</a>.</p>
 
 <h2>Os seis pilares que orientam o produto</h2>
 <p>Toda decisão de produto no Yuris responde a pelo menos um de seis pilares — os mesmos que sustentam a apresentação da plataforma:</p>
@@ -95,7 +95,7 @@ HTML,
         ],
         [
             'q' => 'Onde vejo os preços do Yuris?',
-            'a' => 'Os preços são públicos e estão na página de planos, em yuris.com.br/planos.php. Os valores começam em R$ 220/mês, variam conforme o número de usuários do escritório e incluem todos os módulos — não há cobrança separada por funcionalidade nem módulos vendidos à parte.',
+            'a' => 'As opções estão na página de planos, em yuris.com.br/planos.php. O valor é sob consulta, varia conforme o número de usuários do escritório e inclui todos os módulos — não há cobrança separada por funcionalidade nem módulos vendidos à parte.',
         ],
     ],
 

@@ -15,7 +15,7 @@
 
 **Diferença para um CRM genérico:** um CRM comum não entende processo, prazo nem intimação. No CRM jurídico do Yuris, o comercial e o jurídico são o mesmo sistema — quando o contrato fecha, o caso continua no mesmo lugar, com auditoria.
 
-**Preços públicos:** a partir de R$ 220/mês, tudo incluído. Tabela: https://yuris.com.br/planos.php
+**Planos:** tudo incluído, valor sob consulta. Detalhes: https://yuris.com.br/planos.php
 
 **Como conhecer:** demonstração via WhatsApp — https://yuris.com.br/demonstracao/
 

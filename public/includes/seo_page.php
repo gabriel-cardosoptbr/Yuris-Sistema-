@@ -4,7 +4,7 @@
  * (/sistema-juridico/, /crm-juridico/, /sobre/ …).
  *
  * Mesmo padrão do legal_page.php: a página define um array e dá require.
- * Visual idêntico à landing (landing.css + seo-pages.css, body.lp).
+ * Visual: design system do site (assets/site/site.css, body.ys).
  *
  * Uso (ex.: public/crm-juridico/index.php):
  *   $SEO_PAGE = [
@@ -24,14 +24,20 @@
  *     'cta_texto'   => 'Frase de apoio do CTA final.',
  *     'jsonld'      => [ [...] ],                  // schemas EXTRAS (Service etc.)
  *     'robots'      => 'index,follow',             // opcional
+ *     'cena'        => 'operacao',                 // opcional: cena do hero (ver $cenasPorPagina)
  *   ];
  *   require __DIR__ . '/../includes/seo_page.php';
  *
  * Schemas automáticos: BreadcrumbList + (se houver 'faq') FAQPage.
  * FAQ renderizada com <details>/<summary> — rastreável e sem JS.
+ *
+ * Duas coisas que o layout monta sozinho, sem conteúdo novo:
+ *   - a cena de produto do hero, escolhida pelo endereço da página;
+ *   - o índice lateral "Nesta página", tirado dos <h2> do próprio corpo_html.
  */
 
-require_once __DIR__ . '/lp_helpers.php';
+require_once __DIR__ . '/site_chrome.php';      // wa(), $waSvg, ys_header(), ys_footer(), ys_css()
+require_once __DIR__ . '/../v2/partials/_cenas.php';   // lp2_scene(): dados fictícios
 
 if (!isset($SEO_PAGE) || !is_array($SEO_PAGE)) {
     http_response_code(500);
@@ -52,6 +58,34 @@ $pgCtaMsg     = $SEO_PAGE['cta_msg']     ?? 'Olá Bruno, quero uma demonstraçã
 $pgCtaLabel   = $SEO_PAGE['cta_label']   ?? 'Solicitar demonstração';
 $pgCtaTitulo  = $SEO_PAGE['cta_titulo']  ?? 'Pronto para conhecer o Yuris de perto?';
 $pgCtaTexto   = $SEO_PAGE['cta_texto']   ?? 'Fale com a equipe e veja o sistema funcionando com a rotina do seu escritório.';
+
+/* Cena de produto do hero, por página. Sobre e blog ficam só com o texto. */
+$cenasPorPagina = [
+    '/sistema-juridico/'           => 'tab-dashboard',
+    '/crm-juridico/'               => 'operacao',
+    '/gestao-escritorio-advocacia/' => 'gestao',
+    '/automacao-juridica/'         => 'automacoes',
+    '/controle-de-processos/'      => 'juridico',
+    '/prospeccao-juridica/'        => 'tab-tarefas',
+    '/financeiro-juridico/'        => 'dashboards',
+    '/lgpd-escritorios-advocacia/' => 'vinculos',
+    '/demonstracao/'               => 'comunicacao',
+];
+$pgCena = $SEO_PAGE['cena'] ?? ($cenasPorPagina[$pgPath] ?? null);
+
+/* Índice lateral: ids nos <h2> do corpo. Sem casar nada, o corpo fica como veio. */
+$pgToc = [];
+$corpoComIds = preg_replace_callback('~<h2>(.*?)</h2>~s', static function (array $m) use (&$pgToc): string {
+    $id = 'secao-' . (count($pgToc) + 1);
+    $pgToc[] = [$id, trim(strip_tags($m[1]))];
+    return '<h2 id="' . $id . '">' . $m[1] . '</h2>';
+}, $pgCorpo);
+if ($corpoComIds !== null) {
+    $pgCorpo = $corpoComIds;
+} else {
+    $pgToc = [];
+}
+$temToc = count($pgToc) >= 3;
 
 /* ── Schemas automáticos ── */
 $pgJsonld = [];
@@ -86,128 +120,105 @@ foreach (($SEO_PAGE['jsonld'] ?? []) as $extra) {
 }
 
 /* ── Monta o $SEO do seo_head.php ── */
-$cssVerLp = @filemtime(__DIR__ . '/../assets/landing.css')   ?: 1;
-$cssVerSp = @filemtime(__DIR__ . '/../assets/seo-pages.css') ?: 1;
-$jsVerLp  = @filemtime(__DIR__ . '/../assets/landing.js')    ?: 1;
-
 $SEO = [
     'title'       => $SEO_PAGE['title']       ?? ($pgH1 . ' | Yuris'),
     'description' => $SEO_PAGE['description'] ?? $pgLede,
     'path'        => $pgPath,
     'robots'      => $SEO_PAGE['robots']      ?? 'index,follow',
     'og_image'    => $SEO_PAGE['og_image']    ?? '/assets/img/og-image.jpg',
-    'css'         => [
-        '/assets/landing.css?v=' . $cssVerLp,
-        '/assets/seo-pages.css?v=' . $cssVerSp,
-    ],
+    'fonts'       => YS_FONT_URL,
+    'theme_color' => '#102A46',
+    'css'         => ys_css($pgCena ? ['site-product.css'] : []),
     'jsonld'      => $pgJsonld,
 ];
 ?><!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="no-js">
 <head>
 <?php require __DIR__ . '/seo_head.php'; ?>
+  <script>document.documentElement.classList.replace('no-js','js');</script>
 </head>
-<body class="lp">
+<body class="ys">
 
-<header class="lp-header" role="banner">
-  <div class="lp-container lp-header-inner">
-    <a href="/" class="lp-logo" aria-label="Yuris — Sistema Jurídico Inteligente">
-      <img src="/assets/img/logo-144.webp" alt="" width="36" height="36">
-      <span class="lp-logo-text">YURIS</span>
-    </a>
+<?php
+ys_header([
+    'ctaMsg'   => $pgCtaMsg,
+    'ctaLabel' => $pgCtaLabel,
+    'drawer'   => ys_drawer_paginas(),
+]);
+?>
 
-    <nav class="lp-nav" aria-label="Navegação principal">
-      <a href="/">Início</a>
-      <a href="/sistema-juridico/">Sistema Jurídico</a>
-      <a href="/crm-juridico/">CRM</a>
-      <a href="/automacao-juridica/">Automação</a>
-      <a href="/planos">Planos</a>
-      <a href="/blog/">Blog</a>
-    </nav>
+<main id="conteudo">
 
-    <div class="lp-header-cta">
-      <a href="/login" class="lp-btn lp-btn-ghost">Entrar</a>
-      <a href="<?= wa($pgCtaMsg) ?>" target="_blank" rel="noopener" class="lp-btn lp-btn-primary lp-btn-wa">
-        <?= $waSvg ?>
-        <?= $h($pgCtaLabel) ?>
-      </a>
-      <button class="lp-menu-toggle" aria-label="Abrir menu" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<!-- Drawer mobile -->
-<div class="lp-drawer-backdrop" aria-hidden="true"></div>
-<aside class="lp-drawer" aria-label="Menu mobile">
-  <button class="lp-drawer-close" aria-label="Fechar menu" type="button">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-  </button>
-  <div class="lp-drawer-title">Navegação</div>
-  <a href="/">Início</a>
-  <a href="/sistema-juridico/">Sistema Jurídico</a>
-  <a href="/crm-juridico/">CRM Jurídico</a>
-  <a href="/automacao-juridica/">Automação Jurídica</a>
-  <a href="/controle-de-processos/">Controle de Processos</a>
-  <a href="/planos">Planos</a>
-  <a href="/blog/">Blog</a>
-  <div class="lp-drawer-title">Acesso</div>
-  <a href="/login" class="lp-btn lp-btn-ghost">Entrar</a>
-  <a href="<?= wa($pgCtaMsg) ?>" target="_blank" rel="noopener" class="lp-btn lp-btn-primary lp-btn-wa">
-    <?= $waSvg ?>
-    <?= $h($pgCtaLabel) ?>
-  </a>
-</aside>
-
-<main>
-
-<section class="sp-hero">
-  <div class="lp-container">
-    <nav class="sp-breadcrumb" aria-label="Você está aqui">
-      <ol>
-        <li><a href="/">Início</a></li>
-        <li aria-current="page"><?= $h($pgBreadcrumb) ?></li>
-      </ol>
-    </nav>
-    <?php if ($pgEyebrow): ?><span class="lp-eyebrow"><?= $h($pgEyebrow) ?></span><?php endif; ?>
-    <h1><?= $h($pgH1) ?></h1>
-    <?php if ($pgLede): ?><p class="sp-lede"><?= $h($pgLede) ?></p><?php endif; ?>
-    <div class="lp-hero-ctas">
-      <a href="<?= wa($pgCtaMsg) ?>" target="_blank" rel="noopener" class="lp-btn lp-btn-primary lp-btn-wa">
-        <?= $waSvg ?>
-        <?= $h($pgCtaLabel) ?>
-      </a>
-      <a href="/planos" class="lp-btn lp-btn-ghost">Ver planos</a>
+<section class="ys-pagehero<?= $pgPath === '/sobre/' ? ' is-sobre' : '' ?>">
+  <div class="ys-container">
+    <div class="ys-pagehero-grid<?= $pgCena ? ' has-art' : '' ?>">
+      <div>
+        <nav class="ys-breadcrumb" aria-label="Você está aqui">
+          <ol>
+            <li><a href="/">Início</a></li>
+            <li aria-current="page"><?= $h($pgBreadcrumb) ?></li>
+          </ol>
+        </nav>
+        <?php if ($pgEyebrow): ?><span class="ys-eyebrow"><?= $h($pgEyebrow) ?></span><?php endif; ?>
+        <h1><?= $h($pgH1) ?></h1>
+        <?php if ($pgLede): ?><p class="ys-lede"><?= $h($pgLede) ?></p><?php endif; ?>
+        <div class="ys-cta-row">
+          <?= ys_wa_btn($pgCtaMsg, $pgCtaLabel) ?>
+          <a href="/planos" class="ys-btn ys-btn-ghost">Ver planos</a>
+        </div>
+      </div>
+      <?php if ($pgCena): ?>
+      <div class="ys-pagehero-art">
+        <?= lp2_scene($pgCena) ?>
+        <p class="ys-note">Dados de demonstração</p>
+      </div>
+      <?php endif; ?>
     </div>
   </div>
 </section>
 
-<article class="sp-article">
-  <div class="lp-container">
-    <?= $pgCorpo ?>
+<article class="ys-article">
+  <div class="ys-container<?= $temToc ? ' has-toc' : '' ?>">
+    <div class="ys-article-grid<?= $temToc ? ' has-toc' : '' ?>">
+      <?php if ($temToc): ?>
+      <nav class="ys-toc" aria-label="Nesta página">
+        <strong>Nesta página</strong>
+        <ol>
+          <?php foreach ($pgToc as [$id, $titulo]): ?>
+          <li><a href="#<?= $id ?>"><?= $h($titulo) ?></a></li>
+          <?php endforeach; ?>
+        </ol>
+      </nav>
+      <?php endif; ?>
 
-    <?php if ($pgFaq): ?>
-    <section class="sp-faq" aria-label="Perguntas frequentes">
-      <h2>Perguntas frequentes</h2>
-      <?php foreach ($pgFaq as $item): ?>
-      <details>
-        <summary><?= $h($item['q']) ?></summary>
-        <div class="sp-faq-resposta"><p><?= $h($item['a']) ?></p></div>
-      </details>
-      <?php endforeach; ?>
-    </section>
-    <?php endif; ?>
+      <div>
+        <div class="ys-prose"><?= $pgCorpo ?></div>
+
+        <?php if ($pgFaq): ?>
+        <section class="ys-pagefaq" aria-label="Perguntas frequentes">
+          <h2>Perguntas frequentes</h2>
+          <div class="ys-faq">
+            <?php foreach ($pgFaq as $item): ?>
+            <details>
+              <summary><?= $h($item['q']) ?></summary>
+              <div class="ys-faq-a"><p><?= $h($item['a']) ?></p></div>
+            </details>
+            <?php endforeach; ?>
+          </div>
+        </section>
+        <?php endif; ?>
+      </div>
+    </div>
   </div>
 </article>
 
 <?php if ($pgRel): ?>
-<section class="sp-relacionados" aria-label="Conteúdo relacionado">
-  <div class="lp-container">
+<section class="ys-related" aria-label="Conteúdo relacionado">
+  <div class="ys-container">
     <h2>Veja também</h2>
-    <div class="lp-grid lp-grid-3">
+    <div class="ys-related-grid">
       <?php foreach ($pgRel as $rel): ?>
-      <a class="lp-card" href="<?= $h($rel['href']) ?>">
+      <a href="<?= $h($rel['href']) ?>">
         <h3><?= $h($rel['titulo']) ?></h3>
         <p><?= $h($rel['desc']) ?></p>
       </a>
@@ -217,18 +228,15 @@ $SEO = [
 </section>
 <?php endif; ?>
 
-<section class="lp-section">
-  <div class="lp-container">
-    <div class="lp-cta-final">
-      <span class="lp-eyebrow">Vamos conversar</span>
+<section class="ys-cta-wrap">
+  <div class="ys-container">
+    <div class="ys-cta">
+      <span class="ys-eyebrow">Vamos conversar</span>
       <h2><?= $h($pgCtaTitulo) ?></h2>
       <p><?= $h($pgCtaTexto) ?></p>
-      <div class="lp-hero-ctas">
-        <a href="<?= wa($pgCtaMsg) ?>" target="_blank" rel="noopener" class="lp-btn lp-btn-primary lp-btn-wa">
-          <?= $waSvg ?>
-          <?= $h($pgCtaLabel) ?>
-        </a>
-        <a href="/planos" class="lp-btn lp-btn-ghost">Conhecer os planos</a>
+      <div class="ys-cta-row">
+        <?= ys_wa_btn($pgCtaMsg, $pgCtaLabel) ?>
+        <a href="/planos" class="ys-btn ys-btn-ghost">Conhecer os planos</a>
       </div>
     </div>
   </div>
@@ -236,8 +244,8 @@ $SEO = [
 
 </main>
 
-<?php require __DIR__ . '/lp_footer.php'; ?>
+<?php ys_footer(); ?>
 
-<script src="/assets/landing.js?v=<?= $jsVerLp ?>" defer></script>
+<script src="/assets/site/site.js?v=<?= ys_asset_ver('assets/site/site.js') ?>" defer></script>
 </body>
 </html>

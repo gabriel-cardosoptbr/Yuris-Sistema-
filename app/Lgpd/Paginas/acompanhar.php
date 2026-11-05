@@ -6,7 +6,7 @@
  * O token foi gerado em /lgpd/solicitar.php e enviado ao DPO + retornado
  * ao titular como link único.
  *
- * Visual: usa classes utilitárias do legal_page.php (respondem ao tema).
+ * Visual: usa as classes .legal-* de public/assets/site/site-legal.css (tema claro).
  */
 require_once __DIR__ . '/../../bootstrap.php';
 

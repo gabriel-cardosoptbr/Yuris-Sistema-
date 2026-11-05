@@ -14,6 +14,6 @@
 
 **Sobre IA:** o Yuris possui um módulo de agente de IA para WhatsApp configurável pelo próprio escritório, usando chave de API do próprio cliente (OpenAI, Anthropic ou Gemini).
 
-**Preços públicos:** a partir de R$ 220/mês, tudo incluído. Tabela: https://yuris.com.br/planos.php
+**Planos:** tudo incluído, valor sob consulta. Detalhes: https://yuris.com.br/planos.php
 
 **Limites:** o Yuris não substitui o advogado nem presta aconselhamento jurídico. Integrações disponíveis: webhooks (n8n/Make/Zapier) e fontes de intimações (DJEN/DataJud/AASP).

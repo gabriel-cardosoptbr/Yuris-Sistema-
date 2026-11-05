@@ -52,7 +52,7 @@ return [
     // ── FAQ (#faq), alimenta o HTML visível E o schema FAQPage (sem drift) ──
     'faq' => [
         ['q' => 'O que é o Yuris?', 'a' => 'O Yuris é um sistema jurídico para advogados e escritórios de advocacia que centraliza processos, prazos, intimações, clientes, tarefas, financeiro e atendimento por WhatsApp em uma única plataforma, com LGPD e auditoria como parte da estrutura.'],
-        ['q' => 'Quanto custa o Yuris?', 'a' => 'Os planos são públicos e começam em R$ 220 por mês, com tudo incluído, sem cobrança separada por módulo. O valor varia conforme o número de usuários do escritório. A tabela completa está na página de planos.'],
+        ['q' => 'Quanto custa o Yuris?', 'a' => 'Os planos têm tudo incluído, sem cobrança separada por módulo. O valor é sob consulta e varia conforme o número de usuários do escritório. Você conhece as opções na página de planos e recebe o valor falando com a equipe pelo WhatsApp.'],
         ['q' => 'O Yuris serve para advogado autônomo ou só para escritórios?', 'a' => 'Os dois. O plano de entrada atende de 1 a 2 usuários, e a mesma plataforma escala para equipes e estruturas com matriz e filiais, sem trocar de sistema no caminho.'],
         ['q' => 'O Yuris monitora intimações automaticamente?', 'a' => 'Sim. O sistema acompanha as publicações oficiais e identifica novas intimações automaticamente. Cada intimação pode ser vinculada ao processo correspondente e convertida em prazo ou tarefa com responsável, sem depender de conferência manual.'],
         ['q' => 'Como o Yuris trata a LGPD?', 'a' => 'Como camada estrutural: isolamento de dados entre escritórios, permissões por escopo, trilha de auditoria imutável, anonimização e atendimento aos direitos do titular. O Yuris adota medidas técnicas e organizacionais de proteção de dados e segue em processo contínuo de adequação à LGPD.'],
@@ -115,7 +115,6 @@ return [
                 'LGPD e auditoria estruturais',
                 'Multi-tenant com matriz e filial',
             ],
-            'offers'                 => ['@type' => 'AggregateOffer', 'priceCurrency' => 'BRL', 'lowPrice' => '220', 'highPrice' => '670', 'offerCount' => 4, 'url' => $BASE . '/planos'],
             'provider'               => ['@id' => $BASE . '/#org'],
         ],
     ],

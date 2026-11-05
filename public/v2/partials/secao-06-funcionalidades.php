@@ -1,4 +1,10 @@
-<?php /* secao-06-funcionalidades.php, #funcionalidades (vitrine) */
+<?php
+/**
+ * secao-06-funcionalidades.php, #funcionalidades (vitrine com abas).
+ * Abas horizontais no alto e um painel largo embaixo, com a ilustração sobre o
+ * azul-marinho e o texto ao lado. É uma interface demonstrativa, de propósito
+ * diferente do mosaico de módulos logo acima.
+ */
 $itens = [
   ['v-processos', '<rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/>', 'Processos', 'Organize processos com histórico, responsáveis, vínculos e visão clara de andamento.'],
   ['v-intimacoes', '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>', 'Intimações', 'Centralize intimações, origem da consulta, OAB vinculada e associação ao processo.'],
@@ -11,29 +17,30 @@ $itens = [
   ['v-matriz', '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>', 'Matriz e filial', 'Separe unidades, filiais, advogados e permissões sem perder a visão gerencial.'],
 ];
 ?>
-<section id="funcionalidades" class="lp2-section">
-  <div class="lp2-container">
+<section id="funcionalidades" class="ys-section">
+  <div class="ys-container">
     <?php lp2_head('Funcionalidades', 'Cada peça da rotina, no lugar certo.', 'Clique numa funcionalidade para ver como ela aparece dentro do sistema.'); ?>
-    <div class="lp2-vitrine lp2-reveal" data-tabs="vitrine">
-      <div class="lp2-vitrine-list">
+    <div class="ys-vitrine ys-reveal" data-tabs="vitrine">
+      <div class="ys-vit-tabs" data-tablist aria-label="Funcionalidades">
         <?php foreach ($itens as $i => [$id, $ic, $nome, $desc]): ?>
-        <button type="button" class="lp2-vit-item<?= $i === 0 ? ' active' : '' ?>" data-target="<?= $id ?>">
-          <span class="lp2-vit-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><?= $ic ?></svg><?= $nome ?></span>
-          <p><?= $desc ?></p>
+        <button type="button" class="ys-vit-tab<?= $i === 0 ? ' is-active' : '' ?>" data-target="<?= $id ?>">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $ic ?></svg><?= $nome ?>
         </button>
         <?php endforeach; ?>
       </div>
-      <div class="lp2-vitrine-mockup">
+      <div class="ys-vit-panes">
         <?php foreach ($itens as $i => [$id, $ic, $nome, $desc]): ?>
-        <div class="lp2-vit-pane<?= $i === 0 ? ' active' : '' ?>" data-pane="<?= $id ?>">
-          <div class="lp2-feature-pane">
-            <?= lp2_ill($id) ?>
-            <h3><?= $nome ?></h3><p><?= $desc ?></p>
+        <div class="ys-pane ys-vit-pane<?= $i === 0 ? ' is-active' : '' ?>" data-pane="<?= $id ?>">
+          <div class="ys-vit-copy">
+            <span class="ys-vit-n"><?= str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT) ?> / <?= str_pad((string) count($itens), 2, '0', STR_PAD_LEFT) ?></span>
+            <h3 class="ys-h3"><?= $nome ?></h3>
+            <p><?= $desc ?></p>
           </div>
+          <div class="ys-vit-art ys-dark"><?= lp2_ill($id) ?></div>
         </div>
         <?php endforeach; ?>
       </div>
     </div>
-    <div class="lp2-section-cta lp2-reveal"><?= lp2_wa_btn('Olá Bruno, quero ver as funcionalidades do Yuris funcionando!', 'Quero testar as funcionalidades') ?></div>
+    <div class="ys-section-cta ys-reveal"><?= lp2_wa_btn('Olá Bruno, quero ver as funcionalidades do Yuris funcionando!', 'Quero testar as funcionalidades') ?></div>
   </div>
 </section>

@@ -75,7 +75,7 @@ $SEO_PAGE = [
 <p>Em um sistema jurídico, segurança não é diferencial — é pré-requisito. No Yuris, o isolamento entre escritórios (multi-tenant), as permissões por escopo, o segundo fator de autenticação (2FA) e a trilha de auditoria imutável fazem parte da arquitetura. O escritório consegue responder <em>quem fez o quê, quando e em qual contexto</em> — exigência básica em qualquer verificação interna ou de conformidade. O Yuris adota medidas técnicas e organizacionais voltadas à proteção de dados pessoais e segue em processo contínuo de adequação à LGPD.</p>
 
 <h2>Quanto custa o sistema jurídico Yuris?</h2>
-<p>Os planos são públicos e têm tudo incluído — sem cobrança por módulo. Os valores começam em R$ 220/mês e variam conforme o número de usuários do escritório. Consulte a <a href="/planos">página de planos</a> para a tabela completa e atualizada.</p>
+<p>Os planos têm tudo incluído, sem cobrança por módulo. O valor é sob consulta e varia conforme o número de usuários do escritório. Veja as opções na <a href="/planos">página de planos</a>.</p>
 HTML,
 
     'faq' => [
@@ -101,7 +101,7 @@ HTML,
         ],
         [
             'q' => 'Como faço para testar ou ver o sistema funcionando?',
-            'a' => 'O caminho é a demonstração com a equipe: pelo WhatsApp, você agenda uma conversa e vê o sistema aplicado à rotina do seu escritório — volume de processos, tamanho da equipe e forma de atendimento. Os planos e valores são públicos na página de planos.',
+            'a' => 'O caminho é a demonstração com a equipe: pelo WhatsApp, você agenda uma conversa e vê o sistema aplicado à rotina do seu escritório — volume de processos, tamanho da equipe e forma de atendimento. As opções estão na página de planos.',
         ],
     ],
 

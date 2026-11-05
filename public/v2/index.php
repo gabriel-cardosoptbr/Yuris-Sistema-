@@ -1,6 +1,6 @@
 <?php
 /**
- * /v2/index.php, Landing YURIS v2 (cinematográfica, "alma romana").
+ * /v2/index.php, a home do Yuris (design system "Editorial LegalTech", assets/site/).
  *
  * A v1 (../index.php) permanece 100% intacta. Esta versão vive em /v2/ como
  * preview (noindex) e será "promovida" para a raiz quando aprovada, bastará
@@ -10,14 +10,13 @@
  * ordem das seções. Toda a copy e os schemas vêm de data/content.php.
  */
 
-require_once __DIR__ . '/../includes/lp_helpers.php';   // wa() + $waSvg (com guards)
+require_once __DIR__ . '/../includes/site_chrome.php';  // wa(), $waSvg, ys_header(), ys_footer(), ys_css()
 require_once __DIR__ . '/partials/_render.php';         // helpers de render (lp2_split, lp2_head, lp2_wa_btn…)
 require_once __DIR__ . '/partials/_ilustracoes.php';    // lp2_ill() — ilustrações SVG animadas por módulo
 require_once __DIR__ . '/partials/_cenas.php';          // lp2_scene(): mini-demonstrações de produto
 $content = require __DIR__ . '/data/content.php';
 
-$cssVer = max(@filemtime(__DIR__ . '/../assets/v2/css/index.css') ?: 1, @filemtime(__DIR__ . '/../assets/v2/css/motion.css') ?: 1, @filemtime(__DIR__ . '/../assets/v2/css/demos.css') ?: 1);
-$jsVer  = @filemtime(__DIR__ . '/../assets/v2/js/main.js')   ?: 1;
+$jsVer = ys_asset_ver('assets/site/site.js');
 
 /*
  * Preview vs produção (detecta /v2/ na URL):
@@ -48,6 +47,9 @@ $SEO = [
     'robots'      => $isPreview ? 'noindex,follow' : 'index,follow',
     'og_image'    => $content['meta']['og_image'],
     'jsonld'      => $schemas,
+    'fonts'       => YS_FONT_URL,
+    'theme_color' => '#102A46',
+    'css'         => ys_css(['site-home.css', 'site-product.css']),
 ];
 
 /* Ordem das seções (IDs preservados da v1). Vão sendo adicionadas conforme
@@ -62,7 +64,6 @@ $secoes = [
     'secao-08-intimacoes',
     'secao-09-comunicacao',
     'secao-10-operacao',
-    'secao-10b-cliente',
     'secao-11-gestao',
     'secao-11b-vinculos',
     'secao-12-automacao',
@@ -81,18 +82,18 @@ $secoes = [
 <head>
 <?php require __DIR__ . '/partials/head.php'; ?>
 </head>
-<body class="lp2">
+<body class="ys">
 
 <?php require __DIR__ . '/partials/header.php'; ?>
 
-<main>
+<main id="conteudo">
 <?php foreach ($secoes as $sec) { require __DIR__ . "/partials/{$sec}.php"; } ?>
 </main>
 
 <?php require __DIR__ . '/partials/footer.php'; ?>
 
-<!-- Entrypoint ESM (defer implícito), não bloqueia o render; conteúdo é 100% visível sem JS. -->
-<script type="module" src="/assets/v2/js/main.js?v=<?= $jsVer ?>"></script>
+<!-- Sem dependências e sem build; o conteúdo é 100% visível sem JS. -->
+<script src="/assets/site/site.js?v=<?= $jsVer ?>" defer></script>
 <!-- Cookie consent (mesmo módulo da v1) -->
 <script src="/assets/cookie-consent.js?v=3"></script>
 </body>

@@ -50,7 +50,7 @@ $h = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
   <meta name="description" content="<?= $h($seoDesc) ?>">
   <meta name="robots" content="<?= $h($seoRobots) ?>">
   <link rel="canonical" href="<?= $h($seoUrl) ?>">
-  <meta name="theme-color" content="#070F1C">
+  <meta name="theme-color" content="<?= $h($SEO['theme_color'] ?? '#070F1C') ?>">
 
   <meta property="og:type" content="<?= $h($seoOgType) ?>">
   <meta property="og:site_name" content="Yuris">
@@ -72,7 +72,7 @@ $h = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+  <link href="<?= $h($SEO['fonts'] ?? 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap') ?>" rel="stylesheet">
 <?php foreach (($SEO['css'] ?? []) as $cssHref): ?>
   <link rel="stylesheet" href="<?= $h($cssHref) ?>">
 <?php endforeach; ?>

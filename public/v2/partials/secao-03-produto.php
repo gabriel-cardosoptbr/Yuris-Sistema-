@@ -1,4 +1,10 @@
-<?php /* secao-03-produto.php, #produto (abas "O Yuris por dentro" — telas interativas) */
+<?php
+/**
+ * secao-03-produto.php, #produto ("O Yuris por dentro").
+ * Cards sequenciais numerados à esquerda (o ativo é azul e abre a descrição) e
+ * uma janela do produto grande à direita. As abas seguem o comportamento de
+ * antes, agora em assets/site/site.js. Os dados das telas são fictícios.
+ */
 require_once __DIR__ . '/_cenas.php';
 $telas = [
   ['dashboard', '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>', 'Dashboard', 'Visão geral da operação: processos ativos, prazos da semana, intimações novas e produtividade, tudo num relance.'],
@@ -11,29 +17,28 @@ $telas = [
   ['matriz', '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>', 'Matriz e filiais', 'Compartilhe processos entre matriz e filiais com acesso por escopo, cada unidade vê só o que é seu.'],
 ];
 ?>
-<section id="produto" class="lp2-section">
-  <div class="lp2-container">
+<section id="produto" class="ys-section ys-bg-2">
+  <div class="ys-container">
     <?php lp2_head('Visão do produto', 'O Yuris por dentro', 'Navegue entre as principais telas para ver como o sistema organiza a rotina jurídica.'); ?>
-    <div class="lp2-reveal" data-tabs="mockups">
-      <div class="lp2-tab-list" role="tablist">
+    <div class="ys-tour ys-reveal" data-tabs="mockups" data-tabs-vertical>
+      <div class="ys-tour-list" data-tablist aria-label="Telas do sistema">
         <?php foreach ($telas as $i => [$id, $ic, $nome, $desc]): ?>
-        <button type="button" class="lp2-tab<?= $i === 0 ? ' active' : '' ?>" data-target="<?= $id ?>">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><?= $ic ?></svg><?= $nome ?>
+        <button type="button" class="ys-tour-item<?= $i === 0 ? ' is-active' : '' ?>" data-target="<?= $id ?>">
+          <span class="ys-tour-n"><?= str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT) ?></span>
+          <span class="ys-tour-t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $ic ?></svg><?= $nome ?></span>
+          <span class="ys-tour-d"><?= $desc ?></span>
         </button>
         <?php endforeach; ?>
       </div>
-      <?php foreach ($telas as $i => [$id, $ic, $nome, $desc]): ?>
-      <div class="lp2-tab-pane<?= $i === 0 ? ' active' : '' ?>" data-pane="<?= $id ?>">
-        <div class="lp2-screen">
-          <div class="lp2-screen-text">
-            <div class="lp2-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><?= $ic ?></svg></div>
-            <h3><?= $nome ?></h3><p><?= $desc ?></p>
-          </div>
-          <div class="lp2-screen-demo"><?= lp2_scene('tab-' . $id) ?></div>
+      <div class="ys-tour-stage">
+        <?php foreach ($telas as $i => [$id, $ic, $nome, $desc]): ?>
+        <div class="ys-pane<?= $i === 0 ? ' is-active' : '' ?>" data-pane="<?= $id ?>">
+          <?= lp2_scene('tab-' . $id) ?>
         </div>
+        <?php endforeach; ?>
+        <p class="ys-note">Dados de demonstração</p>
       </div>
-      <?php endforeach; ?>
     </div>
-    <div class="lp2-section-cta lp2-reveal"><?= lp2_wa_btn('Olá Bruno, quero ver o Yuris rodando!', 'Quero ver o sistema rodando') ?></div>
+    <div class="ys-section-cta ys-reveal"><?= lp2_wa_btn('Olá Bruno, quero ver o Yuris rodando!', 'Quero ver o sistema rodando') ?></div>
   </div>
 </section>

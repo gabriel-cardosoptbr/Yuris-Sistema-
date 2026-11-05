@@ -70,7 +70,7 @@ $SEO_PAGE = [
 <p>Escritórios com mais de uma unidade conhecem o dilema: ou cada filial mantém o próprio controle — e o conjunto não fecha —, ou tudo vai para um arquivo único em que qualquer pessoa enxerga qualquer número. No Yuris, o financeiro respeita o <strong>escopo por unidade</strong>: lançamentos, contas e resultados ficam organizados por matriz e filial, e as permissões por escopo definem quem enxerga os números de cada uma. A estrutura multi-tenant garante o isolamento, e a trilha de auditoria registra quem fez o quê — exigência básica quando mais de uma pessoa mexe no financeiro.</p>
 
 <h2>Quanto custa o financeiro do Yuris?</h2>
-<p>O módulo financeiro está incluído em todos os planos — não é cobrado à parte, assim como os demais módulos do sistema. Os valores começam em R$ 220/mês e variam conforme o número de usuários; a tabela completa e atualizada está na <a href="/planos">página de planos</a>. Para ver DRE, recorrências e contas aplicadas à realidade do seu escritório, o caminho é agendar uma <a href="/demonstracao/">demonstração</a> com a equipe.</p>
+<p>O módulo financeiro está incluído em todos os planos — não é cobrado à parte, assim como os demais módulos do sistema. O valor é sob consulta e varia conforme o número de usuários; as opções estão na <a href="/planos">página de planos</a>. Para ver DRE, recorrências e contas aplicadas à realidade do seu escritório, o caminho é agendar uma <a href="/demonstracao/">demonstração</a> com a equipe.</p>
 HTML,
 
     'faq' => [
@@ -92,7 +92,7 @@ HTML,
         ],
         [
             'q' => 'O módulo financeiro é cobrado à parte?',
-            'a' => 'Não. Os planos do Yuris têm tudo incluído — financeiro, processos, CRM, tarefas, WhatsApp integrado e os demais módulos —, sem cobrança por módulo. Os valores começam em R$ 220/mês e variam conforme o número de usuários do escritório. A tabela completa está na página de planos.',
+            'a' => 'Não. Os planos do Yuris têm tudo incluído — financeiro, processos, CRM, tarefas, WhatsApp integrado e os demais módulos —, sem cobrança por módulo. O valor é sob consulta e varia conforme o número de usuários do escritório. As opções estão na página de planos.',
         ],
         [
             'q' => 'Qual a vantagem do financeiro integrado ao sistema jurídico?',

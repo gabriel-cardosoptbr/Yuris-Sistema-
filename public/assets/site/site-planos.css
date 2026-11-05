@@ -1,0 +1,173 @@
+/* =============================================================================
+   site-planos.css: composição da página de planos. Depende de site.css (tokens).
+
+   Sem preço na página, quem dá a escala é o número de usuários e os limites. Por
+   isso os quatro planos formam uma grade só, com as mesmas linhas alinhadas de
+   coluna a coluna (subgrid), e o Enterprise é a base larga logo abaixo.
+   Mobile primeiro: as colunas só nascem nas media queries.
+
+   .enterprise-band e .addon-item não são nomes soltos: o plan_feature_test
+   confere essas duas classes no fonte de planos.php.
+   ========================================================================== */
+
+/* ---------- Hero: título à esquerda, apoio à direita ---------- */
+body.ys .pl-hero { padding-bottom: clamp(32px, 4vw, 56px); border-bottom: 0; }
+body.ys .pl-hero-grade { display: grid; gap: 20px 64px; }
+body.ys .pl-hero h1 { margin: 0; }
+body.ys .pl-hero .ys-lede { margin: 0; max-width: 52ch; }
+
+/* ---------- Grade de planos ---------- */
+body.ys .pl-planos { padding-bottom: clamp(48px, 7vw, 96px); }
+body.ys .pl-grade { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+
+body.ys .pl-card {
+  position: relative; min-width: 0;
+  display: grid; grid-template-rows: auto auto auto auto 1fr auto; gap: 16px;
+  padding: 28px 24px; background: #fff;
+  border: 1px solid var(--ys-line); border-radius: var(--ys-r-lg);
+  transition: background .25s var(--ys-ease);
+}
+body.ys .pl-card:not(.is-popular):hover { background: var(--ys-tint-2); }
+
+body.ys .pl-nome { font-size: 1.5rem; letter-spacing: -0.025em; line-height: 1.2; }
+
+/* O número de usuários faz o papel que o preço faria */
+body.ys .pl-usuarios { font-size: .92rem; font-weight: 600; color: var(--ys-ink-2); line-height: 1.1; }
+body.ys .pl-usuarios strong { font-size: clamp(2.6rem, 3.6vw, 3.25rem); font-weight: 800; letter-spacing: -0.04em; color: var(--ys-navy); line-height: 1; font-variant-numeric: tabular-nums; margin-inline: .02em .1em; }
+
+/* 20 lugares: os acesos são os do plano, então a escala se lê de coluna a coluna */
+body.ys .pl-assentos { display: grid; grid-template-columns: repeat(10, 8px); gap: 4px; width: max-content; margin-top: 12px; }
+body.ys .pl-assentos i { width: 8px; height: 8px; border-radius: 50%; background: var(--ys-line); }
+body.ys .pl-assentos i.on { background: var(--ys-blue); }
+
+body.ys .pl-valor { font-size: .9rem; font-weight: 700; color: var(--ys-ink); }
+
+body.ys .pl-limites { display: grid; border-block: 1px solid var(--ys-line); }
+body.ys .pl-limites div { display: grid; grid-template-columns: 3.4rem minmax(0, 1fr); gap: 8px; align-items: baseline; padding: 11px 0; font-size: .86rem; line-height: 1.35; color: var(--ys-ink-2); font-weight: 600; }
+body.ys .pl-limites div + div { border-top: 1px solid var(--ys-line); }
+body.ys .pl-limites strong { font-size: 1.15rem; font-weight: 800; letter-spacing: -0.02em; color: var(--ys-navy); font-variant-numeric: tabular-nums; }
+
+body.ys .pl-recursos { gap: 10px; align-content: start; }
+body.ys .pl-recursos li { grid-template-columns: 20px minmax(0, 1fr); gap: 10px; font-size: .9rem; line-height: 1.45; }
+body.ys .pl-recursos li svg { width: 20px; height: 20px; margin-top: 0; }
+body.ys .pl-recursos li.is-base { font-weight: 800; color: var(--ys-navy); }
+
+body.ys .pl-botao { width: 100%; align-self: end; }
+
+/* Equipe: a superfície azul destaca sem mudar a ordem nem o alinhamento das linhas */
+body.ys .pl-card.is-popular { background: linear-gradient(165deg, var(--ys-blue) 0%, var(--ys-navy-3) 100%); border-color: transparent; box-shadow: 0 18px 44px rgba(39,100,180,.28); }
+body.ys .pl-card.is-popular .pl-nome,
+body.ys .pl-card.is-popular .pl-valor,
+body.ys .pl-card.is-popular .pl-usuarios,
+body.ys .pl-card.is-popular .pl-usuarios strong,
+body.ys .pl-card.is-popular .pl-limites strong { color: #fff; }
+body.ys .pl-card.is-popular .pl-limites,
+body.ys .pl-card.is-popular .pl-limites div + div { border-color: rgba(255,255,255,.2); }
+body.ys .pl-card.is-popular .pl-limites div { color: rgba(255,255,255,.92); }
+body.ys .pl-card.is-popular .pl-assentos i { background: rgba(255,255,255,.22); }
+body.ys .pl-card.is-popular .pl-assentos i.on { background: #fff; }
+body.ys .pl-card.is-popular .pl-recursos li { color: #fff; }
+body.ys .pl-card.is-popular .pl-recursos li svg { color: #fff; background: rgba(255,255,255,.16); }
+body.ys .pl-selo { position: absolute; top: 28px; right: 24px; background: #fff; color: var(--ys-blue); }
+
+/* ---------- Enterprise: a base larga, abaixo das quatro colunas ---------- */
+body.ys .enterprise-band { position: relative; overflow: hidden; isolation: isolate; display: grid; gap: 28px; margin-top: 16px; padding: clamp(28px, 4.5vw, 56px); border-radius: var(--ys-r-lg); }
+body.ys .enterprise-band::before { content: ''; position: absolute; inset: 0; z-index: -1; background: radial-gradient(60% 120% at 100% 0%, rgba(58,125,211,.42), transparent 62%); }
+body.ys .enterprise-band .ys-eyebrow { margin-bottom: 14px; }
+body.ys .enterprise-band h2 { font-size: clamp(1.65rem, 2.7vw, 2.4rem); max-width: 22ch; margin-bottom: 14px; }
+body.ys .enterprise-band p { max-width: 58ch; margin: 0; }
+body.ys .pl-ent-acao { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 24px; margin-top: 24px; }
+body.ys .pl-ent-preco { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; color: #fff; }
+body.ys .pl-ent-acao .ys-btn { max-width: 100%; white-space: normal; text-align: center; line-height: 1.2; }
+body.ys .pl-ent-lista { gap: 12px; align-content: center; }
+body.ys .pl-ent-lista li { grid-template-columns: 22px minmax(0, 1fr); font-size: .94rem; }
+
+/* ---------- Complementos: linhas finas, não mais uma fileira de cards ---------- */
+body.ys .pl-compl-grade { display: grid; gap: 32px; }
+body.ys .pl-compl-cab .ys-lede { margin: 16px 0 0; }
+body.ys .pl-addons { list-style: none; display: grid; border-top: 1px solid var(--ys-line); }
+body.ys .addon-item { display: grid; gap: 4px 28px; padding: 20px 0; border-bottom: 1px solid var(--ys-line); }
+body.ys .addon-title { font-size: 1.02rem; font-weight: 800; letter-spacing: -0.01em; line-height: 1.35; }
+body.ys .addon-desc { margin: 0; font-size: .95rem; line-height: 1.55; }
+/* A implantação é serviço, não franquia: fecha a lista numa superfície própria */
+body.ys .addon-item:last-child { margin-top: 16px; padding: 22px 24px; border-bottom: 0; border-radius: var(--ys-r); background: var(--ys-tint); }
+body.ys .addon-item:last-child .addon-desc { color: var(--ys-navy); }
+
+/* ---------- Presente em todos os planos: um painel só, com divisórias ---------- */
+body.ys .pl-base-cab > .ys-lede { margin: 0; }
+body.ys .pl-base { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1px; background: var(--ys-line); border: 1px solid var(--ys-line); border-radius: var(--ys-r-lg); overflow: hidden; }
+body.ys .pl-base-item { min-width: 0; display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 16px; align-content: start; padding: 24px; background: #fff; }
+body.ys .pl-base-item .ys-ico { margin: 0; }
+body.ys .pl-base-item .ys-ico svg { stroke-linecap: round; stroke-linejoin: round; }
+body.ys .pl-base-item h3 { font-size: 1.04rem; letter-spacing: -0.015em; line-height: 1.3; margin-bottom: 6px; }
+body.ys .pl-base-item p { margin: 0; font-size: .92rem; line-height: 1.55; }
+
+/* ---------- CTA final ---------- */
+body.ys .pl-cta { display: grid; gap: 24px; align-items: center; }
+body.ys .pl-cta h2 { margin-bottom: 12px; }
+body.ys .pl-cta p { margin: 0; }
+body.ys .pl-cta .ys-btn { justify-self: start; }
+
+/* ---------- Foco nas superfícies escuras ---------- */
+body.ys .pl-card.is-popular :focus-visible,
+body.ys .enterprise-band :focus-visible,
+body.ys .pl-cta :focus-visible { outline-color: #fff; }
+
+/* ---------- Telas maiores ---------- */
+@media (min-width: 640px) {
+  body.ys .pl-grade { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @supports (grid-template-rows: subgrid) {
+    body.ys .pl-card { grid-row: span 6; grid-template-rows: subgrid; }
+  }
+  body.ys .addon-item { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); align-items: baseline; }
+  body.ys .pl-base { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body.ys .pl-base-item:last-child { grid-column: 1 / -1; }
+}
+
+@media (min-width: 900px) {
+  body.ys .enterprise-band { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: clamp(32px, 5vw, 72px); align-items: center; }
+  body.ys .pl-cta { grid-template-columns: minmax(0, 1fr) auto; gap: 56px; }
+}
+
+@media (min-width: 1000px) {
+  body.ys .pl-hero-grade { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); align-items: end; }
+
+  /* Uma grade só: colunas coladas, o Equipe sobressai 28 px acima e abaixo */
+  body.ys .pl-grade { grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 0; margin-top: 28px; background: #fff; border: 1px solid var(--ys-line); border-radius: var(--ys-r-lg); box-shadow: var(--ys-shadow-sm); }
+  body.ys .pl-card { padding: 28px 22px; border: 0; border-radius: 0; background: transparent; }
+  body.ys .pl-card + .pl-card { border-left: 1px solid var(--ys-line); }
+  body.ys .pl-card:first-child { border-radius: var(--ys-r-lg) 0 0 var(--ys-r-lg); }
+  body.ys .pl-card:last-child { border-radius: 0 var(--ys-r-lg) var(--ys-r-lg) 0; }
+  body.ys .pl-card.is-popular { margin-block: -28px; padding-block: 56px; border: 0; border-radius: 22px; background: linear-gradient(165deg, var(--ys-blue) 0%, var(--ys-navy-3) 100%); z-index: 1; }
+  body.ys .pl-card.is-popular + .pl-card { border-left: 0; }
+  body.ys .pl-selo { top: 16px; left: 22px; right: auto; }
+
+  body.ys .enterprise-band { margin-top: calc(28px + clamp(20px, 2.4vw, 32px)); }
+
+  body.ys .pl-compl-grade { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 72px; align-items: start; }
+
+  body.ys .pl-base { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+  body.ys .pl-base-item { grid-column: span 3; grid-template-columns: minmax(0, 1fr); padding: 28px 24px; }
+  body.ys .pl-base-item:nth-child(n+5) { grid-column: span 4; }
+  body.ys .pl-base-item:last-child { grid-column: span 4; }
+}
+
+@media (max-width: 420px) {
+  body.ys .pl-card { padding: 24px 20px; }
+  body.ys .pl-selo { top: 24px; right: 20px; }
+  body.ys .pl-ent-acao .ys-btn { width: 100%; }
+  body.ys .pl-cta .ys-btn { width: 100%; justify-self: stretch; }
+  body.ys .pl-base-item { padding: 20px; }
+}
+
+/* Sem superfície escura (04/11/2026): a faixa Enterprise e o plano em destaque
+   ficam em azul-claro e azul, nunca em azul-marinho. */
+body.ys .enterprise-band { background: linear-gradient(135deg, var(--ys-tint) 0%, #fff 100%); border: 1px solid #D3E3F8; color: var(--ys-ink); }
+body.ys .enterprise-band::before { display: none; }
+body.ys .enterprise-band h2, body.ys .enterprise-band h3 { color: var(--ys-ink); }
+body.ys .enterprise-band p { color: var(--ys-ink-2); }
+body.ys .enterprise-band .ys-eyebrow { color: var(--ys-blue); }
+body.ys .pl-ent-preco { color: var(--ys-navy); }
+body.ys .enterprise-band .ys-checks li { color: var(--ys-ink); }
+body.ys .enterprise-band .ys-checks li svg { background: #fff; color: var(--ys-blue); }
+body.ys .pl-card.is-popular { background: linear-gradient(165deg, var(--ys-blue-2) 0%, var(--ys-blue) 100%); }

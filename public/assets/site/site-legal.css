@@ -1,0 +1,129 @@
+/* =============================================================================
+   site-legal.css: páginas legais e telas públicas do titular.
+
+   Carregado por includes/legal_page.php depois de site.css. Serve termos,
+   privacidade, cookies, lgpd, dpo, /lgpd/solicitar e /lgpd/acompanhar.
+   Herdou o CSS que ficava embutido no layout, agora só em tema claro.
+
+   O corpo desses documentos (corpo_html) não muda com o visual, e algumas
+   páginas trazem estilo inline escrito para o tema escuro. Os dois !important
+   deste arquivo existem só para isso, e estão comentados onde aparecem.
+   ========================================================================== */
+
+body.ys {
+  --legal-col: 720px;
+  --legal-text: #34445A;
+
+  --legal-ok-bg:   #EDF7F1;
+  --legal-ok-line: #BFE3CF;
+  --legal-ok-text: #146B43;
+  --legal-warn-bg:   #FBF5E9;
+  --legal-warn-line: #EBD9B0;
+  --legal-warn-text: #6E4A10;
+  --legal-err-bg:   #FCF1EF;
+  --legal-err-line: #F1CFCA;
+  --legal-err-text: #A32F25;
+}
+
+/* ---------- Hero e coluna de leitura (mesma largura, mesma margem) ---------- */
+body.ys .legal-hero .ys-container,
+body.ys .legal-article .ys-container { max-width: calc(var(--legal-col) + 2 * var(--ys-gutter)); }
+
+body.ys .legal-hero { padding-block: clamp(40px, 5vw, 72px) clamp(32px, 4vw, 52px); }
+body.ys .legal-hero h1.legal-title { font-size: clamp(2rem, 3.6vw, 2.9rem); max-width: none; margin-bottom: 14px; }
+body.ys .legal-hero .legal-sub { margin-bottom: 0; }
+body.ys .legal-version {
+  display: inline-flex; align-items: center; margin: 20px 0 0; padding: 6px 12px;
+  border-radius: 999px; border: 1px solid var(--ys-line-2); background: #fff;
+  font-size: .78rem; font-weight: 700; color: var(--ys-ink-2);
+}
+
+body.ys .legal-article { padding-block: clamp(36px, 5vw, 64px) clamp(56px, 7vw, 96px); }
+
+/* ---------- Texto do documento ---------- */
+body.ys .legal-content { font-size: 1.0625rem; line-height: 1.75; color: var(--legal-text); overflow-wrap: break-word; }
+body.ys .legal-content p,
+body.ys .legal-content li { color: var(--legal-text); }
+body.ys .legal-content h2 { font-size: clamp(1.3rem, 2vw, 1.55rem); line-height: 1.25; margin: 48px 0 14px; padding-top: 0; }
+body.ys .legal-content h2:first-child { margin-top: 0; }
+body.ys .legal-content h3 { font-size: 1.08rem; line-height: 1.35; margin: 28px 0 8px; }
+body.ys .legal-content ul,
+body.ys .legal-content ol { margin-bottom: 20px; }
+body.ys .legal-content li { margin-bottom: 7px; }
+body.ys .legal-content code { background: var(--ys-tint); color: var(--ys-navy); padding: 2px 6px; border-radius: 6px; font-size: .9em; }
+
+/* Link com cor inline do tema escuro (dpo.php): sumiria sobre o fundo claro. */
+body.ys .legal-content a[style] { color: var(--ys-blue) !important; }
+
+/* Tabela de base legal (privacidade.php). O padding inline só existe na
+   primeira coluna; sem !important as duas colunas ficam desalinhadas. */
+body.ys .legal-content table { font-size: .96rem; line-height: 1.55; border: 1px solid var(--ys-line); }
+body.ys .legal-content th,
+body.ys .legal-content td { padding: 12px 14px !important; text-align: left; vertical-align: top; border-bottom: 1px solid var(--ys-line); }
+body.ys .legal-content th { background: var(--ys-bg-2); color: var(--ys-ink); font-weight: 700; }
+body.ys .legal-content tbody tr:last-child td { border-bottom: 0; }
+
+/* Aviso informativo (lgpd.php): tinta clara e borda inteira, sem faixa lateral */
+body.ys .legal-disclaimer {
+  background: var(--legal-warn-bg); border: 1px solid var(--legal-warn-line); color: var(--legal-warn-text);
+  padding: 16px 20px; border-radius: var(--ys-r-sm); font-size: .98rem; line-height: 1.65;
+}
+body.ys .legal-disclaimer strong { color: inherit; }
+
+/* ---------- Formulário do titular (/lgpd/solicitar) ---------- */
+body.ys .legal-form { display: flex; flex-direction: column; gap: 18px; margin-top: 32px; padding-top: 32px; border-top: 1px solid var(--ys-line); }
+body.ys .legal-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 18px; }
+body.ys .legal-field { display: flex; flex-direction: column; gap: 7px; min-width: 0; font-size: .92rem; font-weight: 600; line-height: 1.4; color: var(--ys-ink); }
+body.ys .legal-field-row { display: flex; align-items: flex-start; gap: 10px; font-size: .94rem; line-height: 1.6; color: var(--legal-text); cursor: pointer; }
+body.ys .legal-field-row input[type="checkbox"] { flex: none; width: 18px; height: 18px; accent-color: var(--ys-blue); cursor: pointer; }
+
+body.ys .legal-input {
+  width: 100%; max-width: 100%; min-width: 0; min-height: 48px; padding: 11px 14px;
+  border: 1.5px solid var(--ys-line-2); border-radius: var(--ys-r-sm);
+  background: #fff; color: var(--ys-ink); font: inherit; font-size: 1rem; font-weight: 500;
+  transition: border-color .2s, box-shadow .2s;
+}
+body.ys .legal-input::placeholder { color: var(--ys-ink-2); font-weight: 400; opacity: 1; }
+body.ys .legal-input:hover { border-color: var(--ys-blue-3); }
+body.ys .legal-input:focus { outline: none; border-color: var(--ys-blue); box-shadow: 0 0 0 3px rgba(39,100,180,.18); }
+body.ys textarea.legal-input { resize: vertical; min-height: 112px; line-height: 1.55; }
+
+body.ys .legal-btn-primary {
+  align-self: flex-start; display: inline-flex; align-items: center; justify-content: center;
+  min-height: 48px; padding: 0 28px; border-radius: 14px; border: 1.5px solid var(--ys-navy);
+  background: var(--ys-navy); color: #fff; font-size: .95rem; font-weight: 700; line-height: 1;
+  cursor: pointer; transition: background .25s var(--ys-ease), border-color .25s var(--ys-ease), transform .25s var(--ys-ease), box-shadow .25s var(--ys-ease);
+}
+body.ys .legal-btn-primary:hover:not(:disabled) { background: var(--ys-blue); border-color: var(--ys-blue); transform: translateY(-2px); box-shadow: 0 10px 24px rgba(39,100,180,.28); }
+body.ys .legal-btn-primary:active:not(:disabled) { transform: translateY(0); box-shadow: none; }
+body.ys .legal-btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+@media (max-width: 560px) { body.ys .legal-btn-primary { align-self: stretch; } }
+
+/* ---------- Alertas ---------- */
+body.ys .legal-alert { padding: 16px 18px; border-radius: var(--ys-r-sm); margin-top: 10px; border: 1px solid; font-size: .96rem; line-height: 1.6; }
+body.ys .legal-alert strong { color: inherit; }
+body.ys .legal-alert-success { background: var(--legal-ok-bg);  border-color: var(--legal-ok-line);  color: var(--legal-ok-text); }
+body.ys .legal-alert-error   { background: var(--legal-err-bg); border-color: var(--legal-err-line); color: var(--legal-err-text); }
+body.ys .legal-alert-info    { background: var(--ys-tint-2);    border-color: var(--ys-line);        color: var(--legal-text); }
+
+/* ---------- Acompanhamento da solicitação (/lgpd/acompanhar) ---------- */
+body.ys .legal-header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
+body.ys .legal-header-meta-label { font-size: .8rem; font-weight: 700; color: var(--ys-ink-2); }
+body.ys .legal-header-meta-title { font-size: 1.2rem; line-height: 1.3; font-weight: 800; letter-spacing: -0.01em; color: var(--ys-ink); margin-top: 4px; }
+body.ys .legal-header-meta-sub   { font-size: .92rem; color: var(--legal-text); margin-top: 6px; overflow-wrap: anywhere; }
+
+/* A cor vem inline, calculada em acompanhar.php com tons feitos para fundo
+   escuro. O filtro escurece texto e borda até ficarem legíveis sobre o branco
+   sem trocar a cor de cada estado. */
+body.ys .legal-status-pill { display: inline-block; padding: 6px 14px; border: 1.5px solid; border-radius: 999px; font-size: .84rem; font-weight: 700; filter: brightness(.62); }
+
+body.ys .legal-meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: 12px; padding: 16px 18px; margin-bottom: 24px; border: 1px solid var(--ys-line); border-radius: var(--ys-r-sm); background: var(--ys-bg-2); font-size: .9rem; color: var(--ys-ink-2); }
+body.ys .legal-content .legal-meta-value { color: var(--ys-ink); }
+
+body.ys .legal-info-card { background: var(--ys-tint-2); border: 1px solid var(--ys-line); padding: 14px 16px; border-radius: var(--ys-r-sm); white-space: pre-wrap; overflow-wrap: anywhere; color: var(--legal-text); font-size: .98rem; }
+body.ys .legal-history-box { background: #fff; border: 1px solid var(--ys-line); padding: 4px 18px; border-radius: var(--ys-r-sm); }
+body.ys .legal-event { padding: 13px 0; border-bottom: 1px solid var(--ys-line); }
+body.ys .legal-event:last-child { border-bottom: 0; }
+body.ys .legal-event-title { font-size: .94rem; font-weight: 700; line-height: 1.4; color: var(--ys-ink); }
+body.ys .legal-event-obs   { font-size: .92rem; line-height: 1.55; color: var(--legal-text); margin-top: 4px; overflow-wrap: anywhere; }
+body.ys .legal-event-date  { font-size: .82rem; color: var(--ys-ink-2); margin-top: 4px; }

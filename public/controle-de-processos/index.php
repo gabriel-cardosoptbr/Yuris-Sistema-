@@ -74,7 +74,7 @@ $SEO_PAGE = [
 <p>Processo raramente é trabalho de uma pessoa só. O Yuris permite vincular mais de um advogado ao mesmo processo, cada um enxergando o mesmo histórico, os mesmos prazos e as mesmas tarefas. As permissões por escopo definem quem vê e quem altera o quê — inclusive em estruturas com matriz e filiais, onde o acesso precisa respeitar a unidade. A organização da equipe em torno dos processos é parte da <a href="/gestao-escritorio-advocacia/">gestão do escritório de advocacia</a> como um todo.</p>
 
 <h2>Quanto custa um software de controle processual?</h2>
-<p>No Yuris, o controle de processos não é módulo vendido à parte: está incluído em todos os planos, junto com CRM, tarefas, financeiro, WhatsApp integrado e intimações. Os valores começam em R$ 220/mês — a tabela completa e atualizada está na <a href="/planos">página de planos</a>. Para ver o fluxo aplicado aos processos do seu escritório, agende uma <a href="/demonstracao/">demonstração</a>.</p>
+<p>No Yuris, o controle de processos não é módulo vendido à parte: está incluído em todos os planos, junto com CRM, tarefas, financeiro, WhatsApp integrado e intimações. O valor é sob consulta; as opções estão na <a href="/planos">página de planos</a>. Para ver o fluxo aplicado aos processos do seu escritório, agende uma <a href="/demonstracao/">demonstração</a>.</p>
 HTML,
 
     'faq' => [
@@ -100,7 +100,7 @@ HTML,
         ],
         [
             'q' => 'Quanto custa o controle de processos do Yuris?',
-            'a' => 'O controle de processos está incluído em todos os planos do Yuris, sem cobrança por módulo — junto com CRM, tarefas, financeiro, WhatsApp integrado e intimações. Os planos são públicos, começam em R$ 220/mês e variam conforme o número de usuários do escritório. A tabela completa fica na página de planos do site.',
+            'a' => 'O controle de processos está incluído em todos os planos do Yuris, sem cobrança por módulo — junto com CRM, tarefas, financeiro, WhatsApp integrado e intimações. O valor é sob consulta e varia conforme o número de usuários do escritório. As opções ficam na página de planos do site.',
         ],
     ],
 

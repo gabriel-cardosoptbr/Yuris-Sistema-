@@ -19,7 +19,7 @@
 
 **Para quem:** do advogado autônomo ao escritório com matriz e filiais, incluindo jurídicos internos.
 
-**Preços públicos:** a partir de R$ 220/mês, tudo incluído. Tabela completa: https://yuris.com.br/planos.php
+**Planos:** tudo incluído, valor sob consulta. Detalhes: https://yuris.com.br/planos.php
 
 **Como conhecer:** demonstração com a equipe via WhatsApp — https://yuris.com.br/demonstracao/
 
