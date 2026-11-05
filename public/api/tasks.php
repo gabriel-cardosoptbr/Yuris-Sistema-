@@ -147,6 +147,14 @@ if ($method === 'POST') {
         ok($result); // devolve { renovada, proxima_data } ao frontend
     }
 
+    if ($action === 'reopen') {
+        $task = Task::findById((int)($input['id'] ?? 0));
+        if (!$task) fail('Não encontrado', 404);
+        if (!canEditTask($task, $userId, $isAdmin, $accIds)) fail('Sem permissão', 403);
+        Task::reopen((int)$task['id'], $userId);
+        ok();
+    }
+
     // criar
     $boardId  = (int)($input['board_id']  ?? 0);
     $columnId = (int)($input['column_id'] ?? 0);

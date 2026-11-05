@@ -13,6 +13,7 @@ recorrência. A especificação está em
 |---|---|
 | `TaskBoard.php` | quadros visíveis para o usuário dentro da conta |
 | `TaskColumn.php` | colunas do quadro |
+| `Central.php` | **a Central de Tarefas**: lista única do que está em `tasks`, `processo_tarefas` e `processo_prazos`, com classificação por período. Só leitura: as escritas continuam nos endpoints de cada origem. API em `public/api/tarefas_central.php`, tela em `public/assets/tarefas-central.js` |
 | `Task.php` | a tarefa. Inclui a reordenação em lote, no mesmo padrão de `../Prospeccao/Card.php` |
 | `TaskChecklist.php` | checklist dentro da tarefa |
 | `TaskComment.php` | comentários |
@@ -25,6 +26,31 @@ recorrência. A especificação está em
 | `TaskAudit.php` | propaga evento de tarefa para o histórico do processo vinculado |
 | `TaskEntrega.php` | grava a "foto" de cada entrega em `task_entregas` (prazo e checklist do momento), matéria-prima do OTIF. Chamado por `Task::complete()` e pelo `RecurrenceCronService` |
 | `Otif.php` | calcula o OTIF (On Time In Full) por colaborador: métricas, ranking, série mensal e pendências. Tela em `public/desempenho.php`, API em `public/api/otif.php` |
+
+## Central de Tarefas: tudo numa tela
+
+Três tabelas guardam "algo a fazer": `tasks` (quadros), `processo_tarefas` e
+`processo_prazos` (dentro do processo). A central **lê as três e não copia nada**:
+cada tarefa continua sendo um registro só, então concluir ou editar pela central é
+o mesmo que fazer pelo processo.
+
+- É a porta de entrada da tela em conta com módulo jurídico. Conta da edição CRM e
+  tela de área (`?amb=`) continuam só com quadros. `?board=N` abre o quadro direto.
+- **Tipo**: jurídica é a que tem processo (tarefa processual, prazo, ou tarefa de
+  quadro com `task_links` para um processo que a pessoa enxerga). O resto é escritório.
+- **Nova tarefa** pergunta o tipo. A jurídica procura o processo por nome do cliente
+  ou número e grava em `processo_tarefas`.
+- **Período**: "Esta semana" é de segunda a domingo e "Este mês" é o mês do
+  calendário, inteiros. Quem classifica é `Central::classificar`; a tela só filtra,
+  para contador, Kanban e lista não discordarem. O mesmo filtro vale dentro de um
+  quadro, por `Task::findByBoard`.
+- **Escopo**: quadros pela regra de `TaskBoard::findForUser`, mais o que a pessoa
+  criou ou recebeu em quadro alheio; processos pela regra de `Processo::list`.
+- **Responsável** de tarefa e prazo do processo é TEXTO (o nome). O filtro chega como
+  id e vira nome. O aviso de vencimento (`notificacao_prazos_tick.php`) resolve o
+  nome para o usuário da conta e, sem ele, usa o responsável do processo.
+- **Calendário**: compara a data como texto. `new Date('2026-11-05')` é meia-noite em
+  UTC, e no Brasil a tarefa cairia na véspera. Clicar no dia cria a tarefa com a data.
 
 ## O que `TaskAudit` faz e por que importa
 

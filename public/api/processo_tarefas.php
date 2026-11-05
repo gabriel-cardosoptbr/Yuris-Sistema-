@@ -175,6 +175,19 @@ try {
             }
         }
 
+        // Data e responsável também mudam pela Central de Tarefas: entram na trilha.
+        $mudancas = [];
+        if (array_key_exists('data_tarefa', $input) && $input['data_tarefa'] !== $prevTarefa['data_tarefa']) {
+            $mudancas[] = 'data ' . ($prevTarefa['data_tarefa'] ?: '∅') . ' → ' . ($input['data_tarefa'] ?: '∅');
+        }
+        if (array_key_exists('responsavel', $input) && $input['responsavel'] !== $prevTarefa['responsavel']) {
+            $mudancas[] = 'responsável ' . ($prevTarefa['responsavel'] ?: '∅') . ' → ' . ($input['responsavel'] ?: '∅');
+        }
+        if ($mudancas) {
+            ProcessoAudit::log((int)$prevTarefa['processo_id'], 'Tarefa editada',
+                "Tarefa '{$prevTarefa['titulo']}': " . implode('; ', $mudancas));
+        }
+
         $eventKey = (isset($input['concluido']) && $input['concluido']) ? 'processo.tarefa_completed' : 'processo.tarefa_updated';
         // Use tarefa_completed only when marking done; otherwise only fire if meaningful field changed
         if (!isset($input['concluido']) && !isset($input['titulo'])) {

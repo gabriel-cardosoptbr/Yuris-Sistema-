@@ -129,6 +129,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   bindDrawer();
   bindModals();
   bindCalendar();
+  if (window.TkCentral) TkCentral.bind();
   // Kanban SEMPRE como visualização inicial ao entrar/recarregar a página:
   // re-renderiza com os dados já carregados e destaca o botão Kanban.
   setView('kanban');
@@ -223,6 +224,13 @@ async function loadBoards(selectId = null) {
   const r = await GET('/task_boards.php' + (window.TK_AREA ? '?area=' + encodeURIComponent(window.TK_AREA) : ''));
   boards = r.data || [];
   renderBoardSelect();
+  // A Central é a porta de entrada do escritório. Só não abre quando o endereço
+  // ou a chamada pede um quadro certo (?board=N, quadro recém-criado).
+  if (window.TkCentral && TkCentral.habilitada() && selectId == null && !currentBoard
+      && !new URLSearchParams(location.search).get('board')) {
+    await TkCentral.abrir();
+    return;
+  }
   if (!boards.length) { if (window.TkAreas) TkAreas.semQuadros(); return; }
   // ?board=N no endereço (link da ficha do cliente) abre aquele quadro.
   if (selectId == null && !currentBoard) {
@@ -246,13 +254,19 @@ async function loadBoards(selectId = null) {
 }
 function renderBoardSelect() {
   const sel = document.getElementById('tkBoardSelect');
-  if (!boards.length) { sel.innerHTML = '<option>Nenhum quadro</option>'; return; }
-  sel.innerHTML = boards.map(b => `<option value="${b.id}">${esc(b.cliente_nome ? b.cliente_nome + ' · ' + b.nome : b.nome)}</option>`).join('');
+  const central = window.TkCentral && TkCentral.habilitada();
+  if (!boards.length && !central) { sel.innerHTML = '<option>Nenhum quadro</option>'; return; }
+  sel.innerHTML = (central ? '<option value="central">Central: tudo o que tenho para fazer</option>' : '')
+    + boards.map(b => `<option value="${b.id}">${esc(b.cliente_nome ? b.cliente_nome + ' · ' + b.nome : b.nome)}</option>`).join('');
   if (currentBoard) sel.value = currentBoard.id;
+  else if (central && TkCentral.ativa()) sel.value = 'central';
 }
 async function selectBoard(boardId) {
+  if (boardId === 'central') return TkCentral.abrir();
+  if (window.TkCentral) TkCentral.sair();
   const r = await GET(`/task_boards.php?id=${boardId}`);
   currentBoard = r.data;
+  document.getElementById('tkBoardSelect').value = boardId;
   columns      = currentBoard.colunas || [];
   renderColSelect('dColuna', columns);
   renderColSelect('ntColuna', columns);
@@ -267,6 +281,7 @@ function renderColSelect(elId, cols) {
 
 /* ── Carregar tarefas ─────────────────────────────────────────────────────── */
 async function loadTasks() {
+  if (window.TkCentral && TkCentral.ativa()) return TkCentral.carregar();
   if (!currentBoard) return;
   let qs = `?board_id=${currentBoard.id}`;
   if (filters.responsavel_id) qs += `&responsavel_id=${filters.responsavel_id}`;
@@ -313,6 +328,8 @@ function renderView() {
   document.getElementById('tkLista').style.display      = currentView === 'lista'     ? 'flex'           : 'none';
   document.getElementById('tkCalendario').style.display = currentView === 'calendario'? 'flex'           : 'none';
   document.getElementById('tkLista').style.flexDirection= 'column';
+
+  if (window.TkCentral && TkCentral.ativa()) { TkCentral.render(currentView); return; }
 
   // Aplica filtro de origem sobre tasks ANTES de cada view (sem reload no server).
   const _all = tasks;
@@ -548,7 +565,12 @@ function calHora(t) {
   const h = String(t.prazo).slice(11, 16);
   return h && h !== '00:00' ? `<b style="font-weight:700;margin-right:4px">${h}</b>` : '';
 }
+// Dia com mais de 3 tarefas aberto pelo "+N mais".
+let calDiaAberto = null;
 function renderCalendario() {
+  // O mesmo calendário serve ao quadro e à Central (quadros + processos).
+  const central = !!(window.TkCentral && TkCentral.ativa());
+  const fonte = central ? TkCentral.paraCalendario() : tasks;
   const year  = calDate.getFullYear();
   const month = calDate.getMonth();
   const label = calDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
@@ -579,20 +601,34 @@ function renderCalendario() {
     const isToday = today.getDate()===d && today.getMonth()===month && today.getFullYear()===year;
     if (isToday) cell.classList.add('today');
 
-    const dayTasks = tasks.filter(t => {
-      if (!t.prazo) return false;
-      const p = new Date(t.prazo);
-      return p.getDate()===d && p.getMonth()===month && p.getFullYear()===year;
-    });
+    // Compara pelo texto da data. `new Date('2026-11-05')` é meia-noite em UTC:
+    // no fuso do Brasil vira dia 4, e a tarefa do processo (só data) cairia na
+    // véspera.
+    const diaIso = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayTasks = fonte.filter(t => t.prazo && String(t.prazo).slice(0,10) === diaIso);
+    const aberto = calDiaAberto === diaIso;
 
     cell.innerHTML = `<div class="tk-cal-num">${d}</div>` +
-      dayTasks.slice(0,3).map(t=>`<div class="tk-cal-dot" data-id="${t.id}">${calHora(t)}${esc(t.titulo)}</div>`).join('');
-    if (dayTasks.length > 3) cell.innerHTML += `<div class="tk-cal-dot" style="color:#4A5568;">+${dayTasks.length-3} mais</div>`;
+      (aberto ? dayTasks : dayTasks.slice(0,3)).map(t => {
+        const cls = t.origem === 'prazo' ? ' tk-cal-prazo' : t.origem === 'processo_tarefa' ? ' tk-cal-proc' : '';
+        return `<div class="tk-cal-dot${cls}" data-id="${t.id}"${t.chave ? ` data-chave="${esc(t.chave)}"` : ''} title="${esc(t.titulo)}">${calHora(t)}${esc(t.titulo)}</div>`;
+      }).join('');
+    if (dayTasks.length > 3) {
+      cell.innerHTML += `<button type="button" class="tk-cal-mais" data-dia="${diaIso}">${aberto ? 'mostrar menos' : `+${dayTasks.length-3} mais`}</button>`;
+    }
     grid.appendChild(cell);
     cell.querySelectorAll('[data-id]').forEach(d => d.addEventListener('click', e => {
       e.stopPropagation();
-      openDrawer(parseInt(d.dataset.id));
+      if (d.dataset.chave) TkCentral.abrirItem(d.dataset.chave);
+      else openDrawer(parseInt(d.dataset.id));
     }));
+    cell.querySelector('.tk-cal-mais')?.addEventListener('click', e => {
+      e.stopPropagation();
+      calDiaAberto = aberto ? null : diaIso;
+      renderCalendario();
+    });
+    // Clicar no dia cria a tarefa já com a data.
+    cell.addEventListener('click', () => abrirNovaTarefa(diaIso));
   }
 }
 
@@ -1488,12 +1524,12 @@ function bindDrawer() {
 /* ── Topbar ─────────────────────────────────────────────────────────────────── */
 function bindTopbar() {
   document.getElementById('tkBoardSelect').addEventListener('change', e => {
-    selectBoard(parseInt(e.target.value));
+    selectBoard(e.target.value === 'central' ? 'central' : parseInt(e.target.value));
   });
   document.querySelectorAll('.tk-view-btn').forEach(btn => {
     btn.addEventListener('click', () => setView(btn.dataset.view));
   });
-  ['fltResponsavel','fltPrioridade','fltPrazo'].forEach(id => {
+  ['fltResponsavel','fltPrioridade'].forEach(id => {
     document.getElementById(id).addEventListener('change', e => {
       filters[id.replace('flt','').toLowerCase().replace('responsavel','responsavel_id')] = e.target.value;
       loadTasks();
@@ -1502,7 +1538,18 @@ function bindTopbar() {
   // fix filter key names
   document.getElementById('fltResponsavel').addEventListener('change', e => { filters.responsavel_id = e.target.value; loadTasks(); });
   document.getElementById('fltPrioridade').addEventListener('change',  e => { filters.prioridade     = e.target.value; loadTasks(); });
-  document.getElementById('fltPrazo').addEventListener('change',       e => { filters.prazo          = e.target.value; loadTasks(); });
+  // Período: na Central o servidor já classificou tudo e a tela só filtra; num
+  // quadro, a filtragem é na consulta.
+  document.querySelectorAll('.tk-periodo').forEach(btn => btn.addEventListener('click', () => {
+    filters.prazo = btn.dataset.periodo;
+    document.querySelectorAll('.tk-periodo').forEach(b => {
+      const on = b === btn;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    if (window.TkCentral && TkCentral.ativa()) renderView();
+    else loadTasks();
+  }));
   // Filtro de Origem (matriz/filial) — só existe se o select foi renderizado pelo PHP.
   // Aplica client-side via renderView() sem refetch.
   document.getElementById('fltOrigin')?.addEventListener('change', e => { filters.origin = e.target.value; renderView(); });
@@ -1511,14 +1558,17 @@ function bindTopbar() {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => { filters.busca = e.target.value; loadTasks(); }, 350);
   });
-  document.getElementById('tkBtnNewTask').addEventListener('click', () => {
+  document.getElementById('tkBtnNewTask').addEventListener('click', () => abrirNovaTarefa());
+  window.abrirNovaTarefa = async (dataInicial = null) => {
     // Edição CRM: quem cria já vem como responsável; dá para trocar no próprio modal.
     const ntResp = document.getElementById('ntResponsavel');
     if (window.TK_EDICAO_CRM && ntResp && !ntResp.value && window.YURIS_USER_ID) {
       ntResp.value = String(window.YURIS_USER_ID);
     }
+    if (window.TkCentral && TkCentral.habilitada()) await TkCentral.prepararNova(dataInicial);
+    else if (dataInicial) document.getElementById('ntPrazo').value = dataInicial + 'T09:00';
     document.getElementById('modalNewTask').classList.add('open');
-  });
+  };
   document.getElementById('tkBtnNewBoard').addEventListener('click', () => {
     document.getElementById('modalNewBoard').classList.add('open');
   });
@@ -1743,7 +1793,24 @@ function bindModals() {
   // salvar nova tarefa
   document.getElementById('ntSave').addEventListener('click', async () => {
     const titulo = document.getElementById('ntTitulo').value.trim();
-    if (!titulo || !currentBoard) return;
+
+    // Tarefa jurídica nasce dentro do processo (processo_tarefas), e não num quadro.
+    if (window.TkCentral && TkCentral.tipoNova() === 'juridica') {
+      try {
+        if (!await TkCentral.salvarJuridica()) return;
+        document.getElementById('modalNewTask').classList.remove('open');
+        document.getElementById('ntTitulo').value = '';
+        document.getElementById('ntPrazo').value  = '';
+        await loadTasks();
+      } catch (e) {
+        await tkAlert('Erro ao criar tarefa: ' + e.message);
+      }
+      return;
+    }
+
+    const quadroId = window.TkCentral && TkCentral.ativa() ? TkCentral.quadroDaNova() : currentBoard?.id;
+    if (!titulo) return;
+    if (!quadroId) { await tkAlert('Crie um quadro antes de adicionar uma tarefa de escritório.'); return; }
 
     const btn = document.getElementById('ntSave');
     const orig = btn.textContent;
@@ -1766,7 +1833,7 @@ function bindModals() {
       }
 
       const payload = {
-        board_id:       currentBoard.id,
+        board_id:       quadroId,
         column_id:      document.getElementById('ntColuna').value,
         titulo,
         descricao:      document.getElementById('ntDescricao').value,

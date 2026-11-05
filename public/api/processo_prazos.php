@@ -145,7 +145,7 @@ try {
         if (!$prevPrazo) { http_response_code(404); echo json_encode(['error' => 'Prazo não encontrado']); exit; }
         TenantGuard::assertProcessoAcessivel($ctx, (int)$prevPrazo['processo_id']);
 
-        $allowed = ['status', 'descricao', 'data_limite'];
+        $allowed = ['status', 'descricao', 'data_limite', 'responsavel', 'prioridade'];
         $fields = [];
         $params = ['id' => $id];
         foreach ($allowed as $k) {
@@ -184,6 +184,14 @@ try {
                 "Data do prazo '{$prevPrazo['descricao']}': "
                 . ($prevPrazo['data_limite'] ?: '∅') . ' → '
                 . ($input['data_limite'] ?: '∅')
+            );
+        }
+
+        if (array_key_exists('responsavel', $input) && $input['responsavel'] !== $prevPrazo['responsavel']) {
+            ProcessoAudit::log(
+                $auditPid, 'Prazo editado',
+                "Responsável do prazo '{$prevPrazo['descricao']}': "
+                . ($prevPrazo['responsavel'] ?: '∅') . ' → ' . ($input['responsavel'] ?: '∅')
             );
         }
 

@@ -267,3 +267,7 @@ de query. Use `ErrorReporter`.
 
 **Endpoint novo do Master grava auditoria.** Ver
 [`../../app/Master/README.md`](../../app/Master/README.md).
+
+## Central de Tarefas
+
+`tarefas_central.php`: a lista da Central de Tarefas (`App\Tarefas\Central`) e a busca de processo por cliente ou número da tarefa jurídica. Só leitura.

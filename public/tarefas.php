@@ -12,6 +12,9 @@ $userName   = htmlspecialchars($_SESSION['user_nome'] ?? '');
 // Fleetiflow (assets/ff-ficha.css e .js). A edição jurídica não muda.
 $edicaoCrm  = false;
 try { $edicaoCrm = !\App\Core\AccountContext::fromSession()->moduloJuridicoDisponivel(); } catch (\Throwable $e) { /* Yuris */ }
+// Central de Tarefas (App\Tarefas\Central): junta quadros e processos, então só
+// existe onde há processo. Tela de área da Inovaize (?amb=) continua só de quadros.
+$tkCentral = !$edicaoCrm && empty($_GET['amb']);
 
 // Contas acessíveis (própria + filiais ativas, se matriz) — alimenta filtro de Origem
 $origin_accounts = [];
@@ -56,7 +59,7 @@ try {
   <link rel="stylesheet" href="/assets/yuris-theme.css?v=42">
   <link rel="stylesheet" href="/assets/fog.css">
   <link rel="stylesheet" href="/assets/sidebar.css?v=20">
-  <link rel="stylesheet" href="/assets/tarefas.css?v=13">
+  <link rel="stylesheet" href="/assets/tarefas.css?v=<?= filemtime(__DIR__ . '/assets/tarefas.css') ?>">
 <?php if ($edicaoCrm): ?>
   <link rel="stylesheet" href="/assets/ff-ficha.css?v=<?= @filemtime(__DIR__ . '/assets/ff-ficha.css') ?: 1 ?>">
   <script src="/assets/ff-ficha.js?v=<?= @filemtime(__DIR__ . '/assets/ff-ficha.js') ?: 1 ?>"></script>
@@ -147,12 +150,18 @@ try {
           <option value="media">Média</option>
           <option value="baixa">Baixa</option>
         </select>
-        <select id="fltPrazo" class="tk-filter-select">
-          <option value="">Prazo</option>
-          <option value="hoje">Hoje</option>
-          <option value="atrasadas">Atrasadas</option>
-          <option value="7dias">Próximos 7 dias</option>
+        <?php if ($tkCentral): ?>
+        <select id="fltTipo" class="tk-filter-select tk-so-central" title="Tipo de tarefa">
+          <option value="">Jurídicas e escritório</option>
+          <option value="juridica">Só jurídicas</option>
+          <option value="escritorio">Só escritório</option>
         </select>
+        <select id="fltSituacao" class="tk-filter-select tk-so-central" title="Situação">
+          <option value="abertas">A fazer</option>
+          <option value="concluidas">Concluídas</option>
+          <option value="todas">Todas</option>
+        </select>
+        <?php endif; ?>
         <?php
         // MEDIA #9: classifica as contas vinculadas por TIPO real. Conta solo é
         // 'advogado' (não 'filial') — precisa de optgroup/label próprios, nunca
@@ -180,7 +189,17 @@ try {
           <?php endif; ?>
         </select>
         <?php endif; ?>
-        <input id="fltBusca" class="tk-search" type="text" placeholder="Buscar tarefas...">
+        <input id="fltBusca" class="tk-search" type="text" placeholder="Tarefa, cliente ou processo...">
+      </div>
+
+      <div class="tk-periodos" role="group" aria-label="Filtrar por período">
+        <button type="button" class="tk-periodo active" data-periodo="" aria-pressed="true">Tudo</button>
+        <button type="button" class="tk-periodo" data-periodo="atrasadas" aria-pressed="false">Atrasadas <span class="tk-periodo-n"></span></button>
+        <button type="button" class="tk-periodo" data-periodo="hoje" aria-pressed="false">Hoje <span class="tk-periodo-n"></span></button>
+        <button type="button" class="tk-periodo" data-periodo="amanha" aria-pressed="false">Amanhã <span class="tk-periodo-n"></span></button>
+        <button type="button" class="tk-periodo" data-periodo="semana" aria-pressed="false">Esta semana <span class="tk-periodo-n"></span></button>
+        <button type="button" class="tk-periodo" data-periodo="mes" aria-pressed="false">Este mês <span class="tk-periodo-n"></span></button>
+        <button type="button" class="tk-periodo" data-periodo="sem_data" aria-pressed="false">Sem data <span class="tk-periodo-n"></span></button>
       </div>
       </div>
 
@@ -487,9 +506,32 @@ try {
 <div class="tk-modal-overlay" id="modalNewTask">
   <div class="tk-modal">
     <h3>Nova Tarefa</h3>
+    <?php if ($tkCentral): ?>
+    <div class="tk-tipo-nova" role="radiogroup" aria-label="Tipo de tarefa">
+      <button type="button" class="tk-tipo-opcao" role="radio" aria-checked="false" data-tipo="juridica">
+        <strong>Tarefa jurídica</strong><span>Dentro de um processo</span>
+      </button>
+      <button type="button" class="tk-tipo-opcao active" role="radio" aria-checked="true" data-tipo="escritorio">
+        <strong>Tarefa de escritório</strong><span>Num quadro da equipe</span>
+      </button>
+    </div>
+    <div class="tk-field" id="ntProcessoCampo" style="margin-bottom:12px;display:none;">
+      <label for="ntProcessoBusca">Processo *</label>
+      <input type="text" id="ntProcessoBusca" placeholder="Nome do cliente ou número do processo" autocomplete="off">
+      <div id="ntProcessoLista" class="tk-proc-lista" style="display:none;"></div>
+      <div id="ntProcessoEscolhido" class="tk-proc-escolhido" style="display:none;">
+        <div><span class="tk-proc-nome"></span><span class="tk-proc-num"></span></div>
+        <button type="button" id="ntProcessoTrocar">Trocar</button>
+      </div>
+    </div>
+    <div class="tk-field" id="ntQuadroCampo" style="margin-bottom:12px;display:none;">
+      <label for="ntQuadro">Quadro</label>
+      <select id="ntQuadro"></select>
+    </div>
+    <?php endif; ?>
     <div class="tk-field" style="margin-bottom:12px;">
       <label>Título *</label>
-      <input type="text" id="ntTitulo" placeholder="Título da tarefa">
+      <input type="text" id="ntTitulo" placeholder="O que precisa ser feito">
     </div>
     <div class="tk-row-2" style="margin-bottom:12px;">
       <div class="tk-field">
@@ -501,7 +543,7 @@ try {
           <option value="urgente">Urgente</option>
         </select>
       </div>
-      <div class="tk-field">
+      <div class="tk-field tk-so-escritorio">
         <label>Tipo de prazo</label>
         <div style="position:relative;">
           <select id="ntPrazoTipo" style="padding-right:32px;width:100%;"></select>
@@ -523,16 +565,16 @@ try {
         </select>
       </div>
     </div>
-    <div class="tk-field" style="margin-bottom:12px;">
+    <div class="tk-field tk-so-escritorio" style="margin-bottom:12px;">
       <label>Coluna</label>
       <select id="ntColuna"></select>
     </div>
-    <div class="tk-field" style="margin-bottom:12px;">
+    <div class="tk-field tk-so-escritorio" style="margin-bottom:12px;">
       <label>Descrição</label>
       <textarea id="ntDescricao" placeholder="Opcional..." rows="2"></textarea>
     </div>
     <!-- Recorrência -->
-    <div class="tk-recurrence-section" style="margin-bottom:12px;">
+    <div class="tk-recurrence-section tk-so-escritorio" style="margin-bottom:12px;">
       <label class="tk-toggle">
         <input type="checkbox" id="ntRecToggle">
         <span class="tk-toggle-sw"></span>
@@ -604,8 +646,48 @@ try {
   </div>
 </div>
 
+<?php if ($tkCentral): ?>
+<!-- ── Tarefa ou prazo do processo, aberto pela Central ── -->
+<div class="tk-modal-overlay" id="modalItemProcesso">
+  <div class="tk-modal" role="dialog" aria-modal="true" aria-labelledby="ipTitulo">
+    <h3 id="ipTitulo">Tarefa processual</h3>
+    <p class="tk-item-ctx" id="ipContexto"></p>
+    <div class="tk-field" style="margin-bottom:12px;">
+      <label for="ipDescricao">O que fazer *</label>
+      <input type="text" id="ipDescricao">
+    </div>
+    <div class="tk-row-2" style="margin-bottom:12px;">
+      <div class="tk-field">
+        <label for="ipData">Data</label>
+        <input type="date" id="ipData">
+      </div>
+      <div class="tk-field">
+        <label for="ipPrioridade">Prioridade</label>
+        <select id="ipPrioridade">
+          <option value="baixa">Baixa</option>
+          <option value="media">Média</option>
+          <option value="alta">Alta</option>
+        </select>
+      </div>
+    </div>
+    <div class="tk-field" style="margin-bottom:12px;">
+      <label for="ipResp">Responsável</label>
+      <select id="ipResp"></select>
+    </div>
+    <div class="tk-modal-actions tk-item-acoes">
+      <a class="tk-modal-btn tk-modal-btn-cancel" id="ipAbrirProcesso" href="#">Abrir processo</a>
+      <button class="tk-modal-btn tk-modal-btn-cancel" id="ipConcluir">✓ Concluir</button>
+      <span class="tk-item-espaco"></span>
+      <button class="tk-modal-btn tk-modal-btn-cancel" id="ipFechar">Cancelar</button>
+      <button class="tk-modal-btn tk-modal-btn-primary" id="ipSalvar">Salvar</button>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
+
 <script>
 window.YURIS_CSRF = <?= json_encode($csrf) ?>;
+window.TK_CENTRAL = <?= $tkCentral ? 'true' : 'false' ?>;
 window.YURIS_USER_ID = <?= $userId ?>;
 window.YURIS_USER_NAME = <?= json_encode($_SESSION['user_nome'] ?? '') ?>;
 
@@ -728,6 +810,7 @@ window.TK_AREA      = <?= json_encode($tkArea) ?>;
 <!-- Helper de selects de usuário agrupados por Matriz/Filial (carrega ANTES do tarefas.js) -->
 <script src="/assets/user_select.js?v=2"></script>
 <script src="/assets/tarefas.js?v=<?= filemtime(__DIR__ . '/assets/tarefas.js') ?>"></script>
+<script src="/assets/tarefas-central.js?v=<?= filemtime(__DIR__ . '/assets/tarefas-central.js') ?>"></script>
 <?php if ($tkAmbientes): ?>
 <link rel="stylesheet" href="/assets/tarefas-areas.css?v=<?= @filemtime(__DIR__ . '/assets/tarefas-areas.css') ?: 1 ?>">
 <script src="/assets/ff-drive.js?v=<?= @filemtime(__DIR__ . '/assets/ff-drive.js') ?: 1 ?>"></script>

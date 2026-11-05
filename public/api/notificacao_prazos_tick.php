@@ -172,6 +172,58 @@ foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $z) {
 }
 
 /* ===========================================================================
+ * 1b. Tarefas processuais (05/11/2026)
+ *
+ * Estavam fora dos avisos. Com a Central de Tarefas elas valem tanto quanto as
+ * outras. O responsável é TEXTO (o nome): vale o usuário com esse nome na conta
+ * do processo e, sem ele, o responsável do processo. O nome é resolvido aqui, e
+ * não num JOIN, porque as duas colunas podem ter collations diferentes e um erro
+ * de collation derrubaria o tick inteiro.
+ * ========================================================================= */
+$st = $pdo->prepare(
+    "SELECT z.id, z.titulo, z.data_tarefa, z.responsavel,
+            p.id AS processo_id, p.account_id, p.responsavel_user_id,
+            COALESCE(NULLIF(p.numero_cnj,''), NULLIF(p.numero,''), CONCAT('#', p.id)) AS processo_titulo
+       FROM processo_tarefas z
+       JOIN processos p ON p.id = z.processo_id
+      WHERE p.deleted_at IS NULL
+        AND z.concluido = 0
+        AND z.data_tarefa IS NOT NULL
+        AND z.data_tarefa <= DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+        AND z.data_tarefa >= DATE_SUB(CURDATE(), INTERVAL " . LIMITE_ATRASO_DIAS . " DAY)
+   ORDER BY z.data_tarefa ASC"
+);
+$st->execute();
+$usuarioPorNome = $pdo->prepare('SELECT id FROM users WHERE account_id = ? AND nome = ? AND deleted_at IS NULL LIMIT 1');
+
+foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $z) {
+    $olhados++;
+    $data = substr((string) $z['data_tarefa'], 0, 10);
+    if ($dryRun) { continue; }
+
+    $destino = 0;
+    if (trim((string) $z['responsavel']) !== '') {
+        $usuarioPorNome->execute([(int) $z['account_id'], $z['responsavel']]);
+        $destino = (int) $usuarioPorNome->fetchColumn();
+    }
+    if (!$destino) { $destino = (int) $z['responsavel_user_id']; }
+    if (!$destino || !cabe($destino, (int) $z['account_id'])) { continue; }
+
+    $id = Aviso::paraUsuario((int) $z['account_id'], $destino, [
+        'tipo'        => 'tarefa.vencendo',
+        'titulo'      => 'Tarefa ' . quando($data, $hoje) . ': ' . $z['processo_titulo'],
+        'mensagem'    => $z['titulo'] . ' (' . date('d/m/Y', strtotime($data)) . ')',
+        'entidade'    => 'processo',
+        'entidade_id' => (int) $z['processo_id'],
+        'url'         => Movimento::urlDe('processo', (int) $z['processo_id']),
+        'preferencia' => 'prazo',
+        'chave_dedupe'=> 'processo-tarefa:' . $z['id'] . ':' . $hoje,
+        'janela_min'  => Aviso::JANELA_DIARIA_MIN,
+    ]);
+    if ($id > 0) { $criados++; }
+}
+
+/* ===========================================================================
  * 2. Tarefas
  *
  * A conta vem do QUADRO: `tasks` não tem account_id.

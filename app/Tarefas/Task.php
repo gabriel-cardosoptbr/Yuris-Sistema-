@@ -47,6 +47,15 @@ class Task
                     $where[] = "t.prazo < NOW() AND t.status = 'ativa'"; break;
                 case '7dias':
                     $where[] = 't.prazo BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 7 DAY)'; break;
+                case 'amanha':
+                    $where[] = 'DATE(t.prazo) = DATE_ADD(CURDATE(), INTERVAL 1 DAY)'; break;
+                // Semana de segunda a domingo e mês inteiro, como em Central::classificar.
+                case 'semana':
+                    $where[] = 'YEARWEEK(t.prazo, 1) = YEARWEEK(CURDATE(), 1)'; break;
+                case 'mes':
+                    $where[] = "DATE_FORMAT(t.prazo, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')"; break;
+                case 'sem_data':
+                    $where[] = 't.prazo IS NULL'; break;
             }
         }
         if (!empty($filtros['busca'])) {
@@ -331,6 +340,18 @@ class Task
             ->execute([$id]);
 
         return ['renovada' => false];
+    }
+
+    /** Desfaz a conclusão. A entrega já registrada no OTIF continua como história. */
+    public static function reopen(int $id, int $userId): void
+    {
+        $task = self::findById($id);
+        if (!$task || ($task['status'] ?? '') !== 'concluida') return;
+
+        Database::getConnection()
+            ->prepare("UPDATE tasks SET status = 'ativa', concluida_em = NULL WHERE id = ?")
+            ->execute([$id]);
+        self::history($id, $userId, 'reaberta', ['status' => 'concluida'], ['status' => 'ativa']);
     }
 
     public static function archive(int $id, int $userId): void

@@ -1859,3 +1859,142 @@ html[data-theme="light"] .tk-modal select:focus {
 /* "Tipo de prazo" tem o botão "personalizar" (lápis) em right:28px além do
    chevron em right:10px — padding extra pra os dois não encostarem no texto. */
 #dPrazoTipo { padding-right: 50px !important; }
+
+/* ── Central de Tarefas (assets/tarefas-central.js) ───────────────────────── */
+.tk-so-central { display: none; }
+body.tk-em-central .tk-so-central { display: inline-block; }
+body.tk-em-central #tkBtnEditBoard,
+body.tk-em-central #tkBtnDelBoard,
+body.tk-em-central #tkBtnManageCols { display: none !important; }
+.tk-nova-juridica .tk-so-escritorio { display: none; }
+
+.tk-periodos { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
+.tk-periodo {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: transparent;
+  border: 1px solid rgba(160,180,210,0.16);
+  color: #9FB2C8;
+  border-radius: 999px;
+  padding: 6px 13px;
+  font-family: inherit;
+  font-size: .78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.tk-periodo:hover { border-color: rgba(91,155,213,0.45); color: #D8E4F0; }
+.tk-periodo:focus-visible, .tkc-check:focus-visible, .tk-tipo-opcao:focus-visible,
+.tkc-card:focus-visible, .tk-cal-mais:focus-visible { outline: 2px solid #3B82F6; outline-offset: 2px; }
+.tk-periodo.active { background: linear-gradient(135deg, #1E5299, #2D6FAD); border-color: transparent; color: #E8F4FF; }
+.tk-periodo-n {
+  min-width: 18px; padding: 0 5px; border-radius: 999px;
+  background: rgba(160,180,210,0.16); font-size: .7rem; text-align: center;
+}
+.tk-periodo.active .tk-periodo-n { background: rgba(255,255,255,.22); }
+
+.tkc-card { cursor: pointer; }
+.tkc-topo { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.tkc-tipo {
+  font-size: .66rem; font-weight: 700; letter-spacing: .02em;
+  padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+}
+.tkc-juridica   { background: rgba(59,130,246,.18); color: #93C5FD; }
+.tkc-prazo      { background: rgba(245,158,11,.18); color: #FCD34D; }
+.tkc-escritorio { background: rgba(100,116,139,.22); color: #CBD5E1; }
+.tkc-check {
+  flex-shrink: 0; width: 22px; height: 22px; padding: 3px; border-radius: 6px;
+  border: 1.5px solid rgba(160,180,210,0.35); background: transparent;
+  color: transparent; cursor: pointer; transition: background .15s, color .15s, border-color .15s;
+}
+.tkc-check svg { width: 100%; height: 100%; display: block; }
+.tkc-check:not(.feita):not(:hover) svg { opacity: 0; }
+.tkc-check svg polyline { stroke: currentColor !important; }
+.tkc-check:hover { border-color: #22C55E; color: #22C55E; }
+.tkc-check.feita { background: #16A34A; border-color: #16A34A; color: #FFFFFF; }
+.tkc-feita .tk-card-title, .tkc-feita .tkc-lista-titulo { text-decoration: line-through; opacity: .6; }
+.tkc-ctx { font-size: .72rem; line-height: 1.35; color: #8FA3B8; margin: 2px 0 6px; overflow-wrap: anywhere; }
+.tkc-resp { display: flex; align-items: center; gap: 6px; font-size: .72rem; color: #9FB2C8; margin-top: 8px; }
+.tkc-vazio { font-size: .76rem; color: #64748B; padding: 14px 6px; text-align: center; }
+.tkc-vazio-lista { padding: 32px 6px; }
+.tk-list-row.tkc-lista { grid-template-columns: 30px minmax(0,2.2fr) 118px 74px 104px minmax(0,1.1fr); gap: 8px; align-items: center; }
+.tkc-lista-titulo { display: block; font-weight: 600; }
+.tkc-lista .tkc-ctx { margin: 2px 0 0; }
+.tkc-atraso { color: #F87171; font-weight: 600; }
+
+.tk-cal-dot { white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
+.tk-cal-proc  { background: rgba(59,130,246,.22); color: #BFDBFE; }
+.tk-cal-prazo { background: rgba(245,158,11,.2); color: #FCD34D; }
+.tk-cal-mais {
+  display: block; width: 100%; background: none; border: 0; padding: 2px 4px;
+  font-family: inherit; font-size: .67rem; font-weight: 600; color: #8FA3B8; cursor: pointer; text-align: left;
+}
+.tk-cal-mais:hover { color: #D8E4F0; }
+
+.tk-tipo-nova { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.tk-tipo-opcao {
+  display: flex; flex-direction: column; gap: 2px; text-align: left;
+  padding: 10px 12px; border-radius: 10px; cursor: pointer; font-family: inherit;
+  background: rgba(160,180,210,0.06); border: 1.5px solid rgba(160,180,210,0.16); color: #D8E4F0;
+}
+.tk-tipo-opcao strong { font-size: .84rem; }
+.tk-tipo-opcao span { font-size: .72rem; color: #8FA3B8; }
+.tk-tipo-opcao.active { border-color: #3B82F6; background: rgba(59,130,246,.14); }
+.tk-proc-lista {
+  margin-top: 6px; max-height: 220px; overflow-y: auto;
+  border: 1px solid rgba(160,180,210,0.16); border-radius: 9px; background: rgba(10,22,40,.96);
+}
+.tk-proc-item {
+  display: block; width: 100%; padding: 9px 12px; text-align: left; cursor: pointer;
+  background: none; border: 0; border-bottom: 1px solid rgba(160,180,210,0.1); font-family: inherit;
+}
+.tk-proc-item:last-child { border-bottom: 0; }
+.tk-proc-item:hover, .tk-proc-item:focus-visible { background: rgba(59,130,246,.14); outline: none; }
+.tk-proc-nome { display: block; font-size: .82rem; font-weight: 600; color: #D8E4F0; }
+.tk-proc-num { display: block; font-size: .72rem; color: #8FA3B8; overflow-wrap: anywhere; }
+.tk-proc-nada { padding: 12px; font-size: .78rem; color: #8FA3B8; }
+.tk-proc-escolhido {
+  align-items: center; justify-content: space-between; gap: 10px;
+  padding: 9px 12px; border-radius: 9px;
+  border: 1.5px solid #3B82F6; background: rgba(59,130,246,.1);
+}
+.tk-proc-escolhido button { background: none; border: 0; color: #93C5FD; font-family: inherit; font-size: .76rem; font-weight: 600; cursor: pointer; }
+#modalNewTask .tk-modal, #modalItemProcesso .tk-modal { max-height: 92vh; overflow-y: auto; }
+.tk-item-ctx { font-size: .78rem; color: #8FA3B8; margin: -6px 0 14px; overflow-wrap: anywhere; }
+.tk-item-acoes { flex-wrap: wrap; gap: 6px; }
+.tk-item-acoes .tk-modal-btn { padding-left: 11px; padding-right: 11px; }
+.tk-item-acoes a { text-decoration: none; display: inline-flex; align-items: center; }
+.tk-item-espaco { flex: 1; }
+
+html[data-theme="light"] .tk-periodo { border-color: #D5DEE9; color: #475569; background: #FFFFFF; }
+html[data-theme="light"] .tk-periodo:hover { border-color: #93B4DC; color: #1E293B; }
+html[data-theme="light"] .tk-periodo.active { background: linear-gradient(135deg, #1E5299, #2D6FAD); border-color: transparent; color: #FFFFFF; }
+html[data-theme="light"] .tk-periodo-n { background: #E8EEF5; color: #334155; }
+html[data-theme="light"] .tk-periodo.active .tk-periodo-n { background: rgba(255,255,255,.25); color: #FFFFFF; }
+html[data-theme="light"] .tkc-juridica   { background: rgba(59,130,246,.12); color: #1D4ED8; }
+html[data-theme="light"] .tkc-prazo      { background: rgba(245,158,11,.15); color: #B45309; }
+html[data-theme="light"] .tkc-escritorio { background: #E8EEF5; color: #475569; }
+html[data-theme="light"] .tkc-check { border-color: #B6C3D3; }
+html[data-theme="light"] .tkc-ctx, html[data-theme="light"] .tkc-resp { color: #52647A; }
+html[data-theme="light"] .tk-cal-proc  { background: rgba(59,130,246,.12); color: #1D4ED8; }
+html[data-theme="light"] .tk-cal-prazo { background: rgba(245,158,11,.16); color: #92400E; }
+html[data-theme="light"] .tk-cal-mais { color: #52647A; }
+html[data-theme="light"] .tk-cal-mais:hover { color: #1E293B; }
+html[data-theme="light"] .tk-tipo-opcao { background: #FFFFFF; border-color: #D5DEE9; color: #0F172A; }
+html[data-theme="light"] .tk-tipo-opcao span { color: #64748B; }
+html[data-theme="light"] .tk-tipo-opcao.active { border-color: #2563EB; background: rgba(59,130,246,.08); }
+html[data-theme="light"] .tk-proc-lista { background: #FFFFFF; border-color: #D5DEE9; }
+html[data-theme="light"] .tk-proc-item { border-bottom-color: #EDF1F6; }
+html[data-theme="light"] .tk-proc-item:hover, html[data-theme="light"] .tk-proc-item:focus-visible { background: rgba(59,130,246,.08); }
+html[data-theme="light"] .tk-proc-nome { color: #0F172A; }
+html[data-theme="light"] .tk-proc-num, html[data-theme="light"] .tk-item-ctx { color: #64748B; }
+html[data-theme="light"] .tk-proc-escolhido { background: rgba(59,130,246,.06); border-color: #2563EB; }
+html[data-theme="light"] .tk-proc-escolhido button { color: #1D4ED8; }
+
+@media (max-width: 720px) {
+  .tk-list-row.tkc-lista { grid-template-columns: 30px minmax(0,1fr) auto; }
+  .tkc-lista > span:nth-child(3), .tkc-lista > span:nth-child(4), .tkc-lista > span:nth-child(6) { display: none; }
+  .tk-tipo-nova { grid-template-columns: 1fr; }
+}
+
+/* O tema claro pinta todo svg de azul-marinho: o "+" sumia no botão azul. */
+html[data-theme="light"] .tk-btn-new-task svg line, html[data-theme="light"] .tk-btn-new-board svg line { stroke: #FFFFFF !important; }
