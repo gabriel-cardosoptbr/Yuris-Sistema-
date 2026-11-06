@@ -52,6 +52,11 @@ prática, porque o navegador desmarca "gráficos de fundo" por padrão) sai em
 branco. O que a pessoa vê é o que sai na impressora, e isso vale mais que a
 coerência de tema.
 
+Isso vale para a **folha do dossiê**. A tela de listagens é tela de trabalho e segue
+o tema do sistema desde 05/11/2026: cabeçalho e painéis são `.page-header` e
+`.card-shell`, e a folha branca no meio do tema escuro saiu. A impressão dela continua
+clara, porque os tokens escuros de `.rel-resultado` só valem em `@media screen`.
+
 ## O dossiê tem UM formato para as três entidades
 
 `Dossie::montar()` sempre devolve a mesma estrutura, e quem renderiza não sabe
