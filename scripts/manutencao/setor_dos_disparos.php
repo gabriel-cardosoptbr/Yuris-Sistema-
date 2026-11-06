@@ -93,7 +93,8 @@ foreach ($porSetor as $nome => $n) echo sprintf("  %-16s %4d\n", $nome, $n);
 echo sprintf("  %-16s %4d (ficam sem setor)\n", 'sem prova', count($sem));
 if ($sem) {
     echo "\nAmostra dos que ficam sem setor:\n";
-    foreach (array_slice($sem, 0, 12) as $c) echo '  - ' . mb_substr((string) $c['titulo'], 0, 70) . "\n";
+    shuffle($sem);
+    foreach (array_slice($sem, 0, 30) as $c) echo '  - ' . mb_substr((string) $c['titulo'], 0, 70) . "\n";
 }
 if (!$aplicar) { echo "\nNada gravado. Use --aplicar.\n"; exit; }
 

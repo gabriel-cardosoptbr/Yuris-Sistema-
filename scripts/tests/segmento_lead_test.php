@@ -63,6 +63,9 @@ ok('Transportes e logística: Transportadora', $nome('Rp Transportes') === 15 &&
 ok('Despachante: Despachante', $nome('Silva Despachante Veicular') === 17);
 ok('Telecom e provedor: Telecom', $nome('Alô Telecom') === 16 && $nome('Provedor Conecta Fibra') === 16);
 ok('Veículos, seminovos e marcas: Concessionária', $nome('Kital Veículos Ltda ME') === 11 && $nome('Phoenix Automóveis Multimarcas') === 11 && $nome('Kia Germânica Campinas') === 11 && $nome('Hyundai CAOA - Ibirapuera') === 11);
+ok('marcas que antes escapavam: RAM, GWM, MINI, Kawasaki, Jaguar, Motorsports', $nome('RAM Dahruj Campinas') === 11 && $nome('GWM Dahruj Campinas') === 11 && $nome('MINI Germânica Campinas') === 11 && $nome('Rota Kawasaki Campinas') === 11 && $nome('Jaguar Stefanini') === 11 && $nome('VILLA Motorsports Campinas') === 11);
+ok('"ram" e "mini" só como palavra inteira', $nome('Program Gestão') === null && $nome('Minimercado Sol') === null && $nome('Ramos Advogados') === null);
+ok('telefone, corretora, funilaria e outras áreas: sem setor', $nome('(11) 4020-2614') === null && $nome('Ouro Verde Corretora De Seguros') === null && $nome('Dr. Brilho Funilaria e Martelinho') === null);
 ok('duas famílias específicas é ambíguo: não marca', $nome('Transportes e Locadora Silva') === null);
 ok('nome sem palavra de segmento: sem setor', $nome('Acelera') === null && $nome('UNIMETROCAMP wyden') === null && $nome('') === null);
 ok('só devolve setor que a conta tem', S::setorPeloNome('Rp Transportes', [11 => 'Concessionária']) === null);

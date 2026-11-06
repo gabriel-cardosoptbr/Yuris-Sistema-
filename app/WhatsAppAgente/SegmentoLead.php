@@ -94,7 +94,7 @@ final class SegmentoLead
         'telecom'        => '/telecom|telefon|internet|fibra|provedor|banda\s+larga/iu',
     ];
     public const NOMES_GERAL = [
-        'concessionaria' => '/concession|ve[ií]cul|autom[oó]ve|seminov|multimarc|revenda|motors?\b|\bcar(s|ros)?\b|garage|garagem|loja\s+de\s+(carros|ve)|chevrolet|\bford\b|\bfiat\b|volkswagen|\bvw\b|toyota|honda|hyundai|renault|\bjeep\b|nissan|\bkia\b|citro[eë]n|peugeot|caoa|\bbyd\b|\bbmw\b|mercedes|\baudi\b|volvo|mitsubishi|suzuki|yamaha|triumph|harley|ducati|scania/iu',
+        'concessionaria' => '/concession|ve[ií]cul|autom[oó]ve|seminov|multimarc|revenda|motors?\b|\bcar(s|ros)?\b|garage|garagem|loja\s+de\s+(carros|ve)|chevrolet|\bford\b|\bfiat\b|volkswagen|\bvw\b|toyota|honda|hyundai|renault|\bjeep\b|nissan|\bkia\b|citro[eë]n|peugeot|caoa|\bbyd\b|\bbmw\b|mercedes|\baudi\b|volvo|mitsubishi|suzuki|yamaha|triumph|harley|ducati|scania|kawasaki|jaguar|land\s+rover|porsche|lexus|subaru|ferrari|maserati|lamborghini|bentley|tesla|dodge|chrysler|chery|omoda|jaecoo|jac|ram|gwm|mini|mg|daf|iveco|motorsport|motorrad|motos?|dahruj|germ[aâ]nica|stefanini|saveiro|automotores/iu',
     ];
 
     /**
