@@ -14,8 +14,9 @@
  *   2. o setor sai do NOME da empresa (SegmentoLead::setorPeloNome), só entre os
  *      setores da conta, e só com prova: ambíguo ou sem palavra do segmento, não marca;
  *   3. a conversa ligada ao lead, se está sem setor ou no de origem, recebe o mesmo;
- *   4. quem não foi classificado fica SEM setor (e o robô ainda o classifica quando o
- *      lead responder), e o setor de origem vazio é excluído.
+ *   4. quem não foi classificado FICA onde está (no setor de origem, ou sem setor). Só com
+ *      --limpar-origem ele sai do setor de origem (o robô ainda o classifica quando o lead
+ *      responder) e o setor de origem que esvaziar é excluído.
  *
  * A data de última alteração (updated_at) NÃO muda: a Prospecção a usa como "último contato"
  * e para ordenar os cards, e marcar setor não é contato.
@@ -25,7 +26,8 @@
  *
  * USO
  *   php scripts/manutencao/setor_dos_disparos.php --conta=116            (confere)
- *   php scripts/manutencao/setor_dos_disparos.php --conta=116 --aplicar  (grava)
+ *   php scripts/manutencao/setor_dos_disparos.php --conta=116 --aplicar  (grava os classificados)
+ *   ...mais --limpar-origem: tira do setor de origem quem não tem prova e exclui o vazio
  */
 declare(strict_types=1);
 if (PHP_SAPI !== 'cli') { http_response_code(403); exit("Só via CLI.\n"); }
@@ -35,9 +37,10 @@ use App\Core\Database;
 use App\Usuarios\Team;
 use App\WhatsAppAgente\SegmentoLead;
 
-$o = getopt('', ['conta:', 'aplicar']);
+$o = getopt('', ['conta:', 'aplicar', 'limpar-origem']);
 $conta = (int) ($o['conta'] ?? 0);
 $aplicar = isset($o['aplicar']);
+$limpar = isset($o['limpar-origem']);
 if ($conta <= 0) exit("Informe --conta=ID.\n");
 
 // Setores que o dono pediu para existir; Telecom só entra se a conta já tem.
@@ -90,9 +93,9 @@ foreach ($cards as $c) {
 echo sprintf("\n%d lead(s) de disparo para classificar\n", count($cards));
 arsort($porSetor);
 foreach ($porSetor as $nome => $n) echo sprintf("  %-16s %4d\n", $nome, $n);
-echo sprintf("  %-16s %4d (ficam sem setor)\n", 'sem prova', count($sem));
+echo sprintf("  %-16s %4d (%s)\n", 'sem prova', count($sem), $limpar ? 'saem do setor de origem' : 'ficam onde estão');
 if ($sem) {
-    echo "\nAmostra dos que ficam sem setor:\n";
+    echo "\nAmostra dos que não têm prova de segmento:\n";
     shuffle($sem);
     foreach (array_slice($sem, 0, 30) as $c) echo '  - ' . mb_substr((string) $c['titulo'], 0, 70) . "\n";
 }
@@ -106,12 +109,13 @@ try {
     $nCards = 0; $nChats = 0;
     foreach ($cards as $c) {
         $t = $destino[(int) $c['id']] ?? null;
+        if ($t === null && !$limpar) continue;   // sem prova: fica onde está
         $card->execute([':t' => $t, ':id' => $c['id'], ':a' => $conta]); $nCards += $card->rowCount();
         $chat->execute([':t' => $t, ':id' => $c['id'], ':a' => $conta]); $nChats += $chat->rowCount();
     }
     // Setor de origem que ficou vazio some.
     $apagados = 0;
-    foreach ($origemIds as $oid) {
+    foreach ($limpar ? $origemIds : [] as $oid) {
         $resta = $pdo->prepare('SELECT (SELECT COUNT(*) FROM cards WHERE team_id = ? AND deleted_at IS NULL) + (SELECT COUNT(*) FROM whatsapp_chats WHERE team_id = ?)');
         $resta->execute([$oid, $oid]);
         if ((int) $resta->fetchColumn() === 0) { Team::delete($oid, $conta); $apagados++; }
