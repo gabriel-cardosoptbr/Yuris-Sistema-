@@ -108,6 +108,9 @@ final class TaskEntrega
             [$total, $feitos] = self::checklist((int) $task['id']);
             $agoraUtc   = gmdate('Y-m-d H:i:s');
             $prazo      = !empty($task['prazo']) ? (string) $task['prazo'] : null;
+            // A mesma ocorrência é uma entrega só: quem arrastou para "Concluído" e
+            // depois clicou em Concluir não entregou duas vezes.
+            if (($prazo !== null || empty($task['recorrencia_id'])) && self::jaEntregue((int) $task['id'], $prazo)) return;
             $av         = self::avaliar($prazo, self::paraHorarioLocal($agoraUtc), $total, $feitos);
             $responsavel = !empty($task['responsavel_id']) ? (int) $task['responsavel_id'] : $concluidaPorId;
 
@@ -130,10 +133,44 @@ final class TaskEntrega
         }
     }
 
+    /** Esta tarefa já tem entrega gravada para este prazo? `<=>` casa também prazo nulo. */
+    public static function jaEntregue(int $taskId, ?string $prazo): bool
+    {
+        $st = Database::getConnection()->prepare(
+            "SELECT 1 FROM task_entregas WHERE task_id = ? AND tipo = 'concluida' AND prazo <=> ? LIMIT 1"
+        );
+        $st->execute([$taskId, $prazo]);
+        return (bool) $st->fetchColumn();
+    }
+
+    /**
+     * Cartão tirado da coluna de concluído: a entrega feita pelo arraste deixa de
+     * valer. Só apaga a do prazo atual; a de outra ocorrência é história.
+     */
+    public static function desfazerConclusao(array $task): void
+    {
+        try {
+            $prazo = !empty($task['prazo']) ? (string) $task['prazo'] : null;
+            Database::getConnection()->prepare(
+                "DELETE FROM task_entregas WHERE task_id = ? AND tipo = 'concluida' AND prazo <=> ?"
+            )->execute([(int) $task['id'], $prazo]);
+        } catch (\Throwable $e) {
+            error_log('[TaskEntrega::desfazerConclusao] tarefa #' . ($task['id'] ?? '?') . ': ' . $e->getMessage());
+        }
+    }
+
+    /** O cartão está numa coluna de concluído? */
+    private static function naColunaConcluido(array $task): bool
+    {
+        $col = TaskColumn::findById((int) ($task['column_id'] ?? 0));
+        return !empty($col['is_coluna_concluido']);
+    }
+
     /**
      * Ocorrência recorrente que venceu sem conclusão. Só grava se o prazo já
      * passou no horário LOCAL: o cron compara em UTC e pode renovar até 3 horas
      * antes do vencimento real, e isso não é culpa de quem ainda tinha tempo.
+     * Cartão em coluna de concluído foi entregue, não perdido.
      */
     public static function registrarPerdida(array $task): void
     {
@@ -141,6 +178,7 @@ final class TaskEntrega
             $prazo = !empty($task['prazo']) ? (string) $task['prazo'] : null;
             if ($prazo === null || strtotime($prazo) >= strtotime(self::agoraLocal())) return;
             if (!self::instanciaVisivel($task)) return;
+            if (self::naColunaConcluido($task) || self::jaEntregue((int) $task['id'], $prazo)) return;
 
             $conta = self::contaDoQuadro((int) ($task['board_id'] ?? 0));
             if ($conta <= 0) return;

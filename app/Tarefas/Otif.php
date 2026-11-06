@@ -64,12 +64,19 @@ final class Otif
         if ($apenasUsuario !== null) $foco = $apenasUsuario;
 
         $inicioEvolucao = date('Y-m-01', strtotime(date('Y-m-01', strtotime($ate)) . ' -' . (self::MESES_EVOLUCAO - 1) . ' months'));
-        $desdeBusca     = min($de, $inicioEvolucao);
+        [$antDe, $antAte] = self::periodoAnterior($de, $ate);
+        $desdeBusca     = min($de, $inicioEvolucao, $antDe);
 
-        $todas   = self::linhas($contas, $desdeBusca, $ate, $apenasUsuario);
-        $periodo = array_values(array_filter($todas, static fn($l) => $l['dia'] >= $de && $l['dia'] <= $ate));
+        $todas    = self::linhas($contas, $desdeBusca, $ate, $apenasUsuario);
+        $noPeriodo = static fn(array $ls, string $a, string $b) => array_values(array_filter($ls, static fn($l) => $l['dia'] >= $a && $l['dia'] <= $b));
+        $periodo  = $noPeriodo($todas, $de, $ate);
 
         $grupos = self::porColaborador($periodo);
+        // A equipe inteira entra no ranking, com ou sem compromisso no período:
+        // quem não tinha linha sumia da tabela e até do seletor (05/11/2026).
+        if ($apenasUsuario === null) {
+            foreach (self::pessoasDaEquipe($contas) as $uid => $_) $grupos[$uid] ??= self::metricas([]);
+        }
         $nomes  = self::nomes(array_keys($grupos));
 
         $colaboradores = [];
@@ -84,14 +91,16 @@ final class Otif
         });
 
         $focoLinhas = $foco === null ? $todas : array_values(array_filter($todas, static fn($l) => (int) ($l['responsavel_id'] ?? 0) === $foco));
-        $focoPeriodo = $foco === null ? [] : array_values(array_filter($focoLinhas, static fn($l) => $l['dia'] >= $de && $l['dia'] <= $ate));
+        $focoPeriodo = $foco === null ? [] : $noPeriodo($focoLinhas, $de, $ate);
 
         return [
             'de'            => $de,
             'ate'           => $ate,
             'equipe'        => self::metricas($periodo),
+            'anterior'      => ['de' => $antDe, 'ate' => $antAte] + self::metricas($noPeriodo($focoLinhas, $antDe, $antAte)),
             'colaboradores' => $colaboradores,
             'evolucao'      => self::porMes($focoLinhas, $ate, self::MESES_EVOLUCAO),
+            'fluxo'         => self::fluxo($foco === null ? $periodo : $focoPeriodo, $de, $ate),
             'foco'          => $foco === null ? null : [
                 'user_id'    => $foco,
                 'nome'       => $foco === 0 ? 'Sem responsável' : (self::nomes([$foco])[$foco] ?? ('Usuário #' . $foco)),
@@ -153,11 +162,14 @@ final class Otif
         // Em atraso, ao vivo: aberta, com prazo vencido no horário local.
         // Quadro desativado não assombra a nota de ninguém, e de recorrência só
         // conta a instância que o quadro mostra (ver TaskEntrega::instanciaVisivel).
+        // Cartão na coluna de concluído foi entregue, não está em atraso.
         $filtroUsuarioT = $apenasUsuario !== null ? ' AND t.responsavel_id = ?' : '';
         $sqlAberto = "SELECT t.id, t.titulo, t.responsavel_id, t.prazo
                         FROM tasks t
                         JOIN task_boards b ON b.id = t.board_id
+                        LEFT JOIN task_columns col ON col.id = t.column_id
                        WHERE b.account_id IN ($in) AND b.ativo = 1
+                         AND COALESCE(col.is_coluna_concluido, 0) = 0
                          AND t.status = 'ativa' AND t.prazo IS NOT NULL
                          AND t.prazo < ? AND t.prazo >= ? AND t.prazo < ?
                          AND (t.recorrencia_id IS NULL OR t.id = (
@@ -199,6 +211,7 @@ final class Otif
             'atrasadas' => 0, 'incompletas' => 0, 'nao_entregues' => 0,
             'perdidas' => 0, 'em_atraso' => 0, 'sem_prazo' => 0, 'retroativas' => 0,
         ];
+        $horasDeAtraso = 0.0; $comAtrasoMedido = 0;
         foreach ($linhas as $l) {
             if (($l['origem'] ?? '') === 'retroativo') $m['retroativas']++;
             $tipo = $l['tipo'] ?? 'concluida';
@@ -221,13 +234,80 @@ final class Otif
             if ($ot) $m['no_prazo']++;   else $m['atrasadas']++;
             if ($if) $m['completas']++;  else $m['incompletas']++;
             if ($ot && $if) $m['otif']++;
+            if (!$ot && !empty($l['concluida_local'])) {
+                $horasDeAtraso += max(0, strtotime($l['concluida_local']) - strtotime($l['prazo'])) / 3600;
+                $comAtrasoMedido++;
+            }
         }
 
         $pct = static fn(int $n) => $m['compromissos'] > 0 ? round($n * 100 / $m['compromissos'], 1) : null;
         $m['otif_pct'] = $pct($m['otif']);
         $m['ot_pct']   = $pct($m['no_prazo']);
         $m['if_pct']   = $pct($m['completas']);
+        $m['entregues'] = $m['compromissos'] - $m['nao_entregues'] + $m['sem_prazo'];
+        $m['atraso_medio_h'] = $comAtrasoMedido > 0 ? round($horasDeAtraso / $comAtrasoMedido, 1) : null;
         return $m;
+    }
+
+    /**
+     * O período imediatamente anterior, com a mesma quantidade de dias.
+     *
+     * @return array{0:string,1:string} [de, ate] em Y-m-d
+     */
+    public static function periodoAnterior(string $de, string $ate): array
+    {
+        $dias   = (int) round((strtotime($ate) - strtotime($de)) / 86400) + 1;
+        $antAte = date('Y-m-d', strtotime($de . ' -1 day'));
+        return [date('Y-m-d', strtotime($antAte . ' -' . ($dias - 1) . ' days')), $antAte];
+    }
+
+    /**
+     * O que aconteceu em cada dia, semana ou mês do período. Cada linha cai em UMA
+     * categoria, para as barras empilhadas somarem o total. Pura.
+     *
+     * @return array{granularidade:string, rotulos:string[], otif:int[], ressalva:int[], nao_entregues:int[], sem_prazo:int[], total:int}
+     */
+    public static function fluxo(array $linhas, string $de, string $ate): array
+    {
+        $dias = (int) round((strtotime($ate) - strtotime($de)) / 86400) + 1;
+        $gran = $dias <= 31 ? 'dia' : ($dias <= 182 ? 'semana' : 'mes');
+        $meses = ['01'=>'Jan','02'=>'Fev','03'=>'Mar','04'=>'Abr','05'=>'Mai','06'=>'Jun','07'=>'Jul','08'=>'Ago','09'=>'Set','10'=>'Out','11'=>'Nov','12'=>'Dez'];
+        $chave = static function (string $dia) use ($gran): string {
+            if ($gran === 'dia') return $dia;
+            if ($gran === 'mes') return substr($dia, 0, 7);
+            return date('Y-m-d', strtotime($dia . ' -' . ((int) date('N', strtotime($dia)) - 1) . ' days'));
+        };
+
+        $baldes = [];
+        for ($t = strtotime($de), $fim = strtotime($ate); $t <= $fim; $t = strtotime('+1 day', $t)) {
+            $k = $chave(date('Y-m-d', $t));
+            if (isset($baldes[$k])) continue;
+            $rotulo = $gran === 'mes' ? $meses[substr($k, 5, 2)] . '/' . substr($k, 2, 2) : date('d/m', strtotime($k));
+            $baldes[$k] = ['rotulo' => $rotulo, 'otif' => 0, 'ressalva' => 0, 'nao_entregues' => 0, 'sem_prazo' => 0];
+        }
+
+        $total = 0;
+        foreach ($linhas as $l) {
+            $k = $chave((string) $l['dia']);
+            if (!isset($baldes[$k])) continue;
+            $tipo = $l['tipo'] ?? 'concluida';
+            if ($tipo === 'perdida' || $tipo === 'em_atraso')                 $cat = 'nao_entregues';
+            elseif (($l['prazo'] ?? null) === null || ($l['no_prazo'] ?? null) === null) $cat = 'sem_prazo';
+            elseif ((int) $l['no_prazo'] === 1 && (int) ($l['completa'] ?? 0) === 1)     $cat = 'otif';
+            else                                                              $cat = 'ressalva';
+            $baldes[$k][$cat]++;
+            $total++;
+        }
+
+        return [
+            'granularidade' => $gran,
+            'rotulos'       => array_column($baldes, 'rotulo'),
+            'otif'          => array_column($baldes, 'otif'),
+            'ressalva'      => array_column($baldes, 'ressalva'),
+            'nao_entregues' => array_column($baldes, 'nao_entregues'),
+            'sem_prazo'     => array_column($baldes, 'sem_prazo'),
+            'total'         => $total,
+        ];
     }
 
     /** @return array<int, array> chave = user_id (0 = sem responsável) */
@@ -315,8 +395,27 @@ final class Otif
         return 'ruim';
     }
 
+    /**
+     * Quem está ativo nas contas: id => nome.
+     *
+     * @return array<int,string>
+     */
+    public static function pessoasDaEquipe(array $contas): array
+    {
+        $contas = array_values(array_unique(array_filter(array_map('intval', $contas), static fn($c) => $c > 0)));
+        if ($contas === []) return [];
+        $st = Database::getConnection()->prepare(
+            "SELECT id, nome FROM users WHERE account_id IN (" . implode(',', array_fill(0, count($contas), '?')) . ")
+               AND status = 'active' AND deleted_at IS NULL ORDER BY nome"
+        );
+        $st->execute($contas);
+        $out = [];
+        foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) $out[(int) $r['id']] = (string) $r['nome'];
+        return $out;
+    }
+
     /** @return array<int,string> */
-    private static function nomes(array $ids): array
+    public static function nomes(array $ids): array
     {
         $ids = array_values(array_filter(array_map('intval', $ids), static fn($i) => $i > 0));
         $out = [0 => 'Sem responsável'];

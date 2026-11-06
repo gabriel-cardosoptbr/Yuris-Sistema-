@@ -212,6 +212,7 @@ class Task
         $pdo->prepare('UPDATE tasks SET ' . implode(', ', $fields) . ' WHERE id = :id')->execute($params);
 
         self::history($id, $userId, 'atualizada', $old, $data);
+        if ($old && array_key_exists('column_id', $data)) self::aoTrocarDeColuna($old, (int) $data['column_id'], $userId);
     }
 
     public static function move(int $id, int $columnId, int $ordem, int $userId): void
@@ -220,6 +221,33 @@ class Task
         $old = self::findById($id);
         $pdo->prepare('UPDATE tasks SET column_id = ?, ordem = ? WHERE id = ?')->execute([$columnId, $ordem, $id]);
         self::history($id, $userId, 'movida', ['column_id' => $old['column_id']], ['column_id' => $columnId]);
+        self::aoTrocarDeColuna($old, $columnId, $userId);
+    }
+
+    /**
+     * Arrastar para a coluna de concluído É entregar, mesmo sem clicar em Concluir:
+     * o cartão segue no quadro (status `ativa`), mas o OTIF precisa da foto. Sem isto
+     * a entrega não era contada e, vencido o prazo, o cartão já em "Concluído" ainda
+     * saía como não entregue (05/11/2026). Tirar da coluna desfaz, para um arraste
+     * errado não virar entrega. Tarefa já concluída pelo botão não passa aqui.
+     */
+    private static function aoTrocarDeColuna(array $old, int $colunaNova, int $userId): void
+    {
+        if ((int) $old['column_id'] === $colunaNova || ($old['status'] ?? '') !== 'ativa') return;
+        $antes  = TaskColumn::findById((int) $old['column_id']);
+        $depois = TaskColumn::findById($colunaNova);
+        $saiu   = !empty($antes['is_coluna_concluido']);
+        $entrou = !empty($depois['is_coluna_concluido']);
+        if ($entrou === $saiu) return;
+
+        $pdo = Database::getConnection();
+        if ($entrou) {
+            TaskEntrega::registrarConclusao($old, $userId);
+            $pdo->prepare('UPDATE tasks SET concluida_em = COALESCE(concluida_em, NOW()) WHERE id = ?')->execute([(int) $old['id']]);
+        } else {
+            TaskEntrega::desfazerConclusao($old);
+            $pdo->prepare('UPDATE tasks SET concluida_em = NULL WHERE id = ?')->execute([(int) $old['id']]);
+        }
     }
 
     /**
@@ -267,6 +295,7 @@ class Task
                     self::history($id, $userId, 'movida',
                         ['column_id' => $old['column_id']],
                         ['column_id' => $colId]);
+                    self::aoTrocarDeColuna($old, $colId, $userId);
                 }
             }
             if ($owned) $pdo->commit();

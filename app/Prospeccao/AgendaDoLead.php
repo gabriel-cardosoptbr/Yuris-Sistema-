@@ -261,9 +261,11 @@ final class AgendaDoLead
                     (SELECT tl.link_id FROM task_links tl WHERE tl.task_id = t.id AND tl.link_type = 'card' ORDER BY tl.id LIMIT 1) AS card_vinculado
                FROM tasks t
                JOIN task_boards b ON b.id = t.board_id AND b.ativo = 1
+               LEFT JOIN task_columns col ON col.id = t.column_id
                LEFT JOIN crm_agendamentos a ON a.task_id = t.id AND a.account_id = b.account_id
               WHERE b.account_id IN ($in)
                 AND t.status = 'ativa'
+                AND COALESCE(col.is_coluna_concluido, 0) = 0
                 AND t.prazo IS NOT NULL
                 AND (t.responsavel_id = ? OR (t.responsavel_id IS NULL AND t.criado_por_id = ?))
                 AND t.prazo >= ? AND t.prazo <= ?

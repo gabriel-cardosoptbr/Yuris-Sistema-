@@ -114,9 +114,13 @@ edição CRM vê só o próprio. Regras e o porquê em
 `App\WhatsAppAgente\MetricasAtendimento`; quem enviou cada mensagem pelo Chat vem
 de `whatsapp_messages.sent_by_user_id` (migration 165). Dono/admin configura ali o **horário comercial** da conta (padrão seg a sex, 08:00 às 18:00); com ele ligado, as métricas contam só o expediente, e a chave "Tempo corrido" mostra as 24 horas. Os horários são de Brasília.
 
-`desempenho.php` (Gestão › Desempenho) é o OTIF das tarefas por colaborador:
-ranking, evolução mensal e a lista do que tirou o OTIF de cada um. Dono/admin
-vê a equipe; os demais, só o próprio. Regras em
+`desempenho.php` (Gestão › Desempenho) é o painel da equipe: OTIF das tarefas por
+colaborador, comparação com o período anterior, tarefas abertas agora, pontos de
+atenção, ranking com toda a equipe, entregas no período, evolução mensal e a lista
+do que tirou o OTIF de cada um. Na edição CRM traz também leads, vendas e atendimento
+do WhatsApp por pessoa (`App\Prospeccao\DesempenhoComercial`). Escolher um
+colaborador troca os indicadores do topo pelos dele. Dono/admin vê a equipe; os
+demais, só o próprio. Regras em
 [`../app/Tarefas/README.md`](../app/Tarefas/README.md).
 
 Cada uma corresponde a um domínio em [`../app/`](../app/); a tabela de

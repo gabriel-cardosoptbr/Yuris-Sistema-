@@ -228,8 +228,9 @@ conversor não lê redireciona para o original.
 
 `otif.php` devolve o OTIF das tarefas (JSON, ou planilha com `formato=csv`),
 com a mesma regra de visibilidade da tela `desempenho.php`: dono/admin vê a
-equipe, os demais só o próprio, e `colaborador` é ignorado para quem não é
-admin. Só GET.
+equipe (toda ela, mesmo quem não teve compromisso no período), os demais só o
+próprio, e `colaborador` é ignorado para quem não é admin. O JSON traz também
+`anterior` (mesmo intervalo logo antes) e `fluxo` (por dia, semana ou mês). Só GET.
 
 ## Os três endpoints que não são chamados por tela
 

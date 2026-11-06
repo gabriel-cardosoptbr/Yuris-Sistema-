@@ -22,8 +22,12 @@
 require_once __DIR__ . '/../../app/bootstrap.php';
 
 use App\Core\Database;
+use App\Prospeccao\DesempenhoComercial;
+use App\Tarefas\CargaDaEquipe;
+use App\Tarefas\LeituraDaEquipe;
 use App\Tarefas\Otif;
 use App\Tarefas\Task;
+use App\Tarefas\TaskColumn;
 use App\Tarefas\TaskEntrega;
 
 $OK = 0;
@@ -107,6 +111,50 @@ ok('mais recente primeiro, com motivo e itens do checklist', $p[0]['task_id'] ==
 ok('perdida explica que a recorrência renovou', str_contains($p[1]['motivo'], 'recorrência renovou'));
 ok('faixas: 90 bom, 75 atenção, 74,9 crítico, null sem dados',
     Otif::faixa(90.0) === 'bom' && Otif::faixa(75.0) === 'atencao' && Otif::faixa(74.9) === 'ruim' && Otif::faixa(null) === 'sem');
+
+/* ── 4b. tela da equipe: fluxo, período anterior, carga e leitura ────────── */
+echo "\n== 4b. Fluxo, carga e pontos de atenção ==\n";
+[$a1, $a2] = Otif::periodoAnterior('2026-10-01', '2026-10-30');
+ok('período anterior tem os mesmos 30 dias e termina na véspera', $a1 === '2026-09-01' && $a2 === '2026-09-30');
+$f = Otif::fluxo([
+    $L(['dia' => '2026-09-01']),
+    $L(['dia' => '2026-09-01', 'no_prazo' => 0]),
+    $L(['dia' => '2026-09-02', 'tipo' => 'em_atraso', 'no_prazo' => 0, 'completa' => 0]),
+    $L(['dia' => '2026-09-03', 'prazo' => null, 'no_prazo' => null]),
+    $L(['dia' => '2026-08-01']),
+], '2026-09-01', '2026-09-03');
+ok('fluxo por dia: uma coluna por dia, fora do período não entra', $f['granularidade'] === 'dia' && count($f['rotulos']) === 3 && $f['total'] === 4);
+ok('fluxo: cada linha cai em uma categoria só', $f['otif'] === [1, 0, 0] && $f['ressalva'] === [1, 0, 0] && $f['nao_entregues'] === [0, 1, 0] && $f['sem_prazo'] === [0, 0, 1]);
+ok('fluxo: período longo vira semana e depois mês',
+    Otif::fluxo([], '2026-01-01', '2026-03-31')['granularidade'] === 'semana' && Otif::fluxo([], '2025-01-01', '2026-03-31')['granularidade'] === 'mes');
+$m = Otif::metricas([$L(['no_prazo' => 0, 'concluida_local' => '2026-09-01 18:00:00']), $L(['no_prazo' => 0, 'concluida_local' => '2026-09-02 12:00:00'])]);
+ok('atraso médio em horas: 6h e 24h dão 15h', $m['atraso_medio_h'] === 15.0);
+ok('entregues soma com e sem prazo, sem as não entregues',
+    Otif::metricas([$L([]), $L(['prazo' => null, 'no_prazo' => null]), $L(['tipo' => 'perdida'])])['entregues'] === 2);
+$c = CargaDaEquipe::consolidar([
+    ['responsavel_id' => 7, 'prazo' => '2026-09-09 10:00:00'],
+    ['responsavel_id' => 7, 'prazo' => '2026-09-12 10:00:00'],
+    ['responsavel_id' => 7, 'prazo' => '2026-10-20 10:00:00'],
+    ['responsavel_id' => 7, 'prazo' => null],
+    ['responsavel_id' => null, 'prazo' => null],
+], '2026-09-10 12:00:00');
+ok('carga separa vencida, vencendo, em dia e sem prazo',
+    $c['pessoas'][7] === ['abertas' => 4, 'vencidas' => 1, 'vencendo' => 1, 'em_dia' => 1, 'sem_prazo' => 1]);
+ok('carga: sem responsável na chave 0 e equipe soma todos', $c['pessoas'][0]['abertas'] === 1 && $c['equipe']['abertas'] === 5);
+$colab = [
+    ['user_id' => 7, 'nome' => 'Ana'] + Otif::metricas([$L(['responsavel_id' => 7, 'no_prazo' => 0, 'concluida_local' => '2026-09-01 15:00:00'])]),
+    ['user_id' => 8, 'nome' => 'Bia'] + Otif::metricas([]),
+];
+$pts = LeituraDaEquipe::pontos($colab, $c);
+$txt = implode(' | ', array_column($pts, 'texto'));
+ok('pontos: vencida vem primeiro, como urgente', $pts[0]['nivel'] === 'ruim' && str_contains($pts[0]['texto'], 'Ana tem 1 tarefa vencida'));
+ok('pontos: atraso médio e tarefa sem responsável aparecem', str_contains($txt, '3,0 h') && str_contains($txt, 'sem responsável'));
+ok('pontos: quem não tem tarefa é citado, sem nota inventada', str_contains($txt, 'sem OTIF: Bia'));
+ok('horas viram dias a partir de 24 h', LeituraDaEquipe::horas(6.0) === '6,0 h' && LeituraDaEquipe::horas(48.0) === '2,0 dias');
+$dc = DesempenhoComercial::consolidar([3 => ['leads' => 4, 'vendas' => 1, 'respostas' => 2, 'ate_meta' => 1, 'soma_resposta' => 20.0, 'media_resposta' => 10.0]]);
+ok('comercial: conversão, % em até 5 min e média ponderada da equipe',
+    $dc['pessoas'][3]['conversao'] === 25.0 && $dc['pessoas'][3]['ate_meta_pct'] === 50.0 && $dc['equipe']['media_resposta'] === 10.0);
+ok('comercial: sem lead, conversão é nula e não 0%', DesempenhoComercial::consolidar([])['equipe']['conversao'] === null);
 
 /* ── 5. integração com o banco (desfeita no fim) ─────────────────────────── */
 echo "\n== 5. Integração: foto na conclusão ==\n";
@@ -196,6 +244,55 @@ if (!$temTabela || !$quadro || !$quadro['usuario']) {
         $m    = $rel['foco']['metricas'];
         ok('relatório do dia enxerga a entrega incompleta e a perdida', $m['incompletas'] >= 1 && $m['perdidas'] >= 1);
         ok('isolamento: conta inexistente não enxerga nada', Otif::relatorio([999999999], $hoje, $hoje)['equipe']['compromissos'] === 0);
+
+        // Arrastar para a coluna de concluído é entregar (05/11/2026).
+        $colDone = (int) TaskColumn::create(['board_id' => $quadro['id'], 'nome' => '[otif_test] feito', 'is_coluna_concluido' => 1]);
+        $tid3 = (int) Task::create([
+            'board_id' => $quadro['id'], 'column_id' => $quadro['coluna'], 'titulo' => '[otif_test] arraste',
+            'prazo' => date('Y-m-d H:i:s', strtotime(TaskEntrega::agoraLocal() . ' -2 minutes')), 'responsavel_id' => $uid, 'criado_por_id' => $uid,
+        ]);
+        $doDia = static fn() => Otif::relatorio([$conta], $hoje, $hoje, $uid)['foco']['metricas'];
+        $antes = $doDia();
+        $c->execute([$tid3]);
+        ok('antes de arrastar: vencida conta como em atraso', $antes['em_atraso'] >= 1 && (int) $c->fetchColumn() === 0);
+
+        Task::move($tid3, $colDone, 0, $uid);
+        $c->execute([$tid3]);
+        ok('arrastar para concluído grava a entrega', (int) $c->fetchColumn() === 1);
+        $depois = $doDia();
+        ok('cartão em concluído sai de "em atraso" e vira atrasada', $depois['em_atraso'] === $antes['em_atraso'] - 1 && $depois['atrasadas'] === $antes['atrasadas'] + 1);
+        $t3 = Task::findById($tid3);
+        ok('o cartão segue no quadro (status ativa) com a data de conclusão', $t3['status'] === 'ativa' && !empty($t3['concluida_em']));
+
+        Task::complete($tid3, $uid);
+        $c->execute([$tid3]);
+        ok('arrastar e depois clicar em Concluir é uma entrega só', (int) $c->fetchColumn() === 1);
+        $pdo->prepare("UPDATE tasks SET status = 'ativa' WHERE id = ?")->execute([$tid3]);
+
+        TaskEntrega::registrarPerdida(Task::findById($tid3));
+        $c->execute([$tid3]);
+        ok('cartão em concluído nunca conta perdida', (int) $c->fetchColumn() === 1);
+
+        Task::bulkUpdateOrders([['id' => $tid3, 'column_id' => (int) $quadro['coluna'], 'ordem' => 0]], $uid);
+        $c->execute([$tid3]);
+        ok('tirar da coluna desfaz a entrega (arraste em lote)', (int) $c->fetchColumn() === 0);
+        ok('tirar da coluna limpa a data de conclusão', empty(Task::findById($tid3)['concluida_em']));
+
+        Task::bulkUpdateOrders([['id' => $tid3, 'column_id' => $colDone, 'ordem' => 0]], $uid);
+        $c->execute([$tid3]);
+        ok('arraste em lote para concluído também grava', (int) $c->fetchColumn() === 1);
+
+        // Toda pessoa ativa aparece, mesmo sem tarefa nenhuma no período.
+        $semTarefa = (int) $pdo->query("SELECT u.id FROM users u WHERE u.account_id = $conta AND u.status = 'active' AND u.deleted_at IS NULL
+                                         AND NOT EXISTS (SELECT 1 FROM task_entregas e WHERE e.responsavel_id = u.id)
+                                         AND NOT EXISTS (SELECT 1 FROM tasks t WHERE t.responsavel_id = u.id) ORDER BY u.id LIMIT 1")->fetchColumn();
+        if ($semTarefa > 0) {
+            $linha = array_values(array_filter(Otif::relatorio([$conta], $hoje, $hoje)['colaboradores'], static fn($x) => $x['user_id'] === $semTarefa));
+            ok('quem não tem compromisso aparece no ranking, sem percentual', count($linha) === 1 && $linha[0]['compromissos'] === 0 && $linha[0]['otif_pct'] === null);
+        } else {
+            echo "  [pulado] a conta não tem ninguém sem tarefa\n";
+        }
+        ok('a visão individual não traz a equipe', count(Otif::relatorio([$conta], $hoje, $hoje, $uid)['colaboradores']) <= 1);
     } catch (\Throwable $e) {
         ok('integração sem exceção: ' . $e->getMessage(), false);
     } finally {

@@ -25,7 +25,24 @@ recorrência. A especificação está em
 | `RecurrenceCronService.php` | serviço que o cron chama para materializar as tarefas recorrentes vencidas |
 | `TaskAudit.php` | propaga evento de tarefa para o histórico do processo vinculado |
 | `TaskEntrega.php` | grava a "foto" de cada entrega em `task_entregas` (prazo e checklist do momento), matéria-prima do OTIF. Chamado por `Task::complete()` e pelo `RecurrenceCronService` |
-| `Otif.php` | calcula o OTIF (On Time In Full) por colaborador: métricas, ranking, série mensal e pendências. Tela em `public/desempenho.php`, API em `public/api/otif.php` |
+| `Otif.php` | calcula o OTIF (On Time In Full) por colaborador: métricas, ranking com toda a equipe ativa (mesmo quem não teve compromisso), período anterior, série mensal, entregas por dia, semana ou mês (`fluxo`) e pendências. Tela em `public/desempenho.php`, API em `public/api/otif.php` |
+| `CargaDaEquipe.php` | o que está aberto na mão de cada pessoa AGORA, sem filtro de data: vencidas, vencendo em 7 dias, em dia e sem prazo. Mesma regra de "aberta" do OTIF (tarefa ativa, quadro ativo, fora da coluna de concluído, só a instância visível da recorrência). Usa o relógio local, nunca `NOW()` |
+| `LeituraDaEquipe.php` | transforma os números da tela Desempenho em frases do que pede atenção (tarefa vencida, conversa sem resposta, lead parado, quem está sem tarefa). Pura, só relata o que está nos dados |
+
+## Coluna de concluído é entrega
+
+Arrastar o cartão para uma coluna `is_coluna_concluido` conta como entrega, igual ao
+botão Concluir (`Task::aoTrocarDeColuna`, em `move`, `update` e `bulkUpdateOrders`).
+A tarefa segue `ativa` para o cartão continuar no quadro, mas grava a foto em
+`task_entregas` e preenche `concluida_em`. Tirar da coluna desfaz a entrega daquele
+prazo, para um arraste errado não virar resultado. Até 05/11/2026 isto não existia:
+a entrega não contava e, vencido o prazo, o cartão em Concluído saía como não
+entregue. A migration 176 recupera o que já estava nessas colunas.
+
+A mesma ocorrência é uma entrega só (`TaskEntrega::jaEntregue`): arrastar e depois
+clicar em Concluir não conta duas vezes, e cartão em coluna de concluído nunca vira
+`perdida` nem `em_atraso`. Para quem lê "o que está aberto", a regra é sempre
+`status = 'ativa'` E `COALESCE(col.is_coluna_concluido, 0) = 0`.
 
 ## Central de Tarefas: tudo numa tela
 
