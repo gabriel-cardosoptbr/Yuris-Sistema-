@@ -28,6 +28,8 @@
  *   php scripts/manutencao/setor_dos_disparos.php --conta=116            (confere)
  *   php scripts/manutencao/setor_dos_disparos.php --conta=116 --aplicar  (grava os classificados)
  *   ...mais --limpar-origem: tira do setor de origem quem não tem prova e exclui o vazio
+ *   php scripts/manutencao/setor_dos_disparos.php --conta=116 --unificar-origem="Sem segmento" [--aplicar]
+ *      junta os setores de origem num só, que continua de origem (o robô ainda classifica)
  */
 declare(strict_types=1);
 if (PHP_SAPI !== 'cli') { http_response_code(403); exit("Só via CLI.\n"); }
@@ -37,7 +39,7 @@ use App\Core\Database;
 use App\Usuarios\Team;
 use App\WhatsAppAgente\SegmentoLead;
 
-$o = getopt('', ['conta:', 'aplicar', 'limpar-origem']);
+$o = getopt('', ['conta:', 'aplicar', 'limpar-origem', 'unificar-origem:']);
 $conta = (int) ($o['conta'] ?? 0);
 $aplicar = isset($o['aplicar']);
 $limpar = isset($o['limpar-origem']);
@@ -63,6 +65,36 @@ foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $t) {
     if (str_starts_with((string) $t['descricao'], Team::PREFIXO_ORIGEM)) { $origemIds[] = (int) $t['id']; continue; }
     $setores[(int) $t['id']] = (string) $t['nome'];
 }
+// --unificar-origem="Nome": junta TODOS os setores de origem num só (ex.: "Sem segmento") e
+// encerra. Continua sendo setor de origem (descrição com o prefixo), então o robô ainda
+// reclassifica o lead quando ele responder.
+$unificar = trim((string) ($o['unificar-origem'] ?? ''));
+if ($unificar !== '') {
+    if (!$origemIds) exit("Não há setor de origem para unificar.\n");
+    $alvo = $origemIds[0];
+    $st = $pdo->prepare('SELECT id FROM teams WHERE account_id = ? AND deleted_at IS NULL AND nome = ? AND descricao LIKE ? LIMIT 1');
+    $st->execute([$conta, $unificar, Team::PREFIXO_ORIGEM . '%']);
+    if ($ja = $st->fetchColumn()) $alvo = (int) $ja;
+    $outros = array_values(array_diff($origemIds, [$alvo]));
+    $lista = implode(',', array_merge([$alvo], $outros));
+    $n = $pdo->query("SELECT (SELECT COUNT(*) FROM cards WHERE account_id = $conta AND deleted_at IS NULL AND team_id IN ($lista)), (SELECT COUNT(*) FROM whatsapp_chats WHERE account_id = $conta AND team_id IN ($lista))")->fetch(PDO::FETCH_NUM);
+    echo sprintf("unificar %d setor(es) de origem em \"%s\" (#%d): %d lead(s), %d conversa(s)\n", count($origemIds), $unificar, $alvo, $n[0], $n[1]);
+    if (!$aplicar) exit("Nada gravado. Use --aplicar.\n");
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare('UPDATE teams SET nome = ?, cor = ?, descricao = ?, updated_at = NOW() WHERE id = ? AND account_id = ?')
+            ->execute([$unificar, '#94A3B8', Team::PREFIXO_ORIGEM . ': leads sem segmento identificado (o robô classifica quando responderem)', $alvo, $conta]);
+        if ($outros) {
+            $out = implode(',', $outros);
+            $pdo->prepare("UPDATE cards SET team_id = ?, updated_at = updated_at WHERE account_id = ? AND team_id IN ($out)")->execute([$alvo, $conta]);
+            $pdo->prepare("UPDATE whatsapp_chats SET team_id = ?, updated_at = updated_at WHERE account_id = ? AND team_id IN ($out)")->execute([$alvo, $conta]);
+            foreach ($outros as $oid) Team::delete($oid, $conta);
+        }
+        $pdo->commit();
+    } catch (\Throwable $e) { $pdo->rollBack(); exit('Erro, nada gravado: ' . $e->getMessage() . "\n"); }
+    exit("Gravado: setor \"$unificar\" #$alvo; " . count($outros) . " setor(es) de origem excluído(s).\n");
+}
+
 foreach ($OBRIGATORIOS as $nome => $cor) {
     if (in_array(SegmentoLead::chave($nome), array_map([SegmentoLead::class, 'chave'], $setores), true)) continue;
     if (!$aplicar) { echo "setor $nome: a criar\n"; $setores[-count($setores) - 1] = $nome; continue; }
