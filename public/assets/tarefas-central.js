@@ -106,7 +106,9 @@ window.TkCentral = (function () {
   }
   function caixa(i) {
     const titulo = i.concluida ? 'Reabrir' : 'Concluir';
-    return `<button type="button" class="tkc-check${i.concluida ? ' feita' : ''}" data-concluir="${esc(i.chave)}" title="${titulo}" aria-label="${titulo}: ${esc(i.titulo)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></button>`;
+    // Editar sem sair da tela. O clique no cartão abre o processo inteiro.
+    const editar = i.origem === 'tarefa' ? '' : `<button type="button" class="tkc-editar" data-editar="${esc(i.chave)}" title="Editar aqui" aria-label="Editar aqui: ${esc(i.titulo)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>`;
+    return `<span class="tkc-acoes">${editar}<button type="button" class="tkc-check${i.concluida ? ' feita' : ''}" data-concluir="${esc(i.chave)}" title="${titulo}" aria-label="${titulo}: ${esc(i.titulo)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></button></span>`;
   }
 
   function cartao(i) {
@@ -133,6 +135,10 @@ window.TkCentral = (function () {
     raiz.querySelectorAll('[data-concluir]').forEach(b => b.addEventListener('click', e => {
       e.stopPropagation();
       alternar(b.dataset.concluir);
+    }));
+    raiz.querySelectorAll('[data-editar]').forEach(b => b.addEventListener('click', e => {
+      e.stopPropagation();
+      editarItem(b.dataset.editar);
     }));
     raiz.querySelectorAll('[data-chave]').forEach(c => {
       c.addEventListener('click', () => abrirItem(c.dataset.chave));
@@ -211,11 +217,24 @@ window.TkCentral = (function () {
 
   /* ── Abrir um item ──────────────────────────────────────────────────────── */
   let editando = null;
+
+  /* Tarefa e prazo do processo só fazem sentido com o processo em volta: abre a
+     ficha inteira, que desce até o item e o destaca (ver focarNoProcesso). */
+  function linkDoProcesso(i) {
+    const foco = (i.origem === 'prazo' ? 'prazo:' : 'tarefa:') + i.id;
+    return `/processos.php?open=${encodeURIComponent(i.processo_id)}&foco=${foco}&volta=tarefas`;
+  }
+
   function abrirItem(chave) {
     const i = achar(chave);
     if (!i) return;
     if (i.origem === 'tarefa') { openDrawer(i.id); return; }
+    location.href = linkDoProcesso(i);
+  }
 
+  function editarItem(chave) {
+    const i = achar(chave);
+    if (!i) return;
     editando = i;
     $('ipTitulo').textContent = ROTULO[i.origem];
     $('ipContexto').textContent = [i.cliente_nome, i.processo_numero].filter(Boolean).join(' · ');
@@ -227,7 +246,7 @@ window.TkCentral = (function () {
     if (i.responsavel_nome && $('ipResp').value !== i.responsavel_nome) {
       $('ipResp').insertAdjacentHTML('beforeend', `<option value="${esc(i.responsavel_nome)}" selected>${esc(i.responsavel_nome)}</option>`);
     }
-    $('ipAbrirProcesso').href = '/processos.php?open=' + encodeURIComponent(i.processo_id);
+    $('ipAbrirProcesso').href = linkDoProcesso(i);
     $('ipConcluir').textContent = i.concluida ? 'Reabrir' : '✓ Concluir';
     $('modalItemProcesso').classList.add('open');
     setTimeout(() => $('ipDescricao').focus(), 40);

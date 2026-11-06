@@ -2737,7 +2737,8 @@ function column_display_name(array $col): string
     function setColCount(colId, filtered, total) {
       const el = byId('col-count-' + colId);
       if (!el) return;
-      el.textContent = filtered + '/' + total;
+      // Só a quantidade que está na coluna. Com filtro, é o que o filtro deixou.
+      el.textContent = filtered;
       // Edição CRM: a linha de baixo do cabeçalho diz quantos leads há, em vez de
       // repetir o nome da etapa (que já é o título).
       if (EDICAO_CRM) {

@@ -473,6 +473,27 @@ try {
       cursor: default;
     }
     .tarefa-item:hover { background: rgba(10,26,56,.65); border-color: rgba(96,165,250,.2); }
+    /* Destaque de quem veio da Central de Tarefas (focarNoProcesso). */
+    @keyframes focoBling {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+      30%      { transform: scale(1.04); box-shadow: 0 0 0 4px rgba(59,130,246,.6), 0 12px 30px rgba(37,99,235,.35); }
+      60%      { transform: scale(1); box-shadow: 0 0 0 2px rgba(59,130,246,.45); }
+    }
+    .foco-bling {
+      position: relative; z-index: 2; outline: 2px solid #3B82F6; outline-offset: 2px;
+      animation: focoBling 1s ease-in-out 3;
+    }
+    /* Com #modalProcess e o tema na frente: o fundo dos cartões vem de regras fortes. */
+    #modalProcess .prazo-card.foco-bling, #modalProcess .tarefa-item.foco-bling { background: #17345F !important; border-color: #3B82F6 !important; }
+    html[data-theme="light"] #modalProcess .prazo-card.foco-bling,
+    html[data-theme="light"] #modalProcess .tarefa-item.foco-bling { background: #DBEAFE !important; border-color: #3B82F6 !important; }
+    @media (prefers-reduced-motion: reduce) { .foco-bling { animation: none; } }
+    .proc-voltar-tarefas {
+      display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 8px;
+      margin-left: auto; margin-right: 8px; font-size: .78rem; font-weight: 600; text-decoration: none;
+      background: rgba(37,99,235,.16); border: 1px solid rgba(96,165,250,.35); color: #93C5FD;
+    }
+    html[data-theme="light"] .proc-voltar-tarefas { background: rgba(37,99,235,.08); border-color: rgba(37,99,235,.35); color: #1D4ED8; }
     .tarefa-item.done-item { opacity: .7; }
 
     /* Custom checkbox */
@@ -1200,6 +1221,10 @@ try {
     <div class="proc-modal">
       <div class="proc-modal-header">
         <span class="proc-modal-title" id="modalTitle">Cadastrar Processo</span>
+        <a href="/tarefas.php" id="procVoltarTarefas" class="proc-voltar-tarefas" style="display:none">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+          Voltar para Tarefas
+        </a>
         <button type="button" id="modalCloseX" class="proc-btn-cancel" style="display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 12px;font-size:.8rem"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Fechar</button>
       </div>
       <div class="proc-modal-body">
@@ -1446,6 +1471,8 @@ try {
       const openId   = params.get('open');
       const newCardId = params.get('new_card_id');
       const newClienteId = params.get('new_cliente_id'); // vindo da aba Clientes
+      const focoItem = params.get('foco');                // vindo da Central de Tarefas
+      const veioDeTarefas = params.get('volta') === 'tarefas';
 
       // Detecta se a navegação foi um reload (F5/Ctrl+R)
       function _isPageReload() {
@@ -1463,6 +1490,8 @@ try {
           u.searchParams.delete('open');
           u.searchParams.delete('new_card_id');
           u.searchParams.delete('new_cliente_id');
+          u.searchParams.delete('foco');
+          u.searchParams.delete('volta');
           const qs = u.searchParams.toString();
           history.replaceState(null, '', u.pathname + (qs ? '?' + qs : '') + u.hash);
         } catch (e) {}
@@ -1476,7 +1505,16 @@ try {
         if (openId) {
           fetch(`/api/processes.php?id=${openId}`, {credentials:'same-origin'})
             .then(r => r.json())
-            .then(data => { const proc = data.data || data; if (proc && proc.id) { showModal(proc); } })
+            .then(data => {
+              const proc = data.data || data;
+              if (!proc || !proc.id) return;
+              showModal(proc);
+              if (veioDeTarefas) {
+                const v = document.getElementById('procVoltarTarefas');
+                if (v) v.style.display = 'inline-flex';
+              }
+              if (focoItem && window.focarNoProcesso) window.focarNoProcesso(focoItem);
+            })
             .catch(() => {});
         } else if (newCardId) {
           // Abre modal de novo processo já vinculado a um Lead da Prospecção.

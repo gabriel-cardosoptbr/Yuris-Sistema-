@@ -249,28 +249,55 @@ tbody tr:nth-child(even) td { background: #fafbfd; }
 
 /* ============================================================================
    TELA DE LISTAGENS (relatorios.php)
-   Aqui o tema é o do sistema: é tela de trabalho, não folha. A impressão dela
-   reaproveita as mesmas regras acima, porque a tabela é a mesma coisa.
+   Aqui o tema é o do sistema: é tela de trabalho, não folha. Painéis e cabeçalho
+   vêm de .card-shell e .page-header, como nas outras telas. Só a impressão
+   continua clara: os tokens escuros abaixo valem apenas para @media screen, e no
+   papel voltam os do :root.
    ========================================================================== */
+
+@media screen {
+  html:not([data-theme="light"]) .rel-resultado {
+    --doc-tinta: #E2ECF8;
+    --doc-tinta-fraca: #9AB0C9;
+    --doc-linha: rgba(160,180,210,.12);
+    --doc-linha-forte: rgba(160,180,210,.24);
+    --doc-realce: rgba(160,180,210,.07);
+  }
+  html:not([data-theme="light"]) .rel-resultado tbody tr:nth-child(even) td { background: rgba(160,180,210,.04); }
+}
+
+.rel-abas { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.rel-aba {
+  padding: 8px 16px; border-radius: 9px; text-decoration: none; font-size: 13px; font-weight: 500;
+  background: #0D1C30; border: 1px solid rgba(160,180,210,.14); color: #CBD5E1;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.rel-aba:hover { background: #132845; border-color: rgba(91,155,213,.4); }
+.rel-aba:focus-visible { outline: 2px solid #3B82F6; outline-offset: 2px; }
+.rel-aba.ativa { background: linear-gradient(135deg, #1E5299, #2D6FAD); border-color: transparent; color: #E8F4FF; }
 
 .rel-filtros {
   display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
   padding: 14px 16px;
-  background: var(--doc-barra);
-  border: 1px solid var(--doc-barra-borda);
-  border-radius: 10px;
+  border: 1px solid rgba(160,180,210,.1);
+  border-radius: 12px;
   margin-bottom: 14px;
 }
 .rel-campo { display: flex; flex-direction: column; gap: 4px; min-width: 130px; }
 .rel-campo label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; }
 .rel-campo select, .rel-campo input {
   background: #0a1626; color: #e2e8f0;
-  border: 1px solid var(--doc-barra-borda); border-radius: 7px;
+  border: 1px solid rgba(160,180,210,.16); border-radius: 8px;
   padding: 7px 9px; font: inherit; font-size: 13px;
   min-height: 36px;
 }
 .rel-campo input::placeholder { color: #64748b; }
-.rel-acoes { display: flex; gap: 8px; margin-left: auto; }
+/* Mesma altura em todos: o campo de data do tema claro é mais alto e desalinhava os rótulos. */
+.rel-campo select, .rel-campo input { height: 38px !important; min-height: 38px !important; box-sizing: border-box; }
+.rel-campo select:focus-visible, .rel-campo input:focus-visible { outline: 2px solid #3B82F6; outline-offset: 1px; }
+.rel-acoes { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+.rel-acoes .btn-doc { border-color: rgba(160,180,210,.18); }
+.rel-acoes .btn-doc-primario { background: linear-gradient(135deg, #1E5299, #2D6FAD); border-color: transparent; color: #E8F4FF; }
 
 .rel-aviso {
   margin: 0 0 12px;
@@ -283,8 +310,8 @@ tbody tr:nth-child(even) td { background: #fafbfd; }
 }
 
 .rel-resultado {
-  background: var(--doc-papel);
-  border-radius: 10px;
+  border: 1px solid rgba(160,180,210,.1);
+  border-radius: 12px;
   padding: 18px;
   overflow: hidden;
 }
@@ -297,6 +324,18 @@ tbody tr:nth-child(even) td { background: #fafbfd; }
 .rel-resultado h2 { margin: 0; font-size: 18px; color: var(--doc-tinta); }
 .rel-resultado .rel-meta { font-size: 12px; color: var(--doc-tinta-fraca); }
 .rel-vazio { padding: 34px 12px; text-align: center; color: var(--doc-tinta-fraca); }
+
+html[data-theme="light"] .rel-aba { background: #FFFFFF; border-color: #D5DEE9; color: #475569; }
+html[data-theme="light"] .rel-aba:hover { background: #F1F5F9; color: #1E293B; }
+html[data-theme="light"] .rel-aba.ativa { background: linear-gradient(135deg, #1E5299, #2D6FAD); border-color: transparent; color: #FFFFFF; }
+html[data-theme="light"] .rel-filtros, html[data-theme="light"] .rel-resultado { border-color: #E2E8F0; }
+html[data-theme="light"] .rel-campo label { color: #475569; }
+html[data-theme="light"] .rel-campo select, html[data-theme="light"] .rel-campo input { background: #FFFFFF; color: #0F172A; border-color: #CBD5E1; }
+html[data-theme="light"] .rel-campo input::placeholder { color: #64748B; }
+html[data-theme="light"] .rel-acoes .btn-doc { background: #FFFFFF; border-color: #CBD5E1; color: #334155; }
+html[data-theme="light"] .rel-acoes .btn-doc:hover { background: #F1F5F9; }
+html[data-theme="light"] .rel-acoes .btn-doc-primario { background: linear-gradient(135deg, #1E5299, #2D6FAD); border-color: transparent; color: #FFFFFF; }
+html[data-theme="light"] .rel-aviso { background: #FFF6E6; border-color: #EDD09A; color: #8F6000; }
 
 @media (max-width: 720px) {
   .pares { grid-template-columns: 1fr; }

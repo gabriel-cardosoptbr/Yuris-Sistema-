@@ -488,6 +488,36 @@ document.addEventListener('DOMContentLoaded', ()=>{
   function hideModal(){ modal.classList.add('hidden'); document.body.style.overflow = ''; }
   window.showModal = showModal; // expõe globalmente para auto-open via URL ?open=ID
 
+  /*
+   * Veio da Central de Tarefas: a ficha abre inteira, desce até a tarefa ou o prazo
+   * e dá o destaque. A lista chega depois do modal (fetch), então espera aparecer.
+   */
+  window.focarNoProcesso = function (foco) {
+    const m = /^(tarefa|prazo):(\d+)$/.exec(String(foco || ''));
+    if (!m) return;
+    const seletor = m[1] === 'prazo' ? `.prazo-card[data-id="${m[2]}"]` : `#tarefa-row-${m[2]}`;
+    const semMovimento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let tentativas = 0;
+    const procura = setInterval(() => {
+      const el = document.querySelector(`#modalProcess ${seletor}`);
+      if (!el && ++tentativas < 50) return;
+      clearInterval(procura);
+      if (!el) { showToast(m[1] === 'prazo' ? 'Esse prazo não está mais neste processo.' : 'Essa tarefa não está mais neste processo.', 'error'); return; }
+      el.scrollIntoView({ behavior: semMovimento ? 'auto' : 'smooth', block: 'center' });
+      setTimeout(() => {
+        // Rolagem suave pode não terminar (aba em segundo plano, celular lento):
+        // o destaque só vale com o item na tela.
+        const caixa = el.closest('.proc-modal-body');
+        if (caixa) {
+          const r = el.getBoundingClientRect(), c = caixa.getBoundingClientRect();
+          if (r.top < c.top || r.bottom > c.bottom) el.scrollIntoView({ behavior: 'auto', block: 'center' });
+        }
+        el.classList.add('foco-bling');
+        setTimeout(() => el.classList.remove('foco-bling'), 6000);
+      }, semMovimento ? 0 : 750);
+    }, 120);
+  };
+
   btnNew.addEventListener('click', ()=>showModal());
   cancelBtn.addEventListener('click', hideModal);
   document.getElementById('modalCloseX')?.addEventListener('click', hideModal);

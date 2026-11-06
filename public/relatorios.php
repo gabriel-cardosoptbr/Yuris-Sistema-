@@ -107,27 +107,17 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
   <link rel="stylesheet" href="/assets/sidebar.css?v=20">
   <link rel="stylesheet" href="/assets/relatorios.css?v=<?= @filemtime(__DIR__ . '/assets/relatorios.css') ?: 1 ?>">
   <style>
-    body { margin:0; background:#070F1C; color:#e2e8f0; font-family:Inter,system-ui,sans-serif; }
-    .rel-wrap { padding: 22px 26px 60px; }
-    .rel-topo { display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:16px; }
-    .rel-topo h1 { margin:0; font-size:22px; font-weight:700; }
-    .rel-topo p  { margin:4px 0 0; color:#94a3b8; font-size:13px; }
-    .rel-abas { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
-    .rel-aba {
-      padding:8px 16px; border-radius:9px; text-decoration:none; font-size:13px; font-weight:500;
-      background:#0d1c30; border:1px solid #1c3050; color:#cbd5e1;
-    }
-    .rel-aba:hover { background:#132845; }
-    .rel-aba.ativa { background:#1d4ed8; border-color:#1d4ed8; color:#fff; }
-    /* Fundo branco herdando cor clara do body deixaria a tabela invisivel. */
+    body { margin:0; font-family:Inter,system-ui,sans-serif; }
+    .rel-wrap { padding: 24px; }
+    /* A cor do texto vem dos tokens de relatorios.css, que mudam com o tema. */
     .rel-resultado, .rel-resultado * { color: var(--doc-tinta); }
     .rel-resultado .rel-meta, .rel-resultado .rel-vazio, .rel-resultado thead th { color: var(--doc-tinta-fraca); }
     @media print {
-      .sidebar, .rel-topo, .rel-abas, .rel-filtros, .no-print { display:none !important; }
+      .sidebar, .page-header, .rel-abas, .rel-filtros, .no-print { display:none !important; }
       .page-layout { display:block !important; }
       body { background:#fff !important; }
       .rel-wrap { padding:0; }
-      .rel-resultado { padding:0; border-radius:0; }
+      .rel-resultado { padding:0; border-radius:0; background:#fff !important; border:0 !important; box-shadow:none !important; }
       .content, main { margin-left:0 !important; }
     }
   </style>
@@ -140,7 +130,6 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
        de !important; mantemos o prefixo mesmo assim, pelo padrão do resto do
        bloco Fleetiflow (sidebar.php, dashboard.php). -->
   <style>
-    html[data-theme="light"] .rel-topo p{ color:#676767 !important; }
     html[data-theme="light"] .rel-aba{
       background:#FFFFFF !important; border:1px solid rgba(17,29,45,0.08) !important;
       color:#676767 !important; border-radius:999px !important; font-weight:600 !important;
@@ -174,10 +163,12 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
       <?php include __DIR__ . '/includes/sidebar.php'; ?>
       <div class="main-content">
 
-    <div class="rel-topo no-print">
-      <div>
-        <h1>Relatórios</h1>
-        <p>A carteira inteira, filtrada do seu jeito. Para o histórico completo de uma pessoa ou de um processo, use o botão Relatório dentro da ficha.</p>
+    <div class="card-shell page-header no-print" style="margin-bottom:16px;">
+      <div class="page-header-inner">
+        <div class="page-header-text">
+          <h2 class="page-header-title">Relatórios</h2>
+          <p class="page-header-subtitle">A carteira inteira, filtrada do seu jeito. Para o histórico completo de uma pessoa ou de um processo, use o botão Relatório dentro da ficha.</p>
+        </div>
       </div>
     </div>
 
@@ -187,7 +178,7 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
       <?php endforeach; ?>
     </nav>
 
-    <form class="rel-filtros no-print" method="get" action="/relatorios">
+    <form class="rel-filtros card-shell no-print" method="get" action="/relatorios">
       <input type="hidden" name="fonte" value="<?= e($fonte) ?>">
 
       <div class="rel-campo">
@@ -281,7 +272,7 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
       </p>
     <?php endif; ?>
 
-    <section class="rel-resultado">
+    <section class="rel-resultado card-shell">
       <div class="rel-cabeca">
         <h2>Relatório de <?= e($res['titulo']) ?></h2>
         <span class="rel-meta"><?= (int) $res['total'] ?> registro<?= $res['total'] === 1 ? '' : 's' ?> · gerado em <?= e($res['gerado_em']) ?></span>

@@ -49,6 +49,10 @@ o mesmo que fazer pelo processo.
 - **Responsável** de tarefa e prazo do processo é TEXTO (o nome). O filtro chega como
   id e vira nome. O aviso de vencimento (`notificacao_prazos_tick.php`) resolve o
   nome para o usuário da conta e, sem ele, usa o responsável do processo.
+- **Clicar numa tarefa ou prazo do processo abre o processo inteiro**
+  (`processos.php?open=N&foco=tarefa:N&volta=tarefas`): a ficha desce até o item e
+  dá o destaque (`focarNoProcesso`), porque a tarefa só faz sentido com o processo
+  em volta. O lápis do cartão edita ali mesmo, sem sair da central.
 - **Calendário**: compara a data como texto. `new Date('2026-11-05')` é meia-noite em
   UTC, e no Brasil a tarefa cairia na véspera. Clicar no dia cria a tarefa com a data.
 
