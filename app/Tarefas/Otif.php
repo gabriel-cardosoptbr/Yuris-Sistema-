@@ -245,7 +245,7 @@ final class Otif
         $m['ot_pct']   = $pct($m['no_prazo']);
         $m['if_pct']   = $pct($m['completas']);
         $m['entregues'] = $m['compromissos'] - $m['nao_entregues'] + $m['sem_prazo'];
-        $m['atraso_medio_h'] = $comAtrasoMedido > 0 ? round($horasDeAtraso / $comAtrasoMedido, 1) : null;
+        $m['atraso_medio_h'] = $comAtrasoMedido > 0 ? round($horasDeAtraso / $comAtrasoMedido, 3) : null;
         return $m;
     }
 

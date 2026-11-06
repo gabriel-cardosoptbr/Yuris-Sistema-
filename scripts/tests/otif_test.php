@@ -151,6 +151,7 @@ ok('pontos: vencida vem primeiro, como urgente', $pts[0]['nivel'] === 'ruim' && 
 ok('pontos: atraso médio e tarefa sem responsável aparecem', str_contains($txt, '3,0 h') && str_contains($txt, 'sem responsável'));
 ok('pontos: quem não tem tarefa é citado, sem nota inventada', str_contains($txt, 'sem OTIF: Bia'));
 ok('horas viram dias a partir de 24 h', LeituraDaEquipe::horas(6.0) === '6,0 h' && LeituraDaEquipe::horas(48.0) === '2,0 dias');
+ok('menos de 1 h vira minutos, e nunca "0 min"', LeituraDaEquipe::horas(0.5) === '30 min' && LeituraDaEquipe::horas(0.001) === '1 min');
 $dc = DesempenhoComercial::consolidar([3 => ['leads' => 4, 'vendas' => 1, 'respostas' => 2, 'ate_meta' => 1, 'soma_resposta' => 20.0, 'media_resposta' => 10.0]]);
 ok('comercial: conversão, % em até 5 min e média ponderada da equipe',
     $dc['pessoas'][3]['conversao'] === 25.0 && $dc['pessoas'][3]['ate_meta_pct'] === 50.0 && $dc['equipe']['media_resposta'] === 10.0);

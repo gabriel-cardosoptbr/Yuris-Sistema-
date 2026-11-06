@@ -72,9 +72,10 @@ final class LeituraDaEquipe
         return array_slice(array_merge($ruins, $atencao, $info), 0, self::LIMITE);
     }
 
-    /** Horas em texto: "3,5 h" ou, de um dia para cima, "2,1 dias". */
+    /** Horas em texto: "12 min", "3,5 h" ou, de um dia para cima, "2,1 dias". */
     public static function horas(float $h): string
     {
+        if ($h < 1) return max(1, (int) round($h * 60)) . ' min';
         if ($h < 24) return number_format($h, 1, ',', '.') . ' h';
         $d = $h / 24;
         return number_format($d, 1, ',', '.') . ($d < 2 ? ' dia' : ' dias');
