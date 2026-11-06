@@ -152,6 +152,11 @@ try {
         !Team::definirSetorDoCard($accA, $card, $conc, true) && $setorDoCard($card) === $origem);
     ok('setor de origem de outra conta não conta como origem',
         !Team::definirSetorDoCard($accB, $card, $locB, true, true) && $setorDoCard($card) === $origem);
+
+    $pdo->prepare("UPDATE cards SET updated_at = '2026-01-01 10:00:00' WHERE id = ?")->execute([$card]);
+    Team::definirSetorDoCard($accA, $card, $conc);
+    ok('marcar o setor não mexe no updated_at (é o "último contato" da Prospecção)',
+        $pdo->query("SELECT updated_at FROM cards WHERE id = $card")->fetchColumn() === '2026-01-01 10:00:00');
 } catch (\Throwable $e) {
     ok('sem exceção: ' . $e->getMessage() . ' em ' . basename($e->getFile()) . ':' . $e->getLine(), false);
 } finally {

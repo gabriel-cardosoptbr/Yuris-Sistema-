@@ -82,6 +82,42 @@ final class SegmentoLead
         return ($tipo !== null && trim($tipo) !== '') ? self::escolher(self::TIPOS, $tipo, $setores) : null;
     }
 
+    /**
+     * Segmentos que a Fleet atende, pelo NOME do lead (empresa), na ordem em que valem.
+     * Os específicos vêm primeiro: "Locadora de Veículos" tem a palavra veículos, mas é
+     * Locação. Concessionária é o setor geral de quem lida com veículos.
+     */
+    public const NOMES_ESPECIFICOS = [
+        'despachante'    => '/despach|emplac|documenta[cç][aã]o\s+veicular/iu',
+        'locacao'        => '/locad|loca[cç][aãoõ]|\brent(al)?\b|aluguel|alugue|aluga\b|localiza|movida|unidas/iu',
+        'transportadora' => '/transport|log[ií]stic|translog|\bfretes?\b|\bcargas?\b|expresso|mudan[cç]as/iu',
+        'telecom'        => '/telecom|telefon|internet|fibra|provedor|banda\s+larga/iu',
+    ];
+    public const NOMES_GERAL = [
+        'concessionaria' => '/concession|ve[ií]cul|autom[oó]ve|seminov|multimarc|revenda|motors?\b|\bcar(s|ros)?\b|garage|garagem|loja\s+de\s+(carros|ve)|chevrolet|\bford\b|\bfiat\b|volkswagen|\bvw\b|toyota|honda|hyundai|renault|\bjeep\b|nissan|\bkia\b|citro[eë]n|peugeot|caoa|\bbyd\b|\bbmw\b|mercedes|\baudi\b|volvo|mitsubishi|suzuki|yamaha|triumph|harley|ducati|scania/iu',
+    ];
+
+    /**
+     * O setor da conta que o NOME do lead indica, ou null. Só vale o que tem prova:
+     * duas famílias específicas no mesmo nome é ambíguo e não marca. Sem palavra
+     * específica, o nome com cara de veículo vai para Concessionária.
+     *
+     * @param array<int,string> $setores id => nome dos setores da conta
+     */
+    public static function setorPeloNome(string $nome, array $setores): ?int
+    {
+        $nome = trim($nome);
+        if ($nome === '') return null;
+        $hits = array_keys(array_filter(self::NOMES_ESPECIFICOS, fn($re) => (bool)preg_match($re, $nome)));
+        if (count($hits) > 1) return null;
+        $familia = $hits[0] ?? (preg_match(self::NOMES_GERAL['concessionaria'], $nome) ? 'concessionaria' : null);
+        if ($familia === null) return null;
+        foreach ($setores as $id => $n) {
+            if (self::chave((string)$n) === $familia) return (int)$id;
+        }
+        return null;
+    }
+
     /** @param array<string,string> $regras */
     private static function escolher(array $regras, string $texto, array $setores): ?int
     {

@@ -119,7 +119,7 @@ try {
             // verdade, junto com a conversa dele; setor escolhido por uma pessoa não muda.
             if (Team::definirSetorDoCard($accountId, $cardId, $setorId, true, true)) {
                 $pdo = \App\Core\Database::getConnection();
-                $pdo->prepare('UPDATE whatsapp_chats SET team_id = ? WHERE linked_card_id = ? AND account_id = ?
+                $pdo->prepare('UPDATE whatsapp_chats SET team_id = ?, updated_at = updated_at WHERE linked_card_id = ? AND account_id = ?
                                   AND (team_id IS NULL OR team_id IN (SELECT id FROM teams WHERE account_id = ? AND descricao LIKE ?))')
                     ->execute([$setorId, $cardId, $accountId, $accountId, Team::PREFIXO_ORIGEM . '%']);
             }

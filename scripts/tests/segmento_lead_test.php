@@ -51,6 +51,22 @@ ok('nenhuma palavra: sem setor', S::setorPelaMensagem('Olá, tudo bem?', $setore
 ok('conta sem o setor do segmento: sem setor', S::setorPelaMensagem('Encontrei a clínica de vocês', [13 => 'Advocacia']) === null);
 ok('setor sem regra (Fleet) nunca é sugerido', S::setorPelaMensagem('Oi, Jeep Dahruj! Aqui é a Vitória, da Fleetiflow', [11 => 'Concessionária', 12 => 'Locação']) === null);
 ok('tipo do lead: Clínica de Estética', S::setorPeloTipo('Clínica de Estética', $setores) === 14 && S::setorPeloTipo('Advocacia', $setores) === 13);
+
+echo "\n== 2b. Setor pelo NOME do lead (segmentos da Fleet) ==\n";
+$fleet = [11 => 'Concessionária', 12 => 'Locação', 15 => 'Transportadora', 16 => 'Telecom', 17 => 'Despachante'];
+$nome = fn(string $n) => S::setorPeloNome($n, $fleet);
+ok('Locadora de Motos: Locação', $nome('Bjt Locadora De Motos Ltda') === 12);
+ok('"Locadora de Veículos" é Locação, não Concessionária (o específico vem antes)', $nome('Alpha Locadora de Veículos') === 12);
+ok('Rent A Car, Localiza e Movida: Locação', $nome('J & R Rent A Car') === 12 && $nome('Localiza Aluguel de Carros') === 12 && $nome('Movida Rent A Car') === 12);
+ok('"Rc Locacao" sem acento: Locação', $nome('Rc Locacao') === 12);
+ok('Transportes e logística: Transportadora', $nome('Rp Transportes') === 15 && $nome('Alfa Logística e Cargas') === 15);
+ok('Despachante: Despachante', $nome('Silva Despachante Veicular') === 17);
+ok('Telecom e provedor: Telecom', $nome('Alô Telecom') === 16 && $nome('Provedor Conecta Fibra') === 16);
+ok('Veículos, seminovos e marcas: Concessionária', $nome('Kital Veículos Ltda ME') === 11 && $nome('Phoenix Automóveis Multimarcas') === 11 && $nome('Kia Germânica Campinas') === 11 && $nome('Hyundai CAOA - Ibirapuera') === 11);
+ok('duas famílias específicas é ambíguo: não marca', $nome('Transportes e Locadora Silva') === null);
+ok('nome sem palavra de segmento: sem setor', $nome('Acelera') === null && $nome('UNIMETROCAMP wyden') === null && $nome('') === null);
+ok('só devolve setor que a conta tem', S::setorPeloNome('Rp Transportes', [11 => 'Concessionária']) === null);
+ok('"car" dentro de outra palavra não conta', $nome('Carolina Cardoso Advogados') === null);
 ok('tipo vazio: sem setor', S::setorPeloTipo('', $setores) === null && S::setorPeloTipo(null, $setores) === null);
 
 echo "\n== 3. Fluxo: a mensagem chega, o card nasce com nome e setor ==\n";

@@ -268,7 +268,9 @@ class Team
         if (!self::temColuna('cards', 'team_id')) return false;
         if ($teamId !== null && !self::findById($teamId, $accountId)) return false;
 
-        $sql = 'UPDATE cards SET team_id = ? WHERE id = ? AND account_id = ? AND NOT (team_id <=> ?)';
+        // updated_at fica como está: marcar setor não é contato, e a Prospecção usa essa
+        // data como "último contato" e para ordenar os cards.
+        $sql = 'UPDATE cards SET team_id = ?, updated_at = updated_at WHERE id = ? AND account_id = ? AND NOT (team_id <=> ?)';
         $par = [$teamId, $cardId, $accountId, $teamId];
         if ($soSeVazio && $trocaOrigem) {
             $sql .= ' AND (team_id IS NULL OR team_id IN (SELECT id FROM teams WHERE account_id = ? AND descricao LIKE ?))';
