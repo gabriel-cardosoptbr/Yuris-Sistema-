@@ -115,7 +115,14 @@ try {
     if ($setor !== '') {
         $setorId = Team::garantirPorNome($accountId, $setor);
         if ($setorId) {
-            Team::definirSetorDoCard($accountId, $cardId, $setorId, true);
+            // Lead que está num setor de origem (a lista do disparo) passa para o setor de
+            // verdade, junto com a conversa dele; setor escolhido por uma pessoa não muda.
+            if (Team::definirSetorDoCard($accountId, $cardId, $setorId, true, true)) {
+                $pdo = \App\Core\Database::getConnection();
+                $pdo->prepare('UPDATE whatsapp_chats SET team_id = ? WHERE linked_card_id = ? AND account_id = ?
+                                  AND (team_id IS NULL OR team_id IN (SELECT id FROM teams WHERE account_id = ? AND descricao LIKE ?))')
+                    ->execute([$setorId, $cardId, $accountId, $accountId, Team::PREFIXO_ORIGEM . '%']);
+            }
             if ($alvo['instance_id'] !== null && $alvo['remote_jid']) {
                 (new WhatsAppMessage())->sincronizarSetorComCard((int)$alvo['instance_id'], (string)$alvo['remote_jid'], false);
             }

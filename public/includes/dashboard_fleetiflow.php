@@ -47,8 +47,8 @@ function ffc_kpi(string $id, string $rotulo, string $ico, string $tom = '', stri
 <?php if (!empty($__mkPainel['personalizada'])): ?>
   <link rel="icon" href="<?= htmlspecialchars($__mkPainel['favicon_url']) ?>">
 <?php else: ?>
-  <link rel="icon" type="image/png" sizes="32x32" href="/assets/fleetiflow-favicon-32.png?v=1">
-  <link rel="icon" type="image/png" sizes="192x192" href="/assets/fleetiflow-favicon-192.png?v=1">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/fleetiflow-favicon-32.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/fleetiflow-favicon-192.png?v=2">
 <?php endif; ?>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script>/* yuris_theme_boot */(function(){try{var t=localStorage.getItem("yuris_theme");if(t==="light"||t===null)document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>

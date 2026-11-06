@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <?php if ($mk['personalizada']): ?>
   <link rel="icon" href="<?= $h($mk['favicon_url']) ?>">
   <?php else: ?>
-  <link rel="icon" type="image/png" sizes="32x32" href="/assets/fleetiflow-favicon-32.png?v=1"><link rel="icon" type="image/png" sizes="192x192" href="/assets/fleetiflow-favicon-192.png?v=1"><link rel="apple-touch-icon" href="/assets/fleetiflow-apple-touch-icon.png?v=1">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/fleetiflow-favicon-32.png?v=2"><link rel="icon" type="image/png" sizes="192x192" href="/assets/fleetiflow-favicon-192.png?v=2"><link rel="apple-touch-icon" href="/assets/fleetiflow-apple-touch-icon.png?v=1">
   <?php endif; ?>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script>/* ff_terms_preboot — mesma lógica do login padrão: sem flash de reaceite */

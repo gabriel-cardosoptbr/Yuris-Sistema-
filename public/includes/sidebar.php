@@ -178,7 +178,7 @@ $_notifTempo = function ($raw) {
 <script>(function(){try{
   var L=document.querySelectorAll('link[rel~="icon"],link[rel="apple-touch-icon"]');
   for(var i=0;i<L.length;i++){L[i].parentNode.removeChild(L[i]);}
-  <?php if ($_marca['personalizada']): ?>[['icon','any',<?= json_encode($_marca['favicon_url'], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>]]<?php else: ?>[['icon','32x32','/assets/fleetiflow-favicon-32.png?v=1'],['icon','192x192','/assets/fleetiflow-favicon-192.png?v=1'],['apple-touch-icon','180x180','/assets/fleetiflow-apple-touch-icon.png?v=1']]<?php endif; ?>.forEach(function(d){
+  <?php if ($_marca['personalizada']): ?>[['icon','any',<?= json_encode($_marca['favicon_url'], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>]]<?php else: ?>[['icon','32x32','/assets/fleetiflow-favicon-32.png?v=2'],['icon','192x192','/assets/fleetiflow-favicon-192.png?v=2'],['apple-touch-icon','180x180','/assets/fleetiflow-apple-touch-icon.png?v=1']]<?php endif; ?>.forEach(function(d){
     var l=document.createElement('link');l.rel=d[0];l.sizes=d[1];l.href=d[2];document.head.appendChild(l);
   });
 }catch(e){}})();</script>

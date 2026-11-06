@@ -16,6 +16,14 @@ class Team
     /** Cores para setor criado sem cor escolhida (pelo robô, por exemplo). */
     public const CORES = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444', '#14B8A6', '#F97316', '#EC4899'];
 
+    /**
+     * Setor de ORIGEM: guarda os leads de um disparo (a lista ou o robô) antes de eles
+     * dizerem a que segmento pertencem. O que o marca é a descrição começar assim. Quando
+     * o robô qualifica o lead e informa o setor de verdade (Concessionária, Locação...),
+     * ele sai do setor de origem; setor escolhido por uma pessoa nunca é trocado.
+     */
+    public const PREFIXO_ORIGEM = 'Lista de disparo';
+
     /** @var array<string,bool> cache de coluna existente, por "tabela.coluna" */
     private static array $colunas = [];
 
@@ -100,7 +108,10 @@ class Team
             'SELECT t.id, t.nome, t.cor, t.descricao, t.created_at' . self::colunasGestor() . ',
                     (SELECT GROUP_CONCAT(tm.user_id ORDER BY tm.user_id SEPARATOR ",")
                      FROM team_members tm WHERE tm.team_id = t.id) AS membro_ids,
-                    (SELECT COUNT(*) FROM team_members tm WHERE tm.team_id = t.id) AS membros_count
+                    (SELECT COUNT(*) FROM team_members tm WHERE tm.team_id = t.id) AS membros_count'
+                    . (self::temColuna('cards', 'team_id')
+                        ? ', (SELECT COUNT(*) FROM cards c WHERE c.team_id = t.id AND c.account_id = t.account_id AND c.deleted_at IS NULL) AS leads_count'
+                        : ', 0 AS leads_count') . '
              FROM teams t
              WHERE t.account_id = ? AND t.deleted_at IS NULL
              ORDER BY t.nome ASC'
@@ -108,6 +119,7 @@ class Team
         $stmt->execute([$accountId]);
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         foreach ($rows as &$row) {
+            $row['leads_count'] = (int)$row['leads_count'];
             $row['membro_ids']    = $row['membro_ids']
                 ? array_map('intval', explode(',', $row['membro_ids']))
                 : [];
@@ -245,16 +257,26 @@ class Team
      * pessoa. O card e o setor têm de ser da mesma conta. Antes da migration
      * 140 não faz nada.
      *
+     * Com $trocaOrigem (só vale junto com $soSeVazio), o card que está num setor de origem
+     * (PREFIXO_ORIGEM) também recebe o setor novo: é o robô dizendo a que segmento o lead
+     * pertence. Setor escolhido por uma pessoa continua intocado.
+     *
      * @return bool true quando o card mudou
      */
-    public static function definirSetorDoCard(int $accountId, int $cardId, ?int $teamId, bool $soSeVazio = false): bool
+    public static function definirSetorDoCard(int $accountId, int $cardId, ?int $teamId, bool $soSeVazio = false, bool $trocaOrigem = false): bool
     {
         if (!self::temColuna('cards', 'team_id')) return false;
         if ($teamId !== null && !self::findById($teamId, $accountId)) return false;
 
         $sql = 'UPDATE cards SET team_id = ? WHERE id = ? AND account_id = ? AND NOT (team_id <=> ?)';
         $par = [$teamId, $cardId, $accountId, $teamId];
-        if ($soSeVazio) $sql .= ' AND team_id IS NULL';
+        if ($soSeVazio && $trocaOrigem) {
+            $sql .= ' AND (team_id IS NULL OR team_id IN (SELECT id FROM teams WHERE account_id = ? AND descricao LIKE ?))';
+            $par[] = $accountId;
+            $par[] = self::PREFIXO_ORIGEM . '%';
+        } elseif ($soSeVazio) {
+            $sql .= ' AND team_id IS NULL';
+        }
         $st = Database::getConnection()->prepare($sql);
         $st->execute($par);
         return $st->rowCount() > 0;

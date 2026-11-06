@@ -131,6 +131,27 @@ try {
     Team::definirSetorDoCard($accA, $card, null);
     $wa->linkChat($inst, $jid, ['linked_card_id' => $card]);
     ok('setor de outra conta na conversa não passa para o card', $setorDoCard($card) === null);
+
+    echo "\n== 5. Setor de origem (disparo) e contagem de leads ==\n";
+    $origem = Team::garantirPorNome($accA, 'Origem Teste 140');
+    Team::update($origem, ['descricao' => Team::PREFIXO_ORIGEM . ': teste']);
+    $leadsDe = fn(int $teamId) => (int) array_values(array_filter(Team::list($accA), fn($t) => (int)$t['id'] === $teamId))[0]['leads_count'];
+    $antes = $leadsDe($origem);
+    Team::definirSetorDoCard($accA, $card, $origem);
+    ok('a lista de setores conta os leads de cada um', $leadsDe($origem) === $antes + 1);
+    ok('setor recém-criado, sem lead, conta zero', $leadsDe($locB === $origem ? 0 : Team::garantirPorNome($accA, 'Vazio Teste 140')) === 0);
+    $outraConta = (int)$pdo->query("SELECT COUNT(*) FROM cards WHERE account_id = $accB AND team_id = $origem")->fetchColumn();
+    ok('lead de outra conta nunca entra na contagem', $outraConta === 0);
+
+    ok('a automação troca o setor de origem pelo setor de verdade',
+        Team::definirSetorDoCard($accA, $card, $conc, true, true) && $setorDoCard($card) === $conc);
+    ok('e não troca de novo: o setor de verdade já está lá',
+        !Team::definirSetorDoCard($accA, $card, $loc, true, true) && $setorDoCard($card) === $conc);
+    Team::definirSetorDoCard($accA, $card, $origem);
+    ok('sem o pedido de troca, a automação não mexe no setor de origem',
+        !Team::definirSetorDoCard($accA, $card, $conc, true) && $setorDoCard($card) === $origem);
+    ok('setor de origem de outra conta não conta como origem',
+        !Team::definirSetorDoCard($accB, $card, $locB, true, true) && $setorDoCard($card) === $origem);
 } catch (\Throwable $e) {
     ok('sem exceção: ' . $e->getMessage() . ' em ' . basename($e->getFile()) . ':' . $e->getLine(), false);
 } finally {

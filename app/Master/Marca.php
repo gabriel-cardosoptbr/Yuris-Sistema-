@@ -109,7 +109,7 @@ final class Marca
             'paleta'        => self::PALETA_FLEETIFLOW,
             'logo_url'      => '/sistema_vendas/Imagens/fleetiflow-horizontal.png',
             'icone_url'     => '/sistema_vendas/Imagens/fleetiflow-icone.png',
-            'favicon_url'   => '/assets/fleetiflow-favicon-192.png?v=1',
+            'favicon_url'   => '/assets/fleetiflow-favicon-192.png?v=2',
             'inicial'       => 'F',
             'dominio'       => null,
             'agente'        => ['nome' => 'Vitória', 'artigo' => 'a'],

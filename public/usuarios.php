@@ -1654,7 +1654,10 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
         }).join('');
         const extra  = count > 4 ? `<div class="team-avatar-sm" title="${count-4} mais">+${count-4}</div>` : '';
         const cor    = escapeHtml(t.cor || '#3B82F6');
-        const label  = count === 0 ? 'Sem membros' : count === 1 ? '1 membro' : `${count} membros`;
+        const nLeads = Number(t.leads_count || 0);
+        const leadsTxt = nLeads === 1 ? '1 lead' : `${nLeads.toLocaleString('pt-BR')} leads`;
+        const membrosTxt = count === 0 ? 'sem membros' : count === 1 ? '1 membro' : `${count} membros`;
+        const label  = `${leadsTxt} · ${membrosTxt}`;
         const gestor = t.gestor_nome ? `<div class="team-desc">Gestor: <strong>${escapeHtml(t.gestor_nome)}</strong></div>` : '';
         return `
         <div class="team-card" style="--team-cor:${cor}">
