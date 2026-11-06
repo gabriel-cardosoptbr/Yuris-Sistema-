@@ -1,6 +1,6 @@
 # public/api/ — os endpoints REST
 
-139 endpoints. `push/persist.php` ganhou a ação `tratar`, e `push/list.php` o filtro `tratamento`. Cada arquivo `.php` é um endpoint, e o caminho do arquivo é a
+140 endpoints. `push/persist.php` ganhou a ação `tratar`, e `push/list.php` o filtro `tratamento`. Cada arquivo `.php` é um endpoint, e o caminho do arquivo é a
 URL: `public/api/whatsapp/send.php` responde em `/api/whatsapp/send.php`.
 
 **Mover um arquivo daqui muda a URL de uma chamada que o front já faz.** Vale a
@@ -127,6 +127,8 @@ grava `projeto.acesso_revelado` no histórico; a resposta sai com `Cache-Control
 O histórico de `acesso_salvo` nunca leva a senha, só se ela foi trocada ou apagada. CSRF no
 cabeçalho. Vendedor recebe 403, conta sem o módulo ligado 404; leitura e escrita pela
 lista de contas acessíveis de `financas`. Regras em `app/Projetos/README.md`.
+
+`tema.php?t=escuro|claro` devolve a paleta do Yuris (`App\Core\PaletaTema`), gerada na hora a partir do CSS atual e guardada no diretório temporário; público, sem sessão, com `?v=` das origens. Só as contas Yuris carregam.
 
 `tema_escuro.php?arquivo=ff-ficha|chat-numeros` devolve a cópia escura de uma folha da
 edição CRM, gerada na hora por `App\Master\TemaEscuroCrm` (lista fechada de arquivos,

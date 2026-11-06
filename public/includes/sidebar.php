@@ -1676,3 +1676,21 @@ window.FF_AGENDA = { csrf: <?= json_encode($_notifCsrf) ?>, sessao: <?= json_enc
 <link rel="stylesheet" href="/assets/ff-plataforma.css?v=<?= @filemtime(__DIR__ . '/../assets/ff-plataforma.css') ?: '1' ?>">
 <script src="/assets/ff-plataforma-lead.js?v=<?= @filemtime(__DIR__ . '/../assets/ff-plataforma-lead.js') ?: '1' ?>" defer></script>
 <?php endif; ?>
+<?php if (!$_isFleetiflow): /* Paleta do Yuris (App\Core\PaletaTema): o escuro do leão e o claro da águia. As contas de marca têm identidade própria e não carregam. */
+  $__temaV = \App\Core\PaletaTema::versao(dirname(__DIR__)); ?>
+<link rel="stylesheet" id="temaYurisEscuro" href="/api/tema.php?t=escuro&amp;v=<?= $__temaV ?>">
+<link rel="stylesheet" id="temaYurisClaro" href="/api/tema.php?t=claro&amp;v=<?= $__temaV ?>">
+<script>
+// A paleta ganha das folhas originais por vir DEPOIS delas. Estilo escrito mais
+// abaixo na página viria depois da paleta: no fim da carga ela vai para o fim.
+document.addEventListener('DOMContentLoaded', function () {
+  ['temaYurisEscuro', 'temaYurisClaro'].forEach(function (id) {
+    var l = document.getElementById(id);
+    if (!l) return;
+    var c = l.cloneNode();
+    c.removeAttribute('id');
+    document.body.appendChild(c);
+  });
+});
+</script>
+<?php endif; ?>
