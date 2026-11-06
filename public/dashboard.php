@@ -367,6 +367,11 @@ if ($isFleetiflow) {
     .prox-row-client { color: #e2f0ff; font-weight: 600; }
     .prox-row-meta   { color: var(--muted); font-size: .7rem; margin-top: 1px; }
     .prox-empty { color: var(--muted); font-size: .76rem; padding: 10px; text-align: center; }
+    .prox-row-link { display: block; text-decoration: none; cursor: pointer; transition: background .15s, border-color .15s, transform .15s; }
+    .prox-row-link:hover { background: rgba(37,99,235,.22); border-color: rgba(96,165,250,.5); transform: translateY(-1px); }
+    .prox-row-link:focus-visible { outline: 2px solid #60A5FA; outline-offset: 2px; }
+    .prox-mais { display: block; text-align: center; font-size: .72rem; font-weight: 600; color: #93c5fd; padding: 6px; text-decoration: none; }
+    a.prox-mais:hover { text-decoration: underline; }
 
     /* ── Funnel / projection (keeps dashboard.js IDs) ── */
     #projectionPanel, #funnelPanel {
@@ -948,17 +953,27 @@ if ($isFleetiflow) {
   function addDays(d,n){ const r=new Date(d); r.setDate(r.getDate()+n); return r; }
 
   // ── Render processos próximos list ──────────────────────────────────────────
+  function escH(v){ return String(v==null?'':v).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   function renderProxList(listId, cntId, items){
     setEl(cntId, items ? items.length : 0);
     const el = document.getElementById(listId);
     if (!el) return;
     if (!items || !items.length){ el.innerHTML='<div class="prox-empty">Nenhum processo</div>'; return; }
-    el.innerHTML = items.slice(0,6).map(p=>
-      `<div class="prox-row">` +
-        `<div class="prox-row-client">${p.cliente_nome||'—'}</div>` +
-        `<div class="prox-row-meta">${p.numero||'—'} · ${fmtDate(p.proximo_prazo)}${p.responsavel?' · '+p.responsavel:''}</div>` +
-      `</div>`
-    ).join('');
+    const pode = <?= (!function_exists('_sidebarCan') || _sidebarCan('processos')) ? 'true' : 'false' ?>;
+    const LIMITE = 6;
+    let html = items.slice(0,LIMITE).map(p=>{
+      const corpo =
+        `<div class="prox-row-client">${escH(p.cliente_nome||'—')}</div>` +
+        `<div class="prox-row-meta">${escH(p.numero||'—')} · ${fmtDate(p.proximo_prazo)}${p.responsavel?' · '+escH(p.responsavel):''}</div>`;
+      if (!pode || !p.id) return `<div class="prox-row">${corpo}</div>`;
+      return `<a class="prox-row prox-row-link" href="/processos.php?open=${encodeURIComponent(p.id)}" title="Abrir este processo">${corpo}</a>`;
+    }).join('');
+    if (items.length > LIMITE && pode){
+      html += `<a class="prox-mais" href="/processos.php">Ver os outros ${items.length-LIMITE} em Processos</a>`;
+    } else if (items.length > LIMITE){
+      html += `<div class="prox-mais">e mais ${items.length-LIMITE}</div>`;
+    }
+    el.innerHTML = html;
   }
 
   // ── Compute from processes ───────────────────────────────────────────────

@@ -661,6 +661,9 @@ markdown para consumo por LLM.
   Contratos Fechados e Clientes Ativos levam a `prospeccao.php?etapa=fechado`.
 - **Processos Próximos** (Hoje, 7, 15 e 30 dias) fica logo abaixo de Jurídico, sem
   mudança na conta dos prazos.
+  Cada cartão de processo é um link para `processos.php?open=ID`, que abre o processo
+  (`.prox-row-link`); passando de 6 por faixa, aparece "Ver os outros N em Processos".
+  Quem não tem a permissão de Processos vê os cartões sem link.
 
 ## `assets/_conferir_paleta.js`
 

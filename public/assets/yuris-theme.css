@@ -1071,6 +1071,8 @@ html[data-theme="light"] .filter-btn[aria-pressed="true"] {
 html[data-theme="light"] .prox-row-client { color: #0F1F36 !important; }
 html[data-theme="light"] .prox-row-meta   { color: #5A6B7E !important; }
 html[data-theme="light"] .prox-empty      { color: #8B97A8 !important; }
+html[data-theme="light"] .prox-row-link:hover { background: #FFFFFF !important; border-color: rgba(30,74,138,0.45) !important; }
+html[data-theme="light"] .prox-mais { color: #1E4A8A !important; }
 
 /* ── Planejamento ─────────────────────────────────────────────────── */
 html[data-theme="light"] .goal-indicator,
