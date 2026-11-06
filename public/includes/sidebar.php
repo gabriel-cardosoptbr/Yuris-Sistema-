@@ -1676,8 +1676,15 @@ window.FF_AGENDA = { csrf: <?= json_encode($_notifCsrf) ?>, sessao: <?= json_enc
 <link rel="stylesheet" href="/assets/ff-plataforma.css?v=<?= @filemtime(__DIR__ . '/../assets/ff-plataforma.css') ?: '1' ?>">
 <script src="/assets/ff-plataforma-lead.js?v=<?= @filemtime(__DIR__ . '/../assets/ff-plataforma-lead.js') ?: '1' ?>" defer></script>
 <?php endif; ?>
-<?php if (!$_isFleetiflow): /* Paleta nova do Yuris (App\Core\PaletaTema), EM PRÉVIA. A primeira versão foi ao ar para todos e foi reprovada (06/11/2026): agora só carrega no navegador de quem abriu uma tela com ?paleta=1 (fica guardado; ?paleta=0 desliga). Ninguém mais vê. Conta de marca nunca carrega. */
-  $__temaV = \App\Core\PaletaTema::versao(dirname(__DIR__)); ?>
+<?php
+/* Paleta nova do Yuris (App\Core\PaletaTema), EM PRÉVIA. A primeira versão foi ao
+   ar para todos e foi reprovada (06/11/2026): agora só carrega no navegador de quem
+   abriu uma tela com ?paleta=1 (fica guardado; ?paleta=0 desliga). Ninguém mais vê.
+   Conta de marca nunca carrega. Cada tela pede a folha DELA: quem inclui este menu
+   é a tela, e é o nome dela que vai no pedido. */
+$__temaPag = basename((string) (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 1)[0]['file'] ?? ''), '.php');
+if (!$_isFleetiflow && \App\Core\PaletaTema::conhece($__temaPag)):
+  $__temaV = \App\Core\PaletaTema::versao(dirname(__DIR__), $__temaPag); ?>
 <script>
 (function () {
   try {
@@ -1686,11 +1693,11 @@ window.FF_AGENDA = { csrf: <?= json_encode($_notifCsrf) ?>, sessao: <?= json_enc
     if (p === '0') localStorage.removeItem('yuris_paleta');
     if (localStorage.getItem('yuris_paleta') !== '1') return;
   } catch (e) { return; }
-  var v = <?= (int) $__temaV ?>;
+  var fim = '&p=<?= $__temaPag ?>&v=<?= (int) $__temaV ?>';
   // document.write de propósito: a folha entra durante a leitura da página e a
   // tela não pisca no desenho antigo antes de trocar.
-  document.write('<link rel="stylesheet" data-paleta="escuro" href="/api/tema.php?t=escuro&v=' + v + '">'
-               + '<link rel="stylesheet" data-paleta="claro" href="/api/tema.php?t=claro&v=' + v + '">');
+  document.write('<link rel="stylesheet" data-paleta="escuro" href="/api/tema.php?t=escuro' + fim + '">'
+               + '<link rel="stylesheet" data-paleta="claro" href="/api/tema.php?t=claro' + fim + '">');
   // A paleta ganha das folhas originais por vir DEPOIS delas. Estilo escrito mais
   // abaixo na página viria depois da paleta: no fim da carga ela vai para o fim.
   document.addEventListener('DOMContentLoaded', function () {

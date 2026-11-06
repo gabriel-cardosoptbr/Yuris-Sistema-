@@ -128,7 +128,7 @@ O histórico de `acesso_salvo` nunca leva a senha, só se ela foi trocada ou apa
 cabeçalho. Vendedor recebe 403, conta sem o módulo ligado 404; leitura e escrita pela
 lista de contas acessíveis de `financas`. Regras em `app/Projetos/README.md`.
 
-`tema.php?t=escuro|claro` devolve a paleta do Yuris (`App\Core\PaletaTema`), gerada na hora a partir do CSS atual e guardada no diretório temporário; público, sem sessão, com `?v=` das origens. Só as contas Yuris carregam.
+`tema.php?t=escuro|claro&p=<tela>` devolve a paleta nova do Yuris para UMA tela (`App\Core\PaletaTema`), gerada na hora a partir do CSS que a tela carrega e guardada no diretório temporário; público, sem sessão, com `?v=` das origens. Só telas da lista `PaletaTema::PAGINAS`. Em prévia: o menu só pede no navegador de quem ligou com `?paleta=1`.
 
 `tema_escuro.php?arquivo=ff-ficha|chat-numeros` devolve a cópia escura de uma folha da
 edição CRM, gerada na hora por `App\Master\TemaEscuroCrm` (lista fechada de arquivos,

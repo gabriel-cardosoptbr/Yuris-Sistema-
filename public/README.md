@@ -662,6 +662,13 @@ markdown para consumo por LLM.
 - **Processos Próximos** (Hoje, 7, 15 e 30 dias) fica logo abaixo de Jurídico, sem
   mudança na conta dos prazos.
 
+## `assets/_conferir_paleta.js`
+
+Ferramenta de desenvolvimento, **não carregada por nenhuma tela**. Compara cada elemento
+de uma tela com a paleta nova desligada e ligada (`App\Core\PaletaTema`): a paleta só
+pode trocar o tom, nunca criar fundo, tirar degradê ou mudar borda. Uso, no console de uma
+tela com login: carregar o arquivo e rodar `await conferirPaleta.varrer(['dashboard'])`.
+
 ## Regras
 
 **Nada de credencial nem chave aqui.** Tudo nesta pasta é público por
