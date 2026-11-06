@@ -135,6 +135,12 @@ $menu = (string) file_get_contents($publico . '/includes/sidebar.php');
 ok((bool) preg_match('/if \(!\$_isFleetiflow\):[^\n]*\n[^\n]*PaletaTema::versao.*?api\/tema\.php\?t=escuro.*?api\/tema\.php\?t=claro.*?endif/s', $menu),
    'o menu carrega as duas folhas dentro de "se não é conta de marca"');
 eq(1, substr_count($menu, 'api/tema.php?t=escuro'), 'e em nenhum outro lugar');
+// A primeira versão foi ao ar para todos e foi reprovada. Enquanto for prévia,
+// a folha só entra no navegador de quem ligou, e antes de qualquer <link>.
+ok((bool) preg_match("/localStorage\.getItem\('yuris_paleta'\) !== '1'\) return;.*?api\/tema\.php/s", $menu),
+   'prévia: quem não ligou sai antes de carregar a folha');
+ok(!preg_match('/<link[^>]*api\/tema\.php/', (string) preg_replace("/document\.write\('.*?'\);/s", '', $menu)),
+   'prévia: nenhum <link> fixo da paleta no menu');
 ok(PaletaTema::versao($publico) >= filemtime($publico . '/assets/yuris-theme.css'), 'a versão acompanha as folhas de origem: mexeu no CSS, o cache renova');
 
 echo "\n{$PASSES} ok, {$FAILS} falha(s)\n";

@@ -1676,21 +1676,30 @@ window.FF_AGENDA = { csrf: <?= json_encode($_notifCsrf) ?>, sessao: <?= json_enc
 <link rel="stylesheet" href="/assets/ff-plataforma.css?v=<?= @filemtime(__DIR__ . '/../assets/ff-plataforma.css') ?: '1' ?>">
 <script src="/assets/ff-plataforma-lead.js?v=<?= @filemtime(__DIR__ . '/../assets/ff-plataforma-lead.js') ?: '1' ?>" defer></script>
 <?php endif; ?>
-<?php if (!$_isFleetiflow): /* Paleta do Yuris (App\Core\PaletaTema): o escuro do leão e o claro da águia. As contas de marca têm identidade própria e não carregam. */
+<?php if (!$_isFleetiflow): /* Paleta nova do Yuris (App\Core\PaletaTema), EM PRÉVIA. A primeira versão foi ao ar para todos e foi reprovada (06/11/2026): agora só carrega no navegador de quem abriu uma tela com ?paleta=1 (fica guardado; ?paleta=0 desliga). Ninguém mais vê. Conta de marca nunca carrega. */
   $__temaV = \App\Core\PaletaTema::versao(dirname(__DIR__)); ?>
-<link rel="stylesheet" id="temaYurisEscuro" href="/api/tema.php?t=escuro&amp;v=<?= $__temaV ?>">
-<link rel="stylesheet" id="temaYurisClaro" href="/api/tema.php?t=claro&amp;v=<?= $__temaV ?>">
 <script>
-// A paleta ganha das folhas originais por vir DEPOIS delas. Estilo escrito mais
-// abaixo na página viria depois da paleta: no fim da carga ela vai para o fim.
-document.addEventListener('DOMContentLoaded', function () {
-  ['temaYurisEscuro', 'temaYurisClaro'].forEach(function (id) {
-    var l = document.getElementById(id);
-    if (!l) return;
-    var c = l.cloneNode();
-    c.removeAttribute('id');
-    document.body.appendChild(c);
+(function () {
+  try {
+    var p = new URLSearchParams(location.search).get('paleta');
+    if (p === '1') localStorage.setItem('yuris_paleta', '1');
+    if (p === '0') localStorage.removeItem('yuris_paleta');
+    if (localStorage.getItem('yuris_paleta') !== '1') return;
+  } catch (e) { return; }
+  var v = <?= (int) $__temaV ?>;
+  // document.write de propósito: a folha entra durante a leitura da página e a
+  // tela não pisca no desenho antigo antes de trocar.
+  document.write('<link rel="stylesheet" data-paleta="escuro" href="/api/tema.php?t=escuro&v=' + v + '">'
+               + '<link rel="stylesheet" data-paleta="claro" href="/api/tema.php?t=claro&v=' + v + '">');
+  // A paleta ganha das folhas originais por vir DEPOIS delas. Estilo escrito mais
+  // abaixo na página viria depois da paleta: no fim da carga ela vai para o fim.
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('link[data-paleta]').forEach(function (l) {
+      var c = l.cloneNode();
+      c.removeAttribute('data-paleta');
+      document.body.appendChild(c);
+    });
   });
-});
+})();
 </script>
 <?php endif; ?>
