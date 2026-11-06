@@ -89,7 +89,7 @@ final class SegmentoLead
      */
     public const NOMES_ESPECIFICOS = [
         'despachante'    => '/despach|emplac|documenta[cç][aã]o\s+veicular/iu',
-        'locacao'        => '/locad|loca[cç][aãoõ]|\brent(al)?\b|aluguel|alugue|aluga\b|localiza|movida|unidas/iu',
+        'locacao'        => '/locad|loca|loca[cç][aãoõ]|\brent(al)?\b|aluguel|alugue|aluga\b|localiza|movida|unidas/iu',
         'transportadora' => '/transport|log[ií]stic|translog|\bfretes?\b|\bcargas?\b|expresso|mudan[cç]as/iu',
         'telecom'        => '/telecom|telefon|internet|fibra|provedor|banda\s+larga/iu',
     ];

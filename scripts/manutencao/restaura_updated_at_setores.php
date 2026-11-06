@@ -8,7 +8,8 @@
  * Prospecção isso vira "último contato: hoje" e joga os cards para o topo da coluna
  * (Card::list ordena por updated_at DESC); na tela Desempenho, tira leads de "parados".
  *
- * O QUE RESTAURA (só quem está na janela --de/--ate E num setor, da conta informada)
+ * O QUE RESTAURA (só quem está na janela --de/--ate, da conta informada)
+ *   (a janela basta: o setor pode já ter sido tirado do lead depois da rodada)
  *   lead      GREATEST(created_at, última linha do card_history): é o que o updated_at
  *             valia, porque toda escrita relevante do card grava histórico;
  *   conversa  last_message_at (senão created_at).
@@ -41,9 +42,9 @@ $acc = \App\Master\Account::findById($conta);
 if (!$acc) exit("Conta $conta não existe.\n");
 echo "conta #{$acc['id']} \"{$acc['nome']}\", janela $de a $ate " . ($aplicar ? '(GRAVANDO)' : '(conferência, nada é gravado)') . "\n";
 
-$noSetor = 'c.team_id IS NOT NULL';
+$noSetor = '1 = 1';
 $cards = "SELECT COUNT(*) FROM cards c WHERE c.account_id = ? AND c.updated_at >= ? AND c.updated_at < ? AND $noSetor";
-$chats = 'SELECT COUNT(*) FROM whatsapp_chats w WHERE w.account_id = ? AND w.updated_at >= ? AND w.updated_at < ? AND w.team_id IS NOT NULL';
+$chats = 'SELECT COUNT(*) FROM whatsapp_chats w WHERE w.account_id = ? AND w.updated_at >= ? AND w.updated_at < ? ';
 $conta3 = fn(string $sql) => (function () use ($pdo, $sql, $conta, $de, $ate) { $s = $pdo->prepare($sql); $s->execute([$conta, $de, $ate]); return (int) $s->fetchColumn(); })();
 echo "leads na janela:     " . $conta3($cards) . "\nconversas na janela: " . $conta3($chats) . "\n";
 if (!$aplicar) { echo "\nNada gravado. Use --aplicar.\n"; exit; }
@@ -54,7 +55,7 @@ try {
                          WHERE c.account_id = ? AND c.updated_at >= ? AND c.updated_at < ? AND $noSetor");
     $a->execute([$conta, $de, $ate]);
     $b = $pdo->prepare('UPDATE whatsapp_chats w SET w.updated_at = COALESCE(w.last_message_at, w.created_at)
-                         WHERE w.account_id = ? AND w.updated_at >= ? AND w.updated_at < ? AND w.team_id IS NOT NULL');
+                         WHERE w.account_id = ? AND w.updated_at >= ? AND w.updated_at < ?');
     $b->execute([$conta, $de, $ate]);
     $pdo->commit();
 } catch (\Throwable $e) {
