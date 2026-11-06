@@ -383,14 +383,78 @@ class Card
             }
         }
 
+        // O formulário aberto antes do arraste ainda traz a data vazia: salvar não
+        // pode apagar a data de um card que está na etapa de venda concluída.
+        $colunaFinal = array_key_exists('coluna_id', $params) ? $params['coluna_id'] : ($antes['coluna_id'] ?? null);
+        if ($antes && array_key_exists('data_fechamento', $params) && $params['data_fechamento'] === null
+            && self::_temData($antes['data_fechamento'] ?? null) && !empty(self::_etapa($colunaFinal)['conta_fechado'])) {
+            unset($params['data_fechamento']);
+            $fields = array_values(array_filter($fields, static fn($f) => $f !== 'data_fechamento = :data_fechamento'));
+            if (!$fields) return true;
+        }
+
         $sql = 'UPDATE cards SET ' . implode(', ', $fields) . ', updated_at = NOW() WHERE id = :id';
         $stmt = $pdo->prepare($sql);
         $ok   = $stmt->execute($params);
 
         if ($ok && $antes) {
             self::_logCampos($id, $antes, $params, $data['_usuario_id'] ?? null);
+            if ((string) $colunaFinal !== (string) ($antes['coluna_id'] ?? '')) {
+                $dataAgora = array_key_exists('data_fechamento', $params) ? $params['data_fechamento'] : ($antes['data_fechamento'] ?? null);
+                self::_aoTrocarDeEtapa($id, $antes['coluna_id'] ?? null, $colunaFinal, $dataAgora, $data['_usuario_id'] ?? null);
+            }
         }
         return $ok;
+    }
+
+    /**
+     * A data de fechamento depois de o card trocar de etapa. Pura.
+     *
+     * Entrar na etapa de venda concluída fecha a venda com a data de hoje, sem
+     * trocar uma data que já exista. Voltar para o funil ou ir para perdido
+     * reabre, e a data sai. Passar para uma etapa fora do funil (pós-venda, por
+     * exemplo) mantém a venda.
+     *
+     * @return string|null|false a data nova, null para limpar, false para não mexer
+     */
+    public static function fechamentoAoMudarDeEtapa(?array $de, ?array $para, ?string $dataAtual, string $hoje)
+    {
+        $temData = self::_temData($dataAtual);
+        $estavaFechado = !empty($de['conta_fechado']);
+        $ficouFechado  = !empty($para['conta_fechado']);
+        if ($ficouFechado) return !$estavaFechado && !$temData ? $hoje : false;
+        $reabriu = $estavaFechado && (!empty($para['conta_perdido']) || !empty($para['conta_funil']));
+        return $reabriu && $temData ? null : false;
+    }
+
+    /**
+     * Toda troca de etapa passa aqui. Até 05/11/2026 só o formulário e o orçamento
+     * aprovado gravavam a data: arrastar para "Venda concluída" não contava como
+     * venda em painel nenhum. Falhar aqui nunca desfaz o movimento do card.
+     */
+    private static function _aoTrocarDeEtapa($id, $deColuna, $paraColuna, ?string $dataAtual, $usuarioId = null): void
+    {
+        try {
+            $nova = self::fechamentoAoMudarDeEtapa(self::_etapa($deColuna), self::_etapa($paraColuna), $dataAtual, substr(\App\Tarefas\TaskEntrega::agoraLocal(), 0, 10));
+            if ($nova === false) return;
+            Database::getConnection()->prepare('UPDATE cards SET data_fechamento = ?, updated_at = updated_at WHERE id = ?')->execute([$nova, $id]);
+            self::logEvento($id, $usuarioId, 'updated', 'data_fechamento', $dataAtual, $nova);
+        } catch (\Throwable $e) {
+            error_log('[Card::_aoTrocarDeEtapa] card #' . $id . ': ' . $e->getMessage());
+        }
+    }
+
+    private static function _etapa($colunaId): ?array
+    {
+        if (empty($colunaId)) return null;
+        $st = Database::getConnection()->prepare('SELECT conta_funil, conta_fechado, conta_perdido FROM pipeline_columns WHERE id = ?');
+        $st->execute([(int) $colunaId]);
+        return $st->fetch(\PDO::FETCH_ASSOC) ?: null;
+    }
+
+    private static function _temData(?string $data): bool
+    {
+        return $data !== null && $data !== '' && $data > '0000-00-00';
     }
 
     /**
@@ -454,6 +518,9 @@ class Card
                 'ua'  => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255),
                 'rid' => \App\Core\RequestId::get(),
             ]);
+            if ((string) $de_coluna !== (string) $coluna_id) {
+                self::_aoTrocarDeEtapa($id, $de_coluna, $coluna_id, $cur['data_fechamento'] ?? null, $usuario_id);
+            }
         }
         return $ok;
     }
@@ -478,7 +545,7 @@ class Card
         $pdo = Database::getConnection();
         $ids = array_values(array_unique(array_filter(array_map(fn($u) => (int) ($u['id'] ?? 0), $updates))));
         if (!$ids) return true;
-        $st = $pdo->prepare('SELECT id, coluna_id, ordem_na_coluna FROM cards WHERE id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')');
+        $st = $pdo->prepare('SELECT id, coluna_id, ordem_na_coluna, data_fechamento FROM cards WHERE id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')');
         $st->execute($ids);
         $atual = [];
         foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) $atual[(int) $r['id']] = $r;
@@ -508,6 +575,7 @@ class Card
                         'ua'  => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255),
                         'rid' => \App\Core\RequestId::get(),
                     ]);
+                    self::_aoTrocarDeEtapa($id, $deCol, $novaCol, $atual[$id]['data_fechamento'], $usuario_id);
                 } elseif ((int) $atual[$id]['ordem_na_coluna'] !== $novaOrd) {
                     $ordem->execute(['ordem' => $novaOrd, 'id' => $id]);
                 }

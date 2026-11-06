@@ -23,7 +23,7 @@ $OK = 0; $FALHAS = [];
 function ok(string $m, bool $c): void { global $OK, $FALHAS; if ($c) { $OK++; echo "  [ok]   $m\n"; } else { $FALHAS[] = $m; echo "  [FALHA] $m\n"; } }
 
 $pdo = Database::getConnection();
-$cols = $pdo->query("SELECT c.coluna_id, COUNT(*) n FROM cards c WHERE c.account_id = 304 AND c.deleted_at IS NULL GROUP BY c.coluna_id HAVING n >= 2 ORDER BY n DESC LIMIT 2")->fetchAll(\PDO::FETCH_ASSOC);
+$cols = $pdo->query("SELECT c.coluna_id, COUNT(*) n FROM cards c JOIN pipeline_columns pc ON pc.id = c.coluna_id AND pc.conta_fechado = 0 AND pc.conta_perdido = 0 WHERE c.account_id = 304 AND c.deleted_at IS NULL GROUP BY c.coluna_id HAVING n >= 2 ORDER BY n DESC LIMIT 2")->fetchAll(\PDO::FETCH_ASSOC);
 $orig = [];
 $histAntes = 0;
 try {
