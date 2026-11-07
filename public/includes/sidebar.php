@@ -117,6 +117,11 @@ try {
     if ($_isFleetiflow) $_marca = $__brandCtx->getMarca();
 } catch (\Throwable $__e) { /* mantém identidade Yuris se algo falhar */ }
 if ($_isFleetiflow && $_marca === null) $_marca = \App\Master\Marca::padraoFleetiflow();
+// Interface nova (App\Inicio\InterfaceNova, 07/11/2026), EM PRÉVIA: só para quem
+// abriu uma tela com ?novo=1 (fica em cookie; ?novo=0 desliga). Conta de marca nunca.
+// Muda o rótulo da home, põe "Indicadores" em Gestão e veste o menu com
+// assets/interface-nova.css. O resto do HTML é o mesmo.
+$_interfaceNova = \App\Inicio\InterfaceNova::ligada($_GET, $_COOKIE, $_isFleetiflow);
 
 // ── Aviso de WhatsApp fora do ar (edição CRM) ─────────────────────────────
 // Em 30/09/2026 o canal caiu (Evolution, código 401: o aparelho desconectou o
@@ -941,7 +946,7 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
     <?php if ($_isFleetiflow): ?><div class="sb-titulo">Geral</div><?php endif; ?>
     <a href="/dashboard" class="sidebar-overview-link<?= $_ap === 'dashboard' ? ' active' : '' ?>"<?= $_ap === 'dashboard' ? ' aria-current="page"' : '' ?>>
       <span class="icon" aria-hidden="true"><?= $_svg['dashboard'] ?></span>
-      <span class="label">Visão Geral</span>
+      <span class="label"><?= $_interfaceNova ? 'Início' : 'Visão Geral' ?></span>
     </a>
     <?php endif; ?>
 
@@ -984,6 +989,9 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
         // aparece em perm_any e pode ser concedida explicitamente. O que ela
         // nao faz e AMPLIAR: cada fonte e filtrada pelo modulo dela dentro de
         // /api/relatorios.php.
+        // Interface nova: a home deixou de ser o painel de métricas; ele vira o
+        // primeiro item de Gestão (dashboard.php?gestao=1 mostra o painel de sempre).
+        ...($_interfaceNova ? [['perm'=>'dashboard','href'=>'dashboard.php?gestao=1','active'=>'indicadores','icon'=>'relatorios','label'=>'Indicadores']] : []),
         ['perm'=>null,'perm_any'=>['relatorios','clientes','prospeccao','processos'],
          'href'=>'relatorios.php','active'=>'relatorios','icon'=>'relatorios','label'=>'Relatórios'],
         // OTIF das tarefas: mesma permissao do modulo Tarefas, sem chave nova.
@@ -1676,6 +1684,10 @@ window.FF_AGENDA = { csrf: <?= json_encode($_notifCsrf) ?>, sessao: <?= json_enc
 <link rel="stylesheet" href="/assets/ff-plataforma.css?v=<?= @filemtime(__DIR__ . '/../assets/ff-plataforma.css') ?: '1' ?>">
 <script src="/assets/ff-plataforma-lead.js?v=<?= @filemtime(__DIR__ . '/../assets/ff-plataforma-lead.js') ?: '1' ?>" defer></script>
 <?php endif; ?>
+<?php if ($_interfaceNova): ?>
+<!-- Interface nova (prévia): veste o menu. Vem depois de todas as folhas, e ganha. -->
+<link rel="stylesheet" href="/assets/interface-nova.css?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova.css') ?: 1 ?>">
+<?php endif; echo \App\Inicio\InterfaceNova::scriptCookie($_GET); ?>
 <?php
 /* Paleta nova do Yuris (App\Core\PaletaTema), EM PRÉVIA. A primeira versão foi ao
    ar para todos e foi reprovada (06/11/2026): agora só carrega no navegador de quem

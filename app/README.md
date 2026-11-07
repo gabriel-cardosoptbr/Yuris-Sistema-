@@ -33,6 +33,7 @@ palavra que está na tela.
 | [`Clientes/`](Clientes/) | Operação › Clientes | base de clientes do escritório, origens, kanban operacional |
 | [`Crm/`](Crm/) | as duas telas acima | o que vale para prospecção **e** cliente: documentos, etiquetas, campos personalizados, contatos registrados. `Entidade` é o portão único de tenancy dos vínculos polimórficos |
 | [`Processos/`](Processos/) | Jurídico › Processos e Intimações | processos, histórico, AASP/DJEN e o motor de monitoramento (`Monitor/`) |
+| [`Inicio/`](Inicio/) | a home (Início) e, em prévia, a interface nova | a chave `?novo=1` (cookie, só quem pediu; conta de marca nunca) e o montador da home do escritório: agenda, prazos, publicações, equipe, processos e quem espera resposta, lidos das fontes de cada módulo sem copiar |
 | [`Tarefas/`](Tarefas/) | Operação › Tarefas | tarefas, quadros, checklists, apontamento de horas, recorrência |
 | [`Financas/`](Financas/) | Gestão › Finanças | plano de contas do DRE |
 | [`Projetos/`](Projetos/) | pasta Projetos do menu (edição CRM, módulo por conta) | carteira de projetos da conta: projetos-mãe e subprojetos, servidores com rateio, receitas e custos, contas de cada projeto com o consumo, acessos com senha cifrada, evolução e o dossiê de pendências; e a aba Evolution (menu Evolution › Conexões: o servidor de WhatsApp, só leitura) |

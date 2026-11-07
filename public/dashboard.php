@@ -3,8 +3,10 @@ require_once __DIR__ . '/../app/bootstrap.php';
 use App\Core\Database;
 use App\Financas\DREAccount;
 use App\Core\AccountContext;
+use App\Inicio\InterfaceNova;
 session_start();
 if (empty($_SESSION['user_id'])) { header('Location: /login'); exit; }
+InterfaceNova::aplicar(); // ?novo=1 liga a prévia da interface nova (cookie); ?novo=0 desliga
 $activePage = 'dashboard';
 
 // Contexto de tenant — obrigatório para evitar vazamento entre contas.
@@ -173,6 +175,15 @@ if ($isFleetiflow) {
     require __DIR__ . '/includes/dashboard_fleetiflow.php';
     exit;
 }
+// Interface nova (prévia, 07/11/2026): a home é o dia do escritório
+// (includes/dashboard_inicio.php). O painel de métricas continua aqui embaixo,
+// como "Indicadores" (?gestao=1), e para quem não ligou a prévia nada muda.
+$interfaceNova = InterfaceNova::ligada($_GET, $_COOKIE, $isFleetiflow);
+if ($moduloJuridico && $interfaceNova && empty($_GET['gestao'])) {
+    require __DIR__ . '/includes/dashboard_inicio.php';
+    exit;
+}
+if ($interfaceNova) $activePage = 'indicadores'; // no menu novo, este painel é Gestão › Indicadores
 ?>
 <!doctype html>
 <html lang="pt-BR">

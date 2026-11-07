@@ -329,6 +329,20 @@ eixo zerado. Os dados vêm de uma chamada a `api/dashboard_comercial.php`
 reutilizáveis (`ffc_kpi()` no PHP e `window.FleetiflowDash` no JS) para os
 próximos painéis da Fleetiflow. A conta Yuris nunca passa por esse `require`.
 
+**Interface nova, em prévia (07/11/2026).** Para a conta jurídica que abriu uma
+tela com `?novo=1` (cookie `yuris_interface_nova`; `?novo=0` desliga; conta de
+marca nunca), `dashboard.php` entrega `includes/dashboard_inicio.php`: a home vira
+o dia do escritório (boas-vindas com a frase do dia, agenda de hoje, prazos,
+publicações sem tratamento, equipe, processos com movimentação, quem espera
+resposta no WhatsApp, e os números no rodapé), com os dados de `App\Inicio\Painel`.
+O painel de métricas de sempre continua nesta mesma página com `?gestao=1`, e no
+menu novo é **Gestão › Indicadores**. O menu (`includes/sidebar.php`) lê a mesma
+chave, chama a home de "Início" e carrega `assets/interface-nova.css` por cima do
+HTML de sempre: painel em relevo, itens em pílula, a página atual numa pílula azul
+que brilha, nos dois temas. A home está em `assets/inicio.css` (variáveis `--ini-*`,
+a faixa com as peças de madeira em CSS). Quem não ligou não vê nada disso. Ver
+[`app/Inicio/README.md`](../app/Inicio/README.md); teste `scripts/tests/interface_nova_test.php`.
+
 **Tema escuro da edição CRM (02/10/2026).** O desenho da edição CRM era só claro
 (todo seletor com `html[data-theme="light"]`), e no escuro sobrava o estilo antigo do
 Yuris por cima do HTML novo: grupos do menu como caixas, a engrenagem de Configurações
