@@ -340,7 +340,7 @@ menu novo é **Gestão › Indicadores**. O menu (`includes/sidebar.php`) lê a 
 chave, chama a home de "Início" e carrega `assets/interface-nova.css` por cima do
 HTML de sempre: painel em relevo, itens em pílula, a página atual numa pílula azul
 que brilha, nos dois temas. A home está em `assets/inicio.css` (variáveis `--ini-*`,
-a faixa com as peças de madeira em CSS). Quem não ligou não vê nada disso. Ver
+a faixa de boas-vindas com a foto de uma biblioteca jurídica ao fundo). Quem não ligou não vê nada disso. Ver
 [`app/Inicio/README.md`](../app/Inicio/README.md); teste `scripts/tests/interface_nova_test.php`.
 
 **Tema escuro da edição CRM (02/10/2026).** O desenho da edição CRM era só claro

@@ -10,8 +10,10 @@
  *
  * Desenho: menu em painel com a pílula azul (assets/interface-nova.css, que o
  * sidebar.php carrega) e a home em assets/inicio.css, nos dois temas. A faixa
- * de boas-vindas tem as peças de madeira com a luz azul por trás, em CSS, sem
- * foto: madeira como moldura, nunca atrás de texto.
+ * de boas-vindas tem uma biblioteca jurídica ao fundo (foto de licença livre do
+ * Unsplash, servida pelo CDN deles por enquanto), que o tema escurece ou clareia;
+ * o texto fica sobre a parte lisa. As peças de madeira em CSS da primeira versão
+ * foram reprovadas ("retire essas madeiras") e saíram.
  */
 if (!isset($ctx)) { http_response_code(403); exit; }
 
@@ -102,12 +104,9 @@ $seta = '<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
             <?php endif; ?>
           </div>
         </div>
-        <div class="ini-parede" aria-hidden="true">
-          <div class="ini-luz">
-            <i class="ini-peca escura p1"></i><i class="ini-peca clara p2"></i><i class="ini-peca p3"></i><i class="ini-peca cinza p4"></i>
-            <i class="ini-peca p5"></i><i class="ini-peca escura p6"></i><i class="ini-peca clara p7"></i><i class="ini-peca p8"></i>
-          </div>
-        </div>
+        <!-- A sala: uma biblioteca jurídica ao fundo (foto de licença livre, Unsplash),
+             que o tema escurece ou clareia. O texto fica sobre a parte lisa, à esquerda. -->
+        <div class="ini-foto" aria-hidden="true"></div>
       </section>
 
       <!-- ── Linha 1: agenda, prazos, publicações ── -->

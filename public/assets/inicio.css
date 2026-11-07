@@ -13,19 +13,22 @@
   --ini-erro:#F87171; --ini-erro-bg:rgba(248,113,113,.12); --ini-info:#7EB8F6; --ini-info-bg:rgba(126,184,246,.12);
   --ini-sombra:0 1px 0 var(--ini-hi) inset, 0 18px 40px rgba(0,0,0,.35);
   --ini-fundo-sombra:inset 0 2px 6px rgba(0,0,0,.55), inset 0 -1px 0 rgba(255,255,255,.04);
-  --ini-mad-a:#5A3A24; --ini-mad-b:#7A4F2E; --ini-mad-c:#3E2616; --ini-mad-d:#A97A4E; --ini-mad-e:#2A1A0F;
+  --ini-painel-rgb:15,27,48;
+  --ini-foto-veu:rgba(6,12,24,.42);
 }
+/* Claro: papel e pedra, não branco. O escritório de dia: tons quentes, azul-marinho no texto. */
 html[data-theme="light"]{
-  --ini-bg:#E9EEF5; --ini-bg2:#EEF2F8; --ini-painel:#FFFFFF; --ini-painel2:#F3F6FB; --ini-fundo:#EDF1F7;
-  --ini-linha:rgba(15,31,54,.08); --ini-linha2:rgba(15,31,54,.14); --ini-hi:rgba(255,255,255,.9);
-  --ini-texto:#0F1F36; --ini-texto2:#4A5B73; --ini-texto3:#7E8DA3;
-  --ini-azul:#1F5AE0; --ini-azul2:#3B78F0; --ini-azul-suave:rgba(31,90,224,.10);
-  --ini-brilho:0 0 0 1px rgba(31,90,224,.25), 0 10px 26px rgba(31,90,224,.35), 0 0 36px rgba(31,90,224,.18);
-  --ini-ok:#0F9F6E; --ini-ok-bg:rgba(15,159,110,.12); --ini-aviso:#B7791F; --ini-aviso-bg:rgba(183,121,31,.12);
-  --ini-erro:#D23B3B; --ini-erro-bg:rgba(210,59,59,.10); --ini-info:#1F5AE0; --ini-info-bg:rgba(31,90,224,.10);
-  --ini-sombra:0 1px 0 var(--ini-hi) inset, 0 10px 30px rgba(15,31,54,.08), 0 1px 2px rgba(15,31,54,.06);
-  --ini-fundo-sombra:inset 0 2px 5px rgba(15,31,54,.12), inset 0 -1px 0 rgba(255,255,255,.8);
-  --ini-mad-a:#8A5A36; --ini-mad-b:#B07A4B; --ini-mad-c:#6B4327; --ini-mad-d:#D8A676; --ini-mad-e:#4E3019;
+  --ini-bg:#E6E3DC; --ini-bg2:#ECE9E3; --ini-painel:#FAF8F3; --ini-painel2:#F1EEE7; --ini-fundo:#ECE9E2;
+  --ini-linha:rgba(32,38,52,.09); --ini-linha2:rgba(32,38,52,.16); --ini-hi:rgba(255,255,255,.85);
+  --ini-texto:#1B2436; --ini-texto2:#4B566A; --ini-texto3:#7D8798;
+  --ini-azul:#1E4FC4; --ini-azul2:#3566D8; --ini-azul-suave:rgba(30,79,196,.10);
+  --ini-brilho:0 0 0 1px rgba(30,79,196,.22), 0 10px 26px rgba(30,79,196,.30), 0 0 36px rgba(30,79,196,.14);
+  --ini-ok:#0F8F65; --ini-ok-bg:rgba(15,143,101,.12); --ini-aviso:#A8701A; --ini-aviso-bg:rgba(168,112,26,.12);
+  --ini-erro:#C73A3A; --ini-erro-bg:rgba(199,58,58,.10); --ini-info:#1E4FC4; --ini-info-bg:rgba(30,79,196,.10);
+  --ini-sombra:0 1px 0 var(--ini-hi) inset, 0 10px 30px rgba(40,36,30,.10), 0 1px 2px rgba(40,36,30,.06);
+  --ini-fundo-sombra:inset 0 2px 5px rgba(40,36,30,.12), inset 0 -1px 0 rgba(255,255,255,.8);
+  --ini-painel-rgb:250,248,243;
+  --ini-foto-veu:rgba(250,248,243,.18);
 }
 
 /* O fundo da página: o do tema, com a luz azul no canto. */
@@ -36,8 +39,8 @@ body.ini-body, html[data-theme="light"] body.ini-body{
   color:var(--ini-texto) !important; font-family:Inter, system-ui, -apple-system, "Segoe UI", sans-serif !important;
 }
 html[data-theme="light"] body.ini-body{
-  background-image:radial-gradient(1200px 600px at 10% -10%, rgba(255,255,255,.9), transparent 60%),
-                   radial-gradient(900px 500px at 100% 0%, rgba(31,90,224,.06), transparent 55%) !important;
+  background-image:radial-gradient(1200px 600px at 10% -10%, rgba(255,253,248,.85), transparent 60%),
+                   radial-gradient(900px 500px at 100% 0%, rgba(30,79,196,.05), transparent 55%) !important;
 }
 body.ini-body > main{ padding:16px; }
 body.ini-body .page-layout{ gap:18px; align-items:flex-start; }
@@ -88,11 +91,9 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-vazio small{ display:block; font-size:12px; margin-top:4px; max-width:360px; margin-left:auto; margin-right:auto; line-height:1.4; }
 .ini-vazio.curto{ padding:18px 8px; }
 
-/* ── A sala: boas-vindas com as peças de madeira ── */
-.ini-sala{ position:relative; overflow:hidden; border-radius:22px; border:1px solid var(--ini-linha); box-shadow:var(--ini-sombra); min-height:196px;
-  background:radial-gradient(700px 300px at 15% 110%, rgba(47,111,234,.22), transparent 60%), linear-gradient(90deg, var(--ini-painel) 0%, var(--ini-painel) 48%, transparent 100%);
-  display:grid; grid-template-columns:1.15fr 1fr; }
-.ini-sala-texto{ padding:30px 32px; position:relative; z-index:2; }
+/* ── A sala: boas-vindas com a biblioteca ao fundo ── */
+.ini-sala{ position:relative; overflow:hidden; border-radius:22px; border:1px solid var(--ini-linha); box-shadow:var(--ini-sombra); min-height:216px; background:var(--ini-painel); display:grid; grid-template-columns:1fr; }
+.ini-sala-texto{ padding:32px 34px; position:relative; z-index:2; max-width:62%; }
 .ini-sala h1{ font-size:30px; font-weight:800; letter-spacing:-.8px; line-height:1.05; color:var(--ini-texto); }
 .ini-sala h1 span{ color:var(--ini-azul2); }
 .ini-sala p{ margin-top:10px; color:var(--ini-texto2); font-size:14px; max-width:600px; line-height:1.5; }
@@ -102,28 +103,18 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-btn:hover{ transform:translateY(-1px); }
 .ini-btn svg{ width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
 .ini-btn.primario{ background:linear-gradient(180deg,var(--ini-azul2),var(--ini-azul)); color:#fff; border-color:transparent; box-shadow:var(--ini-brilho); }
-.ini-parede{ position:relative; overflow:hidden; }
-.ini-parede::before{ content:""; position:absolute; inset:0; background:linear-gradient(90deg, var(--ini-painel) 0%, transparent 35%); z-index:1; }
-.ini-luz{ position:absolute; inset:-30px -20px -30px 0; background:radial-gradient(260px 160px at 55% 45%, rgba(74,140,255,.55), transparent 65%), radial-gradient(220px 120px at 80% 75%, rgba(47,111,234,.45), transparent 65%), var(--ini-fundo); }
-.ini-peca{ position:absolute; border-radius:26px; display:block;
-  background:repeating-linear-gradient(97deg, rgba(0,0,0,.10) 0 1px, transparent 1px 7px, rgba(255,255,255,.035) 7px 8px, transparent 8px 13px),
-             repeating-linear-gradient(94deg, rgba(0,0,0,.08) 0 2px, transparent 2px 19px),
-             linear-gradient(100deg, var(--ini-mad-b), var(--ini-mad-a) 55%, var(--ini-mad-c));
-  box-shadow:0 1px 0 rgba(255,255,255,.14) inset, 0 -2px 0 rgba(0,0,0,.35) inset, 0 24px 40px rgba(0,0,0,.45), 0 0 0 1px rgba(0,0,0,.25);
-  animation:ini-flutua 9s ease-in-out infinite; }
-.ini-peca.clara{ background:repeating-linear-gradient(97deg, rgba(0,0,0,.08) 0 1px, transparent 1px 6px, rgba(255,255,255,.05) 6px 7px, transparent 7px 12px), linear-gradient(100deg, var(--ini-mad-d), #C9956A 50%, var(--ini-mad-b)); }
-.ini-peca.escura{ background:repeating-linear-gradient(97deg, rgba(0,0,0,.14) 0 1px, transparent 1px 6px, rgba(255,255,255,.03) 6px 7px, transparent 7px 11px), linear-gradient(100deg, var(--ini-mad-c), var(--ini-mad-e) 60%, #1E120A); }
-.ini-peca.cinza{ background:repeating-linear-gradient(97deg, rgba(0,0,0,.10) 0 1px, transparent 1px 6px, rgba(255,255,255,.05) 6px 7px, transparent 7px 12px), linear-gradient(100deg, #8C8F94, #5E6166 55%, #44474C); }
-.ini-peca.p1{ left:22%; top:-14px; width:150px; height:118px; animation-delay:-2s; }
-.ini-peca.p2{ left:46%; top:-28px; width:120px; height:150px; animation-delay:-5s; }
-.ini-peca.p3{ left:64%; top:40px; width:170px; height:124px; animation-delay:-1s; }
-.ini-peca.p4{ left:30%; top:112px; width:136px; height:140px; animation-delay:-7s; }
-.ini-peca.p5{ left:53%; top:134px; width:116px; height:110px; animation-delay:-3s; }
-.ini-peca.p6{ left:84%; top:-10px; width:150px; height:120px; animation-delay:-6s; }
-.ini-peca.p7{ left:80%; top:150px; width:140px; height:110px; animation-delay:-4s; }
-.ini-peca.p8{ left:6%; top:150px; width:160px; height:120px; animation-delay:-8s; }
-@keyframes ini-flutua{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-5px); } }
-@media (prefers-reduced-motion: reduce){ .ini-peca{ animation:none; } }
+/* A biblioteca: estantes de madeira escura e bustos, à direita; a esquerda derrete
+   na cor do painel para o texto ficar sobre superfície lisa. O véu muda com o tema. */
+.ini-foto{ position:absolute; inset:0; z-index:1;
+  background:url("https://images.unsplash.com/photo-1505664194779-8beaceb93744?w=1800&q=72&auto=format&fit=crop") center 58% / cover no-repeat; }
+.ini-foto::before{ content:""; position:absolute; inset:0; background:var(--ini-foto-veu); }
+.ini-foto::after{ content:""; position:absolute; inset:0;
+  background:linear-gradient(90deg, rgb(var(--ini-painel-rgb)) 0%, rgb(var(--ini-painel-rgb)) 34%, rgba(var(--ini-painel-rgb),.86) 48%, rgba(var(--ini-painel-rgb),.35) 66%, rgba(var(--ini-painel-rgb),0) 100%),
+             linear-gradient(0deg, rgba(var(--ini-painel-rgb),.55) 0%, rgba(var(--ini-painel-rgb),0) 40%); }
+@media (max-width:900px){
+  .ini-foto::after{ background:linear-gradient(180deg, rgb(var(--ini-painel-rgb)) 0%, rgb(var(--ini-painel-rgb)) 55%, rgba(var(--ini-painel-rgb),.4) 100%); }
+  .ini-sala-texto{ max-width:none; }
+}
 
 /* ── Grades ── */
 .ini-grade{ display:grid; gap:18px; }
@@ -131,7 +122,7 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-g2{ grid-template-columns:1fr 1.25fr .85fr; }
 .ini-g2-sem-whats{ grid-template-columns:1fr 1.4fr; }
 @media (max-width:1380px){ .ini-g1,.ini-g2{ grid-template-columns:1fr 1fr; } }
-@media (max-width:900px){ .ini-g1,.ini-g2,.ini-g2-sem-whats{ grid-template-columns:1fr; } .ini-sala{ grid-template-columns:1fr; } .ini-parede{ display:none; } .ini-sala-texto{ padding:22px; } .ini-sala h1{ font-size:24px; } body.ini-body > main{ padding:12px 12px 90px; } }
+@media (max-width:900px){ .ini-g1,.ini-g2,.ini-g2-sem-whats{ grid-template-columns:1fr; } .ini-sala-texto{ padding:22px; } .ini-sala h1{ font-size:24px; } body.ini-body > main{ padding:12px 12px 90px; } }
 
 /* ── Agenda ── */
 .ini-linha-tempo{ display:flex; flex-direction:column; }
