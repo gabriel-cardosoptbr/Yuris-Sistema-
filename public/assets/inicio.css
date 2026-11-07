@@ -123,9 +123,8 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-kpi-t{ grid-area:t; font-size:12px; font-weight:600; color:var(--ini-texto3); }
 .ini-kpi b{ grid-area:v; font-size:26px; font-weight:800; letter-spacing:-.6px; line-height:1.1; color:var(--ini-texto); }
 .ini-kpi small{ grid-area:s; font-size:11.5px; color:var(--ini-texto3); margin-top:2px; }
-.ini-kpi.alerta .ini-kpi-ic{ background:var(--ini-erro-bg); color:var(--ini-erro); }
+/* Todos os ícones iguais: afundados na prata. Só o número do prazo urgente avisa. */
 .ini-kpi.alerta b{ color:var(--ini-erro); }
-.ini-kpi.atencao .ini-kpi-ic{ background:var(--ini-aviso-bg); color:var(--ini-aviso); }
 
 /* ── Grades ── */
 .ini-grade{ display:grid; gap:16px; }
@@ -191,7 +190,7 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-ctr{ border-radius:var(--ini-r2); padding:10px 10px 8px; background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); }
 .ini-ctr b{ display:block; font-size:21px; font-weight:800; letter-spacing:-.5px; line-height:1; color:var(--ini-texto); }
 .ini-ctr span{ font-size:11.5px; color:var(--ini-texto3); font-weight:600; }
-.ini-ctr.hoje b{ color:var(--ini-erro); } .ini-ctr.amanha b{ color:var(--ini-aviso); }
+.ini-ctr.hoje b{ color:var(--ini-erro); }
 .ini-atraso{ font-size:12.5px; font-weight:600; color:var(--ini-erro); margin-bottom:8px; }
 .ini-atraso a{ color:var(--ini-azul2); }
 .ini-lista{ display:flex; flex-direction:column; }
@@ -202,7 +201,7 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-item-t b{ display:block; font-weight:600; font-size:13px; }
 .ini-item-t span{ display:block; font-size:12px; color:var(--ini-texto2); margin-top:1px; overflow-wrap:anywhere; }
 .ini-vence{ font-size:12px; font-weight:700; white-space:nowrap; text-align:right; }
-.ini-vence.r{ color:var(--ini-erro); } .ini-vence.w{ color:var(--ini-aviso); } .ini-vence.n{ color:var(--ini-texto3); }
+.ini-vence.r{ color:var(--ini-erro); } .ini-vence.w{ color:var(--ini-texto2); } .ini-vence.n{ color:var(--ini-texto3); }
 
 /* ── Publicações ── */
 .ini-pub{ padding:11px 0; border-top:1px solid var(--ini-linha); display:grid; grid-template-columns:1fr auto; gap:4px 12px; align-items:center; }
@@ -224,7 +223,7 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-carga{ width:84px; }
 .ini-barra{ height:6px; border-radius:6px; background:var(--ini-fundo); box-shadow:var(--ini-fundo-sombra); overflow:hidden; }
 .ini-barra i{ display:block; height:100%; border-radius:6px; background:linear-gradient(90deg,var(--ini-azul),var(--ini-azul2)); }
-.ini-barra i.quente{ background:linear-gradient(90deg,#F59E0B,#F87171); }
+.ini-barra i.quente{ background:var(--ini-erro); }
 .ini-carga span{ display:block; font-size:10.5px; color:var(--ini-texto3); margin-top:4px; text-align:right; font-weight:600; white-space:nowrap; }
 
 /* ── Processos ── */
@@ -240,7 +239,7 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-tabela td.m small{ display:block; color:var(--ini-texto3); font-size:11.5px; }
 .ini-situ{ display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 9px; border-radius:6px; font-size:11.5px; font-weight:700; white-space:nowrap; }
 .ini-situ::before{ content:""; width:6px; height:6px; border-radius:50%; background:currentColor; }
-.ini-situ.and{ background:var(--ini-fundo); color:var(--ini-texto2); border:1px solid var(--ini-linha); } .ini-situ.ag{ background:var(--ini-aviso-bg); color:var(--ini-aviso); }
+.ini-situ.and{ background:var(--ini-fundo); color:var(--ini-texto2); border:1px solid var(--ini-linha); } .ini-situ.ag{ background:var(--ini-fundo); color:var(--ini-texto2); border:1px solid var(--ini-linha); }
 .ini-situ.ok{ background:var(--ini-ok-bg); color:var(--ini-ok); } .ini-situ.at{ background:var(--ini-erro-bg); color:var(--ini-erro); }
 
 /* ── Aguardando retorno ── */
@@ -250,7 +249,7 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-wa-t{ flex:1; min-width:0; }
 .ini-wa-t b{ display:block; font-weight:600; font-size:13px; }
 .ini-wa-t span{ display:block; font-size:12px; color:var(--ini-texto2); line-height:1.35; overflow-wrap:anywhere; }
-.ini-desde{ font-size:11.5px; font-weight:700; color:var(--ini-aviso); white-space:nowrap; }
+.ini-desde{ font-size:11.5px; font-weight:700; color:var(--ini-texto3); white-space:nowrap; }
 .ini-desde.r{ color:var(--ini-erro); }
 
 .ini-rodape{ font-size:11.5px; color:var(--ini-texto3); text-align:center; padding:4px 0 10px; }
