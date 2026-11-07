@@ -263,6 +263,85 @@ final class Painel
         return ['Em andamento', 'and'];
     }
 
+    /**
+     * Os itens abertos com data, por dia, para o calendário:
+     * ['2026-11-07' => [['titulo', 'hora', 'tipo', 'processo_id', 'processo_numero', 'cliente_nome', 'responsavel_nome', 'origem', 'id'], ...]].
+     * Cada dia em ordem de hora (sem hora por último) e nome.
+     */
+    public static function porDia(array $itens): array
+    {
+        $dias = [];
+        foreach ($itens as $i) {
+            if (!empty($i['concluida']) || empty($i['data'])) continue;
+            $dias[substr((string) $i['data'], 0, 10)][] = [
+                'id' => (int) ($i['id'] ?? 0), 'origem' => (string) ($i['origem'] ?? ''), 'titulo' => (string) $i['titulo'],
+                'hora' => $i['hora'] ?? null, 'tipo' => self::tipoDoItem($i),
+                'processo_id' => !empty($i['processo_id']) ? (int) $i['processo_id'] : null,
+                'processo_numero' => $i['processo_numero'] ?? null, 'cliente_nome' => $i['cliente_nome'] ?? null,
+                'responsavel_nome' => $i['responsavel_nome'] ?? null,
+            ];
+        }
+        foreach ($dias as &$lista) {
+            usort($lista, static function (array $a, array $b): int {
+                if (($a['hora'] === null) !== ($b['hora'] === null)) return $a['hora'] === null ? 1 : -1;
+                return [$a['hora'] ?? '', $a['titulo']] <=> [$b['hora'] ?? '', $b['titulo']];
+            });
+        }
+        unset($lista);
+        ksort($dias);
+        return $dias;
+    }
+
+    /** Prazos de processo que vencem de hoje até daqui a $dias dias (os "urgentes" do cartão). */
+    public static function urgentes(array $itens, string $hoje, int $dias = 3): int
+    {
+        $ate = (new \DateTimeImmutable($hoje))->modify('+' . $dias . ' days')->format('Y-m-d');
+        $n = 0;
+        foreach ($itens as $i) {
+            if (!empty($i['concluida']) || empty($i['data'])) continue;
+            if (!in_array($i['origem'] ?? '', ['prazo', 'tarefa_processo'], true)) continue;
+            $d = substr((string) $i['data'], 0, 10);
+            if ($d >= $hoje && $d <= $ate) $n++;
+        }
+        return $n;
+    }
+
+    /**
+     * A grade de um mês para o calendário: semanas de domingo a sábado, cada célula
+     * ['data' => 'Y-m-d', 'dia' => 7, 'fora' => true quando é do mês vizinho].
+     */
+    public static function gradeDoMes(string $mes): array
+    {
+        $primeiro = new \DateTimeImmutable($mes . '-01');
+        $inicio   = $primeiro->modify('-' . (int) $primeiro->format('w') . ' days');
+        $semanas  = [];
+        $d = $inicio;
+        do {
+            $semana = [];
+            for ($k = 0; $k < 7; $k++) {
+                $semana[] = ['data' => $d->format('Y-m-d'), 'dia' => (int) $d->format('j'), 'fora' => $d->format('Y-m') !== $mes];
+                $d = $d->modify('+1 day');
+            }
+            $semanas[] = $semana;
+        } while ($d->format('Y-m') === $mes);
+        return $semanas;
+    }
+
+    /** "Novembro de 2026". */
+    public static function nomeDoMes(string $mes): string
+    {
+        return ucfirst(self::MESES[(int) substr($mes, 5, 2) - 1]) . ' de ' . substr($mes, 0, 4);
+    }
+
+    /** "Hoje, 7 de nov" ou "Ter, 11 de nov". */
+    public static function tituloDoDia(string $data, string $hoje): string
+    {
+        $d = new \DateTimeImmutable($data);
+        $mes = substr(self::MESES[(int) $d->format('n') - 1], 0, 3);
+        $pre = $data === $hoje ? 'Hoje' : ucfirst(self::DIAS_CURTOS[(int) $d->format('w')]);
+        return $pre . ', ' . (int) $d->format('j') . ' de ' . $mes;
+    }
+
     // ── Consultas ────────────────────────────────────────────────────────────
 
     private static function lista(array $ids): array
@@ -419,6 +498,7 @@ final class Painel
         $usuarios    = self::usuarios($tenantIds);
         $carga       = CargaDaEquipe::agora($escopo['contas_tarefas'] ?? $tenantIds);
         $numeros     = self::numeros($tenantIds, $hoje) + ['audiencias_semana' => $audienciasSemana];
+        $porDia      = self::porDia($itens);
 
         return [
             'agora'     => $agora,
@@ -437,6 +517,12 @@ final class Painel
             'processos' => self::processosMovimentados($tenantIds),
             'whatsapp'  => $whats,
             'numeros'   => $numeros,
+            'kpis'      => [
+                'urgentes'    => self::urgentes($itens, $hoje),
+                'ativos'      => $numeros['ativos'], 'novos_mes' => $numeros['novos_mes'],
+                'publicacoes' => $publicacoes['total'], 'audiencias_semana' => $audienciasSemana,
+            ],
+            'calendario' => ['mes' => substr($hoje, 0, 7), 'por_dia' => $porDia],
         ];
     }
 }

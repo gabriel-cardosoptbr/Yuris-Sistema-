@@ -332,9 +332,10 @@ próximos painéis da Fleetiflow. A conta Yuris nunca passa por esse `require`.
 **Interface nova, em prévia (07/11/2026).** Para a conta jurídica que abriu uma
 tela com `?novo=1` (cookie `yuris_interface_nova`; `?novo=0` desliga; conta de
 marca nunca), `dashboard.php` entrega `includes/dashboard_inicio.php`: a home vira
-o dia do escritório (boas-vindas com a frase do dia, agenda de hoje, prazos,
-publicações sem tratamento, equipe, processos com movimentação, quem espera
-resposta no WhatsApp, e os números no rodapé), com os dados de `App\Inicio\Painel`.
+o dia do escritório (boas-vindas com a frase do dia, quatro cartões do que está
+acontecendo, a agenda jurídica com o calendário do mês e o dia escolhido, prazos,
+quem espera resposta no WhatsApp, publicações sem tratamento, processos com
+movimentação e a equipe), com os dados de `App\Inicio\Painel`.
 O painel de métricas de sempre continua nesta mesma página com `?gestao=1`, e no
 menu novo é **Gestão › Indicadores**. O menu (`includes/sidebar.php`) lê a mesma
 chave, chama a home de "Início" e carrega `assets/interface-nova.css` por cima do

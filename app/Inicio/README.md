@@ -21,7 +21,7 @@ seleção em pílula.
 | Arquivo | O que faz |
 |---|---|
 | `InterfaceNova.php` | a chave da prévia. `ligada($_GET, $_COOKIE, $contaDeMarca)` decide sem efeito colateral; `aplicar()` grava o cookie `yuris_interface_nova` (um ano) quando a URL traz `?novo=1`, e apaga com `?novo=0`; `scriptCookie()` faz o mesmo por JavaScript, para o menu, que entra com os cabeçalhos já enviados. Conta de marca (edição CRM) nunca liga: o desenho dela é outro. É cookie, e não `localStorage` como a paleta, porque o PHP precisa saber antes de desenhar: a home nova é outra página |
-| `Painel.php` | o que a home mostra, lido de onde já está, sem copiar: agenda e prazos de `App\Tarefas\Central` (as três tabelas, com a visibilidade de quadros e processos); publicações pendentes de `push_events`; a equipe de `users` + `CargaDaEquipe` + os prazos de processo cujo responsável é o nome da pessoa; processos por última movimentação com a última publicação de cada um; quem espera resposta no WhatsApp pela mesma regra de `MetricasAtendimento::relatorio` (a última mensagem é do contato); e os números do rodapé. As regras puras (saudação, tipo do item, rótulo de vencimento, frase do resumo, situação do processo) ficam separadas das consultas |
+| `Painel.php` | o que a home mostra, lido de onde já está, sem copiar: os quatro cartões de cima (prazos urgentes em até 3 dias, processos ativos, publicações pendentes, audiências na semana); o calendário do mês (`porDia`, `gradeDoMes`, todos os itens abertos com data, por dia, para o navegador trocar de mês e de dia sem recarregar); agenda e prazos de `App\Tarefas\Central` (as três tabelas, com a visibilidade de quadros e processos); publicações pendentes de `push_events`; a equipe de `users` + `CargaDaEquipe` + os prazos de processo cujo responsável é o nome da pessoa; processos por última movimentação com a última publicação de cada um; quem espera resposta no WhatsApp pela mesma regra de `MetricasAtendimento::relatorio` (a última mensagem é do contato); e os números do rodapé. As regras puras (saudação, tipo do item, rótulo de vencimento, frase do resumo, situação do processo) ficam separadas das consultas |
 
 ## Onde entra
 
@@ -34,8 +34,16 @@ seleção em pílula.
 - [`public/includes/sidebar.php`](../../public/includes/sidebar.php) lê a mesma
   chave: troca "Visão Geral" por "Início", põe "Indicadores" como primeiro item
   de Gestão e carrega `assets/interface-nova.css`, que veste o menu que já existe
-  (painel em relevo, itens em pílula, a página atual numa pílula azul que brilha).
-  O HTML do menu não muda.
+  (painel em relevo, itens em pílula, a página atual numa pílula azul que brilha,
+  cada ícone num disco afundado como o do sino, e a aba de recolher na borda do
+  painel, metade para fora, como na referência). O HTML do menu não muda.
+- A estrutura segue a tela de referência do dono do produto (07/11/2026, segunda
+  rodada): faixa de boas-vindas; quatro cartões do que está acontecendo; **Agenda
+  jurídica** com o calendário do mês à esquerda e o dia escolhido à direita (clicar
+  no dia troca a lista; as setas trocam o mês, tudo com os dados já na página);
+  Prazos e Aguardando retorno ao lado; Publicações, Processos com movimentação e
+  Equipe embaixo. Bordas pouco arredondadas (12px nos cartões, 8px no resto):
+  "tá muito arredondado, arredondar só um pouco".
 - `assets/inicio.css` é a home: dois temas pelas variáveis `--ini-*`, a faixa de
   boas-vindas com uma biblioteca jurídica ao fundo (`assets/img/inicio-biblioteca.jpg`,
   foto de Planet Volumes no Unsplash, licença Unsplash: uso comercial livre, sem

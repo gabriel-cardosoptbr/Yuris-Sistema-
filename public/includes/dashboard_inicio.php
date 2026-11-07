@@ -8,11 +8,17 @@
  * $dre_receita, $vendedorCrm e fmtBRL(). Os dados vêm de App\Inicio\Painel,
  * que lê as fontes de cada módulo sem copiar nada.
  *
+ * A estrutura segue a tela de referência do dono do produto: faixa de
+ * boas-vindas, quatro cartões do que está acontecendo, a agenda jurídica com o
+ * calendário do mês e o dia escolhido, prazos e quem espera resposta ao lado,
+ * e embaixo publicações, processos com movimentação e a equipe. Os números de
+ * gestão (receita, metas) ficam em Gestão › Indicadores.
+ *
  * Desenho: menu em painel com a pílula azul (assets/interface-nova.css, que o
- * sidebar.php carrega) e a home em assets/inicio.css, nos dois temas. A faixa
- * de boas-vindas tem uma biblioteca jurídica ao fundo (assets/img/inicio-biblioteca.jpg,
- * foto de Planet Volumes no Unsplash, licença Unsplash), que o tema escurece ou clareia;
- * o texto fica sobre a parte lisa. As peças de madeira em CSS da primeira versão
+ * sidebar.php carrega) e a home em assets/inicio.css, nos dois temas, com as
+ * bordas pouco arredondadas. A faixa de boas-vindas tem uma biblioteca jurídica
+ * ao fundo (assets/img/inicio-biblioteca.jpg, foto de Planet Volumes no
+ * Unsplash, licença Unsplash). As peças de madeira em CSS da primeira versão
  * foram reprovadas ("retire essas madeiras") e saíram.
  */
 if (!isset($ctx)) { http_response_code(403); exit; }
@@ -40,18 +46,30 @@ try {
         'agenda' => [], 'contagem' => ['hoje' => 0, 'amanha' => 0, 'semana' => 0, 'atrasadas' => 0], 'prazos' => [],
         'publicacoes' => ['total' => 0, 'itens' => []], 'equipe' => [], 'processos' => [], 'whatsapp' => null,
         'numeros' => ['ativos' => 0, 'novos_mes' => 0, 'publicacoes_mes' => 0, 'clientes' => 0, 'audiencias_semana' => 0],
+        'kpis' => ['urgentes' => 0, 'ativos' => 0, 'novos_mes' => 0, 'publicacoes' => 0, 'audiencias_semana' => 0],
+        'calendario' => ['mes' => $agora->format('Y-m'), 'por_dia' => []],
     ];
 }
 $hoje = $painel['hoje'];
 $h = static fn($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
 $temWhats = $painel['whatsapp'] !== null;
-$iconeTipo = [
-    'audiencia' => '<svg viewBox="0 0 24 24"><path d="M16 16h6l-3-7-3 7zM2 16h6l-3-7-3 7zM12 3v19M3 22h18M5 9h14"/></svg>',
-    'reuniao'   => '<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
-    'prazo'     => '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
-    'tarefa'    => '<svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
-];
 $seta = '<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+$porDia = $painel['calendario']['por_dia'];
+$mes = $painel['calendario']['mes'];
+$doDia = $porDia[$hoje] ?? [];
+
+/** Um compromisso na lista do dia (o JS desenha igual ao trocar o dia). */
+$evento = static function (array $i) use ($h): string {
+    $sub = implode(' · ', array_filter([$i['processo_numero'] ?? null, $i['cliente_nome'] ?? null]));
+    $titulo = $h($i['titulo']);
+    if (!empty($i['processo_id'])) $titulo = '<a href="/processos?open=' . (int) $i['processo_id'] . '">' . $titulo . '</a>';
+    return '<div class="ini-ev ' . $h($i['tipo']) . '">'
+         . '<span class="ini-ev-hora">' . ($i['hora'] ? $h($i['hora']) : '<small>dia<br>todo</small>') . '</span>'
+         . '<span class="ini-ev-t"><b>' . $titulo . ' <i class="ini-tag ' . $h($i['tipo']) . '">' . $h(Painel::TIPOS[$i['tipo']]) . '</i></b>'
+         . ($sub !== '' ? '<span>' . $h($sub) . '</span>' : '')
+         . (!empty($i['responsavel_nome']) ? '<small><em class="ini-av">' . $h(Painel::iniciais($i['responsavel_nome'])) . '</em>' . $h($i['responsavel_nome']) . '</small>' : '')
+         . '</span></div>';
+};
 ?>
 <!doctype html>
 <html lang="pt-BR">
@@ -91,7 +109,7 @@ $seta = '<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
         <a class="ini-sair-previa" href="<?= $h(InterfaceNova::enderecoCom((string) ($_SERVER['REQUEST_URI'] ?? '/dashboard'), '0')) ?>" title="Voltar ao desenho de sempre">Sair da prévia</a>
       </div>
 
-      <!-- ── Boas-vindas: a sala ── -->
+      <!-- ── Boas-vindas ── -->
       <section class="ini-sala">
         <div class="ini-sala-texto">
           <h1><?= $h($painel['saudacao']) ?>, <span><?= $h(Painel::primeiroNome($_userNome)) ?></span></h1>
@@ -104,82 +122,130 @@ $seta = '<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
             <?php endif; ?>
           </div>
         </div>
-        <!-- A sala: uma biblioteca jurídica ao fundo (foto de licença livre, Unsplash),
-             que o tema escurece ou clareia. O texto fica sobre a parte lisa, à esquerda. -->
         <div class="ini-foto" aria-hidden="true"></div>
       </section>
 
-      <!-- ── Linha 1: agenda, prazos, publicações ── -->
-      <div class="ini-grade ini-g1">
+      <!-- ── O que está acontecendo: quatro cartões ── -->
+      <div class="ini-grade ini-g4">
+        <a class="ini-kpi <?= $painel['kpis']['urgentes'] > 0 ? 'alerta' : '' ?>" href="/tarefas">
+          <span class="ini-kpi-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+          <span class="ini-kpi-t">Prazos urgentes</span>
+          <b><?= (int) $painel['kpis']['urgentes'] ?></b>
+          <small>vencem em até 3 dias<?= (int) $painel['contagem']['atrasadas'] > 0 ? ' · ' . (int) $painel['contagem']['atrasadas'] . ' atrasados' : '' ?></small>
+        </a>
+        <a class="ini-kpi" href="/processos">
+          <span class="ini-kpi-ic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+          <span class="ini-kpi-t">Processos ativos</span>
+          <b><?= (int) $painel['kpis']['ativos'] ?></b>
+          <small><?= (int) $painel['kpis']['novos_mes'] > 0 ? '+' . (int) $painel['kpis']['novos_mes'] . ' novos neste mês' : 'nenhum novo neste mês' ?></small>
+        </a>
+        <a class="ini-kpi <?= $painel['kpis']['publicacoes'] > 0 ? 'atencao' : '' ?>" href="/intimacoes">
+          <span class="ini-kpi-ic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg></span>
+          <span class="ini-kpi-t">Publicações</span>
+          <b><?= (int) $painel['kpis']['publicacoes'] ?></b>
+          <small>sem tratamento no Diário</small>
+        </a>
+        <a class="ini-kpi" href="/tarefas">
+          <span class="ini-kpi-ic"><svg viewBox="0 0 24 24"><path d="M16 16h6l-3-7-3 7zM2 16h6l-3-7-3 7zM12 3v19M3 22h18M5 9h14"/></svg></span>
+          <span class="ini-kpi-t">Audiências</span>
+          <b><?= (int) $painel['kpis']['audiencias_semana'] ?></b>
+          <small>nesta semana</small>
+        </a>
+      </div>
 
-        <section class="ini-card">
+      <!-- ── Agenda jurídica com o calendário; ao lado, prazos e quem espera ── -->
+      <div class="ini-grade ini-g-agenda">
+
+        <section class="ini-card ini-agenda">
           <header class="ini-card-h">
             <span class="ini-ic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M3 10h18M8 2v4M16 2v4"/></svg></span>
-            <h3>Agenda de hoje</h3>
-            <span class="ini-conta"><?= count($painel['agenda']) ?> <?= count($painel['agenda']) === 1 ? 'compromisso' : 'compromissos' ?></span>
-            <a class="ini-mais" href="/tarefas">Ver semana <?= $seta ?></a>
+            <h3>Agenda jurídica</h3>
+            <span class="ini-conta"><?= count($doDia) ?> <?= count($doDia) === 1 ? 'compromisso hoje' : 'compromissos hoje' ?></span>
+            <a class="ini-mais" href="/tarefas">Ver agenda completa <?= $seta ?></a>
           </header>
-          <?php if (!$painel['agenda']): ?>
-          <div class="ini-vazio">
-            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M3 10h18M8 2v4M16 2v4"/><path d="m9 16 2 2 4-4"/></svg>
-            <p>Nenhum compromisso para hoje.</p>
-            <small>O que estiver em Tarefas, nos prazos dos processos ou nas tarefas de processo com data de hoje aparece aqui.</small>
-          </div>
-          <?php else: ?>
-          <div class="ini-linha-tempo">
-            <?php foreach (array_slice($painel['agenda'], 0, 7) as $i): ?>
-            <div class="ini-tl <?= $h($i['tipo']) ?>">
-              <div class="ini-hr"><?= $i['hora'] ? $h($i['hora']) : '<small>dia todo</small>' ?></div>
-              <div class="ini-trilho"><i></i></div>
-              <div class="ini-tl-corpo">
-                <div class="ini-tl-titulo">
-                  <?php if (!empty($i['processo_id'])): ?><a href="/processos?open=<?= (int) $i['processo_id'] ?>"><?= $h($i['titulo']) ?></a><?php else: ?><?= $h($i['titulo']) ?><?php endif; ?>
-                  <span class="ini-tag <?= $h($i['tipo']) ?>"><?= $h(Painel::TIPOS[$i['tipo']]) ?></span>
-                </div>
-                <?php if (!empty($i['processo_numero']) || !empty($i['cliente_nome']) || !empty($i['quadro_nome'])): ?>
-                <div class="ini-tl-sub"><?= $h(implode(' · ', array_filter([$i['processo_numero'] ?? null, $i['cliente_nome'] ?? null, $i['quadro_nome'] ?? null]))) ?></div>
-                <?php endif; ?>
-                <?php if (!empty($i['responsavel_nome'])): ?>
-                <div class="ini-tl-meta"><span class="ini-av"><?= $h(Painel::iniciais($i['responsavel_nome'])) ?></span><?= $h($i['responsavel_nome']) ?></div>
-                <?php endif; ?>
+          <div class="ini-agenda-corpo">
+            <div class="ini-cal" id="iniCal">
+              <div class="ini-cal-topo">
+                <button type="button" class="ini-cal-nav" data-cal="-1" aria-label="Mês anterior"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+                <b id="iniCalMes"><?= $h(Painel::nomeDoMes($mes)) ?></b>
+                <button type="button" class="ini-cal-nav" data-cal="1" aria-label="Mês seguinte"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+              </div>
+              <div class="ini-cal-sem"><span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span></div>
+              <div class="ini-cal-dias" id="iniCalDias">
+                <?php foreach (Painel::gradeDoMes($mes) as $semana): foreach ($semana as $c): $n = count($porDia[$c['data']] ?? []); ?>
+                <button type="button" class="ini-cal-dia<?= $c['fora'] ? ' fora' : '' ?><?= $c['data'] === $hoje ? ' hoje' : '' ?><?= $n ? ' tem' : '' ?><?= $c['data'] === $hoje ? ' sel' : '' ?>" data-dia="<?= $h($c['data']) ?>"><?= (int) $c['dia'] ?><?= $n ? '<i></i>' : '' ?></button>
+                <?php endforeach; endforeach; ?>
               </div>
             </div>
-            <?php endforeach; ?>
-            <?php if (count($painel['agenda']) > 7): ?>
-            <a class="ini-mais-itens" href="/tarefas">e mais <?= count($painel['agenda']) - 7 ?> em Tarefas <?= $seta ?></a>
-            <?php endif; ?>
+            <div class="ini-dia">
+              <div class="ini-dia-h"><b id="iniDiaTitulo"><?= $h(Painel::tituloDoDia($hoje, $hoje)) ?></b><span class="ini-pill" id="iniDiaConta"><?= count($doDia) ?> <?= count($doDia) === 1 ? 'compromisso' : 'compromissos' ?></span></div>
+              <div class="ini-dia-lista" id="iniDiaLista">
+                <?php if (!$doDia): ?>
+                <div class="ini-vazio curto"><p>Nada marcado para este dia.</p></div>
+                <?php else: foreach ($doDia as $i) echo $evento($i); endif; ?>
+              </div>
+            </div>
           </div>
-          <?php endif; ?>
         </section>
 
-        <section class="ini-card">
-          <header class="ini-card-h">
-            <span class="ini-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
-            <h3>Prazos</h3>
-            <a class="ini-mais" href="/tarefas">Todos <?= $seta ?></a>
-          </header>
-          <div class="ini-contadores">
-            <div class="ini-ctr hoje"><b><?= (int) $painel['contagem']['hoje'] ?></b><span>hoje</span></div>
-            <div class="ini-ctr amanha"><b><?= (int) $painel['contagem']['amanha'] ?></b><span>amanhã</span></div>
-            <div class="ini-ctr semana"><b><?= (int) $painel['contagem']['semana'] ?></b><span>na semana</span></div>
-          </div>
-          <?php if ((int) $painel['contagem']['atrasadas'] > 0): ?>
-          <div class="ini-atraso"><?= (int) $painel['contagem']['atrasadas'] ?> <?= (int) $painel['contagem']['atrasadas'] === 1 ? 'item atrasado' : 'itens atrasados' ?> · <a href="/tarefas">resolver</a></div>
+        <div class="ini-coluna">
+          <section class="ini-card">
+            <header class="ini-card-h">
+              <span class="ini-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+              <h3>Prazos</h3>
+              <a class="ini-mais" href="/tarefas">Todos <?= $seta ?></a>
+            </header>
+            <div class="ini-contadores">
+              <div class="ini-ctr hoje"><b><?= (int) $painel['contagem']['hoje'] ?></b><span>hoje</span></div>
+              <div class="ini-ctr amanha"><b><?= (int) $painel['contagem']['amanha'] ?></b><span>amanhã</span></div>
+              <div class="ini-ctr semana"><b><?= (int) $painel['contagem']['semana'] ?></b><span>na semana</span></div>
+            </div>
+            <?php if ((int) $painel['contagem']['atrasadas'] > 0): ?>
+            <div class="ini-atraso"><?= (int) $painel['contagem']['atrasadas'] ?> <?= (int) $painel['contagem']['atrasadas'] === 1 ? 'item atrasado' : 'itens atrasados' ?> · <a href="/tarefas">resolver</a></div>
+            <?php endif; ?>
+            <?php if (!$painel['prazos']): ?>
+            <div class="ini-vazio curto"><p>Nenhum prazo de processo em aberto.</p></div>
+            <?php else: ?>
+            <div class="ini-lista">
+              <?php foreach ($painel['prazos'] as $pz): $r = Painel::rotuloDeVencimento($pz['data'], $hoje); ?>
+              <a class="ini-item" href="/processos?open=<?= (int) $pz['processo_id'] ?>">
+                <span class="ini-av"><?= $h(Painel::iniciais((string) ($pz['responsavel_nome'] ?: '?'))) ?></span>
+                <span class="ini-item-t"><b><?= $h($pz['titulo']) ?></b><span><?= $h(implode(' · ', array_filter([$pz['processo_numero'] ?? null, $pz['cliente_nome'] ?? null]))) ?></span></span>
+                <span class="ini-vence <?= $h($r['tom']) ?>"><?= $h($r['texto']) ?></span>
+              </a>
+              <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+          </section>
+
+          <?php if ($temWhats): ?>
+          <section class="ini-card">
+            <header class="ini-card-h">
+              <span class="ini-ic"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></span>
+              <h3>Aguardando retorno</h3>
+              <span class="ini-conta"><?= (int) $painel['whatsapp']['total'] ?> no WhatsApp</span>
+              <a class="ini-mais" href="/chat">Abrir chat <?= $seta ?></a>
+            </header>
+            <?php if (!$painel['whatsapp']['itens']): ?>
+            <div class="ini-vazio curto"><p>Ninguém esperando resposta.</p></div>
+            <?php else: ?>
+            <div class="ini-lista">
+              <?php foreach ($painel['whatsapp']['itens'] as $w): ?>
+              <a class="ini-wa" href="/chat?jid=<?= $h(rawurlencode($w['jid'])) ?>">
+                <span class="ini-av cinza"><?= $h($w['iniciais']) ?></span>
+                <span class="ini-wa-t"><b><?= $h($w['nome']) ?></b><span><?= $h($w['texto']) ?></span></span>
+                <span class="ini-desde <?= $w['minutos'] >= 120 ? 'r' : '' ?>"><?= $h($w['desde']) ?></span>
+              </a>
+              <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+          </section>
           <?php endif; ?>
-          <?php if (!$painel['prazos']): ?>
-          <div class="ini-vazio curto"><p>Nenhum prazo de processo em aberto.</p></div>
-          <?php else: ?>
-          <div class="ini-lista">
-            <?php foreach ($painel['prazos'] as $pz): $r = Painel::rotuloDeVencimento($pz['data'], $hoje); ?>
-            <a class="ini-item" href="/processos?open=<?= (int) $pz['processo_id'] ?>">
-              <span class="ini-av"><?= $h(Painel::iniciais((string) ($pz['responsavel_nome'] ?: '?'))) ?></span>
-              <span class="ini-item-t"><b><?= $h($pz['titulo']) ?></b><span><?= $h(implode(' · ', array_filter([$pz['processo_numero'] ?? null, $pz['cliente_nome'] ?? null]))) ?></span></span>
-              <span class="ini-vence <?= $h($r['tom']) ?>"><?= $h($r['texto']) ?></span>
-            </a>
-            <?php endforeach; ?>
-          </div>
-          <?php endif; ?>
-        </section>
+        </div>
+      </div>
+
+      <!-- ── Publicações, processos e equipe ── -->
+      <div class="ini-grade ini-g3">
 
         <section class="ini-card">
           <header class="ini-card-h">
@@ -201,27 +267,6 @@ $seta = '<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
             <?php endforeach; ?>
           </div>
           <?php endif; ?>
-        </section>
-      </div>
-
-      <!-- ── Linha 2: equipe, processos, retorno ── -->
-      <div class="ini-grade <?= $temWhats ? 'ini-g2' : 'ini-g2-sem-whats' ?>">
-
-        <section class="ini-card">
-          <header class="ini-card-h">
-            <span class="ini-ic"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
-            <h3>Equipe hoje</h3>
-            <a class="ini-mais" href="/desempenho">Desempenho <?= $seta ?></a>
-          </header>
-          <div class="ini-equipe">
-            <?php foreach (array_slice($painel['equipe'], 0, 6) as $pe): ?>
-            <div class="ini-pessoa">
-              <span class="ini-av grande"><?= $h($pe['iniciais']) ?><i class="ini-estado <?= $h($pe['estado']) ?>"></i></span>
-              <div class="ini-pessoa-t"><div class="ini-pessoa-n"><?= $h($pe['nome']) ?></div><div class="ini-pessoa-w"><?= $h($pe['papel']) ?> · <?= $h($pe['texto']) ?></div></div>
-              <div class="ini-carga"><div class="ini-barra"><i class="<?= $pe['vencidas'] > 0 ? 'quente' : '' ?>" style="width:<?= (int) $pe['pct'] ?>%"></i></div><span><?= (int) $pe['carga'] ?> na mão</span></div>
-            </div>
-            <?php endforeach; ?>
-          </div>
         </section>
 
         <section class="ini-card">
@@ -250,59 +295,86 @@ $seta = '<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
           <?php endif; ?>
         </section>
 
-        <?php if ($temWhats): ?>
         <section class="ini-card">
           <header class="ini-card-h">
-            <span class="ini-ic"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></span>
-            <h3>Aguardando retorno</h3>
-            <a class="ini-mais" href="/chat">Abrir chat <?= $seta ?></a>
+            <span class="ini-ic"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+            <h3>Equipe hoje</h3>
+            <a class="ini-mais" href="/desempenho">Desempenho <?= $seta ?></a>
           </header>
-          <?php if (!$painel['whatsapp']['itens']): ?>
-          <div class="ini-vazio curto"><p>Ninguém esperando resposta.</p></div>
-          <?php else: ?>
-          <div class="ini-lista">
-            <?php foreach ($painel['whatsapp']['itens'] as $w): ?>
-            <a class="ini-wa" href="/chat?jid=<?= $h(rawurlencode($w['jid'])) ?>">
-              <span class="ini-av cinza"><?= $h($w['iniciais']) ?></span>
-              <span class="ini-wa-t"><b><?= $h($w['nome']) ?></b><span><?= $h($w['texto']) ?></span></span>
-              <span class="ini-desde <?= $w['minutos'] >= 120 ? 'r' : '' ?>"><?= $h($w['desde']) ?></span>
-            </a>
+          <div class="ini-equipe">
+            <?php foreach (array_slice($painel['equipe'], 0, 6) as $pe): ?>
+            <div class="ini-pessoa">
+              <span class="ini-av grande"><?= $h($pe['iniciais']) ?><i class="ini-estado <?= $h($pe['estado']) ?>"></i></span>
+              <div class="ini-pessoa-t"><div class="ini-pessoa-n"><?= $h($pe['nome']) ?></div><div class="ini-pessoa-w"><?= $h($pe['papel']) ?> · <?= $h($pe['texto']) ?></div></div>
+              <div class="ini-carga"><div class="ini-barra"><i class="<?= $pe['vencidas'] > 0 ? 'quente' : '' ?>" style="width:<?= (int) $pe['pct'] ?>%"></i></div><span><?= (int) $pe['carga'] ?> na mão</span></div>
+            </div>
             <?php endforeach; ?>
-            <?php if ($painel['whatsapp']['total'] > count($painel['whatsapp']['itens'])): ?>
-            <a class="ini-mais-itens" href="/chat">e mais <?= (int) $painel['whatsapp']['total'] - count($painel['whatsapp']['itens']) ?> no chat <?= $seta ?></a>
-            <?php endif; ?>
           </div>
-          <?php endif; ?>
         </section>
-        <?php endif; ?>
       </div>
-
-      <!-- ── Números: a porta para Gestão ── -->
-      <section class="ini-card ini-faixa">
-        <div class="ini-num"><b><?= (int) $painel['numeros']['ativos'] ?></b><span>processos ativos</span></div>
-        <div class="ini-num"><b><?= (int) $painel['numeros']['novos_mes'] ?></b><span>novos no mês</span></div>
-        <div class="ini-num"><b><?= (int) $painel['numeros']['audiencias_semana'] ?></b><span>audiências na semana</span></div>
-        <div class="ini-num"><b><?= (int) $painel['numeros']['publicacoes_mes'] ?></b><span>publicações no mês</span></div>
-        <?php if (!$vendedorCrm): ?>
-        <div class="ini-num"><b><?= $h(fmtBRL((float) $dre_receita)) ?></b><span>receita operacional</span></div>
-        <?php else: ?>
-        <div class="ini-num"><b><?= (int) $painel['numeros']['clientes'] ?></b><span>clientes</span></div>
-        <?php endif; ?>
-        <a class="ini-btn" href="/dashboard?gestao=1">Ver indicadores <?= $seta ?></a>
-      </section>
 
       <p class="ini-rodape">Prévia da interface nova · os dados são os do escritório · <a href="<?= $h(InterfaceNova::enderecoCom((string) ($_SERVER['REQUEST_URI'] ?? '/dashboard'), '0')) ?>">voltar ao desenho de sempre</a></p>
     </section>
   </div>
 </main>
 <script>
+window.INI_CAL = <?= json_encode(['hoje' => $hoje, 'mes' => $mes, 'porDia' => $porDia, 'tipos' => Painel::TIPOS], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;
 (function () {
-  var b = document.getElementById('iniTema'); if (!b) return;
-  b.addEventListener('click', function () {
+  var b = document.getElementById('iniTema');
+  if (b) b.addEventListener('click', function () {
     var r = document.documentElement, claro = r.getAttribute('data-theme') === 'light';
     if (claro) { r.removeAttribute('data-theme'); try { localStorage.setItem('yuris_theme', 'dark'); } catch (e) {} }
     else       { r.setAttribute('data-theme', 'light'); try { localStorage.setItem('yuris_theme', 'light'); } catch (e) {} }
   });
+
+  // O calendário: trocar de mês e de dia sem recarregar. Os dados já vieram na página.
+  var C = window.INI_CAL, MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'],
+      DIAS = ['dom','seg','ter','qua','qui','sex','sáb'], mesAtual = C.mes, sel = C.hoje;
+  var elDias = document.getElementById('iniCalDias'), elMes = document.getElementById('iniCalMes'),
+      elTit = document.getElementById('iniDiaTitulo'), elConta = document.getElementById('iniDiaConta'), elLista = document.getElementById('iniDiaLista');
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function iniciais(n) { var p = String(n || '').trim().split(/\s+/).filter(function (x) { return x && !/^(d[aeo]s?|e)$/i.test(x); }); if (!p.length) return '?'; return (p[0][0] + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase(); }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function ymd(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function desenhaMes(mes) {
+    var y = +mes.slice(0, 4), m = +mes.slice(5, 7) - 1, primeiro = new Date(y, m, 1), d = new Date(y, m, 1 - primeiro.getDay()), html = '';
+    do {
+      for (var k = 0; k < 7; k++) {
+        var key = ymd(d), n = (C.porDia[key] || []).length, fora = d.getMonth() !== m;
+        html += '<button type="button" class="ini-cal-dia' + (fora ? ' fora' : '') + (key === C.hoje ? ' hoje' : '') + (n ? ' tem' : '') + (key === sel ? ' sel' : '') + '" data-dia="' + key + '">' + d.getDate() + (n ? '<i></i>' : '') + '</button>';
+        d.setDate(d.getDate() + 1);
+      }
+    } while (d.getMonth() === m);
+    elDias.innerHTML = html;
+    elMes.textContent = MESES[m].charAt(0).toUpperCase() + MESES[m].slice(1) + ' de ' + y;
+  }
+  function desenhaDia(key) {
+    sel = key;
+    var itens = C.porDia[key] || [], d = new Date(key + 'T12:00:00'), pre = key === C.hoje ? 'Hoje' : DIAS[d.getDay()].charAt(0).toUpperCase() + DIAS[d.getDay()].slice(1);
+    elTit.textContent = pre + ', ' + d.getDate() + ' de ' + MESES[d.getMonth()].slice(0, 3);
+    elConta.textContent = itens.length + (itens.length === 1 ? ' compromisso' : ' compromissos');
+    if (!itens.length) { elLista.innerHTML = '<div class="ini-vazio curto"><p>Nada marcado para este dia.</p></div>'; return; }
+    elLista.innerHTML = itens.map(function (i) {
+      var sub = [i.processo_numero, i.cliente_nome].filter(Boolean).join(' · ');
+      var t = esc(i.titulo); if (i.processo_id) t = '<a href="/processos?open=' + i.processo_id + '">' + t + '</a>';
+      return '<div class="ini-ev ' + esc(i.tipo) + '"><span class="ini-ev-hora">' + (i.hora ? esc(i.hora) : '<small>dia<br>todo</small>') + '</span>'
+           + '<span class="ini-ev-t"><b>' + t + ' <i class="ini-tag ' + esc(i.tipo) + '">' + esc(C.tipos[i.tipo] || i.tipo) + '</i></b>'
+           + (sub ? '<span>' + esc(sub) + '</span>' : '')
+           + (i.responsavel_nome ? '<small><em class="ini-av">' + esc(iniciais(i.responsavel_nome)) + '</em>' + esc(i.responsavel_nome) + '</small>' : '')
+           + '</span></div>';
+    }).join('');
+    elDias.querySelectorAll('.ini-cal-dia').forEach(function (x) { x.classList.toggle('sel', x.getAttribute('data-dia') === key); });
+  }
+  if (elDias) {
+    elDias.addEventListener('click', function (e) { var x = e.target.closest('.ini-cal-dia'); if (x) desenhaDia(x.getAttribute('data-dia')); });
+    document.querySelectorAll('.ini-cal-nav').forEach(function (nav) {
+      nav.addEventListener('click', function () {
+        var y = +mesAtual.slice(0, 4), m = +mesAtual.slice(5, 7) - 1 + (+nav.getAttribute('data-cal')), d = new Date(y, m, 1);
+        mesAtual = d.getFullYear() + '-' + pad(d.getMonth() + 1);
+        desenhaMes(mesAtual);
+      });
+    });
+  }
 })();
 </script>
 </body>

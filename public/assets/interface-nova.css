@@ -34,7 +34,7 @@ html[data-theme="light"]{
 /* ── O painel ── */
 html .sidebar{
   background:linear-gradient(180deg, var(--inn-painel) 0%, var(--inn-painel2) 100%) !important;
-  border:1px solid var(--inn-linha) !important; border-radius:22px !important;
+  border:1px solid var(--inn-linha) !important; border-radius:16px !important; overflow:visible !important;
   box-shadow:var(--inn-sombra) !important;
   padding:16px 12px 12px !important; gap:4px !important;
   top:16px !important; max-height:calc(100vh - 32px) !important;
@@ -49,12 +49,18 @@ html .sidebar .sidebar-brand.sb-marca-yuris{
   padding:2px 6px 10px !important; margin:0 0 4px !important; text-align:left !important;
 }
 html .sidebar .sb-logo-grande{ max-height:72px !important; margin:0 !important; filter:drop-shadow(0 6px 14px rgba(47,111,234,.35)); }
+/* A aba de recolher fica na BORDA do painel, metade para fora, como um botão
+   afundado (a referência do ClarityAI). O painel precisa de overflow visível. */
 html .sidebar .sb-recolher.sb-recolher-y{
-  top:4px !important; right:0 !important; width:28px !important; height:28px !important;
+  position:absolute !important; top:92px !important; right:-14px !important; left:auto !important;
+  width:28px !important; height:28px !important; z-index:5 !important;
   border-radius:50% !important; border:1px solid var(--inn-linha2) !important;
-  background:var(--inn-fundo) !important; color:var(--inn-texto3) !important; box-shadow:var(--inn-fundo-sombra) !important;
+  background:var(--inn-fundo) !important; color:var(--inn-texto3) !important;
+  box-shadow:var(--inn-fundo-sombra), 0 4px 10px rgba(0,0,0,.25) !important;
 }
 html .sidebar .sb-recolher.sb-recolher-y:hover{ color:var(--inn-azul2) !important; }
+html .sidebar .sb-recolher.sb-recolher-y svg{ width:13px !important; height:13px !important; }
+html .sidebar .sidebar-brand.sb-marca-yuris{ position:static !important; }
 
 /* ── A pessoa logada: linha, sem caixa ── */
 html .sidebar .sidebar-user{
@@ -74,7 +80,9 @@ html .sidebar .yuris-notif-badge{ border-color:var(--inn-painel) !important; }
 html .sidebar .sidebar-status{ display:none !important; }
 
 /* ── Itens: pílulas ── */
-html .sidebar nav.sidebar-nav-grouped{ gap:3px !important; padding:2px !important; }
+/* O painel não corta mais (a aba fica para fora); quem rola é a lista de itens. */
+html .sidebar nav.sidebar-nav-grouped{ gap:3px !important; padding:2px !important; overflow-y:auto !important; min-height:0 !important; flex:1 1 auto !important; scrollbar-width:none; }
+html .sidebar nav.sidebar-nav-grouped::-webkit-scrollbar{ display:none; }
 html .sidebar nav a, html .sidebar .sidebar-group-toggle{
   background:transparent !important; border:1px solid transparent !important; border-radius:999px !important;
   min-height:42px !important; padding:0 12px !important; gap:10px !important;
@@ -82,10 +90,12 @@ html .sidebar nav a, html .sidebar .sidebar-group-toggle{
   box-shadow:none !important; transition:background .18s, color .18s, transform .18s, box-shadow .18s !important;
 }
 html .sidebar nav a .label, html .sidebar .sidebar-group-label{ font-size:13.5px !important; font-weight:600 !important; color:inherit !important; }
+/* Cada ícone num disco afundado, o mesmo desenho do sino: "esse aspecto de profundidade". */
 html .sidebar nav a .icon, html .sidebar .sidebar-group-icon{
   width:32px !important; height:32px !important; min-width:32px !important; border-radius:50% !important;
   display:inline-flex !important; align-items:center !important; justify-content:center !important;
-  color:var(--inn-texto3) !important; background:transparent !important; transition:inherit !important; opacity:1 !important;
+  color:var(--inn-texto2) !important; background:var(--inn-fundo) !important; border:1px solid var(--inn-linha) !important;
+  box-shadow:var(--inn-fundo-sombra) !important; transition:inherit !important; opacity:1 !important;
 }
 html .sidebar nav a .icon svg, html .sidebar .sidebar-group-icon svg{ width:18px !important; height:18px !important; }
 html .sidebar nav a .icon svg, html .sidebar nav a .icon svg *, html .sidebar .sidebar-group-icon svg, html .sidebar .sidebar-group-icon svg *{ stroke:currentColor !important; stroke-width:1.8 !important; }
@@ -101,7 +111,8 @@ html .sidebar nav a.active{
 html .sidebar nav a.active::before{ content:""; position:absolute; inset:1px; border-radius:inherit; pointer-events:none; background:linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0) 55%); }
 html .sidebar nav a.active::after{ display:none !important; }
 html .sidebar nav a.active .label{ color:#fff !important; }
-html .sidebar nav a.active .icon{ background:rgba(255,255,255,.18) !important; color:#fff !important; box-shadow:inset 0 1px 0 rgba(255,255,255,.35) !important; }
+html .sidebar nav a.active .icon{ background:rgba(255,255,255,.18) !important; color:#fff !important; border-color:rgba(255,255,255,.25) !important; box-shadow:inset 0 1px 0 rgba(255,255,255,.35), inset 0 -1px 2px rgba(0,0,0,.18) !important; }
+html .sidebar .sidebar-group.has-active .sidebar-group-icon{ border-color:rgba(91,147,255,.35) !important; }
 html .sidebar nav a.active .icon svg, html .sidebar nav a.active .icon svg *{ stroke:#fff !important; stroke-width:2 !important; }
 
 /* Grupos: o título é uma pílula com seta; com filho ativo fica na cor da marca. */
@@ -137,6 +148,7 @@ html .sidebar .sb-instalar-app{ border-radius:999px !important; }
   html.sb-retraido.sb-retraido .sidebar nav a, html.sb-retraido.sb-retraido .sidebar .sidebar-group-toggle{ width:48px !important; margin:0 auto !important; justify-content:center !important; }
   html.sb-retraido.sb-retraido .sidebar nav a.active{ transform:none; }
   html.sb-retraido.sb-retraido .sidebar .sidebar-brand.sb-marca-yuris{ padding:4px 0 10px !important; }
+  html.sb-retraido.sb-retraido .sidebar .sb-recolher.sb-recolher-y{ position:absolute !important; top:92px !important; right:-14px !important; margin:0 !important; }
   html.sb-retraido.sb-retraido .sidebar .sb-logo-mini{ filter:drop-shadow(0 6px 14px rgba(47,111,234,.35)); }
 }
 

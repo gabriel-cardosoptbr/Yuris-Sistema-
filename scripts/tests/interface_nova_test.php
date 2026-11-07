@@ -96,6 +96,24 @@ $prazos = Painel::proximosPrazos($itens, 5);
 eq(['Atrasado', 'Audiência de instrução', 'Contestação', 'Réplica'], array_column($prazos, 'titulo'), 'prazos: atrasado primeiro, por data e nome, sem tarefa de quadro');
 eq(2, count(Painel::proximosPrazos($itens, 2)), 'prazos: respeita o limite');
 
+secao('2b2. Calendário e cartões');
+$porDia = Painel::porDia($itens);
+eq(['2026-11-01', '2026-11-07', '2026-11-08', '2026-11-09'], array_keys($porDia), 'por dia: só abertos com data, em ordem');
+eq(3, count($porDia['2026-11-07']), 'por dia: os três de hoje');
+eq('Reunião com cliente', $porDia['2026-11-07'][0]['titulo'], 'por dia: com hora primeiro');
+eq('reuniao', $porDia['2026-11-07'][0]['tipo'], 'por dia: cada item já traz o tipo');
+eq(3, Painel::urgentes($itens, '2026-11-07'), 'urgentes: prazos de processo de hoje a 3 dias (contestação, audiência, réplica), sem o de quadro e sem o atrasado');
+eq(0, Painel::urgentes($itens, '2026-11-20'), 'urgentes: nada no período');
+$grade = Painel::gradeDoMes('2026-11');
+eq(5, count($grade), 'grade: novembro de 2026 tem 5 semanas');
+eq(['data' => '2026-11-01', 'dia' => 1, 'fora' => false], $grade[0][0], 'grade: começa no domingo 1º');
+eq(true, $grade[4][6]['fora'], 'grade: termina com dias de dezembro');
+eq('2026-12-05', $grade[4][6]['data'], 'grade: o último é 5 de dezembro');
+eq(6, count(Painel::gradeDoMes('2026-08')), 'grade: agosto de 2026 precisa de 6 semanas');
+eq('Novembro de 2026', Painel::nomeDoMes('2026-11'), 'nome do mês');
+eq('Hoje, 7 de nov', Painel::tituloDoDia('2026-11-07', '2026-11-07'), 'título do dia: hoje');
+eq('Qua, 11 de nov', Painel::tituloDoDia('2026-11-11', '2026-11-07'), 'título do dia: outro dia');
+
 secao('2c. Vencimento, tempo e dia relativo');
 eq(['texto' => 'hoje', 'tom' => 'r'], Painel::rotuloDeVencimento('2026-11-07', '2026-11-07'), 'vence hoje');
 eq(['texto' => 'amanhã', 'tom' => 'w'], Painel::rotuloDeVencimento('2026-11-08', '2026-11-07'), 'vence amanhã');
@@ -197,7 +215,7 @@ try {
     $pdo->query('SELECT 1');
     $escopo = ['user_id' => 1, 'is_admin' => true, 'contas_tarefas' => [1], 'contas_processos' => [1]];
     $p = Painel::montar($escopo, [1]);
-    foreach (['agora', 'hoje', 'saudacao', 'data', 'resumo', 'agenda', 'contagem', 'prazos', 'publicacoes', 'equipe', 'processos', 'whatsapp', 'numeros'] as $k) {
+    foreach (['agora', 'hoje', 'saudacao', 'data', 'resumo', 'agenda', 'contagem', 'prazos', 'publicacoes', 'equipe', 'processos', 'whatsapp', 'numeros', 'kpis', 'calendario'] as $k) {
         ok(array_key_exists($k, $p), "montar devolve '$k'");
     }
     ok(count($p['prazos']) <= 5, 'no máximo 5 prazos');
