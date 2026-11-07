@@ -1,0 +1,127 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   interface-nova-telas.css: as telas de dentro na interface nova (prévia).
+   Carregado por includes/sidebar.php, depois de tudo, só na conta ou no
+   navegador que ligou a prévia, e só fora da home (que tem a folha própria).
+
+   O que faz: NÃO mexe em layout (nada de display, largura, posição). Troca a
+   paleta e as superfícies por cima do CSS que cada tela já tem:
+
+   1. As variáveis de cor que as telas e as folhas globais usam (--panel,
+      --bg-main, --text, --yuris-*, --y-*) passam a ser as da interface nova.
+      É por elas que a maior parte do sistema muda de uma vez.
+   2. Os painéis e cartões de todas as telas: fundo prata, borda, 12px, sombra
+      baixa. Botão principal em azul opaco, 8px. Campos afundados.
+
+   Paleta: prata do logo nas superfícies e no texto; madeira só em detalhe;
+   azul do Yuris opaco só em ação e seleção. Vermelho, âmbar e verde continuam
+   semânticos. Como as folhas antigas usam !important em tudo, aqui também.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. As variáveis ─────────────────────────────────────────────────────── */
+:root{
+  --bg-main:#1A1D22; --panel:#262B33; --panel-soft:#2D333C; --line:rgba(200,210,225,.10); --line-strong:rgba(200,210,225,.18);
+  --text:#E8EAEE; --muted:#B4BAC5; --primary:#3A63C9; --brand:#4F78DB; --icon-color:#B4BAC5; --radius:12px;
+  --yuris-bg-deep:#1A1D22; --yuris-bg-base:#1F2329; --yuris-bg-card:#262B33; --yuris-bg-input:#171A1F;
+  --yuris-primary:#3A63C9; --yuris-accent:#3A63C9; --yuris-blue-deep:#2D4FA8; --yuris-blue-steel:#3A63C9; --yuris-blue-mid:#4F78DB; --yuris-blue-light:#6C90E3;
+  --yuris-silver:#B4BAC5; --yuris-silver-dim:#7F8794; --yuris-silver-bright:#E8EAEE;
+  --yuris-border:rgba(200,210,225,.10); --yuris-border-md:rgba(200,210,225,.18); --yuris-border-lg:rgba(200,210,225,.28);
+  --yuris-text:#E8EAEE; --yuris-text-dim:#B4BAC5; --yuris-text-muted:#7F8794; --yuris-text-accent:#C9CFD9;
+  --y-primary:#4F78DB; --y-primary-hover:#6C90E3; --y-primary-active:#3A63C9; --y-primary-dim:rgba(79,120,219,.14); --y-primary-border:rgba(79,120,219,.30); --y-primary-glow:0 0 0 rgba(0,0,0,0);
+  --y-bg-main:#1A1D22; --y-bg-surface:#1F2329; --y-bg-card:#262B33; --y-bg-elevated:#2D333C; --y-bg-input:#171A1F;
+  --y-border:rgba(200,210,225,.12); --y-border-soft:rgba(200,210,225,.10); --y-border-md:rgba(200,210,225,.18); --y-border-lg:rgba(200,210,225,.28);
+  --y-text:#E8EAEE; --y-text-muted:#B4BAC5; --y-text-soft:#7F8794; --y-text-accent:#C9CFD9;
+  --y-r-md:8px; --y-r-lg:12px; --y-r-xl:12px;
+  --inn-t-fundo:#171A1F; --inn-t-painel:#262B33; --inn-t-painel2:#2D333C; --inn-t-linha:rgba(200,210,225,.10); --inn-t-linha2:rgba(200,210,225,.18);
+  --inn-t-texto:#E8EAEE; --inn-t-texto2:#B4BAC5; --inn-t-texto3:#7F8794; --inn-t-azul:#3A63C9; --inn-t-azul2:#4F78DB; --inn-t-azul-suave:rgba(79,120,219,.14);
+  --inn-t-madeira:#C9955F; --inn-t-hi:rgba(255,255,255,.05);
+  --inn-t-sombra:0 1px 0 rgba(255,255,255,.05) inset, 0 12px 28px rgba(0,0,0,.30);
+  --inn-t-fundo-sombra:inset 0 2px 6px rgba(0,0,0,.45), inset 0 -1px 0 rgba(255,255,255,.04);
+  --inn-t-brilho:0 0 0 1px rgba(79,120,219,.30), 0 8px 20px rgba(58,99,201,.35);
+}
+html[data-theme="light"]{
+  --bg-main:#E3E5E8; --panel:#F5F6F8; --panel-soft:#ECEEF1; --line:rgba(31,38,50,.10); --line-strong:rgba(31,38,50,.18);
+  --text:#1E2630; --muted:#4E586A; --primary:#2E55B8; --brand:#2E55B8; --icon-color:#4E586A; --radius:12px;
+  --yuris-bg-deep:#E3E5E8; --yuris-bg-base:#E9EBEE; --yuris-bg-card:#F5F6F8; --yuris-bg-input:#F5F6F8;
+  --yuris-primary:#2E55B8; --yuris-accent:#2E55B8; --yuris-blue-deep:#23448F; --yuris-blue-steel:#2E55B8; --yuris-blue-mid:#3D65CB; --yuris-blue-light:#5A7ED6;
+  --yuris-silver:#7A8494; --yuris-silver-dim:#9AA3B0; --yuris-silver-bright:#CBD0D8;
+  --yuris-border:rgba(31,38,50,.10); --yuris-border-md:rgba(31,38,50,.18); --yuris-border-lg:rgba(31,38,50,.30);
+  --yuris-text:#1E2630; --yuris-text-dim:#4E586A; --yuris-text-muted:#7A8494; --yuris-text-accent:#2E55B8;
+  --y-primary:#2E55B8; --y-primary-hover:#3D65CB; --y-primary-active:#23448F; --y-primary-dim:rgba(46,85,184,.10); --y-primary-border:rgba(46,85,184,.26); --y-primary-glow:0 0 0 rgba(0,0,0,0);
+  --y-bg-main:#E3E5E8; --y-bg-surface:#E9EBEE; --y-bg-card:#F5F6F8; --y-bg-elevated:#FFFFFF; --y-bg-input:#F5F6F8;
+  --y-border:rgba(31,38,50,.12); --y-border-soft:rgba(31,38,50,.10); --y-border-md:rgba(31,38,50,.18); --y-border-lg:rgba(31,38,50,.30);
+  --y-text:#1E2630; --y-text-muted:#4E586A; --y-text-soft:#7A8494; --y-text-accent:#2E55B8;
+  --inn-t-fundo:#E6E8EB; --inn-t-painel:#F5F6F8; --inn-t-painel2:#ECEEF1; --inn-t-linha:rgba(31,38,50,.10); --inn-t-linha2:rgba(31,38,50,.18);
+  --inn-t-texto:#1E2630; --inn-t-texto2:#4E586A; --inn-t-texto3:#7A8494; --inn-t-azul:#2E55B8; --inn-t-azul2:#3D65CB; --inn-t-azul-suave:rgba(46,85,184,.10);
+  --inn-t-madeira:#B98A5A; --inn-t-hi:rgba(255,255,255,.9);
+  --inn-t-sombra:0 1px 0 rgba(255,255,255,.9) inset, 0 8px 24px rgba(31,38,50,.08), 0 1px 2px rgba(31,38,50,.05);
+  --inn-t-fundo-sombra:inset 0 2px 5px rgba(31,38,50,.10), inset 0 -1px 0 rgba(255,255,255,.8);
+  --inn-t-brilho:0 0 0 1px rgba(46,85,184,.20), 0 8px 18px rgba(46,85,184,.28);
+}
+
+/* ── 2. O chão e o texto ─────────────────────────────────────────────────── */
+html body, html .page-layout, html[data-theme="light"] body, html[data-theme="light"] .page-layout{
+  background-color:var(--inn-t-fundo) !important; background-image:none !important; color:var(--inn-t-texto) !important;
+  font-family:Inter, system-ui, -apple-system, "Segoe UI", sans-serif !important;
+}
+html body{ background-color:#1A1D22 !important; }
+html[data-theme="light"] body{ background-color:#E3E5E8 !important; }
+html .main-content{ color:var(--inn-t-texto); }
+
+/* ── 3. Painéis e cartões: todos na prata, 12px, sombra baixa ────────────── */
+html .page-header, html .card-shell, html .card, html .kpi-card, html .chart-card, html .chart-box,
+html .dash-panel, html .proc-panel, html .jur-panel, html .dre-panel, html .cfg-panel, html .usr-panel,
+html .agt-panel, html .panel, html .es-card, html .chat-kpi, html .chat-panel, html .summary-box,
+html .bottleneck-note, html .yuris-card, html .y-card, html .o-card, html .o-kpi, html .fi-card, html .mon-card,
+html .tk-panel, html .tk-card, html .int-panel, html .int-card, html .rel-card, html .reemb-card, html .proj-card,
+html .prox-card, html .filters-bar, html .filter-bar, html .toolbar, html #projectionPanel, html #funnelPanel,
+html .modal-panel, html .modal-shell > div, html .tk-modal, html .usr-modal, html .cfg-modal, html .proc-modal, html .y-modal{
+  background:var(--inn-t-painel) !important; background-image:none !important;
+  border:1px solid var(--inn-t-linha) !important; border-radius:12px !important; box-shadow:var(--inn-t-sombra) !important;
+}
+html .page-header h1, html .page-header h2, html .page-header .page-header-title,
+html .proc-panel h3, html .dash-panel h3, html .chart-card h3, html .card h3, html .kpi-value{ color:var(--inn-t-texto) !important; text-shadow:none !important; }
+html .page-header p, html .page-header .page-header-subtitle, html .kpi-label, html .kpi-foot, html .section-eyebrow{ color:var(--inn-t-texto3) !important; }
+html .kpi-card{ border-color:var(--inn-t-linha) !important; }
+html .kpi-card:hover{ transform:none !important; box-shadow:var(--inn-t-sombra) !important; border-color:var(--inn-t-linha2) !important; }
+
+/* ── 4. Botões: o principal em azul opaco, o resto na prata, 8px ─────────── */
+html .btn.primary, html .btn-primary, html .usr-btn-primary, html .cfg-btn-primary, html .agt-btn-primary,
+html .conn-btn-primary, html .tk-modal-btn-primary, html .modal-btn-save, html .proc-btn-primary, html .int-btn-primary,
+html .filter-btn.primary, html .meta-widget-btn.primary, html button.primary, html .o-btn-primary, html .es-btn-primary{
+  background:linear-gradient(180deg, var(--inn-t-azul2), var(--inn-t-azul)) !important; background-image:linear-gradient(180deg, var(--inn-t-azul2), var(--inn-t-azul)) !important;
+  color:#fff !important; border:1px solid transparent !important; border-radius:8px !important; box-shadow:var(--inn-t-brilho) !important; text-shadow:none !important;
+}
+html .btn, html .btn-ghost, html .btn-outline, html .btn-secondary, html .filter-btn, html .conn-btn-secondary,
+html .tk-modal-btn-cancel, html .modal-btn-cancel, html .meta-widget-btn.secondary, html .proc-btn, html .int-btn, html .o-btn, html .es-btn, html .usr-btn, html .cfg-btn, html .agt-btn{
+  border-radius:8px !important; text-shadow:none !important;
+}
+html .btn:not(.primary):not(.btn-primary):not(.btn-danger):not(.danger), html .btn-ghost, html .btn-outline, html .btn-secondary, html .filter-btn:not(.primary), html .conn-btn-secondary,
+html .tk-modal-btn-cancel, html .modal-btn-cancel, html .meta-widget-btn.secondary{
+  background:var(--inn-t-painel2) !important; background-image:none !important; color:var(--inn-t-texto) !important; border:1px solid var(--inn-t-linha2) !important; box-shadow:0 1px 0 var(--inn-t-hi) inset !important;
+}
+
+/* ── 5. Campos: afundados, 8px, texto da prata ───────────────────────────── */
+html .main-content input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+html .main-content select, html .main-content textarea,
+html .form-input, html .form-select, html .form-textarea, html .field-input, html .field-control, html .es-input, html .filter-input,
+html .int-filter-input, html .proc-select, html .tk-filter-select, html .usr-select, html .proj-textarea{
+  background:var(--inn-t-fundo) !important; background-image:none !important; color:var(--inn-t-texto) !important;
+  border:1px solid var(--inn-t-linha) !important; border-radius:8px !important; box-shadow:var(--inn-t-fundo-sombra) !important;
+}
+html .main-content input::placeholder, html .main-content textarea::placeholder{ color:var(--inn-t-texto3) !important; }
+html .main-content input:focus, html .main-content select:focus, html .main-content textarea:focus{ border-color:var(--inn-t-azul2) !important; outline:none !important; box-shadow:var(--inn-t-fundo-sombra), 0 0 0 3px var(--inn-t-azul-suave) !important; }
+html .main-content select option{ background:var(--inn-t-painel); color:var(--inn-t-texto); }
+
+/* ── 6. Tabelas, abas e divisórias ───────────────────────────────────────── */
+html .main-content table th{ color:var(--inn-t-texto3) !important; background:transparent !important; border-color:var(--inn-t-linha) !important; }
+html .main-content table td{ color:var(--inn-t-texto) !important; border-color:var(--inn-t-linha) !important; }
+html .main-content table tbody tr:hover td{ background:var(--inn-t-azul-suave) !important; }
+html .tab-btn, html .cfg-tab, html .es-tab, html .tk-tab{ border-radius:8px !important; }
+html .tab-btn.active, html .cfg-tab.active, html .es-tab.active, html .tk-tab.active{
+  background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul2) !important; border-color:transparent !important; box-shadow:none !important;
+}
+html .main-content hr{ border-color:var(--inn-t-linha) !important; }
+
+/* ── 7. Nada de brilho neon nem de barra colorida na lateral ─────────────── */
+html .main-content *{ text-shadow:none !important; }
+html .kpi-card, html .card, html .dash-panel, html .proc-panel{ border-left-width:1px !important; }

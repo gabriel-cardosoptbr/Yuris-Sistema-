@@ -3,6 +3,14 @@
 Nada aqui é acessível por URL, e nada roda sozinho. São scripts que alguém
 executa de propósito, com `php scripts/<arquivo>.php`.
 
+## Interface nova (prévia)
+
+`interface_nova_conta.php` liga ou desliga a interface nova numa conta
+(`--procurar=NOME` para achar a conta, `--listar`, `--conta=ID --ligar`,
+`--conta=ID --desligar`). Grava `accounts.configuracoes.interface_nova` preservando o
+resto; recusa conta de marca. Em produção: `docker exec yuris_app php
+/var/www/html/scripts/interface_nova_conta.php ...`. Ver `app/Inicio/README.md`.
+
 ## Testes
 
 `tests/` é o que você roda **antes e depois** de qualquer mudança em `app/`.

@@ -178,7 +178,7 @@ if ($isFleetiflow) {
 // Interface nova (prévia, 07/11/2026): a home é o dia do escritório
 // (includes/dashboard_inicio.php). O painel de métricas continua aqui embaixo,
 // como "Indicadores" (?gestao=1), e para quem não ligou a prévia nada muda.
-$interfaceNova = InterfaceNova::ligada($_GET, $_COOKIE, $isFleetiflow);
+$interfaceNova = InterfaceNova::ligada($_GET, $_COOKIE, $isFleetiflow, !$isFleetiflow && InterfaceNova::contaLigada((int) $ctx->getAccountId()));
 if ($moduloJuridico && $interfaceNova && empty($_GET['gestao'])) {
     require __DIR__ . '/includes/dashboard_inicio.php';
     exit;

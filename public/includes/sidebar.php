@@ -121,7 +121,8 @@ if ($_isFleetiflow && $_marca === null) $_marca = \App\Master\Marca::padraoFleet
 // abriu uma tela com ?novo=1 (fica em cookie; ?novo=0 desliga). Conta de marca nunca.
 // Muda o rótulo da home, põe "Indicadores" em Gestão e veste o menu com
 // assets/interface-nova.css. O resto do HTML é o mesmo.
-$_interfaceNova = \App\Inicio\InterfaceNova::ligada($_GET, $_COOKIE, $_isFleetiflow);
+$_interfaceNova = \App\Inicio\InterfaceNova::ligada($_GET, $_COOKIE, $_isFleetiflow,
+    !$_isFleetiflow && isset($__brandCtx) && \App\Inicio\InterfaceNova::contaLigada((int) $__brandCtx->getAccountId()));
 
 // ── Aviso de WhatsApp fora do ar (edição CRM) ─────────────────────────────
 // Em 30/09/2026 o canal caiu (Evolution, código 401: o aparelho desconectou o
@@ -1687,6 +1688,10 @@ window.FF_AGENDA = { csrf: <?= json_encode($_notifCsrf) ?>, sessao: <?= json_enc
 <?php if ($_interfaceNova): ?>
 <!-- Interface nova (prévia): veste o menu. Vem depois de todas as folhas, e ganha. -->
 <link rel="stylesheet" href="/assets/interface-nova.css?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova.css') ?: 1 ?>">
+<?php if ($_ap !== 'dashboard' || !empty($_GET['gestao'])): ?>
+<!-- As telas de dentro: a mesma paleta e as mesmas superfícies, por cima do CSS de cada tela. A home tem a folha própria. -->
+<link rel="stylesheet" href="/assets/interface-nova-telas.css?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-telas.css') ?: 1 ?>">
+<?php endif; ?>
 <?php endif; echo \App\Inicio\InterfaceNova::scriptCookie($_GET); ?>
 <?php
 /* Paleta nova do Yuris (App\Core\PaletaTema), EM PRÉVIA. A primeira versão foi ao

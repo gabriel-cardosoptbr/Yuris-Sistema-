@@ -5,45 +5,49 @@
    arredondadas (12px nos cartões, 8px no que é menor): "arredondar só um pouco".
    Prefixo .ini-.
    ═══════════════════════════════════════════════════════════════════════════ */
+/* A paleta (07/11/2026, pedido do dono do produto): três famílias e nada fora delas.
+   PRATA  os cinzas do logo, com um fio de azul: é toda superfície e todo texto.
+   MADEIRA  carvalho claro, o toque de escritório: ícones dos cartões, hora do
+            compromisso, detalhes quentes. Nunca em texto corrido.
+   AZUL  o azul do Yuris, forte e OPACO (sem neon): só o que é ação ou está
+         selecionado: botão principal, pílula ativa, dia escolhido, links.
+   Vermelho, âmbar e verde são semânticos (atraso, atenção, em dia), apagados. */
 :root{
-  --ini-bg:#08111F; --ini-bg2:#0B1627; --ini-painel:#0F1B30; --ini-painel2:#132340; --ini-fundo:#070F1C;
-  --ini-linha:rgba(173,197,232,.10); --ini-linha2:rgba(173,197,232,.18); --ini-hi:rgba(255,255,255,.06);
-  --ini-texto:#E7EEF9; --ini-texto2:#A9B8CE; --ini-texto3:#6E8099;
-  --ini-azul:#2F6FEA; --ini-azul2:#5B93FF; --ini-azul-suave:rgba(47,111,234,.16);
-  --ini-brilho:0 0 0 1px rgba(91,147,255,.35), 0 10px 30px rgba(47,111,234,.45), 0 0 46px rgba(47,111,234,.25);
-  --ini-ok:#34D399; --ini-ok-bg:rgba(52,211,153,.12); --ini-aviso:#F5B544; --ini-aviso-bg:rgba(245,181,68,.12);
-  --ini-erro:#F87171; --ini-erro-bg:rgba(248,113,113,.12); --ini-info:#7EB8F6; --ini-info-bg:rgba(126,184,246,.12);
-  --ini-sombra:0 1px 0 var(--ini-hi) inset, 0 18px 40px rgba(0,0,0,.35);
-  --ini-fundo-sombra:inset 0 2px 6px rgba(0,0,0,.55), inset 0 -1px 0 rgba(255,255,255,.04);
-  --ini-painel-rgb:15,27,48;
-  --ini-foto-veu:rgba(6,12,24,.42);
+  --ini-bg:#1A1D22; --ini-bg2:#1F2329; --ini-painel:#262B33; --ini-painel2:#2D333C; --ini-fundo:#171A1F;
+  --ini-linha:rgba(200,210,225,.10); --ini-linha2:rgba(200,210,225,.18); --ini-hi:rgba(255,255,255,.05);
+  --ini-texto:#E8EAEE; --ini-texto2:#B4BAC5; --ini-texto3:#7F8794;
+  --ini-azul:#3A63C9; --ini-azul2:#4F78DB; --ini-azul-suave:rgba(79,120,219,.14);
+  --ini-madeira:#C9955F; --ini-madeira-suave:rgba(201,149,95,.16);
+  --ini-prata:#3B434F; --ini-prata-texto:#E6E9EE;
+  --ini-brilho:0 0 0 1px rgba(79,120,219,.30), 0 8px 20px rgba(58,99,201,.35);
+  --ini-ok:#5FBF93; --ini-ok-bg:rgba(95,191,147,.12); --ini-aviso:#D9A75A; --ini-aviso-bg:rgba(217,167,90,.12);
+  --ini-erro:#E07A74; --ini-erro-bg:rgba(224,122,116,.12); --ini-info:#4F78DB; --ini-info-bg:rgba(79,120,219,.14);
+  --ini-sombra:0 1px 0 var(--ini-hi) inset, 0 14px 32px rgba(0,0,0,.32);
+  --ini-fundo-sombra:inset 0 2px 6px rgba(0,0,0,.45), inset 0 -1px 0 rgba(255,255,255,.04);
+  --ini-painel-rgb:38,43,51;
+  --ini-foto-veu:rgba(20,22,26,.45);
   --ini-r:12px; --ini-r2:8px;
 }
-/* Claro: papel e pedra, não branco. O escritório de dia: tons quentes, azul-marinho no texto. */
 html[data-theme="light"]{
-  --ini-bg:#E6E3DC; --ini-bg2:#ECE9E3; --ini-painel:#FAF8F3; --ini-painel2:#F1EEE7; --ini-fundo:#ECE9E2;
-  --ini-linha:rgba(32,38,52,.09); --ini-linha2:rgba(32,38,52,.16); --ini-hi:rgba(255,255,255,.85);
-  --ini-texto:#1B2436; --ini-texto2:#4B566A; --ini-texto3:#7D8798;
-  --ini-azul:#1E4FC4; --ini-azul2:#3566D8; --ini-azul-suave:rgba(30,79,196,.10);
-  --ini-brilho:0 0 0 1px rgba(30,79,196,.22), 0 10px 26px rgba(30,79,196,.30), 0 0 36px rgba(30,79,196,.14);
-  --ini-ok:#0F8F65; --ini-ok-bg:rgba(15,143,101,.12); --ini-aviso:#A8701A; --ini-aviso-bg:rgba(168,112,26,.12);
-  --ini-erro:#C73A3A; --ini-erro-bg:rgba(199,58,58,.10); --ini-info:#1E4FC4; --ini-info-bg:rgba(30,79,196,.10);
-  --ini-sombra:0 1px 0 var(--ini-hi) inset, 0 10px 30px rgba(40,36,30,.10), 0 1px 2px rgba(40,36,30,.06);
-  --ini-fundo-sombra:inset 0 2px 5px rgba(40,36,30,.12), inset 0 -1px 0 rgba(255,255,255,.8);
-  --ini-painel-rgb:250,248,243;
-  --ini-foto-veu:rgba(250,248,243,.18);
+  --ini-bg:#E3E5E8; --ini-bg2:#E9EBEE; --ini-painel:#F5F6F8; --ini-painel2:#ECEEF1; --ini-fundo:#E6E8EB;
+  --ini-linha:rgba(31,38,50,.10); --ini-linha2:rgba(31,38,50,.18); --ini-hi:rgba(255,255,255,.9);
+  --ini-texto:#1E2630; --ini-texto2:#4E586A; --ini-texto3:#7A8494;
+  --ini-azul:#2E55B8; --ini-azul2:#3D65CB; --ini-azul-suave:rgba(46,85,184,.10);
+  --ini-madeira:#B98A5A; --ini-madeira-suave:rgba(185,138,90,.16);
+  --ini-prata:#CBD0D8; --ini-prata-texto:#2A3340;
+  --ini-brilho:0 0 0 1px rgba(46,85,184,.20), 0 8px 18px rgba(46,85,184,.28);
+  --ini-ok:#2E8B62; --ini-ok-bg:rgba(46,139,98,.12); --ini-aviso:#A6741F; --ini-aviso-bg:rgba(166,116,31,.12);
+  --ini-erro:#B8453F; --ini-erro-bg:rgba(184,69,63,.10); --ini-info:#2E55B8; --ini-info-bg:rgba(46,85,184,.10);
+  --ini-sombra:0 1px 0 var(--ini-hi) inset, 0 8px 24px rgba(31,38,50,.08), 0 1px 2px rgba(31,38,50,.05);
+  --ini-fundo-sombra:inset 0 2px 5px rgba(31,38,50,.10), inset 0 -1px 0 rgba(255,255,255,.8);
+  --ini-painel-rgb:245,246,248;
+  --ini-foto-veu:rgba(245,246,248,.22);
 }
 
 /* O fundo da página: o do tema, com a luz azul no canto. */
 body.ini-body, html[data-theme="light"] body.ini-body{
-  background-color:var(--ini-bg) !important;
-  background-image:radial-gradient(1200px 600px at 10% -10%, rgba(47,111,234,.14), transparent 60%),
-                   radial-gradient(900px 500px at 100% 0%, rgba(47,111,234,.08), transparent 55%) !important;
+  background-color:var(--ini-bg) !important; background-image:none !important;
   color:var(--ini-texto) !important; font-family:Inter, system-ui, -apple-system, "Segoe UI", sans-serif !important;
-}
-html[data-theme="light"] body.ini-body{
-  background-image:radial-gradient(1200px 600px at 10% -10%, rgba(255,253,248,.85), transparent 60%),
-                   radial-gradient(900px 500px at 100% 0%, rgba(30,79,196,.05), transparent 55%) !important;
 }
 body.ini-body > main{ padding:16px; }
 body.ini-body .page-layout{ gap:18px; align-items:flex-start; }
@@ -66,7 +70,7 @@ body.ini-body .page-layout, html[data-theme="light"] body.ini-body .page-layout{
 .ini-sair-previa:hover{ color:var(--ini-texto); text-decoration:underline; }
 .ini-tema{ position:relative; width:70px; height:38px; border-radius:999px; background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); display:flex; align-items:center; justify-content:space-between; padding:0 10px; color:var(--ini-texto3); cursor:pointer; font:inherit; }
 .ini-tema svg{ width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; position:relative; z-index:1; }
-.ini-tema-bola{ position:absolute; top:4px; left:4px; width:28px; height:28px; border-radius:50%; background:linear-gradient(180deg,var(--ini-azul2),var(--ini-azul)); box-shadow:0 4px 12px rgba(47,111,234,.45), inset 0 1px 0 rgba(255,255,255,.35); transition:left .25s cubic-bezier(.2,.8,.2,1); }
+.ini-tema-bola{ position:absolute; top:4px; left:4px; width:28px; height:28px; border-radius:50%; background:linear-gradient(180deg,var(--ini-azul2),var(--ini-azul)); box-shadow:var(--ini-brilho), inset 0 1px 0 rgba(255,255,255,.3); transition:left .25s cubic-bezier(.2,.8,.2,1); }
 html[data-theme="light"] .ini-tema-bola{ left:37px; }
 html:not([data-theme="light"]) .ini-tema .ini-lua{ color:#fff; }
 html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
@@ -79,7 +83,7 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-card-h .ini-ic{ grid-area:ic; }
 .ini-card-h .ini-conta{ grid-area:sub; margin:1px 0 0; }
 .ini-card-h .ini-mais{ grid-area:mais; margin-left:10px; }
-.ini-ic{ width:32px; height:32px; border-radius:var(--ini-r2); display:grid; place-items:center; background:var(--ini-azul-suave); color:var(--ini-azul2); box-shadow:inset 0 1px 0 rgba(255,255,255,.08); flex:none; }
+.ini-ic{ width:32px; height:32px; border-radius:var(--ini-r2); display:grid; place-items:center; background:var(--ini-madeira-suave); color:var(--ini-madeira); box-shadow:inset 0 1px 0 rgba(255,255,255,.08); flex:none; }
 .ini-ic svg{ width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 .ini-conta{ font-size:12px; color:var(--ini-texto3); font-weight:600; }
 .ini-mais{ font-size:12.5px; font-weight:600; color:var(--ini-azul2); display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
@@ -112,7 +116,7 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-kpi{ display:grid; grid-template-columns:auto 1fr; grid-template-areas:"ic t" "ic v" "ic s"; column-gap:14px; align-items:center;
   background:var(--ini-painel); border:1px solid var(--ini-linha); border-radius:var(--ini-r); box-shadow:var(--ini-sombra); padding:14px 16px; min-width:0; transition:transform .18s, border-color .18s; }
 .ini-kpi:hover{ transform:translateY(-2px); border-color:var(--ini-linha2); }
-.ini-kpi-ic{ grid-area:ic; width:40px; height:40px; border-radius:var(--ini-r2); display:grid; place-items:center; background:var(--ini-azul-suave); color:var(--ini-azul2); box-shadow:inset 0 1px 0 rgba(255,255,255,.1); }
+.ini-kpi-ic{ grid-area:ic; width:40px; height:40px; border-radius:var(--ini-r2); display:grid; place-items:center; background:var(--ini-madeira-suave); color:var(--ini-madeira); box-shadow:inset 0 1px 0 rgba(255,255,255,.1); }
 .ini-kpi-ic svg{ width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 .ini-kpi-t{ grid-area:t; font-size:12px; font-weight:600; color:var(--ini-texto3); }
 .ini-kpi b{ grid-area:v; font-size:26px; font-weight:800; letter-spacing:-.6px; line-height:1.1; color:var(--ini-texto); }
@@ -124,7 +128,11 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 /* ── Grades ── */
 .ini-grade{ display:grid; gap:16px; }
 .ini-g4{ grid-template-columns:repeat(4,1fr); }
-.ini-g-agenda{ grid-template-columns:1.55fr 1fr; align-items:start; }
+/* Sem vãos: as colunas se esticam até a mesma altura, e o último cartão de cada coluna cresce. */
+.ini-g-agenda{ grid-template-columns:1.55fr 1fr; align-items:stretch; }
+.ini-coluna > .ini-card:last-child{ flex:1 1 auto; }
+.ini-agenda{ display:flex; flex-direction:column; }
+.ini-agenda .ini-agenda-corpo{ flex:1 1 auto; }
 .ini-coluna{ display:flex; flex-direction:column; gap:16px; min-width:0; }
 .ini-g3{ grid-template-columns:1fr 1.3fr 1fr; }
 @media (max-width:1380px){ .ini-g4{ grid-template-columns:repeat(2,1fr); } .ini-g3{ grid-template-columns:1fr 1fr; } }
@@ -156,11 +164,10 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-pill{ font-size:11.5px; font-weight:700; padding:3px 9px; border-radius:var(--ini-r2); background:var(--ini-azul-suave); color:var(--ini-azul2); white-space:nowrap; }
 .ini-dia-lista{ display:flex; flex-direction:column; gap:6px; max-height:380px; overflow:auto; padding-right:2px; }
 .ini-ev{ display:grid; grid-template-columns:52px 1fr; gap:10px; align-items:center; padding:9px 10px; border-radius:var(--ini-r2); background:var(--ini-painel2); border:1px solid var(--ini-linha); box-shadow:0 1px 0 var(--ini-hi) inset; }
-.ini-ev-hora{ height:40px; border-radius:var(--ini-r2); display:grid; place-items:center; text-align:center; font-weight:800; font-size:12.5px; background:var(--ini-azul-suave); color:var(--ini-azul2); line-height:1.05; }
+/* A hora em madeira (o toque quente); só o prazo fatal pede o vermelho. */
+.ini-ev-hora{ height:40px; border-radius:var(--ini-r2); display:grid; place-items:center; text-align:center; font-weight:800; font-size:12.5px; background:var(--ini-madeira-suave); color:var(--ini-madeira); line-height:1.05; }
 .ini-ev-hora small{ font-size:9.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
 .ini-ev.prazo .ini-ev-hora{ background:var(--ini-erro-bg); color:var(--ini-erro); }
-.ini-ev.reuniao .ini-ev-hora{ background:var(--ini-aviso-bg); color:var(--ini-aviso); }
-.ini-ev.audiencia .ini-ev-hora{ background:var(--ini-info-bg); color:var(--ini-info); }
 .ini-ev-t{ min-width:0; }
 .ini-ev-t b{ display:block; font-weight:600; font-size:13.5px; line-height:1.3; }
 .ini-ev-t b a:hover{ color:var(--ini-azul2); }
@@ -168,13 +175,13 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-ev-t small{ display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ini-texto3); margin-top:4px; }
 .ini-ev-t small .ini-av{ width:18px; height:18px; font-size:8.5px; font-style:normal; }
 .ini-tag{ display:inline-flex; align-items:center; height:18px; padding:0 7px; border-radius:5px; font-size:10.5px; font-weight:700; letter-spacing:.02em; font-style:normal; vertical-align:middle; }
-.ini-tag.audiencia{ background:var(--ini-info-bg); color:var(--ini-info); }
+/* Etiquetas na prata; só o prazo fatal em vermelho. */
+.ini-tag.audiencia, .ini-tag.reuniao, .ini-tag.tarefa{ background:var(--ini-fundo); color:var(--ini-texto2); border:1px solid var(--ini-linha); }
 .ini-tag.prazo{ background:var(--ini-erro-bg); color:var(--ini-erro); }
-.ini-tag.reuniao{ background:var(--ini-aviso-bg); color:var(--ini-aviso); }
-.ini-tag.tarefa{ background:var(--ini-linha); color:var(--ini-texto2); }
 
-.ini-av{ width:26px; height:26px; border-radius:50%; display:inline-grid; place-items:center; font-size:10.5px; font-weight:700; color:#fff; background:linear-gradient(135deg,#2F6FEA,#143B8C); box-shadow:inset 0 1px 0 rgba(255,255,255,.3); flex:none; position:relative; font-style:normal; }
-.ini-av.cinza{ background:linear-gradient(135deg,#64748B,#334155); }
+/* Iniciais na prata, nunca num círculo azul. */
+.ini-av{ width:26px; height:26px; border-radius:50%; display:inline-grid; place-items:center; font-size:10.5px; font-weight:700; color:var(--ini-prata-texto); background:var(--ini-prata); box-shadow:inset 0 1px 0 rgba(255,255,255,.25), 0 1px 2px rgba(0,0,0,.12); flex:none; position:relative; font-style:normal; }
+.ini-av.cinza{ background:var(--ini-prata); }
 .ini-av.grande{ width:38px; height:38px; font-size:13px; }
 
 /* ── Prazos ── */
@@ -231,7 +238,7 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-tabela td.m small{ display:block; color:var(--ini-texto3); font-size:11.5px; }
 .ini-situ{ display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 9px; border-radius:6px; font-size:11.5px; font-weight:700; white-space:nowrap; }
 .ini-situ::before{ content:""; width:6px; height:6px; border-radius:50%; background:currentColor; }
-.ini-situ.and{ background:var(--ini-info-bg); color:var(--ini-info); } .ini-situ.ag{ background:var(--ini-aviso-bg); color:var(--ini-aviso); }
+.ini-situ.and{ background:var(--ini-fundo); color:var(--ini-texto2); border:1px solid var(--ini-linha); } .ini-situ.ag{ background:var(--ini-aviso-bg); color:var(--ini-aviso); }
 .ini-situ.ok{ background:var(--ini-ok-bg); color:var(--ini-ok); } .ini-situ.at{ background:var(--ini-erro-bg); color:var(--ini-erro); }
 
 /* ── Aguardando retorno ── */

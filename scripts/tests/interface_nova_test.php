@@ -48,6 +48,14 @@ eq(true,  InterfaceNova::ligada([], [InterfaceNova::COOKIE => '1'], false), 'o c
 eq(false, InterfaceNova::ligada(['novo' => '0'], [InterfaceNova::COOKIE => '1'], false), '?novo=0 desliga mesmo com o cookie');
 eq(false, InterfaceNova::ligada(['novo' => '1'], [InterfaceNova::COOKIE => '1'], true), 'conta de marca nunca entra');
 eq(false, InterfaceNova::ligada(['novo' => 'sim'], [], false), 'valor estranho não liga');
+eq(true,  InterfaceNova::ligada([], [], false, true), 'conta ligada: vê sem cookie e sem parâmetro');
+eq(false, InterfaceNova::ligada(['novo' => '0'], [], false, true), 'conta ligada: ?novo=0 desliga para comparar');
+eq(false, InterfaceNova::ligada([], [], true, true), 'conta de marca não liga nem com a chave da conta');
+eq(true,  InterfaceNova::contaLigadaPelaLinha(['configuracoes' => '{"interface_nova":true,"modulos":{"x":1}}']), 'linha da conta: ligada');
+eq(false, InterfaceNova::contaLigadaPelaLinha(['configuracoes' => '{"interface_nova":"sim"}']), 'linha da conta: só true de verdade');
+eq(false, InterfaceNova::contaLigadaPelaLinha(['configuracoes' => null]), 'linha da conta: sem configurações');
+eq(false, InterfaceNova::contaLigadaPelaLinha(null), 'linha da conta: conta inexistente');
+eq(false, InterfaceNova::contaLigada(0), 'conta 0 nunca');
 eq('1',  InterfaceNova::mudanca(['novo' => '1']), 'mudança: liga');
 eq('0',  InterfaceNova::mudanca(['novo' => '0']), 'mudança: desliga');
 eq(null, InterfaceNova::mudanca([]), 'mudança: nada a gravar');
@@ -169,7 +177,7 @@ eq(['Encerrado', 'ok'], Painel::situacaoDoProcesso('concluido', null, '2026-11-0
 // ── 3. Os ganchos ────────────────────────────────────────────────────────────
 secao('3. Ganchos no menu e no dashboard');
 $sidebar = (string) file_get_contents($raiz . '/public/includes/sidebar.php');
-ok(str_contains($sidebar, 'InterfaceNova::ligada($_GET, $_COOKIE, $_isFleetiflow)'), 'menu decide pela chave, com a conta de marca fora');
+ok(str_contains($sidebar, 'InterfaceNova::ligada($_GET, $_COOKIE, $_isFleetiflow,'), 'menu decide pela chave, com a conta de marca fora');
 ok(preg_match('/if \(\$_interfaceNova\): \?>\s*<!--[^>]*-->\s*<link rel="stylesheet" href="\/assets\/interface-nova\.css/', $sidebar) === 1, 'menu só carrega interface-nova.css sob a chave');
 ok(str_contains($sidebar, "\$_interfaceNova ? 'Início' : 'Visão Geral'"), 'home chama Início só na interface nova');
 ok(str_contains($sidebar, "'href'=>'dashboard.php?gestao=1','active'=>'indicadores'"), 'Gestão ganha Indicadores apontando para o painel de sempre');
@@ -193,14 +201,24 @@ ok(!str_contains($inicio, 'alert(') && !str_contains($inicio, 'confirm('), 'sem 
 
 // ── 4. As folhas ─────────────────────────────────────────────────────────────
 secao('4. Folhas de estilo');
-foreach (['inicio.css', 'interface-nova.css'] as $f) {
+foreach (['inicio.css', 'interface-nova.css', 'interface-nova-telas.css'] as $f) {
     $css = (string) file_get_contents($raiz . '/public/assets/' . $f);
     ok($css !== '', "$f existe");
     ok(str_contains($css, 'html[data-theme="light"]'), "$f tem o tema claro");
     ok(!str_contains($css, 'text-overflow'), "$f não esconde dado com reticências");
     ok(!str_contains($css, '—'), "$f sem travessão");
     ok(!preg_match('/#(7c3aed|8b5cf6|a855f7|6d28d9)/i', $css), "$f sem roxo");
+    // "Azul forte no sentido de cor, não de neon": nenhum brilho largo nem o azul elétrico antigo.
+    ok(!preg_match('/0 0 \d{2,}px rgba\(\s*(47|91),/', $css), "$f sem brilho neon");
+    ok(!preg_match('/#(2F6FEA|5B93FF|1F5AE0|3B78F0)\b/i', $css), "$f sem o azul elétrico da primeira versão");
 }
+$telas = (string) file_get_contents($raiz . '/public/assets/interface-nova-telas.css');
+ok(!preg_match('/(?<![-\w])(display|width|position|float|margin|padding)\s*:/', preg_replace('/\/\*.*?\*\//s', '', $telas)), 'telas: só cor e superfície, nenhuma propriedade de layout');
+$sidebarT = (string) file_get_contents($raiz . '/public/includes/sidebar.php');
+ok(str_contains($sidebarT, "if (\$_ap !== 'dashboard' || !empty(\$_GET['gestao'])): ?>") && str_contains($sidebarT, 'interface-nova-telas.css'), 'menu carrega a folha das telas fora da home, sob a chave');
+ok(str_contains($sidebarT, 'InterfaceNova::contaLigada((int) $__brandCtx->getAccountId())'), 'menu consulta a chave da conta');
+ok(str_contains($dash, 'InterfaceNova::contaLigada((int) $ctx->getAccountId())'), 'dashboard consulta a chave da conta');
+ok(is_file($raiz . '/scripts/interface_nova_conta.php'), 'existe o script que liga a conta');
 // O <title> das páginas ("Processos — Yuris") e o título dos READMEs ("# public/ — ...")
 // seguem o padrão de todo o sistema; fora deles, texto não leva travessão.
 foreach (['app/Inicio/InterfaceNova.php', 'app/Inicio/Painel.php', 'public/includes/dashboard_inicio.php', 'app/Inicio/README.md'] as $f) {

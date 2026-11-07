@@ -5,7 +5,24 @@ pessoa entra, e a chave que decide quem a vê.
 
 **Está em prévia.** Depois da paleta de 06/11/2026 (que subiu para todos e foi
 reprovada), mudança de aparência só vai para todos depois que o dono do produto
-aprova. Hoje só vê quem abriu uma tela com `?novo=1`.
+aprova. Vê quem está numa **conta ligada** (`accounts.configuracoes.interface_nova`,
+por `scripts/interface_nova_conta.php --conta=ID --ligar`: a conta inteira, em qualquer
+navegador, foi o pedido "sobe o layout completo do sistema inteiro dentro da minha
+conta") ou quem abriu uma tela com `?novo=1`. `?novo=0` desliga nos dois casos.
+
+## A paleta (07/11/2026)
+
+Três famílias, e nada fora delas, nas duas folhas e nos dois temas:
+
+- **Prata**, os cinzas do logo com um fio de azul: toda superfície, todo texto, as
+  iniciais das pessoas. Nunca círculo azul saturado para avatar.
+- **Madeira**, carvalho claro, o toque de escritório: ícones dos cartões, a hora do
+  compromisso, o fio sob a marca no menu. Nunca em texto corrido.
+- **Azul do Yuris, forte e opaco** (nunca neon): só o que é ação ou está selecionado:
+  botão principal, pílula ativa, dia escolhido, links. Sem brilho largo em volta.
+
+Vermelho, âmbar e verde continuam semânticos (atraso, atenção, em dia), apagados.
+O claro é prata, não branco; o escuro é grafite, não azul-marinho.
 
 ## O pedido
 
@@ -21,6 +38,7 @@ seleção em pílula.
 | Arquivo | O que faz |
 |---|---|
 | `InterfaceNova.php` | a chave da prévia. `ligada($_GET, $_COOKIE, $contaDeMarca)` decide sem efeito colateral; `aplicar()` grava o cookie `yuris_interface_nova` (um ano) quando a URL traz `?novo=1`, e apaga com `?novo=0`; `scriptCookie()` faz o mesmo por JavaScript, para o menu, que entra com os cabeçalhos já enviados. Conta de marca (edição CRM) nunca liga: o desenho dela é outro. É cookie, e não `localStorage` como a paleta, porque o PHP precisa saber antes de desenhar: a home nova é outra página |
+| `../../scripts/interface_nova_conta.php` | liga e desliga a prévia numa conta (`--procurar=NOME`, `--listar`, `--conta=ID --ligar/--desligar`), preservando o resto de `configuracoes`. Recusa conta de marca |
 | `Painel.php` | o que a home mostra, lido de onde já está, sem copiar: os quatro cartões de cima (prazos urgentes em até 3 dias, processos ativos, publicações pendentes, audiências na semana); o calendário do mês (`porDia`, `gradeDoMes`, todos os itens abertos com data, por dia, para o navegador trocar de mês e de dia sem recarregar); agenda e prazos de `App\Tarefas\Central` (as três tabelas, com a visibilidade de quadros e processos); publicações pendentes de `push_events`; a equipe de `users` + `CargaDaEquipe` + os prazos de processo cujo responsável é o nome da pessoa; processos por última movimentação com a última publicação de cada um; quem espera resposta no WhatsApp pela mesma regra de `MetricasAtendimento::relatorio` (a última mensagem é do contato); e os números do rodapé. As regras puras (saudação, tipo do item, rótulo de vencimento, frase do resumo, situação do processo) ficam separadas das consultas |
 
 ## Onde entra
@@ -44,6 +62,14 @@ seleção em pílula.
   Prazos e Aguardando retorno ao lado; Publicações, Processos com movimentação e
   Equipe embaixo. Bordas pouco arredondadas (12px nos cartões, 8px no resto):
   "tá muito arredondado, arredondar só um pouco".
+- `assets/interface-nova-telas.css` veste **todas as outras telas** (Processos,
+  Tarefas, Publicações, Clientes, Chat, Finanças, Configurações...), carregada pelo
+  menu fora da home: troca as variáveis de cor que as telas e as folhas globais usam
+  (`--panel`, `--bg-main`, `--text`, `--yuris-*`, `--y-*`) e as superfícies (painéis
+  na prata com 12px, botão principal azul com 8px, campos afundados, tabelas e abas).
+  **Não mexe em layout**: nada de `display`, largura ou posição; o teste trava isso.
+- Cartões nunca deixam vão: as colunas se esticam até a mesma altura e o último
+  cartão de cada coluna cresce ("nunca deixe esses vãos entre um card e o outro").
 - `assets/inicio.css` é a home: dois temas pelas variáveis `--ini-*`, a faixa de
   boas-vindas com uma biblioteca jurídica ao fundo (`assets/img/inicio-biblioteca.jpg`,
   foto de Planet Volumes no Unsplash, licença Unsplash: uso comercial livre, sem

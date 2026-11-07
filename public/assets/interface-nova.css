@@ -9,25 +9,28 @@
    pílula; a página atual é uma pílula azul que brilha, com o ícone num disco.
    Grupo com filho ativo fica na cor da marca, sem fundo. Nos dois temas.
    ═══════════════════════════════════════════════════════════════════════════ */
+/* A paleta é a mesma de inicio.css: prata do logo nas superfícies, madeira nos
+   toques, o azul do Yuris opaco só no que é ação ou está selecionado. */
 :root{
-  --inn-painel:#0F1B30; --inn-painel2:#0B1627; --inn-fundo:#070F1C;
-  --inn-linha:rgba(173,197,232,.10); --inn-linha2:rgba(173,197,232,.18); --inn-hi:rgba(255,255,255,.06);
-  --inn-texto:#E7EEF9; --inn-texto2:#A9B8CE; --inn-texto3:#6E8099;
-  --inn-azul:#2F6FEA; --inn-azul2:#5B93FF; --inn-azul-suave:rgba(47,111,234,.16);
-  --inn-brilho:0 0 0 1px rgba(91,147,255,.35), 0 10px 30px rgba(47,111,234,.45), 0 0 46px rgba(47,111,234,.25);
-  --inn-sombra:0 1px 0 var(--inn-hi) inset, 0 24px 60px rgba(0,0,0,.45);
-  --inn-fundo-sombra:inset 0 2px 6px rgba(0,0,0,.55), inset 0 -1px 0 rgba(255,255,255,.04);
-  --inn-erro:#F87171; --inn-erro-bg:rgba(248,113,113,.14);
+  --inn-painel:#262B33; --inn-painel2:#1F2329; --inn-fundo:#171A1F;
+  --inn-linha:rgba(200,210,225,.10); --inn-linha2:rgba(200,210,225,.18); --inn-hi:rgba(255,255,255,.05);
+  --inn-texto:#E8EAEE; --inn-texto2:#B4BAC5; --inn-texto3:#7F8794;
+  --inn-azul:#3A63C9; --inn-azul2:#4F78DB; --inn-azul-suave:rgba(79,120,219,.14);
+  --inn-madeira:#C9955F;
+  --inn-brilho:0 0 0 1px rgba(79,120,219,.30), 0 8px 20px rgba(58,99,201,.35);
+  --inn-sombra:0 1px 0 var(--inn-hi) inset, 0 18px 44px rgba(0,0,0,.38);
+  --inn-fundo-sombra:inset 0 2px 6px rgba(0,0,0,.45), inset 0 -1px 0 rgba(255,255,255,.04);
+  --inn-erro:#E07A74; --inn-erro-bg:rgba(224,122,116,.14);
 }
-/* Claro: papel e pedra, não branco (o mesmo tom de inicio.css). */
 html[data-theme="light"]{
-  --inn-painel:#FAF8F3; --inn-painel2:#F1EEE7; --inn-fundo:#ECE9E2;
-  --inn-linha:rgba(32,38,52,.09); --inn-linha2:rgba(32,38,52,.16); --inn-hi:rgba(255,255,255,.85);
-  --inn-texto:#1B2436; --inn-texto2:#4B566A; --inn-texto3:#7D8798;
-  --inn-azul:#1E4FC4; --inn-azul2:#3566D8; --inn-azul-suave:rgba(30,79,196,.10);
-  --inn-brilho:0 0 0 1px rgba(30,79,196,.22), 0 10px 26px rgba(30,79,196,.30), 0 0 36px rgba(30,79,196,.14);
-  --inn-sombra:0 1px 0 var(--inn-hi) inset, 0 20px 50px rgba(40,36,30,.12);
-  --inn-fundo-sombra:inset 0 2px 5px rgba(40,36,30,.12), inset 0 -1px 0 rgba(255,255,255,.8);
+  --inn-painel:#F5F6F8; --inn-painel2:#ECEEF1; --inn-fundo:#E6E8EB;
+  --inn-linha:rgba(31,38,50,.10); --inn-linha2:rgba(31,38,50,.18); --inn-hi:rgba(255,255,255,.9);
+  --inn-texto:#1E2630; --inn-texto2:#4E586A; --inn-texto3:#7A8494;
+  --inn-azul:#2E55B8; --inn-azul2:#3D65CB; --inn-azul-suave:rgba(46,85,184,.10);
+  --inn-madeira:#B98A5A;
+  --inn-brilho:0 0 0 1px rgba(46,85,184,.20), 0 8px 18px rgba(46,85,184,.28);
+  --inn-sombra:0 1px 0 var(--inn-hi) inset, 0 16px 40px rgba(31,38,50,.10);
+  --inn-fundo-sombra:inset 0 2px 5px rgba(31,38,50,.10), inset 0 -1px 0 rgba(255,255,255,.8);
   --inn-erro:#D23B3B; --inn-erro-bg:rgba(210,59,59,.10);
 }
 
@@ -48,7 +51,7 @@ html .sidebar .sidebar-brand.sb-marca-yuris{
   background:transparent !important; border:0 !important; border-radius:0 !important;
   padding:2px 6px 10px !important; margin:0 0 4px !important; text-align:left !important;
 }
-html .sidebar .sb-logo-grande{ max-height:72px !important; margin:0 !important; filter:drop-shadow(0 6px 14px rgba(47,111,234,.35)); }
+html .sidebar .sb-logo-grande{ max-height:72px !important; margin:0 !important; filter:drop-shadow(0 6px 14px rgba(0,0,0,.25)); }
 /* A aba de recolher fica na BORDA do painel, metade para fora, como um botão
    afundado (a referência do ClarityAI). O painel precisa de overflow visível. */
 html .sidebar .sb-recolher.sb-recolher-y{
@@ -69,8 +72,8 @@ html .sidebar .sidebar-user{
 }
 html .sidebar .sidebar-user:hover{ background:var(--inn-azul-suave) !important; }
 html .sidebar .sidebar-user-avatar{
-  background:linear-gradient(135deg,#2F6FEA,#143B8C) !important; color:#fff !important;
-  box-shadow:0 4px 12px rgba(47,111,234,.35), inset 0 1px 0 rgba(255,255,255,.3) !important;
+  background:var(--inn-fundo) !important; color:var(--inn-texto) !important; border:1px solid var(--inn-linha2) !important;
+  box-shadow:var(--inn-fundo-sombra) !important;
 }
 html .sidebar .sidebar-user-name{ color:var(--inn-texto) !important; font-size:13px !important; }
 html .sidebar .sidebar-user-badge{ background:transparent !important; border:0 !important; padding:0 !important; color:var(--inn-texto3) !important; text-transform:none !important; letter-spacing:0 !important; font-size:11px !important; font-weight:500 !important; }
@@ -154,3 +157,6 @@ html .sidebar .sb-instalar-app{ border-radius:999px !important; }
 
 /* ── O conteúdo ao lado respira o mesmo tanto ── */
 html body .page-layout{ gap:18px !important; }
+/* O toque de madeira: um fio quente sob a marca. */
+html .sidebar .sidebar-brand.sb-marca-yuris{ border-bottom:1px solid var(--inn-madeira) !important; margin-bottom:8px !important; padding-bottom:10px !important; }
+html.sb-retraido .sidebar .sidebar-brand.sb-marca-yuris{ border-bottom-color:var(--inn-madeira) !important; }
