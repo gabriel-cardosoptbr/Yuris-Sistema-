@@ -21,6 +21,8 @@
   --inn-sombra:0 1px 0 var(--inn-hi) inset, 0 18px 44px rgba(0,0,0,.38);
   --inn-fundo-sombra:inset 0 2px 6px rgba(0,0,0,.45), inset 0 -1px 0 rgba(255,255,255,.04);
   --inn-erro:#E07A74; --inn-erro-bg:rgba(224,122,116,.14);
+  --inn-painel-fundo:#15181D;
+  --inn-concavo:inset 0 2px 10px rgba(0,0,0,.55), inset 0 0 0 1px rgba(200,210,225,.06), inset 0 -1px 0 rgba(255,255,255,.05), inset 3px 0 8px rgba(0,0,0,.25);
 }
 html[data-theme="light"]{
   --inn-painel:#F5F6F8; --inn-painel2:#ECEEF1; --inn-fundo:#E6E8EB;
@@ -30,14 +32,16 @@ html[data-theme="light"]{
   --inn-brilho:0 0 0 1px rgba(46,85,184,.20), 0 8px 18px rgba(46,85,184,.28);
   --inn-sombra:0 1px 0 var(--inn-hi) inset, 0 16px 40px rgba(31,38,50,.10);
   --inn-fundo-sombra:inset 0 2px 5px rgba(31,38,50,.10), inset 0 -1px 0 rgba(255,255,255,.8);
+  --inn-painel-fundo:#DDE0E5;
+  --inn-concavo:inset 0 2px 10px rgba(31,38,50,.14), inset 0 0 0 1px rgba(31,38,50,.06), inset 0 -1px 0 rgba(255,255,255,.9), inset 3px 0 8px rgba(31,38,50,.07);
   --inn-erro:#D23B3B; --inn-erro-bg:rgba(210,59,59,.10);
 }
 
 /* ── O painel ── */
 html .sidebar{
-  background:linear-gradient(180deg, var(--inn-painel) 0%, var(--inn-painel2) 100%) !important;
+  background:linear-gradient(180deg, var(--inn-painel-fundo) 0%, var(--inn-painel2) 100%) !important;
   border:1px solid var(--inn-linha) !important; border-radius:16px !important; overflow:visible !important;
-  box-shadow:var(--inn-sombra) !important;
+  box-shadow:var(--inn-concavo) !important;
   padding:16px 12px 12px !important; gap:4px !important;
   top:16px !important; max-height:calc(100vh - 32px) !important;
   width:264px !important; min-width:264px !important; max-width:264px !important;
@@ -108,7 +112,7 @@ html .sidebar nav a:hover .icon, html .sidebar .sidebar-group-toggle:hover .side
 html .sidebar nav a.active{
   background:linear-gradient(180deg, var(--inn-azul2) 0%, var(--inn-azul) 100%) !important;
   color:#fff !important; border-color:transparent !important;
-  box-shadow:var(--inn-brilho) !important; transform:translateX(2px); position:relative;
+  box-shadow:var(--inn-brilho), inset 0 2px 3px rgba(255,255,255,.26), inset 0 -3px 6px rgba(0,0,0,.28) !important; transform:translateX(2px); position:relative;
 }
 html .sidebar nav a.active::before{ content:""; position:absolute; inset:1px; border-radius:inherit; pointer-events:none; background:linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0) 55%); }
 html .sidebar nav a.active::after{ display:none !important; }
