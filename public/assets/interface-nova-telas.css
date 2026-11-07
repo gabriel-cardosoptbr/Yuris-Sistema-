@@ -12,7 +12,7 @@
    2. Os painéis e cartões de todas as telas: fundo prata, borda, 12px, sombra
       baixa. Botão principal em azul opaco, 8px. Campos afundados.
 
-   Paleta: prata do logo nas superfícies e no texto; madeira só em detalhe;
+   Paleta: prata do logo nas superfícies e no texto, preto no traço;
    azul do Yuris opaco só em ação e seleção. Vermelho, âmbar e verde continuam
    semânticos. Como as folhas antigas usam !important em tudo, aqui também.
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -33,7 +33,7 @@
   --y-r-md:8px; --y-r-lg:12px; --y-r-xl:12px;
   --inn-t-fundo:#171A1F; --inn-t-painel:#262B33; --inn-t-painel2:#2D333C; --inn-t-linha:rgba(200,210,225,.10); --inn-t-linha2:rgba(200,210,225,.18);
   --inn-t-texto:#E8EAEE; --inn-t-texto2:#B4BAC5; --inn-t-texto3:#7F8794; --inn-t-azul:#3A63C9; --inn-t-azul2:#4F78DB; --inn-t-azul-suave:rgba(79,120,219,.14);
-  --inn-t-madeira:#C9955F; --inn-t-hi:rgba(255,255,255,.05);
+  --inn-t-hi:rgba(255,255,255,.05);
   --inn-t-sombra:0 1px 0 rgba(255,255,255,.05) inset, 0 12px 28px rgba(0,0,0,.30);
   --inn-t-fundo-sombra:inset 0 2px 6px rgba(0,0,0,.45), inset 0 -1px 0 rgba(255,255,255,.04);
   --inn-t-brilho:0 0 0 1px rgba(79,120,219,.30), 0 8px 20px rgba(58,99,201,.35);
@@ -52,7 +52,7 @@ html[data-theme="light"]{
   --y-text:#1E2630; --y-text-muted:#4E586A; --y-text-soft:#7A8494; --y-text-accent:#2E55B8;
   --inn-t-fundo:#E6E8EB; --inn-t-painel:#F5F6F8; --inn-t-painel2:#ECEEF1; --inn-t-linha:rgba(31,38,50,.10); --inn-t-linha2:rgba(31,38,50,.18);
   --inn-t-texto:#1E2630; --inn-t-texto2:#4E586A; --inn-t-texto3:#7A8494; --inn-t-azul:#2E55B8; --inn-t-azul2:#3D65CB; --inn-t-azul-suave:rgba(46,85,184,.10);
-  --inn-t-madeira:#B98A5A; --inn-t-hi:rgba(255,255,255,.9);
+  --inn-t-hi:rgba(255,255,255,.9);
   --inn-t-sombra:0 1px 0 rgba(255,255,255,.9) inset, 0 8px 24px rgba(31,38,50,.08), 0 1px 2px rgba(31,38,50,.05);
   --inn-t-fundo-sombra:inset 0 2px 5px rgba(31,38,50,.10), inset 0 -1px 0 rgba(255,255,255,.8);
   --inn-t-brilho:0 0 0 1px rgba(46,85,184,.20), 0 8px 18px rgba(46,85,184,.28);

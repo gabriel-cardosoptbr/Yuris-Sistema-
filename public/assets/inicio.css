@@ -5,19 +5,20 @@
    arredondadas (12px nos cartões, 8px no que é menor): "arredondar só um pouco".
    Prefixo .ini-.
    ═══════════════════════════════════════════════════════════════════════════ */
-/* A paleta (07/11/2026, pedido do dono do produto): três famílias e nada fora delas.
-   PRATA  os cinzas do logo, com um fio de azul: é toda superfície e todo texto.
-   MADEIRA  carvalho claro, o toque de escritório: ícones dos cartões, hora do
-            compromisso, detalhes quentes. Nunca em texto corrido.
+/* A paleta (07/11/2026, pedido do dono do produto): a do logo, e nada fora dela.
+   PRATA  os cinzas do logo, com um fio de azul: toda superfície, os ícones
+          afundados, as iniciais.
+   PRETO  o traço: texto, ícones, horas.
    AZUL  o azul do Yuris, forte e OPACO (sem neon): só o que é ação ou está
          selecionado: botão principal, pílula ativa, dia escolhido, links.
+   A madeira da versão anterior saiu ("não tem esse detalhe na identidade").
    Vermelho, âmbar e verde são semânticos (atraso, atenção, em dia), apagados. */
 :root{
   --ini-bg:#1A1D22; --ini-bg2:#1F2329; --ini-painel:#262B33; --ini-painel2:#2D333C; --ini-fundo:#171A1F;
   --ini-linha:rgba(200,210,225,.10); --ini-linha2:rgba(200,210,225,.18); --ini-hi:rgba(255,255,255,.05);
   --ini-texto:#E8EAEE; --ini-texto2:#B4BAC5; --ini-texto3:#7F8794;
   --ini-azul:#3A63C9; --ini-azul2:#4F78DB; --ini-azul-suave:rgba(79,120,219,.14);
-  --ini-madeira:#C9955F; --ini-madeira-suave:rgba(201,149,95,.16);
+
   --ini-prata:#3B434F; --ini-prata-texto:#E6E9EE;
   --ini-brilho:0 0 0 1px rgba(79,120,219,.30), 0 8px 20px rgba(58,99,201,.35);
   --ini-ok:#5FBF93; --ini-ok-bg:rgba(95,191,147,.12); --ini-aviso:#D9A75A; --ini-aviso-bg:rgba(217,167,90,.12);
@@ -33,7 +34,7 @@ html[data-theme="light"]{
   --ini-linha:rgba(31,38,50,.10); --ini-linha2:rgba(31,38,50,.18); --ini-hi:rgba(255,255,255,.9);
   --ini-texto:#1E2630; --ini-texto2:#4E586A; --ini-texto3:#7A8494;
   --ini-azul:#2E55B8; --ini-azul2:#3D65CB; --ini-azul-suave:rgba(46,85,184,.10);
-  --ini-madeira:#B98A5A; --ini-madeira-suave:rgba(185,138,90,.16);
+
   --ini-prata:#CBD0D8; --ini-prata-texto:#2A3340;
   --ini-brilho:0 0 0 1px rgba(46,85,184,.20), 0 8px 18px rgba(46,85,184,.28);
   --ini-ok:#2E8B62; --ini-ok-bg:rgba(46,139,98,.12); --ini-aviso:#A6741F; --ini-aviso-bg:rgba(166,116,31,.12);
@@ -83,7 +84,8 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-card-h .ini-ic{ grid-area:ic; }
 .ini-card-h .ini-conta{ grid-area:sub; margin:1px 0 0; }
 .ini-card-h .ini-mais{ grid-area:mais; margin-left:10px; }
-.ini-ic{ width:32px; height:32px; border-radius:var(--ini-r2); display:grid; place-items:center; background:var(--ini-madeira-suave); color:var(--ini-madeira); box-shadow:inset 0 1px 0 rgba(255,255,255,.08); flex:none; }
+/* Ícones afundados na prata, traço escuro: azul, preto e prata, nada mais. */
+.ini-ic{ width:32px; height:32px; border-radius:var(--ini-r2); display:grid; place-items:center; background:var(--ini-fundo); color:var(--ini-texto); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); flex:none; }
 .ini-ic svg{ width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 .ini-conta{ font-size:12px; color:var(--ini-texto3); font-weight:600; }
 .ini-mais{ font-size:12.5px; font-weight:600; color:var(--ini-azul2); display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
@@ -116,7 +118,7 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-kpi{ display:grid; grid-template-columns:auto 1fr; grid-template-areas:"ic t" "ic v" "ic s"; column-gap:14px; align-items:center;
   background:var(--ini-painel); border:1px solid var(--ini-linha); border-radius:var(--ini-r); box-shadow:var(--ini-sombra); padding:14px 16px; min-width:0; transition:transform .18s, border-color .18s; }
 .ini-kpi:hover{ transform:translateY(-2px); border-color:var(--ini-linha2); }
-.ini-kpi-ic{ grid-area:ic; width:40px; height:40px; border-radius:var(--ini-r2); display:grid; place-items:center; background:var(--ini-madeira-suave); color:var(--ini-madeira); box-shadow:inset 0 1px 0 rgba(255,255,255,.1); }
+.ini-kpi-ic{ grid-area:ic; width:40px; height:40px; border-radius:var(--ini-r2); display:grid; place-items:center; background:var(--ini-fundo); color:var(--ini-texto); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); }
 .ini-kpi-ic svg{ width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 .ini-kpi-t{ grid-area:t; font-size:12px; font-weight:600; color:var(--ini-texto3); }
 .ini-kpi b{ grid-area:v; font-size:26px; font-weight:800; letter-spacing:-.6px; line-height:1.1; color:var(--ini-texto); }
@@ -164,8 +166,8 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-pill{ font-size:11.5px; font-weight:700; padding:3px 9px; border-radius:var(--ini-r2); background:var(--ini-azul-suave); color:var(--ini-azul2); white-space:nowrap; }
 .ini-dia-lista{ display:flex; flex-direction:column; gap:6px; max-height:380px; overflow:auto; padding-right:2px; }
 .ini-ev{ display:grid; grid-template-columns:52px 1fr; gap:10px; align-items:center; padding:9px 10px; border-radius:var(--ini-r2); background:var(--ini-painel2); border:1px solid var(--ini-linha); box-shadow:0 1px 0 var(--ini-hi) inset; }
-/* A hora em madeira (o toque quente); só o prazo fatal pede o vermelho. */
-.ini-ev-hora{ height:40px; border-radius:var(--ini-r2); display:grid; place-items:center; text-align:center; font-weight:800; font-size:12.5px; background:var(--ini-madeira-suave); color:var(--ini-madeira); line-height:1.05; }
+/* A hora afundada na prata; só o prazo fatal pede o vermelho. */
+.ini-ev-hora{ height:40px; border-radius:var(--ini-r2); display:grid; place-items:center; text-align:center; font-weight:800; font-size:12.5px; background:var(--ini-fundo); color:var(--ini-texto); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); line-height:1.05; }
 .ini-ev-hora small{ font-size:9.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
 .ini-ev.prazo .ini-ev-hora{ background:var(--ini-erro-bg); color:var(--ini-erro); }
 .ini-ev-t{ min-width:0; }

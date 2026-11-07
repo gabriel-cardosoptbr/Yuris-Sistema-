@@ -12,14 +12,18 @@ conta") ou quem abriu uma tela com `?novo=1`. `?novo=0` desliga nos dois casos.
 
 ## A paleta (07/11/2026)
 
-Três famílias, e nada fora delas, nas duas folhas e nos dois temas:
+A do logo, e nada fora dela, nas três folhas e nos dois temas:
 
-- **Prata**, os cinzas do logo com um fio de azul: toda superfície, todo texto, as
+- **Prata**, os cinzas do logo com um fio de azul: toda superfície, os ícones dos
+  cartões e a hora do compromisso (caixas afundadas, com sombra interna), as
   iniciais das pessoas. Nunca círculo azul saturado para avatar.
-- **Madeira**, carvalho claro, o toque de escritório: ícones dos cartões, a hora do
-  compromisso, o fio sob a marca no menu. Nunca em texto corrido.
+- **Preto**, o traço: texto, ícones, horas.
 - **Azul do Yuris, forte e opaco** (nunca neon): só o que é ação ou está selecionado:
   botão principal, pílula ativa, dia escolhido, links. Sem brilho largo em volta.
+
+A madeira que entrou numa rodada anterior (ícones, hora, fio sob a marca) saiu na
+mesma noite: "esse amarelo, esse pastel, está quebrando a identidade; o Yuris é
+azul, preto e prata".
 
 Vermelho, âmbar e verde continuam semânticos (atraso, atenção, em dia), apagados.
 O claro é prata, não branco; o escuro é grafite, não azul-marinho.

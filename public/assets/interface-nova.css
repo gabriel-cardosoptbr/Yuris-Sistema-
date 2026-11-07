@@ -9,14 +9,14 @@
    pílula; a página atual é uma pílula azul que brilha, com o ícone num disco.
    Grupo com filho ativo fica na cor da marca, sem fundo. Nos dois temas.
    ═══════════════════════════════════════════════════════════════════════════ */
-/* A paleta é a mesma de inicio.css: prata do logo nas superfícies, madeira nos
-   toques, o azul do Yuris opaco só no que é ação ou está selecionado. */
+/* A paleta é a mesma de inicio.css: prata do logo nas superfícies e nos ícones
+   afundados, preto no traço, o azul do Yuris opaco só no que é ação ou está
+   selecionado. Sem madeira: não está na identidade. */
 :root{
   --inn-painel:#262B33; --inn-painel2:#1F2329; --inn-fundo:#171A1F;
   --inn-linha:rgba(200,210,225,.10); --inn-linha2:rgba(200,210,225,.18); --inn-hi:rgba(255,255,255,.05);
   --inn-texto:#E8EAEE; --inn-texto2:#B4BAC5; --inn-texto3:#7F8794;
   --inn-azul:#3A63C9; --inn-azul2:#4F78DB; --inn-azul-suave:rgba(79,120,219,.14);
-  --inn-madeira:#C9955F;
   --inn-brilho:0 0 0 1px rgba(79,120,219,.30), 0 8px 20px rgba(58,99,201,.35);
   --inn-sombra:0 1px 0 var(--inn-hi) inset, 0 18px 44px rgba(0,0,0,.38);
   --inn-fundo-sombra:inset 0 2px 6px rgba(0,0,0,.45), inset 0 -1px 0 rgba(255,255,255,.04);
@@ -27,7 +27,6 @@ html[data-theme="light"]{
   --inn-linha:rgba(31,38,50,.10); --inn-linha2:rgba(31,38,50,.18); --inn-hi:rgba(255,255,255,.9);
   --inn-texto:#1E2630; --inn-texto2:#4E586A; --inn-texto3:#7A8494;
   --inn-azul:#2E55B8; --inn-azul2:#3D65CB; --inn-azul-suave:rgba(46,85,184,.10);
-  --inn-madeira:#B98A5A;
   --inn-brilho:0 0 0 1px rgba(46,85,184,.20), 0 8px 18px rgba(46,85,184,.28);
   --inn-sombra:0 1px 0 var(--inn-hi) inset, 0 16px 40px rgba(31,38,50,.10);
   --inn-fundo-sombra:inset 0 2px 5px rgba(31,38,50,.10), inset 0 -1px 0 rgba(255,255,255,.8);
@@ -157,6 +156,5 @@ html .sidebar .sb-instalar-app{ border-radius:999px !important; }
 
 /* ── O conteúdo ao lado respira o mesmo tanto ── */
 html body .page-layout{ gap:18px !important; }
-/* O toque de madeira: um fio quente sob a marca. */
-html .sidebar .sidebar-brand.sb-marca-yuris{ border-bottom:1px solid var(--inn-madeira) !important; margin-bottom:8px !important; padding-bottom:10px !important; }
-html.sb-retraido .sidebar .sidebar-brand.sb-marca-yuris{ border-bottom-color:var(--inn-madeira) !important; }
+/* Um fio de prata sob a marca. */
+html .sidebar .sidebar-brand.sb-marca-yuris{ border-bottom:1px solid var(--inn-linha2) !important; margin-bottom:8px !important; padding-bottom:10px !important; }
