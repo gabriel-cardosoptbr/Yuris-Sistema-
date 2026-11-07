@@ -106,7 +106,7 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 /* A biblioteca: estantes de madeira escura e bustos, à direita; a esquerda derrete
    na cor do painel para o texto ficar sobre superfície lisa. O véu muda com o tema. */
 .ini-foto{ position:absolute; inset:0; z-index:1;
-  background:url("https://images.unsplash.com/photo-1505664194779-8beaceb93744?w=1800&q=72&auto=format&fit=crop") center 58% / cover no-repeat; }
+  background:url("/assets/img/inicio-biblioteca.jpg") center 58% / cover no-repeat; }
 .ini-foto::before{ content:""; position:absolute; inset:0; background:var(--ini-foto-veu); }
 .ini-foto::after{ content:""; position:absolute; inset:0;
   background:linear-gradient(90deg, rgb(var(--ini-painel-rgb)) 0%, rgb(var(--ini-painel-rgb)) 34%, rgba(var(--ini-painel-rgb),.86) 48%, rgba(var(--ini-painel-rgb),.35) 66%, rgba(var(--ini-painel-rgb),0) 100%),

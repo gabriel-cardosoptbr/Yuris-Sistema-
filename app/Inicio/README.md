@@ -37,8 +37,9 @@ seleção em pílula.
   (painel em relevo, itens em pílula, a página atual numa pílula azul que brilha).
   O HTML do menu não muda.
 - `assets/inicio.css` é a home: dois temas pelas variáveis `--ini-*`, a faixa de
-  boas-vindas com uma biblioteca jurídica ao fundo (foto de licença livre do Unsplash,
-  hoje servida pelo CDN deles; as peças de madeira em CSS da primeira versão foram
+  boas-vindas com uma biblioteca jurídica ao fundo (`assets/img/inicio-biblioteca.jpg`,
+  foto de Planet Volumes no Unsplash, licença Unsplash: uso comercial livre, sem
+  atribuição obrigatória; as peças de madeira em CSS da primeira versão foram
   reprovadas e saíram), cards com relevo, campos com sombra interna. O claro é papel
   e pedra, não branco.
 

@@ -10,8 +10,8 @@
  *
  * Desenho: menu em painel com a pílula azul (assets/interface-nova.css, que o
  * sidebar.php carrega) e a home em assets/inicio.css, nos dois temas. A faixa
- * de boas-vindas tem uma biblioteca jurídica ao fundo (foto de licença livre do
- * Unsplash, servida pelo CDN deles por enquanto), que o tema escurece ou clareia;
+ * de boas-vindas tem uma biblioteca jurídica ao fundo (assets/img/inicio-biblioteca.jpg,
+ * foto de Planet Volumes no Unsplash, licença Unsplash), que o tema escurece ou clareia;
  * o texto fica sobre a parte lisa. As peças de madeira em CSS da primeira versão
  * foram reprovadas ("retire essas madeiras") e saíram.
  */
