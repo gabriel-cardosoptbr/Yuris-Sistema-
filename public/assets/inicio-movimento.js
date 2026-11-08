@@ -61,9 +61,11 @@
     if (e.button > 0 || !e.target.closest) return;
     var b = e.target.closest('.ini-cal-dia, .ini-atalho, .ini-btn, .idt-btn, .ini-kpi, .ini-ctr, a.ini-ic, .ini-cartao');
     if (!b) return;
-    var r = b.getBoundingClientRect();
-    b.style.setProperty('--cx', Math.round(e.clientX - r.left) + 'px');
-    b.style.setProperty('--cy', Math.round(e.clientY - r.top) + 'px');
+    var r = b.getBoundingClientRect(), cx = e.clientX - r.left, cy = e.clientY - r.top;
+    b.style.setProperty('--cx', Math.round(cx) + 'px');
+    b.style.setProperty('--cy', Math.round(cy) + 'px');
+    // O raio até o canto mais longe: o círculo tem de cobrir a caixa inteira, alta ou larga.
+    b.style.setProperty('--raio', Math.ceil(Math.hypot(Math.max(cx, r.width - cx), Math.max(cy, r.height - cy)) + 2) + 'px');
     if (!b.matches('.ini-cal-dia, .ini-atalho')) ondular(b);
   }, true);
 

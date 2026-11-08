@@ -514,10 +514,35 @@ input.idt-entrada{ height:38px; }
 .idt-embed.visivel{ opacity:1; }
 /* Enquanto diz "Abrindo…" o quadro não pega clique: o clique fora cai no fundo e cancela. */
 .idt-embed{ cursor:default; }
-.idt-embed-quadro{ position:absolute; inset:0; width:100%; height:100%; border:0; background:transparent; opacity:0; transition:opacity .18s ease; pointer-events:none; }
+.idt-embed-quadro{ position:absolute; inset:0; width:100%; height:100%; border:0; background:transparent; opacity:0; transition:opacity .34s ease; pointer-events:none; }
 .idt-embed.pronto .idt-embed-quadro{ opacity:1; pointer-events:auto; }
-.idt-embed .idt-carregando.grande{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); padding:14px 18px; border-radius:var(--ini-r); background:var(--ini-painel); border:1px solid var(--ini-linha2); box-shadow:0 20px 50px rgba(0,0,0,.3); color:var(--ini-texto2); }
-.idt-embed.pronto .idt-carregando.grande{ display:none; }
+/* A tela fantasma: a forma do pop-up que vem, em ossos cinza, até o módulo chegar.
+   Ficha (cabeçalho, campos em duas colunas, área de texto, botões) ou conversa (balões
+   e a barra de escrever). Só prata; o azul suave marca o balão de quem respondeu. */
+.idt-osso{ display:block; border-radius:8px; background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); }
+.idt-osso.quad{ width:40px; height:40px; flex:none; }
+.idt-osso.quad.peq{ width:32px; height:32px; }
+.idt-osso.bolha{ height:44px; border-radius:12px; align-self:flex-start; }
+.idt-osso.bolha.dir{ align-self:flex-end; background:var(--ini-azul-suave); border-color:rgba(61,101,203,.18); }
+.idt-fantasma{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(760px, calc(100vw - 32px)); height:min(72vh, 720px);
+  display:flex; flex-direction:column; overflow:hidden; border-radius:var(--ini-r); background:var(--ini-painel); color:var(--ini-texto);
+  border:1px solid var(--ini-linha2); box-shadow:0 1px 0 var(--ini-hi) inset, 0 30px 70px rgba(0,0,0,.35); }
+.idt-fantasma.chat{ width:min(880px, calc(100vw - 32px)); height:min(900px, calc(100vh - 48px)); }
+.idt-fan-cab{ display:flex; align-items:center; gap:12px; padding:16px 18px; border-bottom:1px solid var(--ini-linha); }
+.idt-fan-cab > span{ flex:1; display:flex; flex-direction:column; min-width:0; }
+.idt-fan-corpo{ flex:1; padding:18px; overflow:hidden; }
+.idt-fan-corpo.chat{ display:flex; flex-direction:column; gap:10px; justify-content:flex-end; }
+.idt-fan-abas{ display:flex; gap:14px; margin-bottom:16px; }
+.idt-fan-grade{ display:grid; grid-template-columns:1fr 1fr; gap:10px 12px; }
+.idt-fan-campo{ display:flex; flex-direction:column; gap:6px; min-width:0; }
+.idt-fan-pe{ display:flex; justify-content:flex-end; align-items:center; gap:10px; padding:14px 18px; border-top:1px solid var(--ini-linha); }
+.idt-fan-pe.chat{ justify-content:stretch; }
+.idt-embed.pronto .idt-fantasma{ opacity:0; pointer-events:none; transition:opacity .3s ease .06s; }
+@media (max-width:640px){ .idt-fantasma, .idt-fantasma.chat{ width:100vw; height:100vh; border-radius:0; } .idt-fan-grade{ grid-template-columns:1fr; } }
+/* Ossos dentro do pop-up da home, enquanto o processo ou a tarefa carregam. */
+.idt-campo.osso{ gap:7px; }
+.idt-prazo.osso{ align-items:center; }
+.idt-prazo.osso .idt-prazo-t{ display:flex; flex-direction:column; gap:6px; flex:1; }
 
 /* A publicação em tópicos (PublicacaoEstrutura): o timbre miúdo, partes e advogados
    um por linha com a OAB em azul, cada seção do teor com título azul, parágrafos

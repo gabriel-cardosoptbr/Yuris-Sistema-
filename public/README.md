@@ -351,7 +351,9 @@ a tela aparece só com o pop-up dela, para a home abrir o pop-up de verdade do m
 num iframe (07/11/2026). `processos.php?criar=1` abre o cadastro de processo e
 `tarefas.php?nova=1` o de tarefa, do mesmo jeito que `?open=ID` e `?tarefa=ID` já abriam.
 Valem hoje Processos, Tarefas, Clientes (`?open=ID`, a ficha) e Chat (`?jid=`, a conversa, que no
-embutido vira o pop-up no centro da tela); cada uma é uma linha em `TELAS` no `embed.js` (08/11/2026).
+embutido vira o pop-up no centro da tela); cada uma é uma linha em `TELAS` no `embed.js` (08/11/2026),
+com `caixa` (o seletor do pop-up em si), medido e mandado no `embed-pronto` para a home levar a
+tela fantasma até ele.
 No embutido, `assets/chat.js` abre a conversa do `?jid=` mesmo quando ela está fora das 500 da
 lista (procura pelo número na própria API da lista e, sem achar, abre pelo jid); fora do embutido
 nada muda. O tamanho dos pop-ups das telas na prévia fica em `assets/interface-nova-popups.css`;

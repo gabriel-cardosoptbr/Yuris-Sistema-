@@ -220,7 +220,7 @@ $sidebar = (string) file_get_contents($raiz . '/public/includes/sidebar.php');
 ok(str_contains($sidebar, "\$_interfaceNova && (\$_GET['embed'] ?? '') === '1'"), 'o modo pop-up só liga na interface nova e com ?embed=1');
 $embedJs = (string) @file_get_contents($raiz . '/public/assets/embed.js');
 ok(str_contains($embedJs, "'embed-pronto'") && str_contains($embedJs, "'embed-fechar'") && str_contains($embedJs, "'embed-sem-popup'"), 'a tela embutida avisa quando abre, quando fecha e quando não tem pop-up');
-ok(str_contains($embedJs, 'postMessage({ yuris: tipo, tela: pagina }, location.origin)'), 'a tela embutida só fala com a mesma origem');
+ok(str_contains($embedJs, 'postMessage({ yuris: tipo, tela: pagina, caixa: caixa || null }, location.origin)'), 'a tela embutida só fala com a mesma origem');
 foreach (['processos', 'tarefas', 'clientes', 'chat'] as $t) ok(preg_match('/^\s+' . $t . ':\s+\{ aberto:/m', $embedJs) === 1, "embed.js sabe quando o pop-up de $t está aberto");
 ok(str_contains($embedJs, "fora: '#chatContent'") && str_contains($embedJs, 'e.target === document.body'), 'o Chat embutido fecha com o clique fora da conversa');
 ok(str_contains($embedJs, 'if (acabou) return;'), 'a tela embutida avisa o fechamento uma vez só');
@@ -255,6 +255,12 @@ $innJs  = (string) @file_get_contents($raiz . '/public/assets/interface-nova-mov
 ok($innCss !== '' && $innJs !== '' && str_contains($sidebar, '/assets/interface-nova-movimento.css') && str_contains($sidebar, '/assets/interface-nova-movimento.js'), 'as telas de dentro carregam o movimento delas');
 ok(str_contains($innCss, '@keyframes inn-surge{') && str_contains($innCss, '#modalProcess:not(.hidden) .proc-modal') && str_contains($innCss, '.modal-shell.open .modal-panel') && str_contains($innCss, '.tk-modal-overlay.open .tk-modal'), 'os pop-ups das telas surgem');
 ok(str_contains($innJs, "if (html.classList.contains('yuris-embed')) return;"), 'o movimento das telas não roda no modo embutido');
+// 08/11/2026, segunda volta: "tem que preencher total", "tela fantasma", "não pode recarregar ao fechar".
+ok(str_contains($movJs, "b.style.setProperty('--raio'") && str_contains($movCss, 'width:calc(var(--raio, 320px) * 2)') && str_contains($movCss, '@keyframes ini-assenta{'), 'o círculo cobre a caixa inteira e o fundo assenta por cima');
+ok(str_contains($detJs, 'function fantasma(tela)') && str_contains($detJs, 'function morfar(c)') && str_contains($embedJs, "avisar('embed-pronto', medir())") && str_contains($movCss, '.idt-fantasma.morfa{'), 'a tela fantasma aparece no lugar do Abrindo e vai até a medida do pop-up');
+ok(str_contains($detJs, 'function ossos(campos, linhas)') && str_contains($detJs, 'ganhaVida(destino)') && str_contains($movCss, '@keyframes idt-vida{') && str_contains($movCss, '@keyframes idt-brilho{'), 'o pop-up da home mostra ossos enquanto carrega e ganha cor depois');
+ok(!str_contains($detJs, 'fecharModulo(true)') && str_contains($detJs, 'function atualizarEmSilencio()') && str_contains($detJs, "fecharModulo(false); atualizarEmSilencio();"), 'fechar o pop-up do módulo não recarrega: a home se atualiza em silêncio');
+ok(!str_contains($detJs, 'Abrindo…') && !str_contains($detJs, 'carregando()'), 'sem Abrindo nem Carregando: no lugar deles, a forma do que vem');
 ok(substr_count($inicio, 'class="ini-ctr ') === 1 && str_contains($inicio, '<span class="ini-ctr-ic">') && str_contains((string) file_get_contents($raiz . '/public/assets/inicio.css'), '.ini-ctr.hoje:not(.zero) .ini-ctr-t b{ color:var(--ini-erro); }'), 'contadores de Prazos como cartões, vermelho só em hoje com prazo');
 ok(str_contains($detJs, 'idt-pub-link-txt') && str_contains($detJs, "g.rotulo === 'Partes' ? ''"), 'endereço no teor vira link e o rótulo Partes não se repete');
 ok(str_contains($inicio, 'data-novo="processo"') && str_contains($inicio, 'data-novo="tarefa"') && str_contains($inicio, 'data-novo="publicacoes"'), 'os três botões da faixa abrem o pop-up');

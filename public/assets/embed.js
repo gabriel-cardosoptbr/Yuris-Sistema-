@@ -23,17 +23,25 @@
   function mostrando(id) { var el = document.getElementById(id); return !!el && el.style.display !== 'none' && getComputedStyle(el).display !== 'none'; }
   // fora: a tela não tem fundo próprio, então o clique fora da conversa (e o Esc) fecha.
   var TELAS = {
+    // caixa: o elemento do pop-up em si, medido para a home levar a tela fantasma até ele.
     // a ficha do processo (editar e cadastrar são o mesmo pop-up)
-    processos: { aberto: function () { var el = document.getElementById('modalProcess'); return !!el && !el.classList.contains('hidden') && getComputedStyle(el).display !== 'none'; } },
+    processos: { aberto: function () { var el = document.getElementById('modalProcess'); return !!el && !el.classList.contains('hidden') && getComputedStyle(el).display !== 'none'; }, caixa: '#modalProcess .proc-modal' },
     // o painel da tarefa, ou o pop-up de cadastro (?nova=1)
-    tarefas:   { aberto: function () { return temClasse('#tkDrawer', 'open') || temClasse('#modalNewTask', 'open'); } },
+    tarefas:   { aberto: function () { return temClasse('#tkDrawer', 'open') || temClasse('#modalNewTask', 'open'); }, caixa: '#tkDrawerOverlay.open #tkDrawer, #modalNewTask.open .tk-modal' },
     // a ficha do cliente (?open=ID), e as janelas que ela abre por cima
-    clientes:  { aberto: function () { return !!document.querySelector('.modal-shell.open'); } },
+    clientes:  { aberto: function () { return !!document.querySelector('.modal-shell.open'); }, caixa: '.modal-shell.open .modal-panel' },
     // a conversa do Chat (?jid=), a mesma de sempre; o "Voltar" dela fecha
-    chat:      { aberto: function () { return mostrando('chatArea'); }, fora: '#chatContent' }
+    chat:      { aberto: function () { return mostrando('chatArea'); }, fora: '#chatContent', caixa: '#chatContent' }
   };
+  function medir() {
+    if (!cfg.caixa) return null;
+    var el = [].filter.call(document.querySelectorAll(cfg.caixa), function (x) { return x.getBoundingClientRect().width > 0; })[0];
+    if (!el) return null;
+    var r = el.getBoundingClientRect();
+    return { left: Math.round(r.left), top: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height) };
+  }
   var cfg = TELAS[pagina];
-  function avisar(tipo) { try { window.parent.postMessage({ yuris: tipo, tela: pagina }, location.origin); } catch (e) {} }
+  function avisar(tipo, caixa) { try { window.parent.postMessage({ yuris: tipo, tela: pagina, caixa: caixa || null }, location.origin); } catch (e) {} }
   if (!cfg) { avisar('embed-sem-popup'); return; }
 
   var jaAbriu = false, acabou = false, inicio = Date.now();
@@ -41,7 +49,9 @@
   function encerrar(tipo) { if (acabou) return; acabou = true; avisar(tipo); obs.disconnect(); clearInterval(t); }
   function conferir() {
     var aberto = cfg.aberto();
-    if (aberto && !jaAbriu) { jaAbriu = true; avisar('embed-pronto'); }
+    // O pop-up do módulo ainda está entrando (a animação dele dura até 220 ms); a medida
+    // vai depois, para a tela fantasma da home parar exatamente onde ele parou.
+    if (aberto && !jaAbriu) { jaAbriu = true; setTimeout(function () { if (!acabou) avisar('embed-pronto', medir()); }, 260); }
     if (!aberto && jaAbriu) encerrar('embed-fechar');
     // Se em 12 segundos o pop-up não abriu (sem acesso, item apagado), devolve à home.
     if (!jaAbriu && Date.now() - inicio > 12000) encerrar('embed-sem-popup');

@@ -161,7 +161,23 @@ seleção em pílula.
   mês desliza para o lado da seta; o pop-up nasce do cartão clicado (o `inicio-detalhe.js`
   o põe em cima do cartão e solta) e volta para ele ao fechar, com o conteúdo entrando campo
   por campo; link para outra tela leva a página embora antes de navegar; o cartão resolvido
-  se recolhe. Movimento das telas de dentro e do menu: `assets/interface-nova-movimento.css`
+  se recolhe. Segunda volta (mesmo dia): o círculo do preenchimento vai até o canto mais
+  longe (`--raio`, medido no clique) e o fundo azul inteiro assenta por cima quando ele
+  termina, então a caixa fica cheia por completo, de onde quer que o clique tenha partido.
+- **A tela fantasma** ("abre a tela com os campos cinza, mostrando o que está carregando, e
+  depois ela ganha vida, cor, as palavras"): o "Abrindo…" saiu. Enquanto o módulo carrega,
+  a home mostra a forma do pop-up que vem, em ossos cinza que brilham (ficha com cabeçalho,
+  campos em duas colunas, área de texto e botões; ou conversa com balões e a barra de
+  escrever). Quando o módulo avisa que o pop-up abriu, manda junto a medida dele (`caixa`
+  no `embed-pronto`, medida 260 ms depois, quando a entrada dele acabou); a forma vai até
+  essa medida (parando na borda da janela se o pop-up for mais alto que ela) e o pop-up de
+  verdade aparece no lugar dela. Dentro do pop-up da home, processo e tarefa também
+  carregam em ossos (`ossos()`) e o conteúdo de verdade sai do cinza para a cor (`idt-vida`).
+- **Fechar não recarrega** ("tá forçando muito o recarregamento"): fechar o pop-up do módulo
+  fecha e pronto; em seguida a home busca a própria página em silêncio e troca só o cartão
+  que mudou (Prazos, Publicações, Processos, Aguardando retorno, Equipe, os quatro números e
+  a frase da faixa; a agenda fica, porque o calendário é dela), com o cartão trocado entrando
+  item por item. Nada mudou, nada se mexe. Movimento das telas de dentro e do menu: `assets/interface-nova-movimento.css`
   + `.js` (entrada da tela, saída pelo menu, pop-ups que surgem, toque nos botões), que o
   menu carrega com a folha das telas e que não rodam no modo embutido.
 - `assets/inicio.css` é a home: dois temas pelas variáveis `--ini-*`, a faixa de

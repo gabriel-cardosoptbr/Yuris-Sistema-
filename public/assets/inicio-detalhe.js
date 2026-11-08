@@ -57,7 +57,15 @@
   function num(v) { return v ? '<em class="ini-num">' + esc(v) + '</em>' : ''; }
   function link(texto, href, primario) { return '<a class="idt-btn' + (primario ? ' primario' : '') + '" href="' + esc(href) + '">' + esc(texto) + '</a>'; }
   function acao(texto, nome, primario, extra) { return '<button type="button" class="idt-btn' + (primario ? ' primario' : '') + '" data-acao="' + esc(nome) + '"' + (extra || '') + '>' + esc(texto) + '</button>'; }
-  function carregando() { return '<div class="idt-carregando"><i></i><span>Carregando…</span></div>'; }
+  // Enquanto carrega, a forma do que vem em ossos cinza: campos e linhas de prazo.
+  function ossos(campos, linhas) {
+    var o = function (est) { return '<i class="idt-osso" style="' + est + '"></i>'; }, h = '';
+    if (campos) { h += '<div class="idt-grade">'; for (var i = 0; i < campos; i++) h += '<div class="idt-campo osso">' + o('width:' + (28 + (i * 17) % 34) + '%;height:9px') + o('width:' + (50 + (i * 23) % 40) + '%;height:13px') + '</div>'; h += '</div>'; }
+    if (linhas) { h += '<div class="idt-prazos">'; for (var k = 0; k < linhas; k++) h += '<div class="idt-prazo osso">' + o('width:54px;height:30px') + '<span class="idt-prazo-t">' + o('width:' + (55 + k * 15) + '%;height:12px') + o('width:30%;height:9px') + '</span>' + o('width:72px;height:26px') + '</div>'; h += '</div>'; }
+    return h;
+  }
+  // O conteúdo de verdade chegou no lugar dos ossos: sai do cinza e ganha cor.
+  function ganhaVida(el) { el.classList.remove('idt-vida'); void el.offsetWidth; el.classList.add('idt-vida'); }
   function avisar(msg, tipo) { if (window.Yuris && window.Yuris.toast) window.Yuris.toast(msg, tipo || 'success'); }
   function getJson(url) { return fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }); }
   function enviar(url, metodo, corpo) {
@@ -228,7 +236,7 @@
 
   // ── O processo: dados e prazos em aberto ────────────────────────────────
   function blocoProcesso(processoId, destino, prazoEmFoco) {
-    destino.innerHTML = '<div class="idt-sec"><div class="idt-sec-t">Processo</div>' + carregando() + '</div>';
+    destino.innerHTML = '<div class="idt-sec"><div class="idt-sec-t">Processo</div>' + ossos(6) + '</div><div class="idt-sec"><div class="idt-sec-t">Prazos em aberto</div>' + ossos(0, 2) + '</div>';
     Promise.all([
       getJson('/api/processes.php?id=' + encodeURIComponent(processoId)),
       getJson('/api/processo_prazos.php?processo_id=' + encodeURIComponent(processoId)).catch(function () { return { data: [] }; })
@@ -256,6 +264,7 @@
           + '<button type="button" class="idt-mini" data-acao="concluir-prazo" data-id="' + (+z.id) + '">Concluir</button></div>';
       }).join('') + '</div>';
       destino.innerHTML = html + '</div>';
+      ganhaVida(destino);
       if (p.link_tribunal && /^https?:\/\//i.test(p.link_tribunal)) {
         var a = document.createElement('a'); a.className = 'idt-btn'; a.href = p.link_tribunal; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Abrir no tribunal';
         elAcoes.insertBefore(a, elAcoes.firstChild);
@@ -289,7 +298,7 @@
       if (d.processo_id) blocoProcesso(d.processo_id, extra, d.origem === 'prazo' ? d.id : null);
       if (d.origem === 'tarefa' && d.id) {
         var alvo = document.createElement('div'); extra.appendChild(alvo);
-        alvo.innerHTML = '<div class="idt-sec">' + carregando() + '</div>';
+        alvo.innerHTML = '<div class="idt-sec"><div class="idt-sec-t">Tarefa</div>' + ossos(4) + '</div>';
         getJson('/api/tasks.php?id=' + encodeURIComponent(d.id)).then(function (r) {
           var t = (r && r.data) || {};
           alvo.innerHTML = '<div class="idt-sec"><div class="idt-sec-t">Tarefa</div><div class="idt-grade">'
@@ -297,6 +306,7 @@
             + campo('Prioridade', esc(t.prioridade ? t.prioridade.charAt(0).toUpperCase() + t.prioridade.slice(1) : ''))
             + campo('Criada por', esc(t.criador_nome))
             + '</div>' + (t.descricao ? '<div class="idt-texto">' + esc(t.descricao) + '</div>' : '') + '</div>';
+          ganhaVida(alvo);
         }).catch(function () { alvo.innerHTML = ''; });
       }
     },
@@ -384,7 +394,14 @@
     if (fundo && !fundo.hidden) { fundo.classList.remove('visivel'); fundo.hidden = true; }
     var caixa = document.createElement('div');
     caixa.className = 'idt-embed';
-    caixa.innerHTML = '<div class="idt-carregando grande"><i></i><span>Abrindo…</span></div>';
+    // Enquanto o módulo carrega, a forma do pop-up que vem, em ossos cinza ("a tela
+    // fantasma"); quando ele chega, a forma se move até onde o pop-up de verdade está
+    // (o embed.js manda a medida) e o pop-up aparece no lugar dela.
+    var tela = (/^\/([a-z_]+)/.exec(url) || [])[1] || '';
+    var fan = document.createElement('div');
+    fan.className = 'idt-fantasma' + (tela === 'chat' ? ' chat' : '');
+    fan.innerHTML = fantasma(tela);
+    caixa.appendChild(fan);
     var f = document.createElement('iframe');
     f.className = 'idt-embed-quadro'; f.title = 'Pop-up do módulo';
     f.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'embed=1';
@@ -406,8 +423,10 @@
   }
   window.addEventListener('message', function (e) {
     if (e.origin !== location.origin || !EMB || !e.data || !e.data.yuris) return;
-    if (e.data.yuris === 'embed-pronto') EMB.caixa.classList.add('pronto');
-    if (e.data.yuris === 'embed-fechar') fecharModulo(true);
+    if (e.data.yuris === 'embed-pronto') morfar(e.data.caixa);
+    // Fechar não recarrega a página ("tá forçando muito o recarregamento"): a home se
+    // atualiza em silêncio, trocando só o cartão que mudou.
+    if (e.data.yuris === 'embed-fechar') { fecharModulo(false); atualizarEmSilencio(); }
     // Não abriu: fica na home e avisa. Nunca leva para a tela do módulo.
     if (e.data.yuris === 'embed-sem-popup') {
       fecharModulo(false);
@@ -415,6 +434,61 @@
     }
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && EMB && !EMB.caixa.classList.contains('pronto')) fecharModulo(false); });
+  // A tela fantasma: a forma do pop-up do módulo, em ossos. Ficha (processo, cliente,
+  // tarefa) ou conversa (chat).
+  function fantasma(tela) {
+    var o = function (cls, est) { return '<i class="idt-osso' + (cls ? ' ' + cls : '') + '"' + (est ? ' style="' + est + '"' : '') + '></i>'; };
+    var cab = '<div class="idt-fan-cab">' + o('quad') + '<span>' + o('', 'width:42%;height:16px') + o('', 'width:26%;height:11px;margin-top:7px') + '</span>' + o('quad peq') + '</div>';
+    if (tela === 'chat') {
+      var bolhas = [58, 40, 66, 35, 52, 44].map(function (w, i) { return o('bolha' + (i % 2 ? ' dir' : ''), 'width:' + w + '%'); }).join('');
+      return cab + '<div class="idt-fan-corpo chat">' + bolhas + '</div><div class="idt-fan-pe chat">' + o('quad peq') + o('', 'flex:1;height:40px') + o('quad peq') + '</div>';
+    }
+    var campos = '';
+    for (var i = 0; i < 6; i++) campos += '<span class="idt-fan-campo">' + o('', 'width:' + (30 + (i * 13) % 30) + '%;height:10px') + o('', 'height:38px') + '</span>';
+    var abas = tela === 'tarefas' ? '<div class="idt-fan-abas">' + [70, 80, 60, 64, 58].map(function (w) { return o('', 'width:' + w + 'px;height:12px'); }).join('') + '</div>' : '';
+    return cab + '<div class="idt-fan-corpo">' + abas + '<div class="idt-fan-grade">' + campos + '</div>' + o('', 'height:92px;margin-top:12px') + '</div>'
+      + '<div class="idt-fan-pe">' + o('', 'width:120px;height:38px') + o('', 'width:150px;height:38px') + '</div>';
+  }
+  // O pop-up chegou: a forma vai até a medida dele e some por baixo do pop-up de verdade.
+  function morfar(c) {
+    if (!EMB) return;
+    var caixa = EMB.caixa, fan = caixa.querySelector('.idt-fantasma');
+    if (!fan || !c || !c.width || !document.documentElement.classList.contains('ini-mov')) { caixa.classList.add('pronto'); return; }
+    // Pop-up mais alto que a janela (a ficha do cliente rola por dentro): a forma para na borda.
+    c = { left: Math.max(0, c.left), top: Math.max(0, c.top), width: Math.min(c.width, window.innerWidth - Math.max(0, c.left)), height: Math.min(c.height, window.innerHeight - Math.max(0, c.top)) };
+    var r = fan.getBoundingClientRect();
+    fan.style.transition = 'none'; fan.style.transform = 'none';
+    fan.style.left = r.left + 'px'; fan.style.top = r.top + 'px'; fan.style.width = r.width + 'px'; fan.style.height = r.height + 'px';
+    void fan.offsetWidth;
+    fan.style.transition = ''; fan.classList.add('morfa');
+    fan.style.left = c.left + 'px'; fan.style.top = c.top + 'px'; fan.style.width = c.width + 'px'; fan.style.height = c.height + 'px';
+    setTimeout(function () { if (EMB && EMB.caixa === caixa) caixa.classList.add('pronto'); }, 400);
+  }
+  // A home se atualiza sem recarregar: busca a própria página e troca só o que mudou
+  // (cartões de Prazos, Publicações, Processos, Aguardando retorno e Equipe; os quatro
+  // números; a frase da faixa). A agenda fica como está, porque é dela o calendário.
+  function atualizarEmSilencio() {
+    fetch(location.pathname + location.search, { credentials: 'same-origin', headers: { Accept: 'text/html' } })
+      .then(function (r) { return r.ok ? r.text() : ''; })
+      .then(function (html) {
+        if (!html) return;
+        var novo = new DOMParser().parseFromString(html, 'text/html');
+        var titulo = function (card) { var h = card.querySelector('.ini-card-h h3'); return h ? h.textContent.trim() : ''; };
+        var atuais = {};
+        document.querySelectorAll('.ini-card').forEach(function (c) { var t = titulo(c); if (t) atuais[t] = c; });
+        novo.querySelectorAll('.ini-card').forEach(function (c) {
+          var t = titulo(c);
+          if (!t || !atuais[t] || c.querySelector('#iniCalDias') || atuais[t].innerHTML === c.innerHTML) return;
+          atuais[t].innerHTML = c.innerHTML;
+          var k = 0;
+          atuais[t].querySelectorAll('.ini-cartao, .ini-ctr').forEach(function (el) { el.style.setProperty('--mov-i', k++); el.classList.add('ini-entra'); });
+        });
+        ['.ini-kpi b', '.ini-sala p'].forEach(function (sel) {
+          var a = document.querySelectorAll(sel), b = novo.querySelectorAll(sel);
+          a.forEach(function (el, i) { if (b[i] && b[i].innerHTML !== el.innerHTML) el.innerHTML = b[i].innerHTML; });
+        });
+      }).catch(function () {});
+  }
   ACOES['abrir-processo'] = function (b) {
     var foco = b.getAttribute('data-foco') || '';
     abrirModulo('/processos?open=' + (+b.getAttribute('data-id')) + (/^(prazo|tarefa):\d+$/.test(foco) ? '&foco=' + foco : ''));
