@@ -1934,26 +1934,47 @@ try {
 
   <!-- ── Modal editar tarefa processual ── -->
   <div id="modalEditTarefa" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(2,6,23,.72);backdrop-filter:blur(4px);align-items:center;justify-content:center">
-    <div style="background:linear-gradient(165deg,rgba(10,24,46,.99),rgba(7,18,36,.99));border:1px solid rgba(96,165,250,.22);border-radius:14px;padding:22px 24px;width:380px;max-width:95vw;box-shadow:0 24px 60px rgba(2,6,23,.7)">
+    <!-- A mesma ficha edita a tarefa processual e o prazo processual (08/11/2026), e mostra
+         embaixo o histórico só daquele item (?item_tipo=&item_id= em processo_history.php). -->
+    <div style="background:linear-gradient(165deg,rgba(10,24,46,.99),rgba(7,18,36,.99));border:1px solid rgba(96,165,250,.22);border-radius:14px;padding:22px 24px;width:520px;max-width:95vw;max-height:92vh;overflow-y:auto;box-shadow:0 24px 60px rgba(2,6,23,.7)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
-        <span style="font-size:.95rem;font-weight:700;color:#dbeafe">Editar Tarefa</span>
+        <span id="etCabecalho" style="font-size:.95rem;font-weight:700;color:#dbeafe">Editar tarefa processual</span>
         <button onclick="document.getElementById('modalEditTarefa').style.display='none'" style="background:transparent;border:none;color:#7a8898;cursor:pointer;font-size:1.1rem;line-height:1;padding:2px 6px">✕</button>
       </div>
       <input type="hidden" id="etId">
+      <input type="hidden" id="etTipo" value="tarefa">
       <div style="display:flex;flex-direction:column;gap:12px">
         <div class="field-group">
           <label class="field-label">Descrição</label>
           <textarea id="etTitulo" class="field-input" placeholder="Descreva a tarefa..." rows="3" style="resize:vertical;min-height:80px;line-height:1.5"></textarea>
         </div>
-        <div class="field-group">
-          <label class="field-label">Data</label>
-          <input type="date" id="etData" class="field-input" style="color-scheme:dark">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="field-group">
+            <label class="field-label" id="etDataRotulo">Data</label>
+            <input type="date" id="etData" class="field-input" style="color-scheme:dark">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Prioridade</label>
+            <select id="etPrio" class="field-input">
+              <option value="baixa">Baixa</option>
+              <option value="media">Média</option>
+              <option value="alta">Alta</option>
+            </select>
+          </div>
         </div>
         <div class="field-group">
           <label class="field-label">Responsável</label>
           <select id="etResp" class="field-input">
             <option value="">— Sem responsável —</option>
           </select>
+        </div>
+        <div class="field-group" id="etObsGrupo" style="display:none">
+          <label class="field-label">Observação</label>
+          <textarea id="etObs" class="field-input" rows="2" placeholder="Observação do prazo..." style="resize:vertical;min-height:56px;line-height:1.5"></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label" id="etHistRotulo">Histórico desta tarefa</label>
+          <div id="etHist" style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column"></div>
         </div>
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px">

@@ -51,6 +51,17 @@ try {
         if (!$processoId) { http_response_code(400); echo json_encode(['error' => 'Missing processo_id']); exit; }
         TenantGuard::assertProcessoAcessivel($ctx, $processoId);
 
+        // O log de UM prazo ou de UMA tarefa (a ficha do item, 08/11/2026): ?item_tipo=prazo&item_id=N.
+        $itemTipo = (string) ($_GET['item_tipo'] ?? '');
+        $itemId   = (int) ($_GET['item_id'] ?? 0);
+        if ($itemTipo !== '' || $itemId > 0) {
+            if (!in_array($itemTipo, ['prazo', 'tarefa'], true) || $itemId <= 0) {
+                http_response_code(400); echo json_encode(['error' => 'item_tipo (prazo ou tarefa) e item_id']); exit;
+            }
+            echo json_encode(['data' => \App\Processos\ProcessoAudit::doItem($pdo, $processoId, $itemTipo, $itemId)]);
+            exit;
+        }
+
         $stmt = $pdo->prepare(
             "SELECT * FROM processo_history WHERE processo_id = :pid ORDER BY created_at DESC LIMIT 50"
         );

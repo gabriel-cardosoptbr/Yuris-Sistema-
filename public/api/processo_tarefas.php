@@ -111,7 +111,7 @@ try {
         $newId = $pdo->lastInsertId();
 
         // Registra em processo_history via ProcessoAudit (trilha forense completa)
-        ProcessoAudit::log($processoId, 'Tarefa criada', "Tarefa criada: {$titulo}");
+        ProcessoAudit::log($processoId, 'Tarefa criada', "Tarefa criada: {$titulo}", 'tarefa', (int) $newId);
 
         // P0 LGPD: tenant dono do processo
         $procAcc = $pdo->prepare("SELECT account_id FROM processos WHERE id = ? LIMIT 1");
@@ -141,6 +141,10 @@ try {
         TenantGuard::assertProcessoAcessivel($ctx, (int)$prevTarefa['processo_id']);
 
         $allowed = ['concluido', 'titulo', 'prioridade', 'responsavel', 'data_tarefa', 'ordem'];
+        foreach (['data_tarefa', 'responsavel'] as $k) {
+            if (array_key_exists($k, $input) && is_string($input[$k]) && trim($input[$k]) === '') $input[$k] = null;
+        }
+        if (array_key_exists('prioridade', $input) && !in_array($input['prioridade'], ['baixa', 'media', 'alta'], true)) unset($input['prioridade']);
         $fields = [];
         $params = ['id' => $id];
         foreach ($allowed as $k) {
@@ -158,34 +162,32 @@ try {
         $sql = "UPDATE processo_tarefas SET " . implode(', ', $fields) . " WHERE id = :id";
         $pdo->prepare($sql)->execute($params);
 
-        // Registra em processo_history via ProcessoAudit para qualquer mudança relevante
-        if (array_key_exists('concluido', $input) || array_key_exists('titulo', $input)) {
-            $stmt = $pdo->prepare("SELECT processo_id, titulo FROM processo_tarefas WHERE id = :id");
-            $stmt->execute(['id' => $id]);
-            $tarefa = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($tarefa) {
-                if (array_key_exists('concluido', $input)) {
-                    $acao = $input['concluido'] ? 'Tarefa concluída' : 'Tarefa reaberta';
-                    $desc = "{$acao}: {$tarefa['titulo']}";
-                } else {
-                    $acao = 'Tarefa editada';
-                    $desc = "Tarefa renomeada para: {$input['titulo']}";
-                }
-                ProcessoAudit::log((int)$tarefa['processo_id'], $acao, $desc);
-            }
+        // Registra em processo_history via ProcessoAudit, ligado à tarefa (a ficha dela mostra o
+        // próprio log). Concluir e reabrir são uma entrada; o que mudou na mesma edição (nome,
+        // data, responsável, prioridade) vira UMA entrada "Tarefa editada" com cada de → para.
+        // Antes, salvar sem mexer no nome gravava "Tarefa renomeada" do mesmo jeito.
+        $pidT = (int) $prevTarefa['processo_id'];
+        if (array_key_exists('concluido', $input) && (int) (bool) $input['concluido'] !== (int) $prevTarefa['concluido']) {
+            $acao = $input['concluido'] ? 'Tarefa concluída' : 'Tarefa reaberta';
+            ProcessoAudit::log($pidT, $acao, "{$acao}: {$prevTarefa['titulo']}", 'tarefa', $id);
         }
-
-        // Data e responsável também mudam pela Central de Tarefas: entram na trilha.
         $mudancas = [];
-        if (array_key_exists('data_tarefa', $input) && $input['data_tarefa'] !== $prevTarefa['data_tarefa']) {
-            $mudancas[] = 'data ' . ($prevTarefa['data_tarefa'] ?: '∅') . ' → ' . ($input['data_tarefa'] ?: '∅');
+        if (array_key_exists('titulo', $input) && trim((string) $input['titulo']) !== (string) $prevTarefa['titulo']) {
+            $mudancas[] = "nome '{$prevTarefa['titulo']}' → '" . trim((string) $input['titulo']) . "'";
         }
-        if (array_key_exists('responsavel', $input) && $input['responsavel'] !== $prevTarefa['responsavel']) {
-            $mudancas[] = 'responsável ' . ($prevTarefa['responsavel'] ?: '∅') . ' → ' . ($input['responsavel'] ?: '∅');
+        if (array_key_exists('data_tarefa', $input) && (string) $input['data_tarefa'] !== (string) $prevTarefa['data_tarefa']) {
+            $fd = function ($d) { return $d ? date('d/m/Y', strtotime((string) $d)) : 'vazio'; };
+            $mudancas[] = 'data ' . $fd($prevTarefa['data_tarefa']) . ' → ' . $fd($input['data_tarefa']);
+        }
+        if (array_key_exists('responsavel', $input) && (string) $input['responsavel'] !== (string) $prevTarefa['responsavel']) {
+            $mudancas[] = 'responsável ' . ($prevTarefa['responsavel'] ?: 'vazio') . ' → ' . ($input['responsavel'] ?: 'vazio');
+        }
+        if (array_key_exists('prioridade', $input) && (string) $input['prioridade'] !== (string) $prevTarefa['prioridade']) {
+            $nomes = ['baixa' => 'baixa', 'media' => 'média', 'alta' => 'alta'];
+            $mudancas[] = 'prioridade ' . ($nomes[$prevTarefa['prioridade']] ?? 'vazio') . ' → ' . ($nomes[$input['prioridade']] ?? 'vazio');
         }
         if ($mudancas) {
-            ProcessoAudit::log((int)$prevTarefa['processo_id'], 'Tarefa editada',
-                "Tarefa '{$prevTarefa['titulo']}': " . implode('; ', $mudancas));
+            ProcessoAudit::log($pidT, 'Tarefa editada', "Tarefa '{$prevTarefa['titulo']}': " . implode('; ', $mudancas), 'tarefa', $id);
         }
 
         $eventKey = (isset($input['concluido']) && $input['concluido']) ? 'processo.tarefa_completed' : 'processo.tarefa_updated';
@@ -231,7 +233,7 @@ try {
         $pdo->prepare("DELETE FROM processo_tarefas WHERE id = :id")->execute(['id' => $id]);
         // Auditoria server-side: registra exclusão via helper (trilha forense)
         if ($procId) {
-            ProcessoAudit::log($procId, 'Tarefa excluída', "Tarefa removida: {$tarefaTitulo}");
+            ProcessoAudit::log($procId, 'Tarefa excluída', "Tarefa removida: {$tarefaTitulo}", 'tarefa', $id);
         }
         echo json_encode(['success' => true]);
         exit;

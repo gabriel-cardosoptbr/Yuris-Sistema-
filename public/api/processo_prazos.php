@@ -115,7 +115,8 @@ try {
         ProcessoAudit::log(
             $processoId,
             'Prazo criado',
-            "Prazo criado: {$descricao}" . (isset($input['data_limite']) ? " (vence em {$input['data_limite']})" : '')
+            "Prazo criado: {$descricao}" . (isset($input['data_limite']) ? " (vence em {$input['data_limite']})" : ''),
+            'prazo', (int) $newId
         );
 
         // P0 LGPD: dispara apenas para webhooks do tenant DONO do processo
@@ -145,7 +146,13 @@ try {
         if (!$prevPrazo) { http_response_code(404); echo json_encode(['error' => 'Prazo não encontrado']); exit; }
         TenantGuard::assertProcessoAcessivel($ctx, (int)$prevPrazo['processo_id']);
 
-        $allowed = ['status', 'descricao', 'data_limite', 'responsavel', 'prioridade'];
+        $allowed = ['status', 'descricao', 'data_limite', 'responsavel', 'prioridade', 'observacao'];
+        // Vazio é "sem valor" (data, responsável, observação): o campo apagado grava NULL, e
+        // a comparação do log não vê mudança entre '' e NULL.
+        foreach (['data_limite', 'responsavel', 'observacao'] as $k) {
+            if (array_key_exists($k, $input) && is_string($input[$k]) && trim($input[$k]) === '') $input[$k] = null;
+        }
+        if (array_key_exists('prioridade', $input) && !in_array($input['prioridade'], ['baixa', 'media', 'alta'], true)) unset($input['prioridade']);
         $fields = [];
         $params = ['id' => $id];
         foreach ($allowed as $k) {
@@ -163,36 +170,32 @@ try {
         $sql = "UPDATE processo_prazos SET " . implode(', ', $fields) . " WHERE id = :id";
         $pdo->prepare($sql)->execute($params);
 
-        // Auditoria server-side via ProcessoAudit (ganha trilha forense completa).
+        // Auditoria server-side via ProcessoAudit (ganha trilha forense completa), ligada ao
+        // prazo (a ficha dele mostra o próprio log). A troca de status é uma entrada; o resto
+        // que mudou na mesma edição vira UMA entrada "Prazo editado" com cada de → para.
         $auditPid = (int)$prevPrazo['processo_id'];
         if (isset($input['status']) && $input['status'] !== $prevPrazo['status']) {
             $acao = $input['status'] === 'concluido' ? 'Prazo concluído' : 'Prazo atualizado';
             ProcessoAudit::log(
                 $auditPid, $acao,
-                "{$acao}: {$prevPrazo['descricao']} (de '{$prevPrazo['status']}' para '{$input['status']}')"
+                "{$acao}: {$prevPrazo['descricao']} (de '{$prevPrazo['status']}' para '{$input['status']}')",
+                'prazo', $id
             );
         }
-        if (isset($input['descricao']) && $input['descricao'] !== $prevPrazo['descricao']) {
-            ProcessoAudit::log(
-                $auditPid, 'Prazo editado',
-                "Prazo renomeado: '{$prevPrazo['descricao']}' → '{$input['descricao']}'"
-            );
+        $rotulos = ['descricao' => 'descrição', 'data_limite' => 'data', 'responsavel' => 'responsável', 'prioridade' => 'prioridade', 'observacao' => 'observação'];
+        $mudou = [];
+        foreach ($rotulos as $k => $rot) {
+            if (!array_key_exists($k, $input)) continue;
+            $antes = $prevPrazo[$k] === null ? '' : (string) $prevPrazo[$k];
+            $depois = $input[$k] === null ? '' : (string) $input[$k];
+            if ($antes === $depois) continue;
+            if ($k === 'data_limite') { $antes = $antes ? date('d/m/Y', strtotime($antes)) : ''; $depois = $depois ? date('d/m/Y', strtotime($depois)) : ''; }
+            if ($k === 'prioridade') { $nomes = ['baixa' => 'baixa', 'media' => 'média', 'alta' => 'alta']; $antes = $nomes[$antes] ?? $antes; $depois = $nomes[$depois] ?? $depois; }
+            if ($k === 'observacao') { $mudou[] = $depois === '' ? 'observação apagada' : 'observação: ' . mb_strimwidth($depois, 0, 120, '…'); continue; }
+            $mudou[] = $rot . ' ' . ($antes !== '' ? $antes : 'vazio') . ' → ' . ($depois !== '' ? $depois : 'vazio');
         }
-        if (isset($input['data_limite']) && $input['data_limite'] !== $prevPrazo['data_limite']) {
-            ProcessoAudit::log(
-                $auditPid, 'Prazo editado',
-                "Data do prazo '{$prevPrazo['descricao']}': "
-                . ($prevPrazo['data_limite'] ?: '∅') . ' → '
-                . ($input['data_limite'] ?: '∅')
-            );
-        }
-
-        if (array_key_exists('responsavel', $input) && $input['responsavel'] !== $prevPrazo['responsavel']) {
-            ProcessoAudit::log(
-                $auditPid, 'Prazo editado',
-                "Responsável do prazo '{$prevPrazo['descricao']}': "
-                . ($prevPrazo['responsavel'] ?: '∅') . ' → ' . ($input['responsavel'] ?: '∅')
-            );
+        if ($mudou) {
+            ProcessoAudit::log($auditPid, 'Prazo editado', "Prazo '{$prevPrazo['descricao']}': " . implode('; ', $mudou), 'prazo', $id);
         }
 
         $eventKey = (isset($input['status']) && $input['status'] === 'concluido')
@@ -233,7 +236,7 @@ try {
         $pdo->prepare("DELETE FROM processo_prazos WHERE id = :id")->execute(['id' => $id]);
         // Auditoria server-side: registra exclusão (via helper para trilha forense)
         if ($procId) {
-            ProcessoAudit::log($procId, 'Prazo excluído', "Prazo removido: {$prazoDesc}");
+            ProcessoAudit::log($procId, 'Prazo excluído', "Prazo removido: {$prazoDesc}", 'prazo', $id);
         }
         echo json_encode(['success' => true]);
         exit;

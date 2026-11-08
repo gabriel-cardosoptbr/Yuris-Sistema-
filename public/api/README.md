@@ -271,6 +271,13 @@ de query. Use `ErrorReporter`.
 **Endpoint novo do Master grava auditoria.** Ver
 [`../../app/Master/README.md`](../../app/Master/README.md).
 
+## Histórico de um prazo ou de uma tarefa do processo
+
+`processo_history.php?processo_id=N&item_tipo=prazo|tarefa&item_id=M` (08/11/2026): o log só
+daquele item (`App\Processos\ProcessoAudit::doItem`), depois do `TenantGuard` do processo; tipo
+ou id inválido dá 400, item de outro processo dá lista vazia. `processo_prazos.php` passou a
+aceitar `observacao` no PATCH, e prazo e tarefa gravam uma entrada por edição, ligada ao item.
+
 ## Central de Tarefas
 
 `tarefas_central.php`: a lista da Central de Tarefas (`App\Tarefas\Central`) e a busca de processo por cliente ou número da tarefa jurídica. Só leitura.

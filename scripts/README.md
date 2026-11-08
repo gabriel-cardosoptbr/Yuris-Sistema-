@@ -226,4 +226,5 @@ fazem: mexem em infraestrutura viva de WhatsApp.
 Script que altera dado nasce com **dry-run como padrão** e só age com uma flag
 explícita, e imprime o estado anterior antes de mudar qualquer coisa. É o que os
 dois de `manutencao/` fazem, e é o que permitiu confiar neles em produção.
+| `tests/historico_item_test.php` | **log por prazo e por tarefa do processo** (08/11/2026): migration 177 só acrescenta colunas e não toca no histórico imutável, todo log de prazo e de tarefa leva o item, a edição vira uma entrada, o GET de um item passa pelo `TenantGuard` antes, as telas pedem o log do item, e `ProcessoAudit::doItem` não atravessa processo. Só lê | sim, só a parte 6 |
 | `tests/conversao_test.php` | **Prospecção → Cliente**: conversão transacional, timeline que atravessa a conversão, valor anterior e novo, duplicidade, vinculação a cliente existente, permissão, isolamento entre contas e rollback. **ESCREVE no banco**: só em desenvolvimento | sim |

@@ -988,6 +988,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   // ── Prazos Processuais ────────────────────────────────────────────────────
   let _procId = null; // ID do processo atualmente aberto no modal
+  let _prazosList = []; // os prazos do processo aberto (a ficha de edição lê daqui)
 
   function _fmtD(d) { const m = String(d||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}/${m[1]}` : (d||'—'); }
 
@@ -1002,6 +1003,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       ${p.observacao?`<div style="font-size:.75rem;color:#7a9abf;font-style:italic">${p.observacao}</div>`:''}
       <div style="display:flex;gap:6px;margin-top:2px">
         ${p.status!=='concluido'?`<button type="button" style="padding:4px 10px;font-size:.75rem;border-radius:6px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:#6ee7b7;cursor:pointer" onclick="window._togglePrazo(${p.id},'concluido')">✓ Concluir</button>`:''}
+        <button type="button" class="prazo-btn-edit" style="padding:4px 10px;font-size:.75rem;border-radius:6px;background:transparent;border:1px solid rgba(96,165,250,.3);color:#93c5fd;cursor:pointer" onclick="window._editarPrazo(${p.id})">Editar</button>
         <button type="button" style="padding:4px 10px;font-size:.75rem;border-radius:6px;background:transparent;border:1px solid rgba(239,68,68,.3);color:#fca5a5;cursor:pointer" onclick="window._deletePrazo(${p.id})">Remover</button>
       </div>
     </div>`;
@@ -1013,6 +1015,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const r = await fetch(`/api/processo_prazos.php?processo_id=${pid}`,{credentials:'same-origin'});
       const d = await r.json();
       const pz = d.data||[];
+      _prazosList = pz;
       c.innerHTML = pz.length ? pz.map(_renderPrazo).join('') : '<div style="color:#9ab0c9;font-size:.8rem">Nenhum prazo cadastrado</div>';
       // Auto-preenche "Próximo Prazo" com o prazo pendente mais próximo
       const pendentes = pz.filter(p=>p.status==='pendente'&&p.data_limite).sort((a,b)=>a.data_limite.localeCompare(b.data_limite));
@@ -1028,12 +1031,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   window._togglePrazo = async (id,status) => {
     await fetch('/api/processo_prazos.php',{method:'PATCH',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status})});
-    if(_procId) _loadPrazos(_procId);
+    if(_procId) { _loadPrazos(_procId); _loadHistorico(_procId); }
   };
   window._deletePrazo = async (id) => {
     if(!(await Yuris.confirm('Remover este prazo?', { danger: true, okLabel: 'Remover' }))) return;
     await fetch(`/api/processo_prazos.php?id=${id}`,{method:'DELETE',credentials:'same-origin'});
-    if(_procId) _loadPrazos(_procId);
+    if(_procId) { _loadPrazos(_procId); _loadHistorico(_procId); }
   };
 
   // Abre modal próprio ao clicar "Adicionar Prazo" (sem usar prompt nativo do browser)
@@ -1108,6 +1111,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
           data-titulo="${t.titulo.replace(/"/g,'&quot;')}"
           data-resp="${(t.responsavel||'').replace(/"/g,'&quot;')}"
           data-data="${t.data_tarefa||''}"
+          data-prio="${t.prioridade||'media'}"
           onclick="window._editarTarefa(this)">Editar</button>
         <button type="button" class="tarefa-del" onclick="window._deleteTarefa(${t.id})" title="Remover">✕</button>
       </div>`;
@@ -1128,13 +1132,29 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(_procId) _loadTarefas(_procId);
   };
 
-  // Substitui o item de tarefa por um campo de edição inline
+  // A ficha de edição do item do processo (tarefa ou prazo, 08/11/2026): os campos dele e,
+  // embaixo, o histórico só dele. "Os prazos também eu tenho que conseguir editar; o log tem
+  // que ficar dentro de cada um."
+  function _abrirFicha(tipo, item) {
+    const ehPrazo = tipo === 'prazo';
+    document.getElementById('etTipo').value = tipo;
+    document.getElementById('etCabecalho').textContent = ehPrazo ? 'Editar prazo processual' : 'Editar tarefa processual';
+    document.getElementById('etDataRotulo').textContent = ehPrazo ? 'Data limite' : 'Data';
+    document.getElementById('etHistRotulo').textContent = ehPrazo ? 'Histórico deste prazo' : 'Histórico desta tarefa';
+    document.getElementById('etObsGrupo').style.display = ehPrazo ? '' : 'none';
+    document.getElementById('etObs').value = ehPrazo ? (item.observacao || '') : '';
+    document.getElementById('etPrio').value = ['baixa','media','alta'].includes(item.prioridade) ? item.prioridade : 'media';
+    _preencherFicha(item.id, item.titulo, item.responsavel || '', item.data || '');
+    _loadHistItem(tipo, item.id);
+  }
+  window._editarPrazo = (id) => {
+    const p = _prazosList.find(x => String(x.id) === String(id)); if (!p) return;
+    _abrirFicha('prazo', { id: p.id, titulo: p.descricao, responsavel: p.responsavel, data: p.data_limite, prioridade: p.prioridade, observacao: p.observacao });
+  };
   window._editarTarefa = (btn) => {
-    const id    = btn.dataset.id;
-    const titulo= btn.dataset.titulo;
-    const resp  = btn.dataset.resp;
-    const data  = btn.dataset.data;
-
+    _abrirFicha('tarefa', { id: btn.dataset.id, titulo: btn.dataset.titulo, responsavel: btn.dataset.resp, data: btn.dataset.data, prioridade: btn.dataset.prio });
+  };
+  function _preencherFicha(id, titulo, resp, data) {
     document.getElementById('etId').value    = id;
     document.getElementById('etTitulo').value= titulo;
     document.getElementById('etData').value  = data || '';
@@ -1165,21 +1185,27 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
     // fechar ao clicar fora
     modal.onclick = e => { if (e.target === modal) modal.style.display = 'none'; };
-  };
+  }
   window._loadTarefasGlobal = () => { if(_procId) _loadTarefas(_procId); };
   window._salvarEdicaoTarefa = async () => {
     const id         = document.getElementById('etId')?.value;
+    const tipo       = document.getElementById('etTipo')?.value || 'tarefa';
     const novoTitulo = document.getElementById('etTitulo')?.value.trim();
     const novoResp   = document.getElementById('etResp')?.value || '';
     const novaData   = document.getElementById('etData')?.value || null;
+    const novaPrio   = document.getElementById('etPrio')?.value || 'media';
     if (!id || !novoTitulo) return;
+    if (tipo === 'prazo' && !novaData) { if (window.Yuris && Yuris.notify) Yuris.notify('O prazo precisa de uma data limite.', 'error'); return; }
     document.getElementById('modalEditTarefa').style.display = 'none';
-    await fetch('/api/processo_tarefas.php', {
+    const corpo = tipo === 'prazo'
+      ? { id: parseInt(id), descricao: novoTitulo, responsavel: novoResp, data_limite: novaData, prioridade: novaPrio, observacao: document.getElementById('etObs')?.value.trim() || '' }
+      : { id: parseInt(id), titulo: novoTitulo, responsavel: novoResp, data_tarefa: novaData, prioridade: novaPrio };
+    await fetch(tipo === 'prazo' ? '/api/processo_prazos.php' : '/api/processo_tarefas.php', {
       method:'PATCH', credentials:'same-origin',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({id: parseInt(id), titulo: novoTitulo, responsavel: novoResp, data_tarefa: novaData})
+      body: JSON.stringify(corpo)
     });
-    if(_procId) { _loadTarefas(_procId); _loadHistorico(_procId); }
+    if(_procId) { tipo === 'prazo' ? _loadPrazos(_procId) : _loadTarefas(_procId); _loadHistorico(_procId); }
   };
 
   const _addTarefaBtn = document.getElementById('btnAddTarefa');
@@ -1211,12 +1237,25 @@ document.addEventListener('DOMContentLoaded', ()=>{
     else if (/exclu|remov|desvincul/.test(a)) tom = 'erro';
     return { tipo, tom };
   }
+  // O histórico de um item (a ficha de edição da tarefa ou do prazo).
+  async function _loadHistItem(tipo, id) {
+    const el = document.getElementById('etHist'); if (!el || !_procId) return;
+    el.innerHTML = '<div style="color:#9ab0c9;font-size:.8rem">Carregando…</div>';
+    try {
+      const r = await fetch(`/api/processo_history.php?processo_id=${_procId}&item_tipo=${tipo}&item_id=${encodeURIComponent(id)}`, { credentials: 'same-origin' });
+      const items = (await r.json()).data || [];
+      el.innerHTML = items.length ? items.map(_linhaHistorico).join('') : '<div style="color:#9ab0c9;font-size:.8rem">Nada registrado ainda</div>';
+    } catch (e) { el.innerHTML = '<div style="color:#ef4444;font-size:.8rem">Não foi possível carregar o histórico</div>'; }
+  }
   async function _loadHistorico(pid) {
     const el=document.getElementById('processoHistoryList'); if(!el) return;
     try {
       const r=await fetch(`/api/processo_history.php?processo_id=${pid}`,{credentials:'same-origin'});
       const items=(await r.json()).data||[];
-      el.innerHTML = items.length ? items.map(h=>{
+      el.innerHTML = items.length ? items.map(_linhaHistorico).join('') : '<div style="color:#9ab0c9;font-size:.8rem">Nenhum registro ainda</div>';
+    } catch(e){}
+  }
+  function _linhaHistorico(h) {
         const dt=new Date(h.created_at);
         const s=dt.toLocaleDateString('pt-BR')+', '+dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
         // Badge de origem (MATRIZ / FILIAL / ADVOGADO SOLO) — pequeno, no topo do card.
@@ -1232,8 +1271,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
         const _acaoTraduzida = (window.Yuris && Yuris.translateAuditAcao) ? Yuris.translateAuditAcao(h.acao) : (h.acao || ''); // i18n acao via Yuris.translateAuditAcao
         const _tp = _histTipo(h);
         return `<div class="timeline-entry" data-tipo="${_tp.tipo}"${_tp.tom ? ` data-tom="${_tp.tom}"` : ''}><div class="timeline-dot"></div><div class="timeline-content">${originBadge}<div class="timeline-action">${h.descricao||_acaoTraduzida}</div><div class="timeline-meta">${h.user_email||'sistema'} · ${s}</div></div></div>`;
-      }).join('') : '<div style="color:#9ab0c9;font-size:.8rem">Nenhum registro ainda</div>';
-    } catch(e){}
   }
   function escapeAttr(s) {
     return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');

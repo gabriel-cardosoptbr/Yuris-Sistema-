@@ -1972,6 +1972,12 @@ html[data-theme="light"] .tkc-editar:hover, html[data-theme="light"] .tkc-editar
 #modalNewTask .tk-modal, #modalItemProcesso .tk-modal { max-height: 92vh; overflow-y: auto; }
 .tk-item-ctx { font-size: .78rem; color: #8FA3B8; margin: -6px 0 14px; overflow-wrap: anywhere; }
 .tk-item-acoes { flex-wrap: wrap; gap: 6px; }
+/* O histórico do item na edição rápida (08/11/2026): o mesmo desenho do Histórico Processual. */
+.tk-item-hist { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.tk-item-hist .timeline-entry { position: relative; padding: 7px 0 7px 16px; }
+.tk-item-hist .timeline-dot { position: absolute; left: 2px; top: 13px; width: 7px; height: 7px; border-radius: 50%; background: #3b82f6; }
+.tk-item-hist .timeline-action { font-size: .8rem; font-weight: 600; overflow-wrap: anywhere; }
+.tk-item-hist .timeline-meta, .tk-item-hist .timeline-origin, .tk-item-hist .tk-item-hist-vazio { font-size: .72rem; color: #8FA3B8; }
 .tk-item-acoes .tk-modal-btn { padding-left: 11px; padding-right: 11px; }
 .tk-item-acoes a { text-decoration: none; display: inline-flex; align-items: center; }
 .tk-item-espaco { flex: 1; }

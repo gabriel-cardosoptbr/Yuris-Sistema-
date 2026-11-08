@@ -261,6 +261,7 @@ window.TkCentral = (function () {
       $('ipResp').insertAdjacentHTML('beforeend', `<option value="${esc(i.responsavel_nome)}" selected>${esc(i.responsavel_nome)}</option>`);
     }
     $('ipAbrirProcesso').href = linkDoProcesso(i);
+    carregarHistItem(i);
     $('ipAbrirProcesso').onclick = e => {
       if (!window.YurisEmbed || e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
       e.preventDefault(); const alvo = editando; fecharItem(); abrirNoPopup(alvo);
@@ -269,6 +270,29 @@ window.TkCentral = (function () {
     $('modalItemProcesso').classList.add('open');
     setTimeout(() => $('ipDescricao').focus(), 40);
   }
+  /* O histórico só deste prazo ou desta tarefa do processo (08/11/2026: "o log tem que ficar
+     dentro de cada um"). Mesmo endpoint e mesmo desenho do Histórico Processual da ficha. */
+  async function carregarHistItem(i) {
+    const el = $('ipHist'); if (!el) return;
+    const tipo = i.origem === 'prazo' ? 'prazo' : 'tarefa';
+    el.innerHTML = '<div class="tk-item-hist-vazio">Carregando…</div>';
+    try {
+      const r = await GET(`/processo_history.php?processo_id=${encodeURIComponent(i.processo_id)}&item_tipo=${tipo}&item_id=${encodeURIComponent(i.id)}`);
+      if (editando !== i) return;
+      const lista = r.data || [];
+      el.innerHTML = lista.length ? lista.map(h => {
+        const a = String(h.acao || '').toLowerCase();
+        const tom = /conclu/.test(a) ? 'ok' : (/exclu|remov/.test(a) ? 'erro' : '');
+        const dt = new Date(String(h.created_at).replace(' ', 'T'));
+        const quando = isNaN(dt) ? '' : dt.toLocaleDateString('pt-BR') + ', ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        const origem = h.author_account_nome ? `<div class="timeline-origin">${esc(h.author_account_nome)}</div>` : '';
+        return `<div class="timeline-entry" data-tipo="${tipo}"${tom ? ` data-tom="${tom}"` : ''}><div class="timeline-dot"></div><div class="timeline-content">${origem}<div class="timeline-action">${esc(h.descricao || h.acao || '')}</div><div class="timeline-meta">${esc(h.user_email || 'sistema')}${quando ? ' · ' + quando : ''}</div></div></div>`;
+      }).join('') : '<div class="tk-item-hist-vazio">Nada registrado ainda</div>';
+    } catch (e) {
+      el.innerHTML = '<div class="tk-item-hist-vazio">Não foi possível carregar o histórico</div>';
+    }
+  }
+
   function fecharItem() {
     $('modalItemProcesso').classList.remove('open');
     editando = null;

@@ -372,6 +372,10 @@ tela fantasma até ele. Fora da home, `assets/embed-abrir.js` (`YurisEmbed.abrir
 carregado nas telas de dentro da interface nova e nunca no `?embed=1`) faz o mesmo por cima de qualquer
 tela: a Central de Tarefas abre o processo da tarefa processual assim (08/11/2026). O desenho dele
 (`.inn-emb`) mora em `interface-nova-popups.css`.
+Na ficha do processo, o prazo ganhou "Editar" (08/11/2026): a mesma ficha de edição serve a tarefa e o
+prazo (`modalEditTarefa`, com `etTipo`), com prioridade, observação (só no prazo) e, embaixo, o histórico
+só daquele item (`#etHist`, `_loadHistItem` em `assets/processos.js`). A edição rápida da Central de
+Tarefas mostra o mesmo log (`#ipHist` em `tarefas.php`).
 O Histórico Processual da ficha marca `data-tipo` e `data-tom` em cada registro (`_histTipo` em
 `assets/processos.js`); só a prévia usa, para o ícone e a cor (fim do `interface-nova-popups.css`).
 Logo depois do `</aside>`, na prévia, um script põe `inn-vestindo` no `<html>` até a camada do sistema

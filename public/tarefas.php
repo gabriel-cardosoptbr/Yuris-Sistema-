@@ -692,6 +692,11 @@ try {
       <label for="ipResp">Responsável</label>
       <select id="ipResp"></select>
     </div>
+    <!-- O histórico só deste prazo ou desta tarefa do processo (08/11/2026). -->
+    <div class="tk-field tk-item-hist-campo" style="margin-bottom:12px;">
+      <label>Histórico</label>
+      <div id="ipHist" class="tk-item-hist"></div>
+    </div>
     <div class="tk-modal-actions tk-item-acoes">
       <a class="tk-modal-btn tk-modal-btn-cancel" id="ipAbrirProcesso" href="#">Abrir processo</a>
       <button class="tk-modal-btn tk-modal-btn-cancel" id="ipConcluir">✓ Concluir</button>

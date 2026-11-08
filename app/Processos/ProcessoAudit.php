@@ -42,8 +42,14 @@ class ProcessoAudit
         'contato_id'               => 'Contato vinculado',
     ];
 
-    /** Grava uma entrada arbitrária no histórico. */
-    public static function log(int $processoId, string $acao, string $descricao = ''): void
+    /**
+     * Grava uma entrada arbitrária no histórico.
+     *
+     * $itemTipo ('prazo' | 'tarefa') e $itemId ligam o registro ao prazo ou à tarefa do
+     * processo (migration 177), para a ficha do item listar só o que é dela. Sem a migration
+     * aplicada, grava como antes (sem o item): auditoria nunca falha por isso.
+     */
+    public static function log(int $processoId, string $acao, string $descricao = '', ?string $itemTipo = null, ?int $itemId = null): void
     {
         if ($processoId <= 0 || $acao === '') return;
         $user = $_SESSION['user_nome']  ?? $_SESSION['user_email'] ?? 'sistema';
@@ -76,14 +82,7 @@ class ProcessoAudit
                 require_once __DIR__ . '/../Core/RequestId.php';
             }
             $pdo = Database::getConnection();
-            $pdo->prepare(
-                "INSERT INTO processo_history
-                   (processo_id, user_email, acao, descricao,
-                    author_account_id, author_account_tipo, author_account_nome,
-                    ip, user_agent, request_id)
-                 VALUES (:pid, :user, :acao, :desc, :aid, :atipo, :anome,
-                         :ip, :ua, :rid)"
-            )->execute([
+            $dados = [
                 'pid'   => $processoId,
                 'user'  => $user,
                 'acao'  => mb_substr($acao, 0, 100),
@@ -94,7 +93,22 @@ class ProcessoAudit
                 'ip'    => $_SERVER['REMOTE_ADDR'] ?? null,
                 'ua'    => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255),
                 'rid'   => \App\Core\RequestId::get(),
-            ]);
+            ];
+            $comItem = in_array($itemTipo, ['prazo', 'tarefa'], true) && $itemId > 0 && self::temColunaDeItem($pdo);
+            if ($comItem) {
+                $dados['itipo'] = $itemTipo;
+                $dados['iid']   = $itemId;
+            }
+            $pdo->prepare(
+                "INSERT INTO processo_history
+                   (processo_id, user_email, acao, descricao,"
+                . ($comItem ? " item_tipo, item_id," : "") . "
+                    author_account_id, author_account_tipo, author_account_nome,
+                    ip, user_agent, request_id)
+                 VALUES (:pid, :user, :acao, :desc,"
+                . ($comItem ? " :itipo, :iid," : "") . " :aid, :atipo, :anome,
+                         :ip, :ua, :rid)"
+            )->execute($dados);
         } catch (\Throwable $e) {
             // Auditoria nunca quebra a operação principal — apenas loga em error_log
             error_log('ProcessoAudit::log error: ' . $e->getMessage());
@@ -114,6 +128,78 @@ class ProcessoAudit
             $uid = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null;
             \App\Notificacoes\Movimento::registrar('processo', $processoId, $acao, $uid, $descricao);
         } catch (\Throwable $e) { /* silencioso */ }
+    }
+
+    /** A migration 177 já rodou neste banco? (uma consulta por requisição) */
+    private static ?bool $colunaDeItem = null;
+    private static function temColunaDeItem(\PDO $pdo): bool
+    {
+        if (self::$colunaDeItem === null) {
+            try {
+                self::$colunaDeItem = (bool) $pdo->query("SHOW COLUMNS FROM processo_history LIKE 'item_id'")->fetch();
+            } catch (\Throwable $e) {
+                self::$colunaDeItem = false;
+            }
+        }
+        return self::$colunaDeItem;
+    }
+
+    /**
+     * O histórico de UM prazo ou de UMA tarefa do processo, do mais novo ao mais antigo.
+     *
+     * Registro gravado desde a migration 177 vem pela ligação (item_tipo, item_id). O que
+     * já existia não tem ligação e não pode ganhar (o histórico é imutável, migration 053):
+     * entra pelo NOME, na leitura, sem gravar nada. O registro de prazo (ou tarefa) daquele
+     * processo que cita o nome do item conta, desde que o nome mais longo citado seja o
+     * dele e nenhum outro item do processo tenha o mesmo nome.
+     *
+     * Quem chama já conferiu o acesso ao processo (TenantGuard::assertProcessoAcessivel).
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public static function doItem(\PDO $pdo, int $processoId, string $tipo, int $itemId): array
+    {
+        if (!in_array($tipo, ['prazo', 'tarefa'], true) || $processoId <= 0 || $itemId <= 0) return [];
+        $tabela = $tipo === 'prazo' ? 'processo_prazos' : 'processo_tarefas';
+        $campo  = $tipo === 'prazo' ? 'descricao' : 'titulo';
+        $acao   = $tipo === 'prazo'
+            ? "acao LIKE 'Prazo%'"
+            : "acao LIKE 'Tarefa%' AND acao NOT LIKE 'Tarefa vinculada%' AND acao NOT LIKE 'Tarefa recorrente%'";
+
+        $st = $pdo->prepare("SELECT id, {$campo} AS nome FROM {$tabela} WHERE processo_id = ?");
+        $st->execute([$processoId]);
+        $itens = $st->fetchAll(\PDO::FETCH_ASSOC);
+        $meu = null;
+        foreach ($itens as $it) if ((int) $it['id'] === $itemId) $meu = $it;
+        if (!$meu) return [];
+
+        $ligados = [];
+        if (self::temColunaDeItem($pdo)) {
+            $st = $pdo->prepare("SELECT * FROM processo_history WHERE processo_id = ? AND item_tipo = ? AND item_id = ?");
+            $st->execute([$processoId, $tipo, $itemId]);
+            $ligados = $st->fetchAll(\PDO::FETCH_ASSOC);
+        }
+
+        // Os antigos, pelo nome.
+        $semItem = self::temColunaDeItem($pdo) ? ' AND item_tipo IS NULL' : '';
+        $st = $pdo->prepare("SELECT * FROM processo_history WHERE processo_id = ? AND {$acao}{$semItem}");
+        $st->execute([$processoId]);
+        $antigos = [];
+        foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $h) {
+            $desc = (string) $h['descricao'];
+            $melhor = null; $iguais = 0;
+            foreach ($itens as $it) {
+                $nome = trim((string) $it['nome']);
+                if ($nome === '' || mb_stripos($desc, $nome) === false) continue;
+                if ($melhor === null || mb_strlen($nome) > mb_strlen(trim((string) $melhor['nome']))) { $melhor = $it; $iguais = 1; }
+                elseif (mb_strlen($nome) === mb_strlen(trim((string) $melhor['nome']))) $iguais++;
+            }
+            if ($melhor && $iguais === 1 && (int) $melhor['id'] === $itemId) $antigos[] = $h;
+        }
+
+        $todos = array_merge($ligados, $antigos);
+        usort($todos, function ($a, $b) { return [$b['created_at'], (int) $b['id']] <=> [$a['created_at'], (int) $a['id']]; });
+        return $todos;
     }
 
     /**

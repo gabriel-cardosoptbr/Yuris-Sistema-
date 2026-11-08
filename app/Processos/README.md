@@ -104,6 +104,19 @@ cliente acima do plano.
 vindo do front: o histórico processual é o que o escritório mostra para o
 cliente dele.
 
+**Cada prazo e cada tarefa do processo tem o próprio log** (08/11/2026: "o log tem
+que ficar dentro de cada um, dentro da tarefa se eu editar, dentro do prazo se eu
+editar"). `ProcessoAudit::log()` aceita `$itemTipo` (`prazo` | `tarefa`) e `$itemId`
+e grava `item_tipo` e `item_id` (migration 177); sem a migration, grava como antes.
+`ProcessoAudit::doItem($pdo, $processoId, $tipo, $itemId)` devolve o log de um item:
+os registros ligados a ele e, para os antigos, que não podem ganhar a ligação porque o
+`processo_history` é **imutável** (migration 053, gatilhos que barram UPDATE e DELETE),
+os registros de prazo (ou tarefa) daquele processo cujo nome mais longo citado é o do
+item, sem outro item de mesmo nome. Quem chama já conferiu o acesso ao processo. As
+APIs de prazo e de tarefa ligam todo log ao item, e uma edição de vários campos vira
+**uma** entrada com cada "de → para" (antes, salvar a tarefa sem mexer no nome gravava
+"Tarefa renomeada"). Teste: `scripts/tests/historico_item_test.php`.
+
 ## O que **não** está aqui
 
 `LegalDocument` (versionamento de termos e políticas) parecia jurídico pelo

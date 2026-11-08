@@ -76,6 +76,10 @@ o mesmo que fazer pelo processo.
   o "Abrir processo" da edição rápida também. Fechar (clique fora, Fechar ou Esc) deixa a
   central onde estava, e ela só se redesenha se a lista mudou lá dentro (a tarefa concluída
   sai). Sem a interface nova, o link de sempre.
+- **A edição rápida mostra o log do item** (08/11/2026): o lápis de um prazo ou de uma
+  tarefa do processo abre, embaixo, o histórico só dele (`carregarHistItem` em
+  `public/assets/tarefas-central.js`, pelo `processo_history.php?item_tipo=&item_id=`). O que
+  se salva ali entra no log do próprio item.
 - **`/tarefas?nova=1` abre o cadastro sozinho** (07/11/2026), como `?tarefa=ID` abre o
   painel da tarefa (`abrirTarefaDoLink` em `tarefas.js`, que tira o parâmetro da barra).
   É o "Nova tarefa" da home nova, que abre esta tela dentro dela com `?embed=1` e
