@@ -540,13 +540,6 @@ try {
           </div>
         </div>
       </div>
-      <!-- O que criar no processo: "nova tarefa pode ser um prazo processual, uma tarefa
-           processual, ou um vínculo que eu tenho de fazer ou conferir". -->
-      <div class="tk-jur-oque" role="radiogroup" aria-label="O que criar no processo">
-        <button type="button" class="tk-jur-op active" role="radio" aria-checked="true" data-oque="tarefa"><strong>Tarefa processual</strong><span>Algo a fazer no processo</span></button>
-        <button type="button" class="tk-jur-op" role="radio" aria-checked="false" data-oque="prazo"><strong>Prazo processual</strong><span>Com data limite</span></button>
-        <button type="button" class="tk-jur-op" role="radio" aria-checked="false" data-oque="vinculo"><strong>Vínculo</strong><span>Liberar ou conferir acesso</span></button>
-      </div>
       <div id="ntProcTarefas" class="tk-jur-tarefas" style="display:none;"></div>
     </div>
     <div class="tk-field" id="ntQuadroCampo" style="margin-bottom:12px;display:none;">
@@ -554,7 +547,7 @@ try {
       <select id="ntQuadro"></select>
     </div>
     <?php endif; ?>
-    <div class="tk-field" style="margin-bottom:12px;">
+    <div class="tk-field" id="ntTituloCampo" style="margin-bottom:12px;">
       <label>Título *</label>
       <input type="text" id="ntTitulo" placeholder="O que precisa ser feito">
     </div>

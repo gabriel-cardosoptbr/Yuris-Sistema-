@@ -89,8 +89,14 @@ o mesmo que fazer pelo processo.
   a uma que já existe acende ela e avisa se já foi feita. Tudo no mesmo escopo de Processos
   (conta e compartilhamento); o teste `central_tarefas` trava o isolamento das duas buscas.
 - **O que criar no processo** (08/11/2026, "nova tarefa pode ser um prazo processual, uma
-  tarefa processual ou um vínculo que eu tenho de fazer ou conferir"): no modo jurídico, três
-  opções. **Tarefa processual** grava em `processo_tarefas.php`, como antes. **Prazo processual**
+  tarefa processual ou um vínculo que eu tenho de fazer ou conferir"; e, na mesma tarde, "isso
+  não tem de existir antes de eu selecionar um processo; depois, dentro dos campos, tem de ter
+  a opção de fazer algo; e não é título, é descrição"). Antes do processo, só Cliente e Processo.
+  Escolhido o processo, cada bloco (Tarefas processuais, Prazos processuais, Vínculos) tem o seu
+  botão ("Nova tarefa", "Novo prazo", "Adicionar vínculo"), e o formulário abre dentro do
+  bloco: Descrição (área de texto), Data ("Data limite" obrigatória no prazo), Prioridade e
+  Responsável, com o botão de criar ali; o título, a data e o botão gerais do rodapé somem no
+  modo jurídico. O que se digita fica guardado ao trocar de bloco. **Tarefa processual** grava em `processo_tarefas.php`, como antes. **Prazo processual**
   grava em `processo_prazos.php` (descrição, data limite obrigatória, prioridade, responsável),
   com a mesma auditoria da ficha. **Vínculo** não grava nada daqui: abre a ficha do processo com
   `?foco=vinculos` (e `embed=1` dentro da home), que desce até a seção e abre o "+ Adicionar

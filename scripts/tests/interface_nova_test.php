@@ -241,7 +241,8 @@ ok(str_contains($inicio, "timeZone: 'America/Sao_Paulo'") && str_contains($inici
 ok(str_contains((string) file_get_contents($raiz . '/public/assets/inicio.css'), '.ini-sala h1 .ini-nome{') && str_contains($inicio, '<span class="ini-nome">'), 'o nome em degradê azul para prata, como o logo');
 $tkPhp = (string) file_get_contents($raiz . '/public/tarefas.php');
 $tkCen = (string) file_get_contents($raiz . '/public/assets/tarefas-central.js');
-ok(substr_count($tkPhp, 'class="tk-jur-op') === 3 && str_contains($tkPhp, 'data-oque="prazo"') && str_contains($tkPhp, 'data-oque="vinculo"'), 'nova tarefa jurídica escolhe o que criar: tarefa, prazo ou vínculo');
+ok(!str_contains($tkPhp, 'tk-jur-op') && str_contains($tkCen, "ADD = { tarefas: ['tarefa', 'Nova tarefa'], prazos: ['prazo', 'Novo prazo'], vinculos: ['vinculo', 'Adicionar vínculo'] }"), 'sem opções antes do processo; cada bloco do processo tem o seu Adicionar');
+ok(str_contains($tkCen, '<label for="ntJurDesc">Descrição *</label>') && str_contains($tkCen, '<textarea id="ntJurDesc"') && str_contains((string) file_get_contents($raiz . '/public/assets/tarefas.css'), '#modalNewTask.tk-nova-juridica #ntTituloCampo'), 'o formulário abre dentro do bloco, com Descrição no lugar de Título');
 ok(str_contains($tkCen, "await POST('/processo_prazos.php'") && str_contains($tkCen, "'&foco=vinculos'") && str_contains($tkCen, "'/resource_shares.php?resource_type=processo&resource_id='"), 'prazo grava pelo endpoint da ficha; vínculo abre a ficha na seção de vínculos; o processo mostra prazos, tarefas e vínculos');
 ok(str_contains((string) file_get_contents($raiz . '/public/assets/processos.js'), "if (foco === 'vinculos') {"), 'a ficha do processo entende o foco vinculos');
 $cssIni = (string) file_get_contents($raiz . '/public/assets/inicio.css');

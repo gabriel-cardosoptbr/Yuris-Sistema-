@@ -2055,26 +2055,39 @@ html[data-theme="light"] .tk-jur-osso { background-color: #EDF1F6; border-color:
 @media (max-width: 640px) { .tk-jur-campos { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .tk-jur-osso { animation: none; } }
 
-/* ── O que criar no processo (08/11/2026): tarefa processual, prazo ou vínculo ── */
-.tk-jur-oque { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
-.tk-jur-op { display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 9px 12px; border-radius: 10px; cursor: pointer; font-family: inherit;
-  background: rgba(160,180,210,0.06); border: 1.5px solid rgba(160,180,210,0.16); color: #D8E4F0; transition: border-color .15s, background .15s; }
-.tk-jur-op strong { font-size: .8rem; }
-.tk-jur-op span { font-size: .7rem; color: #8FA3B8; }
-.tk-jur-op.active { border-color: #3B82F6; background: rgba(59,130,246,.14); }
-.tk-jur-op:focus-visible { outline: 2px solid #3B82F6; outline-offset: 2px; }
+/* ── O que fazer no processo (08/11/2026): o "Adicionar" mora em cada bloco ──
+   Antes de escolher o processo não há opção nenhuma; depois, cada bloco (tarefas, prazos,
+   vínculos) tem o seu botão, e o formulário abre dentro dele, com Descrição. No modo
+   jurídico o título, a prioridade, a data e o botão do rodapé gerais somem: é o bloco que cria. */
+#modalNewTask.tk-nova-juridica #ntTituloCampo, #modalNewTask.tk-nova-juridica .tk-row-2, #modalNewTask.tk-nova-juridica #ntSave { display: none !important; }
+.tk-jur-tit { align-items: center; }
+.tk-jur-tit .tk-jur-tit-t, html[data-theme="light"] .tk-jur-tit .tk-jur-tit-t { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; min-width: 0; font-size: inherit; font-weight: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; }
+.tk-jur-add { display: inline-flex; align-items: center; gap: 5px; flex: none; padding: 5px 10px; border-radius: 8px; cursor: pointer; font-family: inherit;
+  font-size: .74rem; font-weight: 700; letter-spacing: 0; text-transform: none; color: #93C5FD; background: rgba(59,130,246,.12); border: 1px solid rgba(59,130,246,.3);
+  transition: background .15s, color .15s, border-color .15s, transform .15s; }
+.tk-jur-add svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2.6; stroke-linecap: round; }
+.tk-jur-add:hover { background: #3B82F6; color: #fff; border-color: transparent; transform: translateY(-1px); }
+.tk-jur-add.aberto { background: transparent; color: #8FA3B8; border-color: rgba(160,180,210,0.25); }
+.tk-jur-add:focus-visible { outline: 2px solid #3B82F6; outline-offset: 2px; }
+.tk-jur-bloco.atual { margin-left: -6px; margin-right: -6px; padding-left: 6px; padding-right: 6px; border-radius: 10px; background: rgba(59,130,246,.06); }
 .tk-jur-bloco + .tk-jur-bloco { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(160,180,210,0.14); }
+.tk-jur-form { display: flex; flex-direction: column; gap: 10px; margin: 4px 0 12px; padding: 12px; border-radius: 10px; border: 1.5px solid #3B82F6; background: rgba(10,22,40,.6); }
+@keyframes tk-jur-abre { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: no-preference) { .tk-jur-form { animation: tk-jur-abre .28s cubic-bezier(.2,.8,.2,1) both; } }
+.tk-jur-form textarea { width: 100%; resize: vertical; min-height: 70px; line-height: 1.45; box-sizing: border-box; }
+.tk-jur-form-linha { display: grid; grid-template-columns: 1fr 1fr 1.3fr; gap: 10px; }
+.tk-jur-form-linha .tk-field { min-width: 0; }
+.tk-jur-form-acoes { display: flex; justify-content: flex-end; }
 .tk-jur-bloco:not(.atual) .tk-jur-itens { max-height: 132px; }
 .tk-jur-item.vinc .tk-jur-marca { background: transparent; border-color: #3B82F6; }
 .tk-jur-item.vinc .tk-jur-marca svg { stroke: #3B82F6; }
 .tk-jur-item.vinc b { text-decoration: none; opacity: 1; }
 .tk-jur-item.venc small { color: #F87171; }
-/* Vínculo não tem título, prioridade nem data: é feito na ficha do processo. */
-#modalNewTask.tk-jur-vinculo #ntTitulo, #modalNewTask.tk-jur-vinculo #ntTituloAviso,
-#modalNewTask.tk-jur-vinculo .tk-field:has(> #ntTitulo), #modalNewTask.tk-jur-vinculo .tk-row-2 { display: none !important; }
-html[data-theme="light"] .tk-jur-op { background: #FFFFFF; border-color: #D5DEE9; color: #0F172A; }
-html[data-theme="light"] .tk-jur-op span { color: #64748B; }
-html[data-theme="light"] .tk-jur-op.active { border-color: #2563EB; background: rgba(59,130,246,.08); }
+html[data-theme="light"] .tk-jur-add { color: #1D4ED8; background: rgba(37,99,235,.08); border-color: rgba(37,99,235,.28); }
+html[data-theme="light"] .tk-jur-add:hover { background: #2563EB; color: #fff; }
+html[data-theme="light"] .tk-jur-add.aberto { background: #FFFFFF; color: #64748B; border-color: #CBD5E1; }
+html[data-theme="light"] .tk-jur-bloco.atual { background: rgba(37,99,235,.05); }
 html[data-theme="light"] .tk-jur-bloco + .tk-jur-bloco { border-top-color: #E2E8F0; }
+html[data-theme="light"] .tk-jur-form { background: #FFFFFF; border-color: #2563EB; }
 html[data-theme="light"] .tk-jur-item.venc small { color: #DC2626; }
-@media (max-width: 640px) { .tk-jur-oque { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .tk-jur-form-linha { grid-template-columns: 1fr; } }
