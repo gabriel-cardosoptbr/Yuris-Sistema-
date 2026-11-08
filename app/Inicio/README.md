@@ -81,6 +81,14 @@ seleção em pílula.
   (`--panel`, `--bg-main`, `--text`, `--yuris-*`, `--y-*`) e as superfícies (painéis
   na prata com 12px, botão principal azul com 8px, campos afundados, tabelas e abas).
   **Não mexe em layout**: nada de `display`, largura ou posição; o teste trava isso.
+- `assets/interface-nova-popups.css` é a única folha da prévia que mexe em **tamanho de
+  pop-up**, carregada junto com a das telas (e por isso também no pop-up de verdade aberto
+  na home). Hoje: o painel da tarefa vai a 980 x 780 (sem passar da janela) e as abas
+  quebram linha em vez de rolar para o lado ("não faz sentido ter rolagem pro lado, tem
+  mais espaço; deixa o pop-up maior", 08/11/2026).
+- No menu, o grupo que tem a página atual dentro (Gestão em Indicadores, por exemplo)
+  leva o ícone azul numa caixa branca, ligado ao rótulo azul ("deixa pelo menos o ícone
+  azul e o fundo branco", 08/11/2026). No escuro a caixa é a superfície clara do painel.
 - **Um cartão só para todo item** (compromisso, prazo, publicação, processo, conversa,
   pessoa): a mesma caixa (`.ini-cartao`), que é o link para o lugar dele, com a seta azul
   à direita. O azul opaco marca os detalhes: número do processo (`.ini-num`), hora,
@@ -124,7 +132,11 @@ seleção em pílula.
   cliente, no processo e na publicação, abre a ficha de Clientes (`/clientes?open=ID`,
   quando o processo tem `cliente_id`). O Chat não tem pop-up: dentro da home a conversa
   vira o pop-up, no centro, e fecha pelo "Voltar" dela, pelo clique fora ou pelo Esc. Com
-  o WhatsApp desconectado a conversa não abre, e a home vai para a tela do Chat. A
+  o WhatsApp desconectado a conversa não abre. Conversa fora das 500 mais recentes da
+  lista do Chat é procurada pelo número e aberta assim mesmo (só no modo embutido).
+  **Pop-up que não abre nunca leva para a tela** ("tem que abrir o card, não ir pra
+  tela"): a home fica onde está e avisa. Enquanto aparece "Abrindo…", o clique fora
+  e o Esc cancelam (o quadro só pega clique depois de pronto). A
   tela avisa a home por `postMessage` (só da mesma origem) quando o pop-up abre, quando
   fecha (a home tira o iframe e se atualiza) e quando não tem pop-up (a home vai para a
   tela). Para uma tela nova entrar, basta uma linha em `TELAS` no `embed.js`.

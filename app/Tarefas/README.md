@@ -74,6 +74,9 @@ o mesmo que fazer pelo processo.
   painel da tarefa (`abrirTarefaDoLink` em `tarefas.js`, que tira o parâmetro da barra).
   É o "Nova tarefa" da home nova, que abre esta tela dentro dela com `?embed=1` e
   mostra só o pop-up (ver `app/Inicio/README.md`).
+- **Na interface nova o painel da tarefa é maior** (08/11/2026): 980 x 780, sem passar
+  da janela, e as abas quebram linha em vez de rolar para o lado. Fica em
+  `public/assets/interface-nova-popups.css`; quem não está na prévia vê os 680px de sempre.
 - **Calendário**: compara a data como texto. `new Date('2026-11-05')` é meia-noite em
   UTC, e no Brasil a tarefa cairia na véspera. Clicar no dia cria a tarefa com a data.
 

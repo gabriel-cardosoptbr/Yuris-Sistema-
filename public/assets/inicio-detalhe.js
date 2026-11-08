@@ -356,6 +356,9 @@
     f.className = 'idt-embed-quadro'; f.title = 'Pop-up do módulo';
     f.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'embed=1';
     caixa.appendChild(f);
+    // "Se eu ficar clicando fora, que seja cancelado": enquanto carrega, o clique fora
+    // (o quadro ainda não pega clique) desiste de abrir.
+    caixa.addEventListener('mousedown', function () { if (EMB && EMB.caixa === caixa && !caixa.classList.contains('pronto')) fecharModulo(false); });
     document.body.appendChild(caixa);
     document.documentElement.classList.add('idt-aberto');
     EMB = { caixa: caixa, quadro: f, url: url };
@@ -372,8 +375,13 @@
     if (e.origin !== location.origin || !EMB || !e.data || !e.data.yuris) return;
     if (e.data.yuris === 'embed-pronto') EMB.caixa.classList.add('pronto');
     if (e.data.yuris === 'embed-fechar') fecharModulo(true);
-    if (e.data.yuris === 'embed-sem-popup') { var u = EMB.url; fecharModulo(false); location.href = u; }
+    // Não abriu: fica na home e avisa. Nunca leva para a tela do módulo.
+    if (e.data.yuris === 'embed-sem-popup') {
+      fecharModulo(false);
+      avisar(e.data.tela === 'chat' ? 'A conversa não abriu. Confira se o WhatsApp está conectado e tente de novo.' : 'Não consegui abrir agora. Tente de novo.', 'danger');
+    }
   });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && EMB && !EMB.caixa.classList.contains('pronto')) fecharModulo(false); });
   ACOES['abrir-processo'] = function (b) {
     var foco = b.getAttribute('data-foco') || '';
     abrirModulo('/processos?open=' + (+b.getAttribute('data-id')) + (/^(prazo|tarefa):\d+$/.test(foco) ? '&foco=' + foco : ''));

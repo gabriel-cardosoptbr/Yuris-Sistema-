@@ -239,3 +239,17 @@ html[data-theme="light"] .sidebar.sidebar.sidebar .yuris-notif-btn svg, html[dat
 html .sidebar.sidebar.sidebar nav a.active .icon, html[data-theme="light"] .sidebar.sidebar.sidebar nav a.active .icon{ color:#fff !important; }
 html .sidebar.sidebar.sidebar nav a.active .icon svg, html .sidebar.sidebar.sidebar nav a.active .icon svg *,
 html[data-theme="light"] .sidebar.sidebar.sidebar nav a.active .icon svg, html[data-theme="light"] .sidebar.sidebar.sidebar nav a.active .icon svg *{ stroke:#fff !important; }
+
+/* ── O grupo que tem a página atual dentro (ex.: Gestão em Indicadores): o ícone fica
+   azul numa caixa branca, ligado ao rótulo azul. "Tá horrível; deixa pelo menos o
+   ícone azul e o fundo branco" (08/11/2026). No escuro, a caixa é a superfície clara
+   do painel, porque branco puro ali vira um farol. ── */
+html .sidebar.sidebar.sidebar .sidebar-group.has-active .sidebar-group-icon{
+  color:var(--inn-azul2) !important; background:var(--inn-painel) !important;
+  border-color:rgba(79,120,219,.38) !important; box-shadow:0 1px 2px rgba(0,0,0,.30) !important;
+}
+html[data-theme="light"] .sidebar.sidebar.sidebar .sidebar-group.has-active .sidebar-group-icon{
+  color:var(--inn-azul) !important; background:#FFFFFF !important;
+  border-color:rgba(46,85,184,.28) !important; box-shadow:0 1px 3px rgba(20,32,56,.12) !important;
+}
+html .sidebar.sidebar.sidebar .sidebar-group.has-active .sidebar-group-icon svg, html .sidebar.sidebar.sidebar .sidebar-group.has-active .sidebar-group-icon svg *{ color:inherit !important; stroke:currentColor !important; }

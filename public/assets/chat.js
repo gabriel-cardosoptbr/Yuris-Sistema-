@@ -791,6 +791,11 @@ const ChatApp = (() => {
           }
         }
         if (target) openChat(target.remote_jid, target.contact_name, target.phone);
+        // Aberto dentro da home (interface nova, ?embed=1): a conversa tem de abrir mesmo
+        // fora das 500 mais recentes da lista ("tem que abrir o card, não ir pra tela").
+        // Procura pelo número no servidor (a mesma busca da lista) e, sem achar, abre pelo
+        // jid, que é o que a tela de mensagens usa. Fora do embed nada muda.
+        else if (document.documentElement.classList.contains('yuris-embed')) abrirForaDaLista(AUTO_OPEN_JID);
       }
     } catch(e) {
       if (!silent) toast('Erro conversas: ' + (e.message || 'desconhecido'), 'error');
@@ -1023,6 +1028,19 @@ const ChatApp = (() => {
   // 'digits@s.whatsapp.net' | 'id@lid' | 'id@g.us'), ao contrario do NOME do contato:
   // interpolar o nome no onclick quebrava com apostrofo (ex.: "D'Avila") e era uma
   // pequena superficie de injecao. Aqui resolvemos nome/telefone do state.chats.
+  async function abrirForaDaLista(jid) {
+    const numero = String(jid).split('@')[0].replace(/\D/g, '');
+    let achado = null;
+    if (numero.length >= 8) {
+      try {
+        const r = await apiFetch(API.chats + '?' + new URLSearchParams({ search: numero, limit: '20' }));
+        achado = (r.chats || []).find(c => c.remote_jid === jid) || null;
+      } catch (_) {}
+    }
+    const nm = achado ? (resolveSenderName(achado.display_name) || resolveSenderName(achado.contact_name) || '') : '';
+    openChat(jid, nm, achado ? (achado.phone || numero) : numero);
+  }
+
   function openChatByJid(jid) {
     const chat = acharChat(jid);
     const nm   = chat ? (resolveSenderName(chat.display_name) || resolveSenderName(chat.contact_name) || '') : '';

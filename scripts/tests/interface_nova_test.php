@@ -224,6 +224,12 @@ ok(str_contains($embedJs, 'postMessage({ yuris: tipo, tela: pagina }, location.o
 foreach (['processos', 'tarefas', 'clientes', 'chat'] as $t) ok(preg_match('/^\s+' . $t . ':\s+\{ aberto:/m', $embedJs) === 1, "embed.js sabe quando o pop-up de $t está aberto");
 ok(str_contains($embedJs, "fora: '#chatContent'") && str_contains($embedJs, 'e.target === document.body'), 'o Chat embutido fecha com o clique fora da conversa');
 ok(str_contains($embedJs, 'if (acabou) return;'), 'a tela embutida avisa o fechamento uma vez só');
+// 08/11/2026: "se eu ficar clicando fora, que seja cancelado" e "tem que abrir o card, não ir pra tela".
+ok(str_contains($detJs, "!caixa.classList.contains('pronto')) fecharModulo(false)"), 'clicar fora durante o Abrindo cancela');
+ok(!str_contains($detJs, 'location.href = u'), 'pop-up que não abre nunca leva para a tela do módulo');
+ok(str_contains((string) file_get_contents($raiz . '/public/assets/inicio.css'), '.idt-embed.pronto .idt-embed-quadro{ opacity:1; pointer-events:auto; }'), 'o quadro só pega clique depois de pronto');
+$chatJs = (string) file_get_contents($raiz . '/public/assets/chat.js');
+ok(str_contains($chatJs, "else if (document.documentElement.classList.contains('yuris-embed')) abrirForaDaLista(AUTO_OPEN_JID);"), 'no embutido o Chat abre a conversa mesmo fora das 500 da lista');
 $embedCss = (string) @file_get_contents($raiz . '/public/assets/embed.css');
 ok(str_contains($embedCss, 'html.yuris-embed[data-embed-tela="chat"] #chatContent{') && str_contains($embedCss, '#disconnectAlert'), 'no Chat embutido só a conversa aparece, sem as faixas da tela');
 ok(str_contains((string) file_get_contents($raiz . '/public/processos.php'), "params.get('criar') === '1'"), 'Processos aceita ?criar=1 (o cadastro abre sozinho)');
@@ -251,6 +257,12 @@ $telas = (string) file_get_contents($raiz . '/public/assets/interface-nova-telas
 ok(!preg_match('/(?<![-\w])(display|width|position|float|margin|padding)\s*:/', preg_replace('/\/\*.*?\*\//s', '', $telas)), 'telas: só cor e superfície, nenhuma propriedade de layout');
 $sidebarT = (string) file_get_contents($raiz . '/public/includes/sidebar.php');
 ok(str_contains($sidebarT, "if (\$_ap !== 'dashboard' || !empty(\$_GET['gestao'])): ?>") && str_contains($sidebarT, 'interface-nova-telas.css'), 'menu carrega a folha das telas fora da home, sob a chave');
+$popups = (string) @file_get_contents($raiz . '/public/assets/interface-nova-popups.css');
+ok($popups !== '' && str_contains($sidebarT, '/assets/interface-nova-popups.css'), 'o menu carrega a folha do tamanho dos pop-ups');
+ok(str_contains($popups, 'width:min(980px, calc(100vw - 32px)) !important;') && str_contains($popups, 'flex-wrap:wrap !important; overflow:visible !important;'), 'o painel da tarefa cresce e as abas quebram linha, sem rolagem lateral');
+ok(!str_contains($popups, '—') && !str_contains($popups, 'text-overflow'), 'folha dos pop-ups sem travessão e sem reticências');
+$nova = (string) file_get_contents($raiz . '/public/assets/interface-nova.css');
+ok(str_contains($nova, 'color:var(--inn-azul) !important; background:#FFFFFF !important;') && str_contains($nova, '.sidebar-group.has-active .sidebar-group-icon svg *{ color:inherit !important; stroke:currentColor !important; }'), 'grupo com a página atual: ícone azul em caixa branca');
 ok(str_contains($sidebarT, 'InterfaceNova::contaLigada((int) $__brandCtx->getAccountId())'), 'menu consulta a chave da conta');
 ok(str_contains($dash, 'InterfaceNova::contaLigada((int) $ctx->getAccountId())'), 'dashboard consulta a chave da conta');
 ok(is_file($raiz . '/scripts/interface_nova_conta.php'), 'existe o script que liga a conta');

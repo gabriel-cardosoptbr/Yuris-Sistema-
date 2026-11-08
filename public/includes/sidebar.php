@@ -1691,6 +1691,8 @@ window.FF_AGENDA = { csrf: <?= json_encode($_notifCsrf) ?>, sessao: <?= json_enc
 <?php if ($_ap !== 'dashboard' || !empty($_GET['gestao'])): ?>
 <!-- As telas de dentro: a mesma paleta e as mesmas superfícies, por cima do CSS de cada tela. A home tem a folha própria. -->
 <link rel="stylesheet" href="/assets/interface-nova-telas.css?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-telas.css') ?: 1 ?>">
+<!-- O tamanho dos pop-ups das telas (a única folha da prévia que mexe em tamanho). -->
+<link rel="stylesheet" href="/assets/interface-nova-popups.css?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-popups.css') ?: 1 ?>">
 <?php endif; ?>
 <?php endif; echo \App\Inicio\InterfaceNova::scriptCookie($_GET); ?>
 <?php if ($_interfaceNova && ($_GET['embed'] ?? '') === '1'): ?>

@@ -1,0 +1,28 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   interface-nova-popups.css: o tamanho dos pop-ups das telas na interface nova
+   (prévia, 08/11/2026).
+
+   "Não faz sentido ter uma rolagem pro lado, sendo que tem mais espaço pro meu
+   pop-up. Deixa o pop-up maior." O painel da tarefa nascia com 680px e as abas
+   (Geral, Checklist, Tarefas Processuais, Vínculos, Anexos, Lembretes,
+   Comentários, Histórico) não cabiam: aparecia barra de rolagem na horizontal.
+
+   Esta folha é a única da interface nova que mexe em tamanho de pop-up; a
+   interface-nova-telas.css continua só com cor e superfície. Carregada pelo
+   includes/sidebar.php junto com ela: na tela do módulo e no pop-up de verdade
+   aberto dentro da home (que é a mesma tela, em ?embed=1).
+
+   Regras: o pop-up cresce até onde a janela deixa, sem passar dela; aba que não
+   cabe quebra para a linha de baixo, nunca vira rolagem lateral.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── O painel da tarefa (Tarefas, e "Abrir a tarefa" na home) ── */
+html .tk-drawer{
+  width:min(980px, calc(100vw - 32px)) !important;
+  height:min(780px, calc(100vh - 48px)) !important;
+  max-width:calc(100vw - 32px) !important;
+}
+html .tk-tabs{ flex-wrap:wrap !important; overflow:visible !important; row-gap:2px; }
+@media (max-width:640px){
+  html .tk-drawer{ width:100vw !important; max-width:100vw !important; }
+}
