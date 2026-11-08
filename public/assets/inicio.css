@@ -346,6 +346,13 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
    vale para TODO cartão: a seta vira o mesmo botão, azul suave parado e azul cheio com
    brilho curto no hover. E os quatro cartões de cima ganham a mesma borda azul. */
 .ini-chev{ width:30px; height:30px; border-radius:var(--ini-r2); background:var(--ini-azul-suave); color:var(--ini-azul2); opacity:1; transition:background .15s, color .15s, box-shadow .15s; }
-.ini-cartao:hover .ini-chev{ background:linear-gradient(180deg,var(--ini-azul2),var(--ini-azul)); color:#fff; box-shadow:var(--ini-brilho); transform:none; }
+.ini-cartao:hover .ini-chev{ background:var(--ini-azul); color:#fff; box-shadow:var(--ini-brilho); transform:none; } /* idêntico ao .ini-mini do "Tratar": fundo sólido, não gradiente */
 .ini-cartao:hover, .ini-kpi:hover{ border-color:rgba(61,101,203,.55); }
 .ini-kpi{ transition:border-color .15s, transform .15s; }
+
+/* O yuris-theme.css pinta todo "a svg" e "button svg" com a cor de ícone do tema antigo,
+   e o traço do ícone segue essa cor, não a do botão. Na home o ícone herda a cor de quem
+   o contém: assim a seta fica BRANCA no hover, como o texto "Tratar", e o "+" do botão
+   principal fica branco no azul. */
+.ini svg{ color:inherit !important; }
+.ini-cartao:hover .ini-chev, .ini-cartao:hover .ini-chev svg, .ini-cartao:hover .ini-chev svg *{ color:#fff !important; stroke:#fff !important; }
