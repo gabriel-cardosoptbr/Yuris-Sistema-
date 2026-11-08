@@ -187,6 +187,13 @@ $evento = static function (array $i) use ($h): string {
                 <!-- Período livre: um clique no primeiro dia e outro no último. Também dá para
                      arrastar sobre os dias, ou clicar com Shift a partir do dia escolhido. -->
                 <button type="button" class="ini-atalho ini-atalho-periodo" id="iniPeriodo" aria-pressed="false">Escolher datas</button>
+                <!-- As datas escolhidas aparecem aqui, logo abaixo do botão. -->
+                <div class="ini-periodo-escolhido" id="iniPeriodoEscolhido" hidden>
+                  <span class="ini-periodo-campo"><small>De</small><b id="iniPeriodoDe">--/--/----</b></span>
+                  <span class="ini-periodo-seta" aria-hidden="true">→</span>
+                  <span class="ini-periodo-campo"><small>Até</small><b id="iniPeriodoAte">--/--/----</b></span>
+                  <button type="button" class="ini-periodo-limpar" id="iniPeriodoLimpar" title="Voltar para hoje" aria-label="Limpar as datas">×</button>
+                </div>
               </div>
             </div>
             <div class="ini-dia">
@@ -394,6 +401,7 @@ window.INI_CAL = <?= json_encode(['hoje' => $hoje, 'mes' => $mes, 'porDia' => $p
   }
   function faixa(nome) {
     if (typeof sairModo === 'function') sairModo();
+    if (typeof mostraPeriodo === 'function') mostraPeriodo(null);
     var h = new Date(C.hoje + 'T12:00:00'), seg = new Date(h); seg.setDate(h.getDate() - ((h.getDay() + 6) % 7));
     var dom = new Date(seg); dom.setDate(seg.getDate() + 6);
     var a = new Date(h); a.setDate(h.getDate() + 1);
@@ -440,12 +448,17 @@ window.INI_CAL = <?= json_encode(['hoje' => $hoje, 'mes' => $mes, 'porDia' => $p
         ? a.getDate() + ' a ' + b.getDate() + ' de ' + MES3(b)
         : a.getDate() + ' de ' + MES3(a) + ' a ' + b.getDate() + ' de ' + MES3(b);
     }
+    var boxPeriodo = document.getElementById('iniPeriodoEscolhido'), elDe = document.getElementById('iniPeriodoDe'), elAte = document.getElementById('iniPeriodoAte');
+    function br(k) { return k ? k.slice(8, 10) + '/' + k.slice(5, 7) + '/' + k.slice(0, 4) : '--/--/----'; }
+    function mostraPeriodo(de, ate) { if (!boxPeriodo) return; if (!de) { boxPeriodo.hidden = true; return; } boxPeriodo.hidden = false; elDe.textContent = br(de); elAte.textContent = br(ate); boxPeriodo.classList.toggle('incompleto', !ate); }
+    var lim = document.getElementById('iniPeriodoLimpar'); if (lim) lim.addEventListener('click', function () { mostraPeriodo(null); faixa('hoje'); });
     function sairModo() { modoPeriodo = false; inicioPeriodo = null; if (btnPeriodo) { btnPeriodo.classList.remove('sel'); btnPeriodo.setAttribute('aria-pressed', 'false'); btnPeriodo.textContent = 'Escolher datas'; } }
     function intervalo(a, b) {
       var de = a < b ? a : b, ate = a < b ? b : a;
       sairModo();
-      if (de === ate) { desenhaDia(de); return; }
+      if (de === ate) { desenhaDia(de); mostraPeriodo(de, de); return; }
       desenhaFaixa(de, ate, tituloFaixa(de, ate));
+      mostraPeriodo(de, ate);
       document.querySelectorAll('.ini-atalho').forEach(function (x) { x.classList.remove('sel'); });
     }
     function diaEm(x, y) { var el = document.elementFromPoint(x, y); el = el && el.closest ? el.closest('.ini-cal-dia') : null; return el && elDias.contains(el) ? el.getAttribute('data-dia') : null; }
@@ -458,7 +471,7 @@ window.INI_CAL = <?= json_encode(['hoje' => $hoje, 'mes' => $mes, 'porDia' => $p
       var x = e.target.closest('.ini-cal-dia'); if (!x || e.button > 0) return;
       var k = x.getAttribute('data-dia');
       if (modoPeriodo) {
-        if (!inicioPeriodo) { inicioPeriodo = k; marcaDias(k, k, k); btnPeriodo.textContent = 'Agora o último dia'; }
+        if (!inicioPeriodo) { inicioPeriodo = k; marcaDias(k, k, k); btnPeriodo.textContent = 'Agora o último dia'; mostraPeriodo(k, null); }
         else intervalo(inicioPeriodo, k);
         e.preventDefault(); return;
       }
@@ -474,7 +487,7 @@ window.INI_CAL = <?= json_encode(['hoje' => $hoje, 'mes' => $mes, 'porDia' => $p
     document.addEventListener('pointerup', function () {
       if (!arrasto) return;
       var a = arrasto, b = arrastoFim; arrasto = null;
-      if (moveu && a !== b) intervalo(a, b); else desenhaDia(a);
+      if (moveu && a !== b) intervalo(a, b); else { desenhaDia(a); mostraPeriodo(null); }
     });
     elDias.addEventListener('keydown', function (e) { var x = e.target.closest('.ini-cal-dia'); if (x && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); desenhaDia(x.getAttribute('data-dia')); } });
     document.querySelectorAll('.ini-cal-nav').forEach(function (nav) {

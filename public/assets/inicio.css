@@ -285,3 +285,14 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 /* "Próximos dias": separa o dia escolhido do que vem depois. */
 .ini-dia-sep{ display:flex; align-items:center; gap:10px; margin:10px 0 2px; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--ini-texto2); }
 .ini-dia-sep::after{ content:""; flex:1; height:1px; background:var(--ini-linha2); }
+
+/* As datas escolhidas, sob o botão: duas caixas afundadas, De e Até, e o × que volta para hoje. */
+.ini-periodo-escolhido{ grid-column:1 / -1; display:grid; grid-template-columns:1fr auto 1fr auto; align-items:center; gap:8px; padding:8px; border-radius:var(--ini-r2); background:var(--ini-painel); border:1px solid var(--ini-linha); }
+.ini-periodo-escolhido[hidden]{ display:none; }
+.ini-periodo-campo{ display:flex; flex-direction:column; gap:1px; padding:6px 10px; border-radius:var(--ini-r2); background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); min-width:0; }
+.ini-periodo-campo small{ font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ini-texto3); }
+.ini-periodo-campo b{ font-size:13.5px; font-weight:700; color:var(--ini-texto); font-variant-numeric:tabular-nums; }
+.ini-periodo-escolhido.incompleto .ini-periodo-campo:last-of-type b{ color:var(--ini-texto3); }
+.ini-periodo-seta{ color:var(--ini-texto3); font-weight:700; }
+.ini-periodo-limpar{ width:32px; height:32px; border-radius:var(--ini-r2); border:1px solid var(--ini-linha); background:var(--ini-fundo); box-shadow:var(--ini-fundo-sombra); color:var(--ini-texto2); font:700 16px/1 Inter, system-ui, sans-serif; cursor:pointer; }
+.ini-periodo-limpar:hover{ color:var(--ini-erro); }
