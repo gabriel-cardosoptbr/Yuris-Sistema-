@@ -181,8 +181,8 @@ $evento = static function (array $i) use ($h): string {
                 <button type="button" class="ini-atalho sel" data-faixa="hoje">Hoje</button>
                 <button type="button" class="ini-atalho" data-faixa="amanha">Amanhã</button>
                 <button type="button" class="ini-atalho" data-faixa="semana">Esta semana</button>
-                <button type="button" class="ini-atalho" data-faixa="semana-passada">Semana passada</button>
                 <button type="button" class="ini-atalho" data-faixa="proxima-semana">Próxima semana</button>
+                <button type="button" class="ini-atalho" data-faixa="semana-passada">Semana passada</button>
                 <button type="button" class="ini-atalho" data-faixa="mes">Este mês</button>
               </div>
             </div>

@@ -154,7 +154,7 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-cal-nav:hover{ color:var(--ini-azul2); }
 .ini-cal-nav svg{ width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
 .ini-cal-sem{ display:grid; grid-template-columns:repeat(7,1fr); text-align:center; font-size:10.5px; font-weight:700; letter-spacing:.06em; color:var(--ini-texto3); margin-bottom:4px; }
-.ini-cal-dias{ display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
+.ini-cal-dias{ display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
 .ini-cal-dia{ position:relative; height:34px; border-radius:var(--ini-r2); border:1px solid var(--ini-linha); background:var(--ini-fundo); box-shadow:var(--ini-fundo-sombra); color:var(--ini-texto); font:600 12.5px Inter, system-ui, sans-serif; cursor:pointer; padding:0; transition:background .15s, color .15s, box-shadow .15s; }
 .ini-cal-dia:hover{ background:var(--ini-azul-suave); }
 .ini-cal-dia.fora{ color:var(--ini-texto3); background:transparent; border-color:transparent; box-shadow:none; }
@@ -163,8 +163,9 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-cal-dia.faixa{ background:var(--ini-azul-suave); border-color:rgba(61,101,203,.35); }
 .ini-cal-dia.sel{ background:linear-gradient(180deg,var(--ini-azul2),var(--ini-azul)); color:#fff; border-color:transparent; box-shadow:var(--ini-brilho), inset 0 2px 3px rgba(255,255,255,.26), inset 0 -3px 6px rgba(0,0,0,.28); }
 .ini-cal-dia.sel i{ background:#fff; }
-.ini-cal-atalhos{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; padding-top:10px; border-top:1px solid var(--ini-linha); }
-.ini-atalho{ height:28px; padding:0 10px; border-radius:var(--ini-r2); border:1px solid var(--ini-linha); background:var(--ini-fundo); box-shadow:var(--ini-fundo-sombra); color:var(--ini-texto2); font:600 11.5px Inter, system-ui, sans-serif; cursor:pointer; transition:background .15s, color .15s; }
+/* Os atalhos na mesma grade dos dias: duas colunas iguais, mesma altura, mesmo espaço. */
+.ini-cal-atalhos{ display:grid; grid-template-columns:repeat(2,1fr); gap:5px; margin-top:10px; padding-top:10px; border-top:1px solid var(--ini-linha); }
+.ini-atalho{ height:34px; padding:0 8px; border-radius:var(--ini-r2); border:1px solid var(--ini-linha); background:var(--ini-fundo); box-shadow:var(--ini-fundo-sombra); color:var(--ini-texto2); font:600 12px Inter, system-ui, sans-serif; cursor:pointer; white-space:nowrap; transition:background .15s, color .15s; }
 .ini-atalho:hover{ color:var(--ini-texto); background:var(--ini-azul-suave); }
 .ini-atalho.sel{ background:linear-gradient(180deg,var(--ini-azul2),var(--ini-azul)); color:#fff; border-color:transparent; box-shadow:var(--ini-brilho), inset 0 2px 3px rgba(255,255,255,.26), inset 0 -3px 6px rgba(0,0,0,.28); }
 .ini-dia-grupo{ font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ini-texto3); padding:8px 2px 2px; }
