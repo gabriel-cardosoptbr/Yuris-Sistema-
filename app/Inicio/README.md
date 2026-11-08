@@ -299,6 +299,23 @@ seleção em pílula.
   outros fica em relevo na prata. A caixa da inicial do cabeçalho (`.ci-header-avatar`) tinha
   "header" no nome e a regra de título sem faixa tirava o fundo dela, deixando a letra solta;
   `RE_TITULO_NAO` passa a deixar de fora avatar, ícone, foto e logo.
+- **Gestão, página por página** (08/11/2026: Indicadores, Relatórios, Desempenho, Finanças,
+  Usuários, Escritórios, cada uma com print e auditoria de cor). O que faltava e entrou na
+  camada: (1) o funil "Distribuição por etapa" de Indicadores é um SVG do `dashboard.js` com a
+  paleta azul-marinho antiga; a camada carrega com `defer` e roda depois dele, então além de
+  publicar `window.YURIS_CHART_THEME` ela troca direto no `CT` (const de topo do dashboard.js,
+  escopo léxico global) o funil, as barras, a receita, a rosca, a legenda e a dica, só o que a
+  conta não definiu; (2) `hdr` entrou em `RE_TITULO` (os cabeçalhos HOJE / 7 DIAS tinham fundo
+  tingido por estado), e os candidatos a título de cartão e de pop-up passam a ignorar as
+  classes `inn-*` (a marca `inn-c-titulo` contém "titulo" e o cabeçalho inteiro virava título,
+  com "HOJE" e "1" grudados); (3) ícone dentro de aviso tingido fica neutro (só o texto carrega a
+  cor, como na home); (4) faixa tingida com três ou mais blocos de rótulo e valor é resumo, não
+  aviso: vira o painel afundado (`inn-c-neutro`) e os números âmbar e verdes de dentro voltam
+  ao texto escuro (`inn-c-texto-forte`; o vermelho fica), caso da faixa bege dos impostos de
+  Finanças; (5) selo não tem borda (os `kpi-badge` de Finanças vinham com borda verde); (6) selo
+  reconhecido também pelo nome do estado (`o-bom`, `o-atencao`, `o-ruim` do Desempenho). O que
+  ficou por ser semântico: texto e número em vermelho, âmbar e verde; barras de receita x despesa;
+  as cores dos setores em Usuários › Setores.
   Armadilhas que viraram regra: ler a cor no meio de uma transição dá a cor do caminho (a camada
   espera o `transitionend`); trocar a classe no meio da leitura recalcula o estilo (lê tudo,
   escreve depois); o que estava `display:none` ou ganhou classe depois é relido pelo observer;

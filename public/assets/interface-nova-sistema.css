@@ -474,3 +474,9 @@ html:root .ci-header-name.ci-header-name{ font-size:15px !important; font-weight
 html:root .ci-messages.ci-messages{ background:var(--inn-t-fundo) !important; box-shadow:var(--inn-t-fundo-sombra) !important; }
 html:root .ci-msg--in .ci-msg-bubble.ci-msg-bubble{ background:var(--inn-t-painel) !important; box-shadow:0 1px 2px rgba(31,38,50,.06), 0 1px 0 var(--inn-t-hi) inset !important; }
 html:root .ci-input-wrap.ci-input-wrap{ background:var(--inn-t-painel) !important; border-top-color:transparent !important; }
+/* Ícone dentro de aviso tingido: neutro, como todo ícone da home; só o texto carrega a cor. */
+html:root .inn-c-alerta-erro.inn-c-alerta-erro svg, html:root .inn-c-alerta-aviso.inn-c-alerta-aviso svg, html:root .inn-c-alerta-ok.inn-c-alerta-ok svg,
+html:root .inn-c-alerta-erro.inn-c-alerta-erro svg *, html:root .inn-c-alerta-aviso.inn-c-alerta-aviso svg *, html:root .inn-c-alerta-ok.inn-c-alerta-ok svg *{ stroke:var(--inn-t-texto3) !important; color:var(--inn-t-texto3) !important; }
+html:root .inn-c-texto-forte.inn-c-texto-forte.inn-c-texto-forte{ color:var(--inn-t-texto) !important; }
+/* Selo como a etiqueta da home: sem borda (o kpi-badge de Finanças vinha com borda verde). */
+html:root .inn-selo.inn-selo.inn-selo{ border-color:transparent !important; }

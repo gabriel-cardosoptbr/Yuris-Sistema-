@@ -40,6 +40,31 @@
     return t || null;
   }
 
+  // ── 0. O tema dos gráficos do dashboard.js (lido antes de ele carregar) ────────
+  // O funil de distribuição de Indicadores é um SVG desenhado pelo dashboard.js com a paleta
+  // azul-marinho antiga (#244E7A...). O arquivo aceita window.YURIS_CHART_THEME: a prévia põe
+  // ali o azul do Yuris e a prata. Só preenche o que não foi definido (conta de marca tem o seu).
+  (function () {
+    var escuro = document.documentElement.getAttribute('data-theme') !== 'light';
+    var meu = {
+      funil: ['#2E55B8', '#3D65CB', '#5A7ED6', '#7A8494', '#9AA3B0', '#23448F', '#4F78DB', '#CBD0D8'],
+      funilLegenda: escuro ? '#B4BAC5' : '#4E586A',
+      fechados: '#2E55B8', fechadosBorda: '#2E55B8', projecao: '#9AA3B0', projecaoBorda: '#9AA3B0', meta: '#9AA3B0',
+      receita: '#3D65CB', receitaArea: 'rgba(61,101,203,.10)', metaLinha: '#9AA3B0',
+      roscaTexto: escuro ? '#E8EAEE' : '#1E2630', roscaTextoFraco: escuro ? '#7F8794' : '#7A8494',
+      tooltipFundo: escuro ? 'rgba(38,43,51,.98)' : 'rgba(245,246,248,.98)', tooltipBorda: 'rgba(61,101,203,.25)',
+      tooltipTitulo: escuro ? '#E8EAEE' : '#1E2630', tooltipCorpo: escuro ? '#B4BAC5' : '#4E586A',
+      legendaLinha: escuro ? '#B4BAC5' : '#4E586A', fonte: 'Inter, system-ui, sans-serif'
+    };
+    window.YURIS_CHART_THEME = Object.assign(meu, window.YURIS_CHART_THEME || {});
+    // Esta camada carrega com defer e roda depois do dashboard.js, que já montou o CT com a
+    // paleta antiga. CT é const de topo (escopo léxico global): troca-se nele; o funil é
+    // desenhado depois, quando os dados chegam, e já sai com a paleta nova.
+    try {
+      if (typeof CT !== 'undefined' && CT && CT.funil) Object.keys(meu).forEach(function (k) { CT[k] = meu[k]; });
+    } catch (e) {}
+  })();
+
   // ── 1. O ícone da tela no cabeçalho ─────────────────────────────────────
   function iconeNoCabecalho() {
     var main = acharTela();
@@ -155,7 +180,8 @@
   // da home: vermelho, âmbar e verde só quando já eram estado; azul e roxo viram o
   // azul do Yuris; cinza fica na prata. A classe original fica guardada: se a tela
   // trocar o estado do selo, ele é lido de novo.
-  var RE_SELO = /badge|(^|[-_])(tag|selo|etiqueta|status)([-_]|$)|^(pill|chip)$|-pill$/i;
+  // Também o selo que só diz o estado no nome (o-bom, o-atencao, o-ruim do Desempenho).
+  var RE_SELO = /badge|(^|[-_])(tag|selo|etiqueta|status)([-_]|$)|^(pill|chip)$|-pill$|(^|[-_])(bom|ruim|atencao|ok|warn|danger|success|erro|alerta|urgente|pendente|ativo|inativo)$/i;
   var TONS = ['inn-selo-erro', 'inn-selo-aviso', 'inn-selo-ok', 'inn-selo-azul', 'inn-selo-neutro'];
   function baseSelo(el) { return String(el.className || '').split(/\s+/).filter(function (c) { return c && c.indexOf('inn-') !== 0; }).join(' '); }
   function tomDoSelo(el) {
@@ -221,7 +247,7 @@
   // Título e cabeçalho de seção, coluna ou cartão: só texto, sem faixa (fundo tingido, borda ou
   // linha embaixo). "Não é para ter listra nenhuma" (08/11/2026). O cabeçalho da página é o
   // painel do topo e fica de fora.
-  var RE_TITULO = /(^|[-_\s])(title|titulo|header|head|cabec|cabecalho|heading|footer|rodape)([-_\s]|$)/i;
+  var RE_TITULO = /(^|[-_\s])(title|titulo|header|head|hdr|cabec|cabecalho|heading|footer|rodape)([-_\s]|$)/i;
   var RE_TITULO_NAO = /page-header|inn-cab|thead|avatar|-ic(\s|$)|icon|foto|logo/i;
   function temFaixa(cs) {
     var bg = rgb(cs.backgroundColor);
@@ -355,7 +381,11 @@
         }
         var fb = tomFundo(cs);
         var tingida = fb && fb !== 'azul' && fb !== 'outro' && (el.textContent || '').trim().length > 3;
-        if (tingida) marca.push(r.height > 90 ? 'inn-c-neutro' : 'inn-c-alerta-' + fb);
+        // Faixa de resumo (três ou mais blocos de rótulo e valor, como "Total em impostos /
+        // Alíquota / Incide sobre" de Finanças) não é aviso: vira o painel afundado, e os
+        // números âmbar e verdes de dentro voltam ao texto escuro (só o vermelho fica).
+        var blocos = tingida ? [].filter.call(el.children, function (c) { return (c.textContent || '').trim().length > 1; }).length : 0;
+        if (tingida) marca.push((r.height > 90 || blocos >= 3) ? 'inn-c-neutro' : 'inn-c-alerta-' + fb);
         // Borda colorida por estado: vira a linha neutra.
         var bd = parseFloat(cs.borderTopWidth) > 0 ? tomDe(cs, 'borderTopColor') : null;
         if (bd && bd !== 'azul' && !tingida) marca.push('inn-c-borda');
@@ -406,6 +436,15 @@
       if (p[0].id && p[1].length) porCimaDoId(p[0], p[1]);
     });
     soltarTransicao(trocados);
+    // Dentro do resumo afundado, texto âmbar ou verde vira o texto escuro.
+    fila.forEach(function (p) {
+      if (p[1].indexOf('inn-c-neutro') < 0) return;
+      [].forEach.call(p[0].querySelectorAll('*'), function (f) {
+        if (f.closest('.inn-selo, button, a, svg')) return;
+        var t = tomDeCor(getComputedStyle(f).color, .3, .05);
+        if (t === 'aviso' || t === 'ok') f.classList.add('inn-c-texto-forte');
+      });
+    });
     afundarCaixas(raiz);
   }
   // Caixa da mesma cor dentro de caixa (o resumo dentro do painel, o bloco dentro da seção, o
@@ -630,6 +669,7 @@
       // Sem bloco de cabeçalho (Monitoramento de Publicações: H2 e P soltos no painel): o
       // título solto no alto do painel faz o papel dele.
       var solto = [].filter.call(painel.querySelectorAll('h1, h2, h3, [class*="title"], [class*="titulo"]'), function (e) {
+        if (!/^H[1-3]$/.test(e.tagName) && !/title|titulo/i.test(String(e.className || '').replace(/\binn-[\w-]+/g, ''))) return false;
         return visivel(e) && e.getBoundingClientRect().top - pr.top < 80 && !/sub/i.test(String(e.className)) && !e.closest('[data-inn-pop="secao"]');
       })[0];
       if (solto) {
@@ -644,6 +684,7 @@
       // O título é o texto, nunca a linha que também tem botões (a gaveta da tarefa tem o
       // título editável ao lado de Concluir e Arquivar): o campo de título só ganha o ícone.
       var tit = [].filter.call(cab.querySelectorAll('h1, h2, h3, h4, [class*="title"], [class*="titulo"]'), function (e) {
+        if (!/^H[1-4]$/.test(e.tagName) && !/title|titulo/i.test(String(e.className || '').replace(/\binn-[\w-]+/g, ''))) return false;
         return visivel(e) && !/sub/i.test(String(e.className)) && (/^(INPUT|TEXTAREA)$/.test(e.tagName) || !e.querySelector('button, input, textarea, select'));
       })[0];
       if (tit && /^(INPUT|TEXTAREA)$/.test(tit.tagName)) iconeNoPopup(cab, tit);
@@ -840,6 +881,8 @@
     if (p.dataset.innCartao) return;
     var pr = p.getBoundingClientRect();
     var t = [].filter.call(p.querySelectorAll('h1, h2, h3, h4, [class*="title"], [class*="titulo"], [class*="eyebrow"], [class*="heading"]'), function (e) {
+      // A marca inn-c-titulo também contém "titulo": só vale o nome que a tela deu.
+      if (!/^H[1-4]$/.test(e.tagName) && !/title|titulo|eyebrow|heading/i.test(String(e.className || '').replace(/\binn-[\w-]+/g, ''))) return false;
       if (!visivel(e) || e.closest('.page-header, .inn-cab-ic, button, label, table, [data-inn-cartao], .inn-kpi-ic') || e.querySelector('input, select, textarea, button, table')) return false;
       var r = e.getBoundingClientRect(), tx = (e.textContent || '').trim();
       return r.top - pr.top < 52 && r.left - pr.left < 60 && tx && tx.length <= 70 && e.children.length <= 3;
