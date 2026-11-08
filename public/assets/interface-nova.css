@@ -195,3 +195,25 @@ html[data-theme="light"] .sidebar nav a.active .icon{ background:rgba(255,255,25
 html[data-theme="light"] .sidebar nav a.active .icon svg, html[data-theme="light"] .sidebar nav a.active .icon svg *{ stroke:#fff !important; }
 html[data-theme="light"] .sidebar nav a.active::after{ display:none !important; }
 html[data-theme="light"] .sidebar nav a.is-logout:hover{ background:var(--inn-erro-bg) !important; color:var(--inn-erro) !important; }
+
+/* ── O traço de TODO ícone do menu é o mesmo dos cartões da home (a cor do texto),
+   com especificidade acima das regras antigas de sidebar.css e yuris-theme.css,
+   que ainda pintavam os ícones dos grupos de azul-claro. ── */
+html .sidebar nav a .icon, html .sidebar .sidebar-group .sidebar-group-toggle .sidebar-group-icon,
+html .sidebar .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-icon,
+html[data-theme="light"] .sidebar nav a .icon, html[data-theme="light"] .sidebar .sidebar-group .sidebar-group-toggle .sidebar-group-icon,
+html[data-theme="light"] .sidebar .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-icon{ color:var(--inn-texto) !important; }
+html .sidebar nav a .icon svg, html .sidebar nav a .icon svg *,
+html .sidebar .sidebar-group .sidebar-group-toggle .sidebar-group-icon svg, html .sidebar .sidebar-group .sidebar-group-toggle .sidebar-group-icon svg *,
+html .sidebar .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-icon svg, html .sidebar .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-icon svg *,
+html[data-theme="light"] .sidebar nav a .icon svg, html[data-theme="light"] .sidebar nav a .icon svg *,
+html[data-theme="light"] .sidebar .sidebar-group .sidebar-group-toggle .sidebar-group-icon svg, html[data-theme="light"] .sidebar .sidebar-group .sidebar-group-toggle .sidebar-group-icon svg *,
+html[data-theme="light"] .sidebar .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-icon svg, html[data-theme="light"] .sidebar .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-icon svg *{
+  stroke:currentColor !important; stroke-width:1.8 !important; fill:none !important;
+}
+/* Só a página atual muda: traço branco dentro da pílula azul. Hover e grupo ativo não mudam a cor do ícone. */
+html .sidebar nav a.active .icon, html[data-theme="light"] .sidebar nav a.active .icon{ color:#fff !important; }
+html .sidebar nav a.active .icon svg, html .sidebar nav a.active .icon svg *,
+html[data-theme="light"] .sidebar nav a.active .icon svg, html[data-theme="light"] .sidebar nav a.active .icon svg *{ stroke:#fff !important; }
+html .sidebar nav a:hover .icon, html .sidebar .sidebar-group-toggle:hover .sidebar-group-icon,
+html[data-theme="light"] .sidebar nav a:hover .icon, html[data-theme="light"] .sidebar .sidebar-group-toggle:hover .sidebar-group-icon{ color:var(--inn-texto) !important; }
