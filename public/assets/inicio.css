@@ -341,3 +341,11 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-situ.and{ background:var(--ini-azul-suave); color:var(--ini-azul2); border:1px solid rgba(61,101,203,.22); }
 .ini-mini{ pointer-events:none; }
 .ini-cartao:hover .ini-mini{ background:var(--ini-azul); color:#fff; box-shadow:var(--ini-brilho); }
+
+/* O hover aprovado (o do cartão de publicação: borda azul e o botão "Tratar" que acende)
+   vale para TODO cartão: a seta vira o mesmo botão, azul suave parado e azul cheio com
+   brilho curto no hover. E os quatro cartões de cima ganham a mesma borda azul. */
+.ini-chev{ width:30px; height:30px; border-radius:var(--ini-r2); background:var(--ini-azul-suave); color:var(--ini-azul2); opacity:1; transition:background .15s, color .15s, box-shadow .15s; }
+.ini-cartao:hover .ini-chev{ background:linear-gradient(180deg,var(--ini-azul2),var(--ini-azul)); color:#fff; box-shadow:var(--ini-brilho); transform:none; }
+.ini-cartao:hover, .ini-kpi:hover{ border-color:rgba(61,101,203,.55); }
+.ini-kpi{ transition:border-color .15s, transform .15s; }
