@@ -1194,6 +1194,23 @@ document.addEventListener('DOMContentLoaded', ()=>{
   _addTarefaInput?.addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();_doAddTarefa();} });
 
   // ── Histórico Processual ──────────────────────────────────────────────────
+  // O tipo e o tom de cada registro (08/11/2026): a interface nova desenha um ícone por tipo e
+  // a cor pelo tom (concluído verde, removido vermelho). Fora dela, os atributos não aparecem.
+  function _histTipo(h) {
+    const a = String(h.acao || '').toLowerCase(), d = String(h.descricao || '').toLowerCase();
+    let tipo = 'processo';
+    if (/anexo/.test(a)) tipo = 'anexo';
+    else if (/intima/.test(a)) tipo = 'intimacao';
+    else if (/prazo/.test(a)) tipo = 'prazo';
+    else if (/tarefa/.test(a)) tipo = 'tarefa';
+    else if (/v[ií]ncul/.test(a)) tipo = 'vinculo';
+    else if (/status|atualiz|editad|alterad/.test(a)) tipo = 'edicao';
+    else if (/movimenta|decis|despacho|peti|protocolo|audi|per[ií]cia|embargo|notifica|documento|conclus|senten|recurso/.test(a)) tipo = 'movimentacao';
+    let tom = '';
+    if (/conclu/.test(a) || /conclu[ií]d/.test(d.slice(0, 40))) tom = 'ok';
+    else if (/exclu|remov|desvincul/.test(a)) tom = 'erro';
+    return { tipo, tom };
+  }
   async function _loadHistorico(pid) {
     const el=document.getElementById('processoHistoryList'); if(!el) return;
     try {
@@ -1213,7 +1230,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
           originBadge = `<div class="timeline-origin ${_tipoClass(tipo)}" title="${escapeAttr(nome)}">${_tipoLabel(tipo)} · ${escapeAttr(nome)}</div>`;
         }
         const _acaoTraduzida = (window.Yuris && Yuris.translateAuditAcao) ? Yuris.translateAuditAcao(h.acao) : (h.acao || ''); // i18n acao via Yuris.translateAuditAcao
-        return `<div class="timeline-entry"><div class="timeline-dot"></div><div class="timeline-content">${originBadge}<div class="timeline-action">${h.descricao||_acaoTraduzida}</div><div class="timeline-meta">${h.user_email||'sistema'} · ${s}</div></div></div>`;
+        const _tp = _histTipo(h);
+        return `<div class="timeline-entry" data-tipo="${_tp.tipo}"${_tp.tom ? ` data-tom="${_tp.tom}"` : ''}><div class="timeline-dot"></div><div class="timeline-content">${originBadge}<div class="timeline-action">${h.descricao||_acaoTraduzida}</div><div class="timeline-meta">${h.user_email||'sistema'} · ${s}</div></div></div>`;
       }).join('') : '<div style="color:#9ab0c9;font-size:.8rem">Nenhum registro ainda</div>';
     } catch(e){}
   }

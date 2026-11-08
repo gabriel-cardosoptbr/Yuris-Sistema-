@@ -178,6 +178,13 @@ seleção em pílula.
   guardada ao sair (`yuris_menu_rolagem`, no `pagehide`) e devolvida num script inline logo
   depois do `</aside>`, antes da primeira pintura (na prévia o menu não rola, mas vale onde
   rolar).
+  **Histórico Processual** (08/11/2026, "arruma com urgência, não está de acordo com o design"):
+  o `processos.js` marca cada registro com `data-tipo` (processo, prazo, tarefa, movimentacao,
+  intimacao, anexo, vinculo, edicao) e `data-tom` (ok para concluído, erro para removido), sem
+  efeito fora da prévia; o fim do `interface-nova-popups.css` desenha cada um como linha sem
+  caixa nem traço, com a caixinha afundada da home e o ícone do tipo (máscara SVG), o que
+  aconteceu em negrito e embaixo quem, quando e o escritório em texto simples (o selo com borda
+  saiu). A lista rola por dentro com 360 px.
   Armadilha: a dobra com easing de entrada (`cubic-bezier(.4,0,.7,.2)`) não mostrava nada nos
   primeiros 200 ms e desabava tudo no fim; a curva tem de ser de saída (`.2,.7,.3,1`), para
   cada bloco dobrar visivelmente e a onda de baixo para cima aparecer.

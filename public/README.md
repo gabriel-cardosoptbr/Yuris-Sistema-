@@ -372,6 +372,8 @@ tela fantasma até ele. Fora da home, `assets/embed-abrir.js` (`YurisEmbed.abrir
 carregado nas telas de dentro da interface nova e nunca no `?embed=1`) faz o mesmo por cima de qualquer
 tela: a Central de Tarefas abre o processo da tarefa processual assim (08/11/2026). O desenho dele
 (`.inn-emb`) mora em `interface-nova-popups.css`.
+O Histórico Processual da ficha marca `data-tipo` e `data-tom` em cada registro (`_histTipo` em
+`assets/processos.js`); só a prévia usa, para o ícone e a cor (fim do `interface-nova-popups.css`).
 `assets/menu-fixo.js` (08/11/2026, com a seção "menu fixo" de `interface-nova.css`): ao trocar de tela pelo
 menu, o item enche a partir do clique, os blocos da tela dobram e somem, e a página troca numa view
 transition entre documentos em que o menu fica parado (`view-transition-name:inn-menu`) e a tela nova
