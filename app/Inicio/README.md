@@ -199,6 +199,22 @@ seleção em pílula.
   aumento e a nota do gargalo do Planejamento afundam (sem o tracejado azul). A faixa que ele ainda
   via no título do funil era cache: as páginas carregam `yuris-theme.css` com versão fixa, que
   passou de `?v=42` (e 27, 44) para `?v=45` em todas as 34; ao mexer nesse arquivo, suba o número.
+  Rodapé (`footer`, `rodape`) entra na mesma regra.
+- **Pop-up legível** (08/11/2026, "os campos podem ser brancos" e "o subtítulo não dá para
+  enxergar"). Três regras. (1) Campo dentro de pop-up (modal, diálogo, gaveta, overlay; a busca
+  sobe a partir do PAI, porque o título da tarefa é `.tk-drawer-title` e se achava a si mesmo) fica
+  branco no claro, grafite um tom acima do painel no escuro, com borda visível e foco azul
+  (`inn-c-campo-pop`); vale para texto, lista e área; caixa de marcar, cor e arquivo ficam como
+  estão. As listas de seleção tinham perdido a seta porque `inn-c-campo` zerava o
+  `background-image`: agora isso vale só para `input` e `textarea`. (2) Texto com contraste menor
+  que 3 para 1 contra o fundo que se vê atrás dele (cálculo WCAG, fundo subindo pela árvore com
+  cache na passada) é corrigido: estado vira o tom forte (`inn-c-texto-erro/aviso/ok`), azul vivo
+  ou link vira o azul do Yuris (`inn-c-texto-azul`, o número do processo no Painel jurídico),
+  azul desbotado e o resto viram o cinza do texto (`inn-c-texto-cinza`, o subtítulo do pop-up do
+  lead, `#9BB5D2` em cima da prata). (3) Bloco escuro no tema claro (luminosidade abaixo de 22%,
+  sobra do tema escuro, como o "Valor calculado" do imposto, azul-marinho com texto amarelo) vira
+  a prata com texto escuro (`inn-c-escuro`); overlay, backdrop e o que cobre a tela inteira ficam
+  de fora, senão o fundo escurecido atrás do pop-up viraria uma parede cinza.
   Armadilhas que viraram regra: ler a cor no meio de uma transição dá a cor do caminho (a camada
   espera o `transitionend`); trocar a classe no meio da leitura recalcula o estilo (lê tudo,
   escreve depois); o que estava `display:none` ou ganhou classe depois é relido pelo observer;

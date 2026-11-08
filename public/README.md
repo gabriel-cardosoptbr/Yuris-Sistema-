@@ -364,7 +364,8 @@ e `.js`, e o da home em `assets/inicio-movimento.css` e `.js` (08/11/2026). O de
 telas (ícone do cabeçalho, abas em pílula, cartões, selos, tabelas, gráficos, tela fantasma, toque)
 mora em `assets/interface-nova-sistema.css` e `.js`, que desde 08/11/2026 também reconhecem as
 peças pela cor computada (selo, branco puro ou degradê quase branco, borda ou faixa por estado, filete,
-caixa tingida, toast, e caixa da mesma cor dentro de caixa, que afunda); ver `app/Inicio/README.md`.
+caixa tingida, toast, e caixa da mesma cor dentro de caixa, que afunda; título e rodapé sem faixa; campo de
+pop-up branco; texto sem contraste corrigido; bloco escuro no claro vira prata); ver `app/Inicio/README.md`.
 Em `yuris-theme.css`, o bloco do funil do Planejamento foi estreitado em 08/11/2026: `[class*="funnel-"]`
 pintava caixa em título, cabeçalho e métricas de cada etapa e punha o contorno do gargalo também no
 embrulho `.funnel-stage` (dois contornos); agora só a coluna e o `.funnel-shape` são caixa. Vale para

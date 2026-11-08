@@ -219,7 +219,7 @@
   // Título e cabeçalho de seção, coluna ou cartão: só texto, sem faixa (fundo tingido, borda ou
   // linha embaixo). "Não é para ter listra nenhuma" (08/11/2026). O cabeçalho da página é o
   // painel do topo e fica de fora.
-  var RE_TITULO = /(^|[-_\s])(title|titulo|header|head|cabec|cabecalho|heading)([-_\s]|$)/i;
+  var RE_TITULO = /(^|[-_\s])(title|titulo|header|head|cabec|cabecalho|heading|footer|rodape)([-_\s]|$)/i;
   var RE_TITULO_NAO = /page-header|inn-cab|thead/i;
   function temFaixa(cs) {
     var bg = rgb(cs.backgroundColor);
@@ -270,8 +270,36 @@
     return null;
   }
   function claro() { return document.documentElement.getAttribute('data-theme') === 'light'; }
+  // Pop-up de qualquer módulo (modal, diálogo, gaveta, painel lateral).
+  var SEL_POPUP = '[class*="modal"], [id*="modal"], [id*="Modal"], [role="dialog"], dialog, [class*="drawer"], [class*="popup"], [class*="popover"], [class*="dialog"], [class*="overlay"]';
+  function noPopup(el) { return !!(el.parentElement && el.parentElement.closest(SEL_POPUP)); }
+  var TIPOS_SEM_FUNDO = /^(checkbox|radio|range|color|file|hidden|button|submit|reset|image)$/i;
+  // Contraste do texto com o fundo que se vê atrás dele (WCAG). O fundo de cada elemento é
+  // guardado durante a passada, para não subir a árvore inteira de novo a cada texto.
+  function luz(v) {
+    var f = function (c) { c /= 255; return c <= .03928 ? c / 12.92 : Math.pow((c + .055) / 1.055, 2.4); };
+    return .2126 * f(v[0]) + .7152 * f(v[1]) + .0722 * f(v[2]);
+  }
+  function fundoVisto(el, cache) {
+    var cadeia = [], achado = null, n = el;
+    while (n && n.nodeType === 1) {
+      if (cache.has(n)) { achado = cache.get(n); break; }
+      cadeia.push(n);
+      var v = corFundo(getComputedStyle(n));
+      if (v) { achado = v; break; }
+      n = n.parentElement;
+    }
+    if (!achado) achado = claro() ? [230, 232, 235, 1] : [23, 26, 31, 1];
+    cadeia.forEach(function (c) { cache.set(c, achado); });
+    return achado;
+  }
+  function temTextoProprio(el) {
+    for (var i = 0; i < el.childNodes.length; i++) { var c = el.childNodes[i]; if (c.nodeType === 3 && c.textContent.trim().length > 1) return true; }
+    return false;
+  }
   function vestirCores(raiz) {
     if (!raiz || !raiz.querySelectorAll || !document.querySelector('.inn-tela')) return;
+    var cacheFundo = new WeakMap();
     var cands = [].slice.call(raiz.querySelectorAll('div, section, article, aside, header, footer, li, a, button, input, select, textarea, span, label, td, tr, h1, h2, h3, h4, h5, h6'));
     if (raiz.nodeType === 1) cands.unshift(raiz);
     var fila = [];
@@ -294,8 +322,12 @@
       if (!ehCampo && !ehBotao && RE_TITULO.test(cls) && !RE_TITULO_NAO.test(cls) && r.height <= 64 && !el.closest('table') && (el.textContent || '').trim() && temFaixa(cs)) {
         fila.push([el, ['inn-c-titulo']]); el.dataset.innBase = baseSelo(el); return;
       }
+      // Campo dentro de pop-up: branco, para ler e preencher ("os campos podem ser brancos",
+      // 08/11/2026). Texto, lista e área iguais; a caixa de marcar fica como está.
+      var campoPop = ehCampo && !TIPOS_SEM_FUNDO.test(el.type || '') && noPopup(el);
+      if (campoPop) marca.push('inn-c-campo-pop');
       // Fundo branco (claro): painel, campo ou botão.
-      if (claro() && branco(cs) && !RE_BRANCO_NAO.test(cls) && !(r.width < 60 && r.height < 60 && !ehCampo && !ehBotao)) {
+      else if (claro() && branco(cs) && !RE_BRANCO_NAO.test(cls) && !(r.width < 60 && r.height < 60 && !ehCampo && !ehBotao)) {
         if (ehCampo) marca.push('inn-c-campo');
         else if (ehBotao || el.classList.contains('inn-aba')) marca.push('inn-c-botao');
         else if (!el.querySelector(':scope > img:only-child, :scope > canvas:only-child')) marca.push('inn-c-painel');
@@ -313,6 +345,12 @@
       } else if (!ehCampo && r.width > 120 && r.height > 26) {
         // Caixa tingida (fundo de estado, mesmo bem claro, com texto): a baixa vira o aviso
         // da home; a alta (um bloco inteiro pintado de pêssego) vira o painel afundado.
+        // Bloco escuro no tema claro (o "Valor calculado" do imposto era azul-marinho quase
+        // preto com texto amarelo): sobra do tema escuro, vira a prata com o texto escuro.
+        var vEsc = rgb(cs.backgroundColor);
+        if (claro() && vEsc && vEsc[3] > .5 && matiz(vEsc[0], vEsc[1], vEsc[2]).l < .22 && !RE_BRANCO_NAO.test(cls) && !/overlay|backdrop|mask|scrim|shell|tooltip/i.test(cls + ' ' + el.id) && !(r.width >= innerWidth * .9 && r.height >= innerHeight * .9) && !el.classList.contains('inn-aba')) {
+          marca.push('inn-c-escuro'); fila.push([el, marca]); el.dataset.innBase = baseSelo(el); return;
+        }
         var fb = tomFundo(cs);
         var tingida = fb && fb !== 'azul' && fb !== 'outro' && (el.textContent || '').trim().length > 3;
         if (tingida) marca.push(r.height > 90 ? 'inn-c-neutro' : 'inn-c-alerta-' + fb);
@@ -337,6 +375,20 @@
       }
       // Faixa lateral colorida.
       if (!ehCampo && parseFloat(cs.borderLeftWidth) >= 2 && parseFloat(cs.borderLeftWidth) > parseFloat(cs.borderTopWidth) && tomDe(cs, 'borderLeftColor')) marca.push('inn-c-sem-faixa');
+      // Texto que some no fundo (o subtítulo azul-claro em cima da prata): menos de 3 para 1
+      // vira o cinza do texto; se era estado (vermelho, âmbar, verde) fica o tom forte dele;
+      // azul vivo (link, número do processo) vira o azul do Yuris; azul desbotado vira cinza.
+      if (!ehCampo && temTextoProprio(el)) {
+        var tc = rgb(cs.color);
+        if (tc && tc[3] > .3) {
+          var fv = fundoVisto(el, cacheFundo), l1 = luz(tc), l2 = luz(fv);
+          var contraste = (Math.max(l1, l2) + .05) / (Math.min(l1, l2) + .05);
+          if (contraste < 3) {
+            var tt2 = tomDeCor(cs.color, .3, .05);
+            marca.push(tt2 === 'erro' || tt2 === 'aviso' || tt2 === 'ok' ? 'inn-c-texto-' + tt2 : ((tt2 === 'azul' || tt2 === 'outro') && (el.tagName === 'A' || matiz(tc[0], tc[1], tc[2]).s >= .6)) ? 'inn-c-texto-azul' : 'inn-c-texto-cinza');
+          }
+        }
+      }
       fila.push([el, marca]);
       el.dataset.innBase = baseSelo(el);
     });
@@ -418,7 +470,14 @@
     'inn-toast': { 'background': 'var(--inn-t-painel)', 'color': 'var(--inn-t-texto)', 'border-color': 'var(--inn-t-linha2)' },
     'inn-c-afundado': { 'background': 'var(--inn-t-fundo)', 'border-color': 'transparent', 'box-shadow': 'var(--inn-t-fundo-sombra)' },
     'inn-c-plano': { 'background': 'transparent', 'border-color': 'transparent', 'box-shadow': 'none' },
-    'inn-c-titulo': { 'background': 'transparent', 'border-color': 'transparent', 'box-shadow': 'none' }
+    'inn-c-titulo': { 'background': 'transparent', 'border-color': 'transparent', 'box-shadow': 'none' },
+    'inn-c-campo-pop': { 'background-color': 'var(--inn-t-campo-pop)', 'border-color': 'var(--inn-t-linha2)', 'color': 'var(--inn-t-texto)', 'box-shadow': 'none' },
+    'inn-c-texto-cinza': { 'color': 'var(--inn-t-texto2)' },
+    'inn-c-escuro': { 'background': 'var(--inn-t-painel2)', 'color': 'var(--inn-t-texto)', 'border-color': 'var(--inn-t-linha2)', 'box-shadow': 'none' },
+    'inn-c-texto-azul': { 'color': 'var(--inn-t-azul2)' },
+    'inn-c-texto-erro': { 'color': 'var(--inn-t-erro)' },
+    'inn-c-texto-aviso': { 'color': 'var(--inn-t-aviso)' },
+    'inn-c-texto-ok': { 'color': 'var(--inn-t-ok)' }
   };
   function porCimaDoId(el, marcas) {
     marcas.forEach(function (m) {

@@ -286,7 +286,25 @@ html:root .inn-tela .funnel-metrics strong, html:root .inn-tela .funnel-head .te
    por estado: o estado fica no texto. Botão vermelho é o secundário com texto
    vermelho; botão de outra cor é o secundário. */
 html:root .inn-c-painel.inn-c-painel.inn-c-painel{ background-color:var(--inn-t-painel) !important; background-image:none !important; }
-html:root .inn-c-campo.inn-c-campo.inn-c-campo{ background-color:var(--inn-t-fundo) !important; background-image:none !important; box-shadow:var(--inn-t-fundo-sombra) !important; border-color:var(--inn-t-linha) !important; }
+html:root .inn-c-campo.inn-c-campo.inn-c-campo{ background-color:var(--inn-t-fundo) !important; box-shadow:var(--inn-t-fundo-sombra) !important; border-color:var(--inn-t-linha) !important; }
+html:root input.inn-c-campo.inn-c-campo.inn-c-campo, html:root textarea.inn-c-campo.inn-c-campo.inn-c-campo{ background-image:none !important; }
+/* Campo dentro de pop-up: branco no claro (grafite um tom acima do painel no escuro), borda
+   visível, texto escuro. A lista de seleção guarda a seta (só a cor do fundo muda). */
+:root{ --inn-t-campo-pop:#30363F; }
+html[data-theme="light"]{ --inn-t-campo-pop:#FFFFFF; }
+html:root .inn-c-campo-pop.inn-c-campo-pop.inn-c-campo-pop{ background-color:var(--inn-t-campo-pop) !important; border-color:var(--inn-t-linha2) !important; color:var(--inn-t-texto) !important; box-shadow:none !important; }
+html:root input.inn-c-campo-pop.inn-c-campo-pop.inn-c-campo-pop, html:root textarea.inn-c-campo-pop.inn-c-campo-pop.inn-c-campo-pop{ background-image:none !important; }
+html:root .inn-c-campo-pop.inn-c-campo-pop.inn-c-campo-pop:focus{ border-color:var(--inn-t-azul2) !important; box-shadow:0 0 0 3px var(--inn-t-azul-suave) !important; outline:none !important; }
+html:root .inn-c-campo-pop.inn-c-campo-pop.inn-c-campo-pop::placeholder{ color:var(--inn-t-texto3) !important; opacity:1; }
+html:root .inn-c-campo-pop.inn-c-campo-pop.inn-c-campo-pop:disabled{ background-color:var(--inn-t-painel2) !important; color:var(--inn-t-texto2) !important; }
+/* Bloco escuro que sobrou do tema escuro, no claro: a prata, com o texto escuro. */
+html:root .inn-c-escuro.inn-c-escuro.inn-c-escuro{ background-color:var(--inn-t-painel2) !important; background-image:none !important; color:var(--inn-t-texto) !important; border-color:var(--inn-t-linha2) !important; box-shadow:none !important; }
+/* Texto que sumia no fundo (contraste menor que 3 para 1). */
+html:root .inn-c-texto-cinza.inn-c-texto-cinza.inn-c-texto-cinza{ color:var(--inn-t-texto2) !important; }
+html:root .inn-c-texto-azul.inn-c-texto-azul.inn-c-texto-azul{ color:var(--inn-t-azul2) !important; }
+html:root .inn-c-texto-erro.inn-c-texto-erro.inn-c-texto-erro{ color:var(--inn-t-erro) !important; }
+html:root .inn-c-texto-aviso.inn-c-texto-aviso.inn-c-texto-aviso{ color:var(--inn-t-aviso) !important; }
+html:root .inn-c-texto-ok.inn-c-texto-ok.inn-c-texto-ok{ color:var(--inn-t-ok) !important; }
 html:root .inn-c-botao.inn-c-botao.inn-c-botao:not(.inn-aba-on):not(.inn-ic-btn){
   background-color:var(--inn-t-painel2) !important; background-image:none !important; color:var(--inn-t-texto) !important;
   border-color:var(--inn-t-linha2) !important; box-shadow:0 1px 0 var(--inn-t-hi) inset !important;
