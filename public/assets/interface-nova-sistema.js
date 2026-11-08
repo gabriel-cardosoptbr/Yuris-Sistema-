@@ -122,7 +122,9 @@
   }
   function abaLigada(el) {
     if (el.getAttribute('aria-selected') === 'true' || el.getAttribute('aria-pressed') === 'true') return true;
-    return String(el.className || '').split(/\s+/).some(function (c) { return RE_ON.test(c); });
+    // As marcas da própria camada (inn-aba-on termina em "-on") não contam: senão a aba que
+    // ligou uma vez fica ligada para sempre, e trocar de aba deixa as duas azuis (08/11/2026).
+    return String(el.className || '').split(/\s+/).some(function (c) { return c.indexOf('inn-') !== 0 && RE_ON.test(c); });
   }
   function marcarAbas(raiz) {
     if (!raiz || !raiz.querySelectorAll) return;
@@ -378,7 +380,9 @@
       // Texto que some no fundo (o subtítulo azul-claro em cima da prata): menos de 3 para 1
       // vira o cinza do texto; se era estado (vermelho, âmbar, verde) fica o tom forte dele;
       // azul vivo (link, número do processo) vira o azul do Yuris; azul desbotado vira cinza.
-      if (!ehCampo && temTextoProprio(el)) {
+      // Dentro de aba a cor é da regra da aba (muda quando ela liga e desliga); ler aqui
+      // pintava o contador "8 não lidas" de cinza antes de a aba ficar azul.
+      if (!ehCampo && temTextoProprio(el) && !el.closest('.inn-aba')) {
         var tc = rgb(cs.color);
         if (tc && tc[3] > .3) {
           var fv = fundoVisto(el, cacheFundo), l1 = luz(tc), l2 = luz(fv);

@@ -265,6 +265,12 @@ seleção em pílula.
   da tela. Colunas dos quadros de Processos, Tarefas e Clientes afundadas como as da
   Prospecção, com o cartão em relevo. Indicador com ícone próprio (Chat) só ganha a medida do
   texto. O teste de layout aceita `.inn-kpi-ic` e `.inn-card-ic` como peças próprias.
+- **Aba presa no azul** (08/11/2026, Publicações: as duas abas azuis depois de trocar).
+  `abaLigada` procura "active", "-on" e afins nas classes da aba, e a marca da própria camada,
+  `inn-aba-on`, termina em "-on": a aba que ligou uma vez ficava ligada para sempre. As classes
+  `inn-*` não contam mais. O contador da aba ("12 não lidas") é branco sobre a aba azul e a
+  pílula azul da home na aba desligada; a regra de contraste não lê texto dentro de aba (lia o
+  contador antes de a aba ficar azul e o pintava de cinza).
   Armadilhas que viraram regra: ler a cor no meio de uma transição dá a cor do caminho (a camada
   espera o `transitionend`); trocar a classe no meio da leitura recalcula o estilo (lê tudo,
   escreve depois); o que estava `display:none` ou ganhou classe depois é relido pelo observer;

@@ -147,7 +147,10 @@ html .inn-aba.inn-aba-on, html:root .inn-aba.inn-aba-on.inn-aba-on, html:root [d
   box-shadow:var(--inn-t-brilho), inset 0 2px 3px rgba(255,255,255,.22), inset 0 -3px 6px rgba(0,0,0,.24) !important;
 }
 html .inn-aba.inn-aba-on *:not(svg):not(svg *), html:root .inn-aba.inn-aba-on.inn-aba-on *:not(svg):not(svg *){ color:#fff !important; }
-html .inn-aba.inn-aba-on [class*="count"], html .inn-aba.inn-aba-on [class*="badge"], html .inn-aba.inn-aba-on [class*="-n"]{ background:rgba(255,255,255,.22) !important; color:#fff !important; border-color:transparent !important; }
+html .inn-aba.inn-aba-on [class*="count"], html .inn-aba.inn-aba-on [class*="badge"], html .inn-aba.inn-aba-on [class*="-n"],
+html:root .inn-aba.inn-aba-on.inn-aba-on [class*="count"]{ background:rgba(255,255,255,.24) !important; color:#fff !important; border-color:transparent !important; font-weight:700 !important; }
+/* Contador na aba desligada: a pílula da home (.ini-pill), azul suave com o número azul. */
+html:root .inn-aba.inn-aba:not(.inn-aba-on) [class*="count"]{ background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul2) !important; border-color:transparent !important; font-weight:700 !important; }
 html .inn-aba.inn-aba-on svg, html .inn-aba.inn-aba-on svg *{ stroke:#fff !important; }
 html .inn-aba:not(.inn-aba-on):hover, html:root .inn-aba.inn-aba:not(.inn-aba-on):hover{ background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul2) !important; }
 /* Aba fora do ativo, em qualquer tela: o botão secundário da home (nada de branco nem de caixa própria). */
