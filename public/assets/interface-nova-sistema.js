@@ -137,7 +137,9 @@
   // mon-pill, chat-filter-btn...) e o estado de um jeito (active, ativa, ativo,
   // selected, doc-tab-active, mon-pill-active...). Marca as duas coisas e deixa o CSS
   // pôr a pílula azul. Painel de aba (pane, panel, content) não é aba.
-  var RE_ABA = /(^|[-_])(tab|mtab|aba|pill|pilula|chip|seg|segment|filtro|filter|view|periodo|period|modo|opcao)(s)?(-?btn|-?item|-?opt)?$/i;
+  // "type"/"tipo" + btn: os botões Processo / Cliente / Card CRM / Conta DRE dos vínculos da
+  // tarefa (tk-link-type-btn) são abas e ficavam com o azul vivo da tela antiga.
+  var RE_ABA = /(^|[-_])(tab|mtab|aba|pill|pilula|chip|seg|segment|filtro|filter|view|periodo|period|modo|opcao|type|tipo)(s)?(-?btn|-?item|-?opt)?$/i;
   var RE_NAO = /pane|panel|content|body|wrap|list|bar|group|container|header|grid|row|col|area|box/i;
   var RE_ON  = /^(active|ativo|ativa|selected|is-active|is-selected|current|on|sel|atual)$|-(active|ativo|ativa|selected|on)$/i;
   function ehAba(el) {
@@ -415,7 +417,8 @@
       }
       // Campo dentro de pop-up: branco, para ler e preencher ("os campos podem ser brancos",
       // 08/11/2026). Texto, lista e área iguais; a caixa de marcar fica como está.
-      var campoPop = ehCampo && !TIPOS_SEM_FUNDO.test(el.type || '') && noPopup(el);
+      // O título editável do pop-up (o da tarefa) é título, não campo: fica sem a caixa branca.
+      var campoPop = ehCampo && !TIPOS_SEM_FUNDO.test(el.type || '') && noPopup(el) && !/(^|[-_\s])(title|titulo)([-_\s]|$)/i.test(cls);
       if (campoPop) marca.push('inn-c-campo-pop');
       // Fundo branco (claro): painel, campo ou botão.
       else if (claro() && branco(cs) && !RE_BRANCO_NAO.test(cls) && !(r.width < 60 && r.height < 60 && !ehCampo && !ehBotao)) {
@@ -637,17 +640,30 @@
       return fr.width > 160 && fr.height > 80 && (fr.width < r.width * .95 || fr.height < r.height * .95) && visivel(f);
     });
   }
+  // Botão que remove, exclui ou apaga NUNCA é o fechar: dentro do Editar Processo cada tarefa
+  // tem um "✕" de remover, e o clique fora o apertava ("Remover esta tarefa?", 08/11/2026).
+  var RE_REMOVE = /remov|exclu|apag|delet|(^|[-_\s])del([-_\s]|$)|lixeira|trash|descart/i;
   function botaoDeFechar(raiz) {
+    // O fechar mora no alto do pop-up (X, "Fechar") ou no rodapé ("Cancelar", "Voltar").
+    var painel = raiz.tagName === 'DIALOG' ? raiz : (painelDo(raiz) || raiz), pr = painel.getBoundingClientRect();
+    var noAlto = function (r) { return r.top - pr.top < Math.max(90, pr.height * .15); };
+    var noRodape = function (r) { return pr.bottom - r.bottom < Math.max(110, pr.height * .18); };
     var cands = [].filter.call(raiz.querySelectorAll('button, a, [role="button"], span, i, div'), function (b) {
       if (!visivel(b) || b.offsetWidth > 260 || b.offsetHeight > 70) return false;
-      // Só o que está no pop-up de cima, não num pop-up aberto por baixo dele.
+      var sinal = (b.getAttribute('title') || '') + ' ' + (b.getAttribute('aria-label') || '') + ' ' + String(b.className || '') + ' ' + (b.id || '') + ' ' + (b.getAttribute('onclick') || '');
+      var dono = b.closest('button, a, [role="button"]');
+      if (dono && dono !== b) sinal += ' ' + (dono.getAttribute('title') || '') + ' ' + String(dono.className || '') + ' ' + (dono.getAttribute('onclick') || '');
+      if (RE_REMOVE.test(sinal)) return false;
+      // Item de lista ou linha de tabela (a tarefa, o anexo) não é o pop-up.
+      if (b.closest('li, tr, [class*="item"], [class*="row"], [class*="linha"]') && !b.closest('[class*="header"], [class*="footer"], [class*="cab"], [class*="rodape"]')) return false;
       return true;
     });
     var nota = function (b) {
       var txt = (b.textContent || '').trim(), attr = (b.getAttribute('aria-label') || '') + ' ' + (b.getAttribute('title') || '') + ' ' + String(b.className || '') + ' ' + (b.id || '');
-      if (/^[×✕✖✗xX]$/.test(txt) || RE_FECHAR_ATTR.test(attr) || /\bfechar\b|\bclose\b/i.test(b.getAttribute('aria-label') || '')) return 3;
-      if (/^fechar$/i.test(txt) || /^[×✕]\s*fechar$/i.test(txt)) return 2;
-      if (/^(cancelar|voltar)$/i.test(txt)) return 1;
+      var r = b.getBoundingClientRect();
+      if ((/^[×✕✖✗xX]$/.test(txt) || RE_FECHAR_ATTR.test(attr) || /\bfechar\b|\bclose\b/i.test(b.getAttribute('aria-label') || '')) && noAlto(r)) return 3;
+      if ((/^fechar$/i.test(txt) || /^[×✕]\s*fechar$/i.test(txt)) && (noAlto(r) || noRodape(r))) return 2;
+      if (/^(cancelar|voltar)$/i.test(txt) && noRodape(r)) return 1;
       return 0;
     };
     var melhor = null, nm = 0;
@@ -723,6 +739,9 @@
     var painel = painelDo(fundo); if (!painel) return;
     var pr = painel.getBoundingClientRect();
     if (fundo.tagName !== 'DIALOG') fixar(painel, 'painel'); else fixar(fundo, 'painel');
+    // As abas de dentro do pop-up (o painel da tarefa fica fora do conteúdo da tela, que é onde
+    // a marcação de abas corre ao carregar): sem isso, Processo / Cliente / Card CRM viravam botão.
+    marcarAbas(painel);
     // Cabeçalho: perto do topo do painel, quase da largura dele, baixo, com texto.
     var cab = [].filter.call(painel.querySelectorAll('div, header, section'), function (el) {
       var r = el.getBoundingClientRect(), cls = String(el.className || '');
@@ -750,7 +769,7 @@
         if (!/^H[1-4]$/.test(e.tagName) && !/title|titulo/i.test(String(e.className || '').replace(/\binn-[\w-]+/g, ''))) return false;
         return visivel(e) && !/sub/i.test(String(e.className)) && (/^(INPUT|TEXTAREA)$/.test(e.tagName) || !e.querySelector('button, input, textarea, select'));
       })[0];
-      if (tit && /^(INPUT|TEXTAREA)$/.test(tit.tagName)) iconeNoPopup(cab, tit);
+      if (tit && /^(INPUT|TEXTAREA)$/.test(tit.tagName)) { iconeNoPopup(cab, tit); if (tit.tagName === 'TEXTAREA') tituloInteiro(tit); }
       else if (tit) {
         fixar(tit, 'tit');
         var sub = [].filter.call(cab.querySelectorAll('[class*="sub"], [class*="desc"], p'), function (e) { return visivel(e) && e !== tit && !e.contains(tit); })[0];
@@ -795,9 +814,41 @@
       fixar(l, 'rotulo');
     });
   }
+  // "Tem que ser o título inteiro" (08/11/2026): o título da tarefa é um campo de uma linha e
+  // aparecia cortado, com a setinha de rolagem. A altura acompanha o texto, ao abrir e ao digitar.
+  function tituloInteiro(ta) {
+    // O navegador que sabe medir o campo pelo texto (field-sizing, na folha de pop-ups) faz
+    // sozinho. Nos outros, o ajuste só escreve quando o texto ou a largura mudaram: escrever a
+    // altura é mudança de estilo, e a passada dos pop-ups chamava o ajuste de novo, em laço.
+    if (window.CSS && CSS.supports && CSS.supports('field-sizing', 'content')) return;
+    var ajusta = function () {
+      var marca = ta.value + '|' + ta.clientWidth;
+      if (!ta.clientWidth || ta.dataset.innInteiroVisto === marca) return;
+      ta.dataset.innInteiroVisto = marca;
+      ta.style.setProperty('height', 'auto'); ta.style.setProperty('height', ta.scrollHeight + 'px', 'important');
+    };
+    if (!ta.dataset.innInteiro) {
+      ta.dataset.innInteiro = '1';
+      ta.addEventListener('input', ajusta);
+      // A tela troca o valor ao abrir outra tarefa (sem evento de input): confere a cada abertura.
+      // Vigia o painel, nunca o próprio campo: a classe dele (tk-drawer-title) também tem
+      // "drawer", e vigiar o estilo que o ajuste muda travava a página num laço.
+      var alvo = ta.closest('[data-inn-pop="painel"]') || (ta.parentElement && ta.parentElement.closest('[id*="rawer"], [id*="odal"], [role="dialog"]'));
+      if (alvo && alvo !== ta) new MutationObserver(function (ms) {
+        if (ms.some(function (m) { return m.target !== ta; })) ajusta();
+      }).observe(alvo, { attributes: true, attributeFilter: ['class', 'style'] });
+    }
+    requestAnimationFrame(ajusta);
+  }
   // O ícone da tela, na caixa afundada da home, antes do título do pop-up.
   function iconeNoPopup(cab, tit) {
     if (cab.querySelector('.inn-cab-ic')) return;
+    // Aviso que já tem ícone próprio no alto (o X vermelho do "Confirmar ação") não ganha outro.
+    var pnl = cab.closest('[data-inn-pop="painel"]') || cab.parentElement, pr0 = pnl && pnl.getBoundingClientRect();
+    if (pnl && [].some.call(pnl.querySelectorAll('svg'), function (sv) {
+      if (sv.closest('button, a, .inn-cab-ic, input, select')) return false;
+      var r = sv.getBoundingClientRect(); return r.width >= 16 && r.top - pr0.top < 100 && r.top <= tit.getBoundingClientRect().top + 4;
+    })) return;
     var ativo = document.querySelector('.sidebar nav a.active .icon svg') || document.querySelector('.sidebar .sidebar-group.has-active .sidebar-group-icon svg');
     if (!ativo) return;
     var caixa = document.createElement('span');

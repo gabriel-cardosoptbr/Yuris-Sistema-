@@ -379,8 +379,9 @@ mora em `assets/interface-nova-sistema.css` e `.js`, que desde 08/11/2026 també
 peças pela cor computada (selo, branco puro ou degradê quase branco, borda ou faixa por estado, filete,
 caixa tingida, toast, e caixa da mesma cor dentro de caixa, que afunda; título e rodapé sem faixa; campo de
 pop-up branco; texto sem contraste corrigido; bloco escuro no claro vira prata; clicar fora fecha o pop-up
-pelo próprio botão de fechar dele); ver `app/Inicio/README.md`. `interface-nova-popups.css` deixa a Descrição
-e as Observações estratégicas do lead (Prospecção, Bloco 4) com 260px de altura.
+pelo próprio botão de fechar dele, nunca por um que remove); ver `app/Inicio/README.md`. `interface-nova-popups.css` deixa a Descrição
+e as Observações estratégicas do lead (Prospecção, Bloco 4) com 260px de altura e, no painel da tarefa
+(`#tkDrawer`), o título inteiro (cresce com o texto) e Concluir, Arquivar e ✕ no fim da linha.
 Em `yuris-theme.css`, o bloco do funil do Planejamento foi estreitado em 08/11/2026: `[class*="funnel-"]`
 pintava caixa em título, cabeçalho e métricas de cada etapa e punha o contorno do gargalo também no
 embrulho `.funnel-stage` (dois contornos); agora só a coluna e o `.funnel-shape` são caixa. Vale para

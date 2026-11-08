@@ -253,6 +253,47 @@
     });
   }).observe(document.body, { attributes: true, attributeOldValue: true, attributeFilter: ['class', 'aria-selected', 'aria-pressed', 'aria-checked'], subtree: true });
 
+
+  // ── O conteúdo da aba entra, e a lista que chega também ─────────────────
+  // "Animação em todo canto: cliquei em Vínculos, tem que ter uma animaçãozinha do que está
+  // vindo" (08/11/2026). Logo depois de um clique em aba (ou em qualquer botão), o painel que
+  // passa a ficar ativo entra linha por linha, e os itens que a tela desenha de novo (a busca
+  // de vínculos, a lista filtrada) entram um a um. Só nesse instante: o que a tela repõe
+  // sozinha depois não se mexe.
+  var cliqueRecente = 0;
+  document.addEventListener('click', function (e) {
+    if (e.target.closest && e.target.closest('button, a, [role="tab"], .inn-aba, [onclick], label')) cliqueRecente = performance.now();
+  }, true);
+  function entrarEmFila(lista) {
+    lista.slice(0, 22).forEach(function (el, k) {
+      if (getComputedStyle(el).transform !== 'none') return;
+      el.style.setProperty('--mov-i', k);
+      el.classList.remove('inn-pop-entra'); void el.offsetWidth; el.classList.add('inn-pop-entra');
+      el.addEventListener('animationend', function f(e) { if (e.target === el) { el.classList.remove('inn-pop-entra'); el.removeEventListener('animationend', f); } });
+    });
+  }
+  new MutationObserver(function (ms) {
+    if (performance.now() - cliqueRecente > 900) return;
+    var porPai = new Map(), paineis = [];
+    ms.forEach(function (m) {
+      var el = m.target; if (el.nodeType !== 1 || el.closest('.sidebar')) return;
+      if (m.type === 'attributes') {
+        // O painel que passou a ficar ativo (tk-tab-pane.active), grande e não um botão.
+        if (m.attributeName !== 'class' || classesLigadas(m.oldValue) || !classesLigadas(el.className)) return;
+        if (/^(BUTTON|A|LABEL|INPUT|SELECT|TEXTAREA|LI)$/.test(el.tagName) || el.classList.contains('inn-aba')) return;
+        var r = el.getBoundingClientRect(); if (r.height < 60 || r.width < 160) return;
+        paineis.push(el); return;
+      }
+      [].forEach.call(m.addedNodes, function (n) {
+        if (n.nodeType !== 1 || /^(SCRIPT|STYLE|OPTION)$/.test(n.tagName) || n.closest('.sidebar')) return;
+        var r = n.getBoundingClientRect(); if (r.height < 14 || r.width < 40) return;
+        var arr = porPai.get(n.parentNode) || []; arr.push(n); porPai.set(n.parentNode, arr);
+      });
+    });
+    paineis.forEach(function (p) { entrarEmFila(linhasDe(p)); });
+    porPai.forEach(function (arr) { if (!paineis.some(function (p) { return p.contains(arr[0]); })) entrarEmFila(arr); });
+  }).observe(document.body, { attributes: true, attributeOldValue: true, attributeFilter: ['class'], childList: true, subtree: true });
+
   // ── Sair pelo menu ──────────────────────────────────────────────────────
   document.addEventListener('click', function (e) {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;

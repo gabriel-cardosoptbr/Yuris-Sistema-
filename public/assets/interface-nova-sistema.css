@@ -498,3 +498,11 @@ html:root .inn-kpi-ic.inn-kpi-ic-aviso svg, html:root .inn-kpi-ic.inn-kpi-ic-avi
 html:root .inn-kpi-ic.inn-kpi-ic-ok svg, html:root .inn-kpi-ic.inn-kpi-ic-ok svg *{ stroke:var(--inn-t-ok-forte) !important; }
 html:root [data-inn-kpi] [class*="badge"], html:root [data-inn-kpi] [class*="tag"], html:root .inn-faixa.inn-faixa{ border-color:transparent !important; box-shadow:none !important; }
 html:root [data-inn-kpi] [class*="badge"]:not(.inn-faixa){ background-color:transparent !important; background-image:none !important; font-weight:700 !important; }
+/* Abas da tarefa: sem a linha da barra e sem o azul embaixo ao passar o mouse ("tem um azul
+   embaixo que tá horrível", 08/11/2026). */
+html:root .tk-tabs.tk-tabs{ border-bottom-color:transparent !important; box-shadow:none !important; }
+html:root .tk-tab.tk-tab, html:root .tk-tab.tk-tab:hover, html:root .tk-tab.tk-tab.active{ border-bottom-color:transparent !important; text-decoration:none !important; }
+/* O título editável da tarefa com cara de título (o texto inteiro, sem caixa): a linha suave só
+   ao editar. */
+html:root .tk-drawer-title.tk-drawer-title{ background:transparent !important; border-color:transparent !important; box-shadow:none !important; color:var(--inn-t-texto) !important; font-size:17px !important; font-weight:700 !important; letter-spacing:-.2px !important; }
+html:root .tk-drawer-title.tk-drawer-title:focus{ background:var(--inn-t-campo-pop) !important; border-color:var(--inn-t-linha2) !important; }

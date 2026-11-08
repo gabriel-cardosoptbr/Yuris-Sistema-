@@ -368,6 +368,30 @@ seleção em pílula.
   Conferido: abas de Usuários, Publicações e Tarefas (Lista, Calendário), cartões de tipo do Chat
   interno; entrada em lead, Novo Cliente, Nova Tarefa, Novo Usuário, Novo imposto e Editar
   Processo, todos fechando ao clicar fora e sem mutação em repouso.
+- **O conteúdo da aba entra, e a lista que chega também** (08/11/2026, "cliquei em Vínculos, tem
+  que ter uma animaçãozinha do que está vindo"). Em `interface-nova-movimento.js`: nos 900 ms
+  depois de um clique em botão, link, aba ou rótulo, o painel que passa a ficar ativo entra linha
+  por linha e os itens que a tela desenha (a busca de vínculos da tarefa, uma lista filtrada)
+  entram um a um, até 22 por lista. O que a tela repõe sozinha, sem clique, não se mexe.
+- **Clicar fora só fecha** (08/11/2026: no Editar Processo, clicar fora abria "Remover esta
+  tarefa?"). O botão de fechar que o clique fora aperta nunca é um que remove, exclui ou apaga
+  (título, classe, id ou `onclick`, também do botão dono), nem um que mora num item de lista ou
+  linha de tabela fora do cabeçalho e do rodapé; e conta a posição: × e "fechar" por atributo só
+  no alto do painel, "Fechar" no alto ou no rodapé, "Cancelar" e "Voltar" só no rodapé.
+  Conferido no processo com 5 tarefas: fecha, sem aviso, e as 5 continuam lá. Aviso que já tem
+  ícone próprio no alto (o "Confirmar ação") não ganha um segundo.
+- **O painel da tarefa** (08/11/2026: "ter uma barra em cima do título é inadmissível, tem que
+  ser o título inteiro"; "os botões de Concluir pode colocar no final"; "tem um azul embaixo
+  [da aba] que tá horrível"). O título editável é título, não campo branco, e cresce com o texto
+  (`field-sizing:content` em `interface-nova-popups.css`; onde o navegador não sabe, o JS mede, e
+  só escreve quando o texto ou a largura mudaram, porque a passada dos pop-ups chamava o ajuste
+  de novo em laço). Concluir, Arquivar e ✕ ficam encostados à direita. As abas não têm linha
+  embaixo nem azul no hover. Os botões Processo / Cliente / Card CRM / Conta DRE dos vínculos são
+  abas (`type`/`tipo` em `RE_ABA`): pílula azul do sistema e o enchimento do clique no azul do
+  sistema. Abas dentro de pop-up são marcadas quando o pop-up é vestido: o painel da tarefa fica
+  fora do conteúdo da tela, onde a marcação corre ao carregar.
+  Armadilha: o observador do título vigiava o próprio campo (a classe `tk-drawer-title` tem
+  "drawer"), e a página travou. Vigie o painel, nunca o elemento que o ajuste altera.
   Armadilhas que viraram regra: ler a cor no meio de uma transição dá a cor do caminho (a camada
   espera o `transitionend`); trocar a classe no meio da leitura recalcula o estilo (lê tudo,
   escreve depois); o que estava `display:none` ou ganhou classe depois é relido pelo observer;
