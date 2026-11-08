@@ -95,6 +95,17 @@ seleção em pílula.
   `processo_prazos.php`, com o token CSRF). Publicação mostra o texto (sem HTML, até
   1.500 caracteres, de `Painel::publicacoes`). Ctrl/Cmd/Shift+clique ainda abre a página.
   Esc, o × e o clique fora fecham.
+  **Ações na própria janela** ("não pode ser só o preview"): concluir prazo, tarefa do
+  processo e tarefa do quadro (PATCH `processo_prazos.php` / `processo_tarefas.php`, POST
+  `tasks.php?action=complete`); tratar a publicação, com nota (`push/persist.php`, ação
+  `tratar`); responder o WhatsApp com as últimas 15 mensagens à vista (`whatsapp/messages.php`
+  e `whatsapp/send.php`, o mesmo canal do chat, sem instância nova); e os botões da faixa
+  de boas-vindas abrem formulário aqui: **Novo processo** (POST `processes.php`), **Nova
+  tarefa** (POST `tasks.php`, com quadro, responsável e hora) e **Tratar publicações**
+  (a lista das pendentes, cada uma abre a leitura com o tratamento). O texto da
+  publicação vai cru e é limpo e quebrado em parágrafos com a mesma regra do Diário
+  (`cleanText` + `_formatLegal` de `intimacoes.js`, copiadas em `inicio-detalhe.js`:
+  mudou lá, muda aqui).
 - Cabeçalho dos cartões: sem link de texto; o ícone é o atalho para a tela do bloco,
   centrado com o título, e no hover sobe 2px e acende como o botão aprovado.
 - Cartões nunca deixam vão: as colunas se esticam até a mesma altura e o último

@@ -459,3 +459,40 @@ html.idt-aberto, html.idt-aberto body{ overflow:hidden; }
   .idt-acoes{ padding-bottom:max(16px, env(safe-area-inset-bottom, 0px)); }
 }
 @media (prefers-reduced-motion: reduce){ .idt-fundo, .idt-janela{ transition:none; } }
+
+/* ═══ Pop-up com ação (07/11/2026): formulários, a conversa do WhatsApp e o texto
+   jurídico tratado como no Diário. O mesmo vocabulário: campos afundados, azul nos
+   detalhes, botão principal igual ao "Tratar" aceso. ═══ */
+.idt-btn{ cursor:pointer; font-family:inherit; }
+button.idt-btn{ appearance:none; -webkit-appearance:none; }
+.idt-btn:disabled{ cursor:default; opacity:.75; transform:none; }
+.idt-btn.feito, .idt-mini.feito{ background:var(--ini-ok-bg) !important; color:var(--ini-ok) !important; box-shadow:none !important; border-color:transparent !important; }
+.idt-rotulo{ display:block; margin:0 0 6px; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ini-texto3); }
+.idt-entrada{ width:100%; box-sizing:border-box; padding:9px 11px; border-radius:var(--ini-r2); border:1px solid var(--ini-linha); background:var(--ini-fundo);
+  box-shadow:var(--ini-fundo-sombra); color:var(--ini-texto); font:500 13.5px/1.45 Inter, system-ui, sans-serif; resize:vertical; }
+.idt-entrada:focus{ outline:none; border-color:var(--ini-azul2); box-shadow:var(--ini-fundo-sombra), 0 0 0 3px var(--ini-azul-suave); }
+.idt-entrada::placeholder{ color:var(--ini-texto3); }
+select.idt-entrada{ height:38px; padding:0 10px; }
+input.idt-entrada{ height:38px; }
+.idt-form{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px 12px; padding:14px 0 6px; }
+.idt-c{ display:flex; flex-direction:column; gap:6px; min-width:0; }
+.idt-c.largo{ grid-column:1 / -1; }
+.idt-c > span{ font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ini-texto3); }
+/* o texto jurídico: parágrafos como no Diário, número do processo em azul, OAB em negrito */
+.idt-texto.juridico{ white-space:pre-wrap; color:var(--ini-texto); font-size:13.5px; line-height:1.65; max-height:360px; }
+.idt-oab{ font-weight:700; color:var(--ini-texto); }
+/* a conversa */
+.idt-fio{ display:flex; flex-direction:column; gap:6px; max-height:280px; overflow:auto; scrollbar-width:none; padding:10px; border-radius:var(--ini-r2); background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); }
+.idt-fio::-webkit-scrollbar{ display:none; }
+.idt-bolha{ max-width:80%; padding:8px 11px; border-radius:var(--ini-r2); background:var(--ini-painel); border:1px solid var(--ini-linha); }
+.idt-bolha p{ margin:0; font-size:13.5px; line-height:1.45; color:var(--ini-texto); white-space:pre-wrap; overflow-wrap:anywhere; }
+.idt-bolha small{ display:block; margin-top:3px; font-size:10.5px; font-weight:600; color:var(--ini-texto3); text-align:right; }
+.idt-bolha.entrada{ align-self:flex-start; }
+.idt-bolha.saida{ align-self:flex-end; background:var(--ini-azul-suave); border-color:rgba(61,101,203,.25); }
+.idt-bolha.saida small{ color:var(--ini-azul2); }
+/* a lista de publicações para escolher */
+.idt-escolha{ width:100%; text-align:left; cursor:pointer; font:inherit; color:inherit; }
+.idt-escolha:hover{ border-color:rgba(61,101,203,.55); }
+.idt-escolha:hover .idt-mini{ background:var(--ini-azul); color:#fff; box-shadow:var(--ini-brilho); }
+.idt-escolha .idt-prazo-data{ color:var(--ini-azul2); }
+@media (max-width:640px){ .idt-form{ grid-template-columns:1fr; } }

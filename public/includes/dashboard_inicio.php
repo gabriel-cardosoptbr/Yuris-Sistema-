@@ -124,10 +124,10 @@ $evento = static function (array $i) use ($h, $det, $detEvento): string {
           <h1><?= $h($painel['saudacao']) ?>, <span><?= $h(Painel::primeiroNome($_userNome)) ?></span></h1>
           <p><?= $painel['resumo'] ?></p>
           <div class="ini-acoes">
-            <a class="ini-btn primario" href="/processos"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Novo processo</a>
-            <a class="ini-btn" href="/tarefas"><svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Nova tarefa</a>
+            <a class="ini-btn primario" href="/processos" data-novo="processo"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Novo processo</a>
+            <a class="ini-btn" href="/tarefas" data-novo="tarefa"><svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Nova tarefa</a>
             <?php if ($painel['publicacoes']['total'] > 0): ?>
-            <a class="ini-btn" href="/intimacoes"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Tratar publicações</a>
+            <a class="ini-btn" href="/intimacoes" data-novo="publicacoes"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Tratar publicações</a>
             <?php endif; ?>
           </div>
         </div>
@@ -293,7 +293,7 @@ $evento = static function (array $i) use ($h, $det, $detEvento): string {
           <?php else: ?>
           <div class="ini-lista">
             <?php foreach ($painel['publicacoes']['itens'] as $pb): ?>
-            <a class="ini-pub ini-cartao" href="/intimacoes" title="Ler a publicação"<?= $det(['t' => 'pub', 'id' => (int) $pb['id'], 'tribunal' => $pb['tribunal'], 'orgao' => $pb['orgao'] ?? null, 'data' => substr((string) $pb['data_disponibilizacao'], 0, 10), 'tipo' => $pb['tipo_comunicacao'] ?: ($pb['titulo'] ?: 'Publicação'), 'cliente' => $pb['cliente_nome'], 'num' => $pb['numero'], 'processo_id' => $pb['processo_id'] ? (int) $pb['processo_id'] : null, 'trecho' => $pb['trecho'] ?? '']) ?>>
+            <a class="ini-pub ini-cartao" href="/intimacoes" title="Ler a publicação"<?= $det(['t' => 'pub', 'id' => (int) $pb['id'], 'tribunal' => $pb['tribunal'], 'orgao' => $pb['orgao'] ?? null, 'data' => substr((string) $pb['data_disponibilizacao'], 0, 10), 'tipo' => $pb['tipo_comunicacao'] ?: ($pb['titulo'] ?: 'Publicação'), 'cliente' => $pb['cliente_nome'], 'num' => $pb['numero'], 'processo_id' => $pb['processo_id'] ? (int) $pb['processo_id'] : null, 'texto' => $pb['texto'] ?? '']) ?>>
               <div class="ini-pub-trib"><?= $h($pb['tribunal']) ?> · <?= $h(Painel::diaRelativo((string) $pb['data_disponibilizacao'], $hoje)) ?></div>
               <div class="ini-pub-txt"><b><?= $h($pb['tipo_comunicacao'] ?: ($pb['titulo'] ?: 'Publicação')) ?></b><?= $pb['cliente_nome'] ? ' · ' . $h($pb['cliente_nome']) : '' ?><?php if (!empty($pb['numero'])): ?><br><em class="ini-num"><?= $h($pb['numero']) ?></em><?php endif; ?></div>
               <span class="ini-mini">Tratar</span>

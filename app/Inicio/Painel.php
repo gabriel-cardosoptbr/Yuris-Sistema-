@@ -384,10 +384,10 @@ final class Painel
         );
         $st->execute($p);
         $itens = $st->fetchAll(\PDO::FETCH_ASSOC);
-        // O pop-up da home mostra o texto: sem HTML, espaços normalizados, até 1.500 caracteres.
+        // O pop-up da home mostra o texto como o Diário mostra: vai cru, e o navegador
+        // limpa e quebra as linhas com a mesma regra de intimacoes.js (inicio-detalhe.js).
         foreach ($itens as &$it) {
-            $txt = trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags(str_replace(['<br>', '<br/>', '<br />', '</p>'], "\n", (string) ($it['conteudo'] ?: $it['resumo']))), ENT_QUOTES | ENT_HTML5, 'UTF-8')) ?? '');
-            $it['trecho'] = mb_strlen($txt, 'UTF-8') > 1500 ? mb_substr($txt, 0, 1500, 'UTF-8') . '…' : $txt;
+            $it['texto'] = (string) ($it['conteudo'] ?: $it['resumo']);
             unset($it['conteudo']);
         }
         unset($it);
