@@ -93,7 +93,11 @@ seleção em pílula.
   leva a MESMA caixa afundada das irmãs, com um véu azul por dentro e o ícone azul, ligada
   ao rótulo azul. A caixa branca em relevo que ficou de manhã (08/11/2026) foi reprovada no
   mesmo dia: "só tem esse de branco, muito chamativo, não está condizente". No menu, só o
-  item ativo é cheio; o resto é afundado, e o grupo só muda de tom.
+  item ativo é cheio; o resto é afundado, e o grupo só muda de tom. A seta do grupo (›) é
+  sempre legível: cinza do texto em repouso, azul passando o mouse e no grupo da página
+  atual, a 100%. O `sidebar.css` ainda pinta de branco a seta do grupo ativo (sobra de quando
+  ele era um bloco azul cheio) e deixava as outras a 55%: a prévia vence com `.sidebar`
+  repetida ("a seta ficar branca, não dá pra ver nada", 08/11/2026).
 - **Um cartão só para todo item** (compromisso, prazo, publicação, processo, conversa,
   pessoa): a mesma caixa (`.ini-cartao`), que é o link para o lugar dele, com a seta azul
   à direita. O azul opaco marca os detalhes: número do processo (`.ini-num`), hora,
