@@ -316,7 +316,7 @@ ok($popups !== '' && str_contains($sidebarT, '/assets/interface-nova-popups.css'
 ok(str_contains($popups, 'width:min(980px, calc(100vw - 32px)) !important;') && str_contains($popups, 'flex-wrap:wrap !important; overflow:visible !important;'), 'o painel da tarefa cresce e as abas quebram linha, sem rolagem lateral');
 ok(!str_contains($popups, '—') && !str_contains($popups, 'text-overflow'), 'folha dos pop-ups sem travessão e sem reticências');
 $nova = (string) file_get_contents($raiz . '/public/assets/interface-nova.css');
-ok(str_contains($nova, 'color:var(--inn-azul) !important; background:#FFFFFF !important;') && str_contains($nova, '.sidebar-group.has-active .sidebar-group-icon svg *{ color:inherit !important; stroke:currentColor !important; }'), 'grupo com a página atual: ícone azul em caixa branca');
+ok(str_contains($nova, 'background:linear-gradient(rgba(46,85,184,.13), rgba(46,85,184,.13)), var(--inn-fundo) !important;') && !str_contains($nova, 'background:#FFFFFF !important;') && str_contains($nova, '.sidebar-group.has-active .sidebar-group-icon svg *{ color:inherit !important; stroke:currentColor !important; }'), 'grupo com a página atual: ícone azul na caixa afundada com véu azul, nunca caixa branca');
 ok(str_contains($sidebarT, 'InterfaceNova::contaLigada((int) $__brandCtx->getAccountId())'), 'menu consulta a chave da conta');
 ok(str_contains($dash, 'InterfaceNova::contaLigada((int) $ctx->getAccountId())'), 'dashboard consulta a chave da conta');
 ok(is_file($raiz . '/scripts/interface_nova_conta.php'), 'existe o script que liga a conta');

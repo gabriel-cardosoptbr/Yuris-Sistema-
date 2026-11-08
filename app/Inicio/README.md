@@ -89,9 +89,11 @@ seleção em pílula.
   na home). Hoje: o painel da tarefa vai a 980 x 780 (sem passar da janela) e as abas
   quebram linha em vez de rolar para o lado ("não faz sentido ter rolagem pro lado, tem
   mais espaço; deixa o pop-up maior", 08/11/2026).
-- No menu, o grupo que tem a página atual dentro (Gestão em Indicadores, por exemplo)
-  leva o ícone azul numa caixa branca, ligado ao rótulo azul ("deixa pelo menos o ícone
-  azul e o fundo branco", 08/11/2026). No escuro a caixa é a superfície clara do painel.
+- No menu, o grupo que tem a página atual dentro (Comercial em Prospecção, por exemplo)
+  leva a MESMA caixa afundada das irmãs, com um véu azul por dentro e o ícone azul, ligada
+  ao rótulo azul. A caixa branca em relevo que ficou de manhã (08/11/2026) foi reprovada no
+  mesmo dia: "só tem esse de branco, muito chamativo, não está condizente". No menu, só o
+  item ativo é cheio; o resto é afundado, e o grupo só muda de tom.
 - **Um cartão só para todo item** (compromisso, prazo, publicação, processo, conversa,
   pessoa): a mesma caixa (`.ini-cartao`), que é o link para o lugar dele, com a seta azul
   à direita. O azul opaco marca os detalhes: número do processo (`.ini-num`), hora,
