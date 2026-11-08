@@ -368,7 +368,8 @@ caixa tingida, toast, e caixa da mesma cor dentro de caixa, que afunda); ver `ap
 Em `yuris-theme.css`, o bloco do funil do Planejamento foi estreitado em 08/11/2026: `[class*="funnel-"]`
 pintava caixa em título, cabeçalho e métricas de cada etapa e punha o contorno do gargalo também no
 embrulho `.funnel-stage` (dois contornos); agora só a coluna e o `.funnel-shape` são caixa. Vale para
-todas as contas no tema claro.
+todas as contas no tema claro. As 34 páginas carregam `yuris-theme.css?v=45` (versão fixa, não pela data do
+arquivo): quem mexer nele sobe esse número em todas, senão o navegador segue com a cópia antiga.
 
 **Tema escuro da edição CRM (02/10/2026).** O desenho da edição CRM era só claro
 (todo seletor com `html[data-theme="light"]`), e no escuro sobrava o estilo antigo do

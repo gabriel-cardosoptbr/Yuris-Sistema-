@@ -216,6 +216,19 @@
   // coluna) e o que precisa ser branco (QR, assinatura, foto).
   var RE_BRANCO_NAO = /qr|knob|thumb|switch|toggle|avatar|assinatura|signature|preview|logo|foto|photo|img|canvas|swatch|cor-|color/i;
   var RE_CAIXA = /card|kpi|panel|painel|tile|stat|widget|alert|aviso|banner|strip|faixa|summary|resumo|health|saude/i;
+  // Título e cabeçalho de seção, coluna ou cartão: só texto, sem faixa (fundo tingido, borda ou
+  // linha embaixo). "Não é para ter listra nenhuma" (08/11/2026). O cabeçalho da página é o
+  // painel do topo e fica de fora.
+  var RE_TITULO = /(^|[-_\s])(title|titulo|header|head|cabec|cabecalho|heading)([-_\s]|$)/i;
+  var RE_TITULO_NAO = /page-header|inn-cab|thead/i;
+  function temFaixa(cs) {
+    var bg = rgb(cs.backgroundColor);
+    if ((bg && bg[3] > .03) || cs.backgroundImage.indexOf('gradient') >= 0) return true;
+    return ['Top', 'Bottom', 'Left', 'Right'].some(function (s) {
+      if (parseFloat(cs['border' + s + 'Width']) <= 0 || cs['border' + s + 'Style'] === 'none') return false;
+      var c = rgb(cs['border' + s + 'Color']); return !!c && c[3] > .04;
+    });
+  }
   function tomDeCor(c, minA, minL) {
     var v = rgb(c); if (!v || v[3] < (minA || .25)) return null;
     var h = matiz(v[0], v[1], v[2]);
@@ -259,7 +272,7 @@
   function claro() { return document.documentElement.getAttribute('data-theme') === 'light'; }
   function vestirCores(raiz) {
     if (!raiz || !raiz.querySelectorAll || !document.querySelector('.inn-tela')) return;
-    var cands = [].slice.call(raiz.querySelectorAll('div, section, article, aside, header, footer, li, a, button, input, select, textarea, span, label, td, tr'));
+    var cands = [].slice.call(raiz.querySelectorAll('div, section, article, aside, header, footer, li, a, button, input, select, textarea, span, label, td, tr, h1, h2, h3, h4, h5, h6'));
     if (raiz.nodeType === 1) cands.unshift(raiz);
     var fila = [];
     cands.forEach(function (el) {
@@ -277,6 +290,10 @@
       var cs = getComputedStyle(el), marca = [];
       var ehCampo = /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName);
       var ehBotao = !ehCampo && (el.tagName === 'BUTTON' || /(^|[-_\s])btn|button|botao/i.test(cls));
+      // Faixa de título: vira só o texto; nada mais nela é lido (nem como aviso tingido).
+      if (!ehCampo && !ehBotao && RE_TITULO.test(cls) && !RE_TITULO_NAO.test(cls) && r.height <= 64 && !el.closest('table') && (el.textContent || '').trim() && temFaixa(cs)) {
+        fila.push([el, ['inn-c-titulo']]); el.dataset.innBase = baseSelo(el); return;
+      }
       // Fundo branco (claro): painel, campo ou botão.
       if (claro() && branco(cs) && !RE_BRANCO_NAO.test(cls) && !(r.width < 60 && r.height < 60 && !ehCampo && !ehBotao)) {
         if (ehCampo) marca.push('inn-c-campo');
@@ -400,7 +417,8 @@
     'inn-c-alerta-ok': { 'background': 'linear-gradient(var(--inn-t-ok-bg), var(--inn-t-ok-bg)) var(--inn-t-painel)', 'color': 'var(--inn-t-ok)', 'border-color': 'transparent' },
     'inn-toast': { 'background': 'var(--inn-t-painel)', 'color': 'var(--inn-t-texto)', 'border-color': 'var(--inn-t-linha2)' },
     'inn-c-afundado': { 'background': 'var(--inn-t-fundo)', 'border-color': 'transparent', 'box-shadow': 'var(--inn-t-fundo-sombra)' },
-    'inn-c-plano': { 'background': 'transparent', 'border-color': 'transparent', 'box-shadow': 'none' }
+    'inn-c-plano': { 'background': 'transparent', 'border-color': 'transparent', 'box-shadow': 'none' },
+    'inn-c-titulo': { 'background': 'transparent', 'border-color': 'transparent', 'box-shadow': 'none' }
   };
   function porCimaDoId(el, marcas) {
     marcas.forEach(function (m) {

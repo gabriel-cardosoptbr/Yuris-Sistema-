@@ -188,6 +188,17 @@ seleção em pílula.
   Planejamento tem regra própria na prévia (raia afundada, etapa em relevo, gargalo com borda azul
   e anel suave). Degradê quase branco (branco a `#F4F7FB`, o `.card` do claro antigo) conta como
   branco e vira painel.
+- **Título sem faixa** (08/11/2026, "fui claro, não é para ter listra nenhuma", sobre a faixa atrás
+  de "Funil comercial"). Título ou cabeçalho de seção, coluna ou cartão (classe com `title`,
+  `titulo`, `header`, `head`, `cabec`, `heading`; também `h1` a `h6`), com até 64px de altura e
+  qualquer fundo, degradê ou borda, vira só o texto (`inn-c-titulo`: fundo e borda transparentes,
+  sem sombra; a largura da borda fica, para nada mexer de lugar). Pegou a barra azulada das seções
+  de Configurações e do Agente, o título "Prazos Críticos" e os cabeçalhos tingidos HOJE / 7 / 15 /
+  30 DIAS do Painel jurídico, e a linha embaixo do cabeçalho das colunas de Clientes, Tarefas e
+  Processos. O cabeçalho da página (`page-header`) é o painel do topo e fica de fora. O resumo do
+  aumento e a nota do gargalo do Planejamento afundam (sem o tracejado azul). A faixa que ele ainda
+  via no título do funil era cache: as páginas carregam `yuris-theme.css` com versão fixa, que
+  passou de `?v=42` (e 27, 44) para `?v=45` em todas as 34; ao mexer nesse arquivo, suba o número.
   Armadilhas que viraram regra: ler a cor no meio de uma transição dá a cor do caminho (a camada
   espera o `transitionend`); trocar a classe no meio da leitura recalcula o estilo (lê tudo,
   escreve depois); o que estava `display:none` ou ganhou classe depois é relido pelo observer;

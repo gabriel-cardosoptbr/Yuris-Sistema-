@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
     }catch(e){}})();
   </script>
-  <link rel="stylesheet" href="/assets/yuris-theme.css?v=27">
+  <link rel="stylesheet" href="/assets/yuris-theme.css?v=45">
   <style>
     :root{
       --bg:#081526;

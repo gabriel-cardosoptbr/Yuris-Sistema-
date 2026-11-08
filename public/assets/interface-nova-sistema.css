@@ -258,11 +258,16 @@ html:root .inn-tela .funnel-column.funnel-column{
   background:var(--inn-t-fundo) !important; background-image:none !important; border:1px solid var(--inn-t-linha) !important;
   box-shadow:var(--inn-t-fundo-sombra) !important; border-radius:12px !important;
 }
-html:root .inn-tela .funnel-column .funnel-column-title{ color:var(--inn-t-texto) !important; }
+html:root .inn-tela .funnel-column .funnel-column-title{ color:var(--inn-t-texto) !important; background:transparent !important; background-image:none !important; border:0 !important; box-shadow:none !important; }
 html:root .inn-tela .funnel-stage.funnel-stage, html:root .inn-tela .funnel-visual.funnel-visual, html:root .inn-tela .funnel-compare.funnel-compare,
 html:root .inn-tela .funnel-head.funnel-head, html:root .inn-tela .funnel-head > div, html:root .inn-tela .funnel-name.funnel-name, html:root .inn-tela .funnel-metrics.funnel-metrics{
   background:transparent !important; background-image:none !important; border:0 !important; box-shadow:none !important;
 }
+/* O resumo do aumento e a nota do gargalo: afundados, sem o tracejado azul. */
+html:root .inn-tela .funnel-gap-full.funnel-gap-full, html:root .inn-tela .bottleneck-note.bottleneck-note{
+  background:var(--inn-t-fundo) !important; background-image:none !important; border-color:transparent !important; border-style:solid !important; box-shadow:var(--inn-t-fundo-sombra) !important;
+}
+html:root .inn-tela .funnel-gap-full .gap-footer{ border-top-color:transparent !important; }
 html:root .inn-tela .funnel-shape.funnel-shape{
   background:var(--inn-t-painel) !important; background-image:none !important; border:1px solid var(--inn-t-linha) !important;
   box-shadow:var(--inn-t-sombra) !important; border-radius:12px !important;
@@ -312,6 +317,9 @@ html:root .inn-c-primario.inn-c-primario.inn-c-primario svg, html:root .inn-c-pr
 html:root .inn-c-primario.inn-c-primario.inn-c-primario:not(:disabled):hover{ transform:translateY(-2px); box-shadow:0 0 0 1px rgba(79,120,219,.35), 0 12px 24px rgba(58,99,201,.38) !important; }
 /* Enquanto a cor nova entra (o JS tira em seguida): troca seca, sem desbotar. */
 html .inn-c-agora, html .inn-c-agora *{ transition:none !important; }
+/* Título e cabeçalho (de seção, coluna, cartão): só o texto, sem fundo, borda ou linha embaixo. */
+html:root .inn-c-titulo.inn-c-titulo.inn-c-titulo{ background-color:transparent !important; background-image:none !important; border-color:transparent !important; box-shadow:none !important; }
+html:root .inn-c-titulo.inn-c-titulo.inn-c-titulo::before, html:root .inn-c-titulo.inn-c-titulo.inn-c-titulo::after{ background:transparent !important; border-color:transparent !important; box-shadow:none !important; }
 /* Caixa dentro de caixa da mesma cor: a de dentro afunda, sem linha; a terceira fica plana. */
 html:root .inn-c-afundado.inn-c-afundado.inn-c-afundado{ background-color:var(--inn-t-fundo) !important; background-image:none !important; border-color:transparent !important; box-shadow:var(--inn-t-fundo-sombra) !important; border-radius:10px !important; }
 html:root .inn-c-plano.inn-c-plano.inn-c-plano{ background-color:transparent !important; background-image:none !important; border-color:transparent !important; box-shadow:none !important; }
