@@ -369,64 +369,66 @@ html:root .inn-c-sem-filete-depois.inn-c-sem-filete-depois::after{ opacity:0 !im
    "CONVERSAS" em maiúsculas azuis. Aqui tudo vira a família da home: caixa afundada com as
    iniciais, bolha na prata (a minha no azul suave), chip de menção no azul do Yuris com o tipo
    no rótulo, pílula azul para etiqueta e não lidas, painel de menções igual ao cartão da home.
-   Só cor, superfície, raio e fonte; nada de medida (o teste barra). Fica no fim da folha para
+   Só cor, superfície, raio e fonte; nada de medida (o teste barra). Sem depender de
+   .inn-tela: o prefixo ci- já é só desta tela, e assim vale mesmo se a tela for achada
+   noutro elemento. Fica no fim da folha para
    ganhar dos empates com as marcas genéricas (inn-c-texto-*, inn-selo-*). */
-html:root .inn-tela .ci-sidebar.ci-sidebar, html:root .inn-tela .ci-main.ci-main{
+html:root .ci-sidebar.ci-sidebar, html:root .ci-main.ci-main{
   background:var(--inn-t-painel) !important; border-color:var(--inn-t-linha) !important; box-shadow:var(--inn-t-sombra) !important; border-radius:12px !important;
 }
-html:root .inn-tela .ci-sidebar-header.ci-sidebar-header, html:root .inn-tela .ci-header.ci-header, html:root .inn-tela .ci-input-wrap.ci-input-wrap{
+html:root .ci-sidebar-header.ci-sidebar-header, html:root .ci-header.ci-header, html:root .ci-input-wrap.ci-input-wrap{
   background:transparent !important; border-color:var(--inn-t-linha) !important;
 }
-html:root .inn-tela .ci-sidebar-title.ci-sidebar-title{ color:var(--inn-t-texto) !important; text-transform:none !important; letter-spacing:-.2px !important; font-size:15px !important; font-weight:700 !important; }
-html:root .inn-tela .ci-btn-new.ci-btn-new, html:root .inn-tela .ci-send-btn.ci-send-btn{
+html:root .ci-sidebar-title.ci-sidebar-title{ color:var(--inn-t-texto) !important; text-transform:none !important; letter-spacing:-.2px !important; font-size:15px !important; font-weight:700 !important; }
+html:root .ci-btn-new.ci-btn-new, html:root .ci-send-btn.ci-send-btn{
   background:linear-gradient(180deg, var(--inn-t-azul2), var(--inn-t-azul)) !important; color:#fff !important; border-color:transparent !important;
   box-shadow:var(--inn-t-brilho) !important; border-radius:8px !important; font-weight:600 !important;
 }
-html:root .inn-tela .ci-btn-arch.ci-btn-arch, html:root .inn-tela .ci-header-opts.ci-header-opts{
+html:root .ci-btn-arch.ci-btn-arch, html:root .ci-header-opts.ci-header-opts{
   background:var(--inn-t-fundo) !important; border:1px solid var(--inn-t-linha) !important; box-shadow:var(--inn-t-fundo-sombra) !important; color:var(--inn-t-icone) !important; border-radius:8px !important;
 }
-html:root .inn-tela .ci-btn-arch.ci-btn-arch:hover, html:root .inn-tela .ci-btn-arch.ci-btn-arch.active, html:root .inn-tela .ci-header-opts.ci-header-opts:hover{ color:var(--inn-t-azul2) !important; border-color:rgba(61,101,203,.45) !important; }
+html:root .ci-btn-arch.ci-btn-arch:hover, html:root .ci-btn-arch.ci-btn-arch.active, html:root .ci-header-opts.ci-header-opts:hover{ color:var(--inn-t-azul2) !important; border-color:rgba(61,101,203,.45) !important; }
 /* Lista de conversas */
-html:root .inn-tela .ci-conv-item.ci-conv-item{ background:transparent !important; border-bottom-color:var(--inn-t-linha) !important; }
-html:root .inn-tela .ci-conv-item.ci-conv-item:hover{ background:var(--inn-t-azul-suave) !important; }
-html:root .inn-tela .ci-conv-item.ci-conv-item.active{ background:var(--inn-t-azul-suave) !important; box-shadow:inset 0 0 0 1px rgba(61,101,203,.35) !important; }
+html:root .ci-conv-item.ci-conv-item{ background:transparent !important; border-bottom-color:var(--inn-t-linha) !important; }
+html:root .ci-conv-item.ci-conv-item:hover{ background:var(--inn-t-azul-suave) !important; }
+html:root .ci-conv-item.ci-conv-item.active{ background:var(--inn-t-azul-suave) !important; box-shadow:inset 0 0 0 1px rgba(61,101,203,.35) !important; }
 /* Iniciais na caixa afundada da home, sem cor por tipo */
-html:root .inn-tela .ci-conv-avatar.ci-conv-avatar, html:root .inn-tela .ci-header-avatar.ci-header-avatar, html:root .inn-tela .ci-mention-icon.ci-mention-icon,
+html:root .ci-conv-avatar.ci-conv-avatar, html:root .ci-header-avatar.ci-header-avatar, html:root .ci-mention-icon.ci-mention-icon,
 html:root .ci-chk-avatar.ci-chk-avatar, html:root .ci-type-card-icon.ci-type-card-icon{
   background:var(--inn-t-fundo) !important; border:1px solid var(--inn-t-linha) !important; box-shadow:var(--inn-t-fundo-sombra) !important;
   color:var(--inn-t-icone) !important; border-radius:8px !important; font-weight:700 !important;
 }
-html:root .inn-tela .ci-conv-name.ci-conv-name, html:root .inn-tela .ci-header-name.ci-header-name, html:root .inn-tela .ci-mention-name.ci-mention-name, html:root .ci-chk-name.ci-chk-name, html:root .ci-type-card-name.ci-type-card-name{ color:var(--inn-t-texto) !important; font-weight:600 !important; }
-html:root .inn-tela .ci-conv-preview.ci-conv-preview, html:root .inn-tela .ci-conv-time.ci-conv-time, html:root .inn-tela .ci-header-sub.ci-header-sub, html:root .inn-tela .ci-mention-sub.ci-mention-sub,
-html:root .inn-tela .ci-msg-sender.ci-msg-sender, html:root .inn-tela .ci-msg-time.ci-msg-time, html:root .inn-tela .ci-mention-hint.ci-mention-hint, html:root .inn-tela .ci-mpanel-empty.ci-mpanel-empty,
-html:root .ci-chk-sub.ci-chk-sub, html:root .ci-type-card-desc.ci-type-card-desc, html:root .inn-tela .ci-empty.ci-empty{ color:var(--inn-t-texto3) !important; }
+html:root .ci-conv-name.ci-conv-name, html:root .ci-header-name.ci-header-name, html:root .ci-mention-name.ci-mention-name, html:root .ci-chk-name.ci-chk-name, html:root .ci-type-card-name.ci-type-card-name{ color:var(--inn-t-texto) !important; font-weight:600 !important; }
+html:root .ci-conv-preview.ci-conv-preview, html:root .ci-conv-time.ci-conv-time, html:root .ci-header-sub.ci-header-sub, html:root .ci-mention-sub.ci-mention-sub,
+html:root .ci-msg-sender.ci-msg-sender, html:root .ci-msg-time.ci-msg-time, html:root .ci-mention-hint.ci-mention-hint, html:root .ci-mpanel-empty.ci-mpanel-empty,
+html:root .ci-chk-sub.ci-chk-sub, html:root .ci-type-card-desc.ci-type-card-desc, html:root .ci-empty.ci-empty{ color:var(--inn-t-texto3) !important; }
 /* Etiqueta de tipo e não lidas: a pílula da home */
-html:root .inn-tela .ci-tipo-tag.ci-tipo-tag, html:root .inn-tela .ci-header-badge.ci-header-badge{ background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul2) !important; border-radius:6px !important; }
-html:root .inn-tela .ci-badge.ci-badge{ background:var(--inn-t-azul) !important; color:#fff !important; }
+html:root .ci-tipo-tag.ci-tipo-tag, html:root .ci-header-badge.ci-header-badge{ background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul2) !important; border-radius:6px !important; }
+html:root .ci-badge.ci-badge{ background:var(--inn-t-azul) !important; color:#fff !important; }
 /* Mensagens: a bolha dos outros na prata, a minha no azul suave; a data como o rótulo de dia da home */
-html:root .inn-tela .ci-msg-bubble.ci-msg-bubble{ background:var(--inn-t-painel2) !important; color:var(--inn-t-texto) !important; border:1px solid var(--inn-t-linha) !important; box-shadow:0 1px 0 var(--inn-t-hi) inset !important; border-radius:10px !important; }
-html:root .inn-tela .ci-msg--out .ci-msg-bubble.ci-msg-bubble{ background:var(--inn-t-azul-suave) !important; border-color:rgba(61,101,203,.28) !important; }
-html:root .inn-tela .ci-date-sep.ci-date-sep{ color:var(--inn-t-azul2) !important; font-size:11px !important; font-weight:700 !important; text-transform:uppercase !important; letter-spacing:.06em !important; justify-content:center !important; }
-html:root .inn-tela .ci-date-sep.ci-date-sep::before, html:root .inn-tela .ci-date-sep.ci-date-sep::after{ content:none !important; }
+html:root .ci-msg-bubble.ci-msg-bubble{ background:var(--inn-t-painel2) !important; color:var(--inn-t-texto) !important; border:1px solid var(--inn-t-linha) !important; box-shadow:0 1px 0 var(--inn-t-hi) inset !important; border-radius:10px !important; }
+html:root .ci-msg--out .ci-msg-bubble.ci-msg-bubble{ background:var(--inn-t-azul-suave) !important; border-color:rgba(61,101,203,.28) !important; }
+html:root .ci-date-sep.ci-date-sep{ color:var(--inn-t-azul2) !important; font-size:11px !important; font-weight:700 !important; text-transform:uppercase !important; letter-spacing:.06em !important; justify-content:center !important; }
+html:root .ci-date-sep.ci-date-sep::before, html:root .ci-date-sep.ci-date-sep::after{ content:none !important; }
 /* Chip de menção: todos no azul do Yuris; o tipo fica no rótulo pequeno */
-html:root .inn-tela .ci-mention.ci-mention{ background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul2) !important; border-color:transparent !important; border-radius:6px !important; font-weight:600 !important; }
-html:root .inn-tela .ci-mention.ci-mention .ci-mention-label{ color:var(--inn-t-texto3) !important; opacity:1 !important; text-transform:uppercase !important; letter-spacing:.04em !important; font-size:9.5px !important; font-weight:700 !important; }
+html:root .ci-mention.ci-mention{ background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul2) !important; border-color:transparent !important; border-radius:6px !important; font-weight:600 !important; }
+html:root .ci-mention.ci-mention .ci-mention-label{ color:var(--inn-t-texto3) !important; opacity:1 !important; text-transform:uppercase !important; letter-spacing:.04em !important; font-size:9.5px !important; font-weight:700 !important; }
 /* Painel de menções: o cartão da home; busca e campo de mensagem brancos */
-html:root .inn-tela .ci-mention-panel.ci-mention-panel{ background:var(--inn-t-painel) !important; border-color:var(--inn-t-linha2) !important; box-shadow:var(--inn-t-sombra) !important; border-radius:12px !important; }
-html:root .inn-tela .ci-mpanel-search.ci-mpanel-search, html:root .inn-tela .ci-textarea.ci-textarea{ background:var(--inn-t-campo-pop) !important; border-color:var(--inn-t-linha2) !important; color:var(--inn-t-texto) !important; border-radius:8px !important; box-shadow:none !important; }
-html:root .inn-tela .ci-mpanel-search.ci-mpanel-search:focus, html:root .inn-tela .ci-textarea.ci-textarea:focus{ border-color:var(--inn-t-azul2) !important; box-shadow:0 0 0 3px var(--inn-t-azul-suave) !important; outline:none !important; }
-html:root .inn-tela .ci-mpanel-search.ci-mpanel-search::placeholder, html:root .inn-tela .ci-textarea.ci-textarea::placeholder{ color:var(--inn-t-texto3) !important; opacity:1; }
-html:root .inn-tela .ci-mpanel-tabs.ci-mpanel-tabs{ border-bottom-color:var(--inn-t-linha) !important; }
-html:root .inn-tela .ci-mpanel-close.ci-mpanel-close{ color:var(--inn-t-texto3) !important; }
-html:root .inn-tela .ci-mpanel-section.ci-mpanel-section, html:root .inn-tela .ci-mpanel-subsection.ci-mpanel-subsection{ color:var(--inn-t-azul2) !important; font-weight:800 !important; letter-spacing:.08em !important; background:transparent !important; border-color:var(--inn-t-linha) !important; }
-html:root .inn-tela .ci-mention-item.ci-mention-item:hover, html:root .inn-tela .ci-mention-item.ci-mention-item.focused{ background:var(--inn-t-azul-suave) !important; }
-html:root .inn-tela .ci-mention-item.ci-mention-item.focused{ box-shadow:inset 0 0 0 1px rgba(61,101,203,.4) !important; }
+html:root .ci-mention-panel.ci-mention-panel{ background:var(--inn-t-painel) !important; border-color:var(--inn-t-linha2) !important; box-shadow:var(--inn-t-sombra) !important; border-radius:12px !important; }
+html:root .ci-mpanel-search.ci-mpanel-search, html:root .ci-textarea.ci-textarea{ background:var(--inn-t-campo-pop) !important; border-color:var(--inn-t-linha2) !important; color:var(--inn-t-texto) !important; border-radius:8px !important; box-shadow:none !important; }
+html:root .ci-mpanel-search.ci-mpanel-search:focus, html:root .ci-textarea.ci-textarea:focus{ border-color:var(--inn-t-azul2) !important; box-shadow:0 0 0 3px var(--inn-t-azul-suave) !important; outline:none !important; }
+html:root .ci-mpanel-search.ci-mpanel-search::placeholder, html:root .ci-textarea.ci-textarea::placeholder{ color:var(--inn-t-texto3) !important; opacity:1; }
+html:root .ci-mpanel-tabs.ci-mpanel-tabs{ border-bottom-color:var(--inn-t-linha) !important; }
+html:root .ci-mpanel-close.ci-mpanel-close{ color:var(--inn-t-texto3) !important; }
+html:root .ci-mpanel-section.ci-mpanel-section, html:root .ci-mpanel-subsection.ci-mpanel-subsection{ color:var(--inn-t-azul2) !important; font-weight:800 !important; letter-spacing:.08em !important; background:transparent !important; border-color:var(--inn-t-linha) !important; }
+html:root .ci-mention-item.ci-mention-item:hover, html:root .ci-mention-item.ci-mention-item.focused{ background:var(--inn-t-azul-suave) !important; }
+html:root .ci-mention-item.ci-mention-item.focused{ box-shadow:inset 0 0 0 1px rgba(61,101,203,.4) !important; }
 /* Menu ⋯ */
-html:root .inn-tela .ci-options-menu.ci-options-menu{ background:var(--inn-t-painel) !important; border-color:var(--inn-t-linha2) !important; box-shadow:var(--inn-t-sombra) !important; border-radius:10px !important; }
-html:root .inn-tela .ci-opt-btn.ci-opt-btn{ color:var(--inn-t-texto) !important; }
-html:root .inn-tela .ci-opt-btn.ci-opt-btn:hover{ background:var(--inn-t-azul-suave) !important; }
-html:root .inn-tela .ci-opt-btn.ci-opt-btn.danger{ color:var(--inn-t-erro) !important; }
-html:root .inn-tela .ci-opt-divider.ci-opt-divider{ background:var(--inn-t-linha) !important; }
+html:root .ci-options-menu.ci-options-menu{ background:var(--inn-t-painel) !important; border-color:var(--inn-t-linha2) !important; box-shadow:var(--inn-t-sombra) !important; border-radius:10px !important; }
+html:root .ci-opt-btn.ci-opt-btn{ color:var(--inn-t-texto) !important; }
+html:root .ci-opt-btn.ci-opt-btn:hover{ background:var(--inn-t-azul-suave) !important; }
+html:root .ci-opt-btn.ci-opt-btn.danger{ color:var(--inn-t-erro) !important; }
+html:root .ci-opt-divider.ci-opt-divider{ background:var(--inn-t-linha) !important; }
 /* Nova conversa: tipo escolhido e participante marcado no azul suave; o campo do modal legível */
 html:root .ci-type-card.ci-type-card{ background:var(--inn-t-painel2) !important; border-color:var(--inn-t-linha) !important; border-radius:10px !important; }
 html:root .ci-type-card.ci-type-card:hover{ border-color:var(--inn-t-linha2) !important; }
@@ -440,12 +442,12 @@ html:root .ci-modal.ci-modal input, html:root .ci-modal.ci-modal select{ -webkit
 html:root .ci-modal.ci-modal input::placeholder{ color:var(--inn-t-texto3) !important; -webkit-text-fill-color:var(--inn-t-texto3) !important; }
 html:root .ci-modal-cancel.ci-modal-cancel{ background:var(--inn-t-painel2) !important; color:var(--inn-t-texto) !important; border-color:var(--inn-t-linha2) !important; border-radius:8px !important; }
 html:root .ci-modal-confirm.ci-modal-confirm{ background:linear-gradient(180deg, var(--inn-t-azul2), var(--inn-t-azul)) !important; box-shadow:var(--inn-t-brilho) !important; border-radius:8px !important; }
-html:root .inn-tela .ci-load-more.ci-load-more{ background:var(--inn-t-painel2) !important; color:var(--inn-t-texto2) !important; border-color:var(--inn-t-linha2) !important; border-radius:8px !important; }
+html:root .ci-load-more.ci-load-more{ background:var(--inn-t-painel2) !important; color:var(--inn-t-texto2) !important; border-color:var(--inn-t-linha2) !important; border-radius:8px !important; }
 /* O avião do botão Enviar e o texto do + Nova: brancos sobre o azul (o traço vinha cinza). */
-html:root .inn-tela .ci-send-btn.ci-send-btn svg, html:root .inn-tela .ci-send-btn.ci-send-btn svg *{ stroke:#fff !important; color:#fff !important; fill:none !important; }
-html:root .inn-tela .ci-send-btn.ci-send-btn:disabled{ opacity:.45 !important; }
+html:root .ci-send-btn.ci-send-btn svg, html:root .ci-send-btn.ci-send-btn svg *{ stroke:#fff !important; color:#fff !important; fill:none !important; }
+html:root .ci-send-btn.ci-send-btn:disabled{ opacity:.45 !important; }
 /* O menu ⋯ ficava atrás das bolhas: o cabeçalho ganha contexto de empilhamento (a entrada
    animada das peças cria contexto nas bolhas, e o z-index 400 do menu valia só dentro do
    cabeçalho, que ficava abaixo delas). O mesmo para o painel de menções no rodapé. */
-html:root .inn-tela .ci-header.ci-header{ z-index:20 !important; }
-html:root .inn-tela .ci-input-wrap.ci-input-wrap{ z-index:20 !important; }
+html:root .ci-header.ci-header{ z-index:20 !important; }
+html:root .ci-input-wrap.ci-input-wrap{ z-index:20 !important; }
