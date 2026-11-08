@@ -1,0 +1,118 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   inicio-movimento.css: o movimento da home nova (prévia, 08/11/2026).
+
+   "Agora eu quero animação em tudo: o dia do calendário preenchendo quando eu
+   clico, o cartão se transformando no pop-up, os números crescendo, a página
+   indo quando eu abro o processo. Animações elaboradas, condizentes com o que
+   estou abrindo." O sistema já é funcional; esta folha e o inicio-movimento.js
+   fazem o bonito. Nada aqui muda cor nem tamanho fora do movimento: a paleta é
+   a de inicio.css (prata, preto, azul opaco), e o azul só aparece onde já era.
+
+   O que mora aqui:
+     1. a entrada da página: a faixa, os quatro números e os cartões sobem um a um;
+     2. o preenchimento: o dia do calendário e os atalhos enchem de azul a partir
+        do ponto do clique; botões e cartões têm a onda do toque;
+     3. a lista do dia sai e entra; o título troca; o mês desliza;
+     4. o pop-up nasce do cartão clicado e volta para ele; o conteúdo dele
+        preenche campo por campo; os números crescem;
+     5. a página sai ao ir para outra tela;
+     6. o cartão resolvido se recolhe.
+   Tudo some em prefers-reduced-motion.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root{
+  --mov-saida:cubic-bezier(.2,.8,.2,1);      /* desacelera no fim */
+  --mov-mola:cubic-bezier(.34,1.32,.4,1);    /* passa um pouco e volta: "pulsa de verdade" */
+  --mov-entrada:cubic-bezier(.4,0,.7,.2);    /* acelera ao sair */
+}
+
+@media (prefers-reduced-motion: no-preference){
+
+/* ── 1. A entrada da página ─────────────────────────────────────────────── */
+@keyframes ini-sobe{ from{ opacity:0; transform:translateY(16px) scale(.985); } to{ opacity:1; transform:none; } }
+html.ini-mov .ini-sala.ini-sobe, html.ini-mov .ini-kpi.ini-sobe, html.ini-mov .ini-card.ini-sobe{
+  animation:ini-sobe .55s var(--mov-saida) both; animation-delay:calc(var(--mov-i, 0) * 55ms);
+}
+/* O hover do KPI usa transform; depois da entrada, a animação solta o elemento. */
+html.ini-mov .ini-kpi.ini-sobe.ini-pronto, html.ini-mov .ini-card.ini-sobe.ini-pronto, html.ini-mov .ini-sala.ini-sobe.ini-pronto{ animation:none; }
+
+/* ── 2. O preenchimento a partir do ponto do clique ─────────────────────── */
+/* O círculo nasce em --cx/--cy (o JS grava o ponto no pointerdown) e cresce até
+   cobrir a caixa; o fundo azul de verdade só entra quando o círculo terminou. */
+@keyframes ini-preenche{ from{ transform:translate(-50%,-50%) scale(0); } to{ transform:translate(-50%,-50%) scale(1); } }
+html.ini-mov .ini-cal-dia, html.ini-mov .ini-atalho{ position:relative; overflow:hidden; isolation:isolate; }
+html.ini-mov .ini-cal-dia.sel::before, html.ini-mov .ini-atalho.sel::before{
+  content:""; position:absolute; z-index:-1; left:var(--cx, 50%); top:var(--cy, 50%);
+  width:260%; padding-top:260%; border-radius:50%;
+  background:linear-gradient(180deg, var(--ini-azul2), var(--ini-azul));
+  transform:translate(-50%,-50%) scale(1);
+  animation:ini-preenche .42s var(--mov-saida) both;
+}
+html.ini-mov .ini-cal-dia.sel, html.ini-mov .ini-atalho.sel{
+  background:transparent; transition:color .18s ease, box-shadow .3s ease .2s, border-color .2s;
+}
+html.ini-mov .ini-cal-dia.faixa{ transition:background .22s ease, border-color .22s ease; }
+/* Soltar a tecla: a caixa afunda um nada e volta. */
+html.ini-mov .ini-cal-dia:active, html.ini-mov .ini-atalho:active, html.ini-mov .ini-btn:active, html.ini-mov .idt-btn:active,
+html.ini-mov .ini-kpi:active, html.ini-mov .ini-ctr:active, html.ini-mov a.ini-ic:active, html.ini-mov .ini-cartao:active{ transform:scale(.975) !important; transition-duration:.08s !important; }
+
+/* A onda do toque nos botões, cartões de número e ícones: um anel azul fraco que
+   abre do ponto do clique e some. Opaco e curto, sem brilho largo. */
+@keyframes ini-onda{ from{ transform:translate(-50%,-50%) scale(0); opacity:.28; } to{ transform:translate(-50%,-50%) scale(1); opacity:0; } }
+html.ini-mov .ini-btn, html.ini-mov .idt-btn, html.ini-mov .ini-kpi, html.ini-mov .ini-ctr, html.ini-mov a.ini-ic, html.ini-mov .ini-cartao{ position:relative; overflow:hidden; isolation:isolate; }
+html.ini-mov .ini-ondula::after{
+  content:""; position:absolute; z-index:0; pointer-events:none; left:var(--cx, 50%); top:var(--cy, 50%);
+  width:240%; padding-top:240%; border-radius:50%; background:var(--ini-azul2);
+  animation:ini-onda .55s var(--mov-saida) forwards;
+}
+html.ini-mov .ini-btn > *, html.ini-mov .idt-btn > *, html.ini-mov .ini-kpi > *, html.ini-mov .ini-ctr > *, html.ini-mov .ini-cartao > *{ position:relative; z-index:1; }
+
+/* ── 3. A lista do dia, o título e o mês ────────────────────────────────── */
+@keyframes ini-entra{ from{ opacity:0; transform:translateX(-10px); } to{ opacity:1; transform:none; } }
+@keyframes ini-troca{ from{ opacity:0; transform:translateY(-5px); } to{ opacity:1; transform:none; } }
+@keyframes ini-mes-esq{ from{ opacity:0; transform:translateX(-18px); } to{ opacity:1; transform:none; } }
+@keyframes ini-mes-dir{ from{ opacity:0; transform:translateX(18px); } to{ opacity:1; transform:none; } }
+html.ini-mov #iniDiaLista{ transition:opacity .12s var(--mov-entrada), transform .12s var(--mov-entrada); }
+html.ini-mov #iniDiaLista.ini-lista-saindo{ opacity:0; transform:translateX(8px); }
+html.ini-mov #iniDiaLista > .ini-entra{ animation:ini-entra .38s var(--mov-saida) both; animation-delay:calc(var(--mov-i, 0) * 40ms); }
+html.ini-mov #iniDiaTitulo.ini-troca, html.ini-mov #iniDiaConta.ini-troca{ animation:ini-troca .3s var(--mov-saida) both; }
+html.ini-mov #iniCalDias.ini-mes-esq{ animation:ini-mes-esq .32s var(--mov-saida) both; }
+html.ini-mov #iniCalDias.ini-mes-dir{ animation:ini-mes-dir .32s var(--mov-saida) both; }
+
+/* ── 4. O pop-up nasce do cartão e se preenche ──────────────────────────── */
+/* O inicio-detalhe.js põe a janela em cima do cartão (translate e scale) e solta:
+   a transição abaixo a leva até o lugar dela, passando um pouco e voltando. */
+html.ini-mov .idt-fundo{ transition:opacity .26s ease; }
+html.ini-mov .idt-janela{ transition:transform .44s var(--mov-mola), opacity .3s ease; will-change:transform; }
+html.ini-mov .idt-fundo.fechando .idt-janela{ transition:transform .22s var(--mov-entrada), opacity .18s ease; }
+@keyframes ini-pressiona{ 0%{ transform:scale(1); } 40%{ transform:scale(.965); } 100%{ transform:scale(1); } }
+html.ini-mov .ini-cartao.ini-abrindo, html.ini-mov .ini-btn.ini-abrindo{ animation:ini-pressiona .36s var(--mov-saida); }
+/* O conteúdo entra campo por campo, de cima para baixo. */
+@keyframes idt-entra{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+html.ini-mov .idt-janela .idt-entra{ animation:idt-entra .4s var(--mov-saida) both; animation-delay:calc(90ms + var(--mov-i, 0) * 38ms); }
+html.ini-mov .idt-acoes > .idt-entra{ animation-delay:calc(160ms + var(--mov-i, 0) * 50ms); }
+/* O número que cresce no pop-up da pessoa e nos cartões de cima. */
+html.ini-mov .ini-kpi b, html.ini-mov .ini-ctr-t b, html.ini-mov .idt-numeros b{ font-variant-numeric:tabular-nums; }
+@keyframes ini-bate{ 0%{ transform:scale(1); } 55%{ transform:scale(1.08); } 100%{ transform:scale(1); } }
+html.ini-mov .ini-kpi b.ini-contou, html.ini-mov .ini-ctr-t b.ini-contou, html.ini-mov .idt-numeros b.ini-contou{ animation:ini-bate .34s var(--mov-mola); transform-origin:left center; }
+/* O pop-up de verdade do módulo: enquanto abre, a caixa "Abrindo…" respira; pronto, o quadro surge. */
+@keyframes idt-respira{ 0%,100%{ transform:translate(-50%,-50%) scale(1); } 50%{ transform:translate(-50%,-50%) scale(1.04); } }
+@keyframes idt-surge{ from{ opacity:0; transform:scale(.965) translateY(10px); } to{ opacity:1; transform:none; } }
+html.ini-mov .idt-embed .idt-carregando.grande{ animation:idt-respira 1.3s ease-in-out infinite; }
+html.ini-mov .idt-embed.pronto .idt-embed-quadro{ animation:idt-surge .36s var(--mov-mola) both; }
+html.ini-mov .idt-embed{ transition:opacity .24s ease; }
+
+/* ── 5. A página sai ao ir para outra tela ──────────────────────────────── */
+html.ini-mov.ini-saindo body{ opacity:0; transition:opacity .22s var(--mov-entrada); }
+html.ini-mov.ini-saindo main{ transform:translateY(-10px) scale(.992); transition:transform .22s var(--mov-entrada); }
+
+/* ── 6. O cartão resolvido se recolhe ───────────────────────────────────── */
+html.ini-mov .ini-cartao{ transition:border-color .15s, transform .15s, background .15s, opacity .4s ease, filter .4s ease; }
+@keyframes ini-feito{ 0%{ transform:scale(1); } 35%{ transform:scale(.97); border-color:var(--ini-azul2); } 100%{ transform:scale(1); } }
+html.ini-mov .ini-cartao.ini-feito{ animation:ini-feito .5s var(--mov-saida); }
+
+}
+
+/* Sem movimento por escolha do sistema: nada acima vale e nada fica escondido. */
+@media (prefers-reduced-motion: reduce){
+  .ini-sobe, .ini-entra, .idt-entra{ animation:none !important; opacity:1 !important; transform:none !important; }
+}

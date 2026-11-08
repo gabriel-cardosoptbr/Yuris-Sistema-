@@ -150,6 +150,20 @@ seleção em pílula.
 - A faixa de boas-vindas: a saudação segue o horário de Brasília (`Painel::saudacao`, 5h a 12h
   Bom dia, 12h a 18h Boa tarde, depois Boa noite) e se atualiza sozinha a cada minuto com a
   página aberta; o nome vem no degradê do logo, do azul do Yuris para a prata (08/11/2026).
+- **O movimento** (08/11/2026, "agora eu quero animação em tudo, animações elaboradas,
+  condizentes com o que estou abrindo"): `assets/inicio-movimento.css` + `inicio-movimento.js`,
+  carregados depois de tudo e só fora de `prefers-reduced-motion`. Não mudam regra nem cor:
+  observam o que os outros scripts fazem e põem o movimento por cima. A faixa, os quatro
+  números e os cartões sobem um a um na entrada; os números contam de zero até o valor
+  (cartões de cima, prazos, o pop-up da pessoa); o dia do calendário e os atalhos enchem de
+  azul a partir do ponto do clique (`--cx/--cy`, gravados no pointerdown); botões, cartões e
+  ícones têm a onda do toque; a lista do dia sai e entra item por item, o título troca e o
+  mês desliza para o lado da seta; o pop-up nasce do cartão clicado (o `inicio-detalhe.js`
+  o põe em cima do cartão e solta) e volta para ele ao fechar, com o conteúdo entrando campo
+  por campo; link para outra tela leva a página embora antes de navegar; o cartão resolvido
+  se recolhe. Movimento das telas de dentro e do menu: `assets/interface-nova-movimento.css`
+  + `.js` (entrada da tela, saída pelo menu, pop-ups que surgem, toque nos botões), que o
+  menu carrega com a folha das telas e que não rodam no modo embutido.
 - `assets/inicio.css` é a home: dois temas pelas variáveis `--ini-*`, a faixa de
   boas-vindas com uma biblioteca jurídica ao fundo (`assets/img/inicio-biblioteca.jpg`,
   foto de Planet Volumes no Unsplash, licença Unsplash: uso comercial livre, sem

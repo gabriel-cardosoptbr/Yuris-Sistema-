@@ -239,6 +239,22 @@ ok(str_contains($detJs, 'e.blocos') && str_contains($detJs, 'e.advogados') && st
 ok(str_contains((string) file_get_contents($raiz . '/app/Inicio/Painel.php'), 'PublicacaoEstrutura::estruturar('), 'a home manda a publicação já separada pelo servidor');
 ok(str_contains($inicio, "timeZone: 'America/Sao_Paulo'") && str_contains($inicio, '<span id="iniSaudacao">'), 'a saudação acompanha o relógio de Brasília na página aberta');
 ok(str_contains((string) file_get_contents($raiz . '/public/assets/inicio.css'), '.ini-sala h1 .ini-nome{') && str_contains($inicio, '<span class="ini-nome">'), 'o nome em degradê azul para prata, como o logo');
+// 08/11/2026: "agora eu quero animação em tudo". O movimento mora em folhas e scripts próprios, só com movimento.
+$movCss = (string) @file_get_contents($raiz . '/public/assets/inicio-movimento.css');
+$movJs  = (string) @file_get_contents($raiz . '/public/assets/inicio-movimento.js');
+ok($movCss !== '' && $movJs !== '' && str_contains($inicio, '/assets/inicio-movimento.css') && str_contains($inicio, '/assets/inicio-movimento.js'), 'a home carrega a folha e o script do movimento');
+ok(str_contains($movCss, '@media (prefers-reduced-motion: no-preference)') && str_contains($movJs, "matchMedia('(prefers-reduced-motion: reduce)').matches) return;"), 'o movimento respeita quem pediu menos movimento');
+foreach (['ini-sobe', 'ini-preenche', 'ini-onda', 'ini-entra', 'ini-mes-esq', 'idt-entra', 'idt-surge', 'ini-feito', 'ini-bate'] as $k) ok(str_contains($movCss, '@keyframes ' . $k . '{'), "movimento: existe a animação $k");
+ok(str_contains($movJs, "b.style.setProperty('--cx'") && str_contains($movCss, 'left:var(--cx, 50%); top:var(--cy, 50%)'), 'o preenchimento nasce no ponto do clique');
+ok(str_contains($movJs, 'function contar(el, dur)') && str_contains($movJs, "'.ini-kpi b, .ini-ctr-t b, .ini-sala p b'") && str_contains($movJs, "'.idt-numeros b'"), 'os números crescem nos cartões de cima, nos prazos e no pop-up da pessoa');
+ok(str_contains($detJs, 'function origemRect()') && str_contains($detJs, "fundo.classList.add('fechando')") && str_contains($movCss, '.idt-fundo.fechando .idt-janela'), 'o pop-up nasce do cartão clicado e volta para ele');
+ok(str_contains($movJs, "html.classList.add('ini-saindo')") && str_contains($movCss, 'html.ini-mov.ini-saindo body{'), 'a página sai antes de ir para outra tela');
+ok(!preg_match('/^(?!.*(animation|transition|transform|opacity|keyframes|--mov|--cx|--cy|isolation|overflow|position|z-index|pointer-events|will-change|font-variant|border-radius|padding-top|width|left|top|background|display|content|border-color|transform-origin)).*:\s*#[0-9a-f]{3,6}/mi', $movCss), 'a folha do movimento não traz cor nova');
+$innCss = (string) @file_get_contents($raiz . '/public/assets/interface-nova-movimento.css');
+$innJs  = (string) @file_get_contents($raiz . '/public/assets/interface-nova-movimento.js');
+ok($innCss !== '' && $innJs !== '' && str_contains($sidebar, '/assets/interface-nova-movimento.css') && str_contains($sidebar, '/assets/interface-nova-movimento.js'), 'as telas de dentro carregam o movimento delas');
+ok(str_contains($innCss, '@keyframes inn-surge{') && str_contains($innCss, '#modalProcess:not(.hidden) .proc-modal') && str_contains($innCss, '.modal-shell.open .modal-panel') && str_contains($innCss, '.tk-modal-overlay.open .tk-modal'), 'os pop-ups das telas surgem');
+ok(str_contains($innJs, "if (html.classList.contains('yuris-embed')) return;"), 'o movimento das telas não roda no modo embutido');
 ok(substr_count($inicio, 'class="ini-ctr ') === 1 && str_contains($inicio, '<span class="ini-ctr-ic">') && str_contains((string) file_get_contents($raiz . '/public/assets/inicio.css'), '.ini-ctr.hoje:not(.zero) .ini-ctr-t b{ color:var(--ini-erro); }'), 'contadores de Prazos como cartões, vermelho só em hoje com prazo');
 ok(str_contains($detJs, 'idt-pub-link-txt') && str_contains($detJs, "g.rotulo === 'Partes' ? ''"), 'endereço no teor vira link e o rótulo Partes não se repete');
 ok(str_contains($inicio, 'data-novo="processo"') && str_contains($inicio, 'data-novo="tarefa"') && str_contains($inicio, 'data-novo="publicacoes"'), 'os três botões da faixa abrem o pop-up');

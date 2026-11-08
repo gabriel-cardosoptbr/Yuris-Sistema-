@@ -1,0 +1,42 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   interface-nova-movimento.css: o movimento das outras telas na prévia
+   (08/11/2026). Par do interface-nova-movimento.js.
+
+   "Quero animação em tudo que eu clicar." A home tem a folha própria
+   (inicio-movimento.css); esta vale para as telas de dentro e para o menu:
+     1. a tela entra subindo quando abre;
+     2. a página sai ao ir para outra tela pelo menu;
+     3. os pop-ups das telas surgem (crescem e assentam) em vez de aparecer;
+     4. o item do menu e os botões afundam um nada ao serem apertados.
+   Só movimento: nenhuma cor, tamanho ou posição de repouso muda aqui.
+   Não vale no modo embutido (?embed=1), onde a home já faz a entrada.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: no-preference){
+
+@keyframes inn-sobe{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:none; } }
+@keyframes inn-surge{ from{ opacity:0; transform:scale(.955) translateY(12px); } to{ opacity:1; transform:none; } }
+
+/* 1. A tela entra. */
+html.inn-mov:not(.yuris-embed) .main-content, html.inn-mov:not(.yuris-embed) main > .page-layout > :not(.sidebar):not(aside){
+  animation:inn-sobe .46s cubic-bezier(.2,.8,.2,1) both;
+}
+
+/* 2. A tela sai pelo menu. */
+html.inn-mov.inn-saindo body{ opacity:0; transition:opacity .22s cubic-bezier(.4,0,.7,.2); }
+html.inn-mov.inn-saindo .main-content{ transform:translateY(-10px); transition:transform .22s cubic-bezier(.4,0,.7,.2); }
+
+/* 3. Os pop-ups das telas surgem: ficha do processo, ficha do cliente, nova tarefa,
+   janelas do chat, e o que mais for diálogo. O painel da tarefa já tem o próprio. */
+html.inn-mov #modalProcess:not(.hidden) .proc-modal,
+html.inn-mov .modal-shell.open .modal-panel,
+html.inn-mov .tk-modal-overlay.open .tk-modal,
+html.inn-mov .modal-overlay.open .modal-box,
+html.inn-mov [role="dialog"].open > :first-child{
+  animation:inn-surge .34s cubic-bezier(.34,1.3,.4,1) both;
+}
+
+/* 4. Apertar. */
+html.inn-mov .sidebar nav a:not(.active):active, html.inn-mov .sidebar .sidebar-group-toggle:active{ transform:scale(.975) !important; transition-duration:.08s !important; }
+html.inn-mov button:not(:disabled):active:not(.tk-tab):not(.tab-btn), html.inn-mov .btn:active, html.inn-mov a.btn:active{ transform:scale(.97); transition:transform .08s ease; }
+
+}

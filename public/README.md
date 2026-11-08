@@ -354,7 +354,9 @@ Valem hoje Processos, Tarefas, Clientes (`?open=ID`, a ficha) e Chat (`?jid=`, a
 embutido vira o pop-up no centro da tela); cada uma é uma linha em `TELAS` no `embed.js` (08/11/2026).
 No embutido, `assets/chat.js` abre a conversa do `?jid=` mesmo quando ela está fora das 500 da
 lista (procura pelo número na própria API da lista e, sem achar, abre pelo jid); fora do embutido
-nada muda. O tamanho dos pop-ups das telas na prévia fica em `assets/interface-nova-popups.css`.
+nada muda. O tamanho dos pop-ups das telas na prévia fica em `assets/interface-nova-popups.css`;
+o movimento delas (entrada, saída pelo menu, pop-ups que surgem) em `assets/interface-nova-movimento.css`
+e `.js`, e o da home em `assets/inicio-movimento.css` e `.js` (08/11/2026).
 
 **Tema escuro da edição CRM (02/10/2026).** O desenho da edição CRM era só claro
 (todo seletor com `html[data-theme="light"]`), e no escuro sobrava o estilo antigo do

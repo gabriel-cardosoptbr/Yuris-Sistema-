@@ -138,15 +138,46 @@
     elIc.innerHTML = ICONES[icone] || ICONES.evento;
     elTit.textContent = titulo; elSub.innerHTML = sub || '';
     elCorpo.innerHTML = ''; elAcoes.innerHTML = '';
-    fundo.hidden = false;
+    var jaVisivel = !fundo.hidden && fundo.classList.contains('visivel');
+    fundo.hidden = false; fundo.classList.remove('fechando');
     document.documentElement.classList.add('idt-aberto');
-    void fundo.offsetWidth; fundo.classList.add('visivel'); // reflow em vez de rAF: aba em segundo plano não pausa a entrada
+    // A janela nasce do cartão clicado ("que se transforme o card na abertura"): começa
+    // com o tamanho e a posição dele e a transição do inicio-movimento.css a leva ao lugar.
+    var jan = fundo.querySelector('.idt-janela'), de = jaVisivel ? null : origemRect();
+    if (!de) { void fundo.offsetWidth; fundo.classList.add('visivel'); return; } // reflow em vez de rAF: aba em segundo plano não pausa a entrada
+    if (origemFoco && origemFoco.classList) { origemFoco.classList.remove('ini-abrindo'); void origemFoco.offsetWidth; origemFoco.classList.add('ini-abrindo'); }
+    // Quem chamou ainda vai encher o corpo nesta mesma volta; a medida da janela só vale
+    // depois disso, por isso a largada fica para a microtarefa seguinte.
+    jan.style.opacity = '0';
+    Promise.resolve().then(function () {
+      if (fundo.hidden) return;
+      var j = jan.getBoundingClientRect();
+      jan.style.transition = 'none'; jan.style.transformOrigin = '0 0';
+      jan.style.transform = 'translate(' + (de.left - j.left) + 'px,' + (de.top - j.top) + 'px) scale(' + Math.max(de.width / j.width, .2) + ',' + Math.max(de.height / j.height, .08) + ')';
+      jan.style.opacity = '.4';
+      void fundo.offsetWidth;
+      fundo.classList.add('visivel');
+      jan.style.transition = ''; jan.style.transform = ''; jan.style.opacity = '';
+    });
+  }
+  function origemRect() {
+    if (!origemFoco || !origemFoco.getBoundingClientRect || !document.documentElement.classList.contains('ini-mov')) return null;
+    var r = origemFoco.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 ? r : null;
   }
   function fechar() {
     if (!fundo || fundo.hidden) return;
+    // Volta para o cartão de onde veio.
+    var jan = fundo.querySelector('.idt-janela'), para = origemRect(), espera = 160;
+    if (para) {
+      var j = jan.getBoundingClientRect();
+      fundo.classList.add('fechando'); jan.style.transformOrigin = '0 0';
+      jan.style.transform = 'translate(' + (para.left - j.left) + 'px,' + (para.top - j.top) + 'px) scale(' + Math.max(para.width / j.width, .2) + ',' + Math.max(para.height / j.height, .08) + ')';
+      jan.style.opacity = '0'; espera = 230;
+    }
     fundo.classList.remove('visivel');
     document.documentElement.classList.remove('idt-aberto');
-    setTimeout(function () { fundo.hidden = true; }, 160);
+    setTimeout(function () { fundo.hidden = true; fundo.classList.remove('fechando'); jan.style.transform = ''; jan.style.opacity = ''; jan.style.transformOrigin = ''; }, espera);
     if (origemFoco) { try { origemFoco.focus({ preventScroll: true }); } catch (e) {} }
   }
   // O cartão da home que gerou a janela some da lista quando a ação o resolve.

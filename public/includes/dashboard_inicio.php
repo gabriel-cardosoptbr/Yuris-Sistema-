@@ -92,6 +92,7 @@ $evento = static function (array $i) use ($h, $det, $detEvento): string {
   <link rel="stylesheet" href="/assets/yuris-theme.css?v=42">
   <link rel="stylesheet" href="/assets/sidebar.css?v=20">
   <link rel="stylesheet" href="/assets/inicio.css?v=<?= @filemtime(__DIR__ . '/../assets/inicio.css') ?: 1 ?>">
+  <link rel="stylesheet" href="/assets/inicio-movimento.css?v=<?= @filemtime(__DIR__ . '/../assets/inicio-movimento.css') ?: 1 ?>">
 </head>
 <body class="ini-body">
 <main class="w-full">
@@ -540,5 +541,7 @@ window.INI_CAL = <?= json_encode(['hoje' => $hoje, 'mes' => $mes, 'porDia' => $p
 <!-- O pop-up de detalhe: clicar num cartão abre a janela aqui, sem sair da home. -->
 <script>window.INI_DET_CFG = { csrf: <?= json_encode((string) ($_SESSION['csrf_token'] ?? '')) ?>, hoje: <?= json_encode($hoje) ?>, tipos: <?= json_encode(Painel::TIPOS, JSON_UNESCAPED_UNICODE) ?> };</script>
 <script src="/assets/inicio-detalhe.js?v=<?= @filemtime(__DIR__ . '/../assets/inicio-detalhe.js') ?: 1 ?>" defer></script>
+<!-- O movimento da home: entrada, preenchimento, o pop-up que nasce do cartão, os números que crescem, a saída. -->
+<script src="/assets/inicio-movimento.js?v=<?= @filemtime(__DIR__ . '/../assets/inicio-movimento.js') ?: 1 ?>" defer></script>
 </body>
 </html>
