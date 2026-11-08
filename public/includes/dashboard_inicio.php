@@ -184,6 +184,9 @@ $evento = static function (array $i) use ($h): string {
                 <button type="button" class="ini-atalho" data-faixa="proxima-semana">Próxima semana</button>
                 <button type="button" class="ini-atalho" data-faixa="semana-passada">Semana passada</button>
                 <button type="button" class="ini-atalho" data-faixa="mes">Este mês</button>
+                <!-- Período livre: um clique no primeiro dia e outro no último. Também dá para
+                     arrastar sobre os dias, ou clicar com Shift a partir do dia escolhido. -->
+                <button type="button" class="ini-atalho ini-atalho-periodo" id="iniPeriodo" aria-pressed="false">Escolher datas</button>
               </div>
             </div>
             <div class="ini-dia">
@@ -390,6 +393,7 @@ window.INI_CAL = <?= json_encode(['hoje' => $hoje, 'mes' => $mes, 'porDia' => $p
     ajustaRolagem();
   }
   function faixa(nome) {
+    if (typeof sairModo === 'function') sairModo();
     var h = new Date(C.hoje + 'T12:00:00'), seg = new Date(h); seg.setDate(h.getDate() - ((h.getDay() + 6) % 7));
     var dom = new Date(seg); dom.setDate(seg.getDate() + 6);
     var a = new Date(h); a.setDate(h.getDate() + 1);
@@ -408,6 +412,7 @@ window.INI_CAL = <?= json_encode(['hoje' => $hoje, 'mes' => $mes, 'porDia' => $p
   }
   function desenhaDia(key) {
     sel = key; faixaAtual = null;
+    if (typeof sairModo === 'function' && !inicioPeriodo) sairModo();
     document.querySelectorAll('.ini-atalho').forEach(function (b) { b.classList.toggle('sel', (b.getAttribute('data-faixa') === 'hoje' && key === C.hoje)); });
     var itens = C.porDia[key] || [], d = new Date(key + 'T12:00:00'), pre = key === C.hoje ? 'Hoje' : DIAS[d.getDay()].charAt(0).toUpperCase() + DIAS[d.getDay()].slice(1);
     elTit.textContent = pre + ', ' + d.getDate() + ' de ' + MESES[d.getMonth()].slice(0, 3);
@@ -425,7 +430,53 @@ window.INI_CAL = <?= json_encode(['hoje' => $hoje, 'mes' => $mes, 'porDia' => $p
     ajustaRolagem();
   }
   if (elDias) {
-    elDias.addEventListener('click', function (e) { var x = e.target.closest('.ini-cal-dia'); if (x) desenhaDia(x.getAttribute('data-dia')); });
+    // ── Escolher as datas: clique (um dia), arraste (um período), Shift+clique
+    //    (do dia escolhido até este) ou o botão "Escolher datas" (primeiro e último dia).
+    var btnPeriodo = document.getElementById('iniPeriodo'), modoPeriodo = false, inicioPeriodo = null, arrasto = null, arrastoFim = null, moveu = false;
+    var MES3 = function (d) { return MESES[d.getMonth()].slice(0, 3); };
+    function tituloFaixa(de, ate) {
+      var a = new Date(de + 'T12:00:00'), b = new Date(ate + 'T12:00:00');
+      return a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear()
+        ? a.getDate() + ' a ' + b.getDate() + ' de ' + MES3(b)
+        : a.getDate() + ' de ' + MES3(a) + ' a ' + b.getDate() + ' de ' + MES3(b);
+    }
+    function sairModo() { modoPeriodo = false; inicioPeriodo = null; if (btnPeriodo) { btnPeriodo.classList.remove('sel'); btnPeriodo.setAttribute('aria-pressed', 'false'); btnPeriodo.textContent = 'Escolher datas'; } }
+    function intervalo(a, b) {
+      var de = a < b ? a : b, ate = a < b ? b : a;
+      sairModo();
+      if (de === ate) { desenhaDia(de); return; }
+      desenhaFaixa(de, ate, tituloFaixa(de, ate));
+      document.querySelectorAll('.ini-atalho').forEach(function (x) { x.classList.remove('sel'); });
+    }
+    function diaEm(x, y) { var el = document.elementFromPoint(x, y); el = el && el.closest ? el.closest('.ini-cal-dia') : null; return el && elDias.contains(el) ? el.getAttribute('data-dia') : null; }
+    if (btnPeriodo) btnPeriodo.addEventListener('click', function () {
+      if (modoPeriodo) { sairModo(); return; }
+      modoPeriodo = true; inicioPeriodo = null;
+      btnPeriodo.classList.add('sel'); btnPeriodo.setAttribute('aria-pressed', 'true'); btnPeriodo.textContent = 'Clique no primeiro dia';
+    });
+    elDias.addEventListener('pointerdown', function (e) {
+      var x = e.target.closest('.ini-cal-dia'); if (!x || e.button > 0) return;
+      var k = x.getAttribute('data-dia');
+      if (modoPeriodo) {
+        if (!inicioPeriodo) { inicioPeriodo = k; marcaDias(k, k, k); btnPeriodo.textContent = 'Agora o último dia'; }
+        else intervalo(inicioPeriodo, k);
+        e.preventDefault(); return;
+      }
+      if (e.shiftKey && (sel || faixaAtual)) { intervalo(sel || faixaAtual.de, k); e.preventDefault(); return; }
+      arrasto = k; arrastoFim = k; moveu = false; e.preventDefault();
+    });
+    document.addEventListener('pointermove', function (e) {
+      if (!arrasto) return;
+      var k = diaEm(e.clientX, e.clientY); if (!k || k === arrastoFim) return;
+      arrastoFim = k; moveu = true;
+      marcaDias(arrasto < k ? arrasto : k, arrasto < k ? k : arrasto, null);
+    });
+    document.addEventListener('pointerup', function () {
+      if (!arrasto) return;
+      var a = arrasto, b = arrastoFim; arrasto = null;
+      if (moveu && a !== b) intervalo(a, b); else desenhaDia(a);
+    });
+    elDias.addEventListener('keydown', function (e) { var x = e.target.closest('.ini-cal-dia'); if (x && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); desenhaDia(x.getAttribute('data-dia')); } });
     document.querySelectorAll('.ini-cal-nav').forEach(function (nav) {
       nav.addEventListener('click', function () {
         var y = +mesAtual.slice(0, 4), m = +mesAtual.slice(5, 7) - 1 + (+nav.getAttribute('data-cal')), d = new Date(y, m, 1);
@@ -435,7 +486,7 @@ window.INI_CAL = <?= json_encode(['hoje' => $hoje, 'mes' => $mes, 'porDia' => $p
         if (faixaAtual) marcaDias(faixaAtual.de, faixaAtual.ate, null); else if (sel) marcaDias(sel, sel, sel);
       });
     });
-    document.querySelectorAll('.ini-atalho').forEach(function (b) { b.addEventListener('click', function () { faixa(b.getAttribute('data-faixa')); }); });
+    document.querySelectorAll('.ini-atalho[data-faixa]').forEach(function (b) { b.addEventListener('click', function () { faixa(b.getAttribute('data-faixa')); }); });
     elLista.addEventListener('scroll', ajustaRolagem); window.addEventListener('resize', ajustaRolagem); desenhaDia(C.hoje);
   }
 })();

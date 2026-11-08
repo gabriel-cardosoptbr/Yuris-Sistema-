@@ -68,7 +68,10 @@ seleção em pílula.
   Os dias são caixas afundadas na prata, o escolhido é azul côncavo, como o menu.
   A agenda preenche o cartão inteiro: as semanas do calendário crescem até a altura
   da coluna ao lado, e a lista mostra o dia escolhido e, em seguida, os próximos
-  dias (até 12 compromissos), rolando sem barra ("preencha todo o espaço");
+  dias (até 12 compromissos), rolando sem barra ("preencha todo o espaço").
+  Escolher as datas: clique escolhe um dia; arrastar sobre os dias escolhe um
+  período; Shift+clique vai do dia escolhido até o clicado; e o botão "Escolher
+  datas" pede o primeiro e o último dia (serve no celular, onde arrastar rola a tela);
   Prazos e Aguardando retorno ao lado; Publicações, Processos com movimentação e
   Equipe embaixo. Bordas pouco arredondadas (12px nos cartões, 8px no resto):
   "tá muito arredondado, arredondar só um pouco".

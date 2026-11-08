@@ -169,6 +169,10 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-cal-dia.sel{ background:linear-gradient(180deg,var(--ini-azul2),var(--ini-azul)); color:#fff; border-color:transparent; box-shadow:var(--ini-brilho), inset 0 2px 3px rgba(255,255,255,.26), inset 0 -3px 6px rgba(0,0,0,.28); }
 .ini-cal-dia.sel i{ background:#fff; }
 /* Os atalhos na mesma grade dos dias: duas colunas iguais, mesma altura, mesmo espaço. */
+/* Arrastar sobre os dias escolhe um período: sem seleção de texto e sem rolar a página no gesto. */
+.ini-cal-dias{ user-select:none; -webkit-user-select:none; touch-action:none; }
+@media (max-width:1100px){ .ini-cal-dias{ touch-action:pan-y; } }
+.ini-atalho-periodo{ grid-column:1 / -1; }
 .ini-cal-atalhos{ display:grid; grid-template-columns:repeat(2,1fr); gap:5px; margin-top:10px; padding-top:10px; border-top:1px solid var(--ini-linha); }
 .ini-atalho{ height:38px; padding:0 8px; border-radius:var(--ini-r2); border:1px solid var(--ini-linha); background:var(--ini-fundo); box-shadow:var(--ini-fundo-sombra); color:var(--ini-texto2); font:600 12px Inter, system-ui, sans-serif; cursor:pointer; white-space:nowrap; transition:background .15s, color .15s; }
 .ini-atalho:hover{ color:var(--ini-texto); background:var(--ini-azul-suave); }
