@@ -13,25 +13,25 @@
    afundados, preto no traço, o azul do Yuris opaco só no que é ação ou está
    selecionado. Sem madeira: não está na identidade. */
 :root{
-  --inn-painel:#262B33; --inn-painel2:#1F2329; --inn-fundo:#171A1F;
+  --inn-painel:#262B33; --inn-painel2:#1F2329; --inn-fundo:#101317;
   --inn-linha:rgba(200,210,225,.10); --inn-linha2:rgba(200,210,225,.18); --inn-hi:rgba(255,255,255,.05);
   --inn-texto:#E8EAEE; --inn-texto2:#B4BAC5; --inn-texto3:#7F8794;
   --inn-azul:#3A63C9; --inn-azul2:#4F78DB; --inn-azul-suave:rgba(79,120,219,.14);
   --inn-brilho:0 0 0 1px rgba(79,120,219,.30), 0 8px 20px rgba(58,99,201,.35);
   --inn-sombra:0 1px 0 var(--inn-hi) inset, 0 18px 44px rgba(0,0,0,.38);
-  --inn-fundo-sombra:inset 0 2px 6px rgba(0,0,0,.45), inset 0 -1px 0 rgba(255,255,255,.04);
+  --inn-fundo-sombra:inset 0 2px 6px rgba(0,0,0,.55), inset 0 -1px 0 rgba(255,255,255,.05);
   --inn-erro:#E07A74; --inn-erro-bg:rgba(224,122,116,.14);
   --inn-painel-fundo:#15181D;
   --inn-concavo:inset 0 2px 10px rgba(0,0,0,.55), inset 0 0 0 1px rgba(200,210,225,.06), inset 0 -1px 0 rgba(255,255,255,.05), inset 3px 0 8px rgba(0,0,0,.25);
 }
 html[data-theme="light"]{
-  --inn-painel:#F5F6F8; --inn-painel2:#ECEEF1; --inn-fundo:#E6E8EB;
+  --inn-painel:#F5F6F8; --inn-painel2:#ECEEF1; --inn-fundo:#D3D7DD;
   --inn-linha:rgba(31,38,50,.10); --inn-linha2:rgba(31,38,50,.18); --inn-hi:rgba(255,255,255,.9);
   --inn-texto:#1E2630; --inn-texto2:#4E586A; --inn-texto3:#7A8494;
   --inn-azul:#2E55B8; --inn-azul2:#3D65CB; --inn-azul-suave:rgba(46,85,184,.10);
   --inn-brilho:0 0 0 1px rgba(46,85,184,.20), 0 8px 18px rgba(46,85,184,.28);
   --inn-sombra:0 1px 0 var(--inn-hi) inset, 0 16px 40px rgba(31,38,50,.10);
-  --inn-fundo-sombra:inset 0 2px 5px rgba(31,38,50,.10), inset 0 -1px 0 rgba(255,255,255,.8);
+  --inn-fundo-sombra:inset 0 2px 5px rgba(31,38,50,.20), inset 0 -1px 0 rgba(255,255,255,.7);
   --inn-painel-fundo:#DDE0E5;
   --inn-concavo:inset 0 2px 10px rgba(31,38,50,.14), inset 0 0 0 1px rgba(31,38,50,.06), inset 0 -1px 0 rgba(255,255,255,.9), inset 3px 0 8px rgba(31,38,50,.07);
   --inn-erro:#D23B3B; --inn-erro-bg:rgba(210,59,59,.10);
@@ -174,7 +174,7 @@ html[data-theme="light"] .sidebar .sidebar-group-items a{
 html[data-theme="light"] .sidebar .sidebar-group-items, html[data-theme="light"] .sidebar .sidebar-group{ background:transparent !important; border:0 !important; box-shadow:none !important; }
 html[data-theme="light"] .sidebar nav a .label, html[data-theme="light"] .sidebar .sidebar-group-label{ color:inherit !important; }
 html[data-theme="light"] .sidebar nav a .icon, html[data-theme="light"] .sidebar .sidebar-group-icon{
-  background:var(--inn-fundo) !important; border:1px solid var(--inn-linha) !important; box-shadow:var(--inn-fundo-sombra) !important; color:var(--inn-texto2) !important;
+  background:var(--inn-fundo) !important; border:1px solid var(--inn-linha2) !important; box-shadow:var(--inn-fundo-sombra) !important; color:var(--inn-texto) !important;
 }
 html[data-theme="light"] .sidebar nav a .icon svg, html[data-theme="light"] .sidebar nav a .icon svg *,
 html[data-theme="light"] .sidebar .sidebar-group-icon svg, html[data-theme="light"] .sidebar .sidebar-group-icon svg *{ stroke:currentColor !important; }
