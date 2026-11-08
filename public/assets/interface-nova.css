@@ -21,6 +21,7 @@
   --inn-sombra:0 1px 0 var(--inn-hi) inset, 0 18px 44px rgba(0,0,0,.38);
   --inn-fundo-sombra:inset 0 2px 6px rgba(0,0,0,.55), inset 0 -1px 0 rgba(255,255,255,.05);
   --inn-erro:#E07A74; --inn-erro-bg:rgba(224,122,116,.14);
+  --inn-icone:#AFC0DA;
   --inn-painel-fundo:#15181D;
   --inn-concavo:inset 0 2px 10px rgba(0,0,0,.55), inset 0 0 0 1px rgba(200,210,225,.06), inset 0 -1px 0 rgba(255,255,255,.05), inset 3px 0 8px rgba(0,0,0,.25);
 }
@@ -33,6 +34,7 @@ html[data-theme="light"]{
   --inn-sombra:0 1px 0 var(--inn-hi) inset, 0 16px 40px rgba(31,38,50,.10);
   --inn-fundo-sombra:inset 0 2px 5px rgba(31,38,50,.14), inset 0 -1px 0 rgba(255,255,255,.75);
   --inn-painel-fundo:#DDE0E5;
+  --inn-icone:#1E4A8A;
   --inn-concavo:inset 0 2px 10px rgba(31,38,50,.14), inset 0 0 0 1px rgba(31,38,50,.06), inset 0 -1px 0 rgba(255,255,255,.9), inset 3px 0 8px rgba(31,38,50,.07);
   --inn-erro:#D23B3B; --inn-erro-bg:rgba(210,59,59,.10);
 }
@@ -217,3 +219,19 @@ html .sidebar nav a.active .icon svg, html .sidebar nav a.active .icon svg *,
 html[data-theme="light"] .sidebar nav a.active .icon svg, html[data-theme="light"] .sidebar nav a.active .icon svg *{ stroke:#fff !important; }
 html .sidebar nav a:hover .icon, html .sidebar .sidebar-group-toggle:hover .sidebar-group-icon,
 html[data-theme="light"] .sidebar nav a:hover .icon, html[data-theme="light"] .sidebar .sidebar-group-toggle:hover .sidebar-group-icon{ color:var(--inn-texto) !important; }
+
+/* ── A cor do ícone do menu é a MESMA dos cartões da home (--inn-icone = --ini-icone).
+   A classe repetida sobe a especificidade acima de qualquer regra antiga. ── */
+html .sidebar.sidebar.sidebar nav a .icon, html .sidebar.sidebar.sidebar .sidebar-group-icon, html .sidebar.sidebar.sidebar .yuris-notif-btn,
+html[data-theme="light"] .sidebar.sidebar.sidebar nav a .icon, html[data-theme="light"] .sidebar.sidebar.sidebar .sidebar-group-icon, html[data-theme="light"] .sidebar.sidebar.sidebar .yuris-notif-btn{ color:var(--inn-icone) !important; }
+html .sidebar.sidebar.sidebar nav a .icon svg, html .sidebar.sidebar.sidebar nav a .icon svg *,
+html .sidebar.sidebar.sidebar .sidebar-group-icon svg, html .sidebar.sidebar.sidebar .sidebar-group-icon svg *,
+html .sidebar.sidebar.sidebar .yuris-notif-btn svg, html .sidebar.sidebar.sidebar .yuris-notif-btn svg *,
+html[data-theme="light"] .sidebar.sidebar.sidebar nav a .icon svg, html[data-theme="light"] .sidebar.sidebar.sidebar nav a .icon svg *,
+html[data-theme="light"] .sidebar.sidebar.sidebar .sidebar-group-icon svg, html[data-theme="light"] .sidebar.sidebar.sidebar .sidebar-group-icon svg *,
+html[data-theme="light"] .sidebar.sidebar.sidebar .yuris-notif-btn svg, html[data-theme="light"] .sidebar.sidebar.sidebar .yuris-notif-btn svg *{
+  stroke:var(--inn-icone) !important; fill:none !important;
+}
+html .sidebar.sidebar.sidebar nav a.active .icon, html[data-theme="light"] .sidebar.sidebar.sidebar nav a.active .icon{ color:#fff !important; }
+html .sidebar.sidebar.sidebar nav a.active .icon svg, html .sidebar.sidebar.sidebar nav a.active .icon svg *,
+html[data-theme="light"] .sidebar.sidebar.sidebar nav a.active .icon svg, html[data-theme="light"] .sidebar.sidebar.sidebar nav a.active .icon svg *{ stroke:#fff !important; }

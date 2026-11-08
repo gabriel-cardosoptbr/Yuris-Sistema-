@@ -20,6 +20,7 @@
   --ini-azul:#3A63C9; --ini-azul2:#4F78DB; --ini-azul-suave:rgba(79,120,219,.14);
 
   --ini-prata:#3B434F; --ini-prata-texto:#E6E9EE;
+  --ini-icone:#AFC0DA;
   --ini-brilho:0 0 0 1px rgba(79,120,219,.30), 0 8px 20px rgba(58,99,201,.35);
   --ini-ok:#5FBF93; --ini-ok-bg:rgba(95,191,147,.12); --ini-aviso:#D9A75A; --ini-aviso-bg:rgba(217,167,90,.12);
   --ini-erro:#E07A74; --ini-erro-bg:rgba(224,122,116,.12); --ini-info:#4F78DB; --ini-info-bg:rgba(79,120,219,.14);
@@ -36,6 +37,7 @@ html[data-theme="light"]{
   --ini-azul:#2E55B8; --ini-azul2:#3D65CB; --ini-azul-suave:rgba(46,85,184,.10);
 
   --ini-prata:#CBD0D8; --ini-prata-texto:#2A3340;
+  --ini-icone:#1E4A8A;
   --ini-brilho:0 0 0 1px rgba(46,85,184,.20), 0 8px 18px rgba(46,85,184,.28);
   --ini-ok:#2E8B62; --ini-ok-bg:rgba(46,139,98,.12); --ini-aviso:#A6741F; --ini-aviso-bg:rgba(166,116,31,.12);
   --ini-erro:#B8453F; --ini-erro-bg:rgba(184,69,63,.10); --ini-info:#2E55B8; --ini-info-bg:rgba(46,85,184,.10);
@@ -269,3 +271,7 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 
 .ini-rodape{ font-size:11.5px; color:var(--ini-texto3); text-align:center; padding:4px 0 10px; }
 .ini-rodape a{ color:var(--ini-azul2); }
+
+/* A cor do ícone é uma só (--ini-icone), a mesma do menu (--inn-icone): "as cores também". */
+.ini .ini-ic, .ini .ini-kpi-ic{ color:var(--ini-icone); }
+.ini .ini-ic svg, .ini .ini-ic svg *, .ini .ini-kpi-ic svg, .ini .ini-kpi-ic svg *{ stroke:var(--ini-icone) !important; fill:none !important; }
