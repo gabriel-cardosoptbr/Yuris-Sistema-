@@ -26,3 +26,11 @@ html .tk-tabs{ flex-wrap:wrap !important; overflow:visible !important; row-gap:2
 @media (max-width:640px){
   html .tk-drawer{ width:100vw !important; max-width:100vw !important; }
 }
+
+/* ── Observações do lead (Prospecção, Bloco 4) ──
+   "Deixa esse campo de observação maior" (08/11/2026). Descrição e Observações
+   estratégicas crescem juntas (lado a lado, uma maior que a outra ficaria torto):
+   cabem umas 12 linhas antes de rolar, e dá para puxar mais pelo canto. */
+#modalEdit #editDescricaoMain, #modalEdit #editDescricaoNotes{
+  min-height:260px !important; height:260px; resize:vertical !important; line-height:1.55 !important;
+}

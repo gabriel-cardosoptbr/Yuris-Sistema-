@@ -504,6 +504,71 @@
     vestirCores(document.body);
   }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
+  // ── 3b. Clicar fora fecha o pop-up ──────────────────────────────────────
+  // "Em absolutamente todos os pop-ups: se eu clicar fora, ele se fecha" (08/11/2026).
+  // Cada módulo fecha o seu de um jeito, então o clique fora aperta o próprio botão de
+  // fechar do pop-up (X, "Fechar" ou "Cancelar", nessa ordem): o módulo faz a limpeza de
+  // sempre. Fora é o fundo escurecido: um elemento que cobre quase a tela inteira, fixo,
+  // e que tem dentro uma peça menor (o painel). O botão do mouse tem de descer e subir no
+  // fundo: arrastar uma seleção de dentro do campo até fora não fecha nada.
+  var RE_FECHAR_ATTR = /(^|[-_\s])(close|fechar|dismiss|btn-x|x-btn)([-_\s]|$)|modal-close|close-btn|closeBtn/i;
+  function visivel(el) {
+    if (!el.offsetWidth && !el.offsetHeight) return false;
+    var cs = getComputedStyle(el); return cs.visibility !== 'hidden' && cs.display !== 'none' && parseFloat(cs.opacity) > .05;
+  }
+  function ehFundoDePopup(el) {
+    if (!el || el.nodeType !== 1 || el === document.body || el === document.documentElement) return false;
+    if (el.closest('.sidebar, .inn-tela') && !el.closest(SEL_POPUP)) return false;
+    var r = el.getBoundingClientRect();
+    if (r.width < innerWidth * .9 || r.height < innerHeight * .9) return false;
+    var fixo = false, n = el;
+    for (var i = 0; i < 3 && n && n !== document.body; i++, n = n.parentElement) if (getComputedStyle(n).position === 'fixed') { fixo = true; break; }
+    if (!fixo) return false;
+    // Tem dentro o painel: uma peça visível bem menor que o fundo.
+    return [].some.call(el.querySelectorAll('*'), function (f) {
+      if (f.children.length === 0 && !/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(f.tagName)) return false;
+      var fr = f.getBoundingClientRect();
+      return fr.width > 160 && fr.height > 80 && (fr.width < r.width * .95 || fr.height < r.height * .95) && visivel(f);
+    });
+  }
+  function botaoDeFechar(raiz) {
+    var cands = [].filter.call(raiz.querySelectorAll('button, a, [role="button"], span, i, div'), function (b) {
+      if (!visivel(b) || b.offsetWidth > 260 || b.offsetHeight > 70) return false;
+      // Só o que está no pop-up de cima, não num pop-up aberto por baixo dele.
+      return true;
+    });
+    var nota = function (b) {
+      var txt = (b.textContent || '').trim(), attr = (b.getAttribute('aria-label') || '') + ' ' + (b.getAttribute('title') || '') + ' ' + String(b.className || '') + ' ' + (b.id || '');
+      if (/^[×✕✖✗xX]$/.test(txt) || RE_FECHAR_ATTR.test(attr) || /\bfechar\b|\bclose\b/i.test(b.getAttribute('aria-label') || '')) return 3;
+      if (/^fechar$/i.test(txt) || /^[×✕]\s*fechar$/i.test(txt)) return 2;
+      if (/^(cancelar|voltar)$/i.test(txt)) return 1;
+      return 0;
+    };
+    var melhor = null, nm = 0;
+    cands.forEach(function (b) {
+      var v = nota(b);
+      // O de dentro ganha do de fora (o <span>× dentro do <button> fica com o botão).
+      if (v > nm || (v === nm && v > 0 && melhor && melhor.contains(b) && /^(BUTTON|A)$/.test(b.tagName))) { melhor = b; nm = v; }
+    });
+    if (melhor && !/^(BUTTON|A)$/.test(melhor.tagName)) { var bt = melhor.closest('button, a, [role="button"]'); if (bt && raiz.contains(bt)) melhor = bt; }
+    return nm > 0 ? melhor : null;
+  }
+  var fundoApertado = null;
+  document.addEventListener('mousedown', function (e) {
+    var t = e.target, fora = false;
+    if (t && t.tagName === 'DIALOG') { var dr = t.getBoundingClientRect(); fora = e.clientX < dr.left || e.clientX > dr.right || e.clientY < dr.top || e.clientY > dr.bottom; }
+    fundoApertado = (e.button === 0 && (fora || ehFundoDePopup(t))) ? t : null;
+  }, true);
+  document.addEventListener('click', function (e) {
+    var fundo = fundoApertado; fundoApertado = null;
+    if (!fundo || e.target !== fundo || e.button > 0) return;
+    // <dialog>: o fundo é o próprio diálogo, e "fora" é o clique fora do retângulo dele.
+    var b = botaoDeFechar(fundo);
+    if (b) { e.stopPropagation(); e.preventDefault(); b.click(); return; }
+    if (fundo.tagName === 'DIALOG' && fundo.open && typeof fundo.close === 'function') { e.stopPropagation(); fundo.close(); }
+    // Sem botão de fechar reconhecível: deixa o clique seguir para o módulo, que pode ter o seu.
+  }, true);
+
   // ── 4. A onda do toque ──────────────────────────────────────────────────
   var SEL_TOQUE = 'button, .btn, a[class*="btn"], [role="tab"], .inn-aba, .tk-card, .cli-card, .proc-card, .lead-card, .kanban-card, .kpi-card, .o-card[onclick], .chat-item, .int-card, .tk-periodo, .chat-filter-btn';
   document.addEventListener('pointerdown', function (e) {

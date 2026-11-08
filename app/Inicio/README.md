@@ -215,6 +215,16 @@ seleção em pílula.
   sobra do tema escuro, como o "Valor calculado" do imposto, azul-marinho com texto amarelo) vira
   a prata com texto escuro (`inn-c-escuro`); overlay, backdrop e o que cobre a tela inteira ficam
   de fora, senão o fundo escurecido atrás do pop-up viraria uma parede cinza.
+- **Clicar fora fecha o pop-up** (08/11/2026, "em absolutamente todos os pop-ups"). Fora é o fundo
+  escurecido: elemento fixo (ele ou um dos 3 pais) que cobre 90% ou mais da janela e tem dentro uma
+  peça visível bem menor (o painel); no `<dialog>` nativo, o clique fora do retângulo dele. O
+  clique aperta o PRÓPRIO botão de fechar do pop-up, na ordem: X (`×`, `aria-label`/`title`/classe
+  com close, fechar, dismiss), "Fechar", "Cancelar" ou "Voltar". Assim cada módulo faz a limpeza
+  de sempre (gaveta da tarefa, `?open=` do lead). Sem botão reconhecível, o clique segue para o
+  módulo. O botão do mouse tem de descer E subir no fundo: arrastar uma seleção de dentro de um
+  campo até fora não fecha. Atenção: fechar assim descarta o que foi digitado e não salvo, como o
+  Cancelar. Conferido em: lead, Novo Cliente, Cadastrar Processo, Nova Tarefa, gaveta da tarefa,
+  Novo imposto, Novo Usuário, Monitoramento de Publicações.
   Armadilhas que viraram regra: ler a cor no meio de uma transição dá a cor do caminho (a camada
   espera o `transitionend`); trocar a classe no meio da leitura recalcula o estilo (lê tudo,
   escreve depois); o que estava `display:none` ou ganhou classe depois é relido pelo observer;
