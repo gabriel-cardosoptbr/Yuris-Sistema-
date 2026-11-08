@@ -162,3 +162,35 @@ html .sidebar .sb-instalar-app{ border-radius:999px !important; }
 html body .page-layout{ gap:18px !important; }
 /* Um fio de prata sob a marca. */
 html .sidebar .sidebar-brand.sb-marca-yuris{ border-bottom:1px solid var(--inn-linha2) !important; margin-bottom:8px !important; padding-bottom:10px !important; }
+
+/* ── Tema claro: o yuris-theme.css e o sidebar.css têm regras com html[data-theme="light"],
+   mais fortes que as de cima. Aqui elas são refeitas com a mesma força, e vêm depois.
+   ("Você clica para baixo para ver as opções e vem esse branco forte.") ── */
+html[data-theme="light"] .sidebar nav a, html[data-theme="light"] .sidebar .sidebar-group-toggle,
+html[data-theme="light"] .sidebar .sidebar-group-items a{
+  background:transparent !important; background-image:none !important; border:1px solid transparent !important;
+  color:var(--inn-texto2) !important; box-shadow:none !important;
+}
+html[data-theme="light"] .sidebar .sidebar-group-items, html[data-theme="light"] .sidebar .sidebar-group{ background:transparent !important; border:0 !important; box-shadow:none !important; }
+html[data-theme="light"] .sidebar nav a .label, html[data-theme="light"] .sidebar .sidebar-group-label{ color:inherit !important; }
+html[data-theme="light"] .sidebar nav a .icon, html[data-theme="light"] .sidebar .sidebar-group-icon{
+  background:var(--inn-fundo) !important; border:1px solid var(--inn-linha) !important; box-shadow:var(--inn-fundo-sombra) !important; color:var(--inn-texto2) !important;
+}
+html[data-theme="light"] .sidebar nav a .icon svg, html[data-theme="light"] .sidebar nav a .icon svg *,
+html[data-theme="light"] .sidebar .sidebar-group-icon svg, html[data-theme="light"] .sidebar .sidebar-group-icon svg *{ stroke:currentColor !important; }
+html[data-theme="light"] .sidebar nav a:hover, html[data-theme="light"] .sidebar .sidebar-group-toggle:hover{ background:var(--inn-azul-suave) !important; color:var(--inn-texto) !important; }
+html[data-theme="light"] .sidebar nav a:hover .icon, html[data-theme="light"] .sidebar .sidebar-group-toggle:hover .sidebar-group-icon{ color:var(--inn-azul2) !important; }
+html[data-theme="light"] .sidebar .sidebar-group-chevron, html[data-theme="light"] .sidebar .sidebar-group-toggle:hover .sidebar-group-chevron{ color:var(--inn-texto3) !important; stroke:currentColor !important; }
+html[data-theme="light"] .sidebar .sidebar-group.has-active .sidebar-group-toggle,
+html[data-theme="light"] .sidebar .sidebar-group.has-active .sidebar-group-toggle .sidebar-group-label{ background:transparent !important; color:var(--inn-azul2) !important; box-shadow:none !important; }
+html[data-theme="light"] .sidebar .sidebar-group.has-active .sidebar-group-icon, html[data-theme="light"] .sidebar .sidebar-group.has-active .sidebar-group-chevron{ color:var(--inn-azul2) !important; }
+html[data-theme="light"] .sidebar .sidebar-group.has-active .sidebar-group-toggle::after{ display:none !important; }
+html[data-theme="light"] .sidebar nav a.active{
+  background:linear-gradient(180deg, var(--inn-azul2) 0%, var(--inn-azul) 100%) !important; color:#fff !important; border-color:transparent !important;
+  box-shadow:var(--inn-brilho), inset 0 2px 3px rgba(255,255,255,.26), inset 0 -3px 6px rgba(0,0,0,.28) !important;
+}
+html[data-theme="light"] .sidebar nav a.active .label{ color:#fff !important; }
+html[data-theme="light"] .sidebar nav a.active .icon{ background:rgba(255,255,255,.18) !important; color:#fff !important; border-color:rgba(255,255,255,.25) !important; }
+html[data-theme="light"] .sidebar nav a.active .icon svg, html[data-theme="light"] .sidebar nav a.active .icon svg *{ stroke:#fff !important; }
+html[data-theme="light"] .sidebar nav a.active::after{ display:none !important; }
+html[data-theme="light"] .sidebar nav a.is-logout:hover{ background:var(--inn-erro-bg) !important; color:var(--inn-erro) !important; }

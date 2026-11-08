@@ -375,6 +375,8 @@ window.INI_CAL = <?= json_encode(['hoje' => $hoje, 'mes' => $mes, 'porDia' => $p
     });
   }
   var faixaAtual = null; // null = um dia só (sel); senão {de, ate}
+  // Sem barra de rolagem: o esmaecimento no fim da lista aparece só enquanto há mais embaixo.
+  function ajustaRolagem() { var d = elLista.parentNode; d.classList.toggle('rola', elLista.scrollHeight - elLista.scrollTop - elLista.clientHeight > 6); }
   function rotuloDia(key) { var d = new Date(key + 'T12:00:00'); return (key === C.hoje ? 'Hoje' : DIAS[d.getDay()].charAt(0).toUpperCase() + DIAS[d.getDay()].slice(1)) + ', ' + d.getDate() + ' de ' + MESES[d.getMonth()].slice(0, 3); }
   // Uma faixa de dias: lista agrupada por dia, e os dias marcados na grade.
   function desenhaFaixa(de, ate, titulo) {
@@ -385,6 +387,7 @@ window.INI_CAL = <?= json_encode(['hoje' => $hoje, 'mes' => $mes, 'porDia' => $p
     elConta.textContent = total + (total === 1 ? ' compromisso' : ' compromissos');
     elLista.innerHTML = html || '<div class="ini-vazio curto"><p>Nada marcado neste período.</p></div>';
     marcaDias(de, ate, null);
+    ajustaRolagem();
   }
   function faixa(nome) {
     var h = new Date(C.hoje + 'T12:00:00'), seg = new Date(h); seg.setDate(h.getDate() - ((h.getDay() + 6) % 7));
@@ -409,9 +412,10 @@ window.INI_CAL = <?= json_encode(['hoje' => $hoje, 'mes' => $mes, 'porDia' => $p
     var itens = C.porDia[key] || [], d = new Date(key + 'T12:00:00'), pre = key === C.hoje ? 'Hoje' : DIAS[d.getDay()].charAt(0).toUpperCase() + DIAS[d.getDay()].slice(1);
     elTit.textContent = pre + ', ' + d.getDate() + ' de ' + MESES[d.getMonth()].slice(0, 3);
     elConta.textContent = itens.length + (itens.length === 1 ? ' compromisso' : ' compromissos');
-    if (!itens.length) { elLista.innerHTML = '<div class="ini-vazio curto"><p>Nada marcado para este dia.</p></div>'; marcaDias(key, key, key); return; }
+    if (!itens.length) { elLista.innerHTML = '<div class="ini-vazio curto"><p>Nada marcado para este dia.</p></div>'; marcaDias(key, key, key); ajustaRolagem(); return; }
     elLista.innerHTML = itens.map(htmlEvento).join('');
     marcaDias(key, key, key);
+    ajustaRolagem();
   }
   if (elDias) {
     elDias.addEventListener('click', function (e) { var x = e.target.closest('.ini-cal-dia'); if (x) desenhaDia(x.getAttribute('data-dia')); });
@@ -425,6 +429,7 @@ window.INI_CAL = <?= json_encode(['hoje' => $hoje, 'mes' => $mes, 'porDia' => $p
       });
     });
     document.querySelectorAll('.ini-atalho').forEach(function (b) { b.addEventListener('click', function () { faixa(b.getAttribute('data-faixa')); }); });
+    elLista.addEventListener('scroll', ajustaRolagem); window.addEventListener('resize', ajustaRolagem); ajustaRolagem();
   }
 })();
 </script>
