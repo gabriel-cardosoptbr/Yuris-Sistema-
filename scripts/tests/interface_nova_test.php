@@ -247,6 +247,15 @@ $tkJs = (string) file_get_contents($raiz . '/public/assets/tarefas.js');
 ok(str_contains($tkJs, 'async function abrirTarefaNoPainel(opts = {})') && str_contains($tkJs, "if (!openTaskId) { if (novaNoPainel) await criarDoPainel(); return; }") && str_contains($tkJs, 'sairDoModoNova();'), 'tarefa de escritório nasce no painel completo e o painel fica aberto depois de criar');
 ok(str_contains($tkCen, "if (b.dataset.tipo === 'escritorio' && window.abrirTarefaNoPainel) { ampliarParaPainel(); return; }") && strpos($tkCen, "window.abrirTarefaNoPainel({ de") < strpos($tkCen, "modal.classList.remove('open');
   }"), 'o painel abre antes de o cadastro fechar (o pop-up embutido não pisca)');
+// 08/11/2026: "espalhe o design da home para o sistema todo".
+$sisCss = (string) @file_get_contents($raiz . '/public/assets/interface-nova-sistema.css');
+$sisJs  = (string) @file_get_contents($raiz . '/public/assets/interface-nova-sistema.js');
+ok($sisCss !== '' && $sisJs !== '' && str_contains($sidebar, '/assets/interface-nova-sistema.css') && str_contains($sidebar, '/assets/interface-nova-sistema.js'), 'todas as telas carregam a camada do sistema');
+foreach (['function acharTela()', 'function iconeNoCabecalho()', 'function marcarAbas(raiz)', 'function botoesDeIcone(raiz)', 'function fantasmas(raiz)', 'function vestirGrafico(ch)'] as $fn) ok(str_contains($sisJs, $fn), "camada do sistema: $fn");
+ok(!str_contains($sisJs, 'Object.assign({}, o.animation'), 'gráfico: nada de copiar as opções do Chart.js (proxy, recursão)');
+ok(str_contains($sisJs, "if (/check|toggle|switch/i.test(b.className)"), 'caixa de marcar não vira botão de ícone');
+ok(str_contains($sisCss, 'html .inn-aba.inn-aba-on{') && str_contains($sisCss, '.inn-cab-ic{') && str_contains($sisCss, 'html .inn-carregando{'), 'aba ativa em pílula azul, ícone do cabeçalho afundado, carregando em forma cinza');
+ok(!preg_match('/(?<![-\w])(width|height|display|position|top|left|margin|padding)\s*:/', preg_replace(['/\/\*.*?\*\//s', '/\.inn-cab-ic\{[^}]*\}/', '/\.inn-cab-ic svg\{[^}]*\}/', '/html \.inn-cab-linha\{[^}]*\}/', '/html \.inn-carregando(::after)?\{[^}]*\}/', '/\.inn-onda-quadro( i)?\{[^}]*\}/'], '', $sisCss)), 'camada do sistema não mexe em layout das telas (só as peças próprias)');
 ok(str_contains($tkCen, "await POST('/processo_prazos.php'") && str_contains($tkCen, "'&foco=vinculos'") && str_contains($tkCen, "'/resource_shares.php?resource_type=processo&resource_id='"), 'prazo grava pelo endpoint da ficha; vínculo abre a ficha na seção de vínculos; o processo mostra prazos, tarefas e vínculos');
 ok(str_contains((string) file_get_contents($raiz . '/public/assets/processos.js'), "if (foco === 'vinculos') {"), 'a ficha do processo entende o foco vinculos');
 $cssIni = (string) file_get_contents($raiz . '/public/assets/inicio.css');

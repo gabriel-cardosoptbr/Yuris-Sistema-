@@ -1693,6 +1693,9 @@ window.FF_AGENDA = { csrf: <?= json_encode($_notifCsrf) ?>, sessao: <?= json_enc
 <link rel="stylesheet" href="/assets/interface-nova-telas.css?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-telas.css') ?: 1 ?>">
 <!-- O tamanho dos pop-ups das telas (a única folha da prévia que mexe em tamanho). -->
 <link rel="stylesheet" href="/assets/interface-nova-popups.css?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-popups.css') ?: 1 ?>">
+<!-- O desenho da home em todas as telas: ícone no cabeçalho, botões, abas, cartões, selos, tabelas, gráficos, tela fantasma, toque. -->
+<link rel="stylesheet" href="/assets/interface-nova-sistema.css?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-sistema.css') ?: 1 ?>">
+<script src="/assets/interface-nova-sistema.js?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-sistema.js') ?: 1 ?>" defer></script>
 <!-- O movimento das telas de dentro: entrada, saída pelo menu, pop-ups que surgem. -->
 <link rel="stylesheet" href="/assets/interface-nova-movimento.css?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-movimento.css') ?: 1 ?>">
 <script src="/assets/interface-nova-movimento.js?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-movimento.js') ?: 1 ?>" defer></script>

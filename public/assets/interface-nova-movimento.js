@@ -81,7 +81,9 @@
   }
 
   function ligar() {
-    var main = document.querySelector('.main-content') || document.body;
+    // A tela: .main-content, ou o main ao lado do menu (Clientes, Webhooks, Chat interno).
+    var main = document.querySelector('.main-content') || [].filter.call(document.querySelectorAll('main'), function (m) { return !m.querySelector('.sidebar'); })[0] || document.body;
+    if (main !== document.body && !main.classList.contains('main-content')) main.classList.add('inn-tela-entra');
     entrarItens(main); crescerIcones(main); contarNumeros(main);
     new MutationObserver(function (ms) {
       if (!podeAnimar()) return;

@@ -143,6 +143,24 @@ seleção em pílula.
   tela avisa a home por `postMessage` (só da mesma origem) quando o pop-up abre, quando
   fecha (a home tira o iframe e se atualiza) e quando não tem pop-up (a home vai para a
   tela). Para uma tela nova entrar, basta uma linha em `TELAS` no `embed.js`.
+- **O desenho da home no sistema todo** (08/11/2026, "pega todo esse design da home e espalhe para
+  todo o sistema, todas as abas, guias, botões, animações, gráficos; não deixe nenhuma aba de
+  fora"): `assets/interface-nova-sistema.css` + `.js`, carregados pelo menu junto com a folha das
+  telas (fora da home e também no modo embutido). A tela é achada por si (`.main-content`, ou o
+  `main` ao lado do menu, ou o irmão do menu quando o `main` o embrulha, como em Webhooks) e
+  marcada `.inn-tela`. Por cima do que a folha das telas já fazia (cor e superfície): o ícone do
+  item do menu numa caixa afundada ao lado do título; botão principal que sobe e acende,
+  secundário com borda azul; toda aba, guia, pílula ou filtro reconhecido pelo nome (tab, mtab,
+  pill, chip, seg, filtro, view, periodo, opcao) com o ativo em qualquer nome (active, ativa,
+  ativo, selected, -active, aria-selected) vira a pílula azul da home; cartões clicáveis sobem
+  com borda azul; botão só de ícone e ícone de KPI na caixa afundada (caixa de marcar fica de
+  fora); selos no formato da etiqueta; cabeçalho de tabela em rótulo azul; "Carregando…" vira a
+  forma cinza que brilha; a onda do toque num quadro por cima do elemento (o elemento não
+  muda); e os gráficos do Chart.js na paleta (azul e prata; vermelho, verde e âmbar só onde já
+  eram estado), letra Inter, linhas apagadas, dica no painel prata e entrada em sequência.
+  As opções do Chart.js são proxies: troca-se propriedade por propriedade, nunca o objeto todo.
+  A camada não mexe em layout (o teste trava). Conferido em 25 telas; Fila e Roleta dão 403 na
+  conta local, Contratos, Projetos e Evolution não estão ligados nela.
 - **Setas e detalhes no mesmo afundado do ícone** (08/11/2026, "todas essas setas e detalhes
   têm de ser aprofundados, como os ícones: o cinza com o ícone azul escuro"): as setas do
   calendário, a seta de cada cartão, o × do pop-up, a seta do De/Até e os ícones dos contadores

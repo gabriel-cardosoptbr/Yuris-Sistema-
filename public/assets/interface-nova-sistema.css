@@ -1,0 +1,162 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   interface-nova-sistema.css: o desenho da home em todas as telas (prévia,
+   08/11/2026). Par do interface-nova-sistema.js.
+
+   "Pega todo esse design que a gente fez na home, de botão, de animação, e
+   espalhe para todo o sistema: todas as abas, guias, botões, animações,
+   gráficos. Não deixe nenhuma aba de fora." A interface-nova-telas.css já põe
+   a cor e a superfície (painel na prata, botão principal azul, campos
+   afundados); esta folha põe o comportamento e os detalhes da home:
+
+     1. o ícone da tela no cabeçalho, numa caixa afundada (o JS copia o do menu);
+     2. botões: o principal sobe e acende, o secundário ganha a borda azul;
+     3. abas, guias e filtros: a ativa é a pílula azul cheia, como "Hoje" na home;
+     4. cartões clicáveis: borda azul e sobem no hover, como os da home;
+     5. botões só de ícone e os ícones dos KPIs: a mesma caixa afundada do ícone;
+     6. selos e etiquetas no formato da etiqueta da home;
+     7. cabeçalho de tabela em rótulo azul miúdo; linha que acende no hover;
+     8. "Carregando…" vira a forma cinza que brilha (tela fantasma);
+     9. a onda do toque (o JS desenha por cima, sem mexer no elemento).
+
+   A tela é o container ao lado do menu, seja qual for o nome dele (.main-content,
+   main.main, main): o JS marca com .inn-tela e as regras partem dele.
+
+   Regra: nada de largura, altura, display ou posição de repouso; só cor,
+   borda, raio, sombra, transformação e transição. Vale fora da home, que tem
+   a folha própria, e também nas telas abertas dentro da home (?embed=1).
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root{ --inn-t-icone:#AFC0DA; }
+html[data-theme="light"]{ --inn-t-icone:#1E4A8A; }
+
+/* ── 1. O ícone da tela no cabeçalho ─────────────────────────────────────── */
+.inn-cab-ic{ width:40px; height:40px; flex:none; display:inline-grid; place-items:center; margin-right:12px; vertical-align:middle;
+  border-radius:8px; background:var(--inn-t-fundo); border:1px solid var(--inn-t-linha); box-shadow:var(--inn-t-fundo-sombra); color:var(--inn-t-icone); }
+.inn-cab-ic svg{ width:19px; height:19px; stroke:var(--inn-t-icone) !important; fill:none !important; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+.inn-cab-ic svg *{ stroke:var(--inn-t-icone) !important; fill:none !important; }
+html .inn-cab-linha{ display:flex !important; align-items:center; }
+html .page-header .page-header-title, html .inn-cab-titulo{ font-weight:800 !important; letter-spacing:-.4px; }
+
+/* ── 2. Botões ───────────────────────────────────────────────────────────── */
+html .inn-tela button, html .inn-tela .btn, html .inn-tela a[class*="btn"], html [class*="modal"] button{
+  transition:transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .18s, background-color .15s, border-color .15s, color .15s;
+}
+html .btn.primary:hover, html .btn-primary:hover, html .usr-btn-primary:hover, html .cfg-btn-primary:hover, html .agt-btn-primary:hover,
+html .conn-btn-primary:hover, html .tk-modal-btn-primary:hover, html .modal-btn-save:hover, html .proc-btn-primary:hover, html .int-btn-primary:hover,
+html .o-btn-primary:hover, html .es-btn-primary:hover, html .tk-btn-new-task:hover, html button.primary:hover{
+  transform:translateY(-2px); box-shadow:0 0 0 1px rgba(79,120,219,.35), 0 12px 24px rgba(58,99,201,.38) !important;
+}
+html .tk-btn-new-task{ background:linear-gradient(180deg, var(--inn-t-azul2), var(--inn-t-azul)) !important; color:#fff !important; border-color:transparent !important; border-radius:8px !important; box-shadow:var(--inn-t-brilho) !important; }
+html .btn:not(.primary):not(.btn-primary):not(.btn-danger):not(.danger):hover, html .btn-ghost:hover, html .btn-outline:hover, html .btn-secondary:hover,
+html .filter-btn:not(.primary):hover, html .conn-btn-secondary:hover, html .tk-modal-btn-cancel:hover, html .modal-btn-cancel:hover{
+  transform:translateY(-1px); border-color:rgba(61,101,203,.55) !important; color:var(--inn-t-azul2) !important;
+}
+html .inn-tela button:disabled, html .inn-tela .btn:disabled{ transform:none !important; }
+
+/* ── 3. Abas, guias e filtros: a ativa é a pílula azul ───────────────────── */
+html .tab-btn, html .cfg-tab, html .es-tab, html .tk-tab, html .tk-periodo, html .chat-filter-btn, html .tk-view-btn, html .ff-pill,
+html .inn-tela [role="tab"], html .seg-btn, html .view-btn, html .periodo-btn, html .filtro-btn, html .chip-filtro{
+  border-radius:8px !important; transition:background .2s ease, color .2s ease, box-shadow .2s ease, transform .15s ease !important;
+}
+html .tab-btn.active, html .cfg-tab.active, html .es-tab.active, html .tk-tab.active, html .tk-periodo.active, html .chat-filter-btn.active,
+html .tk-view-btn.active, html .ff-pill.active, html .inn-tela [role="tab"][aria-selected="true"], html .seg-btn.active, html .view-btn.active,
+html .periodo-btn.active, html .filtro-btn.active, html .chip-filtro.active{
+  background:linear-gradient(180deg, var(--inn-t-azul2), var(--inn-t-azul)) !important; background-image:linear-gradient(180deg, var(--inn-t-azul2), var(--inn-t-azul)) !important;
+  color:#fff !important; border-color:transparent !important;
+  box-shadow:var(--inn-t-brilho), inset 0 2px 3px rgba(255,255,255,.22), inset 0 -3px 6px rgba(0,0,0,.24) !important;
+}
+html .tab-btn.active *, html .cfg-tab.active *, html .tk-tab.active *, html .tk-periodo.active *, html .chat-filter-btn.active *, html .tk-view-btn.active *{ color:#fff !important; }
+html .tk-periodo.active .tk-periodo-n, html .chat-filter-btn.active .count{ background:rgba(255,255,255,.22) !important; color:#fff !important; }
+html .tab-btn:not(.active):hover, html .cfg-tab:not(.active):hover, html .tk-tab:not(.active):hover, html .tk-periodo:not(.active):hover,
+html .chat-filter-btn:not(.active):hover, html .tk-view-btn:not(.active):hover{ background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul2) !important; }
+
+/* ── 4. Cartões clicáveis: borda azul e sobem ───────────────────────────── */
+html .kpi-card, html .o-card, html .o-kpi, html .tk-card, html .cli-card, html .proc-card, html .lead-card, html .kanban-card, html .chat-item,
+html .int-card, html .prox-card, html .fi-card, html .proj-card, html .rel-card, html .es-card, html .chat-kpi, html .mon-card{
+  transition:transform .18s cubic-bezier(.2,.8,.2,1), border-color .15s, box-shadow .18s !important;
+}
+html .tk-card:hover, html .cli-card:hover, html .proc-card:hover, html .lead-card:hover, html .kanban-card:hover, html .int-card:hover,
+html .prox-card:hover, html .fi-card:hover, html .proj-card:hover, html .rel-card:hover, html .o-card[onclick]:hover, html a.kpi-card:hover,
+html .kpi-card[onclick]:hover, html .kpi-card.clickable:hover{
+  transform:translateY(-2px) !important; border-color:rgba(61,101,203,.55) !important;
+}
+html .chat-item:hover{ border-color:rgba(61,101,203,.45) !important; }
+
+/* ── 5. Botões só de ícone e ícones de KPI: a caixa afundada do ícone ────── */
+html .inn-ic-btn{
+  background:var(--inn-t-fundo) !important; border:1px solid var(--inn-t-linha) !important; box-shadow:var(--inn-t-fundo-sombra) !important;
+  color:var(--inn-t-icone) !important; border-radius:8px !important;
+}
+html .inn-ic-btn svg, html .inn-ic-btn svg *{ stroke:var(--inn-t-icone) !important; }
+html .inn-ic-btn:hover:not(:disabled){ transform:translateY(-2px); background:linear-gradient(180deg, var(--inn-t-azul2), var(--inn-t-azul)) !important; border-color:transparent !important; box-shadow:var(--inn-t-brilho) !important; }
+html .inn-ic-btn:hover:not(:disabled) svg, html .inn-ic-btn:hover:not(:disabled) svg *{ stroke:#fff !important; }
+html .kpi-icon, html .chat-kpi-icon, html .o-kpi-ic, html .kpi-ic, html .stat-icon, html .card-icon{
+  background:var(--inn-t-fundo) !important; background-image:none !important; border:1px solid var(--inn-t-linha) !important;
+  box-shadow:var(--inn-t-fundo-sombra) !important; border-radius:8px !important; color:var(--inn-t-icone) !important;
+}
+html .kpi-icon svg, html .kpi-icon svg *, html .chat-kpi-icon svg, html .chat-kpi-icon svg *, html .o-kpi-ic svg, html .o-kpi-ic svg *,
+html .kpi-ic svg, html .kpi-ic svg *, html .stat-icon svg, html .stat-icon svg *, html .card-icon svg, html .card-icon svg *{ stroke:var(--inn-t-icone) !important; }
+html .kpi-dot{ background:var(--inn-t-azul2) !important; box-shadow:none !important; }
+
+/* ── 6. Selos e etiquetas no formato da etiqueta da home ─────────────────── */
+html .inn-tela [class*="badge"]:not([class*="badge-btn"]), html .inn-tela [class*="-tag"]:not(input), html .inn-tela .tag, html .inn-tela .pill,
+html .inn-tela [class*="-chip"], html .inn-tela .chip{
+  border-radius:5px !important; font-weight:700 !important; letter-spacing:.02em; box-shadow:none !important; text-shadow:none !important;
+}
+
+/* ── 7. Tabelas: cabeçalho em rótulo azul miúdo ──────────────────────────── */
+html .inn-tela table th{ font-size:10.5px !important; font-weight:700 !important; letter-spacing:.06em !important; text-transform:uppercase; color:var(--inn-t-azul2) !important; }
+html .inn-tela table tbody tr{ transition:background-color .15s ease; }
+
+/* Títulos de bloco dentro dos painéis: o rótulo azul da home. */
+html .inn-tela .chart-title, html .inn-tela .section-title, html .inn-tela [class$="-section-title"], html .inn-tela .proc-section-title,
+html .inn-tela .agt-section-title, html .inn-tela .col-title{ color:var(--inn-t-azul2) !important; }
+
+/* ── 8. "Carregando…" vira a forma cinza que brilha ──────────────────────── */
+@keyframes inn-brilho{ from{ background-position:200% 0; } to{ background-position:-200% 0; } }
+html .inn-carregando{
+  color:transparent !important; user-select:none; position:relative; min-height:14px; border-radius:8px !important;
+  background:var(--inn-t-fundo) linear-gradient(100deg, transparent 25%, rgba(255,255,255,.06) 50%, transparent 75%) 0 0 / 220% 100% !important;
+  border:1px solid var(--inn-t-linha) !important; box-shadow:var(--inn-t-fundo-sombra) !important;
+  animation:inn-brilho 1.4s ease-in-out infinite;
+}
+html[data-theme="light"] .inn-carregando{ background-image:linear-gradient(100deg, transparent 25%, rgba(20,32,56,.07) 50%, transparent 75%) !important; }
+html .inn-carregando *{ visibility:hidden; }
+html .inn-carregando::after{ content:""; position:absolute; left:12px; right:40%; top:50%; height:8px; margin-top:-4px; border-radius:4px; background:var(--inn-t-linha2); }
+
+/* ── 9. A onda do toque (o JS desenha num quadro por cima do elemento) ───── */
+.inn-onda-quadro{ position:fixed; pointer-events:none; overflow:hidden; z-index:2147483000; }
+.inn-onda-quadro i{ position:absolute; border-radius:50%; background:var(--inn-t-azul2); transform:translate(-50%,-50%) scale(0); opacity:.26;
+  animation:inn-onda .55s cubic-bezier(.2,.8,.2,1) forwards; }
+@keyframes inn-onda{ to{ transform:translate(-50%,-50%) scale(1); opacity:0; } }
+
+/* Apertar: tudo que é clicável afunda um nada. */
+html .inn-tela button:not(:disabled):active, html .inn-tela .btn:active, html .inn-tela a[class*="btn"]:active,
+html .inn-tela [role="tab"]:active, html .tk-card:active, html .cli-card:active, html .proc-card:active, html .kpi-card:active{ transform:scale(.975) !important; transition-duration:.08s !important; }
+
+@media (prefers-reduced-motion: reduce){
+  html .inn-tela *, html .inn-carregando{ transition:none !important; animation:none !important; }
+  .inn-onda-quadro{ display:none; }
+}
+
+/* ── 10. Abas reconhecidas pelo nome (o JS marca): qualquer tab, pill, filtro ou
+   segmento, com o estado ativo em qualquer nome (active, ativo, ativa, selected...) ── */
+html .inn-aba{ border-radius:8px !important; transition:background .2s ease, color .2s ease, box-shadow .2s ease, transform .15s ease !important; }
+html .inn-aba.inn-aba-on{
+  background:linear-gradient(180deg, var(--inn-t-azul2), var(--inn-t-azul)) !important; background-image:linear-gradient(180deg, var(--inn-t-azul2), var(--inn-t-azul)) !important;
+  color:#fff !important; border-color:transparent !important;
+  box-shadow:var(--inn-t-brilho), inset 0 2px 3px rgba(255,255,255,.22), inset 0 -3px 6px rgba(0,0,0,.24) !important;
+}
+html .inn-aba.inn-aba-on *:not(svg):not(svg *){ color:#fff !important; }
+html .inn-aba.inn-aba-on svg, html .inn-aba.inn-aba-on svg *{ stroke:#fff !important; }
+html .inn-aba:not(.inn-aba-on):hover{ background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul2) !important; }
+
+/* ── 11. As telas sem .main-content recebem o mesmo chão das outras ───────── */
+html .inn-tela:not(.main-content) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+html .inn-tela:not(.main-content) select, html .inn-tela:not(.main-content) textarea{
+  background:var(--inn-t-fundo) !important; background-image:none !important; color:var(--inn-t-texto) !important;
+  border:1px solid var(--inn-t-linha) !important; border-radius:8px !important; box-shadow:var(--inn-t-fundo-sombra) !important;
+}
+html .inn-tela:not(.main-content) table td{ color:var(--inn-t-texto) !important; border-color:var(--inn-t-linha) !important; }
+html .inn-tela:not(.main-content) table tbody tr:hover td{ background:var(--inn-t-azul-suave) !important; }
+html .inn-tela:not(.main-content) .page-header h1, html .inn-tela:not(.main-content) .page-header h2{ color:var(--inn-t-texto) !important; }
+html .inn-tela:not(.main-content) .page-header p{ color:var(--inn-t-texto3) !important; }
