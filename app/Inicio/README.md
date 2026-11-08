@@ -230,6 +230,22 @@ seleção em pílula.
   campo até fora não fecha. Atenção: fechar assim descarta o que foi digitado e não salvo, como o
   Cancelar. Conferido em: lead, Novo Cliente, Cadastrar Processo, Nova Tarefa, gaveta da tarefa,
   Novo imposto, Novo Usuário, Monitoramento de Publicações.
+- **Um desenho só de pop-up, o da home** (08/11/2026, "o design não se refletiu em processos,
+  em publicação, em nenhuma guia"). Cada módulo tinha o seu (Editar Processo: painel `#F7F9FC`,
+  seção azulada, rótulo azul; lead: cabeçalho tingido, seção igual ao painel). `vestirPopup`
+  lê a ESTRUTURA de todo pop-up visível e aplica, em linha com `!important` (várias regras
+  antigas vêm por `#id`), as peças medidas na home: painel = `.ini-card` (prata, borda fina,
+  sombra, 14px); cabeçalho = sem faixa, com o ícone da tela na caixa afundada (`.inn-cab-ic`
+  com `.inn-pop-ic`, numa `.inn-pop-linha`) e título escuro de 17px; seção = `.ini-cal` (prata
+  um tom abaixo, 12px); título de seção = o "PRÓXIMOS DIAS" da home (11px, 800, maiúsculo,
+  azul); rótulo = cinza do texto. Como acha: o painel é o maior elemento dentro do fundo; o
+  cabeçalho é o bloco com nome de header/head/cab no alto do painel, ou, sem ele, o título
+  solto no alto (Monitoramento); a seção é o bloco grande com nome de section/secao/bloco
+  (com ou sem borda) ou group/card/box com borda; o título é o texto, nunca a linha que tem
+  botões (na gaveta da tarefa o título é campo editável: só ganha o ícone). Marca em
+  `data-inn-pop`; um observador repassa quando o pop-up abre ou troca de conteúdo. Conferido no
+  claro e no escuro: Editar Processo, lead, Novo Cliente, Monitoramento, Novo Usuário, gaveta
+  e Nova Tarefa, Novo imposto.
   Armadilhas que viraram regra: ler a cor no meio de uma transição dá a cor do caminho (a camada
   espera o `transitionend`); trocar a classe no meio da leitura recalcula o estilo (lê tudo,
   escreve depois); o que estava `display:none` ou ganhou classe depois é relido pelo observer;

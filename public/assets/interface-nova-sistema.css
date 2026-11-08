@@ -297,6 +297,8 @@ html:root input.inn-c-campo-pop.inn-c-campo-pop.inn-c-campo-pop, html:root texta
 html:root .inn-c-campo-pop.inn-c-campo-pop.inn-c-campo-pop:focus{ border-color:var(--inn-t-azul2) !important; box-shadow:0 0 0 3px var(--inn-t-azul-suave) !important; outline:none !important; }
 html:root .inn-c-campo-pop.inn-c-campo-pop.inn-c-campo-pop::placeholder{ color:var(--inn-t-texto3) !important; opacity:1; }
 html:root .inn-c-campo-pop.inn-c-campo-pop.inn-c-campo-pop:disabled{ background-color:var(--inn-t-painel2) !important; color:var(--inn-t-texto2) !important; }
+/* O ícone da tela no cabeçalho do pop-up: a mesma caixa afundada, um pouco menor. */
+html:root .inn-pop-linha .inn-cab-ic.inn-pop-ic{ margin-right:0; }
 /* Bloco escuro que sobrou do tema escuro, no claro: a prata, com o texto escuro. */
 html:root .inn-c-escuro.inn-c-escuro.inn-c-escuro{ background-color:var(--inn-t-painel2) !important; background-image:none !important; color:var(--inn-t-texto) !important; border-color:var(--inn-t-linha2) !important; box-shadow:none !important; }
 /* Texto que sumia no fundo (contraste menor que 3 para 1). */

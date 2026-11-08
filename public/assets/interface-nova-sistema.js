@@ -569,6 +569,159 @@
     // Sem botão de fechar reconhecível: deixa o clique seguir para o módulo, que pode ter o seu.
   }, true);
 
+  // ── 3c. Um desenho só de pop-up: o da home ────────────────────────────
+  // "O design não se refletiu em processos, em publicação, em nenhuma guia" (08/11/2026).
+  // Cada módulo tem o seu pop-up (painel quase branco, seção azulada, rótulo azul, cabeçalho
+  // tingido), e várias regras antigas vêm por #id. Então o desenho vai em linha, com
+  // !important, pela ESTRUTURA do pop-up, não pelo nome:
+  //   painel  = o cartão da home (.ini-card): prata, borda fina, sombra, 14px;
+  //   cabeçalho = sem faixa, com o ícone da tela na caixa afundada (.ini-ic), título escuro;
+  //   seção   = o bloco interno da home (.ini-cal / .ini-cartao): prata um tom abaixo, 12px;
+  //   título de seção = o rótulo de grupo da home ("PRÓXIMOS DIAS"): pequeno, azul, maiúsculo;
+  //   rótulo  = cinza do texto; campo = branco (regra 3, inn-c-campo-pop).
+  var RE_CAB_POP = /(^|[-_\s])(header|head|cab|cabecalho|top|topo|titlebar)([-_\s]|$)/i;
+  var RE_SEC_POP = /(^|[-_\s])(section|secao|sec|bloco|block|group|grupo|fieldset|card|box|area)([-_\s]|$)/i;
+  var RE_TIT_POP = /(^|[-_\s])(title|titulo|legend|heading)([-_\s]|$)/i;
+  var POP = {
+    painel: { 'background': 'var(--inn-t-painel)', 'border-color': 'var(--inn-t-linha)', 'box-shadow': 'var(--inn-t-sombra)', 'border-radius': '14px', 'color': 'var(--inn-t-texto)' },
+    cab: { 'background': 'transparent', 'border-color': 'transparent', 'box-shadow': 'none' },
+    tit: { 'color': 'var(--inn-t-texto)', 'font-weight': '700', 'font-size': '17px', 'letter-spacing': '-.2px', 'text-transform': 'none' },
+    sub: { 'color': 'var(--inn-t-texto3)', 'font-weight': '500' },
+    secao: { 'background': 'var(--inn-t-painel2)', 'border-color': 'var(--inn-t-linha)', 'box-shadow': '0 1px 0 var(--inn-t-hi) inset', 'border-radius': '12px', 'color': 'var(--inn-t-texto)' },
+    secTit: { 'color': 'var(--inn-t-azul2)', 'font-size': '11px', 'font-weight': '800', 'text-transform': 'uppercase', 'letter-spacing': '.08em', 'background': 'transparent', 'border-color': 'transparent', 'box-shadow': 'none' },
+    rotulo: { 'color': 'var(--inn-t-texto2)', 'font-weight': '600' }
+  };
+  function fixar(el, nome) {
+    if (el.dataset.innPop === nome) return;
+    var props = POP[nome];
+    Object.keys(props).forEach(function (k) { el.style.setProperty(k, props[k], 'important'); });
+    el.dataset.innPop = nome;
+  }
+  function textoProprio(el) {
+    var t = ''; for (var i = 0; i < el.childNodes.length; i++) if (el.childNodes[i].nodeType === 3) t += el.childNodes[i].textContent;
+    return t.trim();
+  }
+  function painelDo(fundo) {
+    if (fundo.tagName === 'DIALOG') return fundo;
+    var melhor = null, area = 0, fr = fundo.getBoundingClientRect();
+    [].forEach.call(fundo.querySelectorAll('*'), function (el) {
+      var r = el.getBoundingClientRect();
+      if (r.width < 240 || r.height < 120 || (r.width >= fr.width * .95 && r.height >= fr.height * .95)) return;
+      // O painel é o mais alto da árvore entre os grandes: não desce para dentro dele.
+      if (melhor && melhor.contains(el)) return;
+      var a = r.width * r.height; if (a > area && visivel(el)) { melhor = el; area = a; }
+    });
+    return melhor;
+  }
+  function vestirPopup(fundo) {
+    var painel = painelDo(fundo); if (!painel) return;
+    var pr = painel.getBoundingClientRect();
+    if (fundo.tagName !== 'DIALOG') fixar(painel, 'painel'); else fixar(fundo, 'painel');
+    // Cabeçalho: perto do topo do painel, quase da largura dele, baixo, com texto.
+    var cab = [].filter.call(painel.querySelectorAll('div, header, section'), function (el) {
+      var r = el.getBoundingClientRect(), cls = String(el.className || '');
+      return visivel(el) && r.top - pr.top < 40 && r.width >= pr.width * .7 && r.height < 140 && r.height > 20 && (RE_CAB_POP.test(cls) || el.tagName === 'HEADER') && (el.textContent || '').trim();
+    })[0];
+    if (!cab) {
+      // Sem bloco de cabeçalho (Monitoramento de Publicações: H2 e P soltos no painel): o
+      // título solto no alto do painel faz o papel dele.
+      var solto = [].filter.call(painel.querySelectorAll('h1, h2, h3, [class*="title"], [class*="titulo"]'), function (e) {
+        return visivel(e) && e.getBoundingClientRect().top - pr.top < 80 && !/sub/i.test(String(e.className)) && !e.closest('[data-inn-pop="secao"]');
+      })[0];
+      if (solto) {
+        fixar(solto, 'tit');
+        var sub2 = solto.nextElementSibling;
+        if (sub2 && visivel(sub2) && /^(P|SPAN|DIV)$/.test(sub2.tagName) && !sub2.querySelector('input, select, textarea, button') && (sub2.textContent || '').trim().length < 260) fixar(sub2, 'sub');
+        iconeNoPopup(solto.parentElement, solto);
+      }
+    }
+    if (cab) {
+      fixar(cab, 'cab');
+      // O título é o texto, nunca a linha que também tem botões (a gaveta da tarefa tem o
+      // título editável ao lado de Concluir e Arquivar): o campo de título só ganha o ícone.
+      var tit = [].filter.call(cab.querySelectorAll('h1, h2, h3, h4, [class*="title"], [class*="titulo"]'), function (e) {
+        return visivel(e) && !/sub/i.test(String(e.className)) && (/^(INPUT|TEXTAREA)$/.test(e.tagName) || !e.querySelector('button, input, textarea, select'));
+      })[0];
+      if (tit && /^(INPUT|TEXTAREA)$/.test(tit.tagName)) iconeNoPopup(cab, tit);
+      else if (tit) {
+        fixar(tit, 'tit');
+        var sub = [].filter.call(cab.querySelectorAll('[class*="sub"], [class*="desc"], p'), function (e) { return visivel(e) && e !== tit && !e.contains(tit); })[0];
+        if (sub) fixar(sub, 'sub');
+        iconeNoPopup(cab, tit);
+      }
+    }
+    // Seções: blocos grandes com borda (ou fundo próprio), dentro do painel, fora do cabeçalho.
+    var cw = pr.width;
+    [].forEach.call(painel.querySelectorAll('div, section, fieldset'), function (el) {
+      if (el === cab || (cab && (cab.contains(el) || el.contains(cab)))) return;
+      if (el.closest('[data-inn-pop="secao"]') && !el.matches('[data-inn-pop="secao"]')) return;
+      var cls = String(el.className || '');
+      if (!(RE_SEC_POP.test(cls) || el.tagName === 'FIELDSET')) return;
+      if (/(^|\s)inn-(aba|selo|toast|ic-btn)|btn|button|botao|tab|aba|pill|chip|badge|tag|selo|toast|campo|field|input|select|grid|row|linha|col(\s|$|-)/i.test(cls.replace(/\binn-c-[\w-]+/g, '').replace(/(section|secao|bloco|block|group|grupo)/ig, ''))) return;
+      var forte = /(^|[-_\s])(section|secao|sec|bloco|block)([-_\s]|$)/i.test(cls) || el.tagName === 'FIELDSET';
+      if (!visivel(el)) return;
+      var r = el.getBoundingClientRect(); if (r.width < cw * .5 || r.height < 50) return;
+      var cs = getComputedStyle(el), bc = rgb(cs.borderTopColor), bg = corFundo(cs);
+      var temBorda = parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle !== 'none' && bc && bc[3] > .04;
+      if (!temBorda && !bg && !forte) return;
+      fixar(el, 'secao');
+      // Título da seção: o primeiro texto curto e forte no alto dela, antes dos campos.
+      var t = [].filter.call(el.querySelectorAll('h2, h3, h4, h5, legend, div, span, p'), function (e) {
+        if (!visivel(e) || e.querySelector('input, select, textarea, button') || e.closest('button, label')) return false;
+        var er = e.getBoundingClientRect(), tx = (e.textContent || '').trim();
+        if (er.top - r.top > 46 || !tx || tx.length > 60 || e.children.length > 2) return false;
+        var ecs = getComputedStyle(e);
+        return RE_TIT_POP.test(String(e.className || '')) || /^(H[2-5]|LEGEND)$/.test(e.tagName) || parseInt(ecs.fontWeight, 10) >= 600;
+      })[0];
+      if (t) fixar(t, 'secTit');
+    });
+    // Rótulos dos campos (não o de caixa de marcar, que é o próprio texto da opção).
+    [].forEach.call(painel.querySelectorAll('label, [class*="label"], [class*="rotulo"]'), function (l) {
+      if (l.dataset.innPop || !visivel(l) || /(^|\s)inn-/.test(String(l.className)) || l.querySelector('input[type="checkbox"], input[type="radio"]')) return;
+      var tx = textoProprio(l) || (l.children.length <= 1 ? (l.textContent || '').trim() : '');
+      if (!tx || tx.length > 60 || l.closest('button, [data-inn-pop="secTit"], [data-inn-pop="tit"]')) return;
+      if (l.tagName === 'LABEL' && !textoProprio(l)) { var sp = l.querySelector('span, div'); if (sp && !sp.querySelector('input, select, textarea') && (sp.textContent || '').trim().length <= 60) fixar(sp, 'rotulo'); return; }
+      fixar(l, 'rotulo');
+    });
+  }
+  // O ícone da tela, na caixa afundada da home, antes do título do pop-up.
+  function iconeNoPopup(cab, tit) {
+    if (cab.querySelector('.inn-cab-ic')) return;
+    var ativo = document.querySelector('.sidebar nav a.active .icon svg') || document.querySelector('.sidebar .sidebar-group.has-active .sidebar-group-icon svg');
+    if (!ativo) return;
+    var caixa = document.createElement('span');
+    caixa.className = 'inn-cab-ic inn-pop-ic';
+    caixa.setAttribute('aria-hidden', 'true');
+    caixa.appendChild(ativo.cloneNode(true));
+    // O bloco do título (título + subtítulo) é o filho do cabeçalho que contém o título.
+    if (tit.previousElementSibling && tit.previousElementSibling.classList.contains('inn-pop-linha')) return;
+    var bloco = tit; while (bloco.parentElement && bloco.parentElement !== cab) bloco = bloco.parentElement;
+    if (bloco.parentElement !== cab || bloco.closest('.inn-pop-linha')) return;
+    var linha = document.createElement('div');
+    linha.className = 'inn-pop-linha';
+    linha.style.cssText = 'display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 auto;';
+    cab.insertBefore(linha, bloco);
+    linha.appendChild(caixa); linha.appendChild(bloco);
+  }
+  var popTimer = null;
+  function vestirPopups() {
+    clearTimeout(popTimer);
+    popTimer = setTimeout(function () {
+      var vistos = [];
+      [].forEach.call(document.querySelectorAll(SEL_POPUP + ', dialog[open]'), function (el) {
+        if (!visivel(el) || vistos.some(function (v) { return v.contains(el); })) return;
+        if (el.tagName === 'DIALOG' ? el.open : ehFundoDePopup(el)) { vistos.push(el); vestirPopup(el); }
+      });
+    }, 90);
+  }
+  new MutationObserver(function (ms) {
+    for (var i = 0; i < ms.length; i++) {
+      var t = ms[i].target;
+      if (t.nodeType === 1 && (t.matches(SEL_POPUP + ', dialog') || t.closest(SEL_POPUP))) { vestirPopups(); return; }
+    }
+  }).observe(document.body, { attributes: true, attributeFilter: ['class', 'style', 'hidden', 'open'], childList: true, subtree: true });
+  vestirPopups();
+
   // ── 4. A onda do toque ──────────────────────────────────────────────────
   var SEL_TOQUE = 'button, .btn, a[class*="btn"], [role="tab"], .inn-aba, .tk-card, .cli-card, .proc-card, .lead-card, .kanban-card, .kpi-card, .o-card[onclick], .chat-item, .int-card, .tk-periodo, .chat-filter-btn';
   document.addEventListener('pointerdown', function (e) {
