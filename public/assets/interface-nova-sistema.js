@@ -112,7 +112,7 @@
   // mon-pill, chat-filter-btn...) e o estado de um jeito (active, ativa, ativo,
   // selected, doc-tab-active, mon-pill-active...). Marca as duas coisas e deixa o CSS
   // pôr a pílula azul. Painel de aba (pane, panel, content) não é aba.
-  var RE_ABA = /(^|[-_])(tab|mtab|pill|chip|seg|segment|filtro|filter|view|periodo|period|modo|opcao)(s)?(-?btn|-?item|-?opt)?$/i;
+  var RE_ABA = /(^|[-_])(tab|mtab|aba|pill|pilula|chip|seg|segment|filtro|filter|view|periodo|period|modo|opcao)(s)?(-?btn|-?item|-?opt)?$/i;
   var RE_NAO = /pane|panel|content|body|wrap|list|bar|group|container|header|grid|row|col|area|box/i;
   var RE_ON  = /^(active|ativo|ativa|selected|is-active|is-selected|current|on|sel|atual)$|-(active|ativo|ativa|selected|on)$/i;
   function ehAba(el) {
@@ -138,6 +138,220 @@
       el.classList.toggle('inn-aba-on', abaLigada(el));
     });
   }
+
+  // Tira o "sem transição" depois que a cor nova já foi pintada (lê o estilo para
+  // fixar a cor antes de soltar; setTimeout e não rAF, que para em aba escondida).
+  function soltarTransicao(els) {
+    if (!els.length) return;
+    els.forEach(function (el) { void getComputedStyle(el).borderTopColor; });
+    setTimeout(function () { els.forEach(function (el) { el.classList.remove('inn-c-agora'); }); }, 60);
+  }
+
+  // ── 3c. Selos e etiquetas pela cor que já tinham ────────────────────────
+  // Cada tela pinta o selo à sua moda (badge-hot rosa, status-pago verde-limão,
+  // tag-pendente pastel...). O sentido fica, o desenho passa a ser o da etiqueta
+  // da home: vermelho, âmbar e verde só quando já eram estado; azul e roxo viram o
+  // azul do Yuris; cinza fica na prata. A classe original fica guardada: se a tela
+  // trocar o estado do selo, ele é lido de novo.
+  var RE_SELO = /badge|(^|[-_])(tag|selo|etiqueta|status)([-_]|$)|^(pill|chip)$|-pill$/i;
+  var TONS = ['inn-selo-erro', 'inn-selo-aviso', 'inn-selo-ok', 'inn-selo-azul', 'inn-selo-neutro'];
+  function baseSelo(el) { return String(el.className || '').split(/\s+/).filter(function (c) { return c && c.indexOf('inn-') !== 0; }).join(' '); }
+  function tomDoSelo(el) {
+    var cs = getComputedStyle(el), melhor = null;
+    [cs.backgroundColor, cs.color, cs.borderTopColor].forEach(function (c, i) {
+      var v = rgb(c); if (!v || v[3] < (i === 0 ? .04 : .3)) return;
+      var hsl = matiz(v[0], v[1], v[2]);
+      if (hsl.l < .08 || hsl.l > .96) return;
+      if (!melhor || hsl.s > melhor.s) melhor = hsl;
+    });
+    if (!melhor || melhor.s < .2) return 'inn-selo-neutro';
+    var h = melhor.h;
+    if (h < 16 || h >= 290) return 'inn-selo-erro';
+    if (h < 58) return 'inn-selo-aviso';
+    if (h < 172) return 'inn-selo-ok';
+    return 'inn-selo-azul';
+  }
+  function vestirSelo(el) {
+    TONS.forEach(function (t) { el.classList.remove(t); });
+    el.classList.remove('inn-selo');
+    var tom = tomDoSelo(el);                   // lido sem as classes da prévia
+    el.dataset.innSelo = baseSelo(el);
+    el.classList.add('inn-selo', tom);
+  }
+  function ehSelo(el) {
+    if (el.dataset.innSelo != null || el.classList.contains('inn-aba')) return false;
+    var cls = String(el.className && el.className.baseVal != null ? '' : el.className || '').split(/\s+/);
+    if (!cls.some(function (c) { return RE_SELO.test(c); })) return false;
+    if (el.closest('.sidebar, button, .inn-aba, th, select, label, .inn-cab-ic') && !el.matches('button')) return false;
+    if (el.matches('button, input, select, textarea')) return false;
+    var t = (el.textContent || '').trim();
+    if (!t || t.length > 40 || el.querySelector('div, p, ul, table, input, button')) return false;
+    // Embrulho de selos (.badges) não é selo: os de dentro é que são.
+    if ([].some.call(el.children, function (f) { return RE_SELO.test(String(f.className || '')); })) return false;
+    var r = el.getBoundingClientRect();
+    return r.height > 0 && r.height <= 30 && r.width <= 240;
+  }
+  function selos(raiz) {
+    if (!raiz || !raiz.querySelectorAll || !document.querySelector('.inn-tela')) return;
+    var cands = [].slice.call(raiz.querySelectorAll('span, small, em, b, strong, div, a, li'));
+    if (raiz.nodeType === 1) cands.unshift(raiz);
+    var achados = cands.filter(function (el) { return el.closest && el.closest('.inn-tela, [class*="modal"]') && ehSelo(el); });
+    // Lê todos os tons antes de pôr classe (pôr classe no meio força recálculo a cada selo).
+    var tons = achados.map(tomDoSelo);
+    achados.forEach(function (el, i) { el.dataset.innSelo = baseSelo(el); el.classList.add('inn-c-agora', 'inn-selo', tons[i]); });
+    soltarTransicao(achados);
+  }
+
+  // ── 3d. O que ficou com a cor antiga ────────────────────────────────────
+  // Lido pela cor de verdade, não pelo nome (cada tela dá um nome):
+  //   - fundo branco no tema claro: painel vira a prata do cartão, campo vira o
+  //     fundo afundado, botão e aba viram o botão secundário da home;
+  //   - botão vermelho (Excluir, Remover) vira o secundário com texto vermelho;
+  //     botão de outra cor que não o azul vira o secundário;
+  //   - borda colorida por estado num bloco (cartão atrasado, linha urgente) vira
+  //     a linha neutra: o estado fica no texto, como na home;
+  //   - faixa lateral colorida sai;
+  //   - caixa de aviso (fundo vermelho, âmbar ou verde) vira o aviso da home.
+  // Fica de fora o que é cor de dado escolhida pela pessoa (bolinha de setor, de
+  // coluna) e o que precisa ser branco (QR, assinatura, foto).
+  var RE_BRANCO_NAO = /qr|knob|thumb|switch|toggle|avatar|assinatura|signature|preview|logo|foto|photo|img|canvas|swatch|cor-|color/i;
+  var RE_CAIXA = /card|kpi|panel|painel|tile|stat|widget|alert|aviso|banner|strip|faixa|summary|resumo|health|saude/i;
+  function tomDeCor(c, minA, minL) {
+    var v = rgb(c); if (!v || v[3] < (minA || .25)) return null;
+    var h = matiz(v[0], v[1], v[2]);
+    if (h.s < .3 || h.l < (minL || .12) || h.l > .95) return null;
+    if (h.h >= 200 && h.h < 240) return 'azul';
+    if (h.h < 16 || h.h >= 330) return 'erro';
+    if (h.h < 58) return 'aviso';
+    if (h.h < 172) return 'ok';
+    return 'outro';
+  }
+  function tomDe(cs, prop, minA, minL) { return tomDeCor(cs[prop], minA, minL); }
+  // O fundo pode ser cor ou degradê (o aviso do Chat é um degradê vinho escuro): lê os dois.
+  function tomFundo(cs) {
+    var t = tomDe(cs, 'backgroundColor', .05, .04); if (t) return t;
+    if (cs.backgroundImage.indexOf('gradient') < 0) return null;
+    var paradas = cs.backgroundImage.match(/rgba?\([^)]+\)/g) || [];
+    for (var i = 0; i < paradas.length; i++) { t = tomDeCor(paradas[i], .25, .04); if (t) return t; }
+    return null;
+  }
+  function emTransicao(el) {
+    try { return el.getAnimations().some(function (a) { return typeof CSSTransition !== 'undefined' && a instanceof CSSTransition; }); } catch (e) { return false; }
+  }
+  function branco(cs) { var v = rgb(cs.backgroundColor); return !!v && v[3] > .9 && v[0] >= 252 && v[1] >= 252 && v[2] >= 252; }
+  function claro() { return document.documentElement.getAttribute('data-theme') === 'light'; }
+  function vestirCores(raiz) {
+    if (!raiz || !raiz.querySelectorAll || !document.querySelector('.inn-tela')) return;
+    var cands = [].slice.call(raiz.querySelectorAll('div, section, article, aside, header, footer, li, a, button, input, select, textarea, span, label, td, tr'));
+    if (raiz.nodeType === 1) cands.unshift(raiz);
+    var fila = [];
+    cands.forEach(function (el) {
+      // Vale na tela, nos pop-ups e também no que fica fora (aviso fixo no topo, toast): só o menu fica de fora.
+      if (el.dataset.innCor || el.closest('.sidebar, .inn-selo, .inn-cab-ic, svg')) return;
+      var cls = String(el.className || ''); if (typeof el.className !== 'string') return;
+      if (/(^|\s)inn-(selo|ic-btn|aba-on)/.test(cls) && !/inn-aba(\s|$)/.test(cls)) return;
+      // No meio de uma transição a cor lida é a do caminho, não a de chegada (e o aviso do Chat
+      // ainda está crescendo de altura zero): lê de novo no fim.
+      if (emTransicao(el)) {
+        if (!el.dataset.innEspera) { el.dataset.innEspera = '1'; el.addEventListener('transitionend', function () { delete el.dataset.innEspera; if (el.dataset.innCor == null) vestirCores(el); }, { once: true }); }
+        return;
+      }
+      var r = el.getBoundingClientRect(); if (r.width < 8 || r.height < 8) return;
+      var cs = getComputedStyle(el), marca = [];
+      var ehCampo = /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName);
+      var ehBotao = !ehCampo && (el.tagName === 'BUTTON' || /(^|[-_\s])btn|button|botao/i.test(cls));
+      // Fundo branco (claro): painel, campo ou botão.
+      if (claro() && branco(cs) && !RE_BRANCO_NAO.test(cls) && !(r.width < 60 && r.height < 60 && !ehCampo && !ehBotao)) {
+        if (ehCampo) marca.push('inn-c-campo');
+        else if (ehBotao || el.classList.contains('inn-aba')) marca.push('inn-c-botao');
+        else if (!el.querySelector(':scope > img:only-child, :scope > canvas:only-child')) marca.push('inn-c-painel');
+      }
+      // Botões coloridos que não são o azul.
+      if (ehBotao && !el.classList.contains('inn-aba')) {
+        var tb = tomDe(cs, 'backgroundColor'), tt = tomDe(cs, 'color'), tbd = parseFloat(cs.borderTopWidth) > 0 ? tomDe(cs, 'borderTopColor') : null;
+        // Cheio de outra cor (verde "Ativar", roxo "Salvar"): é o principal, vira o azul.
+        // Só o texto ou a borda coloridos: é o secundário. Vermelho é sempre perigo.
+        var vbt = rgb(cs.backgroundColor), cheio = tb && vbt && vbt[3] > .6;
+        var tom = (tb && tb !== 'azul') ? tb : (!tb && tt && tt !== 'azul') ? tt : (!tb && tbd && tbd !== 'azul') ? tbd : null;
+        if (tom === 'erro') marca.push('inn-c-perigo');
+        else if (tom && cheio && r.height >= 30) marca.push('inn-c-primario');   // o miúdo dentro de cartão não ganha o brilho
+        else if (tom) marca.push('inn-c-botao');
+      } else if (!ehCampo && r.width > 120 && r.height > 26) {
+        // Caixa tingida (fundo de estado, mesmo bem claro, com texto): a baixa vira o aviso
+        // da home; a alta (um bloco inteiro pintado de pêssego) vira o painel afundado.
+        var fb = tomFundo(cs);
+        var tingida = fb && fb !== 'azul' && fb !== 'outro' && (el.textContent || '').trim().length > 3;
+        if (tingida) marca.push(r.height > 90 ? 'inn-c-neutro' : 'inn-c-alerta-' + fb);
+        // Borda colorida por estado: vira a linha neutra.
+        var bd = parseFloat(cs.borderTopWidth) > 0 ? tomDe(cs, 'borderTopColor') : null;
+        if (bd && bd !== 'azul' && !tingida) marca.push('inn-c-borda');
+        // Filete decorativo (::before/::after fino e colorido no topo ou na lateral de um
+        // cartão): some. Só em cartão, painel e afins, que é onde ele mora.
+        if (RE_CAIXA.test(cls)) ['::before', '::after'].forEach(function (ps) {
+          var pc = getComputedStyle(el, ps);
+          if (pc.content === 'none' || pc.content === 'normal') return;
+          var ph = parseFloat(pc.height), pw = parseFloat(pc.width);
+          if (!((ph <= 8 && pw >= 40) || (pw <= 8 && ph >= 30))) return;
+          var pb = rgb(pc.backgroundColor);
+          if (pc.backgroundImage.indexOf('gradient') >= 0 || (pb && pb[3] > .2 && matiz(pb[0], pb[1], pb[2]).s > .2)) marca.push(ps === '::before' ? 'inn-c-sem-filete-antes' : 'inn-c-sem-filete-depois');
+        });
+      }
+      // Toast (aviso flutuante, de qualquer módulo): o painel da home, nunca bloco escuro.
+      var pai = el.parentElement;
+      if (/toast|snack/i.test(cls + ' ' + el.id) || (pai && /toast|snack/i.test(pai.id + ' ' + String(pai.className || '')) && !/toast-(icon|content|title|body|close)/i.test(cls) && r.width > 120)) {
+        if (!/toast-(icon|content|title|body|close|host)/i.test(cls + ' ' + el.id) && r.width > 120) marca.push('inn-toast');
+      }
+      // Faixa lateral colorida.
+      if (!ehCampo && parseFloat(cs.borderLeftWidth) >= 2 && parseFloat(cs.borderLeftWidth) > parseFloat(cs.borderTopWidth) && tomDe(cs, 'borderLeftColor')) marca.push('inn-c-sem-faixa');
+      fila.push([el, marca]);
+      el.dataset.innBase = baseSelo(el);
+    });
+    // Lê tudo antes de escrever: trocar classe no meio da leitura recalcula o estilo a cada passo.
+    // A troca é seca, sem transição: senão o cartão abre verde e desbota para o cinza.
+    var trocados = [];
+    fila.forEach(function (p) {
+      p[0].dataset.innCor = p[1].join(' ') || '-';
+      if (p[1].length) { p[0].classList.add('inn-c-agora'); trocados.push(p[0]); }
+      p[1].forEach(function (m) { p[0].classList.add(m); });
+      if (p[0].id && p[1].length) porCimaDoId(p[0], p[1]);
+    });
+    soltarTransicao(trocados);
+  }
+  // Regra por #id da tela (o aviso fixo do Chat é #disconnectAlert.visible) ganha de qualquer
+  // classe: nesses, a cor nova vai em linha, com !important.
+  var INLINE = {
+    'inn-c-painel': { 'background': 'var(--inn-t-painel)' },
+    'inn-c-campo': { 'background': 'var(--inn-t-fundo)' },
+    'inn-c-neutro': { 'background': 'var(--inn-t-fundo)', 'border-color': 'var(--inn-t-linha)' },
+    'inn-c-borda': { 'border-color': 'var(--inn-t-linha)' },
+    'inn-c-sem-faixa': { 'border-left-color': 'var(--inn-t-linha)' },
+    'inn-c-alerta-erro': { 'background': 'linear-gradient(var(--inn-t-erro-bg), var(--inn-t-erro-bg)) var(--inn-t-painel)', 'color': 'var(--inn-t-erro)', 'border-color': 'transparent' },
+    'inn-c-alerta-aviso': { 'background': 'linear-gradient(var(--inn-t-aviso-bg), var(--inn-t-aviso-bg)) var(--inn-t-painel)', 'color': 'var(--inn-t-aviso)', 'border-color': 'transparent' },
+    'inn-c-alerta-ok': { 'background': 'linear-gradient(var(--inn-t-ok-bg), var(--inn-t-ok-bg)) var(--inn-t-painel)', 'color': 'var(--inn-t-ok)', 'border-color': 'transparent' },
+    'inn-toast': { 'background': 'var(--inn-t-painel)', 'color': 'var(--inn-t-texto)', 'border-color': 'var(--inn-t-linha2)' }
+  };
+  function porCimaDoId(el, marcas) {
+    marcas.forEach(function (m) {
+      var props = INLINE[m]; if (!props) return;
+      Object.keys(props).forEach(function (k) { el.style.setProperty(k, props[k], 'important'); });
+      el.dataset.innInline = (el.dataset.innInline ? el.dataset.innInline + ' ' : '') + Object.keys(props).join(' ');
+    });
+  }
+  function revestirCores(el) {
+    (el.dataset.innInline || '').split(' ').forEach(function (k) { if (k) el.style.removeProperty(k); });
+    delete el.dataset.innInline;
+    (el.dataset.innCor || '').split(' ').forEach(function (m) { if (m && m !== '-') el.classList.remove(m); });
+    delete el.dataset.innCor; delete el.dataset.innBase;
+    vestirCores(el);
+  }
+  // Trocar o tema relê as cores (o branco só existe no claro).
+  new MutationObserver(function () {
+    [].forEach.call(document.querySelectorAll('[data-inn-cor]'), function (el) {
+      (el.dataset.innCor || '').split(' ').forEach(function (m) { if (m && m !== '-') el.classList.remove(m); });
+      delete el.dataset.innCor; delete el.dataset.innBase;
+    });
+    vestirCores(document.body);
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
   // ── 4. A onda do toque ──────────────────────────────────────────────────
   var SEL_TOQUE = 'button, .btn, a[class*="btn"], [role="tab"], .inn-aba, .tk-card, .cli-card, .proc-card, .lead-card, .kanban-card, .kpi-card, .o-card[onclick], .chat-item, .int-card, .tk-periodo, .chat-filter-btn';
@@ -246,7 +460,7 @@
   // ── Ligar ───────────────────────────────────────────────────────────────
   function ligar() {
     var main = acharTela() || document.body;
-    iconeNoCabecalho(); botoesDeIcone(document.body); fantasmas(main); marcarAbas(main);
+    iconeNoCabecalho(); botoesDeIcone(document.body); fantasmas(main); marcarAbas(main); selos(document.body); vestirCores(document.body);
     if (!vestirChartJs()) {
       // Chart.js chega depois em algumas telas: espera por ele um pouco.
       var n = 0, t = setInterval(function () { if (vestirChartJs() || ++n > 40) clearInterval(t); }, 250);
@@ -254,11 +468,21 @@
     var pendente = false;
     new MutationObserver(function (ms) {
       ms.forEach(function (m) {
-        if (m.type === 'attributes') { if (m.target.classList && m.target.classList.contains('inn-aba')) m.target.classList.toggle('inn-aba-on', abaLigada(m.target)); return; }
-        [].forEach.call(m.addedNodes, function (no) { if (no.nodeType === 1) { botoesDeIcone(no); fantasmas(no); marcarAbas(no); } });
+        if (m.type === 'attributes') {
+          var alvo = m.target;
+          if (alvo.classList && alvo.classList.contains('inn-aba')) alvo.classList.toggle('inn-aba-on', abaLigada(alvo));
+          // Selo que trocou de estado (a tela mudou a classe dele): lê a cor de novo.
+          if (alvo.dataset && alvo.dataset.innSelo != null && m.attributeName === 'class' && baseSelo(alvo) !== alvo.dataset.innSelo) vestirSelo(alvo);
+          if (alvo.dataset && alvo.dataset.innCor != null && m.attributeName === 'class' && baseSelo(alvo) !== alvo.dataset.innBase) revestirCores(alvo);
+          // O que estava escondido e apareceu (display:none que virou flex) ainda não foi lido.
+          // O que estava escondido e apareceu (display:none que virou flex, classe "visible" que chegou) ainda não foi lido.
+          if ((m.attributeName === 'style' || m.attributeName === 'hidden' || m.attributeName === 'class') && alvo.dataset && alvo.dataset.innCor == null && alvo.dataset.innSelo == null && !alvo.classList.contains('inn-aba')) vestirCores(alvo);
+          return;
+        }
+        [].forEach.call(m.addedNodes, function (no) { if (no.nodeType === 1) { botoesDeIcone(no); fantasmas(no); marcarAbas(no); selos(no); vestirCores(no); } });
       });
       if (!pendente) { pendente = true; requestAnimationFrame(function () { pendente = false; conferirFantasmas(); }); }
-    }).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['class', 'aria-selected', 'aria-pressed'] });
+    }).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['class', 'aria-selected', 'aria-pressed', 'style', 'hidden'] });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ligar); else ligar();
   window.addEventListener('load', function () { vestirChartJs(); });

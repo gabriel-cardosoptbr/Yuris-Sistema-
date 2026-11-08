@@ -33,6 +33,9 @@
     itens.forEach(function (el) {
       if (el.dataset.inn) return;
       el.dataset.inn = '1';
+      // Quem já tem transform próprio (a coluna do quadro gira em rotateX para a barra
+      // ficar em cima) não entra: a animação sobrescreveria o giro e o texto viraria de cabeça para baixo.
+      if (getComputedStyle(el).transform !== 'none') return;
       var k = porPai.get(el.parentNode) || 0;
       porPai.set(el.parentNode, k + 1);
       if (k < 14) { el.style.setProperty('--mov-i', k); el.classList.add('inn-item'); }

@@ -362,7 +362,9 @@ nada muda. O tamanho dos pop-ups das telas na prévia fica em `assets/interface-
 o movimento delas (entrada, saída pelo menu, pop-ups que surgem) em `assets/interface-nova-movimento.css`
 e `.js`, e o da home em `assets/inicio-movimento.css` e `.js` (08/11/2026). O desenho da home nas
 telas (ícone do cabeçalho, abas em pílula, cartões, selos, tabelas, gráficos, tela fantasma, toque)
-mora em `assets/interface-nova-sistema.css` e `.js`; ver `app/Inicio/README.md`.
+mora em `assets/interface-nova-sistema.css` e `.js`, que desde 08/11/2026 também reconhecem as
+peças pela cor computada (selo, branco puro, borda ou faixa por estado, filete, caixa tingida, toast);
+ver `app/Inicio/README.md`.
 
 **Tema escuro da edição CRM (02/10/2026).** O desenho da edição CRM era só claro
 (todo seletor com `html[data-theme="light"]`), e no escuro sobrava o estilo antigo do

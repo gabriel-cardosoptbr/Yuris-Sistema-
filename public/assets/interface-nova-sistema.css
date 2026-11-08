@@ -141,14 +141,17 @@ html .inn-tela [role="tab"]:active, html .tk-card:active, html .cli-card:active,
 /* ── 10. Abas reconhecidas pelo nome (o JS marca): qualquer tab, pill, filtro ou
    segmento, com o estado ativo em qualquer nome (active, ativo, ativa, selected...) ── */
 html .inn-aba{ border-radius:8px !important; transition:background .2s ease, color .2s ease, box-shadow .2s ease, transform .15s ease !important; }
-html .inn-aba.inn-aba-on{
+html .inn-aba.inn-aba-on, html:root .inn-aba.inn-aba-on.inn-aba-on, html:root [data-theme] .inn-aba.inn-aba-on.inn-aba-on{
   background:linear-gradient(180deg, var(--inn-t-azul2), var(--inn-t-azul)) !important; background-image:linear-gradient(180deg, var(--inn-t-azul2), var(--inn-t-azul)) !important;
   color:#fff !important; border-color:transparent !important;
   box-shadow:var(--inn-t-brilho), inset 0 2px 3px rgba(255,255,255,.22), inset 0 -3px 6px rgba(0,0,0,.24) !important;
 }
-html .inn-aba.inn-aba-on *:not(svg):not(svg *){ color:#fff !important; }
+html .inn-aba.inn-aba-on *:not(svg):not(svg *), html:root .inn-aba.inn-aba-on.inn-aba-on *:not(svg):not(svg *){ color:#fff !important; }
+html .inn-aba.inn-aba-on [class*="count"], html .inn-aba.inn-aba-on [class*="badge"], html .inn-aba.inn-aba-on [class*="-n"]{ background:rgba(255,255,255,.22) !important; color:#fff !important; border-color:transparent !important; }
 html .inn-aba.inn-aba-on svg, html .inn-aba.inn-aba-on svg *{ stroke:#fff !important; }
-html .inn-aba:not(.inn-aba-on):hover{ background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul2) !important; }
+html .inn-aba:not(.inn-aba-on):hover, html:root .inn-aba.inn-aba:not(.inn-aba-on):hover{ background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul2) !important; }
+/* Aba fora do ativo, em qualquer tela: o botão secundário da home (nada de branco nem de caixa própria). */
+html:root .inn-aba.inn-aba:not(.inn-aba-on){ background:var(--inn-t-painel2) !important; background-image:none !important; color:var(--inn-t-texto2) !important; border-color:var(--inn-t-linha2) !important; box-shadow:0 1px 0 var(--inn-t-hi) inset !important; }
 
 /* ── 11. As telas sem .main-content recebem o mesmo chão das outras ───────── */
 html .inn-tela:not(.main-content) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
@@ -160,3 +163,132 @@ html .inn-tela:not(.main-content) table td{ color:var(--inn-t-texto) !important;
 html .inn-tela:not(.main-content) table tbody tr:hover td{ background:var(--inn-t-azul-suave) !important; }
 html .inn-tela:not(.main-content) .page-header h1, html .inn-tela:not(.main-content) .page-header h2{ color:var(--inn-t-texto) !important; }
 html .inn-tela:not(.main-content) .page-header p{ color:var(--inn-t-texto3) !important; }
+/* ── 12. Selos pela cor que já tinham (o JS lê a cor e marca o tom) ──────────
+   O formato e as cores da etiqueta da home (.ini-tag): vermelho, âmbar e verde só
+   quando já eram estado, apagados; azul e roxo viram o azul do Yuris; o resto na prata. */
+:root{
+  --inn-t-erro:#E07A74; --inn-t-erro-bg:rgba(224,122,116,.12); --inn-t-aviso:#D9A75A; --inn-t-aviso-bg:rgba(217,167,90,.12);
+  --inn-t-ok:#5FBF93; --inn-t-ok-bg:rgba(95,191,147,.12);
+}
+html[data-theme="light"]{
+  --inn-t-erro:#B8453F; --inn-t-erro-bg:rgba(184,69,63,.10); --inn-t-aviso:#A6741F; --inn-t-aviso-bg:rgba(166,116,31,.12);
+  --inn-t-ok:#2E8B62; --inn-t-ok-bg:rgba(46,139,98,.12);
+}
+html:root .inn-selo.inn-selo{
+  border-radius:5px !important; font-weight:700 !important; letter-spacing:.02em !important; box-shadow:none !important; text-shadow:none !important;
+  background-image:none !important; border-width:1px !important; border-style:solid !important;
+}
+html:root .inn-selo.inn-selo-erro.inn-selo-erro{ background-color:var(--inn-t-erro-bg) !important; color:var(--inn-t-erro) !important; border-color:transparent !important; }
+html:root .inn-selo.inn-selo-aviso.inn-selo-aviso{ background-color:var(--inn-t-aviso-bg) !important; color:var(--inn-t-aviso) !important; border-color:transparent !important; }
+html:root .inn-selo.inn-selo-ok.inn-selo-ok{ background-color:var(--inn-t-ok-bg) !important; color:var(--inn-t-ok) !important; border-color:transparent !important; }
+html:root .inn-selo.inn-selo-azul.inn-selo-azul{ background-color:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul2) !important; border-color:rgba(61,101,203,.22) !important; }
+html:root .inn-selo.inn-selo-neutro.inn-selo-neutro{ background-color:var(--inn-t-fundo) !important; color:var(--inn-t-texto2) !important; border-color:var(--inn-t-linha) !important; }
+html .inn-selo *{ color:inherit !important; }
+html .inn-selo svg, html .inn-selo svg *{ stroke:currentColor !important; }
+
+/* ── 13. Quadros (kanban): a raia afundada na prata, o cartão em relevo ───────
+   Prospecção (.kanban-col / .card-mini). A raia é o "fundo" da home, como as caixas
+   dos ícones; o cartão é o painel com a sombra dos cartões da home. Nada colorido
+   por estado: atrasado é o texto vermelho, não a borda. */
+html .inn-tela .kanban-col, html[data-theme="light"] .inn-tela .kanban-col{
+  background:var(--inn-t-fundo) !important; background-image:none !important; border:1px solid var(--inn-t-linha) !important;
+  box-shadow:var(--inn-t-fundo-sombra) !important; border-radius:12px !important;
+}
+html .inn-tela .kanban-col.drop-target{ border-color:rgba(61,101,203,.55) !important; box-shadow:var(--inn-t-fundo-sombra), 0 0 0 3px var(--inn-t-azul-suave) !important; }
+html .inn-tela .kanban-col .col-title, html[data-theme="light"] .inn-tela .kanban-col .col-title{ color:var(--inn-t-texto) !important; font-size:15px !important; font-weight:700 !important; letter-spacing:-.2px; }
+html .inn-tela .kanban-col .col-subtitle, html[data-theme="light"] .inn-tela .kanban-col .col-subtitle{ color:var(--inn-t-texto3) !important; font-size:12px !important; font-weight:600; }
+html .inn-tela .kanban-col .col-pill, html[data-theme="light"] .inn-tela .kanban-col .col-pill{
+  background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul2) !important; border:0 !important; border-radius:8px !important; font-size:11.5px !important;
+}
+html .inn-tela .kanban-col .cardsList{ background:transparent !important; }
+html .inn-tela .kanban-col .empty-note{ color:var(--inn-t-texto3) !important; }
+
+html .inn-tela .card-mini, html[data-theme="light"] .inn-tela .card-mini, html[data-theme="light"] .inn-tela .card-mini.is-overdue{
+  background:var(--inn-t-painel) !important; background-image:none !important; border:1px solid var(--inn-t-linha) !important;
+  border-radius:8px !important; box-shadow:var(--inn-t-sombra) !important;
+  transition:transform .18s cubic-bezier(.2,.8,.2,1), border-color .15s, box-shadow .18s !important;
+}
+html .inn-tela .card-mini:hover, html[data-theme="light"] .inn-tela .card-mini:hover{
+  transform:translateY(-2px) !important; border-color:rgba(61,101,203,.55) !important;
+  box-shadow:var(--inn-t-sombra), 0 10px 22px rgba(31,38,50,.10) !important;
+}
+html .inn-tela .card-mini:active{ transform:scale(.985) !important; transition-duration:.08s !important; }
+/* Origem (MATRIZ / FILIAL), na Prospecção e nos Processos: o rótulo miúdo da home, sem faixa colorida. */
+html .inn-tela [class*="origin-strip"], html[data-theme="light"] .inn-tela [class*="origin-strip"]{
+  background:transparent !important; background-image:none !important; color:var(--inn-t-texto3) !important;
+  border-bottom:1px solid var(--inn-t-linha) !important; font-size:10.5px !important;
+}
+html .inn-tela [class*="origin-strip"] .org-label, html[data-theme="light"] .inn-tela [class*="origin-strip"] .org-label{ color:var(--inn-t-azul2) !important; }
+html .inn-tela [class*="origin-strip"] .org-name, html[data-theme="light"] .inn-tela [class*="origin-strip"] .org-name{ color:var(--inn-t-texto2) !important; }
+html .inn-tela .card-mini svg, html .inn-tela .card-mini .icon svg{ stroke:var(--inn-t-texto3) !important; fill:var(--inn-t-texto3) !important; color:var(--inn-t-texto3) !important; }
+html .inn-tela .card-mini .card-drag-handle{ opacity:.35; }
+html .inn-tela .card-mini .card-client, html[data-theme="light"] .inn-tela .card-mini .card-client{ color:var(--inn-t-texto) !important; font-size:13.5px !important; }
+html .inn-tela .card-mini .card-company, html[data-theme="light"] .inn-tela .card-mini .card-company{ color:var(--inn-t-texto3) !important; font-size:12px !important; }
+html .inn-tela .card-mini .card-meta, html[data-theme="light"] .inn-tela .card-mini .card-meta{ color:var(--inn-t-texto3) !important; font-size:11.5px !important; }
+html .inn-tela .card-mini .card-meta strong, html[data-theme="light"] .inn-tela .card-mini .card-meta strong{ color:var(--inn-t-texto) !important; }
+html .inn-tela .card-mini .meta-overdue, html .inn-tela .card-mini .meta-overdue strong{ color:var(--inn-t-erro) !important; }
+html .inn-tela .card-mini .meta-fechado, html .inn-tela .card-mini .meta-fechado strong{ color:var(--inn-t-ok) !important; }
+html .inn-tela .card-mini .open-hint{ color:var(--inn-t-texto3) !important; font-size:11.5px !important; }
+/* Barra de avanço: a calha afundada e o azul do Yuris. */
+html .inn-tela .card-mini .progress-container{ background:var(--inn-t-fundo) !important; box-shadow:var(--inn-t-fundo-sombra) !important; }
+html .inn-tela .card-mini .progress-fill{ background:linear-gradient(90deg, var(--inn-t-azul), var(--inn-t-azul2)) !important; }
+/* WhatsApp e Chat no cartão: o botão secundário da home; no hover vira o azul cheio. */
+html .inn-tela .card-mini .wa-btn, html .inn-tela .card-mini .chat-link-btn,
+html[data-theme="light"] .inn-tela .card-mini .wa-btn, html[data-theme="light"] .inn-tela .card-mini .chat-link-btn{
+  background:var(--inn-t-painel2) !important; background-image:none !important; color:var(--inn-t-azul2) !important;
+  border:1px solid var(--inn-t-linha2) !important; border-radius:8px !important; box-shadow:0 1px 0 var(--inn-t-hi) inset !important;
+  font-size:12px !important; font-weight:700 !important;
+}
+html .inn-tela .card-mini .wa-btn:not(.disabled):hover, html .inn-tela .card-mini .chat-link-btn:hover{
+  background:linear-gradient(180deg, var(--inn-t-azul2), var(--inn-t-azul)) !important; color:#fff !important; border-color:transparent !important;
+  box-shadow:var(--inn-t-brilho) !important; transform:translateY(-1px);
+}
+html .inn-tela .card-mini .wa-btn.disabled{ background:var(--inn-t-fundo) !important; color:var(--inn-t-texto3) !important; border-color:var(--inn-t-linha) !important; box-shadow:var(--inn-t-fundo-sombra) !important; }
+
+/* Toast (aviso flutuante) de qualquer módulo: o painel da home. */
+html:root .inn-toast.inn-toast.inn-toast{ background:var(--inn-t-painel) !important; background-image:none !important; color:var(--inn-t-texto) !important;
+  border:1px solid var(--inn-t-linha2) !important; box-shadow:var(--inn-t-sombra) !important; border-radius:8px !important; }
+html:root .inn-toast.inn-toast.inn-toast *:not(svg):not(svg *){ color:inherit !important; }
+
+/* ── 14. O que ficou com a cor antiga (o JS lê a cor e marca) ────────────────
+   O aviso é opaco (a cor de estado por cima do painel): o fixo do Chat não deixa a página
+   aparecer atrás dele.
+   Nada de branco puro: o claro da home é prata. Nada de borda ou faixa colorida
+   por estado: o estado fica no texto. Botão vermelho é o secundário com texto
+   vermelho; botão de outra cor é o secundário. */
+html:root .inn-c-painel.inn-c-painel.inn-c-painel{ background-color:var(--inn-t-painel) !important; background-image:none !important; }
+html:root .inn-c-campo.inn-c-campo.inn-c-campo{ background-color:var(--inn-t-fundo) !important; background-image:none !important; box-shadow:var(--inn-t-fundo-sombra) !important; border-color:var(--inn-t-linha) !important; }
+html:root .inn-c-botao.inn-c-botao.inn-c-botao:not(.inn-aba-on):not(.inn-ic-btn){
+  background-color:var(--inn-t-painel2) !important; background-image:none !important; color:var(--inn-t-texto) !important;
+  border-color:var(--inn-t-linha2) !important; box-shadow:0 1px 0 var(--inn-t-hi) inset !important;
+}
+html:root .inn-c-botao.inn-c-botao.inn-c-botao:not(.inn-aba-on):not(.inn-ic-btn):not(:disabled):hover{ border-color:rgba(61,101,203,.55) !important; color:var(--inn-t-azul2) !important; }
+html:root .inn-c-botao.inn-c-botao.inn-c-botao:not(.inn-aba-on):not(.inn-ic-btn) svg, html:root .inn-c-botao.inn-c-botao.inn-c-botao:not(.inn-aba-on):not(.inn-ic-btn) svg *{ stroke:currentColor !important; }
+html:root .inn-c-perigo.inn-c-perigo.inn-c-perigo:not(.inn-ic-btn){
+  background-color:var(--inn-t-painel2) !important; background-image:none !important; color:var(--inn-t-erro) !important;
+  border-color:var(--inn-t-linha2) !important; box-shadow:0 1px 0 var(--inn-t-hi) inset !important;
+}
+html:root .inn-c-perigo.inn-c-perigo.inn-c-perigo:not(.inn-ic-btn):not(:disabled):hover{ background-color:var(--inn-t-erro-bg) !important; border-color:transparent !important; transform:translateY(-1px); }
+html:root .inn-c-perigo.inn-c-perigo.inn-c-perigo *{ color:inherit !important; }
+html:root .inn-c-perigo.inn-c-perigo.inn-c-perigo svg, html:root .inn-c-perigo.inn-c-perigo.inn-c-perigo svg *{ stroke:currentColor !important; }
+html:root .inn-c-borda.inn-c-borda.inn-c-borda{ border-color:var(--inn-t-linha) !important; }
+html:root .inn-c-sem-faixa.inn-c-sem-faixa.inn-c-sem-faixa{ border-left-color:var(--inn-t-linha) !important; }
+html:root .inn-c-alerta-erro.inn-c-alerta-erro.inn-c-alerta-erro{ background-color:var(--inn-t-painel) !important; background-image:linear-gradient(var(--inn-t-erro-bg), var(--inn-t-erro-bg)) !important; color:var(--inn-t-erro) !important; border-color:transparent !important; border-radius:8px !important; }
+html:root .inn-c-alerta-aviso.inn-c-alerta-aviso.inn-c-alerta-aviso{ background-color:var(--inn-t-painel) !important; background-image:linear-gradient(var(--inn-t-aviso-bg), var(--inn-t-aviso-bg)) !important; color:var(--inn-t-aviso) !important; border-color:transparent !important; border-radius:8px !important; }
+html:root .inn-c-alerta-ok.inn-c-alerta-ok.inn-c-alerta-ok{ background-color:var(--inn-t-painel) !important; background-image:linear-gradient(var(--inn-t-ok-bg), var(--inn-t-ok-bg)) !important; color:var(--inn-t-ok) !important; border-color:transparent !important; border-radius:8px !important; }
+/* Contador dentro de aba (int-tab-count e afins) fora da aba ativa: a pílula da home. */
+html .inn-aba:not(.inn-aba-on) [class*="count"], html .inn-aba:not(.inn-aba-on) [class*="badge"]{ background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul2) !important; border-color:transparent !important; }
+/* Bolinha de estado do KPI: o azul do Yuris, como os ícones (a cor de estado fica no número). */
+html .inn-tela .kpi-dot, html .inn-tela .kpi-dot[class*="dot-"]{ background:var(--inn-t-azul2) !important; box-shadow:none !important; }
+html:root .inn-c-primario.inn-c-primario.inn-c-primario{
+  background:linear-gradient(180deg, var(--inn-t-azul2), var(--inn-t-azul)) !important; color:#fff !important; border-color:transparent !important; box-shadow:var(--inn-t-brilho) !important;
+}
+html:root .inn-c-primario.inn-c-primario.inn-c-primario *{ color:#fff !important; }
+html:root .inn-c-primario.inn-c-primario.inn-c-primario svg, html:root .inn-c-primario.inn-c-primario.inn-c-primario svg *{ stroke:#fff !important; }
+html:root .inn-c-primario.inn-c-primario.inn-c-primario:not(:disabled):hover{ transform:translateY(-2px); box-shadow:0 0 0 1px rgba(79,120,219,.35), 0 12px 24px rgba(58,99,201,.38) !important; }
+/* Enquanto a cor nova entra (o JS tira em seguida): troca seca, sem desbotar. */
+html .inn-c-agora, html .inn-c-agora *{ transition:none !important; }
+html:root .inn-c-neutro.inn-c-neutro.inn-c-neutro{ background-color:var(--inn-t-fundo) !important; background-image:none !important; border-color:var(--inn-t-linha) !important; box-shadow:var(--inn-t-fundo-sombra) !important; border-radius:8px !important; }
+html:root .inn-c-alerta-erro.inn-c-alerta-erro *, html:root .inn-c-alerta-aviso.inn-c-alerta-aviso *, html:root .inn-c-alerta-ok.inn-c-alerta-ok *{ color:inherit !important; }
+html:root .inn-c-sem-filete-antes.inn-c-sem-filete-antes::before{ opacity:0 !important; }
+html:root .inn-c-sem-filete-depois.inn-c-sem-filete-depois::after{ opacity:0 !important; }

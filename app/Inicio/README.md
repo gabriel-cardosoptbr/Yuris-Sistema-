@@ -158,6 +158,25 @@ seleção em pílula.
   forma cinza que brilha; a onda do toque num quadro por cima do elemento (o elemento não
   muda); e os gráficos do Chart.js na paleta (azul e prata; vermelho, verde e âmbar só onde já
   eram estado), letra Inter, linhas apagadas, dica no painel prata e entrada em sequência.
+- **Reconhecimento pela cor, não só pelo nome** (08/11/2026, "mudou nada": a Prospecção
+  continuava com os cartões brancos e os selos coloridos de antes, porque cada tela dá um nome
+  próprio às peças). A camada passou a ler a cor computada e marcar: selo pela cor que já tinha
+  (`inn-selo-erro/aviso/ok/azul/neutro`: vermelho, âmbar e verde só quando já eram estado; azul e
+  roxo viram o azul do Yuris; cinza fica na prata); fundo branco puro no tema claro vira painel,
+  campo ou botão secundário (`inn-c-painel/campo/botao`); botão cheio de outra cor vira o
+  principal azul (`inn-c-primario`, só com 30px ou mais: o miúdo dentro de cartão não ganha
+  brilho), vermelho vira o secundário com texto vermelho (`inn-c-perigo`); borda colorida por
+  estado vira a linha neutra (`inn-c-borda`); faixa lateral sai (`inn-c-sem-faixa`); filete
+  decorativo em `::before`/`::after` de cartão some (`inn-c-sem-filete-*`); caixa tingida baixa
+  vira o aviso da home (`inn-c-alerta-*`), alta vira o painel afundado (`inn-c-neutro`); toast de
+  qualquer módulo vira o painel (`inn-toast`). O quadro da Prospecção (`.kanban-col`,
+  `.card-mini`) e a faixa de origem (MATRIZ/FILIAL, Prospecção e Processos) têm regra própria.
+  Armadilhas que viraram regra: ler a cor no meio de uma transição dá a cor do caminho (a camada
+  espera o `transitionend`); trocar a classe no meio da leitura recalcula o estilo (lê tudo,
+  escreve depois); o que estava `display:none` ou ganhou classe depois é relido pelo observer;
+  e a entrada `inn-item` não pode cair em quem já tem `transform` próprio (a coluna do quadro
+  gira em `rotateX` e o texto ficava de cabeça para baixo). Os seletores usam `html:root` e a
+  classe repetida para vencer os `html[data-theme="light"] … !important` das folhas antigas.
   As opções do Chart.js são proxies: troca-se propriedade por propriedade, nunca o objeto todo.
   A camada não mexe em layout (o teste trava). Conferido em 25 telas; Fila e Roleta dão 403 na
   conta local, Contratos, Projetos e Evolution não estão ligados nela.
