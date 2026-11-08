@@ -180,8 +180,15 @@ seleção em pílula.
   mesmo dia porque Prazos e Aguardando retorno pareciam recarregar). Quem atualiza os
   dados é o recarregar da página. Ações feitas no pop-up da própria home (concluir,
   tratar) continuam marcando o cartão como resolvido na hora, sem buscar nada. Movimento das telas de dentro e do menu: `assets/interface-nova-movimento.css`
-  + `.js` (entrada da tela, saída pelo menu, pop-ups que surgem, toque nos botões), que o
-  menu carrega com a folha das telas e que não rodam no modo embutido.
+  + `.js` (saída pelo menu, pop-ups que surgem, toque nos botões), que o menu carrega com a
+  folha das telas e que não rodam no modo embutido. **A entrada das telas por partes** (08/11,
+  "quero esse simples bonito nas páginas também, os ícones crescendo"): os blocos de
+  `.main-content` sobem um a um (CSS puro, por `nth-child`, para não piscar antes do script),
+  o título desliza, todo svg pequeno cresce com mola, todo número inteiro sozinho conta de
+  zero, e os itens (cartões e colunas do Kanban, cartões de processo e cliente, KPIs, linhas de
+  tabela) entram um a um dentro do bloco deles. O que a tela desenha depois por JavaScript
+  entra do mesmo jeito nos primeiros 5 s e até 1,5 s depois de um clique; fora disso (o Chat
+  repondo a lista a cada 4 s) nada se mexe. Item novo entra na lista `SEL_ITEM` do script.
 - `assets/inicio.css` é a home: dois temas pelas variáveis `--ini-*`, a faixa de
   boas-vindas com uma biblioteca jurídica ao fundo (`assets/img/inicio-biblioteca.jpg`,
   foto de Planet Volumes no Unsplash, licença Unsplash: uso comercial livre, sem

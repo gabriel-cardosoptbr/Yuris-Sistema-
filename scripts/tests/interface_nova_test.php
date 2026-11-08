@@ -255,6 +255,11 @@ $innJs  = (string) @file_get_contents($raiz . '/public/assets/interface-nova-mov
 ok($innCss !== '' && $innJs !== '' && str_contains($sidebar, '/assets/interface-nova-movimento.css') && str_contains($sidebar, '/assets/interface-nova-movimento.js'), 'as telas de dentro carregam o movimento delas');
 ok(str_contains($innCss, '@keyframes inn-surge{') && str_contains($innCss, '#modalProcess:not(.hidden) .proc-modal') && str_contains($innCss, '.modal-shell.open .modal-panel') && str_contains($innCss, '.tk-modal-overlay.open .tk-modal'), 'os pop-ups das telas surgem');
 ok(str_contains($innJs, "if (html.classList.contains('yuris-embed')) return;"), 'o movimento das telas não roda no modo embutido');
+// 08/11/2026: "quero esse simples bonito nas páginas também": a tela entra por partes.
+foreach (['inn-titulo', 'inn-cresce', 'inn-item'] as $k) ok(str_contains($innCss, '@keyframes ' . $k . '{'), "telas: existe a animação $k");
+ok(str_contains($innCss, '.main-content > :nth-child(2){ animation-delay:70ms; }') && !str_contains($innCss, '.main-content, html.inn-mov'), 'os blocos da tela sobem um a um por CSS, sem depender do script');
+ok(str_contains($innJs, 'function crescerIcones(raiz)') && str_contains($innJs, 'function contarNumeros(raiz)') && str_contains($innJs, 'function entrarItens(raiz)'), 'ícones crescem, números contam e itens entram um a um');
+ok(str_contains($innJs, 'function podeAnimar()') && str_contains($innJs, 'n - inicio < 5000 || n - ultimoClique < 1500'), 'o que a tela desenha depois só anima nos primeiros segundos ou logo após um clique');
 // 08/11/2026, segunda volta: "tem que preencher total", "tela fantasma", "não pode recarregar ao fechar".
 ok(str_contains($movJs, "b.style.setProperty('--raio'") && str_contains($movCss, 'width:calc(var(--raio, 320px) * 2)') && str_contains($movCss, '@keyframes ini-assenta{'), 'o círculo cobre a caixa inteira e o fundo assenta por cima');
 ok(str_contains($detJs, 'function fantasma(tela)') && str_contains($detJs, 'function morfar(c)') && str_contains($embedJs, "avisar('embed-pronto', medir())") && str_contains($movCss, '.idt-fantasma.morfa{'), 'a tela fantasma aparece no lugar do Abrindo e vai até a medida do pop-up');

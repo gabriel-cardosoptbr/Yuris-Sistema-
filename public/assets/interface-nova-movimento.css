@@ -11,15 +11,33 @@
    Só movimento: nenhuma cor, tamanho ou posição de repouso muda aqui.
    Não vale no modo embutido (?embed=1), onde a home já faz a entrada.
    ═══════════════════════════════════════════════════════════════════════════ */
+:root{ --mov-saida:cubic-bezier(.2,.8,.2,1); --mov-mola:cubic-bezier(.34,1.32,.4,1); --mov-entrada:cubic-bezier(.4,0,.7,.2); }
+
 @media (prefers-reduced-motion: no-preference){
 
 @keyframes inn-sobe{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:none; } }
 @keyframes inn-surge{ from{ opacity:0; transform:scale(.955) translateY(12px); } to{ opacity:1; transform:none; } }
+@keyframes inn-titulo{ from{ opacity:0; transform:translateX(-12px); } to{ opacity:1; transform:none; } }
+@keyframes inn-cresce{ from{ opacity:0; transform:scale(.4); } to{ opacity:1; transform:none; } }
+@keyframes inn-item{ from{ opacity:0; transform:translateY(10px) scale(.985); } to{ opacity:1; transform:none; } }
 
-/* 1. A tela entra. */
-html.inn-mov:not(.yuris-embed) .main-content, html.inn-mov:not(.yuris-embed) main > .page-layout > :not(.sidebar):not(aside){
-  animation:inn-sobe .46s cubic-bezier(.2,.8,.2,1) both;
-}
+/* 1. A tela entra por partes, como a home ("quero esse simples bonito nas páginas também"):
+   cada bloco sobe de cima para baixo (cabeçalho, filtros, quadro), o título desliza,
+   os ícones crescem e os itens (cartões, colunas, linhas) entram um a um. O que o
+   JavaScript da tela desenha depois também entra assim, nos primeiros segundos e logo
+   depois de um clique (trocar filtro, abrir quadro). */
+html.inn-mov:not(.yuris-embed) .main-content > *{ animation:inn-sobe .5s var(--mov-saida) both; }
+html.inn-mov:not(.yuris-embed) .main-content > :nth-child(2){ animation-delay:70ms; }
+html.inn-mov:not(.yuris-embed) .main-content > :nth-child(3){ animation-delay:140ms; }
+html.inn-mov:not(.yuris-embed) .main-content > :nth-child(4){ animation-delay:210ms; }
+html.inn-mov:not(.yuris-embed) .main-content > :nth-child(5){ animation-delay:280ms; }
+html.inn-mov:not(.yuris-embed) .main-content > :nth-child(6){ animation-delay:350ms; }
+html.inn-mov:not(.yuris-embed) .main-content > :nth-child(n+7){ animation-delay:420ms; }
+html.inn-mov:not(.yuris-embed) .page-header-title, html.inn-mov:not(.yuris-embed) .main-content h1{ animation:inn-titulo .55s var(--mov-saida) .08s both; }
+html.inn-mov .inn-cresce{ animation:inn-cresce .5s var(--mov-mola) both; animation-delay:calc(140ms + var(--mov-i, 0) * 35ms); transform-origin:center; transform-box:fill-box; }
+html.inn-mov .inn-item{ animation:inn-item .42s var(--mov-saida) both; animation-delay:calc(60ms + var(--mov-i, 0) * 40ms); }
+html.inn-mov .inn-contou{ animation:ini-bate .34s var(--mov-mola); display:inline-block; }
+@keyframes ini-bate{ 0%{ transform:scale(1); } 55%{ transform:scale(1.08); } 100%{ transform:scale(1); } }
 
 /* 2. A tela sai pelo menu. */
 html.inn-mov.inn-saindo body{ opacity:0; transition:opacity .22s cubic-bezier(.4,0,.7,.2); }
