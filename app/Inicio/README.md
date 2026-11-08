@@ -190,6 +190,12 @@ seleção em pílula.
   zero, e o `ligar()` do `interface-nova-sistema.js` tira a marca no quadro seguinte à primeira
   passada, quando o movimento já ligou a entrada; se algo falhar, sai sozinha em 2 s. Medido quadro
   a quadro em 8 telas: nenhum quadro com a tela visível antes de vestida.
+  **A folha do menu vem antes do menu** (08/11/2026, "às vezes o menu vai para o modelo antigo,
+  fica todo branco"). O `interface-nova.css` só era lido no fim do `includes/sidebar.php`, depois
+  do `</aside>`: o navegador podia pintar o menu com o desenho antigo até a folha chegar (medido:
+  um quadro aqui; com a rede de produção, mais). Agora uma cópia do `<link>` vem logo antes do
+  `<aside>` (folha no corpo segura a pintura do que vem depois dela) e a do fim continua, pela
+  ordem das regras. Medido quadro a quadro em 10 carregamentos de 8 telas: zero quadros antigos.
   **Histórico Processual** (08/11/2026, "arruma com urgência, não está de acordo com o design"):
   o `processos.js` marca cada registro com `data-tipo` (processo, prazo, tarefa, movimentacao,
   intimacao, anexo, vinculo, edicao) e `data-tom` (ok para concluído, erro para removido), sem

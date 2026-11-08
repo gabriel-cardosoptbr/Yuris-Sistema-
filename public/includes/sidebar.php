@@ -621,6 +621,13 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
   poe('meta',{name:'apple-mobile-web-app-status-bar-style', content:'default'});
   if('serviceWorker' in navigator) window.addEventListener('load', function(){ navigator.serviceWorker.register('/sw.js', {scope:'/'}).catch(function(){}); });
 }catch(e){}})();</script>
+<?php if ($_interfaceNova): ?>
+<!-- A folha do menu da interface nova ANTES do menu (08/11/2026): sem ela aqui, o navegador pintava
+     o menu com o desenho antigo (branco) até a folha chegar, lá no fim deste arquivo, e na troca
+     de tela isso aparecia. Folha no corpo segura a pintura do que vem depois dela. A cópia do fim
+     continua, para a ordem das regras (ela vem depois de todas as folhas e ganha). -->
+<link rel="stylesheet" href="/assets/interface-nova.css?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova.css') ?: 1 ?>">
+<?php endif; ?>
 <aside class="sidebar<?= $_ambCtx ? ' sb-com-ambientes' : '' ?>" role="complementary" aria-label="Menu lateral"<?= $_ambCtx ? ' data-ambiente="' . htmlspecialchars($_ambCtx['atual']) . '" data-ambiente-rotulo="' . htmlspecialchars($_ambCtx['lista'][$_ambCtx['atual']]['rotulo']) . '"' : '' ?>>
 
   <!-- ── Marca ── -->
