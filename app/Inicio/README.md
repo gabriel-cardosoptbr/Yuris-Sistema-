@@ -285,7 +285,10 @@ seleção em pílula.
   chat com `z-index: 20`: a entrada animada (`inn-sobe`) cria contexto de empilhamento e o menu
   ⋯ (z 400 dentro do cabeçalho) ficava atrás das bolhas. Só cor, superfície, raio e fonte, como
   o teste exige. As correções de função (flash da busca, @Nome, lista que piscava) estão em
-  `public/assets/chat_interno.js`, para todas as contas.
+  `public/assets/chat_interno.js`, para todas as contas. As regras NÃO usam `.inn-tela`: no
+  Chat interno a tela achada é o `<main class="ci-main">` (a área da conversa), e a lista de
+  conversas fica FORA dele; com `.inn-tela` no seletor a lista continuava com os avatares
+  redondos coloridos ("Aqui também", 08/11/2026). O prefixo `ci-` já é só desta tela.
   Armadilhas que viraram regra: ler a cor no meio de uma transição dá a cor do caminho (a camada
   espera o `transitionend`); trocar a classe no meio da leitura recalcula o estilo (lê tudo,
   escreve depois); o que estava `display:none` ou ganhou classe depois é relido pelo observer;
