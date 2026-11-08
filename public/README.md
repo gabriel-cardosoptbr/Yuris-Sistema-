@@ -372,6 +372,11 @@ tela fantasma até ele. Fora da home, `assets/embed-abrir.js` (`YurisEmbed.abrir
 carregado nas telas de dentro da interface nova e nunca no `?embed=1`) faz o mesmo por cima de qualquer
 tela: a Central de Tarefas abre o processo da tarefa processual assim (08/11/2026). O desenho dele
 (`.inn-emb`) mora em `interface-nova-popups.css`.
+`assets/menu-fixo.js` (08/11/2026, com a seção "menu fixo" de `interface-nova.css`): ao trocar de tela pelo
+menu, o item enche a partir do clique, os blocos da tela dobram e somem, e a página troca numa view
+transition entre documentos em que o menu fica parado (`view-transition-name:inn-menu`) e a tela nova
+entra ao vivo (`inn-tela`). Carregado em toda tela da interface nova, fora do `?embed=1`; o menu devolve a
+rolagem guardada num script inline logo depois do `</aside>`. Ver `app/Inicio/README.md`.
 No embutido, `assets/chat.js` abre a conversa do `?jid=` mesmo quando ela está fora das 500 da
 lista (procura pelo número na própria API da lista e, sem achar, abre pelo jid); fora do embutido
 nada muda. O tamanho dos pop-ups das telas na prévia fica em `assets/interface-nova-popups.css`;

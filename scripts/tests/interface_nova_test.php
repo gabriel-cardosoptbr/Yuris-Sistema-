@@ -270,7 +270,17 @@ foreach (['ini-sobe', 'ini-preenche', 'ini-onda', 'ini-entra', 'ini-mes-esq', 'i
 ok(str_contains($movJs, "b.style.setProperty('--cx'") && str_contains($movCss, 'left:var(--cx, 50%); top:var(--cy, 50%)'), 'o preenchimento nasce no ponto do clique');
 ok(str_contains($movJs, 'function contar(el, dur)') && str_contains($movJs, "'.ini-kpi b, .ini-ctr-t b, .ini-sala p b'") && str_contains($movJs, "'.idt-numeros b'"), 'os números crescem nos cartões de cima, nos prazos e no pop-up da pessoa');
 ok(str_contains($detJs, 'function origemRect()') && str_contains($detJs, "fundo.classList.add('fechando')") && str_contains($movCss, '.idt-fundo.fechando .idt-janela'), 'o pop-up nasce do cartão clicado e volta para ele');
-ok(str_contains($movJs, "html.classList.add('ini-saindo')") && str_contains($movCss, 'html.ini-mov.ini-saindo body{'), 'a página sai antes de ir para outra tela');
+ok(str_contains($movJs, "html.classList.add('ini-saindo')") && str_contains($movCss, 'html.ini-mov.ini-saindo .main-content{') && !str_contains($movCss, 'ini-saindo body'), 'a tela sai antes de ir para outra, e o menu fica (nunca apaga a página inteira)');
+// O menu parado na troca de tela (08/11/2026): o menu-fixo.js enche o item e fecha os blocos; a
+// view transition entre documentos troca o menu sem animação; nenhuma folha apaga o body ao sair.
+$menuFixo = (string) @file_get_contents($raiz . '/public/assets/menu-fixo.js');
+$innCss   = (string) file_get_contents($raiz . '/public/assets/interface-nova.css');
+$innMov   = (string) file_get_contents($raiz . '/public/assets/interface-nova-movimento.css');
+ok($menuFixo !== '' && str_contains($menuFixo, "html.classList.add('inn-menu-saindo')") && str_contains($menuFixo, "a.classList.add('mf-enchendo')") && str_contains($menuFixo, 'yuris_menu_rolagem'), 'menu-fixo.js: o item enche, a tela fecha e a rolagem do menu é guardada');
+ok(str_contains($innCss, '@view-transition{ navigation:auto; }') && str_contains($innCss, 'view-transition-name:inn-menu') && str_contains($innCss, '::view-transition-new(inn-menu)') && str_contains($innCss, 'html.inn-menu-saindo .main-content > *'), 'interface-nova.css: o menu troca sem animação e os blocos da tela fecham');
+ok(!str_contains($innMov, 'inn-saindo body') && !str_contains($movCss, 'saindo body'), 'nenhuma folha de movimento apaga a página inteira ao sair');
+$sidebarMF = (string) file_get_contents($raiz . '/public/includes/sidebar.php');
+ok(preg_match('/<\/aside>\s*<\?php if \(\$_interfaceNova\): \?>\s*<script>[^<]*yuris_menu_rolagem/', $sidebarMF) === 1 && str_contains($sidebarMF, '/assets/menu-fixo.js'), 'o menu devolve a rolagem logo depois do <aside> e carrega o menu-fixo.js');
 ok(!preg_match('/^(?!.*(animation|transition|transform|opacity|keyframes|--mov|--cx|--cy|isolation|overflow|position|z-index|pointer-events|will-change|font-variant|border-radius|padding-top|width|left|top|background|display|content|border-color|transform-origin)).*:\s*#[0-9a-f]{3,6}/mi', $movCss), 'a folha do movimento não traz cor nova');
 $innCss = (string) @file_get_contents($raiz . '/public/assets/interface-nova-movimento.css');
 $innJs  = (string) @file_get_contents($raiz . '/public/assets/interface-nova-movimento.js');

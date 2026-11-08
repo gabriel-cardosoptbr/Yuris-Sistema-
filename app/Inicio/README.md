@@ -153,6 +153,34 @@ seleção em pílula.
   que vai até ele, o foco passando para o pop-up e o Esc fechando. As duas camadas da prévia
   (sistema e movimento) não tocam no `.inn-emb`. Primeiro uso: a tarefa processual da
   Central de Tarefas.
+- **O menu fica parado na troca de tela** (08/11/2026: "quando trocar de tela pelo menu, a
+  única coisa que tem que animar é a tela; o menu não pode ficar recarregando, senão parece
+  que estou recarregando a página; tem que ser que nem no início, clica e o campo é
+  preenchido; a tela encolhe, os campos fechando e abrindo de novo"). `public/assets/menu-fixo.js`
+  e a seção "menu fixo" de `interface-nova.css`, em toda tela da interface nova fora do
+  `?embed=1`, inclusive a home. Ao clicar num item do menu: o item enche a partir do ponto do
+  clique (um círculo com `clip-path` revela o degradê de ativo num `::after`; a marca
+  `mf-enchendo` sai no fim, e o brilho entra pela transição de sempre), o grupo dele abre e
+  ganha a marca, o grupo de antes a perde e fecha se a pessoa não o abriu à mão
+  (`yuris_sidebar_groups_v2`), os blocos da tela dobram para cima e somem de baixo para cima
+  (`inn-menu-saindo`, `inn-fecha`, 280 ms com escalonamento de 30 ms), e a página troca aos
+  430 ms. A troca é uma **view transition entre documentos** (`@view-transition{navigation:auto}`):
+  o menu (`view-transition-name:inn-menu`) troca de imagem sem animação, e como já está igual ao
+  que a tela nova desenha, fica parado; a tela (`inn-tela`: `.main-content`, ou `.layout > main.main`
+  no Clientes) aparece ao vivo e os blocos dela entram pela folha de movimento de cada tela. O
+  `pageswap` da página antiga chega com `viewTransition` (conferido de Tarefas para Clientes,
+  Clientes para Processos, Processos para Tarefas e da home para Tarefas). Onde o navegador não
+  tem view transition entre documentos (Firefox), fica o enchimento, a dobra e a entrada, e o
+  menu pinta de novo sem animação. Nenhuma folha de movimento apaga mais o `body` ao sair
+  (`inn-saindo` e o `ini-saindo body` saíram; o `ini-saindo` da home, para link que não é do
+  menu, só apaga o `.main-content`). O `menu-fixo.js` ouve o clique em captura, para ficar na
+  frente da saída da home, que vê o `preventDefault` e não faz nada. A rolagem do menu é
+  guardada ao sair (`yuris_menu_rolagem`, no `pagehide`) e devolvida num script inline logo
+  depois do `</aside>`, antes da primeira pintura (na prévia o menu não rola, mas vale onde
+  rolar).
+  Armadilha: a dobra com easing de entrada (`cubic-bezier(.4,0,.7,.2)`) não mostrava nada nos
+  primeiros 200 ms e desabava tudo no fim; a curva tem de ser de saída (`.2,.7,.3,1`), para
+  cada bloco dobrar visivelmente e a onda de baixo para cima aparecer.
 - **O desenho da home no sistema todo** (08/11/2026, "pega todo esse design da home e espalhe para
   todo o sistema, todas as abas, guias, botões, animações, gráficos; não deixe nenhuma aba de
   fora"): `assets/interface-nova-sistema.css` + `.js`, carregados pelo menu junto com a folha das

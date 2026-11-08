@@ -5,7 +5,7 @@
    "Quero animação em tudo que eu clicar." A home tem a folha própria
    (inicio-movimento.css); esta vale para as telas de dentro e para o menu:
      1. a tela entra subindo quando abre;
-     2. a página sai ao ir para outra tela pelo menu;
+     2. a página sai ao ir para outra tela pelo menu (hoje no menu-fixo.js);
      3. os pop-ups das telas surgem (crescem e assentam) em vez de aparecer;
      4. o item do menu e os botões afundam um nada ao serem apertados.
    Só movimento: nenhuma cor, tamanho ou posição de repouso muda aqui.
@@ -39,9 +39,8 @@ html.inn-mov .inn-item{ animation:inn-item .42s var(--mov-saida) both; animation
 html.inn-mov .inn-contou{ animation:ini-bate .34s var(--mov-mola); display:inline-block; }
 @keyframes ini-bate{ 0%{ transform:scale(1); } 55%{ transform:scale(1.08); } 100%{ transform:scale(1); } }
 
-/* 2. A tela sai pelo menu. */
-html.inn-mov.inn-saindo body{ opacity:0; transition:opacity .22s cubic-bezier(.4,0,.7,.2); }
-html.inn-mov.inn-saindo .main-content{ transform:translateY(-10px); transition:transform .22s cubic-bezier(.4,0,.7,.2); }
+/* 2. A tela sai pelo menu: desde 08/11/2026 é o menu-fixo.js com a seção "menu fixo" de
+   interface-nova.css (os blocos fecham, o menu fica parado). Nada apaga a página inteira. */
 
 /* 3. Os pop-ups das telas surgem: ficha do processo, ficha do cliente, nova tarefa,
    janelas do chat, e o que mais for diálogo. O painel da tarefa já tem o próprio. */

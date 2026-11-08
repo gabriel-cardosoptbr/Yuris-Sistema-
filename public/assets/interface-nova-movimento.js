@@ -295,17 +295,6 @@
   }).observe(document.body, { attributes: true, attributeOldValue: true, attributeFilter: ['class'], childList: true, subtree: true });
 
   // ── Sair pelo menu ──────────────────────────────────────────────────────
-  document.addEventListener('click', function (e) {
-    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-    var a = e.target.closest && e.target.closest('.sidebar nav a[href], .sidebar a.sb-logo-link[href], .mobile-tabbar a[href]');
-    if (!a || a.target === '_blank' || a.classList.contains('is-logout') || a.hasAttribute('data-sb-recolher')) return;
-    var href = a.getAttribute('href') || '';
-    if (href.charAt(0) === '#' || /^(javascript|mailto|tel):/i.test(href)) return;
-    var u; try { u = new URL(a.href, location.href); } catch (x) { return; }
-    if (u.origin !== location.origin) return;
-    e.preventDefault();
-    html.classList.add('inn-saindo');
-    setTimeout(function () { location.href = u.href; }, 220);
-  });
-  window.addEventListener('pageshow', function () { html.classList.remove('inn-saindo'); });
+  // Desde 08/11/2026 é o menu-fixo.js: o item enche, os blocos da tela fecham e o menu fica
+  // parado na troca de página (view transition entre documentos). Nada aqui.
 })();

@@ -1282,6 +1282,9 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
   </button>
 
 </aside>
+<?php if ($_interfaceNova): ?>
+<script>/* O menu volta à rolagem em que estava na tela anterior (menu-fixo.js guarda ao sair). Inline, logo depois do menu, para valer antes da primeira pintura. */try{var __mr=sessionStorage.getItem('yuris_menu_rolagem');if(__mr){var __m=document.querySelector('.sidebar');if(__m)__m.scrollTop=+__mr;}}catch(e){}</script>
+<?php endif; ?>
 <?php if ($_avisoWa): ?>
 <!-- Aviso de WhatsApp fora do ar (ver o bloco PHP no topo). Nasce aqui e o script
      abaixo o coloca no topo da área de conteúdo, ao lado do menu. -->
@@ -1688,6 +1691,10 @@ window.FF_AGENDA = { csrf: <?= json_encode($_notifCsrf) ?>, sessao: <?= json_enc
 <?php if ($_interfaceNova): ?>
 <!-- Interface nova (prévia): veste o menu. Vem depois de todas as folhas, e ganha. -->
 <link rel="stylesheet" href="/assets/interface-nova.css?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova.css') ?: 1 ?>">
+<?php if (($_GET['embed'] ?? '') !== '1'): ?>
+<!-- O menu fica parado na troca de tela: o item enche, a tela fecha e abre (assets/menu-fixo.js). -->
+<script src="/assets/menu-fixo.js?v=<?= @filemtime(__DIR__ . '/../assets/menu-fixo.js') ?: 1 ?>" defer></script>
+<?php endif; ?>
 <?php if ($_ap !== 'dashboard' || !empty($_GET['gestao'])): ?>
 <!-- As telas de dentro: a mesma paleta e as mesmas superfícies, por cima do CSS de cada tela. A home tem a folha própria. -->
 <link rel="stylesheet" href="/assets/interface-nova-telas.css?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-telas.css') ?: 1 ?>">

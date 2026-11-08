@@ -263,3 +263,42 @@ html .sidebar.sidebar.sidebar .sidebar-group.has-active .sidebar-group-icon svg,
    está aberto são os itens aparecendo embaixo. A seta do grupo ativo ainda vinha branca do
    sidebar.css (sobra do grupo ativo em bloco azul cheio): sumindo a seta, some o problema. ── */
 html .sidebar.sidebar.sidebar .sidebar-group-chevron, html[data-theme="light"] .sidebar.sidebar.sidebar .sidebar-group-chevron{ display:none !important; }
+
+/* ── O menu fica parado quando se troca de tela (08/11/2026) ──────────────
+   Par do menu-fixo.js. "O menu não pode ficar recarregando; tem que ser que nem no início:
+   clica e o campo é preenchido. A tela encolhe, os campos fechando e abrindo de novo."
+   A troca de página é uma view transition entre documentos: o menu (inn-menu) troca de
+   imagem sem animação, e como já estava igual ao que a tela nova desenha, fica parado; a
+   tela (inn-tela) nova aparece ao vivo e os blocos dela abrem pela folha de movimento. */
+@media (prefers-reduced-motion: no-preference){
+  @view-transition{ navigation:auto; }
+  html .sidebar{ view-transition-name:inn-menu; }
+  html .main-content, html .layout > main.main{ view-transition-name:inn-tela; }
+  ::view-transition-group(inn-menu), ::view-transition-group(inn-tela), ::view-transition-group(root){ animation-duration:0s; }
+  ::view-transition-old(inn-menu), ::view-transition-old(root){ animation:none; opacity:0; }
+  ::view-transition-new(inn-menu), ::view-transition-new(inn-tela), ::view-transition-new(root){ animation:none; }
+  ::view-transition-old(inn-tela){ animation:inn-vt-some .16s ease both; }
+  @keyframes inn-vt-some{ to{ opacity:0; } }
+
+  /* O item clicado enche a partir do ponto do clique: um círculo cresce e revela o fundo de
+     ativo (o degradê azul, lido pelo JS), com o fundo de antes por fora; o brilho e o verniz
+     chegam quando o círculo termina (o JS tira a marca no fim da animação). */
+  @keyframes mf-enche{ to{ clip-path:circle(var(--mf-raio, 300px) at var(--mf-cx, 50%) var(--mf-cy, 50%)); } }
+  html .sidebar nav a.mf-enchendo.mf-enchendo{ background:var(--mf-antes, transparent) !important; box-shadow:none !important; }
+  html .sidebar nav a.mf-enchendo.mf-enchendo::before{ opacity:0; }
+  html .sidebar nav a.mf-enchendo.mf-enchendo::after{
+    content:""; display:block !important; position:absolute; inset:0; z-index:-1; border-radius:inherit; pointer-events:none;
+    background:var(--mf-cor) !important;
+    clip-path:circle(0px at var(--mf-cx, 50%) var(--mf-cy, 50%));
+    animation:mf-enche .42s cubic-bezier(.2,.8,.2,1) both;
+  }
+
+  /* A tela fecha antes de sair: cada bloco dobra para cima e some, de baixo para cima. */
+  @keyframes inn-fecha{ to{ opacity:0; transform:perspective(1100px) rotateX(-24deg) translateY(-14px) scaleY(.6); } }
+  html.inn-menu-saindo .main-content > *, html.inn-menu-saindo .layout > main.main > *{ animation:inn-fecha .28s cubic-bezier(.2,.7,.3,1) both !important; transform-origin:50% 0 !important; }
+  html.inn-menu-saindo .main-content > :nth-last-child(2), html.inn-menu-saindo .layout > main.main > :nth-last-child(2){ animation-delay:30ms !important; }
+  html.inn-menu-saindo .main-content > :nth-last-child(3), html.inn-menu-saindo .layout > main.main > :nth-last-child(3){ animation-delay:60ms !important; }
+  html.inn-menu-saindo .main-content > :nth-last-child(4), html.inn-menu-saindo .layout > main.main > :nth-last-child(4){ animation-delay:90ms !important; }
+  html.inn-menu-saindo .main-content > :nth-last-child(5), html.inn-menu-saindo .layout > main.main > :nth-last-child(5){ animation-delay:120ms !important; }
+  html.inn-menu-saindo .main-content > :nth-last-child(n+6), html.inn-menu-saindo .layout > main.main > :nth-last-child(n+6){ animation-delay:150ms !important; }
+}

@@ -122,8 +122,9 @@ html.ini-mov .idt-vida{ animation:idt-vida .6s ease both; }
 html.ini-mov .ini-card .ini-entra{ animation:ini-entra .38s var(--mov-saida) both; animation-delay:calc(var(--mov-i, 0) * 40ms); }
 
 /* ── 5. A página sai ao ir para outra tela ──────────────────────────────── */
-html.ini-mov.ini-saindo body{ opacity:0; transition:opacity .22s var(--mov-entrada); }
-html.ini-mov.ini-saindo main{ transform:translateY(-10px) scale(.992); transition:transform .22s var(--mov-entrada); }
+/* Só a tela sai; o menu fica parado (08/11/2026, "o menu não pode ficar recarregando").
+   Pelo menu, quem sai é o menu-fixo.js (os blocos fecham); por um link da tela, isto. */
+html.ini-mov.ini-saindo .main-content{ opacity:0; transform:translateY(-10px) scale(.992); transition:opacity .22s var(--mov-entrada), transform .22s var(--mov-entrada); }
 
 /* ── 6. O cartão resolvido se recolhe ───────────────────────────────────── */
 html.ini-mov .ini-cartao{ transition:border-color .15s, transform .15s, background .15s, opacity .4s ease, filter .4s ease; }
