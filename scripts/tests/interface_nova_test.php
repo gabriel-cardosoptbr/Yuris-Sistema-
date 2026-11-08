@@ -204,6 +204,8 @@ ok(str_contains($inicio, 'data-det=') || str_contains($inicio, 'data-det="'), 'o
 ok(str_contains($detJs, 'e.metaKey || e.ctrlKey || e.shiftKey'), 'Ctrl/Cmd/Shift+clique continua abrindo a página');
 ok(str_contains($detJs, 'X-CSRF-Token'), 'concluir prazo manda o token CSRF');
 foreach (['concluir-prazo', 'concluir-tarefa-processo', 'concluir-tarefa', 'tratar-pub', 'enviar-wa', 'salvar-processo', 'salvar-tarefa'] as $a) ok(str_contains($detJs, "'$a': function"), "pop-up tem a ação $a");
+foreach (['abrir-processo', 'salvar-edicao', 'novo-prazo', 'nova-tarefa-proc', 'reabrir-tarefa-proc'] as $a) ok(str_contains($detJs, "ACOES['$a']"), "processo completo tem a ação $a");
+ok(!str_contains($detJs, "link('Abrir o processo'"), '"Abrir o processo" abre dentro da janela, não sai da home');
 ok(str_contains($detJs, 'function formatarJuridico') && str_contains($detJs, 'function limparTexto'), 'texto da publicação tratado como no Diário');
 ok(str_contains($inicio, 'data-novo="processo"') && str_contains($inicio, 'data-novo="tarefa"') && str_contains($inicio, 'data-novo="publicacoes"'), 'os três botões da faixa abrem o pop-up');
 ok(!str_contains($detJs, 'alert(') && !str_contains($detJs, 'confirm(') && !str_contains($detJs, '—'), 'pop-up sem diálogo nativo e sem travessão');

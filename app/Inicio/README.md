@@ -106,6 +106,14 @@ seleção em pílula.
   publicação vai cru e é limpo e quebrado em parágrafos com a mesma regra do Diário
   (`cleanText` + `_formatLegal` de `intimacoes.js`, copiadas em `inicio-detalhe.js`:
   mudou lá, muda aqui).
+  **O processo completo dentro da janela**: "Abrir o processo" (e o cartão de processo)
+  abre o processo ali mesmo, em quatro abas: **Resumo** (todos os dados, com "Editar os
+  dados": número, situação, cliente, parte contrária, vara, responsável, próximo prazo,
+  link do tribunal, observações, por PUT `processes.php`), **Prazos** (novo prazo, concluir,
+  os concluídos), **Tarefas** (nova tarefa do processo, concluir, reabrir) e **Andamento**
+  (o histórico, `processo_history.php`). "Voltar" retorna ao cartão de onde veio; o
+  "Editor completo" (tela de Processos) fica para o que não está aqui, como anexos e
+  vínculos. Processo cadastrado pelo "Novo processo" já abre assim.
 - Cabeçalho dos cartões: sem link de texto; o ícone é o atalho para a tela do bloco,
   centrado com o título, e no hover sobe 2px e acende como o botão aprovado.
 - Cartões nunca deixam vão: as colunas se esticam até a mesma altura e o último

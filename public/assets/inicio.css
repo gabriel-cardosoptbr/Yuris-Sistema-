@@ -496,3 +496,27 @@ input.idt-entrada{ height:38px; }
 .idt-escolha:hover .idt-mini{ background:var(--ini-azul); color:#fff; box-shadow:var(--ini-brilho); }
 .idt-escolha .idt-prazo-data{ color:var(--ini-azul2); }
 @media (max-width:640px){ .idt-form{ grid-template-columns:1fr; } }
+
+/* O processo completo dentro da janela: abas afundadas (a selecionada em azul côncavo,
+   como o dia do calendário), formulários compactos, andamento em linha do tempo. */
+.idt-janela{ width:min(760px, 100%); }
+.idt-abas{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:5px; padding:12px 0 2px; position:sticky; top:0; z-index:2; background:var(--ini-painel); }
+.idt-aba{ height:36px; border-radius:var(--ini-r2); border:1px solid var(--ini-linha); background:var(--ini-fundo); box-shadow:var(--ini-fundo-sombra); color:var(--ini-texto2);
+  font:600 12.5px Inter, system-ui, sans-serif; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; transition:background .15s, color .15s; }
+.idt-aba:hover{ color:var(--ini-texto); background:var(--ini-azul-suave); }
+.idt-aba.sel{ background:linear-gradient(180deg,var(--ini-azul2),var(--ini-azul)); color:#fff; border-color:transparent; box-shadow:var(--ini-brilho), inset 0 2px 3px rgba(255,255,255,.26), inset 0 -3px 6px rgba(0,0,0,.28); }
+.idt-aba.sel .idt-pill{ background:rgba(255,255,255,.22); color:#fff; }
+.idt-linha-acao{ display:flex; justify-content:flex-end; gap:8px; padding-top:4px; }
+.idt-form.compacto{ padding:4px 0 8px; }
+.idt-mini.feito{ cursor:default; }
+.idt-prazo .idt-prazo-data{ min-width:92px; }
+.idt-hist{ display:flex; flex-direction:column; gap:6px; }
+.idt-hist-i{ display:grid; grid-template-columns:92px 1fr; gap:12px; padding:9px 10px; border-radius:var(--ini-r2); background:var(--ini-painel2); border:1px solid var(--ini-linha); box-shadow:0 1px 0 var(--ini-hi) inset; }
+.idt-hist-q{ display:flex; flex-direction:column; align-items:center; justify-content:center; padding:6px; border-radius:var(--ini-r2); background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); }
+.idt-hist-q b{ font-size:12px; font-weight:800; color:var(--ini-azul2); font-variant-numeric:tabular-nums; }
+.idt-hist-q small{ font-size:11px; color:var(--ini-texto3); }
+.idt-hist-t{ min-width:0; }
+.idt-hist-t b{ display:block; font-size:13px; font-weight:700; }
+.idt-hist-t span{ display:block; font-size:12.5px; color:var(--ini-texto2); margin-top:2px; overflow-wrap:anywhere; white-space:pre-wrap; }
+.idt-hist-t small{ display:block; font-size:11px; color:var(--ini-texto3); margin-top:3px; }
+@media (max-width:640px){ .idt-abas{ grid-template-columns:repeat(2, minmax(0,1fr)); } .idt-hist-i{ grid-template-columns:1fr; } }
