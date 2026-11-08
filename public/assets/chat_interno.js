@@ -153,6 +153,12 @@ const CI = (() => {
     } catch(e) { /* silencioso */ }
   }
 
+  // Cor do setor (teams.cor), só se for uma cor de verdade: vira a variável --ci-cor no item
+  // e no cabeçalho, e o desenho decide onde usar (etiqueta e inicial, 08/11/2026).
+  function corDoSetor(c) {
+    const cor = String(c || '').trim();
+    return /^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(cor) ? cor : '';
+  }
   function renderConvList(list) {
     const el = qs('#ciConvList');
     if (!list.length) {
@@ -169,11 +175,13 @@ const CI = (() => {
       const badge   = c.nao_lidas > 0 ? `<span class="ci-badge">${c.nao_lidas}</span>` : '';
       const time    = fmtTime(c.updated_at);
       const active  = c.id == state.convId ? ' active' : '';
+      const cor     = c.tipo === 'setor' ? corDoSetor(c.team_cor) : '';
+      const estilo  = cor ? ` style="--ci-cor:${cor}"` : '';
       const typeBadge = !['direto','geral'].includes(c.tipo)
         ? `<span class="ci-tipo-tag ci-tipo-tag--${c.tipo}">${tc.label}</span>` : '';
 
       return `
-      <div class="ci-conv-item${active}" onclick="CI.openConv(${c.id})">
+      <div class="ci-conv-item${active}${cor ? ' ci-com-cor' : ''}"${estilo} onclick="CI.openConv(${c.id})">
         <div class="ci-conv-avatar ci-conv-avatar${tc.cls}">${avatarInitial(c.display_nome || c.nome)}</div>
         <div class="ci-conv-info">
           <div class="ci-conv-name">${nome}</div>
@@ -291,6 +299,9 @@ const CI = (() => {
     const avatar = qs('#ciHeaderAvatar');
     avatar.textContent = avatarInitial(nome);
     avatar.className   = `ci-header-avatar ci-header-avatar${tc.cls}`;
+    const corSetor = conv.tipo === 'setor' && conv.team ? corDoSetor(conv.team.cor) : '';
+    const cab = qs('#ciHeader');
+    if (cab) { cab.classList.toggle('ci-com-cor', !!corSetor); if (corSetor) cab.style.setProperty('--ci-cor', corSetor); else cab.style.removeProperty('--ci-cor'); }
 
     qs('#ciHeaderName').textContent = nome || '—';
     qs('#ciHeaderSub').textContent  = sub;

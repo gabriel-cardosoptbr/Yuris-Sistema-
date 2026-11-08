@@ -289,6 +289,16 @@ seleção em pílula.
   Chat interno a tela achada é o `<main class="ci-main">` (a área da conversa), e a lista de
   conversas fica FORA dele; com `.inn-tela` no seletor a lista continuava com os avatares
   redondos coloridos ("Aqui também", 08/11/2026). O prefixo `ci-` já é só desta tela.
+  **Cor do setor** (seção 15b): a etiqueta SETOR e a inicial da conversa de setor usam a cor
+  cadastrada no setor (Usuários › Setores, `teams.cor`). A lista recebe `team_cor` (subconsulta
+  presa ao `account_id` da conversa) e o `chat_interno.js` põe `--ci-cor` e a classe
+  `ci-com-cor` no item e no cabeçalho, só se a cor for um hex válido. A cor é misturada com o
+  texto (`color-mix`) para nunca ficar ilegível: amarelo claro vira um amarelo escurecido. Sem
+  cor cadastrada, fica o azul. **O chão da conversa**: a área das mensagens é o fundo afundado
+  da home (como a raia do quadro), com o cabeçalho e o campo no painel, sem linhas; a bolha dos
+  outros fica em relevo na prata. A caixa da inicial do cabeçalho (`.ci-header-avatar`) tinha
+  "header" no nome e a regra de título sem faixa tirava o fundo dela, deixando a letra solta;
+  `RE_TITULO_NAO` passa a deixar de fora avatar, ícone, foto e logo.
   Armadilhas que viraram regra: ler a cor no meio de uma transição dá a cor do caminho (a camada
   espera o `transitionend`); trocar a classe no meio da leitura recalcula o estilo (lê tudo,
   escreve depois); o que estava `display:none` ou ganhou classe depois é relido pelo observer;

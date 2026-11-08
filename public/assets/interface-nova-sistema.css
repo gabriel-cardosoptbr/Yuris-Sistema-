@@ -451,3 +451,26 @@ html:root .ci-send-btn.ci-send-btn:disabled{ opacity:.45 !important; }
    cabeçalho, que ficava abaixo delas). O mesmo para o painel de menções no rodapé. */
 html:root .ci-header.ci-header{ z-index:20 !important; }
 html:root .ci-input-wrap.ci-input-wrap{ z-index:20 !important; }
+
+/* ── 15b. Chat interno: a cor do setor e o chão da conversa (08/11/2026) ─────────
+   "A cor do setor, até mesmo a da letra, tem que ser de acordo com o setor que eu colocar."
+   A etiqueta e a inicial usam a cor cadastrada no setor (--ci-cor, posta pelo chat_interno.js
+   a partir de teams.cor), misturada com o texto para nunca ficar ilegível (amarelo claro no
+   fundo claro) e com um fundo bem suave da mesma cor. Sem cor cadastrada, fica o azul.
+   "O começo lá em cima da conversa está no ar": o cabeçalho flutuava sobre as mensagens. A
+   área das mensagens passa a ser o chão afundado da home (como a raia do quadro), e o
+   cabeçalho e o campo ficam no painel, por cima dela. */
+html:root .ci-com-cor .ci-tipo-tag.ci-tipo-tag, html:root .ci-com-cor .ci-header-badge.ci-header-badge{
+  color:color-mix(in srgb, var(--ci-cor) 72%, var(--inn-t-texto)) !important;
+  background:color-mix(in srgb, var(--ci-cor) 15%, transparent) !important;
+}
+html:root .ci-com-cor .ci-conv-avatar.ci-conv-avatar, html:root .ci-com-cor .ci-header-avatar.ci-header-avatar{
+  color:color-mix(in srgb, var(--ci-cor) 72%, var(--inn-t-texto)) !important;
+  background:color-mix(in srgb, var(--ci-cor) 10%, var(--inn-t-fundo)) !important;
+  border-color:color-mix(in srgb, var(--ci-cor) 28%, transparent) !important;
+}
+html:root .ci-header.ci-header{ background:var(--inn-t-painel) !important; border-bottom-color:transparent !important; }
+html:root .ci-header-name.ci-header-name{ font-size:15px !important; font-weight:700 !important; letter-spacing:-.2px !important; }
+html:root .ci-messages.ci-messages{ background:var(--inn-t-fundo) !important; box-shadow:var(--inn-t-fundo-sombra) !important; }
+html:root .ci-msg--in .ci-msg-bubble.ci-msg-bubble{ background:var(--inn-t-painel) !important; box-shadow:0 1px 2px rgba(31,38,50,.06), 0 1px 0 var(--inn-t-hi) inset !important; }
+html:root .ci-input-wrap.ci-input-wrap{ background:var(--inn-t-painel) !important; border-top-color:transparent !important; }

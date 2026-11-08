@@ -222,7 +222,7 @@
   // linha embaixo). "Não é para ter listra nenhuma" (08/11/2026). O cabeçalho da página é o
   // painel do topo e fica de fora.
   var RE_TITULO = /(^|[-_\s])(title|titulo|header|head|cabec|cabecalho|heading|footer|rodape)([-_\s]|$)/i;
-  var RE_TITULO_NAO = /page-header|inn-cab|thead/i;
+  var RE_TITULO_NAO = /page-header|inn-cab|thead|avatar|-ic(\s|$)|icon|foto|logo/i;
   function temFaixa(cs) {
     var bg = rgb(cs.backgroundColor);
     if ((bg && bg[3] > .03) || cs.backgroundImage.indexOf('gradient') >= 0) return true;

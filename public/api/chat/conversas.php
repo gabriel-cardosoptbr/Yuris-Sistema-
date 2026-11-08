@@ -159,6 +159,7 @@ if ($method === 'GET' && $action === 'list') {
 
     $stmt = $pdo->prepare(
         "SELECT c.id, c.nome, c.tipo, c.team_id, c.ref_account_id, c.updated_at, c.archived_at,
+                (SELECT t.cor FROM teams t WHERE t.id = c.team_id AND t.account_id = c.account_id LIMIT 1) AS team_cor,
                 CASE
                   WHEN c.tipo = 'direto'
                   THEN (SELECT u2.nome FROM chat_participantes p2

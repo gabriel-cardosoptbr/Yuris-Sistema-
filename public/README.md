@@ -155,6 +155,9 @@ e voltava); um número de sequência descarta resposta velha, e `.ci-mpanel-resu
 (nome mais longo primeiro) e `onInput` não reabre o painel para um nome já escolhido. A lista
 de conversas só é redesenhada quando o JSON da resposta mudou (era refeita a cada 10 s e
 piscava). Tudo isso vale para todas as contas; o desenho da prévia fica na camada do sistema.
+A lista de conversas (`api/chat/conversas.php?action=list`) devolve também `team_cor`, a cor do
+setor da conversa (mesmo escritório da conversa), para a etiqueta e a inicial seguirem a cor do
+setor.
 
 `tarefas.php`, na edição CRM (`$edicaoCrm`), veste o painel da tarefa (`#tkDrawer`)
 com a mesma ficha: cabeçalho "Gestão da Tarefa" com número e data, faixa com o
