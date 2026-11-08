@@ -203,18 +203,29 @@ ok($detJs !== '' && str_contains($inicio, '/assets/inicio-detalhe.js'), 'a home 
 ok(str_contains($inicio, 'data-det=') || str_contains($inicio, 'data-det="'), 'os cartões levam os dados do pop-up');
 ok(str_contains($detJs, 'e.metaKey || e.ctrlKey || e.shiftKey'), 'Ctrl/Cmd/Shift+clique continua abrindo a página');
 ok(str_contains($detJs, 'X-CSRF-Token'), 'concluir prazo manda o token CSRF');
-foreach (['concluir-prazo', 'concluir-tarefa-processo', 'concluir-tarefa', 'tratar-pub', 'enviar-wa'] as $a) ok(str_contains($detJs, "'$a': function"), "pop-up tem a ação $a");
+foreach (['concluir-prazo', 'concluir-tarefa-processo', 'concluir-tarefa', 'tratar-pub'] as $a) ok(str_contains($detJs, "'$a': function"), "pop-up tem a ação $a");
 // O pop-up de verdade do módulo (07/11/2026): a tela abre num iframe com ?embed=1 e mostra só o pop-up dela.
-foreach (['abrir-processo', 'abrir-tarefa'] as $a) ok(str_contains($detJs, "ACOES['$a']"), "pop-up tem a ação $a");
+foreach (['abrir-processo', 'abrir-tarefa', 'abrir-cliente'] as $a) ok(str_contains($detJs, "ACOES['$a']"), "pop-up tem a ação $a");
 ok(!str_contains($detJs, "link('Abrir o processo'"), '"Abrir o processo" abre dentro da home, não sai dela');
 ok(str_contains($detJs, "abrirModulo('/processos?open=") && str_contains($detJs, "abrirModulo('/processos?criar=1')") && str_contains($detJs, "abrirModulo('/tarefas?nova=1')"), 'processo, novo processo e nova tarefa abrem o pop-up de verdade do módulo');
 ok(!str_contains($detJs, 'abrirProcessoCompleto') && !str_contains($detJs, 'Rapida: function') && !str_contains($detJs, 'Rapido: function'), 'sem imitação do pop-up do módulo na home');
 ok(str_contains($detJs, 'e.origin !== location.origin'), 'o aviso do iframe só vale da mesma origem');
+// Chat e Clientes (08/11/2026): a conversa abre no Chat de verdade, o nome do cliente na ficha de verdade.
+ok(str_contains($detJs, "abrirModulo('/chat?jid=' + encodeURIComponent(d.jid))"), 'a conversa abre no Chat de verdade');
+ok(!str_contains($detJs, '/api/whatsapp/send.php') && !str_contains($detJs, 'idtResposta') && !str_contains($detJs, 'function bolha'), 'a home não imita o Chat: nada de envio próprio de WhatsApp');
+ok(str_contains($detJs, "abrirModulo('/clientes?open=' + (+b.getAttribute('data-id')))"), 'o nome do cliente abre a ficha de verdade de Clientes');
+ok(str_contains($detJs, "campo('Cliente', cliente(p.cliente_nome, p.cliente_id))") && str_contains($detJs, "['Cliente', cliente(d.cliente, d.cliente_id)]"), 'o cliente vira atalho no processo e na publicação');
+ok(str_contains((string) file_get_contents($raiz . '/app/Inicio/Painel.php'), 'pr.cliente_nome, pr.cliente_id'), 'a publicação traz o cadastro do cliente do processo');
 $sidebar = (string) file_get_contents($raiz . '/public/includes/sidebar.php');
 ok(str_contains($sidebar, "\$_interfaceNova && (\$_GET['embed'] ?? '') === '1'"), 'o modo pop-up só liga na interface nova e com ?embed=1');
 $embedJs = (string) @file_get_contents($raiz . '/public/assets/embed.js');
 ok(str_contains($embedJs, "'embed-pronto'") && str_contains($embedJs, "'embed-fechar'") && str_contains($embedJs, "'embed-sem-popup'"), 'a tela embutida avisa quando abre, quando fecha e quando não tem pop-up');
 ok(str_contains($embedJs, 'postMessage({ yuris: tipo, tela: pagina }, location.origin)'), 'a tela embutida só fala com a mesma origem');
+foreach (['processos', 'tarefas', 'clientes', 'chat'] as $t) ok(preg_match('/^\s+' . $t . ':\s+\{ aberto:/m', $embedJs) === 1, "embed.js sabe quando o pop-up de $t está aberto");
+ok(str_contains($embedJs, "fora: '#chatContent'") && str_contains($embedJs, 'e.target === document.body'), 'o Chat embutido fecha com o clique fora da conversa');
+ok(str_contains($embedJs, 'if (acabou) return;'), 'a tela embutida avisa o fechamento uma vez só');
+$embedCss = (string) @file_get_contents($raiz . '/public/assets/embed.css');
+ok(str_contains($embedCss, 'html.yuris-embed[data-embed-tela="chat"] #chatContent{') && str_contains($embedCss, '#disconnectAlert'), 'no Chat embutido só a conversa aparece, sem as faixas da tela');
 ok(str_contains((string) file_get_contents($raiz . '/public/processos.php'), "params.get('criar') === '1'"), 'Processos aceita ?criar=1 (o cadastro abre sozinho)');
 ok(str_contains((string) file_get_contents($raiz . '/public/assets/tarefas.js'), "params.get('nova') === '1'"), 'Tarefas aceita ?nova=1 (o cadastro abre sozinho)');
 ok(str_contains($detJs, 'function formatarJuridico') && str_contains($detJs, 'function limparTexto'), 'texto sem estrutura cai na limpeza do Diário');

@@ -411,6 +411,10 @@ html.idt-aberto, html.idt-aberto body{ overflow:hidden; }
 .idt-campo.largo{ grid-column:1 / -1; }
 .idt-campo small{ font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ini-texto3); }
 .idt-campo b{ font-size:13.5px; font-weight:600; color:var(--ini-texto); overflow-wrap:anywhere; }
+/* o nome que abre a ficha de verdade (cliente): azul, como os outros detalhes clicáveis */
+.idt-link{ all:unset; cursor:pointer; color:var(--ini-azul2); font-weight:700; overflow-wrap:anywhere; border-bottom:1px solid transparent; transition:border-color .15s ease; }
+.idt-link:hover{ border-bottom-color:currentColor; }
+.idt-link:focus-visible{ outline:2px solid var(--ini-azul); outline-offset:2px; border-radius:4px; }
 .idt-texto{ margin-top:10px; padding:12px 14px; border-radius:var(--ini-r2); background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra);
   font-size:13px; line-height:1.55; color:var(--ini-texto2); white-space:pre-wrap; overflow-wrap:anywhere; max-height:320px; overflow:auto; scrollbar-width:none; }
 .idt-texto::-webkit-scrollbar{ display:none; }
@@ -478,14 +482,6 @@ input.idt-entrada{ height:38px; }
 .idt-texto.juridico{ white-space:pre-wrap; color:var(--ini-texto); font-size:13.5px; line-height:1.65; max-height:360px; }
 .idt-oab{ font-weight:700; color:var(--ini-texto); }
 /* a conversa */
-.idt-fio{ display:flex; flex-direction:column; gap:6px; max-height:280px; overflow:auto; scrollbar-width:none; padding:10px; border-radius:var(--ini-r2); background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); }
-.idt-fio::-webkit-scrollbar{ display:none; }
-.idt-bolha{ max-width:80%; padding:8px 11px; border-radius:var(--ini-r2); background:var(--ini-painel); border:1px solid var(--ini-linha); }
-.idt-bolha p{ margin:0; font-size:13.5px; line-height:1.45; color:var(--ini-texto); white-space:pre-wrap; overflow-wrap:anywhere; }
-.idt-bolha small{ display:block; margin-top:3px; font-size:10.5px; font-weight:600; color:var(--ini-texto3); text-align:right; }
-.idt-bolha.entrada{ align-self:flex-start; }
-.idt-bolha.saida{ align-self:flex-end; background:var(--ini-azul-suave); border-color:rgba(61,101,203,.25); }
-.idt-bolha.saida small{ color:var(--ini-azul2); }
 /* a lista de publicações para escolher */
 .idt-escolha{ width:100%; text-align:left; cursor:pointer; font:inherit; color:inherit; }
 .idt-escolha:hover{ border-color:rgba(61,101,203,.55); }

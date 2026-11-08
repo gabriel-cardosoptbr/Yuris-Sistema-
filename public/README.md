@@ -350,6 +350,8 @@ Com `?embed=1` (só na interface nova), o menu carrega `assets/embed.css` e `ass
 a tela aparece só com o pop-up dela, para a home abrir o pop-up de verdade do módulo
 num iframe (07/11/2026). `processos.php?criar=1` abre o cadastro de processo e
 `tarefas.php?nova=1` o de tarefa, do mesmo jeito que `?open=ID` e `?tarefa=ID` já abriam.
+Valem hoje Processos, Tarefas, Clientes (`?open=ID`, a ficha) e Chat (`?jid=`, a conversa, que no
+embutido vira o pop-up no centro da tela); cada uma é uma linha em `TELAS` no `embed.js` (08/11/2026).
 
 **Tema escuro da edição CRM (02/10/2026).** O desenho da edição CRM era só claro
 (todo seletor com `html[data-theme="light"]`), e no escuro sobrava o estilo antigo do

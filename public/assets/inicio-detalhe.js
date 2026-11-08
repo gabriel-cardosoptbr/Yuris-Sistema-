@@ -10,7 +10,8 @@
      compromisso / prazo   Concluir (prazo, tarefa do processo, tarefa do quadro)
      processo              os prazos em aberto, cada um com Concluir
      publicação            o texto formatado como no Diário; Tratada / Sem providência
-     conversa              as últimas mensagens e a resposta, enviada daqui
+     conversa              a conversa no Chat de verdade (pop-up do módulo, abaixo)
+     cliente               o nome abre a ficha de verdade de Clientes (?open=ID)
      pessoa                os números de hoje e da semana
    E os botões da faixa de boas-vindas abrem o formulário aqui mesmo:
      Novo processo, Nova tarefa, Tratar publicações.
@@ -24,7 +25,6 @@
      GET   /api/tasks.php?id=              POST /api/tasks.php (criar) e ?action=complete
      GET   /api/task_boards.php            GET /api/task_users.php
      POST  /api/push/persist.php           action 'tratar' (tratamento da publicação)
-     GET   /api/whatsapp/messages.php?jid= POST /api/whatsapp/send.php
    ═══════════════════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
@@ -48,6 +48,11 @@
   function dataLonga(k) { if (!k) return ''; var d = new Date(String(k).slice(0, 10) + 'T12:00:00'); return (String(k).slice(0, 10) === CFG.hoje ? 'Hoje, ' : DIAS[d.getDay()] + ', ') + d.getDate() + ' de ' + MESES[d.getMonth()] + ' de ' + d.getFullYear(); }
   function dataCurta(k) { if (!k) return ''; var s = String(k).slice(0, 10); return s.slice(8, 10) + '/' + s.slice(5, 7) + '/' + s.slice(0, 4); }
   function hora(k) { var s = String(k || ''); return s.length >= 16 ? s.slice(11, 16) : ''; }
+  // O nome do cliente, quando o cadastro existe, abre a ficha de verdade de Clientes.
+  function cliente(nome, id) {
+    if (!nome) return '';
+    return +id ? '<button type="button" class="idt-link" data-acao="abrir-cliente" data-id="' + (+id) + '" title="Abrir a ficha do cliente">' + esc(nome) + '</button>' : esc(nome);
+  }
   function campo(rot, val, cls) { if (val == null || val === '') return ''; return '<div class="idt-campo' + (cls ? ' ' + cls : '') + '"><small>' + esc(rot) + '</small><b>' + val + '</b></div>'; }
   function num(v) { return v ? '<em class="ini-num">' + esc(v) + '</em>' : ''; }
   function link(texto, href, primario) { return '<a class="idt-btn' + (primario ? ' primario' : '') + '" href="' + esc(href) + '">' + esc(texto) + '</a>'; }
@@ -133,7 +138,7 @@
     elCorpo.innerHTML = ''; elAcoes.innerHTML = '';
     fundo.hidden = false;
     document.documentElement.classList.add('idt-aberto');
-    requestAnimationFrame(function () { fundo.classList.add('visivel'); });
+    void fundo.offsetWidth; fundo.classList.add('visivel'); // reflow em vez de rAF: aba em segundo plano não pausa a entrada
   }
   function fechar() {
     if (!fundo || fundo.hidden) return;
@@ -185,17 +190,6 @@
         elAcoes.querySelectorAll('[data-acao="tratar-pub"]').forEach(function (x) { x.disabled = false; });
         liberado(b); avisar('Não consegui registrar: ' + e.message, 'danger');
       });
-    },
-    'enviar-wa': function (b) {
-      var campoTxt = elCorpo.querySelector('#idtResposta'); var texto = (campoTxt.value || '').trim();
-      if (!texto) { campoTxt.focus(); return; }
-      ocupado(b, 'Enviando…'); campoTxt.disabled = true;
-      enviar('/api/whatsapp/send.php', 'POST', { _csrf: CFG.csrf, remote_jid: ESTADO.jid, type: 'text', text: texto }).then(function () {
-        var fio = elCorpo.querySelector('.idt-fio');
-        if (fio) { fio.insertAdjacentHTML('beforeend', bolha({ direction: 'outbound', message_content: texto, created_at: '' }, true)); fio.scrollTop = fio.scrollHeight; }
-        campoTxt.value = ''; campoTxt.disabled = false; liberado(b); campoTxt.focus();
-        resolverCartao(cartaoAtual); avisar('Mensagem enviada.');
-      }).catch(function (e) { campoTxt.disabled = false; liberado(b); avisar('Não consegui enviar: ' + e.message, 'danger'); });
     }
   };
 
@@ -210,7 +204,7 @@
       var abertos = prazos.filter(function (z) { return z.status !== 'concluido'; });
       var html = '<div class="idt-sec"><div class="idt-sec-t">Processo</div><div class="idt-grade">'
         + campo('Número', num(p.numero_cnj || p.numero))
-        + campo('Cliente', esc(p.cliente_nome))
+        + campo('Cliente', cliente(p.cliente_nome, p.cliente_id))
         + campo('Parte contrária', esc(p.parte_contraria))
         + campo('Ação', esc(p.tipo_acao))
         + campo('Vara / comarca', esc(p.vara_comarca), 'largo')
@@ -236,19 +230,6 @@
     }).catch(function () {
       destino.innerHTML = '<div class="idt-sec"><div class="idt-vazio erro">Não consegui carregar o processo agora. Use "Abrir o processo".</div></div>';
     });
-  }
-
-  // ── Uma mensagem do WhatsApp ────────────────────────────────────────────
-  function textoMsg(m) {
-    var t = m.message_content || m.caption || '';
-    if (t) return t;
-    var tp = String(m.message_type || '');
-    if (/image/.test(tp)) return 'Imagem'; if (/audio|ptt/.test(tp)) return 'Áudio'; if (/video/.test(tp)) return 'Vídeo'; if (/document/.test(tp)) return 'Documento';
-    return 'Mensagem';
-  }
-  function bolha(m, agora) {
-    var saida = m.direction === 'outbound' || m.direction === 'out' || m.from_me == 1;
-    return '<div class="idt-bolha ' + (saida ? 'saida' : 'entrada') + '"><p>' + esc(textoMsg(m)) + '</p><small>' + (agora ? 'agora' : esc((m.created_at ? dataCurta(m.created_at) + ' ' + hora(m.created_at) : ''))) + '</small></div>';
   }
 
   // ── Cada tipo de cartão ─────────────────────────────────────────────────
@@ -300,7 +281,7 @@
       var nomes = function (lista) { return lista.map(function (n) { return '<span class="idt-pub-nome">' + esc(n) + '</span>'; }).join(''); };
       var cab = (e.cabecalho || []).filter(function (c) { return !(c.rotulo === 'Processo' && d.num); });
       // Em pares; se sobrar um, ele ocupa a linha inteira (sem vão na grade).
-      var pares = [['Tribunal', esc(d.tribunal)], ['Disponibilizada', esc(dataCurta(d.data))], ['Processo', num(d.num)], ['Cliente', esc(d.cliente)]]
+      var pares = [['Tribunal', esc(d.tribunal)], ['Disponibilizada', esc(dataCurta(d.data))], ['Processo', num(d.num)], ['Cliente', cliente(d.cliente, d.cliente_id)]]
         .concat(cab.map(function (c) { return [c.rotulo, /^Processo/.test(c.rotulo) ? num(c.valor) : esc(c.valor)]; }))
         .filter(function (p) { return p[1]; });
       var html = '<div class="idt-sec"><div class="idt-grade">'
@@ -342,25 +323,9 @@
         + acao('Sem providência', 'tratar-pub', false, ' data-id="' + (+d.id) + '" data-status="sem_providencia"')
         + acao('Marcar como tratada', 'tratar-pub', true, ' data-id="' + (+d.id) + '" data-status="tratada"');
     },
+    // A conversa abre no Chat de verdade: a mesma tela, só a conversa, por cima da home.
     wa: function (d) {
-      ESTADO.jid = d.jid;
-      abrirJanela('wa', d.nome, 'Esperando resposta ' + esc(d.desde));
-      elCorpo.innerHTML = '<div class="idt-sec"><div class="idt-sec-t">Conversa</div><div class="idt-fio">' + carregando() + '</div></div>'
-        + '<div class="idt-sec"><label class="idt-rotulo" for="idtResposta">Sua resposta</label>'
-        + '<textarea id="idtResposta" class="idt-entrada" rows="3" placeholder="Escreva e aperte Enter para enviar (Shift+Enter quebra a linha)"></textarea></div>';
-      elAcoes.innerHTML = link('Abrir o chat completo', '/chat?jid=' + encodeURIComponent(d.jid), false) + acao('Enviar', 'enviar-wa', true);
-      var campoTxt = elCorpo.querySelector('#idtResposta');
-      campoTxt.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); var b = elAcoes.querySelector('[data-acao="enviar-wa"]'); if (b && !b.disabled) ACOES['enviar-wa'](b); } });
-      setTimeout(function () { campoTxt.focus(); }, 60);
-      getJson('/api/whatsapp/messages.php?jid=' + encodeURIComponent(d.jid) + '&limit=15').then(function (r) {
-        var msgs = (r && r.messages) || [];
-        msgs.sort(function (a, b) { return String(a.created_at).localeCompare(String(b.created_at)) || (a.id - b.id); });
-        var fio = elCorpo.querySelector('.idt-fio');
-        fio.innerHTML = msgs.length ? msgs.map(function (m) { return bolha(m); }).join('') : bolha({ direction: 'inbound', message_content: d.texto, created_at: '' });
-        fio.scrollTop = fio.scrollHeight;
-      }).catch(function () {
-        elCorpo.querySelector('.idt-fio').innerHTML = bolha({ direction: 'inbound', message_content: d.texto, created_at: '' });
-      });
+      abrirModulo('/chat?jid=' + encodeURIComponent(d.jid));
     },
     pessoa: function (d) {
       var est = { livre: 'Livre hoje', ocupado: 'Com compromisso hoje', atrasado: 'Com prazo atrasado' }[d.estado] || '';
@@ -394,7 +359,7 @@
     document.body.appendChild(caixa);
     document.documentElement.classList.add('idt-aberto');
     EMB = { caixa: caixa, quadro: f, url: url };
-    requestAnimationFrame(function () { caixa.classList.add('visivel'); });
+    void caixa.offsetWidth; caixa.classList.add('visivel');
   }
   function fecharModulo(recarregar) {
     if (!EMB) return;
@@ -414,6 +379,7 @@
     abrirModulo('/processos?open=' + (+b.getAttribute('data-id')) + (/^(prazo|tarefa):\d+$/.test(foco) ? '&foco=' + foco : ''));
   };
   ACOES['abrir-tarefa'] = function (b) { abrirModulo('/tarefas?tarefa=' + (+b.getAttribute('data-id'))); };
+  ACOES['abrir-cliente'] = function (b) { abrirModulo('/clientes?open=' + (+b.getAttribute('data-id'))); };
   // ── Os botões da faixa de boas-vindas ───────────────────────────────────
   var novos = {
     processo: function () {

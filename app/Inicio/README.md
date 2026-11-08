@@ -98,8 +98,7 @@ seleção em pílula.
   **Ações na própria janela** ("não pode ser só o preview"): concluir prazo, tarefa do
   processo e tarefa do quadro (PATCH `processo_prazos.php` / `processo_tarefas.php`, POST
   `tasks.php?action=complete`); tratar a publicação, com nota (`push/persist.php`, ação
-  `tratar`); responder o WhatsApp com as últimas 15 mensagens à vista (`whatsapp/messages.php`
-  e `whatsapp/send.php`, o mesmo canal do chat, sem instância nova); e os botões da faixa
+  `tratar`); e os botões da faixa
   de boas-vindas: **Tratar publicações** abre a lista das pendentes, cada uma com a
   leitura e o tratamento.
   **A publicação em tópicos** ("tem que separar os OAB, o que é advogado, o que é
@@ -118,7 +117,14 @@ seleção em pílula.
   processo" abrem a ficha de Processos (`/processos?open=ID`, com `&foco=prazo:ID` ou
   `tarefa:ID` quando vem de um prazo ou tarefa, e ela desce até ele); **Novo processo**
   abre o cadastro (`/processos?criar=1`); **Nova tarefa** abre o cadastro de Tarefas
-  (`/tarefas?nova=1`); a tarefa do quadro abre o painel dela (`/tarefas?tarefa=ID`). A
+  (`/tarefas?nova=1`); a tarefa do quadro abre o painel dela (`/tarefas?tarefa=ID`).
+  Desde 08/11/2026 também o **Chat** e **Clientes**: o cartão de quem espera resposta abre a
+  conversa no Chat (`/chat?jid=`), a mesma de sempre, com setor, assumir, cadastrar,
+  vincular, anexo e áudio (a home deixou de ter envio próprio de WhatsApp); e o nome do
+  cliente, no processo e na publicação, abre a ficha de Clientes (`/clientes?open=ID`,
+  quando o processo tem `cliente_id`). O Chat não tem pop-up: dentro da home a conversa
+  vira o pop-up, no centro, e fecha pelo "Voltar" dela, pelo clique fora ou pelo Esc. Com
+  o WhatsApp desconectado a conversa não abre, e a home vai para a tela do Chat. A
   tela avisa a home por `postMessage` (só da mesma origem) quando o pop-up abre, quando
   fecha (a home tira o iframe e se atualiza) e quando não tem pop-up (a home vai para a
   tela). Para uma tela nova entrar, basta uma linha em `TELAS` no `embed.js`.

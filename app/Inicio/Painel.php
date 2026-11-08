@@ -377,7 +377,7 @@ final class Painel
 
         $st = $pdo->prepare(
             "SELECT e.id, e.tribunal, e.tipo_comunicacao, e.titulo, e.resumo, e.data_disponibilizacao, e.orgao, LEFT(e.conteudo, 12000) AS conteudo, e.payload_original,
-                    COALESCE(NULLIF(e.numero_processo_mascara,''), e.numero_processo) AS numero, e.processo_id, pr.cliente_nome
+                    COALESCE(NULLIF(e.numero_processo_mascara,''), e.numero_processo) AS numero, e.processo_id, pr.cliente_nome, pr.cliente_id
                FROM push_events e
           LEFT JOIN processos pr ON pr.id = e.processo_id
               WHERE e.account_id IN ($in) AND e.status = 'ativo' AND e.tratamento_status = 'pendente'

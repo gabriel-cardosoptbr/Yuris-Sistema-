@@ -12,4 +12,23 @@ html.yuris-embed #modalProcess, html.yuris-embed #tkDrawer, html.yuris-embed #tk
 html.yuris-embed [id^="modal"], html.yuris-embed [role="dialog"], html.yuris-embed .yui-toast-stack,
 html.yuris-embed [class*="modal-backdrop"], html.yuris-embed [class*="-modal-overlay"]{ visibility:visible !important; }
 /* o fundo escuro já vem da home: o do módulo fica transparente */
-html.yuris-embed #modalProcess, html.yuris-embed #tkDrawerOverlay, html.yuris-embed #modalNewTask{ background:transparent !important; }
+html.yuris-embed #modalProcess, html.yuris-embed #tkDrawerOverlay, html.yuris-embed #modalNewTask,
+html.yuris-embed #modalCliente{ background:transparent !important; }
+
+/* Chat: a tela não tem pop-up, tem a conversa ao lado da lista. Dentro da home a
+   conversa vira o pop-up: a mesma, com cabeçalho, mensagens, anexo e envio, no
+   centro, e as janelas que ela abre (cadastro, vínculo, membros, imagem) por cima. */
+html.yuris-embed[data-embed-tela="chat"] #chatContent{
+  visibility:visible !important; display:flex !important; position:fixed !important; inset:0 !important; margin:auto !important;
+  width:min(880px, calc(100vw - 32px)) !important; height:min(900px, calc(100vh - 48px)) !important;
+  max-width:none !important; border-radius:12px !important; overflow:hidden !important; z-index:60 !important;
+  box-shadow:0 24px 70px rgba(0,0,0,.42) !important;
+}
+html.yuris-embed[data-embed-tela="chat"] .modal-overlay, html.yuris-embed[data-embed-tela="chat"] #pendModal,
+html.yuris-embed[data-embed-tela="chat"] #chatToast, html.yuris-embed[data-embed-tela="chat"] #chatConfirmOverlay,
+html.yuris-embed[data-embed-tela="chat"] #imgLightbox{ visibility:visible !important; }
+/* as faixas de topo da tela (conexão caiu, sincronizando) são da tela, não da conversa */
+html.yuris-embed[data-embed-tela="chat"] #disconnectAlert, html.yuris-embed[data-embed-tela="chat"] #syncBanner{ display:none !important; }
+@media (max-width:640px){
+  html.yuris-embed[data-embed-tela="chat"] #chatContent{ width:100vw !important; height:100vh !important; border-radius:0 !important; }
+}
