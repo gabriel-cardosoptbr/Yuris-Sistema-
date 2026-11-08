@@ -178,6 +178,18 @@ seleção em pílula.
   guardada ao sair (`yuris_menu_rolagem`, no `pagehide`) e devolvida num script inline logo
   depois do `</aside>`, antes da primeira pintura (na prévia o menu não rola, mas vale onde
   rolar).
+  **O menu no mesmo lugar, e a tela só vestida** (08/11/2026: "tem tela que o menu está maior,
+  tem tela que está menor; o layout antigo às vezes aparece, coisa branca"). Medido em 20 telas:
+  o menu ficava em 16,16 no Início, 24,24 na maioria, 26,22 em Atendimento e Desempenho, e
+  16 px mais baixo no Chat (o `main` dele é flex), então pulava na troca. Agora, acima de 900 px,
+  quem envolve o menu (`main:has(> .page-layout > .sidebar)`, `main:has(> .sidebar)`,
+  `.layout:has(> .sidebar)`) tem 16 px em volta e o menu tem `height:calc(100vh - 32px)`: as 20
+  ficaram em 16,16, 264 × 868. E a tela nova nasce invisível: um script logo depois do `</aside>`
+  põe `inn-vestindo` no `<html>` (só nas telas que carregam a camada do sistema, fora do
+  `?embed=1`), a regra `html.inn-vestindo .sidebar ~ *` deixa os irmãos do menu em opacidade
+  zero, e o `ligar()` do `interface-nova-sistema.js` tira a marca no quadro seguinte à primeira
+  passada, quando o movimento já ligou a entrada; se algo falhar, sai sozinha em 2 s. Medido quadro
+  a quadro em 8 telas: nenhum quadro com a tela visível antes de vestida.
   **Histórico Processual** (08/11/2026, "arruma com urgência, não está de acordo com o design"):
   o `processos.js` marca cada registro com `data-tipo` (processo, prazo, tarefa, movimentacao,
   intimacao, anexo, vinculo, edicao) e `data-tom` (ok para concluído, erro para removido), sem

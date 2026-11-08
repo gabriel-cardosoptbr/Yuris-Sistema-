@@ -374,6 +374,8 @@ tela: a Central de Tarefas abre o processo da tarefa processual assim (08/11/202
 (`.inn-emb`) mora em `interface-nova-popups.css`.
 O Histórico Processual da ficha marca `data-tipo` e `data-tom` em cada registro (`_histTipo` em
 `assets/processos.js`); só a prévia usa, para o ícone e a cor (fim do `interface-nova-popups.css`).
+Logo depois do `</aside>`, na prévia, um script põe `inn-vestindo` no `<html>` até a camada do sistema
+vestir a tela (ela nasce invisível; ver `app/Inicio/README.md`).
 `assets/menu-fixo.js` (08/11/2026, com a seção "menu fixo" de `interface-nova.css`): ao trocar de tela pelo
 menu, o item enche a partir do clique, os blocos da tela dobram e somem, e a página troca numa view
 transition entre documentos em que o menu fica parado (`view-transition-name:inn-menu`) e a tela nova

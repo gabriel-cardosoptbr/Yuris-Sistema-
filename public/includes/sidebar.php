@@ -1282,6 +1282,9 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
   </button>
 
 </aside>
+<?php if ($_interfaceNova && ($_ap !== 'dashboard' || !empty($_GET['gestao'])) && ($_GET['embed'] ?? '') !== '1'): ?>
+<script>/* A tela só aparece vestida: a camada do sistema tira a marca quando termina a primeira passada (e, se algo falhar, ela sai sozinha em 2 s). */document.documentElement.classList.add('inn-vestindo');setTimeout(function(){document.documentElement.classList.remove('inn-vestindo');},2000);</script>
+<?php endif; ?>
 <?php if ($_interfaceNova): ?>
 <script>/* O menu volta à rolagem em que estava na tela anterior (menu-fixo.js guarda ao sair). Inline, logo depois do menu, para valer antes da primeira pintura. */try{var __mr=sessionStorage.getItem('yuris_menu_rolagem');if(__mr){var __m=document.querySelector('.sidebar');if(__m)__m.scrollTop=+__mr;}}catch(e){}</script>
 <?php endif; ?>

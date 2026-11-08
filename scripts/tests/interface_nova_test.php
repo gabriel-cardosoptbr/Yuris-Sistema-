@@ -280,7 +280,7 @@ ok($menuFixo !== '' && str_contains($menuFixo, "html.classList.add('inn-menu-sai
 ok(str_contains($innCss, '@view-transition{ navigation:auto; }') && str_contains($innCss, 'view-transition-name:inn-menu') && str_contains($innCss, '::view-transition-new(inn-menu)') && str_contains($innCss, 'html.inn-menu-saindo .main-content > *'), 'interface-nova.css: o menu troca sem animação e os blocos da tela fecham');
 ok(!str_contains($innMov, 'inn-saindo body') && !str_contains($movCss, 'saindo body'), 'nenhuma folha de movimento apaga a página inteira ao sair');
 $sidebarMF = (string) file_get_contents($raiz . '/public/includes/sidebar.php');
-ok(preg_match('/<\/aside>\s*<\?php if \(\$_interfaceNova\): \?>\s*<script>[^<]*yuris_menu_rolagem/', $sidebarMF) === 1 && str_contains($sidebarMF, '/assets/menu-fixo.js'), 'o menu devolve a rolagem logo depois do <aside> e carrega o menu-fixo.js');
+ok(preg_match('/<\/aside>[\s\S]{0,900}?yuris_menu_rolagem/', $sidebarMF) === 1 && str_contains($sidebarMF, '/assets/menu-fixo.js') && preg_match('/<\/aside>[\s\S]{0,600}?classList\.add\(\'inn-vestindo\'\)/', $sidebarMF) === 1, 'logo depois do <aside>: a tela fica invisível até vestir, a rolagem do menu volta, e o menu-fixo.js carrega');
 ok(!preg_match('/^(?!.*(animation|transition|transform|opacity|keyframes|--mov|--cx|--cy|isolation|overflow|position|z-index|pointer-events|will-change|font-variant|border-radius|padding-top|width|left|top|background|display|content|border-color|transform-origin)).*:\s*#[0-9a-f]{3,6}/mi', $movCss), 'a folha do movimento não traz cor nova');
 $innCss = (string) @file_get_contents($raiz . '/public/assets/interface-nova-movimento.css');
 $innJs  = (string) @file_get_contents($raiz . '/public/assets/interface-nova-movimento.js');

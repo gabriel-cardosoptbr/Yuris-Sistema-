@@ -302,3 +302,18 @@ html .sidebar.sidebar.sidebar .sidebar-group-chevron, html[data-theme="light"] .
   html.inn-menu-saindo .main-content > :nth-last-child(5), html.inn-menu-saindo .layout > main.main > :nth-last-child(5){ animation-delay:120ms !important; }
   html.inn-menu-saindo .main-content > :nth-last-child(n+6), html.inn-menu-saindo .layout > main.main > :nth-last-child(n+6){ animation-delay:150ms !important; }
 }
+
+/* ── O menu no mesmo lugar em toda tela, e a tela que só aparece vestida (08/11/2026) ──
+   "Tem tela que o menu está maior, tem tela que está menor; e o layout antigo às vezes
+   aparece, coisa branca." O menu ficava em 16,16 no Início, 24,24 na maioria, 26,22 em
+   Atendimento e Desempenho, e mais baixo no Chat (o main dele é flex): na troca de tela ele
+   pulava. Agora quem envolve o menu tem 16 px em volta, como o Início, e o menu tem a altura
+   da janela menos esse respiro. E a tela nova fica invisível (inn-vestindo, posto por um script
+   logo depois do menu) até a camada do sistema terminar de vestir: antes, o primeiro quadro
+   mostrava os botões sem ícone e as caixas brancas da tela antiga. */
+@media (min-width:901px){
+  html body main:has(> .page-layout > .sidebar), html body main:has(> .sidebar){ padding:16px !important; }
+  html body .layout:has(> .sidebar){ padding:16px !important; gap:18px !important; }
+  html body .sidebar{ top:16px !important; height:calc(100vh - 32px) !important; max-height:calc(100vh - 32px) !important; align-self:flex-start !important; margin:0 !important; }
+}
+html.inn-vestindo .sidebar ~ :not(script):not(style):not(link){ opacity:0 !important; }

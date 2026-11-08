@@ -1398,6 +1398,9 @@
     var main = acharTela() || document.body;
     vestirArquivos(document.body);
     iconeNoCabecalho(); botoesDeIcone(document.body); fantasmas(main); marcarAbas(main); selos(document.body); vestirCores(document.body);
+    // A tela estava invisível desde o menu (inn-vestindo, includes/sidebar.php): já vestida,
+    // aparece. No quadro seguinte, quando o movimento (defer, logo depois) já ligou a entrada.
+    requestAnimationFrame(function () { document.documentElement.classList.remove('inn-vestindo'); });
     if (!vestirChartJs()) {
       // Chart.js chega depois em algumas telas: espera por ele um pouco.
       var n = 0, t = setInterval(function () { if (vestirChartJs() || ++n > 40) clearInterval(t); }, 250);
