@@ -258,14 +258,8 @@ html[data-theme="light"] .sidebar.sidebar.sidebar .sidebar-group.has-active .sid
   box-shadow:var(--inn-fundo-sombra) !important;
 }
 html .sidebar.sidebar.sidebar .sidebar-group.has-active .sidebar-group-icon svg, html .sidebar.sidebar.sidebar .sidebar-group.has-active .sidebar-group-icon svg *{ color:inherit !important; stroke:currentColor !important; }
-/* ── A seta do grupo (›): sempre legível. O grupo ativo pegava stroke #FFFFFF de uma regra
-   antiga do sidebar.css (de quando o grupo ativo era um bloco azul cheio) e sumia na prata;
-   os outros ficavam cinza claro a 55%. "A seta ficar branca, não dá pra ver nada" (08/11/2026).
-   Cinza do texto em repouso, azul passando o mouse e no grupo da página atual. ── */
-html .sidebar.sidebar.sidebar .sidebar-group-chevron, html[data-theme="light"] .sidebar.sidebar.sidebar .sidebar-group-chevron{
-  color:var(--inn-texto2) !important; stroke:currentColor !important; opacity:1 !important; stroke-width:2.4 !important;
-}
-html .sidebar.sidebar.sidebar .sidebar-group-toggle:hover .sidebar-group-chevron, html[data-theme="light"] .sidebar.sidebar.sidebar .sidebar-group-toggle:hover .sidebar-group-chevron,
-html .sidebar.sidebar.sidebar .sidebar-group.has-active .sidebar-group-chevron, html[data-theme="light"] .sidebar.sidebar.sidebar .sidebar-group.has-active .sidebar-group-chevron{
-  color:var(--inn-azul2) !important; stroke:currentColor !important;
-}
+/* ── Sem seta nos grupos do menu. "Não tem necessidade mais de ter essas setas, para deixar
+   bem limpo" (08/11/2026). O grupo abre e fecha do mesmo jeito, clicando no nome; quem diz que
+   está aberto são os itens aparecendo embaixo. A seta do grupo ativo ainda vinha branca do
+   sidebar.css (sobra do grupo ativo em bloco azul cheio): sumindo a seta, some o problema. ── */
+html .sidebar.sidebar.sidebar .sidebar-group-chevron, html[data-theme="light"] .sidebar.sidebar.sidebar .sidebar-group-chevron{ display:none !important; }
