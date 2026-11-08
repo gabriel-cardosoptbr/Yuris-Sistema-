@@ -412,8 +412,15 @@ window.INI_CAL = <?= json_encode(['hoje' => $hoje, 'mes' => $mes, 'porDia' => $p
     var itens = C.porDia[key] || [], d = new Date(key + 'T12:00:00'), pre = key === C.hoje ? 'Hoje' : DIAS[d.getDay()].charAt(0).toUpperCase() + DIAS[d.getDay()].slice(1);
     elTit.textContent = pre + ', ' + d.getDate() + ' de ' + MESES[d.getMonth()].slice(0, 3);
     elConta.textContent = itens.length + (itens.length === 1 ? ' compromisso' : ' compromissos');
-    if (!itens.length) { elLista.innerHTML = '<div class="ini-vazio curto"><p>Nada marcado para este dia.</p></div>'; marcaDias(key, key, key); ajustaRolagem(); return; }
-    elLista.innerHTML = itens.map(htmlEvento).join('');
+    // Depois do dia, os próximos compromissos: a lista sempre preenche a coluna.
+    var proximos = '', n = 0;
+    Object.keys(C.porDia).filter(function (k) { return k > key; }).sort().forEach(function (k) {
+      if (n >= 12) return;
+      var its = C.porDia[k].slice(0, 12 - n); n += its.length;
+      proximos += '<div class="ini-dia-grupo">' + esc(rotuloDia(k)) + '</div>' + its.map(htmlEvento).join('');
+    });
+    if (proximos) proximos = '<div class="ini-dia-sep">Próximos dias</div>' + proximos;
+    elLista.innerHTML = (itens.length ? itens.map(htmlEvento).join('') : '<div class="ini-vazio curto"><p>Nada marcado para este dia.</p></div>') + proximos;
     marcaDias(key, key, key);
     ajustaRolagem();
   }
@@ -429,7 +436,7 @@ window.INI_CAL = <?= json_encode(['hoje' => $hoje, 'mes' => $mes, 'porDia' => $p
       });
     });
     document.querySelectorAll('.ini-atalho').forEach(function (b) { b.addEventListener('click', function () { faixa(b.getAttribute('data-faixa')); }); });
-    elLista.addEventListener('scroll', ajustaRolagem); window.addEventListener('resize', ajustaRolagem); ajustaRolagem();
+    elLista.addEventListener('scroll', ajustaRolagem); window.addEventListener('resize', ajustaRolagem); desenhaDia(C.hoje);
   }
 })();
 </script>

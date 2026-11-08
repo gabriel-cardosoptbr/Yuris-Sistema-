@@ -65,7 +65,10 @@ seleção em pílula.
   no dia troca a lista e marca o dia; as setas trocam o mês; sob a grade, atalhos de
   período: hoje, amanhã, esta semana, semana passada, próxima semana e este mês, que
   listam a faixa agrupada por dia e a marcam na grade; tudo com os dados já na página).
-  Os dias são caixas afundadas na prata, o escolhido é azul côncavo, como o menu;
+  Os dias são caixas afundadas na prata, o escolhido é azul côncavo, como o menu.
+  A agenda preenche o cartão inteiro: as semanas do calendário crescem até a altura
+  da coluna ao lado, e a lista mostra o dia escolhido e, em seguida, os próximos
+  dias (até 12 compromissos), rolando sem barra ("preencha todo o espaço");
   Prazos e Aguardando retorno ao lado; Publicações, Processos com movimentação e
   Equipe embaixo. Bordas pouco arredondadas (12px nos cartões, 8px no resto):
   "tá muito arredondado, arredondar só um pouco".

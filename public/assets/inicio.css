@@ -139,7 +139,7 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-coluna{ display:flex; flex-direction:column; gap:16px; min-width:0; }
 .ini-g3{ grid-template-columns:1fr 1.3fr 1fr; }
 @media (max-width:1380px){ .ini-g4{ grid-template-columns:repeat(2,1fr); } .ini-g3{ grid-template-columns:1fr 1fr; } }
-@media (max-width:1100px){ .ini-g-agenda{ grid-template-columns:1fr; } }
+@media (max-width:1100px){ .ini-g-agenda{ grid-template-columns:1fr; } .ini-cal-dias{ grid-auto-rows:40px; } .ini-dia{ min-height:0; } .ini-dia-lista{ position:static; max-height:460px; } }
 @media (max-width:900px){ .ini-g4,.ini-g3{ grid-template-columns:1fr; } .ini-sala-texto{ padding:22px; max-width:none; } .ini-sala h1{ font-size:24px; } body.ini-body > main{ padding:12px 12px 90px; }
   .ini-foto::after{ background:linear-gradient(180deg, rgb(var(--ini-painel-rgb)) 0%, rgb(var(--ini-painel-rgb)) 55%, rgba(var(--ini-painel-rgb),.4) 100%); }
   .ini-agenda-corpo{ grid-template-columns:1fr !important; } }
@@ -151,14 +151,15 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 /* O calendário segue o relevo do resto: cada dia é uma caixa afundada na prata; o
    dia escolhido é azul côncavo (como a pílula do menu); a faixa escolhida fica no
    azul suave; hoje tem o aro azul. */
-.ini-cal{ border-radius:var(--ini-r); background:var(--ini-painel2); border:1px solid var(--ini-linha); box-shadow:0 1px 0 var(--ini-hi) inset; padding:14px; align-self:start; }
+/* O calendário ocupa a altura toda do cartão: as semanas crescem para preencher. */
+.ini-cal{ border-radius:var(--ini-r); background:var(--ini-painel2); border:1px solid var(--ini-linha); box-shadow:0 1px 0 var(--ini-hi) inset; padding:14px; align-self:stretch; display:flex; flex-direction:column; min-height:0; }
 .ini-cal-topo{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
 .ini-cal-topo b{ font-size:16px; font-weight:800; letter-spacing:-.2px; }
 .ini-cal-nav{ width:32px; height:32px; border-radius:var(--ini-r2); border:1px solid var(--ini-linha); background:var(--ini-painel); color:var(--ini-texto2); display:grid; place-items:center; cursor:pointer; padding:0; font:inherit; box-shadow:0 1px 0 var(--ini-hi) inset; transition:color .15s; }
 .ini-cal-nav:hover{ color:var(--ini-azul2); }
 .ini-cal-nav svg{ width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
 .ini-cal-sem{ display:grid; grid-template-columns:repeat(7,1fr); text-align:center; font-size:11.5px; font-weight:700; letter-spacing:.06em; color:var(--ini-texto3); margin-bottom:6px; }
-.ini-cal-dias{ display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows:40px; gap:5px; }
+.ini-cal-dias{ display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows:minmax(40px,1fr); gap:5px; flex:1 1 auto; }
 .ini-cal-dia{ position:relative; min-height:40px; border-radius:var(--ini-r2); border:1px solid var(--ini-linha); background:var(--ini-fundo); box-shadow:var(--ini-fundo-sombra); color:var(--ini-texto); font:600 13.5px Inter, system-ui, sans-serif; cursor:pointer; padding:0; transition:background .15s, color .15s, box-shadow .15s; }
 .ini-cal-dia:hover{ background:var(--ini-azul-suave); }
 .ini-cal-dia.fora{ color:var(--ini-texto3); background:transparent; border-color:transparent; box-shadow:none; }
@@ -174,11 +175,12 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-atalho.sel{ background:linear-gradient(180deg,var(--ini-azul2),var(--ini-azul)); color:#fff; border-color:transparent; box-shadow:var(--ini-brilho), inset 0 2px 3px rgba(255,255,255,.26), inset 0 -3px 6px rgba(0,0,0,.28); }
 .ini-dia-grupo{ font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ini-texto3); padding:8px 2px 2px; }
 .ini-dia-grupo:first-child{ padding-top:0; }
-.ini-dia{ min-width:0; min-height:0; display:flex; flex-direction:column; position:relative; }
+/* A lista não empurra a altura do cartão: ocupa a coluna inteira e rola por dentro. */
+.ini-dia{ min-width:0; min-height:300px; position:relative; }
 .ini-dia-h{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
 .ini-dia-h b{ font-size:16px; font-weight:800; letter-spacing:-.2px; }
 .ini-pill{ font-size:11.5px; font-weight:700; padding:3px 9px; border-radius:var(--ini-r2); background:var(--ini-azul-suave); color:var(--ini-azul2); white-space:nowrap; }
-.ini-dia-lista{ display:flex; flex-direction:column; gap:6px; flex:1 1 auto; min-height:0; overflow:auto; scrollbar-width:none; padding-bottom:4px; }
+.ini-dia-lista{ position:absolute; top:40px; left:0; right:0; bottom:0; display:flex; flex-direction:column; gap:6px; overflow:auto; scrollbar-width:none; padding-bottom:4px; }
 .ini-dia-lista::-webkit-scrollbar{ display:none; }
 .ini-dia.rola::after{ content:""; position:absolute; left:0; right:0; bottom:0; height:44px; pointer-events:none; border-radius:0 0 var(--ini-r) var(--ini-r); background:linear-gradient(180deg, rgba(var(--ini-painel-rgb),0), rgb(var(--ini-painel-rgb))); }
 .ini-ev{ display:grid; grid-template-columns:52px 1fr; gap:10px; align-items:center; padding:9px 10px; border-radius:var(--ini-r2); background:var(--ini-painel2); border:1px solid var(--ini-linha); box-shadow:0 1px 0 var(--ini-hi) inset; }
@@ -275,3 +277,7 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 /* A cor do ícone é uma só (--ini-icone), a mesma do menu (--inn-icone): "as cores também". */
 .ini .ini-ic, .ini .ini-kpi-ic{ color:var(--ini-icone); }
 .ini .ini-ic svg, .ini .ini-ic svg *, .ini .ini-kpi-ic svg, .ini .ini-kpi-ic svg *{ stroke:var(--ini-icone) !important; fill:none !important; }
+
+/* "Próximos dias": separa o dia escolhido do que vem depois. */
+.ini-dia-sep{ display:flex; align-items:center; gap:10px; margin:10px 0 2px; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--ini-texto2); }
+.ini-dia-sep::after{ content:""; flex:1; height:1px; background:var(--ini-linha2); }
