@@ -92,7 +92,7 @@ html .sidebar .sidebar-status{ display:none !important; }
 html .sidebar nav.sidebar-nav-grouped{ gap:3px !important; padding:2px !important; overflow-y:auto !important; min-height:0 !important; flex:1 1 auto !important; scrollbar-width:none; }
 html .sidebar nav.sidebar-nav-grouped::-webkit-scrollbar{ display:none; }
 html .sidebar nav a, html .sidebar .sidebar-group-toggle{
-  background:transparent !important; border:1px solid transparent !important; border-radius:999px !important;
+  background:transparent !important; border:1px solid transparent !important; border-radius:8px !important;
   min-height:42px !important; padding:0 12px !important; gap:10px !important;
   color:var(--inn-texto2) !important; font-weight:600 !important; font-size:13.5px !important;
   box-shadow:none !important; transition:background .18s, color .18s, transform .18s, box-shadow .18s !important;
@@ -149,7 +149,7 @@ html .sidebar nav a.is-logout:hover .icon{ color:var(--inn-erro) !important; }
 html .sidebar .sidebar-footer{ border-top:1px solid var(--inn-linha) !important; padding:10px 6px 0 !important; margin-top:auto !important; }
 html .sidebar .sidebar-footer p{ color:var(--inn-texto3) !important; }
 html .sidebar .sidebar-footer p:first-child{ color:var(--inn-texto2) !important; }
-html .sidebar .sb-instalar-app{ border-radius:999px !important; }
+html .sidebar .sb-instalar-app{ border-radius:8px !important; }
 
 /* ── Recolhido: só os discos, centrados ── */
 @media (min-width:901px){
