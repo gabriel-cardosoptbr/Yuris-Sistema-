@@ -108,7 +108,7 @@
   // cabeçalho cresce e as linhas (cabeçalho, seções, linhas de campos, rodapé) entram uma a
   // uma, de cima para baixo, como o pop-up da home (idt-entra). Detectado no observador, antes
   // de o navegador pintar: o pop-up nunca aparece cheio e depois some para entrar.
-  var SEL_POP = '[class*="modal"], [id*="modal"], [id*="Modal"], [role="dialog"], dialog, [class*="drawer"], [class*="popup"], [class*="popover"], [class*="overlay"]';
+  var SEL_POP = '[class*="modal"], [id*="modal"], [id*="Modal"], [role="dialog"], dialog, [class*="drawer"], [class*="popup"], [class*="popover"], [class*="overlay"], [id*="verlay"]';
   // Aberto é estar no layout e visível; a opacidade não conta (o fundo da Nova Tarefa aparece
   // com transição de opacidade, e no instante da checagem ainda está em zero).
   function vis(el) {

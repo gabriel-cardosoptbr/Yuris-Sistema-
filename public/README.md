@@ -382,6 +382,8 @@ pop-up branco; texto sem contraste corrigido; bloco escuro no claro vira prata; 
 pelo próprio botão de fechar dele, nunca por um que remove); ver `app/Inicio/README.md`. `interface-nova-popups.css` deixa a Descrição
 e as Observações estratégicas do lead (Prospecção, Bloco 4) com 260px de altura e, no painel da tarefa
 (`#tkDrawer`), o título inteiro (cresce com o texto) e Concluir, Arquivar e ✕ no fim da linha.
+Na prévia, todo campo de arquivo visível vira a pasta da home e mostra o envio (seta subindo, barra,
+✓ "Enviado") sem a tela mudar nada: a camada reconhece o `FormData` com o arquivo daquele campo.
 Em `yuris-theme.css`, o bloco do funil do Planejamento foi estreitado em 08/11/2026: `[class*="funnel-"]`
 pintava caixa em título, cabeçalho e métricas de cada etapa e punha o contorno do gargalo também no
 embrulho `.funnel-stage` (dois contornos); agora só a coluna e o `.funnel-shape` são caixa. Vale para

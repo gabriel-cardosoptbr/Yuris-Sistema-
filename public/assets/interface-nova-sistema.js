@@ -364,7 +364,7 @@
   }
   function claro() { return document.documentElement.getAttribute('data-theme') === 'light'; }
   // Pop-up de qualquer módulo (modal, diálogo, gaveta, painel lateral).
-  var SEL_POPUP = '[class*="modal"], [id*="modal"], [id*="Modal"], [role="dialog"], dialog, [class*="drawer"], [class*="popup"], [class*="popover"], [class*="dialog"], [class*="overlay"]';
+  var SEL_POPUP = '[class*="modal"], [id*="modal"], [id*="Modal"], [role="dialog"], dialog, [class*="drawer"], [class*="popup"], [class*="popover"], [class*="dialog"], [class*="overlay"], [id*="verlay"]';
   function noPopup(el) { return !!(el.parentElement && el.parentElement.closest(SEL_POPUP)); }
   var TIPOS_SEM_FUNDO = /^(checkbox|radio|range|color|file|hidden|button|submit|reset|image)$/i;
   // Contraste do texto com o fundo que se vê atrás dele (WCAG). O fundo de cada elemento é
@@ -398,7 +398,7 @@
     var fila = [];
     cands.forEach(function (el) {
       // Vale na tela, nos pop-ups e também no que fica fora (aviso fixo no topo, toast): só o menu fica de fora.
-      if (el.dataset.innCor || el.closest('.sidebar, .inn-selo, .inn-cab-ic, svg')) return;
+      if (el.dataset.innCor || el.closest('.sidebar, .inn-selo, .inn-cab-ic, svg, .inn-arq')) return;
       var cls = String(el.className || ''); if (typeof el.className !== 'string') return;
       if (/(^|\s)inn-(selo|ic-btn|aba-on)/.test(cls) && !/inn-aba(\s|$)/.test(cls)) return;
       // No meio de uma transição a cor lida é a do caminho, não a de chegada (e o aviso do Chat
@@ -742,6 +742,13 @@
     // As abas de dentro do pop-up (o painel da tarefa fica fora do conteúdo da tela, que é onde
     // a marcação de abas corre ao carregar): sem isso, Processo / Cliente / Card CRM viravam botão.
     marcarAbas(painel);
+    // O texto lido antes de o painel ficar claro (a confirmação da tarefa nasce azul-marinho, com
+    // a pergunta em azul-claro) passou no contraste com o fundo antigo: com o painel já claro,
+    // os textos que ficaram sem marca são lidos de novo.
+    [].forEach.call(painel.querySelectorAll('[data-inn-cor="-"]'), function (e) {
+      if (!temTextoProprio(e) || e.closest('.inn-arq')) return;
+      delete e.dataset.innCor; delete e.dataset.innBase; vestirCores(e);
+    });
     // Cabeçalho: perto do topo do painel, quase da largura dele, baixo, com texto.
     var cab = [].filter.call(painel.querySelectorAll('div, header, section'), function (el) {
       var r = el.getBoundingClientRect(), cls = String(el.className || '');
@@ -1104,6 +1111,141 @@
   var caberTimer = null;
   addEventListener('resize', function () { clearTimeout(caberTimer); caberTimer = setTimeout(function () { [].forEach.call(document.querySelectorAll('[data-inn-kpi-valor]'), caber); }, 150); });
 
+  // ── 3e. Campo de arquivo vira a pasta, e o envio aparece ────────────────
+  // "Aqui é horrível; pode colocar um desenho de algo para escolher, uma pasta. E quando eu
+  // for enviar, tem que ter uma animação do arquivo carregando, depois um ok, subido"
+  // (08/11/2026, Anexos da tarefa). Todo <input type="file"> visível ganha a caixa afundada da
+  // home com a pasta: clicar ou arrastar o arquivo para cima dela escolhe (o campo de verdade
+  // fica por cima, invisível, então o clique e o arrastar são os do navegador). O envio é
+  // reconhecido pelo próprio pedido: quando a tela manda (fetch ou XMLHttpRequest) um
+  // FormData com o arquivo deste campo, a caixa mostra o arquivo subindo e a barra enchendo,
+  // e no fim o ✓ verde "Enviado" (ou o aviso vermelho). Nenhuma tela precisa mudar.
+  var SVG_ARQ = {
+    pasta: '<svg viewBox="0 0 24 24"><path d="M6 14l1.45-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.55 6a2 2 0 0 1-1.94 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H18a2 2 0 0 1 2 2v2"/></svg>',
+    doc: '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg>',
+    sobe: '<svg viewBox="0 0 24 24"><g class="inn-arq-seta"><path d="M12 16V6"/><path d="M7.5 10.5 12 6l4.5 4.5"/></g><path d="M5 20h14"/></svg>',
+    ok: '<svg viewBox="0 0 24 24"><path class="inn-arq-risco" d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+    erro: '<svg viewBox="0 0 24 24"><path d="M12 8v5"/><path d="M12 16.5v.01"/><circle cx="12" cy="12" r="9.5"/></svg>'
+  };
+  function tamanhoArq(n) { return n < 1024 ? n + ' B' : n < 1048576 ? (n / 1024).toFixed(1).replace('.', ',') + ' KB' : (n / 1048576).toFixed(1).replace('.', ',') + ' MB'; }
+  function pintarArq(w, estado, nome, sub, acao) {
+    w.dataset.estado = estado;
+    w.querySelector('.inn-arq-ic').innerHTML = SVG_ARQ[{ vazio: 'pasta', escolhido: 'doc', enviando: 'sobe', ok: 'ok', erro: 'erro' }[estado]];
+    w.querySelector('.inn-arq-nome').textContent = nome;
+    w.querySelector('.inn-arq-sub').textContent = sub;
+    w.querySelector('.inn-arq-acao').textContent = acao;
+  }
+  function estadoDoCampo(w) {
+    var fs = w._inp.files;
+    if (!fs || !fs.length) {
+      pintarArq(w, 'vazio', w._inp.multiple ? 'Escolher arquivos' : 'Escolher arquivo', 'Clique na pasta ou arraste o arquivo para cá', 'Procurar');
+    } else {
+      var tot = [].reduce.call(fs, function (s, f) { return s + f.size; }, 0);
+      var ext = fs.length === 1 ? (fs[0].name.split('.').pop() || '').toUpperCase() : '';
+      pintarArq(w, 'escolhido', fs.length === 1 ? fs[0].name : fs.length + ' arquivos', tamanhoArq(tot) + (ext && ext.length <= 5 ? ' · ' + ext : '') + ' · pronto para enviar', 'Trocar');
+    }
+    var env = w._enviar; if (env) env.classList.toggle('inn-arq-pronto', !!(fs && fs.length));
+  }
+  function vestirArquivos(raiz) {
+    if (!raiz || !raiz.querySelectorAll) return;
+    var lista = [].slice.call(raiz.querySelectorAll('input[type="file"]'));
+    if (raiz.tagName === 'INPUT') lista.push(raiz);
+    lista.forEach(function (inp) {
+      if (inp.dataset.innArq || inp.hidden || inp.closest('.sidebar')) return;
+      var cs = getComputedStyle(inp);
+      // O campo que a tela já escondeu (atrás de um botão ou rótulo próprio) fica como está.
+      if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) < .1) return;
+      inp.dataset.innArq = '1';
+      var w = document.createElement('div');
+      w.className = 'inn-arq';
+      w.innerHTML = '<span class="inn-arq-ic"></span><span class="inn-arq-txt"><b class="inn-arq-nome"></b><small class="inn-arq-sub"></small></span><span class="inn-arq-acao"></span><span class="inn-arq-barra"><i></i></span>';
+      // A medida que a tela deu ao campo passa para a caixa (no Anexos, flex:1 na linha).
+      ['flex', 'minWidth', 'maxWidth', 'width'].forEach(function (k) { if (inp.style[k]) w.style[k] = inp.style[k]; });
+      var pai = inp.parentNode, dp = getComputedStyle(pai).display;
+      if (!/flex|grid/.test(dp) && !w.style.width) w.style.width = '100%';
+      pai.insertBefore(w, inp); w.appendChild(inp);
+      inp.classList.add('inn-arq-campo');
+      w._inp = inp;
+      // O botão de enviar ao lado (o único botão da mesma linha) acende quando há arquivo.
+      var irmaos = [].filter.call(pai.children, function (c) { return c.tagName === 'BUTTON'; });
+      if (irmaos.length === 1 && /flex|grid/.test(dp)) { w._enviar = irmaos[0]; irmaos[0].classList.add('inn-arq-enviar'); }
+      inp.addEventListener('change', function () { if (w.dataset.estado !== 'enviando') estadoDoCampo(w); });
+      ['dragenter', 'dragover'].forEach(function (ev) { w.addEventListener(ev, function () { w.setAttribute('data-arrastando', ''); }); });
+      ['dragleave', 'drop'].forEach(function (ev) { w.addEventListener(ev, function () { w.removeAttribute('data-arrastando'); }); });
+      estadoDoCampo(w);
+    });
+  }
+  function campoDoEnvio(body) {
+    if (typeof FormData === 'undefined' || !(body instanceof FormData)) return null;
+    var achado = null;
+    body.forEach(function (v) {
+      if (achado || !(v instanceof File)) return;
+      [].some.call(document.querySelectorAll('.inn-arq'), function (w) {
+        if (w._inp && w._inp.files && [].indexOf.call(w._inp.files, v) >= 0) { achado = w; return true; }
+        return false;
+      });
+    });
+    return achado;
+  }
+  function comecarEnvio(w) {
+    clearTimeout(w._volta);
+    var fs = w._inp.files, nome = fs.length === 1 ? fs[0].name : fs.length + ' arquivos';
+    pintarArq(w, 'enviando', 'Enviando…', nome, '');
+    w._t0 = performance.now(); w._real = false;
+    var i = w.querySelector('.inn-arq-barra i');
+    // Sem progresso de verdade (fetch não conta), a barra corre depressa e vai freando até 90%.
+    i.style.transition = 'none'; i.style.transform = 'scaleX(0)'; void i.offsetWidth;
+    i.style.transition = 'transform 2.6s cubic-bezier(.08,.6,.2,1)'; i.style.transform = 'scaleX(.9)';
+  }
+  function progressoEnvio(w, f) {
+    var i = w.querySelector('.inn-arq-barra i');
+    w._real = true; i.style.transition = 'transform .2s linear'; i.style.transform = 'scaleX(' + Math.min(.97, f) + ')';
+  }
+  function terminarEnvio(w, ok) {
+    var nome = w.querySelector('.inn-arq-sub').textContent;
+    // O envio rápido demais (rede local) ainda mostra o arquivo subindo, por um instante.
+    var falta = Math.max(0, 750 - (performance.now() - (w._t0 || 0)));
+    setTimeout(function () {
+      var i = w.querySelector('.inn-arq-barra i');
+      i.style.transition = 'transform .25s ease-out'; i.style.transform = 'scaleX(1)';
+      setTimeout(function () {
+        if (ok) pintarArq(w, 'ok', 'Enviado', nome, '');
+        else pintarArq(w, 'erro', 'Não foi enviado', 'Confira o aviso e clique em Enviar de novo', '');
+        w._volta = setTimeout(function () { i.style.transition = 'none'; i.style.transform = 'scaleX(0)'; estadoDoCampo(w); }, ok ? 2400 : 3200);
+      }, 260);
+    }, falta);
+  }
+  (function vigiarEnvios() {
+    if (window.__innArqVigia) return; window.__innArqVigia = true;
+    var fetchOrig = window.fetch;
+    if (fetchOrig) window.fetch = function (input, init) {
+      var w = init && campoDoEnvio(init.body);
+      var p = fetchOrig.apply(window, arguments);
+      if (w) {
+        comecarEnvio(w);
+        p.then(function (res) {
+          res.clone().json().then(function (j) { terminarEnvio(w, res.ok && !(j && (j.ok === false || j.success === false))); },
+            function () { terminarEnvio(w, res.ok); });
+        }, function () { terminarEnvio(w, false); });
+      }
+      return p;
+    };
+    var sendOrig = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.send = function (body) {
+      var w = campoDoEnvio(body), x = this;
+      if (w) {
+        comecarEnvio(w);
+        if (x.upload) x.upload.addEventListener('progress', function (e) { if (e.lengthComputable) progressoEnvio(w, e.loaded / e.total); });
+        x.addEventListener('loadend', function () {
+          var ok = x.status >= 200 && x.status < 300;
+          try { var j = JSON.parse(x.responseText); if (j && (j.ok === false || j.success === false)) ok = false; } catch (e) {}
+          terminarEnvio(w, ok);
+        });
+      }
+      return sendOrig.apply(this, arguments);
+    };
+  })();
+
   // ── 4. A onda do toque ──────────────────────────────────────────────────
   var SEL_TOQUE = 'button, .btn, a[class*="btn"], [role="tab"], .inn-aba, .tk-card, .cli-card, .proc-card, .lead-card, .kanban-card, .kpi-card, .o-card[onclick], .chat-item, .int-card, .tk-periodo, .chat-filter-btn';
   document.addEventListener('pointerdown', function (e) {
@@ -1254,6 +1396,7 @@
   // ── Ligar ───────────────────────────────────────────────────────────────
   function ligar() {
     var main = acharTela() || document.body;
+    vestirArquivos(document.body);
     iconeNoCabecalho(); botoesDeIcone(document.body); fantasmas(main); marcarAbas(main); selos(document.body); vestirCores(document.body);
     if (!vestirChartJs()) {
       // Chart.js chega depois em algumas telas: espera por ele um pouco.
@@ -1288,7 +1431,7 @@
           if ((m.attributeName === 'style' || m.attributeName === 'hidden' || m.attributeName === 'class') && alvo.dataset && alvo.dataset.innCor == null && alvo.dataset.innSelo == null && !alvo.classList.contains('inn-aba')) vestirCores(alvo);
           return;
         }
-        [].forEach.call(m.addedNodes, function (no) { if (no.nodeType === 1) { botoesDeIcone(no); fantasmas(no); marcarAbas(no); selos(no); vestirCores(no); } });
+        [].forEach.call(m.addedNodes, function (no) { if (no.nodeType === 1 && !(no.closest && no.closest('.inn-arq'))) { vestirArquivos(no); botoesDeIcone(no); fantasmas(no); marcarAbas(no); selos(no); vestirCores(no); } });
       });
       if (!pendente) { pendente = true; requestAnimationFrame(function () { pendente = false; conferirFantasmas(); }); }
     }).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['class', 'aria-selected', 'aria-pressed', 'style', 'hidden'] });

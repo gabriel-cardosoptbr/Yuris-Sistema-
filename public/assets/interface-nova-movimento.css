@@ -85,3 +85,16 @@ html.inn-mov button:not(:disabled):active:not(.tk-tab):not(.tab-btn), html.inn-m
 /* O ícone do cabeçalho do pop-up cresce quando entra (a camada do sistema o põe logo depois
    de o pop-up abrir; ao reabrir, o JS reinicia a animação). */
 @media (prefers-reduced-motion: no-preference){ html.inn-mov .inn-pop-ic{ animation:inn-pop-cresce .5s var(--mov-mola) .05s both; } }
+
+/* ── 6. O arquivo sobe e o ✓ se desenha (08/11/2026) ──
+   O campo de arquivo da camada do sistema (.inn-arq): ao escolher, a caixinha da pasta dá um
+   pulo; enviando, a seta sobe sem parar; enviado, o ✓ se desenha e a caixinha bate. */
+@media (prefers-reduced-motion: no-preference){
+  @keyframes inn-arq-sobe{ 0%{ transform:translateY(5px); opacity:0; } 35%{ opacity:1; } 75%{ transform:translateY(-3px); opacity:1; } 100%{ transform:translateY(-7px); opacity:0; } }
+  @keyframes inn-arq-risco{ from{ stroke-dashoffset:24; } to{ stroke-dashoffset:0; } }
+  @keyframes inn-arq-bate{ 0%{ transform:scale(.7); } 60%{ transform:scale(1.12); } 100%{ transform:none; } }
+  html.inn-mov .inn-arq[data-estado="enviando"] .inn-arq-seta{ animation:inn-arq-sobe .9s cubic-bezier(.3,.6,.4,1) infinite; }
+  html.inn-mov .inn-arq[data-estado="escolhido"] .inn-arq-ic, html.inn-mov .inn-arq[data-estado="ok"] .inn-arq-ic, html.inn-mov .inn-arq[data-estado="erro"] .inn-arq-ic{ animation:inn-arq-bate .45s var(--mov-mola) both; }
+  html.inn-mov .inn-arq[data-estado="ok"] .inn-arq-risco{ stroke-dasharray:24; animation:inn-arq-risco .45s .12s var(--mov-saida) both; }
+  html.inn-mov .inn-arq[data-estado="ok"] .inn-arq-txt, html.inn-mov .inn-arq[data-estado="erro"] .inn-arq-txt, html.inn-mov .inn-arq[data-estado="escolhido"] .inn-arq-txt{ animation:inn-pop-entra .35s var(--mov-saida) both; }
+}

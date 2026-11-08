@@ -392,6 +392,27 @@ seleção em pílula.
   fora do conteúdo da tela, onde a marcação corre ao carregar.
   Armadilha: o observador do título vigiava o próprio campo (a classe `tk-drawer-title` tem
   "drawer"), e a página travou. Vigie o painel, nunca o elemento que o ajuste altera.
+- **O campo de arquivo é a pasta da home, e o envio aparece** (08/11/2026, Anexos da tarefa:
+  "aqui é horrível; coloque um desenho de algo para escolher, uma pasta; quando eu for enviar,
+  uma animação do arquivo carregando, depois um ok, subido"). Seção 3e de
+  `interface-nova-sistema.js` e seção 17 do `.css`: todo `<input type="file">` visível (o que a
+  tela já esconde atrás de botão próprio fica como está) é embrulhado em `.inn-arq`, a caixa
+  afundada com a pasta numa caixinha, o nome, o tamanho e "Procurar"; o campo de verdade fica
+  por cima, invisível, então clicar e arrastar o arquivo são os do navegador. Escolhido: o
+  documento, o nome, "12,9 KB · PDF · pronto para enviar", e o Enviar da mesma linha acende no
+  azul do sistema (`inn-arq-enviar`, `inn-arq-pronto`). O envio é reconhecido pelo próprio
+  pedido: `fetch` e `XMLHttpRequest.send` são embrulhados e, quando o corpo é um `FormData` com
+  o arquivo de um campo vestido, a caixa mostra a seta subindo e a barra enchendo (progresso de
+  verdade no XHR; no fetch ela corre e freia até 90%), no mínimo 750 ms; no fim, o ✓ que se
+  desenha e "Enviado" em verde, ou "Não foi enviado" em vermelho (resposta fora de 2xx ou JSON
+  com `ok:false`), e volta à pasta. Pedido sem arquivo de campo vestido passa intocado. As
+  regras de medida do `.inn-arq` são peça própria (exceção no `interface_nova_test.php`).
+  Conferido com envio de verdade no Anexos, mais os estados de erro e enviando forçados, no
+  claro e no escuro.
+- **Fundo de pop-up que só diz "Overlay" no id** (`tkConfirmOverlay`, a confirmação da tarefa):
+  `[id*="verlay"]` entrou no seletor de pop-up das duas camadas; a confirmação deixou de ser
+  azul-marinho com a pergunta invisível. Texto lido antes de o painel ficar claro é lido de novo
+  quando o pop-up é vestido.
   Armadilhas que viraram regra: ler a cor no meio de uma transição dá a cor do caminho (a camada
   espera o `transitionend`); trocar a classe no meio da leitura recalcula o estilo (lê tudo,
   escreve depois); o que estava `display:none` ou ganhou classe depois é relido pelo observer;
