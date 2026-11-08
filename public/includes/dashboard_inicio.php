@@ -121,7 +121,7 @@ $evento = static function (array $i) use ($h, $det, $detEvento): string {
       <!-- ── Boas-vindas ── -->
       <section class="ini-sala">
         <div class="ini-sala-texto">
-          <h1><?= $h($painel['saudacao']) ?>, <span><?= $h(Painel::primeiroNome($_userNome)) ?></span></h1>
+          <h1><span id="iniSaudacao"><?= $h($painel['saudacao']) ?></span>, <span class="ini-nome"><?= $h(Painel::primeiroNome($_userNome)) ?></span></h1>
           <p><?= $painel['resumo'] ?></p>
           <div class="ini-acoes">
             <a class="ini-btn primario" href="/processos" data-novo="processo"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Novo processo</a>
@@ -358,6 +358,17 @@ $evento = static function (array $i) use ($h, $det, $detEvento): string {
   </div>
 </main>
 <script>
+// A saudação acompanha o relógio de Brasília (o mesmo fuso do servidor, Painel::FUSO):
+// a home aberta da tarde para a noite troca "Boa tarde" por "Boa noite" sozinha.
+(function () {
+  var el = document.getElementById('iniSaudacao'); if (!el) return;
+  function hora() {
+    try { return parseInt(new Intl.DateTimeFormat('pt-BR', { hour: 'numeric', hourCycle: 'h23', timeZone: 'America/Sao_Paulo' }).format(new Date()), 10); }
+    catch (e) { return new Date().getHours(); }
+  }
+  function atualizar() { var h = hora(); el.textContent = (h >= 5 && h < 12) ? 'Bom dia' : (h >= 12 && h < 18) ? 'Boa tarde' : 'Boa noite'; }
+  atualizar(); setInterval(atualizar, 60000);
+})();
 window.INI_CAL = <?= json_encode(['hoje' => $hoje, 'mes' => $mes, 'porDia' => $porDia, 'tipos' => Painel::TIPOS], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;
 (function () {
   var b = document.getElementById('iniTema');

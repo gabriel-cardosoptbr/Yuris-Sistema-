@@ -147,6 +147,9 @@ seleção em pílula.
   centrado com o título, e no hover sobe 2px e acende como o botão aprovado.
 - Cartões nunca deixam vão: as colunas se esticam até a mesma altura e o último
   cartão de cada coluna cresce ("nunca deixe esses vãos entre um card e o outro").
+- A faixa de boas-vindas: a saudação segue o horário de Brasília (`Painel::saudacao`, 5h a 12h
+  Bom dia, 12h a 18h Boa tarde, depois Boa noite) e se atualiza sozinha a cada minuto com a
+  página aberta; o nome vem no degradê do logo, do azul do Yuris para a prata (08/11/2026).
 - `assets/inicio.css` é a home: dois temas pelas variáveis `--ini-*`, a faixa de
   boas-vindas com uma biblioteca jurídica ao fundo (`assets/img/inicio-biblioteca.jpg`,
   foto de Planet Volumes no Unsplash, licença Unsplash: uso comercial livre, sem

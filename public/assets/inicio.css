@@ -102,7 +102,11 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-sala{ position:relative; overflow:hidden; border-radius:var(--ini-r); border:1px solid var(--ini-linha); box-shadow:var(--ini-sombra); min-height:190px; background:var(--ini-painel); }
 .ini-sala-texto{ padding:28px 30px; position:relative; z-index:2; max-width:62%; }
 .ini-sala h1{ font-size:28px; font-weight:800; letter-spacing:-.7px; line-height:1.05; color:var(--ini-texto); }
-.ini-sala h1 span{ color:var(--ini-azul2); }
+/* O nome no degradê do logo: o azul do Yuris indo para a prata ("faz degradê, assim
+   como a logo", 08/11/2026). No claro a prata é um tom mais escura, para ler no fundo claro. */
+.ini-sala h1 .ini-nome{ color:var(--ini-azul2); background:linear-gradient(100deg, #4F78DB 0%, #6C90E3 38%, #B9C1CE 78%, #E3E7EE 100%);
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; padding-right:2px; }
+html[data-theme="light"] .ini-sala h1 .ini-nome{ background-image:linear-gradient(100deg, #2E55B8 0%, #3D65CB 38%, #6F7A8D 80%, #8A93A3 100%); }
 .ini-sala p{ margin-top:8px; color:var(--ini-texto2); font-size:14px; max-width:600px; line-height:1.5; }
 .ini-sala p b{ color:var(--ini-texto); font-weight:600; }
 .ini-acoes{ display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; }

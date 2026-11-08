@@ -237,6 +237,8 @@ ok(str_contains((string) file_get_contents($raiz . '/public/assets/tarefas.js'),
 ok(str_contains($detJs, 'function formatarJuridico') && str_contains($detJs, 'function limparTexto'), 'texto sem estrutura cai na limpeza do Diário');
 ok(str_contains($detJs, 'e.blocos') && str_contains($detJs, 'e.advogados') && str_contains($detJs, 'idt-pub-assin'), 'a publicação aparece em tópicos (seções, advogados com OAB, assinatura)');
 ok(str_contains((string) file_get_contents($raiz . '/app/Inicio/Painel.php'), 'PublicacaoEstrutura::estruturar('), 'a home manda a publicação já separada pelo servidor');
+ok(str_contains($inicio, "timeZone: 'America/Sao_Paulo'") && str_contains($inicio, '<span id="iniSaudacao">'), 'a saudação acompanha o relógio de Brasília na página aberta');
+ok(str_contains((string) file_get_contents($raiz . '/public/assets/inicio.css'), '.ini-sala h1 .ini-nome{') && str_contains($inicio, '<span class="ini-nome">'), 'o nome em degradê azul para prata, como o logo');
 ok(substr_count($inicio, 'class="ini-ctr ') === 1 && str_contains($inicio, '<span class="ini-ctr-ic">') && str_contains((string) file_get_contents($raiz . '/public/assets/inicio.css'), '.ini-ctr.hoje:not(.zero) .ini-ctr-t b{ color:var(--ini-erro); }'), 'contadores de Prazos como cartões, vermelho só em hoje com prazo');
 ok(str_contains($detJs, 'idt-pub-link-txt') && str_contains($detJs, "g.rotulo === 'Partes' ? ''"), 'endereço no teor vira link e o rótulo Partes não se repete');
 ok(str_contains($inicio, 'data-novo="processo"') && str_contains($inicio, 'data-novo="tarefa"') && str_contains($inicio, 'data-novo="publicacoes"'), 'os três botões da faixa abrem o pop-up');
