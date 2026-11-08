@@ -158,7 +158,11 @@ html .sidebar .sb-instalar-app{ border-radius:8px !important; }
   html.sb-retraido.sb-retraido .sidebar nav a.active{ transform:none; }
   html.sb-retraido.sb-retraido .sidebar .sidebar-brand.sb-marca-yuris{ padding:4px 0 10px !important; }
   html.sb-retraido.sb-retraido .sidebar .sb-recolher.sb-recolher-y{ position:absolute !important; top:92px !important; right:-14px !important; margin:0 !important; }
-  html.sb-retraido.sb-retraido .sidebar .sb-logo-mini{ filter:drop-shadow(0 6px 14px rgba(47,111,234,.35)); }
+  /* Recolhido: o símbolo sem o quadrado azul do favicon (logo-144.png, fundo transparente),
+     do tamanho da caixa dos ícones de baixo e centrado na coluna deles. */
+  html.sb-retraido.sb-retraido .sidebar .sb-logo-mini{ width:44px !important; height:44px !important; margin:2px auto 0 !important; object-fit:contain; filter:drop-shadow(0 3px 6px rgba(0,0,0,.18)); }
+  html.sb-retraido.sb-retraido .sidebar .sidebar-brand.sb-marca-yuris{ align-items:center !important; justify-content:center !important; }
+  html.sb-retraido.sb-retraido .sidebar .sidebar-brand.sb-marca-yuris > a{ display:flex !important; justify-content:center !important; width:100% !important; }
 }
 
 /* ── O conteúdo ao lado respira o mesmo tanto ── */

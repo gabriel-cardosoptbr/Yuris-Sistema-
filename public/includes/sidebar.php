@@ -650,7 +650,7 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
     </a>
     <?php endif; ?>
     <?php else: ?>
-    <a href="/dashboard" data-sb-recolher aria-label="Yuris" style="display:block"><img src="/sistema_vendas/Imagens/Logo.png" alt="Yuris" class="sb-logo-grande" style="max-width:100%;max-height:160px;object-fit:contain;display:block;margin:0 auto;"><img src="/assets/favicon-192.png" alt="" class="sb-logo-mini"></a>
+    <a href="/dashboard" data-sb-recolher aria-label="Yuris" style="display:block"><img src="/sistema_vendas/Imagens/Logo.png" alt="Yuris" class="sb-logo-grande" style="max-width:100%;max-height:160px;object-fit:contain;display:block;margin:0 auto;"><img src="<?= $_interfaceNova ? '/assets/img/logo-144.png' : '/assets/favicon-192.png' ?>" alt="" class="sb-logo-mini"></a>
     <?php endif; ?>
   </div>
 
