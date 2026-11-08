@@ -213,7 +213,16 @@ try {
     ok(count(array_filter(Central::buscarProcessos([$CONTA_A], $USER_A, '1009347'), fn ($p) => (int) $p['id'] === $PROC_A)) === 1, 'pelos dígitos do número');
     ok(count(array_filter(Central::buscarProcessos([$CONTA_A], $USER_A, '1009347-41'), fn ($p) => (int) $p['id'] === $PROC_A)) === 1, 'pelo número com pontuação');
     eq([], Central::buscarProcessos([$CONTA_A], $USER_A, "Outro {$MARCA}"), 'processo de outro escritório não vem na busca');
-    eq([], Central::buscarProcessos([$CONTA_A], $USER_A, ''), 'busca vazia não lista tudo');
+    // 08/11/2026: sem termo, a lista já aparece com os mais recentes, mas só os do escritório.
+    $vazia = Central::buscarProcessos([$CONTA_A], $USER_A, '');
+    ok(count($vazia) > 0 && count($vazia) <= 12, 'busca vazia traz os mais recentes, com limite');
+    ok(!in_array($PROC_B, array_map(fn ($p) => (int) $p['id'], $vazia), true), 'busca vazia não traz processo de outro escritório');
+    eq([$PROC_A], array_map(fn ($p) => (int) $p['id'], Central::buscarProcessos([$CONTA_A], $USER_A, '', 20, "Cliente {$MARCA}")), 'filtro pelo cliente traz só os processos dele');
+    eq([], Central::buscarProcessos([$CONTA_A], $USER_A, '', 20, "Outro {$MARCA}"), 'filtro por cliente de outro escritório não traz nada');
+    $cli = Central::buscarClientes([$CONTA_A], $USER_A, $MARCA);
+    eq([["nome" => "Cliente {$MARCA}", 'processos' => 1]], $cli, 'lista de clientes acha o da conta, com quantos processos');
+    eq([], Central::buscarClientes([$CONTA_A], $USER_A, "Outro {$MARCA}"), 'cliente de outro escritório não vem na lista');
+    eq([], Central::buscarClientes([], $USER_A, ''), 'sem conta, sem cliente');
 
     $pdo->prepare("INSERT INTO resource_shares (resource_type, resource_id, from_account_id, to_account_id, status) VALUES ('processo', ?, ?, ?, 'active')")
         ->execute([$PROC_B, $CONTA_B, $CONTA_A]);

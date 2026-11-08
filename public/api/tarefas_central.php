@@ -8,7 +8,9 @@
  * GET                       itens, contagem por período e a data de hoje
  *     ?tipo=juridica|escritorio  ?situacao=abertas|concluidas|todas
  *     ?responsavel_id=N  ?prioridade=  ?busca=  ?processo_id=N
- * GET ?acao=processos&q=    processos por nome do cliente ou número
+ * GET ?acao=processos&q=    processos por nome do cliente, número ou ação; sem q, os mais
+ *     recentes; &cliente=NOME só os desse cliente (o termo é opcional)
+ * GET ?acao=clientes&q=     clientes que têm processo, com quantos; sem q, os mais recentes
  */
 require_once __DIR__ . '/_json_guard.php';
 require_once __DIR__ . '/../../app/bootstrap.php';
@@ -34,6 +36,12 @@ $contasProcessos = $ctx->getAccessibleAccountIds('processos');
 try {
     if (($_GET['acao'] ?? '') === 'processos') {
         echo json_encode(['ok' => true, 'data' => Central::buscarProcessos(
+            $contasProcessos, $ctx->getUserId(), (string) ($_GET['q'] ?? ''), 20, (string) ($_GET['cliente'] ?? '')
+        )]);
+        exit;
+    }
+    if (($_GET['acao'] ?? '') === 'clientes') {
+        echo json_encode(['ok' => true, 'data' => Central::buscarClientes(
             $contasProcessos, $ctx->getUserId(), (string) ($_GET['q'] ?? '')
         )]);
         exit;

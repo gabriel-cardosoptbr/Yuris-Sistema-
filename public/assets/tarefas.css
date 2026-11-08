@@ -2013,3 +2013,44 @@ html[data-theme="light"] .tk-proc-escolhido button { color: #1D4ED8; }
 
 /* O tema claro pinta todo svg de azul-marinho: o "+" sumia no botão azul. */
 html[data-theme="light"] .tk-btn-new-task svg line, html[data-theme="light"] .tk-btn-new-board svg line { stroke: #FFFFFF !important; }
+
+/* ── Tarefa jurídica: cliente e processo lado a lado (08/11/2026) ──
+   "Tem que ter uma divisão entre cliente e processo, dois campos; os processos já têm de
+   estar aparecendo; se eu escolher o processo, aparecem as tarefas processuais dele, se já
+   foi feito ou não." As listas ficam abertas (os mais recentes) e filtram ao digitar. */
+#modalNewTask.tk-nova-juridica .tk-modal { width: 760px; }
+.tk-jur-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+.tk-jur-campos .tk-field { min-width: 0; }
+.tk-jur-lista { display: block; max-height: 196px; scrollbar-width: none; }
+.tk-jur-lista::-webkit-scrollbar { display: none; }
+.tk-jur-tarefas { margin-top: 12px; padding: 12px; border-radius: 10px; border: 1px solid rgba(160,180,210,0.16); background: rgba(160,180,210,0.05); }
+.tk-jur-tit { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 8px;
+  font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #93C5FD; }
+.tk-jur-tit span { font-size: .72rem; font-weight: 600; letter-spacing: 0; text-transform: none; color: #8FA3B8; }
+.tk-jur-itens { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; scrollbar-width: none; }
+.tk-jur-itens::-webkit-scrollbar { display: none; }
+.tk-jur-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(160,180,210,0.12); background: rgba(10,22,40,.5); transition: border-color .15s, background .15s; }
+.tk-jur-marca { width: 20px; height: 20px; flex: none; border-radius: 6px; display: grid; place-items: center; border: 1.5px solid rgba(160,180,210,0.35); }
+.tk-jur-marca svg { width: 13px; height: 13px; stroke: #fff; fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.tk-jur-item.feita .tk-jur-marca { background: #3B82F6; border-color: transparent; }
+.tk-jur-item.feita b { text-decoration: line-through; opacity: .7; }
+.tk-jur-t { display: flex; flex-direction: column; min-width: 0; }
+.tk-jur-t b { font-size: .82rem; font-weight: 600; color: #D8E4F0; overflow-wrap: anywhere; }
+.tk-jur-t small { font-size: .72rem; color: #8FA3B8; }
+.tk-jur-item.igual { border-color: #3B82F6; background: rgba(59,130,246,.14); }
+.tk-jur-aviso { margin-top: 6px; font-size: .76rem; font-weight: 600; color: #93C5FD; }
+@keyframes tk-jur-brilho { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.tk-jur-osso { height: 38px; margin-top: 6px; border-radius: 8px; border: 1px solid rgba(160,180,210,0.12);
+  background: rgba(160,180,210,0.06) linear-gradient(100deg, transparent 25%, rgba(255,255,255,.06) 50%, transparent 75%) 0 0 / 220% 100%; animation: tk-jur-brilho 1.5s ease-in-out infinite; }
+html[data-theme="light"] .tk-jur-tarefas { background: #F4F6F9; border-color: #D5DEE9; }
+html[data-theme="light"] .tk-jur-tit { color: #1D4ED8; }
+html[data-theme="light"] .tk-jur-tit span, html[data-theme="light"] .tk-jur-t small { color: #64748B; }
+html[data-theme="light"] .tk-jur-item { background: #FFFFFF; border-color: #E2E8F0; }
+html[data-theme="light"] .tk-jur-t b { color: #0F172A; }
+html[data-theme="light"] .tk-jur-marca { border-color: #CBD5E1; }
+html[data-theme="light"] .tk-jur-item.feita .tk-jur-marca { background: #2563EB; }
+html[data-theme="light"] .tk-jur-item.igual { border-color: #2563EB; background: rgba(59,130,246,.08); }
+html[data-theme="light"] .tk-jur-aviso { color: #1D4ED8; }
+html[data-theme="light"] .tk-jur-osso { background-color: #EDF1F6; border-color: #E2E8F0; background-image: linear-gradient(100deg, transparent 25%, rgba(20,32,56,.06) 50%, transparent 75%); }
+@media (max-width: 640px) { .tk-jur-campos { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .tk-jur-osso { animation: none; } }

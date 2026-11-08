@@ -515,14 +515,32 @@ try {
         <strong>Tarefa de escritório</strong><span>Num quadro da equipe</span>
       </button>
     </div>
-    <div class="tk-field" id="ntProcessoCampo" style="margin-bottom:12px;display:none;">
-      <label for="ntProcessoBusca">Processo *</label>
-      <input type="text" id="ntProcessoBusca" placeholder="Nome do cliente ou número do processo" autocomplete="off">
-      <div id="ntProcessoLista" class="tk-proc-lista" style="display:none;"></div>
-      <div id="ntProcessoEscolhido" class="tk-proc-escolhido" style="display:none;">
-        <div><span class="tk-proc-nome"></span><span class="tk-proc-num"></span></div>
-        <button type="button" id="ntProcessoTrocar">Trocar</button>
+    <!-- Tarefa jurídica: primeiro o cliente, depois o processo dele. As duas listas já
+         aparecem abertas (os mais recentes) e filtram enquanto se digita. Escolhido o
+         processo, as tarefas processuais dele aparecem embaixo, feitas e a fazer, para
+         ver se o que se vai criar já existe. -->
+    <div id="ntProcessoCampo" class="tk-jur" style="margin-bottom:12px;display:none;">
+      <div class="tk-jur-campos">
+        <div class="tk-field">
+          <label for="ntClienteBusca">Cliente</label>
+          <input type="text" id="ntClienteBusca" placeholder="Todos os clientes" autocomplete="off">
+          <div id="ntClienteLista" class="tk-proc-lista tk-jur-lista"></div>
+          <div id="ntClienteEscolhido" class="tk-proc-escolhido" style="display:none;">
+            <div><span class="tk-proc-nome"></span><span class="tk-proc-num"></span></div>
+            <button type="button" id="ntClienteTrocar">Trocar</button>
+          </div>
+        </div>
+        <div class="tk-field">
+          <label for="ntProcessoBusca">Processo *</label>
+          <input type="text" id="ntProcessoBusca" placeholder="Número, cliente ou ação" autocomplete="off">
+          <div id="ntProcessoLista" class="tk-proc-lista tk-jur-lista"></div>
+          <div id="ntProcessoEscolhido" class="tk-proc-escolhido" style="display:none;">
+            <div><span class="tk-proc-nome"></span><span class="tk-proc-num"></span></div>
+            <button type="button" id="ntProcessoTrocar">Trocar</button>
+          </div>
+        </div>
       </div>
+      <div id="ntProcTarefas" class="tk-jur-tarefas" style="display:none;"></div>
     </div>
     <div class="tk-field" id="ntQuadroCampo" style="margin-bottom:12px;display:none;">
       <label for="ntQuadro">Quadro</label>

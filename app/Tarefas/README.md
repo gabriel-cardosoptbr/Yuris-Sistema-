@@ -77,6 +77,17 @@ o mesmo que fazer pelo processo.
 - **Na interface nova o painel da tarefa é maior** (08/11/2026): 980 x 780, sem passar
   da janela, e as abas quebram linha em vez de rolar para o lado. Fica em
   `public/assets/interface-nova-popups.css`; quem não está na prévia vê os 680px de sempre.
+- **Tarefa jurídica: cliente e processo** (08/11/2026, "tem que ter uma divisão entre cliente e
+  processo, os processos já têm de estar aparecendo, e se eu escolher o processo aparecem as
+  tarefas processuais dele, se já foi feito ou não"). O cadastro jurídico ficou com 760px e dois
+  campos lado a lado: **Cliente** (`Central::buscarClientes`, `?acao=clientes`: quem tem processo,
+  com quantos) e **Processo** (`Central::buscarProcessos`, que agora aceita termo vazio, os mais
+  recentes, e `&cliente=` para só os daquele cliente). As duas listas já abrem preenchidas e
+  filtram ao digitar; cliente com um processo só já o deixa escolhido; escolher o processo fixa
+  o cliente dele. Escolhido o processo, aparecem as tarefas processuais dele
+  (`processo_tarefas.php?processo_id=`), a fazer e feitas, com data e responsável; título igual
+  a uma que já existe acende ela e avisa se já foi feita. Tudo no mesmo escopo de Processos
+  (conta e compartilhamento); o teste `central_tarefas` trava o isolamento das duas buscas.
 - **Calendário**: compara a data como texto. `new Date('2026-11-05')` é meia-noite em
   UTC, e no Brasil a tarefa cairia na véspera. Clicar no dia cria a tarefa com a data.
 

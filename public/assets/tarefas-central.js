@@ -285,7 +285,9 @@ window.TkCentral = (function () {
   /* ── Nova tarefa: escritório ou jurídica ────────────────────────────────── */
   let tipoNova = 'escritorio';
   let processoEscolhido = null;
-  let buscaTimer = null;
+  let clienteEscolhido = '';
+  let buscaTimer = null, clienteTimer = null;
+  let tarefasDoProcesso = [];
 
   function trocarTipo(tipo) {
     tipoNova = tipo;
@@ -310,7 +312,12 @@ window.TkCentral = (function () {
     if (jur && $('ntPrioridade').value === 'urgente') $('ntPrioridade').value = 'alta';
     if (jur && !$('ntResponsavel').value && window.YURIS_USER_ID) $('ntResponsavel').value = String(window.YURIS_USER_ID);
     $('ntSave').textContent = jur ? 'Criar no processo' : 'Criar tarefa';
-    if (jur && !processoEscolhido) setTimeout(() => $('ntProcessoBusca').focus(), 40);
+    if (jur && !processoEscolhido) {
+      // As duas listas já aparecem abertas: os clientes e os processos mais recentes.
+      buscarClientes($('ntClienteBusca').value);
+      buscarProcessos($('ntProcessoBusca').value);
+      setTimeout(() => $('ntProcessoBusca').focus(), 40);
+    }
   }
 
   /* Chamada a cada abertura do modal. */
@@ -336,38 +343,128 @@ window.TkCentral = (function () {
   function escolherProcesso(p) {
     processoEscolhido = p;
     $('ntProcessoLista').innerHTML = '';
-    $('ntProcessoLista').style.display = 'none';
+    $('ntProcessoLista').style.display = p ? 'none' : 'block';
     $('ntProcessoBusca').style.display = p ? 'none' : '';
     const box = $('ntProcessoEscolhido');
     box.style.display = p ? 'flex' : 'none';
     if (p) {
-      box.querySelector('.tk-proc-nome').textContent = p.cliente_nome || 'Cliente não informado';
-      box.querySelector('.tk-proc-num').textContent = p.numero;
+      box.querySelector('.tk-proc-nome').textContent = p.numero;
+      box.querySelector('.tk-proc-num').textContent = [p.cliente_nome || 'Cliente não informado', p.tipo_acao].filter(Boolean).join(' · ');
+      // Escolher o processo também fixa o cliente dele no primeiro campo.
+      if (p.cliente_nome && clienteEscolhido !== p.cliente_nome) escolherCliente({ nome: p.cliente_nome, processos: null }, true);
+      carregarTarefasDoProcesso(p.id);
       $('ntTitulo').focus();
     } else {
       $('ntProcessoBusca').value = '';
+      tarefasDoProcesso = [];
+      $('ntProcTarefas').style.display = 'none';
+      $('ntProcTarefas').innerHTML = '';
+      buscarProcessos('');
       $('ntProcessoBusca').focus();
     }
   }
 
-  async function buscarProcessos(termo) {
-    const lista = $('ntProcessoLista');
-    if (termo.trim().length < 2) { lista.style.display = 'none'; lista.innerHTML = ''; return; }
+  function escolherCliente(c, semRecarregar) {
+    clienteEscolhido = c ? c.nome : '';
+    $('ntClienteLista').innerHTML = '';
+    $('ntClienteLista').style.display = c ? 'none' : 'block';
+    $('ntClienteBusca').style.display = c ? 'none' : '';
+    const box = $('ntClienteEscolhido');
+    box.style.display = c ? 'flex' : 'none';
+    if (c) {
+      box.querySelector('.tk-proc-nome').textContent = c.nome;
+      box.querySelector('.tk-proc-num').textContent = c.processos ? c.processos + (c.processos === 1 ? ' processo' : ' processos') : 'Cliente do processo';
+    } else {
+      $('ntClienteBusca').value = '';
+      buscarClientes('');
+    }
+    if (semRecarregar) return;
+    // Trocou o cliente: o processo escolhido de outro cliente sai, e a lista mostra os dele.
+    if (processoEscolhido && c && processoEscolhido.cliente_nome !== c.nome) escolherProcesso(null);
+    else if (!processoEscolhido) buscarProcessos($('ntProcessoBusca').value, true);
+  }
+
+  async function buscarClientes(termo) {
+    const lista = $('ntClienteLista');
     let r;
-    try { r = await GET('/tarefas_central.php?acao=processos&q=' + encodeURIComponent(termo)); }
+    try { r = await GET('/tarefas_central.php?acao=clientes&q=' + encodeURIComponent(termo.trim())); }
     catch (e) { return; }
+    if ($('ntClienteBusca').value !== termo || clienteEscolhido) return;
+    const achados = r.data || [];
+    lista.style.display = 'block';
+    lista.innerHTML = achados.length
+      ? achados.map((c, n) => `<button type="button" class="tk-proc-item" data-n="${n}">
+          <span class="tk-proc-nome">${esc(c.nome)}</span>
+          <span class="tk-proc-num">${c.processos} ${c.processos === 1 ? 'processo' : 'processos'}</span>
+        </button>`).join('')
+      : '<div class="tk-proc-nada">Nenhum cliente com processo.</div>';
+    lista.querySelectorAll('.tk-proc-item').forEach(b =>
+      b.addEventListener('click', () => {
+        const c = achados[Number(b.dataset.n)];
+        escolherCliente(c);
+        // Cliente com um processo só: ele já vem escolhido.
+        if (c.processos === 1) GET('/tarefas_central.php?acao=processos&cliente=' + encodeURIComponent(c.nome))
+          .then(x => { const ps = x.data || []; if (ps.length === 1 && clienteEscolhido === c.nome) escolherProcesso(ps[0]); }).catch(() => {});
+      }));
+  }
+
+  async function buscarProcessos(termo, forcar) {
+    const lista = $('ntProcessoLista');
+    if (processoEscolhido && !forcar) return;
+    let r;
+    try {
+      r = await GET('/tarefas_central.php?acao=processos&q=' + encodeURIComponent(termo.trim())
+        + (clienteEscolhido ? '&cliente=' + encodeURIComponent(clienteEscolhido) : ''));
+    } catch (e) { return; }
     // Resposta velha de uma busca anterior não sobrescreve a atual.
-    if ($('ntProcessoBusca').value !== termo) return;
+    if ($('ntProcessoBusca').value !== termo || processoEscolhido) return;
     const achados = r.data || [];
     lista.style.display = 'block';
     lista.innerHTML = achados.length
       ? achados.map((p, n) => `<button type="button" class="tk-proc-item" data-n="${n}">
-          <span class="tk-proc-nome">${esc(p.cliente_nome || 'Cliente não informado')}</span>
-          <span class="tk-proc-num">${esc(p.numero)}${p.tipo_acao ? ' · ' + esc(p.tipo_acao) : ''}</span>
+          <span class="tk-proc-nome">${esc(p.numero)}</span>
+          <span class="tk-proc-num">${esc(p.cliente_nome || 'Cliente não informado')}${p.tipo_acao ? ' · ' + esc(p.tipo_acao) : ''}</span>
         </button>`).join('')
-      : '<div class="tk-proc-nada">Nenhum processo encontrado.</div>';
+      : '<div class="tk-proc-nada">' + (clienteEscolhido ? 'Este cliente não tem processo com esse termo.' : 'Nenhum processo encontrado.') + '</div>';
     lista.querySelectorAll('.tk-proc-item').forEach(b =>
       b.addEventListener('click', () => escolherProcesso(achados[Number(b.dataset.n)])));
+  }
+
+  // As tarefas processuais do processo escolhido: a fazer primeiro, depois as feitas.
+  // "Será que tem que fazer ou não? Se já foi feito ou não."
+  async function carregarTarefasDoProcesso(id) {
+    const box = $('ntProcTarefas');
+    box.style.display = 'block';
+    box.innerHTML = '<div class="tk-jur-tit">Tarefas deste processo</div><div class="tk-jur-osso"></div><div class="tk-jur-osso"></div>';
+    let r;
+    try { r = await GET('/processo_tarefas.php?processo_id=' + id); } catch (e) { box.style.display = 'none'; return; }
+    if (!processoEscolhido || processoEscolhido.id !== id) return;
+    tarefasDoProcesso = (r.data || []).map(t => ({ titulo: t.titulo || '', feita: Number(t.concluido) === 1, data: t.data_tarefa || '', resp: t.responsavel || '' }));
+    const abertas = tarefasDoProcesso.filter(t => !t.feita).length, feitas = tarefasDoProcesso.length - abertas;
+    const data = d => d ? d.slice(8, 10) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4) : '';
+    box.innerHTML = '<div class="tk-jur-tit">Tarefas deste processo <span>' + abertas + ' a fazer · ' + feitas + (feitas === 1 ? ' feita' : ' feitas') + '</span></div>'
+      + (tarefasDoProcesso.length
+        ? '<div class="tk-jur-itens">' + tarefasDoProcesso.map((t, n) => `<div class="tk-jur-item${t.feita ? ' feita' : ''}" data-n="${n}">
+            <span class="tk-jur-marca" aria-hidden="true">${t.feita ? '<svg viewBox="0 0 24 24"><polyline points="5 12 10 17 19 7"/></svg>' : ''}</span>
+            <span class="tk-jur-t"><b>${esc(t.titulo)}</b><small>${[t.feita ? 'Feita' : 'A fazer', data(t.data), t.resp].filter(Boolean).map(esc).join(' · ')}</small></span>
+          </div>`).join('') + '</div>'
+        : '<div class="tk-proc-nada">Nenhuma tarefa neste processo ainda.</div>');
+    avisarRepetida();
+  }
+  // O título igual a uma tarefa que já existe no processo acende ela na lista.
+  function avisarRepetida() {
+    const t = $('ntTitulo').value.trim().toLowerCase();
+    let aviso = '';
+    document.querySelectorAll('#ntProcTarefas .tk-jur-item').forEach(el => {
+      const x = tarefasDoProcesso[Number(el.dataset.n)];
+      const igual = t.length >= 4 && x && (x.titulo.toLowerCase() === t || x.titulo.toLowerCase().includes(t));
+      el.classList.toggle('igual', igual);
+      if (igual && !aviso) aviso = x.feita ? 'Já existe uma tarefa assim, e ela já foi feita.' : 'Já existe uma tarefa assim, ainda a fazer.';
+    });
+    let el = $('ntTituloAviso');
+    if (!el) { el = document.createElement('div'); el.id = 'ntTituloAviso'; el.className = 'tk-jur-aviso'; $('ntTitulo').insertAdjacentElement('afterend', el); }
+    el.textContent = tipoNova === 'juridica' ? aviso : '';
+    el.style.display = el.textContent ? 'block' : 'none';
   }
 
   async function salvarJuridica() {
@@ -385,6 +482,7 @@ window.TkCentral = (function () {
     });
     showToast('Tarefa criada no processo ✓', { type: 'success', duration: 3000 });
     escolherProcesso(null);
+    escolherCliente(null, true);
     return true;
   }
 
@@ -398,6 +496,13 @@ window.TkCentral = (function () {
       buscaTimer = setTimeout(() => buscarProcessos(termo), 220);
     });
     $('ntProcessoTrocar').addEventListener('click', () => escolherProcesso(null));
+    $('ntClienteBusca').addEventListener('input', e => {
+      clearTimeout(clienteTimer);
+      const termo = e.target.value;
+      clienteTimer = setTimeout(() => buscarClientes(termo), 200);
+    });
+    $('ntClienteTrocar').addEventListener('click', () => { const tinha = !!processoEscolhido; escolherCliente(null, true); if (tinha) escolherProcesso(null); else buscarProcessos($('ntProcessoBusca').value, true); });
+    $('ntTitulo').addEventListener('input', avisarRepetida);
 
     $('fltTipo').addEventListener('change', e => { filtrosCentral.tipo = e.target.value; carregar(); });
     $('fltSituacao').addEventListener('change', e => { filtrosCentral.situacao = e.target.value; carregar(); });

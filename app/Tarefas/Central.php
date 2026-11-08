@@ -131,38 +131,70 @@ class Central
      * Procura processo por nome do cliente ou número, para a tarefa jurídica.
      * Só devolve o que a pessoa já enxerga em Processos.
      */
-    public static function buscarProcessos(array $contas, int $userId, string $termo, int $limite = 12): array
+    public static function buscarProcessos(array $contas, int $userId, string $termo, int $limite = 12, string $cliente = ''): array
     {
-        $termo = trim($termo);
-        if ($termo === '' || !$contas) return [];
+        $termo = trim($termo); $cliente = trim($cliente);
+        if (!$contas) return [];
 
-        $params = ['q1' => "%{$termo}%", 'q2' => "%{$termo}%", 'q3' => "%{$termo}%"];
+        // Sem termo, a lista já aparece com os mais recentes ("já tem que estar aparecendo");
+        // com o cliente escolhido, só os processos dele.
+        $params = [];
         $escopo = self::clausulaProcesso($contas, $userId, $params);
-
-        // Número se procura só pelos dígitos: quem digita "1009347" tem de achar
-        // "1009347-41.2024.8.26.0100".
-        // Só quando o termo é um número: nome com algarismos não vira busca por dígito.
-        $digitos   = preg_replace('/\D+/', '', $termo);
-        $porNumero = "p.numero LIKE :q2 OR p.numero_cnj LIKE :q3";
-        if (strlen($digitos) >= 3 && preg_match('/^[\d.\-\/\s]+$/', $termo)) {
-            $params['dig'] = "%{$digitos}%";
-            $porNumero .= " OR " . self::soDigitos('p.numero_cnj') . " LIKE :dig";
+        $filtro = '';
+        if ($termo !== '') {
+            $params += ['q1' => "%{$termo}%", 'q2' => "%{$termo}%", 'q3' => "%{$termo}%"];
+            // Número se procura só pelos dígitos: quem digita "1009347" tem de achar
+            // "1009347-41.2024.8.26.0100".
+            // Só quando o termo é um número: nome com algarismos não vira busca por dígito.
+            $digitos   = preg_replace('/\D+/', '', $termo);
+            $porNumero = "p.numero LIKE :q2 OR p.numero_cnj LIKE :q3";
+            if (strlen($digitos) >= 3 && preg_match('/^[\d.\-\/\s]+$/', $termo)) {
+                $params['dig'] = "%{$digitos}%";
+                $porNumero .= " OR " . self::soDigitos('p.numero_cnj') . " LIKE :dig";
+            }
+            $filtro .= " AND (p.cliente_nome LIKE :q1 OR p.tipo_acao LIKE :q1 OR {$porNumero})";
         }
+        if ($cliente !== '') { $params['cli'] = $cliente; $filtro .= " AND p.cliente_nome = :cli"; }
 
         $st = Database::getConnection()->prepare(
             "SELECT p.id,
                     COALESCE(NULLIF(p.numero_cnj,''), NULLIF(p.numero,''), CONCAT('#', p.id)) AS numero,
                     COALESCE(p.cliente_nome, '') AS cliente_nome,
-                    COALESCE(p.tipo_acao, '')    AS tipo_acao
+                    COALESCE(p.tipo_acao, '')    AS tipo_acao,
+                    COALESCE(p.status, '')       AS status
                FROM processos p
               WHERE p.deleted_at IS NULL
-                AND {$escopo}
-                AND (p.cliente_nome LIKE :q1 OR {$porNumero})
+                AND {$escopo}{$filtro}
            ORDER BY p.updated_at DESC
               LIMIT " . max(1, min($limite, 30))
         );
         $st->execute($params);
         return $st->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Os clientes que têm processo, para o primeiro campo da tarefa jurídica: o nome e
+     * quantos processos ele tem. Mesmo escopo de Processos (conta e compartilhamento).
+     */
+    public static function buscarClientes(array $contas, int $userId, string $termo, int $limite = 20): array
+    {
+        $termo = trim($termo);
+        if (!$contas) return [];
+        $params = [];
+        $escopo = self::clausulaProcesso($contas, $userId, $params);
+        $filtro = '';
+        if ($termo !== '') { $params['q'] = "%{$termo}%"; $filtro = " AND p.cliente_nome LIKE :q"; }
+        $st = Database::getConnection()->prepare(
+            "SELECT p.cliente_nome AS nome, COUNT(*) AS processos, MAX(p.updated_at) AS ultimo
+               FROM processos p
+              WHERE p.deleted_at IS NULL AND p.cliente_nome IS NOT NULL AND p.cliente_nome <> ''
+                AND {$escopo}{$filtro}
+           GROUP BY p.cliente_nome
+           ORDER BY ultimo DESC
+              LIMIT " . max(1, min($limite, 40))
+        );
+        $st->execute($params);
+        return array_map(fn ($r) => ['nome' => $r['nome'], 'processos' => (int) $r['processos']], $st->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     /* ------------------------------------------------------------------ */
