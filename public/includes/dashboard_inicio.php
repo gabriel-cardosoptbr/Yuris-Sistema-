@@ -59,16 +59,17 @@ $mes = $painel['calendario']['mes'];
 $doDia = $porDia[$hoje] ?? [];
 
 /** Um compromisso na lista do dia (o JS desenha igual ao trocar o dia). */
+// Cada compromisso é um cartão que leva ao lugar dele: o processo, ou o quadro de Tarefas.
 $evento = static function (array $i) use ($h): string {
-    $sub = implode(' · ', array_filter([$i['processo_numero'] ?? null, $i['cliente_nome'] ?? null]));
-    $titulo = $h($i['titulo']);
-    if (!empty($i['processo_id'])) $titulo = '<a href="/processos?open=' . (int) $i['processo_id'] . '">' . $titulo . '</a>';
-    return '<div class="ini-ev ' . $h($i['tipo']) . '">'
+    $num = !empty($i['processo_numero']) ? '<em class="ini-num">' . $h($i['processo_numero']) . '</em>' : '';
+    $sub = implode(' · ', array_filter([$num, !empty($i['cliente_nome']) ? $h($i['cliente_nome']) : '']));
+    $href = !empty($i['processo_id']) ? '/processos?open=' . (int) $i['processo_id'] : '/tarefas';
+    return '<a class="ini-ev ini-cartao ' . $h($i['tipo']) . '" href="' . $href . '">'
          . '<span class="ini-ev-hora">' . ($i['hora'] ? $h($i['hora']) : '<small>dia<br>todo</small>') . '</span>'
-         . '<span class="ini-ev-t"><b>' . $titulo . ' <i class="ini-tag ' . $h($i['tipo']) . '">' . $h(Painel::TIPOS[$i['tipo']]) . '</i></b>'
-         . ($sub !== '' ? '<span>' . $h($sub) . '</span>' : '')
+         . '<span class="ini-ev-t"><b>' . $h($i['titulo']) . ' <i class="ini-tag ' . $h($i['tipo']) . '">' . $h(Painel::TIPOS[$i['tipo']]) . '</i></b>'
+         . ($sub !== '' ? '<span>' . $sub . '</span>' : '')
          . (!empty($i['responsavel_nome']) ? '<small><em class="ini-av">' . $h(Painel::iniciais($i['responsavel_nome'])) . '</em>' . $h($i['responsavel_nome']) . '</small>' : '')
-         . '</span></div>';
+         . '</span><span class="ini-chev" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span></a>';
 };
 ?>
 <!doctype html>
@@ -227,10 +228,11 @@ $evento = static function (array $i) use ($h): string {
             <?php else: ?>
             <div class="ini-lista">
               <?php foreach ($painel['prazos'] as $pz): $r = Painel::rotuloDeVencimento($pz['data'], $hoje); ?>
-              <a class="ini-item" href="/processos?open=<?= (int) $pz['processo_id'] ?>">
+              <a class="ini-item ini-cartao" href="/processos?open=<?= (int) $pz['processo_id'] ?>" title="Abrir o processo">
                 <span class="ini-av"><?= $h(Painel::iniciais((string) ($pz['responsavel_nome'] ?: '?'))) ?></span>
-                <span class="ini-item-t"><b><?= $h($pz['titulo']) ?></b><span><?= $h(implode(' · ', array_filter([$pz['processo_numero'] ?? null, $pz['cliente_nome'] ?? null]))) ?></span></span>
+                <span class="ini-item-t"><b><?= $h($pz['titulo']) ?></b><span><?php if (!empty($pz['processo_numero'])): ?><em class="ini-num"><?= $h($pz['processo_numero']) ?></em><?php endif; ?><?= !empty($pz['cliente_nome']) ? ' · ' . $h($pz['cliente_nome']) : '' ?></span><?php if (!empty($pz['responsavel_nome'])): ?><small><?= $h($pz['responsavel_nome']) ?></small><?php endif; ?></span>
                 <span class="ini-vence <?= $h($r['tom']) ?>"><?= $h($r['texto']) ?></span>
+                <span class="ini-chev" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
               </a>
               <?php endforeach; ?>
             </div>
@@ -250,10 +252,11 @@ $evento = static function (array $i) use ($h): string {
             <?php else: ?>
             <div class="ini-lista">
               <?php foreach ($painel['whatsapp']['itens'] as $w): ?>
-              <a class="ini-wa" href="/chat?jid=<?= $h(rawurlencode($w['jid'])) ?>">
+              <a class="ini-wa ini-cartao" href="/chat?jid=<?= $h(rawurlencode($w['jid'])) ?>" title="Responder no chat">
                 <span class="ini-av cinza"><?= $h($w['iniciais']) ?></span>
-                <span class="ini-wa-t"><b><?= $h($w['nome']) ?></b><span><?= $h($w['texto']) ?></span></span>
+                <span class="ini-wa-t"><b><?= $h($w['nome']) ?></b><span><?= $h($w['texto']) ?></span><small class="ini-acao">Responder no WhatsApp</small></span>
                 <span class="ini-desde <?= $w['minutos'] >= 120 ? 'r' : '' ?>"><?= $h($w['desde']) ?></span>
+                <span class="ini-chev" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
               </a>
               <?php endforeach; ?>
             </div>
@@ -278,11 +281,11 @@ $evento = static function (array $i) use ($h): string {
           <?php else: ?>
           <div class="ini-lista">
             <?php foreach ($painel['publicacoes']['itens'] as $pb): ?>
-            <div class="ini-pub">
+            <a class="ini-pub ini-cartao" href="/intimacoes" title="Tratar a publicação">
               <div class="ini-pub-trib"><?= $h($pb['tribunal']) ?> · <?= $h(Painel::diaRelativo((string) $pb['data_disponibilizacao'], $hoje)) ?></div>
-              <div class="ini-pub-txt"><b><?= $h($pb['tipo_comunicacao'] ?: ($pb['titulo'] ?: 'Publicação')) ?></b><?= $pb['cliente_nome'] ? ' · ' . $h($pb['cliente_nome']) : ($pb['numero'] ? ' · ' . $h($pb['numero']) : '') ?></div>
-              <a class="ini-mini" href="/intimacoes">Tratar</a>
-            </div>
+              <div class="ini-pub-txt"><b><?= $h($pb['tipo_comunicacao'] ?: ($pb['titulo'] ?: 'Publicação')) ?></b><?= $pb['cliente_nome'] ? ' · ' . $h($pb['cliente_nome']) : '' ?><?php if (!empty($pb['numero'])): ?><br><em class="ini-num"><?= $h($pb['numero']) ?></em><?php endif; ?></div>
+              <span class="ini-mini">Tratar</span>
+            </a>
             <?php endforeach; ?>
           </div>
           <?php endif; ?>
@@ -297,20 +300,17 @@ $evento = static function (array $i) use ($h): string {
           <?php if (!$painel['processos']): ?>
           <div class="ini-vazio curto"><p>Nenhum processo cadastrado ainda.</p></div>
           <?php else: ?>
-          <table class="ini-tabela">
-            <thead><tr><th>Cliente</th><th>Última movimentação</th><th class="dir">Situação</th></tr></thead>
-            <tbody>
+          <div class="ini-lista">
               <?php foreach ($painel['processos'] as $pr): [$rot, $tom] = Painel::situacaoDoProcesso((string) $pr['status'], $pr['proximo_prazo'] ?: null, $hoje);
                 $mov = $pr['ultima_publicacao'] ?: ($pr['tipo_acao'] ?: 'Processo atualizado');
                 $quando = $pr['publicada_em'] && $pr['publicada_em'] >= substr((string) $pr['movimentado_em'], 0, 10) ? $pr['publicada_em'] : substr((string) $pr['movimentado_em'], 0, 10); ?>
-              <tr onclick="location.href='/processos?open=<?= (int) $pr['id'] ?>'">
-                <td class="c"><b><?= $h($pr['cliente_nome'] ?: 'Sem cliente') ?></b><span><?= $h($pr['numero']) ?></span></td>
-                <td class="m"><?= $h($mov) ?><small><?= $h(Painel::diaRelativo($quando, $hoje)) ?><?= $pr['vara_comarca'] ? ' · ' . $h($pr['vara_comarca']) : '' ?></small></td>
-                <td class="dir"><span class="ini-situ <?= $h($tom) ?>"><?= $h($rot) ?></span></td>
-              </tr>
+              <a class="ini-proc ini-cartao" href="/processos?open=<?= (int) $pr['id'] ?>" title="Abrir o processo">
+                <span class="ini-proc-t"><b><?= $h($pr['cliente_nome'] ?: 'Sem cliente') ?></b><em class="ini-num"><?= $h($pr['numero']) ?></em><span><?= $h($mov) ?></span><small><?= $h(Painel::diaRelativo($quando, $hoje)) ?><?= $pr['vara_comarca'] ? ' · ' . $h($pr['vara_comarca']) : '' ?></small></span>
+                <span class="ini-situ <?= $h($tom) ?>"><?= $h($rot) ?></span>
+                <span class="ini-chev" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>
+              </a>
               <?php endforeach; ?>
-            </tbody>
-          </table>
+          </div>
           <?php endif; ?>
         </section>
 
@@ -322,11 +322,11 @@ $evento = static function (array $i) use ($h): string {
           </header>
           <div class="ini-equipe">
             <?php foreach (array_slice($painel['equipe'], 0, 6) as $pe): ?>
-            <div class="ini-pessoa">
+            <a class="ini-pessoa ini-cartao" href="/desempenho" title="Ver o desempenho da equipe">
               <span class="ini-av grande"><?= $h($pe['iniciais']) ?><i class="ini-estado <?= $h($pe['estado']) ?>"></i></span>
-              <div class="ini-pessoa-t"><div class="ini-pessoa-n"><?= $h($pe['nome']) ?></div><div class="ini-pessoa-w"><?= $h($pe['papel']) ?> · <?= $h($pe['texto']) ?></div></div>
+              <div class="ini-pessoa-t"><div class="ini-pessoa-n"><?= $h($pe['nome']) ?></div><div class="ini-pessoa-w"><span class="ini-papel"><?= $h($pe['papel']) ?></span> · <?= $h($pe['texto']) ?></div></div>
               <div class="ini-carga"><div class="ini-barra"><i class="<?= $pe['vencidas'] > 0 ? 'quente' : '' ?>" style="width:<?= (int) $pe['pct'] ?>%"></i></div><span><?= (int) $pe['carga'] ?> na mão</span></div>
-            </div>
+            </a>
             <?php endforeach; ?>
           </div>
         </section>
@@ -369,13 +369,13 @@ window.INI_CAL = <?= json_encode(['hoje' => $hoje, 'mes' => $mes, 'porDia' => $p
   }
   // Um compromisso, igual ao que o PHP desenhou.
   function htmlEvento(i) {
-    var sub = [i.processo_numero, i.cliente_nome].filter(Boolean).join(' · ');
-    var t = esc(i.titulo); if (i.processo_id) t = '<a href="/processos?open=' + i.processo_id + '">' + t + '</a>';
-    return '<div class="ini-ev ' + esc(i.tipo) + '"><span class="ini-ev-hora">' + (i.hora ? esc(i.hora) : '<small>dia<br>todo</small>') + '</span>'
-         + '<span class="ini-ev-t"><b>' + t + ' <i class="ini-tag ' + esc(i.tipo) + '">' + esc(C.tipos[i.tipo] || i.tipo) + '</i></b>'
-         + (sub ? '<span>' + esc(sub) + '</span>' : '')
+    var sub = [i.processo_numero ? '<em class="ini-num">' + esc(i.processo_numero) + '</em>' : '', i.cliente_nome ? esc(i.cliente_nome) : ''].filter(Boolean).join(' · ');
+    var href = i.processo_id ? '/processos?open=' + i.processo_id : '/tarefas';
+    return '<a class="ini-ev ini-cartao ' + esc(i.tipo) + '" href="' + href + '"><span class="ini-ev-hora">' + (i.hora ? esc(i.hora) : '<small>dia<br>todo</small>') + '</span>'
+         + '<span class="ini-ev-t"><b>' + esc(i.titulo) + ' <i class="ini-tag ' + esc(i.tipo) + '">' + esc(C.tipos[i.tipo] || i.tipo) + '</i></b>'
+         + (sub ? '<span>' + sub + '</span>' : '')
          + (i.responsavel_nome ? '<small><em class="ini-av">' + esc(iniciais(i.responsavel_nome)) + '</em>' + esc(i.responsavel_nome) + '</small>' : '')
-         + '</span></div>';
+         + '</span><span class="ini-chev" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span></a>';
   }
   function marcaDias(de, ate, unico) {
     elDias.querySelectorAll('.ini-cal-dia').forEach(function (x) {

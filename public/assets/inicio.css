@@ -296,3 +296,48 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-periodo-seta{ color:var(--ini-texto3); font-weight:700; }
 .ini-periodo-limpar{ width:32px; height:32px; border-radius:var(--ini-r2); border:1px solid var(--ini-linha); background:var(--ini-fundo); box-shadow:var(--ini-fundo-sombra); color:var(--ini-texto2); font:700 16px/1 Inter, system-ui, sans-serif; cursor:pointer; }
 .ini-periodo-limpar:hover{ color:var(--ini-erro); }
+
+/* ═══ Um cartão só (07/11/2026): "todos têm que ser um card, cada card com a sua
+   função e os detalhes; e para não deixar tudo cinza, use o azul nos detalhes".
+   Compromisso, prazo, publicação, processo, conversa e pessoa: a mesma caixa, que
+   leva ao lugar dela (a seta azul à direita diz isso). O azul opaco marca os
+   detalhes: número do processo, hora, etiquetas, tribunal, grupos, a seta. ═══ */
+.ini-lista{ gap:6px; }
+.ini-cartao{ display:grid; align-items:center; gap:12px; padding:10px 12px; border-radius:var(--ini-r2);
+  background:var(--ini-painel2); border:1px solid var(--ini-linha); box-shadow:0 1px 0 var(--ini-hi) inset;
+  color:inherit; text-decoration:none; transition:border-color .15s, transform .15s, background .15s; }
+.ini-cartao:first-child{ padding-top:10px; border-top:1px solid var(--ini-linha); }
+.ini-cartao:hover{ border-color:rgba(61,101,203,.45); transform:translateX(2px); }
+.ini-cartao:hover b{ color:inherit; }
+.ini-cartao:focus-visible{ outline:2px solid var(--ini-azul2); outline-offset:2px; }
+.ini-chev{ width:22px; height:22px; display:grid; place-items:center; color:var(--ini-azul2); opacity:.7; transition:opacity .15s, transform .15s; }
+.ini-chev svg{ width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
+.ini-cartao:hover .ini-chev{ opacity:1; transform:translateX(2px); }
+.ini-num{ font-style:normal; font-weight:600; color:var(--ini-azul2); font-variant-numeric:tabular-nums; }
+
+/* cada tipo de cartão: as colunas dele */
+.ini-ev.ini-cartao{ grid-template-columns:52px 1fr auto; }
+.ini-item.ini-cartao{ grid-template-columns:auto 1fr auto auto; }
+.ini-wa.ini-cartao{ grid-template-columns:auto 1fr auto auto; }
+.ini-proc.ini-cartao{ grid-template-columns:1fr auto auto; }
+.ini-pessoa.ini-cartao{ grid-template-columns:auto 1fr auto; }
+.ini-pub.ini-cartao{ grid-template-columns:1fr auto; gap:4px 12px; }
+.ini-item-t small, .ini-proc-t small{ display:block; font-size:11.5px; color:var(--ini-texto3); margin-top:2px; }
+.ini-proc-t{ min-width:0; }
+.ini-proc-t b{ display:block; font-weight:600; font-size:13.5px; }
+.ini-proc-t .ini-num{ display:block; font-size:12px; margin-top:1px; }
+.ini-proc-t > span{ display:block; font-size:12.5px; color:var(--ini-texto2); margin-top:3px; overflow-wrap:anywhere; }
+.ini-acao{ display:block; font-size:11.5px; font-weight:600; color:var(--ini-azul2); margin-top:3px; }
+.ini-papel{ color:var(--ini-azul2); font-weight:600; }
+
+/* o azul nos detalhes */
+.ini-ev-hora{ color:var(--ini-azul2); }
+.ini-ev.prazo .ini-ev-hora{ color:var(--ini-erro); }
+.ini-tag.audiencia, .ini-tag.reuniao, .ini-tag.tarefa{ background:var(--ini-azul-suave); color:var(--ini-azul2); border:1px solid rgba(61,101,203,.22); }
+.ini-pub-trib{ color:var(--ini-azul2); }
+.ini-dia-grupo{ color:var(--ini-azul2); }
+.ini-dia-sep{ color:var(--ini-azul2); }
+.ini-dia-sep::after{ background:rgba(61,101,203,.28); }
+.ini-situ.and{ background:var(--ini-azul-suave); color:var(--ini-azul2); border:1px solid rgba(61,101,203,.22); }
+.ini-mini{ pointer-events:none; }
+.ini-cartao:hover .ini-mini{ background:var(--ini-azul); color:#fff; box-shadow:var(--ini-brilho); }

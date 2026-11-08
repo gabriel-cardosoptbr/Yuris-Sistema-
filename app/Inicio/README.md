@@ -81,6 +81,11 @@ seleção em pílula.
   (`--panel`, `--bg-main`, `--text`, `--yuris-*`, `--y-*`) e as superfícies (painéis
   na prata com 12px, botão principal azul com 8px, campos afundados, tabelas e abas).
   **Não mexe em layout**: nada de `display`, largura ou posição; o teste trava isso.
+- **Um cartão só para todo item** (compromisso, prazo, publicação, processo, conversa,
+  pessoa): a mesma caixa (`.ini-cartao`), que é o link para o lugar dele, com a seta azul
+  à direita. O azul opaco marca os detalhes: número do processo (`.ini-num`), hora,
+  etiquetas, tribunal, grupos, "Responder no WhatsApp". A tabela de processos virou
+  cartões. ("Todos têm que ser um card, cada um com a sua função; use o azul nos detalhes.")
 - Cartões nunca deixam vão: as colunas se esticam até a mesma altura e o último
   cartão de cada coluna cresce ("nunca deixe esses vãos entre um card e o outro").
 - `assets/inicio.css` é a home: dois temas pelas variáveis `--ini-*`, a faixa de
