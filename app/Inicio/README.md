@@ -171,6 +171,23 @@ seleção em pílula.
   vira o aviso da home (`inn-c-alerta-*`), alta vira o painel afundado (`inn-c-neutro`); toast de
   qualquer módulo vira o painel (`inn-toast`). O quadro da Prospecção (`.kanban-col`,
   `.card-mini`) e a faixa de origem (MATRIZ/FILIAL, Prospecção e Processos) têm regra própria.
+- **Caixa dentro de caixa da mesma cor** (08/11/2026, o funil do Planejamento: "cheio de linha,
+  cheio de contorno quadrado"). Duas causas. A primeira era do tema claro antigo
+  (`yuris-theme.css`): o seletor `[class*="funnel-"]` pintava fundo e borda em título, cabeçalho e
+  métricas de cada etapa, e o contorno do gargalo ia no embrulho `.funnel-stage` (quadrado) e no
+  cartão `.funnel-shape` (arredondado), dois neons. Foi corrigido na origem, vale para todos no
+  claro: só a coluna e o cartão são caixa, e o contorno é um só, no cartão. A segunda é geral e
+  vive na camada: `afundarCaixas` lê a cor de fundo (cor ou primeira parada do degradê) de todo
+  elemento com borda e, se a caixa de fora mais próxima tem a mesma cor, a de dentro afunda
+  (`inn-c-afundado`: fundo da página, sombra interna, sem linha, como as caixas dos ícones da
+  home); dentro de uma afundada, a terceira fica plana (`inn-c-plano`). Lista não entra (pai com
+  nome de raia, coluna, grade ou lista; ou irmão com a mesma primeira classe): cartão numa raia é
+  para ficar em relevo. Campo, botão, seleção e dropdown ficam de fora pelo nome. Os pais são
+  avaliados antes dos filhos, de fora para dentro, porque o resumo nasce vazio e só enche depois
+  (quem já afundou perdeu a borda, mas continua contando como a caixa de fora). O funil do
+  Planejamento tem regra própria na prévia (raia afundada, etapa em relevo, gargalo com borda azul
+  e anel suave). Degradê quase branco (branco a `#F4F7FB`, o `.card` do claro antigo) conta como
+  branco e vira painel.
   Armadilhas que viraram regra: ler a cor no meio de uma transição dá a cor do caminho (a camada
   espera o `transitionend`); trocar a classe no meio da leitura recalcula o estilo (lê tudo,
   escreve depois); o que estava `display:none` ou ganhou classe depois é relido pelo observer;

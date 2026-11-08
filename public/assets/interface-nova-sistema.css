@@ -250,6 +250,30 @@ html:root .inn-toast.inn-toast.inn-toast{ background:var(--inn-t-painel) !import
   border:1px solid var(--inn-t-linha2) !important; box-shadow:var(--inn-t-sombra) !important; border-radius:8px !important; }
 html:root .inn-toast.inn-toast.inn-toast *:not(svg):not(svg *){ color:inherit !important; }
 
+/* ── 13b. Funil do Planejamento: raia afundada, etapa em relevo, um contorno só ─
+   Mesmo desenho do quadro: a coluna é o chão, a etapa é o painel. O gargalo ganha a borda
+   azul e o anel suave, só no cartão (.funnel-shape); o embrulho (.funnel-stage), o cabeçalho,
+   o nome e as métricas não têm fundo nem borda. */
+html:root .inn-tela .funnel-column.funnel-column{
+  background:var(--inn-t-fundo) !important; background-image:none !important; border:1px solid var(--inn-t-linha) !important;
+  box-shadow:var(--inn-t-fundo-sombra) !important; border-radius:12px !important;
+}
+html:root .inn-tela .funnel-column .funnel-column-title{ color:var(--inn-t-texto) !important; }
+html:root .inn-tela .funnel-stage.funnel-stage, html:root .inn-tela .funnel-visual.funnel-visual, html:root .inn-tela .funnel-compare.funnel-compare,
+html:root .inn-tela .funnel-head.funnel-head, html:root .inn-tela .funnel-head > div, html:root .inn-tela .funnel-name.funnel-name, html:root .inn-tela .funnel-metrics.funnel-metrics{
+  background:transparent !important; background-image:none !important; border:0 !important; box-shadow:none !important;
+}
+html:root .inn-tela .funnel-shape.funnel-shape{
+  background:var(--inn-t-painel) !important; background-image:none !important; border:1px solid var(--inn-t-linha) !important;
+  box-shadow:var(--inn-t-sombra) !important; border-radius:12px !important;
+}
+html:root .inn-tela .funnel-stage.is-bottleneck .funnel-shape.funnel-shape{
+  border-color:rgba(61,101,203,.55) !important; box-shadow:var(--inn-t-sombra), 0 0 0 3px var(--inn-t-azul-suave) !important;
+}
+html:root .inn-tela .funnel-name.funnel-name{ color:var(--inn-t-texto) !important; }
+html:root .inn-tela .funnel-metrics.funnel-metrics, html:root .inn-tela .funnel-metrics span{ color:var(--inn-t-texto3) !important; }
+html:root .inn-tela .funnel-metrics strong, html:root .inn-tela .funnel-head .text-blue-100{ color:var(--inn-t-azul2) !important; }
+
 /* ── 14. O que ficou com a cor antiga (o JS lê a cor e marca) ────────────────
    O aviso é opaco (a cor de estado por cima do painel): o fixo do Chat não deixa a página
    aparecer atrás dele.
@@ -288,6 +312,9 @@ html:root .inn-c-primario.inn-c-primario.inn-c-primario svg, html:root .inn-c-pr
 html:root .inn-c-primario.inn-c-primario.inn-c-primario:not(:disabled):hover{ transform:translateY(-2px); box-shadow:0 0 0 1px rgba(79,120,219,.35), 0 12px 24px rgba(58,99,201,.38) !important; }
 /* Enquanto a cor nova entra (o JS tira em seguida): troca seca, sem desbotar. */
 html .inn-c-agora, html .inn-c-agora *{ transition:none !important; }
+/* Caixa dentro de caixa da mesma cor: a de dentro afunda, sem linha; a terceira fica plana. */
+html:root .inn-c-afundado.inn-c-afundado.inn-c-afundado{ background-color:var(--inn-t-fundo) !important; background-image:none !important; border-color:transparent !important; box-shadow:var(--inn-t-fundo-sombra) !important; border-radius:10px !important; }
+html:root .inn-c-plano.inn-c-plano.inn-c-plano{ background-color:transparent !important; background-image:none !important; border-color:transparent !important; box-shadow:none !important; }
 html:root .inn-c-neutro.inn-c-neutro.inn-c-neutro{ background-color:var(--inn-t-fundo) !important; background-image:none !important; border-color:var(--inn-t-linha) !important; box-shadow:var(--inn-t-fundo-sombra) !important; border-radius:8px !important; }
 html:root .inn-c-alerta-erro.inn-c-alerta-erro *, html:root .inn-c-alerta-aviso.inn-c-alerta-aviso *, html:root .inn-c-alerta-ok.inn-c-alerta-ok *{ color:inherit !important; }
 html:root .inn-c-sem-filete-antes.inn-c-sem-filete-antes::before{ opacity:0 !important; }

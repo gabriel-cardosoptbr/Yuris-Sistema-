@@ -1106,11 +1106,8 @@ html[data-theme="light"] .funnel-head .section-subtitle { color: #0F1F36 !import
 html[data-theme="light"] .funnel-head .text-blue-100,
 html[data-theme="light"] .funnel-head [class*="font-semibold"] { color: #1E4A8A !important; font-weight: 700 !important; }
 /* Métricas inferiores ("% do topo: 100%", "Conversão p/ próxima: 33.3%") */
-html[data-theme="light"] .funnel-metrics {
-  background: rgba(247,249,252,.85) !important;
-  border-top: 1px solid rgba(15,31,54,0.08) !important;
-  color: #5A6B7E !important;
-}
+/* Só texto: caixa e linha em cima das métricas viravam caixa dentro de caixa (08/11/2026). */
+html[data-theme="light"] .funnel-metrics { color: #5A6B7E !important; }
 html[data-theme="light"] .funnel-metrics span { color: #5A6B7E !important; }
 html[data-theme="light"] .funnel-metrics strong { color: #1E4A8A !important; font-weight: 700 !important; }
 /* Título da coluna "Funil comercial" / "Funil simulado" */
@@ -1827,10 +1824,11 @@ html[data-theme="light"] .text-emerald-100,
 html[data-theme="light"] .text-emerald-200,
 html[data-theme="light"] .text-emerald-300 { color: #15803D !important; }
 
-/* — Funil / etapas (planejamento) — */
-html[data-theme="light"] .funnel-column,
-html[data-theme="light"] .funnel-stage,
-html[data-theme="light"] [class*="funnel-"]:not(.funnel-shape) {
+/* — Funil / etapas (planejamento) —
+   Só a coluna é caixa. O seletor [class*="funnel-"] pintava fundo e borda em título, cabeçalho
+   e métricas de cada etapa (caixa dentro de caixa dentro de caixa), e .funnel-stage é só o
+   embrulho da animação (08/11/2026). */
+html[data-theme="light"] .funnel-column {
   background: rgba(247,249,252,.95) !important;
   border: 1px solid rgba(15,31,54,.10) !important;
   color: #0F1F36 !important;
@@ -1891,9 +1889,7 @@ html[data-theme="light"] .bottleneck-note strong { color: #0F1F36 !important; }
    destaque azul institucional.
    ═══════════════════════════════════════════════════════════════════════ */
 
-html[data-theme="light"] .funnel-stage,
-html[data-theme="light"] .funnel-card,
-html[data-theme="light"] [class*="funnel-stage"] {
+html[data-theme="light"] .funnel-card {
   background: linear-gradient(145deg, #FFFFFF 0%, #F4F7FB 100%) !important;
   border: 1px solid rgba(15,31,54,0.10) !important;
   color: #0F1F36 !important;
@@ -1909,10 +1905,10 @@ html[data-theme="light"] .funnel-card-meta { color: #5A6B7E !important; }
 html[data-theme="light"] .funnel-stage-meta strong,
 html[data-theme="light"] .funnel-card-meta strong { color: #1E4A8A !important; }
 
-/* Card destacado (gargalo / bottleneck atual) — borda AZUL institucional (não mais amber) */
-html[data-theme="light"] .funnel-stage.is-bottleneck,
-html[data-theme="light"] .funnel-card.is-bottleneck,
-html[data-theme="light"] [class*="bottleneck"]:not(.bottleneck-note) {
+/* Card destacado (gargalo / bottleneck atual) — borda AZUL institucional (não mais amber).
+   O contorno fica só no .funnel-shape (regra acima, na seção Planejamento): no embrulho
+   .funnel-stage ele virava um segundo contorno, quadrado, em volta do arredondado. */
+html[data-theme="light"] .funnel-card.is-bottleneck {
   border: 2px solid rgba(37,99,235,0.50) !important;
   box-shadow: 0 0 0 3px rgba(37,99,235,0.12), 0 4px 14px rgba(37,99,235,0.10) !important;
   background: linear-gradient(145deg, #FFFFFF 0%, #F0F4FB 100%) !important;

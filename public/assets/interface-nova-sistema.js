@@ -238,7 +238,24 @@
   function emTransicao(el) {
     try { return el.getAnimations().some(function (a) { return typeof CSSTransition !== 'undefined' && a instanceof CSSTransition; }); } catch (e) { return false; }
   }
-  function branco(cs) { var v = rgb(cs.backgroundColor); return !!v && v[3] > .9 && v[0] >= 252 && v[1] >= 252 && v[2] >= 252; }
+  function branco(cs) {
+    var v = rgb(cs.backgroundColor);
+    if (v && v[3] > .9) return v[0] >= 252 && v[1] >= 252 && v[2] >= 252;
+    // Degradê quase branco (branco a #F4F7FB, o cartão do tema claro antigo): também é branco.
+    if ((!v || v[3] < .1) && cs.backgroundImage.indexOf('gradient') >= 0) {
+      var paradas = (cs.backgroundImage.match(/rgba?\([^)]+\)/g) || []).map(rgb).filter(Boolean);
+      return paradas.length > 0 && paradas.every(function (p) { return p[3] > .9 && p[0] >= 240 && p[1] >= 240 && p[2] >= 240; });
+    }
+    return false;
+  }
+  // A cor de fundo que se vê: a cor, ou a primeira parada do degradê.
+  function corFundo(cs) {
+    var v = rgb(cs.backgroundColor); if (v && v[3] >= .5) return v;
+    if (cs.backgroundImage.indexOf('gradient') < 0) return null;
+    var paradas = (cs.backgroundImage.match(/rgba?\([^)]+\)/g) || []).map(rgb).filter(Boolean);
+    for (var i = 0; i < paradas.length; i++) if (paradas[i][3] >= .5) return paradas[i];
+    return null;
+  }
   function claro() { return document.documentElement.getAttribute('data-theme') === 'light'; }
   function vestirCores(raiz) {
     if (!raiz || !raiz.querySelectorAll || !document.querySelector('.inn-tela')) return;
@@ -316,6 +333,59 @@
       if (p[0].id && p[1].length) porCimaDoId(p[0], p[1]);
     });
     soltarTransicao(trocados);
+    afundarCaixas(raiz);
+  }
+  // Caixa da mesma cor dentro de caixa (o resumo dentro do painel, o bloco dentro da seção, o
+  // código dentro do cartão): a de dentro afunda, como as caixas dos ícones da home, sem linha;
+  // dentro de uma afundada, a terceira fica plana. Foi o "cheio de linha, cheio de contorno
+  // quadrado" do funil do Planejamento (08/11/2026). Lista não entra: cartão numa raia, ou item
+  // repetido ao lado de outro igual, é para ficar em relevo.
+  var RE_RAIA = /(^|[^a-z])(col|cols|column|coluna|list|lista|cardslist|kanban|lane|grid|cards|items|itens|rows|linhas|board|quadro)([^a-z]|$)/;
+  function caixaDe(el) {
+    var cs = getComputedStyle(el);
+    if (cs.borderTopStyle === 'none' || parseFloat(cs.borderTopWidth) <= 0 || parseFloat(cs.borderBottomWidth) <= 0 || parseFloat(cs.borderLeftWidth) <= 0) return null;
+    var bc = rgb(cs.borderTopColor); if (!bc || bc[3] < .06) return null;
+    return corFundo(cs);
+  }
+  function afundarCaixas(raiz) {
+    if (!raiz || !raiz.querySelectorAll) return;
+    var cands = [].slice.call(raiz.querySelectorAll('div, section, article, aside, li, p'));
+    if (raiz.nodeType === 1) {
+      // Os pais primeiro (o resumo nasce vazio e só enche depois): de fora para dentro.
+      var acima = [], pa = raiz, k = 0;
+      while (pa && pa !== document.body && k++ < 5 && !pa.classList.contains('inn-tela')) { acima.unshift(pa); pa = pa.parentElement; }
+      cands = acima.concat(cands);
+    }
+    cands.forEach(function (el) {
+      if (el.dataset.innCaixa || typeof el.className !== 'string') return;
+      var cls = el.className;
+      if (/(^|\s)inn-(selo|aba|ic-btn|toast)/.test(cls) || RE_BRANCO_NAO.test(cls) || /(^|[-_\s])btn|button|botao|field|input|select|campo|dropdown/i.test(cls)) return;   // campo e botão continuam com cara de campo e botão
+      if (el.closest('.sidebar, table, button, svg, .inn-selo, .inn-aba')) return;
+      if (el.offsetWidth < 160 || el.offsetHeight < 36) return;
+      var bg = caixaDe(el); if (!bg) return;
+      var pai = el.parentElement, caixaPai = null, n = 0;
+      while (pai && pai !== document.body && n++ < 3) {
+        if (pai.classList.contains('inn-tela')) break;
+        if (pai.dataset.innCaixa || caixaDe(pai)) { caixaPai = pai; break; }   // a afundada perdeu a borda, mas continua sendo a caixa de fora
+        pai = pai.parentElement;
+      }
+      if (!caixaPai) return;
+      var p = el.parentElement, pcls = ((p.className || '') + ' ' + (p.id || '')).toLowerCase();
+      if (RE_RAIA.test(pcls)) return;
+      var c1 = cls.split(/\s+/)[0];
+      if (c1 && [].some.call(p.children, function (s) { return s !== el && s.classList.contains(c1); })) return;
+      var marca = null;
+      if (caixaPai.classList.contains('inn-c-afundado') || caixaPai.classList.contains('inn-c-plano')) marca = 'inn-c-plano';
+      else {
+        var pbg = corFundo(getComputedStyle(caixaPai));
+        if (pbg && Math.abs(pbg[0] - bg[0]) < 14 && Math.abs(pbg[1] - bg[1]) < 14 && Math.abs(pbg[2] - bg[2]) < 14) marca = 'inn-c-afundado';
+      }
+      if (!marca) return;
+      el.dataset.innCaixa = marca;
+      el.classList.add('inn-c-agora'); el.classList.add(marca);
+      if (el.id) porCimaDoId(el, [marca]);
+      soltarTransicao([el]);
+    });
   }
   // Regra por #id da tela (o aviso fixo do Chat é #disconnectAlert.visible) ganha de qualquer
   // classe: nesses, a cor nova vai em linha, com !important.
@@ -328,7 +398,9 @@
     'inn-c-alerta-erro': { 'background': 'linear-gradient(var(--inn-t-erro-bg), var(--inn-t-erro-bg)) var(--inn-t-painel)', 'color': 'var(--inn-t-erro)', 'border-color': 'transparent' },
     'inn-c-alerta-aviso': { 'background': 'linear-gradient(var(--inn-t-aviso-bg), var(--inn-t-aviso-bg)) var(--inn-t-painel)', 'color': 'var(--inn-t-aviso)', 'border-color': 'transparent' },
     'inn-c-alerta-ok': { 'background': 'linear-gradient(var(--inn-t-ok-bg), var(--inn-t-ok-bg)) var(--inn-t-painel)', 'color': 'var(--inn-t-ok)', 'border-color': 'transparent' },
-    'inn-toast': { 'background': 'var(--inn-t-painel)', 'color': 'var(--inn-t-texto)', 'border-color': 'var(--inn-t-linha2)' }
+    'inn-toast': { 'background': 'var(--inn-t-painel)', 'color': 'var(--inn-t-texto)', 'border-color': 'var(--inn-t-linha2)' },
+    'inn-c-afundado': { 'background': 'var(--inn-t-fundo)', 'border-color': 'transparent', 'box-shadow': 'var(--inn-t-fundo-sombra)' },
+    'inn-c-plano': { 'background': 'transparent', 'border-color': 'transparent', 'box-shadow': 'none' }
   };
   function porCimaDoId(el, marcas) {
     marcas.forEach(function (m) {
@@ -342,6 +414,7 @@
     delete el.dataset.innInline;
     (el.dataset.innCor || '').split(' ').forEach(function (m) { if (m && m !== '-') el.classList.remove(m); });
     delete el.dataset.innCor; delete el.dataset.innBase;
+    if (el.dataset.innCaixa) { el.classList.remove(el.dataset.innCaixa); delete el.dataset.innCaixa; }
     vestirCores(el);
   }
   // Trocar o tema relê as cores (o branco só existe no claro).
@@ -350,6 +423,7 @@
       (el.dataset.innCor || '').split(' ').forEach(function (m) { if (m && m !== '-') el.classList.remove(m); });
       delete el.dataset.innCor; delete el.dataset.innBase;
     });
+    [].forEach.call(document.querySelectorAll('[data-inn-caixa]'), function (el) { el.classList.remove(el.dataset.innCaixa); delete el.dataset.innCaixa; });
     vestirCores(document.body);
   }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 

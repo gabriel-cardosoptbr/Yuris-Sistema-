@@ -363,8 +363,12 @@ o movimento delas (entrada, saída pelo menu, pop-ups que surgem) em `assets/int
 e `.js`, e o da home em `assets/inicio-movimento.css` e `.js` (08/11/2026). O desenho da home nas
 telas (ícone do cabeçalho, abas em pílula, cartões, selos, tabelas, gráficos, tela fantasma, toque)
 mora em `assets/interface-nova-sistema.css` e `.js`, que desde 08/11/2026 também reconhecem as
-peças pela cor computada (selo, branco puro, borda ou faixa por estado, filete, caixa tingida, toast);
-ver `app/Inicio/README.md`.
+peças pela cor computada (selo, branco puro ou degradê quase branco, borda ou faixa por estado, filete,
+caixa tingida, toast, e caixa da mesma cor dentro de caixa, que afunda); ver `app/Inicio/README.md`.
+Em `yuris-theme.css`, o bloco do funil do Planejamento foi estreitado em 08/11/2026: `[class*="funnel-"]`
+pintava caixa em título, cabeçalho e métricas de cada etapa e punha o contorno do gargalo também no
+embrulho `.funnel-stage` (dois contornos); agora só a coluna e o `.funnel-shape` são caixa. Vale para
+todas as contas no tema claro.
 
 **Tema escuro da edição CRM (02/10/2026).** O desenho da edição CRM era só claro
 (todo seletor com `html[data-theme="light"]`), e no escuro sobrava o estilo antigo do
