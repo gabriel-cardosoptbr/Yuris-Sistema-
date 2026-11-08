@@ -323,6 +323,18 @@ window.TkCentral = (function () {
     }
   }
 
+  // "Tarefa de escritório": o cadastro pequeno vira o painel completo da tarefa. O painel
+  // abre primeiro (a tela embutida na home não pode ficar um instante sem pop-up aberto)
+  // e nasce da caixa do cadastro; o título já digitado vai junto.
+  function ampliarParaPainel() {
+    const modal = document.getElementById('modalNewTask');
+    const caixa = modal.querySelector('.tk-modal');
+    const de = caixa ? caixa.getBoundingClientRect() : null;
+    const prazo = $('ntPrazo').value;
+    window.abrirTarefaNoPainel({ de, boardId: Number($('ntQuadro').value) || 0, prazo: prazo || null, titulo: tipoNova === 'escritorio' ? $('ntTitulo').value.trim() : '' });
+    modal.classList.remove('open');
+  }
+
   /* Chamada a cada abertura do modal. */
   async function prepararNova(dataInicial) {
     if (!HABILITADA) return;
@@ -597,7 +609,10 @@ window.TkCentral = (function () {
 
   function bind() {
     if (!HABILITADA) return;
-    document.querySelectorAll('.tk-tipo-opcao').forEach(b => b.addEventListener('click', () => trocarTipo(b.dataset.tipo)));
+    document.querySelectorAll('.tk-tipo-opcao').forEach(b => b.addEventListener('click', () => {
+      if (b.dataset.tipo === 'escritorio' && window.abrirTarefaNoPainel) { ampliarParaPainel(); return; }
+      trocarTipo(b.dataset.tipo);
+    }));
     $('ntQuadro').addEventListener('change', colunasDoQuadro);
     $('ntProcessoBusca').addEventListener('input', e => {
       clearTimeout(buscaTimer);

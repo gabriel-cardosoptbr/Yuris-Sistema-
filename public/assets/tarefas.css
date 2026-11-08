@@ -2091,3 +2091,21 @@ html[data-theme="light"] .tk-jur-bloco + .tk-jur-bloco { border-top-color: #E2E8
 html[data-theme="light"] .tk-jur-form { background: #FFFFFF; border-color: #2563EB; }
 html[data-theme="light"] .tk-jur-item.venc small { color: #DC2626; }
 @media (max-width: 640px) { .tk-jur-form-linha { grid-template-columns: 1fr; } }
+
+/* ── Nova tarefa de escritório no painel completo (08/11/2026) ── */
+.tk-drawer.tk-nova #dBtnConcluir, .tk-drawer.tk-nova #dBtnArquivar { display: none; }
+.tk-drawer.tk-nova .tk-tab:disabled { opacity: .42; cursor: not-allowed; }
+.tk-drawer.tk-nova .tk-tab:disabled:hover { color: inherit; border-bottom-color: transparent; background: none; }
+.tk-drawer-body { position: relative; }
+.tk-nova-fantasma { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; gap: 14px; padding: 18px 20px;
+  background: inherit; background-color: #F1F5F9; transition: opacity .25s ease; }
+.tk-nova-fantasma.sai { opacity: 0; pointer-events: none; }
+.tk-osso-linha { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@keyframes tk-osso-brilho { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.tk-osso { display: block; height: 40px; border-radius: 8px; border: 1px solid #E2E8F0;
+  background: #E9EDF2 linear-gradient(100deg, transparent 25%, rgba(20,32,56,.06) 50%, transparent 75%) 0 0 / 220% 100%; animation: tk-osso-brilho 1.4s ease-in-out infinite; }
+.tk-osso.larga { height: 84px; }
+.tk-osso.alta { height: 58px; }
+html:not([data-theme="light"]) .tk-nova-fantasma { background-color: #0C1A2E; }
+html:not([data-theme="light"]) .tk-osso { background-color: rgba(160,180,210,.08); border-color: rgba(160,180,210,.12); background-image: linear-gradient(100deg, transparent 25%, rgba(255,255,255,.06) 50%, transparent 75%); }
+@media (prefers-reduced-motion: reduce) { .tk-osso { animation: none; } }

@@ -654,6 +654,131 @@ function closeDrawer() {
   document.getElementById('tkDrawerOverlay').classList.remove('open');
   document.getElementById('tkDrawer').classList.remove('open');
   openTaskId = null;
+  sairDoModoNova();
+}
+
+/* ── Nova tarefa de escritório no painel completo (08/11/2026) ─────────────────
+   "Não faz sentido eu criar e depois ir abrir o card para colocar as coisas. Quando eu
+   clicar em tarefa de escritório, amplia o card, faz o carregamento fantasma, e ela se
+   modela e mostra a tarefa inteira para preencher." O painel da tarefa (#tkDrawer) abre
+   vazio, no modo nova: só a aba Geral vale até criar; "Criar tarefa" grava (POST
+   tasks.php, o mesmo do cadastro pequeno) e o painel continua aberto, já com a tarefa,
+   e as outras abas (checklist, anexos, lembretes, vínculos...) se liberam. */
+let novaNoPainel = null;
+async function abrirTarefaNoPainel(opts = {}) {
+  const overlay = document.getElementById('tkDrawerOverlay');
+  const drawer  = document.getElementById('tkDrawer');
+  novaNoPainel = { boardId: Number(opts.boardId) || (currentBoard ? currentBoard.id : 0) };
+  openTaskId = null;
+  drawer.classList.add('tk-nova');
+  document.querySelectorAll('#tkTabs .tk-tab').forEach(t => {
+    const fora = t.dataset.tab !== 'geral';
+    t.disabled = fora;
+    t.title = fora ? 'Crie a tarefa para liberar' : '';
+  });
+  const titulo = document.getElementById('dTitle');
+  titulo.value = opts.titulo || '';
+  titulo.placeholder = 'Título da nova tarefa';
+  document.getElementById('dDescricao').value = '';
+  document.getElementById('dPrioridade').value = 'media';
+  refreshPrazoSelects('interno');
+  document.getElementById('dPrazo').value = opts.prazo ? (String(opts.prazo).length === 10 ? opts.prazo + 'T09:00' : String(opts.prazo).slice(0, 16)) : '';
+  document.getElementById('dResponsavel').value = window.YURIS_USER_ID ? String(window.YURIS_USER_ID) : '';
+  document.getElementById('dRecToggle').checked = false;
+  document.getElementById('dRecFields').style.display = 'none';
+  document.getElementById('dRecTipo').value = 'diaria';
+  document.getElementById('dRecInicio').value = '';
+  document.getElementById('dRecFim').value = '';
+  toggleCustomRec('d');
+  const btn = document.getElementById('dBtnSave');
+  btn.textContent = 'Criar tarefa';
+  // A entrada: o painel nasce da caixa do cadastro e, por um instante, mostra a forma
+  // do que vem em ossos cinza; depois os campos aparecem.
+  const fantasma = document.createElement('div');
+  fantasma.className = 'tk-nova-fantasma';
+  fantasma.innerHTML = '<i class="tk-osso larga"></i><span class="tk-osso-linha"><i class="tk-osso"></i><i class="tk-osso"></i></span>'
+    + '<span class="tk-osso-linha"><i class="tk-osso"></i><i class="tk-osso"></i></span><i class="tk-osso"></i><i class="tk-osso alta"></i>';
+  document.getElementById('dBody').appendChild(fantasma);
+  overlay.classList.add('open');
+  drawer.classList.add('open');
+  switchTab('geral');
+  if (opts.de && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const r = drawer.getBoundingClientRect(), de = opts.de;
+    drawer.style.transition = 'none';
+    drawer.style.transformOrigin = '0 0';
+    drawer.style.transform = `translate(${de.left - r.left}px, ${de.top - r.top}px) scale(${de.width / r.width}, ${de.height / r.height})`;
+    void drawer.offsetWidth;
+    drawer.style.transition = 'transform .46s cubic-bezier(.34,1.2,.4,1), opacity .2s';
+    drawer.style.transform = '';
+    setTimeout(() => { drawer.style.transition = ''; drawer.style.transformOrigin = ''; }, 480);
+  }
+  // As colunas: no quadro aberto, as dele; na Central, as de todos os quadros, por quadro.
+  const sel = document.getElementById('dColuna');
+  if (currentBoard && !(window.TkCentral && TkCentral.ativa())) {
+    sel.innerHTML = columns.map(c => `<option value="${c.id}" data-board="${currentBoard.id}">${esc(c.nome)}</option>`).join('');
+  } else {
+    const lista = await Promise.all((boards || []).map(b => GET(`/task_boards.php?id=${b.id}`).then(x => ({ b, cols: (x.data && x.data.colunas) || [] })).catch(() => ({ b, cols: [] }))));
+    sel.innerHTML = lista.filter(x => x.cols.length).map(({ b, cols }) =>
+      `<optgroup label="${esc(b.cliente_nome ? b.cliente_nome + ' · ' + b.nome : b.nome)}">`
+      + cols.map(c => `<option value="${c.id}" data-board="${b.id}">${esc(b.nome)} · ${esc(c.nome)}</option>`).join('') + '</optgroup>').join('');
+  }
+  const doQuadro = [...sel.options].find(o => Number(o.dataset.board) === novaNoPainel?.boardId);
+  if (doQuadro) sel.value = doQuadro.value;
+  setTimeout(() => { fantasma.classList.add('sai'); setTimeout(() => fantasma.remove(), 260); titulo.focus(); }, 420);
+}
+window.abrirTarefaNoPainel = abrirTarefaNoPainel;
+function sairDoModoNova() {
+  if (!novaNoPainel && !document.getElementById('tkDrawer').classList.contains('tk-nova')) return;
+  novaNoPainel = null;
+  document.getElementById('tkDrawer').classList.remove('tk-nova');
+  document.querySelectorAll('#tkTabs .tk-tab').forEach(t => { t.disabled = false; t.title = ''; });
+  document.getElementById('dTitle').placeholder = 'Título da tarefa';
+  document.getElementById('dBtnSave').textContent = 'Salvar';
+}
+async function criarDoPainel() {
+  const titulo = document.getElementById('dTitle').value.trim();
+  if (!titulo) { document.getElementById('dTitle').focus(); showToast('Dê um título à tarefa.', { type: 'warn' }); return; }
+  const sel = document.getElementById('dColuna');
+  const op = sel.options[sel.selectedIndex];
+  const boardId = op ? Number(op.dataset.board) : 0;
+  if (!boardId || !sel.value) { await tkAlert('Crie um quadro antes de adicionar uma tarefa de escritório.'); return; }
+  const btn = document.getElementById('dBtnSave');
+  btn.textContent = 'Criando…'; btn.disabled = true;
+  try {
+    let recorrencia = null;
+    if (document.getElementById('dRecToggle').checked) {
+      const tipo = document.getElementById('dRecTipo').value;
+      recorrencia = {
+        tipo, intervalo: tipo === 'custom' ? (parseInt(document.getElementById('dRecIntervalo').value) || 1) : 1,
+        unidade: tipo === 'custom' ? document.getElementById('dRecUnidade').value : null,
+        data_inicio: document.getElementById('dRecInicio').value || new Date().toISOString().slice(0, 10),
+        data_fim: document.getElementById('dRecFim').value || null, ativa: true,
+      };
+    }
+    const r = await POST('/tasks.php', {
+      board_id: boardId,
+      column_id: sel.value,
+      titulo,
+      descricao: document.getElementById('dDescricao').value,
+      prioridade: document.getElementById('dPrioridade').value,
+      prazo_tipo: document.getElementById('dPrazoTipo').value,
+      prazo: document.getElementById('dPrazo').value || null,
+      responsavel_id: document.getElementById('dResponsavel').value || null,
+      ...(recorrencia ? { recorrencia } : {}),
+    });
+    const id = r && r.data && Number(r.data.id);
+    if (!id) throw new Error((r && r.error) || 'a tarefa não voltou criada');
+    sairDoModoNova();
+    openTaskId = id;
+    showToast('Tarefa criada. Checklist, anexos, lembretes e o resto já estão liberados.', { type: 'success', duration: 4000 });
+    await loadTasks();
+    await refreshDrawer();
+  } catch (e) {
+    await tkAlert('Erro ao criar tarefa: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    if (novaNoPainel) btn.textContent = 'Criar tarefa';
+  }
 }
 async function refreshDrawer() {
   if (!openTaskId) return;
@@ -718,7 +843,7 @@ function switchTab(name) {
 
 /* ── Drawer: salvar ── */
 async function saveDrawer() {
-  if (!openTaskId) return;
+  if (!openTaskId) { if (novaNoPainel) await criarDoPainel(); return; }
 
   const btn = document.getElementById('dBtnSave');
   const orig = btn.textContent;
@@ -1572,6 +1697,10 @@ function bindTopbar() {
     const ntResp = document.getElementById('ntResponsavel');
     if (window.TK_EDICAO_CRM && ntResp && !ntResp.value && window.YURIS_USER_ID) {
       ntResp.value = String(window.YURIS_USER_ID);
+    }
+    if (window.TkCentral && TkCentral.habilitada() && !TkCentral.ativa() && currentBoard) {
+      await abrirTarefaNoPainel({ boardId: currentBoard.id, prazo: dataInicial });
+      return;
     }
     if (window.TkCentral && TkCentral.habilitada()) await TkCentral.prepararNova(dataInicial);
     else if (dataInicial) document.getElementById('ntPrazo').value = dataInicial + 'T09:00';

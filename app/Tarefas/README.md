@@ -105,6 +105,17 @@ o mesmo que fazer pelo processo.
   feitas), prazos (em aberto, vencidos em vermelho, cumpridos) e vínculos ativos
   (`resource_shares.php`, que confere a leitura). O bloco do que se vai criar vem primeiro, e o
   aviso de repetido olha esse bloco.
+- **Tarefa de escritório nasce no painel completo** (08/11/2026, "não faz sentido eu criar e
+  depois abrir o card para colocar as coisas; amplia o card, faz o carregamento fantasma e
+  mostra a tarefa inteira para preencher"). Na Central, clicar em "Tarefa de escritório" no
+  cadastro abre o painel da tarefa (`#tkDrawer`) vazio, no modo nova (`abrirTarefaNoPainel` em
+  `tarefas.js`): ele nasce da caixa do cadastro, mostra ossos cinza por um instante e depois os
+  campos; a coluna lista todos os quadros (por quadro), já no escolhido; só a aba Geral vale e
+  Concluir/Arquivar somem até criar. "Criar tarefa" faz o mesmo POST do cadastro pequeno, e o
+  painel continua aberto com a tarefa criada e todas as abas liberadas (checklist, anexos,
+  lembretes, vínculos). Num quadro aberto (fora da Central), "Nova tarefa" já vai direto para o
+  painel. O painel abre antes de o cadastro fechar, para o pop-up embutido na home não fechar.
+  A edição CRM não muda.
 - **Calendário**: compara a data como texto. `new Date('2026-11-05')` é meia-noite em
   UTC, e no Brasil a tarefa cairia na véspera. Clicar no dia cria a tarefa com a data.
 
