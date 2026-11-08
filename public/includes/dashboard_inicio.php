@@ -176,6 +176,15 @@ $evento = static function (array $i) use ($h): string {
                 <button type="button" class="ini-cal-dia<?= $c['fora'] ? ' fora' : '' ?><?= $c['data'] === $hoje ? ' hoje' : '' ?><?= $n ? ' tem' : '' ?><?= $c['data'] === $hoje ? ' sel' : '' ?>" data-dia="<?= $h($c['data']) ?>"><?= (int) $c['dia'] ?><?= $n ? '<i></i>' : '' ?></button>
                 <?php endforeach; endforeach; ?>
               </div>
+              <!-- Atalhos de período: listam a faixa à direita e marcam os dias na grade. -->
+              <div class="ini-cal-atalhos" role="group" aria-label="Períodos">
+                <button type="button" class="ini-atalho sel" data-faixa="hoje">Hoje</button>
+                <button type="button" class="ini-atalho" data-faixa="amanha">Amanhã</button>
+                <button type="button" class="ini-atalho" data-faixa="semana">Esta semana</button>
+                <button type="button" class="ini-atalho" data-faixa="semana-passada">Semana passada</button>
+                <button type="button" class="ini-atalho" data-faixa="proxima-semana">Próxima semana</button>
+                <button type="button" class="ini-atalho" data-faixa="mes">Este mês</button>
+              </div>
             </div>
             <div class="ini-dia">
               <div class="ini-dia-h"><b id="iniDiaTitulo"><?= $h(Painel::tituloDoDia($hoje, $hoje)) ?></b><span class="ini-pill" id="iniDiaConta"><?= count($doDia) ?> <?= count($doDia) === 1 ? 'compromisso' : 'compromissos' ?></span></div>
@@ -348,22 +357,61 @@ window.INI_CAL = <?= json_encode(['hoje' => $hoje, 'mes' => $mes, 'porDia' => $p
     elDias.innerHTML = html;
     elMes.textContent = MESES[m].charAt(0).toUpperCase() + MESES[m].slice(1) + ' de ' + y;
   }
+  // Um compromisso, igual ao que o PHP desenhou.
+  function htmlEvento(i) {
+    var sub = [i.processo_numero, i.cliente_nome].filter(Boolean).join(' · ');
+    var t = esc(i.titulo); if (i.processo_id) t = '<a href="/processos?open=' + i.processo_id + '">' + t + '</a>';
+    return '<div class="ini-ev ' + esc(i.tipo) + '"><span class="ini-ev-hora">' + (i.hora ? esc(i.hora) : '<small>dia<br>todo</small>') + '</span>'
+         + '<span class="ini-ev-t"><b>' + t + ' <i class="ini-tag ' + esc(i.tipo) + '">' + esc(C.tipos[i.tipo] || i.tipo) + '</i></b>'
+         + (sub ? '<span>' + esc(sub) + '</span>' : '')
+         + (i.responsavel_nome ? '<small><em class="ini-av">' + esc(iniciais(i.responsavel_nome)) + '</em>' + esc(i.responsavel_nome) + '</small>' : '')
+         + '</span></div>';
+  }
+  function marcaDias(de, ate, unico) {
+    elDias.querySelectorAll('.ini-cal-dia').forEach(function (x) {
+      var k = x.getAttribute('data-dia');
+      x.classList.toggle('sel', unico !== null && k === unico);
+      x.classList.toggle('faixa', unico === null && k >= de && k <= ate);
+    });
+  }
+  var faixaAtual = null; // null = um dia só (sel); senão {de, ate}
+  function rotuloDia(key) { var d = new Date(key + 'T12:00:00'); return (key === C.hoje ? 'Hoje' : DIAS[d.getDay()].charAt(0).toUpperCase() + DIAS[d.getDay()].slice(1)) + ', ' + d.getDate() + ' de ' + MESES[d.getMonth()].slice(0, 3); }
+  // Uma faixa de dias: lista agrupada por dia, e os dias marcados na grade.
+  function desenhaFaixa(de, ate, titulo) {
+    faixaAtual = { de: de, ate: ate }; sel = null;
+    var dias = Object.keys(C.porDia).filter(function (k) { return k >= de && k <= ate; }).sort(), total = 0, html = '';
+    dias.forEach(function (k) { var its = C.porDia[k]; total += its.length; html += '<div class="ini-dia-grupo">' + esc(rotuloDia(k)) + '</div>' + its.map(htmlEvento).join(''); });
+    elTit.textContent = titulo;
+    elConta.textContent = total + (total === 1 ? ' compromisso' : ' compromissos');
+    elLista.innerHTML = html || '<div class="ini-vazio curto"><p>Nada marcado neste período.</p></div>';
+    marcaDias(de, ate, null);
+  }
+  function faixa(nome) {
+    var h = new Date(C.hoje + 'T12:00:00'), seg = new Date(h); seg.setDate(h.getDate() - ((h.getDay() + 6) % 7));
+    var dom = new Date(seg); dom.setDate(seg.getDate() + 6);
+    var a = new Date(h); a.setDate(h.getDate() + 1);
+    var segP = new Date(seg); segP.setDate(seg.getDate() - 7); var domP = new Date(dom); domP.setDate(dom.getDate() - 7);
+    var segN = new Date(seg); segN.setDate(seg.getDate() + 7); var domN = new Date(dom); domN.setDate(dom.getDate() + 7);
+    var ini = new Date(h.getFullYear(), h.getMonth(), 1), fim = new Date(h.getFullYear(), h.getMonth() + 1, 0);
+    switch (nome) {
+      case 'hoje': desenhaDia(C.hoje); break;
+      case 'amanha': desenhaDia(ymd(a)); break;
+      case 'semana': desenhaFaixa(ymd(seg), ymd(dom), 'Esta semana'); break;
+      case 'semana-passada': desenhaFaixa(ymd(segP), ymd(domP), 'Semana passada'); break;
+      case 'proxima-semana': desenhaFaixa(ymd(segN), ymd(domN), 'Próxima semana'); break;
+      case 'mes': desenhaFaixa(ymd(ini), ymd(fim), MESES[h.getMonth()].charAt(0).toUpperCase() + MESES[h.getMonth()].slice(1)); break;
+    }
+    document.querySelectorAll('.ini-atalho').forEach(function (b) { b.classList.toggle('sel', b.getAttribute('data-faixa') === nome); });
+  }
   function desenhaDia(key) {
-    sel = key;
+    sel = key; faixaAtual = null;
+    document.querySelectorAll('.ini-atalho').forEach(function (b) { b.classList.toggle('sel', (b.getAttribute('data-faixa') === 'hoje' && key === C.hoje)); });
     var itens = C.porDia[key] || [], d = new Date(key + 'T12:00:00'), pre = key === C.hoje ? 'Hoje' : DIAS[d.getDay()].charAt(0).toUpperCase() + DIAS[d.getDay()].slice(1);
     elTit.textContent = pre + ', ' + d.getDate() + ' de ' + MESES[d.getMonth()].slice(0, 3);
     elConta.textContent = itens.length + (itens.length === 1 ? ' compromisso' : ' compromissos');
-    if (!itens.length) { elLista.innerHTML = '<div class="ini-vazio curto"><p>Nada marcado para este dia.</p></div>'; return; }
-    elLista.innerHTML = itens.map(function (i) {
-      var sub = [i.processo_numero, i.cliente_nome].filter(Boolean).join(' · ');
-      var t = esc(i.titulo); if (i.processo_id) t = '<a href="/processos?open=' + i.processo_id + '">' + t + '</a>';
-      return '<div class="ini-ev ' + esc(i.tipo) + '"><span class="ini-ev-hora">' + (i.hora ? esc(i.hora) : '<small>dia<br>todo</small>') + '</span>'
-           + '<span class="ini-ev-t"><b>' + t + ' <i class="ini-tag ' + esc(i.tipo) + '">' + esc(C.tipos[i.tipo] || i.tipo) + '</i></b>'
-           + (sub ? '<span>' + esc(sub) + '</span>' : '')
-           + (i.responsavel_nome ? '<small><em class="ini-av">' + esc(iniciais(i.responsavel_nome)) + '</em>' + esc(i.responsavel_nome) + '</small>' : '')
-           + '</span></div>';
-    }).join('');
-    elDias.querySelectorAll('.ini-cal-dia').forEach(function (x) { x.classList.toggle('sel', x.getAttribute('data-dia') === key); });
+    if (!itens.length) { elLista.innerHTML = '<div class="ini-vazio curto"><p>Nada marcado para este dia.</p></div>'; marcaDias(key, key, key); return; }
+    elLista.innerHTML = itens.map(htmlEvento).join('');
+    marcaDias(key, key, key);
   }
   if (elDias) {
     elDias.addEventListener('click', function (e) { var x = e.target.closest('.ini-cal-dia'); if (x) desenhaDia(x.getAttribute('data-dia')); });
@@ -372,8 +420,11 @@ window.INI_CAL = <?= json_encode(['hoje' => $hoje, 'mes' => $mes, 'porDia' => $p
         var y = +mesAtual.slice(0, 4), m = +mesAtual.slice(5, 7) - 1 + (+nav.getAttribute('data-cal')), d = new Date(y, m, 1);
         mesAtual = d.getFullYear() + '-' + pad(d.getMonth() + 1);
         desenhaMes(mesAtual);
+        // A grade nova precisa reganhar a marcação do dia ou da faixa.
+        if (faixaAtual) marcaDias(faixaAtual.de, faixaAtual.ate, null); else if (sel) marcaDias(sel, sel, sel);
       });
     });
+    document.querySelectorAll('.ini-atalho').forEach(function (b) { b.addEventListener('click', function () { faixa(b.getAttribute('data-faixa')); }); });
   }
 })();
 </script>

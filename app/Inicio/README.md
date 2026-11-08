@@ -62,7 +62,10 @@ seleção em pílula.
 - A estrutura segue a tela de referência do dono do produto (07/11/2026, segunda
   rodada): faixa de boas-vindas; quatro cartões do que está acontecendo; **Agenda
   jurídica** com o calendário do mês à esquerda e o dia escolhido à direita (clicar
-  no dia troca a lista; as setas trocam o mês, tudo com os dados já na página);
+  no dia troca a lista e marca o dia; as setas trocam o mês; sob a grade, atalhos de
+  período: hoje, amanhã, esta semana, semana passada, próxima semana e este mês, que
+  listam a faixa agrupada por dia e a marcam na grade; tudo com os dados já na página).
+  Os dias são caixas afundadas na prata, o escolhido é azul côncavo, como o menu;
   Prazos e Aguardando retorno ao lado; Publicações, Processos com movimentação e
   Equipe embaixo. Bordas pouco arredondadas (12px nos cartões, 8px no resto):
   "tá muito arredondado, arredondar só um pouco".
