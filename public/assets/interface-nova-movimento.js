@@ -101,6 +101,158 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ligar); else ligar();
 
+
+  // ── O pop-up entra como o da home ───────────────────────────────────────
+  // "Todos os pop-ups têm que ter animação de entrada: as barras vindo, as letras nascendo, o
+  // que a gente colocou lá na entrada" (08/11/2026). Ao abrir, o painel surge, o ícone do
+  // cabeçalho cresce e as linhas (cabeçalho, seções, linhas de campos, rodapé) entram uma a
+  // uma, de cima para baixo, como o pop-up da home (idt-entra). Detectado no observador, antes
+  // de o navegador pintar: o pop-up nunca aparece cheio e depois some para entrar.
+  var SEL_POP = '[class*="modal"], [id*="modal"], [id*="Modal"], [role="dialog"], dialog, [class*="drawer"], [class*="popup"], [class*="popover"], [class*="overlay"]';
+  // Aberto é estar no layout e visível; a opacidade não conta (o fundo da Nova Tarefa aparece
+  // com transição de opacidade, e no instante da checagem ainda está em zero).
+  function vis(el) {
+    if (!el.offsetWidth && !el.offsetHeight) return false;
+    var cs = getComputedStyle(el); return cs.display !== 'none' && cs.visibility !== 'hidden' && cs.pointerEvents !== 'none';
+  }
+  function ehFundo(el) {
+    if (el.tagName === 'DIALOG') return el.open;
+    var r = el.getBoundingClientRect(); if (r.width < innerWidth * .9 || r.height < innerHeight * .9) return false;
+    for (var n = el, i = 0; i < 3 && n && n !== document.body; i++, n = n.parentElement) if (getComputedStyle(n).position === 'fixed') return true;
+    return false;
+  }
+  function painelDe(fundo) {
+    if (fundo.tagName === 'DIALOG') return fundo;
+    var fr = fundo.getBoundingClientRect(), melhor = null, area = 0;
+    [].forEach.call(fundo.querySelectorAll('*'), function (el) {
+      if (melhor && melhor.contains(el)) return;
+      var r = el.getBoundingClientRect();
+      if (r.width < 240 || r.height < 120 || (r.width >= fr.width * .95 && r.height >= fr.height * .95)) return;
+      var a = r.width * r.height; if (a > area) { melhor = el; area = a; }
+    });
+    return melhor;
+  }
+  // As linhas: desce pelos embrulhos grandes (corpo com rolagem, formulário, seção) até chegar
+  // nas peças de uma linha só; para em 26 para a entrada não demorar.
+  function linhasDe(painel) {
+    var out = [], ph = painel.getBoundingClientRect().height;
+    (function desce(el, nivel) {
+      [].forEach.call(el.children, function (f) {
+        if (out.length >= 26 || /^(SCRIPT|STYLE|TEMPLATE|INPUT|OPTION)$/.test(f.tagName)) return;
+        var r = f.getBoundingClientRect(); if (r.width < 8 || r.height < 6) return;
+        // Embrulho grande (corpo com rolagem, formulário, seção, grade de campos): desce, mesmo
+        // quando é um embrulho só (o corpo do Editar Processo embrulha o formulário inteiro).
+        if (nivel < 5 && f.children.length >= 1 && r.height > Math.min(120, ph * .25) && !/^(BUTTON|A|LABEL|SELECT|TEXTAREA|TABLE|UL|OL|svg)$/i.test(f.tagName)) { desce(f, nivel + 1); return; }
+        out.push(f);
+      });
+    })(painel, 0);
+    return out;
+  }
+  function entrarPopup(fundo) {
+    var painel = painelDe(fundo); if (!painel) return;
+    var semAnimProp = getComputedStyle(painel).animationName === 'none';
+    if (semAnimProp) { painel.classList.remove('inn-pop-surge'); void painel.offsetWidth; painel.classList.add('inn-pop-surge'); }
+    var k = 0;
+    linhasDe(painel).forEach(function (el) {
+      if (getComputedStyle(el).transform !== 'none') return;
+      el.style.setProperty('--mov-i', k++);
+      el.classList.remove('inn-pop-entra'); void el.offsetWidth; el.classList.add('inn-pop-entra');
+      el.addEventListener('animationend', function f(e) { if (e.target === el) { el.classList.remove('inn-pop-entra'); el.removeEventListener('animationend', f); } });
+    });
+    var ic = painel.querySelector('.inn-cab-ic, .inn-pop-ic');
+    if (ic) { ic.style.animation = 'none'; void ic.offsetWidth; ic.style.animation = ''; }
+    painel.addEventListener('animationend', function f(e) { if (e.target === painel) { painel.classList.remove('inn-pop-surge'); painel.removeEventListener('animationend', f); } });
+  }
+  var abertos = new Set();
+  function conferirPopups(alvos) {
+    alvos.forEach(function (el) {
+      if (!el.isConnected || !el.matches || !el.matches(SEL_POP + ', dialog')) return;
+      var aberto = vis(el) && ehFundo(el);
+      if (aberto && !abertos.has(el)) { abertos.add(el); entrarPopup(el); }
+      else if (!aberto && abertos.has(el)) abertos.delete(el);
+    });
+  }
+  new MutationObserver(function (ms) {
+    var alvos = new Set();
+    ms.forEach(function (m) {
+      if (m.type === 'attributes') { if (m.target.nodeType === 1 && m.target.matches && m.target.matches(SEL_POP + ', dialog')) alvos.add(m.target); return; }
+      [].forEach.call(m.addedNodes, function (n) {
+        if (n.nodeType !== 1) return;
+        if (n.matches && n.matches(SEL_POP + ', dialog')) alvos.add(n);
+        else if (n.querySelectorAll) [].forEach.call(n.querySelectorAll(SEL_POP), function (x) { alvos.add(x); });
+      });
+    });
+    if (alvos.size) conferirPopups(alvos);
+  }).observe(document.body, { attributes: true, attributeFilter: ['class', 'style', 'hidden', 'open'], childList: true, subtree: true });
+
+  // ── Seleção cheia: começa vazia e se preenche a partir do clique ─────────
+  // "Tudo que é seleção cheia do sistema tem que começar vazio e se preencher" (08/11/2026),
+  // como o dia do calendário da home. No toque, guarda o ponto e a cor de antes; quando a peça
+  // tocada (ou a que está em volta dela) passa a ficar selecionada e com fundo próprio, a cor
+  // nova nasce do ponto do clique e cobre a caixa inteira; a cor de antes fica por baixo até lá.
+  var RE_LIGADO = /^(active|ativo|ativa|selected|is-active|is-selected|current|on|sel|atual|checked|marcado|escolhido)$|-(active|ativo|ativa|selected|on|sel)$/i;
+  var toque = null;
+  function corDeFundo(cs) {
+    var bi = cs.backgroundImage, m = bi && bi.indexOf('gradient') >= 0 ? bi.match(/rgba?\([^)]+\)/) : null;
+    return m ? m[0] : cs.backgroundColor;
+  }
+  function alfa(c) { var m = /rgba?\(([^)]+)\)/.exec(c || ''); if (!m) return 0; var p = m[1].split(','); return p.length > 3 ? parseFloat(p[3]) : 1; }
+  document.addEventListener('pointerdown', function (e) {
+    if (e.button > 0 || !e.target.closest) return;
+    var el = e.target.closest('button, a, label, li, [role="tab"], [role="option"], [role="button"], [onclick], .inn-aba, td, [class*="dia"], [class*="day"], [class*="card"], [class*="chip"], [class*="opc"], [class*="opt"], [class*="tipo"], [class*="type"]');
+    if (!el || el.closest('.sidebar, input, select, textarea')) { toque = null; return; }
+    var r = el.getBoundingClientRect(); if (r.width < 14 || r.height < 14 || r.width > 520 || r.height > 260) { toque = null; return; }
+    toque = { el: el, t: performance.now(), x: e.clientX, y: e.clientY, antes: corDeFundo(getComputedStyle(el)) };
+  }, true);
+  // Ligado pelas classes da TELA (as marcas inn-* da camada não contam, inclusive a do
+  // próprio enchimento: senão pôr a marca parecia uma seleção nova e o enchimento recomeçava).
+  function classesLigadas(cls) {
+    return String(cls || '').split(/\s+/).some(function (c) { return c.indexOf('inn-') !== 0 && RE_LIGADO.test(c); });
+  }
+  function ligado(el) {
+    if (el.getAttribute('aria-selected') === 'true' || el.getAttribute('aria-pressed') === 'true' || el.getAttribute('aria-checked') === 'true') return true;
+    return classesLigadas(el.className) || el.classList.contains('inn-aba-on');
+  }
+  function soMarcas(antes, agora) {
+    var a = String(antes || '').split(/\s+/).filter(function (c) { return c && c.indexOf('inn-') !== 0; }).sort().join(' ');
+    var b = String(agora || '').split(/\s+/).filter(function (c) { return c && c.indexOf('inn-') !== 0; }).sort().join(' ');
+    return a === b;
+  }
+  function encher(el, x, y, antes) {
+    var r = el.getBoundingClientRect(); if (!r.width || !r.height) return;
+    // A cor de CHEGADA: com transição ligada, o navegador devolve a cor do começo dela
+    // (o cartão de tipo do Chat interno lia o cinza de antes). Desliga, lê, devolve.
+    var trans = el.style.getPropertyValue('transition'), prio = el.style.getPropertyPriority('transition');
+    el.style.setProperty('transition', 'none', 'important');
+    var cs = getComputedStyle(el), cor = corDeFundo(cs);
+    if (trans) el.style.setProperty('transition', trans, prio); else el.style.removeProperty('transition');
+    if (alfa(cor) < .08 || cor === antes) return;                    // não ficou cheio: nada a encher
+    var cx = Math.max(0, Math.min(r.width, x - r.left)), cy = Math.max(0, Math.min(r.height, y - r.top));
+    el.style.setProperty('--inn-cx', Math.round(cx) + 'px');
+    el.style.setProperty('--inn-cy', Math.round(cy) + 'px');
+    el.style.setProperty('--inn-raio', Math.ceil(Math.hypot(Math.max(cx, r.width - cx), Math.max(cy, r.height - cy)) + 2) + 'px');
+    el.style.setProperty('--inn-enche-cor', cor);
+    el.style.setProperty('--inn-enche-antes', alfa(antes) > .02 ? antes : 'transparent');
+    el.classList.remove('inn-enchendo'); void el.offsetWidth; el.classList.add('inn-enchendo');
+    el.addEventListener('animationend', function f(e) { if (e.target === el && e.animationName === 'inn-enche') { el.classList.remove('inn-enchendo'); el.removeEventListener('animationend', f); } });
+  }
+  new MutationObserver(function (ms) {
+    if (!toque || performance.now() - toque.t > 900) return;
+    var feitos = new Set();
+    ms.forEach(function (m) {
+      var el = m.target; if (el.nodeType !== 1 || feitos.has(el) || el.classList.contains('inn-enchendo')) return;
+      if (!(el === toque.el || el.contains(toque.el) || toque.el.contains(el))) return;
+      if (el.closest('.sidebar') || !ligado(el)) return;
+      // Só a passagem de "não escolhido" para "escolhido", e só por mudança da tela.
+      if (m.attributeName === 'class') {
+        if (soMarcas(m.oldValue, el.className) && !(el.classList.contains('inn-aba-on') && !/(^|\s)inn-aba-on(\s|$)/.test(m.oldValue || ''))) return;
+        if (classesLigadas(m.oldValue) || /(^|\s)inn-aba-on(\s|$)/.test(m.oldValue || '')) return;
+      } else if (m.oldValue === 'true') return;
+      var r = el.getBoundingClientRect(); if (r.width > 520 || r.height > 260) return;
+      feitos.add(el); encher(el, toque.x, toque.y, el === toque.el ? toque.antes : 'transparent');
+    });
+  }).observe(document.body, { attributes: true, attributeOldValue: true, attributeFilter: ['class', 'aria-selected', 'aria-pressed', 'aria-checked'], subtree: true });
+
   // ── Sair pelo menu ──────────────────────────────────────────────────────
   document.addEventListener('click', function (e) {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;

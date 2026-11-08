@@ -253,7 +253,7 @@
       var lista = Array.from(trocados); trocados.clear();
       lista.forEach(function (e) {
         if (!e.isConnected) return;
-        if (estaEsticado(e)) { var tom = tomDoSelo(e).replace('inn-selo-', ''); e.dataset.innFaixa = tom; e.classList.add('inn-faixa', 'inn-faixa-' + tom); e.style.removeProperty('color'); }
+        if (estaEsticado(e) || e.closest('[data-inn-kpi]')) { e.removeAttribute('data-inn-selo'); var tom = tomDoSelo(e).replace('inn-selo-', ''); e.dataset.innFaixa = tom; e.classList.add('inn-faixa', 'inn-faixa-' + tom); e.style.removeProperty('color'); }
         else if (ehSelo(e)) vestirSelo(e);
         var k = e.closest('[data-inn-kpi]'); if (k) corDoIcone(k);
       });
@@ -768,6 +768,9 @@
       if (/(^|\s)inn-(aba|selo|toast|ic-btn)|btn|button|botao|tab|aba|pill|chip|badge|tag|selo|toast|campo|field|input|select|grid|row|linha|col(\s|$|-)/i.test(cls.replace(/\binn-c-[\w-]+/g, '').replace(/(section|secao|bloco|block|group|grupo)/ig, ''))) return;
       var forte = /(^|[-_\s])(section|secao|sec|bloco|block)([-_\s]|$)/i.test(cls) || el.tagName === 'FIELDSET';
       if (!visivel(el)) return;
+      // Opção que se clica para escolher (o tipo de conversa, o tipo de tarefa) não é seção:
+      // o fundo de seção em linha apagava o azul de "escolhido".
+      if (el.onclick || el.hasAttribute('onclick') || el.getAttribute('role') === 'button' || el.dataset.type != null || el.dataset.tipo != null || getComputedStyle(el).cursor === 'pointer') return;
       var r = el.getBoundingClientRect(); if (r.width < cw * .5 || r.height < 50) return;
       var cs = getComputedStyle(el), bc = rgb(cs.borderTopColor), bg = corFundo(cs);
       var temBorda = parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle !== 'none' && bc && bc[3] > .04;
@@ -910,17 +913,49 @@
     caixa = caixa || k.querySelector('.inn-kpi-ic'); if (!caixa) return;
     ['erro', 'aviso', 'ok'].forEach(function (t) { caixa.classList.remove('inn-kpi-ic-' + t); });
     var marcaTom = k.querySelector('[data-inn-faixa]'), tomIc = marcaTom ? marcaTom.dataset.innFaixa : '';
+    if (!/^(erro|aviso|ok)$/.test(tomIc)) tomIc = '';      // etiqueta neutra não decide a cor
     if (!tomIc) { var sl = k.querySelector('.inn-selo'); if (sl) tomIc = (String(sl.className).match(/inn-selo-(erro|aviso|ok)/) || [])[1] || ''; }
     var num = k.querySelector('[data-inn-kpi-num]');
     if (!tomIc && num) { var tv = tomDeCor(getComputedStyle(num).color, .3, .05); if (tv === 'erro' || tv === 'aviso' || tv === 'ok') tomIc = tv; }
+    // "Tudo que é receita a gente coloca verde, tudo que é despesa vermelho" (08/11/2026): a
+    // margem e os honorários recebidos ficam verdes; custo e despesa, vermelhos; imposto, âmbar.
+    if (!tomIc) {
+      var rot = (k.querySelector('[class*="label"], [class*="titulo"], [class*="title"]') || k).textContent || '';
+      if (/despesa|custo|gasto|sa[ií]da|preju[ií]zo/i.test(rot)) tomIc = 'erro';
+      else if (/imposto|tributo/i.test(rot)) tomIc = 'aviso';
+      else if (/receita|honor[aá]ri|recebid|lucro|margem|faturamento|entrada|lan[çc]amentos? extra|contratos? fechad/i.test(rot)) tomIc = 'ok';
+    }
     if (/^(erro|aviso|ok)$/.test(tomIc)) caixa.classList.add('inn-kpi-ic-' + tomIc);
+    // A etiqueta neutra do indicador ("CRM", "DRE") acompanha a cor do assunto.
+    if (/^(erro|aviso|ok)$/.test(tomIc)) [].forEach.call(k.querySelectorAll('[data-inn-faixa="neutro"], [data-inn-faixa="azul"]'), function (f) {
+      f.classList.remove('inn-faixa-neutro', 'inn-faixa-azul'); f.dataset.innFaixa = tomIc; f.classList.add('inn-faixa-' + tomIc);
+    });
+  }
+  function seloViraFaixa(el) {
+    if (el.dataset.innFaixa != null) return;
+    var tom = (String(el.className).match(/inn-selo-(erro|aviso|ok|azul|neutro)/) || [])[1] || tomDoSelo(el).replace('inn-selo-', '');
+    TONS.forEach(function (t) { el.classList.remove(t); }); el.classList.remove('inn-selo');
+    delete el.dataset.innSelo;
+    el.dataset.innFaixa = tom; el.classList.add('inn-faixa', 'inn-faixa-' + tom); el.style.removeProperty('color');
+  }
+  function selosDoIndicadorViramTexto(k) {
+    [].forEach.call(k.querySelectorAll('.inn-selo, [class*="badge"], [class*="tag"]'), function (el) {
+      if (el.closest('.inn-kpi-ic') || el.dataset.innFaixa != null || !(el.textContent || '').trim()) return;
+      if (parseFloat(getComputedStyle(el).fontSize) >= 18) return;
+      if (!el.classList.contains('inn-selo') && !baseSelo(el).split(/\s+/).some(function (c) { return RE_SELO.test(c); })) return;
+      seloViraFaixa(el);
+    });
   }
   function vestirIndicador(k) {
     if (k.dataset.innKpi) return;
     k.dataset.innKpi = '1';
     promoverFaixas(k);
+    selosDoIndicadorViramTexto(k);
     // Já tem ícone (Chat): só o texto entra na medida da home.
-    var jaTemIcone = !!k.querySelector('svg, img');
+    var jaTemIcone = [].some.call(k.querySelectorAll('svg, img'), function (s) {
+      if (s.closest('[class*="badge"], [class*="tag"], [class*="selo"], [class*="pill"], [class*="chip"], .inn-selo, [data-inn-faixa], .inn-kpi-ic')) return false;
+      var r = s.getBoundingClientRect(); return r.width >= 16 && r.height >= 16;
+    });
     var filhos = [].filter.call(k.children, function (c) { return visivel(c) && !c.classList.contains('inn-onda-quadro'); });
     if (filhos.length === 1 && filhos[0].children.length >= 2 && !/^(B|STRONG)$/.test(filhos[0].tagName)) filhos = [].filter.call(filhos[0].children, visivel);
     var ponto = filhos.filter(function (c) { return c.offsetWidth <= 12 && c.offsetHeight <= 12 && !(c.textContent || '').trim(); });
@@ -1180,7 +1215,7 @@
           var alvo = m.target;
           if (alvo.classList && alvo.classList.contains('inn-aba')) alvo.classList.toggle('inn-aba-on', abaLigada(alvo));
           // Selo que trocou de estado (a tela mudou a classe dele): lê a cor de novo.
-          if (alvo.dataset && alvo.dataset.innSelo != null && m.attributeName === 'class' && baseSelo(alvo) !== alvo.dataset.innSelo) vestirSelo(alvo);
+          if (alvo.dataset && alvo.dataset.innSelo != null && m.attributeName === 'class' && (baseSelo(alvo) !== alvo.dataset.innSelo || !alvo.classList.contains('inn-selo'))) vestirSelo(alvo);
           if (alvo.dataset && alvo.dataset.innFaixa != null && m.attributeName === 'class' && !alvo.classList.contains('inn-faixa-' + alvo.dataset.innFaixa)) {
             // A tela trocou o estado da faixa: lê o tom de novo.
             ['erro', 'aviso', 'ok', 'azul', 'neutro'].forEach(function (t) { alvo.classList.remove('inn-faixa-' + t); });

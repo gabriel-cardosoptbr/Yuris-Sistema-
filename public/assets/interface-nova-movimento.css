@@ -58,3 +58,30 @@ html.inn-mov .sidebar nav a:not(.active):active, html.inn-mov .sidebar .sidebar-
 html.inn-mov button:not(:disabled):active:not(.tk-tab):not(.tab-btn), html.inn-mov .btn:active, html.inn-mov a.btn:active{ transform:scale(.97); transition:transform .08s ease; }
 
 }
+
+/* ── 5. O pop-up entra como o da home; a seleção enche a partir do clique (08/11/2026) ──
+   "Todos os pop-ups têm que ter animação de entrada, as barras vindo, as letras nascendo" e
+   "tudo que é seleção cheia tem que começar vazio e se preencher". O JS marca: o painel surge
+   (inn-pop-surge), o ícone do cabeçalho cresce (inn-pop-cresce), cada linha entra de cima para
+   baixo (inn-pop-entra, como o idt-entra da home); a peça que ficou selecionada enche a partir
+   do ponto do clique (inn-enchendo), com a cor que ela terá, e a de antes por baixo. */
+@property --inn-r{ syntax:'<length>'; inherits:false; initial-value:0px; }
+@media (prefers-reduced-motion: no-preference){
+  @keyframes inn-pop-surge{ from{ opacity:0; transform:translateY(14px) scale(.965); } to{ opacity:1; transform:none; } }
+  @keyframes inn-pop-entra{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+  @keyframes inn-pop-cresce{ 0%{ opacity:0; transform:scale(.4); } 70%{ opacity:1; transform:scale(1.08); } 100%{ transform:none; } }
+  html.inn-mov .inn-pop-surge{ animation:inn-pop-surge .38s var(--mov-mola) both; }
+  html.inn-mov .inn-pop-entra{ animation:inn-pop-entra .4s var(--mov-saida) both; animation-delay:calc(90ms + var(--mov-i, 0) * 34ms); }
+  html.inn-mov .inn-pop-cresce{ animation:inn-pop-cresce .5s var(--mov-mola) .12s both; }
+
+  @keyframes inn-enche{ from{ --inn-r:0px; } to{ --inn-r:var(--inn-raio, 240px); } }
+  html:root .inn-enchendo.inn-enchendo.inn-enchendo.inn-enchendo{
+    background-color:var(--inn-enche-antes, transparent) !important;
+    background-image:radial-gradient(circle at var(--inn-cx, 50%) var(--inn-cy, 50%), var(--inn-enche-cor) calc(var(--inn-r) - .5px), transparent var(--inn-r)) !important;
+    animation:inn-enche .42s var(--mov-saida) both !important;
+    transition:color .2s ease .12s, box-shadow .25s ease .3s !important;
+  }
+}
+/* O ícone do cabeçalho do pop-up cresce quando entra (a camada do sistema o põe logo depois
+   de o pop-up abrir; ao reabrir, o JS reinicia a animação). */
+@media (prefers-reduced-motion: no-preference){ html.inn-mov .inn-pop-ic{ animation:inn-pop-cresce .5s var(--mov-mola) .05s both; } }

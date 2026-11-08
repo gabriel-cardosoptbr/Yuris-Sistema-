@@ -337,6 +337,37 @@ seleção em pílula.
   aparece, cores iguais seguem iguais; barra e fatia opacas, sem borda, raio 6; rosca com
   separador na cor do painel; legenda feita à mão pela tela (quadradinhos da rosca de Finanças)
   segue as cores novas (`legendaDoGrafico`, com observador para quando a tela redesenha).
+- **Indicadores: receita verde, despesa vermelho, nada com linha** (08/11/2026). O ícone do
+  indicador pega a cor pelo ASSUNTO do rótulo quando não há faixa nem selo com estado: receita,
+  honorários, recebidos, lucro, margem, lançamentos extras e contratos fechados em verde; despesa
+  e custo em vermelho; imposto em âmbar. A etiqueta neutra ("CRM", "DRE") acompanha. Dentro do
+  indicador todo selo vira texto (`selosDoIndicadorViramTexto`), esticado ou não: o "Positivo"
+  tinha caixa vazada e os outros não. "Já tem ícone" só conta ícone de 16px ou mais fora de selo
+  (o ✓ do "Positivo" tirava a caixa do ícone do Lucro). Selo cuja classe a tela reescreve inteira
+  (`lucrobadge`, `margembadge`) é revestido mesmo com a mesma base. Opção clicável (cursor de
+  mão, `onclick`, `data-type`) nunca vira seção de pop-up: o fundo de seção em linha apagava o
+  azul de "escolhido" dos cartões de tipo do Chat interno.
+- **Movimento da home no sistema inteiro** (08/11/2026: "todos os pop-ups têm que ter animação
+  de entrada, as barras vindo, as letras nascendo" e "tudo que é seleção cheia tem que começar
+  vazio e se preencher"), em `assets/interface-nova-movimento.js` e `.css`, seção 5. (1) Pop-up:
+  um observador vê, antes de o navegador pintar, quando um fundo de pop-up abre (aberto = no
+  layout, `display` e `visibility` visíveis e `pointer-events` ligado; a opacidade não conta, o
+  fundo da Nova Tarefa aparece com transição); o painel surge (`inn-pop-surge`, se não tem
+  animação própria), o ícone do cabeçalho cresce (`inn-pop-cresce`) e as linhas entram uma a uma
+  (`inn-pop-entra`, 34 ms entre elas, até 26), descendo pelos embrulhos grandes (corpo com
+  rolagem, formulário, seção, grade) até as linhas de campo. Reabrir anima de novo. A classe de
+  animação NÃO pode se chamar `inn-pop-linha`: é o nome do bloco ícone + título que a camada do
+  sistema cria, e o título ficava apagado. (2) Seleção cheia: no toque guarda o ponto e a cor de
+  antes; quando a peça tocada (ou a em volta) passa de não escolhida para escolhida (classe da
+  tela com active/selected/on/sel..., `inn-aba-on` ou `aria-selected`; comparado com
+  `attributeOldValue`), a cor de chegada nasce do ponto do clique num `radial-gradient` cujo raio
+  é a propriedade registrada `--inn-r` (`@property`), até o canto mais longe; a cor de antes
+  fica por baixo. Armadilhas: pôr a própria marca disparava a seleção de novo (centenas de
+  repetições em 900 ms), por isso só vale a mudança de classe da TELA; e a cor lida durante a
+  transição do cartão é a do começo, por isso lê com `transition:none` por um instante.
+  Conferido: abas de Usuários, Publicações e Tarefas (Lista, Calendário), cartões de tipo do Chat
+  interno; entrada em lead, Novo Cliente, Nova Tarefa, Novo Usuário, Novo imposto e Editar
+  Processo, todos fechando ao clicar fora e sem mutação em repouso.
   Armadilhas que viraram regra: ler a cor no meio de uma transição dá a cor do caminho (a camada
   espera o `transitionend`); trocar a classe no meio da leitura recalcula o estilo (lê tudo,
   escreve depois); o que estava `display:none` ou ganhou classe depois é relido pelo observer;

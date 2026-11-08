@@ -496,3 +496,5 @@ html:root .inn-faixa.inn-faixa svg, html:root .inn-faixa.inn-faixa svg *{ stroke
 html:root .inn-kpi-ic.inn-kpi-ic-erro svg, html:root .inn-kpi-ic.inn-kpi-ic-erro svg *{ stroke:var(--inn-t-erro-forte) !important; }
 html:root .inn-kpi-ic.inn-kpi-ic-aviso svg, html:root .inn-kpi-ic.inn-kpi-ic-aviso svg *{ stroke:var(--inn-t-aviso-forte) !important; }
 html:root .inn-kpi-ic.inn-kpi-ic-ok svg, html:root .inn-kpi-ic.inn-kpi-ic-ok svg *{ stroke:var(--inn-t-ok-forte) !important; }
+html:root [data-inn-kpi] [class*="badge"], html:root [data-inn-kpi] [class*="tag"], html:root .inn-faixa.inn-faixa{ border-color:transparent !important; box-shadow:none !important; }
+html:root [data-inn-kpi] [class*="badge"]:not(.inn-faixa){ background-color:transparent !important; background-image:none !important; font-weight:700 !important; }
