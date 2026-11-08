@@ -271,6 +271,15 @@ de query. Use `ErrorReporter`.
 **Endpoint novo do Master grava auditoria.** Ver
 [`../../app/Master/README.md`](../../app/Master/README.md).
 
+## O cartão de uma pessoa
+
+`pessoa.php?id=N` (08/11/2026): quem é a pessoa (nome, papel, OAB, escritório, e-mail e telefone) e o
+que ela tem na mão agora (hoje, na semana, vencidos, tarefas abertas: os números do pop-up da pessoa
+da home, `App\Inicio\Painel::equipe` sobre a `Central` e a `CargaDaEquipe`). Só pessoa da lista que a
+conta enxerga (`AccountContext::getAccessibleUsers`); qualquer outra dá 404, sem dizer se existe. O
+link "Ver o desempenho" (`/desempenho?colaborador=N`) só vai para quem é dono ou administrador. Usado
+pela etiqueta do responsável no prazo e na tarefa do processo.
+
 ## Histórico de um prazo ou de uma tarefa do processo
 
 `processo_history.php?processo_id=N&item_tipo=prazo|tarefa&item_id=M` (08/11/2026): o log só

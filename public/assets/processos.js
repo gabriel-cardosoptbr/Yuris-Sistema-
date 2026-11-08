@@ -990,15 +990,94 @@ document.addEventListener('DOMContentLoaded', ()=>{
   let _procId = null; // ID do processo atualmente aberto no modal
   let _prazosList = []; // os prazos do processo aberto (a ficha de edição lê daqui)
 
+  // ── Responsável e prioridade em etiqueta, e o cartão da pessoa (08/11/2026) ──
+  // "O responsável tem que ser uma etiqueta clicável, que eu possa clicar e ir para o advogado,
+  // ver quem ele é; e se é alta ou não, numa etiqueta do lado direito." Só na interface nova
+  // (a folha de pop-ups dela está na página); fora dela, o desenho de sempre.
+  const _NOVA = !!document.querySelector('link[href*="interface-nova-popups.css"]');
+  function _pessoaPorNome(nome) {
+    const n = String(nome || '').trim().toLowerCase();
+    return n ? (_usuariosList || []).find(u => String(u.nome || '').trim().toLowerCase() === n) || null : null;
+  }
+  function _iniciais(nome) {
+    const p = String(nome || '').trim().split(/\s+/).filter(Boolean);
+    return ((p[0] || '')[0] || '') + (p.length > 1 ? (p[p.length - 1][0] || '') : '');
+  }
+  function _chipResp(nome) {
+    const u = _pessoaPorNome(nome);
+    const miolo = `<span class="proc-resp-ini">${escapeAttr(_iniciais(nome).toUpperCase())}</span><span class="proc-resp-nome">${escapeAttr(nome)}</span>`;
+    return u
+      ? `<button type="button" class="proc-resp" data-pessoa="${u.id}" title="Ver quem é ${escapeAttr(nome)}">${miolo}</button>`
+      : `<span class="proc-resp proc-resp-sem" title="Responsável sem usuário no sistema">${miolo}</span>`;
+  }
+  function _chipPrio(p) {
+    const k = ['baixa', 'media', 'alta'].includes(p) ? p : 'media';
+    return `<span class="proc-prio proc-prio-${k}">${{ baixa: 'Baixa', media: 'Média', alta: 'Alta' }[k]}</span>`;
+  }
+  // O cartão da pessoa: quem é e o que tem na mão agora (os números do pop-up da pessoa da
+  // home, /api/pessoa.php). Abre embaixo da etiqueta; clique fora, Esc ou rolar fecham.
+  let _cartao = null;
+  function _fecharPessoa() { if (_cartao) { _cartao.remove(); _cartao = null; } }
+  async function _abrirPessoa(chip) {
+    const id = chip.dataset.pessoa;
+    if (_cartao && _cartao.dataset.pessoa === id) { _fecharPessoa(); return; }
+    _fecharPessoa();
+    const c = document.createElement('div');
+    c.className = 'proc-pessoa'; c.dataset.pessoa = id; c.setAttribute('role', 'dialog');
+    c.innerHTML = '<div class="proc-pessoa-carregando">Carregando…</div>';
+    document.body.appendChild(c); _cartao = c;
+    const pos = () => {
+      const r = chip.getBoundingClientRect(), w = c.offsetWidth, h = c.offsetHeight;
+      let left = Math.min(Math.max(12, r.left), innerWidth - w - 12), top = r.bottom + 8;
+      if (top + h > innerHeight - 12) top = Math.max(12, r.top - h - 8);
+      c.style.left = left + 'px'; c.style.top = top + 'px';
+    };
+    pos();
+    try {
+      const r = await fetch('/api/pessoa.php?id=' + encodeURIComponent(id), { credentials: 'same-origin' });
+      const j = await r.json();
+      if (_cartao !== c) return;
+      if (!j.ok) { c.innerHTML = '<div class="proc-pessoa-carregando">Não foi possível abrir esta pessoa.</div>'; pos(); return; }
+      const d = j.data, est = { livre: 'Livre hoje', ocupado: 'Com compromisso hoje', atrasado: 'Com prazo atrasado' }[d.estado] || '';
+      const linha = (rot, val) => val ? `<div class="proc-pessoa-linha"><span>${rot}</span><b>${escapeAttr(val)}</b></div>` : '';
+      c.innerHTML = `
+        <div class="proc-pessoa-cab">
+          <span class="proc-pessoa-ini">${escapeAttr(d.iniciais || _iniciais(d.nome))}</span>
+          <span class="proc-pessoa-quem"><b>${escapeAttr(d.nome)}</b><small>${escapeAttr(d.papel)}${d.oab ? ' · OAB ' + escapeAttr(d.oab) : ''}</small></span>
+        </div>
+        ${est ? `<div class="proc-pessoa-estado proc-pessoa-${escapeAttr(d.estado)}">${est}</div>` : ''}
+        <div class="proc-pessoa-numeros">
+          <div><b>${+d.hoje}</b><span>hoje</span></div>
+          <div><b>${+d.semana}</b><span>na semana</span></div>
+          <div class="${+d.vencidas ? 'venc' : ''}"><b>${+d.vencidas}</b><span>vencidos</span></div>
+          <div><b>${+d.abertas}</b><span>tarefas abertas</span></div>
+        </div>
+        ${linha('Escritório', d.escritorio)}${linha('E-mail', d.email)}${linha('Telefone', d.telefone)}
+        ${d.desempenho ? `<a class="proc-pessoa-ir" href="${escapeAttr(d.desempenho)}">Ver o desempenho</a>` : ''}`;
+      pos();
+    } catch (e) {
+      if (_cartao === c) { c.innerHTML = '<div class="proc-pessoa-carregando">Não foi possível abrir esta pessoa.</div>'; pos(); }
+    }
+  }
+  document.addEventListener('click', e => {
+    const chip = e.target.closest && e.target.closest('.proc-resp[data-pessoa]');
+    if (chip) { e.preventDefault(); e.stopPropagation(); _abrirPessoa(chip); return; }
+    if (_cartao && !_cartao.contains(e.target)) _fecharPessoa();
+  }, true);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && _cartao) { e.stopPropagation(); _fecharPessoa(); } }, true);
+  document.addEventListener('scroll', e => { if (_cartao && !_cartao.contains(e.target)) _fecharPessoa(); }, true);
+
   function _fmtD(d) { const m = String(d||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}/${m[1]}` : (d||'—'); }
 
   function _renderPrazo(p) {
     const cls = {concluido:'prazo-badge-concluido',vencido:'prazo-badge-vencido',pendente:'prazo-badge-pendente'}[p.status]||'prazo-badge-pendente';
     const lbl = {concluido:'Concluído',vencido:'Vencido',pendente:'Pendente'}[p.status]||'Pendente';
     return `<div class="prazo-card" data-id="${p.id}">
-      <div class="prazo-card-header"><strong style="font-size:.85rem;color:#e2f0ff">${p.descricao}</strong><span class="${cls}">${lbl}</span></div>
-      <div style="font-size:.78rem;color:#9ab0c9;display:flex;gap:12px;flex-wrap:wrap">
-        <span>${_fmtD(p.data_limite)}</span>${p.responsavel?`<span>Resp.: ${p.responsavel}</span>`:''}<span>${p.prioridade||'media'}</span>
+      <div class="prazo-card-header"><strong style="font-size:.85rem;color:#e2f0ff">${p.descricao}</strong>${_NOVA ? `<span class="proc-etiquetas">${_chipPrio(p.prioridade)}<span class="${cls}">${lbl}</span></span>` : `<span class="${cls}">${lbl}</span>`}</div>
+      <div style="font-size:.78rem;color:#9ab0c9;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+        ${_NOVA
+          ? `<span>${_fmtD(p.data_limite)}</span>${p.responsavel ? _chipResp(p.responsavel) : ''}`
+          : `<span>${_fmtD(p.data_limite)}</span>${p.responsavel?`<span>Resp.: ${p.responsavel}</span>`:''}<span>${p.prioridade||'media'}</span>`}
       </div>
       ${p.observacao?`<div style="font-size:.75rem;color:#7a9abf;font-style:italic">${p.observacao}</div>`:''}
       <div style="display:flex;gap:6px;margin-top:2px">
@@ -1086,7 +1165,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     c.innerHTML = list.length ? list.map(t=>{
       const done = t.concluido ? ' done-item' : '';
       const chkSvg = `<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5 5 4 7.5 8.5 2"/></svg>`;
-      const respHtml = t.responsavel
+      const respHtml = t.responsavel && _NOVA ? _chipResp(t.responsavel) : t.responsavel
         ? `<span class="tarefa-resp"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${t.responsavel}</span>`
         : '';
       const dataHtml = t.data_tarefa
@@ -1106,6 +1185,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
           <span class="tarefa-texto${t.concluido?' done':''}">${t.titulo}</span>
           <div style="display:flex;gap:10px;flex-wrap:wrap">${respHtml}${dataHtml}</div>
         </div>
+        ${_NOVA ? _chipPrio(t.prioridade) : ''}
         <button type="button" class="tarefa-btn-edit"
           data-id="${t.id}"
           data-titulo="${t.titulo.replace(/"/g,'&quot;')}"

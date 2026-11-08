@@ -101,3 +101,49 @@ html:root :is(#processoHistoryList, #etHist, #ipHist) .timeline-entry[data-tipo=
 html:root :is(#processoHistoryList, #etHist, #ipHist) .timeline-entry[data-tipo="anexo"]{ --inn-hist-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m21.4 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57a4 4 0 1 1 5.66 5.66l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48'/%3E%3C/svg%3E"); }
 html:root :is(#processoHistoryList, #etHist, #ipHist) .timeline-entry[data-tipo="vinculo"]{ --inn-hist-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71'/%3E%3Cpath d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'/%3E%3C/svg%3E"); }
 html:root :is(#processoHistoryList, #etHist, #ipHist) .timeline-entry[data-tipo="edicao"]{ --inn-hist-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20h9'/%3E%3Cpath d='M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z'/%3E%3C/svg%3E"); }
+
+/* ── Tarefa e prazo do processo: o mesmo cartão branco, e as etiquetas (08/11/2026) ──
+   "Essa tarefa tem que ser igual ao prazo, branco, senão fica ruim de visualizar; o responsável
+   tem que ser uma etiqueta clicável; e a prioridade numa etiqueta do lado direito." A tarefa
+   ficava afundada (a camada lia a caixa da mesma cor dentro da seção): os dois ganham o cartão
+   da home, por id, acima das marcas da camada. O responsável é uma pílula com a inicial (abre o
+   cartão da pessoa); a prioridade, uma etiqueta sem borda: alta vermelha, média âmbar, baixa
+   neutra. */
+/* Por id e classe dobrada: o yuris-theme.css pinta os dois com #prazosContainer > div:not([style*=...]) !important. */
+html:root body #prazosContainer .prazo-card.prazo-card, html:root body #tarefasContainer .tarefa-item.tarefa-item{ background:var(--inn-t-painel) !important; background-image:none !important; border:1px solid var(--inn-t-linha) !important; border-radius:10px !important; box-shadow:0 1px 2px rgba(31,38,50,.06) !important; }
+html:root #tarefasContainer .tarefa-item{ align-items:center !important; gap:10px !important; padding:10px 12px !important; }
+html:root #tarefasContainer .tarefa-item.done-item{ opacity:.72; }
+html:root #prazosContainer .prazo-card-header{ align-items:flex-start !important; gap:10px !important; }
+html:root .proc-etiquetas{ display:inline-flex; align-items:center; gap:6px; flex:none; }
+html:root .proc-prio{ display:inline-flex; align-items:center; flex:none; padding:3px 9px; border-radius:999px; border:0 !important; font-size:11.5px; font-weight:700; line-height:1.3; letter-spacing:.01em; }
+html:root .proc-prio-alta{ background:var(--inn-t-erro-bg); color:var(--inn-t-erro-forte); }
+html:root .proc-prio-media{ background:var(--inn-t-aviso-bg); color:var(--inn-t-aviso-forte); }
+html:root .proc-prio-baixa{ background:var(--inn-t-painel2); color:var(--inn-t-texto2); }
+html:root .proc-resp{ display:inline-flex; align-items:center; gap:6px; padding:2px 10px 2px 2px; border-radius:999px; border:1px solid var(--inn-t-linha) !important; background:var(--inn-t-campo-pop) !important; color:var(--inn-t-texto) !important; font:inherit; font-size:12px !important; font-weight:600; line-height:1.3; box-shadow:none !important; transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+html:root button.proc-resp{ cursor:pointer; }
+html:root button.proc-resp:hover{ border-color:var(--inn-t-azul2) !important; box-shadow:var(--inn-t-brilho) !important; transform:translateY(-1px); }
+html:root .proc-resp-ini{ display:inline-grid; place-items:center; width:20px; height:20px; border-radius:50%; background:var(--inn-t-azul); color:#FFFFFF; font-size:9.5px; font-weight:800; letter-spacing:.02em; flex:none; }
+html:root .proc-resp-sem .proc-resp-ini{ background:var(--inn-t-texto3); }
+html:root .proc-resp-nome{ overflow-wrap:anywhere; }
+/* O cartão da pessoa: o pop-up da pessoa da home, pequeno, embaixo da etiqueta. */
+.proc-pessoa{ position:fixed; z-index:6000; width:300px; max-width:calc(100vw - 24px); padding:14px; border-radius:14px; background:var(--inn-t-painel); color:var(--inn-t-texto); border:1px solid var(--inn-t-linha2); box-shadow:0 1px 0 var(--inn-t-hi) inset, 0 22px 50px rgba(0,0,0,.22); display:flex; flex-direction:column; gap:10px; font-size:13px; }
+@media (prefers-reduced-motion: no-preference){ .proc-pessoa{ animation:proc-pessoa-surge .28s cubic-bezier(.34,1.3,.4,1) both; } @keyframes proc-pessoa-surge{ from{ opacity:0; transform:translateY(-6px) scale(.97); } to{ opacity:1; transform:none; } } }
+.proc-pessoa-carregando{ color:var(--inn-t-texto3); font-size:12.5px; padding:6px 2px; }
+.proc-pessoa-cab{ display:flex; align-items:center; gap:10px; }
+.proc-pessoa-ini{ width:40px; height:40px; flex:none; display:grid; place-items:center; border-radius:50%; background:var(--inn-t-azul); color:#FFFFFF; font-weight:800; font-size:14px; box-shadow:var(--inn-t-brilho); }
+.proc-pessoa-quem{ display:flex; flex-direction:column; min-width:0; }
+.proc-pessoa-quem b{ font-size:14.5px; font-weight:700; overflow-wrap:anywhere; }
+.proc-pessoa-quem small{ font-size:12px; color:var(--inn-t-texto3); font-weight:500; }
+.proc-pessoa-estado{ align-self:flex-start; padding:3px 9px; border-radius:999px; font-size:11.5px; font-weight:700; background:var(--inn-t-ok-bg); color:var(--inn-t-ok-forte); }
+.proc-pessoa-ocupado{ background:var(--inn-t-aviso-bg); color:var(--inn-t-aviso-forte); }
+.proc-pessoa-atrasado{ background:var(--inn-t-erro-bg); color:var(--inn-t-erro-forte); }
+.proc-pessoa-numeros{ display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; }
+.proc-pessoa-numeros > div{ display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 4px; border-radius:10px; background:var(--inn-t-fundo); box-shadow:var(--inn-t-fundo-sombra); text-align:center; }
+.proc-pessoa-numeros b{ font-size:17px; font-weight:800; line-height:1.1; }
+.proc-pessoa-numeros span{ font-size:10.5px; color:var(--inn-t-texto3); font-weight:600; line-height:1.2; }
+.proc-pessoa-numeros .venc b{ color:var(--inn-t-erro-forte); }
+.proc-pessoa-linha{ display:flex; justify-content:space-between; gap:10px; font-size:12.5px; }
+.proc-pessoa-linha span{ color:var(--inn-t-texto3); flex:none; }
+.proc-pessoa-linha b{ font-weight:600; text-align:right; overflow-wrap:anywhere; min-width:0; }
+.proc-pessoa-ir{ display:flex; justify-content:center; padding:9px 12px; border-radius:10px; background:var(--inn-t-azul); color:#FFFFFF !important; font-weight:700; font-size:13px; text-decoration:none !important; box-shadow:var(--inn-t-brilho); }
+.proc-pessoa-ir:hover{ background:var(--inn-t-azul2); }
