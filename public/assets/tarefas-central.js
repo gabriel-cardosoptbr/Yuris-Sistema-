@@ -62,7 +62,7 @@ window.TkCentral = (function () {
     atualizarChips({});
   }
 
-  async function carregar() {
+  async function carregar(soSeMudou) {
     let qs = '?situacao=' + encodeURIComponent(filtrosCentral.situacao);
     if (filtrosCentral.tipo)  qs += '&tipo=' + filtrosCentral.tipo;
     if (filters.responsavel_id) qs += '&responsavel_id=' + encodeURIComponent(filters.responsavel_id);
@@ -70,6 +70,9 @@ window.TkCentral = (function () {
     if (filters.busca)        qs += '&busca=' + encodeURIComponent(filters.busca);
     const r = await GET('/tarefas_central.php' + qs);
     const d = r.data || {};
+    // Ao voltar do pop-up do processo: só redesenha se algo mudou lá (a tarefa concluída sai
+    // da lista); sem mudança, a tela fica exatamente como estava.
+    if (soSeMudou && JSON.stringify(d.itens || []) === JSON.stringify(itens) && JSON.stringify(d.contagem || {}) === JSON.stringify(contagem)) return;
     itens = d.itens || [];
     contagem = d.contagem || {};
     hoje = d.hoje || '';
@@ -225,10 +228,21 @@ window.TkCentral = (function () {
     return `/processos.php?open=${encodeURIComponent(i.processo_id)}&foco=${foco}&volta=tarefas`;
   }
 
+  /* "Tem que só abrir o pop-up, que nem a gente combinou" (08/11/2026): na interface nova o
+     processo abre por cima da Central, já descendo até a tarefa e piscando nela
+     (embed-abrir.js, o mesmo da home); a Central fica onde estava. Sem ele, o link de sempre. */
+  function abrirNoPopup(i) {
+    if (!window.YurisEmbed) return false;
+    const foco = (i.origem === 'prazo' ? 'prazo:' : 'tarefa:') + i.id;
+    YurisEmbed.abrir(`/processos?open=${encodeURIComponent(i.processo_id)}&foco=${foco}`, { aoFechar: () => carregar(true).catch(() => {}) });
+    return true;
+  }
+
   function abrirItem(chave) {
     const i = achar(chave);
     if (!i) return;
     if (i.origem === 'tarefa') { openDrawer(i.id); return; }
+    if (abrirNoPopup(i)) return;
     location.href = linkDoProcesso(i);
   }
 
@@ -247,6 +261,10 @@ window.TkCentral = (function () {
       $('ipResp').insertAdjacentHTML('beforeend', `<option value="${esc(i.responsavel_nome)}" selected>${esc(i.responsavel_nome)}</option>`);
     }
     $('ipAbrirProcesso').href = linkDoProcesso(i);
+    $('ipAbrirProcesso').onclick = e => {
+      if (!window.YurisEmbed || e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
+      e.preventDefault(); const alvo = editando; fecharItem(); abrirNoPopup(alvo);
+    };
     $('ipConcluir').textContent = i.concluida ? 'Reabrir' : '✓ Concluir';
     $('modalItemProcesso').classList.add('open');
     setTimeout(() => $('ipDescricao').focus(), 40);

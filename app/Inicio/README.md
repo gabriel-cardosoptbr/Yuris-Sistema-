@@ -148,6 +148,11 @@ seleção em pílula.
   tela avisa a home por `postMessage` (só da mesma origem) quando o pop-up abre, quando
   fecha (a home tira o iframe e se atualiza) e quando não tem pop-up (a home vai para a
   tela). Para uma tela nova entrar, basta uma linha em `TELAS` no `embed.js`.
+  Desde 08/11/2026 o mesmo vale nas telas de dentro: `public/assets/embed-abrir.js`
+  (`YurisEmbed.abrir`) abre o pop-up de outro módulo por cima da tela, com a tela fantasma
+  que vai até ele, o foco passando para o pop-up e o Esc fechando. As duas camadas da prévia
+  (sistema e movimento) não tocam no `.inn-emb`. Primeiro uso: a tarefa processual da
+  Central de Tarefas.
 - **O desenho da home no sistema todo** (08/11/2026, "pega todo esse design da home e espalhe para
   todo o sistema, todas as abas, guias, botões, animações, gráficos; não deixe nenhuma aba de
   fora"): `assets/interface-nova-sistema.css` + `.js`, carregados pelo menu junto com a folha das

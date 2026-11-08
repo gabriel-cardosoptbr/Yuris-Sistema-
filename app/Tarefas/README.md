@@ -70,6 +70,12 @@ o mesmo que fazer pelo processo.
   (`processos.php?open=N&foco=tarefa:N&volta=tarefas`): a ficha desce até o item e
   dá o destaque (`focarNoProcesso`), porque a tarefa só faz sentido com o processo
   em volta. O lápis do cartão edita ali mesmo, sem sair da central.
+  Na interface nova (08/11/2026, "tem que só abrir o pop-up, que nem a gente combinou"), o
+  processo abre num pop-up por cima da central (`YurisEmbed.abrir`, em
+  `public/assets/embed-abrir.js`, o mesmo da home), já descendo até a tarefa e piscando nela;
+  o "Abrir processo" da edição rápida também. Fechar (clique fora, Fechar ou Esc) deixa a
+  central onde estava, e ela só se redesenha se a lista mudou lá dentro (a tarefa concluída
+  sai). Sem a interface nova, o link de sempre.
 - **`/tarefas?nova=1` abre o cadastro sozinho** (07/11/2026), como `?tarefa=ID` abre o
   painel da tarefa (`abrirTarefaDoLink` em `tarefas.js`, que tira o parâmetro da barra).
   É o "Nova tarefa" da home nova, que abre esta tela dentro dela com `?embed=1` e

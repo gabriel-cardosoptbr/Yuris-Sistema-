@@ -42,3 +42,32 @@ html .tk-tabs{ flex-wrap:wrap !important; overflow:visible !important; row-gap:2
 html .inn-pop-linha > .tk-drawer-title-row, html #tkDrawer .tk-drawer-title-row{ flex:1 1 auto !important; min-width:0 !important; display:flex !important; align-items:flex-start !important; gap:12px !important; }
 html #tkDrawer .tk-drawer-title{ flex:1 1 auto !important; min-width:0 !important; width:auto !important; max-width:none !important; overflow:hidden !important; resize:none !important; white-space:pre-wrap !important; word-break:break-word; field-sizing:content; line-height:1.3 !important; padding-top:4px !important; padding-bottom:4px !important; }
 html #tkDrawer .tk-drawer-actions{ margin-left:auto !important; flex:none !important; align-self:flex-start !important; }
+
+/* ── O pop-up de outro módulo aberto por cima da tela (08/11/2026) ──
+   Par do embed-abrir.js: o mesmo da home (inicio.css, .idt-embed), com as cores das telas de
+   dentro. O fundo escurece a tela; enquanto o módulo carrega, a forma do pop-up em ossos
+   cinza; quando ele chega, a forma vai até onde ele parou e some por baixo dele. */
+.inn-emb{ position:fixed; inset:0; z-index:4100; background:rgba(14,18,24,.46); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); opacity:0; transition:opacity .2s ease; cursor:default; }
+.inn-emb.visivel{ opacity:1; }
+.inn-emb-quadro{ position:absolute; inset:0; width:100%; height:100%; border:0; background:transparent; opacity:0; transition:opacity .34s ease; pointer-events:none; }
+.inn-emb.pronto .inn-emb-quadro{ opacity:1; pointer-events:auto; }
+.inn-emb-osso{ display:block; border-radius:8px; background:var(--inn-t-fundo); border:1px solid var(--inn-t-linha); box-shadow:var(--inn-t-fundo-sombra); }
+.inn-emb-osso.quad{ width:40px; height:40px; flex:none; }
+.inn-emb-osso.quad.peq{ width:32px; height:32px; }
+.inn-emb-fantasma{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(760px, calc(100vw - 32px)); height:min(72vh, 720px);
+  display:flex; flex-direction:column; overflow:hidden; border-radius:14px; background:var(--inn-t-painel); color:var(--inn-t-texto);
+  border:1px solid var(--inn-t-linha2); box-shadow:0 1px 0 var(--inn-t-hi) inset, 0 30px 70px rgba(0,0,0,.35); }
+.inn-emb-fan-cab{ display:flex; align-items:center; gap:12px; padding:16px 18px; border-bottom:1px solid var(--inn-t-linha); }
+.inn-emb-fan-cab > span{ flex:1; display:flex; flex-direction:column; min-width:0; }
+.inn-emb-fan-corpo{ flex:1; padding:18px; overflow:hidden; }
+.inn-emb-fan-abas{ display:flex; gap:14px; margin-bottom:16px; }
+.inn-emb-fan-grade{ display:grid; grid-template-columns:1fr 1fr; gap:10px 12px; }
+.inn-emb-fan-campo{ display:flex; flex-direction:column; gap:6px; min-width:0; }
+.inn-emb-fan-pe{ display:flex; justify-content:flex-end; align-items:center; gap:10px; padding:14px 18px; border-top:1px solid var(--inn-t-linha); }
+.inn-emb.pronto .inn-emb-fantasma{ opacity:0; pointer-events:none; transition:opacity .3s ease .06s; }
+@media (max-width:640px){ .inn-emb-fantasma{ width:100vw; height:100vh; border-radius:0; } .inn-emb-fan-grade{ grid-template-columns:1fr; } }
+@media (prefers-reduced-motion: no-preference){
+  @keyframes inn-emb-surge{ from{ opacity:0; transform:translate(-50%,-50%) scale(.96); } to{ opacity:1; transform:translate(-50%,-50%); } }
+  html.inn-mov .inn-emb-fantasma{ animation:inn-emb-surge .36s var(--mov-mola, ease) both; }
+  html.inn-mov .inn-emb-fantasma.morfa{ animation:none; transition:left .5s var(--mov-mola, ease), top .5s var(--mov-mola, ease), width .5s var(--mov-mola, ease), height .5s var(--mov-mola, ease); }
+}

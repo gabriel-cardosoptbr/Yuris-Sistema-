@@ -1699,6 +1699,10 @@ window.FF_AGENDA = { csrf: <?= json_encode($_notifCsrf) ?>, sessao: <?= json_enc
 <!-- O movimento das telas de dentro: entrada, saída pelo menu, pop-ups que surgem. -->
 <link rel="stylesheet" href="/assets/interface-nova-movimento.css?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-movimento.css') ?: 1 ?>">
 <script src="/assets/interface-nova-movimento.js?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-movimento.js') ?: 1 ?>" defer></script>
+<?php if (($_GET['embed'] ?? '') !== '1'): ?>
+<!-- Abrir o pop-up de verdade de outro módulo por cima da tela (a tarefa processual abre o processo), como na home. -->
+<script src="/assets/embed-abrir.js?v=<?= @filemtime(__DIR__ . '/../assets/embed-abrir.js') ?: 1 ?>" defer></script>
+<?php endif; ?>
 <?php endif; ?>
 <?php endif; echo \App\Inicio\InterfaceNova::scriptCookie($_GET); ?>
 <?php if ($_interfaceNova && ($_GET['embed'] ?? '') === '1'): ?>

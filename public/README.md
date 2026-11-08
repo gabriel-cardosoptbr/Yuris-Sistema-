@@ -368,7 +368,10 @@ de vínculos e abre o "+ Adicionar vínculo"; usado pelo cadastro de tarefa jur�
 Valem hoje Processos, Tarefas, Clientes (`?open=ID`, a ficha) e Chat (`?jid=`, a conversa, que no
 embutido vira o pop-up no centro da tela); cada uma é uma linha em `TELAS` no `embed.js` (08/11/2026),
 com `caixa` (o seletor do pop-up em si), medido e mandado no `embed-pronto` para a home levar a
-tela fantasma até ele.
+tela fantasma até ele. Fora da home, `assets/embed-abrir.js` (`YurisEmbed.abrir(url, { aoFechar })`,
+carregado nas telas de dentro da interface nova e nunca no `?embed=1`) faz o mesmo por cima de qualquer
+tela: a Central de Tarefas abre o processo da tarefa processual assim (08/11/2026). O desenho dele
+(`.inn-emb`) mora em `interface-nova-popups.css`.
 No embutido, `assets/chat.js` abre a conversa do `?jid=` mesmo quando ela está fora das 500 da
 lista (procura pelo número na própria API da lista e, sem achar, abre pelo jid); fora do embutido
 nada muda. O tamanho dos pop-ups das telas na prévia fica em `assets/interface-nova-popups.css`;

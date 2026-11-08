@@ -398,7 +398,7 @@
     var fila = [];
     cands.forEach(function (el) {
       // Vale na tela, nos pop-ups e também no que fica fora (aviso fixo no topo, toast): só o menu fica de fora.
-      if (el.dataset.innCor || el.closest('.sidebar, .inn-selo, .inn-cab-ic, svg, .inn-arq')) return;
+      if (el.dataset.innCor || el.closest('.sidebar, .inn-selo, .inn-cab-ic, svg, .inn-arq, .inn-emb')) return;
       var cls = String(el.className || ''); if (typeof el.className !== 'string') return;
       if (/(^|\s)inn-(selo|ic-btn|aba-on)/.test(cls) && !/inn-aba(\s|$)/.test(cls)) return;
       // No meio de uma transição a cor lida é a do caminho, não a de chegada (e o aviso do Chat
@@ -1431,7 +1431,7 @@
           if ((m.attributeName === 'style' || m.attributeName === 'hidden' || m.attributeName === 'class') && alvo.dataset && alvo.dataset.innCor == null && alvo.dataset.innSelo == null && !alvo.classList.contains('inn-aba')) vestirCores(alvo);
           return;
         }
-        [].forEach.call(m.addedNodes, function (no) { if (no.nodeType === 1 && !(no.closest && no.closest('.inn-arq'))) { vestirArquivos(no); botoesDeIcone(no); fantasmas(no); marcarAbas(no); selos(no); vestirCores(no); } });
+        [].forEach.call(m.addedNodes, function (no) { if (no.nodeType === 1 && !(no.closest && no.closest('.inn-arq, .inn-emb'))) { vestirArquivos(no); botoesDeIcone(no); fantasmas(no); marcarAbas(no); selos(no); vestirCores(no); } });
       });
       if (!pendente) { pendente = true; requestAnimationFrame(function () { pendente = false; conferirFantasmas(); }); }
     }).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['class', 'aria-selected', 'aria-pressed', 'style', 'hidden'] });

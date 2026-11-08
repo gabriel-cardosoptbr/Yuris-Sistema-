@@ -285,7 +285,7 @@
         paineis.push(el); return;
       }
       [].forEach.call(m.addedNodes, function (n) {
-        if (n.nodeType !== 1 || /^(SCRIPT|STYLE|OPTION)$/.test(n.tagName) || n.closest('.sidebar')) return;
+        if (n.nodeType !== 1 || /^(SCRIPT|STYLE|OPTION)$/.test(n.tagName) || n.closest('.sidebar, .inn-emb')) return;
         var r = n.getBoundingClientRect(); if (r.height < 14 || r.width < 40) return;
         var arr = porPai.get(n.parentNode) || []; arr.push(n); porPai.set(n.parentNode, arr);
       });
