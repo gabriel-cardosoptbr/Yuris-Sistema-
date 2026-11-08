@@ -173,52 +173,8 @@ try {
  */
 function listPhpExtractAdvogados(array $it): array
 {
-    $payloadRaw = $it['payload_original'] ?? null;
-    if (!$payloadRaw) return [];
-
-    $payload = is_string($payloadRaw) ? json_decode($payloadRaw, true) : $payloadRaw;
-    if (!is_array($payload)) return [];
-
-    $advs = [];
-
-    // DJEN: campo destinatarioadvogados (array de objetos com .advogado)
-    if (!empty($payload['destinatarioadvogados']) && is_array($payload['destinatarioadvogados'])) {
-        // Dedupe, que o ramo da AASP ja fazia e este nao. O tribunal manda o
-        // mesmo advogado mais de uma vez quando ele representa duas partes do
-        // mesmo processo, e a lista saia com o nome repetido lado a lado.
-        $vistos = [];
-        foreach ($payload['destinatarioadvogados'] as $da) {
-            $adv = $da['advogado'] ?? [];
-            if (!is_array($adv)) continue;
-            $nome = trim((string)($adv['nome'] ?? ''));
-            $oab  = trim((string)($adv['numero_oab'] ?? ''));
-            $uf   = trim((string)($adv['uf_oab'] ?? ''));
-            if ($nome === '' && $oab === '') continue;
-            // A OAB identifica unicamente; sem ela, cai no nome.
-            $chave = $oab !== '' ? mb_strtoupper($uf . '-' . $oab) : mb_strtoupper($nome);
-            if (isset($vistos[$chave])) continue;
-            $vistos[$chave] = true;
-            $advs[] = ['nome' => $nome, 'oab' => $oab, 'uf' => $uf];
-        }
-    }
-
-    // AASP: regex no textoPublicacao
-    if (empty($advs) && !empty($payload['textoPublicacao'])) {
-        $texto = (string)$payload['textoPublicacao'];
-        if (preg_match_all('/([A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ\s\.\']+?)\s+OAB\s+([A-Z]{2})[-\s]*(\d+)/u', $texto, $m, PREG_SET_ORDER)) {
-            $seen = [];
-            foreach ($m as $row) {
-                $oab = $row[3];
-                $uf  = $row[2];
-                $key = "{$uf}-{$oab}";
-                if (isset($seen[$key])) continue;
-                $seen[$key] = true;
-                $advs[] = ['nome' => trim($row[1]), 'oab' => $oab, 'uf' => $uf];
-            }
-        }
-    }
-
-    return $advs;
+    // A regra mora em App\Processos\PublicacaoEstrutura, que a home nova também usa.
+    return \App\Processos\PublicacaoEstrutura::advogadosDoPayload($it['payload_original'] ?? null);
 }
 
 /**
@@ -228,34 +184,5 @@ function listPhpExtractAdvogados(array $it): array
  */
 function listPhpExtractPartes(array $it): array
 {
-    $payloadRaw = $it['payload_original'] ?? null;
-    if (!$payloadRaw) return [];
-
-    $payload = is_string($payloadRaw) ? json_decode($payloadRaw, true) : $payloadRaw;
-    if (!is_array($payload)) return [];
-
-    $partes = [];
-
-    // DJEN: campo destinatarios (array de objetos com .nome)
-    if (!empty($payload['destinatarios']) && is_array($payload['destinatarios'])) {
-        foreach ($payload['destinatarios'] as $d) {
-            if (!is_array($d)) continue;
-            $nome = trim((string)($d['nome'] ?? ''));
-            if ($nome !== '') $partes[] = $nome;
-        }
-    }
-
-    // AASP: regex no textoPublicacao
-    if (empty($partes) && !empty($payload['textoPublicacao'])) {
-        $texto = (string)$payload['textoPublicacao'];
-        // Captura bloco "Parte(s): X Y Z" até próximo label conhecido
-        $stopLabels = '\s+(?:Advogado\(s\)|Agravante|Agravado|Recorrente|Recorrido|Publicação|Nota|Relator|Processo)';
-        if (preg_match('/Parte\(s\)\s*:\s*(.+?)(?=' . $stopLabels . '|$)/su', $texto, $m)) {
-            $bloco = trim(preg_replace('/[\r\n]+/', ' ', $m[1]));
-            $bloco = trim(preg_replace('/\s{2,}/', ' ', $bloco));
-            if ($bloco !== '') $partes[] = $bloco;
-        }
-    }
-
-    return $partes;
+    return \App\Processos\PublicacaoEstrutura::partesDoPayload($it['payload_original'] ?? null);
 }

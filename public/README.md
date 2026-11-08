@@ -346,6 +346,10 @@ mexer em layout. A home está em `assets/inicio.css` (variáveis `--ini-*`,
 a faixa de boas-vindas com a foto de uma biblioteca jurídica ao fundo). A paleta é
 prata do logo, madeira clara nos toques e o azul do Yuris opaco só em ação e seleção. Quem não ligou não vê nada disso. Ver
 [`app/Inicio/README.md`](../app/Inicio/README.md); teste `scripts/tests/interface_nova_test.php`.
+Com `?embed=1` (só na interface nova), o menu carrega `assets/embed.css` e `assets/embed.js`:
+a tela aparece só com o pop-up dela, para a home abrir o pop-up de verdade do módulo
+num iframe (07/11/2026). `processos.php?criar=1` abre o cadastro de processo e
+`tarefas.php?nova=1` o de tarefa, do mesmo jeito que `?open=ID` e `?tarefa=ID` já abriam.
 
 **Tema escuro da edição CRM (02/10/2026).** O desenho da edição CRM era só claro
 (todo seletor com `html[data-theme="light"]`), e no escuro sobrava o estilo antigo do

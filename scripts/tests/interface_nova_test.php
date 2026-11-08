@@ -203,10 +203,23 @@ ok($detJs !== '' && str_contains($inicio, '/assets/inicio-detalhe.js'), 'a home 
 ok(str_contains($inicio, 'data-det=') || str_contains($inicio, 'data-det="'), 'os cartões levam os dados do pop-up');
 ok(str_contains($detJs, 'e.metaKey || e.ctrlKey || e.shiftKey'), 'Ctrl/Cmd/Shift+clique continua abrindo a página');
 ok(str_contains($detJs, 'X-CSRF-Token'), 'concluir prazo manda o token CSRF');
-foreach (['concluir-prazo', 'concluir-tarefa-processo', 'concluir-tarefa', 'tratar-pub', 'enviar-wa', 'salvar-processo', 'salvar-tarefa'] as $a) ok(str_contains($detJs, "'$a': function"), "pop-up tem a ação $a");
-foreach (['abrir-processo', 'salvar-edicao', 'novo-prazo', 'nova-tarefa-proc', 'reabrir-tarefa-proc'] as $a) ok(str_contains($detJs, "ACOES['$a']"), "processo completo tem a ação $a");
-ok(!str_contains($detJs, "link('Abrir o processo'"), '"Abrir o processo" abre dentro da janela, não sai da home');
-ok(str_contains($detJs, 'function formatarJuridico') && str_contains($detJs, 'function limparTexto'), 'texto da publicação tratado como no Diário');
+foreach (['concluir-prazo', 'concluir-tarefa-processo', 'concluir-tarefa', 'tratar-pub', 'enviar-wa'] as $a) ok(str_contains($detJs, "'$a': function"), "pop-up tem a ação $a");
+// O pop-up de verdade do módulo (07/11/2026): a tela abre num iframe com ?embed=1 e mostra só o pop-up dela.
+foreach (['abrir-processo', 'abrir-tarefa'] as $a) ok(str_contains($detJs, "ACOES['$a']"), "pop-up tem a ação $a");
+ok(!str_contains($detJs, "link('Abrir o processo'"), '"Abrir o processo" abre dentro da home, não sai dela');
+ok(str_contains($detJs, "abrirModulo('/processos?open=") && str_contains($detJs, "abrirModulo('/processos?criar=1')") && str_contains($detJs, "abrirModulo('/tarefas?nova=1')"), 'processo, novo processo e nova tarefa abrem o pop-up de verdade do módulo');
+ok(!str_contains($detJs, 'abrirProcessoCompleto') && !str_contains($detJs, 'Rapida: function') && !str_contains($detJs, 'Rapido: function'), 'sem imitação do pop-up do módulo na home');
+ok(str_contains($detJs, 'e.origin !== location.origin'), 'o aviso do iframe só vale da mesma origem');
+$sidebar = (string) file_get_contents($raiz . '/public/includes/sidebar.php');
+ok(str_contains($sidebar, "\$_interfaceNova && (\$_GET['embed'] ?? '') === '1'"), 'o modo pop-up só liga na interface nova e com ?embed=1');
+$embedJs = (string) @file_get_contents($raiz . '/public/assets/embed.js');
+ok(str_contains($embedJs, "'embed-pronto'") && str_contains($embedJs, "'embed-fechar'") && str_contains($embedJs, "'embed-sem-popup'"), 'a tela embutida avisa quando abre, quando fecha e quando não tem pop-up');
+ok(str_contains($embedJs, 'postMessage({ yuris: tipo, tela: pagina }, location.origin)'), 'a tela embutida só fala com a mesma origem');
+ok(str_contains((string) file_get_contents($raiz . '/public/processos.php'), "params.get('criar') === '1'"), 'Processos aceita ?criar=1 (o cadastro abre sozinho)');
+ok(str_contains((string) file_get_contents($raiz . '/public/assets/tarefas.js'), "params.get('nova') === '1'"), 'Tarefas aceita ?nova=1 (o cadastro abre sozinho)');
+ok(str_contains($detJs, 'function formatarJuridico') && str_contains($detJs, 'function limparTexto'), 'texto sem estrutura cai na limpeza do Diário');
+ok(str_contains($detJs, 'e.blocos') && str_contains($detJs, 'e.advogados') && str_contains($detJs, 'idt-pub-assin'), 'a publicação aparece em tópicos (seções, advogados com OAB, assinatura)');
+ok(str_contains((string) file_get_contents($raiz . '/app/Inicio/Painel.php'), 'PublicacaoEstrutura::estruturar('), 'a home manda a publicação já separada pelo servidor');
 ok(str_contains($inicio, 'data-novo="processo"') && str_contains($inicio, 'data-novo="tarefa"') && str_contains($inicio, 'data-novo="publicacoes"'), 'os três botões da faixa abrem o pop-up');
 ok(!str_contains($detJs, 'alert(') && !str_contains($detJs, 'confirm(') && !str_contains($detJs, '—'), 'pop-up sem diálogo nativo e sem travessão');
 

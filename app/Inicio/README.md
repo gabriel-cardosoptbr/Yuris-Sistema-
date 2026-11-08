@@ -92,28 +92,36 @@ seleção em pílula.
   resto nos endpoints que as telas já usam (`/api/processes.php?id=`,
   `/api/processo_prazos.php?processo_id=`, `/api/tasks.php?id=`), com a mesma checagem
   de conta, e mostra os prazos em aberto do processo com **Concluir** (PATCH no
-  `processo_prazos.php`, com o token CSRF). Publicação mostra o texto (sem HTML, até
-  1.500 caracteres, de `Painel::publicacoes`). Ctrl/Cmd/Shift+clique ainda abre a página.
+  `processo_prazos.php`, com o token CSRF). Publicação mostra o teor em tópicos (até
+  12.000 caracteres, de `Painel::publicacoes`). Ctrl/Cmd/Shift+clique ainda abre a página.
   Esc, o × e o clique fora fecham.
   **Ações na própria janela** ("não pode ser só o preview"): concluir prazo, tarefa do
   processo e tarefa do quadro (PATCH `processo_prazos.php` / `processo_tarefas.php`, POST
   `tasks.php?action=complete`); tratar a publicação, com nota (`push/persist.php`, ação
   `tratar`); responder o WhatsApp com as últimas 15 mensagens à vista (`whatsapp/messages.php`
   e `whatsapp/send.php`, o mesmo canal do chat, sem instância nova); e os botões da faixa
-  de boas-vindas abrem formulário aqui: **Novo processo** (POST `processes.php`), **Nova
-  tarefa** (POST `tasks.php`, com quadro, responsável e hora) e **Tratar publicações**
-  (a lista das pendentes, cada uma abre a leitura com o tratamento). O texto da
-  publicação vai cru e é limpo e quebrado em parágrafos com a mesma regra do Diário
-  (`cleanText` + `_formatLegal` de `intimacoes.js`, copiadas em `inicio-detalhe.js`:
-  mudou lá, muda aqui).
-  **O processo completo dentro da janela**: "Abrir o processo" (e o cartão de processo)
-  abre o processo ali mesmo, em quatro abas: **Resumo** (todos os dados, com "Editar os
-  dados": número, situação, cliente, parte contrária, vara, responsável, próximo prazo,
-  link do tribunal, observações, por PUT `processes.php`), **Prazos** (novo prazo, concluir,
-  os concluídos), **Tarefas** (nova tarefa do processo, concluir, reabrir) e **Andamento**
-  (o histórico, `processo_history.php`). "Voltar" retorna ao cartão de onde veio; o
-  "Editor completo" (tela de Processos) fica para o que não está aqui, como anexos e
-  vínculos. Processo cadastrado pelo "Novo processo" já abre assim.
+  de boas-vindas: **Tratar publicações** abre a lista das pendentes, cada uma com a
+  leitura e o tratamento.
+  **A publicação em tópicos** ("tem que separar os OAB, o que é advogado, o que é
+  corpo"): `Painel::publicacoes` manda cada publicação já separada por
+  `App\Processos\PublicacaoEstrutura` (ver o README de Processos): a grade com tribunal,
+  processo, classe e documento, sem vão (se sobra um campo, ele ocupa a linha); o timbre
+  miúdo; partes por polo; advogados um por linha com a OAB em azul; cada seção do teor
+  com título azul, uma frase por parágrafo e a assinatura à direita; intimados; e "Ver a
+  certidão no tribunal". Texto que não dá para separar cai na limpeza do Diário
+  (`cleanText` + `_formatLegal` de `intimacoes.js`, copiadas em `inicio-detalhe.js`).
+  **O pop-up de verdade do módulo** ("tem que abrir exatamente o pop-up lá do campo, do
+  jurídico, de operação: o campo de verdade"): a home não imita a tela do módulo. Abre
+  a própria tela num iframe por cima da home, com `?embed=1`, e ela mostra só o pop-up
+  dela, com tudo o que ele tem (`public/assets/embed.js` e `embed.css`, carregados pelo
+  menu só na interface nova e só com `?embed=1`). O cartão de processo e "Abrir o
+  processo" abrem a ficha de Processos (`/processos?open=ID`, com `&foco=prazo:ID` ou
+  `tarefa:ID` quando vem de um prazo ou tarefa, e ela desce até ele); **Novo processo**
+  abre o cadastro (`/processos?criar=1`); **Nova tarefa** abre o cadastro de Tarefas
+  (`/tarefas?nova=1`); a tarefa do quadro abre o painel dela (`/tarefas?tarefa=ID`). A
+  tela avisa a home por `postMessage` (só da mesma origem) quando o pop-up abre, quando
+  fecha (a home tira o iframe e se atualiza) e quando não tem pop-up (a home vai para a
+  tela). Para uma tela nova entrar, basta uma linha em `TELAS` no `embed.js`.
 - Cabeçalho dos cartões: sem link de texto; o ícone é o atalho para a tela do bloco,
   centrado com o título, e no hover sobe 2px e acende como o botão aprovado.
 - Cartões nunca deixam vão: as colunas se esticam até a mesma altura e o último

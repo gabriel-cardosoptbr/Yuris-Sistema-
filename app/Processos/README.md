@@ -34,6 +34,7 @@ das classes daqui tratam de cota e permissão, e não de processo.
 | `PushProcessoLink.php` | liga a publicação encontrada ao processo cadastrado |
 | `PushQueryLog.php` | log das consultas feitas às fontes |
 | `PushTodayCache.php` | cache do dia, para não consultar a mesma coisa repetidas vezes |
+| `PublicacaoEstrutura.php` | a publicação em tópicos: cabeçalho, timbre, partes, advogados com OAB, seções do teor com parágrafos e assinatura, intimados e link do tribunal. Regra pura, sem banco. Também extrai advogados e partes do payload para o Diário (`api/push/list.php` delega) |
 | `MonitorQuota.php` | cálculo de cota do add-on: quantos monitoramentos o plano permite |
 | `MonitorPermission.php` | quem pode ver e mexer em monitoramento dentro da conta |
 | `MonitorAudit.php` | grava em `monitor_audit_log` |
@@ -58,6 +59,26 @@ continua "intimações" porque esse é o produto dela.
 direta a API respondeu 200 com dados para o ano inteiro de 2024 e de 2025; 2021 veio vazio. A
 busca manual agora aceita até 1 ano e pagina (até 6 páginas de 500). O `count` da API não é
 total confiável: `truncado` sai da última página ter vindo cheia, e a tela avisa.
+
+## A publicação em tópicos (07/11/2026)
+
+"Tem que separar os OAB, o que é advogado, o que é corpo... separar todos os tópicos." O DJEN e a
+AASP mandam o teor numa linha só. `PublicacaoEstrutura::estruturar($texto, $payload)` devolve:
+
+- **cabecalho**: classe (o `nomeClasse` do DJEN, com a caixa consertada), documento, e o que vier em
+  linhas ("Classe - Assunto:", "Relator:") ou no formato do TJSP ("Processo N - Classe - Assunto - partes - teor");
+- **preambulo**: o timbre ("PODER JUDICIÁRIO ... 7ª VARA ... ATOrd N"), que vai miúdo;
+- **partes**: pelo polo do DJEN (`destinatarios[].polo`), com o rótulo do texto quando existe (Reclamante,
+  Requerido); sem payload, pelos rótulos em maiúsculas antes da primeira seção;
+- **advogados**: os do DJEN, os da lista "ADV:" do fim e os citados com OAB ("NOME (OAB 123/SP)",
+  "NOME - OAB/SP 123", "NOME OAB SP-123"), um por linha, sem repetir (a OAB identifica);
+- **blocos**: cada seção em maiúsculas (Intimação, Conclusão, Despacho, Decisão, Sentença, Ato
+  ordinatório...) com uma frase por parágrafo (abreviações como "V. Sa." e "v. Acórdão" não quebram;
+  "Vistos" e itens numerados abrem linha) e a assinatura à parte: local e data, nome, cargo;
+- **intimados** (o "Intimado(s) / Citado(s)" do fim) e **link** (só https, do payload).
+
+Usada pelo pop-up de publicação da home nova (`Inicio/Painel::publicacoes`). Teste:
+`scripts/tests/publicacao_estrutura_test.php`, com textos nos formatos reais e nomes fictícios.
 
 ## Regras
 

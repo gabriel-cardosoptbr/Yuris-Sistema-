@@ -2,6 +2,7 @@
 namespace App\Inicio;
 
 use App\Core\Database;
+use App\Processos\PublicacaoEstrutura;
 use App\Tarefas\CargaDaEquipe;
 use App\Tarefas\Central;
 use App\WhatsAppAgente\MetricasAtendimento;
@@ -375,7 +376,7 @@ final class Painel
         $total = (int) $stT->fetchColumn();
 
         $st = $pdo->prepare(
-            "SELECT e.id, e.tribunal, e.tipo_comunicacao, e.titulo, e.resumo, e.data_disponibilizacao, e.orgao, LEFT(e.conteudo, 6000) AS conteudo,
+            "SELECT e.id, e.tribunal, e.tipo_comunicacao, e.titulo, e.resumo, e.data_disponibilizacao, e.orgao, LEFT(e.conteudo, 12000) AS conteudo, e.payload_original,
                     COALESCE(NULLIF(e.numero_processo_mascara,''), e.numero_processo) AS numero, e.processo_id, pr.cliente_nome
                FROM push_events e
           LEFT JOIN processos pr ON pr.id = e.processo_id
@@ -384,11 +385,14 @@ final class Painel
         );
         $st->execute($p);
         $itens = $st->fetchAll(\PDO::FETCH_ASSOC);
-        // O pop-up da home mostra o texto como o Diário mostra: vai cru, e o navegador
-        // limpa e quebra as linhas com a mesma regra de intimacoes.js (inicio-detalhe.js).
+        // O pop-up da home mostra a publicação em tópicos: cabeçalho, partes, advogados
+        // com a OAB, cada seção do teor em parágrafos e a assinatura à parte
+        // (App\Processos\PublicacaoEstrutura). O texto cru só vai quando não deu para separar.
         foreach ($itens as &$it) {
-            $it['texto'] = (string) ($it['conteudo'] ?: $it['resumo']);
-            unset($it['conteudo']);
+            $texto = (string) ($it['conteudo'] ?: $it['resumo']);
+            $it['estrutura'] = PublicacaoEstrutura::estruturar($texto, $it['payload_original'] ?? null);
+            $it['texto'] = $it['estrutura']['blocos'] ? '' : $texto;
+            unset($it['conteudo'], $it['payload_original']);
         }
         unset($it);
         return ['total' => $total, 'itens' => $itens];

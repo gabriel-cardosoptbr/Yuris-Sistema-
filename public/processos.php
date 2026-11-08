@@ -1473,6 +1473,7 @@ try {
       const newClienteId = params.get('new_cliente_id'); // vindo da aba Clientes
       const focoItem = params.get('foco');                // vindo da Central de Tarefas
       const veioDeTarefas = params.get('volta') === 'tarefas';
+      const criarNovo = params.get('criar') === '1';      // vindo do "Novo processo" da home nova
 
       // Detecta se a navegação foi um reload (F5/Ctrl+R)
       function _isPageReload() {
@@ -1492,13 +1493,14 @@ try {
           u.searchParams.delete('new_cliente_id');
           u.searchParams.delete('foco');
           u.searchParams.delete('volta');
+          u.searchParams.delete('criar');
           const qs = u.searchParams.toString();
           history.replaceState(null, '', u.pathname + (qs ? '?' + qs : '') + u.hash);
         } catch (e) {}
       }
 
       const isReload = _isPageReload();
-      if (openId || newCardId || newClienteId) _cleanUrlParams();
+      if (openId || newCardId || newClienteId || criarNovo) _cleanUrlParams();
       if (isReload) return; // F5 não auto-abre modal
 
       setTimeout(() => { // aguarda processos.js inicializar
@@ -1516,6 +1518,8 @@ try {
               if (focoItem && window.focarNoProcesso) window.focarNoProcesso(focoItem);
             })
             .catch(() => {});
+        } else if (criarNovo) {
+          showModal(null);
         } else if (newCardId) {
           // Abre modal de novo processo já vinculado a um Lead da Prospecção.
           // Usa os helpers expostos por processos.js (_ensureVinculoData +

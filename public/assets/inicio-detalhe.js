@@ -100,7 +100,7 @@
   function realcar(htmlEsc) {
     return htmlEsc
       .replace(/\b(\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4})\b/g, '<em class="ini-num">$1</em>')
-      .replace(/\b(OAB\s*\d{2,7}\s*\/?\s*[A-Z]{2})\b/g, '<strong class="idt-oab">$1</strong>');
+      .replace(/\b(OAB\s*:?\s*(?:\d[\d.]{1,8}[A-Z]?\s*\/?\s*[A-Z]{2}|\/?\s*[A-Z]{2}\s*:?\s*\d[\d.]{1,8}))\b/g, '<strong class="idt-oab">$1</strong>');
   }
 
   // ── A janela ────────────────────────────────────────────────────────────
@@ -140,8 +140,6 @@
     fundo.classList.remove('visivel');
     document.documentElement.classList.remove('idt-aberto');
     setTimeout(function () { fundo.hidden = true; }, 160);
-    PC = null;
-    if (ESTADO.recarregarAoFechar) { ESTADO.recarregarAoFechar = false; location.reload(); return; }
     if (origemFoco) { try { origemFoco.focus({ preventScroll: true }); } catch (e) {} }
   }
   // O cartão da home que gerou a janela some da lista quando a ação o resolve.
@@ -198,30 +196,6 @@
         campoTxt.value = ''; campoTxt.disabled = false; liberado(b); campoTxt.focus();
         resolverCartao(cartaoAtual); avisar('Mensagem enviada.');
       }).catch(function (e) { campoTxt.disabled = false; liberado(b); avisar('Não consegui enviar: ' + e.message, 'danger'); });
-    },
-    'salvar-processo': function (b) {
-      var f = elCorpo.querySelector('form'); if (!f.reportValidity()) return;
-      var dados = {}; new FormData(f).forEach(function (v, k) { if (String(v).trim() !== '') dados[k] = String(v).trim(); });
-      dados.status = 'ativo';
-      ocupado(b, 'Cadastrando…');
-      enviar('/api/processes.php', 'POST', dados).then(function (r) {
-        avisar('Processo cadastrado.');
-        var id = r && (r.id || (r.data && r.data.id));
-        ESTADO.recarregarAoFechar = true;
-        if (id) abrirProcessoCompleto(id, 'resumo', null); else setTimeout(function () { location.reload(); }, 1200);
-      }).catch(function (e) { liberado(b); avisar('Não consegui cadastrar: ' + e.message, 'danger'); });
-    },
-    'salvar-tarefa': function (b) {
-      var f = elCorpo.querySelector('form'); if (!f.reportValidity()) return;
-      var d = {}; new FormData(f).forEach(function (v, k) { if (String(v).trim() !== '') d[k] = String(v).trim(); });
-      var corpo = { board_id: +d.board_id, titulo: d.titulo, prioridade: d.prioridade || 'media', descricao: d.descricao || null,
-        responsavel_id: d.responsavel_id ? +d.responsavel_id : null,
-        prazo: d.data ? d.data + ' ' + (d.hora || '00:00') + ':00' : null };
-      ocupado(b, 'Criando…');
-      enviar('/api/tasks.php', 'POST', corpo).then(function () {
-        avisar('Tarefa criada.'); b.textContent = 'Criada';
-        setTimeout(function () { location.reload(); }, 1200);
-      }).catch(function (e) { liberado(b); avisar('Não consegui criar a tarefa: ' + e.message, 'danger'); });
     }
   };
 
@@ -294,7 +268,10 @@
       var concluir = d.origem === 'prazo' ? acao('Concluir prazo', 'concluir-prazo', true, ' data-id="' + (+d.id) + '"')
         : d.origem === 'tarefa_processo' ? acao('Concluir tarefa', 'concluir-tarefa-processo', true, ' data-id="' + (+d.id) + '"')
         : d.origem === 'tarefa' ? acao('Concluir tarefa', 'concluir-tarefa', true, ' data-id="' + (+d.id) + '"') : '';
-      elAcoes.innerHTML = (d.processo_id ? acao('Abrir o processo', 'abrir-processo', false, ' data-id="' + (+d.processo_id) + '" data-de="evento"') : link('Abrir em Tarefas', '/tarefas', false)) + concluir;
+      // A ficha do processo abre já descendo até o prazo ou a tarefa (o ?foco= da tela de Processos).
+      var foco = d.origem === 'prazo' ? 'prazo:' + (+d.id) : d.origem === 'tarefa_processo' ? 'tarefa:' + (+d.id) : '';
+      elAcoes.innerHTML = (d.processo_id ? acao('Abrir o processo', 'abrir-processo', false, ' data-id="' + (+d.processo_id) + '"' + (foco ? ' data-foco="' + foco + '"' : ''))
+        : d.origem === 'tarefa' && d.id ? acao('Abrir a tarefa', 'abrir-tarefa', false, ' data-id="' + (+d.id) + '"') : link('Abrir em Tarefas', '/tarefas', false)) + concluir;
       if (d.processo_id) blocoProcesso(d.processo_id, extra, d.origem === 'prazo' ? d.id : null);
       if (d.origem === 'tarefa' && d.id) {
         var alvo = document.createElement('div'); extra.appendChild(alvo);
@@ -309,33 +286,59 @@
         }).catch(function () { alvo.innerHTML = ''; });
       }
     },
+    // O cartão de processo abre direto a ficha de verdade da tela de Processos.
     proc: function (d) {
-      abrirProcessoCompleto(d.processo_id, 'resumo', null);
+      abrirModulo('/processos?open=' + (+d.processo_id));
     },
-    procResumo: function (d) {
-      abrirJanela('proc', d.cliente || 'Processo', num(d.num));
-      elCorpo.innerHTML = '<div class="idt-sec"><div class="idt-grade">'
-        + campo('Última movimentação', esc(d.mov), 'largo')
-        + campo('Quando', esc(dataCurta(d.quando)))
-        + campo('Situação', '<span class="ini-situ ' + esc(d.tom) + '">' + esc(d.situacao) + '</span>')
-        + '</div></div><div class="idt-extra"></div>';
-      elAcoes.innerHTML = acao('Abrir o processo', 'abrir-processo', true, ' data-id="' + (+d.processo_id) + '"');
-      blocoProcesso(d.processo_id, elCorpo.querySelector('.idt-extra'), null);
-    },
+    // A publicação em tópicos, separada no servidor por App\Processos\PublicacaoEstrutura:
+    // cabeçalho, timbre, partes, advogados um por linha com a OAB, cada seção do teor
+    // com os parágrafos e a assinatura à parte, e os intimados. Sem estrutura (texto
+    // que não deu para separar), cai na limpeza do Diário.
     pub: function (d) {
       abrirJanela('pub', d.tipo || 'Publicação', esc(d.tribunal) + ' · ' + esc(dataLonga(d.data)));
-      var texto = formatarJuridico(limparTexto(d.texto || ''));
-      elCorpo.innerHTML = '<div class="idt-sec"><div class="idt-grade">'
-        + campo('Tribunal', esc(d.tribunal)) + campo('Disponibilizada', esc(dataCurta(d.data)))
-        + campo('Processo', num(d.num)) + campo('Cliente', esc(d.cliente))
+      var e = d.estrutura || {};
+      var nomes = function (lista) { return lista.map(function (n) { return '<span class="idt-pub-nome">' + esc(n) + '</span>'; }).join(''); };
+      var cab = (e.cabecalho || []).filter(function (c) { return !(c.rotulo === 'Processo' && d.num); });
+      // Em pares; se sobrar um, ele ocupa a linha inteira (sem vão na grade).
+      var pares = [['Tribunal', esc(d.tribunal)], ['Disponibilizada', esc(dataCurta(d.data))], ['Processo', num(d.num)], ['Cliente', esc(d.cliente)]]
+        .concat(cab.map(function (c) { return [c.rotulo, /^Processo/.test(c.rotulo) ? num(c.valor) : esc(c.valor)]; }))
+        .filter(function (p) { return p[1]; });
+      var html = '<div class="idt-sec"><div class="idt-grade">'
+        + pares.map(function (p, i) { return campo(p[0], p[1], i === pares.length - 1 && pares.length % 2 ? 'largo' : ''); }).join('')
         + campo('Órgão', esc(d.orgao), 'largo')
-        + '</div></div>'
-        + '<div class="idt-sec"><div class="idt-sec-t">Texto da publicação</div>'
-        + (texto ? '<div class="idt-texto juridico">' + realcar(esc(texto)) + '</div>' : '<div class="idt-vazio">O texto completo está no Diário.</div>') + '</div>'
+        + '</div>' + (e.preambulo ? '<div class="idt-pub-timbre">' + realcar(esc(e.preambulo)) + '</div>' : '') + '</div>';
+      if (e.partes && e.partes.length) {
+        html += '<div class="idt-sec"><div class="idt-sec-t">Partes</div><div class="idt-pub-lista">'
+          + e.partes.map(function (g) { return '<div class="idt-pub-grupo"><span class="idt-pub-rot">' + esc(g.rotulo) + '</span><div>' + nomes(g.nomes) + '</div></div>'; }).join('')
+          + '</div></div>';
+      }
+      if (e.advogados && e.advogados.length) {
+        html += '<div class="idt-sec"><div class="idt-sec-t">Advogados</div><div class="idt-pub-lista">'
+          + e.advogados.map(function (a) { return '<div class="idt-pub-adv"><span class="idt-pub-nome">' + esc(a.nome) + '</span>' + (a.oab ? '<strong class="idt-oab">OAB ' + esc(a.oab) + (a.uf ? '/' + esc(a.uf) : '') + '</strong>' : '') + '</div>'; }).join('')
+          + '</div></div>';
+      }
+      var teor = '';
+      if (e.blocos && e.blocos.length) {
+        teor = e.blocos.map(function (b) {
+          var a = b.assinatura;
+          return '<div class="idt-pub-bloco">' + (b.titulo ? '<div class="idt-pub-secao">' + esc(b.titulo) + '</div>' : '')
+            + b.paragrafos.map(function (p) { return '<p>' + realcar(esc(p)) + '</p>'; }).join('')
+            + (a ? '<div class="idt-pub-assin">' + (a.local ? '<span>' + esc(a.local) + '</span>' : '') + (a.nome ? '<b>' + esc(a.nome) + '</b>' : '') + (a.cargo ? '<span>' + esc(a.cargo) + '</span>' : '') + '</div>' : '')
+            + '</div>';
+        }).join('');
+        teor = '<div class="idt-pub-teor">' + teor + '</div>';
+      } else {
+        var texto = formatarJuridico(limparTexto(d.texto || ''));
+        if (texto) teor = '<div class="idt-texto juridico">' + realcar(esc(texto)) + '</div>';
+      }
+      html += '<div class="idt-sec"><div class="idt-sec-t">Teor da publicação</div>' + (teor || '<div class="idt-vazio">O texto completo está no Diário.</div>') + '</div>';
+      if (e.intimados && e.intimados.length) html += '<div class="idt-sec"><div class="idt-sec-t">Intimados</div><div class="idt-pub-lista"><div class="idt-pub-grupo"><div>' + nomes(e.intimados) + '</div></div></div></div>';
+      elCorpo.innerHTML = html
+        + (e.link ? '<div class="idt-sec"><a class="idt-pub-link" href="' + esc(e.link) + '" target="_blank" rel="noopener noreferrer">Ver a certidão no tribunal</a></div>' : '')
         + '<div class="idt-sec"><div class="idt-sec-t">Tratamento</div>'
         + '<label class="idt-rotulo" for="idtNota">Nota (opcional)</label>'
         + '<textarea id="idtNota" class="idt-entrada" rows="2" placeholder="O que foi feito ou decidido sobre esta publicação"></textarea></div>';
-      elAcoes.innerHTML = (d.processo_id ? acao('Abrir o processo', 'abrir-processo', false, ' data-id="' + (+d.processo_id) + '" data-de="pub"') : '')
+      elAcoes.innerHTML = (d.processo_id ? acao('Abrir o processo', 'abrir-processo', false, ' data-id="' + (+d.processo_id) + '"') : '')
         + acao('Sem providência', 'tratar-pub', false, ' data-id="' + (+d.id) + '" data-status="sem_providencia"')
         + acao('Marcar como tratada', 'tratar-pub', true, ' data-id="' + (+d.id) + '" data-status="tratada"');
     },
@@ -372,221 +375,52 @@
     }
   };
 
-  // ── O processo completo, dentro da janela ───────────────────────────────
-  // "Abrir o processo" não sai mais da home: abre aqui, em abas, com o que se
-  // faz no dia a dia: ver e editar os dados, criar e concluir prazo, criar e
-  // concluir tarefa do processo, ler o andamento. O editor completo da tela de
-  // Processos continua a um clique, para o que não está aqui (anexos, vínculos).
-  var PC = null, USUARIOS = null;
-  var STATUS = [['ativo', 'Ativo'], ['suspenso', 'Suspenso'], ['concluido', 'Concluído'], ['encerrado', 'Encerrado'], ['arquivado', 'Arquivado']];
-  function usuarios() { return USUARIOS ? Promise.resolve(USUARIOS) : getJson('/api/task_users.php').then(function (r) { return (USUARIOS = (r && r.data) || []); }).catch(function () { return []; }); }
-  function rotStatus(s) { var x = STATUS.filter(function (p) { return p[0] === s; })[0]; return x ? x[1] : (s ? s.charAt(0).toUpperCase() + s.slice(1) : ''); }
-  function sel(nome, lista, atual, vazio) {
-    return '<select class="idt-entrada" name="' + nome + '">' + (vazio !== undefined ? '<option value="">' + esc(vazio) + '</option>' : '')
-      + lista.map(function (p) { return '<option value="' + esc(p[0]) + '"' + (String(p[0]) === String(atual == null ? '' : atual) ? ' selected' : '') + '>' + esc(p[1]) + '</option>'; }).join('') + '</select>';
+  // ── O pop-up de verdade do módulo, dentro da home ───────────────────────
+  // "Tem que abrir exatamente o pop-up lá do campo, do jurídico, de operação:
+  // o campo de verdade." A tela do módulo abre num iframe com ?embed=1 e mostra
+  // só o pop-up dela (assets/embed.js), o mesmo de sempre, com tudo o que tem.
+  // Quando ele fecha, o iframe sai e a home se atualiza.
+  var EMB = null;
+  function abrirModulo(url) {
+    if (EMB) return;
+    if (fundo && !fundo.hidden) { fundo.classList.remove('visivel'); fundo.hidden = true; }
+    var caixa = document.createElement('div');
+    caixa.className = 'idt-embed';
+    caixa.innerHTML = '<div class="idt-carregando grande"><i></i><span>Abrindo…</span></div>';
+    var f = document.createElement('iframe');
+    f.className = 'idt-embed-quadro'; f.title = 'Pop-up do módulo';
+    f.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'embed=1';
+    caixa.appendChild(f);
+    document.body.appendChild(caixa);
+    document.documentElement.classList.add('idt-aberto');
+    EMB = { caixa: caixa, quadro: f, url: url };
+    requestAnimationFrame(function () { caixa.classList.add('visivel'); });
   }
-  function abrirProcessoCompleto(processoId, aba, voltar) {
-    PC = { id: +processoId, aba: aba || 'resumo', voltar: voltar || null, p: {}, prazos: [], tarefas: [], hist: null, editando: false };
-    abrirJanela('proc', 'Carregando o processo…', '');
-    elCorpo.innerHTML = carregando();
-    elAcoes.innerHTML = '';
-    carregarProcesso().then(desenharProcesso).catch(function () {
-      elCorpo.innerHTML = '<div class="idt-sec"><div class="idt-vazio erro">Não consegui carregar o processo agora.</div></div>';
-      elAcoes.innerHTML = link('Tela de Processos', '/processos?open=' + PC.id, true);
-    });
+  function fecharModulo(recarregar) {
+    if (!EMB) return;
+    var c = EMB.caixa; EMB = null;
+    c.classList.remove('visivel');
+    document.documentElement.classList.remove('idt-aberto');
+    setTimeout(function () { c.remove(); if (recarregar) location.reload(); }, 160);
   }
-  function carregarProcesso() {
-    return Promise.all([
-      getJson('/api/processes.php?id=' + PC.id),
-      getJson('/api/processo_prazos.php?processo_id=' + PC.id).catch(function () { return { data: [] }; }),
-      getJson('/api/processo_tarefas.php?processo_id=' + PC.id).catch(function () { return { data: [] }; })
-    ]).then(function (r) { PC.p = r[0] || {}; PC.prazos = (r[1] && r[1].data) || []; PC.tarefas = (r[2] && r[2].data) || []; });
-  }
-  function desenharProcesso() {
-    var p = PC.p, abertos = PC.prazos.filter(function (z) { return z.status !== 'concluido'; }), tAbertas = PC.tarefas.filter(function (t) { return !+t.concluido; });
-    elTit.textContent = p.cliente_nome || 'Processo';
-    elSub.innerHTML = num(p.numero_cnj || p.numero) + (p.status ? ' <span class="ini-situ and">' + esc(rotStatus(p.status)) + '</span>' : '');
-    var abas = [['resumo', 'Resumo', ''], ['prazos', 'Prazos', abertos.length], ['tarefas', 'Tarefas', tAbertas.length], ['andamento', 'Andamento', '']];
-    elCorpo.innerHTML = '<div class="idt-abas" role="tablist">' + abas.map(function (a) {
-        return '<button type="button" role="tab" class="idt-aba' + (PC.aba === a[0] ? ' sel' : '') + '" data-acao="aba" data-aba="' + a[0] + '" aria-selected="' + (PC.aba === a[0]) + '">' + esc(a[1]) + (a[2] !== '' ? ' <span class="idt-pill">' + a[2] + '</span>' : '') + '</button>';
-      }).join('') + '</div><div class="idt-aba-corpo"></div>';
-    var corpo = elCorpo.querySelector('.idt-aba-corpo');
-    ({ resumo: abaResumo, prazos: abaPrazos, tarefas: abaTarefas, andamento: abaAndamento })[PC.aba](corpo);
-    elAcoes.innerHTML = (PC.voltar ? acao('Voltar', 'voltar', false) : '')
-      + (p.link_tribunal && /^https?:\/\//i.test(p.link_tribunal) ? '<a class="idt-btn" href="' + esc(p.link_tribunal) + '" target="_blank" rel="noopener">Abrir no tribunal</a>' : '')
-      + link('Editor completo', '/processos?open=' + PC.id, false);
-  }
-  function abaResumo(corpo) {
-    var p = PC.p;
-    if (!PC.editando) {
-      corpo.innerHTML = '<div class="idt-sec"><div class="idt-grade">'
-        + campo('Número', num(p.numero_cnj || p.numero)) + campo('Situação', esc(rotStatus(p.status)))
-        + campo('Cliente', esc(p.cliente_nome)) + campo('Parte contrária', esc(p.parte_contraria))
-        + campo('Ação', esc(p.tipo_acao)) + campo('Setor', esc(p.setor_nome))
-        + campo('Vara / comarca', esc(p.vara_comarca), 'largo')
-        + campo('Início', p.data_inicio ? esc(dataCurta(p.data_inicio)) : '') + campo('Próximo prazo', p.proximo_prazo ? esc(dataCurta(p.proximo_prazo)) : '')
-        + campo('Última movimentação', p.ultima_movimentacao ? esc(dataCurta(p.ultima_movimentacao)) : '')
-        + campo('Origem', esc(p.origin_account_nome))
-        + '</div>' + (p.observacoes ? '<div class="idt-texto">' + esc(p.observacoes) + '</div>' : '') + '</div>'
-        + '<div class="idt-linha-acao">' + acao('Editar os dados', 'editar-processo', true) + '</div>';
-      return;
-    }
-    corpo.innerHTML = carregando();
-    usuarios().then(function (us) {
-      corpo.innerHTML = '<form class="idt-form" onsubmit="return false">'
-        + '<label class="idt-c"><span>Número do processo</span><input class="idt-entrada" name="numero" value="' + esc(p.numero || '') + '" required></label>'
-        + '<label class="idt-c"><span>Situação</span>' + sel('status', STATUS, p.status) + '</label>'
-        + '<label class="idt-c"><span>Cliente</span><input class="idt-entrada" name="cliente_nome" value="' + esc(p.cliente_nome || '') + '" required></label>'
-        + '<label class="idt-c"><span>Parte contrária</span><input class="idt-entrada" name="parte_contraria" value="' + esc(p.parte_contraria || '') + '"></label>'
-        + '<label class="idt-c largo"><span>Vara / comarca</span><input class="idt-entrada" name="vara_comarca" value="' + esc(p.vara_comarca || '') + '"></label>'
-        + '<label class="idt-c"><span>Responsável</span>' + sel('responsavel_user_id', us.map(function (u) { return [u.id, u.nome]; }), p.responsavel_user_id, 'Sem responsável') + '</label>'
-        + '<label class="idt-c"><span>Próximo prazo</span><input class="idt-entrada" type="date" name="proximo_prazo" value="' + esc(p.proximo_prazo ? String(p.proximo_prazo).slice(0, 10) : '') + '"></label>'
-        + '<label class="idt-c largo"><span>Link do tribunal</span><input class="idt-entrada" type="url" name="link_tribunal" value="' + esc(p.link_tribunal || '') + '" placeholder="https://"></label>'
-        + '<label class="idt-c largo"><span>Observações</span><textarea class="idt-entrada" name="observacoes" rows="4">' + esc(p.observacoes || '') + '</textarea></label>'
-        + '</form><div class="idt-linha-acao">' + acao('Cancelar', 'cancelar-edicao', false) + acao('Salvar os dados', 'salvar-edicao', true) + '</div>';
-    });
-  }
-  function linhaPrazo(z) {
-    var feito = z.status === 'concluido', venc = !feito && z.data_limite && String(z.data_limite).slice(0, 10) < CFG.hoje;
-    return '<div class="idt-prazo' + (feito ? ' feito' : '') + '" data-prazo="' + (+z.id) + '">'
-      + '<span class="idt-prazo-data' + (venc ? ' venc' : '') + '">' + esc(dataCurta(z.data_limite) || 'sem data') + '</span>'
-      + '<span class="idt-prazo-t"><b>' + esc(z.descricao) + '</b>' + (z.responsavel ? '<small>' + esc(z.responsavel) + '</small>' : '') + '</span>'
-      + (feito ? '<span class="idt-mini feito">Concluído</span>' : '<button type="button" class="idt-mini" data-acao="concluir-prazo" data-id="' + (+z.id) + '">Concluir</button>') + '</div>';
-  }
-  function abaPrazos(corpo) {
-    var abertos = PC.prazos.filter(function (z) { return z.status !== 'concluido'; }), feitos = PC.prazos.filter(function (z) { return z.status === 'concluido'; });
-    corpo.innerHTML = '<div class="idt-sec"><div class="idt-sec-t">Novo prazo</div><form class="idt-form compacto" data-form="prazo" onsubmit="return false">'
-      + '<label class="idt-c largo"><span>O que vence</span><input class="idt-entrada" name="descricao" required placeholder="Ex.: Contestação"></label>'
-      + '<label class="idt-c"><span>Vence em</span><input class="idt-entrada" type="date" name="data_limite" required></label>'
-      + '<label class="idt-c"><span>Responsável</span><select class="idt-entrada" name="responsavel"><option value="">Carregando…</option></select></label>'
-      + '</form><div class="idt-linha-acao">' + acao('Adicionar prazo', 'novo-prazo', true) + '</div></div>'
-      + '<div class="idt-sec"><div class="idt-sec-t">Em aberto <span class="idt-pill">' + abertos.length + '</span></div>'
-      + (abertos.length ? '<div class="idt-prazos">' + abertos.map(linhaPrazo).join('') + '</div>' : '<div class="idt-vazio">Nenhum prazo em aberto.</div>') + '</div>'
-      + (feitos.length ? '<div class="idt-sec"><div class="idt-sec-t">Concluídos <span class="idt-pill">' + feitos.length + '</span></div><div class="idt-prazos">' + feitos.slice(-8).reverse().map(linhaPrazo).join('') + '</div></div>' : '');
-    usuarios().then(function (us) { var s = corpo.querySelector('[name="responsavel"]'); if (s) s.innerHTML = '<option value="">Sem responsável</option>' + us.map(function (u) { return '<option value="' + esc(u.nome) + '">' + esc(u.nome) + '</option>'; }).join(''); });
-  }
-  function linhaTarefa(t) {
-    var feito = !!+t.concluido;
-    return '<div class="idt-prazo' + (feito ? ' feito' : '') + '">'
-      + '<span class="idt-prazo-data">' + esc(dataCurta(t.data_tarefa) || 'sem data') + '</span>'
-      + '<span class="idt-prazo-t"><b>' + esc(t.titulo) + '</b>' + (t.responsavel ? '<small>' + esc(t.responsavel) + '</small>' : '') + '</span>'
-      + (feito ? '<button type="button" class="idt-mini" data-acao="reabrir-tarefa-proc" data-id="' + (+t.id) + '">Reabrir</button>'
-               : '<button type="button" class="idt-mini" data-acao="concluir-tarefa-processo" data-id="' + (+t.id) + '">Concluir</button>') + '</div>';
-  }
-  function abaTarefas(corpo) {
-    var abertas = PC.tarefas.filter(function (t) { return !+t.concluido; }), feitas = PC.tarefas.filter(function (t) { return !!+t.concluido; });
-    corpo.innerHTML = '<div class="idt-sec"><div class="idt-sec-t">Nova tarefa do processo</div><form class="idt-form compacto" data-form="tarefa" onsubmit="return false">'
-      + '<label class="idt-c largo"><span>O que fazer</span><input class="idt-entrada" name="titulo" required placeholder="Ex.: Juntar procuração"></label>'
-      + '<label class="idt-c"><span>Data</span><input class="idt-entrada" type="date" name="data_tarefa" value="' + esc(CFG.hoje) + '"></label>'
-      + '<label class="idt-c"><span>Responsável</span><select class="idt-entrada" name="responsavel"><option value="">Carregando…</option></select></label>'
-      + '</form><div class="idt-linha-acao">' + acao('Adicionar tarefa', 'nova-tarefa-proc', true) + '</div></div>'
-      + '<div class="idt-sec"><div class="idt-sec-t">Em aberto <span class="idt-pill">' + abertas.length + '</span></div>'
-      + (abertas.length ? '<div class="idt-prazos">' + abertas.map(linhaTarefa).join('') + '</div>' : '<div class="idt-vazio">Nenhuma tarefa em aberto.</div>') + '</div>'
-      + (feitas.length ? '<div class="idt-sec"><div class="idt-sec-t">Concluídas <span class="idt-pill">' + feitas.length + '</span></div><div class="idt-prazos">' + feitas.slice(0, 8).map(linhaTarefa).join('') + '</div></div>' : '');
-    usuarios().then(function (us) { var s = corpo.querySelector('[name="responsavel"]'); if (s) s.innerHTML = '<option value="">Sem responsável</option>' + us.map(function (u) { return '<option value="' + esc(u.nome) + '">' + esc(u.nome) + '</option>'; }).join(''); });
-  }
-  function abaAndamento(corpo) {
-    if (PC.hist === null) {
-      corpo.innerHTML = carregando();
-      getJson('/api/processo_history.php?processo_id=' + PC.id).then(function (r) { PC.hist = (r && r.data) || []; if (PC.aba === 'andamento') abaAndamento(corpo); })
-        .catch(function () { corpo.innerHTML = '<div class="idt-vazio erro">Não consegui carregar o andamento.</div>'; });
-      return;
-    }
-    corpo.innerHTML = '<div class="idt-sec">' + (PC.hist.length ? '<div class="idt-hist">' + PC.hist.map(function (h) {
-        return '<div class="idt-hist-i"><span class="idt-hist-q"><b>' + esc(dataCurta(h.created_at)) + '</b><small>' + esc(hora(h.created_at)) + '</small></span>'
-          + '<span class="idt-hist-t"><b>' + esc(h.acao) + '</b>' + (h.descricao ? '<span>' + esc(h.descricao) + '</span>' : '') + (h.user_email ? '<small>' + esc(h.user_email) + '</small>' : '') + '</span></div>';
-      }).join('') + '</div>' : '<div class="idt-vazio">Nenhum andamento registrado.</div>') + '</div>';
-  }
-  function recarregarProcesso(aba) {
-    if (!PC) return;
-    if (aba) PC.aba = aba;
-    PC.hist = null;
-    carregarProcesso().then(desenharProcesso).catch(function () { avisar('Não consegui atualizar o processo.', 'danger'); });
-  }
-  function dadosDe(form) { var d = {}; new FormData(form).forEach(function (v, k) { d[k] = String(v).trim(); }); return d; }
-  ACOES['abrir-processo'] = function (b) {
-    var de = b.getAttribute('data-de'); var anterior = de ? { t: de, det: ESTADO.ultimoDet } : null;
-    abrirProcessoCompleto(+b.getAttribute('data-id'), b.getAttribute('data-aba') || 'resumo', anterior);
-  };
-  ACOES['voltar'] = function () { if (PC && PC.voltar && montadores[PC.voltar.t]) { var v = PC.voltar; PC = null; montadores[v.t](v.det); } };
-  ACOES['aba'] = function (b) { if (!PC) return; PC.aba = b.getAttribute('data-aba'); PC.editando = false; desenharProcesso(); };
-  ACOES['editar-processo'] = function () { PC.editando = true; desenharProcesso(); };
-  ACOES['cancelar-edicao'] = function () { PC.editando = false; desenharProcesso(); };
-  ACOES['salvar-edicao'] = function (b) {
-    var f = elCorpo.querySelector('.idt-form'); if (!f.reportValidity()) return;
-    var d = dadosDe(f); d.id = PC.id;
-    ['responsavel_user_id', 'proximo_prazo', 'link_tribunal'].forEach(function (k) { if (d[k] === '') d[k] = null; });
-    ocupado(b, 'Salvando…');
-    enviar('/api/processes.php', 'PUT', d).then(function () { PC.editando = false; avisar('Dados do processo salvos.'); recarregarProcesso('resumo'); })
-      .catch(function (e) { liberado(b); avisar('Não consegui salvar: ' + e.message, 'danger'); });
-  };
-  ACOES['novo-prazo'] = function (b) {
-    var f = elCorpo.querySelector('[data-form="prazo"]'); if (!f.reportValidity()) return;
-    var d = dadosDe(f); d.processo_id = PC.id; d.prioridade = 'media'; if (!d.responsavel) d.responsavel = null;
-    ocupado(b, 'Adicionando…');
-    enviar('/api/processo_prazos.php', 'POST', d).then(function () { avisar('Prazo adicionado.'); recarregarProcesso('prazos'); })
-      .catch(function (e) { liberado(b); avisar('Não consegui adicionar o prazo: ' + e.message, 'danger'); });
-  };
-  ACOES['nova-tarefa-proc'] = function (b) {
-    var f = elCorpo.querySelector('[data-form="tarefa"]'); if (!f.reportValidity()) return;
-    var d = dadosDe(f); d.processo_id = PC.id; d.prioridade = 'media'; if (!d.responsavel) d.responsavel = null; if (!d.data_tarefa) d.data_tarefa = null;
-    ocupado(b, 'Adicionando…');
-    enviar('/api/processo_tarefas.php', 'POST', d).then(function () { avisar('Tarefa adicionada.'); recarregarProcesso('tarefas'); })
-      .catch(function (e) { liberado(b); avisar('Não consegui adicionar a tarefa: ' + e.message, 'danger'); });
-  };
-  ACOES['reabrir-tarefa-proc'] = function (b) {
-    ocupado(b, 'Reabrindo…');
-    enviar('/api/processo_tarefas.php', 'PATCH', { id: +b.getAttribute('data-id'), concluido: 0 }).then(function () { avisar('Tarefa reaberta.'); recarregarProcesso('tarefas'); })
-      .catch(function (e) { liberado(b); avisar('Não consegui reabrir: ' + e.message, 'danger'); });
-  };
-  // Dentro do processo completo, concluir prazo ou tarefa também atualiza as abas.
-  ['concluir-prazo', 'concluir-tarefa-processo'].forEach(function (nome) {
-    var original = ACOES[nome];
-    ACOES[nome] = function (b) {
-      original(b);
-      if (PC && fundo.contains(b) && elCorpo.querySelector('.idt-abas')) setTimeout(function () { recarregarProcesso(nome === 'concluir-prazo' ? 'prazos' : 'tarefas'); }, 700);
-    };
+  window.addEventListener('message', function (e) {
+    if (e.origin !== location.origin || !EMB || !e.data || !e.data.yuris) return;
+    if (e.data.yuris === 'embed-pronto') EMB.caixa.classList.add('pronto');
+    if (e.data.yuris === 'embed-fechar') fecharModulo(true);
+    if (e.data.yuris === 'embed-sem-popup') { var u = EMB.url; fecharModulo(false); location.href = u; }
   });
-
+  ACOES['abrir-processo'] = function (b) {
+    var foco = b.getAttribute('data-foco') || '';
+    abrirModulo('/processos?open=' + (+b.getAttribute('data-id')) + (/^(prazo|tarefa):\d+$/.test(foco) ? '&foco=' + foco : ''));
+  };
+  ACOES['abrir-tarefa'] = function (b) { abrirModulo('/tarefas?tarefa=' + (+b.getAttribute('data-id'))); };
   // ── Os botões da faixa de boas-vindas ───────────────────────────────────
-  function opcoes(lista, rot, val, vazio) { return (vazio ? '<option value="">' + esc(vazio) + '</option>' : '') + lista.map(function (x) { return '<option value="' + esc(x[val]) + '">' + esc(x[rot]) + '</option>'; }).join(''); }
   var novos = {
     processo: function () {
-      abrirJanela('novo', 'Novo processo', 'Cadastro rápido. O resto se completa na tela do processo.');
-      elCorpo.innerHTML = '<form class="idt-form" onsubmit="return false">'
-        + '<label class="idt-c largo"><span>Número do processo</span><input class="idt-entrada" name="numero" placeholder="0000000-00.0000.0.00.0000" required></label>'
-        + '<label class="idt-c"><span>Cliente</span><input class="idt-entrada" name="cliente_nome" required></label>'
-        + '<label class="idt-c"><span>Parte contrária</span><input class="idt-entrada" name="parte_contraria"></label>'
-        + '<label class="idt-c largo"><span>Vara / comarca</span><input class="idt-entrada" name="vara_comarca"></label>'
-        + '<label class="idt-c"><span>Responsável</span><select class="idt-entrada" name="responsavel_user_id"><option value="">Carregando…</option></select></label>'
-        + '<label class="idt-c"><span>Próximo prazo</span><input class="idt-entrada" type="date" name="proximo_prazo"></label>'
-        + '<label class="idt-c largo"><span>Link do tribunal</span><input class="idt-entrada" type="url" name="link_tribunal" placeholder="https://"></label>'
-        + '<label class="idt-c largo"><span>Observações</span><textarea class="idt-entrada" name="observacoes" rows="3"></textarea></label>'
-        + '</form>';
-      elAcoes.innerHTML = link('Cadastro completo', '/processos', false) + acao('Cadastrar processo', 'salvar-processo', true);
-      getJson('/api/task_users.php').then(function (r) { elCorpo.querySelector('[name="responsavel_user_id"]').innerHTML = opcoes((r && r.data) || [], 'nome', 'id', 'Sem responsável'); })
-        .catch(function () { elCorpo.querySelector('[name="responsavel_user_id"]').innerHTML = '<option value="">Sem responsável</option>'; });
-      setTimeout(function () { elCorpo.querySelector('[name="numero"]').focus(); }, 60);
+      abrirModulo('/processos?criar=1');
     },
     tarefa: function () {
-      abrirJanela('tarefa', 'Nova tarefa', 'Entra no quadro escolhido e na agenda do dia.');
-      elCorpo.innerHTML = '<form class="idt-form" onsubmit="return false">'
-        + '<label class="idt-c largo"><span>O que precisa ser feito</span><input class="idt-entrada" name="titulo" required></label>'
-        + '<label class="idt-c"><span>Data</span><input class="idt-entrada" type="date" name="data" value="' + esc(CFG.hoje) + '"></label>'
-        + '<label class="idt-c"><span>Hora</span><input class="idt-entrada" type="time" name="hora"></label>'
-        + '<label class="idt-c"><span>Responsável</span><select class="idt-entrada" name="responsavel_id"><option value="">Carregando…</option></select></label>'
-        + '<label class="idt-c"><span>Prioridade</span><select class="idt-entrada" name="prioridade"><option value="baixa">Baixa</option><option value="media" selected>Média</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select></label>'
-        + '<label class="idt-c largo"><span>Quadro</span><select class="idt-entrada" name="board_id" required><option value="">Carregando…</option></select></label>'
-        + '<label class="idt-c largo"><span>Detalhes</span><textarea class="idt-entrada" name="descricao" rows="3"></textarea></label>'
-        + '</form>';
-      elAcoes.innerHTML = link('Abrir em Tarefas', '/tarefas', false) + acao('Criar tarefa', 'salvar-tarefa', true);
-      getJson('/api/task_users.php').then(function (r) { elCorpo.querySelector('[name="responsavel_id"]').innerHTML = opcoes((r && r.data) || [], 'nome', 'id', 'Sem responsável'); })
-        .catch(function () { elCorpo.querySelector('[name="responsavel_id"]').innerHTML = '<option value="">Sem responsável</option>'; });
-      getJson('/api/task_boards.php').then(function (r) {
-        var lista = ((r && r.data) || []).filter(function (b) { return b.ativo === undefined || +b.ativo === 1; });
-        elCorpo.querySelector('[name="board_id"]').innerHTML = lista.length ? opcoes(lista, 'nome', 'id') : '<option value="">Nenhum quadro disponível</option>';
-      }).catch(function () { elCorpo.querySelector('[name="board_id"]').innerHTML = '<option value="">Não consegui carregar os quadros</option>'; });
-      setTimeout(function () { elCorpo.querySelector('[name="titulo"]').focus(); }, 60);
+      abrirModulo('/tarefas?nova=1');
     },
     publicacoes: function () {
       var cards = [].slice.call(document.querySelectorAll('.ini-pub.ini-cartao[data-det]:not(.ini-feito)'));

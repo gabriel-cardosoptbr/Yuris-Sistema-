@@ -70,6 +70,10 @@ o mesmo que fazer pelo processo.
   (`processos.php?open=N&foco=tarefa:N&volta=tarefas`): a ficha desce até o item e
   dá o destaque (`focarNoProcesso`), porque a tarefa só faz sentido com o processo
   em volta. O lápis do cartão edita ali mesmo, sem sair da central.
+- **`/tarefas?nova=1` abre o cadastro sozinho** (07/11/2026), como `?tarefa=ID` abre o
+  painel da tarefa (`abrirTarefaDoLink` em `tarefas.js`, que tira o parâmetro da barra).
+  É o "Nova tarefa" da home nova, que abre esta tela dentro dela com `?embed=1` e
+  mostra só o pop-up (ver `app/Inicio/README.md`).
 - **Calendário**: compara a data como texto. `new Date('2026-11-05')` é meia-noite em
   UTC, e no Brasil a tarefa cairia na véspera. Clicar no dia cria a tarefa com a data.
 

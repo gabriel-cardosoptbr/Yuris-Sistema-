@@ -1,0 +1,15 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   embed.css: a tela dentro da home mostra só o pop-up do módulo (ver embed.js).
+   Nada some do pop-up: some só o que está por trás dele (menu, página, avisos),
+   e o fundo fica transparente para a home aparecer escurecida atrás.
+   ═══════════════════════════════════════════════════════════════════════════ */
+html.yuris-embed, html.yuris-embed body{ background:transparent !important; background-image:none !important; overflow:hidden !important; }
+html.yuris-embed .sidebar, html.yuris-embed .mobile-tabbar, html.yuris-embed #avisoWhatsapp,
+html.yuris-embed .sb-instalar-app, html.yuris-embed .sb-recolher{ display:none !important; }
+html.yuris-embed .page-layout, html.yuris-embed main, html.yuris-embed .main-content{ visibility:hidden !important; background:transparent !important; background-image:none !important; }
+/* o pop-up de cada tela, e os pop-ups que ele abre por cima */
+html.yuris-embed #modalProcess, html.yuris-embed #tkDrawer, html.yuris-embed #tkDrawerOverlay, html.yuris-embed .tk-modal-overlay,
+html.yuris-embed [id^="modal"], html.yuris-embed [role="dialog"], html.yuris-embed .yui-toast-stack,
+html.yuris-embed [class*="modal-backdrop"], html.yuris-embed [class*="-modal-overlay"]{ visibility:visible !important; }
+/* o fundo escuro já vem da home: o do módulo fica transparente */
+html.yuris-embed #modalProcess, html.yuris-embed #tkDrawerOverlay, html.yuris-embed #modalNewTask{ background:transparent !important; }

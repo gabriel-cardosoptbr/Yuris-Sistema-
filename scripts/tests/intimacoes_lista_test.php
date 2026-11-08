@@ -26,6 +26,10 @@
 
 if (PHP_SAPI !== 'cli') { http_response_code(403); exit("CLI only\n"); }
 
+// Desde 07/11/2026 as duas funções delegam para App\Processos\PublicacaoEstrutura
+// (a home nova usa a mesma regra): o autoloader precisa estar carregado.
+require_once __DIR__ . '/../../app/bootstrap.php';
+
 $FAILS = 0; $PASSES = 0;
 function pass(string $m): void { global $PASSES; $PASSES++; echo "  [PASS] $m\n"; }
 function fail(string $m): void { global $FAILS;  $FAILS++;  echo "  [FAIL] $m\n"; }

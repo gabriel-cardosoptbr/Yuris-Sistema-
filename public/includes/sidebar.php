@@ -1693,6 +1693,11 @@ window.FF_AGENDA = { csrf: <?= json_encode($_notifCsrf) ?>, sessao: <?= json_enc
 <link rel="stylesheet" href="/assets/interface-nova-telas.css?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-telas.css') ?: 1 ?>">
 <?php endif; ?>
 <?php endif; echo \App\Inicio\InterfaceNova::scriptCookie($_GET); ?>
+<?php if ($_interfaceNova && ($_GET['embed'] ?? '') === '1'): ?>
+<!-- A tela aberta dentro da home: só o pop-up do módulo aparece (assets/embed.js). -->
+<link rel="stylesheet" href="/assets/embed.css?v=<?= @filemtime(__DIR__ . '/../assets/embed.css') ?: 1 ?>">
+<script src="/assets/embed.js?v=<?= @filemtime(__DIR__ . '/../assets/embed.js') ?: 1 ?>"></script>
+<?php endif; ?>
 <?php
 /* Paleta nova do Yuris (App\Core\PaletaTema), EM PRÉVIA. A primeira versão foi ao
    ar para todos e foi reprovada (06/11/2026): agora só carrega no navegador de quem

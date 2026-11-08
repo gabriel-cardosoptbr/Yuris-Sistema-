@@ -143,6 +143,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function abrirTarefaDoLink() {
   const params = new URLSearchParams(location.search);
+  // ?nova=1: o "Nova tarefa" da home nova abre este mesmo pop-up de cadastro.
+  if (params.get('nova') === '1') {
+    params.delete('nova');
+    const r = params.toString();
+    history.replaceState(null, '', location.pathname + (r ? '?' + r : '') + location.hash);
+    if (window.abrirNovaTarefa) await window.abrirNovaTarefa();
+    return;
+  }
   const id = parseInt(params.get('tarefa') || '', 10);
   if (!id) return;
 
