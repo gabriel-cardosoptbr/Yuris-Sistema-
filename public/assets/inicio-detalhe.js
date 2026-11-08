@@ -408,32 +408,32 @@
     caixa.appendChild(f);
     // "Se eu ficar clicando fora, que seja cancelado": enquanto carrega, o clique fora
     // (o quadro ainda não pega clique) desiste de abrir.
-    caixa.addEventListener('mousedown', function () { if (EMB && EMB.caixa === caixa && !caixa.classList.contains('pronto')) fecharModulo(false); });
+    caixa.addEventListener('mousedown', function () { if (EMB && EMB.caixa === caixa && !caixa.classList.contains('pronto')) fecharModulo(); });
     document.body.appendChild(caixa);
     document.documentElement.classList.add('idt-aberto');
     EMB = { caixa: caixa, quadro: f, url: url };
     void caixa.offsetWidth; caixa.classList.add('visivel');
   }
-  function fecharModulo(recarregar) {
+  // Fechar só fecha: a home fica exatamente como estava. Nada recarrega e nenhum cartão
+  // é trocado ("se eu sair, é só para sair; se eu recarregar a página, aí recarrega tudo").
+  function fecharModulo() {
     if (!EMB) return;
     var c = EMB.caixa; EMB = null;
     c.classList.remove('visivel');
     document.documentElement.classList.remove('idt-aberto');
-    setTimeout(function () { c.remove(); if (recarregar) location.reload(); }, 160);
+    setTimeout(function () { c.remove(); }, 160);
   }
   window.addEventListener('message', function (e) {
     if (e.origin !== location.origin || !EMB || !e.data || !e.data.yuris) return;
     if (e.data.yuris === 'embed-pronto') morfar(e.data.caixa);
-    // Fechar não recarrega a página ("tá forçando muito o recarregamento"): a home se
-    // atualiza em silêncio, trocando só o cartão que mudou.
-    if (e.data.yuris === 'embed-fechar') { fecharModulo(false); atualizarEmSilencio(); }
+    if (e.data.yuris === 'embed-fechar') fecharModulo();
     // Não abriu: fica na home e avisa. Nunca leva para a tela do módulo.
     if (e.data.yuris === 'embed-sem-popup') {
-      fecharModulo(false);
+      fecharModulo();
       avisar(e.data.tela === 'chat' ? 'A conversa não abriu. Confira se o WhatsApp está conectado e tente de novo.' : 'Não consegui abrir agora. Tente de novo.', 'danger');
     }
   });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && EMB && !EMB.caixa.classList.contains('pronto')) fecharModulo(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && EMB && !EMB.caixa.classList.contains('pronto')) fecharModulo(); });
   // A tela fantasma: a forma do pop-up do módulo, em ossos. Ficha (processo, cliente,
   // tarefa) ou conversa (chat).
   function fantasma(tela) {
@@ -463,31 +463,6 @@
     fan.style.transition = ''; fan.classList.add('morfa');
     fan.style.left = c.left + 'px'; fan.style.top = c.top + 'px'; fan.style.width = c.width + 'px'; fan.style.height = c.height + 'px';
     setTimeout(function () { if (EMB && EMB.caixa === caixa) caixa.classList.add('pronto'); }, 400);
-  }
-  // A home se atualiza sem recarregar: busca a própria página e troca só o que mudou
-  // (cartões de Prazos, Publicações, Processos, Aguardando retorno e Equipe; os quatro
-  // números; a frase da faixa). A agenda fica como está, porque é dela o calendário.
-  function atualizarEmSilencio() {
-    fetch(location.pathname + location.search, { credentials: 'same-origin', headers: { Accept: 'text/html' } })
-      .then(function (r) { return r.ok ? r.text() : ''; })
-      .then(function (html) {
-        if (!html) return;
-        var novo = new DOMParser().parseFromString(html, 'text/html');
-        var titulo = function (card) { var h = card.querySelector('.ini-card-h h3'); return h ? h.textContent.trim() : ''; };
-        var atuais = {};
-        document.querySelectorAll('.ini-card').forEach(function (c) { var t = titulo(c); if (t) atuais[t] = c; });
-        novo.querySelectorAll('.ini-card').forEach(function (c) {
-          var t = titulo(c);
-          if (!t || !atuais[t] || c.querySelector('#iniCalDias') || atuais[t].innerHTML === c.innerHTML) return;
-          atuais[t].innerHTML = c.innerHTML;
-          var k = 0;
-          atuais[t].querySelectorAll('.ini-cartao, .ini-ctr').forEach(function (el) { el.style.setProperty('--mov-i', k++); el.classList.add('ini-entra'); });
-        });
-        ['.ini-kpi b', '.ini-sala p'].forEach(function (sel) {
-          var a = document.querySelectorAll(sel), b = novo.querySelectorAll(sel);
-          a.forEach(function (el, i) { if (b[i] && b[i].innerHTML !== el.innerHTML) el.innerHTML = b[i].innerHTML; });
-        });
-      }).catch(function () {});
   }
   ACOES['abrir-processo'] = function (b) {
     var foco = b.getAttribute('data-foco') || '';

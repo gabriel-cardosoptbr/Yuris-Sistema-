@@ -173,11 +173,13 @@ seleção em pílula.
   essa medida (parando na borda da janela se o pop-up for mais alto que ela) e o pop-up de
   verdade aparece no lugar dela. Dentro do pop-up da home, processo e tarefa também
   carregam em ossos (`ossos()`) e o conteúdo de verdade sai do cinza para a cor (`idt-vida`).
-- **Fechar não recarrega** ("tá forçando muito o recarregamento"): fechar o pop-up do módulo
-  fecha e pronto; em seguida a home busca a própria página em silêncio e troca só o cartão
-  que mudou (Prazos, Publicações, Processos, Aguardando retorno, Equipe, os quatro números e
-  a frase da faixa; a agenda fica, porque o calendário é dela), com o cartão trocado entrando
-  item por item. Nada mudou, nada se mexe. Movimento das telas de dentro e do menu: `assets/interface-nova-movimento.css`
+- **Fechar só fecha** ("tá forçando muito o recarregamento" e, depois, "se eu sair da aba, é
+  só para sair; se eu recarregar a página, tem que recarregar tudo"): fechar o pop-up do
+  módulo tira o pop-up e a home fica exatamente como estava. Não há `location.reload` nem
+  atualização em silêncio (houve uma, que trocava os cartões ao fechar; foi reprovada no
+  mesmo dia porque Prazos e Aguardando retorno pareciam recarregar). Quem atualiza os
+  dados é o recarregar da página. Ações feitas no pop-up da própria home (concluir,
+  tratar) continuam marcando o cartão como resolvido na hora, sem buscar nada. Movimento das telas de dentro e do menu: `assets/interface-nova-movimento.css`
   + `.js` (entrada da tela, saída pelo menu, pop-ups que surgem, toque nos botões), que o
   menu carrega com a folha das telas e que não rodam no modo embutido.
 - `assets/inicio.css` é a home: dois temas pelas variáveis `--ini-*`, a faixa de

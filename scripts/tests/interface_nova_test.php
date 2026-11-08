@@ -225,7 +225,7 @@ foreach (['processos', 'tarefas', 'clientes', 'chat'] as $t) ok(preg_match('/^\s
 ok(str_contains($embedJs, "fora: '#chatContent'") && str_contains($embedJs, 'e.target === document.body'), 'o Chat embutido fecha com o clique fora da conversa');
 ok(str_contains($embedJs, 'if (acabou) return;'), 'a tela embutida avisa o fechamento uma vez só');
 // 08/11/2026: "se eu ficar clicando fora, que seja cancelado" e "tem que abrir o card, não ir pra tela".
-ok(str_contains($detJs, "!caixa.classList.contains('pronto')) fecharModulo(false)"), 'clicar fora durante o Abrindo cancela');
+ok(str_contains($detJs, "!caixa.classList.contains('pronto')) fecharModulo()"), 'clicar fora durante o Abrindo cancela');
 ok(!str_contains($detJs, 'location.href = u'), 'pop-up que não abre nunca leva para a tela do módulo');
 ok(str_contains((string) file_get_contents($raiz . '/public/assets/inicio.css'), '.idt-embed.pronto .idt-embed-quadro{ opacity:1; pointer-events:auto; }'), 'o quadro só pega clique depois de pronto');
 $chatJs = (string) file_get_contents($raiz . '/public/assets/chat.js');
@@ -259,7 +259,8 @@ ok(str_contains($innJs, "if (html.classList.contains('yuris-embed')) return;"), 
 ok(str_contains($movJs, "b.style.setProperty('--raio'") && str_contains($movCss, 'width:calc(var(--raio, 320px) * 2)') && str_contains($movCss, '@keyframes ini-assenta{'), 'o círculo cobre a caixa inteira e o fundo assenta por cima');
 ok(str_contains($detJs, 'function fantasma(tela)') && str_contains($detJs, 'function morfar(c)') && str_contains($embedJs, "avisar('embed-pronto', medir())") && str_contains($movCss, '.idt-fantasma.morfa{'), 'a tela fantasma aparece no lugar do Abrindo e vai até a medida do pop-up');
 ok(str_contains($detJs, 'function ossos(campos, linhas)') && str_contains($detJs, 'ganhaVida(destino)') && str_contains($movCss, '@keyframes idt-vida{') && str_contains($movCss, '@keyframes idt-brilho{'), 'o pop-up da home mostra ossos enquanto carrega e ganha cor depois');
-ok(!str_contains($detJs, 'fecharModulo(true)') && str_contains($detJs, 'function atualizarEmSilencio()') && str_contains($detJs, "fecharModulo(false); atualizarEmSilencio();"), 'fechar o pop-up do módulo não recarrega: a home se atualiza em silêncio');
+ok(!str_contains($detJs, 'location.reload') && !str_contains($detJs, 'atualizarEmSilencio') && str_contains($detJs, "if (e.data.yuris === 'embed-fechar') fecharModulo();"), 'fechar o pop-up só fecha: nada recarrega e nenhum cartão é trocado');
+ok(!str_contains($movJs, 'location.reload') && !str_contains($inicio, 'location.reload'), 'a home não recarrega sozinha em lugar nenhum');
 ok(!str_contains($detJs, 'Abrindo…') && !str_contains($detJs, 'carregando()'), 'sem Abrindo nem Carregando: no lugar deles, a forma do que vem');
 ok(substr_count($inicio, 'class="ini-ctr ') === 1 && str_contains($inicio, '<span class="ini-ctr-ic">') && str_contains((string) file_get_contents($raiz . '/public/assets/inicio.css'), '.ini-ctr.hoje:not(.zero) .ini-ctr-t b{ color:var(--ini-erro); }'), 'contadores de Prazos como cartões, vermelho só em hoje com prazo');
 ok(str_contains($detJs, 'idt-pub-link-txt') && str_contains($detJs, "g.rotulo === 'Partes' ? ''"), 'endereço no teor vira link e o rótulo Partes não se repete');
