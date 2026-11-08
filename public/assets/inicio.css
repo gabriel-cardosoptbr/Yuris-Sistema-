@@ -567,3 +567,29 @@ input.idt-entrada{ height:38px; }
 .idt-pub-link-txt{ color:var(--ini-azul2); font-weight:600; overflow-wrap:anywhere; text-decoration:none; }
 .idt-pub-link-txt:hover{ text-decoration:underline; }
 @media (max-width:560px){ .idt-pub-grupo{ flex-direction:column; gap:4px; } .idt-pub-rot{ flex-basis:auto; } }
+
+/* ═══ Setas e detalhes no mesmo afundado dos ícones (08/11/2026) ═══
+   "Todas essas setas e detalhes têm de ser aprofundados, como os ícones: esse cinza com
+   o ícone azul escuro." As setas do calendário, a seta de cada cartão, o × do pop-up e a
+   seta do De/Até usam a MESMA caixa do .ini-ic: fundo afundado na prata, sombra interna,
+   traço na cor única de ícone (--ini-icone). No hover, o mesmo do ícone do cabeçalho:
+   sobe 2px e acende em azul cheio, traço branco. (O × continua avermelhando, que é sair.) */
+.ini .ini-cal-nav, .ini .ini-chev, .idt-fechar{
+  background:var(--ini-fundo) !important; border:1px solid var(--ini-linha) !important;
+  box-shadow:var(--ini-fundo-sombra) !important; color:var(--ini-icone) !important; opacity:1;
+  transition:transform .18s cubic-bezier(.2,.8,.2,1), background .15s, box-shadow .15s, border-color .15s, color .15s !important;
+}
+.ini .ini-chev{ width:32px; height:32px; }
+.ini .ini-cal-nav svg, .ini .ini-cal-nav svg *, .ini .ini-chev svg, .ini .ini-chev svg *{ stroke:var(--ini-icone) !important; stroke-width:2.2; }
+.ini .ini-cal-nav:hover, .ini .ini-cal-nav:focus-visible, .ini .ini-cartao:hover .ini-chev{
+  transform:translateY(-2px); background:var(--ini-azul) !important; border-color:transparent !important; box-shadow:var(--ini-brilho) !important; outline:none;
+}
+.ini .ini-cal-nav:hover svg, .ini .ini-cal-nav:hover svg *, .ini .ini-cal-nav:focus-visible svg, .ini .ini-cal-nav:focus-visible svg *,
+.ini .ini-cartao:hover .ini-chev svg, .ini .ini-cartao:hover .ini-chev svg *{ stroke:#fff !important; }
+.ini .ini-cal-nav:active{ transform:translateY(0); }
+.idt-fechar:hover{ color:var(--ini-erro) !important; transform:translateY(-2px); }
+.ini .ini-ctr-ic{ color:var(--ini-icone); }
+.ini .ini-ctr-ic svg, .ini .ini-ctr-ic svg *{ stroke:var(--ini-icone) !important; }
+.ini-periodo-seta{ width:24px; height:24px; display:inline-grid; place-items:center; flex:none; border-radius:var(--ini-r2);
+  background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); color:var(--ini-icone); font-size:12px; }
+@media (prefers-reduced-motion: reduce){ .ini .ini-cal-nav:hover, .ini .ini-cartao:hover .ini-chev, .idt-fechar:hover{ transform:none; } }

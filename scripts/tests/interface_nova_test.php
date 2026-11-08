@@ -239,6 +239,8 @@ ok(str_contains($detJs, 'e.blocos') && str_contains($detJs, 'e.advogados') && st
 ok(str_contains((string) file_get_contents($raiz . '/app/Inicio/Painel.php'), 'PublicacaoEstrutura::estruturar('), 'a home manda a publicação já separada pelo servidor');
 ok(str_contains($inicio, "timeZone: 'America/Sao_Paulo'") && str_contains($inicio, '<span id="iniSaudacao">'), 'a saudação acompanha o relógio de Brasília na página aberta');
 ok(str_contains((string) file_get_contents($raiz . '/public/assets/inicio.css'), '.ini-sala h1 .ini-nome{') && str_contains($inicio, '<span class="ini-nome">'), 'o nome em degradê azul para prata, como o logo');
+$cssIni = (string) file_get_contents($raiz . '/public/assets/inicio.css');
+ok(str_contains($cssIni, '.ini .ini-cal-nav, .ini .ini-chev, .idt-fechar{') && str_contains($cssIni, 'box-shadow:var(--ini-fundo-sombra) !important; color:var(--ini-icone) !important;') && str_contains($cssIni, '.ini .ini-ctr-ic svg, .ini .ini-ctr-ic svg *{ stroke:var(--ini-icone) !important; }'), 'setas, chevrons, o fechar e os ícones dos prazos no mesmo afundado do ícone');
 // 08/11/2026: "agora eu quero animação em tudo". O movimento mora em folhas e scripts próprios, só com movimento.
 $movCss = (string) @file_get_contents($raiz . '/public/assets/inicio-movimento.css');
 $movJs  = (string) @file_get_contents($raiz . '/public/assets/inicio-movimento.js');

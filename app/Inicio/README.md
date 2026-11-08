@@ -143,6 +143,11 @@ seleção em pílula.
   tela avisa a home por `postMessage` (só da mesma origem) quando o pop-up abre, quando
   fecha (a home tira o iframe e se atualiza) e quando não tem pop-up (a home vai para a
   tela). Para uma tela nova entrar, basta uma linha em `TELAS` no `embed.js`.
+- **Setas e detalhes no mesmo afundado do ícone** (08/11/2026, "todas essas setas e detalhes
+  têm de ser aprofundados, como os ícones: o cinza com o ícone azul escuro"): as setas do
+  calendário, a seta de cada cartão, o × do pop-up, a seta do De/Até e os ícones dos contadores
+  de Prazos usam a mesma caixa do `.ini-ic` (fundo afundado, sombra interna, traço em
+  `--ini-icone`) e o mesmo hover do ícone do cabeçalho (sobe e acende em azul, traço branco).
 - Cabeçalho dos cartões: sem link de texto; o ícone é o atalho para a tela do bloco,
   centrado com o título, e no hover sobe 2px e acende como o botão aprovado.
 - Cartões nunca deixam vão: as colunas se esticam até a mesma altura e o último
