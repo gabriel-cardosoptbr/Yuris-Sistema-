@@ -72,7 +72,10 @@ seleção em pílula.
   Escolher as datas: clique escolhe um dia; arrastar sobre os dias escolhe um
   período; Shift+clique vai do dia escolhido até o clicado; e o botão "Escolher
   datas" pede o primeiro e o último dia (serve no celular, onde arrastar rola a tela);
-  Prazos e Aguardando retorno ao lado; Publicações, Processos com movimentação e
+  Prazos (os três contadores, hoje, amanhã e na semana, são cartões como os da lista: caixa
+  elevada, ícone afundado com traço azul, número e rótulo ao lado; vermelho só em "hoje" com
+  prazo, zero apagado; empilham quando o cartão fica estreito: "tá feio, não tá de acordo",
+  08/11/2026) e Aguardando retorno ao lado; Publicações, Processos com movimentação e
   Equipe embaixo. Bordas pouco arredondadas (12px nos cartões, 8px no resto):
   "tá muito arredondado, arredondar só um pouco".
 - `assets/interface-nova-telas.css` veste **todas as outras telas** (Processos,

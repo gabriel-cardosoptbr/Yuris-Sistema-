@@ -77,6 +77,14 @@ AASP mandam o teor numa linha só. `PublicacaoEstrutura::estruturar($texto, $pay
   "Vistos" e itens numerados abrem linha) e a assinatura à parte: local e data, nome, cargo;
 - **intimados** (o "Intimado(s) / Citado(s)" do fim) e **link** (só https, do payload).
 
+Desde 08/11/2026 ("a indentação está horrível ainda", sobre um cumprimento de sentença do TJSP):
+o formato do TJSP aceita `(processo principal N)` depois do número, que vira o campo "Processo
+principal"; o " - - " entre as partes (campo vazio) some; "Nota de cartório:" e outros rótulos em
+caixa normal no começo do teor viram o título da seção; o comunicado do tribunal no fim (migração para
+o eproc, "solicita-se aos advogados") vira o bloco "Aviso do tribunal"; e o endereço que chega com
+`&amp;` sem o `&` e o `;` (`id=2amppagina=2`) é consertado, só dentro de URL. No pop-up, endereço
+https no texto vira link.
+
 Usada pelo pop-up de publicação da home nova (`Inicio/Painel::publicacoes`). Teste:
 `scripts/tests/publicacao_estrutura_test.php`, com textos nos formatos reais e nomes fictícios.
 

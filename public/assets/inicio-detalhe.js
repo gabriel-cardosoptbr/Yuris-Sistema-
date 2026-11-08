@@ -105,7 +105,9 @@
   function realcar(htmlEsc) {
     return htmlEsc
       .replace(/\b(\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4})\b/g, '<em class="ini-num">$1</em>')
-      .replace(/\b(OAB\s*:?\s*(?:\d[\d.]{1,8}[A-Z]?\s*\/?\s*[A-Z]{2}|\/?\s*[A-Z]{2}\s*:?\s*\d[\d.]{1,8}))\b/g, '<strong class="idt-oab">$1</strong>');
+      .replace(/\b(OAB\s*:?\s*(?:\d[\d.]{1,8}[A-Z]?\s*\/?\s*[A-Z]{2}|\/?\s*[A-Z]{2}\s*:?\s*\d[\d.]{1,8}))\b/g, '<strong class="idt-oab">$1</strong>')
+      // Endereço do tribunal no texto vira link (só https, em outra aba). O ponto final fica fora.
+      .replace(/\bhttps:\/\/[^\s<"]+?(?=[.,;)]?(?:\s|<|$))/g, function (u) { return '<a class="idt-pub-link-txt" href="' + u + '" target="_blank" rel="noopener noreferrer">' + u + '</a>'; });
   }
 
   // ── A janela ────────────────────────────────────────────────────────────
@@ -290,7 +292,7 @@
         + '</div>' + (e.preambulo ? '<div class="idt-pub-timbre">' + realcar(esc(e.preambulo)) + '</div>' : '') + '</div>';
       if (e.partes && e.partes.length) {
         html += '<div class="idt-sec"><div class="idt-sec-t">Partes</div><div class="idt-pub-lista">'
-          + e.partes.map(function (g) { return '<div class="idt-pub-grupo"><span class="idt-pub-rot">' + esc(g.rotulo) + '</span><div>' + nomes(g.nomes) + '</div></div>'; }).join('')
+          + e.partes.map(function (g) { return '<div class="idt-pub-grupo">' + (g.rotulo === 'Partes' ? '' : '<span class="idt-pub-rot">' + esc(g.rotulo) + '</span>') + '<div>' + nomes(g.nomes) + '</div></div>'; /* sem rótulo, o título da seção já diz Partes */ }).join('')
           + '</div></div>';
       }
       if (e.advogados && e.advogados.length) {

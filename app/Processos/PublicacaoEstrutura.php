@@ -271,24 +271,30 @@ final class PublicacaoEstrutura
     /** "Processo 1001234-56.2024.8.26.0100 - Procedimento Comum Cível - Indenização - FULANO - BANCO X - Vistos..." (TJSP). */
     private static function cabecalhoComTracos(string $t): array
     {
-        if (!preg_match('/^\s*Processo\s+(?:n[ºo°]\.?\s*)?(\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4})\s+[-–]\s+/u', $t, $m)) return [$t, [], []];
+        // O TJSP põe "(processo principal NNNN)" logo depois do número no cumprimento de sentença.
+        $cnj = '\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}';
+        if (!preg_match("/^\\s*Processo\\s+(?:n[ºo°]\\.?\\s*)?($cnj)(?:\\s*\\(\\s*processo\\s+principal\\s*(?:n[ºo°]\\.?\\s*)?($cnj)\\s*\\))?\\s*[-–]\\s+/iu", $t, $m)) return [$t, [], []];
         $resto = substr($t, strlen($m[0]));
-        $seg = preg_split('/\s+[-–]\s+/u', $resto);
+        // " - - " é campo vazio entre as partes: o segmento vazio some.
+        $seg = preg_split('/\s+[-–](?=\s)/u', $resto);
         $cab = [];
         $i = 0;
         for (; $i < count($seg); $i++) {
+            if (trim($seg[$i]) === '') continue;
             if (self::pareceTeor($seg[$i])) break;
             $cab[] = trim($seg[$i]);
         }
         if (!$cab || $i >= count($seg)) return [$t, [], []];
         $saida = [['rotulo' => 'Processo', 'valor' => $m[1]]];
+        if (!empty($m[2])) $saida[] = ['rotulo' => 'Processo principal', 'valor' => $m[2]];
         $partes = [];
         foreach ($cab as $k => $v) {
             if ($k === 0) $saida[] = ['rotulo' => 'Classe', 'valor' => $v];
             elseif ($k === 1 && count($cab) >= 3) $saida[] = ['rotulo' => 'Assunto', 'valor' => $v];
-            else $partes[] = ['rotulo' => 'Parte', 'polo' => '', 'nome' => $v];
+            else $partes[] = ['rotulo' => 'Partes', 'polo' => '', 'nome' => $v];
         }
-        return [trim(implode(' - ', array_slice($seg, $i))), $saida, $partes];
+        $seg = array_map('trim', array_slice($seg, $i));
+        return [trim(implode(' - ', $seg)), $saida, $partes];
     }
 
     private static function pareceTeor(string $s): bool
@@ -296,7 +302,7 @@ final class PublicacaoEstrutura
         $s = trim($s);
         if (mb_strlen($s) > 160) return true;
         if (preg_match('/[a-zß-öø-ÿ]{3,}[.;]\s+\S/u', $s)) return true;
-        return (bool) preg_match('/^(Vistos|Intim|Manifest|Fica|Defiro|Indefiro|Ante |Diante|Trata-se|Cuida-se|Ciência|Certifico|Ato |Nos termos|Considerando|Recebo|Cite|Tendo|Aguarde|Vista|Dê|Expeça|Junte|Proceda|Providencie|Remetam|Arquive|Cumpra|Homologo|Julgo|Concedo|Designo|Determino|Diga|Anote|Oficie|Conclusos|Em face|Em razão|Conforme|Nada|Comprove|Regularize|Apresente|Esclareça|Emende|Mantenho|Retifique|Encaminhe|Reitere|Despacho|Decisão|Sentença|Int\.)/u', $s);
+        return (bool) preg_match('/^(Vistos|Nota de cart|Certidão|Publique|Intim|Manifest|Fica|Defiro|Indefiro|Ante |Diante|Trata-se|Cuida-se|Ciência|Certifico|Ato |Nos termos|Considerando|Recebo|Cite|Tendo|Aguarde|Vista|Dê|Expeça|Junte|Proceda|Providencie|Remetam|Arquive|Cumpra|Homologo|Julgo|Concedo|Designo|Determino|Diga|Anote|Oficie|Conclusos|Em face|Em razão|Conforme|Nada|Comprove|Regularize|Apresente|Esclareça|Emende|Mantenho|Retifique|Encaminhe|Reitere|Despacho|Decisão|Sentença|Int\.)/u', $s);
     }
 
     private static function partesPorPolo(array $pl, array $partesTexto): array
@@ -348,6 +354,14 @@ final class PublicacaoEstrutura
     {
         $t = trim($t);
         if ($t === '') return [];
+        // Comunicado do tribunal no fim ("migração para o eproc, solicita-se aos advogados..."):
+        // não é o teor, vira um bloco próprio no fim.
+        $aviso = [];
+        $linhas = explode("\n", $t);
+        while (count($linhas) > 1 && preg_match('/solicita-se\s+aos\s+(?:senhores\s+)?advogad|migra[çc][ãa]o\s+d[eo]\s+(?:todo\s+o\s+)?acervo|sistema\s+eproc|^\s*(?:AVISO|COMUNICADO)\b/iu', end($linhas))) {
+            array_unshift($aviso, trim(array_pop($linhas)));
+        }
+        if ($aviso) $t = trim(implode("\n", $linhas));
         $pedacos = [];
         if (preg_match_all(self::reSecao(), $t, $mm, PREG_SET_ORDER | PREG_OFFSET_CAPTURE)) {
             $antes = trim(substr($t, 0, $mm[0][0][1]));
@@ -360,6 +374,13 @@ final class PublicacaoEstrutura
         } else {
             $pedacos[] = ['', $t];
         }
+        // Rótulo em caixa normal no começo ("Nota de cartório: ciência..."): vira o título.
+        if ($pedacos && $pedacos[0][0] === ''
+            && preg_match('/^(Nota de cart[óo]rio|Ato ordinat[óo]rio|Certid[ãa]o|Despacho|Decis[ãa]o|Senten[çc]a|Intima[çc][ãa]o)\s*:\s*/iu', $pedacos[0][1], $r)) {
+            $corpo = substr($pedacos[0][1], strlen($r[0]));
+            $pedacos[0] = [$r[1], mb_strtoupper(mb_substr($corpo, 0, 1)) . mb_substr($corpo, 1)];
+        }
+        if ($aviso) $pedacos[] = ['Aviso do tribunal', implode("\n", $aviso)];
         $blocos = [];
         foreach ($pedacos as [$tit, $corpo]) {
             [$corpo, $assin] = self::assinatura(trim($corpo));
@@ -438,6 +459,9 @@ final class PublicacaoEstrutura
             $s = (string) preg_replace('/[@#.]?[a-zA-Z_][\w-]*\s*\{[^{}]*\}/', ' ', $s);
         }
         $s = html_entity_decode($s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        // Endereço que chegou com "&amp;" sem o "&" e o ";" ("id=2amppagina=2"): o "amp"
+        // entre o valor de um parâmetro e o nome do seguinte volta a ser "&". Só dentro de URL.
+        $s = (string) preg_replace_callback('#https?://[^\s<>"]+#u', fn ($u) => (string) preg_replace('/(=[^=&\s]*?)&?amp;?(?=[a-z_]{2,}=)/i', '$1&', $u[0]), $s);
         $s = str_replace(["\r\n", "\r", "\u{00A0}", "\t"], ["\n", "\n", ' ', ' '], $s);
         $s = (string) preg_replace('/ {2,}/', ' ', $s);
         $s = (string) preg_replace('/ *\n */', "\n", $s);

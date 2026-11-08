@@ -209,11 +209,26 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-av.grande{ width:38px; height:38px; font-size:13px; }
 
 /* ── Prazos ── */
-.ini-contadores{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:10px; }
-.ini-ctr{ border-radius:var(--ini-r2); padding:10px 10px 8px; background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); }
-.ini-ctr b{ display:block; font-size:21px; font-weight:800; letter-spacing:-.5px; line-height:1; color:var(--ini-texto); }
-.ini-ctr span{ font-size:11.5px; color:var(--ini-texto3); font-weight:600; }
-.ini-ctr.hoje b{ color:var(--ini-erro); }
+/* Os três contadores são cartões como os de baixo ("tá feio, não tá de acordo",
+   08/11/2026): caixa elevada na prata, o ícone afundado com o traço azul, o número
+   grande e o rótulo ao lado. Vermelho só em "hoje" quando há prazo; zero fica apagado. */
+.ini-contadores{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-bottom:10px; }
+.ini-ctr{ display:flex; align-items:center; gap:9px; min-width:0; padding:10px 11px; border-radius:var(--ini-r2);
+  background:var(--ini-painel2); border:1px solid var(--ini-linha); box-shadow:0 1px 0 var(--ini-hi) inset;
+  color:inherit; text-decoration:none; transition:border-color .15s, transform .18s cubic-bezier(.2,.8,.2,1); }
+.ini-ctr:hover{ border-color:rgba(61,101,203,.45); transform:translateY(-2px); }
+.ini-ctr:focus-visible{ outline:2px solid var(--ini-azul2); outline-offset:2px; }
+.ini-ctr-ic{ width:30px; height:30px; flex:none; display:grid; place-items:center; border-radius:var(--ini-r2);
+  background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); color:var(--ini-azul2); }
+.ini-ctr-ic svg{ width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.ini-ctr-t{ display:flex; flex-direction:column; min-width:0; }
+.ini-ctr-t b{ font-size:20px; font-weight:800; letter-spacing:-.5px; line-height:1.05; color:var(--ini-texto); font-variant-numeric:tabular-nums; }
+.ini-ctr-t span{ font-size:12px; font-weight:600; white-space:nowrap; color:var(--ini-texto3); }
+.ini-ctr.hoje:not(.zero) .ini-ctr-t b{ color:var(--ini-erro); }
+.ini-ctr.zero .ini-ctr-t b{ color:var(--ini-texto3); }
+.ini-contadores{ container-type:inline-size; }
+@container (max-width:280px){ .ini-ctr{ flex-direction:column; align-items:flex-start; gap:6px; } }
+@media (max-width:520px){ .ini-ctr{ flex-direction:column; align-items:flex-start; gap:6px; } }
 .ini-atraso{ font-size:12.5px; font-weight:600; color:var(--ini-erro); margin-bottom:8px; }
 .ini-atraso a{ color:var(--ini-azul2); }
 .ini-lista{ display:flex; flex-direction:column; }
@@ -520,4 +535,6 @@ input.idt-entrada{ height:38px; }
 .idt-pub-assin b{ font-size:12.5px; color:var(--ini-texto); }
 .idt-pub-link{ display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; color:var(--ini-azul2); text-decoration:none; }
 .idt-pub-link:hover{ text-decoration:underline; }
+.idt-pub-link-txt{ color:var(--ini-azul2); font-weight:600; overflow-wrap:anywhere; text-decoration:none; }
+.idt-pub-link-txt:hover{ text-decoration:underline; }
 @media (max-width:560px){ .idt-pub-grupo{ flex-direction:column; gap:4px; } .idt-pub-rot{ flex-basis:auto; } }

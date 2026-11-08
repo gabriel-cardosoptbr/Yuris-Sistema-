@@ -226,9 +226,16 @@ $evento = static function (array $i) use ($h, $det, $detEvento): string {
               </div>
             </header>
             <div class="ini-contadores">
-              <div class="ini-ctr hoje"><b><?= (int) $painel['contagem']['hoje'] ?></b><span>hoje</span></div>
-              <div class="ini-ctr amanha"><b><?= (int) $painel['contagem']['amanha'] ?></b><span>amanhã</span></div>
-              <div class="ini-ctr semana"><b><?= (int) $painel['contagem']['semana'] ?></b><span>na semana</span></div>
+              <?php foreach ([
+                  ['hoje', 'hoje', '<rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/><circle cx="12" cy="15" r="2"/>'],
+                  ['amanha', 'amanhã', '<rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M9 15h6M13 13l2 2-2 2"/>'],
+                  ['semana', 'na semana', '<rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M7 13h2M11 13h2M15 13h2M7 17h2M11 17h2"/>'],
+              ] as [$_ck, $_cr, $_ci]): $_cn = (int) $painel['contagem'][$_ck]; ?>
+              <a class="ini-ctr <?= $_ck ?><?= $_cn === 0 ? ' zero' : '' ?>" href="/tarefas" title="Ver os prazos">
+                <span class="ini-ctr-ic"><svg viewBox="0 0 24 24"><?= $_ci ?></svg></span>
+                <span class="ini-ctr-t"><b><?= $_cn ?></b><span><?= $_cr ?></span></span>
+              </a>
+              <?php endforeach; ?>
             </div>
             <?php if ((int) $painel['contagem']['atrasadas'] > 0): ?>
             <div class="ini-atraso"><?= (int) $painel['contagem']['atrasadas'] ?> <?= (int) $painel['contagem']['atrasadas'] === 1 ? 'item atrasado' : 'itens atrasados' ?> · <a href="/tarefas">resolver</a></div>

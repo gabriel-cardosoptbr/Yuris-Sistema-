@@ -71,7 +71,7 @@ $tjsp = 'Processo 1001234-56.2024.8.26.0100 - Procedimento Comum Cível - Indeni
       . 'ADV: CARLOS ADVOGADO TESTE (OAB 346592/SP), FERNANDA DEFENSORA (OAB 123.456/SP), LUIZ CONSULTOR (OAB/RJ 98765)';
 $e = PE::estruturar($tjsp);
 confere('tjsp: processo, classe e assunto', array_slice($e['cabecalho'], 0, 3) === [['rotulo' => 'Processo', 'valor' => '1001234-56.2024.8.26.0100'], ['rotulo' => 'Classe', 'valor' => 'Procedimento Comum Cível'], ['rotulo' => 'Assunto', 'valor' => 'Indenização por Dano Moral']], json_encode($e['cabecalho'], JSON_UNESCAPED_UNICODE));
-confere('tjsp: partes', $e['partes'] === [['rotulo' => 'Parte', 'nomes' => ['João Exemplo da Silva', 'Banco Fictício S.A.']]], json_encode($e['partes'], JSON_UNESCAPED_UNICODE));
+confere('tjsp: partes', $e['partes'] === [['rotulo' => 'Partes', 'nomes' => ['João Exemplo da Silva', 'Banco Fictício S.A.']]], json_encode($e['partes'], JSON_UNESCAPED_UNICODE));
 confere('tjsp: três advogados, OAB sem ponto', $e['advogados'] === [['nome' => 'CARLOS ADVOGADO TESTE', 'oab' => '346592', 'uf' => 'SP'], ['nome' => 'FERNANDA DEFENSORA', 'oab' => '123456', 'uf' => 'SP'], ['nome' => 'LUIZ CONSULTOR', 'oab' => '98765', 'uf' => 'RJ']], json_encode($e['advogados'], JSON_UNESCAPED_UNICODE));
 $par = $e['blocos'][0]['paragrafos'] ?? [];
 confere('tjsp: teor em parágrafos', $par === ['Vistos.', 'Manifeste-se a parte autora sobre a contestação, no prazo de 15 dias.', 'Após, conclusos.', 'Int.'], json_encode($par, JSON_UNESCAPED_UNICODE));
@@ -95,6 +95,18 @@ confere('vazio não quebra', PE::estruturar('')['blocos'] === []);
 $e = PE::estruturar('<p>DECISÃO</p><p>Defiro a tutela. 1) Oficie-se ao banco. 2) Intime-se a ré.</p><style>.x{color:red}</style>');
 confere('html: limpo e com a seção', titulos($e) === ['Decisão'], json_encode($e['blocos'], JSON_UNESCAPED_UNICODE));
 confere('html: itens numerados em linhas', ($e['blocos'][0]['paragrafos'] ?? []) === ['Defiro a tutela.', '1) Oficie-se ao banco.', '2) Intime-se a ré.'], json_encode($e['blocos'][0]['paragrafos'] ?? [], JSON_UNESCAPED_UNICODE));
+
+// ── 5b. TJSP com processo principal, "- -", nota de cartório e aviso do eproc (08/11/2026) ──
+$e = PE::estruturar("Processo 0024389-46.2017.8.26.0554 (processo principal 1017231-88.2015.8.26.0554) - Cumprimento de sentença - "
+    . "Responsabilidade do Fornecedor - Carlos Teste - - Maria Exemplo Silva - Empresa Fictícia Ltda e outro - Nota de cartório: ciência da "
+    . "pesquisa Sisbajud realizada que restou INFRUTÍFERA, requerendo o que de direito no prazo de 5 dias.\nEm razão da necessidade de "
+    . "migração de todo o acervo desta unidade para o sistema eproc, solicita-se aos advogados que providenciem seu cadastro imediato: "
+    . "https://portal.tjsp.jus.br/eproc/Duvidas/Duvida?id=2amppagina=2");
+confere('tjsp principal: cabeçalho', array_column($e['cabecalho'], 'rotulo') === ['Processo', 'Processo principal', 'Classe', 'Assunto'] && $e['cabecalho'][1]['valor'] === '1017231-88.2015.8.26.0554', json_encode($e['cabecalho'], JSON_UNESCAPED_UNICODE));
+confere('tjsp principal: partes sem o campo vazio', $e['partes'] === [['rotulo' => 'Partes', 'nomes' => ['Carlos Teste', 'Maria Exemplo Silva', 'Empresa Fictícia Ltda e outro']]], json_encode($e['partes'], JSON_UNESCAPED_UNICODE));
+confere('tjsp principal: nota de cartório vira título', titulos($e) === ['Nota de cartório', 'Aviso do tribunal'] && str_starts_with($e['blocos'][0]['paragrafos'][0] ?? '', 'Ciência da pesquisa'), json_encode($e['blocos'], JSON_UNESCAPED_UNICODE));
+confere('tjsp principal: link do aviso consertado', str_ends_with($e['blocos'][1]['paragrafos'][0] ?? '', 'Duvida?id=2&pagina=2'), json_encode($e['blocos'][1] ?? null, JSON_UNESCAPED_UNICODE));
+confere('link: "amp" só volta a "&" dentro de URL e entre parâmetros', PE::limpar('exemplo amp https://x.com.br/c?example=1&amp;b=2') === 'exemplo amp https://x.com.br/c?example=1&b=2');
 
 // ── 6. Extratores do Diário (api/push/list.php delega para cá) ──────────────
 confere('aasp: OAB no formato "NOME OAB SP-123"', PE::advogadosDoPayload(['textoPublicacao' => 'Advogado(s): CARLOS TESTE OAB SP-12345']) === [['nome' => 'CARLOS TESTE', 'oab' => '12345', 'uf' => 'SP']]);
