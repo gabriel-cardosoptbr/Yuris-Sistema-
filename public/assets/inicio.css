@@ -356,3 +356,21 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
    principal fica branco no azul. */
 .ini svg{ color:inherit !important; }
 .ini-cartao:hover .ini-chev, .ini-cartao:hover .ini-chev svg, .ini-cartao:hover .ini-chev svg *{ color:#fff !important; stroke:#fff !important; }
+
+/* Cabeçalho do cartão (07/11/2026): sem o texto "Ver todos"; o próprio ícone é o atalho
+   para a tela do bloco. Ícone e título centrados na mesma linha, com ou sem subtítulo.
+   No hover o ícone sobe um pouco e acende igual ao botão aprovado (azul sólido, traço
+   branco, brilho curto), para mostrar que é clicável. */
+.ini-card-h{ display:flex !important; align-items:center; gap:12px; grid-template-columns:none; grid-template-areas:none; }
+.ini-card-tit{ display:flex; flex-direction:column; justify-content:center; min-width:0; gap:2px; }
+.ini-card-tit h3{ line-height:1.25; }
+.ini-card-tit .ini-conta{ margin:0; line-height:1.2; }
+a.ini-ic{ cursor:pointer; text-decoration:none; transition:transform .18s cubic-bezier(.2,.8,.2,1), background .15s, box-shadow .15s, border-color .15s; }
+.ini a.ini-ic:hover, .ini a.ini-ic:focus-visible{ transform:translateY(-2px); background:var(--ini-azul); border-color:transparent; box-shadow:var(--ini-brilho); outline:none; }
+.ini a.ini-ic:hover svg, .ini a.ini-ic:hover svg *, .ini a.ini-ic:focus-visible svg, .ini a.ini-ic:focus-visible svg *{ stroke:#fff !important; }
+.ini a.ini-ic:active{ transform:translateY(0); }
+/* O ícone dos quatro cartões de cima faz o mesmo quando o cartão está sob o mouse. */
+.ini-kpi-ic{ transition:transform .18s cubic-bezier(.2,.8,.2,1), background .15s, box-shadow .15s, border-color .15s; }
+.ini .ini-kpi:hover .ini-kpi-ic{ transform:translateY(-2px); background:var(--ini-azul); border-color:transparent; box-shadow:var(--ini-brilho); }
+.ini .ini-kpi:hover .ini-kpi-ic svg, .ini .ini-kpi:hover .ini-kpi-ic svg *{ stroke:#fff !important; }
+@media (prefers-reduced-motion: reduce){ .ini a.ini-ic:hover, .ini .ini-kpi:hover .ini-kpi-ic{ transform:none; } }

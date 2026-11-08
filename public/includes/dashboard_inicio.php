@@ -159,10 +159,11 @@ $evento = static function (array $i) use ($h): string {
 
         <section class="ini-card ini-agenda">
           <header class="ini-card-h">
-            <span class="ini-ic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M3 10h18M8 2v4M16 2v4"/></svg></span>
-            <h3>Agenda jurídica</h3>
-            <span class="ini-conta"><?= count($doDia) ?> <?= count($doDia) === 1 ? 'compromisso hoje' : 'compromissos hoje' ?></span>
-            <a class="ini-mais" href="/tarefas">Ver agenda completa <?= $seta ?></a>
+            <a class="ini-ic" href="/tarefas" title="Ver a agenda completa" aria-label="Ver a agenda completa"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M3 10h18M8 2v4M16 2v4"/></svg></a>
+            <div class="ini-card-tit">
+              <h3>Agenda jurídica</h3>
+              <span class="ini-conta"><?= count($doDia) ?> <?= count($doDia) === 1 ? 'compromisso hoje' : 'compromissos hoje' ?></span>
+            </div>
           </header>
           <div class="ini-agenda-corpo">
             <div class="ini-cal" id="iniCal">
@@ -211,9 +212,10 @@ $evento = static function (array $i) use ($h): string {
         <div class="ini-coluna">
           <section class="ini-card">
             <header class="ini-card-h">
-              <span class="ini-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
-              <h3>Prazos</h3>
-              <a class="ini-mais" href="/tarefas">Todos <?= $seta ?></a>
+              <a class="ini-ic" href="/tarefas" title="Ver todos os prazos" aria-label="Ver todos os prazos"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></a>
+              <div class="ini-card-tit">
+                <h3>Prazos</h3>
+              </div>
             </header>
             <div class="ini-contadores">
               <div class="ini-ctr hoje"><b><?= (int) $painel['contagem']['hoje'] ?></b><span>hoje</span></div>
@@ -242,10 +244,11 @@ $evento = static function (array $i) use ($h): string {
           <?php if ($temWhats): ?>
           <section class="ini-card">
             <header class="ini-card-h">
-              <span class="ini-ic"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></span>
-              <h3>Aguardando retorno</h3>
-              <span class="ini-conta"><?= (int) $painel['whatsapp']['total'] ?> no WhatsApp</span>
-              <a class="ini-mais" href="/chat">Abrir chat <?= $seta ?></a>
+              <a class="ini-ic" href="/chat" title="Abrir o chat" aria-label="Abrir o chat"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></a>
+              <div class="ini-card-tit">
+                <h3>Aguardando retorno</h3>
+                <span class="ini-conta"><?= (int) $painel['whatsapp']['total'] ?> no WhatsApp</span>
+              </div>
             </header>
             <?php if (!$painel['whatsapp']['itens']): ?>
             <div class="ini-vazio curto"><p>Ninguém esperando resposta.</p></div>
@@ -271,10 +274,11 @@ $evento = static function (array $i) use ($h): string {
 
         <section class="ini-card">
           <header class="ini-card-h">
-            <span class="ini-ic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg></span>
-            <h3>Publicações</h3>
-            <span class="ini-conta"><?= (int) $painel['publicacoes']['total'] ?> sem tratamento</span>
-            <a class="ini-mais" href="/intimacoes">Diário <?= $seta ?></a>
+            <a class="ini-ic" href="/intimacoes" title="Abrir o Diário" aria-label="Abrir o Diário"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg></a>
+            <div class="ini-card-tit">
+              <h3>Publicações</h3>
+              <span class="ini-conta"><?= (int) $painel['publicacoes']['total'] ?> sem tratamento</span>
+            </div>
           </header>
           <?php if (!$painel['publicacoes']['itens']): ?>
           <div class="ini-vazio curto"><p>Tudo tratado. Nenhuma publicação pendente.</p></div>
@@ -293,9 +297,10 @@ $evento = static function (array $i) use ($h): string {
 
         <section class="ini-card">
           <header class="ini-card-h">
-            <span class="ini-ic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
-            <h3>Processos com movimentação</h3>
-            <a class="ini-mais" href="/processos">Todos <?= $seta ?></a>
+            <a class="ini-ic" href="/processos" title="Ver todos os processos" aria-label="Ver todos os processos"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></a>
+            <div class="ini-card-tit">
+              <h3>Processos com movimentação</h3>
+            </div>
           </header>
           <?php if (!$painel['processos']): ?>
           <div class="ini-vazio curto"><p>Nenhum processo cadastrado ainda.</p></div>
@@ -316,9 +321,10 @@ $evento = static function (array $i) use ($h): string {
 
         <section class="ini-card">
           <header class="ini-card-h">
-            <span class="ini-ic"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
-            <h3>Equipe hoje</h3>
-            <a class="ini-mais" href="/desempenho">Desempenho <?= $seta ?></a>
+            <a class="ini-ic" href="/desempenho" title="Ver o desempenho da equipe" aria-label="Ver o desempenho da equipe"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></a>
+            <div class="ini-card-tit">
+              <h3>Equipe hoje</h3>
+            </div>
           </header>
           <div class="ini-equipe">
             <?php foreach (array_slice($painel['equipe'], 0, 6) as $pe): ?>
