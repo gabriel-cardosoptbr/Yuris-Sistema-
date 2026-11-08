@@ -288,6 +288,8 @@ window.TkCentral = (function () {
   let clienteEscolhido = '';
   let buscaTimer = null, clienteTimer = null;
   let tarefasDoProcesso = [];
+  let oqueCriar = 'tarefa'; // tarefa | prazo | vinculo
+  let resumoProcesso = { tarefas: [], prazos: [], vinculos: [] };
 
   function trocarTipo(tipo) {
     tipoNova = tipo;
@@ -312,6 +314,7 @@ window.TkCentral = (function () {
     if (jur && $('ntPrioridade').value === 'urgente') $('ntPrioridade').value = 'alta';
     if (jur && !$('ntResponsavel').value && window.YURIS_USER_ID) $('ntResponsavel').value = String(window.YURIS_USER_ID);
     $('ntSave').textContent = jur ? 'Criar no processo' : 'Criar tarefa';
+    if (jur) trocarOque(oqueCriar); else { const rot = $('ntTitulo').closest('.tk-field').querySelector('label'); if (rot) rot.textContent = 'Título *'; $('ntTitulo').placeholder = 'O que precisa ser feito'; document.getElementById('modalNewTask').classList.remove('tk-jur-vinculo'); }
     if (jur && !processoEscolhido) {
       // As duas listas já aparecem abertas: os clientes e os processos mais recentes.
       buscarClientes($('ntClienteBusca').value);
@@ -432,34 +435,88 @@ window.TkCentral = (function () {
 
   // As tarefas processuais do processo escolhido: a fazer primeiro, depois as feitas.
   // "Será que tem que fazer ou não? Se já foi feito ou não."
+  // O processo escolhido por inteiro, como na ficha: prazos, tarefas e vínculos, cada um
+  // com o que já foi feito e o que falta. O bloco do que se vai criar fica primeiro.
   async function carregarTarefasDoProcesso(id) {
     const box = $('ntProcTarefas');
     box.style.display = 'block';
-    box.innerHTML = '<div class="tk-jur-tit">Tarefas deste processo</div><div class="tk-jur-osso"></div><div class="tk-jur-osso"></div>';
-    let r;
-    try { r = await GET('/processo_tarefas.php?processo_id=' + id); } catch (e) { box.style.display = 'none'; return; }
+    box.innerHTML = '<div class="tk-jur-tit">Este processo</div><div class="tk-jur-osso"></div><div class="tk-jur-osso"></div><div class="tk-jur-osso"></div>';
+    const pega = url => GET(url).then(x => x.data || []).catch(() => null);
+    const [ts, ps, vs] = await Promise.all([
+      pega('/processo_tarefas.php?processo_id=' + id),
+      pega('/processo_prazos.php?processo_id=' + id),
+      pega('/resource_shares.php?resource_type=processo&resource_id=' + id),
+    ]);
     if (!processoEscolhido || processoEscolhido.id !== id) return;
-    tarefasDoProcesso = (r.data || []).map(t => ({ titulo: t.titulo || '', feita: Number(t.concluido) === 1, data: t.data_tarefa || '', resp: t.responsavel || '' }));
-    const abertas = tarefasDoProcesso.filter(t => !t.feita).length, feitas = tarefasDoProcesso.length - abertas;
+    resumoProcesso = {
+      tarefas: (ts || []).map(t => ({ titulo: t.titulo || '', feita: Number(t.concluido) === 1, data: t.data_tarefa || '', resp: t.responsavel || '' })),
+      prazos: (ps || []).map(p => ({ titulo: p.descricao || '', feita: p.status === 'concluido', data: (p.data_limite || '').slice(0, 10), resp: p.responsavel || '' })),
+      vinculos: (vs || []).filter(v => v.status === 'active').map(v => ({ titulo: v.to_user_nome ? 'Advogado: ' + v.to_user_nome : (v.to_account_nome ? 'Conta: ' + v.to_account_nome : 'Conta #' + v.to_account_id), feita: true, data: '', resp: ({ view: 'Visualização', edit: 'Edição', full: 'Acesso total' })[v.permission_level] || '' })),
+      falhou: ts === null && ps === null,
+    };
+    tarefasDoProcesso = resumoProcesso.tarefas;
+    desenharResumo();
+  }
+  function desenharResumo() {
+    const box = $('ntProcTarefas');
+    if (!processoEscolhido) return;
     const data = d => d ? d.slice(8, 10) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4) : '';
-    box.innerHTML = '<div class="tk-jur-tit">Tarefas deste processo <span>' + abertas + ' a fazer · ' + feitas + (feitas === 1 ? ' feita' : ' feitas') + '</span></div>'
-      + (tarefasDoProcesso.length
-        ? '<div class="tk-jur-itens">' + tarefasDoProcesso.map((t, n) => `<div class="tk-jur-item${t.feita ? ' feita' : ''}" data-n="${n}">
-            <span class="tk-jur-marca" aria-hidden="true">${t.feita ? '<svg viewBox="0 0 24 24"><polyline points="5 12 10 17 19 7"/></svg>' : ''}</span>
-            <span class="tk-jur-t"><b>${esc(t.titulo)}</b><small>${[t.feita ? 'Feita' : 'A fazer', data(t.data), t.resp].filter(Boolean).map(esc).join(' · ')}</small></span>
-          </div>`).join('') + '</div>'
-        : '<div class="tk-proc-nada">Nenhuma tarefa neste processo ainda.</div>');
+    const hoje = new Date().toISOString().slice(0, 10);
+    const bloco = (chave, titulo, vazio) => {
+      const itens = resumoProcesso[chave];
+      const abertas = itens.filter(t => !t.feita).length, feitas = itens.length - abertas;
+      const conta = chave === 'vinculos' ? itens.length + (itens.length === 1 ? ' ativo' : ' ativos')
+        : abertas + (chave === 'prazos' ? ' em aberto' : ' a fazer') + ' · ' + feitas + (chave === 'prazos' ? (feitas === 1 ? ' cumprido' : ' cumpridos') : (feitas === 1 ? ' feita' : ' feitas'));
+      return '<div class="tk-jur-bloco' + (chave === oquePorBloco() ? ' atual' : '') + '" data-bloco="' + chave + '"><div class="tk-jur-tit">' + titulo + ' <span>' + conta + '</span></div>'
+        + (itens.length
+          ? '<div class="tk-jur-itens">' + itens.map((t, n) => {
+              const venc = chave === 'prazos' && !t.feita && t.data && t.data < hoje;
+              const est = chave === 'vinculos' ? 'Ativo' : chave === 'prazos' ? (t.feita ? 'Cumprido' : venc ? 'Vencido' : 'Em aberto') : (t.feita ? 'Feita' : 'A fazer');
+              return `<div class="tk-jur-item${t.feita ? ' feita' : ''}${chave === 'vinculos' ? ' vinc' : ''}${venc ? ' venc' : ''}" data-bloco="${chave}" data-n="${n}">
+                <span class="tk-jur-marca" aria-hidden="true">${t.feita ? '<svg viewBox="0 0 24 24"><polyline points="5 12 10 17 19 7"/></svg>' : ''}</span>
+                <span class="tk-jur-t"><b>${esc(t.titulo)}</b><small>${[est, data(t.data), t.resp].filter(Boolean).map(esc).join(' · ')}</small></span>
+              </div>`; }).join('') + '</div>'
+          : '<div class="tk-proc-nada">' + vazio + '</div>') + '</div>';
+    };
+    const ordem = { tarefa: ['tarefas', 'prazos', 'vinculos'], prazo: ['prazos', 'tarefas', 'vinculos'], vinculo: ['vinculos', 'prazos', 'tarefas'] }[oqueCriar];
+    const html = {
+      tarefas: bloco('tarefas', 'Tarefas processuais', 'Nenhuma tarefa neste processo ainda.'),
+      prazos: bloco('prazos', 'Prazos processuais', 'Nenhum prazo neste processo ainda.'),
+      vinculos: bloco('vinculos', 'Vínculos do processo', 'Nenhum vínculo: o processo só é visto por este escritório.'),
+    };
+    box.innerHTML = resumoProcesso.falhou ? '<div class="tk-proc-nada">Não consegui ler este processo agora.</div>' : ordem.map(k => html[k]).join('');
     avisarRepetida();
+  }
+  function oquePorBloco() { return { tarefa: 'tarefas', prazo: 'prazos', vinculo: 'vinculos' }[oqueCriar]; }
+
+  // Trocar o que criar: o rótulo do título, o botão e o bloco do processo que vem primeiro.
+  function trocarOque(oque) {
+    oqueCriar = oque;
+    document.querySelectorAll('.tk-jur-op').forEach(b => { const on = b.dataset.oque === oque; b.classList.toggle('active', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
+    const modal = document.getElementById('modalNewTask');
+    modal.classList.toggle('tk-jur-vinculo', oque === 'vinculo');
+    const rotulo = $('ntTitulo').closest('.tk-field').querySelector('label');
+    if (rotulo) rotulo.textContent = oque === 'prazo' ? 'Descrição do prazo *' : 'Título *';
+    $('ntTitulo').placeholder = oque === 'prazo' ? 'Ex: Contestação, Réplica, Recurso' : 'O que precisa ser feito';
+    const urgente = $('ntPrioridade').querySelector('option[value="urgente"]');
+    if (urgente) urgente.disabled = oque === 'tarefa';
+    if (oque === 'tarefa' && $('ntPrioridade').value === 'urgente') $('ntPrioridade').value = 'alta';
+    $('ntSave').textContent = oque === 'vinculo' ? 'Abrir os vínculos do processo' : oque === 'prazo' ? 'Criar o prazo' : 'Criar no processo';
+    if (processoEscolhido) desenharResumo();
   }
   // O título igual a uma tarefa que já existe no processo acende ela na lista.
   function avisarRepetida() {
     const t = $('ntTitulo').value.trim().toLowerCase();
     let aviso = '';
+    const alvo = oquePorBloco();
     document.querySelectorAll('#ntProcTarefas .tk-jur-item').forEach(el => {
-      const x = tarefasDoProcesso[Number(el.dataset.n)];
+      if (el.dataset.bloco !== alvo || alvo === 'vinculos') { el.classList.remove('igual'); return; }
+      const x = resumoProcesso[alvo][Number(el.dataset.n)];
       const igual = t.length >= 4 && x && (x.titulo.toLowerCase() === t || x.titulo.toLowerCase().includes(t));
       el.classList.toggle('igual', igual);
-      if (igual && !aviso) aviso = x.feita ? 'Já existe uma tarefa assim, e ela já foi feita.' : 'Já existe uma tarefa assim, ainda a fazer.';
+      if (igual && !aviso) aviso = alvo === 'prazos'
+        ? (x.feita ? 'Já existe um prazo assim, e ele já foi cumprido.' : 'Já existe um prazo assim, ainda em aberto.')
+        : (x.feita ? 'Já existe uma tarefa assim, e ela já foi feita.' : 'Já existe uma tarefa assim, ainda a fazer.');
     });
     let el = $('ntTituloAviso');
     if (!el) { el = document.createElement('div'); el.id = 'ntTituloAviso'; el.className = 'tk-jur-aviso'; $('ntTitulo').insertAdjacentElement('afterend', el); }
@@ -469,10 +526,31 @@ window.TkCentral = (function () {
 
   async function salvarJuridica() {
     const titulo = $('ntTitulo').value.trim();
-    if (!processoEscolhido) { showToast('Escolha o processo da tarefa.', { type: 'warn' }); $('ntProcessoBusca').focus(); return false; }
+    if (!processoEscolhido) { showToast('Escolha o processo.', { type: 'warn' }); $('ntProcessoBusca').focus(); return false; }
+    // Vínculo: abre a ficha do processo na seção de vínculos, com o "+ Adicionar vínculo"
+    // de sempre (código, conferência da conta e permissão). Nada é gravado daqui.
+    if (oqueCriar === 'vinculo') {
+      const embutido = document.documentElement.classList.contains('yuris-embed');
+      location.href = '/processos?open=' + processoEscolhido.id + '&foco=vinculos' + (embutido ? '&embed=1' : '');
+      return false;
+    }
     if (!titulo) { $('ntTitulo').focus(); return false; }
     const respId = $('ntResponsavel').value;
     const u = users.find(x => String(x.id) === String(respId));
+    if (oqueCriar === 'prazo') {
+      if (!$('ntPrazo').value) { showToast('Prazo processual precisa da data limite.', { type: 'warn' }); $('ntPrazo').focus(); return false; }
+      await POST('/processo_prazos.php', {
+        processo_id: processoEscolhido.id,
+        descricao: titulo,
+        data_limite: $('ntPrazo').value.slice(0, 10),
+        prioridade: $('ntPrioridade').value,
+        responsavel: u ? u.nome : null,
+      });
+      showToast('Prazo criado no processo ✓', { type: 'success', duration: 3000 });
+      escolherProcesso(null);
+      escolherCliente(null, true);
+      return true;
+    }
     await POST('/processo_tarefas.php', {
       processo_id: processoEscolhido.id,
       titulo,
@@ -503,6 +581,7 @@ window.TkCentral = (function () {
     });
     $('ntClienteTrocar').addEventListener('click', () => { const tinha = !!processoEscolhido; escolherCliente(null, true); if (tinha) escolherProcesso(null); else buscarProcessos($('ntProcessoBusca').value, true); });
     $('ntTitulo').addEventListener('input', avisarRepetida);
+    document.querySelectorAll('.tk-jur-op').forEach(b => b.addEventListener('click', () => trocarOque(b.dataset.oque)));
 
     $('fltTipo').addEventListener('change', e => { filtrosCentral.tipo = e.target.value; carregar(); });
     $('fltSituacao').addEventListener('change', e => { filtrosCentral.situacao = e.target.value; carregar(); });

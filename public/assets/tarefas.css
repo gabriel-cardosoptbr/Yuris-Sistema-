@@ -2054,3 +2054,27 @@ html[data-theme="light"] .tk-jur-aviso { color: #1D4ED8; }
 html[data-theme="light"] .tk-jur-osso { background-color: #EDF1F6; border-color: #E2E8F0; background-image: linear-gradient(100deg, transparent 25%, rgba(20,32,56,.06) 50%, transparent 75%); }
 @media (max-width: 640px) { .tk-jur-campos { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .tk-jur-osso { animation: none; } }
+
+/* ── O que criar no processo (08/11/2026): tarefa processual, prazo ou vínculo ── */
+.tk-jur-oque { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.tk-jur-op { display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 9px 12px; border-radius: 10px; cursor: pointer; font-family: inherit;
+  background: rgba(160,180,210,0.06); border: 1.5px solid rgba(160,180,210,0.16); color: #D8E4F0; transition: border-color .15s, background .15s; }
+.tk-jur-op strong { font-size: .8rem; }
+.tk-jur-op span { font-size: .7rem; color: #8FA3B8; }
+.tk-jur-op.active { border-color: #3B82F6; background: rgba(59,130,246,.14); }
+.tk-jur-op:focus-visible { outline: 2px solid #3B82F6; outline-offset: 2px; }
+.tk-jur-bloco + .tk-jur-bloco { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(160,180,210,0.14); }
+.tk-jur-bloco:not(.atual) .tk-jur-itens { max-height: 132px; }
+.tk-jur-item.vinc .tk-jur-marca { background: transparent; border-color: #3B82F6; }
+.tk-jur-item.vinc .tk-jur-marca svg { stroke: #3B82F6; }
+.tk-jur-item.vinc b { text-decoration: none; opacity: 1; }
+.tk-jur-item.venc small { color: #F87171; }
+/* Vínculo não tem título, prioridade nem data: é feito na ficha do processo. */
+#modalNewTask.tk-jur-vinculo #ntTitulo, #modalNewTask.tk-jur-vinculo #ntTituloAviso,
+#modalNewTask.tk-jur-vinculo .tk-field:has(> #ntTitulo), #modalNewTask.tk-jur-vinculo .tk-row-2 { display: none !important; }
+html[data-theme="light"] .tk-jur-op { background: #FFFFFF; border-color: #D5DEE9; color: #0F172A; }
+html[data-theme="light"] .tk-jur-op span { color: #64748B; }
+html[data-theme="light"] .tk-jur-op.active { border-color: #2563EB; background: rgba(59,130,246,.08); }
+html[data-theme="light"] .tk-jur-bloco + .tk-jur-bloco { border-top-color: #E2E8F0; }
+html[data-theme="light"] .tk-jur-item.venc small { color: #DC2626; }
+@media (max-width: 640px) { .tk-jur-oque { grid-template-columns: 1fr; } }

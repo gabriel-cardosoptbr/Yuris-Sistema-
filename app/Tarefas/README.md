@@ -88,6 +88,17 @@ o mesmo que fazer pelo processo.
   (`processo_tarefas.php?processo_id=`), a fazer e feitas, com data e responsável; título igual
   a uma que já existe acende ela e avisa se já foi feita. Tudo no mesmo escopo de Processos
   (conta e compartilhamento); o teste `central_tarefas` trava o isolamento das duas buscas.
+- **O que criar no processo** (08/11/2026, "nova tarefa pode ser um prazo processual, uma
+  tarefa processual ou um vínculo que eu tenho de fazer ou conferir"): no modo jurídico, três
+  opções. **Tarefa processual** grava em `processo_tarefas.php`, como antes. **Prazo processual**
+  grava em `processo_prazos.php` (descrição, data limite obrigatória, prioridade, responsável),
+  com a mesma auditoria da ficha. **Vínculo** não grava nada daqui: abre a ficha do processo com
+  `?foco=vinculos` (e `embed=1` dentro da home), que desce até a seção e abre o "+ Adicionar
+  vínculo" de sempre, com código, conferência da conta e permissão (é acesso entre escritórios).
+  Escolhido o processo, o cadastro mostra o processo inteiro, como na ficha: tarefas (a fazer e
+  feitas), prazos (em aberto, vencidos em vermelho, cumpridos) e vínculos ativos
+  (`resource_shares.php`, que confere a leitura). O bloco do que se vai criar vem primeiro, e o
+  aviso de repetido olha esse bloco.
 - **Calendário**: compara a data como texto. `new Date('2026-11-05')` é meia-noite em
   UTC, e no Brasil a tarefa cairia na véspera. Clicar no dia cria a tarefa com a data.
 

@@ -493,6 +493,22 @@ document.addEventListener('DOMContentLoaded', ()=>{
    * e dá o destaque. A lista chega depois do modal (fetch), então espera aparecer.
    */
   window.focarNoProcesso = function (foco) {
+    // "vinculos" (Nova tarefa > Vínculo, 08/11/2026): desce até a seção de vínculos e
+    // abre o "+ Adicionar vínculo" de sempre, que tem a checagem de código e permissão.
+    if (foco === 'vinculos') {
+      let n = 0;
+      const espera = setInterval(() => {
+        const btn = document.getElementById('btnAddVinculoProc');
+        const lista = document.getElementById('vinculosProcessoList');
+        if ((!btn || !lista || lista.style.display === 'none') && ++n < 50) return;
+        clearInterval(espera);
+        if (!btn) return;
+        const sec = btn.closest('.proc-section');
+        if (sec) { sec.scrollIntoView({ behavior: 'auto', block: 'center' }); sec.classList.add('foco-bling'); setTimeout(() => sec.classList.remove('foco-bling'), 6000); }
+        btn.click();
+      }, 120);
+      return;
+    }
     const m = /^(tarefa|prazo):(\d+)$/.exec(String(foco || ''));
     if (!m) return;
     const seletor = m[1] === 'prazo' ? `.prazo-card[data-id="${m[2]}"]` : `#tarefa-row-${m[2]}`;

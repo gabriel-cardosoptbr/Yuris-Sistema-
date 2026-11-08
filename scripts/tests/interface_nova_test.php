@@ -239,6 +239,11 @@ ok(str_contains($detJs, 'e.blocos') && str_contains($detJs, 'e.advogados') && st
 ok(str_contains((string) file_get_contents($raiz . '/app/Inicio/Painel.php'), 'PublicacaoEstrutura::estruturar('), 'a home manda a publicação já separada pelo servidor');
 ok(str_contains($inicio, "timeZone: 'America/Sao_Paulo'") && str_contains($inicio, '<span id="iniSaudacao">'), 'a saudação acompanha o relógio de Brasília na página aberta');
 ok(str_contains((string) file_get_contents($raiz . '/public/assets/inicio.css'), '.ini-sala h1 .ini-nome{') && str_contains($inicio, '<span class="ini-nome">'), 'o nome em degradê azul para prata, como o logo');
+$tkPhp = (string) file_get_contents($raiz . '/public/tarefas.php');
+$tkCen = (string) file_get_contents($raiz . '/public/assets/tarefas-central.js');
+ok(substr_count($tkPhp, 'class="tk-jur-op') === 3 && str_contains($tkPhp, 'data-oque="prazo"') && str_contains($tkPhp, 'data-oque="vinculo"'), 'nova tarefa jurídica escolhe o que criar: tarefa, prazo ou vínculo');
+ok(str_contains($tkCen, "await POST('/processo_prazos.php'") && str_contains($tkCen, "'&foco=vinculos'") && str_contains($tkCen, "'/resource_shares.php?resource_type=processo&resource_id='"), 'prazo grava pelo endpoint da ficha; vínculo abre a ficha na seção de vínculos; o processo mostra prazos, tarefas e vínculos');
+ok(str_contains((string) file_get_contents($raiz . '/public/assets/processos.js'), "if (foco === 'vinculos') {"), 'a ficha do processo entende o foco vinculos');
 $cssIni = (string) file_get_contents($raiz . '/public/assets/inicio.css');
 ok(str_contains($cssIni, '.ini .ini-cal-nav, .ini .ini-chev, .idt-fechar{') && str_contains($cssIni, 'box-shadow:var(--ini-fundo-sombra) !important; color:var(--ini-icone) !important;') && str_contains($cssIni, '.ini .ini-ctr-ic svg, .ini .ini-ctr-ic svg *{ stroke:var(--ini-icone) !important; }'), 'setas, chevrons, o fechar e os ícones dos prazos no mesmo afundado do ícone');
 // 08/11/2026: "agora eu quero animação em tudo". O movimento mora em folhas e scripts próprios, só com movimento.
