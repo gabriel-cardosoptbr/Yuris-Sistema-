@@ -198,6 +198,12 @@ $inicio = (string) file_get_contents($raiz . '/public/includes/dashboard_inicio.
 ok(str_contains($inicio, "if (!isset(\$ctx)) { http_response_code(403); exit; }"), 'a home nova não abre sozinha, só pelo dashboard.php');
 ok(str_contains($inicio, 'include __DIR_' . "_ . '/sidebar.php'"), 'a home nova usa o mesmo menu de todas as telas');
 ok(!str_contains($inicio, 'alert(') && !str_contains($inicio, 'confirm('), 'sem diálogo nativo do navegador');
+$detJs = (string) @file_get_contents($raiz . '/public/assets/inicio-detalhe.js');
+ok($detJs !== '' && str_contains($inicio, '/assets/inicio-detalhe.js'), 'a home carrega o pop-up de detalhe');
+ok(str_contains($inicio, 'data-det=') || str_contains($inicio, 'data-det="'), 'os cartões levam os dados do pop-up');
+ok(str_contains($detJs, 'e.metaKey || e.ctrlKey || e.shiftKey'), 'Ctrl/Cmd/Shift+clique continua abrindo a página');
+ok(str_contains($detJs, 'X-CSRF-Token'), 'concluir prazo manda o token CSRF');
+ok(!str_contains($detJs, 'alert(') && !str_contains($detJs, 'confirm(') && !str_contains($detJs, '—'), 'pop-up sem diálogo nativo e sem travessão');
 
 // ── 4. As folhas ─────────────────────────────────────────────────────────────
 secao('4. Folhas de estilo');

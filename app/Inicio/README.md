@@ -86,6 +86,17 @@ seleção em pílula.
   à direita. O azul opaco marca os detalhes: número do processo (`.ini-num`), hora,
   etiquetas, tribunal, grupos, "Responder no WhatsApp". A tabela de processos virou
   cartões. ("Todos têm que ser um card, cada um com a sua função; use o azul nos detalhes.")
+- **Pop-up de detalhe** (`public/assets/inicio-detalhe.js`): clicar num cartão abre a
+  janela na própria home, sem sair da tela ("queria que abrisse o pop-up direto aqui").
+  Cada cartão leva os dados dele em `data-det`; para processo e tarefa a janela busca o
+  resto nos endpoints que as telas já usam (`/api/processes.php?id=`,
+  `/api/processo_prazos.php?processo_id=`, `/api/tasks.php?id=`), com a mesma checagem
+  de conta, e mostra os prazos em aberto do processo com **Concluir** (PATCH no
+  `processo_prazos.php`, com o token CSRF). Publicação mostra o texto (sem HTML, até
+  1.500 caracteres, de `Painel::publicacoes`). Ctrl/Cmd/Shift+clique ainda abre a página.
+  Esc, o × e o clique fora fecham.
+- Cabeçalho dos cartões: sem link de texto; o ícone é o atalho para a tela do bloco,
+  centrado com o título, e no hover sobe 2px e acende como o botão aprovado.
 - Cartões nunca deixam vão: as colunas se esticam até a mesma altura e o último
   cartão de cada coluna cresce ("nunca deixe esses vãos entre um card e o outro").
 - `assets/inicio.css` é a home: dois temas pelas variáveis `--ini-*`, a faixa de

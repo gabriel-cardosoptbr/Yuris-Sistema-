@@ -279,6 +279,7 @@ final class Painel
                 'processo_id' => !empty($i['processo_id']) ? (int) $i['processo_id'] : null,
                 'processo_numero' => $i['processo_numero'] ?? null, 'cliente_nome' => $i['cliente_nome'] ?? null,
                 'responsavel_nome' => $i['responsavel_nome'] ?? null,
+                'data' => substr((string) $i['data'], 0, 10),
             ];
         }
         foreach ($dias as &$lista) {
@@ -374,7 +375,7 @@ final class Painel
         $total = (int) $stT->fetchColumn();
 
         $st = $pdo->prepare(
-            "SELECT e.id, e.tribunal, e.tipo_comunicacao, e.titulo, e.resumo, e.data_disponibilizacao,
+            "SELECT e.id, e.tribunal, e.tipo_comunicacao, e.titulo, e.resumo, e.data_disponibilizacao, e.orgao, LEFT(e.conteudo, 6000) AS conteudo,
                     COALESCE(NULLIF(e.numero_processo_mascara,''), e.numero_processo) AS numero, e.processo_id, pr.cliente_nome
                FROM push_events e
           LEFT JOIN processos pr ON pr.id = e.processo_id
@@ -382,7 +383,15 @@ final class Painel
            ORDER BY e.data_disponibilizacao DESC, e.id DESC LIMIT " . (int) $limite
         );
         $st->execute($p);
-        return ['total' => $total, 'itens' => $st->fetchAll(\PDO::FETCH_ASSOC)];
+        $itens = $st->fetchAll(\PDO::FETCH_ASSOC);
+        // O pop-up da home mostra o texto: sem HTML, espaços normalizados, até 1.500 caracteres.
+        foreach ($itens as &$it) {
+            $txt = trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags(str_replace(['<br>', '<br/>', '<br />', '</p>'], "\n", (string) ($it['conteudo'] ?: $it['resumo']))), ENT_QUOTES | ENT_HTML5, 'UTF-8')) ?? '');
+            $it['trecho'] = mb_strlen($txt, 'UTF-8') > 1500 ? mb_substr($txt, 0, 1500, 'UTF-8') . '…' : $txt;
+            unset($it['conteudo']);
+        }
+        unset($it);
+        return ['total' => $total, 'itens' => $itens];
     }
 
     /** Processos pela última movimentação, com a última publicação de cada um. */
