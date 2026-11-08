@@ -207,22 +207,85 @@
     el.classList.add('inn-selo', tom);
   }
   function ehSelo(el) {
-    if (el.dataset.innSelo != null || el.classList.contains('inn-aba')) return false;
+    if (el.dataset.innSelo != null || el.dataset.innFaixa != null || el.classList.contains('inn-aba')) return false;
     var cls = String(el.className && el.className.baseVal != null ? '' : el.className || '').split(/\s+/);
     if (!cls.some(function (c) { return RE_SELO.test(c); })) return false;
     if (el.closest('.sidebar, button, .inn-aba, th, select, label, .inn-cab-ic') && !el.matches('button')) return false;
     if (el.matches('button, input, select, textarea')) return false;
     var t = (el.textContent || '').trim();
     if (!t || t.length > 40 || el.querySelector('div, p, ul, table, input, button')) return false;
+    // Número grande (o "41" de Vencidas no Desempenho) é dado, não selo.
+    if (parseFloat(getComputedStyle(el).fontSize) >= 18) return false;
     // Embrulho de selos (.badges) não é selo: os de dentro é que são.
     if ([].some.call(el.children, function (f) { return RE_SELO.test(String(f.className || '')); })) return false;
     var r = el.getBoundingClientRect();
     return r.height > 0 && r.height <= 30 && r.width <= 240;
   }
+  // Selo esticado na largura do cartão (o "↑ Receita", "↓ Despesa", "Imposto", "CRM" de
+  // Finanças): "esses fechos de cor estão horríveis; deixa o ícone com a cor e a fonte de outra
+  // cor, forte, vibrante" (08/11/2026). Vira só o texto, na cor forte do estado; o ícone do
+  // indicador é que leva a cor (vestirIndicador).
+  function ehFaixaDeSelo(el) {
+    if (el.dataset.innSelo != null || el.dataset.innFaixa != null) return false;
+    return estaEsticado(el);
+  }
+  function estaEsticado(el) {
+    if (el.dataset.innFaixa != null || el.classList.contains('inn-aba')) return false;
+    var cls = String(el.className && el.className.baseVal != null ? '' : el.className || '').split(/\s+/);
+    if (!cls.some(function (c) { return RE_SELO.test(c); })) return false;
+    if (el.matches('button, input, select, textarea') || el.closest('.sidebar, button, th, select, label')) return false;
+    var t = (el.textContent || '').trim();
+    if (!t || t.length > 40 || el.querySelector('div, p, ul, table, input, button')) return false;
+    // Faixa é o selo esticado: caixa de bloco bem mais larga que o próprio texto (a largura
+    // absoluta muda com a tela e com a grade do indicador, então não serve de régua). Número
+    // grande ("80,4%", "41") é dado, não faixa.
+    var r = el.getBoundingClientRect(); if (!(r.height > 0 && r.height <= 30 && r.width > 100)) return false;
+    var cs = getComputedStyle(el);
+    if (!/^(block|flex|grid)$/.test(cs.display) || parseFloat(cs.fontSize) >= 18) return false;
+    var rg = document.createRange(); rg.selectNodeContents(el);
+    return rg.getBoundingClientRect().width < r.width * .6;
+  }
+  var trocados = new Set(), trocadosT = null;
+  function seloTrocado(el) {
+    trocados.add(el);
+    clearTimeout(trocadosT);
+    trocadosT = setTimeout(function () {
+      var lista = Array.from(trocados); trocados.clear();
+      lista.forEach(function (e) {
+        if (!e.isConnected) return;
+        if (estaEsticado(e)) { var tom = tomDoSelo(e).replace('inn-selo-', ''); e.dataset.innFaixa = tom; e.classList.add('inn-faixa', 'inn-faixa-' + tom); e.style.removeProperty('color'); }
+        else if (ehSelo(e)) vestirSelo(e);
+        var k = e.closest('[data-inn-kpi]'); if (k) corDoIcone(k);
+      });
+    }, 60);
+  }
+  function promoverFaixas(raiz) {
+    // Também o selo que nunca foi marcado (montado antes de esticar, como o "Saudável" da margem).
+    [].forEach.call((raiz || document).querySelectorAll('[class*="badge"], [class*="tag"], [class*="selo"], [class*="status"], [class*="pill"], [class*="chip"]'), function (el) {
+      if (el.dataset.innSelo != null || el.dataset.innFaixa != null || !baseSelo(el).split(/\s+/).some(function (c) { return RE_SELO.test(c); })) return;
+      if (!ehFaixaDeSelo(el)) return;
+      var tom = tomDoSelo(el).replace('inn-selo-', '');
+      el.dataset.innFaixa = tom; el.classList.add('inn-faixa', 'inn-faixa-' + tom); el.style.removeProperty('color');
+      var k0 = el.closest('[data-inn-kpi]'); if (k0) corDoIcone(k0);
+    });
+    [].forEach.call((raiz || document).querySelectorAll('.inn-selo[data-inn-selo]'), function (el) {
+      if (!estaEsticado(el)) return;
+      var tom = (String(el.className).match(/inn-selo-(erro|aviso|ok|azul|neutro)/) || [])[1] || 'neutro';
+      TONS.forEach(function (t) { el.classList.remove(t); }); el.classList.remove('inn-selo');
+      delete el.dataset.innSelo;
+      el.dataset.innFaixa = tom; el.classList.add('inn-faixa', 'inn-faixa-' + tom);
+      // Tirar a cor cinza de rodapé posta em linha antes (ela venceria a cor forte).
+      el.style.removeProperty('color');
+      var k = el.closest('[data-inn-kpi]'); if (k) corDoIcone(k);
+    });
+  }
   function selos(raiz) {
     if (!raiz || !raiz.querySelectorAll || !document.querySelector('.inn-tela')) return;
     var cands = [].slice.call(raiz.querySelectorAll('span, small, em, b, strong, div, a, li'));
     if (raiz.nodeType === 1) cands.unshift(raiz);
+    var faixas = cands.filter(function (el) { return el.closest && el.closest('.inn-tela, [class*="modal"]') && ehFaixaDeSelo(el); });
+    var tonsF = faixas.map(tomDoSelo);
+    faixas.forEach(function (el, i) { el.dataset.innFaixa = tonsF[i].replace('inn-selo-', ''); el.classList.add('inn-faixa', 'inn-faixa-' + el.dataset.innFaixa); });
     var achados = cands.filter(function (el) { return el.closest && el.closest('.inn-tela, [class*="modal"]') && ehSelo(el); });
     // Lê todos os tons antes de pôr classe (pôr classe no meio força recálculo a cada selo).
     var tons = achados.map(tomDoSelo);
@@ -842,9 +905,20 @@
     setTimeout(function () { caber(valor); }, 1500);
     setTimeout(function () { caber(valor); }, 3200);
   }
+  // A cor do estado vai no ícone do indicador: da faixa ou do selo de dentro dele, ou do número.
+  function corDoIcone(k, caixa) {
+    caixa = caixa || k.querySelector('.inn-kpi-ic'); if (!caixa) return;
+    ['erro', 'aviso', 'ok'].forEach(function (t) { caixa.classList.remove('inn-kpi-ic-' + t); });
+    var marcaTom = k.querySelector('[data-inn-faixa]'), tomIc = marcaTom ? marcaTom.dataset.innFaixa : '';
+    if (!tomIc) { var sl = k.querySelector('.inn-selo'); if (sl) tomIc = (String(sl.className).match(/inn-selo-(erro|aviso|ok)/) || [])[1] || ''; }
+    var num = k.querySelector('[data-inn-kpi-num]');
+    if (!tomIc && num) { var tv = tomDeCor(getComputedStyle(num).color, .3, .05); if (tv === 'erro' || tv === 'aviso' || tv === 'ok') tomIc = tv; }
+    if (/^(erro|aviso|ok)$/.test(tomIc)) caixa.classList.add('inn-kpi-ic-' + tomIc);
+  }
   function vestirIndicador(k) {
     if (k.dataset.innKpi) return;
     k.dataset.innKpi = '1';
+    promoverFaixas(k);
     // Já tem ícone (Chat): só o texto entra na medida da home.
     var jaTemIcone = !!k.querySelector('svg, img');
     var filhos = [].filter.call(k.children, function (c) { return visivel(c) && !c.classList.contains('inn-onda-quadro'); });
@@ -864,11 +938,16 @@
     emLinha(valor, { 'font-weight': '800', 'letter-spacing': '-.6px', 'line-height': '1.1', 'white-space': 'nowrap' });
     valor.dataset.innKpiValor = '1'; caber(valor); vigiarNumero(valor);
     if (!cv || cv === 'azul' || cv === 'outro') emLinha(valor, { 'color': 'var(--inn-t-texto)' });
-    filhos.slice(i + 1).forEach(function (c) { if (!c.querySelector('.inn-selo, [class*="badge"], [class*="tag"]')) emLinha(c, { 'font-size': '11.5px', 'color': 'var(--inn-t-texto3)' }); });
+    filhos.slice(i + 1).forEach(function (c) {
+      if (c.matches('.inn-selo, [data-inn-faixa], [class*="badge"], [class*="tag"]') || c.querySelector('.inn-selo, [class*="badge"], [class*="tag"]')) return;
+      emLinha(c, { 'font-size': '11.5px', 'color': 'var(--inn-t-texto3)' });
+    });
     if (jaTemIcone || !rotulo) return;
     var svg = iconeDoAssunto((rotulo.textContent || '') + ' ' + (k.textContent || '')); if (!svg) return;
     var caixa = document.createElement('span');
     caixa.className = 'inn-kpi-ic'; caixa.setAttribute('aria-hidden', 'true'); caixa.appendChild(svg);
+    k.dataset.innKpiValorRef = '1'; valor.dataset.innKpiNum = '1';
+    corDoIcone(k, caixa);
     var pai = rotulo.parentElement;
     pai.insertBefore(caixa, pai.firstChild);
     // A grade da home: ícone à esquerda, ocupando as linhas do texto.
@@ -929,6 +1008,7 @@
         return !!bg && parseFloat(cs.borderTopWidth) > 0 && bc && bc[3] > .04 && parseFloat(cs.borderTopLeftRadius) >= 8 && !/col(\s|$|-)|coluna|lane|card-mini|cli-card|proc-card|tk-card|setor-col|kanban|item|row|linha/i.test(String(el.className));
       });
       paineis.forEach(function (p) { if (!paineis.some(function (o) { return o !== p && o.contains(p); })) vestirCartaoDaTela(p); });
+      promoverFaixas(tela);
     }, 120);
   }
   new MutationObserver(function (ms) {
@@ -984,25 +1064,44 @@
     if (hsl.h >= 85 && hsl.h < 165) return '#3F8F6A';       // verde, apagado
     return null;
   }
+  // "Deixa os gráficos todos uniformes, de acordo com o sistema" (08/11/2026): nada de verde,
+  // vermelho e âmbar pastel com borda. Cada cor distinta do gráfico ganha a próxima cor da
+  // paleta do Yuris, na ordem em que aparece; cores iguais continuam iguais entre si (sete
+  // barras do mesmo grupo seguem da mesma cor). Barra e fatia ficam opacas.
+  function recolorPor(mapa, c, opaco) {
+    if (Array.isArray(c)) return c.map(function (x) { return recolorPor(mapa, x, opaco); });
+    var v = rgb(c); if (!v) return c;
+    var chave = v[0] + ',' + v[1] + ',' + v[2];
+    if (!(chave in mapa.cores)) mapa.cores[chave] = PALETA[mapa.prox++ % PALETA.length];
+    var a = rgb(mapa.cores[chave]);
+    return 'rgba(' + a[0] + ',' + a[1] + ',' + a[2] + ',' + (opaco ? 1 : v[3]) + ')';
+  }
   function recolor(c, k) {
     if (Array.isArray(c)) return c.map(function (x, j) { return recolor(x, j); });
     var v = rgb(c); if (!v) return c;
-    var hsl = matiz(v[0], v[1], v[2]);
-    var alvo = semantica(hsl) || (hsl.s < .12 ? '#9AA3B0' : PALETA[k % PALETA.length]);
-    var a = rgb(alvo);
+    var a = rgb(PALETA[k % PALETA.length]);
     return 'rgba(' + a[0] + ',' + a[1] + ',' + a[2] + ',' + v[3] + ')';
   }
   function vestirGrafico(ch) {
     if (!ch || !ch.config || ch.$innVestido) return;
     ch.$innVestido = true;
     var data = ch.config.data || {};
+    var mapa = { cores: {}, prox: 0 }, v0 = vars();
     (data.datasets || []).forEach(function (ds, k) {
-      ['backgroundColor', 'borderColor', 'pointBackgroundColor', 'hoverBackgroundColor', 'hoverBorderColor', 'pointBorderColor'].forEach(function (p) {
-        if (ds[p] != null && typeof ds[p] !== 'function' && typeof ds[p] !== 'object' || Array.isArray(ds[p])) ds[p] = recolor(ds[p], k);
-      });
       var tipo = ds.type || ch.config.type;
-      if (tipo === 'bar' && ds.borderRadius == null) ds.borderRadius = 6;
+      var cheio = /^(bar|doughnut|pie|polarArea)$/.test(tipo);
+      // A cor de base do conjunto: a de preenchimento em barra e fatia, a da linha em linha.
+      var base = cheio ? 'backgroundColor' : 'borderColor';
+      if (ds[base] != null && (typeof ds[base] === 'string' || Array.isArray(ds[base]))) ds[base] = recolorPor(mapa, ds[base], cheio);
+      ['backgroundColor', 'borderColor', 'pointBackgroundColor', 'hoverBackgroundColor', 'hoverBorderColor', 'pointBorderColor'].forEach(function (p) {
+        if (p === base || ds[p] == null || !(typeof ds[p] === 'string' || Array.isArray(ds[p]))) return;
+        ds[p] = recolorPor(mapa, ds[p], cheio && p !== 'borderColor');
+      });
+      if (tipo === 'bar') { ds.borderWidth = 0; if (ds.borderRadius == null || ds.borderRadius < 6) ds.borderRadius = 6; }
+      if (/^(doughnut|pie|polarArea)$/.test(tipo)) { ds.borderColor = v0.painel; ds.borderWidth = 2; ds.hoverOffset = 4; }
+      if (tipo === 'line') { ds.borderWidth = 2.5; ds.pointRadius = ds.pointRadius === 0 ? 0 : 3; ds.pointHoverRadius = 5; }
     });
+    ch.$innMapa = mapa;
     // As opções do Chart.js são proxies: nada de copiar objeto inteiro (recursão); só se
     // troca propriedade por propriedade, no que já existe, como a documentação manda.
     var v = vars(), o = ch.options;
@@ -1025,6 +1124,30 @@
       }
     } catch (e) {}
     try { ch.update(); } catch (e) {}
+    legendaDoGrafico(ch);
+  }
+  // Legenda feita à mão pela tela (a rosca de Finanças desenha quadradinhos âmbar e azul em
+  // HTML): os quadradinhos seguem as cores novas do gráfico, e de novo quando a tela redesenha.
+  function legendaDoGrafico(ch) {
+    var cv = ch.canvas; if (!cv) return;
+    var cartao = cv.closest('.inn-c-painel, [class*="card"], [class*="panel"], [class*="painel"]'); if (!cartao) return;
+    var tipo = ch.config.type, ds = (ch.config.data.datasets || [])[0]; if (!ds) return;
+    var cores = /^(doughnut|pie|polarArea)$/.test(tipo) && Array.isArray(ds.backgroundColor) ? ds.backgroundColor
+      : (ch.config.data.datasets || []).map(function (d) { return Array.isArray(d.backgroundColor) ? d.backgroundColor[0] : (d.borderColor || d.backgroundColor); });
+    var pintar = function () {
+      var amostras = [].filter.call(cartao.querySelectorAll('span, i, div'), function (e) {
+        if (e.closest('canvas') || (e.textContent || '').trim()) return false;
+        var r = e.getBoundingClientRect(), st = e.getAttribute('style') || '';
+        return r.width > 4 && r.width <= 16 && r.height > 4 && r.height <= 16 && /background/i.test(st);
+      });
+      amostras.forEach(function (e, i) { if (cores[i]) e.style.setProperty('background', cores[i], 'important'); });
+    };
+    pintar();
+    if (!cartao.dataset.innLegenda) {
+      cartao.dataset.innLegenda = '1';
+      var t = null;
+      new MutationObserver(function () { clearTimeout(t); t = setTimeout(pintar, 30); }).observe(cartao, { childList: true, subtree: true });
+    }
   }
   function vestirChartJs() {
     var C = window.Chart;
@@ -1058,6 +1181,21 @@
           if (alvo.classList && alvo.classList.contains('inn-aba')) alvo.classList.toggle('inn-aba-on', abaLigada(alvo));
           // Selo que trocou de estado (a tela mudou a classe dele): lê a cor de novo.
           if (alvo.dataset && alvo.dataset.innSelo != null && m.attributeName === 'class' && baseSelo(alvo) !== alvo.dataset.innSelo) vestirSelo(alvo);
+          if (alvo.dataset && alvo.dataset.innFaixa != null && m.attributeName === 'class' && !alvo.classList.contains('inn-faixa-' + alvo.dataset.innFaixa)) {
+            // A tela trocou o estado da faixa: lê o tom de novo.
+            ['erro', 'aviso', 'ok', 'azul', 'neutro'].forEach(function (t) { alvo.classList.remove('inn-faixa-' + t); });
+            alvo.classList.remove('inn-faixa'); var tomN = tomDoSelo(alvo).replace('inn-selo-', '');
+            alvo.dataset.innFaixa = tomN; alvo.classList.add('inn-faixa', 'inn-faixa-' + tomN);
+            var kf = alvo.closest('[data-inn-kpi]'); if (kf) corDoIcone(kf);
+          }
+          // Só quando a TELA trocou as classes dela (não as marcas inn-* da camada), e com a
+          // classe própria de selo; agrupado num único passe (tabela grande travava a página).
+          if (m.attributeName === 'class' && alvo.nodeType === 1 && alvo.dataset && alvo.dataset.innSelo == null && alvo.dataset.innFaixa == null) {
+            var proprias = baseSelo(alvo);
+            if (proprias !== (alvo.dataset.innSeloVisto || '') && proprias.split(/\s+/).some(function (c) { return RE_SELO.test(c); })) {
+              alvo.dataset.innSeloVisto = proprias; seloTrocado(alvo);
+            }
+          }
           if (alvo.dataset && alvo.dataset.innCor != null && m.attributeName === 'class' && baseSelo(alvo) !== alvo.dataset.innBase) revestirCores(alvo);
           // O que estava escondido e apareceu (display:none que virou flex) ainda não foi lido.
           // O que estava escondido e apareceu (display:none que virou flex, classe "visible" que chegou) ainda não foi lido.

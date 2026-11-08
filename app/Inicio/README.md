@@ -316,6 +316,27 @@ seleção em pílula.
   reconhecido também pelo nome do estado (`o-bom`, `o-atencao`, `o-ruim` do Desempenho). O que
   ficou por ser semântico: texto e número em vermelho, âmbar e verde; barras de receita x despesa;
   as cores dos setores em Usuários › Setores.
+- **Faixa de cor vira texto forte; o ícone leva a cor; gráficos uniformes** (08/11/2026: "esses
+  fechos de cor estão horríveis; deixa o ícone com a cor e a fonte de outra cor, forte, vibrante"
+  e "deixa os gráficos todos uniformes, de acordo com o sistema"). Isto SUBSTITUI a regra antiga
+  "nenhum ícone colorido por estado" para o ícone do INDICADOR. (1) Faixa = selo esticado: caixa
+  de bloco cujo texto ocupa menos de 60% dela (a largura absoluta não serve: 218px aqui, 400px no
+  monitor dele, e a grade do indicador estreita a coluna). Vira só texto em 700 na cor forte do
+  estado (`inn-faixa-*`, tokens `--inn-t-erro-forte` #DC2626, `--inn-t-aviso-forte` #D97706,
+  `--inn-t-ok-forte` #16A34A no claro; mais claros no escuro); neutra em cinza. Selo pequeno que
+  abraça o texto continua etiqueta. (2) O ícone do indicador (`inn-kpi-ic-erro/aviso/ok`) pega a
+  cor da faixa ou do selo de dentro, ou do número (`corDoIcone`). (3) Número grande (fonte 18px ou
+  mais) nunca é selo nem faixa: o "41" de Vencidas tinha virado faixa vermelha porque o selo
+  passou a ser reconhecido pelo nome do estado (`o-ruim`). (4) Releitura: `promoverFaixas` revê
+  selos marcados e não marcados que ficaram esticados depois; quando a TELA troca as próprias
+  classes de um selo (a margem de Finanças: Saudável/Atenção/Crítico), `seloTrocado` relê num
+  passe agrupado e o ícone acompanha. Armadilha que travou a página: reagir a toda troca de
+  classe, inclusive às marcas da camada (`inn-c-texto-ok` termina em "-ok"); a releitura só olha
+  as classes da tela (`baseSelo`) e guarda o que já viu (`data-inn-selo-visto`). (5) Gráficos: cada
+  cor distinta ganha a próxima cor da `PALETA` (azul, prata, azul escuro...) na ordem em que
+  aparece, cores iguais seguem iguais; barra e fatia opacas, sem borda, raio 6; rosca com
+  separador na cor do painel; legenda feita à mão pela tela (quadradinhos da rosca de Finanças)
+  segue as cores novas (`legendaDoGrafico`, com observador para quando a tela redesenha).
   Armadilhas que viraram regra: ler a cor no meio de uma transição dá a cor do caminho (a camada
   espera o `transitionend`); trocar a classe no meio da leitura recalcula o estilo (lê tudo,
   escreve depois); o que estava `display:none` ou ganhou classe depois é relido pelo observer;

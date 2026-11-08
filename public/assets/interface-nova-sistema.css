@@ -480,3 +480,19 @@ html:root .inn-c-alerta-erro.inn-c-alerta-erro svg *, html:root .inn-c-alerta-av
 html:root .inn-c-texto-forte.inn-c-texto-forte.inn-c-texto-forte{ color:var(--inn-t-texto) !important; }
 /* Selo como a etiqueta da home: sem borda (o kpi-badge de Finanças vinha com borda verde). */
 html:root .inn-selo.inn-selo.inn-selo{ border-color:transparent !important; }
+
+/* ── 16. Faixa de selo vira texto forte; o ícone do indicador leva a cor (08/11/2026) ───
+   "Esses fechos de cor estão horríveis. Deixa o ícone com a cor, e a fonte de outra cor, forte,
+   vibrante, que dá pra distinguir" (o modelo que ele aprovou: o vermelho do TOTAL EM IMPOSTOS). */
+:root{ --inn-t-erro-forte:#F87171; --inn-t-aviso-forte:#FBBF24; --inn-t-ok-forte:#4ADE80; }
+html[data-theme="light"]{ --inn-t-erro-forte:#DC2626; --inn-t-aviso-forte:#D97706; --inn-t-ok-forte:#16A34A; }
+html:root .inn-faixa.inn-faixa.inn-faixa{ background:transparent !important; background-image:none !important; border-color:transparent !important; box-shadow:none !important; font-weight:700 !important; }
+html:root .inn-faixa-erro.inn-faixa-erro.inn-faixa-erro{ color:var(--inn-t-erro-forte) !important; }
+html:root .inn-faixa-aviso.inn-faixa-aviso.inn-faixa-aviso{ color:var(--inn-t-aviso-forte) !important; }
+html:root .inn-faixa-ok.inn-faixa-ok.inn-faixa-ok{ color:var(--inn-t-ok-forte) !important; }
+html:root .inn-faixa-azul.inn-faixa-azul.inn-faixa-azul{ color:var(--inn-t-azul2) !important; }
+html:root .inn-faixa-neutro.inn-faixa-neutro.inn-faixa-neutro{ color:var(--inn-t-texto3) !important; }
+html:root .inn-faixa.inn-faixa svg, html:root .inn-faixa.inn-faixa svg *{ stroke:currentColor !important; color:inherit !important; }
+html:root .inn-kpi-ic.inn-kpi-ic-erro svg, html:root .inn-kpi-ic.inn-kpi-ic-erro svg *{ stroke:var(--inn-t-erro-forte) !important; }
+html:root .inn-kpi-ic.inn-kpi-ic-aviso svg, html:root .inn-kpi-ic.inn-kpi-ic-aviso svg *{ stroke:var(--inn-t-aviso-forte) !important; }
+html:root .inn-kpi-ic.inn-kpi-ic-ok svg, html:root .inn-kpi-ic.inn-kpi-ic-ok svg *{ stroke:var(--inn-t-ok-forte) !important; }
