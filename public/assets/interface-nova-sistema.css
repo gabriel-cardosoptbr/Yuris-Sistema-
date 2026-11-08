@@ -297,6 +297,18 @@ html:root input.inn-c-campo-pop.inn-c-campo-pop.inn-c-campo-pop, html:root texta
 html:root .inn-c-campo-pop.inn-c-campo-pop.inn-c-campo-pop:focus{ border-color:var(--inn-t-azul2) !important; box-shadow:0 0 0 3px var(--inn-t-azul-suave) !important; outline:none !important; }
 html:root .inn-c-campo-pop.inn-c-campo-pop.inn-c-campo-pop::placeholder{ color:var(--inn-t-texto3) !important; opacity:1; }
 html:root .inn-c-campo-pop.inn-c-campo-pop.inn-c-campo-pop:disabled{ background-color:var(--inn-t-painel2) !important; color:var(--inn-t-texto2) !important; }
+/* Ícone do indicador e do cartão das telas: a caixa afundada da home (.ini-kpi-ic, .ini-ic). */
+.inn-kpi-ic{ width:40px; height:40px; border-radius:8px; display:grid; place-items:center; flex:none; background:var(--inn-t-fundo); border:1px solid var(--inn-t-linha); box-shadow:var(--inn-t-fundo-sombra); }
+.inn-card-ic{ width:32px; height:32px; border-radius:8px; display:grid; place-items:center; flex:none; background:var(--inn-t-fundo); border:1px solid var(--inn-t-linha); box-shadow:var(--inn-t-fundo-sombra); }
+.inn-kpi-ic svg{ width:19px; height:19px; } .inn-card-ic svg{ width:16px; height:16px; }
+.inn-kpi-ic svg, .inn-kpi-ic svg *, .inn-card-ic svg, .inn-card-ic svg *{ stroke:var(--inn-t-icone) !important; fill:none !important; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+/* Colunas dos quadros (Processos, Tarefas, Clientes): afundadas, como as da Prospecção; o cartão em relevo. */
+html:root .inn-tela .proc-col.proc-col, html:root .inn-tela .tk-col.tk-col, html:root .inn-tela .setor-col.setor-col{
+  background:var(--inn-t-fundo) !important; background-image:none !important; border-color:var(--inn-t-linha) !important; box-shadow:var(--inn-t-fundo-sombra) !important;
+}
+html:root .inn-tela .proc-card.proc-card, html:root .inn-tela .tk-card.tk-card, html:root .inn-tela .cli-card.cli-card{
+  background:var(--inn-t-painel) !important; background-image:none !important; border-color:var(--inn-t-linha) !important; box-shadow:var(--inn-t-sombra) !important;
+}
 /* O ícone da tela no cabeçalho do pop-up: a mesma caixa afundada, um pouco menor. */
 html:root .inn-pop-linha .inn-cab-ic.inn-pop-ic{ margin-right:0; }
 /* Bloco escuro que sobrou do tema escuro, no claro: a prata, com o texto escuro. */

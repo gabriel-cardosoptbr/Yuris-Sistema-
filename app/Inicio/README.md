@@ -246,6 +246,25 @@ seleção em pílula.
   `data-inn-pop`; um observador repassa quando o pop-up abre ou troca de conteúdo. Conferido no
   claro e no escuro: Editar Processo, lead, Novo Cliente, Monitoramento, Novo Usuário, gaveta
   e Nova Tarefa, Novo imposto.
+- **As telas com a estrutura da home** (08/11/2026, "passe nas telas", logo depois dos
+  pop-ups). `vestirTela` faz nas telas o que `vestirPopup` faz nos pop-ups. Indicador (classe
+  com kpi, stat, metric, indicador; nunca a grade que os embrulha) = `.ini-kpi`: o ponto azul do
+  canto some, o rótulo fica cinza 12px sem maiúsculas, o número em 800 e o rodapé em 11,5px, e
+  entra o ícone na caixa afundada à esquerda (`.inn-kpi-ic`, grade montada em linha). O número
+  começa em 26px e desce até CABER inteiro: mede onde o texto termina (Range) contra a borda de
+  dentro do cartão, e mede de novo quando o número termina de contar e quando a janela muda de
+  largura. Nunca cortado (R$ 128.660,00 de Indicadores aparecia "R$ 128.660,0C"). Cartão (painel
+  de primeiro nível com fundo, borda e canto de 8px ou mais) = `.ini-card-h`: o título no alto
+  vira 15px 700 escuro sem maiúsculas, o subtítulo cinza 12px, e entra o ícone afundado
+  (`.inn-card-ic`) ao lado, numa `.inn-card-linha`; título com ícone próprio fica sem outro. O
+  ícone sai do ASSUNTO do texto (`ASSUNTOS`: vencido/urgente/crítico = alerta; prazo/hoje/semana
+  = relógio; calendário/agenda = agenda; receita/custo/valor = cifrão; cliente/usuário/equipe =
+  pessoas; conversa/WhatsApp = balão; publicação/contrato/relatório = documento; agente/IA =
+  robô; notificação = sino; segurança/acesso = escudo; tarefa = marcação; processo/carteira =
+  pasta; distribuição/taxa/status/resumo = gráfico; busca/filtro = lupa); sem assunto, o ícone
+  da tela. Colunas dos quadros de Processos, Tarefas e Clientes afundadas como as da
+  Prospecção, com o cartão em relevo. Indicador com ícone próprio (Chat) só ganha a medida do
+  texto. O teste de layout aceita `.inn-kpi-ic` e `.inn-card-ic` como peças próprias.
   Armadilhas que viraram regra: ler a cor no meio de uma transição dá a cor do caminho (a camada
   espera o `transitionend`); trocar a classe no meio da leitura recalcula o estilo (lê tudo,
   escreve depois); o que estava `display:none` ou ganhou classe depois é relido pelo observer;

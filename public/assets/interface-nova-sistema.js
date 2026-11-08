@@ -722,6 +722,175 @@
   }).observe(document.body, { attributes: true, attributeFilter: ['class', 'style', 'hidden', 'open'], childList: true, subtree: true });
   vestirPopups();
 
+  // ── 3d. As telas com a estrutura da home ──────────────────────────────
+  // "Passe nas telas" (08/11/2026), depois de os pop-ups ganharem o desenho da home. Medido
+  // na home: indicador (.ini-kpi) = ícone na caixa afundada à esquerda, rótulo cinza 12px sem
+  // maiúsculas, número 26px 800, rodapé 11,5px; cartão (.ini-card-h) = ícone afundado ao lado
+  // do título escuro 15px 700. Nas telas o indicador tinha rótulo em maiúsculas e um ponto
+  // azul no canto, e o cartão tinha uma "sobrancelha" azul em maiúsculas ou um título grande.
+  // O ícone de cada peça sai do assunto do título; sem assunto conhecido, o ícone da tela.
+  var SVG_IC = {
+    alerta: '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/>',
+    relogio: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    agenda: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+    pasta: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
+    pessoas: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+    dinheiro: '<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+    conversa: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+    documento: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>',
+    busca: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>',
+    grafico: '<path d="M18 20V10M12 20V4M6 20v-6"/>',
+    sino: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/>',
+    escudo: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+    tarefa: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+    robo: '<rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 4v4M9 13h.01M15 13h.01"/>'
+  };
+  var ASSUNTOS = [
+    ['alerta', /vencid|atrasad|urgent|cr[ií]tic|risco|gargalo|sem moviment/i],
+    ['relogio', /prazo|vence|hoje|semana|amanh|tempo|resposta|[uú]ltima (altera|atualiza)/i],
+    ['agenda', /calend|agenda|data|m[eê]s|period/i],
+    ['dinheiro', /receita|custo|lucro|valor|honor|imposto|financ|margem|r\$|mensal|faturamento|cobran|despesa|lan[çc]amento|ticket/i],
+    ['pessoas', /client|lead|usu[aá]ri|equipe|advogad|respons|pessoa|admin|escrit[oó]rio|v[ií]ncul|associad/i],
+    ['conversa', /convers|chat|whats|mensag|atendim|n[aã]o lidas|n[uú]mero|canal/i],
+    ['documento', /public|intima|di[aá]rio|djen|document|contrato|relat|termo|perfil de busca|monitora/i],
+    ['robo', /agente|prompt|provedor|\bia\b|ia ativa/i],
+    ['sino', /notifica|alerta/i],
+    ['escudo', /segur|acesso|permiss|senha/i],
+    ['tarefa', /tarefa|checklist|conclu|recorr/i],
+    ['pasta', /processo|carteira|ativo|encerr|arquiv|jur[ií]dic|setor/i],
+    ['grafico', /distribui|carga|gr[aá]fic|indicador|taxa|desempenho|status|composi|convers[aã]o|funil|meta|resumo|simula|total/i],
+    ['busca', /buscar|filtro|busca/i]
+  ];
+  function iconeDoAssunto(texto) {
+    for (var i = 0; i < ASSUNTOS.length; i++) if (ASSUNTOS[i][1].test(texto)) {
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 24 24'); svg.innerHTML = SVG_IC[ASSUNTOS[i][0]];
+      return svg;
+    }
+    var ativo = document.querySelector('.sidebar nav a.active .icon svg') || document.querySelector('.sidebar .sidebar-group.has-active .sidebar-group-icon svg');
+    return ativo ? ativo.cloneNode(true) : null;
+  }
+  function emLinha(el, props) { Object.keys(props).forEach(function (k) { el.style.setProperty(k, props[k], 'important'); }); }
+  var RE_KPI = /(^|[-_\s])(kpi|kpi-card|stat|stat-card|metric|metrica|indicador|resumo-card|o-kpi|chat-kpi)([-_\s]|$)|kpi-card|-kpi(\s|$)/i;
+  // Mede contra a borda de dentro do cartão (o próprio número cresce junto com o texto e
+  // nunca parece transbordar), e de novo quando ele termina de contar (os números entram
+  // contando de 0, e o texto final só existe no fim).
+  function caber(valor) {
+    var k = valor.closest('[data-inn-kpi]') || valor.parentElement; if (!k) return;
+    var kr = k.getBoundingClientRect(), kcs = getComputedStyle(k);
+    var limite = kr.right - parseFloat(kcs.paddingRight) - parseFloat(kcs.borderRightWidth) - 2;
+    var tamanhos = [26, 24, 22, 20, 18, 16, 14];
+    valor.style.setProperty('min-width', '0', 'important');
+    for (var i = 0; i < tamanhos.length; i++) {
+      valor.style.setProperty('font-size', tamanhos[i] + 'px', 'important');
+      if (fimDoTexto(valor) <= limite) return;
+    }
+  }
+  // Onde o texto termina de verdade (a caixa do número vai até a borda do cartão).
+  function fimDoTexto(el) {
+    var r = document.createRange(); r.selectNodeContents(el);
+    return r.getBoundingClientRect().right;
+  }
+  function vigiarNumero(valor) {
+    var t = null;
+    new MutationObserver(function () { clearTimeout(t); t = setTimeout(function () { caber(valor); }, 120); }).observe(valor, { characterData: true, childList: true, subtree: true });
+    setTimeout(function () { caber(valor); }, 1500);
+    setTimeout(function () { caber(valor); }, 3200);
+  }
+  function vestirIndicador(k) {
+    if (k.dataset.innKpi) return;
+    k.dataset.innKpi = '1';
+    // Já tem ícone (Chat): só o texto entra na medida da home.
+    var jaTemIcone = !!k.querySelector('svg, img');
+    var filhos = [].filter.call(k.children, function (c) { return visivel(c) && !c.classList.contains('inn-onda-quadro'); });
+    if (filhos.length === 1 && filhos[0].children.length >= 2 && !/^(B|STRONG)$/.test(filhos[0].tagName)) filhos = [].filter.call(filhos[0].children, visivel);
+    var ponto = filhos.filter(function (c) { return c.offsetWidth <= 12 && c.offsetHeight <= 12 && !(c.textContent || '').trim(); });
+    ponto.forEach(function (c) { emLinha(c, { 'display': 'none' }); });
+    filhos = filhos.filter(function (c) { return ponto.indexOf(c) < 0; });
+    var valor = null, maior = 0;
+    filhos.forEach(function (c) { var fs = parseFloat(getComputedStyle(c).fontSize); if ((c.textContent || '').trim() && fs > maior) { maior = fs; valor = c; } });
+    // Valor pequeno ("—" em Última alteração) ainda é indicador quando a peça é um cartão.
+    if (!valor || (maior < 18 && !corFundo(getComputedStyle(k)))) return;
+    var i = filhos.indexOf(valor), rotulo = filhos.slice(0, i).filter(function (c) { return (c.textContent || '').trim(); })[0];
+    if (rotulo) emLinha(rotulo, { 'font-size': '12px', 'font-weight': '600', 'text-transform': 'none', 'letter-spacing': 'normal', 'color': 'var(--inn-t-texto3)' });
+    var cv = tomDeCor(getComputedStyle(valor).color, .3, .05);
+    // 26px como na home; se o número não cabe inteiro na linha (R$ 128.660,00 em Indicadores,
+    // o WhatsApp do Agente), desce até caber. Nunca cortado, nunca quebrado no meio.
+    emLinha(valor, { 'font-weight': '800', 'letter-spacing': '-.6px', 'line-height': '1.1', 'white-space': 'nowrap' });
+    valor.dataset.innKpiValor = '1'; caber(valor); vigiarNumero(valor);
+    if (!cv || cv === 'azul' || cv === 'outro') emLinha(valor, { 'color': 'var(--inn-t-texto)' });
+    filhos.slice(i + 1).forEach(function (c) { if (!c.querySelector('.inn-selo, [class*="badge"], [class*="tag"]')) emLinha(c, { 'font-size': '11.5px', 'color': 'var(--inn-t-texto3)' }); });
+    if (jaTemIcone || !rotulo) return;
+    var svg = iconeDoAssunto((rotulo.textContent || '') + ' ' + (k.textContent || '')); if (!svg) return;
+    var caixa = document.createElement('span');
+    caixa.className = 'inn-kpi-ic'; caixa.setAttribute('aria-hidden', 'true'); caixa.appendChild(svg);
+    var pai = rotulo.parentElement;
+    pai.insertBefore(caixa, pai.firstChild);
+    // A grade da home: ícone à esquerda, ocupando as linhas do texto.
+    var linhas = [].filter.call(pai.children, function (c) { return c !== caixa && visivel(c); }).length || 1;
+    emLinha(pai, { 'display': 'grid', 'grid-template-columns': 'auto minmax(0, 1fr)', 'column-gap': '14px', 'row-gap': '0', 'align-items': 'center', 'align-content': 'center' });
+    emLinha(caixa, { 'grid-column': '1', 'grid-row': '1 / span ' + linhas });
+    [].forEach.call(pai.children, function (c) { if (c !== caixa) emLinha(c, { 'grid-column': '2' }); });
+  }
+  function vestirCartaoDaTela(p) {
+    if (p.dataset.innCartao) return;
+    var pr = p.getBoundingClientRect();
+    var t = [].filter.call(p.querySelectorAll('h1, h2, h3, h4, [class*="title"], [class*="titulo"], [class*="eyebrow"], [class*="heading"]'), function (e) {
+      if (!visivel(e) || e.closest('.page-header, .inn-cab-ic, button, label, table, [data-inn-cartao], .inn-kpi-ic') || e.querySelector('input, select, textarea, button, table')) return false;
+      var r = e.getBoundingClientRect(), tx = (e.textContent || '').trim();
+      return r.top - pr.top < 52 && r.left - pr.left < 60 && tx && tx.length <= 70 && e.children.length <= 3;
+    })[0];
+    p.dataset.innCartao = '1';
+    if (!t) return;
+    // Título com ícone próprio (Impostos sobre a Receita) fica como está, só na medida.
+    var temIcone = t.querySelector('svg') || (t.previousElementSibling && t.previousElementSibling.querySelector && (t.previousElementSibling.tagName === 'svg' || t.previousElementSibling.querySelector('svg')) && t.previousElementSibling.offsetWidth < 48);
+    emLinha(t, { 'font-size': '15px', 'font-weight': '700', 'letter-spacing': '-.2px', 'text-transform': 'none', 'color': 'var(--inn-t-texto)', 'line-height': '1.25' });
+    var sub = t.nextElementSibling;
+    if (sub && visivel(sub) && /^(P|SPAN|SMALL|DIV)$/.test(sub.tagName) && !sub.querySelector('input, select, textarea, button, table') && (sub.textContent || '').trim().length < 200 && sub.getBoundingClientRect().height < 48) emLinha(sub, { 'font-size': '12px', 'font-weight': '600', 'color': 'var(--inn-t-texto3)', 'text-transform': 'none', 'letter-spacing': 'normal' });
+    if (temIcone || t.closest('.inn-card-linha')) return;
+    var svg = iconeDoAssunto((t.textContent || '') + ' ' + (sub ? sub.textContent : '')); if (!svg) return;
+    var caixa = document.createElement('span');
+    caixa.className = 'inn-card-ic'; caixa.setAttribute('aria-hidden', 'true'); caixa.appendChild(svg);
+    // Ícone ao lado do bloco título + subtítulo, como na home.
+    var linha = document.createElement('div');
+    linha.className = 'inn-card-linha';
+    linha.style.cssText = 'display:flex;align-items:center;gap:12px;min-width:0;';
+    var temSub = sub && sub.style.getPropertyValue('font-size') === '12px';
+    t.parentElement.insertBefore(linha, t);
+    var bloco = document.createElement('div');
+    bloco.style.cssText = 'display:flex;flex-direction:column;gap:2px;min-width:0;';
+    linha.appendChild(caixa); linha.appendChild(bloco);
+    bloco.appendChild(t); if (temSub) bloco.appendChild(sub);
+    emLinha(t, { 'margin': '0' }); if (temSub) emLinha(sub, { 'margin': '0' });
+  }
+  var telaTimer = null;
+  function vestirTela() {
+    clearTimeout(telaTimer);
+    telaTimer = setTimeout(function () {
+      var tela = document.querySelector('.inn-tela'); if (!tela) return;
+      [].forEach.call(tela.querySelectorAll('div, section, article, a'), function (el) {
+        if (el.closest(SEL_POPUP) || el.closest('.sidebar, .page-header')) return;
+        var cls = String(el.className || ''); if (typeof el.className !== 'string') return;
+        // A grade que embrulha os indicadores (kpi-grid-6) não é indicador.
+        if (RE_KPI.test(cls) && !/(label|value|valor|foot|dot|ic|icon)$/i.test(cls.split(/\s+/)[0]) && !/(^|[-_\s])(grid|row|wrap|lista|list|kpis|linha|area)([-_\s\d]|$)/i.test(cls) && visivel(el)) { vestirIndicador(el); return; }
+      });
+      // Cartões: os painéis de primeiro nível da tela (fundo próprio e borda), sem os de dentro.
+      var paineis = [].filter.call(tela.querySelectorAll('div, section, article, aside, form'), function (el) {
+        if (!visivel(el) || el.closest(SEL_POPUP) || el.closest('.page-header') || el.dataset.innKpi || el.closest('[data-inn-kpi]')) return false;
+        var r = el.getBoundingClientRect(); if (r.width < 260 || r.height < 70) return false;
+        var cs = getComputedStyle(el), bg = corFundo(cs), bc = rgb(cs.borderTopColor);
+        return !!bg && parseFloat(cs.borderTopWidth) > 0 && bc && bc[3] > .04 && parseFloat(cs.borderTopLeftRadius) >= 8 && !/col(\s|$|-)|coluna|lane|card-mini|cli-card|proc-card|tk-card|setor-col|kanban|item|row|linha/i.test(String(el.className));
+      });
+      paineis.forEach(function (p) { if (!paineis.some(function (o) { return o !== p && o.contains(p); })) vestirCartaoDaTela(p); });
+    }, 120);
+  }
+  new MutationObserver(function (ms) {
+    for (var i = 0; i < ms.length; i++) if (ms[i].addedNodes.length) { var t = ms[i].target; if (t.nodeType === 1 && t.closest && t.closest('.inn-tela') && !t.closest(SEL_POPUP)) { vestirTela(); return; } }
+  }).observe(document.body, { childList: true, subtree: true });
+  vestirTela();
+  var caberTimer = null;
+  addEventListener('resize', function () { clearTimeout(caberTimer); caberTimer = setTimeout(function () { [].forEach.call(document.querySelectorAll('[data-inn-kpi-valor]'), caber); }, 150); });
+
   // ── 4. A onda do toque ──────────────────────────────────────────────────
   var SEL_TOQUE = 'button, .btn, a[class*="btn"], [role="tab"], .inn-aba, .tk-card, .cli-card, .proc-card, .lead-card, .kanban-card, .kpi-card, .o-card[onclick], .chat-item, .int-card, .tk-periodo, .chat-filter-btn';
   document.addEventListener('pointerdown', function (e) {
