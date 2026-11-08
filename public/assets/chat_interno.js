@@ -35,6 +35,8 @@ const CI = (() => {
     query    : '',
     results  : [],
     focusIdx : -1,
+    seq      : 0,     // número da última busca pedida: resposta velha não sobrescreve a nova
+    mapa     : {},    // "@Nome mostrado" no campo -> token @[tipo|id|Nome] que vai para o servidor
   };
 
   // ── Config de tipos ─────────────────────────────────────────────────────
@@ -143,6 +145,9 @@ const CI = (() => {
       const url = CI_API.conversas + '?action=list' + (state.showArquivadas ? '&arquivadas=1' : '');
       const r = await apiFetch(url);
       if (!r.ok) return;
+      const json = JSON.stringify(r.data || []);
+      if (json === state.convJson) return;          // nada mudou: não refaz a lista (piscava a cada 10 s)
+      state.convJson  = json;
       state.convCache = r.data || [];
       renderConvList(state.convCache);
     } catch(e) { /* silencioso */ }
@@ -971,7 +976,7 @@ const CI = (() => {
   async function send() {
     if (state.sending) return;
     const ta  = qs('#ciTextarea');
-    const txt = ta.value.trim();
+    const txt = comTokens(ta.value.trim());
     if (!txt || !state.convId) return;
 
     state.sending = true;
@@ -986,6 +991,7 @@ const CI = (() => {
       if (r.ok && r.data) {
         ta.value = '';
         ta.style.height = '';
+        mention.mapa = {};
         closeMentionPanel();
 
         const msgEl = qs('#ciMessages');
@@ -1005,6 +1011,16 @@ const CI = (() => {
     }
   }
 
+  // "@Nome" que foi escolhido no painel vira o token @[tipo|id|Nome]; o nome mais longo
+  // primeiro, para "@Ana Paula" não virar "@Ana" + " Paula".
+  function comTokens(texto) {
+    const nomes = Object.keys(mention.mapa).sort((a, b) => b.length - a.length);
+    nomes.forEach(nome => {
+      const alvo = '@' + nome;
+      if (texto.includes(alvo)) texto = texto.split(alvo).join(mention.mapa[nome]);
+    });
+    return texto;
+  }
   function extractMencoes(texto) {
     const re = /@\[(user|proc|card|cli|tar|zap)\|(\d+)\|([^\]]+)\]/g;
     const out = [];
@@ -1061,7 +1077,8 @@ const CI = (() => {
     const before   = ta.value.slice(0, ta.selectionStart);
     const atMatch  = before.match(/@(?!\[)([^@]*)$/);
 
-    if (atMatch) {
+    const jaEscolhida = atMatch && Object.keys(mention.mapa).some(nome => atMatch[1].startsWith(nome));
+    if (atMatch && !jaEscolhida) {
       mention.atPos     = before.length - atMatch[0].length;
       mention.cursorEnd = ta.selectionStart;
       openMentionPanel(atMatch[1]);
@@ -1103,16 +1120,31 @@ const CI = (() => {
   async function doMpanelSearch(q) {
     const resultsEl = qs('#ciMpanelResults');
     if (!resultsEl) return;
-    resultsEl.innerHTML = '<div class="ci-mpanel-empty">Buscando…</div>';
+    // Antes, cada letra apagava a lista para "Buscando…" e o painel encolhia e voltava a
+    // crescer (de 360px para 146px e de volta, a cada tecla). Agora a lista que está na tela
+    // fica até a resposta chegar; só o primeiro carregamento mostra o aviso.
+    const seq = ++mention.seq;
+    if (!resultsEl.children.length) resultsEl.innerHTML = '<div class="ci-mpanel-empty">Buscando…</div>';
+    resultsEl.setAttribute('aria-busy', 'true');
     try {
       const url = CI_API.mencoes + '?q=' + encodeURIComponent(q) + '&type=' + _mpanelTab + '&limit=30';
       const r = await apiFetch(url);
+      if (seq !== mention.seq) return;             // já veio uma busca mais nova
       mention.results  = r.data || [];
       mention.focusIdx = -1;
       renderMpanelResults(mention.results, q);
     } catch(e) {
-      resultsEl.innerHTML = '<div class="ci-mpanel-empty">Erro ao buscar</div>';
+      if (seq === mention.seq) resultsEl.innerHTML = '<div class="ci-mpanel-empty">Erro ao buscar</div>';
+    } finally {
+      if (seq === mention.seq) resultsEl.removeAttribute('aria-busy');
     }
+  }
+  // Setas: só troca a classe do item em foco, sem refazer a lista inteira.
+  function focarItem(idx) {
+    mention.focusIdx = idx;
+    document.querySelectorAll('.ci-mention-item').forEach(el => el.classList.toggle('focused', +el.dataset.idx === idx));
+    const el = document.querySelector('.ci-mention-item.focused');
+    if (el) el.scrollIntoView({ block: 'nearest' });
   }
 
   function renderMpanelResults(results, q) {
@@ -1131,7 +1163,7 @@ const CI = (() => {
       const ICONE     = { processo: ['--proc', 'P'], card: ['--card', EH_CRM ? 'L' : 'C'], cliente: ['--cli', 'C'], tarefa: ['--tar', 'T'], conversa: ['--zap', 'W'] };
       const iconClass = (ICONE[item.tipo] || ['', 'C'])[0];
       const letter    = item.tipo === 'usuario' ? avatarInitial(item.display) : (ICONE[item.tipo] || ['', 'C'])[1];
-      return `<div class="ci-mention-item${mention.focusIdx === idx ? ' focused' : ''}" onclick="CI.selectMentionItem(${idx})">
+      return `<div class="ci-mention-item${mention.focusIdx === idx ? ' focused' : ''}" data-idx="${idx}" onclick="CI.selectMentionItem(${idx})">
         <div class="ci-mention-icon ci-mention-icon${iconClass}">${letter}</div>
         <div class="ci-mention-text">
           <div class="ci-mention-name">${esc(item.display)}</div>
@@ -1207,8 +1239,11 @@ const CI = (() => {
     const val    = ta.value;
     const before = val.slice(0, mention.atPos);
     const after  = val.slice(mention.cursorEnd ?? mention.atPos);
-    ta.value     = before + item.token + ' ' + after;
-    const pos    = (before + item.token + ' ').length;
+    // O que a pessoa vê é "@Nome"; o token @[tipo|id|Nome] entra só na hora de enviar.
+    const visto  = '@' + item.display;
+    mention.mapa[item.display] = item.token;
+    ta.value     = before + visto + ' ' + after;
+    const pos    = (before + visto + ' ').length;
     ta.setSelectionRange(pos, pos);
     ta.focus();
     closeMentionPanel();
@@ -1218,8 +1253,8 @@ const CI = (() => {
 
   function onMpanelKey(e) {
     if (e.key === 'Escape')    { closeMentionPanel(); qs('#ciTextarea')?.focus(); return; }
-    if (e.key === 'ArrowDown') { e.preventDefault(); mention.focusIdx = Math.min(mention.focusIdx + 1, mention.results.length - 1); renderMpanelResults(mention.results, qs('#ciMpanelSearch')?.value || ''); }
-    if (e.key === 'ArrowUp')   { e.preventDefault(); mention.focusIdx = Math.max(mention.focusIdx - 1, 0); renderMpanelResults(mention.results, qs('#ciMpanelSearch')?.value || ''); }
+    if (e.key === 'ArrowDown') { e.preventDefault(); focarItem(Math.min(mention.focusIdx + 1, mention.results.length - 1)); }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); focarItem(Math.max(mention.focusIdx - 1, 0)); }
     if (e.key === 'Enter' && mention.focusIdx >= 0) { e.preventDefault(); selectMentionItem(mention.focusIdx); }
   }
 

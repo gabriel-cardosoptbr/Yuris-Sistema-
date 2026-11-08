@@ -146,6 +146,16 @@ agrupar os resultados por tipo e entender os tokens novos `@[tar|id|titulo]`
 Na edição jurídica o HTML é o de sempre, com o `?v=` do script trocado. O aviso de
 WhatsApp desconectado não aparece no Chat Interno.
 
+Menções no Chat Interno (08/11/2026, "seleciona alguma coisa, dá um flash na tela"): a busca
+do @ não apaga mais a lista enquanto procura (cada letra encolhia o painel de 360px para 146px
+e voltava); um número de sequência descarta resposta velha, e `.ci-mpanel-results` tem
+`min-height` para o primeiro carregamento não encolher o painel. As setas só trocam a classe
+`focused` (`focarItem`), sem refazer a lista. O campo mostra `@Nome`, não o token
+`@[tipo|id|Nome]`: `mention.mapa` guarda nome → token, `comTokens()` troca na hora de enviar
+(nome mais longo primeiro) e `onInput` não reabre o painel para um nome já escolhido. A lista
+de conversas só é redesenhada quando o JSON da resposta mudou (era refeita a cada 10 s e
+piscava). Tudo isso vale para todas as contas; o desenho da prévia fica na camada do sistema.
+
 `tarefas.php`, na edição CRM (`$edicaoCrm`), veste o painel da tarefa (`#tkDrawer`)
 com a mesma ficha: cabeçalho "Gestão da Tarefa" com número e data, faixa com o
 título editável, prioridade, prazo (data em cima, "em N dias" ou "atrasada"

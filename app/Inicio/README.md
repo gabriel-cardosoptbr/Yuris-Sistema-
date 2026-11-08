@@ -271,6 +271,21 @@ seleção em pílula.
   `inn-*` não contam mais. O contador da aba ("12 não lidas") é branco sobre a aba azul e a
   pílula azul da home na aba desligada; a regra de contraste não lê texto dentro de aba (lia o
   contador antes de a aba ficar azul e o pintava de cinza).
+- **Chat interno no desenho da home** (08/11/2026, seção 15 de `interface-nova-sistema.css`, no
+  FIM da folha para ganhar os empates com `inn-c-texto-*` e `inn-selo-*`): painéis prata com
+  sombra; "Conversas" como título normal e "+ Nova" e Enviar no azul principal (o avião do
+  Enviar forçado a branco: o traço vinha cinza); iniciais na caixa afundada, sem cor por tipo
+  (lista, cabeçalho, painel de @, modal); bolha dos outros na prata um tom abaixo, a minha no
+  azul suave; data entre as mensagens como o rótulo de dia da home (sem as linhas:
+  `content:none` nos pseudo-elementos); chip de menção todo no azul do Yuris, com o tipo em
+  rótulo pequeno; etiqueta de tipo e não lidas na pílula azul; painel de @ como o cartão da home,
+  com busca e campo de mensagem brancos; menu ⋯ e modal Nova conversa na família (tipo
+  escolhido e participante marcado no azul suave; o campo do modal tinha
+  `-webkit-text-fill-color` claro e o texto digitado sumia no branco). Cabeçalho e rodapé do
+  chat com `z-index: 20`: a entrada animada (`inn-sobe`) cria contexto de empilhamento e o menu
+  ⋯ (z 400 dentro do cabeçalho) ficava atrás das bolhas. Só cor, superfície, raio e fonte, como
+  o teste exige. As correções de função (flash da busca, @Nome, lista que piscava) estão em
+  `public/assets/chat_interno.js`, para todas as contas.
   Armadilhas que viraram regra: ler a cor no meio de uma transição dá a cor do caminho (a camada
   espera o `transitionend`); trocar a classe no meio da leitura recalcula o estilo (lê tudo,
   escreve depois); o que estava `display:none` ou ganhou classe depois é relido pelo observer;

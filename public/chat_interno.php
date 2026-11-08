@@ -267,7 +267,8 @@ try { $edicaoCrm = !\App\Core\AccountContext::fromSession()->moduloJuridicoDispo
     .ci-mtab { background: none; border: 1px solid transparent; color: var(--muted); font-size: .72rem; font-weight: 500; padding: 3px 10px; border-radius: 20px; cursor: pointer; transition: all .12s; }
     .ci-mtab:hover { color: var(--text); }
     .ci-mtab.active { background: rgba(59,130,246,.15); border-color: rgba(59,130,246,.3); color: var(--accent); }
-    .ci-mpanel-results { flex: 1; overflow-y: auto; padding: 4px 0; }
+    /* Altura mínima para o painel não encolher no primeiro carregamento (08/11/2026). */
+    .ci-mpanel-results { flex: 1; overflow-y: auto; padding: 4px 0; min-height: 220px; }
     .ci-mpanel-empty { padding: 20px; text-align: center; font-size: .78rem; color: var(--muted); }
     .ci-mpanel-section { padding: 4px 12px 2px; font-size: .67rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
     .ci-mention-item { display: flex; align-items: center; gap: 10px; padding: 8px 14px; cursor: pointer; transition: background .1s; }
