@@ -189,7 +189,9 @@ seleção em pílula.
   calendário tem a altura do conteúdo, e abaixo dos atalhos fica o mês em números (`#iniCalResumo`,
   `resumoDoMes` no script da home: prazos, audiências, reuniões, tarefas e dias com compromisso, refeito
   ao trocar de mês); o título dos compromissos que era teor de publicação ficou curto (`Painel::tituloCurto`);
-  "Sair da prévia" virou botão (`ini-btn`), como os vizinhos.
+  "Sair da prévia" virou botão (`ini-btn`), como os vizinhos. Na lista "Escolha uma para ler e tratar"
+  (`.idt-escolha`), o "Ler e tratar" é pílula com o texto no meio e a seta, alinhada ao meio da linha; o
+  selo do tribunal ficou enxuto e a linha sobe no hover.
   **A tela nova só pinta com o menu inteiro** (09/11/2026: "enquanto eu seleciono as abas, tá
   piscando, parece que tá recarregando"). Em produção o PHP manda a página aos pedaços e o primeiro
   quadro saía sem o menu, e aí a view transition nem acontecia. Toda página com o menu tem no

@@ -518,10 +518,18 @@ input.idt-entrada{ height:38px; }
 .idt-oab{ font-weight:700; color:var(--ini-texto); }
 /* a conversa */
 /* a lista de publicações para escolher */
-.idt-escolha{ width:100%; text-align:left; cursor:pointer; font:inherit; color:inherit; }
-.idt-escolha:hover{ border-color:rgba(61,101,203,.55); }
+.idt-escolha{ width:100%; text-align:left; cursor:pointer; font:inherit; color:inherit; padding:10px 12px; transition:border-color .15s, transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .18s; }
+.idt-escolha:hover{ border-color:rgba(61,101,203,.55); transform:translateY(-1px); box-shadow:0 1px 0 var(--ini-hi) inset, 0 8px 18px rgba(31,38,50,.10); }
+.idt-escolha:focus-visible{ outline:2px solid var(--ini-azul2); outline-offset:2px; }
+/* A lista "Escolha uma para ler e tratar" (09/11/2026, "ajuste"): o "Ler e tratar" era um span com
+   30 px de altura e o texto colado no topo; agora pílula centrada no meio da linha, com a seta, e o
+   selo do tribunal mais enxuto. */
+.idt-escolha .idt-prazo-data{ min-width:62px; padding:5px 8px; font-size:11.5px; letter-spacing:.04em; color:var(--ini-azul2); }
+.idt-escolha .idt-prazo-t b{ font-size:13.5px; }
+.idt-escolha .idt-mini{ display:inline-flex; align-items:center; justify-content:center; gap:6px; height:32px; padding:0 12px 0 14px; align-self:center; white-space:nowrap; line-height:1; }
+.idt-escolha .idt-mini::after{ content:""; width:7px; height:7px; border-right:2px solid currentColor; border-top:2px solid currentColor; transform:rotate(45deg); margin-left:1px; transition:transform .18s cubic-bezier(.2,.8,.2,1); }
 .idt-escolha:hover .idt-mini{ background:var(--ini-azul); color:#fff; box-shadow:var(--ini-brilho); }
-.idt-escolha .idt-prazo-data{ color:var(--ini-azul2); }
+.idt-escolha:hover .idt-mini::after{ transform:translateX(2px) rotate(45deg); }
 
 /* O pop-up de verdade do módulo dentro da home (iframe com ?embed=1, ver embed.js):
    o fundo escurece a home; enquanto a tela carrega, um "Abrindo…" no centro. */
