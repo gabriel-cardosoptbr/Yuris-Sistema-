@@ -615,6 +615,7 @@ try { $edicaoCrm = !\App\Core\AccountContext::fromSession()->moduloJuridicoDispo
       box-shadow: 0 4px 16px rgba(15,31,54,0.12) !important;
     }
   </style>
+<link rel="expect" href="#yuris-menu-pronto" blocking="render"><!-- só pinta com o menu inteiro: ver o fim do menu em includes/sidebar.php -->
 </head>
 <body>
 <main style="width:100%;padding:24px;height:100vh;overflow:hidden;display:flex;flex-direction:column;box-sizing:border-box">

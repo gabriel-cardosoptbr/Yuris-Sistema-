@@ -1108,6 +1108,7 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
       color: #7F1D1D !important;
     }
   </style>
+<link rel="expect" href="#yuris-menu-pronto" blocking="render"><!-- só pinta com o menu inteiro: ver o fim do menu em includes/sidebar.php -->
 </head>
 <body>
 <main class="w-full px-6 py-6">

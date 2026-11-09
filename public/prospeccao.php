@@ -1383,6 +1383,7 @@ function column_display_name(array $col): string
     html[data-theme="light"] .kanban-col .col-subtitle{ color:#767676 !important; }
     <?php $__cssCardCrm = (string) ob_get_clean(); echo $__cssCardCrm, \App\Master\TemaEscuroCrm::converter($__cssCardCrm); endif; ?>
   </style>
+<link rel="expect" href="#yuris-menu-pronto" blocking="render"><!-- só pinta com o menu inteiro: ver o fim do menu em includes/sidebar.php -->
 </head>
 <body>
   <main class="w-full px-6 py-6">

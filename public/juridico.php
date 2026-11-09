@@ -355,6 +355,7 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
     html[data-theme="light"] .alert-label    { color: #0F172A; }
     html[data-theme="light"] .alert-sublabel { color: #64748B; }
   </style>
+<link rel="expect" href="#yuris-menu-pronto" blocking="render"><!-- só pinta com o menu inteiro: ver o fim do menu em includes/sidebar.php -->
 </head>
 <body>
   <main class="w-full px-6 py-6 page-above-fog">

@@ -50,6 +50,7 @@ $vcAmb = @filemtime(__DIR__ . '/../../../public/assets/ambientes.css') ?: 1;
     main.w-full { padding-top: 24px !important; }
     section.main-content { display: flex; flex-direction: column; min-width: 0; }
   </style>
+<link rel="expect" href="#yuris-menu-pronto" blocking="render"><!-- só pinta com o menu inteiro: ver o fim do menu em includes/sidebar.php -->
 </head>
 <body>
 <main class="w-full px-6 py-6">

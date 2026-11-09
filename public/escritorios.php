@@ -499,6 +499,7 @@ $monOverrideSumEsc = \App\Billing\BillingGuard::getOverrideSum($accountId, 'moni
     /* Badge de pending na tab */
     html[data-theme="light"] #reqPendingBadgeEsc { background:#DC2626; color:#FFF; }
   </style>
+<link rel="expect" href="#yuris-menu-pronto" blocking="render"><!-- só pinta com o menu inteiro: ver o fim do menu em includes/sidebar.php -->
 </head>
 <body>
 <main class="w-full px-6 py-6">

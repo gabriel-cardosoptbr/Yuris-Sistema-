@@ -393,6 +393,13 @@ menu, o item enche a partir do clique, os blocos da tela dobram e somem, e a pá
 transition entre documentos em que o menu fica parado (`view-transition-name:inn-menu`) e a tela nova
 entra ao vivo (`inn-tela`). Carregado em toda tela da interface nova, fora do `?embed=1`; o menu devolve a
 rolagem guardada num script inline logo depois do `</aside>`. Ver `app/Inicio/README.md`.
+**A tela só pinta com o menu inteiro** (09/11/2026, vale para todos): toda página que inclui
+`includes/sidebar.php` tem no `<head>` a linha `<link rel="expect" href="#yuris-menu-pronto" blocking="render">`,
+e o `sidebar.php` imprime `<i id="yuris-menu-pronto" hidden>` depois dos grupos reabertos. Em produção o PHP
+manda a página aos pedaços (`output_buffering` 0) e consulta o banco no meio; sem a linha, o primeiro quadro
+da tela nova saía sem o menu e a troca de tela piscava (medido com o `pagereveal`: menu ausente e sem view
+transition; com a linha, o menu inteiro e a transição). **Página nova com o menu leva a mesma linha no
+`<head>`**; o `interface_nova_test.php` reprova a que não tiver.
 No embutido, `assets/chat.js` abre a conversa do `?jid=` mesmo quando ela está fora das 500 da
 lista (procura pelo número na própria API da lista e, sem achar, abre pelo jid); fora do embutido
 nada muda. O tamanho dos pop-ups das telas na prévia fica em `assets/interface-nova-popups.css`;

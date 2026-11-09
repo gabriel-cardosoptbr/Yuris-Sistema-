@@ -384,6 +384,7 @@ $nCols   = count($columns);
     html[data-theme="light"] .modal-body { color: #0F1F36 !important; }
     html[data-theme="light"] .modal-footer { background: rgba(37,99,235,.04) !important; border-top-color: rgba(15,31,54,.10) !important; }
   </style>
+<link rel="expect" href="#yuris-menu-pronto" blocking="render"><!-- só pinta com o menu inteiro: ver o fim do menu em includes/sidebar.php -->
 </head>
 <body>
 <main class="w-full px-6 py-6">

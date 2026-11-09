@@ -93,6 +93,7 @@ $evento = static function (array $i) use ($h, $det, $detEvento): string {
   <link rel="stylesheet" href="/assets/sidebar.css?v=20">
   <link rel="stylesheet" href="/assets/inicio.css?v=<?= @filemtime(__DIR__ . '/../assets/inicio.css') ?: 1 ?>">
   <link rel="stylesheet" href="/assets/inicio-movimento.css?v=<?= @filemtime(__DIR__ . '/../assets/inicio-movimento.css') ?: 1 ?>">
+<link rel="expect" href="#yuris-menu-pronto" blocking="render"><!-- só pinta com o menu inteiro: ver o fim do menu em includes/sidebar.php -->
 </head>
 <body class="ini-body">
 <main class="w-full">

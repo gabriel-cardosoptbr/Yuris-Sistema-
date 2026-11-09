@@ -240,7 +240,7 @@ ok(str_contains((string) file_get_contents($raiz . '/app/Inicio/Painel.php'), 'P
 ok(str_contains($inicio, "timeZone: 'America/Sao_Paulo'") && str_contains($inicio, '<span id="iniSaudacao">'), 'a saudação acompanha o relógio de Brasília na página aberta');
 ok(str_contains((string) file_get_contents($raiz . '/public/assets/inicio.css'), '.ini-sala h1 .ini-nome{') && str_contains($inicio, '<span class="ini-nome">'), 'o nome em degradê azul para prata, como o logo');
 $tkPhp = (string) file_get_contents($raiz . '/public/tarefas.php');
-$tkCen = str_replace("
+$tkCen = str_replace("
 ", "
 ", (string) file_get_contents($raiz . '/public/assets/tarefas-central.js'));
 ok(!str_contains($tkPhp, 'tk-jur-op') && str_contains($tkCen, "ADD = { tarefas: ['tarefa', 'Nova tarefa'], prazos: ['prazo', 'Novo prazo'], vinculos: ['vinculo', 'Adicionar vínculo'] }"), 'sem opções antes do processo; cada bloco do processo tem o seu Adicionar');
@@ -281,6 +281,20 @@ ok(str_contains($innCss, '@view-transition{ navigation:auto; }') && str_contains
 ok(!str_contains($innMov, 'inn-saindo body') && !str_contains($movCss, 'saindo body'), 'nenhuma folha de movimento apaga a página inteira ao sair');
 $sidebarMF = (string) file_get_contents($raiz . '/public/includes/sidebar.php');
 ok(preg_match('/<\/aside>[\s\S]{0,900}?yuris_menu_rolagem/', $sidebarMF) === 1 && str_contains($sidebarMF, '/assets/menu-fixo.js') && preg_match('/<\/aside>[\s\S]{0,600}?classList\.add\(\'inn-vestindo\'\)/', $sidebarMF) === 1, 'logo depois do <aside>: a tela fica invisível até vestir, a rolagem do menu volta, e o menu-fixo.js carrega');
+// A troca de tela piscava em produção (09/11/2026): o PHP manda a página aos pedaços e o primeiro
+// quadro da tela nova saía SEM o menu. Toda página com o menu segura a pintura até o fim dele.
+$pMarca = strpos($sidebarMF, '<i id="yuris-menu-pronto" hidden></i>');
+$pGrupos = strpos($sidebarMF, "var KEY = 'yuris_sidebar_groups_v2';");
+ok($pMarca !== false && $pGrupos !== false && $pGrupos < $pMarca && strpos($sidebarMF, '</aside>') < $pMarca, 'a marca do fim do menu vem depois do menu e dos grupos reabertos');
+$semExpect = [];
+$paginasMenu = array_merge(glob($raiz . '/public/*.php') ?: [], glob($raiz . '/public/includes/dashboard_*.php') ?: [], glob($raiz . '/app/*/Paginas/*.php') ?: []);
+foreach ($paginasMenu as $f) {
+    $t = (string) file_get_contents($f);
+    if (!preg_match('/include[_once]*\s*\(?\s*[^;]*sidebar\.php/', $t)) continue;
+    $head = strstr($t, '</head>', true);
+    if ($head === false || !str_contains($head, '<link rel="expect" href="#yuris-menu-pronto" blocking="render">')) $semExpect[] = str_replace($raiz . '/', '', $f);
+}
+ok($semExpect === [], 'toda página com o menu segura a pintura até o fim dele (rel=expect no <head>)' . ($semExpect ? ': falta em ' . implode(', ', $semExpect) : ''));
 ok(!preg_match('/^(?!.*(animation|transition|transform|opacity|keyframes|--mov|--cx|--cy|isolation|overflow|position|z-index|pointer-events|will-change|font-variant|border-radius|padding-top|width|left|top|background|display|content|border-color|transform-origin)).*:\s*#[0-9a-f]{3,6}/mi', $movCss), 'a folha do movimento não traz cor nova');
 $innCss = (string) @file_get_contents($raiz . '/public/assets/interface-nova-movimento.css');
 $innJs  = (string) @file_get_contents($raiz . '/public/assets/interface-nova-movimento.js');

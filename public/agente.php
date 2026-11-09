@@ -423,6 +423,7 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
     html[data-theme="light"] .ch-warn { background:#fee2e2 !important; border-color:#fca5a5 !important; color:#b91c1c !important; }
     html[data-theme="light"] .ch-empty-title { color:#b91c1c !important; }
   </style>
+<link rel="expect" href="#yuris-menu-pronto" blocking="render"><!-- só pinta com o menu inteiro: ver o fim do menu em includes/sidebar.php -->
 </head>
 <body>
   <main class="w-full px-6 py-6">

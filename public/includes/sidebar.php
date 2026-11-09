@@ -1565,6 +1565,14 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
 })();
 </script>
 
+<?php /* Fim do menu (09/11/2026). Toda página que inclui este arquivo tem no <head>
+   <link rel="expect" href="#yuris-menu-pronto" blocking="render">: o navegador não pinta a tela
+   antes de ler até aqui. Em produção o PHP manda a página aos pedaços (output_buffering 0) e
+   consulta o banco no meio; sem isto o primeiro quadro da tela nova saía sem o menu, e a troca
+   de tela piscava. Fica depois dos grupos reabertos e da rolagem devolvida, para o primeiro
+   quadro já ser o menu certo. Página nova com o menu leva a mesma linha no <head>. */ ?>
+<i id="yuris-menu-pronto" hidden></i>
+
 <script>
 /* Recolher o menu (edição CRM e Yuris jurídico). Recolhido: só ícones, nome no
    title; clicar num grupo abre o menu de novo com o grupo aberto. A escolha fica

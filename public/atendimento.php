@@ -214,6 +214,7 @@ $rotuloFaixa = ['bom' => 'Bom', 'atencao' => 'Atenção', 'ruim' => 'Crítico', 
     }
   </style>
   <?php endif; ?>
+<link rel="expect" href="#yuris-menu-pronto" blocking="render"><!-- só pinta com o menu inteiro: ver o fim do menu em includes/sidebar.php -->
 </head>
 <body>
   <main class="o-wrap">

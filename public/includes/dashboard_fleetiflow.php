@@ -56,6 +56,7 @@ function ffc_kpi(string $id, string $rotulo, string $ico, string $tom = '', stri
   <link rel="stylesheet" href="/assets/sidebar.css?v=20">
   <link rel="stylesheet" href="/assets/fleetiflow-dashboard.css?v=<?= @filemtime(__DIR__ . '/../assets/fleetiflow-dashboard.css') ?: 1 ?>">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+<link rel="expect" href="#yuris-menu-pronto" blocking="render"><!-- só pinta com o menu inteiro: ver o fim do menu em includes/sidebar.php -->
 </head>
 <body>
 <main class="w-full">

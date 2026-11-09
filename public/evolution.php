@@ -44,6 +44,7 @@ $_cssVer = @filemtime(__DIR__ . '/assets/projetos.css') ?: 1;
   <link rel="stylesheet" href="/assets/sidebar.css?v=20">
   <link rel="stylesheet" href="/assets/projetos.css?v=<?= $_cssVer ?>">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="expect" href="#yuris-menu-pronto" blocking="render"><!-- só pinta com o menu inteiro: ver o fim do menu em includes/sidebar.php -->
 </head>
 <body>
 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">

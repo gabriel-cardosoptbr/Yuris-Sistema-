@@ -333,6 +333,7 @@ $health_icon         = $margem >= 40 ? '▲' : ($margem >= 15 ? '●' : '▼');
     @media (max-width: 980px)  { .kpi-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
     @media (max-width: 600px)  { .kpi-grid { grid-template-columns: 1fr 1fr; } .form-grid { grid-template-columns: 1fr; } .filters-grid { grid-template-columns: 1fr; } .modal-form-grid { grid-template-columns: 1fr; } .modal-form-grid .span2 { grid-column: auto; } .charts-grid { grid-template-columns: 1fr; } }
   </style>
+<link rel="expect" href="#yuris-menu-pronto" blocking="render"><!-- só pinta com o menu inteiro: ver o fim do menu em includes/sidebar.php -->
 </head>
 <body>
 <main class="w-full px-6 py-6">

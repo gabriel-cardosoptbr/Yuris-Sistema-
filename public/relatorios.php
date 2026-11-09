@@ -153,6 +153,7 @@ function e($v): string { return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES
     html[data-theme="light"] .rel-aviso{ background:#FFF6E6 !important; border-color:#EDD09A !important; color:#8F6000 !important; }
   </style>
   <?php endif; ?>
+<link rel="expect" href="#yuris-menu-pronto" blocking="render"><!-- só pinta com o menu inteiro: ver o fim do menu em includes/sidebar.php -->
 </head>
 <body>
   <!-- .page-layout e a convencao do resto do sistema (ver processos.php): e ele

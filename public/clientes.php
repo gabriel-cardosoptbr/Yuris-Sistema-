@@ -440,6 +440,7 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
       .form-grid { grid-template-columns: 1fr; }
     }
   </style>
+<link rel="expect" href="#yuris-menu-pronto" blocking="render"><!-- só pinta com o menu inteiro: ver o fim do menu em includes/sidebar.php -->
 </head>
 <body class="theme-yuris">
 

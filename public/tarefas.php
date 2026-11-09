@@ -81,6 +81,7 @@ try {
     section.main-content { display: flex; flex-direction: column; overflow: hidden; }
     @media (max-width: 768px) { section.main-content { padding-top: 8px; } }
   </style>
+<link rel="expect" href="#yuris-menu-pronto" blocking="render"><!-- só pinta com o menu inteiro: ver o fim do menu em includes/sidebar.php -->
 </head>
 <body>
 <main class="w-full px-6 py-6">

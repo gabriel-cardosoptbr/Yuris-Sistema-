@@ -62,6 +62,7 @@ $_fechar = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="
   <link rel="stylesheet" href="/assets/sidebar.css?v=20">
   <link rel="stylesheet" href="/assets/projetos.css?v=<?= $_projCssVer ?>">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="expect" href="#yuris-menu-pronto" blocking="render"><!-- só pinta com o menu inteiro: ver o fim do menu em includes/sidebar.php -->
 </head>
 <body>
 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">

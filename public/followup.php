@@ -201,6 +201,7 @@ if ($ctx->isOwnerOrAdmin() && \App\WhatsAppAgente\SdrFleetiflow::contaDoTokenGlo
     }
   </style>
   <?php endif; ?>
+<link rel="expect" href="#yuris-menu-pronto" blocking="render"><!-- só pinta com o menu inteiro: ver o fim do menu em includes/sidebar.php -->
 </head>
 <body>
   <main class="o-wrap">

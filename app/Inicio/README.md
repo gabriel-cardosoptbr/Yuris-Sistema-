@@ -178,6 +178,12 @@ seleção em pílula.
   guardada ao sair (`yuris_menu_rolagem`, no `pagehide`) e devolvida num script inline logo
   depois do `</aside>`, antes da primeira pintura (na prévia o menu não rola, mas vale onde
   rolar).
+  **A tela nova só pinta com o menu inteiro** (09/11/2026: "enquanto eu seleciono as abas, tá
+  piscando, parece que tá recarregando"). Em produção o PHP manda a página aos pedaços e o primeiro
+  quadro saía sem o menu, e aí a view transition nem acontecia. Toda página com o menu tem no
+  `<head>` o `<link rel="expect" href="#yuris-menu-pronto" blocking="render">`, e a marca fica no
+  `sidebar.php` depois dos grupos reabertos. Para reproduzir: `flush()` com pausa antes do `<aside>`
+  e um ouvinte de `pagereveal` no `<head>` que anota se o menu já existe (ver `public/README.md`).
   **O menu no mesmo lugar, e a tela só vestida** (08/11/2026: "tem tela que o menu está maior,
   tem tela que está menor; o layout antigo às vezes aparece, coisa branca"). Medido em 20 telas:
   o menu ficava em 16,16 no Início, 24,24 na maioria, 26,22 em Atendimento e Desempenho, e

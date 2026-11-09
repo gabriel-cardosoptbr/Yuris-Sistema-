@@ -1980,6 +1980,7 @@ $agenteChat    = $isFleetiflow ? $marcaConta['agente'] : null;
   </style>
   <!-- O Chat no celular, como o WhatsApp (22/10/2026): carregado por último para vencer as regras acima. -->
   <link rel="stylesheet" href="/assets/chat-mobile.css?v=<?= @filemtime(__DIR__ . '/assets/chat-mobile.css') ?: 1 ?>">
+<link rel="expect" href="#yuris-menu-pronto" blocking="render"><!-- só pinta com o menu inteiro: ver o fim do menu em includes/sidebar.php -->
 </head>
 <body>
 
