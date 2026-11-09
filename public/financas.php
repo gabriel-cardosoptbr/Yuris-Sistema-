@@ -350,7 +350,7 @@ $health_icon         = $margem >= 40 ? '▲' : ($margem >= 15 ? '●' : '▼');
         <div class="page-header-inner">
           <div class="page-header-text">
             <h2 class="page-header-title">Central Financeira Executiva</h2>
-            <p class="page-header-subtitle">DRE — Demonstração do Resultado do Exercício · Escritório Jurídico</p>
+            <p class="page-header-subtitle">DRE: Demonstração do Resultado do Exercício · Escritório Jurídico</p>
           </div>
         </div>
       </div>
@@ -432,7 +432,7 @@ $health_icon         = $margem >= 40 ? '▲' : ($margem >= 15 ? '●' : '▼');
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2.5" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
               Impostos sobre a Receita
             </div>
-            <p class="panel-sub">Configure as alíquotas — os valores são calculados sobre a receita operacional e entram nos Custos Operacionais</p>
+            <p class="panel-sub">Configure as alíquotas: os valores são calculados sobre a receita operacional e entram nos Custos Operacionais</p>
           </div>
           <button id="addTaxBtn" class="btn btn-primary btn-sm" style="flex-shrink:0">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>

@@ -70,3 +70,5 @@ texto que nunca leu.
 **Incidente tem prazo.** O registro é em `../Master/SecurityIncident.php`, e o
 procedimento está em
 [`../../docs/lgpd/PROCEDIMENTO_INCIDENTES.md`](../../docs/lgpd/PROCEDIMENTO_INCIDENTES.md).
+
+Texto (09/11/2026): o subtítulo do Centro de Privacidade (`Paginas/centro-privacidade.php`) cita o "LGPD Art. 18 IX" entre parênteses, sem travessão.

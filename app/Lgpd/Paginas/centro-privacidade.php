@@ -187,7 +187,7 @@ $activePage     = 'privacidade';
           <div class="page-header-text">
             <h2 class="page-header-title">Privacidade &amp; Consentimentos</h2>
             <p class="page-header-subtitle">
-              Gerencie suas autorizações específicas (cookies, marketing, IA etc). Você pode revogar qualquer consentimento a qualquer momento — <strong>LGPD Art. 18 IX</strong>.
+              Gerencie suas autorizações específicas (cookies, marketing, IA etc). Você pode revogar qualquer consentimento a qualquer momento (<strong>LGPD Art. 18 IX</strong>).
             </p>
           </div>
         </div>

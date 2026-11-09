@@ -427,6 +427,11 @@ da conexão não cola em "Conversas" (`interface-nova.css`).
 Indicadores (09/11/2026): o bloco de texto do indicador alinha pelo topo (`align-content:start`), e
 `igualarIndicadores` mede o número de cada cartão e empurra os da mesma fileira até a linha do mais baixo (rótulo
 ou subtítulo de duas linhas descia o número de um cartão só).
+Textos (09/11/2026, revisão do sistema, valem para todos): o bloco "Pré-atendimento jurídico" do `agente.php` ganhou
+os acentos (só texto visível; `id`, classes e valores intactos); os subtítulos e títulos de Processos, Jurídico,
+Planejamento, Indicadores, Finanças, Configurações e Privacidade perderam o travessão (o `<title>` da aba ficou);
+Escritórios mostra "Ativo", "Básico", "Matriz" em vez do valor do banco (`rotuloValor`, a classe da etiqueta segue
+o valor). Na prévia, o texto de exemplo dos campos é cinza nos dois temas.
 **Cartão de indicador nunca vira selo** (09/11/2026): o `interface-nova-sistema.js` lê como selo o que tem
 classe de estado no nome (`-danger`, `-warn`...). O `kpi-card kpi-danger` do Processos, que é ele mesmo o
 `[data-inn-kpi]`, às vezes virava faixa e perdia o fundo; agora caixa com blocos dentro (`ehCaixa`) nunca é

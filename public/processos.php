@@ -1055,7 +1055,7 @@ try {
           <div class="page-header-inner">
             <div class="page-header-text">
               <h2 class="page-header-title">Gestão Processual</h2>
-              <p class="page-header-subtitle">Controle operacional — prazos, tarefas, histórico e movimentações diárias</p>
+              <p class="page-header-subtitle">Controle operacional: prazos, tarefas, histórico e movimentações diárias</p>
             </div>
           </div>
         </div>
@@ -1196,7 +1196,7 @@ try {
           <div class="flex items-center justify-between mb-3">
             <div>
               <h3 class="proc-section-title">Calendário Processual</h3>
-              <p class="proc-subtitle">Processos organizados por mês de prazo — role horizontalmente para navegar</p>
+              <p class="proc-subtitle">Processos organizados por mês de prazo; role para o lado para ver os outros meses</p>
             </div>
           </div>
           <div id="columnsWrapper" class="mt-2"></div>
@@ -1207,7 +1207,7 @@ try {
           <div class="flex items-center justify-between mb-3">
             <div>
               <h3 class="proc-section-title">Agenda Jurídica Prioritária</h3>
-              <p class="proc-subtitle">Próximos prazos ordenados por urgência — os mais críticos aparecem primeiro</p>
+              <p class="proc-subtitle">Próximos prazos ordenados por urgência: os mais críticos aparecem primeiro</p>
             </div>
           </div>
           <div id="upcomingList" class="proc-agenda-list mt-2"></div>

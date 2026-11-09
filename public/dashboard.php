@@ -442,10 +442,10 @@ if ($interfaceNova) $activePage = 'indicadores'; // no menu novo, este painel é
           <div class="page-header-text">
             <?php if ($moduloJuridico): ?>
             <h2 class="page-header-title">Dashboard Executivo</h2>
-            <p class="page-header-subtitle">Visão completa — Comercial · Financeiro · Jurídico · Operacional</p>
+            <p class="page-header-subtitle">Visão completa: Comercial · Financeiro · Jurídico · Operacional</p>
             <?php else: ?>
             <h2 class="page-header-title">Dashboard Comercial</h2>
-            <p class="page-header-subtitle">Visão completa — Prospecção · Vendas · Atendimento · Performance</p>
+            <p class="page-header-subtitle">Visão completa: Prospecção · Vendas · Atendimento · Performance</p>
             <?php endif; ?>
             <?php if (count($origin_accounts) > 1):
               // Indicador visual do escopo ativo (matriz com filiais/advogados).
@@ -569,7 +569,7 @@ if ($interfaceNova) $activePage = 'indicadores'; // no menu novo, este painel é
 
       <!-- ── FINANCEIRO KPIs (DRE — updated dynamically by filter) ── -->
       <div>
-        <div class="section-eyebrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block;vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M9 9h4.5a1.5 1.5 0 0 1 0 3h-5a1.5 1.5 0 0 0 0 3H15"/></svg> Financeiro — DRE</div>
+        <div class="section-eyebrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block;vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M9 9h4.5a1.5 1.5 0 0 1 0 3h-5a1.5 1.5 0 0 0 0 3H15"/></svg> Financeiro: DRE</div>
         <div class="kpi-cols-4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
           <div class="kpi-card kpi-ok" id="dreReceitaCard">
             <div class="kpi-dot dot-ok" id="dreDotReceita"></div>
@@ -601,7 +601,7 @@ if ($interfaceNova) $activePage = 'indicadores'; // no menu novo, este painel é
       <?php if ($moduloJuridico): ?>
       <!-- ── JURÍDICO KPIs (JS loads from API) ── -->
       <div>
-        <div class="section-eyebrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block;vertical-align:middle;margin-right:4px"><path d="M12 3v18"/><path d="M5 6l7-3 7 3"/><path d="M5 6 2 13h6z"/><path d="M19 6l-3 7h6z"/><line x1="3" y1="18" x2="21" y2="18"/></svg> Jurídico — Processos</div>
+        <div class="section-eyebrow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block;vertical-align:middle;margin-right:4px"><path d="M12 3v18"/><path d="M5 6l7-3 7 3"/><path d="M5 6 2 13h6z"/><path d="M19 6l-3 7h6z"/><line x1="3" y1="18" x2="21" y2="18"/></svg> Jurídico: Processos</div>
         <div class="kpi-cols-4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
           <div class="kpi-card"<?= kpiLink('processos', '/processos.php?status=ativos', 'Ver os processos ativos') ?>>
             <div class="kpi-dot dot-neutral" id="dotJurAtivos"></div>
@@ -710,7 +710,7 @@ if ($interfaceNova) $activePage = 'indicadores'; // no menu novo, este painel é
 
       <!-- Receita mensal -->
       <div class="chart-card">
-        <div class="chart-title">Receita Mensal — Acumulado × Meta</div>
+        <div class="chart-title">Receita Mensal: acumulado × meta</div>
         <canvas id="revenueChart" style="max-height:240px"></canvas>
       </div>
 
@@ -723,7 +723,7 @@ if ($interfaceNova) $activePage = 'indicadores'; // no menu novo, este painel é
           <canvas id="dashProcessesMonthChart" style="max-height:220px"></canvas>
         </div>
         <div class="chart-card">
-          <div class="chart-title">Prazos — Próximos 7 dias</div>
+          <div class="chart-title">Prazos dos próximos 7 dias</div>
           <canvas id="dashPrazosWeekChart" style="max-height:220px"></canvas>
         </div>
       </div>

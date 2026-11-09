@@ -554,3 +554,7 @@ html:root .inn-arq-enviar.inn-arq-pronto.inn-arq-enviar.inn-arq-enviar{ backgrou
    inn-tem-mais pela rolagem), e a barra de rolagem fica visível. */
 html .inn-tela .inn-tem-mais{ -webkit-mask-image:linear-gradient(to right, #000 calc(100% - 64px), transparent); mask-image:linear-gradient(to right, #000 calc(100% - 64px), transparent); }
 html .inn-tela :is(.qr-topo, .tk-kanban, .proc-board){ scrollbar-color:var(--inn-t-linha2) transparent; }
+
+/* Texto de exemplo dos campos em cinza, nos dois temas (09/11/2026, revisão do sistema: no escuro, o do
+   Agente saía branco como um valor preenchido e não dava para saber o que estava vazio). */
+html .inn-tela input::placeholder, html .inn-tela textarea::placeholder{ color:var(--inn-t-texto3) !important; opacity:1 !important; }

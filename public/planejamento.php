@@ -561,7 +561,7 @@ $activePage = 'funil';
             <div class="page-header-inner">
               <div class="page-header-text">
                 <h2 class="page-header-title">Planejamento Comercial Jurídico</h2>
-                <p class="page-header-subtitle">Simulador de funil — calcule metas, conversões e distribuição de contratos por advogado.</p>
+                <p class="page-header-subtitle">Simulador de funil: calcule metas, conversões e distribuição de contratos por advogado.</p>
               </div>
             </div>
           </div>

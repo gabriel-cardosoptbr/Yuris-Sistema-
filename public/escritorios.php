@@ -1142,6 +1142,14 @@ $monOverrideSumEsc = \App\Billing\BillingGuard::getOverrideSum($accountId, 'moni
 </div>
 
 <script>
+// O valor do banco vira palavra de gente na tela (09/11/2026, revisão do sistema: "active",
+// "basico" e "matriz" apareciam crus). A classe da etiqueta segue usando o valor do banco.
+function rotuloValor(v) {
+  var m = { active: 'Ativo', ativo: 'Ativo', pending: 'Pendente', suspended: 'Suspenso', rejected: 'Recusado', inactive: 'Inativo',
+            basico: 'Básico', pro: 'Pro', premium: 'Premium', enterprise: 'Enterprise', matriz: 'Matriz', filial: 'Filial' };
+  var k = String(v == null ? '' : v).toLowerCase();
+  return m[k] || (k ? k.charAt(0).toUpperCase() + k.slice(1) : '');
+}
 const CSRF = <?= json_encode($csrf) ?>;
 const IS_ADMIN = <?= $isAdmin ? 'true' : 'false' ?>;
 const ACCOUNT_TIPO = <?= json_encode($accountTipo) ?>;
@@ -1162,9 +1170,9 @@ async function carregarConta() {
   if (!c || !c.nome) return;
   _contaData = c;
   document.getElementById('cNome').textContent   = c.nome || '—';
-  document.getElementById('cTipo').innerHTML     = `<span class="badge badge-${c.tipo}">${c.tipo}</span>`;
-  document.getElementById('cPlano').textContent  = c.plano || 'basico';
-  document.getElementById('cStatus').innerHTML   = `<span class="badge badge-${c.status}">${c.status}</span>`;
+  document.getElementById('cTipo').innerHTML     = `<span class="badge badge-${c.tipo}">${rotuloValor(c.tipo)}</span>`;
+  document.getElementById('cPlano').textContent  = rotuloValor(c.plano || 'basico');
+  document.getElementById('cStatus').innerHTML   = `<span class="badge badge-${c.status}">${rotuloValor(c.status)}</span>`;
 
   if (IS_ADMIN) {
     const rc = await api('/api/accounts.php?action=codigo');
@@ -1301,7 +1309,7 @@ async function carregarVinculos() {
       return `<tr>
         <td><span class="badge badge-${tipoOutro.toLowerCase()}">${tipoOutro}</span></td>
         <td>${outro}</td>
-        <td><span class="badge badge-${v.status}">${v.status}</span>${syncBadge ? ' ' + syncBadge : ''}${waBadge ? ' ' + waBadge : ''}</td>
+        <td><span class="badge badge-${v.status}">${rotuloValor(v.status)}</span>${syncBadge ? ' ' + syncBadge : ''}${waBadge ? ' ' + waBadge : ''}</td>
         <td style="color:#4a5568">${(v.created_at||'').slice(0,10)}</td>
         ${IS_ADMIN ? `<td style="display:flex;gap:6px;flex-wrap:wrap">${acoes}</td>` : ''}
       </tr>`;
@@ -1529,7 +1537,7 @@ async function carregarAdvogadosVinculos() {
 
       return `<tr>
         <td>${nome}</td>
-        <td><span class="badge badge-${v.status}">${v.status}</span>${syncBadge ? ' ' + syncBadge : ''}</td>
+        <td><span class="badge badge-${v.status}">${rotuloValor(v.status)}</span>${syncBadge ? ' ' + syncBadge : ''}</td>
         <td style="color:#4a5568">${(v.created_at||'').slice(0,10)}</td>
         ${(IS_ADMIN && !iAmAdvogado) ? `<td style="display:flex;gap:6px;flex-wrap:wrap">${acoes}</td>` : ''}
       </tr>`;

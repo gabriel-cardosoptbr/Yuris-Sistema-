@@ -372,7 +372,7 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
           <div class="page-header-inner">
             <div class="page-header-text">
               <h2 class="page-header-title">Painel Jurídico</h2>
-              <p class="page-header-subtitle">Visão gerencial e estratégica — desempenho, risco operacional e distribuição da carteira</p>
+              <p class="page-header-subtitle">Visão gerencial e estratégica: desempenho, risco operacional e distribuição da carteira</p>
             </div>
           </div>
         </div>
@@ -452,7 +452,7 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
           </div>
           <!-- Mapa de calor semanal: prazos nos próximos 7 dias por dia da semana -->
           <div class="chart-card">
-            <div class="chart-title">Concentração de Prazos — 7 dias</div>
+            <div class="chart-title">Concentração de Prazos nos próximos 7 dias</div>
             <canvas id="deadlinesWeekChart" style="max-height:240px"></canvas>
           </div>
           <!-- Curva anual: quantos processos têm prazo por mês (visão de sazonalidade) -->
@@ -492,8 +492,8 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
         -->
         <div class="jur-panel" id="secaoProximos">
           <div class="mb-4">
-            <h3 class="jur-section-title">Prazos Críticos — Visão por Janela</h3>
-            <p class="jur-subtitle">Volume de processos por janela de prazo — use a aba Processos para controle diário individual</p>
+            <h3 class="jur-section-title">Prazos Críticos por janela</h3>
+            <p class="jur-subtitle">Volume de processos por janela de prazo. Para o controle diário de cada processo, use a aba Processos</p>
           </div>
           <div class="prox-grid">
             <!-- Hoje -->

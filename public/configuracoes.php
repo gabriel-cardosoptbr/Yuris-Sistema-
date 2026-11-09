@@ -401,7 +401,7 @@ $nCols   = count($columns);
         <div class="page-header-inner">
           <div class="page-header-text">
             <h2 class="page-header-title">Configurações do Sistema</h2>
-            <p class="page-header-subtitle">Central administrativa do CRM — Funil · Notificações · Segurança · Integrações</p>
+            <p class="page-header-subtitle">Central administrativa do CRM: Funil · Notificações · Segurança · Integrações</p>
           </div>
         </div>
       </div>
@@ -464,7 +464,7 @@ $nCols   = count($columns);
         <div class="cfg-panel space-y-4">
           <div>
             <h3 style="font-size:.95rem;font-weight:600;color:#dbeafe;margin-bottom:4px">Alertas de Prazos Jurídicos</h3>
-            <p style="font-size:.78rem;color:var(--muted)">Configure as janelas de alerta — sincronizado com o Painel Jurídico</p>
+            <p style="font-size:.78rem;color:var(--muted)">Configure as janelas de alerta, sincronizadas com o Painel Jurídico</p>
           </div>
           <div class="cfg-block">
             <div class="cfg-section-title">Notificações popup de processos</div>

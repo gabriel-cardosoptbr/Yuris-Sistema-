@@ -566,32 +566,32 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
 
               <!-- Bloco 4 — Pre-atendimento juridico (config do assistente) -->
               <div class="agt-section" style="margin-top:14px">
-                <div class="agt-section-title"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:6px"><path d="M12 2a3 3 0 0 0-3 3v1H7a2 2 0 0 0-2 2v3a7 7 0 0 0 14 0V8a2 2 0 0 0-2-2h-2V5a3 3 0 0 0-3-3z"/></svg> Pre-atendimento juridico</div>
+                <div class="agt-section-title"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:6px"><path d="M12 2a3 3 0 0 0-3 3v1H7a2 2 0 0 0-2 2v3a7 7 0 0 0 14 0V8a2 2 0 0 0-2-2h-2V5a3 3 0 0 0-3-3z"/></svg> Pré-atendimento jurídico</div>
                 <div class="agt-section-body">
-                  <span class="field-hint" style="margin-bottom:10px;display:block">Esta tela NAO configura conexao de WhatsApp (numero, QR e token ficam em Comunicacao, Chat WhatsApp). Aqui voce define como o assistente recepciona, faz a triagem e encaminha os contatos.</span>
+                  <span class="field-hint" style="margin-bottom:10px;display:block">Esta tela NÃO configura conexão de WhatsApp (número, QR e token ficam em Comunicação, Chat WhatsApp). Aqui você define como o assistente recepciona, faz a triagem e encaminha os contatos.</span>
 
                   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
-                    <div class="field-group"><label class="field-label">Nome do escritorio</label><input id="cfgOfficeName" class="field-input" placeholder="Ex: Silva e Advogados"></div>
+                    <div class="field-group"><label class="field-label">Nome do escritório</label><input id="cfgOfficeName" class="field-input" placeholder="Ex: Silva e Advogados"></div>
                     <!-- OCULTO: maximo de perguntas e modelo de IA sao GLOBAIS (Painel Master). Mantidos no DOM com default global p/ nao quebrar o salvar. -->
-                    <div class="field-group" style="display:none"><label class="field-label">Maximo de perguntas (3 a 8)</label><input id="cfgMaxQuestions" type="number" min="3" max="8" class="field-input" value="6"></div>
-                    <div class="field-group" style="display:none"><label class="field-label">Modelo de IA</label><select id="cfgModel" class="field-input"><option value="gpt-4o-mini">gpt-4o-mini (economico)</option><option value="gpt-5.4-mini">gpt-5.4-mini</option><option value="gpt-5.4-nano">gpt-5.4-nano</option></select></div>
+                    <div class="field-group" style="display:none"><label class="field-label">Máximo de perguntas (3 a 8)</label><input id="cfgMaxQuestions" type="number" min="3" max="8" class="field-input" value="6"></div>
+                    <div class="field-group" style="display:none"><label class="field-label">Modelo de IA</label><select id="cfgModel" class="field-input"><option value="gpt-4o-mini">gpt-4o-mini (econômico)</option><option value="gpt-5.4-mini">gpt-5.4-mini</option><option value="gpt-5.4-nano">gpt-5.4-nano</option></select></div>
                   </div>
 
-                  <div class="field-group" style="margin-top:10px"><label class="field-label">Descricao do escritorio</label><input id="cfgOfficeDesc" class="field-input" placeholder="Atendemos nas areas de... em..."></div>
+                  <div class="field-group" style="margin-top:10px"><label class="field-label">Descrição do escritório</label><input id="cfgOfficeDesc" class="field-input" placeholder="Atendemos nas áreas de... em..."></div>
 
                   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:4px">
                     <div class="field-group"><label class="field-label">Cidade</label><input id="cfgCidade" class="field-input"></div>
-                    <div class="field-group"><label class="field-label">Horario</label><input id="cfgHorario" class="field-input" placeholder="Seg a Sex, 9h-18h"></div>
+                    <div class="field-group"><label class="field-label">Horário</label><input id="cfgHorario" class="field-input" placeholder="Seg a Sex, 9h-18h"></div>
                     <div class="field-group"><label class="field-label">Telefone</label><input id="cfgTelefone" class="field-input"></div>
                     <div class="field-group"><label class="field-label">E-mail</label><input id="cfgEmail" class="field-input"></div>
                     <div class="field-group"><label class="field-label">Site</label><input id="cfgSite" class="field-input"></div>
-                    <div class="field-group"><label class="field-label">Endereco</label><input id="cfgEndereco" class="field-input"></div>
+                    <div class="field-group"><label class="field-label">Endereço</label><input id="cfgEndereco" class="field-input"></div>
                   </div>
 
-                  <div class="field-group" style="margin-top:10px"><label class="field-label">Mensagem inicial (saudacao)</label><input id="cfgInitialMsg" class="field-input" placeholder="Ola! Sou o assistente virtual do escritorio..."></div>
+                  <div class="field-group" style="margin-top:10px"><label class="field-label">Mensagem inicial (saudação)</label><input id="cfgInitialMsg" class="field-input" placeholder="Olá! Sou o assistente virtual do escritório..."></div>
                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                     <div class="field-group"><label class="field-label">Mensagem de encaminhamento</label><input id="cfgHandoffMsg" class="field-input" placeholder="Vou encaminhar para a nossa equipe..."></div>
-                    <div class="field-group"><label class="field-label">Mensagem de urgencia</label><input id="cfgUrgencyMsg" class="field-input" placeholder="Entendi a urgencia, vou priorizar..."></div>
+                    <div class="field-group"><label class="field-label">Mensagem de urgência</label><input id="cfgUrgencyMsg" class="field-input" placeholder="Entendi a urgência, vou priorizar..."></div>
                   </div>
                   <div class="field-group"><label class="field-label">Mensagem de encerramento</label><input id="cfgClosingMsg" class="field-input"></div>
 
@@ -600,24 +600,24 @@ $csrf = $_SESSION['csrf_token'] ??= bin2hex(random_bytes(16));
                     <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:.82rem;color:var(--muted)">
                       <label><input type="checkbox" id="cfgAskCidade"> Perguntar cidade</label>
                       <label><input type="checkbox" id="cfgAskDocumentos" checked> Perguntar documentos</label>
-                      <label><input type="checkbox" id="cfgAskProcesso" checked> Perguntar se ha processo</label>
+                      <label><input type="checkbox" id="cfgAskProcesso" checked> Perguntar se há processo</label>
                       <label><input type="checkbox" id="cfgAskPrazo" checked> Perguntar prazo</label>
                     </div>
                   </div>
 
                   <div class="field-group" style="margin-top:10px">
-                    <label class="field-label">Areas atendidas</label>
-                    <span class="field-hint">Marque as areas que o escritorio atende. O assistente faz so a triagem (nao da parecer) e encaminha; temas fora das areas marcadas saem como "fora de escopo".</span>
+                    <label class="field-label">Áreas atendidas</label>
+                    <span class="field-hint">Marque as áreas que o escritório atende. O assistente faz só a triagem (não dá parecer) e encaminha; temas fora das áreas marcadas saem como "fora de escopo".</span>
                     <div id="areasBox" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:4px 14px;margin-top:8px;max-height:220px;overflow:auto;border:1px solid var(--border,#1e293b);border-radius:8px;padding:10px"></div>
                   </div>
 
                   <!-- OCULTO (etapa futura, paga a parte): criar card/tarefa, board, responsavel e limites de token/custo. Mantido no DOM (card desligado) p/ nao quebrar o salvar; sera reativado depois. -->
                   <div class="agt-section-title" style="margin-top:14px;font-size:.8rem; display:none">Encaminhamento e limites</div>
                   <div style="display:none;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
-                    <div class="field-group"><label class="field-label" style="font-weight:400"><input type="checkbox" id="cfgCreateCard"> Criar card em Prospeccao</label></div>
+                    <div class="field-group"><label class="field-label" style="font-weight:400"><input type="checkbox" id="cfgCreateCard"> Criar card em Prospecção</label></div>
                     <div class="field-group"><label class="field-label" style="font-weight:400"><input type="checkbox" id="cfgCreateTask"> Criar tarefa</label></div>
                     <div class="field-group"><label class="field-label">Quadro de tarefas (board_id)</label><input id="cfgBoardId" type="number" class="field-input" placeholder="opcional"></div>
-                    <div class="field-group"><label class="field-label">Responsavel padrao (user_id)</label><input id="cfgDefaultUser" type="number" class="field-input" placeholder="opcional"></div>
+                    <div class="field-group"><label class="field-label">Responsável padrão (user_id)</label><input id="cfgDefaultUser" type="number" class="field-input" placeholder="opcional"></div>
                     <div class="field-group"><label class="field-label">Limite de tokens (saida)</label><input id="cfgMaxTokens" type="number" class="field-input" value="800"></div>
                     <div class="field-group"><label class="field-label">Limite de custo mensal (USD)</label><input id="cfgMonthlyLimit" type="number" step="0.01" class="field-input" placeholder="0 = sem limite"></div>
                   </div>
