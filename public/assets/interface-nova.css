@@ -330,3 +330,13 @@ html body select:not([multiple]):not([size]):not(.inn-sem-seta){
 }
 html[data-theme="light"] body select:not([multiple]):not([size]):not(.inn-sem-seta){ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235B6575' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important; }
 html body select:not([multiple]):not([size]):not(.inn-sem-seta)::-ms-expand{ display:none; }
+
+/* ── Cabeçalhos fora do padrão (09/11/2026, revisão do sistema) ───────────────
+   Follow-up: o topo era um h1 solto na borda da tela; ganha o cartão de cabeçalho da home. */
+html body .inn-tela .fu-topo{ background:var(--inn-t-painel); border:1px solid var(--inn-t-linha); border-radius:14px; box-shadow:0 1px 0 var(--inn-t-hi) inset, 0 1px 2px rgba(31,38,50,.06); padding:20px 22px; align-items:center; }
+html body .inn-tela .fu-topo h1{ font-size:22px; font-weight:800; letter-spacing:-.4px; color:var(--inn-t-texto); }
+html body .inn-tela .fu-topo p{ color:var(--inn-t-texto3); font-size:13px; }
+/* Chat: o aviso "WhatsApp desconectado" é fixo no topo e cobria o título; a página desce a altura dele. */
+html body:has(#disconnectAlert.visible) .page-layout{ padding-top:56px; }
+/* Chat: o estado da conexão não cola no título "Conversas". */
+html body .inn-tela #waStatusLabel{ margin-left:10px; }

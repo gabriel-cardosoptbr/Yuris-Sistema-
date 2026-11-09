@@ -420,6 +420,10 @@ recria com a mesma configuração); cor já decidida não é repintada no laço 
 legenda feita à mão dentro de `.chart-box` (Finanças) segue as fatias. Atendimento: o eixo de tempo usa passos
 inteiros (`precision: 0`), vale para todos. Os "gráficos vazios" da revisão eram efeito da foto de página
 inteira: ela estica a janela e os gráficos se redesenham do zero, com animação, na hora da captura.
+Cabeçalhos (09/11/2026): tela que o menu da prévia não lista (Follow-up, Privacidade, Chat interno) ganha o ícone
+pelo endereço (`DA_TELA` em `iconeNoCabecalho`); o topo do Follow-up (`.fu-topo`) ganha o cartão de cabeçalho; no
+Chat, com o aviso fixo "WhatsApp desconectado" visível, a página desce 56 px (o aviso cobria o título) e o estado
+da conexão não cola em "Conversas" (`interface-nova.css`).
 **Cartão de indicador nunca vira selo** (09/11/2026): o `interface-nova-sistema.js` lê como selo o que tem
 classe de estado no nome (`-danger`, `-warn`...). O `kpi-card kpi-danger` do Processos, que é ele mesmo o
 `[data-inn-kpi]`, às vezes virava faixa e perdia o fundo; agora caixa com blocos dentro (`ehCaixa`) nunca é

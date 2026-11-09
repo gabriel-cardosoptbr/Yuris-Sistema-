@@ -76,6 +76,22 @@
       var link = [].filter.call(document.querySelectorAll('.sidebar nav a[href]'), function (a) { return (a.getAttribute('href') || '').replace(/^\//, '').replace(/\.php.*$/, '').replace(/\?.*$/, '') === aqui; })[0];
       ativo = link && link.querySelector('.icon svg');
     }
+    // Tela que o menu da prévia não lista (Follow-up, Privacidade, Chat interno): o ícone dela pelo
+    // endereço, para o cabeçalho não ficar sem a caixa (09/11/2026, revisão do sistema).
+    if (!ativo) {
+      var DA_TELA = {
+        followup: '<path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 4 21 9 16 9"/><polyline points="12 8 12 12 14.5 13.5"/>',
+        privacidade: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
+        chat_interno: '<path d="M17 6h-6a5 5 0 0 0 0 10h1l3 3 3-3h2a3 3 0 0 0 3-3V9a3 3 0 0 0-3-3z"/><path d="M3 8v8a3 3 0 0 0 3 3"/>'
+      };
+      var chave = location.pathname.replace(/\.php$/, '').split('/').filter(Boolean).pop() || '';
+      if (DA_TELA[chave]) {
+        ativo = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        ativo.setAttribute('viewBox', '0 0 24 24'); ativo.setAttribute('fill', 'none'); ativo.setAttribute('stroke', 'currentColor');
+        ativo.setAttribute('stroke-width', '1.5'); ativo.setAttribute('stroke-linecap', 'round'); ativo.setAttribute('stroke-linejoin', 'round');
+        ativo.innerHTML = DA_TELA[chave];
+      }
+    }
     var titulo = main.querySelector('.page-header .page-header-title') || main.querySelector('.page-header h1, .page-header h2, h1, header h2, h2');
     if (!ativo || !titulo) return;
     var caixa = document.createElement('span');
