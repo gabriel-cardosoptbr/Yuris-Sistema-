@@ -53,18 +53,22 @@
     });
   }
   // Os números contam de zero: todo elemento folha que é só um número inteiro.
-  function contar(el, dur) {
-    var alvo = parseInt(el.textContent, 10);
+  // O número zera no mesmo instante em que chega (09/11/2026: antes ele aparecia pronto, sumia
+  // para zero 160 ms depois e subia, "quando abre a aba dá problema"). Se a tela trocar o
+  // valor no meio da contagem, ela para e o valor da tela fica.
+  function contar(el, dur, alvo) {
+    if (alvo == null) alvo = parseInt(el.textContent, 10);
+    else if (el.textContent !== '0') return; // a tela já escreveu outro valor por cima do zero
     if (!(alvo > 0)) return;
-    var t0 = null;
+    var t0 = null, escrito = el.textContent;
     function passo(t) {
+      if (el.textContent !== escrito) return;
       if (t0 === null) t0 = t;
       var p = Math.min(1, (t - t0) / dur); p = 1 - Math.pow(1 - p, 3);
-      el.textContent = String(Math.round(alvo * p));
+      el.textContent = escrito = String(Math.round(alvo * p));
       if (p < 1) requestAnimationFrame(passo);
       else { el.classList.add('inn-contou'); el.addEventListener('animationend', function f() { el.classList.remove('inn-contou'); el.removeEventListener('animationend', f); }); }
     }
-    el.textContent = '0';
     requestAnimationFrame(passo);
   }
   function contarNumeros(raiz) {
@@ -79,7 +83,9 @@
       if (!/^\s*\d{1,6}\s*$/.test(el.textContent) || !(parseInt(el.textContent, 10) > 0)) continue;
       if (parseFloat(getComputedStyle(el).fontSize) < 10) continue;
       el.dataset.inn = '1'; k++;
-      setTimeout(contar.bind(null, el, 800), 160 + k * 40);
+      var alvo = parseInt(el.textContent, 10);
+      el.textContent = '0';
+      setTimeout(contar.bind(null, el, 800, alvo), 160 + k * 40);
     }
   }
 

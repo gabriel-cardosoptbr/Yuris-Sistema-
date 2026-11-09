@@ -33,7 +33,7 @@
   function contar(el, dur) {
     var m = /^(\d{1,6})([\s\S]*)$/.exec(el.textContent || '');
     if (!m || el.dataset.contou) return;
-    var alvo = +m[1], resto = m[2];
+    var alvo = el.dataset.alvo ? +el.dataset.alvo : +m[1], resto = m[2];
     el.dataset.contou = '1';
     if (alvo === 0) return;
     var t0 = null;
@@ -48,7 +48,11 @@
     el.textContent = '0' + resto;
     requestAnimationFrame(passo);
   }
+  // Zera já (09/11/2026): esperar o atraso com o número pronto na tela fazia ele aparecer,
+  // sumir para zero e subir.
   document.querySelectorAll('.ini-kpi b, .ini-ctr-t b, .ini-sala p b').forEach(function (el, k) {
+    var m = /^(\d{1,6})([\s\S]*)$/.exec(el.textContent || '');
+    if (m && +m[1] > 0 && !el.dataset.contou) { el.dataset.alvo = m[1]; el.textContent = '0' + m[2]; }
     setTimeout(function () { contar(el, 900); }, 180 + k * 70);
   });
 

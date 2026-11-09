@@ -161,10 +161,16 @@ seleção em pílula.
   `?embed=1`, inclusive a home. Ao clicar num item do menu: o item enche a partir do ponto do
   clique (um círculo com `clip-path` revela o degradê de ativo num `::after`; a marca
   `mf-enchendo` sai no fim, e o brilho entra pela transição de sempre), o grupo dele abre e
-  ganha a marca, o grupo de antes a perde e fecha se a pessoa não o abriu à mão
-  (`yuris_sidebar_groups_v2`), os blocos da tela dobram para cima e somem de baixo para cima
-  (`inn-menu-saindo`, `inn-fecha`, 280 ms com escalonamento de 30 ms), e a página troca aos
-  430 ms. A troca é uma **view transition entre documentos** (`@view-transition{navigation:auto}`):
+  ganha a marca, os outros grupos **ficam como estão** (09/11/2026: o grupo de antes fechava e
+  os itens pulavam; o retrato dos grupos abertos vai em `sessionStorage` `yuris_menu_grupos` e o
+  script dos grupos em `includes/sidebar.php` o aplica antes da primeira pintura), os blocos da
+  tela dobram para cima e somem de baixo para cima (`inn-menu-saindo`, `inn-fecha`, 280 ms com
+  escalonamento de 30 ms), e a tela nova é pedida **logo no clique**, depois do primeiro quadro
+  (antes esperava 430 ms; a dobra agora acontece enquanto o servidor responde). Na interface nova
+  o logo leva ao Início e o menu não recolhe: a caixa grande do logo recolhia o menu num clique
+  sem querer ("às vezes encolhe, as coisas somem, desalinha"). Os números que contam de zero
+  (`interface-nova-movimento.js` e `inicio-movimento.js`) zeram no instante em que chegam; antes
+  apareciam prontos, zeravam e subiam. A troca é uma **view transition entre documentos** (`@view-transition{navigation:auto}`):
   o menu (`view-transition-name:inn-menu`) troca de imagem sem animação, e como já está igual ao
   que a tela nova desenha, fica parado; a tela (`inn-tela`: `.main-content`, ou `.layout > main.main`
   no Clientes) aparece ao vivo e os blocos dela entram pela folha de movimento de cada tela. O

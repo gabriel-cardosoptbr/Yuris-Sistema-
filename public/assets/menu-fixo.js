@@ -9,9 +9,13 @@
 
    Como:
    1. Ao clicar num item do menu, o item enche a partir do ponto do clique com
-      a cor de ativo, o grupo dele abre e o de antes fecha (o que a tela nova vai
-      mostrar), os blocos da tela fecham de baixo para cima, e só então a página
-      troca.
+      a cor de ativo, o grupo dele abre, os blocos da tela fecham de baixo para
+      cima, e a tela nova é pedida na hora (a dobra acontece enquanto o servidor
+      responde; antes esperava 430 ms para só então pedir). NENHUM grupo fecha
+      sozinho (09/11/2026: o grupo da tela de antes fechava e os itens pulavam,
+      "o menu está recarregando"): os grupos abertos vão para a tela nova
+      (sessionStorage yuris_menu_grupos, lido pelo script dos grupos em
+      includes/sidebar.php antes da primeira pintura).
    2. A troca é uma view transition entre documentos (@view-transition, em
       interface-nova.css): o navegador segura a imagem da página antiga e, na
       nova, mostra o menu novo no lugar do antigo sem animação. Como o menu já
@@ -67,10 +71,9 @@
   }
 
   // 1b. O menu fica como a tela nova vai desenhar: o item clicado é o ativo, o grupo dele
-  // está aberto e com a marca, e o grupo de antes fecha (se a pessoa não o abriu à mão).
+  // está aberto e com a marca, e os outros grupos ficam como estão. O retrato dos grupos
+  // abertos vai para a tela nova, que nasce com o mesmo menu.
   function arrumarGrupos(a) {
-    var guardados = {};
-    try { guardados = JSON.parse(localStorage.getItem('yuris_sidebar_groups_v2') || '{}') || {}; } catch (e) {}
     var meu = a.closest('.sidebar-group');
     [].forEach.call(document.querySelectorAll('.sidebar nav a.active, .sidebar nav a[aria-current]'), function (o) {
       if (o !== a) { o.classList.remove('active'); o.removeAttribute('aria-current'); }
@@ -80,11 +83,19 @@
       if (g === meu) {
         g.classList.add('has-active');
         if (k) { g.classList.add('open'); if (t) t.setAttribute('aria-expanded', 'true'); }
-        return;
+      } else {
+        g.classList.remove('has-active');
       }
-      g.classList.remove('has-active');
-      if (k && !guardados[k]) { g.classList.remove('open'); if (t) t.setAttribute('aria-expanded', 'false'); }
     });
+    guardarGrupos();
+  }
+  // O retrato dos grupos abertos, para a tela nova nascer com o mesmo menu (também pelo logo).
+  function guardarGrupos() {
+    var retrato = {};
+    [].forEach.call(document.querySelectorAll('.sidebar .sidebar-group[data-group]'), function (g) {
+      retrato[g.getAttribute('data-group')] = g.classList.contains('open');
+    });
+    try { sessionStorage.setItem('yuris_menu_grupos', JSON.stringify(retrato)); } catch (e) {}
   }
 
   // 1c. Sair pelo menu. Em captura, para ficar na frente da saída de cada folha de movimento
@@ -105,9 +116,17 @@
       // do grupo (has-active), e é assim que a tela nova o desenha.
       if (!a.classList.contains('sidebar-group-toggle') && !a.classList.contains('active')) encher(a, e.clientX, e.clientY);
       else if (!a.classList.contains('sidebar-group-toggle')) a.setAttribute('aria-current', 'page');
+    } else if (a.closest('.sidebar')) {
+      guardarGrupos();
     }
     html.classList.add('inn-menu-saindo');
-    setTimeout(function () { location.href = u.href; }, 430);
+    // Pede a tela nova logo depois de pintar o primeiro quadro do enchimento e da dobra: o
+    // navegador segue animando a página atual enquanto o servidor responde.
+    // (Sem quadro, como numa aba em segundo plano, o relógio garante a ida.)
+    var foi = false;
+    function ir() { if (foi) return; foi = true; location.href = u.href; }
+    requestAnimationFrame(function () { requestAnimationFrame(ir); });
+    setTimeout(ir, 150);
   }, true);
 
   // Voltar pelo histórico (a página sai do cache do navegador como estava): desfaz a saída.
