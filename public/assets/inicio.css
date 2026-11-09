@@ -167,10 +167,25 @@ html[data-theme="light"] .ini-sala h1 .ini-nome{ background-image:linear-gradien
 /* Os dias não esticam mais até o fim do cartão (09/11/2026, "tem que ter revisão de designer":
    viravam colunas de 40x129 px, teclas de piano no escuro). Altura fixa; o cartão continua cheio
    porque o resumo do mês ocupa o que sobra embaixo. */
-.ini-cal-mes{ container-type:inline-size; }
-/* O dia acompanha a largura da coluna, um pouco mais alto que largo (1,15), entre 40 e 64 px. */
-.ini-cal-dias{ display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows:clamp(40px, calc((100cqw - 30px) / 7 * 1.15), 64px); gap:5px; flex:none; }
+.ini-cal-dias{ display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows:44px; gap:5px; flex:none; }
 .ini-cal-dias .ini-cal-dia{ min-height:0; }
+/* Sem espaço vazio (09/11/2026, "muito espaço vazio", "deixe mais alinhado"): o bloco do calendário
+   tem a altura do cartão, e as três partes crescem juntas com ela. Os dias, os atalhos e os números
+   do mês leem a altura do bloco (cqh) e vão de um mínimo a um teto; --cal-b é a altura do conteúdo
+   no mínimo, e --cal-folga reserva o lugar do período escolhido quando ele aparece. Só no
+   computador: no celular a agenda fica em coluna única, com a altura do conteúdo. */
+@media (min-width:1101px){
+  .ini-agenda-corpo > .ini-cal{ container-type:size; min-height:796px; --cal-b:700px; --cal-folga:0px; }
+  .ini-agenda-corpo > .ini-cal:has(.ini-periodo-escolhido:not([hidden])){ --cal-folga:66px; }
+  /* O dia cresce até 1,7 vez a própria largura (mais que isso vira coluna). */
+  .ini-cal-dias{ grid-auto-rows:clamp(44px, calc(44px + (100cqh - var(--cal-b) - var(--cal-folga)) * .09), max(44px, calc((100cqw - 30px) / 7 * 1.7))); }
+  /* Mês de seis semanas: a linha a mais sai da altura das outras. */
+  .ini-cal-dias:has(.ini-cal-dia:nth-child(36)){ grid-auto-rows:clamp(36px, calc(36px + (100cqh - var(--cal-b) - var(--cal-folga)) * .075), max(36px, calc((100cqw - 30px) / 7 * 1.4))); }
+  .ini-agenda-corpo > .ini-cal .ini-cal-atalhos{ margin-top:0; }
+  .ini-agenda-corpo > .ini-cal .ini-atalho{ height:clamp(38px, calc(38px + (100cqh - var(--cal-b) - var(--cal-folga)) * .035), 56px); }
+  .ini-cal-resumo-n{ min-height:clamp(58px, calc(58px + (100cqh - var(--cal-b) - var(--cal-folga)) * .19), 150px); }
+  .ini-cal-resumo-n b{ font-size:clamp(20px, calc(20px + (100cqh - var(--cal-b) - var(--cal-folga)) * .045), 32px); }
+}
 /* O bloco do calendário vai até o pé do cartão, alinhado com o fim da agenda ("tem que alinhar até
    o final"), e o resumo do mês fica preso embaixo; os dias não esticam. */
 .ini-agenda-corpo > .ini-cal{ align-self:stretch; justify-content:space-between; gap:14px; }
@@ -193,12 +208,14 @@ html[data-theme="light"] .ini-sala h1 .ini-nome{ background-image:linear-gradien
 .ini-cal-resumo:empty{ display:none; }
 .ini-cal-resumo-t{ font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ini-texto3); }
 .ini-cal-resumo-g{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:6px; }
-.ini-cal-resumo-n{ display:flex; align-items:baseline; gap:7px; padding:9px 11px; border-radius:var(--ini-r2); background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); min-width:0; }
-.ini-cal-resumo-n b{ font-size:18px; font-weight:800; letter-spacing:-.3px; color:var(--ini-texto); font-variant-numeric:tabular-nums; }
+.ini-cal-resumo-n{ display:flex; flex-direction:column; justify-content:center; gap:2px; padding:9px 13px; border-radius:var(--ini-r2); background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); min-width:0; }
+.ini-cal-resumo-n b{ font-size:20px; line-height:1.1; font-weight:800; letter-spacing:-.3px; color:var(--ini-texto); font-variant-numeric:tabular-nums; }
 .ini-cal-resumo-n span{ font-size:12px; font-weight:600; color:var(--ini-texto2); }
 .ini-cal-resumo-n.prazo b{ color:var(--ini-erro); }
+/* Zero não é alerta: fica apagado (o "0 prazos" saía em vermelho). */
+.ini-cal-resumo-n.zero b{ color:var(--ini-texto3); }
 .ini-cal-resumo-p{ font-size:12px; font-weight:600; color:var(--ini-texto3); }
-.ini-cal-atalhos + .ini-cal-resumo{ border-top:1px solid var(--ini-linha); }
+.ini-cal-atalhos + .ini-cal-resumo{ border-top:1px solid var(--ini-linha); }
 .ini-cal-atalhos{ display:grid; grid-template-columns:repeat(2,1fr); gap:5px; margin-top:10px; padding-top:10px; border-top:1px solid var(--ini-linha); }
 .ini-atalho{ height:38px; padding:0 8px; border-radius:var(--ini-r2); border:1px solid var(--ini-linha); background:var(--ini-fundo); box-shadow:var(--ini-fundo-sombra); color:var(--ini-texto2); font:600 12px Inter, system-ui, sans-serif; cursor:pointer; white-space:nowrap; transition:background .15s, color .15s; }
 .ini-atalho:hover{ color:var(--ini-texto); background:var(--ini-azul-suave); }

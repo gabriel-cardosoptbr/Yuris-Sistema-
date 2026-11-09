@@ -422,7 +422,7 @@ window.INI_CAL = <?= json_encode(['hoje' => $hoje, 'mes' => $mes, 'porDia' => $p
     var nomes = { prazo: ['prazo', 'prazos'], audiencia: ['audiência', 'audiências'], reuniao: ['reunião', 'reuniões'], tarefa: ['tarefa', 'tarefas'] };
     el.innerHTML = '<div class="ini-cal-resumo-t">Em ' + MESES[m] + (y !== +C.hoje.slice(0, 4) ? ' de ' + y : '') + '</div>'
       + '<div class="ini-cal-resumo-g">' + ['prazo', 'audiencia', 'reuniao', 'tarefa'].map(function (t) {
-        return '<div class="ini-cal-resumo-n ' + t + '"><b>' + conta[t] + '</b><span>' + nomes[t][conta[t] === 1 ? 0 : 1] + '</span></div>';
+        return '<div class="ini-cal-resumo-n ' + t + (conta[t] ? '' : ' zero') + '"><b>' + conta[t] + '</b><span>' + nomes[t][conta[t] === 1 ? 0 : 1] + '</span></div>';
       }).join('') + '</div>'
       + '<div class="ini-cal-resumo-p">' + (dias ? dias + (dias === 1 ? ' dia com compromisso' : ' dias com compromisso') : 'Nenhum compromisso no mês') + '</div>';
   }

@@ -194,7 +194,12 @@ seleção em pílula.
   **Revisão de designer da home (09/11/2026):** os dias do calendário viraram caixas de 50 px (eram
   colunas de 40x129 px esticadas até o fim do cartão, teclas de piano no escuro); o bloco do
   calendário vai até o pé do cartão ("tem que alinhar até o final") e reparte a altura entre três blocos, o mês
-  (`.ini-cal-mes`: navegação, dias da semana e grade), os atalhos e o mês em números, com `space-between`
+  (`.ini-cal-mes`: navegação, dias da semana e grade), os atalhos e o mês em números. Desde a noite de 09/11
+  ("muito espaço vazio", "deixe mais alinhado") o bloco é um contêiner de tamanho (`container-type:size`) e as
+  peças leem a altura dele em `cqh`: o dia vai de 44 px até 1,7 vez a largura, o atalho de 38 a 56 px e cada número
+  do mês de 58 a 150 px, todos pela mesma sobra (`100cqh - --cal-b`); mês de seis semanas usa linhas mais baixas
+  (`:has(.ini-cal-dia:nth-child(36))`), o período escolhido reserva 66 px (`--cal-folga`), zero fica apagado. Só
+  acima de 1100 px; no celular a altura é a do conteúdo. O que ainda sobrar se reparte com `space-between`
   ("harmônico, espalhado": antes sobrava um buraco só entre os atalhos e o resumo); o dia tem 1,15 vez a
   largura, entre 40 e 64 px (`cqw`); embaixo fica o mês em números (`#iniCalResumo`,
   `resumoDoMes` no script da home: prazos, audiências, reuniões, tarefas e dias com compromisso, refeito
