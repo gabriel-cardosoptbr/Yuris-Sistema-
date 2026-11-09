@@ -402,6 +402,11 @@ com uma borda só (09/11/2026, "identação tá ruim"): rótulo à esquerda (Par
 na mesma linha vertical, advogados um por linha, texto alinhado à esquerda sem hifenizar; o pé do texto longo
 recolhido some por máscara (`int-est-longo`), sem a camada de cor antiga. O hover dos botões só de ícone é o
 azul cheio com o ícone branco (`interface-nova-sistema.css`, acima do `#EFF6FF !important` da tela).
+**Revisão do sistema (09/11/2026):** o cabeçalho de cartão que a camada monta (ícone + título, `vestirCartaoDaTela`)
+tem 16 px até o conteúdo (zerava a margem do título e a lista encostava). Gráficos (`vestirGrafico`): barra de uma
+série só fica no azul do Yuris (só a cor que já era estado, vermelho, âmbar ou verde, fica), tooltip opaco, curva
+com no máximo `tension .25` e folga de 12% no topo do eixo. No Jurídico, os tipos de ação juntam grafias da mesma
+ação ("Trabalista" e "Trabalhista") e mostram o acento (`juridico_charts.js`).
 **Cartão de indicador nunca vira selo** (09/11/2026): o `interface-nova-sistema.js` lê como selo o que tem
 classe de estado no nome (`-danger`, `-warn`...). O `kpi-card kpi-danger` do Processos, que é ele mesmo o
 `[data-inn-kpi]`, às vezes virava faixa e perdia o fundo; agora caixa com blocos dentro (`ehCaixa`) nunca é

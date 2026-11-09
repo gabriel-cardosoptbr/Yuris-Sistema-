@@ -276,9 +276,17 @@
     const tCtx = safeCtx('typesBar', 300);
     if (tCtx) {
       const map = {};
+      // A mesma ação escrita de dois jeitos ("Trabalista" e "Trabalhista", "Previdenciario")
+      // virava duas barras (09/11/2026, revisão de designer): junta pela forma sem acento e
+      // mostra o nome com a grafia certa.
+      const CERTO = { trabalhista: 'Trabalhista', trabalista: 'Trabalhista', previdenciario: 'Previdenciário', civel: 'Cível',
+        civil: 'Civil', familia: 'Família', tributario: 'Tributário', consumidor: 'Consumidor', criminal: 'Criminal', empresarial: 'Empresarial' };
+      const chave = n => String(n).normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
       processes.forEach(p => {
-        const name = p.setor_nome || resolveActionName(p.tipo_acao);
-        if (name) map[name] = (map[name] || 0) + 1;
+        let name = p.setor_nome || resolveActionName(p.tipo_acao);
+        if (!name) return;
+        name = CERTO[chave(name)] || name;
+        map[name] = (map[name] || 0) + 1;
       });
       const sorted = Object.keys(map).sort((a, b) => map[b] - map[a]).slice(0, 8);
       if (sorted.length) {

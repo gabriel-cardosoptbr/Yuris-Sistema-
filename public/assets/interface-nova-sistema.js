@@ -1087,6 +1087,9 @@
     linha.appendChild(caixa); linha.appendChild(bloco);
     bloco.appendChild(t); if (temSub) bloco.appendChild(sub);
     emLinha(t, { 'margin': '0' }); if (temSub) emLinha(sub, { 'margin': '0' });
+    // A margem do título foi zerada ao entrar na linha: o respiro até o conteúdo passa a ser da
+    // linha (09/11/2026, "arrume o espaçamento": a lista do Jurídico encostava a 6 px do título).
+    if (linha.nextElementSibling) linha.style.marginBottom = '16px';
   }
   var telaTimer = null;
   function vestirTela() {
@@ -1321,19 +1324,27 @@
     ch.$innVestido = true;
     var data = ch.config.data || {};
     var mapa = { cores: {}, prox: 0 }, v0 = vars();
+    var umaSerie = (data.datasets || []).length === 1;
     (data.datasets || []).forEach(function (ds, k) {
       var tipo = ds.type || ch.config.type;
       var cheio = /^(bar|doughnut|pie|polarArea)$/.test(tipo);
       // A cor de base do conjunto: a de preenchimento em barra e fatia, a da linha em linha.
       var base = cheio ? 'backgroundColor' : 'borderColor';
-      if (ds[base] != null && (typeof ds[base] === 'string' || Array.isArray(ds[base]))) ds[base] = recolorPor(mapa, ds[base], cheio);
+      // Barra de uma série só com uma cor por barra (Carga por Advogado, Tipos de Ação): a cor não
+      // dizia nada, e virava arco-íris de azul e cinza (09/11/2026, revisão de designer). Fica o azul
+      // do Yuris; só a barra que já era estado (vermelho, âmbar, verde) guarda a cor dela.
+      if (tipo === 'bar' && umaSerie && Array.isArray(ds.backgroundColor)) {
+        ds.backgroundColor = ds.backgroundColor.map(function (c) { var x = rgb(c); var sm = x ? semantica(matiz(x[0], x[1], x[2])) : null; return sm || PALETA[0]; });
+        base = null; ds.$innUmaCor = true;
+      }
+      if (base && ds[base] != null && (typeof ds[base] === 'string' || Array.isArray(ds[base]))) ds[base] = recolorPor(mapa, ds[base], cheio);
       ['backgroundColor', 'borderColor', 'pointBackgroundColor', 'hoverBackgroundColor', 'hoverBorderColor', 'pointBorderColor'].forEach(function (p) {
-        if (p === base || ds[p] == null || !(typeof ds[p] === 'string' || Array.isArray(ds[p]))) return;
+        if (p === base || (p === 'backgroundColor' && ds.$innUmaCor) || ds[p] == null || !(typeof ds[p] === 'string' || Array.isArray(ds[p]))) return;
         ds[p] = recolorPor(mapa, ds[p], cheio && p !== 'borderColor');
       });
       if (tipo === 'bar') { ds.borderWidth = 0; if (ds.borderRadius == null || ds.borderRadius < 6) ds.borderRadius = 6; }
       if (/^(doughnut|pie|polarArea)$/.test(tipo)) { ds.borderColor = v0.painel; ds.borderWidth = 2; ds.hoverOffset = 4; }
-      if (tipo === 'line') { ds.borderWidth = 2.5; ds.pointRadius = ds.pointRadius === 0 ? 0 : 3; ds.pointHoverRadius = 5; }
+      if (tipo === 'line') { ds.borderWidth = 2.5; ds.pointRadius = ds.pointRadius === 0 ? 0 : 3; ds.pointHoverRadius = 5; if (ds.tension > .25) ds.tension = .25; }
     });
     ch.$innMapa = mapa;
     // As opções do Chart.js são proxies: nada de copiar objeto inteiro (recursão); só se
@@ -1341,7 +1352,9 @@
     var v = vars(), o = ch.options;
     try {
       var tt = o && o.plugins && o.plugins.tooltip;
-      if (tt) { tt.backgroundColor = v.painel; tt.titleColor = v.texto; tt.bodyColor = v.texto; tt.borderColor = v.linha2; tt.borderWidth = 1; tt.cornerRadius = 8; tt.padding = 10; tt.usePointStyle = true; }
+      // Tooltip opaco: o painel translúcido deixava a barra de trás aparecer através dele.
+      var pv = rgb(v.painel), solido = pv ? 'rgb(' + pv[0] + ',' + pv[1] + ',' + pv[2] + ')' : v.painel;
+      if (tt) { tt.backgroundColor = solido; tt.titleColor = v.texto; tt.bodyColor = v.texto; tt.borderColor = v.linha2; tt.borderWidth = 1; tt.cornerRadius = 8; tt.padding = 10; tt.usePointStyle = true; }
       var lg = o && o.plugins && o.plugins.legend && o.plugins.legend.labels;
       if (lg) { lg.color = v.texto3; lg.usePointStyle = true; }
       var esc = (o && o.scales) || {};
@@ -1350,6 +1363,8 @@
         if (s.grid && s.grid.display !== false) s.grid.color = v.linha;
         if (s.ticks) s.ticks.color = v.texto3;
         if (s.border) s.border.color = v.linha;
+        // Folga no topo do eixo de valores: a barra mais alta encostava no teto e a curva passava dele.
+        if ((k === 'y' || s.axis === 'y') && s.type !== 'category' && s.grace == null) { try { s.grace = '12%'; } catch (e2) {} }
       });
       if (!semMovimento && o && o.animation) {
         o.animation.duration = 900;
