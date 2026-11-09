@@ -101,7 +101,10 @@ try {
     // Só NÃO-LIDAS no sino (caixa de entrada de pendências): ao concluir/marcar
     // lida, o item sai e não reaparece no reload. Histórico fica no banco.
     $_notifItems = \App\Master\AccountNotification::listForUser($__nctx->getUserId(), $__nctx->getAccountId(), true);
-    foreach ($_notifItems as $__n) { if ((int)($__n['lida'] ?? 0) === 0) $_notifUnread++; }
+    // O número do sino é o mesmo que o notifications.js põe depois (?count=1: só os dirigidos não
+    // lidos). Antes contava a lista inteira, com a movimentação, e o número trocava em toda tela
+    // nova (50 e logo depois 2): parecia que o menu recarregava (09/11/2026).
+    $_notifUnread = \App\Master\AccountNotification::countNaoLidas($__nctx->getUserId(), $__nctx->getAccountId());
 } catch (\Throwable $__e) { $_notifItems = null; }
 
 // Produto da conta: 'yuris' (padrão) ou 'fleetiflow'. Reaproveita o contexto
@@ -657,7 +660,7 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
     </a>
     <?php endif; ?>
     <?php else: ?>
-    <a href="/dashboard" data-sb-recolher aria-label="Yuris" style="display:block"><img src="/sistema_vendas/Imagens/Logo.png" alt="Yuris" class="sb-logo-grande" style="max-width:100%;max-height:160px;object-fit:contain;display:block;margin:0 auto;"><img src="<?= $_interfaceNova ? '/assets/img/logo-144.png' : '/assets/favicon-192.png' ?>" alt="" class="sb-logo-mini"></a>
+    <a href="/dashboard" data-sb-recolher aria-label="Yuris" style="display:block"><img src="/assets/img/logo-menu-320.png" width="320" height="320" decoding="sync" alt="Yuris" class="sb-logo-grande" style="max-width:100%;max-height:160px;object-fit:contain;display:block;margin:0 auto;"><img src="<?= $_interfaceNova ? '/assets/img/logo-144.png' : '/assets/favicon-192.png' ?>" alt="" class="sb-logo-mini"></a>
     <?php endif; ?>
   </div>
 

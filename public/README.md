@@ -399,7 +399,11 @@ e o `sidebar.php` imprime `<i id="yuris-menu-pronto" hidden>` depois dos grupos 
 manda a página aos pedaços (`output_buffering` 0) e consulta o banco no meio; sem a linha, o primeiro quadro
 da tela nova saía sem o menu e a troca de tela piscava (medido com o `pagereveal`: menu ausente e sem view
 transition; com a linha, o menu inteiro e a transição). **Página nova com o menu leva a mesma linha no
-`<head>`**; o `interface_nova_test.php` reprova a que não tiver.
+`<head>`**; o `interface_nova_test.php` reprova a que não tiver. Gravando quadro a quadro (Chrome sem janela,
+`Page.startScreencast`), mais duas coisas mudavam no menu da tela nova e foram corrigidas: o número do sino
+(o servidor contava a lista inteira e o `notifications.js` só os dirigidos, então trocava de 50 para 2 em toda
+tela; agora o servidor usa `AccountNotification::countNaoLidas`, o mesmo da API) e o logo, um PNG de 750 KB
+que saía em branco no primeiro quadro (agora `assets/img/logo-menu-320.png`, 73 KB, com `decoding="sync"`).
 No embutido, `assets/chat.js` abre a conversa do `?jid=` mesmo quando ela está fora das 500 da
 lista (procura pelo número na própria API da lista e, sem achar, abre pelo jid); fora do embutido
 nada muda. O tamanho dos pop-ups das telas na prévia fica em `assets/interface-nova-popups.css`;

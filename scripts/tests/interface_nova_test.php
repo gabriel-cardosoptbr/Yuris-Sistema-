@@ -294,7 +294,11 @@ foreach ($paginasMenu as $f) {
     $head = strstr($t, '</head>', true);
     if ($head === false || !str_contains($head, '<link rel="expect" href="#yuris-menu-pronto" blocking="render">')) $semExpect[] = str_replace($raiz . '/', '', $f);
 }
-ok($semExpect === [], 'toda página com o menu segura a pintura até o fim dele (rel=expect no <head>)' . ($semExpect ? ': falta em ' . implode(', ', $semExpect) : ''));
+// O que ainda mudava no menu da tela nova (09/11/2026, gravado quadro a quadro): o número do sino
+// (o servidor contava a lista inteira, o JS só os dirigidos) e o logo de 750 KB, que saía em branco.
+ok(str_contains($sidebarMF, '$_notifUnread = \App\Master\AccountNotification::countNaoLidas('), 'o sino nasce com o mesmo número que o notifications.js põe depois');
+ok(str_contains($sidebarMF, 'src="/assets/img/logo-menu-320.png"') && !str_contains($sidebarMF, 'src="/sistema_vendas/Imagens/Logo.png"') && is_file($raiz . '/public/assets/img/logo-menu-320.png') && filesize($raiz . '/public/assets/img/logo-menu-320.png') < 150000, 'o logo do menu é o de 320 px, não o PNG de 750 KB');
+ok($semExpect === [],'toda página com o menu segura a pintura até o fim dele (rel=expect no <head>)' . ($semExpect ? ': falta em ' . implode(', ', $semExpect) : ''));
 ok(!preg_match('/^(?!.*(animation|transition|transform|opacity|keyframes|--mov|--cx|--cy|isolation|overflow|position|z-index|pointer-events|will-change|font-variant|border-radius|padding-top|width|left|top|background|display|content|border-color|transform-origin)).*:\s*#[0-9a-f]{3,6}/mi', $movCss), 'a folha do movimento não traz cor nova');
 $innCss = (string) @file_get_contents($raiz . '/public/assets/interface-nova-movimento.css');
 $innJs  = (string) @file_get_contents($raiz . '/public/assets/interface-nova-movimento.js');
