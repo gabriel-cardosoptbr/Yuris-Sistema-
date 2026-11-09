@@ -16,8 +16,13 @@
   'use strict';
   var html = document.documentElement;
   if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  if (html.classList.contains('yuris-embed')) return;
-  html.classList.add('inn-mov');
+  // No modo embutido (?embed=1, a tela aberta dentro da home ou da Central) a tela de trás fica
+  // parada, mas o pop-up que aparece ali ganha a entrada dele (09/11/2026, "tá faltando as
+  // animações": a ficha do processo aberta pela home surgia sem movimento). inn-mov-pop liga só
+  // a entrada dos pop-ups; inn-mov, o resto.
+  var embutido = html.classList.contains('yuris-embed') || /[?&]embed=1(&|$)/.test(location.search);
+  html.classList.add('inn-mov-pop');
+  if (!embutido) html.classList.add('inn-mov');
 
   // ── O que é item: o que entra um a um dentro do bloco dele ──────────────
   var SEL_ITEM = '.tk-col, .tk-card, .tk-list-row, .proc-col, .proc-card, .cli-card, .kpi-card, .chat-kpi, .chat-item, '
@@ -105,7 +110,7 @@
       });
     }).observe(main, { childList: true, subtree: true, characterData: true });
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ligar); else ligar();
+  if (!embutido) { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ligar); else ligar(); }
 
 
   // ── O pop-up entra como o da home ───────────────────────────────────────

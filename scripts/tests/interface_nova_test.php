@@ -311,7 +311,7 @@ ok(str_contains($sisJs, "if (ehCaixa(e)) return;") && str_contains($sisJs, "(e.c
 // ocupa o pé do calendário, e o prazo que é teor de publicação ganha um título curto.
 $iniCss = (string) file_get_contents($raiz . '/public/assets/inicio.css');
 $iniPhp = (string) file_get_contents($raiz . '/public/includes/dashboard_inicio.php');
-ok(str_contains($iniCss, 'grid-auto-rows:46px; gap:5px; flex:none;') && str_contains($iniCss, '.ini-agenda-corpo > .ini-cal{ align-self:start; }') && str_contains($iniPhp, 'id="iniCalResumo"') && str_contains($iniPhp, 'function resumoDoMes(mes)'), 'calendário: dias em caixas de 46 px, sem esticar, e o mês em números embaixo');
+ok(str_contains($iniCss, 'grid-auto-rows:50px; gap:5px; flex:none;') && str_contains($iniCss, '.ini-agenda-corpo > .ini-cal{ align-self:stretch; }') && str_contains($iniCss, '.ini-cal-resumo{ margin-top:auto;') && str_contains($iniPhp, 'id="iniCalResumo"') && str_contains($iniPhp, 'function resumoDoMes(mes)'), 'calendário: dias em caixas de 50 px, sem esticar, o bloco até o fim do cartão e o mês em números preso embaixo');
 ok(\App\Inicio\Painel::tituloCurto('Processo 1007778-20.2025.8.26.0554 - Procedimento Comum Cível - Indenização por Dano Material - Rafael de Oliveira Prado - - Vanessa Bucchi Baptista - Vistos. Fls. 671/676: Restando negativas') === 'Procedimento Comum Cível · Indenização por Dano Material'
    && \App\Inicio\Painel::tituloCurto('Processo 1000895-90.2026.5.02.0473 distribuído para 3ª Vara do Trabalho de São Caetano do Sul na data 22/05/2026 Para maiores informações, clique no link a seguir: https://pje.trt2.jus.br/x') === 'Distribuído para 3ª Vara do Trabalho de São Caetano do Sul na data 22/05/2026'
    && \App\Inicio\Painel::tituloCurto('Protocolar petição de instrução') === null, 'prazo com o teor da publicação no nome ganha título curto (o texto inteiro vai para o pop-up)');
@@ -319,13 +319,15 @@ ok(\App\Inicio\Painel::tipoDoItem(['titulo' => 'Procedimento Comum Cível', 'tex
 ok(str_contains($iniCss, '.idt-escolha .idt-mini{ display:inline-flex; align-items:center; justify-content:center;') && str_contains($iniCss, '.idt-escolha .idt-mini::after{'), '"Ler e tratar" com o texto no meio da pílula e a seta');
 $sisCss = (string) file_get_contents($raiz . '/public/assets/interface-nova-sistema.css');
 ok(str_contains($sisCss, 'html:root body .inn-ic-btn.inn-ic-btn:hover:not(:disabled){ background:linear-gradient('), 'botão só de ícone: no hover o fundo é o azul cheio, acima da folha da tela (o ícone branco sumia no azul-clarinho)');
+$movJs2 = (string) file_get_contents($raiz . '/public/assets/interface-nova-movimento.js'); $movCss2 = (string) file_get_contents($raiz . '/public/assets/interface-nova-movimento.css');
+ok(str_contains($movJs2, "html.classList.add('inn-mov-pop');") && str_contains($movJs2, "if (!embutido) html.classList.add('inn-mov');") && str_contains($movCss2, 'html:is(.inn-mov, .inn-mov-pop) #modalProcess:not(.hidden) .proc-modal,') && str_contains($movCss2, 'html:is(.inn-mov, .inn-mov-pop) .inn-pop-surge{'), 'no modo embutido (pop-up da home e da Central) o pop-up ainda entra com a animação');
 ok($semExpect === [],'toda página com o menu segura a pintura até o fim dele (rel=expect no <head>)' . ($semExpect ? ': falta em ' . implode(', ', $semExpect) : ''));
 ok(!preg_match('/^(?!.*(animation|transition|transform|opacity|keyframes|--mov|--cx|--cy|isolation|overflow|position|z-index|pointer-events|will-change|font-variant|border-radius|padding-top|width|left|top|background|display|content|border-color|transform-origin)).*:\s*#[0-9a-f]{3,6}/mi', $movCss), 'a folha do movimento não traz cor nova');
 $innCss = (string) @file_get_contents($raiz . '/public/assets/interface-nova-movimento.css');
 $innJs  = (string) @file_get_contents($raiz . '/public/assets/interface-nova-movimento.js');
 ok($innCss !== '' && $innJs !== '' && str_contains($sidebar, '/assets/interface-nova-movimento.css') && str_contains($sidebar, '/assets/interface-nova-movimento.js'), 'as telas de dentro carregam o movimento delas');
 ok(str_contains($innCss, '@keyframes inn-surge{') && str_contains($innCss, '#modalProcess:not(.hidden) .proc-modal') && str_contains($innCss, '.modal-shell.open .modal-panel') && str_contains($innCss, '.tk-modal-overlay.open .tk-modal'), 'os pop-ups das telas surgem');
-ok(str_contains($innJs, "if (html.classList.contains('yuris-embed')) return;"), 'o movimento das telas não roda no modo embutido');
+ok(str_contains($innJs, "var embutido = html.classList.contains('yuris-embed')") && str_contains($innJs, "if (!embutido) { if (document.readyState === 'loading')"), 'no modo embutido a tela de trás não anima (só o pop-up entra)');
 // 08/11/2026: "quero esse simples bonito nas páginas também": a tela entra por partes.
 foreach (['inn-titulo', 'inn-cresce', 'inn-item'] as $k) ok(str_contains($innCss, '@keyframes ' . $k . '{'), "telas: existe a animação $k");
 ok(str_contains($innCss, '.main-content > :nth-child(2){ animation-delay:70ms; }') && !str_contains($innCss, '.main-content, html.inn-mov'), 'os blocos da tela sobem um a um por CSS, sem depender do script');

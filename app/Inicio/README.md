@@ -184,9 +184,13 @@ seleção em pílula.
   guardada ao sair (`yuris_menu_rolagem`, no `pagehide`) e devolvida num script inline logo
   depois do `</aside>`, antes da primeira pintura (na prévia o menu não rola, mas vale onde
   rolar).
-  **Revisão de designer da home (09/11/2026):** os dias do calendário viraram caixas de 46 px (eram
+  **Animação no pop-up embutido (09/11/2026, "tá faltando as animações"):** no modo embutido (`?embed=1`, a
+  tela aberta dentro da home ou da Central) o `interface-nova-movimento.js` não ligava nada, e a ficha do
+  processo surgia parada. Agora liga `inn-mov-pop` (só a entrada dos pop-ups: o painel surge, as linhas
+  entram) e deixa `inn-mov` (a tela de trás) para fora do modo embutido.
+  **Revisão de designer da home (09/11/2026):** os dias do calendário viraram caixas de 50 px (eram
   colunas de 40x129 px esticadas até o fim do cartão, teclas de piano no escuro); o bloco do
-  calendário tem a altura do conteúdo, e abaixo dos atalhos fica o mês em números (`#iniCalResumo`,
+  calendário vai até o pé do cartão ("tem que alinhar até o final"), e preso embaixo fica o mês em números (`#iniCalResumo`,
   `resumoDoMes` no script da home: prazos, audiências, reuniões, tarefas e dias com compromisso, refeito
   ao trocar de mês); o título dos compromissos que era teor de publicação ficou curto (`Painel::tituloCurto`);
   "Sair da prévia" virou botão (`ini-btn`), como os vizinhos. Na lista "Escolha uma para ler e tratar"
