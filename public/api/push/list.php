@@ -148,6 +148,9 @@ try {
     foreach ($combined as &$it) {
         $it['advogados'] = listPhpExtractAdvogados($it);
         $it['partes']    = listPhpExtractPartes($it);
+        // A publicação em tópicos (cabeçalho, partes, advogados, teor em parágrafos), a mesma
+        // regra da home: a tela Publicações desenha isto em vez do texto corrido.
+        $it['estrutura'] = \App\Processos\PublicacaoEstrutura::doItem($it);
         unset($it['payload_original']);  // LGPD: não envia raw
     }
     unset($it);

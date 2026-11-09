@@ -1,6 +1,6 @@
 # public/api/ — os endpoints REST
 
-140 endpoints. `push/persist.php` ganhou a ação `tratar`, e `push/list.php` o filtro `tratamento`. Cada arquivo `.php` é um endpoint, e o caminho do arquivo é a
+140 endpoints. `push/persist.php` ganhou a ação `tratar`, e `push/list.php` o filtro `tratamento`. Desde 09/11/2026, `push/list.php`, `push/search.php` e `aasp/search.php` mandam em cada item a `estrutura` da publicação em tópicos (`App\Processos\PublicacaoEstrutura::doItem`), calculada antes de o payload ser apagado. Cada arquivo `.php` é um endpoint, e o caminho do arquivo é a
 URL: `public/api/whatsapp/send.php` responde em `/api/whatsapp/send.php`.
 
 **Mover um arquivo daqui muda a URL de uma chamada que o front já faz.** Vale a

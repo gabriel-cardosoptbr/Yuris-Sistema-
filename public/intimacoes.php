@@ -488,6 +488,45 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
       word-break: break-word;
     }
 
+    /* ── A publicação em tópicos (09/11/2026, intimacoes.js _renderEstrutura) ──
+       Cabeçalho em rótulo e valor, partes por polo, advogados um por linha com a OAB,
+       cada seção do teor em parágrafos e a assinatura à parte. As cores saem do texto
+       do cartão (currentColor e transparências), então servem ao tema claro, ao escuro
+       e à interface nova. */
+    .int-est-cab { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 2px 0 6px; font-size: .76rem; line-height: 1.4; opacity: .92; }
+    .int-est-cab span { display: inline-flex; gap: 6px; align-items: baseline; min-width: 0; overflow-wrap: anywhere; }
+    .int-est-cab b { font-size: .64rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; opacity: .65; }
+    .int-est-timbre { font-size: .72rem; line-height: 1.45; opacity: .7; margin: 0 0 6px; overflow-wrap: anywhere; }
+    .int-est-sec { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 4px 12px; align-items: start; margin-top: 6px;
+      padding: 7px 10px; border-radius: 8px; background: rgba(127,142,163,.08); font-size: .76rem; line-height: 1.45; }
+    .int-est-rot { font-size: .64rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; opacity: .65; padding-top: 2px; }
+    .int-est-lista { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .int-est-grupo { display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: baseline; min-width: 0; }
+    .int-est-polo { font-weight: 700; font-size: .7rem; opacity: .75; }
+    .int-est-nomes { display: flex; flex-wrap: wrap; gap: 2px 0; min-width: 0; }
+    .int-est-nome { overflow-wrap: anywhere; }
+    .int-est-nome + .int-est-nome::before { content: "·"; margin: 0 7px; opacity: .45; }
+    .int-est-advs { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 3px 16px; min-width: 0; }
+    .int-est-adv { display: flex; gap: 8px; align-items: baseline; min-width: 0; }
+    .int-est-adv > span { overflow-wrap: anywhere; }
+    .int-est-adv b { flex: none; font-size: .7rem; font-weight: 700; opacity: .7; white-space: nowrap; }
+    .int-est-adv.minha, .int-est-adv.minha b { color: #10B981; opacity: 1; font-weight: 700; }
+    .int-est-adv i { font-style: normal; color: #10B981; font-weight: 700; }
+    .int-pub-text.int-est-teor { white-space: normal; margin-top: 8px; }
+    .int-est-bloco + .int-est-bloco { margin-top: 10px; }
+    .int-est-secao { font-size: .66rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: #3D65CB; margin-bottom: 3px; }
+    html:not([data-theme="light"]) .int-est-secao { color: #93C5FD; }
+    .int-est-bloco p { margin: 0 0 6px; text-align: justify; hyphens: auto; }
+    .int-est-bloco p:last-child { margin-bottom: 0; }
+    .int-est-assin { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; margin-top: 6px; font-size: .76rem; text-align: right; }
+    .int-est-assin span { opacity: .75; }
+    .int-est-link { font-size: .76rem; font-weight: 600; color: #3D65CB; text-decoration: none; }
+    .int-est-link:hover { text-decoration: underline; }
+    @media (max-width: 640px) {
+      .int-est-sec { grid-template-columns: minmax(0, 1fr); }
+      .int-est-advs { grid-template-columns: minmax(0, 1fr); }
+    }
+
     /* ── Linhas "Parte(s):" e "Adv:" no card de publicação ── */
     .int-pub-partes, .int-pub-advs {
       font-size: .74rem; color: #7A8898; margin-top: 4px; line-height: 1.45;

@@ -393,6 +393,15 @@ menu, o item enche a partir do clique, os blocos da tela dobram e somem, e a pá
 transition entre documentos em que o menu fica parado (`view-transition-name:inn-menu`) e a tela nova
 entra ao vivo (`inn-tela`). Carregado em toda tela da interface nova, fora do `?embed=1`; o menu devolve a
 rolagem guardada num script inline logo depois do `</aside>`. Ver `app/Inicio/README.md`.
+**Publicações em tópicos** (09/11/2026): o cartão da tela Publicações (`assets/intimacoes.js`,
+`_renderEstrutura`) desenha a `estrutura` que a API manda (`App\Processos\PublicacaoEstrutura`): cabeçalho
+em rótulo e valor, partes por polo, advogados um por linha com a OAB (a monitorada em verde), cada seção do
+teor com parágrafos e a assinatura à direita, intimados e o link da certidão. O desenho (`.int-est-*`) mora
+no `<style>` de `intimacoes.php`, com cores relativas ao texto, e serve aos dois temas e à prévia.
+**Cartão de indicador nunca vira selo** (09/11/2026): o `interface-nova-sistema.js` lê como selo o que tem
+classe de estado no nome (`-danger`, `-warn`...). O `kpi-card kpi-danger` do Processos, que é ele mesmo o
+`[data-inn-kpi]`, às vezes virava faixa e perdia o fundo; agora caixa com blocos dentro (`ehCaixa`) nunca é
+selo nem faixa.
 **A tela só pinta com o menu inteiro** (09/11/2026, vale para todos): toda página que inclui
 `includes/sidebar.php` tem no `<head>` a linha `<link rel="expect" href="#yuris-menu-pronto" blocking="render">`,
 e o `sidebar.php` imprime `<i id="yuris-menu-pronto" hidden>` depois dos grupos reabertos. Em produção o PHP

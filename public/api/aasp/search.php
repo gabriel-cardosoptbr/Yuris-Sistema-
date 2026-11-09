@@ -286,6 +286,8 @@ try {
 
         // Strip payload_original do response (LGPD)
         $publicItems = array_map(static function ($it) {
+            // A publicação em tópicos, como na lista salva (App\Processos\PublicacaoEstrutura).
+            $it['estrutura'] = \App\Processos\PublicacaoEstrutura::doItem($it);
             unset($it['payload_original']);
             return $it;
         }, $allItems);

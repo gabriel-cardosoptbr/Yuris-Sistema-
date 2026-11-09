@@ -77,6 +77,13 @@ AASP mandam o teor numa linha só. `PublicacaoEstrutura::estruturar($texto, $pay
   "Vistos" e itens numerados abrem linha) e a assinatura à parte: local e data, nome, cargo;
 - **intimados** (o "Intimado(s) / Citado(s)" do fim) e **link** (só https, do payload).
 
+**Em todas as telas desde 09/11/2026** ("arrume a identação de todas na plataforma"): além do pop-up da
+home, a tela Publicações desenha cada cartão em tópicos. `PublicacaoEstrutura::doItem($it)` (conteúdo, ou o
+resumo, e o payload) vai em `estrutura` nas três fontes da lista: `api/push/list.php`, `api/push/search.php`
+e `api/aasp/search.php`, sempre antes de o payload ser apagado. Sem nenhum parágrafo, a tela usa o texto
+corrido de antes. "Juiz de Direito: Fulano" abrindo o teor (o TJSP escreve assim depois das partes) vai
+para o cabeçalho como **Juiz**.
+
 Desde 08/11/2026 ("a indentação está horrível ainda", sobre um cumprimento de sentença do TJSP):
 o formato do TJSP aceita `(processo principal N)` depois do número, que vira o campo "Processo
 principal"; o " - - " entre as partes (campo vazio) some; "Nota de cartório:" e outros rótulos em

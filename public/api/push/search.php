@@ -225,6 +225,8 @@ try {
 
     // Resposta — payload_original NÃO vai pro frontend (LGPD: menos PII no wire)
     $publicItems = array_map(static function ($it) use ($jaTratadas) {
+        // A publicação em tópicos, como na lista salva (App\Processos\PublicacaoEstrutura).
+        $it['estrutura'] = \App\Processos\PublicacaoEstrutura::doItem($it);
         unset($it['payload_original']);
         $t = $jaTratadas[$it['hash_conteudo'] ?? ''] ?? null;
         if ($t) {

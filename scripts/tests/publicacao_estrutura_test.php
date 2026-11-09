@@ -116,5 +116,21 @@ confere('rótulo bonito', PE::rotuloBonito('PROCEDIMENTO COMUM CÍVEL') === 'Pro
 $listPhp = file_get_contents(__DIR__ . '/../../public/api/push/list.php');
 confere('list.php delega à classe', str_contains($listPhp, "PublicacaoEstrutura::advogadosDoPayload") && str_contains($listPhp, "PublicacaoEstrutura::partesDoPayload"));
 
+// A tela Publicações em tópicos (09/11/2026, "arrume a identação de todas na plataforma").
+$tjsp = 'Processo 0002455-90.2021.8.26.0554 (processo principal 1028039-50.2018.8.26.0554) - Cumprimento de sentença - Alimentos - E.C.C.P. - - S.G.F.F.P. - G.F.P.F. - Juiz de Direito: Dr Rodrigo Augusto de Oliveira' . "\n\n" . 'Vistos. Fls. 1122/1123: providencie a Serventia o necessário. Int. Santo André, 06 de novembro de 2026. - ADV: EKETI DA COSTA TASCA (OAB 265288/SP), BRUNO CARREIRA FERREIRA (OAB 357838/SP)';
+$e = PE::doItem(['conteudo' => $tjsp]);
+$juiz = array_values(array_filter($e['cabecalho'], fn ($c) => $c['rotulo'] === 'Juiz'));
+confere('TJSP: "Juiz de Direito:" vai para o cabeçalho, não fica no teor', ($juiz[0]['valor'] ?? '') === 'Dr Rodrigo Augusto de Oliveira' && !str_contains(json_encode($e['blocos'], JSON_UNESCAPED_UNICODE), 'Juiz de Direito'));
+confere('TJSP: o teor sai em parágrafos e a assinatura à parte', count($e['blocos'][0]['paragrafos'] ?? []) >= 2 && ($e['blocos'][0]['assinatura']['local'] ?? '') === 'Santo André, 06 de novembro de 2026');
+confere('TJSP: advogados um a um, com a OAB', count($e['advogados']) === 2 && $e['advogados'][1]['oab'] === '357838');
+confere('doItem usa o resumo quando não há conteúdo', PE::doItem(['conteudo' => '', 'resumo' => 'Vistos. Intime-se.'])['blocos'] !== []);
+foreach (['public/api/push/list.php', 'public/api/push/search.php', 'public/api/aasp/search.php'] as $f) {
+    $src = (string) file_get_contents(__DIR__ . '/../../' . $f);
+    $pE = strpos($src, "PublicacaoEstrutura::doItem(\$it)"); $pU = strpos($src, "unset(\$it['payload_original'])");
+    confere("$f manda a estrutura (antes de apagar o payload)", $pE !== false && $pU !== false && $pE < $pU);
+}
+$intJs = (string) file_get_contents(__DIR__ . '/../../public/assets/intimacoes.js');
+confere('a tela Publicações desenha a estrutura, e cai no texto quando não há', str_contains($intJs, '_renderEstrutura(it, procMask) {') && str_contains($intJs, 'const est   = this._renderEstrutura(it, procMask);') && str_contains($intJs, ': `<div class="int-pub-text" data-text-len='));
+
 echo "publicacao_estrutura: $ok ok / $falhas falhas\n";
 exit($falhas ? 1 : 0);

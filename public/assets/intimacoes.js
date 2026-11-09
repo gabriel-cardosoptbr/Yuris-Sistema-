@@ -1020,6 +1020,45 @@
       return `<div class="int-pub-advs"><strong>Adv:</strong> ${parts.join(', ')}${more}</div>`;
     },
 
+    /**
+     * A publicação em tópicos (09/11/2026, "arrume a identação de todas"): a mesma separação
+     * da home (App\Processos\PublicacaoEstrutura, que a API manda em it.estrutura). Cabeçalho
+     * em rótulo e valor, partes por polo, advogados um por linha com a OAB (a da conta em
+     * verde), cada seção do teor com os parágrafos e a assinatura à parte, e os intimados.
+     * Sem estrutura que preste (nenhum parágrafo), devolve null e o cartão usa o texto corrido.
+     */
+    _renderEstrutura(it, procMask) {
+      const e = it.estrutura;
+      if (!e || !Array.isArray(e.blocos) || !e.blocos.some(b => (b.paragrafos || []).length || b.assinatura)) return null;
+      const esc = (s) => this._esc(s);
+      const soDig = (s) => String(s || '').replace(/\D/g, '');
+      const cab = (e.cabecalho || []).filter(c => !(c.rotulo === 'Processo' && soDig(c.valor) === soDig(procMask)));
+      const topo = cab.length || e.preambulo
+        ? `<div class="int-est-cab">${cab.map(c => `<span><b>${esc(c.rotulo)}</b>${esc(c.valor)}</span>`).join('')}</div>`
+          + (e.preambulo ? `<div class="int-est-timbre">${esc(e.preambulo)}</div>` : '')
+        : '';
+      const partes = (e.partes || []).length
+        ? `<div class="int-est-sec"><div class="int-est-rot">Partes</div><div class="int-est-lista">${e.partes.map(g =>
+            `<div class="int-est-grupo">${g.rotulo && g.rotulo !== 'Partes' ? `<span class="int-est-polo">${esc(g.rotulo)}</span>` : ''}<span class="int-est-nomes">${(g.nomes || []).map(n => `<span class="int-est-nome">${esc(n)}</span>`).join('')}</span></div>`).join('')}</div></div>`
+        : this._renderPartesLine(it.partes);
+      const advs = (e.advogados || []).length
+        ? `<div class="int-est-sec"><div class="int-est-rot">Advogados</div><div class="int-est-advs">${e.advogados.map(a => {
+            const minha = this._oabMonitorada(a.oab, a.uf);
+            return `<span class="int-est-adv${minha ? ' minha' : ''}"><span>${esc(a.nome || '?')}</span>${a.oab ? `<b>OAB ${esc(a.oab)}${a.uf ? '/' + esc(String(a.uf).toUpperCase()) : ''}</b>` : ''}${minha ? '<i aria-label="OAB monitorada">✓</i>' : ''}</span>`;
+          }).join('')}</div></div>`
+        : this._renderAdvogadosLine(it.advogados);
+      const teor = e.blocos.map(b => {
+        const a = b.assinatura;
+        return `<div class="int-est-bloco">${b.titulo ? `<div class="int-est-secao">${esc(b.titulo)}</div>` : ''}`
+          + (b.paragrafos || []).map(p => `<p>${this._realcar(esc(p))}</p>`).join('')
+          + (a ? `<div class="int-est-assin">${a.local ? `<span>${esc(a.local)}</span>` : ''}${a.nome ? `<b>${esc(a.nome)}</b>` : ''}${a.cargo ? `<span>${esc(a.cargo)}</span>` : ''}</div>` : '')
+          + '</div>';
+      }).join('')
+        + ((e.intimados || []).length ? `<div class="int-est-bloco"><div class="int-est-secao">Intimados</div><p>${e.intimados.map(n => esc(n)).join('; ')}</p></div>` : '')
+        + (e.link ? `<div class="int-est-bloco"><a class="int-est-link" href="${esc(e.link)}" target="_blank" rel="noopener noreferrer">Ver a certidão no tribunal</a></div>` : '');
+      return { topo, partes, advs, teor };
+    },
+
     renderCard(it) {
       const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
         ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
@@ -1032,6 +1071,7 @@
       const texto = this.cleanText(it.conteudo || it.resumo || it.texto || '');
       const orgao = it.orgao || 'Órgão não identificado';
       const tipo  = it.tipo_comunicacao || 'Comunicação';
+      const est   = this._renderEstrutura(it, procMask);
       const hasComment = !!(it.comentario && it.comentario.trim());
       const hasPrazo   = !!it.com_prazo;
       const hasLink    = !!it.processo_id;
@@ -1060,9 +1100,12 @@
               ${it._from_search ? '<span style="color:#fbbf24;">resultado não persistido</span>' : ''}
             </div>
             <div class="int-pub-orgao">${esc(orgao)}</div>
-            ${this._renderPartesLine(it.partes)}
-            ${this._renderAdvogadosLine(it.advogados)}
-            <div class="int-pub-text" data-text-len="${texto.length}">${this._realcar(esc(this._formatLegal(texto)))}${texto.length > 400 ? '<div class="int-pub-text-fade"></div>' : ''}</div>
+            ${est ? est.topo : ''}
+            ${est ? est.partes : this._renderPartesLine(it.partes)}
+            ${est ? est.advs : this._renderAdvogadosLine(it.advogados)}
+            ${est
+              ? `<div class="int-pub-text int-est-teor" data-text-len="${texto.length}">${est.teor}${texto.length > 400 ? '<div class="int-pub-text-fade"></div>' : ''}</div>`
+              : `<div class="int-pub-text" data-text-len="${texto.length}">${this._realcar(esc(this._formatLegal(texto)))}${texto.length > 400 ? '<div class="int-pub-text-fade"></div>' : ''}</div>`}
             ${texto.length > 400
               ? `<button class="int-pub-text-toggle" data-action="toggle-text" data-hash="${esc(it.hash_conteudo)}">Ver tudo (${texto.length.toLocaleString('pt-BR')} caracteres)</button>`
               : ''}

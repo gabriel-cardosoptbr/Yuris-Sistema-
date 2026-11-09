@@ -113,7 +113,33 @@ final class PublicacaoEstrutura
 
         // 6. O teor em seções, parágrafos e assinatura.
         $saida['blocos'] = self::blocos($t);
+
+        // 7. "Juiz de Direito: Dr. Fulano" abrindo o teor (o TJSP escreve assim logo depois das
+        //    partes) é cabeçalho, não parágrafo.
+        $p0 = $saida['blocos'][0]['paragrafos'][0] ?? '';
+        if (preg_match('/^Ju[ií]z(?:a|\(a\))? de Direito\s*:\s*(.{3,120})$/u', $p0, $mj) && !self::temRotulo($saida['cabecalho'], ['Juiz'])) {
+            $saida['cabecalho'][] = ['rotulo' => 'Juiz', 'valor' => trim($mj[1], " .")];
+            array_shift($saida['blocos'][0]['paragrafos']);
+            if (!$saida['blocos'][0]['paragrafos'] && empty($saida['blocos'][0]['assinatura']) && ($saida['blocos'][0]['titulo'] ?? '') === '') array_shift($saida['blocos']);
+        }
         return $saida;
+    }
+
+    /**
+     * A estrutura de um item da lista de publicações (09/11/2026): api/push/list.php,
+     * api/push/search.php e api/aasp/search.php mandam isto junto, e a tela Publicações
+     * desenha em tópicos em vez do texto corrido. O texto é o conteúdo, ou o resumo; o
+     * payload, o original do DJEN ou da AASP. Falhou, volta vazio e a tela usa o texto.
+     */
+    public static function doItem(array $it): array
+    {
+        $texto = (string) ($it['conteudo'] ?? '');
+        if (trim($texto) === '') $texto = (string) ($it['resumo'] ?? ($it['texto'] ?? ''));
+        try {
+            return self::estruturar($texto, $it['payload_original'] ?? null);
+        } catch (\Throwable $e) {
+            return [];
+        }
     }
 
     // ── Advogados e partes (também usados pelo Diário) ──────────────────────

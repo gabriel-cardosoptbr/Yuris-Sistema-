@@ -255,12 +255,18 @@
       var lista = Array.from(trocados); trocados.clear();
       lista.forEach(function (e) {
         if (!e.isConnected) return;
-        if (estaEsticado(e) || e.closest('[data-inn-kpi]')) { e.removeAttribute('data-inn-selo'); var tom = tomDoSelo(e).replace('inn-selo-', ''); e.dataset.innFaixa = tom; e.classList.add('inn-faixa', 'inn-faixa-' + tom); e.style.removeProperty('color'); }
+        // Caixa com blocos dentro não é selo nem faixa, mesmo com classe de estado no nome: o
+        // cartão do indicador "kpi-card kpi-danger" do Processos virava faixa (sem fundo e com o
+        // texto forte), porque ele mesmo é o [data-inn-kpi] (09/11/2026, "às vezes as coisas
+        // somem, desalinha"). Dependia da ordem: só quando a marca do indicador chegava antes.
+        if (ehCaixa(e)) return;
+        if (estaEsticado(e) || (e.closest('[data-inn-kpi]') && !e.hasAttribute('data-inn-kpi'))) { e.removeAttribute('data-inn-selo'); var tom = tomDoSelo(e).replace('inn-selo-', ''); e.dataset.innFaixa = tom; e.classList.add('inn-faixa', 'inn-faixa-' + tom); e.style.removeProperty('color'); }
         else if (ehSelo(e)) vestirSelo(e);
         var k = e.closest('[data-inn-kpi]'); if (k) corDoIcone(k);
       });
     }, 60);
   }
+  function ehCaixa(el) { return !!el.querySelector('div, p, ul, table, input, button'); }
   function promoverFaixas(raiz) {
     // Também o selo que nunca foi marcado (montado antes de esticar, como o "Saudável" da margem).
     [].forEach.call((raiz || document).querySelectorAll('[class*="badge"], [class*="tag"], [class*="selo"], [class*="status"], [class*="pill"], [class*="chip"]'), function (el) {
@@ -1424,7 +1430,7 @@
           // classe própria de selo; agrupado num único passe (tabela grande travava a página).
           if (m.attributeName === 'class' && alvo.nodeType === 1 && alvo.dataset && alvo.dataset.innSelo == null && alvo.dataset.innFaixa == null) {
             var proprias = baseSelo(alvo);
-            if (proprias !== (alvo.dataset.innSeloVisto || '') && proprias.split(/\s+/).some(function (c) { return RE_SELO.test(c); })) {
+            if (proprias !== (alvo.dataset.innSeloVisto || '') && proprias.split(/\s+/).some(function (c) { return RE_SELO.test(c); }) && !ehCaixa(alvo)) {
               alvo.dataset.innSeloVisto = proprias; seloTrocado(alvo);
             }
           }
