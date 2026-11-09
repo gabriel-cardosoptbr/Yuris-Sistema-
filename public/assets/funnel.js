@@ -15,7 +15,7 @@ function fmtNum(v) {
 }
 
 function fmtPct(v) {
-  return (n(v) * 100).toFixed(1) + '%';
+  return (n(v) * 100).toFixed(1).replace('.', ',') + '%'; // vírgula decimal, como o resto da tela (09/11/2026)
 }
 
 function parseMoneyBR(value) {

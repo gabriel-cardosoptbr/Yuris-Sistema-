@@ -97,3 +97,8 @@ html.inn-mov button:not(:disabled):active:not(.tk-tab):not(.tab-btn), html.inn-m
   html.inn-mov .inn-arq[data-estado="ok"] .inn-arq-risco{ stroke-dasharray:24; animation:inn-arq-risco .45s .12s var(--mov-saida) both; }
   html.inn-mov .inn-arq[data-estado="ok"] .inn-arq-txt, html.inn-mov .inn-arq[data-estado="erro"] .inn-arq-txt, html.inn-mov .inn-arq[data-estado="escolhido"] .inn-arq-txt{ animation:inn-pop-entra .35s var(--mov-saida) both; }
 }
+
+/* A contagem dos números (interface-nova-movimento.js, contar): o desenho por cima, o texto real
+   transparente embaixo dando a largura. A tela que relê o número recebe sempre o valor certo. */
+html.inn-mov .inn-contando{ position:relative; color:transparent !important; -webkit-text-fill-color:transparent; }
+html.inn-mov .inn-contando::before{ content:attr(data-inn-conta); position:absolute; inset:0; color:var(--inn-conta-cor); -webkit-text-fill-color:var(--inn-conta-cor); text-align:inherit; white-space:nowrap; pointer-events:none; }

@@ -432,6 +432,15 @@ os acentos (só texto visível; `id`, classes e valores intactos); os subtítulo
 Planejamento, Indicadores, Finanças, Configurações e Privacidade perderam o travessão (o `<title>` da aba ficou);
 Escritórios mostra "Ativo", "Básico", "Matriz" em vez do valor do banco (`rotuloValor`, a classe da etiqueta segue
 o valor). Na prévia, o texto de exemplo dos campos é cinza nos dois temas.
+Revisão do sistema, terceira leva (09/11/2026): a contagem animada dos números é desenhada por cima
+(`data-inn-conta` + `::before` em `interface-nova-movimento.css`) e o texto real do número nunca muda (o resumo de
+Configurações relia o indicador e escrevia "0 usuários"); Jurídico usa um número só para "sem movimentação" no
+indicador e no resumo (`juridico.js`); Finanças: "No período consolidado" sem repetir (`dre.js`), total de impostos
+com "R$", sigla de imposto em maiúsculas, e o 7º indicador ocupa duas colunas para fechar a linha; Planejamento com
+vírgula decimal no funil (`funnel.js`, carregado agora pela data do arquivo); Tarefas: número do processo sem quebrar
+no hífen (`tarefas-central.js`); Relatórios: a tabela com rolagem esmaece na borda (`.tabela-rolagem` em
+`marcarQuadros`); Chat interno com 16 px entre as colunas; `code` e `kbd` entram na leitura de cores (os códigos ADV-
+de Usuários ficavam azul-marinho no escuro).
 **Cartão de indicador nunca vira selo** (09/11/2026): o `interface-nova-sistema.js` lê como selo o que tem
 classe de estado no nome (`-danger`, `-warn`...). O `kpi-card kpi-danger` do Processos, que é ele mesmo o
 `[data-inn-kpi]`, às vezes virava faixa e perdia o fundo; agora caixa com blocos dentro (`ehCaixa`) nunca é

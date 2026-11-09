@@ -63,23 +63,25 @@
   }
   // Os números contam de zero: todo elemento folha que é só um número inteiro.
   // O número zera no mesmo instante em que chega (09/11/2026: antes ele aparecia pronto, sumia
-  // para zero 160 ms depois e subia, "quando abre a aba dá problema"). Se a tela trocar o
-  // valor no meio da contagem, ela para e o valor da tela fica.
+  // para zero 160 ms depois e subia, "quando abre a aba dá problema").
+  // A contagem é desenhada por cima (data-inn-conta e ::before), e o texto de verdade do número nunca
+  // muda: tela que relê o indicador (o resumo de Configurações lia "0 usuários" no meio da contagem,
+  // 09/11/2026) recebe sempre o valor certo. O texto real fica transparente enquanto conta, e é ele que
+  // dá a largura, então nada pula. Se a tela trocar o valor no meio, a contagem para.
   function contar(el, dur, alvo) {
-    if (alvo == null) alvo = parseInt(el.textContent, 10);
-    else if (el.textContent !== '0') return; // a tela já escreveu outro valor por cima do zero
-    if (!(alvo > 0)) return;
-    var t0 = null, escrito = el.textContent;
+    if (!(alvo > 0) || String(parseInt(el.textContent, 10)) !== String(alvo)) { fimConta(el); return; }
+    var t0 = null;
     function passo(t) {
-      if (el.textContent !== escrito) return;
+      if (String(parseInt(el.textContent, 10)) !== String(alvo)) { fimConta(el); return; }
       if (t0 === null) t0 = t;
       var p = Math.min(1, (t - t0) / dur); p = 1 - Math.pow(1 - p, 3);
-      el.textContent = escrito = String(Math.round(alvo * p));
+      el.dataset.innConta = String(Math.round(alvo * p));
       if (p < 1) requestAnimationFrame(passo);
-      else { el.classList.add('inn-contou'); el.addEventListener('animationend', function f() { el.classList.remove('inn-contou'); el.removeEventListener('animationend', f); }); }
+      else { fimConta(el); el.classList.add('inn-contou'); el.addEventListener('animationend', function f() { el.classList.remove('inn-contou'); el.removeEventListener('animationend', f); }); }
     }
     requestAnimationFrame(passo);
   }
+  function fimConta(el) { el.classList.remove('inn-contando'); delete el.dataset.innConta; el.style.removeProperty('--inn-conta-cor'); }
   function contarNumeros(raiz) {
     if (!raiz.querySelectorAll) return;
     var k = 0, todos = [].slice.call(raiz.querySelectorAll('*'));
@@ -93,7 +95,9 @@
       if (parseFloat(getComputedStyle(el).fontSize) < 10) continue;
       el.dataset.inn = '1'; k++;
       var alvo = parseInt(el.textContent, 10);
-      el.textContent = '0';
+      // Zera na hora, só no desenho: o texto real continua o número.
+      el.style.setProperty('--inn-conta-cor', getComputedStyle(el).color);
+      el.dataset.innConta = '0'; el.classList.add('inn-contando');
       setTimeout(contar.bind(null, el, 800, alvo), 160 + k * 40);
     }
   }

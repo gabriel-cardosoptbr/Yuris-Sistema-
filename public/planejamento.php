@@ -739,7 +739,7 @@ $activePage = 'funil';
 
   <script src="assets/dashboard.js?v=13"></script>
   <script src="/assets/fog.js"></script>
-  <script src="/assets/funnel.js?v=4"></script>
+  <script src="/assets/funnel.js?v=<?= @filemtime(__DIR__ . '/assets/funnel.js') ?: 5 ?>"></script>
 
 </body>
 </html>

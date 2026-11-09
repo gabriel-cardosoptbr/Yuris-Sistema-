@@ -131,6 +131,9 @@ $health_icon         = $margem >= 40 ? '▲' : ($margem >= 15 ? '●' : '▼');
       font-size: .72rem; color: var(--muted); margin: 0 0 16px;
     }
     /* ── KPI cards ── */
+    /* Sete indicadores numa grade de quatro (ou de dois, no celular): o último ocupa duas colunas e fecha
+       a linha, sem buraco à direita (09/11/2026, revisão do sistema). */
+    .kpi-grid > .kpi-card:last-child:nth-child(4n+3) { grid-column: span 2; }
     .kpi-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0,1fr));
@@ -371,7 +374,7 @@ $health_icon         = $margem >= 40 ? '▲' : ($margem >= 15 ? '●' : '▼');
         </div>
         <div class="kpi-card imposto">
           <div class="kpi-label">Total em impostos</div>
-          <div class="kpi-value" id="sumImpostos"><?=number_format($total_impostos,2,',','.')?></div>
+          <div class="kpi-value" id="sumImpostos">R$ <?=number_format($total_impostos,2,',','.')?></div>
           <div class="kpi-desc" id="impostoPercDesc"><?=number_format($pct_impostos_total,2,',','.')?>% da receita operacional</div>
           <span class="kpi-badge badge-warn">Imposto</span>
         </div>
@@ -923,6 +926,8 @@ document.addEventListener('DOMContentLoaded', function() {
   function renderTaxes() {
     const wrap = document.getElementById('taxRows');
     const strip = document.getElementById('taxSummaryStrip');
+    // Sigla de imposto em maiúsculas ("Iss" cadastrado vira "ISS"; 09/11/2026, revisão do sistema).
+    const nomeImposto = n => /^(iss|irpj|csll|pis|cofins|icms|inss|ipi|iof|das|itbi|iptu)$/i.test(String(n || '').trim()) ? String(n).trim().toUpperCase() : n;
     if (!wrap) return;
     if (!_taxes.length) {
       wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:.78rem;font-style:italic">Nenhum imposto cadastrado — clique em "Novo imposto" para começar</div>';
@@ -937,7 +942,7 @@ document.addEventListener('DOMContentLoaded', function() {
       totalImpostos += val;
       totalPct      += pct;
       return `<div class="tax-row">
-        <div class="tax-name">${escHtml(t.nome)}</div>
+        <div class="tax-name">${escHtml(nomeImposto(t.nome))}</div>
         <div class="tax-pct">${pct.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}%</div>
         <div class="tax-val">${fmt(val)}</div>
         <div class="tax-actions">
@@ -963,7 +968,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const strip = v => Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
     setEl('sumDespesa',  strip(despTotal));
-    setEl('sumImpostos', strip(totalImpostos));
+    setEl('sumImpostos', 'R$ ' + strip(totalImpostos));
     setEl('sumResultado',strip(lucro));
     setEl('sumMargem',   margem.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}) + '%');
     setEl('impostoPercDesc', totalPct.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '% da receita operacional');

@@ -104,7 +104,8 @@ window.TkCentral = (function () {
   }
   function linhaProcesso(i) {
     if (!i.processo_id) return i.quadro_nome ? `<div class="tkc-ctx">${esc(i.quadro_nome)}${i.coluna_nome ? ' · ' + esc(i.coluna_nome) : ''}</div>` : '';
-    const partes = [i.cliente_nome, i.processo_numero].filter(Boolean).map(esc).join(' · ');
+    // O número do processo não quebra no hífen ("0009823-" numa linha e "47.2026..." na outra; 09/11/2026).
+    const partes = [i.cliente_nome ? esc(i.cliente_nome) : '', i.processo_numero ? '<span style="white-space:nowrap">' + esc(i.processo_numero) + '</span>' : ''].filter(Boolean).join(' · ');
     return `<div class="tkc-ctx">${partes}</div>`;
   }
   function caixa(i) {

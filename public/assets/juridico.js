@@ -330,6 +330,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Calcula todos os KPIs estratégicos client-side
     const kpis = computeStrategicKPIs(processes);
+    // Um número só para "sem movimentação": o indicador usava a lista da API (no_update) e a faixa de
+    // resumo a conta da tela, e mostravam 130 e 126 (09/11/2026, revisão do sistema).
+    if (metricsData && metricsData.no_update && metricsData.no_update.length > 0) kpis.sem_mov = metricsData.no_update.length;
 
     // ── Atualiza KPI cards estratégicos ──
     // statActiveVal     : carteira ativa (fonte: computeStrategicKPIs)
@@ -342,9 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
     set('statEncerradosVal', kpis.encerrados);
     set('statNovosMesVal',  kpis.novos_mes);
     set('statVencidosVal',  kpis.vencidos);
-    set('statSemMovVal',    (metricsData.no_update && metricsData.no_update.length > 0)
-                              ? metricsData.no_update.length
-                              : kpis.sem_mov);
+    set('statSemMovVal',    kpis.sem_mov);
     set('statAdvogadosVal', kpis.advogados_count);
 
     // IDs legados mantidos ocultos no HTML — atualizados para não quebrar código que possa

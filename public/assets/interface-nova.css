@@ -340,3 +340,6 @@ html body .inn-tela .fu-topo p{ color:var(--inn-t-texto3); font-size:13px; }
 html body:has(#disconnectAlert.visible) .page-layout{ padding-top:56px; }
 /* Chat: o estado da conexão não cola no título "Conversas". */
 html body .inn-tela #waStatusLabel{ margin-left:10px; }
+
+/* Chat interno: a lista de conversas e a conversa eram colunas coladas (gap 0); o respiro de 16 px da prévia (09/11/2026). */
+html body .ci-wrap{ gap:16px; }

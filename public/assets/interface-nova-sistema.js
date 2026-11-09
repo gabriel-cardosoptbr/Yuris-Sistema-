@@ -415,7 +415,7 @@
   function vestirCores(raiz) {
     if (!raiz || !raiz.querySelectorAll || !document.querySelector('.inn-tela')) return;
     var cacheFundo = new WeakMap();
-    var cands = [].slice.call(raiz.querySelectorAll('div, section, article, aside, header, footer, li, a, button, input, select, textarea, span, label, td, tr, h1, h2, h3, h4, h5, h6'));
+    var cands = [].slice.call(raiz.querySelectorAll('div, section, article, aside, header, footer, li, a, button, input, select, textarea, span, label, td, tr, h1, h2, h3, h4, h5, h6, code, kbd'));
     if (raiz.nodeType === 1) cands.unshift(raiz);
     var fila = [];
     cands.forEach(function (el) {
@@ -1533,7 +1533,7 @@
 
   // Quadro que continua para o lado: marca inn-tem-mais enquanto houver coluna à direita.
   function marcarQuadros() {
-    [].forEach.call(document.querySelectorAll('.inn-tela .board, .inn-tela .tk-kanban, .inn-tela .proc-board'), function (q) {
+    [].forEach.call(document.querySelectorAll('.inn-tela .board, .inn-tela .tk-kanban, .inn-tela .proc-board, .inn-tela .tabela-rolagem'), function (q) {
       if (q.dataset.innQuadro) return;
       q.dataset.innQuadro = '1';
       var t = null, f = function () { q.classList.toggle('inn-tem-mais', q.scrollLeft + q.clientWidth < q.scrollWidth - 4); };

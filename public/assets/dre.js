@@ -168,11 +168,12 @@
         // ── Atualiza resumo executivo ──
         const summaryEl = document.getElementById('execSummary');
         if (summaryEl) {
+          // "No período no período consolidado" (09/11/2026, revisão do sistema): o começo da frase é um só.
           const periodoTxt = filters.month
-            ? ' em <strong>' + filters.month.split('-').reverse().join('/') + '</strong>'
-            : ' no período consolidado';
+            ? 'Em <strong>' + filters.month.split('-').reverse().join('/') + '</strong>'
+            : 'No período consolidado';
           const healthCls  = margem >= 40 ? '#6ee7b7' : (margem >= 15 ? '#fcd34d' : '#fca5a5');
-          summaryEl.innerHTML = 'No período' + periodoTxt + ', o escritório registra <strong>' + fmtMoney(totalReceita) + '</strong> em receita operacional, <strong>' + fmtMoney(sumDespesa || 0) + '</strong> em custos operacionais e <strong>lucro líquido de ' + fmtMoney(totalResultado) + '</strong>, representando margem de <strong style="color:' + healthCls + '">' + margem.toFixed(1).replace('.',',') + '%</strong>. Dos honorários, <strong>' + fmtMoney(closed || 0) + '</strong> vieram de contratos fechados no CRM.';
+          summaryEl.innerHTML = periodoTxt + ', o escritório registra <strong>' + fmtMoney(totalReceita) + '</strong> em receita operacional, <strong>' + fmtMoney(sumDespesa || 0) + '</strong> em custos operacionais e <strong>lucro líquido de ' + fmtMoney(totalResultado) + '</strong>, representando margem de <strong style="color:' + healthCls + '">' + margem.toFixed(1).replace('.',',') + '%</strong>. Dos honorários, <strong>' + fmtMoney(closed || 0) + '</strong> vieram de contratos fechados no CRM.';
         }
 
         // ── Atualiza badge de saúde financeira ──
