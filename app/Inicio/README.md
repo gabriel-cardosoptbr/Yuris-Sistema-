@@ -166,9 +166,9 @@ seleção em pílula.
   script dos grupos em `includes/sidebar.php` o aplica antes da primeira pintura), os blocos da
   tela dobram para cima e somem de baixo para cima (`inn-menu-saindo`, `inn-fecha`, 280 ms com
   escalonamento de 30 ms), e a tela nova é pedida **logo no clique**, depois do primeiro quadro
-  (antes esperava 430 ms; a dobra agora acontece enquanto o servidor responde). Na interface nova
-  o logo leva ao Início e o menu não recolhe: a caixa grande do logo recolhia o menu num clique
-  sem querer ("às vezes encolhe, as coisas somem, desalinha"). Os números que contam de zero
+  (antes esperava 430 ms; a dobra agora acontece enquanto o servidor responde). O logo continua
+  recolhendo o menu na interface nova (tirar isso foi desfeito no mesmo dia: "não tá recolhendo";
+  ele usa). Os números que contam de zero
   (`interface-nova-movimento.js` e `inicio-movimento.js`) zeram no instante em que chegam; antes
   apareciam prontos, zeravam e subiam. A troca é uma **view transition entre documentos** (`@view-transition{navigation:auto}`):
   o menu (`view-transition-name:inn-menu`) troca de imagem sem animação, e como já está igual ao

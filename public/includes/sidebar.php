@@ -546,11 +546,7 @@ $_notifTempo = function ($raw) {
 <script src="/assets/yuris-ui.js?v=<?= $_uiLibVer ?>"></script>
 <!-- LGPD Etapa 5: banner de cookies — auto-inicializa, só aparece se ainda não respondeu -->
 <script src="/assets/cookie-consent.js?v=3"></script>
-<?php /* Na interface nova o menu não recolhe (09/11/2026: o logo, uma caixa grande no topo, recolhia o menu
-   num clique sem querer, "às vezes encolhe, as coisas somem, desalinha"); lá o logo leva ao Início. */ ?>
-<?php if (!$_interfaceNova): ?>
 <script>try{if(localStorage.getItem('yuris_menu_retraido')==='1')document.documentElement.classList.add('sb-retraido');}catch(e){}</script>
-<?php endif; ?>
 <?php if (!$_isFleetiflow): ?>
 <style>
   /* ── Recolher o menu do Yuris jurídico (20/10/2026), o mesmo da edição CRM com o
@@ -645,7 +641,7 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
          com o nome desenhado dentro. -->
     <?php if ($_marca['personalizada'] && !empty($_marca['logo_url'])): ?>
     <!-- Marca própria com logo: o logo inteiro, flutuando devagar (17/10/2026). -->
-    <a href="/dashboard" class="sb-logo-marca<?= !empty($_marca['icone_url']) ? ' tem-icone' : '' ?><?= $_interfaceNova ? ' sb-logo-link' : '' ?>"<?= $_interfaceNova ? '' : ' data-sb-recolher' ?> style="display:flex;align-items:center;text-decoration:none" aria-label="<?= htmlspecialchars($_marca['nome']) ?>">
+    <a href="/dashboard" class="sb-logo-marca<?= !empty($_marca['icone_url']) ? ' tem-icone' : '' ?>" data-sb-recolher style="display:flex;align-items:center;text-decoration:none" aria-label="<?= htmlspecialchars($_marca['nome']) ?>">
       <img src="<?= htmlspecialchars($_marca['logo_url']) ?>" alt="<?= htmlspecialchars($_marca['nome']) ?>" class="sb-logo-inteira">
       <?php if (!empty($_marca['icone_url'])): ?>
       <!-- Menu recolhido: só o símbolo da marca (o ícone enviado no Painel Master), não a logo encolhida. -->
@@ -653,7 +649,7 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
       <?php endif; ?>
     </a>
     <?php else: ?>
-    <a href="/dashboard"<?= $_interfaceNova ? ' class="sb-logo-link"' : ' data-sb-recolher' ?> style="display:flex;align-items:center;gap:11px;text-decoration:none">
+    <a href="/dashboard" data-sb-recolher style="display:flex;align-items:center;gap:11px;text-decoration:none">
       <?php if (!empty($_marca['icone_url'])): ?>
       <img src="<?= htmlspecialchars($_marca['icone_url']) ?>" alt="" style="height:30px;width:auto;max-width:44px;object-fit:contain;flex:none;display:block">
       <?php else: ?>
@@ -664,7 +660,7 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
     </a>
     <?php endif; ?>
     <?php else: ?>
-    <a href="/dashboard"<?= $_interfaceNova ? ' class="sb-logo-link"' : ' data-sb-recolher' ?> aria-label="Yuris" style="display:block"><img src="/assets/img/logo-menu-320.png" width="320" height="320" decoding="sync" alt="Yuris" class="sb-logo-grande" style="max-width:100%;max-height:160px;object-fit:contain;display:block;margin:0 auto;"><img src="<?= $_interfaceNova ? '/assets/img/logo-144.png' : '/assets/favicon-192.png' ?>" alt="" class="sb-logo-mini"></a>
+    <a href="/dashboard" data-sb-recolher aria-label="Yuris" style="display:block"><img src="/assets/img/logo-menu-320.png" width="320" height="320" decoding="sync" alt="Yuris" class="sb-logo-grande" style="max-width:100%;max-height:160px;object-fit:contain;display:block;margin:0 auto;"><img src="<?= $_interfaceNova ? '/assets/img/logo-144.png' : '/assets/favicon-192.png' ?>" alt="" class="sb-logo-mini"></a>
     <?php endif; ?>
   </div>
 
