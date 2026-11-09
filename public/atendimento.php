@@ -463,7 +463,7 @@ $rotuloFaixa = ['bom' => 'Bom', 'atencao' => 'Atenção', 'ruim' => 'Crítico', 
       options: {
         responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
         scales: {
-          y:  { position: 'left', min: 0, ticks: { callback: function(x){ return duracao(x); } }, grid: { color: v('--o-sutil') } },
+          y:  { position: 'left', min: 0, ticks: { precision: 0, callback: function(x){ return duracao(x); } }, grid: { color: v('--o-sutil') } },
           y2: { position: 'right', min: 0, ticks: { precision: 0 }, grid: { display: false } },
           x:  { grid: { display: false } }
         },

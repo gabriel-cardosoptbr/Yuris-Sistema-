@@ -193,7 +193,10 @@ seleção em pílula.
   entram) e deixa `inn-mov` (a tela de trás) para fora do modo embutido.
   **Revisão de designer da home (09/11/2026):** os dias do calendário viraram caixas de 50 px (eram
   colunas de 40x129 px esticadas até o fim do cartão, teclas de piano no escuro); o bloco do
-  calendário vai até o pé do cartão ("tem que alinhar até o final"), e preso embaixo fica o mês em números (`#iniCalResumo`,
+  calendário vai até o pé do cartão ("tem que alinhar até o final") e reparte a altura entre três blocos, o mês
+  (`.ini-cal-mes`: navegação, dias da semana e grade), os atalhos e o mês em números, com `space-between`
+  ("harmônico, espalhado": antes sobrava um buraco só entre os atalhos e o resumo); o dia tem 1,15 vez a
+  largura, entre 40 e 64 px (`cqw`); embaixo fica o mês em números (`#iniCalResumo`,
   `resumoDoMes` no script da home: prazos, audiências, reuniões, tarefas e dias com compromisso, refeito
   ao trocar de mês); o título dos compromissos que era teor de publicação ficou curto (`Painel::tituloCurto`);
   "Sair da prévia" virou botão (`ini-btn`), como os vizinhos. Na lista "Escolha uma para ler e tratar"

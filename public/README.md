@@ -414,6 +414,12 @@ linha ganha a seta nos dois temas (`interface-nova.css`); quadro que continua pa
 Tarefas, Processos) esmaece na borda direita (`inn-tem-mais`, `marcarQuadros`); a vara e o órgão do cartão de
 processo quebram a linha em vez de reticências (`interface-nova-telas.css`). Para todos: o cartão de cliente não
 encolhe dentro da coluna (`clientes.php`, `flex-shrink: 0`), que cortava telefone e CPF ao meio.
+Gráficos, segunda rodada (09/11/2026): série que o tema nomeia (Fechados, Projeção, Meta, Receita) pega a cor do
+`YURIS_CHART_THEME` pelo nome, igual em todo gráfico (o `dashboard.js` monta antes de a prévia trocar o tema e
+recria com a mesma configuração); cor já decidida não é repintada no laço das outras propriedades (`fixo`); a
+legenda feita à mão dentro de `.chart-box` (Finanças) segue as fatias. Atendimento: o eixo de tempo usa passos
+inteiros (`precision: 0`), vale para todos. Os "gráficos vazios" da revisão eram efeito da foto de página
+inteira: ela estica a janela e os gráficos se redesenham do zero, com animação, na hora da captura.
 **Cartão de indicador nunca vira selo** (09/11/2026): o `interface-nova-sistema.js` lê como selo o que tem
 classe de estado no nome (`-danger`, `-warn`...). O `kpi-card kpi-danger` do Processos, que é ele mesmo o
 `[data-inn-kpi]`, às vezes virava faixa e perdia o fundo; agora caixa com blocos dentro (`ehCaixa`) nunca é

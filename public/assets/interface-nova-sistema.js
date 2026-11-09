@@ -1292,6 +1292,23 @@
 
   // ── 5. Gráficos ─────────────────────────────────────────────────────────
   // Paleta: azul e prata do logo. Vermelho, verde e âmbar ficam quando já eram (são estado).
+  var CORES_DA_SERIE = {};
+  var DA_CASA = null;
+  function corDoTema(label, tipo) {
+    var t = window.YURIS_CHART_THEME || {};
+    var n = String(label).normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
+    var k = { fechados: 'fechados', projecao: 'projecao', meta: tipo === 'line' ? 'metaLinha' : 'meta', receita: 'receita' }[n];
+    return k && typeof t[k] === 'string' ? t[k] : null;
+  }
+  function daCasa(c) {
+    if (!DA_CASA) {
+      DA_CASA = {};
+      var t = window.YURIS_CHART_THEME || {}, lista = PALETA.slice();
+      Object.keys(t).forEach(function (k) { if (typeof t[k] === 'string' && /^#/.test(t[k]) && !/texto|legenda|tooltip|fonte/i.test(k)) lista.push(t[k]); else if (Array.isArray(t[k])) lista = lista.concat(t[k]); });
+      lista.forEach(function (x) { var v = rgb(x); if (v) DA_CASA[v[0] + ',' + v[1] + ',' + v[2]] = 1; });
+    }
+    var v = rgb(c); return !!(v && DA_CASA[v[0] + ',' + v[1] + ',' + v[2]]);
+  }
   var PALETA = ['#3A63C9', '#9AA3B0', '#23448F', '#6C90E3', '#5B6575', '#B4BAC5', '#2D4FA8', '#C9CFD9'];
   function rgb(c) {
     if (typeof c !== 'string') return null;
@@ -1324,7 +1341,12 @@
     if (Array.isArray(c)) return c.map(function (x) { return recolorPor(mapa, x, opaco); });
     var v = rgb(c); if (!v) return c;
     var chave = v[0] + ',' + v[1] + ',' + v[2];
-    if (!(chave in mapa.cores)) mapa.cores[chave] = PALETA[mapa.prox++ % PALETA.length];
+    if (!(chave in mapa.cores)) {
+      var cand, tent = 0;
+      do { cand = PALETA[mapa.prox++ % PALETA.length]; var cv2 = rgb(cand); cand = 'rgb(' + cv2[0] + ',' + cv2[1] + ',' + cv2[2] + ')'; } while (mapa.usados && mapa.usados[cand] && ++tent < PALETA.length);
+      mapa.cores[chave] = cand;
+      if (mapa.usados) mapa.usados[cand] = 1;
+    }
     var a = rgb(mapa.cores[chave]);
     return 'rgba(' + a[0] + ',' + a[1] + ',' + a[2] + ',' + (opaco ? 1 : v[3]) + ')';
   }
@@ -1340,21 +1362,48 @@
     var data = ch.config.data || {};
     var mapa = { cores: {}, prox: 0 }, v0 = vars();
     var umaSerie = (data.datasets || []).length === 1;
+    mapa.usados = {};
+    if (!umaSerie) (data.datasets || []).forEach(function (ds) {
+      var n = typeof ds.label === 'string' ? ds.label.trim().toLowerCase() : '';
+      if (n && CORES_DA_SERIE[n]) mapa.usados[CORES_DA_SERIE[n]] = 1;
+    });
     (data.datasets || []).forEach(function (ds, k) {
       var tipo = ds.type || ch.config.type;
       var cheio = /^(bar|doughnut|pie|polarArea)$/.test(tipo);
       // A cor de base do conjunto: a de preenchimento em barra e fatia, a da linha em linha.
       var base = cheio ? 'backgroundColor' : 'borderColor';
+      var fixo = null; // a cor que ficou decidida aqui não é repintada no laço das outras propriedades
       // Barra de uma série só com uma cor por barra (Carga por Advogado, Tipos de Ação): a cor não
       // dizia nada, e virava arco-íris de azul e cinza (09/11/2026, revisão de designer). Fica o azul
       // do Yuris; só a barra que já era estado (vermelho, âmbar, verde) guarda a cor dela.
       if (tipo === 'bar' && umaSerie && Array.isArray(ds.backgroundColor)) {
         ds.backgroundColor = ds.backgroundColor.map(function (c) { var x = rgb(c); var sm = x ? semantica(matiz(x[0], x[1], x[2])) : null; return sm || PALETA[0]; });
-        base = null; ds.$innUmaCor = true;
+        fixo = base; base = null; ds.$innUmaCor = true;
+      }
+      // Série que o tema nomeia (o dashboard.js monta os gráficos antes de a prévia trocar o tema, e
+      // eles nasciam na paleta antiga): pega a cor do tema pelo nome, igual em todo gráfico.
+      var doTema = base && typeof ds.label === 'string' ? corDoTema(ds.label, tipo) : null;
+      if (doTema) { var vt = rgb(ds[base]), ct = rgb(doTema); if (ct) { ds[base] = 'rgba(' + ct[0] + ',' + ct[1] + ',' + ct[2] + ',' + (cheio ? 1 : (vt ? vt[3] : 1)) + ')'; if (!cheio && ds.backgroundColor && typeof ds.backgroundColor === 'string') { var vb = rgb(ds.backgroundColor); ds.backgroundColor = 'rgba(' + ct[0] + ',' + ct[1] + ',' + ct[2] + ',' + (vb ? vb[3] : .1) + ')'; } fixo = base; base = null; } }
+      // Cor que já é do Yuris (a paleta, ou o YURIS_CHART_THEME que a prévia dá ao dashboard.js:
+      // Fechados azul, Projeção e Meta prata) fica como está: repintar pela ordem das séries trocava
+      // a cor da mesma série de um gráfico para o outro (09/11/2026, revisão do sistema).
+      if (base && typeof ds[base] === 'string' && daCasa(ds[base])) { fixo = base; base = null; }
+      // A mesma série tem a mesma cor em todos os gráficos da tela. A cor fixa fica reservada no
+      // gráfico: as outras séries dele pulam essa cor.
+      var nomeSerie = !umaSerie && typeof ds.label === 'string' ? ds.label.trim().toLowerCase() : '';
+      if (base && nomeSerie && CORES_DA_SERIE[nomeSerie] && typeof ds[base] === 'string') {
+        var vs = rgb(ds[base]), fixa = rgb(CORES_DA_SERIE[nomeSerie]);
+        if (vs) mapa.cores[vs[0] + ',' + vs[1] + ',' + vs[2]] = CORES_DA_SERIE[nomeSerie];
+        ds[base] = 'rgba(' + fixa[0] + ',' + fixa[1] + ',' + fixa[2] + ',' + (cheio ? 1 : (vs ? vs[3] : 1)) + ')';
+        fixo = base; base = null;
       }
       if (base && ds[base] != null && (typeof ds[base] === 'string' || Array.isArray(ds[base]))) ds[base] = recolorPor(mapa, ds[base], cheio);
+      var corFinal = ds[cheio ? 'backgroundColor' : 'borderColor'];
+      if (nomeSerie && !CORES_DA_SERIE[nomeSerie] && typeof corFinal === 'string') {
+        var cs1 = rgb(corFinal); if (cs1) CORES_DA_SERIE[nomeSerie] = 'rgb(' + cs1[0] + ',' + cs1[1] + ',' + cs1[2] + ')';
+      }
       ['backgroundColor', 'borderColor', 'pointBackgroundColor', 'hoverBackgroundColor', 'hoverBorderColor', 'pointBorderColor'].forEach(function (p) {
-        if (p === base || (p === 'backgroundColor' && ds.$innUmaCor) || ds[p] == null || !(typeof ds[p] === 'string' || Array.isArray(ds[p]))) return;
+        if (p === base || p === fixo || (p === 'backgroundColor' && ds.$innUmaCor) || ds[p] == null || !(typeof ds[p] === 'string' || Array.isArray(ds[p]))) return;
         ds[p] = recolorPor(mapa, ds[p], cheio && p !== 'borderColor');
       });
       if (tipo === 'bar') { ds.borderWidth = 0; if (ds.borderRadius == null || ds.borderRadius < 6) ds.borderRadius = 6; }
@@ -1394,7 +1443,8 @@
   // HTML): os quadradinhos seguem as cores novas do gráfico, e de novo quando a tela redesenha.
   function legendaDoGrafico(ch) {
     var cv = ch.canvas; if (!cv) return;
-    var cartao = cv.closest('.inn-c-painel, [class*="card"], [class*="panel"], [class*="painel"]'); if (!cartao) return;
+    // A caixa do gráfico de Finanças chama chart-box: sem ela na lista, a legenda nunca era repintada.
+    var cartao = cv.closest('.inn-c-painel, [class*="card"], [class*="panel"], [class*="painel"], [class*="chart-box"], [class*="grafico"]'); if (!cartao) return;
     var tipo = ch.config.type, ds = (ch.config.data.datasets || [])[0]; if (!ds) return;
     var cores = /^(doughnut|pie|polarArea)$/.test(tipo) && Array.isArray(ds.backgroundColor) ? ds.backgroundColor
       : (ch.config.data.datasets || []).map(function (d) { return Array.isArray(d.backgroundColor) ? d.backgroundColor[0] : (d.borderColor || d.backgroundColor); });

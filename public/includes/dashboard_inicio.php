@@ -177,6 +177,9 @@ $evento = static function (array $i) use ($h, $det, $detEvento): string {
           </header>
           <div class="ini-agenda-corpo">
             <div class="ini-cal" id="iniCal">
+              <!-- O mês (navegação, dias da semana e grade), os atalhos e o resumo: três blocos
+                   repartindo a altura do cartão por igual (09/11/2026, "harmônico, espalhado"). -->
+              <div class="ini-cal-mes">
               <div class="ini-cal-topo">
                 <button type="button" class="ini-cal-nav" data-cal="-1" aria-label="Mês anterior"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
                 <b id="iniCalMes"><?= $h(Painel::nomeDoMes($mes)) ?></b>
@@ -187,6 +190,7 @@ $evento = static function (array $i) use ($h, $det, $detEvento): string {
                 <?php foreach (Painel::gradeDoMes($mes) as $semana): foreach ($semana as $c): $n = count($porDia[$c['data']] ?? []); ?>
                 <button type="button" class="ini-cal-dia<?= $c['fora'] ? ' fora' : '' ?><?= $c['data'] === $hoje ? ' hoje' : '' ?><?= $n ? ' tem' : '' ?><?= $c['data'] === $hoje ? ' sel' : '' ?>" data-dia="<?= $h($c['data']) ?>"><?= (int) $c['dia'] ?><?= $n ? '<i></i>' : '' ?></button>
                 <?php endforeach; endforeach; ?>
+              </div>
               </div>
               <!-- Atalhos de período: listam a faixa à direita e marcam os dias na grade. -->
               <div class="ini-cal-atalhos" role="group" aria-label="Períodos">
