@@ -231,6 +231,11 @@ seleção em pílula.
   um quadro aqui; com a rede de produção, mais). Agora uma cópia do `<link>` vem logo antes do
   `<aside>` (folha no corpo segura a pintura do que vem depois dela) e a do fim continua, pela
   ordem das regras. Medido quadro a quadro em 10 carregamentos de 8 telas: zero quadros antigos.
+  **Toda aba do mesmo tamanho** (09/11/2026, "algumas abas a sidebar fica menor e outras maior"):
+  logo antes do `<aside>`, o menu da prévia pede a Inter com os cinco pesos (o endereço da home;
+  22 telas pediam sem o 500) e, com `?embed=1`, marca o `<html>` como `yuris-embed` antes da
+  primeira pintura. O `interface-nova.css` reserva o lugar da barra de rolagem fora do embutido
+  e fixa a altura de linha do menu. Detalhe e medidas em `public/README.md`.
   **Histórico Processual** (08/11/2026, "arruma com urgência, não está de acordo com o design"):
   o `processos.js` marca cada registro com `data-tipo` (processo, prazo, tarefa, movimentacao,
   intimacao, anexo, vinculo, edicao) e `data-tom` (ok para concluído, erro para removido), sem

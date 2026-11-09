@@ -422,8 +422,27 @@ inteiros (`precision: 0`), vale para todos. Os "gráficos vazios" da revisão er
 inteira: ela estica a janela e os gráficos se redesenham do zero, com animação, na hora da captura.
 Cabeçalhos (09/11/2026): tela que o menu da prévia não lista (Follow-up, Privacidade, Chat interno) ganha o ícone
 pelo endereço (`DA_TELA` em `iconeNoCabecalho`); o topo do Follow-up (`.fu-topo`) ganha o cartão de cabeçalho; no
-Chat, com o aviso fixo "WhatsApp desconectado" visível, a página desce 56 px (o aviso cobria o título) e o estado
-da conexão não cola em "Conversas" (`interface-nova.css`).
+Chat, o aviso fixo "WhatsApp desconectado" não cobre mais o título: no computador ele fica na coluna da tela (ao
+lado do menu, 298 px da esquerda, 118 com o menu recolhido) e só a tela desce 68 px; no celular a página desce
+56 px. O estado da conexão não cola em "Conversas" (`interface-nova.css`).
+**Troca de aba sem mudar de tamanho e sem travar** (09/11/2026, na prévia, "algumas abas a sidebar fica menor e
+outras maior, e tá travando um pouco na hora que troca de aba"). Tamanho: (1) o lugar da barra de rolagem fica
+sempre reservado (`html:not(.yuris-embed){ scrollbar-gutter:stable }`), e o Chat e o Chat interno, que rolam por
+dentro, deixaram de ser 10 px mais largos; o embutido é marcado `yuris-embed` antes do menu, para o pop-up da home
+não ganhar a faixa; (2) o menu tem a altura de linha dele (`line-height:normal`): fora da home o rodapé herdava o
+1,5 da tela, crescia 12 px e a lista de abas encolhia; (3) o menu da prévia carrega a Inter com os cinco pesos
+(400 a 800, o mesmo endereço da home): 22 telas pediam a fonte sem o 500, e o mesmo texto do menu saía com outro
+peso de uma aba para a outra; (4) no Chat o aviso de desconectado deixou de empurrar a página inteira (o menu
+descia 56 px e o rodapé dele saía da janela). Medido em 8 telas: menu em 16,16, 264 × 868 e tela com 1276 px em
+todas. Travamento: a camada do sistema e a do movimento leem tudo antes de marcar e trabalham por leva, uma vez
+por quadro e antes da pintura (`vestirNovos`, `entrarLeva`, `vestirTela` em `requestAnimationFrame`), na ordem de
+antes (a camada veste, depois o movimento entra: o botão de 22 px do cartão medido no começo da entrada dava 21 e
+perdia o desenho de botão de ícone); marca da própria camada (classe `inn-*`, variável `--mov-i`) não faz vestir
+de novo (`soMarcaDaCamada`, com `attributeOldValue`); a transição recém-começada é vista perguntando às raízes da
+leva (`getAnimations({subtree:true})`), não elemento por elemento. Tarefa longa ao abrir: Tarefas de 337 para
+cerca de 90 ms, Prospecção de 298 para cerca de 70, Clientes de 60 para zero; Processos fica perto de 100 ms, quase
+tudo o navegador montando a lista de 10 mil px. Conferido contra a versão anterior em 8 telas e 3 pop-ups: as
+mesmas marcas, elemento por elemento.
 Indicadores (09/11/2026): o bloco de texto do indicador alinha pelo topo (`align-content:start`), e
 `igualarIndicadores` mede o número de cada cartão e empurra os da mesma fileira até a linha do mais baixo (rótulo
 ou subtítulo de duas linhas descia o número de um cartão só).

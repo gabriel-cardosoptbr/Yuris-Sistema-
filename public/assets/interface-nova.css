@@ -48,7 +48,12 @@ html .sidebar{
   top:16px !important; max-height:calc(100vh - 32px) !important;
   width:264px !important; min-width:264px !important; max-width:264px !important;
   font-family:Inter, system-ui, -apple-system, "Segoe UI", sans-serif !important;
+  /* A altura da linha é a do menu, não a da tela: cada tela tem a sua no corpo (1,5 na maioria,
+     "normal" na home), e o rodapé do menu crescia 12 px fora da home, encolhendo a lista de abas
+     (09/11/2026, "algumas abas a sidebar fica menor e outras maior"). */
+  line-height:normal !important;
 }
+html .sidebar .sidebar-footer :is(p, a, span){ line-height:normal !important; }
 html .sidebar::before{ display:none !important; }
 
 /* ── Marca: só a logo, sem caixa ── */
@@ -336,8 +341,25 @@ html body select:not([multiple]):not([size]):not(.inn-sem-seta)::-ms-expand{ dis
 html body .inn-tela .fu-topo{ background:var(--inn-t-painel); border:1px solid var(--inn-t-linha); border-radius:14px; box-shadow:0 1px 0 var(--inn-t-hi) inset, 0 1px 2px rgba(31,38,50,.06); padding:20px 22px; align-items:center; }
 html body .inn-tela .fu-topo h1{ font-size:22px; font-weight:800; letter-spacing:-.4px; color:var(--inn-t-texto); }
 html body .inn-tela .fu-topo p{ color:var(--inn-t-texto3); font-size:13px; }
-/* Chat: o aviso "WhatsApp desconectado" é fixo no topo e cobria o título; a página desce a altura dele. */
+/* ── A mesma largura em toda tela (09/11/2026) ────────────────────────────────
+   A barra de rolagem da página aparece na maioria das telas e não no Chat nem no Chat interno (que
+   rolam por dentro), nem no começo de qualquer tela, antes de o conteúdo chegar: a tela ficava 10 px
+   mais larga ou mais estreita de uma aba para a outra. O lugar dela fica sempre reservado. Fora do
+   pop-up embutido da home, onde a faixa apareceria vazia ao lado do fundo do pop-up. */
+html:not(.yuris-embed){ scrollbar-gutter:stable; }
+
+/* Chat: o aviso "WhatsApp desconectado" é fixo no topo e cobria o título. No celular a página desce a
+   altura dele. No computador ele fica na coluna da tela, do lado do menu, e só a tela desce: empurrar a
+   página inteira levava o menu 56 px para baixo e o rodapé dele para fora da janela, e o menu mudava de
+   lugar ao entrar no Chat (09/11/2026, "algumas abas a sidebar fica menor e outras maior"). */
 html body:has(#disconnectAlert.visible) .page-layout{ padding-top:56px; }
+@media (min-width:901px){
+  html body #disconnectAlert{ top:16px !important; left:298px !important; right:16px !important; border-radius:14px !important; }
+  html.sb-retraido body #disconnectAlert{ left:118px !important; }
+  html body:has(#disconnectAlert.visible) .page-layout{ padding-top:0; }
+  html body:has(#disconnectAlert) .main-content{ transition:padding-top .35s ease; }
+  html body:has(#disconnectAlert.visible) .main-content{ padding-top:68px !important; }
+}
 /* Chat: o estado da conexão não cola no título "Conversas". */
 html body .inn-tela #waStatusLabel{ margin-left:10px; }
 

@@ -113,15 +113,26 @@
   }
 
   // ── 2. Botões só de ícone ───────────────────────────────────────────────
+  // Uma raiz ou a lista das que chegaram juntas; e os elementos de todas, sem repetir (com a própria
+  // raiz quando ela mesma conta). As passadas abaixo leem todos antes de marcar o primeiro: marcar
+  // no meio da leitura fazia o navegador recalcular o estilo da tela a cada elemento (09/11/2026).
+  function listaDeRaizes(r) { return (Array.isArray(r) ? r : [r]).filter(function (x) { return x && x.querySelectorAll; }); }
+  function candidatos(raizes, sel, comRaiz) {
+    var out = [];
+    raizes.forEach(function (rz) { if (comRaiz && rz.nodeType === 1) out.push(rz); [].push.apply(out, rz.querySelectorAll(sel)); });
+    return raizes.length > 1 ? Array.from(new Set(out)) : out;
+  }
   function botoesDeIcone(raiz) {
-    if (!raiz.querySelectorAll) return;
-    [].forEach.call(raiz.querySelectorAll('button, a[class*="btn"], .icon-btn'), function (b) {
-      if (b.dataset.innIc || b.closest('.sidebar, .tk-tabs, [role="tablist"], .inn-cab-ic')) return;
+    var bots = candidatos(listaDeRaizes(raiz), 'button, a[class*="btn"], .icon-btn', false).filter(function (b) {
+      if (b.dataset.innIc || b.closest('.sidebar, .tk-tabs, [role="tablist"], .inn-cab-ic')) return false;
       // Caixa de marcar não é botão de ícone: acender em azul no hover pareceria marcada.
-      if (/check|toggle|switch/i.test(b.className) || b.getAttribute('role') === 'checkbox' || b.hasAttribute('aria-pressed') || b.hasAttribute('aria-checked')) return;
+      if (/check|toggle|switch/i.test(b.className) || b.getAttribute('role') === 'checkbox' || b.hasAttribute('aria-pressed') || b.hasAttribute('aria-checked')) return false;
       var svg = b.querySelector('svg');
-      if (!svg || (b.textContent || '').trim().length > 1) return;
-      var r = b.getBoundingClientRect();
+      return !!svg && (b.textContent || '').trim().length <= 1;
+    });
+    var medidas = bots.map(function (b) { return b.getBoundingClientRect(); });
+    bots.forEach(function (b, i) {
+      var r = medidas[i];
       if (r.width < 22 || r.width > 48 || r.height > 48) return;
       b.dataset.innIc = '1'; b.classList.add('inn-ic-btn');
     });
@@ -170,18 +181,18 @@
     return String(el.className || '').split(/\s+/).some(function (c) { return c.indexOf('inn-') !== 0 && RE_ON.test(c); });
   }
   function marcarAbas(raiz) {
-    if (!raiz || !raiz.querySelectorAll) return;
-    var cands = [].slice.call(raiz.querySelectorAll('button, a, li, span, div, label'));
-    if (raiz.nodeType === 1) cands.unshift(raiz);
+    var cands = candidatos(listaDeRaizes(raiz), 'button, a, li, span, div, label', true);
+    var ja = [], novas = [];
     cands.forEach(function (el) {
-      if (el.classList.contains('inn-aba')) { el.classList.toggle('inn-aba-on', abaLigada(el)); return; }
+      if (el.classList.contains('inn-aba')) { ja.push(el); return; }
       if (!ehAba(el) || el.closest('.sidebar')) return;
       var r = el.getBoundingClientRect();
       if (r.height > 56 || r.width > 320) return;                 // aba é coisa pequena
       if (el.tagName !== 'BUTTON' && el.tagName !== 'A' && el.getAttribute('role') !== 'tab' && !el.onclick && getComputedStyle(el).cursor !== 'pointer') return;
-      el.classList.add('inn-aba');
-      el.classList.toggle('inn-aba-on', abaLigada(el));
+      novas.push(el);
     });
+    novas.forEach(function (el) { el.classList.add('inn-aba'); });
+    ja.concat(novas).forEach(function (el) { el.classList.toggle('inn-aba-on', abaLigada(el)); });
   }
 
   // Tira o "sem transição" depois que a cor nova já foi pintada (lê o estilo para
@@ -304,9 +315,9 @@
     });
   }
   function selos(raiz) {
-    if (!raiz || !raiz.querySelectorAll || !document.querySelector('.inn-tela')) return;
-    var cands = [].slice.call(raiz.querySelectorAll('span, small, em, b, strong, div, a, li'));
-    if (raiz.nodeType === 1) cands.unshift(raiz);
+    var raizes = listaDeRaizes(raiz);
+    if (!raizes.length || !document.querySelector('.inn-tela')) return;
+    var cands = candidatos(raizes, 'span, small, em, b, strong, div, a, li', true);
     var faixas = cands.filter(function (el) { return el.closest && el.closest('.inn-tela, [class*="modal"]') && ehFaixaDeSelo(el); });
     var tonsF = faixas.map(tomDoSelo);
     faixas.forEach(function (el, i) { el.dataset.innFaixa = tonsF[i].replace('inn-selo-', ''); el.classList.add('inn-faixa', 'inn-faixa-' + el.dataset.innFaixa); });
@@ -363,8 +374,31 @@
     for (var i = 0; i < paradas.length; i++) { t = tomDeCor(paradas[i], .25, .04); if (t) return t; }
     return null;
   }
-  function emTransicao(el) {
-    try { return el.getAnimations().some(function (a) { return typeof CSSTransition !== 'undefined' && a instanceof CSSTransition; }); } catch (e) { return false; }
+  // Quem está no meio de uma transição agora, numa pergunta só ao documento: perguntar elemento por
+  // elemento (getAnimations em cada um) custava 145 ms na tela de Tarefas (09/11/2026).
+  // Nem isso: perguntar ao documento a cada mudança da tela ainda custava 113 ms. As transições são
+  // anotadas quando começam e quando terminam, e a consulta é de graça.
+  var EM_TRANSICAO = new WeakMap();
+  ['transitionrun', 'transitionend', 'transitioncancel'].forEach(function (tipo) {
+    document.addEventListener(tipo, function (e) {
+      var el = e.target; if (!el || el.nodeType !== 1) return;
+      var n = (EM_TRANSICAO.get(el) || 0) + (tipo === 'transitionrun' ? 1 : -1);
+      if (n > 0) EM_TRANSICAO.set(el, n); else EM_TRANSICAO.delete(el);
+    }, true);
+  });
+  // Mas a transição que começa agora (a classe acabou de mudar, como o "visible" do aviso do Chat) só
+  // avisa no quadro seguinte: para ela, pergunta-se às raízes da leva, uma vez cada, com subtree. É
+  // pouco (a leva é o que mudou), e sem isso o aviso era lido com altura zero e ficava sem a cor.
+  function emTransicaoAgora(raizes) {
+    var agora = new Set();
+    (raizes || []).forEach(function (rz) {
+      try {
+        if (rz.getAnimations) rz.getAnimations({ subtree: true }).forEach(function (a) {
+          if (typeof CSSTransition !== 'undefined' && a instanceof CSSTransition && a.effect && a.effect.target) agora.add(a.effect.target);
+        });
+      } catch (e) {}
+    });
+    return { has: function (el) { return EM_TRANSICAO.has(el) || agora.has(el); } };
   }
   function branco(cs) {
     var v = rgb(cs.backgroundColor);
@@ -412,11 +446,19 @@
     for (var i = 0; i < el.childNodes.length; i++) { var c = el.childNodes[i]; if (c.nodeType === 3 && c.textContent.trim().length > 1) return true; }
     return false;
   }
-  function vestirCores(raiz) {
-    if (!raiz || !raiz.querySelectorAll || !document.querySelector('.inn-tela')) return;
-    var cacheFundo = new WeakMap();
-    var cands = [].slice.call(raiz.querySelectorAll('div, section, article, aside, header, footer, li, a, button, input, select, textarea, span, label, td, tr, h1, h2, h3, h4, h5, h6, code, kbd'));
-    if (raiz.nodeType === 1) cands.unshift(raiz);
+  // Recebe uma raiz ou a lista das que chegaram juntas (as colunas do quadro de Tarefas): lê todas
+  // antes de escrever a primeira. Uma por vez, cada coluna recalculava o estilo da tela inteira,
+  // 18 vezes na abertura do quadro (09/11/2026, "tá travando na hora que troca de aba").
+  function vestirCores(raiz, soNovos) {
+    var raizes = listaDeRaizes(raiz);
+    if (!raizes.length || !document.querySelector('.inn-tela')) return;
+    var cacheFundo = new WeakMap(), emTrans = emTransicaoAgora(soNovos ? [] : raizes);
+    var cands = [];
+    raizes.forEach(function (rz) {
+      if (rz.nodeType === 1) cands.push(rz);
+      [].push.apply(cands, rz.querySelectorAll('div, section, article, aside, header, footer, li, a, button, input, select, textarea, span, label, td, tr, h1, h2, h3, h4, h5, h6, code, kbd'));
+    });
+    if (raizes.length > 1) cands = Array.from(new Set(cands));
     var fila = [];
     cands.forEach(function (el) {
       // Vale na tela, nos pop-ups e também no que fica fora (aviso fixo no topo, toast): só o menu fica de fora.
@@ -425,7 +467,7 @@
       if (/(^|\s)inn-(selo|ic-btn|aba-on)/.test(cls) && !/inn-aba(\s|$)/.test(cls)) return;
       // No meio de uma transição a cor lida é a do caminho, não a de chegada (e o aviso do Chat
       // ainda está crescendo de altura zero): lê de novo no fim.
-      if (emTransicao(el)) {
+      if (emTrans.has(el)) {
         if (!el.dataset.innEspera) { el.dataset.innEspera = '1'; el.addEventListener('transitionend', function () { delete el.dataset.innEspera; if (el.dataset.innCor == null) vestirCores(el); }, { once: true }); }
         return;
       }
@@ -548,7 +590,7 @@
         if (t === 'aviso' || t === 'ok') f.classList.add('inn-c-texto-forte');
       });
     });
-    afundarCaixas(raiz);
+    afundarCaixas(raizes);
   }
   // Caixa da mesma cor dentro de caixa (o resumo dentro do painel, o bloco dentro da seção, o
   // código dentro do cartão): a de dentro afunda, como as caixas dos ícones da home, sem linha;
@@ -563,16 +605,22 @@
     return corFundo(cs);
   }
   function afundarCaixas(raiz) {
-    if (!raiz || !raiz.querySelectorAll) return;
-    var cands = [].slice.call(raiz.querySelectorAll('div, section, article, aside, li, p'));
-    if (raiz.nodeType === 1) {
-      // Os pais primeiro (o resumo nasce vazio e só enche depois): de fora para dentro.
-      var acima = [], pa = raiz, k = 0;
-      while (pa && pa !== document.body && k++ < 5 && !pa.classList.contains('inn-tela')) { acima.unshift(pa); pa = pa.parentElement; }
-      cands = acima.concat(cands);
-    }
+    var cands = [];
+    (Array.isArray(raiz) ? raiz : [raiz]).forEach(function (rz) {
+      if (!rz || !rz.querySelectorAll) return;
+      if (rz.nodeType === 1) {
+        // Os pais primeiro (o resumo nasce vazio e só enche depois): de fora para dentro.
+        var acima = [], pa = rz, k = 0;
+        while (pa && pa !== document.body && k++ < 5 && !pa.classList.contains('inn-tela')) { acima.unshift(pa); pa = pa.parentElement; }
+        [].push.apply(cands, acima);
+      }
+      [].push.apply(cands, rz.querySelectorAll('div, section, article, aside, li, p'));
+    });
+    if (!cands.length) return;
+    cands = Array.from(new Set(cands));
+    var marcadas = new Map();
     cands.forEach(function (el) {
-      if (el.dataset.innCaixa || typeof el.className !== 'string') return;
+      if (el.dataset.innCaixa || marcadas.has(el) || typeof el.className !== 'string') return;
       var cls = el.className;
       if (/(^|\s)inn-(selo|aba|ic-btn|toast)/.test(cls) || RE_BRANCO_NAO.test(cls) || /(^|[-_\s])btn|button|botao|field|input|select|campo|dropdown/i.test(cls)) return;   // campo e botão continuam com cara de campo e botão
       if (el.closest('.sidebar, table, button, svg, .inn-selo, .inn-aba')) return;
@@ -581,7 +629,7 @@
       var pai = el.parentElement, caixaPai = null, n = 0;
       while (pai && pai !== document.body && n++ < 3) {
         if (pai.classList.contains('inn-tela')) break;
-        if (pai.dataset.innCaixa || caixaDe(pai)) { caixaPai = pai; break; }   // a afundada perdeu a borda, mas continua sendo a caixa de fora
+        if (pai.dataset.innCaixa || marcadas.has(pai) || caixaDe(pai)) { caixaPai = pai; break; }   // a afundada perdeu a borda, mas continua sendo a caixa de fora
         pai = pai.parentElement;
       }
       if (!caixaPai) return;
@@ -589,18 +637,24 @@
       if (RE_RAIA.test(pcls)) return;
       var c1 = cls.split(/\s+/)[0];
       if (c1 && [].some.call(p.children, function (s) { return s !== el && s.classList.contains(c1); })) return;
-      var marca = null;
-      if (caixaPai.classList.contains('inn-c-afundado') || caixaPai.classList.contains('inn-c-plano')) marca = 'inn-c-plano';
+      var marca = null, mPai = marcadas.get(caixaPai);
+      if (mPai || caixaPai.classList.contains('inn-c-afundado') || caixaPai.classList.contains('inn-c-plano')) marca = 'inn-c-plano';
       else {
         var pbg = corFundo(getComputedStyle(caixaPai));
         if (pbg && Math.abs(pbg[0] - bg[0]) < 14 && Math.abs(pbg[1] - bg[1]) < 14 && Math.abs(pbg[2] - bg[2]) < 14) marca = 'inn-c-afundado';
       }
       if (!marca) return;
+      marcadas.set(el, marca);
+    });
+    if (!marcadas.size) return;
+    var trocadas = [];
+    marcadas.forEach(function (marca, el) {
       el.dataset.innCaixa = marca;
       el.classList.add('inn-c-agora'); el.classList.add(marca);
       if (el.id) porCimaDoId(el, [marca]);
-      soltarTransicao([el]);
+      trocadas.push(el);
     });
+    soltarTransicao(trocadas);
   }
   // Regra por #id da tela (o aviso fixo do Chat é #disconnectAlert.visible) ganha de qualquer
   // classe: nesses, a cor nova vai em linha, com !important.
@@ -632,13 +686,24 @@
       el.dataset.innInline = (el.dataset.innInline ? el.dataset.innInline + ' ' : '') + Object.keys(props).join(' ');
     });
   }
-  function revestirCores(el) {
+  function limparCores(el) {
     (el.dataset.innInline || '').split(' ').forEach(function (k) { if (k) el.style.removeProperty(k); });
     delete el.dataset.innInline;
     (el.dataset.innCor || '').split(' ').forEach(function (m) { if (m && m !== '-') el.classList.remove(m); });
     delete el.dataset.innCor; delete el.dataset.innBase;
     if (el.dataset.innCaixa) { el.classList.remove(el.dataset.innCaixa); delete el.dataset.innCaixa; }
-    vestirCores(el);
+  }
+  function revestirCores(el) { limparCores(el); vestirCores(el); }
+  // A mudança de atributo foi só da camada (classe inn-*, ou variável --x no style, como o --mov-i
+  // da entrada dos cartões)? Então não é a tela mostrando algo novo, e não se lê nada de novo.
+  // Era o que travava a troca de aba: cada cartão que ganhava a classe da entrada fazia vestir as
+  // cores dele de novo, um por um, recalculando o estilo da tela a cada cartão (09/11/2026).
+  function semVariaveis(st) { return String(st || '').replace(/--[\w-]+\s*:[^;]*;?/g, '').replace(/\s+/g, ' ').trim(); }
+  function soMarcaDaCamada(m) {
+    if (m.oldValue == null) return false;
+    if (m.attributeName === 'class') return baseSelo({ className: m.oldValue }) === baseSelo(m.target);
+    if (m.attributeName === 'style') return semVariaveis(m.oldValue) === semVariaveis(m.target.getAttribute('style'));
+    return false;
   }
   // Trocar o tema relê as cores (o branco só existe no claro).
   new MutationObserver(function () {
@@ -1130,15 +1195,20 @@
     telaTimer = setTimeout(function () {
       var tela = document.querySelector('.inn-tela'); if (!tela) return;
       [].forEach.call(tela.querySelectorAll('div, section, article, a'), function (el) {
+        // O teste barato (o nome da classe) vem antes das perguntas caras (closest, estilo).
+        if (typeof el.className !== 'string' || !RE_KPI.test(el.className)) return;
         if (el.closest(SEL_POPUP) || el.closest('.sidebar, .page-header')) return;
-        var cls = String(el.className || ''); if (typeof el.className !== 'string') return;
+        var cls = el.className;
         // A grade que embrulha os indicadores (kpi-grid-6) não é indicador.
         if (RE_KPI.test(cls) && !/(label|value|valor|foot|dot|ic|icon)$/i.test(cls.split(/\s+/)[0]) && !/(^|[-_\s])(grid|row|wrap|lista|list|kpis|linha|area)([-_\s\d]|$)/i.test(cls) && visivel(el)) { vestirIndicador(el); return; }
       });
       // Cartões: os painéis de primeiro nível da tela (fundo próprio e borda), sem os de dentro.
       var paineis = [].filter.call(tela.querySelectorAll('div, section, article, aside, form'), function (el) {
-        if (!visivel(el) || el.closest(SEL_POPUP) || el.closest('.page-header') || el.dataset.innKpi || el.closest('[data-inn-kpi]')) return false;
-        var r = el.getBoundingClientRect(); if (r.width < 260 || r.height < 70) return false;
+        // Do mais barato ao mais caro: tamanho, classe, depois estilo e os closest (eram 3.500
+        // perguntas de visibilidade e de pop-up por passada em Processos, 09/11/2026).
+        if (el.offsetWidth < 260 || el.offsetHeight < 70 || el.dataset.innKpi) return false;
+        if (/col(\s|$|-)|coluna|lane|card-mini|cli-card|proc-card|tk-card|setor-col|kanban|item|row|linha/i.test(String(el.className))) return false;
+        if (!visivel(el) || el.closest(SEL_POPUP) || el.closest('.page-header') || el.closest('[data-inn-kpi]')) return false;
         var cs = getComputedStyle(el), bg = corFundo(cs), bc = rgb(cs.borderTopColor);
         return !!bg && parseFloat(cs.borderTopWidth) > 0 && bc && bc[3] > .04 && parseFloat(cs.borderTopLeftRadius) >= 8 && !/col(\s|$|-)|coluna|lane|card-mini|cli-card|proc-card|tk-card|setor-col|kanban|item|row|linha/i.test(String(el.className));
       });
@@ -1180,8 +1250,12 @@
   }
   var igualarT = null;
   window.addEventListener('resize', function () { clearTimeout(igualarT); igualarT = setTimeout(igualarIndicadores, 150); });
+  // Uma vez por quadro, antes da pintura: a cada pedaço que a página inseria, a tela inteira era
+  // varrida de novo na hora (Processos insere a lista em vários pedaços, 09/11/2026).
+  var telaPedida = false;
   new MutationObserver(function (ms) {
-    for (var i = 0; i < ms.length; i++) if (ms[i].addedNodes.length) { var t = ms[i].target; if (t.nodeType === 1 && t.closest && t.closest('.inn-tela') && !t.closest(SEL_POPUP)) { vestirTela(); return; } }
+    if (telaPedida) return;
+    for (var i = 0; i < ms.length; i++) if (ms[i].addedNodes.length) { var t = ms[i].target; if (t.nodeType === 1 && t.closest && t.closest('.inn-tela') && !t.closest(SEL_POPUP)) { telaPedida = true; requestAnimationFrame(function () { telaPedida = false; vestirTela(); }); return; } }
   }).observe(document.body, { childList: true, subtree: true });
   vestirTela();
   var caberTimer = null;
@@ -1557,8 +1631,28 @@
       // Chart.js chega depois em algumas telas: espera por ele um pouco.
       var n = 0, t = setInterval(function () { if (vestirChartJs() || ++n > 40) clearInterval(t); }, 250);
     }
-    var pendente = false;
+    // O que a tela acrescenta é vestido UMA vez por quadro, antes da pintura (09/11/2026): vestido a
+    // cada mutação, a lista que chega em dez pedaços era varrida dez vezes, cada varredura lendo
+    // medida depois de escrever classe, e a troca de aba travava. Nó já coberto por um ancestral
+    // da mesma leva não é varrido de novo.
+    var pendente = false, novos = [];
+    function vestirNovos() {
+      pendente = false;
+      var lista = novos; novos = [];
+      var vistos = new Set(lista);
+      var raizes = lista.filter(function (no) {
+        if (!no.isConnected || (no.closest && no.closest('.inn-arq, .inn-emb'))) return false;
+        for (var p = no.parentElement; p; p = p.parentElement) if (vistos.has(p) && p.isConnected) return false;
+        return true;
+      });
+      if (raizes.length) {
+        raizes.forEach(function (no) { vestirArquivos(no); fantasmas(no); });
+        botoesDeIcone(raizes); marcarAbas(raizes); selos(raizes); vestirCores(raizes, true);
+      }
+      conferirFantasmas();
+    }
     new MutationObserver(function (ms) {
+      var paraVestir = [];
       ms.forEach(function (m) {
         if (m.type === 'attributes') {
           var alvo = m.target;
@@ -1580,16 +1674,18 @@
               alvo.dataset.innSeloVisto = proprias; seloTrocado(alvo);
             }
           }
-          if (alvo.dataset && alvo.dataset.innCor != null && m.attributeName === 'class' && baseSelo(alvo) !== alvo.dataset.innBase) revestirCores(alvo);
+          if (alvo.dataset && alvo.dataset.innCor != null && m.attributeName === 'class' && baseSelo(alvo) !== alvo.dataset.innBase) { limparCores(alvo); paraVestir.push(alvo); }
           // O que estava escondido e apareceu (display:none que virou flex) ainda não foi lido.
           // O que estava escondido e apareceu (display:none que virou flex, classe "visible" que chegou) ainda não foi lido.
-          if ((m.attributeName === 'style' || m.attributeName === 'hidden' || m.attributeName === 'class') && alvo.dataset && alvo.dataset.innCor == null && alvo.dataset.innSelo == null && !alvo.classList.contains('inn-aba')) vestirCores(alvo);
+          if ((m.attributeName === 'style' || m.attributeName === 'hidden' || m.attributeName === 'class') && alvo.dataset && alvo.dataset.innCor == null && alvo.dataset.innSelo == null && !alvo.classList.contains('inn-aba') && !soMarcaDaCamada(m)) paraVestir.push(alvo);
           return;
         }
-        [].forEach.call(m.addedNodes, function (no) { if (no.nodeType === 1 && !(no.closest && no.closest('.inn-arq, .inn-emb'))) { vestirArquivos(no); botoesDeIcone(no); fantasmas(no); marcarAbas(no); selos(no); vestirCores(no); } });
+        [].forEach.call(m.addedNodes, function (no) { if (no.nodeType === 1) novos.push(no); });
       });
-      if (!pendente) { pendente = true; requestAnimationFrame(function () { pendente = false; conferirFantasmas(); }); }
-    }).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['class', 'aria-selected', 'aria-pressed', 'style', 'hidden'] });
+      // Ainda dentro do callback, antes da pintura: o pop-up que abriu já aparece vestido.
+      if (paraVestir.length) vestirCores(Array.from(new Set(paraVestir)).filter(function (el) { return el.isConnected; }));
+      if (!pendente) { pendente = true; requestAnimationFrame(vestirNovos); }
+    }).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeOldValue: true, attributeFilter: ['class', 'aria-selected', 'aria-pressed', 'style', 'hidden'] });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ligar); else ligar();
   window.addEventListener('load', function () { vestirChartJs(); });

@@ -629,6 +629,15 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
      o menu com o desenho antigo (branco) até a folha chegar, lá no fim deste arquivo, e na troca
      de tela isso aparecia. Folha no corpo segura a pintura do que vem depois dela. A cópia do fim
      continua, para a ordem das regras (ela vem depois de todas as folhas e ganha). -->
+<?php if (($_GET['embed'] ?? '') === '1'): ?>
+<!-- Embutido (pop-up da home): marcado antes da primeira pintura, para a folha abaixo não reservar
+     a faixa da barra de rolagem dentro do pop-up (o embed.js marca de novo, mais tarde). -->
+<script>document.documentElement.classList.add('yuris-embed');</script>
+<?php endif; ?>
+<!-- A Inter com os cinco pesos do desenho, em toda tela (09/11/2026): cada tela pedia os seus (22 telas,
+     Clientes entre elas, sem o 500; a home com os cinco), e o mesmo texto do menu saía com outro peso e
+     outra largura de uma aba para a outra. Mesmo endereço da home, então vem do cache. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="/assets/interface-nova.css?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova.css') ?: 1 ?>">
 <?php endif; ?>
 <aside class="sidebar<?= $_ambCtx ? ' sb-com-ambientes' : '' ?>" role="complementary" aria-label="Menu lateral"<?= $_ambCtx ? ' data-ambiente="' . htmlspecialchars($_ambCtx['atual']) . '" data-ambiente-rotulo="' . htmlspecialchars($_ambCtx['lista'][$_ambCtx['atual']]['rotulo']) . '"' : '' ?>>

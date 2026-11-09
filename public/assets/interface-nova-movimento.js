@@ -35,31 +35,49 @@
   // menu (Webhooks), os ícones do menu ganhavam inn-cresce, que só anima dentro da tela, e ficavam
   // invisíveis para sempre (09/11/2026, revisão do sistema).
   var FORA = '.sidebar, .mobile-tabbar, .inn-emb';
+  function NADA() {}
+  // Recebe uma raiz ou uma lista delas (o observador junta as da mesma leva).
+  function raizesDe(r) { return (Array.isArray(r) ? r : [r]).filter(function (x) { return x && x.querySelectorAll; }); }
+  // As três abaixo LEEM e devolvem a função que ESCREVE: quem chama lê as três e só depois escreve,
+  // e o navegador recalcula o estilo uma vez por leva, não uma por função (09/11/2026).
   function entrarItens(raiz) {
-    if (!raiz.querySelectorAll) return;
-    var itens = (raiz.matches && raiz.matches(SEL_ITEM) ? [raiz] : []).concat([].slice.call(raiz.querySelectorAll(SEL_ITEM)));
-    var porPai = new Map();
-    itens.forEach(function (el) {
-      if (el.dataset.inn || el.closest(FORA)) return;
-      el.dataset.inn = '1';
-      // Quem já tem transform próprio (a coluna do quadro gira em rotateX para a barra
-      // ficar em cima) não entra: a animação sobrescreveria o giro e o texto viraria de cabeça para baixo.
-      if (getComputedStyle(el).transform !== 'none') return;
-      var k = porPai.get(el.parentNode) || 0;
-      porPai.set(el.parentNode, k + 1);
-      if (k < 14) { el.style.setProperty('--mov-i', k); el.classList.add('inn-item'); }
+    var itens = [];
+    raizesDe(raiz).forEach(function (rz) {
+      if (rz.matches && rz.matches(SEL_ITEM)) itens.push(rz);
+      [].push.apply(itens, rz.querySelectorAll(SEL_ITEM));
     });
+    if (!itens.length) return NADA;
+    itens = Array.from(new Set(itens));
+    var porPai = new Map();
+    // Primeiro lê tudo, depois escreve: ler o estilo de um item logo depois de mudar a classe do
+    // anterior obrigava o navegador a recalcular a tela inteira a cada item (09/11/2026).
+    itens = itens.filter(function (el) { return !el.dataset.inn && !el.closest(FORA); });
+    // Quem já tem transform próprio (a coluna do quadro gira em rotateX para a barra
+    // ficar em cima) não entra: a animação sobrescreveria o giro e o texto viraria de cabeça para baixo.
+    var giram = itens.map(function (el) { return getComputedStyle(el).transform !== 'none'; });
+    return function () {
+      itens.forEach(function (el, i) {
+        el.dataset.inn = '1';
+        if (giram[i]) return;
+        var k = porPai.get(el.parentNode) || 0;
+        porPai.set(el.parentNode, k + 1);
+        if (k < 14) { el.style.setProperty('--mov-i', k); el.classList.add('inn-item'); }
+      });
+    };
   }
   // Os ícones crescem: todo svg pequeno (até 56px) da tela, na ordem em que aparece.
   function crescerIcones(raiz) {
-    if (!raiz.querySelectorAll) return;
-    var k = 0;
-    [].forEach.call(raiz.querySelectorAll('svg'), function (s) {
-      if (k >= 40 || s.dataset.inn || s.closest(FORA)) return;
-      var r = s.getBoundingClientRect();
-      if (r.width < 10 || r.width > 56 || r.height > 56) return;
-      s.dataset.inn = '1'; s.style.setProperty('--mov-i', k++); s.classList.add('inn-cresce');
-    });
+    if (!raiz.querySelectorAll) return NADA;
+    var svgs = [].filter.call(raiz.querySelectorAll('svg'), function (s) { return !s.dataset.inn && !s.closest(FORA); });
+    var medidas = svgs.map(function (s) { return s.getBoundingClientRect(); });
+    return function () {
+      var k = 0;
+      svgs.forEach(function (s, i) {
+        var r = medidas[i];
+        if (k >= 40 || r.width < 10 || r.width > 56 || r.height > 56) return;
+        s.dataset.inn = '1'; s.style.setProperty('--mov-i', k++); s.classList.add('inn-cresce');
+      });
+    };
   }
   // Os números contam de zero: todo elemento folha que é só um número inteiro.
   // O número zera no mesmo instante em que chega (09/11/2026: antes ele aparecia pronto, sumia
@@ -82,40 +100,68 @@
     requestAnimationFrame(passo);
   }
   function fimConta(el) { el.classList.remove('inn-contando'); delete el.dataset.innConta; el.style.removeProperty('--inn-conta-cor'); }
+  // Primeiro escolhe e lê (tamanho da letra, cor), depois marca: ler o estilo de um número logo
+  // depois de marcar o anterior recalculava a tela inteira a cada um (Tarefas, 09/11/2026).
   function contarNumeros(raiz) {
-    if (!raiz.querySelectorAll) return;
-    var k = 0, todos = [].slice.call(raiz.querySelectorAll('*'));
-    if (raiz.nodeType === 1) todos.unshift(raiz);
-    for (var i = 0; i < todos.length && k < 40; i++) {
-      var el = todos[i];
-      if (el.children.length || el.dataset.inn || /^(INPUT|TEXTAREA|SELECT|OPTION|SCRIPT|STYLE|TITLE)$/.test(el.tagName) || el.closest(FORA)) continue;
-      // Quem ainda está vazio ou em zero não é marcado: o contador das abas e das colunas
-      // é preenchido depois, trocando só o texto, e aí conta.
-      if (!/^\s*\d{1,6}\s*$/.test(el.textContent) || !(parseInt(el.textContent, 10) > 0)) continue;
-      if (parseFloat(getComputedStyle(el).fontSize) < 10) continue;
-      el.dataset.inn = '1'; k++;
-      var alvo = parseInt(el.textContent, 10);
-      // Zera na hora, só no desenho: o texto real continua o número.
-      el.style.setProperty('--inn-conta-cor', getComputedStyle(el).color);
-      el.dataset.innConta = '0'; el.classList.add('inn-contando');
-      setTimeout(contar.bind(null, el, 800, alvo), 160 + k * 40);
-    }
+    var achados = [], vistos = new Set();
+    raizesDe(raiz).forEach(function (rz) {
+      var todos = [].slice.call(rz.querySelectorAll('*'));
+      if (rz.nodeType === 1) todos.unshift(rz);
+      for (var i = 0; i < todos.length && achados.length < 40; i++) {
+        var el = todos[i];
+        if (vistos.has(el) || el.children.length || el.dataset.inn || /^(INPUT|TEXTAREA|SELECT|OPTION|SCRIPT|STYLE|TITLE)$/.test(el.tagName)) continue;
+        // Quem ainda está vazio ou em zero não é marcado: o contador das abas e das colunas
+        // é preenchido depois, trocando só o texto, e aí conta. (O texto vem antes do closest, que é caro.)
+        if (!/^\s*\d{1,6}\s*$/.test(el.textContent) || !(parseInt(el.textContent, 10) > 0) || el.closest(FORA)) continue;
+        vistos.add(el); achados.push(el);
+      }
+    });
+    if (!achados.length) return NADA;
+    var estilos = achados.map(function (el) { var cs = getComputedStyle(el); return { tam: parseFloat(cs.fontSize), cor: cs.color }; });
+    return function () {
+      var k = 0;
+      achados.forEach(function (el, i) {
+        if (estilos[i].tam < 10 || el.dataset.inn) return;
+        el.dataset.inn = '1'; k++;
+        var alvo = parseInt(el.textContent, 10);
+        // Zera na hora, só no desenho: o texto real continua o número.
+        el.style.setProperty('--inn-conta-cor', estilos[i].cor);
+        el.dataset.innConta = '0'; el.classList.add('inn-contando');
+        setTimeout(contar.bind(null, el, 800, alvo), 160 + k * 40);
+      });
+    };
   }
 
   function ligar() {
     // A tela: .main-content, ou o main ao lado do menu (Clientes, Webhooks, Chat interno).
     var main = document.querySelector('.main-content') || [].filter.call(document.querySelectorAll('main'), function (m) { return !m.querySelector('.sidebar'); })[0] || document.body;
     if (main !== document.body && !main.classList.contains('main-content')) main.classList.add('inn-tela-entra');
-    entrarItens(main); crescerIcones(main); contarNumeros(main);
+    [entrarItens(main), crescerIcones(main), contarNumeros(main)].forEach(function (escreve) { escreve(); });
+    // O que a tela desenha entra uma vez por quadro, antes da pintura, e DEPOIS de a camada do
+    // sistema vestir o mesmo pedaço (o quadro dela foi pedido antes, então roda antes): ela mede os
+    // botões e as caixas no tamanho de verdade, não no começo da entrada, quando o cartão ainda está
+    // 4% menor (o botão de 22 px do cartão de Tarefas media 21 e perdia o desenho de botão de ícone).
+    // A leva inteira de uma vez: a lista que chega em dez pedaços era lida e marcada dez vezes.
+    var filaNovos = [], filaNumeros = [], pedido = false;
+    function entrarLeva() {
+      pedido = false;
+      var novos = filaNovos.filter(function (n) { return n.isConnected; });
+      var numeros = filaNumeros.filter(function (n) { return n.isConnected; });
+      filaNovos = []; filaNumeros = [];
+      var escreveItens = novos.length ? entrarItens(novos) : NADA;
+      var escreveNumeros = numeros.length ? contarNumeros(numeros) : NADA;
+      escreveItens(); escreveNumeros();
+    }
     new MutationObserver(function (ms) {
       if (!podeAnimar()) return;
       ms.forEach(function (m) {
-        if (m.type === 'characterData') { var p = m.target.parentElement; if (p && main.contains(p)) contarNumeros(p); return; }
+        if (m.type === 'characterData') { var p = m.target.parentElement; if (p && main.contains(p)) filaNumeros.push(p); return; }
         [].forEach.call(m.addedNodes, function (n) {
-          if (n.nodeType === 1) { entrarItens(n); contarNumeros(n); }
-          else if (n.nodeType === 3 && n.parentElement) contarNumeros(n.parentElement);
+          if (n.nodeType === 1) { filaNovos.push(n); filaNumeros.push(n); }
+          else if (n.nodeType === 3 && n.parentElement) filaNumeros.push(n.parentElement);
         });
       });
+      if (!pedido && (filaNovos.length || filaNumeros.length)) { pedido = true; requestAnimationFrame(entrarLeva); }
     }).observe(main, { childList: true, subtree: true, characterData: true });
   }
   if (!embutido) { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ligar); else ligar(); }
@@ -279,13 +325,18 @@
   // passa a ficar ativo entra linha por linha, e os itens que a tela desenha de novo (a busca
   // de vínculos, a lista filtrada) entram um a um. Só nesse instante: o que a tela repõe
   // sozinha depois não se mexe.
-  var cliqueRecente = 0;
+  // Começa no passado distante: em zero, os primeiros 900 ms de toda tela contavam como "logo depois
+  // de um clique" (o relógio da página também começa em zero) e o observador media a posição de cada
+  // pedaço que a tela montava, em plena carga (09/11/2026, "tá travando na troca de aba").
+  var cliqueRecente = -1e9;
   document.addEventListener('click', function (e) {
     if (e.target.closest && e.target.closest('button, a, [role="tab"], .inn-aba, [onclick], label')) cliqueRecente = performance.now();
   }, true);
   function entrarEmFila(lista) {
-    lista.slice(0, 22).forEach(function (el, k) {
-      if (getComputedStyle(el).transform !== 'none') return;
+    lista = lista.slice(0, 22);
+    var giram = lista.map(function (el) { return getComputedStyle(el).transform !== 'none'; });
+    lista.forEach(function (el, k) {
+      if (giram[k]) return;
       el.style.setProperty('--mov-i', k);
       el.classList.remove('inn-pop-entra'); void el.offsetWidth; el.classList.add('inn-pop-entra');
       el.addEventListener('animationend', function f(e) { if (e.target === el) { el.classList.remove('inn-pop-entra'); el.removeEventListener('animationend', f); } });
