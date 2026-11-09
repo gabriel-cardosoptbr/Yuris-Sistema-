@@ -64,7 +64,7 @@ $detEvento = static fn(array $i): array => ['t' => 'evento', 'origem' => $i['ori
     'processo_id' => !empty($i['processo_id']) ? (int) $i['processo_id'] : null, 'titulo' => (string) ($i['titulo'] ?? ''),
     'data' => isset($i['data']) ? substr((string) $i['data'], 0, 10) : null, 'hora' => $i['hora'] ?? null,
     'tipo' => $i['tipo'] ?? Painel::tipoDoItem($i), 'resp' => $i['responsavel_nome'] ?? null,
-    'num' => $i['processo_numero'] ?? null, 'cliente' => $i['cliente_nome'] ?? null];
+    'num' => $i['processo_numero'] ?? null, 'cliente' => $i['cliente_nome'] ?? null, 'texto' => $i['texto'] ?? null];
 
 /** Um compromisso na lista do dia (o JS desenha igual ao trocar o dia). */
 // Cada compromisso é um cartão que leva ao lugar dele: o processo, ou o quadro de Tarefas.
@@ -117,7 +117,7 @@ $evento = static function (array $i) use ($h, $det, $detEvento): string {
           <svg class="ini-lua" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
           <svg class="ini-sol" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
         </button>
-        <a class="ini-sair-previa" href="<?= $h(InterfaceNova::enderecoCom((string) ($_SERVER['REQUEST_URI'] ?? '/dashboard'), '0')) ?>" title="Voltar ao desenho de sempre">Sair da prévia</a>
+        <a class="ini-sair-previa ini-btn" href="<?= $h(InterfaceNova::enderecoCom((string) ($_SERVER['REQUEST_URI'] ?? '/dashboard'), '0')) ?>" title="Voltar ao desenho de sempre">Sair da prévia</a>
       </div>
 
       <!-- ── Boas-vindas ── -->
@@ -207,6 +207,9 @@ $evento = static function (array $i) use ($h, $det, $detEvento): string {
                   <button type="button" class="ini-periodo-limpar" id="iniPeriodoLimpar" title="Voltar para hoje" aria-label="Limpar as datas">×</button>
                 </div>
               </div>
+              <!-- O mês em números (09/11/2026): os dias deixaram de esticar até o fim do cartão, e
+                   o espaço de baixo mostra o que o mês tem. O JS refaz ao trocar de mês. -->
+              <div class="ini-cal-resumo" id="iniCalResumo" aria-live="polite"></div>
             </div>
             <div class="ini-dia">
               <div class="ini-dia-h"><b id="iniDiaTitulo"><?= $h(Painel::tituloDoDia($hoje, $hoje)) ?></b><span class="ini-pill" id="iniDiaConta"><?= count($doDia) ?> <?= count($doDia) === 1 ? 'compromisso' : 'compromissos' ?></span></div>
@@ -383,6 +386,7 @@ window.INI_CAL = <?= json_encode(['hoje' => $hoje, 'mes' => $mes, 'porDia' => $p
   // O calendário: trocar de mês e de dia sem recarregar. Os dados já vieram na página.
   var C = window.INI_CAL, MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'],
       DIAS = ['dom','seg','ter','qua','qui','sex','sáb'], mesAtual = C.mes, sel = C.hoje;
+  setTimeout(function () { resumoDoMes(C.mes); }, 0);
   var elDias = document.getElementById('iniCalDias'), elMes = document.getElementById('iniCalMes'),
       elTit = document.getElementById('iniDiaTitulo'), elConta = document.getElementById('iniDiaConta'), elLista = document.getElementById('iniDiaLista');
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -400,12 +404,29 @@ window.INI_CAL = <?= json_encode(['hoje' => $hoje, 'mes' => $mes, 'porDia' => $p
     } while (d.getMonth() === m);
     elDias.innerHTML = html;
     elMes.textContent = MESES[m].charAt(0).toUpperCase() + MESES[m].slice(1) + ' de ' + y;
+    resumoDoMes(mes);
+  }
+  // O mês em números: quantos compromissos de cada tipo e em quantos dias.
+  function resumoDoMes(mes) {
+    var el = document.getElementById('iniCalResumo'); if (!el) return;
+    var y = +mes.slice(0, 4), m = +mes.slice(5, 7) - 1, pre = mes.slice(0, 7), conta = { prazo: 0, audiencia: 0, reuniao: 0, tarefa: 0 }, dias = 0;
+    Object.keys(C.porDia).forEach(function (k) {
+      if (k.slice(0, 7) !== pre) return;
+      dias++;
+      C.porDia[k].forEach(function (i) { conta[i.tipo] = (conta[i.tipo] || 0) + 1; });
+    });
+    var nomes = { prazo: ['prazo', 'prazos'], audiencia: ['audiência', 'audiências'], reuniao: ['reunião', 'reuniões'], tarefa: ['tarefa', 'tarefas'] };
+    el.innerHTML = '<div class="ini-cal-resumo-t">Em ' + MESES[m] + (y !== +C.hoje.slice(0, 4) ? ' de ' + y : '') + '</div>'
+      + '<div class="ini-cal-resumo-g">' + ['prazo', 'audiencia', 'reuniao', 'tarefa'].map(function (t) {
+        return '<div class="ini-cal-resumo-n ' + t + '"><b>' + conta[t] + '</b><span>' + nomes[t][conta[t] === 1 ? 0 : 1] + '</span></div>';
+      }).join('') + '</div>'
+      + '<div class="ini-cal-resumo-p">' + (dias ? dias + (dias === 1 ? ' dia com compromisso' : ' dias com compromisso') : 'Nenhum compromisso no mês') + '</div>';
   }
   // Um compromisso, igual ao que o PHP desenhou.
   function htmlEvento(i) {
     var sub = [i.processo_numero ? '<em class="ini-num">' + esc(i.processo_numero) + '</em>' : '', i.cliente_nome ? esc(i.cliente_nome) : ''].filter(Boolean).join(' · ');
     var href = i.processo_id ? '/processos?open=' + i.processo_id : '/tarefas';
-    var det = { t: 'evento', origem: i.origem || '', id: i.id || 0, processo_id: i.processo_id || null, titulo: i.titulo || '', data: i.data || null, hora: i.hora || null, tipo: i.tipo, resp: i.responsavel_nome || null, num: i.processo_numero || null, cliente: i.cliente_nome || null };
+    var det = { t: 'evento', origem: i.origem || '', id: i.id || 0, processo_id: i.processo_id || null, titulo: i.titulo || '', data: i.data || null, hora: i.hora || null, tipo: i.tipo, resp: i.responsavel_nome || null, num: i.processo_numero || null, cliente: i.cliente_nome || null, texto: i.texto || null };
     return '<a class="ini-ev ini-cartao ' + esc(i.tipo) + '" href="' + href + '" data-det="' + esc(JSON.stringify(det)) + '"><span class="ini-ev-hora">' + (i.hora ? esc(i.hora) : '<small>dia<br>todo</small>') + '</span>'
          + '<span class="ini-ev-t"><b>' + esc(i.titulo) + ' <i class="ini-tag ' + esc(i.tipo) + '">' + esc(C.tipos[i.tipo] || i.tipo) + '</i></b>'
          + (sub ? '<span>' + sub + '</span>' : '')

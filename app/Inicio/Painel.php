@@ -89,9 +89,44 @@ final class Painel
      * O que o item é, pelo título e pela origem: audiência e reunião se anunciam
      * no nome; prazo de processo é prazo; o resto é tarefa.
      */
+    public static function tituloCurto(string $titulo): ?string
+    {
+        // Prazo que nasceu de publicação traz o teor inteiro no nome: "Processo 1007778-... -
+        // Procedimento Comum Cível - Indenização por Dano Material - partes - Vistos. Fls...".
+        // Na agenda isso virava quatro linhas no lugar de um título (09/11/2026, "tem que ter
+        // revisão de designer"). Vira "Classe · Assunto" (o número já aparece na linha de baixo)
+        // ou, sem cabeçalho, a primeira frase. O texto inteiro segue em 'texto' (pop-up).
+        $t = trim($titulo);
+        if (mb_strlen($t) <= 90 || !preg_match('/^Processo\s+(n[ºo°.]*\s*)?\d/iu', $t)) return null;
+        try { $e = \App\Processos\PublicacaoEstrutura::estruturar($t); } catch (\Throwable $x) { return null; }
+        $partes = [];
+        foreach ($e['cabecalho'] ?? [] as $c) {
+            if (in_array($c['rotulo'], ['Classe', 'Classe e assunto', 'Assunto'], true) && $c['valor'] !== '') $partes[] = $c['valor'];
+        }
+        if ($partes) return implode(' · ', array_values(array_unique($partes)));
+        $p = (string) ($e['blocos'][0]['paragrafos'][0] ?? '');
+        // "Processo 1000895-90... distribuído para..." : o número já está na linha de baixo.
+        // O aviso de praxe do tribunal ("Para maiores informações, clique no link...") não é título.
+        $p = (string) preg_replace('/\s*Para (maiores|mais) informa[cç][oõ]es.*$/isu', '', $p);
+        $p = trim((string) preg_replace('/^Processo\s+(n[ºo°.]*\s*)?[\d.\-\/]+\s*[-–:,]?\s*/iu', '', $p));
+        if ($p !== '') $p = mb_strtoupper(mb_substr($p, 0, 1)) . mb_substr($p, 1);
+        return $p !== '' && mb_strlen($p) < mb_strlen($t) ? $p : null;
+    }
+
+    /** O título curto aplicado a uma lista de itens da Central: o original vai para 'texto'. */
+    public static function encurtarTitulos(array $itens): array
+    {
+        foreach ($itens as &$it) {
+            $curto = self::tituloCurto((string) ($it['titulo'] ?? ''));
+            if ($curto !== null) { $it['texto'] = (string) $it['titulo']; $it['titulo'] = $curto; }
+        }
+        unset($it);
+        return $itens;
+    }
+
     public static function tipoDoItem(array $item): string
     {
-        $t = self::semAcento((string) ($item['titulo'] ?? ''));
+        $t = self::semAcento((string) ($item['texto'] ?? $item['titulo'] ?? ''));
         if (str_contains($t, 'audienc')) return 'audiencia';
         if (str_contains($t, 'reuniao') || str_contains($t, 'reunir')) return 'reuniao';
         if (($item['origem'] ?? '') === 'prazo') return 'prazo';
@@ -281,6 +316,7 @@ final class Painel
                 'processo_numero' => $i['processo_numero'] ?? null, 'cliente_nome' => $i['cliente_nome'] ?? null,
                 'responsavel_nome' => $i['responsavel_nome'] ?? null,
                 'data' => substr((string) $i['data'], 0, 10),
+                'texto' => $i['texto'] ?? null,
             ];
         }
         foreach ($dias as &$lista) {
@@ -498,7 +534,7 @@ final class Painel
         $hoje  = $agora->format('Y-m-d');
 
         $central = Central::listar($escopo, ['situacao' => 'abertas']);
-        $itens   = $central['itens'];
+        $itens   = self::encurtarTitulos($central['itens']);
         $cont    = $central['contagem'];
         $agenda  = self::agendaDoDia($itens);
 

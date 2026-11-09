@@ -43,7 +43,7 @@ seleção em pílula.
 |---|---|
 | `InterfaceNova.php` | a chave da prévia. `ligada($_GET, $_COOKIE, $contaDeMarca)` decide sem efeito colateral; `aplicar()` grava o cookie `yuris_interface_nova` (um ano) quando a URL traz `?novo=1`, e apaga com `?novo=0`; `scriptCookie()` faz o mesmo por JavaScript, para o menu, que entra com os cabeçalhos já enviados. Conta de marca (edição CRM) nunca liga: o desenho dela é outro. É cookie, e não `localStorage` como a paleta, porque o PHP precisa saber antes de desenhar: a home nova é outra página |
 | `../../scripts/interface_nova_conta.php` | liga e desliga a prévia numa conta (`--procurar=NOME`, `--listar`, `--conta=ID --ligar/--desligar`), preservando o resto de `configuracoes`. Recusa conta de marca |
-| `Painel.php` | o que a home mostra, lido de onde já está, sem copiar: os quatro cartões de cima (prazos urgentes em até 3 dias, processos ativos, publicações pendentes, audiências na semana); o calendário do mês (`porDia`, `gradeDoMes`, todos os itens abertos com data, por dia, para o navegador trocar de mês e de dia sem recarregar); agenda e prazos de `App\Tarefas\Central` (as três tabelas, com a visibilidade de quadros e processos); publicações pendentes de `push_events`; a equipe de `users` + `CargaDaEquipe` + os prazos de processo cujo responsável é o nome da pessoa; processos por última movimentação com a última publicação de cada um; quem espera resposta no WhatsApp pela mesma regra de `MetricasAtendimento::relatorio` (a última mensagem é do contato); e os números do rodapé. As regras puras (saudação, tipo do item, rótulo de vencimento, frase do resumo, situação do processo) ficam separadas das consultas |
+| `Painel.php` | o que a home mostra, lido de onde já está, sem copiar: os quatro cartões de cima (prazos urgentes em até 3 dias, processos ativos, publicações pendentes, audiências na semana); o calendário do mês (`porDia`, `gradeDoMes`, todos os itens abertos com data, por dia, para o navegador trocar de mês e de dia sem recarregar); agenda e prazos de `App\Tarefas\Central` (as três tabelas, com a visibilidade de quadros e processos); publicações pendentes de `push_events`; a equipe de `users` + `CargaDaEquipe` + os prazos de processo cujo responsável é o nome da pessoa; processos por última movimentação com a última publicação de cada um; quem espera resposta no WhatsApp pela mesma regra de `MetricasAtendimento::relatorio` (a última mensagem é do contato); e os números do rodapé. As regras puras (saudação, tipo do item, rótulo de vencimento, frase do resumo, situação do processo) ficam separadas das consultas. Desde 09/11/2026 ("tem que ter revisão de designer"), `tituloCurto`/`encurtarTitulos`: prazo cujo nome é o teor colado de uma publicação vira "Classe · Assunto" (ou a primeira frase, sem o número do processo e sem o aviso de praxe "Para maiores informações..."); o original segue em `texto`, que o pop-up mostra em "Descrição" e de onde `tipoDoItem` lê o tipo |
 
 ## Onde entra
 
@@ -184,6 +184,12 @@ seleção em pílula.
   guardada ao sair (`yuris_menu_rolagem`, no `pagehide`) e devolvida num script inline logo
   depois do `</aside>`, antes da primeira pintura (na prévia o menu não rola, mas vale onde
   rolar).
+  **Revisão de designer da home (09/11/2026):** os dias do calendário viraram caixas de 46 px (eram
+  colunas de 40x129 px esticadas até o fim do cartão, teclas de piano no escuro); o bloco do
+  calendário tem a altura do conteúdo, e abaixo dos atalhos fica o mês em números (`#iniCalResumo`,
+  `resumoDoMes` no script da home: prazos, audiências, reuniões, tarefas e dias com compromisso, refeito
+  ao trocar de mês); o título dos compromissos que era teor de publicação ficou curto (`Painel::tituloCurto`);
+  "Sair da prévia" virou botão (`ini-btn`), como os vizinhos.
   **A tela nova só pinta com o menu inteiro** (09/11/2026: "enquanto eu seleciono as abas, tá
   piscando, parece que tá recarregando"). Em produção o PHP manda a página aos pedaços e o primeiro
   quadro saía sem o menu, e aí a view transition nem acontecia. Toda página com o menu tem no

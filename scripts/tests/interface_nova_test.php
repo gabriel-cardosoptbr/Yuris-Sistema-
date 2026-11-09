@@ -307,6 +307,15 @@ ok(preg_match("/var alvo = parseInt\\(el\\.textContent, 10\\);\\s*el\\.textConte
 ok(substr_count($sidebarMF, 'data-sb-recolher') >= 4 && str_contains($sidebarMF, "<script>try{if(localStorage.getItem('yuris_menu_retraido')==='1')"), 'o logo recolhe o menu também na interface nova (ele usa: "não tá recolhendo")');
 $sisJs = (string) file_get_contents($raiz . '/public/assets/interface-nova-sistema.js');
 ok(str_contains($sisJs, "if (ehCaixa(e)) return;") && str_contains($sisJs, "(e.closest('[data-inn-kpi]') && !e.hasAttribute('data-inn-kpi'))") && str_contains($sisJs, '&& !ehCaixa(alvo)) {'), 'cartão de indicador com classe de estado (kpi-danger) nunca vira selo nem faixa (perdia o fundo "às vezes")');
+// Revisão de designer da home (09/11/2026): os dias do calendário não esticam, o mês em números
+// ocupa o pé do calendário, e o prazo que é teor de publicação ganha um título curto.
+$iniCss = (string) file_get_contents($raiz . '/public/assets/inicio.css');
+$iniPhp = (string) file_get_contents($raiz . '/public/includes/dashboard_inicio.php');
+ok(str_contains($iniCss, 'grid-auto-rows:46px; gap:5px; flex:none;') && str_contains($iniCss, '.ini-agenda-corpo > .ini-cal{ align-self:start; }') && str_contains($iniPhp, 'id="iniCalResumo"') && str_contains($iniPhp, 'function resumoDoMes(mes)'), 'calendário: dias em caixas de 46 px, sem esticar, e o mês em números embaixo');
+ok(\App\Inicio\Painel::tituloCurto('Processo 1007778-20.2025.8.26.0554 - Procedimento Comum Cível - Indenização por Dano Material - Rafael de Oliveira Prado - - Vanessa Bucchi Baptista - Vistos. Fls. 671/676: Restando negativas') === 'Procedimento Comum Cível · Indenização por Dano Material'
+   && \App\Inicio\Painel::tituloCurto('Processo 1000895-90.2026.5.02.0473 distribuído para 3ª Vara do Trabalho de São Caetano do Sul na data 22/05/2026 Para maiores informações, clique no link a seguir: https://pje.trt2.jus.br/x') === 'Distribuído para 3ª Vara do Trabalho de São Caetano do Sul na data 22/05/2026'
+   && \App\Inicio\Painel::tituloCurto('Protocolar petição de instrução') === null, 'prazo com o teor da publicação no nome ganha título curto (o texto inteiro vai para o pop-up)');
+ok(\App\Inicio\Painel::tipoDoItem(['titulo' => 'Procedimento Comum Cível', 'texto' => 'Processo 1 - designada audiência de conciliação', 'origem' => 'prazo']) === 'audiencia', 'o tipo continua lido no texto inteiro');
 ok($semExpect === [],'toda página com o menu segura a pintura até o fim dele (rel=expect no <head>)' . ($semExpect ? ': falta em ' . implode(', ', $semExpect) : ''));
 ok(!preg_match('/^(?!.*(animation|transition|transform|opacity|keyframes|--mov|--cx|--cy|isolation|overflow|position|z-index|pointer-events|will-change|font-variant|border-radius|padding-top|width|left|top|background|display|content|border-color|transform-origin)).*:\s*#[0-9a-f]{3,6}/mi', $movCss), 'a folha do movimento não traz cor nova');
 $innCss = (string) @file_get_contents($raiz . '/public/assets/interface-nova-movimento.css');

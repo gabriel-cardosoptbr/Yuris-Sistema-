@@ -285,7 +285,10 @@
         + campo('Responsável', esc(d.resp))
         + campo('Origem', esc(ORIGEM[d.origem] || ''))
         + (d.processo_id ? '' : campo('Processo', num(d.num)) + campo('Cliente', esc(d.cliente)))
-        + '</div></div><div class="idt-extra"></div>';
+        + '</div></div>'
+        // O nome encurtado na agenda (o teor da publicação que virou o prazo) aparece inteiro aqui.
+        + (d.texto ? '<div class="idt-sec"><div class="idt-sec-t">Descrição</div><div class="idt-texto juridico">' + realcar(esc(formatarJuridico(limparTexto(d.texto)))) + '</div></div>' : '')
+        + '<div class="idt-extra"></div>';
       var extra = elCorpo.querySelector('.idt-extra');
       // A ação principal é concluir o próprio item; abrir a página fica ao lado.
       var concluir = d.origem === 'prazo' ? acao('Concluir prazo', 'concluir-prazo', true, ' data-id="' + (+d.id) + '"')
