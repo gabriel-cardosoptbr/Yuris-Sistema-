@@ -417,6 +417,18 @@
       var cs = getComputedStyle(el), marca = [];
       var ehCampo = /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName);
       var ehBotao = !ehCampo && (el.tagName === 'BUTTON' || /(^|[-_\s])btn|button|botao/i.test(cls));
+      // Azul-marinho do desenho antigo no tema escuro (09/11/2026, revisão do sistema inteiro):
+      // caixa, campo e botão com fundo azul-escuro saturado (#0F1A2E, #0C1729, rgba(15,33,60,.75))
+      // viram as superfícies neutras da home. O azul do Yuris (claro demais para cair aqui) e o
+      // azul suave (transparente demais) ficam como estão.
+      var vNv = rgb(cs.backgroundColor);
+      if (!claro() && vNv && vNv[3] > .3 && cs.backgroundImage.indexOf('gradient') < 0 && !el.classList.contains('inn-aba')) {
+        var hNv = matiz(vNv[0], vNv[1], vNv[2]);
+        if (hNv.h >= 200 && hNv.h <= 240 && hNv.s > .3 && hNv.l < .3 && !RE_BRANCO_NAO.test(cls) && !/overlay|backdrop|mask|scrim|shell|tooltip/i.test(cls + ' ' + el.id) && !(r.width >= innerWidth * .9 && r.height >= innerHeight * .9)) {
+          var tcNv = rgb(cs.color), textoClaro = tcNv && luz(tcNv) > .5;
+          fila.push([el, [ehCampo ? 'inn-c-campo' : ehBotao ? (textoClaro && r.height >= 30 ? 'inn-c-primario' : 'inn-c-botao') : 'inn-c-escuro']]); el.dataset.innBase = baseSelo(el); return;
+        }
+      }
       // Faixa de título: vira só o texto; nada mais nela é lido (nem como aviso tingido).
       if (!ehCampo && !ehBotao && RE_TITULO.test(cls) && !RE_TITULO_NAO.test(cls) && r.height <= 64 && !el.closest('table') && (el.textContent || '').trim() && temFaixa(cs)) {
         fila.push([el, ['inn-c-titulo']]); el.dataset.innBase = baseSelo(el); return;
@@ -439,7 +451,10 @@
         // Só o texto ou a borda coloridos: é o secundário. Vermelho é sempre perigo.
         var vbt = rgb(cs.backgroundColor), cheio = tb && vbt && vbt[3] > .6;
         var tom = (tb && tb !== 'azul') ? tb : (!tb && tt && tt !== 'azul') ? tt : (!tb && tbd && tbd !== 'azul') ? tbd : null;
-        if (tom === 'erro') marca.push('inn-c-perigo');
+        // Cheio de azul liso (azul vivo, royal ou marinho chapado): é o principal, e vira o degradê
+        // da home. Eram quatro azuis diferentes de botão principal pelo sistema (09/11/2026).
+        if (!tom && tb === 'azul' && cheio && r.height >= 30 && cs.backgroundImage.indexOf('gradient') < 0 && !el.closest('.sidebar, table, [class*="tab"]')) marca.push('inn-c-primario');
+        else if (tom === 'erro') marca.push('inn-c-perigo');
         else if (tom && cheio && r.height >= 30) marca.push('inn-c-primario');   // o miúdo dentro de cartão não ganha o brilho
         else if (tom) marca.push('inn-c-botao');
       } else if (!ehCampo && r.width > 120 && r.height > 26) {
@@ -1414,11 +1429,25 @@
     return true;
   }
 
+  // Quadro que continua para o lado: marca inn-tem-mais enquanto houver coluna à direita.
+  function marcarQuadros() {
+    [].forEach.call(document.querySelectorAll('.inn-tela .board, .inn-tela .tk-kanban, .inn-tela .proc-board'), function (q) {
+      if (q.dataset.innQuadro) return;
+      q.dataset.innQuadro = '1';
+      var t = null, f = function () { q.classList.toggle('inn-tem-mais', q.scrollLeft + q.clientWidth < q.scrollWidth - 4); };
+      var adia = function () { clearTimeout(t); t = setTimeout(f, 120); };
+      q.addEventListener('scroll', f, { passive: true }); window.addEventListener('resize', adia);
+      new MutationObserver(adia).observe(q, { childList: true, subtree: true });
+      f();
+    });
+  }
+
   // ── Ligar ───────────────────────────────────────────────────────────────
   function ligar() {
     var main = acharTela() || document.body;
     vestirArquivos(document.body);
     iconeNoCabecalho(); botoesDeIcone(document.body); fantasmas(main); marcarAbas(main); selos(document.body); vestirCores(document.body);
+    marcarQuadros(); setTimeout(marcarQuadros, 1500); setTimeout(marcarQuadros, 4000);
     // A tela estava invisível desde o menu (inn-vestindo, includes/sidebar.php): já vestida,
     // aparece. No quadro seguinte, quando o movimento (defer, logo depois) já ligou a entrada.
     requestAnimationFrame(function () { document.documentElement.classList.remove('inn-vestindo'); });

@@ -317,3 +317,16 @@ html .sidebar.sidebar.sidebar .sidebar-group-chevron, html[data-theme="light"] .
   html body .sidebar{ top:16px !important; height:calc(100vh - 32px) !important; max-height:calc(100vh - 32px) !important; align-self:flex-start !important; margin:0 !important; }
 }
 html.inn-vestindo .sidebar ~ :not(script):not(style):not(link){ opacity:0 !important; }
+
+/* ── Campo de lista com a seta (09/11/2026, revisão do sistema) ──────────────
+   No escuro os selects ficavam sem a seta e pareciam campo de texto (Tarefas, Usuários,
+   Atendimento, Relatórios...). Na prévia todo select de uma linha ganha a mesma seta, na cor
+   do texto apagado de cada tema. */
+html body select:not([multiple]):not([size]):not(.inn-sem-seta){
+  -webkit-appearance:none !important; appearance:none !important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B4BAC5' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
+  background-repeat:no-repeat !important; background-position:right 11px center !important; background-size:14px 14px !important;
+  padding-right:32px !important;
+}
+html[data-theme="light"] body select:not([multiple]):not([size]):not(.inn-sem-seta){ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235B6575' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important; }
+html body select:not([multiple]):not([size]):not(.inn-sem-seta)::-ms-expand{ display:none; }

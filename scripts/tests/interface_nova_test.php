@@ -325,6 +325,11 @@ $sisJs2 = (string) file_get_contents($raiz . '/public/assets/interface-nova-sist
 ok(str_contains($sisJs2, "if (linha.nextElementSibling) linha.style.marginBottom = '16px';"), 'cabeçalho de cartão com ícone tem 16 px até o conteúdo');
 ok(str_contains($sisJs2, "if (tipo === 'bar' && umaSerie && Array.isArray(ds.backgroundColor))") && str_contains($sisJs2, '(p === \'backgroundColor\' && ds.$innUmaCor)') && str_contains($sisJs2, "s.grace = '12%'"), 'gráficos: barra de uma série numa cor (estado guarda a dele), tooltip opaco e folga no topo');
 ok(str_contains((string) file_get_contents($raiz . '/public/assets/juridico_charts.js'), "trabalista: 'Trabalhista'"), 'tipos de ação: grafias da mesma ação juntas');
+$sisJs3 = (string) file_get_contents($raiz . '/public/assets/interface-nova-sistema.js');
+ok(str_contains($sisJs3, 'hNv.h >= 200 && hNv.h <= 240 && hNv.s > .3 && hNv.l < .3') && str_contains($sisJs3, "if (!tom && tb === 'azul' && cheio && r.height >= 30"), 'azul-marinho antigo no escuro vira superfície neutra, e botão azul liso vira o principal da home');
+ok(str_contains($sisJs3, 'function marcarQuadros()') && str_contains((string) file_get_contents($raiz . '/public/assets/interface-nova-sistema.css'), '.inn-tem-mais{'), 'quadro que continua para o lado esmaece na borda direita');
+ok(str_contains((string) file_get_contents($raiz . '/public/assets/interface-nova.css'), 'html body select:not([multiple]):not([size]):not(.inn-sem-seta){'), 'todo select de uma linha tem a seta nos dois temas');
+ok(str_contains((string) file_get_contents($raiz . '/public/clientes.php'), 'flex-shrink: 0;'), 'cartão de cliente não encolhe na coluna (telefone e CPF cortados)');
 ok($semExpect === [],'toda página com o menu segura a pintura até o fim dele (rel=expect no <head>)' . ($semExpect ? ': falta em ' . implode(', ', $semExpect) : ''));
 ok(!preg_match('/^(?!.*(animation|transition|transform|opacity|keyframes|--mov|--cx|--cy|isolation|overflow|position|z-index|pointer-events|will-change|font-variant|border-radius|padding-top|width|left|top|background|display|content|border-color|transform-origin)).*:\s*#[0-9a-f]{3,6}/mi', $movCss), 'a folha do movimento não traz cor nova');
 $innCss = (string) @file_get_contents($raiz . '/public/assets/interface-nova-movimento.css');

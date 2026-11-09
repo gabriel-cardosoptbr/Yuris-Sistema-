@@ -125,3 +125,7 @@ html .main-content hr{ border-color:var(--inn-t-linha) !important; }
 /* ── 7. Nada de brilho neon nem de barra colorida na lateral ─────────────── */
 html .main-content *{ text-shadow:none !important; }
 html .kpi-card, html .card, html .dash-panel, html .proc-panel{ border-left-width:1px !important; }
+
+/* Nada de dado escondido em reticências (09/11/2026, revisão do sistema): a vara e o órgão no
+   cartão do Processos ("JEF, Juizado Especial Federal de Brasíli...") quebram a linha. */
+html .inn-tela .proc-card .proc-card-meta{ white-space:normal !important; overflow:visible !important; overflow-wrap:anywhere; }

@@ -407,6 +407,13 @@ tem 16 px até o conteúdo (zerava a margem do título e a lista encostava). Gr�
 série só fica no azul do Yuris (só a cor que já era estado, vermelho, âmbar ou verde, fica), tooltip opaco, curva
 com no máximo `tension .25` e folga de 12% no topo do eixo. No Jurídico, os tipos de ação juntam grafias da mesma
 ação ("Trabalista" e "Trabalhista") e mostram o acento (`juridico_charts.js`).
+Na mesma revisão: azul-marinho antigo no tema escuro (fundo azul-escuro saturado, matiz 200 a 240, luz abaixo de
+30%) vira superfície neutra (`inn-c-escuro`), campo (`inn-c-campo`) ou botão (`inn-c-botao`, ou `inn-c-primario`
+quando o texto é claro); botão cheio de azul liso vira o principal da home (eram quatro azuis); todo select de uma
+linha ganha a seta nos dois temas (`interface-nova.css`); quadro que continua para o lado (Prospecção, Clientes,
+Tarefas, Processos) esmaece na borda direita (`inn-tem-mais`, `marcarQuadros`); a vara e o órgão do cartão de
+processo quebram a linha em vez de reticências (`interface-nova-telas.css`). Para todos: o cartão de cliente não
+encolhe dentro da coluna (`clientes.php`, `flex-shrink: 0`), que cortava telefone e CPF ao meio.
 **Cartão de indicador nunca vira selo** (09/11/2026): o `interface-nova-sistema.js` lê como selo o que tem
 classe de estado no nome (`-danger`, `-warn`...). O `kpi-card kpi-danger` do Processos, que é ele mesmo o
 `[data-inn-kpi]`, às vezes virava faixa e perdia o fundo; agora caixa com blocos dentro (`ehCaixa`) nunca é

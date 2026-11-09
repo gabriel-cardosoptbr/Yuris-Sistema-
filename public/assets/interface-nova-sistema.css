@@ -547,3 +547,10 @@ html:root .inn-arq[data-estado="erro"] .inn-arq-barra i{ background:var(--inn-t-
 /* O Enviar ao lado: apagado sem arquivo, azul do sistema quando há o que enviar. */
 html:root .inn-arq-enviar.inn-arq-enviar.inn-arq-enviar.inn-arq-enviar{ background:var(--inn-t-painel2) !important; background-image:none !important; color:var(--inn-t-texto3) !important; border-color:var(--inn-t-linha) !important; box-shadow:none !important; transition:background-color .25s ease, color .25s ease, box-shadow .25s ease; }
 html:root .inn-arq-enviar.inn-arq-pronto.inn-arq-enviar.inn-arq-enviar{ background:var(--inn-t-azul) !important; color:#FFFFFF !important; border-color:transparent !important; box-shadow:var(--inn-t-brilho) !important; }
+
+/* ── Quadro que continua para o lado (09/11/2026, revisão do sistema) ────────
+   Prospecção, Clientes, Tarefas e Processos: a última coluna saía cortada na borda direita
+   sem sinal de que havia mais. Enquanto houver coluna à direita, a borda esmaece (o JS marca
+   inn-tem-mais pela rolagem), e a barra de rolagem fica visível. */
+html .inn-tela .inn-tem-mais{ -webkit-mask-image:linear-gradient(to right, #000 calc(100% - 64px), transparent); mask-image:linear-gradient(to right, #000 calc(100% - 64px), transparent); }
+html .inn-tela :is(.qr-topo, .tk-kanban, .proc-board){ scrollbar-color:var(--inn-t-linha2) transparent; }

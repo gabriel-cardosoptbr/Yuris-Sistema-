@@ -278,6 +278,9 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
       padding: 10px 12px 10px 12px;
       cursor: grab; transition: transform .1s, box-shadow .1s, border-color .15s;
       overflow: hidden;
+      /* A coluna (.setor-body) é flex com rolagem: sem isto o cartão encolhia para caber e o
+         telefone e o CPF saíam cortados ao meio (09/11/2026, revisão do sistema). */
+      flex-shrink: 0;
     }
     html[data-theme="light"] .cli-card {
       background: #ffffff; border-color: #e2e8f0;
