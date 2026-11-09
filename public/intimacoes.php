@@ -493,12 +493,16 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
        cada seção do teor em parágrafos e a assinatura à parte. As cores saem do texto
        do cartão (currentColor e transparências), então servem ao tema claro, ao escuro
        e à interface nova. */
-    .int-est-cab { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 2px 0 6px; font-size: .76rem; line-height: 1.4; opacity: .92; }
+    .int-est-cab { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 2px 0 8px; font-size: .76rem; line-height: 1.4; opacity: .92; }
     .int-est-cab span { display: inline-flex; gap: 6px; align-items: baseline; min-width: 0; overflow-wrap: anywhere; }
     .int-est-cab b { font-size: .64rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; opacity: .65; }
     .int-est-timbre { font-size: .72rem; line-height: 1.45; opacity: .7; margin: 0 0 6px; overflow-wrap: anywhere; }
-    .int-est-sec { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 4px 12px; align-items: start; margin-top: 6px;
-      padding: 7px 10px; border-radius: 8px; background: rgba(127,142,163,.08); font-size: .76rem; line-height: 1.45; }
+    /* Uma ficha, uma borda (09/11/2026, "identação tá ruim"): rótulo na coluna da esquerda e todo o
+       conteúdo (partes, advogados e o teor) começando na mesma linha vertical; sem caixas com recuo
+       próprio, só um fio separando as seções. */
+    .int-est-sec { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 4px 14px; align-items: start; margin-top: 0;
+      padding: 8px 0; border-top: 1px solid rgba(127,142,163,.18); font-size: .78rem; line-height: 1.5; }
+    .int-est-cab + .int-est-sec, .int-est-timbre + .int-est-sec { margin-top: 4px; }
     .int-est-rot { font-size: .64rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; opacity: .65; padding-top: 2px; }
     .int-est-lista { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
     .int-est-grupo { display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: baseline; min-width: 0; }
@@ -506,17 +510,23 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
     .int-est-nomes { display: flex; flex-wrap: wrap; gap: 2px 0; min-width: 0; }
     .int-est-nome { overflow-wrap: anywhere; }
     .int-est-nome + .int-est-nome::before { content: "·"; margin: 0 7px; opacity: .45; }
-    .int-est-advs { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 3px 16px; min-width: 0; }
+    .int-est-advs { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
     .int-est-adv { display: flex; gap: 8px; align-items: baseline; min-width: 0; }
     .int-est-adv > span { overflow-wrap: anywhere; }
     .int-est-adv b { flex: none; font-size: .7rem; font-weight: 700; opacity: .7; white-space: nowrap; }
     .int-est-adv.minha, .int-est-adv.minha b { color: #10B981; opacity: 1; font-weight: 700; }
     .int-est-adv i { font-style: normal; color: #10B981; font-weight: 700; }
-    .int-pub-text.int-est-teor { white-space: normal; margin-top: 8px; }
+    .int-pub-text.int-est-teor { white-space: normal; margin-top: 0; font-size: .82rem; }
+    .int-est-sec-teor { padding-bottom: 2px; }
+    /* O pé do texto recolhido some por máscara, e não por uma camada colorida por cima: a camada
+       tinha a cor do desenho antigo e virava um retângulo de outra cor no cartão. Serve a qualquer fundo. */
+    html .int-pub-card .int-est-teor .int-pub-text-fade { display: none !important; }
+    .int-pub-text.int-est-teor.int-est-longo:not(.expanded) { -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%); mask-image: linear-gradient(to bottom, #000 72%, transparent 100%); }
+    .int-pub-text.int-est-teor.expanded { -webkit-mask-image: none; mask-image: none; }
     .int-est-bloco + .int-est-bloco { margin-top: 10px; }
     .int-est-secao { font-size: .66rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: #3D65CB; margin-bottom: 3px; }
     html:not([data-theme="light"]) .int-est-secao { color: #93C5FD; }
-    .int-est-bloco p { margin: 0 0 6px; text-align: justify; hyphens: auto; }
+    .int-est-bloco p { margin: 0 0 7px; text-align: left; hyphens: manual; max-width: 92ch; }
     .int-est-bloco p:last-child { margin-bottom: 0; }
     .int-est-assin { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; margin-top: 6px; font-size: .76rem; text-align: right; }
     .int-est-assin span { opacity: .75; }

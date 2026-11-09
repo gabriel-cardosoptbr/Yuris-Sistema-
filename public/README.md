@@ -397,7 +397,11 @@ rolagem guardada num script inline logo depois do `</aside>`. Ver `app/Inicio/RE
 `_renderEstrutura`) desenha a `estrutura` que a API manda (`App\Processos\PublicacaoEstrutura`): cabeçalho
 em rótulo e valor, partes por polo, advogados um por linha com a OAB (a monitorada em verde), cada seção do
 teor com parágrafos e a assinatura à direita, intimados e o link da certidão. O desenho (`.int-est-*`) mora
-no `<style>` de `intimacoes.php`, com cores relativas ao texto, e serve aos dois temas e à prévia.
+no `<style>` de `intimacoes.php`, com cores relativas ao texto, e serve aos dois temas e à prévia. É uma ficha
+com uma borda só (09/11/2026, "identação tá ruim"): rótulo à esquerda (Partes, Advogados, Teor) e o conteúdo
+na mesma linha vertical, advogados um por linha, texto alinhado à esquerda sem hifenizar; o pé do texto longo
+recolhido some por máscara (`int-est-longo`), sem a camada de cor antiga. O hover dos botões só de ícone é o
+azul cheio com o ícone branco (`interface-nova-sistema.css`, acima do `#EFF6FF !important` da tela).
 **Cartão de indicador nunca vira selo** (09/11/2026): o `interface-nova-sistema.js` lê como selo o que tem
 classe de estado no nome (`-danger`, `-warn`...). O `kpi-card kpi-danger` do Processos, que é ele mesmo o
 `[data-inn-kpi]`, às vezes virava faixa e perdia o fundo; agora caixa com blocos dentro (`ehCaixa`) nunca é

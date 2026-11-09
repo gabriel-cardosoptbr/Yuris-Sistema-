@@ -317,6 +317,8 @@ ok(\App\Inicio\Painel::tituloCurto('Processo 1007778-20.2025.8.26.0554 - Procedi
    && \App\Inicio\Painel::tituloCurto('Protocolar petição de instrução') === null, 'prazo com o teor da publicação no nome ganha título curto (o texto inteiro vai para o pop-up)');
 ok(\App\Inicio\Painel::tipoDoItem(['titulo' => 'Procedimento Comum Cível', 'texto' => 'Processo 1 - designada audiência de conciliação', 'origem' => 'prazo']) === 'audiencia', 'o tipo continua lido no texto inteiro');
 ok(str_contains($iniCss, '.idt-escolha .idt-mini{ display:inline-flex; align-items:center; justify-content:center;') && str_contains($iniCss, '.idt-escolha .idt-mini::after{'), '"Ler e tratar" com o texto no meio da pílula e a seta');
+$sisCss = (string) file_get_contents($raiz . '/public/assets/interface-nova-sistema.css');
+ok(str_contains($sisCss, 'html:root body .inn-ic-btn.inn-ic-btn:hover:not(:disabled){ background:linear-gradient('), 'botão só de ícone: no hover o fundo é o azul cheio, acima da folha da tela (o ícone branco sumia no azul-clarinho)');
 ok($semExpect === [],'toda página com o menu segura a pintura até o fim dele (rel=expect no <head>)' . ($semExpect ? ': falta em ' . implode(', ', $semExpect) : ''));
 ok(!preg_match('/^(?!.*(animation|transition|transform|opacity|keyframes|--mov|--cx|--cy|isolation|overflow|position|z-index|pointer-events|will-change|font-variant|border-radius|padding-top|width|left|top|background|display|content|border-color|transform-origin)).*:\s*#[0-9a-f]{3,6}/mi', $movCss), 'a folha do movimento não traz cor nova');
 $innCss = (string) @file_get_contents($raiz . '/public/assets/interface-nova-movimento.css');

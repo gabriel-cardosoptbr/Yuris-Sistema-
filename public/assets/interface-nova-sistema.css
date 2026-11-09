@@ -89,6 +89,13 @@ html .inn-ic-btn{
 html .inn-ic-btn svg, html .inn-ic-btn svg *{ stroke:var(--inn-t-icone) !important; }
 html .inn-ic-btn:hover:not(:disabled){ transform:translateY(-2px); background:linear-gradient(180deg, var(--inn-t-azul2), var(--inn-t-azul)) !important; border-color:transparent !important; box-shadow:var(--inn-t-brilho) !important; }
 html .inn-ic-btn:hover:not(:disabled) svg, html .inn-ic-btn:hover:not(:disabled) svg *{ stroke:#fff !important; }
+/* Hover que vence a folha da tela (09/11/2026, "hover tá ruim"): na Publicações o tema claro
+   antigo punha #EFF6FF !important no hover, e o ícone já branco sumia no azul-clarinho. Por id de
+   corpo e classe dobrada, o fundo é sempre o azul cheio quando o ícone fica branco. O vinculado
+   (is-linked) fica no azul suave, para continuar se destacando dos outros. */
+html:root body .inn-ic-btn.inn-ic-btn:hover:not(:disabled){ background:linear-gradient(180deg, var(--inn-t-azul2), var(--inn-t-azul)) !important; border-color:transparent !important; box-shadow:var(--inn-t-brilho) !important; color:#fff !important; }
+html:root body .inn-ic-btn.inn-ic-btn.is-linked:not(:hover){ background:var(--inn-t-azul-suave) !important; border-color:rgba(61,101,203,.45) !important; }
+html:root body .inn-ic-btn.inn-ic-btn.is-linked:not(:hover) svg, html:root body .inn-ic-btn.inn-ic-btn.is-linked:not(:hover) svg *{ stroke:var(--inn-t-azul2) !important; }
 html .kpi-icon, html .chat-kpi-icon, html .o-kpi-ic, html .kpi-ic, html .stat-icon, html .card-icon{
   background:var(--inn-t-fundo) !important; background-image:none !important; border:1px solid var(--inn-t-linha) !important;
   box-shadow:var(--inn-t-fundo-sombra) !important; border-radius:8px !important; color:var(--inn-t-icone) !important;

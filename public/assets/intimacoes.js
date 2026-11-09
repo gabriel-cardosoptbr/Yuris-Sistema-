@@ -1104,7 +1104,7 @@
             ${est ? est.partes : this._renderPartesLine(it.partes)}
             ${est ? est.advs : this._renderAdvogadosLine(it.advogados)}
             ${est
-              ? `<div class="int-pub-text int-est-teor" data-text-len="${texto.length}">${est.teor}${texto.length > 400 ? '<div class="int-pub-text-fade"></div>' : ''}</div>`
+              ? `<div class="int-est-sec int-est-sec-teor"><div class="int-est-rot">Teor</div><div class="int-pub-text int-est-teor${texto.length > 400 ? ' int-est-longo' : ''}" data-text-len="${texto.length}">${est.teor}${texto.length > 400 ? '<div class="int-pub-text-fade"></div>' : ''}</div></div>`
               : `<div class="int-pub-text" data-text-len="${texto.length}">${this._realcar(esc(this._formatLegal(texto)))}${texto.length > 400 ? '<div class="int-pub-text-fade"></div>' : ''}</div>`}
             ${texto.length > 400
               ? `<button class="int-pub-text-toggle" data-action="toggle-text" data-hash="${esc(it.hash_conteudo)}">Ver tudo (${texto.length.toLocaleString('pt-BR')} caracteres)</button>`
