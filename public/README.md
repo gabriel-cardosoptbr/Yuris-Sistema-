@@ -379,7 +379,10 @@ Tarefas mostra o mesmo log (`#ipHist` em `tarefas.php`).
 Na prévia (`_NOVA` em `assets/processos.js`, que olha se a folha de pop-ups da interface nova está na
 página), prazo e tarefa do processo têm o mesmo cartão claro, a prioridade numa etiqueta à direita e o
 responsável numa etiqueta com a inicial que abre o cartão da pessoa (`/api/pessoa.php`; clique fora, Esc
-ou rolar fecham). Fora da prévia, o desenho de sempre. O desenho mora no fim de `interface-nova-popups.css`,
+ou rolar fecham). Os botões do cartão são os do pop-up da home: Concluir no azul suave (`proc-bt-ok`),
+Editar secundário (`proc-bt`) e remover como lixeira na caixa afundada (`proc-bt-ic`, acende em vermelho).
+Fora da prévia, o desenho de sempre. Esc com a ficha do prazo ou da tarefa aberta fecha só ela, não o
+processo atrás (vale para todos). O desenho mora no fim de `interface-nova-popups.css`,
 por id e classe dobrada, porque o `yuris-theme.css` pinta os dois com `#prazosContainer > div:not(...)`.
 O Histórico Processual da ficha marca `data-tipo` e `data-tom` em cada registro (`_histTipo` em
 `assets/processos.js`); só a prévia usa, para o ícone e a cor (fim do `interface-nova-popups.css`).

@@ -537,7 +537,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
   btnNew.addEventListener('click', ()=>showModal());
   cancelBtn.addEventListener('click', hideModal);
   document.getElementById('modalCloseX')?.addEventListener('click', hideModal);
-  document.addEventListener('keydown', e=>{ if (e.key === 'Escape' && !modal.classList.contains('hidden')) hideModal(); });
+  document.addEventListener('keydown', e=>{
+    if (e.key !== 'Escape') return;
+    // Esc fecha só o que está por cima: a ficha do prazo ou da tarefa (e o "Adicionar prazo")
+    // abrem sobre o processo, e antes o Esc fechava o processo atrás e deixava a ficha na tela.
+    const sobre = ['modalEditTarefa', 'modalAddPrazo'].map(id => document.getElementById(id)).find(m => m && m.style.display === 'flex');
+    if (sobre) { sobre.style.display = 'none'; return; }
+    if (!modal.classList.contains('hidden')) hideModal();
+  });
 
   // Reavalia aviso de "status final + prazo futuro" ao alterar qualquer um dos dois campos
   document.getElementById('statusProcessoInput')?.addEventListener('change', _updateStatusPrazoHint);
@@ -1067,6 +1074,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && _cartao) { e.stopPropagation(); _fecharPessoa(); } }, true);
   document.addEventListener('scroll', e => { if (_cartao && !_cartao.contains(e.target)) _fecharPessoa(); }, true);
 
+  // Os botões do cartão no desenho da home (só na prévia): Concluir é o botão miúdo azul suave
+  // do pop-up da home, Editar o secundário, e remover vira o ícone da lixeira na caixa afundada.
+  const _icLixo = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+  const _icCheck = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
+
   function _fmtD(d) { const m = String(d||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}/${m[1]}` : (d||'—'); }
 
   function _renderPrazo(p) {
@@ -1080,11 +1092,15 @@ document.addEventListener('DOMContentLoaded', ()=>{
           : `<span>${_fmtD(p.data_limite)}</span>${p.responsavel?`<span>Resp.: ${p.responsavel}</span>`:''}<span>${p.prioridade||'media'}</span>`}
       </div>
       ${p.observacao?`<div style="font-size:.75rem;color:#7a9abf;font-style:italic">${p.observacao}</div>`:''}
-      <div style="display:flex;gap:6px;margin-top:2px">
+      ${_NOVA ? `<div class="proc-bts">
+        ${p.status!=='concluido'?`<button type="button" class="proc-bt proc-bt-ok" onclick="window._togglePrazo(${p.id},'concluido')">${_icCheck}Concluir</button>`:''}
+        <button type="button" class="proc-bt prazo-btn-edit" onclick="window._editarPrazo(${p.id})">Editar</button>
+        <button type="button" class="proc-bt-ic" onclick="window._deletePrazo(${p.id})" title="Remover prazo" aria-label="Remover prazo">${_icLixo}</button>
+      </div>` : `<div style="display:flex;gap:6px;margin-top:2px">
         ${p.status!=='concluido'?`<button type="button" style="padding:4px 10px;font-size:.75rem;border-radius:6px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:#6ee7b7;cursor:pointer" onclick="window._togglePrazo(${p.id},'concluido')">✓ Concluir</button>`:''}
         <button type="button" class="prazo-btn-edit" style="padding:4px 10px;font-size:.75rem;border-radius:6px;background:transparent;border:1px solid rgba(96,165,250,.3);color:#93c5fd;cursor:pointer" onclick="window._editarPrazo(${p.id})">Editar</button>
         <button type="button" style="padding:4px 10px;font-size:.75rem;border-radius:6px;background:transparent;border:1px solid rgba(239,68,68,.3);color:#fca5a5;cursor:pointer" onclick="window._deletePrazo(${p.id})">Remover</button>
-      </div>
+      </div>`}
     </div>`;
   }
 
@@ -1186,14 +1202,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
           <div style="display:flex;gap:10px;flex-wrap:wrap">${respHtml}${dataHtml}</div>
         </div>
         ${_NOVA ? _chipPrio(t.prioridade) : ''}
-        <button type="button" class="tarefa-btn-edit"
+        <button type="button" class="tarefa-btn-edit${_NOVA ? ' proc-bt' : ''}"
           data-id="${t.id}"
           data-titulo="${t.titulo.replace(/"/g,'&quot;')}"
           data-resp="${(t.responsavel||'').replace(/"/g,'&quot;')}"
           data-data="${t.data_tarefa||''}"
           data-prio="${t.prioridade||'media'}"
           onclick="window._editarTarefa(this)">Editar</button>
-        <button type="button" class="tarefa-del" onclick="window._deleteTarefa(${t.id})" title="Remover">✕</button>
+        ${_NOVA
+          ? `<button type="button" class="tarefa-del proc-bt-ic" onclick="window._deleteTarefa(${t.id})" title="Remover tarefa" aria-label="Remover tarefa">${_icLixo}</button>`
+          : `<button type="button" class="tarefa-del" onclick="window._deleteTarefa(${t.id})" title="Remover">✕</button>`}
       </div>`;
     }).join('') : '<div style="color:#7a9abf;font-size:.8rem;padding:8px 4px">Nenhuma tarefa cadastrada</div>';
   }

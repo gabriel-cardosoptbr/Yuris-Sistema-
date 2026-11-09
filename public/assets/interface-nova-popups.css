@@ -125,6 +125,29 @@ html:root button.proc-resp:hover{ border-color:var(--inn-t-azul2) !important; bo
 html:root .proc-resp-ini{ display:inline-grid; place-items:center; width:20px; height:20px; border-radius:50%; background:var(--inn-t-azul); color:#FFFFFF; font-size:9.5px; font-weight:800; letter-spacing:.02em; flex:none; }
 html:root .proc-resp-sem .proc-resp-ini{ background:var(--inn-t-texto3); }
 html:root .proc-resp-nome{ overflow-wrap:anywhere; }
+/* Os botões do cartão (08/11/2026, "os botões não estão de acordo, com o design do sistema"):
+   os mesmos do pop-up da home. Concluir é o botão miúdo azul suave (idt-mini), que acende no
+   azul cheio; Editar é o secundário em relevo (idt-btn), com texto azul; remover é o ícone da
+   lixeira na caixa afundada (inn-ic-btn), que acende em vermelho por ser a ação que apaga. Todos
+   com 30px de altura, para a linha ficar reta. Por id e classe dobrada: o processos.php e o
+   yuris-theme.css pintam .tarefa-btn-edit e .tarefa-del com !important. */
+html:root .proc-bts{ display:flex; align-items:center; gap:6px; margin-top:4px; flex-wrap:wrap; }
+html:root body :is(#prazosContainer, #tarefasContainer) .proc-bt.proc-bt{ height:30px; padding:0 12px !important; display:inline-flex; align-items:center; gap:6px; flex:none; border-radius:8px !important;
+  border:1px solid var(--inn-t-linha2) !important; background:var(--inn-t-painel2) !important; background-image:none !important; color:var(--inn-t-azul2) !important;
+  box-shadow:0 1px 0 var(--inn-t-hi) inset !important; font:inherit; font-size:12px !important; font-weight:700 !important; line-height:1 !important; cursor:pointer;
+  transition:transform .15s ease, background-color .15s ease, color .15s ease, border-color .15s ease, box-shadow .15s ease !important; }
+html:root body :is(#prazosContainer, #tarefasContainer) .proc-bt.proc-bt:hover{ background:linear-gradient(180deg, var(--inn-t-azul2), var(--inn-t-azul)) !important; color:#FFFFFF !important; border-color:transparent !important; box-shadow:var(--inn-t-brilho) !important; transform:translateY(-1px); }
+html:root body :is(#prazosContainer, #tarefasContainer) .proc-bt.proc-bt-ok{ border-color:transparent !important; background:var(--inn-t-azul-suave) !important; box-shadow:none !important; }
+html:root body :is(#prazosContainer, #tarefasContainer) .proc-bt svg{ stroke:currentColor !important; flex:none; }
+html:root body :is(#prazosContainer, #tarefasContainer) .proc-bt-ic.proc-bt-ic{ width:30px; height:30px; padding:0 !important; display:inline-grid; place-items:center; flex:none; border-radius:8px !important;
+  background:var(--inn-t-fundo) !important; background-image:none !important; border:1px solid var(--inn-t-linha) !important; box-shadow:var(--inn-t-fundo-sombra) !important;
+  color:var(--inn-t-icone) !important; cursor:pointer; transition:transform .15s ease, background-color .15s ease, color .15s ease, border-color .15s ease !important; }
+html:root body :is(#prazosContainer, #tarefasContainer) .proc-bt-ic svg, html:root body :is(#prazosContainer, #tarefasContainer) .proc-bt-ic svg *{ stroke:currentColor !important; }
+html:root body :is(#prazosContainer, #tarefasContainer) .proc-bt-ic.proc-bt-ic:hover{ background:var(--inn-t-erro-bg) !important; color:var(--inn-t-erro-forte) !important; border-color:transparent !important; box-shadow:none !important; transform:translateY(-1px); }
+html:root body :is(#prazosContainer, #tarefasContainer) :is(.proc-bt, .proc-bt-ic):focus-visible{ outline:2px solid var(--inn-t-azul2); outline-offset:2px; }
+/* Tarefa concluída: a linha apaga, mas os botões continuam legíveis. */
+html:root #tarefasContainer .tarefa-item.done-item :is(.proc-bt, .proc-bt-ic){ opacity:.9; }
+
 /* O cartão da pessoa: o pop-up da pessoa da home, pequeno, embaixo da etiqueta. */
 .proc-pessoa{ position:fixed; z-index:6000; width:300px; max-width:calc(100vw - 24px); padding:14px; border-radius:14px; background:var(--inn-t-painel); color:var(--inn-t-texto); border:1px solid var(--inn-t-linha2); box-shadow:0 1px 0 var(--inn-t-hi) inset, 0 22px 50px rgba(0,0,0,.22); display:flex; flex-direction:column; gap:10px; font-size:13px; }
 @media (prefers-reduced-motion: no-preference){ .proc-pessoa{ animation:proc-pessoa-surge .28s cubic-bezier(.34,1.3,.4,1) both; } @keyframes proc-pessoa-surge{ from{ opacity:0; transform:translateY(-6px) scale(.97); } to{ opacity:1; transform:none; } } }
