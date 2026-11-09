@@ -31,12 +31,16 @@
   document.addEventListener('pointerdown', function () { ultimoClique = performance.now(); }, true);
   function podeAnimar() { var n = performance.now(); return n - inicio < 5000 || n - ultimoClique < 1500; }
 
+  // O menu e a barra do celular nunca entram nem crescem: em tela cujo <main> embrulha o próprio
+  // menu (Webhooks), os ícones do menu ganhavam inn-cresce, que só anima dentro da tela, e ficavam
+  // invisíveis para sempre (09/11/2026, revisão do sistema).
+  var FORA = '.sidebar, .mobile-tabbar, .inn-emb';
   function entrarItens(raiz) {
     if (!raiz.querySelectorAll) return;
     var itens = (raiz.matches && raiz.matches(SEL_ITEM) ? [raiz] : []).concat([].slice.call(raiz.querySelectorAll(SEL_ITEM)));
     var porPai = new Map();
     itens.forEach(function (el) {
-      if (el.dataset.inn) return;
+      if (el.dataset.inn || el.closest(FORA)) return;
       el.dataset.inn = '1';
       // Quem já tem transform próprio (a coluna do quadro gira em rotateX para a barra
       // ficar em cima) não entra: a animação sobrescreveria o giro e o texto viraria de cabeça para baixo.
@@ -51,7 +55,7 @@
     if (!raiz.querySelectorAll) return;
     var k = 0;
     [].forEach.call(raiz.querySelectorAll('svg'), function (s) {
-      if (k >= 40 || s.dataset.inn) return;
+      if (k >= 40 || s.dataset.inn || s.closest(FORA)) return;
       var r = s.getBoundingClientRect();
       if (r.width < 10 || r.width > 56 || r.height > 56) return;
       s.dataset.inn = '1'; s.style.setProperty('--mov-i', k++); s.classList.add('inn-cresce');
@@ -82,7 +86,7 @@
     if (raiz.nodeType === 1) todos.unshift(raiz);
     for (var i = 0; i < todos.length && k < 40; i++) {
       var el = todos[i];
-      if (el.children.length || el.dataset.inn || /^(INPUT|TEXTAREA|SELECT|OPTION|SCRIPT|STYLE|TITLE)$/.test(el.tagName)) continue;
+      if (el.children.length || el.dataset.inn || /^(INPUT|TEXTAREA|SELECT|OPTION|SCRIPT|STYLE|TITLE)$/.test(el.tagName) || el.closest(FORA)) continue;
       // Quem ainda está vazio ou em zero não é marcado: o contador das abas e das colunas
       // é preenchido depois, trocando só o texto, e aí conta.
       if (!/^\s*\d{1,6}\s*$/.test(el.textContent) || !(parseInt(el.textContent, 10) > 0)) continue;

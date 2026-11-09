@@ -184,6 +184,9 @@ seleção em pílula.
   guardada ao sair (`yuris_menu_rolagem`, no `pagehide`) e devolvida num script inline logo
   depois do `</aside>`, antes da primeira pintura (na prévia o menu não rola, mas vale onde
   rolar).
+  **O movimento nunca anima o menu (09/11/2026):** em tela cujo `<main>` embrulha o próprio menu (Webhooks), os
+  ícones do menu e o sino ganhavam `inn-cresce` (que só anima dentro da tela) e ficavam invisíveis; o
+  `interface-nova-movimento.js` pula `.sidebar, .mobile-tabbar, .inn-emb` (`FORA`).
   **Animação no pop-up embutido (09/11/2026, "tá faltando as animações"):** no modo embutido (`?embed=1`, a
   tela aberta dentro da home ou da Central) o `interface-nova-movimento.js` não ligava nada, e a ficha do
   processo surgia parada. Agora liga `inn-mov-pop` (só a entrada dos pop-ups: o painel surge, as linhas

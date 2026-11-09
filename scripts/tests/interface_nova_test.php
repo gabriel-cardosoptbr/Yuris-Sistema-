@@ -330,6 +330,7 @@ ok(str_contains($sisJs3, 'hNv.h >= 200 && hNv.h <= 240 && hNv.s > .3 && hNv.l < 
 ok(str_contains($sisJs3, 'function marcarQuadros()') && str_contains((string) file_get_contents($raiz . '/public/assets/interface-nova-sistema.css'), '.inn-tem-mais{'), 'quadro que continua para o lado esmaece na borda direita');
 ok(str_contains((string) file_get_contents($raiz . '/public/assets/interface-nova.css'), 'html body select:not([multiple]):not([size]):not(.inn-sem-seta){'), 'todo select de uma linha tem a seta nos dois temas');
 ok(str_contains((string) file_get_contents($raiz . '/public/clientes.php'), 'flex-shrink: 0;'), 'cartão de cliente não encolhe na coluna (telefone e CPF cortados)');
+ok(str_contains((string) file_get_contents($raiz . '/public/assets/interface-nova-movimento.js'), "var FORA = '.sidebar, .mobile-tabbar, .inn-emb';"), 'o movimento da tela nunca anima o menu (os ícones sumiam em Webhooks)');
 ok($semExpect === [],'toda página com o menu segura a pintura até o fim dele (rel=expect no <head>)' . ($semExpect ? ': falta em ' . implode(', ', $semExpect) : ''));
 ok(!preg_match('/^(?!.*(animation|transition|transform|opacity|keyframes|--mov|--cx|--cy|isolation|overflow|position|z-index|pointer-events|will-change|font-variant|border-radius|padding-top|width|left|top|background|display|content|border-color|transform-origin)).*:\s*#[0-9a-f]{3,6}/mi', $movCss), 'a folha do movimento não traz cor nova');
 $innCss = (string) @file_get_contents($raiz . '/public/assets/interface-nova-movimento.css');
