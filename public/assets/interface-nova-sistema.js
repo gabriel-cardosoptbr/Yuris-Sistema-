@@ -1082,7 +1082,9 @@
     pai.insertBefore(caixa, pai.firstChild);
     // A grade da home: ícone à esquerda, ocupando as linhas do texto.
     var linhas = [].filter.call(pai.children, function (c) { return c !== caixa && visivel(c); }).length || 1;
-    emLinha(pai, { 'display': 'grid', 'grid-template-columns': 'auto minmax(0, 1fr)', 'column-gap': '14px', 'row-gap': '0', 'align-items': 'center', 'align-content': 'center' });
+    // Pelo topo, não pelo meio: centrado, o subtítulo de duas linhas num cartão subia o número dele
+    // acima dos vizinhos (09/11/2026, revisão do sistema: Planejamento, Processos, Atendimento).
+    emLinha(pai, { 'display': 'grid', 'grid-template-columns': 'auto minmax(0, 1fr)', 'column-gap': '14px', 'row-gap': '0', 'align-items': 'center', 'align-content': 'start' });
     emLinha(caixa, { 'grid-column': '1', 'grid-row': '1 / span ' + linhas });
     [].forEach.call(pai.children, function (c) { if (c !== caixa) emLinha(c, { 'grid-column': '2' }); });
   }
@@ -1142,8 +1144,42 @@
       });
       paineis.forEach(function (p) { if (!paineis.some(function (o) { return o !== p && o.contains(p); })) vestirCartaoDaTela(p); });
       promoverFaixas(tela);
+      igualarIndicadores();
     }, 120);
   }
+  // O número de cada indicador na mesma altura dos vizinhos da fileira: quando o rótulo de um quebra
+  // em duas linhas, o número dele descia (09/11/2026, revisão do sistema: Planejamento). Mede e
+  // empurra os outros números da mesma fileira até a linha do mais baixo.
+  function igualarIndicadores() {
+    var grupos = new Map();
+    [].forEach.call(document.querySelectorAll('.inn-tela [data-inn-kpi]'), function (k) {
+      var p = k.parentElement; if (!grupos.has(p)) grupos.set(p, []); grupos.get(p).push(k);
+    });
+    grupos.forEach(function (ks) {
+      ks.forEach(function (k) { var v = k.querySelector('[data-inn-kpi-num]'); if (v) v.style.removeProperty('margin-top'); });
+      // Em até três passadas: a grade do indicador reparte parte da margem, então mede de novo e soma o resto.
+      for (var passo = 0; passo < 3; passo++) {
+        var porLinha = {}, mexeu = false;
+        ks.forEach(function (k) {
+          var v = k.querySelector('[data-inn-kpi-num]'); if (!v) return;
+          var rk = k.getBoundingClientRect(), rv = v.getBoundingClientRect(); if (!rk.width) return;
+          var l = Math.round(rk.top); (porLinha[l] = porLinha[l] || []).push({ v: v, t: rv.top - rk.top });
+        });
+        Object.keys(porLinha).forEach(function (l) {
+          var arr = porLinha[l]; if (arr.length < 2) return;
+          var mx = Math.max.apply(null, arr.map(function (o) { return o.t; }));
+          arr.forEach(function (o) {
+            if (mx - o.t <= 1) return;
+            var atual = parseFloat(o.v.style.marginTop) || 0;
+            o.v.style.setProperty('margin-top', Math.round(atual + mx - o.t) + 'px', 'important'); mexeu = true;
+          });
+        });
+        if (!mexeu) break;
+      }
+    });
+  }
+  var igualarT = null;
+  window.addEventListener('resize', function () { clearTimeout(igualarT); igualarT = setTimeout(igualarIndicadores, 150); });
   new MutationObserver(function (ms) {
     for (var i = 0; i < ms.length; i++) if (ms[i].addedNodes.length) { var t = ms[i].target; if (t.nodeType === 1 && t.closest && t.closest('.inn-tela') && !t.closest(SEL_POPUP)) { vestirTela(); return; } }
   }).observe(document.body, { childList: true, subtree: true });
