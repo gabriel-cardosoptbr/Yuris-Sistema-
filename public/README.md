@@ -556,6 +556,10 @@ a janela do dia (`.inn-dia-overlay`) com cada processo que vence nele (número, 
 ficha"), e clicar num processo, no dia ou na janela, abre a ficha. A Agenda ganha os filtros de situação (Todos,
 Vencidos, Hoje e urgentes, Esta semana, Em dia, Encerrados, cada um com a contagem, pelo selo da linha) e de período
 (de, até), com Limpar; filtram as linhas que o `processos.js` desenhou e refiltram quando ele redesenha.
+Ajustes ("a seleção muda de posição na Agenda; o Mês atual não pode sumir; ao filtrar a tela encolhe"): o "Mês atual"
+fica nas três visões (na Agenda ele põe o período no mês de hoje), e a troca de visão não anda; os filtros descem um
+pouco (18 px do título); ao filtrar, a agenda guarda a altura que tinha (volta ao normal ao trocar de visão), e a página
+não pula. Medido: a troca de visão em 1122,544 nas três; rolagem e altura da página iguais antes e depois de filtrar.
 **No Jurídico, "Intimações"** (10/11/2026, "trocar o nome de processos por intimações, pra gente não confundir"): na
 prévia, o item `processos.php` do grupo Jurídico (e da barra do celular) se chama Intimações; a tela e o endereço são
 os mesmos. Fora da prévia continua Processos (`includes/sidebar.php`).

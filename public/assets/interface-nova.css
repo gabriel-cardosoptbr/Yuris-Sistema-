@@ -494,7 +494,7 @@ html .inn-dia-info{ font-size:.78rem; color:var(--inn-t-texto3); overflow-wrap:a
 html .inn-dia-abrir{ display:inline-flex; align-items:center; gap:4px; margin-top:4px; font-size:.76rem; font-weight:600; color:var(--inn-t-azul2); }
 html .inn-dia-vazio{ padding:24px 0; text-align:center; font-size:.86rem; color:var(--inn-t-texto3); }
 /* Os filtros da Agenda (10/11/2026): a situação em pílulas com a contagem, e o período (de, até). */
-html .inn-ag-filtros{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px 16px; margin:4px 0 14px; }
+html .inn-ag-filtros{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px 16px; margin:18px 0 16px; }
 html .inn-ag-chips{ display:flex; flex-wrap:wrap; gap:6px; }
 html .inn-ag-chip{ display:inline-flex !important; align-items:center !important; gap:8px !important; height:36px !important; padding:0 12px !important; border-radius:999px !important; cursor:pointer;
   background:var(--inn-t-painel) !important; border:1px solid var(--inn-t-linha2) !important; box-shadow:none !important; color:var(--inn-t-texto2) !important; font-family:inherit; font-size:.8rem !important; font-weight:600 !important; }

@@ -83,11 +83,15 @@
       if (c) {
         fSit = c.dataset.f;
         [].forEach.call(fAg.querySelectorAll('.inn-ag-chip'), function (x) { var on = x === c; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); });
-        filtrarAgenda(); return;
+        segurarAltura(); filtrarAgenda(); return;
       }
-      if (e.target.closest('.inn-ag-limpar')) { fDe.value = ''; fAte.value = ''; fAg.querySelector('.inn-ag-chip[data-f="todos"]').click(); }
+      if (e.target.closest('.inn-ag-limpar')) { segurarAltura(); fDe.value = ''; fAte.value = ''; fAg.querySelector('.inn-ag-chip[data-f="todos"]').click(); }
     });
-    fDe.addEventListener('change', filtrarAgenda); fAte.addEventListener('change', filtrarAgenda);
+    // Filtrar com a página rolada encolhia a tela e ela pulava ("está em Todos, um pouco aqui embaixo, vou em
+    // Hoje e urgentes e ela encolhe"): a agenda fica com a altura que já tinha; volta ao normal ao trocar de visão.
+    function segurarAltura() { var h = vAgenda.offsetHeight; if (h > (parseFloat(vAgenda.style.minHeight) || 0)) vAgenda.style.minHeight = h + 'px'; }
+    fDe.addEventListener('change', function () { segurarAltura(); filtrarAgenda(); });
+    fAte.addEventListener('change', function () { segurarAltura(); filtrarAgenda(); });
     new MutationObserver(filtrarAgenda).observe(lista, { childList: true });
     filtrarAgenda();
     var vCal = el('div', 'inn-vista inn-vista-cal');
@@ -136,7 +140,7 @@
       quadro.hidden = v !== 'quadro'; vCal.hidden = v !== 'calendario'; vAgenda.hidden = v !== 'agenda';
       if (sub) sub.textContent = SUB[v];
       iconeDoPainel();
-      atual.hidden = v === 'agenda';
+      vAgenda.style.minHeight = '';
       if (v === 'calendario') desenhar();
       if (v === 'quadro') requestAnimationFrame(function () { rolarAoMes(hoje.getMonth(), false); });
     }
@@ -269,6 +273,13 @@
     atual.addEventListener('click', function () {
       var a = hoje.getFullYear(), m = hoje.getMonth();
       if (vista === 'calendario') { irAoMes(a, m); return; }
+      // Na Agenda, o mês atual é o período: do dia 1 ao último dia deste mês.
+      if (vista === 'agenda') {
+        var dois = function (n) { return String(n).padStart(2, '0'); };
+        fDe.value = a + '-' + dois(m + 1) + '-01';
+        fAte.value = a + '-' + dois(m + 1) + '-' + dois(new Date(a, m + 1, 0).getDate());
+        segurarAltura(); filtrarAgenda(); return;
+      }
       if (ano.value !== String(a)) { ano.value = String(a); ano.dispatchEvent(new Event('change', { bubbles: true })); primeiraVez = true; return; }
       rolarAoMes(m, true);
     });
