@@ -254,6 +254,8 @@ seleção em pílula.
   `assets/interface-nova-cartoes.js` (todo cartão de indicador leva para a tela do assunto ou
   filtra a própria tela), e a regra `speculationrules` inclui o link que cobre o cartão
   (`a.inn-cartao-link`). Detalhe em `public/README.md`.
+  **"Intimações"** (10/11/2026): na prévia, o item `processos.php` do Jurídico (menu e barra do
+  celular) se chama Intimações; fora dela, Processos.
   **Histórico Processual** (08/11/2026, "arruma com urgência, não está de acordo com o design"):
   o `processos.js` marca cada registro com `data-tipo` (processo, prazo, tarefa, movimentacao,
   intimacao, anexo, vinculo, edicao) e `data-tom` (ok para concluído, erro para removido), sem

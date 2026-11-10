@@ -991,7 +991,8 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
         ['perm'=>'tarefas',    'href'=>'tarefas.php',    'active'=>'tarefas',    'icon'=>'tarefas',   'label'=>'Tarefas'],
       ]],
       [ 'key' => 'juridico', 'label' => 'Jurídico', 'icon' => $_grpSvg['juridico'], 'items' => [
-        ['perm'=>'processos', 'href'=>'processos.php', 'active'=>'processos', 'icon'=>'processos', 'label'=>'Processos'],
+        // Na interface nova o item se chama Intimações (10/11/2026, "no jurídico trocar o nome de processos por intimações, pra não confundir"); a tela é a mesma.
+        ['perm'=>'processos', 'href'=>'processos.php', 'active'=>'processos', 'icon'=>'processos', 'label'=>$_interfaceNova ? 'Intimações' : 'Processos'],
         ['perm'=>'intimacoes','href'=>'intimacoes.php','active'=>'intimacoes','icon'=>'intimacoes','label'=>'Publicações'],
         ['perm'=>'juridico',  'href'=>'juridico.php',  'active'=>'juridico',  'icon'=>'juridico',  'label'=>'Painel'],
       ]],
@@ -1357,7 +1358,7 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
       if (_sidebarCan('prospeccao')) $_mobItens[] = ['/prospeccao', 'prospeccao', $_svg['prosp'], 'Prospecção'];
       if (_sidebarCan('tarefas'))    $_mobItens[] = ['/tarefas', 'tarefas', $_svg['tarefas'], 'Tarefas'];
   } else {
-      if (_sidebarCan('processos'))  $_mobItens[] = ['/processos', 'processos', $_svg['processos'], 'Processos'];
+      if (_sidebarCan('processos'))  $_mobItens[] = ['/processos', 'processos', $_svg['processos'], $_interfaceNova ? 'Intimações' : 'Processos'];
       if (_sidebarCan('juridico'))   $_mobItens[] = ['/juridico', 'juridico', $_svg['juridico'], 'Jurídico'];
   }
 ?>

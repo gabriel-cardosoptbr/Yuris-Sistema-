@@ -540,6 +540,9 @@ seletores; embaixo o prazo e o limpar, à direita a contagem, o ano e o cadastra
 e uma quebra no `::after` (seção "Processos" de `interface-nova.css`). A lupa da busca descia meia altura: o movimento
 fazia o ícone crescer por transform, que fica valendo no fim e apagava o `translateY(-50%)`; ícone com posição própria
 (absoluto, fixo ou com transform) não cresce mais.
+**No Jurídico, "Intimações"** (10/11/2026, "trocar o nome de processos por intimações, pra gente não confundir"): na
+prévia, o item `processos.php` do grupo Jurídico (e da barra do celular) se chama Intimações; a tela e o endereço são
+os mesmos. Fora da prévia continua Processos (`includes/sidebar.php`).
 Indicadores (09/11/2026): o bloco de texto do indicador alinha pelo topo (`align-content:start`), e
 `igualarIndicadores` mede o número de cada cartão e empurra os da mesma fileira até a linha do mais baixo (rótulo
 ou subtítulo de duas linhas descia o número de um cartão só).
