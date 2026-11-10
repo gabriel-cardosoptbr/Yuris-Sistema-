@@ -540,6 +540,16 @@ seletores; embaixo o prazo e o limpar, à direita a contagem, o ano e o cadastra
 e uma quebra no `::after` (seção "Processos" de `interface-nova.css`). A lupa da busca descia meia altura: o movimento
 fazia o ícone crescer por transform, que fica valendo no fim e apagava o `translateY(-50%)`; ícone com posição própria
 (absoluto, fixo ou com transform) não cresce mais.
+**Processos: três visões no painel do calendário** (10/11/2026, "quero ver o calendário estilo Kanban, um
+calendário literalmente com datas, dias e meses, e a agenda jurídica em linhas: as três visões, e eu só mudo a tela;
+e sempre no mês atual"). O painel "Calendário Processual" ganha a troca Quadro, Calendário e Agenda
+(`assets/interface-nova-telas.js`; substitui a janela da agenda pelo botão do cabeçalho, que saiu). Quadro: as colunas
+de sempre, que abrem roladas até o mês atual, com o nome dele em azul. Calendário: a grade do mês, domingo primeiro,
+cada processo no dia do próximo prazo (lido dos cartões do quadro, então com o mesmo ano e os mesmos filtros), o ponto
+da cor do estado, o hoje marcado; clicar abre a ficha (o Editar do cartão); passar de dezembro troca o ano. Agenda: a
+Agenda Jurídica Prioritária, que sai do fim da página. O botão "Mês atual" volta para o mês de hoje, trocando o ano se
+precisar. A visão escolhida fica guardada neste navegador. O dia do calendário leva `data-inn="1"` para não contar de
+zero como os números, e o ícone do painel é sempre o calendário (a camada o escolhia pelas palavras do subtítulo).
 **No Jurídico, "Intimações"** (10/11/2026, "trocar o nome de processos por intimações, pra gente não confundir"): na
 prévia, o item `processos.php` do grupo Jurídico (e da barra do celular) se chama Intimações; a tela e o endereço são
 os mesmos. Fora da prévia continua Processos (`includes/sidebar.php`).

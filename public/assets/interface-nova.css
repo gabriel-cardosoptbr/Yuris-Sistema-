@@ -394,7 +394,7 @@ html .qr-topo{ margin-bottom:14px !important; }
    A quebra de linha é o ::after (um item de flex com a largura toda); a ordem é por order.
    E a Agenda Jurídica Prioritária: as linhas eram um degradê azul-marinho escrito no CSS da tela
    (fora da paleta, e a camada só lê cor de fundo lisa), viram os cartões prata, com o estado no
-   selo; ela abre numa janela pelo botão "Agenda jurídica" do cabeçalho (interface-nova-telas.js). */
+   selo; ela é a terceira visão do painel do calendário (interface-nova-telas.js). */
 html .inn-tela .proc-panel > div:has(> div > #procSearchText){ display:flex !important; flex-wrap:wrap !important; align-items:center !important; gap:10px !important; }
 html .inn-tela .proc-panel > div:has(> div > #procSearchText)::after{ content:""; flex-basis:100%; height:0; order:3; }
 html .inn-tela .proc-panel > div:has(> div > #procSearchText) > div:has(> #procSearchText){ order:1; flex:1 1 300px !important; min-width:240px !important; }
@@ -423,18 +423,45 @@ html .proc-agenda-client{ color:var(--inn-t-texto) !important; white-space:norma
 html .proc-agenda-tipo{ color:var(--inn-t-texto3) !important; }
 html .proc-agenda-date{ color:var(--inn-t-texto) !important; }
 
-html .inn-agenda-btn{ display:inline-flex; align-items:center; gap:8px; height:40px; padding:0 14px; margin-left:auto; flex:none; border-radius:8px; cursor:pointer;
-  background:var(--inn-t-painel); border:1px solid var(--inn-t-linha2); color:var(--inn-t-texto); font-family:inherit; font-size:.84rem; font-weight:600; box-shadow:var(--inn-t-sombra); }
-html .inn-agenda-btn svg{ color:var(--inn-t-azul2); }
-html .inn-agenda-btn:hover{ border-color:var(--inn-t-azul2); color:var(--inn-t-azul2); }
-html .inn-agenda-conta{ min-width:22px; height:22px; padding:0 6px; border-radius:999px; display:inline-grid; place-items:center; font-size:.72rem;
-  background:var(--inn-t-azul-suave); color:var(--inn-t-azul2); }
-html .proc-panel.page-header .page-header-inner:has(.inn-agenda-btn){ display:flex !important; align-items:center !important; gap:16px !important; }
-html .inn-agenda-overlay{ position:fixed; inset:0; z-index:900; display:flex; align-items:flex-start; justify-content:center; padding:5vh 16px;
-  background:rgba(14,18,24,.46); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); overflow-y:auto; }
-html .inn-agenda-overlay[hidden]{ display:none !important; }
-html .inn-agenda-janela{ width:min(920px, 100%); }
-html .inn-agenda-janela > .inn-agenda-painel{ margin:0 !important; }
-html .inn-agenda-fechar{ width:34px; height:34px; display:grid; place-items:center; flex:none; border-radius:8px; cursor:pointer;
-  background:var(--inn-t-painel); border:1px solid var(--inn-t-linha2); color:var(--inn-t-texto2); }
-html .inn-agenda-fechar:hover{ color:var(--inn-t-azul2); border-color:var(--inn-t-azul2); }
+/* As três visões do painel "Calendário Processual" (interface-nova-telas.js): Quadro, Calendário e
+   Agenda, numa troca de pílulas como as abas da home, e o "Mês atual". O calendário é a grade do mês,
+   domingo primeiro (como o da home); o dia de hoje com o número em azul; cada processo é um cartãozinho
+   com o cliente e o número, e o ponto da cor do estado (sem faixa colorida na lateral). */
+html .proc-panel .flex:has(> .inn-vistas){ flex-wrap:wrap; gap:12px; }
+html .inn-vistas{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-left:auto; }
+html .inn-vista-seg{ display:inline-flex; gap:2px; padding:3px; border-radius:10px; background:var(--inn-t-fundo); box-shadow:var(--inn-t-fundo-sombra); }
+html .inn-vista-seg .inn-vista-btn{ display:inline-flex !important; align-items:center !important; gap:6px !important; height:34px !important; padding:0 12px !important; border-radius:8px !important;
+  border:0 !important; background:transparent !important; box-shadow:none !important; color:var(--inn-t-texto2) !important; font-family:inherit; font-size:.82rem !important; font-weight:600 !important; cursor:pointer; }
+html .inn-vista-seg .inn-vista-btn:hover{ color:var(--inn-t-texto) !important; }
+html .inn-vista-seg .inn-vista-btn.on{ background:var(--inn-t-painel) !important; color:var(--inn-t-azul2) !important; box-shadow:var(--inn-t-sombra) !important; }
+html .inn-mes-atual{ display:inline-flex !important; align-items:center !important; gap:6px !important; height:40px !important; padding:0 14px !important; border-radius:8px !important; cursor:pointer;
+  background:var(--inn-t-painel) !important; border:1px solid var(--inn-t-linha2) !important; color:var(--inn-t-texto) !important; font-family:inherit; font-size:.82rem !important; font-weight:600 !important; box-shadow:var(--inn-t-sombra) !important; }
+html .inn-mes-atual svg{ color:var(--inn-t-azul2); }
+html .inn-mes-atual:hover{ border-color:var(--inn-t-azul2) !important; color:var(--inn-t-azul2) !important; }
+html .inn-mes-atual[hidden], html .inn-vista[hidden]{ display:none !important; }
+html .inn-cal-topo{ display:flex; align-items:center; justify-content:center; gap:16px; margin:4px 0 14px; }
+html .inn-cal-mes{ display:flex; flex-direction:column; align-items:center; min-width:220px; }
+html .inn-cal-mes b{ font-size:1.05rem; color:var(--inn-t-texto); }
+html:root .proc-col.inn-col-hoje.inn-col-hoje{ border-color:var(--inn-t-azul2) !important; box-shadow:0 0 0 3px var(--inn-t-azul-suave) !important; }
+html .proc-col.inn-col-hoje .proc-col-month{ color:var(--inn-t-azul2) !important; }
+html .inn-cal-mes span{ font-size:.76rem; color:var(--inn-t-texto3); margin-top:2px; }
+html .inn-cal-nav{ width:36px; height:36px; display:grid; place-items:center; border-radius:8px; cursor:pointer;
+  background:var(--inn-t-painel) !important; border:1px solid var(--inn-t-linha2) !important; color:var(--inn-t-texto2) !important; box-shadow:var(--inn-t-sombra) !important; }
+html .inn-cal-nav:hover{ color:var(--inn-t-azul2) !important; border-color:var(--inn-t-azul2) !important; }
+html .inn-cal-semana, html .inn-cal-grade{ display:grid; grid-template-columns:repeat(7, minmax(0, 1fr)); gap:8px; }
+html .inn-cal-semana{ margin-bottom:8px; }
+html .inn-cal-semana span{ text-align:center; font-size:.72rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--inn-t-texto3); }
+html .inn-cal-dia{ min-height:108px; min-width:0; display:flex; flex-direction:column; gap:6px; padding:8px; border-radius:10px;
+  background:var(--inn-t-painel); border:1px solid var(--inn-t-linha); box-shadow:var(--inn-t-sombra); }
+html .inn-cal-dia.fora{ background:transparent; box-shadow:none; opacity:.5; }
+html .inn-cal-dia.hoje{ border-color:var(--inn-t-azul2); box-shadow:0 0 0 3px var(--inn-t-azul-suave); }
+html .inn-cal-n{ align-self:flex-start; min-width:24px; height:24px; padding:0 4px; display:grid; place-items:center; border-radius:999px; font-size:.8rem; font-weight:700; color:var(--inn-t-texto2); }
+html .inn-cal-dia.hoje .inn-cal-n{ background:var(--inn-t-azul2); color:#fff; }
+html .inn-cal-item{ display:grid; grid-template-columns:auto 1fr; column-gap:6px; align-items:center; width:100%; min-width:0; padding:6px 8px; border-radius:8px; text-align:left; cursor:pointer;
+  background:var(--inn-t-fundo) !important; border:1px solid var(--inn-t-linha) !important; box-shadow:none !important; font-family:inherit; transition:border-color .15s, translate .15s; }
+html .inn-cal-item:hover{ border-color:var(--inn-t-azul2) !important; translate:0 -1px; }
+html .inn-cal-item b{ grid-column:2; font-size:.76rem; font-weight:700; color:var(--inn-t-texto); overflow-wrap:anywhere; line-height:1.25; }
+html .inn-cal-item small{ grid-column:2; font-size:.68rem; font-weight:600; color:var(--inn-t-azul2); overflow-wrap:anywhere; }
+html .inn-cal-ponto{ grid-row:1 / span 2; width:8px; height:8px; border-radius:50%; background:var(--inn-t-ok); }
+html .inn-cal-ponto.erro{ background:var(--inn-t-erro); } html .inn-cal-ponto.aviso{ background:var(--inn-t-aviso); } html .inn-cal-ponto.neutro{ background:var(--inn-t-texto3); }
+@media (max-width:760px){ html .inn-cal-semana{ display:none; } html .inn-cal-grade{ grid-template-columns:1fr; } html .inn-cal-dia:not(.tem):not(.hoje){ display:none; } html .inn-cal-dia{ min-height:0; } }
