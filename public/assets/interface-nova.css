@@ -296,6 +296,7 @@ html .sidebar.sidebar.sidebar .sidebar-group-chevron, html[data-theme="light"] .
     background:var(--mf-cor) !important;
     clip-path:circle(0px at var(--mf-cx, 50%) var(--mf-cy, 50%));
     animation:mf-enche .42s cubic-bezier(.2,.8,.2,1) both;
+    animation-delay:var(--mf-atraso, 0s);   /* negativa na tela nova: continua de onde a anterior parou */
   }
 
   /* A tela fecha antes de sair: cada bloco dobra para cima e some, de baixo para cima. */

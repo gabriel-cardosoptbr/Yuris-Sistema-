@@ -70,7 +70,7 @@ html.inn-mov button:not(:disabled):active:not(.tk-tab):not(.tab-btn), html.inn-m
   @keyframes inn-pop-entra{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
   @keyframes inn-pop-cresce{ 0%{ opacity:0; transform:scale(.4); } 70%{ opacity:1; transform:scale(1.08); } 100%{ transform:none; } }
   html:is(.inn-mov, .inn-mov-pop) .inn-pop-surge{ animation:inn-pop-surge .38s var(--mov-mola) both; }
-  html:is(.inn-mov, .inn-mov-pop) .inn-pop-entra{ animation:inn-pop-entra .4s var(--mov-saida) both; animation-delay:calc(90ms + var(--mov-i, 0) * 34ms); }
+  html:is(.inn-mov, .inn-mov-pop) .inn-pop-entra{ animation:inn-pop-entra .4s var(--mov-saida) both; animation-delay:calc(90ms + var(--mov-i, 0) * 38ms); }
   html:is(.inn-mov, .inn-mov-pop) .inn-pop-cresce{ animation:inn-pop-cresce .5s var(--mov-mola) .12s both; }
 
   @keyframes inn-enche{ from{ --inn-r:0px; } to{ --inn-r:var(--inn-raio, 240px); } }

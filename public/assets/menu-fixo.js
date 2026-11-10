@@ -65,6 +65,16 @@
     a.style.setProperty('--mf-cor', cor);
     a.style.setProperty('--mf-antes', antes || 'transparent');
     a.classList.add('mf-enchendo');
+    // A tela nova chega antes de o círculo terminar (0,42 s): o menu dela nascia com o item já
+    // cheio, e o círculo pulava de uns 20% para o fim ("travando na aba em si", 10/11/2026). Ela
+    // continua o círculo de onde ele está (script logo depois do menu, em includes/sidebar.php).
+    try {
+      sessionStorage.setItem('yuris_menu_enche', JSON.stringify({
+        href: new URL(a.href, location.href).pathname.replace(/\.php$/, ''), cx: Math.round(cx), cy: Math.round(cy),
+        raio: Math.ceil(Math.hypot(Math.max(cx, r.width - cx), Math.max(cy, r.height - cy)) + 2), cor: cor, antes: antes || 'transparent',
+        t: performance.timeOrigin + performance.now()
+      }));
+    } catch (e) {}
     // No fim do círculo a marca sai: o item fica só com o ativo de sempre (o brilho entra pela
     // transição dele).
     a.addEventListener('animationend', function f(e) { if (e.animationName === 'mf-enche') { a.classList.remove('mf-enchendo'); a.removeEventListener('animationend', f); } });
@@ -130,7 +140,10 @@
   }, true);
 
   // Voltar pelo histórico (a página sai do cache do navegador como estava): desfaz a saída.
-  window.addEventListener('pageshow', function () {
+  // Só na volta (persisted): na carga normal o pageshow chega logo depois do load e cortava o
+  // círculo que a tela nova está continuando (10/11/2026).
+  window.addEventListener('pageshow', function (e) {
+    if (!e.persisted) return;
     html.classList.remove('inn-menu-saindo');
     [].forEach.call(document.querySelectorAll('.mf-enchendo'), function (el) { el.classList.remove('mf-enchendo'); });
   });

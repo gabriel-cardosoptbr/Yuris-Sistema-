@@ -236,6 +236,10 @@ seleção em pílula.
   22 telas pediam sem o 500) e, com `?embed=1`, marca o `<html>` como `yuris-embed` antes da
   primeira pintura. O `interface-nova.css` reserva o lugar da barra de rolagem fora do embutido
   e fixa a altura de linha do menu. Detalhe e medidas em `public/README.md`.
+  **O item do menu continua enchendo** (10/11/2026, "na troca de aba parece que tá travando"):
+  logo depois do `<aside>`, depois do script da rolagem, um script lê `yuris_menu_enche`
+  (gravado pelo `menu-fixo.js` ao clicar) e faz o mesmo item da tela nova retomar o círculo
+  de onde ele estava, antes da primeira pintura; antes o item nascia cheio, num pulo.
   **Histórico Processual** (08/11/2026, "arruma com urgência, não está de acordo com o design"):
   o `processos.js` marca cada registro com `data-tipo` (processo, prazo, tarefa, movimentacao,
   intimacao, anexo, vinculo, edicao) e `data-tom` (ok para concluído, erro para removido), sem

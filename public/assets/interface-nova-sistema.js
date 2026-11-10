@@ -212,7 +212,11 @@
   // Também o selo que só diz o estado no nome (o-bom, o-atencao, o-ruim do Desempenho).
   var RE_SELO = /badge|(^|[-_])(tag|selo|etiqueta|status)([-_]|$)|^(pill|chip)$|-pill$|(^|[-_])(bom|ruim|atencao|ok|warn|danger|success|erro|alerta|urgente|pendente|ativo|inativo)$/i;
   var TONS = ['inn-selo-erro', 'inn-selo-aviso', 'inn-selo-ok', 'inn-selo-azul', 'inn-selo-neutro'];
-  function baseSelo(el) { return String(el.className || '').split(/\s+/).filter(function (c) { return c && c.indexOf('inn-') !== 0; }).join(' '); }
+  // A classe pelo atributo: no svg, className é um objeto (SVGAnimatedString) e virava o texto
+  // "[object SVGAnimatedString]". O ícone que o movimento marca para crescer (inn-cresce) parecia
+  // mudança da tela e não marca da camada: cada um fazia vestir de novo e perguntar as animações
+  // da página inteira, um recálculo de estilo de 22 ms na abertura de Tarefas (10/11/2026).
+  function baseSelo(el) { var c = el.getAttribute ? el.getAttribute('class') : el.className; return String(c || '').split(/\s+/).filter(function (c) { return c && c.indexOf('inn-') !== 0; }).join(' '); }
   function tomDoSelo(el) {
     var cs = getComputedStyle(el), melhor = null;
     [cs.backgroundColor, cs.color, cs.borderTopColor].forEach(function (c, i) {
@@ -429,12 +433,16 @@
     var f = function (c) { c /= 255; return c <= .03928 ? c / 12.92 : Math.pow((c + .055) / 1.055, 2.4); };
     return .2126 * f(v[0]) + .7152 * f(v[1]) + .0722 * f(v[2]);
   }
-  function fundoVisto(el, cache) {
+  // antes: o fundo de cada elemento lido nesta passada, guardado antes de ela escrever. Quem é
+  // vestido depois (fora da tela, abaixo) mede o contraste contra o fundo que os de fora tinham
+  // ao serem lidos, como se tudo fosse lido de uma vez; senão dois cartões iguais, um na tela e
+  // outro abaixo dela, podiam sair diferentes.
+  function fundoVisto(el, cache, antes) {
     var cadeia = [], achado = null, n = el;
     while (n && n.nodeType === 1) {
       if (cache.has(n)) { achado = cache.get(n); break; }
       cadeia.push(n);
-      var v = corFundo(getComputedStyle(n));
+      var v = antes && antes.has(n) ? antes.get(n) : corFundo(getComputedStyle(n));
       if (v) { achado = v; break; }
       n = n.parentElement;
     }
@@ -449,12 +457,16 @@
   // Recebe uma raiz ou a lista das que chegaram juntas (as colunas do quadro de Tarefas): lê todas
   // antes de escrever a primeira. Uma por vez, cada coluna recalculava o estilo da tela inteira,
   // 18 vezes na abertura do quadro (09/11/2026, "tá travando na hora que troca de aba").
-  function vestirCores(raiz, soNovos) {
+  // adiado: a leva que ficou para depois ({ antes, cache } da passada de que ela saiu); os
+  // elementos dela são os próprios candidatos (os de dentro vieram na fila também).
+  function vestirCores(raiz, soNovos, adiado) {
     var raizes = listaDeRaizes(raiz);
     if (!raizes.length || !document.querySelector('.inn-tela')) return;
-    var cacheFundo = new WeakMap(), emTrans = emTransicaoAgora(soNovos ? [] : raizes);
-    var cands = [];
-    raizes.forEach(function (rz) {
+    var passada = adiado || { antes: new WeakMap(), cache: new WeakMap() };
+    var cacheFundo = passada.cache, emTrans = emTransicaoAgora(soNovos ? [] : raizes);
+    var cands = [], adiar = [];
+    if (adiado) cands = raizes.slice();
+    else raizes.forEach(function (rz) {
       if (rz.nodeType === 1) cands.push(rz);
       [].push.apply(cands, rz.querySelectorAll('div, section, article, aside, header, footer, li, a, button, input, select, textarea, span, label, td, tr, h1, h2, h3, h4, h5, h6, code, kbd'));
     });
@@ -472,7 +484,9 @@
         return;
       }
       var r = el.getBoundingClientRect(); if (r.width < 8 || r.height < 8) return;
+      if (!adiado && foraDaTela(r)) { adiar.push(el); return; }
       var cs = getComputedStyle(el), marca = [];
+      passada.antes.set(el, corFundo(cs));
       var ehCampo = /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName);
       var ehBotao = !ehCampo && (el.tagName === 'BUTTON' || /(^|[-_\s])btn|button|botao/i.test(cls));
       // Azul-marinho do desenho antigo no tema escuro (09/11/2026, revisão do sistema inteiro):
@@ -560,7 +574,7 @@
       if (!ehCampo && temTextoProprio(el) && !el.closest('.inn-aba')) {
         var tc = rgb(cs.color);
         if (tc && tc[3] > .3) {
-          var fv = fundoVisto(el, cacheFundo), l1 = luz(tc), l2 = luz(fv);
+          var fv = fundoVisto(el, cacheFundo, passada.antes), l1 = luz(tc), l2 = luz(fv);
           var contraste = (Math.max(l1, l2) + .05) / (Math.min(l1, l2) + .05);
           if (contraste < 3) {
             var tt2 = tomDeCor(cs.color, .3, .05);
@@ -590,8 +604,47 @@
         if (t === 'aviso' || t === 'ok') f.classList.add('inn-c-texto-forte');
       });
     });
+    if (adiar.length) adiarCores(adiar, passada);
     afundarCaixas(raizes);
   }
+  // ── Fora da tela, logo depois (10/11/2026) ──────────────────────────────
+  // "Na troca de aba parece que tá travando": ao abrir Tarefas, Prospecção ou Processos, a camada
+  // vestia de uma vez mais de mil elementos da tela nova, e de 82% a 91% deles estavam fora da
+  // tela (abaixo da dobra, nas colunas à direita). O quadro em que a tela aparece levava 90 ms.
+  // Agora veste na hora o que está à vista (com 80 px de folga) e o resto entra numa fila, vestida
+  // aos pedaços de até 6 ms logo depois, na ordem do documento (o de fora antes do de dentro).
+  // Fora da tela ninguém vê a diferença, e o contraste é medido contra o fundo de antes
+  // (fundoVisto), como na passada de uma vez só.
+  var FILA_ADIADA = [], adiadaPedida = false, ADIADO = new WeakSet();
+  function foraDaTela(r) { return r.bottom < -80 || r.right < -80 || r.top > innerHeight + 80 || r.left > innerWidth + 80; }
+  function adiarCores(els, passada) {
+    els.forEach(function (el) { ADIADO.add(el); FILA_ADIADA.push([el, passada]); });
+    if (!adiadaPedida) { adiadaPedida = true; setTimeout(vestirAdiados, 30); }
+  }
+  function vestirAdiados() {
+    adiadaPedida = false;
+    var t0 = performance.now();
+    while (FILA_ADIADA.length && performance.now() - t0 < 6) {
+      // Um pedaço é de uma passada só (o fundo de antes é dela).
+      var passada = FILA_ADIADA[0][1], lote = [];
+      while (FILA_ADIADA.length && lote.length < 60 && FILA_ADIADA[0][1] === passada) lote.push(FILA_ADIADA.shift()[0]);
+      lote.forEach(function (el) { ADIADO.delete(el); });
+      lote = lote.filter(function (el) { return el.isConnected && el.dataset.innCor == null; });
+      if (lote.length) vestirCores(lote, true, passada);
+    }
+    if (FILA_ADIADA.length) { adiadaPedida = true; setTimeout(vestirAdiados, 0); }
+  }
+  // Rolou (ou a volta pelo histórico devolveu a rolagem) antes de a fila acabar: veste o resto já,
+  // no próprio evento, que chega antes da pintura do quadro rolado. Nada sem vestir entra na tela.
+  window.addEventListener('scroll', function () {
+    while (FILA_ADIADA.length) {
+      var passada = FILA_ADIADA[0][1], lote = [];
+      while (FILA_ADIADA.length && FILA_ADIADA[0][1] === passada) lote.push(FILA_ADIADA.shift()[0]);
+      lote.forEach(function (el) { ADIADO.delete(el); });
+      lote = lote.filter(function (el) { return el.isConnected && el.dataset.innCor == null; });
+      if (lote.length) vestirCores(lote, true, passada);
+    }
+  }, { capture: true, passive: true });
   // Caixa da mesma cor dentro de caixa (o resumo dentro do painel, o bloco dentro da seção, o
   // código dentro do cartão): a de dentro afunda, como as caixas dos ícones da home, sem linha;
   // dentro de uma afundada, a terceira fica plana. Foi o "cheio de linha, cheio de contorno
@@ -620,7 +673,7 @@
     cands = Array.from(new Set(cands));
     var marcadas = new Map();
     cands.forEach(function (el) {
-      if (el.dataset.innCaixa || marcadas.has(el) || typeof el.className !== 'string') return;
+      if (el.dataset.innCaixa || marcadas.has(el) || typeof el.className !== 'string' || ADIADO.has(el)) return;
       var cls = el.className;
       if (/(^|\s)inn-(selo|aba|ic-btn|toast)/.test(cls) || RE_BRANCO_NAO.test(cls) || /(^|[-_\s])btn|button|botao|field|input|select|campo|dropdown/i.test(cls)) return;   // campo e botão continuam com cara de campo e botão
       if (el.closest('.sidebar, table, button, svg, .inn-selo, .inn-aba')) return;
@@ -699,10 +752,13 @@
   // Era o que travava a troca de aba: cada cartão que ganhava a classe da entrada fazia vestir as
   // cores dele de novo, um por um, recalculando o estilo da tela a cada cartão (09/11/2026).
   function semVariaveis(st) { return String(st || '').replace(/--[\w-]+\s*:[^;]*;?/g, '').replace(/\s+/g, ' ').trim(); }
+  // Sem o atributo antes (oldValue null) é o mesmo que vazio: o número que conta de zero e o ícone
+  // que cresce, quando não tinham classe nem style, ganhavam a marca da camada e pareciam mudança da
+  // tela; cada um fazia vestir de novo e perguntar as animações da página inteira, um recálculo de
+  // estilo de 25 a 29 ms na abertura de Tarefas (10/11/2026).
   function soMarcaDaCamada(m) {
-    if (m.oldValue == null) return false;
-    if (m.attributeName === 'class') return baseSelo({ className: m.oldValue }) === baseSelo(m.target);
-    if (m.attributeName === 'style') return semVariaveis(m.oldValue) === semVariaveis(m.target.getAttribute('style'));
+    if (m.attributeName === 'class') return baseSelo({ className: m.oldValue || '' }) === baseSelo(m.target);
+    if (m.attributeName === 'style') return semVariaveis(m.oldValue || '') === semVariaveis(m.target.getAttribute('style'));
     return false;
   }
   // Trocar o tema relê as cores (o branco só existe no claro).

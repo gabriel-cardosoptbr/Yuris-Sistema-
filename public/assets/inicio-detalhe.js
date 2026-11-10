@@ -452,11 +452,18 @@
     return cab + '<div class="idt-fan-corpo">' + abas + '<div class="idt-fan-grade">' + campos + '</div>' + o('', 'height:92px;margin-top:12px') + '</div>'
       + '<div class="idt-fan-pe">' + o('', 'width:120px;height:38px') + o('', 'width:150px;height:38px') + '</div>';
   }
+  // Mostra o pop-up do módulo e avisa o quadro: lá dentro o conteúdo entra de novo, cartão por
+  // cartão, agora que está à vista (a entrada de quando ele abriu passou escondida, 10/11/2026).
+  function mostrarModulo(caixa) {
+    caixa.classList.add('pronto');
+    var q = caixa.querySelector('.idt-embed-quadro');
+    try { q.contentWindow.postMessage({ yuris: 'embed-visivel' }, location.origin); } catch (e) {}
+  }
   // O pop-up chegou: a forma vai até a medida dele e some por baixo do pop-up de verdade.
   function morfar(c) {
     if (!EMB) return;
     var caixa = EMB.caixa, fan = caixa.querySelector('.idt-fantasma');
-    if (!fan || !c || !c.width || !document.documentElement.classList.contains('ini-mov')) { caixa.classList.add('pronto'); return; }
+    if (!fan || !c || !c.width || !document.documentElement.classList.contains('ini-mov')) { mostrarModulo(caixa); return; }
     // Pop-up mais alto que a janela (a ficha do cliente rola por dentro): a forma para na borda.
     c = { left: Math.max(0, c.left), top: Math.max(0, c.top), width: Math.min(c.width, window.innerWidth - Math.max(0, c.left)), height: Math.min(c.height, window.innerHeight - Math.max(0, c.top)) };
     var r = fan.getBoundingClientRect();
@@ -465,7 +472,7 @@
     void fan.offsetWidth;
     fan.style.transition = ''; fan.classList.add('morfa');
     fan.style.left = c.left + 'px'; fan.style.top = c.top + 'px'; fan.style.width = c.width + 'px'; fan.style.height = c.height + 'px';
-    setTimeout(function () { if (EMB && EMB.caixa === caixa) caixa.classList.add('pronto'); }, 400);
+    setTimeout(function () { if (EMB && EMB.caixa === caixa) mostrarModulo(caixa); }, 400);
   }
   ACOES['abrir-processo'] = function (b) {
     var foco = b.getAttribute('data-foco') || '';

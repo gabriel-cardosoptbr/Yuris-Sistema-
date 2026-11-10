@@ -443,6 +443,32 @@ leva (`getAnimations({subtree:true})`), não elemento por elemento. Tarefa longa
 cerca de 90 ms, Prospecção de 298 para cerca de 70, Clientes de 60 para zero; Processos fica perto de 100 ms, quase
 tudo o navegador montando a lista de 10 mil px. Conferido contra a versão anterior em 8 telas e 3 pop-ups: as
 mesmas marcas, elemento por elemento.
+**Todo pop-up entra como a Intimação da home** (10/11/2026, na prévia, "eu quero que todos os pop-ups tenham a mesma
+animação, que os cards vão vindo em sequência; é uma animação do sistema"). No `interface-nova-movimento.js`
+(`linhasDe`, `entrarLinhas`, `entrarPopup`): (1) o cartão de dentro do pop-up (fundo, moldura ou sombra própria, como
+a seção "Identificação do processo") entra também, logo antes do que tem dentro (`ehCartao`); antes ele aparecia
+pronto e vazio junto com o painel; (2) o passo é o da Intimação, 38 ms (`.inn-pop-entra`); (3) a ordem é a da posição,
+de cima para baixo e da esquerda para a direita, e só o que está à vista ganha vez (no máximo 28); (4) o que chega
+depois de o pop-up abrir (o Nova Conversa do Chat interno abre vazio e se preenche; o campo que aparece ao escolher o
+tipo) entra na vez seguinte da fila durante 1,2 s (`entrarTardios`), e a peça que ainda esperava e fica abaixo passa
+para depois dela; (5) o pop-up aberto por cima de outra tela (`?embed=1`, pela home, pela Central, pela tarefa
+processual) abria escondido e só aparecia uns 0,7 s depois, com a entrada já passada ("no processos os cards aparecem
+tudo de uma vez"): quem o mostra (`inicio-detalhe.js` e `embed-abrir.js`) avisa `embed-visivel` e o conteúdo entra de
+novo, à vista. Medido abrindo cada pop-up: Editar Processo pela home, os 10 cartões apareciam em 0,1 s; agora em 1 s,
+um a um.
+**Troca de aba pelo menu sem travar** (10/11/2026, "na troca de aba parece que tá travando, na aba em si"): (1) a tela
+nova chega antes de o círculo do item do menu terminar (0,42 s), e o item nascia cheio, num pulo; o `menu-fixo.js`
+guarda o círculo (`yuris_menu_enche`) e um script logo depois do menu, em `includes/sidebar.php`, faz o item da tela
+nova continuar de onde ele está (`--mf-atraso` negativo), antes da primeira pintura; o `pageshow` só desfaz a saída na
+volta pelo histórico; (2) a camada do sistema vestia de uma vez mais de mil elementos da tela nova, e de 82% a 91%
+estavam fora da tela: agora veste na hora o que está à vista e o resto numa fila, aos pedaços de até 6 ms
+(`foraDaTela`, `adiarCores`, `vestirAdiados`), com o contraste medido contra o fundo de antes (`fundoVisto`); se a tela
+rolar antes de a fila acabar, o resto é vestido no próprio evento; (3) o movimento só põe a entrada no que está à
+vista (`naTela`); (4) a marca da camada em svg (`className` é objeto) e em elemento que não tinha classe nem `style`
+(`oldValue` nulo) parecia mudança da tela e forçava um recálculo de estilo de 25 a 29 ms (`baseSelo`,
+`soMarcaDaCamada`). Tarefas longas ao abrir, três cargas: Tarefas de 113 a 160 ms para 74 a 75, Processos de 115 a
+202 para 73 a 98, Prospecção de 77 a 128 para 57 a 108. Conferido contra a versão anterior: as mesmas 6.890 marcas
+em 9 telas, elemento por elemento, e as mesmas nos 3 pop-ups.
 Indicadores (09/11/2026): o bloco de texto do indicador alinha pelo topo (`align-content:start`), e
 `igualarIndicadores` mede o número de cada cartão e empurra os da mesma fileira até a linha do mais baixo (rótulo
 ou subtítulo de duas linhas descia o número de um cartão só).

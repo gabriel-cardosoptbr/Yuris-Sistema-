@@ -356,6 +356,31 @@ ok(str_contains($sisJsAba, 'function soMarcaDaCamada(m)') && str_contains($sisJs
 ok(str_contains($sisJsAba, 'rz.getAnimations({ subtree: true })') && !str_contains($sisJsAba, 'el.getAnimations().some('), 'transição recém-começada é vista pela leva, sem perguntar elemento por elemento');
 ok(str_contains($sisJsAba, 'requestAnimationFrame(function () { telaPedida = false; vestirTela(); })'), 'indicadores e painéis da tela: uma passada por quadro');
 ok(str_contains($movJsAba, 'requestAnimationFrame(entrarLeva)') && str_contains($movJsAba, '[entrarItens(main), crescerIcones(main), contarNumeros(main)].forEach(function (escreve) { escreve(); });'), 'o movimento lê tudo antes de marcar, e entra depois de a camada vestir');
+// Todo pop-up entra como a Intimação da home (10/11/2026, "eu quero que todos os pop-ups tenham a
+// mesma animação, que os cards vão vindo em sequência; é uma animação do sistema").
+$movPop  = (string) file_get_contents($raiz . '/public/assets/interface-nova-movimento.js');
+$movPopC = (string) file_get_contents($raiz . '/public/assets/interface-nova-movimento.css');
+$detPop  = (string) file_get_contents($raiz . '/public/assets/inicio-detalhe.js');
+$embPop  = (string) file_get_contents($raiz . '/public/assets/embed-abrir.js');
+ok(str_contains($movPop, 'function ehCartao(f, r, cs, fundoPai, pr)') && str_contains($movPop, 'if (ehCartao(f, r, cs, fundoPai, pr)) out.push(f);'), 'pop-up: o cartão (seção com fundo, moldura ou sombra) entra antes do que tem dentro');
+ok(str_contains($movPopC, '.inn-pop-entra{ animation:inn-pop-entra .4s var(--mov-saida) both; animation-delay:calc(90ms + var(--mov-i, 0) * 38ms); }'), 'pop-up: o passo da entrada é o da Intimação (38 ms)');
+ok(str_contains($movPop, '.sort(function (a, b) { return a.y - b.y || a.x - b.x; })') && str_contains($movPop, 'if (r.top >= baixo || (!r.width && !r.height)) return;'), 'pop-up: a ordem é a da posição, de cima para baixo, e só o que está à vista ganha vez');
+ok(str_contains($movPop, 'function entrarTardios(achados)') && str_contains($movPop, "attributes: true, attributeOldValue: true, attributeFilter: ['class', 'style', 'hidden', 'open']"), 'pop-up: o que chega depois de abrir continua a fila (o Nova Conversa abre vazio)');
+ok(str_contains($movPop, "e.data.yuris !== 'embed-visivel'") && str_contains($movPop, 'entrarPopup(f, true)') && str_contains($detPop, "postMessage({ yuris: 'embed-visivel' }, location.origin)") && str_contains($embPop, "postMessage({ yuris: 'embed-visivel' }, location.origin)"), 'pop-up aberto por cima de outra tela: o conteúdo entra quando aparece, não escondido');
+ok(str_contains($movPop, "n.closest('.sidebar, .inn-emb, .inn-pop-entra')") && str_contains($movPop, "if (el.closest('.inn-pop-entra')) return;"), 'o que já está entrando não entra de novo pela aba');
+// Troca de aba pelo menu sem travar (10/11/2026, "na troca de aba parece que tá travando, na aba em si").
+$sisTroca = (string) file_get_contents($raiz . '/public/assets/interface-nova-sistema.js');
+$mfTroca  = (string) file_get_contents($raiz . '/public/assets/menu-fixo.js');
+$cssTroca = (string) file_get_contents($raiz . '/public/assets/interface-nova.css');
+$sbTroca  = (string) file_get_contents($raiz . '/public/includes/sidebar.php');
+ok(str_contains($sisTroca, "var c = el.getAttribute ? el.getAttribute('class') : el.className;") && str_contains($sisTroca, "baseSelo({ className: m.oldValue || '' })"), 'a marca da camada no svg e em elemento sem classe não faz vestir de novo');
+ok(str_contains($sisTroca, 'function foraDaTela(r)') && str_contains($sisTroca, 'if (!adiado && foraDaTela(r)) { adiar.push(el); return; }') && str_contains($sisTroca, "|| ADIADO.has(el)) return;"), 'o que está fora da tela é vestido logo depois, aos pedaços');
+ok(str_contains($sisTroca, 'passada.antes.set(el, corFundo(cs));') && str_contains($sisTroca, 'fundoVisto(el, cacheFundo, passada.antes)'), 'quem é vestido depois mede o contraste contra o fundo de antes');
+ok(str_contains($sisTroca, "window.addEventListener('scroll', function () {") && str_contains($sisTroca, '{ capture: true, passive: true }'), 'rolou antes de a fila acabar: o resto é vestido na hora');
+ok(str_contains($movPop, 'function naTela(r)') && str_contains($movPop, 'if (giram[i] || !vistos[i]) return;'), 'o movimento só põe a entrada no que está à vista');
+$posEnche = strpos($sbTroca, "sessionStorage.getItem('yuris_menu_enche')");
+ok(str_contains($mfTroca, "sessionStorage.setItem('yuris_menu_enche'") && $posEnche !== false && $posEnche < strpos($sbTroca, '<i id="yuris-menu-pronto" hidden></i>') && str_contains($cssTroca, 'animation-delay:var(--mf-atraso, 0s);'), 'o item do menu continua enchendo na tela nova, antes da primeira pintura');
+ok(str_contains($mfTroca, 'if (!e.persisted) return;'), 'a carga normal não corta o círculo (só a volta pelo histórico desfaz)');
 ok($semExpect === [],'toda página com o menu segura a pintura até o fim dele (rel=expect no <head>)' . ($semExpect ? ': falta em ' . implode(', ', $semExpect) : ''));
 ok(!preg_match('/^(?!.*(animation|transition|transform|opacity|keyframes|--mov|--cx|--cy|isolation|overflow|position|z-index|pointer-events|will-change|font-variant|border-radius|padding-top|width|left|top|background|display|content|border-color|transform-origin)).*:\s*#[0-9a-f]{3,6}/mi', $movCss), 'a folha do movimento não traz cor nova');
 $innCss = (string) @file_get_contents($raiz . '/public/assets/interface-nova-movimento.css');

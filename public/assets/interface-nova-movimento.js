@@ -36,6 +36,10 @@
   // invisíveis para sempre (09/11/2026, revisão do sistema).
   var FORA = '.sidebar, .mobile-tabbar, .inn-emb';
   function NADA() {}
+  // À vista: algum pedaço dentro da janela. O que está fora (abaixo da dobra, nas colunas à direita
+  // do quadro) não se vê entrando, e pôr a entrada em tudo fazia o navegador recalcular o estilo de
+  // centenas de cartões no quadro em que a tela aparece ("travando na troca de aba", 10/11/2026).
+  function naTela(r) { return r.width > 0 && r.bottom > 0 && r.right > 0 && r.top < innerHeight && r.left < innerWidth; }
   // Recebe uma raiz ou uma lista delas (o observador junta as da mesma leva).
   function raizesDe(r) { return (Array.isArray(r) ? r : [r]).filter(function (x) { return x && x.querySelectorAll; }); }
   // As três abaixo LEEM e devolvem a função que ESCREVE: quem chama lê as três e só depois escreve,
@@ -55,10 +59,11 @@
     // Quem já tem transform próprio (a coluna do quadro gira em rotateX para a barra
     // ficar em cima) não entra: a animação sobrescreveria o giro e o texto viraria de cabeça para baixo.
     var giram = itens.map(function (el) { return getComputedStyle(el).transform !== 'none'; });
+    var vistos = itens.map(function (el) { return naTela(el.getBoundingClientRect()); });
     return function () {
       itens.forEach(function (el, i) {
         el.dataset.inn = '1';
-        if (giram[i]) return;
+        if (giram[i] || !vistos[i]) return;
         var k = porPai.get(el.parentNode) || 0;
         porPai.set(el.parentNode, k + 1);
         if (k < 14) { el.style.setProperty('--mov-i', k); el.classList.add('inn-item'); }
@@ -74,7 +79,7 @@
       var k = 0;
       svgs.forEach(function (s, i) {
         var r = medidas[i];
-        if (k >= 40 || r.width < 10 || r.width > 56 || r.height > 56) return;
+        if (k >= 40 || r.width < 10 || r.width > 56 || r.height > 56 || !naTela(r)) return;
         s.dataset.inn = '1'; s.style.setProperty('--mov-i', k++); s.classList.add('inn-cresce');
       });
     };
@@ -117,11 +122,11 @@
       }
     });
     if (!achados.length) return NADA;
-    var estilos = achados.map(function (el) { var cs = getComputedStyle(el); return { tam: parseFloat(cs.fontSize), cor: cs.color }; });
+    var estilos = achados.map(function (el) { var cs = getComputedStyle(el); return { tam: parseFloat(cs.fontSize), cor: cs.color, visto: naTela(el.getBoundingClientRect()) }; });
     return function () {
       var k = 0;
       achados.forEach(function (el, i) {
-        if (estilos[i].tam < 10 || el.dataset.inn) return;
+        if (estilos[i].tam < 10 || !estilos[i].visto || el.dataset.inn) return;
         el.dataset.inn = '1'; k++;
         var alvo = parseInt(el.textContent, 10);
         // Zera na hora, só no desenho: o texto real continua o número.
@@ -198,35 +203,159 @@
     return melhor;
   }
   // As linhas: desce pelos embrulhos grandes (corpo com rolagem, formulário, seção) até chegar
-  // nas peças de uma linha só; para em 26 para a entrada não demorar.
-  function linhasDe(painel) {
-    var out = [], ph = painel.getBoundingClientRect().height;
-    (function desce(el, nivel) {
+  // nas peças de uma linha só; para em 40.
+  // O embrulho que é um CARTÃO (fundo, moldura ou sombra própria, como a seção "Identificação do
+  // processo") também entra, logo antes do que tem dentro: é o cartão que vem vindo e se enche,
+  // como os cartões da Intimação na home. Antes só o de dentro entrava, e o cartão aparecia pronto
+  // e vazio junto com o painel ("os cards aparecem tudo de uma vez", 10/11/2026).
+  function corDe(c) { var m = /rgba?\(([^)]+)\)/.exec(c || ''); if (!m) return 0; var p = m[1].split(','); return p.length > 3 ? parseFloat(p[3]) : 1; }
+  function ehCartao(f, r, cs, fundoPai, pr) {
+    if (r.width >= pr.width * .98 && r.height >= pr.height * .7) return false;      // o corpo inteiro
+    if (/(auto|scroll)/.test(cs.overflowY) && f.scrollHeight > f.clientHeight + 4 && r.height > pr.height * .5) return false; // o corpo que rola
+    if (parseFloat(cs.borderTopWidth) > 0 && parseFloat(cs.borderLeftWidth) > 0 && corDe(cs.borderTopColor) > .04) return true;
+    if (cs.boxShadow && cs.boxShadow !== 'none') return true;
+    return corDe(cs.backgroundColor) > .04 && cs.backgroundColor !== fundoPai;
+  }
+  // ref: o pop-up de fora, quando a descida começa num pedaço dele (o que chegou depois): o "corpo
+  // inteiro" e o "corpo que rola" são medidos contra o pop-up, não contra o pedaço.
+  function linhasDe(painel, ref) {
+    var out = [], ph = painel.getBoundingClientRect().height, pr = (ref || painel).getBoundingClientRect();
+    (function desce(el, nivel, fundoPai) {
       [].forEach.call(el.children, function (f) {
-        if (out.length >= 26 || /^(SCRIPT|STYLE|TEMPLATE|INPUT|OPTION)$/.test(f.tagName)) return;
+        if (out.length >= 40 || /^(SCRIPT|STYLE|TEMPLATE|INPUT|OPTION)$/.test(f.tagName)) return;
         var r = f.getBoundingClientRect(); if (r.width < 8 || r.height < 6) return;
         // Embrulho grande (corpo com rolagem, formulário, seção, grade de campos): desce, mesmo
         // quando é um embrulho só (o corpo do Editar Processo embrulha o formulário inteiro).
-        if (nivel < 5 && f.children.length >= 1 && r.height > Math.min(120, ph * .25) && !/^(BUTTON|A|LABEL|SELECT|TEXTAREA|TABLE|UL|OL|svg)$/i.test(f.tagName)) { desce(f, nivel + 1); return; }
+        if (nivel < 5 && f.children.length >= 1 && r.height > Math.min(120, ph * .25) && !/^(BUTTON|A|LABEL|SELECT|TEXTAREA|TABLE|UL|OL|svg)$/i.test(f.tagName)) {
+          var cs = getComputedStyle(f), fundo = corDe(cs.backgroundColor) > .04 ? cs.backgroundColor : fundoPai;
+          if (ehCartao(f, r, cs, fundoPai, pr)) out.push(f);
+          desce(f, nivel + 1, fundo); return;
+        }
         out.push(f);
       });
-    })(painel, 0);
+    })(painel, 0, getComputedStyle(painel).backgroundColor);
     return out;
   }
-  function entrarPopup(fundo) {
-    var painel = painelDe(fundo); if (!painel) return;
-    var semAnimProp = getComputedStyle(painel).animationName === 'none';
-    if (semAnimProp) { painel.classList.remove('inn-pop-surge'); void painel.offsetWidth; painel.classList.add('inn-pop-surge'); }
-    var k = 0;
-    linhasDe(painel).forEach(function (el) {
-      if (getComputedStyle(el).transform !== 'none') return;
-      el.style.setProperty('--mov-i', k++);
-      el.classList.remove('inn-pop-entra'); void el.offsetWidth; el.classList.add('inn-pop-entra');
-      el.addEventListener('animationend', function f(e) { if (e.target === el) { el.classList.remove('inn-pop-entra'); el.removeEventListener('animationend', f); } });
+  // Põe as peças para entrar, uma depois da outra, com o passo da Intimação da home: a vez k começa
+  // 90 ms + k × 38 ms depois de o pop-up abrir. Só o que está à vista ganha vez (o que está abaixo
+  // da dobra não atrasa quem vem depois), e a última vez é a 28: a entrada inteira dura pouco mais
+  // de um segundo. A ordem é a da posição, de cima para baixo e, na mesma altura, da esquerda para
+  // a direita (como Tribunal e Disponibilizada na Intimação): pela ordem do código, o rodapé de
+  // alguns pop-ups entrava antes do corpo.
+  // A fila (reg) guarda a hora de começar de cada peça. Quem chega depois (abaixo) entra na ordem:
+  // as peças que ainda não começaram e ficam abaixo dela passam para depois dela (a animação que
+  // ainda está esperando aceita a espera nova). Lê tudo antes de escrever, e recomeça quem já
+  // estava entrando com uma passada de layout só (antes era uma por peça, ao abrir o pop-up).
+  function fimEntra(e) { if (e.target === this && e.animationName === 'inn-pop-entra') { this.classList.remove('inn-pop-entra'); this.removeEventListener('animationend', fimEntra); } }
+  var PASSO = 38, ESPERA = 90, ULTIMA = 28;
+  function novaFila(painel) { var t = performance.now(); return { painel: painel, t0: t, ate: t + 1200, fila: [], ultimo: t + ESPERA - PASSO }; }
+  function entrarLinhas(lista, painel, extra, reg) {
+    reg = reg || novaFila(painel);
+    var agora = performance.now();
+    var pr = painel.getBoundingClientRect(), baixo = Math.min(innerHeight, pr.bottom);
+    var vai = [];
+    Array.from(new Set(lista)).forEach(function (el) {
+      var r = el.getBoundingClientRect();
+      if (r.top >= baixo || (!r.width && !r.height)) return;
+      // Quem tem transform próprio não entra (a animação o desfaria); o transform da entrada não conta.
+      if (el.classList.contains('inn-pop-entra') || getComputedStyle(el).transform === 'none') vai.push({ el: el, y: Math.round(r.top / 4), x: r.left, novo: true });
     });
+    if (!vai.length) return 0;
+    // As que ainda esperam a vez e ficam abaixo da primeira que chega: entram de novo na ordem.
+    var topo = Math.min.apply(null, vai.map(function (v) { return v.y; }));
+    var esperam = [];
+    reg.fila = reg.fila.filter(function (p) {
+      if (p.ini <= agora + 8 || !p.el.isConnected || !p.el.classList.contains('inn-pop-entra') || vai.some(function (v) { return v.el === p.el; })) return p.ini > agora;
+      var r = p.el.getBoundingClientRect(), y = Math.round((r.top - 10) / 4);   // 10: ela espera 10 px abaixo
+      if (y < topo) return true;
+      esperam.push({ el: p.el, y: y, x: r.left, tA: p.tA, ini: p.ini }); return false;
+    });
+    var todas = vai.concat(esperam).sort(function (a, b) { return a.y - b.y || a.x - b.x; });
+    var comeco = Math.max(agora, reg.ultimo + PASSO);
+    if (esperam.length) comeco = Math.max(agora, Math.min(comeco, Math.min.apply(null, esperam.map(function (p) { return p.ini; }))));
+    var limite = Math.max(agora, reg.t0 + ESPERA + ULTIMA * PASSO);
+    var recomeca = vai.filter(function (v) { return v.el.classList.contains('inn-pop-entra'); });
+    if (recomeca.length || extra) {
+      recomeca.forEach(function (v) { v.el.classList.remove('inn-pop-entra'); });
+      if (extra) extra();
+      void painel.offsetWidth;
+    }
+    todas.forEach(function (v, k) {
+      var ini = Math.min(comeco + k * PASSO, limite), tA = v.novo ? agora : v.tA;
+      v.el.style.setProperty('--mov-i', ((ini - tA - ESPERA) / PASSO).toFixed(2));
+      if (v.novo) { v.el.classList.add('inn-pop-entra'); v.el.addEventListener('animationend', fimEntra); }
+      reg.fila.push({ el: v.el, tA: tA, ini: ini });
+      if (ini > reg.ultimo) reg.ultimo = ini;
+    });
+    return vai.length;
+  }
+  // soLinhas: o painel já está no lugar (o pop-up da home acabou de ser mostrado); só o conteúdo entra.
+  function entrarPopup(fundo, soLinhas) {
+    var painel = painelDe(fundo); if (!painel) return;
+    var surge = !soLinhas && getComputedStyle(painel).animationName === 'none';
     var ic = painel.querySelector('.inn-cab-ic, .inn-pop-ic');
-    if (ic) { ic.style.animation = 'none'; void ic.offsetWidth; ic.style.animation = ''; }
-    painel.addEventListener('animationend', function f(e) { if (e.target === painel) { painel.classList.remove('inn-pop-surge'); painel.removeEventListener('animationend', f); } });
+    var reg = novaFila(painel);
+    entrarLinhas(linhasDe(painel), painel, function () {
+      if (surge) painel.classList.remove('inn-pop-surge');
+      if (ic) ic.style.animation = 'none';
+    }, reg);
+    recentes = recentes.filter(function (r) { return r.painel !== painel; });
+    recentes.push(reg);
+    if (ic) ic.style.animation = '';
+    if (surge) {
+      painel.classList.add('inn-pop-surge');
+      painel.addEventListener('animationend', function f(e) { if (e.target === painel) { painel.classList.remove('inn-pop-surge'); painel.removeEventListener('animationend', f); } });
+    }
+  }
+  // ── O que chega depois de o pop-up abrir continua a fila ──────────────────
+  // Muito pop-up abre vazio e é preenchido logo depois (o Nova Conversa do Chat interno desenha os
+  // tipos e as pessoas depois de aberto; a ficha busca a lista no servidor; o campo aparece quando
+  // se escolhe o tipo). Isso surgia pronto no meio da entrada (10/11/2026). Durante 1,2 s depois de
+  // abrir, o que é inserido no pop-up, ou deixa de estar escondido (display:none, hidden, classe
+  // hidden), entra na vez seguinte da fila: na hora em que entraria se já estivesse lá, ou já, se
+  // essa hora passou.
+  var recentes = [];
+  var RE_ESCONDE = /(^|\s)(hidden|d-none|oculto|escondido|is-hidden)(\s|$)/;
+  function apareceu(m) {
+    var el = m.target;
+    if (m.attributeName === 'style') return /display\s*:\s*none/.test(m.oldValue || '') && el.style.display !== 'none';
+    if (m.attributeName === 'hidden') return m.oldValue !== null && !el.hidden;
+    if (m.attributeName === 'class') return RE_ESCONDE.test(m.oldValue || '') && !RE_ESCONDE.test(el.className);
+    return false;
+  }
+  function tardios(ms, vivos) {
+    var achados = [];
+    function guarda(el) {
+      if (el.nodeType !== 1 || /^(SCRIPT|STYLE|TEMPLATE|OPTION|BR)$/.test(el.tagName)) return;
+      for (var i = 0; i < vivos.length; i++) if (vivos[i].painel !== el && vivos[i].painel.contains(el)) { achados.push({ el: el, reg: vivos[i] }); return; }
+    }
+    ms.forEach(function (m) {
+      if (m.type === 'childList') [].forEach.call(m.addedNodes, guarda);
+      else if (m.target.nodeType === 1 && apareceu(m)) guarda(m.target);
+    });
+    return achados;
+  }
+  function entrarTardios(achados) {
+    var porReg = new Map();
+    achados.forEach(function (a) { if (a.el.isConnected) { var l = porReg.get(a.reg) || []; l.push(a.el); porReg.set(a.reg, l); } });
+    porReg.forEach(function (els, reg) {
+      // Só o de fora: o que está dentro de outro achado entra com ele.
+      els = els.filter(function (el) { return !els.some(function (o) { return o !== el && o.contains(el); }); });
+      var linhas = [], pr = reg.painel.getBoundingClientRect();
+      els.forEach(function (el) {
+        var r = el.getBoundingClientRect(); if (r.width < 8 || r.height < 6) return;
+        if (r.height > 120 && el.children.length && !/^(BUTTON|A|LABEL|SELECT|TEXTAREA|TABLE|UL|OL|svg)$/i.test(el.tagName)) {
+          var pai = el.parentElement ? getComputedStyle(el.parentElement).backgroundColor : '';
+          if (ehCartao(el, r, getComputedStyle(el), pai, pr)) linhas.push(el);
+          [].push.apply(linhas, linhasDe(el, reg.painel));
+        } else linhas.push(el);
+      });
+      if (linhas.length) entrarLinhas(linhas, reg.painel, null, reg);
+    });
+  }
+  function tardioDoPopup(el) {
+    var agora = performance.now();
+    return recentes.some(function (r) { return agora < r.ate && r.painel !== el && r.painel.contains(el); });
   }
   var abertos = new Set();
   function conferirPopups(alvos) {
@@ -239,6 +368,13 @@
   }
   new MutationObserver(function (ms) {
     var alvos = new Set();
+    // Antes de abrir os novos: o pop-up que abre agora já leva o que está nele.
+    if (recentes.length) {
+      var agora = performance.now();
+      recentes = recentes.filter(function (r) { return agora < r.ate && r.painel.isConnected; });
+      var achados = recentes.length ? tardios(ms, recentes) : [];
+      if (achados.length) entrarTardios(achados);
+    }
     ms.forEach(function (m) {
       if (m.type === 'attributes') { if (m.target.nodeType === 1 && m.target.matches && m.target.matches(SEL_POP + ', dialog')) alvos.add(m.target); return; }
       [].forEach.call(m.addedNodes, function (n) {
@@ -248,7 +384,15 @@
       });
     });
     if (alvos.size) conferirPopups(alvos);
-  }).observe(document.body, { attributes: true, attributeFilter: ['class', 'style', 'hidden', 'open'], childList: true, subtree: true });
+  }).observe(document.body, { attributes: true, attributeOldValue: true, attributeFilter: ['class', 'style', 'hidden', 'open'], childList: true, subtree: true });
+  // Aberto de dentro de outra tela (?embed=1: a home, a Central, o processo aberto por uma tarefa),
+  // o pop-up abre escondido e só aparece quando a forma cinza chega até ele, uns 0,7 s depois: a
+  // entrada já tinha passado e ele surgia pronto ("no processos os cards aparecem tudo de uma vez",
+  // 10/11/2026). Quem mostra avisa (embed-visivel), e o conteúdo entra de novo, à vista.
+  if (embutido) window.addEventListener('message', function (e) {
+    if (e.origin !== location.origin || e.source !== window.parent || !e.data || e.data.yuris !== 'embed-visivel') return;
+    abertos.forEach(function (f) { if (f.isConnected && vis(f)) entrarPopup(f, true); });
+  });
 
   // ── Seleção cheia: começa vazia e se preenche a partir do clique ─────────
   // "Tudo que é seleção cheia do sistema tem que começar vazio e se preencher" (08/11/2026),
@@ -332,15 +476,8 @@
   document.addEventListener('click', function (e) {
     if (e.target.closest && e.target.closest('button, a, [role="tab"], .inn-aba, [onclick], label')) cliqueRecente = performance.now();
   }, true);
-  function entrarEmFila(lista) {
-    lista = lista.slice(0, 22);
-    var giram = lista.map(function (el) { return getComputedStyle(el).transform !== 'none'; });
-    lista.forEach(function (el, k) {
-      if (giram[k]) return;
-      el.style.setProperty('--mov-i', k);
-      el.classList.remove('inn-pop-entra'); void el.offsetWidth; el.classList.add('inn-pop-entra');
-      el.addEventListener('animationend', function f(e) { if (e.target === el) { el.classList.remove('inn-pop-entra'); el.removeEventListener('animationend', f); } });
-    });
+  function entrarEmFila(lista, caixa) {
+    if (lista.length && caixa && caixa.getBoundingClientRect) entrarLinhas(lista, caixa);
   }
   new MutationObserver(function (ms) {
     if (performance.now() - cliqueRecente > 900) return;
@@ -350,18 +487,19 @@
       if (m.type === 'attributes') {
         // O painel que passou a ficar ativo (tk-tab-pane.active), grande e não um botão.
         if (m.attributeName !== 'class' || classesLigadas(m.oldValue) || !classesLigadas(el.className)) return;
+        if (el.closest('.inn-pop-entra')) return;
         if (/^(BUTTON|A|LABEL|INPUT|SELECT|TEXTAREA|LI)$/.test(el.tagName) || el.classList.contains('inn-aba')) return;
         var r = el.getBoundingClientRect(); if (r.height < 60 || r.width < 160) return;
         paineis.push(el); return;
       }
       [].forEach.call(m.addedNodes, function (n) {
-        if (n.nodeType !== 1 || /^(SCRIPT|STYLE|OPTION)$/.test(n.tagName) || n.closest('.sidebar, .inn-emb')) return;
+        if (n.nodeType !== 1 || /^(SCRIPT|STYLE|OPTION)$/.test(n.tagName) || n.closest('.sidebar, .inn-emb, .inn-pop-entra') || tardioDoPopup(n)) return;
         var r = n.getBoundingClientRect(); if (r.height < 14 || r.width < 40) return;
         var arr = porPai.get(n.parentNode) || []; arr.push(n); porPai.set(n.parentNode, arr);
       });
     });
-    paineis.forEach(function (p) { entrarEmFila(linhasDe(p)); });
-    porPai.forEach(function (arr) { if (!paineis.some(function (p) { return p.contains(arr[0]); })) entrarEmFila(arr); });
+    paineis.forEach(function (p) { entrarEmFila(linhasDe(p), p); });
+    porPai.forEach(function (arr, pai) { if (!paineis.some(function (p) { return p.contains(arr[0]); })) entrarEmFila(arr, pai); });
   }).observe(document.body, { attributes: true, attributeOldValue: true, attributeFilter: ['class'], childList: true, subtree: true });
 
   // ── Sair pelo menu ──────────────────────────────────────────────────────

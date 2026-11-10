@@ -63,13 +63,20 @@
     if (typeof a.aoFechar === 'function') { try { a.aoFechar(); } catch (e) {} }
   }
 
+  // Mostra o pop-up e avisa o quadro: lá dentro o conteúdo entra de novo, cartão por cartão,
+  // agora que está à vista (a entrada de quando ele abriu passou escondida, 10/11/2026).
+  function mostrar(caixa) {
+    caixa.classList.add('pronto');
+    var q = caixa.querySelector('.inn-emb-quadro');
+    try { q.contentWindow.postMessage({ yuris: 'embed-visivel' }, location.origin); } catch (e) {}
+  }
   // O pop-up chegou: a forma vai até a medida dele e some por baixo do pop-up de verdade.
   function morfar(c) {
     if (!atual) return;
     var caixa = atual.caixa, fan = caixa.querySelector('.inn-emb-fantasma');
     var comMovimento = html.classList.contains('inn-mov') && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var focar = function () { try { atual.quadro.focus(); } catch (e) {} };
-    if (!fan || !c || !c.width || !comMovimento) { caixa.classList.add('pronto'); focar(); return; }
+    if (!fan || !c || !c.width || !comMovimento) { mostrar(caixa); focar(); return; }
     c = { left: Math.max(0, c.left), top: Math.max(0, c.top), width: Math.min(c.width, innerWidth - Math.max(0, c.left)), height: Math.min(c.height, innerHeight - Math.max(0, c.top)) };
     var r = fan.getBoundingClientRect();
     fan.style.transition = 'none'; fan.style.transform = 'none';
@@ -77,7 +84,7 @@
     void fan.offsetWidth;
     fan.style.transition = ''; fan.classList.add('morfa');
     fan.style.left = c.left + 'px'; fan.style.top = c.top + 'px'; fan.style.width = c.width + 'px'; fan.style.height = c.height + 'px';
-    setTimeout(function () { if (atual && atual.caixa === caixa) { caixa.classList.add('pronto'); focar(); } }, 400);
+    setTimeout(function () { if (atual && atual.caixa === caixa) { mostrar(caixa); focar(); } }, 400);
   }
 
   function avisar(msg) {
