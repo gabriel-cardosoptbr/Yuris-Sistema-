@@ -44,6 +44,52 @@
     // A agenda vem para cá; o painel dela, vazio, sai.
     var painelAgenda = lista.closest('.proc-panel');
     var vAgenda = el('div', 'inn-vista inn-vista-agenda'); vAgenda.appendChild(lista);
+
+    // ── Os filtros da agenda (10/11/2026, "na agenda tenho que ter filtros: encerrado, aberto; filtros de
+    // data") ── pela situação de cada prazo (o selo da linha: vencido, hoje ou urgente, esta semana, em dia,
+    // encerrado), com a contagem de cada uma, e por período (de, até). Filtra as linhas que o processos.js
+    // desenhou (o ano escolhido em cima vale), e refiltra quando ele redesenha.
+    var SITUACOES = [['todos', 'Todos'], ['vencido', 'Vencidos'], ['urgente', 'Hoje e urgentes'], ['semana', 'Esta semana'], ['emdia', 'Em dia'], ['encerrado', 'Encerrados']];
+    var fAg = el('div', 'inn-ag-filtros',
+      '<div class="inn-ag-chips" role="group" aria-label="Situação do prazo">' + SITUACOES.map(function (x) {
+        return '<button type="button" class="inn-ag-chip' + (x[0] === 'todos' ? ' on' : '') + '" data-f="' + x[0] + '" aria-pressed="' + (x[0] === 'todos') + '"><span>' + x[1] + '</span><b data-inn="1"></b></button>';
+      }).join('') + '</div>' +
+      '<div class="inn-ag-datas"><label>De <input type="date" class="inn-ag-de"></label><label>até <input type="date" class="inn-ag-ate"></label>' +
+      '<button type="button" class="inn-ag-limpar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Limpar</button></div>');
+    vAgenda.insertBefore(fAg, lista);
+    var agVazio = el('div', 'inn-ag-vazio', 'Nenhum prazo com este filtro.'); agVazio.hidden = true;
+    vAgenda.appendChild(agVazio);
+    var fSit = 'todos', fDe = fAg.querySelector('.inn-ag-de'), fAte = fAg.querySelector('.inn-ag-ate');
+    function situacaoDe(row) {
+      var t = ((row.querySelector('.proc-badge') || {}).textContent || '').toLowerCase();
+      return /vencid/.test(t) ? 'vencido' : /hoje|urgente/.test(t) ? 'urgente' : /semana/.test(t) ? 'semana' : /encerrad/.test(t) ? 'encerrado' : 'emdia';
+    }
+    function dataDe(row) { var m = /(\d{2})\/(\d{2})\/(\d{4})/.exec((row.querySelector('.proc-agenda-date') || {}).textContent || ''); return m ? m[3] + '-' + m[2] + '-' + m[1] : ''; }
+    function filtrarAgenda() {
+      var de = fDe.value, ate = fAte.value, conta = { todos: 0 }, vistas = 0;
+      [].forEach.call(lista.querySelectorAll('.proc-agenda-row'), function (r) {
+        var d = dataDe(r), sit = situacaoDe(r);
+        var noPeriodo = (!de || (d && d >= de)) && (!ate || (d && d <= ate));
+        if (noPeriodo) { conta.todos++; conta[sit] = (conta[sit] || 0) + 1; }
+        var ok = noPeriodo && (fSit === 'todos' || sit === fSit);
+        r.hidden = !ok; if (ok) vistas++;
+      });
+      [].forEach.call(fAg.querySelectorAll('.inn-ag-chip'), function (c) { c.querySelector('b').textContent = String(conta[c.dataset.f] || 0); });
+      agVazio.hidden = vistas > 0 || !lista.querySelector('.proc-agenda-row');
+      fAg.querySelector('.inn-ag-limpar').hidden = fSit === 'todos' && !de && !ate;
+    }
+    fAg.addEventListener('click', function (e) {
+      var c = e.target.closest('.inn-ag-chip');
+      if (c) {
+        fSit = c.dataset.f;
+        [].forEach.call(fAg.querySelectorAll('.inn-ag-chip'), function (x) { var on = x === c; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+        filtrarAgenda(); return;
+      }
+      if (e.target.closest('.inn-ag-limpar')) { fDe.value = ''; fAte.value = ''; fAg.querySelector('.inn-ag-chip[data-f="todos"]').click(); }
+    });
+    fDe.addEventListener('change', filtrarAgenda); fAte.addEventListener('change', filtrarAgenda);
+    new MutationObserver(filtrarAgenda).observe(lista, { childList: true });
+    filtrarAgenda();
     var vCal = el('div', 'inn-vista inn-vista-cal');
     quadro.classList.add('inn-vista', 'inn-vista-quadro');
     quadro.parentNode.insertBefore(vCal, quadro.nextSibling);
@@ -118,7 +164,8 @@
         var selo = ((c.querySelector('.proc-badge') || {}).textContent || '').trim();
         var tom = /vencid|hoje|urgente/i.test(selo) ? 'erro' : /semana/i.test(selo) ? 'aviso' : /encerrad/i.test(selo) ? 'neutro' : 'ok';
         return { id: c.getAttribute('data-id'), d: +m[1], m: +m[2] - 1, a: +m[3], num: ((c.querySelector('.proc-card-num') || {}).textContent || '').trim(),
-                 cli: ((c.querySelector('.proc-card-client') || {}).textContent || '').trim(), selo: selo, tom: tom };
+                 cli: ((c.querySelector('.proc-card-client') || {}).textContent || '').trim(), selo: selo, tom: tom,
+                 info: [].map.call(c.querySelectorAll('.proc-card-meta'), function (x) { return x.textContent.trim(); }).filter(Boolean) };
       }).filter(Boolean);
     }
     function mesInicial() {
@@ -142,7 +189,8 @@
         var data = new Date(visto.a, visto.m, dia);
         var ehHoje = data.toDateString() === hoje.toDateString();
         var itens = dentro ? (porDia[dia] || []) : [];
-        h += '<div class="inn-cal-dia' + (dentro ? '' : ' fora') + (ehHoje ? ' hoje' : '') + (itens.length ? ' tem' : '') + '">' +
+        h += '<div class="inn-cal-dia' + (dentro ? '' : ' fora') + (ehHoje ? ' hoje' : '') + (itens.length ? ' tem' : '') + '"' +
+             (dentro ? ' data-dia="' + dia + '" role="button" tabindex="0" aria-label="Ver o dia ' + dia + '"' : '') + '>' +
              '<span class="inn-cal-n" data-inn="1">' + data.getDate() + '</span>' +
              itens.map(function (p) {
                return '<button type="button" class="inn-cal-item" data-id="' + esc(p.id) + '" title="' + esc(p.selo) + '"><i class="inn-cal-ponto ' + p.tom + '" aria-hidden="true"></i>' +
@@ -163,8 +211,49 @@
       var n = e.target.closest('.inn-cal-nav');
       if (n) { var m = visto.m + (+n.dataset.passo), a = visto.a; if (m < 0) { m = 11; a--; } if (m > 11) { m = 0; a++; } irAoMes(a, m); return; }
       var it = e.target.closest('.inn-cal-item');
-      if (it) { var ed = quadro.querySelector('.proc-card[data-id="' + it.dataset.id + '"] .editBtn'); if (ed) ed.click(); }
+      if (it) { abrirFicha(it.dataset.id); return; }
+      var d = e.target.closest('.inn-cal-dia[data-dia]');
+      if (d) abrirDia(+d.dataset.dia);
     });
+    vCal.addEventListener('keydown', function (e) {
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('.inn-cal-dia[data-dia]')) { e.preventDefault(); abrirDia(+e.target.dataset.dia); }
+    });
+    function abrirFicha(id) { var ed = quadro.querySelector('.proc-card[data-id="' + id + '"] .editBtn'); if (ed) ed.click(); }
+
+    // ── A janela do dia ("clico no dia e aparece tudo o que eu tenho nele; escolho qual e abre") ──
+    // Tudo o que vence no dia, um cartão por processo (cliente, número, estado, setor e vara);
+    // clicar num cartão abre a ficha dele por cima (a janela fica embaixo e volta ao fechar a ficha).
+    var SEMANA = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+    var fundoDia = el('div', 'inn-dia-overlay'); fundoDia.hidden = true;
+    fundoDia.setAttribute('role', 'dialog'); fundoDia.setAttribute('aria-modal', 'true');
+    document.body.appendChild(fundoDia);
+    var focoAntes = null;
+    function abrirDia(dia) {
+      var data = new Date(visto.a, visto.m, dia);
+      var ps = processos().filter(function (p) { return p.a === visto.a && p.m === visto.m && p.d === dia; });
+      var titulo = SEMANA[data.getDay()] + ', ' + dia + ' de ' + MESES[visto.m] + ' de ' + visto.a;
+      fundoDia.setAttribute('aria-label', titulo);
+      fundoDia.innerHTML = '<div class="inn-dia-janela">' +
+        '<div class="inn-dia-topo"><span class="inn-dia-ic" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICONE.calendario + '</svg></span>' +
+        '<div class="inn-dia-titulo"><b data-inn="1">' + esc(titulo) + '</b><span>' + (ps.length ? ps.length + (ps.length === 1 ? ' prazo neste dia' : ' prazos neste dia') + '; clique para abrir' : 'nenhum prazo neste dia') + '</span></div>' +
+        '<button type="button" class="inn-dia-fechar" aria-label="Fechar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>' +
+        '<div class="inn-dia-lista">' + (ps.length ? ps.map(function (p) {
+          return '<button type="button" class="inn-dia-item" data-id="' + esc(p.id) + '">' +
+            '<span class="inn-dia-linha"><small>' + esc(p.num) + '</small>' + (p.selo ? '<em class="inn-dia-selo ' + p.tom + '">' + esc(p.selo) + '</em>' : '') + '</span>' +
+            '<b>' + esc(p.cli) + '</b>' + p.info.map(function (x) { return '<span class="inn-dia-info">' + esc(x) + '</span>'; }).join('') +
+            '<span class="inn-dia-abrir">Abrir a ficha<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>' +
+            '</button>';
+        }).join('') : '<div class="inn-dia-vazio">Nada vence neste dia.</div>') + '</div></div>';
+      focoAntes = document.activeElement;
+      fundoDia.hidden = false;
+      setTimeout(function () { var b = fundoDia.querySelector('.inn-dia-item, .inn-dia-fechar'); if (b) b.focus({ preventScroll: true }); }, 60);
+    }
+    function fecharDia() { fundoDia.hidden = true; if (focoAntes && focoAntes.focus) focoAntes.focus({ preventScroll: true }); }
+    fundoDia.addEventListener('click', function (e) {
+      if (e.target === fundoDia || e.target.closest('.inn-dia-fechar')) { fecharDia(); return; }
+      var it = e.target.closest('.inn-dia-item'); if (it) abrirFicha(it.dataset.id);
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !fundoDia.hidden && !document.querySelector('#modalProcess:not(.hidden)')) fecharDia(); });
     // O quadro se refaz (ano, filtro, cadastro): o calendário acompanha.
     var pedido = null, primeiraVez = true;
     new MutationObserver(function () {

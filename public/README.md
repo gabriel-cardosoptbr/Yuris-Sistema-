@@ -550,6 +550,12 @@ da cor do estado, o hoje marcado; clicar abre a ficha (o Editar do cartão); pas
 Agenda Jurídica Prioritária, que sai do fim da página. O botão "Mês atual" volta para o mês de hoje, trocando o ano se
 precisar. A visão escolhida fica guardada neste navegador. O dia do calendário leva `data-inn="1"` para não contar de
 zero como os números, e o ícone do painel é sempre o calendário (a camada o escolhia pelas palavras do subtítulo).
+Depois ("o calendário um pouco maior; clico no dia e aparece tudo o que tenho nele, escolho qual e abre o pop-up
+inteiro"; "na agenda, filtros: encerrado, aberto, filtros de data"): o dia tem 136 px e é clicável; clicar no dia abre
+a janela do dia (`.inn-dia-overlay`) com cada processo que vence nele (número, cliente, estado, setor, vara, "Abrir a
+ficha"), e clicar num processo, no dia ou na janela, abre a ficha. A Agenda ganha os filtros de situação (Todos,
+Vencidos, Hoje e urgentes, Esta semana, Em dia, Encerrados, cada um com a contagem, pelo selo da linha) e de período
+(de, até), com Limpar; filtram as linhas que o `processos.js` desenhou e refiltram quando ele redesenha.
 **No Jurídico, "Intimações"** (10/11/2026, "trocar o nome de processos por intimações, pra gente não confundir"): na
 prévia, o item `processos.php` do grupo Jurídico (e da barra do celular) se chama Intimações; a tela e o endereço são
 os mesmos. Fora da prévia continua Processos (`includes/sidebar.php`).

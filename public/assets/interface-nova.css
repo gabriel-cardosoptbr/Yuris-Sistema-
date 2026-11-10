@@ -451,17 +451,63 @@ html .inn-cal-nav:hover{ color:var(--inn-t-azul2) !important; border-color:var(-
 html .inn-cal-semana, html .inn-cal-grade{ display:grid; grid-template-columns:repeat(7, minmax(0, 1fr)); gap:8px; }
 html .inn-cal-semana{ margin-bottom:8px; }
 html .inn-cal-semana span{ text-align:center; font-size:.72rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--inn-t-texto3); }
-html .inn-cal-dia{ min-height:108px; min-width:0; display:flex; flex-direction:column; gap:6px; padding:8px; border-radius:10px;
+html .inn-cal-dia{ min-height:136px; min-width:0; display:flex; flex-direction:column; gap:6px; padding:10px; border-radius:10px; cursor:pointer; transition:border-color .15s, translate .15s;
   background:var(--inn-t-painel); border:1px solid var(--inn-t-linha); box-shadow:var(--inn-t-sombra); }
-html .inn-cal-dia.fora{ background:transparent; box-shadow:none; opacity:.5; }
+html .inn-cal-dia.fora{ background:transparent; box-shadow:none; opacity:.5; cursor:default; }
+html .inn-cal-dia[data-dia]:hover{ border-color:var(--inn-t-linha2); translate:0 -2px; }
+html .inn-cal-dia[data-dia]:focus-visible{ outline:2px solid var(--inn-t-azul2); outline-offset:2px; }
 html .inn-cal-dia.hoje{ border-color:var(--inn-t-azul2); box-shadow:0 0 0 3px var(--inn-t-azul-suave); }
 html .inn-cal-n{ align-self:flex-start; min-width:24px; height:24px; padding:0 4px; display:grid; place-items:center; border-radius:999px; font-size:.8rem; font-weight:700; color:var(--inn-t-texto2); }
 html .inn-cal-dia.hoje .inn-cal-n{ background:var(--inn-t-azul2); color:#fff; }
 html .inn-cal-item{ display:grid; grid-template-columns:auto 1fr; column-gap:6px; align-items:center; width:100%; min-width:0; padding:6px 8px; border-radius:8px; text-align:left; cursor:pointer;
   background:var(--inn-t-fundo) !important; border:1px solid var(--inn-t-linha) !important; box-shadow:none !important; font-family:inherit; transition:border-color .15s, translate .15s; }
 html .inn-cal-item:hover{ border-color:var(--inn-t-azul2) !important; translate:0 -1px; }
-html .inn-cal-item b{ grid-column:2; font-size:.76rem; font-weight:700; color:var(--inn-t-texto); overflow-wrap:anywhere; line-height:1.25; }
-html .inn-cal-item small{ grid-column:2; font-size:.68rem; font-weight:600; color:var(--inn-t-azul2); overflow-wrap:anywhere; }
+html .inn-cal-item b{ grid-column:2; font-size:.8rem; font-weight:700; color:var(--inn-t-texto); overflow-wrap:anywhere; line-height:1.25; }
+html .inn-cal-item small{ grid-column:2; font-size:.72rem; font-weight:600; color:var(--inn-t-azul2); overflow-wrap:anywhere; }
 html .inn-cal-ponto{ grid-row:1 / span 2; width:8px; height:8px; border-radius:50%; background:var(--inn-t-ok); }
 html .inn-cal-ponto.erro{ background:var(--inn-t-erro); } html .inn-cal-ponto.aviso{ background:var(--inn-t-aviso); } html .inn-cal-ponto.neutro{ background:var(--inn-t-texto3); }
 @media (max-width:760px){ html .inn-cal-semana{ display:none; } html .inn-cal-grade{ grid-template-columns:1fr; } html .inn-cal-dia:not(.tem):not(.hoje){ display:none; } html .inn-cal-dia{ min-height:0; } }
+/* A janela do dia (10/11/2026, "clico no dia e aparece tudo o que eu tenho nele; escolho qual e abre o
+   pop-up inteiro"): os processos que vencem no dia, um cartão por processo; clicar abre a ficha por cima. */
+html .inn-dia-overlay{ position:fixed; inset:0; z-index:900; display:flex; align-items:flex-start; justify-content:center; padding:8vh 16px; overflow-y:auto;
+  background:rgba(14,18,24,.46); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
+html .inn-dia-overlay[hidden]{ display:none !important; }
+html .inn-dia-janela{ width:min(640px, 100%); border-radius:16px; background:var(--inn-t-painel); border:1px solid var(--inn-t-linha); box-shadow:0 24px 60px rgba(14,18,24,.28); overflow:hidden; }
+html .inn-dia-topo{ display:flex; align-items:center; gap:12px; padding:18px 20px; border-bottom:1px solid var(--inn-t-linha); }
+html .inn-dia-ic{ width:40px; height:40px; flex:none; display:grid; place-items:center; border-radius:10px; background:var(--inn-t-fundo); border:1px solid var(--inn-t-linha); box-shadow:var(--inn-t-fundo-sombra); color:var(--inn-t-azul2); }
+html .inn-dia-titulo{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+html .inn-dia-titulo b{ font-size:1.02rem; color:var(--inn-t-texto); }
+html .inn-dia-titulo span{ font-size:.78rem; color:var(--inn-t-texto3); }
+html .inn-dia-fechar{ width:36px; height:36px; flex:none; display:grid; place-items:center; border-radius:8px; cursor:pointer;
+  background:var(--inn-t-painel) !important; border:1px solid var(--inn-t-linha2) !important; color:var(--inn-t-texto2) !important; }
+html .inn-dia-fechar:hover{ color:var(--inn-t-azul2) !important; border-color:var(--inn-t-azul2) !important; }
+html .inn-dia-lista{ display:flex; flex-direction:column; gap:10px; padding:16px 20px 20px; max-height:64vh; overflow-y:auto; }
+html .inn-dia-item{ display:flex; flex-direction:column; align-items:flex-start; gap:4px; width:100%; padding:14px 16px; border-radius:12px; text-align:left; cursor:pointer; font-family:inherit;
+  background:var(--inn-t-fundo) !important; border:1px solid var(--inn-t-linha) !important; box-shadow:none !important; transition:border-color .15s, translate .15s; }
+html .inn-dia-item:hover{ border-color:var(--inn-t-azul2) !important; translate:0 -2px; }
+html .inn-dia-linha{ display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; }
+html .inn-dia-linha small{ font-size:.76rem; font-weight:700; color:var(--inn-t-azul2); }
+html .inn-dia-selo{ font-style:normal; font-size:.7rem; font-weight:700; padding:2px 8px; border-radius:999px; border:1px solid currentColor; color:var(--inn-t-ok); }
+html .inn-dia-selo.erro{ color:var(--inn-t-erro); } html .inn-dia-selo.aviso{ color:var(--inn-t-aviso); } html .inn-dia-selo.neutro{ color:var(--inn-t-texto3); }
+html .inn-dia-item > b{ font-size:.95rem; color:var(--inn-t-texto); overflow-wrap:anywhere; }
+html .inn-dia-info{ font-size:.78rem; color:var(--inn-t-texto3); overflow-wrap:anywhere; }
+html .inn-dia-abrir{ display:inline-flex; align-items:center; gap:4px; margin-top:4px; font-size:.76rem; font-weight:600; color:var(--inn-t-azul2); }
+html .inn-dia-vazio{ padding:24px 0; text-align:center; font-size:.86rem; color:var(--inn-t-texto3); }
+/* Os filtros da Agenda (10/11/2026): a situação em pílulas com a contagem, e o período (de, até). */
+html .inn-ag-filtros{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px 16px; margin:4px 0 14px; }
+html .inn-ag-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+html .inn-ag-chip{ display:inline-flex !important; align-items:center !important; gap:8px !important; height:36px !important; padding:0 12px !important; border-radius:999px !important; cursor:pointer;
+  background:var(--inn-t-painel) !important; border:1px solid var(--inn-t-linha2) !important; box-shadow:none !important; color:var(--inn-t-texto2) !important; font-family:inherit; font-size:.8rem !important; font-weight:600 !important; }
+html .inn-ag-chip b{ min-width:22px; height:20px; padding:0 6px; border-radius:999px; display:inline-grid; place-items:center; font-size:.7rem; background:var(--inn-t-fundo); color:var(--inn-t-texto2); }
+html .inn-ag-chip:hover{ border-color:var(--inn-t-azul2) !important; color:var(--inn-t-azul2) !important; }
+html .inn-ag-chip.on{ background:var(--inn-t-azul-suave) !important; border-color:var(--inn-t-azul2) !important; color:var(--inn-t-azul2) !important; }
+html .inn-ag-chip.on b{ background:var(--inn-t-azul2); color:#fff; }
+html .inn-ag-datas{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+html .inn-ag-datas label{ display:inline-flex; align-items:center; gap:8px; font-size:.8rem; color:var(--inn-t-texto2); }
+html .inn-ag-datas input{ height:40px; padding:0 10px; border-radius:8px; font-family:inherit; font-size:.84rem;
+  background:var(--inn-t-fundo) !important; border:1px solid var(--inn-t-linha2) !important; color:var(--inn-t-texto) !important; box-shadow:var(--inn-t-fundo-sombra) !important; }
+html .inn-ag-limpar{ display:inline-flex !important; align-items:center !important; gap:6px !important; height:40px !important; padding:0 14px !important; border-radius:8px !important; cursor:pointer;
+  background:var(--inn-t-painel) !important; border:1px solid var(--inn-t-linha2) !important; color:var(--inn-t-texto2) !important; font-family:inherit; font-size:.82rem !important; font-weight:600 !important; }
+html .inn-ag-limpar:hover{ color:var(--inn-t-azul2) !important; border-color:var(--inn-t-azul2) !important; }
+html .inn-ag-limpar[hidden], html .inn-ag-vazio[hidden], html .proc-agenda-row[hidden]{ display:none !important; }
+html .inn-ag-vazio{ padding:28px 0; text-align:center; font-size:.86rem; color:var(--inn-t-texto3); }
