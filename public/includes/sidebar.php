@@ -1709,6 +1709,26 @@ try { $_avisosChave = \App\Notificacoes\Push::chavePublica(); } catch (\Throwabl
 <link rel="stylesheet" href="/assets/avisos.css?v=<?= @filemtime(__DIR__ . '/../assets/avisos.css') ?: 1 ?>">
 <script>window.YURIS_AVISOS = <?= json_encode(['csrf' => $_notifCsrf, 'chave' => $_avisosChave, 'usuario' => (int) ($_SESSION['user_id'] ?? 0)], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;</script>
 <script src="/assets/avisos.js?v=<?= @filemtime(__DIR__ . '/../assets/avisos.js') ?: 1 ?>" defer></script>
+<?php
+// Aviso de "atualização nova" (10/11/2026): uma vez por pessoa e navegador, até
+// App\Inicio\Novidade::ID mudar. Cada item só aparece para quem tem a permissão da
+// tela anunciada. ?novidade=1 abre de novo (prévia). Não vai no ?embed=1.
+$_novidade = null;
+if (($_GET['embed'] ?? '') !== '1') {
+    try {
+        $_novVendedor = isset($__brandCtx) && method_exists($__brandCtx, 'vendedorCrm') && $__brandCtx->vendedorCrm();
+        $_novidade = \App\Inicio\Novidade::para('_sidebarCan', (bool) $_isFleetiflow, $_novVendedor);
+    } catch (\Throwable $__e) { $_novidade = null; }
+}
+if ($_novidade): ?>
+<link rel="stylesheet" href="/assets/novidade.css?v=<?= @filemtime(__DIR__ . '/../assets/novidade.css') ?: 1 ?>">
+<script>window.YURIS_NOVIDADE = <?= json_encode($_novidade + [
+    'marca'   => $_isFleetiflow && !empty($_marca['nome']) ? (string) $_marca['nome'] : 'Yuris',
+    'usuario' => (int) ($_SESSION['user_id'] ?? 0),
+    'forcar'  => ($_GET['novidade'] ?? '') === '1',
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;</script>
+<script src="/assets/novidade.js?v=<?= @filemtime(__DIR__ . '/../assets/novidade.js') ?: 1 ?>" defer></script>
+<?php endif; ?>
 
 <?php if ($_isFleetiflow):
   // Agenda do lead (edição CRM): botão "Agendar próxima interação" na ficha e

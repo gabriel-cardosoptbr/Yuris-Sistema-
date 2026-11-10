@@ -1,0 +1,184 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   novidade.css: o aviso de "atualização nova" (10/11/2026).
+   Comportamento em assets/novidade.js; conteúdo em App\Inicio\Novidade.
+   Escuro por padrão, claro no tema claro. Azul opaco e prata, sem brilho largo.
+   Com "reduzir movimento" ligado no aparelho, nada se mexe: aparece de uma vez.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+html.nov-aberto { overflow: hidden; }
+
+.nov-fundo {
+  position: fixed; inset: 0; z-index: 1700; display: flex; align-items: center; justify-content: center;
+  padding: 16px; background: rgba(5, 10, 20, .62); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  font-family: inherit; animation: novFundo .35s ease both;
+}
+.nov-fundo.nov-saindo { animation: novFundoSai .26s ease both; }
+
+.nov-card {
+  position: relative; width: min(520px, 100%); max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px);
+  display: flex; flex-direction: column; overflow: hidden; border-radius: 22px;
+  background: #0F1B2D; color: #E2E8F0; border: 1px solid rgba(255, 255, 255, .10);
+  box-shadow: 0 40px 90px -24px rgba(2, 6, 23, .85);
+  animation: novCard .65s cubic-bezier(.2, .9, .3, 1.15) .05s both;
+}
+.nov-fundo.nov-saindo .nov-card { animation: novCardSai .24s ease both; }
+
+/* ── Cabeça: azul opaco, com um reflexo que passa uma vez ── */
+.nov-topo {
+  position: relative; overflow: hidden; padding: 24px 24px 18px; text-align: center; color: #F8FAFC;
+  background: linear-gradient(145deg, #2D5390 0%, #1B3560 55%, #14284A 100%);
+}
+.nov-topo::after {
+  content: ""; position: absolute; top: -20%; bottom: -20%; left: -60%; width: 38%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .20), transparent);
+  transform: skewX(-18deg); animation: novReflexo 1.6s ease .7s 1 both; pointer-events: none;
+}
+.nov-selo {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: 66px; height: 66px; margin: 0 auto 8px;
+}
+.nov-selo-ic {
+  position: relative; z-index: 1; width: 58px; height: 58px; border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(160deg, #F1F5F9, #CBD5E1); color: #1B3560;
+  box-shadow: 0 10px 24px -8px rgba(2, 6, 23, .55), inset 0 -3px 0 rgba(15, 23, 42, .10);
+  animation: novSelo .9s cubic-bezier(.2, .9, .3, 1.3) .3s both;
+}
+.nov-selo-ic svg { width: 29px; height: 29px; }
+.nov-anel {
+  position: absolute; inset: 6px; border-radius: 22px; border: 2px solid rgba(255, 255, 255, .55);
+  opacity: 0; animation: novAnel 2.2s ease-out .55s 2 both;
+}
+.nov-anel + .nov-anel { animation-delay: 1.05s; }
+.nov-brilho {
+  position: absolute; z-index: 2; width: 14px; height: 14px; color: #F8FAFC; opacity: 0;
+  animation: novBrilho 1.8s ease-in-out infinite;
+}
+.nov-brilho svg { width: 100%; height: 100%; display: block; }
+.nov-brilho.b1 { top: -4px; right: -2px; animation-delay: .9s; }
+.nov-brilho.b2 { bottom: 4px; left: -8px; width: 10px; height: 10px; animation-delay: 1.5s; }
+.nov-brilho.b3 { top: 10px; left: -14px; width: 8px; height: 8px; animation-delay: 2.1s; }
+
+.nov-tag {
+  position: absolute; z-index: 3; top: 16px; left: 16px; display: inline-block; padding: 4px 12px; border-radius: 999px;
+  font-size: .68rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+  background: rgba(255, 255, 255, .16); border: 1px solid rgba(255, 255, 255, .30); color: #F8FAFC;
+  background-image: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, .45) 50%, transparent 70%);
+  background-size: 220% 100%; background-repeat: no-repeat; background-position: 160% 0;
+  animation: novTag 2.4s ease 1.1s 2 both;
+}
+.nov-titulo { margin: 0; font-size: 1.45rem; font-weight: 800; line-height: 1.2; letter-spacing: -.01em; overflow-wrap: anywhere; }
+.nov-sub { margin: 6px 0 0; font-size: .9rem; color: rgba(241, 245, 249, .82); overflow-wrap: anywhere; }
+
+/* Confete: pontos que sobem e somem, uma vez só */
+.nov-confete { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.nov-confete i {
+  position: absolute; left: 50%; top: 56px; width: 7px; height: 7px; border-radius: 2px; opacity: 0;
+  background: var(--c, #E2E8F0); transform: translate(-50%, 0);
+  animation: novConfete 1.7s cubic-bezier(.2, .7, .3, 1) var(--d, .5s) 1 both;
+}
+.nov-confete i:nth-child(3n) { border-radius: 50%; width: 6px; height: 6px; }
+.nov-confete i:nth-child(4n) { width: 9px; height: 4px; }
+
+.nov-x {
+  position: absolute; z-index: 5; top: 12px; right: 12px; width: 34px; height: 34px; padding: 0; border: 0;
+  border-radius: 10px; background: rgba(255, 255, 255, .14); color: #F8FAFC; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: background .15s ease;
+}
+.nov-x:hover { background: rgba(255, 255, 255, .26); }
+.nov-x:focus-visible, .nov-ok:focus-visible { outline: 2px solid #93B4E6; outline-offset: 2px; }
+.nov-x svg { width: 16px; height: 16px; }
+
+/* ── Corpo: os itens entram um depois do outro ── */
+.nov-corpo { padding: 14px 20px 4px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.nov-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.nov-item {
+  display: grid; grid-template-columns: 42px 1fr; gap: 12px; align-items: start; padding: 10px 12px;
+  border-radius: 14px; background: rgba(148, 163, 184, .08); border: 1px solid rgba(148, 163, 184, .14);
+  animation: novItem .55s cubic-bezier(.2, .8, .2, 1) calc(.75s + var(--i, 0) * .1s) both;
+}
+.nov-item-ic {
+  width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(160deg, #E2E8F0, #B8C4D6); color: #1B3560;
+  animation: novPulinho .6s cubic-bezier(.2, .9, .3, 1.4) calc(1s + var(--i, 0) * .1s) both;
+}
+.nov-item-ic svg { width: 21px; height: 21px; }
+.nov-item-txt { min-width: 0; }
+.nov-item-txt strong { display: block; font-size: .95rem; line-height: 1.3; color: #F1F5F9; overflow-wrap: anywhere; }
+.nov-item-txt span { display: block; margin-top: 3px; font-size: .84rem; line-height: 1.5; color: #A5B3C6; overflow-wrap: anywhere; }
+
+.nov-rodape { padding: 12px 20px 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.nov-ok {
+  width: 100%; padding: 13px 18px; border: 0; border-radius: 14px; cursor: pointer;
+  font: inherit; font-size: .98rem; font-weight: 700; color: #F8FAFC;
+  background: linear-gradient(180deg, #34609F, #27508A); box-shadow: 0 10px 22px -10px rgba(39, 80, 138, .9);
+  transition: transform .15s ease, filter .15s ease;
+  animation: novBotao .5s ease calc(.9s + var(--n, 0) * .1s) both;
+}
+.nov-ok:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.nov-ok:active { transform: translateY(0); }
+.nov-nota { margin: 0; font-size: .74rem; color: #7C8CA3; text-align: center; overflow-wrap: anywhere; }
+
+/* O tema do sistema força cor escura em títulos e azul em todo svg: o aviso reafirma as dele. */
+html .nov-card svg { color: inherit !important; }
+html .nov-card .nov-titulo { color: #F8FAFC !important; }
+html .nov-card .nov-sub { color: rgba(241, 245, 249, .85) !important; }
+html .nov-card .nov-x, html .nov-card .nov-tag { color: #F8FAFC !important; }
+html .nov-card .nov-x svg { stroke: currentColor !important; fill: none !important; }
+html .nov-card .nov-selo-ic, html .nov-card .nov-item-ic { color: #1B3560 !important; }
+html .nov-card .nov-selo-ic svg, html .nov-card .nov-item-ic svg { stroke: currentColor !important; fill: none !important; }
+html .nov-card .nov-brilho { color: #F8FAFC !important; }
+html .nov-card .nov-brilho svg { fill: currentColor !important; stroke: none !important; }
+html .nov-card .nov-ok { color: #F8FAFC !important; }
+
+/* ── Tema claro ── */
+html[data-theme="light"] .nov-fundo { background: rgba(15, 23, 42, .42); }
+html[data-theme="light"] .nov-card { background: #FFFFFF; color: #0F172A; border-color: rgba(17, 29, 45, .08); box-shadow: 0 40px 90px -28px rgba(15, 23, 42, .5); }
+html[data-theme="light"] .nov-item { background: #F4F6FA; border-color: rgba(17, 29, 45, .07); }
+html[data-theme="light"] .nov-item-txt strong { color: #0F172A; }
+html[data-theme="light"] .nov-item-txt span { color: #526074; }
+html[data-theme="light"] .nov-nota { color: #6B7A8F; }
+html[data-theme="light"] .nov-item-ic { background: linear-gradient(160deg, #E5EAF2, #CBD5E3); }
+
+/* ── Celular ── */
+@media (max-width: 480px) {
+  .nov-fundo { padding: 10px; align-items: flex-end; }
+  .nov-card { border-radius: 20px; max-height: calc(100dvh - 20px); }
+  .nov-topo { padding: 28px 18px 22px; }
+  .nov-titulo { font-size: 1.35rem; }
+  .nov-corpo { padding: 14px 14px 4px; }
+  .nov-item { grid-template-columns: 38px 1fr; gap: 12px; padding: 11px; }
+  .nov-item-ic { width: 38px; height: 38px; }
+  .nov-rodape { padding: 12px 14px 16px; }
+}
+
+/* ── Animações ── */
+@keyframes novFundo { from { opacity: 0; } to { opacity: 1; } }
+@keyframes novFundoSai { from { opacity: 1; } to { opacity: 0; } }
+@keyframes novCard { from { opacity: 0; transform: translateY(34px) scale(.92); } to { opacity: 1; transform: none; } }
+@keyframes novCardSai { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(14px) scale(.97); } }
+@keyframes novReflexo { from { left: -60%; } to { left: 130%; } }
+@keyframes novSelo {
+  0% { opacity: 0; transform: scale(.3) rotate(-18deg); } 55% { opacity: 1; transform: scale(1.12) rotate(6deg); }
+  80% { transform: scale(.97) rotate(-2deg); } 100% { opacity: 1; transform: none; }
+}
+@keyframes novAnel { 0% { opacity: .75; transform: scale(.85); } 100% { opacity: 0; transform: scale(1.75); } }
+@keyframes novBrilho {
+  0%, 100% { opacity: 0; transform: scale(.3) rotate(0); } 50% { opacity: 1; transform: scale(1) rotate(90deg); }
+}
+@keyframes novTag { from { background-position: 160% 0; } to { background-position: -60% 0; } }
+@keyframes novConfete {
+  0% { opacity: 0; transform: translate(-50%, 0) rotate(0) scale(.6); }
+  12% { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--x, 0px)), var(--y, 80px)) rotate(var(--r, 240deg)) scale(1); }
+}
+@keyframes novItem { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes novPulinho { 0% { transform: scale(.6); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
+@keyframes novBotao { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .nov-fundo, .nov-fundo.nov-saindo, .nov-card, .nov-fundo.nov-saindo .nov-card, .nov-topo::after, .nov-selo-ic, .nov-anel,
+  .nov-brilho, .nov-tag, .nov-confete i, .nov-item, .nov-item-ic, .nov-ok { animation: none !important; }
+  .nov-anel, .nov-brilho, .nov-confete, .nov-topo::after { display: none; }
+  .nov-ok { transition: none; }
+}
