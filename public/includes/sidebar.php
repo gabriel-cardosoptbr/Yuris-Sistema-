@@ -1759,6 +1759,8 @@ window.FF_AGENDA = { csrf: <?= json_encode($_notifCsrf) ?>, sessao: <?= json_enc
 <script src="/assets/interface-nova-movimento.js?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-movimento.js') ?: 1 ?>" defer></script>
 <!-- Todo cartão de indicador faz alguma coisa: leva para a tela do assunto ou filtra a própria tela. -->
 <script src="/assets/interface-nova-cartoes.js?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-cartoes.js') ?: 1 ?>" defer></script>
+<!-- Arrumações de uma tela só (Processos: a agenda abre pelo botão do cabeçalho). -->
+<script src="/assets/interface-nova-telas.js?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-telas.js') ?: 1 ?>" defer></script>
 <?php if (($_GET['embed'] ?? '') !== '1'): ?>
 <!-- Abrir o pop-up de verdade de outro módulo por cima da tela (a tarefa processual abre o processo), como na home. -->
 <script src="/assets/embed-abrir.js?v=<?= @filemtime(__DIR__ . '/../assets/embed-abrir.js') ?: 1 ?>" defer></script>

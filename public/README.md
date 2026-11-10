@@ -530,6 +530,16 @@ filtram ali. Medido: 66 cartões clicáveis em 11 telas, cada clique com o efeit
 **O vão entre os blocos em toda tela** (10/11/2026, "não tem espaçamento nenhum"): medido nas telas, o ritmo é 16 px
 entre blocos; em Usuários os indicadores, o resumo e a tabela encostavam (0 px, a seção é um bloco comum), nas duas
 abas, e em Clientes os filtros rápidos ficavam a 6 px do quadro. Corrigido em `interface-nova.css` (16 e 14 px).
+**Processos: a agenda pelo botão e a barra de filtros** (10/11/2026, "a Agenda Jurídica está fora dos nossos
+parâmetros; melhor um botão ali em cima para ver em formato de agenda; os botões da gestão processual estão
+horríveis"). As linhas da agenda eram um degradê azul-marinho do CSS da tela (a camada só lê cor de fundo lisa):
+viram cartões prata, com o estado no selo e sem reticências no nome. O painel sai do fim da página e abre numa janela
+pelo botão "Agenda jurídica" do cabeçalho, com a contagem (`assets/interface-nova-telas.js`, arrumações de uma tela
+só; o `processos.js` continua enchendo o `#upcomingList`). A barra de filtros fica em duas linhas (busca larga e os
+seletores; embaixo o prazo e o limpar, à direita a contagem, o ano e o cadastrar), tudo com 40 px, pela ordem do flex
+e uma quebra no `::after` (seção "Processos" de `interface-nova.css`). A lupa da busca descia meia altura: o movimento
+fazia o ícone crescer por transform, que fica valendo no fim e apagava o `translateY(-50%)`; ícone com posição própria
+(absoluto, fixo ou com transform) não cresce mais.
 Indicadores (09/11/2026): o bloco de texto do indicador alinha pelo topo (`align-content:start`), e
 `igualarIndicadores` mede o número de cada cartão e empurra os da mesma fileira até a linha do mais baixo (rótulo
 ou subtítulo de duas linhas descia o número de um cartão só).

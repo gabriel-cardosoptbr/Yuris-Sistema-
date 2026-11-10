@@ -100,11 +100,15 @@
     if (!raiz.querySelectorAll) return NADA;
     var svgs = [].filter.call(raiz.querySelectorAll('svg'), function (s) { return !s.dataset.inn && !s.closest(FORA); });
     var medidas = svgs.map(function (s) { return s.getBoundingClientRect(); });
+    // O ícone com posição própria (a lupa da busca de Processos, posta em absoluto e centrada por
+    // translateY(-50%)) não cresce: a animação é por transform e fica valendo no fim, e a lupa
+    // descia meia altura (10/11/2026, "ícone para um lado, nada centralizado").
+    var proprios = svgs.map(function (s) { var cs = getComputedStyle(s); return cs.position === 'absolute' || cs.position === 'fixed' || cs.transform !== 'none'; });
     return function () {
       var k = 0;
       svgs.forEach(function (s, i) {
         var r = medidas[i];
-        if (k >= 40 || r.width < 10 || r.width > 56 || r.height > 56 || !naTela(r)) return;
+        if (k >= 40 || r.width < 10 || r.width > 56 || r.height > 56 || !naTela(r) || proprios[i]) return;
         s.dataset.inn = '1'; s.style.setProperty('--mov-i', k++); s.classList.add('inn-cresce');
       });
     };

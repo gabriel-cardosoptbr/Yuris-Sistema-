@@ -386,3 +386,55 @@ html body .ci-wrap{ gap:16px; }
    Clientes os filtros rápidos ficavam a 6 px do quadro. */
 html #sectionUsuarios > :not(script):not(style) + :not(script):not(style), html #sectionTimes > :not(script):not(style) + :not(script):not(style){ margin-top:16px !important; }
 html .qr-topo{ margin-bottom:14px !important; }
+
+/* ── Processos (10/11/2026) ──────────────────────────────────────────────────
+   "Os botões dessa gestão processual estão horríveis: ícone para um lado, nada centralizado."
+   A barra de filtros em duas linhas: a busca larga com os seletores ao lado; embaixo o prazo e o
+   limpar, e à direita a contagem, o ano e o cadastrar. Tudo com 40 px de altura e o mesmo canto.
+   A quebra de linha é o ::after (um item de flex com a largura toda); a ordem é por order.
+   E a Agenda Jurídica Prioritária: as linhas eram um degradê azul-marinho escrito no CSS da tela
+   (fora da paleta, e a camada só lê cor de fundo lisa), viram os cartões prata, com o estado no
+   selo; ela abre numa janela pelo botão "Agenda jurídica" do cabeçalho (interface-nova-telas.js). */
+html .inn-tela .proc-panel > div:has(> div > #procSearchText){ display:flex !important; flex-wrap:wrap !important; align-items:center !important; gap:10px !important; }
+html .inn-tela .proc-panel > div:has(> div > #procSearchText)::after{ content:""; flex-basis:100%; height:0; order:3; }
+html .inn-tela .proc-panel > div:has(> div > #procSearchText) > div:has(> #procSearchText){ order:1; flex:1 1 300px !important; min-width:240px !important; }
+html .inn-tela .proc-panel > div:has(> div > #procSearchText) > #procFilterStatus, html .inn-tela .proc-panel > div:has(> div > #procSearchText) > #procFilterResp, html .inn-tela .proc-panel > div:has(> div > #procSearchText) > #procFilterOrigin{ order:2; }
+html .inn-tela .proc-panel > div:has(> div > #procSearchText) > div:has(> #procFilterDateFrom){ order:4; gap:8px !important; flex-wrap:nowrap !important; }
+html .inn-tela .proc-panel > div:has(> div > #procSearchText) > #procFilterClear, html .inn-tela .proc-panel > div:has(> div > #procSearchText) > #procFiltroVisao{ order:5; }
+html .inn-tela .proc-panel > div:has(> div > #procSearchText) > #procFilterCount{ order:6; margin-left:auto; color:var(--inn-t-texto3) !important; font-size:.8rem !important; white-space:nowrap; }
+html .inn-tela .proc-panel > div:has(> div > #procSearchText) > .proc-topbar{ order:7; flex-wrap:nowrap !important; gap:10px !important; }
+html .inn-tela .proc-panel > div:has(> div > #procSearchText) > div[style*="min-width:8px"]{ display:none !important; }
+html .inn-tela #procSearchText, html .inn-tela .proc-panel .proc-select, html .inn-tela #btnNewProcess, html .inn-tela #procFilterClear{ height:40px !important; box-sizing:border-box !important; border-radius:8px !important; }
+html .inn-tela #procSearchText{ padding-left:36px !important; }
+html .inn-tela .proc-panel div:has(> #procSearchText) > svg{ left:12px !important; top:50% !important; transform:translateY(-50%) !important; }
+html .inn-tela #procFilterClear{ display:inline-flex !important; align-items:center !important; justify-content:center !important; gap:6px !important; padding:0 14px !important;
+  background:var(--inn-t-painel) !important; border:1px solid var(--inn-t-linha2) !important; color:var(--inn-t-texto2) !important; font-weight:600 !important; }
+html .inn-tela #procFilterClear:hover{ border-color:var(--inn-t-azul2) !important; color:var(--inn-t-azul2) !important; }
+html .inn-tela .proc-topbar > label{ display:flex; align-items:center; height:40px; margin:0 !important; color:var(--inn-t-texto2) !important; font-size:.82rem !important; }
+html .inn-tela #btnNewProcess{ display:inline-flex !important; align-items:center !important; justify-content:center !important; gap:8px !important; padding:0 16px !important; white-space:nowrap; }
+html .inn-tela .proc-panel > div:has(> div > #procSearchText) > div:has(> #procFilterDateFrom) > span{ color:var(--inn-t-texto2) !important; font-size:.82rem !important; }
+
+html .proc-agenda-list{ gap:10px !important; }
+html:root .proc-agenda-row.proc-agenda-row{ background:var(--inn-t-painel) !important; background-image:none !important; border:1px solid var(--inn-t-linha) !important;
+  border-radius:12px !important; box-shadow:var(--inn-t-sombra) !important; padding:14px 16px !important; }
+html:root .proc-agenda-row.proc-agenda-row:hover{ border-color:var(--inn-t-linha2) !important; }
+html .proc-agenda-num{ color:var(--inn-t-azul2) !important; font-weight:700 !important; }
+html .proc-agenda-client{ color:var(--inn-t-texto) !important; white-space:normal !important; overflow:visible !important; overflow-wrap:anywhere; }
+html .proc-agenda-tipo{ color:var(--inn-t-texto3) !important; }
+html .proc-agenda-date{ color:var(--inn-t-texto) !important; }
+
+html .inn-agenda-btn{ display:inline-flex; align-items:center; gap:8px; height:40px; padding:0 14px; margin-left:auto; flex:none; border-radius:8px; cursor:pointer;
+  background:var(--inn-t-painel); border:1px solid var(--inn-t-linha2); color:var(--inn-t-texto); font-family:inherit; font-size:.84rem; font-weight:600; box-shadow:var(--inn-t-sombra); }
+html .inn-agenda-btn svg{ color:var(--inn-t-azul2); }
+html .inn-agenda-btn:hover{ border-color:var(--inn-t-azul2); color:var(--inn-t-azul2); }
+html .inn-agenda-conta{ min-width:22px; height:22px; padding:0 6px; border-radius:999px; display:inline-grid; place-items:center; font-size:.72rem;
+  background:var(--inn-t-azul-suave); color:var(--inn-t-azul2); }
+html .proc-panel.page-header .page-header-inner:has(.inn-agenda-btn){ display:flex !important; align-items:center !important; gap:16px !important; }
+html .inn-agenda-overlay{ position:fixed; inset:0; z-index:900; display:flex; align-items:flex-start; justify-content:center; padding:5vh 16px;
+  background:rgba(14,18,24,.46); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); overflow-y:auto; }
+html .inn-agenda-overlay[hidden]{ display:none !important; }
+html .inn-agenda-janela{ width:min(920px, 100%); }
+html .inn-agenda-janela > .inn-agenda-painel{ margin:0 !important; }
+html .inn-agenda-fechar{ width:34px; height:34px; display:grid; place-items:center; flex:none; border-radius:8px; cursor:pointer;
+  background:var(--inn-t-painel); border:1px solid var(--inn-t-linha2); color:var(--inn-t-texto2); }
+html .inn-agenda-fechar:hover{ color:var(--inn-t-azul2); border-color:var(--inn-t-azul2); }
