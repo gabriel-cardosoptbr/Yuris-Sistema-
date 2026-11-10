@@ -50,29 +50,48 @@
   function raizesDe(r) { return (Array.isArray(r) ? r : [r]).filter(function (x) { return x && x.querySelectorAll; }); }
   // As três abaixo LEEM e devolvem a função que ESCREVE: quem chama lê as três e só depois escreve,
   // e o navegador recalcula o estilo uma vez por leva, não uma por função (09/11/2026).
+  // Lista de irmãos iguais: o pai tem 3 ou mais filhos com a mesma primeira classe (os cartões de
+  // conversa do Chat interno, as linhas e os cartões de qualquer lista ou grade). Entram um a um, como
+  // os de SEL_ITEM (10/11/2026, "toda aba tem que ter animação; no chat interno, os cards das
+  // conversas entrando"). Botão, campo e célula de tabela não: a aba, o filtro e a coluna ficam.
+  var NAO_ITEM = /^(OPTION|SCRIPT|STYLE|BR|INPUT|SELECT|TEXTAREA|BUTTON|TD|TH|LABEL|SVG|IMG)$/i;
+  function irmaosIguais(rz, out) {
+    // O pai de quem chegou também: o cartão que a tela acrescenta chega sozinho, e os iguais são os irmãos.
+    var pais = (rz.parentElement ? [rz.parentElement, rz] : [rz]).concat([].slice.call(rz.querySelectorAll('*')));
+    pais.forEach(function (p) {
+      var f = p.children; if (!f || f.length < 3) return;
+      var conta = {}, i, c;
+      for (i = 0; i < f.length; i++) { c = f[i].classList && f[i].classList[0]; if (c && c.indexOf('inn-') !== 0) conta[c] = (conta[c] || 0) + 1; }
+      for (i = 0; i < f.length; i++) { c = f[i].classList && f[i].classList[0]; if (c && conta[c] >= 3 && !NAO_ITEM.test(f[i].tagName)) out.push(f[i]); }
+    });
+  }
   function entrarItens(raiz) {
     var itens = [];
     raizesDe(raiz).forEach(function (rz) {
       if (rz.matches && rz.matches(SEL_ITEM)) itens.push(rz);
       [].push.apply(itens, rz.querySelectorAll(SEL_ITEM));
+      irmaosIguais(rz, itens);
     });
     if (!itens.length) return NADA;
     itens = Array.from(new Set(itens));
     var porPai = new Map();
     // Primeiro lê tudo, depois escreve: ler o estilo de um item logo depois de mudar a classe do
     // anterior obrigava o navegador a recalcular a tela inteira a cada item (09/11/2026).
-    itens = itens.filter(function (el) { return !el.dataset.inn && !el.closest(FORA); });
+    // O que está dentro de pop-up entra pela fila do pop-up (entrarPopup), não aqui.
+    itens = itens.filter(function (el) { return !el.dataset.inn && !el.closest(FORA) && !el.closest(SEL_POP); });
     // Quem já tem transform próprio (a coluna do quadro gira em rotateX para a barra
     // ficar em cima) não entra: a animação sobrescreveria o giro e o texto viraria de cabeça para baixo.
-    var giram = itens.map(function (el) { return getComputedStyle(el).transform !== 'none'; });
-    var vistos = itens.map(function (el) { return naTela(el.getBoundingClientRect()); });
+    // E quem já tem animação própria (os cartões da home) também fica com a dele.
+    var giram = itens.map(function (el) { var cs = getComputedStyle(el); return cs.transform !== 'none' || (cs.animationName !== 'none' && !el.classList.contains('inn-item')); });
+    var vistos = itens.map(function (el) { var r = el.getBoundingClientRect(); return naTela(r) && r.height >= 20; });
     return function () {
       itens.forEach(function (el, i) {
         el.dataset.inn = '1';
         if (giram[i] || !vistos[i]) return;
         var k = porPai.get(el.parentNode) || 0;
         porPai.set(el.parentNode, k + 1);
-        if (k < 14) { el.style.setProperty('--mov-i', k); el.classList.add('inn-item'); }
+        // Da 14ª em diante entram juntas com a 14ª (antes ficavam paradas, e apareciam antes das outras).
+        el.style.setProperty('--mov-i', Math.min(k, 14)); el.classList.add('inn-item');
       });
     };
   }
@@ -90,21 +109,42 @@
       });
     };
   }
-  // Os números contam de zero: todo elemento folha que é só um número inteiro.
+  // Os números contam de zero: todo elemento folha que é só um número, escrito como estiver
+  // (10/11/2026, "todos os números, quando a aba aparece, têm que ser somados do zero até o
+  // índice, a parte de gestão, a comercial"): inteiro (63), milhar (1.234), dinheiro (R$ 72.300,00),
+  // porcentagem (67.7%, 145%). Antes só o inteiro puro contava.
   // O número zera no mesmo instante em que chega (09/11/2026: antes ele aparecia pronto, sumia
   // para zero 160 ms depois e subia, "quando abre a aba dá problema").
   // A contagem é desenhada por cima (data-inn-conta e ::before), e o texto de verdade do número nunca
   // muda: tela que relê o indicador (o resumo de Configurações lia "0 usuários" no meio da contagem,
   // 09/11/2026) recebe sempre o valor certo. O texto real fica transparente enquanto conta, e é ele que
   // dá a largura, então nada pula. Se a tela trocar o valor no meio, a contagem para.
-  function contar(el, dur, alvo) {
-    if (!(alvo > 0) || String(parseInt(el.textContent, 10)) !== String(alvo)) { fimConta(el); return; }
+  // O número do jeito que está escrito, e quem o escreve igual com outro valor. Ponto ou vírgula com
+  // três dígitos depois é milhar; com um ou dois, é a casa decimal. Ano solto (1900 a 2100, sem nada
+  // em volta) não conta: é data, não quantidade.
+  var RE_NUM = /^(\s*(?:R\$|US\$|€)?\s*)(-?)(\d{1,3}(?:[.\u00a0 ]\d{3})+|\d{1,9})(?:([.,])(\d{1,2}))?(\s*%?\s*)$/;
+  function lerNumero(txt) {
+    var m = RE_NUM.exec(txt || ''); if (!m) return null;
+    var pre = m[1], inteiro = m[3], sep = m[4] || '', casas = m[5] || '', suf = m[6];
+    var milhar = (/[.\u00a0 ]/.exec(inteiro) || [''])[0];
+    var n = parseInt(inteiro.replace(/[.\u00a0 ]/g, ''), 10) + (casas ? parseInt(casas, 10) / Math.pow(10, casas.length) : 0);
+    if (!(n > 0)) return null;
+    if (!pre.trim() && !suf.trim() && !casas && !milhar && n >= 1900 && n <= 2100) return null;
+    return { valor: m[2] ? -n : n, texto: txt, escreve: function (v) {
+      var s = casas ? Math.abs(v).toFixed(casas.length) : String(Math.round(Math.abs(v)));
+      var partes = s.split('.'), ip = partes[0];
+      if (milhar) ip = ip.replace(/\B(?=(\d{3})+(?!\d))/g, milhar);
+      return pre + (v < 0 ? '-' : '') + ip + (casas ? sep + partes[1] : '') + suf;
+    } };
+  }
+  function contar(el, dur, num) {
+    if (!num || el.textContent !== num.texto) { fimConta(el); return; }
     var t0 = null;
     function passo(t) {
-      if (String(parseInt(el.textContent, 10)) !== String(alvo)) { fimConta(el); return; }
+      if (el.textContent !== num.texto) { fimConta(el); return; }
       if (t0 === null) t0 = t;
       var p = Math.min(1, (t - t0) / dur); p = 1 - Math.pow(1 - p, 3);
-      el.dataset.innConta = String(Math.round(alvo * p));
+      el.dataset.innConta = num.escreve(num.valor * p);
       if (p < 1) requestAnimationFrame(passo);
       else { fimConta(el); el.classList.add('inn-contou'); el.addEventListener('animationend', function f() { el.classList.remove('inn-contou'); el.removeEventListener('animationend', f); }); }
     }
@@ -118,12 +158,12 @@
     raizesDe(raiz).forEach(function (rz) {
       var todos = [].slice.call(rz.querySelectorAll('*'));
       if (rz.nodeType === 1) todos.unshift(rz);
-      for (var i = 0; i < todos.length && achados.length < 40; i++) {
+      for (var i = 0; i < todos.length && achados.length < 60; i++) {
         var el = todos[i];
         if (vistos.has(el) || el.children.length || el.dataset.inn || /^(INPUT|TEXTAREA|SELECT|OPTION|SCRIPT|STYLE|TITLE)$/.test(el.tagName)) continue;
         // Quem ainda está vazio ou em zero não é marcado: o contador das abas e das colunas
         // é preenchido depois, trocando só o texto, e aí conta. (O texto vem antes do closest, que é caro.)
-        if (!/^\s*\d{1,6}\s*$/.test(el.textContent) || !(parseInt(el.textContent, 10) > 0) || el.closest(FORA)) continue;
+        if (!lerNumero(el.textContent) || el.closest(FORA)) continue;
         vistos.add(el); achados.push(el);
       }
     });
@@ -133,12 +173,15 @@
       var k = 0;
       achados.forEach(function (el, i) {
         if (estilos[i].tam < 10 || !estilos[i].visto || el.dataset.inn) return;
-        el.dataset.inn = '1'; k++;
-        var alvo = parseInt(el.textContent, 10);
+        var num = lerNumero(el.textContent); if (!num) return;
+        el.dataset.inn = '1';
+        // A vez de cada número fica guardada aqui: lida dentro do aviso de que a tela apareceu, ela
+        // já valia o total, e todos contavam juntos (10/11/2026).
+        var vez = ++k;
         // Zera na hora, só no desenho: o texto real continua o número.
         el.style.setProperty('--inn-conta-cor', estilos[i].cor);
-        el.dataset.innConta = '0'; el.classList.add('inn-contando');
-        depoisDeAparecer(function () { setTimeout(contar.bind(null, el, 800, alvo), 160 + k * 40); });
+        el.dataset.innConta = num.escreve(0); el.classList.add('inn-contando');
+        depoisDeAparecer(function () { setTimeout(contar.bind(null, el, 800, num), 160 + vez * 40); });
       });
     };
   }
@@ -146,6 +189,11 @@
   function ligar() {
     // A tela: .main-content, ou o main ao lado do menu (Clientes, Webhooks, Chat interno).
     var main = document.querySelector('.main-content') || [].filter.call(document.querySelectorAll('main'), function (m) { return !m.querySelector('.sidebar'); })[0] || document.body;
+    // Sobe até o bloco mais alto que ainda não tem o menu: no Chat interno o <main> é só a conversa, e
+    // a lista de conversas mora ao lado dele (.ci-wrap); ela ficava sem entrada (10/11/2026).
+    if (main !== document.body && !main.classList.contains('main-content')) {
+      while (main.parentElement && main.parentElement !== document.body && !main.parentElement.querySelector('.sidebar, .mobile-tabbar')) main = main.parentElement;
+    }
     if (main !== document.body && !main.classList.contains('main-content')) main.classList.add('inn-tela-entra');
     [entrarItens(main), crescerIcones(main), contarNumeros(main)].forEach(function (escreve) { escreve(); });
     // O que a tela desenha entra uma vez por quadro, antes da pintura, e DEPOIS de a camada do

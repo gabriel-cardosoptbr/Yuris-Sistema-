@@ -492,6 +492,22 @@ o navegador usa a resposta pedida no aperto e, se ela ainda não chegou, espera 
 ms, 0,34 s no total). Sem o aperto antes (Enter no teclado) ou em navegador sem o recurso, a troca é pedida na hora,
 como antes. Medido em 4 trocas: a saída roda inteira (23 quadros, todos os blocos em opacidade zero no último) e a
 tela nova começa uns 340 ms depois do clique, servida pelo pedido antecipado.
+**Revisão de 10/11/2026: a mancha azul, o menu que voltava ao topo, as listas e os números.** (1) A "mancha azul lá em
+cima, perto da logo": a tela nova procurava o item para continuar o círculo pelo caminho do endereço, sem a busca;
+Indicadores (`/dashboard?gestao=1`) batia com o Início (`/dashboard`), que não está ativo nem tem posição própria, e
+o disco se posicionava pelo menu inteiro. Agora o `menu-fixo.js` guarda o endereço com a busca, o script do
+`sidebar.php` só continua no item ativo, e o item que enche tem posição própria (`position:relative`,
+`isolation:isolate`). (2) O menu voltava ao topo na troca: quem rola é o `nav.sidebar-nav-grouped`, e só o `.sidebar`
+era guardado (sempre zero). Agora o nav é guardado (`yuris_menu_rolagem_nav`) e devolvido num script logo antes do
+`yuris-menu-pronto`, depois de os grupos reabrirem. (3) Toda lista entra um a um: além dos cartões conhecidos
+(`SEL_ITEM`), os irmãos iguais (o pai com 3 ou mais filhos da mesma primeira classe, como os cartões de conversa do
+Chat interno), fora botão, campo, célula de tabela, o que já tem animação própria e o que está dentro de pop-up; da
+14ª em diante entram juntas com a 14ª. O movimento observa o bloco mais alto da tela que ainda não tem o menu (no Chat
+interno, `.ci-wrap`, com a lista e a conversa). (4) Os números contam de zero em qualquer formato: inteiro, milhar,
+dinheiro (R$ 72.300,00) e porcentagem (67.7%, 145%), escritos igual durante a contagem (`lerNumero`); ano solto
+(1900 a 2100) não conta; cada número tem a sua vez (antes todos contavam juntos, porque a vez era lida depois de a
+tela aparecer). Na camada do sistema, o cartão da tela é reconhecido pelas classes da tela, sem as marcas `inn-*` (o
+`inn-item` caía no "item" e o painel perdia o cabeçalho com ícone).
 Indicadores (09/11/2026): o bloco de texto do indicador alinha pelo topo (`align-content:start`), e
 `igualarIndicadores` mede o número de cada cartão e empurra os da mesma fileira até a linha do mais baixo (rótulo
 ou subtítulo de duas linhas descia o número de um cartão só).

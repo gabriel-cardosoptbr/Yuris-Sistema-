@@ -1306,7 +1306,7 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
 <?php endif; ?>
 <?php if ($_interfaceNova): ?>
 <script>/* O menu volta à rolagem em que estava na tela anterior (menu-fixo.js guarda ao sair). Inline, logo depois do menu, para valer antes da primeira pintura. */try{var __mr=sessionStorage.getItem('yuris_menu_rolagem');if(__mr){var __m=document.querySelector('.sidebar');if(__m)__m.scrollTop=+__mr;}}catch(e){}</script>
-<script>/* O item do menu continua enchendo (10/11/2026): a tela nova chega antes de o círculo de 0,75 s terminar, e o item nascia cheio, num pulo. O menu-fixo.js guarda o círculo ao clicar; aqui, antes da primeira pintura, o mesmo item retoma o círculo no ponto em que ele está agora. */try{var __me=JSON.parse(sessionStorage.getItem('yuris_menu_enche')||'null');sessionStorage.removeItem('yuris_menu_enche');var __pa=performance.timeOrigin+performance.now()-(__me&&__me.t||0);if(__me&&__pa>=0&&__pa<700&&!matchMedia('(prefers-reduced-motion: reduce)').matches){var __ia=[].filter.call(document.querySelectorAll('.sidebar nav a[href]'),function(a){return new URL(a.href,location.href).pathname.replace(/\.php$/,'')===__me.href&&!a.classList.contains('sidebar-group-toggle');})[0];if(__ia){[['--mf-cx',__me.cx+'px'],['--mf-cy',__me.cy+'px'],['--mf-raio',__me.raio+'px'],['--mf-cor',__me.cor],['--mf-antes',__me.antes],['--mf-atraso',(-Math.round(__pa))+'ms']].forEach(function(p){__ia.style.setProperty(p[0],p[1]);});__ia.classList.add('mf-enchendo');__ia.addEventListener('animationend',function f(e){if(e.animationName==='mf-enche'){__ia.classList.remove('mf-enchendo');__ia.style.removeProperty('--mf-atraso');__ia.removeEventListener('animationend',f);}});}}}catch(e){}</script>
+<script>/* O item do menu continua enchendo (10/11/2026): a tela nova chega antes de o círculo de 0,75 s terminar, e o item nascia cheio, num pulo. O menu-fixo.js guarda o círculo ao clicar; aqui, antes da primeira pintura, o mesmo item retoma o círculo no ponto em que ele está agora. */try{var __me=JSON.parse(sessionStorage.getItem('yuris_menu_enche')||'null');sessionStorage.removeItem('yuris_menu_enche');var __pa=performance.timeOrigin+performance.now()-(__me&&__me.t||0);if(__me&&__pa>=0&&__pa<700&&!matchMedia('(prefers-reduced-motion: reduce)').matches){var __ia=[].filter.call(document.querySelectorAll('.sidebar nav a[href]'),function(a){var __u=new URL(a.href,location.href);return __u.pathname.replace(/\.php$/,'')+__u.search===__me.href&&!a.classList.contains('sidebar-group-toggle')&&(a.classList.contains('active')||a.hasAttribute('aria-current'));})[0];if(__ia){[['--mf-cx',__me.cx+'px'],['--mf-cy',__me.cy+'px'],['--mf-raio',__me.raio+'px'],['--mf-cor',__me.cor],['--mf-antes',__me.antes],['--mf-atraso',(-Math.round(__pa))+'ms']].forEach(function(p){__ia.style.setProperty(p[0],p[1]);});__ia.classList.add('mf-enchendo');__ia.addEventListener('animationend',function f(e){if(e.animationName==='mf-enche'){__ia.classList.remove('mf-enchendo');__ia.style.removeProperty('--mf-atraso');__ia.removeEventListener('animationend',f);}});}}}catch(e){}</script>
 <?php endif; ?>
 <?php if ($_avisoWa): ?>
 <!-- Aviso de WhatsApp fora do ar (ver o bloco PHP no topo). Nasce aqui e o script
@@ -1593,6 +1593,12 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
    consulta o banco no meio; sem isto o primeiro quadro da tela nova saía sem o menu, e a troca
    de tela piscava. Fica depois dos grupos reabertos e da rolagem devolvida, para o primeiro
    quadro já ser o menu certo. Página nova com o menu leva a mesma linha no <head>. */ ?>
+<?php if ($_interfaceNova && ($_GET['embed'] ?? '') !== '1'): ?>
+<script>/* A rolagem do menu volta para onde estava na tela anterior (10/11/2026): quem rola é o nav
+   (.sidebar-nav-grouped), e a volta é aqui, depois de os grupos reabrirem (antes, com os grupos
+   ainda fechados, a altura era menor e a rolagem ficava no topo). Antes da primeira pintura. */
+try{var __rn=sessionStorage.getItem('yuris_menu_rolagem_nav');sessionStorage.removeItem('yuris_menu_rolagem_nav');if(__rn!==null){var __nv=document.querySelector('.sidebar .sidebar-nav-grouped')||document.querySelector('.sidebar nav');if(__nv)__nv.scrollTop=+__rn;}}catch(e){}</script>
+<?php endif; ?>
 <i id="yuris-menu-pronto" hidden></i>
 
 <script>

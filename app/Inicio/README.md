@@ -246,6 +246,10 @@ seleção em pílula.
   uma regra `speculationrules` (só no aperto, nos links do menu e da barra do celular, fora o
   Sair e o logo) faz o navegador pedir a tela ao servidor enquanto a saída da tela atual roda
   inteira; o `menu-fixo.js` troca de tela quando ela termina. Fora do `?embed=1`.
+  **A rolagem do menu volta** (10/11/2026): logo antes do `yuris-menu-pronto`, depois do script
+  dos grupos, um script devolve a rolagem do `nav.sidebar-nav-grouped` (quem rola de verdade),
+  guardada pelo `menu-fixo.js` em `yuris_menu_rolagem_nav`. O script que continua o círculo do
+  item compara o endereço com a busca e só usa o item ativo.
   **Histórico Processual** (08/11/2026, "arruma com urgência, não está de acordo com o design"):
   o `processos.js` marca cada registro com `data-tipo` (processo, prazo, tarefa, movimentacao,
   intimacao, anexo, vinculo, edicao) e `data-tom` (ok para concluído, erro para removido), sem

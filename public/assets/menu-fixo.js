@@ -36,9 +36,16 @@
   var menu = document.querySelector('.sidebar');
   var semMovimento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // 3. A rolagem do menu, de uma tela para a outra.
+  // 3. A rolagem do menu, de uma tela para a outra. Quem rola é o nav de dentro
+  // (.sidebar-nav-grouped), não o .sidebar: guardar só o .sidebar guardava sempre zero, e o menu
+  // voltava ao topo na tela nova ("tô com o scroll lá embaixo e ele me joga lá pra cima",
+  // 10/11/2026). O nav é devolvido em includes/sidebar.php, depois de os grupos reabrirem.
   window.addEventListener('pagehide', function () {
-    try { if (menu) sessionStorage.setItem('yuris_menu_rolagem', String(menu.scrollTop)); } catch (e) {}
+    try {
+      if (menu) sessionStorage.setItem('yuris_menu_rolagem', String(menu.scrollTop));
+      var nav = menu && menu.querySelector('.sidebar-nav-grouped, nav');
+      if (nav) sessionStorage.setItem('yuris_menu_rolagem_nav', String(nav.scrollTop));
+    } catch (e) {}
   });
 
   function rgb(c) {
@@ -70,7 +77,10 @@
     // continua o círculo de onde ele está (script logo depois do menu, em includes/sidebar.php).
     try {
       sessionStorage.setItem('yuris_menu_enche', JSON.stringify({
-        href: new URL(a.href, location.href).pathname.replace(/\.php$/, ''), cx: Math.round(cx), cy: Math.round(cy),
+        // O endereço com a busca: Indicadores (/dashboard?gestao=1) e Início (/dashboard) têm o mesmo
+        // caminho, e a tela nova enchia o Início, sem posição, e o círculo ia parar no topo do menu
+        // ("aparece uma mancha azul lá em cima, perto da logo", 10/11/2026).
+        href: (function (x) { return x.pathname.replace(/\.php$/, '') + x.search; })(new URL(a.href, location.href)), cx: Math.round(cx), cy: Math.round(cy),
         raio: Math.ceil(Math.hypot(Math.max(cx, r.width - cx), Math.max(cy, r.height - cy)) + 2), cor: cor, antes: antes || 'transparent',
         t: performance.timeOrigin + performance.now()
       }));

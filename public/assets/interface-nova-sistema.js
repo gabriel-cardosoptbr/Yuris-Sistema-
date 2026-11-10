@@ -1267,10 +1267,12 @@
         // Do mais barato ao mais caro: tamanho, classe, depois estilo e os closest (eram 3.500
         // perguntas de visibilidade e de pop-up por passada em Processos, 09/11/2026).
         if (el.offsetWidth < 260 || el.offsetHeight < 70 || el.dataset.innKpi) return false;
-        if (/col(\s|$|-)|coluna|lane|card-mini|cli-card|proc-card|tk-card|setor-col|kanban|item|row|linha/i.test(String(el.className))) return false;
+        // Pelas classes da tela, sem as marcas da camada: o inn-item do movimento caía no "item" e o painel
+        // perdia o cabeçalho com ícone (10/11/2026).
+        if (/col(\s|$|-)|coluna|lane|card-mini|cli-card|proc-card|tk-card|setor-col|kanban|item|row|linha/i.test(baseSelo(el))) return false;
         if (!visivel(el) || el.closest(SEL_POPUP) || el.closest('.page-header') || el.closest('[data-inn-kpi]')) return false;
         var cs = getComputedStyle(el), bg = corFundo(cs), bc = rgb(cs.borderTopColor);
-        return !!bg && parseFloat(cs.borderTopWidth) > 0 && bc && bc[3] > .04 && parseFloat(cs.borderTopLeftRadius) >= 8 && !/col(\s|$|-)|coluna|lane|card-mini|cli-card|proc-card|tk-card|setor-col|kanban|item|row|linha/i.test(String(el.className));
+        return !!bg && parseFloat(cs.borderTopWidth) > 0 && bc && bc[3] > .04 && parseFloat(cs.borderTopLeftRadius) >= 8 && !/col(\s|$|-)|coluna|lane|card-mini|cli-card|proc-card|tk-card|setor-col|kanban|item|row|linha/i.test(baseSelo(el));
       });
       paineis.forEach(function (p) { if (!paineis.some(function (o) { return o !== p && o.contains(p); })) vestirCartaoDaTela(p); });
       promoverFaixas(tela);
