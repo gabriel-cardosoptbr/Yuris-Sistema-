@@ -1,6 +1,6 @@
 # public/api/ — os endpoints REST
 
-140 endpoints. `push/persist.php` ganhou a ação `tratar`, e `push/list.php` o filtro `tratamento`. Desde 09/11/2026, `push/list.php`, `push/search.php` e `aasp/search.php` mandam em cada item a `estrutura` da publicação em tópicos (`App\Processos\PublicacaoEstrutura::doItem`), calculada antes de o payload ser apagado. Cada arquivo `.php` é um endpoint, e o caminho do arquivo é a
+198 arquivos de endpoint (contados em 10/11/2026). `push/persist.php` ganhou a ação `tratar`, e `push/list.php` o filtro `tratamento`. Desde 09/11/2026, `push/list.php`, `push/search.php` e `aasp/search.php` mandam em cada item a `estrutura` da publicação em tópicos (`App\Processos\PublicacaoEstrutura::doItem`), calculada antes de o payload ser apagado. Desde 10/11/2026, `push/list.php` desconta do cache do dia tudo que já foi salvo na conta (não só o que passou no filtro), e `push/search.php` devolve `id`, `lida`, `favorita` e `com_prazo` do resultado que já está salvo: a publicação lida não volta mais em "Não lidas". Cada arquivo `.php` é um endpoint, e o caminho do arquivo é a
 URL: `public/api/whatsapp/send.php` responde em `/api/whatsapp/send.php`.
 
 **Mover um arquivo daqui muda a URL de uma chamada que o front já faz.** Vale a
@@ -25,6 +25,10 @@ mesma restrição de [`../README.md`](../README.md).
 cards (`responsavel` forçado para ele no servidor; `?responsavel=` de outro é
 ignorado), só a própria meta e só ele na lista de responsáveis. `relatorios.php`
 faz o mesmo na fonte `prospeccoes` e no dossiê de card (404 para card alheio).
+`processo_valores.php` (10/11/2026, `App\Processos\ValoresDoProcesso`, só com o módulo jurídico): GET `?processo_id=` (valores e o resumo das parcelas no Financeiro), `?carteira=1` (potencial, em aberto, projetado x obtido) e `?projecao=1&meses=12` (previsto e recebido por mês; 403 para o vendedor da edição CRM); POST `{processo_id, valor_causa, valor_estimado, resultado_tipo, valor_resultado, resultado_forma, resultado_parcelas, resultado_primeiro_vencimento}` com mesma origem ou CSRF grava e sincroniza o Financeiro. Acesso pelo `TenantGuard::assertProcessoAcessivel`.
+
+`financeiro_parcelas.php` (10/11/2026, `App\Financas\Parcelamento`): GET `?clientes=1`, `?processos_do_cliente=ID` (vazio sem o módulo jurídico), `?projecao=1&meses=12` (este mês, próximo mês, saldo futuro total, atraso e mês a mês) e `?visao=1` (títulos com totais, por cliente e por processo; filtros `cliente_id`, `processo_id`, `tipo`, `situacao`); POST com CSRF `acao` `criar`, `baixar` (com `data`, `juros` e `obs` opcionais), `desfazer`, `editar`. A lista de `dre_accounts.php` traz `cliente_nome`, `processo_numero` e `juros_de_nome`. `dre_accounts.php` aceita `cliente_id` e `processo_id` no POST e no PUT (400 se não forem das contas alcançadas ou se o processo não for do cliente) e responde 409 ao PUT de lançamento com vencimento, que só muda pela ação `editar`. Vendedor da edição CRM recebe 403, como no resto do Financeiro.
+
 `dre_accounts.php`, `dre_codes.php` e `taxes.php` respondem 403 para o vendedor:
 financeiro é só de ADM nessa edição. Na edição CRM, o GET de `dre_accounts.php` devolve
 também `recebido_clientes` (cobranças de clientes com baixa, pela data do pagamento, no
@@ -211,6 +215,8 @@ conversor não lê redireciona para o original.
 `vendedor_em_foco.php` é o seletor "Vendedor" do menu da edição CRM (30/10/2026, `App\Core\VendedorEmFoco`): GET `{pode_escolher, atual, vendedores}`, POST `{vendedor_id}` (null = todos) com `X-CSRF-Token`, só dono/admin. As listagens que leem a escolha: `cards.php` (o funil), `clientes.php`, `tasks.php` (sem `responsavel_id` na URL), `dashboard_comercial.php` (sem `responsavel`), `crm_orcamentos.php` (`vendedor_id` do orçamento), `plataforma.php` (carteira), `relatorios.php` (via `Listagem`) e `whatsapp/chats.php` (lead da conversa; sem lead, o dono dela). Permissão (o 404 do card de outro, o lead criado ser de quem cria) não muda: segue o vendedor logado.
 
 `crm_lead_quadro.php` é o lead em mais de uma etapa e em mais de um setor (edição CRM, `App\Prospeccao\QuadroDoLead`): GET `?quadro=1` (por lead: etapas e setores a mais, orçamentos, contratos, último contato; mais as etapas e os setores da conta), GET `?card_id=` (etapas e setores do lead), POST com CSRF `etapas` e `setores`. Quem abre Prospecção; lead de outra conta volta 400.
+
+`clientes.php` e a PF responsável do cliente PJ (10/11/2026, migration 178): GET `?pf_busca=termo` (PF da conta por nome ou CPF, nunca o próprio cliente; `&cliente_id=` usa a conta dele) e `?pf_por_cpf=` (o cadastro PF com esse CPF, ou null); POST e PUT aceitam `pf_responsavel_id` (só PF da mesma conta, 400 no resto; cliente PF grava NULL); POST com `recusar_cpf_duplicado: 1` e tipo PF responde 409 `{code: "cpf_existente", existente}` quando o CPF já existe na conta.
 
 `recebimentos_clientes.php` é o painel "Recebimentos de clientes" da tela Finanças (edição CRM): GET `?filtro=abertas|atrasadas|pagas` os números do mês e a lista; POST com CSRF `pagar`, `desfazer`, `cancelar`. Financeiro é de ADM: vendedor da edição CRM recebe 403, conta Yuris 404.
 

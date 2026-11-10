@@ -223,8 +223,22 @@ try {
         foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $l) $jaTratadas[$l['hash_conteudo']] = $l;
     }
 
+    // Resultado que já está salvo volta com o status do usuário (id, lida,
+    // favorita, prazo). Sem isto, o que já foi lido reaparecia na busca como
+    // se nunca tivesse sido, e a tela não conseguia respeitar o filtro (T5).
+    $statusUsuario = \App\Processos\PushEventUserStatus::statusPorHash(
+        $accountId, (int) $_SESSION['user_id'], array_column($items, 'hash_conteudo')
+    );
+
     // Resposta — payload_original NÃO vai pro frontend (LGPD: menos PII no wire)
-    $publicItems = array_map(static function ($it) use ($jaTratadas) {
+    $publicItems = array_map(static function ($it) use ($jaTratadas, $statusUsuario) {
+        $su = $statusUsuario[$it['hash_conteudo'] ?? ''] ?? null;
+        if ($su) {
+            $it['id']        = $su['id'];
+            $it['lida']      = $su['lida'];
+            $it['favorita']  = $su['favorita'];
+            $it['com_prazo'] = $su['com_prazo'];
+        }
         // A publicação em tópicos, como na lista salva (App\Processos\PublicacaoEstrutura).
         $it['estrutura'] = \App\Processos\PublicacaoEstrutura::doItem($it);
         unset($it['payload_original']);

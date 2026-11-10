@@ -172,6 +172,14 @@ if (in_array($method, ['POST','PUT','PATCH','DELETE'])) {
 if ($method === 'POST') {
     if (empty($input['nome'])) { http_response_code(400); echo json_encode(['error' => 'Missing nome']); exit; }
     $input['account_id'] = $accountId;     // injeta tenant (NUNCA do body)
+    // Cliente e processo opcionais (T2, migration 179): das contas alcançadas, e o processo do cliente.
+    try {
+        [$input['cliente_id'], $input['processo_id']] = \App\Financas\Parcelamento::validarVinculos(
+            $input['cliente_id'] ?? null, $input['processo_id'] ?? null, $tenantIds
+        );
+    } catch (\InvalidArgumentException $e) {
+        http_response_code(400); echo json_encode(['error' => $e->getMessage()]); exit;
+    }
     $id = DREAccount::create($input);
     \App\Master\Account::audit($accountId, 'dre.created', [
         'user_id'     => $ctx->getUserId(),
@@ -193,6 +201,23 @@ if ($method === 'PUT' || $method === 'PATCH') {
     if (empty($input['id'])) { http_response_code(400); echo json_encode(['error' => 'Missing id']); exit; }
     $dreId      = (int)$input['id'];
     $dadosAntes = DREAccount::find($dreId, $tenantIds);
+    // Título (lançamento com vencimento, T2): valor e data mudam por
+    // financeiro_parcelas.php (acao 'editar'), que guarda o dia e respeita a baixa.
+    // Esta edição só conhece o mês e desalinharia vencimento e competência.
+    if ($dadosAntes && !empty($dadosAntes['vencimento'])) {
+        http_response_code(409);
+        echo json_encode(['error' => 'Este lançamento tem vencimento: edite pela lista de parcelas, em "A receber e a pagar".']);
+        exit;
+    }
+    if (array_key_exists('cliente_id', $input) || array_key_exists('processo_id', $input)) {
+        try {
+            [$input['cliente_id'], $input['processo_id']] = \App\Financas\Parcelamento::validarVinculos(
+                $input['cliente_id'] ?? null, $input['processo_id'] ?? null, $tenantIds
+            );
+        } catch (\InvalidArgumentException $e) {
+            http_response_code(400); echo json_encode(['error' => $e->getMessage()]); exit;
+        }
+    }
     $ok = DREAccount::update($dreId, $input, $tenantIds);
     if (!$ok) { http_response_code(403); echo json_encode(['error' => 'Sem permissão']); exit; }
     \App\Master\Account::audit($accountId, 'dre.updated', [

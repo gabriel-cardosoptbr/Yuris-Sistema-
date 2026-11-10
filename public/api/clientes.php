@@ -77,6 +77,23 @@ function _assertSetorBelongsToAccount(int $setorId, int $accountId): void {
 
 // ── GET ─────────────────────────────────────────────────────────────
 if ($method === 'GET') {
+    // PF responsável do cliente PJ (T1, migration 178): busca por nome ou CPF e
+    // consulta por CPF, sempre na conta do cliente (ou na da sessão, se ele ainda
+    // não existe). Só devolve Pessoa Física e nunca o próprio cliente.
+    if (isset($_GET['pf_busca']) || isset($_GET['pf_por_cpf'])) {
+        $contaPf = $accountId;
+        $cliPj = !empty($_GET['cliente_id']) ? _assertClienteTenant((int) $_GET['cliente_id'], $tenantIds) : null;
+        if ($cliPj) $contaPf = (int) $cliPj['account_id'];
+        if (isset($_GET['pf_por_cpf'])) {
+            echo json_encode(['data' => \App\Clientes\ResponsavelPF::porCpf($contaPf, (string) $_GET['pf_por_cpf'])]);
+        } else {
+            echo json_encode(['data' => \App\Clientes\ResponsavelPF::buscar(
+                $contaPf, mb_substr((string) $_GET['pf_busca'], 0, 80), $cliPj ? (int) $cliPj['id'] : null
+            )]);
+        }
+        exit;
+    }
+
     if (isset($_GET['id'])) {
         $cli = _assertClienteTenant((int)$_GET['id'], $tenantIds);
         $cli['history'] = Cliente::getHistory((int)$cli['id']);
@@ -131,6 +148,17 @@ if ($method === 'POST') {
         _assertSetorBelongsToAccount((int)$data['setor_id'], $accountId);
     } else {
         $data['setor_id'] = (int)$setores[0]['id'];
+    }
+
+    // Cadastro da PF a partir da PJ (T1): CPF que já existe na conta não vira
+    // segundo cadastro; a tela oferece vincular o existente.
+    if (!empty($data['recusar_cpf_duplicado']) && ($data['tipo_cliente'] ?? 'PF') === 'PF') {
+        $existente = \App\Clientes\ResponsavelPF::porCpf($accountId, (string) ($data['cpf_cnpj'] ?? ''));
+        if ($existente) {
+            http_response_code(409);
+            echo json_encode(['error' => 'Já existe uma Pessoa Física com este CPF.', 'code' => 'cpf_existente', 'existente' => $existente]);
+            exit;
+        }
     }
 
     try {

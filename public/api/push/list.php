@@ -114,12 +114,12 @@ try {
         if ($fTrib !== '')    $opts['tribunal']              = $fTrib;
         if ($fDataIni)        $opts['data_disponibilizacao'] = $fDataIni;
         if ($fSrc !== '')     $opts['source_id']             = $fSrc;
-        $rawCache = PushTodayCache::listForAccount($accountId, $opts);
-
-        // Excluir do cache os que já foram promovidos a push_events
-        $eventHashes = array_flip(array_column($eventos, 'hash_conteudo'));
+        // Excluir do cache os que já foram promovidos a push_events. A conferência
+        // é contra TODA publicação salva da conta, não contra $eventos: $eventos
+        // já vem filtrado (lida = 0 tira a lida), e comparar só com ele fazia a
+        // publicação lida voltar em "Não lidas" como cópia do cache (T5).
+        $rawCache = PushTodayCache::semOsJaSalvos($accountId, PushTodayCache::listForAccount($accountId, $opts));
         foreach ($rawCache as $c) {
-            if (isset($eventHashes[$c['hash_conteudo']])) continue;
             // Filtros lida/favorita não se aplicam ao cache (não tem status)
             if ($fLida === 1 || $fFav === 1 || $fPrazo === 1) continue;
             $c['_from_cache']   = true;

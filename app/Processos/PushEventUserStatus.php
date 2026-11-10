@@ -102,6 +102,39 @@ class PushEventUserStatus
         return $row ?: null;
     }
 
+    /**
+     * Status do usuário para publicações já salvas, pela chave hash_conteudo.
+     * Serve à busca externa (push/search.php), cujos resultados chegam sem id:
+     * sem isto, o que já foi lido voltava da busca como se nunca tivesse sido.
+     *
+     * @param string[] $hashes
+     * @return array<string,array{id:int,lida:int,favorita:int,com_prazo:int}>
+     */
+    public static function statusPorHash(int $accountId, int $userId, array $hashes): array
+    {
+        $hashes = array_values(array_unique(array_filter($hashes, 'is_string')));
+        if (!$hashes) return [];
+        $pdo = Database::getConnection();
+        $mapa = [];
+        foreach (array_chunk($hashes, 400) as $lote) {
+            $st = $pdo->prepare(
+                'SELECT e.id, e.hash_conteudo, COALESCE(s.lida, 0) lida,
+                        COALESCE(s.favorita, 0) favorita, COALESCE(s.com_prazo, 0) com_prazo
+                   FROM push_events e
+                   LEFT JOIN push_event_user_status s ON s.event_id = e.id AND s.user_id = ?
+                  WHERE e.account_id = ? AND e.hash_conteudo IN (' . implode(',', array_fill(0, count($lote), '?')) . ')'
+            );
+            $st->execute(array_merge([$userId, $accountId], $lote));
+            foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $mapa[$r['hash_conteudo']] = [
+                    'id' => (int) $r['id'], 'lida' => (int) $r['lida'],
+                    'favorita' => (int) $r['favorita'], 'com_prazo' => (int) $r['com_prazo'],
+                ];
+            }
+        }
+        return $mapa;
+    }
+
     /** Conta não-lidas pro user (KPI). */
     public static function countNaoLidas(int $userId, int $accountId): int
     {

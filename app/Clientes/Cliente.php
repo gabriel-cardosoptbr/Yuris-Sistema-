@@ -95,12 +95,17 @@ class Cliente
                     -- Quem converteu: o bloco Origem mostra o nome, não o id.
                     -- LEFT JOIN porque cliente de cadastro manual não tem
                     -- conversão nenhuma, e isso não é erro.
-                    uc.nome AS convertido_por_nome
+                    uc.nome AS convertido_por_nome,
+                    -- PF responsável da PJ (migration 178): lida do cadastro da
+                    -- própria PF, então editar a PF muda o que a PJ mostra.
+                    pf.nome     AS pf_responsavel_nome,
+                    pf.cpf_cnpj AS pf_responsavel_cpf
                FROM clientes c
           LEFT JOIN clientes_setores s ON s.id = c.setor_id
           LEFT JOIN users  u           ON u.id = c.responsavel_id
           LEFT JOIN users  uc          ON uc.id = c.convertido_por
           LEFT JOIN accounts a         ON a.id = c.account_id
+          LEFT JOIN clientes pf        ON pf.id = c.pf_responsavel_id AND pf.deleted_at IS NULL AND pf.tipo_cliente = 'PF'
               WHERE c.id = :id
               LIMIT 1"
         );
@@ -140,13 +145,18 @@ class Cliente
             );
         }
 
+        $tipoCliente = in_array(($data['tipo_cliente'] ?? 'PF'), ['PF','PJ'], true) ? ($data['tipo_cliente'] ?? 'PF') : 'PF';
+        // PF responsável (só PJ; mesma conta; nunca PJ). Valida antes de gravar.
+        $pfResponsavel = ResponsavelPF::normalizar($data['pf_responsavel_id'] ?? null, $tipoCliente, null, $accountId);
+
         $payload = [
             'account_id'     => $accountId,
             'contato_id'     => $contatoId,
             'setor_id'       => (int)$data['setor_id'],
             'responsavel_id' => !empty($data['responsavel_id']) ? (int)$data['responsavel_id'] : null,
+            'pf_responsavel_id' => $pfResponsavel,
             'nome'           => trim((string)$data['nome']),
-            'tipo_cliente'   => in_array(($data['tipo_cliente'] ?? 'PF'), ['PF','PJ'], true) ? ($data['tipo_cliente'] ?? 'PF') : 'PF',
+            'tipo_cliente'   => $tipoCliente,
             'cpf_cnpj'       => self::_cleanDigits($data['cpf_cnpj'] ?? null),
             'rg'             => self::_trimOrNull($data['rg'] ?? null),
             'nome_mae'       => self::_trimOrNull($data['nome_mae'] ?? null),
@@ -173,13 +183,13 @@ class Cliente
         ];
 
         $sql = "INSERT INTO clientes
-                  (account_id, contato_id, setor_id, responsavel_id, nome,
+                  (account_id, contato_id, setor_id, responsavel_id, pf_responsavel_id, nome,
                    tipo_cliente, cpf_cnpj, rg, nome_mae, data_nascimento, telefone, whatsapp, email,
                    cep, logradouro, numero, complemento, bairro, cidade, uf,
                    origem, status, ordem_no_setor, observacoes,
                    created_by, updated_by, created_at, updated_at)
                 VALUES
-                  (:account_id, :contato_id, :setor_id, :responsavel_id, :nome,
+                  (:account_id, :contato_id, :setor_id, :responsavel_id, :pf_responsavel_id, :nome,
                    :tipo_cliente, :cpf_cnpj, :rg, :nome_mae, :data_nascimento, :telefone, :whatsapp, :email,
                    :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :uf,
                    :origem, :status, :ordem_no_setor, :observacoes,
@@ -225,6 +235,16 @@ class Cliente
             else                        $v = self::_trimOrNull(is_scalar($v) ? (string)$v : null);
             $fields[] = "$k = :$k";
             $params[$k] = $v;
+        }
+
+        // PF responsável (migration 178). Vale o tipo que fica depois da edição:
+        // virar PF solta o vínculo; PJ só aceita PF da mesma conta, nunca ela mesma.
+        $tipoFinal = $params['tipo_cliente'] ?? ($before['tipo_cliente'] ?? 'PF');
+        if (array_key_exists('pf_responsavel_id', $data) || ($tipoFinal !== 'PJ' && !empty($before['pf_responsavel_id']))) {
+            $fields[] = 'pf_responsavel_id = :pf_responsavel_id';
+            $params['pf_responsavel_id'] = ResponsavelPF::normalizar(
+                $data['pf_responsavel_id'] ?? null, $tipoFinal, $id, (int) $before['account_id']
+            );
         }
 
         if (empty($fields)) return false;

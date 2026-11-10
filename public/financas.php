@@ -22,6 +22,8 @@ try { $reembolsos = \App\Financas\Reembolso::habilitado(\App\Master\Account::fin
 // Recebimentos de clientes (20/10/2026): edição CRM, as cobranças que saem dos
 // valores combinados na ficha do cliente (App\Clientes\CobrancaDoCliente).
 $recebClientes = $ctx->getProduto() === 'fleetiflow';
+// Processo no lançamento (T2): só onde existe o módulo jurídico.
+$finComProcesso = $ctx->moduloJuridicoDisponivel();
 if (empty($tenantIds)) $tenantIds = [0]; // guard: evita SQL "IN ()" inválido
 
 // Monta cláusula IN(tenantIds) para reuso
@@ -331,6 +333,58 @@ $health_icon         = $margem >= 40 ? '▲' : ($margem >= 15 ? '●' : '▼');
     /* ── Divider ── */
     .section-divider { border: none; border-top: 1px solid var(--line); margin: 20px 0; }
     /* ── Responsive ── */
+    /* ── Cliente, processo, parcelas e baixa (T2) ── */
+    .fin-check { display: flex !important; align-items: center; gap: 8px; text-transform: none !important; letter-spacing: 0 !important; font-size: .78rem !important; color: var(--text) !important; cursor: pointer; padding-bottom: 8px; }
+    /* O checkbox fica dentro de .form-group, cujo estilo de caixa de texto (e o
+       appearance: none da camada nova) o deixava sem marca visível. */
+    .fin-check input[type="checkbox"] { -webkit-appearance: checkbox !important; appearance: auto !important; width: 16px !important; height: 16px !important; min-width: 16px; padding: 0 !important; margin: 0; background: none !important; border: none !important; box-shadow: none !important; accent-color: #2563EB; flex: 0 0 auto; }
+    .fin-parcelas-box { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0,1fr)) 2fr; gap: 10px; align-items: start; padding: 12px; border: 1px dashed rgba(96,165,250,.25); border-radius: 10px; }
+    .fin-parcelas-box[hidden], .fin-aviso[hidden], #finModal .form-group[hidden] { display: none !important; }
+    .fin-previa { font-size: .74rem; color: var(--muted); line-height: 1.5; }
+    .fin-previa strong { color: var(--text); }
+    .fin-previa ol { margin: 4px 0 0; padding-left: 18px; columns: 2; }
+    .fin-filtros { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin: 10px 0; }
+    .fin-totais { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-bottom: 8px; }
+    .fin-tot { padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: 10px; display: flex; flex-direction: column; gap: 2px; }
+    .fin-tot span { font-size: .66rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+    .fin-tot b { font-size: 1rem; color: var(--text); }
+    .fin-tot small { font-size: .72rem; color: var(--muted); }
+    .fin-tot small strong { color: var(--text); }
+    .fin-sit { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: .64rem; font-weight: 700; white-space: nowrap; background: rgba(61,48,16,0.60); color: #C4A040; border: 1px solid rgba(196,160,64,0.25); }
+    .fin-sit-ok { background: rgba(30,74,58,0.60); color: #7ABDA0; border-color: rgba(122,189,160,0.25); }
+    .fin-sit-atraso { background: rgba(58,16,32,0.60); color: #E08A9A; border-color: rgba(176,96,112,0.35); }
+    .fin-grupos { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; margin-top: 14px; }
+    /* min-width 0: sem isto o item da grade estica até a largura da tabela e a página ganha rolagem lateral no celular */
+    .fin-grupos > div, .fin-filtros > *, .fin-totais > * { min-width: 0; }
+    .fin-abas { display: flex; gap: 8px; margin: 10px 0 4px; flex-wrap: wrap; }
+    #finAbaProjecao[hidden], #finAbaTitulos[hidden] { display: none !important; }
+    .fin-proj-cards { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 10px; margin-top: 6px; }
+    .fin-proj-cards > * { min-width: 0; }
+    .fin-tot-destaque { border-color: rgba(96,165,250,.45); }
+    @media (max-width: 1300px) { .fin-proj-cards { grid-template-columns: repeat(3, minmax(0,1fr)); } }
+    @media (max-width: 700px)  { .fin-proj-cards { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 420px)  { .fin-proj-cards { grid-template-columns: 1fr; } }
+    .fin-carteira-nums { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-top: 10px; }
+    .fin-carteira-nums > * { min-width: 0; }
+    @media (max-width: 1100px) { .fin-carteira-nums { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    @media (max-width: 600px)  { .fin-carteira-nums { grid-template-columns: 1fr; } }
+    .fin-grupo-titulo { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; }
+    .fin-vazio { font-size: .76rem; color: var(--muted); font-style: italic; margin: 8px 0; }
+    /* De onde vem o lançamento: cliente, processo, parcela, juros (10/11/2026) */
+    .fin-origem { display: block; font-size: .7rem; color: var(--muted); margin-top: 2px; line-height: 1.45; }
+    .fin-origem a, .fin-link { color: #60a5fa; text-decoration: none; }
+    .fin-origem a:hover, .fin-link:hover { text-decoration: underline; }
+    html[data-theme="light"] .fin-origem a, html[data-theme="light"] .fin-link { color: #2563EB; }
+    .fin-detalhe { display: block; font-size: .7rem; color: var(--muted); margin-top: 3px; white-space: normal; }
+    .fin-atraso { font-size: .76rem; margin-top: 10px; color: #E08A9A; }
+    .fin-atraso[hidden], #finModal .form-group[hidden] { display: none !important; }
+    .fin-aviso { font-size: .76rem; margin-top: 8px; color: var(--muted); }
+    .fin-aviso-erro { color: #fca5a5; }
+    .fin-aviso-ok { color: #6ee7b7; }
+    #addAccountMsg.fin-aviso { display: block; }
+    @media (max-width: 1500px) { .fin-grupos { grid-template-columns: 1fr; } }
+    @media (max-width: 1100px) { .fin-parcelas-box { grid-template-columns: repeat(3, minmax(0,1fr)); } .fin-previa { grid-column: 1 / -1; } .fin-filtros { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    @media (max-width: 600px) { .fin-parcelas-box, .fin-filtros, .fin-totais, .fin-grupos { grid-template-columns: 1fr; } .fin-previa ol { columns: 1; } }
     @media (max-width: 1400px) { .kpi-grid { grid-template-columns: repeat(4, minmax(0,1fr)); } }
     @media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } .charts-grid { grid-template-columns: 1fr; } .form-grid { grid-template-columns: repeat(3, minmax(0,1fr)); } .filters-grid { grid-template-columns: repeat(3, minmax(0,1fr)); } }
     @media (max-width: 980px)  { .kpi-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
@@ -696,9 +750,129 @@ $health_icon         = $margem >= 40 ? '▲' : ($margem >= 15 ? '●' : '▼');
               Adicionar lançamento
             </button>
           </div>
+          <!-- Cliente e processo opcionais, e parcelamento (T2, 10/11/2026) -->
+          <div class="form-group" style="grid-column: span 2">
+            <label for="lanCliente">Cliente (opcional)</label>
+            <select id="lanCliente"><option value="">Sem cliente</option></select>
+          </div>
+<?php if ($finComProcesso): ?>
+          <div class="form-group" style="grid-column: span 2">
+            <label for="lanProcesso">Processo (opcional)</label>
+            <select id="lanProcesso" disabled><option value="">Escolha o cliente primeiro</option></select>
+          </div>
+<?php endif; ?>
+          <div class="form-group fin-parcelar" style="grid-column: span 2">
+            <label class="fin-check"><input type="checkbox" id="lanParcelar"> Parcelar ou lançar com vencimento (a receber / a pagar)</label>
+          </div>
+          <div class="fin-parcelas-box" id="lanParcelasBox" hidden>
+            <div class="form-group">
+              <label for="lanQtdParcelas">Parcelas</label>
+              <input id="lanQtdParcelas" type="number" min="1" max="120" value="1" />
+            </div>
+            <div class="form-group">
+              <label for="lanPrimeiroVenc">Primeiro vencimento</label>
+              <input id="lanPrimeiroVenc" type="date" />
+            </div>
+            <div class="form-group">
+              <label for="lanValorModo">O valor informado é</label>
+              <select id="lanValorModo">
+                <option value="total">O total (dividir)</option>
+                <option value="parcela">De cada parcela</option>
+              </select>
+            </div>
+            <div class="fin-previa" id="lanParcelasPrevia"></div>
+          </div>
         </div>
         <div id="addAccountMsg" class="error-msg"></div>
       </div>
+
+      <!-- ── A receber e a pagar (T2): títulos por cliente e por processo, com baixa ── -->
+      <div class="dre-panel fin-panel" style="margin-bottom:16px" id="finPainel">
+        <div class="panel-title">A receber e a pagar</div>
+        <p class="panel-sub">Lançamentos com vencimento: parcelas, o que já foi pago ou recebido e o que falta, por cliente e por processo</p>
+        <div class="fin-abas" role="tablist">
+          <button type="button" class="btn btn-primary btn-sm" role="tab" aria-selected="true" data-fin-aba="titulos">Títulos</button>
+          <button type="button" class="btn btn-ghost btn-sm" role="tab" aria-selected="false" data-fin-aba="projecao">Projeção</button>
+        </div>
+        <!-- Aba Projeção (10/11/2026): este mês, o próximo, o saldo futuro total sem diluir, o atraso e mês a mês -->
+        <div id="finAbaProjecao" hidden>
+          <div class="fin-grupo-titulo" style="margin-top:12px">A receber</div>
+          <div class="fin-proj-cards" id="finProjReceber"></div>
+          <div class="fin-grupo-titulo" style="margin-top:12px">A pagar</div>
+          <div class="fin-proj-cards" id="finProjPagar"></div>
+          <div class="fin-grupo-titulo" style="margin-top:14px">Mês a mês</div>
+          <div class="dre-table-wrap">
+            <table class="dre-table" id="finProjMeses">
+              <thead><tr><th>Mês</th><th style="text-align:right">A receber</th><th style="text-align:right">Recebido</th><th style="text-align:right">A pagar</th><th style="text-align:right">Pago</th></tr></thead>
+              <tbody><tr class="empty-row"><td colspan="5">Carregando…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="finAbaTitulos">
+        <div class="fin-filtros">
+          <div class="form-group">
+            <label for="finFiltroCliente">Cliente</label>
+            <select id="finFiltroCliente"><option value="">Todos os clientes</option></select>
+          </div>
+<?php if ($finComProcesso): ?>
+          <div class="form-group">
+            <label for="finFiltroProcesso">Processo</label>
+            <select id="finFiltroProcesso" disabled><option value="">Todos os processos</option></select>
+          </div>
+<?php endif; ?>
+          <div class="form-group">
+            <label for="finFiltroTipo">Tipo</label>
+            <select id="finFiltroTipo"><option value="">Receitas e despesas</option><option value="receita">A receber</option><option value="despesa">A pagar</option></select>
+          </div>
+          <div class="form-group">
+            <label for="finFiltroSituacao">Situação</label>
+            <select id="finFiltroSituacao"><option value="">Todas</option><option value="pendente">Pendentes</option><option value="pago">Baixadas</option></select>
+          </div>
+        </div>
+        <div class="fin-totais" id="finTotais"></div>
+        <div class="fin-aviso" id="finPainelMsg" hidden></div>
+        <div class="dre-table-wrap">
+          <table class="dre-table" id="finTitulos">
+            <thead>
+              <tr>
+                <th>Vencimento</th>
+                <th>Descrição</th>
+                <th>Cliente</th>
+                <th>Processo</th>
+                <th style="text-align:right">Valor</th>
+                <th>Situação</th>
+                <th style="text-align:right">Ações</th>
+              </tr>
+            </thead>
+            <tbody><tr class="empty-row"><td colspan="7">Carregando…</td></tr></tbody>
+          </table>
+        </div>
+        <div class="fin-grupos">
+          <div><div class="fin-grupo-titulo">Por cliente</div><div class="dre-table-wrap" id="finPorCliente"></div></div>
+<?php if ($finComProcesso): ?>
+          <div><div class="fin-grupo-titulo">Por processo</div><div class="dre-table-wrap" id="finPorProcesso"></div></div>
+<?php else: ?>
+          <div id="finPorProcesso" hidden></div>
+<?php endif; ?>
+        </div>
+        </div><!-- /finAbaTitulos -->
+      </div>
+<?php if ($finComProcesso): ?>
+
+      <!-- ── Carteira de processos e projeção mensal (T3, App\Processos\ValoresDoProcesso) ── -->
+      <div class="dre-panel fin-panel" style="margin-bottom:16px" id="finCarteira">
+        <div class="panel-title">Carteira de processos e projeção</div>
+        <p class="panel-sub">O valor estimado dos processos, o projetado contra o obtido nos que já têm resultado, e os recebimentos previstos mês a mês</p>
+        <div class="fin-carteira-nums" id="finCarteiraNums"><div class="fin-vazio">Carregando…</div></div>
+        <div class="fin-grupo-titulo" style="margin-top:14px">Projeção mensal dos recebimentos de processos</div>
+        <div class="dre-table-wrap">
+          <table class="dre-table" id="finProjecao">
+            <thead><tr><th>Mês</th><th style="text-align:right">Previsto</th><th style="text-align:right">Recebido</th></tr></thead>
+            <tbody><tr class="empty-row"><td colspan="3">Carregando…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+<?php endif; ?>
 
       <!-- ── Tables ── -->
       <div class="dre-panel" style="margin-bottom:16px" id="dreListWrap">
@@ -1329,6 +1503,42 @@ window.dreUpdateDonutLegend = function(vals) {
 <?php if ($recebClientes): ?>
 <script src="/assets/recebimentos.js?v=<?= @filemtime(__DIR__ . '/assets/recebimentos.js') ?: 1 ?>"></script>
 <?php endif; ?>
+<!-- Modal: baixa e edição de parcela (T2) -->
+<div id="finModal" class="modal-shell" style="display:none">
+  <div class="modal-panel" style="width:420px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="finModalTitulo">Parcela</div>
+        <p style="font-size:.72rem;color:var(--muted);margin:4px 0 0" id="finModalDesc"></p>
+      </div>
+      <button type="button" class="modal-close" id="finModalFechar" aria-label="Fechar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="form-group" id="finModalValorWrap" style="margin-top:12px">
+      <label for="finModalValor">Valor (R$)</label>
+      <input id="finModalValor" type="text" style="text-align:right">
+    </div>
+    <div class="form-group" style="margin-top:10px">
+      <label for="finModalData" id="finModalDataRotulo">Data</label>
+      <input id="finModalData" type="date">
+    </div>
+    <!-- Só na baixa: atraso calculado, juros ou multa (vira lançamento no DRE) e observação -->
+    <div class="fin-atraso" id="finModalAtraso" hidden></div>
+    <div class="form-group" id="finModalJurosWrap" style="margin-top:10px">
+      <label for="finModalJuros">Juros ou multa (R$, opcional)</label>
+      <input id="finModalJuros" type="text" style="text-align:right" placeholder="0,00">
+    </div>
+    <div class="form-group" id="finModalObsWrap" style="margin-top:10px">
+      <label for="finModalObs">Observação (opcional)</label>
+      <input id="finModalObs" type="text" maxlength="500" placeholder="Ex.: pagou com 5 dias de atraso, juros combinados por telefone">
+    </div>
+    <div class="fin-aviso" id="finModalMsg" hidden></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button type="button" class="btn btn-ghost" id="finModalCancelar">Cancelar</button>
+      <button type="button" class="btn btn-primary" id="finModalSalvar">Salvar</button>
+    </div>
+  </div>
+</div>
+<script src="/assets/financeiro-parcelas.js?v=<?= @filemtime(__DIR__ . '/assets/financeiro-parcelas.js') ?: 1 ?>"></script>
 <script src="/assets/dre.js?v=<?=filemtime(__DIR__.'/assets/dre.js')?>"></script>
 <script src="/assets/fog.js"></script>
 </body>

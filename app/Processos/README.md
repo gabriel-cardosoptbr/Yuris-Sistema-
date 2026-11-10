@@ -16,6 +16,7 @@ das classes daqui tratam de cota e permissão, e não de processo.
 ### O processo
 | Classe | O que faz |
 |---|---|
+| `ValoresDoProcesso.php` | **valores do processo, resultado, carteira e projeção** (T3, 10/11/2026, migration 180): valor da causa, valor estimado e o resultado (tipo `acordo`, `sentenca`, `execucao`, `improcedente`, `outro`; valor; à vista ou parcelado; parcelas e primeiro vencimento). `salvar` grava e chama `sincronizar`, que põe o Financeiro de acordo pelo mecanismo do T2 (`App\Financas\Parcelamento`, `fin_parcelamentos` com `origem` = `processo_resultado` e `origem_id` = processo): um parcelamento só por processo, então editar nunca duplica; **parcela baixada nunca muda**, o restante (resultado menos o recebido) é dividido entre as pendentes, atualizadas no lugar; pendente que sobra, resultado tirado ou improcedente desativam (ativo = 0, nada é apagado). Os lançamentos ficam na conta dona do processo, com o cliente do processo. `carteira` (potencial, em aberto, projetado x obtido dos que têm resultado, improcedente = 0) e `projecaoMensal` (previsto pelas parcelas pendentes, recebido pela data da baixa, atrasado à parte), em centavos. Processo antigo, sem valores, não muda: `Processo::update` não conhece as colunas. API `public/api/processo_valores.php`; tela `public/assets/processo-valores.js` (ficha) e o painel de carteira em Finanças. Teste: `scripts/tests/processo_valores_test.php` |
 | `Processo.php` | o processo em si: listagem por conta, cadastro, dados da causa. `list()` com `from`/`to` (filtro de ano do calendário) devolve o processo cujo prazo OU início cai no período **e todo processo sem prazo**, em qualquer ano: sem isso ele não caía em ano nenhum e sumia da tela (23/10/2026) |
 | `Processo::normalizarLinkTribunal` | o link do processo no tribunal (`processos.link_tribunal`, migration 174), alternativa manual à busca automática. Só http e https: `javascript:` num href executaria código. O sistema nunca acessa o link sozinho, ele só vira o botão "Abrir" da ficha |
 | `ProcessoAudit.php` | histórico processual garantido no servidor. É a linha do tempo do processo, e o registro não pode depender do front |
@@ -30,10 +31,10 @@ das classes daqui tratam de cota e permissão, e não de processo.
 |---|---|
 | `PushMonitor.php` | um monitoramento cadastrado: o que vigiar (nome, OAB, número de processo) |
 | `PushEvent.php` | uma publicação encontrada |
-| `PushEventUserStatus.php` | se cada usuário já leu ou tratou aquela publicação |
+| `PushEventUserStatus.php` | se cada usuário já leu ou tratou aquela publicação. `statusPorHash()` devolve id, lida, favorita e prazo do que já está salvo, pela chave `hash_conteudo`: é como a busca externa (`api/push/search.php`) mostra o que já foi lido (10/11/2026) |
 | `PushProcessoLink.php` | liga a publicação encontrada ao processo cadastrado |
 | `PushQueryLog.php` | log das consultas feitas às fontes |
-| `PushTodayCache.php` | cache do dia, para não consultar a mesma coisa repetidas vezes |
+| `PushTodayCache.php` | cache do dia, para não consultar a mesma coisa repetidas vezes. `semOsJaSalvos()` tira da lista o que já virou `push_events`, conferindo contra **toda** publicação salva da conta: conferir só contra a lista já filtrada fazia a publicação lida voltar em "Não lidas" como cópia do cache (10/11/2026) |
 | `PublicacaoEstrutura.php` | a publicação em tópicos: cabeçalho, timbre, partes, advogados com OAB, seções do teor com parágrafos e assinatura, intimados e link do tribunal. Regra pura, sem banco. Também extrai advogados e partes do payload para o Diário (`api/push/list.php` delega) |
 | `MonitorQuota.php` | cálculo de cota do add-on: quantos monitoramentos o plano permite |
 | `MonitorPermission.php` | quem pode ver e mexer em monitoramento dentro da conta |

@@ -455,6 +455,16 @@ try {
     }
     .process-flash { animation: processFlash .5s ease-in-out 0s 2; }
 
+    /* ── Valores e resultado (T3) ── */
+    #procValoresBloco .field-group[hidden], #pvAviso[hidden] { display: none !important; }
+    .pv-previa, .pv-financeiro { font-size: .76rem; color: #9ab0c9; line-height: 1.5; }
+    .pv-previa strong, .pv-financeiro strong { color: inherit; filter: brightness(1.25); }
+    .pv-financeiro { margin-top: 6px; }
+    .pv-financeiro a { color: #60a5fa; }
+    .pv-aviso { font-size: .78rem; color: #f87171; margin-top: 6px; }
+    html[data-theme="light"] .pv-previa, html[data-theme="light"] .pv-financeiro { color: #5A6B7E; }
+    html[data-theme="light"] .pv-financeiro a { color: #2563EB; }
+
     /* ── Novos blocos processuais ── */
     .proc-section { background:rgba(14,28,50,.6); border:1px solid rgba(96,165,250,.1); border-radius:10px; padding:16px; margin-bottom:14px; }
     .proc-section-title { font-size:.72rem; font-weight:700; color:#60a5fa; text-transform:uppercase; letter-spacing:.08em; margin-bottom:12px; }
@@ -1311,6 +1321,59 @@ try {
             </div>
           </div>
 
+          <!-- Bloco — Valores e resultado (T3, 10/11/2026, migration 180). Os campos não
+               têm name: não vão no salvar do processo. assets/processo-valores.js grava
+               depois, em /api/processo_valores.php, e o resultado gera as receitas no
+               Financeiro (App\Processos\ValoresDoProcesso). Processo antigo não muda. -->
+          <div class="proc-modal-section" style="margin-top:14px" id="procValoresBloco">
+            <div class="proc-modal-section-title">Valores e resultado</div>
+            <div class="proc-modal-fields">
+              <div class="field-group">
+                <label class="field-label" for="pvCausa">Valor da causa (R$)</label>
+                <input type="text" id="pvCausa" class="field-input" inputmode="decimal" placeholder="0,00" autocomplete="off">
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="pvEstimado">Valor estimado ou projetado (R$)</label>
+                <input type="text" id="pvEstimado" class="field-input" inputmode="decimal" placeholder="0,00" autocomplete="off">
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="pvTipo">Resultado</label>
+                <select id="pvTipo" class="field-input">
+                  <option value="">Sem resultado ainda</option>
+                  <option value="acordo">Acordo</option>
+                  <option value="sentenca">Sentença ou condenação</option>
+                  <option value="execucao">Execução</option>
+                  <option value="improcedente">Improcedente</option>
+                  <option value="outro">Outro</option>
+                </select>
+              </div>
+              <div class="field-group pv-com-valor">
+                <label class="field-label" for="pvValor">Valor do resultado (R$)</label>
+                <input type="text" id="pvValor" class="field-input" inputmode="decimal" placeholder="0,00" autocomplete="off">
+              </div>
+              <div class="field-group pv-com-valor">
+                <label class="field-label" for="pvForma">Forma de recebimento</label>
+                <select id="pvForma" class="field-input">
+                  <option value="avista">À vista</option>
+                  <option value="parcelado">Parcelado</option>
+                </select>
+              </div>
+              <div class="field-group pv-com-valor pv-parcelado">
+                <label class="field-label" for="pvParcelas">Parcelas</label>
+                <input type="number" id="pvParcelas" class="field-input" min="2" max="120" value="2">
+              </div>
+              <div class="field-group pv-com-valor">
+                <label class="field-label" for="pvPrimeiro" id="pvPrimeiroRotulo">Vencimento</label>
+                <input type="date" id="pvPrimeiro" class="field-input">
+              </div>
+              <div class="field-group pv-resumo-wrap" style="grid-column:1/-1">
+                <div class="pv-previa" id="pvPrevia"></div>
+                <div class="pv-financeiro" id="pvFinanceiro"></div>
+                <div class="pv-aviso" id="pvAviso" hidden></div>
+              </div>
+            </div>
+          </div>
+
           <!-- Bloco — Vínculo com Cliente -->
           <div class="proc-section" style="margin-top:14px">
             <div class="proc-section-title">Vínculo com Cliente</div>
@@ -1461,6 +1524,7 @@ try {
     window.YURIS_SHOW_ORIGIN_STRIP = true;
   </script>
   <script src="/assets/user_select.js?v=<?= filemtime(__DIR__ . '/assets/user_select.js') ?>"></script>
+  <script src="/assets/processo-valores.js?v=<?= @filemtime(__DIR__ . '/assets/processo-valores.js') ?: 1 ?>"></script>
   <script src="/assets/processos.js?v=<?= filemtime(__DIR__ . '/assets/processos.js') ?>"></script>
   <script src="/assets/process_codes.js"></script>
   <script src="/assets/fog.js"></script>

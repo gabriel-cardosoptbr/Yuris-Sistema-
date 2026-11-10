@@ -205,6 +205,24 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
     .btn:disabled { opacity: .5; cursor: not-allowed; }
     .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
     html[data-theme="light"] .btn-ghost { border-color: #cbd5e1; color: #0f172a; }
+    /* Responsável Pessoa Física do cliente PJ (T1) */
+    .cli-pf-bloco[hidden] { display: none !important; }
+    .cli-pf-bloco [hidden] { display: none !important; }
+    .cli-pf-atual { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; }
+    .cli-pf-atual-texto { flex: 1 1 200px; font-size: .9rem; }
+    .cli-pf-atual-texto small { display: block; opacity: .7; font-size: .78rem; }
+    .cli-pf-escolha { display: flex; flex-direction: column; gap: 8px; }
+    .cli-pf-lista { max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+    .cli-pf-item { display: block; width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: 0; border-bottom: 1px solid var(--border); color: inherit; cursor: pointer; font: inherit; }
+    .cli-pf-item:last-child { border-bottom: 0; }
+    .cli-pf-item:hover, .cli-pf-item:focus { background: rgba(96,165,250,.12); outline: none; }
+    .cli-pf-item small { display: block; opacity: .7; font-size: .76rem; }
+    .cli-pf-vazio { padding: 10px 12px; font-size: .82rem; opacity: .75; }
+    .cli-pf-btn { align-self: flex-start; padding: 6px 12px; font-size: .82rem; }
+    .cli-pf-nova { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px dashed var(--border); border-radius: 8px; }
+    .cli-pf-acoes { display: flex; flex-wrap: wrap; gap: 8px; }
+    .cli-pf-aviso { font-size: .82rem; line-height: 1.4; }
+    .cli-pf-aviso .btn { margin-top: 6px; }
     .btn-ghost:hover { background: rgba(96,165,250,.06); }
     .btn-danger { background: linear-gradient(180deg, #ef4444, #dc2626); }
 
@@ -590,6 +608,34 @@ $showOrigemFilter = $isMatriz && count($origin_accounts) > 1;
         <div class="field">
           <label for="cliCpfCnpj">CPF / CNPJ</label>
           <input type="text" id="cliCpfCnpj" name="cpf_cnpj" class="form-input" placeholder="000.000.000-00" maxlength="20">
+        </div>
+
+        <!-- Responsável Pessoa Física do cliente PJ (T1, migration 178). Só aparece
+             para Pessoa Jurídica. A PJ guarda só a referência: a PF tem o cadastro
+             dela, e editar a PF muda o que aparece aqui. Os campos de busca e de
+             cadastro rápido não têm name: o que vai no salvar é só o id escondido. -->
+        <div class="field full cli-pf-bloco" id="cliPfBloco" hidden>
+          <label for="cliPfBusca">Responsável (Pessoa Física)</label>
+          <input type="hidden" name="pf_responsavel_id" id="cliPfResponsavelId" value="">
+          <div class="cli-pf-atual" id="cliPfAtual" hidden>
+            <span class="cli-pf-atual-texto" id="cliPfAtualTexto"></span>
+            <button type="button" class="btn btn-ghost cli-pf-btn" id="cliPfRemover">Remover vínculo</button>
+          </div>
+          <div class="cli-pf-escolha" id="cliPfEscolha">
+            <input type="text" id="cliPfBusca" class="form-input" placeholder="Buscar Pessoa Física por nome ou CPF" autocomplete="off" maxlength="80">
+            <div class="cli-pf-lista" id="cliPfLista" hidden></div>
+            <button type="button" class="btn btn-ghost cli-pf-btn" id="cliPfNovaAbrir">Cadastrar nova Pessoa Física</button>
+            <div class="cli-pf-nova" id="cliPfNova" hidden>
+              <input type="text" id="cliPfNovaNome" class="form-input" placeholder="Nome completo da Pessoa Física" maxlength="190" autocomplete="off">
+              <input type="text" id="cliPfNovaCpf" class="form-input" placeholder="CPF" maxlength="20" autocomplete="off">
+              <input type="text" id="cliPfNovaTel" class="form-input" placeholder="Telefone (opcional)" maxlength="30" autocomplete="off">
+              <div class="cli-pf-aviso" id="cliPfAviso" hidden></div>
+              <div class="cli-pf-acoes">
+                <button type="button" class="btn cli-pf-btn" id="cliPfNovaSalvar">Cadastrar e vincular</button>
+                <button type="button" class="btn btn-ghost cli-pf-btn" id="cliPfNovaCancelar">Cancelar</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="field">
@@ -1208,6 +1254,119 @@ window.Clientes = (function () {
         }
     }
 
+    // ── Responsável Pessoa Física do cliente PJ (T1, migration 178) ─────────
+    // A PJ guarda só o id da PF (campo escondido pf_responsavel_id). Busca e
+    // cadastro rápido falam com /api/clientes.php; o vínculo grava no Salvar.
+    function fmtCpf(s) {
+        const d = String(s || '').replace(/\D/g, '');
+        return d.length === 11 ? `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}` : (s || '');
+    }
+    function pfMostrar() {
+        const ehPj = $('#cliTipo').value === 'PJ';
+        $('#cliPfBloco').hidden = !ehPj;
+        if (!ehPj) pfLimpar();
+    }
+    function pfDefinir(id, nome, cpf) {
+        $('#cliPfResponsavelId').value = String(id);
+        $('#cliPfAtualTexto').innerHTML = `<strong>${escapeHtml(nome)}</strong><small>${cpf ? 'CPF ' + escapeHtml(fmtCpf(cpf)) : 'CPF não informado'}</small>`;
+        $('#cliPfAtual').hidden = false;
+        $('#cliPfEscolha').hidden = true;
+        $('#cliPfLista').hidden = true;
+        $('#cliPfNova').hidden = true;
+        $('#cliPfAviso').hidden = true;
+    }
+    function pfLimpar() {
+        $('#cliPfResponsavelId').value = '';
+        $('#cliPfAtual').hidden = true;
+        $('#cliPfEscolha').hidden = false;
+        $('#cliPfBusca').value = '';
+        $('#cliPfLista').hidden = true;
+        $('#cliPfLista').innerHTML = '';
+        $('#cliPfNova').hidden = true;
+        $('#cliPfAviso').hidden = true;
+        ['#cliPfNovaNome', '#cliPfNovaCpf', '#cliPfNovaTel'].forEach(s => { $(s).value = ''; });
+    }
+    let pfBuscaT = null;
+    async function pfBuscar(termo) {
+        const lista = $('#cliPfLista');
+        const qs = new URLSearchParams({ pf_busca: termo });
+        if (state.editingId) qs.set('cliente_id', String(state.editingId));
+        try {
+            const res = await fetch('/api/clientes.php?' + qs.toString(), { credentials: 'same-origin' });
+            const j = await res.json();
+            if (!res.ok) throw new Error(j.error || 'Falha na busca');
+            const itens = j.data || [];
+            lista.innerHTML = itens.length
+                ? itens.map(p => `<button type="button" class="cli-pf-item" data-id="${p.id}" data-nome="${escapeHtml(p.nome)}" data-cpf="${escapeHtml(p.cpf || '')}">${escapeHtml(p.nome)}<small>${p.cpf ? 'CPF ' + escapeHtml(fmtCpf(p.cpf)) : 'CPF não informado'}</small></button>`).join('')
+                : '<div class="cli-pf-vazio">Nenhuma Pessoa Física encontrada. Você pode cadastrar uma nova abaixo.</div>';
+            lista.hidden = false;
+            lista.querySelectorAll('.cli-pf-item').forEach(b => b.addEventListener('click', () => {
+                pfDefinir(parseInt(b.dataset.id, 10), b.dataset.nome, b.dataset.cpf);
+            }));
+        } catch (e) {
+            lista.innerHTML = `<div class="cli-pf-vazio">Erro: ${escapeHtml(e.message)}</div>`;
+            lista.hidden = false;
+        }
+    }
+    function pfAvisoExistente(p) {
+        const aviso = $('#cliPfAviso');
+        aviso.innerHTML = `Já existe <strong>${escapeHtml(p.nome)}</strong> com o CPF ${escapeHtml(fmtCpf(p.cpf))}. Para não duplicar o cadastro, vincule o existente.<br>
+            <button type="button" class="btn cli-pf-btn" id="cliPfVincularExistente">Vincular o existente</button>`;
+        aviso.hidden = false;
+        $('#cliPfVincularExistente').addEventListener('click', () => pfDefinir(p.id, p.nome, p.cpf));
+    }
+    async function pfCadastrar() {
+        const nome = $('#cliPfNovaNome').value.trim();
+        const cpf  = $('#cliPfNovaCpf').value.replace(/\D/g, '');
+        const aviso = $('#cliPfAviso');
+        aviso.hidden = true;
+        if (!nome) { aviso.textContent = 'Informe o nome da Pessoa Física.'; aviso.hidden = false; return; }
+        if (cpf && cpf.length !== 11) { aviso.textContent = 'O CPF precisa ter 11 dígitos.'; aviso.hidden = false; return; }
+        const btn = $('#cliPfNovaSalvar');
+        btn.disabled = true;
+        try {
+            const res = await fetch('/api/clientes.php', {
+                method: 'POST', headers: csrfHeaders(), credentials: 'same-origin',
+                body: JSON.stringify({
+                    nome, tipo_cliente: 'PF', cpf_cnpj: cpf, telefone: $('#cliPfNovaTel').value.trim(),
+                    setor_id: $('#cliSetor').value || '', recusar_cpf_duplicado: 1,
+                    csrf_token: window.YURIS_CTX.csrf,
+                })
+            });
+            const j = await res.json();
+            if (res.status === 409 && j.code === 'cpf_existente' && j.existente) { pfAvisoExistente(j.existente); return; }
+            if (!res.ok || !j.success) throw new Error(j.error || 'Falha ao cadastrar');
+            pfDefinir(j.id, nome, cpf);
+            notify('Pessoa Física cadastrada. Salve o cliente para gravar o vínculo.', 'success');
+        } catch (e) {
+            aviso.textContent = 'Erro: ' + e.message;
+            aviso.hidden = false;
+        } finally {
+            btn.disabled = false;
+        }
+    }
+    function pfLigarEventos() {
+        $('#cliTipo')?.addEventListener('change', pfMostrar);
+        $('#cliPfRemover')?.addEventListener('click', pfLimpar);
+        $('#cliPfBusca')?.addEventListener('input', (e) => {
+            clearTimeout(pfBuscaT);
+            const v = e.target.value.trim();
+            if (v.length < 2) { $('#cliPfLista').hidden = true; return; }
+            pfBuscaT = setTimeout(() => pfBuscar(v), 250);
+        });
+        $('#cliPfBusca')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') e.preventDefault(); });
+        $('#cliPfNovaAbrir')?.addEventListener('click', () => {
+            $('#cliPfNova').hidden = false;
+            $('#cliPfNovaNome').value = $('#cliPfNovaNome').value || $('#cliPfBusca').value.replace(/\d|[.\-\/]/g, '').trim();
+            $('#cliPfNovaNome').focus();
+        });
+        $('#cliPfNovaCancelar')?.addEventListener('click', () => { $('#cliPfNova').hidden = true; $('#cliPfAviso').hidden = true; });
+        $('#cliPfNovaSalvar')?.addEventListener('click', pfCadastrar);
+        ['#cliPfNovaNome', '#cliPfNovaCpf', '#cliPfNovaTel'].forEach(s => $(s)?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); pfCadastrar(); }
+        }));
+    }
+
     // ── Modal: Cliente (Novo / Editar) ────────────────────────────
     function openCreateModal() {
         state.editingId     = null;
@@ -1224,6 +1383,8 @@ window.Clientes = (function () {
         $('#btnSalvarCliente').textContent = 'Cadastrar';
         // setor default = primeiro
         if (state.setores.length > 0) $('#cliSetor').value = state.setores[0].id;
+        pfLimpar();
+        pfMostrar();
         showModal('modalCliente');
         setTimeout(() => $('#cliNome').focus(), 100);
     }
@@ -1263,6 +1424,12 @@ window.Clientes = (function () {
             $('#cliObs').value      = c.observacoes || '';
             $('#cliCepStatus').textContent = '';
             $('#btnSalvarCliente').textContent = 'Salvar';
+            // Responsável PF (só PJ): nome e CPF vêm do cadastro da própria PF.
+            pfLimpar();
+            if (c.tipo_cliente === 'PJ' && c.pf_responsavel_id && c.pf_responsavel_nome) {
+                pfDefinir(parseInt(c.pf_responsavel_id, 10), c.pf_responsavel_nome, c.pf_responsavel_cpf);
+            }
+            pfMostrar();
 
             // ── Origem do cliente + linha do tempo unica ─────────────────────
             // A timeline vem de /api/timeline.php, que junta os eventos do
@@ -1290,6 +1457,7 @@ window.Clientes = (function () {
             // Form fields: read-only se for de filial (matriz vendo cliente de filial)
             const disabled = !isOwn;
             $$('#cliForm input, #cliForm select, #cliForm textarea').forEach(el => el.disabled = disabled);
+            $$('#cliPfBloco button').forEach(el => el.disabled = disabled);
             $('#btnSalvarCliente').style.display = disabled ? 'none' : '';
 
             // Processos vinculados (reverse lookup do cliente_id, migration 093) +
@@ -1884,6 +2052,7 @@ window.Clientes = (function () {
 
     document.addEventListener('DOMContentLoaded', () => {
         $('#btnNovoCliente')?.addEventListener('click', openCreateModal);
+        pfLigarEventos();
         $('#btnGerenciarSetores')?.addEventListener('click', openSetoresModal);
         $('#btnAniversariantes')?.addEventListener('click', openAniversariantes);
 
@@ -2164,7 +2333,7 @@ window.Clientes = (function () {
   const g = (ids) => { const d = document.createElement('div'); d.className = 'form-grid'; ids.forEach(id => { const f = campo(id); if (f) d.appendChild(f); }); return d; };
   const fObs = campo('cliObs'); if (fObs) fObs.removeAttribute('style');
   const s1 = F.envolver([g(['cliNome', 'cliTipo', 'cliOrigem', 'cliStatus', 'cliSetor', 'cliResp', 'cliTelefone', 'cliWhatsapp', 'cliEmail'])]);
-  const s2 = F.envolver([g(['cliCpfCnpj', 'cliRg', 'cliNascimento', 'cliNomeMae'])]);
+  const s2 = F.envolver([g(['cliCpfCnpj', 'cliPfResponsavelId', 'cliRg', 'cliNascimento', 'cliNomeMae'])]);
   const s3 = F.envolver([g(['cliCep', 'cliUf', 'cliLogradouro', 'cliNumero', 'cliComplemento', 'cliBairro', 'cliCidade'])]);
   const s4 = F.envolver([g(['cliObs'])]);
   const bConv = $('#cliConversasBlock'), bTar = $('#cliTarefasBlock'), bOri = $('#cliOrigemBlock'), bCrm = $('#cliCrm'), bHist = $('#cliHistoryBlock');

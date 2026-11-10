@@ -441,6 +441,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
       // Repopula selects pois form.reset() restaura o valor selecionado para o placeholder
       _fillUserSelectById('selectResponsavelProcesso', null);
       _fillUserSelect('novaTarefaResp');
+      // Processo novo também avisa (id null): o bloco "Valores e resultado" limpa o que era do anterior.
+      try { document.dispatchEvent(new CustomEvent('processo:modal-opened', { detail: { id: null } })); } catch (e) {}
       return;
     }
     _originalProcessData = {...data}; // guarda valores originais
@@ -567,6 +569,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
         if (!res.ok){ const txt=await res.text(); let msg=txt; try{msg=JSON.parse(txt).error||txt;}catch(e){} throw new Error(msg||'Erro no servidor'); }
         const j = await res.json();
         if (j.success){
+          // Valores e resultado (T3): grava depois do processo, e só se mudaram.
+          if (window.ProcValores) {
+            try { await window.ProcValores.salvar(payload.id); }
+            catch (errV) { showToast('Processo salvo, mas os valores não: ' + errV.message, 'error'); return; }
+          }
           // Histórico de "Processo atualizado" agora é gravado server-side
           // por ProcessoAudit::logChanges() em /api/processes.php (PUT).
           // Mais confiável: não depende do client-side e detecta mudanças reais comparando prev/new.
@@ -579,6 +586,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
         const j = await res.json();
         if (j.success){
           const created = Object.assign({},payload,j.data||{},{id:(j.data&&j.data.id)||j.id});
+          // Valores e resultado (T3) do processo recém-criado: só se algo foi preenchido.
+          if (window.ProcValores && created.id) {
+            try { await window.ProcValores.salvar(created.id); }
+            catch (errV) { showToast('Processo cadastrado, mas os valores não: ' + errV.message, 'error'); }
+          }
           // Histórico de "Processo criado" agora é gravado server-side em /api/processes.php (POST).
           // Mais confiável: garantido mesmo se o usuário fechar o modal rápido ou a rede cair aqui.
           hideModal(); form.reset();

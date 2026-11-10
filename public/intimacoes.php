@@ -427,6 +427,14 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
       background: rgba(16,185,129,.08);
     }
     .act-proc-row.linked:hover { background: rgba(16,185,129,.14); }
+    /* Processo escolhido, ainda não vinculado (vincular sem prazo ou com prazo) */
+    .act-proc-row.escolhido { background: rgba(96,165,250,.18); box-shadow: inset 0 0 0 1px rgba(96,165,250,.55); }
+    .act-escolha { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 10px; }
+    .act-escolhido { flex: 1 1 220px; font-size: .78rem; color: #7A8898; }
+    .act-escolhido strong { color: inherit; }
+    .act-escolha-botoes { display: flex; flex-wrap: wrap; gap: 8px; }
+    .act-escolha-botoes .int-btn[disabled] { opacity: .5; cursor: not-allowed; }
+    html[data-theme="light"] .act-proc-row.escolhido { background: rgba(37,99,235,.10) !important; box-shadow: inset 0 0 0 1px rgba(37,99,235,.45); }
     .act-proc-tag {
       display: inline-block; margin-left: 6px; padding: 1px 7px;
       background: rgba(16,185,129,.20); color: #10b981;
@@ -996,7 +1004,7 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
       background: linear-gradient(to bottom, transparent 0%, rgba(255,255,255,.85) 70%, #FFFFFF 100%) !important;
     }
 
-    /* 9) Modal "Vincular processo + criar prazo" (.int-modal-bg / .int-modal) */
+    /* 9) Modal "Vincular ao processo" (prazo opcional) (.int-modal-bg / .int-modal) */
     html[data-theme="light"] .int-modal-bg {
       background: rgba(15,31,54,0.45) !important;
     }
@@ -1369,12 +1377,13 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
     <span class="int-modal-close" id="intActionsClose" title="Fechar">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </span>
-    <h2>Vincular processo + criar prazo</h2>
+    <h2>Vincular ao processo</h2>
     <div id="intActionsSummary" class="int-actions-summary"></div>
 
-    <!-- ETAPA 1: Vincular ao processo -->
+    <!-- ETAPA 1: Vincular ao processo. O prazo é opcional (T4, 10/11/2026): a
+         publicação pertence ao processo com ou sem prazo. -->
     <div class="int-actions-section" id="actStep1Vincular">
-      <h4>1. Vincular ao processo do CRM</h4>
+      <h4>1. Escolha o processo</h4>
       <div id="actVinculoStatus" style="font-size:.78rem;margin-bottom:8px;"></div>
 
       <!-- Search inline (filtra a lista abaixo) -->
@@ -1391,11 +1400,21 @@ try { $system_users = $ctx->getAccessibleUsers(); } catch (\Throwable $e) {}
         </p>
         <button class="int-btn" id="actBtnDesvincular" style="background:rgba(176,96,112,.15);border-color:rgba(176,96,112,.3);color:#f87171;display:none;margin-left:8px;">Desvincular</button>
       </div>
+
+      <!-- As duas formas de vincular: o prazo é consequência opcional -->
+      <div class="act-escolha" id="actEscolhaVinculo">
+        <div class="act-escolhido" id="actEscolhido">Clique num processo da lista para escolher.</div>
+        <div class="act-escolha-botoes">
+          <button type="button" class="int-btn" id="actBtnVincularSemPrazo" disabled>Vincular sem prazo</button>
+          <button type="button" class="int-btn primary" id="actBtnVincularComPrazo" disabled>Vincular e criar prazo</button>
+        </div>
+      </div>
+      <button type="button" class="int-btn" id="actBtnAbrirPrazo" style="display:none;margin-top:10px;">Criar prazo para esta publicação</button>
     </div>
 
-    <!-- ETAPA 2: Criar prazo processual (só aparece após vincular) -->
+    <!-- ETAPA 2: Criar prazo processual (só depois de vincular, e só se pedido) -->
     <div class="int-actions-section" id="actStep2Prazo" style="display:none;">
-      <h4>2. Criar prazo processual</h4>
+      <h4>2. Criar prazo processual (opcional)</h4>
       <p style="font-size:.72rem;color:#7A8898;margin:0 0 10px;">
         O prazo aparecerá em <strong>Processos &rarr; aba Prazos</strong> do processo vinculado.
       </p>

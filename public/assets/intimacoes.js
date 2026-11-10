@@ -458,6 +458,13 @@
       });
       $('actBtnDesvincular')?.addEventListener('click', () => this._actionsDesvincular());
       $('actBtnCriarPrazo')?.addEventListener('click',  () => this._actionsCriarPrazo());
+      // As duas formas de vincular (T4): o prazo é opcional.
+      $('actBtnVincularSemPrazo')?.addEventListener('click', () => this._actionsVincularEscolhido(false));
+      $('actBtnVincularComPrazo')?.addEventListener('click', () => this._actionsVincularEscolhido(true));
+      $('actBtnAbrirPrazo')?.addEventListener('click', () => {
+        const ctx = this._actionsCtx;
+        if (ctx && ctx.item) { $('actBtnAbrirPrazo').style.display = 'none'; this._actionsShowStep2(ctx.item); }
+      });
       // Filtro live da lista de processos. Debounce 250ms pra não martelar o backend.
       let _actBuscaT = null;
       $('actBuscaProcesso')?.addEventListener('input', (e) => {
@@ -524,7 +531,7 @@
         try {
           const data = await this.api('POST', '/search.php', { mode: 'manual', filters: f });
           if (!data.ok) throw new Error(data.error || 'Erro ao buscar');
-          this.state.items = (data.items || []).map((x) => ({ ...x, _from_search: true }));
+          this.state.items = this._filtrarBuscaPorStatus((data.items || []).map((x) => ({ ...x, _from_search: true })));
           this.render();
           document.getElementById('bannerBuscaManual')?.classList.add('show');
           if (data.truncado) {
@@ -575,7 +582,7 @@
         });
         if (!data.ok) throw new Error(data.error || 'Erro AASP');
         // Mostra items na lista compartilhada — reusa template do DJEN
-        this.state.items = (data.items || []).map((x) => ({ ...x, _from_search: true }));
+        this.state.items = this._filtrarBuscaPorStatus((data.items || []).map((x) => ({ ...x, _from_search: true })));
         this.render();
         document.getElementById('bannerBuscaManual')?.classList.add('show');
         const diasReais = (data.dias_com_intimacao || []).length;
@@ -678,6 +685,21 @@
       } finally {
         this.setLoading(false);
       }
+    },
+
+    /**
+     * A busca externa traz o status do que já está salvo (id, lida, favorita).
+     * Os filtros Não lidas / Lidas / Favoritas valem também para ela: sem isto,
+     * a publicação já lida voltava na busca com o filtro Não lidas ligado (T5).
+     */
+    _filtrarBuscaPorStatus(items) {
+      const f = this.state.filters || {};
+      return items.filter((it) => {
+        if (f.lida === 0 && Number(it.lida) === 1) return false;
+        if (f.lida === 1 && Number(it.lida) !== 1) return false;
+        if (f.favorita === 1 && Number(it.favorita) !== 1) return false;
+        return true;
+      });
     },
 
     async handleAction(action, item, eventId) {
@@ -1140,7 +1162,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             </button>
             <button class="int-icon-btn ${hasLink ? 'is-linked' : ''}"
-                    title="${hasLink ? 'Já vinculado · Abrir para editar / criar prazo' : 'Vincular ao processo + criar prazo (auto-link nas próximas)'}"
+                    title="${hasLink ? 'Já vinculada ao processo · abrir para trocar ou criar prazo' : 'Vincular ao processo, com ou sem prazo (auto-link nas próximas)'}"
                     data-action="open-actions" data-hash="${esc(it.hash_conteudo)}" ${eventIdAttr}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
             </button>
@@ -2338,18 +2360,24 @@
     },
 
     // ────────────────────────────────────────────────────────────────────────
-    // MODAL DE AÇÕES — 2 etapas: (1) vincular processo  →  (2) criar prazo
+    // MODAL DE AÇÕES — (1) vincular ao processo  →  (2) criar prazo, OPCIONAL
+    // Desde 10/11/2026 (T4) clicar no processo só o escolhe; quem decide é o
+    // botão: "Vincular sem prazo" ou "Vincular e criar prazo". A publicação
+    // pertence ao processo com ou sem prazo, e o prazo pode vir depois.
     // ────────────────────────────────────────────────────────────────────────
 
-    _actionsCtx: { item: null, eventId: null },
+    _actionsCtx: { item: null, eventId: null, escolhido: null },
 
     /**
      * Abre o modal preenchendo o resumo + carregando a lista de processos do
-     * tenant. Se a intimação já está vinculada, libera direto a etapa 2.
+     * tenant. Se a publicação já está vinculada, oferece criar o prazo (sem abrir
+     * o formulário sozinho: o prazo é opcional).
      */
     async openActionsModal(item, eventId) {
       const $ = (id) => document.getElementById(id);
-      this._actionsCtx = { item, eventId };
+      this._actionsCtx = { item, eventId, escolhido: null };
+      this._actionsAtualizaEscolha();
+      $('actStep2Prazo').style.display = 'none';
 
       const procMask = item.numero_processo_mascara || item.numero_processo || '—';
       $('intActionsSummary').innerHTML = `
@@ -2374,12 +2402,12 @@
       if (item.processo_id) {
         $('actVinculoStatus').innerHTML = this._actionsVinculoStatusHtml(item.processo_id);
         $('actBtnDesvincular').style.display = '';
-        this._actionsShowStep2(item);
+        $('actBtnAbrirPrazo').style.display = '';
       } else {
         $('actVinculoStatus').innerHTML =
-          `<span style="color:#7A8898;">Sem vínculo — escolha um processo da lista abaixo pra liberar a etapa 2:</span>`;
+          `<span style="color:#7A8898;">Sem vínculo. Escolha um processo da lista abaixo e decida se cria prazo ou não.</span>`;
         $('actBtnDesvincular').style.display = 'none';
-        $('actStep2Prazo').style.display = 'none';
+        $('actBtnAbrirPrazo').style.display = 'none';
       }
 
       $('intActionsModal').classList.add('show');
@@ -2469,8 +2497,14 @@
           </div>`;
         }).join('');
         list.querySelectorAll('.act-proc-row').forEach(row => {
+          const id = parseInt(row.dataset.procId, 10);
+          if (this._actionsCtx.escolhido && this._actionsCtx.escolhido.id === id) row.classList.add('escolhido');
           row.addEventListener('click', () => {
-            this._actionsVincular(parseInt(row.dataset.procId, 10), row.dataset.procLabel);
+            // Clicar só escolhe: vincular é decisão dos botões (com ou sem prazo).
+            this._actionsCtx.escolhido = { id, label: row.dataset.procLabel };
+            list.querySelectorAll('.act-proc-row.escolhido').forEach(r => r.classList.remove('escolhido'));
+            row.classList.add('escolhido');
+            this._actionsAtualizaEscolha();
           });
         });
       } catch (err) {
@@ -2478,8 +2512,39 @@
       }
     },
 
-    async _actionsVincular(processoId, label) {
+    /** Liga ou desliga os dois botões conforme o processo escolhido na lista. */
+    _actionsAtualizaEscolha() {
+      const $ = (id) => document.getElementById(id);
+      const esc = this._actionsCtx && this._actionsCtx.escolhido;
+      const linkedId = parseInt((this._actionsCtx && this._actionsCtx.item && this._actionsCtx.item.processo_id) || 0, 10);
+      const jaVinculado = esc && esc.id === linkedId;
+      const pode = !!esc && !jaVinculado;
+      if ($('actBtnVincularSemPrazo')) $('actBtnVincularSemPrazo').disabled = !pode;
+      if ($('actBtnVincularComPrazo')) $('actBtnVincularComPrazo').disabled = !pode;
+      const alvo = $('actEscolhido');
+      if (!alvo) return;
+      if (!esc) {
+        alvo.textContent = linkedId ? 'Para trocar o vínculo, clique em outro processo da lista.' : 'Clique num processo da lista para escolher.';
+      } else if (jaVinculado) {
+        alvo.textContent = 'Esta publicação já está vinculada a este processo.';
+      } else {
+        alvo.innerHTML = 'Processo escolhido: <strong>' + this._esc(esc.label) + '</strong>';
+      }
+    },
+
+    /** Vincula o processo escolhido; com prazo, abre o formulário do prazo em seguida. */
+    async _actionsVincularEscolhido(comPrazo) {
+      const esc = this._actionsCtx && this._actionsCtx.escolhido;
+      if (!esc) { this.notify('Escolha um processo na lista.', 'warn'); return; }
+      await this._actionsVincular(esc.id, esc.label, { comPrazo });
+    },
+
+    async _actionsVincular(processoId, label, opts = {}) {
       const ctx = this._actionsCtx;
+      const comPrazo = !!opts.comPrazo;
+      ['actBtnVincularSemPrazo', 'actBtnVincularComPrazo'].forEach((id) => {
+        const b = document.getElementById(id); if (b) b.disabled = true;
+      });
       try {
         const r = await this.api('POST', '/persist.php', {
           action: 'link_process',
@@ -2492,18 +2557,27 @@
         ctx.item.processo_id = processoId;
         const retro = r.retroativo_aplicado || 0;
         this.notify(
-          `Vinculado a ${label}.${retro > 0 ? ' Aplicado retroativamente em ' + retro + ' publicações antigas.' : ''} ` +
+          `Vinculada a ${label}${comPrazo ? '' : ', sem prazo'}.${retro > 0 ? ' Aplicado retroativamente em ' + retro + ' publicações antigas.' : ''} ` +
           'Próximas com mesmo CNJ serão auto-vinculadas.',
           'success'
         );
         document.getElementById('actVinculoStatus').innerHTML = this._actionsVinculoStatusHtml(processoId, label);
         document.getElementById('actBtnDesvincular').style.display = '';
-        this._actionsShowStep2(ctx.item);
-        // Recarrega lista pra marcar nova linha como vinculada
-        this._actionsLoadProcessos(document.getElementById('actBuscaProcesso')?.value || '');
+        ctx.escolhido = null;
+        this._actionsAtualizaEscolha();
+        if (comPrazo) {
+          document.getElementById('actBtnAbrirPrazo').style.display = 'none';
+          this._actionsShowStep2(ctx.item);
+          // Recarrega lista pra marcar nova linha como vinculada
+          this._actionsLoadProcessos(document.getElementById('actBuscaProcesso')?.value || '');
+        } else {
+          // Sem prazo: o vínculo está feito, nada mais a preencher.
+          this.closeActionsModal();
+        }
         await this.loadPersistidos();
       } catch (err) {
         this.notify('Erro ao vincular: ' + err.message, 'error');
+        this._actionsAtualizaEscolha();
       }
     },
 
@@ -2520,10 +2594,13 @@
         ctx.item.processo_id = null;
         this.notify('Vínculo removido. Auto-link futuro desativado.', 'success');
         document.getElementById('actVinculoStatus').innerHTML =
-          `<span style="color:#7A8898;">Sem vínculo — escolha um processo da lista abaixo pra liberar a etapa 2:</span>`;
+          `<span style="color:#7A8898;">Sem vínculo. Escolha um processo da lista abaixo e decida se cria prazo ou não.</span>`;
         document.getElementById('actBtnDesvincular').style.display = 'none';
-        // Sem vínculo, não dá pra criar prazo — esconde etapa 2
+        // Sem vínculo, não dá pra criar prazo: esconde a etapa 2 e o botão dela
         document.getElementById('actStep2Prazo').style.display = 'none';
+        document.getElementById('actBtnAbrirPrazo').style.display = 'none';
+        ctx.escolhido = null;
+        this._actionsAtualizaEscolha();
         // Recarrega lista pra remover o badge "vinculado"
         this._actionsLoadProcessos(document.getElementById('actBuscaProcesso')?.value || '');
         await this.loadPersistidos();

@@ -107,6 +107,34 @@ class PushTodayCache
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Tira da lista do cache o que já foi salvo em push_events (promovido ao
+     * marcar lida, favoritar, vincular...). A comparação é com TODA publicação
+     * salva da conta, e não só com as que passaram no filtro da tela: com o
+     * filtro "Não lidas", a publicação lida não volta na lista salva, e antes
+     * disso a cópia dela no cache reaparecia como item novo, sem status (T5,
+     * 10/11/2026).
+     *
+     * @param array<int,array> $linhas linhas de listForAccount()
+     * @return array<int,array>
+     */
+    public static function semOsJaSalvos(int $accountId, array $linhas): array
+    {
+        $hashes = array_values(array_unique(array_filter(array_column($linhas, 'hash_conteudo'))));
+        if (!$hashes) return $linhas;
+        $pdo = Database::getConnection();
+        $salvos = [];
+        foreach (array_chunk($hashes, 400) as $lote) {
+            $st = $pdo->prepare(
+                'SELECT hash_conteudo FROM push_events
+                  WHERE account_id = ? AND hash_conteudo IN (' . implode(',', array_fill(0, count($lote), '?')) . ')'
+            );
+            $st->execute(array_merge([$accountId], $lote));
+            foreach ($st->fetchAll(\PDO::FETCH_COLUMN) as $h) $salvos[$h] = true;
+        }
+        return array_values(array_filter($linhas, static fn ($l) => !isset($salvos[$l['hash_conteudo'] ?? ''])));
+    }
+
     /** Conta cache válido (não expirado) por conta. */
     public static function countActive(int $accountId): int
     {

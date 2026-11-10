@@ -116,7 +116,25 @@
           ? '<span class="tbadge tbadge-variavel">Variável</span>'
           : '<span class="tbadge tbadge-fixa">Fixa</span>';
         const valClass = r.tipo === 'receita' ? 'val-receita' : 'val-despesa';
-        tr.innerHTML = `<td style="color:var(--muted);font-size:.72rem">${r.codigo || '—'}</td><td>${r.nome}</td><td>${tipoBadge}</td><td>${recorrBadge}</td><td style="color:var(--muted)">${fmtDate(r.data_referencia)}</td><td class="val-col ${valClass}">${fmtMoney(r.valor_fixo)}</td><td style="text-align:right"><button data-id="${r.id}" class="btn btn-edit btn-sm editBtn">Editar</button> <button data-id="${r.id}" class="btn btn-del btn-sm delBtn">Excluir</button></td>`;
+        // Título (com vencimento, T2): mostra o dia e a situação, e o Editar abre o editor de parcela.
+        const ehTitulo = !!r.vencimento;
+        const dataCol = ehTitulo
+          ? String(r.vencimento).slice(0, 10).split('-').reverse().join('/') + (r.pago_em ? ' <span class="tbadge tbadge-receita">Baixado</span>' : '')
+          : fmtDate(r.data_referencia);
+        const editarCls = ehTitulo ? 'editTituloBtn' : 'editBtn';
+        // De onde vem o valor (10/11/2026): cliente e processo com link, parcela e juros.
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const origem = [];
+        if (r.cliente_id && r.cliente_nome) origem.push(`<a href="/clientes?open=${encodeURIComponent(r.cliente_id)}" title="Abrir o cliente">${esc(r.cliente_nome)}</a>`);
+        if (r.processo_id && r.processo_numero) origem.push(`<a href="/processos?open=${encodeURIComponent(r.processo_id)}" title="Abrir o processo">Processo ${esc(r.processo_numero)}</a>`);
+        if (r.parcela_numero && r.parcela_total) origem.push(`parcela ${r.parcela_numero} de ${r.parcela_total}`);
+        if (r.juros_de_id) origem.push(`juros da parcela "${esc(r.juros_de_nome || ('#' + r.juros_de_id))}"`);
+        if (r.baixa_obs) origem.push(esc(r.baixa_obs));
+        const origemHtml = origem.length ? `<span class="fin-origem">${origem.join(' · ')}</span>` : '';
+        const baixaBtn = !ehTitulo ? '' : (r.pago_em
+          ? `<button data-id="${r.id}" class="btn btn-ghost btn-sm desfazTituloBtn" title="Voltar a pendente">Desfazer baixa</button> `
+          : `<button data-id="${r.id}" class="btn btn-primary btn-sm baixaTituloBtn">${r.tipo === 'despesa' ? 'Marcar pago' : 'Marcar recebido'}</button> `);
+        tr.innerHTML = `<td style="color:var(--muted);font-size:.72rem">${r.codigo || '—'}</td><td>${esc(r.nome)}${origemHtml}</td><td>${tipoBadge}</td><td>${recorrBadge}</td><td style="color:var(--muted)">${dataCol}</td><td class="val-col ${valClass}">${fmtMoney(r.valor_fixo)}</td><td style="text-align:right">${baixaBtn}<button data-id="${r.id}" class="btn btn-edit btn-sm ${editarCls}">Editar</button> <button data-id="${r.id}" class="btn btn-del btn-sm delBtn">Excluir</button></td>`;
         if (r.tipo === 'receita') sumReceita += Number(r.valor_fixo) || 0; else sumDespesa += Number(r.valor_fixo) || 0;
         if (r.recorrencia === 'variavel') {
           if (varTbody) varTbody.appendChild(tr);
@@ -263,6 +281,22 @@
   }
 
   function attachButtons(){
+    document.querySelectorAll('.editTituloBtn').forEach(b => {
+      b.onclick = function(){ if (window.FinParcelas) window.FinParcelas.abrirEdicao(this.getAttribute('data-id')); };
+    });
+    // Baixa e desfazer direto na tabela do DRE (10/11/2026).
+    document.querySelectorAll('.baixaTituloBtn').forEach(b => {
+      b.onclick = function(){ if (window.FinParcelas) window.FinParcelas.abrirBaixa(this.getAttribute('data-id')); };
+    });
+    document.querySelectorAll('.desfazTituloBtn').forEach(b => {
+      b.onclick = async function(){
+        if (!window.FinParcelas) return;
+        this.disabled = true;
+        try { await window.FinParcelas.desfazer(this.getAttribute('data-id')); }
+        catch (e) { const m = document.getElementById('addAccountMsg'); if (m) showTempMsg(m, 'Erro: ' + e.message); }
+        finally { this.disabled = false; }
+      };
+    });
     document.querySelectorAll('.delBtn').forEach(b => {
       b.onclick = async function(){
         if (!(await Yuris.confirm('Excluir conta fixa?', { danger: true, okLabel: 'Excluir' }))) return;
@@ -293,6 +327,8 @@
   }
 
   document.getElementById('addBtn').addEventListener('click', async function(){
+    // Parcelado ou com vencimento (T2): quem grava é o financeiro-parcelas.js.
+    if (window.FinParcelas && window.FinParcelas.ativo()) { await window.FinParcelas.salvarDoFormulario(); return; }
     const codigo = document.getElementById('codigo').value.trim();
     // month input returns YYYY-MM; convert to YYYY-MM-01 for DATE column
     const rawMonth = (document.getElementById('data_referencia') || {}).value || '';
@@ -320,6 +356,8 @@
     }
     if (msgEl) { hideTempMsg(msgEl); }
     const payload = { codigo, nome, tipo, recorrencia, valor_fixo, data_referencia, csrf_token: csrf };
+    // Cliente e processo opcionais (T2).
+    if (window.FinParcelas) { payload.cliente_id = window.FinParcelas.cliente(); payload.processo_id = window.FinParcelas.processo(); }
     const res = await fetch(api, {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf}, body: JSON.stringify(payload)});
     const j = await res.json(); if (j && j.success) {
       document.getElementById('codigo').value = ''; document.getElementById('nome').value = ''; document.getElementById('valor_fixo').value = '';
@@ -329,6 +367,7 @@
   });
 
   // initial load
+  window.dreRecarregar = load;   // o painel "A receber e a pagar" recarrega as tabelas (T2)
   load();
 
   // wire filter controls
