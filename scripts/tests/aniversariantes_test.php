@@ -96,21 +96,25 @@ ok($le($cid) === null, 'vazio limpa a data');
 secao('A data atravessa a conversão de prospecção em cliente');
 /* ===================================================================== */
 
+// O mês desta data nunca é o corrente nem fevereiro (os dois são contados no relatório abaixo).
+// Com 02/11 fixo, o teste falhava todo novembro: o convertido entrava na lista "do mês" e era
+// o primeiro dela, por ser dia 2 (09/11/2026).
+$DATA_CONV = sprintf('1978-%02d-02', ((int) date('n') === 6) ? 7 : 6);
 $cardId = Card::create([
     'account_id' => $ACC, 'cliente_nome' => $PREFIXO . ' Conversao',
-    'coluna_id' => $COL, 'data_nascimento' => '1978-11-02', '_usuario_id' => 1,
+    'coluna_id' => $COL, 'data_nascimento' => $DATA_CONV, '_usuario_id' => 1,
 ]);
 $criados['cards'][] = $cardId;
 
 $st = $pdo->prepare('SELECT data_nascimento FROM cards WHERE id = ?');
 $st->execute([$cardId]);
-ok($st->fetchColumn() === '1978-11-02', 'a prospecção guarda a data');
+ok($st->fetchColumn() === $DATA_CONV, 'a prospecção guarda a data');
 
 $r = ConversaoCliente::converter($cardId, $ACC, [$ACC], 1);
 ok($r['ok'] === true, 'conversão concluída: ' . ($r['erro'] ?? 'sem erro'));
 if ($r['ok']) {
     $criados['clientes'][] = $r['cliente_id'];
-    ok($le((int) $r['cliente_id']) === '1978-11-02',
+    ok($le((int) $r['cliente_id']) === $DATA_CONV,
        'a data ACOMPANHOU: perguntar de novo a quem já é cliente seria o erro');
 }
 

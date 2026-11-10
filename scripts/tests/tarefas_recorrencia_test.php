@@ -108,7 +108,9 @@ eq('2020-02-15', dia($r->calcularProximaData('2020-01-15 10:00:00')),
 /* ===================================================================== */
 secao('proximaDataFutura avança ATÉ passar de hoje, numa passada');
 
-$hoje = date('Y-m-d');
+// "No futuro" é depois de AGORA, com a hora (o método devolve 'Y-m-d H:i:s'): comparado só pelo
+// dia, o teste falhava toda madrugada, quando a próxima ocorrência é hoje às 9h (09/11/2026).
+$agora = date('Y-m-d H:i:s');
 
 foreach ([
     'diária'      => ['tipo' => 'diaria',  'intervalo' => 1],
@@ -120,7 +122,7 @@ foreach ([
 ] as $nome => $cfg) {
     $r = recorrencia($cfg);
     $d = $r->proximaDataFutura('2020-01-10 09:00:00');
-    ok($d !== '' && dia($d) > $hoje, "$nome: a partir de 2020 chega no futuro ($d)");
+    ok($d !== '' && $d > $agora, "$nome: a partir de 2020 chega no futuro ($d)");
 }
 
 // É isto que mata o reprocessamento eterno: rodar de novo não acha nada vencido.

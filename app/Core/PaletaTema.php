@@ -85,8 +85,14 @@ final class PaletaTema
         'agente', 'webhooks', 'configuracoes',
     ];
 
-    /** Folhas de /assets que são de marca, de ambiente ou do site público: nunca entram. */
-    private const FOLHA_DE_FORA = '/^(ff-|fleetiflow-|ambientes|tarefas-areas|projetos|assinar|landing|seo-pages|styles\.)/';
+    /**
+     * Folhas de /assets que são de marca, de ambiente ou do site público: nunca entram.
+     * Nem as da interface nova (interface-nova*.css, 09/11/2026): é outra prévia, com a paleta
+     * dela (prata, preto e azul opaco), e o menu a carrega desde 07/11/2026. Lida aqui, a regra
+     * compartilhada dos cartões de todas as telas (.tk-card, .reemb-card, .proj-card...) entrava
+     * na folha de cada tela, e a Visão Geral voltava a levar regra de Finanças (o erro 3).
+     */
+    private const FOLHA_DE_FORA = '/^(ff-|fleetiflow-|ambientes|tarefas-areas|projetos|assinar|landing|seo-pages|styles\.|interface-nova)/';
 
     public static function conhece(string $pagina): bool
     {
