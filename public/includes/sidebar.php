@@ -1744,7 +1744,7 @@ window.FF_AGENDA = { csrf: <?= json_encode($_notifCsrf) ?>, sessao: <?= json_enc
      o menu-fixo.js deixa a saída terminar inteira antes de trocar de tela, e a resposta já está
      chegando. Só no aperto (conservative), então só a tela que a pessoa vai abrir; se ela ainda
      não chegou na hora da troca, o navegador espera essa mesma (não pede de novo). -->
-<script type="speculationrules">{"prefetch":[{"source":"document","where":{"and":[{"href_matches":"/*"},{"selector_matches":[".sidebar nav a[href]",".mobile-tabbar a[href]"]},{"not":{"selector_matches":[".is-logout","[target=_blank]","[data-sb-recolher]","[download]"]}}]},"eagerness":"conservative"}]}</script>
+<script type="speculationrules">{"prefetch":[{"source":"document","where":{"and":[{"href_matches":"/*"},{"selector_matches":[".sidebar nav a[href]",".mobile-tabbar a[href]","a.inn-cartao-link[href]"]},{"not":{"selector_matches":[".is-logout","[target=_blank]","[data-sb-recolher]","[download]"]}}]},"eagerness":"conservative"}]}</script>
 <?php endif; ?>
 <?php if ($_ap !== 'dashboard' || !empty($_GET['gestao'])): ?>
 <!-- As telas de dentro: a mesma paleta e as mesmas superfícies, por cima do CSS de cada tela. A home tem a folha própria. -->
@@ -1757,6 +1757,8 @@ window.FF_AGENDA = { csrf: <?= json_encode($_notifCsrf) ?>, sessao: <?= json_enc
 <!-- O movimento das telas de dentro: entrada, saída pelo menu, pop-ups que surgem. -->
 <link rel="stylesheet" href="/assets/interface-nova-movimento.css?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-movimento.css') ?: 1 ?>">
 <script src="/assets/interface-nova-movimento.js?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-movimento.js') ?: 1 ?>" defer></script>
+<!-- Todo cartão de indicador faz alguma coisa: leva para a tela do assunto ou filtra a própria tela. -->
+<script src="/assets/interface-nova-cartoes.js?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-cartoes.js') ?: 1 ?>" defer></script>
 <?php if (($_GET['embed'] ?? '') !== '1'): ?>
 <!-- Abrir o pop-up de verdade de outro módulo por cima da tela (a tarefa processual abre o processo), como na home. -->
 <script src="/assets/embed-abrir.js?v=<?= @filemtime(__DIR__ . '/../assets/embed-abrir.js') ?: 1 ?>" defer></script>

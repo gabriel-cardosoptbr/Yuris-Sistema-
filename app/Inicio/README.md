@@ -250,6 +250,10 @@ seleção em pílula.
   dos grupos, um script devolve a rolagem do `nav.sidebar-nav-grouped` (quem rola de verdade),
   guardada pelo `menu-fixo.js` em `yuris_menu_rolagem_nav`. O script que continua o círculo do
   item compara o endereço com a busca e só usa o item ativo.
+  **Cartões clicáveis** (10/11/2026): nas telas de dentro, o menu carrega também o
+  `assets/interface-nova-cartoes.js` (todo cartão de indicador leva para a tela do assunto ou
+  filtra a própria tela), e a regra `speculationrules` inclui o link que cobre o cartão
+  (`a.inn-cartao-link`). Detalhe em `public/README.md`.
   **Histórico Processual** (08/11/2026, "arruma com urgência, não está de acordo com o design"):
   o `processos.js` marca cada registro com `data-tipo` (processo, prazo, tarefa, movimentacao,
   intimacao, anexo, vinculo, edicao) e `data-tom` (ok para concluído, erro para removido), sem

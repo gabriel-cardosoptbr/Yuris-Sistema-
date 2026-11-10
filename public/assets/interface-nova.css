@@ -379,3 +379,10 @@ html body .inn-tela #waStatusLabel{ margin-left:10px; }
 
 /* Chat interno: a lista de conversas e a conversa eram colunas coladas (gap 0); o respiro de 16 px da prévia (09/11/2026). */
 html body .ci-wrap{ gap:16px; }
+
+/* ── O vão entre os blocos (10/11/2026, "não tem espaçamento nenhum; tem que ter espaçamento em todas as abas") ──
+   Medido nas telas: o ritmo é 16 px entre blocos. Em Usuários os indicadores, o resumo e a tabela da
+   equipe encostavam (0 px: a seção é um bloco comum e os filhos não têm margem), nas duas abas; em
+   Clientes os filtros rápidos ficavam a 6 px do quadro. */
+html #sectionUsuarios > :not(script):not(style) + :not(script):not(style), html #sectionTimes > :not(script):not(style) + :not(script):not(style){ margin-top:16px !important; }
+html .qr-topo{ margin-bottom:14px !important; }

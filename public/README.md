@@ -508,6 +508,28 @@ dinheiro (R$ 72.300,00) e porcentagem (67.7%, 145%), escritos igual durante a co
 (1900 a 2100) não conta; cada número tem a sua vez (antes todos contavam juntos, porque a vez era lida depois de a
 tela aparecer). Na camada do sistema, o cartão da tela é reconhecido pelas classes da tela, sem as marcas `inn-*` (o
 `inn-item` caía no "item" e o painel perdia o cabeçalho com ícone).
+**Todo cartão de indicador faz alguma coisa** (10/11/2026, `assets/interface-nova-cartoes.js`, só na prévia e fora do
+`?embed=1`: "todo card tem que ser interativo; clicar leva para a aba; se já for dentro da aba, tem que ser um
+filtro"). Nenhum dos cerca de 60 cartões das telas fazia nada. Por tela, o começo do rótulo do cartão diz o que ele
+faz: `ir` (leva para a tela do assunto; com `?kpi=...` a tela de destino aplica o que aquele cartão faz lá, uma vez,
+e tira o `kpi` do endereço), `filtro` (o mesmo campo que a pessoa usaria, com `input` e `change`; clicar de novo
+desfaz; o cartão que filtra fica marcado, `inn-cartao-on`), `aba`, `foco` ou `secao` (rola até a parte da tela que
+explica o número e a moldura dela pisca, `inn-destaque`). O cartão é o menor elemento marcado cujo texto começa com um
+rótulo conhecido (a camada marca como indicador também o pedaço de dentro e a fileira inteira). O que leva a outra tela
+ganha um `<a class="inn-cartao-link">` por cima: o `menu-fixo.js` faz a mesma saída do menu, e a regra
+`speculationrules` do `sidebar.php` pede a tela no aperto. Vale o destino que a própria tela já dá ao cartão
+(`data-href` do Dashboard Executivo, conferido pela permissão no servidor); o destino do mapa só vale se a tela está no
+menu da pessoa (sem permissão, o cartão fica como está). No clique do link, o `menu-fixo.js` para o evento
+(`stopImmediatePropagation`): o Dashboard Executivo também navegava no clique do cartão, na hora e sem a tela pedida.
+Desenho em `interface-nova-sistema.css`: sobe 2 px e a borda escurece ao passar o mouse (como os da home), afunda um
+nada ao apertar, foco pelo teclado; sobe por `translate` e afunda por `scale`, porque a entrada do movimento é por
+`transform`. Processos: os cartões de prazo e o de ativos usam o filtro da própria tela pelo endereço
+(`?prazo=hoje|semana|urgentes`, `?status=ativos`, a mesma conta do cartão, todos os anos); Vencidos e Encerrados
+filtram ali. Medido: 66 cartões clicáveis em 11 telas, cada clique com o efeito esperado; os 13 links novos são as
+únicas diferenças nas marcas da camada.
+**O vão entre os blocos em toda tela** (10/11/2026, "não tem espaçamento nenhum"): medido nas telas, o ritmo é 16 px
+entre blocos; em Usuários os indicadores, o resumo e a tabela encostavam (0 px, a seção é um bloco comum), nas duas
+abas, e em Clientes os filtros rápidos ficavam a 6 px do quadro. Corrigido em `interface-nova.css` (16 e 14 px).
 Indicadores (09/11/2026): o bloco de texto do indicador alinha pelo topo (`align-content:start`), e
 `igualarIndicadores` mede o número de cada cartão e empurra os da mesma fileira até a linha do mais baixo (rótulo
 ou subtítulo de duas linhas descia o número de um cartão só).

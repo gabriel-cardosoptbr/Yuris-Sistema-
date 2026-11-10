@@ -129,7 +129,7 @@
   var antecipa = !!(window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports('speculationrules')) && !!document.querySelector('script[type="speculationrules"]');
   var aperto = null;
   document.addEventListener('pointerdown', function (e) {
-    var a = e.button === 0 && e.target.closest && e.target.closest('.sidebar nav a[href], .mobile-tabbar a[href]');
+    var a = e.button === 0 && e.target.closest && e.target.closest('.sidebar nav a[href], .mobile-tabbar a[href], a.inn-cartao-link[href]');
     aperto = a ? { a: a, t: performance.now() } : null;
   }, true);
   function jaPediu(a) { return antecipa && aperto && aperto.a === a && performance.now() - aperto.t < 2000; }
@@ -138,13 +138,17 @@
   // (que vê o preventDefault e não faz nada).
   document.addEventListener('click', function (e) {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-    var a = e.target.closest && e.target.closest('.sidebar nav a[href], .sidebar a.sb-logo-link[href], .mobile-tabbar a[href]');
+    // E o link que cobre o cartão de indicador que leva a outra tela (interface-nova-cartoes.js).
+    var a = e.target.closest && e.target.closest('.sidebar nav a[href], .sidebar a.sb-logo-link[href], .mobile-tabbar a[href], a.inn-cartao-link[href]');
     if (!a || a.target === '_blank' || a.classList.contains('is-logout') || a.hasAttribute('data-sb-recolher')) return;
     var href = a.getAttribute('href') || '';
     if (href.charAt(0) === '#' || /^(javascript|mailto|tel):/i.test(href)) return;
     var u; try { u = new URL(a.href, location.href); } catch (x) { return; }
     if (u.origin !== location.origin) return;
     e.preventDefault();
+    // O cartão do Dashboard Executivo também navega no clique dele (data-href): sem parar aqui, ele
+    // ia na hora, sem a saída e sem a tela pedida no aperto.
+    if (a.classList.contains('inn-cartao-link')) e.stopImmediatePropagation();
     if (semMovimento) { location.href = u.href; return; }
     if (a.closest('.sidebar nav')) {
       arrumarGrupos(a);
