@@ -560,6 +560,10 @@ Ajustes ("a seleção muda de posição na Agenda; o Mês atual não pode sumir;
 fica nas três visões (na Agenda ele põe o período no mês de hoje), e a troca de visão não anda; os filtros descem um
 pouco (18 px do título); ao filtrar, a agenda guarda a altura que tinha (volta ao normal ao trocar de visão), e a página
 não pula. Medido: a troca de visão em 1122,544 nas três; rolagem e altura da página iguais antes e depois de filtrar.
+Depois ("a limitação tem que ser a da tela exibida, senão vira um scroll infinito; deixa só os botões"): a agenda
+guarda só a altura que a tela à vista precisa para o pé da janela não subir (no máximo uma tela de vazio, rolado no
+topo nenhum), com 24 px de respiro abaixo do último; a troca de visão perdeu o trilho cinza: são botões soltos, com o
+desenho do Mês atual, e o selecionado em azul.
 **No Jurídico, "Intimações"** (10/11/2026, "trocar o nome de processos por intimações, pra gente não confundir"): na
 prévia, o item `processos.php` do grupo Jurídico (e da barra do celular) se chama Intimações; a tela e o endereço são
 os mesmos. Fora da prévia continua Processos (`includes/sidebar.php`).

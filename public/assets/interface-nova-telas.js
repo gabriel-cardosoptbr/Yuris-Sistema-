@@ -89,7 +89,16 @@
     });
     // Filtrar com a página rolada encolhia a tela e ela pulava ("está em Todos, um pouco aqui embaixo, vou em
     // Hoje e urgentes e ela encolhe"): a agenda fica com a altura que já tinha; volta ao normal ao trocar de visão.
-    function segurarAltura() { var h = vAgenda.offsetHeight; if (h > (parseFloat(vAgenda.style.minHeight) || 0)) vAgenda.style.minHeight = h + 'px'; }
+    // Mas só o que a tela à vista precisa (10/11/2026, "a limitação tem que ser a da tela exibida, senão vira um
+    // scroll infinito para baixo"): a página tem de continuar alcançando o pé da janela de agora, nada além disso.
+    // Rolado no topo, a agenda encolhe ao natural; rolado para baixo, sobra no máximo o vazio até o pé da tela.
+    function segurarAltura() {
+      var r = vAgenda.getBoundingClientRect(), doc = document.scrollingElement || document.documentElement;
+      var depois = doc.scrollHeight - (r.bottom + scrollY);              // o que vem abaixo da agenda na página
+      var precisa = innerHeight - r.top - depois;                        // altura da agenda para o pé da tela não subir
+      precisa = Math.min(Math.max(0, Math.ceil(precisa)), Math.ceil(r.height));
+      vAgenda.style.minHeight = precisa > 0 ? precisa + 'px' : '';
+    }
     fDe.addEventListener('change', function () { segurarAltura(); filtrarAgenda(); });
     fAte.addEventListener('change', function () { segurarAltura(); filtrarAgenda(); });
     new MutationObserver(filtrarAgenda).observe(lista, { childList: true });

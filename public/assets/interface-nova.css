@@ -429,11 +429,13 @@ html .proc-agenda-date{ color:var(--inn-t-texto) !important; }
    com o cliente e o número, e o ponto da cor do estado (sem faixa colorida na lateral). */
 html .proc-panel .flex:has(> .inn-vistas){ flex-wrap:wrap; gap:12px; }
 html .inn-vistas{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-left:auto; }
-html .inn-vista-seg{ display:inline-flex; gap:2px; padding:3px; border-radius:10px; background:var(--inn-t-fundo); box-shadow:var(--inn-t-fundo-sombra); }
-html .inn-vista-seg .inn-vista-btn{ display:inline-flex !important; align-items:center !important; gap:6px !important; height:34px !important; padding:0 12px !important; border-radius:8px !important;
-  border:0 !important; background:transparent !important; box-shadow:none !important; color:var(--inn-t-texto2) !important; font-family:inherit; font-size:.82rem !important; font-weight:600 !important; cursor:pointer; }
-html .inn-vista-seg .inn-vista-btn:hover{ color:var(--inn-t-texto) !important; }
-html .inn-vista-seg .inn-vista-btn.on{ background:var(--inn-t-painel) !important; color:var(--inn-t-azul2) !important; box-shadow:var(--inn-t-sombra) !important; }
+/* Só os botões, sem o trilho cinza por trás (10/11/2026, "deixa só os botões"): cada um com o desenho do Mês atual. */
+html .inn-vista-seg{ display:inline-flex; gap:6px; padding:0; background:none; box-shadow:none; }
+html .inn-vista-seg .inn-vista-btn{ display:inline-flex !important; align-items:center !important; gap:6px !important; height:40px !important; padding:0 14px !important; border-radius:8px !important;
+  border:1px solid var(--inn-t-linha2) !important; background:var(--inn-t-painel) !important; box-shadow:var(--inn-t-sombra) !important; color:var(--inn-t-texto2) !important; font-family:inherit; font-size:.82rem !important; font-weight:600 !important; cursor:pointer; }
+html:root .inn-vista-seg .inn-vista-btn.inn-vista-btn.inn-vista-btn:not(.on){ background:var(--inn-t-painel) !important; background-image:none !important; border-color:var(--inn-t-linha2) !important; color:var(--inn-t-texto2) !important; }
+html:root .inn-vista-seg .inn-vista-btn.inn-vista-btn.inn-vista-btn:not(.on):hover{ color:var(--inn-t-azul2) !important; border-color:var(--inn-t-azul2) !important; }
+html .inn-vista-seg .inn-vista-btn.on, html .inn-vista-seg .inn-vista-btn.on:hover{ background:var(--inn-t-azul2) !important; border-color:var(--inn-t-azul2) !important; color:#fff !important; }
 html .inn-mes-atual{ display:inline-flex !important; align-items:center !important; gap:6px !important; height:40px !important; padding:0 14px !important; border-radius:8px !important; cursor:pointer;
   background:var(--inn-t-painel) !important; border:1px solid var(--inn-t-linha2) !important; color:var(--inn-t-texto) !important; font-family:inherit; font-size:.82rem !important; font-weight:600 !important; box-shadow:var(--inn-t-sombra) !important; }
 html .inn-mes-atual svg{ color:var(--inn-t-azul2); }
@@ -511,3 +513,4 @@ html .inn-ag-limpar{ display:inline-flex !important; align-items:center !importa
 html .inn-ag-limpar:hover{ color:var(--inn-t-azul2) !important; border-color:var(--inn-t-azul2) !important; }
 html .inn-ag-limpar[hidden], html .inn-ag-vazio[hidden], html .proc-agenda-row[hidden]{ display:none !important; }
 html .inn-ag-vazio{ padding:28px 0; text-align:center; font-size:.86rem; color:var(--inn-t-texto3); }
+html .inn-vista-agenda{ padding-bottom:24px; box-sizing:border-box; }
