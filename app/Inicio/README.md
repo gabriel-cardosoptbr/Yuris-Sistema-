@@ -242,6 +242,10 @@ seleção em pílula.
   de onde ele estava, antes da primeira pintura; antes o item nascia cheio, num pulo. O círculo
   dura 0,75 s e o script o retoma até 0,7 s. A rede de 2 s que tira `inn-vestindo` também avisa
   `inn:revelada` (a contagem dos números espera a tela aparecer).
+  **O aperto no item do menu já pede a tela nova** (10/11/2026): logo depois do `menu-fixo.js`,
+  uma regra `speculationrules` (só no aperto, nos links do menu e da barra do celular, fora o
+  Sair e o logo) faz o navegador pedir a tela ao servidor enquanto a saída da tela atual roda
+  inteira; o `menu-fixo.js` troca de tela quando ela termina. Fora do `?embed=1`.
   **Histórico Processual** (08/11/2026, "arruma com urgência, não está de acordo com o design"):
   o `processos.js` marca cada registro com `data-tipo` (processo, prazo, tarefa, movimentacao,
   intimacao, anexo, vinculo, edicao) e `data-tom` (ok para concluído, erro para removido), sem

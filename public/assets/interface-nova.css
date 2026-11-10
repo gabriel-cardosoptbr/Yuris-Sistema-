@@ -306,14 +306,15 @@ html .sidebar.sidebar.sidebar .sidebar-group-chevron, html[data-theme="light"] .
     animation-delay:var(--mf-atraso, 0s);   /* negativa na tela nova: continua de onde a anterior parou */
   }
 
-  /* A tela fecha antes de sair: cada bloco dobra para cima e some, de baixo para cima. */
+  /* A tela fecha antes de sair: cada bloco dobra para cima e some, de baixo para cima. Inteira:
+     a troca de tela espera ela acabar (0,34 s, o SAIDA_MS do menu-fixo.js), 10/11/2026. */
   @keyframes inn-fecha{ to{ opacity:0; transform:perspective(1100px) rotateX(-24deg) translateY(-14px) scaleY(.6); } }
-  html.inn-menu-saindo .main-content > *, html.inn-menu-saindo .layout > main.main > *{ animation:inn-fecha .28s cubic-bezier(.2,.7,.3,1) both !important; transform-origin:50% 0 !important; }
-  html.inn-menu-saindo .main-content > :nth-last-child(2), html.inn-menu-saindo .layout > main.main > :nth-last-child(2){ animation-delay:30ms !important; }
-  html.inn-menu-saindo .main-content > :nth-last-child(3), html.inn-menu-saindo .layout > main.main > :nth-last-child(3){ animation-delay:60ms !important; }
-  html.inn-menu-saindo .main-content > :nth-last-child(4), html.inn-menu-saindo .layout > main.main > :nth-last-child(4){ animation-delay:90ms !important; }
-  html.inn-menu-saindo .main-content > :nth-last-child(5), html.inn-menu-saindo .layout > main.main > :nth-last-child(5){ animation-delay:120ms !important; }
-  html.inn-menu-saindo .main-content > :nth-last-child(n+6), html.inn-menu-saindo .layout > main.main > :nth-last-child(n+6){ animation-delay:150ms !important; }
+  html.inn-menu-saindo .main-content > *, html.inn-menu-saindo .layout > main.main > *{ animation:inn-fecha .24s cubic-bezier(.2,.7,.3,1) both !important; transform-origin:50% 0 !important; }
+  html.inn-menu-saindo .main-content > :nth-last-child(2), html.inn-menu-saindo .layout > main.main > :nth-last-child(2){ animation-delay:25ms !important; }
+  html.inn-menu-saindo .main-content > :nth-last-child(3), html.inn-menu-saindo .layout > main.main > :nth-last-child(3){ animation-delay:50ms !important; }
+  html.inn-menu-saindo .main-content > :nth-last-child(4), html.inn-menu-saindo .layout > main.main > :nth-last-child(4){ animation-delay:75ms !important; }
+  html.inn-menu-saindo .main-content > :nth-last-child(5), html.inn-menu-saindo .layout > main.main > :nth-last-child(5){ animation-delay:100ms !important; }
+  html.inn-menu-saindo .main-content > :nth-last-child(n+6), html.inn-menu-saindo .layout > main.main > :nth-last-child(n+6){ animation-delay:100ms !important; }
 }
 
 /* ── O menu no mesmo lugar em toda tela, e a tela que só aparece vestida (08/11/2026) ──

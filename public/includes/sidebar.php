@@ -1734,6 +1734,11 @@ window.FF_AGENDA = { csrf: <?= json_encode($_notifCsrf) ?>, sessao: <?= json_enc
 <?php if (($_GET['embed'] ?? '') !== '1'): ?>
 <!-- O menu fica parado na troca de tela: o item enche, a tela fecha e abre (assets/menu-fixo.js). -->
 <script src="/assets/menu-fixo.js?v=<?= @filemtime(__DIR__ . '/../assets/menu-fixo.js') ?: 1 ?>" defer></script>
+<!-- O aperto do mouse (ou o toque) num item do menu já pede a tela nova ao servidor (10/11/2026):
+     o menu-fixo.js deixa a saída terminar inteira antes de trocar de tela, e a resposta já está
+     chegando. Só no aperto (conservative), então só a tela que a pessoa vai abrir; se ela ainda
+     não chegou na hora da troca, o navegador espera essa mesma (não pede de novo). -->
+<script type="speculationrules">{"prefetch":[{"source":"document","where":{"and":[{"href_matches":"/*"},{"selector_matches":[".sidebar nav a[href]",".mobile-tabbar a[href]"]},{"not":{"selector_matches":[".is-logout","[target=_blank]","[data-sb-recolher]","[download]"]}}]},"eagerness":"conservative"}]}</script>
 <?php endif; ?>
 <?php if ($_ap !== 'dashboard' || !empty($_GET['gestao'])): ?>
 <!-- As telas de dentro: a mesma paleta e as mesmas superfícies, por cima do CSS de cada tela. A home tem a folha própria. -->

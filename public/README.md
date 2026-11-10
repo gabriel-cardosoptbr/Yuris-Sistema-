@@ -482,6 +482,16 @@ do menu enche em 0,75 s, por `transform` (um disco que cresce, recortado pelo it
 engasga enquanto a tela é montada; a tela nova continua o círculo até 0,7 s. Medido: a tela aparece de 290 a 640 ms
 depois de começar; as tarefas longas (50 a 95 ms em Tarefas, Prospecção e Processos) caem todas no tempo em que ela
 está vazia, e durante a entrada, à vista, nenhuma tarefa longa nem quadro perdido em nenhuma tela.
+**A saída inteira antes da troca** (10/11/2026, "está carregando antes dela sair por completo"). A tela nova era pedida
+no clique e chegava em 40 a 70 ms; o navegador congelava a antiga no começo da dobra (blocos ainda com opacidade 1) e
+trocava. Agora o aperto do mouse (ou o toque) num item do menu já pede a tela nova: regra `speculationrules` de
+documento, `eagerness:"conservative"`, nos links do menu e da barra do celular, fora o Sair, links de outra janela e o
+logo (`includes/sidebar.php`). O clique deixa a dobra terminar (`SAIDA_MS`, 350 ms, `menu-fixo.js`) e só então troca;
+o navegador usa a resposta pedida no aperto e, se ela ainda não chegou, espera essa mesma em vez de pedir de novo
+(medido com o servidor 400 ms mais lento: um pedido só). A dobra ficou um pouco mais curta (0,24 s e atrasos até 100
+ms, 0,34 s no total). Sem o aperto antes (Enter no teclado) ou em navegador sem o recurso, a troca é pedida na hora,
+como antes. Medido em 4 trocas: a saída roda inteira (23 quadros, todos os blocos em opacidade zero no último) e a
+tela nova começa uns 340 ms depois do clique, servida pelo pedido antecipado.
 Indicadores (09/11/2026): o bloco de texto do indicador alinha pelo topo (`align-content:start`), e
 `igualarIndicadores` mede o número de cada cartão e empurra os da mesma fileira até a linha do mais baixo (rótulo
 ou subtítulo de duas linhas descia o número de um cartão só).

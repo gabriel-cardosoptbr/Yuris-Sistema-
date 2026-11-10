@@ -108,7 +108,23 @@
     try { sessionStorage.setItem('yuris_menu_grupos', JSON.stringify(retrato)); } catch (e) {}
   }
 
-  // 1c. Sair pelo menu. Em captura, para ficar na frente da saída de cada folha de movimento
+  // 1c. A saída inteira (10/11/2026, "está carregando antes dela sair por completo"). A tela nova
+  // era pedida no clique e chegava em menos tempo que a saída (0,43 s): o navegador congelava a
+  // tela antiga no meio da dobra e trocava. Agora o aperto do mouse (ou o toque) no item já pede a
+  // tela nova (a regra speculationrules do includes/sidebar.php), e o clique deixa a saída terminar
+  // (SAIDA_MS, o tempo da dobra em interface-nova.css) antes de trocar: a resposta já chegou ou está
+  // chegando, e o navegador usa essa mesma. Sem o aperto antes (Enter no teclado) ou sem o recurso
+  // no navegador, a troca é pedida na hora, como antes.
+  var SAIDA_MS = 350;
+  var antecipa = !!(window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports('speculationrules')) && !!document.querySelector('script[type="speculationrules"]');
+  var aperto = null;
+  document.addEventListener('pointerdown', function (e) {
+    var a = e.button === 0 && e.target.closest && e.target.closest('.sidebar nav a[href], .mobile-tabbar a[href]');
+    aperto = a ? { a: a, t: performance.now() } : null;
+  }, true);
+  function jaPediu(a) { return antecipa && aperto && aperto.a === a && performance.now() - aperto.t < 2000; }
+
+  // 1d. Sair pelo menu. Em captura, para ficar na frente da saída de cada folha de movimento
   // (que vê o preventDefault e não faz nada).
   document.addEventListener('click', function (e) {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -130,11 +146,13 @@
       guardarGrupos();
     }
     html.classList.add('inn-menu-saindo');
-    // Pede a tela nova logo depois de pintar o primeiro quadro do enchimento e da dobra: o
-    // navegador segue animando a página atual enquanto o servidor responde.
-    // (Sem quadro, como numa aba em segundo plano, o relógio garante a ida.)
     var foi = false;
     function ir() { if (foi) return; foi = true; location.href = u.href; }
+    // A tela nova já foi pedida no aperto: troca quando a saída terminar.
+    if (jaPediu(a)) { setTimeout(ir, SAIDA_MS); return; }
+    // Sem o pedido antecipado: pede logo depois de pintar o primeiro quadro do enchimento e da
+    // dobra, e o navegador segue animando a página atual enquanto o servidor responde.
+    // (Sem quadro, como numa aba em segundo plano, o relógio garante a ida.)
     requestAnimationFrame(function () { requestAnimationFrame(ir); });
     setTimeout(ir, 150);
   }, true);
