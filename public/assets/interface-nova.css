@@ -288,14 +288,21 @@ html .sidebar.sidebar.sidebar .sidebar-group-chevron, html[data-theme="light"] .
   /* O item clicado enche a partir do ponto do clique: um círculo cresce e revela o fundo de
      ativo (o degradê azul, lido pelo JS), com o fundo de antes por fora; o brilho e o verniz
      chegam quando o círculo termina (o JS tira a marca no fim da animação). */
-  @keyframes mf-enche{ to{ clip-path:circle(var(--mf-raio, 300px) at var(--mf-cx, 50%) var(--mf-cy, 50%)); } }
-  html .sidebar nav a.mf-enchendo.mf-enchendo{ background:var(--mf-antes, transparent) !important; box-shadow:none !important; }
+  /* Mais longo (0,75 s) e por transform (10/11/2026, "o preenchimento da sidebar pode demorar um
+     pouquinho mais"): ele cobre o tempo em que a tela nova monta vazia, e o transform anda fora da
+     linha principal do navegador, então não engasga enquanto a tela é montada e vestida (o recorte
+     por clip-path parava junto). O círculo é um disco do raio até o canto mais longe, centrado no
+     ponto do clique, que cresce de zero; o item recorta pelas bordas arredondadas dele. */
+  @keyframes mf-enche{ from{ transform:scale(0); } to{ transform:scale(1); } }
+  html .sidebar nav a.mf-enchendo.mf-enchendo{ background:var(--mf-antes, transparent) !important; box-shadow:none !important; overflow:hidden !important; }
   html .sidebar nav a.mf-enchendo.mf-enchendo::before{ opacity:0; }
   html .sidebar nav a.mf-enchendo.mf-enchendo::after{
-    content:""; display:block !important; position:absolute; inset:0; z-index:-1; border-radius:inherit; pointer-events:none;
+    content:""; display:block !important; position:absolute; z-index:-1; pointer-events:none;
+    left:calc(var(--mf-cx, 50%) - var(--mf-raio, 300px)); top:calc(var(--mf-cy, 50%) - var(--mf-raio, 300px));
+    width:calc(var(--mf-raio, 300px) * 2); height:calc(var(--mf-raio, 300px) * 2); border-radius:50%;
     background:var(--mf-cor) !important;
-    clip-path:circle(0px at var(--mf-cx, 50%) var(--mf-cy, 50%));
-    animation:mf-enche .42s cubic-bezier(.2,.8,.2,1) both;
+    transform:scale(0); will-change:transform;
+    animation:mf-enche .75s cubic-bezier(.25,.7,.25,1) both;
     animation-delay:var(--mf-atraso, 0s);   /* negativa na tela nova: continua de onde a anterior parou */
   }
 
@@ -323,6 +330,11 @@ html .sidebar.sidebar.sidebar .sidebar-group-chevron, html[data-theme="light"] .
   html body .sidebar{ top:16px !important; height:calc(100vh - 32px) !important; max-height:calc(100vh - 32px) !important; align-self:flex-start !important; margin:0 !important; }
 }
 html.inn-vestindo .sidebar ~ :not(script):not(style):not(link){ opacity:0 !important; }
+/* E a entrada espera parada no começo enquanto a tela está invisível (10/11/2026, "acho melhor
+   recarregar sem nada na tela, aí vinha a animação"): sem isto a entrada corria escondida, e o que
+   aparecia era o meio dela, com o peso de montar a tela junto. A camada tira inn-vestindo quando a
+   tela sossega (revelarQuandoPronta) e tudo começa do zero. */
+html.inn-vestindo .sidebar ~ :not(script):not(style):not(link), html.inn-vestindo .sidebar ~ :not(script):not(style):not(link) *{ animation-play-state:paused !important; }
 
 /* ── Campo de lista com a seta (09/11/2026, revisão do sistema) ──────────────
    No escuro os selects ficavam sem a seta e pareciam campo de texto (Tarefas, Usuários,

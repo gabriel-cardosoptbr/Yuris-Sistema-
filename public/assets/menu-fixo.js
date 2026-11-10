@@ -65,7 +65,7 @@
     a.style.setProperty('--mf-cor', cor);
     a.style.setProperty('--mf-antes', antes || 'transparent');
     a.classList.add('mf-enchendo');
-    // A tela nova chega antes de o círculo terminar (0,42 s): o menu dela nascia com o item já
+    // A tela nova chega antes de o círculo terminar (0,75 s): o menu dela nascia com o item já
     // cheio, e o círculo pulava de uns 20% para o fim ("travando na aba em si", 10/11/2026). Ela
     // continua o círculo de onde ele está (script logo depois do menu, em includes/sidebar.php).
     try {

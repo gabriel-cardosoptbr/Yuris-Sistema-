@@ -469,6 +469,19 @@ vista (`naTela`); (4) a marca da camada em svg (`className` é objeto) e em elem
 `soMarcaDaCamada`). Tarefas longas ao abrir, três cargas: Tarefas de 113 a 160 ms para 74 a 75, Processos de 115 a
 202 para 73 a 98, Prospecção de 77 a 128 para 57 a 108. Conferido contra a versão anterior: as mesmas 6.890 marcas
 em 9 telas, elemento por elemento, e as mesmas nos 3 pop-ups.
+**A tela nova aparece pronta, e a entrada roda inteira** (10/11/2026, "quando eu troco de aba, meio que recarrega e
+já quer soltar direto a animação; acho melhor recarregar sem nada na tela, aí vinha a animação; o preenchimento da
+sidebar pode demorar um pouquinho mais"). A tela nova fica invisível (`inn-vestindo`) com a entrada parada no começo
+(`animation-play-state:paused` em tudo o que vem depois do menu, `interface-nova.css`) até sossegar: a primeira
+passada da camada feita, nada novo na tela por 140 ms (o quadro de Tarefas e o funil da Prospecção chegam por
+JavaScript depois) e nada esperando para ser vestido; no máximo 1,2 s (`revelarQuandoPronta`, em
+`interface-nova-sistema.js`; a rede do `sidebar.php` continua em 2 s). Aí a marca sai, a entrada começa do zero e o
+evento `inn:revelada` solta a contagem dos números (`depoisDeAparecer`, no movimento). O `visivel()` da camada não
+toma por escondido o que está em opacidade zero por causa da entrada (o cartão de indicador ficava sem ícone). O item
+do menu enche em 0,75 s, por `transform` (um disco que cresce, recortado pelo item), que roda no compositor e não
+engasga enquanto a tela é montada; a tela nova continua o círculo até 0,7 s. Medido: a tela aparece de 290 a 640 ms
+depois de começar; as tarefas longas (50 a 95 ms em Tarefas, Prospecção e Processos) caem todas no tempo em que ela
+está vazia, e durante a entrada, à vista, nenhuma tarefa longa nem quadro perdido em nenhuma tela.
 Indicadores (09/11/2026): o bloco de texto do indicador alinha pelo topo (`align-content:start`), e
 `igualarIndicadores` mede o número de cada cartão e empurra os da mesma fileira até a linha do mais baixo (rótulo
 ou subtítulo de duas linhas descia o número de um cartão só).

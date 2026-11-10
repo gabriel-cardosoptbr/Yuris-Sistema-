@@ -36,6 +36,12 @@
   // invisíveis para sempre (09/11/2026, revisão do sistema).
   var FORA = '.sidebar, .mobile-tabbar, .inn-emb';
   function NADA() {}
+  // A tela nova fica invisível até sossegar (inn-vestindo, interface-nova-sistema.js): o que é
+  // feito por script, como a contagem dos números, espera ela aparecer (10/11/2026).
+  function depoisDeAparecer(fn) {
+    if (!html.classList.contains('inn-vestindo')) { fn(); return; }
+    document.addEventListener('inn:revelada', function f() { document.removeEventListener('inn:revelada', f); fn(); });
+  }
   // À vista: algum pedaço dentro da janela. O que está fora (abaixo da dobra, nas colunas à direita
   // do quadro) não se vê entrando, e pôr a entrada em tudo fazia o navegador recalcular o estilo de
   // centenas de cartões no quadro em que a tela aparece ("travando na troca de aba", 10/11/2026).
@@ -132,7 +138,7 @@
         // Zera na hora, só no desenho: o texto real continua o número.
         el.style.setProperty('--inn-conta-cor', estilos[i].cor);
         el.dataset.innConta = '0'; el.classList.add('inn-contando');
-        setTimeout(contar.bind(null, el, 800, alvo), 160 + k * 40);
+        depoisDeAparecer(function () { setTimeout(contar.bind(null, el, 800, alvo), 160 + k * 40); });
       });
     };
   }

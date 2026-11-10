@@ -239,7 +239,9 @@ seleção em pílula.
   **O item do menu continua enchendo** (10/11/2026, "na troca de aba parece que tá travando"):
   logo depois do `<aside>`, depois do script da rolagem, um script lê `yuris_menu_enche`
   (gravado pelo `menu-fixo.js` ao clicar) e faz o mesmo item da tela nova retomar o círculo
-  de onde ele estava, antes da primeira pintura; antes o item nascia cheio, num pulo.
+  de onde ele estava, antes da primeira pintura; antes o item nascia cheio, num pulo. O círculo
+  dura 0,75 s e o script o retoma até 0,7 s. A rede de 2 s que tira `inn-vestindo` também avisa
+  `inn:revelada` (a contagem dos números espera a tela aparecer).
   **Histórico Processual** (08/11/2026, "arruma com urgência, não está de acordo com o design"):
   o `processos.js` marca cada registro com `data-tipo` (processo, prazo, tarefa, movimentacao,
   intimacao, anexo, vinculo, edicao) e `data-tom` (ok para concluído, erro para removido), sem

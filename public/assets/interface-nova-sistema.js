@@ -779,9 +779,13 @@
   // e que tem dentro uma peça menor (o painel). O botão do mouse tem de descer e subir no
   // fundo: arrastar uma seleção de dentro do campo até fora não fecha nada.
   var RE_FECHAR_ATTR = /(^|[-_\s])(close|fechar|dismiss|btn-x|x-btn)([-_\s]|$)|modal-close|close-btn|closeBtn/i;
+  // A opacidade zero da entrada não é "escondido": o cartão que ainda vai entrar, ou que espera a tela
+  // aparecer parado no começo (inn-vestindo), ficava sem o ícone de indicador (10/11/2026).
+  var RE_ENTRADA = /(^|[\s,])inn-(item|sobe|titulo|cresce|pop-entra|pop-surge|surge)([\s,]|$)/;
   function visivel(el) {
     if (!el.offsetWidth && !el.offsetHeight) return false;
-    var cs = getComputedStyle(el); return cs.visibility !== 'hidden' && cs.display !== 'none' && parseFloat(cs.opacity) > .05;
+    var cs = getComputedStyle(el);
+    return cs.visibility !== 'hidden' && cs.display !== 'none' && (parseFloat(cs.opacity) > .05 || RE_ENTRADA.test(cs.animationName));
   }
   function ehFundoDePopup(el) {
     if (!el || el.nodeType !== 1 || el === document.body || el === document.documentElement) return false;
@@ -1674,15 +1678,46 @@
     });
   }
 
+  // ── A tela nova aparece pronta, e a entrada roda inteira (10/11/2026) ──
+  // "Quando eu troco de aba, meio que recarrega e já quer soltar direto a animação. Acho melhor
+  // recarregar sem nada na tela, aí vinha a animação." A tela fica invisível (inn-vestindo) e com
+  // a entrada parada no começo (interface-nova.css) até sossegar: a primeira passada da camada
+  // feita, nada novo na tela por 140 ms (o quadro de Tarefas e o funil da Prospecção chegam por
+  // JavaScript depois), nada esperando para ser vestido; no máximo 1,2 s. Aí a marca sai, a entrada
+  // começa do zero e os números passam a contar (evento inn:revelada, ouvido pelo movimento). O
+  // peso de montar e vestir a tela fica no tempo em que ela está vazia, e não no meio da entrada.
+  function revelada() { try { document.dispatchEvent(new Event('inn:revelada')); } catch (e) {} }
+  function revelarQuandoPronta(main, ocupada) {
+    var html = document.documentElement;
+    if (!html.classList.contains('inn-vestindo')) { revelada(); return; }
+    var t0 = performance.now(), ultima = t0;
+    var obs = new MutationObserver(function (ms) {
+      for (var i = 0; i < ms.length; i++) if (ms[i].addedNodes.length) { ultima = performance.now(); return; }
+    });
+    obs.observe(main, { childList: true, subtree: true });
+    (function confere() {
+      var agora = performance.now();
+      if ((agora - ultima >= 140 && !ocupada()) || agora - t0 >= 1200) {
+        obs.disconnect();
+        requestAnimationFrame(function () {
+          if (!html.classList.contains('inn-vestindo')) return;   // a rede de 2 s já tirou
+          html.classList.remove('inn-vestindo'); revelada();
+        });
+        return;
+      }
+      setTimeout(confere, 40);
+    })();
+  }
+
   // ── Ligar ───────────────────────────────────────────────────────────────
   function ligar() {
     var main = acharTela() || document.body;
     vestirArquivos(document.body);
     iconeNoCabecalho(); botoesDeIcone(document.body); fantasmas(main); marcarAbas(main); selos(document.body); vestirCores(document.body);
     marcarQuadros(); setTimeout(marcarQuadros, 1500); setTimeout(marcarQuadros, 4000);
-    // A tela estava invisível desde o menu (inn-vestindo, includes/sidebar.php): já vestida,
-    // aparece. No quadro seguinte, quando o movimento (defer, logo depois) já ligou a entrada.
-    requestAnimationFrame(function () { document.documentElement.classList.remove('inn-vestindo'); });
+    // A tela estava invisível desde o menu (inn-vestindo, includes/sidebar.php): aparece quando
+    // sossegou, e a entrada roda inteira a partir daí (revelarQuandoPronta, abaixo).
+    revelarQuandoPronta(main, function () { return pendente || FILA_ADIADA.length > 0; });
     if (!vestirChartJs()) {
       // Chart.js chega depois em algumas telas: espera por ele um pouco.
       var n = 0, t = setInterval(function () { if (vestirChartJs() || ++n > 40) clearInterval(t); }, 250);
