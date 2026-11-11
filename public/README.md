@@ -606,7 +606,7 @@ No embutido, `assets/chat.js` abre a conversa do `?jid=` mesmo quando ela está 
 lista (procura pelo número na própria API da lista e, sem achar, abre pelo jid); fora do embutido
 nada muda. O tamanho dos pop-ups das telas na prévia fica em `assets/interface-nova-popups.css`;
 o movimento delas (entrada, saída pelo menu, pop-ups que surgem) em `assets/interface-nova-movimento.css`
-e `.js`, e o da home em `assets/inicio-movimento.css` e `.js` (08/11/2026). **A interface nova vale para todas as contas Yuris desde 11/11/2026** (só a conta de marca fica de fora; onde este texto diz "prévia", leia "interface nova"). **O hover de todo cartão**
+e `.js`, e o da home em `assets/inicio-movimento.css` e `.js` (08/11/2026). **A interface nova vale para todas as contas Yuris desde 11/11/2026** (só a conta de marca fica de fora; onde este texto diz "prévia", leia "interface nova"). **O aviso de cookies** (`assets/cookie-consent.js`) dentro do sistema segue a paleta da casa pelo fim de `assets/interface-nova.css` (11/11/2026): painel prata ou grafite, botões iguais aos `.ini-btn` da home, a janela de Preferências com as categorias afundadas; nas páginas públicas fica o desenho do script. **O hover de todo cartão**
 (home e telas de dentro, 11/11/2026) é uma regra única em `assets/interface-nova-hover.js` e `.css`,
 escrita no topo do `.js`: cartão em lista (texto, um embaixo do outro) desliza 2 px para a direita;
 cartão em fileira ou grade, ou com número grande, sobe 2 px. O `.js` decide sozinho pelo desenho da

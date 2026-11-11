@@ -514,3 +514,33 @@ html .inn-ag-limpar:hover{ color:var(--inn-t-azul2) !important; border-color:var
 html .inn-ag-limpar[hidden], html .inn-ag-vazio[hidden], html .proc-agenda-row[hidden]{ display:none !important; }
 html .inn-ag-vazio{ padding:28px 0; text-align:center; font-size:.86rem; color:var(--inn-t-texto3); }
 html .inn-vista-agenda{ padding-bottom:24px; box-sizing:border-box; }
+
+/* ═══ O aviso de cookies na paleta da interface nova (11/11/2026) ═══════════
+   assets/cookie-consent.js desenha o aviso em azul-marinho fixo, igual nos dois
+   temas ("não está no padrão de cor"). Dentro do sistema ele vira um painel da
+   casa: prata no claro, grafite no escuro, botões iguais aos da home (.ini-btn e
+   .ini-btn.primario: mesma altura, canto, borda, fundo, sombra e hover) e a janela
+   de Preferências com as categorias afundadas. "html #id" ganha das regras do
+   próprio script, que são só "#id". As páginas públicas (login, termos) seguem com
+   o desenho do script. */
+html #yuris-cookie-banner, html #yuris-cookie-prefs{ --ycc-painel2:#2D333C; --ycc-sombra:0 -10px 28px rgba(0,0,0,.30); --ycc-veu:rgba(0,0,0,.50); }
+html[data-theme="light"] #yuris-cookie-banner, html[data-theme="light"] #yuris-cookie-prefs{ --ycc-painel2:#ECEEF1; --ycc-sombra:0 -8px 24px rgba(31,38,50,.10); --ycc-veu:rgba(31,38,50,.35); }
+html #yuris-cookie-banner{ background:var(--inn-painel); color:var(--inn-texto2); border-top:1px solid var(--inn-linha2);
+  box-shadow:0 1px 0 var(--inn-hi) inset, var(--ycc-sombra); backdrop-filter:none; font-family:Inter, system-ui, sans-serif; font-size:13px; }
+html #yuris-cookie-banner .ycc-text strong{ color:var(--inn-texto); }
+html #yuris-cookie-banner a, html #yuris-cookie-prefs a{ color:var(--inn-azul2); }
+html #yuris-cookie-banner button, html #yuris-cookie-prefs button{ height:38px; padding:0 14px; border-radius:8px; border:1px solid var(--inn-linha2);
+  background:var(--ycc-painel2); color:var(--inn-texto); box-shadow:0 1px 0 var(--inn-hi) inset; font:600 13px/1 Inter, system-ui, sans-serif;
+  transition:transform .18s, box-shadow .18s; white-space:nowrap; }
+html #yuris-cookie-banner button:hover, html #yuris-cookie-prefs button:hover{ background:var(--ycc-painel2); transform:translateY(-1px); }
+/* !important: o tema claro antigo (yuris-theme.css) pinta todo button.primary de azul-marinho chapado com !important. */
+html #yuris-cookie-banner button.primary, html #yuris-cookie-prefs button.primary{ background:linear-gradient(180deg, var(--inn-azul2), var(--inn-azul)) !important; color:#fff !important; border-color:transparent !important; box-shadow:var(--inn-brilho) !important; }
+html #yuris-cookie-banner button.primary:hover, html #yuris-cookie-prefs button.primary:hover{ background:linear-gradient(180deg, var(--inn-azul2), var(--inn-azul)) !important; box-shadow:var(--inn-brilho) !important; }
+html #yuris-cookie-prefs{ background:var(--ycc-veu); }
+html #yuris-cookie-prefs .ycc-modal{ background:var(--inn-painel); color:var(--inn-texto2); border:1px solid var(--inn-linha2); border-radius:12px; box-shadow:var(--inn-sombra); font-family:Inter, system-ui, sans-serif; }
+html #yuris-cookie-prefs h3, html #yuris-cookie-prefs .ycc-cat-label{ color:var(--inn-texto) !important; }   /* o claro antigo pinta h3 com !important */
+html #yuris-cookie-prefs p{ color:var(--inn-texto2); }
+html #yuris-cookie-prefs .ycc-cat{ background:var(--inn-painel-fundo); border-color:transparent; box-shadow:var(--inn-fundo-sombra); }
+html #yuris-cookie-prefs .ycc-cat-desc, html #yuris-cookie-prefs .ycc-locked{ color:var(--inn-texto3); }
+html #yuris-cookie-prefs input[type="checkbox"]{ accent-color:var(--inn-azul); }
+@media (prefers-reduced-motion: reduce){ html #yuris-cookie-banner button:hover, html #yuris-cookie-prefs button:hover{ transform:none; } }
