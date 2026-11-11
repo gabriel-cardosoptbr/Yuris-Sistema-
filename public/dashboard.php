@@ -6,7 +6,7 @@ use App\Core\AccountContext;
 use App\Inicio\InterfaceNova;
 session_start();
 if (empty($_SESSION['user_id'])) { header('Location: /login'); exit; }
-InterfaceNova::aplicar(); // ?novo=1 liga a prévia da interface nova (cookie); ?novo=0 desliga
+// O ?novo=1 / ?novo=0 da prévia (cookie) deixou de existir em 11/11/2026: a interface nova vale para todos.
 $activePage = 'dashboard';
 
 // Contexto de tenant — obrigatório para evitar vazamento entre contas.
@@ -175,10 +175,10 @@ if ($isFleetiflow) {
     require __DIR__ . '/includes/dashboard_fleetiflow.php';
     exit;
 }
-// Interface nova (prévia, 07/11/2026): a home é o dia do escritório
-// (includes/dashboard_inicio.php). O painel de métricas continua aqui embaixo,
-// como "Indicadores" (?gestao=1), e para quem não ligou a prévia nada muda.
-$interfaceNova = InterfaceNova::ligada($_GET, $_COOKIE, $isFleetiflow, !$isFleetiflow && InterfaceNova::contaLigada((int) $ctx->getAccountId()));
+// Interface nova (07/11/2026, para todas as contas Yuris desde 11/11/2026): a home é o dia
+// do escritório (includes/dashboard_inicio.php). O painel de métricas continua aqui embaixo,
+// como "Indicadores" (?gestao=1). Conta de marca e conta sem o módulo jurídico seguem no painel.
+$interfaceNova = InterfaceNova::ligada($_GET, $_COOKIE, $isFleetiflow);
 if ($moduloJuridico && $interfaceNova && empty($_GET['gestao'])) {
     require __DIR__ . '/includes/dashboard_inicio.php';
     exit;

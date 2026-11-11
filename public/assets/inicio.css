@@ -70,8 +70,6 @@ body.ini-body .page-layout, html[data-theme="light"] body.ini-body .page-layout{
 .ini-link-topo:hover{ color:var(--ini-azul2); transform:translateY(-1px); }
 .ini-link-topo svg{ width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 /* "Sair da prévia" é um botão como os vizinhos (era texto solto ao lado de botões). */
-.ini-sair-previa.ini-btn{ font-size:12.5px; color:var(--ini-texto2); text-decoration:none; }
-.ini-sair-previa.ini-btn:hover{ color:var(--ini-texto); }
 .ini-tema{ position:relative; width:70px; height:38px; border-radius:999px; background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); display:flex; align-items:center; justify-content:space-between; padding:0 10px; color:var(--ini-texto3); cursor:pointer; font:inherit; }
 .ini-tema svg{ width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; position:relative; z-index:1; }
 .ini-tema-bola{ position:absolute; top:4px; left:4px; width:28px; height:28px; border-radius:50%; background:linear-gradient(180deg,var(--ini-azul2),var(--ini-azul)); box-shadow:var(--ini-brilho), inset 0 1px 0 rgba(255,255,255,.3); transition:left .25s cubic-bezier(.2,.8,.2,1); }
@@ -333,8 +331,6 @@ html[data-theme="light"] .ini-sala h1 .ini-nome{ background-image:linear-gradien
 .ini-desde{ font-size:11.5px; font-weight:700; color:var(--ini-texto3); white-space:nowrap; }
 .ini-desde.r{ color:var(--ini-erro); }
 
-.ini-rodape{ font-size:11.5px; color:var(--ini-texto3); text-align:center; padding:4px 0 10px; }
-.ini-rodape a{ color:var(--ini-azul2); }
 
 /* A cor do ícone é uma só (--ini-icone), a mesma do menu (--inn-icone): "as cores também". */
 .ini .ini-ic, .ini .ini-kpi-ic{ color:var(--ini-icone); }

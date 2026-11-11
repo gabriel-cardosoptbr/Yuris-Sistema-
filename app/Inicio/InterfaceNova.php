@@ -4,7 +4,7 @@ namespace App\Inicio;
 use App\Core\Database;
 
 /**
- * INTERFACE NOVA DO YURIS, EM PRÉVIA (07/11/2026).
+ * INTERFACE NOVA DO YURIS (07/11/2026), PARA TODAS AS CONTAS DESDE 11/11/2026.
  *
  * O pedido: uma interface que lembre um escritório ao abrir, com o menu em
  * relevo (a página atual numa pílula azul que brilha), tema claro e escuro, e a
@@ -30,6 +30,10 @@ use App\Core\Database;
  * dashboard.php no lugar da antiga, e o menu ganha o item "Indicadores".
  *
  * Quando aprovar, a troca para todos é apagar a condição, não reescrever nada.
+ *
+ * APROVADA (11/11/2026): ligada() devolve true para toda conta que não é de marca.
+ * O que está acima sobre prévia, cookie e chave por conta é a história; não liga
+ * nem desliga mais nada.
  */
 final class InterfaceNova
 {
@@ -51,11 +55,11 @@ final class InterfaceNova
      */
     public static function ligada(array $get, array $cookie, bool $contaDeMarca, bool $contaLigada = false): bool
     {
-        if ($contaDeMarca) return false;
-        $m = self::mudanca($get);
-        if ($m !== null) return $m === '1';
-        if ($contaLigada) return true;
-        return (string) ($cookie[self::COOKIE] ?? '') === '1';
+        // Desde 11/11/2026 vale para todas as contas Yuris ("a interface nova agora é para todo
+        // mundo, não tem mais limite"). Só a conta de marca fica de fora: o desenho dela é outro.
+        // O ?novo, o cookie e a chave por conta ficaram sem efeito (os parâmetros continuam na
+        // assinatura para quem chama não mudar).
+        return !$contaDeMarca;
     }
 
     /** A conta tem a interface nova ligada? Lê `configuracoes` da linha de `accounts`. */

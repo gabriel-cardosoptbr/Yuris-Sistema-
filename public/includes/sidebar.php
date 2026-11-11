@@ -120,12 +120,10 @@ try {
     if ($_isFleetiflow) $_marca = $__brandCtx->getMarca();
 } catch (\Throwable $__e) { /* mantém identidade Yuris se algo falhar */ }
 if ($_isFleetiflow && $_marca === null) $_marca = \App\Master\Marca::padraoFleetiflow();
-// Interface nova (App\Inicio\InterfaceNova, 07/11/2026), EM PRÉVIA: só para quem
-// abriu uma tela com ?novo=1 (fica em cookie; ?novo=0 desliga). Conta de marca nunca.
-// Muda o rótulo da home, põe "Indicadores" em Gestão e veste o menu com
-// assets/interface-nova.css. O resto do HTML é o mesmo.
-$_interfaceNova = \App\Inicio\InterfaceNova::ligada($_GET, $_COOKIE, $_isFleetiflow,
-    !$_isFleetiflow && isset($__brandCtx) && \App\Inicio\InterfaceNova::contaLigada((int) $__brandCtx->getAccountId()));
+// Interface nova (App\Inicio\InterfaceNova, 07/11/2026): para todas as contas Yuris desde
+// 11/11/2026. Conta de marca nunca. Muda o rótulo da home, põe "Indicadores" em Gestão e
+// veste o menu com assets/interface-nova.css. O resto do HTML é o mesmo.
+$_interfaceNova = \App\Inicio\InterfaceNova::ligada($_GET, $_COOKIE, $_isFleetiflow);
 
 // ── Aviso de WhatsApp fora do ar (edição CRM) ─────────────────────────────
 // Em 30/09/2026 o canal caiu (Evolution, código 401: o aparelho desconectou o

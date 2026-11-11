@@ -41,15 +41,13 @@ function eq($esp, $obt, string $m): void {
 $raiz = dirname(__DIR__, 2);
 
 // ── 1. A chave da prévia ──────────────────────────────────────────────────────
-secao('1. Prévia: só liga para quem pediu');
-eq(false, InterfaceNova::ligada([], [], false), 'sem nada, desligada');
-eq(true,  InterfaceNova::ligada(['novo' => '1'], [], false), '?novo=1 liga');
-eq(true,  InterfaceNova::ligada([], [InterfaceNova::COOKIE => '1'], false), 'o cookie mantém ligada');
-eq(false, InterfaceNova::ligada(['novo' => '0'], [InterfaceNova::COOKIE => '1'], false), '?novo=0 desliga mesmo com o cookie');
+// Desde 11/11/2026 a interface nova vale para todas as contas Yuris ("é para todo mundo, não
+// tem mais limite"). A prévia (?novo, cookie, chave por conta) não liga nem desliga mais nada.
+secao('1. Para todas as contas Yuris, menos a de marca');
+eq(true,  InterfaceNova::ligada([], [], false), 'sem nada: ligada');
+eq(true,  InterfaceNova::ligada(['novo' => '0'], [], false), '?novo=0 não desliga mais');
+eq(true,  InterfaceNova::ligada(['novo' => '0'], [InterfaceNova::COOKIE => ''], false, false), 'sem cookie e sem chave da conta: ligada');
 eq(false, InterfaceNova::ligada(['novo' => '1'], [InterfaceNova::COOKIE => '1'], true), 'conta de marca nunca entra');
-eq(false, InterfaceNova::ligada(['novo' => 'sim'], [], false), 'valor estranho não liga');
-eq(true,  InterfaceNova::ligada([], [], false, true), 'conta ligada: vê sem cookie e sem parâmetro');
-eq(false, InterfaceNova::ligada(['novo' => '0'], [], false, true), 'conta ligada: ?novo=0 desliga para comparar');
 eq(false, InterfaceNova::ligada([], [], true, true), 'conta de marca não liga nem com a chave da conta');
 eq(true,  InterfaceNova::contaLigadaPelaLinha(['configuracoes' => '{"interface_nova":true,"modulos":{"x":1}}']), 'linha da conta: ligada');
 eq(false, InterfaceNova::contaLigadaPelaLinha(['configuracoes' => '{"interface_nova":"sim"}']), 'linha da conta: só true de verdade');
@@ -177,16 +175,14 @@ eq(['Encerrado', 'ok'], Painel::situacaoDoProcesso('concluido', null, '2026-11-0
 // ── 3. Os ganchos ────────────────────────────────────────────────────────────
 secao('3. Ganchos no menu e no dashboard');
 $sidebar = (string) file_get_contents($raiz . '/public/includes/sidebar.php');
-ok(str_contains($sidebar, 'InterfaceNova::ligada($_GET, $_COOKIE, $_isFleetiflow,'), 'menu decide pela chave, com a conta de marca fora');
+ok(str_contains($sidebar, 'InterfaceNova::ligada($_GET, $_COOKIE, $_isFleetiflow);'), 'menu liga para todos, com a conta de marca fora');
 ok(preg_match('/if \(\$_interfaceNova\): \?>\s*<!--[^>]*-->\s*<link rel="stylesheet" href="\/assets\/interface-nova\.css/', $sidebar) === 1, 'menu só carrega interface-nova.css sob a chave');
 ok(str_contains($sidebar, "\$_interfaceNova ? 'Início' : 'Visão Geral'"), 'home chama Início só na interface nova');
 ok(str_contains($sidebar, "'href'=>'dashboard.php?gestao=1','active'=>'indicadores'"), 'Gestão ganha Indicadores apontando para o painel de sempre');
 ok(str_contains($sidebar, 'InterfaceNova::scriptCookie($_GET)'), 'menu grava o cookie por script (cabeçalhos já foram)');
 
 $dash = (string) file_get_contents($raiz . '/public/dashboard.php');
-$posAplicar = strpos($dash, 'InterfaceNova::aplicar();');
-$posDoctype = strpos($dash, '<!doctype html>');
-ok($posAplicar !== false && $posDoctype !== false && $posAplicar < $posDoctype, 'dashboard grava o cookie antes de qualquer saída');
+ok(!str_contains($dash, 'InterfaceNova::aplicar();'), 'o dashboard não grava mais o cookie da prévia');
 ok(str_contains($dash, "if (\$moduloJuridico && \$interfaceNova && empty(\$_GET['gestao'])) {"), 'home nova só para conta jurídica, com a chave, sem ?gestao=1');
 // As agulhas são montadas em pedaços para o class_refs_test não as ler como um require deste arquivo.
 $posFleet = strpos($dash, 'require __DIR_' . "_ . '/includes/dashboard_fleetiflow.php';");
@@ -473,8 +469,8 @@ ok(str_contains($popups, 'width:min(980px, calc(100vw - 32px)) !important;') && 
 ok(!str_contains($popups, '—') && !str_contains($popups, 'text-overflow'), 'folha dos pop-ups sem travessão e sem reticências');
 $nova = (string) file_get_contents($raiz . '/public/assets/interface-nova.css');
 ok(str_contains($nova, 'background:linear-gradient(rgba(46,85,184,.13), rgba(46,85,184,.13)), var(--inn-fundo) !important;') && !str_contains($nova, 'background:#FFFFFF !important;') && str_contains($nova, '.sidebar-group.has-active .sidebar-group-icon svg *{ color:inherit !important; stroke:currentColor !important; }'), 'grupo com a página atual: ícone azul na caixa afundada com véu azul, nunca caixa branca');
-ok(str_contains($sidebarT, 'InterfaceNova::contaLigada((int) $__brandCtx->getAccountId())'), 'menu consulta a chave da conta');
-ok(str_contains($dash, 'InterfaceNova::contaLigada((int) $ctx->getAccountId())'), 'dashboard consulta a chave da conta');
+ok(!str_contains($sidebarT, 'InterfaceNova::contaLigada(') && !str_contains($dash, 'InterfaceNova::contaLigada('), 'menu e dashboard não consultam mais a chave da conta (vale para todos)');
+ok(!str_contains($inicio, 'Sair da prévia') && !str_contains($inicio, 'Prévia da interface nova') && !str_contains($inicio, 'voltar ao desenho de sempre'), 'a home não fala mais em prévia nem oferece voltar ao desenho antigo');
 ok(is_file($raiz . '/scripts/interface_nova_conta.php'), 'existe o script que liga a conta');
 // O <title> das páginas ("Processos — Yuris") e o título dos READMEs ("# public/ — ...")
 // seguem o padrão de todo o sistema; fora deles, texto não leva travessão.

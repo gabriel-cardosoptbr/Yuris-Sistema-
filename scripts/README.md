@@ -5,7 +5,9 @@ executa de propósito, com `php scripts/<arquivo>.php`.
 
 ## Interface nova (prévia)
 
-`interface_nova_conta.php` liga ou desliga a interface nova numa conta
+**Sem efeito desde 11/11/2026:** a interface nova vale para todas as contas Yuris e a
+chave por conta não é mais lida. O script fica pela história.
+`interface_nova_conta.php` ligava ou desligava a interface nova numa conta
 (`--procurar=NOME` para achar a conta, `--listar`, `--conta=ID --ligar`,
 `--conta=ID --desligar`). Grava `accounts.configuracoes.interface_nova` preservando o
 resto; recusa conta de marca. Em produção: `docker exec yuris_app php

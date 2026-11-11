@@ -117,7 +117,6 @@ $evento = static function (array $i) use ($h, $det, $detEvento): string {
           <svg class="ini-lua" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
           <svg class="ini-sol" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
         </button>
-        <a class="ini-sair-previa ini-btn" href="<?= $h(InterfaceNova::enderecoCom((string) ($_SERVER['REQUEST_URI'] ?? '/dashboard'), '0')) ?>" title="Voltar ao desenho de sempre">Sair da prévia</a>
       </div>
 
       <!-- ── Boas-vindas ── -->
@@ -362,7 +361,6 @@ $evento = static function (array $i) use ($h, $det, $detEvento): string {
         </section>
       </div>
 
-      <p class="ini-rodape">Prévia da interface nova · os dados são os do escritório · <a href="<?= $h(InterfaceNova::enderecoCom((string) ($_SERVER['REQUEST_URI'] ?? '/dashboard'), '0')) ?>">voltar ao desenho de sempre</a></p>
     </section>
   </div>
 </main>
