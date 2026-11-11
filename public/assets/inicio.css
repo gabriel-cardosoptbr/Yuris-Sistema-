@@ -365,9 +365,9 @@ html[data-theme="light"] .ini-sala h1 .ini-nome{ background-image:linear-gradien
   background:var(--ini-painel2); border:1px solid var(--ini-linha); box-shadow:0 1px 0 var(--ini-hi) inset;
   color:inherit; text-decoration:none; transition:border-color .15s, transform .15s, background .15s; }
 .ini-cartao:first-child{ padding-top:10px; border-top:1px solid var(--ini-linha); }
-.ini-cartao:hover{ border-color:rgba(61,101,203,.45); transform:translateX(2px); }
+.ini-cartao:hover{ border-color:rgba(61,101,203,.45); } /* sem deslocar: a lista rola e corta o que passa da borda (11/11/2026) */
 .ini-cartao:hover b{ color:inherit; }
-.ini-cartao:focus-visible{ outline:2px solid var(--ini-azul2); outline-offset:2px; }
+.ini-cartao:focus-visible{ outline:2px solid var(--ini-azul2); outline-offset:-2px; }
 .ini-chev{ width:22px; height:22px; display:grid; place-items:center; color:var(--ini-azul2); opacity:.7; transition:opacity .15s, transform .15s; }
 .ini-chev svg{ width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
 .ini-cartao:hover .ini-chev{ opacity:1; transform:translateX(2px); }

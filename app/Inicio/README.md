@@ -103,6 +103,9 @@ seleção em pílula.
   à direita. O azul opaco marca os detalhes: número do processo (`.ini-num`), hora,
   etiquetas, tribunal, grupos, "Responder no WhatsApp". A tabela de processos virou
   cartões. ("Todos têm que ser um card, cada um com a sua função; use o azul nos detalhes.")
+  No hover o cartão só acende a borda e a seta, **sem se deslocar**: as listas rolam
+  (`overflow:auto`) e cortavam a borda direita do cartão que andava 2px (11/11/2026).
+  Pelo mesmo motivo o contorno de foco fica para dentro (`outline-offset:-2px`).
 - **Pop-up de detalhe** (`public/assets/inicio-detalhe.js`): clicar num cartão abre a
   janela na própria home, sem sair da tela ("queria que abrisse o pop-up direto aqui").
   Cada cartão leva os dados dele em `data-det`; para processo e tarefa a janela busca o
