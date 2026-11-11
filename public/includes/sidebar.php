@@ -1758,6 +1758,9 @@ window.FF_AGENDA = { csrf: <?= json_encode($_notifCsrf) ?>, sessao: <?= json_enc
 <?php if ($_interfaceNova): ?>
 <!-- Interface nova (prévia): veste o menu. Vem depois de todas as folhas, e ganha. -->
 <link rel="stylesheet" href="/assets/interface-nova.css?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova.css') ?: 1 ?>">
+<!-- Todo cartão se mexe no hover: em lista vai para a direita, em fileira sobe (a regra está no .js). -->
+<link rel="stylesheet" href="/assets/interface-nova-hover.css?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-hover.css') ?: 1 ?>">
+<script src="/assets/interface-nova-hover.js?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-hover.js') ?: 1 ?>" defer></script>
 <?php if (($_GET['embed'] ?? '') !== '1'): ?>
 <!-- O menu fica parado na troca de tela: o item enche, a tela fecha e abre (assets/menu-fixo.js). -->
 <script src="/assets/menu-fixo.js?v=<?= @filemtime(__DIR__ . '/../assets/menu-fixo.js') ?: 1 ?>" defer></script>

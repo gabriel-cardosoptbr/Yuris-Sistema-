@@ -566,11 +566,11 @@ html .inn-tela input::placeholder, html .inn-tela textarea::placeholder{ color:v
    do movimento (inn-item) é por transform e fica valendo no fim, então não se mexe em transform. O link
    que cobre o cartão que leva a outra tela é transparente. A seção mostrada pelo cartão pisca a moldura. */
 html .inn-cartao-acao{ position:relative; cursor:pointer; transition:translate .18s ease, scale .1s ease, border-color .18s ease, box-shadow .18s ease; }
-html .inn-cartao-acao:hover{ translate:0 -2px; border-color:var(--inn-t-linha2) !important; }
+html .inn-cartao-acao:hover{ border-color:var(--inn-t-linha2) !important; } /* o movimento é do interface-nova-hover (11/11/2026) */
 html .inn-cartao-acao:active{ scale:.985; }
 html .inn-cartao-acao:focus-visible{ outline:2px solid var(--inn-t-azul2); outline-offset:2px; }
 html .inn-cartao-on.inn-cartao-on{ border-color:var(--inn-t-azul2) !important; box-shadow:0 0 0 3px var(--inn-t-azul-suave) !important; }
 html .inn-cartao-link{ position:absolute; inset:0; z-index:2; border-radius:inherit; background:transparent; }
 @keyframes inn-destaque{ 0%{ outline-color:transparent; outline-offset:8px; } 25%{ outline-color:var(--inn-t-azul2); outline-offset:3px; } 100%{ outline-color:transparent; outline-offset:3px; } }
 html .inn-destaque{ outline:2px solid transparent; animation:inn-destaque 1.4s ease both; }
-@media (prefers-reduced-motion: reduce){ html .inn-cartao-acao:hover{ translate:none; } html .inn-destaque{ animation:none; outline-color:var(--inn-t-azul2); } }
+@media (prefers-reduced-motion: reduce){ html .inn-destaque{ animation:none; outline-color:var(--inn-t-azul2); } }

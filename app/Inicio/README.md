@@ -103,10 +103,11 @@ seleção em pílula.
   à direita. O azul opaco marca os detalhes: número do processo (`.ini-num`), hora,
   etiquetas, tribunal, grupos, "Responder no WhatsApp". A tabela de processos virou
   cartões. ("Todos têm que ser um card, cada um com a sua função; use o azul nos detalhes.")
-  No hover o cartão desliza 2px para a direita. A lista da agenda (`.ini-dia-lista`) rola
-  (`overflow:auto`) e cortava a borda que saía; por isso ela tem 4px de folga à direita.
-  Lista nova com rolagem precisa da mesma folga. O contorno de foco fica para dentro
-  (`outline-offset:-2px`) pelo mesmo motivo (11/11/2026).
+  O movimento do hover não é desta folha: vem da regra única de todo o sistema
+  (`public/assets/interface-nova-hover.js`, 11/11/2026). Cartão em lista desliza 2px para a
+  direita, indicador e contador em fileira sobem 2px. A lista da agenda (`.ini-dia-lista`) rola
+  e cortava a borda que saía; ela tem 4px de folga à direita, e a regra dá folga sozinha às
+  outras listas que rolam. O contorno de foco fica para dentro (`outline-offset:-2px`).
 - **Pop-up de detalhe** (`public/assets/inicio-detalhe.js`): clicar num cartão abre a
   janela na própria home, sem sair da tela ("queria que abrisse o pop-up direto aqui").
   Cada cartão leva os dados dele em `data-det`; para processo e tarefa a janela busca o

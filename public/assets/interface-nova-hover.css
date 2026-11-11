@@ -1,0 +1,21 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   interface-nova-hover.css: o movimento de hover de todo cartão (11/11/2026).
+   Par do interface-nova-hover.js, que diz qual cartão vai para onde. A regra
+   inteira está no topo do .js:
+
+     cartão em lista (texto, um embaixo do outro) .... 2 px para a DIREITA
+     cartão em fileira ou grade, ou com número grande  2 px para CIMA
+
+   Só a propriedade `translate`: o `transform` continua livre para as entradas
+   animadas e o aperto do clique, e um não anula o outro. A transição do
+   translate o .js soma à que o cartão já tinha (aqui ela seria trocada inteira).
+   Hover de cartão novo não se escreve na folha da tela: entra por esta regra.
+   ═══════════════════════════════════════════════════════════════════════════ */
+/* Só com mouse: no toque o :hover gruda e o cartão ficaria torto depois do toque. */
+@media (hover: hover){
+  html.inn-hv .inn-hv-lado:hover{ translate:2px 0; }
+  html.inn-hv .inn-hv-cima:hover{ translate:0 -2px; }
+}
+/* Arrastando (quadro de Tarefas, Prospecção), o cartão não pula. */
+html.inn-hv .sortable-chosen, html.inn-hv .sortable-ghost, html.inn-hv .sortable-drag{ translate:none; }
+@media (prefers-reduced-motion: reduce){ html .inn-hv-lado:hover, html .inn-hv-cima:hover{ translate:none; } }
