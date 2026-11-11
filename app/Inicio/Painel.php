@@ -524,14 +524,39 @@ final class Painel
         ];
     }
 
+    /** Os blocos da home e a tela de que cada um depende (o mesmo nome da permissão do menu). */
+    public const TELAS = ['tarefas', 'processos', 'intimacoes', 'chat', 'dashboard'];
+
+    /**
+     * O que a pessoa pode ver na home, pela mesma regra do menu (_sidebarCan):
+     * perfil admin, '*' ou a tela na lista de permissões (11/11/2026). Antes a home
+     * mostrava tudo a todos: quem não tinha o Chat via as conversas do WhatsApp.
+     * A agenda, os prazos, os indicadores de prazo e a equipe valem com Tarefas OU
+     * Processos, porque a agenda junta os dois.
+     *
+     * @return array{tarefas:bool, processos:bool, intimacoes:bool, chat:bool, dashboard:bool, agenda:bool}
+     */
+    public static function pode(bool $admin, array $permissoes): array
+    {
+        $tudo = $admin || in_array('*', $permissoes, true);
+        $p = [];
+        foreach (self::TELAS as $t) $p[$t] = $tudo || in_array($t, $permissoes, true);
+        $p['agenda'] = $p['tarefas'] || $p['processos'];
+        return $p;
+    }
+
     /**
      * Tudo junto, para a página. $escopo é o mesmo da Central
-     * (user_id, is_admin, contas_tarefas, contas_processos).
+     * (user_id, is_admin, contas_tarefas, contas_processos). $pode vem de pode():
+     * o que a pessoa não pode ver nem é lido do banco. Sem $pode, tudo.
      */
-    public static function montar(array $escopo, array $tenantIds): array
+    public static function montar(array $escopo, array $tenantIds, ?array $pode = null): array
     {
+        $pode  = $pode ?? self::pode(true, []);
         $agora = self::agora();
         $hoje  = $agora->format('Y-m-d');
+        if (!$pode['tarefas'])   $escopo['contas_tarefas'] = [];
+        if (!$pode['processos']) $escopo['contas_processos'] = [];
 
         $central = Central::listar($escopo, ['situacao' => 'abertas']);
         $itens   = self::encurtarTitulos($central['itens']);
@@ -542,11 +567,12 @@ final class Painel
         $audienciasSemana = count(array_filter($itens, static fn($i) => empty($i['concluida']) && in_array('semana', $i['periodos'] ?? [], true) && self::tipoDoItem($i) === 'audiencia'));
         $prazosHoje = count(array_filter($agenda, static fn($i) => $i['tipo'] === 'prazo'));
 
-        $publicacoes = self::publicacoes($tenantIds);
-        $whats       = self::aguardandoRetorno($tenantIds);
-        $usuarios    = self::usuarios($tenantIds);
-        $carga       = CargaDaEquipe::agora($escopo['contas_tarefas'] ?? $tenantIds);
-        $numeros     = self::numeros($tenantIds, $hoje) + ['audiencias_semana' => $audienciasSemana];
+        $publicacoes = $pode['intimacoes'] ? self::publicacoes($tenantIds) : ['total' => 0, 'itens' => []];
+        $whats       = $pode['chat'] ? self::aguardandoRetorno($tenantIds) : null;
+        $usuarios    = $pode['agenda'] ? self::usuarios($tenantIds) : [];
+        $carga       = $pode['agenda'] ? CargaDaEquipe::agora($escopo['contas_tarefas'] ?: $tenantIds) : ['pessoas' => []];
+        $numeros     = ($pode['processos'] ? self::numeros($tenantIds, $hoje) : ['ativos' => 0, 'novos_mes' => 0, 'publicacoes_mes' => 0, 'clientes' => 0])
+                     + ['audiencias_semana' => $audienciasSemana];
         $porDia      = self::porDia($itens);
 
         return [
@@ -562,8 +588,8 @@ final class Painel
             'contagem'  => $cont,
             'prazos'    => self::proximosPrazos($itens),
             'publicacoes' => $publicacoes,
-            'equipe'    => self::equipe($usuarios, $carga['pessoas'], $itens),
-            'processos' => self::processosMovimentados($tenantIds),
+            'equipe'    => $pode['agenda'] ? self::equipe($usuarios, $carga['pessoas'], $itens) : [],
+            'processos' => $pode['processos'] ? self::processosMovimentados($tenantIds) : [],
             'whatsapp'  => $whats,
             'numeros'   => $numeros,
             'kpis'      => [
@@ -572,6 +598,7 @@ final class Painel
                 'publicacoes' => $publicacoes['total'], 'audiencias_semana' => $audienciasSemana,
             ],
             'calendario' => ['mes' => substr($hoje, 0, 7), 'por_dia' => $porDia],
+            'pode'      => $pode,
         ];
     }
 }

@@ -173,6 +173,22 @@ eq(['Suspenso', 'ag'], Painel::situacaoDoProcesso('suspenso', '2026-11-07', '202
 eq(['Encerrado', 'ok'], Painel::situacaoDoProcesso('concluido', null, '2026-11-07'), 'concluído é encerrado');
 
 // ── 3. Os ganchos ────────────────────────────────────────────────────────────
+// A home respeita a permissão de cada pessoa (11/11/2026): quem não tem o Chat não vê as
+// conversas do WhatsApp, quem não tem Publicações não vê publicações, e assim por diante.
+secao('2f. O que cada pessoa pode ver na home');
+$todo = Painel::pode(true, []);
+ok($todo['tarefas'] && $todo['processos'] && $todo['intimacoes'] && $todo['chat'] && $todo['dashboard'] && $todo['agenda'], 'admin vê tudo');
+$estrela = Painel::pode(false, ['*']);
+ok($estrela['chat'] && $estrela['intimacoes'] && $estrela['agenda'], "'*' vê tudo");
+$membro = Painel::pode(false, ['dashboard', 'processos', 'tarefas', 'whatsapp']);
+ok(!$membro['chat'], "membro com 'whatsapp' (nome antigo) não vê o Chat, igual ao menu");
+ok(!$membro['intimacoes'], 'membro sem intimacoes não vê publicações');
+ok($membro['processos'] && $membro['tarefas'] && $membro['agenda'], 'membro com processos e tarefas vê a agenda');
+$soTar = Painel::pode(false, ['tarefas']);
+ok($soTar['agenda'] && !$soTar['processos'] && !$soTar['dashboard'], 'só Tarefas: agenda sim, processos e Indicadores não');
+$nada = Painel::pode(false, []);
+ok(!$nada['agenda'] && !$nada['chat'] && !$nada['intimacoes'] && !$nada['processos'], 'sem permissão nenhuma: nada');
+
 secao('3. Ganchos no menu e no dashboard');
 $sidebar = (string) file_get_contents($raiz . '/public/includes/sidebar.php');
 ok(str_contains($sidebar, 'InterfaceNova::ligada($_GET, $_COOKIE, $_isFleetiflow);'), 'menu liga para todos, com a conta de marca fora');
@@ -470,6 +486,11 @@ ok(!str_contains($popups, '—') && !str_contains($popups, 'text-overflow'), 'fo
 $nova = (string) file_get_contents($raiz . '/public/assets/interface-nova.css');
 ok(str_contains($nova, 'background:linear-gradient(rgba(46,85,184,.13), rgba(46,85,184,.13)), var(--inn-fundo) !important;') && !str_contains($nova, 'background:#FFFFFF !important;') && str_contains($nova, '.sidebar-group.has-active .sidebar-group-icon svg *{ color:inherit !important; stroke:currentColor !important; }'), 'grupo com a página atual: ícone azul na caixa afundada com véu azul, nunca caixa branca');
 ok(!str_contains($sidebarT, 'InterfaceNova::contaLigada(') && !str_contains($dash, 'InterfaceNova::contaLigada('), 'menu e dashboard não consultam mais a chave da conta (vale para todos)');
+ok(str_contains($inicio, '$pode = Painel::pode($_adminInicio, $_permsInicio);') && str_contains($inicio, 'Painel::montar($escopoCentral, $tenantIds, $pode)'), 'a home pede a permissão antes de ler o banco');
+foreach (["<?php if (\$pode['intimacoes']): ?>\n        <section class=\"ini-card\">", "<?php endif; if (\$pode['processos']): ?>", "<?php if (\$pode['dashboard']): ?>\n        <a class=\"ini-link-topo\"", "<?php if (\$pode['intimacoes'] && \$painel['publicacoes']['total'] > 0): ?>"] as $gancho)
+    ok(str_contains(str_replace("\r", '', $inicio), $gancho), 'bloco com permissão: ' . substr($gancho, 0, 50));
+ok(str_contains($inicio, 'ini-grade ini-g4 ini-n<?= $nKpi ?>') && str_contains($inicio, 'ini-grade ini-g3 ini-n<?= $nBaixo ?>'), 'as grades contam os blocos que ficaram');
+ok(str_contains((string) file_get_contents($raiz . '/public/assets/inicio.css'), '.ini-g4.ini-n3{ grid-template-columns:repeat(3,1fr); }'), 'a grade se fecha sem vão');
 ok(!str_contains($inicio, 'Sair da prévia') && !str_contains($inicio, 'Prévia da interface nova') && !str_contains($inicio, 'voltar ao desenho de sempre'), 'a home não fala mais em prévia nem oferece voltar ao desenho antigo');
 ok(is_file($raiz . '/scripts/interface_nova_conta.php'), 'existe o script que liga a conta');
 // O <title> das páginas ("Processos — Yuris") e o título dos READMEs ("# public/ — ...")
@@ -503,6 +524,11 @@ try {
     $st = $pdo->prepare('SELECT account_id FROM users WHERE id = ?');
     foreach ($p['equipe'] as $pe) { $st->execute([(int) $pe['id']]); if ((int) $st->fetchColumn() !== 1) $tudoDaConta = false; }
     ok($tudoDaConta, 'equipe: só da conta 1');
+    $semChat = Painel::montar(['user_id' => 2, 'is_admin' => false, 'contas_tarefas' => [1], 'contas_processos' => [1]], [1],
+        Painel::pode(false, ['tarefas']));
+    ok($semChat['whatsapp'] === null && $semChat['publicacoes'] === ['total' => 0, 'itens' => []] && $semChat['processos'] === [] && $semChat['kpis']['ativos'] === 0, 'só Tarefas: sem conversa, publicação e processo, nem lidos');
+    ok(!array_filter($semChat['agenda'], static fn($i) => ($i['origem'] ?? '') !== 'tarefa'), 'só Tarefas: a agenda só tem tarefa de quadro');
+    ok($semChat['pode']['agenda'] && !$semChat['pode']['chat'], 'a home recebe o que pode');
     // Uma conta que não existe não vê nada.
     $vazio = Painel::montar(['user_id' => 0, 'is_admin' => false, 'contas_tarefas' => [], 'contas_processos' => []], [999999]);
     ok($vazio['processos'] === [] && $vazio['equipe'] === [] && $vazio['publicacoes']['total'] === 0 && $vazio['whatsapp'] === null, 'conta sem nada: tudo vazio, sem erro');

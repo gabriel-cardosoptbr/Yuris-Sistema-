@@ -141,6 +141,15 @@ html[data-theme="light"] .ini-sala h1 .ini-nome{ background-image:linear-gradien
 .ini-agenda .ini-agenda-corpo{ flex:1 1 auto; min-height:0; }
 .ini-coluna{ display:flex; flex-direction:column; gap:16px; min-width:0; }
 .ini-g3{ grid-template-columns:1fr 1.3fr 1fr; }
+/* Quem não tem a permissão de um bloco não o vê (11/11/2026): a grade conta quantos ficaram
+   (ini-nN) e se fecha, sem vão. Entre 901 e 1380 px são duas colunas: o que sobra sozinho na
+   última linha ocupa a linha inteira. */
+@media (min-width:1381px){
+  .ini-g4.ini-n3{ grid-template-columns:repeat(3,1fr); } .ini-g4.ini-n2{ grid-template-columns:repeat(2,1fr); } .ini-g4.ini-n1{ grid-template-columns:1fr; }
+  .ini-g3.ini-n2{ grid-template-columns:1fr 1fr; } .ini-g3.ini-n1{ grid-template-columns:1fr; }
+}
+@media (min-width:901px) and (max-width:1380px){ .ini-g4.ini-n3 > :last-child, .ini-g4.ini-n1 > *, .ini-g3.ini-n1 > *{ grid-column:1 / -1; } }
+.ini-g-agenda.ini-so-coluna{ grid-template-columns:1fr; }
 @media (max-width:1380px){ .ini-g4{ grid-template-columns:repeat(2,1fr); } .ini-g3{ grid-template-columns:1fr 1fr; } }
 @media (max-width:1100px){ .ini-g-agenda{ grid-template-columns:1fr; } .ini-cal-dias{ grid-auto-rows:40px; } .ini-dia{ min-height:0; } .ini-dia-lista{ position:static; max-height:460px; } }
 @media (max-width:900px){ .ini-g4,.ini-g3{ grid-template-columns:1fr; } .ini-sala-texto{ padding:22px; max-width:none; } .ini-sala h1{ font-size:24px; } body.ini-body > main{ padding:12px 12px 90px; }

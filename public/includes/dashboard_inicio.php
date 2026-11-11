@@ -35,8 +35,20 @@ $escopoCentral = [
     'contas_tarefas'   => $ctx->getAccessibleAccountIds('tarefas'),
     'contas_processos' => $ctx->getAccessibleAccountIds('processos'),
 ];
+// O que a pessoa pode ver (11/11/2026): a mesma regra do menu. O que ela não pode ver nem é
+// lido do banco, e o bloco some sem deixar vão (a grade conta quantos ficaram).
+$_permsInicio = (array) ($_SESSION['user_permissions'] ?? []);
+$_adminInicio = strtolower((string) ($_SESSION['user_perfil'] ?? '')) === 'admin';
+if (!$_adminInicio && !$_permsInicio && !empty($_SESSION['user_id'])) {
+    try {
+        $__st = \App\Core\Database::getConnection()->prepare('SELECT page FROM user_permissions WHERE user_id = ?');
+        $__st->execute([(int) $_SESSION['user_id']]);
+        $_permsInicio = $__st->fetchAll(\PDO::FETCH_COLUMN);
+    } catch (\Throwable $__e) { /* sem permissão lida, só o que não depende de tela */ }
+}
+$pode = Painel::pode($_adminInicio, $_permsInicio);
 try {
-    $painel = Painel::montar($escopoCentral, $tenantIds);
+    $painel = Painel::montar($escopoCentral, $tenantIds, $pode);
 } catch (\Throwable $e) {
     error_log('[inicio] ' . $e->getMessage());
     $agora = Painel::agora();
@@ -48,11 +60,15 @@ try {
         'numeros' => ['ativos' => 0, 'novos_mes' => 0, 'publicacoes_mes' => 0, 'clientes' => 0, 'audiencias_semana' => 0],
         'kpis' => ['urgentes' => 0, 'ativos' => 0, 'novos_mes' => 0, 'publicacoes' => 0, 'audiencias_semana' => 0],
         'calendario' => ['mes' => $agora->format('Y-m'), 'por_dia' => []],
+        'pode' => $pode,
     ];
 }
 $hoje = $painel['hoje'];
 $h = static fn($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
 $temWhats = $painel['whatsapp'] !== null;
+$hrefAgenda = $pode['tarefas'] ? '/tarefas' : '/processos';   // prazos e audiências: Tarefas, ou Processos para quem só tem ele
+$nKpi = ($pode['agenda'] ? 2 : 0) + ($pode['processos'] ? 1 : 0) + ($pode['intimacoes'] ? 1 : 0);
+$nBaixo = ($pode['intimacoes'] ? 1 : 0) + ($pode['processos'] ? 1 : 0) + ($pode['agenda'] ? 1 : 0);
 $seta = '<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 $porDia = $painel['calendario']['por_dia'];
 $mes = $painel['calendario']['mes'];
@@ -109,9 +125,11 @@ $evento = static function (array $i) use ($h, $det, $detEvento): string {
           <?= $h(ucfirst($painel['data'])) ?>
         </div>
         <span class="ini-sp"></span>
+        <?php if ($pode['dashboard']): ?>
         <a class="ini-link-topo" href="/dashboard?gestao=1" title="O painel de indicadores de sempre">
           <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m7 15 4-5 4 3 5-7"/></svg> Indicadores
         </a>
+        <?php endif; ?>
         <button type="button" class="ini-tema" id="iniTema" title="Trocar entre claro e escuro" aria-label="Trocar tema">
           <span class="ini-tema-bola"></span>
           <svg class="ini-lua" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
@@ -125,9 +143,9 @@ $evento = static function (array $i) use ($h, $det, $detEvento): string {
           <h1><span id="iniSaudacao"><?= $h($painel['saudacao']) ?></span>, <span class="ini-nome"><?= $h(Painel::primeiroNome($_userNome)) ?></span></h1>
           <p><?= $painel['resumo'] ?></p>
           <div class="ini-acoes">
-            <a class="ini-btn primario" href="/processos" data-novo="processo"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Novo processo</a>
-            <a class="ini-btn" href="/tarefas" data-novo="tarefa"><svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Nova tarefa</a>
-            <?php if ($painel['publicacoes']['total'] > 0): ?>
+            <?php if ($pode['processos']): ?><a class="ini-btn primario" href="/processos" data-novo="processo"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Novo processo</a><?php endif; ?>
+            <?php if ($pode['tarefas']): ?><a class="ini-btn<?= $pode['processos'] ? '' : ' primario' ?>" href="/tarefas" data-novo="tarefa"><svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Nova tarefa</a><?php endif; ?>
+            <?php if ($pode['intimacoes'] && $painel['publicacoes']['total'] > 0): ?>
             <a class="ini-btn" href="/intimacoes" data-novo="publicacoes"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Tratar publicações</a>
             <?php endif; ?>
           </div>
@@ -136,36 +154,45 @@ $evento = static function (array $i) use ($h, $det, $detEvento): string {
       </section>
 
       <!-- ── O que está acontecendo: quatro cartões ── -->
-      <div class="ini-grade ini-g4">
-        <a class="ini-kpi <?= $painel['kpis']['urgentes'] > 0 ? 'alerta' : '' ?>" href="/tarefas">
+      <?php if ($nKpi): ?>
+      <div class="ini-grade ini-g4 ini-n<?= $nKpi ?>">
+        <?php if ($pode['agenda']): ?>
+        <a class="ini-kpi <?= $painel['kpis']['urgentes'] > 0 ? 'alerta' : '' ?>" href="<?= $hrefAgenda ?>">
           <span class="ini-kpi-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
           <span class="ini-kpi-t">Prazos urgentes</span>
           <b><?= (int) $painel['kpis']['urgentes'] ?></b>
           <small>vencem em até 3 dias<?= (int) $painel['contagem']['atrasadas'] > 0 ? ' · ' . (int) $painel['contagem']['atrasadas'] . ' atrasados' : '' ?></small>
         </a>
+        <?php endif; if ($pode['processos']): ?>
         <a class="ini-kpi" href="/processos">
           <span class="ini-kpi-ic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
           <span class="ini-kpi-t">Processos ativos</span>
           <b><?= (int) $painel['kpis']['ativos'] ?></b>
           <small><?= (int) $painel['kpis']['novos_mes'] > 0 ? '+' . (int) $painel['kpis']['novos_mes'] . ' novos neste mês' : 'nenhum novo neste mês' ?></small>
         </a>
+        <?php endif; if ($pode['intimacoes']): ?>
         <a class="ini-kpi <?= $painel['kpis']['publicacoes'] > 0 ? 'atencao' : '' ?>" href="/intimacoes">
           <span class="ini-kpi-ic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg></span>
           <span class="ini-kpi-t">Publicações</span>
           <b><?= (int) $painel['kpis']['publicacoes'] ?></b>
           <small>sem tratamento no Diário</small>
         </a>
-        <a class="ini-kpi" href="/tarefas">
+        <?php endif; if ($pode['agenda']): ?>
+        <a class="ini-kpi" href="<?= $hrefAgenda ?>">
           <span class="ini-kpi-ic"><svg viewBox="0 0 24 24"><path d="M16 16h6l-3-7-3 7zM2 16h6l-3-7-3 7zM12 3v19M3 22h18M5 9h14"/></svg></span>
           <span class="ini-kpi-t">Audiências</span>
           <b><?= (int) $painel['kpis']['audiencias_semana'] ?></b>
           <small>nesta semana</small>
         </a>
+        <?php endif; ?>
       </div>
+      <?php endif; ?>
 
       <!-- ── Agenda jurídica com o calendário; ao lado, prazos e quem espera ── -->
-      <div class="ini-grade ini-g-agenda">
+      <?php if ($pode['agenda'] || $temWhats): ?>
+      <div class="ini-grade ini-g-agenda<?= $pode['agenda'] ? '' : ' ini-so-coluna' ?>">
 
+        <?php if ($pode['agenda']): ?>
         <section class="ini-card ini-agenda">
           <header class="ini-card-h">
             <a class="ini-ic" href="/tarefas" title="Ver a agenda completa" aria-label="Ver a agenda completa"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M3 10h18M8 2v4M16 2v4"/></svg></a>
@@ -224,11 +251,13 @@ $evento = static function (array $i) use ($h, $det, $detEvento): string {
             </div>
           </div>
         </section>
+        <?php endif; ?>
 
         <div class="ini-coluna">
+          <?php if ($pode['agenda']): ?>
           <section class="ini-card">
             <header class="ini-card-h">
-              <a class="ini-ic" href="/tarefas" title="Ver todos os prazos" aria-label="Ver todos os prazos"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></a>
+              <a class="ini-ic" href="<?= $hrefAgenda ?>" title="Ver todos os prazos" aria-label="Ver todos os prazos"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></a>
               <div class="ini-card-tit">
                 <h3>Prazos</h3>
               </div>
@@ -263,6 +292,7 @@ $evento = static function (array $i) use ($h, $det, $detEvento): string {
             </div>
             <?php endif; ?>
           </section>
+          <?php endif; ?>
 
           <?php if ($temWhats): ?>
           <section class="ini-card">
@@ -291,10 +321,13 @@ $evento = static function (array $i) use ($h, $det, $detEvento): string {
           <?php endif; ?>
         </div>
       </div>
+      <?php endif; ?>
 
       <!-- ── Publicações, processos e equipe ── -->
-      <div class="ini-grade ini-g3">
+      <?php if ($nBaixo): ?>
+      <div class="ini-grade ini-g3 ini-n<?= $nBaixo ?>">
 
+        <?php if ($pode['intimacoes']): ?>
         <section class="ini-card">
           <header class="ini-card-h">
             <a class="ini-ic" href="/intimacoes" title="Abrir o Diário" aria-label="Abrir o Diário"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg></a>
@@ -317,6 +350,7 @@ $evento = static function (array $i) use ($h, $det, $detEvento): string {
           </div>
           <?php endif; ?>
         </section>
+        <?php endif; if ($pode['processos']): ?>
 
         <section class="ini-card">
           <header class="ini-card-h">
@@ -341,6 +375,7 @@ $evento = static function (array $i) use ($h, $det, $detEvento): string {
           </div>
           <?php endif; ?>
         </section>
+        <?php endif; if ($pode['agenda']): ?>
 
         <section class="ini-card">
           <header class="ini-card-h">
@@ -359,7 +394,9 @@ $evento = static function (array $i) use ($h, $det, $detEvento): string {
             <?php endforeach; ?>
           </div>
         </section>
+        <?php endif; ?>
       </div>
+      <?php endif; ?>
 
     </section>
   </div>
@@ -386,6 +423,7 @@ window.INI_CAL = <?= json_encode(['hoje' => $hoje, 'mes' => $mes, 'porDia' => $p
   });
 
   // O calendário: trocar de mês e de dia sem recarregar. Os dados já vieram na página.
+  if (!document.getElementById('iniCal')) return;   // sem Tarefas nem Processos, a agenda não vem
   var C = window.INI_CAL, MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'],
       DIAS = ['dom','seg','ter','qua','qui','sex','sáb'], mesAtual = C.mes, sel = C.hoje;
   setTimeout(function () { resumoDoMes(C.mes); }, 0);
