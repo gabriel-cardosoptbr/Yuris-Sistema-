@@ -1713,11 +1713,11 @@ try { $_avisosChave = \App\Notificacoes\Push::chavePublica(); } catch (\Throwabl
 // Aviso de "atualização nova" (10/11/2026): uma vez por pessoa e navegador, até
 // App\Inicio\Novidade::ID mudar. Cada item só aparece para quem tem a permissão da
 // tela anunciada. ?novidade=1 abre de novo (prévia). Não vai no ?embed=1.
+// Só no Yuris: na edição CRM não há aviso, nem o CSS e o JS dele (11/11/2026).
 $_novidade = null;
 if (($_GET['embed'] ?? '') !== '1') {
     try {
-        $_novVendedor = isset($__brandCtx) && method_exists($__brandCtx, 'vendedorCrm') && $__brandCtx->vendedorCrm();
-        $_novidade = \App\Inicio\Novidade::para('_sidebarCan', (bool) $_isFleetiflow, $_novVendedor);
+        $_novidade = \App\Inicio\Novidade::para('_sidebarCan', (bool) $_isFleetiflow);
     } catch (\Throwable $__e) { $_novidade = null; }
 }
 if ($_novidade): ?>

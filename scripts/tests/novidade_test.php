@@ -4,8 +4,8 @@
  *
  * Trava:
  *   1. A regra de quem vê o quê: cada item só para quem tem a permissão da tela;
- *      itens do jurídico não aparecem na edição CRM; o Financeiro some para o
- *      vendedor da edição CRM; sem nenhum item, sem aviso.
+ *      a edição CRM não vê aviso nenhum ("tire isso do crm", 11/11/2026); sem
+ *      nenhum item, sem aviso.
  *   2. O texto: sem travessão, em português, sem item sem título nem texto, e todo
  *      ícone pedido existe em assets/novidade.js.
  *   3. O menu compartilhado entrega o aviso: CSS e JS ligados fora do ?embed=1,
@@ -48,12 +48,8 @@ eq(['Publicações mais claras'], $titulos(Novidade::para($so(['intimacoes']))),
 eq(null, Novidade::para($so(['tarefas', 'chat'])), 'sem nenhuma das telas anunciadas: sem aviso (null)');
 eq(null, Novidade::para(fn ($p) => false), 'sem nenhuma permissão: sem aviso');
 
-$crm = Novidade::para($todas, true, false);
-eq(['Parcelas e baixa no Financeiro', 'Projeção de recebimentos', 'Responsável no cliente PJ'], $titulos($crm), 'edição CRM: sem os itens do jurídico (processo e publicações)');
-$vendedor = Novidade::para($todas, true, true);
-eq(['Responsável no cliente PJ'], $titulos($vendedor), 'vendedor da edição CRM: sem o Financeiro, que ele não vê');
-eq(null, Novidade::para($so(['financas']), true, true), 'vendedor só com Finanças: sem aviso');
-ok(!str_contains(json_encode($crm['itens'], JSON_UNESCAPED_UNICODE), 'processo'), 'edição CRM: nenhum texto fala em processo');
+eq(null, Novidade::para($todas, true), 'edição CRM: sem aviso, mesmo com todas as permissões ("tire isso do crm", 11/11/2026)');
+eq(null, Novidade::para($so(['financas', 'clientes']), true), 'edição CRM com Finanças e Clientes: sem aviso');
 ok(str_contains(json_encode($admin['itens'], JSON_UNESCAPED_UNICODE), 'cliente e processo'), 'no jurídico o texto do Financeiro fala em cliente e processo');
 
 secao('2. O texto');
@@ -70,8 +66,8 @@ ok(!str_contains($js . $css, '—'), 'o JS e o CSS do aviso não usam travessão
 ok(preg_match('/^\d{4}-\d{2}-\d{2}-[a-z0-9-]+$/', Novidade::ID) === 1, 'o id tem o formato data-assunto');
 
 secao('3. O menu compartilhado entrega o aviso');
-ok(str_contains($sidebar, '\App\Inicio\Novidade::para(\'_sidebarCan\''), 'o menu pede o aviso com a regra de permissão do próprio menu');
-ok(str_contains($sidebar, "if ((\$_GET['embed'] ?? '') !== '1') {\n    try {\n        \$_novVendedor") || preg_match('/embed.{0,40}!==.{0,6}\'1\'.{0,200}Novidade::para/s', $sidebar) === 1, 'não monta o aviso dentro do ?embed=1');
+ok(str_contains($sidebar, 'Novidade::para(\'_sidebarCan\', (bool) $_isFleetiflow)'), 'o menu pede o aviso com a regra de permissão do próprio menu e diz se é a edição CRM');
+ok(preg_match('/embed.{0,40}!==.{0,6}\'1\'.{0,400}Novidade::para/s', $sidebar) === 1, 'não monta o aviso dentro do ?embed=1');
 ok(str_contains($sidebar, '/assets/novidade.css') && str_contains($sidebar, '/assets/novidade.js'), 'liga o CSS e o JS do aviso');
 ok(str_contains($sidebar, "'forcar'  => (\$_GET['novidade'] ?? '') === '1'"), '?novidade=1 abre de novo (prévia)');
 ok(str_contains($sidebar, "'usuario' => (int) (\$_SESSION['user_id'] ?? 0)"), 'a configuração leva o usuário');
