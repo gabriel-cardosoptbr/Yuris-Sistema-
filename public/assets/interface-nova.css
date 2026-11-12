@@ -550,3 +550,10 @@ html #yuris-cookie-prefs .ycc-cat{ background:var(--inn-painel-fundo); border-co
 html #yuris-cookie-prefs .ycc-cat-desc, html #yuris-cookie-prefs .ycc-locked{ color:var(--inn-texto3); }
 html #yuris-cookie-prefs input[type="checkbox"]{ accent-color:var(--inn-azul); }
 @media (prefers-reduced-motion: reduce){ html #yuris-cookie-banner button:hover, html #yuris-cookie-prefs button:hover{ transform:none; } }
+
+/* O pop-up de outro módulo (iframe ?embed=1, na home e nas telas) fica transparente e a tela de
+   trás aparece borrada nos DOIS temas (11/11/2026, "fica tudo branco no tema escuro"). O navegador
+   pinta o iframe de branco opaco quando o color-scheme do elemento iframe e o da raiz da página de
+   dentro não batem: o yuris-theme.css põe color-scheme:dark no <body> de fora (o iframe herda) e a
+   raiz de dentro fica no padrão. Com o iframe no padrão também, os dois batem em qualquer tema. */
+html .inn-emb-quadro, html .idt-embed-quadro{ color-scheme:normal !important; }
