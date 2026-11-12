@@ -133,7 +133,7 @@ html:root .proc-resp-nome{ overflow-wrap:anywhere; }
    yuris-theme.css pintam .tarefa-btn-edit e .tarefa-del com !important. */
 html:root .proc-bts{ display:flex; align-items:center; gap:6px; margin-top:4px; flex-wrap:wrap; }
 html:root body :is(#prazosContainer, #tarefasContainer) .proc-bt.proc-bt{ height:30px; padding:0 12px !important; display:inline-flex; align-items:center; gap:6px; flex:none; border-radius:8px !important;
-  border:1px solid var(--inn-t-linha2) !important; background:var(--inn-t-painel2) !important; background-image:none !important; color:var(--inn-t-azul2) !important;
+  border:1px solid var(--inn-t-linha2) !important; background:var(--inn-t-painel2) !important; background-image:none !important; color:var(--inn-t-azul-texto) !important;
   box-shadow:0 1px 0 var(--inn-t-hi) inset !important; font:inherit; font-size:12px !important; font-weight:700 !important; line-height:1 !important; cursor:pointer;
   transition:transform .15s ease, background-color .15s ease, color .15s ease, border-color .15s ease, box-shadow .15s ease !important; }
 html:root body :is(#prazosContainer, #tarefasContainer) .proc-bt.proc-bt:hover{ background:linear-gradient(180deg, var(--inn-t-azul2), var(--inn-t-azul)) !important; color:#FFFFFF !important; border-color:transparent !important; box-shadow:var(--inn-t-brilho) !important; transform:translateY(-1px); }

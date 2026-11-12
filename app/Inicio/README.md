@@ -16,6 +16,15 @@ por `scripts/interface_nova_conta.php --conta=ID --ligar`: a conta inteira, em q
 navegador, foi o pedido "sobe o layout completo do sistema inteiro dentro da minha
 conta") ou quem abriu uma tela com `?novo=1`. `?novo=0` desliga nos dois casos.
 
+## Contraste (11/11/2026)
+
+"Escuro com escuro, não dá para ler": no escuro o cinza apagado (#7F8794), o azul de destaque
+usado como texto (#4F78DB) e o vermelho lido sobre caixa avermelhada davam 2,6 a 3,9:1, abaixo
+do 4,5:1 de texto pequeno. Agora `--ini-texto3` é #9AA3AE (claro #5F6878), e texto azul ou
+vermelho usa `--ini-azul-texto` (#86A8F2 / #2E55B8) e `--ini-erro-texto` (#F0928C / #A23B35).
+O `--ini-azul2` e o `--ini-erro` ficam para botão, preenchimento e borda. Regra: `color:` de
+texto nunca usa `--ini-azul2` nem `--ini-erro`.
+
 ## A paleta (07/11/2026)
 
 A do logo, e nada fora dela, nas três folhas e nos dois temas:

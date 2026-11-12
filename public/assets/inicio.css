@@ -16,7 +16,8 @@
 :root{
   --ini-bg:#1A1D22; --ini-bg2:#1F2329; --ini-painel:#262B33; --ini-painel2:#2D333C; --ini-fundo:#171A1F;
   --ini-linha:rgba(200,210,225,.10); --ini-linha2:rgba(200,210,225,.18); --ini-hi:rgba(255,255,255,.05);
-  --ini-texto:#E8EAEE; --ini-texto2:#B4BAC5; --ini-texto3:#7F8794;
+  --ini-texto:#E8EAEE; --ini-texto2:#B4BAC5; --ini-texto3:#9AA3AE;   /* 9AA3AE: o 7F8794 dava 3,5:1 no cartão, abaixo do mínimo de leitura (11/11/2026) */
+  --ini-azul-texto:#86A8F2; --ini-erro-texto:#F0928C;   /* azul e vermelho de TEXTO: o azul2 e o erro liam 2,6 a 3,7:1 no escuro ("escuro com escuro, não dá para ler") */
   --ini-azul:#3A63C9; --ini-azul2:#4F78DB; --ini-azul-suave:rgba(79,120,219,.14);
 
   --ini-prata:#3B434F; --ini-prata-texto:#E6E9EE;
@@ -33,7 +34,8 @@
 html[data-theme="light"]{
   --ini-bg:#E3E5E8; --ini-bg2:#E9EBEE; --ini-painel:#F5F6F8; --ini-painel2:#ECEEF1; --ini-fundo:#E6E8EB;
   --ini-linha:rgba(31,38,50,.10); --ini-linha2:rgba(31,38,50,.18); --ini-hi:rgba(255,255,255,.9);
-  --ini-texto:#1E2630; --ini-texto2:#4E586A; --ini-texto3:#7A8494;
+  --ini-texto:#1E2630; --ini-texto2:#4E586A; --ini-texto3:#5F6878;   /* 5F6878: o 7A8494 dava 3,2:1 no cartão prata */
+  --ini-azul-texto:#2E55B8; --ini-erro-texto:#A23B35;   /* A23B35: o B8453F dava 4:1 na caixa avermelhada do prazo */
   --ini-azul:#2E55B8; --ini-azul2:#3D65CB; --ini-azul-suave:rgba(46,85,184,.10);
 
   --ini-prata:#CBD0D8; --ini-prata-texto:#2A3340;
@@ -67,7 +69,7 @@ body.ini-body .page-layout, html[data-theme="light"] body.ini-body .page-layout{
 .ini-data{ height:38px; display:flex; align-items:center; gap:8px; padding:0 14px; border-radius:var(--ini-r2); background:var(--ini-painel); border:1px solid var(--ini-linha); box-shadow:var(--ini-sombra); font-weight:600; font-size:13px; color:var(--ini-texto2); }
 .ini-data svg{ width:15px; height:15px; stroke:var(--ini-azul2); fill:none; stroke-width:2; }
 .ini-link-topo{ height:38px; display:inline-flex; align-items:center; gap:8px; padding:0 14px; border-radius:var(--ini-r2); background:var(--ini-painel); border:1px solid var(--ini-linha); box-shadow:var(--ini-sombra); font-weight:600; font-size:13px; color:var(--ini-texto2); transition:color .18s, transform .18s; }
-.ini-link-topo:hover{ color:var(--ini-azul2); transform:translateY(-1px); }
+.ini-link-topo:hover{ color:var(--ini-azul-texto); transform:translateY(-1px); }
 .ini-link-topo svg{ width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 /* "Sair da prévia" é um botão como os vizinhos (era texto solto ao lado de botões). */
 .ini-tema{ position:relative; width:70px; height:38px; border-radius:999px; background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); display:flex; align-items:center; justify-content:space-between; padding:0 10px; color:var(--ini-texto3); cursor:pointer; font:inherit; }
@@ -89,9 +91,9 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-ic{ width:32px; height:32px; border-radius:var(--ini-r2); display:grid; place-items:center; background:var(--ini-fundo); color:var(--ini-texto); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); flex:none; }
 .ini-ic svg{ width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 .ini-conta{ font-size:12px; color:var(--ini-texto3); font-weight:600; }
-.ini-mais{ font-size:12.5px; font-weight:600; color:var(--ini-azul2); display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
+.ini-mais{ font-size:12.5px; font-weight:600; color:var(--ini-azul-texto); display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
 .ini-mais svg, .ini-mais-itens svg{ width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
-.ini-mais-itens{ display:inline-flex; align-items:center; gap:4px; margin-top:8px; font-size:12.5px; font-weight:600; color:var(--ini-azul2); }
+.ini-mais-itens{ display:inline-flex; align-items:center; gap:4px; margin-top:8px; font-size:12.5px; font-weight:600; color:var(--ini-azul-texto); }
 
 .ini-vazio{ text-align:center; padding:26px 12px; color:var(--ini-texto3); }
 .ini-vazio p{ font-weight:600; color:var(--ini-texto2); font-size:13.5px; }
@@ -103,7 +105,7 @@ html[data-theme="light"] .ini-tema .ini-sol{ color:#fff; }
 .ini-sala h1{ font-size:28px; font-weight:800; letter-spacing:-.7px; line-height:1.05; color:var(--ini-texto); }
 /* O nome no degradê do logo: o azul do Yuris indo para a prata ("faz degradê, assim
    como a logo", 08/11/2026). No claro a prata é um tom mais escura, para ler no fundo claro. */
-.ini-sala h1 .ini-nome{ color:var(--ini-azul2); background:linear-gradient(100deg, #4F78DB 0%, #6C90E3 38%, #B9C1CE 78%, #E3E7EE 100%);
+.ini-sala h1 .ini-nome{ color:var(--ini-azul-texto); background:linear-gradient(100deg, #4F78DB 0%, #6C90E3 38%, #B9C1CE 78%, #E3E7EE 100%);
   -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; padding-right:2px; }
 html[data-theme="light"] .ini-sala h1 .ini-nome{ background-image:linear-gradient(100deg, #2E55B8 0%, #3D65CB 38%, #6F7A8D 80%, #8A93A3 100%); }
 .ini-sala p{ margin-top:8px; color:var(--ini-texto2); font-size:14px; max-width:600px; line-height:1.5; }
@@ -129,7 +131,7 @@ html[data-theme="light"] .ini-sala h1 .ini-nome{ background-image:linear-gradien
 .ini-kpi b{ grid-area:v; font-size:26px; font-weight:800; letter-spacing:-.6px; line-height:1.1; color:var(--ini-texto); }
 .ini-kpi small{ grid-area:s; font-size:11.5px; color:var(--ini-texto3); margin-top:2px; }
 /* Todos os ícones iguais: afundados na prata. Só o número do prazo urgente avisa. */
-.ini-kpi.alerta b{ color:var(--ini-erro); }
+.ini-kpi.alerta b{ color:var(--ini-erro-texto); }
 
 /* ── Grades ── */
 .ini-grade{ display:grid; gap:16px; }
@@ -168,7 +170,7 @@ html[data-theme="light"] .ini-sala h1 .ini-nome{ background-image:linear-gradien
 .ini-cal-topo{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
 .ini-cal-topo b{ font-size:16px; font-weight:800; letter-spacing:-.2px; }
 .ini-cal-nav{ width:32px; height:32px; border-radius:var(--ini-r2); border:1px solid var(--ini-linha); background:var(--ini-painel); color:var(--ini-texto2); display:grid; place-items:center; cursor:pointer; padding:0; font:inherit; box-shadow:0 1px 0 var(--ini-hi) inset; transition:color .15s; }
-.ini-cal-nav:hover{ color:var(--ini-azul2); }
+.ini-cal-nav:hover{ color:var(--ini-azul-texto); }
 .ini-cal-nav svg{ width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
 .ini-cal-sem{ display:grid; grid-template-columns:repeat(7,1fr); text-align:center; font-size:11.5px; font-weight:700; letter-spacing:.06em; color:var(--ini-texto3); margin-bottom:6px; }
 /* Os dias não esticam mais até o fim do cartão (09/11/2026, "tem que ter revisão de designer":
@@ -218,7 +220,7 @@ html[data-theme="light"] .ini-sala h1 .ini-nome{ background-image:linear-gradien
 .ini-cal-resumo-n{ display:flex; flex-direction:column; justify-content:center; gap:2px; padding:9px 13px; border-radius:var(--ini-r2); background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); min-width:0; }
 .ini-cal-resumo-n b{ font-size:20px; line-height:1.1; font-weight:800; letter-spacing:-.3px; color:var(--ini-texto); font-variant-numeric:tabular-nums; }
 .ini-cal-resumo-n span{ font-size:12px; font-weight:600; color:var(--ini-texto2); }
-.ini-cal-resumo-n.prazo b{ color:var(--ini-erro); }
+.ini-cal-resumo-n.prazo b{ color:var(--ini-erro-texto); }
 /* Zero não é alerta: fica apagado (o "0 prazos" saía em vermelho). */
 .ini-cal-resumo-n.zero b{ color:var(--ini-texto3); }
 .ini-cal-resumo-p{ font-size:12px; font-weight:600; color:var(--ini-texto3); }
@@ -233,25 +235,29 @@ html[data-theme="light"] .ini-sala h1 .ini-nome{ background-image:linear-gradien
 .ini-dia{ min-width:0; min-height:300px; position:relative; }
 .ini-dia-h{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
 .ini-dia-h b{ font-size:16px; font-weight:800; letter-spacing:-.2px; }
-.ini-pill{ font-size:11.5px; font-weight:700; padding:3px 9px; border-radius:var(--ini-r2); background:var(--ini-azul-suave); color:var(--ini-azul2); white-space:nowrap; }
+.ini-pill{ font-size:11.5px; font-weight:700; padding:3px 9px; border-radius:var(--ini-r2); background:var(--ini-azul-suave); color:var(--ini-azul-texto); white-space:nowrap; }
 .ini-dia-lista{ position:absolute; top:40px; left:0; right:0; bottom:0; display:flex; flex-direction:column; gap:6px; overflow:auto; scrollbar-width:none; padding:0 4px 4px 0; } /* 4px à direita: o cartão anda 2px no hover e a rolagem cortava a borda (11/11/2026) */
 .ini-dia-lista::-webkit-scrollbar{ display:none; }
+/* O cartão nunca encolhe dentro da lista (11/11/2026): a lista é coluna flexível e o cartão tem
+   overflow:hidden (o preenchimento do clique), então o flex espremia o cartão e cortava título e
+   número do processo (166 px de conteúdo em 104 px de cartão). */
+.ini-dia-lista > *, .ini-lista > *, .ini-equipe > *{ flex-shrink:0; }
 .ini-dia.rola::after{ content:""; position:absolute; left:0; right:0; bottom:0; height:44px; pointer-events:none; border-radius:0 0 var(--ini-r) var(--ini-r); background:linear-gradient(180deg, rgba(var(--ini-painel-rgb),0), rgb(var(--ini-painel-rgb))); }
 .ini-ev{ display:grid; grid-template-columns:52px 1fr; gap:10px; align-items:center; padding:9px 10px; border-radius:var(--ini-r2); background:var(--ini-painel2); border:1px solid var(--ini-linha); box-shadow:0 1px 0 var(--ini-hi) inset; }
 /* A hora afundada na prata; só o prazo fatal pede o vermelho. */
 .ini-ev-hora{ height:40px; border-radius:var(--ini-r2); display:grid; place-items:center; text-align:center; font-weight:800; font-size:12.5px; background:var(--ini-fundo); color:var(--ini-texto); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); line-height:1.05; }
 .ini-ev-hora small{ font-size:9.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
-.ini-ev.prazo .ini-ev-hora{ background:var(--ini-erro-bg); color:var(--ini-erro); }
+.ini-ev.prazo .ini-ev-hora{ background:var(--ini-erro-bg); color:var(--ini-erro-texto); }
 .ini-ev-t{ min-width:0; }
 .ini-ev-t b{ display:block; font-weight:600; font-size:13.5px; line-height:1.3; }
-.ini-ev-t b a:hover{ color:var(--ini-azul2); }
+.ini-ev-t b a:hover{ color:var(--ini-azul-texto); }
 .ini-ev-t > span{ display:block; font-size:12px; color:var(--ini-texto2); margin-top:1px; overflow-wrap:anywhere; }
 .ini-ev-t small{ display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ini-texto3); margin-top:4px; }
 .ini-ev-t small .ini-av{ width:18px; height:18px; font-size:8.5px; font-style:normal; }
 .ini-tag{ display:inline-flex; align-items:center; height:18px; padding:0 7px; border-radius:5px; font-size:10.5px; font-weight:700; letter-spacing:.02em; font-style:normal; vertical-align:middle; }
 /* Etiquetas na prata; só o prazo fatal em vermelho. */
 .ini-tag.audiencia, .ini-tag.reuniao, .ini-tag.tarefa{ background:var(--ini-fundo); color:var(--ini-texto2); border:1px solid var(--ini-linha); }
-.ini-tag.prazo{ background:var(--ini-erro-bg); color:var(--ini-erro); }
+.ini-tag.prazo{ background:var(--ini-erro-bg); color:var(--ini-erro-texto); }
 
 /* Iniciais na prata, nunca num círculo azul. */
 .ini-av{ width:26px; height:26px; border-radius:50%; display:inline-grid; place-items:center; font-size:10.5px; font-weight:700; color:var(--ini-prata-texto); background:var(--ini-prata); box-shadow:inset 0 1px 0 rgba(255,255,255,.25), 0 1px 2px rgba(0,0,0,.12); flex:none; position:relative; font-style:normal; }
@@ -269,27 +275,27 @@ html[data-theme="light"] .ini-sala h1 .ini-nome{ background-image:linear-gradien
 .ini-ctr:hover{ border-color:rgba(61,101,203,.45); } /* o movimento é do interface-nova-hover */
 .ini-ctr:focus-visible{ outline:2px solid var(--ini-azul2); outline-offset:2px; }
 .ini-ctr-ic{ width:30px; height:30px; flex:none; display:grid; place-items:center; border-radius:var(--ini-r2);
-  background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); color:var(--ini-azul2); }
+  background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); color:var(--ini-azul-texto); }
 .ini-ctr-ic svg{ width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 .ini-ctr-t{ display:flex; flex-direction:column; min-width:0; }
 .ini-ctr-t b{ font-size:20px; font-weight:800; letter-spacing:-.5px; line-height:1.05; color:var(--ini-texto); font-variant-numeric:tabular-nums; }
 .ini-ctr-t span{ font-size:12px; font-weight:600; white-space:nowrap; color:var(--ini-texto3); }
-.ini-ctr.hoje:not(.zero) .ini-ctr-t b{ color:var(--ini-erro); }
+.ini-ctr.hoje:not(.zero) .ini-ctr-t b{ color:var(--ini-erro-texto); }
 .ini-ctr.zero .ini-ctr-t b{ color:var(--ini-texto3); }
 .ini-contadores{ container-type:inline-size; }
 @container (max-width:280px){ .ini-ctr{ flex-direction:column; align-items:flex-start; gap:6px; } }
 @media (max-width:520px){ .ini-ctr{ flex-direction:column; align-items:flex-start; gap:6px; } }
-.ini-atraso{ font-size:12.5px; font-weight:600; color:var(--ini-erro); margin-bottom:8px; }
-.ini-atraso a{ color:var(--ini-azul2); }
+.ini-atraso{ font-size:12.5px; font-weight:600; color:var(--ini-erro-texto); margin-bottom:8px; }
+.ini-atraso a{ color:var(--ini-azul-texto); }
 .ini-lista{ display:flex; flex-direction:column; }
 .ini-item{ display:flex; align-items:center; gap:12px; padding:9px 0; border-top:1px solid var(--ini-linha); }
 .ini-item:first-child{ border-top:0; padding-top:0; }
-.ini-item:hover b{ color:var(--ini-azul2); }
+.ini-item:hover b{ color:var(--ini-azul-texto); }
 .ini-item-t{ flex:1; min-width:0; }
 .ini-item-t b{ display:block; font-weight:600; font-size:13px; }
 .ini-item-t span{ display:block; font-size:12px; color:var(--ini-texto2); margin-top:1px; overflow-wrap:anywhere; }
 .ini-vence{ font-size:12px; font-weight:700; white-space:nowrap; text-align:right; }
-.ini-vence.r{ color:var(--ini-erro); } .ini-vence.w{ color:var(--ini-texto2); } .ini-vence.n{ color:var(--ini-texto3); }
+.ini-vence.r{ color:var(--ini-erro-texto); } .ini-vence.w{ color:var(--ini-texto2); } .ini-vence.n{ color:var(--ini-texto3); }
 
 /* ── Publicações ── */
 .ini-pub{ padding:11px 0; border-top:1px solid var(--ini-linha); display:grid; grid-template-columns:1fr auto; gap:4px 12px; align-items:center; }
@@ -297,7 +303,7 @@ html[data-theme="light"] .ini-sala h1 .ini-nome{ background-image:linear-gradien
 .ini-pub-trib{ font-size:11px; font-weight:700; color:var(--ini-texto3); letter-spacing:.06em; text-transform:uppercase; }
 .ini-pub-txt{ font-size:13px; line-height:1.4; grid-column:1; color:var(--ini-texto2); overflow-wrap:anywhere; }
 .ini-pub-txt b{ font-weight:600; color:var(--ini-texto); }
-.ini-mini{ grid-column:2; grid-row:1 / span 2; align-self:center; height:30px; padding:0 12px; border-radius:var(--ini-r2); font-size:12px; font-weight:700; background:var(--ini-azul-suave); color:var(--ini-azul2); display:inline-flex; align-items:center; transition:all .18s; }
+.ini-mini{ grid-column:2; grid-row:1 / span 2; align-self:center; height:30px; padding:0 12px; border-radius:var(--ini-r2); font-size:12px; font-weight:700; background:var(--ini-azul-suave); color:var(--ini-azul-texto); display:inline-flex; align-items:center; transition:all .18s; }
 .ini-mini:hover{ background:var(--ini-azul); color:#fff; box-shadow:var(--ini-brilho); }
 
 /* ── Equipe ── */
@@ -328,17 +334,17 @@ html[data-theme="light"] .ini-sala h1 .ini-nome{ background-image:linear-gradien
 .ini-situ{ display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 9px; border-radius:6px; font-size:11.5px; font-weight:700; white-space:nowrap; }
 .ini-situ::before{ content:""; width:6px; height:6px; border-radius:50%; background:currentColor; }
 .ini-situ.and{ background:var(--ini-fundo); color:var(--ini-texto2); border:1px solid var(--ini-linha); } .ini-situ.ag{ background:var(--ini-fundo); color:var(--ini-texto2); border:1px solid var(--ini-linha); }
-.ini-situ.ok{ background:var(--ini-ok-bg); color:var(--ini-ok); } .ini-situ.at{ background:var(--ini-erro-bg); color:var(--ini-erro); }
+.ini-situ.ok{ background:var(--ini-ok-bg); color:var(--ini-ok); } .ini-situ.at{ background:var(--ini-erro-bg); color:var(--ini-erro-texto); }
 
 /* ── Aguardando retorno ── */
 .ini-wa{ display:flex; align-items:center; gap:12px; padding:9px 0; border-top:1px solid var(--ini-linha); }
 .ini-wa:first-child{ border-top:0; padding-top:0; }
-.ini-wa:hover b{ color:var(--ini-azul2); }
+.ini-wa:hover b{ color:var(--ini-azul-texto); }
 .ini-wa-t{ flex:1; min-width:0; }
 .ini-wa-t b{ display:block; font-weight:600; font-size:13px; }
 .ini-wa-t span{ display:block; font-size:12px; color:var(--ini-texto2); line-height:1.35; overflow-wrap:anywhere; }
 .ini-desde{ font-size:11.5px; font-weight:700; color:var(--ini-texto3); white-space:nowrap; }
-.ini-desde.r{ color:var(--ini-erro); }
+.ini-desde.r{ color:var(--ini-erro-texto); }
 
 
 /* A cor do ícone é uma só (--ini-icone), a mesma do menu (--inn-icone): "as cores também". */
@@ -358,7 +364,7 @@ html[data-theme="light"] .ini-sala h1 .ini-nome{ background-image:linear-gradien
 .ini-periodo-escolhido.incompleto .ini-periodo-campo:last-of-type b{ color:var(--ini-texto3); }
 .ini-periodo-seta{ color:var(--ini-texto3); font-weight:700; }
 .ini-periodo-limpar{ width:32px; height:32px; border-radius:var(--ini-r2); border:1px solid var(--ini-linha); background:var(--ini-fundo); box-shadow:var(--ini-fundo-sombra); color:var(--ini-texto2); font:700 16px/1 Inter, system-ui, sans-serif; cursor:pointer; }
-.ini-periodo-limpar:hover{ color:var(--ini-erro); }
+.ini-periodo-limpar:hover{ color:var(--ini-erro-texto); }
 
 /* ═══ Um cartão só (07/11/2026): "todos têm que ser um card, cada card com a sua
    função e os detalhes; e para não deixar tudo cinza, use o azul nos detalhes".
@@ -373,10 +379,10 @@ html[data-theme="light"] .ini-sala h1 .ini-nome{ background-image:linear-gradien
 .ini-cartao:hover{ border-color:rgba(61,101,203,.45); } /* o movimento é do interface-nova-hover */
 .ini-cartao:hover b{ color:inherit; }
 .ini-cartao:focus-visible{ outline:2px solid var(--ini-azul2); outline-offset:-2px; }
-.ini-chev{ width:22px; height:22px; display:grid; place-items:center; color:var(--ini-azul2); opacity:.7; transition:opacity .15s, transform .15s; }
+.ini-chev{ width:22px; height:22px; display:grid; place-items:center; color:var(--ini-azul-texto); opacity:.7; transition:opacity .15s, transform .15s; }
 .ini-chev svg{ width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
 .ini-cartao:hover .ini-chev{ opacity:1; transform:translateX(2px); }
-.ini-num{ font-style:normal; font-weight:600; color:var(--ini-azul2); font-variant-numeric:tabular-nums; }
+.ini-num{ font-style:normal; font-weight:600; color:var(--ini-azul-texto); font-variant-numeric:tabular-nums; }
 
 /* cada tipo de cartão: as colunas dele */
 .ini-ev.ini-cartao{ grid-template-columns:52px 1fr auto; }
@@ -390,25 +396,25 @@ html[data-theme="light"] .ini-sala h1 .ini-nome{ background-image:linear-gradien
 .ini-proc-t b{ display:block; font-weight:600; font-size:13.5px; }
 .ini-proc-t .ini-num{ display:block; font-size:12px; margin-top:1px; }
 .ini-proc-t > span{ display:block; font-size:12.5px; color:var(--ini-texto2); margin-top:3px; overflow-wrap:anywhere; }
-.ini-acao{ display:block; font-size:11.5px; font-weight:600; color:var(--ini-azul2); margin-top:3px; }
-.ini-papel{ color:var(--ini-azul2); font-weight:600; }
+.ini-acao{ display:block; font-size:11.5px; font-weight:600; color:var(--ini-azul-texto); margin-top:3px; }
+.ini-papel{ color:var(--ini-azul-texto); font-weight:600; }
 
 /* o azul nos detalhes */
-.ini-ev-hora{ color:var(--ini-azul2); }
-.ini-ev.prazo .ini-ev-hora{ color:var(--ini-erro); }
-.ini-tag.audiencia, .ini-tag.reuniao, .ini-tag.tarefa{ background:var(--ini-azul-suave); color:var(--ini-azul2); border:1px solid rgba(61,101,203,.22); }
-.ini-pub-trib{ color:var(--ini-azul2); }
-.ini-dia-grupo{ color:var(--ini-azul2); }
-.ini-dia-sep{ color:var(--ini-azul2); }
+.ini-ev-hora{ color:var(--ini-azul-texto); }
+.ini-ev.prazo .ini-ev-hora{ color:var(--ini-erro-texto); }
+.ini-tag.audiencia, .ini-tag.reuniao, .ini-tag.tarefa{ background:var(--ini-azul-suave); color:var(--ini-azul-texto); border:1px solid rgba(61,101,203,.22); }
+.ini-pub-trib{ color:var(--ini-azul-texto); }
+.ini-dia-grupo{ color:var(--ini-azul-texto); }
+.ini-dia-sep{ color:var(--ini-azul-texto); }
 .ini-dia-sep::after{ background:rgba(61,101,203,.28); }
-.ini-situ.and{ background:var(--ini-azul-suave); color:var(--ini-azul2); border:1px solid rgba(61,101,203,.22); }
+.ini-situ.and{ background:var(--ini-azul-suave); color:var(--ini-azul-texto); border:1px solid rgba(61,101,203,.22); }
 .ini-mini{ pointer-events:none; }
 .ini-cartao:hover .ini-mini{ background:var(--ini-azul); color:#fff; box-shadow:var(--ini-brilho); }
 
 /* O hover aprovado (o do cartão de publicação: borda azul e o botão "Tratar" que acende)
    vale para TODO cartão: a seta vira o mesmo botão, azul suave parado e azul cheio com
    brilho curto no hover. E os quatro cartões de cima ganham a mesma borda azul. */
-.ini-chev{ width:30px; height:30px; border-radius:var(--ini-r2); background:var(--ini-azul-suave); color:var(--ini-azul2); opacity:1; transition:background .15s, color .15s, box-shadow .15s; }
+.ini-chev{ width:30px; height:30px; border-radius:var(--ini-r2); background:var(--ini-azul-suave); color:var(--ini-azul-texto); opacity:1; transition:background .15s, color .15s, box-shadow .15s; }
 .ini-cartao:hover .ini-chev{ background:var(--ini-azul); color:#fff; box-shadow:var(--ini-brilho); transform:none; } /* idêntico ao .ini-mini do "Tratar": fundo sólido, não gradiente */
 .ini-cartao:hover, .ini-kpi:hover{ border-color:rgba(61,101,203,.55); }
 .ini-kpi{ transition:border-color .15s, transform .15s; }
@@ -461,21 +467,21 @@ html.idt-aberto, html.idt-aberto body{ overflow:hidden; }
 .idt-sub{ font-size:12.5px; color:var(--ini-texto2); display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
 .idt-fechar{ width:34px; height:34px; flex:none; border-radius:var(--ini-r2); border:1px solid var(--ini-linha); background:var(--ini-fundo); box-shadow:var(--ini-fundo-sombra);
   color:var(--ini-texto2); font:700 18px/1 Inter, system-ui, sans-serif; cursor:pointer; transition:color .15s, transform .15s; }
-.idt-fechar:hover{ color:var(--ini-erro); transform:translateY(-1px); }
+.idt-fechar:hover{ color:var(--ini-erro-texto); transform:translateY(-1px); }
 .idt-fechar:focus-visible{ outline:2px solid var(--ini-azul2); outline-offset:2px; }
 .idt-corpo{ padding:6px 18px 4px; overflow:auto; scrollbar-width:none; }
 .idt-corpo::-webkit-scrollbar{ display:none; }
 .idt-sec{ padding:12px 0; }
 .idt-sec + .idt-sec, .idt-extra .idt-sec{ border-top:1px solid var(--ini-linha); }
-.idt-sec-t{ display:flex; align-items:center; gap:8px; margin-bottom:10px; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--ini-azul2); }
-.idt-pill{ font-size:11px; font-weight:700; letter-spacing:0; text-transform:none; padding:1px 8px; border-radius:var(--ini-r2); background:var(--ini-azul-suave); color:var(--ini-azul2); }
+.idt-sec-t{ display:flex; align-items:center; gap:8px; margin-bottom:10px; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--ini-azul-texto); }
+.idt-pill{ font-size:11px; font-weight:700; letter-spacing:0; text-transform:none; padding:1px 8px; border-radius:var(--ini-r2); background:var(--ini-azul-suave); color:var(--ini-azul-texto); }
 .idt-grade{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; }
 .idt-campo{ display:flex; flex-direction:column; gap:2px; padding:8px 11px; border-radius:var(--ini-r2); background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); min-width:0; }
 .idt-campo.largo{ grid-column:1 / -1; }
 .idt-campo small{ font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ini-texto3); }
 .idt-campo b{ font-size:13.5px; font-weight:600; color:var(--ini-texto); overflow-wrap:anywhere; }
 /* o nome que abre a ficha de verdade (cliente): azul, como os outros detalhes clicáveis */
-.idt-link{ all:unset; cursor:pointer; color:var(--ini-azul2); font-weight:700; overflow-wrap:anywhere; border-bottom:1px solid transparent; transition:border-color .15s ease; }
+.idt-link{ all:unset; cursor:pointer; color:var(--ini-azul-texto); font-weight:700; overflow-wrap:anywhere; border-bottom:1px solid transparent; transition:border-color .15s ease; }
 .idt-link:hover{ border-bottom-color:currentColor; }
 .idt-link:focus-visible{ outline:2px solid var(--ini-azul); outline-offset:2px; border-radius:4px; }
 .idt-texto{ margin-top:10px; padding:12px 14px; border-radius:var(--ini-r2); background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra);
@@ -483,27 +489,27 @@ html.idt-aberto, html.idt-aberto body{ overflow:hidden; }
 .idt-texto::-webkit-scrollbar{ display:none; }
 .idt-texto.curto{ max-height:140px; }
 .idt-vazio{ font-size:13px; color:var(--ini-texto3); padding:4px 0; }
-.idt-vazio.erro{ color:var(--ini-erro); }
+.idt-vazio.erro{ color:var(--ini-erro-texto); }
 .idt-prazos{ display:flex; flex-direction:column; gap:6px; }
 .idt-prazo{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:12px; padding:9px 10px; border-radius:var(--ini-r2); background:var(--ini-painel2); border:1px solid var(--ini-linha); box-shadow:0 1px 0 var(--ini-hi) inset; transition:opacity .2s, border-color .15s; }
 .idt-prazo.foco{ border-color:rgba(61,101,203,.55); }
 .idt-prazo.feito{ opacity:.5; }
 .idt-prazo.feito .idt-prazo-t b{ text-decoration:line-through; }
-.idt-prazo-data{ min-width:86px; text-align:center; padding:7px 8px; border-radius:var(--ini-r2); background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); font-size:12.5px; font-weight:800; color:var(--ini-azul2); font-variant-numeric:tabular-nums; }
-.idt-prazo-data.venc{ color:var(--ini-erro); }
+.idt-prazo-data{ min-width:86px; text-align:center; padding:7px 8px; border-radius:var(--ini-r2); background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); font-size:12.5px; font-weight:800; color:var(--ini-azul-texto); font-variant-numeric:tabular-nums; }
+.idt-prazo-data.venc{ color:var(--ini-erro-texto); }
 .idt-prazo-t{ min-width:0; }
 .idt-prazo-t b{ display:block; font-size:13px; font-weight:600; }
 .idt-prazo-t small{ display:block; font-size:11.5px; color:var(--ini-texto3); margin-top:1px; }
-.idt-mini{ height:30px; padding:0 12px; border-radius:var(--ini-r2); border:0; background:var(--ini-azul-suave); color:var(--ini-azul2); font:700 12px Inter, system-ui, sans-serif; cursor:pointer; transition:background .15s, color .15s, box-shadow .15s; }
+.idt-mini{ height:30px; padding:0 12px; border-radius:var(--ini-r2); border:0; background:var(--ini-azul-suave); color:var(--ini-azul-texto); font:700 12px Inter, system-ui, sans-serif; cursor:pointer; transition:background .15s, color .15s, box-shadow .15s; }
 .idt-mini:hover:not(:disabled){ background:var(--ini-azul); color:#fff; box-shadow:var(--ini-brilho); }
 .idt-mini:disabled{ cursor:default; opacity:.8; }
 .idt-balao{ padding:12px 14px; border-radius:var(--ini-r2); background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); }
 .idt-balao p{ margin:0; font-size:14px; line-height:1.5; color:var(--ini-texto); overflow-wrap:anywhere; white-space:pre-wrap; }
-.idt-balao small{ display:block; margin-top:6px; font-size:11.5px; font-weight:700; color:var(--ini-azul2); }
+.idt-balao small{ display:block; margin-top:6px; font-size:11.5px; font-weight:700; color:var(--ini-azul-texto); }
 .idt-numeros{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:8px; }
 .idt-numeros > div{ padding:12px; border-radius:var(--ini-r2); background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); }
-.idt-numeros b{ display:block; font-size:24px; font-weight:800; letter-spacing:-.5px; color:var(--ini-azul2); line-height:1.05; }
-.idt-numeros .venc b{ color:var(--ini-erro); }
+.idt-numeros b{ display:block; font-size:24px; font-weight:800; letter-spacing:-.5px; color:var(--ini-azul-texto); line-height:1.05; }
+.idt-numeros .venc b{ color:var(--ini-erro-texto); }
 .idt-numeros span{ font-size:11.5px; font-weight:600; color:var(--ini-texto3); }
 .idt-carregando{ display:flex; align-items:center; gap:10px; font-size:13px; color:var(--ini-texto3); padding:6px 0; }
 .idt-carregando i{ width:16px; height:16px; border-radius:50%; border:2px solid var(--ini-azul-suave); border-top-color:var(--ini-azul2); animation:idt-gira .8s linear infinite; }
@@ -552,7 +558,7 @@ input.idt-entrada{ height:38px; }
 /* A lista "Escolha uma para ler e tratar" (09/11/2026, "ajuste"): o "Ler e tratar" era um span com
    30 px de altura e o texto colado no topo; agora pílula centrada no meio da linha, com a seta, e o
    selo do tribunal mais enxuto. */
-.idt-escolha .idt-prazo-data{ min-width:62px; padding:5px 8px; font-size:11.5px; letter-spacing:.04em; color:var(--ini-azul2); }
+.idt-escolha .idt-prazo-data{ min-width:62px; padding:5px 8px; font-size:11.5px; letter-spacing:.04em; color:var(--ini-azul-texto); }
 .idt-escolha .idt-prazo-t b{ font-size:13.5px; }
 .idt-escolha .idt-mini{ display:inline-flex; align-items:center; justify-content:center; gap:6px; height:32px; padding:0 12px 0 14px; align-self:center; white-space:nowrap; line-height:1; }
 .idt-escolha .idt-mini::after{ content:""; width:7px; height:7px; border-right:2px solid currentColor; border-top:2px solid currentColor; transform:rotate(45deg); margin-left:1px; transition:transform .18s cubic-bezier(.2,.8,.2,1); }
@@ -604,19 +610,19 @@ input.idt-entrada{ height:38px; }
 .idt-pub-grupo, .idt-pub-adv{ display:flex; align-items:flex-start; gap:12px; padding:9px 12px; border-radius:var(--ini-r2); background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); }
 .idt-pub-grupo > div{ display:flex; flex-direction:column; gap:3px; min-width:0; }
 .idt-pub-adv{ align-items:center; justify-content:space-between; }
-.idt-pub-rot{ flex:0 0 112px; padding-top:1px; font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--ini-azul2); }
+.idt-pub-rot{ flex:0 0 112px; padding-top:1px; font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--ini-azul-texto); }
 .idt-pub-nome{ font-size:13px; font-weight:600; color:var(--ini-texto); overflow-wrap:anywhere; }
-.idt-pub-adv .idt-oab{ flex:0 0 auto; padding:3px 8px; border-radius:var(--ini-r2); font-size:11.5px; color:var(--ini-azul2); background:var(--ini-painel); border:1px solid var(--ini-linha2); }
+.idt-pub-adv .idt-oab{ flex:0 0 auto; padding:3px 8px; border-radius:var(--ini-r2); font-size:11.5px; color:var(--ini-azul-texto); background:var(--ini-painel); border:1px solid var(--ini-linha2); }
 .idt-pub-teor{ display:flex; flex-direction:column; gap:14px; padding:14px 16px; border-radius:var(--ini-r2); background:var(--ini-fundo); border:1px solid var(--ini-linha); box-shadow:var(--ini-fundo-sombra); }
 .idt-pub-bloco + .idt-pub-bloco{ padding-top:14px; border-top:1px solid var(--ini-linha); }
-.idt-pub-secao{ margin-bottom:8px; font-size:11.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--ini-azul2); }
+.idt-pub-secao{ margin-bottom:8px; font-size:11.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--ini-azul-texto); }
 .idt-pub-bloco p{ margin:0 0 8px; font-size:13.5px; line-height:1.65; color:var(--ini-texto); text-align:justify; hyphens:auto; }
 .idt-pub-bloco p:last-of-type{ margin-bottom:0; }
 .idt-pub-assin{ display:flex; flex-direction:column; align-items:flex-end; gap:2px; margin-top:12px; font-size:12px; color:var(--ini-texto2); text-align:right; }
 .idt-pub-assin b{ font-size:12.5px; color:var(--ini-texto); }
-.idt-pub-link{ display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; color:var(--ini-azul2); text-decoration:none; }
+.idt-pub-link{ display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; color:var(--ini-azul-texto); text-decoration:none; }
 .idt-pub-link:hover{ text-decoration:underline; }
-.idt-pub-link-txt{ color:var(--ini-azul2); font-weight:600; overflow-wrap:anywhere; text-decoration:none; }
+.idt-pub-link-txt{ color:var(--ini-azul-texto); font-weight:600; overflow-wrap:anywhere; text-decoration:none; }
 .idt-pub-link-txt:hover{ text-decoration:underline; }
 @media (max-width:560px){ .idt-pub-grupo{ flex-direction:column; gap:4px; } .idt-pub-rot{ flex-basis:auto; } }
 
@@ -639,7 +645,7 @@ input.idt-entrada{ height:38px; }
 .ini .ini-cal-nav:hover svg, .ini .ini-cal-nav:hover svg *, .ini .ini-cal-nav:focus-visible svg, .ini .ini-cal-nav:focus-visible svg *,
 .ini .ini-cartao:hover .ini-chev svg, .ini .ini-cartao:hover .ini-chev svg *{ stroke:#fff !important; }
 .ini .ini-cal-nav:active{ transform:translateY(0); }
-.idt-fechar:hover{ color:var(--ini-erro) !important; transform:translateY(-2px); }
+.idt-fechar:hover{ color:var(--ini-erro-texto) !important; transform:translateY(-2px); }
 .ini .ini-ctr-ic{ color:var(--ini-icone); }
 .ini .ini-ctr-ic svg, .ini .ini-ctr-ic svg *{ stroke:var(--ini-icone) !important; }
 .ini-periodo-seta{ width:24px; height:24px; display:inline-grid; place-items:center; flex:none; border-radius:var(--ini-r2);

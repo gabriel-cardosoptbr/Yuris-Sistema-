@@ -48,7 +48,7 @@ html .o-btn-primary:hover, html .es-btn-primary:hover, html .tk-btn-new-task:hov
 html .tk-btn-new-task{ background:linear-gradient(180deg, var(--inn-t-azul2), var(--inn-t-azul)) !important; color:#fff !important; border-color:transparent !important; border-radius:8px !important; box-shadow:var(--inn-t-brilho) !important; }
 html .btn:not(.primary):not(.btn-primary):not(.btn-danger):not(.danger):hover, html .btn-ghost:hover, html .btn-outline:hover, html .btn-secondary:hover,
 html .filter-btn:not(.primary):hover, html .conn-btn-secondary:hover, html .tk-modal-btn-cancel:hover, html .modal-btn-cancel:hover{
-  transform:translateY(-1px); border-color:rgba(61,101,203,.55) !important; color:var(--inn-t-azul2) !important;
+  transform:translateY(-1px); border-color:rgba(61,101,203,.55) !important; color:var(--inn-t-azul-texto) !important;
 }
 html .inn-tela button:disabled, html .inn-tela .btn:disabled{ transform:none !important; }
 
@@ -67,7 +67,7 @@ html .periodo-btn.active, html .filtro-btn.active, html .chip-filtro.active{
 html .tab-btn.active *, html .cfg-tab.active *, html .tk-tab.active *, html .tk-periodo.active *, html .chat-filter-btn.active *, html .tk-view-btn.active *{ color:#fff !important; }
 html .tk-periodo.active .tk-periodo-n, html .chat-filter-btn.active .count{ background:rgba(255,255,255,.22) !important; color:#fff !important; }
 html .tab-btn:not(.active):hover, html .cfg-tab:not(.active):hover, html .tk-tab:not(.active):hover, html .tk-periodo:not(.active):hover,
-html .chat-filter-btn:not(.active):hover, html .tk-view-btn:not(.active):hover{ background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul2) !important; }
+html .chat-filter-btn:not(.active):hover, html .tk-view-btn:not(.active):hover{ background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul-texto) !important; }
 
 /* ── 4. Cartões clicáveis: borda azul e sobem ───────────────────────────── */
 html .kpi-card, html .o-card, html .o-kpi, html .tk-card, html .cli-card, html .proc-card, html .lead-card, html .kanban-card, html .chat-item,
@@ -111,12 +111,12 @@ html .inn-tela [class*="-chip"], html .inn-tela .chip{
 }
 
 /* ── 7. Tabelas: cabeçalho em rótulo azul miúdo ──────────────────────────── */
-html .inn-tela table th{ font-size:10.5px !important; font-weight:700 !important; letter-spacing:.06em !important; text-transform:uppercase; color:var(--inn-t-azul2) !important; }
+html .inn-tela table th{ font-size:10.5px !important; font-weight:700 !important; letter-spacing:.06em !important; text-transform:uppercase; color:var(--inn-t-azul-texto) !important; }
 html .inn-tela table tbody tr{ transition:background-color .15s ease; }
 
 /* Títulos de bloco dentro dos painéis: o rótulo azul da home. */
 html .inn-tela .chart-title, html .inn-tela .section-title, html .inn-tela [class$="-section-title"], html .inn-tela .proc-section-title,
-html .inn-tela .agt-section-title, html .inn-tela .col-title{ color:var(--inn-t-azul2) !important; }
+html .inn-tela .agt-section-title, html .inn-tela .col-title{ color:var(--inn-t-azul-texto) !important; }
 
 /* ── 8. "Carregando…" vira a forma cinza que brilha ──────────────────────── */
 @keyframes inn-brilho{ from{ background-position:200% 0; } to{ background-position:-200% 0; } }
@@ -157,9 +157,9 @@ html .inn-aba.inn-aba-on *:not(svg):not(svg *), html:root .inn-aba.inn-aba-on.in
 html .inn-aba.inn-aba-on [class*="count"], html .inn-aba.inn-aba-on [class*="badge"], html .inn-aba.inn-aba-on [class*="-n"],
 html:root .inn-aba.inn-aba-on.inn-aba-on [class*="count"]{ background:rgba(255,255,255,.24) !important; color:#fff !important; border-color:transparent !important; font-weight:700 !important; }
 /* Contador na aba desligada: a pílula da home (.ini-pill), azul suave com o número azul. */
-html:root .inn-aba.inn-aba:not(.inn-aba-on) [class*="count"]{ background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul2) !important; border-color:transparent !important; font-weight:700 !important; }
+html:root .inn-aba.inn-aba:not(.inn-aba-on) [class*="count"]{ background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul-texto) !important; border-color:transparent !important; font-weight:700 !important; }
 html .inn-aba.inn-aba-on svg, html .inn-aba.inn-aba-on svg *{ stroke:#fff !important; }
-html .inn-aba:not(.inn-aba-on):hover, html:root .inn-aba.inn-aba:not(.inn-aba-on):hover{ background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul2) !important; }
+html .inn-aba:not(.inn-aba-on):hover, html:root .inn-aba.inn-aba:not(.inn-aba-on):hover{ background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul-texto) !important; }
 /* Aba fora do ativo, em qualquer tela: o botão secundário da home (nada de branco nem de caixa própria). */
 html:root .inn-aba.inn-aba:not(.inn-aba-on){ background:var(--inn-t-painel2) !important; background-image:none !important; color:var(--inn-t-texto2) !important; border-color:var(--inn-t-linha2) !important; box-shadow:0 1px 0 var(--inn-t-hi) inset !important; }
 
@@ -188,10 +188,10 @@ html:root .inn-selo.inn-selo{
   border-radius:5px !important; font-weight:700 !important; letter-spacing:.02em !important; box-shadow:none !important; text-shadow:none !important;
   background-image:none !important; border-width:1px !important; border-style:solid !important;
 }
-html:root .inn-selo.inn-selo-erro.inn-selo-erro{ background-color:var(--inn-t-erro-bg) !important; color:var(--inn-t-erro) !important; border-color:transparent !important; }
+html:root .inn-selo.inn-selo-erro.inn-selo-erro{ background-color:var(--inn-t-erro-bg) !important; color:var(--inn-t-erro-texto) !important; border-color:transparent !important; }
 html:root .inn-selo.inn-selo-aviso.inn-selo-aviso{ background-color:var(--inn-t-aviso-bg) !important; color:var(--inn-t-aviso) !important; border-color:transparent !important; }
 html:root .inn-selo.inn-selo-ok.inn-selo-ok{ background-color:var(--inn-t-ok-bg) !important; color:var(--inn-t-ok) !important; border-color:transparent !important; }
-html:root .inn-selo.inn-selo-azul.inn-selo-azul{ background-color:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul2) !important; border-color:rgba(61,101,203,.22) !important; }
+html:root .inn-selo.inn-selo-azul.inn-selo-azul{ background-color:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul-texto) !important; border-color:rgba(61,101,203,.22) !important; }
 html:root .inn-selo.inn-selo-neutro.inn-selo-neutro{ background-color:var(--inn-t-fundo) !important; color:var(--inn-t-texto2) !important; border-color:var(--inn-t-linha) !important; }
 html .inn-selo *{ color:inherit !important; }
 html .inn-selo svg, html .inn-selo svg *{ stroke:currentColor !important; }
@@ -208,7 +208,7 @@ html .inn-tela .kanban-col.drop-target{ border-color:rgba(61,101,203,.55) !impor
 html .inn-tela .kanban-col .col-title, html[data-theme="light"] .inn-tela .kanban-col .col-title{ color:var(--inn-t-texto) !important; font-size:15px !important; font-weight:700 !important; letter-spacing:-.2px; }
 html .inn-tela .kanban-col .col-subtitle, html[data-theme="light"] .inn-tela .kanban-col .col-subtitle{ color:var(--inn-t-texto3) !important; font-size:12px !important; font-weight:600; }
 html .inn-tela .kanban-col .col-pill, html[data-theme="light"] .inn-tela .kanban-col .col-pill{
-  background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul2) !important; border:0 !important; border-radius:8px !important; font-size:11.5px !important;
+  background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul-texto) !important; border:0 !important; border-radius:8px !important; font-size:11.5px !important;
 }
 html .inn-tela .kanban-col .cardsList{ background:transparent !important; }
 html .inn-tela .kanban-col .empty-note{ color:var(--inn-t-texto3) !important; }
@@ -228,7 +228,7 @@ html .inn-tela [class*="origin-strip"], html[data-theme="light"] .inn-tela [clas
   background:transparent !important; background-image:none !important; color:var(--inn-t-texto3) !important;
   border-bottom:1px solid var(--inn-t-linha) !important; font-size:10.5px !important;
 }
-html .inn-tela [class*="origin-strip"] .org-label, html[data-theme="light"] .inn-tela [class*="origin-strip"] .org-label{ color:var(--inn-t-azul2) !important; }
+html .inn-tela [class*="origin-strip"] .org-label, html[data-theme="light"] .inn-tela [class*="origin-strip"] .org-label{ color:var(--inn-t-azul-texto) !important; }
 html .inn-tela [class*="origin-strip"] .org-name, html[data-theme="light"] .inn-tela [class*="origin-strip"] .org-name{ color:var(--inn-t-texto2) !important; }
 html .inn-tela .card-mini svg, html .inn-tela .card-mini .icon svg{ stroke:var(--inn-t-texto3) !important; fill:var(--inn-t-texto3) !important; color:var(--inn-t-texto3) !important; }
 html .inn-tela .card-mini .card-drag-handle{ opacity:.35; }
@@ -236,7 +236,7 @@ html .inn-tela .card-mini .card-client, html[data-theme="light"] .inn-tela .card
 html .inn-tela .card-mini .card-company, html[data-theme="light"] .inn-tela .card-mini .card-company{ color:var(--inn-t-texto3) !important; font-size:12px !important; }
 html .inn-tela .card-mini .card-meta, html[data-theme="light"] .inn-tela .card-mini .card-meta{ color:var(--inn-t-texto3) !important; font-size:11.5px !important; }
 html .inn-tela .card-mini .card-meta strong, html[data-theme="light"] .inn-tela .card-mini .card-meta strong{ color:var(--inn-t-texto) !important; }
-html .inn-tela .card-mini .meta-overdue, html .inn-tela .card-mini .meta-overdue strong{ color:var(--inn-t-erro) !important; }
+html .inn-tela .card-mini .meta-overdue, html .inn-tela .card-mini .meta-overdue strong{ color:var(--inn-t-erro-texto) !important; }
 html .inn-tela .card-mini .meta-fechado, html .inn-tela .card-mini .meta-fechado strong{ color:var(--inn-t-ok) !important; }
 html .inn-tela .card-mini .open-hint{ color:var(--inn-t-texto3) !important; font-size:11.5px !important; }
 /* Barra de avanço: a calha afundada e o azul do Yuris. */
@@ -245,7 +245,7 @@ html .inn-tela .card-mini .progress-fill{ background:linear-gradient(90deg, var(
 /* WhatsApp e Chat no cartão: o botão secundário da home; no hover vira o azul cheio. */
 html .inn-tela .card-mini .wa-btn, html .inn-tela .card-mini .chat-link-btn,
 html[data-theme="light"] .inn-tela .card-mini .wa-btn, html[data-theme="light"] .inn-tela .card-mini .chat-link-btn{
-  background:var(--inn-t-painel2) !important; background-image:none !important; color:var(--inn-t-azul2) !important;
+  background:var(--inn-t-painel2) !important; background-image:none !important; color:var(--inn-t-azul-texto) !important;
   border:1px solid var(--inn-t-linha2) !important; border-radius:8px !important; box-shadow:0 1px 0 var(--inn-t-hi) inset !important;
   font-size:12px !important; font-weight:700 !important;
 }
@@ -287,7 +287,7 @@ html:root .inn-tela .funnel-stage.is-bottleneck .funnel-shape.funnel-shape{
 }
 html:root .inn-tela .funnel-name.funnel-name{ color:var(--inn-t-texto) !important; }
 html:root .inn-tela .funnel-metrics.funnel-metrics, html:root .inn-tela .funnel-metrics span{ color:var(--inn-t-texto3) !important; }
-html:root .inn-tela .funnel-metrics strong, html:root .inn-tela .funnel-head .text-blue-100{ color:var(--inn-t-azul2) !important; }
+html:root .inn-tela .funnel-metrics strong, html:root .inn-tela .funnel-head .text-blue-100{ color:var(--inn-t-azul-texto) !important; }
 
 /* ── 14. O que ficou com a cor antiga (o JS lê a cor e marca) ────────────────
    O aviso é opaco (a cor de estado por cima do painel): o fixo do Chat não deixa a página
@@ -325,18 +325,18 @@ html:root .inn-pop-linha .inn-cab-ic.inn-pop-ic{ margin-right:0; }
 html:root .inn-c-escuro.inn-c-escuro.inn-c-escuro{ background-color:var(--inn-t-painel2) !important; background-image:none !important; color:var(--inn-t-texto) !important; border-color:var(--inn-t-linha2) !important; box-shadow:none !important; }
 /* Texto que sumia no fundo (contraste menor que 3 para 1). */
 html:root .inn-c-texto-cinza.inn-c-texto-cinza.inn-c-texto-cinza{ color:var(--inn-t-texto2) !important; }
-html:root .inn-c-texto-azul.inn-c-texto-azul.inn-c-texto-azul{ color:var(--inn-t-azul2) !important; }
-html:root .inn-c-texto-erro.inn-c-texto-erro.inn-c-texto-erro{ color:var(--inn-t-erro) !important; }
+html:root .inn-c-texto-azul.inn-c-texto-azul.inn-c-texto-azul{ color:var(--inn-t-azul-texto) !important; }
+html:root .inn-c-texto-erro.inn-c-texto-erro.inn-c-texto-erro{ color:var(--inn-t-erro-texto) !important; }
 html:root .inn-c-texto-aviso.inn-c-texto-aviso.inn-c-texto-aviso{ color:var(--inn-t-aviso) !important; }
 html:root .inn-c-texto-ok.inn-c-texto-ok.inn-c-texto-ok{ color:var(--inn-t-ok) !important; }
 html:root .inn-c-botao.inn-c-botao.inn-c-botao:not(.inn-aba-on):not(.inn-ic-btn){
   background-color:var(--inn-t-painel2) !important; background-image:none !important; color:var(--inn-t-texto) !important;
   border-color:var(--inn-t-linha2) !important; box-shadow:0 1px 0 var(--inn-t-hi) inset !important;
 }
-html:root .inn-c-botao.inn-c-botao.inn-c-botao:not(.inn-aba-on):not(.inn-ic-btn):not(:disabled):hover{ border-color:rgba(61,101,203,.55) !important; color:var(--inn-t-azul2) !important; }
+html:root .inn-c-botao.inn-c-botao.inn-c-botao:not(.inn-aba-on):not(.inn-ic-btn):not(:disabled):hover{ border-color:rgba(61,101,203,.55) !important; color:var(--inn-t-azul-texto) !important; }
 html:root .inn-c-botao.inn-c-botao.inn-c-botao:not(.inn-aba-on):not(.inn-ic-btn) svg, html:root .inn-c-botao.inn-c-botao.inn-c-botao:not(.inn-aba-on):not(.inn-ic-btn) svg *{ stroke:currentColor !important; }
 html:root .inn-c-perigo.inn-c-perigo.inn-c-perigo:not(.inn-ic-btn){
-  background-color:var(--inn-t-painel2) !important; background-image:none !important; color:var(--inn-t-erro) !important;
+  background-color:var(--inn-t-painel2) !important; background-image:none !important; color:var(--inn-t-erro-texto) !important;
   border-color:var(--inn-t-linha2) !important; box-shadow:0 1px 0 var(--inn-t-hi) inset !important;
 }
 html:root .inn-c-perigo.inn-c-perigo.inn-c-perigo:not(.inn-ic-btn):not(:disabled):hover{ background-color:var(--inn-t-erro-bg) !important; border-color:transparent !important; transform:translateY(-1px); }
@@ -344,11 +344,11 @@ html:root .inn-c-perigo.inn-c-perigo.inn-c-perigo *{ color:inherit !important; }
 html:root .inn-c-perigo.inn-c-perigo.inn-c-perigo svg, html:root .inn-c-perigo.inn-c-perigo.inn-c-perigo svg *{ stroke:currentColor !important; }
 html:root .inn-c-borda.inn-c-borda.inn-c-borda{ border-color:var(--inn-t-linha) !important; }
 html:root .inn-c-sem-faixa.inn-c-sem-faixa.inn-c-sem-faixa{ border-left-color:var(--inn-t-linha) !important; }
-html:root .inn-c-alerta-erro.inn-c-alerta-erro.inn-c-alerta-erro{ background-color:var(--inn-t-painel) !important; background-image:linear-gradient(var(--inn-t-erro-bg), var(--inn-t-erro-bg)) !important; color:var(--inn-t-erro) !important; border-color:transparent !important; border-radius:8px !important; }
+html:root .inn-c-alerta-erro.inn-c-alerta-erro.inn-c-alerta-erro{ background-color:var(--inn-t-painel) !important; background-image:linear-gradient(var(--inn-t-erro-bg), var(--inn-t-erro-bg)) !important; color:var(--inn-t-erro-texto) !important; border-color:transparent !important; border-radius:8px !important; }
 html:root .inn-c-alerta-aviso.inn-c-alerta-aviso.inn-c-alerta-aviso{ background-color:var(--inn-t-painel) !important; background-image:linear-gradient(var(--inn-t-aviso-bg), var(--inn-t-aviso-bg)) !important; color:var(--inn-t-aviso) !important; border-color:transparent !important; border-radius:8px !important; }
 html:root .inn-c-alerta-ok.inn-c-alerta-ok.inn-c-alerta-ok{ background-color:var(--inn-t-painel) !important; background-image:linear-gradient(var(--inn-t-ok-bg), var(--inn-t-ok-bg)) !important; color:var(--inn-t-ok) !important; border-color:transparent !important; border-radius:8px !important; }
 /* Contador dentro de aba (int-tab-count e afins) fora da aba ativa: a pílula da home. */
-html .inn-aba:not(.inn-aba-on) [class*="count"], html .inn-aba:not(.inn-aba-on) [class*="badge"]{ background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul2) !important; border-color:transparent !important; }
+html .inn-aba:not(.inn-aba-on) [class*="count"], html .inn-aba:not(.inn-aba-on) [class*="badge"]{ background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul-texto) !important; border-color:transparent !important; }
 /* Bolinha de estado do KPI: o azul do Yuris, como os ícones (a cor de estado fica no número). */
 html .inn-tela .kpi-dot, html .inn-tela .kpi-dot[class*="dot-"]{ background:var(--inn-t-azul2) !important; box-shadow:none !important; }
 html:root .inn-c-primario.inn-c-primario.inn-c-primario{
@@ -394,7 +394,7 @@ html:root .ci-btn-new.ci-btn-new, html:root .ci-send-btn.ci-send-btn{
 html:root .ci-btn-arch.ci-btn-arch, html:root .ci-header-opts.ci-header-opts{
   background:var(--inn-t-fundo) !important; border:1px solid var(--inn-t-linha) !important; box-shadow:var(--inn-t-fundo-sombra) !important; color:var(--inn-t-icone) !important; border-radius:8px !important;
 }
-html:root .ci-btn-arch.ci-btn-arch:hover, html:root .ci-btn-arch.ci-btn-arch.active, html:root .ci-header-opts.ci-header-opts:hover{ color:var(--inn-t-azul2) !important; border-color:rgba(61,101,203,.45) !important; }
+html:root .ci-btn-arch.ci-btn-arch:hover, html:root .ci-btn-arch.ci-btn-arch.active, html:root .ci-header-opts.ci-header-opts:hover{ color:var(--inn-t-azul-texto) !important; border-color:rgba(61,101,203,.45) !important; }
 /* Lista de conversas */
 html:root .ci-conv-item.ci-conv-item{ background:transparent !important; border-bottom-color:var(--inn-t-linha) !important; }
 html:root .ci-conv-item.ci-conv-item:hover{ background:var(--inn-t-azul-suave) !important; }
@@ -410,15 +410,15 @@ html:root .ci-conv-preview.ci-conv-preview, html:root .ci-conv-time.ci-conv-time
 html:root .ci-msg-sender.ci-msg-sender, html:root .ci-msg-time.ci-msg-time, html:root .ci-mention-hint.ci-mention-hint, html:root .ci-mpanel-empty.ci-mpanel-empty,
 html:root .ci-chk-sub.ci-chk-sub, html:root .ci-type-card-desc.ci-type-card-desc, html:root .ci-empty.ci-empty{ color:var(--inn-t-texto3) !important; }
 /* Etiqueta de tipo e não lidas: a pílula da home */
-html:root .ci-tipo-tag.ci-tipo-tag, html:root .ci-header-badge.ci-header-badge{ background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul2) !important; border-radius:6px !important; }
+html:root .ci-tipo-tag.ci-tipo-tag, html:root .ci-header-badge.ci-header-badge{ background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul-texto) !important; border-radius:6px !important; }
 html:root .ci-badge.ci-badge{ background:var(--inn-t-azul) !important; color:#fff !important; }
 /* Mensagens: a bolha dos outros na prata, a minha no azul suave; a data como o rótulo de dia da home */
 html:root .ci-msg-bubble.ci-msg-bubble{ background:var(--inn-t-painel2) !important; color:var(--inn-t-texto) !important; border:1px solid var(--inn-t-linha) !important; box-shadow:0 1px 0 var(--inn-t-hi) inset !important; border-radius:10px !important; }
 html:root .ci-msg--out .ci-msg-bubble.ci-msg-bubble{ background:var(--inn-t-azul-suave) !important; border-color:rgba(61,101,203,.28) !important; }
-html:root .ci-date-sep.ci-date-sep{ color:var(--inn-t-azul2) !important; font-size:11px !important; font-weight:700 !important; text-transform:uppercase !important; letter-spacing:.06em !important; justify-content:center !important; }
+html:root .ci-date-sep.ci-date-sep{ color:var(--inn-t-azul-texto) !important; font-size:11px !important; font-weight:700 !important; text-transform:uppercase !important; letter-spacing:.06em !important; justify-content:center !important; }
 html:root .ci-date-sep.ci-date-sep::before, html:root .ci-date-sep.ci-date-sep::after{ content:none !important; }
 /* Chip de menção: todos no azul do Yuris; o tipo fica no rótulo pequeno */
-html:root .ci-mention.ci-mention{ background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul2) !important; border-color:transparent !important; border-radius:6px !important; font-weight:600 !important; }
+html:root .ci-mention.ci-mention{ background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul-texto) !important; border-color:transparent !important; border-radius:6px !important; font-weight:600 !important; }
 html:root .ci-mention.ci-mention .ci-mention-label{ color:var(--inn-t-texto3) !important; opacity:1 !important; text-transform:uppercase !important; letter-spacing:.04em !important; font-size:9.5px !important; font-weight:700 !important; }
 /* Painel de menções: o cartão da home; busca e campo de mensagem brancos */
 html:root .ci-mention-panel.ci-mention-panel{ background:var(--inn-t-painel) !important; border-color:var(--inn-t-linha2) !important; box-shadow:var(--inn-t-sombra) !important; border-radius:12px !important; }
@@ -427,14 +427,14 @@ html:root .ci-mpanel-search.ci-mpanel-search:focus, html:root .ci-textarea.ci-te
 html:root .ci-mpanel-search.ci-mpanel-search::placeholder, html:root .ci-textarea.ci-textarea::placeholder{ color:var(--inn-t-texto3) !important; opacity:1; }
 html:root .ci-mpanel-tabs.ci-mpanel-tabs{ border-bottom-color:var(--inn-t-linha) !important; }
 html:root .ci-mpanel-close.ci-mpanel-close{ color:var(--inn-t-texto3) !important; }
-html:root .ci-mpanel-section.ci-mpanel-section, html:root .ci-mpanel-subsection.ci-mpanel-subsection{ color:var(--inn-t-azul2) !important; font-weight:800 !important; letter-spacing:.08em !important; background:transparent !important; border-color:var(--inn-t-linha) !important; }
+html:root .ci-mpanel-section.ci-mpanel-section, html:root .ci-mpanel-subsection.ci-mpanel-subsection{ color:var(--inn-t-azul-texto) !important; font-weight:800 !important; letter-spacing:.08em !important; background:transparent !important; border-color:var(--inn-t-linha) !important; }
 html:root .ci-mention-item.ci-mention-item:hover, html:root .ci-mention-item.ci-mention-item.focused{ background:var(--inn-t-azul-suave) !important; }
 html:root .ci-mention-item.ci-mention-item.focused{ box-shadow:inset 0 0 0 1px rgba(61,101,203,.4) !important; }
 /* Menu ⋯ */
 html:root .ci-options-menu.ci-options-menu{ background:var(--inn-t-painel) !important; border-color:var(--inn-t-linha2) !important; box-shadow:var(--inn-t-sombra) !important; border-radius:10px !important; }
 html:root .ci-opt-btn.ci-opt-btn{ color:var(--inn-t-texto) !important; }
 html:root .ci-opt-btn.ci-opt-btn:hover{ background:var(--inn-t-azul-suave) !important; }
-html:root .ci-opt-btn.ci-opt-btn.danger{ color:var(--inn-t-erro) !important; }
+html:root .ci-opt-btn.ci-opt-btn.danger{ color:var(--inn-t-erro-texto) !important; }
 html:root .ci-opt-divider.ci-opt-divider{ background:var(--inn-t-linha) !important; }
 /* Nova conversa: tipo escolhido e participante marcado no azul suave; o campo do modal legível */
 html:root .ci-type-card.ci-type-card{ background:var(--inn-t-painel2) !important; border-color:var(--inn-t-linha) !important; border-radius:10px !important; }
@@ -497,7 +497,7 @@ html:root .inn-faixa.inn-faixa.inn-faixa{ background:transparent !important; bac
 html:root .inn-faixa-erro.inn-faixa-erro.inn-faixa-erro{ color:var(--inn-t-erro-forte) !important; }
 html:root .inn-faixa-aviso.inn-faixa-aviso.inn-faixa-aviso{ color:var(--inn-t-aviso-forte) !important; }
 html:root .inn-faixa-ok.inn-faixa-ok.inn-faixa-ok{ color:var(--inn-t-ok-forte) !important; }
-html:root .inn-faixa-azul.inn-faixa-azul.inn-faixa-azul{ color:var(--inn-t-azul2) !important; }
+html:root .inn-faixa-azul.inn-faixa-azul.inn-faixa-azul{ color:var(--inn-t-azul-texto) !important; }
 html:root .inn-faixa-neutro.inn-faixa-neutro.inn-faixa-neutro{ color:var(--inn-t-texto3) !important; }
 html:root .inn-faixa.inn-faixa svg, html:root .inn-faixa.inn-faixa svg *{ stroke:currentColor !important; color:inherit !important; }
 html:root .inn-kpi-ic.inn-kpi-ic-erro svg, html:root .inn-kpi-ic.inn-kpi-ic-erro svg *{ stroke:var(--inn-t-erro-forte) !important; }
@@ -534,8 +534,8 @@ html:root .inn-arq-barra i{ display:block; height:100%; background:var(--inn-t-a
 html:root .inn-arq:hover .inn-arq-ic, html:root .inn-arq[data-arrastando] .inn-arq-ic{ background:var(--inn-t-azul); color:#FFFFFF; border-color:transparent; }
 html:root .inn-arq:hover .inn-arq-acao{ background:var(--inn-t-azul); color:#FFFFFF; border-color:transparent; box-shadow:var(--inn-t-brilho); }
 html:root .inn-arq[data-arrastando]{ border-color:var(--inn-t-azul2); background:var(--inn-t-azul-suave); }
-html:root .inn-arq[data-estado="escolhido"] .inn-arq-ic{ color:var(--inn-t-azul2); }
-html:root .inn-arq[data-estado="enviando"] .inn-arq-ic{ background:var(--inn-t-azul-suave); color:var(--inn-t-azul2); }
+html:root .inn-arq[data-estado="escolhido"] .inn-arq-ic{ color:var(--inn-t-azul-texto); }
+html:root .inn-arq[data-estado="enviando"] .inn-arq-ic{ background:var(--inn-t-azul-suave); color:var(--inn-t-azul-texto); }
 html:root .inn-arq[data-estado="enviando"], html:root .inn-arq[data-estado="ok"], html:root .inn-arq[data-estado="erro"]{ cursor:default; }
 html:root .inn-arq[data-estado="enviando"] .inn-arq-campo, html:root .inn-arq[data-estado="ok"] .inn-arq-campo{ pointer-events:none !important; }
 html:root .inn-arq[data-estado="ok"] .inn-arq-ic{ background:var(--inn-t-ok-bg); color:var(--inn-t-ok-forte); border-color:transparent; }
@@ -574,3 +574,25 @@ html .inn-cartao-link{ position:absolute; inset:0; z-index:2; border-radius:inhe
 @keyframes inn-destaque{ 0%{ outline-color:transparent; outline-offset:8px; } 25%{ outline-color:var(--inn-t-azul2); outline-offset:3px; } 100%{ outline-color:transparent; outline-offset:3px; } }
 html .inn-destaque{ outline:2px solid transparent; animation:inn-destaque 1.4s ease both; }
 @media (prefers-reduced-motion: reduce){ html .inn-destaque{ animation:none; outline-color:var(--inn-t-azul2); } }
+
+/* ── Contraste mínimo de leitura (11/11/2026, "escuro com escuro, não dá para ler") ──
+   Texto pequeno pede 4,5:1. O cinza apagado (texto3), o azul e o vermelho de texto ganharam
+   tons próprios (--inn-t-azul-texto, --inn-t-erro-texto) nas variáveis; aqui ficam as
+   peças com cor fixa na folha da tela que a variável não alcança. */
+html:root .badge-neutral.badge-neutral, html:root [class*="badge-neutral"]{ color:var(--inn-t-texto2) !important; }   /* #6B7887 do yuris-theme: 3,3:1 */
+html:root .proc-empty.proc-empty{ color:var(--inn-t-texto3) !important; }   /* rgba(148,163,184,.45): 2,4:1 */
+/* A guarda de contraste (assets/interface-nova-contraste.js) troca o texto que ficou abaixo
+   de 4,5:1 pela cor de texto da casa do mesmo tom. A classe segue o tema. A classe repetida
+   ganha das regras mais fortes da camada (aba, botão), que repetem a classe até cinco vezes. */
+html:root body .inn-ct-texto3.inn-ct-texto3.inn-ct-texto3.inn-ct-texto3.inn-ct-texto3.inn-ct-texto3{ color:var(--inn-t-texto3) !important; }
+html:root body .inn-ct-texto2.inn-ct-texto2.inn-ct-texto2.inn-ct-texto2.inn-ct-texto2.inn-ct-texto2{ color:var(--inn-t-texto2) !important; }
+html:root body .inn-ct-texto.inn-ct-texto.inn-ct-texto.inn-ct-texto.inn-ct-texto.inn-ct-texto{ color:var(--inn-t-texto) !important; }
+html:root body .inn-ct-azul-texto.inn-ct-azul-texto.inn-ct-azul-texto.inn-ct-azul-texto.inn-ct-azul-texto.inn-ct-azul-texto{ color:var(--inn-t-azul-texto) !important; }
+html:root body .inn-ct-erro-texto.inn-ct-erro-texto.inn-ct-erro-texto.inn-ct-erro-texto.inn-ct-erro-texto.inn-ct-erro-texto{ color:var(--inn-t-erro-texto) !important; }
+html:root body .inn-ct-erro-forte.inn-ct-erro-forte.inn-ct-erro-forte.inn-ct-erro-forte.inn-ct-erro-forte.inn-ct-erro-forte{ color:var(--inn-t-erro-forte) !important; }
+html:root body .inn-ct-aviso.inn-ct-aviso.inn-ct-aviso.inn-ct-aviso.inn-ct-aviso.inn-ct-aviso{ color:var(--inn-t-aviso) !important; }
+html:root body .inn-ct-aviso-forte.inn-ct-aviso-forte.inn-ct-aviso-forte.inn-ct-aviso-forte.inn-ct-aviso-forte.inn-ct-aviso-forte{ color:var(--inn-t-aviso-forte) !important; }
+html:root body .inn-ct-ok.inn-ct-ok.inn-ct-ok.inn-ct-ok.inn-ct-ok.inn-ct-ok{ color:var(--inn-t-ok) !important; }
+html:root body .inn-ct-ok-forte.inn-ct-ok-forte.inn-ct-ok-forte.inn-ct-ok-forte.inn-ct-ok-forte.inn-ct-ok-forte{ color:var(--inn-t-ok-forte) !important; }
+html:root body .inn-ct-branco.inn-ct-branco.inn-ct-branco.inn-ct-branco.inn-ct-branco.inn-ct-branco{ color:#FFFFFF !important; }
+html:root body .inn-ct-preto.inn-ct-preto.inn-ct-preto.inn-ct-preto.inn-ct-preto.inn-ct-preto{ color:#11141A !important; }

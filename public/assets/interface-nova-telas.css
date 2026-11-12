@@ -25,14 +25,14 @@
   --yuris-primary:#3A63C9; --yuris-accent:#3A63C9; --yuris-blue-deep:#2D4FA8; --yuris-blue-steel:#3A63C9; --yuris-blue-mid:#4F78DB; --yuris-blue-light:#6C90E3;
   --yuris-silver:#B4BAC5; --yuris-silver-dim:#7F8794; --yuris-silver-bright:#E8EAEE;
   --yuris-border:rgba(200,210,225,.10); --yuris-border-md:rgba(200,210,225,.18); --yuris-border-lg:rgba(200,210,225,.28);
-  --yuris-text:#E8EAEE; --yuris-text-dim:#B4BAC5; --yuris-text-muted:#7F8794; --yuris-text-accent:#C9CFD9;
+  --yuris-text:#E8EAEE; --yuris-text-dim:#B4BAC5; --yuris-text-muted:#9AA3AE; --yuris-text-accent:#C9CFD9;
   --y-primary:#4F78DB; --y-primary-hover:#6C90E3; --y-primary-active:#3A63C9; --y-primary-dim:rgba(79,120,219,.14); --y-primary-border:rgba(79,120,219,.30); --y-primary-glow:0 0 0 rgba(0,0,0,0);
   --y-bg-main:#1A1D22; --y-bg-surface:#1F2329; --y-bg-card:#262B33; --y-bg-elevated:#2D333C; --y-bg-input:#171A1F;
   --y-border:rgba(200,210,225,.12); --y-border-soft:rgba(200,210,225,.10); --y-border-md:rgba(200,210,225,.18); --y-border-lg:rgba(200,210,225,.28);
-  --y-text:#E8EAEE; --y-text-muted:#B4BAC5; --y-text-soft:#7F8794; --y-text-accent:#C9CFD9;
+  --y-text:#E8EAEE; --y-text-muted:#B4BAC5; --y-text-soft:#9AA3AE; --y-text-accent:#C9CFD9;
   --y-r-md:8px; --y-r-lg:12px; --y-r-xl:12px;
   --inn-t-fundo:#171A1F; --inn-t-painel:#262B33; --inn-t-painel2:#2D333C; --inn-t-linha:rgba(200,210,225,.10); --inn-t-linha2:rgba(200,210,225,.18);
-  --inn-t-texto:#E8EAEE; --inn-t-texto2:#B4BAC5; --inn-t-texto3:#7F8794; --inn-t-azul:#3A63C9; --inn-t-azul2:#4F78DB; --inn-t-azul-suave:rgba(79,120,219,.14);
+  --inn-t-texto:#E8EAEE; --inn-t-texto2:#B4BAC5; --inn-t-texto3:#9AA3AE; --inn-t-azul-texto:#86A8F2; --inn-t-erro-texto:#F0928C; --inn-t-azul:#3A63C9; --inn-t-azul2:#4F78DB; --inn-t-azul-suave:rgba(79,120,219,.14);
   --inn-t-hi:rgba(255,255,255,.05);
   --inn-t-sombra:0 1px 0 rgba(255,255,255,.05) inset, 0 12px 28px rgba(0,0,0,.30);
   --inn-t-fundo-sombra:inset 0 2px 6px rgba(0,0,0,.45), inset 0 -1px 0 rgba(255,255,255,.04);
@@ -45,13 +45,13 @@ html[data-theme="light"]{
   --yuris-primary:#2E55B8; --yuris-accent:#2E55B8; --yuris-blue-deep:#23448F; --yuris-blue-steel:#2E55B8; --yuris-blue-mid:#3D65CB; --yuris-blue-light:#5A7ED6;
   --yuris-silver:#7A8494; --yuris-silver-dim:#9AA3B0; --yuris-silver-bright:#CBD0D8;
   --yuris-border:rgba(31,38,50,.10); --yuris-border-md:rgba(31,38,50,.18); --yuris-border-lg:rgba(31,38,50,.30);
-  --yuris-text:#1E2630; --yuris-text-dim:#4E586A; --yuris-text-muted:#7A8494; --yuris-text-accent:#2E55B8;
+  --yuris-text:#1E2630; --yuris-text-dim:#4E586A; --yuris-text-muted:#5F6878; --yuris-text-accent:#2E55B8;
   --y-primary:#2E55B8; --y-primary-hover:#3D65CB; --y-primary-active:#23448F; --y-primary-dim:rgba(46,85,184,.10); --y-primary-border:rgba(46,85,184,.26); --y-primary-glow:0 0 0 rgba(0,0,0,0);
   --y-bg-main:#E3E5E8; --y-bg-surface:#E9EBEE; --y-bg-card:#F5F6F8; --y-bg-elevated:#FFFFFF; --y-bg-input:#F5F6F8;
   --y-border:rgba(31,38,50,.12); --y-border-soft:rgba(31,38,50,.10); --y-border-md:rgba(31,38,50,.18); --y-border-lg:rgba(31,38,50,.30);
-  --y-text:#1E2630; --y-text-muted:#4E586A; --y-text-soft:#7A8494; --y-text-accent:#2E55B8;
+  --y-text:#1E2630; --y-text-muted:#4E586A; --y-text-soft:#5F6878; --y-text-accent:#2E55B8;
   --inn-t-fundo:#E6E8EB; --inn-t-painel:#F5F6F8; --inn-t-painel2:#ECEEF1; --inn-t-linha:rgba(31,38,50,.10); --inn-t-linha2:rgba(31,38,50,.18);
-  --inn-t-texto:#1E2630; --inn-t-texto2:#4E586A; --inn-t-texto3:#7A8494; --inn-t-azul:#2E55B8; --inn-t-azul2:#3D65CB; --inn-t-azul-suave:rgba(46,85,184,.10);
+  --inn-t-texto:#1E2630; --inn-t-texto2:#4E586A; --inn-t-texto3:#5F6878; --inn-t-azul-texto:#2E55B8; --inn-t-erro-texto:#A23B35; --inn-t-azul:#2E55B8; --inn-t-azul2:#3D65CB; --inn-t-azul-suave:rgba(46,85,184,.10);
   --inn-t-hi:rgba(255,255,255,.9);
   --inn-t-sombra:0 1px 0 rgba(255,255,255,.9) inset, 0 8px 24px rgba(31,38,50,.08), 0 1px 2px rgba(31,38,50,.05);
   --inn-t-fundo-sombra:inset 0 2px 5px rgba(31,38,50,.10), inset 0 -1px 0 rgba(255,255,255,.8);
@@ -118,7 +118,7 @@ html .main-content table td{ color:var(--inn-t-texto) !important; border-color:v
 html .main-content table tbody tr:hover td{ background:var(--inn-t-azul-suave) !important; }
 html .tab-btn, html .cfg-tab, html .es-tab, html .tk-tab{ border-radius:8px !important; }
 html .tab-btn.active, html .cfg-tab.active, html .es-tab.active, html .tk-tab.active{
-  background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul2) !important; border-color:transparent !important; box-shadow:none !important;
+  background:var(--inn-t-azul-suave) !important; color:var(--inn-t-azul-texto) !important; border-color:transparent !important; box-shadow:none !important;
 }
 html .main-content hr{ border-color:var(--inn-t-linha) !important; }
 

@@ -717,7 +717,7 @@
     'inn-c-neutro': { 'background': 'var(--inn-t-fundo)', 'border-color': 'var(--inn-t-linha)' },
     'inn-c-borda': { 'border-color': 'var(--inn-t-linha)' },
     'inn-c-sem-faixa': { 'border-left-color': 'var(--inn-t-linha)' },
-    'inn-c-alerta-erro': { 'background': 'linear-gradient(var(--inn-t-erro-bg), var(--inn-t-erro-bg)) var(--inn-t-painel)', 'color': 'var(--inn-t-erro)', 'border-color': 'transparent' },
+    'inn-c-alerta-erro': { 'background': 'linear-gradient(var(--inn-t-erro-bg), var(--inn-t-erro-bg)) var(--inn-t-painel)', 'color': 'var(--inn-t-erro-texto)', 'border-color': 'transparent' },
     'inn-c-alerta-aviso': { 'background': 'linear-gradient(var(--inn-t-aviso-bg), var(--inn-t-aviso-bg)) var(--inn-t-painel)', 'color': 'var(--inn-t-aviso)', 'border-color': 'transparent' },
     'inn-c-alerta-ok': { 'background': 'linear-gradient(var(--inn-t-ok-bg), var(--inn-t-ok-bg)) var(--inn-t-painel)', 'color': 'var(--inn-t-ok)', 'border-color': 'transparent' },
     'inn-toast': { 'background': 'var(--inn-t-painel)', 'color': 'var(--inn-t-texto)', 'border-color': 'var(--inn-t-linha2)' },
@@ -727,8 +727,8 @@
     'inn-c-campo-pop': { 'background-color': 'var(--inn-t-campo-pop)', 'border-color': 'var(--inn-t-linha2)', 'color': 'var(--inn-t-texto)', 'box-shadow': 'none' },
     'inn-c-texto-cinza': { 'color': 'var(--inn-t-texto2)' },
     'inn-c-escuro': { 'background': 'var(--inn-t-painel2)', 'color': 'var(--inn-t-texto)', 'border-color': 'var(--inn-t-linha2)', 'box-shadow': 'none' },
-    'inn-c-texto-azul': { 'color': 'var(--inn-t-azul2)' },
-    'inn-c-texto-erro': { 'color': 'var(--inn-t-erro)' },
+    'inn-c-texto-azul': { 'color': 'var(--inn-t-azul-texto)' },   // texto: tom de leitura (11/11/2026)
+    'inn-c-texto-erro': { 'color': 'var(--inn-t-erro-texto)' },
     'inn-c-texto-aviso': { 'color': 'var(--inn-t-aviso)' },
     'inn-c-texto-ok': { 'color': 'var(--inn-t-ok)' }
   };

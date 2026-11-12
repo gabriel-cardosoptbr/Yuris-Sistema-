@@ -1779,6 +1779,8 @@ window.FF_AGENDA = { csrf: <?= json_encode($_notifCsrf) ?>, sessao: <?= json_enc
 <!-- O movimento das telas de dentro: entrada, saída pelo menu, pop-ups que surgem. -->
 <link rel="stylesheet" href="/assets/interface-nova-movimento.css?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-movimento.css') ?: 1 ?>">
 <script src="/assets/interface-nova-movimento.js?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-movimento.js') ?: 1 ?>" defer></script>
+<!-- Nenhum texto abaixo do mínimo de leitura: mede cada texto contra o fundo real e troca o que ficou fraco. -->
+<script src="/assets/interface-nova-contraste.js?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-contraste.js') ?: 1 ?>" defer></script>
 <!-- Todo cartão de indicador faz alguma coisa: leva para a tela do assunto ou filtra a própria tela. -->
 <script src="/assets/interface-nova-cartoes.js?v=<?= @filemtime(__DIR__ . '/../assets/interface-nova-cartoes.js') ?: 1 ?>" defer></script>
 <!-- Arrumações de uma tela só (Processos: a agenda abre pelo botão do cabeçalho). -->

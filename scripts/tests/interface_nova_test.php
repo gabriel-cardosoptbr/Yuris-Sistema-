@@ -457,7 +457,7 @@ ok(str_contains($detJs, 'function ossos(campos, linhas)') && str_contains($detJs
 ok(!str_contains($detJs, 'location.reload') && !str_contains($detJs, 'atualizarEmSilencio') && str_contains($detJs, "if (e.data.yuris === 'embed-fechar') fecharModulo();"), 'fechar o pop-up só fecha: nada recarrega e nenhum cartão é trocado');
 ok(!str_contains($movJs, 'location.reload') && !str_contains($inicio, 'location.reload'), 'a home não recarrega sozinha em lugar nenhum');
 ok(!str_contains($detJs, 'Abrindo…') && !str_contains($detJs, 'carregando()'), 'sem Abrindo nem Carregando: no lugar deles, a forma do que vem');
-ok(substr_count($inicio, 'class="ini-ctr ') === 1 && str_contains($inicio, '<span class="ini-ctr-ic">') && str_contains((string) file_get_contents($raiz . '/public/assets/inicio.css'), '.ini-ctr.hoje:not(.zero) .ini-ctr-t b{ color:var(--ini-erro); }'), 'contadores de Prazos como cartões, vermelho só em hoje com prazo');
+ok(substr_count($inicio, 'class="ini-ctr ') === 1 && str_contains($inicio, '<span class="ini-ctr-ic">') && str_contains((string) file_get_contents($raiz . '/public/assets/inicio.css'), '.ini-ctr.hoje:not(.zero) .ini-ctr-t b{ color:var(--ini-erro-texto); }'), 'contadores de Prazos como cartões, vermelho só em hoje com prazo');
 ok(str_contains($detJs, 'idt-pub-link-txt') && str_contains($detJs, "g.rotulo === 'Partes' ? ''"), 'endereço no teor vira link e o rótulo Partes não se repete');
 ok(str_contains($inicio, 'data-novo="processo"') && str_contains($inicio, 'data-novo="tarefa"') && str_contains($inicio, 'data-novo="publicacoes"'), 'os três botões da faixa abrem o pop-up');
 ok(!str_contains($detJs, 'alert(') && !str_contains($detJs, 'confirm(') && !str_contains($detJs, '—'), 'pop-up sem diálogo nativo e sem travessão');
@@ -484,6 +484,23 @@ ok($popups !== '' && str_contains($sidebarT, '/assets/interface-nova-popups.css'
 ok(str_contains($popups, 'width:min(980px, calc(100vw - 32px)) !important;') && str_contains($popups, 'flex-wrap:wrap !important; overflow:visible !important;'), 'o painel da tarefa cresce e as abas quebram linha, sem rolagem lateral');
 ok(!str_contains($popups, '—') && !str_contains($popups, 'text-overflow'), 'folha dos pop-ups sem travessão e sem reticências');
 $nova = (string) file_get_contents($raiz . '/public/assets/interface-nova.css');
+// Contraste de leitura (11/11/2026, "escuro com escuro, não dá para ler"): texto azul e vermelho têm tom próprio.
+$iniCss = (string) file_get_contents($raiz . '/public/assets/inicio.css');
+$telasCss = (string) file_get_contents($raiz . '/public/assets/interface-nova-telas.css');
+$sisCss = (string) file_get_contents($raiz . '/public/assets/interface-nova-sistema.css');
+ok(preg_match('/(?<![-\w])color:\s*var\(--ini-(azul2|erro)\)/', $iniCss) === 0, 'home: texto nunca usa o azul de botão nem o vermelho de fundo');
+ok(preg_match('/(?<![-\w])color:\s*var\(--inn(-t)?-(azul2|erro)\)/', $nova . $sisCss . $telasCss) === 0, 'telas e menu: o mesmo');
+ok(str_contains($iniCss, '--ini-texto3:#9AA3AE;') && str_contains($iniCss, '--ini-texto3:#5F6878;') && str_contains($telasCss, '--inn-t-texto3:#9AA3AE;') && str_contains($nova, '--inn-texto3:#9AA3AE;'), 'o cinza apagado passa de 4,5:1 nos dois temas');
+// A guarda de contraste nas telas de dentro (11/11/2026): mede cada texto contra o fundo real.
+$guarda = (string) @file_get_contents($raiz . '/public/assets/interface-nova-contraste.js');
+$sbG = (string) file_get_contents($raiz . '/public/includes/sidebar.php');
+$pMov = strpos($sbG, '/assets/interface-nova-movimento.js'); $pGua = strpos($sbG, '/assets/interface-nova-contraste.js'); $pTelas = strpos($sbG, 'interface-nova-telas.css');
+ok($guarda !== '' && $pGua !== false && $pGua > $pMov && $pGua > $pTelas, 'a guarda de contraste carrega nas telas de dentro, depois da camada');
+ok(str_contains($guarda, 'var minimo = grande ? 3 : 4.5;') && str_contains($guarda, "cinza:    ['texto3', 'texto2', 'texto']") && str_contains($guarda, "azul:     ['azul-texto', 'texto']"), 'a guarda: 4,5:1 (3:1 grande) e a troca pelo mesmo tom');
+ok(str_contains($guarda, "attributeFilter: ['class', 'hidden']") && str_contains($guarda, 'function semMarcas(c)') && !str_contains($guarda, "attributeFilter: ['class', 'style'"), 'a guarda não acorda com as marcas inn-* nem com style (sem laço com a camada)');
+ok(str_contains($guarda, "':is(#inn-ct-medindo, *)") , 'a guarda mede a cor final, sem transição no meio');
+ok(str_contains($sisCss, 'html:root body .inn-ct-texto3.inn-ct-texto3.inn-ct-texto3.inn-ct-texto3.inn-ct-texto3.inn-ct-texto3{ color:var(--inn-t-texto3) !important; }') && str_contains($sisCss, '.inn-ct-branco.inn-ct-branco'), 'as classes da guarda vencem as regras da camada');
+ok(str_contains($iniCss, '.ini-dia-lista > *, .ini-lista > *, .ini-equipe > *{ flex-shrink:0; }'), 'cartão da home nunca encolhe e corta o texto');
 // O aviso de cookies na paleta da casa (11/11/2026, "não está no padrão de cor"): painel, botões iguais aos da home.
 ok(str_contains($nova, 'html #yuris-cookie-banner{ background:var(--inn-painel);') && str_contains($nova, 'html #yuris-cookie-banner button.primary, html #yuris-cookie-prefs button.primary{ background:linear-gradient(180deg, var(--inn-azul2), var(--inn-azul)) !important;') && str_contains($nova, 'html #yuris-cookie-prefs .ycc-cat{ background:var(--inn-painel-fundo);'), 'o aviso de cookies no padrão de cor: painel da casa, botão azul da home, categorias afundadas');
 ok(str_contains($nova, 'background:linear-gradient(rgba(46,85,184,.13), rgba(46,85,184,.13)), var(--inn-fundo) !important;') && !str_contains($nova, 'background:#FFFFFF !important;') && str_contains($nova, '.sidebar-group.has-active .sidebar-group-icon svg *{ color:inherit !important; stroke:currentColor !important; }'), 'grupo com a página atual: ícone azul na caixa afundada com véu azul, nunca caixa branca');
