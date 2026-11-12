@@ -147,6 +147,12 @@ class AccountContext
                 $stmt = $pdo->prepare("SELECT status FROM accounts WHERE id = :id LIMIT 1");
                 $stmt->execute(['id' => $this->accountId]);
                 $status = (string) $stmt->fetchColumn();
+                // Teste grátis vencido bloqueia como conta suspensa (12/11/2026). Só
+                // conta em 'trial' paga a consulta; a resposta entra no mesmo cache.
+                if ($status === 'trial'
+                    && \App\Billing\PeriodoTeste::mensagemBloqueio($pdo, $this->accountId) !== null) {
+                    $status = 'teste_encerrado';
+                }
             } catch (\Throwable $_e) {
                 return; // DB indisponível — não derruba sessão
             }
@@ -162,6 +168,7 @@ class AccountContext
             'suspended' => 'Conta suspensa. Entre em contato com o suporte.',
             'cancelled' => 'Conta cancelada. Acesso negado.',
             'inactive'  => 'Conta inativa.',
+            'teste_encerrado' => \App\Billing\PeriodoTeste::MENSAGEM_ENCERRADO,
             default     => 'Acesso bloqueado.',
         };
 
@@ -180,9 +187,10 @@ class AccountContext
         if ($isApi) {
             http_response_code(401);
             header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['ok' => false, 'error' => $msg, 'code' => 'ACCOUNT_BLOCKED']);
+            echo json_encode(['ok' => false, 'error' => $msg, 'code' => $status === 'teste_encerrado' ? 'TRIAL_ENDED' : 'ACCOUNT_BLOCKED']);
             exit;
         }
+        if ($status === 'teste_encerrado') { header('Location: /login?aviso=teste_encerrado'); exit; }
         header('Location: /login?msg=' . urlencode($msg));
         exit;
     }

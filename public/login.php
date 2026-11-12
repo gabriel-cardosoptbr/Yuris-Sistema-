@@ -16,6 +16,11 @@ session_start();
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(16));
 $flash = $_SESSION['flash_error'] ?? null;
 unset($_SESSION['flash_error']);
+// Sessão derrubada por teste grátis vencido (AccountContext::assertAccountActive).
+// Código fixo na URL, nunca texto livre: ninguém monta frase própria nesta tela.
+if (!$flash && ($_GET['aviso'] ?? '') === 'teste_encerrado') {
+    $flash = \App\Billing\PeriodoTeste::MENSAGEM_ENCERRADO;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     AuthController::attemptLogin();

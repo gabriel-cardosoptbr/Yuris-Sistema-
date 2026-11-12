@@ -164,11 +164,23 @@ if ($_isFleetiflow && !in_array($_ap, ['chat', 'chat_interno'], true)) {
 // Conta no plano Teste Grátis, em teste: toda tela mostra no topo quantos dias
 // faltam (App\Billing\PeriodoTeste decide quem está em teste). Não vai no ?embed=1.
 $_periodoTeste = null;
-if (!$_isFleetiflow && ($_GET['embed'] ?? '') !== '1' && isset($__brandCtx)) {
+$_testeBloqueado = false;
+if (!$_isFleetiflow && isset($__brandCtx)) {
     try {
         $_periodoTeste = \App\Billing\PeriodoTeste::daConta(\App\Core\Database::getConnection(), (int) $__brandCtx->getAccountId());
     } catch (\Throwable $__e) { $_periodoTeste = null; }
 }
+// Teste vencido (12/11/2026): nem toda tela com menu passa pelo assertAccountActive
+// (Chat, Configurações, Usuários...), então o menu fecha a porta também. Derruba a
+// sessão aqui, cobre a tela e manda para o login com o aviso. Super admin não.
+if ($_periodoTeste && $_periodoTeste['encerrado'] && empty($_SESSION['is_super_admin'])) {
+    $_testeBloqueado = true;
+    try {
+        if (session_status() !== PHP_SESSION_ACTIVE) @session_start();
+        if (session_status() === PHP_SESSION_ACTIVE) { $_SESSION = []; @session_destroy(); }
+    } catch (\Throwable $__e) { /* a tela coberta e o redirecionamento seguem */ }
+}
+if (($_GET['embed'] ?? '') === '1' && !$_testeBloqueado) $_periodoTeste = null;
 
 $_notifTempo = function ($raw) {
     $ts = $raw ? strtotime((string)$raw) : 0; if (!$ts) return '';
@@ -1353,7 +1365,20 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
 </script>
 <?php endif; ?>
 
-<?php if ($_periodoTeste): ?>
+<?php if ($_testeBloqueado): ?>
+<!-- Teste grátis vencido: a sessão já caiu no bloco PHP do topo. A tela é coberta e
+     vai para o login com o aviso (código fixo, a mensagem é a de PeriodoTeste). -->
+<link rel="stylesheet" href="/assets/periodo-teste.css?v=<?= @filemtime(__DIR__ . '/../assets/periodo-teste.css') ?: 1 ?>">
+<div class="yt-bloqueio" role="alertdialog" aria-modal="true" aria-labelledby="ytBloqueioTitulo">
+  <div class="yt-bloqueio__cartao">
+    <span class="yt-teste__selo yt-bloqueio__selo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12M6 22h12"/><path d="M7 2v4a5 5 0 0 0 5 5 5 5 0 0 0 5-5V2"/><path d="M7 22v-4a5 5 0 0 1 5-5 5 5 0 0 1 5 5v4"/></svg></span>
+    <h2 id="ytBloqueioTitulo">Teste grátis encerrado</h2>
+    <p><?= htmlspecialchars(\App\Billing\PeriodoTeste::MENSAGEM_ENCERRADO) ?></p>
+    <a class="yt-bloqueio__botao" href="/login?aviso=teste_encerrado">Voltar ao login</a>
+  </div>
+</div>
+<script>try{document.documentElement.style.overflow='hidden';setTimeout(function(){location.replace('/login?aviso=teste_encerrado');},4000);}catch(e){}</script>
+<?php elseif ($_periodoTeste): ?>
 <!-- Tag de teste grátis (ver o bloco PHP no topo). Nasce aqui e o script abaixo a
      coloca no topo da área de conteúdo, ao lado do menu, como o aviso de WhatsApp. -->
 <link rel="stylesheet" href="/assets/periodo-teste.css?v=<?= @filemtime(__DIR__ . '/../assets/periodo-teste.css') ?: 1 ?>">

@@ -7,17 +7,23 @@ namespace App\Billing;
  * O período de teste grátis de uma conta (12/11/2026).
  *
  * Vale só para a conta que está, ao mesmo tempo, com `accounts.status = 'trial'`,
- * no plano `teste_gratis` e com a assinatura em `trialing`. As três juntas, de
- * propósito: há contas pagantes que ficaram com a assinatura em `trialing` desde
- * a criação no Master, e elas não podem ganhar uma tag de "teste grátis".
+ * no plano `teste_gratis`, com a assinatura em `trialing` **e com a marca
+ * `configuracoes.periodo_teste`** (posta por scripts/criar_conta_teste.php). Tudo
+ * junto, de propósito: há conta pagante com a assinatura esquecida em `trialing`
+ * desde a criação no Master, e contas de teste antigas (78, 79 e 80 em produção)
+ * no plano teste_gratis com o prazo vencido em julho de 2026; nenhuma delas pode
+ * ganhar tag nem bloqueio que ninguém combinou.
  *
- * O prazo pode começar a contar no primeiro login, e não na criação: a conta nasce
- * com `configuracoes.periodo_teste = {"dias": 3, "inicio": null}` e o primeiro
- * login grava o início e move `subscriptions.trial_ends_at` para o início mais os
- * dias. Depois disso, nenhum login mexe no prazo de novo.
+ * O prazo começa a contar no primeiro login, e não na criação: a conta nasce com
+ * `configuracoes.periodo_teste = {"dias": 3, "inicio": null}` e o primeiro login
+ * grava o início e move `subscriptions.trial_ends_at` para o início mais os dias.
+ * Depois disso, nenhum login mexe no prazo de novo.
  *
- * Encerrado o prazo, nada é bloqueado por aqui: a tag passa a dizer que o teste
- * terminou e quem decide o próximo passo é a equipe (Painel Master).
+ * Encerrado o prazo, a conta é bloqueada (12/11/2026, "bloquear ao vencer"):
+ * `mensagemBloqueio()` é consultada no login, no "Lembrar", no
+ * `AccountContext::assertAccountActive()` e no menu. O bloqueio é calculado, não
+ * gravado: para liberar, a equipe muda no Painel Master a data "Teste grátis até"
+ * (ou passa a conta para `active`), e o acesso volta na hora.
  */
 final class PeriodoTeste
 {
@@ -45,9 +51,28 @@ final class PeriodoTeste
 
         $cfg = json_decode((string) ($row['configuracoes'] ?? ''), true);
         $pt  = is_array($cfg['periodo_teste'] ?? null) ? $cfg['periodo_teste'] : null;
-        $aguardando = $pt !== null && empty($pt['inicio']);
+        if ($pt === null) return null; // conta de teste antiga, sem a marca: nem tag nem bloqueio
+        $aguardando = empty($pt['inicio']);
 
         return self::estado($row['trial_ends_at'] ?: null, $aguardando, $agora ?? self::agora(), (int) ($pt['dias'] ?? 0));
+    }
+
+    public const MENSAGEM_ENCERRADO = 'Seu período de teste grátis terminou. Fale com a equipe do Yuris para continuar usando o sistema.';
+
+    /**
+     * O teste da conta terminou? Devolve a mensagem para a tela de login, ou null
+     * quando o acesso segue liberado (conta fora do teste, teste em andamento ou
+     * ainda esperando o primeiro login). Nunca lança: na dúvida, libera.
+     */
+    public static function mensagemBloqueio(\PDO $pdo, int $accountId): ?string
+    {
+        try {
+            $e = self::daConta($pdo, $accountId);
+        } catch (\Throwable $t) {
+            error_log('[periodo_teste/bloqueio] ' . $t->getMessage());
+            return null;
+        }
+        return ($e !== null && $e['encerrado']) ? self::MENSAGEM_ENCERRADO : null;
     }
 
     /**

@@ -141,6 +141,11 @@ final class Lembrar
             $apagar();
             return;
         }
+        // Teste grátis vencido: não abre a sessão, mas guarda o token, para o aparelho
+        // voltar sozinho quando a equipe estender o teste (App\Billing\PeriodoTeste).
+        if ($account['status'] === 'trial' && \App\Billing\PeriodoTeste::mensagemBloqueio($pdo, (int) $account['id']) !== null) {
+            return;
+        }
 
         AuthController::abrirSessao($user, $account);
         $pdo->prepare('UPDATE login_lembrar SET usado_em = NOW(), expira_em = DATE_ADD(NOW(), INTERVAL ' . self::DIAS . ' DAY) WHERE id = ?')

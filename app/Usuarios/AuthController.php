@@ -113,6 +113,17 @@ class AuthController
             }
         }
 
+        // Teste grátis vencido (App\Billing\PeriodoTeste, 12/11/2026): não entra.
+        // A equipe libera estendendo "Teste grátis até" no Painel Master.
+        if ($account && $account['status'] === 'trial') {
+            $msgTeste = \App\Billing\PeriodoTeste::mensagemBloqueio($pdo, (int) $account['id']);
+            if ($msgTeste !== null) {
+                $_SESSION['flash_error'] = $msgTeste;
+                header('Location: ' . $loginPage);
+                exit;
+            }
+        }
+
         // ── Login OK — popular sessão ──────────────────────────────────────
         self::abrirSessao($user, $account);
 

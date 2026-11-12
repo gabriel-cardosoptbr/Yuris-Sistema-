@@ -92,7 +92,25 @@ if ($pdo) {
         ok($e !== null && !$e['aguardando_login'] && in_array($e['dias'], [2, 3], true), 'depois do login: conta pelo prazo (' . ($e['rotulo'] ?? '?') . ')');
         $semMarca = $nova('trial', $planoTeste, null);
         ok(PeriodoTeste::iniciarNoPrimeiroLogin($pdo, $semMarca) === false, 'conta em teste sem a marca: login não mexe');
-        ok(PeriodoTeste::daConta($pdo, $semMarca) !== null, 'conta em teste sem a marca: tag com o prazo da assinatura');
+        eq(null, PeriodoTeste::daConta($pdo, $semMarca), 'conta de teste antiga, sem a marca: sem tag (contas 78 a 80 de produção)');
+
+        // Bloqueio ao vencer (12/11/2026)
+        eq(null, PeriodoTeste::mensagemBloqueio($pdo, $teste), 'teste em andamento: liberado');
+        $pdo->exec("UPDATE subscriptions SET trial_ends_at = DATE_SUB(NOW(), INTERVAL 1 MINUTE) WHERE account_id = $teste");
+        eq(PeriodoTeste::MENSAGEM_ENCERRADO, PeriodoTeste::mensagemBloqueio($pdo, $teste), 'teste vencido: bloqueado');
+        $e = PeriodoTeste::daConta($pdo, $teste);
+        ok($e !== null && $e['encerrado'] && $e['rotulo'] === 'Teste grátis encerrado', 'teste vencido: estado encerrado');
+        $pdo->exec("UPDATE subscriptions SET trial_ends_at = DATE_ADD(NOW(), INTERVAL 2 DAY) WHERE account_id = $teste");
+        eq(null, PeriodoTeste::mensagemBloqueio($pdo, $teste), 'equipe estendeu "Teste grátis até": liberado na hora');
+        $pdo->exec("UPDATE subscriptions SET trial_ends_at = DATE_SUB(NOW(), INTERVAL 1 DAY) WHERE account_id = $teste");
+        $pdo->exec("UPDATE accounts SET status = 'active' WHERE id = $teste");
+        eq(null, PeriodoTeste::mensagemBloqueio($pdo, $teste), 'conta passada para active: liberada mesmo com a data vencida');
+        $pdo->exec("UPDATE subscriptions SET trial_ends_at = DATE_SUB(NOW(), INTERVAL 30 DAY) WHERE account_id = $semMarca");
+        eq(null, PeriodoTeste::mensagemBloqueio($pdo, $semMarca), 'conta antiga sem a marca, vencida: não bloqueia');
+        $esperando = $nova('trial', $planoTeste, ['periodo_teste' => ['dias' => 3, 'inicio' => null]]);
+        $pdo->exec("UPDATE subscriptions SET trial_ends_at = DATE_SUB(NOW(), INTERVAL 1 DAY) WHERE account_id = $esperando");
+        eq(null, PeriodoTeste::mensagemBloqueio($pdo, $esperando), 'ainda sem o primeiro login: não bloqueia, mesmo com a data provisória vencida');
+        eq(null, PeriodoTeste::mensagemBloqueio($pdo, 0), 'conta 0: não bloqueia');
     } finally {
         foreach ($criadas as $id) {
             $pdo->prepare('DELETE FROM subscriptions WHERE account_id = ?')->execute([$id]);
@@ -104,7 +122,8 @@ if ($pdo) {
 secao('4. O menu e o login');
 $sb = (string) file_get_contents("$raiz/public/includes/sidebar.php");
 ok(str_contains($sb, 'PeriodoTeste::daConta('), 'o menu pergunta a PeriodoTeste');
-ok((bool) preg_match('/\$_periodoTeste = null;\s*if \(!\$_isFleetiflow && \(\$_GET\[\'embed\'\] \?\? \'\'\) !== \'1\'/', $sb), 'fora da edição CRM e do ?embed=1');
+ok((bool) preg_match('/\$_periodoTeste = null;\s*\$_testeBloqueado = false;\s*if \(!\$_isFleetiflow && isset\(\$__brandCtx\)\)/', $sb), 'fora da edição CRM');
+ok(str_contains($sb, "if ((\$_GET['embed'] ?? '') === '1' && !\$_testeBloqueado) \$_periodoTeste = null;"), 'no ?embed=1 sem tag, mas o bloqueio vale');
 ok(str_contains($sb, '/assets/periodo-teste.css') && is_file("$raiz/public/assets/periodo-teste.css"), 'CSS ligado e presente');
 ok(str_contains($sb, "htmlspecialchars(\$_periodoTeste['rotulo'])") && str_contains($sb, "htmlspecialchars(\$_periodoTeste['detalhe'])"), 'texto escapado');
 $css = (string) file_get_contents("$raiz/public/assets/periodo-teste.css");
@@ -113,6 +132,19 @@ ok(!preg_match('/border-left\s*:/', $css), 'sem faixa lateral colorida');
 $auth = (string) file_get_contents("$raiz/app/Usuarios/AuthController.php");
 ok((bool) preg_match('/try \{ \\\\App\\\\Billing\\\\PeriodoTeste::iniciarNoPrimeiroLogin\(.*\}\s*catch \(\\\\Throwable/s', $auth), 'login chama o início do prazo dentro de try/catch');
 foreach (['alert(', 'confirm(', 'prompt('] as $d) ok(!str_contains($sb . $css, "window.$d"), "sem $d nativo");
+
+secao('5. O bloqueio ao vencer passa por todas as portas');
+ok((bool) preg_match("/status'\] === 'trial'\) \{\s*\\\$msgTeste = \\\\App\\\\Billing\\\\PeriodoTeste::mensagemBloqueio\(.*?exit;\s*\}\s*\}\s*\/\/ ── Login OK/s", $auth), 'login recusa antes de abrir a sessão');
+$lem = (string) file_get_contents("$raiz/app/Usuarios/Lembrar.php");
+ok(str_contains($lem, 'PeriodoTeste::mensagemBloqueio(') && strpos($lem, 'PeriodoTeste::mensagemBloqueio(') < strpos($lem, 'AuthController::abrirSessao('), '"Lembrar" não abre sessão de teste vencido');
+$ctxSrc = (string) file_get_contents("$raiz/app/Core/AccountContext.php");
+ok(str_contains($ctxSrc, "\$status = 'teste_encerrado'") && str_contains($ctxSrc, "/login?aviso=teste_encerrado"), 'assertAccountActive derruba a sessão e manda para o aviso');
+ok(str_contains($ctxSrc, "'TRIAL_ENDED'"), 'API recebe 401 com código próprio');
+$login = (string) file_get_contents("$raiz/public/login.php");
+ok(str_contains($login, "(\$_GET['aviso'] ?? '') === 'teste_encerrado'") && str_contains($login, 'PeriodoTeste::MENSAGEM_ENCERRADO'), 'login mostra o aviso só pelo código fixo');
+ok(str_contains($sb, '$_testeBloqueado = true;') && str_contains($sb, "empty(\$_SESSION['is_super_admin'])") && str_contains($sb, '@session_destroy()'), 'menu derruba a sessão (menos de super admin) nas telas sem assertAccountActive');
+ok(str_contains($sb, '<?php if ($_testeBloqueado): ?>') && str_contains($sb, "location.replace('/login?aviso=teste_encerrado')"), 'menu cobre a tela e manda para o login');
+ok(!str_contains(PeriodoTeste::MENSAGEM_ENCERRADO, '—'), 'mensagem sem travessão');
 
 echo "\n$PASSES ok · $FAILS falha\n";
 exit($FAILS ? 1 : 0);
