@@ -13,6 +13,9 @@
      3. Cartão sozinho: largo e baixo (mais de 2,6 vezes mais largo que alto) é
         de texto e vai para a direita; o resto sobe.
 
+   Só cartão CLICÁVEL se mexe (link, botão, papel de botão, onclick, data-href, cursor de mão): o
+   movimento promete que o clique faz alguma coisa (11/11/2026).
+
    O que é cartão: caixa com canto arredondado (6 px ou mais) e borda, fundo
    próprio ou sombra, de 110 px de largura e 34 a 260 px de altura (mais alto,
    só item de lista, como a publicação; abaixo de 44 px, só com dois filhos ou
@@ -111,8 +114,15 @@
     return [].some.call(el.parentElement.children, function (s) { return s !== el && n++ < 8 && s.classList.contains(c1) && guardaCartoes(s); });
   }
   function ehPainel(el) { return temCampo(el) || guardaCartoes(el) || irmaoEhPainel(el); }
+  // Só se mexe o cartão que faz alguma coisa ao clicar (11/11/2026: os blocos de tarefas, prazos e
+  // vínculos da Nova Tarefa deslizavam para a direita sem abrir nada, "animação que não devia existir").
+  // O movimento promete o clique: link, botão, papel de botão, onclick, data-href, ou cursor de mão.
+  function clicavel(el) {
+    if (el.matches('a[href], button, [role="button"], [role="link"], [onclick], [data-href], [data-id], [data-chave], [tabindex]:not([tabindex="-1"])')) return true;
+    return getComputedStyle(el).cursor === 'pointer';
+  }
   function cartaoValido(el) {
-    if (!ehCaixa(el)) return false;
+    if (!ehCaixa(el) || !clicavel(el)) return false;
     if (el.closest(FORA) || el.matches(FOTO_NAO)) return false;
     if (ehPainel(el)) return false;
     return true;
@@ -126,7 +136,7 @@
       else if (ehCaixa(el)) {
         if (el.closest(FORA)) return achado;
         if (ehPainel(el)) break;   // painel: para aqui, fica o de dentro
-        achado = el;
+        if (clicavel(el)) achado = el;
       }
       el = el.parentElement;
     }

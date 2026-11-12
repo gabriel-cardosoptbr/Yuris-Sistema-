@@ -618,3 +618,24 @@ html:root #modalDiaCal .tk-cal-dot.tk-cal-dot:hover{ border-color:var(--inn-t-az
 html:root #modalDiaCal .tk-cal-tit{ font-size:.86rem; font-weight:700; line-height:1.3; color:var(--inn-t-texto) !important; overflow-wrap:anywhere; }
 html:root #modalDiaCal .tk-cal-ponto{ width:8px; height:8px; border-radius:50%; background:var(--inn-t-ok); }
 html:root #modalDiaCal .tk-cal-ponto.erro{ background:var(--inn-t-erro); } html:root #modalDiaCal .tk-cal-ponto.aviso{ background:var(--inn-t-aviso); } html:root #modalDiaCal .tk-cal-ponto.neutro{ background:var(--inn-t-texto3); }
+/* As abas do pop-up da tarefa (Geral, Checklist, Tarefas Processuais...) com espaço entre elas (11/11/2026: "deixe um espaço entre as caixas"; eram 2 px e as bordas encostavam). */
+html:root #tkTabs.tk-tabs{ gap:8px !important; flex-wrap:wrap; }
+
+/* ── Espaço (11/11/2026, "tem muito lugar sem espaço, corrija em todo o sistema") ─────────────────
+   Medido com public/assets/_auditar_espacos.js: conteúdo a menos de 6 px da borda da caixa, ou caixa
+   colada na peça de cima. Os casos achados e o conserto de cada um: */
+/* A origem do cartão (MATRIZ / FILIAL) em Prospecção, Clientes, Processos e Tarefas: era uma faixa
+   colorida colada no topo; sem a cor (interface nova), o texto ficava a 2 ou 3 px da borda. Agora é
+   um rótulo 8 px abaixo da borda, alinhado ao conteúdo, sem fio embaixo, e o cartão reserva o lugar. */
+html:root body .inn-tela [data-origin-tipo][data-origin-tipo]{ padding-top:34px !important; }
+html:root body .inn-tela [class*="origin-strip"][class*="origin-strip"]{ top:9px !important; left:12px !important; right:12px !important; height:18px !important; padding:0 !important;
+  border-bottom:0 !important; border-radius:0 !important; }
+/* Nova Tarefa jurídica, com o processo escolhido: os blocos de tarefas, prazos e vínculos viram caixas
+   na interface nova, mas não tinham espaço interno (o título encostava na borda) e eram separados por
+   um fio colado. Agora: caixa com respiro, 8 px entre elas, sem o fio. */
+html:root #ntProcTarefas .tk-jur-bloco.tk-jur-bloco{ padding:12px 14px !important; margin:0 !important; border-radius:10px !important; }
+html:root #ntProcTarefas .tk-jur-bloco.tk-jur-bloco + .tk-jur-bloco{ margin-top:8px !important; border-top:0 !important; }
+html:root #ntProcTarefas .tk-jur-bloco .tk-proc-nada{ padding:10px 0 2px !important; }
+/* Fileira de botões que a camada afundou como caixa (a barra de Webhooks: "Documentação" encostava
+   na borda). Caixa afundada cujos filhos são todos botão ou link ganha respiro em volta. */
+html:root .inn-tela .inn-c-afundado:not(:has(> :not(button, a, .btn))){ padding:6px !important; gap:6px; }

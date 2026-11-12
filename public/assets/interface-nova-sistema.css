@@ -583,18 +583,20 @@ html:root .badge-neutral.badge-neutral, html:root [class*="badge-neutral"]{ colo
 html:root .proc-empty.proc-empty{ color:var(--inn-t-texto3) !important; }   /* rgba(148,163,184,.45): 2,4:1 */
 /* A guarda de contraste (assets/interface-nova-contraste.js) troca o texto que ficou abaixo
    de 4,5:1 pela cor de texto da casa do mesmo tom. A classe segue o tema. A classe repetida
-   ganha das regras mais fortes da camada (aba, botão), que repetem a classe até cinco vezes. */
-html:root body .inn-ct-texto3.inn-ct-texto3.inn-ct-texto3.inn-ct-texto3.inn-ct-texto3.inn-ct-texto3{ color:var(--inn-t-texto3) !important; }
-html:root body .inn-ct-texto2.inn-ct-texto2.inn-ct-texto2.inn-ct-texto2.inn-ct-texto2.inn-ct-texto2{ color:var(--inn-t-texto2) !important; }
-html:root body .inn-ct-texto.inn-ct-texto.inn-ct-texto.inn-ct-texto.inn-ct-texto.inn-ct-texto{ color:var(--inn-t-texto) !important; }
-html:root body .inn-ct-azul-texto.inn-ct-azul-texto.inn-ct-azul-texto.inn-ct-azul-texto.inn-ct-azul-texto.inn-ct-azul-texto{ color:var(--inn-t-azul-texto) !important; }
-html:root body .inn-ct-erro-texto.inn-ct-erro-texto.inn-ct-erro-texto.inn-ct-erro-texto.inn-ct-erro-texto.inn-ct-erro-texto{ color:var(--inn-t-erro-texto) !important; }
-html:root body .inn-ct-erro-forte.inn-ct-erro-forte.inn-ct-erro-forte.inn-ct-erro-forte.inn-ct-erro-forte.inn-ct-erro-forte{ color:var(--inn-t-erro-forte) !important; }
-html:root body .inn-ct-aviso.inn-ct-aviso.inn-ct-aviso.inn-ct-aviso.inn-ct-aviso.inn-ct-aviso{ color:var(--inn-t-aviso) !important; }
-html:root body .inn-ct-aviso-forte.inn-ct-aviso-forte.inn-ct-aviso-forte.inn-ct-aviso-forte.inn-ct-aviso-forte.inn-ct-aviso-forte{ color:var(--inn-t-aviso-forte) !important; }
-html:root body .inn-ct-ok.inn-ct-ok.inn-ct-ok.inn-ct-ok.inn-ct-ok.inn-ct-ok{ color:var(--inn-t-ok) !important; }
-html:root body .inn-ct-ok-forte.inn-ct-ok-forte.inn-ct-ok-forte.inn-ct-ok-forte.inn-ct-ok-forte.inn-ct-ok-forte{ color:var(--inn-t-ok-forte) !important; }
-html:root body .inn-ct-branco.inn-ct-branco.inn-ct-branco.inn-ct-branco.inn-ct-branco.inn-ct-branco{ color:#FFFFFF !important; }
-html:root body .inn-ct-preto.inn-ct-preto.inn-ct-preto.inn-ct-preto.inn-ct-preto.inn-ct-preto{ color:#11141A !important; }
-html:root body .inn-ct-aviso-texto.inn-ct-aviso-texto.inn-ct-aviso-texto.inn-ct-aviso-texto.inn-ct-aviso-texto.inn-ct-aviso-texto{ color:var(--inn-t-aviso-texto) !important; }
-html:root body .inn-ct-ok-texto.inn-ct-ok-texto.inn-ct-ok-texto.inn-ct-ok-texto.inn-ct-ok-texto.inn-ct-ok-texto{ color:var(--inn-t-ok-texto) !important; }
+   ganha das regras mais fortes da camada (aba, botão), que repetem a classe até cinco vezes. Só no estado
+   normal: no hover, no foco e no clique valem as cores da própria peça (a aba de Tarefas ficava com o
+   fundo azul do hover e o texto preso no cinza, 11/11/2026). */
+html:root body .inn-ct-texto3.inn-ct-texto3.inn-ct-texto3.inn-ct-texto3.inn-ct-texto3.inn-ct-texto3:not(:hover):not(:focus-visible):not(:active){ color:var(--inn-t-texto3) !important; }
+html:root body .inn-ct-texto2.inn-ct-texto2.inn-ct-texto2.inn-ct-texto2.inn-ct-texto2.inn-ct-texto2:not(:hover):not(:focus-visible):not(:active){ color:var(--inn-t-texto2) !important; }
+html:root body .inn-ct-texto.inn-ct-texto.inn-ct-texto.inn-ct-texto.inn-ct-texto.inn-ct-texto:not(:hover):not(:focus-visible):not(:active){ color:var(--inn-t-texto) !important; }
+html:root body .inn-ct-azul-texto.inn-ct-azul-texto.inn-ct-azul-texto.inn-ct-azul-texto.inn-ct-azul-texto.inn-ct-azul-texto:not(:hover):not(:focus-visible):not(:active){ color:var(--inn-t-azul-texto) !important; }
+html:root body .inn-ct-erro-texto.inn-ct-erro-texto.inn-ct-erro-texto.inn-ct-erro-texto.inn-ct-erro-texto.inn-ct-erro-texto:not(:hover):not(:focus-visible):not(:active){ color:var(--inn-t-erro-texto) !important; }
+html:root body .inn-ct-erro-forte.inn-ct-erro-forte.inn-ct-erro-forte.inn-ct-erro-forte.inn-ct-erro-forte.inn-ct-erro-forte:not(:hover):not(:focus-visible):not(:active){ color:var(--inn-t-erro-forte) !important; }
+html:root body .inn-ct-aviso.inn-ct-aviso.inn-ct-aviso.inn-ct-aviso.inn-ct-aviso.inn-ct-aviso:not(:hover):not(:focus-visible):not(:active){ color:var(--inn-t-aviso) !important; }
+html:root body .inn-ct-aviso-forte.inn-ct-aviso-forte.inn-ct-aviso-forte.inn-ct-aviso-forte.inn-ct-aviso-forte.inn-ct-aviso-forte:not(:hover):not(:focus-visible):not(:active){ color:var(--inn-t-aviso-forte) !important; }
+html:root body .inn-ct-ok.inn-ct-ok.inn-ct-ok.inn-ct-ok.inn-ct-ok.inn-ct-ok:not(:hover):not(:focus-visible):not(:active){ color:var(--inn-t-ok) !important; }
+html:root body .inn-ct-ok-forte.inn-ct-ok-forte.inn-ct-ok-forte.inn-ct-ok-forte.inn-ct-ok-forte.inn-ct-ok-forte:not(:hover):not(:focus-visible):not(:active){ color:var(--inn-t-ok-forte) !important; }
+html:root body .inn-ct-branco.inn-ct-branco.inn-ct-branco.inn-ct-branco.inn-ct-branco.inn-ct-branco:not(:hover):not(:focus-visible):not(:active){ color:#FFFFFF !important; }
+html:root body .inn-ct-preto.inn-ct-preto.inn-ct-preto.inn-ct-preto.inn-ct-preto.inn-ct-preto:not(:hover):not(:focus-visible):not(:active){ color:#11141A !important; }
+html:root body .inn-ct-aviso-texto.inn-ct-aviso-texto.inn-ct-aviso-texto.inn-ct-aviso-texto.inn-ct-aviso-texto.inn-ct-aviso-texto:not(:hover):not(:focus-visible):not(:active){ color:var(--inn-t-aviso-texto) !important; }
+html:root body .inn-ct-ok-texto.inn-ct-ok-texto.inn-ct-ok-texto.inn-ct-ok-texto.inn-ct-ok-texto.inn-ct-ok-texto:not(:hover):not(:focus-visible):not(:active){ color:var(--inn-t-ok-texto) !important; }

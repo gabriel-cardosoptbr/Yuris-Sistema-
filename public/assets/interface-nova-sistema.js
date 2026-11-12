@@ -1031,8 +1031,14 @@
     var linha = document.createElement('div');
     linha.className = 'inn-pop-linha';
     linha.style.cssText = 'display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 auto;';
+    // O respiro de baixo do título vai com ele para a linha (11/11/2026: na Nova Tarefa o título
+    // entrava na linha, a margem dele ficava presa lá dentro e as opções colavam no cabeçalho).
+    // Só quando o cabeçalho empilha as peças: numa fileira (título e botões lado a lado) não há embaixo.
+    var csCab = getComputedStyle(cab), empilha = csCab.display === 'block' || (/flex/.test(csCab.display) && /column/.test(csCab.flexDirection));
+    var mb = parseFloat(getComputedStyle(bloco).marginBottom) || 0;
     cab.insertBefore(linha, bloco);
     linha.appendChild(caixa); linha.appendChild(bloco);
+    if (empilha && linha.nextElementSibling) { bloco.style.setProperty('margin-bottom', '0', 'important'); linha.style.marginBottom = Math.max(mb, 14) + 'px'; }
   }
   var popTimer = null;
   function vestirPopups() {
