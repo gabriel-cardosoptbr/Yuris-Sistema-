@@ -1,0 +1,38 @@
+/* Tag de teste grátis no topo da área de conteúdo (12/11/2026).
+   Entra pelo includes/sidebar.php só na conta em teste grátis (App\Billing\PeriodoTeste).
+   Paleta do Yuris: prata na superfície, preto no traço, azul opaco só no selo.
+   Encerrado usa o âmbar semântico (atenção). Contraste de texto >= 4,5:1 nos dois temas. */
+:root{
+  --yt-fundo:#1C2129; --yt-linha:rgba(200,210,225,.16); --yt-texto:#E8EAEE; --yt-texto2:#B4BAC5;
+  --yt-selo:#3A63C9; --yt-selo-texto:#FFFFFF; --yt-rotulo:#C9D7F2; --yt-sombra:0 6px 18px rgba(0,0,0,.28);
+}
+html[data-theme="light"]{
+  --yt-fundo:#F5F6F8; --yt-linha:rgba(31,38,50,.14); --yt-texto:#1E2630; --yt-texto2:#4E586A;
+  --yt-selo:#2E55B8; --yt-selo-texto:#FFFFFF; --yt-rotulo:#1E4A8A; --yt-sombra:0 6px 16px rgba(31,38,50,.08);
+}
+.yt-teste{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  width:fit-content; max-width:100%; box-sizing:border-box;
+  margin:0 0 16px; padding:6px 16px 6px 6px; border-radius:999px;
+  background:var(--yt-fundo); border:1px solid var(--yt-linha); box-shadow:var(--yt-sombra);
+  color:var(--yt-texto); font-family:'Manrope',system-ui,sans-serif; font-size:.86rem; line-height:1.35;
+  animation:yt-teste-entra .45s cubic-bezier(.2,.8,.2,1) both;
+}
+.yt-teste__selo{
+  flex:none; display:inline-flex; align-items:center; justify-content:center;
+  width:28px; height:28px; border-radius:50%; background:var(--yt-selo); color:var(--yt-selo-texto);
+}
+.yt-teste__selo svg{ width:15px; height:15px; }
+.yt-teste__rotulo{ color:var(--yt-rotulo); font-weight:800; letter-spacing:.01em; }
+.yt-teste__detalhe{ color:var(--yt-texto2); }
+.yt-teste--fim{ --yt-selo:#9A5B00; --yt-rotulo:#F0C774; }
+html[data-theme="light"] .yt-teste--fim{ --yt-selo:#9A5B00; --yt-rotulo:#7A4700; }
+/* Sem área de conteúdo para entrar: fica fixa no topo, sem cobrir o menu. */
+.yt-teste--solta{ position:fixed; top:12px; left:276px; z-index:9000; margin:0; }
+@media (max-width:900px){
+  .yt-teste{ border-radius:14px; padding:8px 12px 8px 8px; gap:4px 10px; }
+  .yt-teste__detalhe{ flex-basis:100%; padding-left:38px; font-size:.8rem; }
+  .yt-teste--solta{ left:12px; right:12px; }
+}
+@keyframes yt-teste-entra{ from{ opacity:0; transform:translateY(-6px); } to{ opacity:1; transform:none; } }
+@media (prefers-reduced-motion:reduce){ .yt-teste{ animation:none; } }

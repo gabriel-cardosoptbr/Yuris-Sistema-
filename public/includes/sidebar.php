@@ -160,6 +160,16 @@ if ($_isFleetiflow && !in_array($_ap, ['chat', 'chat_interno'], true)) {
     } catch (\Throwable $__e) { $_avisoWa = null; }
 }
 
+// ── Tag de teste grátis (12/11/2026) ─────────────────────────────────────
+// Conta no plano Teste Grátis, em teste: toda tela mostra no topo quantos dias
+// faltam (App\Billing\PeriodoTeste decide quem está em teste). Não vai no ?embed=1.
+$_periodoTeste = null;
+if (!$_isFleetiflow && ($_GET['embed'] ?? '') !== '1' && isset($__brandCtx)) {
+    try {
+        $_periodoTeste = \App\Billing\PeriodoTeste::daConta(\App\Core\Database::getConnection(), (int) $__brandCtx->getAccountId());
+    } catch (\Throwable $__e) { $_periodoTeste = null; }
+}
+
 $_notifTempo = function ($raw) {
     $ts = $raw ? strtotime((string)$raw) : 0; if (!$ts) return '';
     $d = max(0, time() - $ts);
@@ -1343,6 +1353,44 @@ $_appIcone   = \App\Core\IconeApp::url($_appProduto, $_marca, 180);
 </script>
 <?php endif; ?>
 
+<?php if ($_periodoTeste): ?>
+<!-- Tag de teste grátis (ver o bloco PHP no topo). Nasce aqui e o script abaixo a
+     coloca no topo da área de conteúdo, ao lado do menu, como o aviso de WhatsApp. -->
+<link rel="stylesheet" href="/assets/periodo-teste.css?v=<?= @filemtime(__DIR__ . '/../assets/periodo-teste.css') ?: 1 ?>">
+<div id="tagPeriodoTeste" class="yt-teste<?= $_periodoTeste['encerrado'] ? ' yt-teste--fim' : '' ?>" role="status">
+  <span class="yt-teste__selo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12M6 22h12"/><path d="M7 2v4a5 5 0 0 0 5 5 5 5 0 0 0 5-5V2"/><path d="M7 22v-4a5 5 0 0 1 5-5 5 5 0 0 1 5 5v4"/></svg></span>
+  <strong class="yt-teste__rotulo"><?= htmlspecialchars($_periodoTeste['rotulo']) ?></strong>
+  <span class="yt-teste__detalhe"><?= htmlspecialchars($_periodoTeste['detalhe']) ?></span>
+</div>
+<script>
+(function () {
+  function posicionar() {
+  try {
+    var tag = document.getElementById('tagPeriodoTeste');
+    var menu = document.querySelector('aside.sidebar');
+    if (!tag || !menu) return;
+    // A área de conteúdo é o primeiro irmão do menu que é MAIN/SECTION ou um bloco
+    // visível no fluxo. Os DIV de depois do menu são, em geral, camadas fixas (fundo
+    // da gaveta do celular, cartões do app): entrar num deles esconde a tag.
+    var alvo = null;
+    for (var el = menu.nextElementSibling; el; el = el.nextElementSibling) {
+      if (el === tag || /^(SCRIPT|STYLE|LINK|NAV|I|TEMPLATE)$/.test(el.tagName)) continue;
+      if (el.tagName === 'MAIN' || el.tagName === 'SECTION') { alvo = el; break; }
+      var cs = getComputedStyle(el);
+      if (alvo === null && el.tagName === 'DIV' && cs.display !== 'none' && cs.position !== 'fixed' && cs.position !== 'absolute' && el.id !== 'avisoWhatsapp') alvo = el;
+    }
+    if (alvo) {
+      var wa = document.getElementById('avisoWhatsapp');
+      if (wa && wa.parentElement === alvo) wa.after(tag); else alvo.insertBefore(tag, alvo.firstChild);
+      return;
+    }
+    tag.classList.add('yt-teste--solta');
+  } catch (e) {}
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', posicionar); else posicionar();
+})();
+</script>
+<?php endif; /* sem linha em branco depois: sem a tag, a página sai igual byte a byte */ ?>
 <!-- ── Barra de navegação do celular (até 900px), refeita em 22/10/2026 ──
      Início, Conversas (com as não lidas), as duas telas mais usadas e "Menu",
      que abre o menu lateral inteiro como gaveta: Chat interno, Atendimento,

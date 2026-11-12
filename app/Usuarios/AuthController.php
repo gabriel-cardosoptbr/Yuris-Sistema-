@@ -121,6 +121,13 @@ class AuthController
             Lembrar::criar((int) $user['id'], (int) ($_SESSION['account_id'] ?? 0));
         }
 
+        // Teste grátis que conta a partir do primeiro login (App\Billing\PeriodoTeste,
+        // 12/11/2026). Só age na conta marcada e só uma vez; nunca derruba o login.
+        if ($account) {
+            try { \App\Billing\PeriodoTeste::iniciarNoPrimeiroLogin($pdo, (int) $account['id']); }
+            catch (\Throwable $e) { error_log('[login/periodo_teste] ' . $e->getMessage()); }
+        }
+
         // Rate-limit: zera contador em login bem-sucedido
         self::clearFailedAttempts($ip, $login);
 

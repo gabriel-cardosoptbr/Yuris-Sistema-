@@ -14,6 +14,7 @@ cliente lê "Planos".
 |---|---|
 | `PlanFeature.php` | os limites e módulos de cada plano, e o enforcement deles. 13 métodos |
 | `BillingGuard.php` | a checagem prática: pode criar mais um usuário, mais um processo, mais um monitoramento? 10 métodos |
+| `PeriodoTeste.php` | **o teste grátis com tag no topo** (12/11/2026). `daConta()` diz se a conta está em teste e devolve o texto da tag ("Teste grátis · faltam 3 dias", "termina hoje às 17:00", "encerrado"); só vale com as três juntas: `accounts.status = 'trial'`, plano `teste_gratis` e assinatura `trialing` (há conta pagante com assinatura esquecida em `trialing`, e ela não pode ganhar a tag). `estado()` é a regra pura: banco em UTC, dias por data de calendário em São Paulo. `iniciarNoPrimeiroLogin()`: a conta criada com `configuracoes.periodo_teste = {"dias": N, "inicio": null}` começa a contar no primeiro login (o `AuthController` chama, dentro de try/catch), movendo `trial_ends_at` para o login mais N dias, uma vez só. **Encerrado o prazo nada é bloqueado**: a tag passa a dizer "encerrado" e a decisão é da equipe. A conta nasce por `scripts/criar_conta_teste.php`; a tag é desenhada em `public/includes/sidebar.php` com `public/assets/periodo-teste.css`. Teste: `scripts/tests/periodo_teste_test.php` |
 | [`Gateway/`](Gateway/) | integração com gateway de pagamento |
 
 ## Duas travas diferentes, não confunda
