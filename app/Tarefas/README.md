@@ -131,7 +131,10 @@ o mesmo que fazer pelo processo.
   tem 56 px (lápis e concluir lado a lado; com 30 um caía em cima do outro) e a data atrasada é texto
   vermelho, não etiqueta. O Calendário copia o de Processos: dia em cartão, hoje com o número no círculo
   azul, compromisso afundado com ponto de situação (vermelho atrasado, âmbar hoje, verde o que vem,
-  cinza concluído) e **todo compromisso aparece**: o "+3 mais" saiu do `tarefas.js`.
+  cinza concluído). Mesmo dia, mesmo tamanho: a grade tem as linhas iguais (a mais alta manda) e na
+  célula vão até 3 compromissos, título em até 2 linhas; acima disso, **"Ver mais (N)"** abre o pop-up
+  do dia (`#modalDiaCal`, `abrirDiaCal`) com todos, inteiros, e "+ Nova tarefa neste dia". O número
+  do dia não conta de zero (a camada de movimento deixa calendário fora da contagem).
 - **Calendário**: compara a data como texto. `new Date('2026-11-05')` é meia-noite em
   UTC, e no Brasil a tarefa cairia na véspera. Clicar no dia cria a tarefa com a data.
 

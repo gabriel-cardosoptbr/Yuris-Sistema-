@@ -511,7 +511,10 @@ $tkCss = str_replace("", '', (string) file_get_contents($raiz . '/public/assets
 $tkJs = str_replace("", '', (string) file_get_contents($raiz . '/public/assets/tarefas.js'));
 ok(str_contains($tkCss, '.tk-list-row.tkc-lista { grid-template-columns: 56px '), 'lista: lápis e concluir lado a lado (a coluna tinha 30 px)');
 ok(str_contains($nova, 'html:root #tkLista .tk-list-row.tkc-lista:not(.tk-list-header){') && str_contains($nova, 'html:root #tkLista .tkc-lista .tkc-atraso.tkc-atraso.tkc-atraso{ background:transparent !important;'), 'lista: cada linha é cartão, data atrasada é texto e não etiqueta');
-ok(!str_contains($tkJs, 'tk-cal-mais') && str_contains($tkJs, '<i class="tk-cal-ponto ${tom}"'), 'calendário: todo compromisso aparece (sem "+N mais") e com ponto de situação');
+ok(str_contains($tkJs, 'dayTasks.slice(0, 3).map(t => itemDoCal(t, diaIso))') && str_contains($tkJs, 'Ver mais (${dayTasks.length - 3})') && str_contains($tkJs, 'function abrirDiaCal(diaIso, itens)') && str_contains($tkJs, '<i class="tk-cal-ponto ${tom}"'), 'calendário: até 3 por dia, "Ver mais" abre o pop-up com todos, ponto de situação');
+ok(str_contains((string) file_get_contents($raiz . '/public/tarefas.php'), 'id="modalDiaCal"') && str_contains((string) file_get_contents($raiz . '/public/tarefas.php'), 'id="diaCalFechar"'), 'o pop-up do dia existe e tem Fechar (entra na regra do clicar fora)');
+ok(str_contains($nova, 'html:root #tkCalendario .tk-cal-grid{ grid-template-rows:auto; grid-auto-rows:1fr; }'), 'calendário: todos os dias do mesmo tamanho');
+ok(str_contains((string) file_get_contents($raiz . '/public/assets/interface-nova-movimento.js'), "var NUM_FORA = FORA + ', .tk-cal-grid"), 'número de dia de calendário não conta de zero');
 ok(str_contains($nova, 'html:root #tkCalendario .tk-cal-cell.tk-cal-cell{ min-height:136px;') && str_contains($nova, 'html:root #tkCalendario .tk-cal-cell.today .tk-cal-num{ background:var(--inn-t-azul);'), 'calendário de Tarefas igual ao de Processos, número de hoje no azul fechado');
 ok(str_contains($guarda, "ambar:    ['aviso', 'aviso-texto', 'aviso-forte', 'texto']"), 'guarda: âmbar e verde de leitura antes do texto escuro');
 // O aviso de cookies na paleta da casa (11/11/2026, "não está no padrão de cor"): painel, botões iguais aos da home.

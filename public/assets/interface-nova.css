@@ -600,3 +600,21 @@ html:root #tkCalendario .tk-cal-ponto{ width:8px; height:8px; border-radius:50%;
 html:root #tkCalendario .tk-cal-ponto.erro{ background:var(--inn-t-erro); } html:root #tkCalendario .tk-cal-ponto.aviso{ background:var(--inn-t-aviso); } html:root #tkCalendario .tk-cal-ponto.neutro{ background:var(--inn-t-texto3); }
 @media (max-width:760px){ html:root #tkCalendario .tk-cal-day-label{ display:none; } html:root #tkCalendario .tk-cal-grid{ grid-template-columns:1fr; }
   html:root #tkCalendario .tk-cal-cell:not(.tem):not(.today){ display:none; } html:root #tkCalendario .tk-cal-cell.tk-cal-cell{ min-height:0; } }
+/* O calendário de Tarefas uniforme (11/11/2026, "deixe todos os dias do mesmo tamanho"): a primeira
+   linha da grade é a dos dias da semana; as outras têm todas a altura da mais alta. Na célula vão até
+   3 compromissos, cada título em até 2 linhas; o resto e o texto inteiro ficam no pop-up do dia
+   ("Ver mais"), e o título inteiro também no passar do mouse e ao abrir o item. */
+html:root #tkCalendario .tk-cal-grid{ grid-template-rows:auto; grid-auto-rows:1fr; }
+html:root #tkCalendario .tk-cal-cell .tk-cal-tit{ display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; overflow:hidden; }
+html:root #tkCalendario .tk-cal-mais.tk-cal-mais{ margin-top:auto; align-self:stretch; height:28px; border-radius:8px; cursor:pointer; font:700 .76rem/1 Inter, system-ui, sans-serif;
+  background:transparent !important; border:1px dashed var(--inn-t-linha2) !important; color:var(--inn-t-azul-texto) !important; box-shadow:none !important; }
+html:root #tkCalendario .tk-cal-mais.tk-cal-mais:hover{ border-style:solid !important; border-color:var(--inn-t-azul2) !important; }
+html:root #modalDiaCal .tk-modal-dia{ width:min(560px, calc(100vw - 32px)); max-height:86vh; display:flex; flex-direction:column; }
+html:root #modalDiaCal .tk-dia-sub{ margin:-4px 0 12px; font-size:.8rem; font-weight:600; color:var(--inn-t-texto3); }
+html:root #modalDiaCal .tk-dia-lista{ display:flex; flex-direction:column; gap:6px; overflow-y:auto; min-height:0; padding:2px 4px 2px 0; }
+html:root #modalDiaCal .tk-cal-dot.tk-cal-dot{ display:grid; grid-template-columns:auto 1fr; column-gap:8px; align-items:center; padding:9px 10px; border-radius:8px; cursor:pointer; flex-shrink:0;
+  white-space:normal; overflow:visible; background:var(--inn-t-fundo) !important; border:1px solid var(--inn-t-linha) !important; box-shadow:none !important; transition:border-color .15s; margin:0; }
+html:root #modalDiaCal .tk-cal-dot.tk-cal-dot:hover{ border-color:var(--inn-t-azul2) !important; }
+html:root #modalDiaCal .tk-cal-tit{ font-size:.86rem; font-weight:700; line-height:1.3; color:var(--inn-t-texto) !important; overflow-wrap:anywhere; }
+html:root #modalDiaCal .tk-cal-ponto{ width:8px; height:8px; border-radius:50%; background:var(--inn-t-ok); }
+html:root #modalDiaCal .tk-cal-ponto.erro{ background:var(--inn-t-erro); } html:root #modalDiaCal .tk-cal-ponto.aviso{ background:var(--inn-t-aviso); } html:root #modalDiaCal .tk-cal-ponto.neutro{ background:var(--inn-t-texto3); }

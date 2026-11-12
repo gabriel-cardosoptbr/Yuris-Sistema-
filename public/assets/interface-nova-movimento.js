@@ -35,6 +35,9 @@
   // menu (Webhooks), os ícones do menu ganhavam inn-cresce, que só anima dentro da tela, e ficavam
   // invisíveis para sempre (09/11/2026, revisão do sistema).
   var FORA = '.sidebar, .mobile-tabbar, .inn-emb';
+  // Dia de calendário é data, não quantidade: contar de 0 até 11 no número do dia ficava estranho
+  // (11/11/2026, "a entrada dos números está muito estranha"). Calendário nenhum conta.
+  var NUM_FORA = FORA + ', .tk-cal-grid, .tk-cal-header, .inn-cal-grade, .inn-cal-topo, [class*="cal-num"], [class*="cal-dia"], [class*="calend"]';
   function NADA() {}
   // A tela nova fica invisível até sossegar (inn-vestindo, interface-nova-sistema.js): o que é
   // feito por script, como a contagem dos números, espera ela aparecer (10/11/2026).
@@ -167,7 +170,7 @@
         if (vistos.has(el) || el.children.length || el.dataset.inn || /^(INPUT|TEXTAREA|SELECT|OPTION|SCRIPT|STYLE|TITLE)$/.test(el.tagName)) continue;
         // Quem ainda está vazio ou em zero não é marcado: o contador das abas e das colunas
         // é preenchido depois, trocando só o texto, e aí conta. (O texto vem antes do closest, que é caro.)
-        if (!lerNumero(el.textContent) || el.closest(FORA)) continue;
+        if (!lerNumero(el.textContent) || el.closest(NUM_FORA)) continue;
         vistos.add(el); achados.push(el);
       }
     });

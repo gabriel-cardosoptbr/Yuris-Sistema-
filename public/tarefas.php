@@ -503,6 +503,19 @@ try {
   </div>
 </div>
 
+<!-- ── Modal: tudo o que vence no dia (o "Ver mais" do calendário, 11/11/2026) ── -->
+<div class="tk-modal-overlay" id="modalDiaCal" role="dialog" aria-modal="true" aria-labelledby="diaCalTitulo">
+  <div class="tk-modal tk-modal-dia">
+    <h3 id="diaCalTitulo">Dia</h3>
+    <p class="tk-dia-sub" id="diaCalSub"></p>
+    <div class="tk-dia-lista" id="diaCalLista"></div>
+    <div class="tk-modal-actions">
+      <button type="button" class="tk-modal-btn tk-modal-btn-cancel" id="diaCalFechar">Fechar</button>
+      <button type="button" class="tk-modal-btn tk-modal-btn-primary" id="diaCalNova">+ Nova tarefa neste dia</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── Modal: Nova Tarefa completa ── -->
 <div class="tk-modal-overlay" id="modalNewTask">
   <div class="tk-modal">

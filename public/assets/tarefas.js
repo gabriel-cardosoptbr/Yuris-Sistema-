@@ -614,28 +614,62 @@ function renderCalendario() {
     const diaIso = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const dayTasks = fonte.filter(t => t.prazo && String(t.prazo).slice(0,10) === diaIso);
 
-    // Todo compromisso do dia aparece (11/11/2026: o "+3 mais" escondia o resto; nada fica
-    // escondido). O ponto diz a situação, como no calendário de Processos: vermelho atrasado,
-    // âmbar hoje, verde o que vem, cinza concluído.
-    const hojeIso = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+    // Até 3 compromissos no dia; acima disso, "Ver mais (N)" abre o pop-up com todos
+    // (11/11/2026). O ponto diz a situação, como no calendário de Processos: vermelho
+    // atrasado, âmbar hoje, verde o que vem, cinza concluído.
     if (dayTasks.length) cell.classList.add('tem');
-    cell.innerHTML = `<div class="tk-cal-num">${d}</div>` +
-      dayTasks.map(t => {
-        const cls = t.origem === 'prazo' ? ' tk-cal-prazo' : t.origem === 'processo_tarefa' ? ' tk-cal-proc' : '';
-        const feita = t.concluida || t.status === 'done' || t.status === 'concluida';
-        const tom = feita ? 'neutro' : diaIso < hojeIso ? 'erro' : diaIso === hojeIso ? 'aviso' : 'ok';
-        return `<div class="tk-cal-dot${cls}" data-id="${t.id}"${t.chave ? ` data-chave="${esc(t.chave)}"` : ''} title="${esc(t.titulo)}"><i class="tk-cal-ponto ${tom}" aria-hidden="true"></i><span class="tk-cal-tit">${calHora(t)}${esc(t.titulo)}</span></div>`;
-      }).join('');
+    cell.innerHTML = `<div class="tk-cal-num">${d}</div>` + dayTasks.slice(0, 3).map(t => itemDoCal(t, diaIso)).join('')
+      + (dayTasks.length > 3 ? `<button type="button" class="tk-cal-mais" data-dia="${diaIso}">Ver mais (${dayTasks.length - 3})</button>` : '');
     grid.appendChild(cell);
     cell.querySelectorAll('[data-id]').forEach(d => d.addEventListener('click', e => {
       e.stopPropagation();
       if (d.dataset.chave) TkCentral.abrirItem(d.dataset.chave);
       else openDrawer(parseInt(d.dataset.id));
     }));
+    cell.querySelector('.tk-cal-mais')?.addEventListener('click', e => {
+      e.stopPropagation();
+      abrirDiaCal(diaIso, dayTasks);
+    });
     // Clicar no dia cria a tarefa já com a data.
     cell.addEventListener('click', () => abrirNovaTarefa(diaIso));
   }
 }
+
+// Um compromisso do calendário (na célula e no pop-up do dia).
+function itemDoCal(t, diaIso) {
+  const hoje = new Date();
+  const hojeIso = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}-${String(hoje.getDate()).padStart(2,'0')}`;
+  const cls = t.origem === 'prazo' ? ' tk-cal-prazo' : t.origem === 'processo_tarefa' ? ' tk-cal-proc' : '';
+  const feita = t.concluida || t.status === 'done' || t.status === 'concluida';
+  const tom = feita ? 'neutro' : diaIso < hojeIso ? 'erro' : diaIso === hojeIso ? 'aviso' : 'ok';
+  return `<div class="tk-cal-dot${cls}" data-id="${t.id}"${t.chave ? ` data-chave="${esc(t.chave)}"` : ''} title="${esc(t.titulo)}"><i class="tk-cal-ponto ${tom}" aria-hidden="true"></i><span class="tk-cal-tit">${calHora(t)}${esc(t.titulo)}</span></div>`;
+}
+
+// O pop-up do dia: todos os compromissos, inteiros. Clicar num abre o item; Fechar, Esc ou
+// clique fora fecha; "+ Nova tarefa neste dia" abre o cadastro já com a data.
+function abrirDiaCal(diaIso, itens) {
+  const ov = document.getElementById('modalDiaCal'); if (!ov) return;
+  const [a, m, d] = diaIso.split('-').map(Number);
+  const rot = new Date(a, m - 1, d).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+  document.getElementById('diaCalTitulo').textContent = rot.charAt(0).toUpperCase() + rot.slice(1);
+  document.getElementById('diaCalSub').textContent = itens.length + (itens.length === 1 ? ' compromisso' : ' compromissos');
+  const lista = document.getElementById('diaCalLista');
+  lista.innerHTML = itens.map(t => itemDoCal(t, diaIso)).join('');
+  lista.querySelectorAll('[data-id]').forEach(el => el.addEventListener('click', () => {
+    fecharDiaCal();
+    if (el.dataset.chave) TkCentral.abrirItem(el.dataset.chave);
+    else openDrawer(parseInt(el.dataset.id));
+  }));
+  document.getElementById('diaCalNova').onclick = () => { fecharDiaCal(); abrirNovaTarefa(diaIso); };
+  ov.classList.add('open');
+}
+function fecharDiaCal() { document.getElementById('modalDiaCal')?.classList.remove('open'); }
+document.addEventListener('click', e => {
+  if (e.target.id === 'diaCalFechar' || e.target.id === 'modalDiaCal') fecharDiaCal();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('modalDiaCal')?.classList.contains('open')) fecharDiaCal();
+});
 
 /* ── Drawer ───────────────────────────────────────────────────────────────── */
 async function openDrawer(taskId) {
