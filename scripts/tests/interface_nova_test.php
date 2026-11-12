@@ -506,6 +506,14 @@ ok(str_contains(str_replace("", '', $nova), "html .sidebar nav a.active{
   background:linear-gradient(180deg, var(--inn-azul2), var(--inn-azul)) !important;") && str_contains($nova, 'html .sidebar nav a.active::before{ display:none !important; }'), 'item ativo do menu igual ao botão primário, sem verniz');
 // Pop-up de outro módulo transparente nos dois temas (11/11/2026, "fica tudo branco no tema escuro").
 ok(str_contains($nova, 'html .inn-emb-quadro, html .idt-embed-quadro{ color-scheme:normal !important; }'), 'o iframe do pop-up tem o mesmo color-scheme da página de dentro: fundo borrado, nunca branco');
+// Tarefas: Lista e Calendário no desenho da casa (11/11/2026, "completamente sem formatação").
+$tkCss = str_replace("", '', (string) file_get_contents($raiz . '/public/assets/tarefas.css'));
+$tkJs = str_replace("", '', (string) file_get_contents($raiz . '/public/assets/tarefas.js'));
+ok(str_contains($tkCss, '.tk-list-row.tkc-lista { grid-template-columns: 56px '), 'lista: lápis e concluir lado a lado (a coluna tinha 30 px)');
+ok(str_contains($nova, 'html:root #tkLista .tk-list-row.tkc-lista:not(.tk-list-header){') && str_contains($nova, 'html:root #tkLista .tkc-lista .tkc-atraso.tkc-atraso.tkc-atraso{ background:transparent !important;'), 'lista: cada linha é cartão, data atrasada é texto e não etiqueta');
+ok(!str_contains($tkJs, 'tk-cal-mais') && str_contains($tkJs, '<i class="tk-cal-ponto ${tom}"'), 'calendário: todo compromisso aparece (sem "+N mais") e com ponto de situação');
+ok(str_contains($nova, 'html:root #tkCalendario .tk-cal-cell.tk-cal-cell{ min-height:136px;') && str_contains($nova, 'html:root #tkCalendario .tk-cal-cell.today .tk-cal-num{ background:var(--inn-t-azul);'), 'calendário de Tarefas igual ao de Processos, número de hoje no azul fechado');
+ok(str_contains($guarda, "ambar:    ['aviso', 'aviso-texto', 'aviso-forte', 'texto']"), 'guarda: âmbar e verde de leitura antes do texto escuro');
 // O aviso de cookies na paleta da casa (11/11/2026, "não está no padrão de cor"): painel, botões iguais aos da home.
 ok(str_contains($nova, 'html #yuris-cookie-banner{ background:var(--inn-painel);') && str_contains($nova, 'html #yuris-cookie-banner button.primary, html #yuris-cookie-prefs button.primary{ background:linear-gradient(180deg, var(--inn-azul2), var(--inn-azul)) !important;') && str_contains($nova, 'html #yuris-cookie-prefs .ycc-cat{ background:var(--inn-painel-fundo);'), 'o aviso de cookies no padrão de cor: painel da casa, botão azul da home, categorias afundadas');
 ok(str_contains($nova, 'background:linear-gradient(rgba(46,85,184,.13), rgba(46,85,184,.13)), var(--inn-fundo) !important;') && !str_contains($nova, 'background:#FFFFFF !important;') && str_contains($nova, '.sidebar-group.has-active .sidebar-group-icon svg *{ color:inherit !important; stroke:currentColor !important; }'), 'grupo com a página atual: ícone azul na caixa afundada com véu azul, nunca caixa branca');

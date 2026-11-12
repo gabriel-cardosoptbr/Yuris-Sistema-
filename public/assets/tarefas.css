@@ -1927,7 +1927,7 @@ html[data-theme="light"] .tkc-editar:hover, html[data-theme="light"] .tkc-editar
 .tkc-resp { display: flex; align-items: center; gap: 6px; font-size: .72rem; color: #9FB2C8; margin-top: 8px; }
 .tkc-vazio { font-size: .76rem; color: #64748B; padding: 14px 6px; text-align: center; }
 .tkc-vazio-lista { padding: 32px 6px; }
-.tk-list-row.tkc-lista { grid-template-columns: 30px minmax(0,2.2fr) 118px 74px 104px minmax(0,1.1fr); gap: 8px; align-items: center; }
+.tk-list-row.tkc-lista { grid-template-columns: 56px minmax(0,2.2fr) 128px 84px 112px minmax(0,1.1fr); gap: 10px; align-items: center; }   /* 56 px: lápis e concluir lado a lado (eram 30 e um caía em cima do outro, 11/11/2026) */
 .tkc-lista-titulo { display: block; font-weight: 600; }
 .tkc-lista .tkc-ctx { margin: 2px 0 0; }
 .tkc-atraso { color: #F87171; font-weight: 600; }
@@ -2008,7 +2008,7 @@ html[data-theme="light"] .tk-proc-escolhido { background: rgba(59,130,246,.06); 
 html[data-theme="light"] .tk-proc-escolhido button { color: #1D4ED8; }
 
 @media (max-width: 720px) {
-  .tk-list-row.tkc-lista { grid-template-columns: 30px minmax(0,1fr) auto; }
+  .tk-list-row.tkc-lista { grid-template-columns: 56px minmax(0,1fr) auto; }
   .tkc-lista > span:nth-child(3), .tkc-lista > span:nth-child(4), .tkc-lista > span:nth-child(6) { display: none; }
   .tk-tipo-nova { grid-template-columns: 1fr 1fr; }
   .tk-tipo-opcao { padding: 8px 10px; }

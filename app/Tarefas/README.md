@@ -126,6 +126,12 @@ o mesmo que fazer pelo processo.
   lembretes, vínculos). Num quadro aberto (fora da Central), "Nova tarefa" já vai direto para o
   painel. O painel abre antes de o cadastro fechar, para o pop-up embutido na home não fechar.
   A edição CRM não muda.
+- **Lista e Calendário na interface nova** (11/11/2026, "completamente sem formatação"): cada linha
+  da Lista é um cartão (o desenho está no fim de `public/assets/interface-nova.css`), a coluna das ações
+  tem 56 px (lápis e concluir lado a lado; com 30 um caía em cima do outro) e a data atrasada é texto
+  vermelho, não etiqueta. O Calendário copia o de Processos: dia em cartão, hoje com o número no círculo
+  azul, compromisso afundado com ponto de situação (vermelho atrasado, âmbar hoje, verde o que vem,
+  cinza concluído) e **todo compromisso aparece**: o "+3 mais" saiu do `tarefas.js`.
 - **Calendário**: compara a data como texto. `new Date('2026-11-05')` é meia-noite em
   UTC, e no Brasil a tarefa cairia na véspera. Clicar no dia cria a tarefa com a data.
 

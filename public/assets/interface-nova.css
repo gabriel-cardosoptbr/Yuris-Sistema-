@@ -466,7 +466,7 @@ html .inn-cal-dia[data-dia]:hover{ border-color:var(--inn-t-linha2); translate:0
 html .inn-cal-dia[data-dia]:focus-visible{ outline:2px solid var(--inn-t-azul2); outline-offset:2px; }
 html .inn-cal-dia.hoje{ border-color:var(--inn-t-azul2); box-shadow:0 0 0 3px var(--inn-t-azul-suave); }
 html .inn-cal-n{ align-self:flex-start; min-width:24px; height:24px; padding:0 4px; display:grid; place-items:center; border-radius:999px; font-size:.8rem; font-weight:700; color:var(--inn-t-texto2); }
-html .inn-cal-dia.hoje .inn-cal-n{ background:var(--inn-t-azul2); color:#fff; }
+html .inn-cal-dia.hoje .inn-cal-n{ background:var(--inn-t-azul); color:#fff; }   /* azul fechado: o azul2 dava 4,2:1 com o branco (11/11/2026) */
 html .inn-cal-item{ display:grid; grid-template-columns:auto 1fr; column-gap:6px; align-items:center; width:100%; min-width:0; padding:6px 8px; border-radius:8px; text-align:left; cursor:pointer;
   background:var(--inn-t-fundo) !important; border:1px solid var(--inn-t-linha) !important; box-shadow:none !important; font-family:inherit; transition:border-color .15s, translate .15s; }
 html .inn-cal-item:hover{ border-color:var(--inn-t-azul2) !important; translate:0 -1px; }
@@ -557,3 +557,46 @@ html #yuris-cookie-prefs input[type="checkbox"]{ accent-color:var(--inn-azul); }
    dentro não batem: o yuris-theme.css põe color-scheme:dark no <body> de fora (o iframe herda) e a
    raiz de dentro fica no padrão. Com o iframe no padrão também, os dois batem em qualquer tema. */
 html .inn-emb-quadro, html .idt-embed-quadro{ color-scheme:normal !important; }
+
+/* ── Tarefas: a Lista e o Calendário no desenho da casa (11/11/2026, "completamente sem formatação") ──
+   Lista: cada linha é um cartão (o .ini-cartao da home: painel, linha, canto de 8 px, borda azul no
+   hover; o movimento vem da regra do hover). O cabeçalho é texto, sem caixa. A data atrasada é texto
+   vermelho, nunca etiqueta (a camada fazia selo só das atrasadas, e a coluna ficava torta).
+   Calendário: o mesmo do calendário de Processos (.inn-cal-*, interface-nova.css), copiado regra por
+   regra: dia em cartão de 136 px, hoje com o número em círculo azul, compromisso afundado com ponto
+   de situação. Todo compromisso aparece (o "+3 mais" saiu do tarefas.js). */
+html:root #tkLista.tk-list-view{ gap:6px; padding:2px 4px 8px 0; }
+html:root #tkLista .tk-list-row.tk-list-header{ background:transparent !important; border:0 !important; box-shadow:none !important; padding:6px 14px 2px !important;
+  color:var(--inn-t-texto3) !important; font-size:.7rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+html:root #tkLista .tk-list-row.tkc-lista:not(.tk-list-header){ padding:10px 14px !important; border-radius:8px !important; background:var(--inn-t-painel) !important;
+  border:1px solid var(--inn-t-linha) !important; box-shadow:0 1px 0 var(--inn-t-hi) inset !important; color:var(--inn-t-texto) !important; transition:border-color .15s, background-color .15s; }
+html:root #tkLista .tk-list-row.tkc-lista:not(.tk-list-header):hover{ border-color:rgba(61,101,203,.45) !important; background:var(--inn-t-painel) !important; }
+html:root #tkLista .tkc-lista-titulo{ font-size:.86rem; font-weight:600; color:var(--inn-t-texto); }
+html:root #tkLista .tkc-lista .tkc-ctx{ font-size:.74rem; color:var(--inn-t-texto2); margin-top:3px; }
+html:root #tkLista .tkc-lista .tkc-acoes{ gap:6px; }
+html:root #tkLista .tkc-lista .tkc-atraso.tkc-atraso.tkc-atraso{ background:transparent !important; border:0 !important; padding:0 !important; box-shadow:none !important;
+  color:var(--inn-t-erro-texto) !important; font-weight:700 !important; font-size:.82rem !important; letter-spacing:normal !important; text-transform:none !important; }
+html:root #tkCalendario .tk-cal-header{ justify-content:center; gap:16px; margin:4px 0 14px; }
+html:root #tkCalendario .tk-cal-month{ font-size:1.05rem; color:var(--inn-t-texto) !important; min-width:220px; text-align:center; }
+html:root #tkCalendario .tk-cal-nav{ width:36px; height:36px; padding:0 !important; display:grid; place-items:center; border-radius:8px !important; cursor:pointer;
+  background:var(--inn-t-painel) !important; border:1px solid var(--inn-t-linha2) !important; color:var(--inn-t-texto2) !important; box-shadow:var(--inn-t-sombra) !important; font-size:1.1rem; }
+html:root #tkCalendario .tk-cal-nav:hover{ color:var(--inn-t-azul-texto) !important; border-color:var(--inn-t-azul2) !important; }
+html:root #tkCalendario .tk-cal-grid{ grid-template-columns:repeat(7, minmax(0, 1fr)); gap:8px; }
+html:root #tkCalendario .tk-cal-day-label{ text-align:center; font-size:.72rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--inn-t-texto3) !important; padding:0 0 0; }
+html:root #tkCalendario .tk-cal-cell.tk-cal-cell{ min-height:136px; min-width:0; display:flex; flex-direction:column; gap:6px; padding:10px; border-radius:10px; cursor:pointer;
+  background:var(--inn-t-painel) !important; border:1px solid var(--inn-t-linha) !important; box-shadow:var(--inn-t-sombra) !important; transition:border-color .15s; }
+html:root #tkCalendario .tk-cal-cell.tk-cal-cell:hover{ border-color:var(--inn-t-linha2) !important; background:var(--inn-t-painel) !important; }
+html:root #tkCalendario .tk-cal-cell.other-month{ background:transparent !important; box-shadow:none !important; border-color:transparent !important; opacity:.5; cursor:default; }
+html:root #tkCalendario .tk-cal-cell.today.today{ border-color:var(--inn-t-azul2) !important; box-shadow:0 0 0 3px var(--inn-t-azul-suave) !important; background:var(--inn-t-painel) !important; }
+html:root #tkCalendario .tk-cal-num{ align-self:flex-start; min-width:24px; height:24px; padding:0 4px; margin:0; display:grid; place-items:center; border-radius:999px;
+  font-size:.8rem; font-weight:700; color:var(--inn-t-texto2) !important; }
+html:root #tkCalendario .tk-cal-cell.today .tk-cal-num{ background:var(--inn-t-azul); color:#fff !important; }   /* azul fechado: o azul2 dava 4,2:1 com o branco */
+html:root #tkCalendario .tk-cal-dot.tk-cal-dot{ display:grid; grid-template-columns:auto 1fr; column-gap:6px; align-items:center; width:100%; min-width:0; margin:0;
+  padding:6px 8px; border-radius:8px; cursor:pointer; white-space:normal; overflow:visible;   /* quebra linha: nada some em reticências */
+  background:var(--inn-t-fundo) !important; border:1px solid var(--inn-t-linha) !important; box-shadow:none !important; transition:border-color .15s; }
+html:root #tkCalendario .tk-cal-dot.tk-cal-dot:hover{ border-color:var(--inn-t-azul2) !important; }
+html:root #tkCalendario .tk-cal-tit{ font-size:.8rem; font-weight:700; line-height:1.25; color:var(--inn-t-texto) !important; overflow-wrap:anywhere; }
+html:root #tkCalendario .tk-cal-ponto{ width:8px; height:8px; border-radius:50%; background:var(--inn-t-ok); }
+html:root #tkCalendario .tk-cal-ponto.erro{ background:var(--inn-t-erro); } html:root #tkCalendario .tk-cal-ponto.aviso{ background:var(--inn-t-aviso); } html:root #tkCalendario .tk-cal-ponto.neutro{ background:var(--inn-t-texto3); }
+@media (max-width:760px){ html:root #tkCalendario .tk-cal-day-label{ display:none; } html:root #tkCalendario .tk-cal-grid{ grid-template-columns:1fr; }
+  html:root #tkCalendario .tk-cal-cell:not(.tem):not(.today){ display:none; } html:root #tkCalendario .tk-cal-cell.tk-cal-cell{ min-height:0; } }

@@ -596,3 +596,5 @@ html:root body .inn-ct-ok.inn-ct-ok.inn-ct-ok.inn-ct-ok.inn-ct-ok.inn-ct-ok{ col
 html:root body .inn-ct-ok-forte.inn-ct-ok-forte.inn-ct-ok-forte.inn-ct-ok-forte.inn-ct-ok-forte.inn-ct-ok-forte{ color:var(--inn-t-ok-forte) !important; }
 html:root body .inn-ct-branco.inn-ct-branco.inn-ct-branco.inn-ct-branco.inn-ct-branco.inn-ct-branco{ color:#FFFFFF !important; }
 html:root body .inn-ct-preto.inn-ct-preto.inn-ct-preto.inn-ct-preto.inn-ct-preto.inn-ct-preto{ color:#11141A !important; }
+html:root body .inn-ct-aviso-texto.inn-ct-aviso-texto.inn-ct-aviso-texto.inn-ct-aviso-texto.inn-ct-aviso-texto.inn-ct-aviso-texto{ color:var(--inn-t-aviso-texto) !important; }
+html:root body .inn-ct-ok-texto.inn-ct-ok-texto.inn-ct-ok-texto.inn-ct-ok-texto.inn-ct-ok-texto.inn-ct-ok-texto{ color:var(--inn-t-ok-texto) !important; }

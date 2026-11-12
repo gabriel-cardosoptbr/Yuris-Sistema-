@@ -32,7 +32,7 @@
   --y-text:#E8EAEE; --y-text-muted:#B4BAC5; --y-text-soft:#9AA3AE; --y-text-accent:#C9CFD9;
   --y-r-md:8px; --y-r-lg:12px; --y-r-xl:12px;
   --inn-t-fundo:#171A1F; --inn-t-painel:#262B33; --inn-t-painel2:#2D333C; --inn-t-linha:rgba(200,210,225,.10); --inn-t-linha2:rgba(200,210,225,.18);
-  --inn-t-texto:#E8EAEE; --inn-t-texto2:#B4BAC5; --inn-t-texto3:#9AA3AE; --inn-t-azul-texto:#86A8F2; --inn-t-erro-texto:#F0928C; --inn-t-azul:#3A63C9; --inn-t-azul2:#4F78DB; --inn-t-azul-suave:rgba(79,120,219,.14);
+  --inn-t-texto:#E8EAEE; --inn-t-texto2:#B4BAC5; --inn-t-texto3:#9AA3AE; --inn-t-azul-texto:#86A8F2; --inn-t-erro-texto:#F0928C; --inn-t-aviso-texto:#E5B567; --inn-t-ok-texto:#7FD3AC; --inn-t-azul:#3A63C9; --inn-t-azul2:#4F78DB; --inn-t-azul-suave:rgba(79,120,219,.14);
   --inn-t-hi:rgba(255,255,255,.05);
   --inn-t-sombra:0 1px 0 rgba(255,255,255,.05) inset, 0 12px 28px rgba(0,0,0,.30);
   --inn-t-fundo-sombra:inset 0 2px 6px rgba(0,0,0,.45), inset 0 -1px 0 rgba(255,255,255,.04);
@@ -51,7 +51,7 @@ html[data-theme="light"]{
   --y-border:rgba(31,38,50,.12); --y-border-soft:rgba(31,38,50,.10); --y-border-md:rgba(31,38,50,.18); --y-border-lg:rgba(31,38,50,.30);
   --y-text:#1E2630; --y-text-muted:#4E586A; --y-text-soft:#5F6878; --y-text-accent:#2E55B8;
   --inn-t-fundo:#E6E8EB; --inn-t-painel:#F5F6F8; --inn-t-painel2:#ECEEF1; --inn-t-linha:rgba(31,38,50,.10); --inn-t-linha2:rgba(31,38,50,.18);
-  --inn-t-texto:#1E2630; --inn-t-texto2:#4E586A; --inn-t-texto3:#5F6878; --inn-t-azul-texto:#2E55B8; --inn-t-erro-texto:#A23B35; --inn-t-azul:#2E55B8; --inn-t-azul2:#3D65CB; --inn-t-azul-suave:rgba(46,85,184,.10);
+  --inn-t-texto:#1E2630; --inn-t-texto2:#4E586A; --inn-t-texto3:#5F6878; --inn-t-azul-texto:#2E55B8; --inn-t-erro-texto:#A23B35; --inn-t-aviso-texto:#7C5A12; --inn-t-ok-texto:#1F6B4A; --inn-t-azul:#2E55B8; --inn-t-azul2:#3D65CB; --inn-t-azul-suave:rgba(46,85,184,.10);
   --inn-t-hi:rgba(255,255,255,.9);
   --inn-t-sombra:0 1px 0 rgba(255,255,255,.9) inset, 0 8px 24px rgba(31,38,50,.08), 0 1px 2px rgba(31,38,50,.05);
   --inn-t-fundo-sombra:inset 0 2px 5px rgba(31,38,50,.10), inset 0 -1px 0 rgba(255,255,255,.8);

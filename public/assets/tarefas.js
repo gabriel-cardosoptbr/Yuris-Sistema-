@@ -573,8 +573,7 @@ function calHora(t) {
   const h = String(t.prazo).slice(11, 16);
   return h && h !== '00:00' ? `<b style="font-weight:700;margin-right:4px">${h}</b>` : '';
 }
-// Dia com mais de 3 tarefas aberto pelo "+N mais".
-let calDiaAberto = null;
+// (O "+N mais" saiu em 11/11/2026: todo compromisso do dia aparece.)
 function renderCalendario() {
   // O mesmo calendário serve ao quadro e à Central (quadros + processos).
   const central = !!(window.TkCentral && TkCentral.ativa());
@@ -614,27 +613,25 @@ function renderCalendario() {
     // véspera.
     const diaIso = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const dayTasks = fonte.filter(t => t.prazo && String(t.prazo).slice(0,10) === diaIso);
-    const aberto = calDiaAberto === diaIso;
 
+    // Todo compromisso do dia aparece (11/11/2026: o "+3 mais" escondia o resto; nada fica
+    // escondido). O ponto diz a situação, como no calendário de Processos: vermelho atrasado,
+    // âmbar hoje, verde o que vem, cinza concluído.
+    const hojeIso = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+    if (dayTasks.length) cell.classList.add('tem');
     cell.innerHTML = `<div class="tk-cal-num">${d}</div>` +
-      (aberto ? dayTasks : dayTasks.slice(0,3)).map(t => {
+      dayTasks.map(t => {
         const cls = t.origem === 'prazo' ? ' tk-cal-prazo' : t.origem === 'processo_tarefa' ? ' tk-cal-proc' : '';
-        return `<div class="tk-cal-dot${cls}" data-id="${t.id}"${t.chave ? ` data-chave="${esc(t.chave)}"` : ''} title="${esc(t.titulo)}">${calHora(t)}${esc(t.titulo)}</div>`;
+        const feita = t.concluida || t.status === 'done' || t.status === 'concluida';
+        const tom = feita ? 'neutro' : diaIso < hojeIso ? 'erro' : diaIso === hojeIso ? 'aviso' : 'ok';
+        return `<div class="tk-cal-dot${cls}" data-id="${t.id}"${t.chave ? ` data-chave="${esc(t.chave)}"` : ''} title="${esc(t.titulo)}"><i class="tk-cal-ponto ${tom}" aria-hidden="true"></i><span class="tk-cal-tit">${calHora(t)}${esc(t.titulo)}</span></div>`;
       }).join('');
-    if (dayTasks.length > 3) {
-      cell.innerHTML += `<button type="button" class="tk-cal-mais" data-dia="${diaIso}">${aberto ? 'mostrar menos' : `+${dayTasks.length-3} mais`}</button>`;
-    }
     grid.appendChild(cell);
     cell.querySelectorAll('[data-id]').forEach(d => d.addEventListener('click', e => {
       e.stopPropagation();
       if (d.dataset.chave) TkCentral.abrirItem(d.dataset.chave);
       else openDrawer(parseInt(d.dataset.id));
     }));
-    cell.querySelector('.tk-cal-mais')?.addEventListener('click', e => {
-      e.stopPropagation();
-      calDiaAberto = aberto ? null : diaIso;
-      renderCalendario();
-    });
     // Clicar no dia cria a tarefa já com a data.
     cell.addEventListener('click', () => abrirNovaTarefa(diaIso));
   }

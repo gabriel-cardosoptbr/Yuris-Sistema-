@@ -16,8 +16,8 @@
      cinza ....... texto3, texto2, texto
      azul ........ azul-texto, texto
      vermelho .... erro-texto, erro-forte, texto
-     âmbar ....... aviso, aviso-forte, texto
-     verde ....... ok, ok-forte, texto
+     âmbar ....... aviso, aviso-texto, aviso-forte, texto
+     verde ....... ok, ok-texto, ok-forte, texto
 
    A troca é uma classe (inn-ct-<variável>), então ela segue o tema; trocar o
    tema refaz a conta. Seleção, item ativo e pop-up de fora não entram. Só nas
@@ -30,10 +30,10 @@
     cinza:    ['texto3', 'texto2', 'texto'],
     azul:     ['azul-texto', 'texto'],
     vermelho: ['erro-texto', 'erro-forte', 'texto'],
-    ambar:    ['aviso', 'aviso-forte', 'texto'],
-    verde:    ['ok', 'ok-forte', 'texto']
+    ambar:    ['aviso', 'aviso-texto', 'aviso-forte', 'texto'],
+    verde:    ['ok', 'ok-texto', 'ok-forte', 'texto']
   };
-  var TODAS = ['texto3', 'texto2', 'texto', 'azul-texto', 'erro-texto', 'erro-forte', 'aviso', 'aviso-forte', 'ok', 'ok-forte', 'branco', 'preto'];
+  var TODAS = ['texto3', 'texto2', 'texto', 'azul-texto', 'erro-texto', 'erro-forte', 'aviso', 'aviso-texto', 'aviso-forte', 'ok', 'ok-texto', 'ok-forte', 'branco', 'preto'];
   // Último recurso: fundo que a tela deixou escuro no tema claro (a pílula do "0s" no Chat, o aviso
   // de desconexão) ou claro no escuro. Nenhuma cor da casa passa; vale o branco ou o quase preto.
   var FIXAS = { branco: [255, 255, 255, 1], preto: [17, 20, 26, 1] };
