@@ -52,7 +52,7 @@ require_once __DIR__ . '/includes/site_chrome.php';
       },
       {
         "@type": "Product",
-        "name": "Yuris — Sistema Jurídico Inteligente",
+        "name": "Yuris, Sistema Jurídico Inteligente",
         "description": "Sistema jurídico para advogados e escritórios: processos, prazos, intimações, CRM, financeiro, tarefas e WhatsApp em uma única plataforma.",
         "image": "https://yuris.com.br/assets/img/og-image.jpg",
         "brand": { "@type": "Brand", "name": "Yuris" },
@@ -63,7 +63,7 @@ require_once __DIR__ . '/includes/site_chrome.php';
   </script>
   <!-- Marca <html class="js"> antes do CSS: .ys-reveal só esconde com JS ligado. -->
   <script>document.documentElement.classList.add('js')</script>
-  <link href="<?= htmlspecialchars(YS_FONT_URL, ENT_QUOTES, 'UTF-8') ?>" rel="stylesheet">
+  <link rel="preload" href="<?= htmlspecialchars(YS_FONT_PRELOAD, ENT_QUOTES, 'UTF-8') ?>" as="font" type="font/woff2" crossorigin>
 <?php foreach (ys_css(['site-planos.css']) as $folha): ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($folha, ENT_QUOTES, 'UTF-8') ?>">
 <?php endforeach; ?>

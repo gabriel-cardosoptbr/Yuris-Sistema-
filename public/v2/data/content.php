@@ -18,7 +18,7 @@ return [
     // ── Meta / SEO ──────────────────────────────────────────────────────────
     'meta' => [
         'title'       => 'Yuris, Sistema Jurídico Inteligente para Advogados',
-        'description' => 'Controle processos, prazos, intimações, tarefas, clientes e comunicação em uma plataforma jurídica inteligente para advogados e escritórios.',
+        'description' => 'Sistema jurídico para advogados e escritórios: processos, prazos, intimações, clientes, WhatsApp e financeiro em um só lugar. Peça uma demonstração.',
         'og_image'    => '/assets/img/og-image.jpg',
     ],
 
@@ -30,22 +30,17 @@ return [
     // clientes, sistema jurídico) e ganha a "raiz" do manual de marca: estrutura.
     'hero' => [
         'eyebrow'           => 'Sistema Jurídico Inteligente',
-        'h1_html'           => 'A <em>estrutura</em> que sustenta processos, prazos, intimações e clientes, em um só sistema jurídico inteligente.',
-        'sub'               => 'O Yuris centraliza processos, tarefas, intimações, comunicação, equipe e automações em uma plataforma moderna para advogados e escritórios jurídicos.',
+        'h1_html'           => 'Processos, prazos, intimações e clientes em um só <em>sistema jurídico</em>.',
+        'sub'               => 'O Yuris acompanha as publicações, transforma cada intimação em prazo com responsável e reúne atendimento, tarefas e financeiro no mesmo lugar. Para o advogado autônomo e para o escritório com matriz e filiais.',
+        'nota'              => 'A demonstração é pelo WhatsApp, com a rotina do seu escritório.',
         'cta_primary_label' => 'Solicitar demonstração',
-        'cta_ghost_label'   => 'Conhecer funcionalidades',
+        'cta_ghost_label'   => 'Conhecer os recursos',
         'cta_ghost_href'    => '#recursos',
         'trust' => [
             'Isolamento multi-tenant',
             'Logs de auditoria',
             '2FA e controle de acesso',
             'Preparado para apoiar a LGPD',
-        ],
-        'chips' => [
-            ['n' => '7',  'label' => '<strong>intimações</strong> monitoradas'],
-            ['n' => '12', 'label' => '<strong>prazos</strong> organizados'],
-            ['n' => '',   'label' => 'Tarefas em dia'],
-            ['n' => '',   'label' => 'Atendimento centralizado'],
         ],
     ],
 

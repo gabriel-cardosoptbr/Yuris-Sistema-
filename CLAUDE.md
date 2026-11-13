@@ -216,6 +216,10 @@ e o teste passa dando falsa segurança. Foi o que aconteceu em 27/08/2026.
 - **Pop-up aberto, fundo parado; caixa com respiro** (11/11/2026): `interface-nova-trava.js`
   segura a rolagem do fundo de qualquer pop-up; conteúdo nunca a menos de 6 px da borda da
   caixa nem caixa colada na de cima (`public/assets/_auditar_espacos.js` mede)
+- **O site público nunca mostra a tela real do sistema** (13/11/2026): nada de retrato, recorte ou
+  gravação de dentro do Yuris em lugar público. O produto aparece em ilustrações feitas para o site
+  (`lp2_scene()` em `public/v2/partials/_cenas.php`), com dados fictícios e sem enfeite com cara de
+  IA (legenda com tracinho, bolinhas de janela, numeração 01, 02, avatar de iniciais). Ver `public/README.md`
 - **Todo cartão se mexe no hover** (11/11/2026): cartão de texto em lista desliza
   2 px para a direita; cartão em fileira ou grade (indicador, atalho, dia) sobe 2 px.
   Só cartão clicável se mexe. A regra está no topo de `public/assets/interface-nova-hover.js`

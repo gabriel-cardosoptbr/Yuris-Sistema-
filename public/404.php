@@ -1,6 +1,6 @@
 <?php
 /**
- * 404.php — página de erro brandada do Yuris.
+ * 404.php, página de erro brandada do Yuris.
  *
  * Ativação:
  *   · Produção: ErrorDocument 404 /404.php no conf do Apache (Dockerfile zz-yuris.conf).
@@ -15,7 +15,7 @@ http_response_code(404);
 require_once __DIR__ . '/includes/site_chrome.php';   // wa(), $waSvg, ys_header(), ys_footer(), ys_css()
 
 $SEO = [
-    'title'       => 'Página não encontrada — Yuris',
+    'title'       => 'Página não encontrada, Yuris',
     'description' => 'A página que você procura não existe ou mudou de endereço. Veja os caminhos mais usados do Yuris.',
     'path'        => '/404.php',
     'robots'      => 'noindex,follow',
@@ -36,7 +36,7 @@ $SEO = [
 <section class="ys-pagehero ys-article">
   <div class="ys-container">
     <h1>Essa página não foi encontrada.</h1>
-    <p class="ys-lede">O endereço pode ter mudado ou nunca existiu por aqui. Sem problema — estes são os caminhos mais úteis do Yuris:</p>
+    <p class="ys-lede">O endereço pode ter mudado ou nunca existiu por aqui. Sem problema, estes são os caminhos mais úteis do Yuris:</p>
   </div>
 </section>
 
@@ -45,7 +45,7 @@ $SEO = [
     <div class="ys-related-grid">
       <a href="/">
         <h3>Início</h3>
-        <p>Conheça o Yuris — Sistema Jurídico Inteligente para advogados e escritórios.</p>
+        <p>Conheça o Yuris, Sistema Jurídico Inteligente para advogados e escritórios.</p>
       </a>
       <a href="/sistema-juridico/">
         <h3>Sistema Jurídico</h3>

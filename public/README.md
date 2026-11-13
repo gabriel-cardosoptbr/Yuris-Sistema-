@@ -919,17 +919,64 @@ Saíram do site e não voltam:
 - a **numeração 01, 02...** na lista de dores, no tour "O Yuris por dentro", na vitrine de
   funcionalidades ("01 / 12") e nos quatro itens da Gestão;
 - as **bolinhas de assentos** embaixo de "até N usuários" nos planos (`pl_assentos()` saiu);
-- as **três bolinhas de janela** na barra de título das cenas (`.lp2-demo::after`, desligado em
-  `site-product.css`).
+- as **cenas desenhadas como se fossem tela** (`.lp2-demo`, `site-product.css`): barra de janela
+  vazia, bolinhas, linhas de enfeite no lugar do texto, avatar de iniciais, fundo pontilhado e
+  diagrama de caixinhas. Saíram todas;
+- o **travessão** nos textos das páginas de soluções, do blog, do 404 e do `llms.txt` (265 trocas).
+
+**O site NUNCA mostra a tela real de dentro do Yuris** (13/11/2026, regra do dono do produto).
+Nada de retrato, recorte ou gravação do sistema, nem no site, nem no `llms.txt`, nem no JSON-LD
+(`screenshot`), nem em imagem de compartilhamento. O que aparece são **ilustrações feitas para o
+site** (`lp2_scene()` em `v2/partials/_cenas.php`, estilo `.ys-cena` em `site.css`), com dados
+fictícios e a legenda "Ilustração com dados fictícios". São cinco, uma ideia cada:
+
+| Cena | A ideia | Onde aparece |
+|---|---|---|
+| `processo` | o processo guarda a história: ficha, histórico com data e autor, honorários | home `#juridico`, `/controle-de-processos/` |
+| `intimacao` | a publicação vira prazo com responsável | home `#intimacoes`, `/automacao-juridica/` |
+| `funil` | a conversa de WhatsApp entra no funil e vira cliente | home `#operacao`, `/crm-juridico/`, `/prospeccao-juridica/`, `/demonstracao/` |
+| `estrutura` | quem vê o quê: matriz, filiais, advogado associado | home `#gestao`, `/gestao-escritorio-advocacia/`, `/lgpd-escritorios-advocacia/` |
+| `indicadores` | os números saem do sistema: três indicadores e seis meses de honorários | home `#dashboards`, `/sistema-juridico/`, `/financeiro-juridico/` |
+
+Os nomes antigos de cena (`juridico`, `operacao`, `gestao`, `dashboards`, `tab-*`) continuam valendo:
+`lp2_scene()` traduz. Cena nova segue a mesma receita: conteúdo de verdade e legível, uma ideia só,
+nada de enfeite com cara de tela.
+
+**A home tem 13 seções** (eram 21, com assuntos repetidos em três lugares): primeira dobra, cinco
+destaques (`lp2_spot()` em `_render.php`: texto de um lado, ilustração do outro), automações e
+integrações, o antes e depois ("sem sistema / com o Yuris"), segurança, para quem, origem,
+perguntas e o convite. A ordem está em `v2/index.php`. Os ids antigos (`#recursos`, `#produto`,
+`#comunicacao`, `#cliente`, `#vinculos`, `#integracoes`, `#comparativo`) continuam valendo como
+endereço, em âncoras dentro das seções que ficaram.
+
+**Movimento: pequeno e com função** (13/11/2026, "aquela animação simples, igual à do sistema,
+pequenas coisas que fazem toda a diferença"). A regra está no topo de `site-motion.css`: o que
+entra na tela sobe poucos pixels; as peças de cada ilustração chegam em sequência, uma vez
+(`--i` no HTML dá a ordem); os números contam até o valor; nada pisca nem se repete, fora o zoom
+lento da foto do hero. **O título principal nunca nasce invisível**: é a maior peça da primeira
+dobra, e escondê-lo atrasava a pintura que os buscadores medem (LCP).
+
+**Desempenho** (medido em 13/11/2026, celular mediano simulado: 4G e CPU 4x mais lenta):
+
+| | Antes | Depois |
+|---|---|---|
+| Título pintado (LCP) na home | 2,75 s | 1,74 s |
+| Peso da home | 350 KB | 245 KB |
+| Pedidos | 11 | 9 |
+| Pedidos a terceiros | 2 (Google Fonts) | 0 |
+
+O que fez a diferença: a Manrope passou a morar no servidor (`assets/site/fontes/`, `@font-face` no
+`site.css`, `YS_FONT_URL` vazio e `YS_FONT_PRELOAD` adiantando o arquivo no `<head>`); a foto do
+hero é adiantada (`$SEO['preload_img']`); saíram `site-product.css` (26 KB) e o script das cenas.
 
 | Arquivo | Papel |
 |---|---|
-| `site.css` | tokens, botões, cabeçalho, rodapé, cards, FAQ, prosa e o template das páginas de SEO |
-| `site-home.css` | as composições da home, cada seção com a sua forma |
-| `site-product.css` | as cenas de produto (`lp2_scene`), cópia de `v2/css/demos.css` reescopada. O bloco final remapeia as variáveis `--lp2-*` para a paleta clara: a janela do produto é branca |
-| `site-motion.css` | todo o movimento: transição entre páginas (View Transitions, com fade por JS onde não há), coreografia do hero, escalonamento das listas, brilho dos botões, abas, cabeçalho que encolhe e as cenas (barras, linha, funil, nós). Tudo dentro de `prefers-reduced-motion: no-preference` |
+| `site.css` | a fonte (`@font-face`), tokens, botões, cabeçalho, rodapé, cards, FAQ, prosa, o template das páginas de SEO e as ilustrações de produto (`.ys-cena`) |
+| `site-home.css` | as composições da home: hero, destaque (`.ys-spot`), automações (`.ys-liga`), antes e depois, segurança, para quem, origem, perguntas e convite |
+| `site-motion.css` | todo o movimento, com a regra no topo: transição entre páginas (View Transitions), cabeçalho que encolhe, entrada do hero, brilho dos botões, peças das ilustrações em sequência, letras do YURIS e FAQ. Tudo dentro de `prefers-reduced-motion: no-preference` |
 | `site-legal.css` | coluna de leitura de `includes/legal_page.php` e as classes `legal-*` de `/lgpd/solicitar` e `/lgpd/acompanhar`, em tema claro. Carregado só por esse layout |
-| `site.js` | vanilla, sem dependências: header, drawer, abas, entrada de conteúdo, vitrine, e o que o CSS não mede (atraso por filho, letras do YURIS, números que contam, funil, escopo, saída de página). Substitui GSAP, Lenis e Motion da versão anterior |
+| `site.js` | vanilla, sem dependências: cabeçalho, menu do celular, abas, entrada de conteúdo, atraso por filho das listas, números das ilustrações e letras do YURIS |
+| `fontes/` | Manrope variável (400 a 800), latin e latin-ext, em WOFF2 |
 | `img/hero.webp` | foto do hero, gerada por IA (pessoa fictícia), 1280x1440. `secao-01-hero.php` a usa sozinho quando o arquivo existe (painel com `.has-photo`); sem ele, fica o painel azul, só com as linhas de arquitetura. A foto termina em `#05152C`, a cor do fundo do painel: foto nova tem de terminar na mesma cor, ou a emenda aparece |
 
 `includes/site_chrome.php` tem `ys_header()`, `ys_footer()` e `ys_css()`, os mesmos

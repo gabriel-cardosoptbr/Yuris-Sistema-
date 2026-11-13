@@ -1,6 +1,6 @@
 <?php
 /**
- * /blog/ — índice do blog do Yuris.
+ * /blog/, índice do blog do Yuris.
  *
  * ESTADO ATUAL: estrutura pronta, SEM posts publicados → noindex,follow
  * e FORA do sitemap.xml de propósito (página fina não deve competir no índice).
@@ -27,14 +27,14 @@ if ($POSTS) {
 }
 
 $SEO_PAGE = [
-    'title'       => 'Blog do Yuris — Gestão Jurídica e Legal Tech',
+    'title'       => 'Blog do Yuris, Gestão Jurídica e Legal Tech',
     'description' => 'Conteúdo sobre gestão de escritórios de advocacia, automação jurídica, CRM jurídico, financeiro, LGPD e legal tech. Em breve, os primeiros artigos.',
     'path'        => '/blog/',
     'robots'      => 'noindex,follow',
     'breadcrumb'  => 'Blog',
     'eyebrow'     => 'Blog',
     'h1'          => 'Blog do Yuris: gestão jurídica na prática',
-    'lede'        => 'Conteúdo direto sobre a operação de escritórios de advocacia: gestão, automação, CRM, financeiro, LGPD e legal tech — escrito para quem toca a rotina jurídica todos os dias.',
+    'lede'        => 'Conteúdo direto sobre a operação de escritórios de advocacia: gestão, automação, CRM, financeiro, LGPD e legal tech, escrito para quem toca a rotina jurídica todos os dias.',
     'cta_msg'     => 'Olá Bruno, quero uma demonstração do Yuris!',
     'cta_label'   => 'Solicitar demonstração',
     'cta_titulo'  => 'Enquanto os artigos não chegam, veja o Yuris funcionando',
@@ -44,15 +44,15 @@ $SEO_PAGE = [
 <h2>O que você vai encontrar aqui</h2>
 <p>Os primeiros artigos estão em produção. O blog vai cobrir estas frentes:</p>
 <ul>
-  <li><strong>Gestão Jurídica</strong> — organização da operação, rotina e equipe do escritório.</li>
-  <li><strong>Automação Jurídica</strong> — o que automatizar, como e com quais garantias de rastreabilidade.</li>
-  <li><strong>CRM Jurídico</strong> — funil comercial, relacionamento e conversão do lead em cliente.</li>
-  <li><strong>Prospecção para Advogados</strong> — organização da captação dentro das regras da advocacia.</li>
-  <li><strong>Financeiro para Escritórios</strong> — DRE, honorários, recorrências e visão por unidade.</li>
-  <li><strong>LGPD e Segurança</strong> — proteção de dados na prática da advocacia.</li>
-  <li><strong>Produtividade Jurídica</strong> — menos retrabalho, mais controle.</li>
-  <li><strong>Legal Tech</strong> — o mercado de tecnologia jurídica no Brasil.</li>
-  <li><strong>Inteligência Artificial no Direito</strong> — usos reais, limites e responsabilidade.</li>
+  <li><strong>Gestão Jurídica</strong>, organização da operação, rotina e equipe do escritório.</li>
+  <li><strong>Automação Jurídica</strong>, o que automatizar, como e com quais garantias de rastreabilidade.</li>
+  <li><strong>CRM Jurídico</strong>, funil comercial, relacionamento e conversão do lead em cliente.</li>
+  <li><strong>Prospecção para Advogados</strong>, organização da captação dentro das regras da advocacia.</li>
+  <li><strong>Financeiro para Escritórios</strong>, DRE, honorários, recorrências e visão por unidade.</li>
+  <li><strong>LGPD e Segurança</strong>, proteção de dados na prática da advocacia.</li>
+  <li><strong>Produtividade Jurídica</strong>, menos retrabalho, mais controle.</li>
+  <li><strong>Legal Tech</strong>, o mercado de tecnologia jurídica no Brasil.</li>
+  <li><strong>Inteligência Artificial no Direito</strong>, usos reais, limites e responsabilidade.</li>
 </ul>
 <p>Enquanto isso, as páginas de soluções já respondem as principais dúvidas: <a href="/sistema-juridico/">sistema jurídico</a>, <a href="/crm-juridico/">CRM jurídico</a>, <a href="/automacao-juridica/">automação jurídica</a>, <a href="/controle-de-processos/">controle de processos</a>, <a href="/financeiro-juridico/">financeiro jurídico</a> e <a href="/lgpd-escritorios-advocacia/">LGPD para escritórios</a>.</p>
 {$listaPosts}

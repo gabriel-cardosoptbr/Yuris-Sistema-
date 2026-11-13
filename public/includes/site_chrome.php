@@ -1,6 +1,6 @@
 <?php
 /**
- * site_chrome.php — cabeçalho, rodapé e helpers do SITE PÚBLICO (design system
+ * site_chrome.php, cabeçalho, rodapé e helpers do SITE PÚBLICO (design system
  * "Editorial LegalTech", assets/site/site.css).
  *
  * Usado por: home (v2/), páginas de soluções (seo_page.php), planos, sobre,
@@ -21,8 +21,14 @@
 
 require_once __DIR__ . '/lp_helpers.php';   // wa() + $waSvg
 
+/* A Manrope mora no próprio servidor desde 13/11/2026 (assets/site/fontes, @font-face no
+   site.css): sem pedido ao Google antes de pintar. YS_FONT_URL vazio diz ao <head> para não
+   ligar folha externa; YS_FONT_PRELOAD é o arquivo que ele adianta. */
 if (!defined('YS_FONT_URL')) {
-    define('YS_FONT_URL', 'https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+    define('YS_FONT_URL', '');
+}
+if (!defined('YS_FONT_PRELOAD')) {
+    define('YS_FONT_PRELOAD', '/assets/site/fontes/manrope-latin.woff2');
 }
 
 if (!function_exists('ys_asset_ver')) {

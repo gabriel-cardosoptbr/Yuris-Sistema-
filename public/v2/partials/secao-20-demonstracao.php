@@ -23,6 +23,5 @@ require_once __DIR__ . '/_cenas.php';
         <a href="<?= htmlspecialchars(wa('Olá Bruno, gostaria de falar com um especialista do Yuris!'), ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" class="ys-btn ys-btn-ghost">Falar com especialista</a>
       </div>
     </div>
-    <div class="ys-final-show ys-reveal" style="--d:.12s"><?= lp2_scene('showcase') ?></div>
   </div>
 </section>

@@ -1,9 +1,9 @@
 <?php
 /**
- * /sistema-juridico/ — página estratégica de SEO.
+ * /sistema-juridico/, página estratégica de SEO.
  * Palavra-chave principal: "sistema jurídico" · secundárias: "software jurídico",
  * "sistema para advogados", "plataforma jurídica".
- * Intenção: comercial/informacional — advogado pesquisando sistema de gestão.
+ * Intenção: comercial/informacional, advogado pesquisando sistema de gestão.
  * Conteúdo baseado no fact sheet do produto (sem claims não confirmados).
  */
 
@@ -14,7 +14,7 @@ $SEO_PAGE = [
     'breadcrumb'  => 'Sistema Jurídico',
     'eyebrow'     => 'Sistema Jurídico',
     'h1'          => 'Sistema jurídico completo para advogados e escritórios de advocacia',
-    'lede'        => 'O Yuris é um sistema jurídico que centraliza processos, prazos, intimações, clientes, tarefas, financeiro e atendimento por WhatsApp em uma única plataforma — com LGPD e auditoria como parte da estrutura, não como acessório.',
+    'lede'        => 'O Yuris é um sistema jurídico que centraliza processos, prazos, intimações, clientes, tarefas, financeiro e atendimento por WhatsApp em uma única plataforma, com LGPD e auditoria como parte da estrutura, não como acessório.',
     'cta_msg'     => 'Olá Bruno, quero conhecer o sistema jurídico Yuris!',
     'cta_label'   => 'Solicitar demonstração',
     'cta_titulo'  => 'Veja o sistema jurídico Yuris funcionando com a rotina do seu escritório',
@@ -28,21 +28,21 @@ $SEO_PAGE = [
 <p>Na prática, o sistema jurídico substitui o improviso operacional: o prazo deixa de morar na memória do advogado, a intimação deixa de se perder no e-mail e a conversa com o cliente deixa de sumir no WhatsApp pessoal. Tudo passa a ter dono, contexto e registro.</p>
 
 <h2>O que o Yuris centraliza</h2>
-<p>O Yuris foi construído para cobrir a operação completa do escritório — do primeiro contato com o cliente ao encerramento do processo:</p>
+<p>O Yuris foi construído para cobrir a operação completa do escritório, do primeiro contato com o cliente ao encerramento do processo:</p>
 <ul>
-  <li><strong>Processos</strong> — gestão com histórico auditado, prazos, tarefas e vínculos entre advogados. Veja <a href="/controle-de-processos/">controle de processos</a>.</li>
-  <li><strong>Intimações</strong> — monitoramento de publicações em múltiplas fontes (DJEN, DataJud e AASP), com deduplicação e conversão de intimação em prazo ou tarefa.</li>
-  <li><strong>CRM e prospecção</strong> — funil comercial em Kanban, do lead ao contrato. Veja <a href="/crm-juridico/">CRM jurídico</a>.</li>
-  <li><strong>Clientes e contatos</strong> — cadastro central reaproveitado por processos, atendimento e financeiro, sem duplicidade.</li>
-  <li><strong>WhatsApp integrado</strong> — atendimento dentro do sistema, com conversas vinculadas a cliente e processo.</li>
-  <li><strong>Financeiro</strong> — DRE, recorrências e contas com visão por unidade. Veja <a href="/financeiro-juridico/">financeiro jurídico</a>.</li>
-  <li><strong>Tarefas</strong> — Kanban, lista e calendário, com anexos, checklist e vínculo com processo e intimação.</li>
-  <li><strong>Automações</strong> — webhooks seguros que conectam o escritório a n8n, Make e Zapier. Veja <a href="/automacao-juridica/">automação jurídica</a>.</li>
-  <li><strong>LGPD e auditoria</strong> — trilha de ações imutável, anonimização e direitos do titular. Veja <a href="/lgpd-escritorios-advocacia/">LGPD para escritórios</a>.</li>
+  <li><strong>Processos</strong>, gestão com histórico auditado, prazos, tarefas e vínculos entre advogados. Veja <a href="/controle-de-processos/">controle de processos</a>.</li>
+  <li><strong>Intimações</strong>, monitoramento de publicações em múltiplas fontes (DJEN, DataJud e AASP), com deduplicação e conversão de intimação em prazo ou tarefa.</li>
+  <li><strong>CRM e prospecção</strong>, funil comercial em Kanban, do lead ao contrato. Veja <a href="/crm-juridico/">CRM jurídico</a>.</li>
+  <li><strong>Clientes e contatos</strong>, cadastro central reaproveitado por processos, atendimento e financeiro, sem duplicidade.</li>
+  <li><strong>WhatsApp integrado</strong>, atendimento dentro do sistema, com conversas vinculadas a cliente e processo.</li>
+  <li><strong>Financeiro</strong>, DRE, recorrências e contas com visão por unidade. Veja <a href="/financeiro-juridico/">financeiro jurídico</a>.</li>
+  <li><strong>Tarefas</strong>, Kanban, lista e calendário, com anexos, checklist e vínculo com processo e intimação.</li>
+  <li><strong>Automações</strong>, webhooks seguros que conectam o escritório a n8n, Make e Zapier. Veja <a href="/automacao-juridica/">automação jurídica</a>.</li>
+  <li><strong>LGPD e auditoria</strong>, trilha de ações imutável, anonimização e direitos do titular. Veja <a href="/lgpd-escritorios-advocacia/">LGPD para escritórios</a>.</li>
 </ul>
 
 <h2>Planilha vs. sistema jurídico</h2>
-<p>A maioria dos escritórios começa no Excel — e funciona, até o volume crescer. A diferença aparece quando o erro passa a custar caro:</p>
+<p>A maioria dos escritórios começa no Excel, e funciona, até o volume crescer. A diferença aparece quando o erro passa a custar caro:</p>
 <div class="sp-tabela-wrap">
 <table class="sp-tabela">
   <thead>
@@ -62,17 +62,17 @@ $SEO_PAGE = [
 <h2>Quando o escritório precisa de um sistema jurídico?</h2>
 <p>Alguns sinais práticos de que a operação ultrapassou a planilha:</p>
 <ul>
-  <li>Um prazo já foi perdido — ou quase — porque a informação estava com uma pessoa só.</li>
+  <li>Um prazo já foi perdido, ou quase, porque a informação estava com uma pessoa só.</li>
   <li>O escritório atende pelo WhatsApp, mas as conversas não ficam registradas em lugar nenhum.</li>
   <li>Mais de uma pessoa trabalha no mesmo processo e ninguém sabe a última versão dos fatos.</li>
   <li>Cresceu o volume de intimações e a conferência manual virou gargalo.</li>
   <li>O financeiro não fecha com a operação: honorários, recorrências e despesas em controles separados.</li>
   <li>Clientes pedem transparência e o escritório demora a responder onde o processo está.</li>
 </ul>
-<p>Se dois ou mais itens soam familiares, vale conhecer um sistema antes que o custo do erro apareça. O Yuris atende do <strong>advogado autônomo</strong> ao <strong>escritório com matriz e filiais</strong> — a estrutura multi-tenant permite crescer sem trocar de sistema. Saiba mais em <a href="/gestao-escritorio-advocacia/">gestão de escritório de advocacia</a>.</p>
+<p>Se dois ou mais itens soam familiares, vale conhecer um sistema antes que o custo do erro apareça. O Yuris atende do <strong>advogado autônomo</strong> ao <strong>escritório com matriz e filiais</strong>, a estrutura multi-tenant permite crescer sem trocar de sistema. Saiba mais em <a href="/gestao-escritorio-advocacia/">gestão de escritório de advocacia</a>.</p>
 
 <h2>Segurança e LGPD desde a fundação</h2>
-<p>Em um sistema jurídico, segurança não é diferencial — é pré-requisito. No Yuris, o isolamento entre escritórios (multi-tenant), as permissões por escopo, o segundo fator de autenticação (2FA) e a trilha de auditoria imutável fazem parte da arquitetura. O escritório consegue responder <em>quem fez o quê, quando e em qual contexto</em> — exigência básica em qualquer verificação interna ou de conformidade. O Yuris adota medidas técnicas e organizacionais voltadas à proteção de dados pessoais e segue em processo contínuo de adequação à LGPD.</p>
+<p>Em um sistema jurídico, segurança não é diferencial, é pré-requisito. No Yuris, o isolamento entre escritórios (multi-tenant), as permissões por escopo, o segundo fator de autenticação (2FA) e a trilha de auditoria imutável fazem parte da arquitetura. O escritório consegue responder <em>quem fez o quê, quando e em qual contexto</em>, exigência básica em qualquer verificação interna ou de conformidade. O Yuris adota medidas técnicas e organizacionais voltadas à proteção de dados pessoais e segue em processo contínuo de adequação à LGPD.</p>
 
 <h2>Quanto custa o sistema jurídico Yuris?</h2>
 <p>Os planos têm tudo incluído, sem cobrança por módulo. O valor é sob consulta e varia conforme o número de usuários do escritório. Veja as opções na <a href="/planos">página de planos</a>.</p>
@@ -85,15 +85,15 @@ HTML,
         ],
         [
             'q' => 'Qual a diferença entre sistema jurídico e CRM jurídico?',
-            'a' => 'O CRM jurídico cuida da parte comercial: captação de leads, funil de propostas e relacionamento até o contrato. O sistema jurídico é mais amplo: inclui o CRM e soma gestão de processos, prazos, intimações, tarefas, financeiro e atendimento. No Yuris, os dois trabalham juntos — o lead do funil vira cliente e processo sem retrabalho.',
+            'a' => 'O CRM jurídico cuida da parte comercial: captação de leads, funil de propostas e relacionamento até o contrato. O sistema jurídico é mais amplo: inclui o CRM e soma gestão de processos, prazos, intimações, tarefas, financeiro e atendimento. No Yuris, os dois trabalham juntos, o lead do funil vira cliente e processo sem retrabalho.',
         ],
         [
             'q' => 'O Yuris serve para advogado autônomo?',
-            'a' => 'Sim. O plano de entrada atende de 1 a 2 usuários, e a mesma plataforma escala para equipes, escritórios com várias unidades e operações com matriz e filial — sem migração de sistema no caminho.',
+            'a' => 'Sim. O plano de entrada atende de 1 a 2 usuários, e a mesma plataforma escala para equipes, escritórios com várias unidades e operações com matriz e filial, sem migração de sistema no caminho.',
         ],
         [
             'q' => 'O sistema monitora intimações automaticamente?',
-            'a' => 'Sim. O Yuris monitora publicações judiciais em múltiplas fontes — DJEN, DataJud e AASP — com deduplicação automática. A intimação encontrada pode ser vinculada ao processo e convertida em prazo ou tarefa com responsável definido. A fonte AASP requer chave de acesso do próprio escritório.',
+            'a' => 'Sim. O Yuris monitora publicações judiciais em múltiplas fontes, DJEN, DataJud e AASP, com deduplicação automática. A intimação encontrada pode ser vinculada ao processo e convertida em prazo ou tarefa com responsável definido. A fonte AASP requer chave de acesso do próprio escritório.',
         ],
         [
             'q' => 'Como o Yuris trata a LGPD?',
@@ -101,7 +101,7 @@ HTML,
         ],
         [
             'q' => 'Como faço para testar ou ver o sistema funcionando?',
-            'a' => 'O caminho é a demonstração com a equipe: pelo WhatsApp, você agenda uma conversa e vê o sistema aplicado à rotina do seu escritório — volume de processos, tamanho da equipe e forma de atendimento. As opções estão na página de planos.',
+            'a' => 'O caminho é a demonstração com a equipe: pelo WhatsApp, você agenda uma conversa e vê o sistema aplicado à rotina do seu escritório, volume de processos, tamanho da equipe e forma de atendimento. As opções estão na página de planos.',
         ],
     ],
 

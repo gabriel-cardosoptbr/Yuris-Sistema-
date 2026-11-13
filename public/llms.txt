@@ -1,12 +1,12 @@
 # Yuris
 
-> O Yuris é um sistema jurídico inteligente (SaaS) para advogados, escritórios de advocacia e operações jurídicas no Brasil. Centraliza processos, prazos, intimações, clientes, tarefas, prospecção, financeiro, atendimento por WhatsApp e automações em uma única plataforma — com LGPD e auditoria como camada estrutural.
+> O Yuris é um sistema jurídico inteligente (SaaS) para advogados, escritórios de advocacia e operações jurídicas no Brasil. Centraliza processos, prazos, intimações, clientes, tarefas, prospecção, financeiro, atendimento por WhatsApp e automações em uma única plataforma, com LGPD e auditoria como camada estrutural.
 
 Idioma: português brasileiro (pt-BR). Categoria: Legal Tech / SaaS jurídico. Site oficial: https://yuris.com.br
 
 ## Principais páginas
 
-- [Início](https://yuris.com.br/): apresentação do Yuris — Sistema Jurídico Inteligente
+- [Início](https://yuris.com.br/): apresentação do Yuris, Sistema Jurídico Inteligente
 - [Sistema Jurídico](https://yuris.com.br/sistema-juridico/): o que é um sistema jurídico e o que o Yuris centraliza
 - [CRM Jurídico](https://yuris.com.br/crm-juridico/): funil comercial em Kanban, do lead ao processo
 - [Gestão de Escritório de Advocacia](https://yuris.com.br/gestao-escritorio-advocacia/): operação, equipe, financeiro e expansão
@@ -21,11 +21,11 @@ Idioma: português brasileiro (pt-BR). Categoria: Legal Tech / SaaS jurídico. S
 
 ## Sobre o Yuris
 
-- **O que é:** plataforma web de gestão jurídica (sistema jurídico / software jurídico) com arquitetura multi-tenant — cada escritório tem seus dados isolados.
+- **O que é:** plataforma web de gestão jurídica (sistema jurídico / software jurídico) com arquitetura multi-tenant, cada escritório tem seus dados isolados.
 - **Para quem:** advogados autônomos, escritórios pequenos e em crescimento, operações com equipe, estruturas com matriz e filiais, e jurídicos internos.
 - **Problemas que resolve:** prazos espalhados em planilhas, intimações sem rastreabilidade, processos sem histórico claro, conversas de clientes perdidas no WhatsApp pessoal, tarefas sem dono, financeiro separado da operação e falta de auditoria.
 - **Diferenciais:** jurídico + comercial (CRM) + atendimento WhatsApp no mesmo fluxo; multi-tenant real com matriz/filial; monitoramento de intimações em múltiplas fontes (DJEN, DataJud e AASP) com deduplicação; webhooks com HMAC, anti-SSRF e retry; LGPD e auditoria como camada estrutural.
-- **Limites e responsabilidade:** o Yuris é um software de gestão — não presta aconselhamento jurídico nem substitui o advogado. Adota medidas técnicas e organizacionais voltadas à proteção de dados pessoais e segue em processo contínuo de adequação à LGPD.
+- **Limites e responsabilidade:** o Yuris é um software de gestão, não presta aconselhamento jurídico nem substitui o advogado. Adota medidas técnicas e organizacionais voltadas à proteção de dados pessoais e segue em processo contínuo de adequação à LGPD.
 
 ## Funcionalidades
 

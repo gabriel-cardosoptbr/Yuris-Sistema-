@@ -66,9 +66,7 @@ $corpo     = $LEGAL_PAGE['corpo_html'] ?? '<p>Conteúdo em revisão.</p>';
   <link rel="canonical" href="https://yuris.com.br<?= htmlspecialchars($__canonica) ?>">
   <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="<?= htmlspecialchars(YS_FONT_URL, ENT_QUOTES, 'UTF-8') ?>" rel="stylesheet">
+  <link rel="preload" href="<?= htmlspecialchars(YS_FONT_PRELOAD, ENT_QUOTES, 'UTF-8') ?>" as="font" type="font/woff2" crossorigin>
 <?php foreach (ys_css(['site-legal.css']) as $__folha): ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($__folha, ENT_QUOTES, 'UTF-8') ?>">
 <?php endforeach; ?>

@@ -1,6 +1,6 @@
 <?php
 /**
- * seo_page.php — layout das páginas públicas de marketing/SEO do Yuris
+ * seo_page.php, layout das páginas públicas de marketing/SEO do Yuris
  * (/sistema-juridico/, /crm-juridico/, /sobre/ …).
  *
  * Mesmo padrão do legal_page.php: a página define um array e dá require.
@@ -29,7 +29,7 @@
  *   require __DIR__ . '/../includes/seo_page.php';
  *
  * Schemas automáticos: BreadcrumbList + (se houver 'faq') FAQPage.
- * FAQ renderizada com <details>/<summary> — rastreável e sem JS.
+ * FAQ renderizada com <details>/<summary>, rastreável e sem JS.
  *
  * Duas coisas que o layout monta sozinho, sem conteúdo novo:
  *   - a cena de produto do hero, escolhida pelo endereço da página;
@@ -37,7 +37,7 @@
  */
 
 require_once __DIR__ . '/site_chrome.php';      // wa(), $waSvg, ys_header(), ys_footer(), ys_css()
-require_once __DIR__ . '/../v2/partials/_cenas.php';   // lp2_scene(): dados fictícios
+require_once __DIR__ . '/../v2/partials/_cenas.php';   // lp2_scene(): retrato da tela real
 
 if (!isset($SEO_PAGE) || !is_array($SEO_PAGE)) {
     http_response_code(500);
@@ -128,7 +128,7 @@ $SEO = [
     'og_image'    => $SEO_PAGE['og_image']    ?? '/assets/img/og-image.jpg',
     'fonts'       => YS_FONT_URL,
     'theme_color' => '#102A46',
-    'css'         => ys_css($pgCena ? ['site-product.css'] : []),
+    'css'         => ys_css(),
     'jsonld'      => $pgJsonld,
 ];
 ?><!doctype html>
@@ -169,7 +169,6 @@ ys_header([
       <?php if ($pgCena): ?>
       <div class="ys-pagehero-art">
         <?= lp2_scene($pgCena) ?>
-        <p class="ys-note">Dados de demonstração</p>
       </div>
       <?php endif; ?>
     </div>

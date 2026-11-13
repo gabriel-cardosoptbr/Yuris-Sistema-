@@ -1,11 +1,11 @@
 <?php
 /**
- * /prospeccao-juridica/ — página estratégica de SEO.
+ * /prospeccao-juridica/, página estratégica de SEO.
  * Palavra-chave principal: "prospecção jurídica" · secundárias: "captação de
  * clientes na advocacia", "funil comercial para advogados", "gestão de leads advocacia".
- * Intenção: comercial/informacional — advogado buscando organizar a captação.
+ * Intenção: comercial/informacional, advogado buscando organizar a captação.
  * Ângulo ético: organização do fluxo de quem JÁ procura o escritório (regras da
- * OAB sobre captação de clientela) — sem prometer "mais clientes" nem táticas ativas.
+ * OAB sobre captação de clientela), sem prometer "mais clientes" nem táticas ativas.
  * Conteúdo baseado no fact sheet do produto (sem claims não confirmados).
  */
 
@@ -16,40 +16,40 @@ $SEO_PAGE = [
     'breadcrumb'  => 'Prospecção Jurídica',
     'eyebrow'     => 'Prospecção Jurídica',
     'h1'          => 'Prospecção jurídica: organize quem já procura o seu escritório',
-    'lede'        => 'Prospecção jurídica, no contexto de gestão, é a organização do fluxo de pessoas que já procuram o escritório — por indicação, site ou WhatsApp — em um funil comercial claro. No Yuris, o módulo de Prospecção registra cada lead, alimenta o funil em Kanban e mantém o follow-up visível até a decisão, sem oportunidade esquecida por desorganização.',
+    'lede'        => 'Prospecção jurídica, no contexto de gestão, é a organização do fluxo de pessoas que já procuram o escritório, por indicação, site ou WhatsApp, em um funil comercial claro. No Yuris, o módulo de Prospecção registra cada lead, alimenta o funil em Kanban e mantém o follow-up visível até a decisão, sem oportunidade esquecida por desorganização.',
     'cta_msg'     => 'Olá Bruno, quero conhecer a prospecção jurídica do Yuris!',
     'cta_label'   => 'Solicitar demonstração',
     'cta_titulo'  => 'Veja o funil de prospecção do Yuris com o fluxo real do seu escritório',
-    'cta_texto'   => 'Uma conversa rápida no WhatsApp e a equipe mostra como os contatos que chegam ao seu escritório viram um funil organizado — do registro ao processo.',
+    'cta_texto'   => 'Uma conversa rápida no WhatsApp e a equipe mostra como os contatos que chegam ao seu escritório viram um funil organizado, do registro ao processo.',
 
     'corpo_html' => <<<'HTML'
 <h2>O que é prospecção jurídica?</h2>
 <div class="sp-definicao">
-  <p><strong>Prospecção jurídica</strong>, no contexto de gestão de escritórios, é o processo de registrar e organizar as pessoas que procuram o escritório — por indicação, pelo site ou pelo WhatsApp — e conduzir cada contato por um funil comercial claro, do primeiro atendimento até a decisão de contratar. Não se trata de sair atrás de clientes: trata-se de não perder quem já chegou.</p>
+  <p><strong>Prospecção jurídica</strong>, no contexto de gestão de escritórios, é o processo de registrar e organizar as pessoas que procuram o escritório, por indicação, pelo site ou pelo WhatsApp, e conduzir cada contato por um funil comercial claro, do primeiro atendimento até a decisão de contratar. Não se trata de sair atrás de clientes: trata-se de não perder quem já chegou.</p>
 </div>
-<p>A distinção importa porque a advocacia tem regras próprias da OAB sobre publicidade e captação de clientela. O que o escritório pode — e deve — fazer é tratar com profissionalismo o fluxo de interessados que já o procuram: responder em tempo razoável, registrar o contato, acompanhar a conversa e dar um desfecho claro a cada caso. É exatamente esse fluxo que o módulo de Prospecção do Yuris organiza.</p>
+<p>A distinção importa porque a advocacia tem regras próprias da OAB sobre publicidade e captação de clientela. O que o escritório pode, e deve, fazer é tratar com profissionalismo o fluxo de interessados que já o procuram: responder em tempo razoável, registrar o contato, acompanhar a conversa e dar um desfecho claro a cada caso. É exatamente esse fluxo que o módulo de Prospecção do Yuris organiza.</p>
 
 <h2>Onde a captação de clientes na advocacia se perde</h2>
 <p>Na prática, os interessados chegam por canais diferentes e caem em lugares diferentes:</p>
 <ul>
-  <li><strong>Indicações</strong> — um cliente antigo passa o contato e a conversa começa no telefone pessoal de um sócio.</li>
-  <li><strong>Site e formulários</strong> — o pedido de contato chega por e-mail e fica na caixa de entrada de uma pessoa só.</li>
-  <li><strong>WhatsApp</strong> — a primeira mensagem chega fora do horário e ninguém registra de quem era nem sobre o quê.</li>
-  <li><strong>Balcão e telefone</strong> — o recado vira anotação em papel, sem responsável nem retorno combinado.</li>
+  <li><strong>Indicações</strong>, um cliente antigo passa o contato e a conversa começa no telefone pessoal de um sócio.</li>
+  <li><strong>Site e formulários</strong>, o pedido de contato chega por e-mail e fica na caixa de entrada de uma pessoa só.</li>
+  <li><strong>WhatsApp</strong>, a primeira mensagem chega fora do horário e ninguém registra de quem era nem sobre o quê.</li>
+  <li><strong>Balcão e telefone</strong>, o recado vira anotação em papel, sem responsável nem retorno combinado.</li>
 </ul>
-<p>O problema raramente é falta de procura — é falta de registro. Sem um lugar único para esses contatos, o follow-up depende da memória de quem atendeu, dois advogados respondem a mesma pessoa sem saber um do outro e o interessado que pediu "uma semana para pensar" nunca mais é procurado. A oportunidade não foi recusada; foi esquecida.</p>
+<p>O problema raramente é falta de procura, é falta de registro. Sem um lugar único para esses contatos, o follow-up depende da memória de quem atendeu, dois advogados respondem a mesma pessoa sem saber um do outro e o interessado que pediu "uma semana para pensar" nunca mais é procurado. A oportunidade não foi recusada; foi esquecida.</p>
 
 <h2>Como funciona a prospecção no Yuris</h2>
 <p>No Yuris, o módulo de Prospecção capta os leads que chegam ao escritório e os transforma em registros que alimentam o funil comercial. A partir daí, a gestão de leads acontece em três movimentos encadeados:</p>
 
 <h3>Do lead ao funil</h3>
-<p>Cada interessado vira um card no <a href="/crm-juridico/">CRM jurídico</a> em Kanban: colunas que refletem as etapas do escritório, checklist do que precisa ser feito antes de avançar e responsável definido. Quem olha o quadro sabe, em segundos, quantos contatos estão em conversa, quantos aguardam retorno e quantos pararam — e há quanto tempo.</p>
+<p>Cada interessado vira um card no <a href="/crm-juridico/">CRM jurídico</a> em Kanban: colunas que refletem as etapas do escritório, checklist do que precisa ser feito antes de avançar e responsável definido. Quem olha o quadro sabe, em segundos, quantos contatos estão em conversa, quantos aguardam retorno e quantos pararam, e há quanto tempo.</p>
 
 <h3>Do funil ao cadastro único</h3>
-<p>O lead é vinculado a um contato no cadastro central do sistema — o mesmo usado por processos, atendimento e financeiro. Isso elimina a duplicidade clássica: a pessoa que chegou como interessada não é recadastrada quando fecha contrato; o histórico comercial a acompanha. Se a conversa acontece pelo WhatsApp integrado, as mensagens ficam vinculadas a esse mesmo contato, dentro do sistema, e não no aparelho pessoal de alguém.</p>
+<p>O lead é vinculado a um contato no cadastro central do sistema, o mesmo usado por processos, atendimento e financeiro. Isso elimina a duplicidade clássica: a pessoa que chegou como interessada não é recadastrada quando fecha contrato; o histórico comercial a acompanha. Se a conversa acontece pelo WhatsApp integrado, as mensagens ficam vinculadas a esse mesmo contato, dentro do sistema, e não no aparelho pessoal de alguém.</p>
 
 <h3>Do funil ao processo</h3>
-<p>Quando o interessado decide contratar, o card vira cliente com um clique, sem retrabalho: o histórico da negociação continua na ficha dele, e o processo nasce dali com o contexto junto. A operação jurídica começa onde a comercial terminou — no mesmo <a href="/sistema-juridico/">sistema jurídico</a>, com histórico preservado.</p>
+<p>Quando o interessado decide contratar, o card vira cliente com um clique, sem retrabalho: o histórico da negociação continua na ficha dele, e o processo nasce dali com o contexto junto. A operação jurídica começa onde a comercial terminou, no mesmo <a href="/sistema-juridico/">sistema jurídico</a>, com histórico preservado.</p>
 
 <h2>Controle improvisado vs. funil organizado</h2>
 <div class="sp-tabela-wrap">
@@ -69,7 +69,7 @@ $SEO_PAGE = [
 </div>
 
 <h2>Prospecção organizada não é captação ativa</h2>
-<p>Vale repetir o enquadramento: o módulo de Prospecção do Yuris não é uma ferramenta de publicidade nem promete trazer clientes novos. Ele organiza o relacionamento com quem já procurou o escritório — o que é, antes de tudo, uma questão de gestão e de respeito com o interessado. A decisão sobre como o escritório se divulga, dentro das normas da OAB, continua sendo do próprio escritório; o sistema cuida para que nenhum contato legítimo se perca por desorganização interna.</p>
+<p>Vale repetir o enquadramento: o módulo de Prospecção do Yuris não é uma ferramenta de publicidade nem promete trazer clientes novos. Ele organiza o relacionamento com quem já procurou o escritório, o que é, antes de tudo, uma questão de gestão e de respeito com o interessado. A decisão sobre como o escritório se divulga, dentro das normas da OAB, continua sendo do próprio escritório; o sistema cuida para que nenhum contato legítimo se perca por desorganização interna.</p>
 
 <h2>Sinais de que a prospecção precisa de organização</h2>
 <ul>
@@ -79,7 +79,7 @@ $SEO_PAGE = [
   <li>A mesma pessoa é cadastrada duas vezes: uma como lead, outra como cliente.</li>
   <li>Quando alguém sai de férias, ninguém sabe em que pé estavam as conversas dela.</li>
 </ul>
-<p>Se dois ou mais itens soam familiares, o gargalo não está na procura — está no processo interno. Organizar esse fluxo é parte da <a href="/gestao-escritorio-advocacia/">gestão do escritório de advocacia</a> como um todo: o funil comercial alimenta a operação, e a operação devolve previsibilidade ao funil.</p>
+<p>Se dois ou mais itens soam familiares, o gargalo não está na procura, está no processo interno. Organizar esse fluxo é parte da <a href="/gestao-escritorio-advocacia/">gestão do escritório de advocacia</a> como um todo: o funil comercial alimenta a operação, e a operação devolve previsibilidade ao funil.</p>
 
 <h2>Quanto custa a prospecção no Yuris?</h2>
 <p>O módulo de Prospecção não é vendido à parte: ele faz parte da plataforma, junto com CRM, processos, tarefas, financeiro e WhatsApp integrado. Os planos têm tudo incluído, com valor sob consulta conforme o número de usuários; veja as opções na <a href="/planos">página de planos</a>.</p>
@@ -88,7 +88,7 @@ HTML,
     'faq' => [
         [
             'q' => 'O que é prospecção jurídica?',
-            'a' => 'No contexto de gestão de escritórios, prospecção jurídica é o processo de registrar, organizar e acompanhar as pessoas que procuram o escritório — por indicação, site ou WhatsApp — em um funil comercial claro, do primeiro contato à decisão de contratar. O foco é não perder oportunidades por desorganização, e não sair em busca ativa de clientes.',
+            'a' => 'No contexto de gestão de escritórios, prospecção jurídica é o processo de registrar, organizar e acompanhar as pessoas que procuram o escritório, por indicação, site ou WhatsApp, em um funil comercial claro, do primeiro contato à decisão de contratar. O foco é não perder oportunidades por desorganização, e não sair em busca ativa de clientes.',
         ],
         [
             'q' => 'O Yuris traz clientes novos para o escritório?',
@@ -100,15 +100,15 @@ HTML,
         ],
         [
             'q' => 'Como um lead vira processo no Yuris?',
-            'a' => 'O lead entra no funil como card do CRM em Kanban, vinculado a um contato do cadastro central. O card avança pelas etapas com checklist e responsável e, quando o interessado contrata, vira cliente com um clique — sem recadastro. O histórico da negociação não recomeça: documentos, etiquetas, conversas de WhatsApp e tarefas seguem junto, e o processo pode ser aberto direto dali.',
+            'a' => 'O lead entra no funil como card do CRM em Kanban, vinculado a um contato do cadastro central. O card avança pelas etapas com checklist e responsável e, quando o interessado contrata, vira cliente com um clique, sem recadastro. O histórico da negociação não recomeça: documentos, etiquetas, conversas de WhatsApp e tarefas seguem junto, e o processo pode ser aberto direto dali.',
         ],
         [
             'q' => 'Os leads ficam duplicados com os clientes no sistema?',
-            'a' => 'Não. O Yuris usa um cadastro central de contatos, reaproveitado por prospecção, processos, atendimento e financeiro. A pessoa que chega como interessada é o mesmo registro que depois aparece como cliente — sem duplicidade. Isso preserva o histórico comercial e evita o retrabalho de recadastrar dados a cada etapa.',
+            'a' => 'Não. O Yuris usa um cadastro central de contatos, reaproveitado por prospecção, processos, atendimento e financeiro. A pessoa que chega como interessada é o mesmo registro que depois aparece como cliente, sem duplicidade. Isso preserva o histórico comercial e evita o retrabalho de recadastrar dados a cada etapa.',
         ],
         [
             'q' => 'A prospecção é cobrada à parte nos planos?',
-            'a' => 'Não. Os planos do Yuris têm tudo incluído — prospecção, CRM, processos, tarefas, financeiro, WhatsApp integrado e demais módulos — sem cobrança por módulo. O valor é sob consulta e varia conforme o número de usuários do escritório; as opções estão na página de planos.',
+            'a' => 'Não. Os planos do Yuris têm tudo incluído, prospecção, CRM, processos, tarefas, financeiro, WhatsApp integrado e demais módulos, sem cobrança por módulo. O valor é sob consulta e varia conforme o número de usuários do escritório; as opções estão na página de planos.',
         ],
     ],
 

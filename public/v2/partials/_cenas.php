@@ -1,358 +1,160 @@
 <?php
 /**
- * _cenas.php — markup dos "palcos" das mini-demonstrações de produto.
+ * _cenas.php: as ilustrações de produto do site público.
  *
- * lp2_scene($slug) devolve a janela de interface (dados FICTÍCIOS, isolados no
- * frontend). Os elementos .dm-el são animados em sequência por sections/demos.js.
- * Estado final é visível por padrão → fallback seguro sem JS / reduced-motion.
+ * REGRA (13/11/2026): o site NUNCA mostra a tela real de dentro do Yuris. Nada de
+ * retrato, recorte ou gravação do sistema. O que aparece aqui são ILUSTRAÇÕES feitas
+ * para o site, na linguagem visual do site, com dados fictícios: elas explicam o que
+ * cada recurso faz, não como a tela é.
+ *
+ * E não podem ter "cara de IA" (mesma data): sem barra de janela, sem bolinhas, sem
+ * linhas de enfeite no lugar do texto, sem avatar de iniciais, sem fundo pontilhado,
+ * sem diagrama de caixinhas. Cada cena tem conteúdo de verdade, legível, e conta UMA
+ * ideia: o processo guarda a história, a intimação vira prazo, a conversa vira cliente,
+ * cada um vê o seu, os números saem do sistema.
+ *
+ * Movimento: as peças de cada cena entram em sequência quando a cena aparece (--i dá a
+ * ordem; quem anima é o site-motion.css). Toca uma vez, não fica repetindo.
+ *
+ *   lp2_scene('intimacao')    devolve a figura pronta, com legenda
+ *   nomes antigos (juridico, operacao, gestao, dashboards...) continuam valendo
  */
+
 if (!function_exists('lp2_scene')) {
-    function lp2_scene(string $slug): string {
-        ob_start();
-        switch ($slug) {
+    function lp2_scene(string $slug): string
+    {
+        $mapa = [
+            'juridico' => 'processo', 'tab-processos' => 'processo',
+            'intimacoes' => 'intimacao', 'tab-intimacoes' => 'intimacao', 'automacoes' => 'intimacao', 'tab-automacao' => 'intimacao',
+            'operacao' => 'funil', 'comunicacao' => 'funil', 'cliente' => 'funil', 'tab-comunicacao' => 'funil', 'tab-clientes' => 'funil', 'tab-tarefas' => 'funil',
+            'gestao' => 'estrutura', 'vinculos' => 'estrutura', 'tab-matriz' => 'estrutura',
+            'dashboards' => 'indicadores', 'tab-dashboard' => 'indicadores', 'showcase' => 'indicadores',
+        ];
+        $cena = $mapa[$slug] ?? $slug;
+        $rotulos = [
+            'processo'    => 'Ilustração: a ficha de um processo com o histórico de ações, cada uma com data e autor, e os honorários ligados a ele',
+            'intimacao'   => 'Ilustração: uma publicação do tribunal vinculada ao processo e convertida em prazo com responsável',
+            'funil'       => 'Ilustração: uma conversa de WhatsApp que entra no funil comercial e avança de novo contato a contrato',
+            'estrutura'   => 'Ilustração: o que a matriz, cada filial e o advogado associado enxergam dentro do sistema',
+            'indicadores' => 'Ilustração: indicadores do escritório, com processos ativos, prazos da semana, receita do mês e evolução dos honorários',
+        ];
+        if (!isset($rotulos[$cena])) return '';
 
-        // ───────────────────────── JURÍDICO ─────────────────────────
-        case 'juridico': ?>
-          <div class="lp2-demo" data-feature-scene="juridico" aria-hidden="true">
-            <div class="dm-card dm-proc dm-el">
-              <span class="dm-tag">Processo</span>
-              <div class="dm-num">Nº 1028473-22.2026.8.26.0100</div>
-              <div class="dm-row"><span>Cliente</span><b>Mariana Souza</b></div>
-              <div class="dm-row"><span>Tribunal</span><b>TJSP</b></div>
-              <div class="dm-row"><span>Responsável</span><b>Dra. Camila Andrade</b></div>
-            </div>
-            <ul class="dm-timeline">
-              <li class="dm-el"><time>09:32</time> Processo criado</li>
-              <li class="dm-el"><time>10:14</time> Advogado vinculado</li>
-              <li class="dm-el"><time>11:46</time> Documento anexado</li>
-              <li class="dm-el dm-hot" data-hot><time>14:20</time> Intimação recebida</li>
-            </ul>
-            <div class="dm-detail dm-el" data-detail>
-              <span class="dm-tag">Intimação recebida</span>
-              <div class="dm-row"><span>Prazo calculado</span><b>5 dias</b></div>
-              <div class="dm-row"><span>Responsável</span><b>Dra. Camila</b></div>
-              <span class="dm-flag">Tarefa criada automaticamente</span>
-            </div>
-            <div class="dm-badges">
-              <span class="dm-badge dm-el">Matriz</span>
-              <span class="dm-badge dm-el">Filial São Paulo</span>
-              <span class="dm-badge dm-resp dm-el">Dra. Camila · responsável</span>
-              <span class="dm-badge dm-el">Dr. Rafael · associado</span>
-            </div>
-          </div>
-        <?php break;
+        ob_start(); ?>
+<figure class="ys-cena ys-cena-<?= $cena ?> ys-reveal" role="img" aria-label="<?= htmlspecialchars($rotulos[$cena], ENT_QUOTES, 'UTF-8') ?>">
+  <div class="ys-cena-palco" aria-hidden="true">
+<?php switch ($cena):
 
-        // ───────────────────────── INTIMAÇÕES ─────────────────────────
-        case 'intimacoes': ?>
-          <div class="lp2-demo" data-feature-scene="intimacoes" aria-hidden="true">
-            <div class="dm-monitor dm-el"><span class="dm-pulse"></span> Monitoramento de intimações ativo</div>
-            <div class="dm-card dm-intim dm-el">
-              <div class="dm-row"><span>Processo</span><b>Nº 1004821-55.2026.8.26.0011</b></div>
-              <div class="dm-row"><span>Cliente</span><b>Construtora Lima</b></div>
-              <div class="dm-meta"><span class="dm-pill">Prazo 5 dias</span><span class="dm-flag">Tarefa criada</span></div>
-            </div>
-            <div class="dm-card dm-intim dm-el">
-              <div class="dm-row"><span>Processo</span><b>Nº 2008934-12.2026.8.26.0100</b></div>
-              <div class="dm-row"><span>Cliente</span><b>Mariana Souza</b></div>
-              <div class="dm-meta"><span class="dm-pill">Prazo 10 dias</span><span class="dm-flag">Tarefa criada</span></div>
-            </div>
-            <div class="dm-card dm-intim dm-el">
-              <div class="dm-row"><span>Processo</span><b>Nº 5012007-88.2026.8.26.0224</b></div>
-              <div class="dm-row"><span>Cliente</span><b>João Pereira</b></div>
-              <div class="dm-meta"><span class="dm-pill">Prazo 15 dias</span><span class="dm-flag">Tarefa criada</span></div>
-            </div>
-          </div>
-        <?php break;
+  // ─────────────── O processo guarda a história ───────────────
+  case 'processo': ?>
+    <div class="ys-c-card ys-c-ficha" style="--i:0">
+      <p class="ys-c-sobre">Processo</p>
+      <p class="ys-c-num">1028473-22.2026.8.26.0100</p>
+      <dl class="ys-c-dados">
+        <div><dt>Cliente</dt><dd>Clínica São Lucas Ltda</dd></div>
+        <div><dt>Vara</dt><dd>12ª Vara Cível, TJSP</dd></div>
+        <div><dt>Responsável</dt><dd>Dra. Helena Marques</dd></div>
+      </dl>
+      <p class="ys-c-sobre ys-c-sep">Histórico</p>
+      <ol class="ys-c-hist">
+        <li style="--i:2"><time>12/03</time><span>Processo cadastrado</span><em>Helena</em></li>
+        <li style="--i:3"><time>14/03</time><span>Contestação juntada</span><em>Rafael</em></li>
+        <li style="--i:4"><time>02/04</time><span>Intimação recebida, prazo de 15 dias</span><em>Automático</em></li>
+        <li style="--i:5" class="is-novo"><time>03/04</time><span>Tarefa criada: manifestação</span><em>Mariana</em></li>
+      </ol>
+    </div>
+    <div class="ys-c-card ys-c-nota" style="--i:6">
+      <p class="ys-c-sobre">Honorários do processo</p>
+      <p class="ys-c-valor">R$ 18.000,00</p>
+      <div class="ys-c-barra"><i style="--p:50%"></i></div>
+      <p class="ys-c-leg">3 de 6 parcelas recebidas</p>
+    </div>
+  <?php break;
 
-        // ───────────────────────── COMUNICAÇÃO ─────────────────────────
-        case 'comunicacao': ?>
-          <div class="lp2-demo dm-chat" data-feature-scene="comunicacao" aria-hidden="true">
-            <div class="dm-chat-head dm-el">
-              <span class="dm-avatar">MS</span>
-              <div><b>Mariana Souza</b><span>Cliente, Proc. 1028473-22</span></div>
-            </div>
-            <div class="dm-msg dm-in dm-el">Bom dia! Tem novidade no meu processo?</div>
-            <div class="dm-chip dm-el">Conversa vinculada ao processo, Dra. Camila notificada</div>
-            <div class="dm-msg dm-out dm-el">Bom dia, Mariana! Saiu uma movimentação hoje, já estou cuidando do prazo.</div>
-            <div class="dm-note dm-el">Nota interna: cliente prefere contato pela manhã</div>
-          </div>
-        <?php break;
+  // ─────────────── A intimação vira prazo ───────────────
+  case 'intimacao': ?>
+    <div class="ys-c-card ys-c-pub" style="--i:0">
+      <p class="ys-c-sobre">Publicação de hoje</p>
+      <p class="ys-c-tit">TJSP · Foro Regional de Santo Amaro</p>
+      <p class="ys-c-texto">“Designada audiência de conciliação para o dia 25/11, às 10h30, por videoconferência. Intimem-se as partes por seus procuradores.”</p>
+      <p class="ys-c-vinc" style="--i:2">Vinculada ao processo <b>1004521-10.2026.8.26.0002</b></p>
+    </div>
+    <div class="ys-c-seta" style="--i:3"><svg viewBox="0 0 24 60" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v52"/><path d="M5 47l7 8 7-8"/></svg></div>
+    <div class="ys-c-card ys-c-prazo" style="--i:4">
+      <p class="ys-c-sobre">Prazo criado</p>
+      <p class="ys-c-tit">Audiência de conciliação</p>
+      <dl class="ys-c-dados">
+        <div><dt>Quando</dt><dd>25/11, 10h30</dd></div>
+        <div><dt>Responsável</dt><dd>Dr. Rafael Costa</dd></div>
+      </dl>
+      <p class="ys-c-selo" style="--i:6">Na agenda, com aviso 2 dias antes</p>
+    </div>
+  <?php break;
 
-        // ───────────────────────── OPERAÇÃO (funil) ─────────────────────────
-        case 'operacao': ?>
-          <div class="lp2-demo dm-funnel" data-feature-scene="operacao" aria-hidden="true">
-            <div class="dm-cols">
-              <div class="dm-col"><span class="dm-coltag">Contato</span></div>
-              <div class="dm-col"><span class="dm-coltag">Qualificação</span></div>
-              <div class="dm-col"><span class="dm-coltag">Proposta</span></div>
-              <div class="dm-col"><span class="dm-coltag">Cliente</span></div>
-            </div>
-            <div class="dm-lead dm-el">Construtora Lima<small>Lead, R$ 12.000</small></div>
-            <span class="dm-flag dm-funnel-done dm-el">Tornou-se cliente, com o histórico junto</span>
-          </div>
-        <?php break;
+  // ─────────────── A conversa vira cliente ───────────────
+  case 'funil': ?>
+    <div class="ys-c-card ys-c-chat" style="--i:0">
+      <p class="ys-c-sobre">WhatsApp do escritório</p>
+      <p class="ys-c-balao" style="--i:1">Bom dia! Vocês atendem causas trabalhistas?</p>
+      <p class="ys-c-balao is-nosso" style="--i:2">Atendemos, sim. A Dra. Helena fala com você ainda hoje.</p>
+      <p class="ys-c-vinc" style="--i:3">Conversa ligada ao contato <b>Marcos Teixeira</b></p>
+    </div>
+    <div class="ys-c-etapas">
+      <div class="ys-c-etapa" style="--i:4"><p class="ys-c-sobre">Novo contato</p>
+        <div class="ys-c-lead is-novo"><b>Marcos Teixeira</b><span>Veio pelo WhatsApp</span></div></div>
+      <div class="ys-c-etapa" style="--i:5"><p class="ys-c-sobre">Proposta</p>
+        <div class="ys-c-lead"><b>Padaria Dois Irmãos</b><span>Indicação · R$ 6.500</span></div></div>
+      <div class="ys-c-etapa" style="--i:6"><p class="ys-c-sobre">Contrato</p>
+        <div class="ys-c-lead is-ok"><b>Renata Carvalho</b><span>Virou cliente, com o histórico</span></div></div>
+    </div>
+  <?php break;
 
-        // ───────────────────────── GESTÃO (escopo) ─────────────────────────
-        case 'gestao': ?>
-          <div class="lp2-demo dm-scope" data-feature-scene="gestao" aria-hidden="true">
-            <div class="dm-seg">
-              <span class="dm-seg-thumb"></span>
-              <span class="dm-seg-i is-on">Matriz</span>
-              <span class="dm-seg-i">Filial SP</span>
-              <span class="dm-seg-i">Advogado</span>
-            </div>
-            <div class="dm-kpis">
-              <div class="dm-kpi"><b data-k="proc">248</b><span>Processos ativos</span></div>
-              <div class="dm-kpi"><b data-k="prazo">31</b><span>Prazos na semana</span></div>
-              <div class="dm-kpi"><b data-k="adv">12</b><span>Advogados</span></div>
-            </div>
-          </div>
-        <?php break;
+  // ─────────────── Cada um vê o seu ───────────────
+  case 'estrutura':
+    $linhas = [
+      ['Matriz',             'Todos',        'Completo',     'Toda a equipe'],
+      ['Filial São Paulo',   'Da filial',    'Da filial',    'Equipe da filial'],
+      ['Filial Campinas',    'Da filial',    'Da filial',    'Equipe da filial'],
+      ['Advogado associado', 'Só os dele',   'Sem acesso',   'Sem acesso'],
+    ]; ?>
+    <div class="ys-c-card ys-c-quadro" style="--i:0">
+      <p class="ys-c-sobre">Quem vê o quê</p>
+      <div class="ys-c-grade">
+        <span></span><span class="ys-c-col">Processos</span><span class="ys-c-col">Financeiro</span><span class="ys-c-col">Equipe</span>
+        <?php foreach ($linhas as $n => [$quem, $a, $b, $c]): ?>
+        <b style="--i:<?= $n + 1 ?>"><?= $quem ?></b>
+        <?php foreach ([$a, $b, $c] as $v): ?>
+        <span class="ys-c-cel<?= $v === 'Sem acesso' ? ' is-nao' : ($n === 0 ? ' is-tudo' : '') ?>" style="--i:<?= $n + 1 ?>"><?= $v ?></span>
+        <?php endforeach; ?>
+        <?php endforeach; ?>
+      </div>
+      <p class="ys-c-vinc" style="--i:6">Cada ação fica registrada com <b>quem fez, de onde e quando</b></p>
+    </div>
+  <?php break;
 
-        // ───────────────────────── AUTOMAÇÕES ─────────────────────────
-        case 'automacoes': ?>
-          <div class="lp2-demo dm-auto" data-feature-scene="automacoes" aria-hidden="true">
-            <div class="dm-event dm-el"><span class="dm-tag">Evento no Yuris</span>Processo atualizado</div>
-            <div class="dm-flow">
-              <span class="dm-node dm-el">CRM</span>
-              <span class="dm-node dm-el">Financeiro</span>
-              <span class="dm-node dm-el">Notificações</span>
-            </div>
-            <span class="dm-flag dm-el">Ações executadas automaticamente</span>
-          </div>
-        <?php break;
+  // ─────────────── Os números saem do sistema ───────────────
+  case 'indicadores':
+    $meses = [['Jun', 52], ['Jul', 61], ['Ago', 58], ['Set', 74], ['Out', 83], ['Nov', 100]]; ?>
+    <div class="ys-c-kpis">
+      <div class="ys-c-card ys-c-kpi" style="--i:0"><p class="ys-c-sobre">Processos ativos</p><p class="ys-c-n"><span data-conta="153">153</span></p></div>
+      <div class="ys-c-card ys-c-kpi" style="--i:1"><p class="ys-c-sobre">Prazos na semana</p><p class="ys-c-n"><span data-conta="9">9</span></p></div>
+      <div class="ys-c-card ys-c-kpi is-destaque" style="--i:2"><p class="ys-c-sobre">Receita do mês</p><p class="ys-c-n">R$ <span data-conta="128" data-sufixo=".660">128.660</span></p></div>
+    </div>
+    <div class="ys-c-card ys-c-graf" style="--i:3">
+      <p class="ys-c-sobre">Honorários recebidos, últimos 6 meses</p>
+      <div class="ys-c-barras">
+        <?php foreach ($meses as $n => [$m, $v]): ?>
+        <div class="ys-c-col-b<?= $n === 5 ? ' is-atual' : '' ?>"><i style="--h:<?= $v ?>%;--i:<?= $n + 4 ?>"></i><span><?= $m ?></span></div>
+        <?php endforeach; ?>
+      </div>
+    </div>
+  <?php break;
 
-        // ───────────────────────── VÍNCULOS (organograma) ─────────────────────────
-        case 'vinculos': ?>
-          <div class="lp2-demo dm-org" data-feature-scene="vinculos" aria-hidden="true">
-            <span class="dm-onode dm-matriz dm-el">Matriz</span>
-            <div class="dm-branch">
-              <span class="dm-onode dm-el">Filial São Paulo</span>
-              <span class="dm-onode dm-el">Filial Campinas</span>
-            </div>
-            <div class="dm-branch">
-              <span class="dm-onode dm-adv dm-el">Dra. Camila</span>
-              <span class="dm-onode dm-adv dm-el">Dr. Rafael</span>
-            </div>
-            <div class="dm-bind dm-el">
-              <span class="dm-proccard">Proc. 1028473-22</span>
-              <span class="dm-flag">Dra. Camila vinculada, permissão por escopo</span>
-            </div>
-          </div>
-        <?php break;
-
-        // ───────────────────────── DASHBOARDS ─────────────────────────
-        case 'dashboards': ?>
-          <div class="lp2-demo dm-dash" data-feature-scene="dashboards" aria-hidden="true">
-            <div class="dm-dash-kpis">
-              <div class="dm-stat dm-el"><i class="dm-trend">+12%</i><b data-c="156">156</b><span>Processos ativos</span></div>
-              <div class="dm-stat dm-el"><i class="dm-trend">+5%</i><b data-c="28">28</b><span>Prazos na semana</span></div>
-            </div>
-            <div class="dm-chart dm-el">
-              <span class="dm-tag">Comparativo por período</span>
-              <div class="dm-bars">
-                <span class="dm-bar" style="--h:44%"><b></b><i>Jan</i></span>
-                <span class="dm-bar" style="--h:60%"><b></b><i>Fev</i></span>
-                <span class="dm-bar" style="--h:52%"><b></b><i>Mar</i></span>
-                <span class="dm-bar" style="--h:74%"><b></b><i>Abr</i></span>
-                <span class="dm-bar" style="--h:66%"><b></b><i>Mai</i></span>
-                <span class="dm-bar dm-bar-hot" style="--h:92%"><b></b><i>Jun</i></span>
-              </div>
-            </div>
-          </div>
-        <?php break;
-
-        // ──────────────── DO LEAD AO CLIENTE (a linha do tempo que nao recomeca) ────────────────
-        // A cena mostra UMA lista so, com a conversao no meio dela. E esse o ponto:
-        // quem ve precisa perceber que os eventos de antes continuam ali depois.
-        case 'cliente': ?>
-          <div class="lp2-demo dm-chat" data-feature-scene="cliente" aria-hidden="true">
-            <div class="dm-card dm-el">
-              <span class="dm-tag">Ficha do cliente</span>
-              <div class="dm-num">Construtora Lima</div>
-              <div class="dm-badges">
-                <span class="dm-badge">Trabalhista</span>
-                <span class="dm-badge dm-resp">Prioridade alta</span>
-                <span class="dm-badge">Indicação</span>
-              </div>
-            </div>
-            <ul class="dm-timeline">
-              <li class="dm-el"><time>12/03</time> Entrou como prospecção <span class="dm-pill">indicação</span></li>
-              <li class="dm-el"><time>14/03</time> Ligação registrada, 18 min</li>
-              <li class="dm-el"><time>19/03</time> Contrato anexado</li>
-              <li class="dm-el dm-hot" data-hot><time>02/04</time> Tornou-se cliente</li>
-              <li class="dm-el"><time>08/04</time> Processo distribuído</li>
-            </ul>
-            <span class="dm-chip">O histórico não recomeça: a conversão é um evento, não um recomeço</span>
-          </div>
-        <?php break;
-
-        // ──────────────── ABA CLIENTES (ficha completa) ────────────────
-        case 'tab-clientes': ?>
-          <div class="lp2-demo dm-tab-chat" data-tab-scene="clientes" aria-hidden="true">
-            <div class="dm-conv"><span class="dm-avatar">CL</span><div class="dm-conv-b"><b>Construtora Lima</b><span>Cliente desde 02/04, veio de indicação</span></div></div>
-            <div class="dm-card">
-              <span class="dm-tag">O que acompanha a ficha</span>
-              <div class="dm-row"><span>Documentos</span><b>4 arquivos</b></div>
-              <div class="dm-row"><span>Contatos registrados</span><b>7 registros</b></div>
-              <div class="dm-row"><span>Campo personalizado</span><b>NIT, admissão</b></div>
-            </div>
-            <div class="dm-badges">
-              <span class="dm-badge">Trabalhista</span>
-              <span class="dm-badge dm-resp">Prioridade alta</span>
-            </div>
-            <span class="dm-chip">Conversas, tarefas e processos vêm junto da prospecção</span>
-          </div>
-        <?php break;
-
-        // ──────────────── SHOWCASE (trailer: todas as funções em sequência) ────────────────
-        case 'showcase': ?>
-          <div class="lp2-demo dm-show" data-feature-scene="showcase" aria-hidden="true">
-            <div class="dm-show-stage">
-              <div class="dm-frame" data-label="Matriz e filiais">
-                <div class="dm-fr-org">
-                  <span class="dm-onode dm-matriz">Matriz</span>
-                  <div class="dm-fr-branch"><span class="dm-onode">Filial São Paulo</span><span class="dm-onode">Filial Campinas</span></div>
-                </div>
-              </div>
-              <div class="dm-frame" data-label="Dashboard e indicadores">
-                <div class="dm-fr-dash">
-                  <div class="dm-fr-kpis"><div class="dm-stat"><b>156</b><span>Processos</span></div><div class="dm-stat"><b>28</b><span>Prazos</span></div></div>
-                  <div class="dm-fr-bars"><span style="--h:48%"></span><span style="--h:70%"></span><span style="--h:58%"></span><span style="--h:88%"></span><span style="--h:64%"></span></div>
-                </div>
-              </div>
-              <div class="dm-frame" data-label="Processos">
-                <div class="dm-card dm-proc">
-                  <span class="dm-tag">Processo</span>
-                  <div class="dm-num">Nº 1028473-22.2026.8.26.0100</div>
-                  <div class="dm-row"><span>Cliente</span><b>Mariana Souza</b></div>
-                  <div class="dm-row"><span>Tribunal</span><b>TJSP</b></div>
-                  <div class="dm-row"><span>Responsável</span><b>Dra. Camila</b></div>
-                </div>
-              </div>
-              <div class="dm-frame" data-label="Intimações e prazos">
-                <div class="dm-card">
-                  <span class="dm-tag">Intimação recebida</span>
-                  <div class="dm-row"><span>Prazo calculado</span><b>5 dias</b></div>
-                  <span class="dm-flag">Tarefa criada automaticamente</span>
-                </div>
-              </div>
-              <div class="dm-frame" data-label="Comunicação">
-                <div class="dm-fr-chat">
-                  <div class="dm-msg dm-in">Bom dia! Tem novidade no meu processo?</div>
-                  <div class="dm-msg dm-out">Saiu uma movimentação hoje, já cuidei do prazo!</div>
-                </div>
-              </div>
-              <div class="dm-frame" data-label="Funil de prospecção">
-                <div class="dm-fr-funnel"><span>Contato</span><span>Qualificação</span><span class="on">Proposta</span><span>Cliente</span></div>
-              </div>
-              <div class="dm-frame" data-label="Automações">
-                <div class="dm-fr-auto">
-                  <span class="dm-event"><span class="dm-tag">Evento</span>Processo atualizado</span>
-                  <div class="dm-fr-nodes"><span class="dm-node">CRM</span><span class="dm-node">Financeiro</span><span class="dm-node">Notificações</span></div>
-                </div>
-              </div>
-              <div class="dm-frame" data-label="Usuários e equipe">
-                <div class="dm-fr-users">
-                  <div class="dm-user"><span class="dm-avatar">CA</span><div><b>Dra. Camila</b><span>Responsável</span></div></div>
-                  <div class="dm-user"><span class="dm-avatar">RF</span><div><b>Dr. Rafael</b><span>Associado</span></div></div>
-                </div>
-              </div>
-            </div>
-            <div class="dm-show-cap">
-              <span class="dm-show-label">Matriz e filiais</span>
-              <div class="dm-show-dots">
-                <span class="dm-show-dot on"></span><span class="dm-show-dot"></span><span class="dm-show-dot"></span><span class="dm-show-dot"></span><span class="dm-show-dot"></span><span class="dm-show-dot"></span><span class="dm-show-dot"></span><span class="dm-show-dot"></span>
-              </div>
-            </div>
-          </div>
-        <?php break;
-
-        // ════════ Abas "O Yuris por dentro" (telas interativas, data-tab-scene) ════════
-        case 'tab-dashboard': ?>
-          <div class="lp2-demo dm-tab-dash" data-tab-scene="dashboard" aria-hidden="true">
-            <div class="dm-dash-kpis">
-              <div class="dm-stat"><i class="dm-trend">+9%</i><b data-c="38">38</b><span>Processos ativos</span></div>
-              <div class="dm-stat"><i class="dm-trend">+4%</i><b data-c="12">12</b><span>Prazos hoje</span></div>
-            </div>
-            <div class="dm-chart">
-              <span class="dm-tag">Produtividade da semana</span>
-              <svg class="dm-line" viewBox="0 0 280 84" preserveAspectRatio="none" aria-hidden="true">
-                <polyline class="dm-line-area" points="0,66 40,52 80,57 120,36 160,42 200,22 240,30 280,12 280,84 0,84"/>
-                <polyline class="dm-line-path" points="0,66 40,52 80,57 120,36 160,42 200,22 240,30 280,12"/>
-              </svg>
-            </div>
-            <div class="dm-bars">
-              <span class="dm-bar" style="--h:52%"><b></b><i>seg</i></span>
-              <span class="dm-bar" style="--h:70%"><b></b><i>ter</i></span>
-              <span class="dm-bar" style="--h:58%"><b></b><i>qua</i></span>
-              <span class="dm-bar dm-bar-hot" style="--h:88%"><b></b><i>qui</i></span>
-              <span class="dm-bar" style="--h:64%"><b></b><i>sex</i></span>
-            </div>
-          </div>
-        <?php break;
-
-        case 'tab-processos': ?>
-          <div class="lp2-demo dm-tab-list" data-tab-scene="processos" aria-hidden="true">
-            <div class="dm-lhead"><span>Processo</span><span>Cliente</span><span>Status</span></div>
-            <div class="dm-lrow"><span class="dm-lnum">1028473-22</span><span>Mariana Souza</span><span class="dm-spill dm-s-ok">Em dia</span></div>
-            <div class="dm-lrow"><span class="dm-lnum">2008934-12</span><span>Construtora Lima</span><span class="dm-spill dm-s-warn">Prazo 3d</span></div>
-            <div class="dm-lrow"><span class="dm-lnum">5012007-88</span><span>João Pereira</span><span class="dm-spill dm-s-ok">Em dia</span></div>
-            <div class="dm-lrow"><span class="dm-lnum">3004511-09</span><span>Lima &amp; Costa</span><span class="dm-spill dm-s-new">Novo</span></div>
-          </div>
-        <?php break;
-
-        case 'tab-tarefas': ?>
-          <div class="lp2-demo dm-tab-kan" data-tab-scene="tarefas" aria-hidden="true">
-            <div class="dm-kan">
-              <div class="dm-kcol"><span class="dm-ktag">A fazer</span><div class="dm-task">Contestação, proc. 1028</div><div class="dm-task">Reunião com cliente</div></div>
-              <div class="dm-kcol"><span class="dm-ktag">Em andamento</span><div class="dm-task">Petição inicial</div><div class="dm-task">Cálculo de prazo</div></div>
-              <div class="dm-kcol"><span class="dm-ktag">Concluído</span><div class="dm-task dm-done-task">Protocolo enviado</div></div>
-            </div>
-          </div>
-        <?php break;
-
-        case 'tab-intimacoes': ?>
-          <div class="lp2-demo dm-tab-list" data-tab-scene="intimacoes" aria-hidden="true">
-            <div class="dm-lhead"><span>Publicação</span><span>Vínculo</span><span>Ação</span></div>
-            <div class="dm-lrow"><span>Intimação, TJSP</span><span class="dm-lnum">Proc. 1028473</span><span class="dm-spill dm-s-warn">Vira prazo</span></div>
-            <div class="dm-lrow"><span>Despacho</span><span class="dm-lnum">Proc. 2008934</span><span class="dm-spill dm-s-ok">Lida</span></div>
-            <div class="dm-lrow"><span>Publicação</span><span class="dm-lnum">Proc. 5012007</span><span class="dm-spill dm-s-new">Nova</span></div>
-          </div>
-        <?php break;
-
-        case 'tab-comunicacao': ?>
-          <div class="lp2-demo dm-tab-chat" data-tab-scene="comunicacao" aria-hidden="true">
-            <div class="dm-conv"><span class="dm-avatar">MS</span><div class="dm-conv-b"><b>Mariana Souza</b><span>Saiu alguma novidade?</span></div><i class="dm-unread">2</i></div>
-            <div class="dm-conv"><span class="dm-avatar">CL</span><div class="dm-conv-b"><b>Construtora Lima</b><span>Obrigado, doutor!</span></div></div>
-            <div class="dm-conv"><span class="dm-avatar">JP</span><div class="dm-conv-b"><b>João Pereira</b><span>Podemos marcar?</span></div><i class="dm-unread">1</i></div>
-            <span class="dm-chip">Cada conversa vinculada ao cliente e ao processo</span>
-          </div>
-        <?php break;
-
-        case 'tab-automacao': ?>
-          <div class="lp2-demo dm-tab-auto" data-tab-scene="automacao" aria-hidden="true">
-            <div class="dm-event"><span class="dm-tag">Evento no Yuris</span>Processo atualizado</div>
-            <div class="dm-hook"><span class="dm-pulse"></span> Webhook dispara automaticamente</div>
-            <div class="dm-fr-nodes"><span class="dm-node">CRM</span><span class="dm-node">ERP</span><span class="dm-node">n8n</span><span class="dm-node">Make</span></div>
-            <span class="dm-flag">Integrado aos seus outros sistemas</span>
-          </div>
-        <?php break;
-
-        case 'tab-matriz': ?>
-          <div class="lp2-demo dm-tab-share" data-tab-scene="matriz" aria-hidden="true">
-            <div class="dm-share-top"><span class="dm-onode dm-matriz">Matriz</span></div>
-            <div class="dm-share-doc"><span class="dm-tag">Compartilhado</span>Processo 1028473-22</div>
-            <div class="dm-fr-branch dm-share-row">
-              <span class="dm-onode">Filial São Paulo</span>
-              <span class="dm-onode">Filial Campinas</span>
-              <span class="dm-onode">Filial Rio</span>
-            </div>
-            <span class="dm-flag">Acesso por escopo, cada filial vê o que é seu</span>
-          </div>
-        <?php break;
-
-        }
+endswitch; ?>
+  </div>
+  <figcaption>Ilustração com dados fictícios.</figcaption>
+</figure>
+<?php
         return ob_get_clean();
     }
 }

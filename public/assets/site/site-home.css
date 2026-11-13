@@ -1,13 +1,13 @@
 /* =============================================================================
-   site-home.css — composições da home. Depende de site.css (tokens).
-   Cada seção tem a sua forma, de propósito: ver os comentários de cada partial
-   em public/v2/partials/. Mobile primeiro: as colunas só nascem nas media queries.
+   site-home.css — as composições da home do site público.
+
+   A home tem 13 seções, cada uma com um papel: a primeira dobra, cinco destaques
+   (texto de um lado, ilustração do recurso do outro), automações, o antes e
+   depois, segurança, para quem, origem, perguntas e o convite.
+   As ilustrações (ys-cena) ficam no site.css, porque as páginas de soluções
+   também usam. O site nunca mostra a tela real do sistema.
    ========================================================================== */
 
-/* ---------- Abas: sem JS, os painéis ficam empilhados ---------- */
-html.js body.ys .ys-pane:not(.is-active) { display: none; }
-body.ys .ys-pane.is-active { animation: ys-pane .45s var(--ys-ease); }
-@keyframes ys-pane { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 body.ys .ys-note { margin: 10px 0 0; font-size: .78rem; color: var(--ys-ink-3); text-align: right; }
 body.ys .ys-mt { margin-top: 26px; }
 
@@ -17,6 +17,7 @@ body.ys .ys-hero-grid { display: grid; gap: 32px; align-items: stretch; }
 body.ys .ys-hero-text { align-self: center; padding-block: clamp(16px, 3vw, 40px); }
 body.ys .ys-hero-text .ys-h1 { margin-bottom: 22px; }
 body.ys .ys-hero-text .ys-lede { margin-bottom: 28px; max-width: 54ch; }
+body.ys .ys-hero-nota { margin: 18px 0 0; font-size: .88rem; color: var(--ys-ink-3); }
 
 body.ys .ys-hero-art { position: relative; min-height: 460px; border-radius: var(--ys-r-lg); background: linear-gradient(155deg, var(--ys-navy-3) 0%, var(--ys-navy) 55%, var(--ys-navy-2) 100%); overflow: hidden; isolation: isolate; }
 body.ys .ys-hero-art::after { content: ''; position: absolute; inset: 0; z-index: -1; background: radial-gradient(70% 60% at 85% 10%, rgba(58,125,211,.5), transparent 65%); }
@@ -35,161 +36,17 @@ body.ys .ys-strip li:nth-child(n+3) { border-top: 1px solid var(--ys-line); }
   body.ys .ys-strip li { padding: 22px 26px; }
   body.ys .ys-strip li:nth-child(n+2) { border-left: 1px solid var(--ys-line); }
   body.ys .ys-strip li:nth-child(n+3) { border-top: 0; }
+
 }
-
-/* ---------- Tour de produto (cards sequenciais) ---------- */
-body.ys .ys-tour { display: grid; gap: 24px; }
-body.ys .ys-tour-list { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(170px, 1fr); gap: 10px; overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: 8px; }
-body.ys .ys-tour-item { scroll-snap-align: start; text-align: left; display: grid; grid-template-columns: 1fr; gap: 2px 14px; align-items: center; padding: 14px 16px; background: #fff; border: 1px solid var(--ys-line); border-radius: var(--ys-r); cursor: pointer; color: var(--ys-ink); transition: background .3s var(--ys-ease), border-color .3s, color .3s, transform .3s var(--ys-ease), box-shadow .3s; }
-body.ys .ys-tour-item:hover { border-color: var(--ys-blue-3); }
-body.ys .ys-tour-t { display: inline-flex; align-items: center; gap: 9px; font-size: .96rem; font-weight: 700; }
-body.ys .ys-tour-t svg { width: 17px; height: 17px; color: var(--ys-blue); flex: none; }
-body.ys .ys-tour-d { display: none; grid-column: 1 / -1; font-size: .88rem; line-height: 1.55; margin-top: 8px; color: rgba(255,255,255,.82); }
-body.ys .ys-tour-item.is-active { background: var(--ys-blue); border-color: var(--ys-blue); color: #fff; box-shadow: 0 16px 34px rgba(39,100,180,.28); }
-body.ys .ys-tour-item.is-active .ys-tour-t svg { color: #fff; }
-body.ys .ys-tour-item.is-active .ys-tour-d { display: block; }
-body.ys .ys-tour-stage .lp2-demo { min-height: 420px; }
-@media (min-width: 1080px) {
-  body.ys .ys-tour { grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 32px; align-items: start; }
-  body.ys .ys-tour-list { grid-auto-flow: row; grid-auto-columns: auto; overflow: visible; gap: 8px; padding: 0; }
-  body.ys .ys-tour-stage { position: sticky; top: calc(var(--ys-header-h) + 20px); }
-  body.ys .ys-tour-stage .lp2-demo { min-height: 560px; }
-}
-
-/* ---------- Dores: coluna parada + lista corrida ---------- */
-body.ys .ys-dores { display: grid; gap: 40px; }
-body.ys .ys-dores-side .ys-h2 { margin-bottom: 20px; }
-body.ys .ys-dores-side .ys-lede { margin-bottom: 26px; }
-body.ys .ys-dores-list { list-style: none; border-top: 1px solid var(--ys-line); }
-body.ys .ys-dores-list li { display: grid; grid-template-columns: 1fr; gap: 4px; padding: 24px 0; border-bottom: 1px solid var(--ys-line); }
-body.ys .ys-dores-list h3 { font-size: 1.18rem; letter-spacing: -0.015em; }
-body.ys .ys-dores-list p { margin: 4px 0 0; font-size: .98rem; }
-@media (min-width: 1000px) {
-  body.ys .ys-dores { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 88px; }
-  body.ys .ys-dores-side { position: sticky; top: calc(var(--ys-header-h) + 32px); align-self: start; }
-  body.ys .ys-dores-list li { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 0 20px; align-items: baseline; }
-  body.ys .ys-dores-list p { margin: 0; font-size: .95rem; }
-}
-
-/* ---------- Mosaico de módulos ---------- */
-body.ys .ys-mosaic { display: grid; gap: 16px; }
-body.ys .ys-mod { display: flex; flex-direction: column; gap: 4px; }
-body.ys .ys-mod .ys-ico { margin-bottom: 14px; }
-body.ys .ys-mod-body p { margin: 0; }
-body.ys .ys-mod-tags { list-style: none; display: flex; flex-wrap: wrap; gap: 7px; margin-top: auto; padding-top: 20px; }
-body.ys .ys-mod-tags li { padding: 5px 12px; border-radius: 999px; font-size: .8rem; font-weight: 600; background: var(--ys-bg-2); color: var(--ys-ink); }
-body.ys .ys-card--feature .ys-mod-tags li, body.ys .ys-card--navy .ys-mod-tags li { background: rgba(255,255,255,.12); color: #fff; }
-@media (min-width: 760px) { body.ys .ys-mosaic { grid-template-columns: repeat(2, 1fr); } body.ys .ys-mod-1 { grid-column: 1 / -1; } body.ys .ys-mod-6 { grid-column: 1 / -1; } }
-@media (min-width: 1080px) {
-  body.ys .ys-mosaic { grid-template-columns: repeat(12, 1fr); }
-  body.ys .ys-mod-1 { grid-column: span 7; }
-  body.ys .ys-mod-2 { grid-column: span 5; }
-  body.ys .ys-mod-3, body.ys .ys-mod-4 { grid-column: span 3; }
-  body.ys .ys-mod-5 { grid-column: span 3; }
-  body.ys .ys-mod-6 { grid-column: span 3; }
-  body.ys .ys-mod-1, body.ys .ys-mod-2 { min-height: 300px; padding: 36px; }
-  body.ys .ys-mod-1 h3, body.ys .ys-mod-2 h3 { font-size: 1.7rem; letter-spacing: -0.025em; }
-  body.ys .ys-mod-1 p, body.ys .ys-mod-2 p { font-size: 1.05rem; max-width: 42ch; }
-}
-
-/* ---------- Vitrine de funcionalidades ---------- */
-body.ys .ys-vitrine { border: 1px solid var(--ys-line); border-radius: var(--ys-r-lg); background: #fff; overflow: hidden; box-shadow: var(--ys-shadow-sm); }
-body.ys .ys-vit-tabs { display: flex; gap: 2px; overflow-x: auto; padding: 8px; background: var(--ys-bg-2); border-bottom: 1px solid var(--ys-line); scrollbar-width: none; }
-body.ys .ys-vit-tabs::-webkit-scrollbar { display: none; }
-body.ys .ys-vit-tab { flex: 1 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 14px; border: 0; border-radius: 11px; background: transparent; font-size: .86rem; font-weight: 700; color: var(--ys-ink-2); cursor: pointer; white-space: nowrap; transition: background .25s, color .25s, box-shadow .25s; }
-body.ys .ys-vit-tab svg { width: 16px; height: 16px; }
-body.ys .ys-vit-tab:hover { color: var(--ys-navy); }
-body.ys .ys-vit-tab.is-active { background: #fff; color: var(--ys-blue); box-shadow: var(--ys-shadow-sm); }
-body.ys .ys-vit-pane { display: grid; }
-body.ys .ys-vit-copy { padding: 32px 28px; align-self: center; }
-body.ys .ys-vit-copy p { font-size: 1.05rem; margin: 12px 0 0; max-width: 44ch; }
-body.ys .ys-vit-art { display: flex; align-items: center; justify-content: center; padding: 32px; min-height: 280px; background-color: var(--ys-tint); background-image: radial-gradient(#CCD7E4 1px, transparent 1px); background-size: 18px 18px; }
-body.ys .ys-vit-art svg { width: min(100%, 460px); height: auto; }
-@media (min-width: 900px) {
-  body.ys .ys-vit-pane { grid-template-columns: 5fr 7fr; }
-  body.ys .ys-vit-copy { padding: 56px; }
-  body.ys .ys-vit-art { min-height: 420px; }
-}
-
-/* ---------- Splits ---------- */
-body.ys .ys-split { display: grid; gap: 40px; align-items: center; }
-body.ys .ys-split .ys-h2 { margin-bottom: 20px; }
-body.ys .ys-split .ys-lede { margin-bottom: 26px; }
-@media (min-width: 1000px) {
-  body.ys .ys-split--wide-right { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 72px; }
-  body.ys .ys-split--mat { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 72px; }
-  body.ys .ys-split--mat-right { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 72px; }
-}
-body.ys .ys-mat { padding: clamp(18px, 4vw, 44px); border-radius: var(--ys-r-lg); background: var(--ys-tint); }
-body.ys .ys-mat.is-dots { background-color: var(--ys-bg-2); background-image: radial-gradient(var(--ys-line-2) 1px, transparent 1px); background-size: 18px 18px; }
-body.ys .ys-juridico .ys-rows > li { padding: 14px 0; font-size: .97rem; font-weight: 500; }
-
-/* Comunicação */
-body.ys .ys-chatgrid { display: grid; gap: 24px; }
-body.ys .ys-chatgrid-side { display: grid; gap: 24px; align-content: space-between; justify-items: start; }
-body.ys .ys-minis { list-style: none; display: grid; gap: 10px; width: 100%; }
-body.ys .ys-minis li { display: grid; grid-template-columns: 22px 1fr; gap: 12px; padding: 18px 20px; background: #fff; border: 1px solid var(--ys-line); border-radius: var(--ys-r); font-weight: 600; font-size: .96rem; line-height: 1.45; color: var(--ys-ink); }
-body.ys .ys-minis svg { width: 22px; height: 22px; padding: 4px; border-radius: 50%; background: var(--ys-tint); color: var(--ys-blue); }
-@media (min-width: 1000px) { body.ys .ys-chatgrid { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 32px; } }
-
-/* Operação + Cliente */
-body.ys .ys-pair { display: grid; gap: 20px; }
-body.ys .ys-pair-item { padding: clamp(24px, 3.4vw, 44px); border: 1px solid var(--ys-line); border-radius: var(--ys-r-lg); background: #fff; }
-body.ys .ys-pair-item.is-tint { background: var(--ys-tint); border-color: #D3E3F8; }
-body.ys .ys-pair-title { font-size: clamp(1.45rem, 2.2vw, 1.95rem); margin-bottom: 14px; }
-body.ys .ys-pair-item .lp2-demo { margin: 22px 0 24px; min-height: 320px; }
-@media (min-width: 1000px) { body.ys .ys-pair { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: stretch; } }
-
-/* Gestão: cena no centro */
-body.ys .ys-orbit { display: grid; gap: 24px; }
-body.ys .ys-orbit-col { list-style: none; display: grid; gap: 14px; align-content: center; }
-body.ys .ys-orbit-col li { padding: 22px; background: #fff; border: 1px solid var(--ys-line); border-radius: var(--ys-r); font-weight: 600; line-height: 1.4; color: var(--ys-ink); }
-@media (min-width: 1000px) { body.ys .ys-orbit { grid-template-columns: minmax(0, 3fr) minmax(0, 6fr) minmax(0, 3fr); align-items: center; } }
-
-/* Painel azul institucional */
-body.ys .ys-panel { display: grid; gap: 32px; padding: clamp(28px, 4.5vw, 64px); border-radius: var(--ys-r-lg); background: linear-gradient(135deg, var(--ys-tint) 0%, #fff 100%); border: 1px solid #D3E3F8; }
-body.ys .ys-panel h2 { margin-bottom: 18px; }
-body.ys .ys-panel .ys-lede { margin-bottom: 22px; }
-body.ys .ys-panel-chips { list-style: none; display: grid; gap: 8px; }
-body.ys .ys-panel-chips li { padding: 10px 0; border-top: 1px solid #D3E3F8; font-size: .95rem; font-weight: 600; color: var(--ys-ink); }
-body.ys .ys-panel-art { align-self: center; min-width: 0; }
-@media (min-width: 1000px) { body.ys .ys-panel { grid-template-columns: minmax(0, 6fr) minmax(0, 6fr); gap: 56px; } }
 
 /* ---------- Segurança: tabela de células ---------- */
 body.ys .ys-ruled { display: grid; border-top: 1px solid var(--ys-line); border-left: 1px solid var(--ys-line); border-radius: var(--ys-r-sm); }
 body.ys .ys-ruled-cell { padding: 30px 28px; border-right: 1px solid var(--ys-line); border-bottom: 1px solid var(--ys-line); transition: background .3s; }
 body.ys .ys-ruled-cell:hover { background: var(--ys-tint-2); }
-body.ys .ys-ruled-cell svg { width: 26px; height: 26px; color: var(--ys-blue); margin-bottom: 18px; display: block; }
 body.ys .ys-ruled-cell h3 { font-size: 1.08rem; margin-bottom: 8px; }
 body.ys .ys-ruled-cell p { margin: 0; font-size: .95rem; }
-@media (min-width: 700px) { body.ys .ys-ruled { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 1040px) { body.ys .ys-ruled { grid-template-columns: repeat(3, 1fr); } }
-
-/* Dashboards: régua */
-body.ys .ys-ruler { list-style: none; display: grid; gap: 0; margin-top: clamp(32px, 4vw, 56px); border-top: 1px solid rgba(39,100,180,.22); }
-body.ys .ys-ruler li { padding: 18px 0; border-bottom: 1px solid rgba(39,100,180,.14); font-weight: 600; font-size: .96rem; line-height: 1.45; color: var(--ys-navy); }
-@media (min-width: 800px) {
-  body.ys .ys-ruler { grid-template-columns: repeat(4, 1fr); }
-  body.ys .ys-ruler li { padding: 20px 24px 0 0; border-bottom: 0; }
-  body.ys .ys-ruler li + li { padding-left: 24px; border-left: 1px solid rgba(39,100,180,.22); }
-}
-
-/* ---------- Integrações ---------- */
-body.ys .ys-integra { list-style: none; display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-body.ys .ys-integra-card { padding: 22px; background: #fff; border: 1px solid var(--ys-line); border-radius: var(--ys-r); transition: transform .3s var(--ys-ease), box-shadow .3s, border-color .3s; }
-body.ys .ys-integra-card:hover { transform: translateY(-3px); box-shadow: var(--ys-shadow); border-color: var(--ys-blue-3); }
-body.ys .ys-integra-card h3 { font-size: 1rem; margin-bottom: 3px; }
-body.ys .ys-integra-card p { margin: 0; font-size: .86rem; line-height: 1.45; }
-body.ys .ys-integra-ic { display: inline-flex; width: 44px; height: 44px; align-items: center; justify-content: center; border-radius: 12px; background: var(--ys-tint); margin-bottom: 14px; }
-body.ys .ys-integra .ii { width: 28px; height: 28px; }
-body.ys .ys-integra .ii-base, body.ys .ys-integra .ii-flow { stroke: var(--ys-blue); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; fill: none; }
-body.ys .ys-integra .ii-acc { stroke: var(--ys-navy); stroke-width: 1.7; stroke-linecap: round; fill: none; }
-body.ys .ys-integra .ii-dot { fill: var(--ys-navy); }
-@media (min-width: 900px) {
-  body.ys .ys-integra { grid-template-columns: repeat(12, 1fr); gap: 16px; }
-  body.ys .ys-integra-card { grid-column: span 3; padding: 26px; }
-  body.ys .ys-integra-card:nth-child(n+5) { grid-column: span 4; }
-}
+@media (min-width: 700px) { body.ys .ys-ruled { grid-template-columns: repeat(2, 1fr); }   }
+@media (min-width: 1040px) { body.ys .ys-ruled { grid-template-columns: repeat(3, 1fr); }   }
 
 /* ---------- Comparativo ---------- */
 body.ys .ys-cmp { border: 1px solid var(--ys-line); border-radius: var(--ys-r-lg); overflow: hidden; background: #fff; }
@@ -212,6 +69,7 @@ body.ys .ys-cmp-b svg { width: 22px; height: 22px; padding: 4px; border-radius: 
   body.ys .ys-cmp-row strong { align-self: center; }
   body.ys .ys-cmp-a::before { content: none; }
   body.ys .ys-cmp-b { background: var(--ys-tint-2); }
+
 }
 
 /* ---------- Para quem ---------- */
@@ -224,16 +82,8 @@ body.ys .ys-quem-list li:hover { color: var(--ys-blue); padding-left: 8px; }
 @media (min-width: 1000px) {
   body.ys .ys-quem { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 88px; align-items: start; }
   body.ys .ys-quem-list { grid-template-columns: 1fr 1fr; column-gap: 40px; }
-}
 
-/* ---------- Pilares ---------- */
-body.ys .ys-pilares { list-style: none; display: grid; gap: 0 40px; }
-body.ys .ys-pilares li { padding: 22px 0 30px; border-top: 2px solid var(--ys-navy); }
-body.ys .ys-pilar-n { display: block; font-size: 1.05rem; font-weight: 800; letter-spacing: .08em; color: var(--ys-blue); margin-bottom: 30px; }
-body.ys .ys-pilares h3 { font-size: 1.35rem; margin-bottom: 8px; }
-body.ys .ys-pilares p { margin: 0; }
-@media (min-width: 700px) { body.ys .ys-pilares { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 1040px) { body.ys .ys-pilares { grid-template-columns: repeat(3, 1fr); } }
+}
 
 /* ---------- Origem ---------- */
 body.ys .ys-origem { position: relative; padding-block: var(--ys-sec); background: var(--ys-bg-2); overflow: hidden; }
@@ -244,7 +94,7 @@ body.ys .ys-origem-word { font-size: clamp(5.6rem, 25vw, 23rem); font-weight: 80
 body.ys .ys-origem-sub { text-align: center; margin: 0 0 clamp(40px, 5vw, 72px); font-size: .86rem; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--ys-blue); }
 body.ys .ys-etimo { display: grid; border-top: 1px solid var(--ys-line-2); }
 body.ys .ys-etimo > div { padding: 28px 0; border-bottom: 1px solid var(--ys-line-2); }
-body.ys .ys-etimo-tag { font-size: .74rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--ys-blue); }
+body.ys .ys-etimo-tag { font-size: .9rem; font-weight: 600; color: var(--ys-ink-2); }
 body.ys .ys-etimo-word { font-size: clamp(2.4rem, 4.4vw, 3.6rem); font-weight: 800; letter-spacing: -0.03em; color: var(--ys-navy); line-height: 1.1; margin: 10px 0 12px; }
 body.ys .ys-etimo p { margin: 0; }
 body.ys .ys-etimo strong { color: var(--ys-ink); }
@@ -263,6 +113,7 @@ body.ys .ys-eq b { color: var(--ys-navy); font-weight: 800; }
   body.ys .ys-etimo > div { padding: 32px 32px 36px 0; border-bottom: 0; }
   body.ys .ys-etimo > div + div { padding-left: 32px; border-left: 1px solid var(--ys-line-2); }
   body.ys .ys-pontas-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
 }
 
 /* ---------- FAQ ---------- */
@@ -271,6 +122,7 @@ body.ys .ys-faqgrid-side .ys-h2 { margin-bottom: 26px; }
 @media (min-width: 1000px) {
   body.ys .ys-faqgrid { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 80px; }
   body.ys .ys-faqgrid-side { position: sticky; top: calc(var(--ys-header-h) + 32px); align-self: start; }
+
 }
 
 /* ---------- CTA final ---------- */
@@ -279,27 +131,23 @@ body.ys .ys-final-lines { position: absolute; inset: 0; width: 100%; height: 100
 body.ys .ys-final-grid { display: grid; gap: 40px; }
 body.ys .ys-final-title { font-size: clamp(2rem, 3.8vw, 3.4rem); letter-spacing: -0.03em; line-height: 1.06; margin-bottom: 20px; }
 body.ys .ys-final-show { align-self: end; min-width: 0; margin-bottom: -2px; }
-body.ys .ys-final-show .lp2-demo { border-radius: 20px 20px 0 0; border-bottom: 0; box-shadow: 0 -20px 60px rgba(16,42,70,.10); }
 @media (min-width: 1000px) {
-  body.ys .ys-final-grid { grid-template-columns: minmax(0, 6fr) minmax(0, 6fr); gap: 64px; }
   body.ys .ys-final-grid > div:first-child { padding-bottom: clamp(64px, 8vw, 112px); }
+
 }
-@media (max-width: 999px) { body.ys .ys-final-grid { padding-bottom: 0; } }
+@media (max-width: 999px) { body.ys .ys-final-grid { padding-bottom: 0; }   }
 
 /* ---------- Mobile: o hero é recomposto, não encolhido ---------- */
 @media (max-width: 1079px) {
   body.ys .ys-hero-art { min-height: 0; padding: 74px 16px 72px; }
+
 }
 @media (max-width: 640px) {
   body.ys .ys-hero-art { padding: 16px 12px; display: grid; gap: 10px; }
   body.ys .ys-hero-text .ys-btn { width: 100%; }
   body.ys .ys-strip li { padding: 14px; font-size: .82rem; gap: 9px; }
-  body.ys .lp2-demo { padding-inline: 14px; }
-}
 
-/* ---------- Ajustes de altura das cenas ---------- */
-body.ys .ys-orbit-mid .lp2-demo { min-height: 0; }
-@media (min-width: 1080px) { body.ys .ys-tour-stage .lp2-demo { min-height: 500px; } }
+}
 
 /* ---------- Foto do hero (quando assets/site/img/hero.webp existir) ----------
    A foto vira o fundo do painel e já termina em azul-escuro (#05152C): o painel
@@ -310,23 +158,42 @@ body.ys .ys-hero-art.has-photo .ys-hero-lines { display: none; }
 body.ys .ys-hero-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 0; z-index: -1; }
 @media (min-width: 1080px) {
   body.ys .ys-hero-art.has-photo { min-height: 680px; }
+
 }
 /* Tablet e celular: a foto fica em cima, por inteiro no rosto, e dissolve no azul. */
 @media (max-width: 1079px) {
   body.ys .ys-hero-art.has-photo { padding-top: min(380px, 62vw); }
   body.ys .ys-hero-photo { height: min(520px, 92vw); -webkit-mask-image: linear-gradient(#000 62%, transparent); mask-image: linear-gradient(#000 62%, transparent); }
+
 }
 @media (max-width: 640px) {
   body.ys .ys-hero-art.has-photo { padding-top: 76vw; }
   body.ys .ys-hero-photo { height: 104vw; }
+
 }
 
-/* Tour no celular: o card ativo cresce sozinho, sem esticar os vizinhos. */
-@media (max-width: 1079px) { body.ys .ys-tour-list { align-items: start; } }
+/* ---------- Destaque: texto de um lado, ilustração do recurso do outro ---------- */
+body.ys .ys-spot { display: grid; gap: 36px; align-items: center; }
+body.ys .ys-spot > * { min-width: 0; }
+body.ys .ys-spot .ys-h2 { margin-bottom: 18px; }
+body.ys .ys-spot .ys-lede { margin-bottom: 24px; }
+@media (min-width: 1000px) {
+  body.ys .ys-spot { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: clamp(48px, 6vw, 96px); }
+  body.ys .ys-spot.is-flip { grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); }
+  body.ys .ys-spot.is-flip .ys-spot-text { order: 2; }
+}
 
-/* Mesma regra das colunas: conteúdo das cenas não alarga a coluna em 360 px. */
-body.ys .ys-split > *, body.ys .ys-chatgrid > *, body.ys .ys-pair > *, body.ys .ys-orbit > *,
-body.ys .ys-panel > *, body.ys .ys-final-grid > *, body.ys .ys-tour > *, body.ys .ys-faqgrid > *,
-body.ys .ys-dores > *, body.ys .ys-quem > *, body.ys .ys-hero-grid > * { min-width: 0; }
-body.ys .dm-row b { min-width: 0; text-align: right; overflow-wrap: anywhere; }
+/* ---------- Automações e integrações ---------- */
+body.ys .ys-liga { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; }
+body.ys .ys-liga li { padding: 18px 20px; background: #fff; border: 1px solid var(--ys-line); border-radius: var(--ys-r-sm); transition: border-color .25s, background .25s; }
+body.ys .ys-liga li:hover { border-color: var(--ys-blue-3); background: var(--ys-tint-2); }
+body.ys .ys-liga strong { display: block; font-size: 1rem; color: var(--ys-ink); }
+body.ys .ys-liga span { display: block; margin-top: 2px; font-size: .88rem; color: var(--ys-ink-2); }
+body.ys .ys-liga li:last-child:nth-child(odd) { grid-column: 1 / -1; }
+@media (max-width: 520px) { body.ys .ys-liga { grid-template-columns: 1fr; } }
 
+/* Convite final: só o texto, no centro. */
+body.ys .ys-final-grid { justify-items: center; text-align: center; padding-bottom: clamp(64px, 8vw, 112px); }
+body.ys .ys-final-grid .ys-final-title { max-width: 20ch; margin-inline: auto; }
+body.ys .ys-final-grid .ys-lede { margin-inline: auto; }
+body.ys .ys-final-grid .ys-cta-row { justify-content: center; }

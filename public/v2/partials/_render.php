@@ -43,11 +43,23 @@ if (!function_exists('lp2_checks')) {
     }
 }
 
-if (!function_exists('lp2_rows')) {
-    /** Lista numerada com divisórias. */
-    function lp2_rows(array $itens): string {
-        $html = '<ol class="ys-rows">';
-        foreach ($itens as $b) $html .= '<li><span>' . $b . '</span></li>';
-        return $html . '</ol>';
+if (!function_exists('lp2_spot')) {
+    /**
+     * Destaque: texto de um lado, ilustração do recurso do outro (lp2_scene, em _cenas.php).
+     * $s: id, fundo ('' | 'ys-bg-2' | 'ys-bg-tint'), flip (tela à esquerda), h2, lede,
+     * itens (lista de verificação), wa [mensagem, rótulo], cena (nome da ilustração) e
+     * ancoras (ids antigos que continuam valendo como endereço).
+     */
+    function lp2_spot(array $s): void
+    {
+        $cls = trim('ys-section ' . ($s['fundo'] ?? ''));
+        echo '<section id="' . $s['id'] . '" class="' . $cls . '">';
+        foreach (($s['ancoras'] ?? []) as $a) echo '<span id="' . $a . '"></span>';
+        echo '<div class="ys-container"><div class="ys-spot' . (!empty($s['flip']) ? ' is-flip' : '') . '">';
+        echo '<div class="ys-spot-text ys-reveal"><h2 class="ys-h2">' . $s['h2'] . '</h2><p class="ys-lede">' . $s['lede'] . '</p>';
+        echo lp2_checks($s['itens']);
+        echo '<div class="ys-cta-row ys-mt">' . lp2_wa_btn($s['wa'][0], $s['wa'][1]) . '</div></div>';
+        echo '<div class="ys-spot-art">' . lp2_scene($s['cena']) . '</div>';
+        echo '</div></div></section>';
     }
 }

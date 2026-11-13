@@ -1,9 +1,9 @@
 <?php
 /**
- * /crm-juridico/ — página estratégica de SEO.
+ * /crm-juridico/, página estratégica de SEO.
  * Palavra-chave principal: "CRM jurídico" · secundárias: "CRM para advogados",
  * "funil jurídico", "captação de clientes na advocacia".
- * Intenção: comercial — escritório buscando organizar o funil de captação.
+ * Intenção: comercial, escritório buscando organizar o funil de captação.
  * Conteúdo baseado no fact sheet do produto (sem claims não confirmados).
  */
 
@@ -14,39 +14,39 @@ $SEO_PAGE = [
     'breadcrumb'  => 'CRM Jurídico',
     'eyebrow'     => 'CRM Jurídico',
     'h1'          => 'CRM jurídico: o funil comercial do escritório, do lead ao processo',
-    'lede'        => 'O CRM jurídico do Yuris organiza a captação e o funil comercial do escritório em um Kanban: o lead entra como card, avança pelas etapas com checklist e conversa de WhatsApp vinculada e, ao fechar contrato, vira cliente e processo sem retrabalho — com contatos centralizados e sem duplicidade.',
+    'lede'        => 'O CRM jurídico do Yuris organiza a captação e o funil comercial do escritório em um Kanban: o lead entra como card, avança pelas etapas com checklist e conversa de WhatsApp vinculada e, ao fechar contrato, vira cliente e processo sem retrabalho, com contatos centralizados e sem duplicidade.',
     'cta_msg'     => 'Olá Bruno, quero conhecer o CRM jurídico do Yuris!',
     'cta_label'   => 'Solicitar demonstração',
     'cta_titulo'  => 'Veja o funil do seu escritório rodando no Yuris',
-    'cta_texto'   => 'Uma conversa rápida no WhatsApp e a equipe mostra o CRM aplicado ao processo comercial do seu escritório — da captação ao contrato.',
+    'cta_texto'   => 'Uma conversa rápida no WhatsApp e a equipe mostra o CRM aplicado ao processo comercial do seu escritório, da captação ao contrato.',
 
     'corpo_html' => <<<'HTML'
 <h2>O que é um CRM jurídico?</h2>
 <div class="sp-definicao">
-  <p>Um <strong>CRM jurídico</strong> é um sistema de gestão do relacionamento com clientes feito para a advocacia: organiza a captação, o funil de propostas e a conversão de leads em clientes — e, diferente de um CRM genérico, conecta cada etapa comercial à operação do escritório: processos, prazos, tarefas e atendimento. O contato que entra no funil é o mesmo que depois aparece no processo, no financeiro e no WhatsApp do escritório.</p>
+  <p>Um <strong>CRM jurídico</strong> é um sistema de gestão do relacionamento com clientes feito para a advocacia: organiza a captação, o funil de propostas e a conversão de leads em clientes, e, diferente de um CRM genérico, conecta cada etapa comercial à operação do escritório: processos, prazos, tarefas e atendimento. O contato que entra no funil é o mesmo que depois aparece no processo, no financeiro e no WhatsApp do escritório.</p>
 </div>
-<p>Na prática, o CRM para advogados resolve um problema clássico: o comercial do escritório vive em um lugar (planilha, agenda, WhatsApp pessoal) e a operação jurídica em outro. Quando o lead fecha contrato, alguém redigita tudo — e o histórico da negociação se perde no caminho. O CRM jurídico elimina essa fronteira: comercial e operação trabalham sobre o mesmo cadastro.</p>
+<p>Na prática, o CRM para advogados resolve um problema clássico: o comercial do escritório vive em um lugar (planilha, agenda, WhatsApp pessoal) e a operação jurídica em outro. Quando o lead fecha contrato, alguém redigita tudo, e o histórico da negociação se perde no caminho. O CRM jurídico elimina essa fronteira: comercial e operação trabalham sobre o mesmo cadastro.</p>
 
 <h2>O funil jurídico em Kanban: como funciona no Yuris</h2>
-<p>No Yuris, o CRM é o módulo de <strong>Cards</strong>: um quadro Kanban em que cada card representa uma oportunidade — um lead que chegou, uma proposta enviada, um contrato em negociação. O escritório define as colunas conforme o próprio processo comercial e move o card de etapa em etapa, com visão clara de onde cada negociação está e o que falta para avançar.</p>
+<p>No Yuris, o CRM é o módulo de <strong>Cards</strong>: um quadro Kanban em que cada card representa uma oportunidade, um lead que chegou, uma proposta enviada, um contrato em negociação. O escritório define as colunas conforme o próprio processo comercial e move o card de etapa em etapa, com visão clara de onde cada negociação está e o que falta para avançar.</p>
 <p>Cada card carrega o contexto completo da negociação:</p>
 <ul>
-  <li><strong>Checklist por card</strong> — os passos da etapa (documentos a receber, proposta a enviar, reunião a agendar) ficam registrados no próprio card, com o que já foi feito e o que está pendente.</li>
-  <li><strong>Vínculo com o contato</strong> — o card aponta para o cadastro central do cliente; nada de criar um registro paralelo só para o comercial.</li>
-  <li><strong>Vínculo com processo</strong> — quando a negociação envolve um caso já existente, o card se liga a ele e o histórico fica conectado.</li>
-  <li><strong>Card vira cliente</strong> — fechou o contrato? Um clique transforma a prospecção em cliente, e o histórico não recomeça: a linha do tempo continua do primeiro contato em diante, com os documentos, as etiquetas, as conversas e as tarefas acompanhando. O sistema ainda avisa se aquele cliente já existe, antes de duplicar.</li>
-  <li><strong>E o processo nasce dali</strong> — o processo pode ser aberto direto da prospecção, levando contato e contexto junto. Sem redigitar dados, sem retrabalho.</li>
+  <li><strong>Checklist por card</strong>, os passos da etapa (documentos a receber, proposta a enviar, reunião a agendar) ficam registrados no próprio card, com o que já foi feito e o que está pendente.</li>
+  <li><strong>Vínculo com o contato</strong>, o card aponta para o cadastro central do cliente; nada de criar um registro paralelo só para o comercial.</li>
+  <li><strong>Vínculo com processo</strong>, quando a negociação envolve um caso já existente, o card se liga a ele e o histórico fica conectado.</li>
+  <li><strong>Card vira cliente</strong>, fechou o contrato? Um clique transforma a prospecção em cliente, e o histórico não recomeça: a linha do tempo continua do primeiro contato em diante, com os documentos, as etiquetas, as conversas e as tarefas acompanhando. O sistema ainda avisa se aquele cliente já existe, antes de duplicar.</li>
+  <li><strong>E o processo nasce dali</strong>, o processo pode ser aberto direto da prospecção, levando contato e contexto junto. Sem redigitar dados, sem retrabalho.</li>
 </ul>
-<p>Esses dois pontos são o que separa o funil jurídico de um quadro Kanban qualquer: o destino natural do lead que fecha não é uma coluna chamada "ganho" — é um cliente de verdade, com histórico contínuo, e um processo com prazos, tarefas e responsável definido. Veja como essa continuidade funciona em <a href="/controle-de-processos/">controle de processos</a>.</p>
+<p>Esses dois pontos são o que separa o funil jurídico de um quadro Kanban qualquer: o destino natural do lead que fecha não é uma coluna chamada "ganho", é um cliente de verdade, com histórico contínuo, e um processo com prazos, tarefas e responsável definido. Veja como essa continuidade funciona em <a href="/controle-de-processos/">controle de processos</a>.</p>
 
 <h2>Contatos centralizados, sem duplicidade</h2>
-<p>Em muitos escritórios, a mesma pessoa existe três vezes: uma na planilha do comercial, outra no sistema de processos e uma terceira na agenda do financeiro. Cada cópia envelhece de um jeito — telefone desatualizado aqui, e-mail errado ali. No Yuris, o cadastro de <strong>clientes e contatos é único</strong>: o mesmo registro é reaproveitado pelo card do funil, pelo processo, pelo atendimento e pelo <a href="/financeiro-juridico/">financeiro do escritório</a>. Atualizou em um lugar, atualizou em todos — e o sistema evita duplicidade na origem.</p>
+<p>Em muitos escritórios, a mesma pessoa existe três vezes: uma na planilha do comercial, outra no sistema de processos e uma terceira na agenda do financeiro. Cada cópia envelhece de um jeito, telefone desatualizado aqui, e-mail errado ali. No Yuris, o cadastro de <strong>clientes e contatos é único</strong>: o mesmo registro é reaproveitado pelo card do funil, pelo processo, pelo atendimento e pelo <a href="/financeiro-juridico/">financeiro do escritório</a>. Atualizou em um lugar, atualizou em todos, e o sistema evita duplicidade na origem.</p>
 
 <h2>WhatsApp dentro do funil</h2>
-<p>Boa parte da negociação na advocacia acontece pelo WhatsApp — e costuma acontecer no celular pessoal de alguém, fora de qualquer registro. No Yuris, o atendimento por WhatsApp roda <strong>dentro do sistema</strong>, e as conversas ficam vinculadas ao cliente e ao processo. Para o CRM, isso muda o jogo: ao abrir um card, a equipe vê a conversa que sustenta aquela negociação, e a história não se perde quando o responsável muda ou sai de férias.</p>
+<p>Boa parte da negociação na advocacia acontece pelo WhatsApp, e costuma acontecer no celular pessoal de alguém, fora de qualquer registro. No Yuris, o atendimento por WhatsApp roda <strong>dentro do sistema</strong>, e as conversas ficam vinculadas ao cliente e ao processo. Para o CRM, isso muda o jogo: ao abrir um card, a equipe vê a conversa que sustenta aquela negociação, e a história não se perde quando o responsável muda ou sai de férias.</p>
 
 <h2>CRM genérico vs. CRM jurídico</h2>
-<p>Um CRM genérico organiza funil — e para aí. Ele não entende o que acontece depois do contrato, porque não conhece as entidades da advocacia: processo, prazo, intimação. A comparação deixa a diferença visível:</p>
+<p>Um CRM genérico organiza funil, e para aí. Ele não entende o que acontece depois do contrato, porque não conhece as entidades da advocacia: processo, prazo, intimação. A comparação deixa a diferença visível:</p>
 <div class="sp-tabela-wrap">
 <table class="sp-tabela">
   <thead>
@@ -54,7 +54,7 @@ $SEO_PAGE = [
   </thead>
   <tbody>
     <tr><td><strong>Entidades</strong></td><td>Lead, empresa, negócio</td><td>Contato, card, processo, prazo, intimação</td></tr>
-    <tr><td><strong>Fim do funil</strong></td><td>Coluna "ganho" — e o resto fica fora</td><td>Card vira cliente com histórico contínuo, e o processo nasce dali</td></tr>
+    <tr><td><strong>Fim do funil</strong></td><td>Coluna "ganho", e o resto fica fora</td><td>Card vira cliente com histórico contínuo, e o processo nasce dali</td></tr>
     <tr><td><strong>Cadastro</strong></td><td>Duplicado entre CRM e sistema jurídico</td><td>Contato único, reaproveitado por toda a operação</td></tr>
     <tr><td><strong>Atendimento</strong></td><td>WhatsApp fora do sistema ou via terceiros</td><td>WhatsApp integrado, vinculado a cliente e processo</td></tr>
     <tr><td><strong>Prazos e intimações</strong></td><td>Não existem como conceito</td><td>Conectados ao processo que nasceu do funil</td></tr>
@@ -65,15 +65,15 @@ $SEO_PAGE = [
 <p>Em resumo: o CRM genérico enxerga o cliente até a assinatura; o CRM jurídico acompanha o cliente do primeiro contato ao encerramento do processo, porque faz parte do mesmo <a href="/sistema-juridico/">sistema jurídico</a> que gerencia a operação.</p>
 
 <h2>Captação de clientes na advocacia: alimentando o funil</h2>
-<p>O funil só trabalha se houver entrada. No Yuris, o módulo de <a href="/prospeccao-juridica/">prospecção jurídica</a> registra os leads que já procuram o escritório e os leva ao funil comercial — o lead chega como card, com contato registrado, pronto para a equipe qualificar e conduzir pelas etapas. Alguns sinais de que o escritório precisa organizar essa frente:</p>
+<p>O funil só trabalha se houver entrada. No Yuris, o módulo de <a href="/prospeccao-juridica/">prospecção jurídica</a> registra os leads que já procuram o escritório e os leva ao funil comercial, o lead chega como card, com contato registrado, pronto para a equipe qualificar e conduzir pelas etapas. Alguns sinais de que o escritório precisa organizar essa frente:</p>
 <ul>
-  <li>Leads chegam por canais diferentes e ninguém sabe quantos viraram cliente — nem por quê.</li>
+  <li>Leads chegam por canais diferentes e ninguém sabe quantos viraram cliente, nem por quê.</li>
   <li>Propostas enviadas sem follow-up: a negociação esfria por falta de acompanhamento, não por mérito.</li>
   <li>A negociação inteira mora no WhatsApp pessoal de um sócio.</li>
   <li>Quando o contrato fecha, os dados do cliente são digitados de novo no controle de processos.</li>
   <li>O escritório não consegue dizer qual etapa do funil mais perde oportunidades.</li>
 </ul>
-<p>Dois ou mais itens familiares? O problema não é falta de demanda — é falta de funil.</p>
+<p>Dois ou mais itens familiares? O problema não é falta de demanda, é falta de funil.</p>
 
 <h2>Quanto custa um CRM jurídico?</h2>
 <p>No Yuris, o CRM não é módulo vendido à parte: ele já vem incluído na plataforma, junto com processos, intimações, tarefas, financeiro e WhatsApp. Os planos têm tudo incluído, com valor sob consulta conforme o número de usuários. Veja as opções na <a href="/planos">página de planos</a>.</p>
@@ -82,11 +82,11 @@ HTML,
     'faq' => [
         [
             'q' => 'O que é um CRM jurídico?',
-            'a' => 'CRM jurídico é um sistema de gestão do relacionamento com clientes feito para a advocacia: organiza a captação de leads, o funil de propostas e a conversão em clientes, conectando cada etapa comercial à operação do escritório — processos, prazos, tarefas e atendimento. No Yuris, o CRM é o módulo de Cards, um funil em Kanban integrado ao restante da plataforma.',
+            'a' => 'CRM jurídico é um sistema de gestão do relacionamento com clientes feito para a advocacia: organiza a captação de leads, o funil de propostas e a conversão em clientes, conectando cada etapa comercial à operação do escritório, processos, prazos, tarefas e atendimento. No Yuris, o CRM é o módulo de Cards, um funil em Kanban integrado ao restante da plataforma.',
         ],
         [
             'q' => 'Qual a diferença entre um CRM genérico e um CRM jurídico?',
-            'a' => 'O CRM genérico organiza o funil e termina na coluna "ganho" — ele não conhece processo, prazo nem intimação. O CRM jurídico conecta o comercial à operação: no Yuris, o card que fecha vira processo com o mesmo contato, a conversa de WhatsApp fica vinculada ao cliente e o cadastro é único, sem duplicidade entre sistemas.',
+            'a' => 'O CRM genérico organiza o funil e termina na coluna "ganho", ele não conhece processo, prazo nem intimação. O CRM jurídico conecta o comercial à operação: no Yuris, o card que fecha vira processo com o mesmo contato, a conversa de WhatsApp fica vinculada ao cliente e o cadastro é único, sem duplicidade entre sistemas.',
         ],
         [
             'q' => 'Como o lead vira processo no Yuris?',
@@ -98,11 +98,11 @@ HTML,
         ],
         [
             'q' => 'O CRM jurídico ajuda na captação de clientes na advocacia?',
-            'a' => 'Ajuda na parte que depende de organização: o módulo de prospecção do Yuris registra os leads que já procuram o escritório e alimenta o funil, e o CRM evita que oportunidades se percam por falta de acompanhamento — cada card tem etapa, checklist e responsável. A qualidade do atendimento e a condução da negociação continuam sendo trabalho do escritório.',
+            'a' => 'Ajuda na parte que depende de organização: o módulo de prospecção do Yuris registra os leads que já procuram o escritório e alimenta o funil, e o CRM evita que oportunidades se percam por falta de acompanhamento, cada card tem etapa, checklist e responsável. A qualidade do atendimento e a condução da negociação continuam sendo trabalho do escritório.',
         ],
         [
             'q' => 'O CRM do Yuris é vendido separadamente?',
-            'a' => 'Não. O CRM faz parte da plataforma Yuris, junto com gestão de processos, intimações, tarefas, financeiro e WhatsApp integrado — os planos têm tudo incluído, sem cobrança por módulo. O valor é sob consulta e varia conforme o número de usuários; as opções estão na página de planos.',
+            'a' => 'Não. O CRM faz parte da plataforma Yuris, junto com gestão de processos, intimações, tarefas, financeiro e WhatsApp integrado, os planos têm tudo incluído, sem cobrança por módulo. O valor é sob consulta e varia conforme o número de usuários; as opções estão na página de planos.',
         ],
     ],
 

@@ -12,8 +12,7 @@
 
 require_once __DIR__ . '/../includes/site_chrome.php';  // wa(), $waSvg, ys_header(), ys_footer(), ys_css()
 require_once __DIR__ . '/partials/_render.php';         // helpers de render (lp2_split, lp2_head, lp2_wa_btn…)
-require_once __DIR__ . '/partials/_ilustracoes.php';    // lp2_ill() — ilustrações SVG animadas por módulo
-require_once __DIR__ . '/partials/_cenas.php';          // lp2_scene(): mini-demonstrações de produto
+require_once __DIR__ . '/partials/_cenas.php';          // lp2_scene(): ilustrações de produto (nunca a tela real)
 $content = require __DIR__ . '/data/content.php';
 
 $jsVer = ys_asset_ver('assets/site/site.js');
@@ -49,33 +48,28 @@ $SEO = [
     'jsonld'      => $schemas,
     'fonts'       => YS_FONT_URL,
     'theme_color' => '#102A46',
-    'css'         => ys_css(['site-home.css', 'site-product.css']),
+    'css'         => ys_css(['site-home.css']),
+    'preload_img' => ['/assets/site/img/hero.webp?v=' . ys_asset_ver('assets/site/img/hero.webp')],
 ];
 
-/* Ordem das seções (IDs preservados da v1). Vão sendo adicionadas conforme
-   a construção avança; o hero é a primeira a entrar. */
+/* Ordem das seções. São 13, cada uma com um papel (13/11/2026): a primeira dobra, cinco
+   destaques (cada um com a ilustração de um recurso), automações, o antes e depois,
+   segurança, para quem, a origem da marca, perguntas e o convite. Os ids antigos continuam
+   valendo como endereço. O site nunca mostra a tela real do sistema (ver _cenas.php). */
 $secoes = [
-    'secao-01-hero',
-    'secao-03-produto',
-    'secao-04-dores',
-    'secao-05-recursos',
-    'secao-06-funcionalidades',
-    'secao-07-juridico',
-    'secao-08-intimacoes',
-    'secao-09-comunicacao',
-    'secao-10-operacao',
-    'secao-11-gestao',
-    'secao-11b-vinculos',
-    'secao-12-automacao',
-    'secao-13-seguranca',
-    'secao-14-dashboards',
-    'secao-15-integracoes',
-    'secao-16-comparativo',
-    'secao-17-para-quem',
-    'secao-18-confianca',
-    'secao-02-origem',
-    'secao-19-faq',
-    'secao-20-demonstracao',
+    'secao-01-hero',          // #inicio
+    'secao-07-juridico',      // #juridico, #recursos, #produto
+    'secao-08-intimacoes',    // #intimacoes
+    'secao-10-operacao',      // #operacao, #comunicacao, #cliente
+    'secao-11-gestao',        // #gestao, #vinculos
+    'secao-14-dashboards',    // #dashboards
+    'secao-12-automacao',     // #automacao, #integracoes
+    'secao-04-dores',         // #dores, #comparativo: sem sistema / com o Yuris
+    'secao-13-seguranca',     // #seguranca
+    'secao-17-para-quem',     // #para-quem
+    'secao-02-origem',        // #origem
+    'secao-19-faq',           // #faq
+    'secao-20-demonstracao',  // #demonstracao
 ];
 ?><!doctype html>
 <html lang="pt-BR" class="no-js">

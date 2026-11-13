@@ -1,30 +1,15 @@
 <?php
-/**
- * secao-11-gestao.php, #gestao
- * Composição central: a cena no meio, com dois itens de cada lado. É a imagem do
- * argumento: a gestão no centro enxergando as pontas.
- */
-$bullets = [
-  'Matriz com visão consolidada e controle total',
-  'Filiais com equipes e advogados próprios',
-  'Advogados associados com vínculo independente',
-  'Permissões e identificação de origem por escopo',
-];
-?>
-<section id="gestao" class="ys-section ys-bg-2">
-  <div class="ys-container">
-    <?php lp2_head('Gestão', 'Cada pessoa vê o que precisa. A gestão enxerga o que importa.', 'O Yuris foi pensado para operações com matriz, filiais, advogados e equipes diferentes, mantendo controle de acesso, identificação de origem e rastreabilidade.', 'center'); ?>
-    <div class="ys-orbit">
-      <ul class="ys-orbit-col ys-reveal">
-        <li><?= $bullets[0] ?></li>
-        <li><?= $bullets[1] ?></li>
-      </ul>
-      <div class="ys-orbit-mid ys-reveal" style="--d:.1s"><?= lp2_scene('gestao') ?></div>
-      <ul class="ys-orbit-col ys-reveal" style="--d:.2s">
-        <li><?= $bullets[2] ?></li>
-        <li><?= $bullets[3] ?></li>
-      </ul>
-    </div>
-    <div class="ys-section-cta ys-reveal"><?= lp2_wa_btn('Olá Bruno, quero organizar matriz, filial e permissões no Yuris!', 'Configurar matriz e filial') ?></div>
-  </div>
-</section>
+/** secao-11-gestao.php, #gestao (e #vinculos): matriz, filiais e advogados, com a ilustração de quem vê o quê. */
+require_once __DIR__ . '/_cenas.php';
+lp2_spot([
+  'id' => 'gestao', 'flip' => true, 'cena' => 'estrutura', 'ancoras' => ['vinculos'],
+  'h2' => 'Cada pessoa vê o que precisa. A gestão enxerga o que importa.',
+  'lede' => 'Matriz, filiais e advogados associados trabalham juntos sem se misturar. Cada processo fica ligado a quem é responsável, com permissão por escopo e rastreabilidade de ponta a ponta.',
+  'itens' => [
+    'Matriz com visão consolidada e controle total',
+    'Filiais com equipes e advogados próprios',
+    'Advogado associado vinculado só aos processos dele',
+    'Permissões por perfil, módulo e escopo',
+  ],
+  'wa' => ['Olá Bruno, quero organizar matriz, filial e permissões no Yuris!', 'Organizar minha estrutura'],
+]);

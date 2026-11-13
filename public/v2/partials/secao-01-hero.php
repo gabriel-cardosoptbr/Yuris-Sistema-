@@ -32,6 +32,7 @@ $temFoto = is_file(__DIR__ . '/../../assets/site/img/hero.webp');
             <?= htmlspecialchars($h['cta_ghost_label'], ENT_QUOTES, 'UTF-8') ?>
           </a>
         </div>
+        <?php if (!empty($h['nota'])): ?><p class="ys-hero-nota"><?= htmlspecialchars($h['nota'], ENT_QUOTES, 'UTF-8') ?></p><?php endif; ?>
       </div>
 
       <div class="ys-hero-art<?= $temFoto ? ' has-photo' : '' ?>">

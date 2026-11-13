@@ -1,10 +1,13 @@
 /* =============================================================================
    site-motion.css — movimento do site público. Só CSS, sem biblioteca.
 
-   O que tem aqui: transição entre páginas, entrada da página, coreografia do
-   hero, escalonamento das listas, brilho dos botões, abas, cabeçalho que encolhe
-   e as cenas de produto (barras, linha, funil, nós). O site.js só liga classes e
-   mede posições; quem anima é este arquivo.
+   A regra (13/11/2026): movimento pequeno e com função, como no sistema.
+     · o que entra na tela sobe poucos pixels e aparece (ys-reveal, site.css);
+     · o que responde ao ponteiro muda de cor, de borda ou sobe 2 px;
+     · nada pisca, flutua ou se repete sozinho, a não ser o zoom muito lento da
+       foto do hero;
+     · o título principal NUNCA nasce invisível: ele é a maior peça da primeira
+       dobra, e escondê-lo atrasava a pintura medida pelos buscadores (LCP).
 
    Tudo dentro de prefers-reduced-motion: no-preference. Sem preferência de
    movimento, nada se move e nada nasce escondido.
@@ -14,18 +17,10 @@
 
   /* ---------- Transição entre páginas (navegadores com View Transitions) ---------- */
   @view-transition { navigation: auto; }
-  ::view-transition-old(root) { animation: ys-vt-out .26s var(--ys-ease) both; }
-  ::view-transition-new(root) { animation: ys-vt-in .46s var(--ys-ease) both; }
-  @keyframes ys-vt-out { to { opacity: 0; transform: translateY(-10px); } }
-  @keyframes ys-vt-in { from { opacity: 0; transform: translateY(14px); } }
-
-  /* Sem View Transitions: a página entra em fade e, ao clicar num link interno,
-     sai em fade antes de navegar (site.js põe .is-leaving). */
-  html.js body.ys > main, html.js body.ys > footer { animation: ys-page-in .6s var(--ys-ease) both; }
-  html.js body.ys > footer { animation-delay: .1s; }
-  html.js body.ys.is-leaving > main, html.js body.ys.is-leaving > footer, html.js body.ys.is-leaving > header { animation: ys-page-out .22s var(--ys-ease) forwards; }
-  @keyframes ys-page-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
-  @keyframes ys-page-out { to { opacity: 0; transform: translateY(-8px); } }
+  ::view-transition-old(root) { animation: ys-vt-out .22s var(--ys-ease) both; }
+  ::view-transition-new(root) { animation: ys-vt-in .38s var(--ys-ease) both; }
+  @keyframes ys-vt-out { to { opacity: 0; } }
+  @keyframes ys-vt-in { from { opacity: 0; transform: translateY(8px); } }
 
   /* ---------- Cabeçalho ---------- */
   body.ys .ys-header { transition: height .3s var(--ys-ease), border-color .25s, box-shadow .25s, background .25s; }
@@ -35,94 +30,55 @@
   body.ys .ys-nav a::after { content: ''; position: absolute; left: 14px; right: 14px; bottom: 6px; height: 2px; border-radius: 2px; background: var(--ys-blue); transform: scaleX(0); transform-origin: left; transition: transform .3s var(--ys-ease); }
   body.ys .ys-nav a:hover::after, body.ys .ys-nav a.is-active::after { transform: scaleX(1); }
 
-  /* ---------- Hero: coreografia de entrada ---------- */
-  html.js body.ys .ys-hero-text > * { animation: ys-up .8s var(--ys-ease) both; }
-  html.js body.ys .ys-hero-text > :nth-child(1) { animation-delay: .05s; }
-  html.js body.ys .ys-hero-text > :nth-child(2) { animation-delay: .15s; }
-  html.js body.ys .ys-hero-text > :nth-child(3) { animation-delay: .28s; }
-  html.js body.ys .ys-hero-text > :nth-child(4) { animation-delay: .4s; }
-  html.js body.ys .ys-hero-art { animation: ys-art 1s var(--ys-ease) .2s both; }
-  html.js body.ys .ys-strip li { animation: ys-up .7s var(--ys-ease) both; }
-  html.js body.ys .ys-strip li:nth-child(1) { animation-delay: .7s; }
-  html.js body.ys .ys-strip li:nth-child(2) { animation-delay: .8s; }
-  html.js body.ys .ys-strip li:nth-child(3) { animation-delay: .9s; }
-  html.js body.ys .ys-strip li:nth-child(4) { animation-delay: 1s; }
-  body.ys .ys-hero-photo { animation: ys-kenburns 22s ease-in-out infinite alternate; }
-  html.js body.ys .ys-pagehero > .ys-container > * > * { animation: ys-up .7s var(--ys-ease) both; }
-  html.js body.ys .ys-pagehero-art { animation: ys-art .9s var(--ys-ease) .25s both; }
+  /* ---------- Hero ----------
+     O título pinta na hora, parado. O apoio, os botões, a foto e a faixa chegam em
+     seguida, cada um um passo depois do outro. */
+  html.js body.ys .ys-hero-text > :not(.ys-h1) { animation: ys-up .6s var(--ys-ease) both; }
+  html.js body.ys .ys-hero-text > :nth-child(2) { animation-delay: .08s; }
+  html.js body.ys .ys-hero-text > :nth-child(3) { animation-delay: .16s; }
+  html.js body.ys .ys-hero-art { animation: ys-art .8s var(--ys-ease) .1s both; }
+  html.js body.ys .ys-strip { animation: ys-up .6s var(--ys-ease) .3s both; }
+  body.ys .ys-hero-photo { animation: ys-kenburns 26s ease-in-out infinite alternate; }
+  html.js body.ys .ys-pagehero > .ys-container > * > :not(h1) { animation: ys-up .6s var(--ys-ease) both; }
+  /* Nas páginas de soluções a ilustração está na primeira dobra: nasce inteira e visível
+     (só sobe um pouco), para não atrasar a pintura principal da página. */
+  html.js body.ys .ys-pagehero-art { animation: ys-sobe .7s var(--ys-ease) both; }
+  html.js body.ys .ys-pagehero-art .ys-reveal, html.js body.ys .ys-pagehero-art .ys-cena [style*="--i"] { opacity: 1; transform: none; transition: none; }
+  html.js body.ys .ys-pagehero-art .ys-cena .ys-c-col-b i { transform: none; transition: none; }
+  html.js body.ys .ys-pagehero-art .ys-cena .ys-c-barra i { width: var(--p); transition: none; }
 
-  @keyframes ys-up { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
-  @keyframes ys-art { from { opacity: 0; transform: translateY(28px) scale(.985); } to { opacity: 1; transform: none; } }
-  @keyframes ys-pop { from { opacity: 0; transform: translateY(10px) scale(.9); } to { opacity: 1; transform: none; } }
-  @keyframes ys-float { 0%, 100% { translate: 0 0; } 50% { translate: 0 -7px; } }
-  @keyframes ys-kenburns { from { transform: scale(1); } to { transform: scale(1.05); } }
+  @keyframes ys-sobe { from { transform: translateY(14px); } to { transform: none; } }
+  @keyframes ys-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes ys-art { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+  @keyframes ys-kenburns { from { transform: scale(1); } to { transform: scale(1.04); } }
 
   /* ---------- Botões: brilho que atravessa no hover ---------- */
   body.ys .ys-btn { position: relative; overflow: hidden; isolation: isolate; }
-  body.ys .ys-btn::after { content: ''; position: absolute; top: -20%; bottom: -20%; left: -70%; width: 45%; transform: skewX(-22deg); background: linear-gradient(100deg, transparent, rgba(255,255,255,.38), transparent); transition: left .55s var(--ys-ease); pointer-events: none; }
+  body.ys .ys-btn::after { content: ''; position: absolute; top: -20%; bottom: -20%; left: -70%; width: 45%; transform: skewX(-22deg); background: linear-gradient(100deg, transparent, rgba(255,255,255,.3), transparent); transition: left .55s var(--ys-ease); pointer-events: none; z-index: -1; }
   body.ys .ys-btn:hover::after { left: 135%; }
-  body.ys .ys-btn-ghost::after { background: linear-gradient(100deg, transparent, rgba(39,100,180,.14), transparent); }
+  body.ys .ys-btn-ghost::after { background: linear-gradient(100deg, transparent, rgba(39,100,180,.12), transparent); }
   body.ys .ys-link svg { transition: transform .3s var(--ys-ease); }
 
-  /* ---------- Cards e listas: entrada escalonada (site.js dá o --d) ---------- */
-  body.ys .ys-card, body.ys .ys-integra-card, body.ys .ys-related-grid a, body.ys .ys-minis li, body.ys .ys-orbit-col li { transition: transform .35s var(--ys-ease), box-shadow .35s var(--ys-ease), border-color .35s, background .35s; }
-  body.ys .ys-ico { transition: transform .35s var(--ys-ease), background .3s, color .3s; }
-  body.ys .ys-card:hover .ys-ico, body.ys .ys-integra-card:hover .ys-integra-ic { transform: translateY(-3px) rotate(-4deg); }
-  body.ys .ys-integra-ic { transition: transform .35s var(--ys-ease); }
-  body.ys .ys-ruled-cell svg { transition: transform .35s var(--ys-ease), color .3s; }
-  body.ys .ys-ruled-cell:hover svg { transform: scale(1.12); }
-  body.ys .ys-pilares li { transition: border-color .3s; }
-  body.ys .ys-pilares li:hover { border-top-color: var(--ys-blue); }
-  body.ys .ys-pilar-n { transition: transform .35s var(--ys-ease); display: inline-block; }
-  body.ys .ys-pilares li:hover .ys-pilar-n { transform: translateX(6px); }
+  /* ---------- Cartões clicáveis: sobem 2 px, como no sistema ---------- */
+  body.ys .ys-card, body.ys .ys-related-grid a { transition: transform .3s var(--ys-ease), box-shadow .3s var(--ys-ease), border-color .3s, background .3s; }
 
-  /* Letras do YURIS gigante entram uma a uma */
-  html.js body.ys .ys-origem-word span { display: inline-block; opacity: 0; transform: translateY(.22em); transition: opacity .7s var(--ys-ease), transform .7s var(--ys-ease); transition-delay: var(--d, 0s); }
+  /* ---------- Ilustrações de produto: as peças entram em sequência, uma vez ----------
+     Cada peça traz a sua ordem em --i (posta no HTML). A cena inteira já sobe com o
+     ys-reveal; aqui as peças de dentro chegam uma depois da outra, contando a ideia:
+     a publicação, a seta, o prazo. Nada fica repetindo. */
+  html.js body.ys .ys-cena [style*="--i"] { opacity: 0; transform: translateY(10px); transition: opacity .5s var(--ys-ease), transform .5s var(--ys-ease); transition-delay: calc(var(--i) * 110ms + 180ms); }
+  html.js body.ys .ys-cena.is-in [style*="--i"] { opacity: 1; transform: none; }
+  /* As barras crescem de baixo para cima e a faixa de parcelas enche. */
+  html.js body.ys .ys-cena .ys-c-col-b i { opacity: 1; transform: scaleY(0); transform-origin: bottom; transition: transform .7s var(--ys-ease); transition-delay: calc(var(--i) * 90ms + 200ms); }
+  html.js body.ys .ys-cena.is-in .ys-c-col-b i { transform: scaleY(1); }
+  html.js body.ys .ys-cena .ys-c-barra i { width: 0; transition: width 1s var(--ys-ease) 1s; }
+  html.js body.ys .ys-cena.is-in .ys-c-barra i { width: var(--p); }
+
+  /* ---------- Letras do YURIS gigante entram uma a uma ---------- */
+  html.js body.ys .ys-origem-word span { display: inline-block; opacity: 0; transform: translateY(.18em); transition: opacity .7s var(--ys-ease), transform .7s var(--ys-ease); transition-delay: var(--d, 0s); }
   html.js body.ys .ys-origem-word.is-in span { opacity: 1; transform: none; }
 
-  /* ---------- Abas ---------- */
-  body.ys .ys-tour-item { transition: background .35s var(--ys-ease), border-color .35s, color .35s, transform .35s var(--ys-ease), box-shadow .35s; }
-  @media (min-width: 1080px) { body.ys .ys-tour-item.is-active { transform: translateX(8px); } }
-  body.ys .ys-pane.is-active { animation: ys-pane .5s var(--ys-ease); }
-  @keyframes ys-pane { from { opacity: 0; transform: translateY(10px) scale(.995); } to { opacity: 1; transform: none; } }
-  body.ys .ys-vit-tab { transition: background .3s, color .3s, box-shadow .3s, transform .3s var(--ys-ease); }
-  body.ys .ys-vit-tab:active { transform: scale(.97); }
-
   /* ---------- FAQ ---------- */
-  body.ys .ys-faq .ys-faq-a { animation: ys-faq .4s var(--ys-ease); }
+  body.ys .ys-faq .ys-faq-a { animation: ys-faq .35s var(--ys-ease); }
   @keyframes ys-faq { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
-
-  /* ---------- Cenas de produto ---------- */
-  /* Barras crescem quando a cena toca */
-  body.ys .lp2-demo .dm-bar > b { transform-origin: bottom; transition: transform .9s var(--ys-ease); transition-delay: calc(var(--i, 0) * .09s + .3s); }
-  body.ys .lp2-demo.is-armed:not(.is-playing) .dm-bar > b { transform: scaleY(.06); }
-  /* Linha do gráfico se desenha (site.js mede o comprimento) */
-  body.ys .lp2-demo .dm-line-path { transition: stroke-dashoffset 1.6s var(--ys-ease) .35s; }
-  body.ys .lp2-demo .dm-line-area { transition: opacity 1s var(--ys-ease) 1.2s; }
-  body.ys .lp2-demo.is-armed:not(.is-playing) .dm-line-area { opacity: 0; }
-  /* Números sobem contando (site.js) e piscam de leve ao chegar */
-  body.ys .lp2-demo [data-c], body.ys .lp2-demo [data-k] { font-variant-numeric: tabular-nums; }
-  /* Funil: o lead atravessa as colunas e vira cliente (site.js dá o percurso) */
-  body.ys .dm-funnel .dm-lead { will-change: transform; }
-  body.ys .dm-funnel.is-playing .dm-funnel-done { animation: ys-done 7s var(--ys-ease) infinite; }
-  @keyframes ys-done { 0%, 62% { opacity: 0; transform: translateY(6px); } 72%, 92% { opacity: 1; transform: none; } 100% { opacity: 0; } }
-  /* Automações: cada nó acende em sequência, em laço */
-  body.ys .dm-auto.is-playing .dm-node { animation: ys-node 3.6s var(--ys-ease) infinite; }
-  body.ys .dm-auto.is-playing .dm-node:nth-child(2) { animation-delay: .5s; }
-  body.ys .dm-auto.is-playing .dm-node:nth-child(3) { animation-delay: 1s; }
-  @keyframes ys-node { 0%, 18%, 100% { border-color: #D3E3F8; box-shadow: none; } 28%, 60% { border-color: var(--ys-blue); box-shadow: 0 0 0 4px rgba(39,100,180,.14); } }
-  body.ys .dm-auto.is-playing .dm-event { animation: ys-event 3.6s var(--ys-ease) infinite; }
-  @keyframes ys-event { 0%, 100% { box-shadow: 0 0 0 0 rgba(39,100,180,.28); } 10% { box-shadow: 0 0 0 10px rgba(39,100,180,0); } }
-  /* Gestão: o seletor desliza (site.js troca o escopo e os números) */
-  body.ys .dm-seg-thumb { transition: transform .5s var(--ys-ease); }
-  body.ys .dm-seg-i { transition: color .3s; }
-  /* Vitrine do CTA: os quadros entram deslizando */
-  body.ys .dm-frame { transition: opacity .6s var(--ys-ease), transform .6s var(--ys-ease); transform: translateX(18px); }
-  html.js body.ys .dm-frame.is-on { transform: none; }
-  /* Selos das cenas: leve respiração */
-  body.ys .dm-flag { animation: ys-breathe 3s ease-in-out infinite; }
-  @keyframes ys-breathe { 0%, 100% { opacity: 1; } 50% { opacity: .72; } }
 }
-
-/* O lead do funil: posição controlada pelo site.js em qualquer preferência de movimento. */
-body.ys .dm-funnel .dm-lead { transition: transform .55s var(--ys-ease), border-color .3s; }
