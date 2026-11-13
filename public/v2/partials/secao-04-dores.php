@@ -2,8 +2,8 @@
 /**
  * secao-04-dores.php, #dores
  * 8 dores do escritório (texto preservado), em composição editorial: o título
- * fica parado numa coluna enquanto a lista numerada corre na outra, separada por
- * linhas finas. De propósito não são cards: é a seção que quebra o ritmo da
+ * fica parado numa coluna enquanto a lista corre na outra, separada por linhas
+ * finas. Sem numeração 01, 02... (13/11/2026: "cara de IA"). De propósito não são cards: é a seção que quebra o ritmo da
  * grade.
  */
 $pains = [
@@ -21,21 +21,19 @@ $pains = [
   <div class="ys-container">
     <div class="ys-dores">
       <div class="ys-dores-side ys-reveal">
-        <span class="ys-eyebrow">Por que existir</span>
         <h2 class="ys-h2">Quando a operação jurídica cresce sem sistema, o controle se perde.</h2>
         <p class="ys-lede">Com o Yuris, cada processo, tarefa, intimação e atendimento ganha contexto, responsável e histórico.</p>
         <?= lp2_wa_btn('Olá Bruno, quero resolver essas dores no meu escritório com o Yuris!', 'Resolver isso no meu escritório') ?>
       </div>
 
-      <ol class="ys-dores-list">
-        <?php foreach ($pains as $i => [$titulo, $desc]): ?>
+      <ul class="ys-dores-list">
+        <?php foreach ($pains as [$titulo, $desc]): ?>
         <li class="ys-reveal">
-          <span class="ys-dores-n"><?= str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT) ?></span>
           <h3><?= $titulo ?></h3>
           <p><?= $desc ?></p>
         </li>
         <?php endforeach; ?>
-      </ol>
+      </ul>
     </div>
   </div>
 </section>

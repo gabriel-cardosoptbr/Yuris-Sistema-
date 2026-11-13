@@ -908,15 +908,29 @@ pinta um card por composição, no máximo (Jurídico no mosaico, Equipe nos pla
 **O sistema interno não carrega nada disso**: tudo está sob `body.ys`, e os tokens
 são `--ys-*`. `login.php`, painel e `index-v1-legacy.php` não mudaram.
 
+**Sem os enfeites com cara de IA** (13/11/2026, "isso aí é tudo cara de Claude, está horrível").
+Saíram do site e não voltam:
+- **legenda em caixa-alta com tracinho acima do título** (a antiga `.ys-eyebrow`, que estava em 22 seções,
+  nas páginas de soluções e no 404). A seção se apresenta pelo próprio título. "Enterprise", nos
+  planos, é o nome do plano, e por isso ficou como rótulo simples (`.pl-ent-rotulo`);
+- no hero, as **etiquetas com ícone em quadradinho flutuando na foto**;
+- o **painel falso do sistema**, com as três bolinhas de janela e a barra lateral de tracinhos;
+- o **ícone em quadradinho** na faixa de garantias. O hero ficou só com o texto, a foto e a faixa;
+- a **numeração 01, 02...** na lista de dores, no tour "O Yuris por dentro", na vitrine de
+  funcionalidades ("01 / 12") e nos quatro itens da Gestão;
+- as **bolinhas de assentos** embaixo de "até N usuários" nos planos (`pl_assentos()` saiu);
+- as **três bolinhas de janela** na barra de título das cenas (`.lp2-demo::after`, desligado em
+  `site-product.css`).
+
 | Arquivo | Papel |
 |---|---|
 | `site.css` | tokens, botões, cabeçalho, rodapé, cards, FAQ, prosa e o template das páginas de SEO |
 | `site-home.css` | as composições da home, cada seção com a sua forma |
-| `site-product.css` | as cenas de produto (`lp2_scene`), cópia de `v2/css/demos.css` reescopada. O bloco final remapeia as variáveis `--lp2-*` para a paleta clara: a janela do produto é branca, como a do hero |
+| `site-product.css` | as cenas de produto (`lp2_scene`), cópia de `v2/css/demos.css` reescopada. O bloco final remapeia as variáveis `--lp2-*` para a paleta clara: a janela do produto é branca |
 | `site-motion.css` | todo o movimento: transição entre páginas (View Transitions, com fade por JS onde não há), coreografia do hero, escalonamento das listas, brilho dos botões, abas, cabeçalho que encolhe e as cenas (barras, linha, funil, nós). Tudo dentro de `prefers-reduced-motion: no-preference` |
 | `site-legal.css` | coluna de leitura de `includes/legal_page.php` e as classes `legal-*` de `/lgpd/solicitar` e `/lgpd/acompanhar`, em tema claro. Carregado só por esse layout |
 | `site.js` | vanilla, sem dependências: header, drawer, abas, entrada de conteúdo, vitrine, e o que o CSS não mede (atraso por filho, letras do YURIS, números que contam, funil, escopo, saída de página). Substitui GSAP, Lenis e Motion da versão anterior |
-| `img/hero.webp` | foto do hero, gerada por IA (pessoa fictícia), 1280x1440. `secao-01-hero.php` a usa sozinho quando o arquivo existe (painel com `.has-photo`); sem ele, fica o painel azul. A foto termina em `#05152C`, a cor do fundo do painel: foto nova tem de terminar na mesma cor, ou a emenda aparece |
+| `img/hero.webp` | foto do hero, gerada por IA (pessoa fictícia), 1280x1440. `secao-01-hero.php` a usa sozinho quando o arquivo existe (painel com `.has-photo`); sem ele, fica o painel azul, só com as linhas de arquitetura. A foto termina em `#05152C`, a cor do fundo do painel: foto nova tem de terminar na mesma cor, ou a emenda aparece |
 
 `includes/site_chrome.php` tem `ys_header()`, `ys_footer()` e `ys_css()`, os mesmos
 em toda página pública. `includes/seo_page.php` monta sozinho a cena do hero (pelo

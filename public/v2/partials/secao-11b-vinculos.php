@@ -9,7 +9,6 @@ require_once __DIR__ . '/_cenas.php';
   <div class="ys-container">
     <div class="ys-split ys-split--mat-right">
       <div class="ys-reveal">
-        <span class="ys-eyebrow">Vínculos e Colaboração</span>
         <h2 class="ys-h2">O processo certo, com os advogados certos.</h2>
         <p class="ys-lede">Matriz, filiais e advogados associados trabalham juntos sem se misturar. Cada processo fica ligado a quem é responsável, com permissões por escopo e rastreabilidade de ponta a ponta.</p>
         <div class="ys-cta-row ys-mt"><?= lp2_wa_btn('Olá Bruno, quero organizar a estrutura jurídica do meu escritório no Yuris!', 'Organizar minha estrutura jurídica') ?></div>

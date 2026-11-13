@@ -4,32 +4,16 @@
  *
  * Composição assimétrica: texto à esquerda; à direita um painel azul-marinho
  * com linhas de arquitetura (a "estrutura" do H1: arcos e colunas), a janela do
- * sistema saindo do painel e quatro marcadores em posições fixas. É uma peça
- * só, não um dashboard ao lado de um título.
+ * sistema saindo do painel. É uma peça só, não um dashboard ao lado de um título.
+ *
+ * Sem legenda com tracinho acima do H1, sem etiquetas com ícone flutuando na foto,
+ * sem as três bolinhas de janela e sem ícone em quadradinho na faixa de garantias
+ * (13/11/2026: "isso aí é tudo cara de IA").
  *
  * Os números são os mesmos da versão anterior, DE DEMONSTRAÇÃO, e a legenda diz
  * isso. Sem .ys-reveal de propósito: a primeira dobra pinta sem esperar o JS.
  */
 $h = $content['hero'];
-
-/* Ícones pareados por índice com hero.trust do content.php. */
-$trustIcons = [
-    '<path d="M12 2L4 6v6c0 5 3.5 9.5 8 11 4.5-1.5 8-6 8-11V6l-8-4z"/>',
-    '<circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/>',
-    '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
-    '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
-];
-
-/* Ícones dos marcadores, pareados com hero.chips. */
-$chipIcons = [
-    '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
-    '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
-    '<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
-    '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
-];
-
-/* Barras do gráfico da janela: as mesmas alturas relativas do mockup anterior. */
-$barras = [70, 95, 108, 130, 88, 115, 140, 100];
 
 /* Foto do hero: entra sozinha quando o arquivo existir; sem ele, fica o painel. */
 $temFoto = is_file(__DIR__ . '/../../assets/site/img/hero.webp');
@@ -39,7 +23,6 @@ $temFoto = is_file(__DIR__ . '/../../assets/site/img/hero.webp');
     <div class="ys-hero-grid">
 
       <div class="ys-hero-text">
-        <span class="ys-eyebrow"><?= htmlspecialchars($h['eyebrow'], ENT_QUOTES, 'UTF-8') ?></span>
         <h1 class="ys-h1"><?= str_replace(['<em>', '</em>'], ['<em class="ys-hl">', '</em>'], $h['h1_html']) ?></h1>
         <p class="ys-lede"><?= htmlspecialchars($h['sub'], ENT_QUOTES, 'UTF-8') ?></p>
 
@@ -67,55 +50,13 @@ $temFoto = is_file(__DIR__ . '/../../assets/site/img/hero.webp');
           </g>
         </svg>
 
-        <div class="ys-win" aria-hidden="true">
-          <div class="ys-win-bar"><i></i><i></i><i></i><span>Yuris · Painel</span></div>
-          <div class="ys-win-body">
-            <div class="ys-win-side">
-              <b></b><u></u><u class="on"></u><u></u><u></u><u></u><u></u>
-            </div>
-            <div class="ys-win-main">
-              <div class="ys-win-kpis">
-                <div><small>Processos</small><strong>38</strong></div>
-                <div class="on"><small>Prazos hoje</small><strong>12</strong></div>
-                <div><small>Intimações</small><strong>7</strong></div>
-              </div>
-              <div class="ys-win-lower">
-                <div class="ys-win-chart">
-                  <?php foreach ($barras as $i => $b): ?>
-                  <span style="height:<?= round($b / 140 * 100) ?>%"<?= in_array($i, [3, 6], true) ? ' class="on"' : '' ?>></span>
-                  <?php endforeach; ?>
-                </div>
-                <ul class="ys-win-list">
-                  <li><i class="a"></i><span></span></li>
-                  <li><i class="b"></i><span></span></li>
-                  <li><i class="c"></i><span></span></li>
-                  <li><i class="a"></i><span></span></li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="ys-hero-chips" aria-hidden="true">
-          <?php foreach ($h['chips'] as $i => $chip): ?>
-          <div class="ys-chip ys-chip-<?= $i + 1 ?>">
-            <span class="ys-chip-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><?= $chipIcons[$i] ?? '' ?></svg></span>
-            <span><?= $chip['n'] !== '' ? $chip['n'] . ' ' : '' ?><?= $chip['label'] ?></span>
-          </div>
-          <?php endforeach; ?>
-        </div>
-
-        <p class="ys-hero-note">Dados de demonstração</p>
       </div>
 
     </div>
 
     <ul class="ys-strip">
-      <?php foreach ($h['trust'] as $i => $t): ?>
-      <li>
-        <span class="ys-strip-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $trustIcons[$i] ?? '' ?></svg></span>
-        <?= htmlspecialchars($t, ENT_QUOTES, 'UTF-8') ?>
-      </li>
+      <?php foreach ($h['trust'] as $t): ?>
+      <li><?= htmlspecialchars($t, ENT_QUOTES, 'UTF-8') ?></li>
       <?php endforeach; ?>
     </ul>
   </div>

@@ -16,7 +16,6 @@ require_once __DIR__ . '/_cenas.php';
   </svg>
   <div class="ys-container ys-final-grid">
     <div class="ys-reveal">
-      <span class="ys-eyebrow">Vamos conversar</span>
       <h2 class="ys-final-title">Pronto para organizar sua operação jurídica em uma única plataforma?</h2>
       <p class="ys-lede">Conheça o Yuris e veja como processos, prazos, intimações, comunicação e equipe podem trabalhar no mesmo fluxo.</p>
       <div class="ys-cta-row ys-mt">

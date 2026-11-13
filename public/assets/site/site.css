@@ -98,13 +98,8 @@ body.ys .ys-bg-navy h1, body.ys .ys-bg-navy h2, body.ys .ys-bg-navy h3, body.ys 
 body.ys .ys-bg-navy p { color: rgba(255,255,255,.72); }
 
 /* ---------- Tipografia editorial ---------- */
-body.ys .ys-eyebrow {
-  display: inline-flex; align-items: center; gap: 10px;
-  font-size: .78rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
-  color: var(--ys-blue); margin: 0 0 18px;
-}
-body.ys .ys-eyebrow::before { content: ''; width: 22px; height: 2px; background: currentColor; border-radius: 2px; }
-body.ys .ys-bg-navy .ys-eyebrow, body.ys .ys-on-navy .ys-eyebrow { color: var(--ys-blue-3); }
+/* Sem legenda em caixa-alta com tracinho acima do título (13/11/2026: "cara de IA").
+   A seção se apresenta pelo próprio título. */
 
 body.ys .ys-h1 { font-size: clamp(2.4rem, 4.3vw, 3.9rem); font-weight: 800; letter-spacing: -0.035em; line-height: 1.05; }
 body.ys .ys-h2 { font-size: clamp(1.9rem, 3.4vw, 3.1rem); letter-spacing: -0.03em; line-height: 1.08; }
@@ -310,7 +305,6 @@ body.ys .ys-cta { position: relative; overflow: hidden; border-radius: var(--ys-
 body.ys .ys-cta::before { content: ''; position: absolute; inset: 0; z-index: -1; background: radial-gradient(70% 120% at 100% 0%, rgba(58,125,211,.22), transparent 60%), radial-gradient(50% 80% at 0% 100%, rgba(255,255,255,.9), transparent 60%); }
 body.ys .ys-cta h2 { font-size: clamp(1.8rem, 3.4vw, 3rem); max-width: 20ch; margin-bottom: 16px; }
 body.ys .ys-cta p { max-width: 56ch; font-size: 1.08rem; }
-body.ys .ys-cta .ys-eyebrow { color: var(--ys-blue) !important; }
 
 /* ---------- Movimento ---------- */
 @keyframes ys-fade { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }

@@ -10,7 +10,6 @@
   <div class="ys-container">
     <div class="ys-origem-top">
       <div class="ys-reveal">
-        <span class="ys-eyebrow">A Origem</span>
         <h2 class="ys-h2">Yuris nasce da raiz do próprio <span class="ys-hl">Direito</span>.</h2>
       </div>
       <p class="ys-origem-manifesto ys-reveal" style="--d:.12s">

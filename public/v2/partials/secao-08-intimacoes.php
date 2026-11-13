@@ -16,7 +16,6 @@ $bullets = [
     <div class="ys-split ys-split--mat">
       <div class="ys-mat ys-reveal"><?= lp2_scene('intimacoes') ?></div>
       <div class="ys-reveal" style="--d:.12s">
-        <span class="ys-eyebrow">Intimações e prazos</span>
         <h2 class="ys-h2">Intimação recebida não pode virar informação perdida.</h2>
         <p class="ys-lede">Associe intimações ao processo correto, transforme prazos em tarefas e acompanhe responsáveis sem depender de memória, prints ou conversas soltas.</p>
         <?= lp2_checks($bullets) ?>

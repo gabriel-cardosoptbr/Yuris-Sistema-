@@ -9,7 +9,6 @@
   <div class="ys-container">
     <div class="ys-faqgrid">
       <div class="ys-faqgrid-side ys-reveal">
-        <span class="ys-eyebrow">Perguntas frequentes</span>
         <h2 class="ys-h2">O que todo escritório pergunta antes de conhecer o Yuris.</h2>
         <?= lp2_wa_btn('Olá Bruno, tenho algumas perguntas sobre o Yuris!', 'Tirar minhas dúvidas no WhatsApp') ?>
       </div>

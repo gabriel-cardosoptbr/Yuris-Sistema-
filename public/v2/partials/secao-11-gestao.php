@@ -16,13 +16,13 @@ $bullets = [
     <?php lp2_head('Gestão', 'Cada pessoa vê o que precisa. A gestão enxerga o que importa.', 'O Yuris foi pensado para operações com matriz, filiais, advogados e equipes diferentes, mantendo controle de acesso, identificação de origem e rastreabilidade.', 'center'); ?>
     <div class="ys-orbit">
       <ul class="ys-orbit-col ys-reveal">
-        <li><span>01</span><?= $bullets[0] ?></li>
-        <li><span>02</span><?= $bullets[1] ?></li>
+        <li><?= $bullets[0] ?></li>
+        <li><?= $bullets[1] ?></li>
       </ul>
       <div class="ys-orbit-mid ys-reveal" style="--d:.1s"><?= lp2_scene('gestao') ?></div>
       <ul class="ys-orbit-col ys-reveal" style="--d:.2s">
-        <li><span>03</span><?= $bullets[2] ?></li>
-        <li><span>04</span><?= $bullets[3] ?></li>
+        <li><?= $bullets[2] ?></li>
+        <li><?= $bullets[3] ?></li>
       </ul>
     </div>
     <div class="ys-section-cta ys-reveal"><?= lp2_wa_btn('Olá Bruno, quero organizar matriz, filial e permissões no Yuris!', 'Configurar matriz e filial') ?></div>

@@ -13,14 +13,6 @@
 require_once __DIR__ . '/includes/site_chrome.php';
 
 /** 20 lugares, com os do plano acesos. Decorativo: o texto do plano já diz o número. */
-function pl_assentos(int $lugares): string
-{
-    $h = '';
-    for ($i = 1; $i <= 20; $i++) {
-        $h .= $i <= $lugares ? '<i class="on"></i>' : '<i></i>';
-    }
-    return '<span class="pl-assentos" aria-hidden="true">' . $h . '</span>';
-}
 ?>
 <!doctype html>
 <html lang="pt-BR">
@@ -106,7 +98,6 @@ function pl_assentos(int $lugares): string
         </div>
         <div class="pl-equipe">
           <div class="pl-usuarios">até <strong>2</strong> usuários</div>
-          <?= pl_assentos(2) ?>
         </div>
         <div class="pl-valor">Valor sob consulta</div>
         <div class="pl-limites">
@@ -132,7 +123,6 @@ function pl_assentos(int $lugares): string
         </div>
         <div class="pl-equipe">
           <div class="pl-usuarios">até <strong>5</strong> usuários</div>
-          <?= pl_assentos(5) ?>
         </div>
         <div class="pl-valor">Valor sob consulta</div>
         <div class="pl-limites">
@@ -155,7 +145,6 @@ function pl_assentos(int $lugares): string
         </div>
         <div class="pl-equipe">
           <div class="pl-usuarios">até <strong>10</strong> usuários</div>
-          <?= pl_assentos(10) ?>
         </div>
         <div class="pl-valor">Valor sob consulta</div>
         <div class="pl-limites">
@@ -178,7 +167,6 @@ function pl_assentos(int $lugares): string
         </div>
         <div class="pl-equipe">
           <div class="pl-usuarios">até <strong>20</strong> usuários</div>
-          <?= pl_assentos(20) ?>
         </div>
         <div class="pl-valor">Valor sob consulta</div>
         <div class="pl-limites">
@@ -198,7 +186,7 @@ function pl_assentos(int $lugares): string
     <!-- Enterprise (sob consulta) -->
     <div class="enterprise-band">
       <div>
-        <div class="ys-eyebrow">Enterprise</div>
+        <div class="pl-ent-rotulo">Enterprise</div>
         <h2>Para operações que precisam do Yuris moldado a elas.</h2>
         <p>Acima de 20 usuários, com implantação assistida, migração dos seus dados e integração com os sistemas que seu escritório já usa. Escopo e mensalidade definidos junto com você.</p>
         <div class="pl-ent-acao">

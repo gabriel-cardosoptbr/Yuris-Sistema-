@@ -13,7 +13,6 @@ $personas = [
   <div class="ys-container">
     <div class="ys-quem">
       <div class="ys-reveal">
-        <span class="ys-eyebrow">Para quem é</span>
         <h2 class="ys-h2">O Yuris é para escritórios que precisam de controle.</h2>
         <p class="ys-lede">Diferentes perfis, uma mesma necessidade: organização e rastreabilidade.</p>
         <?= lp2_wa_btn('Olá Bruno, gostaria de saber se o Yuris atende o perfil do meu escritório!', 'Falar com a equipe Yuris') ?>

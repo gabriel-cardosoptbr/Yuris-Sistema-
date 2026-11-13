@@ -32,7 +32,6 @@ $itens = [
         <?php foreach ($itens as $i => [$id, $ic, $nome, $desc]): ?>
         <div class="ys-pane ys-vit-pane<?= $i === 0 ? ' is-active' : '' ?>" data-pane="<?= $id ?>">
           <div class="ys-vit-copy">
-            <span class="ys-vit-n"><?= str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT) ?> / <?= str_pad((string) count($itens), 2, '0', STR_PAD_LEFT) ?></span>
             <h3 class="ys-h3"><?= $nome ?></h3>
             <p><?= $desc ?></p>
           </div>

@@ -30,7 +30,6 @@ $cliente = [
   <div class="ys-container">
     <div class="ys-pair">
       <article id="operacao" class="ys-pair-item ys-reveal">
-        <span class="ys-eyebrow">Operação</span>
         <h2 class="ys-h3 ys-pair-title">Da primeira conversa ao processo: acompanhe tudo.</h2>
         <p>Organize a entrada de novos clientes, acompanhe oportunidades e conecte a prospecção à operação jurídica sem perder contexto.</p>
         <?= lp2_scene('operacao') ?>
@@ -39,7 +38,6 @@ $cliente = [
       </article>
 
       <article id="cliente" class="ys-pair-item is-tint ys-reveal" style="--d:.12s">
-        <span class="ys-eyebrow">Do lead ao cliente</span>
         <h2 class="ys-h3 ys-pair-title">O cliente fecha, e a história continua de onde parou.</h2>
         <p>Quando a prospecção vira cliente, nada é deixado para trás. O histórico não recomeça, e os processos, as conversas de WhatsApp, as tarefas, os documentos e o canal por onde aquela pessoa chegou seguem junto com ela.</p>
         <?= lp2_scene('cliente') ?>

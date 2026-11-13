@@ -15,7 +15,6 @@ $bullets = [
   <div class="ys-container">
     <div class="ys-panel ys-reveal">
       <div class="ys-panel-text">
-        <span class="ys-eyebrow">Automações</span>
         <h2 class="ys-h2">O Yuris não precisa trabalhar sozinho.</h2>
         <p class="ys-lede">Com webhooks, o escritório conecta o Yuris às suas automações externas, robôs, CRMs, ERPs e fluxos personalizados, disparando ações automáticas quando algo acontece no sistema.</p>
         <ul class="ys-panel-chips">

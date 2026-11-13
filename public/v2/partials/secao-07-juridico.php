@@ -17,7 +17,6 @@ $bullets = [
   <div class="ys-container">
     <div class="ys-split ys-split--wide-right">
       <div class="ys-reveal">
-        <span class="ys-eyebrow">Jurídico</span>
         <h2 class="ys-h2">Cada processo precisa contar sua própria história.</h2>
         <p class="ys-lede">No Yuris, processos não são apenas registros. Eles carregam histórico, responsáveis, vínculos, permissões e eventos importantes para que o escritório saiba exatamente o que aconteceu, quando aconteceu e quem realizou cada ação.</p>
         <?= lp2_rows($bullets) ?>

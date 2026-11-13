@@ -159,7 +159,6 @@ ys_header([
             <li aria-current="page"><?= $h($pgBreadcrumb) ?></li>
           </ol>
         </nav>
-        <?php if ($pgEyebrow): ?><span class="ys-eyebrow"><?= $h($pgEyebrow) ?></span><?php endif; ?>
         <h1><?= $h($pgH1) ?></h1>
         <?php if ($pgLede): ?><p class="ys-lede"><?= $h($pgLede) ?></p><?php endif; ?>
         <div class="ys-cta-row">
@@ -231,7 +230,6 @@ ys_header([
 <section class="ys-cta-wrap">
   <div class="ys-container">
     <div class="ys-cta">
-      <span class="ys-eyebrow">Vamos conversar</span>
       <h2><?= $h($pgCtaTitulo) ?></h2>
       <p><?= $h($pgCtaTexto) ?></p>
       <div class="ys-cta-row">

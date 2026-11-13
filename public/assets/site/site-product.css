@@ -316,7 +316,8 @@ body.ys .lp2-demo, body.ys .ys-dark {
 }
 body.ys .lp2-demo { background:#fff; border:1px solid var(--ys-line); }
 body.ys .lp2-demo::before { background:var(--ys-bg-2); border-bottom:1px solid var(--ys-line); }
-body.ys .lp2-demo::after { background:#CCD7E4; box-shadow:14px 0 0 #CCD7E4, 28px 0 0 #CCD7E4; opacity:1; }
+/* Sem as três bolinhas de janela na barra de título (13/11/2026: "cara de IA"). */
+body.ys .lp2-demo::after { content:none; }
 body.ys .dm-card, body.ys .dm-kpi, body.ys .dm-stat, body.ys .dm-chart, body.ys .dm-seg { background:var(--ys-bg-2); }
 body.ys .dm-msg.dm-out { color:#fff; }
 body.ys .dm-detail { background:var(--ys-tint); border-color:#D3E3F8; }

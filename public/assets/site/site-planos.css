@@ -36,9 +36,6 @@ body.ys .pl-usuarios { font-size: .92rem; font-weight: 600; color: var(--ys-ink-
 body.ys .pl-usuarios strong { font-size: clamp(2.6rem, 3.6vw, 3.25rem); font-weight: 800; letter-spacing: -0.04em; color: var(--ys-navy); line-height: 1; font-variant-numeric: tabular-nums; margin-inline: .02em .1em; }
 
 /* 20 lugares: os acesos são os do plano, então a escala se lê de coluna a coluna */
-body.ys .pl-assentos { display: grid; grid-template-columns: repeat(10, 8px); gap: 4px; width: max-content; margin-top: 12px; }
-body.ys .pl-assentos i { width: 8px; height: 8px; border-radius: 50%; background: var(--ys-line); }
-body.ys .pl-assentos i.on { background: var(--ys-blue); }
 
 body.ys .pl-valor { font-size: .9rem; font-weight: 700; color: var(--ys-ink); }
 
@@ -64,8 +61,6 @@ body.ys .pl-card.is-popular .pl-limites strong { color: #fff; }
 body.ys .pl-card.is-popular .pl-limites,
 body.ys .pl-card.is-popular .pl-limites div + div { border-color: rgba(255,255,255,.2); }
 body.ys .pl-card.is-popular .pl-limites div { color: rgba(255,255,255,.92); }
-body.ys .pl-card.is-popular .pl-assentos i { background: rgba(255,255,255,.22); }
-body.ys .pl-card.is-popular .pl-assentos i.on { background: #fff; }
 body.ys .pl-card.is-popular .pl-recursos li { color: #fff; }
 body.ys .pl-card.is-popular .pl-recursos li svg { color: #fff; background: rgba(255,255,255,.16); }
 body.ys .pl-selo { position: absolute; top: 28px; right: 24px; background: #fff; color: var(--ys-blue); }
@@ -73,7 +68,7 @@ body.ys .pl-selo { position: absolute; top: 28px; right: 24px; background: #fff;
 /* ---------- Enterprise: a base larga, abaixo das quatro colunas ---------- */
 body.ys .enterprise-band { position: relative; overflow: hidden; isolation: isolate; display: grid; gap: 28px; margin-top: 16px; padding: clamp(28px, 4.5vw, 56px); border-radius: var(--ys-r-lg); }
 body.ys .enterprise-band::before { content: ''; position: absolute; inset: 0; z-index: -1; background: radial-gradient(60% 120% at 100% 0%, rgba(58,125,211,.42), transparent 62%); }
-body.ys .enterprise-band .ys-eyebrow { margin-bottom: 14px; }
+body.ys .pl-ent-rotulo { font-size: .95rem; font-weight: 700; color: var(--ys-blue); margin-bottom: 10px; }
 body.ys .enterprise-band h2 { font-size: clamp(1.65rem, 2.7vw, 2.4rem); max-width: 22ch; margin-bottom: 14px; }
 body.ys .enterprise-band p { max-width: 58ch; margin: 0; }
 body.ys .pl-ent-acao { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 24px; margin-top: 24px; }
@@ -166,7 +161,6 @@ body.ys .enterprise-band { background: linear-gradient(135deg, var(--ys-tint) 0%
 body.ys .enterprise-band::before { display: none; }
 body.ys .enterprise-band h2, body.ys .enterprise-band h3 { color: var(--ys-ink); }
 body.ys .enterprise-band p { color: var(--ys-ink-2); }
-body.ys .enterprise-band .ys-eyebrow { color: var(--ys-blue); }
 body.ys .pl-ent-preco { color: var(--ys-navy); }
 body.ys .enterprise-band .ys-checks li { color: var(--ys-ink); }
 body.ys .enterprise-band .ys-checks li svg { background: #fff; color: var(--ys-blue); }

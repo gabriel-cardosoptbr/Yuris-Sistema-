@@ -15,7 +15,6 @@ $bullets = [
   <div class="ys-container">
     <div class="ys-split ys-split--wide-right">
       <div class="ys-reveal">
-        <span class="ys-eyebrow">Dashboards</span>
         <h2 class="ys-h2">O que não é medido vira ruído.</h2>
         <p class="ys-lede">Tenha uma visão clara da operação jurídica, acompanhe o volume de tarefas, processos, clientes e oportunidades em painéis objetivos.</p>
         <div class="ys-cta-row ys-mt"><?= lp2_wa_btn('Olá Bruno, quero ver os dashboards e indicadores do Yuris!', 'Ver indicadores em ação') ?></div>

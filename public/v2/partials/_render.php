@@ -28,7 +28,7 @@ if (!function_exists('lp2_head')) {
     function lp2_head(string $eyebrow, string $h2, string $sub = '', string $layout = 'split'): void {
         $cls = $layout === '' ? '' : ' is-' . $layout;
         if ($sub === '') $cls = $layout === 'center' ? ' is-center' : '';
-        echo '<div class="ys-head' . $cls . ' ys-reveal"><div><span class="ys-eyebrow">' . $eyebrow . '</span><h2 class="ys-h2">' . $h2 . '</h2></div>';
+        echo '<div class="ys-head' . $cls . ' ys-reveal"><div><h2 class="ys-h2">' . $h2 . '</h2></div>';
         if ($sub !== '') echo '<div><p class="ys-lede">' . $sub . '</p></div>';
         echo '</div>';
     }

@@ -24,7 +24,6 @@ $telas = [
       <div class="ys-tour-list" data-tablist aria-label="Telas do sistema">
         <?php foreach ($telas as $i => [$id, $ic, $nome, $desc]): ?>
         <button type="button" class="ys-tour-item<?= $i === 0 ? ' is-active' : '' ?>" data-target="<?= $id ?>">
-          <span class="ys-tour-n"><?= str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT) ?></span>
           <span class="ys-tour-t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $ic ?></svg><?= $nome ?></span>
           <span class="ys-tour-d"><?= $desc ?></span>
         </button>

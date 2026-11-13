@@ -35,7 +35,6 @@ $SEO = [
 <main id="conteudo">
 <section class="ys-pagehero ys-article">
   <div class="ys-container">
-    <span class="ys-eyebrow">Erro 404</span>
     <h1>Essa página não foi encontrada.</h1>
     <p class="ys-lede">O endereço pode ter mudado ou nunca existiu por aqui. Sem problema — estes são os caminhos mais úteis do Yuris:</p>
   </div>
